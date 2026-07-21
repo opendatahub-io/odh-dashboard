@@ -9,9 +9,9 @@ import {
   StackItem,
 } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
+import HeaderIcon from '@odh-dashboard/ui-core/design/HeaderIcon';
 import { ProjectObjectType, SectionType } from '#~/concepts/design/utils';
 import DividedGalleryItem from '#~/concepts/design/DividedGalleryItem';
-import HeaderIcon from '#~/concepts/design/HeaderIcon';
 
 type InfoGalleryItemProps = {
   title: string;

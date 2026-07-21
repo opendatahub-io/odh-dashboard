@@ -59,8 +59,8 @@ class ModelRegistry {
   }
 
   visit(registryName = 'modelregistry-sample') {
-    cy.visitWithLogin(`/ai-hub/registry/${registryName}`);
-    cy.findByTestId('app-page-title', { timeout: 60000 }).should('exist');
+    cy.visitWithLogin(`/ai-hub/models/registry/${registryName}`);
+    this.waitForRegistryLoaded();
   }
 
   visitWithRegistry(registryName: string) {
@@ -75,9 +75,13 @@ class ModelRegistry {
   }
 
   private wait() {
-    cy.findByTestId('app-page-title').should('exist');
-    cy.findByTestId('app-page-title').contains('Registry');
+    this.waitForRegistryLoaded();
     cy.testA11y();
+  }
+
+  private waitForRegistryLoaded() {
+    cy.url({ timeout: 60000 }).should('include', '/ai-hub/models/registry/');
+    cy.findByTestId('model-registry-selector-dropdown', { timeout: 60000 }).should('be.visible');
   }
 
   private waitLanding() {
@@ -258,8 +262,8 @@ class ModelRegistry {
     return cy.findByTestId('overview-tab');
   }
 
-  findModelVersionsTab() {
-    return cy.findByTestId('versions-tab');
+  findModelVersionsTab(timeout?: number) {
+    return cy.findByTestId('versions-tab', { timeout: timeout ?? 30000 });
   }
 
   findRegisterNewVersionButton() {

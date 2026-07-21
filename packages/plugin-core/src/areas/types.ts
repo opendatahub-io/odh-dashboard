@@ -1,3 +1,4 @@
+import type { EitherOrBoth } from '@odh-dashboard/foundation';
 import type { DashboardCommonConfig, DashboardConfigKind } from '@odh-dashboard/k8s-core';
 import {
   DataScienceClusterInitializationKindStatus,
@@ -6,14 +7,6 @@ import {
 } from '@odh-dashboard/k8s-core';
 
 export { DataScienceStackComponent } from '@odh-dashboard/k8s-core';
-
-type Never<Type> = {
-  [K in keyof Type]?: never;
-};
-
-type EitherNotBoth<TypeA, TypeB> = (TypeA & Never<TypeB>) | (TypeB & Never<TypeA>);
-
-type EitherOrBoth<TypeA, TypeB> = EitherNotBoth<TypeA, TypeB> | (TypeA & TypeB);
 
 export type FeatureFlag = keyof DashboardCommonConfig;
 
@@ -69,13 +62,13 @@ export enum SupportedArea {
   NIM_WIZARD = 'nim-wizard',
   SERVING_RUNTIME_PARAMS = 'serving-runtime-params',
   MODEL_AS_SERVICE = 'model-as-service',
-  MAAS_AUTH_POLICIES = 'maas-auth-policies',
   LLMD_SERVING = 'llmd-serving',
   LLMD_TOPOLOGY_CONFIGS = 'llmd-topology-configs',
   YAML_VIEWER = 'yaml-viewer',
   VLLM_ON_MAAS = 'vllm-on-maas',
   LLMD_GATEWAY_FIELD = 'llmd-gateway-field',
   MY_SUBSCRIPTIONS = 'my-subscriptions',
+  EXTERNAL_MODELS = 'external-models',
   MAAS_SETTINGS_IA_REDESIGN = 'maas-settings-ia-redesign',
 
   /* Distributed Workloads areas */
@@ -107,6 +100,7 @@ export enum SupportedArea {
 
   /* Agent Ops */
   AGENT_OPS = 'agent-ops',
+  AGENT_OPS_DEPLOY = 'agent-ops-deploy',
 
   /* Agents catalog */
   AGENTS_CATALOG = 'agents-catalog',
@@ -114,6 +108,9 @@ export enum SupportedArea {
   /* MLflow */
   MLFLOW = 'mlflow',
   MLFLOW_PIPELINES = 'mlflow-pipelines',
+
+  /* MCP Registry */
+  MCP_REGISTRY = 'mcp-registry',
 
   /* GPUaaS */
   GPUAAS_INFRASTRUCTURE = 'gpuaas-infrastructure',
@@ -123,6 +120,9 @@ export enum SupportedArea {
 
   /* Role Management */
   ROLE_MANAGEMENT = 'role-management',
+
+  /* Connection Test */
+  CONNECTION_TEST = 'connection-test',
 }
 
 export type SupportedAreaType = SupportedArea | string;

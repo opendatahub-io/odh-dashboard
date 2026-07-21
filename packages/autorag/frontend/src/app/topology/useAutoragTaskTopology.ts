@@ -2,7 +2,7 @@ import * as React from 'react';
 import { PipelineSpecVariable, RunDetailsKF, TaskKF } from '~/app/types/pipeline';
 import { PipelineNodeModelExpanded } from '~/app/types/topology';
 import { createNode } from './utils';
-import { parseRuntimeInfoFromRunDetails, translateStatusForNode } from './parseUtils';
+import { buildTaskRuntimeById, resolveTaskTopologyRunStatuses } from './parseUtils';
 
 const TASK_DISPLAY_NAMES: Record<string, string> = {
   'publish-component-stage-map': 'Pipeline preparation',
@@ -19,21 +19,42 @@ const TASK_DISPLAY_NAMES: Record<string, string> = {
 const humanizeTaskName = (name: string): string =>
   TASK_DISPLAY_NAMES[name] ?? name.replace(/[-_]+/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 
+const isTaskRecord = (value: unknown): value is TaskKF => {
+  if (typeof value !== 'object' || value === null || !('taskInfo' in value)) {
+    return false;
+  }
+  const { taskInfo } = value;
+  if (typeof taskInfo !== 'object' || taskInfo === null || !('name' in taskInfo)) {
+    return false;
+  }
+  return typeof taskInfo.name === 'string';
+};
+
+/** Keep only own, well-formed task IDs so inherited/malformed keys cannot become DAG deps. */
+const getValidatedDependencies = (tasks: Record<string, TaskKF>, taskId: string): string[] => {
+  if (!Object.hasOwn(tasks, taskId) || !isTaskRecord(tasks[taskId])) {
+    return [];
+  }
+  const { dependentTasks } = tasks[taskId];
+  if (!Array.isArray(dependentTasks)) {
+    return [];
+  }
+  return dependentTasks.filter(
+    (dep): dep is string =>
+      typeof dep === 'string' && Object.hasOwn(tasks, dep) && isTaskRecord(tasks[dep]),
+  );
+};
+
 const topoSort = (tasks: Record<string, TaskKF>): string[] => {
   const visited = new Set<string>();
   const result: string[] = [];
 
   const visit = (id: string) => {
-    if (visited.has(id)) {
+    if (visited.has(id) || !Object.hasOwn(tasks, id) || !isTaskRecord(tasks[id])) {
       return;
     }
     visited.add(id);
-    const deps = tasks[id].dependentTasks ?? [];
-    deps.forEach((dep) => {
-      if (dep in tasks) {
-        visit(dep);
-      }
-    });
+    getValidatedDependencies(tasks, id).forEach(visit);
     result.push(id);
   };
 
@@ -47,6 +68,7 @@ const topoSort = (tasks: Record<string, TaskKF>): string[] => {
 export const useAutoragTaskTopology = (
   spec?: PipelineSpecVariable,
   runDetails?: RunDetailsKF,
+  runState?: string,
 ): PipelineNodeModelExpanded[] =>
   React.useMemo(() => {
     if (!spec) {
@@ -60,25 +82,38 @@ export const useAutoragTaskTopology = (
     }
 
     const ordered = topoSort(tasks);
+    const runtimeByTaskId = buildTaskRuntimeById(ordered, runDetails);
+    const depsByTaskId = new Map(
+      ordered.map((taskId) => [taskId, getValidatedDependencies(tasks, taskId)]),
+    );
+    const taskStatuses = resolveTaskTopologyRunStatuses(
+      ordered,
+      runtimeByTaskId,
+      runState,
+      depsByTaskId,
+    );
 
-    return ordered.map((taskId, idx) => {
+    return ordered.flatMap((taskId) => {
       const task = tasks[taskId];
+      if (!isTaskRecord(task)) {
+        return [];
+      }
       const label = humanizeTaskName(task.taskInfo.name || taskId);
+      const runStatus = taskStatuses.get(taskId);
+      const runAfterTasks = getValidatedDependencies(tasks, taskId);
 
-      const status = parseRuntimeInfoFromRunDetails(taskId, runDetails);
-      const runStatus = translateStatusForNode(status?.state);
-      const runAfter = idx > 0 ? [ordered[idx - 1]] : [];
-
-      return createNode(
-        taskId,
-        label,
-        {
-          type: 'task',
-          name: label,
-          status,
-        },
-        runAfter,
-        runStatus,
-      );
+      return [
+        createNode({
+          id: taskId,
+          label,
+          pipelineTask: {
+            type: 'task',
+            name: label,
+            status: runtimeByTaskId.get(taskId),
+          },
+          runAfterTasks,
+          runStatus,
+        }),
+      ];
     });
-  }, [spec, runDetails]);
+  }, [spec, runDetails, runState]);

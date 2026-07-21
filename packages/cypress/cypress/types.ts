@@ -241,6 +241,7 @@ export type CommandLineResult = {
 
 export type TestConfig = {
   ODH_DASHBOARD_URL: string;
+  OCP_API_URL?: string;
   TEST_USER: UserAuthConfig;
   TEST_USER_3: UserAuthConfig;
   TEST_USER_5: UserAuthConfig;
@@ -720,14 +721,23 @@ export type ModelAsAServiceTestData = {
   policiesModelsCount: number;
   apiKeyName: string;
   apiKeyDescription: string;
+  apiKeyExpirationTimeId: string;
   apiKeyExpirationTime: string;
+  apiKeyExpirationTimeInvalid: string;
   phase: string;
   apiKeyStatus: {
     active: string;
     expired: string;
     revoked: string;
   };
+  apiKeyCount: number;
 };
+
+export enum ApiKeyStatus {
+  active = 'Active',
+  expired = 'Expired',
+  revoked = 'Revoked',
+}
 
 export type TrainJobTestData = {
   projectName: string;

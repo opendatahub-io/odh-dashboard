@@ -221,11 +221,12 @@
     env:
       - name: GATEWAY_DOMAIN
         value: ""
-      # BFF Service Discovery for inter-BFF communication (RHOAIENG-49012)
       - name: POD_NAMESPACE
         valueFrom:
           fieldRef:
             fieldPath: metadata.namespace
+      - name: RELATED_IMAGE_POSTGRESQL_16_IMAGE
+        value: $(pgvector-image)
       - name: BFF_MAAS_SERVICE_NAME
         value: "odh-dashboard"
       - name: BFF_MAAS_SERVICE_PORT
@@ -237,6 +238,18 @@
       - name: BFF_MAAS_AUTH_TOKEN_HEADER
         value: "x-forwarded-access-token"
       - name: BFF_MAAS_AUTH_TOKEN_PREFIX
+        value: ""
+      - name: BFF_MLFLOW_SERVICE_NAME
+        value: "odh-dashboard"
+      - name: BFF_MLFLOW_SERVICE_PORT
+        value: "8343"
+      - name: BFF_MLFLOW_TLS_ENABLED
+        value: "true"
+      - name: BFF_MLFLOW_AUTH_METHOD
+        value: "user_token"
+      - name: BFF_MLFLOW_AUTH_TOKEN_HEADER
+        value: "x-forwarded-access-token"
+      - name: BFF_MLFLOW_AUTH_TOKEN_PREFIX
         value: ""
     securityContext:
       allowPrivilegeEscalation: false
@@ -462,6 +475,23 @@
       - '--cert-file=/etc/tls/private/tls.crt'
       - '--key-file=/etc/tls/private/tls.key'
       - '--bundle-paths=/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem,/var/run/secrets/kubernetes.io/serviceaccount/ca.crt,/var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt,/etc/pki/tls/certs/odh-ca-bundle.crt,/etc/pki/tls/certs/odh-trusted-ca-bundle.crt'
+    env:
+      - name: POD_NAMESPACE
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.namespace
+      - name: BFF_MODEL_CATALOG_SERVICE_NAME
+        value: "odh-dashboard"
+      - name: BFF_MODEL_CATALOG_SERVICE_PORT
+        value: "8043"
+      - name: BFF_MODEL_CATALOG_TLS_ENABLED
+        value: "true"
+      - name: BFF_MODEL_CATALOG_AUTH_METHOD
+        value: "user_token"
+      - name: BFF_MODEL_CATALOG_AUTH_TOKEN_HEADER
+        value: "x-forwarded-access-token"
+      - name: BFF_MODEL_CATALOG_AUTH_TOKEN_PREFIX
+        value: ""
     securityContext:
       allowPrivilegeEscalation: false
       capabilities:

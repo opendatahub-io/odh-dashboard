@@ -1,4 +1,5 @@
 import { ChartThemeColor, getTheme } from '@patternfly/react-charts/victory';
+import { chart_color_black_300 as chartColorGray } from '@patternfly/react-tokens';
 import { CQMetricSeries } from '../hooks/useBorrowingLendingMetrics';
 import {
   CURSOR_GAP,
@@ -69,7 +70,7 @@ export const getEntryLabel = (info: CQMetricSeries | undefined, fallback: string
   if (!info) {
     return fallback;
   }
-  return info.cohortName ? `${info.cohortName} · ${info.cqName}` : info.cqName;
+  return info.cohortName ? `${info.cohortName}, ${info.cqName}` : `No cohort, ${info.cqName}`;
 };
 
 /** Truncated legend label for the SVG legend column (CSS text-overflow is unavailable in SVG). */
@@ -116,7 +117,9 @@ export const buildColorByName = (
       .filter((s) => !hiddenSeries.has(s.cqName))
       .map((s, i) => [
         s.cqName,
-        CHART_COLOR_SCALE.length > 0 ? CHART_COLOR_SCALE[i % CHART_COLOR_SCALE.length] : '#aaa',
+        CHART_COLOR_SCALE.length > 0
+          ? CHART_COLOR_SCALE[i % CHART_COLOR_SCALE.length]
+          : chartColorGray.value,
       ]),
   );
 

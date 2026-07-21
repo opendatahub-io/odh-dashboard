@@ -24,6 +24,9 @@ type KubernetesClientInterface interface {
 	IsUserAdmin(ctx context.Context, identity *RequestIdentity) (bool, error)
 	IsUserAllowed(ctx context.Context, identity *RequestIdentity) (bool, error)
 
+	// Generic SSAR check for custom resource permissions
+	CheckAccess(ctx context.Context, identity *RequestIdentity, verb, group, resource, namespace string) (bool, error)
+
 	// Dynamic client for CRD operations
 	GetDynamicClient() (dynamic.Interface, error)
 

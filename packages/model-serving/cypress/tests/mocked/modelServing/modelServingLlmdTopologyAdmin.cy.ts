@@ -8,7 +8,6 @@ import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import { LLMInferenceServiceConfigModel } from '@odh-dashboard/cypress/cypress/utils/models';
 import { asProductAdminUser } from '@odh-dashboard/cypress/cypress/utils/mockUsers';
 import { llmdTopologySettingsPage } from '@odh-dashboard/cypress/cypress/pages/llmdTopologySettings';
-import { pageNotfound } from '@odh-dashboard/cypress/cypress/pages/pageNotFound';
 
 const mockPreInstalledConfig = mockLLMInferenceServiceConfigK8sResource({
   name: 'preinstalled-single-node',
@@ -34,10 +33,8 @@ const allConfigs = [mockPreInstalledConfig, mockUserConfig, mockDisabledConfig];
 
 const initIntercepts = ({
   configs = allConfigs,
-  llmdTopologyConfigsEnabled = true,
 }: {
   configs?: ReturnType<typeof mockLLMInferenceServiceConfigK8sResource>[];
-  llmdTopologyConfigsEnabled?: boolean;
 } = {}) => {
   asProductAdminUser();
 
@@ -54,7 +51,6 @@ const initIntercepts = ({
     disableKServe: false,
     disableLLMd: false,
   });
-  config.spec.dashboardConfig.llmdTopologyConfigs = llmdTopologyConfigsEnabled;
   cy.interceptOdh('GET /api/config', config);
   cy.interceptOdh('GET /api/components', null, []);
 
@@ -72,11 +68,41 @@ describe('LLMD Topology Admin Settings', () => {
       llmdTopologySettingsPage.findAppTitle().should('contain', 'llm-d topology configurations');
       llmdTopologySettingsPage.findTable().should('exist');
     });
+  });
 
-    it('should show 404 when flag disabled', () => {
-      initIntercepts({ llmdTopologyConfigsEnabled: false });
+  describe('empty state', () => {
+    it('should show empty state when no topology configurations exist', () => {
+      initIntercepts({ configs: [] });
       llmdTopologySettingsPage.visit(false);
-      pageNotfound.findPage().should('exist');
+      llmdTopologySettingsPage.findAppTitle().should('contain', 'llm-d topology configurations');
+      llmdTopologySettingsPage.findEmptyState().should('exist');
+      llmdTopologySettingsPage
+        .findEmptyState()
+        .should('contain.text', 'No llm-d topology configurations');
+      llmdTopologySettingsPage.findEmptyStateAddButton().should('exist');
+      llmdTopologySettingsPage.findEmptyStateDropdownToggle().should('exist');
+    });
+
+    it('should navigate to add page from empty state button', () => {
+      initIntercepts({ configs: [] });
+      llmdTopologySettingsPage.visit(false);
+      llmdTopologySettingsPage.findEmptyStateAddButton().click();
+      cy.url().should('include', '/add/workload-single-node');
+    });
+
+    it('should show dropdown with other topology types in empty state', () => {
+      initIntercepts({ configs: [] });
+      llmdTopologySettingsPage.visit(false);
+      llmdTopologySettingsPage.findEmptyStateDropdownToggle().click();
+      llmdTopologySettingsPage
+        .findEmptyStateDropdownItem('workload-multi-node-data-parallel')
+        .should('exist');
+      llmdTopologySettingsPage
+        .findEmptyStateDropdownItem('workload-single-node-pd')
+        .should('exist');
+      llmdTopologySettingsPage
+        .findEmptyStateDropdownItem('workload-multi-node-data-parallel-pd')
+        .should('exist');
     });
   });
 

@@ -2,7 +2,9 @@
 import type { AIModel, LlamaModel, MaaSModel } from '~/app/types';
 import {
   convertMaaSModelToAIModel,
+  getCapabilityDisplay,
   getSourceLabel,
+  getVisibleCapabilities,
   hasCapability,
   isASRModel,
   isASROnlyModel,
@@ -423,5 +425,57 @@ describe('isPlaygroundModelMatchForAIModel', () => {
     const playground = makeLlamaModel({ id: 'custom-ep/my-model', modelId: 'my-model' });
     const aiModel = makeModel({ model_id: 'my-model', model_source_type: 'custom_endpoint' });
     expect(isPlaygroundModelMatchForAIModel(playground, aiModel)).toBe(true);
+  });
+});
+
+describe('getCapabilityDisplay', () => {
+  it('returns Vision with green for vision capability', () => {
+    expect(getCapabilityDisplay('vision')).toEqual({ label: 'Vision', color: 'green' });
+  });
+
+  it('returns Transcription with purple for audio-transcription capability', () => {
+    expect(getCapabilityDisplay('audio-transcription')).toEqual({
+      label: 'Transcription',
+      color: 'purple',
+    });
+  });
+
+  it('returns title-cased fallback with cyan for unknown capabilities', () => {
+    expect(getCapabilityDisplay('custom-thing')).toEqual({
+      label: 'Custom Thing',
+      color: 'cyan',
+    });
+  });
+
+  it('handles single-word unknown capabilities', () => {
+    expect(getCapabilityDisplay('embeddings')).toEqual({
+      label: 'Embeddings',
+      color: 'cyan',
+    });
+  });
+});
+
+describe('getVisibleCapabilities', () => {
+  it('filters out text-generation', () => {
+    expect(getVisibleCapabilities(['text-generation', 'vision'])).toEqual(['vision']);
+  });
+
+  it('returns empty array when only text-generation is present', () => {
+    expect(getVisibleCapabilities(['text-generation'])).toEqual([]);
+  });
+
+  it('returns empty array for undefined input', () => {
+    expect(getVisibleCapabilities(undefined)).toEqual([]);
+  });
+
+  it('returns empty array for empty array input', () => {
+    expect(getVisibleCapabilities([])).toEqual([]);
+  });
+
+  it('preserves multiple non-text-generation capabilities', () => {
+    expect(getVisibleCapabilities(['text-generation', 'vision', 'audio-transcription'])).toEqual([
+      'vision',
+      'audio-transcription',
+    ]);
   });
 });

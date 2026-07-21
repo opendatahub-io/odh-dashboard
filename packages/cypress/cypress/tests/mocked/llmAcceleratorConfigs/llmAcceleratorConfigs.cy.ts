@@ -63,7 +63,7 @@ describe('LLM accelerator configurations', () => {
     unsupportedStatusAcceptanceModal.shouldBeOpen();
     unsupportedStatusAcceptanceModal
       .find()
-      .should('contain.text', 'Enable limited support accelerator configuration');
+      .should('contain.text', 'Enable limited-support accelerator configuration?');
   });
 
   it('should dismiss modal without patching when cancel is clicked', () => {
@@ -80,6 +80,8 @@ describe('LLM accelerator configurations', () => {
     llmAcceleratorConfigs.getRowByName('vllm-tpu').findEnabledToggle().click();
     unsupportedStatusAcceptanceModal.shouldBeOpen();
 
+    unsupportedStatusAcceptanceModal.findAcceptButton().should('be.disabled');
+    unsupportedStatusAcceptanceModal.findAcceptanceCheckbox().click();
     unsupportedStatusAcceptanceModal.findAcceptButton().click();
 
     cy.wait('@patchConfig').then((interception) => {

@@ -1,0 +1,24 @@
+apiVersion: serving.kserve.io/v1alpha2
+kind: LLMInferenceServiceConfig
+metadata:
+  name: e2e-multi-node-topology
+  annotations:
+    openshift.io/display-name: E2E Multi-Node Topology
+    openshift.io/description: Test topology config for multi-node data-parallel deployments
+    opendatahub.io/runtime-version: v0.1
+  labels:
+    opendatahub.io/config-type: workload-multi-node-data-parallel
+    opendatahub.io/dashboard: "true"
+spec:
+  replicas: 2
+  template:
+    containers:
+      - name: main
+        image: quay.io/pierdipi/vllm-cpu:latest
+        resources:
+          limits:
+            cpu: "4"
+            memory: 16Gi
+          requests:
+            cpu: "2"
+            memory: 8Gi

@@ -301,9 +301,10 @@ describe('Model Serving LLMD', () => {
 
       cy.step('Verify LLMD deployment method option is not displayed');
       modelServingWizard
-        .findDeploymentMethodSelect()
+        .findDeploymentMethodRadio('legacy')
+        .find('input')
         .should('be.disabled')
-        .should('contain.text', 'Legacy deployment');
+        .should('be.checked');
       modelServingWizard.findCancelButton().click();
       modelServingWizard.findDiscardButton().click();
 
@@ -326,9 +327,7 @@ describe('Model Serving LLMD', () => {
       modelServingWizard.findNextButton().click();
 
       cy.step('Verify LLMD deployment method option is displayed when LLMD is enabled');
-      modelServingWizard
-        .findDeploymentMethodSelectOption('llm-inference-service-llmd')
-        .should('exist');
+      modelServingWizard.findDeploymentMethodRadio('llm-inference-service-llmd').should('exist');
     });
 
     it('should handle LLMD deployment with error status', () => {
@@ -559,9 +558,10 @@ describe('Model Serving LLMD', () => {
         'Large Profile Compatible CPU: Default = 4 Cores, Max = 8 Cores; Memory: Default = 8 GiB, Max = 16 GiB',
       );
       modelServingWizardEdit
-        .findDeploymentMethodSelect()
+        .findDeploymentMethodRadio('llm-inference-service-llmd')
+        .find('input')
         .should('be.disabled')
-        .should('contain.text', 'LLM inference service deployment with llm-d');
+        .should('be.checked');
 
       modelServingWizardEdit.findNumReplicasInputField().should('have.value', '2');
       modelServingWizardEdit.findNumReplicasPlusButton().click();
@@ -1040,7 +1040,10 @@ describe('Model Serving LLMD', () => {
       modelServingWizard.findModelDeploymentNameInput().type(deploymentName);
 
       // Select the vLLM deployment method to activate the model server field
-      modelServingWizard.findDeploymentMethodSelect().should('not.be.disabled');
+      modelServingWizard
+        .findDeploymentMethodRadio('llm-inference-service-simple-vllm')
+        .find('input')
+        .should('not.be.disabled');
       modelServingWizard.selectDeploymentMethodByKey('llm-inference-service-simple-vllm');
 
       // Open template dropdown and verify LLMInferenceServiceConfig options are available
@@ -1136,7 +1139,10 @@ describe('Model Serving LLMD', () => {
 
       // Step 2: Model deployment — select vLLM deployment method, then open the config dropdown
       modelServingWizard.findModelDeploymentNameInput().type('test-disabled-config');
-      modelServingWizard.findDeploymentMethodSelect().should('not.be.disabled');
+      modelServingWizard
+        .findDeploymentMethodRadio('llm-inference-service-simple-vllm')
+        .find('input')
+        .should('not.be.disabled');
       modelServingWizard.selectDeploymentMethodByKey('llm-inference-service-simple-vllm');
       modelServingWizard.findModelServerManualSelectRadio().click();
       modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
@@ -1149,6 +1155,53 @@ describe('Model Serving LLMD', () => {
       // Disabled config should not appear
       modelServingWizard
         .findGlobalScopedTemplateOption('vLLM on Gaudi LLMInferenceServiceConfig')
+        .should('not.exist');
+    });
+
+    it('should hide unsupported+unaccepted LLMInferenceServiceConfigs from the deploy wizard options', () => {
+      initVLLMOnMaaSIntercepts();
+
+      cy.interceptK8sList(
+        { model: LLMInferenceServiceConfigModel, ns: 'opendatahub' },
+        mockK8sResourceList([
+          mockLLMInferenceServiceConfigK8sResource({
+            name: 'vllm-unsupported-config',
+            displayName: 'vLLM Unsupported Config',
+            runtimeVersion: 'v0.11.0',
+            unsupported: true,
+          }),
+          mockLLMInferenceServiceConfigK8sResource({
+            name: 'vllm-gpu-config',
+            displayName: 'vLLM on GPU LLMInferenceServiceConfig',
+            runtimeVersion: 'v0.8.2',
+          }),
+        ]),
+      );
+
+      modelServingGlobal.visit('test-project');
+      modelServingGlobal.findDeployModelButton().click();
+
+      modelServingWizard.findModelLocationSelectOption(ModelLocationSelectOption.URI).click();
+      modelServingWizard.findUrilocationInput().type('hf://test/model');
+      modelServingWizard.findSaveConnectionCheckbox().click();
+      modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).click();
+      modelServingWizard.findNextButton().should('be.enabled').click();
+
+      modelServingWizard.findModelDeploymentNameInput().type('test-unsupported-config');
+      modelServingWizard
+        .findDeploymentMethodRadio('llm-inference-service-simple-vllm')
+        .find('input')
+        .should('not.be.disabled');
+      modelServingWizard.selectDeploymentMethodByKey('llm-inference-service-simple-vllm');
+      modelServingWizard.findModelServerManualSelectRadio().click();
+      modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
+
+      modelServingWizard
+        .findGlobalScopedTemplateOption('vLLM on GPU LLMInferenceServiceConfig')
+        .should('exist');
+
+      modelServingWizard
+        .findGlobalScopedTemplateOption('vLLM Unsupported Config')
         .should('not.exist');
     });
 
