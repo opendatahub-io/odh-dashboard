@@ -24,7 +24,7 @@ const extensions: (AreaExtension | TabRouteTabExtension | RouteExtension)[] = [
     type: 'app.area',
     properties: {
       id: 'agent-ops-deploy',
-      featureFlags: ['agentOpsDeploy'],
+      featureFlags: ['agentOps'],
     },
   },
   {
