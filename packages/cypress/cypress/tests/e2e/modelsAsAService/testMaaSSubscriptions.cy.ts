@@ -67,7 +67,7 @@ let secondSubscriptionPriority: number;
 let subscriptionGroups: string[];
 let subscriptionName: string;
 let subscriptionNamespace: string;
-let tokenRateLimit: { limit: number; window: string; unit: string };
+let tokenRateLimit: { limit: string; window: string; unit: string };
 let tokenLimit: string;
 const uuid = generateTestUUID();
 let apiKeyName: string;
@@ -100,7 +100,7 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
         subscriptionGroups = ['rhods-admins'];
         apiKeyName = `maas-api-key-${uuid}`;
         tokenRateLimit = {
-          limit: 1000,
+          limit: '1,000',
           window: '1000',
           unit: 'hour',
         };
@@ -220,6 +220,10 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
         .then((val) => {
           resourceName = String(val ?? '');
         });
+      modelServingWizard
+        .findModelDeploymentDescriptionInput()
+        .clear()
+        .type(testData.singleModelDescription);
       modelServingWizard.selectPotentiallyDisabledProfile(hardwareProfileResourceName);
       modelServingWizard.selectDeploymentMethodByKey('llm-inference-service-simple-vllm');
       modelServingWizard.findModelServerManualSelectRadio().click();
@@ -310,10 +314,11 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
       subscriptionRow.findExpandGroupButton().click();
       subscriptionRow.findExpandedGroupName().should('contain.text', subscriptionGroups[0]);
       subscriptionRow.findExpandModelButton().click();
+      subscriptionRow.findExpandedModelName().should('contain.text', modelName);
       subscriptionRow
-        .findExpandedModelName()
-        .should('contain.text', modelName)
-        .and('contain.text', tokenLimit);
+        .findExpandedModelDescription()
+        .should('contain.text', testData.singleModelDescription);
+      subscriptionRow.findExpandedModelTokenLimits().should('contain.text', tokenLimit);
       subscriptionRow.findPriority().should('contain.text', subscriptionPriority);
 
       cy.step('Create another subscription to test edit and delete');

@@ -1,6 +1,7 @@
 # testMaaSPolicies.cy.ts Test Data #
 projectResourceName: 'test-maas-policies-deployment'
 singleModelName: 'test-maas-policies-model'
+singleModelDescription: 'Model for testing MaaS'
 connectionNameSuffix: '-connection'
 modelLocationURI: 'hf://facebook/opt-125m'
 policiesName: 'test-authorization-policy'

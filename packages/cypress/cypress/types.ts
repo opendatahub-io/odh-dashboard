@@ -702,6 +702,7 @@ export type ModelCatalogSourceTestData = {
 export type ModelAsAServiceTestData = {
   projectResourceName: string;
   singleModelName: string;
+  singleModelDescription: string;
   llmInferenceServiceConfigName: string;
   llmInferenceServiceConfigDisplayName: string;
   llmInferenceServiceConfigContainerImage: string;

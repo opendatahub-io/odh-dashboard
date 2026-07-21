@@ -203,7 +203,9 @@ describe('An admin can manage MaaS authorization policies and control model acce
       policyRow.findModels().should('contain.text', `${policiesModelsCount}`);
       policyRow.findExpandModelButton().click();
       policyRow.findExpandedModelName().should('contain.text', modelName);
-
+      policyRow
+        .findExpandedModelDescription()
+        .should('contain.text', testData.singleModelDescription);
       cy.step('Delete the authorization policy');
       policyRow.findActionsToggle().click();
       policyRow.findDeleteButton().click();
