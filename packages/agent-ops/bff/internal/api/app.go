@@ -290,7 +290,15 @@ func (app *App) Routes() http.Handler {
 		apiRouter.DELETE(GatewayDetailPath, app.RequireAuthenticatedForAgents(app.DeleteGatewayHandler))
 	}
 
-	// Provider management routes will be added in Phase 2
+	// Provider management routes (nested under gateways)
+	if app.repositories.Provider != nil {
+		apiRouter.GET(ProviderProfilesPath, app.RequireAuthenticatedForAgents(app.ListProviderProfilesHandler))
+		apiRouter.GET(ProviderListPath, app.RequireAuthenticatedForAgents(app.ListProvidersHandler))
+		apiRouter.POST(ProviderListPath, app.RequireAuthenticatedForAgents(app.CreateProviderHandler))
+		apiRouter.GET(ProviderDetailPath, app.RequireAuthenticatedForAgents(app.GetProviderHandler))
+		apiRouter.PUT(ProviderDetailPath, app.RequireAuthenticatedForAgents(app.UpdateProviderHandler))
+		apiRouter.DELETE(ProviderDetailPath, app.RequireAuthenticatedForAgents(app.DeleteProviderHandler))
+	}
 
 	// Inter-BFF Communication routes — wire your target BFF endpoints here.
 	// Example:
