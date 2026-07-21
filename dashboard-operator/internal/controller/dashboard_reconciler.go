@@ -347,8 +347,9 @@ func (r *DashboardReconciler) reconcileStandalone(
 ) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
 
-	// Step 1: Deploy core manifests (main dashboard deployment without sidecar patches)
-	manifests := manifestSets(r.ManifestsBasePath, r.Platform)
+	// Step 1: Deploy core manifests (3-container pod: odh-dashboard, kube-rbac-proxy, core-bff).
+	// Uses the standalone overlay which excludes BFF module sidecar containers.
+	manifests := standaloneManifestSets(r.ManifestsBasePath, r.Platform)
 
 	if err := applyKustomizeParams(dashboard, manifests, r.Platform); err != nil {
 		cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded),

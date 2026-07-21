@@ -37,6 +37,15 @@ func manifestSets(basePath string, platform cluster.Platform) []render.ManifestI
 	}
 }
 
+// standaloneManifestSets returns the manifest paths for standalone deployment mode.
+// In standalone mode, the core dashboard pod has only 3 containers (odh-dashboard,
+// kube-rbac-proxy, core-bff). BFF module pods are deployed separately.
+func standaloneManifestSets(basePath string, platform cluster.Platform) []render.ManifestInfo {
+	return []render.ManifestInfo{
+		standaloneManifestInfo(basePath, platform),
+	}
+}
+
 func applyKustomizeParams(dashboard *v1alpha1.Dashboard, manifests []render.ManifestInfo, platform cluster.Platform) error {
 	computed := computeKustomizeVariables(dashboard, platform)
 	maps.Copy(computed, resolveImageParams())
@@ -51,14 +60,15 @@ func applyKustomizeParams(dashboard *v1alpha1.Dashboard, manifests []render.Mani
 	}
 
 	if len(manifests) > 0 {
-		modArchPath := filepath.Join(manifests[0].Path, "modular-architecture")
-		if _, err := os.Stat(modArchPath); os.IsNotExist(err) {
-			return fmt.Errorf("modular-architecture directory not found at %s", modArchPath)
+		sidecarPath := filepath.Join(manifests[0].Path, "sidecar")
+		if _, err := os.Stat(sidecarPath); os.IsNotExist(err) {
+			// sidecar dir may not exist in standalone mode — skip gracefully
+			return nil
 		}
-		params := readExistingParams(filepath.Join(modArchPath, "params.env"))
+		params := readExistingParams(sidecarPath + "/params.env")
 		maps.Copy(params, computed)
-		if err := writeParamsEnv(modArchPath, params); err != nil {
-			return fmt.Errorf("failed to write params.env to %s: %w", modArchPath, err)
+		if err := writeParamsEnv(sidecarPath, params); err != nil {
+			return fmt.Errorf("failed to write params.env to %s: %w", sidecarPath, err)
 		}
 	}
 

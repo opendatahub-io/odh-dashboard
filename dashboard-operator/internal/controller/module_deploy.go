@@ -126,7 +126,7 @@ func (r *DashboardReconciler) deployModuleManifests(
 			continue
 		}
 
-		modulePath := filepath.Join(r.ManifestsBasePath, "modular-architecture", "modules", mod.ManifestSlug)
+		modulePath := filepath.Join(r.ManifestsBasePath, "modules", mod.ManifestSlug)
 
 		if _, err := os.Stat(modulePath); os.IsNotExist(err) {
 			logger.Info("Module manifest directory not found, skipping standalone deployment", "module", name, "path", modulePath)
