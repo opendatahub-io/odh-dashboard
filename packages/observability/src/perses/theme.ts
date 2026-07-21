@@ -42,12 +42,12 @@ declare module '@mui/material/styles' {
  * MUI X defaults Custom Time Range years to 1900–2099. Bound the picker via theme
  * defaultProps (Perses DateTimeRangePicker does not expose minDate/maxDate).
  * Keep a little future headroom for timezone / "now" edge cases.
+ *
+ * Custom range becomes 2020 to current year + 1.
  */
-const getCustomTimeRangeDateBounds = (
-  year: number = new Date().getFullYear(),
-): { minDate: Date; maxDate: Date } => ({
+const getCustomTimeRangeDateBounds = (currentYear: number): { minDate: Date; maxDate: Date } => ({
   minDate: new Date(2020, 0, 1),
-  maxDate: new Date(year + 1, 11, 31),
+  maxDate: new Date(currentYear + 1, 11, 31),
 });
 
 // Override eChart defaults with PatternFly colors.
@@ -68,11 +68,11 @@ const patternflyChartsMultiUnorderedPalette = Array.isArray(chartColorScale)
 
 type PatternFlyTheme = 'light' | 'dark';
 
-const mapPatterflyThemeToMUI = (theme: PatternFlyTheme, year: number): ThemeOptions => {
+const mapPatterflyThemeToMUI = (theme: PatternFlyTheme, currentYear: number): ThemeOptions => {
   const isDark = theme === 'dark';
   const primaryTextColor = isDark ? t_color_white.value : t_color_gray_95.value;
   const primaryBackgroundColor = 'var(--pf-t--global--background--color--primary--default)';
-  const { minDate, maxDate } = getCustomTimeRangeDateBounds(year);
+  const { minDate, maxDate } = getCustomTimeRangeDateBounds(currentYear);
 
   return {
     typography: {
@@ -469,6 +469,7 @@ const mapPatterflyThemeToMUI = (theme: PatternFlyTheme, year: number): ThemeOpti
 export const usePatternFlyTheme = (): { muiTheme: Theme; chartsTheme: PersesChartsTheme } => {
   const { theme: contextTheme } = useThemeContext();
   const theme: PatternFlyTheme = contextTheme === 'dark' ? 'dark' : 'light';
+
   // Rebuild theme when the calendar year changes so maxDate (year + 1) stays current.
   const currentYear = new Date().getFullYear();
 
