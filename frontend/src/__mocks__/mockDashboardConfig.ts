@@ -53,6 +53,7 @@ export type MockDashboardConfigType = {
   pvcSize?: string;
   mlflowPipelines?: boolean;
   mcpCatalog?: boolean;
+  mcpRegistry?: boolean;
   toolCalling?: boolean;
   projectRBAC?: boolean;
   disableLLMd?: boolean;
@@ -111,6 +112,7 @@ export const mockDashboardConfig = ({
   disableDistributedWorkloads = false,
   disableModelCatalog = false,
   mcpCatalog = false,
+  mcpRegistry = false,
   toolCalling = false,
   disableModelRegistry = false,
   disableModelRegistrySecureDB = false,
@@ -303,6 +305,7 @@ export const mockDashboardConfig = ({
       disableDistributedWorkloads,
       disableModelCatalog,
       mcpCatalog,
+      mcpRegistry,
       toolCalling,
       disableModelRegistry,
       disableModelRegistrySecureDB,
