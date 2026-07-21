@@ -15,6 +15,26 @@ const (
 	DBEnvVar       = "PGVECTOR_DB"
 	UserEnvVar     = "PGVECTOR_USER"
 	PasswordEnvVar = "PGVECTOR_PASSWORD"
+
+	// Resource names for auto-provisioned pgvector.
+	CredentialsSecretName = "genai-pgvector-credentials"
+	InitConfigMapName     = "genai-pgvector-init"
+	StoragePVCName        = "genai-pgvector-storage"
+	DeploymentName        = "genai-pgvector"
+	ServiceName           = "genai-pgvector"
+	NetworkPolicyName     = "genai-pgvector"
+
+	// Label applied to all auto-provisioned pgvector resources for discovery.
+	ManagedLabel      = "gen-ai.opendatahub.io/pgvector"
+	ManagedLabelValue = "true"
+
+	// Image configuration — injected by the operator via params.env substitution.
+	RelatedImageEnvVar = "RELATED_IMAGE_POSTGRESQL_16_IMAGE"
+
+	// PostgreSQL container env vars.
+	pgDBEnvVar       = "POSTGRESQL_DATABASE"
+	pgUserEnvVar     = "POSTGRESQL_USER"
+	pgPasswordEnvVar = "POSTGRESQL_PASSWORD"
 )
 
 // Connection holds the details needed to connect an OGXServer to a

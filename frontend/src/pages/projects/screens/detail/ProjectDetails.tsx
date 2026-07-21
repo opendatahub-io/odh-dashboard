@@ -215,7 +215,7 @@ const ProjectDetails: React.FC = () => {
                     title: 'Roles',
                     label: (
                       <Label isCompact color="yellow" variant="outline">
-                        Dev preview
+                        Tech preview
                       </Label>
                     ),
                     component: (

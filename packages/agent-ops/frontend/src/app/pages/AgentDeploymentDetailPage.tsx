@@ -27,8 +27,12 @@ import MarkdownComponent from '@odh-dashboard/internal/components/markdown/Markd
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import AgentCapabilitiesCard from '~/app/components/AgentCapabilitiesCard';
 import AgentDetailsCard from '~/app/components/AgentDetailsCard';
+import AgentRuntimeOverviewCard from '~/app/components/AgentRuntimeOverviewCard';
 import AgentRuntimeStatusLabel from '~/app/components/AgentRuntimeStatusLabel';
 import { useAgentRuntimeDetail } from '~/app/hooks/useAgentRuntimeDetail';
+import { hasEnrichedAgentCard } from '~/app/utilities/agentCardUtils';
+import { getAgentRuntimeStatusMessage } from '~/app/utilities/agentRuntimeConditions';
+import { readSparseRuntimeDetailTitle } from '~/app/utilities/sparseApiFields';
 import { agentOpsDeploymentsRoute } from '~/app/utilities/routes';
 
 const AgentDeploymentDetailPage: React.FC = () => {
@@ -111,7 +115,10 @@ const AgentDeploymentDetailPage: React.FC = () => {
     .find((value): value is string => Boolean(value));
   const hasDescription = Boolean(descriptionText);
   const hasSkills = (detail?.agentCard?.skills?.length ?? 0) > 0;
+  const showEnrichedAgentCard = hasEnrichedAgentCard(detail?.agentCard);
   const hasMainColumnContent = hasDescription || hasSkills;
+  const statusMessage = getAgentRuntimeStatusMessage(detail?.conditions);
+  const detailTitle = detail ? readSparseRuntimeDetailTitle(detail) : undefined;
 
   return (
     <ApplicationsPage
@@ -139,11 +146,14 @@ const AgentDeploymentDetailPage: React.FC = () => {
                 <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
                   <FlexItem>
                     <Title headingLevel="h1" size="2xl" data-testid="agent-detail-title">
-                      {detail.name}
+                      {detailTitle}
                     </Title>
                   </FlexItem>
                   <FlexItem>
-                    <AgentRuntimeStatusLabel status={detail.runtime.status} />
+                    <AgentRuntimeStatusLabel
+                      status={detail.runtime.status}
+                      statusMessage={statusMessage}
+                    />
                   </FlexItem>
                 </Flex>
               </FlexItem>
@@ -152,7 +162,7 @@ const AgentDeploymentDetailPage: React.FC = () => {
           <PageSection hasBodyWrapper={false} isFilled>
             <Grid hasGutter>
               {hasMainColumnContent && (
-                <GridItem lg={detail.agentCard ? 8 : 12} md={12}>
+                <GridItem lg={8} md={12}>
                   <Stack hasGutter>
                     {descriptionText && (
                       <StackItem>
@@ -176,11 +186,18 @@ const AgentDeploymentDetailPage: React.FC = () => {
                   </Stack>
                 </GridItem>
               )}
-              {detail.agentCard && (
-                <GridItem lg={hasMainColumnContent ? 4 : 12} md={12}>
-                  <AgentDetailsCard agentCard={detail.agentCard} />
-                </GridItem>
-              )}
+              <GridItem lg={hasMainColumnContent ? 4 : 12} md={12}>
+                <Stack hasGutter>
+                  <StackItem>
+                    <AgentRuntimeOverviewCard detail={detail} />
+                  </StackItem>
+                  {showEnrichedAgentCard && detail.agentCard && (
+                    <StackItem>
+                      <AgentDetailsCard agentCard={detail.agentCard} />
+                    </StackItem>
+                  )}
+                </Stack>
+              </GridItem>
             </Grid>
           </PageSection>
         </>

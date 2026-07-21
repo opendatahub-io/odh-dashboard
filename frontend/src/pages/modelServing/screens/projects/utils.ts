@@ -14,6 +14,7 @@ import {
 } from '@odh-dashboard/model-serving/shared';
 import useGenericObjectState from '@odh-dashboard/ui-core/utilities/useGenericObjectState';
 import { useDeepCompareMemoize } from '@odh-dashboard/ui-core/hooks';
+import { containsOnlySlashes, isS3PathValid } from '@odh-dashboard/ui-core/utilities';
 import type { UpdateObjectAtPropAndValue } from '@odh-dashboard/ui-core';
 import { ConfigMapKind } from '#~/k8sTypes';
 import { NamespaceApplicationCase } from '#~/pages/projects/types';
@@ -35,7 +36,7 @@ import {
   updateInferenceService,
   updateServingRuntime,
 } from '#~/api';
-import { containsOnlySlashes, isS3PathValid, removeLeadingSlash } from '#~/utilities/string';
+import { removeLeadingSlash } from '#~/utilities/string';
 import { getNIMData, getNIMResource } from '#~/pages/modelServing/screens/projects/nim/nimUtils';
 import { Connection } from '#~/concepts/connectionTypes/types';
 import {

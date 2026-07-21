@@ -119,7 +119,7 @@ describe('useWorkspaceCapabilities', () => {
       expect(result.current.hasASRModel).toBe(true);
     });
 
-    it('should exclude custom_endpoint models with audio-transcription', () => {
+    it('should detect custom_endpoint models with audio-transcription', () => {
       const models = [
         makeModel({
           model_id: 'whisper-ext',
@@ -128,7 +128,7 @@ describe('useWorkspaceCapabilities', () => {
         }),
       ];
       const { result } = renderHook(() => useWorkspaceCapabilities(models, true, true, undefined));
-      expect(result.current.hasASRModel).toBe(false);
+      expect(result.current.hasASRModel).toBe(true);
     });
 
     it('should exclude maas models with audio-transcription', () => {

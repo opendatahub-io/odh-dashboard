@@ -53,9 +53,6 @@ func (c *permissiveK8sClient) CanListServicesInNamespace(context.Context, *k8s.R
 	return true, nil
 }
 
-func (c *permissiveK8sClient) CanListAgentsInNamespace(context.Context, *k8s.RequestIdentity, string) (bool, error) {
-	return true, nil
-}
 
 func (c *permissiveK8sClient) CanGetAgentInNamespace(context.Context, *k8s.RequestIdentity, string, string) (bool, error) {
 	return true, nil
@@ -82,9 +79,9 @@ func (c *permissiveK8sClient) CanAccessAgentCardEnrichment(context.Context, *k8s
 
 func defaultGVRListKinds() map[schema.GroupVersionResource]string {
 	return map[schema.GroupVersionResource]string{
-		sandboxGVR:               "SandboxList",
-		openshiftRouteGVR:        "RouteList",
-		mcpServerRegistrationGVR: "MCPServerRegistrationList",
+		sandboxGVR:                     "SandboxList",
+		openshiftRouteGVR:              "RouteList",
+		mcpServerRegistrationGVR:       "MCPServerRegistrationList",
 		legacyMCPServerRegistrationGVR: "MCPServerRegistrationList",
 	}
 }
@@ -189,6 +186,40 @@ func TestClient_ListAgentsFromSandboxCR(t *testing.T) {
 	assert.Equal(t, agents.WorkloadTypeSandbox, list.Items[0].WorkloadType)
 	assert.Contains(t, list.Items[0].EndpointURL, agentName)
 	assert.Equal(t, conditionTime.UTC().Truncate(time.Second), mapper.ParseTime(list.Items[0].LastSyncAt).UTC().Truncate(time.Second))
+}
+
+func TestClient_ListAgentsFromConditionsOnlySandboxCR(t *testing.T) {
+	namespace := "dan"
+	agentName := "weatherservice"
+
+	sandbox := testSandboxCR(namespace, agentName, func(obj *unstructured.Unstructured) {
+		obj.Object["status"] = map[string]any{
+			"conditions": []any{
+				map[string]any{
+					"type":    sandboxConditionReady,
+					"status":  "True",
+					"reason":  sandboxReasonDependenciesReady,
+					"message": "Pod is Ready; Service Exists",
+				},
+			},
+			"serviceFQDN": "weatherservice.dan.svc.cluster.local",
+		}
+	})
+
+	dynamicClient := fakedynamic.NewSimpleDynamicClientWithCustomListKinds(runtime.NewScheme(), defaultGVRListKinds())
+	seedSandboxCR(t, dynamicClient, sandbox)
+
+	client := newTestAgentClient(t)
+	client.k8sClient = &dynamicTestK8sClient{
+		permissiveK8sClient: *client.k8sClient.(*permissiveK8sClient),
+		dynamic:             dynamicClient,
+	}
+
+	list, err := client.ListAgents(context.Background(), namespace)
+	require.NoError(t, err)
+	require.Len(t, list.Items, 1)
+	assert.Equal(t, agentName, list.Items[0].Name)
+	assert.Equal(t, "ready", list.Items[0].Status)
 }
 
 func testOpenShellSandboxCR(namespace, name string, extra ...func(*unstructured.Unstructured)) *unstructured.Unstructured {
@@ -475,9 +506,6 @@ func (c *failingNamespacesK8sClient) CanListServicesInNamespace(context.Context,
 	return true, nil
 }
 
-func (c *failingNamespacesK8sClient) CanListAgentsInNamespace(context.Context, *k8s.RequestIdentity, string) (bool, error) {
-	return true, nil
-}
 
 func (c *failingNamespacesK8sClient) CanGetAgentInNamespace(context.Context, *k8s.RequestIdentity, string, string) (bool, error) {
 	return true, nil

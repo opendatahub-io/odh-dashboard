@@ -321,7 +321,12 @@ func (app *App) handleStreamingResponseWithModeration(w http.ResponseWriter, r *
 	}
 
 	sendGuardrailError := func(message string, code string, retriable bool) {
-		if writeErr := sendEvent(buildStreamingErrorEvent(code, message, "guardrails", retriable)); writeErr != nil {
+		withTraceID := func(data map[string]interface{}) {
+			if traceID := otelTraceID(ctx); traceID != "" {
+				data["trace_id"] = traceID
+			}
+		}
+		if writeErr := sendEvent(buildStreamingErrorEvent(code, message, "guardrails", retriable, withTraceID)); writeErr != nil {
 			app.logger.Debug("Failed to write guardrail error event to client", "error", writeErr)
 		}
 	}

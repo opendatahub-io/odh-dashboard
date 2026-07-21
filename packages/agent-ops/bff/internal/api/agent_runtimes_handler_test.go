@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/julienschmidt/httprouter"
+	"github.com/opendatahub-io/mod-arch-library/bff/internal/integrations/agents"
 	agentsmock "github.com/opendatahub-io/mod-arch-library/bff/internal/integrations/agents/mock"
 	"github.com/opendatahub-io/mod-arch-library/bff/internal/repositories"
 	"github.com/stretchr/testify/assert"
@@ -125,7 +126,7 @@ func TestListAgentRuntimesHandler_WithNamespaceNoResults(t *testing.T) {
 
 func TestListAgentRuntimesHandler_ForbiddenNamespaceDoesNotLeakQueryParams(t *testing.T) {
 	mockClient := agentsmock.NewClient()
-	mockClient.CanListAgentsInNSResult = false
+	mockClient.ListAgentsErr = agents.ErrForbidden
 	repos := repositories.NewRepositories(&agentsmock.Factory{Client: mockClient})
 
 	var buf bytes.Buffer

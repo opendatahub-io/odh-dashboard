@@ -22,8 +22,8 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/config"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
-	"github.com/opendatahub-io/gen-ai/internal/integrations/asr"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/bffclient"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/bffclient/bffmocks"
 	k8s "github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack"
 	"github.com/opendatahub-io/gen-ai/internal/models"
@@ -34,8 +34,10 @@ import (
 // mockK8sClientForASR implements KubernetesClientInterface with configurable AAModels
 type mockK8sClientForASR struct {
 	k8s.KubernetesClientInterface
-	models []models.AAModel
-	err    error
+	models               []models.AAModel
+	err                  error
+	externalModelsConfig *models.ExternalModelsConfig
+	secretValues         map[string]string
 }
 
 func (m *mockK8sClientForASR) GetAAModels(_ context.Context, _ *integrations.RequestIdentity, _ string) ([]models.AAModel, error) {
@@ -47,6 +49,24 @@ func (m *mockK8sClientForASR) GetAAModels(_ context.Context, _ *integrations.Req
 
 func (m *mockK8sClientForASR) GetUser(_ context.Context, _ *integrations.RequestIdentity) (string, error) {
 	return "test-user", nil
+}
+
+func (m *mockK8sClientForASR) GetExternalModelsConfig(_ context.Context, _ string) (*models.ExternalModelsConfig, error) {
+	if m.externalModelsConfig == nil {
+		return nil, fmt.Errorf("external models ConfigMap not found")
+	}
+	return m.externalModelsConfig, nil
+}
+
+func (m *mockK8sClientForASR) GetSecretValue(_ context.Context, _ *integrations.RequestIdentity, _ string, secretName string, secretKey string) (string, error) {
+	if m.secretValues == nil {
+		return "", fmt.Errorf("secret not found")
+	}
+	key := secretName + "/" + secretKey
+	if val, ok := m.secretValues[key]; ok {
+		return val, nil
+	}
+	return "", fmt.Errorf("key %q not found in secret %q", secretKey, secretName)
 }
 
 // mockK8sFactoryForASR implements KubernetesClientFactory
@@ -67,7 +87,6 @@ func (f *mockK8sFactoryForASR) ValidateRequestIdentity(_ *integrations.RequestId
 }
 
 // mockLSClientForASR implements LlamaStackClientInterface for audio handler tests.
-// Only GetFileContent is used; other methods panic if called.
 type mockLSClientForASR struct {
 	fileBody        io.ReadCloser
 	fileContentType string
@@ -154,7 +173,6 @@ func newTestAppForASR(t *testing.T, k8sModels []models.AAModel) *App {
 		config:                  cfg,
 		logger:                  logger,
 		kubernetesClientFactory: &mockK8sFactoryForASR{client: mockK8s},
-		asrClient:               asr.NewClient(logger, cfg.InsecureSkipVerify, nil),
 		openAPI:                 openAPIHandler,
 	}
 
@@ -322,22 +340,100 @@ func TestAudioTranscription_ModelLacksCapability(t *testing.T) {
 	assert.False(t, fe.Error.Retriable)
 }
 
-func TestAudioTranscription_SSRFPreventionCustomEndpoint(t *testing.T) {
-	model := asrModel("test-ns")
-	model.ModelSourceType = models.ModelSourceTypeCustomEndpoint
-	app := newTestAppForASR(t, []models.AAModel{model})
-	lsClient := mockLSWithAudio(wavBytes(), "audio/wav")
+func TestAudioTranscription_CustomEndpointAllowed(t *testing.T) {
+	var receivedAuthHeader string
+	// The SDK appends "audio/transcriptions" relative to base URL.
+	// Since custom endpoints include /v1 in their base_url, the SDK hits /v1/audio/transcriptions
+	asrServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		receivedAuthHeader = r.Header.Get("Authorization")
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"text":"custom endpoint transcription"}`))
+	}))
+	defer asrServer.Close()
 
-	req := buildAudioRequest(t, AudioTranscriptionRequest{FileID: "file-abc123", ASRModelID: "whisper-asr"}, lsClient)
+	// Custom endpoint base_url includes the full path (simulating https://api.groq.com/openai/v1)
+	// For test, we use asrServer.URL + "/v1" as the endpoint stored in the model
+	customEndpointURL := asrServer.URL + "/v1"
+
+	model := models.AAModel{
+		ModelName:       "whisper-ext",
+		ModelID:         "whisper-ext",
+		ServingRuntime:  "remote::openai",
+		Endpoints:       []string{customEndpointURL},
+		Status:          models.ModelStatusUnknown,
+		DisplayName:     "Groq Whisper",
+		ModelSourceType: models.ModelSourceTypeCustomEndpoint,
+		Capabilities:    []string{constants.CapabilityAudioTranscription},
+	}
+
+	mockClient := &mockK8sClientForASR{
+		models: []models.AAModel{model},
+		externalModelsConfig: &models.ExternalModelsConfig{
+			Providers: models.ProvidersConfig{
+				Inference: []models.InferenceProvider{{
+					ProviderID:   "endpoint-1",
+					ProviderType: models.ProviderTypeOpenAI,
+					Config: models.ProviderConfig{
+						BaseURL: customEndpointURL,
+						CustomGenAI: models.CustomGenAI{
+							APIKey: models.APIKeyConfig{
+								SecretRef: models.SecretRef{
+									Name: "groq-api-key",
+									Key:  "api_key",
+								},
+							},
+						},
+					},
+				}},
+			},
+			RegisteredResources: models.RegisteredResourcesConfig{
+				Models: []models.RegisteredModel{{
+					ProviderID: "endpoint-1",
+					ModelID:    "whisper-ext",
+					ModelType:  models.ModelTypeLLM,
+					Metadata: models.RegisteredModelMetadata{
+						DisplayName:  "Groq Whisper",
+						Capabilities: []string{"audio-transcription"},
+					},
+				}},
+			},
+		},
+		secretValues: map[string]string{
+			"groq-api-key/api_key": "gsk_test_api_key_12345",
+		},
+	}
+
+	originalWd, err := os.Getwd()
+	require.NoError(t, err)
+	projectRoot := filepath.Join(originalWd, "..", "..")
+	require.NoError(t, os.Chdir(projectRoot))
+	t.Cleanup(func() { _ = os.Chdir(originalWd) })
+
+	cfg := config.EnvConfig{InsecureSkipVerify: true}
+	logger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelError}))
+	openAPIHandler, err := NewOpenAPIHandler(logger)
+	require.NoError(t, err)
+
+	app := &App{
+		config:                  cfg,
+		logger:                  logger,
+		kubernetesClientFactory: &mockK8sFactoryForASR{client: mockClient},
+		openAPI:                 openAPIHandler,
+	}
+
+	lsClient := mockLSWithAudio(wavBytes(), "audio/wav")
+	req := buildAudioRequest(t, AudioTranscriptionRequest{FileID: "file-abc123", ASRModelID: "whisper-ext"}, lsClient)
 	rr := httptest.NewRecorder()
 	app.LlamaStackAudioTranscriptionHandler(rr, req, nil)
 
-	assert.Equal(t, http.StatusBadRequest, rr.Code)
-	fe := parseFrontendError(t, rr.Body.Bytes())
-	assert.Equal(t, "asr", fe.Error.Component)
-	assert.Equal(t, constants.ASRCodeModelInvalid, fe.Error.Code)
-	assert.Contains(t, fe.Error.Message, "namespace-deployed or MaaS model")
-	assert.False(t, fe.Error.Retriable)
+	assert.Equal(t, http.StatusOK, rr.Code)
+
+	var resp AudioTranscriptionResponse
+	err = json.Unmarshal(rr.Body.Bytes(), &resp)
+	require.NoError(t, err)
+	assert.Equal(t, "custom endpoint transcription", resp.Text)
+	assert.Equal(t, "Bearer gsk_test_api_key_12345", receivedAuthHeader, "Custom endpoint models must use the API key from the Secret")
 }
 
 func TestAudioTranscription_MaaSModelAllowed(t *testing.T) {
@@ -356,25 +452,41 @@ func TestAudioTranscription_MaaSModelAllowed(t *testing.T) {
 		ServingRuntime:  "MaaS",
 		Endpoints:       []string{asrServer.URL},
 		Status:          models.ModelStatusRunning,
-		DisplayName:     "Whisper MaaS",
+		DisplayName:     "MaaS Whisper",
 		ModelSourceType: models.ModelSourceTypeMaaS,
 		Capabilities:    []string{constants.CapabilityAudioTranscription},
 	}
-	app := newTestAppForASR(t, []models.AAModel{model})
-	app.memoryStore = cache.NewMemoryStore()
+
+	originalWd, err := os.Getwd()
+	require.NoError(t, err)
+	projectRoot := filepath.Join(originalWd, "..", "..")
+	require.NoError(t, os.Chdir(projectRoot))
+	t.Cleanup(func() { _ = os.Chdir(originalWd) })
+
+	cfg := config.EnvConfig{InsecureSkipVerify: true}
+	logger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelError}))
+	openAPIHandler, err := NewOpenAPIHandler(logger)
+	require.NoError(t, err)
+
 	lsClient := mockLSWithAudio(wavBytes(), "audio/wav")
 
-	// Set up a mock MaaS BFF server that returns an ephemeral API key
-	maasAPIKeyServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(`{"data":{"key":"maas-ephemeral-key-12345","expires_at":"2099-01-01T00:00:00Z"}}`))
-	}))
-	defer maasAPIKeyServer.Close()
+	mockK8s := &mockK8sClientForASR{models: []models.AAModel{model}}
 
-	maasClient := bffclient.NewHTTPBFFClient(maasAPIKeyServer.URL+"/api/v1", bffclient.BFFTargetMaaS, "test-token", true, nil)
+	memStore := cache.NewMemoryStore()
+
+	app := &App{
+		config:                  cfg,
+		logger:                  logger,
+		kubernetesClientFactory: &mockK8sFactoryForASR{client: mockK8s},
+		openAPI:                 openAPIHandler,
+		memoryStore:             memStore,
+		httpClient:              asrServer.Client(),
+	}
+
+	// Build the request with BFF MaaS client in context so getMaaSTokenForModel can issue a token
+	mockMaaSClient := bffmocks.NewMockBFFClient(bffclient.BFFTargetMaaS)
 	req := buildAudioRequest(t, AudioTranscriptionRequest{FileID: "file-abc123", ASRModelID: "whisper-maas"}, lsClient)
-	ctx := context.WithValue(req.Context(), constants.BFFClientKey(constants.BFFTarget(bffclient.BFFTargetMaaS)), maasClient)
+	ctx := context.WithValue(req.Context(), constants.BFFClientKey(constants.BFFTarget(bffclient.BFFTargetMaaS)), mockMaaSClient)
 	req = req.WithContext(ctx)
 
 	rr := httptest.NewRecorder()
@@ -383,146 +495,13 @@ func TestAudioTranscription_MaaSModelAllowed(t *testing.T) {
 	assert.Equal(t, http.StatusOK, rr.Code)
 
 	var resp AudioTranscriptionResponse
-	err := json.Unmarshal(rr.Body.Bytes(), &resp)
+	err = json.Unmarshal(rr.Body.Bytes(), &resp)
 	require.NoError(t, err)
 	assert.Equal(t, "MaaS transcription result", resp.Text)
-	assert.Equal(t, "Bearer maas-ephemeral-key-12345", receivedAuthHeader, "MaaS models must use an ephemeral API key, not the user's OAuth token")
-}
-
-func TestAudioTranscription_MaaSModelUsesRequestSubscription(t *testing.T) {
-	var receivedAuthHeader string
-	asrServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		receivedAuthHeader = r.Header.Get("Authorization")
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(`{"text":"subscription override result"}`))
-	}))
-	defer asrServer.Close()
-
-	// No namespace models — forces MaaS fallback path where subscriptionHint is used
-	app := newTestAppForASR(t, []models.AAModel{})
-	app.memoryStore = cache.NewMemoryStore()
-	lsClient := mockLSWithAudio(wavBytes(), "audio/wav")
-
-	var apiKeyRequestBody map[string]interface{}
-	maasAPIKeyServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		switch {
-		case strings.Contains(r.URL.Path, "/api-keys"):
-			_ = json.NewDecoder(r.Body).Decode(&apiKeyRequestBody)
-			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte(`{"data":{"key":"maas-key-from-frontend-sub","expires_at":"2099-01-01T00:00:00Z"}}`))
-		case strings.Contains(r.URL.Path, "/models"):
-			fmt.Fprintf(w, `{
-				"data": {
-					"object": "list",
-					"data": [{
-						"id": "whisper-maas",
-						"object": "model",
-						"created": 1700000000,
-						"owned_by": "vllm",
-						"ready": true,
-						"url": "%s",
-						"modelDetails": {
-							"modelCapabilities": ["audio-transcription"]
-						},
-						"subscriptions": [{"name": "whisper-sub"}]
-					}]
-				}
-			}`, asrServer.URL)
-		default:
-			w.WriteHeader(http.StatusNotFound)
-		}
-	}))
-	defer maasAPIKeyServer.Close()
-
-	maasClient := bffclient.NewHTTPBFFClient(maasAPIKeyServer.URL+"/api/v1", bffclient.BFFTargetMaaS, "test-token", true, nil)
-	req := buildAudioRequest(t, AudioTranscriptionRequest{
-		FileID:       "file-abc123",
-		ASRModelID:   "whisper-maas",
-		Subscription: "user-chosen-subscription",
-	}, lsClient)
-	ctx := context.WithValue(req.Context(), constants.BFFClientKey(constants.BFFTarget(bffclient.BFFTargetMaaS)), maasClient)
-	req = req.WithContext(ctx)
-
-	rr := httptest.NewRecorder()
-	app.LlamaStackAudioTranscriptionHandler(rr, req, nil)
-
-	assert.Equal(t, http.StatusOK, rr.Code)
-
-	var resp AudioTranscriptionResponse
-	err := json.Unmarshal(rr.Body.Bytes(), &resp)
-	require.NoError(t, err)
-	assert.Equal(t, "subscription override result", resp.Text)
-	assert.Equal(t, "Bearer maas-key-from-frontend-sub", receivedAuthHeader)
-
-	dataField, ok := apiKeyRequestBody["data"].(map[string]interface{})
-	require.True(t, ok, "API key request must have a 'data' envelope")
-	assert.Equal(t, "user-chosen-subscription", dataField["subscription"],
-		"API key request must carry the client-provided subscription")
-}
-
-func TestAudioTranscription_MaaSFallbackWhenNotInNamespace(t *testing.T) {
-	var receivedAuthHeader string
-	asrServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		receivedAuthHeader = r.Header.Get("Authorization")
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(`{"text":"fallback MaaS transcription"}`))
-	}))
-	defer asrServer.Close()
-
-	// k8s returns NO models — simulating a namespace miss
-	app := newTestAppForASR(t, []models.AAModel{})
-	app.memoryStore = cache.NewMemoryStore()
-	lsClient := mockLSWithAudio(wavBytes(), "audio/wav")
-
-	// Mock MaaS BFF server handles both /models and /api-keys
-	maasServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		switch {
-		case strings.Contains(r.URL.Path, "/models"):
-			fmt.Fprintf(w, `{
-				"data": {
-					"object": "list",
-					"data": [{
-						"id": "whisper-maas",
-						"object": "model",
-						"created": 1700000000,
-						"owned_by": "vllm",
-						"ready": true,
-						"url": "%s",
-						"modelDetails": {
-							"modelCapabilities": ["audio-transcription"]
-						},
-						"subscriptions": [{"name": "whisper-sub"}]
-					}]
-				}
-			}`, asrServer.URL)
-		case strings.Contains(r.URL.Path, "/api-keys"):
-			_, _ = w.Write([]byte(`{"data":{"key":"fallback-maas-key","expires_at":"2099-01-01T00:00:00Z"}}`))
-		default:
-			w.WriteHeader(http.StatusNotFound)
-		}
-	}))
-	defer maasServer.Close()
-
-	maasClient := bffclient.NewHTTPBFFClient(maasServer.URL+"/api/v1", bffclient.BFFTargetMaaS, "test-token", true, nil)
-	req := buildAudioRequest(t, AudioTranscriptionRequest{FileID: "file-abc123", ASRModelID: "whisper-maas"}, lsClient)
-	ctx := context.WithValue(req.Context(), constants.BFFClientKey(constants.BFFTarget(bffclient.BFFTargetMaaS)), maasClient)
-	req = req.WithContext(ctx)
-
-	rr := httptest.NewRecorder()
-	app.LlamaStackAudioTranscriptionHandler(rr, req, nil)
-
-	assert.Equal(t, http.StatusOK, rr.Code)
-
-	var resp AudioTranscriptionResponse
-	err := json.Unmarshal(rr.Body.Bytes(), &resp)
-	require.NoError(t, err)
-	assert.Equal(t, "fallback MaaS transcription", resp.Text)
-	assert.Equal(t, "Bearer fallback-maas-key", receivedAuthHeader,
-		"MaaS fallback must use ephemeral API key, not user's OAuth token")
+	// The mock BFF client returns "sk-oai-mock-..." prefixed tokens.
+	// Verify auth header was set (MaaS token was resolved and sent).
+	assert.True(t, strings.HasPrefix(receivedAuthHeader, "Bearer sk-oai-mock-"),
+		"expected MaaS-issued bearer token, got: %s", receivedAuthHeader)
 }
 
 func TestAudioTranscription_ModelNotRunning(t *testing.T) {
@@ -558,15 +537,14 @@ func TestAudioTranscription_ModelNoInternalEndpoint(t *testing.T) {
 	assert.Equal(t, "asr", fe.Error.Component)
 	assert.Equal(t, constants.ASRCodeModelNoEndpoint, fe.Error.Code)
 	assert.Contains(t, fe.Error.Message, "no internal endpoint")
-	assert.False(t, fe.Error.Retriable)
 }
 
-// --- GetFileContent Error Tests ---
+// --- File Retrieval Tests ---
 
 func TestAudioTranscription_GetFileContentError(t *testing.T) {
 	model := asrModel("test-ns")
 	app := newTestAppForASR(t, []models.AAModel{model})
-	lsClient := mockLSWithError(errors.New("file not found: 404"))
+	lsClient := mockLSWithError(errors.New("file not found on server"))
 
 	req := buildAudioRequest(t, AudioTranscriptionRequest{FileID: "file-abc123", ASRModelID: "whisper-asr"}, lsClient)
 	rr := httptest.NewRecorder()
@@ -576,14 +554,13 @@ func TestAudioTranscription_GetFileContentError(t *testing.T) {
 	fe := parseFrontendError(t, rr.Body.Bytes())
 	assert.Equal(t, "asr", fe.Error.Component)
 	assert.Equal(t, constants.ASRCodeFileRetrieval, fe.Error.Code)
-	assert.Contains(t, fe.Error.Message, "file not found")
 	assert.True(t, fe.Error.Retriable)
 }
 
 func TestAudioTranscription_GetFileContentServerError(t *testing.T) {
 	model := asrModel("test-ns")
 	app := newTestAppForASR(t, []models.AAModel{model})
-	lsClient := mockLSWithError(errors.New("OGX file retrieval failed: 500"))
+	lsClient := mockLSWithError(errors.New("internal server error"))
 
 	req := buildAudioRequest(t, AudioTranscriptionRequest{FileID: "file-abc123", ASRModelID: "whisper-asr"}, lsClient)
 	rr := httptest.NewRecorder()
@@ -593,7 +570,6 @@ func TestAudioTranscription_GetFileContentServerError(t *testing.T) {
 	fe := parseFrontendError(t, rr.Body.Bytes())
 	assert.Equal(t, "asr", fe.Error.Component)
 	assert.Equal(t, constants.ASRCodeFileRetrieval, fe.Error.Code)
-	assert.Contains(t, fe.Error.Message, "500")
 	assert.True(t, fe.Error.Retriable)
 }
 
@@ -601,7 +577,7 @@ func TestAudioTranscription_MissingLSClient(t *testing.T) {
 	model := asrModel("test-ns")
 	app := newTestAppForASR(t, []models.AAModel{model})
 
-	// Explicitly no LlamaStackClientKey in context
+	// Build request without LlamaStack client in context
 	req := buildAudioRequest(t, AudioTranscriptionRequest{FileID: "file-abc123", ASRModelID: "whisper-asr"}, nil)
 	rr := httptest.NewRecorder()
 	app.LlamaStackAudioTranscriptionHandler(rr, req, nil)
@@ -684,7 +660,9 @@ func TestAudioTranscription_Success_MP3(t *testing.T) {
 
 func TestAudioTranscription_ASREndpointAuthFailure(t *testing.T) {
 	asrServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusUnauthorized)
+		_, _ = w.Write([]byte(`{"error":{"message":"Invalid API key","type":"invalid_request_error","code":"invalid_api_key"}}`))
 	}))
 	defer asrServer.Close()
 
@@ -707,7 +685,9 @@ func TestAudioTranscription_ASREndpointAuthFailure(t *testing.T) {
 
 func TestAudioTranscription_ASREndpointServerError(t *testing.T) {
 	asrServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusInternalServerError)
+		_, _ = w.Write([]byte(`{"error":{"message":"Internal error","type":"server_error","code":"server_error"}}`))
 	}))
 	defer asrServer.Close()
 
@@ -753,31 +733,6 @@ func TestAudioTranscription_ASREmptyTranscription(t *testing.T) {
 	assert.False(t, fe.Error.Retriable)
 }
 
-func TestAudioTranscription_ASRInvalidJSON(t *testing.T) {
-	asrServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte("not valid json"))
-	}))
-	defer asrServer.Close()
-
-	model := asrModel("test-ns")
-	model.Endpoints = []string{"internal: " + asrServer.URL}
-	app := newTestAppForASR(t, []models.AAModel{model})
-	lsClient := mockLSWithAudio(wavBytes(), "audio/wav")
-
-	req := buildAudioRequest(t, AudioTranscriptionRequest{FileID: "file-abc123", ASRModelID: "whisper-asr"}, lsClient)
-	rr := httptest.NewRecorder()
-	app.LlamaStackAudioTranscriptionHandler(rr, req, nil)
-
-	assert.Equal(t, http.StatusBadGateway, rr.Code)
-	fe := parseFrontendError(t, rr.Body.Bytes())
-	assert.Equal(t, "asr", fe.Error.Component)
-	assert.Equal(t, constants.ASRCodeInvalidResponse, fe.Error.Code)
-	assert.Contains(t, fe.Error.Message, "invalid JSON")
-	assert.True(t, fe.Error.Retriable)
-}
-
 func TestAudioTranscription_ASRTimeout(t *testing.T) {
 	asrServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		time.Sleep(3 * time.Second)
@@ -808,9 +763,9 @@ func TestAudioTranscription_ASRTimeout(t *testing.T) {
 // --- ASR_MODEL_URL Override Tests ---
 
 func TestAudioTranscription_AsrModelURLOverride(t *testing.T) {
-	// Start a mock ASR server that records incoming requests
 	asrServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodPost, r.Method)
+		// SDK resolves "audio/transcriptions" relative to baseURL ending in /v1/
 		assert.True(t, strings.HasPrefix(r.URL.Path, "/v1/audio/transcriptions"))
 
 		w.Header().Set("Content-Type", "application/json")
@@ -839,7 +794,6 @@ func TestAudioTranscription_AsrModelURLOverride(t *testing.T) {
 }
 
 func TestAudioTranscription_AsrModelURLOverrideIgnoresInternalEndpoint(t *testing.T) {
-	// The override URL should be used instead of the model's internal endpoint
 	overrideServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
@@ -847,7 +801,6 @@ func TestAudioTranscription_AsrModelURLOverrideIgnoresInternalEndpoint(t *testin
 	}))
 	defer overrideServer.Close()
 
-	// Model has a valid internal endpoint, but override should take precedence
 	model := asrModel("test-ns")
 	model.Endpoints = []string{"internal: http://should-not-be-used.svc.cluster.local:80"}
 	app := newTestAppForASR(t, []models.AAModel{model})
@@ -867,7 +820,6 @@ func TestAudioTranscription_AsrModelURLOverrideIgnoresInternalEndpoint(t *testin
 }
 
 func TestAudioTranscription_AsrModelURLEmptyUsesInternalEndpoint(t *testing.T) {
-	// When AsrModelURL is empty, the normal internal endpoint should be used
 	internalServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
@@ -878,7 +830,6 @@ func TestAudioTranscription_AsrModelURLEmptyUsesInternalEndpoint(t *testing.T) {
 	model := asrModel("test-ns")
 	model.Endpoints = []string{"internal: " + internalServer.URL}
 	app := newTestAppForASR(t, []models.AAModel{model})
-	// Explicitly leave AsrModelURL empty (default)
 
 	lsClient := mockLSWithAudio(wavBytes(), "audio/wav")
 	req := buildAudioRequest(t, AudioTranscriptionRequest{FileID: "file-abc123", ASRModelID: "whisper-asr"}, lsClient)

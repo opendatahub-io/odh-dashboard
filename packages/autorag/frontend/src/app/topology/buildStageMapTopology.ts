@@ -1,156 +1,35 @@
 import { DEFAULT_SPACER_NODE_TYPE, RunStatus } from '@patternfly/react-topology';
-import type {
-  ComponentStageMap,
-  ComponentStageMapComponent,
-  ComponentStageMapStage,
-} from '~/app/hooks/useComponentStageMap';
+import type { ComponentStageMap } from '~/app/hooks/useComponentStageMap';
 import type { RunDetailsKF } from '~/app/types/pipeline';
 import type { PipelineNodeModelExpanded } from '~/app/types/topology';
-import { isRunInTerminalState } from '~/app/utilities/utils';
-import { componentIdToTaskId } from '~/app/hooks/useComponentStatuses';
+import { resolveStageLabel, resolveStepLabel } from './stageMapLabels';
+import {
+  BRANCHING_STAGE_ID,
+  getSelectedPatterns,
+  createActiveIconVariantResolver,
+  hasPreBranchInlineFailure,
+  isStageFinished,
+  isStageTerminalFailure,
+  isInlineStageFailure,
+  resolveBranchPhaseStatus,
+  hasExplicitComponentFailureEvidence,
+  resolveComponentStatus,
+  resolveSequentialStageRunStatuses,
+  promoteWaitingFrontierToInProgress,
+  SKIP_COMPONENT_IDS,
+} from './stageMapStatus';
+import { capPatternSelectionSteps } from './stageMapConstants';
 import { createNode } from './utils';
-import { translateStatusForNode } from './parseUtils';
 
-const DEFAULT_MAX_PATTERNS = 3;
-
-/* eslint-disable camelcase -- keys match backend stage IDs */
-const STAGE_DISPLAY_NAMES: Record<string, string> = {
-  validate_inputs: 'Validate inputs',
-  download_and_sample: 'Download and sample',
-  write_output: 'Write output',
-  list_and_sample: 'List and sample',
-  write_descriptor: 'Write descriptor',
-  load_descriptor: 'Load descriptor',
-  extract_documents: 'Extract documents',
-  prepare_search_space: 'Prepare search space',
-  write_report: 'Write report',
-  optimize_templates: 'Optimize templates',
-  run_optimization: 'Run optimization',
-  write_patterns: 'Write patterns',
-  build_requests: 'Build requests',
-  write_artifacts: 'Write artifacts',
-  build_leaderboard: 'Build leaderboard',
-};
-
-const BRANCHING_STAGE_ID = 'optimize_templates';
-
-const SKIP_COMPONENT_IDS = new Set(['publish_component_stage_map']);
-
-const fallbackStageLabel = (stageId: string): string => {
-  const spaced = stageId.replace(/[-_]+/g, ' ').trim();
-  if (!spaced) {
-    return stageId;
+/** Resolves a pattern-records key (e.g. leaderboard entry) to a display name, if known. */
+const resolvePatternDisplayName = (
+  patternRecords: Record<string, { name?: string } | null | undefined>,
+  patternId?: string,
+): string | undefined => {
+  if (!patternId || !Object.hasOwn(patternRecords, patternId)) {
+    return undefined;
   }
-  return spaced.charAt(0).toUpperCase() + spaced.slice(1);
-};
-
-const resolveStageLabel = (stageId: string): string =>
-  STAGE_DISPLAY_NAMES[stageId] ?? fallbackStageLabel(stageId);
-
-const STEP_DISPLAY_NAMES: Record<string, string> = {
-  chunking: 'Chunking',
-  embedding: 'Embedding',
-  retrieval: 'Retrieval',
-  generation: 'Generation',
-  evaluation: 'Evaluation',
-};
-
-const resolveStepLabel = (stepId: string): string =>
-  STEP_DISPLAY_NAMES[stepId] ?? fallbackStageLabel(stepId);
-
-/* eslint-enable camelcase */
-
-const translateStageStatus = (status?: string): RunStatus | undefined => {
-  switch (status) {
-    case 'completed':
-      return RunStatus.Succeeded;
-    case 'started':
-      return RunStatus.InProgress;
-    case 'failed':
-      return RunStatus.Failed;
-    case 'skipped':
-      return RunStatus.Skipped;
-    default:
-      return undefined;
-  }
-};
-
-const getComponentRunStatus = (
-  component: ComponentStageMapComponent,
-  runDetails?: RunDetailsKF,
-): RunStatus | undefined => {
-  const taskId = componentIdToTaskId(component.id);
-  const task = runDetails?.task_details.find(
-    (td) => td.display_name === taskId || td.task_id === taskId,
-  );
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- task may be undefined from find()
-  if (task?.state) {
-    return translateStatusForNode(task.state);
-  }
-  if (component.completed_at) {
-    return RunStatus.Succeeded;
-  }
-  if (component.started_at) {
-    return RunStatus.InProgress;
-  }
-  return undefined;
-};
-
-const resolveStageRunStatus = (
-  stage: ComponentStageMapStage,
-  componentStatus: RunStatus | undefined,
-  runTerminalFallback: RunStatus | undefined,
-): RunStatus | undefined => {
-  const inlineStatus = translateStageStatus(stage.status);
-  if (inlineStatus) {
-    return inlineStatus;
-  }
-
-  if (componentStatus === RunStatus.InProgress) {
-    return RunStatus.InProgress;
-  }
-
-  if (componentStatus === RunStatus.Succeeded) {
-    return RunStatus.Succeeded;
-  }
-
-  if (componentStatus === RunStatus.Failed) {
-    return RunStatus.Failed;
-  }
-
-  return runTerminalFallback;
-};
-
-type SelectedPatternsResult = {
-  patterns: string[];
-  isPlaceholder: boolean;
-};
-
-const getSelectedPatterns = (
-  stages: ComponentStageMapStage[],
-  maxPatterns?: number,
-  leaderboardPatternNames?: string[],
-): SelectedPatternsResult => {
-  const patternSelectionStage = stages.find((s) => s.id === BRANCHING_STAGE_ID);
-  const selectedPatterns = patternSelectionStage?.selected_patterns;
-
-  if (
-    Array.isArray(selectedPatterns) &&
-    selectedPatterns.length > 0 &&
-    selectedPatterns.every((p): p is string => typeof p === 'string')
-  ) {
-    return { patterns: selectedPatterns, isPlaceholder: false };
-  }
-
-  if (leaderboardPatternNames && leaderboardPatternNames.length > 0) {
-    return { patterns: leaderboardPatternNames, isPlaceholder: false };
-  }
-
-  const count = maxPatterns ?? DEFAULT_MAX_PATTERNS;
-  return {
-    patterns: Array.from({ length: count }, (_, i) => `placeholder_${i}`),
-    isPlaceholder: true,
-  };
+  return patternRecords[patternId]?.name;
 };
 
 export const buildStageMapTopology = (
@@ -159,70 +38,119 @@ export const buildStageMapTopology = (
   runState?: string,
   maxPatterns?: number,
   leaderboardPatternNames?: string[],
+  patternRecords?: Record<string, { name?: string }>,
 ): PipelineNodeModelExpanded[] => {
-  const terminalFallback =
-    runState && isRunInTerminalState(runState) ? translateStatusForNode(runState) : undefined;
-
   const nodes: PipelineNodeModelExpanded[] = [];
+  // Tracks the node(s) that the next node should follow.
+  // Multiple entries when branches need to converge.
   let pendingRunAfter: string[] = [];
+  const pipelineState = { blocked: false };
+  // Only the first in-progress mapped stage in the entire pipeline uses sync.
+  const resolveActiveIconVariant = createActiveIconVariantResolver();
+
+  const markPipelineBlockedIfFailed = (runStatus: RunStatus | undefined): void => {
+    if (isStageTerminalFailure(runStatus)) {
+      pipelineState.blocked = true;
+    }
+  };
+
+  const hasExplicitFailureInPipeline = hasExplicitComponentFailureEvidence(
+    componentStageMap.components,
+    runDetails,
+  );
 
   for (const component of componentStageMap.components) {
     if (SKIP_COMPONENT_IDS.has(component.id)) {
       continue;
     }
 
-    const componentStatus = getComponentRunStatus(component, runDetails);
+    const componentStatus = pipelineState.blocked
+      ? undefined
+      : resolveComponentStatus(component, runDetails, runState, hasExplicitFailureInPipeline);
     const hasBranchingStages = component.stages.some((s) => s.id === BRANCHING_STAGE_ID);
 
     if (!hasBranchingStages) {
+      const stageStatuses = pipelineState.blocked
+        ? new Map(component.stages.map((stage) => [stage.id, RunStatus.Pending]))
+        : resolveSequentialStageRunStatuses(
+            component.stages,
+            componentStatus,
+            runState,
+            hasExplicitFailureInPipeline,
+          );
+
       for (const stage of component.stages) {
         const nodeId = `${component.id}__${stage.id}`;
         const label = resolveStageLabel(stage.id);
-        const runStatus = resolveStageRunStatus(stage, componentStatus, terminalFallback);
+        const runStatus = stageStatuses.get(stage.id);
+        const activeIconVariant = resolveActiveIconVariant(runStatus);
 
         nodes.push(
-          createNode(
-            nodeId,
+          createNode({
+            id: nodeId,
             label,
-            {
+            pipelineTask: {
               type: 'task',
               name: label,
               status: stage.timestamp ? { startTime: stage.timestamp } : undefined,
             },
-            pendingRunAfter,
+            runAfterTasks: pendingRunAfter,
             runStatus,
-          ),
+            activeIconVariant,
+          }),
         );
 
+        markPipelineBlockedIfFailed(runStatus);
         pendingRunAfter = [nodeId];
       }
       continue;
     }
 
-    // Component has branching: split into pre-branch and post-branch stages
+    // Component has branching: split into pre-branch, branch, and post-branch stages
     const branchIndex = component.stages.findIndex((s) => s.id === BRANCHING_STAGE_ID);
     const preBranchStages = component.stages.slice(0, branchIndex + 1);
     const postBranchStages = component.stages.slice(branchIndex + 1);
+    const patternSelectionStage = component.stages.find((s) => s.id === BRANCHING_STAGE_ID);
 
+    const preBranchStatuses = pipelineState.blocked
+      ? new Map(preBranchStages.map((stage) => [stage.id, RunStatus.Pending]))
+      : resolveSequentialStageRunStatuses(
+          preBranchStages,
+          componentStatus,
+          runState,
+          hasExplicitFailureInPipeline,
+        );
+    const patternSelectionRunStatus = preBranchStatuses.get(BRANCHING_STAGE_ID);
+    const patternSelectionHasInlineStatus = patternSelectionStage?.status != null;
+    const preBranchInlineFailure = hasPreBranchInlineFailure(preBranchStages);
+    const branchPhaseStatus =
+      pipelineState.blocked || preBranchInlineFailure
+        ? RunStatus.Pending
+        : resolveBranchPhaseStatus(patternSelectionRunStatus, patternSelectionStage);
+
+    // Emit pre-branch stages linearly (validate_inputs, optimize_templates)
     for (const stage of preBranchStages) {
       const nodeId = `${component.id}__${stage.id}`;
       const label = resolveStageLabel(stage.id);
-      const runStatus = resolveStageRunStatus(stage, componentStatus, terminalFallback);
+      const runStatus = preBranchStatuses.get(stage.id);
+      const activeIconVariant = resolveActiveIconVariant(runStatus);
 
       nodes.push(
-        createNode(
-          nodeId,
+        createNode({
+          id: nodeId,
           label,
-          {
+          pipelineTask: {
             type: 'task',
             name: label,
             status: stage.timestamp ? { startTime: stage.timestamp } : undefined,
           },
-          pendingRunAfter,
+          runAfterTasks: pendingRunAfter,
           runStatus,
-        ),
+          activeIconVariant,
+        }),
       );
 
+      markPipelineBlockedIfFailed(runStatus);
       pendingRunAfter = [nodeId];
     }
 
@@ -235,14 +163,16 @@ export const buildStageMapTopology = (
     );
     const branchTailNodeIds: string[] = [];
 
-    const patternSelectionStage = component.stages.find((s) => s.id === BRANCHING_STAGE_ID);
-    const steps = patternSelectionStage?.steps ?? [];
+    const steps = capPatternSelectionSteps(patternSelectionStage?.steps ?? []);
 
+    // Branch children share branchPhaseStatus. The pipeline-wide resolver assigns
+    // sync to the first in-progress node and pulse to every subsequent one.
     for (let patternIdx = 0; patternIdx < patterns.length; patternIdx++) {
       const patternId = patterns[patternIdx];
       const patternLabel = isPlaceholder
         ? `Pattern ${patternIdx + 1}`
-        : patternId.replace(/(\D)(\d)/, '$1 $2');
+        : (resolvePatternDisplayName(patternRecords ?? {}, patternId) ??
+          patternId.replace(/(\D)(\d)/, '$1 $2'));
       const branchKey = `branch-${patternIdx}`;
 
       // Emit step nodes first in each branch (e.g. chunking → embedding → …)
@@ -250,51 +180,47 @@ export const buildStageMapTopology = (
       for (const stepId of steps) {
         const stepNodeId = `${component.id}__step__${stepId}__${branchKey}`;
         const stepLabel = resolveStepLabel(stepId);
-        const stepStatus = resolveStageRunStatus(
-          patternSelectionStage ?? { id: BRANCHING_STAGE_ID, description: '' },
-          componentStatus,
-          terminalFallback,
-        );
+        const stepStatus = branchPhaseStatus;
+        const activeIconVariant = resolveActiveIconVariant(stepStatus);
 
         nodes.push(
-          createNode(
-            stepNodeId,
-            stepLabel,
-            { type: 'task', name: stepLabel },
-            [branchPreviousNodeId],
-            stepStatus,
-          ),
+          createNode({
+            id: stepNodeId,
+            label: stepLabel,
+            pipelineTask: { type: 'task', name: stepLabel },
+            runAfterTasks: [branchPreviousNodeId],
+            runStatus: stepStatus,
+            activeIconVariant,
+          }),
         );
 
+        markPipelineBlockedIfFailed(stepStatus);
         branchPreviousNodeId = stepNodeId;
       }
 
-      // Pattern name node follows the step chain
-      // Placeholder nodes bypass resolveStageRunStatus, so without terminalFallback
-      // they stay InProgress even after a run is cancelled/failed.
-      const branchStatus = isPlaceholder
-        ? componentStatus === RunStatus.Succeeded
-          ? RunStatus.InProgress
-          : (terminalFallback ?? componentStatus)
-        : resolveStageRunStatus(
-            patternSelectionStage ?? { id: BRANCHING_STAGE_ID, description: '' },
-            componentStatus,
-            terminalFallback,
-          );
+      // Pattern name nodes mirror optimize_templates — they label the branch terminus, not
+      // downstream write_patterns/build_leaderboard work still in flight on the component.
+      const branchStatus = branchPhaseStatus;
+      const patternActiveIconVariant = resolveActiveIconVariant(branchStatus);
       const patternNodeId = `${component.id}__pattern__${branchKey}`;
       nodes.push(
-        createNode(
-          patternNodeId,
-          patternLabel,
-          { type: 'task', name: patternLabel },
-          [branchPreviousNodeId],
-          branchStatus,
-        ),
+        createNode({
+          id: patternNodeId,
+          label: patternLabel,
+          pipelineTask: { type: 'task', name: patternLabel },
+          runAfterTasks: [branchPreviousNodeId],
+          runStatus: branchStatus,
+          activeIconVariant: patternActiveIconVariant,
+        }),
       );
 
+      markPipelineBlockedIfFailed(branchStatus);
       branchTailNodeIds.push(patternNodeId);
     }
 
+    // Insert a convergence spacer so the fan-in renders as a single merge point.
+    // addSpacerNodes only creates spacers for fan-out (multiple nodes sharing the
+    // same runAfterTasks); fan-in (one node with multiple parents) needs a manual spacer.
     if (branchTailNodeIds.length > 1) {
       const spacerId = branchTailNodeIds.join('|');
       nodes.push({
@@ -309,28 +235,52 @@ export const buildStageMapTopology = (
       pendingRunAfter = branchTailNodeIds;
     }
 
+    const componentEndedWithoutInlineBranchFailure =
+      (componentStatus === RunStatus.Failed || componentStatus === RunStatus.Cancelled) &&
+      !isInlineStageFailure(patternSelectionStage);
+    const shouldKeepPostBranchPending =
+      preBranchInlineFailure ||
+      (patternSelectionRunStatus === RunStatus.Failed &&
+        isInlineStageFailure(patternSelectionStage)) ||
+      // Keep post-branch pending until pattern selection finishes, even while the component
+      // task is already RUNNING, but only when pattern selection itself has explicit stage status.
+      (!isStageFinished(patternSelectionRunStatus) &&
+        patternSelectionHasInlineStatus &&
+        !componentEndedWithoutInlineBranchFailure);
+    const postBranchStatuses = shouldKeepPostBranchPending
+      ? new Map(postBranchStages.map((stage) => [stage.id, RunStatus.Pending]))
+      : resolveSequentialStageRunStatuses(
+          postBranchStages,
+          componentStatus,
+          runState,
+          hasExplicitFailureInPipeline,
+        );
+
     for (const stage of postBranchStages) {
       const nodeId = `${component.id}__${stage.id}`;
       const label = resolveStageLabel(stage.id);
-      const runStatus = resolveStageRunStatus(stage, componentStatus, terminalFallback);
+      const runStatus = postBranchStatuses.get(stage.id);
+      const activeIconVariant = resolveActiveIconVariant(runStatus);
 
       nodes.push(
-        createNode(
-          nodeId,
+        createNode({
+          id: nodeId,
           label,
-          {
+          pipelineTask: {
             type: 'task',
             name: label,
             status: stage.timestamp ? { startTime: stage.timestamp } : undefined,
           },
-          pendingRunAfter,
+          runAfterTasks: pendingRunAfter,
           runStatus,
-        ),
+          activeIconVariant,
+        }),
       );
 
+      markPipelineBlockedIfFailed(runStatus);
       pendingRunAfter = [nodeId];
     }
   }
 
-  return nodes;
+  return promoteWaitingFrontierToInProgress(nodes, runState);
 };
