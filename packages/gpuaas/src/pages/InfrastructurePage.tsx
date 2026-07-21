@@ -83,15 +83,15 @@ const InfrastructurePage: React.FC = () => {
       data-testid="infrastructure-refresh-badge"
     >
       <FlexItem>
-        <Tooltip content="Refresh page data">
-          <Button variant="plain" aria-label="Refresh page data" onClick={handleRefresh}>
+        <Tooltip content="Refresh">
+          <Button variant="plain" aria-label="Refresh" onClick={handleRefresh}>
             <SyncAltIcon />
           </Button>
         </Tooltip>
       </FlexItem>
       <FlexItem>
         <Content component="small">
-          Last update: {relativeTime(Date.now(), metrics.lastRefreshed.getTime())}
+          Last updated {relativeTime(Date.now(), metrics.lastRefreshed.getTime())}
         </Content>
       </FlexItem>
     </Flex>
@@ -100,7 +100,7 @@ const InfrastructurePage: React.FC = () => {
   return (
     <ApplicationsPage
       title="Infrastructure"
-      description="Cluster capacity and accelerator utilization."
+      description="Current accelerator allocation and quota consumption for this cluster. Cluster queues are grouped into cohorts to share resources."
       loaded
       empty={false}
       provideChildrenPadding

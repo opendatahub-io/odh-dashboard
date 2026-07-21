@@ -5,26 +5,27 @@ export const TREND_REFRESH_INTERVAL = 5 * 60 * 1000;
 export const INFRASTRUCTURE_SECTIONS = [
   {
     id: 'cluster',
-    title: 'Cluster',
-    description: 'Cluster-wide accelerator allocation and average compute and memory utilization.',
+    title: 'Summary',
+    description: 'Cluster-wide accelerator allocation and average compute and memory consumption.',
     isPlain: true,
   },
   {
     id: 'hardware-usage',
     title: 'Hardware usage',
-    description: 'Accelerator counts by hardware type, in use and available.',
+    description: 'Accelerator counts by hardware type.',
     isPlain: false,
   },
   {
     id: 'borrowing-lending',
-    title: 'Borrowing & lending',
-    description: 'Seven-day trend of borrow and lend activity by cluster queue.',
+    title: 'Borrowing and lending',
+    description:
+      '7-day borrowing and lending trends by cluster queue. When a cluster queue uses its full quota, it can borrow accelerators from other queues. ',
     isPlain: false,
   },
   {
     id: 'cluster-queue-utilization',
-    title: 'Cluster queue utilization',
-    description: 'Cluster queue accelerator utilization grouped by Kueue cohort.',
+    title: 'Cluster queue consumption',
+    description: 'Cluster queue accelerator consumption grouped by cohort.',
     isPlain: true,
   },
 ] as const;
