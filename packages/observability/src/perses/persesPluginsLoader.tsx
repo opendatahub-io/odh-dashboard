@@ -20,42 +20,67 @@ if (typeof window !== 'undefined') {
   window.PERSES_APP_CONFIG = { api_prefix: PERSES_PROXY_BASE_PATH };
 }
 
-type BundledPluginModule = {
+export type BundledPluginModule = {
   getPluginModule: () => PluginModuleResource;
 } & Record<string, unknown>;
+
+const createDefaultBundledOverrideLoaders = (): Map<string, () => Promise<BundledPluginModule>> =>
+  new Map<string, () => Promise<BundledPluginModule>>([
+    ['Prometheus', () => import('@perses-dev/prometheus-plugin')],
+    ['Loki', () => import('@perses-dev/loki-plugin')],
+    ['Table', () => import('@perses-dev/table-plugin')],
+    ['StatChart', () => import('@perses-dev/stat-chart-plugin')],
+  ]);
 
 /**
  * Locally bundled plugins that replace the matching remote module.
  * Keyed by Perses server module name (mf-manifest `name`). After load, the
  * npm package name from getPluginModule() is also cached for importPluginModule.
  */
-const BUNDLED_OVERRIDE_LOADERS = new Map<string, () => Promise<BundledPluginModule>>([
-  ['Prometheus', () => import('@perses-dev/prometheus-plugin')],
-  ['Loki', () => import('@perses-dev/loki-plugin')],
-  ['Table', () => import('@perses-dev/table-plugin')],
-  ['StatChart', () => import('@perses-dev/stat-chart-plugin')],
-]);
+let bundledOverrideLoaders = createDefaultBundledOverrideLoaders();
 
 const loadedOverrides = new Map<string, Promise<BundledPluginModule>>();
 
-const loadBundledOverride = (name: string): Promise<BundledPluginModule> | undefined => {
+const evictLoadedOverride = (pending: Promise<BundledPluginModule>): void => {
+  for (const [key, value] of loadedOverrides.entries()) {
+    if (value === pending) {
+      loadedOverrides.delete(key);
+    }
+  }
+};
+
+/** Resolves a bundled override by remote module name or cached npm package name. */
+export const loadBundledOverride = (name: string): Promise<BundledPluginModule> | undefined => {
   const cached = loadedOverrides.get(name);
   if (cached) {
     return cached;
   }
 
-  const loader = BUNDLED_OVERRIDE_LOADERS.get(name);
+  const loader = bundledOverrideLoaders.get(name);
   if (!loader) {
     return undefined;
   }
 
-  const pending = loader().then((mod) => {
-    // Also resolve under the npm package name used after getPluginModule() replacement.
-    loadedOverrides.set(mod.getPluginModule().metadata.name, pending);
-    return mod;
-  });
+  const pending = loader()
+    .then((mod) => {
+      // Also resolve under the npm package name used after getPluginModule() replacement.
+      loadedOverrides.set(mod.getPluginModule().metadata.name, pending);
+      return mod;
+    })
+    .catch((error: unknown) => {
+      evictLoadedOverride(pending);
+      throw error;
+    });
   loadedOverrides.set(name, pending);
   return pending;
+};
+
+/** Clears override cache and optionally replaces loaders. Restores defaults when omitted. */
+export const resetBundledOverridesForTests = (
+  loaders?: Map<string, () => Promise<BundledPluginModule>>,
+): void => {
+  loadedOverrides.clear();
+  bundledOverrideLoaders = loaders ?? createDefaultBundledOverrideLoaders();
 };
 
 const remoteLoader = remotePluginLoader({
