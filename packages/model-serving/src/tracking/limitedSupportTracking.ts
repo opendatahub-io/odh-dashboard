@@ -4,6 +4,7 @@ import {
   getServingRuntimeVersion,
   getFastVersion,
 } from '@odh-dashboard/model-serving/concepts/versions';
+import type { UnsupportedStatusDismissAction } from '@odh-dashboard/model-serving/components/UnsupportedStatusAcceptanceModal';
 
 export const LIMITED_SUPPORT_EVENTS = {
   RISK_DISMISSED: 'Model Serving Unsupported Runtime Risk Dismissed',
@@ -11,15 +12,13 @@ export const LIMITED_SUPPORT_EVENTS = {
 
 export type RuntimeResourceType = 'serving-runtime-template' | 'llm-accelerator-config';
 
-export type DismissAction = 'cancel' | 'close';
-
 export type RiskDismissedProperties = {
   runtimeResourceType: RuntimeResourceType;
   resourceId: string;
   resourceName: string;
   version: string | undefined;
   fastVersion: string | undefined;
-  dismissAction: DismissAction;
+  dismissAction: UnsupportedStatusDismissAction;
   outcome: 'cancel';
 };
 
