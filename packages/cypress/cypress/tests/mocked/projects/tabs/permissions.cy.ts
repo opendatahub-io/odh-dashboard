@@ -8,7 +8,7 @@ import {
   mockRoleBindingK8sResource,
 } from '@odh-dashboard/internal/__mocks__';
 import { mock200Status } from '@odh-dashboard/internal/__mocks__/mockK8sStatus';
-import type { RoleBindingSubject } from '@odh-dashboard/internal/k8sTypes';
+import type { RoleBindingSubject } from '@odh-dashboard/k8s-core';
 import { permissions, roleBindingPermissionsChangeModal } from '../../../../pages/permissions';
 import { be } from '../../../../utils/should';
 import { ProjectModel, RoleBindingModel } from '../../../../utils/models';

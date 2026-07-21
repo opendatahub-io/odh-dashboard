@@ -1,5 +1,5 @@
 import { mockStorageClassList } from '@odh-dashboard/internal/__mocks__';
-import type { StorageClassKind } from '@odh-dashboard/internal/k8sTypes';
+import type { StorageClassKind } from '@odh-dashboard/k8s-core';
 import { TableRow } from './components/table';
 import { appChrome } from './appChrome';
 import { TableToolbar } from './components/TableToolbar';

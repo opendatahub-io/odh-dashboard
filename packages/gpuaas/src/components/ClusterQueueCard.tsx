@@ -15,7 +15,7 @@ import {
   chart_color_purple_100 as chartColorPurple,
   chart_color_orange_100 as chartColorOrange,
 } from '@patternfly/react-tokens';
-import { ClusterQueueKind } from '@odh-dashboard/internal/k8sTypes';
+import { ClusterQueueKind } from '@odh-dashboard/k8s-core';
 import AcceleratorDonutChart from './AcceleratorDonutChart';
 import {
   BorrowLendBadge,

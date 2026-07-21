@@ -1,7 +1,8 @@
 import * as React from 'react';
 import { Navigate, Outlet, useParams } from 'react-router-dom';
 import { ApplicationsPage } from '@odh-dashboard/ui-core';
-import { byName, ProjectsContext } from '@odh-dashboard/internal/concepts/projects/ProjectsContext';
+import { ProjectsContext } from '@odh-dashboard/ui-core/context/ProjectsContext';
+import { byName } from '@odh-dashboard/k8s-core';
 import InvalidProject from '@odh-dashboard/internal/concepts/projects/InvalidProject';
 import { getStoredPreferredProject } from '@odh-dashboard/internal/concepts/projects/getStoredPreferredProject';
 import { ModelTrainingContextProvider } from './ModelTrainingContext';
