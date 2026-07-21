@@ -22,20 +22,17 @@ export const deploymentsExternalPath = (namespace: string): string =>
 const MISSING_MAAS_MODEL_REF_BODY = (
   <div>
     <p>
-      This external model does not have a MaaS model reference. A MaaS model reference is required
-      for subscriptions, authorization policies, and API key generation.
+      MaaS governance features (subscriptions, authorization policies, API keys) require a
+      MaaSModelRef resource that references this external model. This resource must be deployed in
+      the same namespace as the external model.
     </p>
   </div>
 );
 
-const MISSING_MAAS_MODEL_REF_FOOTER =
-  'Create a MaaS model reference to enable governance features and allow consumers to access this model through the gateway.';
-
 export const MissingMaaSModelRefWarning: React.FC = () => (
   <Popover
-    headerContent="MaaS model reference required"
+    headerContent="Missing MaaS model setup"
     bodyContent={MISSING_MAAS_MODEL_REF_BODY}
-    footerContent={MISSING_MAAS_MODEL_REF_FOOTER}
     data-testid="external-model-missing-maas-model-ref-popover"
   >
     <Button
