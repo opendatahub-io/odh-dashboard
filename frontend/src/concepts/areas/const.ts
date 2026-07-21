@@ -15,6 +15,7 @@ export const techPreviewFlags = {
   externalModels: false,
   aiAssetCustomEndpoints: false,
   mcpCatalog: false,
+  mcpRegistry: false,
   toolCalling: false,
   projectRBAC: true,
   roleManagement: false,
@@ -37,7 +38,6 @@ export const devTemporaryFeatureFlags = {
   nimWizard: false,
   agentOpsDeploy: false,
   agentsCatalog: false,
-  mcpRegistry: false,
 } satisfies Partial<DashboardCommonConfig>;
 
 // Group 1: Core Dashboard Features
