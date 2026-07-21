@@ -739,6 +739,18 @@ export enum ApiKeyStatus {
   revoked = 'Revoked',
 }
 
+export enum PhaseStatus {
+  ACTIVE = 'Active',
+  READY = 'Ready',
+  PENDING = 'Pending',
+  FAILED = 'Failed',
+  INVALID = 'Invalid',
+  DEGRADED = 'Degraded',
+  UNAVAILABLE = 'Unavailable',
+  UNHEALTHY = 'Unhealthy',
+  UNKNOWN = 'Unknown',
+}
+
 export type TrainJobTestData = {
   projectName: string;
   trainJobName: string;
