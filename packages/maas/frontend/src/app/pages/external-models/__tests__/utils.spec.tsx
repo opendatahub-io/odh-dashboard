@@ -97,7 +97,7 @@ describe('getExternalModelStatusMessage', () => {
     const { container } = render(
       <>{getExternalModelStatusMessage(baseModel({ phase: PhaseStatus.PENDING }))}</>,
     );
-    expect(container.textContent).toContain('is being reconciled');
+    expect(container.textContent).toContain('is being set up');
     expect(container.textContent).toContain('GPT-4o External');
   });
 
@@ -105,12 +105,14 @@ describe('getExternalModelStatusMessage', () => {
     const { container } = render(
       <>{getExternalModelStatusMessage(baseModel({ phase: PhaseStatus.FAILED }))}</>,
     );
-    expect(container.textContent).toContain('could not be reconciled');
+    expect(container.textContent).toContain('failed to set up');
   });
 
   it('should return ready reconciliation copy', () => {
     const { container } = render(<>{getExternalModelStatusMessage(baseModel())}</>);
-    expect(container.textContent).toContain('have been created successfully');
+    expect(container.textContent).toContain(
+      'Requests are being routed to the configured provider(s).',
+    );
   });
 
   it('should fall back to resource name when display name is missing', () => {

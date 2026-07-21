@@ -30,31 +30,19 @@ export const getExternalModelStatusMessage = (externalModel: ExternalModel): Rea
   const modelName = <strong>{externalModel.displayName ?? externalModel.name}</strong>;
 
   if (externalModel.phase === PhaseStatus.PENDING) {
-    return (
-      <>
-        {modelName} is being reconciled. The controller is creating networking resources
-        (HTTPRoutes, service entries) and validating provider connections. This typically completes
-        within a few seconds.
-      </>
-    );
+    return <>{modelName} is being set up. This typically completes within a few seconds.</>;
   }
   if (externalModel.phase === PhaseStatus.FAILED) {
     return (
       <>
-        {modelName} could not be reconciled. Common causes include a missing ExternalProvider
-        reference, a Secret that doesn&apos;t exist in the namespace, a missing config key
-        referenced as a {'{key}'} placeholder in the path, or a network policy blocking Istio
-        resource creation. Check the model&apos;s conditions for details.
+        {modelName} failed to set up. Common causes include a missing provider reference or secret,
+        invalid path configuration, or a network policy issue. For details, check the model&apos;s
+        conditions.
       </>
     );
   }
   if (externalModel.phase === PhaseStatus.READY) {
-    return (
-      <>
-        All networking resources for {modelName} have been created successfully. The HTTPRoute is
-        active and inference requests are being routed to the configured provider(s).
-      </>
-    );
+    return <>{modelName} is ready. Requests are being routed to the configured provider(s).</>;
   }
   return 'The status of this external model is unknown.';
 };

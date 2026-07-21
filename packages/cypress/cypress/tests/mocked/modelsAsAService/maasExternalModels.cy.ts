@@ -178,7 +178,7 @@ describe('External Models Page', () => {
       awaitingRow
         .findGovernanceWarningPopover()
         .should('exist')
-        .should('contain.text', 'Not ready for consumption');
+        .should('contain.text', 'Pending MaaS governance');
     });
 
     it('should filter external models by keyword across name, display name, and description', () => {

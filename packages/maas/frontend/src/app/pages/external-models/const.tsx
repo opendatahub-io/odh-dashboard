@@ -22,20 +22,16 @@ export const deploymentsExternalPath = (namespace: string): string =>
 const GOVERNANCE_PAIRING_WARNING_BODY = (
   <div>
     <p>
-      This model is awaiting governance pairing. An active subscription and authorization policy are
-      required before consumers can access the gateway endpoint.
+      Consumers can&apos;t access this model until they are given access in a MaaS subscription and
+      authorization policy from the <strong>MaaS governance</strong> page.
     </p>
   </div>
 );
 
-const GOVERNANCE_PAIRING_WARNING_FOOTER =
-  'Consumers will also need an API key to authenticate requests. API keys can be generated from the API keys page in GenAI Studio.';
-
 export const GovernancePairingWarning: React.FC = () => (
   <Popover
-    headerContent="Not ready for consumption"
+    headerContent="Pending MaaS governance"
     bodyContent={GOVERNANCE_PAIRING_WARNING_BODY}
-    footerContent={GOVERNANCE_PAIRING_WARNING_FOOTER}
     data-testid="external-model-governance-pairing-warning-popover"
   >
     <Button
