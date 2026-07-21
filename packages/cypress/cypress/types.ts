@@ -497,6 +497,7 @@ export type ModelRegistryTestData = {
   modelFormatTensorflow: string;
   formatVersion3_0: string;
   uriVersion2: string;
+  deploymentType: string;
 
   newNameSuffix: string;
   newDescription: string;

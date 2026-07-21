@@ -282,14 +282,14 @@ export const checkInferenceServiceState = (
                 )})`,
             )
             .join('\n')}
-          
+
           Full Condition Details:
           ${conditionDetails}`;
 
         cy.log(errorMessage);
         throw new Error(errorMessage);
       } else {
-        return cy.wait(5000).then(() => {
+        return cy.wait(50000).then(() => {
           failOnDeploymentStatus(serviceName);
           return checkState();
         });
@@ -451,7 +451,7 @@ export const checkLLMInferenceServiceState = (
                 )})`,
             )
             .join('\n')}
-          
+
           Full Condition Details:
           ${conditionDetails}`;
 

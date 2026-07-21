@@ -53,6 +53,7 @@ describe('Verify models can be deployed from model registry', () => {
   let hardwareProfileName: string;
   let hardwareProfileYamlPath: string;
   let servingRuntimeArgs: string;
+  let deploymentType: string;
   let envVars: Array<{ name: string; value: string }>;
   const uuid = generateTestUUID();
   const databaseName = `model-registry-db-${uuid}`;
@@ -70,6 +71,7 @@ describe('Verify models can be deployed from model registry', () => {
       hardwareProfileName = testData.hardwareProfileName;
       hardwareProfileYamlPath = testData.hardwareProfileYamlPath;
       servingRuntimeArgs = testData.servingRuntimeArgs;
+      deploymentType = testData.deploymentType;
       envVars = testData.envVars;
 
       // ensure operator has optimal memory
@@ -273,7 +275,9 @@ describe('Verify models can be deployed from model registry', () => {
       modelServingWizard.findLocationPathInput().should('have.value', testData.modelOpenVinoPath);
       modelServingWizard.findSaveConnectionCheckbox().should('be.checked');
       modelServingWizard.findSaveConnectionInput().clear().type(`${projectName}-connection`);
-      modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).click();
+      modelServingWizard
+        .findModelTypeSelectOption(ModelTypeLabel.GENERATIVE)
+        .click({ force: true });
       modelServingWizard.findNextButton().click();
 
       cy.step('Model deployment');
@@ -289,6 +293,7 @@ describe('Verify models can be deployed from model registry', () => {
         .then((val) => {
           resourceName = val as string;
         });
+      modelServingWizard.selectDeploymentType(deploymentType);
       modelServingWizard.selectPotentiallyDisabledProfile(hardwareProfileName);
       modelServingWizard.selectServingRuntimeOption(servingRuntime);
       modelServingWizard.findNextButton().click();

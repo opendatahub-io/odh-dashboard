@@ -1013,6 +1013,10 @@ class ModelServingWizard extends Wizard {
     return cy.findByTestId('serving-runtime-template-selection-toggle');
   }
 
+  findServingRuntimeTemplateSelectionSearchInputBox() {
+    return cy.findByTestId('serving-runtime-template-selection-search');
+  }
+
   /** Selects the manual-select radio (works for both serving runtimes and model deployment configs). */
   findModelServerManualSelectRadio() {
     return cy.findByTestId('model-server-manual-select-radio');
@@ -1052,8 +1056,13 @@ class ModelServingWizard extends Wizard {
         // Select from a list of serving runtimes, including custom ones
         this.findServingRuntimeTemplateSearchSelector().click();
         // Duplicate display names can match multiple menu items; pick the first for E2E stability
-        cy.get('.pf-v6-c-text-input-group__text-input').type(name);
-        cy.get('.pf-v6-c-menu__item-text > .pf-v6-l-flex').click();
+        this.findServingRuntimeTemplateSelectionSearchInputBox().type(name);
+        // cy.get('.pf-v6-c-text-input-group__text-input').type(name);
+        // cy.get('.pf-v6-c-menu__item-text > .pf-v6-l-flex').click();
+        cy.findByTestId('global-scoped-serving-runtimes')
+          .find('[data-testid^="servingRuntime"]')
+          .first()
+          .click();
         // this.getGlobalScopedServingRuntime()
         //   .find()
         //   .findAllByRole('menuitem', { name: new RegExp(name), hidden: true })

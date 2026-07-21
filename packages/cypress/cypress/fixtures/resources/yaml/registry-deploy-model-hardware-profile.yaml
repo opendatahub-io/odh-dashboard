@@ -9,13 +9,13 @@ spec:
   description: 'Hardware profile for testRegistryDeployModel.cy.ts'
   enabled: true
   identifiers:
-    - defaultCount: 4
+    - defaultCount: 6
       displayName: CPU
       identifier: cpu
       maxCount: 8
       minCount: 100m
       resourceType: CPU
-    - defaultCount: 12Gi
+    - defaultCount: 14Gi
       displayName: Memory
       identifier: memory
       maxCount: 16Gi
