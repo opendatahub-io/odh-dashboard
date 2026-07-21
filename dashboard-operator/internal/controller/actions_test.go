@@ -114,6 +114,21 @@ func TestApplyKustomizeParamsPreservesDigestDefaults(t *testing.T) {
 		"digest-pinned default in sidecar params.env must survive when no env var override is provided")
 }
 
+// TestApplyKustomizeParamsStandaloneNoSidecar verifies that applyKustomizeParams
+// returns nil without error when the sidecar/ directory is absent (standalone mode).
+func TestApplyKustomizeParamsStandaloneNoSidecar(t *testing.T) {
+	dir := t.TempDir()
+	overlay := filepath.Join(dir, "odh", "standalone")
+	require.NoError(t, os.MkdirAll(overlay, 0755))
+	require.NoError(t, os.WriteFile(filepath.Join(overlay, "params.env"), []byte(""), 0644))
+
+	// No sidecar/ directory created — simulates standalone mode manifest layout.
+	dashboard := &v1alpha1.Dashboard{}
+	manifests := standaloneManifestSets(dir, cluster.OpenDataHub)
+	err := applyKustomizeParams(dashboard, manifests, cluster.OpenDataHub)
+	require.NoError(t, err, "applyKustomizeParams must not error when sidecar/ is absent")
+}
+
 func TestExtractDashboardURL(t *testing.T) {
 	scheme := runtime.NewScheme()
 	require.NoError(t, routev1.AddToScheme(scheme))
