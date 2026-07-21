@@ -21,6 +21,18 @@ rules:
       - watch
     resources:
       - ingresses
+  # OTel Collector — create/manage the gen-ai-trace-collector CR for per-namespace trace routing (gen-ai-ui)
+  # TODO: Move to modules/gen-ai/cluster-role.yaml once per-module SAs are active (3.5 pod migration)
+  - apiGroups:
+      - opentelemetry.io
+    verbs:
+      - get
+      - list
+      - create
+      - update
+      - delete
+    resources:
+      - opentelemetrycollectors
   # SubjectAccessReview for namespace access checks
   - apiGroups:
       - authorization.k8s.io
@@ -37,14 +49,14 @@ rules:
       - users
       - groups
       - serviceaccounts
-  # Agent Ops — AgentRuntime card discovery
+  # Agent Ops — Sandbox CR discovery (list/detail enrichment when modules SA reads on behalf of user)
   - apiGroups:
-      - agent.kagenti.dev
+      - agents.x-k8s.io
     verbs:
       - get
       - list
     resources:
-      - agentruntimes
+      - sandboxes
   # Agent Ops — OpenShift Route lookup for external agent card URL
   - apiGroups:
       - route.openshift.io

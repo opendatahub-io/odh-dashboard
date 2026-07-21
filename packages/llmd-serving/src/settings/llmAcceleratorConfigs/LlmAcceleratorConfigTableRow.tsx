@@ -47,6 +47,7 @@ const LlmAcceleratorConfigTableRow: React.FC<LlmAcceleratorConfigTableRowProps> 
         {
           title: 'Delete',
           onClick: () => onDeleteConfig(config),
+          isDanger: true,
         },
       ];
 

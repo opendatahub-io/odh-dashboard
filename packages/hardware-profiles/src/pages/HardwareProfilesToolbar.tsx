@@ -2,8 +2,8 @@ import React from 'react';
 import { Button, SearchInput, ToolbarGroup, ToolbarItem } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 import { HardwareProfileFeatureVisibility } from '@odh-dashboard/k8s-core';
-import FilterToolbar from '@odh-dashboard/internal/components/FilterToolbar';
-import SimpleSelect, { SimpleSelectOption } from '@odh-dashboard/internal/components/SimpleSelect';
+import FilterToolbar from '@odh-dashboard/ui-core/components/FilterToolbar';
+import SimpleSelect, { SimpleSelectOption } from '@odh-dashboard/ui-core/components/SimpleSelect';
 import { AccessAllowed, verbModelAccess } from '@odh-dashboard/internal/concepts/userSSAR';
 import { HardwareProfileModel } from '@odh-dashboard/internal/api';
 import {

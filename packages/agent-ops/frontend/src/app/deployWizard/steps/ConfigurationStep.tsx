@@ -1,5 +1,5 @@
 import * as React from 'react';
-import SimpleSelect from '@odh-dashboard/internal/components/SimpleSelect';
+import SimpleSelect from '@odh-dashboard/ui-core/components/SimpleSelect';
 import FormSection from '@odh-dashboard/internal/components/pf-overrides/FormSection';
 import {
   Form,

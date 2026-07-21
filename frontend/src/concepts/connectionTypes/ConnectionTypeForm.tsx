@@ -16,13 +16,15 @@ import type {
   K8sNameDescriptionFieldData,
   K8sNameDescriptionFieldUpdateFunction,
 } from '@odh-dashboard/k8s-core';
+import TypeaheadSelect, {
+  TypeaheadSelectOption,
+} from '@odh-dashboard/ui-core/components/TypeaheadSelect';
+import K8sNameDescriptionField from '@odh-dashboard/ui-core/components/K8sNameDescriptionField';
 import ConnectionTypeFormFields from '#~/concepts/connectionTypes/fields/ConnectionTypeFormFields';
 import {
   ConnectionTypeConfigMapObj,
   ConnectionTypeValueType,
 } from '#~/concepts/connectionTypes/types';
-import TypeaheadSelect, { TypeaheadSelectOption } from '#~/components/TypeaheadSelect';
-import K8sNameDescriptionField from '#~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
 import { ConnectionTypeDetailsHelperText } from './ConnectionTypeDetailsHelperText';
 
 const createSelectOption = (

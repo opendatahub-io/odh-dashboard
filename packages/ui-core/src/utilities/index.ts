@@ -4,6 +4,10 @@ export { trimInputOnBlur, trimInputOnPaste } from './trimInput';
 export { formatMemory, MEMORY_UNITS_FOR_PARSING } from './valueUnits';
 export type { ValueUnitString, UnitOption } from './valueUnits';
 export { normalizeBetween } from './utils';
-export type { RecursivePartial } from '../types/typeHelpers';
+export {
+  MODAL_OVERFLOW_UNLOCK_COUNT_ATTR,
+  resolveSelectPopperAppendTo,
+  useModalOverflowUnlock,
+} from './useModalOverflowUnlock';
 export { BrowserStorageContext, useBrowserStorage } from '../hooks/useBrowserStorage';
 export type { BrowserStorageContextType, SetBrowserStorageHook } from '../hooks/useBrowserStorage';

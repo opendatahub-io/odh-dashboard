@@ -20,6 +20,8 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack"
 	nemo "github.com/opendatahub-io/gen-ai/internal/integrations/nemo"
 	"github.com/opendatahub-io/gen-ai/internal/models"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 )
 
 // Supported streaming event types that we want to process for the Gen AI API
@@ -126,6 +128,7 @@ type ResponseMetrics struct {
 	LatencyMs          int64      `json:"latency_ms"`                       // Total response time in milliseconds
 	TimeToFirstTokenMs *int64     `json:"time_to_first_token_ms,omitempty"` // TTFT for streaming (nil for non-streaming)
 	Usage              *UsageData `json:"usage,omitempty"`                  // Token usage data
+	TraceID            string     `json:"trace_id,omitempty"`               // OTel trace ID for MLflow trace lookup (when tracing is enabled)
 }
 
 // UsageData contains token usage information from LlamaStack
@@ -351,6 +354,16 @@ func extractUsageFromEvent(event interface{}) *UsageData {
 	}
 }
 
+// otelTraceID returns the OTel trace ID from the span in the context,
+// or empty string if no active span exists (tracing disabled).
+func otelTraceID(ctx context.Context) string {
+	sc := trace.SpanFromContext(ctx).SpanContext()
+	if sc.HasTraceID() {
+		return sc.TraceID().String()
+	}
+	return ""
+}
+
 // calculateTTFT calculates Time to First Token in milliseconds
 func calculateTTFT(startTime time.Time, firstTokenTime *time.Time) *int64 {
 	if firstTokenTime == nil {
@@ -406,6 +419,25 @@ func (app *App) LlamaStackCreateResponseHandler(w http.ResponseWriter, r *http.R
 	}
 
 	createRequest.Subscription = strings.TrimSpace(createRequest.Subscription)
+
+	// Set input on the BFF root span for MLflow trace display
+	if span := trace.SpanFromContext(ctx); span.IsRecording() {
+		inputJSON, _ := json.Marshal([]map[string]string{{"role": "user", "content": createRequest.Input.Text}})
+		// Set both gen_ai.* (OTel standard) and mlflow.* (direct) attributes;
+		// MLflow's OTLP translator maps gen_ai.* → mlflow.*, but we set both
+		// for compatibility with MLflow versions that lack the translator.
+		span.SetAttributes(
+			attribute.String("gen_ai.input.messages", string(inputJSON)),
+			attribute.String("gen_ai.operation.name", "chat"),
+			attribute.String("mlflow.spanInputs", string(inputJSON)),
+			attribute.String("mlflow.spanType", "CHAIN"),
+		)
+		// Tag BFF spans with the user's namespace so the platform collector's span-context
+		// routing rule can route them to the per-namespace MLflow exporter.
+		if ns, _ := ctx.Value(constants.NamespaceQueryParameterKey).(string); ns != "" {
+			span.SetAttributes(attribute.String("k8s.namespace.name", ns))
+		}
+	}
 
 	// Convert chat context format
 	var chatContext []llamastack.ChatContextMessage
@@ -573,13 +605,20 @@ func (app *App) LlamaStackCreateResponseHandler(w http.ResponseWriter, r *http.R
 // checkInputModeration runs input moderation and returns the result.
 // The caller decides how to report errors (HTTP response vs SSE event).
 func (app *App) checkInputModeration(ctx context.Context, messages []nemo.Message, opts nemo.GuardrailsOptions) (flagged bool, violationReason string, err error) {
-	result, modErr := app.checkModeration(ctx, messages, opts)
+	result, modErr := app.checkModerationWithSpan(ctx, "guardrail-input-check", messages, opts)
 	if modErr != nil {
 		app.logger.Error("Input moderation check failed", "error", modErr)
 		return false, "", modErr
 	}
 	if result != nil && result.Flagged {
 		app.logger.Info("Input moderation flagged content", "reason", result.ViolationReason)
+		if span := trace.SpanFromContext(ctx); span.IsRecording() {
+			refusalJSON, _ := json.Marshal([]map[string]string{{"role": "assistant", "content": "input blocked by safety guardrails"}})
+			span.SetAttributes(
+				attribute.String("gen_ai.output.messages", string(refusalJSON)),
+				attribute.String("mlflow.spanOutputs", string(refusalJSON)),
+			)
+		}
 		return true, result.ViolationReason, nil
 	}
 	return false, "", nil
@@ -639,6 +678,7 @@ func (app *App) handleStreamingResponse(w http.ResponseWriter, r *http.Request, 
 			LatencyMs:          latencyMs,
 			TimeToFirstTokenMs: calculateTTFT(startTime, firstTokenTime),
 			Usage:              usage,
+			TraceID:            otelTraceID(ctx),
 		},
 	}
 	eventData, _ := json.Marshal(metricsEvent)
@@ -677,7 +717,7 @@ func (app *App) handleNonStreamingResponse(w http.ResponseWriter, r *http.Reques
 		responseText := extractResponseText(&responseData)
 		if responseText != "" {
 			outputMessages := []nemo.Message{{Role: nemo.RoleAssistant, Content: responseText}}
-			result, modErr := app.checkModeration(ctx, outputMessages, params.GuardrailOpts)
+			result, modErr := app.checkModerationWithSpan(ctx, "guardrail-output-check", outputMessages, params.GuardrailOpts)
 			if modErr != nil {
 				app.logger.Error("Output moderation check failed", "error", modErr)
 				app.guardrailServiceUnavailableResponse(w, r, errors.New(constants.GuardrailServiceUnavailableMessage))
@@ -685,6 +725,13 @@ func (app *App) handleNonStreamingResponse(w http.ResponseWriter, r *http.Reques
 			}
 			if result != nil && result.Flagged {
 				app.logger.Info("Output moderation flagged content", "reason", result.ViolationReason)
+				if span := trace.SpanFromContext(ctx); span.IsRecording() {
+					refusalJSON, _ := json.Marshal([]map[string]string{{"role": "assistant", "content": "output blocked by safety guardrails"}})
+					span.SetAttributes(
+						attribute.String("gen_ai.output.messages", string(refusalJSON)),
+						attribute.String("mlflow.spanOutputs", string(refusalJSON)),
+					)
+				}
 				app.guardrailViolationResponse(w, r, constants.GuardrailOutputViolationCode, "output blocked by safety guardrails")
 				return
 			}
@@ -700,6 +747,18 @@ func (app *App) handleNonStreamingResponse(w http.ResponseWriter, r *http.Reques
 	responseData.Metrics = &ResponseMetrics{
 		LatencyMs: latencyMs,
 		Usage:     extractUsage(llamaResponse),
+		TraceID:   otelTraceID(ctx),
+	}
+
+	// Set output on the BFF root span for MLflow trace display
+	if span := trace.SpanFromContext(ctx); span.IsRecording() {
+		if len(responseData.Output) > 0 {
+			outputJSON, _ := json.Marshal(responseData.Output)
+			span.SetAttributes(
+				attribute.String("gen_ai.output.messages", string(outputJSON)),
+				attribute.String("mlflow.spanOutputs", string(outputJSON)),
+			)
+		}
 	}
 
 	apiResponse := llamastack.APIResponse{

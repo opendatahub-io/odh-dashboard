@@ -1,23 +1,34 @@
 import * as React from 'react';
 import { Label, Popover } from '@patternfly/react-core';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import {
   normalizePhase,
   getPhaseProps,
   getPopoverContent,
   PhaseStatus,
   PhaseResourceType,
+  PhaseLabelLocation,
 } from '~/app/utilities/phaseLabelUtils';
+import { MaaSEvents } from '~/app/types/event-tracking';
 
 type PhaseLabelProps = {
   phase: string | undefined;
   resourceType: PhaseResourceType;
-  statusMessage?: string;
+  statusMessage?: React.ReactNode;
+  forcePopover?: boolean;
+  location: PhaseLabelLocation;
 };
 
-const PhaseLabel: React.FC<PhaseLabelProps> = ({ phase, resourceType, statusMessage }) => {
+const PhaseLabel: React.FC<PhaseLabelProps> = ({
+  phase,
+  resourceType,
+  statusMessage,
+  forcePopover = false,
+  location,
+}) => {
   const normalized = normalizePhase(phase);
   const phaseProps = getPhaseProps(normalized);
-  const hasPopover = normalized !== PhaseStatus.READY && !!statusMessage;
+  const hasPopover = forcePopover || (normalized !== PhaseStatus.READY && !!statusMessage);
   const popoverContent = getPopoverContent(normalized, resourceType, statusMessage);
 
   const label = (
@@ -44,6 +55,13 @@ const PhaseLabel: React.FC<PhaseLabelProps> = ({ phase, resourceType, statusMess
       bodyContent={popoverContent.bodyContent}
       footerContent={popoverContent.footerContent}
       position="top"
+      onShow={() => {
+        fireMiscTrackingEvent(MaaSEvents.SUBSCRIPTION_MANAGEMENT_STATUS_POPOVER_VIEWED, {
+          popoverType: 'status',
+          status: normalized,
+          location,
+        });
+      }}
     >
       {label}
     </Popover>

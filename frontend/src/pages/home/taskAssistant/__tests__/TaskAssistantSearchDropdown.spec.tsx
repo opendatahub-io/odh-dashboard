@@ -2,7 +2,19 @@ import React from 'react';
 import '@testing-library/jest-dom';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import {
+  fireShortcutClicked,
+  fireSearchAborted,
+} from '#~/pages/home/taskAssistant/taskAssistantTracking';
 import TaskAssistantSearchDropdown from '#~/pages/home/taskAssistant/TaskAssistantSearchDropdown';
+
+jest.mock('#~/pages/home/taskAssistant/taskAssistantTracking', () => ({
+  fireShortcutClicked: jest.fn(),
+  fireSearchAborted: jest.fn(),
+}));
+
+const mockFireShortcutClicked = jest.mocked(fireShortcutClicked);
+const mockFireSearchAborted = jest.mocked(fireSearchAborted);
 
 const mockNavigate = jest.fn();
 jest.mock('react-router-dom', () => ({
@@ -98,5 +110,87 @@ describe('TaskAssistantSearchDropdown', () => {
     fireEvent.change(input, { target: { value: 'zzz-no-match' } });
 
     expect(screen.getByText(/No results found/)).toBeInTheDocument();
+  });
+
+  describe('tracking', () => {
+    it('should fire Shortcut Clicked with viewContext search when selecting without filtering', () => {
+      renderDropdown();
+
+      const input = screen.getByPlaceholderText('Looking for another task?');
+      fireEvent.click(input);
+      fireEvent.click(screen.getByText('Find models'));
+
+      expect(mockFireShortcutClicked).toHaveBeenCalledWith({
+        taskName: 'Find models',
+        category: 'ai-hub',
+        destination: '/models',
+        viewContext: 'search',
+      });
+    });
+
+    it('should fire Shortcut Clicked with viewContext search-filtered when filter text was entered', () => {
+      renderDropdown();
+
+      const input = screen.getByPlaceholderText('Looking for another task?');
+      fireEvent.click(input);
+      fireEvent.change(input, { target: { value: 'model' } });
+      fireEvent.click(screen.getByText('Find models'));
+
+      expect(mockFireShortcutClicked).toHaveBeenCalledWith({
+        taskName: 'Find models',
+        category: 'ai-hub',
+        destination: '/models',
+        viewContext: 'search-filtered',
+      });
+    });
+
+    it('should fire Search Aborted with filtered false when closing without selecting or typing', () => {
+      renderDropdown();
+
+      const toggle = screen.getByRole('button', { name: 'Typeahead menu toggle' });
+      fireEvent.click(toggle);
+      fireEvent.click(toggle);
+
+      expect(mockFireSearchAborted).toHaveBeenCalledWith({ filtered: false });
+      expect(mockFireShortcutClicked).not.toHaveBeenCalled();
+    });
+
+    it('should fire Search Aborted with filtered true when closing after typing without selecting', () => {
+      renderDropdown();
+
+      const input = screen.getByPlaceholderText('Looking for another task?');
+      fireEvent.click(input);
+      fireEvent.change(input, { target: { value: 'model' } });
+
+      const toggle = screen.getByRole('button', { name: 'Typeahead menu toggle' });
+      fireEvent.click(toggle);
+
+      expect(mockFireSearchAborted).toHaveBeenCalledWith({ filtered: true });
+      expect(mockFireShortcutClicked).not.toHaveBeenCalled();
+    });
+
+    it('should fire Search Aborted with filtered true when user typed then cleared text before closing', () => {
+      renderDropdown();
+
+      const input = screen.getByPlaceholderText('Looking for another task?');
+      fireEvent.click(input);
+      fireEvent.change(input, { target: { value: 'workbench' } });
+      fireEvent.change(input, { target: { value: '' } });
+
+      const toggle = screen.getByRole('button', { name: 'Typeahead menu toggle' });
+      fireEvent.click(toggle);
+
+      expect(mockFireSearchAborted).toHaveBeenCalledWith({ filtered: true });
+    });
+
+    it('should not fire Search Aborted when a task is selected', () => {
+      renderDropdown();
+
+      const input = screen.getByPlaceholderText('Looking for another task?');
+      fireEvent.click(input);
+      fireEvent.click(screen.getByText('Find models'));
+
+      expect(mockFireSearchAborted).not.toHaveBeenCalled();
+    });
   });
 });

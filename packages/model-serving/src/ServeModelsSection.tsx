@@ -4,7 +4,7 @@ import { ProjectDetailsContext } from '@odh-dashboard/internal/pages/projects/Pr
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import ErrorOverviewCard from '@odh-dashboard/internal/pages/projects/screens/detail/overview/components/ErrorOverviewCard';
 import { CollapsibleSection, ProjectObjectType, SectionType } from '@odh-dashboard/ui-core';
-import { LazyCodeRefComponent } from '@odh-dashboard/plugin-core';
+import { LazyCodeRefComponent, useExtensions } from '@odh-dashboard/plugin-core';
 import { Bullseye, Card, CardBody, Spinner } from '@patternfly/react-core';
 import {
   ModelDeploymentsProvider,
@@ -14,9 +14,11 @@ import {
   useProjectServingPlatform,
   type ModelServingPlatform,
 } from './concepts/useProjectServingPlatform';
+import { resolvePlatformOverride } from './concepts/resolvePlatformOverride';
 import ModelPlatformSection from './components/overview/ModelPlatformSection';
 import DeployedModelsSection from './components/overview/DeployedModelsSection';
 import { useAvailableClusterPlatforms } from './concepts/useAvailableClusterPlatforms';
+import { isModelServingPlatformOverviewSection } from '../extension-points';
 
 const EmptyLoadingSection: React.FC = () => (
   <CollapsibleSection title="Serve models" data-testid="section-model-server">
@@ -70,16 +72,22 @@ const ServeModelsSection: React.FC = () => {
 
   const { clusterPlatforms, clusterPlatformsLoaded } = useAvailableClusterPlatforms();
   const { activePlatform } = useProjectServingPlatform(currentProject, clusterPlatforms);
+  const overviewSectionExtensions = useExtensions(isModelServingPlatformOverviewSection);
+
+  const platformOverviewOverride = React.useMemo(
+    () => resolvePlatformOverride(activePlatform, overviewSectionExtensions),
+    [activePlatform, overviewSectionExtensions],
+  );
 
   if (!clusterPlatformsLoaded || !currentProject.metadata.name) {
     return <EmptyLoadingSection />;
   }
 
   // TODO: remove this once modelmesh and nim are fully supported plugins
-  if (activePlatform?.properties.backport?.ServeModelsSection) {
+  if (platformOverviewOverride) {
     return (
       <LazyCodeRefComponent
-        component={activePlatform.properties.backport.ServeModelsSection}
+        component={platformOverviewOverride.properties.component}
         fallback={<EmptyLoadingSection />}
       />
     );

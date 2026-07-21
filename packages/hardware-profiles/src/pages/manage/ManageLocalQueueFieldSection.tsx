@@ -6,8 +6,8 @@ import {
   TextInput,
 } from '@patternfly/react-core';
 import * as React from 'react';
-import DashboardHelpTooltip from '@odh-dashboard/internal/concepts/dashboard/DashboardHelpTooltip.tsx';
-import { ValidationContext } from '@odh-dashboard/internal/utilities/useValidation';
+import DashboardHelpTooltip from '@odh-dashboard/ui-core/components/DashboardHelpTooltip';
+import { ValidationContext } from '@odh-dashboard/ui-core/utilities/useValidation';
 import { ManageHardwareProfileSectionID } from './types.ts';
 import { ManageHardwareProfileSectionTitles } from '../const.tsx';
 import {

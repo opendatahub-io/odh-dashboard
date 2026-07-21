@@ -1,5 +1,5 @@
 import React from 'react';
-import { ProjectsContext } from '@odh-dashboard/internal/concepts/projects/ProjectsContext';
+import { ProjectsContext } from '@odh-dashboard/ui-core/context/ProjectsContext';
 import { LazyCodeRefComponent, useExtensions } from '@odh-dashboard/plugin-core';
 import { isDetailTabExtension } from '@odh-dashboard/plugin-core/extension-points';
 import { ExtensibleDetailTabs } from '@odh-dashboard/plugin-core/helpers/ui';
@@ -18,8 +18,11 @@ import {
   DEPLOYMENTS_INTERNAL_SEGMENT,
 } from './deploymentsPaths';
 import { ModelDeploymentsProvider } from '../../concepts/ModelDeploymentsContext';
-import { getMultiProjectServingPlatforms } from '../../concepts/useProjectServingPlatform';
-import { isModelServingPlatformExtension } from '../../../extension-points';
+import { resolveMultiProjectPlatformOverride } from '../../concepts/resolvePlatformOverride';
+import {
+  isModelServingPlatformExtension,
+  isModelServingPlatformGlobalModelsPage,
+} from '../../../extension-points';
 
 /** Keep in sync with MaaS odhExtensions GLOBAL_DEPLOYMENTS_DETAIL_TAB_GROUP. */
 export const GLOBAL_DEPLOYMENTS_DETAIL_TAB_GROUP = 'model-serving.global-deployments';
@@ -38,6 +41,7 @@ const GlobalModelsPageContent: React.FC<GlobalModelsPageContentProps> = ({
   hasDeploymentSubTabs = false,
 }) => {
   const availablePlatforms = useExtensions(isModelServingPlatformExtension);
+  const globalPageExtensions = useExtensions(isModelServingPlatformGlobalModelsPage);
   const { projects, loaded: projectsLoaded, preferredProject } = React.useContext(ProjectsContext);
   const { namespace } = useParams();
   const navigate = useNavigate();
@@ -67,16 +71,16 @@ const GlobalModelsPageContent: React.FC<GlobalModelsPageContentProps> = ({
     }
   }, [hasDeploymentSubTabs, location.pathname, namespace, preferredProject, navigate]);
 
-  const BackportPageComponent = React.useMemo(() => {
-    const platforms = getMultiProjectServingPlatforms(projectsToShow, availablePlatforms);
-    return platforms.find((p) => p.properties.backport?.GlobalModelsPage)?.properties.backport
-      ?.GlobalModelsPage;
-  }, [projectsToShow, availablePlatforms]);
+  const globalPageOverride = React.useMemo(
+    () =>
+      resolveMultiProjectPlatformOverride(projectsToShow, availablePlatforms, globalPageExtensions),
+    [projectsToShow, availablePlatforms, globalPageExtensions],
+  );
 
-  if (BackportPageComponent) {
+  if (globalPageOverride) {
     return (
       <LazyCodeRefComponent
-        component={BackportPageComponent}
+        component={globalPageOverride.properties.component}
         fallback={
           <Bullseye>
             <Spinner />

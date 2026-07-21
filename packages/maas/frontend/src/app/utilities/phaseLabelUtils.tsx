@@ -11,12 +11,13 @@ import {
 type PopoverContent = {
   headerIcon: React.ReactNode;
   headerContent: string;
-  bodyContent?: string;
+  bodyContent?: React.ReactNode;
   footerContent?: string;
 };
 
 export enum PhaseResourceType {
   SUBSCRIPTION = 'Subscription',
+  EXTERNAL_MODEL = 'External Model',
   AUTHPOLICY = 'Policy',
 }
 
@@ -65,6 +66,24 @@ export const normalizePhase = (phase: string | undefined): string => {
 };
 
 const POPOVER_CONTENT: Record<PhaseResourceType, Partial<Record<string, PopoverContent>>> = {
+  [PhaseResourceType.EXTERNAL_MODEL]: {
+    [PhaseStatus.READY]: {
+      headerIcon: <CheckCircleIcon />,
+      headerContent: 'Ready',
+    },
+    [PhaseStatus.PENDING]: {
+      headerIcon: <PendingIcon />,
+      headerContent: 'Pending',
+    },
+    [PhaseStatus.FAILED]: {
+      headerIcon: (
+        <Icon status="danger">
+          <ExclamationCircleIcon />
+        </Icon>
+      ),
+      headerContent: 'Failed',
+    },
+  },
   [PhaseResourceType.SUBSCRIPTION]: {
     [PhaseStatus.PENDING]: {
       headerIcon: <PendingIcon />,
@@ -136,7 +155,7 @@ const DEFAULT_POPOVER_CONTENT: PopoverContent = {
 export const getPopoverContent = (
   phase: string,
   resourceType: PhaseResourceType,
-  statusMessage?: string,
+  statusMessage?: React.ReactNode,
 ): PopoverContent => {
   const base = POPOVER_CONTENT[resourceType][phase] ?? DEFAULT_POPOVER_CONTENT;
   if (statusMessage) {
@@ -144,3 +163,11 @@ export const getPopoverContent = (
   }
   return base;
 };
+
+export enum PhaseLabelLocation {
+  EXTERNAL_MODELS = 'external-models',
+  OVERVIEW = 'overview',
+  SUBSCRIPTIONS_TAB = 'subscriptions-tab',
+  POLICIES_TAB = 'policies-tab',
+  DETAIL_PAGE = 'detail-page',
+}

@@ -33,7 +33,7 @@ var NIMResourceMap = map[string]NIMResourceMapping{
 
 // NIMServingResourceResponse wraps the result of a cross-resource NIM lookup.
 type NIMServingResourceResponse struct {
-	Body interface{} `json:"body"`
+	Body any `json:"body"`
 }
 
 // NIMIntegrationStatus represents the status of a NIM integration.
