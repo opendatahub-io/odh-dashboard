@@ -180,7 +180,7 @@ export const DcgmDonut: React.FC<DcgmDonutProps> = ({
           innerRadius={CQ_DONUT_INNER_RADIUS}
           labels={() => 'No telemetry data'}
           title="0%"
-          subTitle="utilization"
+          subTitle="consumption"
           titleComponent={TITLE_LABEL}
           subTitleComponent={SUBTITLE_LABEL}
           name={`dcgm-${ariaLabel}`}
