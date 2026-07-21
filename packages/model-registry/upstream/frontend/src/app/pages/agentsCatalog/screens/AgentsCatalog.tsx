@@ -44,11 +44,7 @@ const AgentsCatalog: React.FC = () => {
 
   const handleClearSearch = React.useCallback(() => {
     setSearchQuery('');
-    trackFormEvent(AGENT_CATALOG_EVENTS.SEARCH_SUBMITTED, {
-      outcome: TrackingOutcome.submit,
-      countActiveFilters: countActiveAgentFilters(filters),
-    });
-  }, [setSearchQuery, trackFormEvent, filters]);
+  }, [setSearchQuery]);
 
   const handleResetAllFilters = React.useCallback(() => {
     trackSimpleEvent(AGENT_CATALOG_EVENTS.FILTERS_RESET);
