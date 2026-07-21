@@ -253,6 +253,13 @@ const useTourSteps = (isAdmin: boolean): TourStep[] => {
                   available: gpuaasAvailable,
                 },
                 {
+                  title: 'MaaS settings redesign',
+                  description:
+                    'Redesigned Model-as-a-Service settings page with improved information architecture.',
+                  flagName: 'maasSettingsIaRedesign',
+                  available: true,
+                },
+                {
                   title: 'MCP catalog settings',
                   description:
                     'Configure and manage MCP catalog sources and server settings from the Settings page.',
