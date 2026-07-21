@@ -51,11 +51,7 @@ const ConnectedWorkbenchesLink: React.FC = () => {
 
   return (
     <>
-      {!projectsLoaded ? (
-        <Skeleton data-testid="skeleton-loader" style={{ width: 200 }} />
-      ) : (
-        content
-      )}
+      {!projectsLoaded ? <Skeleton data-testid="skeleton-loader" width="200px" /> : content}
       {isModalOpen && (
         <ConnectedWorkbenchesModal
           onClose={() => setIsModalOpen(false)}
