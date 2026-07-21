@@ -733,6 +733,18 @@ func (c *LlamaStackConfig) EnableRBACAuthWithCustomPolicy(apiServerURL, tlsCAFil
 		},
 		AccessPolicy: accessPolicy,
 	}
+
+	// AuthorizedSqlStore requires storage.stores.vector_stores to be configured.
+	// Without it, OGX won't enforce ownership filtering on vectorstore operations.
+	if c.Storage.Stores == nil {
+		c.Storage.Stores = make(map[string]interface{})
+	}
+	if _, exists := c.Storage.Stores["vector_stores"]; !exists {
+		c.Storage.Stores["vector_stores"] = map[string]interface{}{
+			"backend":    "sql_default",
+			"table_name": "vector_stores",
+		}
+	}
 }
 
 // DisableRBACAuth disables RBAC authentication by removing the auth configuration.
