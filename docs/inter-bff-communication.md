@@ -404,7 +404,7 @@ if err != nil {
 | Both | `BFF_CORE_BFF_SERVICE_PORT` | `8943` |
 | Both | `BFF_CORE_BFF_TLS_ENABLED` | `true` (K8s) / `false` (local dev) |
 
-In **standalone mode** the dashboard-operator injects `BFF_CORE_BFF_SERVICE_NAME` and `BFF_CORE_BFF_SERVICE_PORT` automatically for modules listed in `modulesWithCoreBFFAccess` (`gen-ai`, `maas` today — extend it to add more).
+In **standalone mode** the service coordinates (`BFF_CORE_BFF_SERVICE_NAME`, `BFF_CORE_BFF_SERVICE_PORT`) must be injected manually via the module's `deployment.yaml` env vars or wired through `interBFFDependencies` in `dashboard-operator/internal/controller/module_deploy.go`.
 
 In **sidecar mode** the same env vars point to the shared `odh-dashboard` service, which works identically since core-bff is just another port on that service.
 
@@ -429,7 +429,7 @@ Without this entry, `/core-bff/api/*` requests return 404 from Fastify (no proxy
 
 ### Adding a new module that calls core-bff
 
-1. Add the module name to `modulesWithCoreBFFAccess` in `dashboard-operator/internal/controller/module_deploy.go`
+1. Add an env var entry for `BFF_CORE_BFF_SERVICE_NAME` / `BFF_CORE_BFF_SERVICE_PORT` in the module's standalone `manifests/modules/<slug>/deployment.yaml`, or wire it via `interBFFDependencies` in `dashboard-operator/internal/controller/module_deploy.go`
 2. Add an egress rule to `manifests/modules/<slug>/networkpolicy.yaml`:
    ```yaml
    - to:

@@ -74,6 +74,12 @@
     name: dashboard-sa-token
     mountPath: /var/run/secrets/kubernetes.io/serviceaccount
     readOnly: true
+- op: add
+  path: /spec/template/spec/containers/2/volumeMounts/-
+  value:
+    name: dashboard-sa-token
+    mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+    readOnly: true
 # --- End SA isolation infrastructure ---
 - op: add
   path: /spec/template/spec/containers/-

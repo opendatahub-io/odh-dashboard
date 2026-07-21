@@ -128,12 +128,8 @@ patchesJson6902:
       version: v1
       kind: HTTPRoute
       name: odh-dashboard
-  - path: networkpolicy.yaml
-    target:
-      group: networking.k8s.io
-      version: v1
-      kind: NetworkPolicy
-      name: odh-dashboard-allow-ports
+  # NetworkPolicy only exists in manifests/sidecar/ — not present in ../../base.
+  # No NetworkPolicy patch needed in standalone mode.
 replacements:
   - source:
       kind: ConfigMap
