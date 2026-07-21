@@ -46,7 +46,14 @@ const mockUseGenAiAPI = useGenAiAPI as jest.Mock;
 // Create a properly typed mock for createResponse
 const mockCreateResponse = jest.fn<
   Promise<SimplifiedResponseData>,
-  [CreateResponseRequest, { onStreamData?: (chunk: string) => void; abortSignal?: AbortSignal }?]
+  [
+    CreateResponseRequest,
+    {
+      onStreamData?: (chunk: string) => void;
+      abortSignal?: AbortSignal;
+      headers?: Record<string, string>;
+    }?,
+  ]
 >();
 
 // Setup function to be called in beforeEach
@@ -73,6 +80,7 @@ const createDefaultHookProps = (overrides?: {
   systemInstruction?: string;
   isRagEnabled?: boolean;
   isStreamingEnabled?: boolean;
+  isTracingEnabled?: boolean;
   temperature?: number;
   currentVectorStoreId?: string | null;
   knowledgeMode?: 'inline' | 'external';
@@ -1085,6 +1093,96 @@ describe('useChatbotMessages', () => {
       const payload = mockCreateResponse.mock.calls[0][0];
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       expect((payload as any).reasoning).toBeUndefined();
+    });
+  });
+
+  // ─── Tracing headers (X-Session-ID) ───────────────────────────────────────
+
+  describe('tracing headers', () => {
+    it('sends X-Session-ID header when isTracingEnabled is true', async () => {
+      mockCreateResponse.mockResolvedValueOnce(mockSuccessResponse);
+
+      const { result } = renderHook(() =>
+        useChatbotMessages(createDefaultHookProps({ isTracingEnabled: true })),
+      );
+
+      await act(async () => {
+        await result.current.handleMessageSend('hello');
+      });
+
+      expect(mockCreateResponse).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          headers: expect.objectContaining({ 'X-Session-ID': expect.any(String) }),
+        }),
+      );
+    });
+
+    it('does not send X-Session-ID header when isTracingEnabled is false', async () => {
+      mockCreateResponse.mockResolvedValueOnce(mockSuccessResponse);
+
+      const { result } = renderHook(() =>
+        useChatbotMessages(createDefaultHookProps({ isTracingEnabled: false })),
+      );
+
+      await act(async () => {
+        await result.current.handleMessageSend('hello');
+      });
+
+      expect(mockCreateResponse).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          headers: {},
+        }),
+      );
+    });
+
+    it('does not send X-Session-ID header by default', async () => {
+      mockCreateResponse.mockResolvedValueOnce(mockSuccessResponse);
+
+      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
+
+      await act(async () => {
+        await result.current.handleMessageSend('hello');
+      });
+
+      expect(mockCreateResponse).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          headers: {},
+        }),
+      );
+    });
+
+    it('uses a stable session ID across multiple sends', async () => {
+      mockCreateResponse
+        .mockResolvedValueOnce(mockSuccessResponse)
+        .mockResolvedValueOnce(mockSuccessResponse);
+
+      const { result } = renderHook(() =>
+        useChatbotMessages(createDefaultHookProps({ isTracingEnabled: true })),
+      );
+
+      await act(async () => {
+        await result.current.handleMessageSend('first');
+      });
+
+      const firstCallHeaders = mockCreateResponse.mock.calls[0][1]?.headers as
+        | Record<string, string>
+        | undefined;
+      const firstSessionId = firstCallHeaders?.['X-Session-ID'];
+
+      await act(async () => {
+        await result.current.handleMessageSend('second');
+      });
+
+      const secondCallHeaders = mockCreateResponse.mock.calls[1][1]?.headers as
+        | Record<string, string>
+        | undefined;
+      const secondSessionId = secondCallHeaders?.['X-Session-ID'];
+
+      expect(firstSessionId).toBeDefined();
+      expect(firstSessionId).toBe(secondSessionId);
     });
   });
 });

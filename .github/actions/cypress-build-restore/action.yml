@@ -120,108 +120,90 @@ runs:
         retention-days: 1
 
     # =========================================================================
-    # Mode: restore — download per-package artifacts via REST API (no gh dependency)
-    # Uses ?name= server-side filter so pagination is not an issue
+    # Mode: restore — download artifacts via actions/download-artifact
+    # 1. Source run (pattern) — creates per-artifact subdirectories for 2+
+    # 2. Current run (pattern) — downloaded to temp dir
+    # 3. Shell merge — detects single-artifact flat download (v8 quirk:
+    #    patterns matching exactly one artifact extract directly to path
+    #    without a subdirectory) and wraps into correct subdirectory.
     # =========================================================================
-    - name: Download and restore artifacts
-      id: download
+    - name: Download artifacts from source run
+      if: inputs.mode == 'restore' && inputs.run-id != ''
+      uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+      continue-on-error: true
+      with:
+        pattern: cypress-build-*
+        path: cypress-artifacts
+        github-token: ${{ inputs.github-token }}
+        run-id: ${{ inputs.run-id }}
+
+    - name: Download rebuilt artifacts from current run
+      if: inputs.mode == 'restore'
+      uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+      continue-on-error: true
+      with:
+        pattern: cypress-build-*
+        path: cypress-artifacts-current
+
+    - name: Merge current-run artifacts into cypress-artifacts
       if: inputs.mode == 'restore'
       shell: bash
       env:
-        GH_TOKEN: ${{ inputs.github-token }}
         PACKAGES_JSON: ${{ steps.discover.outputs.packages }}
-        RUN_ID: ${{ inputs.run-id }}
-        REPOSITORY: ${{ github.repository }}
       run: |
+        if [ ! -d cypress-artifacts-current ]; then
+          echo "ℹ️ No rebuilt artifacts in current run"
+          exit 0
+        fi
+
         mkdir -p cypress-artifacts
-        DOWNLOADED=0
-        API="https://api.github.com/repos/$REPOSITORY"
 
-        download_artifact() {
-          local run_id="$1" artifact_name="$2" dest_dir="$3"
-          [ -z "$run_id" ] && return 1
+        if ls -d cypress-artifacts-current/cypress-build-* 2>/dev/null | grep -q .; then
+          echo "📦 Multiple artifacts — subdirectories exist, merging directly"
+          cp -r cypress-artifacts-current/* cypress-artifacts/
+        else
+          echo "📦 Single artifact — files extracted flat (download-artifact v8 quirk)"
+          echo "   Detecting which package was rebuilt..."
 
-          local tmp_body list_http artifact_id
-          tmp_body=$(mktemp)
-          list_http=$(curl -sS -w '%{http_code}' \
-            -H "Authorization: Bearer $GH_TOKEN" \
-            -H "Accept: application/vnd.github+json" \
-            -o "$tmp_body" \
-            "$API/actions/runs/$run_id/artifacts?name=$artifact_name")
-
-          if [ "$list_http" != "200" ]; then
-            echo "    API error (HTTP $list_http) listing artifacts in run $run_id"
-            rm -f "$tmp_body"
-            return 1
-          fi
-
-          artifact_id=$(jq -r '.artifacts[0].id // empty' < "$tmp_body")
-          rm -f "$tmp_body"
-          if [ -z "$artifact_id" ]; then
-            echo "    No artifact '$artifact_name' in run $run_id"
-            return 1
-          fi
-
-          mkdir -p "$dest_dir"
-          local redirect_url http_code
-          redirect_url=$(curl -sS -w '%{redirect_url}' \
-            -H "Authorization: Bearer $GH_TOKEN" \
-            -H "Accept: application/vnd.github+json" \
-            -o /dev/null \
-            "$API/actions/artifacts/$artifact_id/zip")
-
-          if [ -z "$redirect_url" ]; then
-            echo "    No redirect received for artifact $artifact_id"
-            return 1
-          fi
-
-          http_code=$(curl -sS -w '%{http_code}' -L \
-            "$redirect_url" \
-            -o "$dest_dir/__artifact.zip")
-
-          if [ "$http_code" != "200" ]; then
-            echo "    Download failed (HTTP $http_code) for artifact $artifact_id"
-            rm -f "$dest_dir/__artifact.zip"
-            return 1
-          fi
-
-          unzip -qo "$dest_dir/__artifact.zip" -d "$dest_dir" && rm -f "$dest_dir/__artifact.zip"
-        }
-
-        while IFS= read -r pkg_json; do
-          workspace=$(echo "$pkg_json" | jq -r '.workspace')
-          name=$(echo "$pkg_json" | jq -r '.name')
-          artifact_name="cypress-build-$(echo "$workspace" | tr '/' '-')"
-          dest="cypress-artifacts/$artifact_name"
-
-          echo "📥 $name ($artifact_name)"
-          FETCHED=false
-          for run in "$RUN_ID" "$GITHUB_RUN_ID"; do
-            [ -z "$run" ] && continue
-            if download_artifact "$run" "$artifact_name" "$dest"; then
-              echo "  ✅ downloaded from run $run"
-              FETCHED=true
-              DOWNLOADED=$((DOWNLOADED + 1))
+          MISSING_NAME=""
+          while IFS= read -r pkg_json; do
+            workspace=$(echo "$pkg_json" | jq -r '.workspace')
+            artifact_name="cypress-build-$(echo "$workspace" | tr '/' '-')"
+            if [ ! -d "cypress-artifacts/$artifact_name" ]; then
+              MISSING_NAME="$artifact_name"
+              echo "   → Missing from source run: $artifact_name"
               break
             fi
-          done
+          done < <(echo "$PACKAGES_JSON" | jq -c '.[]')
 
-          if [ "$FETCHED" = "false" ]; then
-            echo "  ⚠️ not found in any run"
+          if [ -n "$MISSING_NAME" ]; then
+            mkdir -p "cypress-artifacts/$MISSING_NAME"
+            cp -r cypress-artifacts-current/* "cypress-artifacts/$MISSING_NAME/"
+            echo "   ✅ Wrapped flat download into cypress-artifacts/$MISSING_NAME/"
+          else
+            echo "   ⚠️ Could not determine missing artifact name, copying flat"
+            cp -r cypress-artifacts-current/* cypress-artifacts/
           fi
-        done < <(echo "$PACKAGES_JSON" | jq -c '.[]')
+        fi
 
-        echo "📦 Downloaded $DOWNLOADED artifact(s)"
+        rm -rf cypress-artifacts-current
 
-        # Restore to workspace structure
+    - name: Restore artifacts to workspace
+      if: inputs.mode == 'restore'
+      shell: bash
+      env:
+        PACKAGES_JSON: ${{ steps.discover.outputs.packages }}
+      run: |
         while IFS= read -r pkg_json; do
           workspace=$(echo "$pkg_json" | jq -r '.workspace')
           artifact_name="cypress-build-$(echo "$workspace" | tr '/' '-')"
 
           if [ -d "cypress-artifacts/$artifact_name" ]; then
-            echo "Restoring $artifact_name → $workspace/"
+            echo "✅ Restoring $artifact_name → $workspace/"
             mkdir -p "$workspace"
             cp -r "cypress-artifacts/$artifact_name"/* "$workspace/" 2>/dev/null || true
+          else
+            echo "⚠️ No artifact found for $artifact_name"
           fi
         done < <(echo "$PACKAGES_JSON" | jq -c '.[]')
 

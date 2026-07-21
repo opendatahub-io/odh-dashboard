@@ -15,6 +15,7 @@ import { AppContext } from '~/app/context/AppContext';
 import AgentsCatalogRoutes from '~/app/pages/agentsCatalog/AgentsCatalogRoutes';
 import NotificationListener from '~/odh/components/NotificationListener';
 import OdhDevFeatureFlagOverridesProvider from '~/odh/components/OdhDevFeatureFlagOverridesProvider';
+import UserInteractionProviderWrapper from '~/odh/components/UserInteractionProviderWrapper';
 
 const AgentsCatalogWrapperContent: React.FC = () => {
   const { configSettings, userSettings, loaded, loadError } = useSettings();
@@ -35,7 +36,9 @@ const AgentsCatalogWrapperContent: React.FC = () => {
           <OdhDevFeatureFlagOverridesProvider crdOverrides={{}}>
             <NotificationContextProvider>
               <NotificationListener>
-                <AgentsCatalogRoutes />
+                <UserInteractionProviderWrapper>
+                  <AgentsCatalogRoutes />
+                </UserInteractionProviderWrapper>
               </NotificationListener>
             </NotificationContextProvider>
           </OdhDevFeatureFlagOverridesProvider>

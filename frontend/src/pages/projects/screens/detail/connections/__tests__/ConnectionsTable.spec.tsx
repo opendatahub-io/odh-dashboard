@@ -98,4 +98,21 @@ describe('ConnectionsTable', () => {
     expect(screen.getByText('Deployed model 1')).toBeTruthy();
     expect(screen.getByText('Deployed model 2')).toBeTruthy();
   });
+
+  it('should render empty table when no connections exist', () => {
+    render(
+      <ConnectionsTable
+        namespace="test-project"
+        connections={[]}
+        refreshConnections={() => undefined}
+        setManageConnectionModal={() => undefined}
+      />,
+    );
+
+    expect(screen.getByTestId('connection-table')).toBeInTheDocument();
+    const rows = screen.queryAllByRole('row');
+    expect(rows).toHaveLength(1);
+    expect(screen.queryByTestId('edit-connection-action')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('delete-connection-action')).not.toBeInTheDocument();
+  });
 });

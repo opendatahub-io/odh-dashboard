@@ -34,7 +34,7 @@ const AgentRuntimeStatusLabel: React.FC<AgentRuntimeStatusLabelProps> = ({
 
   const label = (
     <Label
-      variant={labelVariant ?? (hasPopover ? 'filled' : 'outline')}
+      variant={labelVariant ?? 'outline'}
       isCompact
       isClickable={hasPopover}
       data-testid="agent-runtime-status-label"
