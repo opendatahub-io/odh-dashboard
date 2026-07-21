@@ -6,8 +6,8 @@ import {
   t_global_text_color_status_danger_default as DangerColor,
   t_global_text_color_status_warning_default as WarningColor,
 } from '@patternfly/react-tokens';
+import { useDeepCompareMemoize } from '@odh-dashboard/ui-core/hooks';
 import { EventStatus, NotebookStatus } from '#~/types';
-import { useDeepCompareMemoize } from '#~/utilities/useDeepCompareMemoize';
 import { useNotebookStatus } from '#~/utilities/notebookControllerUtils';
 import StartNotebookModal from '#~/concepts/notebooks/StartNotebookModal';
 import NotebookStatusLabel from '#~/concepts/notebooks/NotebookStatusLabel';
@@ -94,7 +94,8 @@ const NotebookStateStatus: React.FC<NotebookStateStatusProps> = ({
   isVertical = true,
 }) => {
   const { kueueStatusByNotebookName } = React.useContext(ProjectDetailsContext);
-  const { notebook, isStarting, isRunning, isStopping, runningPodUid } = notebookState;
+  const { notebook, isStarting, isRunning, isStopping, runningPodUid, containerStatuses } =
+    notebookState;
   const kueueStatus = kueueStatusByNotebookName[notebook.metadata.name] ?? null;
   const editWorkbenchHref =
     notebook.metadata.namespace && notebook.metadata.name
@@ -153,6 +154,7 @@ const NotebookStateStatus: React.FC<NotebookStateStatusProps> = ({
           notebookStatus={notebookStatus}
           events={events}
           kueueStatus={kueueStatus}
+          containerStatuses={containerStatuses}
           onClose={() => {
             setStartModalOpen(false);
           }}

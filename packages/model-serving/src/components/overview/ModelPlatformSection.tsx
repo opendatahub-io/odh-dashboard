@@ -10,7 +10,7 @@ import {
   CardFooter,
 } from '@patternfly/react-core';
 import { CollapsibleSection, ProjectObjectType, SectionType } from '@odh-dashboard/ui-core';
-import OverviewCard from '@odh-dashboard/internal/pages/projects/screens/detail/overview/components/OverviewCard';
+import OverviewCard from '@odh-dashboard/ui-core/components/detail/OverviewCard';
 import { ProjectDetailsContext } from '@odh-dashboard/internal/pages/projects/ProjectDetailsContext';
 import { ModelServingPlatformSelectErrorAlert } from '@odh-dashboard/model-serving/shared/components';
 import EmptyModelServingPlatformSection from './NoProjectServingEnabledSection';

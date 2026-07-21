@@ -20,18 +20,16 @@ import {
 } from '@odh-dashboard/k8s-core';
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
-} from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
+} from '@odh-dashboard/ui-core/components/K8sNameDescriptionField';
 import useNotification from '@odh-dashboard/internal/utilities/useNotification';
-import SimpleSelect, { SimpleSelectOption } from '@odh-dashboard/internal/components/SimpleSelect';
+import SimpleSelect, { SimpleSelectOption } from '@odh-dashboard/ui-core/components/SimpleSelect';
 import ConfigYAMLEditor from './ConfigYAMLEditor';
 import { overrideLlmConfigFields } from './configYamlUtils';
 import {
   type LLMInferenceServiceConfigKind,
-  LLMInferenceServiceConfigModel,
   TopologyType,
   TopologyTypeLabels,
   CONFIG_TYPE_LABEL,
-  DASHBOARD_RESOURCE_LABEL,
 } from '../types';
 import { isConfigObject, cleanResourceForYAMLViewer, stripAnnotation } from '../utils';
 import {
@@ -237,30 +235,16 @@ const TopologyConfigurationCreateEditInner: React.FC<{
 
       const parsed: unknown = YAML.parse(yamlCode);
       if (!isConfigObject(parsed)) {
-        throw new Error('YAML must represent a valid object');
+        throw new Error('YAML must represent a valid kubernetes resource object');
       }
 
-      const withFormFields = overrideLlmConfigFields(parsed, {
+      const newConfig = overrideLlmConfigFields(parsed, {
         name: resourceName,
+        namespace: dashboardNamespace,
         displayName: k8sNameDesc.data.name,
         description: k8sNameDesc.data.description,
+        labels: { [CONFIG_TYPE_LABEL]: resolvedTopologyType },
       });
-      const apiGroup = LLMInferenceServiceConfigModel.apiGroup ?? '';
-      const apiVer = LLMInferenceServiceConfigModel.apiVersion;
-      const newConfig: LLMInferenceServiceConfigKind = {
-        ...withFormFields,
-        apiVersion: `${apiGroup}/${apiVer}`,
-        kind: 'LLMInferenceServiceConfig',
-        metadata: {
-          ...withFormFields.metadata,
-          namespace: dashboardNamespace,
-          labels: {
-            ...withFormFields.metadata.labels,
-            [CONFIG_TYPE_LABEL]: resolvedTopologyType,
-            [DASHBOARD_RESOURCE_LABEL]: 'true',
-          },
-        },
-      };
 
       if (isEditMode && existingConfig) {
         await patchLLMInferenceServiceConfig(existingConfig, newConfig);

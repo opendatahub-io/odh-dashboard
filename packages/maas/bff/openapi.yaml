@@ -225,6 +225,7 @@ paths:
                       - name: premium-team-sub
                         displayName: Premium Team Subscription
                         phase: Active
+                        statusMessage: Active subscription
                         groups:
                           - premium-users
                         tokenRateLimits:
@@ -234,6 +235,7 @@ paths:
                       - name: premium-team-sub-policy
                         displayName: Premium Team Policy
                         phase: Active
+                        statusMessage: Active policy
                         groups:
                           - premium-users
                   - id: flan-t5-small
@@ -245,6 +247,7 @@ paths:
                       - name: premium-team-sub
                         displayName: Premium Team Subscription
                         phase: Active
+                        statusMessage: Active subscription
                         groups:
                           - premium-users
                         tokenRateLimits:
@@ -1861,6 +1864,14 @@ components:
           type: string
           description: Context window size (from opendatahub.io/context-window annotation)
           example: '4096'
+        modelCapabilities:
+          type: array
+          items:
+            type: string
+          description: >
+            Model capability tags from the opendatahub.io/model-capabilities annotation
+            (e.g. text-generation, vision). Absent when the annotation was not set.
+          example: ['text-generation', 'vision']
 
     SubscriptionInfo:
       type: object
@@ -2452,6 +2463,14 @@ components:
           type: string
           description: Endpoint URL for the model (from status)
           example: https://llama-2-7b-chat.example.com
+        modelCapabilities:
+          type: array
+          items:
+            type: string
+          description: >
+            Model capability tags from the opendatahub.io/model-capabilities annotation
+            (e.g. text-generation, vision). Absent when the annotation was not set.
+          example: ['text-generation', 'vision']
       required:
         - name
         - namespace
@@ -2698,6 +2717,17 @@ components:
           type: string
           description: Human-readable description stored as openshift.io/description annotation
           example: A high-performance instruction-tuned language model
+        modelCapabilities:
+          type: array
+          maxItems: 50
+          items:
+            type: string
+            maxLength: 100
+          description: >
+            Model capability tags copied from the opendatahub.io/model-capabilities annotation on the
+            source LLMInferenceService (e.g. text-generation, vision). Omit or leave empty when the
+            annotation is absent.
+          example: ['text-generation', 'vision']
       required:
         - name
         - namespace
@@ -2721,6 +2751,16 @@ components:
           type: string
           description: Human-readable description stored as openshift.io/description annotation
           example: A high-performance instruction-tuned language model
+        modelCapabilities:
+          type: array
+          maxItems: 50
+          items:
+            type: string
+            maxLength: 100
+          description: >
+            Model capability tags to set as the opendatahub.io/model-capabilities annotation.
+            Omit to leave the existing annotation unchanged; send an empty array to remove it.
+          example: ['text-generation', 'vision']
       required:
         - modelRef
 
@@ -2757,6 +2797,10 @@ components:
           type: string
           description: Subscription phase (e.g. Active, Pending, Degraded).
           example: Active
+        statusMessage:
+          type: string
+          description: Subscription status message.
+          example: Active subscription
         groups:
           type: array
           description: Group names that own this subscription.
@@ -2788,6 +2832,10 @@ components:
           type: string
           description: Auth policy phase (e.g. Active, Pending, Unknown).
           example: Active
+        statusMessage:
+          type: string
+          description: Auth policy status message.
+          example: Active policy
         groups:
           type: array
           description: Group names subject to this policy.
@@ -2871,6 +2919,9 @@ components:
         authMechanism:
           type: string
           enum: [apikey, sigv4, oauth2]
+        credentialSecretRef:
+          type: string
+          description: Name of the Secret holding provider credentials (spec.auth.secretRef.name)
         provider:
           type: string
           description: Provider identifier (spec.provider)
@@ -2896,6 +2947,11 @@ components:
         endpoint:
           type: string
           description: Published MaaS endpoint URL (status.endpoint)
+        governanceAttached:
+          type: boolean
+          description: >
+            True when the companion MaaSModelRef has status.conditions type=GovernanceAttached
+            with status=True (active subscription + auth policy pairing).
 
     ExternalModelSummary:
       type: object

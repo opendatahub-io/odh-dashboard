@@ -1,11 +1,9 @@
 import { Button, Spinner, Flex, FlexItem, Popover, Tooltip } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import React from 'react';
-import { DashboardPopupIconButton } from '@odh-dashboard/ui-core';
+import { DashboardPopupIconButton, ScopedLabel } from '@odh-dashboard/ui-core';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import type { NotebookKind } from '@odh-dashboard/internal/k8sTypes';
-import ScopedLabel from '@odh-dashboard/internal/components/ScopedLabel';
-import { ScopedType } from '@odh-dashboard/internal/pages/modelServing/screens/const';
 import { getHardwareProfileDisplayName } from '@odh-dashboard/internal/pages/hardwareProfiles/utils';
 import { KUEUE_QUEUE_LABEL } from '@odh-dashboard/internal/concepts/kueue/index';
 import type { HardwareProfileResource } from './types';
@@ -106,7 +104,7 @@ const HardwareProfileTableColumn: React.FC<HardwareProfileTableColumnProps> = ({
         {isProjectScoped && hardwareProfile?.metadata.namespace === namespace && (
           <FlexItem>
             <ScopedLabel isProject color="blue" isCompact>
-              {ScopedType.Project}
+              Project-scoped
             </ScopedLabel>
           </FlexItem>
         )}

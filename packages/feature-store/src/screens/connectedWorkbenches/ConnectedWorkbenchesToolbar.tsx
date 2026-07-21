@@ -42,6 +42,7 @@ type ConnectedWorkbenchesToolbarProps = {
   onProjectToggle: (project: string) => void;
   onPermissionToggle: (permission: string) => void;
   onHideProjectsWithConnectedWorkbenchesChange: (hide: boolean) => void;
+  menuAppendTo?: HTMLElement;
 };
 
 const ConnectedWorkbenchesToolbar: React.FC<ConnectedWorkbenchesToolbarProps> = ({
@@ -54,6 +55,7 @@ const ConnectedWorkbenchesToolbar: React.FC<ConnectedWorkbenchesToolbarProps> = 
   onProjectToggle,
   onPermissionToggle,
   onHideProjectsWithConnectedWorkbenchesChange,
+  menuAppendTo,
 }) => {
   const [currentFilterType, setCurrentFilterType] = React.useState<FilterType>('authorizedProject');
   const [isFilterTypeOpen, setIsFilterTypeOpen] = React.useState(false);
@@ -81,7 +83,7 @@ const ConnectedWorkbenchesToolbar: React.FC<ConnectedWorkbenchesToolbarProps> = 
             </MenuToggle>
           )}
           isOpen={isFilterTypeOpen}
-          popperProps={{ appendTo: () => document.body }}
+          popperProps={{ appendTo: menuAppendTo || (() => document.body) }}
         >
           <DropdownList>
             {FILTER_TYPE_KEYS.map((filterType) => (
@@ -163,7 +165,7 @@ const ConnectedWorkbenchesToolbar: React.FC<ConnectedWorkbenchesToolbarProps> = 
               ) : null}
             </MenuToggle>
           )}
-          popperProps={{ appendTo: () => document.body }}
+          popperProps={{ appendTo: menuAppendTo || (() => document.body) }}
         >
           <SelectList isAriaMultiselectable>
             {projectOptions.withConnected.length > 0 ? (
@@ -253,7 +255,7 @@ const ConnectedWorkbenchesToolbar: React.FC<ConnectedWorkbenchesToolbarProps> = 
               ) : null}
             </MenuToggle>
           )}
-          popperProps={{ appendTo: () => document.body }}
+          popperProps={{ appendTo: menuAppendTo || (() => document.body) }}
         >
           <SelectList isAriaMultiselectable>
             {PERMISSION_OPTIONS.map((permission) => (

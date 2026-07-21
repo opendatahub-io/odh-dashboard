@@ -573,12 +573,13 @@ rules:
       - watch
   # AI agent and MCP server resources
   - apiGroups:
-      - agent.kagenti.dev
+      - agents.x-k8s.io
     resources:
-      - agentruntimes
+      - sandboxes
     verbs:
       - get
       - list
+      - patch
   - apiGroups:
       - mcp.kuadrant.io
       - mcp.kagenti.com
@@ -587,3 +588,14 @@ rules:
     verbs:
       - get
       - list
+  # OTel Collector — gen-ai BFF creates per-namespace trace routing CRs
+  - apiGroups:
+      - opentelemetry.io
+    resources:
+      - opentelemetrycollectors
+    verbs:
+      - get
+      - list
+      - create
+      - update
+      - delete

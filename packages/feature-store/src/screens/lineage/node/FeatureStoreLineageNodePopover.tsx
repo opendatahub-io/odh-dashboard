@@ -14,6 +14,12 @@ import {
 } from '@patternfly/react-core';
 import { LineageNode } from '@odh-dashboard/internal/components/lineage/types';
 import { useLineageClick } from '@odh-dashboard/internal/components/lineage/LineageClickContext';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import {
+  FEATURE_STORE_EVENTS,
+  LineageNavigationPerformedProperties,
+  RESOURCE_TYPES,
+} from '../../../tracking/featureStoreTrackingConstants';
 import {
   featureDataSourceRoute,
   featureEntityRoute,
@@ -171,6 +177,12 @@ const FeatureStoreLineageNodePopover: React.FC<FeatureStoreLineageNodePopoverPro
                     : 'button'
                 }
                 isDisabled={!detailsRoute}
+                onClick={() => {
+                  fireMiscTrackingEvent(FEATURE_STORE_EVENTS.LINEAGE_NAVIGATION_PERFORMED, {
+                    targetResourceType: node.fsObjectTypes,
+                    pageType: featureViewName ? 'detail' : 'overview',
+                  } satisfies LineageNavigationPerformedProperties);
+                }}
               >
                 View {getFsObjectTypeLabel(node.fsObjectTypes)} page
               </Button>
@@ -183,6 +195,12 @@ const FeatureStoreLineageNodePopover: React.FC<FeatureStoreLineageNodePopoverPro
                 component={(props: React.ComponentProps<'a'>) => (
                   <Link {...props} to={allFeaturesHref} />
                 )}
+                onClick={() => {
+                  fireMiscTrackingEvent(FEATURE_STORE_EVENTS.LINEAGE_NAVIGATION_PERFORMED, {
+                    targetResourceType: RESOURCE_TYPES.FEATURE,
+                    pageType: featureViewName ? 'detail' : 'overview',
+                  } satisfies LineageNavigationPerformedProperties);
+                }}
               >
                 View all features
               </Button>

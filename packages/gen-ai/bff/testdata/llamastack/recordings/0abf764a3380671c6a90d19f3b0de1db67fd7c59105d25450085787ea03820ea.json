@@ -1,0 +1,205 @@
+{
+  "test_id": "bff/testdata/llamastack/test.py::record",
+  "request": {
+    "method": "POST",
+    "url": "https://generativelanguage.googleapis.com/v1beta/openai/v1/chat/completions",
+    "headers": {},
+    "body": {
+      "model": "models/gemini-2.5-flash",
+      "messages": [
+        {
+          "role": "user",
+          "content": "First message in conversation"
+        },
+        {
+          "role": "assistant",
+          "content": "The best \"first message\" depends entirely on the **context**! Who are you messaging, why, and on what platform?\n\nTo give you the best advice, please tell me:\n\n1.  **Who are you messaging?** (e.g., a new acquaintance, an old friend, a potential date, a colleague, customer service, someone you admire)\n2.  **What is your goal?** (e.g., to flirt, to ask a question, to network, to reconnect, to make a sale, to apologize)\n3.  **What platform are you on?** (e.g., dating app, LinkedIn, Instagram DM, email, text message, Discord)\n\n---\n\n**However, here are some general principles for a good first message, applicable in most scenarios:**\n\n1.  **Context is King:** Reference *how* you know them, *where* you encountered them, or *why* you're reaching out. This immediately establishes relevance.\n2.  **Be Clear & Concise:** Get to the point without writing an essay. People are busy.\n3.  **Personalize It:** Avoid generic greetings. Mention something specific about their profile, a shared interest, a recent event, or something unique to them.\n4.  **Friendly & Appropriate Tone:** Match the tone to the relationship and platform (e.g., casual for a friend, professional for a colleague).\n5.  **Include an Open-Ended Question or Clear Call to Action:** This makes it easy for them to reply. Avoid yes/no questions if you want to encourage conversation.\n6.  **Proofread:** Typos make a bad first impression.\n\n---\n\n**Example Templates (Choose based on your situation):**\n\n**1. On a Dating App:**\n    *   \"Hey [Name], your photo from [location/activity] caught my eye \u2013 looks like you had a great time! What's your favorite thing about [that activity/place]?\"\n    *   \"Hi [Name], I noticed you're into [specific interest mentioned in profile]. I'm a big fan of [related thing] too! Any recommendations for [something related]?\"\n    *   \"Hey! Just saw you mentioned [book/movie/band]. Love that one! What other [category] have you been enjoying lately?\"\n\n**2. Professional/Networking (LinkedIn, Email):**\n    *   \"Hi [Name], I hope you're having a good week. I came across your profile/article about [specific topic] and was really impressed by [specific detail]. I'm particularly interested in [your area of interest] and would love to hear your insights on [a specific question].\"\n    *   \"Dear [Name], My name is [Your Name] and I'm a [Your Role] at [Your Company]. I'm reaching out because I saw your post about [topic] and wanted to connect as I'm also working on [related project/goal]. Would you be open to a brief chat sometime next week?\"\n\n**3. Connecting with Someone You Met Briefly:**\n    *   \"Hey [Name], it was great meeting you at [event/place] the other day! I really enjoyed our conversation about [specific topic]. Hope you're having a good week!\" (Add a question if you want to continue the convo: \"Did you ever get around to [doing X] after we talked?\")\n\n**4. Social Media DM (Casual/Admiration):**\n    *   \"Hey [Name]! Just wanted to say I really love your [art/photos/content] \u2013 it's always so [adjective]! Keep up the great work!\" (No expectation of reply, just a compliment.)\n    *   \"Hi [Name], awesome [story/post] about [topic]! I completely agree with your point about [specific point]. So true!\"\n\n**5. Reaching out to an Old Friend:**\n    *   \"Hey [Name]! Random thought, but I was just thinking about [shared memory/inside joke] the other day and it made me smile. How have you been? Would love to catch up sometime!\"\n\n---\n\n**What to Avoid:**\n\n*   **Generic \"Hey\" or \"How are you?\"** (unless it's an existing close relationship)\n*   **Overly familiar or demanding language.**\n*   **Excessive emojis or slang** (unless appropriate for the context).\n*   **Spammy or salesy pitches** in a first message (unless it's a cold sales email, which is a different strategy).\n*   **Being negative or complaining.**\n\nTell me your specific situation, and I can give you a tailored message!"
+        },
+        {
+          "role": "user",
+          "content": "Continue our conversation"
+        }
+      ],
+      "stream": true,
+      "stream_options": {
+        "include_usage": true
+      }
+    },
+    "endpoint": "/v1/chat/completions",
+    "model": "models/gemini-2.5-flash",
+    "provider_metadata": {
+      "openai_sdk_version": "2.45.0"
+    }
+  },
+  "response": {
+    "body": [
+      {
+        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
+        "__data__": {
+          "id": "rec-0abf764a3380",
+          "choices": [
+            {
+              "delta": {
+                "content": "Okay, great! To",
+                "function_call": null,
+                "refusal": null,
+                "role": "assistant",
+                "tool_calls": null
+              },
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null
+            }
+          ],
+          "created": 0,
+          "model": "models/gemini-2.5-flash",
+          "object": "chat.completion.chunk",
+          "moderation": null,
+          "service_tier": null,
+          "system_fingerprint": null,
+          "usage": {
+            "completion_tokens": 5,
+            "prompt_tokens": 1013,
+            "total_tokens": 1124,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          }
+        }
+      },
+      {
+        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
+        "__data__": {
+          "id": "rec-0abf764a3380",
+          "choices": [
+            {
+              "delta": {
+                "content": " continue, I need a little more information from you so I can give you the best advice for that \"first message.\"\n\nCould you please tell me:\n\n1.  **Who are you messaging?** (e.g., a potential",
+                "function_call": null,
+                "refusal": null,
+                "role": "assistant",
+                "tool_calls": null
+              },
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null
+            }
+          ],
+          "created": 0,
+          "model": "models/gemini-2.5-flash",
+          "object": "chat.completion.chunk",
+          "moderation": null,
+          "service_tier": null,
+          "system_fingerprint": null,
+          "usage": {
+            "completion_tokens": 54,
+            "prompt_tokens": 1013,
+            "total_tokens": 1173,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          }
+        }
+      },
+      {
+        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
+        "__data__": {
+          "id": "rec-0abf764a3380",
+          "choices": [
+            {
+              "delta": {
+                "content": " date, a colleague, a new connection on LinkedIn, an old friend, customer service, someone you admire on social media)\n2.  **What is your goal with this message?** (e.g., to flirt, to ask a",
+                "function_call": null,
+                "refusal": null,
+                "role": "assistant",
+                "tool_calls": null
+              },
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null
+            }
+          ],
+          "created": 0,
+          "model": "models/gemini-2.5-flash",
+          "object": "chat.completion.chunk",
+          "moderation": null,
+          "service_tier": null,
+          "system_fingerprint": null,
+          "usage": {
+            "completion_tokens": 104,
+            "prompt_tokens": 1013,
+            "total_tokens": 1223,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          }
+        }
+      },
+      {
+        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
+        "__data__": {
+          "id": "rec-0abf764a3380",
+          "choices": [
+            {
+              "delta": {
+                "content": " question, to network, to reconnect, to make a sale, to apologize, to get information)\n3.  **What platform are you sending it on?** (e.g., dating app, LinkedIn, Instagram DM, email, text",
+                "function_call": null,
+                "refusal": null,
+                "role": "assistant",
+                "tool_calls": null
+              },
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null
+            }
+          ],
+          "created": 0,
+          "model": "models/gemini-2.5-flash",
+          "object": "chat.completion.chunk",
+          "moderation": null,
+          "service_tier": null,
+          "system_fingerprint": null,
+          "usage": {
+            "completion_tokens": 154,
+            "prompt_tokens": 1013,
+            "total_tokens": 1273,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          }
+        }
+      },
+      {
+        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
+        "__data__": {
+          "id": "rec-0abf764a3380",
+          "choices": [
+            {
+              "delta": {
+                "content": " message, Discord)\n\nOnce I have those details, I can help you craft the perfect first message!",
+                "function_call": null,
+                "refusal": null,
+                "role": "assistant",
+                "tool_calls": null
+              },
+              "finish_reason": "stop",
+              "index": 0,
+              "logprobs": null
+            }
+          ],
+          "created": 0,
+          "model": "models/gemini-2.5-flash",
+          "object": "chat.completion.chunk",
+          "moderation": null,
+          "service_tier": null,
+          "system_fingerprint": null,
+          "usage": {
+            "completion_tokens": 175,
+            "prompt_tokens": 1013,
+            "total_tokens": 1294,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          }
+        }
+      }
+    ],
+    "is_streaming": true
+  },
+  "id_normalization_mapping": {}
+}

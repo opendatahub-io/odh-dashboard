@@ -4,7 +4,7 @@ import useNotification from '@odh-dashboard/internal/utilities/useNotification';
 import {
   isUnsupportedUnaccepted,
   UNSUPPORTED_STATUS_ACCEPTED_ANNOTATION,
-} from '@odh-dashboard/model-serving/concepts/unsupportedResources';
+} from '@odh-dashboard/model-serving/concepts/versions';
 import UnsupportedStatusAcceptanceModal from '@odh-dashboard/model-serving/components/UnsupportedStatusAcceptanceModal';
 import type { LLMInferenceServiceConfigKind } from '../../types';
 import { DISABLED_ANNOTATION } from '../../const';
