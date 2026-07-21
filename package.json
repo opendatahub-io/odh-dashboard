@@ -105,7 +105,7 @@
     "webpack": "5.104.1"
   },
   "lint-staged": {
-    "**/*.{js,ts,jsx,tsx,md}": [
+    "{,+([^.])*/**/}*.{js,ts,jsx,tsx,md}": [
       "npx eslint --max-warnings 0"
     ]
   },
