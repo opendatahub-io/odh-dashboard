@@ -46,6 +46,18 @@ import ManagedPipelinesSettingsSection from './ManagedPipelinesSettingsSection';
 
 type ConfigurePipelinesServerModalProps = {
   onClose: () => void;
+  /** When provided, overrides usePipelinesAPI().namespace. */
+  standaloneNamespace?: string;
+  /** Called after successful DSPA creation (standalone mode). Replaces NotificationWatcher polling. */
+  onSuccess?: () => void;
+  /** Override initial form defaults (e.g. { enableManagedPipelines: true }). */
+  defaultConfig?: Partial<PipelineServerConfigType>;
+  /** Override the modal title (default: "Configure pipeline server"). */
+  title?: string;
+  /** Override the submit button label (default: "Configure pipeline server"). */
+  submitLabel?: string;
+  /** When true, shows a warning when managed pipelines is unchecked and starts advanced settings expanded. */
+  showManagedPipelinesWarning?: boolean;
 };
 
 const FORM_DEFAULTS: PipelineServerConfigType = {
@@ -59,19 +71,34 @@ const FORM_DEFAULTS: PipelineServerConfigType = {
 const serverConfiguredEvent = 'Pipeline Server Configured';
 export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerModalProps> = ({
   onClose,
+  standaloneNamespace,
+  onSuccess,
+  defaultConfig,
+  showManagedPipelinesWarning = false,
+  title: modalTitle = 'Configure pipeline server',
+  submitLabel = 'Configure pipeline server',
 }) => {
-  const { project, namespace, startingStatusModalOpenRef } = usePipelinesAPI();
-  const [connections, loaded] = usePipelinesConnections(namespace);
+  const { namespace, startingStatusModalOpenRef } = usePipelinesAPI();
+  const effectiveNamespace = standaloneNamespace ?? namespace;
+  const [connections, loaded] = usePipelinesConnections(effectiveNamespace);
   const [fetching, setFetching] = React.useState(false);
   const [error, setError] = React.useState<Error>();
-  const [advancedSettingsExpanded, setAdvancedSettingsExpanded] = React.useState(false);
-  const [config, setConfig] = React.useState<PipelineServerConfigType>(FORM_DEFAULTS);
+  const [advancedSettingsExpanded, setAdvancedSettingsExpanded] = React.useState(
+    showManagedPipelinesWarning,
+  );
+  const [mergedDefaults] = React.useState<PipelineServerConfigType>(() =>
+    defaultConfig ? { ...FORM_DEFAULTS, ...defaultConfig } : FORM_DEFAULTS,
+  );
+  const [config, setConfig] = React.useState<PipelineServerConfigType>(() => mergedDefaults);
   const { registerNotification } = React.useContext(NotificationWatcherContext);
   const advancedSettingsRef = React.useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const { dashboardConfig } = useAppContext();
-  const isManagedPipelinesAvailable =
-    dashboardConfig.spec.dashboardConfig.automl || dashboardConfig.spec.dashboardConfig.autorag;
+  // standaloneNamespace is currently only used in autorag and automl — skip the dashboardConfig
+  // check because to reach those pages the feature must already be enabled.
+  const isManagedPipelinesAvailable = standaloneNamespace
+    ? true
+    : dashboardConfig.spec.dashboardConfig.automl || dashboardConfig.spec.dashboardConfig.autorag;
 
   const databaseIsValid = config.database.useDefault
     ? true
@@ -90,7 +117,8 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
     onClose();
     setFetching(false);
     setError(undefined);
-    setConfig(FORM_DEFAULTS);
+    setConfig(mergedDefaults);
+    setAdvancedSettingsExpanded(showManagedPipelinesWarning);
   };
 
   const onCancel = () => {
@@ -113,105 +141,109 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
       objectStorage,
     };
 
-    configureDSPipelineResourceSpec(configureConfig, project.metadata.name)
-      .then((spec) => {
-        createPipelinesCR(namespace, spec)
-          .then((obj: DSPipelineKind) => {
-            onBeforeClose();
+    configureDSPipelineResourceSpec(configureConfig, effectiveNamespace)
+      .then(async (spec) => {
+        let obj: DSPipelineKind;
+        try {
+          obj = await createPipelinesCR(effectiveNamespace, spec);
+        } catch (e) {
+          const caughtError = e instanceof Error ? e : new Error(String(e));
+          setFetching(false);
+          setError(caughtError);
+          fireFormTrackingEvent(serverConfiguredEvent, {
+            outcome: TrackingOutcome.submit,
+            success: false,
+            error: caughtError.message,
+          });
+          deleteSecret(effectiveNamespace, ExternalDatabaseSecret.NAME);
+          return;
+        }
 
-            const pollingNamespace = obj.metadata.namespace;
-            registerNotification({
-              callbackDelay: FAST_POLL_INTERVAL,
-              callback: async (signal: AbortSignal) => {
-                try {
-                  // This should emulate the logic in usePipelineNamespaceCR as much as possible
-                  const response = await listPipelinesCR(pollingNamespace, { signal });
-                  const serverLoaded = dspaLoaded([response[0], true]);
-                  const serverAllReady = isDspaAllReady([response[0], true]);
+        onBeforeClose();
 
-                  if (hasServerTimedOut([response[0], true], serverLoaded)) {
-                    const errorMessage =
-                      response[0]?.status?.conditions?.find(
-                        (condition) => condition.type === 'Ready',
-                      )?.message || `${pollingNamespace} pipeline server creation timed out`;
-                    throw Error(errorMessage);
-                  }
+        fireFormTrackingEvent(serverConfiguredEvent, {
+          outcome: TrackingOutcome.submit,
+          success: true,
+        });
 
-                  // User deleted pipeline server while waiting
-                  if (response.length === 0) {
-                    return {
-                      status: NotificationResponseStatus.STOP,
-                    };
-                  }
+        if (onSuccess) {
+          onSuccess();
+          return;
+        }
 
-                  if (serverLoaded && serverAllReady) {
-                    // If we're viewing the StartingStatusModal in the same namespace, we don't need to show the notification
-                    if (startingStatusModalOpenRef?.current === pollingNamespace) {
-                      return {
-                        status: NotificationResponseStatus.STOP,
-                      };
-                    }
+        const pollingNamespace = obj.metadata.namespace;
+        registerNotification({
+          callbackDelay: FAST_POLL_INTERVAL,
+          callback: async (signal: AbortSignal) => {
+            try {
+              const response = await listPipelinesCR(pollingNamespace, { signal });
+              const serverLoaded = dspaLoaded([response[0], true]);
+              const serverAllReady = isDspaAllReady([response[0], true]);
 
-                    return {
-                      status: NotificationResponseStatus.SUCCESS,
-                      title: `Pipeline server for ${pollingNamespace} is ready.`,
-                      actions: [
-                        {
-                          title: `${pollingNamespace} pipeline server`,
-                          onClick: () => navigate(pipelinesBaseRoute(pollingNamespace)),
-                        },
-                      ],
-                    };
-                  }
+              if (hasServerTimedOut([response[0], true], serverLoaded)) {
+                const errorMessage =
+                  response[0]?.status?.conditions?.find((condition) => condition.type === 'Ready')
+                    ?.message || `${pollingNamespace} pipeline server creation timed out`;
+                throw Error(errorMessage);
+              }
 
-                  // repoll
+              if (response.length === 0) {
+                return {
+                  status: NotificationResponseStatus.STOP,
+                };
+              }
+
+              if (serverLoaded && serverAllReady) {
+                if (startingStatusModalOpenRef?.current === pollingNamespace) {
                   return {
-                    status: NotificationResponseStatus.REPOLL,
-                  };
-                } catch (e) {
-                  if (startingStatusModalOpenRef?.current === pollingNamespace) {
-                    return {
-                      status: NotificationResponseStatus.STOP,
-                    };
-                  }
-                  return {
-                    status: NotificationResponseStatus.ERROR,
-                    title: `Error configuring pipeline server for ${pollingNamespace}`,
-                    message: e instanceof Error ? e.message : 'Unknown error',
-                    actions: [
-                      {
-                        title: `${pollingNamespace} pipeline server`,
-                        onClick: () => navigate(pipelinesBaseRoute(pollingNamespace)),
-                      },
-                    ],
+                    status: NotificationResponseStatus.STOP,
                   };
                 }
-              },
-            });
-            fireFormTrackingEvent(serverConfiguredEvent, {
-              outcome: TrackingOutcome.submit,
-              success: true,
-            });
-          })
-          .catch((e) => {
-            setFetching(false);
-            setError(e);
-            fireFormTrackingEvent(serverConfiguredEvent, {
-              outcome: TrackingOutcome.submit,
-              success: false,
-              error: e,
-            });
-            // Cleanup created password secret
-            deleteSecret(project.metadata.name, ExternalDatabaseSecret.NAME);
-          });
+
+                return {
+                  status: NotificationResponseStatus.SUCCESS,
+                  title: `Pipeline server for ${pollingNamespace} is ready.`,
+                  actions: [
+                    {
+                      title: `${pollingNamespace} pipeline server`,
+                      onClick: () => navigate(pipelinesBaseRoute(pollingNamespace)),
+                    },
+                  ],
+                };
+              }
+
+              return {
+                status: NotificationResponseStatus.REPOLL,
+              };
+            } catch (e) {
+              if (startingStatusModalOpenRef?.current === pollingNamespace) {
+                return {
+                  status: NotificationResponseStatus.STOP,
+                };
+              }
+              return {
+                status: NotificationResponseStatus.ERROR,
+                title: `Error configuring pipeline server for ${pollingNamespace}`,
+                message: e instanceof Error ? e.message : 'Unknown error',
+                actions: [
+                  {
+                    title: `${pollingNamespace} pipeline server`,
+                    onClick: () => navigate(pipelinesBaseRoute(pollingNamespace)),
+                  },
+                ],
+              };
+            }
+          },
+        });
       })
       .catch((e) => {
+        const caughtError = e instanceof Error ? e : new Error(String(e));
         setFetching(false);
-        setError(e);
+        setError(caughtError);
         fireFormTrackingEvent(serverConfiguredEvent, {
           outcome: TrackingOutcome.submit,
           success: false,
-          error: e,
+          error: caughtError.message,
         });
       });
   };
@@ -219,7 +251,7 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
   return (
     <Modal variant="medium" isOpen onClose={onCancel}>
       <ModalHeader
-        title="Configure pipeline server"
+        title={modalTitle}
         description="Configuring a pipeline server enables you to create and manage pipelines."
       />
       <ModalBody>
@@ -273,7 +305,11 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
                     />
                   </div>
                   {isManagedPipelinesAvailable ? (
-                    <ManagedPipelinesSettingsSection setConfig={setConfig} config={config} />
+                    <ManagedPipelinesSettingsSection
+                      setConfig={setConfig}
+                      config={config}
+                      showWarning={showManagedPipelinesWarning}
+                    />
                   ) : null}
                 </div>
               </ExpandableSection>
@@ -283,7 +319,7 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
       </ModalBody>
       <ModalFooter>
         <DashboardModalFooter
-          submitLabel="Configure pipeline server"
+          submitLabel={submitLabel}
           onSubmit={submit}
           isSubmitLoading={fetching}
           isSubmitDisabled={!canSubmit || fetching}

@@ -381,7 +381,7 @@ func TestValidateCreateAutoRAGRunRequest(t *testing.T) {
 	})
 
 	t.Run("should accept valid optimization_metric values", func(t *testing.T) {
-		for _, metric := range []string{"faithfulness", "answer_correctness", "context_correctness"} {
+		for _, metric := range []string{"faithfulness", "answer_correctness", "context_correctness", "overall_score"} {
 			req := newValidCreateRequest()
 			req.OptimizationMetric = metric
 			err := ValidateCreateAutoRAGRunRequest(req)

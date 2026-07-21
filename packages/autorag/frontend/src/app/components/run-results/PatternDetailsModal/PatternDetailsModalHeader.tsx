@@ -17,7 +17,13 @@ import {
 import type { MenuToggleElement } from '@patternfly/react-core';
 import { DownloadIcon } from '@patternfly/react-icons';
 import type { AutoragPattern } from '~/app/types/autoragPattern';
-import { formatMetricName, formatMetricValue, formatPatternName } from '~/app/utilities/utils';
+import {
+  formatMetricName,
+  formatMetricValue,
+  formatPatternName,
+  getOptimizedScore,
+  getMetricByName,
+} from '~/app/utilities/utils';
 
 type PatternDetailsModalHeaderProps = {
   patterns: AutoragPattern[];
@@ -127,9 +133,9 @@ const PatternDetailsModalHeader: React.FC<PatternDetailsModalHeaderProps> = ({
             </StackItem>
             <StackItem>
               <Title headingLevel="h2" size="lg" data-testid="pattern-final-score">
-                {optimizedMetric && data.scores[optimizedMetric]
-                  ? formatMetricValue(data.scores[optimizedMetric].mean)
-                  : data.final_score.toFixed(3)}
+                {optimizedMetric
+                  ? formatMetricValue(getMetricByName(data, optimizedMetric)?.scores.mean ?? 'N/A')
+                  : getOptimizedScore(data).toFixed(3)}
               </Title>
             </StackItem>
           </Stack>
@@ -173,7 +179,7 @@ const PatternDetailsModalHeader: React.FC<PatternDetailsModalHeaderProps> = ({
                 )}
               >
                 <DropdownList>
-                  {data.settings.responses_template && onTryPattern && (
+                  {data.inference?.responses_template && onTryPattern && (
                     <DropdownItem
                       key="try-pattern"
                       value="try-pattern"
@@ -182,7 +188,7 @@ const PatternDetailsModalHeader: React.FC<PatternDetailsModalHeaderProps> = ({
                       Try this pattern
                     </DropdownItem>
                   )}
-                  {data.settings.responses_template && onViewCode && (
+                  {data.inference?.responses_template && onViewCode && (
                     <DropdownItem
                       key="view-code"
                       value="view-code"
