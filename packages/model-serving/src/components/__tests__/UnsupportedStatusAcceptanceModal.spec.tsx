@@ -97,7 +97,7 @@ describe('UnsupportedStatusAcceptanceModal', () => {
     expect(mockOnClose).not.toHaveBeenCalled();
   });
 
-  it('should call onClose when Cancel button is clicked', () => {
+  it('should call onClose with cancel when Cancel button is clicked', () => {
     render(
       <UnsupportedStatusAcceptanceModal
         resourceTypeLabel="runtime"
@@ -107,7 +107,21 @@ describe('UnsupportedStatusAcceptanceModal', () => {
     );
 
     fireEvent.click(screen.getByTestId('unsupported-status-cancel-button'));
-    expect(mockOnClose).toHaveBeenCalledTimes(1);
+    expect(mockOnClose).toHaveBeenCalledWith('cancel');
+    expect(mockOnAccept).not.toHaveBeenCalled();
+  });
+
+  it('should call onClose with close when modal close control is used', () => {
+    render(
+      <UnsupportedStatusAcceptanceModal
+        resourceTypeLabel="runtime"
+        onAccept={mockOnAccept}
+        onClose={mockOnClose}
+      />,
+    );
+
+    fireEvent.click(screen.getByLabelText('Close'));
+    expect(mockOnClose).toHaveBeenCalledWith('close');
     expect(mockOnAccept).not.toHaveBeenCalled();
   });
 });

@@ -2,6 +2,7 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { mockLLMInferenceServiceConfigK8sResource } from '@odh-dashboard/internal/__mocks__/mockLLMInferenceServiceConfigK8sResource';
+import { fireRiskDismissed } from '@odh-dashboard/model-serving/tracking/limitedSupportTracking';
 import LlmAcceleratorConfigEnabledToggle from '../LlmAcceleratorConfigEnabledToggle';
 import { patchLLMInferenceServiceConfig } from '../../../api/LLMInferenceServiceConfigs';
 import type { LLMInferenceServiceConfigKind } from '../../../types';
@@ -15,6 +16,15 @@ jest.mock('../../../api/LLMInferenceServiceConfigs', () => ({
   patchLLMInferenceServiceConfig: jest.fn(),
 }));
 
+jest.mock('@odh-dashboard/model-serving/tracking/limitedSupportTracking', () => ({
+  fireRiskDismissed: jest.fn(),
+  getResourceVersions: jest.fn(() => ({
+    version: undefined,
+    fastVersion: undefined,
+  })),
+}));
+
+const mockFireRiskDismissed = jest.mocked(fireRiskDismissed);
 const mockPatchConfig = jest.mocked(patchLLMInferenceServiceConfig);
 
 const mockNotification =
@@ -154,7 +164,7 @@ describe('LlmAcceleratorConfigEnabledToggle', () => {
     expect(screen.queryByTestId('unsupported-status-acceptance-modal')).not.toBeInTheDocument();
   });
 
-  it('should close modal without patching when cancel is clicked', () => {
+  it('should close modal without patching when cancel is clicked and fire tracking event', () => {
     const config = mockLLMInferenceServiceConfigK8sResource({ unsupported: true });
 
     render(<LlmAcceleratorConfigEnabledToggle config={config} />);
@@ -166,6 +176,36 @@ describe('LlmAcceleratorConfigEnabledToggle', () => {
 
     expect(screen.queryByTestId('unsupported-status-acceptance-modal')).not.toBeInTheDocument();
     expect(mockPatchConfig).not.toHaveBeenCalled();
+    expect(mockFireRiskDismissed).toHaveBeenCalledWith(
+      expect.objectContaining({
+        runtimeResourceType: 'llm-accelerator-config',
+        resourceId: config.metadata.name,
+        dismissAction: 'cancel',
+        outcome: 'cancel',
+      }),
+    );
+  });
+
+  it('should fire tracking event with close action when modal close control is used', () => {
+    const config = mockLLMInferenceServiceConfigK8sResource({ unsupported: true });
+
+    render(<LlmAcceleratorConfigEnabledToggle config={config} />);
+
+    fireEvent.click(screen.getByRole('switch'));
+    expect(screen.getByTestId('unsupported-status-acceptance-modal')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByLabelText('Close'));
+
+    expect(screen.queryByTestId('unsupported-status-acceptance-modal')).not.toBeInTheDocument();
+    expect(mockPatchConfig).not.toHaveBeenCalled();
+    expect(mockFireRiskDismissed).toHaveBeenCalledWith(
+      expect.objectContaining({
+        runtimeResourceType: 'llm-accelerator-config',
+        resourceId: config.metadata.name,
+        dismissAction: 'close',
+        outcome: 'cancel',
+      }),
+    );
   });
 
   it('should toggle normally without modal for already-accepted unsupported config', async () => {

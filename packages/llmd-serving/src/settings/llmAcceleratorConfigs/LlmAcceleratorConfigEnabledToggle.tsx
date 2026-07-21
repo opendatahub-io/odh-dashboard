@@ -1,11 +1,17 @@
 import * as React from 'react';
 import { Switch } from '@patternfly/react-core';
+import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import useNotification from '@odh-dashboard/internal/utilities/useNotification';
 import {
   isUnsupportedUnaccepted,
   UNSUPPORTED_STATUS_ACCEPTED_ANNOTATION,
 } from '@odh-dashboard/model-serving/concepts/versions';
 import UnsupportedStatusAcceptanceModal from '@odh-dashboard/model-serving/components/UnsupportedStatusAcceptanceModal';
+import type { UnsupportedStatusDismissAction } from '@odh-dashboard/model-serving/components/UnsupportedStatusAcceptanceModal';
+import {
+  fireRiskDismissed,
+  getResourceVersions,
+} from '@odh-dashboard/model-serving/tracking/limitedSupportTracking';
 import type { LLMInferenceServiceConfigKind } from '../../types';
 import { DISABLED_ANNOTATION } from '../../const';
 import { isConfigEnabled } from '../../utils';
@@ -86,7 +92,17 @@ const LlmAcceleratorConfigEnabledToggle: React.FC<LlmAcceleratorConfigEnabledTog
         <UnsupportedStatusAcceptanceModal
           resourceTypeLabel="accelerator configuration"
           onAccept={handleAccept}
-          onClose={() => setShowAcceptanceModal(false)}
+          onClose={(dismissAction: UnsupportedStatusDismissAction) => {
+            setShowAcceptanceModal(false);
+            fireRiskDismissed({
+              runtimeResourceType: 'llm-accelerator-config',
+              resourceId: config.metadata.name,
+              resourceName: getDisplayNameFromK8sResource(config),
+              ...getResourceVersions(config),
+              dismissAction,
+              outcome: 'cancel',
+            });
+          }}
         />
       ) : null}
     </>
