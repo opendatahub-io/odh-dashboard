@@ -36,7 +36,7 @@ const ModelTabContent: React.FunctionComponent<ModelTabContentProps> = ({
   onSubscriptionChange,
   configId,
 }) => {
-  const { aiModels, aiModelsLoaded, aiModelsError, maasModelsLoaded } =
+  const { aiModels, aiModelsLoaded, aiModelsError, maasModels, maasModelsLoaded } =
     React.useContext(ChatbotContext);
 
   const { hasASRModel, capabilitiesReady, capabilitiesError } = useWorkspaceCapabilities(
@@ -44,6 +44,7 @@ const ModelTabContent: React.FunctionComponent<ModelTabContentProps> = ({
     aiModelsLoaded,
     maasModelsLoaded,
     aiModelsError,
+    maasModels,
   );
 
   React.useEffect(() => {
@@ -63,12 +64,14 @@ const ModelTabContent: React.FunctionComponent<ModelTabContentProps> = ({
             onModelChange={onModelChange}
             style={{ width: '100%' }}
             testId="settings-model-selector-toggle"
+            isDisabled={false}
           />
         </FormGroup>
         <SubscriptionDropdown
           selectedModel={selectedModel}
           selectedSubscription={selectedSubscription}
           onSubscriptionChange={onSubscriptionChange}
+          isDisabled={false}
         />
         <ModelParameterFormGroup
           fieldId="temperature"
@@ -84,6 +87,7 @@ const ModelTabContent: React.FunctionComponent<ModelTabContentProps> = ({
           }}
           max={2}
           showPopoverCloseButton={false}
+          isDisabled={false}
         />
 
         <FormGroup fieldId="streaming" data-testid="streaming-section">
@@ -94,9 +98,10 @@ const ModelTabContent: React.FunctionComponent<ModelTabContentProps> = ({
             onChange={(_event, checked) => onStreamingToggle(checked)}
             aria-label="Toggle streaming responses"
             data-testid="streaming-toggle"
+            isDisabled={false}
           />
         </FormGroup>
-        {hasASRModel && <TranscriptionModelSection configId={configId} />}
+        <TranscriptionModelSection configId={configId} />
       </Form>
     </TabContentWrapper>
   );

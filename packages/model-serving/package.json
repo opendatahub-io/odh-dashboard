@@ -16,6 +16,9 @@
     "./extensions": "./extensions/index.ts",
     "./extension-points": "./extension-points/index.ts",
     "./extension-points/deployment-wizard": "./extension-points/deployment-wizard.ts",
+    "./shared": "./src/shared/index.ts",
+    "./shared/types": "./src/shared/types.ts",
+    "./shared/components": "./src/shared/components/index.ts",
     "./components/*": [
       "./src/components/*",
       "./src/components/*.ts",
@@ -25,13 +28,17 @@
     "./types/form-data": "./src/components/deploymentWizard/types.ts",
     "./concepts/auth": "./src/concepts/auth.ts",
     "./concepts/useModelServingClusterSettings": "./src/concepts/useModelServingClusterSettings.tsx",
+    "./concepts/versions": "./src/concepts/versions.ts",
     "./utils": "./src/concepts/utils.ts"
   },
   "dependencies": {
+    "@odh-dashboard/foundation": "*",
+    "@odh-dashboard/hardware-profiles": "*",
     "@odh-dashboard/internal": "*",
     "@odh-dashboard/k8s-core": "*",
     "@odh-dashboard/model-registry": "*",
     "@odh-dashboard/plugin-core": "*",
+    "@odh-dashboard/ui-core": "*",
     "lodash-es": "^4.18.1",
     "yaml": "^2.9.0",
     "zod": "^3.25.76"

@@ -26,6 +26,8 @@ import { useNotification } from '~/app/hooks/useNotification';
 import { usePipelineRunQuery } from '~/app/hooks/queries';
 import { useNamespaceSelectorWithPersistence } from '~/app/hooks/useNamespaceSelectorWithPersistence';
 import { useAutomlResults } from '~/app/hooks/useAutomlResults';
+import { useComponentStageMap } from '~/app/hooks/useComponentStageMap';
+import { useComponentStatuses } from '~/app/hooks/useComponentStatuses';
 import { automlExperimentsPathname, automlReconfigurePathname } from '~/app/utilities/routes';
 import { isRunTerminatable, isRunRetryable, parseErrorStatus } from '~/app/utilities/utils';
 
@@ -56,6 +58,7 @@ function AutomlResultsPage(): React.JSX.Element {
     isFetching: pipelineRunFetching,
     isError: pipelineRunError,
     error: pipelineRunLoadError,
+    dataUpdatedAt: pipelineRunUpdatedAt,
   } = usePipelineRunQuery(runId, namespace);
 
   // Two-tier error strategy: polling errors (data already loaded) show a non-blocking
@@ -88,6 +91,15 @@ function AutomlResultsPage(): React.JSX.Element {
     modelsBasePath,
     refetch: refetchModels,
   } = useAutomlResults(runId, namespace, pipelineRun);
+
+  const {
+    componentStageMap: rawComponentStageMap,
+    isLoading: componentStageMapLoading,
+    isError: componentStageMapError,
+  } = useComponentStageMap(runId, namespace, pipelineRun);
+
+  const { mergedStageMap: componentStageMap, isLoading: componentStatusesLoading } =
+    useComponentStatuses(runId, namespace, pipelineRun, rawComponentStageMap, pipelineRunUpdatedAt);
 
   const failedModelsNotifiedKey = React.useRef('');
   React.useEffect(() => {
@@ -147,6 +159,9 @@ function AutomlResultsPage(): React.JSX.Element {
         modelsError,
         modelsLoadError,
         onRetryModels: refetchModels,
+        componentStageMap,
+        componentStageMapLoading: componentStageMapLoading || componentStatusesLoading,
+        componentStageMapError,
       }),
     [
       pipelineRun,
@@ -158,6 +173,10 @@ function AutomlResultsPage(): React.JSX.Element {
       modelsError,
       modelsLoadError,
       refetchModels,
+      componentStageMap,
+      componentStageMapLoading,
+      componentStatusesLoading,
+      componentStageMapError,
     ],
   );
 

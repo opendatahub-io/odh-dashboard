@@ -11,7 +11,6 @@ import {
   CatalogModelDetailsParams,
   CatalogSource,
   CatalogSourceList,
-  HardwareConfiguration,
   ModelCatalogFilterStates,
   MetricsType,
   ModelCatalogFilterKey,
@@ -363,27 +362,32 @@ export type FilterQueryTarget = 'models' | 'artifacts';
 
 /**
  * Determines if a filter should be included based on the target endpoint.
- * - For models: Include all filters except RPS (which is passed as a separate param)
- * - For artifacts: Only include filters that have the artifacts.* prefix
+ * - For models: Include all filters except RPS (which is passed as a separate param).
+ *   Cold-start load time is excluded when includeColdStart is false.
+ * - For artifacts: Only include filters that have the artifacts.* prefix.
+ *   The includeColdStart parameter has no effect on the artifacts target.
  */
-const shouldIncludeFilter = (filterId: string, target: FilterQueryTarget): boolean => {
-  // RPS is always passed as a separate param, not in filterQuery
+const shouldIncludeFilter = (
+  filterId: string,
+  target: FilterQueryTarget,
+  includeColdStart: boolean,
+): boolean => {
   if (filterId === ModelCatalogNumberFilterKey.MAX_RPS) {
     return false;
   }
 
-  // Cold-start filter is excluded from the performance artifacts endpoint
-  // (performance-metrics artifacts don't have this field — it's on cold-start-metrics artifacts).
-  if (filterId === ModelCatalogNumberFilterKey.COLD_START_LOAD_TIME && target === 'artifacts') {
+  if (
+    filterId === ModelCatalogNumberFilterKey.COLD_START_LOAD_TIME &&
+    target === 'models' &&
+    !includeColdStart
+  ) {
     return false;
   }
 
   if (target === 'models') {
-    // For models, include all filters (except RPS and cold-start which are already excluded)
     return true;
   }
 
-  // For artifacts, only include filters with the artifacts.* prefix
   return hasArtifactsPrefix(filterId);
 };
 
@@ -454,6 +458,8 @@ const serializeFilterEntry = (
  * @param target - The target endpoint:
  *   - 'models': Include all filters (except RPS), use filter keys directly
  *   - 'artifacts': Only include artifact-prefixed filters, strip the prefix in output
+ * @param includeColdStart - Whether to include the cold-start filter in the AND clause.
+ *   Should be true only when performance view is enabled.
  *
  * Note: RPS is NOT included in filterQuery for either target - it's passed as targetRPS param.
  */
@@ -461,14 +467,13 @@ export const filtersToFilterQuery = (
   filterData: ModelCatalogFilterStates,
   options: CatalogFilterOptionsList,
   target: FilterQueryTarget = 'models',
-): string => {
-  const serializedFilters: string[] = Object.entries(filterData)
-    .filter(([filterId]) => shouldIncludeFilter(filterId, target))
-    .map(([filterId, data]) => serializeFilterEntry(filterId, data, options, target));
-
-  const nonEmptyFilters = serializedFilters.filter((v) => !!v);
-  return nonEmptyFilters.length === 0 ? '' : nonEmptyFilters.join(' AND ');
-};
+  includeColdStart = true,
+): string =>
+  Object.entries(filterData)
+    .filter(([filterId]) => shouldIncludeFilter(filterId, target, includeColdStart))
+    .map(([filterId, data]) => serializeFilterEntry(filterId, data, options, target))
+    .filter((v) => !!v)
+    .join(' AND ');
 
 /**
  * Returns a copy of filterData with only basic (non-performance) filters.
@@ -825,25 +830,4 @@ export const getMinimumVramFromCustomProperties = (
     return `${doubleVal.toFixed(2)} GB`;
   }
   return getCustomPropString(customProperties, CatalogModelCustomPropertyKey.MINIMUM_VRAM);
-};
-
-export const getHardwareConfigurationsFromCustomProperties = (
-  customProperties?: ModelRegistryCustomProperties,
-): HardwareConfiguration[] => {
-  if (!customProperties) {
-    return [];
-  }
-  const hwConfigStr = getCustomPropString(
-    customProperties,
-    CatalogModelCustomPropertyKey.HARDWARE_CONFIGURATIONS,
-  );
-  if (!hwConfigStr) {
-    return [];
-  }
-  try {
-    const parsed = JSON.parse(hwConfigStr);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
 };

@@ -12,7 +12,7 @@ import {
 import { Link } from 'react-router-dom';
 import { HelpIcon, AngleLeftIcon, AngleRightIcon, ArrowRightIcon } from '@patternfly/react-icons';
 import { TruncatedText } from 'mod-arch-shared';
-import { CatalogModel, CatalogSource, HardwareConfiguration } from '~/app/modelCatalogTypes';
+import { CatalogModel, CatalogSource } from '~/app/modelCatalogTypes';
 import {
   extractValidatedModelMetrics,
   getLatencyValue,
@@ -31,23 +31,10 @@ import { useCatalogPerformanceArtifacts } from '~/app/hooks/modelCatalog/useCata
 import {
   getActiveLatencyFieldName,
   stripArtifactsPrefix,
-  getHardwareConfigurationsFromCustomProperties,
 } from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
 import { formatLatency } from '~/app/pages/modelCatalog/utils/performanceMetricsUtils';
 import { ModelCatalogContext } from '~/app/context/modelCatalog/ModelCatalogContext';
 import { useNotification } from '~/app/hooks/useNotification';
-
-const findMatchedColdStart = (
-  customProperties: CatalogModel['customProperties'],
-  hwConfig: string,
-  hwType: string,
-): number | undefined => {
-  const configs = getHardwareConfigurationsFromCustomProperties(customProperties);
-  const match = configs.find(
-    (c: HardwareConfiguration) => hwConfig.startsWith(c.gpu_type) || c.gpu_type === hwType,
-  );
-  return match?.cold_start_time_to_load_seconds;
-};
 
 type ModelCatalogCardBodyProps = {
   model: CatalogModel;
@@ -108,7 +95,6 @@ const ModelCatalogCardBody: React.FC<ModelCatalogCardBodyProps> = ({
       isValidated, // Only fetch if validated
     );
 
-  // Performance artifacts are already filtered by the server endpoint
   const performanceMetrics = performanceArtifactsList.items;
 
   // NOTE: Accuracy metrics are not currently returned by the /performance_artifacts endpoint.
@@ -142,6 +128,7 @@ const ModelCatalogCardBody: React.FC<ModelCatalogCardBodyProps> = ({
       <TruncatedText
         content={model.description || ''}
         maxLines={4}
+        tooltipPosition="left"
         data-testid="model-catalog-card-description"
       />
     );
@@ -156,6 +143,7 @@ const ModelCatalogCardBody: React.FC<ModelCatalogCardBodyProps> = ({
             <TruncatedText
               content={model.description || ''}
               maxLines={4}
+              tooltipPosition="left"
               data-testid="model-catalog-card-description"
             />
           </StackItem>
@@ -198,6 +186,7 @@ const ModelCatalogCardBody: React.FC<ModelCatalogCardBodyProps> = ({
         <TruncatedText
           content={model.description || ''}
           maxLines={4}
+          tooltipPosition="left"
           data-testid="model-catalog-card-description"
         />
       );
@@ -211,11 +200,7 @@ const ModelCatalogCardBody: React.FC<ModelCatalogCardBodyProps> = ({
       ? parseLatencyFilterKey(activeLatencyField).metric
       : LatencyMetric.TTFT;
 
-    const matchedColdStart = findMatchedColdStart(
-      model.customProperties,
-      metrics.hardwareConfiguration,
-      metrics.hardwareType,
-    );
+    const coldStartValue = metrics.coldStartTimeToLoadSeconds;
 
     return (
       <Stack hasGutter>
@@ -260,10 +245,10 @@ const ModelCatalogCardBody: React.FC<ModelCatalogCardBodyProps> = ({
                 </Popover>
               </Flex>
             </Flex>
-            {matchedColdStart !== undefined && (
+            {coldStartValue !== undefined && coldStartValue > 0 && (
               <Flex direction={{ default: 'column' }}>
                 <span className="pf-v6-u-font-weight-bold" data-testid="validated-model-cold-start">
-                  {matchedColdStart.toFixed(2)} s
+                  {coldStartValue.toFixed(2)} s
                 </span>
                 <Flex alignItems={{ default: 'alignItemsBaseline' }} gap={{ default: 'gapXs' }}>
                   <Content component={ContentVariants.small}>Cold start load time</Content>
@@ -271,8 +256,8 @@ const ModelCatalogCardBody: React.FC<ModelCatalogCardBodyProps> = ({
                     bodyContent={
                       <div>
                         <p>
-                          This is the initial delay that occurs when a model is triggered after a
-                          period of inactivity.
+                          The time it takes for vLLM to load the model. This does not include the
+                          time it takes to download the model.
                         </p>
                       </div>
                     }
@@ -344,6 +329,7 @@ const ModelCatalogCardBody: React.FC<ModelCatalogCardBodyProps> = ({
     <TruncatedText
       content={model.description || ''}
       maxLines={4}
+      tooltipPosition="left"
       data-testid="model-catalog-card-description"
     />
   );

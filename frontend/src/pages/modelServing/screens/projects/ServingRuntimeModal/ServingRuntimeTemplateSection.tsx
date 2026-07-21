@@ -13,28 +13,30 @@ import {
   Truncate,
 } from '@patternfly/react-core';
 import type { TemplateKind } from '@odh-dashboard/k8s-core';
-import { UpdateObjectAtPropAndValue } from '#~/pages/projects/types';
-import { CreatingServingRuntimeObject } from '#~/pages/modelServing/screens/types';
-import { ServingRuntimeKind } from '#~/k8sTypes';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
+import type {
+  CreatingServingRuntimeObject,
+  ServingRuntimeKind,
+} from '@odh-dashboard/model-serving/shared';
 import {
   getServingRuntimeDisplayNameFromTemplate,
   getServingRuntimeNameFromTemplate,
   setServingRuntimeTemplate,
   isServingRuntimeKind,
   getServingRuntimeVersion,
-} from '#~/pages/modelServing/customServingRuntimes/utils';
-import { isCompatibleWithIdentifier } from '#~/pages/projects/screens/spawner/spawnerUtils';
-import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
-import { CustomWatchK8sResult } from '#~/types';
-import { ScopedType, SERVING_RUNTIME_SCOPE } from '#~/pages/modelServing/screens/const';
-import ProjectScopedPopover from '#~/components/ProjectScopedPopover';
-import ProjectScopedIcon from '#~/components/searchSelector/ProjectScopedIcon.tsx';
+} from '@odh-dashboard/model-serving/shared';
+import { ServingRuntimeVersionLabel } from '@odh-dashboard/model-serving/shared/components';
+import ProjectScopedPopover from '@odh-dashboard/ui-core/components/ProjectScopedPopover';
+import ProjectScopedIcon from '@odh-dashboard/ui-core/components/searchSelector/ProjectScopedIcon';
 import {
   ProjectScopedGroupLabel,
   ProjectScopedSearchDropdown,
-} from '#~/components/searchSelector/ProjectScopedSearchDropdown';
-import ProjectScopedToggleContent from '#~/components/searchSelector/ProjectScopedToggleContent';
-import ServingRuntimeVersionLabel from '#~/pages/modelServing/screens/ServingRuntimeVersionLabel';
+} from '@odh-dashboard/ui-core/components/searchSelector/ProjectScopedSearchDropdown';
+import ProjectScopedToggleContent from '@odh-dashboard/ui-core/components/searchSelector/ProjectScopedToggleContent';
+import type { UpdateObjectAtPropAndValue } from '@odh-dashboard/ui-core';
+import { isCompatibleWithIdentifier } from '#~/pages/projects/screens/spawner/spawnerUtils';
+import { CustomWatchK8sResult } from '#~/types';
+import { ScopedType, SERVING_RUNTIME_SCOPE } from '#~/pages/modelServing/screens/const';
 
 type ServingRuntimeTemplateSectionProps = {
   data: CreatingServingRuntimeObject;

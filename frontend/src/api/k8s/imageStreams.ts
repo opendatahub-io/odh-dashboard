@@ -3,10 +3,12 @@ import {
   k8sDeleteResource,
   k8sGetResource,
   k8sListResource,
+  k8sPatchResource,
   K8sStatus,
   k8sUpdateResource,
+  Patch,
 } from '@openshift/dynamic-plugin-sdk-utils';
-import { KnownLabels } from '@odh-dashboard/k8s-core';
+import { KnownLabels, kindApiVersion, translateDisplayNameForK8s } from '@odh-dashboard/k8s-core';
 import { ImageStreamKind, K8sAPIOptions } from '#~/k8sTypes';
 import { applyK8sAPIOptions } from '#~/api/apiMergeUtils.ts';
 import { ImageStreamModel } from '#~/api';
@@ -24,7 +26,6 @@ import {
   ImageStreamLabel,
   ImageStreamSpecTagAnnotation,
 } from '#~/types';
-import { kindApiVersion, translateDisplayNameForK8s } from '#~/concepts/k8s/utils.ts';
 
 export const listImageStreams = async (
   namespace?: string,
@@ -210,6 +211,39 @@ export const updateBYONImageStream = async (
       {
         model: ImageStreamModel,
         resource: current,
+      },
+      opts,
+    ),
+  );
+};
+
+export const patchOOTBImageStreamHidden = async (
+  namespace: string,
+  name: string,
+  hidden: boolean,
+  opts?: K8sAPIOptions,
+): Promise<ImageStreamKind> => {
+  const patches: Patch[] = [];
+  const current = await getImageStream(namespace, name);
+
+  if (!current.metadata.annotations) {
+    patches.push({ op: 'add', path: '/metadata/annotations', value: {} });
+  }
+
+  const replacedAnnotation = ImageStreamAnnotation.HIDDEN.replace(/~/g, '~0').replace(/\//g, '~1');
+  const annotationPath = `/metadata/annotations/${replacedAnnotation}`;
+  patches.push({
+    op: 'add',
+    path: annotationPath,
+    value: hidden.toString(),
+  });
+
+  return k8sPatchResource<ImageStreamKind>(
+    applyK8sAPIOptions(
+      {
+        model: ImageStreamModel,
+        queryOptions: { name, ns: namespace },
+        patches,
       },
       opts,
     ),

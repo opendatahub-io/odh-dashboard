@@ -1,5 +1,5 @@
 import { mockDashboardConfig, mockDscStatus } from '@odh-dashboard/internal/__mocks__';
-import { DataScienceStackComponent } from '@odh-dashboard/internal/concepts/areas/types';
+import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import type { APIKey, SubscriptionDetail } from '@odh-dashboard/maas/types/api-key';
 import { formatApiKeyHiddenPreview } from '@odh-dashboard/maas/utils/api-keys';
 import {
@@ -11,6 +11,8 @@ import {
   adminBulkRevokeAPIKeyModal,
   apiKeysPage,
   bulkRevokeAPIKeyModal,
+  inactiveStatusPopover,
+  modelInfoPopover,
   revokeAPIKeyModal,
   copyApiKeyModal,
   createApiKeyModal,
@@ -52,7 +54,6 @@ describe('API Keys Page', () => {
       'GET /api/config',
       mockDashboardConfig({
         modelAsService: true,
-        mySubscriptions: true,
       }),
     );
 
@@ -98,9 +99,9 @@ describe('API Keys Page', () => {
 
   it('should display the API keys table page with active and expired keys on initial load', () => {
     apiKeysPage.findTitle().should('contain.text', 'API keys');
-    apiKeysPage
-      .findDescription()
-      .should('contain.text', 'Manage your API keys and view your subscription access.');
+    cy.contains('Manage API keys that can be used to authenticate with model endpoints.').should(
+      'exist',
+    );
 
     apiKeysPage.findTable().should('exist');
     apiKeysPage.findRows().should('have.length', 3);
@@ -204,6 +205,40 @@ describe('API Keys Page', () => {
       );
   });
 
+  it('should show Inactive status with popover for keys whose subscription was deleted', () => {
+    const deletedSubscriptionKey: APIKey = {
+      id: 'key-deleted-subscription-001',
+      name: 'deleted-subscription-key',
+      description: 'Key with a deleted subscription',
+      creationDate: '2026-01-10T10:00:00Z',
+      status: 'active',
+      username: 'alice',
+      subscription: 'deleted-sub',
+    };
+
+    const allActiveKeys = [
+      deletedSubscriptionKey,
+      ...mockAPIKeys().filter((k) => k.status === 'active'),
+    ];
+    const searchResponseWithOrphaned = mockSearchResponse(allActiveKeys, mockSubscriptionDetails);
+
+    cy.interceptOdh('POST /maas/api/v1/api-keys/search', searchResponseWithOrphaned).as(
+      'searchWithOrphaned',
+    );
+
+    apiKeysPage.visit();
+    cy.wait('@searchWithOrphaned');
+
+    apiKeysPage.findTable().should('contain.text', 'deleted-subscription-key');
+
+    const deletedSubscriptionRow = apiKeysPage.getRow('deleted-subscription-key');
+    deletedSubscriptionRow.findStatus().should('contain.text', 'Inactive').click();
+    inactiveStatusPopover.shouldBeVisible();
+
+    deletedSubscriptionRow.findSubscription().should('contain.text', 'deleted-sub');
+    deletedSubscriptionRow.findSubscriptionDetailLink().should('not.exist');
+  });
+
   it('should display all API keys when the status filter is cleared', () => {
     apiKeysPage.findRows().should('have.length', 3);
     cy.interceptOdh('POST /maas/api/v1/api-keys/search', mockSearchResponse(mockAPIKeys())).as(
@@ -242,21 +277,6 @@ describe('API Keys Page', () => {
       .findSubscriptionDetailLink()
       .should('have.attr', 'href')
       .and('include', '/maas/keys-and-subs/subscriptions/premium-team-sub');
-  });
-
-  it('should show plain text (no link) for a subscription that no longer exists', () => {
-    const keyWithDeletedSub = mockAPIKeys().filter((k) => k.status === 'active');
-    cy.interceptOdh(
-      'POST /maas/api/v1/api-keys/search',
-      // Return keys with a subscription name but no subscriptionDetails entry for it
-      mockSearchResponse(keyWithDeletedSub, {}),
-    ).as('deletedSubSearch');
-    apiKeysPage.visit();
-    cy.wait('@deletedSubSearch');
-
-    const prodRow = apiKeysPage.getRow('production-backend');
-    prodRow.findSubscription().should('contain.text', 'premium-team-sub');
-    prodRow.findSubscriptionDetailLink().should('not.exist');
   });
 
   it('should filter api keys by subscription and clear the filter', () => {
@@ -340,8 +360,11 @@ describe('API Keys Page', () => {
 
     apiKeysPage.findStatusFilterToggle().click();
     apiKeysPage.findStatusFilterOption('Active').click();
+    apiKeysPage.findStatusFilterOption('Inactive').click();
+    apiKeysPage.findStatusFilterToggle().click();
 
-    // Keys are filtered to show active and expired by default so here we're looking for just expired since active was pre-selected
+    // Keys are filtered to show active,inactive and expired by default so here we're looking for just expired since active and inactive was pre-selected
+    cy.wait('@filterByStatus');
     cy.wait('@filterByStatus').then((interception) => {
       expect(interception.request.body.data.filters.status).to.deep.equal(['expired']);
     });
@@ -877,14 +900,13 @@ describe('API Keys Page (Admin)', () => {
   });
 });
 
-describe('API keys and subscriptions (mySubscriptions feature flag)', () => {
+describe('API keys (mySubscriptions feature flag)', () => {
   beforeEach(() => {
     asClusterAdminUser();
     cy.interceptOdh(
       'GET /api/config',
       mockDashboardConfig({
         modelAsService: true,
-        mySubscriptions: true,
       }),
     );
 
@@ -898,7 +920,7 @@ describe('API keys and subscriptions (mySubscriptions feature flag)', () => {
       'GET /api/dsc/status',
       mockDscStatus({
         components: {
-          [DataScienceStackComponent.LLAMA_STACK_OPERATOR]: { managementState: 'Managed' },
+          [DataScienceStackComponent.OGX_OPERATOR]: { managementState: 'Managed' },
         },
         conditions: [{ type: 'ModelsAsServiceReady', status: 'True', reason: 'Ready' }],
       }),
@@ -929,10 +951,10 @@ describe('API keys and subscriptions (mySubscriptions feature flag)', () => {
     apiKeysPage.visitKeysAndSubs();
     cy.wait('@initialSearch');
 
-    apiKeysPage.findTitle().should('contain.text', 'API keys and subscriptions');
-    apiKeysPage
-      .findDescription()
-      .should('contain.text', 'Manage your API keys and view your subscription access');
+    apiKeysPage.findTitle().should('contain.text', 'API keys');
+    cy.contains('Manage API keys that can be used to authenticate with model endpoints.').should(
+      'exist',
+    );
 
     apiKeysPage.findApiKeysTab().should('have.attr', 'aria-selected', 'true');
     apiKeysPage.findTable().should('exist');
@@ -942,12 +964,10 @@ describe('API keys and subscriptions (mySubscriptions feature flag)', () => {
     cy.url().should('include', '/maas/keys-and-subs/subscriptions');
     apiKeysPage.findSubscriptionsTab().should('have.attr', 'aria-selected', 'true');
 
-    cy.contains('Models available to you through your subscriptions, with token limits.').should(
-      'exist',
-    );
+    cy.contains('View your subscriptions and the models they give you access to.').should('exist');
   });
 
-  it('should display subscription view with search and source filter', () => {
+  it('should display subscription view with search', () => {
     apiKeysPage.visitKeysAndSubs();
     cy.wait('@initialSearch');
 
@@ -958,8 +978,8 @@ describe('API keys and subscriptions (mySubscriptions feature flag)', () => {
     subscriptionsTab.findSubscriptionsTable().should('contain.text', 'Premium Team');
     subscriptionsTab.findSubscriptionsTable().should('contain.text', 'Basic Team');
 
-    subscriptionsTab.findSubscriptionRows().eq(0).should('contain.text', '10+ keys');
-    subscriptionsTab.findSubscriptionRows().eq(1).should('contain.text', '5 keys');
+    subscriptionsTab.findSubscriptionRows().eq(0).should('contain.text', '10+ active keys');
+    subscriptionsTab.findSubscriptionRows().eq(1).should('contain.text', '5 active keys');
 
     subscriptionsTab.findSearchInput().type('Premium');
     subscriptionsTab.findSubscriptionRows().should('have.length', 1);
@@ -969,17 +989,11 @@ describe('API keys and subscriptions (mySubscriptions feature flag)', () => {
     subscriptionsTab.clearSearch();
     subscriptionsTab.findSubscriptionRows().should('have.length', 2);
 
-    subscriptionsTab.selectSourceFilter('Internal');
-
-    subscriptionsTab.findSubscriptionRows().should('have.length', 1);
-    subscriptionsTab.findSubscriptionsTable().should('contain.text', 'Premium Team');
-    subscriptionsTab.findSubscriptionsTable().should('not.contain.text', 'Basic Team');
-
     subscriptionsTab.expandSubscriptionRow(0);
     subscriptionsTab.findSubscriptionsTable().should('contain.text', 'Granite 3 8B Instruct');
   });
 
-  it('should display model view with search and source filter', () => {
+  it('should display model view with search', () => {
     apiKeysPage.visitKeysAndSubs();
     cy.wait('@initialSearch');
 
@@ -997,14 +1011,47 @@ describe('API keys and subscriptions (mySubscriptions feature flag)', () => {
     subscriptionsTab.clearSearch();
     subscriptionsTab.findModelsTable().should('contain.text', 'Flan T5 Small');
 
-    subscriptionsTab.selectSourceFilter('External');
-
-    subscriptionsTab.findModelsTable().should('contain.text', 'Flan T5 Small');
-    subscriptionsTab.findModelsTable().should('not.contain.text', 'Granite 3 8B Instruct');
-
     subscriptionsTab.expandModelGroupRow(0);
     subscriptionsTab.findModelsTable().should('contain.text', 'Premium Team');
     subscriptionsTab.findModelsTable().should('contain.text', 'Basic Team');
+  });
+
+  it('should show model info popover on the subscriptions tab', () => {
+    const premiumSubscriptionId = 'premium-team-sub';
+    const graniteDisplayName = 'Granite 3 8B Instruct';
+    const graniteModelId = 'granite-3-8b-instruct';
+    const graniteDescription =
+      'Granite 3 8B Instruct is a large language model that is used for advanced tasks.';
+
+    apiKeysPage.visitKeysAndSubs();
+    cy.wait('@initialSearch');
+
+    apiKeysPage.findSubscriptionsTab().click();
+    cy.wait('@getSubscriptions');
+
+    cy.step('Subscription view shows model info popover on expanded row');
+    subscriptionsTab.expandSubscriptionRow(0);
+    subscriptionsTab
+      .findSubscriptionModelsTable(premiumSubscriptionId)
+      .should('contain.text', graniteDisplayName);
+    subscriptionsTab
+      .findModelInfoButtonInSubscriptionTable(premiumSubscriptionId, graniteModelId)
+      .click();
+    modelInfoPopover.findBody().should('be.visible');
+    modelInfoPopover.findBody().should('contain.text', 'Model ID');
+    modelInfoPopover.findModelIdCopy().should('have.value', graniteModelId);
+    modelInfoPopover.findBody().should('contain.text', 'Description');
+    modelInfoPopover.findBody().should('contain.text', graniteDescription);
+
+    cy.step('Model view shows model info popover on model group row');
+    cy.get('body').type('{esc}');
+    subscriptionsTab.findSortByModelButton().click();
+    subscriptionsTab.findModelInfoButtonInModelsTable(graniteModelId).click();
+    modelInfoPopover.findBody().should('be.visible');
+    modelInfoPopover.findBody().should('contain.text', 'Model ID');
+    modelInfoPopover.findModelIdCopy().should('have.value', graniteModelId);
+    modelInfoPopover.findBody().should('contain.text', 'Description');
+    modelInfoPopover.findBody().should('contain.text', graniteDescription);
   });
 
   it('should show a key count badge when key_count is 0 or absent', () => {
@@ -1032,7 +1079,7 @@ describe('API keys and subscriptions (mySubscriptions feature flag)', () => {
     apiKeysPage.findSubscriptionsTab().click();
     subscriptionsTab.findSubscriptionRows().should('have.length', 1);
     subscriptionsTab.findSubscriptionRows().eq(0).should('contain.text', 'No Keys Sub');
-    subscriptionsTab.findSubscriptionRows().eq(0).should('contain.text', '0 keys');
+    subscriptionsTab.findSubscriptionRows().eq(0).should('contain.text', '0 active keys');
   });
 
   it('should show empty state when no subscriptions exist', () => {
@@ -1046,10 +1093,7 @@ describe('API keys and subscriptions (mySubscriptions feature flag)', () => {
 
     subscriptionsTab.findEmptyState().should('exist');
     subscriptionsTab.findSubscriptionsTable().should('not.exist');
-
-    subscriptionsTab.findSortByModelButton().click();
-    cy.findByTestId('empty-models').should('exist');
-    subscriptionsTab.findModelsTable().should('not.exist');
+    subscriptionsTab.findEmptyState().should('contain.text', 'Request a subscription');
   });
 
   it('should show the correct data on the my subscriptions view page', () => {

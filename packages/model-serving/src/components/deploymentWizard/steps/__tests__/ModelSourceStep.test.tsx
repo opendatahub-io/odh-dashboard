@@ -2,8 +2,8 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { useWizardContext, useWizardFooter, ValidatedOptions } from '@patternfly/react-core';
 import { z } from 'zod';
-import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
 import { mockK8sNameDescriptionFieldData } from '@odh-dashboard/internal/__mocks__/mockK8sNameDescriptionFieldData';
+import { ServingRuntimeModelType } from '@odh-dashboard/model-serving/shared';
 import { ModelSourceStepContent } from '../ModelSourceStep';
 import { modelTypeSelectFieldSchema } from '../../fields/ModelTypeSelectField';
 import { mockDeploymentWizardState } from '../../../../__tests__/mockUtils';
@@ -70,7 +70,7 @@ describe('ModelSourceStep', () => {
   describe('Schema validation', () => {
     it('should validate complete data', () => {
       const validData: ModelSourceStepData = {
-        modelType: { type: ServingRuntimeModelType.PREDICTIVE, legacyVLLM: false },
+        modelType: { type: ServingRuntimeModelType.PREDICTIVE },
         modelLocationData: {
           type: ModelLocationType.PVC,
           fieldValues: {
@@ -182,7 +182,7 @@ describe('ModelSourceStep', () => {
             projectName: 'test-project',
           },
           modelType: {
-            data: { type: ServingRuntimeModelType.GENERATIVE, legacyVLLM: false },
+            data: { type: ServingRuntimeModelType.GENERATIVE },
           },
           createConnectionData: {
             data: {

@@ -1,12 +1,13 @@
 import * as React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import ChatbotMessageInput, {
   ImageUploadState,
-  PendingDocChip,
 } from '~/app/Chatbot/components/ChatbotMessageInput';
 import { VISION_UPLOAD_CONFIG, AUDIO_UPLOAD_CONFIG } from '~/app/Chatbot/const';
 import { AudioTranscriptionState } from '~/app/Chatbot/hooks/useAudioTranscription';
+import { PLAYGROUND_MULTIMODAL_EVENTS } from '~/app/tracking/playgroundMultimodalTrackingConstants';
 
 jest.mock('@patternfly/chatbot', () => ({
   MessageBar: ({
@@ -147,6 +148,12 @@ jest.mock('@patternfly/react-icons', () => ({
   OutlinedFileAltIcon: () => <span data-testid="icon-document" />,
 }));
 
+jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
+  fireMiscTrackingEvent: jest.fn(),
+}));
+
+const mockFireMisc = jest.mocked(fireMiscTrackingEvent);
+
 describe('ChatbotMessageInput', () => {
   const defaultImageUploadState: ImageUploadState = {
     uploading: false,
@@ -264,36 +271,54 @@ describe('ChatbotMessageInput', () => {
       );
     });
 
-    it('hides "Upload image" when showImageUpload is false', async () => {
-      const user = userEvent.setup();
-      render(<ChatbotMessageInput {...defaultProps} showImageUpload={false} />);
-
-      await user.click(screen.getByTestId('mock-attach-toggle'));
-
-      expect(screen.queryByTestId('menu-item-upload-image')).not.toBeInTheDocument();
-      expect(screen.queryByTestId('vision-file-input')).not.toBeInTheDocument();
-    });
-
-    it('hides "Upload audio" when showAudioUpload is false', async () => {
-      const user = userEvent.setup();
-      render(<ChatbotMessageInput {...defaultProps} showAudioUpload={false} />);
-
-      await user.click(screen.getByTestId('mock-attach-toggle'));
-
-      expect(screen.queryByTestId('menu-item-upload-audio')).not.toBeInTheDocument();
-      expect(screen.queryByTestId('audio-file-input')).not.toBeInTheDocument();
-    });
-
-    it('shows only "Upload documents" when both image and audio are hidden', async () => {
+    it('always shows "Upload image" even when disabled', async () => {
       const user = userEvent.setup();
       render(
-        <ChatbotMessageInput {...defaultProps} showImageUpload={false} showAudioUpload={false} />,
+        <ChatbotMessageInput
+          {...defaultProps}
+          isImageUploadDisabled
+          imageDisabledTooltip="Deploy a model with vision capabilities to enable image upload."
+        />,
       );
 
       await user.click(screen.getByTestId('mock-attach-toggle'));
 
-      expect(screen.queryByTestId('menu-item-upload-image')).not.toBeInTheDocument();
-      expect(screen.queryByTestId('menu-item-upload-audio')).not.toBeInTheDocument();
+      expect(screen.getByTestId('menu-item-upload-image')).toBeInTheDocument();
+      expect(screen.getByTestId('vision-file-input')).toBeInTheDocument();
+    });
+
+    it('always shows "Upload audio" even when disabled', async () => {
+      const user = userEvent.setup();
+      render(
+        <ChatbotMessageInput
+          {...defaultProps}
+          isAudioUploadDisabled
+          audioDisabledTooltip="Deploy an ASR model to enable audio upload."
+        />,
+      );
+
+      await user.click(screen.getByTestId('mock-attach-toggle'));
+
+      expect(screen.getByTestId('menu-item-upload-audio')).toBeInTheDocument();
+      expect(screen.getByTestId('audio-file-input')).toBeInTheDocument();
+    });
+
+    it('always shows all upload options including when both are disabled', async () => {
+      const user = userEvent.setup();
+      render(
+        <ChatbotMessageInput
+          {...defaultProps}
+          isImageUploadDisabled
+          imageDisabledTooltip="No vision model"
+          isAudioUploadDisabled
+          audioDisabledTooltip="No ASR model"
+        />,
+      );
+
+      await user.click(screen.getByTestId('mock-attach-toggle'));
+
+      expect(screen.getByTestId('menu-item-upload-image')).toBeInTheDocument();
+      expect(screen.getByTestId('menu-item-upload-audio')).toBeInTheDocument();
       expect(screen.getByTestId('menu-item-upload-documents')).toBeInTheDocument();
     });
 
@@ -355,9 +380,9 @@ describe('ChatbotMessageInput', () => {
       expect(audioItem).not.toBeDisabled();
     });
 
-    it('clicking "Upload image" triggers the hidden file input', async () => {
+    it('clicking "Upload image" triggers the hidden file input and fires tracking event', async () => {
       const user = userEvent.setup();
-      render(<ChatbotMessageInput {...defaultProps} />);
+      render(<ChatbotMessageInput {...defaultProps} configIndex={1} isCompareMode />);
 
       const fileInput = screen.getByTestId('vision-file-input') as HTMLInputElement;
       const clickSpy = jest.spyOn(fileInput, 'click');
@@ -366,6 +391,10 @@ describe('ChatbotMessageInput', () => {
       await user.click(screen.getByTestId('menu-item-upload-image'));
 
       expect(clickSpy).toHaveBeenCalled();
+      expect(mockFireMisc).toHaveBeenCalledWith(
+        PLAYGROUND_MULTIMODAL_EVENTS.IMAGE_UPLOAD_SELECTED,
+        { configID: 1, compareMode: true },
+      );
       clickSpy.mockRestore();
     });
 
@@ -545,155 +574,6 @@ describe('ChatbotMessageInput', () => {
     });
   });
 
-  describe('document chips', () => {
-    const docChips: PendingDocChip[] = [
-      { id: 'chip-1', fileName: 'PR_STYLE_GUIDE.md', status: 'uploaded' },
-      { id: 'chip-2', fileName: 'rag-testing.txt', status: 'uploading' },
-    ];
-
-    it('renders doc chips alongside image chip', () => {
-      render(
-        <ChatbotMessageInput
-          {...defaultProps}
-          imageUploadState={{ ...defaultImageUploadState, fileName: 'photo.jpg' }}
-          pendingDocChips={docChips}
-        />,
-      );
-
-      expect(screen.getByTestId('vision-file-preview')).toBeInTheDocument();
-      expect(screen.getByTestId('doc-chip-chip-1')).toBeInTheDocument();
-      expect(screen.getByTestId('doc-chip-chip-2')).toBeInTheDocument();
-    });
-
-    it('renders doc chips without image chip', () => {
-      render(<ChatbotMessageInput {...defaultProps} pendingDocChips={docChips} />);
-
-      expect(screen.queryByTestId('vision-file-preview')).not.toBeInTheDocument();
-      expect(screen.getByTestId('doc-chip-chip-1')).toBeInTheDocument();
-      expect(screen.getByTestId('doc-chip-chip-2')).toBeInTheDocument();
-    });
-
-    it('shows loading spinner for uploading doc chips', () => {
-      const uploadingChips: PendingDocChip[] = [
-        { id: 'chip-uploading', fileName: 'data.csv', status: 'uploading' },
-      ];
-      render(<ChatbotMessageInput {...defaultProps} pendingDocChips={uploadingChips} />);
-
-      const chip = screen.getByTestId('doc-chip-chip-uploading');
-      expect(chip.querySelector('[data-testid="file-loading-spinner"]')).toBeInTheDocument();
-      expect(chip.querySelector('[data-testid="file-close-button"]')).not.toBeInTheDocument();
-    });
-
-    it('shows close button for uploaded doc chips', () => {
-      const uploadedChips: PendingDocChip[] = [
-        { id: 'chip-done', fileName: 'report.pdf', status: 'uploaded' },
-      ];
-      render(<ChatbotMessageInput {...defaultProps} pendingDocChips={uploadedChips} />);
-
-      const chip = screen.getByTestId('doc-chip-chip-done');
-      expect(chip.querySelector('[data-testid="file-loading-spinner"]')).not.toBeInTheDocument();
-      expect(chip.querySelector('[data-testid="file-close-button"]')).toBeInTheDocument();
-    });
-
-    it('calls onRemoveDocChip when close button is clicked on uploaded chip', async () => {
-      const user = userEvent.setup();
-      const mockOnRemoveDocChip = jest.fn();
-      const uploadedChips: PendingDocChip[] = [
-        { id: 'chip-remove', fileName: 'notes.txt', status: 'uploaded' },
-      ];
-      render(
-        <ChatbotMessageInput
-          {...defaultProps}
-          pendingDocChips={uploadedChips}
-          onRemoveDocChip={mockOnRemoveDocChip}
-        />,
-      );
-
-      const closeButton = screen
-        .getByTestId('doc-chip-chip-remove')
-        .querySelector('[data-testid="file-close-button"]') as HTMLElement;
-      await user.click(closeButton);
-      expect(mockOnRemoveDocChip).toHaveBeenCalledWith('chip-remove');
-    });
-
-    it('does not render chip area when no image and no doc chips', () => {
-      render(<ChatbotMessageInput {...defaultProps} pendingDocChips={[]} />);
-
-      expect(screen.queryByTestId('vision-file-preview')).not.toBeInTheDocument();
-      expect(screen.queryByTestId('doc-chip-chip-1')).not.toBeInTheDocument();
-    });
-
-    it('renders failed status chip with close button (not spinner)', () => {
-      const failedChips: PendingDocChip[] = [
-        { id: 'chip-fail', fileName: 'broken.pdf', status: 'failed' },
-      ];
-      render(<ChatbotMessageInput {...defaultProps} pendingDocChips={failedChips} />);
-
-      const chip = screen.getByTestId('doc-chip-chip-fail');
-      expect(chip.querySelector('[data-testid="file-loading-spinner"]')).not.toBeInTheDocument();
-      expect(chip.querySelector('[data-testid="file-close-button"]')).toBeInTheDocument();
-    });
-
-    it('calls onRemoveDocChip when close button is clicked on failed chip', async () => {
-      const user = userEvent.setup();
-      const mockOnRemoveDocChip = jest.fn();
-      const failedChips: PendingDocChip[] = [
-        { id: 'chip-fail-remove', fileName: 'bad.csv', status: 'failed' },
-      ];
-      render(
-        <ChatbotMessageInput
-          {...defaultProps}
-          pendingDocChips={failedChips}
-          onRemoveDocChip={mockOnRemoveDocChip}
-        />,
-      );
-
-      const closeButton = screen
-        .getByTestId('doc-chip-chip-fail-remove')
-        .querySelector('[data-testid="file-close-button"]') as HTMLElement;
-      await user.click(closeButton);
-      expect(mockOnRemoveDocChip).toHaveBeenCalledWith('chip-fail-remove');
-    });
-
-    it('renders 3+ chips correctly', () => {
-      const manyChips: PendingDocChip[] = [
-        { id: 'chip-a', fileName: 'file-a.txt', status: 'uploaded' },
-        { id: 'chip-b', fileName: 'file-b.pdf', status: 'uploaded' },
-        { id: 'chip-c', fileName: 'file-c.csv', status: 'uploading' },
-        { id: 'chip-d', fileName: 'file-d.txt', status: 'failed' },
-      ];
-      render(<ChatbotMessageInput {...defaultProps} pendingDocChips={manyChips} />);
-
-      expect(screen.getByTestId('doc-chip-chip-a')).toBeInTheDocument();
-      expect(screen.getByTestId('doc-chip-chip-b')).toBeInTheDocument();
-      expect(screen.getByTestId('doc-chip-chip-c')).toBeInTheDocument();
-      expect(screen.getByTestId('doc-chip-chip-d')).toBeInTheDocument();
-    });
-
-    it('renders chips in array order', () => {
-      const orderedChips: PendingDocChip[] = [
-        { id: 'first', fileName: 'alpha.txt', status: 'uploaded' },
-        { id: 'second', fileName: 'beta.txt', status: 'uploaded' },
-        { id: 'third', fileName: 'gamma.txt', status: 'uploaded' },
-      ];
-      const { container } = render(
-        <ChatbotMessageInput {...defaultProps} pendingDocChips={orderedChips} />,
-      );
-
-      const chipElements = container.querySelectorAll('[data-testid^="doc-chip-"]');
-      expect(chipElements[0]).toHaveAttribute('data-testid', 'doc-chip-first');
-      expect(chipElements[1]).toHaveAttribute('data-testid', 'doc-chip-second');
-      expect(chipElements[2]).toHaveAttribute('data-testid', 'doc-chip-third');
-    });
-
-    it('send button is disabled when isSendDisabled is true (driven by uploading chips)', () => {
-      render(<ChatbotMessageInput {...defaultProps} isSendDisabled />);
-
-      const sendButton = screen.getByTestId('mock-send-button');
-      expect(sendButton).toBeDisabled();
-    });
-  });
-
   describe('document file validation', () => {
     const onDocumentAttach = jest.fn();
 
@@ -824,7 +704,7 @@ describe('ChatbotMessageInput', () => {
       transcribedText: '',
     };
 
-    it('clicking "Upload audio" triggers the hidden audio file input', async () => {
+    it('clicking "Upload audio" triggers the hidden audio file input and fires tracking event', async () => {
       const user = userEvent.setup();
       const mockOnAudioUpload = jest.fn();
       render(
@@ -833,6 +713,8 @@ describe('ChatbotMessageInput', () => {
           isAudioUploadDisabled={false}
           onAudioUpload={mockOnAudioUpload}
           audioTranscriptionState={defaultAudioState}
+          configIndex={0}
+          isCompareMode={false}
         />,
       );
 
@@ -843,6 +725,10 @@ describe('ChatbotMessageInput', () => {
       await user.click(screen.getByTestId('menu-item-upload-audio'));
 
       expect(clickSpy).toHaveBeenCalled();
+      expect(mockFireMisc).toHaveBeenCalledWith(
+        PLAYGROUND_MULTIMODAL_EVENTS.AUDIO_UPLOAD_SELECTED,
+        { configID: 0, compareMode: false },
+      );
       clickSpy.mockRestore();
     });
 

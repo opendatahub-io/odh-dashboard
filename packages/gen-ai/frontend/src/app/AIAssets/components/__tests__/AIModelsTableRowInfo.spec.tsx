@@ -54,37 +54,13 @@ describe('AIModelsTableRowInfo', () => {
     expect(screen.queryByText('Embedding')).not.toBeInTheDocument();
   });
 
-  describe('ASR badge', () => {
-    it('should render ASR badge when model has audio-transcription capability', () => {
-      const model = createMockAIModel({ capabilities: ['audio-transcription'] });
-      render(<AIModelsTableRowInfo model={model} />);
-
-      expect(screen.getByText('ASR')).toBeInTheDocument();
+  it('should not render capability badges (moved to dedicated Capabilities column)', () => {
+    const model = createMockAIModel({
+      capabilities: ['vision', 'audio-transcription', 'text-generation'],
     });
+    render(<AIModelsTableRowInfo model={model} />);
 
-    it('should render ASR badge with data-testid asr-badge', () => {
-      const model = createMockAIModel({ capabilities: ['audio-transcription'] });
-      render(<AIModelsTableRowInfo model={model} />);
-
-      expect(screen.getByTestId('asr-badge')).toBeInTheDocument();
-    });
-
-    it('should not render ASR badge for standard LLM models', () => {
-      const model = createMockAIModel();
-      render(<AIModelsTableRowInfo model={model} />);
-
-      expect(screen.queryByText('ASR')).not.toBeInTheDocument();
-    });
-
-    it('should render both Embedding and ASR badges if model has both', () => {
-      const model = createMockAIModel({
-        model_type: 'embedding',
-        capabilities: ['audio-transcription'],
-      });
-      render(<AIModelsTableRowInfo model={model} />);
-
-      expect(screen.getByText('Embedding')).toBeInTheDocument();
-      expect(screen.getByText('ASR')).toBeInTheDocument();
-    });
+    expect(screen.queryByText('Vision')).not.toBeInTheDocument();
+    expect(screen.queryByText('Transcription')).not.toBeInTheDocument();
   });
 });

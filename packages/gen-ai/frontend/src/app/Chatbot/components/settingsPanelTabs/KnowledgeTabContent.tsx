@@ -108,6 +108,7 @@ const KnowledgeTabContent: React.FunctionComponent<KnowledgeTabContentProps> = (
           uploadedFilesCount={fileManagement.files.length}
           maxFilesAllowed={10}
           isFilesLoading={fileManagement.isLoading}
+          isDisabled={false}
         />
       </FormGroup>
       <FormGroup fieldId="uploaded-files" className="pf-v6-u-mt-md">
@@ -120,6 +121,7 @@ const KnowledgeTabContent: React.FunctionComponent<KnowledgeTabContentProps> = (
           isDeleting={fileManagement.isDeleting}
           error={fileManagement.error}
           onDeleteFile={fileManagement.deleteFileById}
+          isDisabled={false}
         />
       </FormGroup>
     </>
@@ -132,6 +134,7 @@ const KnowledgeTabContent: React.FunctionComponent<KnowledgeTabContentProps> = (
         id="rag-toggle-switch"
         isChecked={isRagEnabled}
         data-testid="rag-toggle-switch"
+        isDisabled={false}
         onChange={(_, checked) => {
           updateRagEnabled(configId, checked);
           fireMiscTrackingEvent('Playground RAG Toggle Selected', {
@@ -211,6 +214,7 @@ const KnowledgeTabContent: React.FunctionComponent<KnowledgeTabContentProps> = (
             onClick={() => setIsSelectOpen(!isSelectOpen)}
             isExpanded={isSelectOpen}
             isFullWidth
+            isDisabled={false}
             data-testid="external-vector-store-toggle"
           >
             {selectedStoreName ?? 'Select a vector store'}
@@ -277,6 +281,7 @@ const KnowledgeTabContent: React.FunctionComponent<KnowledgeTabContentProps> = (
       id="rag-toggle-switch"
       isChecked={isRagEnabled}
       data-testid="rag-toggle-switch"
+      isDisabled={false}
       onChange={(_, checked) => {
         updateRagEnabled(configId, checked);
         fireMiscTrackingEvent('Playground RAG Toggle Selected', {
@@ -303,6 +308,7 @@ const KnowledgeTabContent: React.FunctionComponent<KnowledgeTabContentProps> = (
             name="knowledge-mode"
             label={uploadLabel}
             isChecked={knowledgeMode === 'inline'}
+            isDisabled={false}
             onChange={() => {
               updateKnowledgeMode(configId, 'inline');
               fireMiscTrackingEvent('Playground Knowledge Source Switched', {
@@ -319,6 +325,7 @@ const KnowledgeTabContent: React.FunctionComponent<KnowledgeTabContentProps> = (
             name="knowledge-mode"
             label={externalLabel}
             isChecked={knowledgeMode === 'external'}
+            isDisabled={false}
             onChange={() => {
               updateSelectedVectorStoreId(configId, null);
               updateKnowledgeMode(configId, 'external');

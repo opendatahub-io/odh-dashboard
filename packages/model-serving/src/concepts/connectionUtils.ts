@@ -5,18 +5,16 @@ import {
   patchSecretWithProtocolAnnotation,
   hasProtocolAnnotation,
   deleteSecret,
+} from '@odh-dashboard/internal/api/index';
+import {
   isGeneratedSecretName,
   getGeneratedSecretName,
-} from '@odh-dashboard/internal/api/index';
-import type { SecretKind } from '@odh-dashboard/k8s-core';
-import { translateDisplayNameForK8s } from '@odh-dashboard/internal/concepts/k8s/utils';
-import {
+  translateDisplayNameForK8s,
   assembleConnectionSecret,
   getConnectionProtocolType,
-} from '@odh-dashboard/internal/concepts/connectionTypes/utils';
+} from '@odh-dashboard/k8s-core';
+import type { SecretKind, K8sNameDescriptionType, Connection } from '@odh-dashboard/k8s-core';
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
-import { Connection } from '@odh-dashboard/internal/concepts/connectionTypes/types';
-import { K8sNameDescriptionType } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/types';
 import { CreateConnectionData } from '../components/deploymentWizard/fields/CreateConnectionInputFields';
 import { ModelLocationData, ModelLocationType } from '../components/deploymentWizard/types';
 

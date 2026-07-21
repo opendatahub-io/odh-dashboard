@@ -13,6 +13,9 @@ import type { ComponentCodeRef } from '../core/types';
  * - 0 tabs: page is not rendered, nav item is hidden
  * - 1 tab: page renders the single tab's content without a tab bar
  * - 2+ tabs: page renders a full tab bar with all tabs
+ *
+ * Set `alwaysShowTabBar: true` to render the tab bar even with a single tab
+ * (e.g. Agents → Deployments while more tabs are planned).
  */
 export type TabRoutePageExtension = Extension<
   'app.tab-route/page',
@@ -31,6 +34,8 @@ export type TabRoutePageExtension = Extension<
      * Used with TitleWithIcon to render a page-level title above the tabs.
      */
     objectType?: string;
+    /** When true, renders the tab bar even if only one tab is registered. */
+    alwaysShowTabBar?: boolean;
   }
 >;
 
@@ -49,6 +54,18 @@ export type TabRouteTabExtension = Extension<
     id: string;
     /** The display title for the tab. */
     title: string;
+    /**
+     * Title to display in the page header when this is the only active tab.
+     * When a single tab is active the tab bar is hidden, so this title replaces
+     * the generic page title to give users context (e.g. "Model deployments").
+     */
+    singleTabTitle?: string;
+    /**
+     * Object type string for the page title icon when this is the only active tab.
+     * Overrides the page-level `objectType` so each tab can show its own icon
+     * (e.g. 'model-catalog', 'deployed-models').
+     */
+    objectType?: string;
     /** The component to render as tab content. */
     component: ComponentCodeRef;
     /** Group used to sort tabs lexicographically. Unspecified tabs will be sorted into the '5_default' group. */

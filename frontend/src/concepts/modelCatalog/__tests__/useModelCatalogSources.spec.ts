@@ -1,6 +1,6 @@
 import { renderHook, act } from '@testing-library/react';
+import { useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { getConfigMap } from '#~/api';
-import { useIsAreaAvailable } from '#~/concepts/areas';
 import useNamespaces from '#~/pages/notebookController/useNamespaces';
 import { useModelCatalogSources } from '#~/concepts/modelCatalog/useModelCatalogSources';
 import {
@@ -19,7 +19,8 @@ jest.mock('#~/pages/notebookController/useNamespaces', () => ({
   default: jest.fn(),
 }));
 
-jest.mock('#~/concepts/areas', () => ({
+jest.mock('@odh-dashboard/plugin-core/areas', () => ({
+  ...jest.requireActual('@odh-dashboard/plugin-core/areas'),
   useIsAreaAvailable: jest.fn(),
 }));
 

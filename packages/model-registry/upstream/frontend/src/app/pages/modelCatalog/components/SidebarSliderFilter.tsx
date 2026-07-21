@@ -27,8 +27,7 @@ const SidebarSliderFilter: React.FC<SidebarSliderFilterProps> = ({
   fallbackMin,
   fallbackMax,
 }) => {
-  const { filterOptions, filterOptionsLoaded, performanceViewEnabled } =
-    React.useContext(ModelCatalogContext);
+  const { filterOptions, filterOptionsLoaded } = React.useContext(ModelCatalogContext);
   const { value: filterValue, setValue: setFilterValue } = useCatalogNumberFilterState(filterKey);
   const [isOpen, setIsOpen] = React.useState(false);
 
@@ -37,7 +36,7 @@ const SidebarSliderFilter: React.FC<SidebarSliderFilterProps> = ({
     if (option && option.range) {
       const { min, max } = option.range;
       if (min != null && max != null) {
-        return { min, max };
+        return { min: Math.floor(min), max: Math.ceil(max) };
       }
     }
     return { min: fallbackMin, max: fallbackMax };
@@ -53,7 +52,7 @@ const SidebarSliderFilter: React.FC<SidebarSliderFilterProps> = ({
     }
   }, [isOpen, filterValue, range.max]);
 
-  if (!performanceViewEnabled || !filterOptionsLoaded || !filterOptions?.filters?.[filterKey]) {
+  if (!filterOptionsLoaded || !filterOptions?.filters?.[filterKey]) {
     return null;
   }
 
@@ -116,6 +115,7 @@ const SidebarSliderFilter: React.FC<SidebarSliderFilterProps> = ({
             suffix={suffix}
             ariaLabel={`${label} filter value`}
             showBoundaries
+            shouldRound
           />
         </FlexItem>
         <FlexItem>

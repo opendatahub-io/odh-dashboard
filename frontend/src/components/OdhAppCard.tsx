@@ -18,6 +18,7 @@ import {
 } from '@patternfly/react-core';
 import { css } from '@patternfly/react-styles';
 import { EllipsisVIcon, ExclamationCircleIcon, ExternalLinkAltIcon } from '@patternfly/react-icons';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { OdhApplication } from '#~/types';
 import { getLaunchStatus, launchQuickStart } from '#~/utilities/quickStartUtils';
 import EnableModal from '#~/pages/exploreApplication/EnableModal';
@@ -26,7 +27,6 @@ import { addNotification, forceComponentsUpdate } from '#~/redux/actions/actions
 import { ODH_PRODUCT_NAME } from '#~/utilities/const';
 import { useAppContext } from '#~/app/AppContext';
 import { useAppDispatch } from '#~/redux/hooks';
-import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import { isInternalRouteIntegrationsApp } from '#~/utilities/utils';
 import { deleteIntegrationApp } from '#~/services/integrationAppService';
 import { useUser } from '#~/redux/selectors';

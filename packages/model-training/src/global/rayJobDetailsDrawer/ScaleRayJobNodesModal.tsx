@@ -7,8 +7,8 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core';
-import ContentModal from '@odh-dashboard/internal/components/modals/ContentModal';
-import NumberInputWrapper from '@odh-dashboard/internal/components/NumberInputWrapper';
+import ContentModal from '@odh-dashboard/ui-core/components/ContentModal';
+import NumberInputWrapper from '@odh-dashboard/ui-core/components/NumberInputWrapper';
 import { WorkerGroupReplicaState } from '../../hooks/useRayJobNodeScaling';
 
 type ScaleRayJobNodesModalProps = {

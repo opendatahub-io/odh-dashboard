@@ -1,6 +1,9 @@
 import { AlertVariant } from '@patternfly/react-core';
 import React from 'react';
 import type { ProjectKind } from '@odh-dashboard/k8s-core';
+import { getResourceNameFromK8sResource } from '@odh-dashboard/k8s-core';
+import type { ModelDeployPrefillInfo } from '@odh-dashboard/model-serving/shared';
+import type { UpdateObjectAtPropAndValue } from '@odh-dashboard/ui-core';
 import {
   Connection,
   ConnectionTypeConfigMapObj,
@@ -15,7 +18,6 @@ import {
   AwsKeys,
   EMPTY_AWS_SECRET_DATA,
 } from '#~/pages/projects/dataConnections/const';
-import { UpdateObjectAtPropAndValue } from '#~/pages/projects/types';
 import {
   getMRConnectionValues,
   OCIAccessTypeKey,
@@ -25,23 +27,9 @@ import {
   withRequiredFields,
 } from '#~/concepts/connectionTypes/utils';
 import { useWatchConnectionTypes } from '#~/utilities/useWatchConnectionTypes';
-import { getResourceNameFromK8sResource } from '#~/concepts/k8s/utils';
 import { isRedHatRegistryUri, PrefilledConnection } from '#~/concepts/modelRegistry/utils';
 import useServingConnections from '#~/pages/projects/screens/detail/connections/useServingConnections';
 import useLabeledConnections from './nim/useLabeledConnections';
-
-export type ModelDeployPrefillInfo = {
-  modelName: string;
-  modelFormat?: string;
-  modelArtifactUri?: string;
-  connectionTypeName?: string;
-  initialConnectionName?: string;
-  modelRegistryInfo?: {
-    modelVersionId?: string;
-    registeredModelId?: string;
-    mrName?: string;
-  };
-};
 
 const usePrefillModelDeployModal = (
   projectContext: { currentProject: ProjectKind; connections: Connection[] } | undefined,

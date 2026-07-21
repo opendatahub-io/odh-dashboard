@@ -1,8 +1,8 @@
 import React from 'react';
 import { FormGroup, HelperText, HelperTextItem } from '@patternfly/react-core';
 import { z } from 'zod';
-import NumberInputWrapper from '@odh-dashboard/internal/components/NumberInputWrapper';
-import { normalizeBetween } from '@odh-dashboard/internal/utilities/utils';
+import NumberInputWrapper from '@odh-dashboard/ui-core/components/NumberInputWrapper';
+import { normalizeBetween } from '@odh-dashboard/ui-core/utilities';
 
 // Schema
 const LOWER_LIMIT = 1;

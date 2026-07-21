@@ -26,6 +26,7 @@ import {
   VerifyConnectionRequest,
   VerifyConnectionResponse,
 } from '~/app/types';
+import { CatalogSecurityArtifactList } from '~/app/pages/modelCatalog/securityInsightsTypes';
 
 export const getUser =
   (hostPath: string) =>
@@ -64,10 +65,15 @@ export const getEvalHubCRStatus =
     });
 
 export const getEvalHubHealth =
-  (hostPath: string) =>
+  (hostPath: string, namespace?: string) =>
   (opts: APIOptions): Promise<EvalHubHealthResponse> =>
     handleRestFailures(
-      restGET(hostPath, `${URL_PREFIX}/api/${BFF_API_VERSION}/evalhub/health`, {}, opts),
+      restGET(
+        hostPath,
+        `${URL_PREFIX}/api/${BFF_API_VERSION}/evalhub/health`,
+        namespace ? { namespace } : {},
+        opts,
+      ),
     ).then((response) => {
       if (isModArchResponse<EvalHubHealthResponse>(response)) {
         return response.data;
@@ -263,6 +269,32 @@ export const getInferenceServices =
       }
       throw new Error('Invalid response format');
     });
+
+export const getCatalogSecurityArtifacts =
+  (hostPath: string, sourceId: string, modelName: string, namespace?: string, pageSize?: number) =>
+  (opts: APIOptions): Promise<CatalogSecurityArtifactList> => {
+    const queryParams: Record<string, string> = {};
+    if (namespace) {
+      queryParams.namespace = namespace;
+    }
+    if (pageSize != null) {
+      queryParams.pageSize = String(pageSize);
+    }
+
+    return handleRestFailures(
+      restGET(
+        hostPath,
+        `${URL_PREFIX}/api/${BFF_API_VERSION}/catalog/sources/${encodeURIComponent(sourceId)}/security_artifacts/${encodeURIComponent(modelName)}`,
+        queryParams,
+        opts,
+      ),
+    ).then((response) => {
+      if (isModArchResponse<CatalogSecurityArtifactList>(response)) {
+        return response.data;
+      }
+      throw new Error('Invalid response format');
+    });
+  };
 
 export const verifyConnection =
   (hostPath: string, namespace: string, request: VerifyConnectionRequest) =>

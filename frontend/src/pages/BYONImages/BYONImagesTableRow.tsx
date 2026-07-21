@@ -2,6 +2,8 @@ import * as React from 'react';
 import { ActionsColumn, ExpandableRowContent, Tbody, Td, Tr } from '@patternfly/react-table';
 import {
   DescriptionList,
+  Label,
+  LabelGroup,
   Timestamp,
   TimestampTooltipVariant,
   Truncate,
@@ -11,13 +13,17 @@ import { relativeTime } from '#~/utilities/time';
 import BYONImageHardwareProfiles from '#~/pages/BYONImages/BYONImageHardwareProfiles';
 import { TableRowTitleDescription } from '#~/components/table';
 import { useHardwareProfilesByFeatureVisibility } from '#~/pages/hardwareProfiles/useHardwareProfilesByFeatureVisibility';
+import { PreInstalledName } from '#~/concepts/k8s/utils';
+import { useDashboardNamespace } from '#~/redux/selectors';
+import { updateBYONImageStream, patchOOTBImageStreamHidden } from '#~/api/k8s/imageStreams';
 import ImageErrorStatus from './ImageErrorStatus';
-import BYONImageStatusToggle from './BYONImageStatusToggle';
+import ImageStatusToggle from './ImageStatusToggle';
 import { convertBYONImageToK8sResource } from './utils';
 import BYONImageDependenciesList from './BYONImageDependenciesList';
 
 type BYONImagesTableRowProps = {
   obj: BYONImage;
+  images: BYONImage[];
   rowIndex: number;
   hardwareProfiles: ReturnType<typeof useHardwareProfilesByFeatureVisibility>['globalProfiles'];
   onEditImage: (obj: BYONImage) => void;
@@ -26,12 +32,25 @@ type BYONImagesTableRowProps = {
 
 const BYONImagesTableRow: React.FC<BYONImagesTableRowProps> = ({
   obj,
+  images,
   rowIndex,
   hardwareProfiles,
   onEditImage,
   onDeleteImage,
 }) => {
+  const { dashboardNamespace } = useDashboardNamespace();
   const [isExpanded, setExpanded] = React.useState(false);
+
+  const handleToggle = React.useCallback(
+    async (visible: boolean) => {
+      if (obj.isOOTB) {
+        await patchOOTBImageStreamHidden(dashboardNamespace, obj.name, !visible);
+      } else {
+        await updateBYONImageStream(dashboardNamespace, { name: obj.name, visible });
+      }
+    },
+    [dashboardNamespace, obj.isOOTB, obj.name],
+  );
   const columnModifier =
     obj.software.length > 0 && obj.packages.length > 0
       ? '3Col'
@@ -56,15 +75,29 @@ const BYONImagesTableRow: React.FC<BYONImagesTableRowProps> = ({
             resource={convertBYONImageToK8sResource(obj)}
             description={obj.description}
             truncateDescriptionLines={2}
-            titleIcon={<ImageErrorStatus image={obj} />}
+            titleIcon={obj.isOOTB ? undefined : <ImageErrorStatus image={obj} />}
             wrapResourceTitle={false}
           />
+          {obj.isOOTB && (
+            <LabelGroup>
+              <Label data-testid="pre-installed-label">{PreInstalledName}</Label>
+            </LabelGroup>
+          )}
         </Td>
         <Td dataLabel="Enable" modifier="nowrap">
-          <BYONImageStatusToggle image={obj} />
+          <ImageStatusToggle
+            image={obj}
+            images={images}
+            onToggle={handleToggle}
+            isDisabledByError={!obj.isOOTB && !!obj.error}
+          />
         </Td>
         <Td dataLabel="Recommended hardware profiles">
-          <BYONImageHardwareProfiles image={obj} hardwareProfiles={hardwareProfiles} />
+          <BYONImageHardwareProfiles
+            image={obj}
+            hardwareProfiles={hardwareProfiles}
+            isReadOnly={obj.isOOTB}
+          />
         </Td>
         <Td dataLabel="Provider">{obj.provider}</Td>
         <Td dataLabel="Imported">
@@ -80,27 +113,29 @@ const BYONImagesTableRow: React.FC<BYONImagesTableRowProps> = ({
           </span>
         </Td>
         <Td isActionCell>
-          <ActionsColumn
-            items={[
-              {
-                title: 'Edit',
-                id: `${obj.name}-edit-button`,
-                onClick: () => {
-                  onEditImage(obj);
+          {!obj.isOOTB && (
+            <ActionsColumn
+              items={[
+                {
+                  title: 'Edit',
+                  id: `${obj.name}-edit-button`,
+                  onClick: () => {
+                    onEditImage(obj);
+                  },
                 },
-              },
-              {
-                isSeparator: true,
-              },
-              {
-                title: 'Delete',
-                id: `${obj.name}-delete-button`,
-                onClick: () => {
-                  onDeleteImage(obj);
+                {
+                  isSeparator: true,
                 },
-              },
-            ]}
-          />
+                {
+                  title: 'Delete',
+                  id: `${obj.name}-delete-button`,
+                  onClick: () => {
+                    onDeleteImage(obj);
+                  },
+                },
+              ]}
+            />
+          )}
         </Td>
       </Tr>
       <Tr isExpanded={isExpanded}>

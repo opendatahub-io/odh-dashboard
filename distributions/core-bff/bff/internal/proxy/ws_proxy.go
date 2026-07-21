@@ -48,7 +48,7 @@ func originChecker(allowedOrigins []string) func(*http.Request) bool {
 		allowed[strings.TrimRight(o, "/")] = true
 	}
 	return func(r *http.Request) bool {
-		origin := r.Header.Get("Origin")
+		origin := r.Header.Get(constants.HeaderOrigin)
 		if origin == "" {
 			return false
 		}
@@ -60,7 +60,7 @@ func originChecker(allowedOrigins []string) func(*http.Request) bool {
 // matches the request's Host. This is the default when ALLOWED_ORIGINS is
 // unset, so WebSockets work out of the box without opening cross-origin access.
 func sameOriginCheck(r *http.Request) bool {
-	origin := r.Header.Get("Origin")
+	origin := r.Header.Get(constants.HeaderOrigin)
 	if origin == "" {
 		return false
 	}
@@ -157,9 +157,9 @@ func dialK8sWebSocket(targetWSURL string, tlsConfig *tls.Config, token string, t
 	}
 
 	dialHeaders := http.Header{}
-	dialHeaders.Set("Host", targetURL.Host)
-	dialHeaders.Set("Origin", targetURL.Scheme+"://"+targetURL.Host)
-	dialHeaders.Set("Authorization", "Bearer "+token)
+	dialHeaders.Set(constants.HeaderHost, targetURL.Host)
+	dialHeaders.Set(constants.HeaderOrigin, targetURL.Scheme+"://"+targetURL.Host)
+	dialHeaders.Set(constants.HeaderAuthorization, k8s.BearerTokenPrefix+token)
 
 	return dialer.Dial(targetWSURL, dialHeaders)
 }
@@ -176,7 +176,7 @@ func negotiatedSubprotocolHeader(targetConn *websocket.Conn, clientSubprotocols 
 	for _, csp := range clientSubprotocols {
 		if csp == sp {
 			h := http.Header{}
-			h.Set("Sec-WebSocket-Protocol", sp)
+			h.Set(constants.HeaderSecWebSocketProto, sp)
 			return h
 		}
 	}
@@ -228,6 +228,9 @@ type WsProxyConfig struct {
 	AllowedOrigins []string
 	// SSRFValidateTarget enables SSRF protection for target hostnames.
 	SSRFValidateTarget bool
+	// DevFallbackToken is the kubeconfig's bearer token used when the request identity
+	// has DevFallback set. Empty means no token fallback (client cert auth handles it).
+	DevFallbackToken string
 	// Tracker is the connection tracker for managing active WebSocket connections.
 	Tracker *ConnectionTracker
 	// Logger is used for logging WebSocket operations.
@@ -235,13 +238,14 @@ type WsProxyConfig struct {
 }
 
 type wsProxy struct {
-	targetURL      *url.URL
-	wsScheme       string
-	tlsConfig      *tls.Config
-	tracker        *ConnectionTracker
-	logger         *slog.Logger
-	upgrader       websocket.Upgrader
-	netDialContext func(ctx context.Context, network, addr string) (net.Conn, error)
+	targetURL        *url.URL
+	wsScheme         string
+	tlsConfig        *tls.Config
+	devFallbackToken string
+	tracker          *ConnectionTracker
+	logger           *slog.Logger
+	upgrader         websocket.Upgrader
+	netDialContext   func(ctx context.Context, network, addr string) (net.Conn, error)
 }
 
 func (p *wsProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -261,10 +265,12 @@ func (p *wsProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	token := identity.ResolveToken(p.devFallbackToken)
+
 	targetWSURL := buildTargetWSURL(p.wsScheme, p.targetURL.Host, r)
 	clientSubprotocols := websocket.Subprotocols(r)
 
-	targetConn, resp, dialErr := dialK8sWebSocket(targetWSURL, p.tlsConfig, identity.Token.Raw(), p.targetURL, p.netDialContext, clientSubprotocols)
+	targetConn, resp, dialErr := dialK8sWebSocket(targetWSURL, p.tlsConfig, token, p.targetURL, p.netDialContext, clientSubprotocols)
 	if dialErr != nil {
 		p.logDialError(targetWSURL, dialErr, resp)
 		http.Error(w, "upstream connection failed", http.StatusBadGateway)
@@ -317,12 +323,13 @@ func NewWsProxyHandler(cfg WsProxyConfig) (http.Handler, error) {
 	}
 
 	return &wsProxy{
-		targetURL:      targetURL,
-		wsScheme:       wsScheme,
-		tlsConfig:      tlsConfig,
-		tracker:        cfg.Tracker,
-		logger:         cfg.Logger,
-		upgrader:       newUpgrader(cfg.AllowedOrigins),
-		netDialContext: netDialContext,
+		targetURL:        targetURL,
+		wsScheme:         wsScheme,
+		tlsConfig:        tlsConfig,
+		devFallbackToken: cfg.DevFallbackToken,
+		tracker:          cfg.Tracker,
+		logger:           cfg.Logger,
+		upgrader:         newUpgrader(cfg.AllowedOrigins),
+		netDialContext:   netDialContext,
 	}, nil
 }

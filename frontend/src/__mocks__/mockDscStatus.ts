@@ -1,6 +1,5 @@
-import type { K8sCondition } from '@odh-dashboard/k8s-core';
-import { DataScienceClusterKindStatus } from '#~/k8sTypes';
-import { DataScienceStackComponent } from '#~/concepts/areas/types';
+import type { K8sCondition, DataScienceClusterKindStatus } from '@odh-dashboard/k8s-core';
+import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import { DataScienceStackComponentMap } from '#~/concepts/areas/const';
 
 export type MockDscStatus = {

@@ -15,10 +15,13 @@ import (
 	"github.com/openai/openai-go/v2/responses"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/bffclient"
 	k8s "github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack"
 	nemo "github.com/opendatahub-io/gen-ai/internal/integrations/nemo"
 	"github.com/opendatahub-io/gen-ai/internal/models"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 )
 
 // Supported streaming event types that we want to process for the Gen AI API
@@ -125,6 +128,7 @@ type ResponseMetrics struct {
 	LatencyMs          int64      `json:"latency_ms"`                       // Total response time in milliseconds
 	TimeToFirstTokenMs *int64     `json:"time_to_first_token_ms,omitempty"` // TTFT for streaming (nil for non-streaming)
 	Usage              *UsageData `json:"usage,omitempty"`                  // Token usage data
+	TraceID            string     `json:"trace_id,omitempty"`               // OTel trace ID for MLflow trace lookup (when tracing is enabled)
 }
 
 // UsageData contains token usage information from LlamaStack
@@ -350,6 +354,16 @@ func extractUsageFromEvent(event interface{}) *UsageData {
 	}
 }
 
+// otelTraceID returns the OTel trace ID from the span in the context,
+// or empty string if no active span exists (tracing disabled).
+func otelTraceID(ctx context.Context) string {
+	sc := trace.SpanFromContext(ctx).SpanContext()
+	if sc.HasTraceID() {
+		return sc.TraceID().String()
+	}
+	return ""
+}
+
 // calculateTTFT calculates Time to First Token in milliseconds
 func calculateTTFT(startTime time.Time, firstTokenTime *time.Time) *int64 {
 	if firstTokenTime == nil {
@@ -405,6 +419,25 @@ func (app *App) LlamaStackCreateResponseHandler(w http.ResponseWriter, r *http.R
 	}
 
 	createRequest.Subscription = strings.TrimSpace(createRequest.Subscription)
+
+	// Set input on the BFF root span for MLflow trace display
+	if span := trace.SpanFromContext(ctx); span.IsRecording() {
+		inputJSON, _ := json.Marshal([]map[string]string{{"role": "user", "content": createRequest.Input.Text}})
+		// Set both gen_ai.* (OTel standard) and mlflow.* (direct) attributes;
+		// MLflow's OTLP translator maps gen_ai.* → mlflow.*, but we set both
+		// for compatibility with MLflow versions that lack the translator.
+		span.SetAttributes(
+			attribute.String("gen_ai.input.messages", string(inputJSON)),
+			attribute.String("gen_ai.operation.name", "chat"),
+			attribute.String("mlflow.spanInputs", string(inputJSON)),
+			attribute.String("mlflow.spanType", "CHAIN"),
+		)
+		// Tag BFF spans with the user's namespace so the platform collector's span-context
+		// routing rule can route them to the per-namespace MLflow exporter.
+		if ns, _ := ctx.Value(constants.NamespaceQueryParameterKey).(string); ns != "" {
+			span.SetAttributes(attribute.String("k8s.namespace.name", ns))
+		}
+	}
 
 	// Convert chat context format
 	var chatContext []llamastack.ChatContextMessage
@@ -572,13 +605,20 @@ func (app *App) LlamaStackCreateResponseHandler(w http.ResponseWriter, r *http.R
 // checkInputModeration runs input moderation and returns the result.
 // The caller decides how to report errors (HTTP response vs SSE event).
 func (app *App) checkInputModeration(ctx context.Context, messages []nemo.Message, opts nemo.GuardrailsOptions) (flagged bool, violationReason string, err error) {
-	result, modErr := app.checkModeration(ctx, messages, opts)
+	result, modErr := app.checkModerationWithSpan(ctx, "guardrail-input-check", messages, opts)
 	if modErr != nil {
 		app.logger.Error("Input moderation check failed", "error", modErr)
 		return false, "", modErr
 	}
 	if result != nil && result.Flagged {
 		app.logger.Info("Input moderation flagged content", "reason", result.ViolationReason)
+		if span := trace.SpanFromContext(ctx); span.IsRecording() {
+			refusalJSON, _ := json.Marshal([]map[string]string{{"role": "assistant", "content": "input blocked by safety guardrails"}})
+			span.SetAttributes(
+				attribute.String("gen_ai.output.messages", string(refusalJSON)),
+				attribute.String("mlflow.spanOutputs", string(refusalJSON)),
+			)
+		}
 		return true, result.ViolationReason, nil
 	}
 	return false, "", nil
@@ -638,11 +678,16 @@ func (app *App) handleStreamingResponse(w http.ResponseWriter, r *http.Request, 
 			LatencyMs:          latencyMs,
 			TimeToFirstTokenMs: calculateTTFT(startTime, firstTokenTime),
 			Usage:              usage,
+			TraceID:            otelTraceID(ctx),
 		},
 	}
 	eventData, _ := json.Marshal(metricsEvent)
 	writeMu.Lock()
-	fmt.Fprintf(w, "data: %s\n\n", eventData)
+	if _, writeErr := fmt.Fprintf(w, "data: %s\n\n", eventData); writeErr != nil {
+		app.logger.Debug("Failed to write metrics event to client", "error", writeErr)
+		writeMu.Unlock()
+		return
+	}
 	flusher.Flush()
 	writeMu.Unlock()
 }
@@ -672,7 +717,7 @@ func (app *App) handleNonStreamingResponse(w http.ResponseWriter, r *http.Reques
 		responseText := extractResponseText(&responseData)
 		if responseText != "" {
 			outputMessages := []nemo.Message{{Role: nemo.RoleAssistant, Content: responseText}}
-			result, modErr := app.checkModeration(ctx, outputMessages, params.GuardrailOpts)
+			result, modErr := app.checkModerationWithSpan(ctx, "guardrail-output-check", outputMessages, params.GuardrailOpts)
 			if modErr != nil {
 				app.logger.Error("Output moderation check failed", "error", modErr)
 				app.guardrailServiceUnavailableResponse(w, r, errors.New(constants.GuardrailServiceUnavailableMessage))
@@ -680,6 +725,13 @@ func (app *App) handleNonStreamingResponse(w http.ResponseWriter, r *http.Reques
 			}
 			if result != nil && result.Flagged {
 				app.logger.Info("Output moderation flagged content", "reason", result.ViolationReason)
+				if span := trace.SpanFromContext(ctx); span.IsRecording() {
+					refusalJSON, _ := json.Marshal([]map[string]string{{"role": "assistant", "content": "output blocked by safety guardrails"}})
+					span.SetAttributes(
+						attribute.String("gen_ai.output.messages", string(refusalJSON)),
+						attribute.String("mlflow.spanOutputs", string(refusalJSON)),
+					)
+				}
 				app.guardrailViolationResponse(w, r, constants.GuardrailOutputViolationCode, "output blocked by safety guardrails")
 				return
 			}
@@ -695,6 +747,18 @@ func (app *App) handleNonStreamingResponse(w http.ResponseWriter, r *http.Reques
 	responseData.Metrics = &ResponseMetrics{
 		LatencyMs: latencyMs,
 		Usage:     extractUsage(llamaResponse),
+		TraceID:   otelTraceID(ctx),
+	}
+
+	// Set output on the BFF root span for MLflow trace display
+	if span := trace.SpanFromContext(ctx); span.IsRecording() {
+		if len(responseData.Output) > 0 {
+			outputJSON, _ := json.Marshal(responseData.Output)
+			span.SetAttributes(
+				attribute.String("gen_ai.output.messages", string(outputJSON)),
+				attribute.String("mlflow.spanOutputs", string(outputJSON)),
+			)
+		}
 	}
 
 	apiResponse := llamastack.APIResponse{
@@ -878,16 +942,46 @@ func (app *App) getMaaSTokenForModel(ctx context.Context, k8sClient k8s.Kubernet
 		app.logger.Warn("Unexpected type in cache, expected string", "model", modelID, "namespace", namespace, "type", fmt.Sprintf("%T", cachedValue))
 	}
 
-	// Cache miss - generate new token
-	app.logger.Debug("No MaaS token found in cache: requesting new token", "model", modelID, "namespace", namespace, "subscription", subscription)
+	// Cache miss - generate new token via MaaS BFF
+	app.logger.Debug("No MaaS token found in cache: requesting new token via MaaS BFF", "model", modelID, "namespace", namespace, "subscription", subscription)
 
-	tokenResponse, err := app.repositories.MaaSModels.IssueToken(ctx, models.MaaSTokenRequest{
-		ExpiresIn:    constants.MaaSTokenTTLString,
-		Subscription: subscription,
-	})
-	if err != nil {
-		app.logger.Warn("Failed to issue MaaS API key", "model", modelID, "error", err)
+	// Get MaaS BFF client from context
+	maasClient := bffclient.GetClient(ctx, bffclient.BFFTargetMaaS)
+	if maasClient == nil {
+		app.logger.Warn("MaaS BFF client not available for token generation", "model", modelID)
 		return ""
+	}
+
+	// Build MaaS BFF API key request (envelope wrapper per OpenAPI spec)
+	bffRequest := models.MaaSBFFAPIKeyRequest{
+		Data: models.MaaSBFFAPIKeyRequestData{
+			Name:         fmt.Sprintf("genai-inference-%d", time.Now().Unix()),
+			ExpiresIn:    constants.MaaSTokenTTLString,
+			Subscription: subscription,
+			Ephemeral:    true,
+		},
+	}
+
+	// Call MaaS BFF to create API key
+	var bffResponse models.MaaSBFFAPIKeyResponse
+	err = maasClient.Call(ctx, "POST", "/api-keys", bffRequest, &bffResponse)
+	if err != nil {
+		app.logger.Warn("Failed to issue MaaS API key via BFF", "model", modelID, "error", err)
+		return ""
+	}
+
+	// Validate that MaaS BFF returned a non-empty key
+	if bffResponse.Data.Key == "" {
+		app.logger.Warn("MaaS BFF returned empty key in response", "model", modelID)
+		return ""
+	}
+
+	// Map BFF response to internal format
+	tokenResponse := &models.MaaSTokenResponse{
+		Key: bffResponse.Data.Key,
+	}
+	if bffResponse.Data.ExpiresAt != nil {
+		tokenResponse.ExpiresAt = *bffResponse.Data.ExpiresAt
 	}
 
 	// Compute cache TTL from the key's actual expiry, with a safety buffer
@@ -906,8 +1000,8 @@ func (app *App) getMaaSTokenForModel(ctx context.Context, k8sClient k8s.Kubernet
 
 	// Cache the new API key
 	app.logger.Debug("Caching MaaS API key", "model", modelID, "namespace", namespace, "subscription", subscription, "ttl", cacheTTL, "ttlSource", ttlSource, "expiresAt", tokenResponse.ExpiresAt)
-	if err := app.memoryStore.Set(namespace, username, constants.CacheAccessTokensCategory, cacheKey, tokenResponse.Key, cacheTTL); err != nil {
-		app.logger.Warn("Failed to cache MaaS API key", "model", modelID, "error", err)
+	if cacheErr := app.memoryStore.Set(namespace, username, constants.CacheAccessTokensCategory, cacheKey, tokenResponse.Key, cacheTTL); cacheErr != nil {
+		app.logger.Warn("Failed to cache MaaS API key", "model", modelID, "error", cacheErr)
 	}
 
 	return tokenResponse.Key
@@ -1064,7 +1158,7 @@ func (app *App) getCustomEndpointBaseURLAndKey(ctx context.Context, modelID stri
 //  1. maas- prefix              → ephemeral MaaS token + MaaS catalog URL
 //  2. "custom_endpoint"         → URL + key from external-models ConfigMap / K8s Secret
 //  3. "namespace" or fallback   → InferenceService URL (falls back to LlamaStack config) + user JWT
-func (app *App) resolveMaaSModelInferenceURL(ctx context.Context, identity *integrations.RequestIdentity, guardrailModelID string) (string, error) {
+func (app *App) resolveMaaSModelInferenceURL(ctx context.Context, _ *integrations.RequestIdentity, guardrailModelID string) (string, error) {
 	bareID := guardrailModelID
 	if strings.HasPrefix(guardrailModelID, constants.MaaSProviderPrefix) {
 		if idx := strings.Index(guardrailModelID, "/"); idx != -1 {
@@ -1072,21 +1166,39 @@ func (app *App) resolveMaaSModelInferenceURL(ctx context.Context, identity *inte
 		}
 	}
 
-	maasModels, err := app.repositories.MaaSModels.ListModels(ctx, identity.Token)
-	if err != nil {
-		return "", fmt.Errorf("failed to list MaaS models: %w", err)
+	// Get namespace from context for MaaS BFF query parameter
+	namespace, ok := ctx.Value(constants.NamespaceQueryParameterKey).(string)
+	if !ok || namespace == "" {
+		return "", fmt.Errorf("missing namespace in context for MaaS model lookup")
 	}
 
-	for _, m := range maasModels {
+	// Get MaaS BFF client from context
+	maasClient := bffclient.GetClient(ctx, bffclient.BFFTargetMaaS)
+	if maasClient == nil {
+		return "", fmt.Errorf("MaaS BFF client not available")
+	}
+
+	// Call MaaS BFF to list models
+	// Per MaaS BFF OpenAPI spec, GET /models returns envelope: {"data": {"object": "list", "data": [...]}}
+	// Note: MaaS BFF determines namespace scope via the forwarded authentication token
+	// (x-forwarded-access-token header), not via query parameters
+	var bffResponse models.MaaSBFFModelsResponse
+	err := maasClient.Call(ctx, "GET", "/models", nil, &bffResponse)
+	if err != nil {
+		return "", fmt.Errorf("failed to list MaaS models via BFF: %w", err)
+	}
+
+	// Search for the model in the response
+	for _, m := range bffResponse.Data.Data {
 		if m.ID == bareID {
 			// MaaS catalog returns the raw gateway URL (http, no /v1).
 			// Normalize to vLLM-compatible format (strip trailing slash, ensure /v1 suffix)
 			// so NeMo receives the correct openai_api_base.
-			url := strings.TrimSuffix(m.URL, "/")
-			if !strings.HasSuffix(url, "/v1") {
-				url += "/v1"
+			modelURL := strings.TrimSuffix(m.URL, "/")
+			if !strings.HasSuffix(modelURL, "/v1") {
+				modelURL += "/v1"
 			}
-			return url, nil
+			return modelURL, nil
 		}
 	}
 

@@ -25,10 +25,17 @@ export type {
   PodAffinity,
   Volume,
   VolumeMount,
+  ImagePullSecret,
 } from './types';
 
-export { KnownLabels, MetadataAnnotation, HardwareProfileFeatureVisibility } from './k8sTypes';
+export {
+  KnownLabels,
+  MetadataAnnotation,
+  HardwareProfileFeatureVisibility,
+  DataScienceStackComponent,
+} from './k8sTypes';
 export type {
+  K8sAPIOptions,
   K8sVerb,
   AccessReviewResourceAttributes,
   K8sResourceCommon,
@@ -47,6 +54,124 @@ export type {
   PodKind,
   TemplateKind,
   HardwareProfileKind,
+  AcceleratorProfileKind,
   DashboardCommonConfig,
   DashboardConfigKind,
+  ManagementState,
+  DataScienceClusterComponentStatus,
+  DataScienceClusterKindStatus,
+  DataScienceClusterInitializationKindStatus,
 } from './k8sTypes';
+
+export {
+  isK8sDSGResource,
+  getDisplayNameFromK8sResource,
+  getResourceNameFromK8sResource,
+  getDescriptionFromK8sResource,
+  translateDisplayNameForK8sAndReport,
+  translateDisplayNameForK8s,
+  isValidK8sName,
+  getConditionForType,
+  isConditionInStatus,
+  kindApiVersion,
+} from './k8sResourceUtils';
+export type {
+  AdditionalCriteriaForTranslation,
+  AdditionalCriteriaApplied,
+} from './k8sResourceUtils';
+
+export {
+  LimitNameResourceType,
+  INFERENCE_SERVICE_NAME_REGEX,
+  INFERENCE_SERVICE_NAME_INVALID_CHARS_MESSAGE,
+  resourceTypeLimits,
+  isK8sNameDescriptionType,
+  setupDefaults,
+  handleUpdateLogic,
+  isK8sNameDescriptionDataValid,
+  extractK8sNameDescriptionFieldData,
+} from './k8sNameDescriptionFieldUtils';
+
+export type {
+  K8sNameDescriptionFieldData,
+  K8sNameDescriptionType,
+  UseK8sNameDescriptionDataConfiguration,
+  K8sNameDescriptionFieldUpdateFunction,
+  K8sNameDescriptionFieldUpdateFunctionInternal,
+  UseK8sNameDescriptionFieldData,
+} from './k8sNameDescriptionFieldTypes';
+
+export {
+  DATA_CONNECTION_PREFIX,
+  SECRET_PREFIX,
+  getGeneratedSecretName,
+  isGeneratedSecretName,
+} from './secretUtils';
+
+export {
+  ConnectionTypeFieldType,
+  connectionTypeDataFields,
+  AwsKeys,
+  AccessTypes,
+} from './connectionTypes';
+export type {
+  ConnectionTypeDataFieldTypeUnion,
+  ConnectionTypeFieldTypeUnion,
+  ConnectionTypeCommonProperties,
+  DataField,
+  SectionField,
+  HiddenField,
+  ShortTextField,
+  TextField,
+  UriField,
+  FileField,
+  BooleanField,
+  DropdownField,
+  NumericField,
+  ConnectionTypeField,
+  ConnectionTypeDataField,
+  ConnectionTypeConfigMap,
+  ConnectionTypeConfigMapObj,
+  ConnectionTypeValueType,
+  Connection,
+  ConnectionTypeFormData,
+  AWSDataEntry,
+} from './connectionTypes';
+
+export { NamespaceApplicationCase, byName, namespaceToProjectDisplayName } from './projectUtils';
+
+export {
+  isSecretKind,
+  isConnectionTypeDataFieldType,
+  isConnectionTypeDataField,
+  isConnectionType,
+  isConnection,
+  getConnectionTypeRef,
+  toConnectionTypeConfigMapObj,
+  toConnectionTypeConfigMap,
+  defaultValueToString,
+  fieldTypeToString,
+  fieldNameToEnvVar,
+  ENV_VAR_NAME_REGEX,
+  isValidEnvVar,
+  ModelServingCompatibleTypes,
+  URIConnectionTypeKeys,
+  OCIConnectionTypeKeys,
+  OCIAccessTypeKey,
+  S3ConnectionTypeKeys,
+  isModelServingEnvVar,
+  getModelServingConnectionTypeName,
+  isModelServingCompatible,
+  getModelServingCompatibility,
+  filterModelServingConnectionTypes,
+  getDefaultValues,
+  getMRConnectionValues,
+  withRequiredFields,
+  assembleConnectionSecret,
+  parseConnectionSecretValues,
+  getConnectionTypeDisplayName,
+  filterEnabledConnectionTypes,
+  findSectionFields,
+  convertObjectStorageSecretData,
+  getConnectionProtocolType,
+} from './connectionTypeUtils';

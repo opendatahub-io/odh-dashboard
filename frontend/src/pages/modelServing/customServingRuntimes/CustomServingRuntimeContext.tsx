@@ -3,11 +3,11 @@ import { Outlet } from 'react-router-dom';
 import { Bullseye, EmptyState, EmptyStateBody, Spinner } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import type { TemplateKind } from '@odh-dashboard/k8s-core';
+import { FetchStateObject } from '@odh-dashboard/ui-core/hooks/useFetch';
 import { DEFAULT_LIST_FETCH_STATE, DEFAULT_LIST_WATCH_RESULT } from '#~/utilities/const';
 import { CustomWatchK8sResult } from '#~/types';
 import { useDashboardNamespace } from '#~/redux/selectors';
 import { useTemplates } from '#~/api';
-import { FetchStateObject } from '#~/utilities/useFetch';
 import useTemplateOrder from './useTemplateOrder';
 import useTemplateDisablement from './useTemplateDisablement';
 

@@ -1,9 +1,9 @@
-import type { useHardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/useHardwareProfileConfig';
+import type { useHardwareProfileConfig } from '@odh-dashboard/hardware-profiles/shared';
 import {
   getExistingHardwareProfileData,
   getExistingResources,
-} from '@odh-dashboard/internal/concepts/hardwareProfiles/utils';
-import { MODEL_SERVING_VISIBILITY } from '@odh-dashboard/internal/concepts/hardwareProfiles/const';
+  MODEL_SERVING_VISIBILITY,
+} from '@odh-dashboard/hardware-profiles/shared';
 import type { ModelLocationData } from '@odh-dashboard/model-serving/components/deploymentWizard/types';
 import { ModelLocationType } from '@odh-dashboard/model-serving/components/deploymentWizard/types';
 import type { ModelTypeFieldData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/ModelTypeSelectField';
@@ -79,7 +79,6 @@ export const extractNIMModelAvailabilityData = (): {
 
 export const extractNIMModelType = (): ModelTypeFieldData => ({
   type: NIM_MODEL_TYPE,
-  legacyVLLM: false,
 });
 
 export const extractNIMModelServerTemplate = (): null => null;

@@ -27,6 +27,14 @@ describe('Core BFF Infrastructure', () => {
         status: 200,
       });
     });
+
+    it('should not require auth for infrastructure healthcheck', async () => {
+      const result = await unauthenticatedClient.get('/healthcheck');
+      expect(result).toMatchContract(apiSchema, {
+        ref: '#/components/responses/HealthCheckResponse/content/application/json/schema',
+        status: 200,
+      });
+    });
   });
 
   describe('User Endpoint', () => {

@@ -14,8 +14,10 @@ import {
   FormHelperText,
   HelperText,
   HelperTextItem,
+  Icon,
   MenuToggle,
   PageSection,
+  Popover,
   Radio,
   Select,
   SelectList,
@@ -29,7 +31,7 @@ import {
   Flex,
   FlexItem,
 } from '@patternfly/react-core';
-import { ExclamationCircleIcon } from '@patternfly/react-icons';
+import { ExclamationCircleIcon, OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { Link, useParams } from 'react-router-dom';
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import {
@@ -51,6 +53,7 @@ import SourceModelFields from '~/app/components/SourceModelFields';
 import SourceAgentFields from '~/app/components/SourceAgentFields';
 import SourcePrerecordedFields from '~/app/components/SourcePrerecordedFields';
 import type { SourceMode } from '~/app/types';
+import { getIncompatibleModelReason } from '~/app/utils/modelCompatibility';
 import {
   useStartEvaluationRunForm,
   EXPERIMENT_FILTER,
@@ -217,22 +220,34 @@ const StartEvaluationRunPage: React.FC = () => {
           </FormGroup>
 
           {/* ── MLflow Experiment ───────────────────────────────── */}
-          <FormGroup
-            label="MLflow Experiment"
-            isRequired
-            fieldId="mlflow-experiment"
-            labelHelp={
-              <LabelHelpPopover
-                ariaLabel="More info for MLflow experiment"
-                content="Select an existing MLflow experiment that this evaluation will belong to, or create a new experiment."
-              />
-            }
-          >
+          <FormGroup label="MLflow Experiment" isRequired fieldId="mlflow-experiment">
             <Radio
               id="experiment-existing"
               data-testid="experiment-mode-existing"
               name="experiment-mode"
-              label="Select existing experiment"
+              label={
+                <>
+                  Select existing experiment{' '}
+                  <Popover
+                    bodyContent={
+                      <>
+                        Only experiments that were created in MLflow and have the{' '}
+                        <b>context: evalhub</b> tag are listed here.
+                      </>
+                    }
+                  >
+                    <Button
+                      variant="plain"
+                      isInline
+                      aria-label="More info for select existing experiment"
+                      className="pf-v6-c-form__group-label-help"
+                      style={{ paddingBlock: 0 }}
+                    >
+                      <OutlinedQuestionCircleIcon />
+                    </Button>
+                  </Popover>
+                </>
+              }
               isChecked={form.experimentMode === 'existing'}
               onChange={() => {
                 form.setExperimentMode('existing');
@@ -365,19 +380,35 @@ const StartEvaluationRunPage: React.FC = () => {
                 <SelectList>
                   {isLoaded && inferenceServices.length > 0 ? (
                     <>
-                      {inferenceServices.map((is) => (
-                        <SelectOption
-                          key={is.name}
-                          value={is.name}
-                          data-testid={`model-option-${is.name}`}
-                          isSelected={
-                            form.modelSelection === 'cluster' &&
-                            form.selectedInferenceService?.name === is.name
-                          }
-                        >
-                          {is.name}
-                        </SelectOption>
-                      ))}
+                      {inferenceServices.map((is) => {
+                        const incompatibleReason = getIncompatibleModelReason(is);
+                        const isDisabled = !!incompatibleReason;
+
+                        return (
+                          <SelectOption
+                            key={is.name}
+                            value={is.name}
+                            data-testid={`model-option-${is.name}`}
+                            isDisabled={isDisabled}
+                            isSelected={
+                              form.modelSelection === 'cluster' &&
+                              form.selectedInferenceService?.name === is.name
+                            }
+                            description={incompatibleReason}
+                          >
+                            {is.name}
+                            {isDisabled && (
+                              <Icon
+                                status="danger"
+                                iconSize="sm"
+                                style={{ marginLeft: 'var(--pf-t--global--spacer--sm)' }}
+                              >
+                                <ExclamationCircleIcon />
+                              </Icon>
+                            )}
+                          </SelectOption>
+                        );
+                      })}
                       <Divider />
                     </>
                   ) : null}
@@ -425,6 +456,7 @@ const StartEvaluationRunPage: React.FC = () => {
               connectionValidation={form.connectionValidation}
               canVerifyConnection={form.canVerifyConnection}
               onVerifyConnection={form.handleVerifyConnection}
+              namespace={namespace}
             />
           )}
 

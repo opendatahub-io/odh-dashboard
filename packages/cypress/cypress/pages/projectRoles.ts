@@ -13,6 +13,10 @@ class RolesTableRow extends TableRow {
     return this.find().find('[data-label="Type"]');
   }
 
+  findLabelsCell() {
+    return this.find().findByTestId('role-labels-cell');
+  }
+
   shouldHaveName(name: string) {
     this.findNameLink().should('have.text', name);
     return this;
@@ -37,6 +41,18 @@ class ProjectRolesTab {
 
   visitCreateRole(namespace: string) {
     cy.visitWithLogin(`/projects/${namespace}/roles/create`);
+    cy.findByTestId('create-role-page');
+    cy.testA11y();
+  }
+
+  visitEditRole(namespace: string, roleName: string) {
+    cy.visitWithLogin(`/projects/${namespace}/roles/${roleName}/edit`);
+    cy.findByTestId('create-role-page');
+    cy.testA11y();
+  }
+
+  visitDuplicateRole(namespace: string, roleName: string) {
+    cy.visitWithLogin(`/projects/${namespace}/roles/${roleName}/duplicate`);
     cy.findByTestId('create-role-page');
     cy.testA11y();
   }
@@ -126,6 +142,42 @@ class ProjectRolesTab {
     return cy.findByTestId('dashboard-empty-table-state');
   }
 
+  findFormYamlToggle() {
+    return cy.findByTestId('form-yaml-toggle');
+  }
+
+  findFormViewToggle() {
+    return cy.findByTestId('form-view-toggle');
+  }
+
+  findYamlViewToggle() {
+    return cy.findByTestId('yaml-view-toggle');
+  }
+
+  findYamlView() {
+    return cy.findByTestId('create-role-yaml-view');
+  }
+
+  findYamlViewTitle() {
+    return cy.findByTestId('yaml-view-title');
+  }
+
+  findYamlViewDescription() {
+    return cy.findByTestId('yaml-view-description');
+  }
+
+  findYamlCodeEditor() {
+    return cy.findByTestId('yaml-code-editor');
+  }
+
+  findYamlEditorContainer() {
+    return cy.findByTestId('yaml-editor-container');
+  }
+
+  findYamlFullscreenToggle() {
+    return cy.findByTestId('yaml-fullscreen-toggle');
+  }
+
   findPreviewYAMLModal() {
     return cy.findByTestId('preview-yaml-modal');
   }
@@ -172,6 +224,42 @@ class ProjectRolesTab {
 
   findRuleSaveButton() {
     return cy.findByTestId('modal-submit-button');
+  }
+
+  findSelectTemplateModal() {
+    return cy.findByTestId('select-template-modal');
+  }
+
+  findTemplateSearchInput() {
+    return cy.findByTestId('template-search-input').find('input');
+  }
+
+  findReplaceContentModal() {
+    return cy.findByTestId('replace-content-confirm-modal');
+  }
+
+  findReplaceConfirmButton() {
+    return cy.findByTestId('replace-confirm-button');
+  }
+
+  findReplaceCancelButton() {
+    return cy.findByTestId('replace-cancel-button');
+  }
+
+  findTemplateItem(templateId: string) {
+    return cy.findByTestId(`template-item-${templateId}`);
+  }
+
+  findSelectTemplateButton(templateId: string) {
+    return cy.findByTestId(`select-template-${templateId}`);
+  }
+
+  findPermissionRulesTable() {
+    return cy.findByTestId('permission-rules-table');
+  }
+
+  findPermissionRuleActionCells() {
+    return this.findPermissionRulesTable().find('tbody td[data-label="Actions"]');
   }
 
   getRow(name: string) {

@@ -2,7 +2,7 @@ import { APIOptions } from 'mod-arch-core';
 import { MCPToolsStatus } from './types';
 import { MCPConnectionStatus, MCPServersResponse } from './types/mcp';
 
-export type LlamaModelType = 'llm' | 'embedding';
+export type LlamaModelType = 'llm' | 'embedding' | 'transcription';
 
 export type LlamaModelResponse = {
   id: string;
@@ -18,7 +18,7 @@ export type LlamaModel = LlamaModelResponse & {
 export type LSDInstallModel = {
   model_name: string;
   model_source_type: 'namespace' | 'custom_endpoint' | 'maas'; // Source type of the model (required)
-  model_type?: 'llm' | 'embedding'; // Optional model type
+  model_type?: LlamaModelType; // Optional model type
   max_tokens?: number; // Optional per-model token limit (128-128000), only for llm
   embedding_dimension?: number; // Optional embedding vector size (128-3072000), only for embedding
 };
@@ -127,6 +127,8 @@ export type ResponseMetrics = {
   latency_ms: number;
   time_to_first_token_ms?: number; // Only present for streaming responses
   usage?: SimplifiedUsage;
+  trace_id?: string; // OTel trace ID (when tracing is enabled)
+  response_size_bytes?: number; // Response payload size (client-measured from SSE)
 };
 
 // File citation annotation from RAG responses
@@ -145,6 +147,21 @@ export type FileCitationAnnotation = {
 // Generic annotation type (could be file_citation or other types from API)
 export type ContentAnnotation = FileCitationAnnotation | { type: string; [key: string]: unknown };
 
+// File search result from RAG retrieval (file_search_call output)
+export type FileSearchResult = {
+  score: number;
+  text: string;
+  file_id?: string;
+  filename?: string;
+  attributes?: Record<string, unknown>;
+};
+
+// Extracted file search data from a file_search_call output item
+export type FileSearchCallData = {
+  queries: string[];
+  results: FileSearchResult[];
+};
+
 // Backend response types (matches the actual API structure)
 export type ContentItem = {
   type: string;
@@ -160,6 +177,8 @@ export type OutputItem = {
   status?: string;
   content?: ContentItem[];
   output?: string;
+  queries?: string[];
+  results?: FileSearchResult[];
 };
 
 export type BackendResponseData = {
@@ -197,8 +216,11 @@ export type SimplifiedResponseData = {
   usage?: SimplifiedUsage; // Optional - only present when Llama Stack API returns token data
   toolCallData?: MCPToolCallData; // Optional - only present when MCP tool calls exist
   sources?: SourceItem[]; // Optional - file sources from RAG annotations
+  annotations?: FileCitationAnnotation[];
+  citationMap?: Map<string, number>;
   metrics?: ResponseMetrics; // Optional - response metrics (latency, TTFT, usage)
   reasoningContent?: string; // Optional - accumulated reasoning/thinking text from thinking models
+  fileSearchData?: FileSearchCallData; // Optional - RAG retrieval context (queries, results with scores)
 };
 
 export type FileError = {
@@ -349,6 +371,7 @@ export type LlamaStackDistributionModel = {
     }>;
     availableDistributions: Record<string, string>;
   };
+  tracingEnabled?: boolean;
 };
 
 export type BFFConfig = {
@@ -379,7 +402,7 @@ export interface AAModelResponse {
     token: string;
   };
   model_source_type: 'namespace' | 'custom_endpoint' | 'maas';
-  model_type?: 'llm' | 'embedding';
+  model_type?: LlamaModelType;
   embedding_dimension?: number;
   capabilities?: string[];
 }
@@ -396,9 +419,10 @@ export type ExternalModelRequest = {
   model_display_name: string;
   base_url: string;
   secret_value: string;
-  model_type: 'llm' | 'embedding';
+  model_type: LlamaModelType;
   use_cases?: string;
   embedding_dimension?: number;
+  capabilities?: string[];
 };
 
 export type ExternalModelResponse = AAModelResponse;
@@ -478,12 +502,18 @@ export type MLflowPrompt = {
   latest_version: number;
   tags?: Record<string, string>;
   creation_timestamp: string;
+  scope?: {
+    type: 'project' | 'global';
+    namespace: string;
+    read_only?: boolean;
+  };
 };
 
 export type MLflowPromptsResponse = {
   prompts: MLflowPrompt[];
   next_page_token?: string;
   total_count: number;
+  failed_namespaces?: string[];
 };
 
 export type MLflowMessage = {
@@ -510,6 +540,11 @@ export type MLflowPromptVersion = {
   tags?: Record<string, string>;
   created_at: string;
   updated_at: string;
+  scope?: {
+    type: 'project' | 'global';
+    namespace: string;
+    read_only?: boolean;
+  };
 };
 
 export type MLflowPromptVersionMeta = {
@@ -522,18 +557,20 @@ export type MLflowPromptVersionMeta = {
 };
 
 export type MLflowPromptVersionsResponse = {
-  versions: MLflowPromptVersionMeta[];
+  versions: MLflowPromptVersionMeta[] | null;
   next_page_token?: string;
 };
 
 export type InstallLSDRequest = {
   models: LSDInstallModel[];
   enable_guardrails?: boolean; // If true, adds safety configuration with guardrail shields for all selected models
+  enable_tracing?: boolean; // If true, enables OTel tracing for the playground session
   vector_stores?: { vector_store_id: string }[]; // Optional vector stores to register; embedding models must be in models
 };
 
 export type DeleteLSDRequest = {
   name: string;
+  preserve_vector_store?: boolean;
 };
 
 export type CreateVectorStoreRequest = {
@@ -595,7 +632,8 @@ export interface MaaSModel {
   display_name?: string;
   description?: string;
   usecase?: string;
-  model_type?: 'llm' | 'embedding';
+  model_type?: LlamaModelType;
+  capabilities?: string[];
   subscriptions?: SubscriptionInfo[];
 }
 
@@ -732,6 +770,7 @@ export interface ClassifiedError {
   description: string;
   details: ErrorDetails;
   isRetriable: boolean;
+  traceId?: string;
 }
 
 export interface ApiError {
@@ -742,6 +781,7 @@ export interface ApiError {
     tool_name?: string;
     retriable: boolean;
   };
+  trace_id?: string;
 }
 
 /**
@@ -752,10 +792,15 @@ export interface ApiError {
 export class ApiErrorClass extends Error implements ApiError {
   error: ApiError['error'];
 
-  constructor(error: ApiError['error']) {
+  // eslint-disable-next-line camelcase
+  trace_id?: string;
+
+  constructor(error: ApiError['error'], traceId?: string) {
     super(error.message);
     this.name = 'ApiError';
     this.error = error;
+    // eslint-disable-next-line camelcase
+    this.trace_id = traceId;
     // Maintains proper prototype chain for instanceof checks
     Object.setPrototypeOf(this, ApiErrorClass.prototype);
   }

@@ -12,9 +12,7 @@ import {
 } from './consts';
 
 // Mock external dependencies
-jest.mock('@patternfly/chatbot', () => ({
-  FileDetailsLabel: jest.fn(({ fileName }: { fileName: string }) => fileName),
-}));
+jest.mock('@patternfly/chatbot', () => ({}));
 jest.mock('~/app/services/llamaStackService');
 jest.mock('~/app/hooks/useGenAiAPI');
 jest.mock('~/app/utilities/utils', () => {
@@ -48,7 +46,14 @@ const mockUseGenAiAPI = useGenAiAPI as jest.Mock;
 // Create a properly typed mock for createResponse
 const mockCreateResponse = jest.fn<
   Promise<SimplifiedResponseData>,
-  [CreateResponseRequest, { onStreamData?: (chunk: string) => void; abortSignal?: AbortSignal }?]
+  [
+    CreateResponseRequest,
+    {
+      onStreamData?: (chunk: string) => void;
+      abortSignal?: AbortSignal;
+      headers?: Record<string, string>;
+    }?,
+  ]
 >();
 
 // Setup function to be called in beforeEach
@@ -75,6 +80,7 @@ const createDefaultHookProps = (overrides?: {
   systemInstruction?: string;
   isRagEnabled?: boolean;
   isStreamingEnabled?: boolean;
+  isTracingEnabled?: boolean;
   temperature?: number;
   currentVectorStoreId?: string | null;
   knowledgeMode?: 'inline' | 'external';
@@ -1090,164 +1096,93 @@ describe('useChatbotMessages', () => {
     });
   });
 
-  describe('inline document chips in sent message', () => {
-    it('should set extraContent.afterMainContent when docAttachments are provided', async () => {
+  // ─── Tracing headers (X-Session-ID) ───────────────────────────────────────
+
+  describe('tracing headers', () => {
+    it('sends X-Session-ID header when isTracingEnabled is true', async () => {
       mockCreateResponse.mockResolvedValueOnce(mockSuccessResponse);
-      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
 
-      await act(async () => {
-        await result.current.handleMessageSend(
-          'Check these files',
-          undefined,
-          undefined,
-          undefined,
-          ['PR_STYLE_GUIDE.md', 'rag-testing.txt'],
-        );
-      });
-
-      const userMessage = result.current.messages[0];
-      expect(userMessage.role).toBe('user');
-      expect(userMessage.content).toBe('Check these files');
-      expect(userMessage.extraContent).toBeDefined();
-      expect(React.isValidElement(userMessage.extraContent?.afterMainContent)).toBe(true);
-    });
-
-    it('should not set extraContent.afterMainContent when no docAttachments are provided', async () => {
-      mockCreateResponse.mockResolvedValueOnce(mockSuccessResponse);
-      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
-
-      await act(async () => {
-        await result.current.handleMessageSend('Hello without docs');
-      });
-
-      const userMessage = result.current.messages[0];
-      expect(userMessage.extraContent).toBeUndefined();
-    });
-
-    it('should not set afterMainContent when docAttachments is empty array', async () => {
-      mockCreateResponse.mockResolvedValueOnce(mockSuccessResponse);
-      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
-
-      await act(async () => {
-        await result.current.handleMessageSend('No docs', undefined, undefined, undefined, []);
-      });
-
-      const userMessage = result.current.messages[0];
-      expect(userMessage.extraContent).toBeUndefined();
-    });
-
-    it('should set both beforeMainContent and afterMainContent when image and docs are provided', async () => {
-      mockCreateResponse.mockResolvedValueOnce(mockSuccessResponse);
-      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
-
-      await act(async () => {
-        await result.current.handleMessageSend(
-          'Image and docs',
-          undefined,
-          'file-123',
-          { previewUrl: 'blob:http://localhost/abc', fileName: 'photo.png' },
-          ['report.pdf'],
-        );
-      });
-
-      const userMessage = result.current.messages[0];
-      expect(userMessage.extraContent).toBeDefined();
-      expect(React.isValidElement(userMessage.extraContent?.beforeMainContent)).toBe(true);
-      expect(React.isValidElement(userMessage.extraContent?.afterMainContent)).toBe(true);
-    });
-
-    it('should create FileDetailsLabel elements with correct fileName and hasTruncation for each attachment', async () => {
-      const { FileDetailsLabel } = require('@patternfly/chatbot');
-
-      mockCreateResponse.mockResolvedValueOnce(mockSuccessResponse);
-      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
-
-      await act(async () => {
-        await result.current.handleMessageSend('Files here', undefined, undefined, undefined, [
-          'report.pdf',
-          'data.csv',
-        ]);
-      });
-
-      const wrapper = result.current.messages[0].extraContent
-        ?.afterMainContent as React.ReactElement;
-      const children = wrapper.props.children as React.ReactElement[];
-      expect(children).toHaveLength(2);
-      expect(children[0].type).toBe(FileDetailsLabel);
-      expect(children[0].props).toEqual(
-        expect.objectContaining({ fileName: 'report.pdf', hasTruncation: true }),
+      const { result } = renderHook(() =>
+        useChatbotMessages(createDefaultHookProps({ isTracingEnabled: true })),
       );
-      expect(children[1].type).toBe(FileDetailsLabel);
-      expect(children[1].props).toEqual(
-        expect.objectContaining({ fileName: 'data.csv', hasTruncation: true }),
+
+      await act(async () => {
+        await result.current.handleMessageSend('hello');
+      });
+
+      expect(mockCreateResponse).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          headers: expect.objectContaining({ 'X-Session-ID': expect.any(String) }),
+        }),
       );
     });
 
-    it('should create exactly N FileDetailsLabel elements for N doc attachments', async () => {
+    it('does not send X-Session-ID header when isTracingEnabled is false', async () => {
       mockCreateResponse.mockResolvedValueOnce(mockSuccessResponse);
-      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
 
-      await act(async () => {
-        await result.current.handleMessageSend('Three docs', undefined, undefined, undefined, [
-          'a.pdf',
-          'b.txt',
-          'c.csv',
-        ]);
-      });
-
-      const wrapper = result.current.messages[0].extraContent
-        ?.afterMainContent as React.ReactElement;
-      const children = wrapper.props.children as React.ReactElement[];
-      expect(children).toHaveLength(3);
-    });
-
-    it('afterMainContent wrapper div has correct flex styles', async () => {
-      mockCreateResponse.mockResolvedValueOnce(mockSuccessResponse);
-      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
-
-      await act(async () => {
-        await result.current.handleMessageSend('Check styles', undefined, undefined, undefined, [
-          'doc.pdf',
-        ]);
-      });
-
-      const userMessage = result.current.messages[0];
-      const wrapper = userMessage.extraContent?.afterMainContent as React.ReactElement;
-      expect(wrapper.type).toBe('div');
-      expect(wrapper.props.style).toEqual({
-        display: 'flex',
-        flexWrap: 'wrap',
-        gap: '0.5rem',
-        marginTop: '0.5rem',
-      });
-    });
-
-    it('works correctly with a single doc attachment', async () => {
-      const { FileDetailsLabel } = require('@patternfly/chatbot');
-
-      mockCreateResponse.mockResolvedValueOnce(mockSuccessResponse);
-      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
-
-      await act(async () => {
-        await result.current.handleMessageSend('Single doc', undefined, undefined, undefined, [
-          'only-one.pdf',
-        ]);
-      });
-
-      const userMessage = result.current.messages[0];
-      expect(userMessage.extraContent).toBeDefined();
-      expect(React.isValidElement(userMessage.extraContent?.afterMainContent)).toBe(true);
-
-      const wrapper = userMessage.extraContent?.afterMainContent as React.ReactElement;
-      // With React.createElement spread args, single child is in props.children
-      const children = Array.isArray(wrapper.props.children)
-        ? wrapper.props.children
-        : [wrapper.props.children];
-      expect(children).toHaveLength(1);
-      expect(children[0].type).toBe(FileDetailsLabel);
-      expect(children[0].props).toEqual(
-        expect.objectContaining({ fileName: 'only-one.pdf', hasTruncation: true }),
+      const { result } = renderHook(() =>
+        useChatbotMessages(createDefaultHookProps({ isTracingEnabled: false })),
       );
+
+      await act(async () => {
+        await result.current.handleMessageSend('hello');
+      });
+
+      expect(mockCreateResponse).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          headers: {},
+        }),
+      );
+    });
+
+    it('does not send X-Session-ID header by default', async () => {
+      mockCreateResponse.mockResolvedValueOnce(mockSuccessResponse);
+
+      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
+
+      await act(async () => {
+        await result.current.handleMessageSend('hello');
+      });
+
+      expect(mockCreateResponse).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          headers: {},
+        }),
+      );
+    });
+
+    it('uses a stable session ID across multiple sends', async () => {
+      mockCreateResponse
+        .mockResolvedValueOnce(mockSuccessResponse)
+        .mockResolvedValueOnce(mockSuccessResponse);
+
+      const { result } = renderHook(() =>
+        useChatbotMessages(createDefaultHookProps({ isTracingEnabled: true })),
+      );
+
+      await act(async () => {
+        await result.current.handleMessageSend('first');
+      });
+
+      const firstCallHeaders = mockCreateResponse.mock.calls[0][1]?.headers as
+        | Record<string, string>
+        | undefined;
+      const firstSessionId = firstCallHeaders?.['X-Session-ID'];
+
+      await act(async () => {
+        await result.current.handleMessageSend('second');
+      });
+
+      const secondCallHeaders = mockCreateResponse.mock.calls[1][1]?.headers as
+        | Record<string, string>
+        | undefined;
+      const secondSessionId = secondCallHeaders?.['X-Session-ID'];
+
+      expect(firstSessionId).toBeDefined();
+      expect(firstSessionId).toBe(secondSessionId);
     });
   });
 });

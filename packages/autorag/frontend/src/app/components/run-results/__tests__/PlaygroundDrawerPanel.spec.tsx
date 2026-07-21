@@ -5,6 +5,10 @@ import { Drawer, DrawerContent } from '@patternfly/react-core';
 import PlaygroundDrawerPanel from '~/app/components/run-results/PlaygroundDrawerPanel';
 import type { AutoragPattern, ResponsesTemplate } from '~/app/types/autoragPattern';
 import type { PlaygroundPatternInfo } from '~/app/components/run-results/PlaygroundDrawerPanel';
+import {
+  AutoragResultsContext,
+  type AutoragResultsContextProps,
+} from '~/app/context/AutoragResultsContext';
 
 jest.mock('~/app/components/EmbeddedPlayground', () => {
   const MockPlayground: React.FC = () => (
@@ -53,17 +57,36 @@ const mockPatternInfo: PlaygroundPatternInfo = {
 
 const mockPatterns: Record<string, AutoragPattern> = {
   pattern_a: {
-    settings: { responses_template: mockTemplate } as AutoragPattern['settings'],
-    scores: {},
+    name: 'pattern_a',
+    iteration: 0,
+    max_combinations: 1,
+    duration_seconds: 0,
+    inference: { responses_template: mockTemplate },
+    settings: {} as AutoragPattern['settings'],
+    evaluation: { metrics: [] },
   } as AutoragPattern,
   pattern_b: {
-    settings: { responses_template: mockTemplate } as AutoragPattern['settings'],
-    scores: {},
+    name: 'pattern_b',
+    iteration: 0,
+    max_combinations: 1,
+    duration_seconds: 0,
+    inference: { responses_template: mockTemplate },
+    settings: {} as AutoragPattern['settings'],
+    evaluation: { metrics: [] },
   } as AutoragPattern,
   pattern_no_template: {
+    name: 'pattern_no_template',
+    iteration: 0,
+    max_combinations: 1,
+    duration_seconds: 0,
     settings: {} as AutoragPattern['settings'],
-    scores: {},
+    evaluation: { metrics: [] },
   } as AutoragPattern,
+};
+
+const mockContextValue: AutoragResultsContextProps = {
+  patterns: mockPatterns,
+  parameters: { ogx_secret_name: 'test-secret' },
 };
 
 const defaultProps = {
@@ -79,11 +102,13 @@ const defaultProps = {
 
 const renderInDrawer = (props = defaultProps) =>
   render(
-    <Drawer isExpanded>
-      <DrawerContent panelContent={<PlaygroundDrawerPanel {...props} />}>
-        <div>Main content</div>
-      </DrawerContent>
-    </Drawer>,
+    <AutoragResultsContext.Provider value={mockContextValue}>
+      <Drawer isExpanded>
+        <DrawerContent panelContent={<PlaygroundDrawerPanel {...props} />}>
+          <div>Main content</div>
+        </DrawerContent>
+      </Drawer>
+    </AutoragResultsContext.Provider>,
   );
 
 describe('PlaygroundDrawerPanel', () => {

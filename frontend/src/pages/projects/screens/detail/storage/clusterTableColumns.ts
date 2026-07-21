@@ -1,4 +1,4 @@
-import { SortableData } from '#~/components/table';
+import { SortableData } from '@odh-dashboard/ui-core';
 import { ClusterStorageNotebookSelection } from '#~/pages/projects/types';
 
 export const storageColumns: SortableData<ClusterStorageNotebookSelection>[] = [

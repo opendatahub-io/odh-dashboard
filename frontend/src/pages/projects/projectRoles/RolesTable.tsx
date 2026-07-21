@@ -9,15 +9,18 @@ import {
   ToolbarItem,
 } from '@patternfly/react-core';
 import { PlusCircleIcon } from '@patternfly/react-icons';
-import { Link } from 'react-router-dom';
-import Table from '#~/components/table/Table';
-import DashboardEmptyTableView from '#~/concepts/dashboard/DashboardEmptyTableView';
+import { Link, useNavigate } from 'react-router-dom';
+import { Table, DashboardEmptyTableView } from '@odh-dashboard/ui-core';
 import type { RoleRef } from '#~/concepts/permissions/types';
+import { fireLinkTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 import RoleDetailsModal from '#~/pages/projects/projectPermissions/roleDetails/RoleDetailsModal';
+import { CUSTOM_ROLE_TRACKING_EVENTS } from './trackingUtils';
+import { SEARCH_PLACEHOLDER } from './const';
 import type { RoleListRow } from './types';
 import { columns } from './columns';
 import RolesTableRow from './RolesTableRow';
 import PreviewYAMLModal from './PreviewYAMLModal';
+import './RolesTable.scss';
 
 type RolesTableProps = {
   rows: RoleListRow[];
@@ -32,6 +35,7 @@ const RolesTable: React.FC<RolesTableProps> = ({
   searchFilter,
   onSearchChange,
 }) => {
+  const navigate = useNavigate();
   const [detailsRoleRef, setDetailsRoleRef] = React.useState<RoleRef>();
   const [previewRow, setPreviewRow] = React.useState<RoleListRow>();
 
@@ -49,7 +53,8 @@ const RolesTable: React.FC<RolesTableProps> = ({
     <>
       <ToolbarItem>
         <SearchInput
-          placeholder="Search by name or description"
+          className="odh-roles-table__search"
+          placeholder={SEARCH_PLACEHOLDER}
           value={searchFilter}
           onChange={(_e, value) => onSearchChange(value)}
           onClear={() => onSearchChange('')}
@@ -62,6 +67,12 @@ const RolesTable: React.FC<RolesTableProps> = ({
           variant="primary"
           component={(props) => <Link {...props} to={`/projects/${namespace}/roles/create`} />}
           data-testid="create-role-button"
+          onClick={() =>
+            fireLinkTrackingEvent(CUSTOM_ROLE_TRACKING_EVENTS.CREATION_INITIATED, {
+              to: `/projects/${namespace}/roles/create`,
+              type: 'roles-list-page',
+            })
+          }
         >
           Create custom role
         </Button>
@@ -86,6 +97,12 @@ const RolesTable: React.FC<RolesTableProps> = ({
               variant="primary"
               component={(props) => <Link {...props} to={`/projects/${namespace}/roles/create`} />}
               data-testid="create-role-button"
+              onClick={() =>
+                fireLinkTrackingEvent(CUSTOM_ROLE_TRACKING_EVENTS.CREATION_INITIATED, {
+                  to: `/projects/${namespace}/roles/create`,
+                  type: 'empty-state',
+                })
+              }
             >
               Create custom role
             </Button>
@@ -113,8 +130,10 @@ const RolesTable: React.FC<RolesTableProps> = ({
             row={row}
             onViewDetails={() => setDetailsRoleRef(row.roleRef)}
             onPreviewYAML={() => setPreviewRow(row)}
-            onEdit={() => undefined}
-            onDuplicate={() => undefined}
+            onEdit={() => navigate(`/projects/${namespace}/roles/${row.roleRef.name}/edit`)}
+            onDuplicate={() =>
+              navigate(`/projects/${namespace}/roles/${row.roleRef.name}/duplicate`)
+            }
           />
         )}
       />

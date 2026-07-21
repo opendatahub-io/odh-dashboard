@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/julienschmidt/httprouter"
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/config"
 	k8s "github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/integrations/kubernetes/k8mocks"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/models"
@@ -145,15 +146,15 @@ func TestGetDashboardConfigByName_WrongNamespace_Returns403(t *testing.T) {
 
 func newFakeDynWithDashboardCR() *dynamicfake.FakeDynamicClient {
 	cr := &unstructured.Unstructured{
-		Object: map[string]interface{}{
+		Object: map[string]any{
 			"apiVersion": "opendatahub.io/v1alpha",
 			"kind":       "OdhDashboardConfig",
-			"metadata": map[string]interface{}{
+			"metadata": map[string]any{
 				"name":      "odh-dashboard-config",
 				"namespace": "dash-ns",
 			},
-			"spec": map[string]interface{}{
-				"dashboardConfig": map[string]interface{}{
+			"spec": map[string]any{
+				"dashboardConfig": map[string]any{
 					"disableKServe": false,
 				},
 			},
@@ -172,7 +173,12 @@ func TestGetDashboardConfigByName_Success(t *testing.T) {
 	fakeDyn := newFakeDynWithDashboardCR()
 	app := newTestApp(func(a *App) {
 		a.config.Namespace = "dash-ns"
-		a.repositories = repositories.NewRepositories(false, fakeDyn, testSAClientset, "")
+		a.repositories = repositories.NewRepositories(repositories.RepositoriesConfig{
+			Platform:    config.PlatformOpenShift,
+			SADynClient: fakeDyn,
+			SAClientset: testSAClientset,
+			Namespace:   "",
+		})
 	})
 	admin := k8mocks.DefaultTestUsers[0]
 
@@ -192,7 +198,7 @@ func TestGetDashboardConfigByName_Success(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, rr.Code)
 
-	var body map[string]interface{}
+	var body map[string]any
 	err := json.Unmarshal(rr.Body.Bytes(), &body)
 	require.NoError(t, err)
 	assert.Equal(t, "OdhDashboardConfig", body["kind"])
@@ -202,7 +208,12 @@ func TestPatchDashboardConfigByName_Success(t *testing.T) {
 	fakeDyn := newFakeDynWithDashboardCR()
 	app := newTestApp(func(a *App) {
 		a.config.Namespace = "dash-ns"
-		a.repositories = repositories.NewRepositories(false, fakeDyn, testSAClientset, "")
+		a.repositories = repositories.NewRepositories(repositories.RepositoriesConfig{
+			Platform:    config.PlatformOpenShift,
+			SADynClient: fakeDyn,
+			SAClientset: testSAClientset,
+			Namespace:   "",
+		})
 	})
 	admin := k8mocks.DefaultTestUsers[0]
 
@@ -225,11 +236,11 @@ func TestPatchDashboardConfigByName_Success(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, rr.Code)
 
-	var body map[string]interface{}
+	var body map[string]any
 	err := json.Unmarshal(rr.Body.Bytes(), &body)
 	require.NoError(t, err)
 
-	spec := body["spec"].(map[string]interface{})
-	dc := spec["dashboardConfig"].(map[string]interface{})
+	spec := body["spec"].(map[string]any)
+	dc := spec["dashboardConfig"].(map[string]any)
 	assert.Equal(t, true, dc["disableKServe"])
 }

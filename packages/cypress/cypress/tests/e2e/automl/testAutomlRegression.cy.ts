@@ -1,7 +1,8 @@
 import yaml from 'js-yaml';
 import { deleteOpenShiftProject } from '../../../utils/oc_commands/project';
 import { deleteS3TestFiles } from '../../../utils/oc_commands/s3Cleanup';
-import { provisionProjectForAutoX } from '../../../utils/autoXPipelines';
+import { provisionProjectForAutoX, waitForManagedPipelines } from '../../../utils/autoXPipelines';
+import { waitForDspaReady } from '../../../utils/oc_commands/dspa';
 import { retryableBefore } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
 import type { AutomlTestData } from '../../../types';
@@ -44,8 +45,15 @@ describe('AutoML Regression E2E', { testIsolation: false }, () => {
 
   it(
     'Can create and submit an AutoML regression run',
-    { tags: ['@AutoML', '@AutoMLRegression'], retries: { runMode: 0, openMode: 0 } },
+    {
+      tags: ['@AutoML', '@AutoMLRegression', '@Featureflagged'],
+      retries: { runMode: 0, openMode: 0 },
+    },
     () => {
+      cy.step('Wait for pipeline server and managed pipelines');
+      waitForDspaReady(projectName);
+      waitForManagedPipelines(projectName);
+
       automlConfigurePage.submitRunSetup(testData, projectName, uuid);
 
       cy.step('Select target column');
@@ -54,6 +62,9 @@ describe('AutoML Regression E2E', { testIsolation: false }, () => {
 
       cy.step('Select Regression prediction type');
       automlConfigurePage.findTaskTypeCard('regression').click();
+
+      cy.step('Verify run preset defaults to Faster');
+      automlConfigurePage.findPresetRadio('speed').should('be.checked');
 
       cy.step('Set top N models to minimize run time');
       automlConfigurePage.setTopN(testData.topN as number);
@@ -73,7 +84,7 @@ describe('AutoML Regression E2E', { testIsolation: false }, () => {
 
   it(
     'Can interact with results page (leaderboard, model details, download)',
-    { tags: ['@AutoML', '@AutoMLRegression'] },
+    { tags: ['@AutoML', '@AutoMLRegression', '@Featureflagged'] },
     () => {
       automlResultsPage.verifyResultsInteraction('regression');
     },

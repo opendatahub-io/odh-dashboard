@@ -7,12 +7,9 @@ import {
   ValidatedOptions,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
-import {
-  ConnectionTypeDataField,
-  UriField,
-} from '@odh-dashboard/internal/concepts/connectionTypes/types';
+import type { ConnectionTypeDataField, UriField } from '@odh-dashboard/k8s-core';
 import DefaultValueTextRenderer from '@odh-dashboard/internal/concepts/connectionTypes/fields/DefaultValueTextRenderer';
-import { trimInputOnBlur, trimInputOnPaste } from '@odh-dashboard/internal/utilities/trimInput';
+import { trimInputOnBlur, trimInputOnPaste } from '@odh-dashboard/ui-core/utilities';
 import { FieldMode } from '@odh-dashboard/internal/concepts/connectionTypes/fields/types';
 
 const validateUrl = (url?: string) => {

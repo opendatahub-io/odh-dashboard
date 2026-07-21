@@ -7,13 +7,10 @@ import type {
   SecretKind,
   TemplateKind,
 } from '@odh-dashboard/k8s-core';
-import {
-  GroupKind,
-  InferenceServiceKind,
-  LocalQueueKind,
-  RoleBindingKind,
-  ServingRuntimeKind,
-} from '#~/k8sTypes';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
+import type { InferenceServiceKind, ServingRuntimeKind } from '@odh-dashboard/model-serving/shared';
+import { FetchStateObject } from '@odh-dashboard/ui-core/hooks/useFetch';
+import { GroupKind, LocalQueueKind, RoleBindingKind } from '#~/k8sTypes';
 import type { KueueWorkloadStatusWithMessage } from '#~/concepts/kueue/types';
 import {
   DEFAULT_LIST_FETCH_STATE,
@@ -25,7 +22,6 @@ import useServingRuntimes from '#~/pages/modelServing/useServingRuntimes';
 import { PipelineContextProvider } from '#~/concepts/pipelines/context';
 import useInferenceServices from '#~/pages/modelServing/useInferenceServices';
 import { CustomWatchK8sResult, ListWithNonDashboardPresence } from '#~/types';
-import { FetchStateObject } from '#~/utilities/useFetch';
 import useServingRuntimeSecrets from '#~/pages/modelServing/screens/projects/useServingRuntimeSecrets';
 import { byName, ProjectsContext } from '#~/concepts/projects/ProjectsContext';
 import InvalidProject from '#~/concepts/projects/InvalidProject';
@@ -34,7 +30,6 @@ import useTemplateOrder from '#~/pages/modelServing/customServingRuntimes/useTem
 import useTemplateDisablement from '#~/pages/modelServing/customServingRuntimes/useTemplateDisablement';
 import { useDashboardNamespace } from '#~/redux/selectors';
 import { getTokenNames } from '#~/pages/modelServing/utils';
-import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import { Connection } from '#~/concepts/connectionTypes/types';
 import { useGroups, useTemplates } from '#~/api';
 import { useWatchHardwareProfiles } from '#~/utilities/useWatchHardwareProfiles';
@@ -42,6 +37,7 @@ import useProjectKueueInfo from './useProjectKueueInfo';
 import { NotebookState } from './notebook/types';
 import useProjectNotebookStates from './notebook/useProjectNotebookStates';
 import { useKueueStatusForNotebooks } from './notebook/useKueueStatusForNotebooks';
+import { useQueuePositions } from './notebook/useQueuePositions';
 import useProjectPvcs from './screens/detail/storage/useProjectPvcs';
 import useProjectSharing from './projectSharing/useProjectSharing';
 import useConnections from './screens/detail/connections/useConnections';
@@ -93,11 +89,23 @@ const ProjectDetailsContextProvider: React.FC = () => {
   const project = projects.find(byName(namespace)) ?? null;
   useSyncPreferredProject(project);
   const notebooks = useProjectNotebookStates(namespace, { refreshRate: POLL_INTERVAL });
-  const { kueueStatusByNotebookName, isLoading: isKueueLoading } = useKueueStatusForNotebooks(
-    notebooks.data,
-    project ?? undefined,
-  );
+  const { kueueStatusByNotebookName: rawKueueStatus, isLoading: isKueueLoading } =
+    useKueueStatusForNotebooks(notebooks.data, project ?? undefined);
   const isKueueLoaded = !isKueueLoading;
+  const queuePositions = useQueuePositions(namespace, rawKueueStatus);
+  const kueueStatusByNotebookName = React.useMemo(() => {
+    if (Object.keys(queuePositions).length === 0) {
+      return rawKueueStatus;
+    }
+    const result: Record<string, KueueWorkloadStatusWithMessage | null> = {};
+    for (const [name, status] of Object.entries(rawKueueStatus)) {
+      result[name] =
+        status && name in queuePositions
+          ? { ...status, queuePosition: queuePositions[name] }
+          : status;
+    }
+    return result;
+  }, [rawKueueStatus, queuePositions]);
 
   const pvcs = useProjectPvcs(namespace, { refreshRate: POLL_INTERVAL });
   const connections = useConnections(namespace, { refreshRate: POLL_INTERVAL });

@@ -11,7 +11,7 @@ import {
   waitForValidatedModelCards,
 } from '../../../utils/oc_commands/modelCatalog';
 import { retryableBefore } from '../../../utils/retryableHooks';
-import { getCustomResource } from '../../../utils/oc_commands/customResources';
+import { isRHOAI } from '../../../utils/oc_commands/applications';
 import type { ModelCatalogSourceTestData } from '../../../types';
 
 describe('Verify Performance Filters are available on RHOAI', () => {
@@ -19,16 +19,11 @@ describe('Verify Performance Filters are available on RHOAI', () => {
   let skipTest = false;
 
   retryableBefore(() => {
-    // Check if the operator is RHOAI, if it's not (ODH), skip the test
     cy.step('Check if the operator is RHOAI');
-    getCustomResource('redhat-ods-operator', 'Deployment', 'name=rhods-operator').then((result) => {
-      if (!result.stdout.includes('rhods-operator')) {
-        cy.log(
-          'RHOAI operator not found, skipping the test (Validated models with performance data are RHOAI-specific).',
-        );
+    isRHOAI().then((rhoai) => {
+      if (!rhoai) {
+        cy.log('ODH detected, skipping RHOAI-specific test.');
         skipTest = true;
-      } else {
-        cy.log('RHOAI operator confirmed:', result.stdout);
       }
     });
 

@@ -13,12 +13,12 @@ import {
   Popover,
   Skeleton,
 } from '@patternfly/react-core';
-import { InferenceServiceKind, ServingRuntimeKind } from '#~/k8sTypes';
+import type { ToggleState } from '@odh-dashboard/ui-core';
+import type { InferenceServiceKind, ServingRuntimeKind } from '@odh-dashboard/model-serving/shared';
 import {
   isServingRuntimeRouteEnabled,
   isInferenceServiceRouteEnabled,
 } from '#~/pages/modelServing/screens/projects/utils';
-import { ToggleState } from '#~/components/StateActionToggle.tsx';
 import useRouteForInferenceService from './useRouteForInferenceService';
 import InternalServicePopoverContent from './InternalServicePopoverContent';
 

@@ -321,7 +321,14 @@ func (app *App) handleStreamingResponseWithModeration(w http.ResponseWriter, r *
 	}
 
 	sendGuardrailError := func(message string, code string, retriable bool) {
-		_ = sendEvent(buildStreamingErrorEvent(code, message, "guardrails", retriable))
+		withTraceID := func(data map[string]interface{}) {
+			if traceID := otelTraceID(ctx); traceID != "" {
+				data["trace_id"] = traceID
+			}
+		}
+		if writeErr := sendEvent(buildStreamingErrorEvent(code, message, "guardrails", retriable, withTraceID)); writeErr != nil {
+			app.logger.Debug("Failed to write guardrail error event to client", "error", writeErr)
+		}
 	}
 
 	// Run input moderation after heartbeat is active (prevents HAProxy timeout)
@@ -364,10 +371,13 @@ func (app *App) handleStreamingResponseWithModeration(w http.ResponseWriter, r *
 				LatencyMs:          latencyMs,
 				TimeToFirstTokenMs: calculateTTFT(startTime, firstTokenTime),
 				Usage:              usage,
+				TraceID:            otelTraceID(ctx),
 			},
 		}
 		eventData, _ := json.Marshal(metricsEvent)
-		_ = sendEvent(eventData)
+		if writeErr := sendEvent(eventData); writeErr != nil {
+			app.logger.Debug("Failed to write metrics event to client", "error", writeErr)
+		}
 		return
 	}
 
@@ -508,8 +518,11 @@ func (app *App) handleStreamingResponseWithModeration(w http.ResponseWriter, r *
 			LatencyMs:          latencyMs,
 			TimeToFirstTokenMs: calculateTTFT(startTime, firstTokenTime),
 			Usage:              usage,
+			TraceID:            otelTraceID(ctx),
 		},
 	}
 	eventData, _ := json.Marshal(metricsEvent)
-	_ = sendEvent(eventData)
+	if writeErr := sendEvent(eventData); writeErr != nil {
+		app.logger.Debug("Failed to write metrics event to client", "error", writeErr)
+	}
 }

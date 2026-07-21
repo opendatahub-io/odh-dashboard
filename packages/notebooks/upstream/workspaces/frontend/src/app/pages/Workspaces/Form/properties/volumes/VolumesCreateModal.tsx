@@ -1,10 +1,10 @@
 import React from 'react';
-import { Alert, AlertVariant } from '@patternfly/react-core/dist/esm/components/Alert';
 import { Button } from '@patternfly/react-core/dist/esm/components/Button';
 import {
   Form,
   FormFieldGroup,
   FormFieldGroupHeader,
+  FormHelperText,
 } from '@patternfly/react-core/dist/esm/components/Form';
 import { HelperText, HelperTextItem } from '@patternfly/react-core/dist/esm/components/HelperText';
 import { MenuToggle } from '@patternfly/react-core/dist/esm/components/MenuToggle';
@@ -28,7 +28,9 @@ import { Popover } from '@patternfly/react-core/dist/esm/components/Popover';
 import { InfoCircleIcon } from '@patternfly/react-icons/dist/esm/icons/info-circle-icon';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons/dist/esm/icons/outlined-question-circle-icon';
 import { V1PersistentVolumeAccessMode } from '~/generated/data-contracts';
+import { ErrorAlert } from '~/shared/components/ErrorAlert';
 import useStorageClasses from '~/app/hooks/useStorageClasses';
+import { useNamespaceSelectorWrapper } from '~/app/hooks/useNamespaceSelectorWrapper';
 import useVolumesFormState from '~/app/hooks/useVolumesFormState';
 import { WorkspacesPodVolumeMountValue } from '~/app/types';
 import ThemeAwareFormGroupWrapper from '~/shared/components/ThemeAwareFormGroupWrapper';
@@ -68,7 +70,8 @@ export const VolumesCreateModal: React.FC<VolumesCreateModalProps> = ({
   volumeToEdit,
   onVolumeEdited,
 }) => {
-  const { storageClasses, storageClassLoadError } = useStorageClasses();
+  const { selectedNamespace } = useNamespaceSelectorWrapper();
+  const { storageClasses, storageClassLoadError } = useStorageClasses(selectedNamespace);
 
   const isEditMode = !!volumeToEdit;
 
@@ -104,6 +107,7 @@ export const VolumesCreateModal: React.FC<VolumesCreateModalProps> = ({
     excludedPvcNames,
     mountedPaths,
     storageClasses,
+    storageClassLoadError,
     setIsOpen,
     onVolumeCreated,
     onVolumeEdited,
@@ -170,11 +174,7 @@ export const VolumesCreateModal: React.FC<VolumesCreateModalProps> = ({
       />
       <ModalBody>
         <Form>
-          {error && (
-            <Alert variant={AlertVariant.danger} isInline title="Error">
-              {error}
-            </Alert>
-          )}
+          {error && <ErrorAlert title="Error" content={error} testId="create-volume-error" />}
           {!isEditMode && (
             <FormFieldGroup
               className="form-label-field-group"
@@ -204,7 +204,22 @@ export const VolumesCreateModal: React.FC<VolumesCreateModalProps> = ({
                   }}
                 />
               </ThemeAwareFormGroupWrapper>
-              <ThemeAwareFormGroupWrapper label="Storage Class" isRequired fieldId="storage-class">
+              <ThemeAwareFormGroupWrapper
+                label="Storage Class"
+                isRequired
+                fieldId="storage-class"
+                helperTextNode={
+                  storageClassLoadError && (
+                    <FormHelperText>
+                      <HelperText>
+                        <HelperTextItem variant="warning">
+                          Storage classes could not be loaded. Enter a class name manually.
+                        </HelperTextItem>
+                      </HelperText>
+                    </FormHelperText>
+                  )
+                }
+              >
                 {storageClasses.length > 0 ? (
                   <Select
                     id="storage-class"
@@ -253,11 +268,6 @@ export const VolumesCreateModal: React.FC<VolumesCreateModalProps> = ({
                       onChange={(_, val) => setStorageClassName(val)}
                       placeholder="Enter storage class name"
                     />
-                    {storageClassLoadError && (
-                      <HelperText>
-                        <HelperTextItem variant="warning">{storageClassLoadError}</HelperTextItem>
-                      </HelperText>
-                    )}
                   </>
                 )}
               </ThemeAwareFormGroupWrapper>

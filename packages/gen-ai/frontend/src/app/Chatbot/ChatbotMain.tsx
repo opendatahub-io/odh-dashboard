@@ -1,11 +1,13 @@
 /* eslint-disable camelcase */
 import * as React from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { EmptyState, EmptyStateVariant, Spinner, Content } from '@patternfly/react-core';
 import { ApplicationsPage } from 'mod-arch-shared';
 import {
   fireMiscTrackingEvent,
   fireSimpleTrackingEvent,
 } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { PLAYGROUND_AGENT_EVENTS } from '~/app/tracking/playgroundAgentTrackingConstants';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
 import ChatbotEmptyState from '~/app/EmptyStates/NoData';
 import { GenAiContext } from '~/app/context/GenAiContext';
@@ -16,13 +18,17 @@ import useFetchVectorStores from '~/app/hooks/useFetchVectorStores';
 import ChatbotConfigurationModal from '~/app/Chatbot/components/chatbotConfiguration/ChatbotConfigurationModal';
 import DeletePlaygroundModal from '~/app/Chatbot/components/DeletePlaygroundModal';
 import ChatModal from '~/app/Chatbot/components/ChatModal';
-import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
 import useFetchMCPServers from '~/app/hooks/useFetchMCPServers';
-import { serializeToAgentProfileSpec } from '~/app/agentProfile/serialize';
-import { isPlaygroundModelMatchForAIModel } from '~/app/utilities/utils';
+import useAgentProfileUrlParam from '~/app/agentProfile/useAgentProfileUrlParam';
+import { deserializeAgentProfile } from '~/app/agentProfile/deserialize';
+import useIsProfileDirty from '~/app/agentProfile/useIsProfileDirty';
+import SafeNavigationBlocker from '~/app/components/SafeNavigationBlocker';
+import { useSafeBrowserUnloadBlocker } from '~/app/hooks/useSafeBrowserUnloadBlocker';
 import ChatbotHeader from './ChatbotHeader';
 import ChatbotPlayground from './ChatbotPlayground';
 import ChatbotHeaderActions from './ChatbotHeaderActions';
+import SaveAgentProfileModal from './components/SaveAgentProfileModal';
+import LoadAgentProfileModal from './components/LoadAgentProfileModal';
 import {
   useChatbotConfigStore,
   selectConfigIds,
@@ -49,8 +55,11 @@ const ChatbotMain: React.FunctionComponent = () => {
     modelsError,
   } = React.useContext(ChatbotContext);
   const { namespace } = React.useContext(GenAiContext);
-  const { api } = useGenAiAPI();
-  const { data: mcpServers = [] } = useFetchMCPServers();
+  const {
+    data: mcpServers = [],
+    configMapName: mcpConfigMapName,
+    loaded: mcpServersLoaded,
+  } = useFetchMCPServers();
   const { data: bffConfig } = useFetchBFFConfig();
   const { data: allCollections, loaded: collectionsLoaded } = useFetchAAEVectorStores();
   const [existingCollections] = useFetchVectorStores();
@@ -71,9 +80,27 @@ const ChatbotMain: React.FunctionComponent = () => {
   const hasConversationMessagesRef = React.useRef<(() => boolean) | null>(null);
 
   // Derive compare mode from Zustand store (configIds.length > 1)
+  const [searchParams, setSearchParams] = useSearchParams();
+  const agentProfileId = searchParams.get('agentProfileId');
+
+  // Load agent profile from URL param — lives here so the ApplicationsPage spinner covers the fetch
+  const { loading: profileLoading, error: profileLoadError } = useAgentProfileUrlParam({
+    mcpServers,
+    mcpServersLoaded,
+  });
+  const profileApplied = useChatbotConfigStore((s) => s.profileApplied);
+  const loadedProfileId = useChatbotConfigStore((s) => s.loadedProfileId);
+  // Ready when: no profile to load, fetch errored, or profile fully applied (async assets settled)
+  const profileReady =
+    !agentProfileId ||
+    !!profileLoadError ||
+    (profileApplied && loadedProfileId === agentProfileId && !profileLoading);
   const configIds = useChatbotConfigStore(selectConfigIds);
   const isCompareMode = configIds.length > 1;
   const primaryConfigId = configIds[0] || DEFAULT_CONFIG_ID;
+
+  const isProfileDirty = useIsProfileDirty(primaryConfigId);
+  useSafeBrowserUnloadBlocker(isProfileDirty);
   const selectedModel = useChatbotConfigStore(selectSelectedModel(primaryConfigId));
 
   // Check if there are any models available (either AI assets or MaaS models)
@@ -89,35 +116,115 @@ const ChatbotMain: React.FunctionComponent = () => {
     fireMiscTrackingEvent('Playground Compare Mode Exited', { success: true });
   }, []);
 
-  // Temp: serializer test — will be updated before feature delivery
-  const handleSaveAsAgentProfile = React.useCallback(() => {
-    const config = useChatbotConfigStore.getState().configurations[primaryConfigId];
-    if (!config || !namespace?.name) {
+  const [saveModalMode, setSaveModalMode] = React.useState<'save' | 'save-as' | null>(null);
+  const [loadModalOpen, setLoadModalOpen] = React.useState(false);
+
+  const handleOpenSave = React.useCallback(() => setSaveModalMode('save'), []);
+  const handleOpenSaveAs = React.useCallback(() => setSaveModalMode('save-as'), []);
+  const handleCloseSaveModal = React.useCallback(() => setSaveModalMode(null), []);
+  const handleOpenLoad = React.useCallback(() => setLoadModalOpen(true), []);
+
+  const handleResetToLastSaved = React.useCallback(() => {
+    const store = useChatbotConfigStore.getState();
+    const {
+      loadedProfileSpec: savedSpec,
+      loadedProfileId: savedProfileId,
+      loadedProfileDisplayName: savedDisplayName,
+      loadedProfileDescription: savedDescription,
+      loadedResourceVersion: savedResourceVersion,
+      loadedProfilePrompt: savedPrompt,
+    } = store;
+    if (!savedSpec || !savedProfileId) {
       return;
     }
-    const llamaModel = models.find((m) => m.id === config.selectedModel);
-    const model = llamaModel
-      ? aiModels.find((ai) => isPlaygroundModelMatchForAIModel(llamaModel, ai))
-      : undefined;
-    const displayName = `Agent Profile - ${new Date().toISOString()}`;
-    const spec = serializeToAgentProfileSpec(config, displayName, 'Test description', {
-      model,
+    fireMiscTrackingEvent(PLAYGROUND_AGENT_EVENTS.REVERTED, { agentID: savedProfileId });
+
+    // Reconstruct a minimal AgentProfile from the stored snapshot and re-apply locally —
+    // no API call needed since we already have the last-saved spec.
+    const fakeProfile = {
+      apiVersion: 'genai.redhat.com/v1alpha1' as const,
+      kind: 'AgentProfile' as const,
+      metadata: {
+        name: `agent-profile-${savedProfileId}`,
+        resourceVersion: savedResourceVersion ?? '',
+      },
+      spec: savedSpec,
+    };
+    const { config, mcpToolsPending } = deserializeAgentProfile(fakeProfile, {
+      playgroundModels: models,
       mcpServers,
-      mcpConfigMapName: 'gen-ai-aa-mcp-servers',
     });
-    api
-      .createAgentProfile({ spec })
-      .then((response) => {
-        // eslint-disable-next-line no-console
-        console.log(
-          `[AgentProfile] Created: http://localhost:4010/gen-ai-studio/playground/${namespace.name}?agentProfileId=${response.profileId}`,
-        );
-      })
-      .catch((err) => {
-        // eslint-disable-next-line no-console
-        console.error('[AgentProfile] Create failed:', err);
+    store.applyAgentProfile(config, savedProfileId, savedDisplayName ?? '', savedDescription ?? '');
+
+    // Restore the prompt from the stored resolved copy captured at load time.
+    // Using savedPrompt (not the current activePrompt) ensures we restore the exact
+    // version that was loaded — not a subsequently registered version.
+    if (savedSpec.prompt && savedPrompt) {
+      store.updateActivePrompt(DEFAULT_CONFIG_ID, savedPrompt);
+      const instruction =
+        savedPrompt.template ??
+        savedPrompt.messages?.find((m) => m.role === 'system')?.content ??
+        '';
+      store.updateSystemInstruction(DEFAULT_CONFIG_ID, instruction);
+    }
+
+    store.setLoadedProfileSpec(savedSpec);
+    store.setLoadedResourceVersion(savedResourceVersion);
+    if (mcpToolsPending && namespace?.name) {
+      Object.entries(mcpToolsPending).forEach(([serverUrl, tools]) => {
+        store.saveToolSelections(DEFAULT_CONFIG_ID, namespace.name, serverUrl, tools);
       });
-  }, [primaryConfigId, namespace?.name, models, aiModels, mcpServers, api]);
+    }
+  }, [models, mcpServers, namespace?.name]);
+
+  const handleNewAgentConfiguration = React.useCallback(() => {
+    useChatbotConfigStore.getState().resetConfiguration();
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.delete('agentProfileId');
+        return next;
+      },
+      { replace: true },
+    );
+  }, [setSearchParams]);
+
+  const handleProfileSelected = React.useCallback(
+    (profileId: string) => {
+      setLoadModalOpen(false);
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          next.set('agentProfileId', profileId);
+          return next;
+        },
+        { replace: true },
+      );
+    },
+    [setSearchParams],
+  );
+
+  const handleProfileSaved = React.useCallback(
+    (profileId: string, displayName: string, description: string) => {
+      const currentConfig = useChatbotConfigStore.getState().configurations[primaryConfigId];
+      if (!currentConfig) {
+        return;
+      }
+      useChatbotConfigStore
+        .getState()
+        .applyAgentProfile(currentConfig, profileId, displayName, description);
+      // Keep the URL in sync so a page refresh reloads the saved profile
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          next.set('agentProfileId', profileId);
+          return next;
+        },
+        { replace: true },
+      );
+    },
+    [primaryConfigId, setSearchParams],
+  );
 
   // Handle compare chat confirmation - clears messages and enters compare mode
   const handleCompareConfirm = React.useCallback(() => {
@@ -147,7 +254,8 @@ const ChatbotMain: React.FunctionComponent = () => {
           lsdStatusLoaded &&
           (aiModelsLoaded || !!aiModelsError) &&
           (maasModelsLoaded || !!maasModelsError) &&
-          (lsdStatus?.phase !== 'Ready' || !!modelsLoaded || !!modelsError)
+          (lsdStatus?.phase !== 'Ready' || !!modelsLoaded || !!modelsError) &&
+          profileReady
         }
         empty={!lsdStatus}
         emptyStatePage={
@@ -197,11 +305,14 @@ const ChatbotMain: React.FunctionComponent = () => {
             />
           )
         }
-        loadError={lsdStatusError || aiModelsError}
+        loadError={lsdStatusError || aiModelsError || profileLoadError}
         headerAction={
           hasNoModelsOrSelectedModelDisabled ? undefined : (
             <ChatbotHeaderActions
-              onSaveAs={handleSaveAsAgentProfile}
+              onSave={handleOpenSave}
+              onSaveAs={handleOpenSaveAs}
+              onLoad={handleOpenLoad}
+              onNew={handleNewAgentConfiguration}
               onViewCode={() => {
                 setIsViewCodeModalOpen(true);
                 fireSimpleTrackingEvent('Playground View Code Selected');
@@ -277,6 +388,13 @@ const ChatbotMain: React.FunctionComponent = () => {
               hasConversationMessagesRef={hasConversationMessagesRef}
               isDrawerExpanded={isDrawerExpanded}
               setIsDrawerExpanded={setIsDrawerExpanded}
+              lsdTracingEnabled={lsdStatus.tracingEnabled}
+              onOpenLoad={handleOpenLoad}
+              onOpenSave={handleOpenSave}
+              onOpenSaveAs={handleOpenSaveAs}
+              onClearAgent={handleNewAgentConfiguration}
+              isProfileDirty={isProfileDirty}
+              onResetToLastSaved={handleResetToLastSaved}
             />
           )
         ) : lsdStatus?.phase === 'Failed' ? (
@@ -319,6 +437,22 @@ const ChatbotMain: React.FunctionComponent = () => {
         variant="compare"
       />
       {isPromptManagementModalOpen && <PromptManagementModal />}
+      {saveModalMode && (
+        <SaveAgentProfileModal
+          mode={saveModalMode}
+          mcpServers={mcpServers}
+          mcpConfigMapName={mcpConfigMapName}
+          onClose={handleCloseSaveModal}
+          onSaved={handleProfileSaved}
+        />
+      )}
+      {loadModalOpen && (
+        <LoadAgentProfileModal
+          onClose={() => setLoadModalOpen(false)}
+          onSelect={handleProfileSelected}
+        />
+      )}
+      {isProfileDirty && <SafeNavigationBlocker hasUnsavedChanges={isProfileDirty} />}
     </>
   );
 };

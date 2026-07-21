@@ -2,7 +2,13 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 
-import type { DashboardConfigKind } from '@odh-dashboard/k8s-core';
+import type {
+  DashboardConfigKind,
+  DataScienceClusterInitializationKindStatus,
+  DataScienceClusterKindStatus,
+} from '@odh-dashboard/k8s-core';
+import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
+import { FetchState } from '@odh-dashboard/ui-core/hooks/useFetchState';
 import { ClusterState, UserState } from '#~/redux/selectors/types';
 import { useUser, useClusterInfo } from '#~/redux/selectors';
 import { useAppContext } from '#~/app/AppContext';
@@ -10,15 +16,9 @@ import useFetchDsciStatus from '#~/concepts/areas/useFetchDsciStatus';
 import useFetchDscStatus from '#~/concepts/areas/useFetchDscStatus';
 import { mockDashboardConfig } from '#~/__mocks__';
 import { BuildStatus, SubscriptionStatusData } from '#~/types';
-import {
-  DataScienceClusterInitializationKindStatus,
-  DataScienceClusterKindStatus,
-  StorageClassKind,
-} from '#~/k8sTypes';
-import { FetchState } from '#~/utilities/useFetchState';
+import { StorageClassKind } from '#~/k8sTypes';
 import AboutDialog from '#~/app/AboutDialog';
 import { useWatchOperatorSubscriptionStatus } from '#~/utilities/useWatchOperatorSubscriptionStatus';
-import { DataScienceStackComponent } from '#~/concepts/areas/types';
 
 jest.mock('#~/app/AppContext', () => ({
   __esModule: true,

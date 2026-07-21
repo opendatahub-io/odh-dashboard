@@ -1,4 +1,6 @@
 import {
+  OptionsImageConfigValue,
+  OptionsPodConfigValue,
   PvcsPVCCreate,
   SecretsSecretCreate,
   V1Beta1WorkspaceState,
@@ -6,7 +8,7 @@ import {
   V1PersistentVolumeMode,
   V1PersistentVolumeReclaimPolicy,
   V1PodPhase,
-  WorkspacekindsWorkspaceKind,
+  WorkspacekindsWorkspaceKindListItem,
   WorkspacesRedirectMessageLevel,
   WorkspacesWorkspaceListItem,
   WorkspacesWorkspaceKindInfo,
@@ -37,7 +39,7 @@ export const mockNamespace3 = buildMockNamespace({ name: 'workspace-test-3' });
 export const mockNamespaces = [mockNamespace1, mockNamespace2, mockNamespace3];
 
 // WorkspaceKind
-export const mockWorkspaceKind1: WorkspacekindsWorkspaceKind = buildMockWorkspaceKind({
+export const mockWorkspaceKind1: WorkspacekindsWorkspaceKindListItem = buildMockWorkspaceKind({
   name: 'jupyterlab1',
   displayName: 'JupyterLab Notebook 1',
   clusterMetrics: {
@@ -45,7 +47,7 @@ export const mockWorkspaceKind1: WorkspacekindsWorkspaceKind = buildMockWorkspac
   },
 });
 
-export const mockWorkspaceKind2: WorkspacekindsWorkspaceKind = buildMockWorkspaceKind({
+export const mockWorkspaceKind2: WorkspacekindsWorkspaceKindListItem = buildMockWorkspaceKind({
   name: 'jupyterlab2',
   displayName: 'JupyterLab Notebook 2',
   clusterMetrics: {
@@ -53,7 +55,7 @@ export const mockWorkspaceKind2: WorkspacekindsWorkspaceKind = buildMockWorkspac
   },
 });
 
-export const mockWorkspaceKind3: WorkspacekindsWorkspaceKind = buildMockWorkspaceKind({
+export const mockWorkspaceKind3: WorkspacekindsWorkspaceKindListItem = buildMockWorkspaceKind({
   name: 'jupyterlab3',
   displayName: 'JupyterLab Notebook 3',
   clusterMetrics: {
@@ -587,3 +589,37 @@ export const mockPVCCreate: PvcsPVCCreate = buildMockPVCCreate({
   requests: { storage: '10Gi' },
   storageClassName: 'standard',
 });
+
+// ListValues mock data — extends kind values with CUDA image + GPU pod config
+const defaultKind = buildMockWorkspaceKind();
+
+export const mockListValuesImages: OptionsImageConfigValue[] = [
+  ...(defaultKind.podTemplate.options.imageConfig.values ?? []),
+  {
+    id: 'jupyterlab_scipy_210_cuda',
+    displayName: 'jupyter-scipy:v2.1.0-cuda',
+    description: 'JupyterLab with SciPy Packages and CUDA support for GPU workloads',
+    labels: [
+      { key: 'pythonVersion', value: '3.13' },
+      { key: 'jupyterlabVersion', value: '2.1.0' },
+      { key: 'cuda', value: '12.4' },
+      { key: 'gpuRequired', value: 'true' },
+    ],
+    hidden: false,
+  },
+];
+
+export const mockListValuesPodConfigs: OptionsPodConfigValue[] = [
+  ...(defaultKind.podTemplate.options.podConfig.values ?? []),
+  {
+    id: 'big_gpu',
+    displayName: 'Big GPU',
+    description: 'Pod with 4 CPU, 16 GB RAM, and 1 GPU',
+    hidden: false,
+    labels: [
+      { key: 'cpu', value: '4000m' },
+      { key: 'memory', value: '16Gi' },
+      { key: 'gpu', value: '1' },
+    ],
+  },
+];

@@ -1,8 +1,5 @@
-import {
-  ModelLocationSelectOption,
-  ModelTypeLabel,
-} from '@odh-dashboard/model-serving/types/form-data';
 import { deleteOpenShiftProject } from '../../../../utils/oc_commands/project';
+import { ModelLocationSelectOption, ModelTypeLabel } from '../../../../utils/modelServingConstants';
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '../../../../utils/e2eUsers';
 import { projectDetails, projectListPage } from '../../../../pages/projects';
 import { retryableBefore } from '../../../../utils/retryableHooks';
@@ -16,7 +13,6 @@ import {
 } from '../../../../pages/modelServing';
 import {
   checkInferenceServiceState,
-  modelExternalTester,
   verifyModelExternalToken,
 } from '../../../../utils/oc_commands/modelServing';
 import type { DeployOCIModelData } from '../../../../types';
@@ -53,7 +49,7 @@ const updateSecretDetailsFile = (
 };
 
 describe(
-  '[Automation Bug - RHOAIENG-65176] A user can create an OCI connection and deploy a model with it',
+  'A user can create an OCI connection and deploy a model with it',
   { testIsolation: false },
   () => {
     let testData: DeployOCIModelData;
@@ -171,7 +167,7 @@ describe(
 
         // Token Authentication Verification
         cy.step('Verify the model is not accessible without a token');
-        modelExternalTester(modelDeploymentName, projectName).then(({ response }) => {
+        verifyModelExternalToken(modelDeploymentName, projectName).then(({ response }) => {
           expect(response.status).to.equal(401);
         });
 

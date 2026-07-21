@@ -7,20 +7,21 @@ import ModelServerTemplateSelectField, {
   modelServerSelectFieldSchema,
 } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/ModelServerTemplateSelectField';
 import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
-import { getDisplayNameFromK8sResource } from '@odh-dashboard/internal/concepts/k8s/utils';
+import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import type { HardwareProfileKind } from '@odh-dashboard/k8s-core';
 import { isCompatibleWithIdentifier } from '@odh-dashboard/internal/pages/projects/screens/spawner/spawnerUtils';
-import { useModelServingClusterSettings } from '@odh-dashboard/model-serving/concepts/useModelServingClusterSettings';
+import {
+  isUnsupportedUnaccepted,
+  RUNTIME_VERSION_ANNOTATION,
+} from '@odh-dashboard/model-serving/concepts/versions';
 import { useFetchLLMInferenceServiceConfigs } from '../api/LLMInferenceServiceConfigs';
 import { LLMInferenceServiceConfigKind } from '../types';
-import { LLMD_OPTION } from '../deployments/server';
-import { isGenerativeNonLegacy } from '../formUtils';
+import { isSimpleLLMInferenceService } from '../formUtils';
 
 // External data hook
 
 export type LLMConfigOptionsData = {
   configs: LLMInferenceServiceConfigKind[];
-  isLlmdSuggested: boolean;
 };
 
 export const useLLMConfigOptions = (): {
@@ -28,13 +29,6 @@ export const useLLMConfigOptions = (): {
   loaded: boolean;
   loadError?: Error;
 } => {
-  const {
-    data: modelServingClusterSettings,
-    loaded: modelServingClusterSettingsLoaded,
-    error: modelServingClusterSettingsError,
-  } = useModelServingClusterSettings();
-  const isLLMdDefault = modelServingClusterSettings?.isLLMdDefault ?? false;
-
   const { dashboardNamespace } = useDashboardNamespace();
   const {
     data: llmInferenceServiceConfigs,
@@ -45,7 +39,9 @@ export const useLLMConfigOptions = (): {
   const llmEnabledConfigs = React.useMemo(
     () =>
       llmInferenceServiceConfigs.filter(
-        (config) => config.metadata.annotations?.['opendatahub.io/disabled'] !== 'true',
+        (config) =>
+          config.metadata.annotations?.['opendatahub.io/disabled'] !== 'true' &&
+          !isUnsupportedUnaccepted(config),
       ),
     [llmInferenceServiceConfigs],
   );
@@ -54,19 +50,11 @@ export const useLLMConfigOptions = (): {
     () => ({
       data: {
         configs: llmEnabledConfigs,
-        isLlmdSuggested: isLLMdDefault,
       },
-      loaded: modelServingClusterSettingsLoaded && loaded,
-      loadError: modelServingClusterSettingsError || error,
-    }),
-    [
-      llmEnabledConfigs,
       loaded,
-      error,
-      isLLMdDefault,
-      modelServingClusterSettingsLoaded,
-      modelServingClusterSettingsError,
-    ],
+      loadError: error,
+    }),
+    [llmEnabledConfigs, loaded, error],
   );
 };
 
@@ -83,7 +71,7 @@ const getOptionFromLLMInferenceServiceConfig = (
     name: llmInferenceServiceConfig.metadata.name,
     namespace: llmInferenceServiceConfig.metadata.namespace,
     label: getDisplayNameFromK8sResource(llmInferenceServiceConfig),
-    version: llmInferenceServiceConfig.metadata.annotations?.['opendatahub.io/runtime-version'],
+    version: llmInferenceServiceConfig.metadata.annotations?.[RUNTIME_VERSION_ANNOTATION],
     template: llmInferenceServiceConfig,
     compatibleWithHardwareProfile: isCompatible,
   };
@@ -94,13 +82,25 @@ const getOptions = (
   hardwareProfile?: HardwareProfileKind,
 ): ModelServerOption[] => {
   const result: ModelServerOption[] = [];
-  result.push(LLMD_OPTION);
   result.push(
     ...(externalData?.configs.map((config) =>
       getOptionFromLLMInferenceServiceConfig(config, hardwareProfile),
     ) ?? []),
   );
   return result;
+};
+
+const computeSuggestion = (options: ModelServerOption[]): ModelServerOption | undefined => {
+  if (options.length === 1) {
+    return options[0];
+  }
+
+  const compatibleOptions = options.filter((option) => option.compatibleWithHardwareProfile);
+  if (compatibleOptions.length === 1) {
+    return compatibleOptions[0];
+  }
+
+  return undefined;
 };
 
 export type LLMConfigOptionsFieldValue = {
@@ -143,7 +143,7 @@ export const LLMConfigOptionsFieldWizardField: LLMConfigOptionsFieldType = {
   step: 'modelDeployment',
   type: 'replacement',
   stateKey: 'modelServer',
-  isActive: isGenerativeNonLegacy,
+  isActive: isSimpleLLMInferenceService,
   reducerFunctions: {
     resolveDependencies: (formData) => ({
       hardwareProfile: formData.hardwareProfileConfig.formData.selectedProfile,
@@ -157,39 +157,20 @@ export const LLMConfigOptionsFieldWizardField: LLMConfigOptionsFieldType = {
       if (existingFieldData) {
         return existingFieldData;
       }
-      // if llmd is default
-      const options = getOptions(externalData, dependencies?.hardwareProfile);
 
-      if (externalData?.isLlmdSuggested) {
+      const options = getOptions(externalData, dependencies?.hardwareProfile);
+      const suggestion = computeSuggestion(options);
+
+      if (suggestion) {
         return {
           data: {
-            selection: LLMD_OPTION,
+            selection: suggestion,
             autoSelect: true,
-            suggestion: LLMD_OPTION,
+            suggestion,
           },
         };
       }
-      // if there is only one matching hardware profile, select it
-      const matchingHardwareProfileOption = options.filter(
-        (option) => option.compatibleWithHardwareProfile,
-      );
-      if (matchingHardwareProfileOption.length === 1) {
-        return {
-          data: {
-            selection: matchingHardwareProfileOption[0],
-            autoSelect: true,
-            suggestion: matchingHardwareProfileOption[0],
-          },
-        };
-      }
-      // if there is only one option, select it
-      if (options.length === 1) {
-        return {
-          data: {
-            selection: options[0],
-          },
-        };
-      }
+
       return { data: { autoSelect: false } };
     },
     validationSchema: z.object({

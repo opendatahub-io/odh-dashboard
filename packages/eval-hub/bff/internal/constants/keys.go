@@ -23,3 +23,11 @@ const (
 	TraceIdKey     contextKey = "TraceIdKey"
 	TraceLoggerKey contextKey = "TraceLoggerKey"
 )
+
+// BFFTarget identifies a target BFF for inter-BFF communication.
+type BFFTarget string
+
+// BFFClientKey returns a context key scoped to a specific BFF target.
+func BFFClientKey(target BFFTarget) contextKey {
+	return contextKey("BFFClientKey_" + string(target))
+}

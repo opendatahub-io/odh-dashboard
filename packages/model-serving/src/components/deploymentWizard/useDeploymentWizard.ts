@@ -1,15 +1,14 @@
 import React from 'react';
-import { useHardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/useHardwareProfileConfig';
-import { useK8sNameDescriptionFieldData } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
+import { useHardwareProfileConfig } from '@odh-dashboard/hardware-profiles/shared';
+import { useK8sNameDescriptionFieldData } from '@odh-dashboard/ui-core/components/K8sNameDescriptionField';
 import {
   extractK8sNameDescriptionFieldData,
   INFERENCE_SERVICE_NAME_INVALID_CHARS_MESSAGE,
   INFERENCE_SERVICE_NAME_REGEX,
   LimitNameResourceType,
-} from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/utils';
+} from '@odh-dashboard/k8s-core';
 import { useAccessReview } from '@odh-dashboard/internal/api/index';
-import useIsAreaAvailable from '@odh-dashboard/internal/concepts/areas/useIsAreaAvailable';
-import { SupportedArea } from '@odh-dashboard/internal/concepts/areas/types';
+import { useIsAreaAvailable, SupportedArea } from '@odh-dashboard/plugin-core/areas';
 import { accessReviewResource } from './steps/AdvancedOptionsStep';
 import { useModelFormatField } from './fields/ModelFormatField';
 import { useModelTypeField } from './fields/ModelTypeSelectField';
@@ -87,11 +86,7 @@ export const useModelDeploymentWizard = (
     initialData?.createConnectionData,
     modelLocationData.data,
   );
-  const modelType = useModelTypeField(
-    initialData?.modelTypeField,
-    modelLocationData.data,
-    vLLMDeploymentOnMaaSEnabled,
-  );
+  const modelType = useModelTypeField(initialData?.modelTypeField, modelLocationData.data);
 
   // loaded state
   const modelSourceLoaded = React.useMemo(() => {
@@ -130,12 +125,14 @@ export const useModelDeploymentWizard = (
     initialData?.externalRoute ?? undefined,
     modelType,
     formState.modelServer,
+    formState.deploymentMethod,
   );
 
   const tokenAuthentication = useTokenAuthenticationField(
     initialData?.tokenAuthentication ?? undefined,
     modelType,
     formState.modelServer,
+    formState.deploymentMethod,
     canCreateRoleBindings,
   );
 
@@ -147,6 +144,7 @@ export const useModelDeploymentWizard = (
     initialData?.deploymentStrategy ?? undefined,
     modelType,
     formState.modelServer,
+    formState.deploymentMethod,
   );
 
   // Step 4: Summary

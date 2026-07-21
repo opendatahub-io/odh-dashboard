@@ -9,6 +9,7 @@ type ExternalModelRequest struct {
 	UseCases           string        `json:"use_cases,omitempty"`
 	ModelType          ModelTypeEnum `json:"model_type"`
 	EmbeddingDimension *int          `json:"embedding_dimension,omitempty"`
+	Capabilities       []string      `json:"capabilities,omitempty"`
 }
 
 // VerifyExternalModelRequest represents a request to verify an external model
@@ -39,8 +40,9 @@ const (
 type ModelTypeEnum string
 
 const (
-	ModelTypeEmbedding ModelTypeEnum = "embedding"
-	ModelTypeLLM       ModelTypeEnum = "llm"
+	ModelTypeEmbedding     ModelTypeEnum = "embedding"
+	ModelTypeLLM           ModelTypeEnum = "llm"
+	ModelTypeTranscription ModelTypeEnum = "transcription"
 )
 
 // ExternalModelsConfig represents the structure of the gen-ai-aa-custom-model-endpoints ConfigMap

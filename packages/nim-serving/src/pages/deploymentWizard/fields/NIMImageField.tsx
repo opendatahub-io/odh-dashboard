@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { Alert, FormGroup, HelperText, HelperTextItem, Skeleton } from '@patternfly/react-core';
 import TypeaheadSelect, {
   TypeaheadSelectOption,
-} from '@odh-dashboard/internal/components/TypeaheadSelect';
+} from '@odh-dashboard/ui-core/components/TypeaheadSelect';
 import type { ProjectSectionType } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/ProjectSection';
 import type { WizardField } from '@odh-dashboard/model-serving/types/form-data';
 import { NIMModelLocationKey } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/modelLocationFields/NIMModelLocation';

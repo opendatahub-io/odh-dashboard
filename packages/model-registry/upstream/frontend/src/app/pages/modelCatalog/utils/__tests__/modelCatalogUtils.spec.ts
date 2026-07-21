@@ -333,7 +333,6 @@ describe('filtersToFilterQuery', () => {
           mockFilterOptions,
         ),
       ).toBe("tensor_type.string_value IN ('FP16','FP8')");
-      // Note: use_case is now single-select, so multi-select test is not applicable
     });
 
     it('handles all tensor type enum values', () => {
@@ -458,7 +457,7 @@ describe('filtersToFilterQuery', () => {
   //   });
 
   describe('numeric filter target behavior', () => {
-    it('includes cold-start and model-level filters for models target, excludes cold-start for artifacts target', () => {
+    it('includes cold-start and model-level filters for models target, includes cold-start for artifacts target', () => {
       const data = mockFormData({ cold_start_latency: 50, min_vram: 24, image_size: 15 });
 
       const modelsQuery = filtersToFilterQuery(data, mockFilterOptions, 'models');
@@ -467,7 +466,7 @@ describe('filtersToFilterQuery', () => {
       expect(modelsQuery).toContain('modelcar_image_size.double_value');
 
       const artifactsQuery = filtersToFilterQuery(data, mockFilterOptions, 'artifacts');
-      expect(artifactsQuery).not.toContain('cold_start_time_to_load_seconds');
+      expect(artifactsQuery).toContain('cold_start_time_to_load_seconds');
       expect(artifactsQuery).not.toContain('min_vram_gb');
       expect(artifactsQuery).not.toContain('modelcar_image_size');
     });
@@ -479,6 +478,46 @@ describe('filtersToFilterQuery', () => {
       );
       expect(query).toContain('min_vram_gb.double_value <= 24');
       expect(query).toContain('modelcar_image_size.double_value <= 10');
+    });
+  });
+
+  describe('includeColdStart parameter', () => {
+    it('excludes cold-start filter from query when includeColdStart is false', () => {
+      const query = filtersToFilterQuery(
+        mockFormData({ tasks: [ModelCatalogTask.TEXT_TO_TEXT], cold_start_latency: 50 }),
+        mockFilterOptions,
+        'models',
+        false,
+      );
+      expect(query).toBe("tasks='text-to-text'");
+      expect(query).not.toContain('cold_start_time_to_load_seconds');
+    });
+
+    it('includes cold-start filter in AND clause when includeColdStart is true (default)', () => {
+      const query = filtersToFilterQuery(
+        mockFormData({ tasks: [ModelCatalogTask.TEXT_TO_TEXT], cold_start_latency: 50 }),
+        mockFilterOptions,
+        'models',
+        true,
+      );
+      expect(query).toContain('cold_start_time_to_load_seconds');
+      expect(query).not.toContain(' OR ');
+      expect(query).not.toContain('performance_sub_type');
+    });
+
+    it('does not include cold-start filter with multiple basic filters when includeColdStart is false', () => {
+      const query = filtersToFilterQuery(
+        mockFormData({
+          tasks: [ModelCatalogTask.TEXT_TO_TEXT],
+          provider: [ModelCatalogProvider.GOOGLE],
+          cold_start_latency: 50,
+        }),
+        mockFilterOptions,
+        'models',
+        false,
+      );
+      expect(query).toBe("tasks='text-to-text' AND provider='Google'");
+      expect(query).not.toContain('cold_start_time_to_load_seconds');
     });
   });
 });

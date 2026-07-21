@@ -22,9 +22,10 @@
   "dependencies": {
     "@odh-dashboard/plugin-core": "*",
     "@openshift/dynamic-plugin-sdk": "^5.0.1",
-    "@patternfly/patternfly": "^6.5.2",
-    "@patternfly/react-core": "^6.5.1",
-    "@patternfly/react-icons": "^6.5.1",
+    "@patternfly/patternfly": "6.4.0",
+    "@patternfly/react-core": "6.4.1",
+    "@patternfly/react-icons": "6.4.0",
+    "@patternfly/react-styles": "6.4.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^7.17.0"
@@ -45,9 +46,11 @@
     "swc-loader": "^0.2.7",
     "typescript": "^5.9.3",
     "url-loader": "^4.1.1",
-    "webpack": "5.107.2",
+    "webpack": "5.104.1",
     "webpack-cli": "^5.1.4",
     "webpack-dev-server": "^5.2.4",
-    "webpack-merge": "^6.0.1"
+    "webpack-merge": "^6.0.1",
+    "webpack-virtual-modules": "^0.6.2",
+    "js-yaml": "^4.1.0"
   }
 }

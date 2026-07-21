@@ -1,35 +1,35 @@
-import type { Extension, CodeRef } from '@openshift/dynamic-plugin-sdk';
+import type { Extension } from '@openshift/dynamic-plugin-sdk';
 import type {
   AutofillConnectionButtonExtension,
+  CatalogSettingsUrlExtension,
+  McpCatalogCardLabelExtension,
+  McpCatalogSettingsUrlExtension,
+  ModelCatalogBannerExtension,
   NamespaceSelectorExtension,
   ProjectsBridgeProviderExtension,
+  RegistrySettingsUrlExtension,
+  UserInteractionProviderExtension,
 } from '@mf/modelRegistry/extension-points';
 
 const CATALOG_SETTINGS_PAGE_TITLE = 'Model catalog settings';
 const CATALOG_SETTINGS_URL = '/settings/model-resources-operations/model-catalog';
 
-type ModelCatalogBannerExtension = Extension<
-  'model-catalog.page/banner',
-  {
-    id: string;
-    component: CodeRef<React.ComponentType>;
-  }
->;
+const REGISTRY_SETTINGS_PAGE_TITLE = 'Model registry settings';
+const REGISTRY_SETTINGS_URL = '/settings/model-resources-operations/model-registry';
 
-type CatalogSettingsUrlExtension = Extension<
-  'model-catalog.settings/url',
-  {
-    url: string;
-    title: string;
-  }
->;
+const MCP_CATALOG_SETTINGS_NAV_TITLE = 'MCP catalog sources';
+const MCP_CATALOG_SETTINGS_URL = '/settings/mcp-resources/mcp-catalog';
 
 const extensions: (
   | AutofillConnectionButtonExtension
+  | McpCatalogCardLabelExtension
   | NamespaceSelectorExtension
   | ProjectsBridgeProviderExtension
+  | UserInteractionProviderExtension
   | ModelCatalogBannerExtension
   | CatalogSettingsUrlExtension
+  | McpCatalogSettingsUrlExtension
+  | RegistrySettingsUrlExtension
   | Extension
 )[] = [
   {
@@ -46,6 +46,13 @@ const extensions: (
     },
   },
   {
+    type: 'mcp-catalog.card/label',
+    properties: {
+      id: 'mcp-support-tier-label',
+      component: () => import('./src/mcpCatalog/McpSupportTierLabel').then((m) => m.default),
+    },
+  },
+  {
     type: 'model-registry.admin/check',
     properties: {
       component: () => import('./upstream/frontend/src/odh/components/AdminCheck'),
@@ -59,6 +66,20 @@ const extensions: (
     },
   },
   {
+    type: 'model-registry.settings/url',
+    properties: {
+      url: REGISTRY_SETTINGS_URL,
+      title: REGISTRY_SETTINGS_PAGE_TITLE,
+    },
+  },
+  {
+    type: 'mcp-catalog.settings/url',
+    properties: {
+      url: MCP_CATALOG_SETTINGS_URL,
+      title: MCP_CATALOG_SETTINGS_NAV_TITLE,
+    },
+  },
+  {
     type: 'model-registry.namespace/selector',
     properties: {
       component: () => import('./src/projectSelector/ProjectSelectorField'),
@@ -68,6 +89,12 @@ const extensions: (
     type: 'model-registry.projects/bridge-provider',
     properties: {
       component: () => import('./src/projectSelector/ProjectsBridgeProvider'),
+    },
+  },
+  {
+    type: 'model-registry.tracking/provider',
+    properties: {
+      component: () => import('./src/tracking/SegmentUserInteractionProvider'),
     },
   },
 ];

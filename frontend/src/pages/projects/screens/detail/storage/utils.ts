@@ -2,7 +2,7 @@ import type { PersistentVolumeClaimKind } from '@odh-dashboard/k8s-core';
 import {
   getDescriptionFromK8sResource,
   getDisplayNameFromK8sResource,
-} from '#~/concepts/k8s/utils';
+} from '@odh-dashboard/k8s-core';
 import { NotebookKind } from '#~/k8sTypes';
 import { ClusterStorageNotebookSelection, StorageData } from '#~/pages/projects/types';
 import { MOUNT_PATH_PREFIX } from '#~/pages/projects/screens/spawner/storage/const';

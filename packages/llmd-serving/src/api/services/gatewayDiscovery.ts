@@ -4,7 +4,7 @@ import { K8sAPIOptions } from '@odh-dashboard/internal/k8sTypes';
 import useFetch, {
   NotReadyError,
   type FetchStateObject,
-} from '@odh-dashboard/internal/utilities/useFetch';
+} from '@odh-dashboard/ui-core/hooks/useFetch';
 
 export type GatewayOption = {
   name: string;

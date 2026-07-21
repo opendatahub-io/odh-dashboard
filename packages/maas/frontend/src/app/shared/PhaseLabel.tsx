@@ -1,33 +1,35 @@
 import * as React from 'react';
-import { Label, LabelProps, Popover } from '@patternfly/react-core';
-import { CheckCircleIcon, ExclamationCircleIcon, InProgressIcon } from '@patternfly/react-icons';
+import { Label, Popover } from '@patternfly/react-core';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import {
+  normalizePhase,
+  getPhaseProps,
+  getPopoverContent,
+  PhaseStatus,
+  PhaseResourceType,
+  PhaseLabelLocation,
+} from '~/app/utilities/phaseLabelUtils';
+import { MaaSEvents } from '~/app/types/event-tracking';
 
 type PhaseLabelProps = {
   phase: string | undefined;
-  statusMessage?: string;
+  resourceType: PhaseResourceType;
+  statusMessage?: React.ReactNode;
+  forcePopover?: boolean;
+  location: PhaseLabelLocation;
 };
 
-const getPhaseProps = (
-  phase: string | undefined,
-): { icon: React.ReactNode; status?: LabelProps['status']; color?: LabelProps['color'] } => {
-  switch (phase) {
-    case 'Active':
-    case 'Ready':
-      return { icon: <CheckCircleIcon />, status: 'success' };
-    case 'Failed':
-    case 'Unhealthy':
-      return { icon: <ExclamationCircleIcon />, status: 'danger' };
-    case 'Pending':
-      return { icon: <InProgressIcon />, color: 'blue' };
-    default:
-      return { icon: undefined, color: 'grey' };
-  }
-};
-
-const PhaseLabel: React.FC<PhaseLabelProps> = ({ phase, statusMessage }) => {
-  const normalized = phase?.trim() || 'Unknown';
+const PhaseLabel: React.FC<PhaseLabelProps> = ({
+  phase,
+  resourceType,
+  statusMessage,
+  forcePopover = false,
+  location,
+}) => {
+  const normalized = normalizePhase(phase);
   const phaseProps = getPhaseProps(normalized);
-  const hasPopover = !!statusMessage;
+  const hasPopover = forcePopover || (normalized !== PhaseStatus.READY && !!statusMessage);
+  const popoverContent = getPopoverContent(normalized, resourceType, statusMessage);
 
   const label = (
     <Label
@@ -48,9 +50,18 @@ const PhaseLabel: React.FC<PhaseLabelProps> = ({ phase, statusMessage }) => {
   return (
     <Popover
       data-testid="phase-popover"
-      headerContent={normalized}
-      bodyContent={statusMessage}
+      headerContent={popoverContent.headerContent}
+      headerIcon={popoverContent.headerIcon}
+      bodyContent={popoverContent.bodyContent}
+      footerContent={popoverContent.footerContent}
       position="top"
+      onShow={() => {
+        fireMiscTrackingEvent(MaaSEvents.SUBSCRIPTION_MANAGEMENT_STATUS_POPOVER_VIEWED, {
+          popoverType: 'status',
+          status: normalized,
+          location,
+        });
+      }}
     >
       {label}
     </Popover>

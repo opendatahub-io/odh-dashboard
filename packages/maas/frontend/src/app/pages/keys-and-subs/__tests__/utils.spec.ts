@@ -1,4 +1,4 @@
-import { formatApiKeyError, getSourceLabelColor } from '~/app/pages/keys-and-subs/utils';
+import { formatApiKeyError } from '~/app/pages/keys-and-subs/utils';
 import { deriveModelGroups } from '~/app/pages/keys-and-subs/mySubscriptions/SubscriptionsTab';
 
 describe('formatApiKeyError', () => {
@@ -42,21 +42,6 @@ describe('formatApiKeyError', () => {
     it('should capitalize a single character string', () => {
       expect(formatApiKeyError('x')).toBe('X');
     });
-  });
-});
-
-describe('getSourceLabelColor', () => {
-  it('should return blue for internal source', () => {
-    expect(getSourceLabelColor('internal')).toBe('blue');
-  });
-
-  it('should return purple for external source', () => {
-    expect(getSourceLabelColor('external')).toBe('purple');
-  });
-
-  it('should return purple for any non-internal source', () => {
-    expect(getSourceLabelColor('partner')).toBe('purple');
-    expect(getSourceLabelColor('')).toBe('purple');
   });
 });
 

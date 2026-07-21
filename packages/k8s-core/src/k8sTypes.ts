@@ -15,6 +15,12 @@ import type {
 
 export type { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 
+export type K8sAPIOptions = {
+  dryRun?: boolean;
+  signal?: AbortSignal;
+  parseJSON?: boolean;
+};
+
 export type K8sVerb =
   | 'create'
   | 'get'
@@ -46,6 +52,7 @@ export enum KnownLabels {
   MODEL_VERSION_ID = 'modelregistry.opendatahub.io/model-version-id',
   MODEL_REGISTRY_NAME = 'modelregistry.opendatahub.io/name',
   KUEUE_MANAGED = 'kueue.openshift.io/managed',
+  GLOBAL_MLFLOW_WORKSPACE = 'opendatahub.io/global-mlflow-workspace',
 }
 
 export enum MetadataAnnotation {
@@ -218,6 +225,28 @@ export type HardwareProfileKind = K8sResourceCommon & {
   };
 };
 
+/**
+ * @deprecated accelerator profiles are being removed; only in deprecation paths
+ * modelmesh: RHOAIENG-34917, RHOAIENG-19185
+ * fine-tuning: RHOAIENG-36276, RHOAIENG-34285
+ */
+export type AcceleratorProfileKind = K8sResourceCommon & {
+  metadata: {
+    name: string;
+    namespace: string;
+    annotations?: Partial<{
+      'opendatahub.io/modified-date': string;
+    }>;
+  };
+  spec: {
+    displayName: string;
+    enabled: boolean;
+    identifier: string;
+    description?: string;
+    tolerations?: Toleration[];
+  };
+};
+
 export type DashboardCommonConfig = {
   enablement: boolean;
   disableInfo: boolean;
@@ -256,27 +285,35 @@ export type DashboardCommonConfig = {
   disableFeatureStore?: boolean;
   genAiStudio?: boolean;
   guardrails?: boolean;
+  genAiTracing?: boolean;
   automl?: boolean;
   autorag?: boolean;
   modelAsService?: boolean;
-  maasAuthPolicies?: boolean;
+  externalModels?: boolean;
   aiAssetCustomEndpoints?: boolean;
   mlflowPipelines?: boolean;
   mcpCatalog?: boolean;
+  mcpRegistry?: boolean;
   toolCalling?: boolean;
   projectRBAC?: boolean;
   observabilityDashboard?: boolean;
   disableLLMd?: boolean;
   deploymentWizardYAMLViewer?: boolean;
   externalVectorStores?: boolean;
+  agentConfigManagement?: boolean;
   vLLMDeploymentOnMaaS?: boolean;
   llmGatewayField?: boolean;
   promptManagement?: boolean;
+  globalProjectPrompts?: boolean;
   nimWizard?: boolean;
   mySubscriptions?: boolean;
+  maasSettingsIaRedesign?: boolean;
   agentOps?: boolean;
+  agentOpsDeploy?: boolean;
+  agentsCatalog?: boolean;
   roleManagement?: boolean;
-  agentProfileManagement?: boolean;
+  gpuaas?: boolean;
+  connectionTest?: boolean;
 };
 
 export type DashboardConfigKind = K8sResourceCommon & {
@@ -296,6 +333,7 @@ export type DashboardConfigKind = K8sResourceCommon & {
       deploymentStrategy?: string;
       isLLMdDefault?: boolean;
     };
+    globalMLflowNamespaces?: string[];
     genAiStudioConfig?: {
       aiAssetCustomEndpoints?: {
         externalProviders?: boolean;
@@ -303,4 +341,65 @@ export type DashboardConfigKind = K8sResourceCommon & {
       };
     };
   };
+};
+
+export type ManagementState = 'Managed' | 'Unmanaged' | 'Removed';
+
+/** The possible V2 component names that are used as keys in the `components` object of the DSC Status.
+ * Each component's key (e.g., 'kserve', 'dashboard', etc.) maps to a specific component status.
+ **/
+export enum DataScienceStackComponent {
+  DASHBOARD = 'dashboard',
+  DS_PIPELINES = 'aipipelines',
+  K_SERVE = 'kserve',
+  KUEUE = 'kueue',
+  MODEL_REGISTRY = 'modelregistry',
+  FEAST_OPERATOR = 'feastoperator',
+  RAY = 'ray',
+  TRAINING_OPERATOR = 'trainingoperator',
+  TRUSTY_AI = 'trustyai',
+  WORKBENCHES = 'workbenches',
+  OGX_OPERATOR = 'ogx',
+  TRAINER = 'trainer',
+  MLFLOW = 'mlflowoperator',
+}
+
+/** Represents the status of a component in the DataScienceCluster. */
+export type DataScienceClusterComponentStatus = {
+  managementState?: ManagementState;
+  releases?: Array<{
+    name: string;
+    repoUrl?: string;
+    version?: string;
+  }>;
+};
+
+/** We don't need or should ever get the full kind, this is the status section */
+export type DataScienceClusterKindStatus = {
+  components?: {
+    [key in DataScienceStackComponent]?: DataScienceClusterComponentStatus;
+  } & {
+    [DataScienceStackComponent.MODEL_REGISTRY]?: DataScienceClusterComponentStatus & {
+      registriesNamespace?: string;
+    };
+    [DataScienceStackComponent.WORKBENCHES]?: DataScienceClusterComponentStatus & {
+      workbenchNamespace?: string;
+    };
+  };
+  conditions: K8sCondition[];
+  phase?: string;
+  release?: {
+    name: string;
+    version: string;
+  };
+};
+
+export type DataScienceClusterInitializationKindStatus = {
+  conditions: K8sCondition[];
+  release?: {
+    name?: string;
+    version?: string;
+  };
+  components?: Record<string, never>;
+  phase?: string;
 };

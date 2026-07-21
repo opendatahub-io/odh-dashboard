@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/url"
+	"os"
 	"runtime/debug"
 	"strconv"
 	"strings"
@@ -18,7 +19,8 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	helper "github.com/opendatahub-io/gen-ai/internal/helpers"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
-	"github.com/opendatahub-io/gen-ai/internal/integrations/maas"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/bffclient"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes/pgvector"
 	"github.com/opendatahub-io/gen-ai/internal/models"
 	genaitypes "github.com/opendatahub-io/gen-ai/internal/types"
 	authnv1 "k8s.io/api/authentication/v1"
@@ -99,11 +101,13 @@ type externalModelDetailsResult struct {
 
 type TokenKubernetesClient struct {
 	// Move this to a common struct, when we decide to support multiple clients.
-	Client    client.Client
-	Logger    *slog.Logger
-	Token     integrations.BearerToken
-	Config    *rest.Config
-	EnvConfig config.EnvConfig
+	Client            client.Client
+	Logger            *slog.Logger
+	Token             integrations.BearerToken
+	Config            *rest.Config
+	EnvConfig         config.EnvConfig
+	SAClient          client.Client // in-cluster SA client for elevated operations (nil in local dev/mock)
+	otelConfigManager *otelConfigManager
 }
 
 func (kc *TokenKubernetesClient) IsClusterAdmin(ctx context.Context, identity *integrations.RequestIdentity) (bool, error) {
@@ -154,6 +158,39 @@ func (kc *TokenKubernetesClient) IsClusterAdmin(ctx context.Context, identity *i
 	return true, nil
 }
 
+// canCreatePlayground checks whether the user can create OGXServer resources
+// in the given namespace using SelfSubjectAccessReview with the user's token.
+// Used as an authorization gate before the BFF's SA performs privileged
+// operations (e.g., patching the platform collector) on the user's behalf.
+func (kc *TokenKubernetesClient) canCreatePlayground(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (bool, error) {
+	cfg := rest.AnonymousClientConfig(kc.Config)
+	cfg.BearerToken = identity.Token
+	cfg.BearerTokenFile = ""
+
+	clientset, err := kubernetes.NewForConfig(cfg)
+	if err != nil {
+		return false, fmt.Errorf("failed to create clientset for canCreatePlayground check: %w", err)
+	}
+
+	sar := &authv1.SelfSubjectAccessReview{
+		Spec: authv1.SelfSubjectAccessReviewSpec{
+			ResourceAttributes: &authv1.ResourceAttributes{
+				Verb:      "create",
+				Group:     "ogx.io",
+				Resource:  "ogxservers",
+				Namespace: namespace,
+			},
+		},
+	}
+
+	resp, err := clientset.AuthorizationV1().SelfSubjectAccessReviews().Create(ctx, sar, metav1.CreateOptions{})
+	if err != nil {
+		return false, fmt.Errorf("failed to perform canCreatePlayground SAR: %w", err)
+	}
+
+	return resp.Status.Allowed, nil
+}
+
 // GetClusterDomainUsingServiceAccount retrieves cluster domain using the pod's service account
 func GetClusterDomainUsingServiceAccount(ctx context.Context, logger *slog.Logger) (string, error) {
 	// Use in-cluster config (pod's service account)
@@ -197,7 +234,7 @@ func GetClusterDomainUsingServiceAccount(ctx context.Context, logger *slog.Logge
 	return domain, nil
 }
 
-func newTokenKubernetesClient(token string, logger *slog.Logger, envConfig config.EnvConfig) (*TokenKubernetesClient, error) {
+func newTokenKubernetesClient(token string, logger *slog.Logger, envConfig config.EnvConfig, saClient client.Client, ocm *otelConfigManager) (*TokenKubernetesClient, error) {
 	baseConfig, err := helper.GetKubeconfig()
 	if err != nil {
 		logger.Error("failed to get kube config", "error", err)
@@ -233,9 +270,11 @@ func newTokenKubernetesClient(token string, logger *slog.Logger, envConfig confi
 		Client: ctrlClient,
 		Logger: logger,
 		// Token is retained for follow-up calls; do not log it.
-		Token:     integrations.NewBearerToken(token),
-		Config:    cfg,
-		EnvConfig: envConfig,
+		Token:             integrations.NewBearerToken(token),
+		Config:            cfg,
+		EnvConfig:         envConfig,
+		SAClient:          saClient,
+		otelConfigManager: ocm,
 	}, nil
 }
 
@@ -874,16 +913,13 @@ func parseModelCapabilities(annotationValue string) []string {
 			slog.Warn("non-string value in model-capabilities, skipping", "value", v)
 			continue
 		}
-		if constants.IsAllowedCapability(s) {
-			caps = append(caps, s)
-		} else {
-			slog.Warn("unknown capability value dropped", "value", s)
-		}
+		caps = append(caps, s)
 	}
-	if len(caps) == 0 {
+	built := constants.BuildCapabilities(caps)
+	if built == nil {
 		return constants.DefaultCapabilities()
 	}
-	return caps
+	return built
 }
 
 func (kc *TokenKubernetesClient) getAAModelsFromLLMInferenceService(ctx context.Context, namespace string, labelSelector labels.Selector) ([]models.AAModel, error) {
@@ -919,6 +955,7 @@ func (kc *TokenKubernetesClient) getAAModelsFromLLMInferenceService(ctx context.
 			slog.Debug("LLMInferenceService missing model-capabilities annotation, using defaults",
 				"name", llmSvc.Name, "namespace", llmSvc.Namespace)
 		}
+		caps := parseModelCapabilities(llmSvc.Annotations[constants.ModelCapabilitiesAnnotationKey])
 		aaModel := models.AAModel{
 			ModelName:       llmSvc.Name,
 			ModelID:         modelID,
@@ -930,7 +967,10 @@ func (kc *TokenKubernetesClient) getAAModelsFromLLMInferenceService(ctx context.
 			Status:          kc.extractStatusFromLLMInferenceService(&llmSvc),
 			DisplayName:     kc.extractDisplayNameFromLLMInferenceService(&llmSvc),
 			ModelSourceType: models.ModelSourceTypeNamespace,
-			Capabilities:    parseModelCapabilities(llmSvc.Annotations[constants.ModelCapabilitiesAnnotationKey]),
+			Capabilities:    caps,
+		}
+		if inferred := constants.InferModelTypeFromCapabilities(caps); inferred != "" {
+			aaModel.ModelType = models.ModelTypeEnum(inferred)
 		}
 		aaModels = append(aaModels, aaModel)
 	}
@@ -970,6 +1010,7 @@ func (kc *TokenKubernetesClient) getAAModelsFromInferenceService(ctx context.Con
 			slog.Debug("InferenceService missing model-capabilities annotation, using defaults",
 				"name", isvc.Name, "namespace", isvc.Namespace)
 		}
+		caps := parseModelCapabilities(isvc.Annotations[constants.ModelCapabilitiesAnnotationKey])
 		aaModel := models.AAModel{
 			ModelName:       isvc.Name,
 			ModelID:         isvc.Name,
@@ -982,7 +1023,10 @@ func (kc *TokenKubernetesClient) getAAModelsFromInferenceService(ctx context.Con
 			Status:          kc.extractStatusFromInferenceService(&isvc),
 			DisplayName:     kc.extractDisplayNameFromInferenceService(&isvc),
 			ModelSourceType: models.ModelSourceTypeNamespace,
-			Capabilities:    parseModelCapabilities(isvc.Annotations[constants.ModelCapabilitiesAnnotationKey]),
+			Capabilities:    caps,
+		}
+		if inferred := constants.InferModelTypeFromCapabilities(caps); inferred != "" {
+			aaModel.ModelType = models.ModelTypeEnum(inferred)
 		}
 		aaModels = append(aaModels, aaModel)
 	}
@@ -1354,19 +1398,9 @@ func (kc *TokenKubernetesClient) GetAAModelsFromExternalModels(ctx context.Conte
 			useCases = model.Metadata.CustomGenAI.UseCases
 		}
 
-		caps := constants.DefaultCapabilities()
-		if len(model.Metadata.Capabilities) > 0 {
-			filtered := make([]string, 0, len(model.Metadata.Capabilities))
-			for _, c := range model.Metadata.Capabilities {
-				if constants.IsAllowedCapability(c) {
-					filtered = append(filtered, c)
-				} else {
-					kc.Logger.Warn("unknown external model capability dropped", "modelID", model.ModelID, "capability", c)
-				}
-			}
-			if len(filtered) > 0 {
-				caps = filtered
-			}
+		caps := constants.BuildCapabilities(model.Metadata.Capabilities)
+		if caps == nil {
+			caps = constants.DefaultCapabilities()
 		}
 		aaModel := models.AAModel{
 			ModelName:          model.ModelID,
@@ -1394,9 +1428,74 @@ func (kc *TokenKubernetesClient) GetAAModelsFromExternalModels(ctx context.Conte
 	return aaModels, nil
 }
 
-// findGuardrailsServiceAccountTokenSecret finds the token secret for the guardrails service account
-// This follows the same pattern as VLLM token discovery - finding SA token secrets by type and annotation
-func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity *integrations.RequestIdentity, namespace string, installModels []models.InstallModel, vectorStores []models.InstallVectorStore, maasClient maas.MaaSClientInterface) (*ogxapi.OGXServer, error) {
+// resolveCollectorEndpoint returns the in-cluster OTel collector OTLP HTTP endpoint.
+// Uses the collector namespace from the otelConfigManager if available,
+// otherwise falls back to the BFF's own OTEL_EXPORTER_OTLP_ENDPOINT env var.
+func (kc *TokenKubernetesClient) resolveCollectorEndpoint() string {
+	if kc.otelConfigManager != nil && kc.otelConfigManager.collectorNamespace != "" {
+		return fmt.Sprintf("http://%s-collector.%s.svc:4318",
+			constants.GenAICollectorName,
+			kc.otelConfigManager.collectorNamespace,
+		)
+	}
+	return os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
+}
+
+// ogxCommand returns the container command for the OGXServer pod.
+//
+// When tracing is enabled, we use opentelemetry-instrument to wrap the OGX
+// process. This is a temporary workaround for two issues in the current OGX image:
+//
+//  1. ENABLE_USER_SITE=False in the container prevents sitecustomize.py from
+//     loading, so opentelemetry-instrument's auto-instrumentation silently fails.
+//     Workaround: copy sitecustomize.py to standard site-packages before starting.
+//
+//  2. The image entrypoint (/opt/app-root/entrypoint.sh) uses --traces_exporter=otlp
+//     which defaults to gRPC (port 4317). The platform collector exposes OTLP/HTTP
+//     on port 4318, so we must use otlp_proto_http explicitly.
+//
+// We can later use the simpler entrypoint command if the OGX image fixes the
+// sitecustomize.py loading issue and the entrypoint supports OTLP/HTTP export:
+//
+//	return []string{"/opt/app-root/entrypoint.sh"}
+func ogxCommand(enableTracing bool) []string {
+	if enableTracing {
+		return []string{"/bin/sh", "-c", strings.Join([]string{
+			"cp /opt/app-root/lib/python*/site-packages/opentelemetry/instrumentation/auto_instrumentation/sitecustomize.py /opt/app-root/lib/python*/site-packages/ 2>/dev/null || true",
+			"opentelemetry-instrument --traces_exporter=otlp_proto_http --metrics_exporter=none --logs_exporter=none ogx run /etc/ogx/config.yaml --insecure",
+		}, " && ")}
+	}
+	return []string{"/bin/sh", "-c", "ogx run /etc/ogx/config.yaml --insecure"}
+}
+
+// ogxEnvVars returns the environment variables for the OGXServer pod.
+// When tracing is enabled, OTel env vars are appended so the entrypoint's
+// opentelemetry-instrument wrapper exports spans to the collector.
+func ogxEnvVars(base []corev1.EnvVar, enableTracing bool, namespace string, collectorEndpoint string) []corev1.EnvVar {
+	vars := make([]corev1.EnvVar, len(base), len(base)+9)
+	copy(vars, base)
+	vars = append(vars, corev1.EnvVar{
+		Name:  "OGX_CONFIG_DIR",
+		Value: "/opt/app-root/src/.ogx/distributions/rh/",
+	})
+
+	if enableTracing {
+		vars = append(vars,
+			corev1.EnvVar{Name: "OTEL_SERVICE_NAME", Value: "ogx-server"},
+			corev1.EnvVar{Name: "OTEL_EXPORTER_OTLP_ENDPOINT", Value: collectorEndpoint},
+			corev1.EnvVar{Name: "OTEL_RESOURCE_ATTRIBUTES", Value: fmt.Sprintf("k8s.namespace.name=%s", namespace)},
+			corev1.EnvVar{Name: "OTEL_SEMCONV_STABILITY_OPT_IN", Value: "http"},
+			corev1.EnvVar{Name: "OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT", Value: "true"},
+			// Suppress noisy spans from internal endpoints and low-level instrumentors
+			corev1.EnvVar{Name: "OTEL_PYTHON_FASTAPI_EXCLUDED_URLS", Value: "health,version,metadata"},
+			corev1.EnvVar{Name: "OTEL_PYTHON_DISABLED_INSTRUMENTATIONS", Value: "sqlite3"},
+		)
+	}
+
+	return vars
+}
+
+func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity *integrations.RequestIdentity, namespace string, installModels []models.InstallModel, vectorStores []models.InstallVectorStore, enableTracing bool, bffClient bffclient.BFFClientInterface) (*ogxapi.OGXServer, error) {
 	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
 	defer cancel()
 
@@ -1577,6 +1676,123 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 		}
 	}
 
+	// Auto-provision pgvector or fall back to manual BFF env config.
+	var pgConn *pgvector.Connection
+	pgvectorProvisioned := false
+	provisionClient := kc.SAClient
+	if provisionClient == nil && kc.EnvConfig.PgvectorImage != "" {
+		provisionClient = kc.Client
+	}
+	if provisionClient != nil && kc.EnvConfig.PgvectorImage != "" {
+		// Gate SA-elevated provisioning on user authorization: the caller must
+		// be allowed to create OGXServers in the target namespace before the SA
+		// client creates Deployments/PVCs/Secrets on their behalf.
+		allowed, err := kc.CanListOGXServers(ctx, identity, namespace)
+		if err != nil {
+			return nil, fmt.Errorf("failed to verify OGXServer permissions: %w", err)
+		}
+		if !allowed {
+			return nil, fmt.Errorf("user is not authorized to manage OGXServers in namespace %s", namespace)
+		}
+
+		opts := pgvector.Options{
+			Image: kc.EnvConfig.PgvectorImage,
+			OGXServerLabelSelector: map[string]string{
+				"app.kubernetes.io/instance": lsdName,
+			},
+			Logger: kc.Logger,
+		}
+		provisioned, err := pgvector.EnsurePostgres(ctx, provisionClient, namespace, opts)
+		if err != nil {
+			if apierrors.IsForbidden(err) || apierrors.IsUnauthorized(err) {
+				return nil, fmt.Errorf("the dashboard service account does not have permission to provision the vector database; contact your cluster administrator to apply the required ClusterRole: %w", err)
+			}
+			return nil, fmt.Errorf("failed to provision pgvector: %w", err)
+		}
+		pgConn = provisioned
+		pgvectorProvisioned = true
+		kc.Logger.Info("pgvector auto-provisioned", "host", pgConn.Host, "namespace", namespace)
+	} else {
+		conn, err := pgvectorConnectionFromConfig(kc.EnvConfig)
+		if err != nil {
+			return nil, fmt.Errorf("invalid pgvector configuration: %w", err)
+		}
+		if conn.IsConfigured() {
+			pgConn = &conn
+			kc.Logger.Info("using manually configured pgvector", "host", pgConn.Host)
+		} else {
+			kc.Logger.Info("pgvector not configured (no pgvector image, no PGVECTOR_HOST); vector store features will be unavailable")
+		}
+	}
+
+	// rollbackPgvector cleans up auto-provisioned pgvector resources when a
+	// later step in the install pipeline fails. No-op when pgvector was not
+	// provisioned (manual config path).
+	rollbackPgvector := func(cause error) error {
+		if !pgvectorProvisioned {
+			return cause
+		}
+		rollbackCtx, rollbackCancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer rollbackCancel()
+		// Use the same client that provisioned: when SAClient is nil the
+		// provisioning path (above) also falls back to kc.Client, so rollback
+		// always has delete rights on the resources it created.
+		rollbackClient := kc.SAClient
+		if rollbackClient == nil {
+			rollbackClient = kc.Client
+		}
+		if deleteErr := pgvector.DeletePostgresResources(rollbackCtx, rollbackClient, namespace); deleteErr != nil {
+			kc.Logger.Error("failed to roll back pgvector resources", "error", deleteErr, "namespace", namespace)
+			return fmt.Errorf("%w; additionally failed to roll back pgvector resources: %v", cause, deleteErr)
+		}
+		kc.Logger.Info("rolled back pgvector resources after install failure", "namespace", namespace)
+		return cause
+	}
+
+	if pgConn != nil {
+		envVars = append(envVars,
+			corev1.EnvVar{Name: pgvector.HostEnvVar, Value: pgConn.Host},
+			corev1.EnvVar{Name: pgvector.PortEnvVar, Value: strconv.Itoa(pgConn.Port)},
+			corev1.EnvVar{Name: pgvector.DBEnvVar, Value: pgConn.DB},
+			corev1.EnvVar{Name: pgvector.UserEnvVar, Value: pgConn.User},
+		)
+		if pgConn.PasswordSecret != nil {
+			// Use the client that provisioned the Secret: SAClient for auto-provisioned
+			// pgvector (the user's token may not have get-secrets permission), otherwise
+			// the user's token client for manually configured connections.
+			secretReader := kc.Client
+			if kc.SAClient != nil && pgvectorProvisioned {
+				secretReader = kc.SAClient
+			}
+			var secret corev1.Secret
+			if err := secretReader.Get(ctx, types.NamespacedName{
+				Name:      pgConn.PasswordSecret.Name,
+				Namespace: namespace,
+			}, &secret); err != nil {
+				return nil, rollbackPgvector(fmt.Errorf("pgvector password secret %q not found in namespace %s: %w",
+					pgConn.PasswordSecret.Name, namespace, err))
+			}
+			if _, ok := secret.Data[pgConn.PasswordSecret.Key]; !ok {
+				return nil, rollbackPgvector(fmt.Errorf("pgvector password secret %q is missing key %q",
+					pgConn.PasswordSecret.Name, pgConn.PasswordSecret.Key))
+			}
+			envVars = append(envVars, corev1.EnvVar{
+				Name: pgvector.PasswordEnvVar,
+				ValueFrom: &corev1.EnvVarSource{
+					SecretKeyRef: &corev1.SecretKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{Name: pgConn.PasswordSecret.Name},
+						Key:                  pgConn.PasswordSecret.Key,
+					},
+				},
+			})
+		} else {
+			kc.Logger.Warn("pgvector configured without password mechanism; PostgreSQL auth may fail",
+				"host", pgConn.Host)
+		}
+		kc.Logger.Info("injected pgvector connection env vars for OGXServer pod",
+			"host", pgConn.Host, "port", pgConn.Port, "db", pgConn.DB)
+	}
+
 	// Step 5: Generate ConfigMap content first (before creating OGXServer)
 	configMapName := "llama-stack-config"
 	userAuthToken := ""
@@ -1589,10 +1805,10 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 			break
 		}
 	}
-	runYAML, err := kc.generateLlamaStackConfig(ctx, namespace, installModels, validatedVectorStores, maasClient, userAuthToken)
+	runYAML, err := kc.generateLlamaStackConfig(ctx, namespace, installModels, validatedVectorStores, bffClient, userAuthToken, pgConn)
 	if err != nil {
 		kc.Logger.Error("failed to generate Llama Stack configuration", "error", err, "namespace", namespace)
-		return nil, fmt.Errorf("failed to generate Llama Stack configuration: %w", err)
+		return nil, rollbackPgvector(fmt.Errorf("failed to generate Llama Stack configuration: %w", err))
 	}
 
 	// Step 6: Create ConfigMap BEFORE creating OGXServer (without owner reference yet)
@@ -1614,7 +1830,7 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 
 	if err := kc.Client.Create(ctx, configMap); err != nil {
 		kc.Logger.Error("failed to create ConfigMap", "error", err, "namespace", namespace, "configMapName", configMapName)
-		return nil, fmt.Errorf("failed to create ConfigMap: %w", err)
+		return nil, rollbackPgvector(fmt.Errorf("failed to create ConfigMap: %w", err))
 	}
 
 	kc.Logger.Info("ConfigMap created successfully (before OGXServer creation)", "namespace", namespace, "configMapName", configMapName)
@@ -1658,11 +1874,8 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 				Replicas:  &replicas,
 				Resources: workloadResources,
 				Overrides: &ogxapi.WorkloadOverrides{
-					Command: []string{"/bin/sh", "-c", "ogx run /etc/ogx/config.yaml"},
-					Env: append(envVars, corev1.EnvVar{
-						Name:  "OGX_CONFIG_DIR",
-						Value: "/opt/app-root/src/.ogx/distributions/rh/",
-					}),
+					Command: ogxCommand(enableTracing),
+					Env:     ogxEnvVars(envVars, enableTracing, namespace, kc.resolveCollectorEndpoint()),
 				},
 			},
 			Network: &ogxapi.NetworkSpec{
@@ -1682,7 +1895,7 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 			kc.Logger.Info("ConfigMap cleaned up after OGXServer creation failure", "namespace", namespace, "configMapName", configMapName)
 		}
 
-		return nil, fmt.Errorf("failed to create OGXServer: %w", err)
+		return nil, rollbackPgvector(fmt.Errorf("failed to create OGXServer: %w", err))
 	}
 
 	kc.Logger.Info("OGXServer created successfully", "namespace", namespace, "lsdName", lsdName, "models", installModels)
@@ -1709,6 +1922,51 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 		kc.Logger.Info("ConfigMap updated with owner reference", "namespace", namespace, "configMapName", configMapName, "owner", lsdName)
 	}
 
+	// Set owner references on auto-provisioned pgvector resources so
+	// they are garbage-collected when the OGXServer is deleted.
+	if pgvectorProvisioned && kc.SAClient != nil {
+		ownerRef := metav1.OwnerReference{
+			APIVersion:         "ogx.io/v1beta1",
+			Kind:               "OGXServer",
+			Name:               lsdName,
+			UID:                ogxServer.UID,
+			BlockOwnerDeletion: &[]bool{false}[0],
+		}
+		if err := pgvector.SetOwnerReferences(ctx, kc.SAClient, namespace, ownerRef); err != nil {
+			kc.Logger.Error("failed to set owner references on pgvector resources; cleaning up OGXServer to unblock retries",
+				"error", err, "namespace", namespace, "lsdName", lsdName)
+
+			cleanupCtx, cleanupCancel := context.WithTimeout(context.Background(), 30*time.Second)
+			defer cleanupCancel()
+			if deleteErr := kc.Client.Delete(cleanupCtx, ogxServer); deleteErr != nil {
+				kc.Logger.Error("failed to clean up OGXServer after owner-reference failure", "error", deleteErr)
+			}
+			if deleteErr := kc.Client.Delete(cleanupCtx, configMap); deleteErr != nil {
+				kc.Logger.Error("failed to clean up ConfigMap after owner-reference failure", "error", deleteErr)
+			}
+
+			return nil, rollbackPgvector(fmt.Errorf("failed to set owner references on pgvector resources: %w", err))
+		}
+	}
+
+	if enableTracing && kc.otelConfigManager != nil {
+		userToken := identity.Token
+		go func() {
+			canCreate, sarErr := kc.canCreatePlayground(context.Background(), identity, namespace)
+			if sarErr != nil {
+				kc.Logger.Warn("failed to verify playground access for tracing", "error", sarErr, "namespace", namespace)
+				return
+			}
+			if !canCreate {
+				kc.Logger.Warn("user cannot create playgrounds in namespace, skipping collector route setup", "namespace", namespace)
+				return
+			}
+			routeCtx, routeCancel := context.WithTimeout(context.Background(), 30*time.Second)
+			defer routeCancel()
+			kc.otelConfigManager.EnsureRoute(routeCtx, namespace, userToken)
+		}()
+	}
+
 	return ogxServer, nil
 }
 
@@ -1722,6 +1980,49 @@ func ensureVLLMCompatibleURL(url string) string {
 	}
 	// Add /v1 suffix
 	return url + "/v1"
+}
+
+// pgvectorConnectionFromConfig builds a pgvector.Connection from the BFF's
+// env config. Returns a zero-value Connection (IsConfigured() == false) when
+// PgvectorHost is empty.
+func pgvectorConnectionFromConfig(cfg config.EnvConfig) (pgvector.Connection, error) {
+	if cfg.PgvectorHost == "" {
+		return pgvector.Connection{}, nil
+	}
+
+	port := cfg.PgvectorPort
+	if port == 0 {
+		port = pgvector.DefaultPort
+	}
+	if port < 1 || port > 65535 {
+		return pgvector.Connection{}, fmt.Errorf("invalid PGVECTOR_PORT %d: must be between 1 and 65535", port)
+	}
+	db := cfg.PgvectorDB
+	if db == "" {
+		db = pgvector.DefaultDB
+	}
+	user := cfg.PgvectorUser
+	if user == "" {
+		user = pgvector.DefaultUser
+	}
+
+	conn := pgvector.Connection{
+		Host: cfg.PgvectorHost,
+		Port: port,
+		DB:   db,
+		User: user,
+	}
+	if cfg.PgvectorPasswordSecretName != "" {
+		key := cfg.PgvectorPasswordSecretKey
+		if key == "" {
+			key = pgvector.DefaultPasswordKey
+		}
+		conn.PasswordSecret = &pgvector.SecretRef{
+			Name: cfg.PgvectorPasswordSecretName,
+			Key:  key,
+		}
+	}
+	return conn, nil
 }
 
 // buildEmbeddingModelLookup returns a map from user-supplied embedding_model values
@@ -1753,14 +2054,24 @@ func buildEmbeddingModelLookup(ms []Model) map[string]string {
 	return lookup
 }
 
-// generateLlamaStackConfig generates the Llama Stack configuration YAML
-func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, namespace string, installModels []models.InstallModel, vectorStores []ValidatedVectorStore, maasClient maas.MaaSClientInterface, userAuthToken string) (string, error) {
+// generateLlamaStackConfig generates the Llama Stack configuration YAML.
+// pgConn, when non-nil, configures remote::pgvector as the default vector_io
+// provider (replaces inline::milvus).
+func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, namespace string, installModels []models.InstallModel, vectorStores []ValidatedVectorStore, bffClient bffclient.BFFClientInterface, userAuthToken string, pgConn *pgvector.Connection) (string, error) {
 	// Create a new config to build
 	config := NewDefaultLlamaStackConfig()
 
+	if pgConn != nil {
+		config.SetDefaultPgvectorProvider(*pgConn)
+		kc.Logger.Info("using remote::pgvector as default vector_io provider",
+			"host", pgConn.Host, "port", pgConn.Port, "db", pgConn.DB)
+	} else {
+		config.VectorStores.DefaultProviderID = ""
+	}
+
 	// Create a map of MaaS models for efficient lookup (only call ListModels once)
 	maasModelsMap := make(map[string]*models.MaaSModel)
-	if maasClient != nil {
+	if bffClient != nil {
 		// Check if we have any MaaS models first
 		hasMaaSModels := false
 		for _, model := range installModels {
@@ -1774,19 +2085,37 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 			if userAuthToken == "" {
 				return "", fmt.Errorf("user auth token is required to list MaaS models")
 			}
-			maasModels, err := maasClient.ListModels(ctx, userAuthToken)
+
+			// Call MaaS BFF /models endpoint using BFF client
+			// The response is envelope-wrapped: {"data": {"object": "list", "data": [...]}}
+			// Note: MaaS BFF determines namespace scope via the forwarded authentication token
+			// (x-forwarded-access-token header), not via query parameters
+			var bffResponse models.MaaSBFFModelsResponse
+			err := bffClient.Call(ctx, "GET", "/models", nil, &bffResponse)
 			if err != nil {
-				kc.Logger.Error("failed to list MaaS models", "error", err)
-				return "", fmt.Errorf("failed to list MaaS models: %w", err)
+				kc.Logger.Error("failed to list MaaS models via BFF", "error", err)
+				return "", fmt.Errorf("failed to list MaaS models via BFF: %w", err)
 			}
 
-			// Create map for efficient lookup
-			for i := range maasModels {
-				model := &maasModels[i]
-				maasModelsMap[model.ID] = model
+			// Extract models from envelope-wrapped response and convert to MaaSModel format
+			bffModels := bffResponse.Data.Data
+
+			// Create map for efficient lookup, converting from BFF model to MaaSModel
+			for i := range bffModels {
+				bffModel := &bffModels[i]
+				// Convert MaaSBFFModel to MaaSModel
+				maasModel := &models.MaaSModel{
+					ID:      bffModel.ID,
+					Object:  bffModel.Object,
+					Created: bffModel.Created,
+					OwnedBy: bffModel.OwnedBy,
+					Ready:   bffModel.Ready,
+					URL:     bffModel.URL,
+				}
+				maasModelsMap[maasModel.ID] = maasModel
 			}
 
-			kc.Logger.Debug("loaded MaaS models into map", "count", len(maasModelsMap))
+			kc.Logger.Debug("loaded MaaS models into map via BFF", "count", len(maasModelsMap))
 		}
 	}
 
@@ -1819,6 +2148,13 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 
 	for i, model := range installModels {
 		kc.Logger.Debug("Processing model for installation", "model", model.ModelName, "modelSourceType", model.ModelSourceType)
+
+		// Skip transcription models — they use a direct audio pipeline and bypass OGX/LlamaStack
+		if model.ModelType == string(models.ModelTypeTranscription) {
+			kc.Logger.Debug("Skipping transcription model (not registered in LlamaStack)", "model", model.ModelName)
+			continue
+		}
+
 		if model.ModelSourceType == models.ModelSourceTypeMaaS {
 			// Handle MaaS models using the pre-loaded map
 			maasModel, exists := maasModelsMap[model.ModelName]
@@ -2071,11 +2407,12 @@ func (kc *TokenKubernetesClient) validateExternalModelsConfig(config *models.Ext
 
 		// Validate ModelType matches the allowlist
 		validModelTypes := map[models.ModelTypeEnum]bool{
-			models.ModelTypeLLM:       true,
-			models.ModelTypeEmbedding: true,
+			models.ModelTypeLLM:           true,
+			models.ModelTypeEmbedding:     true,
+			models.ModelTypeTranscription: true,
 		}
 		if !validModelTypes[model.ModelType] {
-			return fmt.Errorf("model '%s' has invalid model_type '%s', must be 'llm' or 'embedding'", model.ModelID, model.ModelType)
+			return fmt.Errorf("model '%s' has invalid model_type '%s', must be 'llm', 'embedding', or 'transcription'", model.ModelID, model.ModelType)
 		}
 
 		// Validate EmbeddingDimension if present
@@ -2406,7 +2743,7 @@ func isInternalClusterHost(host string) bool {
 	return strings.HasSuffix(hostname, ".svc.cluster.local")
 }
 
-func (kc *TokenKubernetesClient) DeleteOGXServer(ctx context.Context, identity *integrations.RequestIdentity, namespace string, name string) (*ogxapi.OGXServer, error) {
+func (kc *TokenKubernetesClient) DeleteOGXServer(ctx context.Context, identity *integrations.RequestIdentity, namespace string, name string, deletePgvector bool) (*ogxapi.OGXServer, error) {
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
@@ -2415,11 +2752,6 @@ func (kc *TokenKubernetesClient) DeleteOGXServer(ctx context.Context, identity *
 	if err != nil {
 		kc.Logger.Error("failed to fetch OGXServers", "error", err, "namespace", namespace)
 		return nil, fmt.Errorf("failed to fetch OGXServers: %w", err)
-	}
-
-	if len(serverList.Items) == 0 {
-		kc.Logger.Error("no OGXServer found with OpenDataHubDashboardLabelKey label", "namespace", namespace)
-		return nil, fmt.Errorf("no OGXServer found in namespace %s with OpenDataHubDashboardLabelKey label", namespace)
 	}
 
 	var targetServer *ogxapi.OGXServer
@@ -2432,8 +2764,27 @@ func (kc *TokenKubernetesClient) DeleteOGXServer(ctx context.Context, identity *
 	}
 
 	if targetServer == nil {
+		// During a reconfigure (!deletePgvector), the OGXServer may already be
+		// gone — treat this as success since the goal is to clear it before reinstall.
+		if !deletePgvector {
+			kc.Logger.Info("OGXServer already absent during reconfigure, nothing to delete", "name", name, "namespace", namespace)
+			return nil, nil
+		}
 		kc.Logger.Error("OGXServer with matching name not found", "k8sName", name, "namespace", namespace)
 		return nil, fmt.Errorf("OGXServer with name '%s' not found in namespace %s", name, namespace)
+	}
+
+	// During a reconfigure, strip owner references from pgvector resources BEFORE
+	// deleting the OGXServer. Otherwise Kubernetes GC cascading-deletes pgvector
+	// when the OGXServer (the owner) is removed.
+	if !deletePgvector {
+		ownerRefClient := kc.SAClient
+		if ownerRefClient == nil {
+			ownerRefClient = kc.Client
+		}
+		if err := pgvector.ClearOwnerReferences(ctx, ownerRefClient, namespace); err != nil {
+			kc.Logger.Warn("failed to clear pgvector owner references before reconfigure delete", "error", err, "namespace", namespace)
+		}
 	}
 
 	err = kc.Client.Delete(ctx, &ogxapi.OGXServer{ObjectMeta: metav1.ObjectMeta{Name: targetServer.Name, Namespace: namespace}})
@@ -2443,6 +2794,40 @@ func (kc *TokenKubernetesClient) DeleteOGXServer(ctx context.Context, identity *
 	}
 
 	kc.Logger.Info("successfully deleted OGXServer", "namespace", namespace, "name", targetServer.Name, "displayName", name)
+
+	// Clean up auto-provisioned pgvector resources only on full playground delete,
+	// not on reconfigure (model switch) where the vector store data should persist.
+	if deletePgvector {
+		deleteClient := kc.SAClient
+		if deleteClient == nil {
+			deleteClient = kc.Client
+		}
+		if err := pgvector.DeletePostgresResources(ctx, deleteClient, namespace); err != nil {
+			kc.Logger.Error("failed to delete pgvector resources", "error", err, "namespace", namespace)
+			return targetServer, fmt.Errorf("OGXServer deleted but pgvector cleanup failed: %w", err)
+		}
+		kc.Logger.Info("pgvector resources deleted", "namespace", namespace)
+	}
+
+	if kc.otelConfigManager != nil {
+		otherTracingEnabled := false
+		for i := range serverList.Items {
+			srv := &serverList.Items[i]
+			if srv.Name == targetServer.Name {
+				continue
+			}
+			if srv.Spec.Workload != nil && srv.Spec.Workload.Overrides != nil && hasOTelServiceName(srv.Spec.Workload.Overrides.Env) {
+				otherTracingEnabled = true
+				break
+			}
+		}
+		if !otherTracingEnabled {
+			routeCtx, routeCancel := context.WithTimeout(context.Background(), 30*time.Second)
+			defer routeCancel()
+			kc.otelConfigManager.RemoveRoute(routeCtx, namespace)
+		}
+	}
+
 	return targetServer, nil
 }
 
@@ -2664,6 +3049,7 @@ func (kc *TokenKubernetesClient) CreateOrUpdateExternalModelConfigMap(ctx contex
 		Metadata: models.RegisteredModelMetadata{
 			DisplayName:        req.ModelDisplayName,
 			EmbeddingDimension: req.EmbeddingDimension,
+			Capabilities:       constants.BuildCapabilities(req.Capabilities),
 		},
 	}
 
@@ -2863,4 +3249,13 @@ func (kc *TokenKubernetesClient) GetSecretValue(ctx context.Context, identity *i
 
 	kc.Logger.Debug("successfully retrieved secret value", "namespace", namespace, "secretName", secretName, "secretKey", secretKey)
 	return string(value), nil
+}
+
+func hasOTelServiceName(envs []corev1.EnvVar) bool {
+	for _, e := range envs {
+		if e.Name == "OTEL_SERVICE_NAME" {
+			return true
+		}
+	}
+	return false
 }

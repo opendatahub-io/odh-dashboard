@@ -19,11 +19,15 @@
     "./__tests__/utils": "./src/__tests__/utils.ts"
   },
   "dependencies": {
+    "@odh-dashboard/foundation": "*",
+    "@odh-dashboard/hardware-profiles": "*",
     "@odh-dashboard/internal": "*",
     "@odh-dashboard/k8s-core": "*",
     "@odh-dashboard/kserve": "*",
     "@odh-dashboard/model-serving": "*",
+
     "@odh-dashboard/plugin-core": "*",
+    "@odh-dashboard/ui-core": "*",
     "zod": "^3.25.76"
   },
   "devDependencies": {

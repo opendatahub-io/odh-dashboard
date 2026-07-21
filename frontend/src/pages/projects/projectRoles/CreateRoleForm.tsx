@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Content, Form, FormGroup, TextArea, Title } from '@patternfly/react-core';
-import K8sNameDescriptionField from '#~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
-import { UseK8sNameDescriptionFieldData } from '#~/concepts/k8s/K8sNameDescriptionField/types';
+import type { UseK8sNameDescriptionFieldData } from '@odh-dashboard/k8s-core';
+import K8sNameDescriptionField from '@odh-dashboard/ui-core/components/K8sNameDescriptionField';
 import RoleLabelsSection from './RoleLabelsSection';
 import PermissionRulesSection from './PermissionRulesSection';
 import type { LabelEntry, RuleEntry } from './types';
@@ -12,8 +12,10 @@ type CreateRoleFormProps = {
   onDescriptionChange: (value: string) => void;
   labels: LabelEntry[];
   onLabelsChange: (labels: LabelEntry[]) => void;
+  onHasInvalidLabelsChange?: (hasInvalid: boolean) => void;
   rules: RuleEntry[];
   onRulesChange: (rules: RuleEntry[]) => void;
+  onImportTemplate: () => void;
 };
 
 const CreateRoleForm: React.FC<CreateRoleFormProps> = ({
@@ -22,8 +24,10 @@ const CreateRoleForm: React.FC<CreateRoleFormProps> = ({
   onDescriptionChange,
   labels,
   onLabelsChange,
+  onHasInvalidLabelsChange,
   rules,
   onRulesChange,
+  onImportTemplate,
 }) => {
   const handleDescriptionChange = React.useCallback(
     (_event: React.FormEvent<HTMLTextAreaElement>, value: string) => {
@@ -62,9 +66,17 @@ const CreateRoleForm: React.FC<CreateRoleFormProps> = ({
         />
       </FormGroup>
 
-      <RoleLabelsSection labels={labels} onLabelsChange={onLabelsChange} />
+      <RoleLabelsSection
+        labels={labels}
+        onLabelsChange={onLabelsChange}
+        onHasInvalidLabelsChange={onHasInvalidLabelsChange}
+      />
 
-      <PermissionRulesSection rules={rules} onRulesChange={onRulesChange} />
+      <PermissionRulesSection
+        rules={rules}
+        onRulesChange={onRulesChange}
+        onImportTemplate={onImportTemplate}
+      />
     </Form>
   );
 };

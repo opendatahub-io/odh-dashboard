@@ -27,21 +27,21 @@ import {
   MetadataAnnotation,
   SecretKind,
   SupportedModelFormats,
+  isModelServingCompatible,
+  ModelServingCompatibleTypes,
 } from '@odh-dashboard/k8s-core';
 import {
   K8sAPIOptions,
   RoleBindingKind,
-  InferenceServiceKind,
   ServiceAccountKind,
   RoleKind,
 } from '@odh-dashboard/internal/k8sTypes';
-import { getTokenNames } from '@odh-dashboard/model-serving/concepts/auth';
 import {
-  isModelServingCompatible,
-  ModelServingCompatibleTypes,
-} from '@odh-dashboard/internal/concepts/connectionTypes/utils';
+  type InferenceServiceKind,
+  ServingRuntimeModelType,
+} from '@odh-dashboard/model-serving/shared';
+import { getTokenNames } from '@odh-dashboard/model-serving/concepts/auth';
 import { ModelLocationData } from '@odh-dashboard/model-serving/types/form-data';
-import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
 import { type ModelTypeFieldData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/ModelTypeSelectField';
 import type { ModelAvailabilityFieldsData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/ModelAvailabilityFields';
 import type { RuntimeArgsFieldData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/RuntimeArgsField';
@@ -52,6 +52,8 @@ import {
   deploymentStrategyRolling,
   deploymentStrategyRecreate,
 } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/DeploymentStrategyField';
+import type { DeploymentMethodFieldData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/DeploymentMethodSelectField';
+import { LEGACY_GENERATIVE_DEPLOYMENT_METHOD_KEY } from './wizardFields/deploymentMethodField';
 import type { CreatingInferenceServiceObject } from './deployModel';
 import type { KServeDeployment } from './deployments';
 
@@ -391,7 +393,6 @@ export const extractModelType = (deployment: {
 
   return {
     type: modelType,
-    legacyVLLM: modelType === ServingRuntimeModelType.GENERATIVE,
   };
 };
 
@@ -445,3 +446,7 @@ export const applyDeploymentStrategy = (
   }
   return result;
 };
+
+export const extractDeploymentMethod = (): DeploymentMethodFieldData => ({
+  method: LEGACY_GENERATIVE_DEPLOYMENT_METHOD_KEY,
+});

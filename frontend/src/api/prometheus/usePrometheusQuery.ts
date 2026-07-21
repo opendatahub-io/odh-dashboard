@@ -1,7 +1,11 @@
 import * as React from 'react';
+import useFetch, {
+  FetchOptions,
+  FetchStateObject,
+  NotReadyError,
+} from '@odh-dashboard/ui-core/hooks/useFetch';
 import axios from '#~/utilities/axios';
 import { PrometheusQueryResponse } from '#~/types';
-import useFetch, { FetchOptions, FetchStateObject, NotReadyError } from '#~/utilities/useFetch';
 
 const usePrometheusQuery = <TResponse = PrometheusQueryResponse>(
   apiPath: string,

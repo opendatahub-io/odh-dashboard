@@ -1,4 +1,5 @@
 import { MLflowPromptVersion } from '~/app/types';
+import { AgentProfileSpec } from '~/app/agentProfile/types';
 import { ChatbotConfigStore, DEFAULT_CONFIGURATION, McpToolSelectionsMap } from './types';
 
 // Field-specific selectors
@@ -102,6 +103,12 @@ export const selectSelectedAsrModel =
   (state: ChatbotConfigStore): string =>
     state.configurations[configId]?.selectedAsrModel ?? DEFAULT_CONFIGURATION.selectedAsrModel;
 
+export const selectSelectedAsrSubscription =
+  (configId: string) =>
+  (state: ChatbotConfigStore): string =>
+    state.configurations[configId]?.selectedAsrSubscription ??
+    DEFAULT_CONFIGURATION.selectedAsrSubscription;
+
 export const selectIsAsrModelEnabled =
   (configId: string) =>
   (state: ChatbotConfigStore): boolean =>
@@ -115,3 +122,6 @@ export const selectHasVisionImage =
 
 // Configuration management selectors
 export const selectConfigIds = (state: ChatbotConfigStore): string[] => state.configIds;
+
+export const selectLoadedProfileSpec = (state: ChatbotConfigStore): AgentProfileSpec | null =>
+  state.loadedProfileSpec;

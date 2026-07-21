@@ -1,12 +1,12 @@
 import { testHook } from '@odh-dashboard/jest-config/hooks';
-import { KnownLabels } from '@odh-dashboard/k8s-core';
 import { mockRoleK8sResource, mockClusterRoleK8sResource } from '#~/__mocks__';
 import useRoleListData from '#~/pages/projects/projectRoles/useRoleListData';
+import { USER_LABEL_PREFIX } from '#~/pages/projects/projectRoles/const';
 
 describe('useRoleListData', () => {
   const dashboardRole = mockRoleK8sResource({
     name: 'my-dashboard-role',
-    labels: { [KnownLabels.DASHBOARD_RESOURCE]: 'true' },
+    labels: { 'opendatahub.io/dashboard': 'true' },
   });
 
   const nonDashboardRole = mockRoleK8sResource({
@@ -16,7 +16,7 @@ describe('useRoleListData', () => {
 
   const dashboardClusterRole = mockClusterRoleK8sResource({
     name: 'my-dashboard-cr',
-    labels: { [KnownLabels.DASHBOARD_RESOURCE]: 'true' },
+    labels: { 'opendatahub.io/dashboard': 'true' },
   });
 
   const adminClusterRole = mockClusterRoleK8sResource({
@@ -152,5 +152,76 @@ describe('useRoleListData', () => {
     expect(renderResult).hookToHaveUpdateCount(2);
     expect(renderResult.result.current).toHaveLength(1);
     expect(renderResult.result.current[0].key).toBe('ClusterRole:admin');
+  });
+
+  describe('user labels', () => {
+    const labeledRole = mockRoleK8sResource({
+      name: 'labeled-role',
+      labels: {
+        'opendatahub.io/dashboard': 'true',
+        [`${USER_LABEL_PREFIX}team`]: 'platform',
+        [`${USER_LABEL_PREFIX}env`]: 'production',
+      },
+    });
+
+    it('should extract user labels from prefixed labels', () => {
+      const renderResult = testHook(useRoleListData)([labeledRole], [], '');
+      const rows = renderResult.result.current;
+      expect(rows[0].userLabels).toStrictEqual({
+        team: 'platform',
+        env: 'production',
+      });
+    });
+
+    it('should return empty userLabels when no prefixed labels exist', () => {
+      const renderResult = testHook(useRoleListData)([dashboardRole], [], '');
+      const rows = renderResult.result.current;
+      expect(rows[0].userLabels).toStrictEqual({});
+    });
+
+    it('should filter by label key', () => {
+      const renderResult = testHook(useRoleListData)([labeledRole, dashboardRole], [], 'team');
+      const keys = renderResult.result.current.map((r) => r.key);
+      expect(keys).toEqual(['Role:labeled-role']);
+    });
+
+    it('should filter by label value', () => {
+      const renderResult = testHook(useRoleListData)([labeledRole, dashboardRole], [], 'platform');
+      const keys = renderResult.result.current.map((r) => r.key);
+      expect(keys).toEqual(['Role:labeled-role']);
+    });
+  });
+
+  describe('type search filtering', () => {
+    it('should filter dashboard roles by "ai role"', () => {
+      const renderResult = testHook(useRoleListData)(
+        [dashboardRole],
+        [adminClusterRole],
+        'ai role',
+      );
+      const keys = renderResult.result.current.map((r) => r.key);
+      expect(keys).toContain('Role:my-dashboard-role');
+      expect(keys).toContain('ClusterRole:admin');
+    });
+
+    it('should filter default cluster roles by "openshift default role"', () => {
+      const renderResult = testHook(useRoleListData)(
+        [dashboardRole],
+        [adminClusterRole, editClusterRole, dashboardClusterRole],
+        'openshift default role',
+      );
+      const keys = renderResult.result.current.map((r) => r.key);
+      expect(keys).toEqual(['ClusterRole:admin', 'ClusterRole:edit']);
+    });
+
+    it('should filter by "cluster role"', () => {
+      const renderResult = testHook(useRoleListData)(
+        [dashboardRole],
+        [adminClusterRole, dashboardClusterRole],
+        'cluster role',
+      );
+      const keys = renderResult.result.current.map((r) => r.key);
+      expect(keys).toEqual(['ClusterRole:admin', 'ClusterRole:my-dashboard-cr']);
+    });
   });
 });

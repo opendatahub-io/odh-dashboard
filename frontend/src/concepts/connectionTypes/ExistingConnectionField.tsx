@@ -1,12 +1,14 @@
 import React from 'react';
 import { Flex, FlexItem, FormGroup, Label, Truncate } from '@patternfly/react-core';
-import { LabeledConnection } from '#~/pages/modelServing/screens/types';
 import {
   getDescriptionFromK8sResource,
   getDisplayNameFromK8sResource,
   getResourceNameFromK8sResource,
-} from '#~/concepts/k8s/utils';
-import TypeaheadSelect, { TypeaheadSelectOption } from '#~/components/TypeaheadSelect';
+} from '@odh-dashboard/k8s-core';
+import TypeaheadSelect, {
+  TypeaheadSelectOption,
+} from '@odh-dashboard/ui-core/components/TypeaheadSelect';
+import { LabeledConnection } from '#~/pages/modelServing/screens/types';
 import { ConnectionDetailsHelperText } from './ConnectionDetailsHelperText';
 import { getConnectionTypeDisplayName, getConnectionTypeRef } from './utils';
 import { Connection, ConnectionTypeConfigMapObj } from './types';
