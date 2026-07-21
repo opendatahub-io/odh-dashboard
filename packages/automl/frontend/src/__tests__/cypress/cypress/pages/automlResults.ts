@@ -30,11 +30,8 @@ class AutomlResultsPage {
     return cy.findByTestId('manage-columns-button');
   }
 
-  // ColumnManagementModal is a PF component — scope selectors within the dialog
   findManageColumnsDescription() {
-    return cy
-      .findByRole('dialog')
-      .findByText('Selected categories will be displayed in the table.');
+    return cy.findByTestId('manage-columns-modal');
   }
 
   findColumnCheck(column: string) {
@@ -56,8 +53,7 @@ class AutomlResultsPage {
   }
 
   findModelDetailsModalCloseButton() {
-    // PF Modal renders the close button internally — no closeButtonProps available
-    return cy.findByTestId('automl-model-details-modal').findByRole('button', { name: 'Close' });
+    return cy.findByTestId('model-details-close');
   }
 
   findModelSelectorDropdown() {
@@ -86,8 +82,8 @@ class AutomlResultsPage {
     return cy.findByTestId('confusion-matrix-table');
   }
 
-  findConfusionMatrixGradient() {
-    return cy.findByTestId('confusion-matrix-gradient');
+  findConfusionMatrixLegend() {
+    return cy.findByTestId('confusion-matrix-legend');
   }
 
   // Run Details Drawer
