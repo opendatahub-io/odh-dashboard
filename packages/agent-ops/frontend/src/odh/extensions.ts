@@ -20,6 +20,13 @@ const extensions: (AreaExtension | TabRouteTabExtension | RouteExtension)[] = [
     },
   },
   {
+    type: 'app.area',
+    properties: {
+      id: 'agent-ops-deploy',
+      featureFlags: ['agentOpsDeploy'],
+    },
+  },
+  {
     type: 'app.tab-route/tab',
     flags: {
       required: [AGENT_OPS],
@@ -37,7 +44,7 @@ const extensions: (AreaExtension | TabRouteTabExtension | RouteExtension)[] = [
   {
     type: 'app.route',
     flags: {
-      required: [AGENT_OPS],
+      required: [AGENT_OPS, 'agent-ops-deploy'],
     },
     properties: {
       path: `${agentDeploymentsPath}/:namespace/:agentId/*`,
@@ -47,7 +54,7 @@ const extensions: (AreaExtension | TabRouteTabExtension | RouteExtension)[] = [
   {
     type: 'app.route',
     flags: {
-      required: [AGENT_OPS],
+      required: [AGENT_OPS, 'agent-ops-deploy'],
     },
     properties: {
       path: agentDeployWizardPath,

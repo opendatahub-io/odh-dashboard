@@ -260,9 +260,10 @@ func (r *PipelineRepository) DiscoverNamedPipelines(
 		}
 	}
 
-	// Only cache when at least one pipeline was discovered to avoid long-lived negative caches
-	// that would delay detection of pipelines deployed after the initial miss.
-	if len(result) > 0 {
+	// Only cache when ALL requested pipelines were discovered. Caching a partial result
+	// would suppress rediscovery for the full TTL, delaying detection of pipelines that
+	// are still being deployed (e.g. after a rollout restart).
+	if len(result) == len(definitions) {
 		globalPipelineCache.set(cacheKey, result)
 	}
 

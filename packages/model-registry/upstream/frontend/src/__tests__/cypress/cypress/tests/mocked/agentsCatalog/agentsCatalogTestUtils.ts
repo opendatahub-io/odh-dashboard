@@ -14,14 +14,9 @@ import { MODEL_CATALOG_API_VERSION } from '~/__tests__/cypress/cypress/support/c
 
 const defaultSources: CatalogSource[] = [
   mockCatalogSource({
-    id: 'community-agents-source',
-    name: 'Community Agents',
-    labels: ['community_agents'],
-  }),
-  mockCatalogSource({
-    id: 'org-agents-source',
-    name: 'Organization Agents',
-    labels: ['organization_agents'],
+    id: 'agent-templates-source',
+    name: 'Agent Templates',
+    labels: ['agent_templates'],
   }),
 ];
 
@@ -48,22 +43,31 @@ export const interceptAgentLabels = (): void => {
     mockModArchResponse({
       items: [
         mockCatalogLabel({
-          name: 'community_agents',
-          displayName: 'Community Agents',
-          description: 'Community contributed agents.',
-        }),
-        mockCatalogLabel({
-          name: 'organization_agents',
-          displayName: 'Organization Agents',
-          description: 'Agents provided by your organization.',
+          name: 'agent_templates',
+          displayName: 'Agent templates',
+          description: 'Pre-built agent templates from the agentic starter kits collection.',
         }),
       ],
-      size: 2,
+      size: 1,
       pageSize: 10,
       nextPageToken: '',
     }),
   );
 };
+
+const buildAgentsForSources = (sources: CatalogSource[], agentsPerCategory: number): Agent[] =>
+  sources.flatMap((source) =>
+    source.labels.flatMap((label) =>
+      Array.from({ length: agentsPerCategory }, (_, i) =>
+        mockAgent({
+          id: `${label}-agent-${i + 1}`,
+          name: `${label}-agent-${i + 1}`,
+          displayName: `${label} Agent ${i + 1}`,
+          source_id: source.id,
+        }),
+      ),
+    ),
+  );
 
 export const interceptAgentsByLabel = (
   sources: CatalogSource[],
@@ -119,6 +123,18 @@ export const initAgentsCatalogIntercepts = ({
 }: InitInterceptsConfig = {}): void => {
   interceptAgentSources(sources);
   interceptAgentLabels();
+
+  // Generic intercept (no sourceLabel query) registered FIRST so that per-label
+  // intercepts registered after take priority (Cypress: last-registered wins).
+  const allAgents = buildAgentsForSources(sources, agentsPerCategory);
+  cy.interceptApi(
+    `GET /api/:apiVersion/agent_catalog/agents`,
+    {
+      path: { apiVersion: MODEL_CATALOG_API_VERSION },
+    },
+    mockAgentList({ items: allAgents, size: allAgents.length }),
+  );
+
   interceptAgentsByLabel(sources, agentsPerCategory);
 
   if (includeFilterOptions) {

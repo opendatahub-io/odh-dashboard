@@ -13,11 +13,11 @@ import {
   StackItem,
 } from '@patternfly/react-core';
 import { type Identifier, IdentifierResourceType } from '@odh-dashboard/k8s-core';
-import { UpdateObjectAtPropAndValue } from '@odh-dashboard/internal/pages/projects/types';
-import { UnitOption } from '@odh-dashboard/internal/utilities/valueUnits';
+import { UpdateObjectAtPropAndValue } from '@odh-dashboard/ui-core';
+import { UnitOption } from '@odh-dashboard/ui-core/utilities/valueUnits';
 import SimpleSelect, { SimpleSelectOption } from '@odh-dashboard/ui-core/components/SimpleSelect';
 import { asEnumMember } from '@odh-dashboard/foundation';
-import DashboardHelpTooltip from '@odh-dashboard/internal/concepts/dashboard/DashboardHelpTooltip';
+import DashboardHelpTooltip from '@odh-dashboard/ui-core/components/DashboardHelpTooltip';
 import {
   DEFAULT_ACCELERATOR_SIZE,
   DEFAULT_CPU_SIZE,

@@ -423,6 +423,8 @@ paths:
                   - name: 'llama-32-1b-instruct'
                     url: 'http://llama-32-1b-instruct-predictor.default.svc.cluster.local:8080/v1'
                     ready: true
+                    model_format_name: 'vLLM'
+                    api_protocol: 'REST'
                   - name: 'mistral-7b'
                     url: 'http://mistral-7b-predictor.default.svc.cluster.local:8080/v1'
                     ready: true
@@ -481,6 +483,7 @@ paths:
                   success: true
                   message: 'Connection successful'
                   response_time_ms: 120
+                  openai_compatible: true
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -1001,6 +1004,22 @@ components:
           type: boolean
           description: Whether the InferenceService is in a Ready state
           example: true
+        model_format_name:
+          type: string
+          description: >-
+            Model format name from the InferenceService spec
+            (spec.predictor.model.modelFormat.name). Empty when not set.
+          example: 'vLLM'
+        api_protocol:
+          type: string
+          enum:
+            - REST
+            - gRPC
+          description: >-
+            API protocol version from the InferenceService spec
+            (spec.predictor.model.protocolVersion or the ServingRuntime's
+            supportedModelFormats protocolVersion). Absent when not set.
+          example: 'REST'
 
     InferenceServicesResponse:
       type: object
@@ -1022,9 +1041,13 @@ components:
           - name: 'llama-32-1b-instruct'
             url: 'http://llama-32-1b-instruct-predictor.default.svc.cluster.local:8080/v1'
             ready: true
+            model_format_name: 'vLLM'
+            api_protocol: 'REST'
           - name: 'mistral-7b'
             url: 'http://mistral-7b-predictor.default.svc.cluster.local:8080/v1'
             ready: true
+            model_format_name: 'vLLM'
+            api_protocol: 'REST'
 
     # -------------------------------------------------------------------------
     # Connection verification schemas
@@ -1084,6 +1107,14 @@ components:
           type: integer
           description: Round-trip time in milliseconds (present on success)
           example: 142
+        openai_compatible:
+          type: boolean
+          description: >-
+            Whether the endpoint responded with a valid OpenAI-compatible
+            chat completions response shape. Only present for model/agent
+            source types when the probe succeeds. False when the endpoint
+            returns a non-OpenAI response body.
+          example: true
 
     # -------------------------------------------------------------------------
     # Evaluation job schemas

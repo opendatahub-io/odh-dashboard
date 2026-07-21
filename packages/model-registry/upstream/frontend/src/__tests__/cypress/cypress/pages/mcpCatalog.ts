@@ -78,6 +78,14 @@ class McpCatalog {
   findEmptyState() {
     return cy.findByTestId('empty-mcp-catalog-state');
   }
+
+  findEmptyStateTitle() {
+    return this.findEmptyState().find('.pf-v6-c-empty-state__title-text');
+  }
+
+  findEmptyStateWhosMyAdminLink() {
+    return this.findEmptyState().contains("Who's my administrator?");
+  }
 }
 
 class McpServerDetails {

@@ -9,6 +9,7 @@ import {
   type AutomlModel,
 } from '~/app/context/AutomlResultsContext';
 import type { PipelineRun } from '~/app/types';
+import type { ComponentStageMap } from '~/app/hooks/useComponentStageMap';
 
 // ============================================================================
 // Mock Data
@@ -80,6 +81,8 @@ describe('getAutomlContext', () => {
           prediction_length: 1,
           known_covariates_names: [],
         },
+        stageMapBestModel: undefined,
+        bestModelKey: undefined,
       });
     });
 
@@ -113,6 +116,8 @@ describe('getAutomlContext', () => {
           prediction_length: 1,
           known_covariates_names: [],
         },
+        stageMapBestModel: undefined,
+        bestModelKey: undefined,
       });
     });
 
@@ -156,6 +161,65 @@ describe('getAutomlContext', () => {
       });
 
       expect(context.modelsBasePath).toBeUndefined();
+    });
+  });
+
+  describe('best model derivation', () => {
+    const stageMapWithBestModel: ComponentStageMap = {
+      pipeline_id: 'pipeline',
+      description: '',
+      kfp_run_id: 'run-1',
+      published_at: '2026-01-01T00:00:00Z',
+      components: [
+        {
+          id: 'leaderboard_evaluation',
+          description: '',
+          stages: [
+            {
+              id: 'build_leaderboard',
+              description: 'Build leaderboard',
+              status: 'completed',
+              timestamp: '2026-01-01T00:00:00Z',
+              best_model: 'model-2',
+            },
+          ],
+        },
+      ],
+    };
+
+    it('should expose stageMapBestModel and bestModelKey from the component stage map', () => {
+      const context = getAutomlContext({
+        pipelineRun: createMockPipelineRun({ task_type: 'binary' }),
+        models: mockModels,
+        componentStageMap: stageMapWithBestModel,
+      });
+
+      expect(context.stageMapBestModel).toBe('model-2');
+      expect(context.bestModelKey).toBe('model-2');
+    });
+
+    it('should leave bestModelKey undefined when stage map best_model is not in models', () => {
+      const context = getAutomlContext({
+        pipelineRun: createMockPipelineRun({ task_type: 'binary' }),
+        models: mockModels,
+        componentStageMap: {
+          ...stageMapWithBestModel,
+          components: [
+            {
+              ...stageMapWithBestModel.components[0],
+              stages: [
+                {
+                  ...stageMapWithBestModel.components[0].stages[0],
+                  best_model: 'UnknownModel',
+                },
+              ],
+            },
+          ],
+        },
+      });
+
+      expect(context.stageMapBestModel).toBe('UnknownModel');
+      expect(context.bestModelKey).toBeUndefined();
     });
   });
 

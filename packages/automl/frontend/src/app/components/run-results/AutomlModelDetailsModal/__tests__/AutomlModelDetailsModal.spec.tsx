@@ -409,6 +409,38 @@ describe('AutomlModelDetailsModal', () => {
     }
   });
 
+  it('should use recomputed rank for the opened model when bestModelKey changes', () => {
+    const contextWithoutBest = {
+      ...mockTabularContext,
+      bestModelKey: undefined,
+    };
+    const contextWithBest = {
+      ...mockTabularContext,
+      bestModelKey: 'RandomForest_BAG_L1_FULL',
+    };
+
+    const { rerender } = render(
+      <AutomlResultsContext.Provider value={contextWithoutBest}>
+        <AutomlModelDetailsModal {...defaultProps} modelName="RandomForest_BAG_L1_FULL" rank={2} />
+      </AutomlResultsContext.Provider>,
+    );
+
+    const getRankValue = () => {
+      const rankSection = screen.getByText('Rank').closest('.automl-model-details-header-item');
+      return within(rankSection as HTMLElement).getByText(/^\d+$/);
+    };
+
+    expect(getRankValue()).toHaveTextContent('2');
+
+    rerender(
+      <AutomlResultsContext.Provider value={contextWithBest}>
+        <AutomlModelDetailsModal {...defaultProps} modelName="RandomForest_BAG_L1_FULL" rank={2} />
+      </AutomlResultsContext.Provider>,
+    );
+
+    expect(getRankValue()).toHaveTextContent('1');
+  });
+
   it('should not render Save as dropdown when neither callback is provided', () => {
     render(
       <AutomlResultsContext.Provider value={mockTabularContext}>

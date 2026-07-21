@@ -1,39 +1,100 @@
 import * as React from 'react';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports -- standard page shell wrapper
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
-import { Card, CardBody, Content, Icon, Label, Stack, StackItem } from '@patternfly/react-core';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
+import {
+  Button,
+  Card,
+  CardBody,
+  Content,
+  Flex,
+  FlexItem,
+  Stack,
+  StackItem,
+  Tooltip,
+  Title,
+} from '@patternfly/react-core';
 import { SyncAltIcon } from '@patternfly/react-icons';
+import { relativeTime } from '@odh-dashboard/internal/utilities/time';
 import { INFRASTRUCTURE_SECTIONS } from '../const';
+import { GPUAAS_EVENTS, type PageViewedProperties } from '../tracking/gpuaasTrackingConstants';
 import ClusterSummaryCards from '../components/ClusterSummaryCards';
+import HardwareUsageSection from '../components/HardwareUsageSection';
 import BorrowingLendingSection from '../components/BorrowingLendingSection';
+import ClusterQueueUtilizationSection from '../components/ClusterQueueUtilizationSection';
 import useInfrastructureMetrics from '../hooks/useInfrastructureMetrics';
 
 type SectionId = (typeof INFRASTRUCTURE_SECTIONS)[number]['id'];
 
-const formatRefreshTime = (date: Date): string =>
-  date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', second: '2-digit' });
-
 const InfrastructurePage: React.FC = () => {
   const metrics = useInfrastructureMetrics();
+  const isKueueAvailable = useIsAreaAvailable(SupportedArea.KUEUE).status;
+  const hasTrackedPageView = React.useRef(false);
+
+  React.useEffect(() => {
+    if (metrics.loaded && !hasTrackedPageView.current) {
+      hasTrackedPageView.current = true;
+      const totalAccelerators = metrics.accelerators?.total;
+      const acceleratorsInUse = metrics.accelerators?.inUse;
+      const props: PageViewedProperties = {
+        path: '/observe-and-monitor/infrastructure',
+        sectionCount: INFRASTRUCTURE_SECTIONS.length,
+        hasKueueEnabled: isKueueAvailable,
+        totalAccelerators,
+        acceleratorsInUse,
+        totalUtilizationPct:
+          totalAccelerators && totalAccelerators > 0
+            ? Math.round(((acceleratorsInUse ?? 0) / totalAccelerators) * 100)
+            : undefined,
+        avgComputeUtilPct: metrics.computeUtilization?.percentage,
+        avgMemoryUtilPct: metrics.memoryUtilization?.percentage,
+      };
+      fireMiscTrackingEvent(GPUAAS_EVENTS.PAGE_VIEWED, props);
+    }
+  }, [
+    metrics.loaded,
+    metrics.accelerators,
+    metrics.computeUtilization,
+    metrics.memoryUtilization,
+    isKueueAvailable,
+  ]);
+
+  const handleRefresh = React.useCallback(() => {
+    const secondsSinceLastUpdate = metrics.lastRefreshed
+      ? Math.round((Date.now() - metrics.lastRefreshed.getTime()) / 1000)
+      : undefined;
+    metrics.refresh();
+    fireMiscTrackingEvent(GPUAAS_EVENTS.DATA_REFRESHED, { secondsSinceLastUpdate });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- .refresh is stable from useFetch
+  }, [metrics.lastRefreshed, metrics.refresh]);
 
   const SECTION_COMPONENTS: Record<SectionId, React.ReactElement | null> = {
     cluster: <ClusterSummaryCards metrics={metrics} />,
-    'hardware-usage': null,
+    'hardware-usage': <HardwareUsageSection metrics={metrics} />,
     'borrowing-lending': <BorrowingLendingSection />,
-    'cluster-queue-utilization': null,
+    'cluster-queue-utilization': <ClusterQueueUtilizationSection />,
   };
 
   const headerAction = metrics.lastRefreshed ? (
-    <Label
-      icon={
-        <Icon isInline>
-          <SyncAltIcon />
-        </Icon>
-      }
+    <Flex
+      alignItems={{ default: 'alignItemsCenter' }}
+      spaceItems={{ default: 'spaceItemsSm' }}
       data-testid="infrastructure-refresh-badge"
     >
-      Refreshed ({formatRefreshTime(metrics.lastRefreshed)})
-    </Label>
+      <FlexItem>
+        <Tooltip content="Refresh page data">
+          <Button variant="plain" aria-label="Refresh page data" onClick={handleRefresh}>
+            <SyncAltIcon />
+          </Button>
+        </Tooltip>
+      </FlexItem>
+      <FlexItem>
+        <Content component="small">
+          Last update: {relativeTime(Date.now(), metrics.lastRefreshed.getTime())}
+        </Content>
+      </FlexItem>
+    </Flex>
   ) : null;
 
   return (
@@ -46,16 +107,20 @@ const InfrastructurePage: React.FC = () => {
       headerAction={headerAction}
     >
       <Stack hasGutter>
-        {INFRASTRUCTURE_SECTIONS.map(({ id, title, description }) => (
+        {INFRASTRUCTURE_SECTIONS.map(({ id, title, description, isPlain }) => (
           <StackItem key={id}>
             <Stack hasGutter>
               <StackItem>
-                <Content component="h2">{title}</Content>
-                {description && <Content component="p">{description}</Content>}
+                <Title headingLevel="h2" data-testid={`infrastructure-${id}-title`}>
+                  {title}
+                </Title>
+                <Content component="p" data-testid={`infrastructure-${id}-description`}>
+                  {description}
+                </Content>
               </StackItem>
               <StackItem>
-                <Card data-testid={`infrastructure-${id}-section`}>
-                  <CardBody>{SECTION_COMPONENTS[id]}</CardBody>
+                <Card isPlain={isPlain} data-testid={`infrastructure-${id}-section`}>
+                  {isPlain ? SECTION_COMPONENTS[id] : <CardBody>{SECTION_COMPONENTS[id]}</CardBody>}
                 </Card>
               </StackItem>
             </Stack>
