@@ -99,8 +99,7 @@ export const trackGuidedTourDismissed = (args: {
   fireFormTrackingEvent(GUIDED_TOUR_EVENTS.DISMISSED, {
     outcome: TrackingOutcome.cancel,
     ...formSessionProps(args.isAdmin, args.entryPoint),
-    // Amplitude plan names this field tourMode (same values as tourPath).
-    ...(args.tourPath ? { tourMode: args.tourPath } : {}),
+    ...(args.tourPath ? { tourPath: args.tourPath } : {}),
     dismissStepId: args.dismissStepId,
     dismissStepIndex: args.dismissStepIndex,
     dismissMethod: args.dismissMethod,

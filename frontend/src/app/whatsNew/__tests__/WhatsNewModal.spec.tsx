@@ -316,6 +316,28 @@ describe('WhatsNewModal', () => {
       );
     });
 
+    it('should include tourPath on Dismissed after a path is selected', () => {
+      useAppContextMock.mockReturnValue(buildAppContext());
+      useUserMock.mockReturnValue(regularUser);
+
+      render(<WhatsNewModal />);
+      openWelcomeModal();
+      startTourAndWait('Start tour');
+      mockFireFormTrackingEvent.mockClear();
+
+      fireEvent.click(screen.getByTestId('tour-step-skip'));
+
+      expect(mockFireFormTrackingEvent).toHaveBeenCalledWith(
+        GUIDED_TOUR_EVENTS.DISMISSED,
+        expect.objectContaining({
+          outcome: TrackingOutcome.cancel,
+          tourPath: 'full',
+          dismissMethod: 'skip_button',
+          dismissStepId: 'projects',
+        }),
+      );
+    });
+
     it('should fire Path Selected and Completed as form events', () => {
       useAppContextMock.mockReturnValue(buildAppContext());
       useUserMock.mockReturnValue(regularUser);
