@@ -1,4 +1,5 @@
 import React from 'react';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { featureServiceTableFilterOptions } from './const';
 import FeatureServicesTable from './FeatureServicesTable';
 import { applyFeatureServiceFilters } from './utils';
@@ -7,6 +8,10 @@ import { FeatureStoreToolbar } from '../../components/FeatureStoreToolbar';
 import { useFeatureStoreProject } from '../../FeatureStoreContext';
 import { useTagFilterHandlers } from '../../utils/useTagFilterHandlers';
 import { applyTagFilters } from '../../utils/filterUtils';
+import {
+  FEATURE_STORE_EVENTS,
+  FilterRemovedProperties,
+} from '../../tracking/featureStoreTrackingConstants';
 
 const FeatureServicesListView = ({
   featureServices,
@@ -41,6 +46,10 @@ const FeatureServicesListView = ({
   );
 
   const onClearFilters = React.useCallback(() => {
+    fireMiscTrackingEvent(FEATURE_STORE_EVENTS.FILTER_REMOVED, {
+      action: 'clearAll',
+      resourceType: 'featureService',
+    } satisfies FilterRemovedProperties);
     setFilterData({});
     setTagFilters([]);
   }, []);
@@ -71,6 +80,7 @@ const FeatureServicesListView = ({
           tagFilters={tagFilters}
           onTagFilterRemove={tagHandlers.handleTagFilterRemove}
           onTagFilterAdd={tagHandlers.handleTagFilterAdd}
+          trackingResourceType="featureService"
         />
       }
     />
