@@ -16,9 +16,8 @@ const OverviewTab: React.FC = () => {
     React.useState<OverviewFilterDataType>(initialOverviewFilterData);
 
   const onFilterUpdate = React.useCallback(
-    (key: string, value?: string | { label: string; value: string }) => {
-      setFilterData((prev) => ({ ...prev, [key]: value }));
-    },
+    (key: string, value?: string | { label: string; value: string }) =>
+      setFilterData((prev) => ({ ...prev, [key]: value })),
     [],
   );
 

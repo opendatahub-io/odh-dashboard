@@ -29,7 +29,7 @@ export type MaaSSettingsDetailsViewedProperties = {
 
 export type MaaSSettingsListFilteredProperties = {
   resourceType: EventTrackingResourceType;
-  filterValue: EventTrackingFilterAttribute;
+  filterAttribute: EventTrackingFilterAttribute;
 };
 
 export type MaaSSettingsListRowExpandedProperties = {

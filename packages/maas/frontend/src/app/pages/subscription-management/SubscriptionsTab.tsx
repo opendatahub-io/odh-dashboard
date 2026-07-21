@@ -36,7 +36,7 @@ const SubscriptionsTab: React.FC<SubscriptionsTabProps> = ({ returnTo }) => {
     (key: string, value?: string | { label: string; value: string }) => {
       fireMiscTrackingEvent(MaaSEvents.MAAS_SETTINGS_LIST_FILTERED, {
         resourceType: EventTrackingResourceType.SUBSCRIPTION,
-        filterValue: key,
+        filterAttribute: key,
       });
       setFilterData((prev) => ({ ...prev, [key]: value }));
     },

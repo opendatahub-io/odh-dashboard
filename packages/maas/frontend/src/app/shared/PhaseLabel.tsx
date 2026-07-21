@@ -58,7 +58,7 @@ const PhaseLabel: React.FC<PhaseLabelProps> = ({
       onShow={() => {
         fireMiscTrackingEvent(MaaSEvents.SUBSCRIPTION_MANAGEMENT_STATUS_POPOVER_VIEWED, {
           popoverType: 'status',
-          status: phase,
+          status: normalized,
           location,
         });
       }}

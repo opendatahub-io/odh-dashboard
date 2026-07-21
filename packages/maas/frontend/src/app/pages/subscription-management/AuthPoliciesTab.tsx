@@ -39,7 +39,7 @@ const AuthPoliciesTab: React.FC<AuthPoliciesTabProps> = ({ returnTo }) => {
     (key: string, value?: string | { label: string; value: string }) => {
       fireMiscTrackingEvent(MaaSEvents.MAAS_SETTINGS_LIST_FILTERED, {
         resourceType: EventTrackingResourceType.AUTHPOLICY,
-        filterValue: key,
+        filterAttribute: key,
       });
       setFilterData((prev) => ({ ...prev, [key]: value }));
     },
