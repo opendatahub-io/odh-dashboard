@@ -25,6 +25,8 @@ COPY --from=builder /tmp/manager .
 COPY --chown=65532:0 manifests/ /opt/manifests/dashboard/
 RUN chmod -R g+w /opt/manifests/dashboard/modules/ \
     && chmod g+w /opt/manifests/dashboard/odh/params.env \
+    && chmod g+w /opt/manifests/dashboard/odh/standalone/params.env \
+    && chmod g+w /opt/manifests/dashboard/rhoai/standalone/params.env \
     && chmod g+w /opt/manifests/dashboard/sidecar/params.env
 
 USER 65532:65532
