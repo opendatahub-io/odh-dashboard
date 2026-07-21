@@ -2,6 +2,7 @@ package openshell
 
 import (
 	"context"
+	"strings"
 
 	"github.com/opendatahub-io/mod-arch-library/bff/internal/constants"
 	k8s "github.com/opendatahub-io/mod-arch-library/bff/internal/integrations/kubernetes"
@@ -11,9 +12,9 @@ import (
 // user's Bearer token from the request context on every gRPC call. This
 // allows a single shared gRPC connection to carry per-user identity.
 //
-// The token is placed in context by the InjectRequestIdentity middleware
-// and flows through: HTTP handler → repository → agents.Client → SDK →
-// gRPC call → GetRequestMetadata(ctx) → authorization header.
+// Only forwards OIDC JWTs (eyJ... prefix). OpenShift opaque tokens (sha256~)
+// are not forwarded — the Gateway can't validate them and rejects them even
+// when allowUnauthenticatedUsers is enabled (it tries JWT validation first).
 type contextAuthProvider struct {
 	insecure bool
 }
@@ -33,8 +34,13 @@ func (p *contextAuthProvider) GetRequestMetadata(ctx context.Context, _ ...strin
 		return nil, nil
 	}
 
+	token := identity.Token
+	if strings.HasPrefix(token, "sha256~") {
+		return nil, nil
+	}
+
 	return map[string]string{
-		"authorization": "Bearer " + identity.Token,
+		"authorization": "Bearer " + token,
 	}, nil
 }
 
