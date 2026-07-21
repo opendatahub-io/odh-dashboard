@@ -1,12 +1,17 @@
 import React from 'react';
-import { Button, Tooltip } from '@patternfly/react-core';
+import { Button, Skeleton, Tooltip } from '@patternfly/react-core';
 import { WrenchIcon } from '@patternfly/react-icons';
 import { FeatureStoreModel } from '@odh-dashboard/internal/api/models/odh';
 import { useAccessAllowed } from '@odh-dashboard/internal/concepts/userSSAR/useAccessAllowed';
 import { verbModelAccess } from '@odh-dashboard/internal/concepts/userSSAR/utils';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import ConnectedWorkbenchesModal from './ConnectedWorkbenchesModal';
 import { useFeatureStoreProject } from '../FeatureStoreContext';
 import { useFeatureStoreAccessibleProjects } from '../hooks/useFeatureStoreAccessibleProjects';
+import {
+  FEATURE_STORE_EVENTS,
+  WorkbenchConnectionViewedProperties,
+} from '../tracking/featureStoreTrackingConstants';
 
 const TOOLTIP_REGULAR_USER =
   'To connect a workbench, you need a project that can access this feature store. Contact your administrator to request project permissions.';
@@ -30,9 +35,14 @@ const ConnectedWorkbenchesLink: React.FC = () => {
       variant="link"
       icon={<WrenchIcon />}
       iconPosition="start"
-      isDisabled={!projectsLoaded || !!projectsError}
+      isDisabled={!!projectsError}
       isAriaDisabled={hasNoProjects}
-      onClick={() => setIsModalOpen(true)}
+      onClick={() => {
+        fireMiscTrackingEvent(FEATURE_STORE_EVENTS.WORKBENCH_CONNECTION_VIEWED, {
+          featureStoreProject: currentProject || 'unknown',
+        } satisfies WorkbenchConnectionViewedProperties);
+        setIsModalOpen(true);
+      }}
       className="pf-v6-u-font-weight-bold"
       data-testid="connected-workbenches-link"
     >
@@ -51,7 +61,7 @@ const ConnectedWorkbenchesLink: React.FC = () => {
 
   return (
     <>
-      {content}
+      {!projectsLoaded ? <Skeleton data-testid="skeleton-loader" width="200px" /> : content}
       {isModalOpen && (
         <ConnectedWorkbenchesModal
           onClose={() => setIsModalOpen(false)}

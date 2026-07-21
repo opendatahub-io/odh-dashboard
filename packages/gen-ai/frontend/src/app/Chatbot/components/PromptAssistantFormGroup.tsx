@@ -8,6 +8,7 @@ import {
   TextArea,
   Stack,
   Title,
+  Tooltip,
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import text from '@patternfly/react-styles/css/utilities/Text/text';
@@ -19,7 +20,6 @@ import {
   selectActivePrompt,
   selectDirtyPrompt,
   selectVariableValues,
-  selectIsPreview,
   DEFAULT_CONFIG_ID,
 } from '~/app/Chatbot/store';
 import { usePlaygroundStore } from '~/app/Chatbot/store/usePlaygroundStore';
@@ -61,7 +61,6 @@ export default function PromptAssistantFormGroup({
   const clearPromptState = useChatbotConfigStore((state) => state.clearPromptState);
   const variableValues = useChatbotConfigStore(selectVariableValues(configId));
   const updateVariableValues = useChatbotConfigStore((state) => state.updateVariableValues);
-  const isPreview = useChatbotConfigStore(selectIsPreview(configId));
   const [editMode, setEditMode] = React.useState(true);
   const activeTemplate =
     activePrompt?.template ??
@@ -96,6 +95,8 @@ export default function PromptAssistantFormGroup({
     setEditMode(true);
   }
 
+  const isGlobalPrompt = activePrompt?.scope?.type === 'global';
+
   function handleSaveClicked() {
     setEditMode(false);
     const newPrompt: MLflowPromptVersion = dirtyPrompt
@@ -106,6 +107,18 @@ export default function PromptAssistantFormGroup({
     newPrompt.commit_message = '';
     updateDirtyPrompt(configId, newPrompt);
     openModal(mode, configId, newPrompt);
+  }
+
+  function handleSaveAsClicked() {
+    setEditMode(false);
+    const newPrompt: MLflowPromptVersion = dirtyPrompt
+      ? { ...dirtyPrompt, template: systemInstruction }
+      : { ...buildPromptStub(), template: systemInstruction };
+    // eslint-disable-next-line camelcase -- MLflow API uses snake_case
+    newPrompt.commit_message = '';
+    newPrompt.name = `copy-of-${newPrompt.name || activePrompt?.name || ''}`.trim();
+    updateDirtyPrompt(configId, newPrompt);
+    openModal('save-as', configId, newPrompt);
   }
 
   function buildPromptStub(): MLflowPromptVersion {
@@ -146,6 +159,15 @@ export default function PromptAssistantFormGroup({
             <Title headingLevel="h6" data-testid="prompt-name-title">
               {dirtyPrompt?.name || 'New Prompt'}
             </Title>
+            {activePrompt?.scope && (
+              <Label
+                data-testid="prompt-scope-label"
+                isCompact
+                color={activePrompt.scope.type === 'project' ? 'blue' : 'orange'}
+              >
+                {activePrompt.scope.type === 'project' ? 'Project' : 'Global'}
+              </Label>
+            )}
             {!!activePrompt?.version && (
               <Label
                 data-testid="prompt-version-label"
@@ -190,20 +212,18 @@ export default function PromptAssistantFormGroup({
             id="system-instructions-input"
             type="text"
             value={systemInstruction}
-            readOnly={!editMode || isPreview}
+            readOnly={!editMode}
             resizeOrientation="vertical"
             onChange={(_event, value) => handleTextChange(value)}
             aria-label="Prompt instructions input"
             rows={18}
             data-testid="system-instructions-input"
-            isDisabled={isPreview}
           />
           {!editMode && (
             <Flex>
               <Button
                 data-testid="prompt-edit-button"
                 variant="primary"
-                isDisabled={isPreview}
                 onClick={() => {
                   setEditMode(true);
                   fireMiscTrackingEvent('Playground Prompt Edit Selected', {
@@ -216,7 +236,7 @@ export default function PromptAssistantFormGroup({
               <Button
                 data-testid="prompt-reset-button"
                 variant="link"
-                isDisabled={isPreview || (!isEdited && !activePrompt)}
+                isDisabled={!isEdited && !activePrompt}
                 onClick={() =>
                   confirm(handleNewPrompt, {
                     ...RESET_CONFIRMATION_CONFIG,
@@ -239,19 +259,43 @@ export default function PromptAssistantFormGroup({
           )}
           {editMode && (
             <Flex>
-              <Button
-                data-testid="prompt-save-to-registry-button"
-                variant="primary"
-                isDisabled={isPreview || !isEdited}
-                onClick={handleSaveClicked}
-              >
-                Save
-              </Button>
+              {isGlobalPrompt ? (
+                <Flex style={{ gap: 'var(--pf-t--global--spacer--sm)' }}>
+                  <Tooltip content="This prompt is read-only. Use Save As to create your own copy.">
+                    <span>
+                      <Button
+                        data-testid="prompt-save-to-registry-button"
+                        variant="primary"
+                        isDisabled
+                      >
+                        Save
+                      </Button>
+                    </span>
+                  </Tooltip>
+                  <Button
+                    data-testid="prompt-save-as-button"
+                    variant="primary"
+                    isDisabled={!isEdited}
+                    onClick={handleSaveAsClicked}
+                  >
+                    Save As
+                  </Button>
+                </Flex>
+              ) : (
+                <Button
+                  data-testid="prompt-save-to-registry-button"
+                  variant="primary"
+                  isDisabled={!isEdited}
+                  onClick={handleSaveClicked}
+                >
+                  Save
+                </Button>
+              )}
               {activePrompt ? (
                 <Button
                   data-testid="prompt-revert-button"
                   variant="link"
-                  isDisabled={isPreview || !isEdited}
+                  isDisabled={!isEdited}
                   onClick={() =>
                     confirm(handleRevert, {
                       ...CONFIRMATION_CONFIG,
@@ -272,7 +316,7 @@ export default function PromptAssistantFormGroup({
                 <Button
                   data-testid="prompt-reset-button"
                   variant="link"
-                  isDisabled={isPreview || !isEdited}
+                  isDisabled={!isEdited}
                   onClick={() =>
                     confirm(handleNewPrompt, {
                       ...RESET_CONFIRMATION_CONFIG,
@@ -299,7 +343,6 @@ export default function PromptAssistantFormGroup({
             systemInstruction={systemInstruction}
             variableValues={variableValues}
             onVariableValuesChange={(values) => updateVariableValues(configId, values)}
-            isDisabled={isPreview}
           />
         </Stack>
       </Panel>

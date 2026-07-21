@@ -93,6 +93,7 @@ COPY --from=ui-builder /usr/src/workspace/${UI_SOURCE_CODE}/dist ./static/
 USER 65532:65532
 
 # Set environment variables
+ENV GOLANG_PROTOBUF_REGISTRATION_CONFLICT=warn
 # Expose port 8080
 EXPOSE 8080
 

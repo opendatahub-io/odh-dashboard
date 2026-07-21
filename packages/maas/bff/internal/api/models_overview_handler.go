@@ -48,6 +48,7 @@ func ListModelsOverviewHandler(app *App, w http.ResponseWriter, r *http.Request,
 				Name:            sub.Name,
 				DisplayName:     sub.DisplayName,
 				Phase:           sub.Phase,
+				StatusMessage:   sub.StatusMessage,
 				Groups:          groups,
 				TokenRateLimits: rateLimits,
 			})
@@ -60,10 +61,11 @@ func ListModelsOverviewHandler(app *App, w http.ResponseWriter, r *http.Request,
 		groups := groupNames(policy.Subjects.Groups)
 		for _, ref := range policy.ModelRefs {
 			policiesByModel[ref.Name] = append(policiesByModel[ref.Name], models.ModelOverviewPolicy{
-				Name:        policy.Name,
-				DisplayName: policy.DisplayName,
-				Phase:       policy.Phase,
-				Groups:      groups,
+				Name:          policy.Name,
+				DisplayName:   policy.DisplayName,
+				Phase:         policy.Phase,
+				StatusMessage: policy.StatusMessage,
+				Groups:        groups,
 			})
 		}
 	}

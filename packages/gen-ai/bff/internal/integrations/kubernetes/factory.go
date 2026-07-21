@@ -11,7 +11,10 @@ import (
 
 	"github.com/opendatahub-io/gen-ai/internal/config"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
+	helper "github.com/opendatahub-io/gen-ai/internal/helpers"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
+	"k8s.io/client-go/rest"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 func NewKubernetesClientFactory(cfg config.EnvConfig, logger *slog.Logger, rootCAs *x509.CertPool) (KubernetesClientFactory, error) {
@@ -40,6 +43,7 @@ type TokenClientFactory struct {
 	Header            string
 	Prefix            string
 	Config            config.EnvConfig
+	SAClient          client.Client // in-cluster SA client for elevated operations (nil in local dev)
 	OTelConfigManager *otelConfigManager
 }
 
@@ -49,13 +53,46 @@ func NewTokenClientFactory(logger *slog.Logger, cfg config.EnvConfig, rootCAs *x
 		logger.Warn("failed to create OTel config manager, tracing route management will be unavailable", "error", err)
 	}
 
-	return &TokenClientFactory{
+	f := &TokenClientFactory{
 		Logger:            logger,
 		Header:            cfg.AuthTokenHeader,
 		Prefix:            cfg.AuthTokenPrefix,
 		Config:            cfg,
 		OTelConfigManager: ocm,
 	}
+
+	if !cfg.MockK8sClient {
+		saClient, err := buildSAClient(logger)
+		if err != nil {
+			logger.Warn("SA client unavailable (expected outside cluster)", "error", err)
+		} else {
+			f.SAClient = saClient
+			logger.Info("SA client initialized for pgvector provisioning")
+		}
+	}
+
+	return f
+}
+
+// buildSAClient creates a controller-runtime client using the pod's service
+// account. Used for operations that require elevated permissions (creating
+// Deployments, Services, PVCs) that the user's bearer token may not have.
+func buildSAClient(logger *slog.Logger) (client.Client, error) {
+	cfg, err := rest.InClusterConfig()
+	if err != nil {
+		return nil, fmt.Errorf("not running in cluster: %w", err)
+	}
+
+	scheme, err := helper.BuildScheme()
+	if err != nil {
+		return nil, fmt.Errorf("failed to build scheme: %w", err)
+	}
+
+	c, err := client.New(cfg, client.Options{Scheme: scheme})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create SA client: %w", err)
+	}
+	return c, nil
 }
 
 func (f *TokenClientFactory) ExtractRequestIdentity(httpHeader http.Header) (*integrations.RequestIdentity, error) {
@@ -88,7 +125,7 @@ func (f *TokenClientFactory) GetClient(ctx context.Context) (KubernetesClientInt
 		return nil, fmt.Errorf("invalid or missing identity token")
 	}
 
-	return newTokenKubernetesClient(identity.Token, f.Logger, f.Config, f.OTelConfigManager)
+	return newTokenKubernetesClient(identity.Token, f.Logger, f.Config, f.SAClient, f.OTelConfigManager)
 }
 
 func (f *TokenClientFactory) ValidateRequestIdentity(identity *integrations.RequestIdentity) error {

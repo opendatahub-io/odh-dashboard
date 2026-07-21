@@ -87,7 +87,7 @@ relatedImages:
   RELATED_IMAGE_ODH_AUTORAG_IMAGE: ""
 
 config:
-  name: opendatahub-dashboard-config
+  name: odh-dashboard-config
   data:
     distribution.name: Standalone
     distribution.version: "0.0.0"

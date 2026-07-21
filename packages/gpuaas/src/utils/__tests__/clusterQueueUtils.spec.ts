@@ -327,11 +327,11 @@ describe('normalizeModelName', () => {
 
 describe('formatWorkloadCounts', () => {
   it.each([
-    [0, 0, '0 active workloads · 0 pending workloads'],
-    [1, 0, '1 active workload · 0 pending workloads'],
-    [2, 5, '2 active workloads · 5 pending workloads'],
-    [0, 1, '0 active workloads · 1 pending workload'],
-    [0, 10, '0 active workloads · 10 pending workloads'],
+    [0, 0, 'Workloads: 0 active, 0 pending'],
+    [1, 0, 'Workloads: 1 active, 0 pending'],
+    [2, 5, 'Workloads: 2 active, 5 pending'],
+    [0, 1, 'Workloads: 0 active, 1 pending'],
+    [0, 10, 'Workloads: 0 active, 10 pending'],
   ])('(%d admitted, %d pending) → "%s"', (admitted, pending, expected) => {
     expect(formatWorkloadCounts(admitted, pending)).toBe(expected);
   });

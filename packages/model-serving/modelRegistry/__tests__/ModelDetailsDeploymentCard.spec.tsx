@@ -10,7 +10,7 @@ import { ModelDeploymentsContext } from '../../src/concepts/ModelDeploymentsCont
 
 jest.mock('@odh-dashboard/plugin-core');
 
-jest.mock('@odh-dashboard/internal/concepts/projects/ProjectsContext', () => {
+jest.mock('@odh-dashboard/ui-core/context/ProjectsContext', () => {
   const { createContext } = require('react');
   return { ProjectsContext: createContext({ projects: [] }) };
 });

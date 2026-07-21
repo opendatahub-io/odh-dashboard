@@ -9,11 +9,14 @@ type AgentRuntime struct {
 	DisplayName  string                  `json:"displayName"`
 	Description  string                  `json:"description"`
 	Framework    string                  `json:"framework,omitempty"`
-	Status       string                  `json:"status"`
-	Type         string                  `json:"type"`
+	Status        string                  `json:"status"`
+	StatusMessage string                  `json:"statusMessage,omitempty"`
+	Type          string                  `json:"type"`
 	ServiceFQDN  string                  `json:"serviceFqdn,omitempty"`
+	PodIP        string                  `json:"podIp,omitempty"`
 	Ports        []AgentServiceEndpoint  `json:"ports"`
 	EndpointURL  string                  `json:"endpointUrl,omitempty"`
+	WorkloadType string                  `json:"workloadType,omitempty"`
 	LastSyncTime time.Time               `json:"lastSyncTime"`
 }
 

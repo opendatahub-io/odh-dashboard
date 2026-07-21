@@ -130,6 +130,36 @@ type EnvConfig struct {
 	// Default: "" (empty for ODH's x-forwarded-access-token)
 	BFFMaaSAuthTokenPrefix string
 
+	// ─── BFF MLFLOW CONFIGURATION ─────────────────────────────────
+	// BFFMLflowServiceName is the Kubernetes service name for the MLflow BFF.
+	// Default: "odh-dashboard" (shared service in single-pod deployment)
+	BFFMLflowServiceName string
+
+	// BFFMLflowServicePort is the port for the MLflow BFF service.
+	// Default: 8343
+	BFFMLflowServicePort int
+
+	// BFFMLflowTLSEnabled enables HTTPS for MLflow BFF communication.
+	// Default: true
+	BFFMLflowTLSEnabled bool
+
+	// BFFMLflowDevURL is a developer override URL for MLflow BFF (local development).
+	// When set, overrides service discovery. Example: "http://localhost:8443/api/v1"
+	BFFMLflowDevURL string
+
+	// BFFMLflowAuthMethod specifies the auth method used by the target MLflow BFF.
+	// Supported values: "internal" (kubeflow-userid header), "user_token" (token in header)
+	// Default: "user_token" (recommended for ODH/RHOAI)
+	BFFMLflowAuthMethod string
+
+	// BFFMLflowAuthTokenHeader specifies the header MLflow BFF expects for user_token auth.
+	// Default: "x-forwarded-access-token" (ODH standard)
+	BFFMLflowAuthTokenHeader string
+
+	// BFFMLflowAuthTokenPrefix specifies the prefix MLflow BFF expects in the token header.
+	// Default: "" (empty for ODH's x-forwarded-access-token)
+	BFFMLflowAuthTokenPrefix string
+
 	// When PgvectorHost is set, the BFF configures remote::pgvector as the
 	// default vector_io provider instead of inline::milvus.
 	PgvectorHost               string
@@ -138,4 +168,8 @@ type EnvConfig struct {
 	PgvectorUser               string // default: "vectoruser"
 	PgvectorPasswordSecretName string // K8s Secret name containing the password
 	PgvectorPasswordSecretKey  string // key inside the password Secret, default: "password"
+
+	// PgvectorImage is the container image for auto-provisioned pgvector.
+	// Injected by the operator via RELATED_IMAGE_POSTGRESQL_16_IMAGE.
+	PgvectorImage string
 }
