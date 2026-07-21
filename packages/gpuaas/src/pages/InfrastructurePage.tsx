@@ -18,11 +18,7 @@ import {
 import { SyncAltIcon } from '@patternfly/react-icons';
 import { relativeTime } from '@odh-dashboard/internal/utilities/time';
 import { INFRASTRUCTURE_SECTIONS } from '../const';
-import {
-  GPUAAS_EVENTS,
-  type PageViewedProperties,
-  type DataRefreshedProperties,
-} from '../tracking/gpuaasTrackingConstants';
+import { GPUAAS_EVENTS, type PageViewedProperties } from '../tracking/gpuaasTrackingConstants';
 import ClusterSummaryCards from '../components/ClusterSummaryCards';
 import HardwareUsageSection from '../components/HardwareUsageSection';
 import BorrowingLendingSection from '../components/BorrowingLendingSection';
@@ -33,7 +29,7 @@ type SectionId = (typeof INFRASTRUCTURE_SECTIONS)[number]['id'];
 
 const InfrastructurePage: React.FC = () => {
   const metrics = useInfrastructureMetrics();
-  const isKueueAvailable = useIsAreaAvailable(SupportedArea.GPUAAS_INFRASTRUCTURE).status;
+  const isKueueAvailable = useIsAreaAvailable(SupportedArea.KUEUE).status;
   const hasTrackedPageView = React.useRef(false);
 
   React.useEffect(() => {
@@ -69,12 +65,7 @@ const InfrastructurePage: React.FC = () => {
       ? Math.round((Date.now() - metrics.lastRefreshed.getTime()) / 1000)
       : undefined;
     metrics.refresh();
-    // Optimistic: fires before async queries settle; refresh() is fire-and-forget.
-    const props: DataRefreshedProperties = {
-      success: true,
-      secondsSinceLastUpdate,
-    };
-    fireMiscTrackingEvent(GPUAAS_EVENTS.DATA_REFRESHED, props);
+    fireMiscTrackingEvent(GPUAAS_EVENTS.DATA_REFRESHED, { secondsSinceLastUpdate });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- .refresh is stable from useFetch
   }, [metrics.lastRefreshed, metrics.refresh]);
 

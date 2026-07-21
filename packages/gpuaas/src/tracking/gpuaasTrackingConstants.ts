@@ -52,7 +52,8 @@ export type BorrowLendDetailViewedProperties = {
 };
 
 export type DataRefreshedProperties = {
-  success: boolean;
+  /** Set when refresh outcome can be determined; omitted for fire-and-forget clicks. */
+  success?: boolean;
   error?: string;
   secondsSinceLastUpdate?: number;
 };

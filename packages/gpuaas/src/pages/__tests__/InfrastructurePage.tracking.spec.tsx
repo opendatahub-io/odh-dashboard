@@ -13,7 +13,7 @@ jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', (
 }));
 
 jest.mock('@odh-dashboard/plugin-core/areas', () => ({
-  SupportedArea: { GPUAAS_INFRASTRUCTURE: 'gpuaas-infrastructure' },
+  SupportedArea: { KUEUE: 'kueue' },
   useIsAreaAvailable: jest.fn(),
 }));
 
@@ -141,12 +141,7 @@ describe('InfrastructurePage - Tracking Events', () => {
       const refreshButton = screen.getByRole('button', { name: 'Refresh page data' });
       await user.click(refreshButton);
 
-      expect(mockFireMisc).toHaveBeenCalledWith(
-        GPUAAS_EVENTS.DATA_REFRESHED,
-        expect.objectContaining({
-          success: true,
-        }),
-      );
+      expect(mockFireMisc).toHaveBeenCalledWith(GPUAAS_EVENTS.DATA_REFRESHED, expect.any(Object));
       expect(mockRefresh).toHaveBeenCalled();
     });
 
@@ -165,7 +160,6 @@ describe('InfrastructurePage - Tracking Events', () => {
       expect(mockFireMisc).toHaveBeenCalledWith(
         GPUAAS_EVENTS.DATA_REFRESHED,
         expect.objectContaining({
-          success: true,
           secondsSinceLastUpdate: expect.any(Number),
         }),
       );
