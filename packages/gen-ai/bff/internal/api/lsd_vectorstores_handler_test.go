@@ -189,6 +189,22 @@ var _ = Describe("LlamaStackListVectorStoresHandler", func() {
 		// Mock returns 2 stores; handler auto-provisions 1 file-upload store = 3 total
 		vectorStores := response.Data.([]interface{})
 		assert.Len(t, vectorStores, 3)
+
+		// Verify the auto-provisioned store contract
+		var fileUploadStore map[string]interface{}
+		for _, vs := range vectorStores {
+			store := vs.(map[string]interface{})
+			metadata, ok := store["metadata"].(map[string]interface{})
+			if !ok {
+				continue
+			}
+			if createdBy, ok := metadata["created_by"].(string); ok && createdBy == "auto-provisioning" {
+				fileUploadStore = store
+				break
+			}
+		}
+		require.NotNil(t, fileUploadStore, "expected auto-provisioned file-upload store")
+		assert.Equal(t, "file-uploads", fileUploadStore["name"])
 	})
 
 	It("should list vector stores with limit parameter", func() {
