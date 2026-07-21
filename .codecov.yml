@@ -73,6 +73,7 @@ component_management:
     statuses:
       - type: project
         target: auto
+        informational: true
   individual_components:
     - component_id: frontend-core
       name: "Frontend Core"
@@ -82,59 +83,11 @@ component_management:
       name: "Backend"
       paths:
         - backend/src/**
-    - component_id: pkg-gen-ai
-      name: "Gen AI"
-      paths:
-        - packages/gen-ai/**
-    - component_id: pkg-model-registry
-      name: "Model Registry"
-      paths:
-        - packages/model-registry/**
     - component_id: pkg-model-serving
       name: "Model Serving"
       paths:
         - packages/model-serving/**
-    - component_id: pkg-eval-hub
-      name: "Eval Hub"
-      paths:
-        - packages/eval-hub/**
-    - component_id: pkg-maas
-      name: "MaaS"
-      paths:
-        - packages/maas/**
-    - component_id: pkg-agent-ops
-      name: "Agent Ops"
-      paths:
-        - packages/agent-ops/**
-    - component_id: pkg-automl
-      name: "AutoML"
-      paths:
-        - packages/automl/**
-    - component_id: pkg-autorag
-      name: "AutoRAG"
-      paths:
-        - packages/autorag/**
-    - component_id: pkg-notebooks
-      name: "Notebooks"
-      paths:
-        - packages/notebooks/**
     - component_id: pkg-observability
       name: "Observability"
       paths:
         - packages/observability/**
-    - component_id: pkg-mlflow
-      name: "MLflow"
-      paths:
-        - packages/mlflow/**
-    - component_id: pkg-gpuaas
-      name: "GPUaaS"
-      paths:
-        - packages/gpuaas/**
-    - component_id: pkg-model-training
-      name: "Model Training"
-      paths:
-        - packages/model-training/**
-    - component_id: distributions
-      name: "Distributions"
-      paths:
-        - distributions/**
