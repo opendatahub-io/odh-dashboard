@@ -9,7 +9,7 @@ describe('LLM accelerator config columns', () => {
       expect(typeof enabledColumn?.sortable).toBe('function');
     });
 
-    it('should sort disabled before enabled', () => {
+    it('should sort enabled before disabled', () => {
       const enabledColumn = columns.find((c) => c.field === 'enabled');
       expect(enabledColumn).toBeDefined();
       const sortFn = enabledColumn?.sortable as (
@@ -26,8 +26,8 @@ describe('LLM accelerator config columns', () => {
         disabled: true,
       });
 
-      expect(sortFn(disabledConfig, enabledConfig, 'enabled')).toBeLessThan(0);
-      expect(sortFn(enabledConfig, disabledConfig, 'enabled')).toBeGreaterThan(0);
+      expect(sortFn(enabledConfig, disabledConfig, 'enabled')).toBeLessThan(0);
+      expect(sortFn(disabledConfig, enabledConfig, 'enabled')).toBeGreaterThan(0);
       expect(sortFn(enabledConfig, enabledConfig, 'enabled')).toBe(0);
     });
   });

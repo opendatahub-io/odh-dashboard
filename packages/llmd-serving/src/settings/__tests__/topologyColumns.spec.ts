@@ -42,7 +42,7 @@ describe('Topology configurations table columns', () => {
       getSortFn('enabled');
     });
 
-    it('should sort disabled before enabled', () => {
+    it('should sort enabled before disabled', () => {
       const sortFn = getSortFn('enabled');
       const enabledConfig = mockLLMInferenceServiceConfigK8sResource({
         name: 'enabled-config',
@@ -54,8 +54,8 @@ describe('Topology configurations table columns', () => {
         disabled: true,
       });
 
-      expect(sortFn(disabledConfig, enabledConfig, 'enabled')).toBeLessThan(0);
-      expect(sortFn(enabledConfig, disabledConfig, 'enabled')).toBeGreaterThan(0);
+      expect(sortFn(enabledConfig, disabledConfig, 'enabled')).toBeLessThan(0);
+      expect(sortFn(disabledConfig, enabledConfig, 'enabled')).toBeGreaterThan(0);
       expect(sortFn(enabledConfig, enabledConfig, 'enabled')).toBe(0);
     });
   });

@@ -13,7 +13,7 @@ export const columns: SortableData<LLMInferenceServiceConfigKind>[] = [
   {
     field: 'enabled',
     label: 'Enabled',
-    sortable: (a, b) => Number(isConfigEnabled(a)) - Number(isConfigEnabled(b)),
+    sortable: (a, b) => Number(isConfigEnabled(b)) - Number(isConfigEnabled(a)),
     info: {
       popover: 'When enabled, this configuration is available in the deployment wizard.',
       popoverProps: {
