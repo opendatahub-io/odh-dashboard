@@ -19,6 +19,11 @@ func NewMockMaaSModelRefsRepository(logger *slog.Logger) *MockMaaSModelRefsRepos
 	return &MockMaaSModelRefsRepository{logger: logger}
 }
 
+func (r *MockMaaSModelRefsRepository) ListMaaSModelRefs(_ context.Context) ([]models.MaaSModelRefSummary, error) {
+	r.logger.Debug("Listing all MaaSModelRefs (mock)")
+	return mocks.GetMockMaaSModelRefSummaries(), nil
+}
+
 func (r *MockMaaSModelRefsRepository) CreateMaaSModelRef(_ context.Context, request models.CreateMaaSModelRefRequest, dryRun bool) (*models.MaaSModelRefSummary, error) {
 	r.logger.Debug("Creating MaaSModelRef (mock)", slog.String("name", request.Name), slog.Bool("dryRun", dryRun))
 

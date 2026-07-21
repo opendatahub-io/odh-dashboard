@@ -1,9 +1,9 @@
 import React from 'react';
 import { z } from 'zod';
-import { useZodFormValidation } from '@odh-dashboard/internal/hooks/useZodFormValidation';
-import { isK8sNameDescriptionDataValid } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/utils';
-import { useValidation } from '@odh-dashboard/internal/utilities/useValidation';
-import { hardwareProfileValidationSchema } from '@odh-dashboard/internal/concepts/hardwareProfiles/validationUtils';
+import { useZodFormValidation } from '@odh-dashboard/ui-core/hooks/useZodFormValidation';
+import { isK8sNameDescriptionDataValid } from '@odh-dashboard/k8s-core';
+import { useValidation } from '@odh-dashboard/ui-core/utilities/useValidation';
+import { hardwareProfileValidationSchema } from '@odh-dashboard/hardware-profiles/shared';
 import { resolveFieldValue, type WizardField, type WizardFormData } from './types';
 import {
   modelSourceStepBaseSchema,
@@ -18,10 +18,12 @@ import { environmentVariablesFieldSchema } from './fields/EnvironmentVariablesFi
 import { modelFormatFieldSchema } from './fields/ModelFormatField';
 import { isValidProjectName } from './fields/ProjectSection';
 import { getStateKey } from './dynamicFormUtils';
+import { isNonSingleNodeTopologyActive } from './topologyUtils';
 
 export type ModelDeploymentWizardValidation = {
   modelSource: ReturnType<typeof useZodFormValidation<ModelSourceStepData>>;
   hardwareProfile: ReturnType<typeof useValidation>;
+  isPreconfigureStepValid: boolean;
   isModelSourceStepValid: boolean;
   isModelDeploymentStepValid: boolean;
   isAdvancedSettingsStepValid: boolean;
@@ -31,6 +33,7 @@ export type ModelDeploymentWizardValidation = {
 export const useModelDeploymentWizardValidation = (
   state: WizardFormData['state'],
   fields: WizardField<unknown>[] = [],
+  shouldShowPreconfigureStep = false,
 ): ModelDeploymentWizardValidation => {
   // Step 1: Model Source
   const step1Fields = fields.filter((field) => field.step === 'modelSource');
@@ -117,26 +120,34 @@ export const useModelDeploymentWizardValidation = (
   );
 
   // Step validation
+  const isPreconfigureStepValid =
+    !shouldShowPreconfigureStep ||
+    isValidProjectName(state.project.initialProjectName ?? state.project.projectName ?? undefined);
   const isModelSourceStepValid =
     modelSourceStepValidation.getFieldValidation(undefined, true).length === 0;
+  const hwpHidden = isNonSingleNodeTopologyActive(state);
   const isModelDeploymentStepValid =
     isValidProjectName(
       state.project.initialProjectName ?? state.project.projectName ?? undefined,
     ) &&
     isK8sNameDescriptionDataValid(state.k8sNameDesc.data) &&
-    Object.keys(hardwareProfileValidation.getAllValidationIssues()).length === 0 &&
+    (hwpHidden || Object.keys(hardwareProfileValidation.getAllValidationIssues()).length === 0) &&
     modelDeploymentStepValidation.getFieldValidation(undefined, true).length === 0;
   const isAdvancedSettingsStepValid =
     advancedOptionsValidation.getFieldValidation(undefined, true).length === 0;
 
   const isAllValid =
-    isModelSourceStepValid && isModelDeploymentStepValid && isAdvancedSettingsStepValid;
+    isPreconfigureStepValid &&
+    isModelSourceStepValid &&
+    isModelDeploymentStepValid &&
+    isAdvancedSettingsStepValid;
 
   return React.useMemo(
     () => ({
       modelSource: modelSourceStepValidation,
       hardwareProfile: hardwareProfileValidation,
       modelDeploymentStepValidation,
+      isPreconfigureStepValid,
       isModelSourceStepValid,
       isModelDeploymentStepValid,
       isAdvancedSettingsStepValid,
@@ -146,6 +157,7 @@ export const useModelDeploymentWizardValidation = (
       modelSourceStepValidation,
       hardwareProfileValidation,
       modelDeploymentStepValidation,
+      isPreconfigureStepValid,
       isModelSourceStepValid,
       isModelDeploymentStepValid,
       isAdvancedSettingsStepValid,

@@ -53,6 +53,15 @@ class NotebookRow extends TableRow {
   findOutdatedElyraInfo() {
     return cy.findByTestId('outdated-elyra-info');
   }
+
+  findKueueAnomalyIndicator() {
+    return cy.findByTestId('kueue-anomaly-indicator');
+  }
+
+  findKueueAnomalyTooltip() {
+    this.findKueueAnomalyIndicator().should('exist').trigger('mouseenter');
+    return cy.findByRole('tooltip');
+  }
 }
 
 class ProjectRow extends TableRow {
@@ -192,6 +201,10 @@ class ProjectDetails {
 
   findModelServingTab() {
     return this.findSectionTab('model-server');
+  }
+
+  findClusterStorageTab() {
+    return cy.findByTestId('cluster-storages-tab');
   }
 
   private wait(section = 'overview') {
@@ -376,6 +389,24 @@ class ProjectDetailsSettingsTab extends ProjectDetails {
     super.visit(project);
     this.findTab('Settings').click();
     cy.testA11y();
+  }
+
+  visitSettings(project: string) {
+    cy.visitWithLogin(`/projects/${project}?section=settings`);
+    this.findTab('Settings').should('have.attr', 'aria-selected', 'true');
+    cy.testA11y();
+  }
+
+  findNIMEnableButton() {
+    return cy.findByTestId('nim-enable-button');
+  }
+
+  findNIMRemoveButton() {
+    return cy.findByTestId('nim-remove-button');
+  }
+
+  findNIMReplaceKeyButton() {
+    return cy.findByTestId('nim-replace-key-button');
   }
 }
 

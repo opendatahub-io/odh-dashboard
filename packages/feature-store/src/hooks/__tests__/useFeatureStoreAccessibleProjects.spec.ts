@@ -1,5 +1,5 @@
 import { renderHook, waitFor } from '@testing-library/react';
-import { ProjectKind } from '@odh-dashboard/internal/k8sTypes';
+import type { ProjectKind } from '@odh-dashboard/k8s-core';
 import { getProjects } from '@odh-dashboard/internal/api/k8s/projects';
 import { useFeatureStoreAccessibleProjects } from '../useFeatureStoreAccessibleProjects';
 import { mockProjects, createMockProject } from '../../__mocks__/mockProjects';

@@ -6,8 +6,17 @@ import {
   restCREATE,
   restDELETE,
   restGET,
+  restUPDATE,
 } from 'mod-arch-core';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import {
+  AgentProfile,
+  AgentProfileCreateRequest,
+  AgentProfileCreateResponse,
+  AgentProfileListResponse,
+  AgentProfileUpdateRequest,
+  AgentProfileUpdateResponse,
+} from '~/app/agentProfile/types';
 import {
   ApiErrorClass,
   BackendResponseData,
@@ -16,7 +25,9 @@ import {
   ContentAnnotation,
   CreateResponseRequest,
   ERROR_COMPONENTS,
+  FileSearchCallData,
   FileCitationAnnotation,
+  FileSearchResult,
   FileUploadJobResponse,
   FileUploadStatusResponse,
   isApiError,
@@ -152,6 +163,87 @@ const buildSourcesFromAnnotations = (annotations: FileCitationAnnotation[]): Sou
   }));
 };
 
+type CitationResult = {
+  content: string;
+  citationMap: Map<string, number>;
+};
+
+const insertCitationMarkers = (
+  content: string,
+  annotations: FileCitationAnnotation[],
+): CitationResult => {
+  if (annotations.length === 0) {
+    return { content, citationMap: new Map() };
+  }
+
+  const citationMap = new Map<string, number>();
+  let nextNumber = 1;
+
+  // Assign citation numbers in order of appearance
+  for (const annotation of annotations) {
+    if (annotation.file_id && !citationMap.has(annotation.file_id)) {
+      citationMap.set(annotation.file_id, nextNumber++);
+    }
+  }
+
+  // Sort annotations by index descending so insertions don't shift positions
+  const sorted = annotations
+    .filter((a) => a.index != null && a.file_id)
+    .toSorted((a, b) => (b.index ?? 0) - (a.index ?? 0));
+
+  let result = content;
+  for (const annotation of sorted) {
+    const num = citationMap.get(annotation.file_id);
+    if (num != null && annotation.index != null) {
+      const marker = `{{citation:${String(num)}}}`;
+      result = result.slice(0, annotation.index) + marker + result.slice(annotation.index);
+    }
+  }
+
+  return { content: result, citationMap };
+};
+
+/**
+ * Extracts file_search_call data (queries and results with scores) from response output.
+ */
+const extractFileSearchData = (output?: OutputItem[]): FileSearchCallData | undefined => {
+  if (!output) {
+    return undefined;
+  }
+
+  const queries: string[] = [];
+  const results: FileSearchResult[] = [];
+
+  for (const item of output) {
+    if (item.type === 'file_search_call' && item.results && item.results.length > 0) {
+      queries.push(...(item.queries ?? []));
+      results.push(...item.results);
+    }
+  }
+
+  return results.length > 0 ? { queries, results } : undefined;
+};
+
+export const RAW_TOOL_CALL_WARNING =
+  '⚠️ The model returned a raw tool call instead of generating a response. ' +
+  'This usually indicates that the inference server is not configured to handle tool calling. ' +
+  'Please contact your administrator.\n\nModel response:\n';
+
+export const looksLikeRawToolCall = (text: string): boolean => {
+  const trimmed = text.trim();
+  if (!trimmed.startsWith('{') || !trimmed.endsWith('}')) {
+    return false;
+  }
+  try {
+    const parsed: unknown = JSON.parse(trimmed);
+    return (
+      typeof parsed === 'object' && parsed !== null && 'name' in parsed && 'parameters' in parsed
+    );
+  } catch {
+    return false;
+  }
+};
+
 /**
  * Extracts text content from the backend response output array
  * @param output - Array of output items from backend response
@@ -175,6 +267,10 @@ const extractContentFromOutput = (output?: OutputItem[]): string => {
     }
   }
 
+  if (looksLikeRawToolCall(content)) {
+    return `${RAW_TOOL_CALL_WARNING}${content}`;
+  }
+
   return content;
 };
 
@@ -185,9 +281,12 @@ const extractContentFromOutput = (output?: OutputItem[]): string => {
  */
 const transformBackendResponse = (backendResponse: BackendResponseData): SimplifiedResponseData => {
   const toolCallData = extractMCPToolCallData(backendResponse.output);
-  let content = extractContentFromOutput(backendResponse.output);
+  const rawContent = extractContentFromOutput(backendResponse.output);
   const annotations = extractAnnotationsFromOutput(backendResponse.output);
   const sources = buildSourcesFromAnnotations(annotations);
+  const { content: citedContent, citationMap } = insertCitationMarkers(rawContent, annotations);
+  let content = citedContent;
+  const fileSearchData = extractFileSearchData(backendResponse.output);
 
   // Strip <think>...</think> or bare reasoning (content before </think>) from content
   let reasoningContent: string | undefined;
@@ -208,8 +307,10 @@ const transformBackendResponse = (backendResponse: BackendResponseData): Simplif
     usage: backendResponse.usage,
     ...(toolCallData && { toolCallData }),
     ...(sources.length > 0 && { sources }),
+    ...(annotations.length > 0 && { annotations, citationMap }),
     ...(backendResponse.metrics && { metrics: backendResponse.metrics }),
     ...(reasoningContent && { reasoningContent }),
+    ...(fileSearchData && { fileSearchData }),
   };
 };
 
@@ -234,22 +335,22 @@ const postCreateResponse = (
   opts?: APIOptions & { abortSignal?: AbortSignal },
 ): Promise<SimplifiedResponseData> => {
   const fetchOpts = opts?.abortSignal ? { ...opts, signal: opts.abortSignal } : opts;
-  return restCREATE<{ data?: BackendResponseData; error?: ApiErrorClass['error'] }>(
-    hostPath,
-    '/lsd/responses',
-    toCreateResponseRecord(request),
-    baseQueryParams,
-    fetchOpts,
-  ).then((response) => {
-    if (response.error) {
-      // Preserve the full ApiError structure from BFF
-      throw new ApiErrorClass(response.error);
-    }
-    if (response.data) {
-      return transformBackendResponse(response.data);
-    }
-    throw new Error('Invalid response format');
-  });
+  return restCREATE<{
+    data?: BackendResponseData;
+    error?: ApiErrorClass['error'];
+    trace_id?: string;
+  }>(hostPath, '/lsd/responses', toCreateResponseRecord(request), baseQueryParams, fetchOpts).then(
+    (response) => {
+      if (response.error) {
+        // Preserve the full ApiError structure from BFF
+        throw new ApiErrorClass(response.error, response.trace_id);
+      }
+      if (response.data) {
+        return transformBackendResponse(response.data);
+      }
+      throw new Error('Invalid response format');
+    },
+  );
 };
 
 // Streaming POST path via fetch (SSE text/event-stream)
@@ -258,6 +359,7 @@ const streamCreateResponse = (
   request: CreateResponseRequest,
   onStreamData: (chunk: string, clearPrevious?: boolean, isReasoning?: boolean) => void,
   abortSignal?: AbortSignal,
+  headers?: Record<string, string>,
 ): Promise<SimplifiedResponseData> =>
   new Promise((resolve, reject) => {
     fetch(url, {
@@ -265,6 +367,7 @@ const streamCreateResponse = (
       headers: {
         'Content-Type': 'application/json',
         Accept: 'text/event-stream',
+        ...headers,
       },
       body: JSON.stringify(request),
       signal: abortSignal,
@@ -281,7 +384,7 @@ const streamCreateResponse = (
 
           if (isApiError(errorData)) {
             // Preserve the full ApiError structure from BFF
-            throw new ApiErrorClass(errorData.error);
+            throw new ApiErrorClass(errorData.error, errorData.trace_id);
           }
 
           // Fallback: no structured error or parsing failed
@@ -309,15 +412,17 @@ const streamCreateResponse = (
 
         try {
           let done = false;
+          let partialLine = '';
           while (!done) {
             const result = await reader.read();
             done = result.done;
 
             if (!done && result.value) {
               const chunk = decoder.decode(result.value, { stream: true });
-              const lines = chunk.split('\n');
+              const parts = (partialLine + chunk).split('\n');
+              partialLine = chunk.endsWith('\n') ? '' : parts.pop()!;
 
-              for (const line of lines) {
+              for (const line of parts) {
                 if (line.startsWith('data: ')) {
                   try {
                     const data = JSON.parse(line.slice(6));
@@ -328,7 +433,7 @@ const streamCreateResponse = (
                         fireMiscTrackingEvent('Guardrail Activated', { violationDetected: true });
                       }
                       // Preserve the full ApiError structure from BFF
-                      reject(new ApiErrorClass(data.error));
+                      reject(new ApiErrorClass(data.error, data.trace_id));
                       return;
                     }
 
@@ -373,6 +478,48 @@ const streamCreateResponse = (
               }
             }
           }
+
+          // Flush any trailing SSE data left in the buffer after the stream ends
+          partialLine += decoder.decode();
+          if (partialLine) {
+            for (const line of partialLine.split('\n')) {
+              if (line.startsWith('data: ')) {
+                try {
+                  const data = JSON.parse(line.slice(6));
+
+                  if (data.error) {
+                    if (data.error.code === GUARDRAIL_ERROR_CODES.OUTPUT_VIOLATION) {
+                      fireMiscTrackingEvent('Guardrail Activated', { violationDetected: true });
+                    }
+                    reject(new ApiErrorClass(data.error, data.trace_id));
+                    return;
+                  }
+
+                  if (data.delta && data.type === 'response.output_text.delta') {
+                    fullContent += data.delta;
+                    onStreamData(data.delta);
+                  } else if (data.type === 'response.refusal.delta') {
+                    if (data.delta) {
+                      const isFirstRefusal = !receivedRefusal;
+                      if (isFirstRefusal) {
+                        receivedRefusal = true;
+                        fullContent = '';
+                        fireMiscTrackingEvent('Guardrail Activated', { violationDetected: true });
+                      }
+                      fullContent += data.delta;
+                      onStreamData(data.delta, isFirstRefusal);
+                    }
+                  } else if (data.type === 'response.completed' && data.response) {
+                    completeResponseData = data.response;
+                  } else if (data.type === 'response.metrics' && isResponseMetrics(data.metrics)) {
+                    metricsData = data.metrics;
+                  }
+                } catch {
+                  // ignore malformed lines
+                }
+              }
+            }
+          }
         } finally {
           reader.releaseLock();
         }
@@ -397,9 +544,13 @@ const streamCreateResponse = (
           ? extractAnnotationsFromOutput(completeResponseData.output)
           : [];
         const sources = buildSourcesFromAnnotations(annotations);
-        let finalContent = completeResponseData?.output
+        const rawFinalContent = completeResponseData?.output
           ? extractContentFromOutput(completeResponseData.output)
           : fullContent;
+        const citationStreamResult = insertCitationMarkers(rawFinalContent, annotations);
+        let finalContent = citationStreamResult.content;
+        const { citationMap } = citationStreamResult;
+        const fileSearchData = extractFileSearchData(completeResponseData?.output);
 
         // Strip <think>...</think> or bare reasoning (content before </think>) from final content
         const thinkMatchFull = finalContent.match(/^<think>([\s\S]*?)<\/think>\s*/);
@@ -422,8 +573,10 @@ const streamCreateResponse = (
           content: finalContent,
           ...(toolCallData && { toolCallData }),
           ...(sources.length > 0 && { sources }),
+          ...(annotations.length > 0 && { annotations, citationMap }),
           ...(metricsData && { metrics: metricsData }),
           ...(reasoningContent && { reasoningContent }),
+          ...(fileSearchData && { fileSearchData }),
         });
       })
       .catch((error) => {
@@ -463,10 +616,196 @@ export const createResponse =
   ): Promise<SimplifiedResponseData> => {
     if (data.stream && opts.onStreamData) {
       const url = buildApiUrl(hostPath, '/lsd/responses', baseQueryParams);
-      return streamCreateResponse(url, data, opts.onStreamData, opts.abortSignal);
+      return streamCreateResponse(url, data, opts.onStreamData, opts.abortSignal, opts.headers);
     }
     return postCreateResponse(hostPath, baseQueryParams, data, opts);
   };
+
+/**
+ * Passthrough request for embedded chatbot mode.
+ * Sends a raw Responses API body directly to the BFF, bypassing the
+ * normal OGX (Open GenAI Stack) flow. The BFF proxies to the OGX instance using
+ * the specified connection secret.
+ *
+ * Always uses streaming (BFF forces stream: true).
+ */
+export const createPassthroughResponse = (
+  bffBasePath: string,
+  namespace: string,
+  secretName: string,
+  body: Record<string, unknown>,
+  onStreamData: (chunk: string, clearPrevious?: boolean) => void,
+  abortSignal?: AbortSignal,
+): Promise<SimplifiedResponseData> => {
+  const trimmed = bffBasePath.replace(/\/+$/, '');
+  const base = trimmed.endsWith('/api/v1') ? trimmed : `${trimmed}/api/v1`;
+  const url = `${base}/lsd/responses/passthrough?namespace=${encodeURIComponent(namespace)}&secretName=${encodeURIComponent(secretName)}`;
+
+  return new Promise((resolve, reject) => {
+    fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'text/event-stream',
+      },
+      body: JSON.stringify(body),
+      signal: abortSignal,
+    })
+      .then(async (response) => {
+        if (!response.ok) {
+          let errorMessage = `HTTP error! status: ${response.status}`;
+          try {
+            const errorBody = await response.text();
+            const errorData = JSON.parse(errorBody);
+            errorMessage = errorData?.error?.message || errorMessage;
+          } catch {
+            // ignore
+          }
+
+          // Differentiated error messages for embedded mode
+          if (response.status === 502 || response.status === 503) {
+            throw new Error(
+              'The OGX instance is not responding. Check that the instance is running and reachable.',
+            );
+          }
+          if (response.status === 404) {
+            throw new Error(
+              `The connection secret '${secretName}' was not found in namespace '${namespace}'.`,
+            );
+          }
+          if (response.status === 403) {
+            throw new Error(
+              'You do not have permission to access this resource. Contact your administrator.',
+            );
+          }
+          throw new Error(errorMessage);
+        }
+
+        const reader = response.body?.getReader();
+        if (!reader) {
+          throw new Error('Unable to read stream');
+        }
+
+        let fullContent = '';
+        let completeResponseData: BackendResponseData | null = null;
+        let metricsData: ResponseMetrics | null = null;
+        const decoder = new TextDecoder();
+
+        try {
+          let done = false;
+          let partialLine = '';
+          while (!done) {
+            const result = await reader.read();
+            done = result.done;
+
+            if (!done && result.value) {
+              const chunk = decoder.decode(result.value, { stream: true });
+              const parts = (partialLine + chunk).split('\n');
+              partialLine = chunk.endsWith('\n') ? '' : parts.pop()!;
+
+              for (const line of parts) {
+                if (line.startsWith('data: ')) {
+                  try {
+                    const data = JSON.parse(line.slice(6));
+
+                    if (data.error) {
+                      await reader.cancel('Streaming error');
+                      reject(new ApiErrorClass(data.error, data.trace_id));
+                      return;
+                    }
+
+                    if (data.delta && data.type === 'response.output_text.delta') {
+                      fullContent += data.delta;
+                      onStreamData(data.delta);
+                    } else if (data.type === 'response.refusal.delta' && data.delta) {
+                      fullContent += data.delta;
+                      onStreamData(data.delta);
+                    } else if (data.type === 'response.completed' && data.response) {
+                      completeResponseData = data.response;
+                    } else if (
+                      data.type === 'response.metrics' &&
+                      isResponseMetrics(data.metrics)
+                    ) {
+                      metricsData = data.metrics;
+                    }
+                  } catch {
+                    // ignore malformed lines
+                  }
+                }
+              }
+            }
+          }
+
+          // Flush any trailing SSE data left in the buffer after the stream ends
+          partialLine += decoder.decode();
+          if (partialLine) {
+            for (const line of partialLine.split('\n')) {
+              if (line.startsWith('data: ')) {
+                try {
+                  const data = JSON.parse(line.slice(6));
+
+                  if (data.error) {
+                    reject(new ApiErrorClass(data.error, data.trace_id));
+                    return;
+                  }
+
+                  if (data.delta && data.type === 'response.output_text.delta') {
+                    fullContent += data.delta;
+                    onStreamData(data.delta);
+                  } else if (data.type === 'response.refusal.delta' && data.delta) {
+                    fullContent += data.delta;
+                    onStreamData(data.delta);
+                  } else if (data.type === 'response.completed' && data.response) {
+                    completeResponseData = data.response;
+                  } else if (data.type === 'response.metrics' && isResponseMetrics(data.metrics)) {
+                    metricsData = data.metrics;
+                  }
+                } catch {
+                  // ignore malformed lines
+                }
+              }
+            }
+          }
+        } finally {
+          reader.releaseLock();
+        }
+
+        const annotations = completeResponseData?.output
+          ? extractAnnotationsFromOutput(completeResponseData.output)
+          : [];
+        const sources = buildSourcesFromAnnotations(annotations);
+        const rawFinalContent = completeResponseData?.output
+          ? extractContentFromOutput(completeResponseData.output)
+          : fullContent;
+        const { content: finalContent, citationMap } = insertCitationMarkers(
+          rawFinalContent,
+          annotations,
+        );
+        const fileSearchData = extractFileSearchData(completeResponseData?.output);
+
+        resolve({
+          id: completeResponseData?.id || 'passthrough-response',
+          model: completeResponseData?.model || 'unknown',
+          status: completeResponseData?.status || 'completed',
+          created_at: completeResponseData?.created_at || Date.now(),
+          content: finalContent,
+          ...(sources.length > 0 && { sources }),
+          ...(annotations.length > 0 && { annotations, citationMap }),
+          ...(metricsData && { metrics: metricsData }),
+          ...(fileSearchData && { fileSearchData }),
+        });
+      })
+      .catch((error) => {
+        if (error instanceof Error && error.name === 'AbortError') {
+          reject(new Error('Response stopped by user'));
+          return;
+        }
+        reject(
+          error instanceof Error ? error : new Error('Failed to generate passthrough response'),
+        );
+      });
+  });
+};
 
 const modArchRestGET =
   <T>(path: string) =>
@@ -570,16 +909,19 @@ export const getFileUploadStatus = modArchRestGET<FileUploadStatusResponse>(
   '/lsd/files/upload/status',
 );
 
-// Vision image upload -- uses XHR for progress tracking
-export const uploadVisionFile = (
+// Media file upload (vision images, audio) -- uses XHR for progress tracking.
+// The `type` field tells the BFF which MIME allowlist to apply.
+export const uploadMediaFile = (
   url: string,
   file: File,
+  type: 'vision' | 'audio',
   onProgress?: (percent: number) => void,
 ): { promise: Promise<{ data: { id: string } }>; xhr: XMLHttpRequest } => {
   const xhr = new XMLHttpRequest();
   const promise = new Promise<{ data: { id: string } }>((resolve, reject) => {
     const formData = new FormData();
     formData.append('file', file);
+    formData.append('type', type);
 
     xhr.open('POST', url);
     xhr.timeout = 60_000;
@@ -619,6 +961,38 @@ export const uploadVisionFile = (
     xhr.send(formData);
   });
   return { promise, xhr };
+};
+
+// Audio transcription via ASR model
+export const transcribeAudio = async (
+  url: string,
+  fileId: string,
+  asrModelId: string,
+  signal?: AbortSignal,
+  subscription?: string,
+): Promise<{ text: string }> => {
+  const body: Record<string, string> = { file_id: fileId, asr_model_id: asrModelId };
+  if (subscription) {
+    body.subscription = subscription;
+  }
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+    signal,
+  });
+  if (!response.ok) {
+    const errorBody = await response.json().catch(() => ({}));
+    if (errorBody?.error?.component && errorBody?.error?.code) {
+      throw new ApiErrorClass(errorBody.error, errorBody.trace_id);
+    }
+    const message =
+      errorBody?.error?.message ||
+      errorBody?.message ||
+      `Transcription failed (${response.status})`;
+    throw Object.assign(new Error(message), { status: response.status });
+  }
+  return response.json();
 };
 
 // LSD Models
@@ -766,8 +1140,12 @@ export const initNemoGuardrails =
       opts,
     ).then((response) => {
       if (response.error) {
-        const err = Object.assign(new Error(response.error.message), { code: response.error.code });
-        throw err;
+        throw new ApiErrorClass({
+          component: ERROR_COMPONENTS.GUARDRAILS,
+          code: response.error.code,
+          message: response.error.message,
+          retriable: false,
+        });
       }
       if (response.data) {
         return response.data;
@@ -823,6 +1201,87 @@ export const listMLflowPromptVersions =
       ),
     ).then((response) => {
       if (isModArchResponse<MLflowPromptVersionsResponse>(response)) {
+        return response.data;
+      }
+      throw new Error('Invalid response format');
+    });
+  };
+
+export const listAgentProfiles = modArchRestGET<AgentProfileListResponse>('/agent-profiles');
+
+export const createAgentProfile = modArchRestCREATE<
+  AgentProfileCreateResponse,
+  AgentProfileCreateRequest
+>('/agent-profiles');
+
+export const deleteAgentProfile =
+  (
+    hostPath: string,
+    baseQueryParams: Record<string, unknown> = {},
+  ): ModArchRestDELETE<void, { id: string }> =>
+  ({ id }: { id: string }, queryParams: Record<string, unknown> = {}, opts: APIOptions = {}) => {
+    if (!id || typeof id !== 'string') {
+      return Promise.reject(new Error('id parameter is required'));
+    }
+    const path = `/agent-profiles/${encodeURIComponent(id)}`;
+    // BFF returns 204 No Content — parseJSON: false prevents JSON.parse('') from throwing
+    return handleRestFailures(
+      restDELETE<void>(
+        hostPath,
+        path,
+        {},
+        { ...baseQueryParams, ...queryParams },
+        {
+          ...opts,
+          parseJSON: false,
+        },
+      ),
+    ).then(() => undefined);
+  };
+
+// Custom implementation that bypasses handleRestFailures so the raw error code is
+// preserved in the thrown error. Callers can inspect err.code to distinguish
+// 409 Conflict ('conflict') from 404 Not Found ('not_found') and other faults.
+export const updateAgentProfile =
+  (
+    hostPath: string,
+    baseQueryParams: Record<string, unknown> = {},
+  ): ((
+    data: AgentProfileUpdateRequest & { id: string },
+    opts?: APIOptions,
+  ) => Promise<AgentProfileUpdateResponse>) =>
+  (data: AgentProfileUpdateRequest & { id: string }, opts: APIOptions = {}) => {
+    const { id, spec, resourceVersion } = data;
+    if (!id || typeof id !== 'string') {
+      return Promise.reject(new Error('id parameter is required'));
+    }
+    const path = `/agent-profiles/${encodeURIComponent(id)}`;
+    return restUPDATE<{
+      data?: AgentProfileUpdateResponse;
+      error?: { code: string; message: string };
+    }>(hostPath, path, { spec, resourceVersion }, baseQueryParams, opts).then((response) => {
+      if (response.error) {
+        throw Object.assign(new Error(response.error.message), { code: response.error.code });
+      }
+      if (response.data) {
+        return response.data;
+      }
+      throw new Error('Invalid response format');
+    });
+  };
+
+export const getAgentProfile =
+  (hostPath: string, baseQueryParams: Record<string, unknown> = {}): ModArchRestGET<AgentProfile> =>
+  (queryParams: Record<string, unknown> = {}, opts: APIOptions = {}) => {
+    const { id, ...restParams } = queryParams;
+    if (!id || typeof id !== 'string') {
+      return Promise.reject(new Error('id parameter is required'));
+    }
+    const path = `/agent-profiles/${encodeURIComponent(id)}`;
+    return handleRestFailures(
+      restGET<AgentProfile>(hostPath, path, { ...baseQueryParams, ...restParams }, opts),
+    ).then((response) => {
+      if (isModArchResponse<AgentProfile>(response)) {
         return response.data;
       }
       throw new Error('Invalid response format');

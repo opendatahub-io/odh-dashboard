@@ -1,8 +1,8 @@
 import * as React from 'react';
+import TitleWithIcon from '@odh-dashboard/ui-core/design/TitleWithIcon';
 import ApplicationsPage from '#~/pages/ApplicationsPage';
 import CustomServingRuntimeListView from '#~/pages/modelServing/customServingRuntimes/CustomServingRuntimeListView';
 import CustomServingRuntimeHeaderLabels from '#~/pages/modelServing/customServingRuntimes/CustomServingRuntimeHeaderLabels';
-import TitleWithIcon from '#~/concepts/design/TitleWithIcon';
 import { ProjectObjectType } from '#~/concepts/design/utils';
 import EmptyCustomServingRuntime from './EmptyCustomServingRuntime';
 import { CustomServingRuntimeContext } from './CustomServingRuntimeContext';

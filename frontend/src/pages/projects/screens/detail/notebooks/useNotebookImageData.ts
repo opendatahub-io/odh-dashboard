@@ -1,8 +1,8 @@
 import * as React from 'react';
+import type { PodContainer } from '@odh-dashboard/k8s-core';
 import { ImageStreamKind, ImageStreamSpecTagType, NotebookKind } from '#~/k8sTypes';
 import useNamespaces from '#~/pages/notebookController/useNamespaces';
 import { useImageStreams } from '#~/utilities/useImageStreams';
-import { PodContainer } from '#~/types';
 import {
   getImageStreamDisplayName,
   isBYONImageStream,

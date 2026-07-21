@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useBrowserStorage } from '#~/components/browserStorage/BrowserStorageContext';
+import { useBrowserStorage } from '@odh-dashboard/ui-core/utilities';
 import { logout } from './appUtils';
 
 export type SetTime = (refreshDateMarker: Date) => void;

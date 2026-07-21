@@ -13,7 +13,8 @@ import {
   mockGlobalScopedHardwareProfiles,
   mockProjectScopedHardwareProfiles,
 } from '@odh-dashboard/internal/__mocks__/mockHardwareProfile';
-import type { EnvironmentVariable, NotebookData } from '@odh-dashboard/internal/types';
+import type { EnvironmentVariable } from '@odh-dashboard/k8s-core';
+import type { NotebookData } from '@odh-dashboard/internal/types';
 import { mockConfigMap } from '@odh-dashboard/internal/__mocks__/mockConfigMap';
 import { mockImageStreamK8sResourceList } from '@odh-dashboard/internal/__mocks__/mockImageStreamK8sResource';
 import { notebookServer } from '../../../pages/notebookServer';
@@ -155,6 +156,31 @@ describe('NotebookServer', () => {
       expect(selectedProfile.spec).to.have.property('identifiers');
       expect(selectedProfile.spec).to.have.property('scheduling');
     });
+  });
+
+  it('should show per-container startup steps in the progress tree', () => {
+    // Remove last-activity so labels read "Starting …" not "Restarting …".
+    const freshNotebook = mockNotebookK8sResource({});
+    delete freshNotebook.metadata.annotations?.['notebooks.kubeflow.org/last-activity'];
+
+    cy.interceptOdh(
+      'GET /api/notebooks/openshift-ai-notebooks/:username/status',
+      { path: { username: 'jupyter-nb-test-2duser' } },
+      {
+        notebook: freshNotebook,
+        isRunning: false,
+      },
+    ).as('notebookStatus');
+
+    notebookServer.visit();
+    notebookServer.findStartServerButton().click();
+    cy.wait('@notebookStatus');
+
+    notebookServer
+      .findNotebookStartupSteps()
+      .should('be.visible')
+      .and('contain.text', 'Starting Workbench container')
+      .and('contain.text', 'Starting Auth proxy container');
   });
 
   it('should start a workbench with params', () => {

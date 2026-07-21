@@ -1,8 +1,8 @@
 import * as React from 'react';
-import { useBrowserStorage } from '#~/components/browserStorage/BrowserStorageContext';
-import { PersistentVolumeClaimKind } from '#~/k8sTypes';
+import type { PersistentVolumeClaimKind } from '@odh-dashboard/k8s-core';
+import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
+import { useBrowserStorage } from '@odh-dashboard/ui-core/utilities';
 import useNotification from '#~/utilities/useNotification';
-import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 import { getFullStatusFromPercentage } from './utils';
 
 type PercentageStorageStatus = {

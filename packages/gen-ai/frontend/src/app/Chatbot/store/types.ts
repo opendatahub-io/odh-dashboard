@@ -1,5 +1,6 @@
 import { DEFAULT_SYSTEM_INSTRUCTIONS } from '~/app/Chatbot/const';
 import { MLflowPromptVersion } from '~/app/types';
+import { AgentProfileSpec } from '~/app/agentProfile/types';
 
 /**
  * MCP tool selections map structure:
@@ -36,6 +37,14 @@ export interface ChatbotConfiguration {
   activePrompt: MLflowPromptVersion | null;
   dirtyPrompt: MLflowPromptVersion | null;
   variableValues: Record<string, string>;
+  /** The model_id of the selected ASR (audio transcription) model, or '' if none */
+  selectedAsrModel: string;
+  /** The subscription name for the selected MaaS ASR model, or '' if none/namespace */
+  selectedAsrSubscription: string;
+  /** Whether the user has opted in to the transcription model section */
+  isAsrModelEnabled: boolean;
+  /** Whether a vision image has been attached/sent in this conversation */
+  hasVisionImage: boolean;
 }
 
 /**
@@ -61,6 +70,10 @@ export const DEFAULT_CONFIGURATION: ChatbotConfiguration = {
   activePrompt: null,
   dirtyPrompt: null,
   variableValues: {},
+  selectedAsrModel: '',
+  selectedAsrSubscription: '',
+  isAsrModelEnabled: false,
+  hasVisionImage: false,
 };
 
 /**
@@ -69,6 +82,44 @@ export const DEFAULT_CONFIGURATION: ChatbotConfiguration = {
 export interface ChatbotConfigStoreState {
   configurations: { [id: string]: ChatbotConfiguration | undefined };
   configIds: string[];
+  /**
+   * True when the current configuration was loaded from an AgentProfile.
+   * Set by applyAgentProfile(), cleared by resetConfiguration().
+   * Use this to drive loaded-profile UI state (e.g. header indicators, save/discard flows).
+   */
+  profileApplied: boolean;
+  /** UUID of the currently loaded AgentProfile, or null when no profile is loaded. */
+  loadedProfileId: string | null;
+  /** displayName of the currently loaded AgentProfile, for pre-filling the Save modal. */
+  loadedProfileDisplayName: string | null;
+  /** description of the currently loaded AgentProfile, for pre-filling the Save modal. */
+  loadedProfileDescription: string | null;
+  /**
+   * The AgentProfileSpec that was last saved or loaded, used for dirty detection.
+   * Set by setLoadedProfileSpec() after a profile load or successful save.
+   * Cleared by resetConfiguration() when the user starts a new configuration.
+   */
+  loadedProfileSpec: AgentProfileSpec | null;
+  /**
+   * The Kubernetes resourceVersion of the currently loaded AgentProfile.
+   * Used for optimistic concurrency: the PUT request includes this value so the server
+   * can reject the write if the profile was modified elsewhere (409 Conflict).
+   */
+  loadedResourceVersion: string | null;
+  /**
+   * Validation warnings produced during profile deserialization (e.g. model not found,
+   * MCP server unresolvable). Non-null when a profile is loaded with missing resources.
+   * Drives the warning alert and disabled Edit in OpenAgentProfileModal.
+   */
+  loadedProfileWarnings:
+    | import('~/app/agentProfile/validateAgentProfile').ValidationWarning[]
+    | null;
+  /**
+   * The resolved MLflow prompt from the initial profile load — used by
+   * handleResetToLastSaved to restore the correct prompt version regardless
+   * of any subsequent registrations that update activePrompt.
+   */
+  loadedProfilePrompt: import('~/app/types').MLflowPromptVersion | null;
 }
 
 /**
@@ -106,6 +157,14 @@ export interface ChatbotConfigStoreActions {
 
   updateSelectedSubscription: (id: string, value: string) => void;
 
+  // ASR model selection (per-pane)
+  updateSelectedAsrModel: (id: string, value: string) => void;
+  updateSelectedAsrSubscription: (id: string, value: string) => void;
+  updateAsrModelEnabled: (id: string, value: boolean) => void;
+
+  // Vision image state
+  updateHasVisionImage: (id: string, value: boolean) => void;
+
   // RAG toggle (per-pane)
   updateRagEnabled: (id: string, value: boolean) => void;
   updateKnowledgeMode: (id: string, value: 'inline' | 'external') => void;
@@ -117,8 +176,32 @@ export interface ChatbotConfigStoreActions {
   clearPromptState: (id: string, newDirtyPrompt: MLflowPromptVersion | null) => void;
   updateVariableValues: (id: string, values: Record<string, string>) => void;
 
+  /**
+   * Store the AgentProfileSpec snapshot for dirty detection.
+   * Call after a profile is loaded (with the API response spec) or after a successful
+   * save (with the spec that was just written), so the dirty check baseline is always
+   * "the last thing that was persisted."
+   */
+  setLoadedProfileSpec: (spec: AgentProfileSpec | null) => void;
+  setLoadedResourceVersion: (resourceVersion: string | null) => void;
+  setLoadedProfilePrompt: (prompt: import('~/app/types').MLflowPromptVersion | null) => void;
+  setLoadedProfileWarnings: (
+    warnings: import('~/app/agentProfile/validateAgentProfile').ValidationWarning[] | null,
+  ) => void;
+
   // Configuration management
   resetConfiguration: (initialValues?: Partial<ChatbotConfiguration>) => void;
+  /**
+   * Apply an AgentProfile to the store. Behaves like resetConfiguration but sets
+   * profileApplied: true so the knowledge-mode sync effect in ChatbotConfigInstance
+   * knows not to clear an external vector store ID that came from the profile.
+   */
+  applyAgentProfile: (
+    config: Partial<ChatbotConfiguration>,
+    profileId?: string,
+    displayName?: string,
+    description?: string,
+  ) => void;
 
   // Utility
   getConfiguration: (id: string) => ChatbotConfiguration | undefined;

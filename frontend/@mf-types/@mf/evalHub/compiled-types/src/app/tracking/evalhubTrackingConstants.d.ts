@@ -1,0 +1,118 @@
+export declare const EVAL_HUB_EVENTS: {
+    readonly PAGE_VIEWED: "Evaluations Page Viewed";
+    readonly START_EVALUATION_SELECTED: "Evaluations Start Evaluation Selected";
+    readonly EVALUATION_RUN_STARTED: "Evaluations Evaluation Run Started";
+    readonly EVALUATION_COMPLETED: "Evaluations Evaluation Completed";
+    readonly EVALUATION_DELETED: "Evaluations Evaluation Deleted";
+    readonly EXTERNAL_LINK_CLICKED: "Evaluations External Link Clicked";
+    readonly MLFLOW_EXPERIMENT_SELECTED: "Evaluations MLFlow Experiment Selected";
+    readonly RESULT_BENCHMARK_CARD_SELECTED: "Evaluations Result Benchmark Card Selected";
+    readonly BENCHMARK_RUN_SELECTED: "Evaluations Benchmark Run Selected";
+    readonly COMPARE_RUN_SELECTED: "Evaluations Compare Run Selected";
+    readonly COMPARE_INITIATED: "Evaluations Compare Initiated";
+    readonly COMPARE_BENCHMARK_CHOSEN: "Evaluations Compare Benchmark Chosen";
+    readonly RUN_SOURCE_SELECTED: "Evaluations Run Source Selected";
+    readonly RUN_MODEL_SELECTED: "Evaluations Run Model Selected";
+    readonly EXTERNAL_CONNECTION_TESTED: "Evaluations External Connection Tested";
+    readonly RUN_THRESHOLD_CHANGED: "Evaluations Run Threshold Changed";
+    readonly RUN_METRIC_SELECTED: "Evaluations Run Metric Selected";
+    readonly RUN_PARAMETER_CHANGED: "Evaluations Run Parameter Changed";
+};
+/**
+ * `source` identifies which page/surface the user initiated the evaluation flow from.
+ * Currently always 'evaluations_page', but future entry points (e.g. a model detail
+ * page shortcut) would pass a different value so analysts can segment by origin.
+ */
+export type EvaluationRunStartedProperties = {
+    source: string;
+    evaluationName?: string;
+    sourceType?: 'inference_endpoint' | 'pre_recorded_responses';
+    modelName?: string;
+    endpointOrigin?: string;
+    hasAPIKey?: boolean;
+    sourceName?: string;
+    hasDatasetURL?: boolean;
+    hasAccessToken?: boolean;
+    hasAdditionalArguments?: boolean;
+    countOfAdditionalArguments?: number;
+    outcome?: string;
+    success?: boolean;
+    errorName?: string;
+};
+export type EvaluationCompletedProperties = {
+    evaluationName: string;
+    runOutcome: 'completed' | 'failed' | 'cancelled';
+    durationMs?: number;
+    /** JSON-serialised array of benchmark type IDs. */
+    benchmarkTypes?: string;
+    error?: string;
+};
+export type EvaluationDeletedProperties = {
+    evaluationName: string;
+    /** State the evaluation was in at the time of deletion (e.g. 'completed', 'failed', 'running'). */
+    previousState: string;
+};
+export type ExternalLinkClickedProperties = {
+    href: string;
+    section?: string;
+};
+export type MlflowExperimentSelectedProperties = {
+    experimentSelection: 'default' | 'existing' | 'new';
+    experimentName?: string;
+};
+export type ResultBenchmarkCardSelectedProperties = {
+    benchmarkId: string;
+    evaluationName?: string;
+    collectionName?: string;
+};
+export type BenchmarkRunSelectedProperties = {
+    collectionName?: string;
+    /** Array of benchmark type IDs. Serialised as a JSON string when sent to Segment. */
+    benchmarkTypes: string[];
+    runType: 'single' | 'collection';
+    countOfBenchmarks: number;
+};
+export type CompareRunSelectedProperties = {
+    evaluationName: string;
+    evaluationType: 'Benchmark' | 'Benchmark suite';
+    isSelected: boolean;
+    countOfRuns: number;
+};
+export type CompareInitiatedProperties = {
+    countOfRuns: number;
+    runTypes: 'all_benchmarks' | 'all_suites' | 'mixed';
+    hasCollections: boolean;
+};
+export type CompareBenchmarkChosenProperties = {
+    countOfBenchmarks: number;
+    totalAvailable: number;
+    benchmarkNames: string;
+};
+export type RunSourceSelectedProperties = {
+    sourceType: 'model' | 'agent' | 'prerecorded';
+};
+export type RunModelSelectedProperties = {
+    selectedModel: string;
+    isExternal: boolean;
+};
+export type ExternalConnectionTestedProperties = {
+    outcome: 'success' | 'error';
+    endpointType: 'model' | 'agent' | 'prerecorded';
+    error?: string;
+};
+export type RunThresholdChangedProperties = {
+    thresholdValue: number;
+    benchmarkName: string;
+};
+export type RunMetricSelectedProperties = {
+    metricName: string;
+    isDefault: boolean;
+    benchmarkName: string;
+};
+export type RunParameterChangedProperties = {
+    parameterName: string;
+    /** Redacted shape descriptor (e.g. "string(12)", "number", "boolean") — never the raw value. */
+    parameterValueShape: string;
+    benchmarkName: string;
+    isDefault: boolean;
+};

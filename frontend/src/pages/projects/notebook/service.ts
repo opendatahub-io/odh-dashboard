@@ -1,4 +1,5 @@
-import { NotebookKind, PodKind } from '#~/k8sTypes';
+import type { PodKind } from '@odh-dashboard/k8s-core';
+import { NotebookKind } from '#~/k8sTypes';
 import { getPodsForNotebook } from '#~/api';
 import { NotebookDataState } from './types';
 import { hasStopAnnotation } from './utils';
@@ -27,7 +28,8 @@ export const getNotebooksStatus = async (
   ).then((podsPerNotebook) =>
     podsPerNotebook.reduce<NotebookDataState[]>((acc, pods, i) => {
       const isStopped = hasStopAnnotation(notebooks[i]);
-      const podsReady = pods.some((pod) => checkPodContainersReady(pod));
+      const runningPod = pods.find((pod) => checkPodContainersReady(pod));
+      const podsReady = runningPod != null;
       return [
         ...acc,
         {
@@ -36,7 +38,8 @@ export const getNotebooksStatus = async (
           isRunning: !isStopped && podsReady,
           isStopping: isStopped && podsReady,
           isStopped: isStopped && !podsReady,
-          runningPodUid: pods[0]?.metadata?.uid || '',
+          runningPodUid: runningPod?.metadata.uid ?? pods[0]?.metadata?.uid ?? '',
+          containerStatuses: runningPod?.status?.containerStatuses ?? [],
         },
       ];
     }, []),

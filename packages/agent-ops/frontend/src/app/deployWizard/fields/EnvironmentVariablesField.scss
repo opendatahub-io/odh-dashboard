@@ -1,0 +1,28 @@
+.agent-ops-env-var-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pf-t--global--spacer--sm);
+  align-items: flex-start;
+  margin-bottom: var(--pf-t--global--spacer--md);
+  padding-bottom: var(--pf-t--global--spacer--md);
+  border-bottom: var(--pf-t--global--border--width--divider--default) solid
+    var(--pf-t--global--border--color--default);
+
+  &__field {
+    flex: 1 1 0;
+    min-width: 0;
+
+    &--name {
+      flex: 2 1 12rem;
+    }
+
+    &--type {
+      flex: 0 0 12rem;
+    }
+  }
+
+  &__remove {
+    align-self: center;
+    padding-top: var(--pf-t--global--spacer--xs);
+  }
+}

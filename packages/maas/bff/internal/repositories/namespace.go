@@ -3,9 +3,12 @@ package repositories
 import (
 	"context"
 	"fmt"
+	"strings"
 
+	"github.com/opendatahub-io/maas-library/bff/internal/constants"
 	k8s "github.com/opendatahub-io/maas-library/bff/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/maas-library/bff/internal/models"
+	corev1 "k8s.io/api/core/v1"
 )
 
 type NamespaceRepository struct{}
@@ -21,10 +24,41 @@ func (r *NamespaceRepository) GetNamespaces(client k8s.KubernetesClientInterface
 		return nil, fmt.Errorf("error fetching namespaces: %w", err)
 	}
 
+	namespaces = filterAvailableNamespaces(namespaces)
+
 	var namespaceModels = []models.NamespaceModel{}
 	for _, ns := range namespaces {
-		namespaceModels = append(namespaceModels, models.NewNamespaceModelFromNamespace(ns.Name))
+		namespaceModels = append(namespaceModels, models.NewNamespaceModelFromNamespace(ns.Name, namespaceDisplayName(ns.Annotations)))
 	}
 
 	return namespaceModels, nil
+}
+
+func namespaceDisplayName(annotations map[string]string) string {
+	if annotations == nil {
+		return ""
+	}
+	return annotations[constants.DisplayNameAnnotation]
+}
+
+func filterAvailableNamespaces(namespaces []corev1.Namespace) []corev1.Namespace {
+	excludedExact := map[string]struct{}{
+		"default":     {},
+		"system":      {},
+		"openshift":   {},
+		"opendatahub": {},
+	}
+
+	filtered := make([]corev1.Namespace, 0, len(namespaces))
+	for _, ns := range namespaces {
+		name := ns.Name
+		if strings.HasPrefix(name, "openshift-") || strings.HasPrefix(name, "kube-") {
+			continue
+		}
+		if _, excluded := excludedExact[name]; excluded {
+			continue
+		}
+		filtered = append(filtered, ns)
+	}
+	return filtered
 }

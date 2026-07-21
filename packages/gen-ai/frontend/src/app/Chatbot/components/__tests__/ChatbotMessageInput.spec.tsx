@@ -1,11 +1,13 @@
 import * as React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import ChatbotMessageInput, {
   ImageUploadState,
-  PendingDocChip,
 } from '~/app/Chatbot/components/ChatbotMessageInput';
-import { VISION_UPLOAD_CONFIG } from '~/app/Chatbot/const';
+import { VISION_UPLOAD_CONFIG, AUDIO_UPLOAD_CONFIG } from '~/app/Chatbot/const';
+import { AudioTranscriptionState } from '~/app/Chatbot/hooks/useAudioTranscription';
+import { PLAYGROUND_MULTIMODAL_EVENTS } from '~/app/tracking/playgroundMultimodalTrackingConstants';
 
 jest.mock('@patternfly/chatbot', () => ({
   MessageBar: ({
@@ -95,19 +97,22 @@ jest.mock('@patternfly/react-core', () => ({
     children,
     icon,
     isDisabled,
+    isAriaDisabled,
     onClick,
   }: {
     children: React.ReactNode;
     icon?: React.ReactNode;
     isDisabled?: boolean;
+    isAriaDisabled?: boolean;
     onClick?: () => void;
   }) => {
     const label = typeof children === 'string' ? children : 'unknown';
     return (
       <button
         data-testid={`menu-item-${label.replace(/\s+/g, '-').toLowerCase()}`}
-        onClick={isDisabled ? undefined : onClick}
+        onClick={isDisabled || isAriaDisabled ? undefined : onClick}
         disabled={isDisabled}
+        aria-disabled={isAriaDisabled}
         type="button"
       >
         {icon}
@@ -118,6 +123,23 @@ jest.mock('@patternfly/react-core', () => ({
   MenuList: ({ children }: { children: React.ReactNode }) => (
     <ul data-testid="mock-menu-list">{children}</ul>
   ),
+  Tooltip: ({
+    children,
+    content,
+    position,
+  }: {
+    children: React.ReactNode;
+    content?: string;
+    position?: string;
+  }) => (
+    <span
+      data-testid="tooltip-wrapper"
+      data-tooltip-content={content}
+      data-tooltip-position={position}
+    >
+      {children}
+    </span>
+  ),
 }));
 
 jest.mock('@patternfly/react-icons', () => ({
@@ -125,6 +147,12 @@ jest.mock('@patternfly/react-icons', () => ({
   VolumeUpIcon: () => <span data-testid="icon-audio" />,
   OutlinedFileAltIcon: () => <span data-testid="icon-document" />,
 }));
+
+jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
+  fireMiscTrackingEvent: jest.fn(),
+}));
+
+const mockFireMisc = jest.mocked(fireMiscTrackingEvent);
 
 describe('ChatbotMessageInput', () => {
   const defaultImageUploadState: ImageUploadState = {
@@ -211,7 +239,7 @@ describe('ChatbotMessageInput', () => {
       expect(screen.getByTestId('menu-item-upload-documents')).toBeInTheDocument();
     });
 
-    it('disables "Upload image" when isImageUploadDisabled is true', async () => {
+    it('disables "Upload image" when isImageUploadDisabled is true (no tooltip)', async () => {
       const user = userEvent.setup();
       render(<ChatbotMessageInput {...defaultProps} isImageUploadDisabled />);
 
@@ -221,9 +249,82 @@ describe('ChatbotMessageInput', () => {
       expect(imageItem).toBeDisabled();
     });
 
-    it('"Upload audio" is always disabled', async () => {
+    it('"Upload image" uses isAriaDisabled with tooltip when imageDisabledTooltip is provided', async () => {
       const user = userEvent.setup();
-      render(<ChatbotMessageInput {...defaultProps} />);
+      render(
+        <ChatbotMessageInput
+          {...defaultProps}
+          isImageUploadDisabled
+          imageDisabledTooltip="Switch to a vision-capable model to upload images."
+        />,
+      );
+
+      await user.click(screen.getByTestId('mock-attach-toggle'));
+
+      const imageItem = screen.getByTestId('menu-item-upload-image');
+      expect(imageItem).toHaveAttribute('aria-disabled', 'true');
+      expect(imageItem).not.toBeDisabled();
+      const tooltipWrapper = screen.getAllByTestId('tooltip-wrapper')[0];
+      expect(tooltipWrapper).toHaveAttribute(
+        'data-tooltip-content',
+        'Switch to a vision-capable model to upload images.',
+      );
+    });
+
+    it('always shows "Upload image" even when disabled', async () => {
+      const user = userEvent.setup();
+      render(
+        <ChatbotMessageInput
+          {...defaultProps}
+          isImageUploadDisabled
+          imageDisabledTooltip="Deploy a model with vision capabilities to enable image upload."
+        />,
+      );
+
+      await user.click(screen.getByTestId('mock-attach-toggle'));
+
+      expect(screen.getByTestId('menu-item-upload-image')).toBeInTheDocument();
+      expect(screen.getByTestId('vision-file-input')).toBeInTheDocument();
+    });
+
+    it('always shows "Upload audio" even when disabled', async () => {
+      const user = userEvent.setup();
+      render(
+        <ChatbotMessageInput
+          {...defaultProps}
+          isAudioUploadDisabled
+          audioDisabledTooltip="Deploy an ASR model to enable audio upload."
+        />,
+      );
+
+      await user.click(screen.getByTestId('mock-attach-toggle'));
+
+      expect(screen.getByTestId('menu-item-upload-audio')).toBeInTheDocument();
+      expect(screen.getByTestId('audio-file-input')).toBeInTheDocument();
+    });
+
+    it('always shows all upload options including when both are disabled', async () => {
+      const user = userEvent.setup();
+      render(
+        <ChatbotMessageInput
+          {...defaultProps}
+          isImageUploadDisabled
+          imageDisabledTooltip="No vision model"
+          isAudioUploadDisabled
+          audioDisabledTooltip="No ASR model"
+        />,
+      );
+
+      await user.click(screen.getByTestId('mock-attach-toggle'));
+
+      expect(screen.getByTestId('menu-item-upload-image')).toBeInTheDocument();
+      expect(screen.getByTestId('menu-item-upload-audio')).toBeInTheDocument();
+      expect(screen.getByTestId('menu-item-upload-documents')).toBeInTheDocument();
+    });
+
+    it('"Upload audio" is disabled when isAudioUploadDisabled is true', async () => {
+      const user = userEvent.setup();
+      render(<ChatbotMessageInput {...defaultProps} isAudioUploadDisabled />);
 
       await user.click(screen.getByTestId('mock-attach-toggle'));
 
@@ -231,9 +332,57 @@ describe('ChatbotMessageInput', () => {
       expect(audioItem).toBeDisabled();
     });
 
-    it('clicking "Upload image" triggers the hidden file input', async () => {
+    it('"Upload audio" uses isAriaDisabled with tooltip when audioDisabledTooltip is provided', async () => {
       const user = userEvent.setup();
-      render(<ChatbotMessageInput {...defaultProps} />);
+      render(
+        <ChatbotMessageInput
+          {...defaultProps}
+          isAudioUploadDisabled
+          audioDisabledTooltip="Select a transcription model"
+        />,
+      );
+
+      await user.click(screen.getByTestId('mock-attach-toggle'));
+
+      const audioItem = screen.getByTestId('menu-item-upload-audio');
+      expect(audioItem).toHaveAttribute('aria-disabled', 'true');
+      expect(audioItem).not.toBeDisabled();
+      const tooltipWrapper = screen.getByTestId('tooltip-wrapper');
+      expect(tooltipWrapper).toHaveAttribute(
+        'data-tooltip-content',
+        'Select a transcription model',
+      );
+    });
+
+    it('tooltip is positioned to the left of the disabled audio menu item', async () => {
+      const user = userEvent.setup();
+      render(
+        <ChatbotMessageInput
+          {...defaultProps}
+          isAudioUploadDisabled
+          audioDisabledTooltip="Select a transcription model"
+        />,
+      );
+
+      await user.click(screen.getByTestId('mock-attach-toggle'));
+
+      const tooltipWrapper = screen.getByTestId('tooltip-wrapper');
+      expect(tooltipWrapper).toHaveAttribute('data-tooltip-position', 'left');
+    });
+
+    it('"Upload audio" is enabled when isAudioUploadDisabled is false', async () => {
+      const user = userEvent.setup();
+      render(<ChatbotMessageInput {...defaultProps} isAudioUploadDisabled={false} />);
+
+      await user.click(screen.getByTestId('mock-attach-toggle'));
+
+      const audioItem = screen.getByTestId('menu-item-upload-audio');
+      expect(audioItem).not.toBeDisabled();
+    });
+
+    it('clicking "Upload image" triggers the hidden file input and fires tracking event', async () => {
+      const user = userEvent.setup();
+      render(<ChatbotMessageInput {...defaultProps} configIndex={1} isCompareMode />);
 
       const fileInput = screen.getByTestId('vision-file-input') as HTMLInputElement;
       const clickSpy = jest.spyOn(fileInput, 'click');
@@ -242,6 +391,10 @@ describe('ChatbotMessageInput', () => {
       await user.click(screen.getByTestId('menu-item-upload-image'));
 
       expect(clickSpy).toHaveBeenCalled();
+      expect(mockFireMisc).toHaveBeenCalledWith(
+        PLAYGROUND_MULTIMODAL_EVENTS.IMAGE_UPLOAD_SELECTED,
+        { configID: 1, compareMode: true },
+      );
       clickSpy.mockRestore();
     });
 
@@ -421,155 +574,6 @@ describe('ChatbotMessageInput', () => {
     });
   });
 
-  describe('document chips', () => {
-    const docChips: PendingDocChip[] = [
-      { id: 'chip-1', fileName: 'PR_STYLE_GUIDE.md', status: 'uploaded' },
-      { id: 'chip-2', fileName: 'rag-testing.txt', status: 'uploading' },
-    ];
-
-    it('renders doc chips alongside image chip', () => {
-      render(
-        <ChatbotMessageInput
-          {...defaultProps}
-          imageUploadState={{ ...defaultImageUploadState, fileName: 'photo.jpg' }}
-          pendingDocChips={docChips}
-        />,
-      );
-
-      expect(screen.getByTestId('vision-file-preview')).toBeInTheDocument();
-      expect(screen.getByTestId('doc-chip-chip-1')).toBeInTheDocument();
-      expect(screen.getByTestId('doc-chip-chip-2')).toBeInTheDocument();
-    });
-
-    it('renders doc chips without image chip', () => {
-      render(<ChatbotMessageInput {...defaultProps} pendingDocChips={docChips} />);
-
-      expect(screen.queryByTestId('vision-file-preview')).not.toBeInTheDocument();
-      expect(screen.getByTestId('doc-chip-chip-1')).toBeInTheDocument();
-      expect(screen.getByTestId('doc-chip-chip-2')).toBeInTheDocument();
-    });
-
-    it('shows loading spinner for uploading doc chips', () => {
-      const uploadingChips: PendingDocChip[] = [
-        { id: 'chip-uploading', fileName: 'data.csv', status: 'uploading' },
-      ];
-      render(<ChatbotMessageInput {...defaultProps} pendingDocChips={uploadingChips} />);
-
-      const chip = screen.getByTestId('doc-chip-chip-uploading');
-      expect(chip.querySelector('[data-testid="file-loading-spinner"]')).toBeInTheDocument();
-      expect(chip.querySelector('[data-testid="file-close-button"]')).not.toBeInTheDocument();
-    });
-
-    it('shows close button for uploaded doc chips', () => {
-      const uploadedChips: PendingDocChip[] = [
-        { id: 'chip-done', fileName: 'report.pdf', status: 'uploaded' },
-      ];
-      render(<ChatbotMessageInput {...defaultProps} pendingDocChips={uploadedChips} />);
-
-      const chip = screen.getByTestId('doc-chip-chip-done');
-      expect(chip.querySelector('[data-testid="file-loading-spinner"]')).not.toBeInTheDocument();
-      expect(chip.querySelector('[data-testid="file-close-button"]')).toBeInTheDocument();
-    });
-
-    it('calls onRemoveDocChip when close button is clicked on uploaded chip', async () => {
-      const user = userEvent.setup();
-      const mockOnRemoveDocChip = jest.fn();
-      const uploadedChips: PendingDocChip[] = [
-        { id: 'chip-remove', fileName: 'notes.txt', status: 'uploaded' },
-      ];
-      render(
-        <ChatbotMessageInput
-          {...defaultProps}
-          pendingDocChips={uploadedChips}
-          onRemoveDocChip={mockOnRemoveDocChip}
-        />,
-      );
-
-      const closeButton = screen
-        .getByTestId('doc-chip-chip-remove')
-        .querySelector('[data-testid="file-close-button"]') as HTMLElement;
-      await user.click(closeButton);
-      expect(mockOnRemoveDocChip).toHaveBeenCalledWith('chip-remove');
-    });
-
-    it('does not render chip area when no image and no doc chips', () => {
-      render(<ChatbotMessageInput {...defaultProps} pendingDocChips={[]} />);
-
-      expect(screen.queryByTestId('vision-file-preview')).not.toBeInTheDocument();
-      expect(screen.queryByTestId('doc-chip-chip-1')).not.toBeInTheDocument();
-    });
-
-    it('renders failed status chip with close button (not spinner)', () => {
-      const failedChips: PendingDocChip[] = [
-        { id: 'chip-fail', fileName: 'broken.pdf', status: 'failed' },
-      ];
-      render(<ChatbotMessageInput {...defaultProps} pendingDocChips={failedChips} />);
-
-      const chip = screen.getByTestId('doc-chip-chip-fail');
-      expect(chip.querySelector('[data-testid="file-loading-spinner"]')).not.toBeInTheDocument();
-      expect(chip.querySelector('[data-testid="file-close-button"]')).toBeInTheDocument();
-    });
-
-    it('calls onRemoveDocChip when close button is clicked on failed chip', async () => {
-      const user = userEvent.setup();
-      const mockOnRemoveDocChip = jest.fn();
-      const failedChips: PendingDocChip[] = [
-        { id: 'chip-fail-remove', fileName: 'bad.csv', status: 'failed' },
-      ];
-      render(
-        <ChatbotMessageInput
-          {...defaultProps}
-          pendingDocChips={failedChips}
-          onRemoveDocChip={mockOnRemoveDocChip}
-        />,
-      );
-
-      const closeButton = screen
-        .getByTestId('doc-chip-chip-fail-remove')
-        .querySelector('[data-testid="file-close-button"]') as HTMLElement;
-      await user.click(closeButton);
-      expect(mockOnRemoveDocChip).toHaveBeenCalledWith('chip-fail-remove');
-    });
-
-    it('renders 3+ chips correctly', () => {
-      const manyChips: PendingDocChip[] = [
-        { id: 'chip-a', fileName: 'file-a.txt', status: 'uploaded' },
-        { id: 'chip-b', fileName: 'file-b.pdf', status: 'uploaded' },
-        { id: 'chip-c', fileName: 'file-c.csv', status: 'uploading' },
-        { id: 'chip-d', fileName: 'file-d.txt', status: 'failed' },
-      ];
-      render(<ChatbotMessageInput {...defaultProps} pendingDocChips={manyChips} />);
-
-      expect(screen.getByTestId('doc-chip-chip-a')).toBeInTheDocument();
-      expect(screen.getByTestId('doc-chip-chip-b')).toBeInTheDocument();
-      expect(screen.getByTestId('doc-chip-chip-c')).toBeInTheDocument();
-      expect(screen.getByTestId('doc-chip-chip-d')).toBeInTheDocument();
-    });
-
-    it('renders chips in array order', () => {
-      const orderedChips: PendingDocChip[] = [
-        { id: 'first', fileName: 'alpha.txt', status: 'uploaded' },
-        { id: 'second', fileName: 'beta.txt', status: 'uploaded' },
-        { id: 'third', fileName: 'gamma.txt', status: 'uploaded' },
-      ];
-      const { container } = render(
-        <ChatbotMessageInput {...defaultProps} pendingDocChips={orderedChips} />,
-      );
-
-      const chipElements = container.querySelectorAll('[data-testid^="doc-chip-"]');
-      expect(chipElements[0]).toHaveAttribute('data-testid', 'doc-chip-first');
-      expect(chipElements[1]).toHaveAttribute('data-testid', 'doc-chip-second');
-      expect(chipElements[2]).toHaveAttribute('data-testid', 'doc-chip-third');
-    });
-
-    it('send button is disabled when isSendDisabled is true (driven by uploading chips)', () => {
-      render(<ChatbotMessageInput {...defaultProps} isSendDisabled />);
-
-      const sendButton = screen.getByTestId('mock-send-button');
-      expect(sendButton).toBeDisabled();
-    });
-  });
-
   describe('document file validation', () => {
     const onDocumentAttach = jest.fn();
 
@@ -688,6 +692,282 @@ describe('ChatbotMessageInput', () => {
       );
       const messageBar = container.querySelector('[data-testid="chatbot-message-bar"]');
       expect(messageBar).toBeInTheDocument();
+    });
+  });
+
+  describe('audio upload', () => {
+    const defaultAudioState: AudioTranscriptionState = {
+      phase: 'idle',
+      fileName: '',
+      uploadProgress: 0,
+      error: null,
+      transcribedText: '',
+    };
+
+    it('clicking "Upload audio" triggers the hidden audio file input and fires tracking event', async () => {
+      const user = userEvent.setup();
+      const mockOnAudioUpload = jest.fn();
+      render(
+        <ChatbotMessageInput
+          {...defaultProps}
+          isAudioUploadDisabled={false}
+          onAudioUpload={mockOnAudioUpload}
+          audioTranscriptionState={defaultAudioState}
+          configIndex={0}
+          isCompareMode={false}
+        />,
+      );
+
+      const fileInput = screen.getByTestId('audio-file-input') as HTMLInputElement;
+      const clickSpy = jest.spyOn(fileInput, 'click');
+
+      await user.click(screen.getByTestId('mock-attach-toggle'));
+      await user.click(screen.getByTestId('menu-item-upload-audio'));
+
+      expect(clickSpy).toHaveBeenCalled();
+      expect(mockFireMisc).toHaveBeenCalledWith(
+        PLAYGROUND_MULTIMODAL_EVENTS.AUDIO_UPLOAD_SELECTED,
+        { configID: 0, compareMode: false },
+      );
+      clickSpy.mockRestore();
+    });
+
+    it('calls onAudioUpload with valid WAV file', () => {
+      const mockOnAudioUpload = jest.fn();
+      render(
+        <ChatbotMessageInput
+          {...defaultProps}
+          isAudioUploadDisabled={false}
+          onAudioUpload={mockOnAudioUpload}
+          audioTranscriptionState={defaultAudioState}
+        />,
+      );
+
+      const fileInput = screen.getByTestId('audio-file-input') as HTMLInputElement;
+      const file = new File(['audio-data'], 'recording.wav', { type: 'audio/wav' });
+      fireEvent.change(fileInput, { target: { files: [file] } });
+
+      expect(mockOnAudioUpload).toHaveBeenCalledWith(file);
+    });
+
+    it('calls onAudioUpload with valid MP3 file', () => {
+      const mockOnAudioUpload = jest.fn();
+      render(
+        <ChatbotMessageInput
+          {...defaultProps}
+          isAudioUploadDisabled={false}
+          onAudioUpload={mockOnAudioUpload}
+          audioTranscriptionState={defaultAudioState}
+        />,
+      );
+
+      const fileInput = screen.getByTestId('audio-file-input') as HTMLInputElement;
+      const file = new File(['audio-data'], 'song.mp3', { type: 'audio/mpeg' });
+      fireEvent.change(fileInput, { target: { files: [file] } });
+
+      expect(mockOnAudioUpload).toHaveBeenCalledWith(file);
+    });
+
+    it('rejects unsupported audio file type', () => {
+      const mockOnAudioUpload = jest.fn();
+      render(
+        <ChatbotMessageInput
+          {...defaultProps}
+          isAudioUploadDisabled={false}
+          onAudioUpload={mockOnAudioUpload}
+          audioTranscriptionState={defaultAudioState}
+        />,
+      );
+
+      const fileInput = screen.getByTestId('audio-file-input') as HTMLInputElement;
+      const file = new File(['audio-data'], 'track.ogg', { type: 'audio/ogg' });
+      fireEvent.change(fileInput, { target: { files: [file] } });
+
+      expect(mockOnAudioUpload).not.toHaveBeenCalled();
+      expect(screen.getByTestId('vision-validation-error')).toBeInTheDocument();
+      expect(screen.getByText(/not a supported audio file type/)).toBeInTheDocument();
+    });
+
+    it('rejects audio file exceeding size limit', () => {
+      const mockOnAudioUpload = jest.fn();
+      render(
+        <ChatbotMessageInput
+          {...defaultProps}
+          isAudioUploadDisabled={false}
+          onAudioUpload={mockOnAudioUpload}
+          audioTranscriptionState={defaultAudioState}
+        />,
+      );
+
+      const fileInput = screen.getByTestId('audio-file-input') as HTMLInputElement;
+      const largeContent = new Uint8Array(AUDIO_UPLOAD_CONFIG.MAX_FILE_SIZE + 1);
+      const file = new File([largeContent], 'big.wav', { type: 'audio/wav' });
+      fireEvent.change(fileInput, { target: { files: [file] } });
+
+      expect(mockOnAudioUpload).not.toHaveBeenCalled();
+      expect(screen.getByTestId('vision-validation-error')).toBeInTheDocument();
+      expect(screen.getByText(/exceeds maximum size/)).toBeInTheDocument();
+    });
+
+    it('uses extension fallback when MIME type is empty', () => {
+      const mockOnAudioUpload = jest.fn();
+      render(
+        <ChatbotMessageInput
+          {...defaultProps}
+          isAudioUploadDisabled={false}
+          onAudioUpload={mockOnAudioUpload}
+          audioTranscriptionState={defaultAudioState}
+        />,
+      );
+
+      const fileInput = screen.getByTestId('audio-file-input') as HTMLInputElement;
+      const file = new File(['audio-data'], 'recording.wav', { type: '' });
+      fireEvent.change(fileInput, { target: { files: [file] } });
+
+      expect(mockOnAudioUpload).toHaveBeenCalledWith(file);
+    });
+
+    it('shows audio chip during uploading phase', () => {
+      render(
+        <ChatbotMessageInput
+          {...defaultProps}
+          isAudioUploadDisabled={false}
+          audioTranscriptionState={{
+            ...defaultAudioState,
+            phase: 'uploading',
+            fileName: 'recording.wav',
+          }}
+          onAudioCancel={jest.fn()}
+        />,
+      );
+
+      expect(screen.getByTestId('audio-file-chip')).toBeInTheDocument();
+    });
+
+    it('shows audio chip during transcribing phase', () => {
+      render(
+        <ChatbotMessageInput
+          {...defaultProps}
+          isAudioUploadDisabled={false}
+          audioTranscriptionState={{
+            ...defaultAudioState,
+            phase: 'transcribing',
+            fileName: 'recording.wav',
+          }}
+          onAudioCancel={jest.fn()}
+        />,
+      );
+
+      expect(screen.getByTestId('audio-file-chip')).toBeInTheDocument();
+    });
+
+    it('passes onAudioCancel as onClose to audio chip', () => {
+      const mockOnAudioCancel = jest.fn();
+      render(
+        <ChatbotMessageInput
+          {...defaultProps}
+          isAudioUploadDisabled={false}
+          audioTranscriptionState={{
+            ...defaultAudioState,
+            phase: 'uploading',
+            fileName: 'recording.wav',
+          }}
+          onAudioCancel={mockOnAudioCancel}
+        />,
+      );
+
+      expect(screen.getByTestId('audio-file-chip')).toBeInTheDocument();
+    });
+
+    it('shows error Alert when audio transcription fails', () => {
+      render(
+        <ChatbotMessageInput
+          {...defaultProps}
+          isAudioUploadDisabled={false}
+          audioTranscriptionState={{
+            ...defaultAudioState,
+            phase: 'error',
+            error: {
+              pattern: 'full-failure',
+              variant: 'danger',
+              title: 'Transcription timed out',
+              description:
+                'The transcription took too long. The audio file may be too large or the model is overloaded.',
+              details: {
+                component: 'Audio Transcription',
+                errorCode: 'timeout',
+                rawMessage: 'Client-side timeout exceeded',
+              },
+              isRetriable: true,
+            },
+          }}
+          onAudioCancel={jest.fn()}
+        />,
+      );
+
+      const alert = screen.getByTestId('audio-transcription-error');
+      expect(alert).toBeInTheDocument();
+      expect(screen.getByText('Transcription timed out')).toBeInTheDocument();
+      expect(screen.getByText(/The transcription took too long/)).toBeInTheDocument();
+    });
+
+    it('shows aria-live announcement during transcription', () => {
+      render(
+        <ChatbotMessageInput
+          {...defaultProps}
+          isAudioUploadDisabled={false}
+          audioTranscriptionState={{
+            ...defaultAudioState,
+            phase: 'transcribing',
+            fileName: 'recording.wav',
+          }}
+        />,
+      );
+
+      const liveRegion = screen.getByTestId('audio-aria-live');
+      expect(liveRegion).toHaveTextContent('Transcribing audio');
+    });
+
+    it('sets aria-busy on wrapper during active transcription phases', () => {
+      const { container } = render(
+        <ChatbotMessageInput
+          {...defaultProps}
+          isAudioUploadDisabled={false}
+          audioTranscriptionState={{
+            ...defaultAudioState,
+            phase: 'uploading',
+            fileName: 'recording.wav',
+          }}
+        />,
+      );
+
+      const outerDiv = container.firstChild as HTMLElement;
+      expect(outerDiv).toHaveAttribute('aria-busy', 'true');
+    });
+
+    it('does not set aria-busy when idle', () => {
+      const { container } = render(
+        <ChatbotMessageInput
+          {...defaultProps}
+          isAudioUploadDisabled={false}
+          audioTranscriptionState={defaultAudioState}
+        />,
+      );
+
+      const outerDiv = container.firstChild as HTMLElement;
+      expect(outerDiv).toHaveAttribute('aria-busy', 'false');
+    });
+
+    it('does not show audio chip when idle', () => {
+      render(
+        <ChatbotMessageInput
+          {...defaultProps}
+          isAudioUploadDisabled={false}
+          audioTranscriptionState={defaultAudioState}
+        />,
+      );
+
+      expect(screen.queryByTestId('audio-file-chip')).not.toBeInTheDocument();
     });
   });
 });

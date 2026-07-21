@@ -25,23 +25,44 @@ var overlaysSourcePaths = map[cluster.Platform]string{
 }
 
 var imagesMap = map[string]string{
-	"odh-dashboard-image":      "RELATED_IMAGE_ODH_DASHBOARD_IMAGE",
-	"model-registry-ui-image":  "RELATED_IMAGE_ODH_MOD_ARCH_MODEL_REGISTRY_IMAGE",
-	"gen-ai-ui-image":          "RELATED_IMAGE_ODH_MOD_ARCH_GEN_AI_IMAGE",
-	"mlflow-ui-image":          "RELATED_IMAGE_ODH_MOD_ARCH_MLFLOW_IMAGE",
-	"maas-ui-image":            "RELATED_IMAGE_ODH_MOD_ARCH_MAAS_IMAGE",
-	"eval-hub-ui-image":        "RELATED_IMAGE_ODH_MOD_ARCH_EVAL_HUB_IMAGE",
-	"kube-rbac-proxy":          "RELATED_IMAGE_ODH_KUBE_RBAC_PROXY_IMAGE",
-	"images-jobs-async-upload": "RELATED_IMAGE_ODH_MODEL_REGISTRY_JOB_ASYNC_UPLOAD_IMAGE",
-	"automl-ui-image":          "RELATED_IMAGE_ODH_MOD_ARCH_AUTOML_IMAGE",
-	"autorag-ui-image":         "RELATED_IMAGE_ODH_MOD_ARCH_AUTORAG_IMAGE",
+	"odh-dashboard-image":            "RELATED_IMAGE_ODH_DASHBOARD_IMAGE",
+	"model-registry-ui-image":        "RELATED_IMAGE_ODH_MOD_ARCH_MODEL_REGISTRY_IMAGE",
+	"gen-ai-ui-image":                "RELATED_IMAGE_ODH_MOD_ARCH_GEN_AI_IMAGE",
+	"mlflow-ui-image":                "RELATED_IMAGE_ODH_MOD_ARCH_MLFLOW_IMAGE",
+	"maas-ui-image":                  "RELATED_IMAGE_ODH_MOD_ARCH_MAAS_IMAGE",
+	"eval-hub-ui-image":              "RELATED_IMAGE_ODH_MOD_ARCH_EVAL_HUB_IMAGE",
+	"kube-rbac-proxy":                "RELATED_IMAGE_ODH_KUBE_RBAC_PROXY_IMAGE",
+	"images-jobs-async-upload":       "RELATED_IMAGE_ODH_MODEL_REGISTRY_JOB_ASYNC_UPLOAD_IMAGE",
+	"automl-ui-image":                "RELATED_IMAGE_ODH_MOD_ARCH_AUTOML_IMAGE",
+	"automl-pipeline-runtime-image":  "RELATED_IMAGE_ODH_AUTOML_IMAGE",
+	"autorag-ui-image":               "RELATED_IMAGE_ODH_MOD_ARCH_AUTORAG_IMAGE",
+	"autorag-pipeline-runtime-image": "RELATED_IMAGE_ODH_AUTORAG_IMAGE",
+	"agent-ops-ui-image":             "RELATED_IMAGE_ODH_MOD_ARCH_AGENT_OPS_IMAGE",
 }
 
 func defaultManifestInfo(basePath string, platform cluster.Platform) render.ManifestInfo {
+	sourcePath, ok := overlaysSourcePaths[platform]
+	if !ok {
+		sourcePath = overlaysSourcePaths[cluster.OpenDataHub]
+	}
+
 	return render.ManifestInfo{
 		Path:       basePath,
 		ContextDir: "",
-		SourcePath: overlaysSourcePaths[platform],
+		SourcePath: sourcePath,
+	}
+}
+
+func observabilityManifestInfo(basePath string, platform cluster.Platform) render.ManifestInfo {
+	sourcePath, ok := overlaysSourcePaths[platform]
+	if !ok {
+		sourcePath = overlaysSourcePaths[cluster.OpenDataHub]
+	}
+
+	return render.ManifestInfo{
+		Path:       basePath,
+		ContextDir: "observability",
+		SourcePath: sourcePath,
 	}
 }
 
@@ -55,7 +76,7 @@ func computeKustomizeVariables(dashboard *v1alpha1.Dashboard, platform cluster.P
 
 	if dashboard.Spec.Gateway != nil && dashboard.Spec.Gateway.Domain != "" {
 		params["gateway-domain"] = dashboard.Spec.Gateway.Domain
-		params["dashboard-url"] = fmt.Sprintf("https://odh-dashboard-%s", dashboard.Spec.Gateway.Domain)
+		params["dashboard-url"] = fmt.Sprintf("https://%s/", dashboard.Spec.Gateway.Domain)
 	}
 
 	return params
@@ -103,5 +124,5 @@ func writeParamsEnv(manifestPath string, params map[string]string) error {
 		sb.WriteString(params[k])
 		sb.WriteString("\n")
 	}
-	return os.WriteFile(manifestPath+"/params.env", []byte(sb.String()), 0664)
+	return os.WriteFile(manifestPath+"/params.env", []byte(sb.String()), 0600)
 }

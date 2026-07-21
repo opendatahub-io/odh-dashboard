@@ -2,3 +2,15 @@
   max-height: 15rem;
   overflow: auto;
 }
+
+.autorag-model-selection__label {
+  margin: 0;
+}
+
+.autorag-model-selection__label-row {
+  width: fit-content;
+}
+
+.autorag-model-selection__required-asterisk {
+  color: var(--pf-t--global--icon--color--status--danger--default);
+}

@@ -263,7 +263,7 @@ const ModelDetailsView: React.FC<ModelDetailsViewProps> = ({
                       <DescriptionListDescription>{tensorType || 'N/A'}</DescriptionListDescription>
                     </DescriptionListGroup>
                     <DescriptionListGroup>
-                      <DescriptionListTerm>Size</DescriptionListTerm>
+                      <DescriptionListTerm>Parameter size</DescriptionListTerm>
                       <DescriptionListDescription>{size || 'N/A'}</DescriptionListDescription>
                     </DescriptionListGroup>
                     {minimumVram && (
@@ -320,7 +320,7 @@ const ModelDetailsView: React.FC<ModelDetailsViewProps> = ({
                     )}
                     {modelSize && (
                       <DescriptionListGroup>
-                        <DescriptionListTerm>Image size</DescriptionListTerm>
+                        <DescriptionListTerm>Container size</DescriptionListTerm>
                         <DescriptionListDescription data-testid="image-size">
                           {modelSize}
                         </DescriptionListDescription>
@@ -328,22 +328,22 @@ const ModelDetailsView: React.FC<ModelDetailsViewProps> = ({
                     )}
                     <DescriptionListGroup>
                       <DescriptionListTerm>Model location</DescriptionListTerm>
-                      {artifactsLoadError ? (
-                        <Alert variant="danger" isInline title={artifactsLoadError.name}>
-                          {artifactsLoadError.message}
-                        </Alert>
-                      ) : !artifactLoaded ? (
-                        <Spinner size="sm" />
-                      ) : artifacts.items.length > 0 && hasModelArtifacts(artifacts.items) ? (
-                        <DescriptionListDescription>
+                      <DescriptionListDescription>
+                        {artifactsLoadError ? (
+                          <Alert variant="danger" isInline title={artifactsLoadError.name}>
+                            {artifactsLoadError.message}
+                          </Alert>
+                        ) : !artifactLoaded ? (
+                          <Spinner size="sm" />
+                        ) : artifacts.items.length > 0 && hasModelArtifacts(artifacts.items) ? (
                           <InlineTruncatedClipboardCopy
                             testId="source-image-location"
                             textToCopy={getModelArtifactUri(artifacts.items) || ''}
                           />
-                        </DescriptionListDescription>
-                      ) : (
-                        <p className={text.textColorDisabled}>No artifacts available</p>
-                      )}
+                        ) : (
+                          <span className={text.textColorSubtle}>No artifacts available</span>
+                        )}
+                      </DescriptionListDescription>
                     </DescriptionListGroup>
                     {architectures.length > 0 && (
                       <DescriptionListGroup>

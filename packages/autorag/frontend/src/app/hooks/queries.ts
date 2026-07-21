@@ -1,6 +1,6 @@
 import { useQuery, UseQueryResult } from '@tanstack/react-query';
 import * as z from 'zod';
-import { getOgxModels, getOgxVectorStores, getSecrets } from '~/app/api/k8s';
+import { getOgxModels, getOgxVectorStores, getSecretByName, getSecrets } from '~/app/api/k8s';
 import { getPipelineRunFromBFF } from '~/app/api/pipelines';
 import { getFiles as getS3Files } from '~/app/api/s3';
 import {
@@ -55,6 +55,7 @@ type FetchS3FileOptions = {
   secretName?: string;
   bucket?: string;
   signal?: AbortSignal;
+  maxBytes?: number;
 };
 
 /**
@@ -70,16 +71,21 @@ export async function fetchS3File(
     throw new Error('File key must be a non-empty string');
   }
 
-  const { secretName, bucket, signal } = options ?? {};
+  const { secretName, bucket, signal, maxBytes } = options ?? {};
   const params = new URLSearchParams({
     namespace,
     ...(secretName && { secretName }),
     ...(bucket && { bucket }),
   });
 
+  const abortController = maxBytes != null ? new AbortController() : undefined;
+  const combinedSignal = abortController
+    ? AbortSignal.any([abortController.signal, ...(signal ? [signal] : [])])
+    : signal;
+
   const response = await fetch(
     `${URL_PREFIX}/api/v1/s3/files/${encodeURIComponent(key)}?${params.toString()}`,
-    { signal },
+    { signal: combinedSignal },
   );
 
   if (!response.ok) {
@@ -95,7 +101,93 @@ export async function fetchS3File(
     throw new Error(`Failed to fetch file: ${errorMessage}`);
   }
 
+  if (maxBytes != null) {
+    const contentLength = response.headers.get('Content-Length');
+    if (contentLength != null && parseInt(contentLength, 10) > maxBytes) {
+      abortController?.abort();
+      throw new Error(
+        `S3 file too large: ${contentLength} bytes exceeds limit of ${maxBytes} bytes`,
+      );
+    }
+
+    const reader = response.body?.getReader();
+    if (!reader) {
+      return response.blob();
+    }
+
+    const chunks: Uint8Array[] = [];
+    let received = 0;
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) {
+        break;
+      }
+      received += value.byteLength;
+      if (received > maxBytes) {
+        abortController?.abort();
+        throw new Error(`S3 file too large: exceeded limit of ${maxBytes} bytes during download`);
+      }
+      chunks.push(value);
+    }
+    const combined = new Uint8Array(received);
+    let offset = 0;
+    for (const chunk of chunks) {
+      combined.set(chunk, offset);
+      offset += chunk.byteLength;
+    }
+    return new Blob([combined]);
+  }
+
   return response.blob();
+}
+
+const DEFAULT_MAX_JSON_BYTES = 50 * 1024 * 1024; // 50 MB
+
+/**
+ * Fetches and parses JSON content from S3.
+ *
+ * @param namespace - K8s namespace
+ * @param key - S3 object key
+ * @param options - Optional configuration
+ * @param options.signal - Abort signal for cancellation
+ * @param options.schema - Optional Zod schema for runtime validation
+ * @returns Parsed JSON cast to type T (validated if schema provided)
+ */
+export async function fetchS3Json<T>(
+  namespace: string,
+  key: string,
+  options?: {
+    signal?: AbortSignal;
+    schema?: z.ZodSchema<T>;
+    maxBytes?: number;
+  },
+): Promise<T> {
+  const { signal, schema, maxBytes = DEFAULT_MAX_JSON_BYTES } = options ?? {};
+  const blob = await fetchS3File(namespace, key, { signal, maxBytes });
+  const text = await blob.text();
+
+  try {
+    const parsed = JSON.parse(text);
+
+    if (schema) {
+      return schema.parse(parsed);
+    }
+
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- no schema provided, caller accepts risk
+    return parsed as T;
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      const issues = error.issues
+        .map((issue) => `${issue.path.join('.')}: ${issue.message}`)
+        .join(', ');
+      throw new Error(`Invalid JSON structure from S3 file "${key}": ${issues}`);
+    }
+    throw new Error(
+      `Failed to parse JSON from S3 file "${key}": ${
+        error instanceof Error ? error.message : 'Invalid JSON'
+      }`,
+    );
+  }
 }
 
 export function useS3ListFilesQuery(
@@ -207,6 +299,24 @@ export function usePipelineRunQuery(
       }
       return POLL_INTERVAL_MS;
     },
+  });
+}
+
+export function useSecretCredentialsQuery(
+  namespace?: string,
+  secretName?: string,
+): UseQueryResult<Record<string, string>, Error> {
+  return useQuery({
+    enabled: !!namespace && !!secretName,
+    queryKey: ['autorag', 'secretCredentials', namespace, secretName],
+    queryFn: async ({ signal }) => {
+      if (!namespace || !secretName) {
+        throw new Error('namespace and secretName are required');
+      }
+      return getSecretByName('')(namespace, secretName)({ signal });
+    },
+    staleTime: 300_000,
+    retry: false,
   });
 }
 

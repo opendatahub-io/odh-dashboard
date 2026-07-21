@@ -1,11 +1,11 @@
 import * as React from 'react';
-import type { SecretKind } from '@odh-dashboard/internal/k8sTypes';
+import type { SecretKind } from '@odh-dashboard/k8s-core';
 import useFetch, {
   NotReadyError,
   type FetchOptions,
   type FetchStateObject,
-} from '@odh-dashboard/internal/utilities/useFetch';
-import { LABEL_SELECTOR_DASHBOARD_RESOURCE } from '@odh-dashboard/internal/const';
+} from '@odh-dashboard/ui-core/hooks/useFetch';
+import { LABEL_SELECTOR_DASHBOARD_RESOURCE } from '@odh-dashboard/ui-core/utilities';
 import { getSecretsByLabel } from '@odh-dashboard/internal/api/index';
 import type { Deployment } from '../../extension-points';
 
@@ -31,7 +31,13 @@ export const getTokenNames = (
   return { serviceAccountName, roleName, roleBindingName };
 };
 
-export const isDeploymentAuthEnabled = (deployment: Deployment): boolean => {
+export const isDeploymentAuthEnabled = (
+  deployment: Deployment,
+  platformAuthCheck?: (deployment: Deployment) => boolean,
+): boolean => {
+  if (platformAuthCheck) {
+    return platformAuthCheck(deployment);
+  }
   const annotation = deployment.model.metadata.annotations?.['security.opendatahub.io/enable-auth'];
   return annotation !== 'false';
 };

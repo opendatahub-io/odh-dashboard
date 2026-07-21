@@ -1,7 +1,9 @@
 import type { CodeRef, Extension } from '@openshift/dynamic-plugin-sdk';
-import type { CrPathConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/types';
-import type { useHardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/useHardwareProfileConfig';
-import type { SupportedModelFormats } from '@odh-dashboard/internal/k8sTypes';
+import type {
+  CrPathConfig,
+  useHardwareProfileConfig,
+} from '@odh-dashboard/hardware-profiles/shared';
+import type { SupportedModelFormats } from '@odh-dashboard/k8s-core';
 import type { Deployment, ExtractionResult } from './index';
 import type {
   InitialWizardFormData,

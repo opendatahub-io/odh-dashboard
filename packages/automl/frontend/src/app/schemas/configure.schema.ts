@@ -1,22 +1,21 @@
 /* eslint-disable camelcase */
 import * as z from 'zod';
 import {
-  TASK_TYPE_BINARY,
-  TASK_TYPE_MULTICLASS,
-  TASK_TYPE_REGRESSION,
+  PRESETS,
+  PRESET_FASTER,
+  ALL_EVAL_METRICS,
+  DEFAULT_EVAL_METRIC_BY_TASK,
+  EVAL_METRICS_BY_TASK_TYPE,
+  MIN_TOP_N,
+  MAX_TOP_N_TABULAR,
+  MAX_TOP_N_TIMESERIES,
+  MAX_DESCRIPTION_LENGTH,
+  MAX_DISPLAY_NAME_LENGTH,
+  MAX_PREDICTION_LENGTH,
+  TASK_TYPES,
   TASK_TYPE_TIMESERIES,
 } from '~/app/utilities/const';
 import { createSchema } from '~/app/utilities/schema';
-
-export const MIN_TOP_N = 1;
-export const MAX_TOP_N_TABULAR = 10;
-export const MAX_TOP_N_TIMESERIES = 7;
-export const MAX_PREDICTION_LENGTH = 100;
-
-export const EXPERIMENT_SETTINGS_FIELDS = ['top_n'] as const;
-
-const TABULAR_TASK_TYPES = [TASK_TYPE_BINARY, TASK_TYPE_MULTICLASS, TASK_TYPE_REGRESSION] as const;
-export const TASK_TYPES = [...TABULAR_TASK_TYPES, TASK_TYPE_TIMESERIES] as const;
 
 // Make sure every field has a default to ensure RHF works as intended.
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
@@ -29,16 +28,26 @@ function createConfigureSchema() {
         .trim()
         .min(1)
         .refine(
-          (val) => Array.from(val).length <= 250,
-          'Display name must be at most 250 characters',
+          (val) => Array.from(val).length <= MAX_DISPLAY_NAME_LENGTH,
+          `Display name must be at most ${MAX_DISPLAY_NAME_LENGTH} characters`,
         )
         .default(''),
-      description: z.string().trim().default('').optional(),
+      description: z
+        .string()
+        .trim()
+        .refine(
+          (val) => Array.from(val).length <= MAX_DESCRIPTION_LENGTH,
+          `Description must be at most ${MAX_DESCRIPTION_LENGTH} characters`,
+        )
+        .default('')
+        .optional(),
       // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- intentionally invalid default; validated on submit
       task_type: z.enum(TASK_TYPES).default('' as never),
       train_data_secret_name: z.string().min(1).default(''),
       train_data_bucket_name: z.string().min(1).default(''),
       train_data_file_key: z.string().min(1).default(''),
+      preset: z.enum(PRESETS).default(PRESET_FASTER),
+      eval_metric: z.enum(ALL_EVAL_METRICS).optional(),
       top_n: z.int().min(MIN_TOP_N, `Minimum number of top models is ${MIN_TOP_N}`).default(3),
 
       // Unified target column — transformed to `label_column` or `target` on submit
@@ -120,6 +129,22 @@ function createConfigureSchema() {
         }
         return issues;
       },
+      // Validate eval_metric is valid for the current task type
+      (data) => {
+        const issues: z.core.$ZodRawIssue[] = [];
+        if (data.eval_metric != null) {
+          const validMetrics = EVAL_METRICS_BY_TASK_TYPE[data.task_type] ?? [];
+          if (!validMetrics.includes(data.eval_metric)) {
+            issues.push({
+              code: 'custom',
+              path: ['eval_metric'],
+              message: `Invalid metric "${data.eval_metric}" for task type "${data.task_type}"`,
+              input: data.eval_metric,
+            });
+          }
+        }
+        return issues;
+      },
       // Validate top_n based on task type
       (data) => {
         const issues: z.core.$ZodRawIssue[] = [];
@@ -142,6 +167,13 @@ function createConfigureSchema() {
     ],
     /* eslint-disable no-param-reassign */
     transformers: [
+      // Set eval_metric to the task-type default when not explicitly chosen. Safety net on submit.
+      (data) => {
+        if (data.eval_metric == null) {
+          data.eval_metric = DEFAULT_EVAL_METRIC_BY_TASK[data.task_type];
+        }
+        return data;
+      },
       // Map target_column to the correct output field and remove unused fields
       (data) => {
         if (data.task_type === TASK_TYPE_TIMESERIES) {

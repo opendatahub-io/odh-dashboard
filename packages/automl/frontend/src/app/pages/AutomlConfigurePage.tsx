@@ -76,7 +76,7 @@ function AutomlConfigurePage({
     defaultValues: { ...configureSchema.defaults, ...initialValues },
   });
 
-  const [displayName] = useWatch({
+  const [displayName, description] = useWatch({
     control: form.control,
     name: createFields,
   });
@@ -108,7 +108,10 @@ function AutomlConfigurePage({
           type="submit"
           variant="primary"
           data-testid="automl-next-button"
-          isDisabled={!configureSchema.base.shape.display_name.safeParse(displayName).success}
+          isDisabled={
+            !configureSchema.base.shape.display_name.safeParse(displayName).success ||
+            !configureSchema.base.shape.description.safeParse(description).success
+          }
         >
           Next
         </Button>
@@ -158,15 +161,15 @@ function AutomlConfigurePage({
             )
           ) : (
             <span data-testid="configure-step-subtitle">
-              &quot;
+              Run &ldquo;
               <Truncate content={displayName || ''} />
-              &quot; configurations
+              &rdquo; AutoML experiment
             </span>
           )}
         </h2>
       }
       description={
-        step === 'create' && (
+        step === 'create' ? (
           <Content>
             Automatically configure and optimize your machine learning workflows.
             {sourceRunId && (
@@ -177,6 +180,8 @@ function AutomlConfigurePage({
               </>
             )}
           </Content>
+        ) : (
+          <Content>Configure details for this experiment run.</Content>
         )
       }
       breadcrumb={

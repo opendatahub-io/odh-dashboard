@@ -1,12 +1,12 @@
 import React from 'react';
 import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { Tab, TabAction, Tabs, TabTitleText } from '@patternfly/react-core';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
+import type { InferenceServiceKind } from '@odh-dashboard/model-serving/shared';
 import { MetricsTabKeys } from '#~/pages/modelServing/screens/metrics/types';
 import { useModelBiasData } from '#~/concepts/trustyai/context/useModelBiasData';
 import NotFound from '#~/pages/NotFound';
 import useDoesTrustyAICRExist from '#~/concepts/trustyai/context/useDoesTrustyAICRExist';
-import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
-import { InferenceServiceKind } from '#~/k8sTypes';
 import { TrustyInstallState } from '#~/concepts/trustyai/types';
 import './MetricsPageTabs.scss';
 import useServingPlatformStatuses from '#~/pages/modelServing/useServingPlatformStatuses';

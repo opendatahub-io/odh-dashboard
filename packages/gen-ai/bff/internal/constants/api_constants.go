@@ -26,11 +26,13 @@ const (
 	VectorStoresListPath       = ApiPathPrefix + "/lsd/vectorstores"
 	VectorStoresDeletePath     = ApiPathPrefix + "/lsd/vectorstores/delete"
 	ResponsesPath              = ApiPathPrefix + "/lsd/responses"
+	ResponsesPassthroughPath   = ApiPathPrefix + "/lsd/responses/passthrough"
 	FilesListPath              = ApiPathPrefix + "/lsd/files"
 	FilesUploadPath            = ApiPathPrefix + "/lsd/files/upload"
 	FilesUploadStatusPath      = ApiPathPrefix + "/lsd/files/upload/status"
 	FilesDeletePath            = ApiPathPrefix + "/lsd/files/delete"
-	VisionFilesUploadPath      = ApiPathPrefix + "/lsd/files/vision"
+	MediaFilesUploadPath       = ApiPathPrefix + "/lsd/files/media"
+	AudioTranscriptionsPath    = ApiPathPrefix + "/lsd/audio/transcriptions"
 	VectorStoreFilesListPath   = ApiPathPrefix + "/lsd/vectorstores/files"
 	VectorStoreFilesUploadPath = ApiPathPrefix + "/lsd/vectorstores/files/upload"
 	VectorStoreFilesDeletePath = ApiPathPrefix + "/lsd/vectorstores/files/delete"
@@ -58,13 +60,9 @@ const (
 	VerifyExternalModelPath  = ApiPathPrefix + "/models/external/verify"
 	ExternalVectorStoresPath = ApiPathPrefix + "/vectorstores/external"
 
-	// Model as a Service (MaaS) endpoints - direct MaaS controller calls
+	// Model as a Service (MaaS) endpoints - via inter-BFF communication with MaaS BFF
 	MaaSModelsPath = ApiPathPrefix + "/maas/models"
 	MaaSTokensPath = ApiPathPrefix + "/maas/tokens"
-
-	// Inter-BFF Communication endpoints - calls to other BFF services
-	// These use the BFF client for inter-service communication
-	BFFMaaSTokensPath = ApiPathPrefix + "/bff/maas/tokens"
 
 	// MLflow endpoints
 	MLflowPromptsPath        = ApiPathPrefix + "/mlflow/prompts"
@@ -77,4 +75,8 @@ const (
 	// NemoGuardrails endpoints
 	NemoGuardrailsInitPath   = ApiPathPrefix + "/nemo-guardrails/init"
 	NemoGuardrailsStatusPath = ApiPathPrefix + "/nemo-guardrails/status"
+
+	// Agent Profiles endpoints
+	AgentProfilesPath  = ApiPathPrefix + "/agent-profiles"
+	AgentProfileIDPath = ApiPathPrefix + "/agent-profiles/:id"
 )

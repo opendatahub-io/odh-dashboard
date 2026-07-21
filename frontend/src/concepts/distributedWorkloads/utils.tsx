@@ -18,6 +18,14 @@ import {
   chart_color_green_300 as chartColorGreen,
   t_chart_global_danger_color_100 as chartColorRed,
 } from '@patternfly/react-tokens';
+import { isEnumMember } from '@odh-dashboard/foundation';
+import { ContainerResourceAttributes } from '@odh-dashboard/k8s-core';
+import {
+  CPU_UNITS,
+  MEMORY_UNITS_FOR_PARSING,
+  UnitOption,
+  convertToUnit,
+} from '@odh-dashboard/ui-core/utilities/valueUnits';
 import {
   ClusterQueueKind,
   LocalQueueKind,
@@ -25,15 +33,7 @@ import {
   WorkloadKind,
   WorkloadOwnerType,
 } from '#~/k8sTypes';
-import { ContainerResourceAttributes } from '#~/types';
-import {
-  CPU_UNITS,
-  MEMORY_UNITS_FOR_PARSING,
-  UnitOption,
-  convertToUnit,
-} from '#~/utilities/valueUnits';
 import { WorkloadWithUsage } from '#~/api';
-import { isEnumMember } from '#~/utilities/utils';
 
 export enum WorkloadStatusType {
   Pending = 'Pending',

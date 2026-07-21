@@ -4,9 +4,10 @@ import (
 	"context"
 
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/bffclient"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes"
-	"github.com/opendatahub-io/gen-ai/internal/integrations/maas"
 	"github.com/opendatahub-io/gen-ai/internal/models"
+	corev1 "k8s.io/api/core/v1"
 )
 
 type OGXServerRepository struct{}
@@ -48,9 +49,23 @@ func (r *OGXServerRepository) GetOGXServerStatus(
 		Phase:              phase,
 		Version:            version,
 		DistributionConfig: distributionConfig,
+		TracingEnabled:     ogxServer.Spec.Workload != nil && ogxServer.Spec.Workload.Overrides != nil && hasOTelEnvVar(ogxServer.Spec.Workload.Overrides.Env),
 	}
 
 	return ogxModel, nil
+}
+
+// hasOTelEnvVar infers whether the OGXServer was created with tracing enabled
+// by checking for OTel env vars in the workload overrides. This avoids a CR
+// schema change; if the tracing env var setup changes in ogxEnvVars(), this
+// check must be updated to match.
+func hasOTelEnvVar(envs []corev1.EnvVar) bool {
+	for _, e := range envs {
+		if e.Name == "OTEL_SERVICE_NAME" {
+			return true
+		}
+	}
+	return false
 }
 
 // InstallOGXServer installs an OGXServer with the specified models.
@@ -61,9 +76,10 @@ func (r *OGXServerRepository) InstallOGXServer(
 	namespace string,
 	installmodels []models.InstallModel,
 	vectorStores []models.InstallVectorStore,
-	maasClient maas.MaaSClientInterface,
+	enableTracing bool,
+	bffClient bffclient.BFFClientInterface,
 ) (*models.OGXServerInstallModel, error) {
-	ogxServer, err := client.InstallOGXServer(ctx, identity, namespace, installmodels, vectorStores, maasClient)
+	ogxServer, err := client.InstallOGXServer(ctx, identity, namespace, installmodels, vectorStores, enableTracing, bffClient)
 	if err != nil {
 		return nil, err
 	}
@@ -77,14 +93,16 @@ func (r *OGXServerRepository) InstallOGXServer(
 }
 
 // DeleteOGXServer deletes an OGXServer with the specified name.
+// When deletePgvector is true, auto-provisioned pgvector resources are also removed.
 func (r *OGXServerRepository) DeleteOGXServer(
 	client kubernetes.KubernetesClientInterface,
 	ctx context.Context,
 	identity *integrations.RequestIdentity,
 	namespace string,
 	name string,
+	deletePgvector bool,
 ) (*models.OGXServerDeleteResponse, error) {
-	_, err := client.DeleteOGXServer(ctx, identity, namespace, name)
+	_, err := client.DeleteOGXServer(ctx, identity, namespace, name, deletePgvector)
 	if err != nil {
 		return nil, err
 	}

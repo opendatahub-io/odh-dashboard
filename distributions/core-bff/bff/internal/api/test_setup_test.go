@@ -13,18 +13,24 @@ import (
 	k8s "github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/integrations/kubernetes/k8mocks"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/repositories"
+	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 )
 
 var (
 	testK8sFactory  k8s.KubernetesClientFactory
 	testEnvInstance *envtest.Environment
+	testSADynClient dynamic.Interface
+	testSAClientset kubernetes.Interface
 )
 
 func TestMain(m *testing.M) {
 	logger := testLogger()
 
-	env, clientset, err := k8mocks.SetupEnvTest(k8mocks.TestEnvInput{})
+	env, clientset, saDyn, err := k8mocks.SetupEnvTest(k8mocks.TestEnvInput{
+		CRDs: k8mocks.DefaultCRDs(),
+	})
 	if err != nil {
 		logger.Error("failed to setup envtest", slog.Any("error", err))
 		os.Exit(1)
@@ -45,6 +51,15 @@ func TestMain(m *testing.M) {
 
 	testK8sFactory = factory
 	testEnvInstance = env
+	testSADynClient = saDyn
+
+	saCS, err := kubernetes.NewForConfig(env.Config)
+	if err != nil {
+		logger.Error("failed to create SA clientset", slog.Any("error", err))
+		_ = env.Stop()
+		os.Exit(1)
+	}
+	testSAClientset = saCS
 
 	code := m.Run()
 
@@ -66,10 +81,16 @@ func newTestApp(overrides ...func(*App)) *App {
 		},
 		logger:                  logger,
 		kubernetesClientFactory: testK8sFactory,
-		repositories:            repositories.NewRepositories(),
-		bffClientFactory:        bffmocks.NewMockClientFactory(logger),
-		openAPI:                 openAPIHandler,
-		clusterInfo:             clusterInfo{clusterBranding: defaultClusterBranding},
+		repositories: repositories.NewRepositories(repositories.RepositoriesConfig{
+			Platform:    config.PlatformOpenShift,
+			SADynClient: testSADynClient,
+			SAClientset: testSAClientset,
+			Namespace:   "",
+		}),
+		bffClientFactory: bffmocks.NewMockClientFactory(logger),
+		openAPI:          openAPIHandler,
+		clusterInfo:      clusterInfo{clusterBranding: defaultClusterBranding},
+		probeSemaphore:   NewProbeSemaphore(),
 	}
 
 	for _, o := range overrides {

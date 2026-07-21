@@ -2,6 +2,7 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useAccessAllowed } from '@odh-dashboard/internal/concepts/userSSAR/useAccessAllowed';
+import { useFeatureStoreProject } from '../../FeatureStoreContext';
 import { useFeatureStoreAccessibleProjects } from '../../hooks/useFeatureStoreAccessibleProjects';
 import ConnectedWorkbenchesLink from '../ConnectedWorkbenchesLink';
 
@@ -13,9 +14,25 @@ jest.mock('@odh-dashboard/internal/concepts/userSSAR/utils', () => ({
     verb: 'create',
   })),
 }));
+jest.mock('../../FeatureStoreContext', () => ({
+  useFeatureStoreProject: jest.fn(),
+}));
 jest.mock('../../hooks/useFeatureStoreAccessibleProjects');
+jest.mock('../ConnectedWorkbenchesModal', () => ({
+  __esModule: true,
+  default: ({ onClose }: { onClose: () => void }) => (
+    <div data-testid="connected-workbenches-modal">
+      <button data-testid="modal-close" onClick={onClose}>
+        Close
+      </button>
+    </div>
+  ),
+}));
 
 const mockUseAccessAllowed = useAccessAllowed as jest.MockedFunction<typeof useAccessAllowed>;
+const mockUseFeatureStoreProject = useFeatureStoreProject as jest.MockedFunction<
+  typeof useFeatureStoreProject
+>;
 const mockUseFeatureStoreAccessibleProjects =
   useFeatureStoreAccessibleProjects as jest.MockedFunction<
     typeof useFeatureStoreAccessibleProjects
@@ -24,6 +41,12 @@ const mockUseFeatureStoreAccessibleProjects =
 describe('ConnectedWorkbenchesLink', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockUseFeatureStoreProject.mockReturnValue({
+      currentProject: 'credit_scoring_local',
+      setCurrentProject: jest.fn(),
+      preferredFeatureStoreProject: null,
+      updatePreferredFeatureStoreProject: jest.fn(),
+    });
   });
 
   describe('enabled state', () => {
@@ -44,27 +67,41 @@ describe('ConnectedWorkbenchesLink', () => {
       });
     });
 
-    it('should render the button as aria-disabled', () => {
+    it('should render the button as enabled', () => {
       render(<ConnectedWorkbenchesLink />);
 
       const button = screen.getByTestId('connected-workbenches-link');
       expect(button).toBeInTheDocument();
       expect(button).toHaveTextContent('View connected workbenches');
-      expect(button).toHaveAttribute('aria-disabled', 'true');
+      expect(button).not.toHaveAttribute('aria-disabled', 'true');
     });
 
-    it('should not throw on click', async () => {
+    it('should open the modal on click', async () => {
       const user = userEvent.setup();
       render(<ConnectedWorkbenchesLink />);
 
-      const button = screen.getByTestId('connected-workbenches-link');
-      await expect(user.click(button)).resolves.not.toThrow();
+      expect(screen.queryByTestId('connected-workbenches-modal')).not.toBeInTheDocument();
+
+      await user.click(screen.getByTestId('connected-workbenches-link'));
+
+      expect(screen.getByTestId('connected-workbenches-modal')).toBeInTheDocument();
+    });
+
+    it('should close the modal when onClose is called', async () => {
+      const user = userEvent.setup();
+      render(<ConnectedWorkbenchesLink />);
+
+      await user.click(screen.getByTestId('connected-workbenches-link'));
+      expect(screen.getByTestId('connected-workbenches-modal')).toBeInTheDocument();
+
+      await user.click(screen.getByTestId('modal-close'));
+      expect(screen.queryByTestId('connected-workbenches-modal')).not.toBeInTheDocument();
     });
 
     it('should not render a tooltip when enabled', () => {
       render(<ConnectedWorkbenchesLink />);
 
-      expect(screen.queryByText(/To create and connect workbenches/)).not.toBeInTheDocument();
+      expect(screen.queryByText(/To connect a workbench/)).not.toBeInTheDocument();
     });
   });
 
@@ -83,13 +120,23 @@ describe('ConnectedWorkbenchesLink', () => {
       render(<ConnectedWorkbenchesLink />);
 
       const button = screen.getByTestId('connected-workbenches-link');
+      expect(button).toHaveAttribute('aria-disabled', 'true');
       await user.hover(button);
 
       expect(
         await screen.findByText(
-          'To create and connect workbenches, you must first have a project with access permission. Contact your administrator to request project authorization.',
+          'To connect a workbench, you need a project that can access this feature store. Contact your administrator to request project permissions.',
         ),
       ).toBeInTheDocument();
+    });
+
+    it('should not open the modal when disabled', async () => {
+      const user = userEvent.setup();
+      render(<ConnectedWorkbenchesLink />);
+
+      await user.click(screen.getByTestId('connected-workbenches-link'));
+
+      expect(screen.queryByTestId('connected-workbenches-modal')).not.toBeInTheDocument();
     });
   });
 
@@ -112,26 +159,26 @@ describe('ConnectedWorkbenchesLink', () => {
 
       expect(
         await screen.findByText(
-          'To create and connect workbenches, you must first have a project with access permission. Update project permissions.',
+          'To connect a workbench, you need a project that can access this feature store. Update project permissions in OpenShift.',
         ),
       ).toBeInTheDocument();
     });
   });
 
   describe('loading state', () => {
-    it('should render without tooltip while admin check is loading', () => {
+    it('should render a loading skeleton while projects are loading', () => {
       mockUseAccessAllowed.mockReturnValue([false, false]);
       mockUseFeatureStoreAccessibleProjects.mockReturnValue({
         accessibleProjects: [],
-        projectsLoaded: true,
+        projectsLoaded: false,
         projectsError: undefined,
       });
 
       render(<ConnectedWorkbenchesLink />);
 
-      const button = screen.getByTestId('connected-workbenches-link');
-      expect(button).toHaveAttribute('aria-disabled', 'true');
-      expect(screen.queryByText(/To create and connect workbenches/)).not.toBeInTheDocument();
+      expect(screen.getByTestId('skeleton-loader')).toBeInTheDocument();
+      expect(screen.queryByTestId('connected-workbenches-link')).not.toBeInTheDocument();
+      expect(screen.queryByText(/To connect a workbench/)).not.toBeInTheDocument();
     });
   });
 });

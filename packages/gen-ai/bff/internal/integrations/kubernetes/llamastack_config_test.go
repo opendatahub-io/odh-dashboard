@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes/pgvector"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v2"
@@ -28,7 +29,7 @@ func TestLlamaStackConfig_Conversions(t *testing.T) {
 	assert.Contains(t, yamlStr, "version: \"2\"")
 	assert.Contains(t, yamlStr, "distro_name: rh")
 	assert.Contains(t, yamlStr, "vector_stores:")
-	assert.Contains(t, yamlStr, "default_provider_id: milvus")
+	assert.Contains(t, yamlStr, "default_provider_id: pgvector")
 
 	// Test JSON conversion
 	jsonStr, err := config.ToJSON()
@@ -36,7 +37,7 @@ func TestLlamaStackConfig_Conversions(t *testing.T) {
 	assert.Contains(t, jsonStr, "\"version\":\"2\"")
 	assert.Contains(t, jsonStr, "\"distro_name\":\"rh\"")
 	assert.Contains(t, jsonStr, "\"vector_stores\"")
-	assert.Contains(t, jsonStr, "\"default_provider_id\":\"milvus\"")
+	assert.Contains(t, jsonStr, "\"default_provider_id\":\"pgvector\"")
 
 	// Test parsing YAML
 	var parsedConfig LlamaStackConfig
@@ -44,7 +45,7 @@ func TestLlamaStackConfig_Conversions(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, config.Version, parsedConfig.Version)
 	assert.Equal(t, config.DistroName, parsedConfig.DistroName)
-	assert.Equal(t, "milvus", parsedConfig.VectorStores.DefaultProviderID)
+	assert.Equal(t, "pgvector", parsedConfig.VectorStores.DefaultProviderID)
 	assert.Equal(t, "sentence-transformers", parsedConfig.VectorStores.DefaultEmbeddingModel.ProviderID)
 	assert.Equal(t, "ibm-granite/granite-embedding-125m-english", parsedConfig.VectorStores.DefaultEmbeddingModel.ModelID)
 
@@ -54,7 +55,7 @@ func TestLlamaStackConfig_Conversions(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, config.Version, parsedJSONConfig.Version)
 	assert.Equal(t, config.DistroName, parsedJSONConfig.DistroName)
-	assert.Equal(t, "milvus", parsedJSONConfig.VectorStores.DefaultProviderID)
+	assert.Equal(t, "pgvector", parsedJSONConfig.VectorStores.DefaultProviderID)
 	assert.Equal(t, "sentence-transformers", parsedJSONConfig.VectorStores.DefaultEmbeddingModel.ProviderID)
 	assert.Equal(t, "ibm-granite/granite-embedding-125m-english", parsedJSONConfig.VectorStores.DefaultEmbeddingModel.ModelID)
 }
@@ -94,8 +95,8 @@ func TestProviderCreationUtilities(t *testing.T) {
 	assert.Equal(t, 3, len(config.Providers.Inference))
 
 	config.AddVectorIOProvider(provider1)
-	// default IOProvider already added; so we should have 2
-	assert.Equal(t, 2, len(config.Providers.VectorIO))
+	// default VectorIO is empty; adding one gives 1
+	assert.Equal(t, 1, len(config.Providers.VectorIO))
 
 	// default files provider already added; adding one more
 	config.AddFilesProvider(provider1)
@@ -1335,9 +1336,7 @@ func TestDefaultConfig_APIsAndProviders(t *testing.T) {
 	assert.Equal(t, "model-context-protocol", config.Providers.ToolRuntime[1].ProviderID)
 	assert.Equal(t, "remote::model-context-protocol", config.Providers.ToolRuntime[1].ProviderType)
 
-	require.Len(t, config.Providers.VectorIO, 1)
-	assert.Equal(t, "milvus", config.Providers.VectorIO[0].ProviderID)
-	assert.Equal(t, "inline::milvus", config.Providers.VectorIO[0].ProviderType)
+	require.Len(t, config.Providers.VectorIO, 0)
 
 	require.Len(t, config.Providers.Inference, 1)
 	assert.Equal(t, "sentence-transformers", config.Providers.Inference[0].ProviderID)
@@ -1390,9 +1389,9 @@ func TestDefaultConfig_Serialization(t *testing.T) {
 		assert.Contains(t, yamlStr, "responses:")
 		assert.Contains(t, yamlStr, "inline::builtin")
 		assert.Contains(t, yamlStr, "inline::file-search")
-		assert.Contains(t, yamlStr, "inline::milvus")
+		assert.NotContains(t, yamlStr, "inline::milvus")
 		assert.Contains(t, yamlStr, "inline::pypdf")
-		assert.Contains(t, yamlStr, "default_provider_id: milvus")
+		assert.Contains(t, yamlStr, "default_provider_id: pgvector")
 	})
 
 	t.Run("JSON contains expected keys", func(t *testing.T) {
@@ -1402,9 +1401,9 @@ func TestDefaultConfig_Serialization(t *testing.T) {
 		assert.Contains(t, jsonStr, "\"responses\"")
 		assert.Contains(t, jsonStr, "inline::builtin")
 		assert.Contains(t, jsonStr, "inline::file-search")
-		assert.Contains(t, jsonStr, "inline::milvus")
+		assert.NotContains(t, jsonStr, "inline::milvus")
 		assert.Contains(t, jsonStr, "inline::pypdf")
-		assert.Contains(t, jsonStr, "\"default_provider_id\":\"milvus\"")
+		assert.Contains(t, jsonStr, "\"default_provider_id\":\"pgvector\"")
 	})
 }
 
@@ -1477,4 +1476,78 @@ func TestDefaultConfig_RegisteredResourcesShape(t *testing.T) {
 	require.NoError(t, err)
 	assert.Contains(t, jsonStr, "\"models\":[]")
 	assert.Contains(t, jsonStr, "\"vector_stores\":[]")
+}
+
+func TestSetDefaultPgvectorProvider(t *testing.T) {
+	t.Run("sets pgvector as vector_io provider and updates default provider ID", func(t *testing.T) {
+		config := NewDefaultLlamaStackConfig()
+		require.Len(t, config.Providers.VectorIO, 0)
+		assert.Equal(t, "pgvector", config.VectorStores.DefaultProviderID)
+
+		conn := pgvector.Connection{
+			Host: "pg.svc.cluster.local",
+			Port: 5432,
+			DB:   "vectordb",
+			User: "vectoruser",
+		}
+		config.SetDefaultPgvectorProvider(conn)
+
+		require.Len(t, config.Providers.VectorIO, 1, "should have exactly one vector_io provider")
+		p := config.Providers.VectorIO[0]
+		assert.Equal(t, pgvector.DefaultProviderID, p.ProviderID)
+		assert.Equal(t, pgvector.ProviderType, p.ProviderType)
+		assert.Equal(t, pgvector.DefaultProviderID, config.VectorStores.DefaultProviderID)
+	})
+
+	t.Run("provider config uses env var placeholders", func(t *testing.T) {
+		config := NewDefaultLlamaStackConfig()
+		conn := pgvector.Connection{
+			Host: "pg.svc.cluster.local",
+			Port: 5432,
+			DB:   "mydb",
+			User: "myuser",
+		}
+		config.SetDefaultPgvectorProvider(conn)
+
+		pc := config.Providers.VectorIO[0].Config
+		assert.Equal(t, "${env.PGVECTOR_HOST}", pc["host"])
+		assert.Equal(t, "${env.PGVECTOR_PORT:=5432}", pc["port"])
+		assert.Equal(t, "${env.PGVECTOR_DB:=mydb}", pc["db"])
+		assert.Equal(t, "${env.PGVECTOR_USER:=myuser}", pc["user"])
+		assert.Equal(t, "${env.PGVECTOR_PASSWORD:=}", pc["password"])
+		assert.Equal(t, pgvector.DefaultDistanceMetric, pc["distance_metric"])
+
+		persistence, ok := pc["persistence"].(map[string]interface{})
+		require.True(t, ok)
+		assert.Equal(t, "kv_default", persistence["backend"])
+	})
+
+	t.Run("serializes to valid YAML with pgvector provider", func(t *testing.T) {
+		config := NewDefaultLlamaStackConfig()
+		config.SetDefaultPgvectorProvider(pgvector.Connection{
+			Host: "pg.svc.cluster.local",
+			Port: 5432,
+			DB:   "vectordb",
+			User: "vectoruser",
+		})
+
+		yamlStr, err := config.ToYAML()
+		require.NoError(t, err)
+		assert.Contains(t, yamlStr, "remote::pgvector")
+		assert.NotContains(t, yamlStr, "inline::milvus")
+	})
+
+	t.Run("does not affect other providers or registered resources", func(t *testing.T) {
+		config := NewDefaultLlamaStackConfig()
+		config.AddModel(NewLLMModel("test-model", "test-provider", "Test"))
+
+		conn := pgvector.Connection{Host: "pg", Port: 5432, DB: "db", User: "user"}
+		config.SetDefaultPgvectorProvider(conn)
+
+		assert.Len(t, config.Providers.Inference, 1, "inference providers unchanged")
+		assert.Len(t, config.Providers.Responses, 1, "responses providers unchanged")
+		assert.Len(t, config.RegisteredResources.Models, 1, "registered models unchanged")
+		assert.Equal(t, "sentence-transformers", config.VectorStores.DefaultEmbeddingModel.ProviderID,
+			"default embedding model unchanged")
+	})
 }

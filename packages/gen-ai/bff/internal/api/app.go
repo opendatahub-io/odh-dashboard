@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"crypto/tls"
 	"crypto/x509"
 	"fmt"
 	"log/slog"
@@ -10,6 +11,7 @@ import (
 	"path"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/opendatahub-io/gen-ai/internal/integrations/bffclient"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/bffclient/bffmocks"
@@ -17,8 +19,6 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes/k8smocks"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack/lsmocks"
-	"github.com/opendatahub-io/gen-ai/internal/integrations/maas"
-	"github.com/opendatahub-io/gen-ai/internal/integrations/maas/maasmocks"
 	nemopkg "github.com/opendatahub-io/gen-ai/internal/integrations/nemo"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/nemo/nemomocks"
 	"github.com/opendatahub-io/gen-ai/internal/repositories"
@@ -36,6 +36,7 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	helper "github.com/opendatahub-io/gen-ai/internal/helpers"
 	"github.com/opendatahub-io/gen-ai/internal/services"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
 
 var hashPattern = regexp.MustCompile(`[.\-][0-9a-f]{8,}`)
@@ -68,12 +69,12 @@ type App struct {
 	kubernetesClientFactory k8s.KubernetesClientFactory
 	llamaStackClientFactory llamastack.LlamaStackClientFactory
 	nemoClientFactory       nemopkg.NemoClientFactory
-	maasClientFactory       maas.MaaSClientFactory
 	mcpClientFactory        mcp.MCPClientFactory
 	mlflowClientFactory     mlflowpkg.MLflowClientFactory
 	mlflowExternalURL       string
 	nemoGuardrailsURL       string
 	bffClientFactory        bffclient.BFFClientFactory
+	httpClient              *http.Client
 	dashboardNamespace      string
 	memoryStore             cache.MemoryStore
 	rootCAs                 *x509.CertPool
@@ -152,15 +153,8 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		nemoClientFactory = nemopkg.NewRealClientFactory()
 	}
 
-	// Initialize MaaS client factory - clients will be created per request
-	var maasClientFactory maas.MaaSClientFactory
-	if cfg.MockMaaSClient {
-		logger.Info("Using mock MaaS client factory")
-		maasClientFactory = maasmocks.NewMockClientFactory()
-	} else {
-		logger.Info("Using real MaaS client factory", "url", cfg.MaaSURL)
-		maasClientFactory = maas.NewRealClientFactory()
-	}
+	// Note: MaaS client factory removed - Gen AI BFF now communicates with MaaS via inter-BFF
+	// communication through the BFF client factory initialized below
 
 	// Initialize OpenAPI handler
 	openAPIHandler, err := NewOpenAPIHandler(logger)
@@ -203,7 +197,7 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 			return nil, fmt.Errorf("failed to create Kubernetes client factory: %w", err)
 		}
 	} else {
-		k8sFactory, err = k8s.NewKubernetesClientFactory(cfg, logger)
+		k8sFactory, err = k8s.NewKubernetesClientFactory(cfg, logger, rootCAs)
 	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to create Kubernetes client factory: %w", err)
@@ -286,6 +280,28 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		maasConfig.AuthTokenPrefix = cfg.BFFMaaSAuthTokenPrefix
 	}
 
+	// Apply MLflow BFF configuration overrides
+	if mlflowConfig := bffConfig.GetServiceConfig(bffclient.BFFTargetMLflow); mlflowConfig != nil {
+		if cfg.BFFMLflowServiceName != "" {
+			mlflowConfig.ServiceName = cfg.BFFMLflowServiceName
+		}
+		if cfg.BFFMLflowServicePort > 0 {
+			mlflowConfig.Port = cfg.BFFMLflowServicePort
+		}
+		mlflowConfig.TLSEnabled = cfg.BFFMLflowTLSEnabled
+		mlflowConfig.DevOverrideURL = cfg.BFFMLflowDevURL
+
+		// Apply auth configuration for inter-BFF communication
+		if cfg.BFFMLflowAuthMethod != "" {
+			mlflowConfig.AuthMethod = cfg.BFFMLflowAuthMethod
+		}
+		if cfg.BFFMLflowAuthTokenHeader != "" {
+			mlflowConfig.AuthTokenHeader = cfg.BFFMLflowAuthTokenHeader
+		}
+		// AuthTokenPrefix can be empty (which is the ODH default)
+		mlflowConfig.AuthTokenPrefix = cfg.BFFMLflowAuthTokenPrefix
+	}
+
 	if cfg.MockBFFClients {
 		logger.Info("Using mock BFF client factory")
 		bffFactory = bffmocks.NewMockClientFactory(logger)
@@ -293,9 +309,25 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		logger.Info("Using real BFF client factory",
 			"maasServiceName", bffConfig.GetServiceConfig(bffclient.BFFTargetMaaS).ServiceName,
 			"maasServicePort", bffConfig.GetServiceConfig(bffclient.BFFTargetMaaS).Port,
-			"maasDevURL", bffConfig.GetServiceConfig(bffclient.BFFTargetMaaS).DevOverrideURL)
+			"maasDevURL", bffConfig.GetServiceConfig(bffclient.BFFTargetMaaS).DevOverrideURL,
+			"mlflowServiceName", bffConfig.GetServiceConfig(bffclient.BFFTargetMLflow).ServiceName,
+			"mlflowServicePort", bffConfig.GetServiceConfig(bffclient.BFFTargetMLflow).Port,
+			"mlflowDevURL", bffConfig.GetServiceConfig(bffclient.BFFTargetMLflow).DevOverrideURL)
 		bffFactory = bffclient.NewRealClientFactory(bffConfig, rootCAs, cfg.InsecureSkipVerify, logger)
 	}
+
+	// Initialize shared HTTP client for outbound SDK calls (ASR, etc.)
+	httpClient := &http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{
+				MinVersion:         tls.VersionTLS12,
+				InsecureSkipVerify: cfg.InsecureSkipVerify, //nolint:gosec // configurable for dev clusters with self-signed certs
+				RootCAs:            rootCAs,
+			},
+		},
+		Timeout: constants.ASRTranscriptionTimeout + 2*time.Second,
+	}
+	logger.Debug("Initialized shared HTTP client for SDK calls")
 
 	// Initialize shared memory store for caching (10 minute cleanup interval)
 	memStore := cache.NewMemoryStore()
@@ -324,12 +356,12 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		kubernetesClientFactory: k8sFactory,
 		llamaStackClientFactory: llamaStackClientFactory,
 		nemoClientFactory:       nemoClientFactory,
-		maasClientFactory:       maasClientFactory,
 		mcpClientFactory:        mcpFactory,
 		mlflowClientFactory:     mlflowFactory,
 		mlflowExternalURL:       mlflowExternalURL,
 		nemoGuardrailsURL:       cfg.NemoGuardrailsURL,
 		bffClientFactory:        bffFactory,
+		httpClient:              httpClient,
 		dashboardNamespace:      dashboardNamespace,
 		memoryStore:             memStore,
 		rootCAs:                 rootCAs,
@@ -395,7 +427,11 @@ func (app *App) Routes() http.Handler {
 	apiRouter.GET(constants.ModelsListPath, app.AttachNamespace(app.RequireAccessToService(app.AttachOGXClient(app.LlamaStackModelsHandler))))
 
 	// Responses (LlamaStack) — NeMo client is attached for guardrails moderation
-	apiRouter.POST(constants.ResponsesPath, app.AttachNamespace(app.RequireAccessToService(app.AttachMaaSClient(app.AttachNemoClient(app.AttachOGXClient(app.LlamaStackCreateResponseHandler))))))
+	apiRouter.POST(constants.ResponsesPath, app.AttachNamespace(app.RequireAccessToService(app.AttachBFFMaaSClient(app.AttachNemoClient(app.AttachOGXClient(app.LlamaStackCreateResponseHandler))))))
+
+	// Responses passthrough — forwards pre-built OGX API request bodies as-is.
+	// Uses secret-based OGX client (falls back to CR-based discovery when no secretName provided).
+	apiRouter.POST(constants.ResponsesPassthroughPath, app.AttachNamespace(app.RequireAccessToService(app.AttachOGXClientFromSecret(app.LlamaStackPassthroughResponseHandler))))
 
 	// Vector Stores (LlamaStack)
 	apiRouter.GET(constants.VectorStoresListPath, app.AttachNamespace(app.RequireAccessToService(app.AttachOGXClient(app.LlamaStackListVectorStoresHandler))))
@@ -407,7 +443,10 @@ func (app *App) Routes() http.Handler {
 	apiRouter.POST(constants.FilesUploadPath, app.AttachNamespace(app.RequireAccessToService(app.AttachOGXClient(app.LlamaStackUploadFileHandler))))
 	apiRouter.GET(constants.FilesUploadStatusPath, app.AttachNamespace(app.LlamaStackFileUploadStatusHandler))
 	apiRouter.DELETE(constants.FilesDeletePath, app.AttachNamespace(app.RequireAccessToService(app.AttachOGXClient(app.LlamaStackDeleteFileHandler))))
-	apiRouter.POST(constants.VisionFilesUploadPath, app.AttachNamespace(app.RequireAccessToService(app.AttachOGXClient(app.LlamaStackVisionFileUploadHandler))))
+	apiRouter.POST(constants.MediaFilesUploadPath, app.AttachNamespace(app.RequireAccessToService(app.AttachOGXClient(app.LlamaStackMediaFileUploadHandler))))
+
+	// Audio Transcription (ASR)
+	apiRouter.POST(constants.AudioTranscriptionsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachBFFMaaSClient(app.AttachOGXClient(app.LlamaStackAudioTranscriptionHandler)))))
 
 	// Vector Store Files (LlamaStack)
 	apiRouter.GET(constants.VectorStoreFilesListPath, app.AttachNamespace(app.RequireAccessToService(app.AttachOGXClient(app.LlamaStackListVectorStoreFilesHandler))))
@@ -419,13 +458,14 @@ func (app *App) Routes() http.Handler {
 
 	// Kubernetes routes
 
-	// AI Assets Models (Kubernetes)
-	apiRouter.GET(constants.ModelsAAPath, app.AttachNamespace(app.ModelsAAHandler))
-	apiRouter.POST(constants.ExternalModelsPath, app.AttachNamespace(app.CreateExternalModelHandler))
-	apiRouter.DELETE(constants.ExternalModelsPath, app.AttachNamespace(app.DeleteExternalModelHandler))
+	// AI Assets Models (Kubernetes + MaaS)
+	// AttachBFFMaaSClient middleware enables MaaS model fetching when sources=maas query param is used
+	apiRouter.GET(constants.ModelsAAPath, app.AttachNamespace(app.RequireAccessToService(app.AttachBFFMaaSClient(app.ModelsAAHandler))))
+	apiRouter.POST(constants.ExternalModelsPath, app.AttachNamespace(app.RequireAccessToService(app.CreateExternalModelHandler)))
+	apiRouter.DELETE(constants.ExternalModelsPath, app.AttachNamespace(app.RequireAccessToService(app.DeleteExternalModelHandler)))
 
 	// External model verification (requires namespace for authorization)
-	apiRouter.POST(constants.VerifyExternalModelPath, app.AttachNamespace(app.VerifyExternalModelHandler))
+	apiRouter.POST(constants.VerifyExternalModelPath, app.AttachNamespace(app.RequireAccessToService(app.VerifyExternalModelHandler)))
 
 	// Settings path namespace endpoints. This endpoint will get all the namespaces
 	apiRouter.GET(constants.NamespacesPath, app.GetNamespaceHandler)
@@ -440,10 +480,10 @@ func (app *App) Routes() http.Handler {
 	apiRouter.GET(constants.OGXServerStatusPath, app.AttachNamespace(app.LlamaStackDistributionStatusHandler))
 
 	// OGX server install endpoint (URL remains /lsd/install)
-	apiRouter.POST(constants.OGXServerInstallPath, app.AttachMaaSClient(app.AttachNamespace(app.LlamaStackDistributionInstallHandler)))
+	apiRouter.POST(constants.OGXServerInstallPath, app.AttachNamespace(app.RequireAccessToService(app.AttachBFFMaaSClient(app.LlamaStackDistributionInstallHandler))))
 
 	// OGX server delete endpoint (URL remains /lsd/delete)
-	apiRouter.DELETE(constants.OGXServerDeletePath, app.AttachNamespace(app.LlamaStackDistributionDeleteHandler))
+	apiRouter.DELETE(constants.OGXServerDeletePath, app.AttachNamespace(app.RequireAccessToService(app.LlamaStackDistributionDeleteHandler)))
 
 	// NemoGuardrails endpoints
 	apiRouter.POST(constants.NemoGuardrailsInitPath, app.AttachNamespace(app.NemoGuardrailsInitHandler))
@@ -460,27 +500,33 @@ func (app *App) Routes() http.Handler {
 
 	// MaaS API routes
 
-	// Models (MaaS)
-	apiRouter.GET(constants.MaaSModelsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachMaaSClient(app.MaaSModelsHandler))))
+	// Models (MaaS) - via inter-BFF communication with MaaS BFF
+	apiRouter.GET(constants.MaaSModelsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachBFFMaaSClient(app.MaaSModelsHandler))))
 
-	// Tokens (MaaS) - direct calls to MaaS controller
-	apiRouter.POST(constants.MaaSTokensPath, app.AttachNamespace(app.RequireAccessToService(app.AttachMaaSClient(app.MaaSIssueTokenHandler))))
-	apiRouter.DELETE(constants.MaaSTokensPath, app.AttachNamespace(app.RequireAccessToService(app.AttachMaaSClient(app.MaaSRevokeAllTokensHandler))))
+	// Tokens (MaaS) - via inter-BFF communication with MaaS BFF
+	// Note: DELETE /maas/tokens was removed (commit c66288920) - token lifecycle
+	// is managed through the MaaS BFF /api-keys endpoint directly by the MaaS frontend.
+	// The Gen AI BFF only provides POST for ephemeral token issuance for playground sessions.
+	apiRouter.POST(constants.MaaSTokensPath, app.AttachNamespace(app.RequireAccessToService(app.AttachBFFMaaSClient(app.MaaSIssueTokenHandler))))
+	// Confirmed: no frontend callers reference DELETE /maas/tokens (verified packages/gen-ai/frontend).
 
-	// Inter-BFF Communication routes - calls to MaaS BFF service
-	apiRouter.POST(constants.BFFMaaSTokensPath, app.AttachNamespace(app.RequireAccessToService(app.AttachBFFMaaSClient(app.BFFMaaSIssueTokenHandler))))
-	apiRouter.DELETE(constants.BFFMaaSTokensPath, app.AttachNamespace(app.RequireAccessToService(app.AttachBFFMaaSClient(app.BFFMaaSRevokeAllTokensHandler))))
-
-	// MLflow API routes
-	apiRouter.GET(constants.MLflowPromptsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachMLflowClient(app.MLflowListPromptsHandler))))
-	apiRouter.POST(constants.MLflowPromptsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachMLflowClient(app.MLflowRegisterPromptHandler))))
-	apiRouter.GET(constants.MLflowPromptPath, app.AttachNamespace(app.RequireAccessToService(app.AttachMLflowClient(app.MLflowLoadPromptHandler))))
-	apiRouter.GET(constants.MLflowPromptVersionsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachMLflowClient(app.MLflowListPromptVersionsHandler))))
-	apiRouter.DELETE(constants.MLflowPromptPath, app.AttachNamespace(app.RequireAccessToService(app.AttachMLflowClient(app.MLflowDeletePromptHandler))))
-	apiRouter.DELETE(constants.MLflowPromptVersionPath, app.AttachNamespace(app.RequireAccessToService(app.AttachMLflowClient(app.MLflowDeletePromptVersionHandler))))
+	// MLflow API routes - use MLflow BFF via inter-BFF HTTPS
+	apiRouter.GET(constants.MLflowPromptsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachBFFMLflowClient(app.MLflowListPromptsHandler))))
+	apiRouter.POST(constants.MLflowPromptsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachBFFMLflowClient(app.MLflowRegisterPromptHandler))))
+	apiRouter.GET(constants.MLflowPromptPath, app.AttachNamespace(app.RequireAccessToService(app.AttachBFFMLflowClient(app.MLflowLoadPromptHandler))))
+	apiRouter.GET(constants.MLflowPromptVersionsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachBFFMLflowClient(app.MLflowListPromptVersionsHandler))))
+	apiRouter.DELETE(constants.MLflowPromptPath, app.AttachNamespace(app.RequireAccessToService(app.AttachBFFMLflowClient(app.MLflowDeletePromptHandler))))
+	apiRouter.DELETE(constants.MLflowPromptVersionPath, app.AttachNamespace(app.RequireAccessToService(app.AttachBFFMLflowClient(app.MLflowDeletePromptVersionHandler))))
 
 	// Guardrails API route
 	apiRouter.GET(constants.GuardrailsStatusPath, app.AttachNamespace(app.RequireGuardrailAccess(app.GuardrailsStatusHandler)))
+
+	// Agent Profiles API routes
+	apiRouter.GET(constants.AgentProfilesPath, app.AttachNamespace(app.RequireAccessToService(app.ListAgentProfilesHandler)))
+	apiRouter.POST(constants.AgentProfilesPath, app.AttachNamespace(app.RequireAccessToService(app.CreateAgentProfileHandler)))
+	apiRouter.GET(constants.AgentProfileIDPath, app.AttachNamespace(app.RequireAccessToService(app.GetAgentProfileHandler)))
+	apiRouter.PUT(constants.AgentProfileIDPath, app.AttachNamespace(app.RequireAccessToService(app.UpdateAgentProfileHandler)))
+	apiRouter.DELETE(constants.AgentProfileIDPath, app.AttachNamespace(app.RequireAccessToService(app.DeleteAgentProfileHandler)))
 
 	// App Router
 	appMux := http.NewServeMux()
@@ -538,7 +584,13 @@ func (app *App) Routes() http.Handler {
 	combinedMux.HandleFunc(constants.OpenAPIYAMLPath, app.openAPI.HandleOpenAPIYAMLWrapper)
 	combinedMux.HandleFunc(constants.SwaggerUIPath, app.openAPI.HandleSwaggerUIWrapper)
 
-	combinedMux.Handle("/", app.RecoverPanic(app.EnableTelemetry(app.EnableCORS(app.InjectRequestIdentity(appMux)))))
+	combinedMux.Handle("/", otelhttp.NewHandler(
+		app.RecoverPanic(app.EnableTelemetry(app.EnableCORS(app.InjectRequestIdentity(appMux)))),
+		"gen-ai-bff",
+		otelhttp.WithSpanNameFormatter(func(_ string, _ *http.Request) string {
+			return "gen-ai-bff"
+		}),
+	))
 
 	return combinedMux
 }

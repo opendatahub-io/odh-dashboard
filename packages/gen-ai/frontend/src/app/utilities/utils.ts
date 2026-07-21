@@ -198,10 +198,41 @@ const SOURCE_LABELS: Record<string, string> = {
 const MODEL_TYPE_LABELS: Record<string, string> = {
   llm: 'Inferencing',
   embedding: 'Embedding',
+  transcription: 'Transcription',
 };
 
 export const getModelTypeLabel = (modelType?: string): string =>
   MODEL_TYPE_LABELS[modelType || 'llm'] || 'Inferencing';
+
+export const CAPABILITY_AUDIO_TRANSCRIPTION = 'audio-transcription';
+export const CAPABILITY_VISION = 'vision';
+export const CAPABILITY_TEXT_GENERATION = 'text-generation';
+
+export const CAPABILITY_DISPLAY_MAP: Record<string, { label: string; color: string }> = {
+  [CAPABILITY_VISION]: { label: 'Vision', color: 'green' },
+  [CAPABILITY_AUDIO_TRANSCRIPTION]: { label: 'Transcription', color: 'purple' },
+};
+
+export const getCapabilityDisplay = (cap: string): { label: string; color: string } =>
+  CAPABILITY_DISPLAY_MAP[cap] ?? {
+    label: cap.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
+    color: 'cyan',
+  };
+
+export const getVisibleCapabilities = (capabilities?: string[]): string[] =>
+  (capabilities ?? []).filter((c) => c !== CAPABILITY_TEXT_GENERATION);
+
+export const hasCapability = (model: { capabilities?: string[] }, cap: string): boolean =>
+  model.capabilities?.includes(cap) ?? false;
+
+export const isASRModel = (model: { capabilities?: string[] }): boolean =>
+  hasCapability(model, CAPABILITY_AUDIO_TRANSCRIPTION);
+
+export const isASROnlyModel = (model: { capabilities?: string[] }): boolean =>
+  model.capabilities?.length === 1 && isASRModel(model);
+
+export const isVisionModel = (model: { capabilities?: string[] }): boolean =>
+  hasCapability(model, CAPABILITY_VISION);
 
 export const getSourceLabel = (model: AIModel): string => {
   const source = model.model_source_type;
@@ -244,6 +275,7 @@ export const convertMaaSModelToAIModel = (maasModel: MaaSModel): AIModel => ({
     token: '',
   },
   model_source_type: 'maas',
+  capabilities: maasModel.capabilities ?? [],
   externalEndpoint: maasModel.url || undefined,
   internalEndpoint: undefined,
   model_type: maasModel.model_type,
@@ -258,7 +290,7 @@ export type ClipboardCopyTrackingProperties = {
   assetId?: string;
   copyTarget?: 'endpoint' | 'service_token';
   endpointType?: 'external' | 'internal' | 'maas_route';
-  modelType?: 'inference' | 'embedding';
+  modelType?: string;
   endpointSource?: 'custom_endpoint' | 'namespace' | 'maas';
 };
 

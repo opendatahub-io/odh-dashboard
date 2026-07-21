@@ -4,21 +4,31 @@ import type {
 } from '@odh-dashboard/plugin-core/extension-points';
 import type {
   DeployedModelServingDetails,
+  ModelServingAuthExtension,
   ModelServingExcludeDeploymentExtension,
+  ModelServingPlatformExtension,
+  ModelServingPlatformGlobalModelsPageExtension,
+  ModelServingPlatformOverviewSectionExtension,
+  ModelServingPlatformProjectDetailsTabExtension,
   ModelServingPlatformWatchDeploymentsExtension,
+  ModelServingStartStopAction,
 } from '@odh-dashboard/model-serving/extension-points';
 import type {
   AssembleModelResourceExtension,
   DeploymentWizardFieldOverrideExtension,
   ModelServingDeploy,
+  ModelServingDeploymentFormDataExtension,
   WizardFieldApplyExtension,
   WizardFieldDeploymentFunctionsExtension,
   WizardFieldExtension,
   WizardFieldExtractorExtension,
 } from '@odh-dashboard/model-serving/extension-points/deployment-wizard';
 // Allow this import as it consists of types and enums only.
+import { SupportedArea } from '@odh-dashboard/plugin-core/areas';
+// eslint-disable-next-line no-restricted-syntax, @typescript-eslint/consistent-type-imports
+import { ProjectObjectType } from '@odh-dashboard/ui-core';
 // eslint-disable-next-line no-restricted-syntax
-import { SupportedArea } from '@odh-dashboard/internal/concepts/areas/types';
+import { NamespaceApplicationCase } from '@odh-dashboard/k8s-core';
 import type { NIMDeployment } from './src/api/deployments/useWatchDeployments';
 import type {
   NIMImageFieldType,
@@ -30,6 +40,7 @@ import type {
 } from './src/pages/deploymentWizard/fields/NIMPVCField';
 
 export const NIM_ID = 'nvidia-nim';
+export const NIM_MODEL_TYPE = 'NVIDIA NIM';
 
 const nimImageFieldExtension: WizardFieldExtension<NIMImageFieldType> = {
   type: 'model-serving.deployment/wizard-field',
@@ -143,12 +154,19 @@ const nimPVCDeployFunctionsExtension: WizardFieldDeploymentFunctionsExtension<
 const extensions: (
   | AreaExtension
   | ProjectDetailsSettingsCardExtension
+  | ModelServingPlatformExtension
+  | ModelServingPlatformProjectDetailsTabExtension
+  | ModelServingPlatformOverviewSectionExtension
+  | ModelServingPlatformGlobalModelsPageExtension
   | ModelServingPlatformWatchDeploymentsExtension<NIMDeployment>
   | DeployedModelServingDetails<NIMDeployment>
   | ModelServingExcludeDeploymentExtension
+  | ModelServingStartStopAction<NIMDeployment>
+  | ModelServingAuthExtension<NIMDeployment>
   | ModelServingDeploy<NIMDeployment>
   | AssembleModelResourceExtension<NIMDeployment>
   | DeploymentWizardFieldOverrideExtension
+  | ModelServingDeploymentFormDataExtension<NIMDeployment>
   | WizardFieldDeploymentFunctionsExtension<NIMPVCFieldValue, NIMDeployment>
   | WizardFieldExtension<NIMImageFieldType>
   | WizardFieldExtension<NIMPVCFieldType>
@@ -163,6 +181,75 @@ const extensions: (
       id: SupportedArea.NIM_WIZARD,
       featureFlags: ['nimWizard'],
       reliantAreas: [SupportedArea.NIM_MODEL],
+    },
+  },
+  {
+    type: 'model-serving.platform',
+    properties: {
+      id: NIM_ID,
+      manage: {
+        namespaceApplicationCase: NamespaceApplicationCase.KSERVE_NIM_PROMOTION,
+        priority: 100,
+        projectRequirements: {
+          annotations: {
+            'opendatahub.io/nim-support': 'true',
+          },
+        },
+        clusterRequirements: {
+          integrationAppName: 'nvidia-nim',
+        },
+      },
+      enableCardText: {
+        title: 'NVIDIA NIM model serving platform',
+        description:
+          'Models are deployed using NVIDIA NIM microservices. Choose this option when you want to deploy your model within a NIM container. Please provide the API key to authenticate with the NIM service.',
+        selectText: 'Select NVIDIA NIM',
+        enabledText: 'NVIDIA NIM serving enabled',
+        objectType: ProjectObjectType.modelServer,
+      },
+      deployedModelsView: {
+        startHintTitle: 'Start by adding a model server',
+        startHintDescription:
+          'Model servers are used to deploy models and to allow apps to send requests to your models. Configuring a model server includes specifying the number of replicas being deployed, the server size, the token authentication, the serving runtime, and how the project that the model server belongs to is accessed. ',
+        deployButtonText: 'Add model server',
+      },
+    },
+    flags: {
+      required: [SupportedArea.NIM_MODEL],
+    },
+  },
+  {
+    type: 'model-serving.platform/project-details-tab',
+    properties: {
+      platform: NIM_ID,
+      component: () =>
+        import('@odh-dashboard/internal/pages/modelServing/screens/projects/ModelServingPlatform'),
+    },
+    flags: {
+      required: [SupportedArea.NIM_MODEL],
+    },
+  },
+  {
+    type: 'model-serving.platform/overview-section',
+    properties: {
+      platform: NIM_ID,
+      component: () =>
+        import(
+          '@odh-dashboard/internal/pages/projects/screens/detail/overview/serverModels/ServeModelsSection'
+        ),
+    },
+    flags: {
+      required: [SupportedArea.NIM_MODEL],
+    },
+  },
+  {
+    type: 'model-serving.platform/global-models-page',
+    properties: {
+      platform: NIM_ID,
+      component: () => import('@odh-dashboard/internal/pages/modelServing/ModelServingRoutes'),
+    },
+    flags: {
+      required: [SupportedArea.NIM_MODEL],
     },
   },
   {
@@ -245,11 +332,76 @@ const extensions: (
       required: [SupportedArea.NIM_WIZARD],
     },
   },
+  {
+    type: 'model-serving.deployment/form-data',
+    properties: {
+      platform: NIM_ID,
+      hardwareProfilePaths: () =>
+        import('./src/pages/deploymentWizard/extractNIMFormData').then(
+          (m) => m.NIM_SERVICE_HARDWARE_PROFILE_PATHS,
+        ),
+      extractHardwareProfileConfig: () =>
+        import('./src/pages/deploymentWizard/extractNIMFormData').then(
+          (m) => m.extractNIMHardwareProfileConfig,
+        ),
+      extractReplicas: () =>
+        import('./src/pages/deploymentWizard/extractNIMFormData').then((m) => m.extractNIMReplicas),
+      extractRuntimeArgs: () =>
+        import('./src/pages/deploymentWizard/extractNIMFormData').then(
+          (m) => m.extractNIMRuntimeArgs,
+        ),
+      extractEnvironmentVariables: () =>
+        import('./src/pages/deploymentWizard/extractNIMFormData').then(
+          (m) => m.extractNIMEnvironmentVariables,
+        ),
+      extractModelAvailabilityData: () =>
+        import('./src/pages/deploymentWizard/extractNIMFormData').then(
+          (m) => m.extractNIMModelAvailabilityData,
+        ),
+      extractModelLocationData: () =>
+        import('./src/pages/deploymentWizard/extractNIMFormData').then(
+          (m) => m.extractNIMModelLocationData,
+        ),
+      extractModelType: () =>
+        import('./src/pages/deploymentWizard/extractNIMFormData').then(
+          (m) => m.extractNIMModelType,
+        ),
+      extractModelServerTemplate: () =>
+        import('./src/pages/deploymentWizard/extractNIMFormData').then(
+          (m) => m.extractNIMModelServerTemplate,
+        ),
+    },
+    flags: {
+      required: [SupportedArea.NIM_WIZARD],
+    },
+  },
+  {
+    type: 'model-serving.auth',
+    properties: {
+      platform: NIM_ID,
+      usePlatformAuthEnabled: () =>
+        import('./src/pages/deploymentWizard/extractNIMFormData').then((m) => m.isNIMAuthEnabled),
+    },
+    flags: {
+      required: [SupportedArea.NIM_WIZARD],
+    },
+  },
   nimImageApplyExtension,
   nimImageExtractorExtension,
   nimPVCApplyExtension,
   nimPVCExtractorExtension,
   nimPVCDeployFunctionsExtension,
+  {
+    type: 'model-serving.deployments-table/start-stop-action',
+    properties: {
+      platform: NIM_ID,
+      patchDeploymentStoppedStatus: () =>
+        import('./src/api/deployments/status').then((m) => m.patchDeploymentStoppedStatus),
+    },
+    flags: {
+      required: [SupportedArea.NIM_WIZARD],
+    },
+  },
 ];
 
 export default extensions;

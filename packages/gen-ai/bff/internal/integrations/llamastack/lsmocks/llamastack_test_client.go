@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 
 	"github.com/openai/openai-go/v2"
@@ -108,6 +109,10 @@ func (c *TestLlamaStackClient) GetFile(ctx context.Context, fileID string) (*ope
 	return c.inner.GetFile(ctx, fileID)
 }
 
+func (c *TestLlamaStackClient) GetFileContent(ctx context.Context, fileID string) (io.ReadCloser, string, error) {
+	return c.inner.GetFileContent(ctx, fileID)
+}
+
 func (c *TestLlamaStackClient) DeleteFile(ctx context.Context, fileID string) error {
 	return c.inner.DeleteFile(ctx, fileID)
 }
@@ -130,6 +135,10 @@ func (c *TestLlamaStackClient) CreateResponse(ctx context.Context, params llamas
 
 func (c *TestLlamaStackClient) CreateResponseStream(ctx context.Context, params llamastack.CreateResponseParams) (llamastack.ResponseStreamIterator, error) {
 	return c.inner.CreateResponseStream(ctx, params)
+}
+
+func (c *TestLlamaStackClient) CreateResponseStreamRaw(ctx context.Context, body map[string]interface{}) (llamastack.ResponseStreamIterator, error) {
+	return c.inner.CreateResponseStreamRaw(ctx, body)
 }
 
 func (c *TestLlamaStackClient) GetResponse(ctx context.Context, responseID string) (*responses.Response, error) {

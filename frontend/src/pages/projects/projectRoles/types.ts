@@ -1,4 +1,4 @@
-import type { ClusterRoleKind, RoleKind } from '#~/k8sTypes';
+import type { ClusterRoleKind, ResourceRule, RoleKind } from '#~/k8sTypes';
 import type { RoleRef } from '#~/concepts/permissions/types';
 
 export type LabelEntry = {
@@ -11,4 +11,9 @@ export type RoleListRow = {
   key: string;
   roleRef: RoleRef;
   role: RoleKind | ClusterRoleKind;
+  userLabels: Record<string, string>;
+};
+
+export type RuleEntry = ResourceRule & {
+  id: string;
 };

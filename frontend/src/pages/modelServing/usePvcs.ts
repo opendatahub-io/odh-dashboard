@@ -1,10 +1,10 @@
 import * as React from 'react';
-import { PersistentVolumeClaimKind } from '#~/k8sTypes';
+import type { PersistentVolumeClaimKind } from '@odh-dashboard/k8s-core';
 import useFetch, {
   FetchStateCallbackPromise,
   FetchStateObject,
   NotReadyError,
-} from '#~/utilities/useFetch';
+} from '@odh-dashboard/ui-core/hooks/useFetch';
 import { getDashboardPvcs } from '#~/api/k8s/pvcs';
 
 export default function usePvcs(namespace?: string): FetchStateObject<PersistentVolumeClaimKind[]> {

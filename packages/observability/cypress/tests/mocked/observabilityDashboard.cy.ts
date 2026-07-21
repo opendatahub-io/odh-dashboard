@@ -1,5 +1,5 @@
 import type { DashboardResource } from '@perses-dev/core';
-import type { K8sCondition } from '@odh-dashboard/internal/k8sTypes';
+import type { K8sCondition } from '@odh-dashboard/k8s-core';
 import { mockDashboardConfig, mockStatus } from '@odh-dashboard/internal/__mocks__';
 import { mockDsciStatus } from '@odh-dashboard/internal/__mocks__/mockDsciStatus';
 import { mockSelfSubjectAccessReview } from '@odh-dashboard/internal/__mocks__/mockSelfSubjectAccessReview';
@@ -127,7 +127,7 @@ describe('Observability Dashboard', () => {
     });
 
     cy.visitWithLogin('/observe-and-monitor/dashboard');
-    cy.findByTestId('not-found-page').should('exist');
+    observabilityDashboardPage.shouldHaveNotFoundPage();
   });
 
   it('should hide nav and route when MonitoringReady is True but PersesAvailable is False', () => {
@@ -153,7 +153,7 @@ describe('Observability Dashboard', () => {
     });
 
     cy.visitWithLogin('/observe-and-monitor/dashboard');
-    cy.findByTestId('not-found-page').should('exist');
+    observabilityDashboardPage.shouldHaveNotFoundPage();
   });
 
   it('should show a load error when the Perses dashboards API is unreachable', () => {
@@ -185,7 +185,7 @@ describe('Observability Dashboard', () => {
     observabilityDashboardPage.shouldHaveTabCount(3);
   });
 
-  it('should show only tenancy dashboard tabs when user does not have cluster metrics access', () => {
+  it('should show model and tenancy dashboard tabs when user does not have cluster metrics access', () => {
     initIntercepts({
       dashboards: [mockClusterDashboard, mockModelDashboard, mockTenancyDashboard],
       hasClusterMetricsAccess: false,
@@ -193,7 +193,8 @@ describe('Observability Dashboard', () => {
 
     observabilityDashboardPage.visit();
 
+    observabilityDashboardPage.shouldHaveTab('Model');
     observabilityDashboardPage.shouldHaveTab('Tenancy');
-    observabilityDashboardPage.shouldHaveTabCount(1);
+    observabilityDashboardPage.shouldHaveTabCount(2);
   });
 });

@@ -1,5 +1,4 @@
-import { PodKind, PodContainerStatus } from '#~/k8sTypes';
-import { PodContainer } from '#~/types';
+import type { PodKind, PodContainerStatus, PodContainer } from '@odh-dashboard/k8s-core';
 import { getPodContainerLogText } from '#~/api';
 import { downloadString } from '#~/utilities/string';
 

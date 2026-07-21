@@ -1,7 +1,6 @@
 import { mockInferenceServiceK8sResource } from '@odh-dashboard/internal/__mocks__/mockInferenceServiceK8sResource';
 import { mockPodK8sResource } from '@odh-dashboard/internal/__mocks__/mockPodK8sResource';
-// eslint-disable-next-line @odh-dashboard/no-restricted-imports
-import { ModelDeploymentState } from '@odh-dashboard/internal/pages/modelServing/screens/types';
+import { ModelDeploymentState } from '@odh-dashboard/model-serving/shared';
 import { getNIMDeploymentStatus } from './status';
 import type { NIMServiceKind } from '../nimservices/types';
 

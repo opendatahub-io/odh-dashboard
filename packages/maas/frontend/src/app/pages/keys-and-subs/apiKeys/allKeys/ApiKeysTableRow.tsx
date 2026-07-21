@@ -1,32 +1,10 @@
 import * as React from 'react';
 import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
-import { capitalize, Label } from '@patternfly/react-core';
-import type { LabelProps } from '@patternfly/react-core';
-import {
-  BanIcon,
-  CheckCircleIcon,
-  OutlinedClockIcon,
-  OutlinedQuestionCircleIcon,
-} from '@patternfly/react-icons';
 import TableRowTitleDescription from '@odh-dashboard/internal/components/table/TableRowTitleDescription';
-import { APIKey, APIKeyStatus, SubscriptionDetail } from '~/app/types/api-key';
+import { APIKey, APIKeyDisplayStatus, SubscriptionDetail } from '~/app/types/api-key';
+import ApiKeyStatusLabel from '~/app/pages/keys-and-subs/apiKeys/ApiKeyStatusLabel';
 import { ApiKeyColumn } from './columns';
 import SubscriptionCell from './SubscriptionCell';
-
-const getApiKeyStatusProps = (
-  status: APIKeyStatus,
-): { icon: React.ReactNode; status?: LabelProps['status'] } => {
-  switch (status) {
-    case 'active':
-      return { icon: <CheckCircleIcon />, status: 'success' };
-    case 'expired':
-      return { icon: <OutlinedClockIcon /> };
-    case 'revoked':
-      return { icon: <BanIcon />, status: 'danger' };
-    default:
-      return { icon: <OutlinedQuestionCircleIcon /> };
-  }
-};
 
 const formatDate = (dateString?: string, fallback = '—'): string => {
   if (!dateString) {
@@ -43,50 +21,59 @@ const formatDate = (dateString?: string, fallback = '—'): string => {
   });
 };
 
-const renderApiKeyCell = (
-  col: ApiKeyColumn,
-  apiKey: APIKey,
-  subscriptionDetail: SubscriptionDetail | undefined,
-): React.ReactNode => {
-  switch (col.field) {
-    case 'name':
-      return (
-        <TableRowTitleDescription
-          title={apiKey.name}
-          description={apiKey.description}
-          truncateDescriptionLines={2}
-        />
-      );
-    case 'status':
-      return (
-        <Label variant="outline" {...getApiKeyStatusProps(apiKey.status)}>
-          {capitalize(apiKey.status)}
-        </Label>
-      );
-    case 'subscription':
-      return (
-        <SubscriptionCell
-          subscriptionName={apiKey.subscription}
-          subscriptionDetail={subscriptionDetail}
-        />
-      );
-    case 'username':
-      return apiKey.username ?? '—';
-    case 'creationDate':
-      return formatDate(apiKey.creationDate, '—');
-    case 'lastUsedAt':
-      return formatDate(apiKey.lastUsedAt, 'Never');
-    case 'expirationDate':
-      return formatDate(apiKey.expirationDate, 'Never');
-    default:
-      return null;
-  }
+const getDisplayStatus = (apiKey: APIKey, isInactive: boolean): APIKeyDisplayStatus =>
+  isInactive ? 'inactive' : apiKey.status;
+
+type CellRenderContext = {
+  apiKey: APIKey;
+  subscriptionDetail: SubscriptionDetail | undefined;
+  isInactive: boolean;
+};
+
+type CellRenderer = (ctx: CellRenderContext) => React.ReactNode;
+
+const cellRenderers: Record<string, CellRenderer> = {
+  name: ({ apiKey }) => (
+    <span data-testid="api-key-name">
+      <TableRowTitleDescription
+        title={apiKey.name}
+        description={apiKey.description}
+        truncateDescriptionLines={2}
+      />
+    </span>
+  ),
+
+  status: ({ apiKey, isInactive }) => {
+    const displayStatus = getDisplayStatus(apiKey, isInactive);
+    return (
+      <ApiKeyStatusLabel status={displayStatus} showInactivePopover data-testid="api-key-status" />
+    );
+  },
+
+  subscription: ({ apiKey, subscriptionDetail }) => (
+    <SubscriptionCell
+      subscriptionName={apiKey.subscription}
+      subscriptionDetail={subscriptionDetail}
+    />
+  ),
+
+  username: ({ apiKey }) => <span data-testid="api-key-owner">{apiKey.username ?? '—'}</span>,
+  creationDate: ({ apiKey }) => (
+    <span data-testid="api-key-creation-date">{formatDate(apiKey.creationDate, '—')}</span>
+  ),
+  lastUsedAt: ({ apiKey }) => (
+    <span data-testid="api-key-last-used-at">{formatDate(apiKey.lastUsedAt, 'Never')}</span>
+  ),
+  expirationDate: ({ apiKey }) => (
+    <span data-testid="api-key-expiration-date">{formatDate(apiKey.expirationDate, 'Never')}</span>
+  ),
 };
 
 type ApiKeysTableRowProps = {
   apiKey: APIKey;
   columns: ApiKeyColumn[];
   subscriptionDetail?: SubscriptionDetail;
+  isInactive: boolean;
   onRevokeApiKey: (apiKey: APIKey) => void;
 };
 
@@ -94,27 +81,32 @@ const ApiKeysTableRow: React.FC<ApiKeysTableRowProps> = ({
   apiKey,
   columns,
   subscriptionDetail,
+  isInactive,
   onRevokeApiKey,
-}) => (
-  <Tr>
-    {columns.map((col) => (
-      <Td key={col.field} dataLabel={col.label}>
-        {renderApiKeyCell(col, apiKey, subscriptionDetail)}
+}) => {
+  const ctx: CellRenderContext = { apiKey, subscriptionDetail, isInactive };
+
+  return (
+    <Tr>
+      {columns.map((col) => (
+        <Td key={col.field} dataLabel={col.label}>
+          {cellRenderers[col.field](ctx)}
+        </Td>
+      ))}
+      <Td isActionCell>
+        <ActionsColumn
+          data-testid="api-key-actions"
+          items={[
+            {
+              title: 'Revoke',
+              onClick: () => onRevokeApiKey(apiKey),
+              isDisabled: apiKey.status !== 'active',
+            },
+          ]}
+        />
       </Td>
-    ))}
-    <Td isActionCell>
-      <ActionsColumn
-        data-testid="api-key-actions"
-        items={[
-          {
-            title: 'Revoke',
-            onClick: () => onRevokeApiKey(apiKey),
-            isDisabled: apiKey.status !== 'active',
-          },
-        ]}
-      />
-    </Td>
-  </Tr>
-);
+    </Tr>
+  );
+};
 
 export default ApiKeysTableRow;

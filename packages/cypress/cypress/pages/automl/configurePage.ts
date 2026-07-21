@@ -66,8 +66,8 @@ class AutomlConfigurePage {
   }
 
   // File Explorer Modal
-  findFileExplorerSearch() {
-    return cy.findByTestId('file-explorer-search-input');
+  findFileExplorerSearch(timeout?: number) {
+    return cy.findByTestId('file-explorer-search', timeout ? { timeout } : undefined);
   }
 
   findFileExplorerTable() {
@@ -105,6 +105,36 @@ class AutomlConfigurePage {
     return cy.findByTestId('id_column-select');
   }
 
+  // Preset
+  findPresetRadio(preset: string) {
+    return cy.findByTestId(`preset-radio-${preset}`);
+  }
+
+  // Optimization metric
+  findOptimizationMetricCard() {
+    return cy.findByTestId('optimization-metric-card');
+  }
+
+  findOptimizationMetricValue() {
+    return cy.findByTestId('optimization-metric-value');
+  }
+
+  findOptimizationMetricEditButton() {
+    return cy.findByTestId('optimization-metric-edit');
+  }
+
+  findOptimizationMetricModal() {
+    return cy.findByTestId('optimization-metric-modal');
+  }
+
+  findEvalMetricRadio(metric: string) {
+    return cy.findByTestId(`eval-metric-radio-${metric}`);
+  }
+
+  findOptimizationMetricSaveButton() {
+    return cy.findByTestId('optimization-metric-save');
+  }
+
   // Top N models
   findTopNInput() {
     return cy.findByTestId('top-n-input');
@@ -119,8 +149,8 @@ class AutomlConfigurePage {
   }
 
   // Upload result
-  findUploadedFileCell() {
-    return cy.findByTestId('uploaded-file-cell');
+  findUploadedFileCell(timeout?: number) {
+    return cy.findByTestId('uploaded-file-cell', timeout ? { timeout } : undefined);
   }
 
   // Submit
@@ -171,15 +201,20 @@ class AutomlConfigurePage {
     );
 
     cy.step('Wait for upload to complete');
-    this.findUploadSpinner().should('not.exist');
-    this.findUploadedFileCell().should('be.visible');
+    // Wait up to 60s for the file cell to appear (covers full S3 upload time).
+    // The spinner check is omitted — it can give a false positive if it passes
+    // before the async upload has started, causing the subsequent file-cell
+    // assertion to time out even though the upload is still in progress.
+    this.findUploadedFileCell(60000).should('be.visible');
 
     cy.step('Verify uploaded file is browsable in file explorer and select it');
     this.findSelectFileToggle().find('button').click();
     this.findBrowseBucketButton().click();
     this.findFileExplorerTable().should('be.visible');
-    this.findFileExplorerSearch().type(uploadFileName);
-    this.findFileExplorerTable().contains('td', uploadFileName).should('be.visible').click();
+    // Wait up to 30s for the search input — it renders asynchronously after the table
+    this.findFileExplorerSearch(30000).should('be.visible').type(uploadFileName);
+    this.findFileExplorerTable().contains('td', uploadFileName).should('be.visible');
+    this.findFileExplorerTable().contains('td', uploadFileName).click();
     this.findFileExplorerSelectBtn().click();
   }
 
@@ -195,7 +230,8 @@ class AutomlConfigurePage {
     cy.url().should('include', '/develop-train/automl/results/');
 
     cy.step('Verify the run is in progress');
-    automlResultsPage.findRunInProgressMessage().should('be.visible');
+    // Allow up to 30s for the results page to fetch pipeline state and render
+    automlResultsPage.findRunInProgressMessage(30000).should('be.visible');
   }
 }
 

@@ -1,5 +1,5 @@
-import { ServingRuntimeKind } from '#~/k8sTypes';
-import { SortableData } from '#~/components/table';
+import { SortableData } from '@odh-dashboard/ui-core';
+import type { ServingRuntimeKind } from '@odh-dashboard/model-serving/shared';
 
 export const columns: SortableData<ServingRuntimeKind>[] = [
   {

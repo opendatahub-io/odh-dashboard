@@ -131,35 +131,28 @@ class EnvironmentVariableTypeField extends Contextual<HTMLElement> {
   }
 
   selectEnvDataType(name: string) {
-    this.find()
-      .findByTestId('env-data-type-field')
-      .findByRole('button', { name: 'Options menu' })
-      .findSelectOption(name)
-      .click();
+    this.find().findByTestId('env-data-type-field').findByRole('radio', { name }).click();
   }
 
   selectEnvDataTypeByTestId(testId: string) {
     this.find()
       .findByTestId('env-data-type-field')
-      .findByRole('button', { name: 'Options menu' })
+      .findByTestId(`env-data-type-radio-${testId}`)
       .click();
-    cy.findByTestId(testId).click();
   }
 
   selectEnvironmentVariableType(name: string) {
     this.find()
       .findByTestId('environment-variable-type-select')
-      .findByRole('button', { name: 'Options menu' })
-      .findSelectOption(name)
+      .findByRole('radio', { name })
       .click();
   }
 
   selectEnvironmentVariableTypeByTestId(testId: string) {
     this.find()
       .findByTestId('environment-variable-type-select')
-      .findByRole('button', { name: 'Options menu' })
+      .findByTestId(`env-type-radio-${testId}`)
       .click();
-    cy.findByTestId(testId).click();
   }
 
   findAnotherKeyValuePairButton() {
@@ -367,6 +360,48 @@ class NotebookRow extends TableRow {
     this.findHardwareProfileColumn().contains(name).should('exist');
     return this;
   }
+
+  shouldHaveFeatureStoreTitle() {
+    this.findExpansion()
+      .findByTestId('notebook-feature-store-title')
+      .should('have.text', 'Connected feature stores');
+    return this;
+  }
+
+  shouldHaveFeatureStoreNone() {
+    this.findExpansion().findByTestId('notebook-feature-store-none').should('have.text', 'None');
+    return this;
+  }
+
+  findFeatureStoreList() {
+    return this.findExpansion().findByTestId('notebook-feature-store-list');
+  }
+
+  shouldHaveFeatureStoreItems(names: string[]) {
+    this.findFeatureStoreList().find('li').should('have.length', names.length);
+    names.forEach((name) => {
+      this.findFeatureStoreList().should('contain.text', name);
+    });
+    return this;
+  }
+
+  shouldHaveFeatureStoreLinks(expected: Array<{ name: string; href: string }>) {
+    expected.forEach(({ name, href }) => {
+      this.findFeatureStoreList()
+        .findByTestId(`feature-store-link-${name}`)
+        .should('have.attr', 'href', href);
+    });
+    return this;
+  }
+
+  shouldNotHaveFeatureStoreLinks() {
+    this.findFeatureStoreList().find('a').should('not.exist');
+    return this;
+  }
+
+  findFeatureStoreShowAll() {
+    return this.findExpansion().findByTestId('feature-store-show-all');
+  }
 }
 
 class AttachExistingStorageModal extends Modal {
@@ -421,12 +456,16 @@ class AttachConnectionModal extends Modal {
   }
 
   selectConnectionOption(name: string) {
-    this.find().findByRole('button', { name: 'Connections' }).findSelectOption(name).click();
-    this.find().findByRole('button', { name: 'Connections' }).click();
+    this.find().findByRole('combobox', { name: 'Connections' }).findSelectOption(name).click();
   }
 
   findAttachButton() {
     return this.find().findByTestId('attach-button');
+  }
+
+  clickAttachButton() {
+    this.find().findByRole('combobox', { name: 'Connections' }).closeSelectMenu();
+    this.findAttachButton().click();
   }
 }
 
@@ -563,6 +602,14 @@ class CreateSpawnerPage {
 
   findSubmitButton() {
     return cy.findByTestId('submit-button');
+  }
+
+  findLocalQueueMissingWarning() {
+    return cy.findByTestId('local-queue-missing-warning');
+  }
+
+  findLocalQueueMissingWarningCloseButton() {
+    return cy.findByTestId('local-queue-missing-warning-close');
   }
 
   handleConflictIfPresent() {
@@ -703,45 +750,123 @@ class CreateSpawnerPage {
     return cy.findByTestId('feature-store-section');
   }
 
-  findFeatureStoreSelector() {
-    return cy.findByTestId('feature-store-typeahead');
+  findSelectFeatureStoreButton() {
+    return cy.findByTestId('select-feature-store-button');
   }
 
-  shouldHaveFeatureStoreSelectorDisabled() {
-    this.findFeatureStoreSelector()
-      .should('have.class', 'pf-m-disabled')
-      .and('have.attr', 'disabled');
+  findFeatureStoreEmptyState() {
+    return cy.findByTestId('feature-store-empty-state');
+  }
+
+  findFeatureStoreConnectedTable() {
+    return cy.findByTestId('feature-store-connected-table');
+  }
+
+  findSelectFeatureStoresModal() {
+    return cy.findByTestId('select-feature-stores-modal');
+  }
+
+  openSelectFeatureStoresModal() {
+    this.findSelectFeatureStoreButton().click();
+    this.findSelectFeatureStoresModal().should('be.visible');
     return this;
   }
 
-  findFeatureStoreInput() {
-    return cy.findByTestId('feature-store-select-input');
+  findSelectFeatureStoresModalRow(namespace: string, projectName: string) {
+    return cy.findByTestId(`select-feature-stores-row-${namespace}/${projectName}`);
   }
 
-  findFeatureStoreTypeaheadList() {
-    return cy.findByTestId('feature-store-typeahead-list');
-  }
-
-  selectFeatureStore(projectName: string) {
-    this.findFeatureStoreSelector().click();
-    this.findFeatureStoreTypeaheadList().findByText(projectName).click();
+  toggleFeatureStoreInModal(namespace: string, projectName: string) {
+    this.findSelectFeatureStoresModalRow(namespace, projectName).findByRole('checkbox').click();
     return this;
   }
 
-  deselectFeatureStore(projectName: string) {
-    this.findFeatureStoreSelector().click();
-    this.findFeatureStoreTypeaheadList().findByText(projectName).click();
+  connectFeatureStoresInModal() {
+    cy.findByTestId('select-feature-stores-connect-button').click();
+    this.findSelectFeatureStoresModal().should('not.exist');
+    return this;
+  }
+
+  selectFeatureStore(namespace: string, projectName: string) {
+    this.openSelectFeatureStoresModal();
+    this.toggleFeatureStoreInModal(namespace, projectName);
+    this.connectFeatureStoresInModal();
+    return this;
+  }
+
+  selectFeatureStores(selections: Array<{ projectName: string; namespace: string }>) {
+    this.openSelectFeatureStoresModal();
+    selections.forEach(({ projectName, namespace }) => {
+      this.toggleFeatureStoreInModal(namespace, projectName);
+    });
+    this.connectFeatureStoresInModal();
+    return this;
+  }
+
+  removeFeatureStore(namespace: string, projectName: string) {
+    cy.findByTestId(`feature-store-remove-button-${namespace}/${projectName}`).click();
     return this;
   }
 
   shouldHaveFeatureStoreSelected(projectName: string) {
-    this.findFeatureStoreSelector().should('contain.text', projectName);
+    this.findFeatureStoreConnectedTable().should('contain.text', projectName);
+    return this;
+  }
+
+  shouldHaveFeatureStoreLink(projectName: string, href: string) {
+    this.findFeatureStoreConnectedTable()
+      .findByTestId(`feature-store-link-${projectName}`)
+      .should('have.attr', 'href', href);
     return this;
   }
 
   shouldNotHaveFeatureStoreSelected(projectName: string) {
-    this.findFeatureStoreSelector().should('not.contain.text', projectName);
+    this.findFeatureStoreConnectedTable().should('not.contain.text', projectName);
     return this;
+  }
+
+  shouldHaveFeatureStoreOptionsInModal(
+    projects: Array<{ projectName: string; namespace: string }>,
+  ) {
+    projects.forEach(({ projectName, namespace }) => {
+      this.findSelectFeatureStoresModalRow(namespace, projectName).should('exist');
+    });
+    return this;
+  }
+
+  shouldHaveFeatureStoreConnectedInModal(namespace: string, projectName: string) {
+    this.findSelectFeatureStoresModalRow(namespace, projectName)
+      .findByRole('checkbox')
+      .should('be.checked')
+      .and('be.enabled');
+    return this;
+  }
+
+  shouldHaveSelectFeatureStoresModalButtonDisabled() {
+    cy.findByTestId('select-feature-stores-connect-button')
+      .should('be.disabled')
+      .and('have.text', 'Select');
+    return this;
+  }
+
+  shouldHaveSelectFeatureStoresModalButtonEnabled() {
+    cy.findByTestId('select-feature-stores-connect-button')
+      .should('be.enabled')
+      .and('have.text', 'Connect');
+    return this;
+  }
+
+  shouldHaveSelectFeatureStoreButtonDisabled() {
+    this.findSelectFeatureStoreButton().should('have.attr', 'aria-disabled', 'true');
+    return this;
+  }
+
+  findFeatureStoreTooltip() {
+    return cy.findByRole('tooltip');
+  }
+
+  findFeatureStoreTooltipText() {
+    return cy.findByText('No feature stores available');
   }
 
   findFeatureStoreCodeBlock() {
@@ -752,31 +877,8 @@ class CreateSpawnerPage {
     return cy.findByText(/Modify and run this example code/);
   }
 
-  findFeatureStoreLabel() {
-    return cy.findByText('Feature store selection');
-  }
-
-  findFeatureStoreOptionInList(projectName: string) {
-    return this.findFeatureStoreTypeaheadList().findByText(projectName);
-  }
-
-  shouldHaveFeatureStoreOptionsInList(projectNames: string[]) {
-    this.findFeatureStoreTypeaheadList().within(() => {
-      projectNames.forEach((name) => {
-        cy.findByText(name).should('exist');
-      });
-    });
-    return this;
-  }
-
-  findFeatureStoreTooltip() {
-    return cy.findByRole('tooltip');
-  }
-
-  findFeatureStoreTooltipText() {
-    return cy.findByText(
-      'The current project doesn’t have access to any feature stores. Contact your admin to request access.',
-    );
+  findFeatureStoreSectionTitle() {
+    return this.findFeatureStoreSection().findByText('Connected feature stores');
   }
 
   findFeatureStoreCodeBlockTitle() {
@@ -795,16 +897,9 @@ class CreateSpawnerPage {
     return this;
   }
 
-  findFeatureStoreErrorAlert() {
-    return cy.findByTestId('feature-store-error-alert-message');
-  }
-
-  shouldHaveFeatureStoreError(message?: string) {
-    this.findFeatureStoreErrorAlert().should('exist');
-    this.findFeatureStoreErrorAlert().should('contain.text', 'Failed to load feature stores');
-    if (message) {
-      this.findFeatureStoreErrorAlert().should('contain.text', message);
-    }
+  shouldHaveFeatureStoreLoadError() {
+    this.findFeatureStoreSection().findByTestId('error-content').should('exist');
+    this.findFeatureStoreSection().findByText('Could not load required data').should('exist');
     return this;
   }
 }
@@ -865,6 +960,10 @@ class WorkbenchStatusModal extends Modal {
     super('Workbench status');
   }
 
+  find(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('notebook-status-modal');
+  }
+
   findProgressTab() {
     return cy.findByTestId('expand-progress');
   }
@@ -873,15 +972,25 @@ class WorkbenchStatusModal extends Modal {
     return cy.findByTestId('notebook-startup-steps').find('[data-testid^="step-status-"]');
   }
 
-  getStepTitle($step: JQuery<HTMLElement>) {
-    return cy.wrap($step).find('[id$="-title"]').invoke('text');
+  findProgressStepByLabel(label: string) {
+    return cy.findByTestId('notebook-startup-steps').contains(label);
   }
 
-  assertStepSuccess($step: JQuery<HTMLElement>) {
+  findKueueSubStep() {
+    return cy.findByTestId('notebook-startup-steps').find('[id="kueue-"]');
+  }
+
+  findKueueToggle() {
     return cy
-      .wrap($step)
-      .should('have.attr', 'data-testid')
-      .and('match', /^step-status-Success/);
+      .findByTestId('notebook-startup-steps')
+      .contains('Pod assigned')
+      .closest('[role="treeitem"]')
+      .find('button')
+      .first();
+  }
+
+  findModalTitle() {
+    return cy.findByTestId('notebook-status-modal-header').find('h1,h2,h3,h4,h5,h6').first();
   }
 
   findEventlogTab() {

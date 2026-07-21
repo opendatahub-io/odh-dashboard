@@ -6,3 +6,4 @@ export * from './mockAAModels';
 export * from './mockMaaSModels';
 export * from './mockGuardrails';
 export * from './mockMLflowPrompts';
+export * from './mockAgentProfiles';

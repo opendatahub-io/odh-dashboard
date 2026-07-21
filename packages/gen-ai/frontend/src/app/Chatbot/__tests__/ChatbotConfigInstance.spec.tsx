@@ -5,6 +5,10 @@ import { DEFAULT_CONFIGURATION } from '~/app/Chatbot/store/types';
 import { DEFAULT_CONFIG_ID } from '~/app/Chatbot/store';
 import { ChatbotConfigInstance } from '~/app/Chatbot/ChatbotConfigInstance';
 
+jest.mock('@openshift/dynamic-plugin-sdk', () => ({
+  useFeatureFlag: jest.fn(() => [false]),
+}));
+
 jest.mock('@patternfly/chatbot', () => ({
   MessageBox: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   ChatbotWelcomePrompt: (props: Record<string, unknown>) => (
@@ -63,27 +67,6 @@ describe('ChatbotConfigInstance', () => {
       expect(
         useChatbotConfigStore.getState().configurations[DEFAULT_CONFIG_ID]?.selectedVectorStoreId,
       ).toBe('vs-inline-abc');
-    });
-
-    it('clears selectedVectorStoreId to null when switching from inline to external while mounted', () => {
-      act(() => {
-        useChatbotConfigStore.getState().updateKnowledgeMode(DEFAULT_CONFIG_ID, 'inline');
-        useChatbotConfigStore
-          .getState()
-          .updateSelectedVectorStoreId(DEFAULT_CONFIG_ID, 'vs-inline-abc');
-      });
-
-      const { rerender } = render(<ChatbotConfigInstance {...defaultProps} />);
-
-      act(() => {
-        useChatbotConfigStore.getState().updateKnowledgeMode(DEFAULT_CONFIG_ID, 'external');
-      });
-
-      rerender(<ChatbotConfigInstance {...defaultProps} />);
-
-      expect(
-        useChatbotConfigStore.getState().configurations[DEFAULT_CONFIG_ID]?.selectedVectorStoreId,
-      ).toBeNull();
     });
 
     it('preserves selectedVectorStoreId on remount when knowledgeMode is already external', () => {

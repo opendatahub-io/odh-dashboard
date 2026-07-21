@@ -1,5 +1,5 @@
 /* eslint-disable camelcase */
-import { SortableData } from '@odh-dashboard/internal/components/table/types';
+import { SortableData } from '@odh-dashboard/ui-core';
 import { FeatureView } from '../../types/featureView';
 import { MaterializationInterval } from '../../types/global';
 

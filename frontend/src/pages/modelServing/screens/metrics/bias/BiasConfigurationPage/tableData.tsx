@@ -1,5 +1,5 @@
+import { SortableData } from '@odh-dashboard/ui-core';
 import { BiasMetricConfig } from '#~/concepts/trustyai/types';
-import { SortableData } from '#~/components/table';
 
 export const columns: SortableData<BiasMetricConfig>[] = [
   {

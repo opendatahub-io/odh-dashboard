@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 
@@ -29,6 +30,31 @@ func NewMaaSModelRefsRepository(logger *slog.Logger, k8sFactory kubernetes.Kuber
 	}
 }
 
+// ListMaaSModelRefs returns all MaaSModelRef resources across all namespaces.
+func (r *MaaSModelRefsRepository) ListMaaSModelRefs(ctx context.Context) ([]models.MaaSModelRefSummary, error) {
+	r.logger.Debug("Listing all MaaSModelRefs")
+
+	client, err := r.k8sFactory.GetClient(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	kubeClient := client.GetDynamicClient()
+
+	list, err := kubeClient.Resource(constants.MaaSModelRefGvr).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to list MaaSModelRefs: %w", err)
+	}
+
+	summaries := make([]models.MaaSModelRefSummary, 0, len(list.Items))
+	for _, item := range list.Items {
+		summary := convertUnstructuredToModelRefSummary(&item)
+		summaries = append(summaries, *summary)
+	}
+
+	return summaries, nil
+}
+
 // CreateMaaSModelRef creates a MaaSModelRef resource. When dryRun is true the request is
 // validated by the API server but not persisted.
 func (r *MaaSModelRefsRepository) CreateMaaSModelRef(ctx context.Context, request models.CreateMaaSModelRefRequest, dryRun bool) (*models.MaaSModelRefSummary, error) {
@@ -46,7 +72,7 @@ func (r *MaaSModelRefsRepository) CreateMaaSModelRef(ctx context.Context, reques
 		createOpts.DryRun = []string{metav1.DryRunAll}
 	}
 
-	obj := buildModelRefUnstructured(request.Name, request.Namespace, request.ModelRef, request.EndpointOverride, request.Uid, request.DisplayName, request.Description)
+	obj := buildModelRefUnstructured(request.Name, request.Namespace, request.ModelRef, request.EndpointOverride, request.Uid, request.DisplayName, request.Description, request.ModelCapabilities)
 	created, err := kubeClient.Resource(constants.MaaSModelRefGvr).Namespace(request.Namespace).Create(ctx, obj, createOpts)
 	if err != nil {
 		if k8sErrors.IsAlreadyExists(err) {
@@ -55,7 +81,7 @@ func (r *MaaSModelRefsRepository) CreateMaaSModelRef(ctx context.Context, reques
 		return nil, fmt.Errorf("failed to create MaaSModelRef: %w", err)
 	}
 
-	return convertUnstructuredToModelRefSummary(created)
+	return convertUnstructuredToModelRefSummary(created), nil
 }
 
 // UpdateMaaSModelRef updates a MaaSModelRef resource. When dryRun is true the request is
@@ -97,16 +123,28 @@ func (r *MaaSModelRefsRepository) UpdateMaaSModelRef(ctx context.Context, namesp
 
 	if request.DisplayName != nil {
 		if *request.DisplayName == "" {
-			delete(annotations, displayNameAnnotation)
+			delete(annotations, constants.DisplayNameAnnotation)
 		} else {
-			annotations[displayNameAnnotation] = *request.DisplayName
+			annotations[constants.DisplayNameAnnotation] = *request.DisplayName
 		}
 	}
 	if request.Description != nil {
 		if *request.Description == "" {
-			delete(annotations, descriptionAnnotation)
+			delete(annotations, constants.DescriptionAnnotation)
 		} else {
-			annotations[descriptionAnnotation] = *request.Description
+			annotations[constants.DescriptionAnnotation] = *request.Description
+		}
+	}
+	if request.ModelCapabilities != nil {
+		if len(request.ModelCapabilities) == 0 {
+			delete(annotations, modelCapabilitiesAnnotation)
+		} else {
+			capJSON, err := json.Marshal(request.ModelCapabilities)
+			if err != nil {
+				r.logger.Warn("failed to marshal model capabilities", "err", err)
+			} else {
+				annotations[modelCapabilitiesAnnotation] = string(capJSON)
+			}
 		}
 	}
 	existing.SetAnnotations(annotations)
@@ -122,7 +160,7 @@ func (r *MaaSModelRefsRepository) UpdateMaaSModelRef(ctx context.Context, namesp
 		return nil, fmt.Errorf("failed to update MaaSModelRef: %w", err)
 	}
 
-	return convertUnstructuredToModelRefSummary(updated)
+	return convertUnstructuredToModelRefSummary(updated), nil
 }
 
 // DeleteMaaSModelRef deletes a MaaSModelRef resource by namespace and name. When dryRun is true
@@ -143,7 +181,7 @@ func (r *MaaSModelRefsRepository) DeleteMaaSModelRef(ctx context.Context, namesp
 	err = kubeClient.Resource(constants.MaaSModelRefGvr).Namespace(namespace).Delete(ctx, name, deleteOpts)
 	if err != nil {
 		if k8sErrors.IsNotFound(err) {
-			return fmt.Errorf("MaaSModelRef '%s' not found", name)
+			return fmt.Errorf("MaaSModelRef '%s' not found: %w", name, err)
 		}
 		return fmt.Errorf("failed to delete MaaSModelRef: %w", err)
 	}
@@ -151,7 +189,7 @@ func (r *MaaSModelRefsRepository) DeleteMaaSModelRef(ctx context.Context, namesp
 	return nil
 }
 
-func buildModelRefUnstructured(name, namespace string, modelRef models.ModelReference, endpointOverride string, uid string, displayName string, description string) *unstructured.Unstructured {
+func buildModelRefUnstructured(name, namespace string, modelRef models.ModelReference, endpointOverride string, uid string, displayName string, description string, modelCapabilities []string) *unstructured.Unstructured {
 	obj := &unstructured.Unstructured{}
 	obj.SetAPIVersion("maas.opendatahub.io/v1alpha1")
 	obj.SetKind("MaaSModelRef")
@@ -162,7 +200,7 @@ func buildModelRefUnstructured(name, namespace string, modelRef models.ModelRefe
 			{
 				UID:                types.UID(uid),
 				Name:               name,
-				APIVersion:         "serving.kserve.io/v1alpha1",
+				APIVersion:         "serving.kserve.io/v1alpha2",
 				Kind:               "LLMInferenceService",
 				BlockOwnerDeletion: &[]bool{false}[0],
 			},
@@ -170,10 +208,18 @@ func buildModelRefUnstructured(name, namespace string, modelRef models.ModelRefe
 	}
 	annotations := map[string]string{}
 	if displayName != "" {
-		annotations[displayNameAnnotation] = displayName
+		annotations[constants.DisplayNameAnnotation] = displayName
 	}
 	if description != "" {
-		annotations[descriptionAnnotation] = description
+		annotations[constants.DescriptionAnnotation] = description
+	}
+	if len(modelCapabilities) > 0 {
+		modelCapabilitiesJSON, err := json.Marshal(modelCapabilities)
+		if err != nil {
+			slog.Warn("failed to marshal model capabilities", "err", err)
+		} else {
+			annotations[modelCapabilitiesAnnotation] = string(modelCapabilitiesJSON)
+		}
 	}
 	obj.SetAnnotations(annotations)
 
