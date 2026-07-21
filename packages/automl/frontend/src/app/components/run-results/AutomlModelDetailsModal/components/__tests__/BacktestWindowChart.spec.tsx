@@ -4,6 +4,10 @@ import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import BacktestWindowChart from '~/app/components/run-results/AutomlModelDetailsModal/components/BacktestWindowChart';
 import type { BackTestingPerWindowMetric } from '~/app/types';
+import type { ChartSeries } from '~/app/components/run-results/AutomlModelDetailsModal/components/BacktestCurveChart';
+
+// Store the last rendered series data for test assertions
+let lastRenderedSeries: ChartSeries[] | undefined;
 
 jest.mock('~/app/components/InlineTooltip', () => ({
   __esModule: true,
@@ -18,9 +22,10 @@ jest.mock(
   '~/app/components/run-results/AutomlModelDetailsModal/components/BacktestCurveChart',
   () => ({
     __esModule: true,
-    default: ({ ariaDesc }: { ariaDesc: string }) => (
-      <div data-testid="backtest-curve-chart" aria-label={ariaDesc} />
-    ),
+    default: ({ ariaDesc, series }: { ariaDesc: string; series: ChartSeries[] }) => {
+      lastRenderedSeries = series;
+      return <div data-testid="backtest-curve-chart" aria-label={ariaDesc} />;
+    },
   }),
 );
 
@@ -70,6 +75,7 @@ const mockHoldoutMetrics = {
 describe('BacktestWindowChart', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    lastRenderedSeries = undefined;
   });
 
   describe('metric key normalization', () => {
@@ -110,6 +116,42 @@ describe('BacktestWindowChart', () => {
       // Should default to first metric key (RMSE)
       expect(screen.getByTestId('metric-selector-toggle')).toHaveTextContent('RMSE');
     });
+
+    it('should correctly extract metric values when evalMetric is snake_case and data keys are acronyms', () => {
+      // Reset captured series data
+      lastRenderedSeries = undefined;
+
+      render(
+        <BacktestWindowChart
+          perWindowMetrics={mockPerWindowMetrics}
+          evalMetric="mean_absolute_scaled_error"
+          holdoutMetrics={mockHoldoutMetrics}
+        />,
+      );
+
+      // Verify the series was rendered
+      expect(lastRenderedSeries).toBeDefined();
+      expect(lastRenderedSeries!.length).toBeGreaterThanOrEqual(3);
+
+      // Get the window scatter series (scatter with multiple data points, not the holdout point)
+      const windowScatterSeries = lastRenderedSeries!.find(
+        (s) => s.type === 'scatter' && s.data.length > 1,
+      );
+      expect(windowScatterSeries).toBeDefined();
+      expect(windowScatterSeries!.data).toHaveLength(3);
+
+      // Verify each window's y value matches the actual MASE metric (not 0)
+      // This tests that buildWindowData() correctly uses findMetricValue()
+      // to map "mean_absolute_scaled_error" → "MASE" and extract the right values
+      expect(windowScatterSeries!.data[0].y).toBe(0.8); // Window 0: MASE = 0.8
+      expect(windowScatterSeries!.data[1].y).toBe(0.9); // Window 1: MASE = 0.9
+      expect(windowScatterSeries!.data[2].y).toBe(0.75); // Window 2: MASE = 0.75
+
+      // Verify the values are NOT zero
+      windowScatterSeries!.data.forEach((point) => {
+        expect(point.y).not.toBe(0);
+      });
+    });
   });
 
   describe('dropdown formatting', () => {
@@ -126,10 +168,19 @@ describe('BacktestWindowChart', () => {
       fireEvent.click(screen.getByTestId('metric-selector-toggle'));
 
       // All options should show formatted names (acronyms are already formatted)
-      expect(screen.getByText('RMSE')).toBeInTheDocument();
-      expect(screen.getByText('MAE')).toBeInTheDocument();
-      expect(screen.getByText('MASE')).toBeInTheDocument();
-      expect(screen.getByText('MAPE')).toBeInTheDocument();
+      // Verify each option exists as a menuitem
+      expect(
+        screen.getAllByRole('menuitem').some((item) => item.textContent.includes('RMSE')),
+      ).toBe(true);
+      expect(screen.getAllByRole('menuitem').some((item) => item.textContent.includes('MAE'))).toBe(
+        true,
+      );
+      expect(
+        screen.getAllByRole('menuitem').some((item) => item.textContent.includes('MASE')),
+      ).toBe(true);
+      expect(
+        screen.getAllByRole('menuitem').some((item) => item.textContent.includes('MAPE')),
+      ).toBe(true);
     });
 
     it('should show correct initial checkbox selection for snake_case evalMetric', () => {
@@ -145,8 +196,9 @@ describe('BacktestWindowChart', () => {
 
       // MASE checkbox should be checked (normalized from mean_absolute_scaled_error)
       const maseOption = screen
-        .getByText('MASE')
-        .closest('.pf-v6-c-menu__list-item') as HTMLElement;
+        .getAllByRole('menuitem')
+        .find((item) => item.textContent.includes('MASE')) as HTMLElement;
+      expect(maseOption).toBeDefined();
       expect(maseOption.querySelector('input[type="checkbox"]')).toBeChecked();
     });
   });
@@ -265,9 +317,20 @@ describe('BacktestWindowChart', () => {
       );
 
       fireEvent.click(screen.getByTestId('metric-selector-toggle'));
-      fireEvent.click(screen.getByTestId('metric-selector-show-all'));
 
-      expect(onSelectedMetricsChange).toHaveBeenCalledWith(['RMSE', 'MAE', 'MASE', 'MAPE']);
+      // Find and click the checkbox input for "Show all"
+      const showAllOption = screen.getByTestId('metric-selector-show-all');
+      const checkbox = showAllOption.querySelector('input[type="checkbox"]');
+      expect(checkbox).toBeInTheDocument();
+      fireEvent.click(checkbox!);
+
+      // Verify toggle text changes to "Show all" (component behaviour verification)
+      expect(screen.getByTestId('metric-selector-toggle')).toHaveTextContent('Show all');
+
+      // The callback should have been called with all metrics
+      const { calls } = onSelectedMetricsChange.mock;
+      const lastCall = calls[calls.length - 1];
+      expect(lastCall).toEqual([['RMSE', 'MAE', 'MASE', 'MAPE']]);
     });
 
     it('should deselect all when unchecking last selected metric', () => {
@@ -282,7 +345,12 @@ describe('BacktestWindowChart', () => {
       );
 
       fireEvent.click(screen.getByTestId('metric-selector-toggle'));
-      fireEvent.click(screen.getByText('MASE'));
+
+      // Click MASE in the dropdown menu (find the one that's a menuitem, not in the title)
+      const maseMenuItem = screen
+        .getAllByRole('menuitem')
+        .find((item) => item.textContent.includes('MASE'));
+      fireEvent.click(maseMenuItem!);
 
       // Should fall back to evalMetric when trying to deselect last metric
       expect(onSelectedMetricsChange).toHaveBeenCalledWith(['MASE']);
