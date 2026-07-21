@@ -1018,6 +1018,55 @@ describe('AutomlConfigure', () => {
       });
     });
 
+    describe('Run preset', () => {
+      it('should render preset radio buttons with Faster selected by default', () => {
+        renderComponent();
+        selectSecretAndFile();
+        selectTargetColumn();
+        selectPredictionType('binary');
+
+        const fasterRadio = screen.getByTestId('preset-radio-speed');
+        const betterQualityRadio = screen.getByTestId('preset-radio-balanced');
+        expect(fasterRadio).toBeInTheDocument();
+        expect(betterQualityRadio).toBeInTheDocument();
+        expect(fasterRadio).toBeChecked();
+        expect(betterQualityRadio).not.toBeChecked();
+      });
+
+      it('should display human-readable labels for presets', () => {
+        renderComponent();
+        selectSecretAndFile();
+        selectTargetColumn();
+        selectPredictionType('binary');
+
+        expect(screen.getByText('Faster')).toBeInTheDocument();
+        expect(screen.getByText('Better quality')).toBeInTheDocument();
+      });
+
+      it('should switch preset when clicking the other radio', () => {
+        renderComponent();
+        selectSecretAndFile();
+        selectTargetColumn();
+        selectPredictionType('binary');
+
+        const betterQualityRadio = screen.getByTestId('preset-radio-balanced');
+        fireEvent.click(betterQualityRadio);
+
+        expect(betterQualityRadio).toBeChecked();
+        expect(screen.getByTestId('preset-radio-speed')).not.toBeChecked();
+      });
+
+      it('should render with balanced preset when configured', () => {
+        renderComponent({ preset: 'balanced' });
+        selectSecretAndFile();
+        selectTargetColumn();
+        selectPredictionType('binary');
+
+        expect(screen.getByTestId('preset-radio-balanced')).toBeChecked();
+        expect(screen.getByTestId('preset-radio-speed')).not.toBeChecked();
+      });
+    });
+
     describe('Top models to consider', () => {
       it('should render the top N input with default value 3', () => {
         renderComponent();

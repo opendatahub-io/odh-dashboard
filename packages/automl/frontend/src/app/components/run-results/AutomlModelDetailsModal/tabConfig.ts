@@ -34,6 +34,8 @@ export type TabContentProps = {
   curves?: CurvesData;
   backTesting?: BackTestingData;
   isArtifactsLoading?: boolean;
+  backtestSelectedMetrics?: string[];
+  onBacktestMetricsChange?: (metrics: string[]) => void;
 };
 
 export type TabDefinition = {
@@ -100,7 +102,7 @@ export const TAB_DEFINITIONS: TabDefinition[] = [
     tooltip:
       'Each cell counts how often the model predicted a class (columns) for a given actual class (rows). Diagonal cells are correct predictions; off-diagonal cells are errors. Use this view to see whether the model confuses specific classes.',
     description:
-      'Compares actual and predicted class labels to show correct predictions and misclassifications.',
+      'Compares actual and predicted class labels to show where the model is correct and which classes it confuses.',
     section: 'Evaluation',
     visibleFor: CLASSIFICATION_TYPES,
     component: ConfusionMatrixTab,

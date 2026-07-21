@@ -2908,6 +2908,9 @@ components:
         authMechanism:
           type: string
           enum: [apikey, sigv4, oauth2]
+        credentialSecretRef:
+          type: string
+          description: Name of the Secret holding provider credentials (spec.auth.secretRef.name)
         provider:
           type: string
           description: Provider identifier (spec.provider)
@@ -2933,6 +2936,11 @@ components:
         endpoint:
           type: string
           description: Published MaaS endpoint URL (status.endpoint)
+        governanceAttached:
+          type: boolean
+          description: >
+            True when the companion MaaSModelRef has status.conditions type=GovernanceAttached
+            with status=True (active subscription + auth policy pairing).
 
     ExternalModelSummary:
       type: object

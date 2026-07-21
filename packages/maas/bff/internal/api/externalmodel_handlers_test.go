@@ -44,6 +44,7 @@ var _ = Describe("ExternalModelHandlers", Ordered, func() {
 		Expect(gptModel.MaaSModelRef.Endpoint).To(Equal("https://gpt-4o-external.maas.example.com"))
 		Expect(gptModel.MaaSModelRef.Phase).To(Equal("Ready"))
 		Expect(gptModel.MaaSModelRef.StatusMessage).To(Equal("Published external GPT-4o model"))
+		Expect(gptModel.MaaSModelRef.GovernanceAttached).To(BeTrue())
 		Expect(gptModel.StatusMessage).To(Equal("External model is ready"))
 		Expect(gptModel.ProviderRefs[0].Provider.StatusMessage).To(Equal("External provider is ready"))
 	})
