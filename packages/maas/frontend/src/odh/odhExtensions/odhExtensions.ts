@@ -77,7 +77,7 @@ const ODH_EXTENSIONS: ODHExtensions[] = [
     },
     properties: {
       id: 'maas-subscription-management-view',
-      title: 'Subscription management',
+      title: 'MaaS governance',
       href: '/maas/subscription-management',
       section: 'settings',
       path: '/maas/subscription-management/*',

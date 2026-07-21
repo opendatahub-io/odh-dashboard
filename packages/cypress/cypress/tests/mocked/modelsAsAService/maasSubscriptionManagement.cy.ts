@@ -97,7 +97,7 @@ describe('Subscription Management Page', () => {
 
   it('should navigate between tabs and update the URL', () => {
     subscriptionManagementPage.visit();
-    subscriptionManagementPage.findTitle().should('contain.text', 'Subscription management');
+    subscriptionManagementPage.findTitle().should('contain.text', 'MaaS governance');
     //subscriptionManagementPage.findOverviewTab().should('have.attr', 'aria-selected', 'true');
 
     subscriptionManagementPage.findSubscriptionsTab().click();
