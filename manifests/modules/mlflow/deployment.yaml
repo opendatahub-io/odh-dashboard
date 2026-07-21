@@ -99,12 +99,12 @@ spec:
             failureThreshold: 3
           resources:
             requests:
-              cpu: 300m
-              memory: 512Mi
+              cpu: 50m
+              memory: 128Mi
               ephemeral-storage: 10Mi
             limits:
-              cpu: 300m
-              memory: 512Mi
+              cpu: 200m
+              memory: 256Mi
               ephemeral-storage: 10Mi
           ports:
             - containerPort: 8343

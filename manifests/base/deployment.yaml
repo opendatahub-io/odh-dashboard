@@ -36,10 +36,11 @@ spec:
               value: ""
           resources:
             requests:
-              cpu: 500m
-              memory: 1Gi
+              cpu: 100m
+              memory: 512Mi
               ephemeral-storage: 50Mi
             limits:
+              cpu: 500m
               memory: 1Gi
           livenessProbe:
             exec:
@@ -123,11 +124,12 @@ spec:
             failureThreshold: 3
           resources:
             requests:
-              cpu: 500m
-              memory: 1Gi
+              cpu: 100m
+              memory: 128Mi
               ephemeral-storage: 10Mi
             limits:
-              memory: 1Gi
+              cpu: 200m
+              memory: 256Mi
           volumeMounts:
             - mountPath: /etc/tls/private
               name: proxy-tls
