@@ -342,8 +342,8 @@ func convertUnstructuredToSubscription(obj *unstructured.Unstructured) (*models.
 	}
 
 	annotations := obj.GetAnnotations()
-	sub.DisplayName = annotations[displayNameAnnotation]
-	sub.Description = annotations[descriptionAnnotation]
+	sub.DisplayName = annotations[constants.DisplayNameAnnotation]
+	sub.Description = annotations[constants.DescriptionAnnotation]
 
 	phase, _, _ := unstructured.NestedString(content, "status", "phase")
 	sub.Phase = phase
@@ -451,8 +451,8 @@ func convertUnstructuredToAuthPolicy(obj *unstructured.Unstructured) (*models.Ma
 	}
 
 	annotations := obj.GetAnnotations()
-	policy.DisplayName = annotations[displayNameAnnotation]
-	policy.Description = annotations[descriptionAnnotation]
+	policy.DisplayName = annotations[constants.DisplayNameAnnotation]
+	policy.Description = annotations[constants.DescriptionAnnotation]
 
 	phase, _, _ := unstructured.NestedString(content, "status", "phase")
 	policy.Phase = phase
@@ -518,21 +518,6 @@ func convertUnstructuredToAuthPolicy(obj *unstructured.Unstructured) (*models.Ma
 	return policy, nil
 }
 
-// extractReadyConditionMessage returns the message from the "Ready" condition in status.conditions.
-func extractReadyConditionMessage(content map[string]interface{}) string {
-	conditions, _, _ := unstructured.NestedSlice(content, "status", "conditions")
-	for _, c := range conditions {
-		if cMap, ok := c.(map[string]interface{}); ok {
-			if condType, _ := cMap["type"].(string); condType == "Ready" {
-				if msg, _ := cMap["message"].(string); msg != "" {
-					return msg
-				}
-			}
-		}
-	}
-	return ""
-}
-
 // --- Builder helpers: Go models -> Unstructured ---
 
 func buildSubscriptionUnstructured(name, namespace, displayName, description string, owner models.OwnerSpec, modelRefs []models.ModelSubscriptionRef, tokenMetadata *models.TokenMetadata, priority int32) *unstructured.Unstructured {
@@ -544,10 +529,10 @@ func buildSubscriptionUnstructured(name, namespace, displayName, description str
 
 	annotations := map[string]string{}
 	if displayName != "" {
-		annotations["openshift.io/display-name"] = displayName
+		annotations[constants.DisplayNameAnnotation] = displayName
 	}
 	if description != "" {
-		annotations["openshift.io/description"] = description
+		annotations[constants.DescriptionAnnotation] = description
 	}
 	if len(annotations) > 0 {
 		obj.SetAnnotations(annotations)
@@ -576,10 +561,10 @@ func buildAuthPolicyUnstructured(name, namespace, displayName, description strin
 
 	annotations := make(map[string]string)
 	if displayName != "" {
-		annotations[displayNameAnnotation] = displayName
+		annotations[constants.DisplayNameAnnotation] = displayName
 	}
 	if description != "" {
-		annotations[descriptionAnnotation] = description
+		annotations[constants.DescriptionAnnotation] = description
 	}
 	if len(annotations) > 0 {
 		obj.SetAnnotations(annotations)
@@ -730,14 +715,14 @@ func updateSubscriptionSpec(obj *unstructured.Unstructured, displayName, descrip
 		annotations = map[string]string{}
 	}
 	if displayName != "" {
-		annotations["openshift.io/display-name"] = displayName
+		annotations[constants.DisplayNameAnnotation] = displayName
 	} else {
-		delete(annotations, "openshift.io/display-name")
+		delete(annotations, constants.DisplayNameAnnotation)
 	}
 	if description != "" {
-		annotations["openshift.io/description"] = description
+		annotations[constants.DescriptionAnnotation] = description
 	} else {
-		delete(annotations, "openshift.io/description")
+		delete(annotations, constants.DescriptionAnnotation)
 	}
 	obj.SetAnnotations(annotations)
 

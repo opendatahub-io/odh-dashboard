@@ -1,4 +1,8 @@
-import type { DeploymentStatus } from '@odh-dashboard/model-serving/extension-points';
+import type {
+  DeploymentCondition,
+  DeploymentStatus,
+} from '@odh-dashboard/model-serving/extension-points';
+import { toConditionStatus } from '@odh-dashboard/model-serving/extension-points';
 import {
   ModelDeploymentState,
   checkModelPodStatus,
@@ -38,6 +42,121 @@ export const useLLMInferenceServicePods = (
     opts,
   );
 
+type LLMdConditionSpec = {
+  type: string;
+  label: string;
+  children?: { type: string; label: string }[];
+};
+
+const LLMD_CONDITION_SPECS: LLMdConditionSpec[] = [
+  { type: 'PresetsCombined', label: 'Presets combined' },
+  {
+    type: 'WorkloadsReady',
+    label: 'Model workload',
+    children: [
+      { type: 'MainWorkloadReady', label: 'Main workload ready' },
+      { type: 'WorkerWorkloadReady', label: 'Worker workload ready' },
+      { type: 'PrefillWorkloadReady', label: 'Prefill workload ready' },
+      { type: 'PrefillWorkerWorkloadReady', label: 'Prefill worker workload ready' },
+      { type: 'ScalingReady', label: 'Scaling ready' },
+      { type: 'PrefillScalingReady', label: 'Prefill scaling ready' },
+    ],
+  },
+  {
+    type: 'RouterReady',
+    label: 'Router / scheduler',
+    children: [
+      { type: 'GatewaysReady', label: 'Gateway ready' },
+      { type: 'HTTPRoutesReady', label: 'HTTP routes ready' },
+      { type: 'InferencePoolReady', label: 'Inference pool ready' },
+      { type: 'SchedulerWorkloadReady', label: 'Scheduler workload ready' },
+    ],
+  },
+];
+
+const buildConditionFromRaw = (
+  rawConditions: NonNullable<LLMInferenceServiceKind['status']>['conditions'],
+  spec: { type: string; label: string },
+): DeploymentCondition | undefined => {
+  const conditions = rawConditions ?? [];
+  const raw = conditions.find((c) => c.type === spec.type);
+  if (!raw) {
+    return undefined;
+  }
+  if (raw.reason === 'Stopped') {
+    return undefined;
+  }
+  return {
+    type: raw.type ?? spec.type,
+    label: spec.label,
+    status: toConditionStatus(raw.status),
+    reason: raw.reason,
+    message: raw.status === 'False' ? raw.message : undefined,
+    lastTransitionTime: raw.lastTransitionTime,
+  };
+};
+
+export const getLLMdDeploymentConditions = (
+  inferenceService: LLMInferenceServiceKind,
+): DeploymentCondition[] => {
+  const rawConditions = inferenceService.status?.conditions;
+  const conditions: DeploymentCondition[] = [
+    {
+      type: 'DeploymentRequested',
+      label: 'Deployment requested',
+      status: 'True',
+      lastTransitionTime: inferenceService.metadata.creationTimestamp,
+    },
+  ];
+
+  for (const spec of LLMD_CONDITION_SPECS) {
+    const parentCondition = buildConditionFromRaw(rawConditions, spec);
+    if (!parentCondition) {
+      continue;
+    }
+
+    if (spec.children) {
+      const children: DeploymentCondition[] = [];
+      for (const childSpec of spec.children) {
+        const child = buildConditionFromRaw(rawConditions, childSpec);
+        if (child) {
+          children.push(child);
+        }
+      }
+      if (children.length > 0) {
+        parentCondition.children = children;
+      }
+    }
+
+    conditions.push(parentCondition);
+  }
+
+  const readyRaw = (rawConditions ?? []).find((c) => c.type === 'Ready');
+  if (readyRaw) {
+    if (readyRaw.reason === 'Stopped') {
+      conditions.push({
+        type: 'Stopped',
+        label: 'Deployment stopped',
+        status: 'True',
+        reason: readyRaw.reason,
+        message: readyRaw.message,
+        lastTransitionTime: readyRaw.lastTransitionTime,
+      });
+    } else {
+      conditions.push({
+        type: 'Ready',
+        label: 'Deployment ready',
+        status: toConditionStatus(readyRaw.status),
+        reason: readyRaw.reason,
+        message: readyRaw.status === 'False' ? readyRaw.message : undefined,
+        lastTransitionTime: readyRaw.lastTransitionTime,
+      });
+    }
+  }
+
+  return conditions;
+};
+
 export const getLLMdDeploymentStatus = (
   inferenceService: LLMInferenceServiceKind,
   deploymentPods: PodKind[],
@@ -55,7 +174,9 @@ export const getLLMdDeploymentStatus = (
     deploymentPod,
   );
 
-  return { state, message, stoppedStates };
+  const conditions = getLLMdDeploymentConditions(inferenceService);
+
+  return { state, message, stoppedStates, conditions };
 };
 
 export const patchDeploymentStoppedStatus = (

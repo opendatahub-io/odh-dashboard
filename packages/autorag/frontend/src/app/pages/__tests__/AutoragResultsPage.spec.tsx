@@ -178,9 +178,10 @@ const createMockPattern = (name: string, metrics: Record<string, number>): Autor
   max_combinations: 10,
   duration_seconds: 120,
   settings: {
-    vector_store: {
-      datasource_type: 'milvus',
-      collection_name: 'test_collection',
+    vector_store_binding: {
+      provider_id: 'milvus',
+      provider_type: 'remote::milvus',
+      vector_store_id: 'vs_collection0',
     },
     chunking: {
       method: 'sequential',
@@ -211,17 +212,25 @@ const createMockPattern = (name: string, metrics: Record<string, number>): Autor
       system_message_text: 'You are a helpful assistant.',
     },
   },
-  scores: Object.fromEntries(
-    Object.entries(metrics).map(([key, value]) => [
-      key,
+  evaluation: {
+    metrics: [
+      ...Object.entries(metrics).map(([metricName, value]) => ({
+        evaluator: 'unitxt' as const,
+        name: metricName,
+        scores: { mean: value, ci_high: value + 0.05, ci_low: value - 0.05 },
+      })),
       {
-        mean: value,
-        ci_high: value + 0.05,
-        ci_low: value - 0.05,
+        evaluator: 'custom' as const,
+        name: 'overall_score',
+        scores: {
+          mean: Object.values(metrics)[0] ?? 0,
+          ci_low: null,
+          ci_high: null,
+        },
+        optimization_metric: true,
       },
-    ]),
-  ) as AutoragPattern['scores'],
-  final_score: Object.values(metrics)[0] ?? 0,
+    ],
+  },
 });
 
 const mockPatterns: Record<string, AutoragPattern> = {

@@ -91,7 +91,7 @@ const AutomlModelDetailsModalHeader: React.FC<AutomlModelDetailsModalHeaderProps
   return (
     <div className="automl-model-details-header">
       <div className="automl-model-details-header-selector">
-        <span className="automl-model-details-header-label">Model details</span>
+        <span className="automl-model-details-header-label">Model selection</span>
         {models.length > 1 ? (
           <Dropdown
             isOpen={isDropdownOpen}

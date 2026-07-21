@@ -18,6 +18,7 @@ import {
   TextInput,
   Title,
 } from '@patternfly/react-core';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
 import useFetchAAEVectorStores from '~/app/hooks/useFetchAAEVectorStores';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
@@ -27,6 +28,7 @@ import { convertMaaSModelToAIModel, isPlaygroundModelMatchForAIModel } from '~/a
 import { serializeToAgentProfileSpec } from '~/app/agentProfile/serialize';
 import { usePromptEdited } from '~/app/Chatbot/hooks/usePromptEdited';
 import { MCPServerFromAPI } from '~/app/types/mcp';
+import { PLAYGROUND_AGENT_EVENTS } from '~/app/tracking/playgroundAgentTrackingConstants';
 
 /** Fallback ConfigMap name used only when the BFF does not return one. */
 const MCP_CONFIG_MAP_NAME_FALLBACK = 'gen-ai-aa-mcp-servers';
@@ -152,6 +154,10 @@ const SaveAgentProfileModal: React.FC<SaveAgentProfileModalProps> = ({
 
       if (mode === 'save-as' || !loadedProfileId) {
         const response = await api.createAgentProfile({ spec });
+        fireMiscTrackingEvent(PLAYGROUND_AGENT_EVENTS.COPY_SAVED, {
+          originalAgentID: loadedProfileId ?? '',
+          newAgentID: response.profileId,
+        });
         onSaved(response.profileId, response.displayName, description.trim());
         // Set after onSaved for the same reason as the update branch below.
         useChatbotConfigStore.getState().setLoadedResourceVersion(response.resourceVersion);
@@ -162,6 +168,9 @@ const SaveAgentProfileModal: React.FC<SaveAgentProfileModalProps> = ({
           id: loadedProfileId,
           spec,
           resourceVersion: loadedResourceVersion ?? '',
+        });
+        fireMiscTrackingEvent(PLAYGROUND_AGENT_EVENTS.SAVED, {
+          agentID: loadedProfileId,
         });
         onSaved(loadedProfileId, response.displayName, description.trim());
         // Set after onSaved: applyAgentProfile (called inside onSaved) resets the store
@@ -190,7 +199,7 @@ const SaveAgentProfileModal: React.FC<SaveAgentProfileModalProps> = ({
     }
   };
 
-  const title = mode === 'save' ? 'Save agent configuration' : 'Save as agent configuration';
+  const title = mode === 'save' ? 'Save agent' : 'Save as agent';
   const nameError = nameTouched && !name.trim();
   const isSaveDisabled = isSaving || !name.trim();
 
@@ -240,7 +249,7 @@ const SaveAgentProfileModal: React.FC<SaveAgentProfileModalProps> = ({
       <ModalHeader
         title={title}
         labelId="save-agent-profile-modal-title"
-        description="Save your model, prompt, knowledge, and MCP servers as a reusable agent configuration."
+        description="Save your model, prompt, knowledge, and MCP servers as a reusable agent."
       />
       <ModalBody>
         <Form id="save-agent-profile-form" onSubmit={handleSubmit}>
@@ -287,19 +296,19 @@ const SaveAgentProfileModal: React.FC<SaveAgentProfileModalProps> = ({
               isInline
               title={
                 conflictError === 'deleted'
-                  ? 'This agent configuration could not be found'
-                  : 'This agent configuration was modified elsewhere'
+                  ? 'This agent could not be found'
+                  : 'This agent was modified elsewhere'
               }
               data-testid="save-conflict-alert"
             >
-              Your changes cannot be saved directly. Use Save As to create a new agent configuration
-              with your changes.
+              Your changes cannot be saved directly. Use Save As to create a new agent with your
+              changes.
             </Alert>
           )}
           <Divider />
           {/* Agent configuration details */}
           <Title headingLevel="h3" size="md">
-            Agent configuration details
+            Agent details
           </Title>
           {/* Models — inference only */}
           {(aiModel || llamaModel) && (

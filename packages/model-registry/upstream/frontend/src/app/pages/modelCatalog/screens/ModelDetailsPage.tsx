@@ -39,6 +39,7 @@ import { useCatalogModelArtifacts } from '~/app/hooks/modelCatalog/useCatalogMod
 import { modelCatalogUrl } from '~/app/routes/modelCatalog/catalogModel';
 import ScrollViewOnMount from '~/app/shared/components/ScrollViewOnMount';
 import { MODEL_CATALOG_POPOVER_MESSAGES } from '~/concepts/modelCatalog/const';
+import { MODEL_CATALOG_TITLE } from '~/app/pages/modelCatalog/const';
 import ModelDetailsTabs from './ModelDetailsTabs';
 
 const MODEL_CATALOG_DEPLOY_GROUP = 'model-catalog.deploy';
@@ -142,7 +143,7 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ tab }) => {
         breadcrumb={
           <Breadcrumb>
             <BreadcrumbItem>
-              <Link to={modelCatalogUrl()}>Catalog</Link>
+              <Link to={modelCatalogUrl()}>{MODEL_CATALOG_TITLE}</Link>
             </BreadcrumbItem>
             <BreadcrumbItem isActive>{getModelName(model?.name || '') || 'Details'}</BreadcrumbItem>
           </Breadcrumb>
@@ -202,7 +203,7 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ tab }) => {
         emptyStatePage={
           !model ? (
             <div>
-              Details not found. Return to <Link to={modelCatalogUrl()}>Model catalog</Link>
+              Details not found. Return to <Link to={modelCatalogUrl()}>{MODEL_CATALOG_TITLE}</Link>
             </div>
           ) : undefined
         }

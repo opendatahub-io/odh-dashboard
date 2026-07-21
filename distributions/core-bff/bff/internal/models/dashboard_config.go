@@ -80,6 +80,8 @@ type DashboardFeatureFlags struct {
 	MaasAuthPolicies             bool `json:"maasAuthPolicies"`
 	Mlflow                       bool `json:"mlflow"`
 	McpCatalog                   bool `json:"mcpCatalog"`
+	McpRegistry                  bool `json:"mcpRegistry"`
+	AgentsCatalog                bool `json:"agentsCatalog"`
 	ToolCalling                  bool `json:"toolCalling"`
 	TrainingJobs                 bool `json:"trainingJobs"`
 	ProjectRBAC                  bool `json:"projectRBAC"`
@@ -91,6 +93,7 @@ type DashboardFeatureFlags struct {
 	PromptManagement             bool `json:"promptManagement"`
 	MySubscriptions              bool `json:"mySubscriptions"`
 	MaasSettingsIaRedesign       bool `json:"maasSettingsIaRedesign"`
+	ConnectionTest               bool `json:"connectionTest"`
 }
 
 type NotebookController struct {
@@ -171,6 +174,8 @@ var BlankDashboardCR = DashboardConfig{
 			MaasAuthPolicies:             true,
 			Mlflow:                       true,
 			McpCatalog:                   false,
+			McpRegistry:                  false,
+			AgentsCatalog:                false,
 			ToolCalling:                  false,
 			TrainingJobs:                 true,
 			ProjectRBAC:                  true,
@@ -180,7 +185,8 @@ var BlankDashboardCR = DashboardConfig{
 			LlmGatewayField:              false,
 			PromptManagement:             false,
 			MySubscriptions:              false,
-			MaasSettingsIaRedesign:       false,
+			MaasSettingsIaRedesign:       true,
+			ConnectionTest:               false,
 		},
 		NotebookController: &NotebookController{
 			Enabled: true,

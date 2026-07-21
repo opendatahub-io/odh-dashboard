@@ -13,8 +13,8 @@ class AutomlResultsPage {
     return cy.findByTestId('run-details-button');
   }
 
-  findRunInProgressMessage() {
-    return cy.findByTestId('automl-run-in-progress');
+  findRunInProgressMessage(timeout?: number) {
+    return cy.findByTestId('automl-run-in-progress', timeout ? { timeout } : undefined);
   }
 
   findRunStatusLabel(timeout?: number) {
@@ -94,7 +94,7 @@ class AutomlResultsPage {
   }
 
   findModelDetailsModalCloseButton() {
-    return this.findModelDetailsModal().findByRole('button', { name: 'Close' });
+    return cy.findByTestId('model-details-close');
   }
 
   findModelSelectorDropdown() {
@@ -134,6 +134,53 @@ class AutomlResultsPage {
 
   findConfusionMatrixGradient() {
     return cy.findByTestId('confusion-matrix-gradient');
+  }
+
+  // ROC curve tab
+  findROCCurveSection() {
+    return cy.findByTestId('roc-curve-section');
+  }
+
+  findROCCurveChart() {
+    return cy.findByTestId('roc-curve-chart');
+  }
+
+  findROCCurveNoData() {
+    return cy.findByTestId('roc-curve-no-data');
+  }
+
+  // Precision-Recall tab
+  findPrecisionRecallChart() {
+    return cy.findByTestId('precision-recall-chart');
+  }
+
+  findPrecisionRecallNoData() {
+    return cy.findByTestId('precision-recall-no-data');
+  }
+
+  // Back-testing tab
+  findBacktestingContent() {
+    return cy.findByTestId('backtest-window-content');
+  }
+
+  findBacktestingNoData() {
+    return cy.findByTestId('backtest-window-no-data');
+  }
+
+  findBacktestMetricCard(key: string) {
+    return cy.findByTestId(`metric-card-${key}`);
+  }
+
+  findBacktestMetricSelector() {
+    return cy.findByTestId('metric-selector-toggle');
+  }
+
+  findBacktestWindowChart() {
+    return cy.findByTestId('backtest-window-chart');
+  }
+
+  findForecastChart(title: string) {
+    return cy.findByTestId(`forecast-chart-${title}`);
   }
 
   // Register model modal
@@ -186,6 +233,10 @@ class AutomlResultsPage {
     return cy.findByTestId('retry-run-action');
   }
 
+  findReconfigureButton() {
+    return cy.findByTestId('reconfigure-run-button');
+  }
+
   /**
    * Waits up to `timeoutMs` (default 5 min) for the run to complete.
    * Checks UI state with reduced timeout to fail fast if run doesn't complete.
@@ -223,6 +274,9 @@ class AutomlResultsPage {
    * | feature-summary    | yes    | yes        | yes        | no         |
    * | model-evaluation   | yes    | yes        | yes        | yes        |
    * | confusion-matrix   | yes    | yes        | no         | no         |
+   * | roc-curve          | yes    | yes        | no         | no         |
+   * | precision-recall   | yes    | yes        | no         | no         |
+   * | backtest-window    | no     | no         | no         | yes        |
    */
   verifyResultsInteraction(taskType: 'binary' | 'multiclass' | 'regression' | 'timeseries') {
     const isClassification = taskType === 'binary' || taskType === 'multiclass';
@@ -263,8 +317,43 @@ class AutomlResultsPage {
       this.findModelDetailsTab('confusion-matrix').should('exist');
       this.findModelDetailsTab('confusion-matrix').click();
       this.findConfusionMatrixTable().should('be.visible');
+
+      cy.step('Verify ROC curve tab renders chart');
+      this.findModelDetailsTab('roc-curve').should('exist');
+      this.findModelDetailsTab('roc-curve').click();
+      this.findROCCurveSection().should('exist').scrollIntoView();
+      this.findROCCurveChart().should('be.visible');
+
+      cy.step('Verify precision-recall tab renders chart');
+      this.findModelDetailsTab('precision-recall').should('exist');
+      this.findModelDetailsTab('precision-recall').click();
+      this.findPrecisionRecallChart().should('be.visible');
+
+      this.findModelDetailsTab('backtest-window').should('not.exist');
     } else {
       this.findModelDetailsTab('confusion-matrix').should('not.exist');
+      this.findModelDetailsTab('roc-curve').should('not.exist');
+      this.findModelDetailsTab('precision-recall').should('not.exist');
+
+      if (isTimeseries) {
+        cy.step('Verify backtest window tab renders content');
+        this.findModelDetailsTab('backtest-window').should('exist');
+        this.findModelDetailsTab('backtest-window').click();
+        this.findBacktestingContent().should('exist');
+
+        cy.step('Verify summary metric cards');
+        this.findBacktestingContent().find('.automl-backtest-metric-card').should('have.length', 3);
+
+        cy.step('Verify backtest window chart and metric selector');
+        this.findBacktestMetricSelector().scrollIntoView().should('be.visible');
+        this.findBacktestWindowChart().scrollIntoView().should('be.visible');
+
+        cy.step('Verify forecast vs. observed charts');
+        this.findForecastChart('Best-fit').scrollIntoView().should('be.visible');
+        this.findForecastChart('Worst-fit').scrollIntoView().should('be.visible');
+      } else {
+        this.findModelDetailsTab('backtest-window').should('not.exist');
+      }
     }
 
     cy.step('Close model details modal');

@@ -203,6 +203,7 @@ log_info "Building Mock BFF binary..."
 go build -o "$BFF_BINARY" ./cmd
 
 log_info "Starting Mock BFF server"
+GOLANG_PROTOBUF_REGISTRATION_CONFLICT=warn \
 "$BFF_BINARY" $BFF_MOCK_FLAGS --port "$PORT" --allowed-origins="*" > "$BFF_LOG_FILE" 2>&1 &
 
 BFF_PID=$!

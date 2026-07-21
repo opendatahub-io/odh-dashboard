@@ -30,6 +30,7 @@ import {
   McpServerListParams,
   McpToolList,
 } from './mcpServerCatalogTypes';
+import type { AgentCatalogSpecificAPIs } from './agentsCatalogTypes';
 
 export type HardwareConfiguration = {
   gpu_type: string;
@@ -45,6 +46,7 @@ export type CatalogSource = {
   enabled?: boolean;
   status?: 'available' | 'partially-available' | 'error' | 'disabled';
   error?: string;
+  assetType?: CatalogAssetType;
 };
 
 export type CatalogSourceList = PaginationParams & { items?: CatalogSource[] };
@@ -86,7 +88,7 @@ export type PaginationParams = {
   nextPageToken: string;
 };
 
-export type CatalogAssetType = 'models' | 'mcp_servers';
+export type CatalogAssetType = 'models' | 'mcp_servers' | 'agents';
 
 export type CatalogSourceListParams = {
   assetType?: CatalogAssetType;
@@ -329,7 +331,7 @@ export type ModelCatalogAPIs = {
   getMcpServerFilterOptionList: GetMcpServerFilterOptionList;
   getMcpServer: GetMcpServer;
   getMcpServerToolList: GetMcpServerToolList;
-};
+} & AgentCatalogSpecificAPIs;
 
 export type CatalogModelDetailsParams = {
   sourceId?: string;

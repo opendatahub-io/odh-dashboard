@@ -1,25 +1,43 @@
 import * as React from 'react';
 import { render, screen } from '@testing-library/react';
 import PhaseLabel from '~/app/shared/PhaseLabel';
-import { PhaseResourceType } from '~/app/utilities/phaseLabelUtils';
+import { PhaseLabelLocation, PhaseResourceType } from '~/app/utilities/phaseLabelUtils';
 
 describe('PhaseLabel', () => {
   it('should render Active phase with correct text', () => {
-    render(<PhaseLabel phase="Active" resourceType={PhaseResourceType.SUBSCRIPTION} />);
+    render(
+      <PhaseLabel
+        phase="Active"
+        resourceType={PhaseResourceType.SUBSCRIPTION}
+        location={PhaseLabelLocation.OVERVIEW}
+      />,
+    );
     const label = screen.getByTestId('phase-label');
     expect(label).not.toBeNull();
     expect(label.textContent).toContain('Ready');
   });
 
   it('should render Ready phase with correct text', () => {
-    render(<PhaseLabel phase="Ready" resourceType={PhaseResourceType.SUBSCRIPTION} />);
+    render(
+      <PhaseLabel
+        phase="Ready"
+        resourceType={PhaseResourceType.SUBSCRIPTION}
+        location={PhaseLabelLocation.OVERVIEW}
+      />,
+    );
     const label = screen.getByTestId('phase-label');
     expect(label).not.toBeNull();
     expect(label.textContent).toContain('Ready');
   });
 
   it('should render Failed phase with correct text', () => {
-    render(<PhaseLabel phase="Failed" resourceType={PhaseResourceType.SUBSCRIPTION} />);
+    render(
+      <PhaseLabel
+        phase="Failed"
+        resourceType={PhaseResourceType.SUBSCRIPTION}
+        location={PhaseLabelLocation.OVERVIEW}
+      />,
+    );
     const label = screen.getByTestId('phase-label');
     expect(label).not.toBeNull();
     expect(label.textContent).toContain('Failed');
@@ -27,7 +45,13 @@ describe('PhaseLabel', () => {
   });
 
   it('should render Degraded phase with correct text', () => {
-    render(<PhaseLabel phase="Degraded" resourceType={PhaseResourceType.SUBSCRIPTION} />);
+    render(
+      <PhaseLabel
+        phase="Degraded"
+        resourceType={PhaseResourceType.SUBSCRIPTION}
+        location={PhaseLabelLocation.OVERVIEW}
+      />,
+    );
     const label = screen.getByTestId('phase-label');
     expect(label).not.toBeNull();
     expect(label.textContent).toContain('Degraded');
@@ -35,7 +59,13 @@ describe('PhaseLabel', () => {
   });
 
   it('should render Unhealthy phase with correct text', () => {
-    render(<PhaseLabel phase="Unhealthy" resourceType={PhaseResourceType.SUBSCRIPTION} />);
+    render(
+      <PhaseLabel
+        phase="Unhealthy"
+        resourceType={PhaseResourceType.SUBSCRIPTION}
+        location={PhaseLabelLocation.OVERVIEW}
+      />,
+    );
     const label = screen.getByTestId('phase-label');
     expect(label).not.toBeNull();
     expect(label.textContent).toContain('Unavailable');
@@ -43,28 +73,52 @@ describe('PhaseLabel', () => {
   });
 
   it('should render Pending phase with correct text', () => {
-    render(<PhaseLabel phase="Pending" resourceType={PhaseResourceType.SUBSCRIPTION} />);
+    render(
+      <PhaseLabel
+        phase="Pending"
+        resourceType={PhaseResourceType.SUBSCRIPTION}
+        location={PhaseLabelLocation.OVERVIEW}
+      />,
+    );
     const label = screen.getByTestId('phase-label');
     expect(label).not.toBeNull();
     expect(label.textContent).toContain('Pending');
   });
 
   it('should render Unknown label when phase is undefined', () => {
-    render(<PhaseLabel phase={undefined} resourceType={PhaseResourceType.SUBSCRIPTION} />);
+    render(
+      <PhaseLabel
+        phase={undefined}
+        resourceType={PhaseResourceType.SUBSCRIPTION}
+        location={PhaseLabelLocation.OVERVIEW}
+      />,
+    );
     const label = screen.getByTestId('phase-label');
     expect(label).not.toBeNull();
     expect(label.textContent).toContain('Unknown');
   });
 
   it('should render unrecognized phase values as-is', () => {
-    render(<PhaseLabel phase="SomethingElse" resourceType={PhaseResourceType.SUBSCRIPTION} />);
+    render(
+      <PhaseLabel
+        phase="SomethingElse"
+        resourceType={PhaseResourceType.SUBSCRIPTION}
+        location={PhaseLabelLocation.OVERVIEW}
+      />,
+    );
     const label = screen.getByTestId('phase-label');
     expect(label).not.toBeNull();
     expect(label.textContent).toContain('SomethingElse');
   });
 
   it('should render outline variant when no statusMessage is provided', () => {
-    render(<PhaseLabel phase="Active" resourceType={PhaseResourceType.SUBSCRIPTION} />);
+    render(
+      <PhaseLabel
+        phase="Active"
+        resourceType={PhaseResourceType.SUBSCRIPTION}
+        location={PhaseLabelLocation.OVERVIEW}
+      />,
+    );
     const label = screen.getByTestId('phase-label');
     expect(label.className).toContain('pf-m-outline');
     expect(screen.queryByTestId('phase-popover')).toBeNull();
@@ -76,6 +130,7 @@ describe('PhaseLabel', () => {
         phase="Failed"
         resourceType={PhaseResourceType.SUBSCRIPTION}
         statusMessage="Token limit exceeded."
+        location={PhaseLabelLocation.OVERVIEW}
       />,
     );
     const label = screen.getByTestId('phase-label');
@@ -89,6 +144,7 @@ describe('PhaseLabel', () => {
         phase="Active"
         resourceType={PhaseResourceType.SUBSCRIPTION}
         statusMessage="Some message."
+        location={PhaseLabelLocation.OVERVIEW}
       />,
     );
     const label = screen.getByTestId('phase-label');
@@ -102,6 +158,7 @@ describe('PhaseLabel', () => {
         phase="Ready"
         resourceType={PhaseResourceType.SUBSCRIPTION}
         statusMessage="Some message."
+        location={PhaseLabelLocation.OVERVIEW}
       />,
     );
     const label = screen.getByTestId('phase-label');

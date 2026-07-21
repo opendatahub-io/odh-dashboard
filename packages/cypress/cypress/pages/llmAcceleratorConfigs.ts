@@ -16,7 +16,7 @@ class LlmAcceleratorConfigRow {
 
   shouldHaveUnsupportedLabel(enabled = true) {
     this.find()
-      .findByTestId('unsupported-label')
+      .findByTestId('limited-support-label')
       .should(enabled ? 'exist' : 'not.exist');
     return this;
   }
@@ -48,6 +48,10 @@ class UnsupportedStatusAcceptanceModal {
   shouldNotExist() {
     cy.findByTestId('unsupported-status-acceptance-modal').should('not.exist');
     return this;
+  }
+
+  findAcceptanceCheckbox() {
+    return this.find().findByTestId('unsupported-status-acceptance-checkbox');
   }
 
   findAcceptButton() {
@@ -86,6 +90,39 @@ class LlmAcceleratorConfigs {
 
   findAddButton() {
     return cy.findByTestId('add-accelerator-config-button');
+  }
+
+  findSubmitButton() {
+    return cy.findByTestId('submit-button');
+  }
+
+  findCancelButton() {
+    return cy.findByTestId('cancel-button');
+  }
+
+  findNameInput() {
+    return cy.findByTestId('llm-accelerator-config-name');
+  }
+
+  findVersionInput() {
+    return cy.findByTestId('llm-accelerator-config-version');
+  }
+
+  findYamlEditor() {
+    return cy.findByTestId('config-yaml-editor');
+  }
+
+  setYamlEditorContent(value: string) {
+    this.findYamlEditor()
+      .find('input[type="file"]')
+      .selectFile(
+        {
+          contents: Cypress.Buffer.from(value),
+          fileName: 'editor-content.yaml',
+          mimeType: 'text/yaml',
+        },
+        { force: true },
+      );
   }
 
   getRowByName(name: string) {

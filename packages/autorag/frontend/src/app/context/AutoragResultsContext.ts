@@ -4,6 +4,7 @@ import type { ConfigureSchema } from '~/app/schemas/configure.schema';
 import { createConfigureSchema } from '~/app/schemas/configure.schema';
 import type { ComponentStageMap } from '~/app/hooks/useComponentStageMap';
 import type { AutoragPattern } from '~/app/types/autoragPattern';
+import { resolveBestPatternKey } from '~/app/utilities/utils';
 
 export type AutoragResultsContextProps = {
   pipelineRun?: PipelineRun;
@@ -19,6 +20,12 @@ export type AutoragResultsContextProps = {
   componentStageMap?: ComponentStageMap;
   componentStageMapLoading?: boolean;
   componentStageMapError?: boolean;
+  /**
+   * Client-side winning pattern: the record key of the highest-`final_score` pattern.
+   * AutoRAG has no backend `best_model`-equivalent field, so this is always derived from
+   * loaded `patterns` (by record key, not display name) rather than the component stage map.
+   */
+  bestPatternKey?: string;
 };
 
 export const AutoragResultsContext = React.createContext<AutoragResultsContextProps | undefined>(
@@ -74,6 +81,8 @@ export function getAutoragContext({
     console.warn('Failed to parse pipeline runtime parameters:', parseResult.error);
   }
 
+  const bestPatternKey = resolveBestPatternKey(patterns);
+
   return {
     pipelineRun,
     pipelineRunLoading,
@@ -88,5 +97,6 @@ export function getAutoragContext({
     componentStageMap,
     componentStageMapLoading,
     componentStageMapError,
+    bestPatternKey,
   };
 }

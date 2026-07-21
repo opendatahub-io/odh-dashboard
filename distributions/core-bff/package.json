@@ -26,20 +26,16 @@
       "port": 8843
     }
   },
-  "bffConfig": {
-    "enabled": true,
-    "port": 4020,
-    "healthEndpoint": "/healthcheck",
-    "startCommand": "make dev-bff-e2e-mock",
-    "startCommandCluster": "make dev-bff-e2e-cluster"
-  },
   "scripts": {
     "install:module": "npm install --prefix frontend",
     "cypress:server:build": "cd frontend && cross-env DIST_DIR=./public-cypress DEPLOYMENT_MODE=federated npm run build",
     "cypress:server:build:coverage": "cross-env COVERAGE=true npm run cypress:server:build",
     "cypress:server": "cd frontend && serve ./public-cypress -p 9112 -s -L",
     "cypress:server:dev": "cd frontend && cross-env DEPLOYMENT_MODE=federated PORT=9112 PROXY_PORT=4020 npm run start:dev",
-    "cypress:server:wait": "wait-on -i 1000 http://localhost:9112",
+    "cypress:server:wait": "wait-on -i 1000 http-get://localhost:9112/healthcheck",
+    "cypress:server:e2e:wait": "npm run cypress:server:wait",
+    "prepare:e2e": "cd bff && go mod download",
+    "cypress:server:e2e": "STATIC_ASSETS_DIR=../frontend/public-cypress make dev-bff-e2e-cluster E2E_BFF_PORT=9112",
     "test:contract": "npm run test:contract:openshift && npm run test:contract:xks",
     "test:contract:openshift": "cross-env BFF_MOCK_FLAGS='--mock-k8s-client --auth-method=user_token --platform-type=OpenShift' CONTRACT_TEST_PATH='(foundation|openshift)' odh-ct-bff-consumer --bff-dir bff",
     "test:contract:xks": "cross-env BFF_MOCK_FLAGS='--mock-k8s-client --auth-method=user_token --platform-type=XKS' CONTRACT_TEST_PATH='(foundation|xks)' odh-ct-bff-consumer --bff-dir bff",

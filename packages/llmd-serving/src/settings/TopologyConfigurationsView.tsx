@@ -3,6 +3,7 @@ import * as React from 'react';
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
 import TopologyConfigurationsTable from './TopologyConfigurationsTable';
+import EmptyTopologyConfigurations from './EmptyTopologyConfigurations';
 import { useWatchTopologyConfigs } from '../api/LLMInferenceServiceConfigs';
 
 const TopologyConfigurationsView: React.FC = () => {
@@ -16,6 +17,7 @@ const TopologyConfigurationsView: React.FC = () => {
       loaded={loaded}
       loadError={error}
       empty={loaded && configs.length === 0}
+      emptyStatePage={<EmptyTopologyConfigurations />}
       provideChildrenPadding
     >
       <TopologyConfigurationsTable configs={configs} />

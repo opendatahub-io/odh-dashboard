@@ -2,13 +2,16 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import {
   Button,
-  Grid,
-  GridItem,
+  Content,
+  ContentVariants,
+  Flex,
+  FlexItem,
   Modal,
   ModalBody,
+  ModalFooter,
   ModalHeader,
+  Popover,
   Title,
-  Tooltip,
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { useParams } from 'react-router';
@@ -48,7 +51,7 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
   onClickSaveNotebook,
   onRegisterModel,
 }) => {
-  const { models: modelsRecord, parameters, pipelineRun } = useAutomlResultsContext();
+  const { models: modelsRecord, parameters, pipelineRun, bestModelKey } = useAutomlResultsContext();
   const models = Object.values(modelsRecord);
   const taskType = parameters?.task_type ?? TASK_TYPE_TIMESERIES;
   const evalMetric = resolveEvalMetric(parameters?.eval_metric, taskType);
@@ -61,21 +64,25 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
   }, [modelName]);
 
   const rankMap = React.useMemo(
-    () => computeRankMap(modelsRecord, taskType, parameters?.eval_metric),
-    [modelsRecord, taskType, parameters?.eval_metric],
+    () => computeRankMap(modelsRecord, taskType, parameters?.eval_metric, bestModelKey),
+    [modelsRecord, taskType, parameters?.eval_metric, bestModelKey],
   );
   const model = modelsRecord[selectedModelName];
-  const rank = selectedModelName === modelName ? initialRank : rankMap[selectedModelName];
+  const rank =
+    rankMap[selectedModelName] ?? (selectedModelName === modelName ? initialRank : undefined);
 
   const { namespace } = useParams<{ namespace: string }>();
   const isClassification = taskType === 'binary' || taskType === 'multiclass';
+  const isTimeseries = taskType === TASK_TYPE_TIMESERIES;
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Record<string,T> hides runtime undefined
   const modelDirectory = model?.location?.model_directory;
   const {
     featureImportance,
     confusionMatrix,
+    curves,
+    backTesting,
     isLoading: isArtifactsLoading,
-  } = useModelEvaluationArtifactsQuery(namespace, modelDirectory, isClassification);
+  } = useModelEvaluationArtifactsQuery(namespace, modelDirectory, isClassification, isTimeseries);
 
   const visibleTabs = React.useMemo(() => getVisibleTabs(taskType), [taskType]);
   const [activeTabKey, setActiveTabKey] = React.useState(visibleTabs[0]?.key ?? '');
@@ -86,6 +93,11 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
   }, [visibleTabs]);
 
   const [isPrinting, setIsPrinting] = React.useState(false);
+  const backtestMetricsRef = React.useRef<string[]>();
+
+  React.useEffect(() => {
+    backtestMetricsRef.current = undefined;
+  }, [selectedModelName]);
 
   React.useEffect(() => {
     if (!isPrinting) {
@@ -101,6 +113,24 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
 
   const activeTab = visibleTabs.find((t) => t.key === activeTabKey);
   const ActiveComponent = activeTab?.component;
+
+  const handleBacktestMetricsChange = React.useCallback((metrics: string[]) => {
+    backtestMetricsRef.current = metrics;
+  }, []);
+
+  const tabContentProps = {
+    model,
+    taskType,
+    parameters,
+    createdAt,
+    featureImportance,
+    confusionMatrix,
+    curves,
+    backTesting,
+    isArtifactsLoading,
+    backtestSelectedMetrics: backtestMetricsRef.current,
+    onBacktestMetricsChange: handleBacktestMetricsChange,
+  };
 
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Record<string,T> hides runtime undefined
   if (!model) {
@@ -144,8 +174,11 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
             }
             isDownloadDisabled={taskType !== TASK_TYPE_TIMESERIES && !featureImportance}
           />
-          <Grid hasGutter className="automl-model-details-screen-only">
-            <GridItem span={2} className="automl-model-details-sidebar">
+          <Flex
+            alignItems={{ default: 'alignItemsStretch' }}
+            className="automl-model-details-screen-only automl-model-details-grid"
+          >
+            <FlexItem className="automl-model-details-sidebar">
               <nav aria-label="Model details navigation">
                 {[...groupedTabs.entries()].map(([section, tabs]) => (
                   <div key={section}>
@@ -171,38 +204,43 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
                   </div>
                 ))}
               </nav>
-            </GridItem>
-            <GridItem span={10}>
-              {activeTab && (
-                <>
-                  <div className="automl-model-details-tab-title">
-                    <Title headingLevel="h2">{activeTab.label}</Title>
-                    <Tooltip content={activeTab.tooltip} position="right">
-                      <Button
-                        variant="plain"
-                        aria-label={`${activeTab.label} info`}
-                        icon={<OutlinedQuestionCircleIcon />}
-                      />
-                    </Tooltip>
-                  </div>
-                  <div className="automl-model-details-tab-content">
-                    {ActiveComponent && (
-                      <ActiveComponent
-                        model={model}
-                        taskType={taskType}
-                        parameters={parameters}
-                        createdAt={createdAt}
-                        featureImportance={featureImportance}
-                        confusionMatrix={confusionMatrix}
-                        isArtifactsLoading={isArtifactsLoading}
-                      />
+            </FlexItem>
+            <FlexItem flex={{ default: 'flex_1' }} className="automl-model-details-content-wrapper">
+              <div className="automl-model-details-content">
+                {activeTab && (
+                  <>
+                    <div className="automl-model-details-tab-title">
+                      <Title headingLevel="h2">{activeTab.label}</Title>
+                      <Popover bodyContent={activeTab.tooltip} position="top">
+                        <Button
+                          variant="plain"
+                          aria-label={`${activeTab.label} info`}
+                          icon={<OutlinedQuestionCircleIcon />}
+                        />
+                      </Popover>
+                    </div>
+                    {activeTab.description && (
+                      <Content
+                        component={ContentVariants.p}
+                        className="automl-model-details-tab-description"
+                      >
+                        {activeTab.description}
+                      </Content>
                     )}
-                  </div>
-                </>
-              )}
-            </GridItem>
-          </Grid>
+                    <div className="automl-model-details-tab-content">
+                      {ActiveComponent && <ActiveComponent {...tabContentProps} />}
+                    </div>
+                  </>
+                )}
+              </div>
+            </FlexItem>
+          </Flex>
         </ModalBody>
+        <ModalFooter>
+          <Button variant="primary" onClick={onClose} data-testid="model-details-close">
+            Close
+          </Button>
+        </ModalFooter>
       </Modal>
 
       {/* Print-only container: portalled to document.body so it sits outside
@@ -238,6 +276,10 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
                     createdAt={createdAt}
                     featureImportance={featureImportance}
                     confusionMatrix={confusionMatrix}
+                    curves={curves}
+                    backTesting={backTesting}
+                    isArtifactsLoading={isArtifactsLoading}
+                    backtestSelectedMetrics={backtestMetricsRef.current}
                   />
                 </div>
               );
