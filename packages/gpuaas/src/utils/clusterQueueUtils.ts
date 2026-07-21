@@ -300,9 +300,7 @@ export const computeDcgmSplitData = (
 
 /** Formats the active/pending workload count line shown on a CQ card. */
 export const formatWorkloadCounts = (admitted: number, pending: number): string =>
-  `${admitted} active workload${admitted !== 1 ? 's' : ''} · ${pending} pending workload${
-    pending !== 1 ? 's' : ''
-  }`;
+  `Workloads: ${admitted} active, ${pending} pending`;
 
 /**
  * Normalises a GPU model name so NFD node-label format ("NVIDIA-A100-SXM4-80GB" or "AMD_MI300X")
