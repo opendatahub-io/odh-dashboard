@@ -77,6 +77,11 @@ on:
         required: false
         default: ''
         type: string
+      enable_coverage:
+        description: 'Enable E2E code coverage collection and upload to Codecov'
+        required: false
+        default: false
+        type: boolean
 
 concurrency:
   group: e2e-${{ github.event.workflow_run.head_branch || github.ref }}
@@ -1243,7 +1248,13 @@ jobs:
 
           # Cypress reads CYPRESS_* env vars natively — avoids arg escaping through concurrently
           export CYPRESS_OC_SERVER="$OC_SERVER"
-          export CYPRESS_skipTags="@Bug @Maintain @NonConcurrent"
+          if [[ "${{ inputs.enable_coverage }}" == "true" ]]; then
+            export CY_COVERAGE=true
+            export CYPRESS_skipTags="@Bug @Maintain"
+            echo "📊 Coverage collection enabled — @NonConcurrent tests included"
+          else
+            export CYPRESS_skipTags="@Bug @Maintain @NonConcurrent"
+          fi
           export CYPRESS_grepTags="$MATRIX_TAG"
           export CYPRESS_grepFilterSpecs=true
           export CYPRESS_video=true
@@ -1267,6 +1278,15 @@ jobs:
             packages/cypress/videos/
             packages/cypress/screenshots/
           retention-days: 7
+
+      - name: Upload coverage artifact
+        if: always() && github.event.inputs.enable_coverage == 'true'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: e2e-coverage-${{ env.TAG_DIR }}
+          path: packages/cypress/coverage/coverage-final.json
+          retention-days: 7
+          if-no-files-found: warn
 
       - name: Log test completion
         if: always()
@@ -1328,6 +1348,58 @@ jobs:
             -f context="Cypress E2E Tests" \
             -f description="$DESC" \
             -f target_url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+  # ---------------------------------------------------------------------------
+  # Upload E2E Coverage to Codecov (opt-in via workflow_dispatch)
+  # ---------------------------------------------------------------------------
+  upload-e2e-coverage:
+    needs: [e2e-tests]
+    if: >-
+      always() &&
+      github.event_name == 'workflow_dispatch' &&
+      inputs.enable_coverage == true
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/setup-node@cdca7365b2dadb8aad0a33bc7601856ffabcc48e # v4.3.0
+        with:
+          node-version: 22
+      - name: Download coverage artifacts
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          pattern: e2e-coverage-*
+          path: e2e-coverage
+      - name: Merge coverage reports
+        run: |
+          npm install nyc --no-save
+          mkdir -p ./coverage
+
+          FOUND=0
+          for f in $(find e2e-coverage -name "coverage-final.json" 2>/dev/null); do
+            group=$(basename "$(dirname "$f")")
+            cp "$f" "./coverage/${group}.json"
+            FOUND=$((FOUND + 1))
+          done
+
+          if [ "$FOUND" -eq 0 ]; then
+            echo "⚠️ No coverage files found — tests may have failed before coverage was collected"
+            exit 0
+          fi
+
+          echo "📊 Merging $FOUND coverage file(s):"
+          ls -la ./coverage/
+          npx nyc merge ./coverage ./coverage/e2e-merged-coverage.json
+      - name: Upload to Codecov
+        if: hashFiles('./coverage/e2e-merged-coverage.json') != ''
+        uses: codecov/codecov-action@b9fd7d16f6d7d1b5d2bec1a2887e65ceed900238 # v4.6.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: false
+          name: cypress-e2e
+          flags: cypress-e2e
+          file: ./coverage/e2e-merged-coverage.json
+          disable_search: true
+          verbose: true
 
   # ---------------------------------------------------------------------------
   # Cleanup - Fix file permissions left by BFF test binaries

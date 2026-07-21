@@ -16,6 +16,13 @@ coverage:
         informational: true
         target: 70%
 
+flags:
+  cypress-e2e:
+    paths:
+      - frontend/src/
+      - packages/
+    carryforward: true
+
 comment:
   layout: "reach,diff,flags,files,footer"
   behavior: default
