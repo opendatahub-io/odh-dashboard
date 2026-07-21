@@ -7,7 +7,7 @@ metadata:
     service.beta.kubernetes.io/backend-protocol: HTTPS
 spec:
   selector:
-    deployment: eval-hub
+    deployment: eval-hub-ui
   ports:
     - name: eval-hub-ui
       protocol: TCP

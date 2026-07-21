@@ -5,7 +5,7 @@ metadata:
 spec:
   podSelector:
     matchLabels:
-      deployment: eval-hub
+      deployment: eval-hub-ui
   policyTypes:
     - Ingress
     - Egress
@@ -36,7 +36,7 @@ spec:
     - to:
         - podSelector:
             matchLabels:
-              deployment: model-registry
+              deployment: model-registry-ui
       ports:
         - port: 8043
           protocol: TCP

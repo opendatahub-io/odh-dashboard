@@ -5,7 +5,7 @@ metadata:
 spec:
   podSelector:
     matchLabels:
-      deployment: automl
+      deployment: automl-ui
   policyTypes:
     - Ingress
     - Egress

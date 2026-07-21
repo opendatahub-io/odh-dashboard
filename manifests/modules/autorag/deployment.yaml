@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: autorag
+  name: autorag-ui
   labels:
     app.kubernetes.io/name: autorag
     app.kubernetes.io/part-of: odh-dashboard
@@ -10,11 +10,11 @@ spec:
   replicas: 2
   selector:
     matchLabels:
-      deployment: autorag
+      deployment: autorag-ui
   template:
     metadata:
       labels:
-        deployment: autorag
+        deployment: autorag-ui
         app.kubernetes.io/name: autorag
         app.kubernetes.io/part-of: odh-dashboard
         components.platform.opendatahub.io/managed-by: opendatahub-operator
@@ -31,7 +31,7 @@ spec:
               podAffinityTerm:
                 labelSelector:
                   matchLabels:
-                    deployment: autorag
+                    deployment: autorag-ui
                 topologyKey: topology.kubernetes.io/zone
       volumes:
         - name: tmp

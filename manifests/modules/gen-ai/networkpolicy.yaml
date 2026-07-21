@@ -5,7 +5,7 @@ metadata:
 spec:
   podSelector:
     matchLabels:
-      deployment: gen-ai
+      deployment: gen-ai-ui
   policyTypes:
     - Ingress
     - Egress
@@ -30,21 +30,14 @@ spec:
     - to:
         - podSelector:
             matchLabels:
-              deployment: odh-dashboard
-      ports:
-        - port: 8943
-          protocol: TCP
-    - to:
-        - podSelector:
-            matchLabels:
-              deployment: maas
+              deployment: maas-ui
       ports:
         - port: 8243
           protocol: TCP
     - to:
         - podSelector:
             matchLabels:
-              deployment: mlflow
+              deployment: mlflow-ui
       ports:
         - port: 8343
           protocol: TCP

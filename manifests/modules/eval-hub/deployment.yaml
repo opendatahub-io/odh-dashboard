@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: eval-hub
+  name: eval-hub-ui
   labels:
     app.kubernetes.io/name: eval-hub
     app.kubernetes.io/part-of: odh-dashboard
@@ -10,11 +10,11 @@ spec:
   replicas: 2
   selector:
     matchLabels:
-      deployment: eval-hub
+      deployment: eval-hub-ui
   template:
     metadata:
       labels:
-        deployment: eval-hub
+        deployment: eval-hub-ui
         app.kubernetes.io/name: eval-hub
         app.kubernetes.io/part-of: odh-dashboard
         components.platform.opendatahub.io/managed-by: opendatahub-operator
@@ -31,7 +31,7 @@ spec:
               podAffinityTerm:
                 labelSelector:
                   matchLabels:
-                    deployment: eval-hub
+                    deployment: eval-hub-ui
                 topologyKey: topology.kubernetes.io/zone
       volumes:
         - name: tmp

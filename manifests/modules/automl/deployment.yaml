@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: automl
+  name: automl-ui
   labels:
     app.kubernetes.io/name: automl
     app.kubernetes.io/part-of: odh-dashboard
@@ -10,11 +10,11 @@ spec:
   replicas: 2
   selector:
     matchLabels:
-      deployment: automl
+      deployment: automl-ui
   template:
     metadata:
       labels:
-        deployment: automl
+        deployment: automl-ui
         app.kubernetes.io/name: automl
         app.kubernetes.io/part-of: odh-dashboard
         components.platform.opendatahub.io/managed-by: opendatahub-operator
@@ -31,7 +31,7 @@ spec:
               podAffinityTerm:
                 labelSelector:
                   matchLabels:
-                    deployment: automl
+                    deployment: automl-ui
                 topologyKey: topology.kubernetes.io/zone
       volumes:
         - name: tmp

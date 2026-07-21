@@ -7,7 +7,7 @@ metadata:
     service.beta.kubernetes.io/backend-protocol: HTTPS
 spec:
   selector:
-    deployment: mlflow
+    deployment: mlflow-ui
   ports:
     - name: mlflow-ui
       protocol: TCP

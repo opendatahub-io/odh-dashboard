@@ -5,7 +5,7 @@ metadata:
 spec:
   podSelector:
     matchLabels:
-      deployment: autorag
+      deployment: autorag-ui
   policyTypes:
     - Ingress
     - Egress

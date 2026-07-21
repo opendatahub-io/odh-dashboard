@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: gen-ai
+  name: gen-ai-ui
   labels:
     app.kubernetes.io/name: gen-ai
     app.kubernetes.io/part-of: odh-dashboard
@@ -10,11 +10,11 @@ spec:
   replicas: 2
   selector:
     matchLabels:
-      deployment: gen-ai
+      deployment: gen-ai-ui
   template:
     metadata:
       labels:
-        deployment: gen-ai
+        deployment: gen-ai-ui
         app.kubernetes.io/name: gen-ai
         app.kubernetes.io/part-of: odh-dashboard
         components.platform.opendatahub.io/managed-by: opendatahub-operator
@@ -31,7 +31,7 @@ spec:
               podAffinityTerm:
                 labelSelector:
                   matchLabels:
-                    deployment: gen-ai
+                    deployment: gen-ai-ui
                 topologyKey: topology.kubernetes.io/zone
       volumes:
         - name: tmp

@@ -101,16 +101,8 @@ var interBFFDependencies = map[string][]interBFFDependency{
 // coreBffPort is the port core-bff listens on within the main dashboard pod/service.
 const coreBffPort = 8943
 
-// modulesWithCoreBFFAccess lists module names that should receive core-bff
-// service-discovery env vars (BFF_CORE_BFF_SERVICE_NAME / _SERVICE_PORT) so
-// they can call core-bff endpoints without hard-coding service coordinates.
-var modulesWithCoreBFFAccess = map[string]bool{
-	"genAi": true,
-	"maas":  true,
-}
-
 // mainDashboardServiceName returns the platform-specific name of the main
-// dashboard Service that exposes port 8943 (core-bff).
+// dashboard Service that exposes the core-bff port (8943).
 func mainDashboardServiceName(platform cluster.Platform) string {
 	if platform == cluster.SelfManagedRhoai || platform == cluster.ManagedRhoai {
 		return "rhods-dashboard"
@@ -317,14 +309,6 @@ func addInterBFFParams(params map[string]string, moduleName string, statuses map
 		svcName := standaloneServiceName(platform, targetMod.ManifestSlug)
 		params[dep.EnvServiceName] = svcName
 		params[dep.EnvServicePort] = fmt.Sprintf("%d", targetMod.Port)
-	}
-
-	// Inject core-bff service coordinates for modules that are granted access.
-	// core-bff always lives at the main dashboard Service on port 8943, regardless
-	// of deployment mode (it shares the pod/service with odh-dashboard).
-	if modulesWithCoreBFFAccess[moduleName] {
-		params["BFF_CORE_BFF_SERVICE_NAME"] = mainDashboardServiceName(platform)
-		params["BFF_CORE_BFF_SERVICE_PORT"] = fmt.Sprintf("%d", coreBffPort)
 	}
 }
 
