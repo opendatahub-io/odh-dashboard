@@ -21,6 +21,7 @@ import {
 } from '../../../utils/autoragTestFlows';
 
 const uuid = generateTestUUID();
+const defaultUuid = `${uuid}-default`;
 const faithUuid = `${uuid}-faith`;
 const overallUuid = `${uuid}-overall`;
 
@@ -85,6 +86,26 @@ describe('AutoRAG Metric Variations E2E', { testIsolation: false }, () => {
     deleteS3TestFiles(projectName, testData.awsBucket, `*${uuid}*`);
     deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
   });
+
+  it(
+    'Can submit a run with untouched default metric (overall_score)',
+    { tags: ['@AutoRAG', '@AutoRAGRegression', '@Featureflagged'] },
+    () => {
+      configureAutoragRun(
+        { ...testData, runName: `${testData.runName}-default` },
+        projectName,
+        defaultUuid,
+      );
+
+      cy.step('Set max RAG patterns without changing the default metric');
+      autoragConfigurePage
+        .findMaxRagPatternsInputField()
+        .type(`{selectall}${testData.maxRagPatterns}`);
+
+      submitAutoragRun();
+      verifyAutoragRunSubmitted(projectName, `${testData.runName}-default`);
+    },
+  );
 
   it(
     'Can submit a run with answer_correctness metric',
