@@ -1,7 +1,6 @@
 import React from 'react';
 
-import { Table } from '#~/components/table';
-import DashboardEmptyTableView from '#~/concepts/dashboard/DashboardEmptyTableView';
+import { DashboardEmptyTableView, Table } from '@odh-dashboard/ui-core';
 import { columns, initialScFilterData, StorageClassFilterData } from './constants';
 import { isValidConfigValue } from './utils';
 import { StorageClassesTableRow } from './StorageClassesTableRow';

@@ -90,7 +90,7 @@ export const applyFilterValue = (
     if (filterKey === ModelCatalogNumberFilterKey.MAX_RPS) {
       setFilterData(ModelCatalogNumberFilterKey.MAX_RPS, numberValue);
     } else {
-      setFilterData(ModelCatalogNumberFilterKey.COLD_START_LATENCY, numberValue);
+      setFilterData(ModelCatalogNumberFilterKey.COLD_START_LOAD_TIME, numberValue);
     }
     return;
   }
@@ -196,7 +196,7 @@ export const getDefaultFiltersFromNamedQuery = (
         if (fieldName === ModelCatalogNumberFilterKey.MAX_RPS) {
           result[ModelCatalogNumberFilterKey.MAX_RPS] = resolvedValue;
         } else {
-          result[ModelCatalogNumberFilterKey.COLD_START_LATENCY] = resolvedValue;
+          result[ModelCatalogNumberFilterKey.COLD_START_LOAD_TIME] = resolvedValue;
         }
       }
       return;

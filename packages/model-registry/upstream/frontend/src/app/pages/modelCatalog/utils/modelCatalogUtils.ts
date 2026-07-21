@@ -11,7 +11,6 @@ import {
   CatalogModelDetailsParams,
   CatalogSource,
   CatalogSourceList,
-  HardwareConfiguration,
   ModelCatalogFilterStates,
   MetricsType,
   ModelCatalogFilterKey,
@@ -19,6 +18,7 @@ import {
   ToolCallingConfig,
 } from '~/app/modelCatalogTypes';
 import { getLabels, getCustomPropString } from '~/app/pages/modelRegistry/screens/utils';
+import { getDoubleValue } from '~/app/utils';
 import {
   ModelCatalogStringFilterKey,
   ModelCatalogNumberFilterKey,
@@ -226,7 +226,9 @@ const isArrayOfSelections = (
 const KNOWN_NUMERIC_FILTER_IDS: string[] = [
   ...ALL_LATENCY_FILTER_KEYS,
   ModelCatalogNumberFilterKey.MAX_RPS,
-  ModelCatalogNumberFilterKey.COLD_START_LATENCY,
+  ModelCatalogNumberFilterKey.COLD_START_LOAD_TIME,
+  ModelCatalogNumberFilterKey.MIN_VRAM,
+  ModelCatalogNumberFilterKey.IMAGE_SIZE,
 ];
 
 /**
@@ -253,8 +255,8 @@ const getNumericFilterOperator = (options: CatalogFilterOptionsList, filterId: s
     // Return the operator from the namedQuery (e.g., '<=', '<', '>')
     return fieldFilter.operator;
   }
-  // Fall back to '<' if this filter isn't in the namedQuery
-  return '<';
+  // Fall back to '<=' if this filter isn't in the namedQuery
+  return '<=';
 };
 
 const isFilterIdInMap = (
@@ -313,7 +315,7 @@ export const getSortParams = (
 
   if (effectiveSortBy === ModelCatalogSortOption.LOWEST_COLD_START) {
     return {
-      orderBy: ModelCatalogNumberFilterKey.COLD_START_LATENCY,
+      orderBy: ModelCatalogNumberFilterKey.COLD_START_LOAD_TIME,
       sortOrder: SortOrder.ASC,
     };
   }
@@ -360,21 +362,32 @@ export type FilterQueryTarget = 'models' | 'artifacts';
 
 /**
  * Determines if a filter should be included based on the target endpoint.
- * - For models: Include all filters except RPS (which is passed as a separate param)
- * - For artifacts: Only include filters that have the artifacts.* prefix
+ * - For models: Include all filters except RPS (which is passed as a separate param).
+ *   Cold-start load time is excluded when includeColdStart is false.
+ * - For artifacts: Only include filters that have the artifacts.* prefix.
+ *   The includeColdStart parameter has no effect on the artifacts target.
  */
-const shouldIncludeFilter = (filterId: string, target: FilterQueryTarget): boolean => {
-  // RPS is always passed as a separate param, not in filterQuery
+const shouldIncludeFilter = (
+  filterId: string,
+  target: FilterQueryTarget,
+  includeColdStart: boolean,
+): boolean => {
   if (filterId === ModelCatalogNumberFilterKey.MAX_RPS) {
     return false;
   }
 
+  if (
+    filterId === ModelCatalogNumberFilterKey.COLD_START_LOAD_TIME &&
+    target === 'models' &&
+    !includeColdStart
+  ) {
+    return false;
+  }
+
   if (target === 'models') {
-    // For models, include all filters (except RPS which is already excluded)
     return true;
   }
 
-  // For artifacts, only include filters with the artifacts.* prefix
   return hasArtifactsPrefix(filterId);
 };
 
@@ -445,6 +458,8 @@ const serializeFilterEntry = (
  * @param target - The target endpoint:
  *   - 'models': Include all filters (except RPS), use filter keys directly
  *   - 'artifacts': Only include artifact-prefixed filters, strip the prefix in output
+ * @param includeColdStart - Whether to include the cold-start filter in the AND clause.
+ *   Should be true only when performance view is enabled.
  *
  * Note: RPS is NOT included in filterQuery for either target - it's passed as targetRPS param.
  */
@@ -452,14 +467,13 @@ export const filtersToFilterQuery = (
   filterData: ModelCatalogFilterStates,
   options: CatalogFilterOptionsList,
   target: FilterQueryTarget = 'models',
-): string => {
-  const serializedFilters: string[] = Object.entries(filterData)
-    .filter(([filterId]) => shouldIncludeFilter(filterId, target))
-    .map(([filterId, data]) => serializeFilterEntry(filterId, data, options, target));
-
-  const nonEmptyFilters = serializedFilters.filter((v) => !!v);
-  return nonEmptyFilters.length === 0 ? '' : nonEmptyFilters.join(' AND ');
-};
+  includeColdStart = true,
+): string =>
+  Object.entries(filterData)
+    .filter(([filterId]) => shouldIncludeFilter(filterId, target, includeColdStart))
+    .map(([filterId, data]) => serializeFilterEntry(filterId, data, options, target))
+    .filter((v) => !!v)
+    .join(' AND ');
 
 /**
  * Returns a copy of filterData with only basic (non-performance) filters.
@@ -794,35 +808,26 @@ export const getCatalogModelTypePropertyForRegistration = (
 
 export const getModelSizeFromCustomProperties = (
   customProperties?: ModelRegistryCustomProperties,
-): string =>
-  customProperties
-    ? getCustomPropString(customProperties, CatalogModelCustomPropertyKey.MODEL_SIZE)
-    : '';
+): string => {
+  if (!customProperties) {
+    return '';
+  }
+  const doubleVal = getDoubleValue(customProperties, 'modelcar_image_size');
+  if (doubleVal > 0) {
+    return `${doubleVal.toFixed(2)} GB`;
+  }
+  return getCustomPropString(customProperties, CatalogModelCustomPropertyKey.MODEL_SIZE);
+};
 
 export const getMinimumVramFromCustomProperties = (
   customProperties?: ModelRegistryCustomProperties,
-): string =>
-  customProperties
-    ? getCustomPropString(customProperties, CatalogModelCustomPropertyKey.MINIMUM_VRAM)
-    : '';
-
-export const getHardwareConfigurationsFromCustomProperties = (
-  customProperties?: ModelRegistryCustomProperties,
-): HardwareConfiguration[] => {
+): string => {
   if (!customProperties) {
-    return [];
+    return '';
   }
-  const hwConfigStr = getCustomPropString(
-    customProperties,
-    CatalogModelCustomPropertyKey.HARDWARE_CONFIGURATIONS,
-  );
-  if (!hwConfigStr) {
-    return [];
+  const doubleVal = getDoubleValue(customProperties, CatalogModelCustomPropertyKey.MINIMUM_VRAM);
+  if (doubleVal > 0) {
+    return `${doubleVal.toFixed(2)} GB`;
   }
-  try {
-    const parsed = JSON.parse(hwConfigStr);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
+  return getCustomPropString(customProperties, CatalogModelCustomPropertyKey.MINIMUM_VRAM);
 };

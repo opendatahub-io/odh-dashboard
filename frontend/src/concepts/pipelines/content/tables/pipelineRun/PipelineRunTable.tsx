@@ -5,12 +5,12 @@ import { Button, Skeleton, Tooltip } from '@patternfly/react-core';
 import { TableVariant, Td } from '@patternfly/react-table';
 import { ColumnsIcon } from '@patternfly/react-icons';
 
-import { TableBase, getTableColumnSort, useCheckboxTable } from '#~/components/table';
+import { DashboardEmptyTableView, getTableColumnSort, TableBase } from '@odh-dashboard/ui-core';
+import { useCheckboxTable } from '#~/components/table';
 import { ExperimentKF, PipelineRunKF, StorageStateKF } from '#~/concepts/pipelines/kfTypes';
 import { getPipelineRunColumns } from '#~/concepts/pipelines/content/tables/columns';
 import useIsMlflowPipelinesAvailable from '#~/concepts/mlflow/hooks/useIsMlflowPipelinesAvailable';
 import PipelineRunTableRow from '#~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableRow';
-import DashboardEmptyTableView from '#~/concepts/dashboard/DashboardEmptyTableView';
 import PipelineRunTableToolbar from '#~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableToolbar';
 import DeletePipelineRunsModal from '#~/concepts/pipelines/content/DeletePipelineRunsModal';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
@@ -25,6 +25,7 @@ import SimpleMenuActions from '#~/components/SimpleMenuActions';
 import { ArchiveRunModal } from '#~/pages/pipelines/global/runs/ArchiveRunModal';
 import { RestoreRunModal } from '#~/pages/pipelines/global/runs/RestoreRunModal';
 import { compareRunsRoute, createRunRoute } from '#~/routes/pipelines/runs';
+import { mlflowCompareRunsRoute } from '#~/routes/pipelines/mlflow';
 import {
   ExperimentContext,
   useContextExperimentArchivedOrDeleted,
@@ -37,7 +38,7 @@ import useMlflowExperiments from '#~/concepts/mlflow/hooks/useMlflowExperiments'
 import { CustomMetricsColumnsModal } from './CustomMetricsColumnsModal';
 import { UnavailableMetricValue } from './UnavailableMetricValue';
 import { useMetricColumns } from './useMetricColumns';
-import { filterByMlflowExperiment } from './utils';
+import { filterByMlflowExperiment, getMlflowExperimentId, getMlflowRunId } from './utils';
 
 type PipelineRunTableProps = {
   runs: PipelineRunKF[];
@@ -101,15 +102,17 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
   const [isArchiveModalOpen, setIsArchiveModalOpen] = React.useState(false);
   const [isRestoreModalOpen, setIsRestoreModalOpen] = React.useState(false);
   const [isCustomColModalOpen, setIsCustomColModalOpen] = React.useState(false);
-  const selectedRuns = selectedIds.reduce((acc: PipelineRunKF[], selectedId) => {
-    const selectedRun = runs.find((run) => run.run_id === selectedId);
-
-    if (selectedRun) {
-      acc.push(selectedRun);
-    }
-
-    return acc;
-  }, []);
+  const selectedRuns = React.useMemo(
+    () =>
+      selectedIds.reduce((acc: PipelineRunKF[], selectedId) => {
+        const selectedRun = runs.find((run) => run.run_id === selectedId);
+        if (selectedRun) {
+          acc.push(selectedRun);
+        }
+        return acc;
+      }, []),
+    [selectedIds, runs],
+  );
   const restoreButtonTooltipRef = React.useRef(null);
   const archivedExperiments = selectedRuns.reduce<ExperimentKF[]>((acc, selectedRun) => {
     const currentExperiment = allExperiments.find(
@@ -117,7 +120,6 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
     );
 
     if (currentExperiment && currentExperiment.storage_state === StorageStateKF.ARCHIVED) {
-      // Create a Set to track unique experiment_id
       if (
         !acc.some(
           (selectedExperiment) =>
@@ -134,8 +136,31 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
   const { isExperimentArchived: isContextExperimentArchived } =
     useContextExperimentArchivedOrDeleted();
   const createRunHref = createRunRoute(namespace, experiment?.experiment_id);
-  const compareRunsHref = compareRunsRoute(namespace, selectedIds, experiment?.experiment_id);
-  const isCompareDisabled = selectedIds.length === 0 || selectedIds.length > 10;
+  const hasSelectedRuns = selectedIds.length > 0;
+
+  const { compareRunsHref, isCompareDisabled } = React.useMemo(() => {
+    const validRunIds = selectedRuns.map(getMlflowRunId).filter((id): id is string => !!id);
+    const validExpIds = selectedRuns.map(getMlflowExperimentId).filter((id): id is string => !!id);
+    const allHaveMlflow =
+      hasSelectedRuns &&
+      validRunIds.length === selectedIds.length &&
+      validExpIds.length === selectedIds.length;
+    const href =
+      isMlflowAvailable && allHaveMlflow
+        ? mlflowCompareRunsRoute(namespace, validRunIds, [...new Set(validExpIds)])
+        : compareRunsRoute(namespace, selectedIds, experiment?.experiment_id);
+    return {
+      compareRunsHref: href,
+      isCompareDisabled: !hasSelectedRuns || selectedIds.length > 10,
+    };
+  }, [
+    selectedRuns,
+    selectedIds,
+    hasSelectedRuns,
+    isMlflowAvailable,
+    namespace,
+    experiment?.experiment_id,
+  ]);
   const primaryToolbarAction = React.useMemo(() => {
     if (runType === PipelineRunType.ARCHIVED) {
       return (

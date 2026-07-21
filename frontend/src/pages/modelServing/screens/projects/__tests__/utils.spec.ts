@@ -1,3 +1,6 @@
+import type { PersistentVolumeClaimKind } from '@odh-dashboard/k8s-core';
+import { ServingRuntimePlatform } from '@odh-dashboard/model-serving/shared';
+import type { ServingRuntimeKind } from '@odh-dashboard/model-serving/shared';
 import { mockProjectK8sResource } from '#~/__mocks__/mockProjectK8sResource';
 import {
   createNIMPVC,
@@ -14,10 +17,8 @@ import {
   getPVCNameFromURI,
 } from '#~/pages/modelServing/screens/projects/utils';
 import { ServingPlatformStatuses } from '#~/pages/modelServing/screens/types';
-import { ServingRuntimePlatform } from '#~/types';
 import { mockInferenceServiceK8sResource } from '#~/__mocks__/mockInferenceServiceK8sResource';
 import { createPvc, createSecret } from '#~/api';
-import { PersistentVolumeClaimKind, ServingRuntimeKind } from '#~/k8sTypes';
 import {
   getNIMData,
   getNIMResource,

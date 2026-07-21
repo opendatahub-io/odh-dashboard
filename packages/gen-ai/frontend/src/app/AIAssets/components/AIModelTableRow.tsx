@@ -24,6 +24,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { TableRowTitleDescription, TruncatedText } from 'mod-arch-shared';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import CapabilityBadges from '~/app/components/CapabilityBadges';
 import {
   AIModel,
   ExternalVectorStoreSummary,
@@ -33,7 +34,7 @@ import {
 } from '~/app/types';
 import ChatbotConfigurationModal from '~/app/Chatbot/components/chatbotConfiguration/ChatbotConfigurationModal';
 import { genAiAiAssetsTabRoute, genAiChatPlaygroundRoute } from '~/app/utilities/routes';
-import { isPlaygroundModelMatchForAIModel } from '~/app/utilities/utils';
+import { isPlaygroundModelMatchForAIModel, isASRModel } from '~/app/utilities/utils';
 import useAiAssetVectorStoresEnabled from '~/app/hooks/useAiAssetVectorStoresEnabled';
 import { GenAiContext } from '~/app/context/GenAiContext';
 import AIModelsTableRowInfo from './AIModelsTableRowInfo';
@@ -101,8 +102,10 @@ const AIModelTableRow: React.FC<AIModelTableRowProps> = ({
         <Td dataLabel="Model">
           <TableRowTitleDescription title={<AIModelsTableRowInfo model={model} />} />
           <Truncate
+            data-testid="model-id-text"
             content={model.model_id}
             className="pf-v6-u-font-family-monospace pf-v6-u-font-size-xs pf-v6-u-color-200 pf-v6-u-mt-xs"
+            style={{ userSelect: 'all' }}
           />
           {model.description && (
             <Truncate
@@ -114,6 +117,9 @@ const AIModelTableRow: React.FC<AIModelTableRowProps> = ({
         </Td>
         <Td dataLabel="Use case">
           <TruncatedText maxLines={2} content={model.usecase} />
+        </Td>
+        <Td dataLabel="Capabilities">
+          <CapabilityBadges capabilities={model.capabilities} />
         </Td>
         <Td dataLabel="Status">
           {(() => {
@@ -146,7 +152,7 @@ const AIModelTableRow: React.FC<AIModelTableRowProps> = ({
               variant={ButtonVariant.link}
               onClick={() => {
                 fireMiscTrackingEvent('Available Endpoints Endpoint Viewed', {
-                  modelType: model.model_type === 'embedding' ? 'embedding' : 'inference',
+                  modelType: model.model_type || 'inference',
                   endpointSource: model.model_source_type,
                 });
                 setIsEndpointModalOpen(true);
@@ -166,7 +172,14 @@ const AIModelTableRow: React.FC<AIModelTableRowProps> = ({
         </Td>
         {showPlaygroundColumn && (
           <Td dataLabel="Playground">
-            {enabledModel ? (
+            {isASRModel(model) ? (
+              <span
+                className="pf-v6-u-color-200 pf-v6-u-font-size-sm"
+                data-testid="asr-playground-info"
+              >
+                Used in Playground settings
+              </span>
+            ) : enabledModel ? (
               <>
                 {model.model_type === 'embedding' && isVectorStoresEnabled ? (
                   <Button
@@ -198,10 +211,11 @@ const AIModelTableRow: React.FC<AIModelTableRowProps> = ({
                         },
                       });
                     }}
-                    // Embedding models cannot be tried in the chat playground (vector output is not supported)
+                    // Embedding/transcription models cannot be tried in the chat playground directly
                     // Custom endpoint models are always available if they're in the list
                     isDisabled={
                       model.model_type === 'embedding' ||
+                      model.model_type === 'transcription' ||
                       (model.model_source_type !== 'custom_endpoint' && model.status !== 'Running')
                     }
                   >

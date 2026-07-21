@@ -13,15 +13,17 @@ import { getActiveLatencyFieldName } from '~/app/pages/modelCatalog/utils/modelC
 
 type ModelCatalogSortDropdownProps = {
   performanceViewEnabled: boolean;
+  testId?: string;
 };
 
 const ModelCatalogSortDropdown: React.FC<ModelCatalogSortDropdownProps> = ({
   performanceViewEnabled,
+  testId = 'model-catalog-sort-dropdown',
 }) => {
-  const { sortBy, setSortBy, filterData } = React.useContext(ModelCatalogContext);
+  const { sortBy, setSortBy, filters } = React.useContext(ModelCatalogContext);
   const [isOpen, setIsOpen] = React.useState(false);
 
-  const activeLatencyField = getActiveLatencyFieldName(filterData);
+  const activeLatencyField = getActiveLatencyFieldName(filters);
   // Disable latency sort if performance view is disabled or there's no active latency field
   // Without an active latency field, sorting by latency would fallback to sorting by publish date
   const isLatencySortDisabled = !performanceViewEnabled || activeLatencyField === undefined;
@@ -52,7 +54,7 @@ const ModelCatalogSortDropdown: React.FC<ModelCatalogSortDropdownProps> = ({
       return 'Latency (Lowest → Highest)';
     }
     if (sortBy === ModelCatalogSortOption.LOWEST_COLD_START) {
-      return 'Cold start latency (Lowest → Highest)';
+      return 'Cold start load time (Lowest → Highest)';
     }
     return 'Publish date (Newest → Oldest)';
   };
@@ -73,7 +75,7 @@ const ModelCatalogSortDropdown: React.FC<ModelCatalogSortDropdownProps> = ({
             onClick={() => setIsOpen(!isOpen)}
             isExpanded={isOpen}
             aria-label="Sort options"
-            data-testid="model-catalog-sort-dropdown"
+            data-testid={testId}
           >
             {getDisplayValue()}
           </MenuToggle>
@@ -97,7 +99,7 @@ const ModelCatalogSortDropdown: React.FC<ModelCatalogSortDropdownProps> = ({
             value={ModelCatalogSortOption.LOWEST_COLD_START}
             data-testid="sort-option-lowest-cold-start"
           >
-            Cold start latency (Lowest → Highest)
+            Cold start load time (Lowest → Highest)
           </SelectOption>
         </SelectList>
       </Select>

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes/pgvector"
 	"github.com/opendatahub-io/gen-ai/internal/models"
 	"github.com/opendatahub-io/gen-ai/internal/types"
 	"gopkg.in/yaml.v2"
@@ -168,15 +169,7 @@ func NewDefaultLlamaStackConfig() *LlamaStackConfig {
 		},
 		Providers: Providers{
 			Inference: []Provider{NewSentenceTransformerProvider()},
-			VectorIO: []Provider{
-				NewProvider("milvus", "inline::milvus", map[string]interface{}{
-					"db_path": "${env.MILVUS_DB_PATH:=~/.llama}/milvus.db",
-					"persistence": map[string]interface{}{
-						"namespace": "vector_io::milvus",
-						"backend":   "kv_default",
-					},
-				}),
-			},
+			VectorIO:  []Provider{},
 			Responses: []Provider{
 				NewProvider("builtin", "inline::builtin", map[string]interface{}{
 					"persistence": map[string]interface{}{
@@ -251,7 +244,7 @@ func NewDefaultLlamaStackConfig() *LlamaStackConfig {
 			},
 		},
 		VectorStores: VectorStores{
-			DefaultProviderID: "milvus",
+			DefaultProviderID: pgvector.DefaultProviderID,
 			DefaultEmbeddingModel: VectorStoreModelReference{
 				ProviderID: "sentence-transformers",
 				ModelID:    "ibm-granite/granite-embedding-125m-english",
@@ -554,6 +547,29 @@ func (c *LlamaStackConfig) AddInferenceProvider(provider Provider) {
 // AddVectorIOProvider adds a new vector IO provider to the config
 func (c *LlamaStackConfig) AddVectorIOProvider(provider Provider) {
 	c.Providers.VectorIO = append(c.Providers.VectorIO, provider)
+}
+
+// SetDefaultPgvectorProvider replaces the built-in vector_io provider with
+// remote::pgvector. Connection values are referenced via ${env.*} placeholders
+// that Llama Stack resolves from the OGXServer pod's environment at runtime.
+func (c *LlamaStackConfig) SetDefaultPgvectorProvider(conn pgvector.Connection) {
+	providerConfig := map[string]interface{}{
+		"host":            fmt.Sprintf("${env.%s}", pgvector.HostEnvVar),
+		"port":            fmt.Sprintf("${env.%s:=%d}", pgvector.PortEnvVar, conn.Port),
+		"db":              fmt.Sprintf("${env.%s:=%s}", pgvector.DBEnvVar, conn.DB),
+		"user":            fmt.Sprintf("${env.%s:=%s}", pgvector.UserEnvVar, conn.User),
+		"password":        fmt.Sprintf("${env.%s:=}", pgvector.PasswordEnvVar),
+		"distance_metric": pgvector.DefaultDistanceMetric,
+		"persistence": map[string]interface{}{
+			"namespace": fmt.Sprintf("vector_io::%s", pgvector.DefaultProviderID),
+			"backend":   "kv_default",
+		},
+	}
+
+	c.Providers.VectorIO = []Provider{
+		NewProvider(pgvector.DefaultProviderID, pgvector.ProviderType, providerConfig),
+	}
+	c.VectorStores.DefaultProviderID = pgvector.DefaultProviderID
 }
 
 // AddResponsesProvider adds a new responses provider to the config

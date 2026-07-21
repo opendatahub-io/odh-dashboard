@@ -61,8 +61,9 @@ func (app *App) CreateExternalModelHandler(w http.ResponseWriter, r *http.Reques
 
 	// Validate model type
 	validModelTypes := map[models.ModelTypeEnum]bool{
-		models.ModelTypeEmbedding: true,
-		models.ModelTypeLLM:       true,
+		models.ModelTypeEmbedding:     true,
+		models.ModelTypeLLM:           true,
+		models.ModelTypeTranscription: true,
 	}
 	if !validModelTypes[req.ModelType] {
 		app.badRequestResponse(w, r, fmt.Errorf("invalid model_type: %s", req.ModelType))
@@ -79,6 +80,7 @@ func (app *App) CreateExternalModelHandler(w http.ResponseWriter, r *http.Reques
 			app.badRequestResponse(w, r, fmt.Errorf("embedding_dimension must be a positive number"))
 			return
 		}
+		req.Capabilities = nil
 	}
 
 	// Get Kubernetes client
@@ -188,8 +190,9 @@ func (app *App) VerifyExternalModelHandler(
 
 	// Validate model type
 	validModelTypes := map[models.ModelTypeEnum]bool{
-		models.ModelTypeEmbedding: true,
-		models.ModelTypeLLM:       true,
+		models.ModelTypeEmbedding:     true,
+		models.ModelTypeLLM:           true,
+		models.ModelTypeTranscription: true,
 	}
 	if !validModelTypes[req.ModelType] {
 		app.badRequestResponse(w, r, fmt.Errorf("invalid model_type: %s", req.ModelType))

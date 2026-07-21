@@ -14,6 +14,7 @@ import {
 } from '@patternfly/react-core';
 import { PlusCircleIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router-dom';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { CUSTOM_VARIABLE, EMPTY_KEY, ENV_VAR_NAME_REGEX } from '#~/pages/notebookController/const';
 import {
   ConfigMap,
@@ -41,7 +42,6 @@ import { NotebookControllerContext } from '#~/pages/notebookController/NotebookC
 import ImpersonateAlert from '#~/pages/notebookController/screens/admin/ImpersonateAlert';
 import useNamespaces from '#~/pages/notebookController/useNamespaces';
 import { getEnvConfigMap, getEnvSecret } from '#~/services/envService';
-import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '#~/concepts/analyticsTracking/trackingProperties';
 import { useDefaultStorageClass } from '#~/pages/projects/screens/spawner/storage/useDefaultStorageClass';
@@ -52,6 +52,7 @@ import { mapImageStreamToImageInfo } from '#~/utilities/imageStreamUtils';
 import { UseAssignHardwareProfileResult } from '#~/concepts/hardwareProfiles/useAssignHardwareProfile';
 import { useNotebookHardwareProfile } from '#~/concepts/notebooks/utils';
 import { WORKBENCH_VISIBILITY } from '#~/concepts/hardwareProfiles/const';
+import { isHiddenOOTBImageStream } from '#~/pages/projects/screens/spawner/spawnerUtils';
 import useSpawnerNotebookModalState from './useSpawnerNotebookModalState';
 import BrowserTabPreferenceCheckbox from './BrowserTabPreferenceCheckbox';
 import EnvironmentVariablesRow from './EnvironmentVariablesRow';
@@ -66,7 +67,13 @@ const SpawnerPage: React.FC = () => {
   const isHomeAvailable = useIsAreaAvailable(SupportedArea.HOME).status;
   const { dashboardNamespace } = useDashboardNamespace();
   const [imageStreams, loaded, loadError] = useImageStreams(dashboardNamespace, { enabled: true });
-  const images = React.useMemo(() => imageStreams.map(mapImageStreamToImageInfo), [imageStreams]);
+  const images = React.useMemo(
+    () =>
+      imageStreams
+        .filter((imageStream) => !isHiddenOOTBImageStream(imageStream))
+        .map(mapImageStreamToImageInfo),
+    [imageStreams],
+  );
   const { buildStatuses } = useAppContext();
   const { currentUserNotebook, requestNotebookRefresh, impersonatedUsername, setImpersonating } =
     React.useContext(NotebookControllerContext);
@@ -415,7 +422,7 @@ const SpawnerPage: React.FC = () => {
             spawnInProgress={startShown}
             onClose={() => {
               if (currentUserNotebook) {
-                const notebookName = currentUserNotebook.metadata.name ?? '';
+                const notebookName = currentUserNotebook.metadata.name;
                 stopNotebook(impersonatedUsername || undefined)
                   .then(() => requestNotebookRefresh())
                   .catch((e) =>

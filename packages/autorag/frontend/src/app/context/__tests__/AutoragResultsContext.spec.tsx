@@ -20,9 +20,10 @@ const createMockPattern = (name: string, metrics: Record<string, number>): Autor
   max_combinations: 10,
   duration_seconds: 120,
   settings: {
-    vector_store: {
-      datasource_type: 'milvus',
-      collection_name: 'test_collection',
+    vector_store_binding: {
+      provider_id: 'milvus',
+      provider_type: 'remote::milvus',
+      vector_store_id: 'vs_collection0',
     },
     chunking: {
       method: 'sequential',
@@ -53,17 +54,21 @@ const createMockPattern = (name: string, metrics: Record<string, number>): Autor
       system_message_text: 'You are a helpful assistant.',
     },
   },
-  scores: Object.fromEntries(
-    Object.entries(metrics).map(([key, value]) => [
-      key,
+  evaluation: {
+    metrics: [
+      ...Object.entries(metrics).map(([metricName, value]) => ({
+        evaluator: 'unitxt' as const,
+        name: metricName,
+        scores: { mean: value, ci_high: value + 0.05, ci_low: value - 0.05 },
+      })),
       {
-        mean: value,
-        ci_high: value + 0.05,
-        ci_low: value - 0.05,
+        evaluator: 'custom' as const,
+        name: 'overall_score',
+        scores: { mean: Object.values(metrics)[0] ?? 0, ci_low: null, ci_high: null },
+        optimization_metric: true,
       },
-    ]),
-  ) as AutoragPattern['scores'],
-  final_score: Object.values(metrics)[0] ?? 0,
+    ],
+  },
 });
 
 const mockPatterns: Record<string, AutoragPattern> = {
@@ -116,8 +121,10 @@ describe('getAutoragContext', () => {
           embedding_models: [],
           optimization_metric: 'faithfulness',
           optimization_max_rag_patterns: 8,
+          preset: 'speed',
         },
         ragPatternsBasePath: undefined,
+        bestPatternKey: 'pattern-1',
       });
     });
 
@@ -147,8 +154,10 @@ describe('getAutoragContext', () => {
           embedding_models: [],
           optimization_metric: 'faithfulness',
           optimization_max_rag_patterns: 8,
+          preset: 'speed',
         },
         ragPatternsBasePath: undefined,
+        bestPatternKey: 'pattern-1',
       });
     });
 
@@ -211,7 +220,22 @@ describe('getAutoragContext', () => {
         embedding_models: ['text-embedding-3'],
         optimization_metric: 'faithfulness',
         optimization_max_rag_patterns: 12,
+        preset: 'speed',
       });
+    });
+
+    it('should extract detected language metadata from runtime_config parameters', () => {
+      const pipelineRun = createMockPipelineRun({
+        detected_language: 'de',
+        detected_language_confidence: 0.94,
+      });
+
+      const context = getAutoragContext({
+        pipelineRun,
+      });
+
+      expect(context.parameters?.detected_language).toBe('de');
+      expect(context.parameters?.detected_language_confidence).toBe(0.94);
     });
 
     it('should handle pipeline run with no runtime_config', () => {
@@ -241,6 +265,7 @@ describe('getAutoragContext', () => {
         embedding_models: [],
         optimization_metric: 'faithfulness',
         optimization_max_rag_patterns: 8,
+        preset: 'speed',
       });
     });
 
@@ -266,6 +291,7 @@ describe('getAutoragContext', () => {
         embedding_models: [],
         optimization_metric: 'faithfulness',
         optimization_max_rag_patterns: 8,
+        preset: 'speed',
       });
     });
   });
@@ -322,6 +348,95 @@ describe('getAutoragContext', () => {
 
       expect(context.pipelineRunLoading).toBeUndefined();
       expect(context.patternsLoading).toBeUndefined();
+    });
+  });
+
+  describe('bestPatternKey (client-side rank-1)', () => {
+    it('should expose bestPatternKey as the rank-1 pattern by final_score', () => {
+      const context = getAutoragContext({
+        pipelineRun: createMockPipelineRun(),
+        patterns: mockPatterns,
+      });
+
+      expect(context.bestPatternKey).toBe('pattern-1');
+    });
+
+    it('should update bestPatternKey when the higher-scoring pattern changes', () => {
+      const patternsWithDifferentWinner: Record<string, AutoragPattern> = {
+        'pattern-1': createMockPattern('Pattern 1', { faithfulness: 0.7 }),
+        'pattern-2': createMockPattern('Pattern 2', { faithfulness: 0.99 }),
+      };
+
+      const context = getAutoragContext({
+        pipelineRun: createMockPipelineRun(),
+        patterns: patternsWithDifferentWinner,
+      });
+
+      expect(context.bestPatternKey).toBe('pattern-2');
+    });
+
+    it('should expose bestPatternKey as the higher-scoring record key when names collide', () => {
+      const patternsWithDuplicateNames: Record<string, AutoragPattern> = {
+        'pattern-a': createMockPattern('Shared Name', { faithfulness: 0.55 }),
+        'pattern-b': createMockPattern('Shared Name', { faithfulness: 0.97 }),
+        'pattern-c': createMockPattern('Shared Name', { faithfulness: 0.8 }),
+      };
+
+      const context = getAutoragContext({
+        pipelineRun: createMockPipelineRun(),
+        patterns: patternsWithDuplicateNames,
+      });
+
+      expect(context.bestPatternKey).toBe('pattern-b');
+    });
+
+    it('should leave bestPatternKey undefined when patterns is empty', () => {
+      const context = getAutoragContext({
+        pipelineRun: createMockPipelineRun(),
+        patterns: {},
+      });
+
+      expect(context.bestPatternKey).toBeUndefined();
+    });
+
+    it('should leave bestPatternKey undefined when patterns is not provided', () => {
+      const context = getAutoragContext({
+        pipelineRun: createMockPipelineRun(),
+      });
+
+      expect(context.bestPatternKey).toBeUndefined();
+    });
+  });
+
+  describe('componentStageMap fields', () => {
+    it('should pass through componentStageMap when provided', () => {
+      const mockStageMap = {
+        pipeline_id: 'test',
+        description: 'test',
+        components: [],
+        kfp_run_id: 'run-1',
+        published_at: '2026-01-01T00:00:00Z',
+      };
+      const context = getAutoragContext({
+        pipelineRun: createMockPipelineRun(),
+        componentStageMap: mockStageMap,
+        componentStageMapLoading: false,
+        componentStageMapError: false,
+      });
+
+      expect(context.componentStageMap).toBe(mockStageMap);
+      expect(context.componentStageMapLoading).toBe(false);
+      expect(context.componentStageMapError).toBe(false);
+    });
+
+    it('should default componentStageMap fields to undefined when not provided', () => {
+      const context = getAutoragContext({
+        pipelineRun: createMockPipelineRun(),
+      });
+
+      expect(context.componentStageMap).toBeUndefined();
+      expect(context.componentStageMapLoading).toBeUndefined();
+      expect(context.componentStageMapError).toBeUndefined();
     });
   });
 });

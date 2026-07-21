@@ -36,6 +36,8 @@ Central index of key documentation in the ODH Dashboard monorepo.
 | [Code Examples](docs/code_examples.md) | Code examples and patterns |
 | [Multi-Agent Workflows](docs/multi-agent-workflows.md) | Running parallel agents locally and remotely |
 | [Large Tasks with Claude Code Goals](docs/ai-agent-large-tasks.md) | Using `/goal` for autonomous, multi-step development tasks |
+| [Prototype Reading Skills](docs/prototype-reading.md) | `/prototype-tickets` and `/prototype-spec` — extracting PF component details from UX prototype forks |
+| [Upstream Sync](docs/upstream-sync.md) | How to sync upstream changes into monorepo packages |
 
 ---
 
@@ -98,7 +100,20 @@ Central index of key documentation in the ODH Dashboard monorepo.
 
 | Doc | Description |
 |-----|-------------|
+| [Operator Architecture](docs/dashboard-operator.md) | CRD design, reconciliation pipeline, module registry, dependency resolution, manifest management, local development, cluster deployment, troubleshooting |
 | [Controller AGENTS.md](dashboard-operator/AGENTS.md) | Go operator conventions, controller-runtime patterns, CRD types, Makefile targets, reconciliation pipeline |
+
+---
+
+## Distributions
+
+| Doc | Description |
+|-----|-------------|
+| [Core BFF AGENTS.md](distributions/core-bff/AGENTS.md) | Core BFF development guide — contract-first workflow, BFF rules, frontend rules, deployment modes, testing |
+| [Core BFF Frontend Docs](distributions/core-bff/frontend/docs/) | Frontend dev setup, testing, and styling guides |
+| [Core BFF BFF Docs](distributions/core-bff/bff/README.md) | Go BFF documentation |
+| [Core BFF OpenAPI Spec](distributions/core-bff/bff/openapi/src/core-bff.yaml) | OpenAPI specification (contract-first source of truth) |
+| [Base Distribution README](distributions/base/README.md) | App shell setup, dev environment, environment variables |
 
 ---
 
@@ -120,7 +135,7 @@ Central index of key documentation in the ODH Dashboard monorepo.
 | [MLflow Embedded](packages/mlflow-embedded/docs/overview.md) | Embedded MLflow UI variant; Module Federation config |
 | [Model Training](packages/model-training/docs/overview.md) | Training job management; pipeline integration; resource configuration |
 | [Notebooks](packages/notebooks/docs/overview.md) | Notebook management package; workbenches frontend area interactions |
-| [Observability](packages/observability/docs/overview.md) | Metrics, logging, tracing integration; Prometheus endpoint patterns |
+| [Observability](packages/observability/docs/overview.md) | Embedded Perses dashboards for metrics and monitoring; DSCI-gated visibility, SAR-based RBAC, embeddable API |
 | [Feature Store](packages/feature-store/docs/overview.md) | Feature store management UI; dataset versioning; see also [README](packages/feature-store/README.md) and [AGENTS.md](packages/feature-store/AGENTS.md) |
 | [LLMD Serving](packages/llmd-serving/docs/overview.md) | LLM-dedicated serving; interactions with gen-ai frontend area |
 

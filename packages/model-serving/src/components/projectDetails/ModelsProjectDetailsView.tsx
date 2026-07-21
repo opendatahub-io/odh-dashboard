@@ -1,11 +1,11 @@
 import React from 'react';
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import DetailsSection from '@odh-dashboard/internal/pages/projects/screens/detail/DetailsSection';
 import { ProjectSectionID } from '@odh-dashboard/internal/pages/projects/screens/detail/types';
 import { Flex, Label, Popover } from '@patternfly/react-core';
-import DashboardPopupIconButton from '@odh-dashboard/internal/concepts/dashboard/DashboardPopupIconButton';
+import { DashboardPopupIconButton, ProjectObjectType } from '@odh-dashboard/ui-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
-import { ProjectObjectType } from '@odh-dashboard/internal/concepts/design/utils';
-import type { ProjectKind } from '@odh-dashboard/internal/k8sTypes';
+import type { ProjectKind } from '@odh-dashboard/k8s-core';
 import { SelectPlatformView } from './SelectPlatformView';
 import { NoModelsView } from './NoModelsView';
 import { ProjectDeploymentsTable } from './ProjectDeploymentsTable';

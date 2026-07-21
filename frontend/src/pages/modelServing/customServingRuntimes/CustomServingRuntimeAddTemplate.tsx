@@ -13,27 +13,25 @@ import {
 import { Language } from '@patternfly/react-code-editor';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import YAML from 'yaml';
-import ApplicationsPage from '#~/pages/ApplicationsPage';
-import { TemplateKind } from '#~/k8sTypes';
-import { useDashboardNamespace } from '#~/redux/selectors';
-import DashboardCodeEditor from '#~/concepts/dashboard/codeEditor/DashboardCodeEditor';
-import {
-  createServingRuntimeTemplateBackend,
-  updateServingRuntimeTemplateBackend,
-} from '#~/services/templateService';
+import type { TemplateKind } from '@odh-dashboard/k8s-core';
 import {
   ServingRuntimeAPIProtocol,
   ServingRuntimePlatform,
   ServingRuntimeModelType,
-} from '#~/types';
-import {
   getAPIProtocolFromTemplate,
   getEnabledPlatformsFromTemplate,
   getModelTypesFromTemplate,
   getServingRuntimeDisplayNameFromTemplate,
   getServingRuntimeNameFromTemplate,
   isServingRuntimeKind,
-} from './utils';
+} from '@odh-dashboard/model-serving/shared';
+import ApplicationsPage from '#~/pages/ApplicationsPage';
+import { useDashboardNamespace } from '#~/redux/selectors';
+import DashboardCodeEditor from '#~/concepts/dashboard/codeEditor/DashboardCodeEditor';
+import {
+  createServingRuntimeTemplateBackend,
+  updateServingRuntimeTemplateBackend,
+} from '#~/services/templateService';
 import { CustomServingRuntimeContext } from './CustomServingRuntimeContext';
 import CustomServingRuntimeAPIProtocolSelector from './CustomServingRuntimeAPIProtocolSelector';
 import CustomServingRuntimeModelTypeSelector from './CustomServingRuntimeModelTypeSelector';

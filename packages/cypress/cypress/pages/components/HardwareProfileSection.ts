@@ -1,4 +1,4 @@
-import type { ContainerResources } from '@odh-dashboard/internal/types';
+import type { ContainerResources } from '@odh-dashboard/k8s-core';
 import { Contextual } from './Contextual';
 
 class HardwareProfileGroup extends Contextual<HTMLElement> {}
@@ -38,6 +38,10 @@ export class HardwareProfileSection {
 
   findDetailsPopover(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('hardware-profile-details-popover');
+  }
+
+  findKueueFilteringInfo(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('kueue-filtering-info');
   }
 
   findCustomizeButton(): Cypress.Chainable<JQuery<HTMLElement>> {

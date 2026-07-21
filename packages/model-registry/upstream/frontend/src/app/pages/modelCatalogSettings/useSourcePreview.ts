@@ -102,6 +102,9 @@ export const useSourcePreview = ({
     activeTab: PreviewTab.INCLUDED,
   });
 
+  const previewStateRef = React.useRef(previewState);
+  previewStateRef.current = previewState;
+
   const canPreview = isPreviewReady(formData);
 
   const buildPreviewRequest = React.useCallback((): CatalogSourcePreviewRequest => {
@@ -158,7 +161,8 @@ export const useSourcePreview = ({
     ) => {
       const { loadMore = false, switchToTab } = options ?? {};
       const isFreshPreview = !loadMore && !switchToTab;
-      const targetTab = getTargetTab(isFreshPreview, switchToTab, previewState.activeTab);
+      const currentState = previewStateRef.current;
+      const targetTab = getTargetTab(isFreshPreview, switchToTab, currentState.activeTab);
 
       if (!apiState.apiAvailable) {
         setPreviewState((prev) => ({
@@ -197,8 +201,8 @@ export const useSourcePreview = ({
       let requestData: CatalogSourcePreviewRequest;
       if (isFreshPreview) {
         requestData = buildPreviewRequest();
-      } else if (previewState.lastPreviewedData) {
-        requestData = previewState.lastPreviewedData;
+      } else if (currentState.lastPreviewedData) {
+        requestData = currentState.lastPreviewedData;
       } else {
         // For non-fresh requests, lastPreviewedData must exist (guard against edge case)
         // eslint-disable-next-line no-console
@@ -209,7 +213,7 @@ export const useSourcePreview = ({
       }
 
       // Get token for load more
-      const nextPageToken = loadMore ? previewState.tabStates[targetTab].nextPageToken : undefined;
+      const nextPageToken = loadMore ? currentState.tabStates[targetTab].nextPageToken : undefined;
 
       try {
         const result = await apiState.api.previewCatalogSource({}, requestData, {
@@ -255,22 +259,17 @@ export const useSourcePreview = ({
         }));
       }
     },
-    [
-      apiState,
-      buildPreviewRequest,
-      previewState.activeTab,
-      previewState.lastPreviewedData,
-      previewState.tabStates,
-    ],
+    [apiState, buildPreviewRequest],
   );
 
   const handleTabChange = React.useCallback(
     (newTab: PreviewTab) => {
-      if (newTab === previewState.activeTab) {
+      const currentState = previewStateRef.current;
+      if (newTab === currentState.activeTab) {
         return;
       }
 
-      const tabState = previewState.tabStates[newTab];
+      const tabState = currentState.tabStates[newTab];
       if (tabState.items.length === 0) {
         // Tab not yet loaded, fetch it
         handlePreview(PreviewMode.PREVIEW, { switchToTab: newTab });
@@ -279,7 +278,7 @@ export const useSourcePreview = ({
         setPreviewState((prev) => ({ ...prev, activeTab: newTab }));
       }
     },
-    [handlePreview, previewState.activeTab, previewState.tabStates],
+    [handlePreview],
   );
 
   const handleLoadMore = React.useCallback(() => {

@@ -1,0 +1,14 @@
+kind: Secret
+apiVersion: v1
+metadata:
+  name: {{CONNECTION_NAME}}
+  namespace: {{NAMESPACE}}
+  labels:
+    opendatahub.io/dashboard: 'true'
+  annotations:
+    opendatahub.io/connection-type-protocol: uri
+    opendatahub.io/connection-type-ref: uri-v1
+    openshift.io/display-name: {{CONNECTION_NAME}}
+data:
+  URI: {{MODEL_URI}}
+type: Opaque

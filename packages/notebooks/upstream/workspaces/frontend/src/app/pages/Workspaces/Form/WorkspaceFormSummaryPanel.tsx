@@ -3,6 +3,7 @@ import { Button } from '@patternfly/react-core/dist/esm/components/Button';
 import { Card, CardBody, CardTitle } from '@patternfly/react-core/dist/esm/components/Card';
 import { Content, ContentVariants } from '@patternfly/react-core/dist/esm/components/Content';
 import { Label } from '@patternfly/react-core/dist/esm/components/Label';
+import { Tooltip } from '@patternfly/react-core/dist/esm/components/Tooltip';
 import { Stack, StackItem } from '@patternfly/react-core/dist/esm/layouts/Stack';
 import { Flex, FlexItem } from '@patternfly/react-core/dist/esm/layouts/Flex';
 import { SummaryRedirectIcon } from '~/app/pages/Workspaces/Form/SummaryRedirectIcon';
@@ -11,30 +12,35 @@ import { SummaryContentSection } from '~/app/pages/Workspaces/Form/SummaryConten
 import { SummaryPropertiesSection } from '~/app/pages/Workspaces/Form/SummaryPropertiesSection';
 import { normalizeLabels } from '~/app/pages/Workspaces/Form/summaryHelpers';
 import {
-  WorkspacekindsImageConfigValue,
-  WorkspacekindsPodConfigValue,
-  WorkspacekindsWorkspaceKind,
-  WorkspacekindsOptionLabel,
-  WorkspacekindsRedirectMessageLevel,
+  OptionsImageConfigValue,
+  OptionsPodConfigValue,
+  WorkspacekindsWorkspaceKindListItem,
+  OptionsOptionLabel,
+  OptionsRedirectMessageLevel,
 } from '~/generated/data-contracts';
 import { WorkspaceFormMode, WorkspaceFormProperties } from '~/app/types';
 
 interface WorkspaceFormSummaryPanelProps {
   mode: WorkspaceFormMode;
-  selectedKind: WorkspacekindsWorkspaceKind | undefined;
-  selectedImage: WorkspacekindsImageConfigValue | undefined;
-  selectedPodConfig: WorkspacekindsPodConfigValue | undefined;
+  selectedKind: WorkspacekindsWorkspaceKindListItem | undefined;
+  selectedImage: OptionsImageConfigValue | undefined;
+  selectedPodConfig: OptionsPodConfigValue | undefined;
   properties: WorkspaceFormProperties;
   currentStep: number;
   onNavigateToStep: (step: number) => void;
   /** Handlers to switch selected options when clicking redirect target */
-  onSelectImage: (image: WorkspacekindsImageConfigValue) => void;
-  onSelectPodConfig: (podConfig: WorkspacekindsPodConfigValue) => void;
+  onSelectImage: (image: OptionsImageConfigValue) => void;
+  onSelectPodConfig: (podConfig: OptionsPodConfigValue) => void;
+  /** Filtered values from the listValues API for redirect resolution */
+  imageValues?: OptionsImageConfigValue[];
+  podConfigValues?: OptionsPodConfigValue[];
   /** For edit mode: original values to show diff */
-  originalKind?: WorkspacekindsWorkspaceKind;
-  originalImage?: WorkspacekindsImageConfigValue;
-  originalPodConfig?: WorkspacekindsPodConfigValue;
+  originalKind?: WorkspacekindsWorkspaceKindListItem;
+  originalImage?: OptionsImageConfigValue;
+  originalPodConfig?: OptionsPodConfigValue;
   originalProperties?: WorkspaceFormProperties;
+  /** When true, removes spacing between summary cards */
+  compact?: boolean;
 }
 
 enum SummaryStep {
@@ -54,10 +60,13 @@ export const WorkspaceFormSummaryPanel: React.FC<WorkspaceFormSummaryPanelProps>
   onNavigateToStep,
   onSelectImage,
   onSelectPodConfig,
+  imageValues = [],
+  podConfigValues = [],
   originalKind,
   originalImage,
   originalPodConfig,
   originalProperties,
+  compact = false,
 }) => {
   const isEditMode = mode === 'update';
   const showDiff = Boolean(isEditMode && (originalKind || originalImage || originalPodConfig));
@@ -66,13 +75,13 @@ export const WorkspaceFormSummaryPanel: React.FC<WorkspaceFormSummaryPanelProps>
   const [pinnedPopoverId, setPinnedPopoverId] = useState<string | null>(null);
 
   const getMessageLevelColor = useCallback(
-    (level?: WorkspacekindsRedirectMessageLevel): 'blue' | 'orange' | 'red' => {
+    (level?: OptionsRedirectMessageLevel): 'blue' | 'orange' | 'red' => {
       switch (level) {
-        case WorkspacekindsRedirectMessageLevel.RedirectMessageLevelInfo:
+        case OptionsRedirectMessageLevel.RedirectMessageLevelInfo:
           return 'blue';
-        case WorkspacekindsRedirectMessageLevel.RedirectMessageLevelWarning:
+        case OptionsRedirectMessageLevel.RedirectMessageLevelWarning:
           return 'orange';
-        case WorkspacekindsRedirectMessageLevel.RedirectMessageLevelDanger:
+        case OptionsRedirectMessageLevel.RedirectMessageLevelDanger:
           return 'red';
         default:
           return 'blue';
@@ -81,13 +90,13 @@ export const WorkspaceFormSummaryPanel: React.FC<WorkspaceFormSummaryPanelProps>
     [],
   );
 
-  const getMessageLevelText = useCallback((level?: WorkspacekindsRedirectMessageLevel): string => {
+  const getMessageLevelText = useCallback((level?: OptionsRedirectMessageLevel): string => {
     switch (level) {
-      case WorkspacekindsRedirectMessageLevel.RedirectMessageLevelInfo:
+      case OptionsRedirectMessageLevel.RedirectMessageLevelInfo:
         return 'Info';
-      case WorkspacekindsRedirectMessageLevel.RedirectMessageLevelWarning:
+      case OptionsRedirectMessageLevel.RedirectMessageLevelWarning:
         return 'Warning';
-      case WorkspacekindsRedirectMessageLevel.RedirectMessageLevelDanger:
+      case OptionsRedirectMessageLevel.RedirectMessageLevelDanger:
         return 'Danger';
       default:
         return 'Info';
@@ -101,7 +110,7 @@ export const WorkspaceFormSummaryPanel: React.FC<WorkspaceFormSummaryPanelProps>
       redirect: {
         to: string;
         message?: {
-          level: WorkspacekindsRedirectMessageLevel;
+          level: OptionsRedirectMessageLevel;
           text: string;
         };
       };
@@ -192,11 +201,11 @@ export const WorkspaceFormSummaryPanel: React.FC<WorkspaceFormSummaryPanelProps>
       title: string;
       displayName: string | undefined;
       description: string | undefined;
-      labels?: WorkspacekindsOptionLabel[] | Record<string, string>;
+      labels?: OptionsOptionLabel[] | Record<string, string>;
       redirect?: {
         to: string;
         message?: {
-          level: WorkspacekindsRedirectMessageLevel;
+          level: OptionsRedirectMessageLevel;
           text: string;
         };
       };
@@ -204,7 +213,8 @@ export const WorkspaceFormSummaryPanel: React.FC<WorkspaceFormSummaryPanelProps>
       onClickTarget?: () => void;
       originalDisplayName?: string;
       originalDescription?: string;
-      originalLabels?: WorkspacekindsOptionLabel[] | Record<string, string>;
+      originalLabels?: OptionsOptionLabel[] | Record<string, string>;
+      disabledTooltip?: string;
     }) => {
       const {
         step,
@@ -218,11 +228,12 @@ export const WorkspaceFormSummaryPanel: React.FC<WorkspaceFormSummaryPanelProps>
         originalDisplayName,
         originalDescription,
         originalLabels,
+        disabledTooltip,
       } = args;
 
-      // Show section if it has a value OR if we've already reached this step
+      // Show section if it has a value OR if we've already passed this step
       const hasValue = !!displayName;
-      const hasBeenReached = currentStep >= step;
+      const hasBeenReached = currentStep > step;
 
       if (!hasValue && !hasBeenReached) {
         return null;
@@ -255,46 +266,56 @@ export const WorkspaceFormSummaryPanel: React.FC<WorkspaceFormSummaryPanelProps>
         );
       };
 
+      const isDisabled = !!disabledTooltip;
+
+      const card = (
+        <Card
+          isCompact
+          isDisabled={isDisabled}
+          isClickable
+          isSelectable={!isDisabled}
+          className={isDisabled ? undefined : 'summary-card--clickable'}
+          onClick={isDisabled ? undefined : () => onNavigateToStep(step)}
+          data-testid={`summary-card-${step}`}
+        >
+          <CardTitle>
+            <Content component={ContentVariants.h3}>{title}</Content>
+          </CardTitle>
+          <CardBody>
+            <Stack hasGutter>
+              {showDiff && changed ? (
+                <SummaryDiffSection
+                  displayName={displayName}
+                  description={description}
+                  labels={normalizedLabels}
+                  originalDisplayName={originalDisplayName}
+                  originalDescription={originalDescription}
+                  originalLabels={normalizedOriginalLabels}
+                  redirectIcon={renderRedirectIcon('new')}
+                  labelLimit={!compact ? 5 : undefined}
+                />
+              ) : (
+                <SummaryContentSection
+                  displayName={displayName}
+                  description={description}
+                  labels={normalizedLabels}
+                  redirectIcon={renderRedirectIcon('current')}
+                  labelLimit={!compact ? 5 : undefined}
+                />
+              )}
+            </Stack>
+          </CardBody>
+        </Card>
+      );
+
       return (
         <StackItem key={step}>
-          <Card
-            isCompact
-            isClickable
-            isSelectable
-            className="summary-card--clickable"
-            onClick={() => onNavigateToStep(step)}
-            data-testid={`summary-card-${step}`}
-          >
-            <CardTitle>
-              <Content component={ContentVariants.h3}>{title}</Content>
-            </CardTitle>
-            <CardBody>
-              <Stack hasGutter>
-                {showDiff && changed ? (
-                  <SummaryDiffSection
-                    displayName={displayName}
-                    description={description}
-                    labels={normalizedLabels}
-                    originalDisplayName={originalDisplayName}
-                    originalDescription={originalDescription}
-                    originalLabels={normalizedOriginalLabels}
-                    redirectIcon={renderRedirectIcon('new')}
-                  />
-                ) : (
-                  <SummaryContentSection
-                    displayName={displayName}
-                    description={description}
-                    labels={normalizedLabels}
-                    redirectIcon={renderRedirectIcon('current')}
-                  />
-                )}
-              </Stack>
-            </CardBody>
-          </Card>
+          {isDisabled ? <Tooltip content={disabledTooltip}>{card}</Tooltip> : card}
         </StackItem>
       );
     },
     [
+      compact,
       currentStep,
       hasChanged,
       showDiff,
@@ -307,11 +328,13 @@ export const WorkspaceFormSummaryPanel: React.FC<WorkspaceFormSummaryPanelProps>
 
   return (
     <Stack hasGutter>
-      <StackItem>
-        <Content component={ContentVariants.p}>
-          Review your options. Click a section to modify it.
-        </Content>
-      </StackItem>
+      {selectedKind && (
+        <StackItem>
+          <Content component={ContentVariants.p}>
+            Review your options. Click a section to modify it.
+          </Content>
+        </StackItem>
+      )}
 
       {renderSummarySection({
         step: SummaryStep.KindSelection,
@@ -322,6 +345,9 @@ export const WorkspaceFormSummaryPanel: React.FC<WorkspaceFormSummaryPanelProps>
         originalDisplayName: originalKind?.displayName || originalKind?.name,
         originalDescription: originalKind?.description,
         originalLabels: originalKind?.podTemplate.podMetadata.labels,
+        disabledTooltip: isEditMode
+          ? 'Workspace kind cannot be changed after creation.'
+          : undefined,
       })}
 
       {renderSummarySection({
@@ -332,21 +358,16 @@ export const WorkspaceFormSummaryPanel: React.FC<WorkspaceFormSummaryPanelProps>
         labels: selectedImage?.labels,
         redirect: selectedImage?.redirect,
         targetDisplayName: selectedImage?.redirect
-          ? selectedKind?.podTemplate.options.imageConfig.values.find(
-              (img) => img.id === selectedImage.redirect?.to,
-            )?.displayName
+          ? imageValues.find((img) => img.id === selectedImage.redirect?.to)?.displayName
           : undefined,
-        onClickTarget:
-          selectedImage?.redirect && selectedKind
-            ? () => {
-                const targetImage = selectedKind.podTemplate.options.imageConfig.values.find(
-                  (img) => img.id === selectedImage.redirect?.to,
-                );
-                if (targetImage) {
-                  onSelectImage(targetImage);
-                }
+        onClickTarget: selectedImage?.redirect
+          ? () => {
+              const targetImage = imageValues.find((img) => img.id === selectedImage.redirect?.to);
+              if (targetImage) {
+                onSelectImage(targetImage);
               }
-            : undefined,
+            }
+          : undefined,
         originalDisplayName: originalImage?.displayName,
         originalDescription: originalImage?.description,
         originalLabels: originalImage?.labels,
@@ -360,27 +381,28 @@ export const WorkspaceFormSummaryPanel: React.FC<WorkspaceFormSummaryPanelProps>
         labels: selectedPodConfig?.labels,
         redirect: selectedPodConfig?.redirect,
         targetDisplayName: selectedPodConfig?.redirect
-          ? selectedKind?.podTemplate.options.podConfig.values.find(
-              (pc) => pc.id === selectedPodConfig.redirect?.to,
-            )?.displayName
+          ? podConfigValues.find((pc) => pc.id === selectedPodConfig.redirect?.to)?.displayName
           : undefined,
-        onClickTarget:
-          selectedPodConfig?.redirect && selectedKind
-            ? () => {
-                const targetPodConfig = selectedKind.podTemplate.options.podConfig.values.find(
-                  (pc) => pc.id === selectedPodConfig.redirect?.to,
-                );
-                if (targetPodConfig) {
-                  onSelectPodConfig(targetPodConfig);
-                }
+        onClickTarget: selectedPodConfig?.redirect
+          ? () => {
+              const targetPodConfig = podConfigValues.find(
+                (pc) => pc.id === selectedPodConfig.redirect?.to,
+              );
+              if (targetPodConfig) {
+                onSelectPodConfig(targetPodConfig);
               }
-            : undefined,
+            }
+          : undefined,
         originalDisplayName: originalPodConfig?.displayName,
         originalDescription: originalPodConfig?.description,
         originalLabels: originalPodConfig?.labels,
       })}
 
-      {(properties.workspaceName.trim() || currentStep >= SummaryStep.Properties) && (
+      {(properties.workspaceName.trim() ||
+        properties.homeVolume ||
+        properties.volumes.length > 0 ||
+        properties.secrets.length > 0 ||
+        currentStep > SummaryStep.Properties) && (
         <StackItem>
           <Card
             isCompact
@@ -398,6 +420,7 @@ export const WorkspaceFormSummaryPanel: React.FC<WorkspaceFormSummaryPanelProps>
                 properties={properties}
                 originalProperties={originalProperties}
                 showDiff={showDiff}
+                mode={mode}
               />
             </CardBody>
           </Card>

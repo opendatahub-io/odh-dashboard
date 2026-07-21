@@ -15,6 +15,7 @@ import {
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { PipelineCoreDetailsPageComponent } from '#~/concepts/pipelines/content/types';
 import ApplicationsPage from '#~/pages/ApplicationsPage';
 import {
@@ -23,7 +24,6 @@ import {
 } from '#~/pages/pipelines/global/experiments/artifacts/utils';
 import { ArtifactDetailsTabKey } from '#~/pages/pipelines/global/experiments/artifacts/constants';
 import { useGetArtifactById } from '#~/concepts/pipelines/apiHooks/mlmd/useGetArtifactById';
-import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import PipelineContextBreadcrumb from '#~/concepts/pipelines/content/PipelineContextBreadcrumb';
 import { ArtifactOverviewDetails } from './ArtifactOverviewDetails';
 import ArtifactDetailsTitle from './ArtifactDetailsTitle';

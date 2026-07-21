@@ -1,29 +1,34 @@
 import { testHook } from '@odh-dashboard/jest-config/hooks';
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
+import {
+  HardwareProfileFeatureVisibility,
+  TolerationEffect,
+  TolerationOperator,
+  type NodeSelector,
+  type Toleration,
+} from '@odh-dashboard/k8s-core';
+import * as areasUtils from '@odh-dashboard/plugin-core/areas';
+import * as useHardwareProfileConfigModule from '@odh-dashboard/hardware-profiles/shared/useHardwareProfileConfig';
 import { mockHardwareProfile } from '#~/__mocks__/mockHardwareProfile';
 import {
   mockDashboardConfig,
   mockNotebookK8sResource,
   mockInferenceServiceK8sResource,
 } from '#~/__mocks__';
-import { HardwareProfileFeatureVisibility } from '#~/k8sTypes';
-import { Toleration, NodeSelector, TolerationOperator, TolerationEffect } from '#~/types';
-import * as areasUtils from '#~/concepts/areas';
 import * as appContext from '#~/app/AppContext';
 import { useAssignHardwareProfile } from '#~/concepts/hardwareProfiles/useAssignHardwareProfile';
-import * as useHardwareProfileConfigModule from '#~/concepts/hardwareProfiles/useHardwareProfileConfig';
 import { NOTEBOOK_HARDWARE_PROFILE_PATHS } from '#~/concepts/notebooks/const';
 import { INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS } from '#~/concepts/hardwareProfiles/const';
 
 global.structuredClone = (val: unknown) => JSON.parse(JSON.stringify(val));
-jest.mock('#~/concepts/areas', () => ({
-  ...jest.requireActual('#~/concepts/areas'),
+jest.mock('@odh-dashboard/plugin-core/areas', () => ({
+  ...jest.requireActual('@odh-dashboard/plugin-core/areas'),
   useIsAreaAvailable: jest.fn(),
 }));
 jest.mock('#~/app/AppContext', () => ({
   useAppContext: jest.fn(),
 }));
-jest.mock('#~/concepts/hardwareProfiles/useHardwareProfileConfig', () => ({
+jest.mock('@odh-dashboard/hardware-profiles/shared/useHardwareProfileConfig', () => ({
   useHardwareProfileConfig: jest.fn(),
 }));
 const mockUseIsAreaAvailable = jest.mocked(areasUtils.useIsAreaAvailable);

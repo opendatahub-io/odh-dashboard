@@ -12,25 +12,26 @@ import {
   Spinner,
   TextInput,
 } from '@patternfly/react-core';
-import SimpleSelect, { SimpleSelectOption } from '#~/components/SimpleSelect';
-import ContentModal from '#~/components/modals/ContentModal';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
+import {
+  isK8sNameDescriptionDataValid,
+  kindApiVersion,
+  LimitNameResourceType,
+} from '@odh-dashboard/k8s-core';
+import type { RecursivePartial } from '@odh-dashboard/foundation';
+import SimpleSelect, { SimpleSelectOption } from '@odh-dashboard/ui-core/components/SimpleSelect';
+import ContentModal from '@odh-dashboard/ui-core/components/ContentModal';
+import K8sNameDescriptionField, {
+  useK8sNameDescriptionFieldData,
+} from '@odh-dashboard/ui-core/components/K8sNameDescriptionField';
 import { ModelRegistryKind } from '#~/k8sTypes';
 import { ModelRegistryModel } from '#~/api';
 import {
   createModelRegistryBackend,
   updateModelRegistryBackend,
 } from '#~/services/modelRegistrySettingsService';
-import { kindApiVersion } from '#~/concepts/k8s/utils';
 import FormSection from '#~/components/pf-overrides/FormSection';
 import { AreaContext } from '#~/concepts/areas/AreaContext';
-import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
-import K8sNameDescriptionField, {
-  useK8sNameDescriptionFieldData,
-} from '#~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
-import {
-  isK8sNameDescriptionDataValid,
-  LimitNameResourceType,
-} from '#~/concepts/k8s/K8sNameDescriptionField/utils';
 import useModelRegistryCertificateNames from '#~/concepts/modelRegistrySettings/useModelRegistryCertificateNames';
 import {
   buildDatabaseSpec,
@@ -42,7 +43,6 @@ import {
   isOpenshiftCAbundleEnabled,
   isValidPort,
 } from '#~/pages/modelRegistrySettings/utils';
-import { RecursivePartial } from '#~/typeHelpers';
 import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '#~/concepts/analyticsTracking/trackingProperties';
 import ApplicationsPage from '#~/pages/ApplicationsPage';

@@ -15,10 +15,10 @@ import PasswordInput from '@odh-dashboard/internal/components/PasswordInput';
 import DashboardModalFooter from '@odh-dashboard/internal/concepts/dashboard/DashboardModalFooter';
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
-} from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
-import { isK8sNameDescriptionDataValid } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/utils';
+} from '@odh-dashboard/ui-core/components/K8sNameDescriptionField';
 import { createSecret } from '@odh-dashboard/internal/api/k8s/secrets';
-import { SecretKind } from '@odh-dashboard/internal/k8sTypes';
+import { isK8sNameDescriptionDataValid } from '@odh-dashboard/k8s-core';
+import type { SecretKind } from '@odh-dashboard/k8s-core';
 
 type Props = {
   namespace: string;

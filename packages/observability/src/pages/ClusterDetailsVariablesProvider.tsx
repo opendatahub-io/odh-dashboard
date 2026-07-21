@@ -7,7 +7,7 @@ import { useClusterDetails } from '../api/useClusterDetails';
 
 /**
  * ClusterDetailsVariablesProvider sets Perses dashboard variables for cluster information.
- * This component must be rendered as a child of PersesWrapper to access the VariableProvider context.
+ * This component must be rendered as a child of PersesProvider to access the VariableProvider context.
  *
  * Sets all variables defined in CLUSTER_DETAILS_VARIABLES (from ../utils/variables):
  * - API_SERVER: The API server URL

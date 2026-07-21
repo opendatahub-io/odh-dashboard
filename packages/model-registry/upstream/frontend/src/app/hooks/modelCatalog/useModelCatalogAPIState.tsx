@@ -1,5 +1,6 @@
 import { APIState, useAPIState } from 'mod-arch-core';
 import React from 'react';
+import { getAgentFilterOptionList, getAgent, getAgentList } from '~/app/api/agentsCatalog/service';
 import {
   getMcpServerFilterOptionList,
   getMcpServer,
@@ -36,6 +37,9 @@ const useModelCatalogAPIState = (
       getMcpServerFilterOptionList: getMcpServerFilterOptionList(path, queryParameters),
       getMcpServer: getMcpServer(path, queryParameters),
       getMcpServerToolList: getMcpServerToolList(path, queryParameters),
+      getAgentList: getAgentList(path, queryParameters),
+      getAgentFilterOptionList: getAgentFilterOptionList(path, queryParameters),
+      getAgent: getAgent(path, queryParameters),
     }),
     [queryParameters],
   );

@@ -4,7 +4,7 @@ const { merge } = require('webpack-merge');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
 const TerserJSPlugin = require('terser-webpack-plugin');
-const rimraf = require('rimraf');
+const { rimrafSync } = require('rimraf');
 const { setupWebpackDotenvFilesForEnv, setupDotenvFilesForEnv } = require('./dotenv');
 
 setupDotenvFilesForEnv({ env: 'production' });
@@ -21,9 +21,7 @@ if (OUTPUT_ONLY !== 'true') {
   console.info(`Cleaning OUTPUT DIR...\n  ${DIST_DIR}\n`);
 }
 
-rimraf(DIST_DIR, () => {
-  // empty
-});
+rimrafSync(DIST_DIR);
 
 module.exports = merge(
   {
@@ -39,14 +37,16 @@ module.exports = merge(
   {
     mode: 'production',
     devtool: 'source-map',
+    output: {
+      filename: '[name].[contenthash].js',
+    },
     optimization: {
       minimize: true,
       minimizer: [new TerserJSPlugin(), new CssMinimizerPlugin()],
     },
     plugins: [
       new MiniCssExtractPlugin({
-        filename: '[name].css',
-        chunkFilename: '[name].bundle.css',
+        filename: '[name].[contenthash].css',
         ignoreOrder: true,
       }),
     ],

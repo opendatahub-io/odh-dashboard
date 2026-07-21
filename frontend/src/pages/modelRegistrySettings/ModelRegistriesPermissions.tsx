@@ -10,11 +10,12 @@ import {
 } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 import { Navigate, useParams } from 'react-router';
-import { KnownLabels, ModelRegistryKind } from '#~/k8sTypes';
+import { KnownLabels } from '@odh-dashboard/k8s-core';
+import { SupportedArea } from '@odh-dashboard/plugin-core/areas';
+import { ModelRegistryKind } from '#~/k8sTypes';
 import { useGroups } from '#~/api';
 import RoleBindingPermissions from '#~/concepts/roleBinding/RoleBindingPermissions';
 import ApplicationsPage from '#~/pages/ApplicationsPage';
-import { SupportedArea } from '#~/concepts/areas';
 import { RoleBindingPermissionsRoleType } from '#~/concepts/roleBinding/types';
 import { useModelRegistryNamespaceCR } from '#~/concepts/modelRegistry/context/useModelRegistryNamespaceCR';
 import { AreaContext } from '#~/concepts/areas/AreaContext';

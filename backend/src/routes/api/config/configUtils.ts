@@ -1,6 +1,7 @@
 import { PatchUtils } from '@kubernetes/client-node';
 import { getDashboardConfig, updateDashboardConfig } from '../../../utils/resourceUtils';
-import { KubeFastifyInstance, DashboardConfig, RecursivePartial } from '../../../types';
+import type { RecursivePartial } from '@odh-dashboard/foundation';
+import { KubeFastifyInstance, DashboardConfig } from '../../../types';
 
 export const setDashboardConfig = async (
   fastify: KubeFastifyInstance,

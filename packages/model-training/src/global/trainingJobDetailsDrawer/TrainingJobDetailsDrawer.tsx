@@ -19,7 +19,7 @@ import {
   Spinner,
 } from '@patternfly/react-core';
 import { EllipsisVIcon } from '@patternfly/react-icons';
-import { PodKind } from '@odh-dashboard/internal/k8sTypes';
+import type { PodKind } from '@odh-dashboard/k8s-core';
 import TrainingJobResourcesTab from './TrainingJobResourcesTab';
 import TrainingJobPodsTab from './TrainingJobPodsTab';
 import TrainingJobLogsTab from './TrainingJobLogsTab';

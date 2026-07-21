@@ -9,7 +9,7 @@ describe('flattenEntries', () => {
     ]);
   });
 
-  it('should flatten nested objects with prefixed labels', () => {
+  it('should flatten nested objects without prefixing child labels', () => {
     expect(
       flattenEntries({
         embedding: {
@@ -18,8 +18,8 @@ describe('flattenEntries', () => {
         },
       }),
     ).toEqual([
-      ['Embedding Model Id', 'sentence-transformers'],
-      ['Embedding Dimensions', '768'],
+      ['Model ID', 'sentence-transformers'],
+      ['Dimensions', '768'],
     ]);
   });
 
@@ -32,11 +32,11 @@ describe('flattenEntries', () => {
           },
         },
       }),
-    ).toEqual([['Embedding Embedding Params Context Length', '512']]);
+    ).toEqual([['Context Length', '512']]);
   });
 
   it('should handle null values as em-dash', () => {
-    expect(flattenEntries({ timeout: null })).toEqual([['Timeout', '\u2014']]);
+    expect(flattenEntries({ timeout: null })).toEqual([['Timeout', '—']]);
   });
 
   it('should handle boolean values', () => {
@@ -59,15 +59,16 @@ describe('flattenEntries', () => {
   });
 
   it('should handle mixed flat and nested keys', () => {
-    const result = flattenEntries({
-      method: 'recursive',
-      params: {
-        chunk_size: 256,
-      },
-    });
-    expect(result).toEqual([
+    expect(
+      flattenEntries({
+        method: 'recursive',
+        params: {
+          chunk_size: 256,
+        },
+      }),
+    ).toEqual([
       ['Method', 'recursive'],
-      ['Params Chunk Size', '256'],
+      ['Chunk Size', '256'],
     ]);
   });
 });

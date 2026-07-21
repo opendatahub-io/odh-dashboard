@@ -32,7 +32,7 @@ ARG BFF_SOURCE_CODE
 ARG TARGETOS
 ARG TARGETARCH
 
-COPY ../../pkg/openapi /usr/src/app/pkg/openapi
+COPY pkg/openapi /usr/src/app/pkg/openapi
 
 WORKDIR /usr/src/app/clients/ui/bff
 
@@ -45,6 +45,7 @@ RUN go mod download
 # Copy the go source files
 COPY ${BFF_SOURCE_CODE}/cmd/ cmd/
 COPY ${BFF_SOURCE_CODE}/internal/ internal/
+COPY ${BFF_SOURCE_CODE}/openapi/ openapi/
 
 # Build the Go application
 RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -a -o /usr/src/app/bff ./cmd

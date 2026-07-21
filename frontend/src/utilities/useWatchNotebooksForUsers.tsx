@@ -1,10 +1,10 @@
 import * as React from 'react';
+import { useDeepCompareMemoize } from '@odh-dashboard/ui-core/hooks';
 import { NotebookRunningState, UsernameMap } from '#~/types';
 import { getNotebookAndStatus } from '#~/services/notebookService';
 import { POLL_INTERVAL } from './const';
 import { generateNotebookNameFromUsername } from './notebookControllerUtils';
 import { allSettledPromises } from './allSettledPromises';
-import { useDeepCompareMemoize } from './useDeepCompareMemoize';
 
 const useWatchNotebooksForUsers = (
   projectName: string,

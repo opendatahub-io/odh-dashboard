@@ -1,27 +1,30 @@
 import * as React from 'react';
-import {
-  ConfigMapKind,
+import type { PersistentVolumeClaimKind, ProjectKind, SecretKind } from '@odh-dashboard/k8s-core';
+import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
+import type {
   InferenceServiceKind,
-  PersistentVolumeClaimKind,
-  ProjectKind,
-  SecretKind,
   ServingContainer,
   ServingRuntimeKind,
-} from '#~/k8sTypes';
-import { NamespaceApplicationCase, UpdateObjectAtPropAndValue } from '#~/pages/projects/types';
-import useGenericObjectState from '#~/utilities/useGenericObjectState';
+  CreatingServingRuntimeObject,
+  ModelDeployPrefillInfo,
+} from '@odh-dashboard/model-serving/shared';
+import {
+  ServingRuntimePlatform,
+  getDisplayNameFromServingRuntimeTemplate,
+} from '@odh-dashboard/model-serving/shared';
+import useGenericObjectState from '@odh-dashboard/ui-core/utilities/useGenericObjectState';
+import { useDeepCompareMemoize } from '@odh-dashboard/ui-core/hooks';
+import { containsOnlySlashes, isS3PathValid } from '@odh-dashboard/ui-core/utilities';
+import type { UpdateObjectAtPropAndValue } from '@odh-dashboard/ui-core';
+import { ConfigMapKind } from '#~/k8sTypes';
+import { NamespaceApplicationCase } from '#~/pages/projects/types';
 import {
   CreatingInferenceServiceObject,
-  CreatingServingRuntimeObject,
   InferenceServiceStorageType,
   ServingPlatformStatuses,
   ServingRuntimeEditInfo,
 } from '#~/pages/modelServing/screens/types';
-import { ServingRuntimePlatform } from '#~/types';
-import { useDeepCompareMemoize } from '#~/utilities/useDeepCompareMemoize';
 import { EMPTY_AWS_SECRET_DATA } from '#~/pages/projects/dataConnections/const';
-import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
-import { getDisplayNameFromServingRuntimeTemplate } from '#~/pages/modelServing/customServingRuntimes/utils';
 import { getServingRuntimeTokens, setUpTokenAuth } from '#~/pages/modelServing/utils';
 import {
   addSupportServingPlatformProject,
@@ -33,7 +36,7 @@ import {
   updateInferenceService,
   updateServingRuntime,
 } from '#~/api';
-import { containsOnlySlashes, isS3PathValid, removeLeadingSlash } from '#~/utilities/string';
+import { removeLeadingSlash } from '#~/utilities/string';
 import { getNIMData, getNIMResource } from '#~/pages/modelServing/screens/projects/nim/nimUtils';
 import { Connection } from '#~/concepts/connectionTypes/types';
 import {
@@ -42,7 +45,6 @@ import {
 } from '#~/concepts/connectionTypes/utils';
 import { HardwarePodSpecOptions } from '#~/concepts/hardwareProfiles/types';
 import { useDashboardNamespace } from '#~/redux/selectors';
-import { ModelDeployPrefillInfo } from './usePrefillModelDeployModal';
 
 export const isServingRuntimeTokenEnabled = (servingRuntime: ServingRuntimeKind): boolean =>
   servingRuntime.metadata.annotations?.['enable-auth'] === 'true';

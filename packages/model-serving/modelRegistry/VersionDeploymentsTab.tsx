@@ -1,7 +1,7 @@
 import React from 'react';
-import { ProjectObjectType, typedEmptyImage } from '@odh-dashboard/internal/concepts/design/utils';
-import { ProjectsContext } from '@odh-dashboard/internal/concepts/projects/ProjectsContext';
-import { KnownLabels } from '@odh-dashboard/internal/k8sTypes';
+import { ProjectObjectType, typedEmptyImage } from '@odh-dashboard/ui-core';
+import { ProjectsContext } from '@odh-dashboard/ui-core/context/ProjectsContext';
+import { KnownLabels } from '@odh-dashboard/k8s-core';
 import EmptyDeploymentsState from './EmptyDeploymentsState';
 import ModelRegistryDeploymentsTable from './ModelRegistryDeploymentsTable';
 import { useModelRegistryFilter } from './useModelRegistryFilter';

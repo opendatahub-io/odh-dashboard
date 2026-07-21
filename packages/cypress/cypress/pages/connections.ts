@@ -7,7 +7,7 @@ class ConnectionsPage {
   }
 
   getConnectionRow(name: string) {
-    return new TableRow(() =>
+    return new ConnectionTableRow(() =>
       this.findTable().findAllByTestId(`table-row-title`).contains(name).parents('tr'),
     );
   }
@@ -30,6 +30,16 @@ class ConnectionsPage {
 
   findDeleteButton() {
     return cy.contains('.pf-v6-c-menu__item-text', 'Delete');
+  }
+}
+
+class ConnectionTableRow extends TableRow {
+  findStatusCell() {
+    return this.find().findByTestId('connection-status-cell');
+  }
+
+  findConnectionNameLink() {
+    return this.find().findByTestId('connection-name-link');
   }
 }
 class ConnectionModal extends Modal {
@@ -111,6 +121,38 @@ class ConnectionModal extends Modal {
 
   findOciRegistryHost() {
     return this.find().findByTestId('field OCI_HOST');
+  }
+
+  findTestConnectionButton() {
+    return this.find().findByTestId('test-connection-button');
+  }
+
+  findTestStatusNotTested() {
+    return this.find().findByTestId('connection-test-label-not-tested');
+  }
+
+  findTestStatusTesting() {
+    return this.find().findByTestId('connection-test-label-testing');
+  }
+
+  findTestStatusVerified() {
+    return this.find().findByTestId('connection-test-label-verified');
+  }
+
+  findTestStatusFailed() {
+    return this.find().findByTestId('connection-test-label-failed');
+  }
+
+  findTestSuccessAlert() {
+    return this.find().findByTestId('connection-test-success-alert');
+  }
+
+  findTestFailureAlert() {
+    return this.find().findByTestId('connection-test-failure-alert');
+  }
+
+  findCancelButton() {
+    return this.find().findByTestId('modal-cancel-button');
   }
 }
 

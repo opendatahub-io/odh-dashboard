@@ -15,15 +15,13 @@ import {
 import { ArrowRightIcon, FilterIcon } from '@patternfly/react-icons';
 import React from 'react';
 import { useThemeContext } from 'mod-arch-kubeflow';
+import { ThemeAwareSearchInput } from 'mod-arch-shared';
 import { BASIC_FILTER_KEYS } from '~/concepts/modelCatalog/const';
 import ModelCatalogActiveFilters from '~/app/pages/modelCatalog/components/ModelCatalogActiveFilters';
 import HardwareConfigurationFilterToolbar from '~/app/pages/modelCatalog/components/HardwareConfigurationFilterToolbar';
-import ThemeAwareSearchInput from '~/app/pages/modelRegistry/screens/components/ThemeAwareSearchInput';
 import { ModelCatalogContext } from '~/app/context/modelCatalog/ModelCatalogContext';
-import {
-  hasFiltersApplied,
-  getActiveSourceLabels,
-} from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
+import { getActiveSourceLabels, RESET_ALL_FILTERS_LABEL } from '~/app/shared/components/catalog';
+import { hasFiltersApplied } from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
 import ModelCatalogSortDropdown from '~/app/pages/modelCatalog/components/ModelCatalogSortDropdown';
 import ModelCatalogSourceLabelBlocks from './ModelCatalogSourceLabelBlocks';
 
@@ -45,7 +43,7 @@ const ModelCatalogSourceLabelSelector: React.FC<ModelCatalogSourceLabelSelectorP
   const {
     catalogSources,
     catalogLabels,
-    filterData,
+    filters,
     performanceViewEnabled,
     performanceFiltersChangedOnDetailsPage,
     setPerformanceFiltersChangedOnDetailsPage,
@@ -62,8 +60,8 @@ const ModelCatalogSourceLabelSelector: React.FC<ModelCatalogSourceLabelSelectorP
 
   // Check if any basic filters are applied
   const hasBasicFiltersApplied = React.useMemo(
-    () => hasFiltersApplied(filterData, filtersToShow),
-    [filterData, filtersToShow],
+    () => hasFiltersApplied(filters, filtersToShow),
+    [filters, filtersToShow],
   );
 
   // Check if search term is active
@@ -137,7 +135,7 @@ const ModelCatalogSourceLabelSelector: React.FC<ModelCatalogSourceLabelSelectorP
           {...(onResetAllFilters && !performanceViewEnabled && hasBasicFiltersApplied
             ? {
                 clearAllFilters: handleClearAllFilters,
-                clearFiltersButtonText: 'Reset all filters',
+                clearFiltersButtonText: RESET_ALL_FILTERS_LABEL,
               }
             : {})}
         >

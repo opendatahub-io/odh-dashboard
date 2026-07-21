@@ -16,6 +16,7 @@ type UsePromptsListOptions = {
 
 type UsePromptsListResult = {
   prompts: MLflowPrompt[];
+  totalCount: number;
   isLoading: boolean;
   isFetchingNextPage: boolean;
   hasNextPage: boolean;
@@ -28,45 +29,50 @@ export function usePromptsList(options: UsePromptsListOptions = {}): UsePromptsL
   const { maxResults, filterName } = options;
   const { namespace } = useContext(GenAiContext);
 
-  const { data, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage, error } =
-    useInfiniteQuery<
-      MLflowPromptsResponse,
-      Error,
-      MLflowPrompt[],
-      [string, string, { maxResults?: number; filterName?: string }],
-      string | undefined
-    >({
-      queryKey: [`${namespace?.name}_prompts`, 'list', { maxResults, filterName }],
-      queryFn: async ({ pageParam }) => {
-        const queryParams: Record<string, unknown> = {};
-        if (maxResults !== undefined) {
-          // eslint-disable-next-line camelcase -- MLflow API uses snake_case
-          queryParams.max_results = maxResults;
-        }
-        if (filterName !== undefined) {
-          // eslint-disable-next-line camelcase -- MLflow API uses snake_case
-          queryParams.filter_name = filterName;
-        }
-        if (pageParam) {
-          // eslint-disable-next-line camelcase -- MLflow API uses snake_case
-          queryParams.page_token = pageParam;
-        }
-        return api.listMLflowPrompts(queryParams);
-      },
-      initialPageParam: undefined,
-      getNextPageParam: (lastPage) => lastPage.next_page_token,
-      select: (queryData) => queryData.pages.flatMap((page) => page.prompts),
-      enabled: apiAvailable,
-      staleTime: 60000,
-    });
+  const queryResult = useInfiniteQuery<
+    MLflowPromptsResponse,
+    Error,
+    MLflowPromptsResponse[],
+    [string, string, { maxResults?: number; filterName?: string }],
+    string | undefined
+  >({
+    queryKey: [`${namespace?.name}_prompts`, 'list', { maxResults, filterName }],
+    queryFn: async ({ pageParam }) => {
+      const queryParams: Record<string, unknown> = {};
+      if (maxResults !== undefined) {
+        // eslint-disable-next-line camelcase -- MLflow API uses snake_case
+        queryParams.max_results = maxResults;
+      }
+      if (filterName !== undefined) {
+        // eslint-disable-next-line camelcase -- MLflow API uses snake_case
+        queryParams.filter_name = filterName;
+      }
+      if (pageParam) {
+        // eslint-disable-next-line camelcase -- MLflow API uses snake_case
+        queryParams.page_token = pageParam;
+      }
+      return api.listMLflowPrompts(queryParams);
+    },
+    initialPageParam: undefined,
+    getNextPageParam: (lastPage) => lastPage.next_page_token,
+    select: (queryData) => queryData.pages,
+    enabled: apiAvailable,
+    staleTime: 60000,
+  });
+
+  const pages = queryResult.data ?? [];
+  const prompts = pages.flatMap((page) => page.prompts);
+  // eslint-disable-next-line camelcase -- MLflow API uses snake_case
+  const totalCount = pages[0]?.total_count ?? 0;
 
   return {
-    prompts: data ?? [],
-    isLoading,
-    isFetchingNextPage,
-    hasNextPage,
-    fetchNextPage,
-    error: error ?? null,
+    prompts,
+    totalCount,
+    isLoading: queryResult.isLoading,
+    isFetchingNextPage: queryResult.isFetchingNextPage,
+    hasNextPage: queryResult.hasNextPage,
+    fetchNextPage: queryResult.fetchNextPage,
+    error: queryResult.error ?? null,
   };
 }
 
@@ -76,23 +82,34 @@ type UsePromptVersionsResult = {
   error: Error | null;
 };
 
-export function usePromptVersions(promptName: string | null): UsePromptVersionsResult {
+export function usePromptVersions(
+  promptName: string | null,
+  scope?: MLflowPrompt['scope'],
+): UsePromptVersionsResult {
   const { api, apiAvailable } = useGenAiAPI();
   const { namespace } = useContext(GenAiContext);
 
+  const workspaceOverride = scope?.type === 'global' ? scope.namespace : undefined;
+
   const { data, isLoading, error } = useQuery({
-    queryKey: [`${namespace?.name}_prompts`, promptName, 'versions'],
+    queryKey: [`${namespace?.name}_prompts`, promptName, 'versions', workspaceOverride],
     queryFn: async () => {
       if (!promptName) {
         return [];
       }
-      const versionsResponse = await api.listMLflowPromptVersions({ name: promptName });
+      const extraParams = workspaceOverride ? { workspace: workspaceOverride } : {};
+      const versionsResponse = await api.listMLflowPromptVersions({
+        name: promptName,
+        ...extraParams,
+      });
       const versions = await Promise.all(
-        versionsResponse.versions.map((v) =>
-          api.getMLflowPrompt({ name: promptName, version: v.version }),
+        (versionsResponse.versions ?? []).map((v) =>
+          api.getMLflowPrompt({ name: promptName, version: v.version, ...extraParams }),
         ),
       );
-      return versions.toSorted((a, b) => b.version - a.version);
+      return versions
+        .toSorted((a, b) => b.version - a.version)
+        .map((v) => (scope ? { ...v, scope } : v));
     },
     enabled: !!promptName && apiAvailable,
     staleTime: 60000,

@@ -142,6 +142,37 @@ describe('AutomlInputParametersPanel', () => {
     expect(screen.getByText('Binary classification')).toBeInTheDocument();
   });
 
+  it('should format preset with human-readable label', () => {
+    renderPanel({
+      parameters: {
+        ...defaultParameters,
+        preset: 'speed',
+      },
+    });
+    expect(screen.getByText('Run preset')).toBeInTheDocument();
+    expect(screen.getByText('Faster')).toBeInTheDocument();
+  });
+
+  it('should format balanced preset with human-readable label', () => {
+    renderPanel({
+      parameters: {
+        ...defaultParameters,
+        preset: 'balanced',
+      },
+    });
+    expect(screen.getByText('Better quality')).toBeInTheDocument();
+  });
+
+  it('should fall back to raw value for unknown preset', () => {
+    renderPanel({
+      parameters: {
+        ...defaultParameters,
+        preset: 'unknown_preset',
+      } as unknown as Partial<ConfigureSchema>,
+    });
+    expect(screen.getByText('unknown_preset')).toBeInTheDocument();
+  });
+
   it('should show loading skeletons when isLoading is true', () => {
     renderPanel({ isLoading: true });
     expect(screen.getByText('Run details')).toBeInTheDocument();

@@ -9,18 +9,16 @@ import {
   Radio,
   Truncate,
 } from '@patternfly/react-core';
-import type { HardwareProfileKind, TemplateKind } from '@odh-dashboard/internal/k8sTypes';
-import { ScopedType } from '@odh-dashboard/internal/pages/modelServing/screens/const';
-import ProjectScopedPopover from '@odh-dashboard/internal/components/ProjectScopedPopover';
-import ProjectScopedIcon from '@odh-dashboard/internal/components/searchSelector/ProjectScopedIcon';
+import { HardwareProfileKind, IdentifierResourceType, TemplateKind } from '@odh-dashboard/k8s-core';
+import { ProjectScopedPopover } from '@odh-dashboard/ui-core';
+import ProjectScopedIcon from '@odh-dashboard/ui-core/components/searchSelector/ProjectScopedIcon';
 import {
   ProjectScopedGroupLabel,
   ProjectScopedSearchDropdown,
-} from '@odh-dashboard/internal/components/searchSelector/ProjectScopedSearchDropdown';
-import ProjectScopedToggleContent from '@odh-dashboard/internal/components/searchSelector/ProjectScopedToggleContent';
-import { IdentifierResourceType } from '@odh-dashboard/internal/types';
-import ServingRuntimeVersionLabel from '@odh-dashboard/internal/pages/modelServing/screens/ServingRuntimeVersionLabel';
+} from '@odh-dashboard/ui-core/components/searchSelector/ProjectScopedSearchDropdown';
+import ProjectScopedToggleContent from '@odh-dashboard/ui-core/components/searchSelector/ProjectScopedToggleContent';
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
+import { DeploymentResourceVersionLabels } from '@odh-dashboard/model-serving/shared/components';
 
 // Schema
 const ModelServerOptionSchema = z.object({
@@ -70,11 +68,11 @@ const OptionDropdownLabel: React.FC<{ option: ModelServerOption }> = ({ option }
     <FlexItem>
       <Truncate content={option.label || option.name || ''} />
     </FlexItem>
-    {option.version && (
+    {option.template ? (
       <FlexItem>
-        <ServingRuntimeVersionLabel version={option.version} isCompact />
+        <DeploymentResourceVersionLabels resource={option.template} isCompact />
       </FlexItem>
-    )}
+    ) : null}
     {option.template && (
       <FlexItem align={{ default: 'alignRight' }}>
         {option.compatibleWithHardwareProfile && (
@@ -166,8 +164,8 @@ const ModelServerTemplateSelectField: React.FC<ModelServerTemplateSelectFieldPro
             <ProjectScopedToggleContent
               displayName={selectedTemplate?.label || selectedTemplate?.name}
               isProject={selectedTemplate?.scope === 'project'}
-              projectLabel={ScopedType.Project}
-              globalLabel={ScopedType.Global}
+              projectLabel="Project-scoped"
+              globalLabel="Global-scoped"
               fallback="Select one"
               color={isDisabled ? 'grey' : 'blue'}
               labelTestId="serving-runtime-template-label"
@@ -178,13 +176,13 @@ const ModelServerTemplateSelectField: React.FC<ModelServerTemplateSelectFieldPro
                   : undefined
               }
               additionalContent={
-                selectedTemplate?.version && (
-                  <ServingRuntimeVersionLabel
-                    version={selectedTemplate.version}
+                selectedTemplate?.template ? (
+                  <DeploymentResourceVersionLabels
+                    resource={selectedTemplate.template}
                     isCompact
                     isEditing={isEditing}
                   />
-                )
+                ) : null
               }
             />
           }

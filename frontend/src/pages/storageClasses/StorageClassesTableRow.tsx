@@ -22,11 +22,12 @@ import {
   PencilAltIcon,
 } from '@patternfly/react-icons';
 
+import { MetadataAnnotation } from '@odh-dashboard/k8s-core';
+import { DashboardPopupIconButton } from '@odh-dashboard/ui-core';
 import { updateStorageClassConfig } from '#~/api';
 import { NoValue } from '#~/components/NoValue';
 import { TableRowTitleDescription } from '#~/components/table';
-import DashboardPopupIconButton from '#~/concepts/dashboard/DashboardPopupIconButton';
-import { MetadataAnnotation, StorageClassConfig, StorageClassKind } from '#~/k8sTypes';
+import { StorageClassConfig, StorageClassKind } from '#~/k8sTypes';
 import AccessModeLabel from '#~/pages/projects/screens/spawner/storage/AccessModeLabel';
 import { ColumnLabel } from './constants';
 import { CorruptedMetadataAlert } from './CorruptedMetadataAlert';

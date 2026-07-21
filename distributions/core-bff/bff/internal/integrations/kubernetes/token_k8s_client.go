@@ -8,10 +8,12 @@ import (
 	"time"
 
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/helpers"
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/models"
 	authnv1 "k8s.io/api/authentication/v1"
 	authv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 )
@@ -53,6 +55,30 @@ func (kc *TokenKubernetesClient) IsClusterAdmin(ctx context.Context, _ *RequestI
 	return true, nil
 }
 
+// NewKubeconfigKubernetesClient creates a Kubernetes client using the kubeconfig's native auth
+func NewKubeconfigKubernetesClient(logger *slog.Logger) (KubernetesClientInterface, error) {
+	cfg, err := helpers.GetKubeconfig()
+	if err != nil {
+		logger.Error("failed to get kubeconfig", "error", err)
+		return nil, fmt.Errorf("failed to get kubeconfig: %w", err)
+	}
+
+	clientset, err := kubernetes.NewForConfig(cfg)
+	if err != nil {
+		logger.Error("failed to create kubeconfig-based Kubernetes client", "error", err)
+		return nil, fmt.Errorf("failed to create Kubernetes client: %w", err)
+	}
+
+	return &TokenKubernetesClient{
+		SharedClientLogic: SharedClientLogic{
+			Client:     clientset,
+			Logger:     logger,
+			RestConfig: cfg,
+			Token:      NewBearerToken(""),
+		},
+	}, nil
+}
+
 // NewTokenKubernetesClient creates a Kubernetes client using a user bearer token.
 func NewTokenKubernetesClient(token string, logger *slog.Logger) (KubernetesClientInterface, error) {
 	baseConfig, err := helpers.GetKubeconfig()
@@ -80,8 +106,9 @@ func NewTokenKubernetesClient(token string, logger *slog.Logger) (KubernetesClie
 
 	return &TokenKubernetesClient{
 		SharedClientLogic: SharedClientLogic{
-			Client: clientset,
-			Logger: logger,
+			Client:     clientset,
+			Logger:     logger,
+			RestConfig: cfg,
 			// Token is retained for follow-up calls; do not log it.
 			Token: NewBearerToken(token),
 		},
@@ -111,7 +138,7 @@ func (kc *TokenKubernetesClient) CanListServicesInNamespace(ctx context.Context,
 		}
 
 		if !resp.Status.Allowed {
-			kc.Logger.Error("self-SAR denied", "namespace", namespace, "verb", verb)
+			kc.Logger.Warn("self-SAR denied", "namespace", namespace, "verb", verb)
 			return false, nil
 		}
 	}
@@ -141,7 +168,7 @@ func (kc *TokenKubernetesClient) CanAccessServiceInNamespace(ctx context.Context
 		return false, err
 	}
 	if !resp.Status.Allowed {
-		kc.Logger.Error("self-SAR denied", "service", serviceName, "namespace", namespace)
+		kc.Logger.Warn("self-SAR denied", "service", serviceName, "namespace", namespace)
 		return false, nil
 	}
 
@@ -149,14 +176,15 @@ func (kc *TokenKubernetesClient) CanAccessServiceInNamespace(ctx context.Context
 }
 
 // RequestIdentity is unused because the token already represents the user identity.
-// This endpoint is used only on dev mode that is why is safe to ignore permissions errors
+// This endpoint is used only in dev mode. Permission failures are expected there,
+// so they are logged at Warn, but the request still returns an error to the caller.
 func (kc *TokenKubernetesClient) GetNamespaces(ctx context.Context, _ *RequestIdentity) ([]corev1.Namespace, error) {
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
 	nsList, err := kc.Client.CoreV1().Namespaces().List(ctx, metav1.ListOptions{})
 	if err != nil {
-		kc.Logger.Error("user is not allowed to list namespaces or failed to list namespaces")
+		kc.Logger.Warn("user is not allowed to list namespaces or failed to list namespaces")
 		return []corev1.Namespace{}, fmt.Errorf("failed to list namespaces: %w", err)
 	}
 
@@ -197,4 +225,106 @@ func (kc *TokenKubernetesClient) GetUser(ctx context.Context, _ *RequestIdentity
 	}
 
 	return username, nil
+}
+
+// IsUserAdmin checks if the user can patch the auths/default-auth singleton
+// (services.platform.opendatahub.io). This is NOT generic cluster-admin detection -
+// it checks SSAR for "patch" on "auths/default-auth" specifically.
+// Parity: mirrors Fastify's adminUtils.ts isUserAdmin(), which performs the same
+// SSAR check against auths/default-auth to determine dashboard admin status.
+// See also: IsClusterAdmin() for the generic wildcard SSAR check.
+func (kc *TokenKubernetesClient) IsUserAdmin(ctx context.Context, _ *RequestIdentity) (bool, error) {
+	return kc.checkAuthSingletonAccess(ctx, "patch")
+}
+
+// IsUserAllowed checks if the user can get the auths/default-auth singleton,
+func (kc *TokenKubernetesClient) IsUserAllowed(ctx context.Context, _ *RequestIdentity) (bool, error) {
+	return kc.checkAuthSingletonAccess(ctx, "get")
+}
+
+func (kc *TokenKubernetesClient) checkAuthSingletonAccess(ctx context.Context, verb string) (bool, error) {
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	sar := &authv1.SelfSubjectAccessReview{
+		Spec: authv1.SelfSubjectAccessReviewSpec{
+			ResourceAttributes: &authv1.ResourceAttributes{
+				Group:    "services.platform.opendatahub.io",
+				Resource: "auths",
+				Name:     models.DefaultAuthName,
+				Verb:     verb,
+			},
+		},
+	}
+
+	resp, err := kc.Client.AuthorizationV1().SelfSubjectAccessReviews().Create(ctx, sar, metav1.CreateOptions{})
+	if err != nil {
+		return false, fmt.Errorf("failed to perform auth singleton SAR (verb=%s): %w", verb, err)
+	}
+
+	return resp.Status.Allowed, nil
+}
+
+func (kc *TokenKubernetesClient) CheckAccess(ctx context.Context, _ *RequestIdentity, verb, group, resource, namespace string) (bool, error) {
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	sar := &authv1.SelfSubjectAccessReview{
+		Spec: authv1.SelfSubjectAccessReviewSpec{
+			ResourceAttributes: &authv1.ResourceAttributes{
+				Verb:      verb,
+				Group:     group,
+				Resource:  resource,
+				Namespace: namespace,
+			},
+		},
+	}
+
+	resp, err := kc.Client.AuthorizationV1().SelfSubjectAccessReviews().Create(ctx, sar, metav1.CreateOptions{})
+	if err != nil {
+		kc.Logger.Error("SSAR check failed", "verb", verb, "group", group, "resource", resource, "namespace", namespace, "error", err)
+		return false, fmt.Errorf("failed to check access (verb=%s, resource=%s/%s): %w", verb, group, resource, err)
+	}
+
+	if !resp.Status.Allowed {
+		kc.Logger.Info("SSAR denied", "verb", verb, "group", group, "resource", resource, "namespace", namespace)
+	}
+
+	return resp.Status.Allowed, nil
+}
+
+func (kc *TokenKubernetesClient) GetConfigMap(ctx context.Context, namespace, name string) (*corev1.ConfigMap, error) {
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+	return kc.Client.CoreV1().ConfigMaps(namespace).Get(ctx, name, metav1.GetOptions{})
+}
+
+func (kc *TokenKubernetesClient) ListConfigMaps(ctx context.Context, namespace string, labelSelector string) (*corev1.ConfigMapList, error) {
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+	return kc.Client.CoreV1().ConfigMaps(namespace).List(ctx, metav1.ListOptions{LabelSelector: labelSelector})
+}
+
+func (kc *TokenKubernetesClient) CreateConfigMap(ctx context.Context, namespace string, cm *corev1.ConfigMap) (*corev1.ConfigMap, error) {
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+	return kc.Client.CoreV1().ConfigMaps(namespace).Create(ctx, cm, metav1.CreateOptions{})
+}
+
+func (kc *TokenKubernetesClient) UpdateConfigMap(ctx context.Context, namespace string, cm *corev1.ConfigMap) (*corev1.ConfigMap, error) {
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+	return kc.Client.CoreV1().ConfigMaps(namespace).Update(ctx, cm, metav1.UpdateOptions{})
+}
+
+func (kc *TokenKubernetesClient) PatchConfigMap(ctx context.Context, namespace, name string, patchData []byte, patchType types.PatchType) (*corev1.ConfigMap, error) {
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+	return kc.Client.CoreV1().ConfigMaps(namespace).Patch(ctx, name, patchType, patchData, metav1.PatchOptions{})
+}
+
+func (kc *TokenKubernetesClient) DeleteConfigMap(ctx context.Context, namespace, name string) error {
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+	return kc.Client.CoreV1().ConfigMaps(namespace).Delete(ctx, name, metav1.DeleteOptions{})
 }

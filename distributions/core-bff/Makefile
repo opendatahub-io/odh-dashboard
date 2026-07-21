@@ -132,12 +132,6 @@ docker-push-standalone:
 docker-push-federated:
 	${CONTAINER_TOOL} push ${IMG_UI_FEDERATED}
 
-############ Deployment ############
-
-.PHONY: kind-deployment
-kind-deployment:
-	./scripts/deploy_kind_cluster.sh
-
 ############ Build ############
 .PHONY: frontend-build
 frontend-build:

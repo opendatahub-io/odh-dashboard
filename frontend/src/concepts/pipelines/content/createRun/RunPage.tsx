@@ -1,6 +1,8 @@
 import React from 'react';
 import { useLocation } from 'react-router-dom';
 import { PageSection } from '@patternfly/react-core';
+import { asEnumMember } from '@odh-dashboard/foundation';
+import type { ValueOf } from '@odh-dashboard/foundation';
 import useIsMlflowPipelinesAvailable from '#~/concepts/mlflow/hooks/useIsMlflowPipelinesAvailable';
 import { ExperimentKF, PipelineRecurringRunKF, PipelineRunKF } from '#~/concepts/pipelines/kfTypes';
 import GenericSidebar from '#~/components/GenericSidebar';
@@ -19,10 +21,8 @@ import {
   RunTypeOption,
   ScheduledType,
 } from '#~/concepts/pipelines/content/createRun/types';
-import { ValueOf } from '#~/typeHelpers';
 import { useGetSearchParamValues } from '#~/utilities/useGetSearchParamValues';
 import { PipelineRunSearchParam } from '#~/concepts/pipelines/content/types';
-import { asEnumMember } from '#~/utilities/utils';
 import useDefaultExperiment from '#~/pages/pipelines/global/experiments/useDefaultExperiment';
 
 type RunPageProps = {

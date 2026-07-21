@@ -7,9 +7,10 @@ import {
   K8sStatus,
   k8sUpdateResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
-import { K8sAPIOptions, KnownLabels, PersistentVolumeClaimKind } from '#~/k8sTypes';
+import type { PersistentVolumeClaimKind } from '@odh-dashboard/k8s-core';
+import { KnownLabels, translateDisplayNameForK8s } from '@odh-dashboard/k8s-core';
+import { K8sAPIOptions } from '#~/k8sTypes';
 import { PVCModel } from '#~/api/models';
-import { translateDisplayNameForK8s } from '#~/concepts/k8s/utils';
 import { LABEL_SELECTOR_DASHBOARD_RESOURCE } from '#~/const';
 import { applyK8sAPIOptions } from '#~/api/apiMergeUtils';
 import { StorageData } from '#~/pages/projects/types';

@@ -6,5 +6,8 @@ runDescription: 'E2E test binary classification run'
 trainingDataFile: automl-test-data.csv
 taskType: binary
 topN: 1
+defaultMetricLabel: Accuracy
+changedMetricKey: f1
+changedMetricLabel: 'F₁'
 labelColumn: target
 awsBucket: BUCKET_2

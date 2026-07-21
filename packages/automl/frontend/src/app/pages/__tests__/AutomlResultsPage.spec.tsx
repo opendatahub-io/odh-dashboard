@@ -49,6 +49,16 @@ jest.mock('~/app/hooks/useAutomlResults', () => ({
   useAutomlResults: (...args: unknown[]) => mockUseAutomlResults(...args),
 }));
 
+const mockUseComponentStageMap = jest.fn();
+jest.mock('~/app/hooks/useComponentStageMap', () => ({
+  useComponentStageMap: (...args: unknown[]) => mockUseComponentStageMap(...args),
+}));
+
+const mockUseComponentStatuses = jest.fn();
+jest.mock('~/app/hooks/useComponentStatuses', () => ({
+  useComponentStatuses: (...args: unknown[]) => mockUseComponentStatuses(...args),
+}));
+
 jest.mock('~/app/hooks/mutations', () => ({
   useTerminatePipelineRunMutation: jest.fn().mockReturnValue({
     mutateAsync: jest.fn(),
@@ -247,6 +257,18 @@ describe('AutomlResultsPage', () => {
       error: undefined,
       refetch: jest.fn(),
     });
+
+    mockUseComponentStageMap.mockReturnValue({
+      componentStageMap: undefined,
+      isLoading: false,
+      isError: false,
+      error: undefined,
+    });
+
+    mockUseComponentStatuses.mockReturnValue({
+      mergedStageMap: undefined,
+      isLoading: false,
+    });
   });
 
   describe('hook integration', () => {
@@ -386,6 +408,36 @@ describe('AutomlResultsPage', () => {
       expect(screen.getByTestId('automl-results')).toBeInTheDocument();
       expect(capturedContext).toMatchObject({
         modelsLoading: true,
+      });
+    });
+
+    it('should combine component stage map and status loading flags in context', () => {
+      const mockPipelineRun = createMockPipelineRun();
+
+      mockUsePipelineRunQuery.mockReturnValue({
+        data: mockPipelineRun,
+        isPending: false,
+        isFetching: false,
+        isError: false,
+        error: null,
+      });
+
+      mockUseComponentStageMap.mockReturnValue({
+        componentStageMap: undefined,
+        isLoading: false,
+        isError: false,
+        error: undefined,
+      });
+
+      mockUseComponentStatuses.mockReturnValue({
+        mergedStageMap: undefined,
+        isLoading: true,
+      });
+
+      renderPage();
+
+      expect(capturedContext).toMatchObject({
+        componentStageMapLoading: true,
       });
     });
 

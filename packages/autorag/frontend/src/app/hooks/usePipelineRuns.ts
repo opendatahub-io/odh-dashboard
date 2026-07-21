@@ -30,7 +30,6 @@ export type PipelineRunsResult = {
 export function usePipelineRuns(namespace: string): PipelineRunsResult {
   const [page, setPage] = React.useState(1);
   const [pageSize, setPageSize] = React.useState(DEFAULT_PAGE_SIZE);
-  const pageTokensRef = React.useRef<(string | undefined)[]>([]);
 
   const fetchCallback = React.useCallback<
     FetchStateCallbackPromise<{ runs: PipelineRun[]; total_size: number; next_page_token: string }>
@@ -38,13 +37,10 @@ export function usePipelineRuns(namespace: string): PipelineRunsResult {
     if (!namespace) {
       return { runs: [], total_size: 0, next_page_token: '' };
     }
-    if (page > 1 && !pageTokensRef.current[page - 1]) {
-      throw new Error(`No token available for page ${page}.`);
-    }
     const result = await getPipelineRunsFromBFF('', {
       namespace,
       pageSize,
-      nextPageToken: pageTokensRef.current[page - 1],
+      page,
     });
     return result;
   }, [namespace, page, pageSize]);
@@ -59,19 +55,9 @@ export function usePipelineRuns(namespace: string): PipelineRunsResult {
     { refreshRate: POLL_INTERVAL },
   );
 
-  // Store nextPageToken for the current page so we can fetch page+1
-  React.useEffect(() => {
-    if (loaded && pageTokensRef.current[page] !== data.next_page_token) {
-      const newTokens = pageTokensRef.current.slice(0, page);
-      newTokens[page] = data.next_page_token;
-      pageTokensRef.current = newTokens;
-    }
-  }, [loaded, page, data.next_page_token]);
-
   // Reset to page 1 when namespace or pageSize changes
   React.useEffect(() => {
     setPage(1);
-    pageTokensRef.current = [];
   }, [namespace, pageSize]);
 
   const setPageWrapped = React.useCallback((newPage: number) => {
@@ -81,14 +67,15 @@ export function usePipelineRuns(namespace: string): PipelineRunsResult {
   const setPageSizeWrapped = React.useCallback((newPageSize: number) => {
     setPageSize(newPageSize);
     setPage(1);
-    pageTokensRef.current = [];
   }, []);
 
   const refreshWrapped = React.useCallback(async () => {
-    pageTokensRef.current = [];
-    setPage(1);
-    await refresh();
-  }, [refresh]);
+    if (page === 1) {
+      await refresh();
+    } else {
+      setPage(1);
+    }
+  }, [page, refresh]);
 
   return {
     runs: data.runs,

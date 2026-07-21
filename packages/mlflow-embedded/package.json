@@ -45,10 +45,20 @@
   },
   "dependencies": {
     "@odh-dashboard/internal": "*",
-    "@odh-dashboard/plugin-core": "*"
+    "@odh-dashboard/k8s-core": "*",
+    "@odh-dashboard/plugin-core": "*",
+    "@odh-dashboard/ui-core": "*"
   },
   "devDependencies": {
     "@odh-dashboard/eslint-config": "*",
     "@odh-dashboard/tsconfig": "*"
+  },
+  "peerDependencies": {
+    "@module-federation/runtime": ">=0.15.0",
+    "@patternfly/react-core": "^6",
+    "@patternfly/react-icons": "^6",
+    "react": "^18",
+    "react-dom": "^18",
+    "react-router-dom": "^7"
   }
 }

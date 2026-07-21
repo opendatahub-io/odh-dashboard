@@ -4,12 +4,16 @@ import {
   ModularArchConfig,
   DeploymentMode,
   ModularArchContextProvider,
+  BrowserStorageContextProvider,
   NotificationContextProvider,
 } from 'mod-arch-core';
 import { AppRoutes } from '~/app/AppRoutes';
 import { URL_PREFIX } from '~/app/utilities/const';
 import { UserContextProvider } from '~/app/context/UserContext';
 import { useNotificationListener } from '~/odh/hooks/useNotificationListener';
+import { registerMlflowEmbeddedRemote } from './registerMlflowEmbeddedRemote';
+
+registerMlflowEmbeddedRemote();
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -35,13 +39,15 @@ const NotificationBridge: React.FC<React.PropsWithChildren> = ({ children }) => 
 const GenAiWrapper: React.FC = () => (
   <QueryClientProvider client={queryClient}>
     <ModularArchContextProvider config={modularArchConfig}>
-      <NotificationContextProvider>
-        <NotificationBridge>
-          <UserContextProvider>
-            <AppRoutes />
-          </UserContextProvider>
-        </NotificationBridge>
-      </NotificationContextProvider>
+      <BrowserStorageContextProvider>
+        <NotificationContextProvider>
+          <NotificationBridge>
+            <UserContextProvider>
+              <AppRoutes />
+            </UserContextProvider>
+          </NotificationBridge>
+        </NotificationContextProvider>
+      </BrowserStorageContextProvider>
     </ModularArchContextProvider>
   </QueryClientProvider>
 );

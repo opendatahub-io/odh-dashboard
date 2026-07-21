@@ -13,6 +13,11 @@ ARCH ?= linux/arm64/v8,linux/amd64,linux/ppc64le
 # If updating, also update the version referenced in `BinaryAssetsDirectory` of suite_test.go files.
 ENVTEST_K8S_VERSION = 1.31.0
 
+# We set GOTOOLCHAIN to "local+auto" because we use `go-install-tool` to install tools like `kustomize`
+# which may depend on a newer Go version than the local one. While "local+auto" is the implied default,
+# it is not always the case, as in the `setup-go` GitHub Action which uses "local".
+export GOTOOLCHAIN = local+auto
+
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
 GOBIN=$(shell go env GOPATH)/bin
@@ -59,7 +64,7 @@ vet: ## Run go vet against code.
 	go vet ./...
 
 .PHONY: test
-test: fmt vet envtest ## Run tests.
+test: swag fmt vet envtest ## Run tests.
 	$(eval KUBEBUILDER_ASSETS := $(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path))
 	## For unknown reasons, setup-envtest changes the binary permissions to 0555,
 	## this makes it difficult to clean up the downloaded binaries later.
@@ -83,7 +88,7 @@ SWAG_DIRS := cmd,$(ALL_GO_DIRS_NO_CMD)
 .PHONY: swag
 swag: SWAGGER
 	$(SWAGGER) fmt -g main.go -d $(SWAG_DIRS)
-	$(SWAGGER) init --parseDependency -q -g main.go -d $(SWAG_DIRS) --output openapi --outputTypes go,json --requiredByDefault
+	$(SWAGGER) init --parseDependency -q -g main.go -d $(SWAG_DIRS) --output openapi --outputTypes go,json --requiredByDefault --templateDelims '{{{{,}}}}'
 
 ##@ Build
 
@@ -131,7 +136,7 @@ SWAGGER = $(LOCALBIN)/swag
 ## Tool Versions
 KUSTOMIZE_VERSION ?= v5.5.0
 ENVTEST_VERSION ?= release-0.19
-GOLANGCI_LINT_VERSION ?= v1.61.0
+GOLANGCI_LINT_VERSION ?= v1.64.8
 SWAGGER_VERSION ?= v1.16.6
 
 .PHONY: SWAGGER
@@ -194,4 +199,4 @@ endef
 
 .PHONY: dev-start-federated
 dev-start-federated:
-make run PORT=4000 DEPLOYMENT_MODE=federated
+	$(MAKE) run PORT=4000 DEPLOYMENT_MODE=federated

@@ -37,12 +37,32 @@ class PromptManagement {
     return cy.findByTestId('mlflow-unavailable-empty-state');
   }
 
+  findNotConfiguredEmptyState() {
+    return cy.findByTestId('mlflow-not-configured-empty-state');
+  }
+
+  findNotConfiguredAdminEmptyState() {
+    return cy.findByTestId('mlflow-not-configured-admin-empty-state');
+  }
+
   findProjectSelector() {
     return cy.findByTestId('project-selector-toggle', { timeout: 30000 });
   }
 
   findProjectInDropdown(name: string) {
     return cy.findByRole('menuitem', { name });
+  }
+
+  findGlobalProjectIndicator() {
+    return cy.findByTestId('global-project-indicator');
+  }
+
+  findPinnedGroupLabel() {
+    return cy.findByTestId('pinned-project-group');
+  }
+
+  findProjectsGroupLabel() {
+    return cy.findByTestId('other-projects-group');
   }
 
   shouldHaveWorkspace(workspace: string) {

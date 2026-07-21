@@ -10,14 +10,15 @@ import {
   ExpandableSection,
   Spinner,
 } from '@patternfly/react-core';
-import { Notebook, PodContainer } from '#~/types';
+import type { PodContainer } from '@odh-dashboard/k8s-core';
+import { formatMemory } from '@odh-dashboard/ui-core/utilities/valueUnits';
+import { Notebook } from '#~/types';
 import {
   getDescriptionForTag,
   getImageTagByContainer,
   getNameVersionString,
 } from '#~/utilities/imageUtils';
 import { NotebookControllerContext } from '#~/pages/notebookController/NotebookControllerContext';
-import { formatMemory } from '#~/utilities/valueUnits';
 import { useDashboardNamespace } from '#~/redux/selectors';
 import { useImageStreams } from '#~/utilities/useImageStreams';
 import { mapImageStreamToImageInfo } from '#~/utilities/imageStreamUtils';

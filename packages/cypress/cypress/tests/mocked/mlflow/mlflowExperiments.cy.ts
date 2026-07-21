@@ -4,18 +4,28 @@ import {
   mockProjectK8sResource,
 } from '@odh-dashboard/internal/__mocks__';
 import { mockDscStatus } from '@odh-dashboard/internal/__mocks__/mockDscStatus';
-import { DataScienceStackComponent } from '@odh-dashboard/internal/concepts/areas/types';
+import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import { ProjectModel } from '../../../utils/models';
-import { asProductAdminUser } from '../../../utils/mockUsers';
-import { interceptMlflowStatus } from '../../../utils/mlflowUtils';
+import { asProductAdminUser, asProjectEditUser } from '../../../utils/mockUsers';
+import {
+  interceptMlflowEmbeddedRemoteFailure,
+  interceptMlflowStatus,
+  interceptMlflowStatusError,
+} from '../../../utils/mlflowUtils';
 import { mlflowExperiments } from '../../../pages/mlflowExperiments';
 import { appChrome } from '../../../pages/appChrome';
 
 const PROJECT_A = 'test-project-a';
 const PROJECT_B = 'test-project-b';
 
-const initIntercepts = ({ mlflowConfigured = true }: { mlflowConfigured?: boolean } = {}) => {
-  asProductAdminUser();
+const initIntercepts = ({
+  mlflowConfigured = true,
+  userSetup = asProductAdminUser,
+}: {
+  mlflowConfigured?: boolean;
+  userSetup?: () => void;
+} = {}) => {
+  userSetup();
   cy.interceptOdh('GET /api/config', mockDashboardConfig({}));
   interceptMlflowStatus(mlflowConfigured);
 
@@ -90,10 +100,41 @@ describe('MLflow Experiments page wrapper', () => {
         .should('contain', invalidWorkspace);
     });
 
-    it('should show unavailable state when MLflow is not configured', () => {
+    it('should show admin not-configured empty state when MLflow BFF reports unconfigured', () => {
       initIntercepts({ mlflowConfigured: false });
       mlflowExperiments.visit(PROJECT_A);
+      mlflowExperiments.findNotConfiguredAdminEmptyState().should('be.visible');
+      mlflowExperiments.findNotConfiguredEmptyState().should('not.exist');
+      mlflowExperiments.findNotConfiguredAdminLink().should('not.exist');
+      mlflowExperiments.findMlflowUnavailableState().should('not.exist');
+    });
+
+    it('should show non-admin not-configured empty state when MLflow BFF reports unconfigured', () => {
+      initIntercepts({ mlflowConfigured: false, userSetup: asProjectEditUser });
+      mlflowExperiments.visit(PROJECT_A);
+      mlflowExperiments.findNotConfiguredEmptyState().should('be.visible');
+      mlflowExperiments.findNotConfiguredAdminLink().should('be.visible');
+      mlflowExperiments.findNotConfiguredAdminEmptyState().should('not.exist');
+      mlflowExperiments.findMlflowUnavailableState().should('not.exist');
+    });
+
+    it('should show unavailable empty state when MLflow BFF status check fails', () => {
+      interceptMlflowStatusError();
+      mlflowExperiments.visit(PROJECT_A);
+      cy.wait('@mlflowStatusError');
       mlflowExperiments.findMlflowUnavailableState().should('be.visible');
+      mlflowExperiments.findNotConfiguredEmptyState().should('not.exist');
+      mlflowExperiments.findNotConfiguredAdminLink().should('not.exist');
+    });
+
+    it('should show service-unavailable empty state when MLflow remote fails to load', () => {
+      initIntercepts({ mlflowConfigured: true });
+      interceptMlflowEmbeddedRemoteFailure();
+      mlflowExperiments.visit(PROJECT_A);
+      cy.wait('@mlflowEmbeddedRemoteEntry');
+      mlflowExperiments.findMlflowUnavailableState().should('be.visible');
+      mlflowExperiments.findNotConfiguredEmptyState().should('not.exist');
+      mlflowExperiments.findNotConfiguredAdminLink().should('not.exist');
     });
 
     it('should hide nav item when MLflow operator is removed', () => {

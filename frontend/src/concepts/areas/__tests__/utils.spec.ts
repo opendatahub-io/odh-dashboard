@@ -1,6 +1,6 @@
+import { DataScienceStackComponent, SupportedArea } from '@odh-dashboard/plugin-core/areas';
 import { mockDscStatus } from '#~/__mocks__/mockDscStatus';
 import { mockDashboardConfig } from '#~/__mocks__/mockDashboardConfig';
-import { DataScienceStackComponent, SupportedArea } from '#~/concepts/areas/types';
 import { SupportedAreasStateMap } from '#~/concepts/areas/const';
 import { mockDsciStatus } from '#~/__mocks__/mockDsciStatus';
 import { isAreaAvailable } from '#~/concepts/areas/utils';
@@ -254,6 +254,39 @@ describe('isAreaAvailable', () => {
         expect(isAvailable.status).toBe(true);
         expect(isAvailable.featureFlags).toEqual({ mcpCatalog: 'on' });
         expect(isAvailable.reliantAreas).toBe(null);
+      });
+
+      it('should enable Agents Catalog when flag is on and Model Registry component is available', () => {
+        const isAvailable = isAreaAvailable(
+          SupportedArea.AGENTS_CATALOG,
+          mockDashboardConfig({ agentsCatalog: true }).spec,
+          mockDscStatus({
+            components: {
+              [DataScienceStackComponent.MODEL_REGISTRY]: { managementState: 'Managed' },
+            },
+          }),
+          mockDsciStatus({}),
+        );
+
+        expect(isAvailable.status).toBe(true);
+        expect(isAvailable.featureFlags).toEqual({ agentsCatalog: 'on' });
+        expect(isAvailable.reliantAreas).toBe(null);
+      });
+
+      it('should disable Agents Catalog when flag is off', () => {
+        const isAvailable = isAreaAvailable(
+          SupportedArea.AGENTS_CATALOG,
+          mockDashboardConfig({ agentsCatalog: false }).spec,
+          mockDscStatus({
+            components: {
+              [DataScienceStackComponent.MODEL_REGISTRY]: { managementState: 'Managed' },
+            },
+          }),
+          mockDsciStatus({}),
+        );
+
+        expect(isAvailable.status).toBe(false);
+        expect(isAvailable.featureFlags).toEqual({ agentsCatalog: 'off' });
       });
     });
 
