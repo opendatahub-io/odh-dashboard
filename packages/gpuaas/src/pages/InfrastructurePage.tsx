@@ -84,7 +84,7 @@ const InfrastructurePage: React.FC = () => {
     >
       <FlexItem>
         <Tooltip content="Refresh">
-          <Button variant="plain" aria-label="Refresh" onClick={metrics.refresh}>
+          <Button variant="plain" aria-label="Refresh" onClick={handleRefresh}>
             <SyncAltIcon />
           </Button>
         </Tooltip>
