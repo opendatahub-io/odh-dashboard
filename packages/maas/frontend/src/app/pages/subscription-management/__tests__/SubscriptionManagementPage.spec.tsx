@@ -38,12 +38,6 @@ jest.mock('@odh-dashboard/internal/pages/ApplicationsPage', () => {
   return { __esModule: true, default: MockApplicationsPage };
 });
 
-// jest.mock('~/app/pages/subscription-management/OverviewTab', () => {
-//   const MockOverviewTab = () => <div data-testid="mock-overview-tab">OverviewTab</div>;
-//   MockOverviewTab.displayName = 'MockOverviewTab';
-//   return { __esModule: true, default: MockOverviewTab };
-// });
-
 jest.mock('~/app/pages/subscription-management/SubscriptionsTab', () => {
   const MockSubscriptionsTab = () => (
     <div data-testid="mock-subscriptions-tab">SubscriptionsTab</div>
@@ -113,9 +107,9 @@ describe('SubscriptionManagementPage', () => {
     render(<SubscriptionManagementPage />);
 
     fireEvent.click(screen.getByTestId('subscriptions-tab'));
-    expect(mockNavigate).toHaveBeenCalledWith('/maas/subscription-management/subscriptions');
+    expect(mockNavigate).toHaveBeenCalledWith('/maas/maas-governance/subscriptions');
 
     fireEvent.click(screen.getByTestId('auth-policies-tab'));
-    expect(mockNavigate).toHaveBeenCalledWith('/maas/subscription-management/auth-policies');
+    expect(mockNavigate).toHaveBeenCalledWith('/maas/maas-governance/auth-policies');
   });
 });

@@ -1455,7 +1455,7 @@ class OverviewTabPage {
 
 class SubscriptionManagementPage {
   visit(tab?: string): void {
-    const path = tab ? `/maas/subscription-management/${tab}` : '/maas/subscription-management';
+    const path = tab ? `/maas/maas-governance/${tab}` : '/maas/maas-governance';
     cy.visitWithLogin(path);
     this.wait();
   }
