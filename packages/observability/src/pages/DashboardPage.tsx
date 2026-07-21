@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { ApplicationsPage } from '@odh-dashboard/ui-core';
+import { ProjectsContext } from '@odh-dashboard/ui-core/context/ProjectsContext';
 import DashboardContent from './DashboardContent';
 import ObservabilityNoProjects from './ObservabilityNoProjects';
 import { DASHBOARD_PAGE_TITLE, DASHBOARD_PAGE_DESCRIPTION } from './const';

@@ -3,6 +3,7 @@ import { render, screen, fireEvent, act } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import type { DashboardConfigKind } from '@odh-dashboard/k8s-core';
 import { useBrowserStorage } from '@odh-dashboard/ui-core/utilities';
+import { TrackingOutcome } from '@odh-dashboard/ui-core';
 import type { UserState } from '#~/redux/selectors/types';
 import { useUser } from '#~/redux/selectors';
 import { useAppContext } from '#~/app/AppContext';
@@ -13,7 +14,6 @@ import {
   fireFormTrackingEvent,
   fireMiscTrackingEvent,
 } from '#~/concepts/analyticsTracking/segmentIOUtils';
-import { TrackingOutcome } from '#~/concepts/analyticsTracking/trackingProperties';
 import WhatsNewModal from '#~/app/whatsNew/WhatsNewModal';
 import { GUIDED_TOUR_EVENTS } from '#~/app/whatsNew/tracking/guidedTourTracking';
 import { openWhatsNewTour } from '#~/app/whatsNew/whatsNewEvent';
