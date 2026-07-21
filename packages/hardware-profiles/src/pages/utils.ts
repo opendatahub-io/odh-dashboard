@@ -3,8 +3,8 @@ import {
   type HardwareProfileKind,
   type Identifier,
   IdentifierResourceType,
+  LocalQueueKind,
 } from '@odh-dashboard/k8s-core';
-import { LocalQueueKind } from '@odh-dashboard/internal/k8sTypes';
 import { DisplayNameAnnotation } from '@odh-dashboard/internal/types';
 import {
   HardwareProfileWarningType,

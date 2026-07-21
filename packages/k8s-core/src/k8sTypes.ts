@@ -1,8 +1,11 @@
-import type { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
+import type { K8sResourceCommon, MatchExpression } from '@openshift/dynamic-plugin-sdk-utils';
 import type {
+  ContainerResourceAttributes,
   HardwareProfileAnnotations,
+  HardwareProfileBindingAnnotations,
   HardwareProfileScheduling,
   Identifier,
+  ImagePullSecret,
   ModelServingSize,
   NodeSelector,
   NotebookSize,
@@ -405,4 +408,593 @@ export type DataScienceClusterInitializationKindStatus = {
   };
   components?: Record<string, never>;
   phase?: string;
+};
+
+export type ConfigMapKind = K8sResourceCommon & {
+  metadata: {
+    name: string;
+  };
+  data?: Record<string, string>;
+};
+
+export type EventKind = K8sResourceCommon & {
+  metadata: {
+    uid?: string;
+  };
+  involvedObject: {
+    name: string;
+    uid?: string;
+    kind?: string;
+  };
+  lastTimestamp?: string;
+  eventTime: string;
+  type: 'Normal' | 'Warning';
+  reason: string;
+  message: string;
+};
+
+type StorageClassAnnotations = Partial<{
+  [MetadataAnnotation.StorageClassIsDefault]: 'true' | 'false';
+  [MetadataAnnotation.K8sDescription]: string;
+  [MetadataAnnotation.OdhStorageClassConfig]: string;
+}>;
+
+export type StorageClassKind = K8sResourceCommon & {
+  metadata: {
+    annotations?: StorageClassAnnotations;
+    name: string;
+  };
+  provisioner: string;
+  parameters?: string;
+  reclaimPolicy: string;
+  volumeBindingMode: string;
+  allowVolumeExpansion?: boolean;
+};
+
+export type NotebookAnnotations = Partial<{
+  'kubeflow-resource-stopped': string | null;
+  'notebooks.kubeflow.org/last-activity': string;
+  'opendatahub.io/user': string;
+  'opendatahub.io/username': string;
+  'notebooks.opendatahub.io/last-image-selection': string;
+  'opendatahub.io/image-display-name': string;
+  'notebooks.opendatahub.io/last-image-version-git-commit-selection': string;
+  'opendatahub.io/workbench-image-namespace': string | null;
+  'opendatahub.io/connections': string | undefined;
+}> &
+  Partial<HardwareProfileBindingAnnotations>;
+
+export type NotebookKind = K8sResourceCommon & {
+  metadata: {
+    annotations?: DisplayNameAnnotations & NotebookAnnotations;
+    name: string;
+    namespace: string;
+  };
+  spec: {
+    template: {
+      spec: PodSpec;
+    };
+  };
+  status?: {
+    containerState?: {
+      terminated?: { [key: string]: string };
+    };
+    readyReplicas?: number;
+  };
+};
+
+export type RoleBindingSubject = {
+  kind: string;
+  apiGroup?: string;
+  name: string;
+};
+
+export type RoleBindingRoleRef = {
+  kind: 'Role' | 'ClusterRole';
+  apiGroup?: string;
+  name: string;
+};
+
+export type ResourceRule = {
+  verbs: string[];
+  apiGroups?: string[];
+  resourceNames?: string[];
+  resources?: string[];
+};
+
+export type RoleKind = K8sResourceCommon & {
+  metadata: {
+    name: string;
+    namespace: string;
+  };
+  rules?: ResourceRule[];
+};
+
+export type RoleBindingKind = K8sResourceCommon & {
+  metadata: {
+    name: string;
+    namespace: string;
+  };
+  subjects?: RoleBindingSubject[];
+  roleRef: RoleBindingRoleRef;
+};
+
+export type TrustyAIKind = K8sResourceCommon & {
+  metadata: {
+    name: string;
+    namespace: string;
+  };
+  spec: {
+    storage:
+      | {
+          format: 'DATABASE';
+          databaseConfigurations: string;
+        }
+      | {
+          format: 'PVC';
+          folder: string;
+          size: string;
+        };
+    data?: {
+      filename: string;
+      format: string;
+    };
+    metrics: {
+      schedule: string;
+      batchSize?: number;
+    };
+  };
+  status?: {
+    conditions?: K8sCondition[];
+    phase?: string;
+    ready?: string;
+    replicas?: number;
+  };
+};
+
+export enum DSPAMlflowIntegrationMode {
+  DISABLED = 'DISABLED',
+  AUTODETECT = 'AUTODETECT',
+}
+
+type ClusterQueueFlavorUsage = {
+  name: string;
+  resources: {
+    name: ContainerResourceAttributes;
+    borrowed?: string | number;
+    total?: string | number;
+  }[];
+};
+
+export type ClusterQueueKind = K8sResourceCommon & {
+  apiVersion: 'kueue.x-k8s.io/v1beta2';
+  kind: 'ClusterQueue';
+  spec: {
+    admissionChecksStrategy?: {
+      admissionChecks: {
+        name: string;
+        onFlavors?: string[];
+      }[];
+    };
+    cohortName?: string;
+    flavorFungibility?: {
+      whenCanBorrow: 'Borrow' | 'TryNextFlavor';
+      whenCanPreempt: 'Preempt' | 'TryNextFlavor';
+    };
+    namespaceSelector?: {
+      matchExpressions?: MatchExpression[];
+      matchLabels?: Record<string, string>;
+    };
+    preemption?: {
+      borrowWithinCohort?: {
+        maxPriorityThreshold?: number;
+        policy?: 'Never' | 'LowerPriority';
+      };
+      reclaimWithinCohort?: 'Never' | 'LowerPriority' | 'Any';
+      withinClusterQueue?: 'Never' | 'LowerPriority' | 'LowerOrNewerEqualPriority';
+    };
+    queueingStrategy?: 'StrictFIFO' | 'BestEffortFIFO';
+    resourceGroups?: {
+      coveredResources: ContainerResourceAttributes[];
+      flavors: {
+        name: string;
+        resources: {
+          name: ContainerResourceAttributes;
+          nominalQuota: string | number;
+        }[];
+      }[];
+    }[];
+    stopPolicy?: 'None' | 'Hold' | 'HoldAndDrain';
+  };
+  status?: {
+    flavorsReservation?: ClusterQueueFlavorUsage[];
+    flavorsUsage?: ClusterQueueFlavorUsage[];
+    pendingWorkloads?: number;
+    reservingWorkloads?: number;
+    admittedWorkloads?: number;
+    conditions?: {
+      lastTransitionTime: string;
+      message: string;
+      observedGeneration?: number;
+      reason: string;
+      status: 'True' | 'False' | 'Unknown';
+      type: string;
+    }[];
+    pendingWorkloadsStatus?: {
+      clusterQueuePendingWorkload?: {
+        name: string;
+        namespace: string;
+      }[];
+      lastChangeTime: string;
+    };
+  };
+};
+
+type LocalQueueFlavorUsage = {
+  name: string;
+  resources: {
+    name: ContainerResourceAttributes;
+    total?: string | number;
+  }[];
+};
+
+export type LocalQueueKind = K8sResourceCommon & {
+  apiVersion: 'kueue.x-k8s.io/v1beta2';
+  kind: 'LocalQueue';
+  spec: {
+    clusterQueue: string;
+  };
+  status?: {
+    flavorsReservation?: LocalQueueFlavorUsage[];
+    flavorsUsage?: LocalQueueFlavorUsage[];
+    pendingWorkloads?: number;
+    reservingWorkloads?: number;
+    admittedWorkloads?: number;
+    conditions?: {
+      lastTransitionTime: string;
+      message: string;
+      observedGeneration?: number;
+      reason: string;
+      status: 'True' | 'False' | 'Unknown';
+      type: string;
+    }[];
+  };
+};
+
+type WorkloadPodAffinityTerm = {
+  labelSelector?: {
+    matchExpressions?: MatchExpression[];
+    matchLabels?: Record<string, string>;
+  };
+  matchLabelKeys?: string[];
+  mismatchLabelKeys?: string[];
+  namespaceSelector?: {
+    matchExpressions?: MatchExpression[];
+    matchLabels?: Record<string, string>;
+  };
+  namespaces?: string[];
+  topologyKey: string;
+};
+
+export type WorkloadPodSet = {
+  count: number;
+  minCount?: number;
+  name: string;
+  template: {
+    metadata?: K8sResourceCommon['metadata'];
+    spec: {
+      activeDeadlineSeconds?: number;
+      affinity?: {
+        nodeAffinity?: {
+          preferredDuringSchedulingIgnoredDuringExecution: {
+            preference: {
+              matchExpressions?: MatchExpression[];
+              matchFields?: MatchExpression[];
+            };
+            weight: number;
+          }[];
+          requiredDuringSchedulingIgnoredDuringExecution: {
+            nodeSelectorTerms: {
+              matchExpressions?: MatchExpression[];
+              matchFields?: MatchExpression[];
+            }[];
+          };
+        };
+        podAffinity?: {
+          preferredDuringSchedulingIgnoredDuringExecution?: {
+            podAffinityTerm: WorkloadPodAffinityTerm;
+            weight: number;
+          }[];
+          requiredDuringSchedulingIgnoredDuringExecution?: WorkloadPodAffinityTerm[];
+          weight: number;
+        }[];
+        podAntiAffinity?: {
+          preferredDuringSchedulingIgnoredDuringExecution?: {
+            podAffinityTerm: WorkloadPodAffinityTerm;
+            weight: number;
+          }[];
+          requiredDuringSchedulingIgnoredDuringExecution?: WorkloadPodAffinityTerm[];
+          weight: number;
+        };
+      };
+      automountServiceAccountToken?: boolean;
+      containers: PodContainer[];
+      dnsConfig?: {
+        nameservers?: string[];
+        options?: {
+          name: string;
+          value?: string;
+        }[];
+        searches?: string[];
+      };
+      dnsPolicy?: string;
+      enableServiceLinks?: boolean;
+      ephemeralContainers?: PodContainer[];
+      hostAliases?: {
+        hostnames?: string[];
+        ip: string;
+      }[];
+      hostIPC?: boolean;
+      hostNetwork?: boolean;
+      hostPID?: boolean;
+      hostUsers?: boolean;
+      hostname?: string;
+      imagePullSecrets?: ImagePullSecret[];
+      initContainers?: PodContainer[];
+      nodeName?: string;
+      nodeSelector?: Record<string, string>;
+      os?: { name: string };
+      overhead?: Record<string, string | number>;
+      preemptionPolicy?: string;
+      priority?: number;
+      priorityClassName?: string;
+      readinessGates?: {
+        conditionType: string;
+      }[];
+      resourceClaims?: {
+        name: string;
+        source?: {
+          resourceClaimName?: string;
+          resourceClaimTemplateName: string;
+        };
+      }[];
+      restartPolicy?: string;
+      runtimeClassName?: string;
+      schedulerName?: string;
+      schedulingGates?: {
+        name: string;
+      }[];
+      securityContext?: {
+        fsGroup?: number;
+        fsGroupChangePolicy?: string;
+        runAsGroup?: number;
+        runAsNonRoot?: boolean;
+        runAsUser?: number;
+        seLinuxOptions?: {
+          level?: string;
+          role?: string;
+          type?: string;
+          user?: string;
+        };
+        seccompProfile?: {
+          localhostProfile?: string;
+          type: string;
+        };
+        supplementalGroups?: number[];
+        sysctls?: {
+          name: string;
+          value: string;
+        }[];
+        windowsOptions?: {
+          gmsaCredentialSpec?: string;
+          gmsaCredentialSpecName?: string;
+          hostProcess?: string;
+          runAsUserName?: string;
+        };
+      };
+      serviceAccount?: string;
+      serviceAccountName?: string;
+      setHostnameAsFQDN?: boolean;
+      shareProcessNamespace?: boolean;
+      subdomain?: string;
+      terminationGracePeriodSeconds?: number;
+      tolerations?: {
+        effect?: string;
+        key?: string;
+        operator?: string;
+        tolerationSeconds?: number;
+        value?: string;
+      }[];
+      topologySpreadConstraints?: {
+        labelSelector?: {
+          matchExpressions?: MatchExpression[];
+          matchLabels?: Record<string, string>;
+        };
+        matchLabelKeys?: [];
+        maxSkew: number;
+        minDomains?: number;
+        nodeAffinityPolicy?: string;
+        nodeTaintsPolicy?: string;
+        topologyKey: string;
+        whenUnsatisfiable: string;
+      }[];
+      volumes?: {
+        name: string;
+        [key: string]: unknown;
+      }[];
+    };
+  };
+};
+
+export enum WorkloadOwnerType {
+  RayCluster = 'RayCluster',
+  Job = 'Job',
+  StatefulSet = 'StatefulSet',
+  ReplicaSet = 'ReplicaSet',
+}
+
+export type WorkloadKind = K8sResourceCommon & {
+  apiVersion: 'kueue.x-k8s.io/v1beta2';
+  kind: 'Workload';
+  spec: {
+    active?: boolean;
+    podSets: WorkloadPodSet[];
+    priority?: number;
+    priorityClassRef?: {
+      group: string;
+      kind: string;
+      name: string;
+    };
+    queueName?: string;
+  };
+  status?: {
+    admission?: {
+      clusterQueue: string;
+      podSetAssignments: {
+        name: string;
+        count?: number;
+        flavors?: Record<string, string>;
+        resourceUsage?: Record<string, string | number>;
+      }[];
+    };
+    admissionChecks?: {
+      name: string;
+      message: string;
+      state: 'Pending' | 'Ready' | 'Retry' | 'Rejected';
+      lastTransitionTime: string;
+      podSetUpdates?: {
+        annotations?: Record<string, string>;
+        labels?: Record<string, string>;
+        name: string;
+        nodeSelector?: Record<string, string>;
+        tolerations?: Toleration[];
+      }[];
+    }[];
+    conditions?: WorkloadCondition[];
+    reclaimablePods?: {
+      count: number;
+      name: string;
+    }[];
+    requeueState?: {
+      count?: number;
+      requeueAt?: string;
+    };
+  };
+};
+
+export type WorkloadConditionType =
+  | 'QuotaReserved'
+  | 'Admitted'
+  | 'PodsReady'
+  | 'Finished'
+  | 'Evicted'
+  | 'Preempted';
+
+export type WorkloadCondition = {
+  lastTransitionTime: string;
+  message: string;
+  observedGeneration?: number;
+  reason: string;
+  status: 'True' | 'False' | 'Unknown';
+  type: WorkloadConditionType | (string & NonNullable<unknown>);
+};
+
+export type CohortKind = K8sResourceCommon & {
+  apiVersion: 'kueue.x-k8s.io/v1beta2';
+  kind: 'Cohort';
+  spec: {
+    parentName?: string;
+    resourceGroups?: {
+      coveredResources: ContainerResourceAttributes[];
+      flavors: {
+        name: string;
+        resources: {
+          name: ContainerResourceAttributes;
+          nominalQuota: string | number;
+          borrowingLimit?: string | number;
+          lendingLimit?: string | number;
+        }[];
+      }[];
+    }[];
+    fairSharing?: {
+      weight?: string | number;
+    };
+  };
+  status?: {
+    fairSharing?: {
+      weightedShare: number;
+    };
+  };
+};
+
+export type ResourceFlavorKind = K8sResourceCommon & {
+  apiVersion: 'kueue.x-k8s.io/v1beta2';
+  kind: 'ResourceFlavor';
+  spec: {
+    nodeLabels?: Record<string, string>;
+    nodeTaints?: {
+      key: string;
+      value?: string;
+      effect: 'NoSchedule' | 'NoExecute' | 'PreferNoSchedule';
+    }[];
+    tolerations?: Toleration[];
+    topologyName?: string;
+  };
+};
+
+export type ServiceKind = K8sResourceCommon & {
+  metadata: {
+    annotations?: DisplayNameAnnotations &
+      Partial<{
+        'routing.opendatahub.io/external-address-rest': string;
+        'routing.opendatahub.io/external-address-grpc': string;
+      }>;
+    name: string;
+    namespace: string;
+    labels?: Partial<{
+      component: string;
+    }>;
+  };
+  spec: {
+    selector: {
+      app: string;
+      component: string;
+    };
+    ports: {
+      name?: string;
+      protocol?: string;
+      appProtocol?: string;
+      port?: number;
+      targetPort?: number | string;
+    }[];
+  };
+};
+
+export type NIMAccountKind = K8sResourceCommon & {
+  metadata: {
+    name: string;
+    namespace: string;
+  };
+  spec: {
+    apiKeySecret: {
+      name: string;
+    };
+  };
+  status?: {
+    nimConfig?: {
+      name: string;
+    };
+    runtimeTemplate?: {
+      name: string;
+    };
+    nimPullSecret?: {
+      name: string;
+    };
+    conditions?: K8sCondition[];
+  };
+};
+
+export type ConfigSecretItem = {
+  name: string;
+  keys: string[];
 };

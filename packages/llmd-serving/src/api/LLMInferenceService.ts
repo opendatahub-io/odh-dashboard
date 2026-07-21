@@ -1,4 +1,4 @@
-import type { K8sAPIOptions } from '@odh-dashboard/internal/k8sTypes';
+import type { K8sAPIOptions } from '@odh-dashboard/k8s-core';
 import {
   k8sCreateResource,
   k8sPatchResource,
