@@ -344,13 +344,17 @@ describe('BacktestWindowChart', () => {
         />,
       );
 
+      // Clear mount-time useEffect calls to isolate the deselect interaction
+      onSelectedMetricsChange.mockClear();
+
       fireEvent.click(screen.getByTestId('metric-selector-toggle'));
 
-      // Click MASE in the dropdown menu (find the one that's a menuitem, not in the title)
+      // Click the checkbox input for MASE (find the menuitem, then its checkbox)
       const maseMenuItem = screen
         .getAllByRole('menuitem')
         .find((item) => item.textContent.includes('MASE'));
-      fireEvent.click(maseMenuItem!);
+      const checkbox = maseMenuItem!.querySelector('input[type="checkbox"]');
+      fireEvent.click(checkbox!);
 
       // Should fall back to evalMetric when trying to deselect last metric
       expect(onSelectedMetricsChange).toHaveBeenCalledWith(['MASE']);
