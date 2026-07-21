@@ -128,50 +128,17 @@
   }
 }
 
-/* Confusion matrix — theme-aware cell colors.
-   Palette tokens (--pf-t--color--green--10 etc.) are NOT dark-mode-aware,
-   so we define custom properties and override them for dark theme. */
-@mixin cm-cell-colors($prefix) {
-  background-color: var(--automl-cm--cell--#{$prefix}--base);
-
-  &.m-intensity-low {
-    background-color: var(--automl-cm--cell--#{$prefix}--low);
-  }
-
-  &.m-intensity-medium {
-    background-color: var(--automl-cm--cell--#{$prefix}--medium);
-  }
-
-  &.m-intensity-high {
-    background-color: var(--automl-cm--cell--#{$prefix}--high);
-  }
-}
-
+/* Confusion matrix — table styles (inside the PF Table element) */
 .automl-confusion-matrix {
   --automl-cm--cell--bg: var(--pf-t--global--background--color--secondary--default);
-  --automl-cm--cell--diagonal--base: var(--pf-t--color--green--10);
-  --automl-cm--cell--diagonal--low: var(--pf-t--color--green--20);
-  --automl-cm--cell--diagonal--medium: var(--pf-t--color--green--30);
-  --automl-cm--cell--diagonal--high: var(--pf-t--color--green--40);
-  --automl-cm--cell--off-diagonal--base: var(--pf-t--color--blue--10);
-  --automl-cm--cell--off-diagonal--low: var(--pf-t--color--blue--10);
-  --automl-cm--cell--off-diagonal--medium: var(--pf-t--color--blue--20);
-  --automl-cm--cell--off-diagonal--high: var(--pf-t--color--blue--30);
-  --automl-cm--border--color: var(--pf-t--global--background--color--primary--default);
+  --automl-cm--cell--correct: var(--pf-t--color--blue--20);
+  --automl-cm--border--color: var(--pf-t--global--border--color--default);
 
-  /* Grid lines between all cells */
   --pf-v6-c-table__tr--BorderBlockEndColor: var(--automl-cm--border--color);
 
   :root:where(.pf-v6-theme-dark) & {
     --automl-cm--cell--bg: var(--pf-v6-c-table--BackgroundColor);
-    --automl-cm--cell--diagonal--base: var(--pf-v6-c-table--BackgroundColor);
-    --automl-cm--cell--diagonal--low: var(--pf-t--color--green--50);
-    --automl-cm--cell--diagonal--medium: var(--pf-t--color--green--50);
-    --automl-cm--cell--diagonal--high: var(--pf-t--color--green--40);
-    --automl-cm--cell--off-diagonal--base: var(--pf-v6-c-table--BackgroundColor);
-    --automl-cm--cell--off-diagonal--low: var(--pf-t--color--blue--50);
-    --automl-cm--cell--off-diagonal--medium: var(--pf-t--color--blue--50);
-    --automl-cm--cell--off-diagonal--high: var(--pf-t--color--blue--40);
+    --automl-cm--cell--correct: var(--pf-t--color--blue--50);
     --automl-cm--border--color: var(--pf-t--global--border--color--default);
   }
 
@@ -179,24 +146,16 @@
   td {
     border: var(--pf-t--global--border--width--divider--default) solid
       var(--automl-cm--border--color);
-    min-width: 9rem;
+    min-width: 5rem;
+    max-width: 9rem;
+    vertical-align: middle;
   }
 
-  th,
-  tbody tr:last-child td,
-  tbody tr td:last-child {
+  th {
     background-color: var(--automl-cm--cell--bg);
   }
 
-
-  tbody th {
-    font-weight: var(--pf-t--global--font--weight--body--bold);
-  }
-
-  /* Loading state: all cells get the same gray background; skeletons are
-     darkened so they remain visible against the uniform surface. */
-  &.m-loading tbody tr td,
-  &.m-loading tbody tr:last-child td {
+  &.m-loading tbody tr td {
     background-color: var(--automl-cm--cell--bg);
   }
 
@@ -204,49 +163,98 @@
     --pf-v6-c-skeleton--BackgroundColor: var(--pf-t--global--border--color--default);
   }
 
-  /* Center skeleton loading bars within table cells */
   .pf-v6-c-skeleton {
     margin-inline: auto;
   }
 
-  /* Data cell colors */
-  &__cell--diagonal {
+  &__cell--correct {
+    background-color: var(--automl-cm--cell--correct);
     font-weight: var(--pf-t--global--font--weight--body--bold);
-
-    @include cm-cell-colors('diagonal');
   }
 
-  &__cell--off-diagonal {
-    @include cm-cell-colors('off-diagonal');
-  }
+}
 
-  /* View selector */
-  &-view {
-    margin-bottom: var(--pf-t--global--spacer--md);
+/* Confusion matrix — layout elements (outside the PF Table) */
+.automl-confusion-matrix__view-toggle {
+  min-width: 14rem;
+}
+
+.automl-confusion-matrix__outer {
+  border: var(--pf-t--global--border--width--divider--default) solid
+    var(--pf-t--global--border--color--default);
+  border-radius: var(--pf-t--global--border--radius--small);
+  padding: var(--pf-t--global--spacer--lg);
+}
+
+.automl-confusion-matrix__body {
+  display: flex;
+  align-items: stretch;
+
+  .pf-v6-c-scroll-inner-wrapper,
+  .pf-v6-c-table {
+    width: 100%;
   }
 }
 
-/* Confusion matrix gradient bar */
-.automl-confusion-gradient {
-  --automl-cm--gradient--start: var(--pf-t--color--blue--20);
-  --automl-cm--gradient--end: var(--pf-t--color--green--30);
-
-  display: flex;
-  justify-content: space-between;
-  margin-top: var(--pf-t--global--spacer--md);
+.automl-confusion-matrix__predicted-header {
+  font-weight: var(--pf-t--global--font--weight--body--default);
+  font-size: var(--pf-t--global--font--size--xs);
+  text-transform: uppercase;
+  letter-spacing: var(--pf-t--global--spacer--xs);
+  text-align: center;
   padding: var(--pf-t--global--spacer--sm) 0;
-  background: linear-gradient(to right, var(--automl-cm--gradient--start) 0%, var(--pf-t--global--background--color--primary--default) 45%, var(--pf-t--global--background--color--primary--default) 55%, var(--automl-cm--gradient--end) 100%);
-  border-radius: var(--pf-t--global--border--radius--small);
-  font-size: var(--pf-t--global--font--size--sm);
+}
+
+.automl-confusion-matrix__actual-class-label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  writing-mode: vertical-lr;
+  transform: rotate(180deg);
+  font-weight: var(--pf-t--global--font--weight--body--default);
+  font-size: var(--pf-t--global--font--size--xs);
+  text-transform: uppercase;
+  letter-spacing: var(--pf-t--global--spacer--xs);
+  white-space: nowrap;
+  padding: 0 var(--pf-t--global--spacer--xs);
+}
+
+.automl-confusion-matrix__header-label {
+  font-weight: var(--pf-t--global--font--weight--body--bold);
+  overflow: hidden;
+}
+
+.automl-confusion-matrix__sub-label {
+  font-size: var(--pf-t--global--font--size--xs);
+  font-weight: var(--pf-t--global--font--weight--body--default);
   color: var(--pf-t--global--text--color--subtle);
+}
+
+.automl-confusion-matrix__stat-box {
+  padding: var(--pf-t--global--spacer--sm) var(--pf-t--global--spacer--md);
+  border: var(--pf-t--global--border--width--divider--default) solid
+    var(--pf-t--global--border--color--default);
+  border-radius: var(--pf-t--global--border--radius--small);
+  background-color: var(--pf-t--global--background--color--secondary--default);
+}
+
+.automl-confusion-matrix__stat-value {
+  font-size: var(--pf-t--global--font--size--xl);
+  font-weight: var(--pf-t--global--font--weight--body--bold);
+}
+
+.automl-confusion-matrix__legend-dot {
+  --automl-cm--legend-dot--bg: var(--pf-t--color--blue--20);
+
+  display: inline-block;
+  width: var(--pf-t--global--spacer--md);
+  height: var(--pf-t--global--spacer--md);
+  border-radius: var(--pf-t--global--border--radius--pill);
+  background-color: var(--automl-cm--legend-dot--bg);
+  flex-shrink: 0;
 
   :root:where(.pf-v6-theme-dark) & {
-    --automl-cm--gradient--start: var(--pf-t--color--blue--50);
-    --automl-cm--gradient--end: var(--pf-t--color--green--40);
-  }
-
-  span {
-    padding: 0 var(--pf-t--global--spacer--sm);
+    --automl-cm--legend-dot--bg: var(--pf-t--color--blue--50);
   }
 }
 
@@ -535,6 +543,17 @@
     padding-bottom: var(--pf-t--global--spacer--sm);
     border-bottom: var(--pf-t--global--border--width--divider--default) solid var(--pf-t--global--border--color--default);
   }
+
+  /* Prevent backtest content from splitting across pages */
+  .automl-backtest-window-chart-card,
+  .automl-backtest-window-chart-container,
+  .automl-forecast-card {
+    break-inside: avoid;
+  }
+
+  .automl-backtest-section {
+    break-inside: avoid;
+  }
 }
 
 .automl-model-info-list {
@@ -581,6 +600,16 @@
     font-size: var(--pf-t--global--font--size--2xl);
     font-weight: var(--pf-t--global--font--weight--heading--bold);
   }
+}
+
+/* Backtest window chart — card for grid layout (multi-metric view) */
+.automl-backtest-window-chart-card {
+  height: 100%;
+  border: var(--pf-t--global--border--width--divider--default) solid
+    var(--pf-t--global--border--color--default);
+  border-radius: var(--pf-t--global--border--radius--small);
+  padding: var(--pf-t--global--spacer--md);
+  overflow: hidden;
 }
 
 /* Backtest window chart — bordered container */

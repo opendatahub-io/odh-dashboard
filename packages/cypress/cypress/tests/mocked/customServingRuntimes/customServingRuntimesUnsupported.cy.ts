@@ -28,7 +28,7 @@ describe('Custom serving runtimes — unsupported resource handling', () => {
     unsupportedStatusAcceptanceModal.shouldBeOpen();
     unsupportedStatusAcceptanceModal
       .find()
-      .should('contain.text', 'Enable limited support runtime');
+      .should('contain.text', 'Enable limited-support runtime?');
   });
 
   it('should dismiss modal without patching when cancel is clicked', () => {
@@ -48,6 +48,8 @@ describe('Custom serving runtimes — unsupported resource handling', () => {
     servingRuntimes.getRowById('template-unsupported-unaccepted').findEnabledToggle().click();
     unsupportedStatusAcceptanceModal.shouldBeOpen();
 
+    unsupportedStatusAcceptanceModal.findAcceptButton().should('be.disabled');
+    unsupportedStatusAcceptanceModal.findAcceptanceCheckbox().click();
     unsupportedStatusAcceptanceModal.findAcceptButton().click();
 
     cy.wait('@patchTemplate').then((interception) => {

@@ -107,7 +107,7 @@ const TaskAssistantSection: React.FC = () => {
                     variant="link"
                     isInline
                     icon={<LightBulbIcon color="var(--pf-t--global--color--brand--default)" />}
-                    onClick={openWhatsNewTour}
+                    onClick={() => openWhatsNewTour('home-task-assistant')}
                     data-testid="whats-new-task-link"
                   >
                     Take a guided tour

@@ -5,36 +5,25 @@ import { getPipelineSummaryDetails } from '~/app/components/run-results/pipeline
 
 /* eslint-disable camelcase */
 
-const mockPattern = (name: string, finalScore: number): AutoragPattern => ({
+const mockPattern = (name: string): AutoragPattern => ({
   name,
   iteration: 0,
   max_combinations: 1,
   duration_seconds: 12,
-  final_score: finalScore,
   settings: {
-    vector_store: { datasource_type: 'milvus', collection_name: 'test' },
     chunking: { method: 'fixed', chunk_size: 512, chunk_overlap: 50 },
     embedding: {
       model_id: 'embed-model',
-      distance_metric: 'cosine',
       embedding_params: {
         embedding_dimension: 768,
-        context_length: 512,
-        timeout: null,
-        model_type: null,
-        provider_id: null,
-        provider_resource_id: null,
       },
     },
     retrieval: { method: 'vector', number_of_chunks: 5 },
     generation: {
       model_id: 'gen-model',
-      context_template_text: '',
-      user_message_text: '',
-      system_message_text: '',
     },
   },
-  scores: {},
+  evaluation: { metrics: [] },
 });
 
 const mockStageMap: ComponentStageMap = {
@@ -67,8 +56,8 @@ const mockPipelineRun: PipelineRun = {
 };
 
 const patterns = {
-  Pattern1: mockPattern('Pattern1', 0.9),
-  Pattern2: mockPattern('Pattern2', 0.75),
+  Pattern1: mockPattern('Pattern1'),
+  Pattern2: mockPattern('Pattern2'),
 };
 
 describe('getPipelineSummaryDetails', () => {

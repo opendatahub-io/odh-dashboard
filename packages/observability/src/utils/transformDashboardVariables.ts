@@ -1,7 +1,5 @@
 import type { DashboardResource } from '@perses-dev/core';
 
-export const NAMESPACE_URL_PARAM = 'var-namespace';
-
 /**
  * Transforms a dashboard resource by replacing the namespace variable's plugin
  * with a StaticListVariable for the given project names.

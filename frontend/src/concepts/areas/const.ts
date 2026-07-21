@@ -88,7 +88,7 @@ export const advancedAIMLFlags = {
   disableFineTuning: true,
   disableLMEval: true,
   trainingJobs: true,
-  gpuaas: false,
+  gpuaas: true,
   observabilityDashboard: true,
 } satisfies Partial<DashboardCommonConfig>;
 

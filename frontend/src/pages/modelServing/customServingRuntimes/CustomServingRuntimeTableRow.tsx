@@ -94,6 +94,7 @@ const CustomServingRuntimeTableRow: React.FC<CustomServingRuntimeTableRowProps> 
                   {
                     title: 'Delete',
                     onClick: () => onDeleteTemplate(template),
+                    isDanger: true,
                   },
                 ]
           }

@@ -181,7 +181,7 @@ func (c *testK8sClient) GetEvalHubCRStatus(_ context.Context, _ *kubernetes.Requ
 // Used in health handler tests to simulate "service-unreachable".
 type erroringEHClient struct{}
 
-func (e *erroringEHClient) HealthCheck(_ context.Context) (*evalhub.HealthResponse, error) {
+func (e *erroringEHClient) HealthCheck(_ context.Context, _ string) (*evalhub.HealthResponse, error) {
 	return nil, fmt.Errorf("connection refused")
 }
 func (e *erroringEHClient) ListEvaluationJobs(_ context.Context, _ evalhub.ListEvaluationJobsParams) ([]evalhub.EvaluationJob, error) {
