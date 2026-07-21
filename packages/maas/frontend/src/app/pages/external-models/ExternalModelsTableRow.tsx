@@ -144,6 +144,12 @@ const ExternalModelTableRow: React.FC<ExternalModelTableRowProps> = ({
         description={externalModel.description ?? ''}
         truncateDescriptionLines={2}
         resource={getExternalModelResource(externalModel)}
+        onShowPopover={() => {
+          fireMiscTrackingEvent(MaaSEvents.EXTERNAL_MODELS_INFO_POPOVER_VIEWED, {
+            infoTarget: ExternalModelsInfoPopoverTarget.MODEL_REFERENCE,
+            location: ExternalModelsInfoPopoverLocation.TABLE_CELL,
+          });
+        }}
       />
     </Td>
   );

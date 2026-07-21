@@ -152,6 +152,7 @@ export const enum ExternalModelsInfoPopoverTarget {
   COLUMN_EXTERNAL_PROVIDER = 'column-external-provider',
   COLUMN_STATUS = 'column-status',
   PROVIDER_REFERENCE = 'provider-reference',
+  MODEL_REFERENCE = 'model-reference',
   STATUS_LABEL = 'status-label',
   SECONDARY_STATUS = 'secondary-status',
 }
