@@ -9,6 +9,7 @@ import {
   getExternalModelStatusMessage,
   getProviderRefResource,
   isAwaitingGovernancePairing,
+  isMissingMaaSModelRef,
   mapAuthMechanismToHumanReadable,
 } from '~/app/pages/external-models/utils';
 
@@ -20,6 +21,20 @@ const baseModel = (overrides: Partial<ExternalModel> = {}): ExternalModel => ({
   providerRefs: [],
   phase: PhaseStatus.READY,
   ...overrides,
+});
+
+describe('isMissingMaaSModelRef', () => {
+  it('should return true when maaSModelRef is undefined', () => {
+    expect(isMissingMaaSModelRef(baseModel())).toBe(true);
+  });
+
+  it('should return false when maaSModelRef is present', () => {
+    expect(isMissingMaaSModelRef(baseModel({ maaSModelRef: { phase: 'Ready' } }))).toBe(false);
+  });
+
+  it('should return false when maaSModelRef is present with empty object', () => {
+    expect(isMissingMaaSModelRef(baseModel({ maaSModelRef: {} }))).toBe(false);
+  });
 });
 
 describe('isAwaitingGovernancePairing', () => {

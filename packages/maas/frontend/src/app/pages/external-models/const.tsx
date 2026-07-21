@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Popover, Button, Label } from '@patternfly/react-core';
-import { PendingIcon } from '@patternfly/react-icons';
+import { InfoCircleIcon, PendingIcon } from '@patternfly/react-icons';
 
 export enum ExternalModelsFilterOptions {
   keyword = 'keyword',
@@ -18,6 +18,37 @@ export const initialExternalModelsFilterData: ExternalModelsFilterDataType = {
 
 export const deploymentsExternalPath = (namespace: string): string =>
   `/ai-hub/models/deployments/external/${namespace}`;
+
+const MISSING_MAAS_MODEL_REF_BODY = (
+  <div>
+    <p>
+      This external model does not have a MaaS model reference. A MaaS model reference is required
+      for subscriptions, authorization policies, and API key generation.
+    </p>
+  </div>
+);
+
+const MISSING_MAAS_MODEL_REF_FOOTER =
+  'Create a MaaS model reference to enable governance features and allow consumers to access this model through the gateway.';
+
+export const MissingMaaSModelRefWarning: React.FC = () => (
+  <Popover
+    headerContent="MaaS model reference required"
+    bodyContent={MISSING_MAAS_MODEL_REF_BODY}
+    footerContent={MISSING_MAAS_MODEL_REF_FOOTER}
+    data-testid="external-model-missing-maas-model-ref-popover"
+  >
+    <Button
+      variant="plain"
+      data-testid="external-model-missing-maas-model-ref"
+      aria-label="Missing MaaS model reference"
+    >
+      <Label color="orange" isCompact>
+        <InfoCircleIcon />
+      </Label>
+    </Button>
+  </Popover>
+);
 
 const GOVERNANCE_PAIRING_WARNING_BODY = (
   <div>

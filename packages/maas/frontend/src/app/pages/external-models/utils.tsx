@@ -6,6 +6,9 @@ import { PhaseStatus } from '~/app/utilities/phaseLabelUtils';
 /** Ready-condition message on the companion MaaSModelRef when sub+auth pairing is missing. */
 export const AWAITING_GOVERNANCE_PAIRING_MESSAGE = 'Awaiting governance pairing';
 
+export const isMissingMaaSModelRef = (externalModel: ExternalModel): boolean =>
+  externalModel.maaSModelRef === undefined;
+
 export const isAwaitingGovernancePairing = (externalModel: ExternalModel): boolean =>
   externalModel.maaSModelRef?.statusMessage === AWAITING_GOVERNANCE_PAIRING_MESSAGE ||
   externalModel.maaSModelRef?.governanceAttached === false;
