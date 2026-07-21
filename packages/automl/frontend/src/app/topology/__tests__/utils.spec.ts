@@ -26,40 +26,38 @@ const mockTask = (name: string): PipelineTask => ({
 
 describe('createNode', () => {
   it('should create a node with the correct id and label', () => {
-    const node = createNode('task-1', 'My Task', mockTask('task-1'));
+    const node = createNode({ id: 'task-1', label: 'My Task', pipelineTask: mockTask('task-1') });
 
     expect(node.id).toBe('task-1');
     expect(node.label).toBe('My Task');
   });
 
   it('should set runAfterTasks when provided', () => {
-    const node = createNode('task-2', 'Second Task', mockTask('task-2'), ['task-1']);
+    const node = createNode({
+      id: 'task-2',
+      label: 'Second Task',
+      pipelineTask: mockTask('task-2'),
+      runAfterTasks: ['task-1'],
+    });
 
     expect(node.runAfterTasks).toEqual(['task-1']);
   });
 
   it('should set runStatus in data when provided', () => {
-    const node = createNode(
-      'task-1',
-      'My Task',
-      mockTask('task-1'),
-      undefined,
-      RunStatus.Succeeded,
-    );
+    const node = createNode({
+      id: 'task-1',
+      label: 'My Task',
+      pipelineTask: mockTask('task-1'),
+      runStatus: RunStatus.Succeeded,
+    });
 
     expect(node.data.runStatus).toBe(RunStatus.Succeeded);
   });
 
   it('should have width at least NODE_WIDTH for short labels', () => {
-    const node = createNode('t', 'Hi', mockTask('t'));
+    const node = createNode({ id: 't', label: 'Hi', pipelineTask: mockTask('t') });
 
     expect(node.width).toBeGreaterThanOrEqual(NODE_WIDTH);
-  });
-
-  it('should use layoutWidth when provided', () => {
-    const node = createNode('t', 'Hi', mockTask('t'), undefined, undefined, 480);
-
-    expect(node.width).toBe(480);
   });
 });
 
@@ -91,7 +89,7 @@ describe('measurePipelineTaskNodeLayoutWidth via createNode', () => {
     } = require('~/app/topology/utils');
 
     const label = 'A Very Long Task Name That Would Be Wide';
-    const node = freshCreateNode('task-1', label, mockTask('task-1'));
+    const node = freshCreateNode({ id: 'task-1', label, pipelineTask: mockTask('task-1') });
     const expectedWidth = measurePipelineTaskNodeLayoutWidth(label);
 
     expect(measurePipelineTaskLabelWidth(label)).toBe(NODE_WIDTH);
@@ -126,7 +124,11 @@ describe('measurePipelineTaskNodeLayoutWidth via createNode', () => {
     } = require('~/app/topology/utils');
 
     const longLabel = 'A'.repeat(30);
-    const node = freshCreateNode('task-1', longLabel, mockTask('task-1'));
+    const node = freshCreateNode({
+      id: 'task-1',
+      label: longLabel,
+      pipelineTask: mockTask('task-1'),
+    });
     const labelLayoutWidth = measurePipelineTaskLabelWidth(longLabel);
     const expectedLayoutWidth = measurePipelineTaskNodeLayoutWidth(longLabel);
 

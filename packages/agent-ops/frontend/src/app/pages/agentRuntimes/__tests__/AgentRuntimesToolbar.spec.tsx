@@ -32,6 +32,7 @@ describe('AgentRuntimesToolbar', () => {
   it('disables deploy agent button when no namespace is selected', () => {
     render(
       <AgentRuntimesToolbar
+        deployMode
         filterData={emptyAgentRuntimesFilterData}
         onFilterUpdate={onFilterUpdate}
         onDeployAgent={onDeployAgent}
@@ -46,6 +47,7 @@ describe('AgentRuntimesToolbar', () => {
 
     render(
       <AgentRuntimesToolbar
+        deployMode
         namespace="team1"
         filterData={emptyAgentRuntimesFilterData}
         onFilterUpdate={onFilterUpdate}
@@ -69,6 +71,7 @@ describe('AgentRuntimesToolbar', () => {
 
     render(
       <AgentRuntimesToolbar
+        deployMode
         namespace="team1"
         filterData={emptyAgentRuntimesFilterData}
         onFilterUpdate={onFilterUpdate}

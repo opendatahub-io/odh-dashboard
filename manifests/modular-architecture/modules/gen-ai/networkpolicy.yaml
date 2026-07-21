@@ -35,6 +35,13 @@ spec:
         - port: 8243
           protocol: TCP
     - to:
+        - podSelector:
+            matchLabels:
+              deployment: mlflow
+      ports:
+        - port: 8343
+          protocol: TCP
+    - to:
         - ipBlock:
             cidr: 0.0.0.0/0
       ports:
