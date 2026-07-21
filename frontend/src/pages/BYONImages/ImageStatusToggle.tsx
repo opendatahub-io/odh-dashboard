@@ -3,6 +3,7 @@ import { Switch } from '@patternfly/react-core';
 import { BYONImage } from '#~/types';
 import useNotification from '#~/utilities/useNotification';
 import DisableLastImageModal from './DisableLastImageModal';
+import { isImageEffectivelyEnabled } from './utils';
 
 type ImageStatusToggleProps = {
   image: BYONImage;
@@ -31,9 +32,9 @@ const ImageStatusToggle: React.FC<ImageStatusToggleProps> = ({
   }, [image.visible, isDisabledByError]);
 
   const isLastEnabledImage = React.useMemo(() => {
-    const enabledCount = images.filter((img) => img.visible && !img.error).length;
-    return image.visible && enabledCount === 1;
-  }, [images, image.visible]);
+    const enabledCount = images.filter(isImageEffectivelyEnabled).length;
+    return isImageEffectivelyEnabled(image) && enabledCount === 1;
+  }, [images, image]);
 
   const performToggle = async (visible: boolean) => {
     setLoading(true);

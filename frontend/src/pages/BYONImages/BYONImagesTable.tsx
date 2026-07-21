@@ -15,6 +15,7 @@ import {
   ImageTypeFilter,
   ImageEnabledFilter,
 } from './const';
+import { isImageEffectivelyEnabled } from './utils';
 
 export type BYONImagesTableProps = {
   images: BYONImage[];
@@ -49,9 +50,8 @@ export const BYONImagesTable: React.FC<BYONImagesTableProps> = ({ images }) => {
         }
 
         if (enabledFilter) {
-          const isEffectivelyEnabled = image.visible && !(image.error && !image.isOOTB);
           const isEnabled = enabledFilter === ImageEnabledFilter.enabled;
-          if (isEnabled !== isEffectivelyEnabled) {
+          if (isEnabled !== isImageEffectivelyEnabled(image)) {
             return false;
           }
         }
