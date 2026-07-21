@@ -8,6 +8,7 @@ import {
   restCREATE,
   restGET,
 } from 'mod-arch-core';
+import { throwUIError } from '~/app/components/common/UIError/util';
 import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
 import type { S3ListObjectsResponse } from '~/app/types';
 
@@ -97,7 +98,9 @@ export async function uploadFileToS3(
 
   const path = `${URL_PREFIX}/api/${BFF_API_VERSION}/s3/files/${encodeURIComponent(params.key)}`;
 
-  const response = await handleRestFailures(restCREATE(hostPath, path, formData, queryParams));
+  const response = await handleRestFailures(
+    throwUIError(restCREATE(hostPath, path, formData, queryParams)),
+  );
 
   if (!isS3UploadSuccessPayload(response)) {
     throw new Error(
