@@ -1,16 +1,33 @@
 import { Artifact } from '#~/third_party/mlmd';
 import { getArtifactModelData } from '#~/concepts/pipelines/content/pipelinesDetails/pipelineRun/artifacts/utils';
-import { PipelineRecurringRunKF, PipelineRunKF } from '#~/concepts/pipelines/kfTypes';
+import {
+  PluginOutputKF,
+  PipelineRecurringRunKF,
+  PipelineRunKF,
+} from '#~/concepts/pipelines/kfTypes';
 import { isPipelineRun } from '#~/concepts/pipelines/content/utils';
 
 export const ALL_RUNS_METRICS_COLUMNS_STORAGE_KEY = 'all-runs-metrics-columns';
 
+export const getMlflowPluginOutput = (
+  run: PipelineRunKF | PipelineRecurringRunKF,
+): PluginOutputKF | undefined => {
+  if (!isPipelineRun(run)) {
+    return undefined;
+  }
+  const output = run.plugins_output;
+  if (!output) {
+    return undefined;
+  }
+  // ODH/RHOAI returns "MLflow"; upstream KFP returns "mlflow" — prefer lowercase when both are present
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  return output.mlflow || output.MLflow;
+};
+
 export const getMlflowExperimentNameFromRun = (
   run: PipelineRunKF | PipelineRecurringRunKF,
 ): string | undefined => {
-  const outputName = isPipelineRun(run)
-    ? run.plugins_output?.mlflow?.entries.experiment_name?.value
-    : undefined;
+  const outputName = getMlflowPluginOutput(run)?.entries.experiment_name?.value;
   const name = outputName ?? run.plugins_input?.mlflow?.experiment_name;
   return typeof name === 'string' ? name.trim() || undefined : undefined;
 };
@@ -38,7 +55,7 @@ export const isPipelineRunRegistered = (artifact: Artifact[]): boolean => {
 };
 
 export const getMlflowExperimentId = (run: PipelineRunKF): string | undefined => {
-  const outputEntry = run.plugins_output?.mlflow?.entries;
+  const outputEntry = getMlflowPluginOutput(run)?.entries;
   const outputId = outputEntry?.experiment_id?.value;
   if (outputId != null) {
     return String(outputId);
@@ -53,7 +70,7 @@ export const getMlflowExperimentId = (run: PipelineRunKF): string | undefined =>
 // root_run_id is only populated in plugins_output after the backend creates the MLflow run.
 // Unlike experiment_id, there is no plugins_input equivalent to fall back to.
 export const getMlflowRunId = (run: PipelineRunKF): string | undefined => {
-  const outputEntry = run.plugins_output?.mlflow?.entries;
+  const outputEntry = getMlflowPluginOutput(run)?.entries;
   const outputId = outputEntry?.root_run_id?.value;
   if (outputId != null) {
     return String(outputId);

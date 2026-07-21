@@ -1,9 +1,15 @@
 import { PageSection, Tab, TabContentBody, Tabs, TabTitleText } from '@patternfly/react-core';
 import * as React from 'react';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import FeatureServiceDetailsPage from './FeatureServiceDetailsPage';
 import { FeatureService } from '../../../types/featureServices';
 import FeatureViewTab from '../../components/FeatureViewTab';
 import { FeatureServiceDetailsTab } from '../const';
+import {
+  FEATURE_STORE_EVENTS,
+  RESOURCE_TYPES,
+  TabSwitchedProperties,
+} from '../../../tracking/featureStoreTrackingConstants';
 
 type FeatureServiceDetailsTabsProps = {
   featureService: FeatureService;
@@ -25,6 +31,13 @@ const FeatureServiceDetailsTabs: React.FC<FeatureServiceDetailsTabsProps> = ({
       role="region"
       data-testid="feature-service-details-tabs"
       onSelect={(e, tabIndex) => {
+        if (tabIndex !== activeTabKey) {
+          fireMiscTrackingEvent(FEATURE_STORE_EVENTS.TAB_SWITCHED, {
+            tabName: String(tabIndex),
+            pageType: 'detail',
+            resourceType: RESOURCE_TYPES.FEATURE_SERVICE,
+          } satisfies TabSwitchedProperties);
+        }
         setActiveTabKey(tabIndex);
       }}
     >

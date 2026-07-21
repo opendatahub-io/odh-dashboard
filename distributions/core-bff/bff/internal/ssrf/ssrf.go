@@ -10,6 +10,8 @@ import (
 	"net/http"
 	"net/url"
 	"time"
+
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/constants"
 )
 
 // ErrSSRFBlocked is returned when a request is blocked by SSRF validation.
@@ -77,7 +79,7 @@ func NewRedirectValidator(logger *slog.Logger) func(*http.Response) error {
 		if resp.StatusCode < 300 || resp.StatusCode >= 400 {
 			return nil
 		}
-		location := resp.Header.Get("Location")
+		location := resp.Header.Get(constants.HeaderLocation)
 		if location == "" {
 			return nil
 		}

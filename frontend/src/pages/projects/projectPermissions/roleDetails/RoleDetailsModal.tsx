@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { Flex, FlexItem, Tab, Tabs, TabTitleText } from '@patternfly/react-core';
+import ContentModal from '@odh-dashboard/ui-core/components/ContentModal';
 import { usePermissionsContext } from '#~/concepts/permissions/PermissionsContext';
 import {
   getRoleByRef,
@@ -8,7 +9,6 @@ import {
 } from '#~/concepts/permissions/utils';
 import type { RoleRef } from '#~/concepts/permissions/types';
 import { fireMiscTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
-import ContentModal from '#~/components/modals/ContentModal';
 import RoleLabel from '#~/pages/projects/projectPermissions/components/RoleLabel';
 import { getRoleTypeForTracking } from '#~/pages/projects/projectPermissions/trackingUtils';
 import RoleDetailsModalDetailsTab from './RoleDetailsModalDetailsTab';

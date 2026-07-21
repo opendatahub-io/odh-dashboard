@@ -109,6 +109,22 @@ Cypress.Keyboard.defaults({
   keystrokeDelay: 0,
 });
 
+// Suppress the "What's New" auto-launch modal in all Cypress tests
+Cypress.on('window:before:load', (win) => {
+  win.localStorage.setItem('odh-whats-new-3.5-seen', JSON.stringify(true));
+});
+
+// Disable polling in mock tests by injecting window globals before app code runs
+if (Cypress.env('MOCK')) {
+  Cypress.on('window:before:load', (win) => {
+    Object.assign(win, {
+      POLL_INTERVAL: 999999,
+      FAST_POLL_INTERVAL: 999999,
+      WS_HOSTNAME: 'localhost:9002',
+    });
+  });
+}
+
 // Uncaught exceptions handler
 Cypress.on('uncaught:exception', (err) => {
   // Handle ChunkLoadError - ignore these errors as they are usually due to code splitting issues during development

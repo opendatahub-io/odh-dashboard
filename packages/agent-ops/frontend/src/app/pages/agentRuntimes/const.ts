@@ -1,6 +1,5 @@
 export enum AgentRuntimesFilterOption {
   Name = 'name',
-  Project = 'project',
   Status = 'status',
 }
 
@@ -14,7 +13,6 @@ export const agentRuntimeStatusFilterOptions = Object.values(AgentRuntimeStatusF
 
 export const agentRuntimesFilterOptions: Record<AgentRuntimesFilterOption, string> = {
   [AgentRuntimesFilterOption.Name]: 'Name',
-  [AgentRuntimesFilterOption.Project]: 'Project',
   [AgentRuntimesFilterOption.Status]: 'Status',
 };
 
@@ -25,12 +23,10 @@ export type AgentRuntimeStatusFilterOption = {
 
 export type AgentRuntimesFilterData = {
   [AgentRuntimesFilterOption.Name]: string | undefined;
-  [AgentRuntimesFilterOption.Project]: string | undefined;
   [AgentRuntimesFilterOption.Status]: AgentRuntimeStatusFilterOption | undefined;
 };
 
 export const emptyAgentRuntimesFilterData: AgentRuntimesFilterData = {
   [AgentRuntimesFilterOption.Name]: undefined,
-  [AgentRuntimesFilterOption.Project]: undefined,
   [AgentRuntimesFilterOption.Status]: undefined,
 };

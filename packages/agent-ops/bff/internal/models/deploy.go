@@ -23,7 +23,6 @@ type DeployAgentRequest struct {
 	Description     string        `json:"description,omitempty"`
 	EnvVars         []EnvVar      `json:"envVars,omitempty"`
 	ServicePorts    []ServicePort `json:"servicePorts,omitempty"`
-	CreateRoute     bool          `json:"createRoute,omitempty"`
 }
 
 type DeployAgentResponse struct {

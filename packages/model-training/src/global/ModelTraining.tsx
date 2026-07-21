@@ -10,7 +10,7 @@ import {
 import { SearchIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router-dom';
 import { ProjectObjectType } from '@odh-dashboard/ui-core';
-import TitleWithIcon from '@odh-dashboard/internal/concepts/design/TitleWithIcon';
+import TitleWithIcon from '@odh-dashboard/ui-core/design/TitleWithIcon';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';

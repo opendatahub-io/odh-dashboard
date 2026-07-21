@@ -18,12 +18,12 @@ import {
   StackItem,
   Truncate,
 } from '@patternfly/react-core';
+import TruncatedText from '@odh-dashboard/ui-core/components/TruncatedText';
 import { CatalogModel } from '#~/concepts/modelCatalog/types';
 import { getCatalogModelDetailsRouteFromModel } from '#~/routes/modelCatalog/catalogModelDetails';
 import { getTagFromModel } from '#~/concepts/modelCatalog/utils';
 import { RhUiTagIcon } from '#~/images/icons';
 import { ModelCatalogLabels } from '#~/concepts/modelCatalog/content/ModelCatalogLabels';
-import TruncatedText from '#~/components/TruncatedText';
 
 export const ModelCatalogCard: React.FC<{
   model: CatalogModel;

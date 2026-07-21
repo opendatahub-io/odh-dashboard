@@ -195,6 +195,38 @@ describe('Create Role submit', () => {
     });
   });
 
+  it('should submit explicit verbs from workbench-maintainer template without wildcards', () => {
+    cy.interceptK8s(
+      'POST',
+      { model: RoleModel, ns: NAMESPACE },
+      mockRoleK8sResource({ name: 'workbench-maintainer', namespace: NAMESPACE }),
+    ).as('createRole');
+
+    projectRoles.visitCreateRole(NAMESPACE);
+
+    projectRoles.findSelectRoleTemplateButton().click();
+    projectRoles.findSelectTemplateButton('workbench-maintainer').click();
+
+    projectRoles.findSubmitButton().click();
+
+    cy.wait('@createRole').then((interception) => {
+      const { rules } = interception.request.body;
+      expect(rules).to.have.length(6);
+      for (const rule of rules) {
+        expect(rule.verbs).to.not.include('*');
+      }
+      const notebookRule = rules.find((r: { resources?: string[] }) =>
+        r.resources?.includes('notebooks'),
+      );
+      expect(notebookRule)
+        .to.have.property('verbs')
+        .that.deep.equals(['get', 'list', 'watch', 'create', 'update', 'patch', 'delete']);
+    });
+
+    cy.url().should('include', `/projects/${NAMESPACE}`);
+    cy.url().should('include', 'section=roles');
+  });
+
   it('should send labels with labels.opendatahub.io/ prefix', () => {
     cy.interceptK8s(
       'POST',

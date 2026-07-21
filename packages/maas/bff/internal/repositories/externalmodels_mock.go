@@ -17,7 +17,10 @@ type MockExternalModelsRepository struct {
 }
 
 // NewMockExternalModelsRepository creates a new mock ExternalModel repository.
-func NewMockExternalModelsRepository(logger *slog.Logger, modelRefsRepo MaaSModelRefsRepositoryInterface) *MockExternalModelsRepository {
+func NewMockExternalModelsRepository(
+	logger *slog.Logger,
+	modelRefsRepo MaaSModelRefsRepositoryInterface,
+) *MockExternalModelsRepository {
 	return &MockExternalModelsRepository{
 		logger:        logger,
 		modelRefsRepo: modelRefsRepo,

@@ -15,6 +15,7 @@ import {
   verifyOpenShiftProjectExists,
 } from '../../../utils/oc_commands/project';
 import { LDAP_ADMIN_USER } from '../../../utils/e2eUsers';
+import { ensureAdminOcSession } from '../../../utils/oc_commands/baseCommands';
 import { retryableBefore } from '../../../utils/retryableHooks';
 import { createCleanProject } from '../../../utils/projectChecker';
 import {
@@ -121,6 +122,7 @@ describe('An admin can manage MaaS authorization policies and control model acce
   });
 
   after(() => {
+    ensureAdminOcSession();
     cy.log(`Cleaning up Auth Policy: ${policiesName}`);
     cleanupAuthPolicy(policiesName, modelsAsAServiceNamespace);
     cy.log(`Cleaning up Subscription: ${subscriptionName}`);

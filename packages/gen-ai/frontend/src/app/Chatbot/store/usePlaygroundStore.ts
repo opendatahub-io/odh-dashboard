@@ -6,14 +6,14 @@ import { deepCopyPrompt } from './utils';
 
 interface PlaygroundState {
   isPromptManagementModalOpen: boolean;
-  modalMode: 'allPrompts' | 'create' | 'edit';
+  modalMode: 'allPrompts' | 'create' | 'edit' | 'save-as';
   modalConfigId: string | null;
   dirtyPromptSnapshot: MLflowPromptVersion | null;
 }
 
 interface PlaygroundActions {
   openModal: (
-    mode: 'allPrompts' | 'create' | 'edit',
+    mode: 'allPrompts' | 'create' | 'edit' | 'save-as',
     configId: string,
     dirtyPromptToSnapshot: MLflowPromptVersion | null,
   ) => void;
@@ -36,7 +36,7 @@ export const usePlaygroundStore = create<PlaygroundStore>()(
       ...initialState,
 
       openModal: (
-        mode: 'allPrompts' | 'create' | 'edit',
+        mode: 'allPrompts' | 'create' | 'edit' | 'save-as',
         configId: string,
         dirtyPromptToSnapshot: MLflowPromptVersion | null,
       ) => {
