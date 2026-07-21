@@ -186,7 +186,7 @@ describe('External Models Page', () => {
       missingRefRow
         .findMissingMaaSModelRefWarningPopover()
         .should('exist')
-        .should('contain.text', 'MaaS model reference required');
+        .should('contain.text', 'Missing MaaS model setup');
     });
 
     it('should filter external models by keyword across name, display name, and description', () => {
