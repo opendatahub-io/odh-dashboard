@@ -215,7 +215,7 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 
 	var repos *repositories.Repositories
 	if gatewayRegistry != nil && gatewayDiscovery != nil {
-		repos = repositories.NewRepositoriesWithGateway(agentSourceFactory, gatewayDiscovery, gatewayRegistry)
+		repos = repositories.NewRepositoriesWithGateway(agentSourceFactory, gatewayDiscovery, gatewayRegistry, k8sFactory, logger)
 	} else {
 		repos = repositories.NewRepositories(agentSourceFactory)
 	}

@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"log/slog"
 	"net/http"
 
@@ -63,12 +64,22 @@ func (app *App) CreateGatewayHandler(w http.ResponseWriter, r *http.Request, _ h
 		return
 	}
 
-	if req.Name == "" || req.Endpoint == "" {
-		app.badRequestResponse(w, r, nil)
+	if req.Name == "" {
+		app.badRequestResponse(w, r, fmt.Errorf("name is required"))
+		return
+	}
+	if !req.Deploy && req.Endpoint == "" {
+		app.badRequestResponse(w, r, fmt.Errorf("endpoint is required when not deploying"))
 		return
 	}
 
-	result, err := app.repositories.Gateway.CreateGateway(r.Context(), &req)
+	var result *models.Gateway
+	var err error
+	if req.Deploy {
+		result, err = app.repositories.Gateway.DeployGateway(r.Context(), &req)
+	} else {
+		result, err = app.repositories.Gateway.CreateGateway(r.Context(), &req)
+	}
 	if err != nil {
 		logger.Error("Failed to create gateway", slog.Any("error", err))
 		app.serverErrorResponse(w, r, err)

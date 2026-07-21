@@ -22,6 +22,7 @@ type GatewayListResponse struct {
 type CreateGatewayRequest struct {
 	Name      string `json:"name"`
 	Namespace string `json:"namespace,omitempty"`
-	Endpoint  string `json:"endpoint"`
+	Endpoint  string `json:"endpoint,omitempty"`
 	IsGlobal  bool   `json:"isGlobal"`
+	Deploy    bool   `json:"deploy"`
 }
