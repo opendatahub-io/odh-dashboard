@@ -9,9 +9,8 @@ import {
 } from '../../../../pages/workbench';
 import { HTPASSWD_CLUSTER_ADMIN_USER, LDAP_CONTRIBUTOR_USER } from '../../../../utils/e2eUsers';
 import { loadPVCEditFixture } from '../../../../utils/dataLoader';
-import { createCleanProject } from '../../../../utils/projectChecker';
-import { deleteOpenShiftProject, addUserToProject } from '../../../../utils/oc_commands/project';
-import { ensureAdminOcSession } from '../../../../utils/oc_commands/baseCommands';
+import { cleanupTestProject, createCleanProject } from '../../../../utils/projectChecker';
+import { addUserToProject } from '../../../../utils/oc_commands/project';
 import { retryableBefore } from '../../../../utils/retryableHooks';
 import {
   addConnectionModal,
@@ -75,11 +74,8 @@ describe('Create, Delete and Edit - Workbench Tests', () => {
       }),
   );
   after(() => {
-    // Delete provisioned Project
     if (editTestNamespace) {
-      cy.log(`Deleting Project ${editTestNamespace} after the test has finished.`);
-      ensureAdminOcSession();
-      deleteOpenShiftProject(editTestNamespace, { wait: false, ignoreNotFound: true });
+      cleanupTestProject(editTestNamespace);
     }
   });
 

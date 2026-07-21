@@ -92,9 +92,18 @@ const CohortAccordionGroup: React.FC<CohortAccordionGroupProps> = ({
                       <FlexItem>
                         <Title headingLevel="h3">{cohortLabel}</Title>
                       </FlexItem>
+                      {cohort.name && (
+                        <FlexItem>
+                          <Title headingLevel="h3" style={{ fontWeight: 'normal' }}>
+                            Cohort
+                          </Title>
+                        </FlexItem>
+                      )}
                       <FlexItem>
                         <Content component={ContentVariants.small}>
-                          {`${total} total accelerators`}
+                          {`${total} accelerators across ${acceleratorCQs.length} cluster queue${
+                            acceleratorCQs.length !== 1 ? 's' : ''
+                          }`}
                         </Content>
                       </FlexItem>
                       {unallocatedBorrowable > 0 && (
@@ -103,14 +112,14 @@ const CohortAccordionGroup: React.FC<CohortAccordionGroupProps> = ({
                             component={ContentVariants.small}
                             data-testid="cohort-unallocated-borrowable"
                           >
-                            {`· ${unallocatedBorrowable} unallocated, borrowable`}
+                            {`· ${unallocatedBorrowable} available to borrow`}
                           </Content>
                         </FlexItem>
                       )}
                       {borrowLendActive && (
                         <FlexItem>
                           <Label color="purple" isCompact data-testid="cohort-borrow-lend-badge">
-                            Borrow / lend active
+                            Borrowing enabled
                           </Label>
                         </FlexItem>
                       )}
@@ -119,7 +128,7 @@ const CohortAccordionGroup: React.FC<CohortAccordionGroupProps> = ({
                   {cohort.state === 'standalone' && (
                     <StackItem>
                       <Content component={ContentVariants.small}>
-                        Cluster queues not assigned to a Kueue cohort.
+                        Cluster queues not assigned to a cohort.
                       </Content>
                     </StackItem>
                   )}

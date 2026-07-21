@@ -161,12 +161,12 @@ export const LLMInferenceServiceModel: K8sModelCommon = {
   plural: 'llminferenceservices',
 };
 
-export const LLMInferenceServiceConfigModel: K8sModelCommon = {
+export const LLMInferenceServiceConfigModel = {
   apiVersion: 'v1alpha2',
   apiGroup: 'serving.kserve.io',
   kind: 'LLMInferenceServiceConfig',
   plural: 'llminferenceserviceconfigs',
-};
+} satisfies K8sModelCommon;
 
 export enum LLMInferenceServiceReadyConditionReason {
   PROGRESS_DEADLINE_EXCEEDED = 'ProgressDeadlineExceeded',

@@ -20,7 +20,7 @@ const CQ_B = 'cq-b';
 const MY_CQ = 'my-cq';
 const MY_COHORT = 'my-cohort';
 const SHORT_COHORT = 'c';
-const COHORT_CQ_LABEL = `${MY_COHORT} · ${MY_CQ}`;
+const COHORT_CQ_LABEL = `${MY_COHORT}, ${MY_CQ}`;
 const DISABLED_FILL = 'var(--pf-t--global--text--color--disabled)';
 const LONG_LABEL_LEN = 20;
 const WIDE_VIEWPORT = 1200;
@@ -92,7 +92,12 @@ describe('truncateLabel', () => {
 describe('getEntryLabel', () => {
   it.each([
     ['undefined info returns fallback', undefined, 'fallback-cq', 'fallback-cq'],
-    ['empty cohortName returns cqName alone', makeSeries(MY_CQ, ''), 'fallback', MY_CQ],
+    [
+      'empty cohortName returns No cohort prefix',
+      makeSeries(MY_CQ, ''),
+      'fallback',
+      `No cohort, ${MY_CQ}`,
+    ],
     [
       'set cohortName prefixes the label',
       makeSeries(MY_CQ, MY_COHORT),
@@ -114,7 +119,7 @@ describe('getLegendLabel', () => {
   });
 
   it('returns the full label unchanged when it fits within the limit', () => {
-    expect(getLegendLabel(makeSeries('cq', 'cohort'))).toBe('cohort · cq');
+    expect(getLegendLabel(makeSeries('cq', 'cohort'))).toBe('cohort, cq');
   });
 });
 
