@@ -107,7 +107,6 @@
         memory: 128Mi
         ephemeral-storage: 10Mi
       limits:
-        cpu: 200m
         memory: 256Mi
     ports:
       - containerPort: 8043
@@ -184,7 +183,6 @@
         memory: 128Mi
         ephemeral-storage: 10Mi
       limits:
-        cpu: 200m
         memory: 256Mi
     ports:
       - containerPort: 8143
@@ -291,7 +289,6 @@
         memory: 128Mi
         ephemeral-storage: 10Mi
       limits:
-        cpu: 200m
         memory: 256Mi
     ports:
       - containerPort: 8243
@@ -368,7 +365,6 @@
         memory: 128Mi
         ephemeral-storage: 10Mi
       limits:
-        cpu: 200m
         memory: 256Mi
     ports:
       - containerPort: 8343
@@ -443,7 +439,6 @@
         memory: 128Mi
         ephemeral-storage: 10Mi
       limits:
-        cpu: 200m
         memory: 256Mi
     ports:
       - containerPort: 8543
@@ -535,7 +530,6 @@
         memory: 128Mi
         ephemeral-storage: 10Mi
       limits:
-        cpu: 200m
         memory: 256Mi
     ports:
       - containerPort: 8643
@@ -612,7 +606,6 @@
         memory: 128Mi
         ephemeral-storage: 10Mi
       limits:
-        cpu: 200m
         memory: 256Mi
     ports:
       - containerPort: 8743
@@ -689,7 +682,6 @@
         memory: 128Mi
         ephemeral-storage: 10Mi
       limits:
-        cpu: 200m
         memory: 256Mi
     ports:
       - containerPort: 8843
