@@ -1,6 +1,9 @@
 import { mockLLMInferenceServiceConfigK8sResource } from '@odh-dashboard/internal/__mocks__/mockLLMInferenceServiceConfigK8sResource';
 import { TopologyType } from '../../types';
-import { CustomTopologyConfigFieldWizardField } from '../CustomTopologyConfigField';
+import {
+  CustomTopologyConfigFieldWizardField,
+  TOPOLOGY_CONFIG_DEFAULT,
+} from '../CustomTopologyConfigField';
 import type { TopologyTypeExternalData } from '../TopologyTypeField';
 import type { CustomTopologyConfigFieldData } from '../CustomTopologyConfigField';
 
@@ -53,11 +56,11 @@ describe('CustomTopologyConfigField getInitialFieldData', () => {
     expect(result).toBe(existing);
   });
 
-  it('should return existing field data with configRef when provided (edit extractor)', () => {
+  it('should fall through to defaults when only configRef is set (unresolved edit extractor)', () => {
     const existing: CustomTopologyConfigFieldData = { configRef: 'some-config' };
     const result = getInitialFieldData(existing);
 
-    expect(result).toBe(existing);
+    expect(result).toEqual({ selectedConfig: TOPOLOGY_CONFIG_DEFAULT });
   });
 
   it('should auto-select first config for multi-node topology', () => {

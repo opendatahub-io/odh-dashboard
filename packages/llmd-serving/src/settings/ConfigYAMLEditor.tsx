@@ -15,6 +15,7 @@ const ConfigYAMLEditor: React.FC<ConfigYAMLEditorProps> = ({
   <div data-testid="config-yaml-editor">
     <CodeEditor
       code={code}
+      isCopyEnabled
       isUploadEnabled
       isLanguageLabelVisible
       language={Language.yaml}

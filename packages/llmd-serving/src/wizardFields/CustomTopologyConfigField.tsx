@@ -247,7 +247,7 @@ export const CustomTopologyConfigFieldWizardField: CustomTopologyConfigFieldType
       externalData?: TopologyTypeExternalData,
       dependencies?: CustomTopologyConfigDependencies,
     ): CustomTopologyConfigFieldData => {
-      if (existingFieldData) {
+      if (existingFieldData?.selectedConfig) {
         return existingFieldData;
       }
       const topologyType = dependencies?.topologyType?.topologyType;
