@@ -41,6 +41,7 @@ import {
 } from '../../../pages/modelsAsAService';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
 import type { ModelAsAServiceTestData } from '../../../types';
+import { PhaseStatus } from '../../../types';
 import { loadMaaSFixture } from '../../../utils/dataLoader';
 import {
   createCleanHardwareProfile,
@@ -66,7 +67,8 @@ let secondSubscriptionPriority: number;
 let subscriptionGroups: string[];
 let subscriptionName: string;
 let subscriptionNamespace: string;
-let tokenRateLimit: { limit: number; window: string };
+let tokenRateLimit: { limit: string; window: string; unit: string };
+let tokenLimit: string;
 const uuid = generateTestUUID();
 let apiKeyName: string;
 let hardwareProfileResourceName: string;
@@ -98,9 +100,11 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
         subscriptionGroups = ['rhods-admins'];
         apiKeyName = `maas-api-key-${uuid}`;
         tokenRateLimit = {
-          limit: 1000,
+          limit: '1,000',
           window: '1000',
+          unit: 'hour',
         };
+        tokenLimit = `${tokenRateLimit.limit} / ${tokenRateLimit.window} ${tokenRateLimit.unit}`;
 
         // Clean up any stale MaaS resources from a previous attempt so retries are idempotent
         cleanupSubscription(subscriptionName, subscriptionNamespace);
@@ -216,6 +220,10 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
         .then((val) => {
           resourceName = String(val ?? '');
         });
+      modelServingWizard
+        .findModelDeploymentDescriptionInput()
+        .clear()
+        .type(testData.singleModelDescription);
       modelServingWizard.selectPotentiallyDisabledProfile(hardwareProfileResourceName);
       modelServingWizard.selectDeploymentMethodByKey('llm-inference-service-simple-vllm');
       modelServingWizard.findModelServerManualSelectRadio().click();
@@ -291,14 +299,27 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
 
       cy.step('Verify the subscription exists on the cluster');
       cy.then(() => {
-        checkMaaSSubscriptionState(subscriptionName, subscriptionNamespace);
+        checkMaaSSubscriptionState(subscriptionName, subscriptionNamespace, {
+          phase: PhaseStatus.ACTIVE,
+        });
       });
 
       cy.step('Verify the subscription is created');
       subscriptionsPage.visit();
       subscriptionsPage.findFilterInput().type(subscriptionName);
       subscriptionsPage.findRows().should('have.length', 1);
-      subscriptionsPage.findRows().should('contain.text', subscriptionName);
+      const subscriptionRow = subscriptionsPage.getRow(subscriptionName);
+      subscriptionRow.findTitleButton().should('contain.text', subscriptionName);
+      subscriptionRow.findPhaseLabel().should('contain.text', PhaseStatus.READY);
+      subscriptionRow.findExpandGroupButton().click();
+      subscriptionRow.findExpandedGroupName().should('contain.text', subscriptionGroups[0]);
+      subscriptionRow.findExpandModelButton().click();
+      subscriptionRow.findExpandedModelName().should('contain.text', modelName);
+      subscriptionRow
+        .findExpandedModelDescription()
+        .should('contain.text', testData.singleModelDescription);
+      subscriptionRow.findExpandedModelTokenLimits().should('contain.text', tokenLimit);
+      subscriptionRow.findPriority().should('contain.text', subscriptionPriority);
 
       cy.step('Create another subscription to test edit and delete');
       subscriptionsPage.findCreateSubscriptionButton().click();
