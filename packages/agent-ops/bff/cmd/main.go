@@ -60,6 +60,9 @@ func main() {
 	flag.StringVar(&cfg.OpenShellSandboxNamespace, "openshell-sandbox-namespace",
 		getEnvAsString("OPENSHELL_SANDBOX_NAMESPACE", "openshell"),
 		"Namespace where the Gateway deploys sandboxes")
+	flag.StringVar(&cfg.OpenShellGatewayNamespace, "openshell-gateway-namespace",
+		getEnvAsString("OPENSHELL_GATEWAY_NAMESPACE", "openshell"),
+		"Namespace where gateway Services are discovered (global, like model registries)")
 
 	// Deprecated flags - kept for backward compatibility
 	flag.BoolVar(&cfg.StandaloneMode, "standalone-mode", false, "DEPRECATED: Use -deployment-mode=standalone instead")

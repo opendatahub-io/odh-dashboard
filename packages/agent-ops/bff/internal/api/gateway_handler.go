@@ -17,9 +17,12 @@ func (app *App) ListGatewaysHandler(w http.ResponseWriter, r *http.Request, _ ht
 	ctx := r.Context()
 	logger := helper.GetContextLoggerFromReq(r)
 
-	namespace := r.URL.Query().Get("namespace")
+	// Gateways are global infrastructure — always discovered from the configured
+	// gateway namespace, not from the user's selected project. Follows the model
+	// registry pattern where registries live in a dedicated namespace.
+	gwNamespace := app.config.OpenShellGatewayNamespace
 
-	result, err := app.repositories.Gateway.ListGateways(ctx, namespace)
+	result, err := app.repositories.Gateway.ListGateways(ctx, gwNamespace)
 	if err != nil {
 		logger.Error("Failed to list gateways", slog.Any("error", err))
 		app.serverErrorResponse(w, r, err)

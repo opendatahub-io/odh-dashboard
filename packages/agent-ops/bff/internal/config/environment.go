@@ -121,6 +121,11 @@ type EnvConfig struct {
 	// OpenShellSandboxNamespace is the namespace where the Gateway deploys sandboxes.
 	OpenShellSandboxNamespace string
 
+	// OpenShellGatewayNamespace is the namespace where gateway Services are discovered.
+	// Gateways are global infrastructure — discovered from this fixed namespace,
+	// not from the user's selected project. Follows the model registry pattern.
+	OpenShellGatewayNamespace string
+
 	// ─── DEPRECATED ─────────────────────────────────────────────
 	// The following fields are deprecated and maintained for backward compatibility
 	// Use DeploymentMode instead

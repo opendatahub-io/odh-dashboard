@@ -334,13 +334,32 @@ const AgentDeploymentListPage: React.FC = () => {
     );
   };
 
+  const sandboxContent = () => {
+    if (noProjectSelected) {
+      return (
+        <EmptyState
+          headingLevel="h2"
+          icon={CubesIcon}
+          titleText="Select a project"
+          variant={EmptyStateVariant.lg}
+          data-testid="agent-deployments-select-project"
+        >
+          <EmptyStateBody>
+            Select a project to view sandboxes. Gateways above are shared across all projects.
+          </EmptyStateBody>
+        </EmptyState>
+      );
+    }
+    return tableContent();
+  };
+
   const pageContent = (
     <Stack hasGutter>
       <StackItem>{gatewayCards}</StackItem>
       <StackItem>
         <Title headingLevel="h3">Sandboxes</Title>
       </StackItem>
-      <StackItem>{tableContent()}</StackItem>
+      <StackItem>{sandboxContent()}</StackItem>
     </Stack>
   );
 
@@ -352,25 +371,7 @@ const AgentDeploymentListPage: React.FC = () => {
         headerContent={headerContent}
         loadError={noProjectSelected || isAccessDenied ? undefined : loadError}
         loaded={noProjectSelected ? !projectsLoading : loaded}
-        empty={noProjectSelected || (isEmpty && !isAccessDenied && gateways.length === 0)}
-        emptyStatePage={
-          noProjectSelected ? (
-            <EmptyState
-              headingLevel="h2"
-              icon={CubesIcon}
-              titleText="Select a project"
-              variant={EmptyStateVariant.lg}
-              data-testid="agent-deployments-select-project"
-            >
-              <EmptyStateBody>Select a project to view agent deployments.</EmptyStateBody>
-            </EmptyState>
-          ) : (
-            <AgentDeploymentsEmptyState
-              namespace={namespace}
-              onDeployAgent={handleOpenDeployModal}
-            />
-          )
-        }
+        empty={false}
         provideChildrenPadding
       >
         {pageContent}
