@@ -12,6 +12,7 @@ import {
   OTHER_AGENTS_DISPLAY_NAME,
 } from '~/app/pages/agentsCatalog/const';
 import AgentsCatalogCard from '~/app/pages/agentsCatalog/components/AgentsCatalogCard';
+import { buildAgentDetailsNavigationState } from '~/app/pages/agentsCatalog/tracking';
 
 type AgentsCatalogCategorySectionProps = {
   label: string;
@@ -26,7 +27,7 @@ const AgentsCatalogCategorySection: React.FC<AgentsCatalogCategorySectionProps> 
   pageSize,
   onShowMore,
 }) => {
-  const { agentApiState, catalogLabels, reportCategoryEmpty } =
+  const { agentApiState, catalogLabels, reportCategoryEmpty, filters } =
     React.useContext(AgentsCatalogContext);
   const { agents, agentsLoaded, agentsLoadError } = useAgentsBySourceLabelWithAPI(agentApiState, {
     sourceLabel: label,
@@ -66,7 +67,17 @@ const AgentsCatalogCategorySection: React.FC<AgentsCatalogCategorySectionProps> 
       loadError={agentsLoadError}
       pageSize={pageSize}
       onShowMore={onShowMore}
-      renderCard={(agent) => <AgentsCatalogCard agent={agent} />}
+      renderCard={(agent, index) => (
+        <AgentsCatalogCard
+          agent={agent}
+          detailsNavigationState={buildAgentDetailsNavigationState(
+            index,
+            filters,
+            searchTerm,
+            agents.size,
+          )}
+        />
+      )}
       getItemKey={(agent) => agent.id}
       gridSpans={AGENTS_CATALOG_GRID_SPAN}
       loadingScreenReaderText={`Loading ${label} agents`}
