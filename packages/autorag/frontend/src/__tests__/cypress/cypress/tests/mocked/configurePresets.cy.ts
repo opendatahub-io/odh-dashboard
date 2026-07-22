@@ -127,8 +127,8 @@ describe('AutoRAG Configure Presets', () => {
   it('should display human-readable labels and switch presets', () => {
     navigateToConfigureDetails();
 
-    cy.contains('Faster').should('be.visible');
-    cy.contains('Better quality').should('be.visible');
+    autoragConfigurePage.findPresetContainer('speed').should('contain.text', 'Faster');
+    autoragConfigurePage.findPresetContainer('balanced').should('contain.text', 'Better quality');
 
     // Switch to Better quality
     autoragConfigurePage.findPresetRadio('balanced').click();
@@ -146,7 +146,7 @@ describe('AutoRAG Configure Presets', () => {
   it('should display preset descriptions', () => {
     navigateToConfigureDetails();
 
-    cy.contains('4 vCPU, 16 GiB').should('exist');
-    cy.contains('8 vCPU, 32 GiB').should('exist');
+    autoragConfigurePage.findPresetContainer('speed').should('contain.text', '4 vCPU, 16 GiB');
+    autoragConfigurePage.findPresetContainer('balanced').should('contain.text', '8 vCPU, 32 GiB');
   });
 });

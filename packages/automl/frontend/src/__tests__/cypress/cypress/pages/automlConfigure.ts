@@ -37,6 +37,10 @@ class AutomlConfigurePage {
     return cy.findByTestId(`preset-radio-${preset}`);
   }
 
+  findPresetContainer(preset: 'speed' | 'balanced') {
+    return this.findPresetRadio(preset).parents('.pf-v6-c-radio');
+  }
+
   findConfigureStepSubtitle() {
     return cy.findByTestId('configure-step-subtitle');
   }
