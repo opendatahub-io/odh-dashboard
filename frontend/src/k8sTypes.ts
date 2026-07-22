@@ -25,7 +25,6 @@ import type {
   AccessReviewResourceAttributes,
   ManagementState,
   DataScienceClusterKindStatus,
-  ImagePullSecret,
   AcceleratorProfileKind,
   ConfigMapKind,
   EventKind,
