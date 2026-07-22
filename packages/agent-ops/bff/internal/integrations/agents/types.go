@@ -24,6 +24,9 @@ type AgentSummary struct {
 	EndpointURL  string
 	CreatedAt    string
 	LastSyncAt   string
+	Gateway      string
+	Image        string
+	Providers    []string
 }
 
 // AgentDetail is the full workload view for one agent.

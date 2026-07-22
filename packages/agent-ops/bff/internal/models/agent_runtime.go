@@ -18,6 +18,9 @@ type AgentRuntime struct {
 	EndpointURL  string                  `json:"endpointUrl,omitempty"`
 	WorkloadType string                  `json:"workloadType,omitempty"`
 	LastSyncTime time.Time               `json:"lastSyncTime"`
+	Gateway      string                  `json:"gateway,omitempty"`
+	Image        string                  `json:"image,omitempty"`
+	Providers    []string                `json:"providers,omitempty"`
 }
 
 // AgentRuntimesResponse is the list payload for deployed agent runtimes.

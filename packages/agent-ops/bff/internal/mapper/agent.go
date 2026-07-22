@@ -37,6 +37,9 @@ func AgentSummaryToRuntime(item agents.AgentSummary) models.AgentRuntime {
 		EndpointURL:  strings.TrimSpace(item.EndpointURL),
 		WorkloadType: strings.TrimSpace(item.WorkloadType),
 		LastSyncTime: lastSync,
+		Gateway:      item.Gateway,
+		Image:        item.Image,
+		Providers:    item.Providers,
 	}
 }
 

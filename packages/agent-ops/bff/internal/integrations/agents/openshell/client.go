@@ -26,10 +26,11 @@ var sandboxGVR = schema.GroupVersionResource{
 var cardProbeClient = &http.Client{Timeout: 3 * time.Second}
 
 type Client struct {
-	osClient  v1.ClientInterface
-	k8sClient k8s.KubernetesClientInterface
-	namespace string
-	logger    *slog.Logger
+	osClient    v1.ClientInterface
+	k8sClient   k8s.KubernetesClientInterface
+	namespace   string
+	gatewayName string
+	logger      *slog.Logger
 }
 
 func (c *Client) ListNamespaces(_ context.Context, _ bool) ([]string, error) {
@@ -44,7 +45,7 @@ func (c *Client) ListAgents(ctx context.Context, _ string) (*agents.AgentList, e
 
 	items := make([]agents.AgentSummary, 0, len(sandboxes))
 	for _, sb := range sandboxes {
-		items = append(items, sandboxToSummary(sb, c.namespace))
+		items = append(items, sandboxToSummary(sb, c.namespace, c.gatewayName))
 	}
 
 	return &agents.AgentList{Items: items}, nil
@@ -324,7 +325,7 @@ func stringField(v any) string {
 	return ""
 }
 
-func sandboxToSummary(sb *v1.Sandbox, namespace string) agents.AgentSummary {
+func sandboxToSummary(sb *v1.Sandbox, namespace string, gatewayName string) agents.AgentSummary {
 	status := "Unknown"
 	if sb.Status.Phase != "" {
 		status = string(sb.Status.Phase)
@@ -333,14 +334,20 @@ func sandboxToSummary(sb *v1.Sandbox, namespace string) agents.AgentSummary {
 	displayName := ""
 	description := ""
 	framework := ""
-	if sb.Spec.Template != nil && sb.Spec.Template.Annotations != nil {
-		displayName = sb.Spec.Template.Annotations[agents.AnnotationDisplayName]
-		description = sb.Spec.Template.Annotations[agents.AnnotationDescription]
-		framework = sb.Spec.Template.Annotations[agents.AnnotationFramework]
+	image := ""
+	if sb.Spec.Template != nil {
+		image = sb.Spec.Template.Image
+		if sb.Spec.Template.Annotations != nil {
+			displayName = sb.Spec.Template.Annotations[agents.AnnotationDisplayName]
+			description = sb.Spec.Template.Annotations[agents.AnnotationDescription]
+			framework = sb.Spec.Template.Annotations[agents.AnnotationFramework]
+		}
 	}
-	if description == "" && sb.Spec.Template != nil {
-		description = sb.Spec.Template.Image
+	if description == "" {
+		description = image
 	}
+
+	providers := sb.Spec.Providers
 
 	return agents.AgentSummary{
 		Name:         sb.Name,
@@ -353,6 +360,9 @@ func sandboxToSummary(sb *v1.Sandbox, namespace string) agents.AgentSummary {
 		WorkloadType: agents.WorkloadTypeSandbox,
 		EndpointURL:  fmt.Sprintf("http://%s.%s.svc.cluster.local:8080", sb.Name, namespace),
 		CreatedAt:    sb.CreatedAt.Format(time.RFC3339),
+		Gateway:      gatewayName,
+		Image:        image,
+		Providers:    providers,
 	}
 }
 

@@ -65,9 +65,10 @@ func (f *MultiGatewayFactory) GetClientForGateway(ctx context.Context, gwName st
 	}
 
 	return &Client{
-		osClient:  osClient,
-		k8sClient: k8sClient,
-		namespace: entry.Namespace,
-		logger:    f.logger,
+		osClient:    osClient,
+		k8sClient:   k8sClient,
+		namespace:   entry.Namespace,
+		gatewayName: gwName,
+		logger:      f.logger,
 	}, nil
 }
