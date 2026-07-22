@@ -12,6 +12,18 @@ jest.mock('react-router-dom', () => ({
   useParams: () => ({ tab: mockTab }),
 }));
 
+jest.mock('~/app/hooks/useSubscriptionPolicyFormData', () => ({
+  useSubscriptionPolicyFormData: () => [
+    {
+      groups: [],
+      modelRefs: [{ name: 'model-1' }],
+      subscriptions: [{ name: 'sub-1' }],
+      policies: [{ name: 'policy-1' }],
+    },
+    true,
+  ],
+}));
+
 jest.mock('@odh-dashboard/internal/pages/ApplicationsPage', () => {
   const MockApplicationsPage = (
     props: React.PropsWithChildren<{ title: string; description: React.ReactNode }>,
@@ -24,12 +36,6 @@ jest.mock('@odh-dashboard/internal/pages/ApplicationsPage', () => {
   );
   MockApplicationsPage.displayName = 'MockApplicationsPage';
   return { __esModule: true, default: MockApplicationsPage };
-});
-
-jest.mock('~/app/pages/subscription-management/OverviewTab', () => {
-  const MockOverviewTab = () => <div data-testid="mock-overview-tab">OverviewTab</div>;
-  MockOverviewTab.displayName = 'MockOverviewTab';
-  return { __esModule: true, default: MockOverviewTab };
 });
 
 jest.mock('~/app/pages/subscription-management/SubscriptionsTab', () => {
@@ -55,25 +61,25 @@ describe('SubscriptionManagementPage', () => {
   it('should show title and description', () => {
     render(<SubscriptionManagementPage />);
 
-    expect(screen.getByTestId('app-page-title')).toHaveTextContent('Subscription management');
+    expect(screen.getByTestId('app-page-title')).toHaveTextContent('MaaS governance');
     expect(screen.getByTestId('app-page-description')).toHaveTextContent(
       'Manage subscriptions and authorization policies',
     );
   });
 
-  it('should render all three tabs', () => {
+  it('should render subscriptions and authorization policies tabs', () => {
     render(<SubscriptionManagementPage />);
 
-    expect(screen.getByTestId('overview-tab')).toBeInTheDocument();
+    expect(screen.queryByTestId('overview-tab')).not.toBeInTheDocument(); //until we add it back
     expect(screen.getByTestId('subscriptions-tab')).toBeInTheDocument();
     expect(screen.getByTestId('auth-policies-tab')).toBeInTheDocument();
   });
 
-  it('should default to the overview tab when no tab param is provided', () => {
+  it('should default to the subscriptions tab when no tab param is provided', () => {
     render(<SubscriptionManagementPage />);
 
-    expect(screen.getByTestId('overview-tab')).toHaveAttribute('aria-selected', 'true');
-    expect(screen.getByTestId('mock-overview-tab')).toBeInTheDocument();
+    expect(screen.getByTestId('subscriptions-tab')).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByTestId('mock-subscriptions-tab')).toBeInTheDocument();
   });
 
   it('should activate the subscriptions tab when tab param is "subscriptions"', () => {
@@ -90,20 +96,20 @@ describe('SubscriptionManagementPage', () => {
     expect(screen.getByTestId('auth-policies-tab')).toHaveAttribute('aria-selected', 'true');
   });
 
-  it('should fall back to overview tab for an invalid tab param', () => {
+  it('should fall back to subscriptions tab for an invalid tab param', () => {
     mockTab = 'invalid-tab';
     render(<SubscriptionManagementPage />);
 
-    expect(screen.getByTestId('overview-tab')).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByTestId('subscriptions-tab')).toHaveAttribute('aria-selected', 'true');
   });
 
   it('should navigate when a tab is clicked', () => {
     render(<SubscriptionManagementPage />);
 
     fireEvent.click(screen.getByTestId('subscriptions-tab'));
-    expect(mockNavigate).toHaveBeenCalledWith('/maas/subscription-management/subscriptions');
+    expect(mockNavigate).toHaveBeenCalledWith('/maas/maas-governance/subscriptions');
 
     fireEvent.click(screen.getByTestId('auth-policies-tab'));
-    expect(mockNavigate).toHaveBeenCalledWith('/maas/subscription-management/auth-policies');
+    expect(mockNavigate).toHaveBeenCalledWith('/maas/maas-governance/auth-policies');
   });
 });
