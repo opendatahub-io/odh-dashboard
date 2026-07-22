@@ -1,5 +1,7 @@
 import React from 'react';
 import { Alert, Bullseye, PageSection, Spinner } from '@patternfly/react-core';
+import { TrackingOutcome } from '@odh-dashboard/internal/concepts/analyticsTracking/trackingProperties';
+import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { useListAuthPolicies } from '~/app/hooks/useListAuthPolicies';
 import { MaaSAuthPolicy } from '~/app/types/subscriptions';
 import AuthPoliciesTable from '~/app/pages/auth-policies/allAuthPolicies/AuthPoliciesTable';
@@ -10,6 +12,11 @@ import {
   AuthPoliciesFilterOptions,
   initialAuthPoliciesFilterData,
 } from '~/app/pages/auth-policies/allAuthPolicies/const';
+import {
+  EventTrackingResourceType,
+  EventTrackingSource,
+  MaaSEvents,
+} from '~/app/types/event-tracking';
 import EmptyStatePage from './EmptyStatePage';
 
 type AuthPoliciesTabProps = {
@@ -74,8 +81,7 @@ const AuthPoliciesTab: React.FC<AuthPoliciesTabProps> = ({ returnTo }) => {
         returnTo={returnTo}
         testId="empty-auth-policies-page"
         title="No authorization policies"
-        bodyText="Authorization policies control which groups have access to MaaS models. Create a policy to
-        define who can consume specific models."
+        bodyText="Authorization policies control which user groups can access MaaS models. Create a policy to define model access permissions."
         showPoliciesButton
       />
     );
@@ -105,7 +111,20 @@ const AuthPoliciesTab: React.FC<AuthPoliciesTabProps> = ({ returnTo }) => {
           authPolicy={deleteAuthPolicy}
           onClose={(deleted?: boolean) => {
             if (deleted) {
+              fireFormTrackingEvent(MaaSEvents.MAAS_RESOURCE_DELETED, {
+                resourceType: EventTrackingResourceType.AUTHPOLICY,
+                source: EventTrackingSource.LIST_KEBAB,
+                resourceStatus: deleteAuthPolicy.phase ?? '',
+                outcome: TrackingOutcome.submit,
+              });
               refresh();
+            } else {
+              fireFormTrackingEvent(MaaSEvents.MAAS_RESOURCE_DELETED, {
+                resourceType: EventTrackingResourceType.AUTHPOLICY,
+                source: EventTrackingSource.LIST_KEBAB,
+                resourceStatus: deleteAuthPolicy.phase ?? '',
+                outcome: TrackingOutcome.cancel,
+              });
             }
             setDeleteAuthPolicy(undefined);
           }}

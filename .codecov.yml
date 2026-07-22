@@ -11,12 +11,82 @@ coverage:
         informational: true
         target: auto
         threshold: 1%
+      unit:
+        informational: true
+        target: auto
+        threshold: 1%
+        flags:
+          - unit
+      cypress-mock:
+        informational: true
+        target: auto
+        threshold: 1%
+        flags:
+          - cypress-mock
     patch:
       default:
         informational: true
         target: 70%
+      unit:
+        informational: true
+        target: 50%
+        flags:
+          - unit
+      cypress-mock:
+        informational: true
+        target: 50%
+        flags:
+          - cypress-mock
+
+flags:
+  unit:
+    paths:
+      - frontend/src/
+      - backend/src/
+      - packages/
+      - distributions/
+    carryforward: true
+  cypress-mock:
+    paths:
+      - frontend/src/
+      - packages/
+    carryforward: true
+
+ignore:
+  - "**/types.ts"
+  - "**/*.d.ts"
+  - "**/third_party/**"
+  - "packages/eslint-config/**"
+  - "packages/eslint-plugin/**"
+  - "packages/tsconfig/**"
+  - "packages/contract-tests/**"
+  - "packages/cypress/**"
 
 comment:
   layout: "reach,diff,flags,files,footer"
   behavior: default
   require_changes: false
+
+component_management:
+  default_rules:
+    statuses:
+      - type: project
+        target: auto
+        informational: true
+  individual_components:
+    - component_id: frontend-core
+      name: "Frontend Core"
+      paths:
+        - frontend/src/**
+    - component_id: backend
+      name: "Backend"
+      paths:
+        - backend/src/**
+    - component_id: pkg-model-serving
+      name: "Model Serving"
+      paths:
+        - packages/model-serving/**
+    - component_id: pkg-observability
+      name: "Observability"
+      paths:
+        - packages/observability/**

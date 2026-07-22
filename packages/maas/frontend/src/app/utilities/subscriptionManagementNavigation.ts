@@ -1,6 +1,6 @@
 import { URL_PREFIX } from './const';
 
-const SUBSCRIPTION_MANAGEMENT_PREFIX = `${URL_PREFIX}/subscription-management`;
+const SUBSCRIPTION_MANAGEMENT_PREFIX = `${URL_PREFIX}/maas-governance`;
 
 export const getPreSelectedModelFromState = (
   state: unknown,

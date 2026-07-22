@@ -33,6 +33,7 @@ import {
 } from '../../../pages/modelsAsAService';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
 import type { ModelAsAServiceTestData, DataConnectionUriReplacements } from '../../../types';
+import { ApiKeyStatus, PhaseStatus } from '../../../types';
 import { loadMaaSFixture } from '../../../utils/dataLoader';
 import { createDataConnectionUri } from '../../../utils/oc_commands/dataConnection';
 import { checkLLMInferenceServiceState } from '../../../utils/oc_commands/modelServing';
@@ -54,7 +55,6 @@ let apiKeyName: string;
 let apiKeyExpirationTime: string;
 let policiesModelsCount: number;
 let policiesGroupsCount: number;
-let phase: string;
 let tokenLimit: string;
 const today = new Date().toLocaleDateString('en-US', {
   month: 'short',
@@ -79,7 +79,6 @@ describe('An admin can manage MaaS authorization policies and control model acce
         subscriptionName = `${testData.subscriptionName}-${uuid}`;
         subscriptionDescription = `${testData.subscriptionDescription}`;
         subscriptionGroups = testData.subscriptionGroups;
-        phase = testData.phase;
         tokenRateLimit = testData.tokenRateLimit;
         tokenLimit = `${tokenRateLimit.limit} / ${tokenRateLimit.window} ${tokenRateLimit.unit}`;
         apiKeyName = `${subscriptionName}-api-key`;
@@ -161,7 +160,9 @@ describe('An admin can manage MaaS authorization policies and control model acce
 
       cy.step('Verify the authorization policy exists on the cluster');
       cy.then(() => {
-        checkMaaSAuthPolicyState(policiesName, modelsAsAServiceNamespace, { phase: 'Active' });
+        checkMaaSAuthPolicyState(policiesName, modelsAsAServiceNamespace, {
+          phase: PhaseStatus.ACTIVE,
+        });
       });
 
       cy.step(' View the authorization policy details');
@@ -194,9 +195,17 @@ describe('An admin can manage MaaS authorization policies and control model acce
       policyRow = authPoliciesPage.getRow(policiesUpdatedName);
       policyRow.findTitleButton().should('contain.text', policiesUpdatedName);
       policyRow.findDescription().should('contain.text', policiesUpdatedDesc);
+      policyRow.findPhaseLabel().should('contain.text', PhaseStatus.READY);
       policyRow.findGroups().should('contain.text', `${policiesGroupsCount}`);
+      policyRow.findExpandGroupButton().click();
+      policyRow.findExpandedGroupName().should('contain.text', testData.policiesGroups[0]);
+      policyRow.findExpandedGroupName().should('contain.text', testData.policiesGroups[1]);
       policyRow.findModels().should('contain.text', `${policiesModelsCount}`);
-
+      policyRow.findExpandModelButton().click();
+      policyRow.findExpandedModelName().should('contain.text', modelName);
+      policyRow
+        .findExpandedModelDescription()
+        .should('contain.text', testData.singleModelDescription);
       cy.step('Delete the authorization policy');
       policyRow.findActionsToggle().click();
       policyRow.findDeleteButton().click();
@@ -318,7 +327,7 @@ describe('An admin can manage MaaS authorization policies and control model acce
           apiKeyRow
             .findDescription()
             .should('contain.text', `Cypress test: API key for ${subscriptionName}`);
-          apiKeyRow.findStatus().should('contain.text', phase);
+          apiKeyRow.findStatus().should('contain.text', ApiKeyStatus.active);
           apiKeyRow.findSubscription().should('contain.text', subscriptionName);
           apiKeyRow.findOwner().should('contain.text', LDAP_ADMIN_USER.USERNAME);
           apiKeyRow.findCreationDate().should('contain.text', today);

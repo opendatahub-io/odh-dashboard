@@ -4,14 +4,15 @@ import TableRowTitleDescription from '@odh-dashboard/internal/components/table/T
 import { ActionsColumn, Tbody, Td, Tr } from '@patternfly/react-table';
 import { Button, Flex, FlexItem, Label, Stack, StackItem } from '@patternfly/react-core';
 import PhaseLabel from '~/app/shared/PhaseLabel';
-import { PhaseResourceType } from '~/app/utilities/phaseLabelUtils';
+import { PhaseLabelLocation, PhaseResourceType } from '~/app/utilities/phaseLabelUtils';
 import { ExternalModel, ProviderRef } from '~/app/types/external-models';
 import { externalModelsColumns } from './columns';
-import { GovernancePairingWarning } from './const';
+import { GovernancePairingWarning, MissingMaaSModelRefWarning } from './const';
 import {
   getExternalModelResource,
   getExternalModelStatusMessage,
   isAwaitingGovernancePairing,
+  isMissingMaaSModelRef,
 } from './utils';
 import PathModal from './modals/ExternalModelsPathModal';
 import ProviderURLModal from './modals/ExternalModelsProviderModal';
@@ -160,16 +161,23 @@ const ExternalModelTableRow: React.FC<ExternalModelTableRowProps> = ({
       <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
         <FlexItem>
           <PhaseLabel
+            location={PhaseLabelLocation.EXTERNAL_MODELS}
             forcePopover
             phase={externalModel.phase}
             statusMessage={getExternalModelStatusMessage(externalModel)}
             resourceType={PhaseResourceType.EXTERNAL_MODEL}
           />
         </FlexItem>
-        {isAwaitingGovernancePairing(externalModel) && (
+        {isMissingMaaSModelRef(externalModel) ? (
           <FlexItem>
-            <GovernancePairingWarning />
+            <MissingMaaSModelRefWarning />
           </FlexItem>
+        ) : (
+          isAwaitingGovernancePairing(externalModel) && (
+            <FlexItem>
+              <GovernancePairingWarning />
+            </FlexItem>
+          )
         )}
       </Flex>
     </Td>

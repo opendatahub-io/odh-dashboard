@@ -45,16 +45,18 @@ type ModelOverviewSubscription struct {
 	Name            string           `json:"name"`
 	DisplayName     string           `json:"displayName,omitempty"`
 	Phase           string           `json:"phase,omitempty"`
+	StatusMessage   string           `json:"statusMessage,omitempty"`
 	Groups          []string         `json:"groups,omitempty"`
 	TokenRateLimits []TokenRateLimit `json:"tokenRateLimits,omitempty"`
 }
 
 // ModelOverviewPolicy is an auth policy entry in the model overview, including groups.
 type ModelOverviewPolicy struct {
-	Name        string   `json:"name"`
-	DisplayName string   `json:"displayName,omitempty"`
-	Phase       string   `json:"phase,omitempty"`
-	Groups      []string `json:"groups,omitempty"`
+	Name          string   `json:"name"`
+	DisplayName   string   `json:"displayName,omitempty"`
+	Phase         string   `json:"phase,omitempty"`
+	StatusMessage string   `json:"statusMessage,omitempty"`
+	Groups        []string `json:"groups,omitempty"`
 }
 
 // ModelOverviewItem represents a model with its associated subscriptions and auth policies.

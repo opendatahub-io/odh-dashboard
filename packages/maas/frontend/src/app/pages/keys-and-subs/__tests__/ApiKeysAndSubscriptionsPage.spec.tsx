@@ -41,13 +41,17 @@ jest.mock('~/app/hooks/useApiKeysPageLoad', () => ({
   }),
 }));
 
-jest.mock('~/app/pages/api-keys/ApiKeysTab', () => {
+jest.mock('~/app/hooks/useUserSubscriptions', () => ({
+  useUserSubscriptions: () => [[], true, undefined],
+}));
+
+jest.mock('~/app/pages/keys-and-subs/apiKeys/ApiKeysTab', () => {
   const MockApiKeysTab = () => <div data-testid="mock-api-keys-tab">ApiKeysTab</div>;
   MockApiKeysTab.displayName = 'MockApiKeysTab';
   return { __esModule: true, default: MockApiKeysTab };
 });
 
-jest.mock('~/app/pages/api-keys/SubscriptionsTab', () => {
+jest.mock('~/app/pages/keys-and-subs/mySubscriptions/SubscriptionsTab', () => {
   const MockSubscriptionsTab = () => (
     <div data-testid="mock-subscriptions-tab">SubscriptionsTab</div>
   );
@@ -55,13 +59,19 @@ jest.mock('~/app/pages/api-keys/SubscriptionsTab', () => {
   return { __esModule: true, default: MockSubscriptionsTab };
 });
 
+jest.mock('@odh-dashboard/ui-core/design/TitleWithIcon', () => {
+  const MockTitleWithIcon = ({ title }: { title: string }) => <>{title}</>;
+  MockTitleWithIcon.displayName = 'MockTitleWithIcon';
+  return { __esModule: true, default: MockTitleWithIcon };
+});
+
 jest.mock('@odh-dashboard/internal/pages/ApplicationsPage', () => {
   const MockApplicationsPage = (
-    props: React.PropsWithChildren<{ title: string; description: React.ReactNode }>,
+    props: React.PropsWithChildren<{ title: React.ReactNode; description?: React.ReactNode }>,
   ) => (
     <div>
       <h1 data-testid="app-page-title">{props.title}</h1>
-      <p data-testid="app-page-description">{props.description}</p>
+      {props.description ? <p data-testid="app-page-description">{props.description}</p> : null}
       {props.children}
     </div>
   );
@@ -75,13 +85,10 @@ describe('ApiKeysAndSubscriptionsPage', () => {
     mockTab = undefined;
   });
 
-  it('should show updated title and description', () => {
+  it('should show title', () => {
     render(<ApiKeysAndSubscriptionsPage />);
 
-    expect(screen.getByTestId('app-page-title')).toHaveTextContent('API keys and subscriptions');
-    expect(screen.getByTestId('app-page-description')).toHaveTextContent(
-      'Manage your API keys and view your subscription access',
-    );
+    expect(screen.getByTestId('app-page-title')).toHaveTextContent('API keys');
   });
 
   it('should render tabs for API keys and Subscriptions', () => {

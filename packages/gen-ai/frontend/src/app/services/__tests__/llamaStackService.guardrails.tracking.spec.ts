@@ -217,7 +217,7 @@ describe('llamaStackService - Guardrail Violation Tracking', () => {
       expect(mockStreamData).toHaveBeenNthCalledWith(2, ' a normal response');
     });
 
-    it('should fire tracking event when response starts normal but then gets refused', async () => {
+    it('should reject stream with guardrail error when refusal arrives after content', async () => {
       const mockStreamData = jest.fn();
 
       // Mock ReadableStream with output_text.delta followed by refusal.delta
@@ -243,20 +243,11 @@ describe('llamaStackService - Guardrail Violation Tracking', () => {
             ),
           })
           .mockResolvedValueOnce({
-            done: false,
-            value: new TextEncoder().encode('data: {"type": "response.refusal.done"}\n'),
-          })
-          .mockResolvedValueOnce({
-            done: false,
-            value: new TextEncoder().encode(
-              'data: {"type": "response.completed", "response": {"id": "test-response", "model": "test-model", "status": "completed", "created_at": 1234567890, "content": [{"type": "refusal", "refusal": "I cannot process that request"}]}}\n',
-            ),
-          })
-          .mockResolvedValueOnce({
             done: true,
             value: undefined,
           }),
         releaseLock: jest.fn(),
+        cancel: jest.fn(),
       };
 
       const mockResponse = {
@@ -268,20 +259,31 @@ describe('llamaStackService - Guardrail Violation Tracking', () => {
 
       mockFetch.mockResolvedValueOnce(mockResponse);
 
-      await createResponse(URL_PREFIX, { namespace: TEST_NAMESPACE })(mockStreamingRequest, {
-        onStreamData: mockStreamData,
+      // Stream should reject when refusal arrives after content has been streamed
+      await expect(
+        createResponse(URL_PREFIX, { namespace: TEST_NAMESPACE })(mockStreamingRequest, {
+          onStreamData: mockStreamData,
+        }),
+      ).rejects.toMatchObject({
+        error: expect.objectContaining({
+          code: 'guardrail_output_violation',
+          component: 'guardrails',
+        }),
       });
 
-      // Verify tracking event was fired when refusal started
+      // Verify tracking event was fired
       expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Guardrail Activated', {
         violationDetected: true,
       });
-      expect(fireMiscTrackingEvent).toHaveBeenCalledTimes(1);
 
-      // Verify stream data shows normal output, then refusal with clearPrevious
+      // Verify stream was cancelled to release resources
+      expect(mockReader.cancel).toHaveBeenCalledWith('Output guardrail violation');
+
+      // Verify safe content was streamed (NOT cleared) before rejection
       expect(mockStreamData).toHaveBeenNthCalledWith(1, 'Let me help');
       expect(mockStreamData).toHaveBeenNthCalledWith(2, ' you with');
-      expect(mockStreamData).toHaveBeenNthCalledWith(3, 'I cannot process that request', true);
+      // onStreamData should NOT have been called with clearPrevious=true
+      expect(mockStreamData).toHaveBeenCalledTimes(2);
     });
   });
 

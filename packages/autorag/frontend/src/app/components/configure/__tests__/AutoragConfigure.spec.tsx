@@ -16,6 +16,7 @@ import {
   AUTORAG_UPLOAD_TOO_MANY_FILES_DETAIL,
 } from '~/app/utilities/dropzoneFileUpload';
 import { INPUT_DATA_INVALID_FILE_TYPE_DESCRIPTION } from '~/app/utilities/autoragInputDataFile';
+import { DEFAULT_OPTIMIZATION_METRIC, OPTIMIZATION_METRIC_LABELS } from '~/app/utilities/const';
 
 const mockNotificationError = jest.fn();
 
@@ -765,11 +766,11 @@ describe('AutoragConfigure', () => {
 
       expect(screen.getByTestId('optimization-metric-select')).toBeInTheDocument();
       expect(screen.getByTestId('optimization-metric-select')).toHaveTextContent(
-        'Answer faithfulness',
+        OPTIMIZATION_METRIC_LABELS[DEFAULT_OPTIMIZATION_METRIC],
       );
     });
 
-    it('should only offer faithfulness and answer_correctness as selectable metrics', async () => {
+    it('should only offer overall_score, faithfulness, and answer_correctness as selectable metrics', async () => {
       const user = userEvent.setup();
       renderComponent();
       selectSecretAndFile();
@@ -777,13 +778,14 @@ describe('AutoragConfigure', () => {
       await user.click(screen.getByTestId('optimization-metric-select'));
 
       await waitFor(() => {
+        expect(screen.getByTestId('metric-option-overall_score')).toBeInTheDocument();
         expect(screen.getByTestId('metric-option-faithfulness')).toBeInTheDocument();
         expect(screen.getByTestId('metric-option-answer_correctness')).toBeInTheDocument();
       });
       expect(screen.queryByTestId('metric-option-context_correctness')).not.toBeInTheDocument();
     });
 
-    it('should offer exactly two optimization metrics', async () => {
+    it('should offer exactly three optimization metrics', async () => {
       const user = userEvent.setup();
       renderComponent();
       selectSecretAndFile();

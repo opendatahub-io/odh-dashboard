@@ -1,11 +1,14 @@
 import * as React from 'react';
 import { SearchInput, ToolbarGroup, ToolbarItem } from '@patternfly/react-core';
 import FilterToolbar from '@odh-dashboard/ui-core/components/FilterToolbar';
+import SimpleSelect from '@odh-dashboard/ui-core/components/SimpleSelect';
 import ImportBYONImageButton from './ImportBYONImageButton';
 import {
   BYONImagesToolbarFilterOptions,
   BYONImagesFilterDataType,
   byonImagesFilterOptions,
+  imageTypeFilterOptions,
+  imageEnabledFilterOptions,
 } from './const';
 
 type BYONImagesToolbarProps = {
@@ -32,6 +35,28 @@ const BYONImagesToolbar: React.FC<BYONImagesToolbarProps> = ({ filterData, onFil
           aria-label="Filter by provider"
           placeholder="Filter by provider"
           onChange={(_event, value) => onChange(value)}
+        />
+      ),
+      [BYONImagesToolbarFilterOptions.type]: ({ value, onChange, ...props }) => (
+        <SimpleSelect
+          {...props}
+          popperProps={{ maxWidth: undefined }}
+          value={value ?? ''}
+          options={imageTypeFilterOptions}
+          onChange={(v) => onChange(v)}
+          data-testid="image-type-filter-select"
+          ariaLabel="Filter by type"
+        />
+      ),
+      [BYONImagesToolbarFilterOptions.enabled]: ({ value, onChange, ...props }) => (
+        <SimpleSelect
+          {...props}
+          popperProps={{ maxWidth: undefined }}
+          value={value ?? ''}
+          options={imageEnabledFilterOptions}
+          onChange={(v) => onChange(v)}
+          data-testid="image-enabled-filter-select"
+          ariaLabel="Filter by enabled status"
         />
       ),
     }}

@@ -15,6 +15,7 @@ export const techPreviewFlags = {
   externalModels: false,
   aiAssetCustomEndpoints: false,
   mcpCatalog: false,
+  mcpRegistry: false,
   toolCalling: false,
   projectRBAC: true,
   roleManagement: false,
@@ -25,7 +26,6 @@ export const techPreviewFlags = {
   llmGatewayField: false,
   promptManagement: false,
   globalProjectPrompts: false,
-  maasSettingsIaRedesign: true,
   agentOps: false,
   connectionTest: false,
 } satisfies Partial<DashboardCommonConfig>;
@@ -37,7 +37,6 @@ export const devTemporaryFeatureFlags = {
   nimWizard: false,
   agentOpsDeploy: false,
   agentsCatalog: false,
-  mcpRegistry: false,
 } satisfies Partial<DashboardCommonConfig>;
 
 // Group 1: Core Dashboard Features
@@ -282,9 +281,6 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   },
   [SupportedArea.EXTERNAL_MODELS]: {
     featureFlags: ['externalModels'],
-  },
-  [SupportedArea.MAAS_SETTINGS_IA_REDESIGN]: {
-    featureFlags: ['maasSettingsIaRedesign'],
   },
   [SupportedArea.GPUAAS_INFRASTRUCTURE]: {
     featureFlags: ['gpuaas'],

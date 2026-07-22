@@ -59,6 +59,7 @@ export type DashboardConfig = K8sResourceCommon & {
       externalModels: boolean;
       mlflow: boolean;
       mcpCatalog: boolean;
+      mcpRegistry: boolean;
       agentOps: boolean;
       agentsCatalog: boolean;
       toolCalling: boolean;
@@ -73,7 +74,6 @@ export type DashboardConfig = K8sResourceCommon & {
       llmGatewayField: boolean;
       promptManagement: boolean;
       globalProjectPrompts: boolean;
-      maasSettingsIaRedesign: boolean;
       gpuaas: boolean;
       connectionTest: boolean;
       observabilityDashboard: boolean;
