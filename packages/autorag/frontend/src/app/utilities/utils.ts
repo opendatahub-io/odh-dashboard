@@ -1,7 +1,7 @@
 import type { PipelineRun } from '~/app/types';
 import type { AutoragEvaluationMetric, AutoragPattern } from '~/app/types/autoragPattern';
 import { RuntimeStateKF } from '~/app/types/pipeline';
-import { MAX_DISPLAY_NAME_LENGTH } from './const';
+import { DEFAULT_OPTIMIZATION_METRIC, MAX_DISPLAY_NAME_LENGTH } from './const';
 
 const VALID_RUNTIME_STATES = new Set<string>(Object.values(RuntimeStateKF));
 
@@ -108,7 +108,7 @@ export function parseErrorStatus(error: Error): number | undefined {
  * run is available but individual pattern data is not (e.g. leaderboard headers).
  *
  * @param pipelineRun - The pipeline run object containing parameters
- * @returns The optimized metric name from parameters, or 'faithfulness' as default
+ * @returns The optimized metric name from parameters, or the default optimization metric
  */
 export function getOptimizedMetricForRAG(pipelineRun?: PipelineRun): string {
   const parameters = pipelineRun?.runtime_config?.parameters;
@@ -118,7 +118,7 @@ export function getOptimizedMetricForRAG(pipelineRun?: PipelineRun): string {
       return metric;
     }
   }
-  return 'faithfulness';
+  return DEFAULT_OPTIMIZATION_METRIC;
 }
 
 /**

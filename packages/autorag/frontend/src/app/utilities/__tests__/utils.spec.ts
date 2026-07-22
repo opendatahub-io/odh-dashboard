@@ -2,6 +2,7 @@
 import type { PipelineRun } from '~/app/types';
 import type { AutoragPattern } from '~/app/types/autoragPattern';
 import { RuntimeStateKF } from '~/app/types/pipeline';
+import { DEFAULT_OPTIMIZATION_METRIC } from '~/app/utilities/const';
 import {
   isRunCompleted,
   isRunInTerminalState,
@@ -11,6 +12,7 @@ import {
   isRunDeletable,
   parseErrorStatus,
   getOptimizedMetricForRAG,
+  getOptimizedScore,
   formatMetricValue,
   formatMetricName,
   formatPatternName,
@@ -258,26 +260,26 @@ describe('getOptimizedMetricForRAG', () => {
     expect(getOptimizedMetricForRAG(pipelineRun)).toBe('answer_correctness');
   });
 
-  it('should return faithfulness as default when optimization_metric is not provided', () => {
+  it('should return the default optimization metric when optimization_metric is not provided', () => {
     const pipelineRun = createMockPipelineRun();
-    expect(getOptimizedMetricForRAG(pipelineRun)).toBe('faithfulness');
+    expect(getOptimizedMetricForRAG(pipelineRun)).toBe(DEFAULT_OPTIMIZATION_METRIC);
   });
 
-  it('should return faithfulness when pipelineRun is undefined', () => {
-    expect(getOptimizedMetricForRAG(undefined)).toBe('faithfulness');
+  it('should return the default optimization metric when pipelineRun is undefined', () => {
+    expect(getOptimizedMetricForRAG(undefined)).toBe(DEFAULT_OPTIMIZATION_METRIC);
   });
 
-  it('should return faithfulness when runtime_config is missing', () => {
+  it('should return the default optimization metric when runtime_config is missing', () => {
     const pipelineRun: PipelineRun = {
       run_id: 'test-run-123',
       display_name: 'Test RAG Run',
       state: RuntimeStateKF.SUCCEEDED,
       created_at: '2025-01-17T00:00:00Z',
     };
-    expect(getOptimizedMetricForRAG(pipelineRun)).toBe('faithfulness');
+    expect(getOptimizedMetricForRAG(pipelineRun)).toBe(DEFAULT_OPTIMIZATION_METRIC);
   });
 
-  it('should return faithfulness when parameters is missing', () => {
+  it('should return the default optimization metric when parameters is missing', () => {
     const pipelineRun: PipelineRun = {
       run_id: 'test-run-123',
       display_name: 'Test RAG Run',
@@ -285,10 +287,10 @@ describe('getOptimizedMetricForRAG', () => {
       created_at: '2025-01-17T00:00:00Z',
       runtime_config: {},
     };
-    expect(getOptimizedMetricForRAG(pipelineRun)).toBe('faithfulness');
+    expect(getOptimizedMetricForRAG(pipelineRun)).toBe(DEFAULT_OPTIMIZATION_METRIC);
   });
 
-  it('should return faithfulness when optimization_metric is not a string', () => {
+  it('should return the default optimization metric when optimization_metric is not a string', () => {
     const pipelineRun: PipelineRun = {
       run_id: 'test-run-123',
       display_name: 'Test RAG Run',
@@ -300,7 +302,7 @@ describe('getOptimizedMetricForRAG', () => {
         },
       },
     };
-    expect(getOptimizedMetricForRAG(pipelineRun)).toBe('faithfulness');
+    expect(getOptimizedMetricForRAG(pipelineRun)).toBe(DEFAULT_OPTIMIZATION_METRIC);
   });
 
   it('should handle context_correctness metric', () => {
@@ -316,6 +318,42 @@ describe('getOptimizedMetricForRAG', () => {
   it('should handle custom metric values', () => {
     const pipelineRun = createMockPipelineRun('custom_rag_metric');
     expect(getOptimizedMetricForRAG(pipelineRun)).toBe('custom_rag_metric');
+  });
+});
+
+describe('getOptimizedScore', () => {
+  const makePattern = (mean: number | null): AutoragPattern => ({
+    name: 'Pattern1',
+    iteration: 1,
+    max_combinations: 10,
+    duration_seconds: 5,
+    settings: {
+      chunking: { method: 'recursive', chunk_size: 256, chunk_overlap: 32 },
+      embedding: {
+        model_id: 'embed-model',
+        embedding_params: { embedding_dimension: 768 },
+      },
+      retrieval: { method: 'simple', number_of_chunks: 5 },
+      generation: { model_id: 'gen-model' },
+    },
+    evaluation: {
+      metrics: [
+        {
+          evaluator: 'custom',
+          name: 'overall_score',
+          scores: { mean, ci_low: null, ci_high: null },
+          optimization_metric: true,
+        },
+      ],
+    },
+  });
+
+  it('should return the optimization metric mean', () => {
+    expect(getOptimizedScore(makePattern(0.85))).toBe(0.85);
+  });
+
+  it('should return 0 when the optimization metric mean is null', () => {
+    expect(getOptimizedScore(makePattern(null))).toBe(0);
   });
 });
 

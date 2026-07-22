@@ -1,7 +1,7 @@
 import type React from 'react';
 
 export type AutoragPatternScoreMetric = {
-  mean: number;
+  mean: number | null;
   ci_low: number | null;
   ci_high: number | null;
 };

@@ -67,14 +67,16 @@ const CIBarWithMarkers: React.FC<{
         />
       </Tooltip>
     )}
-    <Tooltip content={`Mean: ${score.mean.toFixed(3)}`}>
-      <CircleMarker
-        className="autorag-ci-marker m-mean"
-        style={{ left: `${score.mean * 100}%` }}
-        testId={`ci-marker-mean-${testIdPrefix}`}
-        ariaLabel={`Mean: ${score.mean.toFixed(3)}`}
-      />
-    </Tooltip>
+    {score.mean != null && (
+      <Tooltip content={`Mean: ${score.mean.toFixed(3)}`}>
+        <CircleMarker
+          className="autorag-ci-marker m-mean"
+          style={{ left: `${score.mean * 100}%` }}
+          testId={`ci-marker-mean-${testIdPrefix}`}
+          ariaLabel={`Mean: ${score.mean.toFixed(3)}`}
+        />
+      </Tooltip>
+    )}
     {score.ci_high != null && (
       <Tooltip content={`CI high: ${score.ci_high.toFixed(3)}`}>
         <DiamondMarker
@@ -200,7 +202,7 @@ const CILegend: React.FC = () => (
 );
 
 function hasData(score: AutoragPatternScoreMetric): boolean {
-  return score.mean > 0 || score.ci_low != null || score.ci_high != null;
+  return (score.mean != null && score.mean > 0) || score.ci_low != null || score.ci_high != null;
 }
 
 function getScoreEntries(scores: AutoragPatternScores): [string, AutoragPatternScoreMetric][] {

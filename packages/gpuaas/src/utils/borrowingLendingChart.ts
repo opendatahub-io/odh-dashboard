@@ -70,7 +70,7 @@ export const getEntryLabel = (info: CQMetricSeries | undefined, fallback: string
   if (!info) {
     return fallback;
   }
-  return info.cohortName ? `${info.cohortName} · ${info.cqName}` : info.cqName;
+  return info.cohortName ? `${info.cohortName}, ${info.cqName}` : `No cohort, ${info.cqName}`;
 };
 
 /** Truncated legend label for the SVG legend column (CSS text-overflow is unavailable in SVG). */

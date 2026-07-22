@@ -124,8 +124,10 @@ describe('getExternalModelStatusMessage', () => {
     expect(container.textContent).toContain('gpt-4o-external');
   });
 
-  it('should return null for unknown phases', () => {
-    expect(getExternalModelStatusMessage(baseModel({ phase: 'SomethingElse' }))).toBeNull();
+  it('should return generic message for unknown phases', () => {
+    expect(getExternalModelStatusMessage(baseModel({ phase: 'SomethingElse' }))).toBe(
+      'The status of this external model is unknown.',
+    );
   });
 });
 
