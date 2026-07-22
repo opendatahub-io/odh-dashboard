@@ -80,11 +80,6 @@ const initIntercepts = () => {
   );
 
   cy.intercept({ method: 'GET', pathname: '**/api/connection-types' }, { body: { items: [] } });
-
-  cy.intercept(
-    { method: 'POST', pathname: '/automl/api/v1/pipeline-runs' },
-    mockModArchResponse({ run_id: 'mock-run-id' }),
-  ).as('createPipelineRun');
 };
 
 const navigateToConfigureDetails = () => {

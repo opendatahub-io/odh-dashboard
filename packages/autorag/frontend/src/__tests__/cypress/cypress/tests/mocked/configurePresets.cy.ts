@@ -90,11 +90,6 @@ const initIntercepts = () => {
     { method: 'GET', pathname: '/autorag/api/v1/pipeline-definitions' },
     mockModArchResponse([]),
   );
-
-  cy.intercept(
-    { method: 'POST', pathname: '/autorag/api/v1/pipeline-runs' },
-    mockModArchResponse({ run_id: 'mock-run-id' }),
-  ).as('createPipelineRun');
 };
 
 const navigateToConfigureDetails = () => {

@@ -32,10 +32,6 @@ class AutomlConfigurePage {
     return cy.findByTestId(`preset-radio-${preset}`);
   }
 
-  findCreateRunButton() {
-    return cy.findByTestId('automl-create-run-button');
-  }
-
   findConfigureStepSubtitle() {
     return cy.findByTestId('configure-step-subtitle');
   }

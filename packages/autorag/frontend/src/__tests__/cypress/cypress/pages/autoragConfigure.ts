@@ -28,10 +28,6 @@ class AutoragConfigurePage {
     return cy.findByTestId(`preset-radio-${preset}`);
   }
 
-  findCreateRunButton() {
-    return cy.findByTestId('autorag-create-run-button');
-  }
-
   findConfigureDetailsSubtitle() {
     return cy.findByTestId('configure-step-subtitle');
   }
