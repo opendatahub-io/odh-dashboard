@@ -1,8 +1,4 @@
-import {
-  convertInputType,
-  toPercentage,
-  per100,
-} from '../utils';
+import { convertInputType, toPercentage, per100 } from '../utils';
 
 describe('convertInputType', () => {
   describe('string inputs', () => {

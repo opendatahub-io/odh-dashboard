@@ -2,8 +2,8 @@ import React from 'react';
 import { EmptyState, PageSection, Stack, StackItem } from '@patternfly/react-core';
 import { WarningTriangleIcon } from '@patternfly/react-icons';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
-import type { InferenceServiceKind } from '@odh-dashboard/model-serving/shared';
 import MetricsPageToolbar from '@odh-dashboard/internal/concepts/metrics/MetricsPageToolbar';
+import type { InferenceServiceKind } from '@odh-dashboard/model-serving/shared';
 import ModelGraphs from './ModelGraphs';
 
 type PerformanceTabsProps = {

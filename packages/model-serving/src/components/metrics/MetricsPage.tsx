@@ -2,13 +2,13 @@ import * as React from 'react';
 import { Breadcrumb, Button } from '@patternfly/react-core';
 import { useNavigate, useParams } from 'react-router-dom';
 import { CogIcon } from '@patternfly/react-icons';
-import type { InferenceServiceKind } from '@odh-dashboard/model-serving/shared';
 import { BreadcrumbItemType } from '@odh-dashboard/internal/types';
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
-import MetricsPageTabs from './MetricsPageTabs';
-import { MetricsTabKeys } from './types';
 import { TrustyAIContext } from '@odh-dashboard/internal/concepts/trustyai/context/TrustyAIContext';
 import { TrustyInstallState } from '@odh-dashboard/internal/concepts/trustyai/types';
+import type { InferenceServiceKind } from '@odh-dashboard/model-serving/shared';
+import { MetricsTabKeys } from './types';
+import MetricsPageTabs from './MetricsPageTabs';
 import { getBreadcrumbItemComponents } from './utils';
 
 type MetricsPageProps = {

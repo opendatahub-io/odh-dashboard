@@ -8,19 +8,19 @@ import {
   ModalHeader,
   ModalFooter,
 } from '@patternfly/react-core';
-import type { InferenceServiceKind } from '@odh-dashboard/model-serving/shared';
 import DashboardHelpTooltip from '@odh-dashboard/ui-core/components/DashboardHelpTooltip';
 import { BiasMetricConfig } from '@odh-dashboard/internal/concepts/trustyai/types';
 import { BiasMetricType } from '@odh-dashboard/internal/api';
 import { TrustyAIContext } from '@odh-dashboard/internal/concepts/trustyai/context/TrustyAIContext';
 import DashboardModalFooter from '@odh-dashboard/internal/concepts/dashboard/DashboardModalFooter';
+import type { InferenceServiceKind } from '@odh-dashboard/model-serving/shared';
+import useBiasConfigurationObject from './useBiasConfigurationObject';
+import MetricTypeField from './MetricTypeField';
 import {
   checkConfigurationFieldsValid,
   convertConfigurationRequestType,
   getThresholdDefaultDelta,
 } from '../../../utils';
-import useBiasConfigurationObject from './useBiasConfigurationObject';
-import MetricTypeField from './MetricTypeField';
 
 type ManageBiasConfigurationModalProps = {
   existingConfiguration?: BiasMetricConfig;

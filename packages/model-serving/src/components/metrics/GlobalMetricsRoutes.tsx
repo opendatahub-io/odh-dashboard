@@ -1,11 +1,11 @@
 import React from 'react';
 import { Navigate, Route } from 'react-router-dom';
 import { useIsAreaAvailable, SupportedArea } from '@odh-dashboard/plugin-core/areas';
-import GlobalModelServingCoreLoader from '../global/GlobalModelServingCoreLoader';
 import BiasConfigurationBreadcrumbPage from './bias/BiasConfigurationPage/BiasConfigurationBreadcrumbPage';
 import GlobalModelMetricsPage from './GlobalModelMetricsPage';
 import GlobalModelMetricsWrapper from './GlobalModelMetricsWrapper';
 import ModelServingExplainabilityWrapper from './ModelServingExplainabilityWrapper';
+import GlobalModelServingCoreLoader from '../global/GlobalModelServingCoreLoader';
 
 // Returns metrics <Route> elements to be included as direct children of <Routes>.
 // These must NOT be wrapped in their own <Routes> — they must share the parent

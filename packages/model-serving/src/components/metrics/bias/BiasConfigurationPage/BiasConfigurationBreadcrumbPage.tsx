@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
-import { GlobalModelMetricsOutletContextProps } from '../../GlobalModelMetricsWrapper';
 import BiasConfigurationPage from './BiasConfigurationPage';
+import { GlobalModelMetricsOutletContextProps } from '../../GlobalModelMetricsWrapper';
 
 const BiasConfigurationBreadcrumbPage: React.FC = () => {
   const { model, projectName } = useOutletContext<GlobalModelMetricsOutletContextProps>();
