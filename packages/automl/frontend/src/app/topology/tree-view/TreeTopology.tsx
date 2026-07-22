@@ -103,9 +103,9 @@ const TreeTopology: React.FC<TreeTopologyProps> = ({
     );
 
     setController(viz);
-    return () => {
-      viz.destroy?.();
-    };
+    // Visualization has no destroy(); listener cleanup is in the SELECTION_EVENT effect,
+    // and dropping the controller reference is enough for GC.
+    return undefined;
   }, [isLoading]);
 
   const surfaceState = React.useMemo(
