@@ -3,7 +3,9 @@
   "name": "@odh-dashboard/nim-serving",
   "description": "NIM serving extensions for the model deployment wizard.",
   "version": "0.0.0",
-  "e2eCiTags": ["@NIMServingCI"],
+  "e2eCiTags": [
+    "@NIMServingCI"
+  ],
   "scripts": {
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
@@ -37,6 +39,6 @@
     "@patternfly/react-icons": "^6",
     "react": "^18",
     "react-dom": "^18",
-    "react-router-dom": "^7"
+    "react-router-dom": "^7.18.1"
   }
 }
