@@ -1,41 +1,58 @@
-# BFF module manifests (ODH)
+# Standalone module manifests
 
-Filled-in [templates](../templates/) for each federated BFF module. Each module directory is a **complete, independently deployable** kustomize package:
+Each directory is a **complete, independently deployable** kustomize package for a BFF module running as its own Kubernetes Deployment. These are used by the Dashboard Module Controller when `spec.deploymentMode: Standalone` is set on the Dashboard CR.
 
 ```bash
-# One module only
-kustomize build manifests/modular-architecture/modules/gen-ai
+# One module
+kustomize build manifests/modules/gen-ai
 
-# All seven modules
-kustomize build manifests/modular-architecture/modules
+# All modules
+kustomize build manifests/modules
 ```
 
-The shared [`kustomization.yaml`](../kustomization.yaml) does not include these per-module resources, so `kustomize build manifests/odh` applies only sidecar BFF patches.
+## Modules
 
-| Module | Port | Service name | ServiceAccount / RBAC | Directory |
-|--------|------|--------------|----------------------|-----------|
-| model-registry | 8043 | `odh-dashboard-model-registry-ui` | `odh-dashboard-model-registry` | [model-registry/](model-registry/) |
-| gen-ai | 8143 | `odh-dashboard-gen-ai-ui` | `odh-dashboard-gen-ai` | [gen-ai/](gen-ai/) |
-| maas | 8243 | `odh-dashboard-maas-ui` | `odh-dashboard-maas` | [maas/](maas/) |
-| mlflow | 8343 | `odh-dashboard-mlflow-ui` | `odh-dashboard-mlflow` | [mlflow/](mlflow/) |
-| eval-hub | 8543 | `odh-dashboard-eval-hub-ui` | `odh-dashboard-eval-hub` | [eval-hub/](eval-hub/) |
-| automl | 8643 | `odh-dashboard-automl-ui` | `odh-dashboard-automl` | [automl/](automl/) |
-| autorag | 8743 | `odh-dashboard-autorag-ui` | `odh-dashboard-autorag` | [autorag/](autorag/) |
+| Module | Port | Service name | No DSC gate? | Directory |
+|--------|------|--------------|--------------|-----------|
+| model-registry | 8043 | `odh-dashboard-model-registry-ui` | Requires `modelregistry` | [model-registry/](model-registry/) |
+| gen-ai | 8143 | `odh-dashboard-gen-ai-ui` | No gate | [gen-ai/](gen-ai/) |
+| maas | 8243 | `odh-dashboard-maas-ui` | No gate | [maas/](maas/) |
+| mlflow | 8343 | `odh-dashboard-mlflow-ui` | Requires `mlflowoperator` | [mlflow/](mlflow/) |
+| eval-hub | 8543 | `odh-dashboard-eval-hub-ui` | Requires `trustyai` | [eval-hub/](eval-hub/) |
+| automl | 8643 | `odh-dashboard-automl-ui` | Requires `aipipelines` | [automl/](automl/) |
+| autorag | 8743 | `odh-dashboard-autorag-ui` | Requires `aipipelines` | [autorag/](autorag/) |
+| agent-ops | 8843 | `odh-dashboard-agent-ops-ui` | No gate (feature-flag only) | [agent-ops/](agent-ops/) |
 
-**Naming:** Deployment, NetworkPolicy, and pod/template labels use the short slug (e.g. `model-registry`). Only the Service `metadata.name` uses `odh-dashboard-<slug>-ui`. Service selectors remain `deployment: <slug>`. ServiceAccount, ClusterRole, and ClusterRoleBinding use `odh-dashboard-<slug>`.
+## Naming conventions
 
-**Per-module layout:** Each directory contains `service-account.yaml`, `cluster-role.yaml`, `cluster-role-binding.yaml`, `deployment.yaml`, `service.yaml`, `networkpolicy.yaml`, `params.env`, `params.yaml`, and `kustomization.yaml`. No file under `modules/` references the parent overlay RBAC or a shared `modules/rbac/` directory.
+- **Deployment `metadata.name`** and **pod label `deployment:`** use `<slug>-ui` (e.g. `model-registry-ui`) to avoid conflicts with operator-managed resources of the same short name.
+- **`Service.metadata.name`** uses `odh-dashboard-<slug>-ui`. RHOAI uses `rhods-dashboard-<slug>-ui`.
+- **ServiceAccount, ClusterRole, ClusterRoleBinding** use `odh-dashboard-<slug>`.
+- **TLS Secret** referenced in the Service annotation and Deployment volume is `<slug>-proxy-tls`.
 
-**Source:** Container `args`, `env`, ports, and images match the JSON6902 sidecar entries in [`deployment.yaml`](../deployment.yaml) and image vars in [`params.env`](../params.env). Modules whose BFF supports `-deployment-mode` use `--deployment-mode=federated` (model-registry, mlflow, eval-hub, maas, automl, autorag). gen-ai has no BFF deployment-mode flag; federated UI is baked into the container image. gen-ai uses `BFF_MAAS_SERVICE_NAME: "odh-dashboard-maas-ui"` for inter-BFF calls to the standalone MaaS Service (sidecar still uses `"odh-dashboard"` until split).
+## Per-module layout
 
-**TLS:** Each module uses a dedicated serving-cert Secret (`<slug>-proxy-tls`) on both the Service annotation and Deployment `proxy-tls` volume.
+Each directory contains:
 
-**NetworkPolicy:** Ingress is limited to the OpenShift ingress controller unless a module accepts in-cluster callers (MaaS allows `deployment: gen-ai`). automl and autorag use the same ingress-only pattern (no same-namespace pod ingress). Egress includes DNS, K8s API (6443), and external HTTPS (80/443) plus module-specific peers (gen-ai → MaaS on 8243).
+```
+<slug>/
+├── kustomization.yaml     # Kustomize entry point with configMapGenerator for params
+├── params.env             # Container image default (updated by release workflow)
+├── params.yaml            # kustomize var reference config
+├── deployment.yaml        # Standalone Deployment (2 replicas, TLS, SA isolation)
+├── service.yaml           # Service exposing the BFF port with serving-cert annotation
+├── networkpolicy.yaml     # Ingress from OpenShift ingress; egress to DNS, K8s API, external HTTPS
+├── service-account.yaml   # Dedicated SA with automountServiceAccountToken: false
+├── cluster-role.yaml      # Least-privilege ClusterRole for this BFF
+└── cluster-role-binding.yaml
+```
 
-**RBAC:** Each module has least-privilege ClusterRole rules scoped to that BFF (see comments in parent [`modules-cluster-role.yaml`](../modules-cluster-role.yaml)): only `gen-ai` and `mlflow` include `mlflow.opendatahub.io/mlflows`; only `gen-ai` and `maas` include `config.openshift.io/ingresses`; all modules include `subjectaccessreviews` create. ServiceAccounts set `automountServiceAccountToken: false` (Deployments also disable pod-level automount and use a projected token volume). ClusterRoleBinding subjects receive a `namespace` when the module `kustomization.yaml` sets `namespace:` at build/apply time (operator or dev overlay).
+## DSC component gating
 
-**params.env:** Each module's [`params.env`](model-registry/params.env) holds only that module's image key(s). Values must stay in sync with [`../params.env`](../params.env); the release workflow updates them on version bump. For automl/autorag, `*-pipeline-runtime-image` keys populate the `RELATED_IMAGE_*` env var (not the container `image:` field); empty defaults are filled by the operator at install time, matching the parent sidecar overlay.
+The Dashboard Module Controller (`dashboard-operator`) gates each module against DSC component availability. Modules with no DSC gate (`gen-ai`, `maas`, `agent-ops`) are deployed whenever the Dashboard CR is in Managed/Standalone state. Modules with a DSC gate are only deployed when the corresponding component is set to `Managed` in the Dashboard CR `spec.components` map.
 
-**Future:** `modules/` will move to `manifests/modules/` at the repo root and replace the parent `modular-architecture/` overlay entirely. Until then, the parent overlay's shared `odh-dashboard-modules` SA/RBAC remains for the sidecar deployment path.
+## Sidecar counterparts
 
-**Avoid duplicates:** Apply this overlay only when testing split deployments. The parent overlay still patches BFF containers onto the shared `odh-dashboard` Deployment; applying both overlays runs two copies of each BFF.
+The sidecar JSON6902 patches for the same modules live at [`../sidecar/deployment.yaml`](../sidecar/deployment.yaml). In sidecar mode all BFFs run as containers inside the main `odh-dashboard` pod; in standalone mode each runs as its own pod from this directory.
+
+Do **not** apply both overlays simultaneously — that runs two copies of each BFF.

@@ -1,58 +1,46 @@
-# Modular architecture manifests
+# Sidecar overlay
 
-Manifests for federated dashboard BFF modules and **module manifest templates** for the Dashboard Module Controller.
+JSON6902 patches that inject BFF module containers into the main `odh-dashboard` pod for **sidecar deployment mode**.
 
-## Module templates and generated manifests
+In sidecar mode all eight BFF modules run as containers alongside `odh-dashboard` and `kube-rbac-proxy` in a single pod. This is the legacy deployment path used when the Dashboard Module Controller is not available or the Dashboard CR has `spec.deploymentMode: Sidecar` (the default).
 
-| Path | Description |
-|------|-------------|
-| [templates/](templates/) | Deployment, Service, and NetworkPolicy templates with placeholders |
-| [templates/README.md](templates/README.md) | Template reference and guide for controller authors |
-| [modules/](modules/) | Substituted manifests for all seven BFF modules (dev kustomize overlay) |
-| [overlays/standalone-modules/](overlays/standalone-modules/) | Pointer to the `modules/` kustomize overlay |
-| [examples/model-registry/](examples/model-registry/) | Pointer to `modules/model-registry/` (historical example path) |
+The standalone module manifests live at [`../modules/`](../modules/).
 
-## Naming (seven BFF modules)
-
-| Module slug | Service `metadata.name` (ODH) | BFF port |
-|-------------|-------------------------------|----------|
-| `model-registry` | `odh-dashboard-model-registry-ui` | 8043 |
-| `gen-ai` | `odh-dashboard-gen-ai-ui` | 8143 |
-| `maas` | `odh-dashboard-maas-ui` | 8243 |
-| `mlflow` | `odh-dashboard-mlflow-ui` | 8343 |
-| `eval-hub` | `odh-dashboard-eval-hub-ui` | 8543 |
-| `automl` | `odh-dashboard-automl-ui` | 8643 |
-| `autorag` | `odh-dashboard-autorag-ui` | 8743 |
-
-Deployment and NetworkPolicy resources use the **slug** as `metadata.name`. Service selectors use `deployment: <slug>`. Only `Service.metadata.name` uses the `odh-dashboard-<slug>-ui` prefix (RHOAI may use `rhods-dashboard-<slug>-ui`).
-
-## Other files
+## Files
 
 | File | Role |
 |------|------|
-| `deployment.yaml` | JSON6902 patches: federation env, SA isolation, BFF sidecar containers |
-| `service.yaml` | Extra Service ports for BFF modules on the shared `odh-dashboard` Service |
-| `networkpolicy.yaml` | Ingress/egress for core and BFF ports on the dashboard pod |
-| `federation-configmap.yaml` | Module Federation configuration |
-| `params.env` | Module container images |
-| `modules-*.yaml` | Shared ServiceAccount, token secret, ClusterRole(Binding) |
+| `deployment.yaml` | JSON6902 patches: SA isolation (`automountServiceAccountToken: false`, projected `dashboard-sa-token`), federation config env var, and all eight BFF sidecar containers |
+| `service.yaml` | JSON6902 patches adding BFF module ports to the shared `odh-dashboard` Service |
+| `networkpolicy.yaml` | Ingress/egress for all ports on the dashboard pod (8443 + all BFF ports) |
+| `federation-configmap.yaml` | Static `federation-config` ConfigMap for sidecar mode |
+| `modules-service-account.yaml` | Shared `odh-dashboard-modules` ServiceAccount for in-pod token access |
+| `modules-cluster-role.yaml` | ClusterRole for the shared modules SA |
+| `modules-cluster-role-binding.yaml` | Binds the modules ClusterRole to the shared SA |
+| `modules-sa-token-secret.yaml` | Projected token Secret for module SA |
+| `params.env` | BFF module container image defaults (injected by operator at install) |
+| `params.yaml` | kustomize var reference config |
 
-## Local testing
+## BFF modules (eight containers, sidecar mode)
 
-**Normal install (sidecar BFFs):** `manifests/odh` includes this directory. Build and apply the dashboard with BFF sidecar patches:
+| Container | Port |
+|-----------|------|
+| `model-registry-ui` | 8043 |
+| `gen-ai-ui` | 8143 |
+| `maas-ui` | 8243 |
+| `mlflow-ui` | 8343 |
+| `eval-hub-ui` | 8543 |
+| `automl-ui` | 8643 |
+| `autorag-ui` | 8743 |
+| `agent-ops-ui` | 8843 |
+
+## Usage
+
+This overlay is included by `manifests/odh/` (ODH) and `manifests/rhoai/base/` (RHOAI). Build the full sidecar manifest:
 
 ```bash
-kustomize build manifests/odh | oc apply -f -
+kustomize build manifests/odh   # ODH sidecar mode
+kustomize build manifests/rhoai # RHOAI sidecar mode
 ```
 
-**Standalone module Deployments (split architecture):** Use the dev-only overlay so module resources are not applied alongside sidecars:
-
-```bash
-kustomize build manifests/modular-architecture/modules | oc apply -f -
-```
-
-Do **not** apply both overlays together unless you intentionally want duplicate BFF workloads during transition (sidecar + standalone Deployment for each module).
-
-**mlflow:** The shared `odh-dashboard` Service patch may still expose an embedded `mlflow` port (8443) alongside `odh-dashboard-mlflow-ui` from the module Service. Those are different objects; federation and routing should target the module Service when using standalone modules.
-
-Templates under `templates/` are not applied directly; they are embedded/rendered by the controller at install time.
+For standalone mode (modules as independent pods), the operator renders `manifests/odh/standalone/` or `manifests/rhoai/standalone/` instead, and deploys each module from `manifests/modules/<slug>/`.
