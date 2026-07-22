@@ -169,9 +169,7 @@ describe('Verify that models and versions can be archived and restored via model
         timeout: 120000,
       });
       [testData.version1Name, testData.version2Name].forEach((version) => {
-        cy.get('[data-testid="model-versions-table"]', { timeout: 120000 })
-          .contains('a', version)
-          .should('be.visible');
+        modelRegistry.findModelVersionTable(120000).contains('a', version).should('be.visible');
       });
 
       cy.step('Navigate to versions view');

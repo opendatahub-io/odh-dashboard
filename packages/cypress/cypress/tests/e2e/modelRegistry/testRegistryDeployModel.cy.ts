@@ -283,7 +283,7 @@ describe('Verify models can be deployed from model registry', () => {
       cy.findByText('Add variable').click();
       envVars.forEach((envVar, index) => {
         if (index > 0) {
-          modelServingWizard.findAddVariableButton().click();
+          modelServingWizard.findAddVariableButton().click({ force: true });
         }
         //cy.get('[data-testid="add-environment-variable"] > .pf-v6-c-button__text').click()
         modelServingWizard.findEnvVariableName(String(index)).clear().type(envVar.name);
