@@ -2,11 +2,11 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { KnownLabels } from '@odh-dashboard/k8s-core';
 import { registeredModelDeploymentsRoute } from '@odh-dashboard/internal/routes/modelRegistry/registeredModels';
-import type { RegisteredModel } from '@mf/modelRegistry/compiled-types/src/app/types';
+import type { RegisteredModelRef } from './types';
 import { ModelDeploymentsContext } from '../src/concepts/ModelDeploymentsContext';
 
 const DeploymentsColumn: React.FC<{
-  registeredModel: RegisteredModel;
+  registeredModel: RegisteredModelRef;
   preferredModelRegistryName?: string;
 }> = ({ registeredModel, preferredModelRegistryName }) => {
   const { deployments, loaded } = React.useContext(ModelDeploymentsContext);
