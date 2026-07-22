@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link, useLocation, useParams } from 'react-router-dom';
 import { Breadcrumb, BreadcrumbItem } from '@patternfly/react-core';
-import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
+import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import { getBackUrl } from '~/app/utilities/subscriptionManagementNavigation';
 import { useGetSubscriptionInfo } from '~/app/hooks/useGetSubscriptionInfo';
 import { useSubscriptionPolicyFormData } from '~/app/hooks/useSubscriptionPolicyFormData';

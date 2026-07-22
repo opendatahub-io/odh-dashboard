@@ -48,8 +48,11 @@
     "@perses-dev/components": "^0.54.0-beta.10",
     "@perses-dev/core": "^0.54.0-beta.2",
     "@perses-dev/dashboards": "^0.54.0-beta.10",
+    "@perses-dev/loki-plugin": "v0.6.0-rc.2",
     "@perses-dev/plugin-system": "^0.54.0-beta.10",
-    "@perses-dev/prometheus-plugin": "v0.58.0-beta.3"
+    "@perses-dev/prometheus-plugin": "v0.58.0-beta.3",
+    "@perses-dev/stat-chart-plugin": "v0.13.0-rc.1",
+    "@perses-dev/table-plugin": "v0.13.0-rc.1"
   },
   "devDependencies": {
     "@odh-dashboard/cypress": "*",

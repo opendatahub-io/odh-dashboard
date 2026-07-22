@@ -285,14 +285,14 @@ rules:
       - get
       - update
       - delete
-  # Storage classes — write-only mirrors sa-rbac/cluster-role.yaml exactly.
-  # Read verbs are not granted by the operand; add here only if the operand
-  # ClusterRole is updated to include them.
+  # Storage classes — mirrors sa-rbac/cluster-role.yaml + gen-ai module ClusterRole.
   - apiGroups:
       - storage.k8s.io
     resources:
       - storageclasses
     verbs:
+      - get
+      - list
       - update
       - patch
   # Auth delegation for operand service accounts

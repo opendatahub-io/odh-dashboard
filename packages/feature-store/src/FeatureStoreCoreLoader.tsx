@@ -5,9 +5,8 @@ import { Link, Outlet, useParams } from 'react-router-dom';
 import { FeatureStoreModel } from '@odh-dashboard/internal/api/models/odh';
 import { conditionalArea } from '@odh-dashboard/internal/concepts/areas/AreaComponent';
 import { SupportedArea } from '@odh-dashboard/plugin-core/areas';
-// eslint-disable-next-line @odh-dashboard/no-restricted-imports
-import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
-import { WhosMyAdministrator } from '@odh-dashboard/ui-core';
+
+import { ApplicationsPage, WhosMyAdministrator } from '@odh-dashboard/ui-core';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import RedirectErrorState from '@odh-dashboard/internal/pages/external/RedirectErrorState';
 import { useAccessAllowed } from '@odh-dashboard/internal/concepts/userSSAR/useAccessAllowed';

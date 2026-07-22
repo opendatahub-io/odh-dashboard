@@ -2,6 +2,7 @@ import type { ComponentStageMap } from '~/app/hooks/useComponentStageMap';
 import type { PipelineRun } from '~/app/types';
 import type { AutoragPattern } from '~/app/types/autoragPattern';
 import { getPipelineSummaryDetails } from '~/app/components/run-results/pipelineSummaryMetadata';
+import { DEFAULT_OPTIMIZATION_METRIC, OPTIMIZATION_METRIC_LABELS } from '~/app/utilities/const';
 
 /* eslint-disable camelcase */
 
@@ -68,7 +69,10 @@ describe('getPipelineSummaryDetails', () => {
       { label: 'Total run time', value: '2 m 55 s' },
       { label: 'Patterns evaluated', value: '2' },
       { label: 'Winning pattern', value: 'Pattern1' },
-      { label: 'Evaluation metric', value: 'Answer faithfulness' },
+      {
+        label: 'Evaluation metric',
+        value: OPTIMIZATION_METRIC_LABELS[DEFAULT_OPTIMIZATION_METRIC],
+      },
     ]);
   });
 
@@ -158,7 +162,10 @@ describe('getPipelineSummaryDetails', () => {
       { label: 'Total run time', value: '—' },
       { label: 'Patterns evaluated', value: '—' },
       { label: 'Winning pattern', value: '—' },
-      { label: 'Evaluation metric', value: 'Answer faithfulness' },
+      {
+        label: 'Evaluation metric',
+        value: OPTIMIZATION_METRIC_LABELS[DEFAULT_OPTIMIZATION_METRIC],
+      },
     ]);
   });
 

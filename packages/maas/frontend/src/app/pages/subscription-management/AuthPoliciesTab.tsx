@@ -1,6 +1,6 @@
 import React from 'react';
 import { Alert, Bullseye, PageSection, Spinner } from '@patternfly/react-core';
-import { TrackingOutcome } from '@odh-dashboard/internal/concepts/analyticsTracking/trackingProperties';
+import { TrackingOutcome } from '@odh-dashboard/ui-core';
 import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { useListAuthPolicies } from '~/app/hooks/useListAuthPolicies';
 import { MaaSAuthPolicy } from '~/app/types/subscriptions';
@@ -81,8 +81,7 @@ const AuthPoliciesTab: React.FC<AuthPoliciesTabProps> = ({ returnTo }) => {
         returnTo={returnTo}
         testId="empty-auth-policies-page"
         title="No authorization policies"
-        bodyText="Authorization policies control which groups have access to MaaS models. Create a policy to
-        define who can consume specific models."
+        bodyText="Authorization policies control which user groups can access MaaS models. Create a policy to define model access permissions."
         showPoliciesButton
       />
     );

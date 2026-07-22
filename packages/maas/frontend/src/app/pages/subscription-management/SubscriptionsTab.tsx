@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Alert, Bullseye, PageSection, Spinner } from '@patternfly/react-core';
 import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import { TrackingOutcome } from '@odh-dashboard/internal/concepts/analyticsTracking/trackingProperties';
+import { TrackingOutcome } from '@odh-dashboard/ui-core';
 import { useListSubscriptions } from '~/app/hooks/useListSubscriptions';
 import { MaaSSubscription } from '~/app/types/subscriptions';
 import { SubscriptionsTable } from '~/app/pages/subscriptions/allSubscriptions/SubscriptionsTable';
@@ -79,8 +79,7 @@ const SubscriptionsTab: React.FC<SubscriptionsTabProps> = ({ returnTo }) => {
         returnTo={returnTo}
         testId="empty-subscriptions-page"
         title="No subscriptions"
-        bodyText="Subscriptions define rate limits and token quotas for MaaS model access. Create a
-        subscription to control how much each group can consume."
+        bodyText="Subscriptions define token limits for model access. Create a subscription to control usage for each user group."
         showSubsButton
       />
     );
