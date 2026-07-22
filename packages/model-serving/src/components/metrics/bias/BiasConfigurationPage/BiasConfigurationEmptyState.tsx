@@ -6,10 +6,7 @@ import {
   EmptyStateFooter,
 } from '@patternfly/react-core';
 import { CogIcon } from '@patternfly/react-icons';
-import {
-  EMPTY_BIAS_CONFIGURATION_DESC,
-  EMPTY_BIAS_CONFIGURATION_TITLE,
-} from '../../const';
+import { EMPTY_BIAS_CONFIGURATION_DESC, EMPTY_BIAS_CONFIGURATION_TITLE } from '../../const';
 
 type BiasConfigurationEmptyStateProps = {
   actionButton: React.ReactNode;

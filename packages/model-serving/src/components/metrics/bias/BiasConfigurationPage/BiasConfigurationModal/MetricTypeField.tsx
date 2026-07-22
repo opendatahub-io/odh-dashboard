@@ -2,11 +2,8 @@ import * as React from 'react';
 import { FormGroup } from '@patternfly/react-core';
 import { asEnumMember, enumIterator } from '@odh-dashboard/foundation';
 import SimpleSelect, { SimpleSelectOption } from '@odh-dashboard/ui-core/components/SimpleSelect';
-import {
-  METRIC_TYPE_DESCRIPTION,
-  METRIC_TYPE_DISPLAY_NAME,
-} from '../../../const';
 import { BiasMetricType } from '@odh-dashboard/internal/api';
+import { METRIC_TYPE_DESCRIPTION, METRIC_TYPE_DISPLAY_NAME } from '../../../const';
 import { isMetricType } from '../../../utils';
 
 type MetricTypeFieldProps = {

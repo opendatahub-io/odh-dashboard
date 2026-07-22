@@ -1,7 +1,7 @@
 import React from 'react';
 import { PageSection, Stack, StackItem } from '@patternfly/react-core';
-import type { InferenceServiceKind } from '@odh-dashboard/model-serving/shared';
 import MetricsPageToolbar from '@odh-dashboard/internal/concepts/metrics/MetricsPageToolbar';
+import type { InferenceServiceKind } from '@odh-dashboard/model-serving/shared';
 import NimMetrics from './NimMetrics';
 
 type NIMTabProps = {

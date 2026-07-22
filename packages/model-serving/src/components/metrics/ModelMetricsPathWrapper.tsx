@@ -1,9 +1,9 @@
 import * as React from 'react';
 import { useParams } from 'react-router-dom';
 import { Bullseye, Spinner } from '@patternfly/react-core';
-import type { InferenceServiceKind } from '@odh-dashboard/model-serving/shared';
 import { ModelServingContext } from '@odh-dashboard/internal/pages/modelServing/ModelServingContext';
 import NotFound from '@odh-dashboard/internal/pages/NotFound';
+import type { InferenceServiceKind } from '@odh-dashboard/model-serving/shared';
 
 type ModelMetricsPathWrapperProps = {
   children: (inferenceService: InferenceServiceKind, projectName: string) => React.ReactNode;

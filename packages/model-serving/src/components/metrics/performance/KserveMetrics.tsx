@@ -1,7 +1,7 @@
 import * as React from 'react';
-import { ModelServingMetricsContext } from '../ModelServingMetricsContext';
 import { KserveMetricsContextProvider } from '@odh-dashboard/internal/concepts/metrics/kserve/KserveMetricsContext';
 import KserveMetricsContent from '@odh-dashboard/internal/concepts/metrics/kserve/content/KserveMetricsContent';
+import { ModelServingMetricsContext } from '../ModelServingMetricsContext';
 
 type KserveMetricsProps = {
   modelName: string;

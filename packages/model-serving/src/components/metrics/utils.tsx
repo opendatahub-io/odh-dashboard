@@ -4,16 +4,17 @@ import * as _ from 'lodash-es';
 import { BreadcrumbItem } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 import { isEnumMember } from '@odh-dashboard/foundation';
-import type { InferenceServiceKind } from '@odh-dashboard/model-serving/shared';
 import { TimeframeTitle } from '@odh-dashboard/internal/concepts/metrics/types';
 import { BreadcrumbItemType, PrometheusQueryRangeResultValue } from '@odh-dashboard/internal/types';
-import { BaseMetricRequest, BaseMetricRequestInput, BiasMetricType } from '@odh-dashboard/internal/api';
-import { BiasMetricConfig } from '@odh-dashboard/internal/concepts/trustyai/types';
 import {
-  BIAS_CHART_CONFIGS,
-  BIAS_THRESHOLD_COLOR,
-} from './const';
+  BaseMetricRequest,
+  BaseMetricRequestInput,
+  BiasMetricType,
+} from '@odh-dashboard/internal/api';
+import { BiasMetricConfig } from '@odh-dashboard/internal/concepts/trustyai/types';
 import { PROMETHEUS_REQUEST_RESOLUTION } from '@odh-dashboard/internal/concepts/metrics/const';
+import type { InferenceServiceKind } from '@odh-dashboard/model-serving/shared';
+import { BIAS_CHART_CONFIGS, BIAS_THRESHOLD_COLOR } from './const';
 import {
   BiasSelectOption,
   DomainCalculator,

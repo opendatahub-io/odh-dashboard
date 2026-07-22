@@ -13,16 +13,16 @@ import {
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import MetricsPageToolbar from '@odh-dashboard/internal/concepts/metrics/MetricsPageToolbar';
-import BiasMetricConfigSelector from './BiasMetricConfigSelector';
 import { useModelBiasData } from '@odh-dashboard/internal/concepts/trustyai/context/useModelBiasData';
+import DashboardExpandableSection from '@odh-dashboard/internal/concepts/dashboard/DashboardExpandableSection';
+import { TrustyInstallState } from '@odh-dashboard/internal/concepts/trustyai/types';
+import BiasMetricConfigSelector from './BiasMetricConfigSelector';
 import BiasChart from './BiasChart';
 import EmptyBiasConfigurationCard from './BiasConfigurationPage/EmptyBiasConfigurationCard';
 import EmptyBiasChartSelectionCard from './EmptyBiasChartSelectionCard';
-import DashboardExpandableSection from '@odh-dashboard/internal/concepts/dashboard/DashboardExpandableSection';
 import useBiasChartSelections from './useBiasChartSelections';
 import { ModelMetricType } from '../ModelServingMetricsContext';
 import EnsureMetricsAvailable from '../EnsureMetricsAvailable';
-import { TrustyInstallState } from '@odh-dashboard/internal/concepts/trustyai/types';
 
 const OPEN_WRAPPER_STORAGE_KEY_PREFIX = `odh.dashboard.xai.bias_metric_chart_wrapper_open`;
 const BiasTab: React.FC = () => {
