@@ -1,8 +1,8 @@
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 
-export const MODEL_SERVING_EVENTS = {
-  DEPLOY_METHOD_SELECTED: 'Model Serving Deploy Method Selected',
-} as const;
+export enum ModelServingTrackingEvent {
+  DEPLOY_METHOD_SELECTED = 'Model Serving Deploy Method Selected',
+}
 
 export type DeployMethodSelectedProperties = {
   deploymentMethod: string;
@@ -10,5 +10,5 @@ export type DeployMethodSelectedProperties = {
 };
 
 export const fireDeployMethodSelected = (properties: DeployMethodSelectedProperties): void => {
-  fireMiscTrackingEvent(MODEL_SERVING_EVENTS.DEPLOY_METHOD_SELECTED, properties);
+  fireMiscTrackingEvent(ModelServingTrackingEvent.DEPLOY_METHOD_SELECTED, properties);
 };
