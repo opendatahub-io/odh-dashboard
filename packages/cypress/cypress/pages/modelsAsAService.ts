@@ -577,7 +577,7 @@ class SubscriptionTableRow extends TableRow {
   }
 
   findName(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().find('[data-label="Name"]');
+    return this.find().find('[data-label="Subscription"]');
   }
 
   findActionsToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -1111,7 +1111,7 @@ class AuthPolicyTableRow extends TableRow {
   }
 
   findName(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().find('[data-label="Name"]');
+    return this.find().find('[data-label="Authorization policy"]');
   }
 
   findActionsToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -1455,7 +1455,7 @@ class OverviewTabPage {
 
 class SubscriptionManagementPage {
   visit(tab?: string): void {
-    const path = tab ? `/maas/subscription-management/${tab}` : '/maas/subscription-management';
+    const path = tab ? `/maas/maas-governance/${tab}` : '/maas/maas-governance';
     cy.visitWithLogin(path);
     this.wait();
   }

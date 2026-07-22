@@ -21,9 +21,14 @@ import { ExternalLinkAltIcon, ExclamationTriangleIcon } from '@patternfly/react-
 import { useBrowserStorage } from '@odh-dashboard/ui-core/utilities';
 import { useAppContext } from '#~/app/AppContext';
 import { useUser } from '#~/redux/selectors';
+import {
+  TOUR_SEEN_STORAGE_KEY,
+  type GuidedTourDismissMethod,
+  type GuidedTourEntryPoint,
+} from './tracking/guidedTourTracking';
+import { useGuidedTourTracking } from './tracking/useGuidedTourTracking';
 import { useWhatsNewTourListener } from './whatsNewEvent';
 
-const STORAGE_KEY = 'odh-whats-new-3.5-seen';
 const DEFAULT_DOC_URL =
   'https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed/3.5';
 
@@ -35,6 +40,7 @@ type NewIn35Feature = {
 };
 
 type TourStep = {
+  id: string;
   title: string;
   description: string;
   navSelector: string;
@@ -64,6 +70,7 @@ const useTourSteps = (isAdmin: boolean): TourStep[] => {
   return React.useMemo<TourStep[]>(
     () => [
       {
+        id: 'projects',
         title: 'Projects',
         description:
           'Organize your AI work into projects. Each project groups workbenches, pipelines, model servers, and cluster storage so your team can collaborate in one place.',
@@ -73,6 +80,7 @@ const useTourSteps = (isAdmin: boolean): TourStep[] => {
         newFeatures: [],
       },
       {
+        id: 'gen-ai-studio',
         title: 'Gen AI studio',
         description:
           'Build and experiment with generative AI applications. Test models and prompts in the Playground, manage API keys, build retrieval-augmented generation (RAG) pipelines, and adjust model parameters.',
@@ -111,6 +119,7 @@ const useTourSteps = (isAdmin: boolean): TourStep[] => {
         ],
       },
       {
+        id: 'develop-and-train',
         title: 'Develop & train',
         description:
           'Build and train models using workbenches, pipelines, and distributed training jobs. Launch Jupyter notebooks, submit Ray jobs, or run automated experiments.',
@@ -127,6 +136,7 @@ const useTourSteps = (isAdmin: boolean): TourStep[] => {
         ],
       },
       {
+        id: 'ai-hub',
         title: 'AI hub',
         description:
           'Discover pre-built models, MCP servers, and agents from a central catalog. Browse, filter, and deploy assets directly to your project.',
@@ -164,6 +174,7 @@ const useTourSteps = (isAdmin: boolean): TourStep[] => {
         ],
       },
       {
+        id: 'observe-and-monitor',
         title: 'Observe & monitor',
         description:
           'Track workload metrics and resource utilization across your projects. Monitor GPU usage, queue wait times, and distributed workload performance.',
@@ -182,6 +193,7 @@ const useTourSteps = (isAdmin: boolean): TourStep[] => {
       ...(isAdmin
         ? [
             {
+              id: 'settings',
               title: 'Settings',
               description:
                 'Configure cluster-wide settings including storage classes, hardware profiles, serving runtimes, connection types, and user access management.',
@@ -257,49 +269,144 @@ const findNavElement = (step: TourStep): HTMLElement | null => {
 
 const WhatsNewModal: React.FC = () => {
   const { isAdmin } = useUser();
-  const [seen, setSeen] = useBrowserStorage<boolean>(STORAGE_KEY, false);
+  const [seen, setSeen] = useBrowserStorage<boolean>(TOUR_SEEN_STORAGE_KEY, false);
   const [isOpen, setIsOpen] = React.useState(false);
   const [showWelcome, setShowWelcome] = React.useState(true);
   const [stepIndex, setStepIndex] = React.useState(0);
   const tourSteps = useTourSteps(isAdmin);
   const [targetEl, setTargetEl] = React.useState<HTMLElement | null>(null);
+  const {
+    beginSession,
+    selectPath,
+    trackStepView,
+    trackLearnMore,
+    trackSummaryDocs,
+    dismiss,
+    complete,
+    resetSession,
+    tourPath,
+  } = useGuidedTourTracking(isAdmin);
+
+  const pathStepCount = React.useMemo(() => {
+    if (tourPath === 'new-features-only') {
+      return tourSteps.filter((step) => step.newFeatures.length > 0).length;
+    }
+    return tourSteps.length;
+  }, [tourPath, tourSteps]);
+
+  const autoLaunchTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const cancelAutoLaunch = React.useCallback(() => {
+    if (autoLaunchTimerRef.current !== null) {
+      clearTimeout(autoLaunchTimerRef.current);
+      autoLaunchTimerRef.current = null;
+    }
+  }, []);
+
+  const openTour = React.useCallback(
+    (entryPoint: GuidedTourEntryPoint, isReturningUser: boolean) => {
+      // Manual opens (masthead / task assistant) must cancel a pending auto-launch
+      // so we don't reset the session and emit a duplicate Started event.
+      cancelAutoLaunch();
+      beginSession(entryPoint, isReturningUser);
+      setShowWelcome(true);
+      setStepIndex(0);
+      setIsOpen(true);
+    },
+    [beginSession, cancelAutoLaunch],
+  );
+
+  const openTourRef = React.useRef(openTour);
+  openTourRef.current = openTour;
+  const seenRef = React.useRef(seen);
+  seenRef.current = seen;
 
   React.useEffect(() => {
     if (!seen) {
-      const timer = setTimeout(() => setIsOpen(true), 1500);
-      return () => clearTimeout(timer);
+      autoLaunchTimerRef.current = setTimeout(() => {
+        autoLaunchTimerRef.current = null;
+        openTourRef.current('auto-launch', false);
+      }, 1500);
+      return () => {
+        if (autoLaunchTimerRef.current !== null) {
+          clearTimeout(autoLaunchTimerRef.current);
+          autoLaunchTimerRef.current = null;
+        }
+      };
     }
     return undefined;
   }, [seen]);
 
   useWhatsNewTourListener(
-    React.useCallback(() => {
-      setShowWelcome(true);
-      setStepIndex(0);
-      setIsOpen(true);
+    React.useCallback((entryPoint) => {
+      openTourRef.current(entryPoint, seenRef.current);
     }, []),
   );
 
-  const close = React.useCallback(() => {
+  const closeUi = React.useCallback(() => {
     setIsOpen(false);
     setSeen(true);
     setShowWelcome(true);
     setStepIndex(0);
-  }, [setSeen]);
+    resetSession();
+  }, [resetSession, setSeen]);
+
+  const getDismissLocation = React.useCallback((): {
+    dismissStepId: string;
+    dismissStepIndex: number;
+  } => {
+    if (showWelcome) {
+      return { dismissStepId: 'welcome', dismissStepIndex: -1 };
+    }
+    if (stepIndex >= tourSteps.length) {
+      return { dismissStepId: 'summary', dismissStepIndex: tourSteps.length };
+    }
+    return {
+      dismissStepId: tourSteps[stepIndex]?.id ?? 'unknown',
+      dismissStepIndex: stepIndex,
+    };
+  }, [showWelcome, stepIndex, tourSteps]);
+
+  const handleDismiss = React.useCallback(
+    (dismissMethod: GuidedTourDismissMethod) => {
+      const { dismissStepId, dismissStepIndex } = getDismissLocation();
+      dismiss({
+        dismissMethod,
+        dismissStepId,
+        dismissStepIndex,
+        pathStepCount,
+      });
+      closeUi();
+    },
+    [closeUi, dismiss, getDismissLocation, pathStepCount],
+  );
+
+  const handleComplete = React.useCallback(() => {
+    complete(pathStepCount);
+    closeUi();
+  }, [closeUi, complete, pathStepCount]);
 
   const startTour = React.useCallback(() => {
+    selectPath('full');
     setShowWelcome(false);
     setStepIndex(0);
-  }, []);
+  }, [selectPath]);
 
   const startWhatsNew = React.useCallback(() => {
+    selectPath('new-features-only');
     const firstWithFeatures = tourSteps.findIndex((s) => s.newFeatures.length > 0);
     setShowWelcome(false);
     setStepIndex(firstWithFeatures >= 0 ? firstWithFeatures : 0);
-  }, [tourSteps]);
+  }, [selectPath, tourSteps]);
 
   const currentStep = !showWelcome ? tourSteps[stepIndex] ?? null : null;
   const [targetReady, setTargetReady] = React.useState(false);
+
+  React.useEffect(() => {
+    if (currentStep) {
+      trackStepView(currentStep);
+    }
+  }, [currentStep, trackStepView]);
 
   React.useEffect(() => {
     if (!isOpen || !currentStep) {
@@ -340,7 +447,7 @@ const WhatsNewModal: React.FC = () => {
         variant={ModalVariant.medium}
         isOpen
         aria-labelledby="whats-new-modal-title"
-        onClose={close}
+        onClose={() => handleDismiss('modal_close')}
       >
         <ModalHeader
           title="Welcome to the new OpenShift AI 3.5 experience!"
@@ -370,7 +477,11 @@ const WhatsNewModal: React.FC = () => {
               </Button>
             </FlexItem>
             <FlexItem>
-              <Button data-testid="whats-new-skip-tour" variant="link" onClick={close}>
+              <Button
+                data-testid="whats-new-skip-tour"
+                variant="link"
+                onClick={() => handleDismiss('skip_button')}
+              >
                 Skip tour
               </Button>
             </FlexItem>
@@ -381,6 +492,8 @@ const WhatsNewModal: React.FC = () => {
   }
 
   // ── Completion screen ──
+  // User has finished every step; both the footer Close and the modal X count as
+  // Completed (not Dismissed). Dismissed is only for exiting before the summary.
   if (stepIndex >= tourSteps.length) {
     return (
       <Modal
@@ -388,7 +501,7 @@ const WhatsNewModal: React.FC = () => {
         variant={ModalVariant.small}
         isOpen
         aria-labelledby="whats-new-done-title"
-        onClose={close}
+        onClose={handleComplete}
       >
         <ModalHeader title="You're ready to go!" labelId="whats-new-done-title" />
         <ModalBody>
@@ -403,6 +516,7 @@ const WhatsNewModal: React.FC = () => {
               rel="noopener noreferrer"
               icon={<ExternalLinkAltIcon />}
               iconPosition="end"
+              onClick={() => trackSummaryDocs(DEFAULT_DOC_URL)}
             >
               documentation
             </Button>
@@ -421,7 +535,7 @@ const WhatsNewModal: React.FC = () => {
               </Button>
             </FlexItem>
             <FlexItem>
-              <Button data-testid="whats-new-done-close" variant="primary" onClick={close}>
+              <Button data-testid="whats-new-done-close" variant="primary" onClick={handleComplete}>
                 Close
               </Button>
             </FlexItem>
@@ -440,6 +554,7 @@ const WhatsNewModal: React.FC = () => {
   const learnMoreUrl = currentStep.docUrl ?? DEFAULT_DOC_URL;
   const unavailableFeatures = currentStep.newFeatures.filter((f) => !f.available);
   const sectionUnavailable = !currentStep.sectionAvailable;
+  const presentationType = targetEl ? 'popover' : 'modal';
 
   const stepBody = (
     <Flex direction={{ default: 'column' }} gap={{ default: 'gapMd' }}>
@@ -463,6 +578,7 @@ const WhatsNewModal: React.FC = () => {
           rel="noopener noreferrer"
           icon={<ExternalLinkAltIcon />}
           iconPosition="end"
+          onClick={() => trackLearnMore(currentStep.id, learnMoreUrl, presentationType)}
         >
           Learn more
         </Button>
@@ -533,7 +649,11 @@ const WhatsNewModal: React.FC = () => {
           </Button>
         </FlexItem>
         <FlexItem>
-          <Button data-testid="tour-step-skip" variant="link" onClick={close}>
+          <Button
+            data-testid="tour-step-skip"
+            variant="link"
+            onClick={() => handleDismiss('skip_button')}
+          >
             Skip tour
           </Button>
         </FlexItem>
@@ -554,11 +674,12 @@ const WhatsNewModal: React.FC = () => {
   if (targetEl) {
     return (
       <>
-        <Backdrop onClick={close} />
+        {/* Visual only — outside clicks are handled by Popover shouldClose to avoid double dismiss telemetry. */}
+        <Backdrop />
         <Popover
           data-testid="nav-tour-popover"
           isVisible
-          shouldClose={() => close()}
+          shouldClose={() => handleDismiss('popover_close')}
           position="right"
           triggerRef={() => targetEl}
           headerContent={currentStep.title}
@@ -578,7 +699,7 @@ const WhatsNewModal: React.FC = () => {
       variant={ModalVariant.medium}
       isOpen
       aria-labelledby="whats-new-step-title"
-      onClose={close}
+      onClose={() => handleDismiss('modal_close')}
     >
       <ModalHeader title={currentStep.title} labelId="whats-new-step-title" />
       <ModalBody>{stepBody}</ModalBody>

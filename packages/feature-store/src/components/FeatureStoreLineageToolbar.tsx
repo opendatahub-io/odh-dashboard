@@ -5,6 +5,7 @@ import {
   MultiSelection,
   type SelectionOptions,
 } from '@odh-dashboard/internal/components/MultiSelection';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import {
   extractFilterOptionsFromLineage,
   extractFilterOptionsFromFeatureViewLineage,
@@ -13,6 +14,10 @@ import {
   FeatureStoreLineageToolbarProps,
   FeatureStoreLineageSearchFilters,
 } from '../types/toolbarTypes';
+import {
+  FEATURE_STORE_EVENTS,
+  LineageFilterAppliedProperties,
+} from '../tracking/featureStoreTrackingConstants';
 
 type FilterOptionRenders = {
   onChange: (value?: string, label?: string) => void;
@@ -94,13 +99,17 @@ const FeatureStoreLineageToolbar: React.FC<FeatureStoreLineageToolbarProps> = ({
           .map((s) => s.name);
         if (selectedNames.length > 0) {
           newFilters[filterType] = selectedNames;
+          fireMiscTrackingEvent(FEATURE_STORE_EVENTS.LINEAGE_FILTER_APPLIED, {
+            filterType: String(filterType),
+            pageType: isFeatureViewToolbar ? 'detail' : 'overview',
+          } satisfies LineageFilterAppliedProperties);
         } else {
           delete newFilters[filterType];
         }
         onSearchFiltersChange(newFilters);
       }
     },
-    [onSearchFiltersChange, searchFilters],
+    [onSearchFiltersChange, searchFilters, isFeatureViewToolbar],
   );
 
   const getEntityOptions = useMemo(() => {
@@ -335,7 +344,14 @@ const FeatureStoreLineageToolbar: React.FC<FeatureStoreLineageToolbarProps> = ({
             id="hide-nodes-without-relationships"
             label="Hide nodes without relationships"
             isChecked={hideNodesWithoutRelationships}
-            onChange={(_event, checked) => onHideNodesWithoutRelationshipsChange(checked)}
+            onChange={(_event, checked) => {
+              fireMiscTrackingEvent(FEATURE_STORE_EVENTS.LINEAGE_FILTER_APPLIED, {
+                filterType: 'hideNodesWithoutRelationships',
+                hideObjects: checked,
+                pageType: isFeatureViewToolbar ? 'detail' : 'overview',
+              } satisfies LineageFilterAppliedProperties);
+              onHideNodesWithoutRelationshipsChange(checked);
+            }}
             aria-label="Toggle visibility of nodes without relationships"
           />
         </ToolbarItem>

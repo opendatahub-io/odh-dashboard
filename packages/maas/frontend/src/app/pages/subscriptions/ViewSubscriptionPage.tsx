@@ -10,6 +10,8 @@ import {
   TabTitleText,
 } from '@patternfly/react-core';
 import SimpleMenuActions from '@odh-dashboard/internal/components/SimpleMenuActions';
+import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { TrackingOutcome } from '@odh-dashboard/internal/concepts/analyticsTracking/trackingProperties';
 import { useGetSubscriptionInfo } from '~/app/hooks/useGetSubscriptionInfo';
 import {
   MaaSModelRefSummary,
@@ -22,6 +24,11 @@ import {
   getBreadcrumbLabelFromState,
 } from '~/app/utilities/subscriptionManagementNavigation';
 import MaasModelsSection from '~/app/shared/MaasModelsSection';
+import {
+  EventTrackingResourceType,
+  EventTrackingSource,
+  MaaSEvents,
+} from '~/app/types/event-tracking';
 import DeleteSubscriptionModal from './DeleteSubscriptionModal';
 import SubscriptionDetailsSection from './viewSubscription/SubscriptionDetailsSection';
 import SubscriptionGroupsSection from './viewSubscription/SubscriptionGroupsSection';
@@ -63,7 +70,20 @@ const SubscriptionActions: React.FC<SubscriptionActionsProps> = ({ subscription,
           onClose={(deleted) => {
             setIsDeleteOpen(false);
             if (deleted) {
+              fireFormTrackingEvent(MaaSEvents.MAAS_RESOURCE_DELETED, {
+                resourceType: EventTrackingResourceType.SUBSCRIPTION,
+                source: EventTrackingSource.DETAIL_KEBAB,
+                resourceStatus: subscription.phase ?? '',
+                outcome: TrackingOutcome.submit,
+              });
               navigate(base);
+            } else {
+              fireFormTrackingEvent(MaaSEvents.MAAS_RESOURCE_DELETED, {
+                resourceType: EventTrackingResourceType.SUBSCRIPTION,
+                source: EventTrackingSource.DETAIL_KEBAB,
+                resourceStatus: subscription.phase ?? '',
+                outcome: TrackingOutcome.cancel,
+              });
             }
           }}
         />

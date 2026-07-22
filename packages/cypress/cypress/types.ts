@@ -702,6 +702,7 @@ export type ModelCatalogSourceTestData = {
 export type ModelAsAServiceTestData = {
   projectResourceName: string;
   singleModelName: string;
+  singleModelDescription: string;
   llmInferenceServiceConfigName: string;
   llmInferenceServiceConfigDisplayName: string;
   llmInferenceServiceConfigContainerImage: string;
@@ -737,6 +738,18 @@ export enum ApiKeyStatus {
   active = 'Active',
   expired = 'Expired',
   revoked = 'Revoked',
+}
+
+export enum PhaseStatus {
+  ACTIVE = 'Active',
+  READY = 'Ready',
+  PENDING = 'Pending',
+  FAILED = 'Failed',
+  INVALID = 'Invalid',
+  DEGRADED = 'Degraded',
+  UNAVAILABLE = 'Unavailable',
+  UNHEALTHY = 'Unhealthy',
+  UNKNOWN = 'Unknown',
 }
 
 export type TrainJobTestData = {

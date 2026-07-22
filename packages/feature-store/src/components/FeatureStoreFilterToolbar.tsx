@@ -10,12 +10,17 @@ import {
   ToolbarItem,
   ToolbarToggleGroup,
 } from '@patternfly/react-core';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import {
   buildFilterLabelList,
   handleLabelDelete,
   getFilterOptionProps,
 } from '../utils/toolbarUtils';
 import { FeatureStoreFilterToolbarProps, FilterLabel } from '../types/toolbarTypes';
+import {
+  FEATURE_STORE_EVENTS,
+  FilterRemovedProperties,
+} from '../tracking/featureStoreTrackingConstants';
 
 function FeatureStoreFilterToolbar<T extends string>({
   filterOptions,
@@ -27,6 +32,7 @@ function FeatureStoreFilterToolbar<T extends string>({
   currentFilterType: externalCurrentFilterType,
   onFilterTypeChange,
   multipleLabels,
+  trackingResourceType,
   ...toolbarGroupProps
 }: FeatureStoreFilterToolbarProps<T>): React.JSX.Element {
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
@@ -106,14 +112,21 @@ function FeatureStoreFilterToolbar<T extends string>({
                 categoryName={optionValue}
                 data-testid={`${testId}-text-field`}
                 labels={allActiveFilterItems}
-                deleteLabel={(category, labelToDelete) =>
+                deleteLabel={(category, labelToDelete) => {
+                  if (trackingResourceType) {
+                    fireMiscTrackingEvent(FEATURE_STORE_EVENTS.FILTER_REMOVED, {
+                      action: 'removeOne',
+                      filterAttribute: String(filterKey),
+                      resourceType: trackingResourceType,
+                    } satisfies FilterRemovedProperties);
+                  }
                   handleLabelDelete(
                     labelToDelete,
                     filterKey,
                     multipleLabels?.[filterKey] || [],
                     onFilterUpdate,
-                  )
-                }
+                  );
+                }}
                 showToolbarItem={currentFilterType === filterKey}
               >
                 {filterOptionRenders[filterKey](
