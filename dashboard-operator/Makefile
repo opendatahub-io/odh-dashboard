@@ -29,6 +29,10 @@ lint-fix: golangci-lint ## Run golangci-lint linter and perform fixes.
 test: fmt vet ## Run tests.
 	go test -race -coverprofile=cover.out ./...
 
+.PHONY: test-integration
+test-integration: setup-envtest ## Run integration tests with envtest.
+	KUBEBUILDER_ASSETS="$$($(ENVTEST) use -p path)" go test -v -race -tags=integration -count=1 ./internal/controller/...
+
 ##@ Build
 
 SAFE_VERSION := $(shell git describe --tags --always --dirty 2>/dev/null | tr -cd '[:alnum:]_.-' || echo "unknown")
@@ -100,9 +104,11 @@ $(LOCALBIN):
 
 GOLANGCI_LINT ?= $(LOCALBIN)/golangci-lint-$(GOLANGCI_LINT_VERSION)
 CONTROLLER_GEN ?= $(LOCALBIN)/controller-gen-$(CONTROLLER_GEN_VERSION)
+ENVTEST ?= $(LOCALBIN)/setup-envtest-$(ENVTEST_VERSION)
 
 GOLANGCI_LINT_VERSION ?= v2.1.0
 CONTROLLER_GEN_VERSION ?= v0.17.2
+ENVTEST_VERSION ?= latest
 
 .PHONY: golangci-lint
 golangci-lint: $(GOLANGCI_LINT)
@@ -113,6 +119,11 @@ $(GOLANGCI_LINT): $(LOCALBIN)
 controller-gen: $(CONTROLLER_GEN)
 $(CONTROLLER_GEN): $(LOCALBIN)
 	$(call go-install-tool,$(CONTROLLER_GEN),sigs.k8s.io/controller-tools/cmd/controller-gen,$(CONTROLLER_GEN_VERSION))
+
+.PHONY: setup-envtest
+setup-envtest: $(ENVTEST)
+$(ENVTEST): $(LOCALBIN)
+	$(call go-install-tool,$(ENVTEST),sigs.k8s.io/controller-runtime/tools/setup-envtest,$(ENVTEST_VERSION))
 
 define go-install-tool
 @[ -f $(1) ] || { \
