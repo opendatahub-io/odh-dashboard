@@ -1188,9 +1188,9 @@ jobs:
             fi
           fi
 
-      - name: Verify BFF services health
+      - name: Verify BFF endpoint readiness
         run: |
-          OC_PROJECT="${{ env.OC_PROJECT }}"
+          OC_PROJECT="${OC_PROJECT:-}"
           if [ -z "$OC_PROJECT" ]; then
             echo "⚠️ OC_PROJECT not set, skipping BFF health check"
             exit 0
