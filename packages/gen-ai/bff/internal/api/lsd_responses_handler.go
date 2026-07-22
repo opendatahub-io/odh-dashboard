@@ -1193,7 +1193,7 @@ func (app *App) resolveMaaSModelInferenceURL(ctx context.Context, _ *integration
 		if m.ID == bareID {
 			// MaaS catalog returns the raw gateway URL (http, no /v1).
 			// Normalize to vLLM-compatible format (strip trailing slash, ensure /v1 suffix)
-			// so NeMo receives the correct openai_api_base.
+			// so NeMo receives the correct base_url.
 			modelURL := strings.TrimSuffix(m.URL, "/")
 			if !strings.HasSuffix(modelURL, "/v1") {
 				modelURL += "/v1"

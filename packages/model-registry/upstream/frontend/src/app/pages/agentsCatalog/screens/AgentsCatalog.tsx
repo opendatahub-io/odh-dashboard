@@ -1,16 +1,19 @@
 import * as React from 'react';
 import { ApplicationsPage, ProjectObjectType, TitleWithIcon } from 'mod-arch-shared';
 import { SearchIcon } from '@patternfly/react-icons';
+import { useUserInteraction, TrackingOutcome } from '~/concepts/userInteraction';
 import { AgentsCatalogContext } from '~/app/context/agentsCatalog/AgentsCatalogContext';
 import { hasAgentFiltersApplied } from '~/app/pages/agentsCatalog/utils/agentsCatalogUtils';
 import AgentsCatalogFilters from '~/app/pages/agentsCatalog/components/AgentsCatalogFilters';
 import { AGENTS_CATALOG_TITLE, AGENTS_CATALOG_DESCRIPTION } from '~/app/pages/agentsCatalog/const';
 import { CatalogPageLayout, EmptyCatalogState } from '~/app/shared/components/catalog';
+import { AGENT_CATALOG_EVENTS, countActiveAgentFilters } from '~/app/pages/agentsCatalog/tracking';
 import AgentsCatalogSourceLabelSelector from './AgentsCatalogSourceLabelSelector';
 import AgentsCatalogAllAgentsView from './AgentsCatalogAllAgentsView';
 import AgentsCatalogGalleryView from './AgentsCatalogGalleryView';
 
 const AgentsCatalog: React.FC = () => {
+  const { trackSimpleEvent, trackFormEvent } = useUserInteraction();
   const {
     searchQuery,
     setSearchQuery,
@@ -31,8 +34,12 @@ const AgentsCatalog: React.FC = () => {
   const handleSearch = React.useCallback(
     (term: string) => {
       setSearchQuery(term);
+      trackFormEvent(AGENT_CATALOG_EVENTS.SEARCH_SUBMITTED, {
+        outcome: TrackingOutcome.submit,
+        countActiveFilters: countActiveAgentFilters(filters),
+      });
     },
-    [setSearchQuery],
+    [setSearchQuery, trackFormEvent, filters],
   );
 
   const handleClearSearch = React.useCallback(() => {
@@ -40,8 +47,9 @@ const AgentsCatalog: React.FC = () => {
   }, [setSearchQuery]);
 
   const handleResetAllFilters = React.useCallback(() => {
+    trackSimpleEvent(AGENT_CATALOG_EVENTS.FILTERS_RESET);
     clearAllFilters();
-  }, [clearAllFilters]);
+  }, [trackSimpleEvent, clearAllFilters]);
 
   return (
     <ApplicationsPage
