@@ -232,6 +232,7 @@ export default function PromptTable({
                 debouncedSetFilterName(value);
               }}
               onClear={() => {
+                clearTimeout(debounceTimeoutRef.current);
                 setFilterName('');
                 setDebouncedFilterName('');
               }}
