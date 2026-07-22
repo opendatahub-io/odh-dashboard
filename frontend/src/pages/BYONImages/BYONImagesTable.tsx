@@ -4,7 +4,11 @@ import { BYONImage } from '#~/types';
 import { useHardwareProfilesByFeatureVisibility } from '#~/pages/hardwareProfiles/useHardwareProfilesByFeatureVisibility';
 import { WORKBENCH_VISIBILITY } from '#~/concepts/hardwareProfiles/const';
 import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
-import { TrackingOutcome } from '#~/concepts/analyticsTracking/trackingProperties';
+import {
+  TrackingOutcome,
+  FormTrackingEventProperties,
+} from '#~/concepts/analyticsTracking/trackingProperties';
+import useDebounceCallback from '#~/utilities/useDebounceCallback';
 import ManageBYONImageModal from './BYONImageModal/ManageBYONImageModal';
 import DeleteBYONImageModal from './BYONImageModal/DeleteBYONImageModal';
 import { columns } from './tableData';
@@ -89,6 +93,13 @@ export const BYONImagesTable: React.FC<BYONImagesTableProps> = ({ images }) => {
   const { globalProfiles: hardwareProfiles } =
     useHardwareProfilesByFeatureVisibility(WORKBENCH_VISIBILITY);
 
+  const fireFilterTrackingDebounced = useDebounceCallback(
+    React.useCallback((properties: FormTrackingEventProperties) => {
+      fireFormTrackingEvent('Workbench Images Filter Applied', properties);
+    }, []),
+    400,
+  );
+
   const onFilterUpdate = React.useCallback(
     (key: string, value: string | { label: string; value: string } | undefined) => {
       if (!isFilterOption(key)) {
@@ -102,7 +113,7 @@ export const BYONImagesTable: React.FC<BYONImagesTableProps> = ({ images }) => {
       const newFilterData = { ...filterData, [key]: filterValue };
       const newActiveFilterCount = getActiveFilterCount(newFilterData);
 
-      fireFormTrackingEvent('Workbench Images Filtered', {
+      const trackingProperties: FormTrackingEventProperties = {
         outcome: TrackingOutcome.submit,
         filterType: key,
         filterValue: filterValue ?? '',
@@ -111,9 +122,19 @@ export const BYONImagesTable: React.FC<BYONImagesTableProps> = ({ images }) => {
         activeFilterCount: newActiveFilterCount,
         resultCount: filterByonImages(images, newFilterData).length,
         totalImageCount: images.length,
-      });
+      };
+
+      const isTextFilter =
+        key === BYONImagesToolbarFilterOptions.name ||
+        key === BYONImagesToolbarFilterOptions.provider;
+
+      if (isTextFilter) {
+        fireFilterTrackingDebounced(trackingProperties);
+      } else {
+        fireFormTrackingEvent('Workbench Images Filter Applied', trackingProperties);
+      }
     },
-    [filterData, images],
+    [filterData, images, fireFilterTrackingDebounced],
   );
 
   const onClearFilters = React.useCallback(

@@ -52,7 +52,7 @@ const ImageStatusToggle: React.FC<ImageStatusToggleProps> = ({
         (image.isOOTB ? (visible ? -1 : 1) : 0);
 
       try {
-        fireFormTrackingEvent('Workbench Image Toggled', {
+        fireFormTrackingEvent('Workbench Image Visibility Toggled', {
           outcome: TrackingOutcome.submit,
           success: true,
           imageType: image.isOOTB ? 'pre-installed' : 'custom',
@@ -67,7 +67,7 @@ const ImageStatusToggle: React.FC<ImageStatusToggleProps> = ({
       }
     } catch (e) {
       try {
-        fireFormTrackingEvent('Workbench Image Toggled', {
+        fireFormTrackingEvent('Workbench Image Visibility Toggled', {
           outcome: TrackingOutcome.submit,
           success: false,
           imageType: image.isOOTB ? 'pre-installed' : 'custom',
