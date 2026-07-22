@@ -1,10 +1,12 @@
 # Grants authenticated users the minimum reads needed to resolve RayCluster
 # dashboard hyperlinks (RHOAIENG-62527 follow-up for non-admin users).
 #
-# HTTPRoute lives in the applications namespace (Role + RoleBinding).
-# Gateway is in openshift-ingress and GatewayConfig is cluster-scoped, so those
-# require ClusterRole + ClusterRoleBinding with resourceNames (Staff+ approved
-# exception to the usual "no ClusterRoleBinding in all-users" guidance).
+# HTTPRoute: Role + RoleBinding in the applications namespace (get only).
+# Gateway: Role + RoleBinding intended for openshift-ingress (get on
+# data-science-gateway only). The dashboard-operator remaps these to
+# openshift-ingress after kustomize WithNamespace(apps).
+# GatewayConfig: ClusterRole + ClusterRoleBinding (cluster-scoped get on
+# default-gateway only).
 ---
 kind: Role
 apiVersion: rbac.authorization.k8s.io/v1
@@ -17,8 +19,6 @@ rules:
       - httproutes
     verbs:
       - get
-      - list
-      - watch
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -33,10 +33,10 @@ subjects:
     kind: Group
     name: system:authenticated
 ---
-kind: ClusterRole
+kind: Role
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: fetch-ray-dashboard-gateway
+  name: fetch-ray-data-science-gateway
 rules:
   - apiGroups:
       - gateway.networking.k8s.io
@@ -46,6 +46,25 @@ rules:
       - data-science-gateway
     verbs:
       - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: fetch-ray-data-science-gateway
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: fetch-ray-data-science-gateway
+subjects:
+  - apiGroup: rbac.authorization.k8s.io
+    kind: Group
+    name: system:authenticated
+---
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: fetch-ray-dashboard-gatewayconfig
+rules:
   - apiGroups:
       - services.platform.opendatahub.io
     resources:
@@ -58,11 +77,11 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: fetch-ray-dashboard-gateway
+  name: fetch-ray-dashboard-gatewayconfig
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: fetch-ray-dashboard-gateway
+  name: fetch-ray-dashboard-gatewayconfig
 subjects:
   - apiGroup: rbac.authorization.k8s.io
     kind: Group

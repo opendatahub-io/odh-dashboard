@@ -147,6 +147,8 @@ rules:
       - gateway.networking.k8s.io
     resources:
       - gateways
+    resourceNames:
+      - data-science-gateway
     verbs:
       - get
   # Events
@@ -504,7 +506,14 @@ rules:
       - services.platform.opendatahub.io
     resources:
       - auths
+    verbs:
+      - get
+  - apiGroups:
+      - services.platform.opendatahub.io
+    resources:
       - gatewayconfigs
+    resourceNames:
+      - default-gateway
     verbs:
       - get
   # Kubeflow notebooks
