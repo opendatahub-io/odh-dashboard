@@ -208,9 +208,7 @@ describe('Verify models can be deployed from model registry', () => {
       registerModelPage
         .findFormField(FormFieldSelector.VERSION_DESCRIPTION)
         .type(testData.version1Description);
-      // registerModelPage
-      //   .findFormField(FormFieldSelector.SOURCE_MODEL_FORMAT)
-      //   .type(testData.modelFormatOnnx);
+
       registerModelPage
         .findFormField(FormFieldSelector.SOURCE_MODEL_FORMAT_VERSION)
         .type(testData.formatVersion1_0);

@@ -1057,20 +1057,16 @@ class ModelServingWizard extends Wizard {
         this.findServingRuntimeTemplateSearchSelector().click();
         // Duplicate display names can match multiple menu items; pick the first for E2E stability
         this.findServingRuntimeTemplateSelectionSearchInputBox().type(name);
-        // cy.get('.pf-v6-c-text-input-group__text-input').type(name);
-        // cy.get('.pf-v6-c-menu__item-text > .pf-v6-l-flex').click();
         cy.findByTestId('global-scoped-serving-runtimes')
           .find('[data-testid^="servingRuntime"]')
           .first()
           .click();
-        // this.getGlobalScopedServingRuntime()
-        //   .find()
-        //   .findAllByRole('menuitem', { name: new RegExp(name), hidden: true })
-        //   .first()
-        //   .should('exist')
-        //   .click();
       }
     });
+  }
+
+  selectDeploymentType(name: string) {
+    cy.findByText(name).click();
   }
 
   findServingRuntimeTemplateSearchInput() {
@@ -1490,8 +1486,9 @@ class ModelServingWizard extends Wizard {
    */
   selectFirstAvailableDeploymentMethod() {
     cy.get('body').then(($body) => {
-      if ($body.find('[data-testid="deployment-method-field"]').length > 0) {
-        cy.findByTestId('deployment-method-field').find('input[type="radio"]').first().click();
+      const radios = $body.find('[data-testid^="deployment-method-"]');
+      if (radios.length > 0) {
+        cy.wrap(radios.first()).click();
       }
     });
   }

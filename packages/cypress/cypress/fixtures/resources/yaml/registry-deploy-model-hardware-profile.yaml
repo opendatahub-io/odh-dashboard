@@ -15,7 +15,7 @@ spec:
       maxCount: 8
       minCount: 100m
       resourceType: CPU
-    - defaultCount: 14Gi
+    - defaultCount: 12Gi
       displayName: Memory
       identifier: memory
       maxCount: 16Gi
