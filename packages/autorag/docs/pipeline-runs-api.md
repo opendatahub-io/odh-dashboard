@@ -385,7 +385,7 @@ The request body accepts AutoRAG-specific parameters. The BFF translates these i
 | `ogx_secret_name` | string | Yes | Name of the K8s secret for Open GenAI Stack access |
 | `embedding_models` | string[] | No | List of embedding model identifiers |
 | `generation_models` | string[] | No | List of generation model identifiers |
-| `optimization_metric` | string | No | Metric to optimize: `faithfulness` (default), `answer_correctness`, or `context_correctness` |
+| `optimization_metric` | string | No | Metric to optimize: `overall_score` (default), `faithfulness`, `answer_correctness`, or `context_correctness` |
 | `vector_io_provider_id` | string | No | Vector I/O provider identifier as registered in ogx (e.g. ogx Milvus) |
 | `optimization_max_rag_patterns` | integer | No | Maximum number of RAG patterns to evaluate during optimization (min: 4, max: 20) |
 
@@ -415,7 +415,7 @@ curl -X POST "http://localhost:4000/api/v1/pipeline-runs?namespace=my-namespace"
     "input_data_bucket_name": "autorag",
     "input_data_key": "documents/",
     "ogx_secret_name": "llama-secret",
-    "optimization_metric": "faithfulness"
+    "optimization_metric": "overall_score"
   }'
 ```
 
@@ -436,7 +436,7 @@ Returns `200 OK` with the created pipeline run:
     },
     "runtime_config": {
       "parameters": {
-        "optimization_metric": "faithfulness",
+        "optimization_metric": "overall_score",
         "test_data_secret_name": "minio-secret",
         "test_data_bucket_name": "autorag",
         "test_data_key": "test_data.json",
@@ -483,7 +483,7 @@ Returns `200 OK` with the created pipeline run:
 {
   "error": {
     "code": "400",
-    "message": "invalid optimization_metric \"custom\": must be one of faithfulness, answer_correctness, context_correctness"
+    "message": "invalid optimization_metric \"custom\": must be one of overall_score, faithfulness, answer_correctness, context_correctness"
   }
 }
 ```

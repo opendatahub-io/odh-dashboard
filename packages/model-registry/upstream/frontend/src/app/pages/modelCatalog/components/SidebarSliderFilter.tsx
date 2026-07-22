@@ -10,6 +10,7 @@ import {
 import { ModelCatalogNumberFilterKey } from '~/concepts/modelCatalog/const';
 import { useCatalogNumberFilterState } from '~/app/pages/modelCatalog/hooks/useCatalogFilterState';
 import { ModelCatalogContext } from '~/app/context/modelCatalog/ModelCatalogContext';
+import useDropdownAutoFocus from '~/app/pages/modelCatalog/hooks/useDropdownAutoFocus';
 import SliderWithInput from './globalFilters/SliderWithInput';
 
 type SidebarSliderFilterProps = {
@@ -30,6 +31,7 @@ const SidebarSliderFilter: React.FC<SidebarSliderFilterProps> = ({
   const { filterOptions, filterOptionsLoaded } = React.useContext(ModelCatalogContext);
   const { value: filterValue, setValue: setFilterValue } = useCatalogNumberFilterState(filterKey);
   const [isOpen, setIsOpen] = React.useState(false);
+  const contentRef = useDropdownAutoFocus(isOpen);
 
   const range = React.useMemo(() => {
     const option = filterOptions?.filters?.[filterKey];
@@ -96,52 +98,55 @@ const SidebarSliderFilter: React.FC<SidebarSliderFilterProps> = ({
     <Dropdown
       isOpen={isOpen}
       onOpenChange={setIsOpen}
+      onOpenChangeKeys={['Escape']}
       toggle={toggle}
       shouldFocusToggleOnSelect={false}
     >
-      <Flex
-        direction={{ default: 'column' }}
-        spaceItems={{ default: 'spaceItemsSm' }}
-        style={{ minWidth: '400px', padding: '16px' }}
-      >
-        <FlexItem>{label}</FlexItem>
-        <FlexItem>
-          <SliderWithInput
-            value={clampedValue}
-            min={range.min}
-            max={range.max}
-            isDisabled={isDisabled}
-            onChange={setLocalValue}
-            suffix={suffix}
-            ariaLabel={`${label} filter value`}
-            showBoundaries
-            shouldRound
-          />
-        </FlexItem>
-        <FlexItem>
-          <Flex spaceItems={{ default: 'spaceItemsSm' }}>
-            <FlexItem>
-              <Button
-                variant="primary"
-                onClick={handleApply}
-                isDisabled={isDisabled}
-                data-testid={`${label.toLowerCase().replace(/\s+/g, '-')}-apply-filter`}
-              >
-                Apply
-              </Button>
-            </FlexItem>
-            <FlexItem>
-              <Button
-                variant="link"
-                onClick={handleReset}
-                data-testid={`${label.toLowerCase().replace(/\s+/g, '-')}-reset-filter`}
-              >
-                Reset
-              </Button>
-            </FlexItem>
-          </Flex>
-        </FlexItem>
-      </Flex>
+      <div ref={contentRef} role="group" aria-label={`${label} filter controls`}>
+        <Flex
+          direction={{ default: 'column' }}
+          spaceItems={{ default: 'spaceItemsSm' }}
+          style={{ minWidth: '400px', padding: '16px' }}
+        >
+          <FlexItem>{label}</FlexItem>
+          <FlexItem>
+            <SliderWithInput
+              value={clampedValue}
+              min={range.min}
+              max={range.max}
+              isDisabled={isDisabled}
+              onChange={setLocalValue}
+              suffix={suffix}
+              ariaLabel={`${label} filter value`}
+              showBoundaries
+              shouldRound
+            />
+          </FlexItem>
+          <FlexItem>
+            <Flex spaceItems={{ default: 'spaceItemsSm' }}>
+              <FlexItem>
+                <Button
+                  variant="primary"
+                  onClick={handleApply}
+                  isDisabled={isDisabled}
+                  data-testid={`${label.toLowerCase().replace(/\s+/g, '-')}-apply-filter`}
+                >
+                  Apply
+                </Button>
+              </FlexItem>
+              <FlexItem>
+                <Button
+                  variant="link"
+                  onClick={handleReset}
+                  data-testid={`${label.toLowerCase().replace(/\s+/g, '-')}-reset-filter`}
+                >
+                  Reset
+                </Button>
+              </FlexItem>
+            </Flex>
+          </FlexItem>
+        </Flex>
+      </div>
     </Dropdown>
   );
 };

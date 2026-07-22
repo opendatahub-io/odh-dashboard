@@ -23,7 +23,7 @@ const SubscriptionManagementPage: React.FC = () => {
 
   const onSelectTab = React.useCallback(
     (_event: React.MouseEvent, tabKey: string | number) => {
-      navigate(`${URL_PREFIX}/subscription-management/${String(tabKey)}`);
+      navigate(`${URL_PREFIX}/maas-governance/${String(tabKey)}`);
     },
     [navigate],
   );
@@ -44,16 +44,16 @@ const SubscriptionManagementPage: React.FC = () => {
 
   return (
     <ApplicationsPage
-      title="Subscription management"
-      description="Manage subscriptions and authorization policies to control the MaaS models that each user group in your organization can access."
+      title="MaaS governance"
+      description="Manage subscriptions and authorization policies that control access to models through the Models-as-a-Service (MaaS) gateway."
       loaded={formDataLoaded}
       empty={empty}
       emptyStatePage={
         <EmptyStatePage
-          returnTo={`${URL_PREFIX}/subscription-management`}
+          returnTo={`${URL_PREFIX}/maas-governance`}
           testId="empty-overview-page"
-          title="Get started with subscription management"
-          bodyText="No subscriptions or authorization policies have been configured yet. Set up subscriptions to define rate limits and policies to control which groups can access your MaaS models."
+          title="Configure MaaS governance"
+          bodyText="No subscriptions or authorization policies exist. Create subscriptions to define token limits and authorization policies to control model access."
           showSubsButton
           showPoliciesButton
           cubeIcon
@@ -80,9 +80,7 @@ const SubscriptionManagementPage: React.FC = () => {
           aria-label="Subscriptions tab"
           data-testid="subscriptions-tab"
         >
-          <SubscriptionsTab
-            returnTo={`${URL_PREFIX}/subscription-management/${SUBSCRIPTIONS_TAB}`}
-          />
+          <SubscriptionsTab returnTo={`${URL_PREFIX}/maas-governance/${SUBSCRIPTIONS_TAB}`} />
         </Tab>
         <Tab
           eventKey={AUTH_POLICIES_TAB}
@@ -90,9 +88,7 @@ const SubscriptionManagementPage: React.FC = () => {
           aria-label="Authorization policies tab"
           data-testid="auth-policies-tab"
         >
-          <AuthPoliciesTab
-            returnTo={`${URL_PREFIX}/subscription-management/${AUTH_POLICIES_TAB}`}
-          />
+          <AuthPoliciesTab returnTo={`${URL_PREFIX}/maas-governance/${AUTH_POLICIES_TAB}`} />
         </Tab>
       </Tabs>
     </ApplicationsPage>

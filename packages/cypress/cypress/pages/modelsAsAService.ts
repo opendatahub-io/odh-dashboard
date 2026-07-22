@@ -577,7 +577,7 @@ class SubscriptionTableRow extends TableRow {
   }
 
   findName(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().find('[data-label="Name"]');
+    return this.find().find('[data-label="Subscription"]');
   }
 
   findActionsToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -1111,7 +1111,7 @@ class AuthPolicyTableRow extends TableRow {
   }
 
   findName(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().find('[data-label="Name"]');
+    return this.find().find('[data-label="Authorization policy"]');
   }
 
   findActionsToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -1455,7 +1455,7 @@ class OverviewTabPage {
 
 class SubscriptionManagementPage {
   visit(tab?: string): void {
-    const path = tab ? `/maas/subscription-management/${tab}` : '/maas/subscription-management';
+    const path = tab ? `/maas/maas-governance/${tab}` : '/maas/maas-governance';
     cy.visitWithLogin(path);
     this.wait();
   }
@@ -1595,6 +1595,14 @@ class ExternalModelTableRow extends TableRow {
 
   findGovernanceWarningPopover(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('external-model-governance-pairing-warning-popover');
+  }
+
+  findMissingMaaSModelRefWarning(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('external-model-missing-maas-model-ref');
+  }
+
+  findMissingMaaSModelRefWarningPopover(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('external-model-missing-maas-model-ref-popover');
   }
 
   findExpandedProviderRow(providerName: string): Cypress.Chainable<JQuery<HTMLElement>> {

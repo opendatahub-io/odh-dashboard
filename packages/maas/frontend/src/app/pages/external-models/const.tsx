@@ -19,23 +19,47 @@ export const initialExternalModelsFilterData: ExternalModelsFilterDataType = {
 export const deploymentsExternalPath = (namespace: string): string =>
   `/ai-hub/models/deployments/external/${namespace}`;
 
-const GOVERNANCE_PAIRING_WARNING_BODY = (
+const MISSING_MAAS_MODEL_REF_BODY = (
   <div>
     <p>
-      This model is awaiting governance pairing. An active subscription and authorization policy are
-      required before consumers can access the gateway endpoint.
+      MaaS governance features (subscriptions, authorization policies, API keys) require a
+      MaaSModelRef resource that references this external model. This resource must be deployed in
+      the same namespace as the external model.
     </p>
   </div>
 );
 
-const GOVERNANCE_PAIRING_WARNING_FOOTER =
-  'Consumers will also need an API key to authenticate requests. API keys can be generated from the API keys page in GenAI Studio.';
+export const MissingMaaSModelRefWarning: React.FC = () => (
+  <Popover
+    headerContent="Missing MaaS model setup"
+    bodyContent={MISSING_MAAS_MODEL_REF_BODY}
+    data-testid="external-model-missing-maas-model-ref-popover"
+  >
+    <Button
+      variant="plain"
+      data-testid="external-model-missing-maas-model-ref"
+      aria-label="Missing MaaS model reference"
+    >
+      <Label color="purple" isCompact>
+        <PendingIcon />
+      </Label>
+    </Button>
+  </Popover>
+);
+
+const GOVERNANCE_PAIRING_WARNING_BODY = (
+  <div>
+    <p>
+      Consumers can&apos;t access this model until they are given access in a MaaS subscription and
+      authorization policy from the <strong>MaaS governance</strong> page.
+    </p>
+  </div>
+);
 
 export const GovernancePairingWarning: React.FC = () => (
   <Popover
-    headerContent="Not ready for consumption"
+    headerContent="Pending MaaS governance"
     bodyContent={GOVERNANCE_PAIRING_WARNING_BODY}
-    footerContent={GOVERNANCE_PAIRING_WARNING_FOOTER}
     data-testid="external-model-governance-pairing-warning-popover"
   >
     <Button

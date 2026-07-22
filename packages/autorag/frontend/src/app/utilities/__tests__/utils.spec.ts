@@ -2,6 +2,7 @@
 import type { PipelineRun } from '~/app/types';
 import type { AutoragPattern } from '~/app/types/autoragPattern';
 import { RuntimeStateKF } from '~/app/types/pipeline';
+import { DEFAULT_OPTIMIZATION_METRIC } from '~/app/utilities/const';
 import {
   isRunCompleted,
   isRunInTerminalState,
@@ -259,26 +260,26 @@ describe('getOptimizedMetricForRAG', () => {
     expect(getOptimizedMetricForRAG(pipelineRun)).toBe('answer_correctness');
   });
 
-  it('should return faithfulness as default when optimization_metric is not provided', () => {
+  it('should return the default optimization metric when optimization_metric is not provided', () => {
     const pipelineRun = createMockPipelineRun();
-    expect(getOptimizedMetricForRAG(pipelineRun)).toBe('faithfulness');
+    expect(getOptimizedMetricForRAG(pipelineRun)).toBe(DEFAULT_OPTIMIZATION_METRIC);
   });
 
-  it('should return faithfulness when pipelineRun is undefined', () => {
-    expect(getOptimizedMetricForRAG(undefined)).toBe('faithfulness');
+  it('should return the default optimization metric when pipelineRun is undefined', () => {
+    expect(getOptimizedMetricForRAG(undefined)).toBe(DEFAULT_OPTIMIZATION_METRIC);
   });
 
-  it('should return faithfulness when runtime_config is missing', () => {
+  it('should return the default optimization metric when runtime_config is missing', () => {
     const pipelineRun: PipelineRun = {
       run_id: 'test-run-123',
       display_name: 'Test RAG Run',
       state: RuntimeStateKF.SUCCEEDED,
       created_at: '2025-01-17T00:00:00Z',
     };
-    expect(getOptimizedMetricForRAG(pipelineRun)).toBe('faithfulness');
+    expect(getOptimizedMetricForRAG(pipelineRun)).toBe(DEFAULT_OPTIMIZATION_METRIC);
   });
 
-  it('should return faithfulness when parameters is missing', () => {
+  it('should return the default optimization metric when parameters is missing', () => {
     const pipelineRun: PipelineRun = {
       run_id: 'test-run-123',
       display_name: 'Test RAG Run',
@@ -286,10 +287,10 @@ describe('getOptimizedMetricForRAG', () => {
       created_at: '2025-01-17T00:00:00Z',
       runtime_config: {},
     };
-    expect(getOptimizedMetricForRAG(pipelineRun)).toBe('faithfulness');
+    expect(getOptimizedMetricForRAG(pipelineRun)).toBe(DEFAULT_OPTIMIZATION_METRIC);
   });
 
-  it('should return faithfulness when optimization_metric is not a string', () => {
+  it('should return the default optimization metric when optimization_metric is not a string', () => {
     const pipelineRun: PipelineRun = {
       run_id: 'test-run-123',
       display_name: 'Test RAG Run',
@@ -301,7 +302,7 @@ describe('getOptimizedMetricForRAG', () => {
         },
       },
     };
-    expect(getOptimizedMetricForRAG(pipelineRun)).toBe('faithfulness');
+    expect(getOptimizedMetricForRAG(pipelineRun)).toBe(DEFAULT_OPTIMIZATION_METRIC);
   });
 
   it('should handle context_correctness metric', () => {

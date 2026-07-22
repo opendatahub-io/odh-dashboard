@@ -118,7 +118,7 @@ describe('WhatsNewModal', () => {
       render(<WhatsNewModal />);
       openWelcomeModal();
 
-      fireEvent.click(screen.getByText('Skip tour'));
+      fireEvent.click(screen.getByText('Close'));
 
       expect(mockSetSeen).toHaveBeenCalledWith(true);
     });
@@ -131,7 +131,7 @@ describe('WhatsNewModal', () => {
 
       render(<WhatsNewModal />);
       openWelcomeModal();
-      startTourAndWait('Start tour');
+      startTourAndWait('Start full tour');
 
       expect(screen.getByText(/of 6/)).toBeInTheDocument();
     });
@@ -142,7 +142,7 @@ describe('WhatsNewModal', () => {
 
       render(<WhatsNewModal />);
       openWelcomeModal();
-      startTourAndWait('Start tour');
+      startTourAndWait('Start full tour');
 
       expect(screen.getByText(/of 5/)).toBeInTheDocument();
     });
@@ -162,10 +162,11 @@ describe('WhatsNewModal', () => {
 
       render(<WhatsNewModal />);
       openWelcomeModal();
-      startTourAndWait("What's new in 3.5");
+      startTourAndWait("Tour what's new");
 
+      // First step with features is now Projects (roleManagement disabled)
       expect(screen.getByText(/OdhDashboardConfig/)).toBeInTheDocument();
-      expect(screen.getByText('autorag')).toBeInTheDocument();
+      expect(screen.getByText('roleManagement')).toBeInTheDocument();
       expect(screen.queryByText(/Contact your administrator/)).not.toBeInTheDocument();
     });
 
@@ -175,7 +176,7 @@ describe('WhatsNewModal', () => {
 
       render(<WhatsNewModal />);
       openWelcomeModal();
-      startTourAndWait("What's new in 3.5");
+      startTourAndWait("Tour what's new");
 
       expect(screen.getByText(/Contact your administrator/)).toBeInTheDocument();
       expect(screen.queryByText(/OdhDashboardConfig/)).not.toBeInTheDocument();
@@ -187,7 +188,7 @@ describe('WhatsNewModal', () => {
 
       render(<WhatsNewModal />);
       openWelcomeModal();
-      startTourAndWait('Start tour');
+      startTourAndWait('Start full tour');
 
       // Navigate to Develop & train (step 3) which only has automl
       fireEvent.click(screen.getByText('Next'));
@@ -206,15 +207,16 @@ describe('WhatsNewModal', () => {
   });
 
   describe("What's new in 3.5 button", () => {
-    it('should skip to the first step with new features, not Projects', () => {
+    it('should skip to the first step with new features (Projects)', () => {
       useAppContextMock.mockReturnValue(buildAppContext({ genAiStudio: true }));
       useUserMock.mockReturnValue(regularUser);
 
       render(<WhatsNewModal />);
       openWelcomeModal();
-      startTourAndWait("What's new in 3.5");
+      startTourAndWait("Tour what's new");
 
-      expect(screen.getByText('Gen AI studio')).toBeInTheDocument();
+      expect(screen.getByText('Projects')).toBeInTheDocument();
+      expect(screen.getByText('Granular role creation')).toBeInTheDocument();
     });
   });
 
@@ -225,7 +227,7 @@ describe('WhatsNewModal', () => {
 
       render(<WhatsNewModal />);
       openWelcomeModal();
-      startTourAndWait('Start tour');
+      startTourAndWait('Start full tour');
 
       for (let i = 0; i < 5; i++) {
         fireEvent.click(screen.getByText('Next'));
@@ -296,7 +298,7 @@ describe('WhatsNewModal', () => {
       openWelcomeModal();
       mockFireFormTrackingEvent.mockClear();
 
-      fireEvent.click(screen.getByText('Skip tour'));
+      fireEvent.click(screen.getByText('Close'));
 
       expect(mockFireFormTrackingEvent).toHaveBeenCalledWith(
         GUIDED_TOUR_EVENTS.DISMISSED,
@@ -322,7 +324,7 @@ describe('WhatsNewModal', () => {
 
       render(<WhatsNewModal />);
       openWelcomeModal();
-      startTourAndWait('Start tour');
+      startTourAndWait('Start full tour');
       mockFireFormTrackingEvent.mockClear();
 
       fireEvent.click(screen.getByTestId('tour-step-skip'));
@@ -344,7 +346,7 @@ describe('WhatsNewModal', () => {
 
       render(<WhatsNewModal />);
       openWelcomeModal();
-      startTourAndWait('Start tour');
+      startTourAndWait('Start full tour');
 
       expect(mockFireFormTrackingEvent).toHaveBeenCalledWith(GUIDED_TOUR_EVENTS.PATH_SELECTED, {
         outcome: TrackingOutcome.submit,
@@ -389,7 +391,7 @@ describe('WhatsNewModal', () => {
 
       render(<WhatsNewModal />);
       openWelcomeModal();
-      startTourAndWait('Start tour');
+      startTourAndWait('Start full tour');
 
       for (let i = 0; i < 5; i++) {
         fireEvent.click(screen.getByText('Next'));
@@ -452,7 +454,7 @@ describe('WhatsNewModal', () => {
 
       render(<WhatsNewModal />);
       openWelcomeModal();
-      startTourAndWait('Start tour');
+      startTourAndWait('Start full tour');
       mockFireMiscTrackingEvent.mockClear();
 
       fireEvent.click(screen.getByText('Learn more'));

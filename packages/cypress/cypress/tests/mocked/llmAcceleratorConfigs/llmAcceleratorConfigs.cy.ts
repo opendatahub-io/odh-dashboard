@@ -1,3 +1,4 @@
+import { mockDashboardConfig } from '@odh-dashboard/internal/__mocks__';
 import {
   llmAcceleratorConfigsIntercept,
   interceptLlmAcceleratorConfigPatch,
@@ -11,6 +12,15 @@ import { pageNotfound } from '../../../pages/pageNotFound';
 
 it('LLM accelerator configurations should not be available for non product admins', () => {
   asProjectAdminUser();
+  cy.interceptOdh('GET /api/config', mockDashboardConfig({ vLLMDeploymentOnMaaS: true }));
+  llmAcceleratorConfigs.visit(false);
+  pageNotfound.findPage().should('exist');
+  llmAcceleratorConfigs.findNavItem().should('not.exist');
+});
+
+it('LLM accelerator configurations should not be available when vLLMDeploymentOnMaaS is disabled', () => {
+  asProductAdminUser();
+  cy.interceptOdh('GET /api/config', mockDashboardConfig({ vLLMDeploymentOnMaaS: false }));
   llmAcceleratorConfigs.visit(false);
   pageNotfound.findPage().should('exist');
   llmAcceleratorConfigs.findNavItem().should('not.exist');

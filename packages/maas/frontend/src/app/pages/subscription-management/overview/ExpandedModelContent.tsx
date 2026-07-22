@@ -10,8 +10,8 @@ import { formatTokenLimits } from '~/app/utilities/rateLimits';
 import GroupChips from './GroupChips';
 
 const OVERVIEW_LINK_STATE = {
-  returnTo: `${URL_PREFIX}/subscription-management/overview`,
-  breadcrumbLabel: 'Subscription management',
+  returnTo: `${URL_PREFIX}/maas-governance/overview`,
+  breadcrumbLabel: 'MaaS governance',
 };
 
 const itemBorderStyle = {
@@ -188,7 +188,7 @@ const SubscriptionsSection: React.FC<SubscriptionsSectionProps> = ({
             ariaLabel={`Subscription ${sub.displayName ?? sub.name}`}
             name={sub.name}
             displayName={sub.displayName}
-            linkTo={`${URL_PREFIX}/subscription-management/subscriptions/view/${sub.name}`}
+            linkTo={`${URL_PREFIX}/maas-governance/subscriptions/view/${sub.name}`}
             linkState={OVERVIEW_LINK_STATE}
             phase={sub.phase}
             resourceType={PhaseResourceType.SUBSCRIPTION}
@@ -245,7 +245,7 @@ const PoliciesSection: React.FC<PoliciesSectionProps> = ({
             ariaLabel={`Policy ${policy.displayName ?? policy.name}`}
             name={policy.name}
             displayName={policy.displayName}
-            linkTo={`${URL_PREFIX}/subscription-management/auth-policies/view/${policy.name}`}
+            linkTo={`${URL_PREFIX}/maas-governance/auth-policies/view/${policy.name}`}
             linkState={OVERVIEW_LINK_STATE}
             phase={policy.phase}
             resourceType={PhaseResourceType.AUTHPOLICY}

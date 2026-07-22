@@ -109,7 +109,7 @@ describe('External Models Page', () => {
     });
 
     it('should display table content with status popover and expanded provider details', () => {
-      externalModelsPage.findRows().should('have.length', 3);
+      externalModelsPage.findRows().should('have.length', 4);
 
       const gptRow = externalModelsPage.getRow('GPT-4o External');
       gptRow.findName().should('contain.text', 'GPT-4o External');
@@ -178,29 +178,37 @@ describe('External Models Page', () => {
       awaitingRow
         .findGovernanceWarningPopover()
         .should('exist')
-        .should('contain.text', 'Not ready for consumption');
+        .should('contain.text', 'Pending MaaS governance');
+
+      const missingRefRow = externalModelsPage.getRow('Missing Ref Model');
+      missingRefRow.findPhaseLabel().should('contain.text', 'Ready');
+      missingRefRow.findMissingMaaSModelRefWarning().should('exist').click();
+      missingRefRow
+        .findMissingMaaSModelRefWarningPopover()
+        .should('exist')
+        .should('contain.text', 'Missing MaaS model setup');
     });
 
     it('should filter external models by keyword across name, display name, and description', () => {
-      externalModelsPage.findRows().should('have.length', 3);
+      externalModelsPage.findRows().should('have.length', 4);
 
       externalModelsPage.findFilterInput().type('gpt-4o-external');
       externalModelsPage.findRows().should('have.length', 1);
       externalModelsPage.getRow('GPT-4o External').findName().should('exist');
       externalModelsPage.findFilterResetButton().click();
-      externalModelsPage.findRows().should('have.length', 3);
+      externalModelsPage.findRows().should('have.length', 4);
 
       externalModelsPage.findFilterInput().type('Claude A/B');
       externalModelsPage.findRows().should('have.length', 1);
       externalModelsPage.getRow('Claude A/B Split').findName().should('exist');
       externalModelsPage.findFilterResetButton().click();
-      externalModelsPage.findRows().should('have.length', 3);
+      externalModelsPage.findRows().should('have.length', 4);
 
       externalModelsPage.findFilterInput().type('subscription and auth pairing');
       externalModelsPage.findRows().should('have.length', 1);
       externalModelsPage.getRow('Awaiting Pairing Model').findName().should('exist');
       externalModelsPage.findFilterResetButton().click();
-      externalModelsPage.findRows().should('have.length', 3);
+      externalModelsPage.findRows().should('have.length', 4);
     });
 
     it('should delete an external model', () => {
@@ -226,7 +234,7 @@ describe('External Models Page', () => {
       deleteExternalModelModal.findSubmitButton().click();
       cy.wait('@deleteExternalModel');
       cy.wait('@listExternalModels');
-      externalModelsPage.findRows().should('have.length', 2);
+      externalModelsPage.findRows().should('have.length', 3);
       externalModelsPage.findTable().should('not.contain', 'GPT-4o External');
     });
   });
