@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"path/filepath"
 	"testing"
@@ -263,20 +264,21 @@ var _ = BeforeSuite(func() {
 
 // MakeRequest is a helper to make HTTP requests in tests
 func MakeRequest(req TestRequest) *http.Response {
-	url := testCtx.BaseURL + req.Path
+	requestURL, err := url.Parse(testCtx.BaseURL + req.Path)
+	Expect(err).NotTo(HaveOccurred())
 
-	// Add query parameters
+	// Add query parameters with proper URL encoding
 	if len(req.QueryParams) > 0 {
-		url += "?"
+		q := requestURL.Query()
 		for key, value := range req.QueryParams {
-			url += fmt.Sprintf("%s=%s&", key, value)
+			q.Set(key, value)
 		}
-		url = url[:len(url)-1] // Remove trailing &
+		requestURL.RawQuery = q.Encode()
 	}
 
-	httpReq, err := http.NewRequest(req.Method, url, nil)
+	httpReq, err := http.NewRequest(req.Method, requestURL.String(), nil)
 	if req.Body != nil {
-		httpReq, err = http.NewRequestWithContext(context.Background(), req.Method, url,
+		httpReq, err = http.NewRequestWithContext(context.Background(), req.Method, requestURL.String(),
 			bytes.NewReader(req.Body))
 	}
 	Expect(err).NotTo(HaveOccurred())
