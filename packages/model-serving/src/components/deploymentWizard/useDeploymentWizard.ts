@@ -7,7 +7,7 @@ import {
   INFERENCE_SERVICE_NAME_REGEX,
   LimitNameResourceType,
 } from '@odh-dashboard/k8s-core';
-import { useAccessReview } from '@odh-dashboard/internal/api/index';
+import { useAccessReview } from '@odh-dashboard/internal/api/useAccessReview';
 import { useIsAreaAvailable, SupportedArea } from '@odh-dashboard/plugin-core/areas';
 import { accessReviewResource } from './steps/AdvancedOptionsStep';
 import { useModelFormatField } from './fields/ModelFormatField';

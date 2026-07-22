@@ -6,7 +6,7 @@ import useFetch, {
   type FetchStateObject,
 } from '@odh-dashboard/ui-core/hooks/useFetch';
 import { LABEL_SELECTOR_DASHBOARD_RESOURCE } from '@odh-dashboard/ui-core/utilities';
-import { getSecretsByLabel } from '@odh-dashboard/internal/api/index';
+import { getSecretsByLabel } from '@odh-dashboard/internal/api/k8s/secrets';
 import type { Deployment } from '../../extension-points';
 
 const getModelServingRuntimeName = (namespace: string): string => `model-server-${namespace}`;

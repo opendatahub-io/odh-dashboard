@@ -5,7 +5,7 @@ import {
   patchSecretWithProtocolAnnotation,
   hasProtocolAnnotation,
   deleteSecret,
-} from '@odh-dashboard/internal/api/index';
+} from '@odh-dashboard/internal/api/k8s/secrets';
 import {
   isGeneratedSecretName,
   getGeneratedSecretName,
