@@ -1,11 +1,12 @@
 import * as React from 'react';
-import { Label, Popover } from '@patternfly/react-core';
+import { Label, Popover, Spinner } from '@patternfly/react-core';
 import {
   CheckCircleIcon,
   ExclamationCircleIcon,
   OffIcon,
   PendingIcon,
   QuestionCircleIcon,
+  TrashIcon,
 } from '@patternfly/react-icons';
 import {
   AgentRuntimeDisplayStatus,
@@ -19,9 +20,12 @@ type AgentRuntimeStatusLabelProps = {
 
 const statusIconMap: Record<AgentRuntimeDisplayStatus, React.ReactNode> = {
   [AgentRuntimeDisplayStatus.Ready]: <CheckCircleIcon />,
+  [AgentRuntimeDisplayStatus.Provisioning]: <Spinner size="sm" aria-label="Provisioning" />,
   [AgentRuntimeDisplayStatus.Stopped]: <OffIcon />,
   [AgentRuntimeDisplayStatus.Pending]: <PendingIcon />,
+  [AgentRuntimeDisplayStatus.Error]: <ExclamationCircleIcon />,
   [AgentRuntimeDisplayStatus.Failed]: <ExclamationCircleIcon />,
+  [AgentRuntimeDisplayStatus.Deleting]: <TrashIcon />,
   [AgentRuntimeDisplayStatus.Unknown]: <QuestionCircleIcon />,
 };
 

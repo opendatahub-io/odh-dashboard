@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { ActionsColumn, IAction, Td, Tr } from '@patternfly/react-table';
-import { Label, MenuToggle, Truncate } from '@patternfly/react-core';
-import { EllipsisVIcon } from '@patternfly/react-icons';
+import { MenuToggle, Tooltip, Truncate } from '@patternfly/react-core';
+import { EllipsisVIcon, TerminalIcon } from '@patternfly/react-icons';
 import { Link } from 'react-router-dom';
 import { TableRowTitleDescription } from '@odh-dashboard/internal/components/table';
 import { ResourceNameTooltip } from '@odh-dashboard/ui-core';
@@ -55,6 +55,19 @@ const AgentRuntimesTableRow: React.FC<AgentRuntimesTableRowProps> = ({
         component: (props) => <Link {...props} to={detailRoute} />,
       });
     }
+
+    // Terminal action
+    nextActions.push({
+      title: (
+        <Tooltip content="Open terminal in OpenShift Console">
+          <span>
+            <TerminalIcon /> Terminal
+          </span>
+        </Tooltip>
+      ),
+      isDisabled: true,
+      onClick: () => undefined,
+    });
 
     if (visibility.showStart) {
       nextActions.push({
@@ -126,17 +139,11 @@ const AgentRuntimesTableRow: React.FC<AgentRuntimesTableRowProps> = ({
             truncateDescriptionLines={2}
           />
         </Td>
-        <Td dataLabel={agentRuntimesColumns[1].label} data-testid="agent-runtime-framework">
-          {runtime.framework || '-'}
+        <Td dataLabel={agentRuntimesColumns[1].label} data-testid="agent-runtime-gateway">
+          {runtime.gateway || '-'}
         </Td>
-        <Td dataLabel={agentRuntimesColumns[2].label} data-testid="agent-runtime-sandbox">
-          {runtime.workloadType === 'sandbox' ? (
-            <Label isCompact color="green">
-              Sandboxed
-            </Label>
-          ) : (
-            '-'
-          )}
+        <Td dataLabel={agentRuntimesColumns[2].label} data-testid="agent-runtime-image">
+          <Truncate content={runtime.containerImage || '-'} />
         </Td>
         <Td dataLabel={agentRuntimesColumns[3].label} data-testid="agent-runtime-status">
           <AgentRuntimeStatusLabel status={runtime.status} statusMessage={runtime.statusMessage} />

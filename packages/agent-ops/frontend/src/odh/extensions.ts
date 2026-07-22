@@ -6,7 +6,6 @@ import type {
 
 // Keep in sync with ~/app/utilities/routes.ts (value imports are disallowed in extensions.ts).
 const agentDeploymentsPath = '/ai-hub/agents/deployments';
-const agentDeployWizardPath = `${agentDeploymentsPath}/deploy`;
 const AGENT_OPS = 'agent-ops';
 const AGENTS_TAB_PAGE = 'agents-tab-page';
 
@@ -41,16 +40,7 @@ const extensions: (AreaExtension | TabRouteTabExtension | RouteExtension)[] = [
       component: () => import('./AgentDeploymentDetailRoutes.tsx'),
     },
   },
-  {
-    type: 'app.route',
-    flags: {
-      required: [AGENT_OPS],
-    },
-    properties: {
-      path: agentDeployWizardPath,
-      component: () => import('./AgentDeployWizardRoutes.tsx'),
-    },
-  },
+  // Wizard route removed — deploy is now a modal (DeploySandboxModal)
 ];
 
 export default extensions;

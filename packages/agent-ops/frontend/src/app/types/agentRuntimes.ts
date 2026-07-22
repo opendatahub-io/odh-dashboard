@@ -13,6 +13,12 @@ export type AgentRuntime = {
   endpointUrl?: string;
   workloadType?: string;
   lastSyncTime: string;
+  /** Gateway this sandbox belongs to. */
+  gateway?: string;
+  /** Container image used for the sandbox. */
+  containerImage?: string;
+  /** Provider name within the gateway. */
+  provider?: string;
 };
 
 export type AgentRuntimesList = {

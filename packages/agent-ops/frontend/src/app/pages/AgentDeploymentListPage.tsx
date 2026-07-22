@@ -6,26 +6,42 @@ import { ProjectIconWithSize } from '@odh-dashboard/internal/concepts/projects/P
 import ProjectNavigatorLink from '@odh-dashboard/internal/concepts/projects/ProjectNavigatorLink';
 import { IconSize } from '@odh-dashboard/internal/types';
 import {
+  Button,
+  Card,
+  CardBody,
+  CardFooter,
+  CardHeader,
+  CardTitle,
   Content,
   EmptyState,
   EmptyStateBody,
   EmptyStateVariant,
   Flex,
   FlexItem,
+  Gallery,
+  GalleryItem,
+  Label,
   Spinner,
+  Stack,
+  StackItem,
+  Title,
 } from '@patternfly/react-core';
-import { BanIcon, CubesIcon } from '@patternfly/react-icons';
+import { BanIcon, CubesIcon, PlusCircleIcon } from '@patternfly/react-icons';
 import { useAgentOpsDeploy } from '~/app/hooks/useAgentOpsDeploy';
 import { useAgentOpsProjectNamespaces } from '~/app/hooks/useAgentOpsProjectNamespaces';
 import AgentOpsProjectSelector from '~/app/components/AgentOpsProjectSelector';
-import { useNavigateToDeployAgentWizard } from '~/app/deployWizard/useNavigateToDeployAgentWizard';
 import { useListAgentRuntimes } from '~/app/hooks/useListAgentRuntimes';
 import { agentOpsDeploymentsRoute } from '~/app/utilities/routes';
 import {
   filterAgentRuntimes,
   hasActiveAgentRuntimesFilters,
 } from '~/app/utilities/filterAgentRuntimes';
-import GatewaySelector from '~/app/components/GatewaySelector';
+import { useGatewayContext } from '~/app/context/GatewayContext';
+import type { Gateway } from '~/app/types/gateway';
+import DeploySandboxModal from '~/app/components/DeploySandboxModal';
+import CreateGatewayModal from '~/app/components/CreateGatewayModal';
+import GatewayDeleteModal from '~/app/components/GatewayDeleteModal';
+import ManageProvidersModal from '~/app/components/ManageProvidersModal';
 import AgentDeploymentsEmptyState from './AgentDeploymentsEmptyState';
 import AgentRuntimesTable from './agentRuntimes/AgentRuntimesTable';
 import AgentRuntimesToolbar from './agentRuntimes/AgentRuntimesToolbar';
@@ -35,11 +51,36 @@ import {
   emptyAgentRuntimesFilterData,
 } from './agentRuntimes/const';
 
+const gatewayStatusColor = (status: Gateway['status']): 'green' | 'red' | 'grey' => {
+  switch (status) {
+    case 'healthy':
+      return 'green';
+    case 'unhealthy':
+      return 'red';
+    default:
+      return 'grey';
+  }
+};
+
 const AgentDeploymentListPage: React.FC = () => {
   const { namespace } = useParams<{ namespace: string }>();
-  const navigateToDeployAgentWizard = useNavigateToDeployAgentWizard();
   const deployMode = useAgentOpsDeploy();
   const { isLoading: projectsLoading } = useAgentOpsProjectNamespaces();
+  const {
+    gateways,
+    loaded: gatewaysLoaded,
+    refresh: refreshGateways,
+  } = useGatewayContext();
+
+  // Deploy modal state
+  const [isDeployModalOpen, setIsDeployModalOpen] = React.useState(false);
+  // Gateway modal state
+  const [isCreateGatewayOpen, setIsCreateGatewayOpen] = React.useState(false);
+  const [createGatewayDeployMode, setCreateGatewayDeployMode] = React.useState(false);
+  // Gateway delete modal state
+  const [gatewayToDelete, setGatewayToDelete] = React.useState<Gateway | undefined>();
+  // Provider management modal state
+  const [gatewayForProviders, setGatewayForProviders] = React.useState<Gateway | undefined>();
 
   const {
     runtimes,
@@ -98,6 +139,12 @@ const AgentDeploymentListPage: React.FC = () => {
   const isAccessDenied = !!loadError && getGenericErrorCode(loadError) === 403;
   const isEmpty = !noProjectSelected && loaded && !loadError && safeRuntimes.length === 0;
 
+  const handleOpenDeployModal = React.useCallback(() => {
+    if (namespace) {
+      setIsDeployModalOpen(true);
+    }
+  }, [namespace]);
+
   const headerContent = (
     <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapMd' }}>
       <FlexItem>
@@ -112,15 +159,12 @@ const AgentDeploymentListPage: React.FC = () => {
               getRedirectPath={agentOpsDeploymentsRoute}
             />
           </FlexItem>
-          {namespace && (
+          {namespace ? (
             <FlexItem>
               <ProjectNavigatorLink namespace={{ name: namespace, displayName: namespace }} />
             </FlexItem>
-          )}
+          ) : null}
         </Flex>
-      </FlexItem>
-      <FlexItem>
-        <GatewaySelector />
       </FlexItem>
     </Flex>
   );
@@ -135,6 +179,116 @@ const AgentDeploymentListPage: React.FC = () => {
     >
       <EmptyStateBody>You do not have permission to view agent deployments.</EmptyStateBody>
     </EmptyState>
+  );
+
+  const gatewayCards = (
+    <Stack hasGutter>
+      <StackItem>
+        <Title headingLevel="h3">Gateways</Title>
+      </StackItem>
+      <StackItem>
+        {!gatewaysLoaded ? (
+          <Spinner aria-label="Loading gateways" />
+        ) : (
+          <Gallery
+            hasGutter
+            minWidths={{ default: '250px' }}
+            data-testid="gateway-cards-gallery"
+          >
+            {gateways.map((gw) => (
+              <GalleryItem key={gw.name}>
+                <Card isCompact data-testid={`gateway-card-${gw.name}`}>
+                  <CardHeader>
+                    <CardTitle>
+                      <Flex
+                        alignItems={{ default: 'alignItemsCenter' }}
+                        gap={{ default: 'gapSm' }}
+                      >
+                        <FlexItem>{gw.name}</FlexItem>
+                        <FlexItem>
+                          <Label color={gatewayStatusColor(gw.status)} isCompact>
+                            {gw.status}
+                          </Label>
+                        </FlexItem>
+                      </Flex>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardBody>
+                    <Stack>
+                      <StackItem>
+                        <Content component="small">{gw.endpoint}</Content>
+                      </StackItem>
+                      <StackItem>
+                        <Content component="small">
+                          {gw.providerCount} provider(s) | {gw.sandboxCount} sandbox(es)
+                        </Content>
+                      </StackItem>
+                    </Stack>
+                  </CardBody>
+                  <CardFooter>
+                    <Flex gap={{ default: 'gapSm' }}>
+                      <FlexItem>
+                        <Button
+                          variant="link"
+                          isInline
+                          onClick={() => setGatewayForProviders(gw)}
+                          data-testid={`manage-providers-${gw.name}`}
+                        >
+                          Manage Providers
+                        </Button>
+                      </FlexItem>
+                      <FlexItem>
+                        <Button
+                          variant="link"
+                          isInline
+                          isDanger
+                          onClick={() => setGatewayToDelete(gw)}
+                          data-testid={`delete-gateway-${gw.name}`}
+                        >
+                          Delete
+                        </Button>
+                      </FlexItem>
+                    </Flex>
+                  </CardFooter>
+                </Card>
+              </GalleryItem>
+            ))}
+            <GalleryItem>
+              <Card
+                isCompact
+                isSelectable
+                isClickable
+                data-testid="add-gateway-card"
+              >
+                <CardBody>
+                  <Flex
+                    justifyContent={{ default: 'justifyContentCenter' }}
+                    alignItems={{ default: 'alignItemsCenter' }}
+                    direction={{ default: 'column' }}
+                    gap={{ default: 'gapSm' }}
+                  >
+                    <FlexItem>
+                      <Button
+                        variant="plain"
+                        aria-label="Register gateway"
+                        onClick={() => {
+                          setCreateGatewayDeployMode(false);
+                          setIsCreateGatewayOpen(true);
+                        }}
+                        icon={<PlusCircleIcon />}
+                      />
+                    </FlexItem>
+                    <FlexItem>
+                      <Content component="small">Register or Deploy Gateway</Content>
+                    </FlexItem>
+                  </Flex>
+                </CardBody>
+              </Card>
+            </GalleryItem>
+          </Gallery>
+        )}
+      </StackItem>
+    </Stack>
   );
 
   const tableContent = () => {
@@ -164,7 +318,7 @@ const AgentDeploymentListPage: React.FC = () => {
             namespace={namespace}
             filterData={filterData}
             onFilterUpdate={onFilterUpdate}
-            onDeployAgent={() => navigateToDeployAgentWizard(namespace)}
+            onDeployAgent={handleOpenDeployModal}
             deployMode={deployMode}
           />
         }
@@ -172,37 +326,89 @@ const AgentDeploymentListPage: React.FC = () => {
     );
   };
 
+  const pageContent = (
+    <Stack hasGutter>
+      <StackItem>{gatewayCards}</StackItem>
+      <StackItem>
+        <Title headingLevel="h3">Sandboxes</Title>
+      </StackItem>
+      <StackItem>{tableContent()}</StackItem>
+    </Stack>
+  );
+
   return (
-    <ApplicationsPage
-      noTitle // rendered inside a TabRoutePage which provides the title and tabs
-      description="View and manage agent deployments across your fleet."
-      headerContent={headerContent}
-      loadError={noProjectSelected || isAccessDenied ? undefined : loadError}
-      loaded={noProjectSelected ? !projectsLoading : loaded}
-      empty={noProjectSelected || (isEmpty && !isAccessDenied)}
-      emptyStatePage={
-        noProjectSelected ? (
-          <EmptyState
-            headingLevel="h2"
-            icon={CubesIcon}
-            titleText="Select a project"
-            variant={EmptyStateVariant.lg}
-            data-testid="agent-deployments-select-project"
-          >
-            <EmptyStateBody>Select a project to view agent deployments.</EmptyStateBody>
-          </EmptyState>
-        ) : (
-          <AgentDeploymentsEmptyState
-            namespace={namespace}
-            onDeployAgent={() => navigateToDeployAgentWizard(namespace)}
-            deployMode={deployMode}
-          />
-        )
-      }
-      provideChildrenPadding
-    >
-      {tableContent()}
-    </ApplicationsPage>
+    <>
+      <ApplicationsPage
+        noTitle
+        description="View and manage agent deployments across your fleet."
+        headerContent={headerContent}
+        loadError={noProjectSelected || isAccessDenied ? undefined : loadError}
+        loaded={noProjectSelected ? !projectsLoading : loaded}
+        empty={noProjectSelected || (isEmpty && !isAccessDenied && gateways.length === 0)}
+        emptyStatePage={
+          noProjectSelected ? (
+            <EmptyState
+              headingLevel="h2"
+              icon={CubesIcon}
+              titleText="Select a project"
+              variant={EmptyStateVariant.lg}
+              data-testid="agent-deployments-select-project"
+            >
+              <EmptyStateBody>Select a project to view agent deployments.</EmptyStateBody>
+            </EmptyState>
+          ) : (
+            <AgentDeploymentsEmptyState
+              namespace={namespace}
+              onDeployAgent={handleOpenDeployModal}
+            />
+          )
+        }
+        provideChildrenPadding
+      >
+        {pageContent}
+      </ApplicationsPage>
+
+      {namespace ? (
+        <DeploySandboxModal
+          isOpen={isDeployModalOpen}
+          namespace={namespace}
+          onClose={() => setIsDeployModalOpen(false)}
+          onDeployed={() => {
+            setIsDeployModalOpen(false);
+            void refresh();
+          }}
+        />
+      ) : null}
+
+      <CreateGatewayModal
+        isOpen={isCreateGatewayOpen}
+        onClose={() => setIsCreateGatewayOpen(false)}
+        onCreated={() => {
+          setIsCreateGatewayOpen(false);
+          void refreshGateways();
+        }}
+        deployMode={createGatewayDeployMode}
+      />
+
+      {gatewayToDelete ? (
+        <GatewayDeleteModal
+          gateway={gatewayToDelete}
+          onClose={() => setGatewayToDelete(undefined)}
+          onDeleted={() => {
+            setGatewayToDelete(undefined);
+            void refreshGateways();
+          }}
+        />
+      ) : null}
+
+      {gatewayForProviders ? (
+        <ManageProvidersModal
+          isOpen
+          gateway={gatewayForProviders}
+          onClose={() => setGatewayForProviders(undefined)}
+        />
+      ) : null}
+    </>
   );
 };
 

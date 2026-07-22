@@ -9,14 +9,15 @@ export const agentOpsGatewaysPath = `${agentOpsRootPath}/gateways`;
 export const agentOpsGatewayDetailRoute = (gwName: string): string =>
   `${agentOpsGatewaysPath}/${encodeURIComponent(gwName)}`;
 
+/** @deprecated Wizard path kept for backwards compatibility — deploy is now a modal. */
 export const agentDeployWizardPath = `${agentDeploymentsPath}/deploy`;
 
 /** Paths registered as full-page app.route breakouts (outside the Agents tab layout). */
 export const agentOpsStandaloneRoutePaths = [
-  agentDeployWizardPath,
   `${agentDeploymentsPath}/:namespace/:agentId/*`,
 ] as const;
 
+/** @deprecated Wizard route removed — deploy is now a modal. */
 export const getAgentDeployWizardRoute = (): string => agentDeployWizardPath;
 
 export const agentOpsDeploymentsRoute = (namespace?: string): string =>
