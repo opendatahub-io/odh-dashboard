@@ -8,8 +8,7 @@ import {
   setupDefaults,
 } from '@odh-dashboard/k8s-core';
 import type { K8sNameDescriptionFieldData } from '@odh-dashboard/k8s-core';
-import { mockProjectK8sResource } from '@odh-dashboard/internal/__mocks__/mockProjectK8sResource';
-import { mockK8sNameDescriptionFieldData } from '@odh-dashboard/internal/__mocks__/mockK8sNameDescriptionFieldData';
+import { mockK8sNameDescriptionFieldData, mockProjectK8sResource } from './mocks';
 
 describe('setupDefaults', () => {
   it('should return a sane default', () => {
@@ -481,6 +480,8 @@ describe('isRouteNameTooLong', () => {
   it('should return false when no namespace is provided', () => {
     expect(isRouteNameTooLong('my-resource')).toBe(false);
     expect(isRouteNameTooLong('my-resource', undefined)).toBe(false);
+    // Empty string means namespace not available yet (same skip as undefined)
+    expect(isRouteNameTooLong('my-resource', '')).toBe(false);
   });
 
   it('should return false when k8sName is empty', () => {
@@ -632,5 +633,22 @@ describe('handleUpdateLogic with namespace (route name validation)', () => {
 
     const result = handleUpdateLogic(defaults)('name', 'this is a workbench with a long name');
     expect(result.k8sName.state.routeNameTooLong).toBe(false);
+  });
+
+  it('should prefer namespace override over stale state namespace', () => {
+    const defaults = setupDefaults({
+      limitNameResourceType: LimitNameResourceType.WORKBENCH,
+      namespace: 'short-ns',
+      safePrefix: 'wb-',
+    });
+
+    // Prop namespace resolved to a long value while state still has short-ns
+    const longNamespace = 'a-very-long-project-namespace-name';
+    const result = handleUpdateLogic(defaults, { namespace: longNamespace })(
+      'name',
+      'this is a workbench with a long name',
+    );
+    expect(result.k8sName.state.namespace).toBe(longNamespace);
+    expect(result.k8sName.state.routeNameTooLong).toBe(true);
   });
 });

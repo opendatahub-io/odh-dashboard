@@ -164,16 +164,22 @@ export const setupDefaults = ({
 };
 
 export const handleUpdateLogic =
-  (existingData: K8sNameDescriptionFieldData): K8sNameDescriptionFieldUpdateFunctionInternal =>
+  (
+    existingData: K8sNameDescriptionFieldData,
+    /** When set, use this namespace for route checks instead of stale state (prop may resolve async). */
+    options?: { namespace?: string },
+  ): K8sNameDescriptionFieldUpdateFunctionInternal =>
   (key, value) => {
     const changedData: RecursivePartial<K8sNameDescriptionFieldData> = {};
+    const namespace =
+      options !== undefined ? options.namespace : existingData.k8sName.state.namespace;
 
     // Handle special cases
     switch (key) {
       case 'name': {
         changedData.name = value;
 
-        const { touched, immutable, maxLength, safePrefix, staticPrefix, regexp, namespace } =
+        const { touched, immutable, maxLength, safePrefix, staticPrefix, regexp } =
           existingData.k8sName.state;
         // When name changes, we want to update resource name if applicable
         if (!touched && !immutable) {
@@ -189,6 +195,7 @@ export const handleUpdateLogic =
               invalidCharacters: k8sValue.length > 0 ? !isValidK8sName(k8sValue, regexp) : false,
               invalidLength: k8sValue.length > maxLength,
               routeNameTooLong: isRouteNameTooLong(k8sValue, namespace),
+              ...(options !== undefined ? { namespace } : {}),
             },
           };
         }
@@ -200,7 +207,8 @@ export const handleUpdateLogic =
             invalidCharacters:
               value.length > 0 ? !isValidK8sName(value, existingData.k8sName.state.regexp) : false,
             invalidLength: value.length > existingData.k8sName.state.maxLength,
-            routeNameTooLong: isRouteNameTooLong(value, existingData.k8sName.state.namespace),
+            routeNameTooLong: isRouteNameTooLong(value, namespace),
+            ...(options !== undefined ? { namespace } : {}),
             touched: true,
           },
           value,

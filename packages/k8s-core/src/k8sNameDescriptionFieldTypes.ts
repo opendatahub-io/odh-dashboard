@@ -29,7 +29,7 @@ export type K8sNameDescriptionFieldData = {
       staticPrefix?: boolean;
       /** Max length for the K8s name */
       maxLength: number;
-      /** If the route name ({name}-{namespace}) exceeds the 63-character DNS label limit */
+      /** If the route name ({k8sName}-{namespace}) exceeds the 63-character DNS label limit */
       routeNameTooLong: boolean;
       /** The namespace used for route name validation */
       namespace?: string;

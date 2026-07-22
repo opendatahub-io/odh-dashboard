@@ -60,9 +60,16 @@ export const useK8sNameDescriptionFieldData = (
     });
   }, [namespace, isRouteBased]);
 
-  const onDataChange = React.useCallback<K8sNameDescriptionFieldUpdateFunction>((key, value) => {
-    setData((currentData) => handleUpdateLogic(currentData)(key, value));
-  }, []);
+  const onDataChange = React.useCallback<K8sNameDescriptionFieldUpdateFunction>(
+    (key, value) => {
+      setData((currentData) =>
+        // Prefer the current configuration namespace over state so typing while the
+        // project/namespace is resolving does not use a stale route-length check.
+        handleUpdateLogic(currentData, isRouteBased ? { namespace } : undefined)(key, value),
+      );
+    },
+    [isRouteBased, namespace],
+  );
 
   return { data, onDataChange };
 };
