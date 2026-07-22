@@ -16,7 +16,7 @@ import { ProjectsContext } from '@odh-dashboard/internal/concepts/projects/Proje
 import { getStoredPreferredProject } from '@odh-dashboard/internal/concepts/projects/getStoredPreferredProject';
 import { ProjectIconWithSize } from '@odh-dashboard/internal/concepts/projects/ProjectIconWithSize';
 import { IconSize } from '@odh-dashboard/internal/types';
-import ProjectSelectorNavigator from '@odh-dashboard/internal/concepts/projects/ProjectSelectorNavigator';
+import ProjectSelectorNavigator from '@odh-dashboard/ui-core/components/projectSelector/ProjectSelectorNavigator';
 import { WORKSPACE_QUERY_PARAM } from '@odh-dashboard/internal/routes/pipelines/mlflow';
 import MLflowUnavailable from '../shared/MLflowUnavailable';
 
