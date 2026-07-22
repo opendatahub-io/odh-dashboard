@@ -107,7 +107,10 @@ export const waitForAutomlRunCompletion = (timeoutMs?: number): void => {
   cy.step(`Wait for AutoML run to complete (timeout: ${timeout}ms)`);
   cy.findByTestId('automl-run-in-progress', { timeout }).should('not.exist');
 
-  automlResultsPage.findRunStatusLabel().should('not.exist');
+  automlResultsPage
+    .findRunStatusLabel()
+    .invoke('text')
+    .should('not.match', /CANCEL|FAIL/i);
   automlResultsPage.findLeaderboardTable().should('be.visible');
   automlResultsPage.findTopRankLabel().should('exist');
 };
