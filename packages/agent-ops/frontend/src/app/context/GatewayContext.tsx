@@ -12,7 +12,7 @@ type GatewayContextProps = {
   setSelectedGateway: (gateway: Gateway) => void;
   loaded: boolean;
   error: Error | undefined;
-  refresh: () => Promise<void>;
+  refresh: () => void;
 };
 
 const GatewayContext = React.createContext<GatewayContextProps>({
@@ -21,7 +21,7 @@ const GatewayContext = React.createContext<GatewayContextProps>({
   setSelectedGateway: () => undefined,
   loaded: false,
   error: undefined,
-  refresh: () => Promise.resolve(),
+  refresh: () => undefined,
 });
 
 type GatewayContextProviderProps = {

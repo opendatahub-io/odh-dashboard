@@ -143,7 +143,7 @@ const OpenShellManagementPage: React.FC = () => {
                           <FlexItem>
                             <Button
                               variant="secondary"
-                              isSmall
+                              size="sm"
                               onClick={() => setGatewayForProviders(gw)}
                               data-testid={`manage-providers-${gw.name}`}
                             >
@@ -154,7 +154,7 @@ const OpenShellManagementPage: React.FC = () => {
                             <Button
                               variant="link"
                               isDanger
-                              isSmall
+                              size="sm"
                               onClick={() => setGatewayToDelete(gw)}
                               data-testid={`delete-gateway-${gw.name}`}
                             >
@@ -242,6 +242,7 @@ const OpenShellManagementPage: React.FC = () => {
       ) : null}
       {gatewayForProviders ? (
         <ManageProvidersModal
+          isOpen
           gateway={gatewayForProviders}
           onClose={() => setGatewayForProviders(undefined)}
         />
