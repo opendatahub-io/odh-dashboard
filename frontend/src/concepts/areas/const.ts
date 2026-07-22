@@ -17,8 +17,6 @@ export const techPreviewFlags = {
   mcpCatalog: false,
   mcpRegistry: false,
   toolCalling: false,
-  projectRBAC: true,
-  roleManagement: false,
   deploymentWizardYAMLViewer: false,
   externalVectorStores: false,
   agentConfigManagement: false,
@@ -59,6 +57,8 @@ export const projectManagementFlags = {
   disableBYONImageStream: false,
   disableAdminConnectionTypes: false,
   disableStorageClasses: false,
+  projectRBAC: true,
+  roleManagement: true,
 } satisfies Partial<DashboardCommonConfig>;
 
 // Group 3: Model Serving & AI/ML Infrastructure
