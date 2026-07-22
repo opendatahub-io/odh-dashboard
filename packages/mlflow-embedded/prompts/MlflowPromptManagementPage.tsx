@@ -23,7 +23,7 @@ import { useAppContext } from '@odh-dashboard/internal/app/AppContext';
 import { getDashboardMainContainer } from '@odh-dashboard/internal/utilities/utils';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import { useUser } from '@odh-dashboard/internal/redux/selectors/user';
-import ProjectSelectorNavigator from '@odh-dashboard/internal/concepts/projects/ProjectSelectorNavigator';
+import ProjectSelectorNavigator from '@odh-dashboard/ui-core/components/projectSelector/ProjectSelectorNavigator';
 import TitleWithIcon from '@odh-dashboard/ui-core/design/TitleWithIcon';
 import { ApplicationsPage, ProjectObjectType } from '@odh-dashboard/ui-core';
 import {
