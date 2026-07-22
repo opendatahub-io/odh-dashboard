@@ -15,6 +15,8 @@ import {
   Popover,
   Divider,
   Backdrop,
+  List,
+  ListItem,
 } from '@patternfly/react-core';
 /* eslint-enable @odh-dashboard/no-restricted-imports */
 import { ExternalLinkAltIcon, ExclamationTriangleIcon } from '@patternfly/react-icons';
@@ -54,7 +56,6 @@ const useTourSteps = (isAdmin: boolean): TourStep[] => {
   const config = dashboardConfig.spec.dashboardConfig;
 
   const genAiAvailable = config.genAiStudio ?? false;
-  const genAiTracingAvailable = config.genAiTracing ?? false;
   const automlAvailable = config.automl ?? false;
   const autoragAvailable = (config.autorag ?? false) && genAiAvailable;
   const guardrailsAvailable = config.guardrails ?? false;
@@ -62,10 +63,26 @@ const useTourSteps = (isAdmin: boolean): TourStep[] => {
   const toolCallingAvailable = config.toolCalling ?? false;
   const observabilityAvailable = config.observabilityDashboard ?? false;
   const gpuaasAvailable = config.gpuaas ?? false;
-  const maasRedesignAvailable = config.maasSettingsIaRedesign ?? false;
   const mcpCatalogAvailable = config.mcpCatalog ?? false;
   const agentsCatalogAvailable = config.agentsCatalog ?? false;
   const agentOpsAvailable = config.agentOps ?? false;
+  const roleManagementAvailable = config.roleManagement ?? false;
+  const lmEvalAvailable = !config.disableLMEval;
+  const genAiTracingAvailable = config.genAiTracing ?? false;
+  const promptManagementAvailable = config.promptManagement ?? false;
+  const globalProjectPromptsAvailable = config.globalProjectPrompts ?? false;
+  const connectionTestAvailable = config.connectionTest ?? false;
+  const mcpRegistryAvailable = config.mcpRegistry ?? false;
+  const externalModelsAvailable = config.externalModels ?? false;
+  const modelCatalogAvailable = !config.disableModelCatalog;
+  const modelRegistryAvailable = !config.disableModelRegistry;
+  const modelServingAvailable = !config.disableModelServing;
+  const aiHubAvailable =
+    modelCatalogAvailable ||
+    modelRegistryAvailable ||
+    modelServingAvailable ||
+    mcpCatalogAvailable ||
+    agentsCatalogAvailable;
 
   return React.useMemo<TourStep[]>(
     () => [
@@ -73,17 +90,31 @@ const useTourSteps = (isAdmin: boolean): TourStep[] => {
         id: 'projects',
         title: 'Projects',
         description:
-          'Organize your AI work into projects. Each project groups workbenches, pipelines, model servers, and cluster storage so your team can collaborate in one place.',
+          'Organize workbenches, pipelines, model servers, and storage so your team can collaborate in one place.',
         navSelector: 'a[href="/projects"]',
         docUrl: DEFAULT_DOC_URL,
         sectionAvailable: true,
-        newFeatures: [],
+        newFeatures: [
+          {
+            title: 'Granular role creation',
+            description:
+              'Define what users can do within a project by creating and assigning roles.',
+            flagName: 'roleManagement',
+            available: roleManagementAvailable,
+          },
+          {
+            title: 'Connection testing',
+            description: 'Test S3, URI, and OCI connections before saving.',
+            flagName: 'connectionTest',
+            available: connectionTestAvailable,
+          },
+        ],
       },
       {
         id: 'gen-ai-studio',
         title: 'Gen AI studio',
         description:
-          'Build and experiment with generative AI applications. Test models and prompts in the Playground, manage API keys, build retrieval-augmented generation (RAG) pipelines, and adjust model parameters.',
+          'Test models and prompts, experiment with RAG, and prepare configurations before building them into applications.',
         navSelector: 'button[id="gen-ai-studio"]',
         docUrl:
           'https://www.redhat.com/en/blog/introducing-ai-hub-and-genai-studio-new-command-center-enterprise-generative-ai-red-hat-openshift-ai',
@@ -91,30 +122,35 @@ const useTourSteps = (isAdmin: boolean): TourStep[] => {
         newFeatures: [
           {
             title: 'AutoRAG',
-            description: 'Build and optimize RAG pipelines with automated strategy evaluation.',
+            description: 'Build RAG pipelines and let the system find the best retrieval strategy.',
             flagName: 'autorag',
             available: autoragAvailable,
           },
           {
             title: 'Guardrails',
-            description:
-              'Configure user-input and model-output guardrails in the Chat Playground using NeMo Guardrails.',
+            description: 'Apply safety filters to model inputs and outputs in the Playground.',
             flagName: 'guardrails',
             available: guardrailsAvailable,
           },
           {
             title: 'Agent configuration management',
             description:
-              'Create, edit, and deploy agent profiles with custom tools, system prompts, and model bindings.',
+              'Save and reuse configurations so you can compare setups without rebuilding.',
             flagName: 'agentConfigManagement',
             available: agentConfigAvailable,
           },
           {
-            title: 'Playground tracing',
-            description:
-              'View token counts, latency metrics, and execution traces in the Playground.',
+            title: 'Gen AI tracing',
+            description: 'See token counts, latency, and execution traces as you test.',
             flagName: 'genAiTracing',
             available: genAiTracingAvailable,
+          },
+          {
+            title: 'Prompt management',
+            description:
+              'Create, version, and manage reusable prompts powered by MLflow within Gen AI studio.',
+            flagName: 'promptManagement',
+            available: promptManagementAvailable,
           },
         ],
       },
@@ -122,14 +158,14 @@ const useTourSteps = (isAdmin: boolean): TourStep[] => {
         id: 'develop-and-train',
         title: 'Develop & train',
         description:
-          'Build and train models using workbenches, pipelines, and distributed training jobs. Launch Jupyter notebooks, submit Ray jobs, or run automated experiments.',
+          'Build pipelines, run training jobs, track experiments, and evaluate model performance.',
         navSelector: 'button[id="develop-and-train"]',
         sectionAvailable: true,
         newFeatures: [
           {
             title: 'AutoML',
             description:
-              'Configure a dataset and target, then let the platform evaluate multiple algorithms to find the best model.',
+              'Train machine learning models using automated model selection, parameter optimization, and feature engineering.',
             flagName: 'automl',
             available: automlAvailable,
           },
@@ -139,11 +175,11 @@ const useTourSteps = (isAdmin: boolean): TourStep[] => {
         id: 'ai-hub',
         title: 'AI hub',
         description:
-          'Discover pre-built models, MCP servers, and agents from a central catalog. Browse, filter, and deploy assets directly to your project.',
+          'Discover, register, and deploy models. Browse agent templates to build agents, and connect to MCP servers.',
         navSelector: 'button[id="ai-hub"]',
         docUrl:
           'https://www.redhat.com/en/blog/introducing-ai-hub-and-genai-studio-new-command-center-enterprise-generative-ai-red-hat-openshift-ai',
-        sectionAvailable: true,
+        sectionAvailable: aiHubAvailable,
         newFeatures: [
           {
             title: 'Tool calling',
@@ -153,38 +189,48 @@ const useTourSteps = (isAdmin: boolean): TourStep[] => {
             available: toolCallingAvailable,
           },
           {
-            title: 'MCP catalog (Technology Preview → GA)',
-            description:
-              'Browse and deploy Model Context Protocol servers from the catalog — now generally available.',
+            title: 'MCP catalog',
+            description: 'Find and deploy MCP servers for your organization.',
             flagName: 'mcpCatalog',
             available: mcpCatalogAvailable,
           },
           {
-            title: 'Agents catalog',
-            description: 'Discover, browse, and deploy pre-built agents from a central catalog.',
+            title: 'Agents',
+            description: 'Browse agent templates and deploy agents for your projects.',
             flagName: 'agentsCatalog',
-            available: agentsCatalogAvailable,
+            available: agentsCatalogAvailable && agentOpsAvailable,
           },
           {
-            title: 'Agent deployments',
-            description: 'Deploy, manage, and monitor agent runtimes from the AI hub.',
-            flagName: 'agentOps',
-            available: agentOpsAvailable,
+            title: 'External models',
+            description: 'View models from external providers alongside your deployed models.',
+            flagName: 'externalModels',
+            available: externalModelsAvailable,
+          },
+          {
+            title: 'Safety and security insights',
+            description:
+              'View safety and security evaluation results for models in the model catalog.',
+            flagName: 'disableLMEval',
+            available: lmEvalAvailable,
+          },
+          {
+            title: 'MCP registry',
+            description: 'Register and manage MCP server definitions from a centralized registry.',
+            flagName: 'mcpRegistry',
+            available: mcpRegistryAvailable,
           },
         ],
       },
       {
         id: 'observe-and-monitor',
         title: 'Observe & monitor',
-        description:
-          'Track workload metrics and resource utilization across your projects. Monitor GPU usage, queue wait times, and distributed workload performance.',
+        description: 'Check resource usage and workload health across your projects.',
         navSelector: 'button[id="observe-and-monitor"]',
         sectionAvailable: true,
         newFeatures: [
           {
-            title: 'Observability dashboard (Technology Preview → GA)',
-            description:
-              'View unified observability dashboards — now generally available and enabled by default.',
+            title: 'Observability dashboard',
+            description: 'View model serving metrics, costs, and workload status.',
             flagName: 'observabilityDashboard',
             available: observabilityAvailable,
           },
@@ -196,23 +242,15 @@ const useTourSteps = (isAdmin: boolean): TourStep[] => {
               id: 'settings',
               title: 'Settings',
               description:
-                'Configure cluster-wide settings including storage classes, hardware profiles, serving runtimes, connection types, and user access management.',
+                'Manage user access, environment setup, and model serving resources for your organization.',
               navSelector: 'button[id="settings"]',
               sectionAvailable: true,
               newFeatures: [
                 {
-                  title: 'GPUaaS infrastructure',
-                  description:
-                    'Manage GPU-as-a-Service infrastructure settings for shared GPU compute.',
+                  title: 'GPUaaS',
+                  description: 'View GPU capacity, utilization, and usage by cohort.',
                   flagName: 'gpuaas',
                   available: gpuaasAvailable,
-                },
-                {
-                  title: 'MaaS settings redesign',
-                  description:
-                    'Redesigned Model-as-a-Service settings page with improved information architecture.',
-                  flagName: 'maasSettingsIaRedesign',
-                  available: maasRedesignAvailable,
                 },
                 {
                   title: 'MCP catalog settings',
@@ -221,6 +259,30 @@ const useTourSteps = (isAdmin: boolean): TourStep[] => {
                   flagName: 'mcpCatalog',
                   available: mcpCatalogAvailable,
                 },
+                {
+                  title: 'Global project prompts',
+                  description: 'Use versioned prompt templates when testing models.',
+                  flagName: 'globalProjectPrompts',
+                  available: globalProjectPromptsAvailable,
+                },
+                {
+                  title: 'LLM-D routing configurations',
+                  description: 'Control how requests are routed to llm-d deployments.',
+                  flagName: '',
+                  available: true,
+                },
+                {
+                  title: 'LLM-D topology configurations',
+                  description: 'Configure how llm-d services are arranged and scaled.',
+                  flagName: '',
+                  available: true,
+                },
+                {
+                  title: 'LLM accelerator configurations',
+                  description: 'Set default accelerators for LLM serving.',
+                  flagName: '',
+                  available: true,
+                },
               ],
             },
           ]
@@ -228,7 +290,6 @@ const useTourSteps = (isAdmin: boolean): TourStep[] => {
     ],
     [
       genAiAvailable,
-      genAiTracingAvailable,
       autoragAvailable,
       guardrailsAvailable,
       agentConfigAvailable,
@@ -239,7 +300,15 @@ const useTourSteps = (isAdmin: boolean): TourStep[] => {
       agentOpsAvailable,
       observabilityAvailable,
       gpuaasAvailable,
-      maasRedesignAvailable,
+      roleManagementAvailable,
+      lmEvalAvailable,
+      genAiTracingAvailable,
+      promptManagementAvailable,
+      globalProjectPromptsAvailable,
+      connectionTestAvailable,
+      mcpRegistryAvailable,
+      externalModelsAvailable,
+      aiHubAvailable,
       isAdmin,
     ],
   );
@@ -449,22 +518,17 @@ const WhatsNewModal: React.FC = () => {
         aria-labelledby="whats-new-modal-title"
         onClose={() => handleDismiss('modal_close')}
       >
-        <ModalHeader
-          title="Welcome to the new OpenShift AI 3.5 experience!"
-          labelId="whats-new-modal-title"
-        />
+        <ModalHeader title="Welcome to OpenShift AI 3.5!" labelId="whats-new-modal-title" />
         <ModalBody>
           <Content component={ContentVariants.p}>
-            This release improves navigation and adds tools for generative AI development and
-            observability. Take a guided tour to explore the updated interface and new features in
-            each area.
+            Take a guided tour to explore key areas and discover new features.
           </Content>
         </ModalBody>
         <ModalFooter>
           <Flex gap={{ default: 'gapSm' }}>
             <FlexItem>
               <Button data-testid="whats-new-start-tour" variant="primary" onClick={startTour}>
-                Start tour
+                Start full tour
               </Button>
             </FlexItem>
             <FlexItem>
@@ -473,7 +537,7 @@ const WhatsNewModal: React.FC = () => {
                 variant="secondary"
                 onClick={startWhatsNew}
               >
-                What&apos;s new in 3.5
+                Tour what&apos;s new
               </Button>
             </FlexItem>
             <FlexItem>
@@ -482,7 +546,7 @@ const WhatsNewModal: React.FC = () => {
                 variant="link"
                 onClick={() => handleDismiss('skip_button')}
               >
-                Skip tour
+                Close
               </Button>
             </FlexItem>
           </Flex>
@@ -506,7 +570,7 @@ const WhatsNewModal: React.FC = () => {
         <ModalHeader title="You're ready to go!" labelId="whats-new-done-title" />
         <ModalBody>
           <Content component={ContentVariants.p}>
-            Stay up-to-date with everything OpenShift AI in our{' '}
+            Learn more in the{' '}
             <Button
               variant="link"
               isInline
@@ -553,7 +617,7 @@ const WhatsNewModal: React.FC = () => {
   const total = tourSteps.length;
   const learnMoreUrl = currentStep.docUrl ?? DEFAULT_DOC_URL;
   const unavailableFeatures = currentStep.newFeatures.filter((f) => !f.available);
-  const sectionUnavailable = !currentStep.sectionAvailable;
+  const sectionUnavailable = !currentStep.sectionAvailable || !targetEl;
   const presentationType = targetEl ? 'popover' : 'modal';
 
   const stepBody = (
@@ -603,22 +667,24 @@ const WhatsNewModal: React.FC = () => {
                 <ExclamationTriangleIcon color="var(--pf-t--global--color--nonstatus--orange--default)" />{' '}
                 {isAdmin ? (
                   <>
-                    Enable{' '}
-                    {unavailableFeatures
-                      .map((f) => <code key={f.flagName}>{f.flagName}</code>)
-                      .reduce<React.ReactNode[]>(
-                        (acc, el, i) => (i === 0 ? [el] : [...acc, ', ', el]),
-                        [],
-                      )}{' '}
-                    feature flag{unavailableFeatures.length > 1 ? 's' : ''} in{' '}
-                    <code>OdhDashboardConfig</code> to use{' '}
-                    {unavailableFeatures.length > 1 ? 'these features' : 'this feature'}.
+                    To enable unavailable features in your cluster, enable the following feature
+                    flags in <code>OdhDashboardConfig</code>:
+                    <List>
+                      {unavailableFeatures.map((f) => (
+                        <ListItem key={f.flagName}>
+                          {f.flagName.startsWith('disable') ? (
+                            <>
+                              Set <code>{f.flagName}</code> to <code>false</code>
+                            </>
+                          ) : (
+                            <code>{f.flagName}</code>
+                          )}
+                        </ListItem>
+                      ))}
+                    </List>
                   </>
                 ) : (
-                  <>
-                    Contact your administrator to enable the unavailable feature
-                    {unavailableFeatures.length > 1 ? 's' : ''}.
-                  </>
+                  <>Contact your administrator to request access to unavailable features.</>
                 )}
               </Content>
             )}
@@ -683,7 +749,11 @@ const WhatsNewModal: React.FC = () => {
           position="right"
           triggerRef={() => targetEl}
           headerContent={currentStep.title}
-          bodyContent={stepBody}
+          bodyContent={
+            <div style={{ maxHeight: '50vh', overflowY: 'auto', overflowX: 'hidden' }}>
+              {stepBody}
+            </div>
+          }
           footerContent={stepFooter}
           hasAutoWidth
           maxWidth="28rem"
