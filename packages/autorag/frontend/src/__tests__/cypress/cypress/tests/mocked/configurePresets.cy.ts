@@ -86,7 +86,7 @@ const navigateToConfigureDetails = () => {
 
   // Step 1: Fill experiment name and OGX secret
   autoragConfigurePage.findNameInput().type('Preset Test');
-  autoragConfigurePage.findOgxSecretSelector().click();
+  autoragConfigurePage.findOgxSecretSelector().should('be.visible').click();
   autoragConfigurePage.selectDropdownOption(/ogx-secret/i).click();
   autoragConfigurePage.findNextButton().click();
   autoragConfigurePage.findConfigureDetailsSubtitle().should('be.visible');
