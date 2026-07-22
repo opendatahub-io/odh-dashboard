@@ -88,6 +88,9 @@ describe('Workbench Kueue Lifecycle Tests', () => {
       cy.step('Submit the workbench creation');
       createSpawnerPage.findSubmitButton().click();
 
+      cy.step('Wait for notebook table to appear');
+      workbenchPage.findNotebookTable(30000).should('exist');
+
       cy.step('Verify workbench shows Queued status');
       const notebookRow = workbenchPage.getNotebookRow(workbenchName);
       notebookRow.expectStatusLabelToBe('Queued', 120000);
