@@ -689,7 +689,8 @@ describe('HardwareProfileSelect - Project-scoped preview description', () => {
 
     // All three sections should appear in the preview
     expect(screen.getByText('A test profile with everything')).toBeInTheDocument();
-    expect(screen.getByText(/Memory:.*Default.*Max.*CPU:.*Default.*Max/)).toBeInTheDocument();
+    expect(screen.getByText(/Memory:.*Default.*Max/)).toBeInTheDocument();
+    expect(screen.getByText(/CPU:.*Default.*Max/)).toBeInTheDocument();
     expect(screen.getByText('Local queue: my-queue; Priority: high-priority')).toBeInTheDocument();
   });
 
@@ -717,7 +718,8 @@ describe('HardwareProfileSelect - Project-scoped preview description', () => {
     });
 
     // Both identifiers and kueue should show (not just one via || fallback)
-    expect(screen.getByText(/Memory:.*Default.*Max.*CPU:.*Default.*Max/)).toBeInTheDocument();
+    expect(screen.getByText(/Memory:.*Default.*Max/)).toBeInTheDocument();
+    expect(screen.getByText(/CPU:.*Default.*Max/)).toBeInTheDocument();
     expect(screen.getByText('Local queue: my-queue; Priority: high-priority')).toBeInTheDocument();
   });
 

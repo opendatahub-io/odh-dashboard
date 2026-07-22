@@ -408,10 +408,17 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
                 isFullWidth
               />
               {(() => {
+                const existingSettingsFallback = hardwareProfileConfig.useExistingSettings ? (
+                  <FormHelperText>
+                    <HelperText>
+                      <HelperTextItem>
+                        Use existing resource requests/limits, tolerations, and node selectors.
+                      </HelperTextItem>
+                    </HelperText>
+                  </FormHelperText>
+                ) : null;
                 if (!previewDescription || !hardwareProfileConfig.selectedProfile) {
-                  return hardwareProfileConfig.useExistingSettings
-                    ? 'Use existing resource requests/limits, tolerations, and node selectors.'
-                    : null;
+                  return existingSettingsFallback;
                 }
                 const profileDescription = getHardwareProfileDescription(
                   hardwareProfileConfig.selectedProfile,
@@ -423,9 +430,7 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
                   hardwareProfileConfig.selectedProfile.spec.scheduling,
                 );
                 if (!profileDescription && !previewIdentifiers && !previewKueue) {
-                  return hardwareProfileConfig.useExistingSettings
-                    ? 'Use existing resource requests/limits, tolerations, and node selectors.'
-                    : null;
+                  return existingSettingsFallback;
                 }
                 return (
                   <FormHelperText>
