@@ -5,22 +5,11 @@ import { mockUserSettings } from '~/__mocks__/mockUserSettings';
 import { mockStorageSecret, mockOGXSecret } from '~/__mocks__/mockSecretListItem';
 import { mockS3ListObjectsResponse } from '~/__mocks__/mockS3ListObjectsResponse';
 import { mockVectorStoreProvidersResponse } from '~/__mocks__/mockVectorStore';
+import { mockOgxModelsResponse } from '~/__mocks__/mockOgxModels';
 import { autoragConfigurePage } from '~/__tests__/cypress/cypress/pages/autoragConfigure';
 import { CLIENT_API_VERSION } from '~/__tests__/cypress/cypress/support/commands/api';
 
 const TEST_NAMESPACE = 'test-ns';
-
-const mockOgxModelsResponse = () => ({
-  models: [
-    { id: 'llm-model-1', type: 'llm', provider: 'openai', resource_path: '/models/llm-1' },
-    {
-      id: 'embedding-model-1',
-      type: 'embedding',
-      provider: 'openai',
-      resource_path: '/models/emb-1',
-    },
-  ],
-});
 
 const initIntercepts = () => {
   cy.interceptApi(
