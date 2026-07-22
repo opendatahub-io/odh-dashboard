@@ -181,8 +181,8 @@ const SourceModelFields: React.FC<SourceModelFieldsProps> = ({
               content={
                 <>
                   Enter the <strong>name</strong> of the Kubernetes Secret that stores
-                  authentication credentials. The secret can contain an API key (api-key) and, for
-                  gated Hugging Face models, a Hugging Face token (hf-token).
+                  authentication credentials. The secret should contain an API key (api-key). For
+                  gated Hugging Face models, it should also include a Hugging Face token (hf-token).
                   <br />
                   <br />
                   If it hasn&apos;t been created yet, run:
