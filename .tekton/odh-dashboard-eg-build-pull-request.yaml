@@ -26,7 +26,7 @@ spec:
   - name: output-image
     value: quay.io/rhoai/odh-dashboard-rhel9:on-pr-{{revision}}
   - name: dockerfile
-    value: Dockerfile
+    value: Dockerfile,konflux
   - name: path-context
     value: .
   - name: additional-tags
@@ -42,7 +42,7 @@ spec:
   - name: build-source-image
     value: "true"
   - name: hermetic
-    value: "true"
+    value: "false"
   pipelineRef:
     resolver: git
     params:
