@@ -39,10 +39,14 @@ func validateDeployRequest(req *models.DeployAgentRequest) error {
 		return fmt.Errorf("containerImage is required")
 	}
 	if strings.Contains(req.ContainerImage, ":") {
-		return fmt.Errorf("containerImage must not include a tag — use imageTag instead")
+		parts := strings.SplitN(req.ContainerImage, ":", 2)
+		req.ContainerImage = parts[0]
+		if req.ImageTag == "" {
+			req.ImageTag = parts[1]
+		}
 	}
 	if req.ImageTag == "" {
-		return fmt.Errorf("imageTag is required")
+		req.ImageTag = "latest"
 	}
 	if req.Framework != "" && !isValidLabelValue(req.Framework) {
 		return fmt.Errorf("invalid framework %q: must be a valid Kubernetes label value (max 63 chars, alphanumeric, '-', '_', or '.')", req.Framework)
@@ -102,6 +106,8 @@ func mapDeployRequestToParams(req *models.DeployAgentRequest) *agents.DeployAgen
 		Protocol:        req.Protocol,
 		Framework:       req.Framework,
 		Description:     req.Description,
+		Gateway:         req.Gateway,
+		Provider:        req.Provider,
 	}
 	for _, e := range req.EnvVars {
 		params.EnvVars = append(params.EnvVars, agents.AgentEnvVar{

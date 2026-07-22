@@ -112,6 +112,20 @@ type EnvConfig struct {
 	// Local development only — routes are live with no RBAC gate; do not enable in staging or production.
 	MockAgentClient bool
 
+	// ─── OPENSHELL ──────────────────────────────────────────────
+	// OpenShellGatewayURL is the gRPC address of the OpenShell Gateway.
+	// When set, the BFF uses the OpenShell SDK for deploy/list/get/delete operations.
+	// Stop/start/restart still go directly through the Sandbox CR.
+	OpenShellGatewayURL string
+
+	// OpenShellSandboxNamespace is the namespace where the Gateway deploys sandboxes.
+	OpenShellSandboxNamespace string
+
+	// OpenShellGatewayNamespace is the namespace where gateway Services are discovered.
+	// Gateways are global infrastructure — discovered from this fixed namespace,
+	// not from the user's selected project. Follows the model registry pattern.
+	OpenShellGatewayNamespace string
+
 	// ─── DEPRECATED ─────────────────────────────────────────────
 	// The following fields are deprecated and maintained for backward compatibility
 	// Use DeploymentMode instead

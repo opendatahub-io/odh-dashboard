@@ -61,9 +61,9 @@ func TestValidateDeployRequest(t *testing.T) {
 			wantErr: "containerImage is required",
 		},
 		{
-			name:    "empty imageTag",
+			name:    "empty imageTag defaults to latest",
 			modify:  func(r *models.DeployAgentRequest) { r.ImageTag = "" },
-			wantErr: "imageTag is required",
+			wantErr: "",
 		},
 		{
 			name:    "invalid protocol",

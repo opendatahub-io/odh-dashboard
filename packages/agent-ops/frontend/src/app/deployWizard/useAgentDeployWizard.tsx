@@ -45,6 +45,9 @@ export const createInitialFormData = (namespace: string): DeployAgentWizardFormD
   persistentVolumeSize: DEFAULT_PERSISTENT_VOLUME_SIZE,
   servicePorts: [createServicePort()],
   envVars: [],
+  gateway: '',
+  provider: '',
+  model: '',
 });
 
 const normalizeFormDataForComparison = (data: DeployAgentWizardFormData) => ({

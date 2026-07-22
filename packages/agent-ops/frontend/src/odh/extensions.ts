@@ -6,8 +6,6 @@ import type {
 
 // Keep in sync with ~/app/utilities/routes.ts (value imports are disallowed in extensions.ts).
 const agentDeploymentsPath = '/ai-hub/agents/deployments';
-const agentDeployWizardPath = `${agentDeploymentsPath}/deploy`;
-
 const AGENT_OPS = 'agent-ops';
 const AGENTS_TAB_PAGE = 'agents-tab-page';
 
@@ -17,13 +15,6 @@ const extensions: (AreaExtension | TabRouteTabExtension | RouteExtension)[] = [
     properties: {
       id: AGENT_OPS,
       featureFlags: ['agentOps'],
-    },
-  },
-  {
-    type: 'app.area',
-    properties: {
-      id: 'agent-ops-deploy',
-      featureFlags: ['agentOpsDeploy'],
     },
   },
   {
@@ -39,12 +30,10 @@ const extensions: (AreaExtension | TabRouteTabExtension | RouteExtension)[] = [
       group: '1_deployments',
     },
   },
-  // Full-page breakout routes share one wrapper and internal router. Keep separate
-  // app.route entries so /ai-hub/agents/deployments (tab list) is not captured.
   {
     type: 'app.route',
     flags: {
-      required: [AGENT_OPS, 'agent-ops-deploy'],
+      required: [AGENT_OPS],
     },
     properties: {
       path: `${agentDeploymentsPath}/:namespace/:agentId/*`,
@@ -54,11 +43,11 @@ const extensions: (AreaExtension | TabRouteTabExtension | RouteExtension)[] = [
   {
     type: 'app.route',
     flags: {
-      required: [AGENT_OPS, 'agent-ops-deploy'],
+      required: [AGENT_OPS],
     },
     properties: {
-      path: agentDeployWizardPath,
-      component: () => import('./AgentDeployWizardRoutes.tsx'),
+      path: '/ai-hub/agents/openshell',
+      component: () => import('./AgentOpenShellManagementWrapper.tsx'),
     },
   },
 ];

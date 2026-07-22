@@ -8,14 +8,20 @@ export enum AgentRuntimeApiStatus {
   Pending = 'pending',
   Provisioning = 'provisioning',
   Failed = 'failed',
+  Error = 'error',
   NotReady = 'not ready',
+  Deleting = 'deleting',
+  Terminating = 'terminating',
 }
 
 export enum AgentRuntimeDisplayStatus {
   Ready = 'Ready',
+  Provisioning = 'Provisioning',
   Stopped = 'Stopped',
   Pending = 'Pending',
   Failed = 'Failed',
+  Error = 'Error',
+  Deleting = 'Deleting',
   Unknown = 'Unknown',
 }
 
@@ -28,10 +34,13 @@ export type AgentRuntimeStatusMapping = {
 
 const STATUS_SORT_WEIGHTS: Record<AgentRuntimeDisplayStatus, number> = {
   [AgentRuntimeDisplayStatus.Ready]: 0,
-  [AgentRuntimeDisplayStatus.Pending]: 1,
-  [AgentRuntimeDisplayStatus.Stopped]: 2,
-  [AgentRuntimeDisplayStatus.Failed]: 3,
-  [AgentRuntimeDisplayStatus.Unknown]: 4,
+  [AgentRuntimeDisplayStatus.Provisioning]: 1,
+  [AgentRuntimeDisplayStatus.Pending]: 2,
+  [AgentRuntimeDisplayStatus.Deleting]: 3,
+  [AgentRuntimeDisplayStatus.Stopped]: 4,
+  [AgentRuntimeDisplayStatus.Error]: 5,
+  [AgentRuntimeDisplayStatus.Failed]: 6,
+  [AgentRuntimeDisplayStatus.Unknown]: 7,
 };
 
 const normalizeAgentRuntimeStatus = (status: string | undefined): string =>
@@ -41,19 +50,25 @@ export const mapAgentRuntimeStatus = (status: string | undefined): AgentRuntimeS
   switch (normalizeAgentRuntimeStatus(status)) {
     case AgentRuntimeApiStatus.Ready:
     case AgentRuntimeApiStatus.Running:
-      return { displayStatus: AgentRuntimeDisplayStatus.Ready, labelStatus: 'success' };
+      return { displayStatus: AgentRuntimeDisplayStatus.Ready, labelColor: 'green' };
+    case AgentRuntimeApiStatus.Provisioning:
+      return { displayStatus: AgentRuntimeDisplayStatus.Provisioning, labelColor: 'blue' };
     case AgentRuntimeApiStatus.Stopped:
     case AgentRuntimeApiStatus.Suspended:
       return { displayStatus: AgentRuntimeDisplayStatus.Stopped, labelColor: 'grey' };
     case AgentRuntimeApiStatus.Pending:
     case AgentRuntimeApiStatus.NotReady:
-      return { displayStatus: AgentRuntimeDisplayStatus.Pending, labelColor: 'purple' };
+      return { displayStatus: AgentRuntimeDisplayStatus.Pending, labelColor: 'blue' };
+    case AgentRuntimeApiStatus.Error:
     case AgentRuntimeApiStatus.Failed:
       return {
-        displayStatus: AgentRuntimeDisplayStatus.Failed,
-        labelStatus: 'danger',
+        displayStatus: AgentRuntimeDisplayStatus.Error,
+        labelColor: 'red',
         labelVariant: 'filled',
       };
+    case AgentRuntimeApiStatus.Deleting:
+    case AgentRuntimeApiStatus.Terminating:
+      return { displayStatus: AgentRuntimeDisplayStatus.Deleting, labelColor: 'grey' };
     default:
       return { displayStatus: AgentRuntimeDisplayStatus.Unknown, labelColor: 'grey' };
   }

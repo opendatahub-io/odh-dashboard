@@ -6,19 +6,19 @@ export const agentRuntimesColumns: SortableData<AgentRuntime>[] = [
   {
     label: 'Name',
     field: 'name',
-    width: 35,
+    width: 25,
     sortable: (a, b) => (a.displayName || a.name).localeCompare(b.displayName || b.name),
   },
   {
-    label: 'Framework',
-    field: 'framework',
+    label: 'Gateway',
+    field: 'gateway',
     width: 15,
-    sortable: (a, b) => (a.framework ?? '').localeCompare(b.framework ?? ''),
+    sortable: false,
   },
   {
-    label: 'Sandbox',
-    field: 'workloadType',
-    width: 15,
+    label: 'Image',
+    field: 'containerImage',
+    width: 20,
     sortable: false,
   },
   {

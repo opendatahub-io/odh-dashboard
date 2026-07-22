@@ -14,6 +14,7 @@ import (
 	"github.com/opendatahub-io/mod-arch-library/bff/internal/integrations/agents"
 	agentsk8s "github.com/opendatahub-io/mod-arch-library/bff/internal/integrations/agents/kubernetes"
 	agentsmock "github.com/opendatahub-io/mod-arch-library/bff/internal/integrations/agents/mock"
+	agentsopenshell "github.com/opendatahub-io/mod-arch-library/bff/internal/integrations/agents/openshell"
 	"github.com/opendatahub-io/mod-arch-library/bff/internal/integrations/bffclient"
 	"github.com/opendatahub-io/mod-arch-library/bff/internal/integrations/bffclient/bffmocks"
 	k8s "github.com/opendatahub-io/mod-arch-library/bff/internal/integrations/kubernetes"
@@ -42,6 +43,11 @@ const (
 	AgentStopPath          = AgentRuntimeDetailPath + "/stop"
 	AgentStartPath         = AgentRuntimeDetailPath + "/start"
 	AgentRestartPath       = AgentRuntimeDetailPath + "/restart"
+	GatewayListPath        = ApiPathPrefix + "/gateways"
+	GatewayDetailPath      = ApiPathPrefix + "/gateways/:gwName"
+	ProviderListPath       = ApiPathPrefix + "/gateways/:gwName/providers"
+	ProviderDetailPath     = ApiPathPrefix + "/gateways/:gwName/providers/:provName"
+	ProviderProfilesPath   = ApiPathPrefix + "/gateways/:gwName/provider-profiles"
 )
 
 var hashPattern = regexp.MustCompile(`[.\-][0-9a-f]{8,}`)
@@ -78,6 +84,9 @@ type App struct {
 	rootCAs *x509.CertPool
 	// bffClientFactory creates clients for inter-BFF communication
 	bffClientFactory bffclient.BFFClientFactory
+	// gateway support
+	gatewayRegistry  *agentsopenshell.GatewayRegistry
+	gatewayDiscovery *agentsopenshell.GatewayDiscovery
 }
 
 func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
@@ -122,8 +131,8 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		}
 	}
 
-	if cfg.AuthMethod == config.AuthMethodDisabled && !cfg.MockAgentClient {
-		return nil, fmt.Errorf("AUTH_METHOD=disabled requires MOCK_AGENT_CLIENT=true: Kubernetes-backed agent routes need authenticated access")
+	if cfg.AuthMethod == config.AuthMethodDisabled && !cfg.MockAgentClient && cfg.OpenShellGatewayURL == "" {
+		return nil, fmt.Errorf("AUTH_METHOD=disabled requires MOCK_AGENT_CLIENT=true or OPENSHELL_GATEWAY_URL: agent routes need an authenticated backend")
 	}
 
 	if cfg.AuthMethod != config.AuthMethodDisabled || cfg.MockK8Client {
@@ -176,9 +185,23 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 	}
 
 	var agentSourceFactory agents.ClientFactory
+	var gatewayRegistry *agentsopenshell.GatewayRegistry
+	var gatewayDiscovery *agentsopenshell.GatewayDiscovery
 	if cfg.MockAgentClient {
 		logger.Warn("MOCK_AGENT_CLIENT is enabled (local development only): agent routes serve fabricated demo data without RBAC checks; do not enable in staging or production")
 		agentSourceFactory = &agentsmock.Factory{Client: agentsmock.NewDemoClient()}
+	} else if cfg.OpenShellGatewayURL != "" {
+		gwRegistry := agentsopenshell.NewGatewayRegistry(logger)
+		gwRegistry.Register("default", cfg.OpenShellSandboxNamespace, cfg.OpenShellGatewayURL, false)
+		gwDiscovery := agentsopenshell.NewGatewayDiscovery(k8sFactory, gwRegistry, logger)
+
+		logger.Info("Using OpenShell Gateway as primary agent backend",
+			slog.String("gateway", cfg.OpenShellGatewayURL),
+			slog.String("namespace", cfg.OpenShellSandboxNamespace))
+
+		agentSourceFactory = agentsopenshell.NewMultiGatewayFactory(gwRegistry, k8sFactory, logger)
+		gatewayRegistry = gwRegistry
+		gatewayDiscovery = gwDiscovery
 	} else {
 		logger.Info("Using Kubernetes agent data client")
 		agentSourceFactory = agentsk8s.NewFactory(k8sFactory, logger)
@@ -190,15 +213,24 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		openAPIHandler = nil
 	}
 
+	var repos *repositories.Repositories
+	if gatewayRegistry != nil && gatewayDiscovery != nil {
+		repos = repositories.NewRepositoriesWithGateway(agentSourceFactory, gatewayDiscovery, gatewayRegistry, k8sFactory, logger)
+	} else {
+		repos = repositories.NewRepositories(agentSourceFactory)
+	}
+
 	app := &App{
 		config:                  cfg,
 		logger:                  logger,
 		kubernetesClientFactory: k8sFactory,
-		repositories:            repositories.NewRepositories(agentSourceFactory),
+		repositories:            repos,
 		openAPI:                 openAPIHandler,
 		testEnv:                 testEnv,
 		rootCAs:                 rootCAs,
 		bffClientFactory:        bffFactory,
+		gatewayRegistry:         gatewayRegistry,
+		gatewayDiscovery:        gatewayDiscovery,
 	}
 	return app, nil
 }
@@ -249,6 +281,24 @@ func (app *App) Routes() http.Handler {
 	apiRouter.DELETE(AgentRuntimeDetailPath,
 		app.AttachNamespaceFromParam("ns",
 			app.RequireAuthenticatedForAgents(app.DeleteAgentHandler)))
+
+	// Gateway management routes
+	if app.repositories.Gateway != nil {
+		apiRouter.GET(GatewayListPath, app.RequireAuthenticatedForAgents(app.ListGatewaysHandler))
+		apiRouter.POST(GatewayListPath, app.RequireAuthenticatedForAgents(app.CreateGatewayHandler))
+		apiRouter.GET(GatewayDetailPath, app.RequireAuthenticatedForAgents(app.GetGatewayHandler))
+		apiRouter.DELETE(GatewayDetailPath, app.RequireAuthenticatedForAgents(app.DeleteGatewayHandler))
+	}
+
+	// Provider management routes (nested under gateways)
+	if app.repositories.Provider != nil {
+		apiRouter.GET(ProviderProfilesPath, app.RequireAuthenticatedForAgents(app.ListProviderProfilesHandler))
+		apiRouter.GET(ProviderListPath, app.RequireAuthenticatedForAgents(app.ListProvidersHandler))
+		apiRouter.POST(ProviderListPath, app.RequireAuthenticatedForAgents(app.CreateProviderHandler))
+		apiRouter.GET(ProviderDetailPath, app.RequireAuthenticatedForAgents(app.GetProviderHandler))
+		apiRouter.PUT(ProviderDetailPath, app.RequireAuthenticatedForAgents(app.UpdateProviderHandler))
+		apiRouter.DELETE(ProviderDetailPath, app.RequireAuthenticatedForAgents(app.DeleteProviderHandler))
+	}
 
 	// Inter-BFF Communication routes — wire your target BFF endpoints here.
 	// Example:

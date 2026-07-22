@@ -1,11 +1,12 @@
 import * as React from 'react';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import { getGenericErrorCode } from '@odh-dashboard/internal/api/errorUtils';
 import { ProjectIconWithSize } from '@odh-dashboard/internal/concepts/projects/ProjectIconWithSize';
 import ProjectNavigatorLink from '@odh-dashboard/internal/concepts/projects/ProjectNavigatorLink';
 import { IconSize } from '@odh-dashboard/internal/types';
 import {
+  Button,
   Content,
   EmptyState,
   EmptyStateBody,
@@ -14,17 +15,17 @@ import {
   FlexItem,
   Spinner,
 } from '@patternfly/react-core';
-import { BanIcon, CubesIcon } from '@patternfly/react-icons';
+import { BanIcon, CogIcon, CubesIcon } from '@patternfly/react-icons';
 import { useAgentOpsDeploy } from '~/app/hooks/useAgentOpsDeploy';
 import { useAgentOpsProjectNamespaces } from '~/app/hooks/useAgentOpsProjectNamespaces';
 import AgentOpsProjectSelector from '~/app/components/AgentOpsProjectSelector';
-import { useNavigateToDeployAgentWizard } from '~/app/deployWizard/useNavigateToDeployAgentWizard';
 import { useListAgentRuntimes } from '~/app/hooks/useListAgentRuntimes';
 import { agentOpsDeploymentsRoute } from '~/app/utilities/routes';
 import {
   filterAgentRuntimes,
   hasActiveAgentRuntimesFilters,
 } from '~/app/utilities/filterAgentRuntimes';
+import DeploySandboxModal from '~/app/components/DeploySandboxModal';
 import AgentDeploymentsEmptyState from './AgentDeploymentsEmptyState';
 import AgentRuntimesTable from './agentRuntimes/AgentRuntimesTable';
 import AgentRuntimesToolbar from './agentRuntimes/AgentRuntimesToolbar';
@@ -36,9 +37,11 @@ import {
 
 const AgentDeploymentListPage: React.FC = () => {
   const { namespace } = useParams<{ namespace: string }>();
-  const navigateToDeployAgentWizard = useNavigateToDeployAgentWizard();
+  const navigate = useNavigate();
   const deployMode = useAgentOpsDeploy();
   const { isLoading: projectsLoading } = useAgentOpsProjectNamespaces();
+
+  const [isDeployModalOpen, setIsDeployModalOpen] = React.useState(false);
 
   const {
     runtimes,
@@ -97,20 +100,46 @@ const AgentDeploymentListPage: React.FC = () => {
   const isAccessDenied = !!loadError && getGenericErrorCode(loadError) === 403;
   const isEmpty = !noProjectSelected && loaded && !loadError && safeRuntimes.length === 0;
 
+  const handleOpenDeployModal = React.useCallback(() => {
+    if (namespace) {
+      setIsDeployModalOpen(true);
+    }
+  }, [namespace]);
+
   const headerContent = (
-    <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-      <ProjectIconWithSize size={IconSize.LG} />
+    <Flex
+      alignItems={{ default: 'alignItemsCenter' }}
+      justifyContent={{ default: 'justifyContentSpaceBetween' }}
+    >
       <FlexItem>
-        <Content component="p">Project</Content>
+        <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+          <ProjectIconWithSize size={IconSize.LG} />
+          <FlexItem>
+            <Content component="p">Project</Content>
+          </FlexItem>
+          <FlexItem>
+            <AgentOpsProjectSelector
+              namespace={namespace}
+              getRedirectPath={agentOpsDeploymentsRoute}
+            />
+          </FlexItem>
+          {namespace ? (
+            <FlexItem>
+              <ProjectNavigatorLink namespace={{ name: namespace, displayName: namespace }} />
+            </FlexItem>
+          ) : null}
+        </Flex>
       </FlexItem>
       <FlexItem>
-        <AgentOpsProjectSelector namespace={namespace} getRedirectPath={agentOpsDeploymentsRoute} />
+        <Button
+          variant="secondary"
+          icon={<CogIcon />}
+          onClick={() => navigate('/ai-hub/agents/openshell')}
+          data-testid="manage-openshell-button"
+        >
+          OpenShell
+        </Button>
       </FlexItem>
-      {namespace && (
-        <FlexItem>
-          <ProjectNavigatorLink namespace={{ name: namespace, displayName: namespace }} />
-        </FlexItem>
-      )}
     </Flex>
   );
 
@@ -135,6 +164,15 @@ const AgentDeploymentListPage: React.FC = () => {
       return accessDeniedState;
     }
 
+    if (isEmpty && !isFiltered) {
+      return (
+        <AgentDeploymentsEmptyState
+          namespace={namespace}
+          onDeployAgent={handleOpenDeployModal}
+        />
+      );
+    }
+
     return (
       <AgentRuntimesTable
         runtimes={filteredRuntimes}
@@ -153,7 +191,7 @@ const AgentDeploymentListPage: React.FC = () => {
             namespace={namespace}
             filterData={filterData}
             onFilterUpdate={onFilterUpdate}
-            onDeployAgent={() => navigateToDeployAgentWizard(namespace)}
+            onDeployAgent={handleOpenDeployModal}
             deployMode={deployMode}
           />
         }
@@ -162,36 +200,50 @@ const AgentDeploymentListPage: React.FC = () => {
   };
 
   return (
-    <ApplicationsPage
-      noTitle // rendered inside a TabRoutePage which provides the title and tabs
-      description="View and manage agent deployments across your fleet."
-      headerContent={headerContent}
-      loadError={noProjectSelected || isAccessDenied ? undefined : loadError}
-      loaded={noProjectSelected ? !projectsLoading : loaded}
-      empty={noProjectSelected || (isEmpty && !isAccessDenied)}
-      emptyStatePage={
-        noProjectSelected ? (
-          <EmptyState
-            headingLevel="h2"
-            icon={CubesIcon}
-            titleText="Select a project"
-            variant={EmptyStateVariant.lg}
-            data-testid="agent-deployments-select-project"
-          >
-            <EmptyStateBody>Select a project to view agent deployments.</EmptyStateBody>
-          </EmptyState>
-        ) : (
-          <AgentDeploymentsEmptyState
-            namespace={namespace}
-            onDeployAgent={() => navigateToDeployAgentWizard(namespace)}
-            deployMode={deployMode}
-          />
-        )
-      }
-      provideChildrenPadding
-    >
-      {tableContent()}
-    </ApplicationsPage>
+    <>
+      <ApplicationsPage
+        noTitle
+        description="View and manage agent deployments across your fleet."
+        headerContent={headerContent}
+        loadError={noProjectSelected || isAccessDenied ? undefined : loadError}
+        loaded={noProjectSelected ? !projectsLoading : loaded}
+        empty={noProjectSelected || (isEmpty && !isAccessDenied)}
+        emptyStatePage={
+          noProjectSelected ? (
+            <EmptyState
+              headingLevel="h2"
+              icon={CubesIcon}
+              titleText="Select a project"
+              variant={EmptyStateVariant.lg}
+              data-testid="agent-deployments-select-project"
+            >
+              <EmptyStateBody>Select a project to view agent sandboxes.</EmptyStateBody>
+            </EmptyState>
+          ) : (
+            <AgentDeploymentsEmptyState
+              namespace={namespace}
+              onDeployAgent={handleOpenDeployModal}
+            />
+          )
+        }
+        provideChildrenPadding
+      >
+        {tableContent()}
+      </ApplicationsPage>
+
+      {namespace ? (
+        <DeploySandboxModal
+          isOpen={isDeployModalOpen}
+          namespace={namespace}
+          onClose={() => setIsDeployModalOpen(false)}
+          onDeployed={() => {
+            setIsDeployModalOpen(false);
+            void refresh();
+          }}
+        />
+      ) : null}
+
+    </>
   );
 };
 
