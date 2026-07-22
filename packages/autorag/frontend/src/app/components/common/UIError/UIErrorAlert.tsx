@@ -1,7 +1,7 @@
 // Modules -------------------------------------------------------------------->
 
 import React, { useId } from 'react';
-import { Alert, AlertActionLink, AlertGroup } from '@patternfly/react-core';
+import { Alert, AlertActionCloseButton, AlertActionLink, AlertGroup } from '@patternfly/react-core';
 import type { UIError, UIErrorMapping } from './types.ts';
 import { UIErrorDefaults } from './constants.ts';
 
@@ -14,13 +14,15 @@ interface UIErrorAlertProps {
   id?: string;
   uiError: UIError;
   uiErrorMapping?: UIErrorMapping;
-  handleShowDetails: (error: UIError) => void;
+  handleDetails: (error: UIError) => void;
+  handleClose: (error: UIError) => void;
 }
 const UIErrorAlert: React.FC<UIErrorAlertProps> = ({
   id,
   uiError,
   uiErrorMapping,
-  handleShowDetails,
+  handleDetails,
+  handleClose,
 }) => {
   const generatedId = useId();
   const rootId = id ?? generatedId;
@@ -30,11 +32,10 @@ const UIErrorAlert: React.FC<UIErrorAlertProps> = ({
       id={rootId}
       variant="danger"
       title={uiErrorMapping?.title || UIErrorDefaults.uiErrorMapping.title}
+      actionClose={<AlertActionCloseButton onClose={() => handleClose(uiError)} />}
       actionLinks={
         <>
-          <AlertActionLink onClick={() => handleShowDetails(uiError)}>
-            More details...
-          </AlertActionLink>
+          <AlertActionLink onClick={() => handleDetails(uiError)}>More details...</AlertActionLink>
         </>
       }
     >

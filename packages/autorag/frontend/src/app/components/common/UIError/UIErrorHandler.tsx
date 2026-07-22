@@ -10,7 +10,7 @@ import { isUIError } from './util.ts';
 
 type UIErrorHandlerContextType = {
   showUIError: (error: UIError) => void;
-  closeUIError: (messageId: string) => void;
+  closeUIError: (error: UIError) => void;
 };
 
 // Context -------------------------------------------------------------------->
@@ -41,11 +41,12 @@ const UIErrorHandler: React.FC<UIErrorHandlerProps> = ({ id, uiErrorMappings, ch
     setErrors((prev) => [...prev, error]);
   }, []);
 
-  const closeUIError = React.useCallback((messageId: string) => {
+  const closeUIError = React.useCallback((error: UIError) => {
+    const { messageId } = error;
     setErrors((prev) => prev.filter((e) => e.messageId !== messageId));
   }, []);
 
-  const handleShowDetails = (error: UIError) => {
+  const handleDetails = (error: UIError) => {
     setModalError(error);
     setIsModalOpen(true);
   };
@@ -79,7 +80,8 @@ const UIErrorHandler: React.FC<UIErrorHandlerProps> = ({ id, uiErrorMappings, ch
               id={`${id}-UIErrorAlert-${error.messageId}`}
               uiError={error}
               uiErrorMapping={uiErrorMappings?.[error.messageId]}
-              handleShowDetails={handleShowDetails}
+              handleDetails={handleDetails}
+              handleClose={closeUIError}
             />
           ))}
         </UIErrorAlerts>
