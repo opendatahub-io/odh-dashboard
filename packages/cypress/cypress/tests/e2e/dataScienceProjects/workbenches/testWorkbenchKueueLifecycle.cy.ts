@@ -101,7 +101,9 @@ describe('Workbench Kueue Lifecycle Tests', () => {
         .should('contain.text', fixtureData.waitingForQuotaMessage);
 
       cy.step('Verify queue position is displayed');
-      notebookRow.findNotebookStatusSubtitle().should('contain.text', '(position');
+      notebookRow
+        .findNotebookStatusSubtitle()
+        .should('contain.text', fixtureData.queuePositionMarker);
 
       cy.step('Click on the Queued status label to open the status modal');
       notebookRow.findHaveNotebookStatusText().click();

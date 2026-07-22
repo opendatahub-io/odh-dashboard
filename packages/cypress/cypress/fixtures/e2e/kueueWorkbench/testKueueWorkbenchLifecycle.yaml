@@ -13,3 +13,4 @@ updatedMemoryQuota: 8
 sectionTab: "workbenches"
 notebookImage: "code-server-notebook"
 waitingForQuotaMessage: "Waiting for quota"
+queuePositionMarker: "(position"
