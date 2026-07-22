@@ -31,6 +31,7 @@ import { createCleanProject } from '../../../utils/projectChecker';
 import {
   deleteOpenShiftProject,
   deleteInferenceService,
+  waitForInferenceServiceDeletion,
   patchInferenceServiceFinalizers,
 } from '../../../utils/oc_commands/project';
 import { AWS_BUCKETS } from '../../../utils/s3Buckets';
@@ -98,7 +99,6 @@ describe('Verify models can be deployed from model registry', () => {
       cy.log('Skipping cleanup - tests were skipped on BYOIDC cluster');
       return;
     }
-
     cy.clearCookies();
     cy.clearLocalStorage();
 
@@ -109,39 +109,16 @@ describe('Verify models can be deployed from model registry', () => {
 
     return deleteInferenceService(projectName)
       .then(() => {
-        cy.step('Waiting 20 seconds for InferenceService deletion');
-        // eslint-disable-next-line cypress/no-unnecessary-waiting
-        return cy.wait(20000).then(() =>
-          cy.exec(`oc get isvc -n ${projectName} -o name`, {
-            failOnNonZeroExit: false,
-          }),
-        );
-      })
+        cy.step('Waiting for InferenceService deletion');
 
-      .then(() => {
-        cy.step('InferenceService is stuck. Removing Model Registry finalizer');
+        return waitForInferenceServiceDeletion(projectName).then((result) => {
+          if (result.exitCode !== 0) {
+            cy.step('InferenceService is stuck. Removing Model Registry finalizer');
 
-        return patchInferenceServiceFinalizers(projectName)
-          .then(() => {
-            // eslint-disable-next-line cypress/no-unnecessary-waiting
-            return cy.wait(10000);
-          })
-          .then(() =>
-            cy.exec(`oc get isvc -n ${projectName} -o name`, {
-              failOnNonZeroExit: false,
-            }),
-          )
-          .then((execResult) => {
-            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-            if (execResult == null) {
-              return execResult;
-            }
-
-            const stdout = execResult.stdout.trim();
-            if (stdout !== '') {
-              throw new Error(`InferenceService still exists:\n${stdout}`);
-            }
-          });
+            return patchInferenceServiceFinalizers(projectName);
+          }
+          return undefined;
+        });
       })
 
       .then(() => {
