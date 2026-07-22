@@ -1,7 +1,7 @@
 class AutomlConfigurePage {
   visit(namespace: string) {
     cy.visit(`/configure/${namespace}`);
-    cy.findByTestId('automl-name-input').should('be.visible');
+    this.findNameInput().should('be.visible');
   }
 
   findNameInput() {
@@ -34,6 +34,18 @@ class AutomlConfigurePage {
 
   findConfigureStepSubtitle() {
     return cy.findByTestId('configure-step-subtitle');
+  }
+
+  findFileExplorerTable() {
+    return cy.findByTestId('file-explorer-table');
+  }
+
+  findFileExplorerSelectButton() {
+    return cy.findByTestId('file-explorer-select-btn');
+  }
+
+  selectDropdownOption(name: RegExp | string) {
+    return cy.findByRole('option', { name });
   }
 }
 

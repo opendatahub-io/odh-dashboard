@@ -94,19 +94,20 @@ const navigateToConfigureDetails = () => {
   automlConfigurePage.findAwsSecretSelector().should('exist');
   automlConfigurePage.findAwsSecretSelector().click();
   automlConfigurePage.findAwsSecretSelector().find('input').type('storage-secret');
-  cy.findByRole('option', { name: /storage-secret/i })
+  automlConfigurePage
+    .selectDropdownOption(/storage-secret/i)
     .should('be.visible')
     .click();
 
   automlConfigurePage.findBrowseBucketButton().click();
-  cy.findByTestId('file-explorer-table').should('be.visible');
-  cy.findByTestId('file-explorer-table').contains('td', 'training.csv').click();
-  cy.findByTestId('file-explorer-select-btn').click();
+  automlConfigurePage.findFileExplorerTable().should('be.visible');
+  automlConfigurePage.findFileExplorerTable().contains('td', 'training.csv').click();
+  automlConfigurePage.findFileExplorerSelectButton().click();
 
   // Select target column — this auto-detects prediction type (binary for approval_status)
   automlConfigurePage.findTargetColumnSelect().should('be.visible');
   automlConfigurePage.findTargetColumnSelect().click();
-  cy.findByRole('option', { name: /approval_status/i }).click();
+  automlConfigurePage.selectDropdownOption(/approval_status/i).click();
 
   // Wait for preset radio buttons to appear
   automlConfigurePage.findPresetRadio('speed').should('exist');

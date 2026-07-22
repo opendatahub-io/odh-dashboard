@@ -98,7 +98,7 @@ const navigateToConfigureDetails = () => {
   // Step 1: Fill experiment name and OGX secret
   autoragConfigurePage.findNameInput().type('Preset Test');
   autoragConfigurePage.findOgxSecretSelector().click();
-  cy.findByRole('option', { name: /ogx-secret/i }).click();
+  autoragConfigurePage.selectDropdownOption(/ogx-secret/i).click();
   autoragConfigurePage.findNextButton().click();
   autoragConfigurePage.findConfigureDetailsSubtitle().should('be.visible');
 
@@ -106,14 +106,15 @@ const navigateToConfigureDetails = () => {
   autoragConfigurePage.findAwsSecretSelector().should('exist');
   autoragConfigurePage.findAwsSecretSelector().click();
   autoragConfigurePage.findAwsSecretSelector().find('input').type('storage-secret');
-  cy.findByRole('option', { name: /storage-secret/i })
+  autoragConfigurePage
+    .selectDropdownOption(/storage-secret/i)
     .should('be.visible')
     .click();
 
   autoragConfigurePage.findBrowseBucketButton().click();
-  cy.findByTestId('file-explorer-table').should('be.visible');
-  cy.findByTestId('file-explorer-table').contains('td', 'doc1.pdf').click();
-  cy.findByTestId('file-explorer-select-btn').click();
+  autoragConfigurePage.findFileExplorerTable().should('be.visible');
+  autoragConfigurePage.findFileExplorerTable().contains('td', 'doc1.pdf').click();
+  autoragConfigurePage.findFileExplorerSelectButton().click();
 
   // Wait for configure details panel to render with presets
   autoragConfigurePage.findPresetRadio('speed').should('exist');
