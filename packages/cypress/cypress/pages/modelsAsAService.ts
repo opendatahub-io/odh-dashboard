@@ -1597,6 +1597,14 @@ class ExternalModelTableRow extends TableRow {
     return cy.findByTestId('external-model-governance-pairing-warning-popover');
   }
 
+  findMissingMaaSModelRefWarning(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('external-model-missing-maas-model-ref');
+  }
+
+  findMissingMaaSModelRefWarningPopover(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('external-model-missing-maas-model-ref-popover');
+  }
+
   findExpandedProviderRow(providerName: string): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.scope().findByTestId(`expanded-provider-row-${providerName}`);
   }

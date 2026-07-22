@@ -909,4 +909,13 @@ export const mockExternalModels = (): ExternalModel[] => [
       statusMessage: 'Awaiting governance pairing',
     },
   }),
+  mockExternalModel({
+    name: 'missing-ref-model',
+    displayName: 'Missing Ref Model',
+    description: 'External model without a MaaS model reference.',
+    modelName: 'missing-ref',
+    phase: 'Ready',
+    statusMessage: 'External model is ready',
+    maaSModelRef: undefined,
+  }),
 ];

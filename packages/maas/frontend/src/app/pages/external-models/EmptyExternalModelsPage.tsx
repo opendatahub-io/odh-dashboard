@@ -11,9 +11,18 @@ const EmptyExternalModelsPage: React.FC = () => (
     icon={PlusCircleIcon}
   >
     <EmptyStateBody>
-      Add external model endpoints to make off-cluster models available through the inference
-      gateway. Configure external providers to connect to OpenAI, Anthropic, AWS Bedrock, and other
-      hosted model APIs.
+      <>
+        External models enable you to route inference requests to off-cluster model providers
+        through the MaaS gateway.
+        <br />
+        <br />
+        To get started, add an external model with at least one provider reference via the CLI.
+        <br />
+        <br />
+        Once ready, it can be made accessible to consumers by setting up a subscription and
+        authorization policy on the <strong>MaaS governance</strong> page. Consumers will also need
+        an API key to send requests.
+      </>
     </EmptyStateBody>
   </EmptyState>
 );
