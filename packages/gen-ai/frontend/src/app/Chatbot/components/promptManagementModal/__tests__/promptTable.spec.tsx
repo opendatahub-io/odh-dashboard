@@ -296,6 +296,7 @@ describe('PromptTable', () => {
         model_config: { model_name: longModelName, provider: 'custom' },
         tags: {},
         creation_timestamp: '2024-01-15T10:00:00Z',
+        scope: { type: 'project', namespace: 'test-project' },
       },
     ];
 
@@ -323,6 +324,7 @@ describe('PromptTable', () => {
         model_config: { model_name: exactModelName, provider: 'custom' },
         tags: {},
         creation_timestamp: '2024-01-15T10:00:00Z',
+        scope: { type: 'project', namespace: 'test-project' },
       },
     ];
 
@@ -349,6 +351,7 @@ describe('PromptTable', () => {
         model_config: { provider: 'openai' },
         tags: {},
         creation_timestamp: '2024-01-15T10:00:00Z',
+        scope: { type: 'project', namespace: 'test-project' },
       },
     ];
 
