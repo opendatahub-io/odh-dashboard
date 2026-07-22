@@ -9,6 +9,7 @@ import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import { artifactsDetailsRoute } from '#~/routes/pipelines/artifacts';
 import { Artifact } from '#~/third_party/mlmd';
 import { getArtifactName, getIsArtifactModelRegistered } from './utils';
+import ArtifactRunCell from './ArtifactRunCell';
 
 type ArtifactsTableRowProps = {
   artifact: Artifact;
@@ -40,6 +41,9 @@ const ArtifactsTableRow: React.FC<ArtifactsTableRowProps> = ({ artifact }) => {
       </Td>
       <Td dataLabel="ID">{artifact.getId()}</Td>
       <Td dataLabel="Type">{artifact.getType()}</Td>
+      <Td dataLabel="Pipeline run">
+        <ArtifactRunCell artifact={artifact} />
+      </Td>
       <Td dataLabel="URI">
         <ArtifactUriLink artifact={artifact} />
       </Td>

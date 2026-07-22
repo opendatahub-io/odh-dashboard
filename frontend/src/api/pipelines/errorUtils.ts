@@ -14,6 +14,22 @@ type ResultErrorKF = {
   error_message: string;
 };
 
+/**
+ * Error class for KFP API failures that mimics AxiosError structure
+ * for compatibility with getGenericErrorCode.
+ */
+export class PipelineAPIError extends Error {
+  public response: { status: number };
+
+  constructor(message: string, status: number | string) {
+    super(message);
+    this.name = 'PipelineAPIError';
+    // Ensure status is always a number for getGenericErrorCode compatibility
+    const numStatus = typeof status === 'string' ? Number(status) : status;
+    this.response = { status: Number.isNaN(numStatus) ? 500 : numStatus };
+  }
+}
+
 const isErrorKF = (e: unknown): e is ErrorKF =>
   typeof e === 'object' && e !== null && ['error', 'code', 'message'].every((key) => key in e);
 
@@ -67,7 +83,8 @@ export const handlePipelineFailures = <T>(promise: Promise<T>): Promise<T> =>
     })
     .catch((e) => {
       if (isErrorKF(e)) {
-        throw new Error(e.error);
+        // Preserve status code for getGenericErrorCode() by using PipelineAPIError
+        throw new PipelineAPIError(e.error, e.code);
       }
       if (isCommonStateError(e)) {
         // Common state errors are handled by useFetchState at storage level, let them deal with it
