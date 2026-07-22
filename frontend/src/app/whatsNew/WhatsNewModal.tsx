@@ -336,6 +336,16 @@ const findNavElement = (step: TourStep): HTMLElement | null => {
   return findNavSectionButton(step.title);
 };
 
+/** Opens the managed sidebar when collapsed so tour popovers can anchor to nav items. */
+const ensureNavSidebarOpen = (): boolean => {
+  const toggle = document.getElementById('page-nav-toggle');
+  if (toggle?.getAttribute('aria-expanded') === 'false') {
+    toggle.click();
+    return true;
+  }
+  return false;
+};
+
 const WhatsNewModal: React.FC = () => {
   const { isAdmin } = useUser();
   const [seen, setSeen] = useBrowserStorage<boolean>(TOUR_SEEN_STORAGE_KEY, false);
@@ -486,16 +496,24 @@ const WhatsNewModal: React.FC = () => {
 
     setTargetReady(false);
 
-    const timer = setTimeout(() => {
-      const el = findNavElement(currentStep);
-      if (el) {
-        el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-        setTargetEl(el);
-      } else {
-        setTargetEl(null);
-      }
-      setTargetReady(true);
-    }, 150);
+    // Collapsed nav still keeps anchors in the DOM, so the popover can mount off-screen
+    // with only the backdrop visible. Open the sidebar first when a step needs a nav target.
+    const openedSidebar = ensureNavSidebarOpen();
+
+    const timer = setTimeout(
+      () => {
+        const el = findNavElement(currentStep);
+        if (el) {
+          el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+          setTargetEl(el);
+        } else {
+          setTargetEl(null);
+        }
+        setTargetReady(true);
+      },
+      // Give the sidebar expand animation a moment before measuring the anchor.
+      openedSidebar ? 300 : 150,
+    );
 
     return () => clearTimeout(timer);
   }, [isOpen, showWelcome, stepIndex, currentStep]);

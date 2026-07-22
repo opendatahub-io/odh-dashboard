@@ -84,7 +84,8 @@ const openWelcomeModal = () => {
 const startTourAndWait = (buttonText: string) => {
   fireEvent.click(screen.getByText(buttonText));
   act(() => {
-    jest.advanceTimersByTime(200);
+    // Allow time for nav target lookup (and sidebar open delay when collapsed).
+    jest.advanceTimersByTime(350);
   });
 };
 
@@ -217,6 +218,67 @@ describe('WhatsNewModal', () => {
 
       expect(screen.getByText('Projects')).toBeInTheDocument();
       expect(screen.getByText('Granular role creation')).toBeInTheDocument();
+    });
+  });
+
+  describe('nav sidebar during tour', () => {
+    it('should open a collapsed navbar when anchoring a tour step', () => {
+      useAppContextMock.mockReturnValue(buildAppContext());
+      useUserMock.mockReturnValue(regularUser);
+
+      const toggle = document.createElement('button');
+      toggle.id = 'page-nav-toggle';
+      toggle.setAttribute('aria-expanded', 'false');
+      const onClick = jest.fn(() => {
+        toggle.setAttribute('aria-expanded', 'true');
+      });
+      toggle.addEventListener('click', onClick);
+
+      document.body.appendChild(toggle);
+
+      try {
+        render(<WhatsNewModal />);
+        openWelcomeModal();
+        // Click starts the step effect; sidebar open happens before the target timer.
+        fireEvent.click(screen.getByText('Start full tour'));
+
+        expect(onClick).toHaveBeenCalledTimes(1);
+        expect(toggle.getAttribute('aria-expanded')).toBe('true');
+
+        act(() => {
+          jest.advanceTimersByTime(350);
+        });
+      } finally {
+        toggle.remove();
+      }
+    });
+
+    it('should not toggle an already open navbar', () => {
+      useAppContextMock.mockReturnValue(buildAppContext());
+      useUserMock.mockReturnValue(regularUser);
+
+      const toggle = document.createElement('button');
+      toggle.id = 'page-nav-toggle';
+      toggle.setAttribute('aria-expanded', 'true');
+      const onClick = jest.fn();
+      toggle.addEventListener('click', onClick);
+
+      document.body.appendChild(toggle);
+
+      try {
+        render(<WhatsNewModal />);
+        openWelcomeModal();
+        fireEvent.click(screen.getByText('Start full tour'));
+
+        expect(onClick).not.toHaveBeenCalled();
+        expect(toggle.getAttribute('aria-expanded')).toBe('true');
+
+        act(() => {
+          jest.advanceTimersByTime(350);
+        });
+      } finally {
+        toggle.remove();
+      }
     });
   });
 
