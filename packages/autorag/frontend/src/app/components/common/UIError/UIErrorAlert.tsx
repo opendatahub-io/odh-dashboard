@@ -2,7 +2,8 @@
 
 import React, { useId } from 'react';
 import { Alert, AlertActionLink, AlertGroup } from '@patternfly/react-core';
-import type { UIError } from '~/app/components/common/UIError/types.ts';
+import type { UIError, UIErrorMapping } from './types.ts';
+import { UIErrorDefaults } from './constants.ts';
 
 // Types ---------------------------------------------------------------------->
 // Globals -------------------------------------------------------------------->
@@ -12,9 +13,15 @@ import type { UIError } from '~/app/components/common/UIError/types.ts';
 interface UIErrorAlertProps {
   id?: string;
   uiError: UIError;
+  uiErrorMapping?: UIErrorMapping;
   handleShowDetails: (error: UIError) => void;
 }
-const UIErrorAlert: React.FC<UIErrorAlertProps> = ({ id, uiError, handleShowDetails }) => {
+const UIErrorAlert: React.FC<UIErrorAlertProps> = ({
+  id,
+  uiError,
+  uiErrorMapping,
+  handleShowDetails,
+}) => {
   const generatedId = useId();
   const rootId = id ?? generatedId;
 
@@ -22,7 +29,7 @@ const UIErrorAlert: React.FC<UIErrorAlertProps> = ({ id, uiError, handleShowDeta
     <Alert
       id={rootId}
       variant="danger"
-      title="Something went wrong"
+      title={uiErrorMapping?.title || UIErrorDefaults.uiErrorMapping.title}
       actionLinks={
         <>
           <AlertActionLink onClick={() => handleShowDetails(uiError)}>
@@ -31,7 +38,7 @@ const UIErrorAlert: React.FC<UIErrorAlertProps> = ({ id, uiError, handleShowDeta
         </>
       }
     >
-      {uiError.reason}
+      {uiErrorMapping?.description || uiError.reason || UIErrorDefaults.uiErrorMapping.description}
     </Alert>
   );
 };
@@ -61,4 +68,3 @@ const UIErrorAlerts: React.FC<UIErrorAlertsProps> = ({ id, children }) => {
 // Public --------------------------------------------------------------------->
 
 export { UIErrorAlert, UIErrorAlerts };
-export default UIErrorAlert;

@@ -3,7 +3,7 @@
 import React from 'react';
 import UIErrorModal from './UIErrorModal.tsx';
 import { UIErrorAlert, UIErrorAlerts } from './UIErrorAlert.tsx';
-import type { UIError } from './types.ts';
+import type { UIError, UIErrorMappings } from './types.ts';
 import { isUIError } from './util.ts';
 
 // Types ---------------------------------------------------------------------->
@@ -29,9 +29,10 @@ const useUIErrorHandler = (): UIErrorHandlerContextType => {
 
 interface UIErrorHandlerProps {
   id: string;
+  uiErrorMappings?: UIErrorMappings;
   children?: React.ReactNode;
 }
-const UIErrorHandler: React.FC<UIErrorHandlerProps> = ({ id, children }) => {
+const UIErrorHandler: React.FC<UIErrorHandlerProps> = ({ id, uiErrorMappings, children }) => {
   const [errors, setErrors] = React.useState<UIError[]>([]);
   const [modalError, setModalError] = React.useState<UIError | undefined>();
   const [isModalOpen, setIsModalOpen] = React.useState(false);
@@ -59,6 +60,8 @@ const UIErrorHandler: React.FC<UIErrorHandlerProps> = ({ id, children }) => {
     [showUIError, closeUIError],
   );
 
+  const modalErrorMapping = modalError && uiErrorMappings?.[modalError.messageId];
+
   return (
     <UIErrorHandlerContext.Provider value={contextValue}>
       <div id={id}>
@@ -66,6 +69,7 @@ const UIErrorHandler: React.FC<UIErrorHandlerProps> = ({ id, children }) => {
           id={`${id}-UIErrorModal`}
           isOpen={isModalOpen}
           uiError={modalError}
+          uiErrorMapping={modalErrorMapping}
           onClose={handleCloseModal}
         />
         <UIErrorAlerts id={`${id}-UIErrorAlerts`}>
@@ -74,6 +78,7 @@ const UIErrorHandler: React.FC<UIErrorHandlerProps> = ({ id, children }) => {
               key={error.messageId}
               id={`${id}-UIErrorAlert-${error.messageId}`}
               uiError={error}
+              uiErrorMapping={uiErrorMappings?.[error.messageId]}
               handleShowDetails={handleShowDetails}
             />
           ))}

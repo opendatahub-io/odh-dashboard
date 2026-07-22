@@ -79,7 +79,7 @@ func (app *App) CreatePipelineRunHandler(w http.ResponseWriter, r *http.Request,
 	}
 
 	if req.DisplayName == "invalid-name-2f8851a3-8973-4f90-a99f-8f0ebd852557" {
-		NewUIError(http.StatusBadRequest, "invalid_pipeline_run_name",
+		NewUIError(http.StatusBadRequest, "example_ui_error_invalid_pipeline_run_name",
 			fmt.Sprintf("pipeline run name %q is not allowed", req.DisplayName)).
 			WithDetail("displayName", req.DisplayName).
 			WithTracing(r).

@@ -18,6 +18,7 @@ import AppRoutes from '~/app/AppRoutes';
 import { useNamespaceSelectorWithPersistence } from '~/app/hooks/useNamespaceSelectorWithPersistence';
 import { AppContext } from '~/app/context/AppContext';
 import { UIErrorHandler } from '~/app/components/common/UIError/UIErrorHandler';
+import { autoragUIErrorMappings } from '~/app/utilities/autorag.uiErrorMappings';
 
 const App: React.FC = () => {
   const [queryClient] = React.useState(
@@ -106,7 +107,7 @@ const App: React.FC = () => {
 
   const page = (
     <AppContext.Provider value={contextValue}>
-      <UIErrorHandler id="Autorag-UIErrorHandler">
+      <UIErrorHandler id="Autorag-UIErrorHandler" uiErrorMappings={autoragUIErrorMappings}>
         <Page mainContainerId="primary-app-container" isManagedSidebar={isStandalone}>
           <AppRoutes />
         </Page>

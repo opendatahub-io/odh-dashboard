@@ -16,25 +16,12 @@ import {
   ModalFooter,
   ModalHeader,
 } from '@patternfly/react-core';
-import type { UIError } from './types.ts';
+import type { UIError, UIErrorMapping } from './types.ts';
+import { UIErrorDefaults } from './constants.ts';
 
 // Types ---------------------------------------------------------------------->
 
 // Globals -------------------------------------------------------------------->
-
-const defaults = {
-  labels: {
-    modalTitle: 'Something went wrong',
-    modalDescription: 'An unexpected error occurred. Please try again later.',
-    modalPrimaryCTA: 'Retry', // Should we have a retry?
-    modalSecondaryCTA: 'Close',
-    copyCTA: 'Copy',
-
-    subtitleTransaction: 'Transaction',
-    subtitleID: 'ID',
-    subtitleDetails: 'Details',
-  },
-};
 
 // Private -------------------------------------------------------------------->
 
@@ -47,11 +34,18 @@ interface UIErrorModalProps {
   id?: string;
   isOpen: boolean;
   uiError?: UIError;
+  uiErrorMapping?: UIErrorMapping;
 
   /** Callback fired when the modal is closed via dismiss or cancel. */
   onClose?: (_event?: KeyboardEvent | React.MouseEvent) => void;
 }
-const UIErrorModal: React.FC<UIErrorModalProps> = ({ id, isOpen, uiError, onClose: _onClose }) => {
+const UIErrorModal: React.FC<UIErrorModalProps> = ({
+  id,
+  isOpen,
+  uiError,
+  onClose: _onClose,
+  uiErrorMapping,
+}) => {
   const generatedId = useId();
   const rootId = id ?? generatedId;
 
@@ -83,8 +77,12 @@ const UIErrorModal: React.FC<UIErrorModalProps> = ({ id, isOpen, uiError, onClos
       aria-describedby={`${rootId}-UIErrorModal-modal-body`}
     >
       <ModalHeader
-        title={defaults.labels.modalTitle}
-        description={defaults.labels.modalDescription}
+        title={uiErrorMapping?.title || UIErrorDefaults.uiErrorMapping.title}
+        description={
+          uiErrorMapping?.description ||
+          uiError?.reason ||
+          UIErrorDefaults.uiErrorMapping.description
+        }
         labelId={`${rootId}-UIErrorModal-modal-title`}
       />
       <ModalBody id={`${rootId}-UIErrorModal-modal-body`}>
@@ -92,17 +90,19 @@ const UIErrorModal: React.FC<UIErrorModalProps> = ({ id, isOpen, uiError, onClos
           <FlexItem>
             <Content component={ContentVariants.dl}>
               <Content component={ContentVariants.dt}>
-                {defaults.labels.subtitleTransaction}
+                {UIErrorDefaults.labels.subtitleTransaction}
               </Content>
               <Content component={ContentVariants.dd} className="pf-v6-u-font-family-monospace">
                 {uiError?.transactionId}
               </Content>
-              <Content component={ContentVariants.dt}>{defaults.labels.subtitleID}</Content>
+              <Content component={ContentVariants.dt}>{UIErrorDefaults.labels.subtitleID}</Content>
               <Content component={ContentVariants.dd} className="pf-v6-u-font-family-monospace">
                 {uiError?.messageId}
               </Content>
               {hasDetails && (
-                <Content component={ContentVariants.dt}>{defaults.labels.subtitleDetails}</Content>
+                <Content component={ContentVariants.dt}>
+                  {UIErrorDefaults.labels.subtitleDetails}
+                </Content>
               )}
             </Content>
           </FlexItem>
@@ -117,7 +117,7 @@ const UIErrorModal: React.FC<UIErrorModalProps> = ({ id, isOpen, uiError, onClos
                       onClick={() => handleCopy(serializedDetails)}
                       variant="plain"
                     >
-                      {defaults.labels.copyCTA}
+                      {UIErrorDefaults.labels.copyCTA}
                     </ClipboardCopyButton>
                   </CodeBlockAction>
                 }
@@ -138,7 +138,7 @@ const UIErrorModal: React.FC<UIErrorModalProps> = ({ id, isOpen, uiError, onClos
             resetState();
           }}
         >
-          {defaults.labels.modalSecondaryCTA}
+          {UIErrorDefaults.labels.modalSecondaryCTA}
         </Button>
       </ModalFooter>
     </Modal>

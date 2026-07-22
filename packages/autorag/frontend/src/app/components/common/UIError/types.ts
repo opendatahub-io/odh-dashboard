@@ -16,3 +16,9 @@ export interface UIError {
   /** Additional details that will be rendered for the user. (Useful for attaching additional information that may be required for easier customer support.) */
   details: Record<string, unknown>;
 }
+
+export type UIErrorMappings = Record<string, UIErrorMapping>;
+export interface UIErrorMapping {
+  title: string;
+  description?: string;
+}
