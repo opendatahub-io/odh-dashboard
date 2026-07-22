@@ -1,6 +1,6 @@
 import React from 'react';
 import { Alert, Bullseye, PageSection, Spinner } from '@patternfly/react-core';
-import { TrackingOutcome } from '@odh-dashboard/internal/concepts/analyticsTracking/trackingProperties';
+import { TrackingOutcome } from '@odh-dashboard/ui-core';
 import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { useListAuthPolicies } from '~/app/hooks/useListAuthPolicies';
 import { MaaSAuthPolicy } from '~/app/types/subscriptions';

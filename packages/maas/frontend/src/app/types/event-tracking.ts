@@ -1,4 +1,4 @@
-import { TrackingOutcome } from '@odh-dashboard/internal/concepts/analyticsTracking/trackingProperties';
+import { TrackingOutcome } from '@odh-dashboard/ui-core';
 import { PhaseLabelLocation, PhaseStatus } from '~/app/utilities/phaseLabelUtils';
 import { ExternalModelsFilterOptions } from '~/app/pages/external-models/const';
 

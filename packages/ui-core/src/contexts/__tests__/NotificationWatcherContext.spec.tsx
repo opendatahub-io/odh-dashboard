@@ -1,26 +1,20 @@
 import React, { act } from 'react';
 import { render, waitFor } from '@testing-library/react';
 import {
-  FinalNotificationWatcherResponse,
+  type FinalNotificationWatcherResponse,
   NotificationResponseStatus,
   NotificationWatcherContext,
+  type NotificationWatcherResponse,
   NotificationWatcherContextProvider,
-  NotificationWatcherResponse,
-} from '#~/concepts/notificationWatcher/NotificationWatcherContext';
-import useNotification from '#~/utilities/useNotification';
+} from '../NotificationWatcherContext';
+import { NotificationContext, type NotificationAPI } from '../NotificationContext';
 
-jest.mock('#~/utilities/useNotification', () => {
-  const mock = {
-    success: jest.fn(),
-    error: jest.fn(),
-  };
-  return {
-    __esModule: true,
-    default: jest.fn(() => mock),
-  };
+const createMockNotificationAPI = (): NotificationAPI => ({
+  success: jest.fn(),
+  error: jest.fn(),
+  info: jest.fn(),
+  warning: jest.fn(),
 });
-
-const useNotificationMock = jest.mocked(useNotification);
 
 const createCallbackMock = ({
   finalResponse,
@@ -37,7 +31,11 @@ const createCallbackMock = ({
   return callbackMock;
 };
 
-const renderTestComponent = (callbackMocks: jest.Mock[], callbackDelay = 0) => {
+const renderTestComponent = (
+  callbackMocks: jest.Mock[],
+  notificationAPI: NotificationAPI,
+  callbackDelay = 0,
+) => {
   const TestComponent = () => {
     const { registerNotification } = React.useContext(NotificationWatcherContext);
 
@@ -53,9 +51,11 @@ const renderTestComponent = (callbackMocks: jest.Mock[], callbackDelay = 0) => {
   };
 
   render(
-    <NotificationWatcherContextProvider>
-      <TestComponent />
-    </NotificationWatcherContextProvider>,
+    <NotificationContext.Provider value={notificationAPI}>
+      <NotificationWatcherContextProvider>
+        <TestComponent />
+      </NotificationWatcherContextProvider>
+    </NotificationContext.Provider>,
   );
 };
 
@@ -66,6 +66,7 @@ describe('NotificationWatcherContextProvider', () => {
   });
 
   it("should trigger 'success' notification", async () => {
+    const notificationAPI = createMockNotificationAPI();
     const finalResponse: FinalNotificationWatcherResponse = {
       status: NotificationResponseStatus.SUCCESS,
       title: 'Success Title',
@@ -74,11 +75,11 @@ describe('NotificationWatcherContextProvider', () => {
 
     const callbackMock = createCallbackMock({ finalResponse });
 
-    renderTestComponent([callbackMock]);
+    renderTestComponent([callbackMock], notificationAPI);
 
     await waitFor(() => {
       expect(callbackMock).toHaveBeenCalledTimes(1);
-      expect(useNotificationMock().success).toHaveBeenCalledWith(
+      expect(notificationAPI.success).toHaveBeenCalledWith(
         finalResponse.title,
         finalResponse.message,
         finalResponse.actions,
@@ -87,6 +88,7 @@ describe('NotificationWatcherContextProvider', () => {
   });
 
   it("should trigger 'error' notification", async () => {
+    const notificationAPI = createMockNotificationAPI();
     const finalResponse: NotificationWatcherResponse = {
       status: NotificationResponseStatus.ERROR,
       title: 'Error Title',
@@ -96,11 +98,11 @@ describe('NotificationWatcherContextProvider', () => {
 
     const callbackMock = createCallbackMock({ finalResponse });
 
-    renderTestComponent([callbackMock]);
+    renderTestComponent([callbackMock], notificationAPI);
 
     await waitFor(() => {
       expect(callbackMock).toHaveBeenCalledTimes(1);
-      expect(useNotificationMock().error).toHaveBeenCalledWith(
+      expect(notificationAPI.error).toHaveBeenCalledWith(
         finalResponse.title,
         finalResponse.message,
         finalResponse.actions,
@@ -109,15 +111,16 @@ describe('NotificationWatcherContextProvider', () => {
   });
 
   it("should not do anything if the reported status is 'stop'", async () => {
+    const notificationAPI = createMockNotificationAPI();
     const callbackMock = createCallbackMock({
       finalResponse: { status: NotificationResponseStatus.STOP },
     });
 
-    renderTestComponent([callbackMock]);
+    renderTestComponent([callbackMock], notificationAPI);
 
     await waitFor(() => {
       expect(callbackMock).toHaveBeenCalledTimes(1);
-      Object.values(useNotificationMock()).forEach((fn) => {
+      Object.values(notificationAPI).forEach((fn) => {
         expect(fn).not.toHaveBeenCalled();
       });
     });
@@ -126,6 +129,7 @@ describe('NotificationWatcherContextProvider', () => {
   it("should retry when response is 'repoll' with delay", async () => {
     jest.useFakeTimers();
 
+    const notificationAPI = createMockNotificationAPI();
     const repollCount = 3;
     const callbackDelay = 1000;
 
@@ -138,7 +142,7 @@ describe('NotificationWatcherContextProvider', () => {
 
     const callbackMock = createCallbackMock({ finalResponse, repollCount });
 
-    renderTestComponent([callbackMock], callbackDelay);
+    renderTestComponent([callbackMock], notificationAPI, callbackDelay);
 
     expect(callbackMock).toHaveBeenCalledTimes(1);
 
@@ -149,7 +153,7 @@ describe('NotificationWatcherContextProvider', () => {
     await waitFor(
       () => {
         expect(callbackMock).toHaveBeenCalledTimes(repollCount + 1);
-        expect(useNotificationMock().success).toHaveBeenCalledWith(
+        expect(notificationAPI.success).toHaveBeenCalledWith(
           finalResponse.title,
           finalResponse.message,
           finalResponse.actions,
@@ -160,6 +164,7 @@ describe('NotificationWatcherContextProvider', () => {
   });
 
   it("should retry when response is 'repoll' (single callback)", async () => {
+    const notificationAPI = createMockNotificationAPI();
     const finalResponse: NotificationWatcherResponse = {
       status: NotificationResponseStatus.SUCCESS,
       title: 'Repoll Success Title',
@@ -169,11 +174,11 @@ describe('NotificationWatcherContextProvider', () => {
 
     const callbackMock = createCallbackMock({ finalResponse, repollCount: 3 });
 
-    renderTestComponent([callbackMock]);
+    renderTestComponent([callbackMock], notificationAPI);
 
     await waitFor(() => {
       expect(callbackMock).toHaveBeenCalledTimes(4);
-      expect(useNotificationMock().success).toHaveBeenCalledWith(
+      expect(notificationAPI.success).toHaveBeenCalledWith(
         finalResponse.title,
         finalResponse.message,
         finalResponse.actions,
@@ -182,6 +187,7 @@ describe('NotificationWatcherContextProvider', () => {
   });
 
   it("should retry when response is 'repoll' (multiple callbacks)", async () => {
+    const notificationAPI = createMockNotificationAPI();
     const repollCounts = [1, 3, 5];
 
     const callbackMocks = repollCounts.map((repollCount) =>
@@ -195,17 +201,18 @@ describe('NotificationWatcherContextProvider', () => {
       }),
     );
 
-    renderTestComponent(callbackMocks);
+    renderTestComponent(callbackMocks, notificationAPI);
 
     await waitFor(() => {
       repollCounts.forEach((repollCount, index) => {
         expect(callbackMocks[index]).toHaveBeenCalledTimes(repollCount + 1);
-        expect(useNotificationMock().success).toHaveBeenCalledTimes(3);
+        expect(notificationAPI.success).toHaveBeenCalledTimes(3);
       });
     });
   });
 
   it('should not propagate errors up to the consumer', async () => {
+    const notificationAPI = createMockNotificationAPI();
     const error = new Error('Test error');
     const callbackMock = jest.fn().mockRejectedValueOnce(error);
     const errorTracker = jest.fn();
@@ -228,9 +235,11 @@ describe('NotificationWatcherContextProvider', () => {
     };
 
     render(
-      <NotificationWatcherContextProvider>
-        <TestComponent />
-      </NotificationWatcherContextProvider>,
+      <NotificationContext.Provider value={notificationAPI}>
+        <NotificationWatcherContextProvider>
+          <TestComponent />
+        </NotificationWatcherContextProvider>
+      </NotificationContext.Provider>,
     );
 
     await waitFor(() => {
@@ -242,6 +251,7 @@ describe('NotificationWatcherContextProvider', () => {
   });
 
   it('should catch errors thrown by callbackMock when handled properly', async () => {
+    const notificationAPI = createMockNotificationAPI();
     const error = new Error('Test error');
     const callbackMock = jest.fn().mockRejectedValueOnce(error);
     const errorTracker = jest.fn();
@@ -271,9 +281,11 @@ describe('NotificationWatcherContextProvider', () => {
     };
 
     render(
-      <NotificationWatcherContextProvider>
-        <TestComponent />
-      </NotificationWatcherContextProvider>,
+      <NotificationContext.Provider value={notificationAPI}>
+        <NotificationWatcherContextProvider>
+          <TestComponent />
+        </NotificationWatcherContextProvider>
+      </NotificationContext.Provider>,
     );
 
     await waitFor(() => {

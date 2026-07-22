@@ -1,5 +1,5 @@
 import * as React from 'react';
-import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
+import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import { PageSection } from '@patternfly/react-core';
 import { useListSubscriptions } from '~/app/hooks/useListSubscriptions';
 import { MaaSSubscription } from '~/app/types/subscriptions';

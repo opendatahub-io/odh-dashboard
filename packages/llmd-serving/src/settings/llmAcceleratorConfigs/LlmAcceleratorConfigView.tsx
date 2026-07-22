@@ -1,5 +1,5 @@
 import * as React from 'react';
-import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
+import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import LlmAcceleratorConfigListView from './LlmAcceleratorConfigListView';
 import { LlmAcceleratorConfigContext } from './LlmAcceleratorConfigContext';
 

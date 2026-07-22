@@ -1,7 +1,7 @@
 import * as React from 'react';
-import { AppNotification } from '#~/redux/types';
-import useNotification from '#~/utilities/useNotification';
-import { POLL_INTERVAL } from '#~/utilities/const';
+import { type NotificationAction, useNotification } from './NotificationContext';
+
+const DEFAULT_POLL_INTERVAL = 30000;
 
 export type NotificationWatcherContextType = {
   registerNotification: (item: NotificationWatcherItem) => void;
@@ -10,6 +10,7 @@ export type NotificationWatcherContextType = {
 
 type NotificationWatcherContextProviderProps = {
   children: React.ReactNode;
+  pollInterval?: number;
 };
 
 export enum NotificationResponseStatus {
@@ -20,10 +21,13 @@ export enum NotificationResponseStatus {
 }
 
 export type FinalNotificationWatcherResponse =
-  | ({ status: NotificationResponseStatus.SUCCESS | NotificationResponseStatus.ERROR } & Pick<
-      AppNotification,
-      'title' | 'message' | 'actions'
-    >)
+  | ({
+      status: NotificationResponseStatus.SUCCESS | NotificationResponseStatus.ERROR;
+    } & {
+      title: string;
+      message?: React.ReactNode;
+      actions?: NotificationAction[];
+    })
   | { status: NotificationResponseStatus.STOP };
 
 export type RepollNotificationWatcherResponse = { status: NotificationResponseStatus.REPOLL };
@@ -52,7 +56,7 @@ export const NotificationWatcherContext = React.createContext<NotificationWatche
 
 export const NotificationWatcherContextProvider: React.FC<
   NotificationWatcherContextProviderProps
-> = ({ children }) => {
+> = ({ children, pollInterval = DEFAULT_POLL_INTERVAL }) => {
   const notification = useNotification();
   const abortControllersMapRef = React.useRef(new Map<NotificationWatcherItem, AbortController>());
   const timeoutIdsMapRef = React.useRef(
@@ -61,7 +65,7 @@ export const NotificationWatcherContextProvider: React.FC<
 
   const invoke = React.useCallback(
     (itemToInvoke: NotificationWatcherItem, signal: AbortSignal) => {
-      const callbackDelay = itemToInvoke.callbackDelay ?? POLL_INTERVAL;
+      const callbackDelay = itemToInvoke.callbackDelay ?? pollInterval;
 
       itemToInvoke
         .callback(signal)
@@ -107,7 +111,7 @@ export const NotificationWatcherContextProvider: React.FC<
           console.error('Uncaught error:', error);
         });
     },
-    [notification],
+    [notification, pollInterval],
   );
 
   React.useEffect(

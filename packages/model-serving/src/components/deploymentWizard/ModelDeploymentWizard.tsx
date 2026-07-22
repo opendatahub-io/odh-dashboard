@@ -1,7 +1,6 @@
 import React from 'react';
 import { PageSection, Wizard, WizardStep } from '@patternfly/react-core';
-// eslint-disable-next-line @odh-dashboard/no-restricted-imports
-import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
+import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import type { ProjectKind } from '@odh-dashboard/k8s-core';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { ExternalDataLoader, type ExternalDataMap } from './ExternalDataLoader';

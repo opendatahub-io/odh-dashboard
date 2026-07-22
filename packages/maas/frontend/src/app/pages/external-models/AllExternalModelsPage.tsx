@@ -1,6 +1,6 @@
 import React from 'react';
 import { Navigate, useParams } from 'react-router-dom';
-import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
+import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import { useNamespaceSelector } from 'mod-arch-core';
 import { useListExternalModels } from '~/app/hooks/useListExternalModels';
 import { ExternalModel } from '~/app/types/external-models';

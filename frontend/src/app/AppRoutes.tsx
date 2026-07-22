@@ -6,9 +6,9 @@ import {
   TabRoutePageExtension,
 } from '@odh-dashboard/plugin-core/extension-points';
 import { LazyCodeRefComponent, useExtensions } from '@odh-dashboard/plugin-core';
+import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import TabRoutePage from '#~/app/navigation/TabRoutePage';
 import { InvalidArgoDeploymentAlert } from '#~/concepts/pipelines/content/InvalidArgoDeploymentAlert';
-import ApplicationsPage from '#~/pages/ApplicationsPage';
 import UnauthorizedError from '#~/pages/UnauthorizedError';
 import { useUser } from '#~/redux/selectors';
 

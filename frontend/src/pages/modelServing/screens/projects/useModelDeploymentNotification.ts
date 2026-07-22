@@ -5,11 +5,11 @@ import {
   getInferenceServiceLastFailureReason,
   getInferenceServiceModelState,
 } from '@odh-dashboard/model-serving/shared';
-import useNotification from '#~/utilities/useNotification';
 import {
   NotificationResponseStatus,
   NotificationWatcherContext,
-} from '#~/concepts/notificationWatcher/NotificationWatcherContext';
+} from '@odh-dashboard/ui-core/contexts/NotificationWatcherContext';
+import useNotification from '#~/utilities/useNotification';
 import { getInferenceService } from '#~/api';
 import { useModelStatus } from '#~/pages/modelServing/screens/global/useModelStatus';
 import { getInferenceServiceStoppedStatus } from '#~/pages/modelServing/utils';
