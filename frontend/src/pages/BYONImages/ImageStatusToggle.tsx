@@ -12,8 +12,7 @@ type ImageStatusToggleProps = {
   images: BYONImage[];
   onToggle: (visible: boolean) => Promise<void>;
   isDisabledByError?: boolean;
-  getSessionToggleIndex: () => number;
-  incrementSessionToggleIndex: () => void;
+  claimSessionToggleIndex: () => number;
 };
 
 const ImageStatusToggle: React.FC<ImageStatusToggleProps> = ({
@@ -21,8 +20,7 @@ const ImageStatusToggle: React.FC<ImageStatusToggleProps> = ({
   images,
   onToggle,
   isDisabledByError = false,
-  getSessionToggleIndex,
-  incrementSessionToggleIndex,
+  claimSessionToggleIndex,
 }) => {
   const [isLoading, setLoading] = React.useState(false);
   const [isEnabled, setEnabled] = React.useState(!isDisabledByError && image.visible);
@@ -44,7 +42,7 @@ const ImageStatusToggle: React.FC<ImageStatusToggleProps> = ({
 
   const performToggle = async (visible: boolean) => {
     setLoading(true);
-    const currentToggleIndex = getSessionToggleIndex();
+    const currentToggleIndex = claimSessionToggleIndex();
     try {
       await onToggle(visible);
       setEnabled(visible);
@@ -53,29 +51,35 @@ const ImageStatusToggle: React.FC<ImageStatusToggleProps> = ({
         images.filter((img) => img.isOOTB && !img.visible).length +
         (image.isOOTB ? (visible ? -1 : 1) : 0);
 
-      incrementSessionToggleIndex();
-
-      fireFormTrackingEvent('Workbench Image Toggled', {
-        outcome: TrackingOutcome.submit,
-        success: true,
-        imageType: image.isOOTB ? 'pre-installed' : 'custom',
-        provider: image.provider,
-        imageStreamName: image.name,
-        toggleDirection: visible ? 'enabled' : 'disabled',
-        sessionToggleIndex: currentToggleIndex,
-        hiddenOotbCountAfter,
-      });
+      try {
+        fireFormTrackingEvent('Workbench Image Toggled', {
+          outcome: TrackingOutcome.submit,
+          success: true,
+          imageType: image.isOOTB ? 'pre-installed' : 'custom',
+          provider: image.provider,
+          imageStreamName: image.name,
+          toggleDirection: visible ? 'enabled' : 'disabled',
+          sessionToggleIndex: currentToggleIndex,
+          hiddenOotbCountAfter,
+        });
+      } catch {
+        // telemetry must not affect toggle outcome
+      }
     } catch (e) {
-      fireFormTrackingEvent('Workbench Image Toggled', {
-        outcome: TrackingOutcome.submit,
-        success: false,
-        imageType: image.isOOTB ? 'pre-installed' : 'custom',
-        provider: image.provider,
-        imageStreamName: image.name,
-        toggleDirection: visible ? 'enabled' : 'disabled',
-        sessionToggleIndex: currentToggleIndex,
-        error: e instanceof Error ? e.message : String(e),
-      });
+      try {
+        fireFormTrackingEvent('Workbench Image Toggled', {
+          outcome: TrackingOutcome.submit,
+          success: false,
+          imageType: image.isOOTB ? 'pre-installed' : 'custom',
+          provider: image.provider,
+          imageStreamName: image.name,
+          toggleDirection: visible ? 'enabled' : 'disabled',
+          sessionToggleIndex: currentToggleIndex,
+          errorCategory: 'toggle_request_failed',
+        });
+      } catch {
+        // telemetry must not affect error handling
+      }
       notification.error(
         `Error ${visible ? 'enabling' : 'disabling'} the workbench image`,
         e instanceof Error ? e.message : String(e),

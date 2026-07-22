@@ -22,6 +22,23 @@ const filterOptionValues: string[] = Object.values(BYONImagesToolbarFilterOption
 const isFilterOption = (key: string): key is BYONImagesToolbarFilterOptions =>
   filterOptionValues.includes(key);
 
+const getActiveFilterCount = (data: BYONImagesFilterDataType): number => {
+  let count = 0;
+  if (data[BYONImagesToolbarFilterOptions.name]) {
+    count++;
+  }
+  if (data[BYONImagesToolbarFilterOptions.provider]) {
+    count++;
+  }
+  if (data[BYONImagesToolbarFilterOptions.type]) {
+    count++;
+  }
+  if (data[BYONImagesToolbarFilterOptions.enabled]) {
+    count++;
+  }
+  return count;
+};
+
 export type BYONImagesTableProps = {
   images: BYONImage[];
 };
@@ -73,70 +90,56 @@ export const BYONImagesTable: React.FC<BYONImagesTableProps> = ({ images }) => {
   const { globalProfiles: hardwareProfiles } =
     useHardwareProfilesByFeatureVisibility(WORKBENCH_VISIBILITY);
 
-  const getActiveFilterCount = React.useCallback((data: BYONImagesFilterDataType): number => {
-    let count = 0;
-    if (data[BYONImagesToolbarFilterOptions.name]) {
-      count++;
-    }
-    if (data[BYONImagesToolbarFilterOptions.provider]) {
-      count++;
-    }
-    if (data[BYONImagesToolbarFilterOptions.type]) {
-      count++;
-    }
-    if (data[BYONImagesToolbarFilterOptions.enabled]) {
-      count++;
-    }
-    return count;
-  }, []);
-
   const onFilterUpdate = React.useCallback(
     (key: string, value: string | { label: string; value: string } | undefined) => {
-      setFilterData((prevValues) => {
-        const newFilterData = { ...prevValues, [key]: value };
-        const previousValue = isFilterOption(key) ? prevValues[key] : undefined;
-        const newActiveFilterCount = getActiveFilterCount(newFilterData);
+      if (!isFilterOption(key)) {
+        return;
+      }
+      const filterValue = typeof value === 'string' ? value : value?.value;
 
-        fireMiscTrackingEvent('Workbench Images Filtered', {
-          filterType: key,
-          filterValue: typeof value === 'string' ? value : value?.value ?? '',
-          previousFilterValue: previousValue ?? '',
-          hasActiveFilters: newActiveFilterCount > 0,
-          activeFilterCount: newActiveFilterCount,
-          resultCount: images.filter((image) => {
-            const nameFilter = newFilterData[BYONImagesToolbarFilterOptions.name]?.toLowerCase();
-            const providerFilter =
-              newFilterData[BYONImagesToolbarFilterOptions.provider]?.toLowerCase();
-            const typeFilter = newFilterData[BYONImagesToolbarFilterOptions.type];
-            const enabledFilter = newFilterData[BYONImagesToolbarFilterOptions.enabled];
+      setFilterData((prevValues) => ({ ...prevValues, [key]: filterValue }));
 
-            if (nameFilter && !image.display_name.toLowerCase().includes(nameFilter)) {
+      const previousValue = filterData[key];
+      const newFilterData = { ...filterData, [key]: filterValue };
+      const newActiveFilterCount = getActiveFilterCount(newFilterData);
+
+      fireMiscTrackingEvent('Workbench Images Filtered', {
+        filterType: key,
+        filterValue: filterValue ?? '',
+        previousFilterValue: previousValue ?? '',
+        hasActiveFilters: newActiveFilterCount > 0,
+        activeFilterCount: newActiveFilterCount,
+        resultCount: images.filter((image) => {
+          const nameFilter = newFilterData[BYONImagesToolbarFilterOptions.name]?.toLowerCase();
+          const providerFilter =
+            newFilterData[BYONImagesToolbarFilterOptions.provider]?.toLowerCase();
+          const typeFilter = newFilterData[BYONImagesToolbarFilterOptions.type];
+          const enabledFilter = newFilterData[BYONImagesToolbarFilterOptions.enabled];
+
+          if (nameFilter && !image.display_name.toLowerCase().includes(nameFilter)) {
+            return false;
+          }
+          if (providerFilter && !image.provider.toLowerCase().includes(providerFilter)) {
+            return false;
+          }
+          if (typeFilter) {
+            const isRedHat = typeFilter === ImageTypeFilter.redHat;
+            if (image.isOOTB !== isRedHat) {
               return false;
             }
-            if (providerFilter && !image.provider.toLowerCase().includes(providerFilter)) {
+          }
+          if (enabledFilter) {
+            const isEnabled = enabledFilter === ImageEnabledFilter.enabled;
+            if (isEnabled !== isImageEffectivelyEnabled(image)) {
               return false;
             }
-            if (typeFilter) {
-              const isRedHat = typeFilter === ImageTypeFilter.redHat;
-              if (image.isOOTB !== isRedHat) {
-                return false;
-              }
-            }
-            if (enabledFilter) {
-              const isEnabled = enabledFilter === ImageEnabledFilter.enabled;
-              if (isEnabled !== isImageEffectivelyEnabled(image)) {
-                return false;
-              }
-            }
-            return true;
-          }).length,
-          totalImageCount: images.length,
-        });
-
-        return newFilterData;
+          }
+          return true;
+        }).length,
+        totalImageCount: images.length,
       });
     },
-    [getActiveFilterCount, images],
+    [filterData, images],
   );
 
   const onClearFilters = React.useCallback(
@@ -144,10 +147,10 @@ export const BYONImagesTable: React.FC<BYONImagesTableProps> = ({ images }) => {
     [setFilterData],
   );
 
-  const getSessionToggleIndex = React.useCallback(() => sessionToggleIndexRef.current, []);
-
-  const incrementSessionToggleIndex = React.useCallback(() => {
+  const claimSessionToggleIndex = React.useCallback(() => {
+    const index = sessionToggleIndexRef.current;
     sessionToggleIndexRef.current += 1;
+    return index;
   }, []);
 
   return (
@@ -170,8 +173,7 @@ export const BYONImagesTable: React.FC<BYONImagesTableProps> = ({ images }) => {
             onEditImage={(i) => setEditImage(i)}
             onDeleteImage={(i) => setDeleteImage(i)}
             hardwareProfiles={hardwareProfiles}
-            getSessionToggleIndex={getSessionToggleIndex}
-            incrementSessionToggleIndex={incrementSessionToggleIndex}
+            claimSessionToggleIndex={claimSessionToggleIndex}
           />
         )}
         onClearFilters={onClearFilters}
