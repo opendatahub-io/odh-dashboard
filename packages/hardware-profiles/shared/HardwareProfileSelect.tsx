@@ -326,7 +326,12 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
       kueueFilteringState,
       availableLocalQueueNames,
     );
-    if (initialHardwareProfile && !filteredProfiles.includes(initialHardwareProfile)) {
+    // Rescue only in the group the profile came from, to avoid showing it in both sections.
+    if (
+      initialHardwareProfile &&
+      profiles.includes(initialHardwareProfile) &&
+      !filteredProfiles.includes(initialHardwareProfile)
+    ) {
       filteredProfiles.push(initialHardwareProfile);
     }
     return orderHardwareProfiles(filteredProfiles, hardwareProfileOrder).filter((profile) =>

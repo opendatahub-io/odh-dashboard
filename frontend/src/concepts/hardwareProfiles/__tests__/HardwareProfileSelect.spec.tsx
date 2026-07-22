@@ -480,6 +480,112 @@ describe('HardwareProfileSelect - LocalQueue availability filtering', () => {
     expect(screen.getByText('Kueue Profile 2')).toBeInTheDocument();
   });
 
+  it('should not duplicate initialHardwareProfile across both groups when its localQueue is missing (project-scoped edit mode)', async () => {
+    const project = mockProjectK8sResource({ k8sName: 'test-project' });
+
+    // Project-scoped profile whose queue is absent — the previously saved selection in edit mode
+    const projectKueueProfile = mockHardwareProfile({
+      name: 'project-kueue-profile',
+      displayName: 'Project Kueue Profile',
+      namespace: 'test-project',
+    });
+    projectKueueProfile.spec.scheduling = {
+      type: SchedulingType.QUEUE,
+      kueue: { localQueueName: 'test-queue', priorityClass: 'high-priority' },
+    };
+
+    // Global profile with an existing queue — anchors the global group so it renders
+    const globalKueueProfile = mockHardwareProfile({
+      name: 'global-kueue-profile',
+      displayName: 'Global Kueue Profile',
+    });
+    globalKueueProfile.spec.scheduling = {
+      type: SchedulingType.QUEUE,
+      kueue: { localQueueName: 'test-queue-2', priorityClass: 'normal-priority' },
+    };
+
+    // 'test-queue' is absent; 'test-queue-2' exists
+    const localQueues = {
+      data: [mockLocalQueueK8sResource({ name: 'test-queue-2' })],
+      loaded: true,
+      error: undefined,
+      refresh: jest.fn(),
+    };
+
+    useKueueConfigurationMock.mockReturnValue({
+      isKueueDisabled: false,
+      isKueueFeatureEnabled: true,
+      isProjectKueueEnabled: true,
+      kueueFilteringState: KueueFilteringState.ONLY_KUEUE_PROFILES,
+    });
+
+    const hardwareProfileConfig = {
+      formData: { useExistingSettings: false },
+      useExistingSettings: false,
+      setFormData: () => null,
+      resetFormData: () => null,
+      isFormDataValid: true,
+      profilesLoaded: true,
+      profilesLoadError: undefined,
+      initialHardwareProfile: undefined,
+    };
+    useHardwareProfileConfigMock.mockReturnValue(hardwareProfileConfig);
+
+    render(
+      <ProjectsContext.Provider
+        value={{
+          projects: [project],
+          modelServingProjects: [],
+          nonActiveProjects: [],
+          preferredProject: null,
+          updatePreferredProject: () => undefined,
+          loaded: true,
+          loadError: undefined,
+          waitForProject: () => Promise.resolve(),
+        }}
+      >
+        <ProjectDetailsContext.Provider
+          value={
+            {
+              currentProject: project,
+              refresh: jest.fn(),
+              localQueues,
+            } as unknown as ProjectDetailsContextType
+          }
+        >
+          <HardwareProfileSelect
+            isProjectScoped
+            initialHardwareProfile={projectKueueProfile}
+            previewDescription={false}
+            hardwareProfiles={[globalKueueProfile]}
+            hardwareProfilesLoaded
+            hardwareProfilesError={undefined}
+            projectScopedHardwareProfiles={[[projectKueueProfile], true, undefined]}
+            allowExistingSettings={false}
+            hardwareProfileConfig={hardwareProfileConfig}
+            isHardwareProfileSupported={() => true}
+            onChange={() => null}
+            project="test-project"
+          />
+        </ProjectDetailsContext.Provider>
+      </ProjectsContext.Provider>,
+    );
+
+    await userEvent.click(screen.getByTestId('hardware-profile-selection-toggle'));
+
+    // Rescued profile appears exactly once — in the project group, not the global group
+    expect(screen.getAllByText('Project Kueue Profile')).toHaveLength(1);
+    expect(screen.getByTestId('project-scoped-hardware-profiles')).toHaveTextContent(
+      'Project Kueue Profile',
+    );
+    expect(screen.getByTestId('global-scoped-hardware-profiles')).not.toHaveTextContent(
+      'Project Kueue Profile',
+    );
+    expect(screen.getByTestId('global-scoped-hardware-profiles')).toHaveTextContent(
+      'Global Kueue Profile',
+    );
+  });
+
   it('should keep initialHardwareProfile in options even when its localQueue is missing (edit mode)', async () => {
     const project = mockProjectK8sResource({});
     // Only 'test-queue-2' exists — kueueHardwareProfile's 'test-queue' is absent.
