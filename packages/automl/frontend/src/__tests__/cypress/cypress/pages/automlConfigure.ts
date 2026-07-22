@@ -1,7 +1,12 @@
 class AutomlConfigurePage {
   visit(namespace: string) {
     cy.visit(`/configure/${namespace}`);
+    this.wait();
+  }
+
+  private wait() {
     this.findNameInput().should('be.visible');
+    cy.testA11y();
   }
 
   findNameInput() {
