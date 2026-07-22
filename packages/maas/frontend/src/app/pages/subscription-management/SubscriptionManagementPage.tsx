@@ -80,7 +80,9 @@ const SubscriptionManagementPage: React.FC = () => {
           aria-label="Subscriptions tab"
           data-testid="subscriptions-tab"
         >
-          <SubscriptionsTab returnTo={`${URL_PREFIX}/maas-governance/${SUBSCRIPTIONS_TAB}`} />
+          {activeTab === SUBSCRIPTIONS_TAB && (
+            <SubscriptionsTab returnTo={`${URL_PREFIX}/maas-governance/${SUBSCRIPTIONS_TAB}`} />
+          )}
         </Tab>
         <Tab
           eventKey={AUTH_POLICIES_TAB}
@@ -88,7 +90,9 @@ const SubscriptionManagementPage: React.FC = () => {
           aria-label="Authorization policies tab"
           data-testid="auth-policies-tab"
         >
-          <AuthPoliciesTab returnTo={`${URL_PREFIX}/maas-governance/${AUTH_POLICIES_TAB}`} />
+          {activeTab === AUTH_POLICIES_TAB && (
+            <AuthPoliciesTab returnTo={`${URL_PREFIX}/maas-governance/${AUTH_POLICIES_TAB}`} />
+          )}
         </Tab>
       </Tabs>
     </ApplicationsPage>

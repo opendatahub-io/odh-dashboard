@@ -12,8 +12,8 @@ import CreateSubscriptionForm from './createSubscription/CreateSubscriptionForm'
 
 const CreateSubscriptionPage: React.FC = () => {
   const [formData, loaded, error] = useSubscriptionPolicyFormData();
-  const { state, pathname } = useLocation();
-  const backUrl = getBackUrl(pathname, state, 'subscriptions');
+  const { state } = useLocation();
+  const backUrl = getBackUrl(state, 'subscriptions');
   const returnTo = backUrl;
   const breadcrumbLabel = getBreadcrumbLabelFromState(state) ?? 'Subscriptions';
   const preSelectedModel = getPreSelectedModelFromState(state);

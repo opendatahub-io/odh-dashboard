@@ -9,8 +9,8 @@ import PolicyForm from './policyForm/PolicyForm';
 
 const EditAuthPolicyPage: React.FC = () => {
   const { authPolicyName = '' } = useParams<{ authPolicyName: string }>();
-  const { state, pathname } = useLocation();
-  const base = getBackUrl(pathname, state, 'auth-policies');
+  const { state } = useLocation();
+  const base = getBackUrl(state, 'auth-policies');
   const returnTo = base;
   const [policyInfo, policyLoaded, policyError] = useGetPolicyInfo(authPolicyName);
   const [formData, formLoaded, formError] = useSubscriptionPolicyFormData();

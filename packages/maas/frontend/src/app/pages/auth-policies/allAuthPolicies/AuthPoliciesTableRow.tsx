@@ -6,7 +6,10 @@ import { Link, useNavigate } from 'react-router-dom';
 import type { K8sResourceCommon } from '@odh-dashboard/k8s-core';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { MaaSAuthPolicy } from '~/app/types/subscriptions';
-import { URL_PREFIX } from '~/app/utilities/const';
+import {
+  getAuthPolicyEditUrl,
+  getAuthPolicyViewUrl,
+} from '~/app/utilities/subscriptionManagementNavigation';
 import { convertAuthPolicyToK8sResource } from '~/app/utilities/authpolicies';
 import PhaseLabel from '~/app/shared/PhaseLabel';
 import { PhaseLabelLocation, PhaseResourceType } from '~/app/utilities/phaseLabelUtils';
@@ -38,9 +41,7 @@ const AuthPoliciesTableRow: React.FC<AuthPoliciesTableRowProps> = ({
   returnTo,
 }) => {
   const navigate = useNavigate();
-  const base = returnTo ?? `${URL_PREFIX}/auth-policies`;
   const navState = returnTo ? { state: { returnTo } } : undefined;
-  const policyNameSegment = (name: string) => encodeURIComponent(name);
   const [expandedPanel, setExpandedPanel] = React.useState<ExpandedPanel>(null);
 
   const togglePanel = (panel: 'groups' | 'models') => {
@@ -53,10 +54,10 @@ const AuthPoliciesTableRow: React.FC<AuthPoliciesTableRowProps> = ({
       source: EventTrackingSource.TAB_KEBAB,
       resourceStatus: authPolicy.phase ?? '',
     });
-    navigate(`${base}/view/${policyNameSegment(authPolicyName)}`, navState);
+    navigate(getAuthPolicyViewUrl(authPolicyName), navState);
   };
   const onEditAuthPolicy = (authPolicyName: string) => {
-    navigate(`${base}/edit/${policyNameSegment(authPolicyName)}`, navState);
+    navigate(getAuthPolicyEditUrl(authPolicyName), navState);
   };
 
   const groupsCount = Array.isArray(authPolicy.subjects.groups)
@@ -84,7 +85,7 @@ const AuthPoliciesTableRow: React.FC<AuthPoliciesTableRowProps> = ({
           ) : (
             <ResourceNameTooltip resource={convertAuthPolicyToK8sResource(authPolicy)}>
               <Link
-                to={`${base}/view/${policyNameSegment(authPolicy.name)}`}
+                to={getAuthPolicyViewUrl(authPolicy.name)}
                 state={returnTo ? { returnTo } : undefined}
                 onClick={() =>
                   fireMiscTrackingEvent(MaaSEvents.MAAS_RESOURCE_DETAILS_VIEWED, {

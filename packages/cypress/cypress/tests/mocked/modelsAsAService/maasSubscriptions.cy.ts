@@ -9,6 +9,7 @@ import {
   editSubscriptionPage,
   subscriptionsPage,
   viewSubscriptionPage,
+  subscriptionManagementPage,
 } from '../../../pages/modelsAsAService';
 import {
   mockSubscriptions,
@@ -33,6 +34,9 @@ const setupCommonIntercepts = () => {
       conditions: [{ type: 'ModelsAsServiceReady', status: 'True', reason: 'Ready' }],
     }),
   );
+  cy.interceptOdh('GET /maas/api/v1/subscription-policy-form-data', {
+    data: mockSubscriptionFormData(),
+  });
 };
 
 describe('Subscriptions Page', () => {
@@ -74,12 +78,12 @@ describe('Subscriptions Page', () => {
   });
 
   it('should display the subscriptions table with correct page content', () => {
-    subscriptionsPage.findTitle().should('contain.text', 'Subscriptions');
+    subscriptionsPage.findTitle().should('contain.text', 'MaaS governance');
     subscriptionsPage
       .findDescription()
       .should(
         'contain.text',
-        'Create subscriptions to manage group access to MaaS endpoints, and to set token limits for each model.',
+        'Manage subscriptions and authorization policies that control access to models through the Models-as-a-Service (MaaS) gateway.',
       );
 
     subscriptionsPage.findTable().should('exist');
@@ -125,6 +129,46 @@ describe('Subscriptions Page', () => {
     premiumRow.findKebabAction('Delete').should('exist');
   });
 
+  it('should expand and collapse inline rows in the subscriptions tab', () => {
+    subscriptionManagementPage.visit('subscriptions');
+
+    const premiumRow = subscriptionsPage.getRow('Premium Team Subscription');
+
+    // Expand the groups panel
+    premiumRow.findExpandGroupButton().click();
+    premiumRow.findExpandedGroupName().should('exist');
+    premiumRow.findExpandedGroupName().should('have.length', 1);
+    premiumRow.findExpandedGroupName().eq(0).should('contain.text', 'premium-users');
+    premiumRow.findExpandedModelName().should('not.be.visible');
+
+    // Clicking models while groups is open replaces the panel
+    premiumRow.findExpandModelButton().click();
+    premiumRow.findExpandedModelName().should('exist');
+    premiumRow.findExpandedModelName().should('have.length', 2);
+    premiumRow.findExpandedModelName().eq(0).should('contain.text', 'Granite 3 8B Instruct');
+    premiumRow.findExpandedModelDescription().should('have.length', 2);
+    premiumRow
+      .findExpandedModelDescription()
+      .eq(0)
+      .should(
+        'contain.text',
+        'Granite 3 8B Instruct is a large language model that is used for advanced tasks.',
+      );
+    premiumRow.findExpandedModelResourceName().should('have.length', 2);
+    premiumRow
+      .findExpandedModelResourceName()
+      .eq(0)
+      .should('contain.text', 'granite-3-8b-instruct');
+    premiumRow.findExpandedModelTokenLimits().should('have.length', 2);
+    premiumRow.findExpandedModelTokenLimits().eq(0).should('contain.text', '100,000 / 24 hours');
+    premiumRow.findExpandedGroupName().should('not.be.visible');
+
+    // Clicking models again collapses it
+    premiumRow.findExpandModelButton().click();
+    premiumRow.findExpandedModelName().should('not.be.visible');
+    premiumRow.findExpandedGroupName().should('not.be.visible');
+  });
+
   it('should filter subscriptions by display name and description', () => {
     subscriptionsPage.findFilterInput().type('Team Subscription');
     subscriptionsPage.findRows().should('have.length', 2);
@@ -153,7 +197,7 @@ describe('Subscriptions Page', () => {
     );
     subscriptionsPage.visit();
     subscriptionsPage.getRow('deleting-sub').findActionsToggle().should('be.disabled');
-    cy.visit(`/maas/subscriptions/view/deleting-sub`);
+    cy.visit(`/maas/maas-governance/subscriptions/view/deleting-sub`);
     viewSubscriptionPage.findActionsToggle().click();
     viewSubscriptionPage.findDeleteActionButton().should('be.disabled');
     viewSubscriptionPage.findEditActionButton().should('be.disabled');
@@ -201,7 +245,7 @@ describe('View Subscription Page', () => {
     cy.interceptOdh('GET /maas/api/v1/all-subscriptions', { data: mockSubscriptions() });
     subscriptionsPage.visit();
     subscriptionsPage.getRow('Premium Team Subscription').findKebabAction('View details').click();
-    cy.url().should('include', `/maas/subscriptions/view/${subscriptionName}`);
+    cy.url().should('include', `/maas/maas-governance/subscriptions/view/${subscriptionName}`);
 
     viewSubscriptionPage.findTitle().should('contain.text', 'Premium Team Subscription');
 
@@ -225,7 +269,7 @@ describe('View Subscription Page', () => {
       .and('contain.text', '100,000');
 
     viewSubscriptionPage.findBreadcrumbSubscriptionsLink().click();
-    cy.url().should('include', '/maas/subscriptions');
+    cy.url().should('include', '/maas/maas-governance/subscriptions');
   });
 
   it("should list models from the subscription when model ref doesn't exist", () => {
@@ -371,8 +415,7 @@ describe('Subscription Create Page', () => {
         },
       });
 
-    // Verify we navigate back to the subscriptions list
-    cy.url().should('include', '/subscriptions');
+    cy.url().should('include', '/maas/maas-governance/subscriptions');
   });
 });
 
@@ -416,7 +459,7 @@ describe('Edit Subscription Page', () => {
     editSubscriptionPage.findSaveButton().click();
 
     cy.wait('@updateSubscription');
-    cy.url().should('include', '/subscriptions');
+    cy.url().should('include', '/maas/maas-governance/subscriptions');
   });
 
   it('should show policy warning when groups are changed', () => {
@@ -435,6 +478,6 @@ describe('Edit Subscription Page', () => {
   it('should navigate to subscriptions list on cancel', () => {
     editSubscriptionPage.visit(subscriptionName);
     editSubscriptionPage.findCancelButton().click();
-    cy.url().should('include', '/subscriptions');
+    cy.url().should('include', '/maas/maas-governance/subscriptions');
   });
 });
