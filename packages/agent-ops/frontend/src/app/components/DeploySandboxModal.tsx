@@ -132,11 +132,14 @@ const DeploySandboxModal: React.FC<DeploySandboxModalProps> = ({
   );
 
   const handleSubmit = React.useCallback(() => {
+    const trimmedImage = image.trim();
+    const colonIdx = trimmedImage.lastIndexOf(':');
+    const hasTag = colonIdx > 0 && !trimmedImage.substring(colonIdx).includes('/');
     const request: DeployAgentRequest = {
       name: name.trim() || `sandbox-${Date.now()}`,
       namespace,
-      containerImage: image.trim(),
-      imageTag: 'latest',
+      containerImage: hasTag ? trimmedImage.substring(0, colonIdx) : trimmedImage,
+      imageTag: hasTag ? trimmedImage.substring(colonIdx + 1) : 'latest',
     };
     if (selectedGatewayName) {
       request.gateway = selectedGatewayName;
