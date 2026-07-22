@@ -1,3 +1,4 @@
+import { handleRestFailures } from 'mod-arch-core';
 import type { UIError } from './types';
 
 export function isUIError(value: unknown): value is UIError {
@@ -25,4 +26,8 @@ export function throwUIError<T>(promise: Promise<T>): Promise<T> {
     }
     return result;
   });
+}
+
+export function handleRestWithUIErrors<T>(promise: Promise<T>): Promise<T> {
+  return throwUIError(handleRestFailures(promise));
 }

@@ -4,6 +4,7 @@ import React from 'react';
 import UIErrorModal from './UIErrorModal.tsx';
 import { UIErrorAlert, UIErrorAlerts } from './UIErrorAlert.tsx';
 import type { UIError } from './types.ts';
+import { isUIError } from './util.ts';
 
 // Types ---------------------------------------------------------------------->
 
@@ -77,13 +78,27 @@ const UIErrorHandler: React.FC<UIErrorHandlerProps> = ({ id, children }) => {
             />
           ))}
         </UIErrorAlerts>
-        {children}
       </div>
+      {children}
     </UIErrorHandlerContext.Provider>
   );
 };
 
 // Public --------------------------------------------------------------------->
 
-export { UIErrorHandler, useUIErrorHandler };
-export default UIErrorHandler;
+const useCatchUIError = (): ((error: unknown, elseFn: () => void) => void) => {
+  const { showUIError } = useUIErrorHandler();
+
+  return React.useCallback(
+    (error: unknown, elseFn: () => void) => {
+      if (isUIError(error)) {
+        showUIError(error);
+      } else {
+        elseFn();
+      }
+    },
+    [showUIError],
+  );
+};
+
+export { UIErrorHandler, useUIErrorHandler, useCatchUIError };

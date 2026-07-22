@@ -17,7 +17,7 @@ import { DeploymentMode, logout, useModularArchContext, useSettings } from 'mod-
 import AppRoutes from '~/app/AppRoutes';
 import { useNamespaceSelectorWithPersistence } from '~/app/hooks/useNamespaceSelectorWithPersistence';
 import { AppContext } from '~/app/context/AppContext';
-import UIErrorHandler from '~/app/components/common/UIError/UIErrorHandler';
+import { UIErrorHandler } from '~/app/components/common/UIError/UIErrorHandler';
 
 const App: React.FC = () => {
   const [queryClient] = React.useState(
