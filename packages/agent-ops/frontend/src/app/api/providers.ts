@@ -56,7 +56,7 @@ export const listProviderProfiles =
     handleRestFailures(
       restGET(
         hostPath,
-        `${gatewayProvidersPath(gwName)}/profiles`,
+        `/api/v1/gateways/${encodeURIComponent(gwName)}/provider-profiles`,
         {},
         opts,
       ),

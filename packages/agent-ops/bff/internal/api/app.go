@@ -47,7 +47,7 @@ const (
 	GatewayDetailPath      = ApiPathPrefix + "/gateways/:gwName"
 	ProviderListPath       = ApiPathPrefix + "/gateways/:gwName/providers"
 	ProviderDetailPath     = ApiPathPrefix + "/gateways/:gwName/providers/:provName"
-	ProviderProfilesPath   = ApiPathPrefix + "/gateways/:gwName/providers/profiles"
+	ProviderProfilesPath   = ApiPathPrefix + "/gateways/:gwName/provider-profiles"
 )
 
 var hashPattern = regexp.MustCompile(`[.\-][0-9a-f]{8,}`)
