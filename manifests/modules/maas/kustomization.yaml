@@ -20,5 +20,16 @@ vars:
       apiVersion: v1
     fieldref:
       fieldpath: data.maas-ui-image
+replacements:
+  - source:
+      kind: ConfigMap
+      name: maas-params
+      fieldPath: data.gateway-domain
+    targets:
+      - select:
+          kind: Deployment
+          name: maas-ui
+        fieldPaths:
+          - spec.template.spec.containers.[name=maas-ui].env.[name=GATEWAY_DOMAIN].value
 configurations:
   - params.yaml

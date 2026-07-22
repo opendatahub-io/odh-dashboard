@@ -27,5 +27,16 @@ vars:
       apiVersion: v1
     fieldref:
       fieldpath: data.pgvector-image
+replacements:
+  - source:
+      kind: ConfigMap
+      name: gen-ai-params
+      fieldPath: data.gateway-domain
+    targets:
+      - select:
+          kind: Deployment
+          name: gen-ai-ui
+        fieldPaths:
+          - spec.template.spec.containers.[name=gen-ai-ui].env.[name=GATEWAY_DOMAIN].value
 configurations:
   - params.yaml

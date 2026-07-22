@@ -20,5 +20,16 @@ vars:
       apiVersion: v1
     fieldref:
       fieldpath: data.agent-ops-ui-image
+replacements:
+  - source:
+      kind: ConfigMap
+      name: agent-ops-params
+      fieldPath: data.gateway-domain
+    targets:
+      - select:
+          kind: Deployment
+          name: agent-ops-ui
+        fieldPaths:
+          - spec.template.spec.containers.[name=agent-ops-ui].env.[name=GATEWAY_DOMAIN].value
 configurations:
   - params.yaml

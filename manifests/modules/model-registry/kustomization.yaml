@@ -20,5 +20,16 @@ vars:
       apiVersion: v1
     fieldref:
       fieldpath: data.model-registry-ui-image
+replacements:
+  - source:
+      kind: ConfigMap
+      name: model-registry-params
+      fieldPath: data.gateway-domain
+    targets:
+      - select:
+          kind: Deployment
+          name: model-registry-ui
+        fieldPaths:
+          - spec.template.spec.containers.[name=model-registry-ui].env.[name=GATEWAY_DOMAIN].value
 configurations:
   - params.yaml

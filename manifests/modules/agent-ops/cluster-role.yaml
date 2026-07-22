@@ -12,6 +12,13 @@ rules:
     resources:
       - sandboxes
   - apiGroups:
+      - route.openshift.io
+    verbs:
+      - get
+      - list
+    resources:
+      - routes
+  - apiGroups:
       - mcp.kuadrant.io
       - mcp.kagenti.com
     verbs:

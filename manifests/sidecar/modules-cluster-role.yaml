@@ -55,6 +55,7 @@ rules:
     verbs:
       - get
       - list
+      - patch
     resources:
       - sandboxes
   # Agent Ops — OpenShift Route lookup for external agent card URL
