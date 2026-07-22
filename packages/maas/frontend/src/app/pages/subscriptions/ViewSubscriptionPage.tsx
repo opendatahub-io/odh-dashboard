@@ -17,10 +17,11 @@ import {
   MaaSSubscription,
   SubscriptionInfoResponse,
 } from '~/app/types/subscriptions';
-import { URL_PREFIX } from '~/app/utilities/const';
 import {
   getBackUrl,
   getBreadcrumbLabelFromState,
+  getSectionUrl,
+  getSubscriptionEditUrl,
 } from '~/app/utilities/subscriptionManagementNavigation';
 import MaasModelsSection from '~/app/shared/MaasModelsSection';
 import {
@@ -40,7 +41,7 @@ type SubscriptionActionsProps = {
 const SubscriptionActions: React.FC<SubscriptionActionsProps> = ({ subscription, returnTo }) => {
   const navigate = useNavigate();
   const [isDeleteOpen, setIsDeleteOpen] = React.useState(false);
-  const base = returnTo ?? `${URL_PREFIX}/subscriptions`;
+  const backUrl = returnTo ?? getSectionUrl('subscriptions');
   const navState = returnTo ? { state: { returnTo } } : undefined;
 
   return (
@@ -51,7 +52,7 @@ const SubscriptionActions: React.FC<SubscriptionActionsProps> = ({ subscription,
           {
             key: 'edit',
             label: 'Edit',
-            onClick: () => navigate(`${base}/edit/${subscription.name}`, navState),
+            onClick: () => navigate(getSubscriptionEditUrl(subscription.name), navState),
             isDisabled: !!subscription.deletionTimestamp,
           },
           { isSpacer: true },
@@ -75,7 +76,7 @@ const SubscriptionActions: React.FC<SubscriptionActionsProps> = ({ subscription,
                 resourceStatus: subscription.phase ?? '',
                 outcome: TrackingOutcome.submit,
               });
-              navigate(base);
+              navigate(backUrl);
             } else {
               fireFormTrackingEvent(MaaSEvents.MAAS_RESOURCE_DELETED, {
                 resourceType: EventTrackingResourceType.SUBSCRIPTION,
@@ -119,7 +120,7 @@ const ViewSubscriptionPage: React.FC = () => {
   const displaySubscriptionName =
     subscriptionInfo?.subscription.displayName?.trim() || subscriptionName;
 
-  const backUrl = getBackUrl(location.pathname, location.state, 'subscriptions');
+  const backUrl = getBackUrl(location.state, 'subscriptions');
   const breadcrumbLabel = getBreadcrumbLabelFromState(location.state) ?? 'Subscriptions';
 
   const breadcrumb = (
