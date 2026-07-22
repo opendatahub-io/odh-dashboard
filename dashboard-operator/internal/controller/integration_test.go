@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	routev1 "github.com/openshift/api/route/v1"
 	"github.com/stretchr/testify/assert"
@@ -221,6 +222,7 @@ func deleteDashboard(t *testing.T) {
 		if getErr := k8sClient.Get(ctx, types.NamespacedName{Name: v1alpha1.DashboardInstanceName}, &v1alpha1.Dashboard{}); getErr != nil {
 			return
 		}
+		time.Sleep(100 * time.Millisecond)
 	}
 }
 
@@ -402,6 +404,7 @@ func TestIntegration_StandaloneEnableModule(t *testing.T) {
 	// envtest has no kubelet so pods never become ready — module phase is
 	// Degraded not Deployed, meaning entry.Enabled is false. The important
 	// check is that the service reference is correct.
+	require.NotNil(t, entry.Service, "federation entry should include a service reference")
 	assert.Equal(t, "odh-dashboard-model-registry-ui", entry.Service.Name)
 	assert.Equal(t, integrationNamespace, entry.Service.Namespace)
 	assert.Equal(t, int32(8043), entry.Service.Port)
