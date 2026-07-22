@@ -203,7 +203,7 @@ export default function PromptTable({
               toggle={(toggleRef) => (
                 <MenuToggle
                   ref={toggleRef}
-                  aria-label="Filter by"
+                  aria-label="Filter by Name"
                   onClick={() => setIsFilterDropdownOpen(!isFilterDropdownOpen)}
                   isExpanded={isFilterDropdownOpen}
                   icon={<FilterIcon />}
