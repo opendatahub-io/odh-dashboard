@@ -10,8 +10,8 @@ class AutomlConfigurePage {
   }
 
   // Step 1 - Create
-  findNameInput() {
-    return cy.findByTestId('automl-name-input');
+  findNameInput(timeout?: number) {
+    return cy.findByTestId('automl-name-input', timeout ? { timeout } : undefined);
   }
 
   findDescriptionInput() {

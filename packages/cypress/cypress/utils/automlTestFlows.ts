@@ -34,10 +34,7 @@ export const configureAutomlRun = (
   automlExperimentsPage.findAnyCreateRunButton({ timeout: 120000 }).click();
 
   cy.step('Step 1 - Fill name and description');
-  automlConfigurePage
-    .findNameInput()
-    .should('be.visible', { timeout: 30000 })
-    .type(testData.runName);
+  automlConfigurePage.findNameInput(30000).should('be.visible').type(testData.runName);
   automlConfigurePage.findDescriptionInput().type(testData.runDescription);
   automlConfigurePage.findNextButton().click();
 
@@ -105,7 +102,7 @@ export const waitForAutomlRunCompletion = (timeoutMs?: number): void => {
   const timeout = timeoutMs ?? AUTOML_RUN_TIMEOUT;
 
   cy.step(`Wait for AutoML run to complete (timeout: ${timeout}ms)`);
-  cy.findByTestId('automl-run-in-progress', { timeout }).should('not.exist');
+  automlResultsPage.findRunInProgressMessage(timeout).should('not.exist');
 
   automlResultsPage.findRunStatusLabel().should(($el) => {
     expect($el.text()).to.not.match(/CANCEL|FAIL/i);
