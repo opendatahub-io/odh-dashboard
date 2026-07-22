@@ -33,6 +33,7 @@ export {
   MetadataAnnotation,
   HardwareProfileFeatureVisibility,
   DataScienceStackComponent,
+  MODELS_AS_A_SERVICE_READY,
 } from './k8sTypes';
 export type {
   K8sAPIOptions,
