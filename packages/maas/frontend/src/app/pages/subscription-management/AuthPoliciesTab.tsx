@@ -81,7 +81,7 @@ const AuthPoliciesTab: React.FC<AuthPoliciesTabProps> = ({ returnTo }) => {
           icon={ExclamationCircleIcon}
           titleText="Error loading authorization policies"
           variant={EmptyStateVariant.lg}
-          data-id="error-empty-state"
+          data-testid="error-empty-state"
         >
           <EmptyStateBody data-testid="error-empty-state-body">{error.message}</EmptyStateBody>
         </EmptyState>

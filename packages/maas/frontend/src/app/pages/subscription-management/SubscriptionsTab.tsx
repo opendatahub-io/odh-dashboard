@@ -79,7 +79,7 @@ const SubscriptionsTab: React.FC<SubscriptionsTabProps> = ({ returnTo }) => {
           icon={ExclamationCircleIcon}
           titleText="Error loading subscriptions"
           variant={EmptyStateVariant.lg}
-          data-id="error-empty-state"
+          data-testid="error-empty-state"
         >
           <EmptyStateBody data-testid="error-empty-state-body">{error.message}</EmptyStateBody>
         </EmptyState>
