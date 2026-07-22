@@ -64,12 +64,14 @@ spec:
         - name: odh-trusted-ca-cert
           configMap:
             name: odh-trusted-ca-bundle
+            optional: true
             items:
               - key: ca-bundle.crt
                 path: odh-trusted-ca-bundle.crt
         - name: odh-ca-cert
           configMap:
             name: odh-trusted-ca-bundle
+            optional: true
             items:
               - key: odh-ca-bundle.crt
                 path: odh-ca-bundle.crt

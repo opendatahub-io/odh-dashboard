@@ -112,12 +112,11 @@ func mainDashboardServiceName(platform cluster.Platform) string {
 
 // --- Platform-aware service name resolution ---
 
-func standaloneServiceName(platform cluster.Platform, slug string) string {
-	prefix := "odh-dashboard"
-	if platform == cluster.SelfManagedRhoai || platform == cluster.ManagedRhoai {
-		prefix = "rhods-dashboard"
-	}
-	return prefix + "-" + slug + "-ui"
+// standaloneServiceName returns the Kubernetes Service name for a standalone module pod.
+// Module manifests (manifests/modules/*/service.yaml) always use the odh-dashboard- prefix
+// regardless of platform, so we do the same here for consistency.
+func standaloneServiceName(_ cluster.Platform, slug string) string {
+	return "odh-dashboard-" + slug + "-ui"
 }
 
 // --- Deploy individual module manifests ---
