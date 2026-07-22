@@ -30,7 +30,6 @@ type SourceModelFieldsProps = {
   connectionValidation: ConnectionValidationState;
   canVerifyConnection: boolean;
   onVerifyConnection: () => void;
-  namespace?: string;
 };
 
 const SourceModelFields: React.FC<SourceModelFieldsProps> = ({
@@ -46,7 +45,6 @@ const SourceModelFields: React.FC<SourceModelFieldsProps> = ({
   connectionValidation,
   canVerifyConnection,
   onVerifyConnection,
-  namespace,
 }) => {
   const { namespace } = useParams<{ namespace: string }>();
   const endpointUrlValidated =
@@ -198,7 +196,7 @@ const SourceModelFields: React.FC<SourceModelFieldsProps> = ({
                       overflowX: 'auto',
                     }}
                   >
-                    {`oc create secret generic my-api-secret\n  --from-file=api-key=./api-key.txt\n  --from-literal=hf-token=<your-token>\n  -n ${namespace}`}
+                    {`oc create secret generic my-api-secret\n  --from-file=api-key=./api-key.txt\n  --from-literal=hf-token=<your-token>\n  -n ${namespace ?? 'your-namespace'}`}
                   </pre>
                 </>
               }

@@ -113,7 +113,7 @@ const SourceAgentFields: React.FC<SourceAgentFieldsProps> = ({
                       overflowX: 'auto',
                     }}
                   >
-                    {`oc create secret generic my-api-secret\n  --from-file=api-key=./api-key.txt\n  --from-literal=hf-token=<your-token>\n  -n ${namespace}`}
+                    {`oc create secret generic my-api-secret\n  --from-file=api-key=./api-key.txt\n  --from-literal=hf-token=<your-token>\n  -n ${namespace ?? 'your-namespace'}`}
                   </pre>
                 </>
               }
