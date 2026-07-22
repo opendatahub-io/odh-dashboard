@@ -216,11 +216,14 @@ const AgentDeploymentListPage: React.FC = () => {
                   <CardBody>
                     <Stack>
                       <StackItem>
-                        <Content component="small">{gw.endpoint}</Content>
+                        <Content component="small" className="pf-v6-u-text-truncate">
+                          {gw.endpoint}
+                        </Content>
                       </StackItem>
                       <StackItem>
                         <Content component="small">
-                          {gw.providerCount} provider(s) | {gw.sandboxCount} sandbox(es)
+                          {gw.providerCount} {gw.providerCount === 1 ? 'provider' : 'providers'} |{' '}
+                          {gw.sandboxCount} {gw.sandboxCount === 1 ? 'sandbox' : 'sandboxes'}
                         </Content>
                       </StackItem>
                     </Stack>
@@ -259,6 +262,10 @@ const AgentDeploymentListPage: React.FC = () => {
                 isSelectable
                 isClickable
                 data-testid="add-gateway-card"
+                onClick={() => {
+                  setCreateGatewayDeployMode(false);
+                  setIsCreateGatewayOpen(true);
+                }}
               >
                 <CardBody>
                   <Flex
@@ -268,18 +275,10 @@ const AgentDeploymentListPage: React.FC = () => {
                     gap={{ default: 'gapSm' }}
                   >
                     <FlexItem>
-                      <Button
-                        variant="plain"
-                        aria-label="Register gateway"
-                        onClick={() => {
-                          setCreateGatewayDeployMode(false);
-                          setIsCreateGatewayOpen(true);
-                        }}
-                        icon={<PlusCircleIcon />}
-                      />
+                      <PlusCircleIcon />
                     </FlexItem>
                     <FlexItem>
-                      <Content component="small">Register or Deploy Gateway</Content>
+                      <Content component="p">Add gateway</Content>
                     </FlexItem>
                   </Flex>
                 </CardBody>
@@ -298,6 +297,15 @@ const AgentDeploymentListPage: React.FC = () => {
 
     if (isAccessDenied) {
       return accessDeniedState;
+    }
+
+    if (isEmpty && !isFiltered) {
+      return (
+        <AgentDeploymentsEmptyState
+          namespace={namespace}
+          onDeployAgent={handleOpenDeployModal}
+        />
+      );
     }
 
     return (
