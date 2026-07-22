@@ -20,7 +20,7 @@ const AppRoutes: React.FC = () => {
   const isKeysAndSubs = pathname.startsWith(`${URL_PREFIX}/keys-and-subs`);
   const isSubscriptions = pathname.startsWith(`${URL_PREFIX}/subscriptions`);
   const isAuthPolicies = pathname.startsWith(`${URL_PREFIX}/auth-policies`);
-  const isSubscriptionManagement = pathname.startsWith(`${URL_PREFIX}/subscription-management`);
+  const isSubscriptionManagement = pathname.startsWith(`${URL_PREFIX}/maas-governance`);
 
   if (isSubscriptionManagement) {
     return (

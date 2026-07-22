@@ -4,7 +4,7 @@ import { normalizePhase } from '~/app/utilities/phaseLabelUtils';
 
 export const authPoliciesColumns: SortableData<MaaSAuthPolicy>[] = [
   {
-    label: 'Name',
+    label: 'Authorization policy',
     field: 'name',
     sortable: (a: MaaSAuthPolicy, b: MaaSAuthPolicy): number =>
       (a.displayName ?? a.name).localeCompare(b.displayName ?? b.name),

@@ -68,7 +68,7 @@ const AcceleratorDonutChart: React.FC<AcceleratorDonutChartProps> = ({
           style={{ height: CQ_DONUT_SIZE, width: CQ_DONUT_SIZE }}
         >
           <ChartDonutThreshold
-            ariaTitle={`Accelerator utilization: ${config.title} (borrowed)`}
+            ariaTitle={`Accelerator consumption: ${config.title} (borrowed)`}
             constrainToVisibleArea
             data={[{ x: AcceleratorSegment.Own, y: ownUsed > 0 ? 100 : 0 }]}
             colorScale={[chartColorBlue.value]}
@@ -84,7 +84,7 @@ const AcceleratorDonutChart: React.FC<AcceleratorDonutChartProps> = ({
                 datum.x === AcceleratorSegment.Borrowed ? borrowedTooltip : ''
               }
               title={config.title}
-              subTitle={'Accelerators\nin use'}
+              subTitle="in use"
               titleComponent={TITLE_LABEL}
               subTitleComponent={SUBTITLE_LABEL}
             />
@@ -126,7 +126,7 @@ const AcceleratorDonutChart: React.FC<AcceleratorDonutChartProps> = ({
         style={{ height: CQ_DONUT_SIZE, width: CQ_DONUT_SIZE }}
       >
         <ChartDonut
-          ariaTitle={`Accelerator utilization: ${config.title} (lent)`}
+          ariaTitle={`Accelerator consumption: ${config.title} (lent)`}
           constrainToVisibleArea
           data={chartData}
           colorScale={chartColorScale}
@@ -135,7 +135,7 @@ const AcceleratorDonutChart: React.FC<AcceleratorDonutChartProps> = ({
           width={CQ_DONUT_SIZE}
           innerRadius={CQ_DONUT_INNER_RADIUS}
           title={config.title}
-          subTitle={'Accelerators\nin use'}
+          subTitle="in use"
           titleComponent={TITLE_LABEL}
           subTitleComponent={SUBTITLE_LABEL}
           name={`accelerators-${cqName}`}
@@ -158,7 +158,7 @@ const AcceleratorDonutChart: React.FC<AcceleratorDonutChartProps> = ({
       style={{ height: CQ_DONUT_SIZE, width: CQ_DONUT_SIZE }}
     >
       <ChartDonutUtilization
-        ariaTitle={`Accelerator utilization: ${config.used}/${config.nominal} (${config.percentage}%)`}
+        ariaTitle={`Accelerator consumption: ${config.used}/${config.nominal} (${config.percentage}%)`}
         constrainToVisibleArea
         data={{ x: 'Accelerators in use', y: config.percentage }}
         height={CQ_DONUT_SIZE}
@@ -170,7 +170,7 @@ const AcceleratorDonutChart: React.FC<AcceleratorDonutChartProps> = ({
             : `Available: ${100 - config.percentage}%`
         }
         title={config.title}
-        subTitle={'Accelerators\nin use'}
+        subTitle="in use"
         titleComponent={TITLE_LABEL}
         subTitleComponent={SUBTITLE_LABEL}
         name={`accelerators-${cqName}`}

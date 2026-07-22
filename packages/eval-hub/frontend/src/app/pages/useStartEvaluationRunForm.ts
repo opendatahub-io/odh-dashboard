@@ -643,5 +643,4 @@ export function useStartEvaluationRunForm({
   };
 }
 
-export const EXPERIMENT_FILTER = "tags.context = 'eval-hub'";
 export { DEFAULT_EXPERIMENT_NAME };
