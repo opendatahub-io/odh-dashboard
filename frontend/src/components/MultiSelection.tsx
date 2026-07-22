@@ -24,10 +24,7 @@ import {
 } from '@patternfly/react-core';
 
 import { TimesIcon } from '@patternfly/react-icons/dist/esm/icons/times-icon';
-import {
-  resolveSelectPopperAppendTo,
-  useModalOverflowUnlock,
-} from '#~/utilities/useModalOverflowUnlock';
+import { createOptionElementId, useMenuPopperInModal } from '#~/utilities/useModalOverflowUnlock';
 
 export type SelectionOptions = Omit<SelectOptionProps, 'id'> & {
   id: number | string;
@@ -72,15 +69,6 @@ type MultiSelectionProps = {
 const defaultCreateOptionMessage = (newValue: string) => `Create "${newValue}"`;
 const defaultFilterFunction = (filterText: string, options: SelectionOptions[]) =>
   options.filter((o) => !filterText || o.name.toLowerCase().includes(filterText.toLowerCase()));
-
-/** Encode option ids for stable, injective DOM id segments (e.g. 'a b' vs 'a-b', 'core/pods' vs 'coreu47upods'). */
-const encodeOptionIdForDom = (optionId: number | string): string =>
-  String(optionId)
-    .replace(/u/g, 'uu')
-    .replace(/[^a-zA-Z0-9_-]/g, (ch) => `u${ch.charCodeAt(0)}u`);
-
-const createOptionElementId = (instanceId: string, optionId: number | string): string =>
-  `${instanceId}-option-${encodeOptionIdForDom(optionId)}`;
 
 const normalizeOptionId = (optionId: number | string): string => String(optionId);
 
@@ -152,20 +140,7 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
   const listboxId = `${instanceId}-listbox`;
   const selectionErrorId = `${instanceId}-selection-error`;
 
-  useModalOverflowUnlock(isOpen, textInputRef);
-
-  const getPopperAppendTo = React.useCallback(
-    () => resolveSelectPopperAppendTo(textInputRef.current),
-    [],
-  );
-
-  const mergedPopperProps = React.useMemo(
-    () => ({
-      ...popperProps,
-      appendTo: popperProps?.appendTo ?? getPopperAppendTo,
-    }),
-    [popperProps, getPopperAppendTo],
-  );
+  const mergedPopperProps = useMenuPopperInModal(isOpen, textInputRef, popperProps);
 
   const selectGroups = React.useMemo(
     () =>

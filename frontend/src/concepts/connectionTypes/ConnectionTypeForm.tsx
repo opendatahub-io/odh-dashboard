@@ -155,6 +155,7 @@ const ConnectionTypeForm: React.FC<Props> = ({
           <FlexItem grow={{ default: 'grow' }}>
             <TypeaheadSelect
               id="connection-type"
+              ariaLabel="Connection type"
               selectOptions={selectOptions}
               onSelect={(_, selection) => {
                 if (typeof selection === 'string') {

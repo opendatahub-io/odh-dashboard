@@ -26,6 +26,8 @@ import {
 } from '@patternfly/react-core';
 import { TimesIcon } from '@patternfly/react-icons';
 import TruncatedText from './TruncatedText';
+import { createOptionElementId } from '../utilities/optionElementIds';
+import { useMenuPopperInModal } from '../utilities/useMenuPopperInModal';
 
 export interface TypeaheadSelectOption extends Omit<SelectOptionProps, 'content' | 'isSelected'> {
   /** Content of the select option. */
@@ -100,6 +102,8 @@ export interface TypeaheadSelectProps extends Omit<SelectProps, 'toggle' | 'onSe
   previewDescription?: boolean;
   /** Optional icon rendered inside the text input */
   inputIcon?: React.ReactNode;
+  /** Accessible name for the combobox / listbox */
+  ariaLabel?: string;
 }
 
 const defaultNoOptionsFoundMessage = (filter: string) => `No results found for "${filter}"`;
@@ -130,6 +134,9 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
   previewDescription = true,
   dataTestId,
   inputIcon,
+  ariaLabel = 'Options menu',
+  popperProps,
+  id,
   ...props
 }: TypeaheadSelectProps) => {
   const [isOpen, setIsOpen] = React.useState(false);
@@ -137,7 +144,12 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
   const [isFiltering, setIsFiltering] = React.useState<boolean>(false);
   const [focusedItemIndex, setFocusedItemIndex] = React.useState<number | null>(null);
   const [activeItemId, setActiveItemId] = React.useState<string | null>(null);
-  const textInputRef = React.useRef<HTMLInputElement>();
+  const textInputRef = React.useRef<HTMLInputElement | null>(null);
+  const generatedInstanceId = React.useId().replace(/:/g, '');
+  const instanceId = id ?? `typeahead-select-${generatedInstanceId}`;
+  const listboxId = `${instanceId}-listbox`;
+
+  const mergedPopperProps = useMenuPopperInModal(isOpen, textInputRef, popperProps);
 
   const NO_RESULTS = 'no results';
 
@@ -229,10 +241,51 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isFiltering]);
 
+  const groupedSelections = React.useMemo(() => {
+    const group: Record<string, TypeaheadSelectOption[]> = {};
+    const noGroup: TypeaheadSelectOption[] = [];
+
+    filteredSelections.forEach((option) => {
+      if (option.group) {
+        if (option.group in group) {
+          group[option.group].push(option);
+        } else {
+          group[option.group] = [option];
+        }
+      } else {
+        noGroup.push(option);
+      }
+    });
+
+    return { group, noGroup };
+  }, [filteredSelections]);
+
+  /** Same order as renderOptions — keep keyboard focus / aria-activedescendant in sync with visuals. */
+  const navigableSelections = React.useMemo(() => {
+    const createOption = isCreateOptionOnTop
+      ? groupedSelections.noGroup.find((o) => o.isCreateOption)
+      : undefined;
+    const ungroupedSelections = isCreateOptionOnTop
+      ? groupedSelections.noGroup.filter((o) => !o.isCreateOption)
+      : groupedSelections.noGroup;
+    const ordered: TypeaheadSelectOption[] = [];
+    if (createOption) {
+      ordered.push(createOption);
+    }
+    Object.values(groupedSelections.group).forEach((groupOptions) => {
+      ordered.push(...groupOptions);
+    });
+    ordered.push(...ungroupedSelections);
+    return ordered;
+  }, [groupedSelections, isCreateOptionOnTop]);
+
+  const isOptionNonNavigable = (option: TypeaheadSelectOption) =>
+    !!option.isDisabled || !!option.isAriaDisabled;
+
   const setActiveAndFocusedItem = (itemIndex: number) => {
     setFocusedItemIndex(itemIndex);
-    const focusedItem = filteredSelections[itemIndex];
-    setActiveItemId(String(focusedItem.value));
+    const focusedItem = navigableSelections[itemIndex];
+    setActiveItemId(createOptionElementId(instanceId, focusedItem.value));
   };
 
   const resetActiveAndFocusedItem = () => {
@@ -323,39 +376,39 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
 
     openMenu();
 
-    if (filteredSelections.every((option) => option.isDisabled)) {
+    if (navigableSelections.every(isOptionNonNavigable)) {
       return;
     }
 
     if (key === 'ArrowUp') {
       // When no index is set or at the first index, focus to the last, otherwise decrement focus index
       if (focusedItemIndex === null || focusedItemIndex === 0) {
-        indexToFocus = filteredSelections.length - 1;
+        indexToFocus = navigableSelections.length - 1;
       } else {
         indexToFocus = focusedItemIndex - 1;
       }
 
-      // Skip disabled options
-      while (filteredSelections[indexToFocus].isDisabled) {
+      // Skip disabled / aria-disabled options
+      while (isOptionNonNavigable(navigableSelections[indexToFocus])) {
         indexToFocus--;
         if (indexToFocus === -1) {
-          indexToFocus = filteredSelections.length - 1;
+          indexToFocus = navigableSelections.length - 1;
         }
       }
     }
 
     if (key === 'ArrowDown') {
       // When no index is set or at the last index, focus to the first, otherwise increment focus index
-      if (focusedItemIndex === null || focusedItemIndex === filteredSelections.length - 1) {
+      if (focusedItemIndex === null || focusedItemIndex === navigableSelections.length - 1) {
         indexToFocus = 0;
       } else {
         indexToFocus = focusedItemIndex + 1;
       }
 
-      // Skip disabled options
-      while (filteredSelections[indexToFocus].isDisabled) {
+      // Skip disabled / aria-disabled options
+      while (isOptionNonNavigable(navigableSelections[indexToFocus])) {
         indexToFocus++;
-        if (indexToFocus === filteredSelections.length) {
+        if (indexToFocus === navigableSelections.length) {
           indexToFocus = 0;
         }
       }
@@ -365,10 +418,13 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
   };
 
   const onInputKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
-    const focusedItem = focusedItemIndex !== null ? filteredSelections[focusedItemIndex] : null;
+    const focusedItem = focusedItemIndex !== null ? navigableSelections[focusedItemIndex] : null;
 
     switch (event.key) {
       case 'Enter':
+        // Prevent native <form> submit (page refresh / modal dismiss) when Enter
+        // is used to open the menu or select an option — same pattern as MultiSelection.
+        event.preventDefault();
         if (
           isOpen &&
           focusedItem &&
@@ -376,10 +432,21 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
           !focusedItem.isAriaDisabled
         ) {
           selectOption(event, focusedItem);
+        } else if (!isOpen) {
+          openMenu();
         }
 
-        openMenu();
-
+        break;
+      case 'Tab':
+        closeMenu();
+        break;
+      case 'Escape':
+        if (isOpen) {
+          // Prevent PatternFly Modal body Escape listener from closing the dialog.
+          event.preventDefault();
+          event.stopPropagation();
+          closeMenu();
+        }
         break;
       case 'ArrowUp':
       case 'ArrowDown':
@@ -422,7 +489,7 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
     <MenuToggle
       ref={toggleRef}
       variant="typeahead"
-      aria-label="Typeahead menu toggle"
+      aria-label={toggleProps?.['aria-label'] ?? ariaLabel}
       data-testid={dataTestId ?? 'typeahead-menu-toggle'}
       onClick={onToggleClick}
       isExpanded={isOpen}
@@ -445,6 +512,9 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
               icon={inputIcon}
               {...(activeItemId && { 'aria-activedescendant': activeItemId })}
               role="combobox"
+              aria-label={ariaLabel}
+              aria-controls={listboxId}
+              aria-haspopup="listbox"
               isExpanded={isOpen}
               className="pf-v6-u-w-100"
             />
@@ -467,30 +537,12 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
     </MenuToggle>
   );
 
-  const groupedSelections = React.useMemo(() => {
-    const group: Record<string, TypeaheadSelectOption[]> = {};
-    const noGroup: TypeaheadSelectOption[] = [];
-
-    filteredSelections.forEach((option) => {
-      if (option.group) {
-        if (option.group in group) {
-          group[option.group].push(option);
-        } else {
-          group[option.group] = [option];
-        }
-      } else {
-        noGroup.push(option);
-      }
-    });
-
-    return { group, noGroup };
-  }, [filteredSelections]);
-
   const tSelectOption = (option: TypeaheadSelectOption, index: number) => {
     const { content, value, dropdownLabel, ...optionProps } = option;
     return (
       <SelectOption
         key={value}
+        id={createOptionElementId(instanceId, value)}
         value={value}
         isFocused={focusedItemIndex === index}
         {...optionProps}
@@ -579,6 +631,7 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
   return (
     <>
       <Select
+        {...props}
         isOpen={isOpen}
         selected={selected}
         onSelect={handleSelect}
@@ -586,9 +639,12 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
         toggle={toggle}
         shouldFocusFirstItemOnOpen={false}
         ref={innerRef}
-        {...props}
+        id={id}
+        popperProps={mergedPopperProps}
       >
-        <SelectList>{renderOptions()}</SelectList>
+        <SelectList id={listboxId} aria-label={ariaLabel}>
+          {renderOptions()}
+        </SelectList>
       </Select>
       {previewDescription && isSingleOption && selected?.description ? (
         <FormHelperText>

@@ -1,8 +1,9 @@
 import * as React from 'react';
 import { Alert, FormGroup, FormHelperText, Label } from '@patternfly/react-core';
-import { TypeaheadSelectOption } from '@patternfly/react-templates';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
-import TypeaheadSelect from '@odh-dashboard/ui-core/components/TypeaheadSelect';
+import TypeaheadSelect, {
+  TypeaheadSelectOption,
+} from '@odh-dashboard/ui-core/components/TypeaheadSelect';
 import { ExistingStorageObject } from '#~/pages/projects/types';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import useProjectPvcs from '#~/pages/projects/screens/detail/storage/useProjectPvcs';
@@ -119,9 +120,13 @@ const AddExistingStorageField: React.FC<AddExistingStorageFieldProps> = ({
         }}
         placeholder={placeholderText}
         noOptionsFoundMessage={(filter) => `No persistent storage was found for "${filter}"`}
-        popperProps={{ direction: selectDirection, appendTo: menuAppendTo }}
+        ariaLabel="Persistent storage"
+        popperProps={{
+          direction: selectDirection,
+          ...(menuAppendTo !== undefined ? { appendTo: menuAppendTo } : {}),
+        }}
         isDisabled={!loaded}
-        data-testid="persistent-storage-typeahead"
+        dataTestId="persistent-storage-typeahead"
         isScrollable
       />
       <FormHelperText>

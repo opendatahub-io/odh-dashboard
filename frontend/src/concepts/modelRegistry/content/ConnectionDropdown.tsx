@@ -12,6 +12,7 @@ import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import { Connection } from '#~/concepts/connectionTypes/types';
 import useServingConnections from '#~/pages/projects/screens/detail/connections/useServingConnections';
 import { ModelLocationType } from '#~/concepts/modelRegistry/types';
+import { useMenuPopperInModal } from '#~/utilities/useModalOverflowUnlock';
 
 type ConnectionDropdownProps = {
   type: ModelLocationType;
@@ -26,6 +27,8 @@ export const ConnectionDropdown = ({
   selectedConnection,
 }: ConnectionDropdownProps): React.JSX.Element => {
   const [isOpen, setIsOpen] = React.useState(false);
+  const menuToggleRef = React.useRef<HTMLDivElement | null>(null);
+  const popperProps = useMenuPopperInModal(isOpen, menuToggleRef);
   const [connections, connectionsLoaded, connectionsLoadError] = useServingConnections(project);
 
   const onToggle = () => {
@@ -74,34 +77,44 @@ export const ConnectionDropdown = ({
     }
   };
   return (
-    <Dropdown
-      onOpenChange={(isOpened) => setIsOpen(isOpened)}
-      toggle={(toggleRef) => (
-        <MenuToggle
-          isDisabled={!filteredConnections.length}
-          isFullWidth
-          data-testid="select-connection"
-          ref={toggleRef}
-          onClick={onToggle}
-          isExpanded={isOpen}
-        >
-          {getToggleContent()}
-        </MenuToggle>
-      )}
-      isOpen={isOpen}
-      popperProps={{ appendTo: 'inline' }}
-    >
-      <Menu onSelect={onSelectConnection} isScrollable isPlain>
-        <MenuContent>
-          <MenuList>
-            {filteredConnections.map((dataItem) => (
-              <MenuItem key={dataItem.metadata.name} itemId={dataItem.metadata.name}>
-                {getDisplayNameFromK8sResource(dataItem)}
-              </MenuItem>
-            ))}
-          </MenuList>
-        </MenuContent>
-      </Menu>
-    </Dropdown>
+    <div ref={menuToggleRef} style={{ display: 'contents' }}>
+      <Dropdown
+        onOpenChange={(isOpened) => setIsOpen(isOpened)}
+        toggle={(toggleRef) => (
+          <MenuToggle
+            isDisabled={!filteredConnections.length}
+            isFullWidth
+            data-testid="select-connection"
+            aria-label="Select connection"
+            ref={toggleRef}
+            onClick={onToggle}
+            onKeyDown={(event) => {
+              if (isOpen && event.key === 'Escape') {
+                event.preventDefault();
+                event.stopPropagation();
+                setIsOpen(false);
+              }
+            }}
+            isExpanded={isOpen}
+          >
+            {getToggleContent()}
+          </MenuToggle>
+        )}
+        isOpen={isOpen}
+        popperProps={popperProps}
+      >
+        <Menu onSelect={onSelectConnection} isScrollable isPlain>
+          <MenuContent>
+            <MenuList>
+              {filteredConnections.map((dataItem) => (
+                <MenuItem key={dataItem.metadata.name} itemId={dataItem.metadata.name}>
+                  {getDisplayNameFromK8sResource(dataItem)}
+                </MenuItem>
+              ))}
+            </MenuList>
+          </MenuContent>
+        </Menu>
+      </Dropdown>
+    </div>
   );
 };

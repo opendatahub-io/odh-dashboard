@@ -17,6 +17,7 @@ import {
   SelectOption,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
+import { useMenuPopperInModal } from '#~/utilities/useModalOverflowUnlock';
 import { DropdownField } from '#~/concepts/connectionTypes/types';
 import { FieldProps } from '#~/concepts/connectionTypes/fields/types';
 import DefaultValueTextRenderer from '#~/concepts/connectionTypes/fields/DefaultValueTextRenderer';
@@ -33,6 +34,8 @@ const DropdownFormField: React.FC<FieldProps<DropdownField>> = ({
 }) => {
   const isPreview = mode === 'preview';
   const [isOpen, setIsOpen] = React.useState(false);
+  const menuToggleRef = React.useRef<HTMLDivElement | null>(null);
+  const popperProps = useMenuPopperInModal(isOpen, menuToggleRef);
   const isMulti = field.properties.variant === 'multi';
   const selected = isPreview ? field.properties.defaultValue : value;
   const hasValidOption = field.properties.items?.find((f) => f.value || f.label);
@@ -66,6 +69,7 @@ const DropdownFormField: React.FC<FieldProps<DropdownField>> = ({
       <Select
         isOpen={isOpen}
         shouldFocusToggleOnSelect
+        popperProps={popperProps}
         onSelect={
           isPreview || !onChange
             ? undefined
@@ -88,28 +92,30 @@ const DropdownFormField: React.FC<FieldProps<DropdownField>> = ({
         }
         onOpenChange={(open) => setIsOpen(open)}
         toggle={(toggleRef) => (
-          <MenuToggle
-            ref={toggleRef}
-            id={id}
-            data-testid={dataTestId}
-            isFullWidth
-            onClick={() => {
-              setIsOpen((open) => !open);
-            }}
-            isExpanded={isOpen}
-            isDisabled={!hasValidOption}
-            status={error ? 'danger' : undefined}
-          >
-            <>
-              {menuToggleText()}
-              {isMulti && (
-                <Badge className="pf-v6-u-ml-xs">
-                  {(isPreview ? field.properties.defaultValue?.length : value?.length) ?? 0}{' '}
-                  selected
-                </Badge>
-              )}
-            </>
-          </MenuToggle>
+          <div ref={menuToggleRef}>
+            <MenuToggle
+              innerRef={toggleRef}
+              id={id}
+              data-testid={dataTestId}
+              isFullWidth
+              onClick={() => {
+                setIsOpen((open) => !open);
+              }}
+              isExpanded={isOpen}
+              isDisabled={!hasValidOption}
+              status={error ? 'danger' : undefined}
+            >
+              <>
+                {menuToggleText()}
+                {isMulti && (
+                  <Badge className="pf-v6-u-ml-xs">
+                    {(isPreview ? field.properties.defaultValue?.length : value?.length) ?? 0}{' '}
+                    selected
+                  </Badge>
+                )}
+              </>
+            </MenuToggle>
+          </div>
         )}
       >
         <SelectList isAriaMultiselectable={isMulti}>

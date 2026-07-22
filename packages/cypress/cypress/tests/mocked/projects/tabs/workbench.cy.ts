@@ -2389,6 +2389,25 @@ describe('Workbench page', () => {
         .findTypeaheadOptionUnderGroup('readwriteoncepod-rwop-storage', 'pvc-rwop')
         .should('exist');
 
+      attachExistingStorageModal
+        .findExistingStorageField()
+        .findByRole('combobox', { name: 'Persistent storage' })
+        .should('have.attr', 'aria-controls')
+        .then(($el) => {
+          const listboxId = $el.attr('aria-controls') ?? '';
+          expect(listboxId).to.not.equal('');
+          cy.findByRole('dialog').within(() => {
+            cy.get(`#${listboxId}`).should('exist');
+            cy.findByRole('option', { name: 'pvc-rwx' }).should('exist');
+          });
+        });
+
+      attachExistingStorageModal
+        .findExistingStorageField()
+        .findByRole('combobox', { name: 'Persistent storage' })
+        .closeSelectMenu();
+      cy.findByRole('dialog').should('contain.text', 'Attach existing storage');
+
       attachExistingStorageModal.selectExistingPersistentStorage('pvc-rwx');
       attachExistingStorageModal.verifyPSDropdownText('pvc-rwx');
     });

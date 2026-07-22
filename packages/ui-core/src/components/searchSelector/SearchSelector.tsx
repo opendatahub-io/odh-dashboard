@@ -15,8 +15,10 @@ import {
   SearchInput,
   Spinner,
   Truncate,
+  MenuToggleElement,
 } from '@patternfly/react-core';
 import './SearchSelector.scss';
+import { useMenuPopperInModal } from '../../utilities/useMenuPopperInModal';
 
 type ManualSearchSelectorOpts = {
   menuClose: () => void;
@@ -61,13 +63,21 @@ const SearchSelector: React.FC<SearchSelectorProps> = ({
   toggleVariant,
   toggleAriaLabel,
   toggleLabelledBy,
-  appendTo = 'inline',
+  appendTo,
 }) => {
   const [isOpen, setIsOpen] = React.useState(false);
-  const toggleRef = React.useRef(null);
+  const toggleRef = React.useRef<MenuToggleElement | null>(null);
   const menuRef = React.useRef(null);
   const searchRef = React.useRef<HTMLInputElement | null>(null);
-  const popperProps = { minWidth, maxWidth: 'trigger', appendTo };
+  const userPopperProps = React.useMemo(
+    () => ({
+      minWidth,
+      maxWidth: 'trigger' as const,
+      ...(appendTo !== undefined ? { appendTo } : {}),
+    }),
+    [minWidth, appendTo],
+  );
+  const popperProps = useMenuPopperInModal(isOpen, toggleRef, userPopperProps);
   const toggleValueId = toggleLabelledBy ? `${dataTestId}-toggle-value` : undefined;
   const toggleContents =
     typeof toggleContent !== 'string' ? toggleContent : <Truncate content={toggleContent} />;
@@ -102,6 +112,14 @@ const SearchSelector: React.FC<SearchSelectorProps> = ({
           }
           ref={toggleRef}
           onClick={() => setIsOpen(!isOpen)}
+          onKeyDown={(event) => {
+            if (isOpen && event.key === 'Escape') {
+              event.preventDefault();
+              event.stopPropagation();
+              setIsOpen(false);
+              onSearchClear();
+            }
+          }}
           isExpanded={isOpen}
           isDisabled={isDisabled}
           isFullWidth={isFullWidth}

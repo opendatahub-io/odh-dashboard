@@ -15,10 +15,7 @@ import {
 } from '@patternfly/react-core';
 import { omit } from 'lodash-es';
 import TruncatedText from './TruncatedText';
-import {
-  resolveSelectPopperAppendTo,
-  useModalOverflowUnlock,
-} from '../utilities/useModalOverflowUnlock';
+import { useMenuPopperInModal } from '../utilities/useMenuPopperInModal';
 
 import './SimpleSelect.scss';
 
@@ -86,19 +83,11 @@ const SimpleSelect: React.FC<SimpleSelectProps> = ({
   const [open, setOpen] = React.useState(false);
   const menuToggleRef = React.useRef<HTMLDivElement | null>(null);
 
-  useModalOverflowUnlock(open, menuToggleRef);
-
-  const mergedPopperProps = React.useMemo(() => {
-    if (popperProps?.appendTo !== undefined) {
-      return { maxWidth: 'trigger' as const, ...popperProps };
-    }
-    return {
-      maxWidth: 'trigger' as const,
-      ...popperProps,
-      // Portal into the dialog only inside modals; otherwise keep PatternFly inline default.
-      appendTo: () => resolveSelectPopperAppendTo(menuToggleRef.current),
-    };
-  }, [popperProps]);
+  const menuPopperProps = useMenuPopperInModal(open, menuToggleRef, popperProps);
+  const mergedPopperProps = React.useMemo(
+    () => ({ maxWidth: 'trigger' as const, ...menuPopperProps }),
+    [menuPopperProps],
+  );
 
   const groupedOptionsFlat = React.useMemo(
     () =>
