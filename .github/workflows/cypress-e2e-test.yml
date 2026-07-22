@@ -40,7 +40,7 @@ name: Cypress e2e Test
 #        Add an entry to .github/frontend-ci-tags.json
 #
 # LIMITS:
-#   - Max 5 additional tags for labels/manual (prevents runner exhaustion)
+#   - Max 10 additional tags for labels/manual (prevents runner exhaustion)
 #   - Auto-detected tags are consolidated into 1 job (no limit needed)
 #   - 10 runners shared across 30+ devs
 #
@@ -586,7 +586,7 @@ jobs:
           STEP_LABELS: ${{ steps.labels.outputs.labels }}
         run: |
           # Configuration
-          MAX_EXTRA_TAGS=5  # Limit additional tags to prevent runner exhaustion (for labels/manual only)
+          MAX_EXTRA_TAGS=10  # Limit additional tags to prevent runner exhaustion (for labels/manual only)
           
           # Defaults
           TAGS=""
