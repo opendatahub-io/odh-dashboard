@@ -8,6 +8,8 @@ import {
 } from '#~/concepts/pipelines/kfTypes';
 import { Artifact } from '#~/third_party/mlmd';
 
+export type ParallelForDisplayMode = 'inline' | 'layer';
+
 export type PipelineTopologyLayerType = 'root' | 'subDag' | 'parallelForIterations' | 'iteration';
 
 export type PipelineTopologyLayer = {
@@ -73,4 +75,6 @@ export type PipelineTask = {
   isSubDag?: boolean;
   /** Number of ParallelFor iterations — present only on the ParallelFor group node */
   iterationCount?: number;
+  /** MLMD execution ID of the iteration DAG — used to scope drawer executions in inline mode */
+  iterationParentDagId?: number;
 };

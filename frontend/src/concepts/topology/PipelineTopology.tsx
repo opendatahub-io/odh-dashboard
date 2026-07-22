@@ -4,9 +4,21 @@ import {
   SELECTION_EVENT,
   VisualizationProvider,
 } from '@patternfly/react-topology';
-import { Bullseye, Spinner, Stack, StackItem } from '@patternfly/react-core';
+import {
+  Bullseye,
+  Flex,
+  FlexItem,
+  Spinner,
+  Stack,
+  StackItem,
+  ToggleGroup,
+  ToggleGroupItem,
+} from '@patternfly/react-core';
 import PipelineVersionError from '#~/concepts/pipelines/content/pipelinesDetails/PipelineVersionError';
-import { PipelineTopologyLayer } from '#~/concepts/pipelines/topology/pipelineTaskTypes';
+import {
+  ParallelForDisplayMode,
+  PipelineTopologyLayer,
+} from '#~/concepts/pipelines/topology/pipelineTaskTypes';
 import PipelineTopologyEmpty from './PipelineTopologyEmpty';
 import useTopologyController from './useTopologyController';
 import PipelineVisualizationSurface from './PipelineVisualizationSurface';
@@ -20,6 +32,8 @@ type PipelineTopologyProps = {
   sidePanel?: React.ReactElement | null;
   layers?: PipelineTopologyLayer[];
   onLayerChange?: (layers: PipelineTopologyLayer[]) => void;
+  displayMode?: ParallelForDisplayMode;
+  onDisplayModeChange?: (mode: ParallelForDisplayMode) => void;
 };
 
 const PipelineTopology: React.FC<PipelineTopologyProps> = ({
@@ -30,6 +44,8 @@ const PipelineTopology: React.FC<PipelineTopologyProps> = ({
   sidePanel,
   layers,
   onLayerChange,
+  displayMode,
+  onDisplayModeChange,
 }) => {
   const controller = useTopologyController('g1');
 
@@ -70,13 +86,44 @@ const PipelineTopology: React.FC<PipelineTopologyProps> = ({
     );
   }
 
-  const hasBreadcrumbs = layers && layers.length > 1 && onLayerChange;
+  const hasBreadcrumbs = displayMode === 'layer' && layers && layers.length > 1 && onLayerChange;
+  const hasToggle = displayMode && onDisplayModeChange;
+  const hasTopBar = hasBreadcrumbs || hasToggle;
 
   return (
     <Stack className="pf-v6-u-h-100">
-      {hasBreadcrumbs ? (
+      {hasTopBar ? (
         <StackItem className="pf-v6-u-px-md pf-v6-u-py-sm">
-          <PipelineTopologyBreadcrumbs layers={layers} onLayerChange={onLayerChange} />
+          <Flex
+            justifyContent={{ default: 'justifyContentSpaceBetween' }}
+            alignItems={{ default: 'alignItemsCenter' }}
+          >
+            <FlexItem>
+              {hasBreadcrumbs ? (
+                <PipelineTopologyBreadcrumbs layers={layers} onLayerChange={onLayerChange} />
+              ) : null}
+            </FlexItem>
+            {hasToggle ? (
+              <FlexItem>
+                <ToggleGroup aria-label="ParallelFor display mode" isCompact>
+                  <ToggleGroupItem
+                    text="Inline"
+                    buttonId="inline-mode"
+                    isSelected={displayMode === 'inline'}
+                    onChange={() => onDisplayModeChange('inline')}
+                    data-testid="toggle-inline-mode"
+                  />
+                  <ToggleGroupItem
+                    text="Layer"
+                    buttonId="layer-mode"
+                    isSelected={displayMode === 'layer'}
+                    onChange={() => onDisplayModeChange('layer')}
+                    data-testid="toggle-layer-mode"
+                  />
+                </ToggleGroup>
+              </FlexItem>
+            ) : null}
+          </Flex>
         </StackItem>
       ) : null}
       <StackItem isFilled>

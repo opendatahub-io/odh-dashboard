@@ -25,6 +25,7 @@ import {
   usePipelineTaskTopology,
   ROOT_LAYER,
   PipelineTopologyLayer,
+  ParallelForDisplayMode,
 } from '#~/concepts/pipelines/topology';
 import { PipelineRunType } from '#~/pages/pipelines/global/runs/types';
 import PipelineRecurringRunReferenceName from '#~/concepts/pipelines/content/PipelineRecurringRunReferenceName';
@@ -57,6 +58,7 @@ const PipelineRunDetails: React.FC<
   const [deleting, setDeleting] = React.useState(false);
   const [archiving, setArchiving] = React.useState(false);
   const [selectedIds, setSelectedIds] = React.useState<string[] | undefined>();
+  const [displayMode, setDisplayMode] = React.useState<ParallelForDisplayMode>('inline');
   const [layers, setLayers] = React.useState<PipelineTopologyLayer[]>([ROOT_LAYER]);
 
   const [executions, executionsLoaded, executionsError] = useExecutionsForPipelineRun(run);
@@ -70,7 +72,8 @@ const PipelineRunDetails: React.FC<
     executions,
     events,
     artifacts,
-    layers,
+    displayMode === 'layer' ? layers : undefined,
+    displayMode,
   );
   const isInvalidPipelineVersion = isArgoWorkflow(version?.pipeline_spec);
   const { status: modelRegistryAvailable } = useIsAreaAvailable(SupportedArea.MODEL_REGISTRY);
@@ -85,17 +88,52 @@ const PipelineRunDetails: React.FC<
 
   const currentLayer = layers[layers.length - 1];
   const drawerExecutions = React.useMemo(() => {
-    if (currentLayer.type === 'iteration' && currentLayer.parentDagId != null) {
+    if (displayMode === 'inline' && selectedNode) {
+      // Check the selected node itself for iterationParentDagId (iteration group)
+      const directDagId = selectedNode.data?.pipelineTask?.iterationParentDagId;
+      if (directDagId != null) {
+        return executions.filter((e) => {
+          const parentId = e.getCustomPropertiesMap().get('parent_dag_id')?.getIntValue();
+          return parentId === directDagId;
+        });
+      }
+      // Otherwise, find the parent iteration group that contains this node as a child
+      const parentIterGroup = nodes.find(
+        (n) =>
+          n.group &&
+          n.children?.includes(selectedNode.id) &&
+          n.data?.pipelineTask?.iterationParentDagId != null,
+      );
+      if (parentIterGroup) {
+        const iterDagId = parentIterGroup.data.pipelineTask.iterationParentDagId;
+        return executions.filter((e) => {
+          const parentId = e.getCustomPropertiesMap().get('parent_dag_id')?.getIntValue();
+          return parentId === iterDagId;
+        });
+      }
+    }
+    // Layer mode: scope by current layer's parentDagId
+    if (
+      displayMode === 'layer' &&
+      currentLayer.type === 'iteration' &&
+      currentLayer.parentDagId != null
+    ) {
       return executions.filter((e) => {
         const parentId = e.getCustomPropertiesMap().get('parent_dag_id')?.getIntValue();
         return parentId === currentLayer.parentDagId;
       });
     }
     return executions;
-  }, [executions, currentLayer]);
+  }, [executions, currentLayer, displayMode, nodes, selectedNode]);
 
   const handleLayerChange = React.useCallback((newLayers: PipelineTopologyLayer[]) => {
     setLayers(newLayers);
+    setSelectedIds(undefined);
+  }, []);
+
+  const handleDisplayModeChange = React.useCallback((newMode: ParallelForDisplayMode) => {
+    setDisplayMode(newMode);
+    setLayers([ROOT_LAYER]);
     setSelectedIds(undefined);
   }, []);
 
@@ -204,7 +242,11 @@ const PipelineRunDetails: React.FC<
       upstreamTaskName={selectedNode.runAfterTasks?.[0]}
       onClose={() => setSelectedIds(undefined)}
       executions={drawerExecutions}
-      onOpenSubDag={selectedNode.data.pipelineTask.isSubDag ? handleOpenSubDag : undefined}
+      onOpenSubDag={
+        displayMode === 'layer' && selectedNode.data.pipelineTask.isSubDag
+          ? handleOpenSubDag
+          : undefined
+      }
     />
   ) : null;
 
@@ -269,6 +311,8 @@ const PipelineRunDetails: React.FC<
                 sidePanel={panelContent}
                 layers={layers}
                 onLayerChange={handleLayerChange}
+                displayMode={displayMode}
+                onDisplayModeChange={handleDisplayModeChange}
               />
             }
             artifacts={artifacts}

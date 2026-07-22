@@ -1,6 +1,7 @@
 import * as React from 'react';
 import * as _ from 'lodash-es';
 import {
+  ExecutionStateKF,
   InputOutputArtifactType,
   InputOutputDefinitionArtifacts,
   PipelineComponentsKF,
@@ -36,7 +37,7 @@ import {
   TaskArtifactMap,
   translateStatusForNode,
 } from './parseUtils';
-import { PipelineTask, PipelineTopologyLayer } from './pipelineTaskTypes';
+import { ParallelForDisplayMode, PipelineTask, PipelineTopologyLayer } from './pipelineTaskTypes';
 
 export const ROOT_LAYER: PipelineTopologyLayer = { label: 'Pipeline', type: 'root' };
 
@@ -129,6 +130,7 @@ const getNodesForTasks = (
   inputArtifacts?: InputOutputDefinitionArtifacts,
   events?: Event[] | null,
   artifacts?: Artifact[],
+  mode?: ParallelForDisplayMode,
 ): [nestedNodes: PipelineNodeModelExpanded[], children: string[]] => {
   const nodes: PipelineNodeModelExpanded[] = [];
   const children: string[] = [];
@@ -217,35 +219,207 @@ const getNodesForTasks = (
       pipelineTask.isSubDag = true;
       if (iterCount != null && iterCount > 0) {
         pipelineTask.iterationCount = iterCount;
+
+        // Fix: the ParallelFor DAG execution often stays in RUNNING state even after all
+        // iterations complete. Derive the group status from iteration children instead.
+        if (dagExecution && executions) {
+          const parentDagId = dagExecution.getId();
+          const iterationExecutions: Execution[] = [];
+          for (let i = 0; i < iterCount; i++) {
+            const iterExec = findIterationExecution(parentDagId, i, executions);
+            if (iterExec) {
+              iterationExecutions.push(iterExec);
+            }
+          }
+          if (iterationExecutions.length > 0) {
+            const allComplete = iterationExecutions.every(
+              (e) => e.getLastKnownState() === Execution.State.COMPLETE,
+            );
+            const anyFailed = iterationExecutions.some(
+              (e) => e.getLastKnownState() === Execution.State.FAILED,
+            );
+            const anyCanceled = iterationExecutions.some(
+              (e) => e.getLastKnownState() === Execution.State.CANCELED,
+            );
+
+            let aggregateState: ExecutionStateKF;
+            if (anyFailed) {
+              aggregateState = ExecutionStateKF.FAILED;
+            } else if (anyCanceled) {
+              aggregateState = ExecutionStateKF.CANCELED;
+            } else if (allComplete) {
+              aggregateState = ExecutionStateKF.COMPLETE;
+            } else {
+              aggregateState = ExecutionStateKF.RUNNING;
+            }
+
+            pipelineTask.status = {
+              startTime: new Date(dagExecution.getCreateTimeSinceEpoch()).toISOString(),
+              completeTime:
+                allComplete || anyFailed || anyCanceled
+                  ? new Date(dagExecution.getLastUpdateTimeSinceEpoch()).toISOString()
+                  : undefined,
+              state: aggregateState,
+              taskId: `task.${taskId}`,
+            };
+          }
+        }
       }
 
-      const subTasksArtifactMap = parseTasksForArtifactRelationship(taskId, subTasks);
+      // Inline mode: synthesize iteration sub-groups as children of the ParallelFor group
+      if (mode === 'inline' && iterCount != null && iterCount > 0 && dagExecution) {
+        const parentDagId = dagExecution.getId();
+        const iterationNodes: PipelineNodeModelExpanded[] = [];
+        const iterationChildIds: string[] = [];
 
-      const [nestedNodes, taskChildren] = getNodesForTasks(
-        taskId,
-        spec,
-        subTasks,
-        components,
-        executors,
-        componentArtifactMap,
-        subTasksArtifactMap,
-        executionLinkedArtifactMap,
-        runDetails,
-        executions,
-        component?.inputDefinitions?.artifacts,
-        events,
-        artifacts,
-      );
+        for (let i = 0; i < iterCount; i++) {
+          const iterExecution = findIterationExecution(parentDagId, i, executions ?? []);
+          const iterNodeId = `${taskId}-iteration-${i}`;
 
-      const itemNode = createGroupNode(
-        taskId,
-        taskName,
-        pipelineTask,
-        runAfter,
-        runStatus,
-        taskChildren,
-      );
-      nodes.push(itemNode, ...nestedNodes);
+          // Build status for the iteration node
+          let iterStatus: PipelineTask['status'];
+          let iterRunStatus;
+          if (iterExecution) {
+            const lastUpdatedTime = iterExecution.getLastUpdateTimeSinceEpoch();
+            const lastKnownState = iterExecution.getLastKnownState();
+            let completeTime;
+            if (
+              lastUpdatedTime &&
+              (lastKnownState === Execution.State.COMPLETE ||
+                lastKnownState === Execution.State.FAILED ||
+                lastKnownState === Execution.State.CACHED ||
+                lastKnownState === Execution.State.CANCELED)
+            ) {
+              completeTime = new Date(lastUpdatedTime).toISOString();
+            }
+            const stateText = getResourceStateText({
+              resourceType: ResourceType.EXECUTION,
+              resource: iterExecution,
+            });
+            iterStatus = {
+              startTime: new Date(iterExecution.getCreateTimeSinceEpoch()).toISOString(),
+              completeTime,
+              state: stateText,
+              taskId: `iteration.${i}`,
+            };
+            iterRunStatus = translateStatusForNode(stateText);
+          }
+
+          // Scope executions to this iteration's parent_dag_id
+          const iterParentDagId = iterExecution?.getId();
+          const scopedExecutions =
+            iterParentDagId != null && executions
+              ? executions.filter((e) => {
+                  const pid = e.getCustomPropertiesMap().get('parent_dag_id')?.getIntValue();
+                  return pid === iterParentDagId;
+                })
+              : executions;
+
+          const iterLabel = `${taskName} #${i + 1}`;
+          const iterPipelineTask: PipelineTask = {
+            type: 'groupTask',
+            name: iterLabel,
+            status: iterStatus,
+            isSubDag: false,
+            iterationParentDagId: iterParentDagId,
+          };
+
+          // Create prefixed task entries so child node IDs are unique per iteration.
+          // Without this, all iterations share the same child ID (e.g. "first-pipeline")
+          // and PatternFly assigns the child to only the last parent.
+          const prefixedSubTasks: Record<string, TaskKF> = {};
+          for (const [subTaskId, subTaskDetails] of Object.entries(subTasks)) {
+            prefixedSubTasks[`${iterNodeId}~${subTaskId}`] = {
+              ...subTaskDetails,
+              dependentTasks: subTaskDetails.dependentTasks?.map((dep) => `${iterNodeId}~${dep}`),
+            };
+          }
+
+          const subTasksArtifactMap = parseTasksForArtifactRelationship(
+            iterNodeId,
+            prefixedSubTasks,
+          );
+          const [nestedNodes, taskChildren] = getNodesForTasks(
+            iterNodeId,
+            spec,
+            prefixedSubTasks,
+            components,
+            executors,
+            componentArtifactMap,
+            subTasksArtifactMap,
+            executionLinkedArtifactMap,
+            runDetails,
+            scopedExecutions,
+            component?.inputDefinitions?.artifacts,
+            events,
+            artifacts,
+            mode,
+          );
+
+          const iterGroupNode = createGroupNode(
+            iterNodeId,
+            iterLabel,
+            iterPipelineTask,
+            undefined,
+            iterRunStatus,
+            taskChildren,
+          );
+          iterationNodes.push(iterGroupNode, ...nestedNodes);
+          iterationChildIds.push(iterNodeId);
+        }
+
+        // Recompute runStatus from the (possibly aggregated) pipelineTask.status
+        const groupRunStatus = translateStatusForNode(pipelineTask.status?.state) ?? runStatus;
+
+        const itemNode = createGroupNode(
+          taskId,
+          taskName,
+          pipelineTask,
+          runAfter,
+          groupRunStatus,
+          iterationChildIds,
+        );
+        nodes.push(itemNode, ...iterationNodes);
+      } else if (mode === 'layer' && iterCount != null && iterCount > 0) {
+        // Layer mode with ParallelFor: render as a non-expandable node.
+        // User drills in via "Open iterations" in the drawer, not inline expand.
+        const groupRunStatus = translateStatusForNode(pipelineTask.status?.state) ?? runStatus;
+        nodes.push(createNode(taskId, taskName, pipelineTask, runAfter, groupRunStatus));
+      } else {
+        // Regular sub-DAG (any mode) or layer mode without iterations:
+        // recurse into template tasks directly
+        const subTasksArtifactMap = parseTasksForArtifactRelationship(taskId, subTasks);
+
+        const [nestedNodes, taskChildren] = getNodesForTasks(
+          taskId,
+          spec,
+          subTasks,
+          components,
+          executors,
+          componentArtifactMap,
+          subTasksArtifactMap,
+          executionLinkedArtifactMap,
+          runDetails,
+          executions,
+          component?.inputDefinitions?.artifacts,
+          events,
+          artifacts,
+          mode,
+        );
+
+        // Recompute runStatus from the (possibly aggregated) pipelineTask.status
+        const groupRunStatus = translateStatusForNode(pipelineTask.status?.state) ?? runStatus;
+
+        const itemNode = createGroupNode(
+          taskId,
+          taskName,
+          pipelineTask,
+          runAfter,
+          groupRunStatus,
+          taskChildren,
+        );
+        nodes.push(itemNode, ...nestedNodes);
+      }
     } else {
       nodes.push(createNode(taskId, taskName, pipelineTask, runAfter, runStatus));
     }
@@ -326,6 +500,7 @@ export const usePipelineTaskTopology = (
   events?: Event[] | null,
   artifacts?: Artifact[],
   layers?: PipelineTopologyLayer[],
+  mode?: ParallelForDisplayMode,
 ): PipelineNodeModelExpanded[] =>
   React.useMemo(() => {
     if (!spec) {
@@ -407,6 +582,7 @@ export const usePipelineTaskTopology = (
           component.inputDefinitions?.artifacts,
           outputEvents,
           artifacts,
+          mode,
         )[0],
         (node) => node.id,
       );
@@ -433,7 +609,8 @@ export const usePipelineTaskTopology = (
         inputDefinitions?.artifacts,
         outputEvents,
         artifacts,
+        mode,
       )[0],
       (node) => node.id,
     );
-  }, [artifacts, events, executions, layers, runDetails, spec]);
+  }, [artifacts, events, executions, layers, mode, runDetails, spec]);
