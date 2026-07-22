@@ -47,6 +47,10 @@ jobs:
         working-directory: dashboard-operator
         run: make test
 
+      - name: Integration tests (envtest)
+        working-directory: dashboard-operator
+        run: make test-integration
+
       - name: Validate Helm chart
         working-directory: dashboard-operator
         run: make chart-validate
