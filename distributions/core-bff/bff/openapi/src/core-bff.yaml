@@ -1204,6 +1204,8 @@ paths:
               example: 'WebSocket upgrade required'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
 
   /:
     summary: SPA static asset server
@@ -1224,9 +1226,9 @@ paths:
       responses:
         '200':
           description: >-
-            Static asset or index.html fallback. Content-Type varies based on the
-            requested file (text/html for pages, application/javascript for scripts,
-            text/css for stylesheets, etc.).
+            Static asset or index.html fallback. The actual Content-Type varies
+            based on the requested file (text/html, application/javascript,
+            text/css, etc.); only the text/html fallback is formally modeled here.
           content:
             text/html:
               schema:
@@ -1455,7 +1457,31 @@ components:
       properties:
         body:
           type: object
-          description: The resolved Secret or ConfigMap object
+          additionalProperties: true
+          description: >-
+            Full Kubernetes Secret or ConfigMap resource resolved from the NIM
+            Account CR. The shape follows the standard K8s resource structure
+            (apiVersion, kind, metadata, data/stringData). Consumers typically
+            read metadata.name and the data map. This matches the legacy backend
+            response contract.
+          properties:
+            apiVersion:
+              type: string
+              example: 'v1'
+            kind:
+              type: string
+              example: 'Secret'
+            metadata:
+              type: object
+              properties:
+                name:
+                  type: string
+                namespace:
+                  type: string
+            data:
+              type: object
+              additionalProperties:
+                type: string
 
     NIMIntegrationStatus:
       type: object
