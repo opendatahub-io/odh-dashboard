@@ -195,10 +195,16 @@ const useTourSteps = (isAdmin: boolean): TourStep[] => {
             available: mcpCatalogAvailable,
           },
           {
-            title: 'Agents',
-            description: 'Browse agent templates and deploy agents for your projects.',
+            title: 'Agents catalog',
+            description: 'Browse agent templates for your projects.',
             flagName: 'agentsCatalog',
-            available: agentsCatalogAvailable && agentOpsAvailable,
+            available: agentsCatalogAvailable,
+          },
+          {
+            title: 'Agent deployments',
+            description: 'Deploy, manage, and monitor agents for your projects.',
+            flagName: 'agentOps',
+            available: agentOpsAvailable,
           },
           {
             title: 'External models',
