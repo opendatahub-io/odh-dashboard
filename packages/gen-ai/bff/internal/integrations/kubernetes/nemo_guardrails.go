@@ -30,7 +30,7 @@ func buildNemoPlaceholderConfigMapData() map[string]string {
     model: placeholder
     api_key_env_var: %s
     parameters:
-      openai_api_base: "http://placeholder.invalid/v1"
+      base_url: "http://placeholder.invalid/v1"
 rails:
   input:
     flows:

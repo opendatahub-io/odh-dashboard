@@ -51,7 +51,7 @@ const GlobalDeploymentsView: React.FC<GlobalDeploymentsViewProps> = ({
   const hasDeploymentErrors = Boolean(deploymentsErrors && deploymentsErrors.length > 0);
   const pageDescription = hidePageDescription
     ? undefined
-    : 'Manage and view the health and performance of your deployed models.';
+    : 'View and manage the health and performance of deployed models. ';
 
   const deploymentErrorsAlert =
     hasDeploymentErrors && deploymentsErrors ? (

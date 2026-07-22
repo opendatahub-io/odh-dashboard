@@ -3,6 +3,9 @@
   "version": "2.0.0",
   "license": "Apache-2.0",
   "private": true,
+  "bin": {
+    "unit-test-coverage-aggregator": "scripts/unit-test-coverage-aggregator.js"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/opendatahub-io/odh-dashboard.git"
@@ -105,7 +108,7 @@
     "webpack": "5.104.1"
   },
   "lint-staged": {
-    "**/*.{js,ts,jsx,tsx,md}": [
+    "{,+([^.])*/**/}*.{js,ts,jsx,tsx,md}": [
       "npx eslint --max-warnings 0"
     ]
   },

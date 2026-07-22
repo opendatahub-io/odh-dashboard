@@ -69,7 +69,6 @@ export enum SupportedArea {
   LLMD_GATEWAY_FIELD = 'llmd-gateway-field',
   MY_SUBSCRIPTIONS = 'my-subscriptions',
   EXTERNAL_MODELS = 'external-models',
-  MAAS_SETTINGS_IA_REDESIGN = 'maas-settings-ia-redesign',
 
   /* Distributed Workloads areas */
   DISTRIBUTED_WORKLOADS = 'distributed-workloads',

@@ -17,13 +17,13 @@ export const externalModelsColumns: SortableData<ExternalModel>[] = [
       (a.displayName ?? a.name).localeCompare(b.displayName ?? b.name),
   },
   {
-    label: 'External provider',
+    label: 'Provider',
     field: 'externalProvider',
     width: 30,
     sortable: false,
     info: {
       popover:
-        'The ExternalProvider resource that supplies the endpoint and credentials for this model. One model can reference multiple providers for weighted traffic routing.',
+        'The provider that supplies the endpoint and credentials for this model. A model can reference multiple providers for load balancing.',
     },
   },
   {
@@ -35,14 +35,9 @@ export const externalModelsColumns: SortableData<ExternalModel>[] = [
     info: {
       popover: (
         <>
-          The reconciliation phase of the ExternalModel resource. &quot;Ready&quot; means all
-          networking resources were created successfully. &quot;Pending&quot; means reconciliation
-          is in progress. &quot;Failed&quot; means an error occurred — such as a missing provider,
-          missing Secret, a missing config key referenced in the path, or network policy issue.
-          <br />
-          <br />A warning icon next to the status indicates that the model is not yet consumable —
-          typically because a subscription, authorization policy, or both have not been configured.
-          Consumers also need an API key to send requests.
+          The model&apos;s status. A second status appears when the model is waiting for MaaS
+          governance setup - for example, when a MaaS subscription or authorization policy
+          hasn&apos;t been configured yet.
         </>
       ),
     },

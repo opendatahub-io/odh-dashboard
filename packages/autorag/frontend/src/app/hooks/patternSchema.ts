@@ -15,7 +15,7 @@ import * as z from 'zod';
 
 const AutoragPatternScoreMetricSchema = z
   .object({
-    mean: z.number(),
+    mean: z.number().nullable(),
     ci_low: z.number().nullable(),
     ci_high: z.number().nullable(),
   })

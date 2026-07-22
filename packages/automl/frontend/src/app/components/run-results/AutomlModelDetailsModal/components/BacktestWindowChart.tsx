@@ -2,10 +2,14 @@ import React from 'react';
 import {
   Content,
   ContentVariants,
+  Divider,
   Flex,
   FlexItem,
+  Grid,
+  GridItem,
   MenuToggle,
   Select,
+  SelectList,
   SelectOption,
   Title,
 } from '@patternfly/react-core';
@@ -24,11 +28,17 @@ type BacktestWindowChartProps = {
   perWindowMetrics: BackTestingPerWindowMetric[];
   evalMetric: string;
   holdoutMetrics: Record<string, number>;
+  print?: boolean;
+  initialSelectedMetrics?: string[];
+  onSelectedMetricsChange?: (metrics: string[]) => void;
 };
 
 const CHART_W = 900;
+const CHART_W_GRID = 400;
+const CHART_H = 250;
 const DOMAIN_PADDING = { y: 20 };
 const VORONOI_BLACKLIST = ['area-fill', 'window-line'];
+const SHOW_ALL = '__show_all__';
 
 function formatDateRange(startStr: string, endStr: string): string {
   const start = new Date(startStr);
@@ -70,10 +80,12 @@ const BacktestWindowTooltip = ({
   datum,
   active,
   x,
+  chartWidth = CHART_W,
 }: {
   datum?: TooltipDatum;
   active?: boolean;
   x?: number;
+  chartWidth?: number;
   [key: string]: unknown;
 }): React.ReactElement => {
   if (!active || !datum || x == null) {
@@ -85,12 +97,13 @@ const BacktestWindowTooltip = ({
   const windowValue = !isHoldout ? datum.y.toFixed(2) : '-';
   const holdoutValue = isHoldout ? datum.y.toFixed(2) : '-';
 
-  const plotRight = CHART_W - BACKTEST_CHART_PADDING.right;
+  const plotRight = chartWidth - BACKTEST_CHART_PADDING.right;
   const flipped = x + 12 + TOOLTIP_W > plotRight;
-  const tx = flipped ? x - TOOLTIP_W - 12 : x + 12;
+  const rawTx = flipped ? x - TOOLTIP_W - 12 : x + 12;
+  const tx = Math.max(5, Math.min(rawTx, chartWidth - TOOLTIP_W - 5));
 
   const plotTop = BACKTEST_CHART_PADDING.top;
-  const plotH = 250 - BACKTEST_CHART_PADDING.top - BACKTEST_CHART_PADDING.bottom;
+  const plotH = CHART_H - BACKTEST_CHART_PADDING.top - BACKTEST_CHART_PADDING.bottom;
   const ty = plotTop + plotH / 2 - TOOLTIP_H / 2;
 
   const headerY = ty + 14;
@@ -142,33 +155,32 @@ const BacktestWindowTooltip = ({
   );
 };
 
-const TOOLTIP_ELEMENT = <BacktestWindowTooltip />;
+// --- Single metric chart -----------------------------------------------------
 
-// --- Component ----------------------------------------------------------------
+type BacktestMetricChartProps = {
+  metric: string;
+  perWindowMetrics: BackTestingPerWindowMetric[];
+  holdoutMetrics: Record<string, number>;
+  chartWidth: number;
+};
 
-const BacktestWindowChart: React.FC<BacktestWindowChartProps> = ({
+const BacktestMetricChart: React.FC<BacktestMetricChartProps> = ({
+  metric,
   perWindowMetrics,
-  evalMetric,
   holdoutMetrics,
+  chartWidth,
 }) => {
-  const [selectedMetric, setSelectedMetric] = React.useState(evalMetric);
-  const [isOpen, setIsOpen] = React.useState(false);
   const [isHovered, setIsHovered] = React.useState(false);
 
-  const metricKeys = React.useMemo(
-    () => (perWindowMetrics.length > 0 ? Object.keys(perWindowMetrics[0].metrics) : []),
-    [perWindowMetrics],
-  );
-
   const windowData = React.useMemo(
-    () => buildWindowData(perWindowMetrics, selectedMetric),
-    [perWindowMetrics, selectedMetric],
+    () => buildWindowData(perWindowMetrics, metric),
+    [perWindowMetrics, metric],
   );
 
-  const metricDisplayName = formatMetricName(selectedMetric);
+  const metricDisplayName = formatMetricName(metric);
 
   const holdoutPoint = React.useMemo<ChartDataPoint | undefined>(() => {
-    const entry = findMetricValue(holdoutMetrics, selectedMetric);
+    const entry = findMetricValue(holdoutMetrics, metric);
     if (entry === undefined) {
       return undefined;
     }
@@ -180,7 +192,7 @@ const BacktestWindowChart: React.FC<BacktestWindowChartProps> = ({
       y: rawValue,
       name: `Holdout: ${rawValue.toFixed(4)}`,
     };
-  }, [holdoutMetrics, selectedMetric, perWindowMetrics.length]);
+  }, [holdoutMetrics, metric, perWindowMetrics.length]);
 
   const holdoutIdx = holdoutPoint ? perWindowMetrics.length : -1;
   const xAxisStyle = React.useMemo(
@@ -251,97 +263,243 @@ const BacktestWindowChart: React.FC<BacktestWindowChartProps> = ({
     return s;
   }, [windowData, holdoutPoint, isHovered]);
 
+  const tooltipElement = React.useMemo(
+    () => <BacktestWindowTooltip chartWidth={chartWidth} />,
+    [chartWidth],
+  );
+
+  return (
+    <div onMouseEnter={() => setIsHovered(true)} onMouseLeave={() => setIsHovered(false)}>
+      <BacktestCurveChart
+        series={series}
+        tickValues={tickValues}
+        tickFormat={tickFormat}
+        ariaDesc={`${metricDisplayName} by backtest window`}
+        height={CHART_H}
+        width={chartWidth}
+        domainPadding={DOMAIN_PADDING}
+        voronoiBlacklist={VORONOI_BLACKLIST}
+        labelComponent={tooltipElement}
+        xAxisStyle={xAxisStyle}
+        yAxisLabel={metricDisplayName}
+        data-testid="backtest-window-chart"
+      />
+      <Flex
+        spaceItems={{ default: 'spaceItemsMd' }}
+        justifyContent={{ default: 'justifyContentCenter' }}
+        className="pf-v6-u-mt-sm"
+      >
+        <FlexItem>
+          <Flex
+            spaceItems={{ default: 'spaceItemsSm' }}
+            alignItems={{ default: 'alignItemsCenter' }}
+          >
+            <FlexItem>
+              <svg width="10" height="10">
+                <circle cx="5" cy="5" r="4" fill="none" stroke={COLOR_SCALE[0]} strokeWidth="2" />
+              </svg>
+            </FlexItem>
+            <FlexItem>Backtest windows</FlexItem>
+          </Flex>
+        </FlexItem>
+        <FlexItem>
+          <Flex
+            spaceItems={{ default: 'spaceItemsSm' }}
+            alignItems={{ default: 'alignItemsCenter' }}
+          >
+            <FlexItem>
+              <svg width="10" height="10">
+                <circle cx="5" cy="5" r="4" fill={HOLDOUT_COLOR} />
+              </svg>
+            </FlexItem>
+            <FlexItem>Holdout</FlexItem>
+          </Flex>
+        </FlexItem>
+      </Flex>
+    </div>
+  );
+};
+
+// --- Main component ----------------------------------------------------------
+
+const BacktestWindowChart: React.FC<BacktestWindowChartProps> = ({
+  perWindowMetrics,
+  evalMetric,
+  holdoutMetrics,
+  print,
+  initialSelectedMetrics,
+  onSelectedMetricsChange,
+}) => {
+  const [selectedMetrics, setSelectedMetrics] = React.useState<string[]>(
+    initialSelectedMetrics?.length ? initialSelectedMetrics : [evalMetric],
+  );
+  const [isOpen, setIsOpen] = React.useState(false);
+
+  const metricKeys = React.useMemo(
+    () => (perWindowMetrics.length > 0 ? Object.keys(perWindowMetrics[0].metrics) : []),
+    [perWindowMetrics],
+  );
+
+  React.useEffect(() => {
+    if (metricKeys.length === 0) {
+      return;
+    }
+    setSelectedMetrics((prev) => {
+      const valid = prev.filter((m) => metricKeys.includes(m));
+      const next = valid.length > 0 ? valid : [evalMetric];
+      onSelectedMetricsChange?.(next);
+      return next;
+    });
+  }, [metricKeys, evalMetric, onSelectedMetricsChange]);
+
+  const isAllSelected = selectedMetrics.length === metricKeys.length && metricKeys.length > 0;
+  const isSingleMetric = selectedMetrics.length === 1;
+
+  const updateMetrics = React.useCallback(
+    (metrics: string[]) => {
+      setSelectedMetrics(metrics);
+      onSelectedMetricsChange?.(metrics);
+    },
+    [onSelectedMetricsChange],
+  );
+
+  const onSelect = React.useCallback(
+    (_e: React.MouseEvent | undefined, value: string | number | undefined) => {
+      const strValue = String(value);
+      if (strValue === SHOW_ALL) {
+        updateMetrics(isAllSelected ? [evalMetric] : [...metricKeys]);
+      } else {
+        const next = selectedMetrics.includes(strValue)
+          ? selectedMetrics.filter((m) => m !== strValue)
+          : [...selectedMetrics, strValue];
+        updateMetrics(next.length === 0 ? [evalMetric] : next);
+      }
+    },
+    [isAllSelected, evalMetric, metricKeys, selectedMetrics, updateMetrics],
+  );
+
+  const toggleLabel = isAllSelected
+    ? 'Show all'
+    : selectedMetrics.length === 1
+      ? selectedMetrics[0]
+      : `${selectedMetrics.length} metrics`;
+
   return (
     <>
-      <Title headingLevel="h3" size="md" className="pf-v6-u-mb-sm">
-        {metricDisplayName} by backtest window
-      </Title>
-      <Content component={ContentVariants.p} className="pf-v6-u-mb-lg pf-v6-u-color-200">
-        Each point shows{' '}
-        <InlineTooltip text={metricDisplayName} tooltip={getMetricDescription(selectedMetric)} />{' '}
-        for one rolling validation window. An upward trend may indicate the model struggles with
-        later time periods. The holdout point shows performance on data completely excluded from
-        training and validation.
-      </Content>
-      <div className="pf-v6-u-mb-md">
-        <Select
-          isOpen={isOpen}
-          onOpenChange={setIsOpen}
-          selected={selectedMetric}
-          onSelect={(_e, value) => {
-            setSelectedMetric(String(value));
-            setIsOpen(false);
-          }}
-          toggle={(ref) => (
-            <MenuToggle
-              ref={ref}
-              onClick={() => setIsOpen(!isOpen)}
-              isExpanded={isOpen}
-              data-testid="metric-selector-toggle"
-            >
-              {selectedMetric}
-            </MenuToggle>
-          )}
-        >
-          {metricKeys.map((key) => (
-            <SelectOption key={key} value={key}>
-              {key}
-            </SelectOption>
+      {isSingleMetric ? (
+        <>
+          <Title headingLevel="h3" size="md" className="pf-v6-u-mb-sm">
+            {formatMetricName(selectedMetrics[0])} by backtest window
+          </Title>
+          <Content component={ContentVariants.p} className="pf-v6-u-mb-lg pf-v6-u-color-200">
+            Each point shows{' '}
+            <InlineTooltip
+              text={formatMetricName(selectedMetrics[0])}
+              tooltip={getMetricDescription(selectedMetrics[0])}
+            />{' '}
+            for one rolling validation window. An upward trend may indicate the model struggles with
+            later time periods. The holdout point shows performance on data completely excluded from
+            training and validation.
+          </Content>
+        </>
+      ) : (
+        <>
+          <Title headingLevel="h3" size="md" className="pf-v6-u-mb-sm">
+            {isAllSelected
+              ? 'Showing all time-series by backtest window'
+              : `Showing ${selectedMetrics.length} metrics by backtest window`}
+          </Title>
+          <Content component={ContentVariants.p} className="pf-v6-u-mb-lg pf-v6-u-color-200">
+            {isAllSelected
+              ? 'All time-series evaluation measures are shown for each rolling validation window.'
+              : 'Selected time-series evaluation measures are shown for each rolling validation window.'}{' '}
+            Compare trends across metrics, and use the holdout point to see performance on data
+            completely excluded from training and validation.
+          </Content>
+        </>
+      )}
+
+      {!print && (
+        <div className="pf-v6-u-mb-md">
+          <Select
+            isOpen={isOpen}
+            onOpenChange={setIsOpen}
+            onSelect={onSelect}
+            toggle={(ref) => (
+              <MenuToggle
+                ref={ref}
+                onClick={() => setIsOpen(!isOpen)}
+                isExpanded={isOpen}
+                data-testid="metric-selector-toggle"
+              >
+                {toggleLabel}
+              </MenuToggle>
+            )}
+          >
+            <SelectList>
+              <SelectOption
+                hasCheckbox
+                value={SHOW_ALL}
+                isSelected={isAllSelected}
+                data-testid="metric-selector-show-all"
+              >
+                Show all
+              </SelectOption>
+            </SelectList>
+            <Divider />
+            <SelectList>
+              {metricKeys.map((key) => (
+                <SelectOption
+                  key={key}
+                  hasCheckbox
+                  value={key}
+                  isSelected={selectedMetrics.includes(key)}
+                >
+                  {key}
+                </SelectOption>
+              ))}
+            </SelectList>
+          </Select>
+        </div>
+      )}
+
+      {isSingleMetric ? (
+        <div className="automl-backtest-window-chart-container">
+          <BacktestMetricChart
+            metric={selectedMetrics[0]}
+            perWindowMetrics={perWindowMetrics}
+            holdoutMetrics={holdoutMetrics}
+            chartWidth={CHART_W}
+          />
+        </div>
+      ) : (
+        <Grid hasGutter data-testid="backtest-window-chart-grid">
+          {selectedMetrics.map((metric) => (
+            <GridItem key={metric} span={6}>
+              <div
+                className="automl-backtest-window-chart-card"
+                data-testid={`backtest-chart-card-${metric}`}
+              >
+                <Title headingLevel="h4" size="md" className="pf-v6-u-mb-xs">
+                  {formatMetricName(metric)}
+                </Title>
+                <Content
+                  component={ContentVariants.p}
+                  className="pf-v6-u-mb-md pf-v6-u-color-200 pf-v6-u-font-size-sm"
+                >
+                  {getMetricDescription(metric)}
+                </Content>
+                <BacktestMetricChart
+                  metric={metric}
+                  perWindowMetrics={perWindowMetrics}
+                  holdoutMetrics={holdoutMetrics}
+                  chartWidth={CHART_W_GRID}
+                />
+              </div>
+            </GridItem>
           ))}
-        </Select>
-      </div>
-      <div
-        className="automl-backtest-window-chart-container"
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
-      >
-        <BacktestCurveChart
-          series={series}
-          tickValues={tickValues}
-          tickFormat={tickFormat}
-          ariaDesc={`${metricDisplayName} by backtest window`}
-          height={250}
-          width={CHART_W}
-          domainPadding={DOMAIN_PADDING}
-          voronoiBlacklist={VORONOI_BLACKLIST}
-          labelComponent={TOOLTIP_ELEMENT}
-          xAxisStyle={xAxisStyle}
-          yAxisLabel={metricDisplayName}
-          data-testid="backtest-window-chart"
-        />
-        <Flex
-          spaceItems={{ default: 'spaceItemsMd' }}
-          justifyContent={{ default: 'justifyContentCenter' }}
-          className="pf-v6-u-mt-sm"
-        >
-          <FlexItem>
-            <Flex
-              spaceItems={{ default: 'spaceItemsSm' }}
-              alignItems={{ default: 'alignItemsCenter' }}
-            >
-              <FlexItem>
-                <svg width="10" height="10">
-                  <circle cx="5" cy="5" r="4" fill="none" stroke={COLOR_SCALE[0]} strokeWidth="2" />
-                </svg>
-              </FlexItem>
-              <FlexItem>Backtest windows</FlexItem>
-            </Flex>
-          </FlexItem>
-          <FlexItem>
-            <Flex
-              spaceItems={{ default: 'spaceItemsSm' }}
-              alignItems={{ default: 'alignItemsCenter' }}
-            >
-              <FlexItem>
-                <svg width="10" height="10">
-                  <circle cx="5" cy="5" r="4" fill={HOLDOUT_COLOR} />
-                </svg>
-              </FlexItem>
-              <FlexItem>Holdout</FlexItem>
-            </Flex>
-          </FlexItem>
-        </Flex>
-      </div>
+        </Grid>
+      )}
     </>
   );
 };

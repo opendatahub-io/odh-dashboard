@@ -1,5 +1,6 @@
 import * as React from 'react';
 import {
+  Alert,
   FormGroup,
   FormHelperText,
   HelperText,
@@ -11,7 +12,9 @@ import {
 } from '@patternfly/react-core';
 import LabelHelpPopover from '~/app/components/LabelHelpPopover';
 import ConnectionValidationButton from '~/app/components/ConnectionValidationButton';
-import type { ConnectionValidationState } from '~/app/types';
+import { verifyConnection } from '~/app/api/k8s';
+import { isValidUrl } from '~/app/utils/validationUtils';
+import type { ConnectionValidationState, VerifyConnectionRequest } from '~/app/types';
 
 type SourceModelFieldsProps = {
   modelName: string;
@@ -26,6 +29,7 @@ type SourceModelFieldsProps = {
   connectionValidation: ConnectionValidationState;
   canVerifyConnection: boolean;
   onVerifyConnection: () => void;
+  namespace?: string;
 };
 
 const SourceModelFields: React.FC<SourceModelFieldsProps> = ({
@@ -41,12 +45,74 @@ const SourceModelFields: React.FC<SourceModelFieldsProps> = ({
   connectionValidation,
   canVerifyConnection,
   onVerifyConnection,
+  namespace,
 }) => {
   const endpointUrlValidated =
     touched.endpointUrl && endpointUrlError ? ValidatedOptions.error : ValidatedOptions.default;
 
+  const [compatWarning, setCompatWarning] = React.useState<string | undefined>(undefined);
+  const compatAbortRef = React.useRef<AbortController | null>(null);
+
+  React.useEffect(() => {
+    setCompatWarning(undefined);
+  }, [endpointUrl]);
+
+  const handleEndpointBlur = React.useCallback(() => {
+    markTouched('endpointUrl');
+
+    const url = endpointUrl.trim();
+    if (!namespace || !url || !isValidUrl(url)) {
+      return;
+    }
+
+    compatAbortRef.current?.abort();
+    const controller = new AbortController();
+    compatAbortRef.current = controller;
+
+    /* eslint-disable camelcase */
+    const request: VerifyConnectionRequest = {
+      source_type: 'model',
+      base_url: url,
+      ...(modelName.trim() ? { model_id: modelName.trim() } : {}),
+      ...(apiKeySecretRef.trim() ? { secret_name: apiKeySecretRef.trim() } : {}),
+    };
+    /* eslint-enable camelcase */
+
+    verifyConnection(
+      '',
+      namespace,
+      request,
+    )({ signal: controller.signal })
+      .then((result) => {
+        if (!controller.signal.aborted && result.openai_compatible === false) {
+          setCompatWarning(
+            'This endpoint does not appear to be OpenAI-compatible. Evaluation benchmarks may fail.',
+          );
+        }
+      })
+      .catch(() => {
+        // Connection errors are handled by the existing validate button flow
+      });
+  }, [endpointUrl, namespace, modelName, apiKeySecretRef, markTouched]);
+
+  React.useEffect(
+    () => () => {
+      compatAbortRef.current?.abort();
+    },
+    [],
+  );
+
   return (
     <Stack hasGutter>
+      <StackItem>
+        <Alert
+          variant="info"
+          isInline
+          isPlain
+          title="This model must expose an OpenAI-compatible chat/completions endpoint."
+          data-testid="external-endpoint-compatibility-alert"
+        />
+      </StackItem>
       <StackItem>
         <FormGroup
           label="Model name"
@@ -81,7 +147,7 @@ const SourceModelFields: React.FC<SourceModelFieldsProps> = ({
             data-testid="endpoint-url-input"
             value={endpointUrl}
             onChange={(_e, val) => onEndpointUrlChange(val)}
-            onBlur={() => markTouched('endpointUrl')}
+            onBlur={handleEndpointBlur}
             placeholder="https://api.example.com/v1/model"
             isRequired
             validated={endpointUrlValidated}
@@ -90,6 +156,15 @@ const SourceModelFields: React.FC<SourceModelFieldsProps> = ({
             <FormHelperText>
               <HelperText>
                 <HelperTextItem variant="error">{endpointUrlError}</HelperTextItem>
+              </HelperText>
+            </FormHelperText>
+          ) : null}
+          {compatWarning && !endpointUrlError ? (
+            <FormHelperText>
+              <HelperText>
+                <HelperTextItem variant="warning" data-testid="openai-compat-warning">
+                  {compatWarning}
+                </HelperTextItem>
               </HelperText>
             </FormHelperText>
           ) : null}

@@ -168,6 +168,36 @@ describe('normalizePattern', () => {
       expect(result.settings).toEqual(v2.settings);
     });
 
+    it('should preserve null metric means through normalization', () => {
+      const v2WithNullMean: AutoragRawPatternV2 = {
+        ...v2,
+        evaluation: {
+          metrics: [
+            {
+              evaluator: 'judge',
+              name: 'answer_relevance',
+              scores: { mean: null, ci_low: null, ci_high: null },
+            },
+            {
+              evaluator: 'unitxt',
+              name: 'faithfulness',
+              scores: { mean: 0.8, ci_low: 0.7, ci_high: 0.9 },
+            },
+            {
+              evaluator: 'custom',
+              name: 'overall_score',
+              scores: { mean: 0.8, ci_low: null, ci_high: null },
+              optimization_metric: true,
+            },
+          ],
+        },
+      };
+      const result = normalizePattern(v2WithNullMean);
+      const relevance = result.evaluation.metrics.find((m) => m.name === 'answer_relevance');
+      expect(relevance?.scores.mean).toBeNull();
+      expect(result.evaluation.metrics).toHaveLength(3);
+    });
+
     it('should preserve name and top-level fields', () => {
       const result = normalizePattern(v2);
       expect(result.name).toBe('pattern0');
