@@ -84,11 +84,14 @@ export {
   LimitNameResourceType,
   INFERENCE_SERVICE_NAME_REGEX,
   INFERENCE_SERVICE_NAME_INVALID_CHARS_MESSAGE,
+  ROUTE_BASED_RESOURCE_TYPES,
+  ROUTE_NAME_TOO_LONG_MESSAGE,
   resourceTypeLimits,
   isK8sNameDescriptionType,
   setupDefaults,
   handleUpdateLogic,
   isK8sNameDescriptionDataValid,
+  isRouteNameTooLong,
   extractK8sNameDescriptionFieldData,
 } from './k8sNameDescriptionFieldUtils';
 

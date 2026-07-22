@@ -1,7 +1,10 @@
 import * as React from 'react';
 import { HelperTextItem } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
-import type { K8sNameDescriptionFieldData } from '@odh-dashboard/k8s-core';
+import {
+  ROUTE_NAME_TOO_LONG_MESSAGE,
+  type K8sNameDescriptionFieldData,
+} from '@odh-dashboard/k8s-core';
 
 type Variants = React.ComponentProps<typeof HelperTextItem>['variant'];
 
@@ -22,6 +25,21 @@ export const HelperTextItemMaxLength: HelperTextItemType = ({ k8sName }) => {
       Cannot exceed {k8sName.state.maxLength} characters
     </HelperTextItem>
   );
+};
+
+export const HelperTextItemRouteNameTooLong: HelperTextItemType = ({ k8sName }) => {
+  if (!k8sName.state.namespace) {
+    return null;
+  }
+
+  let variant: Variants = 'indeterminate';
+  if (k8sName.state.routeNameTooLong) {
+    variant = 'error';
+  } else if (k8sName.value.trim().length > 0) {
+    variant = 'success';
+  }
+
+  return <HelperTextItem variant={variant}>{ROUTE_NAME_TOO_LONG_MESSAGE}</HelperTextItem>;
 };
 
 export const HelperTextItemValidCharacters: HelperTextItemType = ({ k8sName }) => {
