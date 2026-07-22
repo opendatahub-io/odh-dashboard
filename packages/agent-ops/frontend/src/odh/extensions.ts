@@ -40,7 +40,16 @@ const extensions: (AreaExtension | TabRouteTabExtension | RouteExtension)[] = [
       component: () => import('./AgentDeploymentDetailRoutes.tsx'),
     },
   },
-  // Wizard route removed — deploy is now a modal (DeploySandboxModal)
+  {
+    type: 'app.route',
+    flags: {
+      required: [AGENT_OPS],
+    },
+    properties: {
+      path: '/ai-hub/agents/openshell',
+      component: () => import('./AgentOpenShellManagementWrapper.tsx'),
+    },
+  },
 ];
 
 export default extensions;
