@@ -103,10 +103,9 @@ describe('AutoML Experiments List and Run Management E2E', { testIsolation: fals
       automlResultsPage.findConfirmStopRunButton().click();
 
       cy.step('Verify run status shows as canceling, canceled, or failed');
-      automlResultsPage
-        .findRunStatusLabel(80000)
-        .invoke('text')
-        .should('match', /CANCEL|FAIL/i);
+      automlResultsPage.findRunStatusLabel(80000).should(($el) => {
+        expect($el.text()).to.match(/CANCEL|FAIL/i);
+      });
     },
   );
 });
