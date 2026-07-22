@@ -1,4 +1,5 @@
 import { k8sGetResource, k8sPatchResource } from '@openshift/dynamic-plugin-sdk-utils';
+import type { DashboardConfigKind } from '@odh-dashboard/k8s-core';
 import { mockDashboardConfig } from '#~/__mocks__/mockDashboardConfig';
 import {
   getDashboardConfig,
@@ -9,7 +10,6 @@ import {
   patchDashboardConfigHardwareProfileOrder,
 } from '#~/api/k8s/dashboardConfig';
 import { ODHDashboardConfigModel } from '#~/api/models';
-import { DashboardConfigKind } from '#~/k8sTypes';
 import { DASHBOARD_CONFIG } from '#~/utilities/const';
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({

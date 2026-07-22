@@ -1,19 +1,20 @@
-import { SortableData } from '@odh-dashboard/internal/components/table/types';
+import { SortableData } from '@odh-dashboard/ui-core';
 import { MaaSSubscription } from '~/app/types/subscriptions';
+import { normalizePhase } from '~/app/utilities/phaseLabelUtils';
 
 export const subscriptionsColumns: SortableData<MaaSSubscription>[] = [
   {
-    label: 'Name',
+    label: 'Subscription',
     field: 'name',
     sortable: (a: MaaSSubscription, b: MaaSSubscription): number =>
       (a.displayName ?? a.name).localeCompare(b.displayName ?? b.name),
   },
   {
-    label: 'Phase',
+    label: 'Status',
     field: 'phase',
     width: 15,
     sortable: (a: MaaSSubscription, b: MaaSSubscription): number =>
-      (a.phase ?? '').localeCompare(b.phase ?? ''),
+      normalizePhase(a.phase).localeCompare(normalizePhase(b.phase)),
   },
   {
     label: 'Groups',

@@ -1,8 +1,12 @@
 import * as React from 'react';
+import useFetch, {
+  FetchOptions,
+  FetchStateObject,
+  NotReadyError,
+} from '@odh-dashboard/ui-core/hooks/useFetch';
 import { getDashboardConfigTemplateDisablement } from '#~/api';
 import useCustomServingRuntimesEnabled from '#~/pages/modelServing/customServingRuntimes/useCustomServingRuntimesEnabled';
 import { getDashboardConfigTemplateDisablementBackend } from '#~/services/dashboardService';
-import useFetch, { FetchOptions, FetchStateObject, NotReadyError } from '#~/utilities/useFetch';
 
 const useTemplateDisablement = (
   namespace?: string,

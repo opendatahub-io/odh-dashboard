@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"maps"
 	"os"
 	"path/filepath"
 	"testing"
@@ -22,6 +23,7 @@ func TestDefaultManifestInfo(t *testing.T) {
 		{name: "SelfManagedRhoai", platform: cluster.SelfManagedRhoai, wantSource: "/rhoai"},
 		{name: "ManagedRhoai", platform: cluster.ManagedRhoai, wantSource: "/not-supported"},
 		{name: "OpenDataHub", platform: cluster.OpenDataHub, wantSource: "/odh"},
+		{name: "unknown platform falls back to ODH", platform: cluster.XKS, wantSource: "/odh"},
 	}
 
 	for _, tt := range tests {
@@ -53,14 +55,14 @@ func TestComputeKustomizeVariables(t *testing.T) {
 			name: "with gateway domain",
 			dashboard: &v1alpha1.Dashboard{
 				Spec: v1alpha1.DashboardSpec{
-					Gateway: &v1alpha1.GatewaySpec{Domain: "apps.example.com"},
+					Gateway: &v1alpha1.GatewaySpec{Domain: "rh-ai.apps.example.com"},
 				},
 			},
 			platform: cluster.OpenDataHub,
 			want: map[string]string{
 				"section-title":  "OpenShift Open Data Hub",
-				"gateway-domain": "apps.example.com",
-				"dashboard-url":  "https://odh-dashboard-apps.example.com",
+				"gateway-domain": "rh-ai.apps.example.com",
+				"dashboard-url":  "https://rh-ai.apps.example.com/",
 			},
 		},
 		{
@@ -128,13 +130,28 @@ func TestReadExistingParams(t *testing.T) {
 }
 
 func TestResolveImageParams(t *testing.T) {
-	t.Setenv("RELATED_IMAGE_ODH_DASHBOARD_IMAGE", "quay.io/dashboard:latest")
-	t.Setenv("RELATED_IMAGE_ODH_MOD_ARCH_MODEL_REGISTRY_IMAGE", "quay.io/mr:v1")
+	t.Run("returns mapped params for set env vars", func(t *testing.T) {
+		t.Setenv("RELATED_IMAGE_ODH_DASHBOARD_IMAGE", "quay.io/dashboard:latest")
+		t.Setenv("RELATED_IMAGE_ODH_MOD_ARCH_MODEL_REGISTRY_IMAGE", "quay.io/mr:v1")
+		t.Setenv("RELATED_IMAGE_ODH_AUTOML_IMAGE", "quay.io/automl-runtime:v2")
+		t.Setenv("RELATED_IMAGE_ODH_AUTORAG_IMAGE", "quay.io/autorag-runtime:v3")
 
-	got := resolveImageParams()
-	assert.Equal(t, "quay.io/dashboard:latest", got["odh-dashboard-image"])
-	assert.Equal(t, "quay.io/mr:v1", got["model-registry-ui-image"])
-	assert.NotContains(t, got, "gen-ai-ui-image", "unset env vars should not appear")
+		got := resolveImageParams()
+		assert.Equal(t, "quay.io/dashboard:latest", got["odh-dashboard-image"])
+		assert.Equal(t, "quay.io/mr:v1", got["model-registry-ui-image"])
+		assert.Equal(t, "quay.io/automl-runtime:v2", got["automl-pipeline-runtime-image"])
+		assert.Equal(t, "quay.io/autorag-runtime:v3", got["autorag-pipeline-runtime-image"])
+		assert.NotContains(t, got, "gen-ai-ui-image", "unset env vars should not appear")
+	})
+
+	t.Run("returns empty map when no env vars are set", func(t *testing.T) {
+		for _, envVar := range imagesMap {
+			t.Setenv(envVar, "")
+		}
+
+		got := resolveImageParams()
+		assert.Empty(t, got, "empty env vars must not produce overrides")
+	})
 }
 
 func TestWriteParamsEnv(t *testing.T) {
@@ -152,4 +169,24 @@ func TestWriteParamsEnv(t *testing.T) {
 
 	expected := "alpha=a\nmid=m\nzebra=z\n"
 	assert.Equal(t, expected, string(data), "params must be sorted alphabetically")
+}
+
+func TestParamsPreservation(t *testing.T) {
+	dir := t.TempDir()
+
+	existing := "module-specific-key=module-value\nshared-key=original\n"
+	require.NoError(t, os.WriteFile(filepath.Join(dir, "params.env"), []byte(existing), 0644))
+
+	params := readExistingParams(filepath.Join(dir, "params.env"))
+	computed := map[string]string{
+		"computed-key": "computed-value",
+		"shared-key":   "overwritten-by-computed",
+	}
+	maps.Copy(params, computed)
+	require.NoError(t, writeParamsEnv(dir, params))
+
+	result := readExistingParams(filepath.Join(dir, "params.env"))
+	assert.Equal(t, "module-value", result["module-specific-key"], "existing module-specific params must be preserved")
+	assert.Equal(t, "computed-value", result["computed-key"], "computed params must be added")
+	assert.Equal(t, "overwritten-by-computed", result["shared-key"], "computed params must take precedence over existing")
 }

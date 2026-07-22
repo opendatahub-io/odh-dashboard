@@ -17,7 +17,13 @@ import {
 import type { MenuToggleElement } from '@patternfly/react-core';
 import { DownloadIcon } from '@patternfly/react-icons';
 import type { AutoragPattern } from '~/app/types/autoragPattern';
-import { formatMetricName, formatMetricValue, formatPatternName } from '~/app/utilities/utils';
+import {
+  formatMetricName,
+  formatMetricValue,
+  formatPatternName,
+  getOptimizedScore,
+  getMetricByName,
+} from '~/app/utilities/utils';
 
 type PatternDetailsModalHeaderProps = {
   patterns: AutoragPattern[];
@@ -27,6 +33,8 @@ type PatternDetailsModalHeaderProps = {
   onPatternChange: (index: number) => void;
   onDownload: () => void;
   onSaveNotebook?: (patternName: string, notebookType: 'indexing' | 'inference') => void;
+  onTryPattern?: (patternName: string) => void;
+  onViewCode?: (patternName: string) => void;
   comparisonEnabled?: boolean;
   comparisonPatternIndex?: number | null;
 };
@@ -39,6 +47,8 @@ const PatternDetailsModalHeader: React.FC<PatternDetailsModalHeaderProps> = ({
   onPatternChange,
   onDownload,
   onSaveNotebook,
+  onTryPattern,
+  onViewCode,
   comparisonEnabled,
   comparisonPatternIndex,
 }) => {
@@ -50,14 +60,14 @@ const PatternDetailsModalHeader: React.FC<PatternDetailsModalHeaderProps> = ({
   return (
     <>
       <Flex
-        alignItems={{ default: 'alignItemsFlexEnd' }}
+        alignItems={{ default: 'alignItemsFlexStart' }}
         gap={{ default: 'gapXl' }}
         data-testid="pattern-details-header"
       >
         <FlexItem>
           <Stack>
             <StackItem>
-              <Content component={ContentVariants.small}>Pattern details</Content>
+              <Content component={ContentVariants.small}>Pattern selection</Content>
             </StackItem>
             <StackItem>
               {patterns.length > 1 ? (
@@ -123,14 +133,14 @@ const PatternDetailsModalHeader: React.FC<PatternDetailsModalHeaderProps> = ({
             </StackItem>
             <StackItem>
               <Title headingLevel="h2" size="lg" data-testid="pattern-final-score">
-                {optimizedMetric && data.scores[optimizedMetric]
-                  ? formatMetricValue(data.scores[optimizedMetric].mean)
-                  : data.final_score.toFixed(3)}
+                {optimizedMetric
+                  ? formatMetricValue(getMetricByName(data, optimizedMetric)?.scores.mean ?? 'N/A')
+                  : getOptimizedScore(data).toFixed(3)}
               </Title>
             </StackItem>
           </Stack>
         </FlexItem>
-        <FlexItem align={{ default: 'alignRight' }}>
+        <FlexItem align={{ default: 'alignRight' }} alignSelf={{ default: 'alignSelfCenter' }}>
           <Flex gap={{ default: 'gapSm' }}>
             <FlexItem>
               <Button
@@ -142,50 +152,72 @@ const PatternDetailsModalHeader: React.FC<PatternDetailsModalHeaderProps> = ({
                 Download
               </Button>
             </FlexItem>
-            {onSaveNotebook && (
-              <FlexItem>
-                <Dropdown
-                  isOpen={isActionsDropdownOpen}
-                  onSelect={(_e, value) => {
-                    setIsActionsDropdownOpen(false);
-                    if (value === 'indexing' || value === 'inference') {
-                      onSaveNotebook(data.name, value);
-                    }
-                  }}
-                  onOpenChange={setIsActionsDropdownOpen}
-                  toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
-                    <MenuToggle
-                      ref={toggleRef}
-                      variant="primary"
-                      onClick={() => setIsActionsDropdownOpen(!isActionsDropdownOpen)}
-                      isExpanded={isActionsDropdownOpen}
-                      data-testid="pattern-details-save-notebook-toggle"
+            <FlexItem>
+              <Dropdown
+                isOpen={isActionsDropdownOpen}
+                onSelect={(_e, value) => {
+                  setIsActionsDropdownOpen(false);
+                  if (value === 'try-pattern' && onTryPattern) {
+                    onTryPattern(data.name);
+                  } else if (value === 'view-code' && onViewCode) {
+                    onViewCode(data.name);
+                  } else if ((value === 'indexing' || value === 'inference') && onSaveNotebook) {
+                    onSaveNotebook(data.name, value);
+                  }
+                }}
+                onOpenChange={setIsActionsDropdownOpen}
+                toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                  <MenuToggle
+                    ref={toggleRef}
+                    variant="primary"
+                    onClick={() => setIsActionsDropdownOpen(!isActionsDropdownOpen)}
+                    isExpanded={isActionsDropdownOpen}
+                    data-testid="pattern-details-actions-toggle"
+                  >
+                    {comparisonEnabled ? `${formatPatternName(data.name)} actions` : 'Actions'}
+                  </MenuToggle>
+                )}
+              >
+                <DropdownList>
+                  {data.inference?.responses_template && onTryPattern && (
+                    <DropdownItem
+                      key="try-pattern"
+                      value="try-pattern"
+                      data-testid="pattern-details-try-pattern"
                     >
-                      {comparisonEnabled
-                        ? `${formatPatternName(data.name)} actions`
-                        : 'Save as notebook'}
-                    </MenuToggle>
+                      Try this pattern
+                    </DropdownItem>
                   )}
-                >
-                  <DropdownList>
+                  {data.inference?.responses_template && onViewCode && (
+                    <DropdownItem
+                      key="view-code"
+                      value="view-code"
+                      data-testid="pattern-details-view-code"
+                    >
+                      View code
+                    </DropdownItem>
+                  )}
+                  {onSaveNotebook && (
                     <DropdownItem
                       key="indexing"
                       value="indexing"
                       data-testid="pattern-details-save-indexing-notebook"
                     >
-                      {comparisonEnabled ? 'Save as indexing notebook' : 'Indexing'}
+                      Save as indexing notebook
                     </DropdownItem>
+                  )}
+                  {onSaveNotebook && (
                     <DropdownItem
                       key="inference"
                       value="inference"
                       data-testid="pattern-details-save-inference-notebook"
                     >
-                      {comparisonEnabled ? 'Save as inference notebook' : 'Inference'}
+                      Save as inference notebook
                     </DropdownItem>
-                  </DropdownList>
-                </Dropdown>
-              </FlexItem>
-            )}
+                  )}
+                </DropdownList>
+              </Dropdown>
+            </FlexItem>
           </Flex>
         </FlexItem>
       </Flex>

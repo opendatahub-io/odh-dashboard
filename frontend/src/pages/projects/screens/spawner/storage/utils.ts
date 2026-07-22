@@ -1,20 +1,20 @@
 import * as React from 'react';
+import type { PersistentVolumeClaimKind } from '@odh-dashboard/k8s-core';
+import {
+  getDescriptionFromK8sResource,
+  getDisplayNameFromK8sResource,
+} from '@odh-dashboard/k8s-core';
+import useGenericObjectState from '@odh-dashboard/ui-core/utilities/useGenericObjectState';
+import type { UpdateObjectAtPropAndValue } from '@odh-dashboard/ui-core';
 import {
   CreatingStorageObjectForNotebook,
   ExistingStorageObjectForNotebook,
   StorageData,
-  UpdateObjectAtPropAndValue,
 } from '#~/pages/projects/types';
-import { PersistentVolumeClaimKind } from '#~/k8sTypes';
 import {
   useRelatedNotebooks,
   ConnectedNotebookContext,
 } from '#~/pages/projects/notebook/useRelatedNotebooks';
-import useGenericObjectState from '#~/utilities/useGenericObjectState';
-import {
-  getDescriptionFromK8sResource,
-  getDisplayNameFromK8sResource,
-} from '#~/concepts/k8s/utils';
 import useDefaultPvcSize from './useDefaultPvcSize';
 import { MountPathFormat, PvcModelAnnotation } from './types';
 import { MOUNT_PATH_PREFIX } from './const';

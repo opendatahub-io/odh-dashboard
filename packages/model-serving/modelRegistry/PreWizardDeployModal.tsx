@@ -13,17 +13,16 @@ import {
   Bullseye,
 } from '@patternfly/react-core';
 import { Link } from 'react-router';
-import projectImg from '@odh-dashboard/internal/images/UI_icon-Red_Hat-Folder-RGB.svg';
-import { ProjectKind } from '@odh-dashboard/internal/k8sTypes';
-import { ProjectsContext } from '@odh-dashboard/internal/concepts/projects/ProjectsContext';
+import { typedObjectImage, ProjectObjectType } from '@odh-dashboard/ui-core';
+import type { ProjectKind, Connection } from '@odh-dashboard/k8s-core';
+import { getConnectionTypeRef } from '@odh-dashboard/k8s-core';
+import { ProjectsContext } from '@odh-dashboard/ui-core/context/ProjectsContext';
 import ProjectSelector from '@odh-dashboard/internal/pages/modelServing/screens/projects/InferenceServiceModal/ProjectSelector';
 import useServingConnections from '@odh-dashboard/internal/pages/projects/screens/detail/connections/useServingConnections';
-import { ModelDeployPrefillInfo } from '@odh-dashboard/internal/pages/modelServing/screens/projects/usePrefillModelDeployModal';
-import { Connection } from '@odh-dashboard/internal/concepts/connectionTypes/types';
 import { useWatchConnectionTypes } from '@odh-dashboard/internal/utilities/useWatchConnectionTypes';
-import { getConnectionTypeRef } from '@odh-dashboard/internal/concepts/connectionTypes/utils';
 import { uriToModelLocation } from '@odh-dashboard/internal/concepts/modelRegistry/utils';
 import { modelVersionDeploymentsUrl } from '@odh-dashboard/model-registry/routeUtils';
+import { ModelDeployPrefillInfo } from '@odh-dashboard/model-serving/shared';
 import useRegistryConnections from './useRegistryConnections';
 import { useExtractFormDataFromRegistry } from './useExtractFormDataFromRegistry';
 import { useNavigateToDeploymentWizard } from '../src/components/deploymentWizard/useNavigateToDeploymentWizard';
@@ -163,7 +162,9 @@ export const PreWizardDeployModal: React.FC<PreWizardDeployModalProps> = ({
           <Bullseye>
             <EmptyState
               headingLevel="h4"
-              icon={() => <img src={projectImg} alt="No projects" />}
+              icon={() => (
+                <img src={typedObjectImage(ProjectObjectType.project)} alt="No projects" />
+              )}
               titleText="No projects"
               variant="sm"
             >

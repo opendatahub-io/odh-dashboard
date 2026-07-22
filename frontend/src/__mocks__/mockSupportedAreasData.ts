@@ -1,5 +1,5 @@
+import type { SupportedAreasState } from '@odh-dashboard/plugin-core/areas';
 import { SupportedAreasStateMap } from '#~/concepts/areas/const.ts';
-import { SupportedAreasState } from '#~/concepts/areas/types.ts';
 import { mockDashboardConfig } from '#~/__mocks__/mockDashboardConfig.ts';
 import { IsAreaAvailableOptions } from '#~/concepts/areas/utils.ts';
 

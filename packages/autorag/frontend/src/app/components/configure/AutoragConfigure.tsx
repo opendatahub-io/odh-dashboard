@@ -1,9 +1,9 @@
-import { Connection } from '@odh-dashboard/internal/concepts/connectionTypes/types';
 import {
   isConnectionType,
   isConnectionTypeDataField,
   S3ConnectionTypeKeys,
-} from '@odh-dashboard/internal/concepts/connectionTypes/utils';
+} from '@odh-dashboard/k8s-core';
+import type { Connection } from '@odh-dashboard/k8s-core';
 import { useWatchConnectionTypes } from '@odh-dashboard/internal/utilities/useWatchConnectionTypes';
 import {
   Button,
@@ -32,6 +32,7 @@ import {
   MultipleFileUploadMain,
   NumberInput,
   Popover,
+  Radio,
   Select,
   SelectList,
   SelectOption,
@@ -60,23 +61,29 @@ import type { FileRejection } from 'react-dropzone';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Controller, useFormContext, useWatch, Watch } from 'react-hook-form';
 import { Navigate, useParams } from 'react-router';
+import S3FileExplorer from '@odh-dashboard/internal/concepts/fileExplorer/S3FileExplorer/S3FileExplorer';
+import type { ExplorerFile } from '@odh-dashboard/internal/concepts/fileExplorer/types';
 import AutoragConnectionModal from '~/app/components/common/AutoragConnectionModal';
 import ConfigureFormGroup from '~/app/components/common/ConfigureFormGroup';
-import S3FileExplorer from '~/app/components/common/S3FileExplorer/S3FileExplorer.tsx';
-import type { File as S3File } from '~/app/components/common/FileExplorer/FileExplorer.tsx';
 import SecretSelector, { SecretSelection } from '~/app/components/common/SecretSelector';
 import useReconfigureSafeEffect from '~/app/hooks/useReconfigureSafeEffect';
 import { useS3FileUploadMutation } from '~/app/hooks/mutations';
 import { useOgxModelsQuery } from '~/app/hooks/queries';
 import { useNotification } from '~/app/hooks/useNotification';
+import { ConfigureSchema } from '~/app/schemas/configure.schema';
 import {
-  ConfigureSchema,
   MAX_RAG_PATTERNS,
   MIN_RAG_PATTERNS,
+  OPTIMIZATION_METRIC_LABELS,
+  PRESET_BETTER_QUALITY,
+  PRESET_FASTER,
+  PRESET_LABELS,
   RAG_METRIC_ANSWER_CORRECTNESS,
   RAG_METRIC_FAITHFULNESS,
-} from '~/app/schemas/configure.schema';
-import { OPTIMIZATION_METRIC_LABELS, REQUIRED_CONNECTION_SECRET_KEYS } from '~/app/utilities/const';
+  RAG_METRIC_OVERALL_SCORE,
+  METRIC_DESCRIPTIONS,
+  REQUIRED_CONNECTION_SECRET_KEYS,
+} from '~/app/utilities/const';
 import { SecretListItem } from '~/app/types';
 import { autoragExperimentsPathname } from '~/app/utilities/routes';
 import { getMissingRequiredKeys } from '~/app/utilities/secretValidation';
@@ -104,6 +111,12 @@ const OPTIMIZATION_METRICS: {
   label: string;
   description: string;
 }[] = [
+  {
+    value: RAG_METRIC_OVERALL_SCORE,
+    label: OPTIMIZATION_METRIC_LABELS[RAG_METRIC_OVERALL_SCORE],
+    description:
+      'An equal-weight mean of all other selectable metrics, representing overall pattern performance.',
+  },
   {
     value: RAG_METRIC_FAITHFULNESS,
     label: OPTIMIZATION_METRIC_LABELS[RAG_METRIC_FAITHFULNESS],
@@ -153,15 +166,17 @@ function AutoragConfigure({
     initialInputDataSecret,
   );
   const [inputDataSourceMode, setInputDataSourceMode] = useState<'select' | 'upload'>('select');
-  const [selectedInputDataFile, setSelectedInputDataFile] = useState<S3File | undefined>(() => {
-    if (!initialInputDataKey) {
-      return undefined;
-    }
-    const lastSegment = initialInputDataKey.split('/').pop();
-    const fileName = lastSegment || initialInputDataKey;
-    const ext = fileName && fileName.includes('.') ? fileName.split('.').pop()! : '';
-    return { name: fileName, path: `/${initialInputDataKey}`, type: ext };
-  });
+  const [selectedInputDataFile, setSelectedInputDataFile] = useState<ExplorerFile | undefined>(
+    () => {
+      if (!initialInputDataKey) {
+        return undefined;
+      }
+      const lastSegment = initialInputDataKey.split('/').pop();
+      const fileName = lastSegment || initialInputDataKey;
+      const ext = fileName && fileName.includes('.') ? fileName.split('.').pop()! : '';
+      return { name: fileName, path: `/${initialInputDataKey}`, type: ext };
+    },
+  );
   const [isInputDataFileUploading, setIsInputDataFileUploading] = useState(false);
   const [isInputDataDropdownOpen, setIsInputDataDropdownOpen] = useState(false);
   const inputDataUploadSeqRef = useRef(0);
@@ -477,6 +492,7 @@ function AutoragConfigure({
                           <ToggleGroupItem
                             text="Select file or folder"
                             buttonId="document-input-select"
+                            data-testid="input-data-source-select-toggle"
                             isSelected={inputDataSourceMode === 'select'}
                             isDisabled={isSubmitting}
                             onChange={() => setInputDataSourceMode('select')}
@@ -484,6 +500,7 @@ function AutoragConfigure({
                           <ToggleGroupItem
                             text="Upload file"
                             buttonId="document-input-upload"
+                            data-testid="input-data-source-upload-toggle"
                             isSelected={inputDataSourceMode === 'upload'}
                             isDisabled={isSubmitting}
                             onChange={() => setInputDataSourceMode('upload')}
@@ -506,6 +523,7 @@ function AutoragConfigure({
                             <Button
                               key="select-files"
                               variant="secondary"
+                              data-testid="browse-bucket-button"
                               onClick={() => setFileExplorerMode('input_data')}
                               isDisabled={!selectedSecret || selectedSecret.invalid || isSubmitting}
                             >
@@ -525,7 +543,9 @@ function AutoragConfigure({
                                 <Tbody>
                                   <Tr>
                                     <Td dataLabel="Name">
-                                      <Truncate content={selectedInputDataFile.name} />
+                                      <span title={selectedInputDataFile.path}>
+                                        <Truncate content={selectedInputDataFile.name} />
+                                      </span>
                                     </Td>
                                     <Td dataLabel="Type">{selectedInputDataFile.type}</Td>
                                     <Td isActionCell>
@@ -568,6 +588,7 @@ function AutoragConfigure({
                               ref={inputDataNativeInputRef}
                               type="file"
                               hidden
+                              data-testid="autorag-upload-file-input"
                               accept={INPUT_DATA_UPLOAD_NATIVE_ACCEPT}
                               aria-hidden
                               tabIndex={-1}
@@ -618,7 +639,7 @@ function AutoragConfigure({
                                 </Thead>
                                 <Tbody>
                                   <Tr>
-                                    <Td dataLabel="File">
+                                    <Td dataLabel="File" data-testid="uploaded-file-cell">
                                       <Split hasGutter>
                                         {isInputDataFileUploading && (
                                           <SplitItem>
@@ -773,43 +794,53 @@ function AutoragConfigure({
                             const selected = OPTIMIZATION_METRICS.find(
                               (m) => m.value === field.value,
                             );
+                            const metricDescription = METRIC_DESCRIPTIONS[field.value];
                             return (
-                              <Select
-                                isOpen={isMetricSelectOpen}
-                                selected={field.value}
-                                onSelect={(_e, val) => {
-                                  if (typeof val === 'string') {
-                                    field.onChange(val);
-                                  }
-                                  setIsMetricSelectOpen(false);
-                                }}
-                                onOpenChange={setIsMetricSelectOpen}
-                                toggle={(toggleRef) => (
-                                  <MenuToggle
-                                    ref={toggleRef}
-                                    onClick={() => setIsMetricSelectOpen((prev) => !prev)}
-                                    isExpanded={isMetricSelectOpen}
-                                    isDisabled={isSubmitting}
-                                    data-testid="optimization-metric-select"
-                                  >
-                                    {selected?.label ?? ''}
-                                  </MenuToggle>
-                                )}
-                                shouldFocusToggleOnSelect
-                                data-testid="optimization-metric-select-list"
-                              >
-                                <SelectList>
-                                  {OPTIMIZATION_METRICS.map((metric) => (
-                                    <SelectOption
-                                      key={metric.value}
-                                      value={metric.value}
-                                      data-testid={`metric-option-${metric.value}`}
+                              <>
+                                <Select
+                                  isOpen={isMetricSelectOpen}
+                                  selected={field.value}
+                                  onSelect={(_e, val) => {
+                                    if (typeof val === 'string') {
+                                      field.onChange(val);
+                                    }
+                                    setIsMetricSelectOpen(false);
+                                  }}
+                                  onOpenChange={setIsMetricSelectOpen}
+                                  toggle={(toggleRef) => (
+                                    <MenuToggle
+                                      ref={toggleRef}
+                                      onClick={() => setIsMetricSelectOpen((prev) => !prev)}
+                                      isExpanded={isMetricSelectOpen}
+                                      isDisabled={isSubmitting}
+                                      data-testid="optimization-metric-select"
                                     >
-                                      {metric.label}
-                                    </SelectOption>
-                                  ))}
-                                </SelectList>
-                              </Select>
+                                      {selected?.label ?? ''}
+                                    </MenuToggle>
+                                  )}
+                                  shouldFocusToggleOnSelect
+                                  data-testid="optimization-metric-select-list"
+                                >
+                                  <SelectList>
+                                    {OPTIMIZATION_METRICS.map((metric) => (
+                                      <SelectOption
+                                        key={metric.value}
+                                        value={metric.value}
+                                        data-testid={`metric-option-${metric.value}`}
+                                      >
+                                        {metric.label}
+                                      </SelectOption>
+                                    ))}
+                                  </SelectList>
+                                </Select>
+                                {metricDescription && (
+                                  <FormHelperText>
+                                    <HelperText>
+                                      <HelperTextItem>{metricDescription}</HelperTextItem>
+                                    </HelperText>
+                                  </FormHelperText>
+                                )}
+                              </>
                             );
                           }}
                         />
@@ -854,6 +885,75 @@ function AutoragConfigure({
                                 </FormHelperText>
                               )}
                             </>
+                          )}
+                        />
+                      </ConfigureFormGroup>
+                    </FlexItem>
+
+                    <FlexItem>
+                      <ConfigureFormGroup
+                        label="Run preset"
+                        description="Choose a predefined resource allocation and optimization strategy for this run."
+                        labelHelp={{
+                          header: 'Run preset',
+                          body: (
+                            <Stack hasGutter>
+                              <StackItem>
+                                <Content component="p">
+                                  Select how to balance ingestion speed and retrieval quality.
+                                </Content>
+                              </StackItem>
+                              <StackItem>
+                                <Content component="p">
+                                  <strong>Faster:</strong> Recursive chunking only on exported text,
+                                  no table-structure parsing, no LLM contextual enrichment.
+                                </Content>
+                              </StackItem>
+                              <StackItem>
+                                <Content component="p">
+                                  <strong>Better quality:</strong> Explores recursive and hybrid
+                                  chunking with Docling contextualization, table layout parsing, and
+                                  LLM contextual enrichment.
+                                </Content>
+                              </StackItem>
+                            </Stack>
+                          ),
+                        }}
+                      >
+                        <Controller
+                          control={form.control}
+                          name="preset"
+                          render={({ field }) => (
+                            <Flex direction={{ default: 'column' }}>
+                              {[PRESET_FASTER, PRESET_BETTER_QUALITY].map((preset) => (
+                                <Radio
+                                  key={preset}
+                                  id={`preset-${preset}`}
+                                  name="preset"
+                                  label={PRESET_LABELS[preset]}
+                                  description={
+                                    preset === PRESET_FASTER ? (
+                                      <>
+                                        4 vCPU, 16 GiB
+                                        <br />
+                                        Recursive chunking only. A good default for most datasets.
+                                      </>
+                                    ) : (
+                                      <>
+                                        8 vCPU, 32 GiB
+                                        <br />
+                                        Explores recursive and hybrid chunking with table parsing
+                                        and contextual enrichment.
+                                      </>
+                                    )
+                                  }
+                                  isChecked={field.value === preset}
+                                  isDisabled={isSubmitting}
+                                  onChange={() => field.onChange(preset)}
+                                  data-testid={`preset-radio-${preset}`}
+                                />
+                              ))}
+                            </Flex>
                           )}
                         />
                       </ConfigureFormGroup>
@@ -910,7 +1010,9 @@ function AutoragConfigure({
                                         spacer={{ default: 'spacerNone' }}
                                         gap={{ default: 'gapSm' }}
                                       >
-                                        <Content>{`${generationModels.length || 'No'} foundation models`}</Content>
+                                        <Content>{`${
+                                          generationModels.length || 'No'
+                                        } foundation models`}</Content>
                                         {!!generationModels.length && (
                                           <Popover
                                             bodyContent={
@@ -947,7 +1049,9 @@ function AutoragConfigure({
                                         spacer={{ default: 'spacerNone' }}
                                         gap={{ default: 'gapSm' }}
                                       >
-                                        <Content>{`${embeddingModels.length || 'No'} embedding models`}</Content>
+                                        <Content>{`${
+                                          embeddingModels.length || 'No'
+                                        } embedding models`}</Content>
                                         {!!embeddingModels.length && (
                                           <Popover
                                             bodyContent={
@@ -1013,8 +1117,9 @@ function AutoragConfigure({
       )}
       <S3FileExplorer
         id="AutoRagConfigure-S3FileExplorer"
+        apiPath="/autorag/api/v1/s3"
         namespace={namespace}
-        s3Secret={selectedSecret}
+        s3SecretName={selectedSecret?.name}
         isOpen={Boolean(fileExplorerMode)}
         onClose={() => setFileExplorerMode(false)}
         onSelectFiles={(files) => {
@@ -1032,6 +1137,10 @@ function AutoragConfigure({
         }}
         selectableExtensions={['pdf', 'docx', 'pptx', 'md', 'html', 'txt']}
         unselectableReason="You can only select PDF, DOCX, PPTX, Markdown, HTML, or Plain text files"
+        disabledPaths={[
+          '/autogluon-tabular-training-pipeline',
+          '/autogluon-timeseries-training-pipeline',
+        ]}
       />
       {isTemplateModalOpen && (
         <EvaluationTemplateModal onClose={() => setIsTemplateModalOpen(false)} />

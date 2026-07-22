@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Button, SearchInput, ToolbarGroup, ToolbarItem } from '@patternfly/react-core';
-import FilterToolbar from '@odh-dashboard/internal/components/FilterToolbar';
+import FilterToolbar from '@odh-dashboard/ui-core/components/FilterToolbar';
 import { Link } from 'react-router-dom';
 import { URL_PREFIX } from '~/app/utilities/const';
 import {
@@ -15,11 +15,13 @@ type AuthPoliciesToolbarProps = {
     key: AuthPoliciesFilterOptions,
     value?: string | { label: string; value: string },
   ) => void;
+  returnTo?: string;
 };
 
 const AuthPoliciesToolbar: React.FC<AuthPoliciesToolbarProps> = ({
   filterData,
   onFilterUpdate,
+  returnTo,
 }) => (
   <FilterToolbar<AuthPoliciesFilterOptions>
     data-testid="auth-policies-table-toolbar"
@@ -28,11 +30,11 @@ const AuthPoliciesToolbar: React.FC<AuthPoliciesToolbarProps> = ({
       [AuthPoliciesFilterOptions.keyword]: ({ onChange, ...props }) => (
         <SearchInput
           {...props}
-          aria-label="Filter by keyword"
-          placeholder="Filter by name or description"
+          aria-label="Filter by name, resource name, or description"
+          placeholder="Filter by name, resource name, or description"
           onChange={(_event, value) => onChange(value)}
           data-testid="auth-policies-filter-name-input"
-          style={{ width: '30ch' }}
+          style={{ minWidth: '350px' }}
         />
       ),
     }}
@@ -43,7 +45,13 @@ const AuthPoliciesToolbar: React.FC<AuthPoliciesToolbarProps> = ({
       <ToolbarItem>
         <Button
           variant="primary"
-          component={(props) => <Link {...props} to={`${URL_PREFIX}/auth-policies/create`} />}
+          component={(props) => (
+            <Link
+              {...props}
+              to={`${(returnTo ?? `${URL_PREFIX}/auth-policies`).split('?')[0]}/create`}
+              state={returnTo ? { returnTo } : undefined}
+            />
+          )}
           data-testid="create-auth-policy-button"
         >
           Create authorization policy

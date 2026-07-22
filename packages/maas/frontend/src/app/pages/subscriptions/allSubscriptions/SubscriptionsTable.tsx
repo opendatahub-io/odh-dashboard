@@ -1,6 +1,5 @@
 import * as React from 'react';
-import Table from '@odh-dashboard/internal/components/table/Table';
-import DashboardEmptyTableView from '@odh-dashboard/internal/concepts/dashboard/DashboardEmptyTableView';
+import { Table, DashboardEmptyTableView } from '@odh-dashboard/ui-core';
 import { MaaSSubscription } from '~/app/types/subscriptions';
 import { subscriptionsColumns } from './columns';
 import SubscriptionTableRow from './SubscriptionTableRow';
@@ -10,6 +9,7 @@ type SubscriptionTableProps = {
   toolbarContent?: React.ReactElement;
   onClearFilters: () => void;
   setDeleteSubscription: (subscription: MaaSSubscription) => void;
+  returnTo?: string;
 };
 
 export const SubscriptionsTable: React.FC<SubscriptionTableProps> = ({
@@ -17,17 +17,22 @@ export const SubscriptionsTable: React.FC<SubscriptionTableProps> = ({
   toolbarContent,
   onClearFilters,
   setDeleteSubscription,
+  returnTo,
 }): React.ReactNode => (
   <Table
     data-testid="subscriptions-table"
     data={subscriptions}
     columns={subscriptionsColumns}
     enablePagination
-    rowRenderer={(subscription: MaaSSubscription) => (
+    disableRowRenderSupport
+    isExpandable
+    rowRenderer={(subscription: MaaSSubscription, rowIndex: number) => (
       <SubscriptionTableRow
         key={subscription.name}
         subscription={subscription}
+        rowIndex={rowIndex}
         setDeleteSubscription={setDeleteSubscription}
+        returnTo={returnTo}
       />
     )}
     emptyTableView={<DashboardEmptyTableView onClearFilters={onClearFilters} />}

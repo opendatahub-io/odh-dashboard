@@ -27,7 +27,9 @@ module.exports = ({
 } = {}) => {
   const normalizedDistDir = path.resolve(distributionSrcDir);
   const normalizedIncludes = additionalIncludes.map((p) => path.resolve(p));
-  const resolvedOutputDir = outputDir || path.resolve(path.dirname(normalizedDistDir), 'public');
+  const resolvedOutputDir = outputDir
+    ? path.resolve(outputDir)
+    : path.resolve(path.dirname(normalizedDistDir), 'public');
 
   return {
     entry: {
@@ -102,10 +104,9 @@ module.exports = ({
       ],
     },
     output: {
-      filename: '[name].bundle.js',
+      filename: '[name].js',
       path: resolvedOutputDir,
       publicPath: '/',
-      chunkFilename: '[name]-[chunkhash].js',
     },
     plugins: [
       new HtmlWebpackPlugin({

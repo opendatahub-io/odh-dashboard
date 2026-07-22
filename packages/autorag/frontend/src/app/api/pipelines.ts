@@ -1,5 +1,11 @@
 /* eslint-disable camelcase -- BFF API uses snake_case for total_size, next_page_token */
-import { APIOptions, handleRestFailures, isModArchResponse, restGET } from 'mod-arch-core';
+import {
+  APIOptions,
+  handleRestFailures,
+  isModArchResponse,
+  restCREATE,
+  restGET,
+} from 'mod-arch-core';
 import type { PipelineDefinition, PipelineRun } from '~/app/types';
 import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
 
@@ -17,7 +23,7 @@ export type GetPipelineRunsFromBFFParams = {
   namespace: string;
   pipelineVersionId?: string;
   pageSize?: number;
-  nextPageToken?: string;
+  page?: number;
 };
 
 type PipelineRunsApiResponse = {
@@ -43,8 +49,8 @@ export async function getPipelineRunsFromBFF(
   if (params.pipelineVersionId) {
     queryParams.pipelineVersionId = params.pipelineVersionId;
   }
-  if (params.nextPageToken) {
-    queryParams.nextPageToken = params.nextPageToken;
+  if (params.page != null) {
+    queryParams.page = String(params.page);
   }
 
   const response = await handleRestFailures(
@@ -86,6 +92,16 @@ export async function getPipelineRunFromBFF(
     return response.data;
   }
   throw new Error('Invalid response format');
+}
+
+export async function enableManagedPipelines(hostPath: string, namespace: string): Promise<void> {
+  await handleRestFailures(
+    restCREATE(
+      hostPath,
+      `${URL_PREFIX}/api/${BFF_API_VERSION}/managed-pipelines/enable?namespace=${encodeURIComponent(namespace)}`,
+      {},
+    ),
+  );
 }
 
 export async function getPipelineDefinitions(

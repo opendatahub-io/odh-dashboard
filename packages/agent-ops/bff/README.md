@@ -8,13 +8,54 @@ Minimal backend-for-frontend providing only core endpoints required by the start
 
 ## Scope
 
-This trimmed service exposes ONLY:
+This service exposes core dashboard endpoints plus agent runtime APIs backed by Kubernetes (or an in-memory mock when `MOCK_AGENT_CLIENT=true` for local development):
 
 - GET `/healthcheck` – liveness probe
-- GET `/api/v1/user` – returns the authenticated (mock) user
+- GET `/api/v1/user` – returns the authenticated user
 - GET `/api/v1/namespaces` – list namespaces (available only when DEV_MODE=true or mock k8s enabled)
+- GET `/api/v1/agents/runtimes` – list deployed agent and tool runtimes
+- GET `/api/v1/agents/runtimes/{ns}/{name}` – full runtime detail for one agent
 
-All former Mod Arch–related endpoints, validation, mocks and OpenAPI dependencies were removed.
+Agent endpoints validate `{ns}` and `{name}` as DNS-1123 identifiers. List discovery loads Sandbox CRs (`agents.x-k8s.io/v1beta1/sandboxes`) labeled `openshell.ai/managed-by=openshell`. Detail loads any authorized Sandbox CR by name (no label filter).
+
+Discovery metadata uses Starter Kit annotations: `openshift.io/display-name`, `openshift.io/description`, and `opendatahub.io/agent-framework`. Container ports are read from `spec.podTemplate.spec.containers[].ports` and exposed with `status.serviceFQDN` in list/detail responses. Agent card enrichment is disabled for 3.5 discovery scope.
+
+Per-request RBAC checks filter namespaces and gate detail access via `agents.x-k8s.io/sandboxes` list/get; stop/start require `patch`; delete requires `delete`. Deploy RBAC requires `agents.x-k8s.io/sandboxes` create and get.
+
+**Cluster RBAC (modules service account):** `manifests/modular-architecture/modules-cluster-role.yaml` grants `impersonate` on users/groups/serviceaccounts (for `AUTH_METHOD=internal`), `create` on `subjectaccessreviews`, and `get`/`list` on agent card discovery CRDs. With **`AUTH_METHOD=user_token`** (ODH/RHOAI default), the BFF uses the forwarded user token for Kubernetes reads and enrichment; the caller's RBAC must allow `agents.x-k8s.io/sandboxes` list/get in target namespaces, plus optional Service and enrichment CRD access.
+
+Set `MOCK_AGENT_CLIENT=true` to serve built-in demo data (`agent-ops-demo` / `sample-support-agent`) without cluster access.
+
+## OpenAPI and Swagger UI
+
+The BFF serves the OpenAPI contract for local and cluster developer documentation. The canonical spec lives at `../api/openapi/agent-ops.yaml`; a synced runtime copy is kept at `openapi/src/agent-ops.yaml` for the running binary.
+
+| Route | Description |
+|-------|-------------|
+| GET `/mod-arch/openapi.json` | OpenAPI 3.0 document (JSON; includes dynamic server URL) |
+| GET `/mod-arch/openapi.yaml` | OpenAPI 3.0 document (YAML) |
+| GET `/mod-arch/swagger-ui` | Swagger UI (loads spec from `/mod-arch/openapi.json`) |
+| GET `/mod-arch/openapi` | Redirects to `/mod-arch/swagger-ui` |
+
+These routes are unauthenticated (same pattern as gen-ai and eval-hub).
+
+After editing `api/openapi/agent-ops.yaml`, sync the runtime copy:
+
+```shell
+make sync-openapi
+```
+
+`make test`, `make build`, and `npm run test:contract` (from `packages/agent-ops/`) run `check-openapi-sync` and fail if the two files differ.
+
+**Local example** (default port 4000):
+
+```shell
+make dev-bff
+open http://localhost:4000/mod-arch/swagger-ui
+curl -s http://localhost:4000/mod-arch/openapi.json | jq .info
+```
+
+**Federated dev note:** the Module Federation dev proxy forwards `/agent-ops/api` and `/healthcheck` only. Open Swagger against the BFF port directly (for example `4021` when using `bffConfig.port`).
 
 ## Development
 
@@ -51,6 +92,7 @@ make run LOG_LEVEL=DEBUG
 | `-deployment-mode` | `DEPLOYMENT_MODE` | `standalone` or `integrated` (default `standalone`) |
 | `-dev-mode` | `DEV_MODE` | Enables relaxed behaviors (namespaces listing, etc.) |
 | `-mock-k8s-client` | `MOCK_K8S_CLIENT` | Use in‑memory stub for namespace/user resolution |
+| `-mock-agent-client` | `MOCK_AGENT_CLIENT` | Use in‑memory demo agent data (local dev only; no cluster RBAC) |
 | `-static-assets-dir` | `STATIC_ASSETS_DIR` | Directory to serve single‑page frontend assets |
 | `-log-level` | `LOG_LEVEL` | ERROR, WARN, INFO, DEBUG (default INFO) |
 | `-allowed-origins` | `ALLOWED_ORIGINS` | Comma separated CORS origins |
@@ -93,23 +135,39 @@ make docker-build
 
 ## Endpoints
 
-Only three JSON endpoints are available plus static asset serving (index.html fallback):
+JSON API endpoints plus static asset serving (index.html fallback):
 
 ```text
 GET /healthcheck
 GET /api/v1/user
-GET /api/v1/namespaces   (dev / mock mode only)
+GET /api/v1/namespaces              (dev / mock mode only)
+GET /api/v1/agents/runtimes
+GET /api/v1/agents/runtimes/{ns}/{name}
 ```
 
 ### Sample local calls
 
-When running with the mocked Kubernetes client (MOCK_K8S_CLIENT=true), the user `user@example.com` has RBAC allowing all three endpoints.
+Start the BFF with mock Kubernetes and mock agent data (from `packages/agent-ops`):
 
 ```shell
-curl -i localhost:4000/healthcheck
-curl -i -H "kubeflow-userid: user@example.com" localhost:4000/api/v1/user
-curl -i -H "kubeflow-userid: user@example.com" localhost:4000/api/v1/namespaces   # (dev / mock only)
+make dev-bff
 ```
+
+`dev-bff` uses `AUTH_METHOD=user_token`. Send any non-empty token on the default header (the value is not validated in mock mode):
+
+```shell
+TOKEN_HDR="x-forwarded-access-token: dev-token"
+
+curl -i localhost:4000/healthcheck
+curl -i -H "$TOKEN_HDR" localhost:4000/api/v1/user
+curl -i -H "$TOKEN_HDR" localhost:4000/api/v1/namespaces   # dev / mock only
+
+# Agent APIs (use -mock-agent-client for demo data; otherwise reads Sandbox CRs from the cluster)
+curl -s -H "$TOKEN_HDR" localhost:4000/api/v1/agents/runtimes | jq .
+curl -s -H "$TOKEN_HDR" localhost:4000/api/v1/agents/runtimes/agent-ops-demo/sample-support-agent | jq .
+```
+
+For Kubeflow-style `internal` auth instead, use `kubeflow-userid: user@example.com` (and run with `AUTH_METHOD=internal`).
 
 ### Inter-BFF Communication
 

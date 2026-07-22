@@ -1,6 +1,5 @@
 import React from 'react';
-import { EmptyStateBody, EmptyStateVariant, EmptyState } from '@patternfly/react-core';
-import { SearchIcon } from '@patternfly/react-icons';
+import { Flex } from '@patternfly/react-core';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import FeatureStoreEntitiesListView from './EntitiesTable/FeatureStoreEntitiesListView';
@@ -11,6 +10,8 @@ import { featureStoreRoute } from '../../routes';
 import FeatureStorePageTitle from '../../components/FeatureStorePageTitle';
 import FeatureStoreObjectIcon from '../../components/FeatureStoreObjectIcon';
 import FeatureStoreAccessDenied from '../../components/FeatureStoreAccessDenied';
+import ConnectedWorkbenchesLink from '../../components/ConnectedWorkbenchesLink';
+import { FeatureStoreEmptyState } from '../components/EmptyStateFeatureStore';
 import { getFeatureStoreObjectDescription } from '../../utils';
 import { FeatureStoreObject } from '../../const';
 
@@ -27,17 +28,7 @@ const FeatureStoreEntities = (): React.ReactElement => {
     error: entitiesLoadError,
   } = useFeatureStoreEntities(currentProject);
   const emptyState = (
-    <EmptyState
-      headingLevel="h6"
-      icon={SearchIcon}
-      titleText="No entities"
-      variant={EmptyStateVariant.lg}
-      data-testid="empty-state-title"
-    >
-      <EmptyStateBody data-testid="empty-state-body">
-        Select a different feature store or create an entity in a workbench.
-      </EmptyStateBody>
-    </EmptyState>
+    <FeatureStoreEmptyState resourceTypeSingular="entity" resourceTypePlural="entities" />
   );
 
   return (
@@ -63,11 +54,14 @@ const FeatureStoreEntities = (): React.ReactElement => {
       loadError={entitiesLoadError}
       loaded={entitiesLoaded}
       headerContent={
-        <FeatureStoreProjectSelectorNavigator
-          getRedirectPath={(featureStoreObject, featureStoreProject) =>
-            featureStoreRoute(featureStoreObject, featureStoreProject)
-          }
-        />
+        <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapMd' }}>
+          <FeatureStoreProjectSelectorNavigator
+            getRedirectPath={(featureStoreObject, featureStoreProject) =>
+              featureStoreRoute(featureStoreObject, featureStoreProject)
+            }
+          />
+          <ConnectedWorkbenchesLink />
+        </Flex>
       }
       provideChildrenPadding
     >

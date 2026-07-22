@@ -18,12 +18,12 @@ import { mockPVCK8sResource } from '@odh-dashboard/internal/__mocks__/mockPVCK8s
 import { mockPodK8sResource } from '@odh-dashboard/internal/__mocks__/mockPodK8sResource';
 import { mockImageStreamK8sResource } from '@odh-dashboard/internal/__mocks__/mockImageStreamK8sResource';
 import { mockDscStatus } from '@odh-dashboard/internal/__mocks__/mockDscStatus';
-import type { PodKind } from '@odh-dashboard/internal/k8sTypes';
-import { DataScienceStackComponent } from '@odh-dashboard/internal/concepts/areas/types';
-import { IdentifierResourceType, SchedulingType } from '@odh-dashboard/internal/types';
+import type { PodKind } from '@odh-dashboard/k8s-core';
+import { IdentifierResourceType, SchedulingType } from '@odh-dashboard/k8s-core';
+import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import { asProductAdminUser } from '../../../utils/mockUsers';
 import { projectDetails } from '../../../pages/projects';
-import { workbenchPage, editSpawnerPage } from '../../../pages/workbench';
+import { workbenchPage, editSpawnerPage, createSpawnerPage } from '../../../pages/workbench';
 import { hardwareProfileSection } from '../../../pages/components/HardwareProfileSection';
 import {
   HardwareProfileModel,
@@ -415,6 +415,133 @@ describe('Workbench Hardware Profiles', () => {
         cy.contains('Cluster queue').should('be.visible');
         cy.contains('test-cluster-queue').should('be.visible');
       });
+  });
+
+  describe('Local queue label in workbench table column popover', () => {
+    beforeEach(() => {
+      asProductAdminUser();
+      cy.interceptOdh(
+        'GET /api/config',
+        mockDashboardConfig({ disableKueue: false, disableProjectScoped: true }),
+      );
+      cy.interceptOdh(
+        'GET /api/dsc/status',
+        mockDscStatus({
+          components: {
+            [DataScienceStackComponent.WORKBENCHES]: { managementState: 'Managed' },
+            [DataScienceStackComponent.KUEUE]: { managementState: 'Managed' },
+          },
+        }),
+      );
+      cy.interceptK8sList(
+        ProjectModel,
+        mockK8sResourceList([mockProjectK8sResource({ enableKueue: true })]),
+      );
+      cy.interceptK8s(ProjectModel, mockProjectK8sResource({ enableKueue: true }));
+      cy.interceptK8sList(
+        { model: HardwareProfileModel, ns: 'test-project' },
+        mockK8sResourceList(mockProjectScopedHardwareProfiles),
+      );
+      cy.interceptK8sList(StorageClassModel, mockStorageClassList());
+      cy.interceptK8sList(PodModel, mockK8sResourceList([mockPodK8sResource({})]));
+      cy.interceptK8sList(
+        ImageStreamModel,
+        mockK8sResourceList([mockImageStreamK8sResource({ namespace: 'opendatahub' })]),
+      );
+      cy.interceptK8s(RouteModel, mockRouteK8sResource({ notebookName: 'test-notebook' }));
+      cy.interceptK8sList(SecretModel, mockK8sResourceList([mockSecretK8sResource({})]));
+      cy.interceptK8sList(
+        PVCModel,
+        mockK8sResourceList([mockPVCK8sResource({ name: 'test-storage-1' })]),
+      );
+    });
+
+    it('should show "Local queue (applied directly)" in table column popover for GitOps-managed notebook with direct queue label', () => {
+      const notebookWithDirectQueue = mockNotebookK8sResource({
+        displayName: 'Test Notebook',
+        opts: {
+          metadata: {
+            labels: {
+              'kueue.x-k8s.io/queue-name': 'direct-queue',
+            },
+          },
+        },
+      });
+
+      cy.interceptK8sList(
+        { model: HardwareProfileModel, ns: 'opendatahub' },
+        mockK8sResourceList(mockGlobalScopedHardwareProfiles),
+      );
+      cy.interceptK8sList(
+        { model: LocalQueueModel, ns: 'test-project' },
+        mockK8sResourceList([
+          mockLocalQueueK8sResource({ name: 'direct-queue', namespace: 'test-project' }),
+        ]),
+      );
+      cy.interceptK8sList(
+        { model: NotebookModel, ns: 'test-project' },
+        mockK8sResourceList([notebookWithDirectQueue]),
+      );
+
+      projectDetails.visit(projectName);
+      projectDetails.findSectionTab('workbenches').click();
+
+      hardwareProfileSection.findDetailsPopover().should('exist').click();
+      hardwareProfileSection
+        .findDetails()
+        .should('be.visible')
+        .within(() => {
+          cy.contains('Local queue (applied directly)').should('be.visible');
+          cy.contains('direct-queue').should('be.visible');
+        });
+    });
+
+    it('should show "Local queue (via hardware profile)" in table column popover when queue comes from hardware profile', () => {
+      const queueProfile = mockHardwareProfile({
+        name: 'queue-profile',
+        displayName: 'Queue Profile',
+        schedulingType: SchedulingType.QUEUE,
+        localQueueName: 'hp-queue',
+      });
+      const notebookWithHPQueue = mockNotebookK8sResource({
+        displayName: 'Test Notebook',
+        opts: {
+          metadata: {
+            annotations: {
+              'opendatahub.io/hardware-profile-name': 'queue-profile',
+              'opendatahub.io/hardware-profile-namespace': 'opendatahub',
+            },
+          },
+        },
+      });
+
+      cy.interceptK8sList(
+        { model: HardwareProfileModel, ns: 'opendatahub' },
+        mockK8sResourceList([...mockGlobalScopedHardwareProfiles, queueProfile]),
+      );
+      cy.interceptK8sList(
+        { model: LocalQueueModel, ns: 'test-project' },
+        mockK8sResourceList([
+          mockLocalQueueK8sResource({ name: 'hp-queue', namespace: 'test-project' }),
+        ]),
+      );
+      cy.interceptK8sList(
+        { model: NotebookModel, ns: 'test-project' },
+        mockK8sResourceList([notebookWithHPQueue]),
+      );
+
+      projectDetails.visit(projectName);
+      projectDetails.findSectionTab('workbenches').click();
+
+      hardwareProfileSection.findDetailsPopover().should('exist').click();
+      hardwareProfileSection
+        .findDetails()
+        .should('be.visible')
+        .within(() => {
+          cy.contains('Local queue (via hardware profile)').should('be.visible');
+          cy.contains('hp-queue').should('be.visible');
+        });
+    });
   });
 
   describe('Edit Workbench Hardware Profiles', () => {
@@ -1158,6 +1285,152 @@ describe('Workbench Hardware Profiles', () => {
       errorIcon.trigger('mouseenter');
       const errorPopoverTitle = notebookRow.findHardwareProfileErrorPopover();
       errorPopoverTitle.should('be.visible');
+    });
+  });
+
+  describe('Kueue — HP dropdown info and spawner LQ warning', () => {
+    const kueueProject = mockProjectK8sResource({ enableKueue: true });
+    const kueueProfile = mockHardwareProfile({
+      name: 'kueue-profile',
+      displayName: 'Kueue Profile',
+      schedulingType: SchedulingType.QUEUE,
+      localQueueName: 'my-local-queue',
+      identifiers: [
+        {
+          displayName: 'CPU',
+          identifier: 'cpu',
+          minCount: '1',
+          maxCount: '2',
+          defaultCount: '1',
+          resourceType: IdentifierResourceType.CPU,
+        },
+        {
+          displayName: 'Memory',
+          identifier: 'memory',
+          minCount: '2Gi',
+          maxCount: '4Gi',
+          defaultCount: '2Gi',
+          resourceType: IdentifierResourceType.MEMORY,
+        },
+      ],
+    });
+
+    const setupKueueIntercepts = ({ localQueueExists = true } = {}) => {
+      asProductAdminUser();
+      cy.interceptK8sList(
+        { model: HardwareProfileModel, ns: 'opendatahub' },
+        mockK8sResourceList([kueueProfile]),
+      ).as('hardwareProfiles');
+      cy.interceptK8sList(
+        { model: HardwareProfileModel, ns: 'test-project' },
+        mockK8sResourceList([]),
+      );
+      cy.interceptOdh(
+        'GET /api/config',
+        mockDashboardConfig({ disableKueue: false, disableProjectScoped: true }),
+      );
+      cy.interceptOdh(
+        'GET /api/dsc/status',
+        mockDscStatus({
+          components: {
+            [DataScienceStackComponent.WORKBENCHES]: { managementState: 'Managed' },
+            [DataScienceStackComponent.KUEUE]: { managementState: 'Managed' },
+          },
+        }),
+      );
+      cy.interceptK8sList(ProjectModel, mockK8sResourceList([kueueProject]));
+      cy.interceptK8s(ProjectModel, kueueProject);
+      cy.interceptK8sList(
+        { model: LocalQueueModel, ns: 'test-project' },
+        mockK8sResourceList(
+          localQueueExists
+            ? [mockLocalQueueK8sResource({ name: 'my-local-queue', namespace: 'test-project' })]
+            : [],
+        ),
+      ).as('getLocalQueues');
+      cy.interceptK8sList(StorageClassModel, mockStorageClassList());
+      cy.interceptK8sList(PodModel, mockK8sResourceList([mockPodK8sResource({})]));
+      cy.interceptK8sList(
+        ImageStreamModel,
+        mockK8sResourceList([mockImageStreamK8sResource({ namespace: 'opendatahub' })]),
+      );
+      cy.interceptK8s(RouteModel, mockRouteK8sResource({ notebookName: 'test-notebook' }));
+      cy.interceptK8sList({ model: NotebookModel, ns: 'test-project' }, mockK8sResourceList([]));
+      cy.interceptK8sList(SecretModel, mockK8sResourceList([mockSecretK8sResource({})]));
+      cy.interceptK8sList(
+        PVCModel,
+        mockK8sResourceList([mockPVCK8sResource({ name: 'test-storage-1' })]),
+      );
+    };
+
+    it('shows Kueue filtering info message below HP dropdown', () => {
+      setupKueueIntercepts();
+      projectDetails.visit('test-project');
+      projectDetails.findSectionTab('workbenches').click();
+      workbenchPage.findCreateButton().click();
+      cy.wait('@hardwareProfiles');
+
+      hardwareProfileSection
+        .findKueueFilteringInfo()
+        .should('be.visible')
+        .and(
+          'contain.text',
+          'Only hardware profiles configured with a local queue are shown because this project uses Kueue for workload scheduling.',
+        );
+    });
+
+    it('hides Kueue profile from dropdown when its local queue does not exist in the project', () => {
+      setupKueueIntercepts({ localQueueExists: false });
+      projectDetails.visit('test-project');
+      projectDetails.findSectionTab('workbenches').click();
+      workbenchPage.findCreateButton().click();
+      cy.wait('@hardwareProfiles');
+      cy.wait('@getLocalQueues');
+
+      // Profile is filtered from the dropdown — its localQueue is not in this project
+      hardwareProfileSection.findSelect().should('not.contain', 'Kueue Profile');
+      // No warning shown — the profile was never selectable
+      createSpawnerPage.findLocalQueueMissingWarning().should('not.exist');
+    });
+
+    it('does not show LQ warning when the referenced local queue exists', () => {
+      setupKueueIntercepts({ localQueueExists: true });
+      projectDetails.visit('test-project');
+      projectDetails.findSectionTab('workbenches').click();
+      workbenchPage.findCreateButton().click();
+      cy.wait('@hardwareProfiles');
+      cy.wait('@getLocalQueues');
+
+      createSpawnerPage.findLocalQueueMissingWarning().should('not.exist');
+    });
+
+    it('shows warning with "update" wording on the edit spawner when the local queue is missing', () => {
+      setupKueueIntercepts({ localQueueExists: false });
+
+      // Override notebook list with one that has the kueue-profile annotation
+      cy.interceptK8sList(
+        { model: NotebookModel, ns: 'test-project' },
+        mockK8sResourceList([
+          mockNotebookK8sResource({
+            displayName: 'Test Notebook',
+            hardwareProfileName: 'kueue-profile',
+            hardwareProfileNamespace: 'opendatahub',
+          }),
+        ]),
+      );
+      cy.interceptK8sList(
+        PVCModel,
+        mockK8sResourceList([mockPVCK8sResource({ name: 'test-notebook' })]),
+      );
+
+      editSpawnerPage.visit('test-notebook');
+      cy.wait('@hardwareProfiles');
+
+      editSpawnerPage
+        .findLocalQueueMissingWarning()
+        .should('be.visible')
+        .and('contain.text', 'my-local-queue')
+        .and('contain.text', 'update');
     });
   });
 });

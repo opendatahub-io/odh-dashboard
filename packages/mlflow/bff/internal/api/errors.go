@@ -44,6 +44,14 @@ func (app *App) badRequestResponse(w http.ResponseWriter, r *http.Request, err e
 	app.errorResponse(w, r, httpError)
 }
 
+func (app *App) forbiddenResponse(w http.ResponseWriter, r *http.Request, err error) {
+	httpError := &HTTPError{
+		StatusCode: http.StatusForbidden,
+		Error:      ErrorPayload{Code: strconv.Itoa(http.StatusForbidden), Message: err.Error()},
+	}
+	app.errorResponse(w, r, httpError)
+}
+
 func (app *App) errorResponse(w http.ResponseWriter, r *http.Request, httpErr *HTTPError) {
 	err := app.WriteJSON(w, httpErr.StatusCode, httpErr, nil)
 	if err != nil {
@@ -58,6 +66,14 @@ func (app *App) serverErrorResponse(w http.ResponseWriter, r *http.Request, err 
 	httpError := &HTTPError{
 		StatusCode: http.StatusInternalServerError,
 		Error:      ErrorPayload{Code: strconv.Itoa(http.StatusInternalServerError), Message: "the server encountered a problem and could not process your request"},
+	}
+	app.errorResponse(w, r, httpError)
+}
+
+func (app *App) conflictResponse(w http.ResponseWriter, r *http.Request, err error) {
+	httpError := &HTTPError{
+		StatusCode: http.StatusConflict,
+		Error:      ErrorPayload{Code: strconv.Itoa(http.StatusConflict), Message: err.Error()},
 	}
 	app.errorResponse(w, r, httpError)
 }

@@ -1,15 +1,5 @@
 import React from 'react';
 import { Theme, ThemeOptions } from '@mui/material';
-
-// Extend MUI theme to include x-date-pickers components
-declare module '@mui/material/styles' {
-  interface Components {
-    MuiPickersDay?: object;
-    MuiClock?: object;
-    MuiClockPointer?: object;
-    MuiClockNumber?: object;
-  }
-}
 import { ChartThemeColor, getThemeColors } from '@patternfly/react-charts/victory';
 import {
   generateChartsTheme,
@@ -25,6 +15,40 @@ import {
   t_global_spacer_md,
 } from '@patternfly/react-tokens';
 import { useThemeContext } from '@odh-dashboard/internal/app/ThemeContext';
+
+// Extend MUI theme to include x-date-pickers components
+declare module '@mui/material/styles' {
+  interface Components {
+    MuiPickersDay?: object;
+    MuiClock?: object;
+    MuiClockPointer?: object;
+    MuiClockNumber?: object;
+    MuiStaticDateTimePicker?: {
+      defaultProps?: {
+        minDate?: Date;
+        maxDate?: Date;
+      };
+    };
+    MuiDateTimeField?: {
+      defaultProps?: {
+        minDate?: Date;
+        maxDate?: Date;
+      };
+    };
+  }
+}
+
+/**
+ * MUI X defaults Custom Time Range years to 1900–2099. Bound the picker via theme
+ * defaultProps (Perses DateTimeRangePicker does not expose minDate/maxDate).
+ * Keep a little future headroom for timezone / "now" edge cases.
+ *
+ * Custom range becomes 2020 to current year + 1.
+ */
+const getCustomTimeRangeDateBounds = (currentYear: number): { minDate: Date; maxDate: Date } => ({
+  minDate: new Date(2020, 0, 1),
+  maxDate: new Date(currentYear + 1, 11, 31),
+});
 
 // Override eChart defaults with PatternFly colors.
 const patternflyBlue400 = '#0066cc';
@@ -44,10 +68,11 @@ const patternflyChartsMultiUnorderedPalette = Array.isArray(chartColorScale)
 
 type PatternFlyTheme = 'light' | 'dark';
 
-const mapPatterflyThemeToMUI = (theme: PatternFlyTheme): ThemeOptions => {
+const mapPatterflyThemeToMUI = (theme: PatternFlyTheme, currentYear: number): ThemeOptions => {
   const isDark = theme === 'dark';
   const primaryTextColor = isDark ? t_color_white.value : t_color_gray_95.value;
   const primaryBackgroundColor = 'var(--pf-t--global--background--color--primary--default)';
+  const { minDate, maxDate } = getCustomTimeRangeDateBounds(currentYear);
 
   return {
     typography: {
@@ -330,6 +355,19 @@ const mapPatterflyThemeToMUI = (theme: PatternFlyTheme): ThemeOptions => {
           },
         },
       },
+      // Bound year grid / typed absolute ranges (RHOAIENG-77625); Perses does not pass these props.
+      MuiStaticDateTimePicker: {
+        defaultProps: {
+          minDate,
+          maxDate,
+        },
+      },
+      MuiDateTimeField: {
+        defaultProps: {
+          minDate,
+          maxDate,
+        },
+      },
       MuiButton: {
         styleOverrides: {
           root: {
@@ -432,12 +470,15 @@ export const usePatternFlyTheme = (): { muiTheme: Theme; chartsTheme: PersesChar
   const { theme: contextTheme } = useThemeContext();
   const theme: PatternFlyTheme = contextTheme === 'dark' ? 'dark' : 'light';
 
+  // Rebuild theme when the calendar year changes so maxDate (year + 1) stays current.
+  const currentYear = new Date().getFullYear();
+
   return React.useMemo(() => {
     const muiTheme = getTheme(theme, {
       shape: {
         borderRadius: 6,
       },
-      ...mapPatterflyThemeToMUI(theme),
+      ...mapPatterflyThemeToMUI(theme, currentYear),
     });
 
     // PatternFly default text color as hex (ECharts does not resolve CSS variables)
@@ -457,5 +498,5 @@ export const usePatternFlyTheme = (): { muiTheme: Theme; chartsTheme: PersesChar
     });
 
     return { muiTheme, chartsTheme };
-  }, [theme]);
+  }, [theme, currentYear]);
 };

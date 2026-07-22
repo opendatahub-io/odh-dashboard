@@ -41,6 +41,23 @@ The script returns three things:
 
 Don't hardcode check names. Let the script discover what exists and report what it finds. The LLM interprets which checks map to lint, type-check, tests, build, etc. from the workflow names and job commands.
 
+### Flaky Test Classification
+
+When CI failures are found on a synced PR, run the `/ci-flake-classifier` skill to distinguish genuine regressions from known flaky tests:
+
+```bash
+python3 scripts/classify-ci-failures.py "$pr_number"
+```
+
+The skill is defined in `.claude/skills/ci-flake-classifier/SKILL.md`. Map the output classifications to preflight statuses:
+
+- `flaky`, `suspected_flaky`, `external_unknown` → ⚠️ (does not block verdict)
+- `genuine`, `deterministic`, `unknown` → ❌ (blocks verdict)
+
+If only non-blocking classifications → READY WITH WARNINGS. If any blocking → NOT READY. If the classifier is unavailable or fails, fall back to reporting all failures as ❌.
+
+CI row examples: `37 passed · 2 failed: 1 genuine ❌, 1 flaky ⚠️ (seen on 3 other PRs)` or `37 passed · 2 failed (all likely flaky — see details)`.
+
 ## Reviews
 
 Reviews are reported as separate rows in the results table, each with its source.

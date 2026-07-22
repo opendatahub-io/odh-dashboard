@@ -1,17 +1,15 @@
 import * as React from 'react';
 import { Alert, FormSection, HelperTextItem } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
-import { StorageData, UpdateObjectAtPropAndValue } from '#~/pages/projects/types';
-import PVSizeField from '#~/pages/projects/components/PVSizeField';
-import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
-import { PersistentVolumeClaimKind } from '#~/k8sTypes';
+import type { PersistentVolumeClaimKind } from '@odh-dashboard/k8s-core';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
+import { isK8sNameDescriptionDataValid, LimitNameResourceType } from '@odh-dashboard/k8s-core';
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
-} from '#~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
-import {
-  isK8sNameDescriptionDataValid,
-  LimitNameResourceType,
-} from '#~/concepts/k8s/K8sNameDescriptionField/utils';
+} from '@odh-dashboard/ui-core/components/K8sNameDescriptionField';
+import type { UpdateObjectAtPropAndValue } from '@odh-dashboard/ui-core';
+import { StorageData } from '#~/pages/projects/types';
+import PVSizeField from '#~/pages/projects/components/PVSizeField';
 import StorageClassSelect from './StorageClassSelect';
 import AccessModeField from './AccessModeField';
 import { useGetStorageClassConfig } from './useGetStorageClassConfig';

@@ -1,11 +1,20 @@
 import * as _ from 'lodash-es';
 import { K8sStatus } from '@openshift/dynamic-plugin-sdk-utils';
+import type { SecretKind, ContainerResources } from '@odh-dashboard/k8s-core';
+import { getDisplayNameFromK8sResource, translateDisplayNameForK8s } from '@odh-dashboard/k8s-core';
+import type {
+  ServingRuntimeKind,
+  InferenceServiceKind,
+  ServingContainer,
+  CreatingServingRuntimeObject,
+  ServingRuntimeToken,
+} from '@odh-dashboard/model-serving/shared';
 import {
   isCpuResourceEqual,
   isCpuLimitLarger,
   isMemoryResourceEqual,
   isMemoryLimitLarger,
-} from '#~/utilities/valueUnits';
+} from '@odh-dashboard/ui-core/utilities/valueUnits';
 import {
   assembleSecretSA,
   createRoleBinding,
@@ -22,25 +31,11 @@ import {
   getRole,
   createRole,
 } from '#~/api';
-import {
-  SecretKind,
-  K8sAPIOptions,
-  RoleBindingKind,
-  ServingRuntimeKind,
-  InferenceServiceKind,
-  ServiceAccountKind,
-  RoleKind,
-  ServingContainer,
-  PersistentVolumeClaimKind,
-} from '#~/k8sTypes';
-import { ContainerResources } from '#~/types';
-import { getDisplayNameFromK8sResource, translateDisplayNameForK8s } from '#~/concepts/k8s/utils';
+import { K8sAPIOptions, RoleBindingKind, ServiceAccountKind, RoleKind } from '#~/k8sTypes';
 import {
   CreatingInferenceServiceObject,
-  CreatingServingRuntimeObject,
   ServingRuntimeEditInfo,
   ModelServingSize,
-  ServingRuntimeToken,
   ModelServingState,
 } from '#~/pages/modelServing/screens/types';
 import { ModelServingPodSpecOptionsState } from '#~/concepts/hardwareProfiles/deprecated/useModelServingAcceleratorDeprecatedPodSpecOptionsState';
@@ -388,13 +383,4 @@ export const getServingRuntimeVersionStatus = (
   return servingRuntimeVersion === templateVersion
     ? ServingRuntimeVersionStatusLabel.LATEST
     : ServingRuntimeVersionStatusLabel.OUTDATED;
-};
-
-export const getModelServingPVCAnnotations = (
-  pvc: PersistentVolumeClaimKind,
-): { modelName: string | null; modelPath: string | null } => {
-  const modelName = pvc.metadata.annotations?.['dashboard.opendatahub.io/model-name'] || null;
-  const modelPath = pvc.metadata.annotations?.['dashboard.opendatahub.io/model-path'] || null;
-
-  return { modelName, modelPath };
 };

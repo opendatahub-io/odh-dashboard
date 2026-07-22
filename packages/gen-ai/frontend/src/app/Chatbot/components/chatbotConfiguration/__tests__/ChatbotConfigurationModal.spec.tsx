@@ -6,6 +6,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import {
   AIModel,
+  ApiErrorClass,
   ExternalVectorStoreSummary,
   LlamaModel,
   LlamaStackDistributionModel,
@@ -14,6 +15,7 @@ import {
 import type { MaaSModel } from '~/app/types';
 import ChatbotConfigurationModal from '~/app/Chatbot/components/chatbotConfiguration/ChatbotConfigurationModal';
 import useGuardrailsEnabled from '~/app/Chatbot/hooks/useGuardrailsEnabled';
+import useTracingEnabled from '~/app/Chatbot/hooks/useTracingEnabled';
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
 import useAiAssetVectorStoresEnabled from '~/app/hooks/useAiAssetVectorStoresEnabled';
 import { GenAiContext } from '~/app/context/GenAiContext';
@@ -21,9 +23,11 @@ import { mockGenAiContextValue } from '~/__mocks__/mockGenAiContext';
 
 jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
   fireFormTrackingEvent: jest.fn(),
+  fireMiscTrackingEvent: jest.fn(),
 }));
 
 jest.mock('~/app/Chatbot/hooks/useGuardrailsEnabled');
+jest.mock('~/app/Chatbot/hooks/useTracingEnabled');
 jest.mock('~/app/hooks/useGenAiAPI');
 jest.mock('~/app/hooks/useAiAssetVectorStoresEnabled');
 jest.mock('~/app/hooks/useChatPlaygroundEnabled', () => ({
@@ -40,6 +44,7 @@ beforeEach(() => {
   jest.clearAllMocks();
 
   (useGuardrailsEnabled as jest.Mock).mockReturnValue(false);
+  (useTracingEnabled as jest.Mock).mockReturnValue(false);
   (useAiAssetVectorStoresEnabled as jest.Mock).mockReturnValue(false);
 
   mockUseGenAiAPI.mockReturnValue({
@@ -300,6 +305,77 @@ describe('ChatbotConfigurationModal MaaS model support', () => {
   });
 });
 
+// ─── ASR model exclusion ──────────────────────────────────────────────────────
+
+describe('ChatbotConfigurationModal ASR model exclusion', () => {
+  it('excludes ASR-only models from the model list', () => {
+    const chatModel = createAIModel({ model_name: 'chat-model', display_name: 'Chat Model' });
+    const asrModel = createAIModel({
+      model_name: 'whisper-asr',
+      display_name: 'Whisper ASR',
+      capabilities: ['audio-transcription'],
+    });
+    renderModal({ allModels: [chatModel, asrModel] });
+    expect(getSelectedModelNames()).toEqual(['chat-model']);
+  });
+
+  it('keeps models that have ASR plus other capabilities', () => {
+    const chatModel = createAIModel({ model_name: 'chat-model', display_name: 'Chat Model' });
+    const multiCapModel = createAIModel({
+      model_name: 'multi-cap',
+      display_name: 'Multi Cap',
+      capabilities: ['text-generation', 'audio-transcription'],
+    });
+    renderModal({ allModels: [chatModel, multiCapModel] });
+    expect(getSelectedModelNames()).toEqual(['chat-model', 'multi-cap']);
+  });
+
+  it('keeps models without capabilities (defaults to text-generation)', () => {
+    const chatModel = createAIModel({ model_name: 'chat-model', display_name: 'Chat Model' });
+    const noCapsModel = createAIModel({
+      model_name: 'no-caps',
+      display_name: 'No Caps Model',
+    });
+    renderModal({ allModels: [chatModel, noCapsModel] });
+    expect(getSelectedModelNames()).toEqual(['chat-model', 'no-caps']);
+  });
+
+  it('excludes ASR-only models from extraSelectedModels when existingModels present', () => {
+    const chatModel = createAIModel({ model_name: 'chat-model', display_name: 'Chat Model' });
+    const asrModel = createAIModel({
+      model_name: 'whisper-asr',
+      display_name: 'Whisper ASR',
+      capabilities: ['audio-transcription'],
+    });
+    const existing: LlamaModel[] = [
+      {
+        id: 'pA/chat-model',
+        object: 'model',
+        created: Date.now(),
+        owned_by: 'x',
+        modelId: 'chat-model',
+      },
+    ];
+    renderModal({
+      allModels: [chatModel, asrModel],
+      existingModels: existing,
+      extraSelectedModels: [asrModel],
+    });
+    expect(getSelectedModelNames()).toEqual(['chat-model']);
+  });
+
+  it('excludes ASR-only models from extraSelectedModels in fallback path', () => {
+    const chatModel = createAIModel({ model_name: 'chat-model', display_name: 'Chat Model' });
+    const asrModel = createAIModel({
+      model_name: 'whisper-asr',
+      display_name: 'Whisper ASR',
+      capabilities: ['audio-transcription'],
+    });
+    renderModal({ allModels: [chatModel, asrModel], extraSelectedModels: [chatModel, asrModel] });
+    expect(getSelectedModelNames()).toEqual(['chat-model']);
+  });
+});
+
 // ─── max_tokens ───────────────────────────────────────────────────────────────
 
 describe('ChatbotConfigurationModal max_tokens support', () => {
@@ -357,7 +433,12 @@ describe('ChatbotConfigurationModal guardrails configuration', () => {
     const user = userEvent.setup();
     (useGuardrailsEnabled as jest.Mock).mockReturnValue(true);
     mockInitNemoGuardrails.mockRejectedValue(
-      Object.assign(new Error('already initialized'), { code: 'conflict' }),
+      new ApiErrorClass({
+        component: 'guardrails',
+        code: 'conflict',
+        message: 'already initialized',
+        retriable: false,
+      }),
     );
     renderModalWithContext({ allModels });
 
@@ -373,7 +454,12 @@ describe('ChatbotConfigurationModal guardrails configuration', () => {
     const user = userEvent.setup();
     (useGuardrailsEnabled as jest.Mock).mockReturnValue(true);
     mockInitNemoGuardrails.mockRejectedValue(
-      Object.assign(new Error('internal server error'), { code: 'server_error' }),
+      new ApiErrorClass({
+        component: 'guardrails',
+        code: 'server_error',
+        message: 'internal server error',
+        retriable: false,
+      }),
     );
     renderModalWithContext({ allModels });
 
@@ -761,6 +847,69 @@ describe('ChatbotConfigurationModal form tracking', () => {
         outcome: 'cancel',
         namespace: 'test-namespace',
       });
+    });
+  });
+});
+
+// ─── Tracing ──────────────────────────────────────────────────────────────────
+
+describe('ChatbotConfigurationModal tracing configuration', () => {
+  const allModels = [createAIModel({ model_name: 'test-model' })];
+
+  it('does not render tracing toggle when feature flag is disabled', () => {
+    (useTracingEnabled as jest.Mock).mockReturnValue(false);
+    renderModalWithContext({ allModels });
+
+    expect(screen.queryByTestId('enable-tracing-switch')).not.toBeInTheDocument();
+  });
+
+  it('renders tracing toggle when feature flag is enabled', () => {
+    (useTracingEnabled as jest.Mock).mockReturnValue(true);
+    renderModalWithContext({ allModels });
+
+    expect(screen.getByTestId('enable-tracing-switch')).toBeInTheDocument();
+  });
+
+  it('does not include enable_tracing in payload when feature flag is disabled', async () => {
+    const user = userEvent.setup();
+    (useTracingEnabled as jest.Mock).mockReturnValue(false);
+    renderModalWithContext({ allModels });
+
+    await user.click(screen.getByRole('button', { name: /create/i }));
+
+    await waitFor(() => {
+      expect(mockInstallLSD).toHaveBeenCalledWith(
+        expect.not.objectContaining({ enable_tracing: expect.anything() }),
+      );
+    });
+  });
+
+  it('includes enable_tracing: true in payload when toggle is checked', async () => {
+    const user = userEvent.setup();
+    (useTracingEnabled as jest.Mock).mockReturnValue(true);
+    renderModalWithContext({ allModels });
+
+    await user.click(screen.getByTestId('enable-tracing-switch'));
+    await user.click(screen.getByRole('button', { name: /create/i }));
+
+    await waitFor(() => {
+      expect(mockInstallLSD).toHaveBeenCalledWith(
+        expect.objectContaining({ enable_tracing: true }),
+      );
+    });
+  });
+
+  it('does not include enable_tracing when toggle is left unchecked', async () => {
+    const user = userEvent.setup();
+    (useTracingEnabled as jest.Mock).mockReturnValue(true);
+    renderModalWithContext({ allModels });
+
+    await user.click(screen.getByRole('button', { name: /create/i }));
+
+    await waitFor(() => {
+      expect(mockInstallLSD).toHaveBeenCalledWith(
+        expect.not.objectContaining({ enable_tracing: true }),
+      );
     });
   });
 });

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { ProjectKind } from '#~/k8sTypes';
+import type { ProjectKind } from '@odh-dashboard/k8s-core';
 import { useKueueConfiguration } from '#~/concepts/hardwareProfiles/kueueUtils';
 import type { KueueWorkloadStatusWithMessage } from '#~/concepts/kueue/types';
 import { buildWorkloadMapForNotebooks, useWatchWorkloads } from '#~/api/k8s/workloads';
@@ -48,6 +48,7 @@ export const useKueueStatusForNotebooks = (
       statusMap[name] = {
         ...statusWithMessage,
         queueName: notebook?.metadata.labels?.[KUEUE_QUEUE_LABEL],
+        workloadName: workload.metadata?.name,
       };
     }
     return statusMap;

@@ -1,22 +1,22 @@
 import { LabelGroup, Stack, StackItem } from '@patternfly/react-core';
 import * as React from 'react';
-import { ServingRuntimeKind } from '#~/k8sTypes';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
+import type { ServingRuntimeKind } from '@odh-dashboard/model-serving/shared';
 import {
   getDisplayNameFromServingRuntimeTemplate,
   getServingRuntimeVersion,
   getTemplateNameFromServingRuntime,
-} from '#~/pages/modelServing/customServingRuntimes/utils';
+} from '@odh-dashboard/model-serving/shared';
+import { ServingRuntimeVersionLabel } from '@odh-dashboard/model-serving/shared/components';
+import ScopedLabel from '@odh-dashboard/ui-core/components/ScopedLabel';
 import {
   SERVING_RUNTIME_SCOPE,
   ServingRuntimeVersionStatusLabel,
 } from '#~/pages/modelServing/screens/const';
-import ServingRuntimeVersionLabel from '#~/pages/modelServing/screens/ServingRuntimeVersionLabel';
-import ScopedLabel from '#~/components/ScopedLabel';
+import ServingRuntimeTemplateStatus from '#~/pages/modelServing/screens/ServingRuntimeTemplateStatus';
 import { useTemplateByName } from '#~/pages/modelServing/customServingRuntimes/useTemplateByName';
 import ServingRuntimeVersionStatus from '#~/pages/modelServing/screens/ServingRuntimeVersionStatus';
 import { getServingRuntimeVersionStatus } from '#~/pages/modelServing/utils';
-import useIsAreaAvailable from '#~/concepts/areas/useIsAreaAvailable.ts';
-import { SupportedArea } from '#~/concepts/areas/types.ts';
 
 type Props = {
   servingRuntime?: ServingRuntimeKind;
@@ -40,6 +40,8 @@ const InferenceServiceServingRuntime: React.FC<Props> = ({ servingRuntime }) => 
     return undefined;
   }, [template, templateLoaded, templateError, servingRuntime]);
 
+  const isTemplateRemoved = templateLoaded && !templateError && !template && !!templateName;
+
   return (
     <>
       {servingRuntime ? (
@@ -60,6 +62,7 @@ const InferenceServiceServingRuntime: React.FC<Props> = ({ servingRuntime }) => 
                   templateVersion={getServingRuntimeVersion(template) || ''}
                 />
               )}
+              {isTemplateRemoved && <ServingRuntimeTemplateStatus />}
               {isProjectScopedAvailable &&
                 servingRuntime.metadata.annotations?.['opendatahub.io/serving-runtime-scope'] ===
                   SERVING_RUNTIME_SCOPE.Project && (

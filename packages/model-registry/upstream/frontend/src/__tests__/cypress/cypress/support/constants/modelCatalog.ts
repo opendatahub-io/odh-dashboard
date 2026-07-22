@@ -16,9 +16,9 @@ export const PERFORMANCE_FILTER_TEST_IDS = {
   latencyReset: 'latency-reset-filter',
   maxRps: 'max-rps-filter',
   maxRpsApply: 'max-rps-apply-filter',
-  coldStartLatency: 'cold-start-latency-filter',
-  coldStartLatencyApply: 'cold-start-latency-apply-filter',
-  coldStartLatencyReset: 'cold-start-latency-reset-filter',
+  coldStartLoadTime: 'cold-start-load-time-filter',
+  coldStartLoadTimeApply: 'cold-start-load-time-apply-filter',
+  coldStartLoadTimeReset: 'cold-start-load-time-reset-filter',
   hardwareTable: 'hardware-configuration-table',
   clearAllFilters: 'clear-all-filters-button',
 } as const;
@@ -43,9 +43,9 @@ export const MODEL_CARD_TEST_IDS = {
  */
 export const MODEL_DETAILS_TEST_IDS = {
   tabs: 'model-details-page-tabs',
-  overviewTab: 'model-overview-tab',
+  overviewTab: 'overview-tab',
   performanceInsightsTab: 'performance-insights-tab',
-  overviewTabContent: 'model-overview-tab-content',
+  overviewTabContent: 'overview-tab-content',
   performanceInsightsTabContent: 'performance-insights-tab-content',
   longDescription: 'model-long-description',
 } as const;

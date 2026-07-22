@@ -392,6 +392,59 @@ func (kc *InternalKubernetesClient) GetUser(identity *RequestIdentity) (string, 
 	return identity.UserID, nil
 }
 
+// CanPatchDSPipelineApplications checks if the user can patch DSPipelineApplications.
+// Uses impersonation SubjectAccessReview since internal client uses service account credentials.
+func (kc *InternalKubernetesClient) CanPatchDSPipelineApplications(ctx context.Context, identity *RequestIdentity, namespace string) (bool, error) {
+	return kc.checkSubjectAccess(ctx, identity, namespace, authv1.ResourceAttributes{
+		Verb: "patch", Group: "datasciencepipelinesapplications.opendatahub.io", Resource: "datasciencepipelinesapplications", Namespace: namespace,
+	})
+}
+
+// CanPatchDeployments checks if the user can patch a specific deployment.
+// Uses impersonation SubjectAccessReview since internal client uses service account credentials.
+func (kc *InternalKubernetesClient) CanPatchDeployments(ctx context.Context, identity *RequestIdentity, namespace string, deploymentName string) (bool, error) {
+	attrs := authv1.ResourceAttributes{
+		Verb: "patch", Group: "apps", Resource: "deployments", Namespace: namespace,
+	}
+	if deploymentName != "" {
+		attrs.Name = deploymentName
+	}
+	return kc.checkSubjectAccess(ctx, identity, namespace, attrs)
+}
+
+func (kc *InternalKubernetesClient) checkSubjectAccess(ctx context.Context, identity *RequestIdentity, namespace string, attrs authv1.ResourceAttributes) (bool, error) {
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	if identity == nil {
+		kc.Logger.Error("identity is nil")
+		return false, fmt.Errorf("identity cannot be nil")
+	}
+
+	sar := &authv1.SubjectAccessReview{
+		Spec: authv1.SubjectAccessReviewSpec{
+			ResourceAttributes: &attrs,
+			User:               identity.UserID,
+			Groups:             identity.Groups,
+		},
+	}
+	resp, err := kc.Client.AuthorizationV1().SubjectAccessReviews().Create(ctx, sar, metav1.CreateOptions{})
+	if err != nil {
+		kc.Logger.Error("failed to check permissions",
+			"user", identity.UserID, "namespace", namespace,
+			"verb", attrs.Verb, "resource", attrs.Resource, "error", err)
+		return false, err
+	}
+	if !resp.Status.Allowed {
+		kc.Logger.Info("user does not have permission",
+			"user", identity.UserID, "namespace", namespace,
+			"verb", attrs.Verb, "resource", attrs.Resource)
+		return false, nil
+	}
+
+	return true, nil
+}
+
 // CanListDSPipelineApplications checks if the user can list DSPipelineApplications in the namespace
 // Uses impersonation SubjectAccessReview since internal client uses service account credentials
 func (kc *InternalKubernetesClient) CanListDSPipelineApplications(ctx context.Context, identity *RequestIdentity, namespace string) (bool, error) {

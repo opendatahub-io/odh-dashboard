@@ -14,6 +14,7 @@ export type FeatureStoreFilterToolbarProps<T extends string> = React.ComponentPr
   currentFilterType?: T;
   onFilterTypeChange?: (filterType: T) => void;
   multipleLabels?: MultipleLabels<T>;
+  trackingResourceType?: import('../tracking/featureStoreTrackingConstants').FeatureStoreResourceType;
 };
 
 // Common types for toolbar functionality
@@ -54,10 +55,10 @@ export type MultipleLabelForType = Array<{ key: string; onRemove: () => void }>;
 
 // Feature Store Lineage toolbar specific types
 export interface FeatureStoreLineageSearchFilters {
-  entity?: string;
-  featureView?: string;
-  dataSource?: string;
-  featureService?: string;
+  entity?: string[];
+  featureView?: string[];
+  dataSource?: string[];
+  featureService?: string[];
 }
 
 export interface FeatureStoreLineageToolbarProps {

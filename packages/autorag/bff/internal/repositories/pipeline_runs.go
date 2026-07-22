@@ -37,6 +37,10 @@ func NewValidationError(message string) error {
 	return &ValidationError{Message: message}
 }
 
+// maxRunsPerPipeline caps the total number of runs fetched across all pages for a single pipeline
+// to prevent unbounded memory accumulation when paginating through large result sets.
+const maxRunsPerPipeline = 10000
+
 // PipelineRunsRepository handles business logic for pipeline runs
 type PipelineRunsRepository struct{}
 
@@ -114,6 +118,74 @@ func (r *PipelineRunsRepository) GetPipelineRuns(
 		TotalSize:     kfResponse.TotalSize,
 		NextPageToken: kfResponse.NextPageToken,
 	}, nil
+}
+
+// GetAllPipelineRuns fetches all pages of runs for a single pipeline ID.
+// It auto-paginates through the pipeline server's pages and returns the complete list.
+// pipelineType is set on each returned run to identify the owning pipeline (e.g. "autorag").
+func (r *PipelineRunsRepository) GetAllPipelineRuns(
+	client ps.PipelineServerClientInterface,
+	ctx context.Context,
+	pipelineID string,
+	pipelineType string,
+) ([]models.PipelineRun, error) {
+	if client == nil {
+		return nil, fmt.Errorf("pipeline server client is nil")
+	}
+
+	versionIDs, err := collectVersionIDs(client, ctx, pipelineID)
+	if err != nil {
+		return nil, fmt.Errorf("error collecting pipeline version IDs: %w", err)
+	}
+
+	if len(versionIDs) == 0 {
+		return nil, nil
+	}
+
+	filter, err := buildFilter(versionIDs)
+	if err != nil {
+		return nil, fmt.Errorf("error building filter: %w", err)
+	}
+
+	var allRuns []models.PipelineRun
+	pageToken := ""
+
+	for {
+		params := &ps.ListRunsParams{
+			PageSize:  100,
+			PageToken: pageToken,
+			SortBy:    "created_at desc",
+			Filter:    filter,
+		}
+
+		kfResponse, err := client.ListRuns(ctx, params)
+		if err != nil {
+			return nil, fmt.Errorf("error fetching pipeline runs: %w", err)
+		}
+
+		if kfResponse == nil || len(kfResponse.Runs) == 0 {
+			break
+		}
+
+		remaining := maxRunsPerPipeline - len(allRuns)
+		for i := range kfResponse.Runs {
+			if i >= remaining {
+				break
+			}
+			allRuns = append(allRuns, toPipelineRun(&kfResponse.Runs[i], pipelineType))
+		}
+
+		if len(allRuns) >= maxRunsPerPipeline {
+			break
+		}
+
+		if kfResponse.NextPageToken == "" {
+			break
+		}
+		pageToken = kfResponse.NextPageToken
+	}
+
+	return allRuns, nil
 }
 
 // collectVersionIDs returns all pipeline version IDs for the given pipeline.
@@ -322,8 +394,12 @@ func ValidateCreateAutoRAGRunRequest(req models.CreateAutoRAGRunRequest) error {
 		return NewValidationError(fmt.Sprintf("missing required fields: %s", strings.Join(missing, ", ")))
 	}
 
+	if req.Preset != nil && !constants.ValidPresets[*req.Preset] {
+		return NewValidationError(fmt.Sprintf("invalid preset %q: must be one of speed, balanced", *req.Preset))
+	}
+
 	if req.OptimizationMetric != "" && !constants.ValidOptimizationMetrics[req.OptimizationMetric] {
-		return NewValidationError(fmt.Sprintf("invalid optimization_metric %q: must be one of faithfulness, answer_correctness, context_correctness", req.OptimizationMetric))
+		return NewValidationError(fmt.Sprintf("invalid optimization_metric %q: must be one of faithfulness, answer_correctness, context_correctness, overall_score", req.OptimizationMetric))
 	}
 
 	if req.OptimizationMaxRagPatterns != nil {
@@ -366,6 +442,12 @@ func BuildKFPRunRequest(req models.CreateAutoRAGRunRequest, pipelineID, pipeline
 		"input_data_key":         req.InputDataKey,
 		"ogx_secret_name":        req.OGXSecretName,
 	}
+
+	preset := constants.DefaultPreset
+	if req.Preset != nil {
+		preset = *req.Preset
+	}
+	params["preset"] = preset
 
 	if len(req.EmbeddingsModels) > 0 {
 		params["embedding_models"] = req.EmbeddingsModels

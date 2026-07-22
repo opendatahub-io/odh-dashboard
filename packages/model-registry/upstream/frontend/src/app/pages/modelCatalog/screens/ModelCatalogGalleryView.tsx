@@ -21,9 +21,12 @@ import { CatalogGalleryLayout, EmptyCatalogState } from '~/app/shared/components
 import {
   ModelCatalogNumberFilterKey,
   ModelCatalogStringFilterKey,
+  ModelCatalogSortOption,
   parseLatencyFilterKey,
   BASIC_FILTER_KEYS,
   PERFORMANCE_FILTER_KEYS,
+  RESET_ALL_FILTERS_LABEL,
+  SortField,
 } from '~/concepts/modelCatalog/const';
 
 type ModelCatalogPageProps = {
@@ -41,7 +44,7 @@ const ModelCatalogGalleryView: React.FC<ModelCatalogPageProps> = ({
 }) => {
   const {
     selectedSourceLabel,
-    filterData,
+    filters,
     filterOptions,
     filterOptionsLoaded,
     filterOptionsLoadError,
@@ -50,7 +53,7 @@ const ModelCatalogGalleryView: React.FC<ModelCatalogPageProps> = ({
     catalogLabelsLoaded,
     catalogLabelsLoadError,
     setPerformanceViewEnabled,
-    updateSelectedSourceLabel,
+    setSelectedSourceLabel,
     performanceViewEnabled,
     sortBy,
     getPerformanceFilterDefaultValue,
@@ -59,16 +62,13 @@ const ModelCatalogGalleryView: React.FC<ModelCatalogPageProps> = ({
   // When performance view is disabled, exclude performance filters from API queries
   // Memoize to prevent infinite re-fetching
   const effectiveFilterData = React.useMemo(
-    () => (performanceViewEnabled ? filterData : getBasicFiltersOnly(filterData)),
-    [performanceViewEnabled, filterData],
+    () => (performanceViewEnabled ? filters : getBasicFiltersOnly(filters)),
+    [performanceViewEnabled, filters],
   );
 
   // Optimize: Only track the active latency field instead of entire filterData
   // This prevents unnecessary recalculations when non-latency filters change
-  const activeLatencyField = React.useMemo(
-    () => getActiveLatencyFieldName(filterData),
-    [filterData],
-  );
+  const activeLatencyField = React.useMemo(() => getActiveLatencyFieldName(filters), [filters]);
 
   const sortParams = React.useMemo(
     () => getSortParams(sortBy, performanceViewEnabled, activeLatencyField),
@@ -81,17 +81,22 @@ const ModelCatalogGalleryView: React.FC<ModelCatalogPageProps> = ({
       return undefined;
     }
 
-    const targetRPS = filterData[ModelCatalogNumberFilterKey.MAX_RPS];
+    const targetRPS = filters[ModelCatalogNumberFilterKey.MAX_RPS];
     const latencyProperty = activeLatencyField
       ? parseLatencyFilterKey(activeLatencyField).propertyKey
       : undefined;
 
+    const orderBy =
+      sortBy === ModelCatalogSortOption.LOWEST_COLD_START
+        ? ModelCatalogNumberFilterKey.COLD_START_LOAD_TIME
+        : SortField.RECOMMENDED;
+
     return {
       targetRPS,
       latencyProperty,
-      recommendations: true,
+      orderBy,
     };
-  }, [performanceViewEnabled, filterData, activeLatencyField]);
+  }, [performanceViewEnabled, filters, activeLatencyField, sortBy]);
 
   const { catalogModels, catalogModelsLoaded, catalogModelsLoadError } = useCatalogModelsBySources(
     '',
@@ -113,15 +118,15 @@ const ModelCatalogGalleryView: React.FC<ModelCatalogPageProps> = ({
 
   // Check if basic filters are applied
   const hasBasicFiltersApplied = React.useMemo(
-    () => hasFiltersApplied(filterData, BASIC_FILTER_KEYS),
-    [filterData],
+    () => hasFiltersApplied(filters, BASIC_FILTER_KEYS),
+    [filters],
   );
 
   // Check if Hardware Configuration filter is applied
   const hasHardwareConfigurationApplied = React.useMemo(() => {
-    const hardwareConfig = filterData[ModelCatalogStringFilterKey.HARDWARE_CONFIGURATION];
+    const hardwareConfig = filters[ModelCatalogStringFilterKey.HARDWARE_CONFIGURATION];
     return Array.isArray(hardwareConfig) && hardwareConfig.length > 0;
-  }, [filterData]);
+  }, [filters]);
 
   // When performance view is enabled, performance filters have default values.
   const hasPerformanceFiltersChanged = React.useMemo(() => {
@@ -129,7 +134,7 @@ const ModelCatalogGalleryView: React.FC<ModelCatalogPageProps> = ({
       return false;
     }
     return PERFORMANCE_FILTER_KEYS.some((filterKey) => {
-      const filterValue = filterData[filterKey];
+      const filterValue = filters[filterKey];
       const defaultValue = getPerformanceFilterDefaultValue(filterKey);
 
       if (filterValue === undefined) {
@@ -142,7 +147,7 @@ const ModelCatalogGalleryView: React.FC<ModelCatalogPageProps> = ({
 
       return isValueDifferentFromDefault(filterValue, defaultValue);
     });
-  }, [performanceViewEnabled, filterData, getPerformanceFilterDefaultValue]);
+  }, [performanceViewEnabled, filters, getPerformanceFilterDefaultValue]);
 
   const noUserFiltersOrSearch = React.useMemo(
     () =>
@@ -182,7 +187,7 @@ const ModelCatalogGalleryView: React.FC<ModelCatalogPageProps> = ({
   };
 
   const handleSelectAllModels = () => {
-    updateSelectedSourceLabel(CategoryName.allModels);
+    setSelectedSourceLabel(CategoryName.allModels);
   };
 
   const effectiveCategoryLabel = singleCategoryLabel || selectedSourceLabel || '';
@@ -216,7 +221,10 @@ const ModelCatalogGalleryView: React.FC<ModelCatalogPageProps> = ({
       categoryDescription={categoryDescription}
       headerExtra={
         isSingleCategory && performanceViewEnabled ? (
-          <ModelCatalogSortDropdown performanceViewEnabled={performanceViewEnabled} />
+          <ModelCatalogSortDropdown
+            performanceViewEnabled={performanceViewEnabled}
+            testId="model-catalog-category-sort-dropdown"
+          />
         ) : undefined
       }
       renderExtraEmptyStates={() => {
@@ -284,9 +292,7 @@ const ModelCatalogGalleryView: React.FC<ModelCatalogPageProps> = ({
           description="Adjust your filters and try again."
           primaryAction={
             <Button variant="link" onClick={handleFilterReset}>
-              {performanceViewEnabled && hasPerformanceFiltersChanged
-                ? 'Reset all defaults'
-                : 'Reset all filters'}
+              {RESET_ALL_FILTERS_LABEL}
             </Button>
           }
         />

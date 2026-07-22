@@ -11,6 +11,8 @@ type CatalogPageLayoutProps = {
   selectedSourceLabel: string | undefined;
   onSelectSourceLabel: (label: string) => void;
   isAllItemsView: boolean;
+  emptyCategoryLabels?: Set<string>;
+  setCategoryCount?: (count: number) => void;
   renderEmptyCategoriesState: () => React.ReactNode;
   renderFilterSidebar: () => React.ReactNode;
   renderToolbar: () => React.ReactNode;
@@ -28,6 +30,8 @@ const CatalogPageLayout: React.FC<CatalogPageLayoutProps> = ({
   selectedSourceLabel,
   onSelectSourceLabel,
   isAllItemsView,
+  emptyCategoryLabels,
+  setCategoryCount,
   renderEmptyCategoriesState,
   renderFilterSidebar,
   renderToolbar,
@@ -39,17 +43,35 @@ const CatalogPageLayout: React.FC<CatalogPageLayoutProps> = ({
     [catalogSources, catalogLabels],
   );
 
-  const isSingleCategory = activeCategories.length === 1;
-  const hasNoCategories = activeCategories.length === 0;
+  const effectiveCategories = React.useMemo(
+    () =>
+      emptyCategoryLabels
+        ? activeCategories.filter((c) => !emptyCategoryLabels.has(c))
+        : activeCategories,
+    [activeCategories, emptyCategoryLabels],
+  );
 
   React.useEffect(() => {
-    if (catalogSourcesLoaded && isSingleCategory && selectedSourceLabel !== activeCategories[0]) {
-      onSelectSourceLabel(activeCategories[0]);
+    if (catalogSourcesLoaded && setCategoryCount) {
+      setCategoryCount(activeCategories.length);
+    }
+  }, [catalogSourcesLoaded, activeCategories.length, setCategoryCount]);
+
+  const isSingleCategory = effectiveCategories.length === 1;
+  const hasNoCategories = effectiveCategories.length === 0;
+
+  React.useEffect(() => {
+    if (
+      catalogSourcesLoaded &&
+      isSingleCategory &&
+      selectedSourceLabel !== effectiveCategories[0]
+    ) {
+      onSelectSourceLabel(effectiveCategories[0]);
     }
   }, [
     catalogSourcesLoaded,
     isSingleCategory,
-    activeCategories,
+    effectiveCategories,
     selectedSourceLabel,
     onSelectSourceLabel,
   ]);
@@ -76,7 +98,7 @@ const CatalogPageLayout: React.FC<CatalogPageLayoutProps> = ({
                 ? renderAllItemsView()
                 : renderGalleryView(
                     isSingleCategory,
-                    isSingleCategory ? activeCategories[0] : undefined,
+                    isSingleCategory ? effectiveCategories[0] : undefined,
                   )}
             </PageSection>
           </Stack>

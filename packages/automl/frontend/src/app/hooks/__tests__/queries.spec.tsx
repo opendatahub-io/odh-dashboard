@@ -1,3 +1,4 @@
+/* eslint-disable camelcase -- test data matches API response field names */
 import { renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
@@ -521,13 +522,13 @@ describe('AutomlModelSchema', () => {
     expect(result.success).toBe(false);
   });
 
-  it('should reject a unified 3.5 model that includes base_model', () => {
-    const invalid = {
+  it('should accept a unified 3.5 model with extra fields like base_model', () => {
+    const extended = {
       ...validUnifiedModel,
       base_model: 'gpt-4',
     };
-    const result = AutomlModelSchema.safeParse(invalid);
-    expect(result.success).toBe(false);
+    const result = AutomlModelSchema.safeParse(extended);
+    expect(result.success).toBe(true);
   });
 
   it('should parse a v3.4 tabular model with extra metrics in location as v3.5', () => {
@@ -646,6 +647,16 @@ describe('isRawModelV35', () => {
 });
 /* eslint-enable camelcase */
 
+// jsdom's Blob lacks .text() — polyfill so fetchS3Json can decode streamed Blobs
+Blob.prototype.text = function blobText() {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () => reject(reader.error);
+    reader.readAsText(this);
+  });
+};
+
 /* eslint-disable camelcase */
 describe('useModelEvaluationArtifactsQuery', () => {
   const mockFeatureImportance = {
@@ -657,15 +668,65 @@ describe('useModelEvaluationArtifactsQuery', () => {
     dog: { cat: 1, dog: 15 },
   };
 
+  const mockCurves = {
+    task_type: 'multiclass',
+    strategy: 'ovr',
+    num_classes: 2,
+    classes: ['cat', 'dog'],
+    num_samples: 28,
+    roc_curve: {
+      auc_macro: 0.95,
+      auc_weighted: 0.94,
+      per_class: {
+        cat: { auc: 0.96, fpr: [0, 1], tpr: [0, 1], thresholds: ['inf', 0.5], support: 14 },
+        dog: { auc: 0.94, fpr: [0, 1], tpr: [0, 1], thresholds: ['inf', 0.5], support: 14 },
+      },
+    },
+    precision_recall_curve: {
+      average_precision_macro: 0.93,
+      average_precision_weighted: 0.92,
+      per_class: {
+        cat: {
+          average_precision: 0.94,
+          precision: [1, 0.5],
+          recall: [0, 1],
+          thresholds: [0.5],
+          baseline_precision: 0.5,
+        },
+        dog: {
+          average_precision: 0.92,
+          precision: [1, 0.5],
+          recall: [0, 1],
+          thresholds: [0.5],
+          baseline_precision: 0.5,
+        },
+      },
+    },
+  };
+
   /**
    * Creates a mock fetch response that returns JSON parsed from a Blob,
    * matching the fetchS3Json → fetchS3File → fetch call chain.
    */
   const mockBlobJsonResponse = (data: unknown) => {
     const json = JSON.stringify(data);
+    const encoded = new TextEncoder().encode(json);
+    let done = false;
     return {
       ok: true,
-      blob: async () => ({ text: async () => json }),
+      headers: new Headers({ 'Content-Length': String(encoded.byteLength) }),
+      body: {
+        getReader: () => ({
+          read: async () => {
+            if (done) {
+              return { done: true, value: undefined };
+            }
+            done = true;
+            return { done: false, value: encoded };
+          },
+        }),
+      },
+      blob: async () => ({ size: encoded.byteLength, text: async () => json }),
     };
   };
 
@@ -674,9 +735,6 @@ describe('useModelEvaluationArtifactsQuery', () => {
   });
 
   it('should not get stuck loading for regression runs (isClassification=false)', async () => {
-    // The confusion matrix query is disabled for regression. Previously, using
-    // isPending (which is true for disabled queries) caused isLoading to be
-    // stuck at true. The fix uses isLoading instead.
     (global.fetch as jest.Mock).mockResolvedValueOnce(mockBlobJsonResponse(mockFeatureImportance));
 
     const { result } = renderHook(
@@ -690,13 +748,15 @@ describe('useModelEvaluationArtifactsQuery', () => {
 
     expect(result.current.featureImportance).toEqual(mockFeatureImportance);
     expect(result.current.confusionMatrix).toBeUndefined();
+    expect(result.current.curves).toBeUndefined();
     expect(global.fetch).toHaveBeenCalledTimes(1);
   });
 
-  it('should load both artifacts for classification runs (isClassification=true)', async () => {
+  it('should load all artifacts for classification runs (isClassification=true)', async () => {
     (global.fetch as jest.Mock)
       .mockResolvedValueOnce(mockBlobJsonResponse(mockFeatureImportance))
-      .mockResolvedValueOnce(mockBlobJsonResponse(mockConfusionMatrix));
+      .mockResolvedValueOnce(mockBlobJsonResponse(mockConfusionMatrix))
+      .mockResolvedValueOnce(mockBlobJsonResponse(mockCurves));
 
     const { result } = renderHook(
       () => useModelEvaluationArtifactsQuery('test-ns', 'models/best/', true),
@@ -709,7 +769,43 @@ describe('useModelEvaluationArtifactsQuery', () => {
 
     expect(result.current.featureImportance).toEqual(mockFeatureImportance);
     expect(result.current.confusionMatrix).toEqual(mockConfusionMatrix);
-    expect(global.fetch).toHaveBeenCalledTimes(2);
+    expect(result.current.curves).toEqual(mockCurves);
+    expect(global.fetch).toHaveBeenCalledTimes(3);
+  });
+
+  it('should load binary curves data for binary classification runs', async () => {
+    const mockBinaryCurves = {
+      task_type: 'binary',
+      positive_class: 1,
+      num_samples: 100,
+      num_positive: 50,
+      num_negative: 50,
+      roc_curve: { auc: 0.95, fpr: [0, 1], tpr: [0, 1], thresholds: ['inf', 0.5] },
+      precision_recall_curve: {
+        average_precision: 0.93,
+        precision: [1, 0.5],
+        recall: [0, 1],
+        thresholds: [0.5],
+        baseline_precision: 0.5,
+      },
+    };
+
+    (global.fetch as jest.Mock)
+      .mockResolvedValueOnce(mockBlobJsonResponse(mockFeatureImportance))
+      .mockResolvedValueOnce(mockBlobJsonResponse(mockConfusionMatrix))
+      .mockResolvedValueOnce(mockBlobJsonResponse(mockBinaryCurves));
+
+    const { result } = renderHook(
+      () => useModelEvaluationArtifactsQuery('test-ns', 'models/best/', true),
+      { wrapper: createWrapper() },
+    );
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    expect(result.current.curves).toEqual(mockBinaryCurves);
+    expect(result.current.curves?.task_type).toBe('binary');
   });
 
   it('should be disabled when namespace is missing', () => {
@@ -721,6 +817,7 @@ describe('useModelEvaluationArtifactsQuery', () => {
     expect(result.current.isLoading).toBe(false);
     expect(result.current.featureImportance).toBeUndefined();
     expect(result.current.confusionMatrix).toBeUndefined();
+    expect(result.current.curves).toBeUndefined();
   });
 
   it('should be disabled when modelDirectory is missing', () => {
@@ -732,6 +829,151 @@ describe('useModelEvaluationArtifactsQuery', () => {
     expect(result.current.isLoading).toBe(false);
     expect(result.current.featureImportance).toBeUndefined();
     expect(result.current.confusionMatrix).toBeUndefined();
+    expect(result.current.curves).toBeUndefined();
+  });
+
+  it('should reject curves with mismatched fpr/tpr array lengths', async () => {
+    const invalidCurves = {
+      task_type: 'binary',
+      positive_class: 1,
+      num_samples: 100,
+      num_positive: 50,
+      num_negative: 50,
+      roc_curve: {
+        auc: 0.95,
+        fpr: [0, 0.5, 1],
+        tpr: [0, 1],
+        thresholds: ['inf', 0.5, 0.1],
+      },
+      precision_recall_curve: {
+        average_precision: 0.93,
+        precision: [1, 0.5],
+        recall: [0, 1],
+        thresholds: [0.5],
+        baseline_precision: 0.5,
+      },
+    };
+
+    (global.fetch as jest.Mock)
+      .mockResolvedValueOnce(mockBlobJsonResponse(mockFeatureImportance))
+      .mockResolvedValueOnce(mockBlobJsonResponse(mockConfusionMatrix))
+      .mockResolvedValueOnce(mockBlobJsonResponse(invalidCurves));
+
+    const { result } = renderHook(
+      () => useModelEvaluationArtifactsQuery('test-ns', 'models/best/', true),
+      { wrapper: createWrapper() },
+    );
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    expect(result.current.curves).toBeUndefined();
+  });
+
+  it('should reject curves with mismatched precision/recall array lengths', async () => {
+    const invalidCurves = {
+      task_type: 'binary',
+      positive_class: 1,
+      num_samples: 100,
+      num_positive: 50,
+      num_negative: 50,
+      roc_curve: {
+        auc: 0.95,
+        fpr: [0, 1],
+        tpr: [0, 1],
+        thresholds: ['inf', 0.5],
+      },
+      precision_recall_curve: {
+        average_precision: 0.93,
+        precision: [1, 0.8, 0.5],
+        recall: [0, 1],
+        thresholds: [0.5],
+        baseline_precision: 0.5,
+      },
+    };
+
+    (global.fetch as jest.Mock)
+      .mockResolvedValueOnce(mockBlobJsonResponse(mockFeatureImportance))
+      .mockResolvedValueOnce(mockBlobJsonResponse(mockConfusionMatrix))
+      .mockResolvedValueOnce(mockBlobJsonResponse(invalidCurves));
+
+    const { result } = renderHook(
+      () => useModelEvaluationArtifactsQuery('test-ns', 'models/best/', true),
+      { wrapper: createWrapper() },
+    );
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    expect(result.current.curves).toBeUndefined();
+  });
+
+  it('should load back_testing.json for timeseries runs (isTimeseries=true)', async () => {
+    const mockBackTesting = {
+      schema_version: 1,
+      model_name: 'Theta_FULL',
+      prediction_length: 1,
+      num_val_windows: 2,
+      eval_metric: 'MASE',
+      target: 'target',
+      id_column: 'item_id',
+      timestamp_column: 'timestamp',
+      per_window_metrics: [
+        {
+          window_id: 0,
+          test_start: '2025-12-08',
+          test_end: '2025-12-14',
+          metrics: { MASE: 0.39 },
+        },
+      ],
+      series_analysis: {
+        num_series_evaluated: 10,
+        best_performer: {
+          item_id: 'H1',
+          avg_metrics: { MASE: 0.2 },
+          windows: [],
+        },
+        worst_performer: {
+          item_id: 'H2',
+          avg_metrics: { MASE: 0.9 },
+          windows: [],
+        },
+      },
+    };
+
+    // featureImportance, confusionMatrix, and curves are all disabled for timeseries
+    (global.fetch as jest.Mock).mockResolvedValueOnce(mockBlobJsonResponse(mockBackTesting));
+
+    const { result } = renderHook(
+      () => useModelEvaluationArtifactsQuery('test-ns', 'models/best/', false, true),
+      { wrapper: createWrapper() },
+    );
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    expect(result.current.backTesting).toEqual(mockBackTesting);
+    expect(result.current.confusionMatrix).toBeUndefined();
+    expect(result.current.curves).toBeUndefined();
+  });
+
+  it('should not fetch back_testing.json for non-timeseries runs (isTimeseries=false)', async () => {
+    (global.fetch as jest.Mock).mockResolvedValueOnce(mockBlobJsonResponse(mockFeatureImportance));
+
+    const { result } = renderHook(
+      () => useModelEvaluationArtifactsQuery('test-ns', 'models/best/', false, false),
+      { wrapper: createWrapper() },
+    );
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    expect(result.current.backTesting).toBeUndefined();
+    expect(global.fetch).toHaveBeenCalledTimes(1);
   });
 });
 /* eslint-enable camelcase */

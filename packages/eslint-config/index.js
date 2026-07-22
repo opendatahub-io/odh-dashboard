@@ -1,3 +1,5 @@
+require('@rushstack/eslint-patch/modern-module-resolution');
+
 const path = require('path');
 
 const base = require('./base');

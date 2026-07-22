@@ -4,5 +4,5 @@ resources:
   - manager.yaml
 images:
   - name: controller
-    newName: quay.io/opendatahub/dashboard-operator
+    newName: quay.io/opendatahub/odh-dashboard-operator
     newTag: latest

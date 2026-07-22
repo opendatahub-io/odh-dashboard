@@ -1,5 +1,5 @@
 import type { Extension, CodeRef } from '@openshift/dynamic-plugin-sdk';
-import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
+import { createExtensionGuard } from '@odh-dashboard/plugin-core/extension-points';
 
 export type DeployPrefillData = {
   modelName: string;
@@ -7,7 +7,7 @@ export type DeployPrefillData = {
   returnRouteValue?: string;
   cancelReturnRouteValue?: string;
   wizardStartIndex?: number;
-  modelType?: ServingRuntimeModelType;
+  modelType?: 'predictive' | 'generative';
   prefillAlertText?: string;
 };
 
@@ -16,12 +16,12 @@ export type NavigateToDeploymentWizardWithDataExtension = Extension<
   {
     useAvailablePlatformIds: CodeRef<() => string[]>;
     useNavigateToDeploymentWizardWithData: CodeRef<
-      (deployPrefillData: DeployPrefillData) => (projectName?: string) => void
+      (deployPrefillData: DeployPrefillData) => ((projectName?: string) => void) | null
     >;
   }
 >;
 
-export const isNavigateToDeploymentWizardWithDataExtension = (
-  extension: Extension,
-): extension is NavigateToDeploymentWizardWithDataExtension =>
-  extension.type === 'model-catalog.deployment/navigate-wizard';
+export const isNavigateToDeploymentWizardWithDataExtension =
+  createExtensionGuard<NavigateToDeploymentWizardWithDataExtension>(
+    'model-catalog.deployment/navigate-wizard',
+  );

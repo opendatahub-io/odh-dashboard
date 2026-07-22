@@ -1,8 +1,10 @@
+# This spec is maintained by hand until a cross-BFF auto-generation strategy is
+# agreed upon. Keep it in sync with routes.go and handler implementations.
 openapi: '3.0.3'
 info:
   title: 'Core BFF REST API'
   version: '1.0.0'
-  description: 'REST API for the Core Backend for Frontend (BFF). Replaces Fastify across RHOAI (sidecar) and RHAII (standalone) deployments.'
+  description: 'REST API for the Core Backend for Frontend (BFF). Replaces Fastify across sidecar and standalone deployments.'
   license:
     name: 'Apache 2.0'
     url: 'https://www.apache.org/licenses/LICENSE-2.0'
@@ -208,6 +210,864 @@ paths:
         '502':
           $ref: '#/components/responses/BadGateway'
 
+  /api/config:
+    get:
+      tags:
+        - Config
+      operationId: getConfig
+      summary: Get merged dashboard config
+      description: Returns the OdhDashboardConfig CRD merged with defaults. Supports feature flag overrides via x-odh-feature-flags header.
+      parameters:
+        - name: x-odh-feature-flags
+          in: header
+          required: false
+          schema:
+            type: string
+          description: JSON-encoded feature flag overrides
+      responses:
+        '200':
+          description: Dashboard config
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardConfig'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    patch:
+      tags:
+        - Config
+      operationId: patchConfig
+      summary: Update dashboard config (admin)
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Updated dashboard config
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardConfig'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/components:
+    get:
+      tags:
+        - Components
+      operationId: getComponents
+      summary: List OdhApplication components
+      description: Returns OdhApplication CRDs. Returns empty array when CRD is absent.
+      parameters:
+        - name: installed
+          in: query
+          required: false
+          schema:
+            type: boolean
+          description: Filter to installed/enabled applications only
+      responses:
+        '200':
+          $ref: '#/components/responses/ComponentsResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/components/remove:
+    get:
+      tags:
+        - Components
+      operationId: removeComponent
+      summary: Remove an app from the enabled-apps ConfigMap (admin)
+      parameters:
+        - name: appName
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Removal result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MutationResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/status/{namespace}/allowedUsers:
+    get:
+      tags:
+        - Status
+      operationId: getAllowedUsers
+      summary: List users with notebook access in a namespace (admin, OpenShift-only)
+      parameters:
+        - name: namespace
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of allowed users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AllowedUser'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/status:
+    get:
+      tags:
+        - Status
+      operationId: getStatus
+      summary: Get user session status
+      description: Returns user identity, admin status, cluster info, and access status.
+      responses:
+        '200':
+          $ref: '#/components/responses/StatusResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/dashboardConfig/{namespace}/{name}:
+    parameters:
+      - name: namespace
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: name
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      tags:
+        - DashboardConfig
+      operationId: getDashboardConfigByName
+      summary: Get raw dashboard config by namespace/name (admin)
+      responses:
+        '200':
+          description: Raw dashboard config CRD
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    patch:
+      tags:
+        - DashboardConfig
+      operationId: patchDashboardConfigByName
+      summary: Patch dashboard config by namespace/name (admin)
+      requestBody:
+        content:
+          application/json-patch+json:
+            schema:
+              type: array
+              items:
+                type: object
+                properties:
+                  op:
+                    type: string
+                    enum: [add, remove, replace, move, copy, test]
+                  path:
+                    type: string
+                  from:
+                    type: string
+                  value: {}
+      responses:
+        '200':
+          description: Updated dashboard config CRD
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/cluster-settings:
+    get:
+      tags:
+        - ClusterSettings
+      operationId: getClusterSettings
+      summary: Get cluster settings (admin)
+      responses:
+        '200':
+          description: Cluster settings
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClusterSettings'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    put:
+      tags:
+        - ClusterSettings
+      operationId: updateClusterSettings
+      summary: Update cluster settings (admin)
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClusterSettings'
+      responses:
+        '200':
+          description: Update result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MutationResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/v1/connections/test:
+    summary: Test a connection
+    description: >-
+      Accepts a connection type and field values, executes a read-only probe
+      against the target data source, and returns success or a specific
+      actionable error message. Does not persist or modify any data.
+      Worst-case response time is 15 seconds (5s queue wait + 10s probe).
+      Returns 503 PROBE_BUSY if the queue is full.
+    post:
+      tags:
+        - Connections
+      operationId: testConnection
+      summary: Test connection reachability
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConnectionTestRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/ConnectionTestResponse'
+        '400':
+          description: >-
+            Bad request. Error codes: INVALID_REQUEST (missing connectionType or fieldValues),
+            UNSUPPORTED_TYPE (unknown connection type).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalidRequest:
+                  summary: Missing required field
+                  value:
+                    error:
+                      code: 'INVALID_REQUEST'
+                      message: 'connectionType is required'
+                unsupportedType:
+                  summary: Unknown connection type
+                  value:
+                    error:
+                      code: 'UNSUPPORTED_TYPE'
+                      message: 'connection type "mysql" is not supported'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '503':
+          description: Probe queue full — too many concurrent connection tests.
+          headers:
+            Retry-After:
+              description: Suggested wait time in seconds before retrying.
+              schema:
+                type: integer
+                example: 5
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error:
+                  code: 'PROBE_BUSY'
+                  message: 'Connection test queue is full, please retry later'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/connection-types:
+    get:
+      tags:
+        - ConnectionTypes
+      operationId: listConnectionTypes
+      summary: List connection types
+      description: Returns ConfigMaps with connection-type labels. No admin required.
+      responses:
+        '200':
+          $ref: '#/components/responses/ConnectionTypesResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    post:
+      tags:
+        - ConnectionTypes
+      operationId: createConnectionType
+      summary: Create connection type (admin)
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Creation result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MutationResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/connection-types/{name}:
+    parameters:
+      - name: name
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      tags:
+        - ConnectionTypes
+      operationId: getConnectionType
+      summary: Get connection type by name
+      responses:
+        '200':
+          description: Connection type ConfigMap
+          content:
+            application/json:
+              schema:
+                type: object
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    put:
+      tags:
+        - ConnectionTypes
+      operationId: updateConnectionType
+      summary: Replace connection type (admin)
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Update result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MutationResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    patch:
+      tags:
+        - ConnectionTypes
+      operationId: patchConnectionType
+      summary: Patch connection type (admin)
+      requestBody:
+        content:
+          application/json-patch+json:
+            schema:
+              type: array
+              items:
+                type: object
+                properties:
+                  op:
+                    type: string
+                    enum: [add, remove, replace, move, copy, test]
+                  path:
+                    type: string
+                  from:
+                    type: string
+                  value: {}
+      responses:
+        '200':
+          description: Patch result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MutationResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    delete:
+      tags:
+        - ConnectionTypes
+      operationId: deleteConnectionType
+      summary: Delete connection type (admin)
+      responses:
+        '200':
+          description: Delete result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MutationResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/servingRuntimes:
+    post:
+      tags:
+        - Model Serving
+      operationId: createServingRuntime
+      summary: Create a ServingRuntime CR (admin)
+      description: >-
+        Creates a KServe ServingRuntime custom resource in the specified namespace.
+        The namespace is extracted from metadata.namespace in the request body and
+        validated against the allowed namespace list (dashboard and workbench namespaces only).
+      parameters:
+        - name: dryRun
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [All]
+          description: Set to "All" to validate without persisting
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: Unstructured ServingRuntime CR JSON
+      responses:
+        '200':
+          description: Created ServingRuntime CR
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/BFFForbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/nim-serving/{nimResource}:
+    get:
+      tags:
+        - NIM Serving
+      operationId: getNIMServingResource
+      summary: Get a NIM-related K8s resource by cross-resource lookup (OpenShift-only)
+      description: >-
+        OpenShift-only. Returns 404 on non-OpenShift platforms.
+        Fetches the NIM Account CR, resolves the resource name from it using the
+        nimResource parameter, then fetches and returns the Secret or ConfigMap.
+      parameters:
+        - name: nimResource
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [apiKeySecret, nimPullSecret, nimConfig]
+          description: The NIM resource type to look up
+      responses:
+        '200':
+          description: Resolved NIM resource
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NIMServingResourceResponse'
+        '404':
+          $ref: '#/components/responses/BFFNotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/service/model-serving/{path}:
+    summary: Model serving service proxy
+    description: >-
+      Proxies all HTTP methods to the model-serving-api service. Strips the
+      /api/service/model-serving prefix and forwards the remaining path,
+      including nested segments (e.g. /api/service/model-serving/a/b/c).
+      OpenAPI 3.0 cannot represent multi-segment path parameters; the actual
+      route is a wildcard prefix match, not a single-segment capture.
+      The user's bearer token is injected as the Authorization header.
+      Responses depend on the upstream model serving service.
+    parameters:
+      - name: path
+        in: path
+        required: true
+        schema:
+          type: string
+        description: >-
+          Remainder of the URL after /api/service/model-serving/, including
+          any nested segments. Forwarded verbatim to the upstream service.
+    get:
+      tags:
+        - Model Serving Proxy
+      operationId: modelServingProxyGet
+      summary: Proxy GET to model serving service
+      responses:
+        '200':
+          description: Upstream response (passthrough)
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '502':
+          $ref: '#/components/responses/BadGateway'
+    post:
+      tags:
+        - Model Serving Proxy
+      operationId: modelServingProxyPost
+      summary: Proxy POST to model serving service
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Upstream response (passthrough)
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '502':
+          $ref: '#/components/responses/BadGateway'
+    put:
+      tags:
+        - Model Serving Proxy
+      operationId: modelServingProxyPut
+      summary: Proxy PUT to model serving service
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Upstream response (passthrough)
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '502':
+          $ref: '#/components/responses/BadGateway'
+    delete:
+      tags:
+        - Model Serving Proxy
+      operationId: modelServingProxyDelete
+      summary: Proxy DELETE to model serving service
+      responses:
+        '200':
+          description: Upstream response (passthrough)
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '502':
+          $ref: '#/components/responses/BadGateway'
+    patch:
+      tags:
+        - Model Serving Proxy
+      operationId: modelServingProxyPatch
+      summary: Proxy PATCH to model serving service
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Upstream response (passthrough)
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '502':
+          $ref: '#/components/responses/BadGateway'
+
+  /api/prometheus/{queryType}:
+    post:
+      tags:
+        - Prometheus
+      operationId: prometheusQuery
+      summary: Proxy a PromQL query to Prometheus/Thanos
+      description: >-
+        Accepts a POST with a query string, transforms it into a GET request to
+        the configured Prometheus/Thanos endpoint. Supports instant queries (query, pvc)
+        and range queries (queryRange, bias, serving).
+      parameters:
+        - name: queryType
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [query, queryRange, pvc, bias, serving]
+          description: >-
+            The Prometheus query sub-path. "query" and "pvc" map to instant queries;
+            "queryRange", "bias", and "serving" map to range queries.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PrometheusQueryRequest'
+      responses:
+        '200':
+          description: Prometheus query result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PrometheusQueryResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '400':
+          description: Empty or invalid query
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PrometheusQueryResponse'
+              example:
+                code: 400
+                response: 'Failed to provide a query'
+        '422':
+          description: Unparsable Prometheus response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PrometheusQueryResponse'
+              example:
+                code: 422
+                response: 'Unprocessable prometheus response'
+        '500':
+          description: Internal server error or upstream Prometheus 500
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PrometheusQueryResponse'
+              example:
+                code: 500
+                response: 'Cannot fetch prometheus data'
+        '502':
+          description: Upstream Prometheus returned an error (bad gateway)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PrometheusQueryResponse'
+              example:
+                code: 502
+                response: 'Cannot fetch prometheus data, upstream returned 502'
+        '503':
+          description: Prometheus service unavailable (e.g. no host configured or unreachable)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PrometheusQueryResponse'
+              example:
+                code: 503
+                response: 'Prometheus service is not available'
+        '504':
+          description: Upstream Prometheus timed out (gateway timeout)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PrometheusQueryResponse'
+              example:
+                code: 504
+                response: 'Cannot fetch prometheus data, upstream returned 504'
+
+  /api/namespaces/{name}/{context}:
+    get:
+      tags:
+        - Namespaces
+      operationId: mutateNamespaceServingPlatform
+      summary: Mutate namespace serving platform labels/annotations
+      description: >-
+        Applies model-serving-platform label/annotation mutations to a namespace.
+        Context 1 (KSERVE_PROMOTION) sets label modelmesh-enabled=false.
+        Context 2 (KSERVE_NIM_PROMOTION) sets annotation opendatahub.io/nim-support=true.
+        Context 3 (RESET) removes both.
+        Context 0 (DSG_CREATION) is not supported and returns 400.
+        Requires SSAR permission: create on serving.kserve.io/servingruntimes.
+      parameters:
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Kubernetes namespace name
+        - name: context
+          in: path
+          required: true
+          schema:
+            type: integer
+            enum: [0, 1, 2, 3]
+          description: >-
+            Namespace mutation context.
+            0=DSG_CREATION (returns 400, not supported),
+            1=KSERVE_PROMOTION,
+            2=KSERVE_NIM_PROMOTION,
+            3=RESET_MODEL_SERVING_PLATFORM
+        - name: dryRun
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [All]
+          description: Set to "All" to validate without persisting
+      responses:
+        '200':
+          $ref: '#/components/responses/NamespaceMutationResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/BFFForbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/integrations/nim:
+    get:
+      tags:
+        - NIM Integration
+      operationId: getNIMIntegrationStatus
+      summary: Get NIM integration status (OpenShift-only)
+      description: >-
+        OpenShift-only. Returns 404 on non-OpenShift platforms.
+        Returns the NIM integration status derived from the Account CR conditions.
+        Reports installation state, enablement, API key validation, and errors.
+      responses:
+        '200':
+          description: NIM integration status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NIMIntegrationStatus'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    post:
+      tags:
+        - NIM Integration
+      operationId: createNIMIntegration
+      summary: Create or enable NIM integration (admin, OpenShift-only)
+      description: >-
+        OpenShift-only. Returns 404 on non-OpenShift platforms.
+        Creates or updates the NIM access secret and ensures the Account CR exists.
+        Returns the updated integration status.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties:
+                type: string
+              description: Key-value pairs for the NIM access secret stringData
+              example:
+                api_key: 'nvapi-xxxx'
+      responses:
+        '200':
+          description: Updated NIM integration status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NIMIntegrationStatus'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/BFFForbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    delete:
+      tags:
+        - NIM Integration
+      operationId: deleteNIMIntegration
+      summary: Delete NIM integration (admin, OpenShift-only)
+      description: >-
+        OpenShift-only. Returns 404 on non-OpenShift platforms.
+        Deletes the NIM Account CR.
+      responses:
+        '200':
+          description: Deletion result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NIMDeleteResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/BFFForbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
 components:
   schemas:
     HealthCheckResponse:
@@ -294,6 +1154,257 @@ components:
               description: 'Human-readable error description'
               example: 'An unexpected error occurred'
 
+    DashboardConfig:
+      type: object
+      properties:
+        apiVersion:
+          type: string
+        kind:
+          type: string
+        metadata:
+          type: object
+        spec:
+          type: object
+          properties:
+            dashboardConfig:
+              type: object
+              description: Feature flags (40+ boolean fields)
+            notebookController:
+              type: object
+            templateOrder:
+              type: array
+              items:
+                type: string
+            modelServing:
+              type: object
+            genAiStudioConfig:
+              type: object
+
+    KubeStatus:
+      type: object
+      properties:
+        currentContext:
+          type: string
+        currentUser:
+          type: object
+          properties:
+            name:
+              type: string
+        namespace:
+          type: string
+        userName:
+          type: string
+        userID:
+          type: string
+        clusterID:
+          type: string
+        clusterBranding:
+          type: string
+        isAdmin:
+          type: boolean
+        isAllowed:
+          type: boolean
+        serverURL:
+          type: string
+        isImpersonating:
+          type: boolean
+
+    StatusEnvelope:
+      type: object
+      required:
+        - kube
+      properties:
+        kube:
+          $ref: '#/components/schemas/KubeStatus'
+
+    ClusterSettings:
+      type: object
+      properties:
+        pvcSize:
+          type: integer
+          example: 20
+        cullerTimeout:
+          type: integer
+          example: 31536000
+        userTrackingEnabled:
+          type: boolean
+        modelServingPlatformEnabled:
+          type: object
+          properties:
+            kServe:
+              type: boolean
+            LLMd:
+              type: boolean
+        isDistributedInferencingDefault:
+          type: boolean
+        defaultDeploymentStrategy:
+          type: string
+
+    AllowedUser:
+      type: object
+      properties:
+        username:
+          type: string
+        privilege:
+          type: string
+          enum: [Admin, User]
+        lastActivity:
+          type: string
+
+    MutationResponse:
+      type: object
+      required:
+        - success
+        - error
+      properties:
+        success:
+          type: boolean
+        error:
+          type: string
+
+    NIMServingResourceResponse:
+      type: object
+      required:
+        - body
+      properties:
+        body:
+          type: object
+          description: The resolved Secret or ConfigMap object
+
+    NIMIntegrationStatus:
+      type: object
+      required:
+        - isInstalled
+        - isEnabled
+        - variablesValidationStatus
+        - variablesValidationTimestamp
+        - canInstall
+        - error
+      properties:
+        isInstalled:
+          type: boolean
+          example: true
+        isEnabled:
+          type: boolean
+          example: true
+        variablesValidationStatus:
+          type: string
+          example: 'True'
+          description: APIKeyValidation condition status (True, False, Unknown)
+        variablesValidationTimestamp:
+          type: string
+          example: '2024-01-01T00:00:00Z'
+        canInstall:
+          type: boolean
+          example: false
+        error:
+          type: string
+          example: ''
+
+    NamespaceMutationResponse:
+      type: object
+      required:
+        - applied
+      properties:
+        applied:
+          type: boolean
+          description: Whether the mutation was applied
+
+    NIMDeleteResponse:
+      type: object
+      required:
+        - success
+        - error
+      properties:
+        success:
+          type: boolean
+        error:
+          type: string
+
+    PrometheusQueryRequest:
+      type: object
+      required:
+        - query
+      properties:
+        query:
+          type: string
+          description: >-
+            URL-encoded query string forwarded to the Prometheus API.
+            The frontend assembles all parameters (query, namespace,
+            start, end, step) via URLSearchParams and sends the result
+            as a single string.
+          example: 'query=up{job="apiserver"}'
+
+    PrometheusQueryResponse:
+      type: object
+      required:
+        - code
+        - response
+      properties:
+        code:
+          type: integer
+          description: HTTP status code
+          example: 200
+        response:
+          description: Parsed Prometheus JSON response or error message
+          example:
+            status: 'success'
+            data:
+              resultType: 'vector'
+              result: []
+    ConnectionTestRequest:
+      type: object
+      required:
+        - connectionType
+        - fieldValues
+      properties:
+        connectionType:
+          type: string
+          minLength: 1
+          description: 'Connection type key (e.g. s3, uri, oci)'
+          example: 's3'
+        fieldValues:
+          type: object
+          nullable: false
+          additionalProperties:
+            type: string
+          description: 'Connection field values to test'
+          example:
+            AWS_S3_ENDPOINT: 'https://s3.amazonaws.com'
+            AWS_S3_BUCKET: 'my-bucket'
+            AWS_ACCESS_KEY_ID: 'AKIA...'
+            AWS_SECRET_ACCESS_KEY: '...'
+
+    ConnectionTestResult:
+      type: object
+      required:
+        - success
+        - message
+      properties:
+        success:
+          type: boolean
+          description: 'Whether the connection test succeeded'
+        error:
+          type: string
+          description: 'Error code when success is false (CONNECTION_FAILED, CONNECTION_TIMEOUT)'
+          example: 'CONNECTION_FAILED'
+        message:
+          type: string
+          description: 'Human-readable result or error description'
+          example: 'Connection to bucket my-bucket successful'
+
+    ConnectionTestEnvelope:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          $ref: '#/components/schemas/ConnectionTestResult'
+      example:
+        data:
+          success: true
+          message: 'Connection to bucket my-bucket successful'
+
   responses:
     HealthCheckResponse:
       description: Service is healthy
@@ -329,6 +1440,49 @@ components:
                 displayName: 'Open Data Hub'
               - name: 'my-project'
                 displayName: 'My Project'
+
+    StatusResponse:
+      description: User session status
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/StatusEnvelope'
+
+    ComponentsResponse:
+      description: List of OdhApplication components
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              type: object
+
+    ConnectionTestResponse:
+      description: Connection test result
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ConnectionTestEnvelope'
+          example:
+            data:
+              success: true
+              message: 'Connection to bucket my-bucket successful'
+
+    ConnectionTypesResponse:
+      description: List of connection-type ConfigMaps
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              type: object
+
+    NamespaceMutationResponse:
+      description: Namespace mutation result
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/NamespaceMutationResponse'
 
     BadRequest:
       description: Bad request
@@ -394,6 +1548,39 @@ components:
           schema:
             type: string
           example: 'Bad Gateway'
+
+    BFFForbidden:
+      description: Access forbidden (authenticated but not admin)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: 'FORBIDDEN'
+              message: 'admin access required'
+
+    BFFNotFound:
+      description: Resource not found (BFF JSON envelope)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: 'NOT_FOUND'
+              message: 'the requested resource could not be found'
+
+    Conflict:
+      description: Resource already exists or update conflict
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: 'AlreadyExists'
+              message: 'servingruntime.serving.kserve.io "my-runtime" already exists'
 
     InternalServerError:
       description: Internal server error

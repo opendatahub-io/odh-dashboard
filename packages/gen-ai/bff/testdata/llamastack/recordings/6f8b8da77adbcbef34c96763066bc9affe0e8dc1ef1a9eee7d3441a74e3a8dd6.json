@@ -20,7 +20,7 @@
     "endpoint": "/v1/chat/completions",
     "model": "models/gemini-2.5-flash",
     "provider_metadata": {
-      "openai_sdk_version": "2.37.0"
+      "openai_sdk_version": "2.45.0"
     }
   },
   "response": {
@@ -32,7 +32,7 @@
           "choices": [
             {
               "delta": {
-                "content": "Hello there! Good to hear from the world of Mobility as a Service!\n\nBringing seamless, integrated",
+                "content": "Hello there!\n\nAh, Mobility as a Service \u2013 a truly fascinating and transformative",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -46,12 +46,13 @@
           "created": 0,
           "model": "models/gemini-2.5-flash",
           "object": "chat.completion.chunk",
+          "moderation": null,
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 20,
+            "completion_tokens": 16,
             "prompt_tokens": 5,
-            "total_tokens": 853,
+            "total_tokens": 804,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -64,7 +65,7 @@
           "choices": [
             {
               "delta": {
-                "content": " transport solutions to users, I presume? How can I help you explore or discuss MaaS today? Do you have a question, a project you're working on, or just want to chat about the future of transportation?",
+                "content": " concept for urban transportation and beyond! Integrating all those different travel options into one seamless experience is such a powerful idea.\n\nWhat's on your mind today, or what aspects of MaaS are you interested in discussing?",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -78,12 +79,13 @@
           "created": 0,
           "model": "models/gemini-2.5-flash",
           "object": "chat.completion.chunk",
+          "moderation": null,
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 65,
+            "completion_tokens": 60,
             "prompt_tokens": 5,
-            "total_tokens": 898,
+            "total_tokens": 848,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }

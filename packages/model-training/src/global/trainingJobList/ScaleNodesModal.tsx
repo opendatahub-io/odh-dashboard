@@ -13,9 +13,9 @@ import {
   Stack,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
-import { getDisplayNameFromK8sResource } from '@odh-dashboard/internal/concepts/k8s/utils';
+import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import DashboardModalFooter from '@odh-dashboard/internal/concepts/dashboard/DashboardModalFooter';
-import NumberInputWrapper from '@odh-dashboard/internal/components/NumberInputWrapper';
+import NumberInputWrapper from '@odh-dashboard/ui-core/components/NumberInputWrapper';
 import { TrainJobKind } from '../../k8sTypes';
 
 type ScaleNodesModalProps = {

@@ -3,13 +3,22 @@ import {
   RouteExtension,
   NavExtension,
   TaskItemExtension,
+  DetailTabExtension,
 } from '@odh-dashboard/plugin-core/extension-points';
 
 export const MODEL_AS_SERVICE_ID = 'modelAsService';
-export const MAAS_AUTH_POLICIES = 'maasAuthPolicies';
+export const EXTERNAL_MODELS_ID = 'external-models';
 export const MAAS_MY_SUBSCRIPTIONS = 'mySubscriptions';
 
-export type ODHExtensions = NavExtension | RouteExtension | AreaExtension | TaskItemExtension;
+/** Keep in sync with model-serving GlobalModelsPage GLOBAL_DEPLOYMENTS_DETAIL_TAB_GROUP. */
+const GLOBAL_DEPLOYMENTS_DETAIL_TAB_GROUP = 'model-serving.global-deployments';
+
+export type ODHExtensions =
+  | NavExtension
+  | RouteExtension
+  | AreaExtension
+  | TaskItemExtension
+  | DetailTabExtension;
 const ADMIN_USER = 'ADMIN_USER';
 const MODELS_AS_SERVICE_READY = 'ModelsAsServiceReady';
 
@@ -26,47 +35,16 @@ const ODH_EXTENSIONS: ODHExtensions[] = [
     },
   },
   {
-    type: 'app.area',
-    properties: {
-      id: MAAS_AUTH_POLICIES,
-      featureFlags: ['maasAuthPolicies'],
-      customCondition: ({ dscStatus }) =>
-        !!dscStatus?.conditions.some(
-          (c) => c.type === MODELS_AS_SERVICE_READY && c.status === 'True',
-        ),
-    },
-  },
-  {
-    type: 'app.area',
-    properties: {
-      id: MAAS_MY_SUBSCRIPTIONS,
-      featureFlags: ['mySubscriptions'],
-    },
-  },
-  {
     type: 'app.navigation/href',
     flags: {
       required: [MODEL_AS_SERVICE_ID, ADMIN_USER],
     },
     properties: {
-      id: 'maas-subscriptions-view',
-      title: 'Subscriptions',
-      href: '/maas/subscriptions',
+      id: 'maas-subscription-management-view',
+      title: 'MaaS governance',
+      href: '/maas/maas-governance',
       section: 'settings',
-      path: '/maas/subscriptions/*',
-    },
-  },
-  {
-    type: 'app.navigation/href',
-    flags: {
-      required: [MODEL_AS_SERVICE_ID, ADMIN_USER, MAAS_AUTH_POLICIES],
-    },
-    properties: {
-      id: 'maas-auth-policies-view',
-      title: 'Authorization policies',
-      href: '/maas/auth-policies',
-      section: 'settings',
-      path: '/maas/auth-policies/*',
+      path: '/maas/maas-governance/*',
     },
   },
   {
@@ -98,11 +76,11 @@ const ODH_EXTENSIONS: ODHExtensions[] = [
   {
     type: 'app.navigation/href',
     flags: {
-      required: [MODEL_AS_SERVICE_ID, MAAS_MY_SUBSCRIPTIONS],
+      required: [MODEL_AS_SERVICE_ID],
     },
     properties: {
       id: 'maas-tokens-subscriptions-view',
-      title: 'API keys and subscriptions',
+      title: 'API keys',
       href: '/maas/keys-and-subs',
       section: 'gen-ai-studio',
       path: '/maas/keys-and-subs/*',
@@ -121,11 +99,35 @@ const ODH_EXTENSIONS: ODHExtensions[] = [
   {
     type: 'app.route',
     flags: {
-      required: [MODEL_AS_SERVICE_ID, ADMIN_USER, MAAS_AUTH_POLICIES],
+      required: [MODEL_AS_SERVICE_ID, ADMIN_USER],
     },
     properties: {
       path: '/maas/auth-policies/*',
       component: () => import('./MaaSWrapper'),
+    },
+  },
+  {
+    type: 'app.route',
+    flags: {
+      required: [MODEL_AS_SERVICE_ID, ADMIN_USER],
+    },
+    properties: {
+      path: '/maas/maas-governance/*',
+      component: () => import('./MaaSWrapper'),
+    },
+  },
+  {
+    type: 'core.detail/tab',
+    flags: {
+      required: [MODEL_AS_SERVICE_ID, EXTERNAL_MODELS_ID],
+    },
+    reliantArea: [MODEL_AS_SERVICE_ID],
+    properties: {
+      id: 'external-models',
+      title: 'External models',
+      label: 'Tech Preview',
+      group: GLOBAL_DEPLOYMENTS_DETAIL_TAB_GROUP,
+      component: () => import('./ExternalModelsWrapper'),
     },
   },
   {
@@ -141,7 +143,7 @@ const ODH_EXTENSIONS: ODHExtensions[] = [
   {
     type: 'app.route',
     flags: {
-      required: [MODEL_AS_SERVICE_ID, MAAS_MY_SUBSCRIPTIONS],
+      required: [MODEL_AS_SERVICE_ID],
     },
     properties: {
       path: '/maas/keys-and-subs/*',

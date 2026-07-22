@@ -1,7 +1,6 @@
 import React from 'react';
+import { DashboardEmptyTableView, Table } from '@odh-dashboard/ui-core';
 import { BYONImage } from '#~/types';
-import { Table } from '#~/components/table';
-import DashboardEmptyTableView from '#~/concepts/dashboard/DashboardEmptyTableView';
 import { useHardwareProfilesByFeatureVisibility } from '#~/pages/hardwareProfiles/useHardwareProfilesByFeatureVisibility';
 import { WORKBENCH_VISIBILITY } from '#~/concepts/hardwareProfiles/const';
 import ManageBYONImageModal from './BYONImageModal/ManageBYONImageModal';
@@ -9,7 +8,14 @@ import DeleteBYONImageModal from './BYONImageModal/DeleteBYONImageModal';
 import { columns } from './tableData';
 import BYONImagesTableRow from './BYONImagesTableRow';
 import BYONImagesToolbar from './BYONImagesToolbar';
-import { initialBYONImagesFilterData, BYONImagesFilterDataType } from './const';
+import {
+  initialBYONImagesFilterData,
+  BYONImagesFilterDataType,
+  BYONImagesToolbarFilterOptions,
+  ImageTypeFilter,
+  ImageEnabledFilter,
+} from './const';
+import { isImageEffectivelyEnabled } from './utils';
 
 export type BYONImagesTableProps = {
   images: BYONImage[];
@@ -23,14 +29,34 @@ export const BYONImagesTable: React.FC<BYONImagesTableProps> = ({ images }) => {
   const filteredImages = React.useMemo(
     () =>
       images.filter((image) => {
-        const nameFilter = filterData.Name?.toLowerCase();
-        const providerFilter = filterData.Provider?.toLowerCase();
+        const nameFilter = filterData[BYONImagesToolbarFilterOptions.name]?.toLowerCase();
+        const providerFilter = filterData[BYONImagesToolbarFilterOptions.provider]?.toLowerCase();
+        const typeFilter = filterData[BYONImagesToolbarFilterOptions.type];
+        const enabledFilter = filterData[BYONImagesToolbarFilterOptions.enabled];
 
         if (nameFilter && !image.display_name.toLowerCase().includes(nameFilter)) {
           return false;
         }
 
-        return !providerFilter || image.provider.toLowerCase().includes(providerFilter);
+        if (providerFilter && !image.provider.toLowerCase().includes(providerFilter)) {
+          return false;
+        }
+
+        if (typeFilter) {
+          const isRedHat = typeFilter === ImageTypeFilter.redHat;
+          if (image.isOOTB !== isRedHat) {
+            return false;
+          }
+        }
+
+        if (enabledFilter) {
+          const isEnabled = enabledFilter === ImageEnabledFilter.enabled;
+          if (isEnabled !== isImageEffectivelyEnabled(image)) {
+            return false;
+          }
+        }
+
+        return true;
       }),
     [images, filterData],
   );
@@ -68,6 +94,7 @@ export const BYONImagesTable: React.FC<BYONImagesTableProps> = ({ images }) => {
             rowIndex={index}
             key={image.id}
             obj={image}
+            images={images}
             onEditImage={(i) => setEditImage(i)}
             onDeleteImage={(i) => setDeleteImage(i)}
             hardwareProfiles={hardwareProfiles}

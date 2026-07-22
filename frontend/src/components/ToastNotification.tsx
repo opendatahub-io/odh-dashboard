@@ -5,10 +5,10 @@ import {
   AlertActionLink,
   AlertVariant,
 } from '@patternfly/react-core';
+import { asEnumMember } from '@odh-dashboard/foundation';
 import { AppNotification } from '#~/redux/types';
 import { ackNotification, hideNotification } from '#~/redux/actions/actions';
 import { useAppDispatch } from '#~/redux/hooks';
-import { asEnumMember } from '#~/utilities/utils';
 
 const TOAST_NOTIFICATION_TIMEOUT = 8 * 1000;
 

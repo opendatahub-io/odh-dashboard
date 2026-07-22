@@ -22,11 +22,12 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/config"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/bffclient"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/bffclient/bffmocks"
 	k8s "github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes/k8smocks"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack/lsmocks"
-	maasmocks "github.com/opendatahub-io/gen-ai/internal/integrations/maas/maasmocks"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/nemo"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/nemo/nemomocks"
 	"github.com/opendatahub-io/gen-ai/internal/models"
@@ -1722,7 +1723,7 @@ func (f *guardrailTestK8sFactory) ValidateRequestIdentity(_ *integrations.Reques
 
 // TestGetGuardrailModelEndpointAndKey_MaaS verifies that both the explicit
 // (guardrail_model_source_type: "maas") and auto-detect paths resolve the NeMo
-// openai_api_base to the model-specific inference URL from the live MaaS catalog,
+// base_url to the model-specific inference URL from the live MaaS catalog,
 // not to the MaaS management API (resolveMaaSBaseURL).
 func TestGetGuardrailModelEndpointAndKey_MaaS(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{Level: slog.LevelDebug}))
@@ -1758,7 +1759,8 @@ func TestGetGuardrailModelEndpointAndKey_MaaS(t *testing.T) {
 		ctx := context.Background()
 		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{Token: "test-token"})
 		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, testutil.TestNamespace)
-		ctx = context.WithValue(ctx, constants.MaaSClientKey, maasmocks.NewMockMaaSClient())
+		// Use BFF client mock instead of direct MaaS client
+		ctx = context.WithValue(ctx, constants.BFFClientKey(constants.BFFTarget(bffclient.BFFTargetMaaS)), bffmocks.NewMockBFFClient(bffclient.BFFTargetMaaS))
 		return ctx
 	}
 
@@ -2576,14 +2578,14 @@ func TestAsyncModerationWithReasoning(t *testing.T) {
 
 		done := make(chan bool)
 		go func() {
-			app.handleStreamingResponseAsync(rr, req, ctx, params)
+			app.handleStreamingResponseWithModeration(rr, req, ctx, params, nil)
 			done <- true
 		}()
 
 		select {
 		case <-done:
 		case <-time.After(30 * time.Second):
-			t.Fatal("handleStreamingResponseAsync did not complete in time")
+			t.Fatal("handleStreamingResponseWithModeration did not complete in time")
 		}
 
 		body := rr.Body.String()
@@ -2634,14 +2636,14 @@ func TestAsyncModerationWithReasoning(t *testing.T) {
 
 		done := make(chan bool)
 		go func() {
-			app.handleStreamingResponseAsync(rr, req, ctx, params)
+			app.handleStreamingResponseWithModeration(rr, req, ctx, params, nil)
 			done <- true
 		}()
 
 		select {
 		case <-done:
 		case <-time.After(30 * time.Second):
-			t.Fatal("handleStreamingResponseAsync did not complete in time")
+			t.Fatal("handleStreamingResponseWithModeration did not complete in time")
 		}
 
 		assert.Greater(t, len(moderatedTexts), 0, "guardrails should have been called with output text")
@@ -2672,13 +2674,13 @@ func TestAsyncModerationWithReasoning(t *testing.T) {
 		rr := httptest.NewRecorder()
 		done := make(chan bool)
 		go func() {
-			app.handleStreamingResponseAsync(rr, req, ctx, params)
+			app.handleStreamingResponseWithModeration(rr, req, ctx, params, nil)
 			done <- true
 		}()
 		select {
 		case <-done:
 		case <-time.After(30 * time.Second):
-			t.Fatal("handleStreamingResponseAsync did not complete in time")
+			t.Fatal("handleStreamingResponseWithModeration did not complete in time")
 		}
 
 		var eventTypes []string

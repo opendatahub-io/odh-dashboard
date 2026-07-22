@@ -1,5 +1,8 @@
 import * as React from 'react';
 import { Form, FormGroup, FormSection } from '@patternfly/react-core';
+import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
+import type { ValueOf } from '@odh-dashboard/foundation';
+import DashboardHelpTooltip from '@odh-dashboard/ui-core/components/DashboardHelpTooltip';
 import NameDescriptionField from '#~/concepts/k8s/NameDescriptionField';
 import {
   MlflowFormData,
@@ -7,7 +10,6 @@ import {
   RunFormData,
   RunTypeOption,
 } from '#~/concepts/pipelines/content/createRun/types';
-import { ValueOf } from '#~/typeHelpers';
 import { ParamsSection } from '#~/concepts/pipelines/content/createRun/contentSections/ParamsSection/ParamsSection';
 import RunTypeSectionScheduled from '#~/concepts/pipelines/content/createRun/contentSections/RunTypeSectionScheduled';
 import {
@@ -17,7 +19,6 @@ import {
   RuntimeConfigParameters,
 } from '#~/concepts/pipelines/kfTypes';
 import ProjectSection from '#~/concepts/pipelines/content/createRun/contentSections/ProjectSection';
-import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 import { ActiveExperimentSelector } from '#~/concepts/pipelines/content/experiment/ExperimentSelector';
 import { useLatestPipelineVersion } from '#~/concepts/pipelines/apiHooks/useLatestPipelineVersion';
 import { getNameEqualsFilter } from '#~/concepts/pipelines/utils';
@@ -30,7 +31,6 @@ import {
   DESCRIPTION_CHARACTER_LIMIT,
 } from '#~/concepts/pipelines/content/const';
 import { runGroupCreateModalPopoverText } from '#~/pages/pipelines/global/runs/const';
-import DashboardHelpTooltip from '#~/concepts/dashboard/DashboardHelpTooltip';
 import useIsMlflowPipelinesAvailable from '#~/concepts/mlflow/hooks/useIsMlflowPipelinesAvailable';
 import MlflowIntegrationSection from './contentSections/MlflowIntegrationSection';
 import PipelineSection from './contentSections/PipelineSection';

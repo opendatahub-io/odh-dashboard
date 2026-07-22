@@ -1,14 +1,19 @@
 import { renderHook, act } from '@testing-library/react';
-import { InferenceServiceKind } from '#~/k8sTypes';
-import { getInferenceServiceModelState } from '#~/concepts/modelServingKServe/kserveStatusUtils';
+import type { InferenceServiceKind } from '@odh-dashboard/model-serving/shared';
+import {
+  ModelDeploymentState,
+  getInferenceServiceModelState,
+} from '@odh-dashboard/model-serving/shared';
 import { FAST_POLL_INTERVAL } from '#~/utilities/const';
 import { useInferenceServiceStatus } from '#~/pages/modelServing/useInferenceServiceStatus.ts';
-import { ModelDeploymentState } from '#~/pages/modelServing/screens/types';
 import { getInferenceServiceStoppedStatus } from '#~/pages/modelServing/utils';
 
 // Mock dependencies
 jest.mock('#~/pages/modelServing/useModelPodStatus');
-jest.mock('#~/concepts/modelServingKServe/kserveStatusUtils');
+jest.mock('@odh-dashboard/model-serving/shared', () => ({
+  ...jest.requireActual('@odh-dashboard/model-serving/shared'),
+  getInferenceServiceModelState: jest.fn(),
+}));
 jest.mock('#~/pages/modelServing/utils');
 jest.mock('#~/utilities/const', () => ({
   FAST_POLL_INTERVAL: 3000,

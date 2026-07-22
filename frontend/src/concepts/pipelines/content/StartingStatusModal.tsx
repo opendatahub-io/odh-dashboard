@@ -13,6 +13,8 @@ import {
   Content,
   Alert,
 } from '@patternfly/react-core';
+import type { K8sCondition } from '@odh-dashboard/k8s-core';
+import ContentModal, { ButtonAction } from '@odh-dashboard/ui-core/components/ContentModal';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import {
   getStatusFromCondition,
@@ -21,11 +23,10 @@ import {
 import PipelineComponentStatusIcon, {
   StatusType,
 } from '#~/concepts/pipelines/content/PipelineComponentStatusIcon.tsx';
-import { K8sCondition, K8sDspaConditionReason } from '#~/k8sTypes';
+import { K8sDspaConditionReason } from '#~/k8sTypes';
 import { useWatchAllPodEventsAndFilter } from '#~/concepts/pipelines/context/usePipelineEvents.ts';
 import EventLog from '#~/concepts/k8s/EventLog/EventLog';
-import ContentModal, { ButtonAction } from '#~/components/modals/ContentModal.tsx';
-import '#~/concepts/dashboard/ModalStyles.scss';
+import '@odh-dashboard/ui-core/components/ModalStyles.scss';
 
 const PROGRESS_TAB = 'Progress';
 const EVENT_LOG_TAB = 'Events log';

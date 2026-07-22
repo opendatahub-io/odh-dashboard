@@ -13,6 +13,7 @@ import {
   getPerformanceFiltersToShow,
   getAllFiltersToShow,
   BASIC_FILTER_KEYS,
+  RESET_ALL_FILTERS_LABEL,
 } from '~/concepts/modelCatalog/const';
 import { isValueDifferentFromDefault } from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
 import WorkloadTypeFilter from './globalFilters/WorkloadTypeFilter';
@@ -42,7 +43,7 @@ const HardwareConfigurationFilterToolbar: React.FC<HardwareConfigurationFilterTo
     filterOptions,
     filterOptionsLoaded,
     filterOptionsLoadError,
-    filterData,
+    filters,
     getPerformanceFilterDefaultValue,
   } = React.useContext(ModelCatalogContext);
 
@@ -51,16 +52,16 @@ const HardwareConfigurationFilterToolbar: React.FC<HardwareConfigurationFilterTo
   // - includePerformanceFilters: show performance filters (Workload type, Hardware type, Max RPS, Latency)
   const filtersToShow = React.useMemo(() => {
     if (includeBasicFilters && includePerformanceFilters) {
-      return getAllFiltersToShow(filterData);
+      return getAllFiltersToShow(filters);
     }
     if (includePerformanceFilters) {
-      return getPerformanceFiltersToShow(filterData);
+      return getPerformanceFiltersToShow(filters);
     }
     if (includeBasicFilters) {
       return BASIC_FILTER_KEYS;
     }
     return [];
-  }, [filterData, includeBasicFilters, includePerformanceFilters]);
+  }, [filters, includeBasicFilters, includePerformanceFilters]);
 
   // Check if there are any visible filter chips (to control "Clear all filters" button visibility)
   // A chip is visible if:
@@ -69,7 +70,7 @@ const HardwareConfigurationFilterToolbar: React.FC<HardwareConfigurationFilterTo
   const hasVisibleChips = React.useMemo(
     () =>
       filtersToShow.some((filterKey) => {
-        const filterValue = filterData[filterKey];
+        const filterValue = filters[filterKey];
 
         // Skip if no value is set
         if (!filterValue) {
@@ -90,7 +91,7 @@ const HardwareConfigurationFilterToolbar: React.FC<HardwareConfigurationFilterTo
         // For filters without defaults, any non-empty value means visible
         return true;
       }),
-    [filtersToShow, filterData, getPerformanceFilterDefaultValue],
+    [filtersToShow, filters, getPerformanceFilterDefaultValue],
   );
 
   if (!filterOptionsLoaded || filterOptionsLoadError || !filterOptions) {
@@ -101,7 +102,7 @@ const HardwareConfigurationFilterToolbar: React.FC<HardwareConfigurationFilterTo
     <Toolbar
       className="pf-v6-u-pb-0"
       {...(onResetAllFilters && hasVisibleChips
-        ? { clearAllFilters: onResetAllFilters, clearFiltersButtonText: 'Reset all defaults' }
+        ? { clearAllFilters: onResetAllFilters, clearFiltersButtonText: RESET_ALL_FILTERS_LABEL }
         : {})}
     >
       <ToolbarContent rowWrap={{ default: 'wrap' }}>
@@ -173,13 +174,13 @@ const HardwareConfigurationFilterToolbar: React.FC<HardwareConfigurationFilterTo
           <ToolbarItem>
             <ColdStartLatencyFilter />
             <Popover
-              bodyContent="The estimated time required to provision hardware resources and initialize the container before the model can accept traffic."
+              bodyContent="Set the maximum acceptable time that it can take for vLLM to load the model. This does not include the time it takes to download the model."
               appendTo={() => document.body}
               position="top"
             >
               <Button
                 variant="plain"
-                aria-label="More info for cold start latency"
+                aria-label="More info for cold start load time"
                 className="pf-v6-u-p-xs"
                 icon={<HelpIcon />}
               />

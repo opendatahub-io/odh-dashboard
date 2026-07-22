@@ -1,4 +1,4 @@
-import type { InferenceServiceKind } from '@odh-dashboard/internal/k8sTypes';
+import type { InferenceServiceKind } from '@odh-dashboard/model-serving/shared';
 import { mockInferenceServiceK8sResource } from '@odh-dashboard/internal/__mocks__/mockInferenceServiceK8sResource';
 import {
   applyTimeoutConfig,

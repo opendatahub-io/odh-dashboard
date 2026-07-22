@@ -5,7 +5,7 @@ import SubscriptionDropdown from '~/app/Chatbot/components/SubscriptionDropdown'
 import { ChatbotContext } from '~/app/context/ChatbotContext';
 import { MaaSModel } from '~/app/types';
 
-jest.mock('@odh-dashboard/internal/components/FieldGroupHelpLabelIcon', () => ({
+jest.mock('@odh-dashboard/ui-core/components/FieldGroupHelpLabelIcon', () => ({
   __esModule: true,
   default: ({ content }: { content: string }) => (
     <span data-testid="help-label-icon">{content}</span>
@@ -283,5 +283,20 @@ describe('SubscriptionDropdown', () => {
     );
 
     expect(screen.getByTestId('help-label-icon')).toBeInTheDocument();
+  });
+
+  it('should disable the toggle when isDisabled is true', () => {
+    const model = createMaaSModel({
+      id: 'test-model',
+      subscriptions: [{ name: 'sub-1', displayName: 'Sub One' }],
+    });
+
+    render(
+      <TestWrapper maasModels={[model]}>
+        <SubscriptionDropdown {...defaultProps} selectedSubscription="sub-1" isDisabled />
+      </TestWrapper>,
+    );
+
+    expect(screen.getByRole('button', { name: /sub one/i })).toBeDisabled();
   });
 });

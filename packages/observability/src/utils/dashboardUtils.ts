@@ -1,9 +1,10 @@
 import type { DashboardResource } from '@perses-dev/core';
-import type { AccessReviewResourceAttributes } from '@odh-dashboard/internal/k8sTypes';
+import type { AccessReviewResourceAttributes } from '@odh-dashboard/k8s-core';
 import { isClusterDetailsVariable } from './variables';
 
 export const BASE_PATH = '/observe-and-monitor/dashboard';
-export const DASHBOARD_QUERY_PARAM = 'dashboard';
+export const DASHBOARD_URL_PARAM = 'dashboard';
+export const NAMESPACE_URL_PARAM = 'var-namespace';
 
 const PERSES_DASHBOARD_PREFIX = 'dashboard-';
 const PERSES_DASHBOARD_ADMIN_SUFFIX = '-admin';
@@ -27,49 +28,25 @@ export const THANOS_QUERIER_NON_TENANCY_ACCESS: AccessReviewResourceAttributes =
 };
 
 /**
- * Perses dashboards backed by the Thanos querier non-tenancy path (cluster-wide metrics).
- * Gated by {@link THANOS_QUERIER_NON_TENANCY_ACCESS}.
- */
-export const THANOS_NON_TENANCY_GATED_DASHBOARD_NAMES: ReadonlySet<string> = new Set([
-  'dashboard-0-cluster-admin',
-  'dashboard-1-model',
-]);
-
-/**
- * Removes dashboards that require Thanos non-tenancy / cluster-monitoring-equivalent access
- * when the user fails the corresponding RBAC check.
- */
-export const filterDashboardsByThanosNonTenancyAccess = (
-  dashboards: DashboardResource[],
-  canAccessThanosNonTenancy: boolean,
-): DashboardResource[] => {
-  if (canAccessThanosNonTenancy) {
-    return dashboards;
-  }
-  return dashboards.filter(
-    ({ metadata: { name } }) => !THANOS_NON_TENANCY_GATED_DASHBOARD_NAMES.has(name),
-  );
-};
-
-/**
- * Filters and sorts dashboards according to user admin status.
+ * Filters and sorts dashboards according to cluster metrics access.
  * - Only includes dashboards with names starting with PERSES_DASHBOARD_PREFIX
- * - Non-admin users are excluded from dashboards ending with PERSES_DASHBOARD_ADMIN_SUFFIX
- * - Admin users see the `-admin` variant when both `X` and `X-admin` exist
+ * - Users without cluster metrics access are excluded from dashboards ending with
+ *   PERSES_DASHBOARD_ADMIN_SUFFIX
+ * - Users with cluster metrics access see the `-admin` variant when both `X` and `X-admin` exist
  * - Results are sorted lexicographically by metadata.name
  * @param dashboards - List of dashboard resources
- * @param isAdminUser - Boolean flag indicating if the user is an admin
+ * @param hasClusterMetricsAccess - Whether the user has cluster-scoped metrics access
  * @returns Filtered and sorted dashboards
  */
 export function filterDashboards(
   dashboards: DashboardResource[],
-  isAdminUser: boolean,
+  hasClusterMetricsAccess: boolean,
 ): DashboardResource[] {
   const prefixed = dashboards.filter(({ metadata: { name } }) =>
     name.startsWith(PERSES_DASHBOARD_PREFIX),
   );
 
-  if (!isAdminUser) {
+  if (!hasClusterMetricsAccess) {
     return prefixed
       .filter(({ metadata: { name } }) => !name.endsWith(PERSES_DASHBOARD_ADMIN_SUFFIX))
       .toSorted(({ metadata: { name: a } }, { metadata: { name: b } }) => a.localeCompare(b));
@@ -94,7 +71,7 @@ export function filterDashboards(
  */
 export const buildDashboardUrl = (dashboardName: string, currentSearch?: string): string => {
   const params = new URLSearchParams(currentSearch);
-  params.set(DASHBOARD_QUERY_PARAM, dashboardName);
+  params.set(DASHBOARD_URL_PARAM, dashboardName);
   return `${BASE_PATH}?${params.toString()}`;
 };
 
@@ -110,4 +87,12 @@ export const getDashboardDisplayName = (dashboard: DashboardResource): string =>
 export const hasClusterDetailsVariables = (dashboard: DashboardResource): boolean => {
   const { variables = [] } = dashboard.spec;
   return variables.some((variable) => isClusterDetailsVariable(variable.spec.name));
+};
+
+/**
+ * Check if a dashboard has a `namespace` variable (project-scoped / tenancy metrics).
+ */
+export const hasNamespaceVariable = (dashboard: DashboardResource): boolean => {
+  const { variables = [] } = dashboard.spec;
+  return variables.some((variable) => variable.spec.name === 'namespace');
 };

@@ -7,6 +7,7 @@ import { useLineageCenter } from '@odh-dashboard/internal/components/lineage/con
 import FeatureStoreLineageNode from './node/FeatureStoreLineageNode';
 import FeatureStoreLineageNodePopover from './node/FeatureStoreLineageNodePopover';
 import { applyLineageFilters } from './utils';
+import { LineagePageProvider } from './LineagePageContext';
 import FeatureStoreLineageToolbar from '../../components/FeatureStoreLineageToolbar';
 import useFeatureStoreLineage from '../../apiHooks/useFeatureStoreLineage';
 import useFeatureViewLineage from '../../apiHooks/useFeatureViewLineage';
@@ -42,7 +43,6 @@ const FeatureStoreLineageComponent: React.FC<FeatureStoreLineageComponentProps> 
   const [searchFilters, setSearchFilters] = useState<FeatureStoreLineageSearchFilters>({});
   const [currentFilterType, setCurrentFilterType] =
     useState<keyof FeatureStoreLineageSearchFilters>('entity');
-  const [conversionError, setConversionError] = useState<string | null>(null);
   const { triggerCenter, forceCenter } = useLineageCenter();
   const [lineageKey, setLineageKey] = useState(0);
   const featureViewLineageState = useFeatureViewLineage(project, featureViewName);
@@ -66,12 +66,11 @@ const FeatureStoreLineageComponent: React.FC<FeatureStoreLineageComponentProps> 
     [],
   );
 
-  const visualizationData = useMemo(() => {
-    setConversionError(null);
+  const { visualizationData, conversionError } = useMemo(() => {
+    const empty = { nodes: [], edges: [] };
 
     if (!lineageDataLoaded || error) {
-      // Return empty data when loading or error - let the Lineage component handle these states
-      return { nodes: [], edges: [] };
+      return { visualizationData: empty, conversionError: null };
     }
 
     if (featureViewName) {
@@ -89,10 +88,12 @@ const FeatureStoreLineageComponent: React.FC<FeatureStoreLineageComponentProps> 
           searchFilters,
         });
 
-        return filteredResult;
+        return { visualizationData: filteredResult, conversionError: null };
       } catch (err) {
-        setConversionError(`Failed to process feature view lineage data: ${String(err)}`);
-        return { nodes: [], edges: [] };
+        return {
+          visualizationData: empty,
+          conversionError: `Failed to process feature view lineage data: ${String(err)}`,
+        };
       }
     }
 
@@ -108,15 +109,16 @@ const FeatureStoreLineageComponent: React.FC<FeatureStoreLineageComponentProps> 
           searchFilters,
         });
 
-        return filteredResult;
+        return { visualizationData: filteredResult, conversionError: null };
       } catch (err) {
-        setConversionError(`Failed to process lineage data: ${String(err)}`);
-        return { nodes: [], edges: [] };
+        return {
+          visualizationData: empty,
+          conversionError: `Failed to process lineage data: ${String(err)}`,
+        };
       }
     }
 
-    // No data available - return empty data for proper empty state
-    return { nodes: [], edges: [] };
+    return { visualizationData: empty, conversionError: null };
   }, [
     lineageData,
     lineageDataLoaded,
@@ -187,24 +189,26 @@ const FeatureStoreLineageComponent: React.FC<FeatureStoreLineageComponentProps> 
       padding={{ default: 'noPadding' }}
       style={{ height, display: 'flex', flexDirection: 'column' }}
     >
-      <Lineage
-        key={lineageKey}
-        data={visualizationData}
-        loading={!lineageDataLoaded}
-        error={
-          error ? `Failed to load lineage data: ${String(error)}` : conversionError || undefined
-        }
-        emptyStateMessage={
-          featureViewName
-            ? 'No lineage data available for this feature view'
-            : 'No lineage data available for this feature store'
-        }
-        height="100%"
-        componentFactory={componentFactory}
-        popoverComponent={PopoverComponent}
-        toolbarComponent={ToolbarComponent}
-        autoResetOnDataChange
-      />
+      <LineagePageProvider pageType={featureViewName ? 'detail' : 'overview'}>
+        <Lineage
+          key={lineageKey}
+          data={visualizationData}
+          loading={!lineageDataLoaded}
+          error={
+            error ? `Failed to load lineage data: ${String(error)}` : conversionError || undefined
+          }
+          emptyStateMessage={
+            featureViewName
+              ? 'No lineage data available for this feature view'
+              : 'No lineage data available for this feature store'
+          }
+          height="100%"
+          componentFactory={componentFactory}
+          popoverComponent={PopoverComponent}
+          toolbarComponent={ToolbarComponent}
+          autoResetOnDataChange
+        />
+      </LineagePageProvider>
     </PageSection>
   );
 };

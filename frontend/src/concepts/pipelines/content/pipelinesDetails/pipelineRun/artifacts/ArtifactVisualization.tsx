@@ -13,8 +13,9 @@ import {
 } from '@patternfly/react-core';
 import { TableVariant, Td, Tr } from '@patternfly/react-table';
 
+import { Table } from '@odh-dashboard/ui-core';
+import { useDeepCompareMemoize } from '@odh-dashboard/ui-core/hooks';
 import { Artifact } from '#~/third_party/mlmd';
-import { Table } from '#~/components/table';
 import { ArtifactType } from '#~/concepts/pipelines/kfTypes';
 import {
   buildRocCurveConfig,
@@ -26,7 +27,6 @@ import { buildConfusionMatrixConfig } from '#~/concepts/pipelines/content/artifa
 import { isConfusionMatrix } from '#~/concepts/pipelines/content/compareRuns/metricsSection/confusionMatrix/utils';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import { useArtifactStorage } from '#~/concepts/pipelines/apiHooks/useArtifactStorage';
-import { useDeepCompareMemoize } from '#~/utilities/useDeepCompareMemoize';
 import { getArtifactProperties } from './utils';
 
 interface ArtifactVisualizationProps {

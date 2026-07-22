@@ -2,10 +2,10 @@ import type {
   AreaExtension,
   HrefNavItemExtension,
   RouteExtension,
+  TabRouteTabExtension,
   TaskItemExtension,
 } from '@odh-dashboard/plugin-core/extension-points';
-// eslint-disable-next-line no-restricted-syntax
-import { SupportedArea } from '@odh-dashboard/internal/concepts/areas/types';
+import { SupportedArea } from '@odh-dashboard/plugin-core/areas';
 // eslint-disable-next-line no-restricted-syntax
 import {
   globPromptManagementAll,
@@ -22,7 +22,13 @@ import { PROMPT_MANAGEMENT_PAGE_TITLE } from './shared/const';
 /**
  * MLflow host-side extensions.
  */
-const extensions: (AreaExtension | HrefNavItemExtension | RouteExtension | TaskItemExtension)[] = [
+const extensions: (
+  | AreaExtension
+  | HrefNavItemExtension
+  | RouteExtension
+  | TabRouteTabExtension
+  | TaskItemExtension
+)[] = [
   {
     type: 'app.area',
     properties: {
@@ -78,6 +84,21 @@ const extensions: (AreaExtension | HrefNavItemExtension | RouteExtension | TaskI
     properties: {
       path: globPromptManagementAll,
       component: () => import('./prompts/GlobalMLflowPromptManagementRoutes'),
+    },
+  },
+  {
+    type: 'app.tab-route/tab',
+    flags: {
+      required: [SupportedArea.MLFLOW, SupportedArea.MCP_CATALOG, SupportedArea.MCP_REGISTRY],
+    },
+    properties: {
+      pageId: 'mcp-servers-tab-page',
+      id: 'registry',
+      title: 'Registry',
+      singleTabTitle: 'Registry',
+      objectType: 'mcp-catalog',
+      component: () => import('./mcp-registry/MlflowMcpRegistryTabContent'),
+      group: '1b_registry',
     },
   },
   {

@@ -1,15 +1,20 @@
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import useNotification from '#~/utilities/useNotification';
-import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 import { KueueWorkloadStatus, type KueueWorkloadStatusWithMessage } from '#~/concepts/kueue/types';
 import {
   getHumanReadableKueueMessage,
   getPreemptionToastBody,
+  getEvictionToastBody,
 } from '#~/concepts/kueue/messageUtils';
 import { NotebookState } from './types';
 
-const ALERT_STATUSES = new Set([KueueWorkloadStatus.Failed, KueueWorkloadStatus.Preempted]);
+const ALERT_STATUSES = new Set([
+  KueueWorkloadStatus.Failed,
+  KueueWorkloadStatus.Preempted,
+  KueueWorkloadStatus.Evicted,
+]);
 
 const buildSnapshot = (
   notebookStates: NotebookState[],
@@ -48,12 +53,15 @@ const fireAlert = (
   } else if (kueueInfo.status === KueueWorkloadStatus.Preempted) {
     const body = getPreemptionToastBody(displayName, kueueInfo.timestamp);
     notification.warning(`Workbench ${displayName} was preempted`, body, actions);
+  } else if (kueueInfo.status === KueueWorkloadStatus.Evicted) {
+    const body = getEvictionToastBody(displayName, kueueInfo.message);
+    notification.warning(`Workbench ${displayName} was evicted`, body, actions);
   }
 };
 
 /**
- * Watches for Kueue status transitions to Failed or Preempted and fires
- * toast notifications. Waits until Kueue data is loaded before recording
+ * Watches for Kueue status transitions to Failed, Preempted, or Evicted and
+ * fires toast notifications. Waits until Kueue data is loaded before recording
  * the baseline snapshot so that pre-existing statuses don't trigger
  * false alerts on page load.
  */
@@ -77,8 +85,11 @@ const useKueueNotebookAlerts = (
       for (const state of notebookStates) {
         const { name } = state.notebook.metadata;
         const current = snapshot[name];
-        const previous = prevStatusRef.current[name] ?? null;
+        if (!Object.prototype.hasOwnProperty.call(prevStatusRef.current, name)) {
+          continue;
+        }
 
+        const previous = prevStatusRef.current[name];
         const kueueInfo = kueueStatusByNotebookName[name];
         if (current && current !== previous && ALERT_STATUSES.has(current) && kueueInfo) {
           fireAlert(notification, navigate, state, kueueInfo);
