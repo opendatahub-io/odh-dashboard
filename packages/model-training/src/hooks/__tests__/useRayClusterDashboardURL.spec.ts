@@ -551,6 +551,39 @@ describe('useRayClusterDashboardURL', () => {
     expect(route).toEqual(mockHTTPRouteResource('/ray/ray-jobs/existing-ray-cluster/#/'));
   });
 
+  it('should resolve HTTPRoute from fallback namespace when first namespace returns 403', async () => {
+    const forbiddenError = Object.assign(new Error('forbidden'), {
+      statusObject: { code: 403 },
+    });
+    mockK8sGetResource
+      .mockRejectedValueOnce(forbiddenError)
+      .mockResolvedValueOnce(mockHTTPRouteResource('/ray/ray-jobs/existing-ray-cluster/#/'));
+
+    let fetchCallback: (() => Promise<unknown>) | undefined;
+    let callCount = 0;
+    useFetchMock.mockImplementation((callback) => {
+      callCount++;
+      if (callCount <= 2) {
+        return callCount === 1
+          ? loadedFetch(mockGatewayResource('rh-ai.apps.example.com'))
+          : pendingFetch();
+      }
+
+      fetchCallback = callback as () => Promise<unknown>;
+      return pendingFetch();
+    });
+
+    testHook(useRayClusterDashboardURL)('existing-ray-cluster', 'ray-jobs');
+
+    if (!fetchCallback) {
+      throw new Error('Expected HTTPRoute fetch callback');
+    }
+    const route = await fetchCallback();
+
+    expect(mockK8sGetResource).toHaveBeenCalledTimes(2);
+    expect(route).toEqual(mockHTTPRouteResource('/ray/ray-jobs/existing-ray-cluster/#/'));
+  });
+
   it('should return null when HTTPRoute is missing from all namespaces', async () => {
     const notFoundError = Object.assign(new Error('not found'), {
       statusObject: { code: 404 },

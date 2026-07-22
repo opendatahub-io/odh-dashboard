@@ -4,6 +4,7 @@ resources:
   - ./fetch-builds-and-images.rbac.yaml
   - ./fetch-hardwares.rbac.yaml
   - ./fetch-nim-account.rbac.yaml
+  - ./fetch-ray-dashboard-url.rbac.yaml
   - ./gen-ai-aa-mcp-servers.rbac.yaml
   - ./model-serving-llmisvcconfig.rbac.yaml
   - ./model-serving-role.yaml
