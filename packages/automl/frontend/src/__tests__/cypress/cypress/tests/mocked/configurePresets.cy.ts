@@ -4,25 +4,25 @@ import { mockNamespace } from '~/__mocks__/mockNamespace';
 import { mockUserSettings } from '~/__mocks__/mockUserSettings';
 import { mockStorageSecret } from '~/__mocks__/mockSecretListItem';
 import { mockS3ListObjectsResponse } from '~/__mocks__/mockS3ListObjectsResponse';
+import { mockColumnSchema } from '~/__mocks__/mockColumnSchema';
 import { automlConfigurePage } from '~/__tests__/cypress/cypress/pages/automlConfigure';
 import { CLIENT_API_VERSION } from '~/__tests__/cypress/cypress/support/commands/api';
 
 const TEST_NAMESPACE = 'test-ns';
 
 const MOCK_COLUMNS = [
-  {
+  mockColumnSchema({
     name: 'approval_status',
     type: 'string',
     task_type: 'binary',
     unique_count: 2,
-    values: ['approved', 'denied'],
-  },
-  {
+  }),
+  mockColumnSchema({
     name: 'credit_score',
     type: 'integer',
     task_type: 'regression',
     unique_count: 3,
-  },
+  }),
 ];
 
 const initIntercepts = () => {
