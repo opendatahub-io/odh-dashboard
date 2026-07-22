@@ -114,7 +114,7 @@ function isTypeDefinitionFile(filePath) {
         );
       const hasRuntimeCode = lines.some(
         (l) =>
-          /^\s*(export\s+)?(const|let|var|function|class|if|for|while|switch|return|throw|try|catch)\b/.test(
+          /^\s*(export\s+)?(const|let|var|function|class|enum|if|for|while|switch|return|throw|try|catch)\b/.test(
             l,
           ) && !/^\s*(export\s+)?(type|interface)\b/.test(l),
       );

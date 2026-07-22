@@ -53,8 +53,7 @@ flags:
     carryforward: true
 
 ignore:
-  - "**/*Types.ts"
-  - "**/*types.ts"
+  - "**/types.ts"
   - "**/*.d.ts"
   - "**/third_party/**"
   - "packages/eslint-config/**"
