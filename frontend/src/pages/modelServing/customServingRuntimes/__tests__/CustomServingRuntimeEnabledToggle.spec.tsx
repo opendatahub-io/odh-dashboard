@@ -1,9 +1,12 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import type { TemplateKind } from '@odh-dashboard/k8s-core';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
-import { fireRiskDismissed } from '@odh-dashboard/model-serving/tracking/limitedSupportTracking';
+import {
+  fireRiskAccepted,
+  fireRiskDismissed,
+} from '@odh-dashboard/model-serving/tracking/limitedSupportTracking';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import { mockServingRuntimeTemplateK8sResource } from '@odh-dashboard/internal/__mocks__/mockServingRuntimeTemplateK8sResource';
 import type { CustomWatchK8sResult } from '#~/types';
@@ -28,6 +31,7 @@ jest.mock('#~/services/templateService', () => ({
 }));
 
 jest.mock('@odh-dashboard/model-serving/tracking/limitedSupportTracking', () => ({
+  fireRiskAccepted: jest.fn(),
   fireRiskDismissed: jest.fn(),
   getResourceVersions: jest.fn(() => ({
     version: '1.0.0',
@@ -35,6 +39,7 @@ jest.mock('@odh-dashboard/model-serving/tracking/limitedSupportTracking', () => 
   })),
 }));
 
+const mockFireRiskAccepted = jest.mocked(fireRiskAccepted);
 const mockFireRiskDismissed = jest.mocked(fireRiskDismissed);
 
 const mockContextValue = {
@@ -64,6 +69,35 @@ const renderWithContext = (template: ReturnType<typeof mockServingRuntimeTemplat
 describe('CustomServingRuntimeEnabledToggle', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+  });
+
+  it('should fire risk accepted event when modal accept is clicked', async () => {
+    const template = mockServingRuntimeTemplateK8sResource({
+      name: 'fast-vllm-template',
+      displayName: 'Fast vLLM Runtime',
+      annotations: {
+        'opendatahub.io/support-status': 'unsupported',
+      },
+    });
+
+    renderWithContext(template);
+
+    fireEvent.click(screen.getByRole('switch'));
+    expect(screen.getByTestId('unsupported-status-acceptance-modal')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('unsupported-status-acceptance-checkbox'));
+    fireEvent.click(screen.getByTestId('unsupported-status-accept-button'));
+
+    await waitFor(() => {
+      expect(mockFireRiskAccepted).toHaveBeenCalledWith(
+        expect.objectContaining({
+          runtimeResourceType: 'serving-runtime-template',
+          resourceId: 'fast-vllm-template',
+          outcome: 'submit',
+          success: true,
+        }),
+      );
+    });
   });
 
   it('should fire risk dismissed event with cancel action when modal cancel is clicked', () => {

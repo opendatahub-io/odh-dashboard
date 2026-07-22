@@ -2,7 +2,10 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { mockLLMInferenceServiceConfigK8sResource } from '@odh-dashboard/internal/__mocks__/mockLLMInferenceServiceConfigK8sResource';
-import { fireRiskDismissed } from '@odh-dashboard/model-serving/tracking/limitedSupportTracking';
+import {
+  fireRiskAccepted,
+  fireRiskDismissed,
+} from '@odh-dashboard/model-serving/tracking/limitedSupportTracking';
 import LlmAcceleratorConfigEnabledToggle from '../LlmAcceleratorConfigEnabledToggle';
 import { patchLLMInferenceServiceConfig } from '../../../api/LLMInferenceServiceConfigs';
 import type { LLMInferenceServiceConfigKind } from '../../../types';
@@ -17,6 +20,7 @@ jest.mock('../../../api/LLMInferenceServiceConfigs', () => ({
 }));
 
 jest.mock('@odh-dashboard/model-serving/tracking/limitedSupportTracking', () => ({
+  fireRiskAccepted: jest.fn(),
   fireRiskDismissed: jest.fn(),
   getResourceVersions: jest.fn(() => ({
     version: undefined,
@@ -24,6 +28,7 @@ jest.mock('@odh-dashboard/model-serving/tracking/limitedSupportTracking', () => 
   })),
 }));
 
+const mockFireRiskAccepted = jest.mocked(fireRiskAccepted);
 const mockFireRiskDismissed = jest.mocked(fireRiskDismissed);
 const mockPatchConfig = jest.mocked(patchLLMInferenceServiceConfig);
 
@@ -138,7 +143,7 @@ describe('LlmAcceleratorConfigEnabledToggle', () => {
     expect(mockPatchConfig).not.toHaveBeenCalled();
   });
 
-  it('should patch both annotations on accept from the modal', async () => {
+  it('should patch both annotations on accept from the modal and fire tracking event', async () => {
     const config = mockLLMInferenceServiceConfigK8sResource({ unsupported: true });
 
     render(<LlmAcceleratorConfigEnabledToggle config={config} />);
@@ -161,6 +166,14 @@ describe('LlmAcceleratorConfigEnabledToggle', () => {
       );
     });
 
+    expect(mockFireRiskAccepted).toHaveBeenCalledWith(
+      expect.objectContaining({
+        runtimeResourceType: 'llm-accelerator-config',
+        resourceId: config.metadata.name,
+        outcome: 'submit',
+        success: true,
+      }),
+    );
     expect(screen.queryByTestId('unsupported-status-acceptance-modal')).not.toBeInTheDocument();
   });
 

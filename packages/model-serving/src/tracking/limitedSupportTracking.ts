@@ -6,18 +6,27 @@ import {
 } from '@odh-dashboard/model-serving/concepts/versions';
 import type { UnsupportedStatusDismissAction } from '@odh-dashboard/model-serving/components/UnsupportedStatusAcceptanceModal';
 
-export const LIMITED_SUPPORT_EVENTS = {
-  RISK_DISMISSED: 'Model Serving Unsupported Runtime Risk Dismissed',
-} as const;
+export enum LimitedSupportEvent {
+  RISK_ACCEPTED = 'Model Serving Unsupported Runtime Risk Accepted',
+  RISK_DISMISSED = 'Model Serving Unsupported Runtime Risk Dismissed',
+}
 
 export type RuntimeResourceType = 'serving-runtime-template' | 'llm-accelerator-config';
 
-export type RiskDismissedProperties = {
+type CommonResourceProperties = {
   runtimeResourceType: RuntimeResourceType;
   resourceId: string;
   resourceName: string;
   version: string | undefined;
   fastVersion: string | undefined;
+};
+
+export type RiskAcceptedProperties = CommonResourceProperties & {
+  outcome: 'submit';
+  success: true;
+};
+
+export type RiskDismissedProperties = CommonResourceProperties & {
   dismissAction: UnsupportedStatusDismissAction;
   outcome: 'cancel';
 };
@@ -29,6 +38,10 @@ export const getResourceVersions = (
   fastVersion: getFastVersion(resource),
 });
 
+export const fireRiskAccepted = (properties: RiskAcceptedProperties): void => {
+  fireMiscTrackingEvent(LimitedSupportEvent.RISK_ACCEPTED, properties);
+};
+
 export const fireRiskDismissed = (properties: RiskDismissedProperties): void => {
-  fireMiscTrackingEvent(LIMITED_SUPPORT_EVENTS.RISK_DISMISSED, properties);
+  fireMiscTrackingEvent(LimitedSupportEvent.RISK_DISMISSED, properties);
 };

@@ -9,6 +9,7 @@ import {
 import UnsupportedStatusAcceptanceModal from '@odh-dashboard/model-serving/components/UnsupportedStatusAcceptanceModal';
 import type { UnsupportedStatusDismissAction } from '@odh-dashboard/model-serving/components/UnsupportedStatusAcceptanceModal';
 import {
+  fireRiskAccepted,
   fireRiskDismissed,
   getResourceVersions,
 } from '@odh-dashboard/model-serving/tracking/limitedSupportTracking';
@@ -72,11 +73,19 @@ const LlmAcceleratorConfigEnabledToggle: React.FC<LlmAcceleratorConfigEnabledTog
 
   const handleAccept = React.useCallback(() => {
     setShowAcceptanceModal(false);
+    fireRiskAccepted({
+      runtimeResourceType: 'llm-accelerator-config',
+      resourceId: config.metadata.name,
+      resourceName: getDisplayNameFromK8sResource(config),
+      ...getResourceVersions(config),
+      outcome: 'submit',
+      success: true,
+    });
     patchConfigAnnotations({
       [UNSUPPORTED_STATUS_ACCEPTED_ANNOTATION]: 'true',
       [DISABLED_ANNOTATION]: 'false',
     });
-  }, [patchConfigAnnotations]);
+  }, [config, patchConfigAnnotations]);
 
   return (
     <>

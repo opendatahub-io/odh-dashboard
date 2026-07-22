@@ -14,6 +14,7 @@ import UnsupportedStatusAcceptanceModal from '@odh-dashboard/model-serving/compo
 import type { UnsupportedStatusDismissAction } from '@odh-dashboard/model-serving/components/UnsupportedStatusAcceptanceModal';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import {
+  fireRiskAccepted,
   fireRiskDismissed,
   getResourceVersions,
 } from '@odh-dashboard/model-serving/tracking/limitedSupportTracking';
@@ -107,6 +108,14 @@ const CustomServingRuntimeEnabledToggle: React.FC<CustomServingRuntimeEnabledTog
     // TODO: Use passthrough API once admin panel has been migrated to support it
     patchTemplateAcceptedAnnotationBackend(template.metadata.namespace, template.metadata.name)
       .then(() => {
+        fireRiskAccepted({
+          runtimeResourceType: 'serving-runtime-template',
+          resourceId: template.metadata.name,
+          resourceName: getServingRuntimeDisplayNameFromTemplate(template),
+          ...getResourceVersions(template),
+          outcome: 'submit',
+          success: true,
+        });
         enableTemplate(true);
       })
       .catch((e) => {
