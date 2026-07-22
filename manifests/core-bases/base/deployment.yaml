@@ -86,6 +86,7 @@ spec:
           args:
             - --secure-listen-address=0.0.0.0:8443
             - --upstream=http://localhost:8080
+            - --upstream-timeout=0
             - --config-file=/etc/kube-rbac-proxy/config-file.yaml
             - --tls-cert-file=/etc/tls/private/tls.crt
             - --tls-private-key-file=/etc/tls/private/tls.key

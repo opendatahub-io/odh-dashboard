@@ -165,7 +165,11 @@ describe('AutoragInputParametersPanel', () => {
             max_combinations: 8,
             duration_seconds: 10,
             settings: {
-              vector_store: { datasource_type: 'milvus', collection_name: 'c1' },
+              vector_store_binding: {
+                provider_id: 'milvus-provider',
+                provider_type: 'milvus',
+                vector_store_id: 'vs-1',
+              },
               chunking: { method: 'recursive', chunk_size: 256, chunk_overlap: 32 },
               embedding: {
                 model_id: 'embed-1',
@@ -173,10 +177,6 @@ describe('AutoragInputParametersPanel', () => {
                 embedding_params: {
                   embedding_dimension: 768,
                   context_length: 512,
-                  timeout: null,
-                  model_type: null,
-                  provider_id: null,
-                  provider_resource_id: null,
                 },
               },
               retrieval: { method: 'vector', number_of_chunks: 5 },
@@ -185,11 +185,19 @@ describe('AutoragInputParametersPanel', () => {
                 context_template_text: '',
                 user_message_text: '',
                 system_message_text: '',
-                detected_language: { code: 'de', name: 'German' },
+                language: { code: 'de', name: 'German' },
               },
             },
-            scores: {},
-            final_score: 0.8,
+            evaluation: {
+              metrics: [
+                {
+                  evaluator: 'custom',
+                  name: 'overall_score',
+                  scores: { mean: 0.8, ci_low: null, ci_high: null },
+                  optimization_metric: true,
+                },
+              ],
+            },
           },
         },
       },
@@ -221,6 +229,36 @@ describe('AutoragInputParametersPanel', () => {
       },
     });
     expect(screen.queryByText('Description')).not.toBeInTheDocument();
+  });
+
+  it('should format preset with human-readable label', () => {
+    renderPanel({
+      parameters: {
+        ...defaultParameters,
+        preset: 'speed',
+      },
+    });
+    expect(screen.getByText('Faster')).toBeInTheDocument();
+  });
+
+  it('should format balanced preset with human-readable label', () => {
+    renderPanel({
+      parameters: {
+        ...defaultParameters,
+        preset: 'balanced',
+      },
+    });
+    expect(screen.getByText('Better quality')).toBeInTheDocument();
+  });
+
+  it('should fall back to raw value for unknown preset', () => {
+    renderPanel({
+      parameters: {
+        ...defaultParameters,
+        preset: 'unknown_preset',
+      } as unknown as Partial<ConfigureSchema>,
+    });
+    expect(screen.getByText('unknown_preset')).toBeInTheDocument();
   });
 
   it('should format optimization metric with human-readable label', () => {

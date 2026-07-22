@@ -16,8 +16,12 @@ import {
   Switch,
 } from '@patternfly/react-core';
 import { ArrowLeftIcon } from '@patternfly/react-icons';
-import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import {
+  fireFormTrackingEvent,
+  fireMiscTrackingEvent,
+} from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '@odh-dashboard/internal/concepts/analyticsTracking/trackingProperties';
+import { PLAYGROUND_TRACING_EVENTS } from '~/app/tracking/playgroundTracingTrackingConstants';
 import { GenAiContext } from '~/app/context/GenAiContext';
 import {
   AIModel,
@@ -609,7 +613,13 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
                   </>
                 }
                 isChecked={enableTracing}
-                onChange={(_event, checked) => setEnableTracing(checked)}
+                onChange={(_event, checked) => {
+                  setEnableTracing(checked);
+                  fireMiscTrackingEvent(PLAYGROUND_TRACING_EVENTS.CONFIGURE_TRACING_TOGGLED, {
+                    isEnabled: checked,
+                    source: 'configure_playground_modal',
+                  });
+                }}
                 aria-label="Toggle tracing for this playground"
                 data-testid="enable-tracing-switch"
               />

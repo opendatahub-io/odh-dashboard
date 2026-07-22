@@ -786,7 +786,7 @@ func TestReconcile_PlatformVersionHandshake(t *testing.T) {
 			name: "platformVersion present — echoed to status",
 			platformConfigMap: &corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "opendatahub-dashboard-config",
+					Name:      "odh-dashboard-config",
 					Namespace: testNamespace,
 				},
 				Data: map[string]string{
@@ -799,7 +799,7 @@ func TestReconcile_PlatformVersionHandshake(t *testing.T) {
 			name: "platformVersion key absent — no platform release entry",
 			platformConfigMap: &corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "opendatahub-dashboard-config",
+					Name:      "odh-dashboard-config",
 					Namespace: testNamespace,
 				},
 				Data: map[string]string{

@@ -5,10 +5,13 @@ export type AgentRuntime = {
   description: string;
   framework?: string;
   status: string;
+  statusMessage?: string;
   type: string;
   serviceFqdn?: string;
+  podIp?: string;
   ports: AgentServiceEndpoint[];
   endpointUrl?: string;
+  workloadType?: string;
   lastSyncTime: string;
 };
 

@@ -3,6 +3,8 @@ import {
   Button,
   Card,
   CardBody,
+  CardHeader,
+  CardTitle,
   Content,
   ContentVariants,
   ExpandableSection,
@@ -19,24 +21,32 @@ import type { AutoRAGEvaluationResult, TabContentProps } from '~/app/types/autor
 import { formatPatternName } from '~/app/utilities/utils';
 import SampleQAEntry from '~/app/components/run-results/PatternDetailsModal/components/SampleQAEntry';
 import ComparisonRadarChart from '~/app/components/run-results/PatternDetailsModal/components/ComparisonRadarChart';
+import { collectAllMetricNames } from '~/app/components/run-results/PatternDetailsModal/components/radarChartUtils';
 
 const ComparisonQAEntry: React.FC<{
   primaryResult: AutoRAGEvaluationResult;
   comparisonResult?: AutoRAGEvaluationResult;
   primaryLabel: string;
   comparisonLabel: string;
+  questionNumber: number;
+  allMetricNames: string[];
   onChangeComparisonPattern?: () => void;
 }> = ({
   primaryResult,
   comparisonResult,
   primaryLabel,
   comparisonLabel,
+  questionNumber,
+  allMetricNames,
   onChangeComparisonPattern,
 }) => {
   const [isExpanded, setIsExpanded] = React.useState(false);
 
   return (
     <Card isCompact data-testid={`qa-entry-${primaryResult.question_id}`}>
+      <CardHeader>
+        <CardTitle>Sample question {questionNumber}</CardTitle>
+      </CardHeader>
       <CardBody>
         <Stack hasGutter>
           <StackItem>
@@ -50,17 +60,18 @@ const ComparisonQAEntry: React.FC<{
           {comparisonResult && (
             <StackItem>
               <ComparisonRadarChart
-                primaryScores={primaryResult.scores}
+                primaryMetrics={primaryResult.metrics}
                 primaryLabel={primaryLabel}
-                comparisonScores={comparisonResult.scores}
+                comparisonMetrics={comparisonResult.metrics}
                 comparisonLabel={comparisonLabel}
+                allMetricNames={allMetricNames}
               />
             </StackItem>
           )}
           <StackItem>
             <Grid hasGutter>
               <GridItem span={6} data-testid={`qa-primary-answer-${primaryResult.question_id}`}>
-                <Content component={ContentVariants.small}>
+                <Content component={ContentVariants.p}>
                   <strong>Answer ({primaryLabel})</strong>
                 </Content>
                 <Content component={ContentVariants.p} className="autorag-pre-wrap">
@@ -68,7 +79,7 @@ const ComparisonQAEntry: React.FC<{
                 </Content>
               </GridItem>
               <GridItem span={6} data-testid={`qa-comparison-answer-${primaryResult.question_id}`}>
-                <Content component={ContentVariants.small}>
+                <Content component={ContentVariants.p}>
                   <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
                     <FlexItem>
                       <strong>Answer ({comparisonLabel})</strong>
@@ -122,11 +133,21 @@ const ComparisonQAEntry: React.FC<{
   );
 };
 
+const EMPTY_RESULTS: AutoRAGEvaluationResult[] = [];
+
 const SampleQATab: React.FC<TabContentProps> = ({
   primaryPattern,
   comparisonPattern,
   onChangeComparisonPattern,
 }) => {
+  const primaryResults = primaryPattern.evaluationResults ?? EMPTY_RESULTS;
+  const comparisonResults = comparisonPattern?.evaluationResults ?? EMPTY_RESULTS;
+
+  const allMetricNames = React.useMemo(
+    () => collectAllMetricNames([...primaryResults, ...comparisonResults]),
+    [primaryResults, comparisonResults],
+  );
+
   if (
     primaryPattern.isEvaluationLoading ||
     (comparisonPattern && comparisonPattern.isEvaluationLoading)
@@ -134,21 +155,21 @@ const SampleQATab: React.FC<TabContentProps> = ({
     return <Skeleton screenreaderText="Loading evaluation results" />;
   }
 
-  const primaryResults = primaryPattern.evaluationResults ?? [];
-
   if (!comparisonPattern) {
     return (
       <Stack hasGutter>
         {primaryResults.map((result, index) => (
           <StackItem key={`qa-${result.question_id || index}`}>
-            <SampleQAEntry result={result} />
+            <SampleQAEntry
+              result={result}
+              questionNumber={index + 1}
+              allMetricNames={allMetricNames}
+            />
           </StackItem>
         ))}
       </Stack>
     );
   }
-
-  const comparisonResults = comparisonPattern.evaluationResults ?? [];
   const comparisonByQuestionId = new Map(
     comparisonResults
       .filter((r): r is typeof r & { question_id: string } => !!r.question_id)
@@ -170,6 +191,8 @@ const SampleQATab: React.FC<TabContentProps> = ({
             }
             primaryLabel={primaryLabel}
             comparisonLabel={comparisonLabel}
+            questionNumber={index + 1}
+            allMetricNames={allMetricNames}
             onChangeComparisonPattern={onChangeComparisonPattern}
           />
         </StackItem>

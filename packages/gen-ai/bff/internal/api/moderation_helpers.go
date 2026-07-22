@@ -91,9 +91,9 @@ func buildInlineGuardrailOptions(
 				Type:   "main",
 				Engine: "openai",
 				Parameters: map[string]interface{}{
-					"openai_api_base": endpointURL,
-					"model_name":      modelID,
-					"api_key":         apiKey,
+					"base_url":   endpointURL,
+					"model_name": modelID,
+					"api_key":    apiKey,
 				},
 			},
 		},

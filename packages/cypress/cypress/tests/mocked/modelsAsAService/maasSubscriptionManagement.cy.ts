@@ -97,19 +97,19 @@ describe('Subscription Management Page', () => {
 
   it('should navigate between tabs and update the URL', () => {
     subscriptionManagementPage.visit();
-    subscriptionManagementPage.findTitle().should('contain.text', 'Subscription management');
+    subscriptionManagementPage.findTitle().should('contain.text', 'MaaS governance');
     //subscriptionManagementPage.findOverviewTab().should('have.attr', 'aria-selected', 'true');
 
     subscriptionManagementPage.findSubscriptionsTab().click();
-    cy.url().should('include', '/subscription-management/subscriptions');
+    cy.url().should('include', '/maas-governance/subscriptions');
     subscriptionsPage.findTable().should('exist');
 
     subscriptionManagementPage.findAuthPoliciesTab().click();
-    cy.url().should('include', '/subscription-management/auth-policies');
+    cy.url().should('include', '/maas-governance/auth-policies');
     authPoliciesPage.findTable().should('exist');
 
     // subscriptionManagementPage.findOverviewTab().click();
-    // cy.url().should('include', '/subscription-management/overview');
+    // cy.url().should('include', '/maas-governance/overview');
     // overviewTabPage.findTable().should('exist');
   });
 
@@ -236,16 +236,16 @@ describe('Subscription Management Page', () => {
   //   // Test kebab menu
   //   overviewTabPage.findKebabToggleInRow(0).click();
   //   overviewTabPage.findKebabAction('Create subscription').should('be.visible').click();
-  //   cy.url().should('include', '/subscription-management/subscriptions/create');
+  //   cy.url().should('include', '/maas-governance/subscriptions/create');
   //   createSubscriptionPage.findModelsTable().should('contain.text', 'Llama 3 70B Instruct');
   //   createSubscriptionPage.findCancelButton().click();
-  //   cy.url().should('include', '/subscription-management/overview');
+  //   cy.url().should('include', '/maas-governance/overview');
   //   overviewTabPage.findKebabToggleInRow(0).click();
   //   overviewTabPage.findKebabAction('Create authorization policy').should('be.visible').click();
-  //   cy.url().should('include', '/subscription-management/auth-policies/create');
+  //   cy.url().should('include', '/maas-governance/auth-policies/create');
   //   policyPage.findModelsTable().should('contain.text', 'Granite 3 8B Instruct');
   //   policyPage.findCancelButton().click();
-  //   cy.url().should('include', '/subscription-management/overview');
+  //   cy.url().should('include', '/maas-governance/overview');
   // });
 
   it('should expand and collapse inline rows in the auth policies tab', () => {
@@ -331,13 +331,13 @@ describe('Subscription Management Page', () => {
   // it('should navigate to the correct form when creating a subscription or authorization policy via the overview toolbar', () => {
   //   subscriptionManagementPage.visit('overview');
   //   overviewTabPage.findCreateSubscriptionButton().click();
-  //   cy.url().should('include', '/subscription-management/subscriptions/create');
+  //   cy.url().should('include', '/maas-governance/subscriptions/create');
   //   createSubscriptionPage.findCancelButton().click();
-  //   cy.url().should('include', '/subscription-management/overview');
+  //   cy.url().should('include', '/maas-governance/overview');
   //   subscriptionManagementPage.findOverviewTab().click();
   //   overviewTabPage.findCreateAuthorizationPolicyButton().click();
-  //   cy.url().should('include', '/subscription-management/auth-policies/create');
+  //   cy.url().should('include', '/maas-governance/auth-policies/create');
   //   policyPage.findCancelButton().click();
-  //   cy.url().should('include', '/subscription-management/overview');
+  //   cy.url().should('include', '/maas-governance/overview');
   // });
 });
