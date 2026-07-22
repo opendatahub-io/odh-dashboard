@@ -43,7 +43,7 @@ func applyKustomizeParams(dashboard *v1alpha1.Dashboard, manifests []render.Mani
 
 	for _, m := range manifests {
 		manifestPath := m.String()
-		params := readExistingParams(manifestPath + "/params.env")
+		params := readExistingParams(filepath.Join(manifestPath, "params.env"))
 		maps.Copy(params, computed)
 		if err := writeParamsEnv(manifestPath, params); err != nil {
 			return fmt.Errorf("failed to write params.env to %s: %w", manifestPath, err)
@@ -55,7 +55,7 @@ func applyKustomizeParams(dashboard *v1alpha1.Dashboard, manifests []render.Mani
 		if _, err := os.Stat(modArchPath); os.IsNotExist(err) {
 			return fmt.Errorf("modular-architecture directory not found at %s", modArchPath)
 		}
-		params := readExistingParams(modArchPath + "/params.env")
+		params := readExistingParams(filepath.Join(modArchPath, "params.env"))
 		maps.Copy(params, computed)
 		if err := writeParamsEnv(modArchPath, params); err != nil {
 			return fmt.Errorf("failed to write params.env to %s: %w", modArchPath, err)
