@@ -1,4 +1,4 @@
-import { TrackingOutcome } from '@odh-dashboard/internal/concepts/analyticsTracking/trackingProperties';
+import { TrackingOutcome } from '@odh-dashboard/ui-core';
 import { PhaseLabelLocation, PhaseStatus } from '~/app/utilities/phaseLabelUtils';
 
 export const MaaSEvents = {
