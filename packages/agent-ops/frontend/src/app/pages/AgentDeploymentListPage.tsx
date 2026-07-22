@@ -25,6 +25,7 @@ import {
   filterAgentRuntimes,
   hasActiveAgentRuntimesFilters,
 } from '~/app/utilities/filterAgentRuntimes';
+import GatewaySelector from '~/app/components/GatewaySelector';
 import AgentDeploymentsEmptyState from './AgentDeploymentsEmptyState';
 import AgentRuntimesTable from './agentRuntimes/AgentRuntimesTable';
 import AgentRuntimesToolbar from './agentRuntimes/AgentRuntimesToolbar';
@@ -98,19 +99,29 @@ const AgentDeploymentListPage: React.FC = () => {
   const isEmpty = !noProjectSelected && loaded && !loadError && safeRuntimes.length === 0;
 
   const headerContent = (
-    <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-      <ProjectIconWithSize size={IconSize.LG} />
+    <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapMd' }}>
       <FlexItem>
-        <Content component="p">Project</Content>
+        <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+          <ProjectIconWithSize size={IconSize.LG} />
+          <FlexItem>
+            <Content component="p">Project</Content>
+          </FlexItem>
+          <FlexItem>
+            <AgentOpsProjectSelector
+              namespace={namespace}
+              getRedirectPath={agentOpsDeploymentsRoute}
+            />
+          </FlexItem>
+          {namespace && (
+            <FlexItem>
+              <ProjectNavigatorLink namespace={{ name: namespace, displayName: namespace }} />
+            </FlexItem>
+          )}
+        </Flex>
       </FlexItem>
       <FlexItem>
-        <AgentOpsProjectSelector namespace={namespace} getRedirectPath={agentOpsDeploymentsRoute} />
+        <GatewaySelector />
       </FlexItem>
-      {namespace && (
-        <FlexItem>
-          <ProjectNavigatorLink namespace={{ name: namespace, displayName: namespace }} />
-        </FlexItem>
-      )}
     </Flex>
   );
 

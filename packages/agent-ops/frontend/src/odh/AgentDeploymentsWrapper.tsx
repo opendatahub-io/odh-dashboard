@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { GatewayContextProvider } from '~/app/context/GatewayContext';
 import AgentOpsFederatedProviders from './AgentOpsFederatedProviders';
 import AgentDeploymentsRoutes from './AgentDeploymentsRoutes';
 import ProjectsBridgeProviderWrapper from './components/ProjectsBridgeProviderWrapper';
@@ -6,7 +7,9 @@ import ProjectsBridgeProviderWrapper from './components/ProjectsBridgeProviderWr
 const AgentDeploymentsWrapper: React.FC = () => (
   <AgentOpsFederatedProviders>
     <ProjectsBridgeProviderWrapper>
-      <AgentDeploymentsRoutes />
+      <GatewayContextProvider>
+        <AgentDeploymentsRoutes />
+      </GatewayContextProvider>
     </ProjectsBridgeProviderWrapper>
   </AgentOpsFederatedProviders>
 );

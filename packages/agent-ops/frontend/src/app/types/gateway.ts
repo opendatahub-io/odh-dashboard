@@ -14,7 +14,8 @@ export type GatewayList = {
 
 export type CreateGatewayRequest = {
   name: string;
-  endpoint: string;
+  endpoint?: string;
   namespace?: string;
   isGlobal?: boolean;
+  deploy?: boolean;
 };
