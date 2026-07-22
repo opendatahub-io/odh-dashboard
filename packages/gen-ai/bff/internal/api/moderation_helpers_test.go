@@ -407,7 +407,7 @@ func TestBuildInlineGuardrailOptions_InputOnly(t *testing.T) {
 	model := opts.Config.Models[0]
 	assert.Equal(t, "main", model.Type)
 	assert.Equal(t, "openai", model.Engine)
-	assert.Equal(t, "http://llama-guard.svc/v1", model.Parameters["openai_api_base"])
+	assert.Equal(t, "http://llama-guard.svc/v1", model.Parameters["base_url"])
 	assert.Equal(t, "llama-guard-3", model.Parameters["model_name"])
 	assert.Equal(t, "test-key", model.Parameters["api_key"])
 
