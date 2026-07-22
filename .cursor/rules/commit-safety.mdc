@@ -1,0 +1,34 @@
+---
+description: Prevent accidental reversion of functional changes during cleanup commits
+globs:
+alwaysApply: true
+---
+
+# Commit Safety — Never Revert Working Fixes
+
+## The Rule
+
+**NEVER revert a working functional fix while addressing unrelated review comments or performing cleanup.**
+
+This is non-negotiable. A fix that was deliberately implemented, tested, and verified must not be lost because a cleanup commit restores a file to its pre-fix state.
+
+## What Happened
+
+PR #8403 had a working fix for hiding accelerator configs on non-single-node topologies (commit 2). During commit 3 ("cleanup"), the agent reverted `LlmConfigOptionsField.tsx` to its original state while addressing Andrew's review comments about `topologyUtils.ts`. The accelerator config fix was silently lost and shipped without it.
+
+## Prevention Checklist
+
+Before committing ANY "cleanup", "addressed comments", or "refactor" commit:
+
+1. **Diff against the previous commit** — `git diff HEAD` and verify no functional changes were removed
+2. **If a file has both a fix AND code needing reviewer changes**, make the reviewer changes incrementally — do NOT restore the file to its pre-fix state
+3. **If struggling with a type error or lint issue in one file**, do NOT touch other files that have working fixes
+4. **Stage files separately** — if cleanup is in file A and the fix is in file B, commit them independently if needed
+5. **When in doubt, ask** — if unsure whether a change is safe to revert, ask the user before proceeding
+
+## Red Flags
+
+- `git checkout HEAD -- <file>` on a file you previously modified with a fix
+- A cleanup commit that shows deletions in files unrelated to the review comments
+- A file diff showing the `isActive` or visibility logic reverting to its original form
+- Any commit message like "cleanup" or "addressed comments" that touches more files than the reviewer commented on

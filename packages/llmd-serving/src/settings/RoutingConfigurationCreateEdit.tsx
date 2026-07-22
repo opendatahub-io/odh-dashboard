@@ -382,6 +382,7 @@ const RoutingConfigurationCreateEditInner: React.FC<{
               code={yamlCode}
               onCodeChange={setYamlCode}
               topologyTypeLabel="routing"
+              isUploadEnabled={configSource !== 'template'}
             />
           </FormGroup>
         )}
