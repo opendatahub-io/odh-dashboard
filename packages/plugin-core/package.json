@@ -31,6 +31,6 @@
     "@openshift/dynamic-plugin-sdk": "^5",
     "@patternfly/react-core": "^6",
     "react": "^18",
-    "react-router-dom": "^7"
+    "react-router-dom": "^7.18.1"
   }
 }

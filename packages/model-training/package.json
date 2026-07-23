@@ -3,7 +3,9 @@
   "name": "@odh-dashboard/model-training",
   "description": "Model training plugin for managing training jobs and experiments.",
   "version": "0.0.0",
-  "e2eCiTags": ["@ModelTrainingCI"],
+  "e2eCiTags": [
+    "@ModelTrainingCI"
+  ],
   "scripts": {
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
@@ -40,6 +42,6 @@
     "@patternfly/react-tokens": "^6",
     "react": "^18",
     "react-dom": "^18",
-    "react-router-dom": "^7"
+    "react-router-dom": "^7.18.1"
   }
 }
