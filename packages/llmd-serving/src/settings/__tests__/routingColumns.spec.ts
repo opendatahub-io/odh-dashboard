@@ -1,5 +1,5 @@
 import { mockLLMInferenceServiceConfigK8sResource } from '@odh-dashboard/internal/__mocks__/mockLLMInferenceServiceConfigK8sResource';
-import { RoutingType } from '../../types';
+import { TopologyType } from '../../types';
 import { columns } from '../RoutingConfigurationsTable';
 
 type ConfigResource = ReturnType<typeof mockLLMInferenceServiceConfigK8sResource>;
@@ -23,12 +23,10 @@ describe('Routing configurations table columns', () => {
       const configA = mockLLMInferenceServiceConfigK8sResource({
         name: 'config-a',
         displayName: 'Alpha Config',
-        routingType: RoutingType.SCHEDULER,
       });
       const configB = mockLLMInferenceServiceConfigK8sResource({
         name: 'config-b',
         displayName: 'Beta Config',
-        routingType: RoutingType.SCHEDULER,
       });
 
       expect(sortFn(configA, configB, 'name')).toBeLessThan(0);
@@ -46,11 +44,9 @@ describe('Routing configurations table columns', () => {
       const sortFn = getSortFn('enabled');
       const enabledConfig = mockLLMInferenceServiceConfigK8sResource({
         name: 'enabled-config',
-        routingType: RoutingType.SCHEDULER,
       });
       const disabledConfig = mockLLMInferenceServiceConfigK8sResource({
         name: 'disabled-config',
-        routingType: RoutingType.SCHEDULER,
         disabled: true,
       });
 
@@ -63,11 +59,9 @@ describe('Routing configurations table columns', () => {
       const sortFn = getSortFn('enabled');
       const enabledConfig = mockLLMInferenceServiceConfigK8sResource({
         name: 'enabled-config',
-        routingType: RoutingType.SCHEDULER,
       });
       const unsupportedConfig = mockLLMInferenceServiceConfigK8sResource({
         name: 'unsupported-config',
-        routingType: RoutingType.SCHEDULER,
         unsupported: true,
       });
 
@@ -76,38 +70,39 @@ describe('Routing configurations table columns', () => {
     });
   });
 
-  describe('Routing type column sort', () => {
-    it('should have a sort comparator on the Routing type column', () => {
-      getSortFn('routingType');
+  describe('Topology type column sort', () => {
+    it('should have a sort comparator on the Topology type column', () => {
+      getSortFn('topologyType');
     });
 
-    it('should sort by routing type label alphabetically', () => {
-      const sortFn = getSortFn('routingType');
-      const schedulerConfig = mockLLMInferenceServiceConfigK8sResource({
-        name: 'scheduler-config',
-        routingType: RoutingType.SCHEDULER,
+    it('should sort by supported topologies label alphabetically', () => {
+      const sortFn = getSortFn('topologyType');
+      const singleNodeConfig = mockLLMInferenceServiceConfigK8sResource({
+        name: 'single-node-config',
+        supportedTopologies: [TopologyType.SINGLE_NODE],
       });
-      const httpRouteConfig = mockLLMInferenceServiceConfigK8sResource({
-        name: 'http-route-config',
-        routingType: RoutingType.HTTP_ROUTE,
+      const multiNodeConfig = mockLLMInferenceServiceConfigK8sResource({
+        name: 'multi-node-config',
+        supportedTopologies: [TopologyType.MULTI_NODE],
       });
 
-      // "HTTPRoute" < "Scheduler"
-      expect(sortFn(httpRouteConfig, schedulerConfig, 'routingType')).toBeLessThan(0);
-      expect(sortFn(schedulerConfig, httpRouteConfig, 'routingType')).toBeGreaterThan(0);
+      // "Multi-node" < "Single-node"
+      expect(sortFn(multiNodeConfig, singleNodeConfig, 'topologyType')).toBeLessThan(0);
+      expect(sortFn(singleNodeConfig, multiNodeConfig, 'topologyType')).toBeGreaterThan(0);
     });
 
-    it('should handle configs without a routing type', () => {
-      const sortFn = getSortFn('routingType');
-      const withType = mockLLMInferenceServiceConfigK8sResource({
-        name: 'with-type',
-        routingType: RoutingType.SCHEDULER,
+    it('should handle configs without supported topologies as All', () => {
+      const sortFn = getSortFn('topologyType');
+      const withTopologies = mockLLMInferenceServiceConfigK8sResource({
+        name: 'with-topologies',
+        supportedTopologies: [TopologyType.SINGLE_NODE],
       });
-      const withoutType = mockLLMInferenceServiceConfigK8sResource({
-        name: 'without-type',
+      const withoutTopologies = mockLLMInferenceServiceConfigK8sResource({
+        name: 'without-topologies',
       });
 
-      expect(sortFn(withoutType, withType, 'routingType')).toBeLessThan(0);
+      // "All" < "Single-node"
+      expect(sortFn(withoutTopologies, withTopologies, 'topologyType')).toBeLessThan(0);
     });
   });
 });

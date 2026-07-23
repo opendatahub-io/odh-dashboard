@@ -21,9 +21,7 @@ import { patchLLMInferenceServiceConfig } from '../api/LLMInferenceServiceConfig
 
 const getSupportedTopologiesLabel = (config: LLMInferenceServiceConfigKind): string => {
   const topologies = getConfigSupportedTopologies(config);
-  return topologies.length > 0
-    ? topologies.map((t) => TopologyTypeLabels[t]).join(', ')
-    : 'All';
+  return topologies.length > 0 ? topologies.map((t) => TopologyTypeLabels[t]).join(', ') : 'All';
 };
 
 export const columns: SortableData<LLMInferenceServiceConfigKind>[] = [
@@ -46,7 +44,8 @@ export const columns: SortableData<LLMInferenceServiceConfigKind>[] = [
   {
     label: 'Topology type',
     field: 'topologyType',
-    sortable: (a, b) => getSupportedTopologiesLabel(a).localeCompare(getSupportedTopologiesLabel(b)),
+    sortable: (a, b) =>
+      getSupportedTopologiesLabel(a).localeCompare(getSupportedTopologiesLabel(b)),
   },
   { label: '', field: 'kebab', sortable: false },
 ];
