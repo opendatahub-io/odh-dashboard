@@ -39,6 +39,7 @@ func NewK8sOnlyTestApp() App {
 func NewLSOnlyTestApp() App {
 	return App{
 		config:                  config.EnvConfig{Port: 4000},
+		logger:                  slog.Default(),
 		llamaStackClientFactory: lsmocks.NewMockClientFactory(),
 		repositories:            repositories.NewRepositories(),
 	}
