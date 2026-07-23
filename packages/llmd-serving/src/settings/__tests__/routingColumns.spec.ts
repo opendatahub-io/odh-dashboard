@@ -58,6 +58,22 @@ describe('Routing configurations table columns', () => {
       expect(sortFn(disabledConfig, enabledConfig, 'enabled')).toBeGreaterThan(0);
       expect(sortFn(enabledConfig, enabledConfig, 'enabled')).toBe(0);
     });
+
+    it('should treat unsupported-unaccepted configs as effectively disabled', () => {
+      const sortFn = getSortFn('enabled');
+      const enabledConfig = mockLLMInferenceServiceConfigK8sResource({
+        name: 'enabled-config',
+        routingType: RoutingType.SCHEDULER,
+      });
+      const unsupportedConfig = mockLLMInferenceServiceConfigK8sResource({
+        name: 'unsupported-config',
+        routingType: RoutingType.SCHEDULER,
+        unsupported: true,
+      });
+
+      expect(sortFn(enabledConfig, unsupportedConfig, 'enabled')).toBeLessThan(0);
+      expect(sortFn(unsupportedConfig, enabledConfig, 'enabled')).toBeGreaterThan(0);
+    });
   });
 
   describe('Routing type column sort', () => {

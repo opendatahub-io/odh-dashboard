@@ -1,4 +1,5 @@
 import type { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
+import { isUnsupportedUnaccepted } from '@odh-dashboard/model-serving/concepts/versions';
 import { WELL_KNOWN_ANNOTATION, DISABLED_ANNOTATION, DASHBOARD_RESOURCE_LABEL } from './const';
 import type { LLMInferenceServiceConfigKind } from './types';
 
@@ -58,3 +59,6 @@ export const isConfigPreInstalled = (config: LLMInferenceServiceConfigKind): boo
 
 export const isConfigEnabled = (config: LLMInferenceServiceConfigKind): boolean =>
   config.metadata.annotations?.[DISABLED_ANNOTATION] !== 'true';
+
+export const isConfigEffectivelyEnabled = (config: LLMInferenceServiceConfigKind): boolean =>
+  isUnsupportedUnaccepted(config) ? false : isConfigEnabled(config);

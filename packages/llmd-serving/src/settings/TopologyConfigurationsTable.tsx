@@ -26,7 +26,7 @@ import {
   TopologyTypeLabels,
   getConfigTopologyType,
 } from '../types';
-import { isConfigEnabled } from '../utils';
+import { isConfigEnabled, isConfigEffectivelyEnabled } from '../utils';
 import { patchLLMInferenceServiceConfig } from '../api/LLMInferenceServiceConfigs';
 
 const getTopologyTypeLabel = (config: LLMInferenceServiceConfigKind): string => {
@@ -44,7 +44,8 @@ export const columns: SortableData<LLMInferenceServiceConfigKind>[] = [
   {
     label: 'Enabled',
     field: 'enabled',
-    sortable: (a, b) => Number(isConfigEnabled(b)) - Number(isConfigEnabled(a)),
+    sortable: (a, b) =>
+      Number(isConfigEffectivelyEnabled(b)) - Number(isConfigEffectivelyEnabled(a)),
     info: {
       popover: 'When enabled, this configuration is available in the deployment wizard.',
       popoverProps: { showClose: true },

@@ -1,7 +1,7 @@
 import { type SortableData, kebabTableColumn } from '@odh-dashboard/ui-core';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import type { LLMInferenceServiceConfigKind } from '../../types';
-import { isConfigEnabled } from '../../utils';
+import { isConfigEffectivelyEnabled } from '../../utils';
 
 export const columns: SortableData<LLMInferenceServiceConfigKind>[] = [
   {
@@ -13,7 +13,8 @@ export const columns: SortableData<LLMInferenceServiceConfigKind>[] = [
   {
     field: 'enabled',
     label: 'Enabled',
-    sortable: (a, b) => Number(isConfigEnabled(b)) - Number(isConfigEnabled(a)),
+    sortable: (a, b) =>
+      Number(isConfigEffectivelyEnabled(b)) - Number(isConfigEffectivelyEnabled(a)),
     info: {
       popover: 'When enabled, this configuration is available in the deployment wizard.',
       popoverProps: {

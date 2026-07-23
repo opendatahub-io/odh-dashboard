@@ -30,6 +30,27 @@ describe('LLM accelerator config columns', () => {
       expect(sortFn(disabledConfig, enabledConfig, 'enabled')).toBeGreaterThan(0);
       expect(sortFn(enabledConfig, enabledConfig, 'enabled')).toBe(0);
     });
+
+    it('should treat unsupported-unaccepted configs as effectively disabled', () => {
+      const enabledColumn = columns.find((c) => c.field === 'enabled');
+      expect(enabledColumn).toBeDefined();
+      const sortFn = enabledColumn?.sortable as (
+        a: ReturnType<typeof mockLLMInferenceServiceConfigK8sResource>,
+        b: ReturnType<typeof mockLLMInferenceServiceConfigK8sResource>,
+        key: string,
+      ) => number;
+
+      const enabledConfig = mockLLMInferenceServiceConfigK8sResource({
+        name: 'enabled-config',
+      });
+      const unsupportedConfig = mockLLMInferenceServiceConfigK8sResource({
+        name: 'unsupported-config',
+        unsupported: true,
+      });
+
+      expect(sortFn(enabledConfig, unsupportedConfig, 'enabled')).toBeLessThan(0);
+      expect(sortFn(unsupportedConfig, enabledConfig, 'enabled')).toBeGreaterThan(0);
+    });
   });
 
   describe('Name column sort', () => {
