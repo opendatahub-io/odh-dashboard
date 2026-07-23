@@ -7,6 +7,6 @@ spec:
   provider: openai
   endpoint: api.openai.com
   auth:
-    type: apikey
+    type: oauth2
     secretRef:
       name: "{{RESOURCE_NAME}}"
