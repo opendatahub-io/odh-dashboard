@@ -35,6 +35,14 @@ class AgentRuntimesPage {
     return cy.findByTestId('agent-ops-project-selector');
   }
 
+  findProjectSelectorToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('project-selector-toggle');
+  }
+
+  findProjectSelectorMenu(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('project-selector-menu');
+  }
+
   findSelectProjectEmptyState(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('agent-deployments-select-project');
   }
@@ -93,6 +101,12 @@ class AgentRuntimesPage {
 
   findNoDeploymentsEmptyState(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('agent-deployments-empty-state');
+  }
+
+  hasDeploymentsTable(): Cypress.Chainable<boolean> {
+    return cy
+      .get('body')
+      .then(($body) => $body.find('[data-testid="agent-runtimes-table"]').length > 0);
   }
 }
 

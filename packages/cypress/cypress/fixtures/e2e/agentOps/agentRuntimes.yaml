@@ -1,0 +1,6 @@
+# testAgentRuntimes.cy.ts Test Data #
+pageTitle: 'Agents'
+filterSearchTerm: 'test-agent'
+filterOptionStatus: 'status'
+statusPending: 'Pending'
+statusReady: 'Ready'
