@@ -23,12 +23,11 @@ on:
 env:
   NODE_VERSION: 22
 
-permissions:
-  contents: read
-
 jobs:
   test:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
