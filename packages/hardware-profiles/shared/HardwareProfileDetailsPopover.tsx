@@ -27,26 +27,25 @@ import {
   sortIdentifiers,
   getLocalQueueLabel,
 } from './utils';
-import { QueueSource } from './const';
 
 type HardwareProfileDetailsPopoverProps = {
   localQueueName?: string;
-  queueSource?: QueueSource;
   priorityClass?: string;
   tolerations?: Toleration[];
   nodeSelector?: NodeSelector;
   hardwareProfile?: HardwareProfileKind;
   tableView?: boolean;
+  onExpandRow?: () => void;
 };
 
 const HardwareProfileDetailsPopover: React.FC<HardwareProfileDetailsPopoverProps> = ({
   localQueueName,
-  queueSource,
   priorityClass,
   tolerations,
   nodeSelector,
   hardwareProfile,
   tableView = false,
+  onExpandRow,
 }) => {
   const { localQueues } = React.useContext(ProjectDetailsContext);
   const triggerRef = React.useRef<HTMLButtonElement>(null);
@@ -87,19 +86,29 @@ const HardwareProfileDetailsPopover: React.FC<HardwareProfileDetailsPopoverProps
     }
   };
 
+  const noHpTableView = tableView && !hardwareProfile;
+
+  const headerContent = hardwareProfile
+    ? `${getHardwareProfileDisplayName(hardwareProfile)} details`
+    : noHpTableView
+    ? 'No hardware profile defined'
+    : 'Existing settings';
+
+  const triggerLabel =
+    tableView && hardwareProfile
+      ? getHardwareProfileDisplayName(hardwareProfile)
+      : tableView
+      ? 'None'
+      : 'View details';
+
   return (
     <Popover
-      hasAutoWidth
+      hasAutoWidth={!!hardwareProfile}
       isVisible={isPopoverVisible}
       shouldOpen={() => setIsPopoverVisible(true)}
       shouldClose={closePopover}
-      showClose={false}
       withFocusTrap={false}
-      headerContent={
-        hardwareProfile
-          ? `${getHardwareProfileDisplayName(hardwareProfile)} details`
-          : 'Existing settings'
-      }
+      headerContent={headerContent}
       bodyContent={
         <Stack hasGutter data-testid="hardware-profile-details">
           {hardwareProfile ? (
@@ -122,6 +131,11 @@ const HardwareProfileDetailsPopover: React.FC<HardwareProfileDetailsPopoverProps
                   </StackItem>
                 ))}
             </>
+          ) : noHpTableView ? (
+            <StackItem>
+              No hardware profile is defined for this workbench. It&apos;s using its current
+              resource settings, so default, minimum, and maximum values aren&apos;t available.
+            </StackItem>
           ) : !localQueueName ? (
             <StackItem>
               No matching hardware profile found, using existing settings. Default, min, and max
@@ -129,9 +143,7 @@ const HardwareProfileDetailsPopover: React.FC<HardwareProfileDetailsPopoverProps
             </StackItem>
           ) : null}
           {localQueueName && (
-            <StackItem>
-              {renderSection(getLocalQueueLabel(queueSource), [localQueueName])}
-            </StackItem>
+            <StackItem>{renderSection(getLocalQueueLabel(), [localQueueName])}</StackItem>
           )}
           {clusterQueueName && (
             <StackItem>{renderSection('Cluster queue', [clusterQueueName])}</StackItem>
@@ -147,13 +159,26 @@ const HardwareProfileDetailsPopover: React.FC<HardwareProfileDetailsPopoverProps
               )}
             </StackItem>
           )}
-
           {nodeSelector && Object.keys(nodeSelector).length > 0 && (
             <StackItem>
               {renderSection('Node selectors', formatNodeSelector(nodeSelector))}
             </StackItem>
           )}
         </Stack>
+      }
+      footerContent={
+        noHpTableView && onExpandRow ? (
+          <Button
+            variant="link"
+            isInline
+            onClick={() => {
+              onExpandRow();
+              setIsPopoverVisible(false);
+            }}
+          >
+            Expand row
+          </Button>
+        ) : undefined
       }
     >
       <Button
@@ -164,9 +189,7 @@ const HardwareProfileDetailsPopover: React.FC<HardwareProfileDetailsPopoverProps
         style={tableView ? { textDecoration: 'none' } : undefined}
         data-testid="hardware-profile-details-popover"
       >
-        {tableView && hardwareProfile
-          ? getHardwareProfileDisplayName(hardwareProfile)
-          : 'View details'}
+        {triggerLabel}
       </Button>
     </Popover>
   );
