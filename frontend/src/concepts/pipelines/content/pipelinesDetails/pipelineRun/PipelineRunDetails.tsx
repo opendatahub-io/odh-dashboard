@@ -32,7 +32,6 @@ import PipelineRecurringRunReferenceName from '#~/concepts/pipelines/content/Pip
 import useExecutionsForPipelineRun from '#~/concepts/pipelines/content/pipelinesDetails/pipelineRun/useExecutionsForPipelineRun';
 import { useGetEventsByExecutionIds } from '#~/concepts/pipelines/apiHooks/mlmd/useGetEventsByExecutionId';
 import { PipelineTopology } from '#~/concepts/topology';
-import { FetchState } from '#~/utilities/useFetchState';
 import { PipelineRunKF, PipelineSpecVariable, TaskKF } from '#~/concepts/pipelines/kfTypes';
 import PipelineNotSupported from '#~/concepts/pipelines/content/pipelinesDetails/pipeline/PipelineNotSupported';
 import { isArgoWorkflow } from '#~/concepts/pipelines/content/tables/utils';
@@ -243,7 +242,8 @@ const PipelineRunDetails: React.FC<
       onClose={() => setSelectedIds(undefined)}
       executions={drawerExecutions}
       onOpenSubDag={
-        displayMode === 'layer' && selectedNode.data.pipelineTask.isSubDag
+        selectedNode.data.pipelineTask.isSubDag &&
+        !(displayMode === 'inline' && selectedNode.data.pipelineTask.iterationCount != null)
           ? handleOpenSubDag
           : undefined
       }

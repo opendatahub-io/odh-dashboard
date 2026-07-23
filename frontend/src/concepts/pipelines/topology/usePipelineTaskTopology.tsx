@@ -79,6 +79,7 @@ const getInputArtifacts = (
 const getTaskArtifacts = (
   groupId: string | undefined,
   taskId: string,
+  taskName: string,
   componentRef: string,
   componentArtifactMap: ComponentArtifactMap,
   artifacts?: Artifact[],
@@ -92,7 +93,7 @@ const getTaskArtifacts = (
   }
 
   const execution = executions?.find(
-    (e) => e.getCustomPropertiesMap().get('task_name')?.getStringValue() === taskId,
+    (e) => e.getCustomPropertiesMap().get('task_name')?.getStringValue() === (taskName || taskId),
   );
 
   const executionEvents = events?.filter((event) => event.getExecutionId() === execution?.getId());
@@ -190,6 +191,7 @@ const getNodesForTasks = (
     const artifactNodes = getTaskArtifacts(
       groupId,
       taskId,
+      taskName,
       componentRef,
       componentArtifactMap,
       artifacts,
