@@ -467,6 +467,20 @@ describe('buildInitialProgressSteps', () => {
     expect(kueue?.status).toBe(EventStatus.IN_PROGRESS);
   });
 
+  it('kueue sub-step label for Requeued includes the attempt count', () => {
+    const nb = makeNotebook(['my-wb']);
+    const steps = buildInitialProgressSteps(nb, false, false, {
+      status: KueueWorkloadStatus.Requeued,
+      queueName: 'my-queue',
+      requeueInfo: { count: 3 },
+    });
+    const kueue = steps
+      .find((s) => s.stepKind === 'pod_assigned')
+      ?.subSteps?.find((s) => s.stepKind === 'kueue');
+    expect(kueue?.label).toContain('attempt 3');
+    expect(kueue?.label).toContain('my-queue');
+  });
+
   it('does NOT include kueue step when kueueStatus has no queueName (auto-created workload for non-Kueue notebook)', () => {
     const nb = makeNotebook(['my-wb']);
     const steps = buildInitialProgressSteps(nb, false, false, {

@@ -44,13 +44,24 @@ export const getHumanReadableKueueMessage = (
 };
 
 /**
- * Returns a human-readable message for Requeued status including retry info.
- * Drops requeueAt display; uses the same queued message pattern with attempt count appended.
+ * Returns a human-readable message for Requeued status including attempt count and next retry time.
+ * e.g. "Waiting for quota in my-queue (attempt 3, next retry at 10:20:43)"
  */
 export const getRequeuedMessage = (info: KueueWorkloadStatusWithMessage): string => {
   const count = info.requeueInfo?.count ?? 0;
   const queue = info.queueName ?? 'the queue';
   const base = getQueuedMessage(info.message, queue);
+  const requeueAt = info.requeueInfo?.requeueAt;
+
+  if (requeueAt) {
+    const date = new Date(requeueAt);
+    if (!Number.isNaN(date.getTime())) {
+      const formatted = date.toLocaleString();
+      return count > 0
+        ? `${base} (attempt ${count}, next retry at ${formatted})`
+        : `${base} (next retry at ${formatted})`;
+    }
+  }
   return count > 0 ? `${base} (attempt ${count})` : base;
 };
 

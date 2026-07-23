@@ -333,43 +333,32 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
 
     return (
       <StackItem>
-        <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+        <Content component="p" style={{ color }} data-testid="notebook-latest-status">
           {kueueInfo != null ? (
-            <FlexItem>
-              {kueueInfo.status ? (
-                <Icon status={kueueInfo.status}>
-                  <kueueInfo.IconComponent className={kueueInfo.iconClassName} />
-                </Icon>
-              ) : (
-                <kueueInfo.IconComponent
-                  className={kueueInfo.iconClassName}
-                  style={kueueInfo.color !== 'grey' ? { color: BrandIconColor.var } : undefined}
-                />
-              )}
-            </FlexItem>
-          ) : (!spawnStatus || spawnStatus.status === AlertVariant.info) && inProgress ? (
-            <FlexItem>
-              <InProgressIcon style={{ color: BrandIconColor.var }} className="ai-u-spin" />
-            </FlexItem>
-          ) : spawnStatus?.status === AlertVariant.danger ? (
-            <FlexItem>
-              <Icon status="danger">
-                <ExclamationCircleIcon />
+            kueueInfo.status ? (
+              <Icon isInline status={kueueInfo.status}>
+                <kueueInfo.IconComponent className={kueueInfo.iconClassName} />
               </Icon>
-            </FlexItem>
-          ) : spawnStatus?.status === AlertVariant.warning ? (
-            <FlexItem>
-              <Icon status="warning">
+            ) : (
+              <Icon isInline status="warning">
                 <ExclamationTriangleIcon />
               </Icon>
-            </FlexItem>
-          ) : null}
-          <FlexItem>
-            <Content style={{ color }} data-testid="notebook-latest-status">
-              {title}
-            </Content>
-          </FlexItem>
-        </Flex>
+            )
+          ) : (!spawnStatus || spawnStatus.status === AlertVariant.info) && inProgress ? (
+            <Icon isInline>
+              <InProgressIcon style={{ color: BrandIconColor.var }} className="ai-u-spin" />
+            </Icon>
+          ) : spawnStatus?.status === AlertVariant.danger ? (
+            <Icon isInline status="danger">
+              <ExclamationCircleIcon />
+            </Icon>
+          ) : spawnStatus?.status === AlertVariant.warning ? (
+            <Icon isInline status="warning">
+              <ExclamationTriangleIcon />
+            </Icon>
+          ) : null}{' '}
+          {title}
+        </Content>
       </StackItem>
     );
   };
