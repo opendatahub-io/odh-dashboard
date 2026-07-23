@@ -81,7 +81,14 @@ const NotebookFeatureStoreList: React.FC<NotebookFeatureStoreListProps> = ({
                       </FlexItem>
                       <FlexItem>
                         <Tooltip content="This feature store is no longer available. It may have been deleted or access has been revoked.">
-                          <Icon isInline status="info" data-testid="feature-store-unavailable-icon">
+                          <Icon
+                            isInline
+                            status="info"
+                            role="button"
+                            tabIndex={0}
+                            aria-label="This feature store is no longer available"
+                            data-testid="feature-store-unavailable-icon"
+                          >
                             <InfoCircleIcon />
                           </Icon>
                         </Tooltip>
