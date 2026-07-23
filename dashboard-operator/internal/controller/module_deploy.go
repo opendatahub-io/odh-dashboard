@@ -157,7 +157,7 @@ func (r *DashboardReconciler) patchDeploymentFederationHash(
 	}
 
 	log.FromContext(ctx).Info("Patched federation config hash on deployment",
-		"deployment", deployName, "hash", hash[:12]+"...")
+		"deployment", deployName, "hash", hash)
 	return nil
 }
 
