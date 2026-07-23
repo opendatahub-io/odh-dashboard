@@ -4,13 +4,15 @@ import React from 'react';
 import UIErrorModal from './UIErrorModal.tsx';
 import { UIErrorAlert, UIErrorAlerts } from './UIErrorAlert.tsx';
 import type { UIError, UIErrorMappings } from './types.ts';
-import { isUIError } from './util.ts';
+import { normalizeErrorWithInstance } from './util.ts';
+import { UIErrorInstance } from './UIErrorInstance.ts';
 
 // Types ---------------------------------------------------------------------->
 
 type UIErrorHandlerContextType = {
   showUIError: (error: UIError) => void;
-  closeUIError: (error: UIError) => void;
+  closeUIError: (error: UIErrorInstance) => void;
+  showDetails: (error: UIErrorInstance) => void;
 };
 
 // Context -------------------------------------------------------------------->
@@ -33,23 +35,29 @@ interface UIErrorHandlerProps {
   children?: React.ReactNode;
 }
 const UIErrorHandler: React.FC<UIErrorHandlerProps> = ({ id, uiErrorMappings, children }) => {
-  const [errors, setErrors] = React.useState<UIError[]>([]);
-  const [modalError, setModalError] = React.useState<UIError | undefined>();
+  const [errors, setErrors] = React.useState<Record<string, UIErrorInstance>>({});
+  const [modalError, setModalError] = React.useState<UIErrorInstance | undefined>();
   const [isModalOpen, setIsModalOpen] = React.useState(false);
 
   const showUIError = React.useCallback((error: UIError) => {
-    setErrors((prev) => [...prev, error]);
+    const instance = normalizeErrorWithInstance(error);
+    if (instance) {
+      setErrors((prev) => ({ ...prev, [instance.id]: instance }));
+    }
   }, []);
 
-  const closeUIError = React.useCallback((error: UIError) => {
-    const { messageId } = error;
-    setErrors((prev) => prev.filter((e) => e.messageId !== messageId));
+  const closeUIError = React.useCallback((error: UIErrorInstance) => {
+    setErrors((prev) => {
+      const next = { ...prev };
+      delete next[error.id];
+      return next;
+    });
   }, []);
 
-  const handleDetails = (error: UIError) => {
+  const showDetails = React.useCallback((error: UIErrorInstance) => {
     setModalError(error);
     setIsModalOpen(true);
-  };
+  }, []);
 
   const handleCloseModal = () => {
     setIsModalOpen(false);
@@ -57,8 +65,8 @@ const UIErrorHandler: React.FC<UIErrorHandlerProps> = ({ id, uiErrorMappings, ch
   };
 
   const contextValue = React.useMemo<UIErrorHandlerContextType>(
-    () => ({ showUIError, closeUIError }),
-    [showUIError, closeUIError],
+    () => ({ showUIError, closeUIError, showDetails }),
+    [showUIError, closeUIError, showDetails],
   );
 
   const modalErrorMapping = modalError && uiErrorMappings?.[modalError.messageId];
@@ -74,14 +82,12 @@ const UIErrorHandler: React.FC<UIErrorHandlerProps> = ({ id, uiErrorMappings, ch
           onClose={handleCloseModal}
         />
         <UIErrorAlerts id={`${id}-UIErrorAlerts`}>
-          {errors.map((error) => (
+          {Object.values(errors).map((error) => (
             <UIErrorAlert
-              key={error.messageId}
-              id={`${id}-UIErrorAlert-${error.messageId}`}
+              key={error.id}
+              id={`${id}-UIErrorAlert-${error.id}`}
               uiError={error}
               uiErrorMapping={uiErrorMappings?.[error.messageId]}
-              handleDetails={handleDetails}
-              handleClose={closeUIError}
             />
           ))}
         </UIErrorAlerts>
@@ -98,8 +104,9 @@ const useCatchUIError = (): ((error: unknown, elseFn: () => void) => void) => {
 
   return React.useCallback(
     (error: unknown, elseFn: () => void) => {
-      if (isUIError(error)) {
-        showUIError(error);
+      const instance = normalizeErrorWithInstance(error);
+      if (instance) {
+        showUIError(instance);
       } else {
         elseFn();
       }

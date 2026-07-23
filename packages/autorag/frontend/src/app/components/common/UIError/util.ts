@@ -1,5 +1,6 @@
 import { handleRestFailures } from 'mod-arch-core';
 import type { UIError } from './types';
+import { UIErrorInstance } from './UIErrorInstance';
 
 export function isUIError(value: unknown): value is UIError {
   if (typeof value !== 'object' || value === null) {
@@ -19,10 +20,20 @@ export function isUIError(value: unknown): value is UIError {
   );
 }
 
+export function normalizeErrorWithInstance(error: unknown): UIErrorInstance | null {
+  if (error instanceof UIErrorInstance) {
+    return error;
+  }
+  if (isUIError(error)) {
+    return new UIErrorInstance(error);
+  }
+  return null;
+}
+
 export function throwUIError<T>(promise: Promise<T>): Promise<T> {
   return promise.then((result) => {
     if (isUIError(result)) {
-      throw result;
+      throw new UIErrorInstance(result);
     }
     return result;
   });

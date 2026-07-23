@@ -2,8 +2,10 @@
 
 import React, { useId } from 'react';
 import { Alert, AlertActionCloseButton, AlertActionLink, AlertGroup } from '@patternfly/react-core';
-import type { UIError, UIErrorMapping } from './types.ts';
+import type { UIErrorMapping } from './types.ts';
 import { UIErrorDefaults } from './constants.ts';
+import type { UIErrorInstance } from './UIErrorInstance.ts';
+import { useUIErrorHandler } from './UIErrorHandler.tsx';
 
 // Types ---------------------------------------------------------------------->
 // Globals -------------------------------------------------------------------->
@@ -12,18 +14,11 @@ import { UIErrorDefaults } from './constants.ts';
 
 interface UIErrorAlertProps {
   id?: string;
-  uiError: UIError;
+  uiError: UIErrorInstance;
   uiErrorMapping?: UIErrorMapping;
-  handleDetails: (error: UIError) => void;
-  handleClose: (error: UIError) => void;
 }
-const UIErrorAlert: React.FC<UIErrorAlertProps> = ({
-  id,
-  uiError,
-  uiErrorMapping,
-  handleDetails,
-  handleClose,
-}) => {
+const UIErrorAlert: React.FC<UIErrorAlertProps> = ({ id, uiError, uiErrorMapping }) => {
+  const { closeUIError, showDetails } = useUIErrorHandler();
   const generatedId = useId();
   const rootId = id ?? generatedId;
 
@@ -32,10 +27,10 @@ const UIErrorAlert: React.FC<UIErrorAlertProps> = ({
       id={rootId}
       variant="danger"
       title={uiErrorMapping?.title || UIErrorDefaults.uiErrorMapping.title}
-      actionClose={<AlertActionCloseButton onClose={() => handleClose(uiError)} />}
+      actionClose={<AlertActionCloseButton onClose={() => closeUIError(uiError)} />}
       actionLinks={
         <>
-          <AlertActionLink onClick={() => handleDetails(uiError)}>More details...</AlertActionLink>
+          <AlertActionLink onClick={() => showDetails(uiError)}>More details...</AlertActionLink>
         </>
       }
     >
