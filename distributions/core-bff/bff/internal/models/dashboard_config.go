@@ -85,6 +85,7 @@ type DashboardFeatureFlags struct {
 	ToolCalling                  bool `json:"toolCalling"`
 	TrainingJobs                 bool `json:"trainingJobs"`
 	ProjectRBAC                  bool `json:"projectRBAC"`
+	RoleManagement               bool `json:"roleManagement"`
 	DeploymentWizardYAMLViewer   bool `json:"deploymentWizardYAMLViewer"`
 	ExternalVectorStores         bool `json:"externalVectorStores"`
 	AgentConfigManagement        bool `json:"agentConfigManagement"`
@@ -178,6 +179,7 @@ var BlankDashboardCR = DashboardConfig{
 			ToolCalling:                  false,
 			TrainingJobs:                 true,
 			ProjectRBAC:                  true,
+			RoleManagement:               true,
 			DeploymentWizardYAMLViewer:   false,
 			ExternalVectorStores:         false,
 			VLLMDeploymentOnMaaS:         false,

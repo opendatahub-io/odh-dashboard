@@ -405,7 +405,7 @@ describe('isAreaAvailable', () => {
       expect(isAvailable.featureFlags).toEqual({ roleManagement: 'off' });
     });
 
-    it('should not be available by default (flag defaults to false)', () => {
+    it('should be available by default (flag defaults to true for GA)', () => {
       const isAvailable = isAreaAvailable(
         SupportedArea.ROLE_MANAGEMENT,
         mockDashboardConfig({}).spec,
@@ -413,8 +413,8 @@ describe('isAreaAvailable', () => {
         null,
       );
 
-      expect(isAvailable.status).toBe(false);
-      expect(isAvailable.featureFlags).toEqual({ roleManagement: 'off' });
+      expect(isAvailable.status).toBe(true);
+      expect(isAvailable.featureFlags).toEqual({ roleManagement: 'on' });
     });
   });
 });
