@@ -8,6 +8,7 @@ import {
 } from '@patternfly/react-tokens';
 import { useDeepCompareMemoize } from '@odh-dashboard/ui-core/hooks';
 import { TrackingOutcome } from '@odh-dashboard/ui-core';
+import { getKueueStatusInfo } from '#~/concepts/kueue/index';
 import { EventStatus, NotebookStatus } from '#~/types';
 import { useNotebookStatus } from '#~/utilities/notebookControllerUtils';
 import StartNotebookModal from '#~/concepts/notebooks/StartNotebookModal';
@@ -17,7 +18,11 @@ import {
   KUEUE_STATUSES_OVERRIDE_WORKBENCH,
   type KueueWorkloadStatusWithMessage,
 } from '#~/concepts/kueue/types';
-import { getHumanReadableKueueMessage, getRequeuedMessage } from '#~/concepts/kueue/messageUtils';
+import {
+  getHumanReadableKueueMessage,
+  getRequeuedMessage,
+  formatQueuePosition,
+} from '#~/concepts/kueue/messageUtils';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import UnderlinedTruncateButton from '#~/components/UnderlinedTruncateButton';
 import { fireMiscTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
@@ -41,20 +46,29 @@ type GetStatusSubtitleParams = {
   kueueStatus: KueueWorkloadStatusWithMessage | null;
 };
 
-const getNotebookStatusColor = (notebookStatus?: NotebookStatus | null) =>
-  notebookStatus?.currentStatus === EventStatus.ERROR
-    ? DangerColor.var
-    : notebookStatus?.currentStatus === EventStatus.WARNING
-    ? WarningColor.var
-    : RegularColor.var;
+const getNotebookStatusColor = (
+  notebookStatus?: NotebookStatus | null,
+  kueueStatus?: KueueWorkloadStatusWithMessage | null,
+): string => {
+  if (notebookStatus?.currentStatus === EventStatus.ERROR) return DangerColor.var;
+  if (notebookStatus?.currentStatus === EventStatus.WARNING) return WarningColor.var;
+  if (kueueStatus?.status && KUEUE_STATUSES_OVERRIDE_WORKBENCH.includes(kueueStatus.status)) {
+    const { status: kueueStatusLevel } = getKueueStatusInfo(kueueStatus.status);
+    if (kueueStatusLevel === 'danger') return DangerColor.var;
+    return WarningColor.var;
+  }
+  return RegularColor.var;
+};
 
 const getNotebookStatusTextDecoration = (
   notebookStatus?: NotebookStatus | null,
   isStarting?: boolean,
-) =>
+  kueueStatus?: KueueWorkloadStatusWithMessage | null,
+): string | undefined =>
   isStarting ||
   notebookStatus?.currentStatus === EventStatus.ERROR ||
-  notebookStatus?.currentStatus === EventStatus.WARNING
+  notebookStatus?.currentStatus === EventStatus.WARNING ||
+  (kueueStatus?.status && KUEUE_STATUSES_OVERRIDE_WORKBENCH.includes(kueueStatus.status))
     ? undefined
     : 'none';
 
@@ -79,12 +93,14 @@ export const getStatusSubtitle = ({
       kueueStatus.message,
       kueueStatus.queueName,
     );
-    if (
-      kueueStatus.queuePosition != null &&
-      (kueueStatus.status === KueueWorkloadStatus.Queued ||
-        kueueStatus.status === KueueWorkloadStatus.Inadmissible)
-    ) {
-      return `${message} (position ${kueueStatus.queuePosition})`;
+    if (kueueStatus.queuePosition != null) {
+      if (kueueStatus.status === KueueWorkloadStatus.Queued) {
+        return formatQueuePosition(kueueStatus.queuePosition, kueueStatus.queueName);
+      }
+      if (kueueStatus.status === KueueWorkloadStatus.Inadmissible) {
+        const pos = formatQueuePosition(kueueStatus.queuePosition, kueueStatus.queueName);
+        return `${message} (${pos})`;
+      }
     }
     return message;
   }
@@ -158,8 +174,12 @@ const NotebookStateStatus: React.FC<NotebookStateStatusProps> = ({
           <UnderlinedTruncateButton
             data-testid="notebook-status-subtitle"
             content={statusSubtitle}
-            color={getNotebookStatusColor(notebookStatus)}
-            textDecoration={getNotebookStatusTextDecoration(notebookStatus, isStarting)}
+            color={getNotebookStatusColor(notebookStatus, kueueStatus)}
+            textDecoration={getNotebookStatusTextDecoration(
+              notebookStatus,
+              isStarting,
+              kueueStatus,
+            )}
             onClick={openStatusModal}
           />
         ) : null}
