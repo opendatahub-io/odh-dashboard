@@ -1,0 +1,5 @@
+# testLlmdRoutingConfigurations.cy.ts Test Data #
+
+routingConfigName: 'e2e-scheduler-routing'
+routingConfigFixture: 'resources/modelServing/llmd-routing-config.yaml'
+projectResourceName: 'routing-admin'
