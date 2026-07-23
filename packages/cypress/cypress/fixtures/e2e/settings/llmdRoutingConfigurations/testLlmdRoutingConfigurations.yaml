@@ -3,3 +3,6 @@
 routingConfigName: 'e2e-scheduler-routing'
 routingConfigFixture: 'resources/modelServing/llmd-routing-config.yaml'
 projectResourceName: 'routing-admin'
+modelLocationURI: 'hf://facebook/opt-125m'
+deploymentMethod: 'llm-inference-service-llmd'
+defaultRoutingLabel: 'Default optimized routing'
