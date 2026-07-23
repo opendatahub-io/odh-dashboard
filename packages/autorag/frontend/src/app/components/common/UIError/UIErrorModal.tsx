@@ -57,7 +57,7 @@ const UIErrorModal: React.FC<UIErrorModalProps> = ({
     });
   }, []);
 
-  const hasDetails = Boolean(uiError?.details);
+  const hasDetails = Object.keys(uiError?.details ?? {}).length > 0;
   let serializedDetails = '';
   if (uiError && hasDetails) {
     serializedDetails = JSON.stringify(uiError.details, null, '    ');
@@ -65,7 +65,7 @@ const UIErrorModal: React.FC<UIErrorModalProps> = ({
 
   return (
     <Modal
-      elementToFocus={`#${CSS.escape(`${rootId}-UIErrorModal-search-input`)}`}
+      elementToFocus={`#${CSS.escape(`${rootId}-UIErrorModal-close-button`)}`}
       id={rootId}
       isOpen={isOpen}
       onClose={(e) => {
@@ -130,6 +130,7 @@ const UIErrorModal: React.FC<UIErrorModalProps> = ({
       </ModalBody>
       <ModalFooter>
         <Button
+          id={`${rootId}-UIErrorModal-close-button`}
           key="cancel"
           data-testid="UIErrorModal-cancel"
           variant="link"

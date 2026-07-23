@@ -56,7 +56,6 @@ const UIErrorAlerts: React.FC<UIErrorAlertsProps> = ({ id, children }) => {
     <AlertGroup
       id={rootId}
       isToast
-      isLiveRegion
       hasAnimations
       aria-live="assertive"
       data-testid="UIErrorAlerts-alert-group"
