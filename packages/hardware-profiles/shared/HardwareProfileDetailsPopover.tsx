@@ -80,9 +80,11 @@ const HardwareProfileDetailsPopover: React.FC<HardwareProfileDetailsPopoverProps
 
   const description = hardwareProfile && getHardwareProfileDescription(hardwareProfile);
 
-  const closePopover = () => {
+  const closePopover = (event: MouseEvent | KeyboardEvent) => {
     setIsPopoverVisible(false);
-    requestAnimationFrame(() => triggerRef.current?.focus());
+    if (event instanceof KeyboardEvent) {
+      requestAnimationFrame(() => triggerRef.current?.focus());
+    }
   };
 
   return (

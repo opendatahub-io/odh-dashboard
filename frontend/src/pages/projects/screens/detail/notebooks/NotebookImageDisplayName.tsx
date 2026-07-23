@@ -221,13 +221,15 @@ export const NotebookImageDisplayName = ({
   const { title, body, variant, footer } = getNotebookImagePopoverText();
   const hasInteractiveFooter = Boolean(footer);
 
-  const closeStatusLabelPopover = () => {
+  const closeStatusLabelPopover = (event: MouseEvent | KeyboardEvent) => {
     setIsPopoverVisible(false);
-    requestAnimationFrame(() => {
-      const focusable =
-        statusLabelTriggerRef.current?.querySelector<HTMLElement>('button, [tabindex="0"]');
-      focusable?.focus();
-    });
+    if (event instanceof KeyboardEvent) {
+      requestAnimationFrame(() => {
+        const focusable =
+          statusLabelTriggerRef.current?.querySelector<HTMLElement>('button, [tabindex="0"]');
+        focusable?.focus();
+      });
+    }
   };
 
   const imageBuildDate =
@@ -317,23 +319,21 @@ export const NotebookImageDisplayName = ({
                 </>
               }
               position="right"
-              // Read-only details: keep focus on the trigger so Tab continues in the table
-              // instead of entering the popover FocusTrap (which can drop focus to the browser).
               showClose={false}
               withFocusTrap={false}
               isVisible={isVersionPopoverVisible}
               shouldOpen={() => setIsVersionPopoverVisible(true)}
-              shouldClose={() => {
+              shouldClose={(event) => {
                 setIsVersionPopoverVisible(false);
-                requestAnimationFrame(() => versionTriggerRef.current?.focus());
+                if (event instanceof KeyboardEvent) {
+                  requestAnimationFrame(() => versionTriggerRef.current?.focus());
+                }
               }}
             >
               <UnderlinedTruncateButton
                 innerRef={versionTriggerRef}
                 content={versionDisplayString}
                 contentProps={{ component: ContentVariants.small }}
-                // Point Truncate's tooltip at the Button so it does not add a nested
-                // tabIndex={0} (double Tab stop on the version control).
                 truncateProps={{ tooltipProps: { triggerRef: versionTriggerRef } }}
                 data-testid="notebook-image-version-link"
               />
