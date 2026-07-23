@@ -2,6 +2,27 @@ import { URL_PREFIX } from './const';
 
 const SUBSCRIPTION_MANAGEMENT_PREFIX = `${URL_PREFIX}/maas-governance`;
 
+export type GovernanceSection = 'subscriptions' | 'auth-policies';
+
+export const getSectionUrl = (section: GovernanceSection): string =>
+  `${SUBSCRIPTION_MANAGEMENT_PREFIX}/${section}`;
+
+export const getSubscriptionViewUrl = (name: string): string =>
+  `${getSectionUrl('subscriptions')}/view/${encodeURIComponent(name)}`;
+
+export const getSubscriptionEditUrl = (name: string): string =>
+  `${getSectionUrl('subscriptions')}/edit/${encodeURIComponent(name)}`;
+
+export const getSubscriptionCreateUrl = (): string => `${getSectionUrl('subscriptions')}/create`;
+
+export const getAuthPolicyViewUrl = (name: string): string =>
+  `${getSectionUrl('auth-policies')}/view/${encodeURIComponent(name)}`;
+
+export const getAuthPolicyEditUrl = (name: string): string =>
+  `${getSectionUrl('auth-policies')}/edit/${encodeURIComponent(name)}`;
+
+export const getAuthPolicyCreateUrl = (): string => `${getSectionUrl('auth-policies')}/create`;
+
 export const getPreSelectedModelFromState = (
   state: unknown,
 ): { name: string; namespace?: string } | undefined => {
@@ -55,19 +76,11 @@ export const getBreadcrumbLabelFromState = (state: unknown): string | undefined 
   return typeof obj.breadcrumbLabel === 'string' ? obj.breadcrumbLabel : undefined;
 };
 
-export const getBackUrl = (
-  pathname: string,
-  state: unknown,
-  section: 'subscriptions' | 'auth-policies',
-): string => {
+export const getBackUrl = (state: unknown, section: GovernanceSection): string => {
   const returnTo = getReturnToFromState(state);
   if (returnTo) {
     return returnTo;
   }
 
-  if (pathname.startsWith(`${SUBSCRIPTION_MANAGEMENT_PREFIX}/`)) {
-    return `${SUBSCRIPTION_MANAGEMENT_PREFIX}/${section}`;
-  }
-
-  return `${URL_PREFIX}/${section}`;
+  return getSectionUrl(section);
 };

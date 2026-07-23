@@ -22,9 +22,9 @@ import {
 import { BanIcon, ExclamationCircleIcon, SearchIcon } from '@patternfly/react-icons';
 import { getGenericErrorCode } from '@odh-dashboard/internal/api/errorUtils';
 import HeaderIcon from '@odh-dashboard/ui-core/design/HeaderIcon';
-import { ProjectObjectType } from '@odh-dashboard/ui-core';
+import { ApplicationsPage, ProjectObjectType } from '@odh-dashboard/ui-core';
 import MarkdownComponent from '@odh-dashboard/internal/components/markdown/MarkdownComponent';
-import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
+
 import AgentCapabilitiesCard from '~/app/components/AgentCapabilitiesCard';
 import AgentDetailsCard from '~/app/components/AgentDetailsCard';
 import AgentRuntimeOverviewCard from '~/app/components/AgentRuntimeOverviewCard';
@@ -73,24 +73,24 @@ const AgentDeploymentDetailPage: React.FC = () => {
           isAccessDenied
             ? 'Access permissions needed'
             : isNotFound
-              ? 'Agent not found'
-              : 'Error loading agent'
+            ? 'Agent not found'
+            : 'Error loading agent'
         }
         variant={EmptyStateVariant.lg}
         data-testid={
           isAccessDenied
             ? 'agent-detail-access-denied'
             : isNotFound
-              ? 'agent-detail-not-found'
-              : 'agent-detail-error'
+            ? 'agent-detail-not-found'
+            : 'agent-detail-error'
         }
       >
         <EmptyStateBody>
           {isAccessDenied
             ? 'You do not have permission to view this agent deployment.'
             : isNotFound
-              ? `No agent "${agentId ?? 'unknown'}" was found in project "${namespace ?? 'unknown'}".`
-              : 'Unable to load agent details. Please try again later.'}
+            ? `No agent "${agentId ?? 'unknown'}" was found in project "${namespace ?? 'unknown'}".`
+            : 'Unable to load agent details. Please try again later.'}
         </EmptyStateBody>
       </EmptyState>
     </PageSection>

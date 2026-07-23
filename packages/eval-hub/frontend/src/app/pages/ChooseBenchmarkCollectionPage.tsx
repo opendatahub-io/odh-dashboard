@@ -30,7 +30,7 @@ import {
   SearchInput,
 } from '@patternfly/react-core';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
+import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { useCollections } from '~/app/hooks/useCollections';
 import { Collection } from '~/app/types';

@@ -1,4 +1,4 @@
-import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
+import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import React from 'react';
 import { useApiKeysPageLoad } from '~/app/hooks/useApiKeysPageLoad';
 import ApiKeysTab from './ApiKeysTab';

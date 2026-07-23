@@ -102,7 +102,7 @@ export const blankDashboardCR: DashboardConfig = {
       trainingJobs: true,
       disableLLMd: false,
       projectRBAC: true,
-      roleManagement: false,
+      roleManagement: true,
       deploymentWizardYAMLViewer: false,
       externalVectorStores: false,
       agentConfigManagement: false,

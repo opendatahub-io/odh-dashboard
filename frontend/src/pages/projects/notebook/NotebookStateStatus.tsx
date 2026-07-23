@@ -138,6 +138,7 @@ const NotebookStateStatus: React.FC<NotebookStateStatusProps> = ({
         </FlexItem>
         {statusSubtitle != null ? (
           <UnderlinedTruncateButton
+            data-testid="notebook-status-subtitle"
             content={statusSubtitle}
             color={getNotebookStatusColor(notebookStatus)}
             textDecoration={getNotebookStatusTextDecoration(notebookStatus, isStarting)}

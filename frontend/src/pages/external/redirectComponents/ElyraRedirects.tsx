@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link, useLocation, useParams, matchPath } from 'react-router-dom';
 import { Button } from '@patternfly/react-core';
-import ApplicationsPage from '#~/pages/ApplicationsPage';
+import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import RedirectErrorState from '#~/pages/external/RedirectErrorState';
 import { globalPipelineRunDetailsRoute } from '#~/routes/pipelines/runs';
 import { useRedirect } from '#~/utilities/useRedirect';

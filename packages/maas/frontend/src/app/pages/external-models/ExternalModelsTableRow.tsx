@@ -1,11 +1,17 @@
 import * as React from 'react';
 import { ResourceTr } from '@odh-dashboard/ui-core';
 import TableRowTitleDescription from '@odh-dashboard/internal/components/table/TableRowTitleDescription';
-import { ActionsColumn, Tbody, Td, Tr } from '@patternfly/react-table';
+import { Tbody, Td, Tr } from '@patternfly/react-table';
 import { Button, Flex, FlexItem, Label, Stack, StackItem } from '@patternfly/react-core';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import PhaseLabel from '~/app/shared/PhaseLabel';
 import { PhaseLabelLocation, PhaseResourceType } from '~/app/utilities/phaseLabelUtils';
 import { ExternalModel, ProviderRef } from '~/app/types/external-models';
+import {
+  ExternalModelsInfoPopoverLocation,
+  ExternalModelsInfoPopoverTarget,
+  MaaSEvents,
+} from '~/app/types/event-tracking';
 import { externalModelsColumns } from './columns';
 import { GovernancePairingWarning, MissingMaaSModelRefWarning } from './const';
 import {
@@ -19,25 +25,43 @@ import ProviderURLModal from './modals/ExternalModelsProviderModal';
 import ExternalModelsExpandedTableRow from './expanded/ExternalModelsExpandedTableRow';
 
 const VISIBLE_LABEL_ROWS = 2;
+const enum ToggleLocation {
+  ARROW = 'arrow',
+  PROVIDER_LABELS = 'provider-labels',
+}
 
 type ExternalModelTableRowProps = {
   externalModel: ExternalModel;
   rowIndex: number;
-  setDeleteExternalModel: (externalModel: ExternalModel) => void;
 };
 
 const ExternalModelTableRow: React.FC<ExternalModelTableRowProps> = ({
   externalModel,
   rowIndex,
-  setDeleteExternalModel,
 }) => {
   const [isExpanded, setIsExpanded] = React.useState(false);
   const [hasOverflow, setHasOverflow] = React.useState(false);
+  const [visibleLabelCount, setVisibleLabelCount] = React.useState(
+    externalModel.providerRefs.length,
+  );
   const labelsContainerRef = React.useRef<HTMLDivElement>(null);
   const [providerURLModalRef, setProviderURLModalRef] = React.useState<ProviderRef | null>(null);
   const [pathModalRef, setPathModalRef] = React.useState<ProviderRef | null>(null);
 
-  const toggleExpanded = () => {
+  const toggleExpanded = (toggleLocation: ToggleLocation) => {
+    if (!isExpanded) {
+      if (toggleLocation === ToggleLocation.ARROW) {
+        fireMiscTrackingEvent(MaaSEvents.EXTERNAL_MODEL_ROW_EXPANDED, {
+          modelStatus: externalModel.phase,
+          providerCount: externalModel.providerRefs.length,
+        });
+      } else {
+        fireMiscTrackingEvent(MaaSEvents.EXTERNAL_MODELS_PROVIDER_LABELS_EXPANDED, {
+          visibleProviderCount: visibleLabelCount,
+        });
+      }
+    }
+
     setIsExpanded((prev) => !prev);
   };
 
@@ -57,6 +81,7 @@ const ExternalModelTableRow: React.FC<ExternalModelTableRowProps> = ({
         container.style.maxHeight = '';
         container.style.overflow = '';
         setHasOverflow(false);
+        setVisibleLabelCount(0);
         return;
       }
 
@@ -66,7 +91,12 @@ const ExternalModelTableRow: React.FC<ExternalModelTableRowProps> = ({
       ].toSorted((a, b) => a - b);
 
       const nextHasOverflow = rowTops.length > VISIBLE_LABEL_ROWS;
+      const visibleRowTops = new Set(rowTops.slice(0, VISIBLE_LABEL_ROWS));
+      const nextVisibleCount = labels.filter((label) =>
+        visibleRowTops.has(Math.round(label.getBoundingClientRect().top)),
+      ).length;
       setHasOverflow((prev) => (prev === nextHasOverflow ? prev : nextHasOverflow));
+      setVisibleLabelCount((prev) => (prev === nextVisibleCount ? prev : nextVisibleCount));
 
       if (rowTops.length >= VISIBLE_LABEL_ROWS) {
         const lastVisibleRowTop = rowTops[VISIBLE_LABEL_ROWS - 1];
@@ -112,6 +142,12 @@ const ExternalModelTableRow: React.FC<ExternalModelTableRowProps> = ({
         description={externalModel.description ?? ''}
         truncateDescriptionLines={2}
         resource={getExternalModelResource(externalModel)}
+        onShowPopover={() => {
+          fireMiscTrackingEvent(MaaSEvents.EXTERNAL_MODELS_INFO_POPOVER_VIEWED, {
+            infoTarget: ExternalModelsInfoPopoverTarget.MODEL_REFERENCE,
+            location: ExternalModelsInfoPopoverLocation.TABLE_CELL,
+          });
+        }}
       />
     </Td>
   );
@@ -145,7 +181,7 @@ const ExternalModelTableRow: React.FC<ExternalModelTableRowProps> = ({
             <Button
               variant="link"
               isInline
-              onClick={toggleExpanded}
+              onClick={() => toggleExpanded(ToggleLocation.PROVIDER_LABELS)}
               data-testid="external-model-providers-show-more-button"
             >
               {isExpanded ? 'Show less' : 'Show more'}
@@ -166,6 +202,12 @@ const ExternalModelTableRow: React.FC<ExternalModelTableRowProps> = ({
             phase={externalModel.phase}
             statusMessage={getExternalModelStatusMessage(externalModel)}
             resourceType={PhaseResourceType.EXTERNAL_MODEL}
+            onClick={() => {
+              fireMiscTrackingEvent(MaaSEvents.EXTERNAL_MODELS_INFO_POPOVER_VIEWED, {
+                infoTarget: ExternalModelsInfoPopoverTarget.STATUS_LABEL,
+                location: ExternalModelsInfoPopoverLocation.TABLE_CELL,
+              });
+            }}
           />
         </FlexItem>
         {isMissingMaaSModelRef(externalModel) ? (
@@ -183,20 +225,6 @@ const ExternalModelTableRow: React.FC<ExternalModelTableRowProps> = ({
     </Td>
   );
 
-  const actionsCell = (
-    <Td isActionCell>
-      <ActionsColumn
-        data-testid="external-model-actions"
-        items={[
-          {
-            title: 'Delete',
-            onClick: () => setDeleteExternalModel(externalModel),
-          },
-        ]}
-      />
-    </Td>
-  );
-
   return (
     <>
       <Tbody isExpanded={isExpanded} data-testid="external-model-row">
@@ -206,13 +234,12 @@ const ExternalModelTableRow: React.FC<ExternalModelTableRowProps> = ({
             expand={{
               rowIndex,
               isExpanded,
-              onToggle: toggleExpanded,
+              onToggle: () => toggleExpanded(ToggleLocation.ARROW),
             }}
           />
           {nameCell}
           {externalProviderCell}
           {phaseCell}
-          {actionsCell}
         </ResourceTr>
         <Tr isExpanded={isExpanded}>
           <Td colSpan={externalModelsColumns.length + 1}>

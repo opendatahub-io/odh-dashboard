@@ -6,7 +6,7 @@ import {
   useK8sWatchResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
 import React from 'react';
-import { K8sStatusError, isK8sStatus } from '#~/api/errorUtils';
+import { K8sStatusError, isK8sStatus } from '@odh-dashboard/k8s-core';
 import { CustomWatchK8sResult } from '#~/types';
 
 const useK8sWatchResourceList = <T extends K8sResourceCommon[]>(

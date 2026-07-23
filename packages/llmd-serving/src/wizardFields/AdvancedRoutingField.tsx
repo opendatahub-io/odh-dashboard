@@ -235,7 +235,7 @@ export const AdvancedRoutingFieldWizardField: AdvancedRoutingFieldType = {
     },
     setFieldData: (value: AdvancedRoutingFieldData) => value,
     getInitialFieldData: (existingFieldData?: AdvancedRoutingFieldData): AdvancedRoutingFieldData =>
-      existingFieldData ?? { selectedConfig: undefined },
+      existingFieldData?.selectedConfig ? existingFieldData : { selectedConfig: undefined },
     validationSchema: z.object({
       selectedConfig: z
         .custom<LLMInferenceServiceConfigKind>(
@@ -245,6 +245,8 @@ export const AdvancedRoutingFieldWizardField: AdvancedRoutingFieldType = {
       configRef: z.string().optional(),
     }),
   },
+  shouldResetOnDependencyChange: (prev, next) =>
+    prev.topologyType?.topologyType !== next.topologyType?.topologyType,
   externalDataHook: useAdvancedRoutingData,
   component: AdvancedRoutingFieldComponent,
   getReviewSections,

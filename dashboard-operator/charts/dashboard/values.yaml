@@ -56,13 +56,10 @@ rbac:
   create: true
 
 webhook:
-  enabled: true
+  enabled: false
   port: 9443
   caBundle: ""
   certManager:
-    # Disabled by default for standalone Helm installs without cert-manager.
-    # The ODH operator module handler sets this to true when cert-manager CRDs
-    # are present on the cluster.
     enabled: false
     issuerRef: {}
 

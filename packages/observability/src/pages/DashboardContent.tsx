@@ -2,7 +2,7 @@ import * as React from 'react';
 import { PageSection, Tab, Tabs, TabTitleText } from '@patternfly/react-core';
 import type { DashboardResource } from '@perses-dev/core';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
+import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import { DASHBOARD_PAGE_TITLE, DASHBOARD_PAGE_DESCRIPTION } from './const';
 import HeaderTimeRangeControls from './HeaderTimeRangeControls';
 import ClusterDetailsVariablesProvider from './ClusterDetailsVariablesProvider';

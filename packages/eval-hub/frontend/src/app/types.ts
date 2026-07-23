@@ -84,7 +84,8 @@ export type EvaluationJobState =
   | 'failed'
   | 'cancelled'
   | 'stopping'
-  | 'stopped';
+  | 'stopped'
+  | 'partially_failed';
 
 type JobMessage = {
   message?: string;

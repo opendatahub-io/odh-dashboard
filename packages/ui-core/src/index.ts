@@ -1,5 +1,28 @@
 export type { UpdateObjectAtPropAndValue } from './types';
 
+export { ThemeContext, useThemeContext } from './contexts/ThemeContext';
+export type { ThemeContextProps } from './contexts/ThemeContext';
+
+export { AnalyticsContext, useAnalytics, TrackingOutcome } from './contexts/AnalyticsContext';
+export type { FormTrackingEventProperties, AnalyticsAPI } from './contexts/AnalyticsContext';
+
+export { NotificationContext, useNotification } from './contexts/NotificationContext';
+export type { NotificationAction, NotificationAPI } from './contexts/NotificationContext';
+
+export {
+  NotificationWatcherContext,
+  NotificationWatcherContextProvider,
+  NotificationResponseStatus,
+} from './contexts/NotificationWatcherContext';
+export type {
+  NotificationWatcherContextType,
+  NotificationWatcherItem,
+  NotificationWatcherCallback,
+  NotificationWatcherResponse,
+  FinalNotificationWatcherResponse,
+  RepollNotificationWatcherResponse,
+} from './contexts/NotificationWatcherContext';
+
 export * from './table/types';
 export * from './table/const';
 
@@ -54,8 +77,15 @@ export { default as CPUField, CPUFieldWithCheckbox } from './components/CPUField
 
 export { default as MemoryField, MemoryFieldWithCheckbox } from './components/MemoryField';
 
+export { default as ApplicationsPage } from './components/ApplicationsPage';
+export type { ApplicationsPageProps } from './components/ApplicationsPage';
+
 export { default as ContentModal } from './components/ContentModal';
 export type { ButtonAction } from './components/ContentModal';
+
+export { default as DeleteModal } from './components/DeleteModal';
+
+export { default as ConfirmStopModal } from './components/ConfirmStopModal';
 
 export { default as K8sNameDescriptionField } from './components/K8sNameDescriptionField/K8sNameDescriptionField';
 export { useK8sNameDescriptionFieldData } from './components/K8sNameDescriptionField/K8sNameDescriptionField';

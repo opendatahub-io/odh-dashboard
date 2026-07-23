@@ -68,6 +68,13 @@ const STATUS_OPTIONS: { value: EvaluationJobState; label: string }[] = [
   { value: 'stopping', label: 'Canceling' },
 ];
 
+const matchesStatusFilter = (jobState: EvaluationJobState, selectedStatus: EvaluationJobState) => {
+  if (selectedStatus === 'failed') {
+    return jobState === 'failed' || jobState === 'partially_failed';
+  }
+  return jobState === selectedStatus;
+};
+
 type SortConfig = {
   index: number;
   direction: 'asc' | 'desc';
@@ -141,7 +148,7 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
           if (!selectedStatus) {
             return true;
           }
-          return job.status.state === selectedStatus;
+          return matchesStatusFilter(job.status.state, selectedStatus);
         }
         if (!filterValue) {
           return true;
