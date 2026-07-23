@@ -1,6 +1,5 @@
 import * as React from 'react';
 import {
-  Button,
   DrawerActions,
   DrawerCloseButton,
   DrawerHead,
@@ -10,7 +9,6 @@ import {
   Title,
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
-import { ArrowRightIcon } from '@patternfly/react-icons/dist/esm/icons/arrow-right-icon';
 import { DashboardPopupIconButton } from '@odh-dashboard/ui-core';
 import PipelineRunDrawerRightTabs from '#~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunDrawerRightTabs';
 import './PipelineRunDrawer.scss';
@@ -24,7 +22,6 @@ type PipelineRunDrawerRightContentProps = {
   executions: Execution[];
   upstreamTaskName?: string;
   onClose: () => void;
-  onOpenSubDag?: () => void;
 };
 
 const PipelineRunDrawerRightContent: React.FC<PipelineRunDrawerRightContentProps> = ({
@@ -32,7 +29,6 @@ const PipelineRunDrawerRightContent: React.FC<PipelineRunDrawerRightContentProps
   executions,
   upstreamTaskName,
   onClose,
-  onOpenSubDag,
 }) => {
   if (!task) {
     return null;
@@ -74,21 +70,6 @@ const PipelineRunDrawerRightContent: React.FC<PipelineRunDrawerRightContentProps
               <DrawerCloseButton onClick={onClose} />
             </DrawerActions>
           </DrawerHead>
-          {task.isSubDag && onOpenSubDag ? (
-            <DrawerPanelBody className="pf-v6-u-pb-sm">
-              <Button
-                variant="link"
-                icon={<ArrowRightIcon />}
-                iconPosition="end"
-                onClick={onOpenSubDag}
-                data-testid="open-sub-dag-button"
-              >
-                {task.iterationCount != null
-                  ? `Open iterations (${task.iterationCount})`
-                  : 'Open sub-DAG'}
-              </Button>
-            </DrawerPanelBody>
-          ) : null}
           {/* TODO: Revert the custom classname once
           https://github.com/patternfly/patternfly-react/issues/11804 is resolved */}
           <DrawerPanelBody
