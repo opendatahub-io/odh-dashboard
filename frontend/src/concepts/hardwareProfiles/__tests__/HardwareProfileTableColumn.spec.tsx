@@ -74,28 +74,54 @@ describe('HardwareProfileTableColumn', () => {
     });
   });
 
-  describe('Custom scenario (no hardware profile)', () => {
-    it('renders Custom text as a focusable button with no details popover', () => {
+  describe('No hardware profile scenario', () => {
+    it('renders "None" trigger, shows correct header/body, and no "Expand row" without the prop', async () => {
       renderWithContext(
         <HardwareProfileTableColumn
           namespace="test-project"
           resource={mockNotebookResource as unknown as NotebookKind}
           bindingState={{
-            bindingStateInfo: {
-              profile: undefined,
-            },
+            bindingStateInfo: { profile: undefined },
             bindingStateLoaded: true,
             loadError: undefined,
           }}
         />,
       );
 
-      expect(screen.getByTestId('hardware-profile-table-column')).toHaveTextContent('Custom');
-      expect(screen.queryByTestId('hardware-profile-details-popover')).not.toBeInTheDocument();
-      expect(screen.getByText('Custom').closest('button')).toBeInTheDocument();
+      expect(screen.getByTestId('hardware-profile-table-column')).toHaveTextContent('None');
+
+      await userEvent.click(screen.getByTestId('hardware-profile-details-popover'));
+
+      expect(screen.getByText('No hardware profile defined')).toBeInTheDocument();
+      expect(screen.getByTestId('hardware-profile-details')).toHaveTextContent(
+        'No hardware profile is defined for this workbench',
+      );
+      expect(screen.queryByRole('button', { name: 'Expand row' })).not.toBeInTheDocument();
     });
 
-    it('renders details popover with "applied directly" when notebook has a direct queue label and no HP', async () => {
+    it('calls onExpandRow when "Expand row" is clicked', async () => {
+      const onExpandRow = jest.fn();
+
+      renderWithContext(
+        <HardwareProfileTableColumn
+          namespace="test-project"
+          resource={mockNotebookResource as unknown as NotebookKind}
+          bindingState={{
+            bindingStateInfo: { profile: undefined },
+            bindingStateLoaded: true,
+            loadError: undefined,
+          }}
+          onExpandRow={onExpandRow}
+        />,
+      );
+
+      await userEvent.click(screen.getByTestId('hardware-profile-details-popover'));
+      await userEvent.click(screen.getByRole('button', { name: 'Expand row' }));
+
+      expect(onExpandRow).toHaveBeenCalledTimes(1);
+    });
+
+    it('renders details popover with "Local queue" when notebook has a direct queue label and no HP', async () => {
       const notebookWithQueueLabel = {
         ...mockNotebookResource,
         metadata: {
@@ -122,12 +148,12 @@ describe('HardwareProfileTableColumn', () => {
       );
 
       expect(screen.getByTestId('hardware-profile-details-popover')).toBeInTheDocument();
-      expect(screen.queryByText('Custom')).not.toBeInTheDocument();
+      expect(screen.queryByText('None')).toBeInTheDocument();
 
       await userEvent.click(screen.getByTestId('hardware-profile-details-popover'));
 
       const details = screen.getByTestId('hardware-profile-details');
-      expect(details).toHaveTextContent('Local queue (applied directly)');
+      expect(details).toHaveTextContent('Local queue');
       expect(details).toHaveTextContent('gitops-queue');
       expect(details).not.toHaveTextContent('No matching hardware profile found');
     });

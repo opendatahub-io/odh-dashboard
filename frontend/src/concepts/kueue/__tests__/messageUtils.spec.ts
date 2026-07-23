@@ -6,6 +6,8 @@ import {
   getEvictionToastBody,
   getRequeuedMessage,
   getKueueAnalyticsSubState,
+  toOrdinal,
+  formatQueuePosition,
 } from '#~/concepts/kueue/messageUtils';
 
 describe('getHumanReadableKueueMessage', () => {
@@ -20,14 +22,14 @@ describe('getHumanReadableKueueMessage', () => {
       ).toBe(expected);
     });
 
-    it('should return generic waiting message for non-quota reasons', () => {
+    it('should return resources waiting message for non-quota reasons', () => {
       expect(
         getHumanReadableKueueMessage(
           KueueWorkloadStatus.Queued,
           'some other reason for waiting',
           'test-queue',
         ),
-      ).toBe('Waiting for available resources');
+      ).toBe('Waiting for resources in test-queue');
     });
 
     it('should use "the queue" when queue name is not provided', () => {
@@ -88,42 +90,42 @@ describe('getHumanReadableKueueMessage', () => {
     it('should always return the same fixed message regardless of raw message or queue', () => {
       expect(
         getHumanReadableKueueMessage(KueueWorkloadStatus.Preempted, 'any message', 'any-queue'),
-      ).toBe('Paused by a higher-priority job');
+      ).toBe('Paused by higher-priority job');
       expect(getHumanReadableKueueMessage(KueueWorkloadStatus.Preempted)).toBe(
-        'Paused by a higher-priority job',
+        'Paused by higher-priority job',
       );
     });
   });
 
   describe('Evicted status', () => {
-    it('should return queue stopped message when raw message mentions ClusterQueue stopped', () => {
+    it('should return manually removed message when raw message mentions ClusterQueue stopped', () => {
       expect(
         getHumanReadableKueueMessage(
           KueueWorkloadStatus.Evicted,
           'ClusterQueue cluster-queue is stopped',
         ),
-      ).toBe('Evicted: queue was stopped');
+      ).toBe('Manually removed from queue');
     });
 
     it('should return deactivated message when raw message mentions deactivation', () => {
       expect(
         getHumanReadableKueueMessage(KueueWorkloadStatus.Evicted, 'Workload was deactivated'),
-      ).toBe('Evicted: workload was deactivated');
+      ).toBe('Deactivated');
     });
 
-    it('should return admission check message when raw message mentions admission check', () => {
+    it('should return admission check failed message when raw message mentions admission check', () => {
       expect(
         getHumanReadableKueueMessage(
           KueueWorkloadStatus.Evicted,
           'At least one admission check transitioned to Retry',
         ),
-      ).toBe('Evicted: admission check failed');
+      ).toBe('Admission check failed');
     });
 
-    it('should prefix raw message with Evicted for unknown eviction reasons', () => {
+    it('should return raw message for unknown eviction reasons', () => {
       expect(
         getHumanReadableKueueMessage(KueueWorkloadStatus.Evicted, 'Some unknown eviction reason'),
-      ).toBe('Evicted: Some unknown eviction reason');
+      ).toBe('Some unknown eviction reason');
     });
 
     it('should return generic eviction message when no raw message provided', () => {
@@ -189,16 +191,20 @@ describe('getHumanReadableKueueMessage', () => {
   });
 
   describe('Requeued status', () => {
-    it('should return requeued message with raw message when provided', () => {
+    it('should return resources waiting message for non-quota Requeued reason', () => {
       expect(
-        getHumanReadableKueueMessage(KueueWorkloadStatus.Requeued, 'Pods were not ready in time'),
-      ).toBe('Re-queued: Pods were not ready in time');
+        getHumanReadableKueueMessage(
+          KueueWorkloadStatus.Requeued,
+          'Pods were not ready in time',
+          'test-queue',
+        ),
+      ).toBe('Waiting for resources in test-queue');
     });
 
-    it('should return generic requeued message when no raw message', () => {
-      expect(getHumanReadableKueueMessage(KueueWorkloadStatus.Requeued)).toBe(
-        'Re-queued, waiting to retry',
-      );
+    it('should return quota waiting message when no raw message', () => {
+      expect(
+        getHumanReadableKueueMessage(KueueWorkloadStatus.Requeued, undefined, 'test-queue'),
+      ).toBe('Waiting for quota in test-queue');
     });
   });
 
@@ -216,50 +222,86 @@ describe('getHumanReadableKueueMessage', () => {
 });
 
 describe('getRequeuedMessage', () => {
-  it('should include retry count and next retry time when both present', () => {
+  it('should return queue message with attempt count when count is provided', () => {
     const result = getRequeuedMessage({
       status: KueueWorkloadStatus.Requeued,
-      requeueInfo: { count: 3, requeueAt: '2026-02-16T08:05:00Z' },
+      requeueInfo: { count: 3 },
+      queueName: 'test-queue',
+      message: 'insufficient unused quota',
     });
     expect(result).toContain('attempt 3');
-    expect(result).toContain('next retry at');
+    expect(result).toContain('test-queue');
   });
 
-  it('should include only next retry time when count is 0', () => {
+  it('should return base queue message without suffix when count is zero', () => {
     const result = getRequeuedMessage({
       status: KueueWorkloadStatus.Requeued,
-      requeueInfo: { count: 0, requeueAt: '2026-02-16T08:05:00Z' },
+      requeueInfo: { count: 0 },
+      queueName: 'test-queue',
     });
-    expect(result).toContain('next retry at');
     expect(result).not.toContain('attempt');
+    expect(result).toContain('test-queue');
   });
 
-  it('should include only retry count when no requeueAt', () => {
+  it('should return base queue message without suffix when no requeueInfo', () => {
+    const result = getRequeuedMessage({
+      status: KueueWorkloadStatus.Requeued,
+    });
+    expect(result).toBe('Waiting for quota in the queue');
+  });
+
+  it('should fall back to "the queue" when no queueName provided', () => {
     const result = getRequeuedMessage({
       status: KueueWorkloadStatus.Requeued,
       requeueInfo: { count: 5 },
     });
-    expect(result).toBe('Re-queued (attempt 5)');
+    expect(result).toBe('Waiting for quota in the queue (attempt 5)');
+  });
+});
+
+describe('toOrdinal', () => {
+  it.each([
+    [1, '1st'],
+    [2, '2nd'],
+    [3, '3rd'],
+    [4, '4th'],
+    [11, '11th'],
+    [12, '12th'],
+    [13, '13th'],
+    [21, '21st'],
+    [22, '22nd'],
+    [23, '23rd'],
+    [100, '100th'],
+    [101, '101st'],
+  ])('should return %s as %s', (n, expected) => {
+    expect(toOrdinal(n)).toBe(expected);
+  });
+});
+
+describe('formatQueuePosition', () => {
+  it('should include queue name when provided', () => {
+    expect(formatQueuePosition(3, 'my-queue')).toBe('3rd in my-queue');
   });
 
-  it('should return generic message when no requeueInfo', () => {
-    const result = getRequeuedMessage({
-      status: KueueWorkloadStatus.Requeued,
-    });
-    expect(result).toBe('Re-queued, waiting to retry');
+  it('should fall back to "queue" when no queue name provided', () => {
+    expect(formatQueuePosition(1)).toBe('1st in queue');
+  });
+
+  it('should use correct ordinal suffix', () => {
+    expect(formatQueuePosition(2, 'test-queue')).toBe('2nd in test-queue');
   });
 });
 
 describe('getPreemptionToastBody', () => {
-  it('should include formatted timestamp when provided', () => {
+  it('should include formatted timestamp and reentered message when timestamp provided', () => {
     const result = getPreemptionToastBody('my-workbench', '2026-02-16T08:00:00Z');
     expect(result).toContain('Workbench my-workbench was preempted at');
-    expect(result).toContain('by a higher-priority job and has been re-queued.');
+    expect(result).toContain('by a higher-priority job. It has reentered the queue.');
   });
 
-  it('should omit timestamp when not provided or explicitly undefined', () => {
+  it('should omit timestamp and use reentered message when not provided', () => {
     const expected =
-      'Workbench my-workbench was preempted by a higher-priority job and has been re-queued.';
+      'Workbench my-workbench was preempted by a higher-priority job. It has reentered the queue.';
     expect(getPreemptionToastBody('my-workbench')).toBe(expected);
     expect(getPreemptionToastBody('my-workbench', undefined)).toBe(expected);
   });
@@ -326,8 +368,8 @@ describe('getKueueSubStepInfo', () => {
       ],
       [KueueWorkloadStatus.Inadmissible, undefined, 'q', 'Unable to admit workload to q'],
       [KueueWorkloadStatus.Evicted, undefined, 'q', 'Evicted from the queue'],
-      [KueueWorkloadStatus.Preempted, undefined, 'q', 'Paused by a higher-priority job'],
-      [KueueWorkloadStatus.Requeued, undefined, 'q', 'Re-queued, waiting to retry'],
+      [KueueWorkloadStatus.Preempted, undefined, 'q', 'Paused by higher-priority job'],
+      [KueueWorkloadStatus.Requeued, undefined, 'q', 'Waiting for quota in q'],
       [KueueWorkloadStatus.Queued, undefined, 'q', 'Waiting for quota in q'],
     ] as const)('returns human-readable label for %s', (status, message, queueName, expected) => {
       expect(getKueueSubStepInfo(status, message, queueName, false).label).toBe(expected);
@@ -335,7 +377,7 @@ describe('getKueueSubStepInfo', () => {
   });
 
   describe('queue position', () => {
-    it('appends position to label when Queued and position is provided', () => {
+    it('appends ordinal position to label when Queued and position is provided', () => {
       const result = getKueueSubStepInfo(
         KueueWorkloadStatus.Queued,
         undefined,
@@ -343,7 +385,7 @@ describe('getKueueSubStepInfo', () => {
         false,
         3,
       );
-      expect(result.label).toContain('position 3');
+      expect(result.label).toContain('3rd in queue');
     });
 
     it('does not append position for non-Queued statuses', () => {
@@ -354,20 +396,20 @@ describe('getKueueSubStepInfo', () => {
         false,
         3,
       );
-      expect(result.label).not.toContain('position');
+      expect(result.label).not.toContain('in queue');
     });
   });
 });
 
 describe('getEvictionToastBody', () => {
-  it('should normalize known reason (queue stopped)', () => {
+  it('should use mapped reason for queue stopped eviction', () => {
     const result = getEvictionToastBody('my-workbench', 'ClusterQueue default is stopped');
-    expect(result).toBe('Workbench my-workbench was evicted: queue was stopped');
+    expect(result).toBe('Workbench my-workbench was evicted: Manually removed from queue');
   });
 
-  it('should normalize known reason (deactivated)', () => {
+  it('should use mapped reason for deactivated eviction', () => {
     const result = getEvictionToastBody('my-workbench', 'Workload was deactivated');
-    expect(result).toBe('Workbench my-workbench was evicted: workload was deactivated');
+    expect(result).toBe('Workbench my-workbench was evicted: Deactivated');
   });
 
   it('should pass through unknown reason as-is', () => {
@@ -379,6 +421,16 @@ describe('getEvictionToastBody', () => {
     const expected = 'Workbench my-workbench was evicted from the queue.';
     expect(getEvictionToastBody('my-workbench')).toBe(expected);
     expect(getEvictionToastBody('my-workbench', '  ')).toBe(expected);
+  });
+
+  it('should include formatted timestamp when provided', () => {
+    const result = getEvictionToastBody(
+      'my-workbench',
+      'ClusterQueue default is stopped',
+      '2026-02-16T08:00:00Z',
+    );
+    expect(result).toContain('was evicted at');
+    expect(result).toContain('Manually removed from queue');
   });
 });
 

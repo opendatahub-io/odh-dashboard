@@ -51,6 +51,7 @@ const makeEvent = (
   reason: string,
   message: string,
   type: 'Normal' | 'Warning' = 'Normal',
+  lastTimestamp?: string,
 ): EventKind => ({
   apiVersion: 'v1',
   kind: 'Event',
@@ -60,6 +61,9 @@ const makeEvent = (
   message,
   type,
   eventTime: '2025-01-22T10:00:00Z',
+  // lastTimestamp takes precedence over eventTime in getEventTimestamp; set it when provided
+  // so same-timestamp severity tests can override the default time.
+  ...(lastTimestamp && { lastTimestamp }),
 });
 
 const validUnameRegex = new RegExp('^[a-z]{1}[a-z0-9-]{1,62}$');
@@ -373,7 +377,7 @@ describe('buildInitialProgressSteps', () => {
     expect(allSteps.find((s) => s.stepKind === 'kueue')).toBeUndefined();
   });
 
-  it('includes kueue sub-step with IN_PROGRESS status when Queued', () => {
+  it('includes kueue sub-step with PENDING status when Queued', () => {
     const nb = makeNotebook(['my-wb']);
     const steps = buildInitialProgressSteps(nb, false, false, {
       status: KueueWorkloadStatus.Queued,
@@ -383,13 +387,14 @@ describe('buildInitialProgressSteps', () => {
     const podAssigned = steps.find((s) => s.stepKind === 'pod_assigned');
     const kueue = podAssigned?.subSteps?.find((s) => s.stepKind === 'kueue');
     expect(kueue).toBeDefined();
-    expect(kueue?.status).toBe(EventStatus.IN_PROGRESS);
+    expect(kueue?.status).toBe(EventStatus.PENDING);
   });
 
   it('includes kueue sub-step with SUCCESS status when Admitted', () => {
     const nb = makeNotebook(['my-wb']);
     const steps = buildInitialProgressSteps(nb, false, false, {
       status: KueueWorkloadStatus.Admitted,
+      queueName: 'test-queue',
     });
     const podAssigned = steps.find((s) => s.stepKind === 'pod_assigned');
     const kueue = podAssigned?.subSteps?.find((s) => s.stepKind === 'kueue');
@@ -440,6 +445,7 @@ describe('buildInitialProgressSteps', () => {
     const steps = buildInitialProgressSteps(nb, false, false, {
       status: KueueWorkloadStatus.AdmissionCheck,
       message: 'gpu-provisioner',
+      queueName: 'test-queue',
     });
     const podAssigned = steps.find((s) => s.stepKind === 'pod_assigned');
     const kueue = podAssigned?.subSteps?.find((s) => s.stepKind === 'kueue');
@@ -452,12 +458,24 @@ describe('buildInitialProgressSteps', () => {
     const nb = makeNotebook(['my-wb']);
     const steps = buildInitialProgressSteps(nb, false, false, {
       status: KueueWorkloadStatus.BlockedOnPreemptionGates,
+      queueName: 'test-queue',
     });
     const podAssigned = steps.find((s) => s.stepKind === 'pod_assigned');
     const kueue = podAssigned?.subSteps?.find((s) => s.stepKind === 'kueue');
     expect(kueue).toBeDefined();
     expect(kueue?.label).toBe('Admitted but waiting for preemption gates to clear');
     expect(kueue?.status).toBe(EventStatus.IN_PROGRESS);
+  });
+
+  it('does NOT include kueue step when kueueStatus has no queueName (auto-created workload for non-Kueue notebook)', () => {
+    const nb = makeNotebook(['my-wb']);
+    const steps = buildInitialProgressSteps(nb, false, false, {
+      status: KueueWorkloadStatus.Admitted,
+      // intentionally no queueName — simulates Kueue auto-creating a workload for a non-Kueue notebook
+    });
+    const podAssigned = steps.find((s) => s.stepKind === 'pod_assigned');
+    const kueue = podAssigned?.subSteps?.find((s) => s.stepKind === 'kueue');
+    expect(kueue).toBeUndefined();
   });
 });
 
@@ -759,6 +777,35 @@ describe('useNotebookProgress', () => {
     expect(withEvent.find((s) => s.stepKind === 'pvc_attached')).toBeDefined();
   });
 
+  it('bubbles Kueue WARNING up to pod_assigned parent when pod was already Scheduled', () => {
+    const nb = makeNotebook(['my-wb']);
+    const events: EventKind[] = [makeEvent('Scheduled', 'Successfully assigned pod to node')];
+    const { result } = renderHook(() =>
+      useNotebookProgress(nb, false, false, false, events, {
+        status: KueueWorkloadStatus.Requeued,
+        queueName: 'default',
+        requeueInfo: { count: 3 },
+      }),
+    );
+    const podAssigned = result.current.find((s) => s.stepKind === 'pod_assigned');
+    expect(podAssigned?.status).toBe(EventStatus.WARNING);
+    const kueueSub = podAssigned?.subSteps?.find((s) => s.stepKind === 'kueue');
+    expect(kueueSub?.status).toBe(EventStatus.WARNING);
+  });
+
+  it('does NOT override pod_assigned to WARNING when Kueue sub-step is SUCCESS (Admitted)', () => {
+    const nb = makeNotebook(['my-wb']);
+    const events: EventKind[] = [makeEvent('Scheduled', 'Successfully assigned pod to node')];
+    const { result } = renderHook(() =>
+      useNotebookProgress(nb, false, false, false, events, {
+        status: KueueWorkloadStatus.Admitted,
+        queueName: 'default',
+      }),
+    );
+    const podAssigned = result.current.find((s) => s.stepKind === 'pod_assigned');
+    expect(podAssigned?.status).toBe(EventStatus.SUCCESS);
+  });
+
   it.each([
     {
       label: 'ImagePullBackOff',
@@ -798,6 +845,41 @@ describe('useNotebookProgress', () => {
     const podAssigned = result.current.find((s) => s.stepKind === 'pod_assigned');
     const kueue = podAssigned?.subSteps?.find((s) => s.stepKind === 'kueue');
     expect(kueue).toBeDefined();
-    expect(kueue?.status).toBe(EventStatus.IN_PROGRESS);
+    expect(kueue?.status).toBe(EventStatus.PENDING);
+  });
+
+  it('severity-wins: same-timestamp BackOff (ERROR) is not downgraded by companion Warning Failed event (WARNING)', () => {
+    // Kubernetes fires both events at the same instant when ImagePullBackOff kicks in.
+    // The BackOff event → ERROR; the companion Warning Failed event → WARNING.
+    // The merge loop must keep ERROR even though the Warning event appears later.
+    const ts = '2025-01-22T10:05:00Z';
+    const nb = makeNotebook(['my-wb']);
+    const events: EventKind[] = [
+      makeEvent('BackOff', 'Back-off pulling image "quay.io/example/my-wb:latest"', 'Normal', ts),
+      makeEvent('Failed', 'Error: ImagePullBackOff', 'Warning', ts),
+    ];
+    const { result } = renderHook(() => useNotebookProgress(nb, false, false, false, events, null));
+    const containerProblem = result.current.find(
+      (s) => s.stepKind === 'container_problem' && s.containerName === 'my-wb',
+    );
+    expect(containerProblem).toBeDefined();
+    expect(containerProblem?.status).toBe(EventStatus.ERROR);
+    expect(containerProblem?.description).toBe('ImagePullBackOff');
+  });
+
+  it('allows a later SUCCESS to clear a WARNING from an earlier restart event', () => {
+    // When a workbench restarts, "Killing" (WARNING) arrives first, then "Started" (SUCCESS)
+    // a moment later — both land on the same "started" step. The restart wins; step ends SUCCESS.
+    const nb = makeNotebook(['my-wb']);
+    const events: EventKind[] = [
+      makeEvent('Killing', 'Stopping container my-wb', 'Normal', '2025-01-22T10:04:00Z'),
+      makeEvent('Started', 'Started container my-wb', 'Normal', '2025-01-22T10:05:00Z'),
+    ];
+    const { result } = renderHook(() => useNotebookProgress(nb, false, false, false, events, null));
+    const startedStep = result.current.find(
+      (s) => s.stepKind === 'started' && s.containerName === 'my-wb',
+    );
+    expect(startedStep).toBeDefined();
+    expect(startedStep?.status).toBe(EventStatus.SUCCESS);
   });
 });
