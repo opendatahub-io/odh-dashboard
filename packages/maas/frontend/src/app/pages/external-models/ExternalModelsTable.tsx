@@ -7,7 +7,6 @@ import { externalModelsColumns } from './columns';
 type ExternalModelsTableProps = {
   externalModels: ExternalModel[];
   onClearFilters: () => void;
-  setDeleteExternalModel: (externalModel: ExternalModel) => void;
   toolbarContent: React.ReactElement;
   emptyTableView: React.ReactNode;
 };
@@ -15,7 +14,6 @@ type ExternalModelsTableProps = {
 export const ExternalModelsTable: React.FC<ExternalModelsTableProps> = ({
   externalModels,
   onClearFilters,
-  setDeleteExternalModel,
   toolbarContent,
   emptyTableView,
 }): React.ReactNode => (
@@ -32,7 +30,6 @@ export const ExternalModelsTable: React.FC<ExternalModelsTableProps> = ({
         key={externalModel.name}
         externalModel={externalModel}
         rowIndex={rowIndex}
-        setDeleteExternalModel={setDeleteExternalModel}
       />
     )}
     emptyTableView={emptyTableView ?? <DashboardEmptyTableView onClearFilters={onClearFilters} />}

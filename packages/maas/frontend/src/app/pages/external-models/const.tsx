@@ -1,6 +1,12 @@
 import * as React from 'react';
 import { Popover, Button, Label } from '@patternfly/react-core';
 import { PendingIcon } from '@patternfly/react-icons';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import {
+  ExternalModelsInfoPopoverLocation,
+  ExternalModelsInfoPopoverTarget,
+  MaaSEvents,
+} from '~/app/types/event-tracking';
 
 export enum ExternalModelsFilterOptions {
   keyword = 'keyword',
@@ -66,6 +72,12 @@ export const GovernancePairingWarning: React.FC = () => (
       variant="plain"
       data-testid="external-model-governance-pairing-warning"
       aria-label="Awaiting governance pairing"
+      onClick={() => {
+        fireMiscTrackingEvent(MaaSEvents.EXTERNAL_MODELS_INFO_POPOVER_VIEWED, {
+          infoTarget: ExternalModelsInfoPopoverTarget.SECONDARY_STATUS,
+          location: ExternalModelsInfoPopoverLocation.TABLE_CELL,
+        });
+      }}
     >
       <Label color="purple" isCompact>
         <PendingIcon />

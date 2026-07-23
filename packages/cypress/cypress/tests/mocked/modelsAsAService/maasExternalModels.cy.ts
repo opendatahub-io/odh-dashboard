@@ -1,12 +1,12 @@
 import { mockDashboardConfig } from '@odh-dashboard/internal/__mocks__/mockDashboardConfig.js';
 import { mockDscStatus } from '@odh-dashboard/internal/__mocks__/mockDscStatus.js';
+import { MODELS_AS_A_SERVICE_READY } from '@odh-dashboard/k8s-core';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import { ProjectModel } from '@odh-dashboard/internal/api/models/index';
 import { mockK8sResourceList } from '@odh-dashboard/internal/__mocks__/mockK8sResourceList';
 import { mockProjectK8sResource } from '@odh-dashboard/internal/__mocks__/mockProjectK8sResource';
 import { asProductAdminUser } from '../../../utils/mockUsers';
 import {
-  deleteExternalModelModal,
   externalModelPathModal,
   externalModelProviderUrlModal,
   externalModelsPage,
@@ -36,7 +36,7 @@ const setupCommonIntercepts = () => {
         [DataScienceStackComponent.OGX_OPERATOR]: { managementState: 'Managed' },
         [DataScienceStackComponent.K_SERVE]: { managementState: 'Managed' },
       },
-      conditions: [{ type: 'ModelsAsServiceReady', status: 'True', reason: 'Ready' }],
+      conditions: [{ type: MODELS_AS_A_SERVICE_READY, status: 'True', reason: 'Ready' }],
     }),
   );
 };
@@ -89,7 +89,7 @@ describe('External Models Page', () => {
           [DataScienceStackComponent.OGX_OPERATOR]: { managementState: 'Managed' },
           [DataScienceStackComponent.K_SERVE]: { managementState: 'Managed' },
         },
-        conditions: [{ type: 'ModelsAsServiceReady', status: 'False', reason: 'NotReady' }],
+        conditions: [{ type: MODELS_AS_A_SERVICE_READY, status: 'False', reason: 'NotReady' }],
       }),
     );
     externalModelsPage.visit();
@@ -211,31 +211,31 @@ describe('External Models Page', () => {
       externalModelsPage.findRows().should('have.length', 4);
     });
 
-    it('should delete an external model', () => {
-      cy.interceptOdh(
-        'DELETE /maas/api/v1/externalmodel/:namespace/:name',
-        { path: { namespace: TEST_PROJECT, name: 'gpt-4o-external' } },
-        { data: null },
-      ).as('deleteExternalModel');
+    // it('should delete an external model', () => {
+    //   cy.interceptOdh(
+    //     'DELETE /maas/api/v1/externalmodel/:namespace/:name',
+    //     { path: { namespace: TEST_PROJECT, name: 'gpt-4o-external' } },
+    //     { data: null },
+    //   ).as('deleteExternalModel');
 
-      externalModelsPage.getRow('GPT-4o External').findKebabAction('Delete').click();
-      deleteExternalModelModal.shouldShowResourceName('GPT-4o External');
-      deleteExternalModelModal.findInput().type('GPT-4o External');
-      deleteExternalModelModal.findSubmitButton().should('be.enabled');
+    //   externalModelsPage.getRow('GPT-4o External').findKebabAction('Delete').click();
+    //   deleteExternalModelModal.shouldShowResourceName('GPT-4o External');
+    //   deleteExternalModelModal.findInput().type('GPT-4o External');
+    //   deleteExternalModelModal.findSubmitButton().should('be.enabled');
 
-      cy.interceptOdh(
-        'GET /maas/api/v1/externalmodel',
-        { query: { namespace: TEST_PROJECT } },
-        {
-          data: mockExternalModels().filter((model) => model.name !== 'gpt-4o-external'),
-        },
-      ).as('listExternalModels');
+    //   cy.interceptOdh(
+    //     'GET /maas/api/v1/externalmodel',
+    //     { query: { namespace: TEST_PROJECT } },
+    //     {
+    //       data: mockExternalModels().filter((model) => model.name !== 'gpt-4o-external'),
+    //     },
+    //   ).as('listExternalModels');
 
-      deleteExternalModelModal.findSubmitButton().click();
-      cy.wait('@deleteExternalModel');
-      cy.wait('@listExternalModels');
-      externalModelsPage.findRows().should('have.length', 3);
-      externalModelsPage.findTable().should('not.contain', 'GPT-4o External');
-    });
+    //   deleteExternalModelModal.findSubmitButton().click();
+    //   cy.wait('@deleteExternalModel');
+    //   cy.wait('@listExternalModels');
+    //   externalModelsPage.findRows().should('have.length', 3);
+    //   externalModelsPage.findTable().should('not.contain', 'GPT-4o External');
+    // });
   });
 });

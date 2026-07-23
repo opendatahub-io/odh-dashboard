@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { Button, ActionList, ActionListItem, Stack, StackItem } from '@patternfly/react-core';
-import ApplicationsPage from '#~/pages/ApplicationsPage';
+import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import { NotebookControllerContext } from '#~/pages/notebookController/NotebookControllerContext';
 import ImpersonateAlert from '#~/pages/notebookController/screens/admin/ImpersonateAlert';
 import useNotification from '#~/utilities/useNotification';

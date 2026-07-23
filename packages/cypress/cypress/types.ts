@@ -128,6 +128,13 @@ export type KueueWorkbenchTestData = {
   notebookImage: string;
 };
 
+export type KueueWorkbenchLifecycleTestData = KueueWorkbenchTestData & {
+  updatedCpuQuota: number;
+  updatedMemoryQuota: number;
+  waitingForQuotaMessage: string;
+  queuePositionMarker: string;
+};
+
 export type WBControlSuiteTestData = {
   controlSuiteTestNamespace: string;
   controlSuiteTestDescription: string;

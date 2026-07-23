@@ -15,7 +15,7 @@ import {
 } from '@patternfly/react-core';
 import { useNavigate } from 'react-router';
 import { OpenDrawerRightIcon, OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
-import { DashboardPopupIconButton } from '@odh-dashboard/ui-core';
+import { ApplicationsPage, DashboardPopupIconButton } from '@odh-dashboard/ui-core';
 import { isK8sNameDescriptionDataValid } from '@odh-dashboard/k8s-core';
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
@@ -32,7 +32,7 @@ import {
   createConnectionTypeObj,
   extractConnectionTypeFromMap,
 } from '#~/concepts/connectionTypes/createConnectionTypeUtils';
-import ApplicationsPage from '#~/pages/ApplicationsPage';
+
 import { MultiSelection, SelectionOptions } from '#~/components/MultiSelection';
 import { categoryOptions } from '#~/pages/connectionTypes/const';
 import {

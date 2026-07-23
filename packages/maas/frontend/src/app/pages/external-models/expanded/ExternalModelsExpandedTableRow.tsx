@@ -3,11 +3,18 @@ import { ExpandableRowContent, Td, Tr } from '@patternfly/react-table';
 import { Label, Button } from '@patternfly/react-core';
 import { Table } from '@odh-dashboard/ui-core';
 import TableRowTitleDescription from '@odh-dashboard/internal/components/table/TableRowTitleDescription';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { ExternalModel, ProviderRef } from '~/app/types/external-models';
 import {
   mapAuthMechanismToHumanReadable,
   getProviderRefResource,
 } from '~/app/pages/external-models/utils';
+import {
+  ExternalModelProviderDetailType,
+  ExternalModelsInfoPopoverTarget,
+  ExternalModelsInfoPopoverLocation,
+  MaaSEvents,
+} from '~/app/types/event-tracking';
 import { ExternalModelsExpandedRowColumns } from './columns';
 
 type ExternalModelsExpandedTableRowProps = {
@@ -37,6 +44,12 @@ const ExternalModelsExpandedTableRow: React.FC<ExternalModelsExpandedTableRowPro
                   {row.provider?.displayName ?? row.providerName}
                 </Label>
               }
+              onShowPopover={() => {
+                fireMiscTrackingEvent(MaaSEvents.EXTERNAL_MODELS_INFO_POPOVER_VIEWED, {
+                  infoTarget: ExternalModelsInfoPopoverTarget.PROVIDER_REFERENCE,
+                  location: ExternalModelsInfoPopoverLocation.EXPANDED_ROW,
+                });
+              }}
               resource={getProviderRefResource(row)}
             />
           </Td>
@@ -44,7 +57,13 @@ const ExternalModelsExpandedTableRow: React.FC<ExternalModelsExpandedTableRowPro
             <Button
               variant="link"
               isInline
-              onClick={() => setProviderURLModalRef(row)}
+              onClick={() => {
+                setProviderURLModalRef(row);
+                fireMiscTrackingEvent(MaaSEvents.EXTERNAL_MODEL_PROVIDER_DETAIL_VIEWED, {
+                  providerType: row.provider?.provider,
+                  detailType: ExternalModelProviderDetailType.PROVIDER_URL,
+                });
+              }}
               data-testid={`expanded-table-row-view-url-button-${row.providerName}`}
             >
               View URL
@@ -54,7 +73,13 @@ const ExternalModelsExpandedTableRow: React.FC<ExternalModelsExpandedTableRowPro
             <Button
               variant="link"
               isInline
-              onClick={() => setPathModalRef(row)}
+              onClick={() => {
+                setPathModalRef(row);
+                fireMiscTrackingEvent(MaaSEvents.EXTERNAL_MODEL_PROVIDER_DETAIL_VIEWED, {
+                  providerType: row.provider?.provider,
+                  detailType: ExternalModelProviderDetailType.PATH,
+                });
+              }}
               data-testid={`expanded-table-row-view-path-button-${row.providerName}`}
             >
               View Path

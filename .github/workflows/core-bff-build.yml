@@ -41,6 +41,15 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
 
+      - name: core-bff root node_modules cache
+        id: core-bff-cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: distributions/core-bff/node_modules
+          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-modules-core-bff-root-${{ hashFiles('distributions/core-bff/package.json') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ env.NODE_VERSION }}-modules-core-bff-root-
+
       - name: core-bff frontend node_modules cache
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
@@ -61,9 +70,17 @@ jobs:
         working-directory: distributions/core-bff/bff
         run: make test
 
+      - name: Install core-bff dependencies
+        working-directory: distributions/core-bff
+        run: npm install --ignore-scripts --no-package-lock --legacy-peer-deps
+
       - name: Install frontend dependencies
         working-directory: distributions/core-bff/frontend
         run: npm install
+      
+      - name: Validate OpenAPI spec
+        working-directory: distributions/core-bff
+        run: npm run lint:openapi
 
       - name: Check if there are uncommitted file changes
         working-directory: distributions/core-bff
