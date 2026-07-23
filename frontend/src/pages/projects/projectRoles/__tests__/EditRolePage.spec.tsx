@@ -21,7 +21,7 @@ jest.mock('../CreateRolePage', () => {
   return Mock;
 });
 
-jest.mock('#~/pages/ApplicationsPage', () => {
+jest.mock('../../../ApplicationsPage', () => {
   const Mock = (props: { errorMessage?: string }) => (
     <div data-testid="error-page">{props.errorMessage}</div>
   );
