@@ -351,7 +351,6 @@ const RoutingConfigurationCreateEditInner: React.FC<{
             dataTestId="topology-type-select"
             value={selectedTopology || undefined}
             placeholder="Select topology type"
-            isDisabled={isEditMode}
             options={topologyOptions}
             onChange={(key) => {
               const matched = Object.values(TopologyType).find((v) => v === key);
