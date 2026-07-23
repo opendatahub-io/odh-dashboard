@@ -1340,23 +1340,33 @@ describe('Workbench Hardware Profiles', () => {
       cy.wait('@hardwareProfiles');
       cy.wait('@getLocalQueues');
 
-      hardwareProfileSection.findSelect().should('contain', 'Kueue Profile');
-      createSpawnerPage
-        .findLocalQueueMissingWarning()
-        .should('be.visible')
-        .and('contain.text', 'Invalid hardware profile');
-
-      // Dismiss the warning
-      createSpawnerPage.findLocalQueueMissingWarningCloseButton().click();
+      // Missing LQ → profile filtered out in create mode; no auto-selection, no warning banner.
+      hardwareProfileSection.findKueueFilteringInfo().should('be.visible');
       createSpawnerPage.findLocalQueueMissingWarning().should('not.exist');
     });
 
-    it('shows warning icon next to HP dropdown when local queue is missing and popover body has correct content', () => {
+    it('shows warning icon next to HP dropdown when local queue is missing (edit mode)', () => {
       setupKueueIntercepts({ localQueueExists: false });
-      projectDetails.visit('test-project');
-      projectDetails.findSectionTab('workbenches').click();
-      workbenchPage.findCreateButton().click();
+      // In edit mode the pre-selected profile is preserved even if its LQ is absent, so the
+      // warning icon and banner both appear.
+      cy.interceptK8sList(
+        { model: NotebookModel, ns: 'test-project' },
+        mockK8sResourceList([
+          mockNotebookK8sResource({
+            displayName: 'Test Notebook',
+            hardwareProfileName: 'kueue-profile',
+            hardwareProfileNamespace: 'opendatahub',
+          }),
+        ]),
+      );
+      cy.interceptK8sList(
+        PVCModel,
+        mockK8sResourceList([mockPVCK8sResource({ name: 'test-notebook' })]),
+      );
+
+      editSpawnerPage.visit('test-notebook');
       cy.wait('@hardwareProfiles');
+      cy.wait('@getLocalQueues');
 
       cy.findByTestId('local-queue-missing-icon').should('be.visible').click();
       cy.contains(

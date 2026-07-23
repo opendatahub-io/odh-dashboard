@@ -93,14 +93,16 @@ export const getStatusSubtitle = ({
       kueueStatus.message,
       kueueStatus.queueName,
     );
-    if (kueueStatus.queuePosition != null) {
-      if (kueueStatus.status === KueueWorkloadStatus.Queued) {
-        return formatQueuePosition(kueueStatus.queuePosition, kueueStatus.queueName);
-      }
-      if (kueueStatus.status === KueueWorkloadStatus.Inadmissible) {
-        const pos = formatQueuePosition(kueueStatus.queuePosition, kueueStatus.queueName);
-        return `${message} (${pos})`;
-      }
+    if (
+      kueueStatus.queuePosition != null &&
+      kueueStatus.queueName &&
+      (kueueStatus.status === KueueWorkloadStatus.Queued ||
+        kueueStatus.status === KueueWorkloadStatus.Inadmissible)
+    ) {
+      return `${message} (${formatQueuePosition(
+        kueueStatus.queuePosition,
+        kueueStatus.queueName,
+      )})`;
     }
     return message;
   }
