@@ -20,7 +20,7 @@ export enum ImageTypeFilter {
 }
 
 export const imageTypeFilterOptions: SimpleSelectOption[] = [
-  { key: ImageTypeFilter.redHat, label: 'Red Hat' },
+  { key: ImageTypeFilter.redHat, label: 'Pre-installed' },
   { key: ImageTypeFilter.custom, label: 'Custom' },
 ];
 
