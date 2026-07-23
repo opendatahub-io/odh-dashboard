@@ -12,8 +12,8 @@ import PolicyForm from './policyForm/PolicyForm';
 
 const CreateAuthPolicyPage: React.FC = () => {
   const [formData, loaded, loadError] = useSubscriptionPolicyFormData();
-  const { state, pathname } = useLocation();
-  const backUrl = getBackUrl(pathname, state, 'auth-policies');
+  const { state } = useLocation();
+  const backUrl = getBackUrl(state, 'auth-policies');
   const returnTo = backUrl;
   const breadcrumbLabel = getBreadcrumbLabelFromState(state) ?? 'Authorization policies';
   const preSelectedModel = getPreSelectedModelFromState(state);

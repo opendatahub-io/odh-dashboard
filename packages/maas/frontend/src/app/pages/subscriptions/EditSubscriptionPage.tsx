@@ -2,15 +2,18 @@ import React from 'react';
 import { Link, useLocation, useParams } from 'react-router-dom';
 import { Breadcrumb, BreadcrumbItem } from '@patternfly/react-core';
 import { ApplicationsPage } from '@odh-dashboard/ui-core';
-import { getBackUrl } from '~/app/utilities/subscriptionManagementNavigation';
+import {
+  getBackUrl,
+  getSubscriptionViewUrl,
+} from '~/app/utilities/subscriptionManagementNavigation';
 import { useGetSubscriptionInfo } from '~/app/hooks/useGetSubscriptionInfo';
 import { useSubscriptionPolicyFormData } from '~/app/hooks/useSubscriptionPolicyFormData';
 import CreateSubscriptionForm from './createSubscription/CreateSubscriptionForm';
 
 const EditSubscriptionPage: React.FC = () => {
   const { subscriptionName = '' } = useParams<{ subscriptionName: string }>();
-  const { state, pathname } = useLocation();
-  const base = getBackUrl(pathname, state, 'subscriptions');
+  const { state } = useLocation();
+  const base = getBackUrl(state, 'subscriptions');
   const returnTo = base;
   const [subscriptionInfo, infoLoaded, infoError] = useGetSubscriptionInfo(subscriptionName);
   const [formData, formLoaded, formError] = useSubscriptionPolicyFormData();
@@ -36,7 +39,7 @@ const EditSubscriptionPage: React.FC = () => {
           <BreadcrumbItem
             render={() => (
               <Link
-                to={`${base}/view/${subscriptionName}`}
+                to={getSubscriptionViewUrl(subscriptionName)}
                 state={returnTo ? { returnTo } : undefined}
               >
                 {displayName || subscriptionName}
