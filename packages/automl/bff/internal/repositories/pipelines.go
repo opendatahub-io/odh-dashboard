@@ -22,8 +22,9 @@ import (
 const ManagedPipelinesNotFoundMessage = "required managed pipelines not found in namespace - enable AutoML and AutoRAG pipelines on the pipeline server"
 
 var (
-	ErrPipelineRunNotFound = errors.New("pipeline run not found")
-	ErrValidation          = errors.New("validation error")
+	ErrPipelineRunNotFound      = errors.New("pipeline run not found")
+	ErrValidation               = errors.New("validation error")
+	ErrManagedPipelinesNotFound = errors.New(ManagedPipelinesNotFoundMessage)
 )
 
 type ValidationError struct {
@@ -100,8 +101,8 @@ func (r *PipelinesRepository) GetCombinedRuns(ctx context.Context, namespace str
 		return nil, err
 	}
 
-	if len(discovered) == 0 {
-		return &models.PipelineRunsData{Runs: []models.PipelineRun{}}, nil
+	if !HasAllRequiredAutoMLPipelines(discovered) {
+		return nil, ErrManagedPipelinesNotFound
 	}
 
 	var allRuns []pipelines.PipelineRun
@@ -179,7 +180,7 @@ func (r *PipelinesRepository) CreateRun(ctx context.Context, namespace string, r
 		return nil, fmt.Errorf("failed to discover pipelines: %w", err)
 	}
 	if !HasAllRequiredAutoMLPipelines(discovered) {
-		return nil, fmt.Errorf("%s", ManagedPipelinesNotFoundMessage)
+		return nil, ErrManagedPipelinesNotFound
 	}
 
 	dp := discovered[pipelineType]

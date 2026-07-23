@@ -179,6 +179,16 @@ func TestPipelineRunsHandler(t *testing.T) {
 			wantBodySubstr: "not ready",
 		},
 		{
+			name:           "repo error - managed pipelines not found",
+			queryParams:    "",
+			repoResult:     nil,
+			repoErr:        repositories.ErrManagedPipelinesNotFound,
+			wantPageSize:   20,
+			wantPage:       1,
+			wantStatusCode: http.StatusNotFound,
+			wantBodySubstr: "required managed pipelines not found",
+		},
+		{
 			name:           "repo error - forbidden",
 			queryParams:    "",
 			repoResult:     nil,

@@ -187,6 +187,10 @@ func (h *PipelinesHandler) mapPipelineError(w http.ResponseWriter, r *http.Reque
 		notFoundResponse(h.logger, w, r)
 		return
 	}
+	if errors.Is(err, repositories.ErrManagedPipelinesNotFound) {
+		notFoundResponseWithMessage(h.logger, w, r, err.Error())
+		return
+	}
 	if errors.Is(err, repositories.ErrValidation) {
 		badRequestResponse(h.logger, w, r, err.Error())
 		return

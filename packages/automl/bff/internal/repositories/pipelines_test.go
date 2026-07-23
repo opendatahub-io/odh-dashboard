@@ -700,7 +700,7 @@ func TestGetCombinedRuns(t *testing.T) {
 		}
 	})
 
-	t.Run("no discovered pipelines returns empty", func(t *testing.T) {
+	t.Run("no discovered pipelines returns managed pipelines not found error", func(t *testing.T) {
 		mock := &mockPipelinesService{
 			discoverNamedPipelinesFn: func(ctx context.Context, namespace, defaultVersion string, definitions map[string]string) (map[string]*pipelines.DiscoveredPipeline, error) {
 				return map[string]*pipelines.DiscoveredPipeline{}, nil
@@ -708,12 +708,25 @@ func TestGetCombinedRuns(t *testing.T) {
 		}
 		repo := NewPipelinesRepository(slog.Default(), mock, PipelinesRepositoryConfig{})
 
-		data, err := repo.GetCombinedRuns(context.Background(), "ns", 10, 1)
-		if err != nil {
-			t.Fatal(err)
+		_, err := repo.GetCombinedRuns(context.Background(), "ns", 10, 1)
+		if !errors.Is(err, ErrManagedPipelinesNotFound) {
+			t.Fatalf("expected ErrManagedPipelinesNotFound, got %v", err)
 		}
-		if len(data.Runs) != 0 {
-			t.Errorf("expected empty, got %d", len(data.Runs))
+	})
+
+	t.Run("only one of two required pipelines discovered returns managed pipelines not found error", func(t *testing.T) {
+		mock := &mockPipelinesService{
+			discoverNamedPipelinesFn: func(ctx context.Context, namespace, defaultVersion string, definitions map[string]string) (map[string]*pipelines.DiscoveredPipeline, error) {
+				return map[string]*pipelines.DiscoveredPipeline{
+					constants.PipelineTypeTabular: {PipelineID: "pid"},
+				}, nil
+			},
+		}
+		repo := NewPipelinesRepository(slog.Default(), mock, PipelinesRepositoryConfig{})
+
+		_, err := repo.GetCombinedRuns(context.Background(), "ns", 10, 1)
+		if !errors.Is(err, ErrManagedPipelinesNotFound) {
+			t.Fatalf("expected ErrManagedPipelinesNotFound, got %v", err)
 		}
 	})
 }
