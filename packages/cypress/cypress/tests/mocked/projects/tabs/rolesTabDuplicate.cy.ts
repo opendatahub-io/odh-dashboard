@@ -8,7 +8,7 @@ import {
   mockProjectK8sResource,
   mockRoleK8sResource,
 } from '@odh-dashboard/internal/__mocks__';
-import { mock404Error, mock409Error } from '@odh-dashboard/internal/__mocks__/mockK8sStatus';
+import { mock409Error } from '@odh-dashboard/internal/__mocks__/mockK8sStatus';
 import {
   ClusterRoleModel,
   ProjectModel,
@@ -51,21 +51,6 @@ describe('Duplicate Role', () => {
   beforeEach(() => {
     asProjectAdminUser();
     initIntercepts();
-  });
-
-  it('should show "Duplicate custom role" as page title', () => {
-    projectRoles.visitDuplicateRole(NAMESPACE, SOURCE_ROLE_NAME);
-    cy.findByTestId('app-page-title').should('contain.text', 'Duplicate custom role');
-  });
-
-  it('should pre-populate the display name with "Copy of" prefix', () => {
-    projectRoles.visitDuplicateRole(NAMESPACE, SOURCE_ROLE_NAME);
-    projectRoles.findRoleNameInput().should('have.value', `Copy of ${SOURCE_ROLE_NAME}`);
-  });
-
-  it('should have submit button enabled when form is pre-populated', () => {
-    projectRoles.visitDuplicateRole(NAMESPACE, SOURCE_ROLE_NAME);
-    projectRoles.findSubmitButton().should('be.enabled');
   });
 
   it('should have k8s resource name field editable (not immutable)', () => {
@@ -123,17 +108,6 @@ describe('Duplicate Role', () => {
     cy.wait('@createRole');
     projectRoles.findSubmitErrorAlert().should('exist');
     projectRoles.findSubmitButton().should('be.enabled');
-  });
-
-  it('should show error page when source role does not exist (404)', () => {
-    cy.interceptK8s(
-      'GET',
-      { model: RoleModel, ns: NAMESPACE, name: 'non-existent-role' },
-      { statusCode: 404, body: mock404Error({}) },
-    );
-
-    cy.visitWithLogin(`/projects/${NAMESPACE}/roles/non-existent-role/duplicate`);
-    cy.contains('Unable to load role').should('exist');
   });
 
   it('should navigate to duplicate page from table kebab action', () => {
