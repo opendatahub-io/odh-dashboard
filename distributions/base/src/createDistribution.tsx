@@ -15,6 +15,11 @@ export interface DistributionConfig {
   extensions: Record<string, Extension[]>;
   featureFlags?: Record<string, boolean>;
   rootElementId?: string;
+  /**
+   * Optional host wrapper around the shell (e.g. ProjectsContextProvider).
+   * Distributions use this to mount host-only providers without forking the shell.
+   */
+  AppWrapper?: React.ComponentType<{ children: React.ReactNode }>;
 }
 
 const DistributionApp: React.FC<{ config: DistributionConfig }> = ({ config }) => {
@@ -26,7 +31,9 @@ const DistributionApp: React.FC<{ config: DistributionConfig }> = ({ config }) =
     return s;
   }, [config]);
 
-  return (
+  const { AppWrapper } = config;
+
+  const app = (
     <ThemeProvider>
       <PluginStoreProvider store={store}>
         <Shell masthead={<ShellHeader />} sidebar={<ShellNav />}>
@@ -35,6 +42,8 @@ const DistributionApp: React.FC<{ config: DistributionConfig }> = ({ config }) =
       </PluginStoreProvider>
     </ThemeProvider>
   );
+
+  return AppWrapper ? <AppWrapper>{app}</AppWrapper> : app;
 };
 
 export function createDistribution(config: DistributionConfig): void {

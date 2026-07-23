@@ -1,12 +1,12 @@
 import * as React from 'react';
 import { EmptyState, EmptyStateBody, EmptyStateFooter } from '@patternfly/react-core';
 import { WhosMyAdministrator } from '@odh-dashboard/ui-core';
-import gearsImg from '../../images/gears.svg';
+import GearsIcon from './GearsIcon';
 
 const EmptyModelServingPlatform: React.FC = () => (
   <EmptyState
     headingLevel="h3"
-    icon={() => <img src={gearsImg} alt="settings" />}
+    icon={GearsIcon}
     titleText="No model serving platform selected"
     variant="xs"
   >
