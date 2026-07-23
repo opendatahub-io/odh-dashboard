@@ -1188,39 +1188,6 @@ jobs:
             fi
           fi
 
-      - name: Verify BFF endpoint readiness
-        run: |
-          OC_PROJECT="${OC_PROJECT:-}"
-          if [ -z "$OC_PROJECT" ]; then
-            echo "⚠️ OC_PROJECT not set, skipping BFF health check"
-            exit 0
-          fi
-
-          FED_CONFIG=$(oc get configmap federation-config -n "$OC_PROJECT" -o jsonpath='{.data.module-federation-config\.json}' 2>/dev/null || true)
-          if [ -z "$FED_CONFIG" ]; then
-            echo "No federation-config ConfigMap found — cluster is likely in sidecar mode, BFF health check skipped"
-            exit 0
-          fi
-
-          echo "::group::Federation ConfigMap entries"
-          echo "$FED_CONFIG" | jq '.[] | {name, enabled, service: .service.name}'
-          echo "::endgroup::"
-
-          FAILED=0
-          for svc in $(echo "$FED_CONFIG" | jq -r '.[] | select(.service.name != "odh-dashboard") | .service.name // empty'); do
-            READY_IPS=$(oc get endpoints "$svc" -n "$OC_PROJECT" -o jsonpath='{.subsets[0].addresses[*].ip}' 2>/dev/null || true)
-            if [ -n "$READY_IPS" ]; then
-              echo "✅ Service $svc has ready endpoints: $READY_IPS"
-            else
-              echo "⚠️ WARNING: Service $svc has no ready endpoints"
-              FAILED=$((FAILED + 1))
-            fi
-          done
-
-          if [ "$FAILED" -gt 0 ]; then
-            echo "::warning::$FAILED BFF service(s) have no ready endpoints — tests may fail for those modules"
-          fi
-
       - name: Set test configuration
         run: |
           echo "CY_TEST_CONFIG=${{ github.workspace }}/packages/cypress/test-variables.yml" >> $GITHUB_ENV
