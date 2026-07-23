@@ -9,20 +9,10 @@ import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import { k8sDeleteResource, K8sStatus } from '@openshift/dynamic-plugin-sdk-utils';
 import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
 import useNotification from '@odh-dashboard/internal/utilities/useNotification';
-import RoutingConfigurationRow from './RoutingConfigurationRow';
-import {
-  type LLMInferenceServiceConfigKind,
-  LLMInferenceServiceConfigModel,
-  TopologyTypeLabels,
-  getConfigSupportedTopologies,
-} from '../types';
+import RoutingConfigurationRow, { getSupportedTopologiesLabel } from './RoutingConfigurationRow';
+import { type LLMInferenceServiceConfigKind, LLMInferenceServiceConfigModel } from '../types';
 import { isConfigEnabled, isConfigEffectivelyEnabled } from '../utils';
 import { patchLLMInferenceServiceConfig } from '../api/LLMInferenceServiceConfigs';
-
-const getSupportedTopologiesLabel = (config: LLMInferenceServiceConfigKind): string => {
-  const topologies = getConfigSupportedTopologies(config);
-  return topologies.length > 0 ? topologies.map((t) => TopologyTypeLabels[t]).join(', ') : 'All';
-};
 
 export const columns: SortableData<LLMInferenceServiceConfigKind>[] = [
   {
