@@ -206,6 +206,8 @@ describe('Verify a model registry can be created and deleted', () => {
       modelRegistrySettings.findSubmitButton().click();
 
       cy.step('Verify model registry is removed from UI');
+      // eslint-disable-next-line cypress/no-unnecessary-waiting
+      cy.wait(10000);
       cy.contains(defaultDbName).should('not.exist');
 
       cy.step('Verify model registry is removed from the backend');
