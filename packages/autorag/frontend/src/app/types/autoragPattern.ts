@@ -31,6 +31,7 @@ export type AutoragPatternSettingsV1 = {
     method: string;
     chunk_size: number;
     chunk_overlap: number;
+    include_metadata?: boolean;
   };
   embedding: {
     model_id: string;
@@ -108,6 +109,7 @@ export type AutoragPatternSettings = {
     method: string;
     chunk_size: number;
     chunk_overlap: number;
+    include_metadata?: boolean;
   };
   embedding: {
     model_id: string;
