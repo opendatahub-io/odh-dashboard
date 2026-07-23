@@ -15,7 +15,7 @@ export const byonImagesFilterOptions = {
 };
 
 export enum ImageTypeFilter {
-  redHat = 'redHat',
+  redHat = 'preInstalled',
   custom = 'custom',
 }
 

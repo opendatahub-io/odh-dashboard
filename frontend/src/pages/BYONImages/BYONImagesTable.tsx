@@ -42,8 +42,8 @@ const filterByonImages = (imgs: BYONImage[], data: BYONImagesFilterDataType): BY
       return false;
     }
     if (typeFilter) {
-      const isRedHat = typeFilter === ImageTypeFilter.redHat;
-      if (image.isOOTB !== isRedHat) {
+      const isPreInstalled = typeFilter === ImageTypeFilter.redHat;
+      if (image.isOOTB !== isPreInstalled) {
         return false;
       }
     }
