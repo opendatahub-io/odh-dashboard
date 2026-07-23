@@ -1,9 +1,9 @@
 import * as React from 'react';
 import { Switch } from '@patternfly/react-core';
+import { TrackingOutcome } from '@odh-dashboard/ui-core';
 import { BYONImage } from '#~/types';
 import useNotification from '#~/utilities/useNotification';
 import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
-import { TrackingOutcome } from '#~/concepts/analyticsTracking/trackingProperties';
 import DisableLastImageModal from './DisableLastImageModal';
 import { isImageEffectivelyEnabled } from './utils';
 

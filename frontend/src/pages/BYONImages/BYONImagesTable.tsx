@@ -1,14 +1,15 @@
 import React from 'react';
-import { DashboardEmptyTableView, Table } from '@odh-dashboard/ui-core';
+import * as _ from 'lodash-es';
+import {
+  DashboardEmptyTableView,
+  Table,
+  TrackingOutcome,
+  type FormTrackingEventProperties,
+} from '@odh-dashboard/ui-core';
 import { BYONImage } from '#~/types';
 import { useHardwareProfilesByFeatureVisibility } from '#~/pages/hardwareProfiles/useHardwareProfilesByFeatureVisibility';
 import { WORKBENCH_VISIBILITY } from '#~/concepts/hardwareProfiles/const';
 import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
-import {
-  TrackingOutcome,
-  FormTrackingEventProperties,
-} from '#~/concepts/analyticsTracking/trackingProperties';
-import useDebounceCallback from '#~/utilities/useDebounceCallback';
 import ManageBYONImageModal from './BYONImageModal/ManageBYONImageModal';
 import DeleteBYONImageModal from './BYONImageModal/DeleteBYONImageModal';
 import { columns } from './tableData';
@@ -93,11 +94,8 @@ export const BYONImagesTable: React.FC<BYONImagesTableProps> = ({ images }) => {
   const { globalProfiles: hardwareProfiles } =
     useHardwareProfilesByFeatureVisibility(WORKBENCH_VISIBILITY);
 
-  const fireFilterTrackingDebounced = useDebounceCallback(
-    React.useCallback((properties: FormTrackingEventProperties) => {
-      fireFormTrackingEvent('Workbench Images Filter Applied', properties);
-    }, []),
-    400,
+  const debouncedTrackersRef = React.useRef(
+    new Map<string, _.DebouncedFunc<(p: FormTrackingEventProperties) => void>>(),
   );
 
   const onFilterUpdate = React.useCallback(
@@ -129,12 +127,19 @@ export const BYONImagesTable: React.FC<BYONImagesTableProps> = ({ images }) => {
         key === BYONImagesToolbarFilterOptions.provider;
 
       if (isTextFilter) {
-        fireFilterTrackingDebounced(trackingProperties);
+        let debounced = debouncedTrackersRef.current.get(key);
+        if (!debounced) {
+          debounced = _.debounce((p: FormTrackingEventProperties) => {
+            fireFormTrackingEvent('Workbench Images Filter Applied', p);
+          }, 400);
+          debouncedTrackersRef.current.set(key, debounced);
+        }
+        debounced(trackingProperties);
       } else {
         fireFormTrackingEvent('Workbench Images Filter Applied', trackingProperties);
       }
     },
-    [filterData, images, fireFilterTrackingDebounced],
+    [filterData, images],
   );
 
   const onClearFilters = React.useCallback(
