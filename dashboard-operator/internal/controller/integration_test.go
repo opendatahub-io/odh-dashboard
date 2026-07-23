@@ -224,6 +224,7 @@ func deleteDashboard(t *testing.T) {
 		}
 		time.Sleep(100 * time.Millisecond)
 	}
+	t.Fatal("Dashboard CR still exists after polling — subsequent tests will fail on Create")
 }
 
 func cleanupModuleResources(t *testing.T) {
