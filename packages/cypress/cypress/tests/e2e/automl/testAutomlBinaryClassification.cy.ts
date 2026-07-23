@@ -5,9 +5,16 @@ import { provisionProjectForAutoX } from '../../../utils/autoXPipelines';
 import { retryableBefore } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
 import type { AutomlTestData } from '../../../types';
-import { automlConfigurePage, automlResultsPage } from '../../../pages/automl';
+import { automlConfigurePage } from '../../../pages/automl/configurePage';
+import { automlResultsPage } from '../../../pages/automl/resultsPage';
 import { isAutomlEnabled, setAutomlEnabled } from '../../../utils/oc_commands/autoX';
-import { verifyAndChangeOptimizationMetric } from '../../../utils/automlTestFlows';
+import {
+  configureAutomlRun,
+  submitAutomlRun,
+  waitForAutomlRunCompletion,
+  verifyAutomlResultsInteraction,
+  verifyAndChangeOptimizationMetric,
+} from '../../../utils/automlTestFlows';
 
 const uuid = generateTestUUID();
 
@@ -44,9 +51,9 @@ describe('AutoML Binary Classification E2E', { testIsolation: false }, () => {
 
   it(
     'Can create and submit an AutoML binary classification run',
-    { tags: ['@Smoke', '@SmokeSet4', '@AutoML', '@AutoMLCI'] },
+    { tags: ['@SmokeSet4', '@AutoML', '@AutoMLCI', '@Featureflagged'] },
     () => {
-      automlConfigurePage.submitRunSetup(testData, projectName, uuid);
+      configureAutomlRun(testData, projectName, uuid);
 
       cy.step('Select target column');
       automlConfigurePage.findTargetColumnSelect().should('not.be.disabled').click();
@@ -59,7 +66,7 @@ describe('AutoML Binary Classification E2E', { testIsolation: false }, () => {
       automlConfigurePage.findPresetRadio('speed').should('be.checked');
 
       cy.step('Set top N models to minimize run time');
-      automlConfigurePage.setTopN(testData.topN as number);
+      automlConfigurePage.findTopNInputField().type(`{selectall}${testData.topN as number}`);
 
       verifyAndChangeOptimizationMetric(
         testData.defaultMetricLabel as string,
@@ -67,30 +74,33 @@ describe('AutoML Binary Classification E2E', { testIsolation: false }, () => {
         testData.changedMetricLabel as string,
       );
 
-      automlConfigurePage.submitRun();
+      submitAutomlRun();
     },
   );
 
   it(
     'Verify binary classification run completes with leaderboard',
-    { tags: ['@AutoML', '@AutoMLRegression'], retries: { runMode: 0, openMode: 0 } },
+    {
+      tags: ['@AutoML', '@AutoMLRegression', '@Featureflagged'],
+      retries: { runMode: 0, openMode: 0 },
+    },
     () => {
       cy.step('Wait for run to complete and verify leaderboard');
-      automlResultsPage.waitForRunCompletion();
+      waitForAutomlRunCompletion();
     },
   );
 
   it(
     'Can interact with results page (leaderboard, model details, download)',
-    { tags: ['@AutoML', '@AutoMLRegression'] },
+    { tags: ['@AutoML', '@AutoMLRegression', '@Featureflagged'] },
     () => {
-      automlResultsPage.verifyResultsInteraction('binary');
+      verifyAutomlResultsInteraction('binary');
     },
   );
 
   it(
     'Can open register model modal from model details',
-    { tags: ['@AutoML', '@AutoMLRegression'] },
+    { tags: ['@AutoML', '@AutoMLRegression', '@Featureflagged'] },
     () => {
       cy.step('Open model details for top-ranked model');
       automlResultsPage.findModelLink(1).click();

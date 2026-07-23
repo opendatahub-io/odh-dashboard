@@ -26,14 +26,13 @@ import {
   latencyMetricDescriptions,
   parseLatencyFilterKey,
   SortOrder,
+  ModelCatalogSortOption,
+  SortField,
 } from '~/concepts/modelCatalog/const';
 import { useCatalogPerformanceArtifacts } from '~/app/hooks/modelCatalog/useCatalogPerformanceArtifacts';
 import {
   getActiveLatencyFieldName,
   stripArtifactsPrefix,
-  filterRegularPerformanceArtifacts,
-  findMatchingHardwareConfig,
-  resolveHardwareConfigurations,
 } from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
 import { formatLatency } from '~/app/pages/modelCatalog/utils/performanceMetricsUtils';
 import { ModelCatalogContext } from '~/app/context/modelCatalog/ModelCatalogContext';
@@ -51,7 +50,8 @@ const ModelCatalogCardBody: React.FC<ModelCatalogCardBodyProps> = ({
   source,
 }) => {
   const [currentPerformanceIndex, setCurrentPerformanceIndex] = useState(0);
-  const { filters, filterOptions, performanceViewEnabled } = React.useContext(ModelCatalogContext);
+  const { filters, filterOptions, performanceViewEnabled, sortBy } =
+    React.useContext(ModelCatalogContext);
   const notification = useNotification();
   const errorNotificationShown = React.useRef(false);
 
@@ -83,31 +83,29 @@ const ModelCatalogCardBody: React.FC<ModelCatalogCardBodyProps> = ({
       {
         targetRPS,
         latencyProperty,
-        recommendations: true,
         // TODO this is a temporary workaround to avoid capping performance artifacts with a default page size of 20.
         //      we need to implement proper cursor-based pagination as the user clicks through artifacts on a card.
         pageSize: '999',
-        // If a latency filter is applied, sort artifacts on the card by lowest latency.
-        ...(latencyFieldName && {
-          orderBy: stripArtifactsPrefix(latencyFieldName),
-          sortOrder: SortOrder.ASC,
-        }),
+        ...(sortBy === ModelCatalogSortOption.LOWEST_COLD_START
+          ? {
+              orderBy: stripArtifactsPrefix(ModelCatalogNumberFilterKey.COLD_START_LOAD_TIME),
+              sortOrder: SortOrder.ASC,
+            }
+          : latencyFieldName
+            ? {
+                orderBy: stripArtifactsPrefix(latencyFieldName),
+                sortOrder: SortOrder.ASC,
+              }
+            : {
+                orderBy: SortField.RECOMMENDED,
+              }),
       },
       filters,
       filterOptions,
       isValidated, // Only fetch if validated
     );
 
-  // Separate cold-start artifacts from regular performance artifacts
-  const performanceMetrics = React.useMemo(
-    () => filterRegularPerformanceArtifacts(performanceArtifactsList.items),
-    [performanceArtifactsList.items],
-  );
-
-  const hardwareConfigurations = React.useMemo(
-    () => resolveHardwareConfigurations(performanceArtifactsList.items, model.customProperties),
-    [performanceArtifactsList.items, model.customProperties],
-  );
+  const performanceMetrics = performanceArtifactsList.items;
 
   // NOTE: Accuracy metrics are not currently returned by the /performance_artifacts endpoint.
   // This is kept as a placeholder for when accuracy metrics support is restored.
@@ -212,13 +210,7 @@ const ModelCatalogCardBody: React.FC<ModelCatalogCardBodyProps> = ({
       ? parseLatencyFilterKey(activeLatencyField).metric
       : LatencyMetric.TTFT;
 
-    const matchedConfig = findMatchingHardwareConfig(
-      hardwareConfigurations,
-      metrics.hardwareConfiguration,
-      metrics.hardwareType,
-      parseInt(metrics.hardwareCount, 10) || 1,
-    );
-    const matchedColdStart = matchedConfig?.cold_start_time_to_load_seconds;
+    const coldStartValue = metrics.coldStartTimeToLoadSeconds;
 
     return (
       <Stack hasGutter>
@@ -263,10 +255,10 @@ const ModelCatalogCardBody: React.FC<ModelCatalogCardBodyProps> = ({
                 </Popover>
               </Flex>
             </Flex>
-            {matchedColdStart !== undefined && (
+            {coldStartValue !== undefined && coldStartValue > 0 && (
               <Flex direction={{ default: 'column' }}>
                 <span className="pf-v6-u-font-weight-bold" data-testid="validated-model-cold-start">
-                  {matchedColdStart.toFixed(2)} s
+                  {coldStartValue.toFixed(2)} s
                 </span>
                 <Flex alignItems={{ default: 'alignItemsBaseline' }} gap={{ default: 'gapXs' }}>
                   <Content component={ContentVariants.small}>Cold start load time</Content>

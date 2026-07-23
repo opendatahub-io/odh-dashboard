@@ -2,12 +2,35 @@ import type { K8sModelCommon, K8sResourceCommon } from '@openshift/dynamic-plugi
 import type {
   MetadataAnnotation,
   DisplayNameAnnotations,
+  ImagePullSecret,
   PodContainer,
 } from '@odh-dashboard/k8s-core';
-import type { ImagePullSecret } from '@odh-dashboard/internal/k8sTypes';
 import type { Deployment } from '@odh-dashboard/model-serving/extension-points';
 
-export const MAAS_ENDPOINT_LABEL = 'opendatahub.io/maas-endpoint';
+export {
+  MAAS_ENDPOINT_LABEL,
+  CONFIG_TYPE_LABEL,
+  DASHBOARD_RESOURCE_LABEL,
+  ROUTING_TYPE_ANNOTATION,
+  SUPPORTED_TOPOLOGIES_ANNOTATION,
+  TOPOLOGY_TYPE_ANNOTATION,
+  TOPOLOGY_CONFIG_REF_ANNOTATION,
+  ROUTING_CONFIG_REF_ANNOTATION,
+} from './const';
+import {
+  MAAS_ENDPOINT_LABEL,
+  CONFIG_TYPE_LABEL,
+  ROUTING_TYPE_ANNOTATION,
+  SUPPORTED_TOPOLOGIES_ANNOTATION,
+  TOPOLOGY_TYPE_ANNOTATION,
+  TOPOLOGY_CONFIG_REF_ANNOTATION,
+  ROUTING_CONFIG_REF_ANNOTATION,
+} from './const';
+
+export enum ConfigType {
+  ACCELERATOR = 'accelerator',
+  ROUTER = 'router',
+}
 
 // --- Topology and Routing Config Enums ---
 
@@ -36,16 +59,6 @@ export const RoutingTypeLabels: Record<RoutingType, string> = {
   [RoutingType.HTTP_ROUTE]: 'HTTPRoute',
   [RoutingType.SCHEDULER_AND_HTTP_ROUTE]: 'Scheduler + HTTPRoute',
 };
-
-// --- Label/Annotation Constants (dashboard-owned, abstracted for easy refactor) ---
-
-export const CONFIG_TYPE_LABEL = 'opendatahub.io/config-type';
-export const CONFIG_TYPE_ROUTER = 'router';
-const WELL_KNOWN_ANNOTATION = 'serving.kserve.io/well-known-config';
-const DISABLED_ANNOTATION = 'opendatahub.io/disabled';
-const ROUTING_TYPE_ANNOTATION = 'opendatahub.io/routing-type';
-const SUPPORTED_TOPOLOGIES_ANNOTATION = 'opendatahub.io/supported-topologies';
-export const DASHBOARD_RESOURCE_LABEL = 'opendatahub.io/dashboard';
 
 export type LLMdContainer = { name: string; args?: string[] } & Partial<PodContainer>;
 
@@ -76,8 +89,6 @@ type LLMInferenceServiceSpec = {
   };
 };
 
-export const VLLM_ADDITIONAL_ARGS = 'VLLM_ADDITIONAL_ARGS';
-
 export type LLMInferenceServiceKind = K8sResourceCommon & {
   kind: 'LLMInferenceService';
   metadata: {
@@ -88,6 +99,9 @@ export type LLMInferenceServiceKind = K8sResourceCommon & {
     } & {
       'opendatahub.io/model-type'?: 'generative';
       'opendatahub.io/genai-use-case'?: string;
+      [TOPOLOGY_TYPE_ANNOTATION]?: TopologyType;
+      [TOPOLOGY_CONFIG_REF_ANNOTATION]?: string;
+      [ROUTING_CONFIG_REF_ANNOTATION]?: string;
     };
     labels?: {
       'opendatahub.io/genai-asset'?: 'true' | 'false';
@@ -128,7 +142,7 @@ export type LLMInferenceServiceConfigKind = K8sResourceCommon & {
       'serving.kserve.io/well-known-config'?: 'true' | 'false';
     };
     labels?: {
-      'opendatahub.io/config-type'?: TopologyType | 'router' | 'accelerator';
+      'opendatahub.io/config-type'?: TopologyType | ConfigType;
       'opendatahub.io/dashboard'?: 'true' | 'false';
     };
   };
@@ -140,10 +154,6 @@ export const isLLMInferenceServiceConfig = (
 
 export type LLMdDeployment = Deployment<LLMInferenceServiceKind, LLMInferenceServiceConfigKind>;
 
-// Moved to formUtils.ts to keep types.ts free of runtime imports (enables Cypress type-only import)
-// export const isLLMdDeployment = (deployment: Deployment): deployment is LLMdDeployment =>
-//   deployment.modelServingPlatformId === LLMD_SERVING_ID;
-
 export const LLMInferenceServiceModel: K8sModelCommon = {
   apiVersion: 'v1alpha2',
   apiGroup: 'serving.kserve.io',
@@ -151,12 +161,12 @@ export const LLMInferenceServiceModel: K8sModelCommon = {
   plural: 'llminferenceservices',
 };
 
-export const LLMInferenceServiceConfigModel: K8sModelCommon = {
+export const LLMInferenceServiceConfigModel = {
   apiVersion: 'v1alpha2',
   apiGroup: 'serving.kserve.io',
   kind: 'LLMInferenceServiceConfig',
   plural: 'llminferenceserviceconfigs',
-};
+} satisfies K8sModelCommon;
 
 export enum LLMInferenceServiceReadyConditionReason {
   PROGRESS_DEADLINE_EXCEEDED = 'ProgressDeadlineExceeded',
@@ -181,7 +191,7 @@ export const isTopologyConfig = (config: LLMInferenceServiceConfigKind): boolean
 };
 
 export const isRouterConfig = (config: LLMInferenceServiceConfigKind): boolean =>
-  config.metadata.labels?.[CONFIG_TYPE_LABEL] === CONFIG_TYPE_ROUTER;
+  config.metadata.labels?.[CONFIG_TYPE_LABEL] === ConfigType.ROUTER;
 
 export const getConfigTopologyType = (
   config: LLMInferenceServiceConfigKind,
@@ -220,19 +230,3 @@ export const getConfigSupportedTopologies = (
     return [];
   }
 };
-
-const hasKserveOwnership = (resource: K8sResourceCommon): boolean =>
-  resource.metadata?.ownerReferences?.some(
-    (ref) => ref.kind === 'KServe' || ref.apiVersion.startsWith('operator.kserve.io/'),
-  ) ?? false;
-
-export const isConfigPreInstalled = (config: LLMInferenceServiceConfigKind): boolean => {
-  const hasWellKnownAnnotation = config.metadata.annotations?.[WELL_KNOWN_ANNOTATION] === 'true';
-  const hasKserveOwnerRef = hasKserveOwnership(config);
-  const hasDashboardLabel = config.metadata.labels?.[DASHBOARD_RESOURCE_LABEL] === 'true';
-
-  return (hasWellKnownAnnotation || hasKserveOwnerRef) && !hasDashboardLabel;
-};
-
-export const isConfigEnabled = (config: LLMInferenceServiceConfigKind): boolean =>
-  config.metadata.annotations?.[DISABLED_ANNOTATION] !== 'true';

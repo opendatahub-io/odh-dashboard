@@ -10,7 +10,9 @@ import (
 	routev1 "github.com/openshift/api/route/v1"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -315,6 +317,7 @@ func TestReconcile(t *testing.T) {
 
 			require.NotEmpty(t, updated.GetReleaseStatus().Releases)
 			assert.Equal(t, v1alpha1.DashboardComponentName, updated.GetReleaseStatus().Releases[0].Name)
+			assert.Equal(t, "https://github.com/opendatahub-io/odh-dashboard", updated.GetReleaseStatus().Releases[0].RepoURL)
 
 			if tt.wantModuleCount > 0 {
 				assert.Len(t, updated.Status.ModuleStatuses, tt.wantModuleCount, "module status count")
@@ -698,6 +701,7 @@ func TestReconcile_StatusContract(t *testing.T) {
 
 			require.NotEmpty(t, updated.GetReleaseStatus().Releases, "release status must be set")
 			assert.Equal(t, v1alpha1.DashboardComponentName, updated.GetReleaseStatus().Releases[0].Name)
+			assert.Equal(t, "https://github.com/opendatahub-io/odh-dashboard", updated.GetReleaseStatus().Releases[0].RepoURL)
 		})
 	}
 }
@@ -767,6 +771,281 @@ data:
 	updated := &v1alpha1.Dashboard{}
 	require.NoError(t, cli.Get(context.Background(), types.NamespacedName{Name: v1alpha1.DashboardInstanceName}, updated))
 	assert.Equal(t, "https://dashboard.apps.example.com", updated.Status.URL)
+}
+
+func TestReconcile_PlatformVersionHandshake(t *testing.T) {
+	tests := []struct {
+		name                string
+		platformConfigMap   *corev1.ConfigMap
+		wantPlatformVersion string
+	}{
+		{
+			name:                "no platform config — no platform release entry",
+			platformConfigMap:   nil,
+			wantPlatformVersion: "",
+		},
+		{
+			name: "platformVersion present — echoed to status",
+			platformConfigMap: &corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "odh-dashboard-config",
+					Namespace: testNamespace,
+				},
+				Data: map[string]string{
+					"platformVersion": "2.20.0",
+				},
+			},
+			wantPlatformVersion: "2.20.0",
+		},
+		{
+			name: "platformVersion key absent — no platform release entry",
+			platformConfigMap: &corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "odh-dashboard-config",
+					Namespace: testNamespace,
+				},
+				Data: map[string]string{
+					"distribution.name": "SelfManagedRHOAI",
+				},
+			},
+			wantPlatformVersion: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := testScheme(t)
+
+			dashboard := &v1alpha1.Dashboard{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:       v1alpha1.DashboardInstanceName,
+					Generation: 1,
+					Finalizers: []string{"components.platform.opendatahub.io/cleanup"},
+				},
+			}
+
+			builder := fake.NewClientBuilder().
+				WithScheme(s).
+				WithObjects(dashboard).
+				WithStatusSubresource(dashboard).
+				WithObjects(admittedRoute(testNamespace))
+
+			if tt.platformConfigMap != nil {
+				builder = builder.WithObjects(tt.platformConfigMap)
+			}
+
+			cli := builder.Build()
+
+			r := &ctrlpkg.DashboardReconciler{
+				Client:                cli,
+				Scheme:                s,
+				ManifestsBasePath:     createMinimalManifests(t),
+				Platform:              cluster.OpenDataHub,
+				Namespace:             testNamespace,
+				ApplicationsNamespace: testNamespace,
+			}
+
+			_, err := r.Reconcile(context.Background(), ctrl.Request{
+				NamespacedName: types.NamespacedName{Name: v1alpha1.DashboardInstanceName},
+			})
+			require.NoError(t, err)
+
+			updated := &v1alpha1.Dashboard{}
+			require.NoError(t, cli.Get(context.Background(), types.NamespacedName{Name: v1alpha1.DashboardInstanceName}, updated))
+
+			var platformVersion string
+			for _, r := range updated.GetReleaseStatus().Releases {
+				if r.Name == "platform" {
+					platformVersion = r.Version
+					break
+				}
+			}
+			assert.Equal(t, tt.wantPlatformVersion, platformVersion)
+
+			if tt.wantPlatformVersion != "" {
+				require.GreaterOrEqual(t, len(updated.GetReleaseStatus().Releases), 2,
+					"should have both dashboard and platform release entries")
+			}
+		})
+	}
+}
+
+func TestReconcile_Removed_PreservesOperatorResources(t *testing.T) {
+	tests := []struct {
+		name        string
+		deployName  string
+		operatorDep string
+		operatorSA  string
+		operatorCR  string
+		operatorCRB string
+		deletedDep  string
+		deletedSA   string
+		deletedCR   string
+		deletedCRB  string
+	}{
+		{
+			name:        "default (kustomize)",
+			deployName:  "dashboard-operator",
+			operatorDep: "dashboard-operator", operatorSA: "dashboard-operator",
+			operatorCR: "dashboard-operator-role", operatorCRB: "dashboard-operator-rolebinding",
+			deletedDep: "odh-dashboard", deletedSA: "odh-dashboard-sa",
+			deletedCR: "odh-dashboard-role", deletedCRB: "odh-dashboard-rolebinding",
+		},
+		{
+			name:        "helm prefix (production)",
+			deployName:  "odh-dashboard-operator",
+			operatorDep: "odh-dashboard-operator", operatorSA: "odh-dashboard-operator",
+			operatorCR: "odh-dashboard-operator-role", operatorCRB: "odh-dashboard-operator-rolebinding",
+			deletedDep: "odh-dashboard", deletedSA: "odh-dashboard-sa",
+			deletedCR: "odh-dashboard-role", deletedCRB: "odh-dashboard-rolebinding",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			restore := ctrlpkg.SetOperatorDeploymentName(tt.deployName)
+			t.Cleanup(restore)
+
+			runPreservesOperatorResourcesTest(t, tt.operatorDep, tt.operatorSA, tt.operatorCR, tt.operatorCRB,
+				tt.deletedDep, tt.deletedSA, tt.deletedCR, tt.deletedCRB)
+		})
+	}
+}
+
+func runPreservesOperatorResourcesTest(t *testing.T, opDep, opSA, opCR, opCRB, delDep, delSA, delCR, delCRB string) {
+	t.Helper()
+	s := testScheme(t)
+
+	dashboard := &v1alpha1.Dashboard{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:       v1alpha1.DashboardInstanceName,
+			Finalizers: []string{"components.platform.opendatahub.io/cleanup"},
+		},
+		Spec: v1alpha1.DashboardSpec{},
+	}
+	dashboard.Spec.ManagementState = "Removed"
+
+	dashboardLabel := map[string]string{labels.PlatformPartOf: "dashboard"}
+
+	operatorDep := &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      opDep,
+			Namespace: testNamespace,
+			Labels:    dashboardLabel,
+		},
+	}
+
+	dashboardDep := &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      delDep,
+			Namespace: testNamespace,
+			Labels:    dashboardLabel,
+		},
+	}
+
+	operatorSA := &corev1.ServiceAccount{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      opSA,
+			Namespace: testNamespace,
+			Labels:    dashboardLabel,
+		},
+	}
+
+	dashboardSA := &corev1.ServiceAccount{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      delSA,
+			Namespace: testNamespace,
+			Labels:    dashboardLabel,
+		},
+	}
+
+	operatorCR := &rbacv1.ClusterRole{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:   opCR,
+			Labels: dashboardLabel,
+		},
+	}
+
+	dashboardCR := &rbacv1.ClusterRole{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:   delCR,
+			Labels: dashboardLabel,
+		},
+	}
+
+	operatorCRB := &rbacv1.ClusterRoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:   opCRB,
+			Labels: dashboardLabel,
+		},
+	}
+
+	dashboardCRB := &rbacv1.ClusterRoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:   delCRB,
+			Labels: dashboardLabel,
+		},
+	}
+
+	cli := fake.NewClientBuilder().
+		WithScheme(s).
+		WithObjects(dashboard, operatorDep, dashboardDep, operatorSA, dashboardSA, operatorCR, dashboardCR, operatorCRB, dashboardCRB).
+		WithStatusSubresource(dashboard).
+		Build()
+
+	r := &ctrlpkg.DashboardReconciler{
+		Client:                cli,
+		Scheme:                s,
+		ManifestsBasePath:     t.TempDir(),
+		Platform:              cluster.OpenDataHub,
+		Namespace:             testNamespace,
+		ApplicationsNamespace: testNamespace,
+	}
+
+	result, err := r.Reconcile(context.Background(), ctrl.Request{
+		NamespacedName: types.NamespacedName{Name: v1alpha1.DashboardInstanceName},
+	})
+
+	require.NoError(t, err)
+	assert.Equal(t, ctrl.Result{}, result)
+
+	ctx := context.Background()
+
+	var deps appsv1.DeploymentList
+	require.NoError(t, cli.List(ctx, &deps, client.InNamespace(testNamespace)))
+	var depNames []string
+	for i := range deps.Items {
+		depNames = append(depNames, deps.Items[i].Name)
+	}
+	assert.Contains(t, depNames, opDep, "operator deployment must survive teardown")
+	assert.NotContains(t, depNames, delDep, "non-operator deployments must be deleted")
+
+	var sas corev1.ServiceAccountList
+	require.NoError(t, cli.List(ctx, &sas, client.InNamespace(testNamespace)))
+	var saNames []string
+	for i := range sas.Items {
+		saNames = append(saNames, sas.Items[i].Name)
+	}
+	assert.Contains(t, saNames, opSA, "operator SA must survive teardown")
+	assert.NotContains(t, saNames, delSA, "non-operator SAs must be deleted")
+
+	var crs rbacv1.ClusterRoleList
+	require.NoError(t, cli.List(ctx, &crs))
+	var crNames []string
+	for i := range crs.Items {
+		crNames = append(crNames, crs.Items[i].Name)
+	}
+	assert.Contains(t, crNames, opCR, "operator ClusterRole must survive teardown")
+	assert.NotContains(t, crNames, delCR, "non-operator ClusterRoles must be deleted")
+
+	var crbs rbacv1.ClusterRoleBindingList
+	require.NoError(t, cli.List(ctx, &crbs))
+	var crbNames []string
+	for i := range crbs.Items {
+		crbNames = append(crbNames, crbs.Items[i].Name)
+	}
+	assert.Contains(t, crbNames, opCRB, "operator ClusterRoleBinding must survive teardown")
+	assert.NotContains(t, crbNames, delCRB, "non-operator ClusterRoleBindings must be deleted")
 }
 
 func boolPtr(b bool) *bool {

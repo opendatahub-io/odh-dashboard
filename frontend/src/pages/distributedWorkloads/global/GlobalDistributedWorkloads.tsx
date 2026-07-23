@@ -1,8 +1,9 @@
 import * as React from 'react';
 import { Navigate, useParams } from 'react-router-dom';
+import TitleWithIcon from '@odh-dashboard/ui-core/design/TitleWithIcon';
+import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import { byName, ProjectsContext } from '#~/concepts/projects/ProjectsContext';
 import InvalidProject from '#~/concepts/projects/InvalidProject';
-import ApplicationsPage from '#~/pages/ApplicationsPage';
 import { DistributedWorkloadsContextProvider } from '#~/concepts/distributedWorkloads/DistributedWorkloadsContext';
 import { DistributedWorkloadsTabConfig } from '#~/pages/distributedWorkloads/global/useDistributedWorkloadsTabs';
 import DistributedWorkloadsNoProjects from '#~/pages/distributedWorkloads/global/DistributedWorkloadsNoProjects';
@@ -10,7 +11,6 @@ import GlobalDistributedWorkloadsTabs from '#~/pages/distributedWorkloads/global
 import { MetricsCommonContextProvider } from '#~/concepts/metrics/MetricsCommonContext';
 import { RefreshIntervalTitle } from '#~/concepts/metrics/types';
 import ProjectSelectorNavigator from '#~/concepts/projects/ProjectSelectorNavigator';
-import TitleWithIcon from '#~/concepts/design/TitleWithIcon';
 import { ProjectObjectType } from '#~/concepts/design/utils';
 import { getStoredPreferredProject } from '#~/concepts/projects/getStoredPreferredProject';
 

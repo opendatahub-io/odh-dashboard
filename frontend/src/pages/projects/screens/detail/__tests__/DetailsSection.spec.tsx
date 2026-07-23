@@ -2,8 +2,8 @@ import * as React from 'react';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { MemoryRouter } from 'react-router-dom';
+import { K8sStatusError } from '@odh-dashboard/k8s-core';
 import DetailsSection from '#~/pages/projects/screens/detail/DetailsSection';
-import { K8sStatusError } from '#~/api/errorUtils';
 import { ProjectSectionID } from '#~/pages/projects/screens/detail/types';
 import { ProjectObjectType } from '#~/concepts/design/utils';
 

@@ -1,6 +1,6 @@
 import * as React from 'react';
 import type { HardwareProfileKind } from '@odh-dashboard/k8s-core';
-import { CustomWatchK8sResult } from '#~/types';
+import type { CustomWatchK8sResult } from '#~/types';
 import { DEFAULT_LIST_WATCH_RESULT } from '#~/utilities/const';
 import { useWatchHardwareProfiles } from '#~/utilities/useWatchHardwareProfiles';
 import { useDashboardNamespace } from '#~/redux/selectors';

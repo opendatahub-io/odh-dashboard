@@ -4,14 +4,24 @@ import { SortableData, ResourceNameTooltip, ResourceTr } from '@odh-dashboard/ui
 import { ActionsColumn, ExpandableRowContent, Tbody, Td, Tr } from '@patternfly/react-table';
 import { Link, useNavigate } from 'react-router-dom';
 import type { K8sResourceCommon } from '@odh-dashboard/k8s-core';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { MaaSAuthPolicy } from '~/app/types/subscriptions';
-import { URL_PREFIX } from '~/app/utilities/const';
+import {
+  getAuthPolicyEditUrl,
+  getAuthPolicyViewUrl,
+} from '~/app/utilities/subscriptionManagementNavigation';
 import { convertAuthPolicyToK8sResource } from '~/app/utilities/authpolicies';
 import PhaseLabel from '~/app/shared/PhaseLabel';
-import { PhaseResourceType } from '~/app/utilities/phaseLabelUtils';
+import { PhaseLabelLocation, PhaseResourceType } from '~/app/utilities/phaseLabelUtils';
 import ExpandedGroupsPanel from '~/app/shared/ExpandedGroupsPanel';
 import CompoundExpandCountCell from '~/app/shared/CompoundExpandCountCell';
 import ExpandedModelsPanel from '~/app/shared/ExpandedModelsPanel';
+import {
+  EventTrackingExpandedSection,
+  EventTrackingResourceType,
+  EventTrackingSource,
+  MaaSEvents,
+} from '~/app/types/event-tracking';
 
 type ExpandedPanel = 'groups' | 'models' | null;
 
@@ -31,9 +41,7 @@ const AuthPoliciesTableRow: React.FC<AuthPoliciesTableRowProps> = ({
   returnTo,
 }) => {
   const navigate = useNavigate();
-  const base = returnTo ?? `${URL_PREFIX}/auth-policies`;
   const navState = returnTo ? { state: { returnTo } } : undefined;
-  const policyNameSegment = (name: string) => encodeURIComponent(name);
   const [expandedPanel, setExpandedPanel] = React.useState<ExpandedPanel>(null);
 
   const togglePanel = (panel: 'groups' | 'models') => {
@@ -41,10 +49,15 @@ const AuthPoliciesTableRow: React.FC<AuthPoliciesTableRowProps> = ({
   };
 
   const onViewDetailsAuthPolicy = (authPolicyName: string) => {
-    navigate(`${base}/view/${policyNameSegment(authPolicyName)}`, navState);
+    fireMiscTrackingEvent(MaaSEvents.MAAS_RESOURCE_DETAILS_VIEWED, {
+      resourceType: EventTrackingResourceType.AUTHPOLICY,
+      source: EventTrackingSource.TAB_KEBAB,
+      resourceStatus: authPolicy.phase ?? '',
+    });
+    navigate(getAuthPolicyViewUrl(authPolicyName), navState);
   };
   const onEditAuthPolicy = (authPolicyName: string) => {
-    navigate(`${base}/edit/${policyNameSegment(authPolicyName)}`, navState);
+    navigate(getAuthPolicyEditUrl(authPolicyName), navState);
   };
 
   const groupsCount = Array.isArray(authPolicy.subjects.groups)
@@ -72,8 +85,15 @@ const AuthPoliciesTableRow: React.FC<AuthPoliciesTableRowProps> = ({
           ) : (
             <ResourceNameTooltip resource={convertAuthPolicyToK8sResource(authPolicy)}>
               <Link
-                to={`${base}/view/${policyNameSegment(authPolicy.name)}`}
+                to={getAuthPolicyViewUrl(authPolicy.name)}
                 state={returnTo ? { returnTo } : undefined}
+                onClick={() =>
+                  fireMiscTrackingEvent(MaaSEvents.MAAS_RESOURCE_DETAILS_VIEWED, {
+                    resourceType: EventTrackingResourceType.AUTHPOLICY,
+                    source: EventTrackingSource.TAB_LINK,
+                    resourceStatus: authPolicy.phase ?? '',
+                  })
+                }
               >
                 {authPolicy.displayName ?? authPolicy.name}
               </Link>
@@ -92,6 +112,7 @@ const AuthPoliciesTableRow: React.FC<AuthPoliciesTableRowProps> = ({
         phase={authPolicy.phase}
         statusMessage={authPolicy.statusMessage}
         resourceType={PhaseResourceType.AUTHPOLICY}
+        location={PhaseLabelLocation.POLICIES_TAB}
       />
     </Td>
   );
@@ -136,7 +157,19 @@ const AuthPoliciesTableRow: React.FC<AuthPoliciesTableRowProps> = ({
           dataLabel={columns[2].label}
           compoundExpand={{
             isExpanded: expandedPanel === 'groups',
-            onToggle: () => togglePanel('groups'),
+            onToggle: () => {
+              togglePanel('groups');
+              // So it doesn't fire on open and close of the expanded section
+              if (expandedPanel !== 'groups') {
+                fireMiscTrackingEvent(MaaSEvents.MAAS_SETTINGS_LIST_ROW_EXPANDED, {
+                  resourceType: EventTrackingResourceType.AUTHPOLICY,
+                  expandedSection: EventTrackingExpandedSection.GROUPS,
+                  resourceStatus: authPolicy.phase ?? '',
+                  modelCount: modelsCount,
+                  groupCount: groupsCount,
+                });
+              }
+            },
             expandId: `expand-${authPolicy.name}-groups`,
             rowIndex,
             columnIndex: 2,
@@ -149,7 +182,19 @@ const AuthPoliciesTableRow: React.FC<AuthPoliciesTableRowProps> = ({
           dataLabel={columns[3].label}
           compoundExpand={{
             isExpanded: expandedPanel === 'models',
-            onToggle: () => togglePanel('models'),
+            onToggle: () => {
+              togglePanel('models');
+              // So it doesn't fire on open and close of the expanded section
+              if (expandedPanel !== 'models') {
+                fireMiscTrackingEvent(MaaSEvents.MAAS_SETTINGS_LIST_ROW_EXPANDED, {
+                  resourceType: EventTrackingResourceType.AUTHPOLICY,
+                  expandedSection: EventTrackingExpandedSection.MODELS,
+                  resourceStatus: authPolicy.phase ?? '',
+                  modelCount: modelsCount,
+                  groupCount: groupsCount,
+                });
+              }
+            },
             expandId: `expand-${authPolicy.name}-models`,
             rowIndex,
             columnIndex: 3,

@@ -63,8 +63,8 @@ github.com/onsi/ginkgo/v2 v2.22.0 h1:Yed107/8DjTr0lKCNt7Dn8yQ6ybuDRQoMGrNFKzMfHg
 github.com/onsi/ginkgo/v2 v2.22.0/go.mod h1:7Du3c42kxCUegi0IImZ1wUQzMBVecgIHjR1C+NkhLQo=
 github.com/onsi/gomega v1.36.1 h1:bJDPBO7ibjxcbHMgSCoo4Yj18UWbKDlLwX1x9sybDcw=
 github.com/onsi/gomega v1.36.1/go.mod h1:PvZbdDc8J6XJEpDK4HCuRBm8a6Fzp9/DmhC9C7yFlog=
-github.com/opendatahub-io/mlflow-go v0.0.0-20260226152654-e76893730e71 h1:uIbgM+A32dijqCEJSmiGcrBKKmgF+ZMAWjt5f5MNwk4=
-github.com/opendatahub-io/mlflow-go v0.0.0-20260226152654-e76893730e71/go.mod h1:PnE/8/k+jnNoUxKFU+tR3PRquDXTMZYQrw+9SRg0ROU=
+github.com/opendatahub-io/mlflow-go v0.0.0-20260703183401-93243c6d2589 h1:D/5+K6/08+93jaLkeXDis0EzxjA2aMIDAFD+tyFL6M0=
+github.com/opendatahub-io/mlflow-go v0.0.0-20260703183401-93243c6d2589/go.mod h1:PnE/8/k+jnNoUxKFU+tR3PRquDXTMZYQrw+9SRg0ROU=
 github.com/pkg/errors v0.9.1 h1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=
 github.com/pkg/errors v0.9.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=

@@ -1,9 +1,12 @@
+import { getClusterAppsDomain } from './baseCommands';
 import type { CommandLineResult } from '../../types';
+import { replacePlaceholdersInYaml } from '../../utils/yaml_files';
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
 
 const gatewayExternalName = 'gateway-external';
+export const modelsAsAServiceNamespace = 'models-as-a-service';
 
 /** LLM completions can exceed Cypress's default 30s `cy.request` timeout (especially with high `max_tokens`). */
 const completionsRequestTimeoutMs = 180000;
@@ -44,6 +47,130 @@ const getGatewayExternalUrlFromLlmInferenceService = (doc: unknown): string => {
   return httpsUrl ?? candidates[0];
 };
 
+const ocGetIndicatesResourceNotFound = (result: Cypress.Exec): boolean => {
+  const combined = `${result.stderr}\n${result.stdout}`;
+  return /not found/i.test(combined) || /\bNotFound\b/.test(combined);
+};
+
+/**
+ * Type for MaaS Resource Condition
+ */
+type MaaSResourceCondition = {
+  type: string;
+  status: string;
+  reason?: string;
+  message?: string;
+  lastTransitionTime?: string;
+  observedGeneration?: number;
+};
+
+/**
+ * Type for MaaS ModelRef Status
+ */
+type MaaSModelRefStatus = {
+  name: string;
+  namespace: string;
+  ready?: boolean;
+  reason?: string;
+  message?: string;
+};
+
+/**
+ * Type for MaaS TokenRateLimit Status
+ */
+type MaaSTokenRateLimitStatus = {
+  name: string;
+  namespace: string;
+  model?: string;
+  ready?: boolean;
+  reason?: string;
+  message?: string;
+};
+
+/**
+ * Type for MaaS Resource Status
+ */
+type MaaSResourceStatus = {
+  phase?: string;
+  conditions?: MaaSResourceCondition[];
+  modelRefStatuses?: MaaSModelRefStatus[];
+  tokenRateLimitStatuses?: MaaSTokenRateLimitStatus[];
+};
+
+/**
+ * Type for MaaS named reference (group or model ref name)
+ */
+type MaaSNamedReference = {
+  name: string;
+  namespace?: string;
+};
+
+/**
+ * Type for MaaS subscription model ref spec entry
+ */
+type MaaSSubscriptionModelRef = {
+  name: string;
+  namespace: string;
+  tokenRateLimits?: {
+    limit: number;
+    window: string;
+  }[];
+};
+
+/**
+ * Type for MaaSSubscription State
+ */
+type MaaSSubscriptionState = {
+  kind?: string;
+  metadata?: {
+    name?: string;
+    namespace?: string;
+    annotations?: Record<string, string>;
+  };
+  spec?: {
+    modelRefs?: MaaSSubscriptionModelRef[];
+    owner?: {
+      groups?: MaaSNamedReference[];
+    };
+    priority?: number;
+  };
+  status?: MaaSResourceStatus;
+};
+
+/**
+ * Type for MaaSAuthPolicy State
+ */
+type MaaSAuthPolicyState = {
+  kind?: string;
+  metadata?: {
+    name?: string;
+    namespace?: string;
+    annotations?: Record<string, string>;
+  };
+  spec?: {
+    subjects?: {
+      groups?: MaaSNamedReference[];
+    };
+    modelRefs?: MaaSNamedReference[];
+  };
+  status?: MaaSResourceStatus;
+};
+
+export type CheckMaaSOptions = {
+  expectDeleted?: boolean;
+  groups?: string[];
+  models?: string[];
+  phase?: string;
+  maxAttempts?: number;
+  retryIntervalMs?: number;
+};
+
+/** Default poll budget for MaaS subscription/policy phase checks (6 attempts × 5s ≈ 30s). */
+export const MAAS_STATE_DEFAULT_MAX_ATTEMPTS = 6;
+export const MAAS_STATE_DEFAULT_RETRY_INTERVAL_MS = 5000;
+
+type MaaSOptionsCheckResult = { met: true } | { met: false; reason: string; retryable: boolean };
+
 export const cleanupSubscription = (
   subscriptionName: string,
   namespace: string,
@@ -63,14 +190,18 @@ export const cleanupAuthPolicy = (
 };
 
 /**
- * Cleans up all API keys by truncating the Postgres api_keys table.
+ * Deletes a single API key row from the Postgres `api_keys` table by name.
  *
  * Credentials are read from the `postgres-creds` secret in APPLICATIONS_NAMESPACE.
- * Acceptable on dedicated E2E clusters where the table is exclusively test data.
+ * Intended for E2E cleanup of keys created by Cypress tests (matched on `name`).
+ *
+ * @param apiKeyName Display name of the API key to delete (same value used in the UI).
  */
-export const cleanupApiKeys = (): Cypress.Chainable<CommandLineResult> => {
+export const cleanupApiKeys = (apiKeyName: string): Cypress.Chainable<CommandLineResult> => {
   const applicationNamespace = Cypress.env('APPLICATIONS_NAMESPACE') as string;
-  cy.log('Cleaning up API keys by truncating the Postgres api_keys table');
+  const escapedName = apiKeyName.replace(/'/g, "''");
+  cy.log(`Deleting API key "${apiKeyName}" from Postgres api_keys table`);
+
   return cy
     .exec(
       `oc get secret postgres-creds -n ${applicationNamespace} -o jsonpath='{.data.POSTGRES_USER}' | base64 -d`,
@@ -86,20 +217,282 @@ export const cleanupApiKeys = (): Cypress.Chainable<CommandLineResult> => {
         .then((dbResult) => {
           const pgDb = dbResult.stdout.trim();
           return cy.exec(
-            `oc exec -n ${applicationNamespace} deployment/postgres -- psql -U "${pgUser}" -d "${pgDb}" -c "TRUNCATE TABLE api_keys;"`,
+            `oc exec -n ${applicationNamespace} deployment/postgres -- psql -U "${pgUser}" -d "${pgDb}" -c "DELETE FROM api_keys WHERE name = '${escapedName}';"`,
             { failOnNonZeroExit: false },
           );
         });
     });
 };
 
-const ocGetIndicatesResourceNotFound = (result: Cypress.Exec): boolean => {
-  const combined = `${result.stderr}\n${result.stdout}`;
-  return /not found/i.test(combined) || /\bNotFound\b/.test(combined);
+/**
+ * Creates an LLMInferenceService with MaaS enabled by applying a YAML fixture.
+ * Substitutes `{{PROJECT_NAME}}` and `{{MODEL_NAME}}` placeholders in the fixture.
+ *
+ * @param projectName - The namespace/project where the LLMInferenceService will be created
+ * @param modelName - The name for the LLMInferenceService and model
+ * @param fixturePath - Path to the YAML fixture file (relative to cypress/fixtures)
+ * @returns Cypress.Chainable with the command result
+ */
+export const createLLMInferenceServiceWithMaaSEnabled = (
+  projectName: string,
+  modelName: string,
+  connectionName: string,
+  fixturePath: string,
+): Cypress.Chainable<CommandLineResult> => {
+  cy.log(`Creating LLMInferenceService "${modelName}" in namespace "${projectName}"`);
+
+  return cy.fixture(fixturePath).then((yamlContent: string) => {
+    const replacements = {
+      PROJECT_NAME: projectName,
+      MODEL_NAME: modelName,
+      CONNECTION_NAME: connectionName,
+    };
+    const processedYaml = replacePlaceholdersInYaml(yamlContent, replacements);
+
+    const ocCommand = `cat <<'EOF' | oc apply -f -
+${processedYaml}
+EOF`;
+
+    cy.log(`Applying LLMInferenceService YAML for "${modelName}" in "${projectName}"`);
+    return cy.exec(ocCommand, { failOnNonZeroExit: false });
+  });
 };
 
-export type CheckMaaSSubscriptionOptions = {
-  expectDeleted?: boolean;
+/**
+ * Creates a MaaSModelRef by applying a YAML fixture.
+ * Substitutes `{{PROJECT_NAME}}` and `{{MODEL_NAME}}` placeholders in the fixture.
+ *
+ * @param projectName - The namespace/project where the MaaSModelRef will be created
+ * @param modelName - The name for the MaaSModelRef (should match the LLMInferenceService name)
+ * @param fixturePath - Path to the YAML fixture file (relative to cypress/fixtures)
+ * @returns Cypress.Chainable with the command result
+ */
+export const createMaaSModelRef = (
+  projectName: string,
+  modelName: string,
+  fixturePath = 'resources/modelsAsService/MaaSModelRef.yaml',
+): Cypress.Chainable<CommandLineResult> => {
+  cy.log(`Creating MaaSModelRef "${modelName}" in namespace "${projectName}"`);
+
+  return cy.fixture(fixturePath).then((yamlContent: string) => {
+    const replacements = {
+      PROJECT_NAME: projectName,
+      MODEL_NAME: modelName,
+    };
+    const processedYaml = replacePlaceholdersInYaml(yamlContent, replacements);
+
+    const ocCommand = `cat <<'EOF' | oc apply -f -
+${processedYaml}
+EOF`;
+
+    cy.log(`Applying MaaSModelRef YAML for "${modelName}" in "${projectName}"`);
+    return cy.exec(ocCommand, { failOnNonZeroExit: false });
+  });
+};
+
+export const createMaaSSubscription = (
+  subscriptionName: string,
+  subscriptionDescription: string,
+  projectName: string,
+  modelName: string,
+  fixturePath = 'resources/modelsAsService/MaaSSubscription.yaml',
+): Cypress.Chainable<CommandLineResult> => {
+  cy.log(`Creating MaaSSubscription "${subscriptionName} through yaml"`);
+  return cy.fixture(fixturePath).then((yamlContent: string) => {
+    const replacements = {
+      SUBSCRIPTION_NAME: subscriptionName,
+      SUBSCRIPTION_DESCRIPTION: subscriptionDescription,
+      MODEL_NAME: modelName,
+      PROJECT_NAME: projectName,
+    };
+    const processedYaml = replacePlaceholdersInYaml(yamlContent, replacements);
+    const ocCommand = `cat <<'EOF' | oc apply -f -
+${processedYaml}
+EOF`;
+    cy.log(`Applying MaaSSubscription YAML for "${subscriptionName}"`);
+    return cy.exec(ocCommand, { failOnNonZeroExit: true });
+  });
+};
+
+export const createMaaSAuthPolicy = (
+  policyName: string,
+  projectName: string,
+  modelName: string,
+  fixturePath = 'resources/modelsAsService/MaaSAuthPolicy.yaml',
+): Cypress.Chainable<CommandLineResult> => {
+  cy.log(`Creating MaaSAuthPolicy "${policyName} through yaml"`);
+  return cy.fixture(fixturePath).then((yamlContent: string) => {
+    const replacements = {
+      POLICY_NAME: policyName,
+      MODEL_NAME: modelName,
+      PROJECT_NAME: projectName,
+    };
+    const processedYaml = replacePlaceholdersInYaml(yamlContent, replacements);
+    const ocCommand = `cat <<'EOF' | oc apply -f -
+${processedYaml}
+EOF`;
+    cy.log(`Applying MaaSAuthPolicy YAML for "${policyName}"`);
+    return cy.exec(ocCommand, { failOnNonZeroExit: true });
+  });
+};
+
+const parseMaaSSubscriptionDoc = (
+  subscriptionName: string,
+  stdout: string,
+): MaaSSubscriptionState => {
+  let doc: MaaSSubscriptionState;
+  try {
+    doc = JSON.parse(stdout) as MaaSSubscriptionState;
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+    throw new Error(`Failed to parse MaaSSubscription JSON for ${subscriptionName}: ${errorMsg}`);
+  }
+
+  expect(doc.kind).to.equal('MaaSSubscription');
+  expect(doc.metadata?.name).to.equal(subscriptionName);
+
+  return doc;
+};
+
+const parseMaaSAuthPolicyDoc = (policyName: string, stdout: string): MaaSAuthPolicyState => {
+  let doc: MaaSAuthPolicyState;
+  try {
+    doc = JSON.parse(stdout) as MaaSAuthPolicyState;
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+    throw new Error(`Failed to parse MaaSAuthPolicy JSON for ${policyName}: ${errorMsg}`);
+  }
+
+  expect(doc.kind).to.equal('MaaSAuthPolicy');
+  expect(doc.metadata?.name).to.equal(policyName);
+
+  return doc;
+};
+
+const subscriptionOptionsMet = (
+  doc: MaaSSubscriptionState,
+  options: CheckMaaSOptions,
+): MaaSOptionsCheckResult => {
+  if (options.models) {
+    const modelNames = getSubscriptionModelRefNames(doc);
+    const expected = [...options.models].toSorted();
+    const actual = [...modelNames].toSorted();
+    if (expected.length !== actual.length || !expected.every((name, i) => name === actual[i])) {
+      return {
+        met: false,
+        reason: `models: expected [${expected.join(', ')}], got [${actual.join(', ')}]`,
+        retryable: true,
+      };
+    }
+  }
+  if (options.phase && doc.status?.phase !== options.phase) {
+    return {
+      met: false,
+      reason: `phase: expected ${options.phase}, got ${doc.status?.phase ?? 'Unknown'}`,
+      retryable: true,
+    };
+  }
+  return { met: true };
+};
+
+const authPolicyOptionsMet = (
+  doc: MaaSAuthPolicyState,
+  options: CheckMaaSOptions,
+): MaaSOptionsCheckResult => {
+  if (options.groups) {
+    const groupNames = getAuthPolicyGroupNames(doc);
+    const expected = [...options.groups].toSorted();
+    const actual = [...groupNames].toSorted();
+    if (expected.length !== actual.length || !expected.every((name, i) => name === actual[i])) {
+      return {
+        met: false,
+        reason: `groups: expected [${expected.join(', ')}], got [${actual.join(', ')}]`,
+        retryable: true,
+      };
+    }
+  }
+  if (options.phase && doc.status?.phase !== options.phase) {
+    return {
+      met: false,
+      reason: `phase: expected ${options.phase}, got ${doc.status?.phase ?? 'Unknown'}`,
+      retryable: true,
+    };
+  }
+  return { met: true };
+};
+
+const shouldPollMaaSState = (options: CheckMaaSOptions): boolean =>
+  !!(options.phase || options.models || options.groups);
+
+const getMaaSPollBudget = (
+  options: CheckMaaSOptions,
+  pollForState: boolean,
+): { maxAttempts: number; retryIntervalMs: number } => ({
+  maxAttempts: pollForState ? options.maxAttempts ?? MAAS_STATE_DEFAULT_MAX_ATTEMPTS : 1,
+  retryIntervalMs: options.retryIntervalMs ?? MAAS_STATE_DEFAULT_RETRY_INTERVAL_MS,
+});
+
+const pollMaaSResourceState = <T>(
+  resourceLabel: string,
+  ocCommand: string,
+  parseDoc: (stdout: string) => T,
+  optionsMet: (doc: T, options: CheckMaaSOptions) => MaaSOptionsCheckResult,
+  options: CheckMaaSOptions,
+  pollForState: boolean,
+): Cypress.Chainable<CommandLineResult> => {
+  const { maxAttempts, retryIntervalMs } = getMaaSPollBudget(options, pollForState);
+  let attempts = 0;
+
+  const checkState = (): Cypress.Chainable<CommandLineResult> =>
+    cy.exec(ocCommand, { failOnNonZeroExit: true }).then((result) => {
+      attempts++;
+      const doc = parseDoc(result.stdout);
+      const checkResult = optionsMet(doc, options);
+
+      if (checkResult.met) {
+        cy.log(`✅ ${resourceLabel} conditions met after ${attempts} attempt(s)`);
+        return cy.wrap(result);
+      }
+
+      if (checkResult.retryable && attempts < maxAttempts) {
+        cy.log(
+          `⏳ ${resourceLabel}: ${checkResult.reason}, retrying in ${
+            retryIntervalMs / 1000
+          }s (attempt ${attempts}/${maxAttempts})`,
+        );
+        return cy.wait(retryIntervalMs).then(() => checkState());
+      }
+
+      throw new Error(`${resourceLabel} did not meet expected state. ${checkResult.reason}`);
+    });
+
+  return checkState();
+};
+
+const getAuthPolicyGroupNames = (doc: MaaSAuthPolicyState): string[] => {
+  const groups = doc.spec?.subjects?.groups;
+  if (!groups) {
+    throw new Error('MaaSAuthPolicy spec.subjects.groups missing');
+  }
+  return groups.map((group, index) => {
+    if (!group.name) {
+      throw new Error(`MaaSAuthPolicy spec.subjects.groups[${index}] is missing name`);
+    }
+    return group.name;
+  });
+};
+
+const getSubscriptionModelRefNames = (doc: MaaSSubscriptionState): string[] => {
+  const modelRefs = doc.spec?.modelRefs;
+  if (!modelRefs) {
+    throw new Error('MaaSSubscription spec.modelRefs missing');
+  }
+  return modelRefs.map((modelRef, index) => {
+    if (!modelRef.name) {
+      throw new Error(`MaaSSubscription spec.modelRefs[${index}] is missing name`);
+    }
+    return modelRef.name;
+  });
 };
 
 /**
@@ -108,8 +501,8 @@ export type CheckMaaSSubscriptionOptions = {
  */
 export const checkMaaSSubscriptionState = (
   subscriptionName: string,
-  namespace = 'models-as-a-service',
-  options: CheckMaaSSubscriptionOptions = {},
+  namespace = modelsAsAServiceNamespace,
+  options: CheckMaaSOptions = {},
 ): Cypress.Chainable<CommandLineResult> => {
   const ocCommand = `oc get MaaSSubscription ${subscriptionName} -n ${namespace} -o json`;
 
@@ -130,32 +523,72 @@ export const checkMaaSSubscriptionState = (
       );
     });
   }
-
   cy.log(`Checking MaaSSubscription exists: ${subscriptionName} in namespace ${namespace}`);
-  return cy.exec(ocCommand, { failOnNonZeroExit: true }).then((result) => {
-    let doc: unknown;
-    try {
-      doc = JSON.parse(result.stdout);
-    } catch {
+  const resourceLabel = `MaaSSubscription ${subscriptionName} in namespace ${namespace}`;
+
+  if (!options.phase && !options.models) {
+    return cy.exec(ocCommand, { failOnNonZeroExit: true }).then((result) => {
+      parseMaaSSubscriptionDoc(subscriptionName, result.stdout);
+      cy.log(`✅ ${resourceLabel} exists`);
+      return cy.wrap(result);
+    });
+  }
+
+  return pollMaaSResourceState(
+    resourceLabel,
+    ocCommand,
+    (stdout) => parseMaaSSubscriptionDoc(subscriptionName, stdout),
+    subscriptionOptionsMet,
+    options,
+    shouldPollMaaSState(options),
+  );
+};
+
+/**
+ * Verifies `MaaSAuthPolicy` state on the cluster. Validatest the groups and phase in the policy.
+ */
+export const checkMaaSAuthPolicyState = (
+  policyName: string,
+  namespace = modelsAsAServiceNamespace,
+  options: CheckMaaSOptions = {},
+): Cypress.Chainable<CommandLineResult> => {
+  const ocCommand = `oc get MaaSAuthPolicy ${policyName} -n ${namespace} -o json`;
+
+  if (options.expectDeleted === true) {
+    cy.log(`Checking MaaSAuthPolicy is absent: ${policyName} in namespace ${namespace}`);
+    return cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result) => {
+      if (result.exitCode !== 0 && ocGetIndicatesResourceNotFound(result)) {
+        cy.log(`✅ MaaSAuthPolicy ${policyName} is absent from namespace ${namespace}`);
+        return cy.wrap(result);
+      }
+      if (result.exitCode === 0) {
+        throw new Error(`MaaSAuthPolicy ${policyName} still exists in namespace ${namespace}`);
+      }
       throw new Error(
-        `Failed to parse MaaSSubscription JSON for ${subscriptionName}: ${result.stdout}`,
+        `Unexpected oc error while verifying MaaSAuthPolicy deletion: ${result.stderr}`,
       );
-    }
+    });
+  }
 
-    if (!isRecord(doc)) {
-      throw new Error('Invalid MaaSSubscription JSON');
-    }
-    const { metadata } = doc;
-    if (!isRecord(metadata)) {
-      throw new Error('MaaSSubscription metadata missing');
-    }
+  cy.log(`Checking MaaSAuthPolicy exists: ${policyName} in namespace ${namespace}`);
+  const resourceLabel = `MaaSAuthPolicy ${policyName} in namespace ${namespace}`;
 
-    expect(doc.kind).to.equal('MaaSSubscription');
-    expect(metadata.name).to.equal(subscriptionName);
+  if (!options.phase && !options.groups) {
+    return cy.exec(ocCommand, { failOnNonZeroExit: true }).then((result) => {
+      parseMaaSAuthPolicyDoc(policyName, result.stdout);
+      cy.log(`✅ ${resourceLabel} exists`);
+      return cy.wrap(result);
+    });
+  }
 
-    cy.log(`✅ MaaSSubscription ${subscriptionName} exists in namespace ${namespace}`);
-    return cy.wrap(result);
-  });
+  return pollMaaSResourceState(
+    resourceLabel,
+    ocCommand,
+    (stdout) => parseMaaSAuthPolicyDoc(policyName, stdout),
+    authPolicyOptionsMet,
+    options,
+    shouldPollMaaSState(options),
+  );
 };
 
 export const MAAS_COMPLETIONS_DEFAULT_MAX_ATTEMPTS = 24;
@@ -281,5 +714,40 @@ export const verifyMaaSModelInferencing = (
     };
 
     return makeRequest(1);
+  });
+};
+
+export const ListMaaSModels = (
+  token: string,
+): Cypress.Chainable<{ url: string; response: Cypress.Response<unknown> }> => {
+  return getClusterAppsDomain().then((clusterDomain) => {
+    const url = `https://maas.${clusterDomain}/v1/models`;
+
+    cy.log(`Request URL: ${url}`);
+    cy.log(`Request method: GET`);
+    cy.log(
+      `Request headers: ${JSON.stringify({
+        'Content-Type': 'application/json',
+        ...(token && { Authorization: 'Bearer <redacted>' }),
+      })}`,
+    );
+
+    const requestOptions: Partial<Cypress.RequestOptions> & { strictSSL: boolean } = {
+      method: 'GET',
+      url,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token && { Authorization: `Bearer ${token}` }),
+      },
+      failOnStatusCode: false,
+      strictSSL: false,
+      timeout: completionsRequestTimeoutMs,
+    };
+
+    return cy.request(requestOptions).then((response) => {
+      cy.log(`Response status: ${response.status}`);
+      cy.log(`Response body: ${JSON.stringify(response.body)}`);
+      return cy.wrap({ url, response });
+    });
   });
 };

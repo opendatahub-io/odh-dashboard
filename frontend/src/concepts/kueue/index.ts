@@ -24,6 +24,7 @@ const CONDITION_TYPE = {
   QuotaReserved: 'QuotaReserved',
   PodsReady: 'PodsReady',
   Admitted: 'Admitted',
+  BlockedOnPreemptionGates: 'BlockedOnPreemptionGates',
 } as const;
 
 const EVICTION_REASON = {
@@ -40,6 +41,7 @@ type ExtractedConditions = {
   Evicted: WorkloadCondition | undefined;
   Preempted: WorkloadCondition | undefined;
   Inadmissible: WorkloadCondition | undefined;
+  BlockedOnPreemptionGates: WorkloadCondition | undefined;
   Pending: WorkloadCondition | undefined;
   Running: WorkloadCondition | undefined;
   Admitted: WorkloadCondition | undefined;
@@ -80,6 +82,10 @@ const extractWorkloadConditions = (conditions: WorkloadCondition[]): ExtractedCo
         status === CONDITION_STATUS.False &&
         reason === 'Inadmissible',
     ),
+    BlockedOnPreemptionGates: conditions.find(
+      ({ type, status }) =>
+        type === CONDITION_TYPE.BlockedOnPreemptionGates && status === CONDITION_STATUS.True,
+    ),
     Pending: conditions.find(
       ({ type, status }) =>
         type === CONDITION_TYPE.QuotaReserved && status === CONDITION_STATUS.False,
@@ -93,12 +99,7 @@ const extractWorkloadConditions = (conditions: WorkloadCondition[]): ExtractedCo
   };
 };
 
-/**
- * Determines the dashboard status for an Evicted condition by inspecting its reason.
- * - reason "Preempted" → Preempted (higher-priority job displaced this one)
- * - reason "PodsReadyTimeout" with requeueState → Requeued (will retry)
- * - All other reasons → Evicted (queue stopped, deactivated, admission check, etc.)
- */
+/** Maps an Evicted condition to Preempted, Requeued, or Evicted based on its reason. */
 const resolveEvictedStatus = (
   evictedCondition: WorkloadCondition,
   workload: WorkloadKind,
@@ -121,11 +122,7 @@ const getMessageFromCondition = (condition: WorkloadCondition | undefined): stri
   return s || undefined;
 };
 
-/**
- * Finds the first True condition with a non-empty message from types
- * not handled by the known extraction logic. Ensures unknown condition types
- * always surface the raw Kueue message rather than showing blank.
- */
+/** Returns the first True condition with a message whose type is not otherwise handled. */
 const findUnknownConditionFallback = (
   conditions: WorkloadCondition[],
   extracted: ExtractedConditions,
@@ -142,17 +139,38 @@ const findUnknownConditionFallback = (
 
 /**
  * Returns Kueue status and message for a Workload from its conditions.
- * Priority: Failed → Inadmissible → Evicted/Preempted/Requeued → Succeeded → Running → Admitted → Queued → UnknownFallback.
+ * Priority: Failed → Evicted/Requeued → Inadmissible → BlockedOnPreemptionGates → Preempted → Succeeded → Running → Admitted → Queued → UnknownFallback.
  */
+type AdmissionCheckEntry = NonNullable<
+  NonNullable<WorkloadKind['status']>['admissionChecks']
+>[number];
+
+/** Returns the first blocking admission check (Pending or Retry), or undefined if none. */
+const findBlockingAdmissionCheck = (workload: WorkloadKind): AdmissionCheckEntry | undefined => {
+  const checks = workload.status?.admissionChecks;
+  return checks?.find(({ state }) => state === 'Pending' || state === 'Retry');
+};
+
 export const getKueueWorkloadStatusWithMessage = (
   workload: WorkloadKind,
 ): KueueWorkloadStatusWithMessage => {
   const conditions = workload.status?.conditions ?? [];
   const extracted = extractWorkloadConditions(conditions);
-  const { Failed, Inadmissible, Evicted, Preempted, Succeeded, Running, Admitted, Pending } =
-    extracted;
+  const {
+    Failed,
+    Inadmissible,
+    Evicted,
+    Preempted,
+    Succeeded,
+    Running,
+    Admitted,
+    Pending,
+    BlockedOnPreemptionGates,
+  } = extracted;
 
   const evictedStatus = Evicted ? resolveEvictedStatus(Evicted, workload) : undefined;
+
+  const blockingCheck = findBlockingAdmissionCheck(workload);
 
   const priority: Array<{
     condition: WorkloadCondition | undefined;
@@ -161,6 +179,7 @@ export const getKueueWorkloadStatusWithMessage = (
     { condition: Failed, status: KueueWorkloadStatus.Failed },
     { condition: Evicted, status: evictedStatus ?? KueueWorkloadStatus.Evicted },
     { condition: Inadmissible, status: KueueWorkloadStatus.Inadmissible },
+    { condition: BlockedOnPreemptionGates, status: KueueWorkloadStatus.BlockedOnPreemptionGates },
     { condition: Preempted, status: KueueWorkloadStatus.Preempted },
     { condition: Succeeded, status: KueueWorkloadStatus.Complete },
     { condition: Running, status: KueueWorkloadStatus.Running },
@@ -180,6 +199,15 @@ export const getKueueWorkloadStatusWithMessage = (
       };
     }
     return { status: KueueWorkloadStatus.Queued, message: undefined, timestamp: undefined };
+  }
+
+  // Admitted but a check is still blocking — surface AdmissionCheck for the progress tree.
+  if (matched.status === KueueWorkloadStatus.Admitted && blockingCheck != null) {
+    return {
+      status: KueueWorkloadStatus.AdmissionCheck,
+      message: blockingCheck.message || blockingCheck.name,
+      timestamp: blockingCheck.lastTransitionTime,
+    };
   }
 
   const result: KueueWorkloadStatusWithMessage = {
@@ -231,6 +259,20 @@ export const getKueueStatusInfo = (status: KueueWorkloadStatus): KueueStatusInfo
         label: 'Inadmissible',
         status: 'warning',
         IconComponent: ExclamationTriangleIcon,
+      };
+    case KueueWorkloadStatus.AdmissionCheck:
+      return {
+        label: 'Admission check',
+        color: 'blue',
+        IconComponent: InProgressIcon,
+        iconClassName: 'ai-u-spin',
+      };
+    case KueueWorkloadStatus.BlockedOnPreemptionGates:
+      return {
+        label: 'Blocked on preemption',
+        color: 'blue',
+        IconComponent: InProgressIcon,
+        iconClassName: 'ai-u-spin',
       };
     case KueueWorkloadStatus.Running:
       return { label: 'Running', color: 'blue', IconComponent: InProgressIcon };

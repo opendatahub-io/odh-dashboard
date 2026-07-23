@@ -65,7 +65,7 @@ import {
   MaaSTokenResponse,
 } from '~/app/types';
 import { URL_PREFIX, extractMCPToolCallData } from '~/app/utilities';
-import { GUARDRAIL_ERROR_CODES } from '~/app/Chatbot/const';
+import { GUARDRAIL_ERROR_CODES, GUARDRAIL_MESSAGES } from '~/app/Chatbot/const';
 import { ThinkTagParser } from './thinkTagParser';
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -335,22 +335,22 @@ const postCreateResponse = (
   opts?: APIOptions & { abortSignal?: AbortSignal },
 ): Promise<SimplifiedResponseData> => {
   const fetchOpts = opts?.abortSignal ? { ...opts, signal: opts.abortSignal } : opts;
-  return restCREATE<{ data?: BackendResponseData; error?: ApiErrorClass['error'] }>(
-    hostPath,
-    '/lsd/responses',
-    toCreateResponseRecord(request),
-    baseQueryParams,
-    fetchOpts,
-  ).then((response) => {
-    if (response.error) {
-      // Preserve the full ApiError structure from BFF
-      throw new ApiErrorClass(response.error);
-    }
-    if (response.data) {
-      return transformBackendResponse(response.data);
-    }
-    throw new Error('Invalid response format');
-  });
+  return restCREATE<{
+    data?: BackendResponseData;
+    error?: ApiErrorClass['error'];
+    trace_id?: string;
+  }>(hostPath, '/lsd/responses', toCreateResponseRecord(request), baseQueryParams, fetchOpts).then(
+    (response) => {
+      if (response.error) {
+        // Preserve the full ApiError structure from BFF
+        throw new ApiErrorClass(response.error, response.trace_id);
+      }
+      if (response.data) {
+        return transformBackendResponse(response.data);
+      }
+      throw new Error('Invalid response format');
+    },
+  );
 };
 
 // Streaming POST path via fetch (SSE text/event-stream)
@@ -359,6 +359,7 @@ const streamCreateResponse = (
   request: CreateResponseRequest,
   onStreamData: (chunk: string, clearPrevious?: boolean, isReasoning?: boolean) => void,
   abortSignal?: AbortSignal,
+  headers?: Record<string, string>,
 ): Promise<SimplifiedResponseData> =>
   new Promise((resolve, reject) => {
     fetch(url, {
@@ -366,6 +367,7 @@ const streamCreateResponse = (
       headers: {
         'Content-Type': 'application/json',
         Accept: 'text/event-stream',
+        ...headers,
       },
       body: JSON.stringify(request),
       signal: abortSignal,
@@ -382,7 +384,7 @@ const streamCreateResponse = (
 
           if (isApiError(errorData)) {
             // Preserve the full ApiError structure from BFF
-            throw new ApiErrorClass(errorData.error);
+            throw new ApiErrorClass(errorData.error, errorData.trace_id);
           }
 
           // Fallback: no structured error or parsing failed
@@ -431,7 +433,7 @@ const streamCreateResponse = (
                         fireMiscTrackingEvent('Guardrail Activated', { violationDetected: true });
                       }
                       // Preserve the full ApiError structure from BFF
-                      reject(new ApiErrorClass(data.error));
+                      reject(new ApiErrorClass(data.error, data.trace_id));
                       return;
                     }
 
@@ -455,8 +457,20 @@ const streamCreateResponse = (
                         const isFirstRefusal = !receivedRefusal;
                         if (isFirstRefusal) {
                           receivedRefusal = true;
-                          fullContent = '';
                           fireMiscTrackingEvent('Guardrail Activated', { violationDetected: true });
+                          if (fullContent.length > 0) {
+                            await reader.cancel('Output guardrail violation');
+                            reject(
+                              new ApiErrorClass({
+                                code: GUARDRAIL_ERROR_CODES.OUTPUT_VIOLATION,
+                                message: GUARDRAIL_MESSAGES.OUTPUT_VIOLATION,
+                                component: ERROR_COMPONENTS.GUARDRAILS,
+                                retriable: false,
+                              }),
+                            );
+                            return;
+                          }
+                          fullContent = '';
                         }
                         fullContent += data.delta;
                         onStreamData(data.delta, isFirstRefusal);
@@ -486,11 +500,10 @@ const streamCreateResponse = (
                   const data = JSON.parse(line.slice(6));
 
                   if (data.error) {
-                    const errMsg = data.error.message || 'An error occurred during streaming';
                     if (data.error.code === GUARDRAIL_ERROR_CODES.OUTPUT_VIOLATION) {
                       fireMiscTrackingEvent('Guardrail Activated', { violationDetected: true });
                     }
-                    reject(Object.assign(new Error(errMsg), { code: data.error.code }));
+                    reject(new ApiErrorClass(data.error, data.trace_id));
                     return;
                   }
 
@@ -502,8 +515,19 @@ const streamCreateResponse = (
                       const isFirstRefusal = !receivedRefusal;
                       if (isFirstRefusal) {
                         receivedRefusal = true;
-                        fullContent = '';
                         fireMiscTrackingEvent('Guardrail Activated', { violationDetected: true });
+                        if (fullContent.length > 0) {
+                          reject(
+                            new ApiErrorClass({
+                              code: GUARDRAIL_ERROR_CODES.OUTPUT_VIOLATION,
+                              message: GUARDRAIL_MESSAGES.OUTPUT_VIOLATION,
+                              component: ERROR_COMPONENTS.GUARDRAILS,
+                              retriable: false,
+                            }),
+                          );
+                          return;
+                        }
+                        fullContent = '';
                       }
                       fullContent += data.delta;
                       onStreamData(data.delta, isFirstRefusal);
@@ -615,7 +639,7 @@ export const createResponse =
   ): Promise<SimplifiedResponseData> => {
     if (data.stream && opts.onStreamData) {
       const url = buildApiUrl(hostPath, '/lsd/responses', baseQueryParams);
-      return streamCreateResponse(url, data, opts.onStreamData, opts.abortSignal);
+      return streamCreateResponse(url, data, opts.onStreamData, opts.abortSignal, opts.headers);
     }
     return postCreateResponse(hostPath, baseQueryParams, data, opts);
   };
@@ -709,7 +733,7 @@ export const createPassthroughResponse = (
 
                     if (data.error) {
                       await reader.cancel('Streaming error');
-                      reject(new ApiErrorClass(data.error));
+                      reject(new ApiErrorClass(data.error, data.trace_id));
                       return;
                     }
 
@@ -717,6 +741,18 @@ export const createPassthroughResponse = (
                       fullContent += data.delta;
                       onStreamData(data.delta);
                     } else if (data.type === 'response.refusal.delta' && data.delta) {
+                      if (fullContent.length > 0) {
+                        await reader.cancel('Output guardrail violation');
+                        reject(
+                          new ApiErrorClass({
+                            code: GUARDRAIL_ERROR_CODES.OUTPUT_VIOLATION,
+                            message: GUARDRAIL_MESSAGES.OUTPUT_VIOLATION,
+                            component: ERROR_COMPONENTS.GUARDRAILS,
+                            retriable: false,
+                          }),
+                        );
+                        return;
+                      }
                       fullContent += data.delta;
                       onStreamData(data.delta);
                     } else if (data.type === 'response.completed' && data.response) {
@@ -744,7 +780,7 @@ export const createPassthroughResponse = (
                   const data = JSON.parse(line.slice(6));
 
                   if (data.error) {
-                    reject(new ApiErrorClass(data.error));
+                    reject(new ApiErrorClass(data.error, data.trace_id));
                     return;
                   }
 
@@ -752,6 +788,17 @@ export const createPassthroughResponse = (
                     fullContent += data.delta;
                     onStreamData(data.delta);
                   } else if (data.type === 'response.refusal.delta' && data.delta) {
+                    if (fullContent.length > 0) {
+                      reject(
+                        new ApiErrorClass({
+                          code: GUARDRAIL_ERROR_CODES.OUTPUT_VIOLATION,
+                          message: GUARDRAIL_MESSAGES.OUTPUT_VIOLATION,
+                          component: ERROR_COMPONENTS.GUARDRAILS,
+                          retriable: false,
+                        }),
+                      );
+                      return;
+                    }
                     fullContent += data.delta;
                     onStreamData(data.delta);
                   } else if (data.type === 'response.completed' && data.response) {
@@ -968,20 +1015,27 @@ export const transcribeAudio = async (
   fileId: string,
   asrModelId: string,
   signal?: AbortSignal,
+  subscription?: string,
 ): Promise<{ text: string }> => {
+  const body: Record<string, string> = { file_id: fileId, asr_model_id: asrModelId };
+  if (subscription) {
+    body.subscription = subscription;
+  }
   const response = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ file_id: fileId, asr_model_id: asrModelId }),
+    body: JSON.stringify(body),
     signal,
   });
   if (!response.ok) {
-    const body = await response.json().catch(() => ({}));
-    if (body?.error?.component && body?.error?.code) {
-      throw new ApiErrorClass(body.error);
+    const errorBody = await response.json().catch(() => ({}));
+    if (errorBody?.error?.component && errorBody?.error?.code) {
+      throw new ApiErrorClass(errorBody.error, errorBody.trace_id);
     }
     const message =
-      body?.error?.message || body?.message || `Transcription failed (${response.status})`;
+      errorBody?.error?.message ||
+      errorBody?.message ||
+      `Transcription failed (${response.status})`;
     throw Object.assign(new Error(message), { status: response.status });
   }
   return response.json();
@@ -1132,8 +1186,12 @@ export const initNemoGuardrails =
       opts,
     ).then((response) => {
       if (response.error) {
-        const err = Object.assign(new Error(response.error.message), { code: response.error.code });
-        throw err;
+        throw new ApiErrorClass({
+          component: ERROR_COMPONENTS.GUARDRAILS,
+          code: response.error.code,
+          message: response.error.message,
+          retriable: false,
+        });
       }
       if (response.data) {
         return response.data;

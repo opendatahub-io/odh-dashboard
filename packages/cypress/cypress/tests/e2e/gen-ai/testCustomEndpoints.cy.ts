@@ -4,7 +4,7 @@ import {
   deleteOpenShiftProject,
   waitForUserProjectAccess,
 } from '../../../utils/oc_commands/project';
-import { checkLlamaStackDistributionReady } from '../../../utils/oc_commands/llamaStackDistribution';
+import { waitForOGXServerReady } from '../../../utils/oc_commands/ogxServer';
 import { waitForResource, waitForPodReady } from '../../../utils/oc_commands/baseCommands';
 import {
   enableExternalProviders,
@@ -62,7 +62,7 @@ describe('Verify Custom Endpoints in Playground - Full Lifecycle', () => {
     () => {
       cy.step('Log into the application with custom endpoints enabled');
       cy.visitWithLogin(
-        `/?devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true`,
+        `/?devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,modelAsService=false`,
         HTPASSWD_CLUSTER_ADMIN_USER,
       );
 
@@ -118,8 +118,8 @@ describe('Verify Custom Endpoints in Playground - Full Lifecycle', () => {
       cy.step('Click Create in the configuration modal');
       genAiPlayground.findCreateButtonInDialog().should('be.enabled').click();
 
-      cy.step('Wait for LlamaStack Distribution to be ready');
-      checkLlamaStackDistributionReady(projectName);
+      cy.step('Wait for OGX Server to be ready');
+      waitForOGXServerReady(projectName);
 
       cy.step('Wait for playground service to be created');
       waitForResource('service', testData.lsdServiceName, projectName);

@@ -17,14 +17,15 @@ import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useExtensions } from '@odh-dashboard/plugin-core';
 import { isProjectDetailsSettingsCardExtension } from '@odh-dashboard/plugin-core/extension-points';
-import { ResourceNameTooltip } from '@odh-dashboard/ui-core';
+import { ApplicationsPage, ResourceNameTooltip } from '@odh-dashboard/ui-core';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import {
   getDescriptionFromK8sResource,
   getDisplayNameFromK8sResource,
 } from '@odh-dashboard/k8s-core';
+import HeaderIcon from '@odh-dashboard/ui-core/design/HeaderIcon';
 import { useDeploymentsTab } from '#~/concepts/projects/projectDetails/useDeploymentsTab';
-import ApplicationsPage from '#~/pages/ApplicationsPage';
+
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import GenericHorizontalBar from '#~/pages/projects/components/GenericHorizontalBar';
 import ProjectSharing from '#~/pages/projects/projectSharing/ProjectSharing';
@@ -33,7 +34,6 @@ import ProjectRoles from '#~/pages/projects/projectRoles/ProjectRoles';
 import ProjectSettingsPage from '#~/pages/projects/projectSettings/ProjectSettingsPage';
 import { ProjectObjectType, SectionType } from '#~/concepts/design/utils';
 import { ProjectSectionID } from '#~/pages/projects/screens/detail/types';
-import HeaderIcon from '#~/concepts/design/HeaderIcon';
 import {
   useProjectPermissionsTabVisible,
   useProjectRolesTabVisible,
@@ -47,8 +47,6 @@ import StorageList from './storage/StorageList';
 import ConnectionsList from './connections/ConnectionsList';
 import PipelinesSection from './pipelines/PipelinesSection';
 import ProjectActions from './ProjectActions';
-
-import './ProjectDetails.scss';
 
 const ProjectDetails: React.FC = () => {
   const { currentProject } = React.useContext(ProjectDetailsContext);
@@ -217,7 +215,7 @@ const ProjectDetails: React.FC = () => {
                     title: 'Roles',
                     label: (
                       <Label isCompact color="yellow" variant="outline">
-                        Dev preview
+                        Tech preview
                       </Label>
                     ),
                     component: (

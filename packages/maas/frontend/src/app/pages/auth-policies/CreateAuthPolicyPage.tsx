@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Breadcrumb, BreadcrumbItem } from '@patternfly/react-core';
-import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
+import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import { useSubscriptionPolicyFormData } from '~/app/hooks/useSubscriptionPolicyFormData';
 import {
   getBackUrl,
@@ -12,8 +12,8 @@ import PolicyForm from './policyForm/PolicyForm';
 
 const CreateAuthPolicyPage: React.FC = () => {
   const [formData, loaded, loadError] = useSubscriptionPolicyFormData();
-  const { state, pathname } = useLocation();
-  const backUrl = getBackUrl(pathname, state, 'auth-policies');
+  const { state } = useLocation();
+  const backUrl = getBackUrl(state, 'auth-policies');
   const returnTo = backUrl;
   const breadcrumbLabel = getBreadcrumbLabelFromState(state) ?? 'Authorization policies';
   const preSelectedModel = getPreSelectedModelFromState(state);

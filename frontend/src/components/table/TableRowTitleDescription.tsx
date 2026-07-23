@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import { ResourceNameTooltip } from '@odh-dashboard/ui-core';
+import TruncatedText from '@odh-dashboard/ui-core/components/TruncatedText';
 import MarkdownView from '#~/components/MarkdownView';
-import TruncatedText from '#~/components/TruncatedText';
 
 type TableRowTitleDescriptionProps = {
   title: React.ReactNode;
@@ -14,6 +14,7 @@ type TableRowTitleDescriptionProps = {
   truncateDescriptionLines?: number;
   label?: React.ReactNode;
   wrapResourceTitle?: boolean;
+  onShowPopover?: () => void;
 };
 
 const TableRowTitleDescription: React.FC<TableRowTitleDescriptionProps> = ({
@@ -26,6 +27,7 @@ const TableRowTitleDescription: React.FC<TableRowTitleDescriptionProps> = ({
   truncateDescriptionLines,
   label,
   wrapResourceTitle = true,
+  onShowPopover,
 }) => {
   let descriptionNode: React.ReactNode;
   if (description) {
@@ -50,7 +52,11 @@ const TableRowTitleDescription: React.FC<TableRowTitleDescriptionProps> = ({
     <div>
       <div data-testid="table-row-title">
         {resource ? (
-          <ResourceNameTooltip resource={resource} wrap={wrapResourceTitle}>
+          <ResourceNameTooltip
+            resource={resource}
+            wrap={wrapResourceTitle}
+            onShowPopover={onShowPopover}
+          >
             {title}
           </ResourceNameTooltip>
         ) : (

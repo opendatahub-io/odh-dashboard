@@ -48,6 +48,12 @@ export type DataConnectionReplacements = {
   AWS_SECRET_ACCESS_KEY: string;
 };
 
+export type DataConnectionUriReplacements = {
+  NAMESPACE: string;
+  MODEL_URI: string;
+  CONNECTION_NAME: string;
+};
+
 export type DspaSecretReplacements = {
   DSPA_SECRET_NAME: string;
   NAMESPACE: string;
@@ -120,6 +126,13 @@ export type KueueWorkbenchTestData = {
   memoryQuota: number;
   sectionTab: string;
   notebookImage: string;
+};
+
+export type KueueWorkbenchLifecycleTestData = KueueWorkbenchTestData & {
+  updatedCpuQuota: number;
+  updatedMemoryQuota: number;
+  waitingForQuotaMessage: string;
+  queuePositionMarker: string;
 };
 
 export type WBControlSuiteTestData = {
@@ -235,6 +248,7 @@ export type CommandLineResult = {
 
 export type TestConfig = {
   ODH_DASHBOARD_URL: string;
+  OCP_API_URL?: string;
   TEST_USER: UserAuthConfig;
   TEST_USER_3: UserAuthConfig;
   TEST_USER_5: UserAuthConfig;
@@ -691,6 +705,59 @@ export type ModelCatalogSourceTestData = {
   toolCallingLabel: string;
   toolCallingArg: string;
 };
+
+export type ModelAsAServiceTestData = {
+  projectResourceName: string;
+  singleModelName: string;
+  singleModelDescription: string;
+  llmInferenceServiceConfigName: string;
+  llmInferenceServiceConfigDisplayName: string;
+  llmInferenceServiceConfigContainerImage: string;
+  hardwareProfileName: string;
+  modelLocationURI: string;
+  connectionNameSuffix: string;
+  subscriptionName: string;
+  subscriptionNamespace: string;
+  subscriptionDescription: string;
+  subscriptionPriority: number;
+  subscriptionGroups: string[];
+  policiesName: string;
+  policiesDescription: string;
+  policiesGroups: string[];
+  tokenRateLimit: { limit: string; window: string; unit: string };
+  policiesGroupsCount: number;
+  policiesModelsCount: number;
+  apiKeyName: string;
+  apiKeyDescription: string;
+  apiKeyExpirationTimeId: string;
+  apiKeyExpirationTime: string;
+  apiKeyExpirationTimeInvalid: string;
+  phase: string;
+  apiKeyStatus: {
+    active: string;
+    expired: string;
+    revoked: string;
+  };
+  apiKeyCount: number;
+};
+
+export enum ApiKeyStatus {
+  active = 'Active',
+  expired = 'Expired',
+  revoked = 'Revoked',
+}
+
+export enum PhaseStatus {
+  ACTIVE = 'Active',
+  READY = 'Ready',
+  PENDING = 'Pending',
+  FAILED = 'Failed',
+  INVALID = 'Invalid',
+  DEGRADED = 'Degraded',
+  UNAVAILABLE = 'Unavailable',
+  UNHEALTHY = 'Unhealthy',
+  UNKNOWN = 'Unknown',
+}
 
 export type TrainJobTestData = {
   projectName: string;

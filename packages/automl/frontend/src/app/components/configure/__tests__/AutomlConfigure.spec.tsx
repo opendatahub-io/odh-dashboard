@@ -643,7 +643,9 @@ describe('AutomlConfigure', () => {
       expect(screen.getByTestId('target_column-select')).toBeInTheDocument();
       expect(screen.getByText('Prediction type')).toBeInTheDocument();
       expect(
-        screen.getByText('Select a target column above to see prediction type recommendations.'),
+        screen.getByText(
+          'To view prediction type options, first complete the Target column field.',
+        ),
       ).toBeInTheDocument();
       expect(screen.queryByTestId('task-type-card-binary')).not.toBeInTheDocument();
       expect(screen.queryByText('Top models to consider')).not.toBeInTheDocument();
@@ -810,7 +812,9 @@ describe('AutomlConfigure', () => {
         selectSecretAndFile();
         expect(screen.getByTestId('prediction-type-helper-no-target')).toBeInTheDocument();
         expect(
-          screen.getByText('Select a target column above to see prediction type recommendations.'),
+          screen.getByText(
+            'To view prediction type options, first complete the Target column field.',
+          ),
         ).toBeInTheDocument();
         expect(screen.queryByTestId('task-type-card-binary')).not.toBeInTheDocument();
       });
@@ -1011,6 +1015,55 @@ describe('AutomlConfigure', () => {
         // timestamp_column should be cleared, id_column should remain
         expect(screen.getByTestId('timestamp_column-select')).toHaveTextContent('Select a column');
         expect(screen.getByTestId('id_column-select')).toHaveTextContent('loan_amount');
+      });
+    });
+
+    describe('Run preset', () => {
+      it('should render preset radio buttons with Faster selected by default', () => {
+        renderComponent();
+        selectSecretAndFile();
+        selectTargetColumn();
+        selectPredictionType('binary');
+
+        const fasterRadio = screen.getByTestId('preset-radio-speed');
+        const betterQualityRadio = screen.getByTestId('preset-radio-balanced');
+        expect(fasterRadio).toBeInTheDocument();
+        expect(betterQualityRadio).toBeInTheDocument();
+        expect(fasterRadio).toBeChecked();
+        expect(betterQualityRadio).not.toBeChecked();
+      });
+
+      it('should display human-readable labels for presets', () => {
+        renderComponent();
+        selectSecretAndFile();
+        selectTargetColumn();
+        selectPredictionType('binary');
+
+        expect(screen.getByText('Faster')).toBeInTheDocument();
+        expect(screen.getByText('Better quality')).toBeInTheDocument();
+      });
+
+      it('should switch preset when clicking the other radio', () => {
+        renderComponent();
+        selectSecretAndFile();
+        selectTargetColumn();
+        selectPredictionType('binary');
+
+        const betterQualityRadio = screen.getByTestId('preset-radio-balanced');
+        fireEvent.click(betterQualityRadio);
+
+        expect(betterQualityRadio).toBeChecked();
+        expect(screen.getByTestId('preset-radio-speed')).not.toBeChecked();
+      });
+
+      it('should render with balanced preset when configured', () => {
+        renderComponent({ preset: 'balanced' });
+        selectSecretAndFile();
+        selectTargetColumn();
+        selectPredictionType('binary');
+
+        expect(screen.getByTestId('preset-radio-balanced')).toBeChecked();
+        expect(screen.getByTestId('preset-radio-speed')).not.toBeChecked();
       });
     });
 

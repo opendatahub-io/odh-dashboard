@@ -4,6 +4,7 @@ import type {
   CreateAPIKeyRequest,
 } from '@odh-dashboard/maas/types/api-key';
 import type { PolicyInfoResponse } from '@odh-dashboard/maas/types/auth-policies';
+import type { ExternalModel } from '@odh-dashboard/maas/types/external-models';
 import type {
   MaaSSubscription,
   ModelOverviewItem,
@@ -420,7 +421,9 @@ export const mockModelRefSummaries = (): MaaSModelRefSummary[] => [
   },
 ];
 
-export const mockSubscriptionFormData = (): SubscriptionPolicyFormDataResponse => ({
+export const mockSubscriptionFormData = (
+  overrides?: Partial<SubscriptionPolicyFormDataResponse>,
+): SubscriptionPolicyFormDataResponse => ({
   groups: [
     'system:authenticated',
     'premium-users',
@@ -442,6 +445,7 @@ export const mockSubscriptionFormData = (): SubscriptionPolicyFormDataResponse =
   modelRefs: mockModelRefSummaries(),
   subscriptions: mockSubscriptions(),
   policies: mockAuthPolicies(),
+  ...overrides,
 });
 
 export const mockModelsOverview = (): ModelOverviewItem[] => [
@@ -805,3 +809,113 @@ export const mockPolicyInfoMissingModelSummaries = (): PolicyInfoResponse => {
     modelRefs: [],
   };
 };
+
+export const mockMaasNamespaces = (
+  names: string[] = ['test-project'],
+): { name: string; displayName?: string }[] => names.map((name) => ({ name }));
+
+export const mockExternalModel = (options: Partial<ExternalModel> = {}): ExternalModel => ({
+  name: 'gpt-4o-external',
+  namespace: 'test-project',
+  displayName: 'GPT-4o External',
+  description: 'External GPT-4o model routed through OpenAI provider.',
+  modelName: 'gpt-4o',
+  providerRefs: [
+    {
+      providerName: 'openai-prod',
+      weight: 100,
+      apiFormat: 'openai-chat',
+      path: '/v1/chat/completions',
+      targetModel: 'gpt-4o',
+      provider: {
+        displayName: 'OpenAI Production',
+        endpointUrl: 'api.openai.com',
+        authMechanism: 'apikey',
+        credentialSecretRef: 'openai-api-key',
+        provider: 'openai',
+        phase: 'Ready',
+        statusMessage: 'External provider is ready',
+      },
+    },
+  ],
+  phase: 'Ready',
+  statusMessage: 'External model is ready',
+  maaSModelRef: {
+    phase: 'Ready',
+    endpoint: 'https://gpt-4o-external.maas.example.com',
+    statusMessage: 'Published external GPT-4o model',
+  },
+  ...options,
+});
+
+export const mockExternalModels = (): ExternalModel[] => [
+  mockExternalModel(),
+  mockExternalModel({
+    name: 'claude-split',
+    displayName: 'Claude A/B Split',
+    description: 'Weighted routing across Anthropic and Bedrock providers.',
+    modelName: 'claude-sonnet',
+    providerRefs: [
+      {
+        providerName: 'anthropic-dev',
+        weight: 60,
+        apiFormat: 'anthropic',
+        path: '/v1/messages',
+        targetModel: 'claude-sonnet-4-5-20241022',
+        provider: {
+          displayName: 'Anthropic Development',
+          endpointUrl: 'api.anthropic.com',
+          authMechanism: 'apikey',
+          credentialSecretRef: 'anthropic-api-key',
+          provider: 'anthropic',
+          phase: 'Ready',
+          statusMessage: 'External provider is ready',
+        },
+      },
+      {
+        providerName: 'bedrock-us-east',
+        weight: 40,
+        apiFormat: 'anthropic',
+        path: '/v1/messages',
+        targetModel: 'anthropic.claude-3-sonnet',
+        provider: {
+          displayName: 'AWS Bedrock US East',
+          endpointUrl: 'bedrock.us-east-1.amazonaws.com',
+          authMechanism: 'sigv4',
+          credentialSecretRef: 'bedrock-credentials-us-east',
+          provider: 'aws-bedrock',
+          phase: 'Ready',
+          statusMessage: 'External provider is ready',
+        },
+      },
+    ],
+    phase: 'Ready',
+    statusMessage: 'External model is ready',
+    maaSModelRef: {
+      phase: 'Ready',
+      endpoint: 'https://claude-split.maas.example.com',
+      statusMessage: 'Published Claude split model',
+    },
+  }),
+  mockExternalModel({
+    name: 'awaiting-pairing-model',
+    displayName: 'Awaiting Pairing Model',
+    description: 'Model waiting for subscription and auth pairing.',
+    modelName: 'awaiting-model',
+    phase: 'Pending',
+    statusMessage: 'External model is pending',
+    maaSModelRef: {
+      phase: 'Pending',
+      statusMessage: 'Awaiting governance pairing',
+    },
+  }),
+  mockExternalModel({
+    name: 'missing-ref-model',
+    displayName: 'Missing Ref Model',
+    description: 'External model without a MaaS model reference.',
+    modelName: 'missing-ref',
+    phase: 'Ready',
+    statusMessage: 'External model is ready',
+    maaSModelRef: undefined,
+  }),
+];

@@ -2,8 +2,10 @@ import React from 'react';
 import { Alert, FormGroup, Stack, StackItem } from '@patternfly/react-core';
 import type { PersistentVolumeClaimKind } from '@odh-dashboard/k8s-core';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
-import TypeaheadSelect, { TypeaheadSelectOption } from '#~/components/TypeaheadSelect';
-import { getModelServingPVCAnnotations } from '#~/pages/modelServing/utils';
+import { getModelServingPVCAnnotations } from '@odh-dashboard/model-serving/shared';
+import TypeaheadSelect, {
+  TypeaheadSelectOption,
+} from '@odh-dashboard/ui-core/components/TypeaheadSelect';
 import { AccessMode } from '#~/pages/storageClasses/storageEnums';
 import { getPvcAccessMode } from '#~/pages/projects/utils';
 import { PVCFields } from './PVCFields';

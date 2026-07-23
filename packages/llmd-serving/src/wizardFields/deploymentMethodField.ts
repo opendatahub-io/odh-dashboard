@@ -11,7 +11,7 @@ const SIMPLE_VLLM_OPTION = {
   key: SIMPLE_VLLM_DEPLOYMENT_METHOD_KEY,
   label: 'LLM inference service deployment',
   description:
-    'Deploy an LLM using a preconfigured LLMInferenceService and vLLM accelerator configuration.',
+    'Deploy an LLM using a preconfigured LLMInferenceService and LLM accelerator configuration.',
 };
 
 export const vllmDeploymentMethodOverride: DeploymentMethodFieldOverride = {

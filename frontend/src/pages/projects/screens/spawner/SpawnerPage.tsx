@@ -18,7 +18,10 @@ import {
 import type { HardwareProfileKind } from '@odh-dashboard/k8s-core';
 import { useIsAreaAvailable, SupportedArea } from '@odh-dashboard/plugin-core/areas';
 import { getDisplayNameFromK8sResource, LimitNameResourceType } from '@odh-dashboard/k8s-core';
-import ApplicationsPage from '#~/pages/ApplicationsPage';
+import K8sNameDescriptionField, {
+  useK8sNameDescriptionFieldData,
+} from '@odh-dashboard/ui-core/components/K8sNameDescriptionField';
+import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import { ImageStreamAndVersion } from '#~/types';
 import ExtendedButton from '#~/components/ExtendedButton';
 import GenericSidebar from '#~/components/GenericSidebar';
@@ -33,9 +36,6 @@ import {
   NotebookImageStatus,
 } from '#~/pages/projects/screens/detail/notebooks/const';
 import useProjectPvcs from '#~/pages/projects/screens/detail/storage/useProjectPvcs';
-import K8sNameDescriptionField, {
-  useK8sNameDescriptionFieldData,
-} from '#~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
 import { Connection } from '#~/concepts/connectionTypes/types';
 import { StorageData, StorageType } from '#~/pages/projects/types';
 import useNotebookPVCItems from '#~/pages/projects/pvc/useNotebookPVCItems';
@@ -372,7 +372,11 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
                   deletedSecrets={deletedSecrets}
                 />
               )}
-              <EnvironmentVariables envVariables={envVariables} setEnvVariables={setEnvVariables} />
+              <EnvironmentVariables
+                envVariables={envVariables}
+                setEnvVariables={setEnvVariables}
+                namespace={currentProject.metadata.name}
+              />
             </FormSection>
             <FormSection
               title={

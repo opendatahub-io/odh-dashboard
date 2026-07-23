@@ -1,5 +1,6 @@
 import { HTPASSWD_CLUSTER_ADMIN_USER } from './e2eUsers';
 import { waitForDspaReady } from './oc_commands/dspa';
+import { waitForManagedPipelines } from './autoXPipelines';
 import { autoragExperimentsPage } from '../pages/autorag/experimentsPage';
 import { autoragConfigurePage } from '../pages/autorag/configurePage';
 import { autoragResultsPage } from '../pages/autorag/resultsPage';
@@ -25,6 +26,7 @@ export const configureAutoragRun = (
   cy.step('Login and wait for pipeline server');
   cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
   waitForDspaReady(projectName);
+  waitForManagedPipelines(projectName);
 
   cy.step('Navigate to AutoRAG experiments page');
   autoragExperimentsPage.visit(projectName);
@@ -71,12 +73,31 @@ export const configureAutoragRun = (
   autoragConfigurePage.findBrowseBucketButton().click();
   autoragConfigurePage.findFileExplorerTable().should('be.visible');
   autoragConfigurePage.findFileExplorerSearch().type(uploadFileName);
-  autoragConfigurePage
-    .findFileExplorerTable()
-    .contains('td', uploadFileName)
-    .should('be.visible')
-    .click();
+  autoragConfigurePage.findFileExplorerTable().contains('td', uploadFileName).should('be.visible');
+  autoragConfigurePage.findFileExplorerTable().contains('td', uploadFileName).click();
   autoragConfigurePage.findFileExplorerSelectBtn().click();
+
+  cy.step('Create evaluation file via creator modal');
+  autoragConfigurePage.findEvaluationCreateButton().should('exist').click();
+  autoragConfigurePage.findEvaluationCreatorModal().should('be.visible');
+  autoragConfigurePage.findEvalQuestion().type('What information does this document contain?');
+  autoragConfigurePage.findEvalAnswer().type('It contains test data for AutoRAG evaluation.');
+  autoragConfigurePage.findEvalAddRow().should('be.enabled');
+  autoragConfigurePage.findEvalAddRow().click();
+  autoragConfigurePage
+    .findEvalEntriesTable()
+    .contains('What information does this document contain?')
+    .should('be.visible');
+  autoragConfigurePage.findEvalSubmit().should('be.enabled');
+  autoragConfigurePage.findEvalSubmit().click();
+  autoragConfigurePage.findEvaluationCreatorModal().should('not.exist');
+
+  cy.step('Verify created evaluation file appears in the selector');
+  autoragConfigurePage.findEvaluationFileValue().invoke('val').should('not.be.empty');
+
+  cy.step('Clear creator-uploaded evaluation file to test dropzone upload path');
+  autoragConfigurePage.findEvaluationFileClearButton().click();
+  autoragConfigurePage.findEvaluationFileValue().should('have.value', '');
 
   cy.step('Upload evaluation dataset JSON');
   const evalFileName = `${testData.evaluationFile.replace('.json', '')}-${uuid}.json`;
@@ -127,7 +148,7 @@ export const waitForAutoragRunCompletion = (timeoutMs = 2700000): void => {
 
 /**
  * Full post-run results verification: leaderboard, drawer, manage columns,
- * pattern details modal with all tabs, score type radios, notebook download.
+ * pattern details modal with all tabs, CI scores chart, notebook download.
  */
 export const verifyAutoragResultsInteraction = (): void => {
   cy.step('Verify leaderboard has at least one pattern row');
@@ -152,12 +173,9 @@ export const verifyAutoragResultsInteraction = (): void => {
   cy.step('Verify Pattern information tab (overview) is active by default');
   autoragResultsPage.findPatternDetailsTab('pattern_information').should('exist');
 
-  cy.step('Verify score type radio buttons on overview tab');
-  autoragResultsPage.findScoreTypeRadio('mean').should('exist');
-  autoragResultsPage.findScoreTypeRadio('ci_high').should('exist');
-  autoragResultsPage.findScoreTypeRadio('ci_low').should('exist');
-  autoragResultsPage.findScoreTypeRadio('ci_high').click();
-  autoragResultsPage.findScoreTypeRadio('mean').click();
+  cy.step('Verify CI scores chart on overview tab');
+  autoragResultsPage.findCIScoresChart().should('exist');
+  autoragResultsPage.findCIScoresLegend().should('exist');
 
   cy.step('Navigate to Vector store settings tab');
   autoragResultsPage.findPatternDetailsTab('vector_store_binding').should('exist').click();

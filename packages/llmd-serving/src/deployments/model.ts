@@ -1,10 +1,12 @@
-import { KnownLabels, MetadataAnnotation, SupportedModelFormats } from '@odh-dashboard/k8s-core';
-import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
-import type { ModelTypeFieldData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/ModelTypeSelectField';
 import {
+  KnownLabels,
+  MetadataAnnotation,
+  SupportedModelFormats,
   isModelServingCompatible,
   ModelServingCompatibleTypes,
-} from '@odh-dashboard/internal/concepts/connectionTypes/utils';
+} from '@odh-dashboard/k8s-core';
+import { ServingRuntimeModelType } from '@odh-dashboard/model-serving/shared';
+import type { ModelTypeFieldData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/ModelTypeSelectField';
 import {
   ModelLocationData,
   ModelLocationType,
@@ -16,8 +18,8 @@ import {
   getPVCNameFromURI,
   isPVCUri,
 } from '@odh-dashboard/internal/pages/modelServing/screens/projects/utils';
+import { VLLM_ADDITIONAL_ARGS } from '../const';
 import type { LLMdContainer, LLMInferenceServiceKind, LLMdDeployment } from '../types';
-import { VLLM_ADDITIONAL_ARGS } from '../types';
 import {
   LLMD_DEPLOYMENT_METHOD_KEY,
   SIMPLE_VLLM_DEPLOYMENT_METHOD_KEY,

@@ -2,8 +2,8 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { useWizardContext, useWizardFooter, ValidatedOptions } from '@patternfly/react-core';
 import { z } from 'zod';
-import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
 import { mockK8sNameDescriptionFieldData } from '@odh-dashboard/internal/__mocks__/mockK8sNameDescriptionFieldData';
+import { ServingRuntimeModelType } from '@odh-dashboard/model-serving/shared';
 import { ModelSourceStepContent } from '../ModelSourceStep';
 import { modelTypeSelectFieldSchema } from '../../fields/ModelTypeSelectField';
 import { mockDeploymentWizardState } from '../../../../__tests__/mockUtils';
@@ -21,6 +21,11 @@ const modelSourceStepSchema = z.object({
 });
 
 type ModelSourceStepData = z.infer<typeof modelSourceStepSchema>;
+
+jest.mock('@odh-dashboard/plugin-core', () => ({
+  useResolvedExtensions: jest.fn().mockReturnValue([[], true]),
+  useExtensions: jest.fn().mockReturnValue([]),
+}));
 
 // Mock PatternFly wizard hooks
 jest.mock('@patternfly/react-core', () => ({

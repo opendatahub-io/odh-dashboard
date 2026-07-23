@@ -3,6 +3,7 @@ package controller
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"sort"
 	"strings"
 
@@ -124,5 +125,5 @@ func writeParamsEnv(manifestPath string, params map[string]string) error {
 		sb.WriteString(params[k])
 		sb.WriteString("\n")
 	}
-	return os.WriteFile(manifestPath+"/params.env", []byte(sb.String()), 0600)
+	return os.WriteFile(filepath.Join(manifestPath, "params.env"), []byte(sb.String()), 0600)
 }
