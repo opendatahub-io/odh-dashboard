@@ -10,7 +10,8 @@ import {
   ToolbarItem,
 } from '@patternfly/react-core';
 import { CubesIcon } from '@patternfly/react-icons';
-import ContentModal from '@odh-dashboard/ui-core/components/ContentModal';
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports -- standard delete confirmation wrapper
+import DeleteModal from '@odh-dashboard/internal/pages/projects/components/DeleteModal';
 import { Table, SortableData } from '@odh-dashboard/ui-core';
 import { useNavigate } from 'react-router';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
@@ -82,12 +83,12 @@ const TopologyConfigurationsTable: React.FC<TopologyConfigurationsTableProps> = 
     }
   };
 
-  const handleDelete = async () => {
+  const handleDelete = () => {
     if (!deleteConfig) {
       return;
     }
     setIsDeleting(true);
-    await k8sDeleteResource<typeof LLMInferenceServiceConfigModel, K8sStatus>({
+    k8sDeleteResource<typeof LLMInferenceServiceConfigModel, K8sStatus>({
       model: LLMInferenceServiceConfigModel,
       queryOptions: {
         name: deleteConfig.metadata.name,
@@ -182,35 +183,19 @@ const TopologyConfigurationsTable: React.FC<TopologyConfigurationsTableProps> = 
         )}
       />
       {deleteConfig && (
-        <ContentModal
+        <DeleteModal
           title="Delete llm-d topology configuration?"
-          onClose={() => setDeleteConfig(undefined)}
-          variant="small"
-          dataTestId="delete-topology-config-modal"
-          contents={
-            <>
-              Delete <strong>{getDisplayNameFromK8sResource(deleteConfig)}</strong>? This cannot be
-              undone. Out-of-the-box configurations cannot be deleted from the cluster from this UI
-              (disable them instead).
-            </>
-          }
-          buttonActions={[
-            {
-              label: 'Delete',
-              variant: 'danger',
-              onClick: handleDelete,
-              isLoading: isDeleting,
-              isDisabled: isDeleting,
-              dataTestId: 'delete-topology-config-confirm',
-            },
-            {
-              label: 'Cancel',
-              variant: 'link',
-              onClick: () => setDeleteConfig(undefined),
-              isDisabled: isDeleting,
-            },
-          ]}
-        />
+          onClose={() => {
+            setDeleteConfig(undefined);
+            setIsDeleting(false);
+          }}
+          submitButtonLabel="Delete topology configuration"
+          onDelete={handleDelete}
+          deleting={isDeleting}
+          deleteName={getDisplayNameFromK8sResource(deleteConfig)}
+        >
+          This action cannot be undone.
+        </DeleteModal>
       )}
     </>
   );

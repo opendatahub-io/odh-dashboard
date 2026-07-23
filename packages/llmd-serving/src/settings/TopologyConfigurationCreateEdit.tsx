@@ -309,6 +309,7 @@ const TopologyConfigurationCreateEditInner: React.FC<{
               code={yamlCode}
               onCodeChange={setYamlCode}
               topologyTypeLabel={topologyTypeLabel}
+              isUploadEnabled={configSource !== 'template'}
             />
           </FormGroup>
         )}

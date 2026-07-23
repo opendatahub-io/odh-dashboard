@@ -9,9 +9,9 @@ import {
 import TableRowTitleDescription from '@odh-dashboard/internal/components/table/TableRowTitleDescription';
 import {
   type LLMInferenceServiceConfigKind,
-  RoutingTypeLabels,
+  TopologyTypeLabels,
   DASHBOARD_RESOURCE_LABEL,
-  getConfigRoutingType,
+  getConfigSupportedTopologies,
 } from '../types';
 import { isConfigPreInstalled, isConfigEnabled } from '../utils';
 
@@ -34,7 +34,7 @@ const RoutingConfigurationRow: React.FC<RoutingConfigurationRowProps> = ({
   const description = getDescriptionFromK8sResource(config);
   const preInstalled = isConfigPreInstalled(config);
   const enabled = isConfigEnabled(config);
-  const routingType = getConfigRoutingType(config);
+  const supportedTopologies = getConfigSupportedTopologies(config);
   const isDashboardCreated =
     config.metadata.labels?.[DASHBOARD_RESOURCE_LABEL] === 'true' && !preInstalled;
 
@@ -42,7 +42,7 @@ const RoutingConfigurationRow: React.FC<RoutingConfigurationRowProps> = ({
     <Tr data-testid={`routing-config-row-${configName}`}>
       <Td dataLabel="Name">
         <TableRowTitleDescription
-          title={<strong>{displayName}</strong>}
+          title={displayName}
           resource={config}
           description={description}
           label={
@@ -66,14 +66,10 @@ const RoutingConfigurationRow: React.FC<RoutingConfigurationRowProps> = ({
           onChange={() => onToggleEnabled(config)}
         />
       </Td>
-      <Td dataLabel="Routing type">
-        {routingType ? (
-          <Label color="blue" data-testid="routing-type-label">
-            {RoutingTypeLabels[routingType]}
-          </Label>
-        ) : (
-          '-'
-        )}
+      <Td dataLabel="Topology type">
+        {supportedTopologies.length > 0
+          ? supportedTopologies.map((t) => TopologyTypeLabels[t]).join(', ')
+          : 'All'}
       </Td>
       <Td isActionCell>
         <ActionsColumn
