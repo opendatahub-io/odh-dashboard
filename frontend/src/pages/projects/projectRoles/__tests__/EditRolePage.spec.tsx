@@ -21,13 +21,12 @@ jest.mock('../CreateRolePage', () => {
   return Mock;
 });
 
-jest.mock('../../../ApplicationsPage', () => {
-  const Mock = (props: { errorMessage?: string }) => (
+jest.mock('@odh-dashboard/ui-core', () => ({
+  ...jest.requireActual('@odh-dashboard/ui-core'),
+  ApplicationsPage: (props: { errorMessage?: string }) => (
     <div data-testid="error-page">{props.errorMessage}</div>
-  );
-  Mock.displayName = 'MockApplicationsPage';
-  return Mock;
-});
+  ),
+}));
 
 const mockGetRole = jest.mocked(getRole);
 
