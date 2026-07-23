@@ -70,6 +70,7 @@ const initIntercepts = ({
   const config = mockDashboardConfig({
     disableKServe: false,
     disableLLMd: false,
+    llmdTemplates: true,
   });
   cy.interceptOdh('GET /api/config', config);
   cy.interceptOdh('GET /api/components', null, []);

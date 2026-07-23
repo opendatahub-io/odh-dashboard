@@ -21,6 +21,7 @@ export const techPreviewFlags = {
   externalVectorStores: false,
   agentConfigManagement: false,
   vLLMDeploymentOnMaaS: false,
+  llmdTemplates: false,
   llmGatewayField: false,
   promptManagement: false,
   globalProjectPrompts: false,
@@ -270,6 +271,7 @@ export const SupportedAreasStateMap: SupportedAreasState = {
     reliantAreas: [SupportedArea.LLMD_SERVING],
   },
   [SupportedArea.LLMD_TOPOLOGY_CONFIGS]: {
+    featureFlags: ['llmdTemplates'],
     reliantAreas: [SupportedArea.LLMD_SERVING],
   },
   [SupportedArea.LLMD_GATEWAY_FIELD]: {
