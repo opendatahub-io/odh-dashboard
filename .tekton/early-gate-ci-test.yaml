@@ -5,10 +5,8 @@ metadata:
     build.appstudio.redhat.com/commit_sha: '{{revision}}'
     build.appstudio.redhat.com/target_branch: '{{target_branch}}'
     pipelinesascode.tekton.dev/max-keep-runs: "3"
-    pipelinesascode.tekton.dev/on-cel-expression: |
-      event == "issue_comment" &&
-      body.comment.body.matches("^/early-gate-test$") &&
-      body.issue.labels.exists(l, l.name == "early-gate")
+    pipelinesascode.tekton.dev/on-event: "[issue_comment]"
+    pipelinesascode.tekton.dev/on-comment: "^/early-gate-test$"
   labels:
     appstudio.openshift.io/application: early-gate
     appstudio.openshift.io/component: early-gate-ci
