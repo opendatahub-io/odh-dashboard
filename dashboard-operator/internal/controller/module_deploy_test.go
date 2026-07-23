@@ -264,3 +264,20 @@ func TestPatchDeploymentFederationHash_UpdatesOnChange(t *testing.T) {
 	assert.NotEqual(t, oldHash, newHash, "hash must be updated")
 	assert.Equal(t, ctrlpkg.ComputeFederationConfigHash(newConfigData), newHash)
 }
+
+func TestPatchDeploymentFederationHash_DeploymentNotFound(t *testing.T) {
+	s := testScheme(t)
+	cli := fake.NewClientBuilder().WithScheme(s).Build()
+
+	r := &ctrlpkg.DashboardReconciler{
+		Client:                cli,
+		Scheme:                s,
+		Platform:              cluster.OpenDataHub,
+		Namespace:             testNamespace,
+		ApplicationsNamespace: testNamespace,
+	}
+
+	err := r.PatchDeploymentFederationHash(context.Background(), `[{"name":"genAi"}]`)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "getting deployment")
+}
