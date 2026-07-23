@@ -87,6 +87,3 @@ export type ServingPlatformStatuses = {
   platformEnabledCount: number;
   refreshNIMAvailability: () => Promise<boolean | undefined>;
 };
-
-// eslint-disable-next-line @odh-dashboard/no-restricted-imports -- re-exporting from model-serving for backward compatibility
-export type { LabeledConnection } from '@odh-dashboard/model-serving/components/connectionTypes/types';
