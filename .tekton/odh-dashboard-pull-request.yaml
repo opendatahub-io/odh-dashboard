@@ -9,7 +9,7 @@ metadata:
     pipelinesascode.tekton.dev/cancel-in-progress: "false"
     pipelinesascode.tekton.dev/max-keep-runs: "3"
     pipelinesascode.tekton.dev/on-cel-expression: event == "pull_request" && target_branch
-      == "main"
+      == "eg-test"
   creationTimestamp: null
   labels:
     appstudio.openshift.io/application: opendatahub-builds
@@ -37,8 +37,6 @@ spec:
     - "BUILD_MODE=RHOAI"
   - name: pipeline-type
     value: pull-request
-  - name: enable-early-gate-testing
-    value: "true"
   pipelineRef:
     resolver: git
     params:
