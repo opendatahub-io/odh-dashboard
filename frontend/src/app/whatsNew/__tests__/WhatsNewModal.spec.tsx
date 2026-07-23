@@ -155,6 +155,7 @@ describe('WhatsNewModal', () => {
       autorag: false,
       guardrails: false,
       agentConfigManagement: false,
+      roleManagement: false,
     };
 
     it('should tell admins which flag to enable in OdhDashboardConfig', () => {
