@@ -32,26 +32,37 @@ import {
   parseRuntimeInfoFromRunDetails,
   parseTasksForArtifactRelationship,
   parseVolumeMounts,
-  ResourceType,
-  getResourceStateText,
   TaskArtifactMap,
   translateStatusForNode,
 } from './parseUtils';
-import { ParallelForDisplayMode, PipelineTask, PipelineTopologyLayer } from './pipelineTaskTypes';
-
-export const ROOT_LAYER: PipelineTopologyLayer = { label: 'Pipeline', type: 'root' };
+import { PipelineTask } from './pipelineTaskTypes';
 
 /**
  * Determine the effective state of an execution, recursively checking nested
  * ParallelFor structures.  If the execution itself is RUNNING but all of its
  * children (direct task executions **and** nested iteration executions) have
  * reached a terminal state, the effective state is derived from those children.
+ *
+ * A `visited` set prevents infinite recursion if MLMD data contains cycles,
+ * and a depth cap (MAX_RECURSION_DEPTH) guards against pathologically deep
+ * nesting that could overflow the call stack.
  */
+const MAX_RECURSION_DEPTH = 20;
+
 const getEffectiveExecutionState = (
   execution: Execution,
   allExecutions: Execution[],
+  visited: Set<number> = new Set(),
+  depth = 0,
 ): Execution.State => {
   const ownState = execution.getLastKnownState();
+  const execId = execution.getId();
+
+  // Guard: cycle detection or depth limit exceeded — return state as-is.
+  if (visited.has(execId) || depth >= MAX_RECURSION_DEPTH) {
+    return ownState;
+  }
+  visited.add(execId);
 
   // If already terminal, nothing to aggregate.
   if (
@@ -64,9 +75,8 @@ const getEffectiveExecutionState = (
   }
 
   // Collect every child execution whose parent_dag_id == this execution's id.
-  const parentId = execution.getId();
   const children = allExecutions.filter(
-    (e) => e.getCustomPropertiesMap().get('parent_dag_id')?.getIntValue() === parentId,
+    (e) => e.getCustomPropertiesMap().get('parent_dag_id')?.getIntValue() === execId,
   );
 
   // No children means a leaf or an execution we can't introspect — keep the
@@ -76,7 +86,9 @@ const getEffectiveExecutionState = (
   }
 
   // Recursively resolve each child's effective state.
-  const childStates = children.map((c) => getEffectiveExecutionState(c, allExecutions));
+  const childStates = children.map((c) =>
+    getEffectiveExecutionState(c, allExecutions, visited, depth + 1),
+  );
 
   const anyFailed = childStates.includes(Execution.State.FAILED);
   const anyCanceled = childStates.includes(Execution.State.CANCELED);
@@ -210,7 +222,6 @@ const getNodesForTasks = (
   inputArtifacts?: InputOutputDefinitionArtifacts,
   events?: Event[] | null,
   artifacts?: Artifact[],
-  mode?: ParallelForDisplayMode,
   allExecutions?: Execution[] | null,
 ): [nestedNodes: PipelineNodeModelExpanded[], children: string[]] => {
   const nodes: PipelineNodeModelExpanded[] = [];
@@ -333,13 +344,17 @@ const getNodesForTasks = (
         pipelineTask.iterationCount = iterCount;
       }
 
-      // Inline mode: synthesize iteration sub-groups as children of the ParallelFor group
-      if (mode === 'inline' && iterCount != null && iterCount > 0 && dagExecution) {
+      // ParallelFor: synthesize iteration sub-groups as children of the group.
+      // Cap the rendered iterations to avoid freezing the UI with very large loops.
+      const MAX_INLINE_ITERATIONS = 100;
+
+      if (iterCount != null && iterCount > 0 && dagExecution) {
         const parentDagId = dagExecution.getId();
         const iterationNodes: PipelineNodeModelExpanded[] = [];
         const iterationChildIds: string[] = [];
+        const renderCount = Math.min(iterCount, MAX_INLINE_ITERATIONS);
 
-        for (let i = 0; i < iterCount; i++) {
+        for (let i = 0; i < renderCount; i++) {
           const iterExecution = findIterationExecution(parentDagId, i, fullExecs);
           const iterNodeId = `${taskId}-iteration-${i}`;
 
@@ -369,6 +384,8 @@ const getNodesForTasks = (
 
           // Scope executions to this iteration's parent_dag_id.
           // Filter from the full list so nested children are reachable.
+          // Fall back to the parent execution list (or empty array) when the
+          // iteration execution hasn't been created yet.
           const iterParentDagId = iterExecution?.getId();
           const scopedExecutions =
             iterParentDagId != null
@@ -376,7 +393,7 @@ const getNodesForTasks = (
                   const pid = e.getCustomPropertiesMap().get('parent_dag_id')?.getIntValue();
                   return pid === iterParentDagId;
                 })
-              : executions;
+              : executions ?? [];
 
           const iterLabel = `${taskName} #${i + 1}`;
           const iterPipelineTask: PipelineTask = {
@@ -392,8 +409,33 @@ const getNodesForTasks = (
           // and PatternFly assigns the child to only the last parent.
           const prefixedSubTasks: Record<string, TaskKF> = {};
           for (const [subTaskId, subTaskDetails] of Object.entries(subTasks)) {
+            // Prefix producerTask references inside artifact inputs so edges
+            // resolve to the correct prefixed artifact node IDs.
+            let prefixedInputs = subTaskDetails.inputs;
+            if (subTaskDetails.inputs?.artifacts) {
+              const prefixedArtifacts: Record<
+                string,
+                (typeof subTaskDetails.inputs.artifacts)[string]
+              > = {};
+              for (const [artKey, artValue] of Object.entries(subTaskDetails.inputs.artifacts)) {
+                if (artValue.taskOutputArtifact) {
+                  prefixedArtifacts[artKey] = {
+                    ...artValue,
+                    taskOutputArtifact: {
+                      ...artValue.taskOutputArtifact,
+                      producerTask: `${iterNodeId}~${artValue.taskOutputArtifact.producerTask}`,
+                    },
+                  };
+                } else {
+                  prefixedArtifacts[artKey] = artValue;
+                }
+              }
+              prefixedInputs = { ...subTaskDetails.inputs, artifacts: prefixedArtifacts };
+            }
+
             prefixedSubTasks[`${iterNodeId}~${subTaskId}`] = {
               ...subTaskDetails,
+              inputs: prefixedInputs,
               dependentTasks: subTaskDetails.dependentTasks?.map((dep) => `${iterNodeId}~${dep}`),
             };
           }
@@ -416,7 +458,6 @@ const getNodesForTasks = (
             component?.inputDefinitions?.artifacts,
             events,
             artifacts,
-            mode,
             allExecutions ?? executions,
           );
 
@@ -444,13 +485,8 @@ const getNodesForTasks = (
           iterationChildIds,
         );
         nodes.push(itemNode, ...iterationNodes);
-      } else if (mode === 'layer' && iterCount != null && iterCount > 0) {
-        // Layer mode with ParallelFor: render as a non-expandable node.
-        // User drills in via "Open iterations" in the drawer, not inline expand.
-        const groupRunStatus = translateStatusForNode(pipelineTask.status?.state) ?? runStatus;
-        nodes.push(createNode(taskId, taskName, pipelineTask, runAfter, groupRunStatus));
       } else {
-        // Regular sub-DAG (any mode) or layer mode without iterations:
+        // Regular sub-DAG without ParallelFor iterations:
         // recurse into template tasks directly
         const subTasksArtifactMap = parseTasksForArtifactRelationship(taskId, subTasks);
 
@@ -468,7 +504,6 @@ const getNodesForTasks = (
           component?.inputDefinitions?.artifacts,
           events,
           artifacts,
-          mode,
           allExecutions ?? executions,
         );
 
@@ -494,78 +529,12 @@ const getNodesForTasks = (
   return [nodes, children];
 };
 
-/**
- * Build synthetic iteration nodes for a ParallelFor layer.
- * Each node represents one iteration and can be drilled into further.
- */
-const getIterationNodes = (
-  iterationCount: number,
-  componentRef: string,
-  taskLabel: string,
-  executions?: Execution[] | null,
-  parentDagId?: number,
-): PipelineNodeModelExpanded[] => {
-  const nodes: PipelineNodeModelExpanded[] = [];
-
-  for (let i = 0; i < iterationCount; i++) {
-    const iterExecution =
-      parentDagId != null && executions
-        ? findIterationExecution(parentDagId, i, executions)
-        : undefined;
-
-    let status: PipelineTask['status'];
-    let runStatus;
-    if (iterExecution) {
-      const lastUpdatedTime = iterExecution.getLastUpdateTimeSinceEpoch();
-      const lastKnownState = iterExecution.getLastKnownState();
-      let completeTime;
-      if (
-        lastUpdatedTime &&
-        (lastKnownState === Execution.State.COMPLETE ||
-          lastKnownState === Execution.State.FAILED ||
-          lastKnownState === Execution.State.CACHED ||
-          lastKnownState === Execution.State.CANCELED)
-      ) {
-        completeTime = new Date(lastUpdatedTime).toISOString();
-      }
-      const stateText = getResourceStateText({
-        resourceType: ResourceType.EXECUTION,
-        resource: iterExecution,
-      });
-      status = {
-        startTime: new Date(iterExecution.getCreateTimeSinceEpoch()).toISOString(),
-        completeTime,
-        state: stateText,
-        taskId: `iteration.${i}`,
-      };
-      runStatus = translateStatusForNode(stateText);
-    }
-
-    const iterLabel = `${taskLabel} (Iteration ${i + 1})`;
-    const pipelineTask: PipelineTask = {
-      type: 'groupTask',
-      name: iterLabel,
-      status,
-      isSubDag: true,
-    };
-
-    const nodeId = `iteration-${componentRef}-${i}`;
-    const runAfter = i > 0 ? [`iteration-${componentRef}-${i - 1}`] : undefined;
-    const iterNode = createNode(nodeId, iterLabel, pipelineTask, runAfter, runStatus);
-    nodes.push(iterNode);
-  }
-
-  return nodes;
-};
-
 export const usePipelineTaskTopology = (
   spec?: PipelineSpecVariable,
   runDetails?: RunDetailsKF,
   executions?: Execution[] | null,
   events?: Event[] | null,
   artifacts?: Artifact[],
-  layers?: PipelineTopologyLayer[],
-  mode?: ParallelForDisplayMode,
 ): PipelineNodeModelExpanded[] =>
   React.useMemo(() => {
     if (!spec) {
@@ -590,70 +559,6 @@ export const usePipelineTaskTopology = (
       return [];
     }
 
-    const currentLayer = layers?.[layers.length - 1];
-
-    if (currentLayer?.type === 'parallelForIterations') {
-      const { componentRef, iterationCount = 0, parentDagId } = currentLayer;
-      return getIterationNodes(
-        iterationCount,
-        componentRef ?? '',
-        currentLayer.label,
-        executions,
-        parentDagId,
-      );
-    }
-
-    if (
-      currentLayer &&
-      (currentLayer.type === 'subDag' || currentLayer.type === 'iteration') &&
-      currentLayer.componentRef
-    ) {
-      const component = components[currentLayer.componentRef];
-      const subTasks = component?.dag?.tasks;
-      if (!subTasks) {
-        return [];
-      }
-
-      // For iteration layers, scope executions to only those whose parent_dag_id
-      // matches this iteration's execution ID so inner tasks resolve correctly.
-      const scopedExecutions =
-        currentLayer.type === 'iteration' && currentLayer.parentDagId != null && executions
-          ? executions.filter((e) => {
-              const parentId = e.getCustomPropertiesMap().get('parent_dag_id')?.getIntValue();
-              return parentId === currentLayer.parentDagId;
-            })
-          : executions;
-
-      const outputEvents = parseEventsByType(events ?? [])[Event.Type.OUTPUT];
-      const componentArtifactMap = parseComponentsForArtifactRelationship(components);
-      const taskArtifactMap = parseTasksForArtifactRelationship(
-        currentLayer.componentRef,
-        subTasks,
-      );
-      const executionLinkedArtifactMap = getExecutionLinkedArtifactMap(artifacts, events);
-
-      return _.uniqBy(
-        getNodesForTasks(
-          currentLayer.componentRef,
-          spec,
-          subTasks,
-          components,
-          executors,
-          componentArtifactMap,
-          taskArtifactMap,
-          executionLinkedArtifactMap,
-          runDetails,
-          scopedExecutions,
-          component.inputDefinitions?.artifacts,
-          outputEvents,
-          artifacts,
-          mode,
-          executions,
-        )[0],
-        (node) => node.id,
-      );
-    }
-
     const outputEvents = parseEventsByType(events ?? [])[Event.Type.OUTPUT];
 
     const componentArtifactMap = parseComponentsForArtifactRelationship(components);
@@ -675,9 +580,8 @@ export const usePipelineTaskTopology = (
         inputDefinitions?.artifacts,
         outputEvents,
         artifacts,
-        mode,
         executions,
       )[0],
       (node) => node.id,
     );
-  }, [artifacts, events, executions, layers, mode, runDetails, spec]);
+  }, [artifacts, events, executions, runDetails, spec]);

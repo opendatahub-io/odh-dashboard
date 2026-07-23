@@ -8,23 +8,6 @@ import {
 } from '#~/concepts/pipelines/kfTypes';
 import { Artifact } from '#~/third_party/mlmd';
 
-export type ParallelForDisplayMode = 'inline' | 'layer';
-
-export type PipelineTopologyLayerType = 'root' | 'subDag' | 'parallelForIterations' | 'iteration';
-
-export type PipelineTopologyLayer = {
-  label: string;
-  type: PipelineTopologyLayerType;
-  /** Which component's DAG to render (for subDag/parallelForIterations/iteration) */
-  componentRef?: string;
-  /** Number of ParallelFor iterations (for parallelForIterations layer) */
-  iterationCount?: number;
-  /** Iteration index (for iteration layer) */
-  iterationIndex?: number;
-  /** MLMD execution ID used to scope child execution matching */
-  parentDagId?: number;
-};
-
 export type PipelineTaskParam = {
   label: string;
   type: InputDefinitionParameterType;
