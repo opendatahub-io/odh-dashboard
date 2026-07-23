@@ -41,6 +41,85 @@ import { ParallelForDisplayMode, PipelineTask, PipelineTopologyLayer } from './p
 
 export const ROOT_LAYER: PipelineTopologyLayer = { label: 'Pipeline', type: 'root' };
 
+/**
+ * Determine the effective state of an execution, recursively checking nested
+ * ParallelFor structures.  If the execution itself is RUNNING but all of its
+ * children (direct task executions **and** nested iteration executions) have
+ * reached a terminal state, the effective state is derived from those children.
+ */
+const getEffectiveExecutionState = (
+  execution: Execution,
+  allExecutions: Execution[],
+): Execution.State => {
+  const ownState = execution.getLastKnownState();
+
+  // If already terminal, nothing to aggregate.
+  if (
+    ownState === Execution.State.COMPLETE ||
+    ownState === Execution.State.FAILED ||
+    ownState === Execution.State.CANCELED ||
+    ownState === Execution.State.CACHED
+  ) {
+    return ownState;
+  }
+
+  // Collect every child execution whose parent_dag_id == this execution's id.
+  const parentId = execution.getId();
+  const children = allExecutions.filter(
+    (e) => e.getCustomPropertiesMap().get('parent_dag_id')?.getIntValue() === parentId,
+  );
+
+  // No children means a leaf or an execution we can't introspect — keep the
+  // original state.
+  if (children.length === 0) {
+    return ownState;
+  }
+
+  // Recursively resolve each child's effective state.
+  const childStates = children.map((c) => getEffectiveExecutionState(c, allExecutions));
+
+  const anyFailed = childStates.includes(Execution.State.FAILED);
+  const anyCanceled = childStates.includes(Execution.State.CANCELED);
+  const allTerminal = childStates.every(
+    (s) =>
+      s === Execution.State.COMPLETE ||
+      s === Execution.State.FAILED ||
+      s === Execution.State.CANCELED ||
+      s === Execution.State.CACHED,
+  );
+
+  if (!allTerminal) {
+    return ownState; // still genuinely running
+  }
+  if (anyFailed) {
+    return Execution.State.FAILED;
+  }
+  if (anyCanceled) {
+    return Execution.State.CANCELED;
+  }
+  return Execution.State.COMPLETE;
+};
+
+/**
+ * Map an Execution.State enum value to the ExecutionStateKF string used by the
+ * topology UI.
+ */
+const executionStateToKF = (state: Execution.State): ExecutionStateKF => {
+  switch (state) {
+    case Execution.State.COMPLETE:
+    case Execution.State.CACHED:
+      return ExecutionStateKF.COMPLETE;
+    case Execution.State.FAILED:
+      return ExecutionStateKF.FAILED;
+    case Execution.State.CANCELED:
+      return ExecutionStateKF.CANCELED;
+    case Execution.State.RUNNING:
+      return ExecutionStateKF.RUNNING;
+    default:
+      return ExecutionStateKF.RUNNING;
+  }
+};
+
 const getArtifactPipelineTask = (
   name: string,
   artifactType: InputOutputArtifactType,
@@ -132,6 +211,7 @@ const getNodesForTasks = (
   events?: Event[] | null,
   artifacts?: Artifact[],
   mode?: ParallelForDisplayMode,
+  allExecutions?: Execution[] | null,
 ): [nestedNodes: PipelineNodeModelExpanded[], children: string[]] => {
   const nodes: PipelineNodeModelExpanded[] = [];
   const children: string[] = [];
@@ -219,53 +299,38 @@ const getNodesForTasks = (
       const dagExecution = findParallelForDagExecution(taskName, taskId, executions);
       const iterCount = dagExecution ? getIterationCount(dagExecution) : undefined;
       pipelineTask.isSubDag = true;
+
+      // Fix: DAG executions (ParallelFor, Condition, sub-DAG) often stay in
+      // RUNNING state even after all children complete.  Find the sub-DAG's
+      // own execution and recursively derive its effective status.
+      const fullExecs = allExecutions ?? executions ?? [];
+      const subDagExecution =
+        dagExecution ??
+        fullExecs.find(
+          (e) =>
+            e.getCustomPropertiesMap().get('task_name')?.getStringValue() === (taskName || taskId),
+        );
+      if (subDagExecution) {
+        const effectiveState = getEffectiveExecutionState(subDagExecution, fullExecs);
+        const aggregateState = executionStateToKF(effectiveState);
+        const isTerminal =
+          effectiveState === Execution.State.COMPLETE ||
+          effectiveState === Execution.State.FAILED ||
+          effectiveState === Execution.State.CANCELED ||
+          effectiveState === Execution.State.CACHED;
+
+        pipelineTask.status = {
+          startTime: new Date(subDagExecution.getCreateTimeSinceEpoch()).toISOString(),
+          completeTime: isTerminal
+            ? new Date(subDagExecution.getLastUpdateTimeSinceEpoch()).toISOString()
+            : undefined,
+          state: aggregateState,
+          taskId: `task.${taskId}`,
+        };
+      }
+
       if (iterCount != null && iterCount > 0) {
         pipelineTask.iterationCount = iterCount;
-
-        // Fix: the ParallelFor DAG execution often stays in RUNNING state even after all
-        // iterations complete. Derive the group status from iteration children instead.
-        if (dagExecution && executions) {
-          const parentDagId = dagExecution.getId();
-          const iterationExecutions: Execution[] = [];
-          for (let i = 0; i < iterCount; i++) {
-            const iterExec = findIterationExecution(parentDagId, i, executions);
-            if (iterExec) {
-              iterationExecutions.push(iterExec);
-            }
-          }
-          if (iterationExecutions.length > 0) {
-            const allComplete = iterationExecutions.every(
-              (e) => e.getLastKnownState() === Execution.State.COMPLETE,
-            );
-            const anyFailed = iterationExecutions.some(
-              (e) => e.getLastKnownState() === Execution.State.FAILED,
-            );
-            const anyCanceled = iterationExecutions.some(
-              (e) => e.getLastKnownState() === Execution.State.CANCELED,
-            );
-
-            let aggregateState: ExecutionStateKF;
-            if (anyFailed) {
-              aggregateState = ExecutionStateKF.FAILED;
-            } else if (anyCanceled) {
-              aggregateState = ExecutionStateKF.CANCELED;
-            } else if (allComplete) {
-              aggregateState = ExecutionStateKF.COMPLETE;
-            } else {
-              aggregateState = ExecutionStateKF.RUNNING;
-            }
-
-            pipelineTask.status = {
-              startTime: new Date(dagExecution.getCreateTimeSinceEpoch()).toISOString(),
-              completeTime:
-                allComplete || anyFailed || anyCanceled
-                  ? new Date(dagExecution.getLastUpdateTimeSinceEpoch()).toISOString()
-                  : undefined,
-              state: aggregateState,
-              taskId: `task.${taskId}`,
-            };
-          }
-        }
       }
 
       // Inline mode: synthesize iteration sub-groups as children of the ParallelFor group
@@ -275,43 +340,39 @@ const getNodesForTasks = (
         const iterationChildIds: string[] = [];
 
         for (let i = 0; i < iterCount; i++) {
-          const iterExecution = findIterationExecution(parentDagId, i, executions ?? []);
+          const iterExecution = findIterationExecution(parentDagId, i, fullExecs);
           const iterNodeId = `${taskId}-iteration-${i}`;
 
-          // Build status for the iteration node
+          // Build status for the iteration node — use recursive aggregation so
+          // nested ParallelFor structures that are stuck in RUNNING resolve correctly.
           let iterStatus: PipelineTask['status'];
           let iterRunStatus;
           if (iterExecution) {
-            const lastUpdatedTime = iterExecution.getLastUpdateTimeSinceEpoch();
-            const lastKnownState = iterExecution.getLastKnownState();
-            let completeTime;
-            if (
-              lastUpdatedTime &&
-              (lastKnownState === Execution.State.COMPLETE ||
-                lastKnownState === Execution.State.FAILED ||
-                lastKnownState === Execution.State.CACHED ||
-                lastKnownState === Execution.State.CANCELED)
-            ) {
-              completeTime = new Date(lastUpdatedTime).toISOString();
-            }
-            const stateText = getResourceStateText({
-              resourceType: ResourceType.EXECUTION,
-              resource: iterExecution,
-            });
+            const effectiveState = getEffectiveExecutionState(iterExecution, fullExecs);
+            const effectiveStateKF = executionStateToKF(effectiveState);
+            const isTerminal =
+              effectiveState === Execution.State.COMPLETE ||
+              effectiveState === Execution.State.FAILED ||
+              effectiveState === Execution.State.CANCELED ||
+              effectiveState === Execution.State.CACHED;
+
             iterStatus = {
               startTime: new Date(iterExecution.getCreateTimeSinceEpoch()).toISOString(),
-              completeTime,
-              state: stateText,
+              completeTime: isTerminal
+                ? new Date(iterExecution.getLastUpdateTimeSinceEpoch()).toISOString()
+                : undefined,
+              state: effectiveStateKF,
               taskId: `iteration.${i}`,
             };
-            iterRunStatus = translateStatusForNode(stateText);
+            iterRunStatus = translateStatusForNode(effectiveStateKF);
           }
 
-          // Scope executions to this iteration's parent_dag_id
+          // Scope executions to this iteration's parent_dag_id.
+          // Filter from the full list so nested children are reachable.
           const iterParentDagId = iterExecution?.getId();
           const scopedExecutions =
-            iterParentDagId != null && executions
-              ? executions.filter((e) => {
+            iterParentDagId != null
+              ? fullExecs.filter((e) => {
                   const pid = e.getCustomPropertiesMap().get('parent_dag_id')?.getIntValue();
                   return pid === iterParentDagId;
                 })
@@ -356,6 +417,7 @@ const getNodesForTasks = (
             events,
             artifacts,
             mode,
+            allExecutions ?? executions,
           );
 
           const iterGroupNode = createGroupNode(
@@ -407,6 +469,7 @@ const getNodesForTasks = (
           events,
           artifacts,
           mode,
+          allExecutions ?? executions,
         );
 
         // Recompute runStatus from the (possibly aggregated) pipelineTask.status
@@ -585,6 +648,7 @@ export const usePipelineTaskTopology = (
           outputEvents,
           artifacts,
           mode,
+          executions,
         )[0],
         (node) => node.id,
       );
@@ -612,6 +676,7 @@ export const usePipelineTaskTopology = (
         outputEvents,
         artifacts,
         mode,
+        executions,
       )[0],
       (node) => node.id,
     );
