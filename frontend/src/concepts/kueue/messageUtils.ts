@@ -27,11 +27,11 @@ export const getHumanReadableKueueMessage = (
     case KueueWorkloadStatus.Failed:
       return getFailedMessage(message, queue);
     case KueueWorkloadStatus.Preempted:
-      return 'Paused by a higher-priority job';
+      return 'Paused by higher-priority job';
     case KueueWorkloadStatus.Evicted:
       return getEvictedMessage(message);
     case KueueWorkloadStatus.Requeued:
-      return message ? `Re-queued: ${message}` : 'Re-queued, waiting to retry';
+      return getQueuedMessage(message, queue);
     case KueueWorkloadStatus.Inadmissible:
       return getInadmissibleMessage(message, queue);
     case KueueWorkloadStatus.AdmissionCheck:
@@ -45,28 +45,20 @@ export const getHumanReadableKueueMessage = (
 
 /**
  * Returns a human-readable message for Requeued status including retry info.
+ * Drops requeueAt display; uses the same queued message pattern with attempt count appended.
  */
 export const getRequeuedMessage = (info: KueueWorkloadStatusWithMessage): string => {
   const count = info.requeueInfo?.count ?? 0;
-  const requeueAt = info.requeueInfo?.requeueAt;
-
-  if (requeueAt) {
-    const date = new Date(requeueAt);
-    if (!Number.isNaN(date.getTime())) {
-      const formatted = date.toLocaleString();
-      return count > 0
-        ? `Re-queued (attempt ${count}, next retry at ${formatted})`
-        : `Re-queued (next retry at ${formatted})`;
-    }
-  }
-  return count > 0 ? `Re-queued (attempt ${count})` : 'Re-queued, waiting to retry';
+  const queue = info.queueName ?? 'the queue';
+  const base = getQueuedMessage(info.message, queue);
+  return count > 0 ? `${base} (attempt ${count})` : base;
 };
 
 const getQueuedMessage = (rawMessage: string | undefined, queue: string): string => {
   if (!rawMessage || QUOTA_REGEX.test(rawMessage) || FLAVOR_REGEX.test(rawMessage)) {
     return `Waiting for quota in ${queue}`;
   }
-  return `Waiting for available resources`;
+  return `Waiting for resources in ${queue}`;
 };
 
 const getFailedMessage = (rawMessage: string | undefined, queue: string): string => {
@@ -90,20 +82,20 @@ const getEvictionReason = (rawMessage: string | undefined): string | undefined =
     return undefined;
   }
   if (QUEUE_STOPPED_REGEX.test(rawMessage)) {
-    return 'queue was stopped';
+    return 'Manually removed from queue';
   }
   if (DEACTIVATED_REGEX.test(rawMessage)) {
-    return 'workload was deactivated';
+    return 'Deactivated';
   }
   if (ADMISSION_CHECK_REGEX.test(rawMessage)) {
-    return 'admission check failed';
+    return 'Admission check failed';
   }
   return rawMessage.trim() || undefined;
 };
 
 const getEvictedMessage = (rawMessage: string | undefined): string => {
   const reason = getEvictionReason(rawMessage);
-  return reason ? `Evicted: ${reason}` : 'Evicted from the queue';
+  return reason ?? 'Evicted from the queue';
 };
 
 const getAdmissionCheckMessage = (rawMessage: string | undefined): string =>
@@ -125,6 +117,23 @@ const getInadmissibleMessage = (rawMessage: string | undefined, queue: string): 
 };
 
 /**
+ * Converts a positive integer to its ordinal string representation (e.g. 1 → "1st", 3 → "3rd").
+ */
+export const toOrdinal = (n: number): string => {
+  const v = n % 100;
+  if ([11, 12, 13].includes(v)) return `${n}th`;
+  const r = n % 10;
+  if (r === 1) return `${n}st`;
+  if (r === 2) return `${n}nd`;
+  if (r === 3) return `${n}rd`;
+  return `${n}th`;
+};
+
+/** e.g. (3, 'my-queue') → "3rd in my-queue". Falls back to "3rd in queue". */
+export const formatQueuePosition = (position: number, queue?: string): string =>
+  `${toOrdinal(position)} in ${queue ?? 'queue'}`;
+
+/**
  * Formats a preemption toast body message with the workbench name and timestamp.
  */
 export const getPreemptionToastBody = (workbenchName: string, timestamp?: string): string => {
@@ -132,21 +141,32 @@ export const getPreemptionToastBody = (workbenchName: string, timestamp?: string
     const date = new Date(timestamp);
     if (!Number.isNaN(date.getTime())) {
       const formatted = date.toLocaleString();
-      return `Workbench ${workbenchName} was preempted at ${formatted} by a higher-priority job and has been re-queued.`;
+      return `Workbench ${workbenchName} was preempted at ${formatted} by a higher-priority job. It has reentered the queue.`;
     }
   }
-  return `Workbench ${workbenchName} was preempted by a higher-priority job and has been re-queued.`;
+  return `Workbench ${workbenchName} was preempted by a higher-priority job. It has reentered the queue.`;
 };
 
 /**
- * Formats an eviction toast body message with the workbench name and reason.
+ * Formats an eviction toast body message with the workbench name, optional timestamp, and reason.
  */
-export const getEvictionToastBody = (workbenchName: string, rawMessage?: string): string => {
+export const getEvictionToastBody = (
+  workbenchName: string,
+  rawMessage?: string,
+  timestamp?: string,
+): string => {
   const reason = getEvictionReason(rawMessage);
-  if (reason) {
-    return `Workbench ${workbenchName} was evicted: ${reason}`;
+  let timeStr = '';
+  if (timestamp) {
+    const date = new Date(timestamp);
+    if (!Number.isNaN(date.getTime())) {
+      timeStr = ` at ${date.toLocaleString()}`;
+    }
   }
-  return `Workbench ${workbenchName} was evicted from the queue.`;
+  if (reason) {
+    return `Workbench ${workbenchName} was evicted${timeStr}: ${reason}`;
+  }
+  return `Workbench ${workbenchName} was evicted${timeStr} from the queue.`;
 };
 
 /**
@@ -230,7 +250,7 @@ export const getKueueSubStepInfo = (
 
   const label =
     status === KueueWorkloadStatus.Queued && queuePosition != null
-      ? `${withRecovery} (position ${queuePosition})`
+      ? `${withRecovery} (${formatQueuePosition(queuePosition)})`
       : withRecovery;
 
   return { label };
