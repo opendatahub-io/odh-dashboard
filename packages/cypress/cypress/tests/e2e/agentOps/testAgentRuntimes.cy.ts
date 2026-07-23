@@ -61,31 +61,37 @@ describe('Agent Runtimes list page', () => {
         cy.step('Verify the filter toolbar is present');
         agentRuntimesPage.findFilterToolbar().should('exist');
 
-        cy.step('Type a search term in the name filter');
+        cy.step('Type a search term in the name filter and verify the filter chip renders it');
         agentRuntimesPage.findNameFilterInput().type(testData.filterSearchTerm);
+        agentRuntimesPage.findNameFilterChip().should('contain.text', testData.filterSearchTerm);
 
-        cy.step('Clear the name filter');
+        cy.step('Clear the name filter and verify its filter chip is removed');
         agentRuntimesPage.findNameFilterInput().clear();
+        agentRuntimesPage.findNameFilterChip().should('not.exist');
 
         cy.step('Switch the filter dropdown to Status');
         agentRuntimesPage.findFilterDropdownToggle().click();
         agentRuntimesPage.findFilterOption(testData.filterOptionStatus).click();
 
-        cy.step('Select Pending from the status filter');
+        cy.step('Select Pending from the status filter and verify the filter chip renders it');
         agentRuntimesPage.findStatusFilterDropdown().click();
         agentRuntimesPage.findStatusOption(testData.statusPending).click();
+        agentRuntimesPage.findStatusFilterChip().should('contain.text', testData.statusPending);
 
-        cy.step('Clear all filters');
+        cy.step('Clear all filters and verify the status filter chip is removed');
         agentRuntimesPage.findClearAllFiltersButton().click();
+        agentRuntimesPage.findStatusFilterChip().should('not.exist');
 
         cy.step('Switch the filter dropdown back to Status and select Ready');
         agentRuntimesPage.findFilterDropdownToggle().click();
         agentRuntimesPage.findFilterOption(testData.filterOptionStatus).click();
         agentRuntimesPage.findStatusFilterDropdown().click();
         agentRuntimesPage.findStatusOption(testData.statusReady).click();
+        agentRuntimesPage.findStatusFilterChip().should('contain.text', testData.statusReady);
 
-        cy.step('Clear all filters again');
+        cy.step('Clear all filters again and verify the status filter chip is removed');
         agentRuntimesPage.findClearAllFiltersButton().click();
+        agentRuntimesPage.findStatusFilterChip().should('not.exist');
       });
     },
   );

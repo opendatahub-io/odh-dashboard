@@ -83,6 +83,14 @@ class AgentRuntimesPage {
     return cy.findByRole('button', { name: 'Clear all filters' });
   }
 
+  findNameFilterChip(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('name-filter-chip');
+  }
+
+  findStatusFilterChip(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('status-filter-chip');
+  }
+
   findTableRow(namespace: string, name: string): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId(`agent-runtime-row-${namespace}-${name}`);
   }
@@ -104,9 +112,13 @@ class AgentRuntimesPage {
   }
 
   hasDeploymentsTable(): Cypress.Chainable<boolean> {
+    // Retries against the DOM until either the table or the empty state has rendered,
+    // so this can't resolve while the runtimes fetch is still in flight.
     return cy
-      .get('body')
-      .then(($body) => $body.find('[data-testid="agent-runtimes-table"]').length > 0);
+      .get('[data-testid="agent-runtimes-table"], [data-testid="agent-deployments-empty-state"]', {
+        timeout: 10000,
+      })
+      .then(($el) => $el.is('[data-testid="agent-runtimes-table"]'));
   }
 }
 
