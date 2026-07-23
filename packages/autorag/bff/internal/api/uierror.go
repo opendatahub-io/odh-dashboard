@@ -4,9 +4,41 @@ import (
 	"encoding/json"
 	"log/slog"
 	"net/http"
+	"strings"
 
 	"github.com/opendatahub-io/autorag-library/bff/internal/constants"
 )
+
+var sensitiveKeySubstrings = []string{
+	"password",
+	"token",
+	"apikey",
+	"secret",
+	"credential",
+	"authorization",
+}
+
+func redactDetails(details map[string]any) map[string]any {
+	if len(details) == 0 {
+		return details
+	}
+	safe := make(map[string]any, len(details))
+	for k, v := range details {
+		lower := strings.ToLower(k)
+		redacted := false
+		for _, substr := range sensitiveKeySubstrings {
+			if strings.Contains(lower, substr) {
+				safe[k] = "[REDACTED]"
+				redacted = true
+				break
+			}
+		}
+		if !redacted {
+			safe[k] = v
+		}
+	}
+	return safe
+}
 
 // UIError is a structured error response designed for frontend consumption.
 // It implements the error interface for idiomatic Go error handling and can
@@ -63,7 +95,7 @@ func (e *UIError) WriteTo(w http.ResponseWriter) {
 			"messageId", e.MessageID,
 			"status", e.Status,
 			"reason", e.Reason,
-			"details", e.Details,
+			"details", redactDetails(e.Details),
 		)
 	}
 
