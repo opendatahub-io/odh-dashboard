@@ -262,7 +262,8 @@ const renderWithQueryClient = (
   const queryClient = createTestQueryClient();
   return render(
     <QueryClientProvider client={queryClient}>
-      <UIErrorHandler id="test-uierror">
+      {/* UIError behavior is tested in UIErrorHandler's own spec */}
+      <UIErrorHandler id="test-uierror" uiErrorMappings={{}}>
         <FormWrapper defaultValues={defaultValues}>{component}</FormWrapper>
       </UIErrorHandler>
     </QueryClientProvider>,

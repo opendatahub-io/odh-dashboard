@@ -319,7 +319,8 @@ const renderWithProviders = (component: React.ReactElement) => {
   const queryClient = createTestQueryClient();
   return render(
     <QueryClientProvider client={queryClient}>
-      <UIErrorHandler id="test-uierror">
+      {/* UIError behavior is tested in UIErrorHandler's own spec */}
+      <UIErrorHandler id="test-uierror" uiErrorMappings={{}}>
         <BrowserRouter>{component}</BrowserRouter>
       </UIErrorHandler>
     </QueryClientProvider>,
