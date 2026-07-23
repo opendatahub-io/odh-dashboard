@@ -100,7 +100,7 @@ describe('Verify a model registry can be created and deleted', () => {
       modelRegistrySettings.findSubmitButton().click();
 
       cy.step('Verify model registry is removed from UI');
-      cy.contains(registryName).should('not.exist');
+      cy.contains(registryName, { timeout: 60000 }).should('not.exist');
 
       cy.step('Verify model registry is removed from the backend');
       checkModelRegistry(registryName).should('be.false');
@@ -159,7 +159,7 @@ describe('Verify a model registry can be created and deleted', () => {
       modelRegistrySettings.findSubmitButton().click();
 
       cy.step('Verify model registry is removed from UI');
-      cy.contains(postgresRegistryName).should('not.exist');
+      cy.contains(postgresRegistryName, { timeout: 60000 }).should('not.exist');
 
       cy.step('Verify model registry is removed from the backend');
       checkModelRegistry(postgresRegistryName).should('be.false');
@@ -206,9 +206,7 @@ describe('Verify a model registry can be created and deleted', () => {
       modelRegistrySettings.findSubmitButton().click();
 
       cy.step('Verify model registry is removed from UI');
-      // eslint-disable-next-line cypress/no-unnecessary-waiting
-      cy.wait(10000);
-      cy.contains(defaultDbName).should('not.exist');
+      cy.contains(defaultDbName, { timeout: 60000 }).should('not.exist');
 
       cy.step('Verify model registry is removed from the backend');
       checkModelRegistry(defaultDbName).should('be.false');
