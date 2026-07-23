@@ -23,7 +23,6 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes/k8smocks"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack/lsmocks"
-	"github.com/opendatahub-io/gen-ai/internal/repositories"
 	"github.com/opendatahub-io/gen-ai/internal/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -362,14 +361,7 @@ var _ = Describe("LlamaStackListFilesHandler", func() {
 	var app App
 
 	BeforeEach(func() {
-		llamaStackClientFactory := lsmocks.NewMockClientFactory()
-		app = App{
-			config: config.EnvConfig{
-				Port: 4000,
-			},
-			llamaStackClientFactory: llamaStackClientFactory,
-			repositories:            repositories.NewRepositories(),
-		}
+		app = NewLSOnlyTestApp()
 	})
 
 	It("successful list files", func() {
@@ -705,14 +697,7 @@ var _ = Describe("LlamaStackDeleteFileHandler", func() {
 	var app App
 
 	BeforeEach(func() {
-		llamaStackClientFactory := lsmocks.NewMockClientFactory()
-		app = App{
-			config: config.EnvConfig{
-				Port: 4000,
-			},
-			llamaStackClientFactory: llamaStackClientFactory,
-			repositories:            repositories.NewRepositories(),
-		}
+		app = NewLSOnlyTestApp()
 	})
 
 	It("successful delete file", func() {
