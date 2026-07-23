@@ -98,6 +98,13 @@ export const BYONImagesTable: React.FC<BYONImagesTableProps> = ({ images }) => {
     new Map<string, _.DebouncedFunc<(p: FormTrackingEventProperties) => void>>(),
   );
 
+  React.useEffect(
+    () => () => {
+      debouncedTrackersRef.current.forEach((d) => d.cancel());
+    },
+    [],
+  );
+
   const onFilterUpdate = React.useCallback(
     (key: string, value: string | { label: string; value: string } | undefined) => {
       if (!isFilterOption(key)) {
