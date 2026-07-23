@@ -9,6 +9,7 @@ import {
   getExternalModelStatusMessage,
   getProviderRefResource,
   isAwaitingGovernancePairing,
+  isMissingMaaSModelRef,
   mapAuthMechanismToHumanReadable,
 } from '~/app/pages/external-models/utils';
 
@@ -20,6 +21,20 @@ const baseModel = (overrides: Partial<ExternalModel> = {}): ExternalModel => ({
   providerRefs: [],
   phase: PhaseStatus.READY,
   ...overrides,
+});
+
+describe('isMissingMaaSModelRef', () => {
+  it('should return true when maaSModelRef is undefined', () => {
+    expect(isMissingMaaSModelRef(baseModel())).toBe(true);
+  });
+
+  it('should return false when maaSModelRef is present', () => {
+    expect(isMissingMaaSModelRef(baseModel({ maaSModelRef: { phase: 'Ready' } }))).toBe(false);
+  });
+
+  it('should return false when maaSModelRef is present with empty object', () => {
+    expect(isMissingMaaSModelRef(baseModel({ maaSModelRef: {} }))).toBe(false);
+  });
 });
 
 describe('isAwaitingGovernancePairing', () => {
@@ -97,7 +112,7 @@ describe('getExternalModelStatusMessage', () => {
     const { container } = render(
       <>{getExternalModelStatusMessage(baseModel({ phase: PhaseStatus.PENDING }))}</>,
     );
-    expect(container.textContent).toContain('is being reconciled');
+    expect(container.textContent).toContain('is being set up');
     expect(container.textContent).toContain('GPT-4o External');
   });
 
@@ -105,12 +120,14 @@ describe('getExternalModelStatusMessage', () => {
     const { container } = render(
       <>{getExternalModelStatusMessage(baseModel({ phase: PhaseStatus.FAILED }))}</>,
     );
-    expect(container.textContent).toContain('could not be reconciled');
+    expect(container.textContent).toContain('failed to set up');
   });
 
   it('should return ready reconciliation copy', () => {
     const { container } = render(<>{getExternalModelStatusMessage(baseModel())}</>);
-    expect(container.textContent).toContain('have been created successfully');
+    expect(container.textContent).toContain(
+      'Requests are being routed to the configured provider(s).',
+    );
   });
 
   it('should fall back to resource name when display name is missing', () => {

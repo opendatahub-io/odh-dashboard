@@ -71,10 +71,3 @@ jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', (
   fireMiscTrackingEvent: jest.fn(),
   fireSimpleTrackingEvent: jest.fn(),
 }));
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/trackingProperties', () => ({
-  __esModule: true,
-  TrackingOutcome: {
-    submit: 'submit',
-    cancel: 'cancel',
-  },
-}));
