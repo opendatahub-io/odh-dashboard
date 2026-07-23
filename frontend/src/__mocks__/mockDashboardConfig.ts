@@ -57,6 +57,7 @@ export type MockDashboardConfigType = {
   toolCalling?: boolean;
   projectRBAC?: boolean;
   disableLLMd?: boolean;
+  llmdTemplates?: boolean;
   deploymentWizardYAMLViewer?: boolean;
   vLLMDeploymentOnMaaS?: boolean;
   llmGatewayField?: boolean;
@@ -125,6 +126,7 @@ export const mockDashboardConfig = ({
   trainingJobs = true,
   observabilityDashboard = true,
   disableLLMd = false,
+  llmdTemplates = false,
   deploymentWizardYAMLViewer = false,
   externalVectorStores = false,
   agentConfigManagement = false,
@@ -318,6 +320,7 @@ export const mockDashboardConfig = ({
       trainingJobs,
       observabilityDashboard,
       disableLLMd,
+      llmdTemplates,
       deploymentWizardYAMLViewer,
       externalVectorStores,
       agentConfigManagement,

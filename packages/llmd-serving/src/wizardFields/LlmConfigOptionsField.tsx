@@ -16,7 +16,7 @@ import {
 } from '@odh-dashboard/model-serving/concepts/versions';
 import { useFetchLLMInferenceServiceConfigs } from '../api/LLMInferenceServiceConfigs';
 import { LLMInferenceServiceConfigKind } from '../types';
-import { isSimpleLLMInferenceService } from '../formUtils';
+import { isLLMInferenceServiceActive, isSimpleLLMInferenceService } from '../formUtils';
 
 // External data hook
 
@@ -139,12 +139,13 @@ const LLMConfigOptionsField: LLMConfigOptionsFieldType['component'] = ({
   );
 };
 
-export const LLMConfigOptionsFieldWizardField: LLMConfigOptionsFieldType = {
+// When llmdTemplates disabled: show for ALL llm-d methods (single-node fallback)
+export const LLMConfigOptionsFieldNoTemplates: LLMConfigOptionsFieldType = {
   id: 'llmd-serving/modelServer',
   step: 'modelDeployment',
   type: 'replacement',
   stateKey: 'modelServer',
-  isActive: isSimpleLLMInferenceService,
+  isActive: isLLMInferenceServiceActive,
   reducerFunctions: {
     resolveDependencies: (formData) => ({
       hardwareProfile: formData.hardwareProfileConfig.formData.selectedProfile,
@@ -180,4 +181,10 @@ export const LLMConfigOptionsFieldWizardField: LLMConfigOptionsFieldType = {
   },
   component: LLMConfigOptionsField,
   externalDataHook: useLLMConfigOptions,
+};
+
+// When llmdTemplates enabled: show only for simple vLLM (non-llm-d), topology fields handle the rest
+export const LLMConfigOptionsFieldWithTemplates: LLMConfigOptionsFieldType = {
+  ...LLMConfigOptionsFieldNoTemplates,
+  isActive: isSimpleLLMInferenceService,
 };
