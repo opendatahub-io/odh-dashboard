@@ -2,6 +2,8 @@ package controller
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -52,7 +54,6 @@ type federationEntry struct {
 	RemoteEntry  string              `json:"remoteEntry,omitempty"`
 	Authorize    bool                `json:"authorize"`
 	TLS          bool                `json:"tls"`
-	Enabled      bool                `json:"enabled"`
 	Proxy        []proxyRoute        `json:"proxy,omitempty"`
 	Service      *serviceRef         `json:"service,omitempty"`
 	ProxyService []proxyServiceEntry `json:"proxyService,omitempty"`
@@ -106,6 +107,58 @@ func standaloneServiceName(platform cluster.Platform, slug string) string {
 		prefix = "rhods-dashboard"
 	}
 	return prefix + "-" + slug + "-ui"
+}
+
+func mainDashboardDeploymentName(platform cluster.Platform) string {
+	if platform == cluster.SelfManagedRhoai || platform == cluster.ManagedRhoai {
+		return "rhods-dashboard"
+	}
+	return "odh-dashboard"
+}
+
+// --- Federation config hash for rolling restart ---
+
+const federationHashAnnotation = "dashboard.opendatahub.io/federation-config-hash"
+
+func computeFederationConfigHash(data string) string {
+	h := sha256.Sum256([]byte(data))
+	return hex.EncodeToString(h[:])
+}
+
+func (r *DashboardReconciler) patchDeploymentFederationHash(
+	ctx context.Context,
+	configData string,
+) error {
+	hash := computeFederationConfigHash(configData)
+
+	deployName := mainDashboardDeploymentName(r.Platform)
+	var deploy appsv1.Deployment
+	key := client.ObjectKey{Name: deployName, Namespace: r.ApplicationsNamespace}
+	if err := r.Get(ctx, key, &deploy); err != nil {
+		return fmt.Errorf("getting deployment %s: %w", deployName, err)
+	}
+
+	current := ""
+	if deploy.Spec.Template.Annotations != nil {
+		current = deploy.Spec.Template.Annotations[federationHashAnnotation]
+	}
+	if current == hash {
+		return nil
+	}
+
+	patch := client.MergeFrom(deploy.DeepCopy())
+	if deploy.Spec.Template.Annotations == nil {
+		deploy.Spec.Template.Annotations = map[string]string{}
+	}
+	deploy.Spec.Template.Annotations[federationHashAnnotation] = hash
+
+	if err := r.Patch(ctx, &deploy, patch); err != nil {
+		return fmt.Errorf("patching deployment %s with federation hash: %w", deployName, err)
+	}
+
+	log.FromContext(ctx).Info("Patched federation config hash on deployment",
+		"deployment", deployName, "hash", hash[:12]+"...")
+	return nil
 }
 
 // --- Deploy individual module manifests ---
@@ -315,14 +368,12 @@ func (r *DashboardReconciler) buildFederationConfigMap(
 		}
 
 		svcName := standaloneServiceName(r.Platform, mod.ManifestSlug)
-		enabled := status.Phase == v1alpha1.ModulePhaseDeployed
 
 		entry := federationEntry{
 			Name:        name,
 			RemoteEntry: "/remoteEntry.js",
 			Authorize:   true,
 			TLS:         true,
-			Enabled:     enabled,
 			Proxy:       moduleProxyPaths[name],
 			Service: &serviceRef{
 				Name:      svcName,
@@ -360,7 +411,6 @@ func (r *DashboardReconciler) buildFederationConfigMap(
 			RemoteEntry: "/mlflow/static-files/federated/remoteEntry.js",
 			Authorize:   true,
 			TLS:         true,
-			Enabled:     s.Phase == v1alpha1.ModulePhaseDeployed,
 			Service: &serviceRef{
 				Name:      "mlflow",
 				Namespace: r.ApplicationsNamespace,
@@ -473,15 +523,15 @@ func (r *DashboardReconciler) deployFederationConfigMap(
 	ctx context.Context,
 	statuses map[string]v1alpha1.ModuleStatus,
 	dashboard *v1alpha1.Dashboard,
-) error {
+) (string, error) {
 	fedCM, err := r.buildFederationConfigMap(statuses, dashboard)
 	if err != nil {
-		return fmt.Errorf("building federation ConfigMap: %w", err)
+		return "", fmt.Errorf("building federation ConfigMap: %w", err)
 	}
 
 	fedResources, err := configMapToUnstructured(fedCM)
 	if err != nil {
-		return fmt.Errorf("converting federation ConfigMap: %w", err)
+		return "", fmt.Errorf("converting federation ConfigMap: %w", err)
 	}
 
 	fedDeployer := deploy.NewDeployer(
@@ -495,10 +545,10 @@ func (r *DashboardReconciler) deployFederationConfigMap(
 		Release:   deploy.ReleaseInfo{Type: string(r.Platform)},
 		Resources: []unstructured.Unstructured{fedResources},
 	}); err != nil {
-		return fmt.Errorf("deploying federation ConfigMap: %w", err)
+		return "", fmt.Errorf("deploying federation ConfigMap: %w", err)
 	}
 
-	return nil
+	return fedCM.Data[federationConfigKey], nil
 }
 
 // --- Helper: ConfigMap to Unstructured ---
