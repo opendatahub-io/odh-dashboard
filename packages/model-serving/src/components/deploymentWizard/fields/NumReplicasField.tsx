@@ -1,5 +1,5 @@
 import React from 'react';
-import { FormGroup, HelperText, HelperTextItem } from '@patternfly/react-core';
+import { FormGroup, FormHelperText, HelperText, HelperTextItem } from '@patternfly/react-core';
 import { z } from 'zod';
 import NumberInputWrapper from '@odh-dashboard/ui-core/components/NumberInputWrapper';
 import { normalizeBetween } from '@odh-dashboard/ui-core/utilities';
@@ -40,15 +40,9 @@ export const useNumReplicasField = (existingData?: NumReplicasFieldData): NumRep
 // Component
 type NumReplicasFieldProps = {
   replicaState: NumReplicasFieldHook;
-  label?: string;
-  helperText?: string;
 };
 
-export const NumReplicasField: React.FC<NumReplicasFieldProps> = ({
-  replicaState,
-  label = 'Number of replicas to deploy',
-  helperText = 'Non-production models typically require only one replica.',
-}) => {
+export const NumReplicasField: React.FC<NumReplicasFieldProps> = ({ replicaState }) => {
   const { data: replicas, setReplicas } = replicaState;
   const [displayValue, setDisplayValue] = React.useState<string>(
     () => replicas?.toString() ?? LOWER_LIMIT.toString(),
@@ -85,7 +79,7 @@ export const NumReplicasField: React.FC<NumReplicasFieldProps> = ({
   };
 
   return (
-    <FormGroup label={label} fieldId="num-replicas" data-testid="num-replicas" isRequired>
+    <FormGroup label="Replica count" fieldId="num-replicas" data-testid="num-replicas" isRequired>
       <NumberInputWrapper
         min={LOWER_LIMIT}
         max={UPPER_LIMIT}
@@ -93,11 +87,11 @@ export const NumReplicasField: React.FC<NumReplicasFieldProps> = ({
         onChange={handleChange}
         onBlur={handleBlur}
       />
-      {helperText && (
+      <FormHelperText>
         <HelperText>
-          <HelperTextItem>{helperText}</HelperTextItem>
+          <HelperTextItem>Non-production models typically require only one replica.</HelperTextItem>
         </HelperText>
-      )}
+      </FormHelperText>
     </FormGroup>
   );
 };

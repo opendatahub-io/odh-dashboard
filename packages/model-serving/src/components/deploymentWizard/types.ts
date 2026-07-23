@@ -388,7 +388,7 @@ export const isDeploymentStrategyFieldOverride = (
 
 export type DeploymentMethodOption = SimpleSelectOption & {
   description: string;
-  order?: number;
+  order: number;
 };
 export type DeploymentMethodFieldOverride = DeploymentWizardFieldBase<'deploymentMethod'> & {
   options: DeploymentMethodOption[];

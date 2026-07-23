@@ -51,7 +51,7 @@ export const useDeploymentMethodExternalData = (): {
   return React.useMemo(() => {
     const options = overrides
       .flatMap((override) => override.options)
-      .toSorted((a, b) => (a.order ?? 0) - (b.order ?? 0));
+      .toSorted((a, b) => a.order - b.order);
     const suggestion = overrides.reduce<DeploymentMethodOption | undefined>(
       (acc, override) => acc ?? override.suggestion?.(modelServingClusterSettings),
       undefined,

@@ -30,9 +30,6 @@ export const ModelDeploymentStepContent: React.FC<ModelDeploymentStepProps> = ({
   hideProjectSection,
 }) => {
   const hideHwp = isNonSingleNodeTopologyActive(wizardState.state);
-  const deploymentMethod = wizardState.state.deploymentMethod?.method;
-  const isLlmdOrLegacy =
-    deploymentMethod === 'llm-inference-service-llmd' || deploymentMethod === 'legacy';
 
   const modelDeploymentExtensionFields = React.useMemo(
     () =>
@@ -66,7 +63,7 @@ export const ModelDeploymentStepContent: React.FC<ModelDeploymentStepProps> = ({
           onDataChange={wizardState.state.k8sNameDesc.onDataChange}
           dataTestId="model-deployment"
           nameLabel="Model deployment name"
-          nameHelperText="This is the name of the inference service created when the model is deployed."
+          nameHelperTextAbove="This is the name of the inference service created when the model is deployed."
         />
         <GenericFieldRenderer
           fieldId="deploymentMethod"
@@ -111,10 +108,7 @@ export const ModelDeploymentStepContent: React.FC<ModelDeploymentStepProps> = ({
           externalData={externalData}
           isEditing={wizardState.initialData?.isEditing}
         />
-        <NumReplicasField
-          replicaState={wizardState.state.numReplicas}
-          {...(isLlmdOrLegacy ? { label: 'Replica count', helperText: '' } : {})}
-        />
+        <NumReplicasField replicaState={wizardState.state.numReplicas} />
         {modelDeploymentExtensionFields.map((field) => (
           <GenericFieldRenderer
             key={field.id}
