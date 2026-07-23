@@ -229,7 +229,12 @@ describe('getStatusSubtitle', () => {
     });
 
     it.each([
-      [KueueWorkloadStatus.Queued, 'insufficient unused quota', 3, '3rd in test-queue'],
+      [
+        KueueWorkloadStatus.Queued,
+        'insufficient unused quota',
+        3,
+        'Waiting for quota in test-queue (3rd in test-queue)',
+      ],
       [
         KueueWorkloadStatus.Inadmissible,
         'queue not found',

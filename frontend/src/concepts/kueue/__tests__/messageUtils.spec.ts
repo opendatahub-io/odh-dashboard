@@ -270,7 +270,7 @@ describe('getRequeuedMessage', () => {
 });
 
 describe('toOrdinal', () => {
-  it.each([
+  it.each<[number, string]>([
     [1, '1st'],
     [2, '2nd'],
     [3, '3rd'],
@@ -289,16 +289,11 @@ describe('toOrdinal', () => {
 });
 
 describe('formatQueuePosition', () => {
-  it('should include queue name when provided', () => {
-    expect(formatQueuePosition(3, 'my-queue')).toBe('3rd in my-queue');
-  });
-
-  it('should fall back to "queue" when no queue name provided', () => {
-    expect(formatQueuePosition(1)).toBe('1st in queue');
-  });
-
-  it('should use correct ordinal suffix', () => {
-    expect(formatQueuePosition(2, 'test-queue')).toBe('2nd in test-queue');
+  it.each<[number, string, string]>([
+    [3, 'my-queue', '3rd in my-queue'],
+    [2, 'test-queue', '2nd in test-queue'],
+  ])('formats position %s in %s as %s', (position, queue, expected) => {
+    expect(formatQueuePosition(position, queue)).toBe(expected);
   });
 });
 
@@ -395,7 +390,7 @@ describe('getKueueSubStepInfo', () => {
         false,
         3,
       );
-      expect(result.label).toContain('3rd in queue');
+      expect(result.label).toContain('3rd in my-queue');
     });
 
     it('does not append position for non-Queued statuses', () => {

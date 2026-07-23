@@ -140,9 +140,9 @@ export const toOrdinal = (n: number): string => {
   return `${n}th`;
 };
 
-/** e.g. (3, 'my-queue') → "3rd in my-queue". Falls back to "3rd in queue". */
-export const formatQueuePosition = (position: number, queue?: string): string =>
-  `${toOrdinal(position)} in ${queue ?? 'queue'}`;
+/** e.g. (3, 'my-queue') → "3rd in my-queue" */
+export const formatQueuePosition = (position: number, queue: string): string =>
+  `${toOrdinal(position)} in ${queue}`;
 
 /**
  * Formats a preemption toast body message with the workbench name and timestamp.
@@ -260,8 +260,8 @@ export const getKueueSubStepInfo = (
     isRecovery && status === KueueWorkloadStatus.Queued ? `Re-queued: ${raw}` : raw;
 
   const label =
-    status === KueueWorkloadStatus.Queued && queuePosition != null
-      ? `${withRecovery} (${formatQueuePosition(queuePosition)})`
+    status === KueueWorkloadStatus.Queued && queuePosition != null && queueName
+      ? `${withRecovery} (${formatQueuePosition(queuePosition, queueName)})`
       : withRecovery;
 
   return { label };

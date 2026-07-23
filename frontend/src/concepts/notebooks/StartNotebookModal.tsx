@@ -310,14 +310,16 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
               kueueStatus.message,
               kueueStatus.queueName,
             );
-      if (kueueStatus.queuePosition != null && kueueStatus.status === KueueWorkloadStatus.Queued) {
-        kueueTitle = `${message} (${formatQueuePosition(kueueStatus.queuePosition)})`;
-      } else if (
+      if (
         kueueStatus.queuePosition != null &&
-        kueueStatus.status === KueueWorkloadStatus.Inadmissible
+        kueueStatus.queueName &&
+        (kueueStatus.status === KueueWorkloadStatus.Queued ||
+          kueueStatus.status === KueueWorkloadStatus.Inadmissible)
       ) {
-        const pos = formatQueuePosition(kueueStatus.queuePosition, kueueStatus.queueName);
-        kueueTitle = `${message} (${pos})`;
+        kueueTitle = `${message} (${formatQueuePosition(
+          kueueStatus.queuePosition,
+          kueueStatus.queueName,
+        )})`;
       } else {
         kueueTitle = message;
       }
