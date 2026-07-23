@@ -77,7 +77,12 @@ const SearchSelector: React.FC<SearchSelectorProps> = ({
     }),
     [minWidth, appendTo],
   );
-  const popperProps = useMenuPopperInModal(isOpen, toggleRef, userPopperProps);
+  const popperProps = useMenuPopperInModal(isOpen, toggleRef, userPopperProps, {
+    onEscapeClose: () => {
+      setIsOpen(false);
+      onSearchClear();
+    },
+  });
   const toggleValueId = toggleLabelledBy ? `${dataTestId}-toggle-value` : undefined;
   const toggleContents =
     typeof toggleContent !== 'string' ? toggleContent : <Truncate content={toggleContent} />;
@@ -112,14 +117,6 @@ const SearchSelector: React.FC<SearchSelectorProps> = ({
           }
           ref={toggleRef}
           onClick={() => setIsOpen(!isOpen)}
-          onKeyDown={(event) => {
-            if (isOpen && event.key === 'Escape') {
-              event.preventDefault();
-              event.stopPropagation();
-              setIsOpen(false);
-              onSearchClear();
-            }
-          }}
           isExpanded={isOpen}
           isDisabled={isDisabled}
           isFullWidth={isFullWidth}

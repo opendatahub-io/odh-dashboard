@@ -35,7 +35,9 @@ const DropdownFormField: React.FC<FieldProps<DropdownField>> = ({
   const isPreview = mode === 'preview';
   const [isOpen, setIsOpen] = React.useState(false);
   const menuToggleRef = React.useRef<HTMLDivElement | null>(null);
-  const popperProps = useMenuPopperInModal(isOpen, menuToggleRef);
+  const popperProps = useMenuPopperInModal(isOpen, menuToggleRef, undefined, {
+    onEscapeClose: () => setIsOpen(false),
+  });
   const isMulti = field.properties.variant === 'multi';
   const selected = isPreview ? field.properties.defaultValue : value;
   const hasValidOption = field.properties.items?.find((f) => f.value || f.label);
@@ -92,7 +94,7 @@ const DropdownFormField: React.FC<FieldProps<DropdownField>> = ({
         }
         onOpenChange={(open) => setIsOpen(open)}
         toggle={(toggleRef) => (
-          <div ref={menuToggleRef}>
+          <div ref={menuToggleRef} style={{ display: 'contents' }}>
             <MenuToggle
               innerRef={toggleRef}
               id={id}

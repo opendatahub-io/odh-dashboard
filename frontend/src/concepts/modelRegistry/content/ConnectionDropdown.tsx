@@ -28,7 +28,9 @@ export const ConnectionDropdown = ({
 }: ConnectionDropdownProps): React.JSX.Element => {
   const [isOpen, setIsOpen] = React.useState(false);
   const menuToggleRef = React.useRef<HTMLDivElement | null>(null);
-  const popperProps = useMenuPopperInModal(isOpen, menuToggleRef);
+  const popperProps = useMenuPopperInModal(isOpen, menuToggleRef, undefined, {
+    onEscapeClose: () => setIsOpen(false),
+  });
   const [connections, connectionsLoaded, connectionsLoadError] = useServingConnections(project);
 
   const onToggle = () => {
@@ -88,13 +90,6 @@ export const ConnectionDropdown = ({
             aria-label="Select connection"
             ref={toggleRef}
             onClick={onToggle}
-            onKeyDown={(event) => {
-              if (isOpen && event.key === 'Escape') {
-                event.preventDefault();
-                event.stopPropagation();
-                setIsOpen(false);
-              }
-            }}
             isExpanded={isOpen}
           >
             {getToggleContent()}

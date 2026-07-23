@@ -12,6 +12,15 @@ type MenuPopperWithAppendTo<T extends MenuPopperProps> = Omit<T, 'appendTo'> & {
   appendTo: MenuPopperAppendTo;
 };
 
+export type UseMenuPopperInModalOptions = {
+  /**
+   * Close the open menu when Escape is pressed.
+   * Escape is handled in the capture phase so PatternFly Modal's body listener
+   * does not dismiss the dialog (including when focus is in a portaled menu).
+   */
+  onEscapeClose?: () => void;
+};
+
 /**
  * Portal menu into the nearest modal dialog (when appendTo is unset) and unlock
  * dialog overflow while open — PatternFly Modal + dropdown a11y pattern.
@@ -20,8 +29,30 @@ export const useMenuPopperInModal = <T extends MenuPopperProps>(
   isOpen: boolean,
   anchorRef: React.RefObject<Element | null>,
   userPopperProps?: T,
+  options?: UseMenuPopperInModalOptions,
 ): MenuPopperWithAppendTo<T> => {
   useModalOverflowUnlock(isOpen, anchorRef);
+
+  const onEscapeCloseRef = React.useRef(options?.onEscapeClose);
+  onEscapeCloseRef.current = options?.onEscapeClose;
+
+  React.useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') {
+        return;
+      }
+      // Capture on document: runs before Modal's bubble listener on body.
+      // Covers toggle focus and focus moved into a portaled menu.
+      event.preventDefault();
+      event.stopPropagation();
+      onEscapeCloseRef.current?.();
+    };
+    document.addEventListener('keydown', onKeyDown, true);
+    return () => document.removeEventListener('keydown', onKeyDown, true);
+  }, [isOpen]);
 
   return React.useMemo((): MenuPopperWithAppendTo<T> => {
     const appendTo: MenuPopperAppendTo =

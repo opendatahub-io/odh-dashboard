@@ -57,7 +57,9 @@ const ValueUnitField: React.FC<ValueUnitFieldProps> = ({
     () => (menuAppendTo !== undefined ? { appendTo: menuAppendTo } : undefined),
     [menuAppendTo],
   );
-  const popperProps = useMenuPopperInModal(open, menuToggleRef, userPopperProps);
+  const popperProps = useMenuPopperInModal(open, menuToggleRef, userPopperProps, {
+    onEscapeClose: () => setOpen(false),
+  });
 
   return (
     <Split hasGutter>
@@ -104,13 +106,6 @@ const ValueUnitField: React.FC<ValueUnitFieldProps> = ({
                 ref={toggleRef}
                 onClick={() => {
                   setOpen(!open);
-                }}
-                onKeyDown={(event) => {
-                  if (open && event.key === 'Escape') {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    setOpen(false);
-                  }
                 }}
                 isExpanded={open}
                 isDisabled={isDisabled}

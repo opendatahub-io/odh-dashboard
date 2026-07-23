@@ -140,8 +140,6 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
   const listboxId = `${instanceId}-listbox`;
   const selectionErrorId = `${instanceId}-selection-error`;
 
-  const mergedPopperProps = useMenuPopperInModal(isOpen, textInputRef, popperProps);
-
   const selectGroups = React.useMemo(
     () =>
       groupedValues
@@ -269,6 +267,10 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
     setInputValue('');
     resetActiveAndFocusedItem();
   };
+
+  const mergedPopperProps = useMenuPopperInModal(isOpen, textInputRef, popperProps, {
+    onEscapeClose: closeMenu,
+  });
 
   React.useEffect(
     () => () => {

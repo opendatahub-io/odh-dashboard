@@ -83,7 +83,9 @@ const SimpleSelect: React.FC<SimpleSelectProps> = ({
   const [open, setOpen] = React.useState(false);
   const menuToggleRef = React.useRef<HTMLDivElement | null>(null);
 
-  const menuPopperProps = useMenuPopperInModal(open, menuToggleRef, popperProps);
+  const menuPopperProps = useMenuPopperInModal(open, menuToggleRef, popperProps, {
+    onEscapeClose: () => setOpen(false),
+  });
   const mergedPopperProps = React.useMemo(
     () => ({ maxWidth: 'trigger' as const, ...menuPopperProps }),
     [menuPopperProps],

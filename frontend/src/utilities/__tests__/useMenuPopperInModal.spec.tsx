@@ -118,4 +118,43 @@ describe('useMenuPopperInModal', () => {
 
     expect(dialog.style.overflow).toBe('scroll');
   });
+
+  it('should stop Escape propagation and call onEscapeClose while open', () => {
+    const anchorRef = React.createRef<HTMLInputElement>();
+    const onEscapeClose = jest.fn();
+    const modalEscapeListener = jest.fn();
+
+    const menu = document.createElement('div');
+    document.body.appendChild(menu);
+    document.body.addEventListener('keydown', modalEscapeListener);
+
+    renderHook(() => useMenuPopperInModal(true, anchorRef, undefined, { onEscapeClose }));
+
+    act(() => {
+      menu.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }),
+      );
+    });
+
+    expect(onEscapeClose).toHaveBeenCalledTimes(1);
+    expect(modalEscapeListener).not.toHaveBeenCalled();
+
+    document.body.removeEventListener('keydown', modalEscapeListener);
+    document.body.removeChild(menu);
+  });
+
+  it('should not handle Escape when closed', () => {
+    const anchorRef = React.createRef<HTMLInputElement>();
+    const onEscapeClose = jest.fn();
+
+    renderHook(() => useMenuPopperInModal(false, anchorRef, undefined, { onEscapeClose }));
+
+    act(() => {
+      document.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }),
+      );
+    });
+
+    expect(onEscapeClose).not.toHaveBeenCalled();
+  });
 });

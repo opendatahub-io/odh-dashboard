@@ -149,8 +149,6 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
   const instanceId = id ?? `typeahead-select-${generatedInstanceId}`;
   const listboxId = `${instanceId}-listbox`;
 
-  const mergedPopperProps = useMenuPopperInModal(isOpen, textInputRef, popperProps);
-
   const NO_RESULTS = 'no results';
 
   const selected = React.useMemo(
@@ -311,6 +309,10 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
     setIsFiltering(false);
     setFilterValue(String(selected?.content ?? ''));
   };
+
+  const mergedPopperProps = useMenuPopperInModal(isOpen, textInputRef, popperProps, {
+    onEscapeClose: closeMenu,
+  });
 
   const onInputClick = () => {
     if (!isOpen) {
