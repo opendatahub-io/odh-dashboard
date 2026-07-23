@@ -5,7 +5,7 @@ import ConnectionTestStatusLabel from '#~/concepts/connectionTypes/ConnectionTes
 import { ConnectionTestStatus } from '#~/concepts/connectionTypes/types';
 
 describe('ConnectionTestStatusLabel', () => {
-  it('should render "Not tested" with grey label for NOT_TESTED status', () => {
+  it('should render "Unverified" with grey label for NOT_TESTED status', () => {
     render(<ConnectionTestStatusLabel status={ConnectionTestStatus.NOT_TESTED} />);
 
     const label = screen.getByTestId('connection-test-label-not-tested');
@@ -13,7 +13,7 @@ describe('ConnectionTestStatusLabel', () => {
     expect(label).toHaveTextContent('Unverified');
   });
 
-  it('should render "Testing..." with spinner for TESTING status', () => {
+  it('should render "Verifying" with spinner for TESTING status', () => {
     render(<ConnectionTestStatusLabel status={ConnectionTestStatus.TESTING} />);
 
     const label = screen.getByTestId('connection-test-label-testing');
@@ -29,7 +29,7 @@ describe('ConnectionTestStatusLabel', () => {
     expect(label).toHaveTextContent('Verified');
   });
 
-  it('should render "Failed" with red label for FAILED status', () => {
+  it('should render "Verification failed" with red label for FAILED status', () => {
     render(<ConnectionTestStatusLabel status={ConnectionTestStatus.FAILED} />);
 
     const label = screen.getByTestId('connection-test-label-failed');
