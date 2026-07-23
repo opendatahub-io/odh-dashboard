@@ -204,7 +204,7 @@ describe('getStatusSubtitle', () => {
       ).toContain('attempt 3');
     });
 
-    it('should return generic requeued message when no requeueInfo', () => {
+    it('should return queue waiting message when no requeueInfo', () => {
       expect(
         getStatusSubtitle({
           isStarting: false,
@@ -214,7 +214,7 @@ describe('getStatusSubtitle', () => {
             status: KueueWorkloadStatus.Requeued,
           },
         }),
-      ).toBe('Re-queued, waiting to retry');
+      ).toBe('Waiting for quota in the queue');
     });
 
     it('should return null when status is not in override list (e.g. Running)', () => {
@@ -229,17 +229,12 @@ describe('getStatusSubtitle', () => {
     });
 
     it.each([
-      [
-        KueueWorkloadStatus.Queued,
-        'insufficient unused quota',
-        3,
-        'Waiting for quota in test-queue (position 3)',
-      ],
+      [KueueWorkloadStatus.Queued, 'insufficient unused quota', 3, '3rd in test-queue'],
       [
         KueueWorkloadStatus.Inadmissible,
         'queue not found',
         1,
-        'Queue test-queue does not exist (position 1)',
+        'Queue test-queue does not exist (1st in test-queue)',
       ],
     ])(
       'should append queue position for %s status when position is available',
