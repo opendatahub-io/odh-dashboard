@@ -157,10 +157,10 @@ describe('mapAuthMechanismToHumanReadable', () => {
 });
 
 describe('getExternalModelResource', () => {
-  it('should build a MaaSExternalModel resource reference', () => {
+  it('should build a ExternalModel resource reference', () => {
     expect(getExternalModelResource(baseModel())).toEqual({
       apiVersion: 'maas.opendatahub.io/v1alpha1',
-      kind: 'MaaSExternalModel',
+      kind: 'ExternalModel',
       metadata: {
         name: 'gpt-4o-external',
         namespace: 'test-project',
@@ -170,7 +170,7 @@ describe('getExternalModelResource', () => {
 });
 
 describe('getProviderRefResource', () => {
-  it('should build a MaaSExternalProvider resource reference', () => {
+  it('should build a ExternalProvider resource reference', () => {
     expect(
       getProviderRefResource({
         providerName: 'openai-prod',
@@ -181,7 +181,7 @@ describe('getProviderRefResource', () => {
       }),
     ).toEqual({
       apiVersion: 'maas.opendatahub.io/v1alpha1',
-      kind: 'MaaSExternalProvider',
+      kind: 'ExternalProvider',
       metadata: {
         name: 'openai-prod',
       },
