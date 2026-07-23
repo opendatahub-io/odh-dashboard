@@ -12,15 +12,12 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/textproto"
-	"os"
-	"path/filepath"
 	"testing"
 
 	. "github.com/onsi/ginkgo/v2"
 	"github.com/openai/openai-go/v2"
 	"github.com/opendatahub-io/gen-ai/internal/config"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
-	"github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes/k8smocks"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack/lsmocks"
 	"github.com/opendatahub-io/gen-ai/internal/testutil"
@@ -33,40 +30,7 @@ var _ = Describe("LlamaStackUploadFileHandler", func() {
 	var createMultipartFormData func(filename, content, vectorStoreID, purpose, chunkingType string) ([]byte, string, error)
 
 	BeforeEach(func() {
-		originalWd, err := os.Getwd()
-		require.NoError(GinkgoT(), err)
-
-		// Change to project root so OpenAPI handler can find the YAML file
-		projectRoot := filepath.Join(originalWd, "..", "..")
-		err = os.Chdir(projectRoot)
-		require.NoError(GinkgoT(), err)
-
-		DeferCleanup(func() {
-			err := os.Chdir(originalWd)
-			require.NoError(GinkgoT(), err)
-		})
-
-		cfg := config.EnvConfig{
-			Port:            4000,
-			APIPathPrefix:   "/api/v1",
-			StaticAssetsDir: "static",
-			AuthMethod:      config.AuthMethodUser,
-			AuthTokenHeader: config.DefaultAuthTokenHeader,
-			AuthTokenPrefix: config.DefaultAuthTokenPrefix,
-			MockLSClient:    true,
-			LlamaStackURL:   testutil.GetTestLlamaStackURL(),
-			MockK8sClient:   false, // Use shared envtest from BeforeSuite
-		}
-
-		logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelError}))
-
-		k8sFactory, err := k8smocks.NewTokenClientFactory(testK8sClient, testCfg, logger)
-		require.NoError(GinkgoT(), err)
-
-		openAPIHandler, err := NewOpenAPIHandler(logger)
-		require.NoError(GinkgoT(), err)
-
-		app = NewTestApp(cfg, logger, k8sFactory, WithOpenAPIHandler(openAPIHandler))
+		app = NewRoutesTestApp()
 
 		createMultipartFormData = func(filename, content, vectorStoreID, purpose, chunkingType string) ([]byte, string, error) {
 			var err error
@@ -443,40 +407,7 @@ var _ = Describe("LlamaStackFileUploadStatusHandler", func() {
 	var app *App
 
 	BeforeEach(func() {
-		originalWd, err := os.Getwd()
-		require.NoError(GinkgoT(), err)
-
-		// Change to project root so OpenAPI handler can find the YAML file
-		projectRoot := filepath.Join(originalWd, "..", "..")
-		err = os.Chdir(projectRoot)
-		require.NoError(GinkgoT(), err)
-
-		DeferCleanup(func() {
-			err := os.Chdir(originalWd)
-			require.NoError(GinkgoT(), err)
-		})
-
-		cfg := config.EnvConfig{
-			Port:            4000,
-			APIPathPrefix:   "/api/v1",
-			StaticAssetsDir: "static",
-			AuthMethod:      config.AuthMethodUser,
-			AuthTokenHeader: config.DefaultAuthTokenHeader,
-			AuthTokenPrefix: config.DefaultAuthTokenPrefix,
-			MockLSClient:    true,
-			LlamaStackURL:   testutil.GetTestLlamaStackURL(),
-			MockK8sClient:   false, // Use shared envtest from BeforeSuite
-		}
-
-		logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelError}))
-
-		k8sFactory, err := k8smocks.NewTokenClientFactory(testK8sClient, testCfg, logger)
-		require.NoError(GinkgoT(), err)
-
-		openAPIHandler, err := NewOpenAPIHandler(logger)
-		require.NoError(GinkgoT(), err)
-
-		app = NewTestApp(cfg, logger, k8sFactory, WithOpenAPIHandler(openAPIHandler))
+		app = NewRoutesTestApp()
 	})
 
 	It("should return pending status for newly created job", func() {
@@ -767,39 +698,7 @@ var _ = Describe("LlamaStackMediaFileUploadHandler", func() {
 	var createMediaMultipart func(filename string, content []byte, contentType, mediaType string) ([]byte, string, error)
 
 	BeforeEach(func() {
-		originalWd, err := os.Getwd()
-		require.NoError(GinkgoT(), err)
-
-		projectRoot := filepath.Join(originalWd, "..", "..")
-		err = os.Chdir(projectRoot)
-		require.NoError(GinkgoT(), err)
-
-		DeferCleanup(func() {
-			err := os.Chdir(originalWd)
-			require.NoError(GinkgoT(), err)
-		})
-
-		cfg := config.EnvConfig{
-			Port:            4000,
-			APIPathPrefix:   "/api/v1",
-			StaticAssetsDir: "static",
-			AuthMethod:      config.AuthMethodUser,
-			AuthTokenHeader: config.DefaultAuthTokenHeader,
-			AuthTokenPrefix: config.DefaultAuthTokenPrefix,
-			MockLSClient:    true,
-			LlamaStackURL:   testutil.GetTestLlamaStackURL(),
-			MockK8sClient:   false,
-		}
-
-		logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelError}))
-
-		k8sFactory, err := k8smocks.NewTokenClientFactory(testK8sClient, testCfg, logger)
-		require.NoError(GinkgoT(), err)
-
-		openAPIHandler, err := NewOpenAPIHandler(logger)
-		require.NoError(GinkgoT(), err)
-
-		app = NewTestApp(cfg, logger, k8sFactory, WithOpenAPIHandler(openAPIHandler))
+		app = NewRoutesTestApp()
 
 		createMediaMultipart = func(filename string, content []byte, contentType, mediaType string) ([]byte, string, error) {
 			var body bytes.Buffer

@@ -2,7 +2,10 @@ package api
 
 import (
 	"log/slog"
+	"os"
+	"path/filepath"
 
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	"github.com/opendatahub-io/gen-ai/internal/cache"
@@ -15,6 +18,7 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/integrations/mlflow/mlflowmocks"
 	"github.com/opendatahub-io/gen-ai/internal/repositories"
 	"github.com/opendatahub-io/gen-ai/internal/services"
+	"github.com/opendatahub-io/gen-ai/internal/testutil"
 )
 
 // NewK8sOnlyTestApp creates a minimal App with k8s factory and repositories.
@@ -52,6 +56,44 @@ func NewK8sLSTestApp() App {
 		llamaStackClientFactory: lsmocks.NewMockClientFactory(),
 		repositories:            repositories.NewRepositories(),
 	}
+}
+
+// NewRoutesTestApp creates a full App suitable for tests that exercise HTTP routes
+// (file upload, status checks). It changes the working directory to the project root
+// (needed for OpenAPI YAML discovery), registers a DeferCleanup to restore it, and
+// returns a fully wired *App with OpenAPI handler.
+func NewRoutesTestApp() *App {
+	originalWd, err := os.Getwd()
+	Expect(err).NotTo(HaveOccurred())
+
+	projectRoot := filepath.Join(originalWd, "..", "..")
+	Expect(os.Chdir(projectRoot)).To(Succeed())
+
+	DeferCleanup(func() {
+		Expect(os.Chdir(originalWd)).To(Succeed())
+	})
+
+	cfg := config.EnvConfig{
+		Port:            4000,
+		APIPathPrefix:   "/api/v1",
+		StaticAssetsDir: "static",
+		AuthMethod:      config.AuthMethodUser,
+		AuthTokenHeader: config.DefaultAuthTokenHeader,
+		AuthTokenPrefix: config.DefaultAuthTokenPrefix,
+		MockLSClient:    true,
+		LlamaStackURL:   testutil.GetTestLlamaStackURL(),
+		MockK8sClient:   false,
+	}
+
+	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelError}))
+
+	k8sFactory, err := k8smocks.NewTokenClientFactory(testK8sClient, testCfg, logger)
+	Expect(err).NotTo(HaveOccurred())
+
+	openAPIHandler, err := NewOpenAPIHandler(logger)
+	Expect(err).NotTo(HaveOccurred())
+
+	return NewTestApp(cfg, logger, k8sFactory, WithOpenAPIHandler(openAPIHandler))
 }
 
 // TestAppOption configures a test App created by NewTestApp.
