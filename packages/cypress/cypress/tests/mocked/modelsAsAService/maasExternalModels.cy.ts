@@ -134,13 +134,13 @@ describe('External Models Page', () => {
 
       gptRow.findExpandedViewUrlButton('openai-prod').click();
       externalModelProviderUrlModal.findInputValue().should('have.value', 'api.openai.com');
-      externalModelProviderUrlModal.findProviderRef().should('contain.text', 'OpenAI Production');
+      externalModelProviderUrlModal.findProviderRef().should('contain.text', 'openai');
       externalModelProviderUrlModal.findTargetModelId().should('contain.text', 'gpt-4o');
       externalModelProviderUrlModal.findCloseButton().click();
 
       gptRow.findExpandedViewPathButton('openai-prod').click();
       externalModelPathModal.findInputValue().should('have.value', '/v1/chat/completions');
-      externalModelPathModal.findProviderRef().should('contain.text', 'OpenAI Production');
+      externalModelPathModal.findProviderRef().should('contain.text', 'openai');
       externalModelPathModal.findCloseButton().click();
 
       const splitRow = externalModelsPage.getRow('Claude A/B Split');
@@ -161,7 +161,7 @@ describe('External Models Page', () => {
       externalModelProviderUrlModal
         .findInputValue()
         .should('have.value', 'bedrock.us-east-1.amazonaws.com');
-      externalModelProviderUrlModal.findProviderRef().should('contain.text', 'AWS Bedrock US East');
+      externalModelProviderUrlModal.findProviderRef().should('contain.text', 'aws-bedrock');
       externalModelProviderUrlModal
         .findTargetModelId()
         .should('contain.text', 'anthropic.claude-3-sonnet');
@@ -169,7 +169,7 @@ describe('External Models Page', () => {
 
       splitRow.findExpandedViewPathButton('anthropic-dev').click();
       externalModelPathModal.findInputValue().should('have.value', '/v1/messages');
-      externalModelPathModal.findProviderRef().should('contain.text', 'Anthropic Development');
+      externalModelPathModal.findProviderRef().should('contain.text', 'anthropic');
       externalModelPathModal.findCloseButton().click();
 
       const awaitingRow = externalModelsPage.getRow('Awaiting Pairing Model');
