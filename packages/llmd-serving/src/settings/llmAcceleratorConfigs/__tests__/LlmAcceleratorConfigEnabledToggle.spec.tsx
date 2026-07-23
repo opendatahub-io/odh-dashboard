@@ -177,6 +177,23 @@ describe('LlmAcceleratorConfigEnabledToggle', () => {
     expect(screen.queryByTestId('unsupported-status-acceptance-modal')).not.toBeInTheDocument();
   });
 
+  it('should not fire risk accepted tracking when patch fails', async () => {
+    const config = mockLLMInferenceServiceConfigK8sResource({ unsupported: true });
+    mockPatchConfig.mockRejectedValue(new Error('Network error'));
+
+    render(<LlmAcceleratorConfigEnabledToggle config={config} />);
+
+    fireEvent.click(screen.getByRole('switch'));
+    fireEvent.click(screen.getByTestId('unsupported-status-acceptance-checkbox'));
+    fireEvent.click(screen.getByTestId('unsupported-status-accept-button'));
+
+    await waitFor(() => {
+      expect(mockPatchConfig).toHaveBeenCalled();
+    });
+
+    expect(mockFireRiskAccepted).not.toHaveBeenCalled();
+  });
+
   it('should close modal without patching when cancel is clicked and fire tracking event', () => {
     const config = mockLLMInferenceServiceConfigK8sResource({ unsupported: true });
 

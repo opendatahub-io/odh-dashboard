@@ -34,7 +34,7 @@ const LlmAcceleratorConfigEnabledToggle: React.FC<LlmAcceleratorConfigEnabledTog
   const effectiveEnabled = unsupportedUnaccepted ? false : isConfigEnabled(config);
 
   const patchConfigAnnotations = React.useCallback(
-    async (annotationUpdates: Record<string, string>) => {
+    async (annotationUpdates: Record<string, string>): Promise<boolean> => {
       setIsToggling(true);
       const updatedConfig: LLMInferenceServiceConfigKind = {
         ...config,
@@ -49,11 +49,13 @@ const LlmAcceleratorConfigEnabledToggle: React.FC<LlmAcceleratorConfigEnabledTog
 
       try {
         await patchLLMInferenceServiceConfig(config, updatedConfig);
+        return true;
       } catch (e) {
         notification.error(
           'Error updating accelerator configuration',
           e instanceof Error ? e.message : 'Unknown error',
         );
+        return false;
       } finally {
         setIsToggling(false);
       }
@@ -71,20 +73,22 @@ const LlmAcceleratorConfigEnabledToggle: React.FC<LlmAcceleratorConfigEnabledTog
     }
   }, [effectiveEnabled, unsupportedUnaccepted, patchConfigAnnotations]);
 
-  const handleAccept = React.useCallback(() => {
+  const handleAccept = React.useCallback(async () => {
     setShowAcceptanceModal(false);
-    fireRiskAccepted({
-      runtimeResourceType: 'llm-accelerator-config',
-      resourceId: config.metadata.name,
-      resourceName: getDisplayNameFromK8sResource(config),
-      ...getResourceVersions(config),
-      outcome: 'submit',
-      success: true,
-    });
-    patchConfigAnnotations({
+    const success = await patchConfigAnnotations({
       [UNSUPPORTED_STATUS_ACCEPTED_ANNOTATION]: 'true',
       [DISABLED_ANNOTATION]: 'false',
     });
+    if (success) {
+      fireRiskAccepted({
+        runtimeResourceType: 'llm-accelerator-config',
+        resourceId: config.metadata.name,
+        resourceName: getDisplayNameFromK8sResource(config),
+        ...getResourceVersions(config),
+        outcome: 'submit',
+        success: true,
+      });
+    }
   }, [config, patchConfigAnnotations]);
 
   return (
