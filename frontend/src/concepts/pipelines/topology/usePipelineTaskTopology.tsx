@@ -47,9 +47,9 @@ import { PipelineTask } from './pipelineTaskTypes';
  * and a depth cap (MAX_RECURSION_DEPTH) guards against pathologically deep
  * nesting that could overflow the call stack.
  */
-const MAX_RECURSION_DEPTH = 20;
+export const MAX_RECURSION_DEPTH = 20;
 
-const getEffectiveExecutionState = (
+export const getEffectiveExecutionState = (
   execution: Execution,
   allExecutions: Execution[],
   visited: Set<number> = new Set(),
@@ -116,7 +116,7 @@ const getEffectiveExecutionState = (
  * Map an Execution.State enum value to the ExecutionStateKF string used by the
  * topology UI.
  */
-const executionStateToKF = (state: Execution.State): ExecutionStateKF => {
+export const executionStateToKF = (state: Execution.State): ExecutionStateKF => {
   switch (state) {
     case Execution.State.COMPLETE:
     case Execution.State.CACHED:
