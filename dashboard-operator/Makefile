@@ -31,7 +31,7 @@ test: fmt vet ## Run tests.
 
 .PHONY: test-integration
 test-integration: setup-envtest ## Run integration tests with envtest.
-	KUBEBUILDER_ASSETS="$$($(ENVTEST) use -p path)" go test -v -race -tags=integration -count=1 ./internal/controller/...
+	KUBEBUILDER_ASSETS="$$($(ENVTEST) use 1.31.x -p path)" go test -v -race -tags=integration -count=1 ./internal/controller/...
 
 ##@ Build
 

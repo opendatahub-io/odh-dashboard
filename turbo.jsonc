@@ -7,8 +7,7 @@
     "includeDependenciesAsInputs": {},
     "build": {
       "cache": false,
-      "dependsOn": ["^build"],
-      "inputs": ["$TURBO_DEFAULT$", "bff/**"]
+      "dependsOn": ["^build"]
     },
     "lint": {
       "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/packages/eslint-config/**/*"]
@@ -75,8 +74,7 @@
     },
     "cypress:server:e2e": {
       "cache": false,
-      "persistent": true,
-      "inputs": ["$TURBO_DEFAULT$", "bff/**"]
+      "persistent": true
     },
     "cypress:server:e2e:wait": { "cache": false }
 
