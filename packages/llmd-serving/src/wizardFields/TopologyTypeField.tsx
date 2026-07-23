@@ -1,7 +1,6 @@
 import React from 'react';
 import {
   FormGroup,
-  Content,
   FormHelperText,
   HelperText,
   HelperTextItem,
@@ -23,6 +22,7 @@ import { LLMD_DEPLOYMENT_METHOD_KEY } from './deploymentMethodField';
 import {
   TopologyType,
   TopologyTypeLabels,
+  TopologyTypeDescriptions,
   type LLMInferenceServiceConfigKind,
   getConfigTopologyType,
 } from '../types';
@@ -113,6 +113,7 @@ const TopologyTypeFieldComponent: TopologyTypeFieldType['component'] = ({
         return {
           key: topoType,
           label: TopologyTypeLabels[topoType],
+          description: TopologyTypeDescriptions[topoType],
           dropdownLabel: isOptionDisabled ? (
             <>
               {TopologyTypeLabels[topoType]}{' '}
@@ -131,12 +132,6 @@ const TopologyTypeFieldComponent: TopologyTypeFieldType['component'] = ({
   return (
     <FormGroup fieldId="topology-type-select" label="Topology type" isRequired>
       <Stack hasGutter>
-        <StackItem>
-          <Content component="p">
-            Select the deployment topology for your model. This determines how the workload is
-            distributed across nodes.
-          </Content>
-        </StackItem>
         <StackItem>
           <SimpleSelect
             isFullWidth

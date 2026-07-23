@@ -127,7 +127,8 @@ const LLMConfigOptionsField: LLMConfigOptionsFieldType['component'] = ({
 
   return (
     <ModelServerTemplateSelectField
-      label="Deployment resource"
+      label="Accelerator configuration"
+      helperText="Select the hardware accelerator configuration for this deployment."
       modelServerState={{
         data: value?.data,
         setData: (data: ModelServerSelectFieldData) => onChange({ data }),

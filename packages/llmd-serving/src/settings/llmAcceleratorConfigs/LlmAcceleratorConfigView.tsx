@@ -9,7 +9,7 @@ const LlmAcceleratorConfigView: React.FC = () => {
   return (
     <ApplicationsPage
       title="LLM accelerator configurations"
-      description="Manage your LLM accelerator configurations. Enabled configurations appear to deployers in the model serving wizard; out-of-the-box configurations can be disabled but not deleted."
+      description="Manage accelerator configurations for LLM inference service deployments. Enabled configurations are available in the deployment wizard."
       loaded
       empty={configs.length === 0}
       provideChildrenPadding
