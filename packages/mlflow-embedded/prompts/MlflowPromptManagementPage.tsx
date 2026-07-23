@@ -85,7 +85,7 @@ const MlflowPromptManagementPage: React.FC = () => {
       <LazyCodeRefComponent
         key={workspace}
         component={loadWrapper}
-        props={{ onBreadcrumbChange: setBreadcrumbs }}
+        props={{ onBreadcrumbChange: setBreadcrumbs, workspace }}
         fallback={
           <Bullseye>
             <Spinner />
