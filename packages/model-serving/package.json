@@ -25,6 +25,10 @@
       "./src/components/*.d.ts",
       "./src/components/*.tsx"
     ],
+    "./components/connectionTypes/ConnectionOciAlert": "./src/components/connectionTypes/ConnectionOciAlert.tsx",
+    "./components/connectionTypes/ConnectionOciPathField": "./src/components/connectionTypes/ConnectionOciPathField.tsx",
+    "./components/connectionTypes/ConnectionS3FolderPathField": "./src/components/connectionTypes/ConnectionS3FolderPathField.tsx",
+    "./components/connectionTypes/types": "./src/components/connectionTypes/types.ts",
     "./types/form-data": "./src/components/deploymentWizard/types.ts",
     "./concepts/auth": "./src/concepts/auth.ts",
     "./concepts/useModelServingClusterSettings": "./src/concepts/useModelServingClusterSettings.tsx",

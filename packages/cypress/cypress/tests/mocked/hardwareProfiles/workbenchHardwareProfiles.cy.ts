@@ -1379,22 +1379,17 @@ describe('Workbench Hardware Profiles', () => {
         );
     });
 
-    it('shows warning when selected HP references a missing local queue and can be dismissed', () => {
+    it('hides Kueue profile from dropdown when its local queue does not exist in the project', () => {
       setupKueueIntercepts({ localQueueExists: false });
       projectDetails.visit('test-project');
       projectDetails.findSectionTab('workbenches').click();
       workbenchPage.findCreateButton().click();
       cy.wait('@hardwareProfiles');
+      cy.wait('@getLocalQueues');
 
-      hardwareProfileSection.findSelect().should('contain', 'Kueue Profile');
-      createSpawnerPage
-        .findLocalQueueMissingWarning()
-        .should('be.visible')
-        .and('contain.text', 'my-local-queue')
-        .and('contain.text', 'create');
-
-      // Dismiss the warning
-      createSpawnerPage.findLocalQueueMissingWarningCloseButton().click();
+      // Profile is filtered from the dropdown — its localQueue is not in this project
+      hardwareProfileSection.findSelect().should('not.contain', 'Kueue Profile');
+      // No warning shown — the profile was never selectable
       createSpawnerPage.findLocalQueueMissingWarning().should('not.exist');
     });
 

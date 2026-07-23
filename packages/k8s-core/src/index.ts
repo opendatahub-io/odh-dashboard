@@ -136,9 +136,11 @@ export type {
   Connection,
   ConnectionTypeFormData,
   AWSDataEntry,
+  FieldMode,
 } from './connectionTypes';
 
 export { NamespaceApplicationCase, byName, namespaceToProjectDisplayName } from './projectUtils';
+export { isK8sStatus, K8sStatusError } from './errorUtils';
 
 export {
   isSecretKind,

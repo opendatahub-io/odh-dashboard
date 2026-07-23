@@ -1,5 +1,5 @@
 import * as React from 'react';
-import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
+import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import { Alert, Wizard, WizardStep } from '@patternfly/react-core';
 import ScrollLock from '~/app/components/ScrollLock';
 import { deployAgentWizardSteps } from './deployAgentWizardSteps';

@@ -3,7 +3,7 @@ import { Breadcrumb, Button, EmptyStateVariant, PageSection } from '@patternfly/
 import { Link } from 'react-router-dom';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import type { InferenceServiceKind } from '@odh-dashboard/model-serving/shared';
-import ApplicationsPage from '#~/pages/ApplicationsPage';
+import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import { BreadcrumbItemType } from '#~/types';
 import { useModelBiasData } from '#~/concepts/trustyai/context/useModelBiasData';
 import { getBreadcrumbItemComponents } from '#~/pages/modelServing/screens/metrics/utils';

@@ -24,7 +24,7 @@ jest.mock('~/app/hooks/useSubscriptionPolicyFormData', () => ({
   ],
 }));
 
-jest.mock('@odh-dashboard/internal/pages/ApplicationsPage', () => {
+jest.mock('@odh-dashboard/ui-core', () => {
   const MockApplicationsPage = (
     props: React.PropsWithChildren<{ title: string; description: React.ReactNode }>,
   ) => (
@@ -35,7 +35,10 @@ jest.mock('@odh-dashboard/internal/pages/ApplicationsPage', () => {
     </div>
   );
   MockApplicationsPage.displayName = 'MockApplicationsPage';
-  return { __esModule: true, default: MockApplicationsPage };
+  return {
+    ...jest.requireActual('@odh-dashboard/ui-core'),
+    ApplicationsPage: MockApplicationsPage,
+  };
 });
 
 jest.mock('~/app/pages/subscription-management/SubscriptionsTab', () => {

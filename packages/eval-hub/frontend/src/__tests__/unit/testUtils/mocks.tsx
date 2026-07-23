@@ -2,8 +2,7 @@
 import * as React from 'react';
 
 export const mockApplicationsPageModule = () => ({
-  __esModule: true,
-  default: ({
+  ApplicationsPage: ({
     title,
     description,
     headerContent,

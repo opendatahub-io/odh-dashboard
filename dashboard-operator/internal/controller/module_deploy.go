@@ -133,7 +133,7 @@ func (r *DashboardReconciler) deployModuleManifests(
 			continue
 		}
 
-		params := make(map[string]string, len(computed))
+		params := readExistingParams(filepath.Join(modulePath, "params.env"))
 		maps.Copy(params, computed)
 		addInterBFFParams(params, name, statuses, r.Platform)
 		if err := writeParamsEnv(modulePath, params); err != nil {
