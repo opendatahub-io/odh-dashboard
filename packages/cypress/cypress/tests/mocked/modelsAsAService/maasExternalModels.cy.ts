@@ -1,5 +1,6 @@
 import { mockDashboardConfig } from '@odh-dashboard/internal/__mocks__/mockDashboardConfig.js';
 import { mockDscStatus } from '@odh-dashboard/internal/__mocks__/mockDscStatus.js';
+import { MODELS_AS_A_SERVICE_READY } from '@odh-dashboard/k8s-core';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import { ProjectModel } from '@odh-dashboard/internal/api/models/index';
 import { mockK8sResourceList } from '@odh-dashboard/internal/__mocks__/mockK8sResourceList';
@@ -35,7 +36,7 @@ const setupCommonIntercepts = () => {
         [DataScienceStackComponent.OGX_OPERATOR]: { managementState: 'Managed' },
         [DataScienceStackComponent.K_SERVE]: { managementState: 'Managed' },
       },
-      conditions: [{ type: 'ModelsAsServiceReady', status: 'True', reason: 'Ready' }],
+      conditions: [{ type: MODELS_AS_A_SERVICE_READY, status: 'True', reason: 'Ready' }],
     }),
   );
 };
@@ -88,7 +89,7 @@ describe('External Models Page', () => {
           [DataScienceStackComponent.OGX_OPERATOR]: { managementState: 'Managed' },
           [DataScienceStackComponent.K_SERVE]: { managementState: 'Managed' },
         },
-        conditions: [{ type: 'ModelsAsServiceReady', status: 'False', reason: 'NotReady' }],
+        conditions: [{ type: MODELS_AS_A_SERVICE_READY, status: 'False', reason: 'NotReady' }],
       }),
     );
     externalModelsPage.visit();

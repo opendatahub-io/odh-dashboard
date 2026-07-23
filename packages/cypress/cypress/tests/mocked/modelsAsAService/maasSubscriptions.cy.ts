@@ -1,4 +1,5 @@
 import { mockDashboardConfig, mockDscStatus } from '@odh-dashboard/internal/__mocks__';
+import { MODELS_AS_A_SERVICE_READY } from '@odh-dashboard/k8s-core';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import { asProductAdminUser } from '../../../utils/mockUsers';
 import {
@@ -31,7 +32,7 @@ const setupCommonIntercepts = () => {
       components: {
         [DataScienceStackComponent.OGX_OPERATOR]: { managementState: 'Managed' },
       },
-      conditions: [{ type: 'ModelsAsServiceReady', status: 'True', reason: 'Ready' }],
+      conditions: [{ type: MODELS_AS_A_SERVICE_READY, status: 'True', reason: 'Ready' }],
     }),
   );
   cy.interceptOdh('GET /maas/api/v1/subscription-policy-form-data', {

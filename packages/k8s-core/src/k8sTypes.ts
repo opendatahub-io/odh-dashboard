@@ -40,6 +40,8 @@ export type AccessReviewResourceAttributes = {
   namespace?: string;
 };
 
+export const MODELS_AS_A_SERVICE_READY = 'ModelsAsAServiceReady';
+
 export enum KnownLabels {
   DASHBOARD_RESOURCE = 'opendatahub.io/dashboard',
   PROJECT_SHARING = 'opendatahub.io/project-sharing',
