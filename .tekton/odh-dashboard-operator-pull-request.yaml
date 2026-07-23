@@ -32,6 +32,8 @@ spec:
     value: ./dashboard-operator/Dockerfile
   - name: path-context
     value: .
+  - name: enable-early-gate-testing
+    value: "false"
   #add these additional params
   - name: additional-tags
     value:
