@@ -89,14 +89,15 @@ describe('CustomServingRuntimeEnabledToggle', () => {
     fireEvent.click(screen.getByTestId('unsupported-status-accept-button'));
 
     await waitFor(() => {
-      expect(mockFireRiskAccepted).toHaveBeenCalledWith(
-        expect.objectContaining({
-          runtimeResourceType: 'serving-runtime-template',
-          resourceId: 'fast-vllm-template',
-          outcome: 'submit',
-          success: true,
-        }),
-      );
+      expect(mockFireRiskAccepted).toHaveBeenCalledWith({
+        runtimeResourceType: 'serving-runtime-template',
+        resourceId: 'fast-vllm-template',
+        resourceName: 'Fast vLLM Runtime',
+        version: '1.0.0',
+        fastVersion: '2',
+        outcome: 'submit',
+        success: true,
+      });
     });
   });
 
@@ -117,14 +118,15 @@ describe('CustomServingRuntimeEnabledToggle', () => {
     fireEvent.click(screen.getByTestId('unsupported-status-cancel-button'));
 
     expect(screen.queryByTestId('unsupported-status-acceptance-modal')).not.toBeInTheDocument();
-    expect(mockFireRiskDismissed).toHaveBeenCalledWith(
-      expect.objectContaining({
-        runtimeResourceType: 'serving-runtime-template',
-        resourceId: 'fast-vllm-template',
-        dismissAction: 'cancel',
-        outcome: 'cancel',
-      }),
-    );
+    expect(mockFireRiskDismissed).toHaveBeenCalledWith({
+      runtimeResourceType: 'serving-runtime-template',
+      resourceId: 'fast-vllm-template',
+      resourceName: 'Fast vLLM Runtime',
+      version: '1.0.0',
+      fastVersion: '2',
+      dismissAction: 'cancel',
+      outcome: 'cancel',
+    });
   });
 
   it('should fire risk dismissed event with close action when modal close control is used', () => {
@@ -144,13 +146,14 @@ describe('CustomServingRuntimeEnabledToggle', () => {
     fireEvent.click(screen.getByLabelText('Close'));
 
     expect(screen.queryByTestId('unsupported-status-acceptance-modal')).not.toBeInTheDocument();
-    expect(mockFireRiskDismissed).toHaveBeenCalledWith(
-      expect.objectContaining({
-        runtimeResourceType: 'serving-runtime-template',
-        resourceId: 'fast-vllm-template',
-        dismissAction: 'close',
-        outcome: 'cancel',
-      }),
-    );
+    expect(mockFireRiskDismissed).toHaveBeenCalledWith({
+      runtimeResourceType: 'serving-runtime-template',
+      resourceId: 'fast-vllm-template',
+      resourceName: 'Fast vLLM Runtime',
+      version: '1.0.0',
+      fastVersion: '2',
+      dismissAction: 'close',
+      outcome: 'cancel',
+    });
   });
 });

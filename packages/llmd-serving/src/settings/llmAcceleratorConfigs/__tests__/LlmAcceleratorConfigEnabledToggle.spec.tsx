@@ -166,14 +166,17 @@ describe('LlmAcceleratorConfigEnabledToggle', () => {
       );
     });
 
-    expect(mockFireRiskAccepted).toHaveBeenCalledWith(
-      expect.objectContaining({
+    await waitFor(() => {
+      expect(mockFireRiskAccepted).toHaveBeenCalledWith({
         runtimeResourceType: 'llm-accelerator-config',
         resourceId: config.metadata.name,
+        resourceName: 'Test vLLM Config',
+        version: undefined,
+        fastVersion: undefined,
         outcome: 'submit',
         success: true,
-      }),
-    );
+      });
+    });
     expect(screen.queryByTestId('unsupported-status-acceptance-modal')).not.toBeInTheDocument();
   });
 
@@ -188,7 +191,7 @@ describe('LlmAcceleratorConfigEnabledToggle', () => {
     fireEvent.click(screen.getByTestId('unsupported-status-accept-button'));
 
     await waitFor(() => {
-      expect(mockPatchConfig).toHaveBeenCalled();
+      expect(mockNotification.error).toHaveBeenCalled();
     });
 
     expect(mockFireRiskAccepted).not.toHaveBeenCalled();
@@ -206,14 +209,15 @@ describe('LlmAcceleratorConfigEnabledToggle', () => {
 
     expect(screen.queryByTestId('unsupported-status-acceptance-modal')).not.toBeInTheDocument();
     expect(mockPatchConfig).not.toHaveBeenCalled();
-    expect(mockFireRiskDismissed).toHaveBeenCalledWith(
-      expect.objectContaining({
-        runtimeResourceType: 'llm-accelerator-config',
-        resourceId: config.metadata.name,
-        dismissAction: 'cancel',
-        outcome: 'cancel',
-      }),
-    );
+    expect(mockFireRiskDismissed).toHaveBeenCalledWith({
+      runtimeResourceType: 'llm-accelerator-config',
+      resourceId: config.metadata.name,
+      resourceName: 'Test vLLM Config',
+      version: undefined,
+      fastVersion: undefined,
+      dismissAction: 'cancel',
+      outcome: 'cancel',
+    });
   });
 
   it('should fire tracking event with close action when modal close control is used', () => {
@@ -228,14 +232,15 @@ describe('LlmAcceleratorConfigEnabledToggle', () => {
 
     expect(screen.queryByTestId('unsupported-status-acceptance-modal')).not.toBeInTheDocument();
     expect(mockPatchConfig).not.toHaveBeenCalled();
-    expect(mockFireRiskDismissed).toHaveBeenCalledWith(
-      expect.objectContaining({
-        runtimeResourceType: 'llm-accelerator-config',
-        resourceId: config.metadata.name,
-        dismissAction: 'close',
-        outcome: 'cancel',
-      }),
-    );
+    expect(mockFireRiskDismissed).toHaveBeenCalledWith({
+      runtimeResourceType: 'llm-accelerator-config',
+      resourceId: config.metadata.name,
+      resourceName: 'Test vLLM Config',
+      version: undefined,
+      fastVersion: undefined,
+      dismissAction: 'close',
+      outcome: 'cancel',
+    });
   });
 
   it('should toggle normally without modal for already-accepted unsupported config', async () => {
