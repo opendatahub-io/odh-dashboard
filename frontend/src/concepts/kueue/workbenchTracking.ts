@@ -1,3 +1,4 @@
+import { TrackingOutcome } from '@odh-dashboard/ui-core';
 import { getKueueStatusInfo } from '#~/concepts/kueue';
 import { getKueueAnalyticsSubState } from '#~/concepts/kueue/messageUtils';
 import {
@@ -8,7 +9,6 @@ import {
   fireFormTrackingEvent,
   fireMiscTrackingEvent,
 } from '#~/concepts/analyticsTracking/segmentIOUtils';
-import { TrackingOutcome } from '#~/concepts/analyticsTracking/trackingProperties';
 
 /** Segment event names for Workbench analytics (lifecycle + Kueue status UX). */
 export enum WorkbenchTrackingEvent {

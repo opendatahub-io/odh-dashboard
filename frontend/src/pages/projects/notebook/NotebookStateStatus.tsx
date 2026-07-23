@@ -7,6 +7,7 @@ import {
   t_global_text_color_status_warning_default as WarningColor,
 } from '@patternfly/react-tokens';
 import { useDeepCompareMemoize } from '@odh-dashboard/ui-core/hooks';
+import { TrackingOutcome } from '@odh-dashboard/ui-core';
 import { EventStatus, NotebookStatus } from '#~/types';
 import { useNotebookStatus } from '#~/utilities/notebookControllerUtils';
 import StartNotebookModal from '#~/concepts/notebooks/StartNotebookModal';
@@ -20,7 +21,6 @@ import { getHumanReadableKueueMessage, getRequeuedMessage } from '#~/concepts/ku
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import UnderlinedTruncateButton from '#~/components/UnderlinedTruncateButton';
 import { fireMiscTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
-import { TrackingOutcome } from '#~/concepts/analyticsTracking/trackingProperties';
 import {
   fireWorkbenchStatusModalAction,
   getWorkbenchKueueTrackingProperties,

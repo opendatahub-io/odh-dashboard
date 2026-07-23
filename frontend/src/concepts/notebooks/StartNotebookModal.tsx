@@ -47,6 +47,7 @@ import {
   OutlinedClockIcon,
 } from '@patternfly/react-icons';
 import type { PodContainerStatus } from '@odh-dashboard/k8s-core';
+import { TrackingOutcome } from '@odh-dashboard/ui-core';
 import { EventStatus, NotebookStatus } from '#~/types';
 import { EventKind, NotebookKind } from '#~/k8sTypes';
 import { useNotebookProgress, getNotebookDisplayName } from '#~/utilities/notebookControllerUtils';
@@ -65,7 +66,6 @@ import { getHumanReadableKueueMessage, getRequeuedMessage } from '#~/concepts/ku
 import { KUEUE_QUEUE_LABEL } from '#~/concepts/kueue/index';
 import EventLog from '#~/concepts/k8s/EventLog/EventLog';
 import { fireMiscTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
-import { TrackingOutcome } from '#~/concepts/analyticsTracking/trackingProperties';
 import {
   fireWorkbenchProgressStepExpanded,
   fireWorkbenchStatusModalAction,
