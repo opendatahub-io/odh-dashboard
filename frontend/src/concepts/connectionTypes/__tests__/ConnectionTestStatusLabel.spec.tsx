@@ -10,7 +10,7 @@ describe('ConnectionTestStatusLabel', () => {
 
     const label = screen.getByTestId('connection-test-label-not-tested');
     expect(label).toBeInTheDocument();
-    expect(label).toHaveTextContent('Not tested');
+    expect(label).toHaveTextContent('Unverified');
   });
 
   it('should render "Testing..." with spinner for TESTING status', () => {
@@ -18,7 +18,7 @@ describe('ConnectionTestStatusLabel', () => {
 
     const label = screen.getByTestId('connection-test-label-testing');
     expect(label).toBeInTheDocument();
-    expect(label).toHaveTextContent('Testing...');
+    expect(label).toHaveTextContent('Verifying');
   });
 
   it('should render "Verified" with green label for VERIFIED status', () => {
@@ -34,7 +34,7 @@ describe('ConnectionTestStatusLabel', () => {
 
     const label = screen.getByTestId('connection-test-label-failed');
     expect(label).toBeInTheDocument();
-    expect(label).toHaveTextContent('Failed');
+    expect(label).toHaveTextContent('Verification failed');
   });
 
   it('should display formatted timestamp when provided for VERIFIED status', () => {
@@ -55,7 +55,7 @@ describe('ConnectionTestStatusLabel', () => {
     );
 
     const container = screen.getByTestId('connection-test-label-failed');
-    expect(container).toHaveTextContent('Failed');
+    expect(container).toHaveTextContent('Verification failed');
     expect(container).toHaveTextContent('Last tested');
   });
 
@@ -67,7 +67,7 @@ describe('ConnectionTestStatusLabel', () => {
 
     const label = screen.getByTestId('connection-test-label-not-tested');
     expect(label).toBeInTheDocument();
-    expect(label).toHaveTextContent('Not tested');
+    expect(label).toHaveTextContent('Unverified');
   });
 
   it('should not display timestamp for TESTING status', () => {
@@ -78,7 +78,7 @@ describe('ConnectionTestStatusLabel', () => {
 
     const label = screen.getByTestId('connection-test-label-testing');
     expect(label).toBeInTheDocument();
-    expect(label).toHaveTextContent('Testing...');
+    expect(label).toHaveTextContent('Verifying');
   });
 
   it('should render VERIFIED label without tooltip when no timestamp provided', () => {
@@ -94,7 +94,7 @@ describe('ConnectionTestStatusLabel', () => {
 
     const label = screen.getByTestId('connection-test-label-failed');
     expect(label).toBeInTheDocument();
-    expect(label).toHaveTextContent('Failed');
+    expect(label).toHaveTextContent('Verification failed');
   });
 
   it('should not show "Invalid Date" for an invalid timestamp on VERIFIED', () => {
@@ -111,7 +111,7 @@ describe('ConnectionTestStatusLabel', () => {
     render(<ConnectionTestStatusLabel status={ConnectionTestStatus.FAILED} timestamp="garbage" />);
 
     const container = screen.getByTestId('connection-test-label-failed');
-    expect(container).toHaveTextContent('Failed');
+    expect(container).toHaveTextContent('Verification failed');
     expect(container).not.toHaveTextContent('Invalid Date');
   });
 
@@ -127,7 +127,7 @@ describe('ConnectionTestStatusLabel', () => {
     render(<ConnectionTestStatusLabel status={ConnectionTestStatus.FAILED} timestamp="" />);
 
     const container = screen.getByTestId('connection-test-label-failed');
-    expect(container).toHaveTextContent('Failed');
+    expect(container).toHaveTextContent('Verification failed');
     expect(container).not.toHaveTextContent('Last tested');
   });
 
