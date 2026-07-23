@@ -2,9 +2,20 @@ import { TrackingOutcome } from '@odh-dashboard/ui-core';
 import { NotebookKind } from '#~/k8sTypes';
 import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 import {
+  getWorkbenchKueueTrackingProperties,
+  WorkbenchTrackingEvent,
+  type WorkbenchKueueTrackingInput,
+} from '#~/concepts/kueue/workbenchTracking';
+import {
   HardwarePodSpecOptionsState,
   HardwarePodSpecOptions,
 } from '#~/concepts/hardwareProfiles/types.ts';
+
+export type {
+  WorkbenchKueueTrackingInput,
+  WorkbenchKueueTrackingProperties,
+} from '#~/concepts/kueue/workbenchTracking';
+export { getWorkbenchKueueTrackingProperties } from '#~/concepts/kueue/workbenchTracking';
 
 export const hasStopAnnotation = (notebook: NotebookKind): boolean =>
   !!(
@@ -53,21 +64,27 @@ export const fireNotebookTrackingEvent = (
   action: 'started' | 'stopped',
   notebook: NotebookKind,
   podSpecOptionsState: HardwarePodSpecOptionsState<HardwarePodSpecOptions>,
+  kueueTrackingInput?: WorkbenchKueueTrackingInput,
 ): void => {
-  fireFormTrackingEvent(`Workbench ${action === 'started' ? 'Started' : 'Stopped'}`, {
-    outcome: TrackingOutcome.submit,
-    podSpecOptions: JSON.stringify({
-      hardwareProfile: podSpecOptionsState.hardwareProfile.formData.selectedProfile?.metadata.name,
-      resources: podSpecOptionsState.podSpecOptions.resources,
-      tolerations: podSpecOptionsState.podSpecOptions.tolerations,
-      nodeSelector: podSpecOptionsState.podSpecOptions.nodeSelector,
-    }),
-    lastSelectedImage:
-      notebook.metadata.annotations?.['notebooks.opendatahub.io/last-image-selection'],
-    projectName: notebook.metadata.namespace,
-    notebookName: notebook.metadata.name,
-    ...(action === 'stopped' && {
-      lastActivity: notebook.metadata.annotations?.['notebooks.kubeflow.org/last-activity'],
-    }),
-  });
+  fireFormTrackingEvent(
+    action === 'started' ? WorkbenchTrackingEvent.Started : WorkbenchTrackingEvent.Stopped,
+    {
+      outcome: TrackingOutcome.submit,
+      podSpecOptions: JSON.stringify({
+        hardwareProfile:
+          podSpecOptionsState.hardwareProfile.formData.selectedProfile?.metadata.name,
+        resources: podSpecOptionsState.podSpecOptions.resources,
+        tolerations: podSpecOptionsState.podSpecOptions.tolerations,
+        nodeSelector: podSpecOptionsState.podSpecOptions.nodeSelector,
+      }),
+      lastSelectedImage:
+        notebook.metadata.annotations?.['notebooks.opendatahub.io/last-image-selection'],
+      projectName: notebook.metadata.namespace,
+      notebookName: notebook.metadata.name,
+      ...(action === 'stopped' && {
+        lastActivity: notebook.metadata.annotations?.['notebooks.kubeflow.org/last-activity'],
+      }),
+      ...(kueueTrackingInput && getWorkbenchKueueTrackingProperties(kueueTrackingInput)),
+    },
+  );
 };

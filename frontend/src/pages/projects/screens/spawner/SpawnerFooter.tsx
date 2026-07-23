@@ -26,6 +26,11 @@ import { Connection } from '#~/concepts/connectionTypes/types';
 import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 import { NotebookKind } from '#~/k8sTypes';
 import { getNotebookPVCNames } from '#~/pages/projects/pvc/utils';
+import {
+  getWorkbenchKueueTrackingProperties,
+  WorkbenchTrackingEvent,
+} from '#~/concepts/kueue/workbenchTracking';
+import { KUEUE_QUEUE_LABEL } from '#~/concepts/kueue/index';
 import { useExistingSecrets } from './environmentVariables/useExistingSecrets';
 import {
   createConfigMapsAndSecretsForNotebook,
@@ -59,6 +64,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
   const {
     notebooks: { data: notebooks, refresh: refreshNotebooks },
     connections: { refresh: refreshConnections },
+    kueueStatusByNotebookName,
   } = React.useContext(ProjectDetailsContext);
   const { notebookName } = useParams();
   const notebookState = notebooks.find(
@@ -107,9 +113,16 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
     const {
       image,
       hardwareProfileOptions: {
-        podSpecOptionsState: { podSpecOptions },
+        podSpecOptionsState: {
+          podSpecOptions,
+          hardwareProfile: { formData: hardwareProfileFormData },
+        },
       },
     } = startNotebookData;
+    const kueueStatus = kueueStatusByNotebookName[name] ?? null;
+    const kueueQueueName =
+      hardwareProfileFormData.selectedProfile?.spec.scheduling?.kueue?.localQueueName ||
+      editNotebook?.metadata.labels?.[KUEUE_QUEUE_LABEL];
     const tep: FormTrackingEventProperties = {
       containerResources: Object.entries(podSpecOptions.resources || {})
         .map(([key, value]) =>
@@ -126,9 +139,19 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
       notebookName: name,
       outcome: TrackingOutcome.submit,
       success: true,
+      ...getWorkbenchKueueTrackingProperties({
+        kueueStatus,
+        kueueQueueName,
+        isStarting: true,
+        isRunning: false,
+        isStopping: false,
+      }),
     };
 
-    fireFormTrackingEvent(`Workbench ${type === 'created' ? 'Created' : 'Updated'}`, tep);
+    fireFormTrackingEvent(
+      type === 'created' ? WorkbenchTrackingEvent.Created : WorkbenchTrackingEvent.Updated,
+      tep,
+    );
 
     refreshNotebooks();
     refreshConnections();
@@ -136,7 +159,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
     navigate(workbenchesHref);
   };
   const handleError = (e: K8sStatusError) => {
-    fireFormTrackingEvent('Workbench Created', {
+    fireFormTrackingEvent(WorkbenchTrackingEvent.Created, {
       outcome: TrackingOutcome.submit,
       success: false,
       error: e.message,
@@ -334,9 +357,12 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
               id="cancel-button"
               data-testid="cancel-button"
               onClick={() => {
-                fireFormTrackingEvent(`Workbench ${editNotebook ? 'Updated' : 'Created'}`, {
-                  outcome: TrackingOutcome.cancel,
-                });
+                fireFormTrackingEvent(
+                  editNotebook ? WorkbenchTrackingEvent.Updated : WorkbenchTrackingEvent.Created,
+                  {
+                    outcome: TrackingOutcome.cancel,
+                  },
+                );
                 navigate(workbenchesHref);
               }}
             >

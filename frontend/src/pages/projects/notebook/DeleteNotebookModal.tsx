@@ -10,6 +10,13 @@ import { deleteConfigMap, deleteNotebook, deleteSecret, isGeneratedConfigMapName
 import DeleteModal from '#~/pages/projects/components/DeleteModal';
 import { getEnvFromList } from '#~/pages/projects/pvc/utils';
 import { ConfigMapRef, SecretRef } from '#~/pages/projects/types';
+import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
+import { TrackingOutcome } from '#~/concepts/analyticsTracking/trackingProperties';
+import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
+import {
+  getWorkbenchKueueTrackingProperties,
+  WorkbenchTrackingEvent,
+} from '#~/concepts/kueue/workbenchTracking';
 
 type DeleteNotebookModalProps = {
   notebook: NotebookKind;
@@ -19,6 +26,8 @@ type DeleteNotebookModalProps = {
 const DeleteNotebookModal: React.FC<DeleteNotebookModalProps> = ({ notebook, onClose }) => {
   const [isDeleting, setIsDeleting] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
+  const { kueueStatusByNotebookName } = React.useContext(ProjectDetailsContext);
+  const kueueStatus = kueueStatusByNotebookName[notebook.metadata.name] ?? null;
 
   const onBeforeClose = (deleted: boolean) => {
     onClose(deleted);
@@ -61,9 +70,29 @@ const DeleteNotebookModal: React.FC<DeleteNotebookModalProps> = ({ notebook, onC
         ];
         Promise.all(resourcesToDelete)
           .then(() => {
+            fireFormTrackingEvent(WorkbenchTrackingEvent.Deleted, {
+              outcome: TrackingOutcome.submit,
+              success: true,
+              projectName: namespace,
+              notebookName: notebook.metadata.name,
+              ...getWorkbenchKueueTrackingProperties({
+                kueueStatus,
+                isStarting: false,
+                isRunning: false,
+                isStopping: false,
+              }),
+            });
             onBeforeClose(true);
           })
           .catch((e) => {
+            fireFormTrackingEvent(WorkbenchTrackingEvent.Deleted, {
+              outcome: TrackingOutcome.submit,
+              success: false,
+              error: e instanceof Error ? e.message : String(e),
+              projectName: namespace,
+              notebookName: notebook.metadata.name,
+              ...getWorkbenchKueueTrackingProperties({ kueueStatus }),
+            });
             setError(e);
             setIsDeleting(false);
           });
