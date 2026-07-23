@@ -222,19 +222,24 @@ describe('WhatsNewModal', () => {
   });
 
   describe('nav sidebar during tour', () => {
+    const mountNavToggle = (expanded: boolean) => {
+      const toggle = document.createElement('button');
+      toggle.id = 'page-nav-toggle';
+      toggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+      const onClick = jest.fn(() => {
+        const next = toggle.getAttribute('aria-expanded') === 'true' ? 'false' : 'true';
+        toggle.setAttribute('aria-expanded', next);
+      });
+      toggle.addEventListener('click', onClick);
+      document.body.appendChild(toggle);
+      return { toggle, onClick };
+    };
+
     it('should open a collapsed navbar when anchoring a tour step', () => {
       useAppContextMock.mockReturnValue(buildAppContext());
       useUserMock.mockReturnValue(regularUser);
 
-      const toggle = document.createElement('button');
-      toggle.id = 'page-nav-toggle';
-      toggle.setAttribute('aria-expanded', 'false');
-      const onClick = jest.fn(() => {
-        toggle.setAttribute('aria-expanded', 'true');
-      });
-      toggle.addEventListener('click', onClick);
-
-      document.body.appendChild(toggle);
+      const { toggle, onClick } = mountNavToggle(false);
 
       try {
         render(<WhatsNewModal />);
@@ -253,29 +258,48 @@ describe('WhatsNewModal', () => {
       }
     });
 
-    it('should not toggle an already open navbar', () => {
+    it('should restore a navbar the tour opened when the tour is dismissed', () => {
       useAppContextMock.mockReturnValue(buildAppContext());
       useUserMock.mockReturnValue(regularUser);
 
-      const toggle = document.createElement('button');
-      toggle.id = 'page-nav-toggle';
-      toggle.setAttribute('aria-expanded', 'true');
-      const onClick = jest.fn();
-      toggle.addEventListener('click', onClick);
-
-      document.body.appendChild(toggle);
+      const { toggle, onClick } = mountNavToggle(false);
 
       try {
         render(<WhatsNewModal />);
         openWelcomeModal();
-        fireEvent.click(screen.getByText('Start full tour'));
+        startTourAndWait('Start full tour');
+
+        expect(toggle.getAttribute('aria-expanded')).toBe('true');
+        expect(onClick).toHaveBeenCalledTimes(1);
+
+        fireEvent.click(screen.getByText('Skip tour'));
+
+        expect(onClick).toHaveBeenCalledTimes(2);
+        expect(toggle.getAttribute('aria-expanded')).toBe('false');
+      } finally {
+        toggle.remove();
+      }
+    });
+
+    it('should not toggle an already open navbar', () => {
+      useAppContextMock.mockReturnValue(buildAppContext());
+      useUserMock.mockReturnValue(regularUser);
+
+      const { toggle, onClick } = mountNavToggle(true);
+
+      try {
+        render(<WhatsNewModal />);
+        openWelcomeModal();
+        startTourAndWait('Start full tour');
 
         expect(onClick).not.toHaveBeenCalled();
         expect(toggle.getAttribute('aria-expanded')).toBe('true');
 
-        act(() => {
-          jest.advanceTimersByTime(350);
-        });
+        fireEvent.click(screen.getByText('Skip tour'));
+
+        // Tour did not open the sidebar, so dismiss must leave it open.
+        expect(onClick).not.toHaveBeenCalled();
+        expect(toggle.getAttribute('aria-expanded')).toBe('true');
       } finally {
         toggle.remove();
       }

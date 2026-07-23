@@ -82,7 +82,8 @@ const useTourSteps = (isAdmin: boolean): TourStep[] => {
     modelRegistryAvailable ||
     modelServingAvailable ||
     mcpCatalogAvailable ||
-    agentsCatalogAvailable;
+    agentsCatalogAvailable ||
+    agentOpsAvailable;
 
   return React.useMemo<TourStep[]>(
     () => [
@@ -342,14 +343,24 @@ const findNavElement = (step: TourStep): HTMLElement | null => {
   return findNavSectionButton(step.title);
 };
 
+const getNavToggle = (): HTMLElement | null => document.getElementById('page-nav-toggle');
+
 /** Opens the managed sidebar when collapsed so tour popovers can anchor to nav items. */
 const ensureNavSidebarOpen = (): boolean => {
-  const toggle = document.getElementById('page-nav-toggle');
+  const toggle = getNavToggle();
   if (toggle?.getAttribute('aria-expanded') === 'false') {
     toggle.click();
     return true;
   }
   return false;
+};
+
+/** Closes the managed sidebar when expanded (used to restore pre-tour collapsed state). */
+const ensureNavSidebarClosed = (): void => {
+  const toggle = getNavToggle();
+  if (toggle?.getAttribute('aria-expanded') === 'true') {
+    toggle.click();
+  }
 };
 
 const WhatsNewModal: React.FC = () => {
@@ -380,6 +391,8 @@ const WhatsNewModal: React.FC = () => {
   }, [tourPath, tourSteps]);
 
   const autoLaunchTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** True when this tour session expanded a previously collapsed sidebar. */
+  const tourOpenedSidebarRef = React.useRef(false);
 
   const cancelAutoLaunch = React.useCallback(() => {
     if (autoLaunchTimerRef.current !== null) {
@@ -393,6 +406,7 @@ const WhatsNewModal: React.FC = () => {
       // Manual opens (masthead / task assistant) must cancel a pending auto-launch
       // so we don't reset the session and emit a duplicate Started event.
       cancelAutoLaunch();
+      tourOpenedSidebarRef.current = false;
       beginSession(entryPoint, isReturningUser);
       setShowWelcome(true);
       setStepIndex(0);
@@ -429,6 +443,10 @@ const WhatsNewModal: React.FC = () => {
   );
 
   const closeUi = React.useCallback(() => {
+    if (tourOpenedSidebarRef.current) {
+      ensureNavSidebarClosed();
+      tourOpenedSidebarRef.current = false;
+    }
     setIsOpen(false);
     setSeen(true);
     setShowWelcome(true);
@@ -505,6 +523,9 @@ const WhatsNewModal: React.FC = () => {
     // Collapsed nav still keeps anchors in the DOM, so the popover can mount off-screen
     // with only the backdrop visible. Open the sidebar first when a step needs a nav target.
     const openedSidebar = ensureNavSidebarOpen();
+    if (openedSidebar) {
+      tourOpenedSidebarRef.current = true;
+    }
 
     const timer = setTimeout(
       () => {
