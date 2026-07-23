@@ -134,7 +134,7 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
   previewDescription = true,
   dataTestId,
   inputIcon,
-  ariaLabel = 'Options menu',
+  ariaLabel,
   popperProps,
   id,
   ...props
@@ -490,7 +490,7 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
     <MenuToggle
       ref={toggleRef}
       variant="typeahead"
-      aria-label={toggleProps?.['aria-label'] ?? ariaLabel}
+      aria-label={toggleProps?.['aria-label'] ?? ariaLabel ?? 'Typeahead menu toggle'}
       data-testid={dataTestId ?? 'typeahead-menu-toggle'}
       onClick={onToggleClick}
       isExpanded={isOpen}
@@ -513,7 +513,7 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
               icon={inputIcon}
               {...(activeItemId && { 'aria-activedescendant': activeItemId })}
               role="combobox"
-              aria-label={ariaLabel}
+              {...(ariaLabel !== undefined ? { 'aria-label': ariaLabel } : {})}
               aria-controls={listboxId}
               aria-haspopup="listbox"
               isExpanded={isOpen}
@@ -643,7 +643,7 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
         id={id}
         popperProps={mergedPopperProps}
       >
-        <SelectList id={listboxId} aria-label={ariaLabel}>
+        <SelectList id={listboxId} aria-label={ariaLabel ?? 'Options'}>
           {renderOptions()}
         </SelectList>
       </Select>

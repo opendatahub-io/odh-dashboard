@@ -124,14 +124,17 @@ describe('useMenuPopperInModal', () => {
     const onEscapeClose = jest.fn();
     const modalEscapeListener = jest.fn();
 
-    const menu = document.createElement('div');
-    document.body.appendChild(menu);
+    const anchor = document.createElement('input');
+    document.body.appendChild(anchor);
+    // Assign after append so the ref is live for the capture listener.
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+    (anchorRef as React.MutableRefObject<HTMLInputElement | null>).current = anchor;
     document.body.addEventListener('keydown', modalEscapeListener);
 
     renderHook(() => useMenuPopperInModal(true, anchorRef, undefined, { onEscapeClose }));
 
     act(() => {
-      menu.dispatchEvent(
+      anchor.dispatchEvent(
         new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }),
       );
     });
@@ -140,7 +143,7 @@ describe('useMenuPopperInModal', () => {
     expect(modalEscapeListener).not.toHaveBeenCalled();
 
     document.body.removeEventListener('keydown', modalEscapeListener);
-    document.body.removeChild(menu);
+    document.body.removeChild(anchor);
   });
 
   it('should not handle Escape when closed', () => {
@@ -178,5 +181,61 @@ describe('useMenuPopperInModal', () => {
 
     document.body.removeEventListener('keydown', modalEscapeListener);
     document.body.removeChild(menu);
+  });
+
+  it('should ignore Escape when the event target is outside this menu', () => {
+    const anchorRef = React.createRef<HTMLInputElement>();
+    const onEscapeClose = jest.fn();
+
+    const anchor = document.createElement('input');
+    const other = document.createElement('button');
+    document.body.appendChild(anchor);
+    document.body.appendChild(other);
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+    (anchorRef as React.MutableRefObject<HTMLInputElement | null>).current = anchor;
+
+    renderHook(() => useMenuPopperInModal(true, anchorRef, undefined, { onEscapeClose }));
+
+    act(() => {
+      other.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }),
+      );
+    });
+
+    expect(onEscapeClose).not.toHaveBeenCalled();
+
+    document.body.removeChild(anchor);
+    document.body.removeChild(other);
+  });
+
+  it('should handle Escape from a portaled listbox referenced by aria-controls', () => {
+    const anchorRef = React.createRef<HTMLDivElement>();
+    const onEscapeClose = jest.fn();
+
+    const anchor = document.createElement('div');
+    const toggle = document.createElement('button');
+    toggle.setAttribute('aria-controls', 'test-listbox');
+    anchor.appendChild(toggle);
+    const listbox = document.createElement('div');
+    listbox.id = 'test-listbox';
+    const option = document.createElement('div');
+    listbox.appendChild(option);
+    document.body.appendChild(anchor);
+    document.body.appendChild(listbox);
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+    (anchorRef as React.MutableRefObject<HTMLDivElement | null>).current = anchor;
+
+    renderHook(() => useMenuPopperInModal(true, anchorRef, undefined, { onEscapeClose }));
+
+    act(() => {
+      option.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }),
+      );
+    });
+
+    expect(onEscapeClose).toHaveBeenCalledTimes(1);
+
+    document.body.removeChild(anchor);
+    document.body.removeChild(listbox);
   });
 });

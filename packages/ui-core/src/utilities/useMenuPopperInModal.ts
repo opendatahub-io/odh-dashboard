@@ -21,6 +21,42 @@ export type UseMenuPopperInModalOptions = {
   onEscapeClose?: () => void;
 };
 
+const isEscapeTargetForMenu = (event: KeyboardEvent, anchor: Element | null): boolean => {
+  if (!anchor) {
+    return false;
+  }
+  const { target } = event;
+  if (!(target instanceof Node)) {
+    return false;
+  }
+  if (anchor.contains(target)) {
+    return true;
+  }
+
+  // Portaled listbox/menu: resolve via aria-controls on the toggle/input in the anchor.
+  const controlledIds = new Set<string>();
+  const collectControls = (el: Element) => {
+    const controls = el.getAttribute('aria-controls');
+    if (controls) {
+      controls.split(/\s+/).forEach((id) => {
+        if (id) {
+          controlledIds.add(id);
+        }
+      });
+    }
+  };
+  collectControls(anchor);
+  anchor.querySelectorAll('[aria-controls]').forEach(collectControls);
+
+  for (const id of controlledIds) {
+    const controlled = document.getElementById(id);
+    if (controlled?.contains(target)) {
+      return true;
+    }
+  }
+  return false;
+};
+
 /**
  * Portal menu into the nearest modal dialog (when appendTo is unset) and unlock
  * dialog overflow while open — PatternFly Modal + dropdown a11y pattern.
@@ -52,14 +88,19 @@ export const useMenuPopperInModal = <T extends MenuPopperProps>(
       if (!close) {
         return;
       }
+      if (!isEscapeTargetForMenu(event, anchorRef.current)) {
+        return;
+      }
       // Capture on document: runs before Modal's bubble listener on body.
-      // Covers toggle focus and focus moved into a portaled menu.
+      // Only this menu's toggle/input or its portaled listbox owns the event.
       event.preventDefault();
       event.stopPropagation();
       close();
     };
     document.addEventListener('keydown', onKeyDown, true);
     return () => document.removeEventListener('keydown', onKeyDown, true);
+    // anchorRef is stable; resolve .current at event time
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, shouldInterceptEscape]);
 
   return React.useMemo((): MenuPopperWithAppendTo<T> => {

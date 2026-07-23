@@ -34,7 +34,7 @@ class StorageModal extends Modal {
 
   selectExistingPersistentStorage(name: string) {
     cy.findByTestId('persistent-storage-group')
-      .findByRole('button', { name: 'Typeahead menu toggle' })
+      .findByRole('button', { name: 'Persistent storage' })
       .click();
     cy.findByTestId('persistent-storage-group').findByRole('option', { name }).click();
   }

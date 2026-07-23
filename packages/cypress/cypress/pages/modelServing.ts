@@ -225,7 +225,7 @@ class InferenceServiceModal extends ServingModal {
 
   findConnectionType(name: string | RegExp) {
     return this.findExistingConnectionSelect()
-      .findByRole('button', { name: 'Typeahead menu toggle' })
+      .findByRole('button', { name: 'Connection' })
       .findSelectOption(name);
   }
 
@@ -311,7 +311,7 @@ class InferenceServiceModal extends ServingModal {
 
   findExistingConnectionSelectValueField() {
     return this.findExistingConnectionSelect().findByRole('combobox', {
-      name: 'Type to filter',
+      name: 'Connection',
     });
   }
 
