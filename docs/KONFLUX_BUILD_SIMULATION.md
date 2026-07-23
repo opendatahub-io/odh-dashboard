@@ -133,6 +133,29 @@ Runs BEFORE Docker build to catch issues in <1 minute:
   - Waits: Up to 5 minutes for pod to be ready
   - Checks: Pod status, logs, health endpoints
 
+### Sidecar Module Validation
+Runs only when a PR changes files in a package that has a `Dockerfile.workspace` (e.g., `packages/gen-ai/`, `packages/mlflow/`). Skipped entirely when no sidecar packages are affected.
+
+- ✅ **Dynamic module discovery**
+  - Discovers: All `packages/*/Dockerfile.workspace` files automatically
+  - Detects: Which packages have changed files in the PR
+  - Triggers: Also rebuilds all sidecars when root `package.json` or `package-lock.json` change
+  - Future-proof: New modules with a `Dockerfile.workspace` are picked up without config changes
+
+- ✅ **Sidecar Docker image build**
+  - Builds: Each affected module's `Dockerfile.workspace` (same Dockerfile that Konflux uses post-merge)
+  - Catches: Go compilation errors, missing COPY dependencies, npm install failures
+  - Parallel: Affected modules build concurrently via matrix strategy
+
+- ✅ **BFF startup crash detection**
+  - Starts: Each built sidecar container and waits 5 seconds
+  - Validates: BFF binary starts without crashing (non-zero exit / process death)
+  - Scans logs for: `panic:`, `fatal error:`, `runtime error:`, `SIGSEGV`
+  - Catches: Go protobuf registration conflicts, import cycles, binary link errors
+  - Motivating failure: PR #8479 introduced a protobuf conflict that compiled fine but panicked at runtime
+
+**Note:** Sidecar startup validation does not test application-level health (`/healthcheck` endpoint) or connectivity to backend services. It validates that the Go binary can start without crashing — the class of failure that previously only surfaced after merge.
+
 ### Phase 5: Manifest Validation
 - ✅ **Kustomize build testing**
   - Builds: All overlays and bases
@@ -319,6 +342,24 @@ RUN rm -rf node_modules/esbuild node_modules/@esbuild node_modules/.bin/esbuild
 2. Add caching for expensive operations
 3. Defer non-critical initialization
 
+### Sidecar Startup Failures
+
+**Error: Sidecar container exited (exit code: 2)**
+```bash
+::error::gen-ai sidecar container exited (exit code: 2)
+The BFF binary crashed on startup.
+```
+
+**Common causes:**
+- Go protobuf registration conflict (`panic: proto: file already registered`)
+- Missing or incompatible Go dependencies
+- Binary link errors from CGO/FIPS build
+
+**Fix:**
+1. Check the container logs in the CI output for the exact panic/error message
+2. If protobuf conflict: check for duplicate `.proto` file registrations across Go dependencies
+3. Run locally: `docker build --file packages/<module>/Dockerfile.workspace . && docker run --rm <image>`
+
 ## Skipping Validation
 
 ### Skip entire workflow
@@ -373,6 +414,7 @@ This validation catches issues like:
 - **RHOAIENG-59861**: Slow dashboard loads causing Cypress timeouts
 - **PR #6727**: Fastify v5 content-type rejection (415 errors)
 - **PR #7387**: @fastify/websocket v11 SocketStream crashes
+- **PR #8479**: Go protobuf registration conflict in gen-ai sidecar (startup panic)
 
 ## References
 
