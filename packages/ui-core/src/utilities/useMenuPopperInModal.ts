@@ -34,25 +34,33 @@ export const useMenuPopperInModal = <T extends MenuPopperProps>(
   useModalOverflowUnlock(isOpen, anchorRef);
 
   const onEscapeCloseRef = React.useRef(options?.onEscapeClose);
-  onEscapeCloseRef.current = options?.onEscapeClose;
+  const shouldInterceptEscape = options?.onEscapeClose !== undefined;
+
+  React.useLayoutEffect(() => {
+    onEscapeCloseRef.current = options?.onEscapeClose;
+  });
 
   React.useEffect(() => {
-    if (!isOpen) {
+    if (!isOpen || !shouldInterceptEscape) {
       return;
     }
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key !== 'Escape') {
         return;
       }
+      const close = onEscapeCloseRef.current;
+      if (!close) {
+        return;
+      }
       // Capture on document: runs before Modal's bubble listener on body.
       // Covers toggle focus and focus moved into a portaled menu.
       event.preventDefault();
       event.stopPropagation();
-      onEscapeCloseRef.current?.();
+      close();
     };
     document.addEventListener('keydown', onKeyDown, true);
     return () => document.removeEventListener('keydown', onKeyDown, true);
-  }, [isOpen]);
+  }, [isOpen, shouldInterceptEscape]);
 
   return React.useMemo((): MenuPopperWithAppendTo<T> => {
     const appendTo: MenuPopperAppendTo =

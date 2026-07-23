@@ -317,13 +317,7 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
       case 'Tab':
         closeMenu();
         break;
-      case 'Escape':
-        if (isOpen) {
-          event.preventDefault();
-          event.stopPropagation();
-          closeMenu();
-        }
-        break;
+      // Escape is handled by useMenuPopperInModal (document capture) via onEscapeClose.
       case 'ArrowUp':
       case 'ArrowDown':
         event.preventDefault();

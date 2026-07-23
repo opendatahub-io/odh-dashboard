@@ -1,7 +1,7 @@
 import React from 'react';
 import { act, createEvent, fireEvent, render, screen, within } from '@testing-library/react';
-import TypeaheadSelect from '@odh-dashboard/ui-core/components/TypeaheadSelect';
-import { MODAL_OVERFLOW_UNLOCK_COUNT_ATTR } from '#~/utilities/useModalOverflowUnlock';
+import TypeaheadSelect from '../TypeaheadSelect';
+import { MODAL_OVERFLOW_UNLOCK_COUNT_ATTR } from '../../utilities/useModalOverflowUnlock';
 
 const defaultOptions = [
   { content: 'S3', value: 's3' },

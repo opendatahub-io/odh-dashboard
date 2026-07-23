@@ -157,4 +157,26 @@ describe('useMenuPopperInModal', () => {
 
     expect(onEscapeClose).not.toHaveBeenCalled();
   });
+
+  it('should not intercept Escape when onEscapeClose is omitted', () => {
+    const anchorRef = React.createRef<HTMLInputElement>();
+    const modalEscapeListener = jest.fn();
+
+    const menu = document.createElement('div');
+    document.body.appendChild(menu);
+    document.body.addEventListener('keydown', modalEscapeListener);
+
+    renderHook(() => useMenuPopperInModal(true, anchorRef));
+
+    act(() => {
+      menu.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }),
+      );
+    });
+
+    expect(modalEscapeListener).toHaveBeenCalledTimes(1);
+
+    document.body.removeEventListener('keydown', modalEscapeListener);
+    document.body.removeChild(menu);
+  });
 });

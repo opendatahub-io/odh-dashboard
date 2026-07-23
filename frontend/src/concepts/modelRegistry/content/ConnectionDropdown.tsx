@@ -14,6 +14,8 @@ import useServingConnections from '#~/pages/projects/screens/detail/connections/
 import { ModelLocationType } from '#~/concepts/modelRegistry/types';
 import { useMenuPopperInModal } from '#~/utilities/useModalOverflowUnlock';
 
+import './ConnectionDropdown.scss';
+
 type ConnectionDropdownProps = {
   type: ModelLocationType;
   onSelect: (connectionInfo: Connection) => void;
@@ -79,7 +81,7 @@ export const ConnectionDropdown = ({
     }
   };
   return (
-    <div ref={menuToggleRef} style={{ display: 'contents' }}>
+    <div ref={menuToggleRef} className="odh-connection-dropdown__toggle-anchor">
       <Dropdown
         onOpenChange={(isOpened) => setIsOpen(isOpened)}
         toggle={(toggleRef) => (

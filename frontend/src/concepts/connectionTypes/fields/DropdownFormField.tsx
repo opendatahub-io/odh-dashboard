@@ -22,6 +22,8 @@ import { DropdownField } from '#~/concepts/connectionTypes/types';
 import { FieldProps } from '#~/concepts/connectionTypes/fields/types';
 import DefaultValueTextRenderer from '#~/concepts/connectionTypes/fields/DefaultValueTextRenderer';
 
+import './DropdownFormField.scss';
+
 const DropdownFormField: React.FC<FieldProps<DropdownField>> = ({
   id,
   field,
@@ -94,7 +96,7 @@ const DropdownFormField: React.FC<FieldProps<DropdownField>> = ({
         }
         onOpenChange={(open) => setIsOpen(open)}
         toggle={(toggleRef) => (
-          <div ref={menuToggleRef} style={{ display: 'contents' }}>
+          <div ref={menuToggleRef} className="odh-dropdown-form-field__toggle-anchor">
             <MenuToggle
               innerRef={toggleRef}
               id={id}

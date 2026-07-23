@@ -77,6 +77,9 @@ const SearchSelector: React.FC<SearchSelectorProps> = ({
     }),
     [minWidth, appendTo],
   );
+  // Dialog-aware appendTo (modal → dialog; else body) replaces the former default
+  // appendTo: 'inline' so menus in modals stay reachable for keyboard/SR users.
+  // Callers may still pass appendTo explicitly to override.
   const popperProps = useMenuPopperInModal(isOpen, toggleRef, userPopperProps, {
     onEscapeClose: () => {
       setIsOpen(false);

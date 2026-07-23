@@ -391,7 +391,10 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
       }
 
       // Skip disabled / aria-disabled options
-      while (isOptionNonNavigable(navigableSelections[indexToFocus])) {
+      while (
+        navigableSelections[indexToFocus] &&
+        isOptionNonNavigable(navigableSelections[indexToFocus])
+      ) {
         indexToFocus--;
         if (indexToFocus === -1) {
           indexToFocus = navigableSelections.length - 1;
@@ -408,7 +411,10 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
       }
 
       // Skip disabled / aria-disabled options
-      while (isOptionNonNavigable(navigableSelections[indexToFocus])) {
+      while (
+        navigableSelections[indexToFocus] &&
+        isOptionNonNavigable(navigableSelections[indexToFocus])
+      ) {
         indexToFocus++;
         if (indexToFocus === navigableSelections.length) {
           indexToFocus = 0;
@@ -442,14 +448,7 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
       case 'Tab':
         closeMenu();
         break;
-      case 'Escape':
-        if (isOpen) {
-          // Prevent PatternFly Modal body Escape listener from closing the dialog.
-          event.preventDefault();
-          event.stopPropagation();
-          closeMenu();
-        }
-        break;
+      // Escape is handled by useMenuPopperInModal (document capture) via onEscapeClose.
       case 'ArrowUp':
       case 'ArrowDown':
         event.preventDefault();

@@ -12,6 +12,8 @@ import NumberInputWrapper from './NumberInputWrapper';
 import { splitValueUnit, UnitOption, ValueUnitString } from '../utilities/valueUnits';
 import { useMenuPopperInModal } from '../utilities/useMenuPopperInModal';
 
+import './ValueUnitField.scss';
+
 type ValueUnitFieldProps = {
   /**
    * @defaults to unlimited pos/neg
@@ -94,7 +96,7 @@ const ValueUnitField: React.FC<ValueUnitFieldProps> = ({
         />
       </SplitItem>
       <SplitItem>
-        <div ref={menuToggleRef} style={{ display: 'contents' }}>
+        <div ref={menuToggleRef} className="odh-value-unit-field__toggle-anchor">
           <Dropdown
             shouldFocusToggleOnSelect
             popperProps={popperProps}
