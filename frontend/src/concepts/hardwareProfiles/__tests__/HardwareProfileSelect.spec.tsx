@@ -89,22 +89,55 @@ const mockProfiles = [
   nodeHardwareProfile2,
 ];
 
+type RenderComponentOptions = {
+  hardwareProfiles: HardwareProfileKind[];
+  currentProject: ProjectKind;
+  kueueFilteringState: KueueFilteringState;
+  projects?: ProjectKind[];
+  projectProp?: string;
+  allowExistingSettings?: boolean;
+  previewDescription?: boolean;
+  isProjectScoped?: boolean;
+  projectScopedHardwareProfiles?: HardwareProfileKind[];
+  selectedProfile?: HardwareProfileKind;
+};
+
 const renderComponent = (
-  hardwareProfiles: HardwareProfileKind[],
-  currentProject: ProjectKind,
-  kueueFilteringState: KueueFilteringState,
+  hardwareProfilesOrOptions: HardwareProfileKind[] | RenderComponentOptions,
+  currentProject?: ProjectKind,
+  kueueFilteringState?: KueueFilteringState,
   projects: ProjectKind[] = [],
   projectProp?: string,
   allowExistingSettings = false,
   localQueuesOverride?: ProjectDetailsContextType['localQueues'],
   initialHardwareProfile?: HardwareProfileKind,
 ) => {
+  // Support both the old positional API and the new options object API
+  let opts: RenderComponentOptions;
+  if (Array.isArray(hardwareProfilesOrOptions)) {
+    if (!currentProject || !kueueFilteringState) {
+      throw new Error(
+        'renderComponent: currentProject and kueueFilteringState are required for the positional API',
+      );
+    }
+    opts = {
+      hardwareProfiles: hardwareProfilesOrOptions,
+      currentProject,
+      kueueFilteringState,
+      projects,
+      projectProp,
+      allowExistingSettings,
+    };
+  } else {
+    opts = hardwareProfilesOrOptions;
+  }
+
   // Mock useKueueConfiguration to return the specified filtering state
   useKueueConfigurationMock.mockReturnValue({
     isKueueDisabled: false,
     isKueueFeatureEnabled: true,
     isProjectKueueEnabled: false,
-    kueueFilteringState,
+    kueueFilteringState: opts.kueueFilteringState,
   });
 
   const hardwareProfileConfig = {
@@ -112,6 +145,7 @@ const renderComponent = (
       useExistingSettings: false,
     },
     useExistingSettings: false,
+    selectedProfile: opts.selectedProfile,
     setFormData: () => null,
     resetFormData: () => null,
     isFormDataValid: true,
@@ -138,7 +172,7 @@ const renderComponent = (
     <ProjectsContext.Provider
       value={{
         ...defaultProjectsContextValue,
-        projects,
+        projects: opts.projects ?? [],
         loaded: true,
         loadError: undefined,
       }}
@@ -146,7 +180,7 @@ const renderComponent = (
       <ProjectDetailsContext.Provider
         value={
           {
-            currentProject,
+            currentProject: opts.currentProject,
             refresh: jest.fn(),
             localQueues: localQueuesOverride ?? DEFAULT_LIST_FETCH_STATE,
           } as unknown as ProjectDetailsContextType
@@ -154,17 +188,21 @@ const renderComponent = (
       >
         <HardwareProfileSelect
           initialHardwareProfile={initialHardwareProfile}
-          previewDescription={false}
-          hardwareProfiles={hardwareProfiles}
-          isProjectScoped={false}
+          previewDescription={opts.previewDescription ?? false}
+          hardwareProfiles={opts.hardwareProfiles}
+          isProjectScoped={opts.isProjectScoped ?? false}
           hardwareProfilesLoaded
           hardwareProfilesError={undefined}
-          projectScopedHardwareProfiles={[[], true, undefined]}
-          allowExistingSettings={allowExistingSettings}
+          projectScopedHardwareProfiles={[
+            opts.projectScopedHardwareProfiles ?? [],
+            true,
+            undefined,
+          ]}
+          allowExistingSettings={opts.allowExistingSettings ?? false}
           hardwareProfileConfig={hardwareProfileConfig}
           isHardwareProfileSupported={() => true}
           onChange={() => null}
-          project={projectProp}
+          project={opts.projectProp}
         />
       </ProjectDetailsContext.Provider>
     </ProjectsContext.Provider>,
@@ -618,5 +656,125 @@ describe('HardwareProfileSelect - LocalQueue availability filtering', () => {
     expect(screen.getByText('Kueue Profile 2')).toBeInTheDocument();
     // info icon shown only for the profile with the missing queue
     expect(screen.getByTestId('queue-missing-icon')).toBeInTheDocument();
+  });
+});
+
+describe('HardwareProfileSelect - Project-scoped preview description', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('should show description, identifiers, and kueue info together in preview', () => {
+    const profileWithAll = mockHardwareProfile({
+      name: 'full-profile',
+      displayName: 'Full Profile',
+      namespace: 'test-project',
+      description: 'A test profile with everything',
+      schedulingType: SchedulingType.QUEUE,
+      localQueueName: 'my-queue',
+      priorityClass: 'high-priority',
+    });
+    const project = mockProjectK8sResource({ k8sName: 'test-project' });
+
+    renderComponent({
+      hardwareProfiles: [nodeHardwareProfile],
+      currentProject: project,
+      kueueFilteringState: KueueFilteringState.ONLY_KUEUE_PROFILES,
+      previewDescription: true,
+      isProjectScoped: true,
+      projectScopedHardwareProfiles: [profileWithAll],
+      selectedProfile: profileWithAll,
+      projectProp: 'test-project',
+    });
+
+    // All three sections should appear in the preview
+    expect(screen.getByText('A test profile with everything')).toBeInTheDocument();
+    expect(screen.getByText(/Memory:.*Default.*Max/)).toBeInTheDocument();
+    expect(screen.getByText(/CPU:.*Default.*Max/)).toBeInTheDocument();
+    expect(screen.getByText('Local queue: my-queue; Priority: high-priority')).toBeInTheDocument();
+  });
+
+  it('should show identifiers and kueue info when there is no description', () => {
+    const profileNoDesc = mockHardwareProfile({
+      name: 'no-desc-profile',
+      displayName: 'No Description Profile',
+      namespace: 'test-project',
+      description: '',
+      schedulingType: SchedulingType.QUEUE,
+      localQueueName: 'my-queue',
+      priorityClass: 'high-priority',
+    });
+    const project = mockProjectK8sResource({ k8sName: 'test-project' });
+
+    renderComponent({
+      hardwareProfiles: [nodeHardwareProfile],
+      currentProject: project,
+      kueueFilteringState: KueueFilteringState.ONLY_KUEUE_PROFILES,
+      previewDescription: true,
+      isProjectScoped: true,
+      projectScopedHardwareProfiles: [profileNoDesc],
+      selectedProfile: profileNoDesc,
+      projectProp: 'test-project',
+    });
+
+    // Both identifiers and kueue should show (not just one via || fallback)
+    expect(screen.getByText(/Memory:.*Default.*Max/)).toBeInTheDocument();
+    expect(screen.getByText(/CPU:.*Default.*Max/)).toBeInTheDocument();
+    expect(screen.getByText('Local queue: my-queue; Priority: high-priority')).toBeInTheDocument();
+  });
+
+  it('should show preview for profile with only kueue info', () => {
+    const kueueOnlyProfile = mockHardwareProfile({
+      name: 'kueue-only',
+      displayName: 'Kueue Only Profile',
+      namespace: 'test-project',
+      description: '',
+      identifiers: [],
+      schedulingType: SchedulingType.QUEUE,
+      localQueueName: 'queue-only',
+      priorityClass: '',
+    });
+    const project = mockProjectK8sResource({ k8sName: 'test-project' });
+
+    renderComponent({
+      hardwareProfiles: [nodeHardwareProfile],
+      currentProject: project,
+      kueueFilteringState: KueueFilteringState.ONLY_KUEUE_PROFILES,
+      previewDescription: true,
+      isProjectScoped: true,
+      projectScopedHardwareProfiles: [kueueOnlyProfile],
+      selectedProfile: kueueOnlyProfile,
+      projectProp: 'test-project',
+    });
+
+    // Kueue info should show even without description or identifiers
+    expect(screen.getByText('Local queue: queue-only')).toBeInTheDocument();
+  });
+
+  it('should not show preview when previewDescription is false', () => {
+    const profileWithDesc = mockHardwareProfile({
+      name: 'desc-profile',
+      displayName: 'Profile With Desc',
+      namespace: 'test-project',
+      description: 'Should not appear',
+      schedulingType: SchedulingType.QUEUE,
+      localQueueName: 'my-queue',
+    });
+    const project = mockProjectK8sResource({ k8sName: 'test-project' });
+
+    renderComponent({
+      hardwareProfiles: [nodeHardwareProfile],
+      currentProject: project,
+      kueueFilteringState: KueueFilteringState.ONLY_KUEUE_PROFILES,
+      previewDescription: false,
+      isProjectScoped: true,
+      projectScopedHardwareProfiles: [profileWithDesc],
+      selectedProfile: profileWithDesc,
+      projectProp: 'test-project',
+    });
+
+    // Preview content should not appear
+    expect(screen.queryByText('Should not appear')).not.toBeInTheDocument();
+    expect(screen.queryByText(/Local queue:/)).not.toBeInTheDocument();
   });
 });
