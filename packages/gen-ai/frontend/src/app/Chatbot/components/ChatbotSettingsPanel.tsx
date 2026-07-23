@@ -560,7 +560,7 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
               }}
               data-testid="reset-agent-confirm-button"
             >
-              Reset
+              Revert
             </Button>
             <Button variant="link" onClick={() => setShowResetModal(false)}>
               Cancel
