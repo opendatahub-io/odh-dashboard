@@ -10,6 +10,9 @@ export const PLAYGROUND_AGENT_EVENTS = {
   CONFIGURATION_UNAVAILABLE: 'Playground Agent Configuration Unavailable',
   CHAT_BLOCKED: 'Playground Agent Chat Blocked',
   QUERY_SUBMITTED: 'Playground Query Submitted',
+
+  DETAILS_EDIT_SELECTED: 'Playground Agent Details Edit Selected',
+  DETAILS_DELETE_EXECUTED: 'Playground Agent Details Delete Executed',
 } as const;
 
 export type TryInPlaygroundSelectedProperties = {
@@ -57,4 +60,12 @@ export type ChatBlockedProperties = {
 export type QuerySubmittedProperties = {
   hasLoadedAgent: boolean;
   agentSavedState: 'saved' | 'unsaved_changes' | 'temporary_session';
+};
+
+export type DetailsEditSelectedProperties = {
+  agentID: string;
+};
+
+export type DetailsDeleteExecutedProperties = {
+  agentID: string;
 };
