@@ -16,7 +16,7 @@ import {
   VariableRow,
 } from '#~/types';
 import { KueueWorkloadStatus, type KueueWorkloadStatusWithMessage } from '#~/concepts/kueue/types';
-import { getKueueSubStepInfo } from '#~/concepts/kueue/messageUtils';
+import { getKueueSubStepInfo, getRequeuedMessage } from '#~/concepts/kueue/messageUtils';
 import { NotebookControllerContext } from '#~/pages/notebookController/NotebookControllerContext';
 import { useUser } from '#~/redux/selectors';
 import { EMPTY_USER_STATE } from '#~/pages/notebookController/const';
@@ -401,13 +401,16 @@ export const buildInitialProgressSteps = (
   // Guard on queueName so auto-created workloads for non-Kueue notebooks don't show this sub-step.
   const podAssignedSubSteps: NotebookProgressStep[] = [];
   if (kueueStatus?.queueName) {
-    const { label: kueueLabel } = getKueueSubStepInfo(
-      kueueStatus.status,
-      kueueStatus.message,
-      kueueStatus.queueName,
-      isRecovery,
-      kueueStatus.queuePosition ?? undefined,
-    );
+    const kueueLabel =
+      kueueStatus.status === KueueWorkloadStatus.Requeued
+        ? getRequeuedMessage(kueueStatus)
+        : getKueueSubStepInfo(
+            kueueStatus.status,
+            kueueStatus.message,
+            kueueStatus.queueName,
+            isRecovery,
+            kueueStatus.queuePosition ?? undefined,
+          ).label;
     podAssignedSubSteps.push({
       stepKind: 'kueue',
       label: kueueLabel,

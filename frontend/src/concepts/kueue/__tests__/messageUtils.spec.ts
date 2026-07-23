@@ -222,7 +222,7 @@ describe('getHumanReadableKueueMessage', () => {
 });
 
 describe('getRequeuedMessage', () => {
-  it('should return queue message with attempt count when count is provided', () => {
+  it('should include attempt count when provided', () => {
     const result = getRequeuedMessage({
       status: KueueWorkloadStatus.Requeued,
       requeueInfo: { count: 3 },
@@ -233,17 +233,27 @@ describe('getRequeuedMessage', () => {
     expect(result).toContain('test-queue');
   });
 
-  it('should return base queue message without suffix when count is zero', () => {
+  it('should include next retry time when requeueAt is provided', () => {
     const result = getRequeuedMessage({
       status: KueueWorkloadStatus.Requeued,
-      requeueInfo: { count: 0 },
+      requeueInfo: { count: 3, requeueAt: '2026-07-23T05:00:00.000Z' },
+      queueName: 'test-queue',
+    });
+    expect(result).toContain('attempt 3');
+    expect(result).toContain('next retry at');
+  });
+
+  it('should include only next retry time when count is zero', () => {
+    const result = getRequeuedMessage({
+      status: KueueWorkloadStatus.Requeued,
+      requeueInfo: { count: 0, requeueAt: '2026-07-23T05:00:00.000Z' },
       queueName: 'test-queue',
     });
     expect(result).not.toContain('attempt');
-    expect(result).toContain('test-queue');
+    expect(result).toContain('next retry at');
   });
 
-  it('should return base queue message without suffix when no requeueInfo', () => {
+  it('should return base queue message when no requeueInfo', () => {
     const result = getRequeuedMessage({
       status: KueueWorkloadStatus.Requeued,
     });
