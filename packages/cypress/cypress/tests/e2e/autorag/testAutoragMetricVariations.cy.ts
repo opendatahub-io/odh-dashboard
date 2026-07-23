@@ -21,7 +21,9 @@ import {
 } from '../../../utils/autoragTestFlows';
 
 const uuid = generateTestUUID();
+const defaultUuid = `${uuid}-default`;
 const faithUuid = `${uuid}-faith`;
+const overallUuid = `${uuid}-overall`;
 
 const isExternalOgx = (): boolean => !!(Cypress.env('OGX_URL') as string);
 
@@ -86,6 +88,26 @@ describe('AutoRAG Metric Variations E2E', { testIsolation: false }, () => {
   });
 
   it(
+    'Can submit a run with untouched default metric (overall_score)',
+    { tags: ['@AutoRAG', '@AutoRAGRegression', '@Featureflagged'] },
+    () => {
+      configureAutoragRun(
+        { ...testData, runName: `${testData.runName}-default` },
+        projectName,
+        defaultUuid,
+      );
+
+      cy.step('Set max RAG patterns without changing the default metric');
+      autoragConfigurePage
+        .findMaxRagPatternsInputField()
+        .type(`{selectall}${testData.maxRagPatterns}`);
+
+      submitAutoragRun();
+      verifyAutoragRunSubmitted(projectName, `${testData.runName}-default`);
+    },
+  );
+
+  it(
     'Can submit a run with answer_correctness metric',
     { tags: ['@AutoRAG', '@AutoRAGRegression', '@Featureflagged'] },
     () => {
@@ -126,6 +148,30 @@ describe('AutoRAG Metric Variations E2E', { testIsolation: false }, () => {
 
       submitAutoragRun();
       verifyAutoragRunSubmitted(projectName, `${testData.runName}-faith`);
+    },
+  );
+
+  it(
+    'Can submit a run with overall_score metric',
+    { tags: ['@AutoRAG', '@AutoRAGRegression', '@Featureflagged'] },
+    () => {
+      configureAutoragRun(
+        { ...testData, runName: `${testData.runName}-overall` },
+        projectName,
+        overallUuid,
+      );
+
+      cy.step('Select overall_score optimization metric');
+      autoragConfigurePage.findOptimizationMetricSelect().click();
+      autoragConfigurePage.findMetricOption('overall_score').click();
+
+      cy.step('Set max RAG patterns');
+      autoragConfigurePage
+        .findMaxRagPatternsInputField()
+        .type(`{selectall}${testData.maxRagPatterns}`);
+
+      submitAutoragRun();
+      verifyAutoragRunSubmitted(projectName, `${testData.runName}-overall`);
     },
   );
 });

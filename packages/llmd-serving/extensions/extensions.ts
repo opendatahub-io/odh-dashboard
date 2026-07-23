@@ -513,7 +513,7 @@ const extensions: (
   {
     type: 'app.navigation/href',
     flags: {
-      required: [LLMD_SERVING_ID, ADMIN_USER],
+      required: [LLMD_SERVING_ID, ADMIN_USER, SupportedArea.VLLM_ON_MAAS],
     },
     properties: {
       id: 'settings-llm-accelerator-configs',
@@ -527,7 +527,7 @@ const extensions: (
   {
     type: 'app.route',
     flags: {
-      required: [LLMD_SERVING_ID, ADMIN_USER],
+      required: [LLMD_SERVING_ID, ADMIN_USER, SupportedArea.VLLM_ON_MAAS],
     },
     properties: {
       path: '/settings/model-resources-operations/llm-accelerator-configs/*',

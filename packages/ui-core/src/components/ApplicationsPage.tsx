@@ -14,7 +14,7 @@ import {
   FlexItem,
 } from '@patternfly/react-core';
 
-type ApplicationsPageProps = {
+export type ApplicationsPageProps = {
   title?: React.ReactNode;
   breadcrumb?: React.ReactNode;
   description?: React.ReactNode;

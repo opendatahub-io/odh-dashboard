@@ -5,6 +5,7 @@ import {
   authPoliciesPage,
   deleteAuthPolicyModal,
   policyPage,
+  subscriptionManagementPage,
   viewAuthPolicyPage,
 } from '../../../pages/modelsAsAService';
 import {
@@ -31,6 +32,9 @@ const setupAuthPoliciesCommon = () => {
       conditions: [{ type: 'ModelsAsServiceReady', status: 'True', reason: 'Ready' }],
     }),
   );
+  cy.interceptOdh('GET /maas/api/v1/subscription-policy-form-data', {
+    data: mockSubscriptionFormData(),
+  });
 };
 
 const setupAuthPolicyEditorSharedIntercepts = () => {
@@ -99,9 +103,11 @@ describe('MaaS Auth Policies', () => {
   });
 
   it('should display the auth policies table with correct page content', () => {
-    authPoliciesPage.findTitle().should('contain.text', 'Authorization policies');
+    authPoliciesPage.findTitle().should('contain.text', 'MaaS governance');
     authPoliciesPage.findTable().should('exist');
     authPoliciesPage.findRows().should('have.length', 7);
+    authPoliciesPage.findCreateAuthPolicyButton().should('exist');
+
     const premiumRow = authPoliciesPage.getRow('Premium Team Policy');
     premiumRow.findName().should('contain.text', 'Premium Team Policy');
     premiumRow.findPhase().should('contain.text', 'Ready');
@@ -147,7 +153,7 @@ describe('MaaS Auth Policies', () => {
     );
     authPoliciesPage.visit();
     authPoliciesPage.getRow('deleting-policy').findActionsToggle().should('be.disabled');
-    cy.visit(`/maas/auth-policies/view/deleting-policy`);
+    cy.visit(`/maas/maas-governance/auth-policies/view/deleting-policy`);
     viewAuthPolicyPage.findActionsToggle().click();
     viewAuthPolicyPage.findDeleteActionButton().should('be.disabled');
     viewAuthPolicyPage.findEditActionButton().should('be.disabled');
@@ -169,6 +175,44 @@ describe('MaaS Auth Policies', () => {
         data: { message: "MaaSAuthPolicy 'premium-team-policy' deleted successfully" },
       });
     });
+  });
+
+  it('should expand and collapse inline rows in the auth policies tab', () => {
+    subscriptionManagementPage.visit('auth-policies');
+
+    const premiumPolicy = authPoliciesPage.getRow('Premium Team Policy');
+
+    // Expand the groups panel
+    premiumPolicy.findExpandGroupButton().click();
+    premiumPolicy.findExpandedGroupName().should('exist');
+    premiumPolicy.findExpandedGroupName().should('have.length', 1);
+    premiumPolicy.findExpandedGroupName().eq(0).should('contain.text', 'premium-users');
+    premiumPolicy.findExpandedModelName().should('not.be.visible');
+
+    // Clicking models while groups is open replaces the panel
+    premiumPolicy.findExpandModelButton().click();
+    premiumPolicy.findExpandedModelName().should('exist');
+    premiumPolicy.findExpandedModelName().should('have.length', 2);
+    premiumPolicy.findExpandedModelName().eq(0).should('contain.text', 'Granite 3 8B Instruct');
+    premiumPolicy.findExpandedModelDescription().should('have.length', 2);
+    premiumPolicy
+      .findExpandedModelDescription()
+      .eq(0)
+      .should(
+        'contain.text',
+        'Granite 3 8B Instruct is a large language model that is used for advanced tasks.',
+      );
+    premiumPolicy.findExpandedModelResourceName().should('have.length', 2);
+    premiumPolicy
+      .findExpandedModelResourceName()
+      .eq(0)
+      .should('contain.text', 'granite-3-8b-instruct');
+    premiumPolicy.findExpandedGroupName().should('not.be.visible');
+
+    // Clicking models again collapses it
+    premiumPolicy.findExpandModelButton().click();
+    premiumPolicy.findExpandedModelName().should('not.be.visible');
+    premiumPolicy.findExpandedGroupName().should('not.be.visible');
   });
 });
 
@@ -204,7 +248,7 @@ describe('Auth policy create and edit pages', () => {
           },
         });
       });
-      cy.url().should('match', /\/maas\/auth-policies$/);
+      cy.url().should('match', /\/maas\/maas-governance\/auth-policies$/);
     });
   });
 
@@ -218,7 +262,7 @@ describe('Auth policy create and edit pages', () => {
       policyPage.findTitle().should('contain.text', 'Edit authorization policy');
 
       policyPage.findCancelButton().click();
-      cy.url().should('match', /\/maas\/auth-policies$/);
+      cy.url().should('match', /\/maas\/maas-governance\/auth-policies$/);
 
       policyPage.visit('premium-team-policy');
       policyPage.findDescriptionInput().clear();
@@ -230,7 +274,7 @@ describe('Auth policy create and edit pages', () => {
           data: { description: 'Updated policy description' },
         });
       });
-      cy.url().should('match', /\/maas\/auth-policies$/);
+      cy.url().should('match', /\/maas\/maas-governance\/auth-policies$/);
     });
   });
 });
@@ -252,7 +296,7 @@ describe('View Auth Policy Page', () => {
     cy.interceptOdh('GET /maas/api/v1/all-policies', { data: mockAuthPolicies() });
     authPoliciesPage.visit();
     authPoliciesPage.getRow(policyDisplayName).findKebabAction('View details').click();
-    cy.url().should('include', `/maas/auth-policies/view/${policyName}`);
+    cy.url().should('include', `/maas/maas-governance/auth-policies/view/${policyName}`);
 
     viewAuthPolicyPage.findTitle().should('contain.text', policyDisplayName);
 
@@ -275,7 +319,7 @@ describe('View Auth Policy Page', () => {
       .and('contain.text', 'maas-models');
 
     viewAuthPolicyPage.findBreadcrumbPoliciesLink().click();
-    cy.url().should('include', '/maas/auth-policies');
+    cy.url().should('include', '/maas/maas-governance/auth-policies');
   });
 
   it("should list models from the policy when model ref doesn't exist", () => {

@@ -27,9 +27,8 @@ const PathModal: React.FC<PathModalProps> = ({ path, isOpen, onClose, providerRe
     <ModalBody>
       <Stack hasGutter>
         <StackItem>
-          The resolved request path for this provider reference, with configuration values
-          substituted into the template. This is the path appended to the provider URL when routing
-          inference requests.
+          The request path appended to the provider URL. If path variables were configured,
+          they&apos;re shown with resolved values.
         </StackItem>
         <StackItem>
           <InputGroup>

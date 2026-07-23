@@ -1,10 +1,10 @@
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
-import useNotification from '@odh-dashboard/internal/utilities/useNotification';
 import {
+  useNotification,
   NotificationResponseStatus,
   NotificationWatcherContext,
-} from '@odh-dashboard/internal/concepts/notificationWatcher/NotificationWatcherContext';
+} from '@odh-dashboard/ui-core';
 import { FAST_POLL_INTERVAL } from '@odh-dashboard/ui-core/utilities';
 import { ModelDeploymentState } from '@odh-dashboard/model-serving/shared';
 import { useResolvedDeploymentExtension } from '../concepts/extensionUtils';

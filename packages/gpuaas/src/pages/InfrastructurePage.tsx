@@ -1,8 +1,8 @@
 import * as React from 'react';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports -- standard page shell wrapper
-import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
+import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import {
   Button,
   Card,

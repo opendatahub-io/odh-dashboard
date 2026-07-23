@@ -11,6 +11,10 @@ import {
 // Mock the dependencies
 jest.mock('#~/api', () => ({
   getConfigMap: jest.fn(),
+}));
+
+jest.mock('@odh-dashboard/k8s-core', () => ({
+  ...jest.requireActual('@odh-dashboard/k8s-core'),
   isK8sStatus: jest.fn().mockReturnValue(true),
 }));
 
