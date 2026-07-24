@@ -56,28 +56,28 @@ class InfrastructurePage {
     return cy.findByTestId('hardware-usage-empty');
   }
 
-  findBorrowingLendingSection() {
-    return cy.findByTestId('infrastructure-borrowing-lending-section');
+  findBorrowingSection() {
+    return cy.findByTestId('infrastructure-borrowing-section');
   }
 
-  findBorrowingLendingChart() {
-    return cy.findByTestId('borrowing-lending-chart-has-data');
+  findBorrowingChart() {
+    return cy.findByTestId('borrowing-chart-has-data');
   }
 
-  findBorrowingLendingEmptyState() {
-    return cy.findByTestId('borrowing-lending-empty-state');
+  findBorrowingEmptyState() {
+    return cy.findByTestId('borrowing-empty-state');
   }
 
   findCohortSelect() {
-    return cy.findByTestId('borrowing-lending-cohort-select');
+    return cy.findByTestId('borrowing-cohort-select');
   }
 
   findCqNameFilter() {
-    return cy.findByTestId('borrowing-lending-cq-filter');
+    return cy.findByTestId('borrowing-cq-filter');
   }
 
   findCountLabel() {
-    return cy.findByTestId('borrowing-lending-count-label');
+    return cy.findByTestId('borrowing-count-label');
   }
 
   findCQUtilizationSection() {
@@ -105,8 +105,8 @@ class InfrastructurePage {
     return cy.findByTestId(`cohort-accordion-${cohortName}`);
   }
 
-  findCohortBorrowLendBadge() {
-    return cy.findByTestId('cohort-borrow-lend-badge');
+  findCohortBorrowBadge() {
+    return cy.findByTestId('cohort-borrow-badge');
   }
 
   findCohortUnallocatedBorrowable() {
@@ -119,10 +119,6 @@ class InfrastructurePage {
 
   findCQBorrowBadge() {
     return cy.findByTestId('cq-borrowed-badge');
-  }
-
-  findCQLendBadge() {
-    return cy.findByTestId('cq-lent-badge');
   }
 
   findCQWorkloadCounts() {
@@ -147,10 +143,6 @@ class InfrastructurePage {
 
   findDcgmMemoryDonutInCard(cqName: string) {
     return this.findCQCard(cqName).findByTestId('dcgm-memory-donut');
-  }
-
-  findCQLendBadgeInCard(cqName: string) {
-    return this.findCQCard(cqName).find('[data-testid="cq-lent-badge"]');
   }
 
   findCQBorrowBadgeInCard(cqName: string) {

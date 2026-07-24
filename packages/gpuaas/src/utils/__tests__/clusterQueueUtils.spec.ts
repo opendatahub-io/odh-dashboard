@@ -7,18 +7,16 @@ import {
   getCQNominalAccelerators,
   getCQUsedAccelerators,
   getAcceleratorBorrowedCount,
-  getAcceleratorLentCount,
+  getAcceleratorUnallocatedCount,
   isAcceleratorBorrowing,
-  isAcceleratorLending,
   isInCohort,
   filterAcceleratorCQs,
   getCohortTotalAccelerators,
   getCohortUnallocatedBorrowable,
-  isCohortBorrowLendActive,
+  isCohortBorrowActive,
   getAcceleratorDonutConfig,
-  getBorrowLendBadgeState,
-  getBorrowLendInfo,
-  getCounterpartCQNames,
+  getBorrowBadgeState,
+  getBorrowInfo,
   formatWorkloadCounts,
   normalizeModelName,
   resolveCQDcgmUtilization,
@@ -167,13 +165,15 @@ describe('getAcceleratorBorrowedCount', () => {
   });
 });
 
-describe('getAcceleratorLentCount', () => {
+describe('getAcceleratorUnallocatedCount', () => {
   it.each([
     [8, 0, 0, 'fully used'],
     [3, 0, 5, 'unused capacity'],
     [10, 2, 0, 'over quota floored at 0'],
   ])('used=%d borrowed=%d → %d (%s)', (used, borrowed, expected) => {
-    expect(getAcceleratorLentCount(makeGpuCQ('cq', { nominal: 8, used, borrowed }))).toBe(expected);
+    expect(getAcceleratorUnallocatedCount(makeGpuCQ('cq', { nominal: 8, used, borrowed }))).toBe(
+      expected,
+    );
   });
 });
 
@@ -186,22 +186,12 @@ describe('isInCohort', () => {
   });
 });
 
-describe('isAcceleratorBorrowing / isAcceleratorLending', () => {
+describe('isAcceleratorBorrowing', () => {
   it('detects borrowing', () => {
     expect(isAcceleratorBorrowing(makeGpuCQ('cq', { nominal: 8, used: 10, borrowed: 2 }))).toBe(
       true,
     );
     expect(isAcceleratorBorrowing(makeGpuCQ('cq', { nominal: 8, used: 4 }))).toBe(false);
-  });
-
-  it('detects lending (unused capacity)', () => {
-    expect(
-      isAcceleratorLending(makeGpuCQWithCohort('cq', 'cohort-a', { nominal: 8, used: 3 })),
-    ).toBe(true);
-    expect(
-      isAcceleratorLending(makeGpuCQWithCohort('cq', 'cohort-a', { nominal: 8, used: 8 })),
-    ).toBe(false);
-    expect(isAcceleratorLending(makeGpuCQ('cq', { nominal: 8, used: 3 }))).toBe(false); // standalone CQs cannot lend
   });
 });
 
@@ -245,8 +235,8 @@ describe('getCohortTotalAccelerators', () => {
 describe('getCohortUnallocatedBorrowable', () => {
   it('sums unused capacity across member CQs', () => {
     const cohort = makeCohort([
-      makeGpuCQ('a', { nominal: 8, used: 5 }), // lent: 3
-      makeGpuCQ('b', { nominal: 8, used: 8 }), // lent: 0
+      makeGpuCQ('a', { nominal: 8, used: 5 }), // unallocated: 3
+      makeGpuCQ('b', { nominal: 8, used: 8 }), // unallocated: 0
     ]);
     expect(getCohortUnallocatedBorrowable(cohort)).toBe(3);
   });
@@ -257,18 +247,18 @@ describe('getCohortUnallocatedBorrowable', () => {
   });
 });
 
-describe('isCohortBorrowLendActive', () => {
+describe('isCohortBorrowActive', () => {
   it.each([
     ['borrowing CQ', makeCohort([makeGpuCQ('a', { nominal: 8, used: 10, borrowed: 2 })]), true],
-    [
-      'lending CQ (unused capacity)',
-      makeCohort([makeGpuCQWithCohort('a', 'test-cohort', { nominal: 8, used: 3 })]),
-      true,
-    ],
     ['fully used, no borrowing', makeCohort([makeGpuCQ('a', { nominal: 8, used: 8 })]), false],
+    [
+      'CQ with unused capacity, no borrowing',
+      makeCohort([makeGpuCQWithCohort('a', 'test-cohort', { nominal: 8, used: 3 })]),
+      false,
+    ],
     ['empty cohort', makeCohort([]), false],
   ] as const)('%s → %s', (_label, cohort, expected) => {
-    expect(isCohortBorrowLendActive(cohort)).toBe(expected);
+    expect(isCohortBorrowActive(cohort)).toBe(expected);
   });
 
   it('returns false for a standalone group even if CQs have spare capacity or borrow', () => {
@@ -279,34 +269,7 @@ describe('isCohortBorrowLendActive', () => {
       ],
       'standalone',
     );
-    expect(isCohortBorrowLendActive(cohort)).toBe(false);
-  });
-});
-
-describe('getCounterpartCQNames', () => {
-  it('lender sees names of borrowing siblings', () => {
-    const lender = makeGpuCQ('lender', { nominal: 8, used: 3 });
-    const borrower = makeGpuCQ('borrower', { nominal: 8, used: 10, borrowed: 2 });
-    const other = makeGpuCQ('other', { nominal: 8, used: 8 });
-    expect(getCounterpartCQNames(lender, [lender, borrower, other])).toEqual(['borrower']);
-  });
-
-  it('borrower sees names of lending siblings', () => {
-    const borrower = makeGpuCQ('borrower', { nominal: 8, used: 10, borrowed: 2 });
-    const lender = makeGpuCQWithCohort('lender', 'test-cohort', { nominal: 8, used: 3 });
-    const other = makeGpuCQ('other', { nominal: 8, used: 8 });
-    expect(getCounterpartCQNames(borrower, [borrower, lender, other])).toEqual(['lender']);
-  });
-
-  it.each([
-    [
-      'siblings present but no borrow-lend activity',
-      [makeGpuCQ('sibling', { nominal: 8, used: 8 })],
-    ],
-    ['no siblings at all', []],
-  ] as const)('returns empty array — %s', (_label, siblings) => {
-    const cq = makeGpuCQ('cq', { nominal: 8, used: 8 });
-    expect(getCounterpartCQNames(cq, [cq, ...siblings])).toEqual([]);
+    expect(isCohortBorrowActive(cohort)).toBe(false);
   });
 });
 
@@ -350,8 +313,8 @@ describe('getAcceleratorDonutConfig', () => {
       [6, '6'],
     ])('used=%d → title="%s" single Borrowed segment', (used, title) => {
       const config = getAcceleratorDonutConfig(makeGpuCQ('burst-cq', { nominal: 0, used }));
-      expect(config.type).toBe(AcceleratorDonutType.BorrowLend);
-      if (config.type === AcceleratorDonutType.BorrowLend) {
+      expect(config.type).toBe(AcceleratorDonutType.Borrow);
+      if (config.type === AcceleratorDonutType.Borrow) {
         expect(config.isBorrowing).toBe(true);
         expect(config.title).toBe(title);
         expect(config.stateLabel).toBe(AcceleratorSegment.Borrowed);
@@ -376,32 +339,31 @@ describe('getAcceleratorDonutConfig', () => {
     });
   });
 
-  describe('lending state — used < nominal', () => {
+  describe('unallocated capacity state — used < nominal, treated as normal', () => {
     it.each([
-      // [nominal, used, expectedOwnUsed, expectedLent]
-      [8, 3, 3, 5],
-      [8, 0, 0, 8],
-    ])('nominal=%d used=%d → segments Own=%d Lent=%d', (nominal, used, ownUsed, lent) => {
+      // [nominal, used, expectedPercentage]
+      // Math.round(3/8 * 100) = 38
+      [8, 3, 38],
+      // Math.round(0/8 * 100) = 0
+      [8, 0, 0],
+    ])('nominal=%d used=%d → type=normal percentage=%d', (nominal, used, expectedPercentage) => {
       const config = getAcceleratorDonutConfig(
         makeGpuCQWithCohort('cq', 'test-cohort', { nominal, used }),
       );
-      expect(config.type).toBe(AcceleratorDonutType.BorrowLend);
-      if (config.type === AcceleratorDonutType.BorrowLend) {
-        expect(config.isBorrowing).toBe(false);
-        expect(config.stateLabel).toBe(AcceleratorSegment.Lent);
-        expect(config.segments).toEqual([
-          { x: AcceleratorSegment.Own, y: ownUsed },
-          { x: AcceleratorSegment.Lent, y: lent },
-        ]);
+      expect(config.type).toBe(AcceleratorDonutType.Normal);
+      if (config.type === AcceleratorDonutType.Normal) {
+        expect(config.percentage).toBe(expectedPercentage);
+        expect(config.used).toBe(used);
+        expect(config.nominal).toBe(nominal);
       }
     });
   });
 
-  describe('standalone CQ (inCohort=false) — borrow-lend suppressed to normal', () => {
+  describe('standalone CQ (inCohort=false) — borrow suppressed to normal', () => {
     it.each([
       // [description, cqOpts, expectedPercentage]
       // Math.round(3/8 * 100) = 38
-      ['lending CQ', { nominal: 8, used: 3 }, 38],
+      ['unallocated capacity CQ', { nominal: 8, used: 3 }, 38],
       // used=8 equals nominal=8; borrowed=2 suppressed → 100%
       ['borrowing CQ', { nominal: 8, used: 8, borrowed: 2 }, 100],
     ] as const)('%s → type=normal percentage=%d', (_label, cqOpts, expectedPercentage) => {
@@ -422,8 +384,8 @@ describe('getAcceleratorDonutConfig', () => {
       'nominal=%d used=%d borrowed=%d → segments Own=%d Available=%d',
       (nominal, used, borrowed, ownUsed, available) => {
         const config = getAcceleratorDonutConfig(makeGpuCQ('cq', { nominal, used, borrowed }));
-        expect(config.type).toBe(AcceleratorDonutType.BorrowLend);
-        if (config.type === AcceleratorDonutType.BorrowLend) {
+        expect(config.type).toBe(AcceleratorDonutType.Borrow);
+        if (config.type === AcceleratorDonutType.Borrow) {
           expect(config.isBorrowing).toBe(true);
           expect(config.stateLabel).toBe(AcceleratorSegment.Borrowed);
           expect(config.segments).toEqual([
@@ -437,68 +399,69 @@ describe('getAcceleratorDonutConfig', () => {
   });
 });
 
-describe('getBorrowLendBadgeState', () => {
+describe('getBorrowBadgeState', () => {
   it.each([
     [
       'fully utilised (type=normal)',
       { nominal: 8, used: 8 },
       true,
-      { borrowing: false, lending: false, lentCount: 0, borrowedCount: 0 },
+      { borrowing: false, borrowedCount: 0 },
     ],
     [
-      'lending CQ',
+      'unallocated capacity CQ — treated as normal, no badge',
       { nominal: 8, used: 3 },
       true,
-      { borrowing: false, lending: true, lentCount: 5, borrowedCount: 0 },
+      { borrowing: false, borrowedCount: 0 },
     ],
     [
       'borrowing CQ',
       { nominal: 8, used: 10, borrowed: 2 },
       true,
-      { borrowing: true, lending: false, lentCount: 0, borrowedCount: 2 },
+      { borrowing: true, borrowedCount: 2 },
     ],
     [
-      'lending suppressed by inCohort=false',
+      'inCohort=false (standalone)',
       { nominal: 8, used: 3 },
       false,
-      { borrowing: false, lending: false, lentCount: 0, borrowedCount: 0 },
+      { borrowing: false, borrowedCount: 0 },
     ],
   ] as const)('%s', (_label, cqOpts, inCohort, expected) => {
     const cq = inCohort
       ? makeGpuCQWithCohort('cq', 'test-cohort', cqOpts)
       : makeGpuCQ('cq', cqOpts);
     const config = getAcceleratorDonutConfig(cq, inCohort);
-    expect(getBorrowLendBadgeState(config)).toEqual(expected);
+    expect(getBorrowBadgeState(config)).toEqual(expected);
   });
 });
 
-describe('getBorrowLendInfo', () => {
+describe('getBorrowInfo', () => {
   it('returns undefined for a Normal donut', () => {
     const config = getAcceleratorDonutConfig(makeGpuCQ('cq', { nominal: 8, used: 4 }));
-    expect(getBorrowLendInfo(config)).toBeUndefined();
+    expect(getBorrowInfo(config)).toBeUndefined();
   });
 
   it.each([
     // Pure borrower: nominal=0 set to used as rendering trick — Own segment absent → ownRatio must be 0
-    ['pure borrower', makeGpuCQ('burst-cq', { nominal: 0, used: 6 }), true, 0],
+    ['pure borrower', makeGpuCQ('burst-cq', { nominal: 0, used: 6 }), 0],
     // Regular borrower: nominal=8, used=10, borrowed=2 → ownUsed=8, ownRatio=8/10=0.8
     [
       'regular borrower',
       makeGpuCQWithCohort('cq', 'cohort', { nominal: 8, used: 10, borrowed: 2 }),
-      true,
       0.8,
     ],
-    // Lender: nominal=8, used=4 → ownRatio=4/8=0.5
-    ['lender', makeGpuCQWithCohort('cq', 'cohort', { nominal: 8, used: 4 }), false, 0.5],
-  ] as const)(
-    '%s — isBorrowing=%s, ownRatio≈%s',
-    (_label, cq, expectedIsBorrowing, expectedRatio) => {
-      const config = getAcceleratorDonutConfig(cq, true);
-      const info = getBorrowLendInfo(config);
-      expect(info?.isBorrowing).toBe(expectedIsBorrowing);
-      expect(info?.ownRatio).toBeCloseTo(expectedRatio);
-    },
-  );
+  ] as const)('%s — isBorrowing=true, ownRatio≈%s', (_label, cq, expectedRatio) => {
+    const config = getAcceleratorDonutConfig(cq, true);
+    const info = getBorrowInfo(config);
+    expect(info?.isBorrowing).toBe(true);
+    expect(info?.ownRatio).toBeCloseTo(expectedRatio);
+  });
+
+  it('returns undefined for a CQ with unallocated capacity', () => {
+    const unallocatedCQ = makeGpuCQWithCohort('cq', 'cohort', { nominal: 8, used: 4 });
+    const config = getAcceleratorDonutConfig(unallocatedCQ, true);
+    expect(config.type).toBe(AcceleratorDonutType.Normal);
+    expect(getBorrowInfo(config)).toBeUndefined();
+  });
 });
 
 describe('resolveCQDcgmUtilization', () => {

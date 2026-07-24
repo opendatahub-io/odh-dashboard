@@ -45,7 +45,7 @@ export type CQMetricSeries = {
   cohortName: string;
   /** Nominal GPU quota declared for this cluster queue (in GPU units). */
   nominalQuota: number;
-  data: { x: number; y: number }[];
+  data: { x: number; y: number; gpuUsage: number }[];
 };
 
 type CQInfo = {
@@ -139,8 +139,8 @@ const buildSeries = (
         return null;
       }
       const info = cqInfoMap.get(cqName);
-      // Only include CQs that are members of a cohort — borrowing and lending
-      // are cohort-level concepts. Standalone CQs cannot borrow or lend.
+      // Only include CQs that are members of a cohort — borrowing is a
+      // cohort-level concept. Standalone CQs cannot borrow.
       if (!info) {
         return null;
       }
@@ -148,10 +148,19 @@ const buildSeries = (
         cqName,
         cohortName: info.cohortName,
         nominalQuota: info.nominalQuota,
-        data: result.values.map(([timestamp, valueStr]) => ({
-          x: timestamp * 1000,
-          y: parseFloat(valueStr) - info.nominalQuota,
-        })),
+        data: result.values.flatMap(([timestamp, valueStr]) => {
+          const gpuUsage = Number(valueStr);
+          if (valueStr.trim() === '' || !Number.isFinite(gpuUsage)) {
+            return [];
+          }
+          return [
+            {
+              x: timestamp * 1000,
+              y: Math.max(0, gpuUsage - info.nominalQuota),
+              gpuUsage,
+            },
+          ];
+        }),
       };
     })
     .filter((s): s is CQMetricSeries => s !== null);

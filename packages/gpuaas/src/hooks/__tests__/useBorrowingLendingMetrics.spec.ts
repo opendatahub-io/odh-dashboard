@@ -112,13 +112,30 @@ describe('buildSeries', () => {
   });
 
   it.each([
-    ['borrowing (usage > quota)', '6', 4, 2],
-    ['lending (usage < quota)', '1', 4, -3],
-  ])('computes y correctly for %s', (_label, usage, quota, expectedY) => {
+    ['borrowing (usage > quota)', '6', 4, 2, 6],
+    ['unallocated capacity (usage < quota) — clipped to 0', '1', 4, 0, 1],
+  ])(
+    'computes y and gpuUsage correctly for %s',
+    (_label, usage, quota, expectedY, expectedGpuUsage) => {
+      const series = buildSeries(
+        [makeResult('cq-a', [[1700000000, usage]])],
+        makeCQInfoMap([['cq-a', { nominalQuota: quota, cohortName: 'cohort-1' }]]),
+      );
+      expect(series[0].data[0].y).toBeCloseTo(expectedY);
+      expect(series[0].data[0].gpuUsage).toBeCloseTo(expectedGpuUsage);
+    },
+  );
+
+  it.each([
+    ['NaN string', 'NaN'],
+    ['empty string', ''],
+    ['whitespace', '   '],
+    ['Infinity', 'Infinity'],
+  ])('drops non-finite sample: %s', (_label, valueStr) => {
     const series = buildSeries(
-      [makeResult('cq-a', [[1700000000, usage]])],
-      makeCQInfoMap([['cq-a', { nominalQuota: quota, cohortName: 'cohort-1' }]]),
+      [makeResult('cq-a', [[1700000000, valueStr]])],
+      makeCQInfoMap([['cq-a', { nominalQuota: 4, cohortName: 'cohort-1' }]]),
     );
-    expect(series[0].data[0].y).toBeCloseTo(expectedY);
+    expect(series[0].data).toHaveLength(0);
   });
 });

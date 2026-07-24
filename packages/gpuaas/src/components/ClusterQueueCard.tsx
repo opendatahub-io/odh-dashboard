@@ -12,13 +12,12 @@ import {
 } from '@patternfly/react-core';
 import {
   chart_color_blue_300 as chartColorBlue,
-  chart_color_purple_100 as chartColorPurple,
   chart_color_orange_100 as chartColorOrange,
 } from '@patternfly/react-tokens';
 import { ClusterQueueKind } from '@odh-dashboard/internal/k8sTypes';
 import AcceleratorDonutChart from './AcceleratorDonutChart';
 import {
-  BorrowLendBadge,
+  BorrowBadge,
   ChartColumn,
   DcgmDonut,
   PerModelDcgmData,
@@ -29,8 +28,8 @@ import {
   AcceleratorSegment,
   formatWorkloadCounts,
   getAcceleratorDonutConfig,
-  getBorrowLendBadgeState,
-  getBorrowLendInfo,
+  getBorrowBadgeState,
+  getBorrowInfo,
   isInCohort,
 } from '../utils/clusterQueueUtils';
 
@@ -38,7 +37,6 @@ type ClusterQueueCardProps = {
   cq: ClusterQueueKind;
   hardwareModels: string[];
   perModelGpus?: ModelGpuCount[];
-  counterpartCQNames?: string[];
   /** True when the DCGM service is present; controls whether the two chart columns render at all. */
   dcgmAvailable?: boolean;
   computeUtilization?: number | null;
@@ -50,14 +48,12 @@ type ClusterQueueCardProps = {
 const LEGEND_COLORS: Record<string, string> = {
   [AcceleratorSegment.Own]: chartColorBlue.value,
   [AcceleratorSegment.Borrowed]: chartColorOrange.value,
-  [AcceleratorSegment.Lent]: chartColorPurple.value,
 };
 
 const ClusterQueueCard: React.FC<ClusterQueueCardProps> = ({
   cq,
   hardwareModels,
   perModelGpus = [],
-  counterpartCQNames = [],
   dcgmAvailable = false,
   computeUtilization,
   memoryUtilization,
@@ -70,14 +66,12 @@ const ClusterQueueCard: React.FC<ClusterQueueCardProps> = ({
   const cqIsInCohort = isInCohort(cq);
 
   const donutConfig = getAcceleratorDonutConfig(cq, cqIsInCohort);
-  const { borrowing, lending, lentCount, borrowedCount } = getBorrowLendBadgeState(donutConfig);
+  const { borrowing, borrowedCount } = getBorrowBadgeState(donutConfig);
 
-  const borrowLendInfo = getBorrowLendInfo(donutConfig);
+  const borrowInfo = getBorrowInfo(donutConfig);
   const legendSeriesNames =
-    donutConfig.type === AcceleratorDonutType.BorrowLend
-      ? donutConfig.isBorrowing
-        ? [AcceleratorSegment.Own, AcceleratorSegment.Borrowed]
-        : [AcceleratorSegment.Own, AcceleratorSegment.Lent]
+    donutConfig.type === AcceleratorDonutType.Borrow
+      ? [AcceleratorSegment.Own, AcceleratorSegment.Borrowed]
       : [];
   const legendItems = legendSeriesNames.map((seriesName) => ({
     name: seriesName,
@@ -85,7 +79,7 @@ const ClusterQueueCard: React.FC<ClusterQueueCardProps> = ({
   }));
 
   return (
-    <Card isCompact data-testid={`cq-card-${name}`}>
+    <Card isCompact isFullHeight data-testid={`cq-card-${name}`}>
       <CardTitle>
         <Flex
           alignItems={{ default: 'alignItemsCenter' }}
@@ -110,25 +104,12 @@ const ClusterQueueCard: React.FC<ClusterQueueCardProps> = ({
               </LabelGroup>
             </FlexItem>
           )}
-          {lending && cqIsInCohort && (
-            <FlexItem>
-              <BorrowLendBadge
-                type="lent"
-                count={lentCount}
-                models={hardwareModels}
-                perModelGpus={perModelGpus}
-                counterpartCQNames={counterpartCQNames}
-              />
-            </FlexItem>
-          )}
           {borrowing && (
             <FlexItem>
-              <BorrowLendBadge
-                type="borrowed"
+              <BorrowBadge
                 count={borrowedCount}
                 models={hardwareModels}
                 perModelGpus={perModelGpus}
-                counterpartCQNames={counterpartCQNames}
               />
             </FlexItem>
           )}
@@ -160,7 +141,7 @@ const ClusterQueueCard: React.FC<ClusterQueueCardProps> = ({
                   <DcgmDonut
                     percentage={computeUtilization}
                     ariaLabel="Accelerator compute consumption"
-                    borrowLendInfo={borrowLendInfo}
+                    borrowInfo={borrowInfo}
                     perModelData={perModelComputeDcgm}
                     testId="dcgm-compute-donut"
                   />
@@ -171,7 +152,7 @@ const ClusterQueueCard: React.FC<ClusterQueueCardProps> = ({
                   <DcgmDonut
                     percentage={memoryUtilization}
                     ariaLabel="Accelerator memory consumption"
-                    borrowLendInfo={borrowLendInfo}
+                    borrowInfo={borrowInfo}
                     perModelData={perModelMemoryDcgm}
                     testId="dcgm-memory-donut"
                   />
