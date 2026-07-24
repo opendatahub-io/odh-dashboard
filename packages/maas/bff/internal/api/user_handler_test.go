@@ -22,9 +22,11 @@ const (
 )
 
 var envConfig = config.EnvConfig{
-	AllowedOrigins: []string{"*"},
-	AuthMethod:     "internal",
-	MockHTTPClient: true,
+	AllowedOrigins:   []string{"*"},
+	AuthMethod:       "internal",
+	GatewayNamespace: "openshift-ingress",
+	GatewayName:      "maas-default-gateway",
+	MockHTTPClient:   true,
 }
 
 var _ = Describe("TestUserHandler", func() {

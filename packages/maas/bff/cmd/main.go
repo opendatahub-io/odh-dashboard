@@ -50,9 +50,9 @@ func main() {
 	flag.BoolVar(&cfg.FederatedPlatform, "federated-platform", false, "DEPRECATED: Use -deployment-mode=federated instead")
 
 	// MaaS
-	flag.StringVar(&cfg.MaasApiUrl, "maas-api-url", getEnvAsString("MAAS_API_URL", ""), "The URL of the MaaS Gateway API")
-	flag.StringVar(&cfg.MaasApiInternalUrl, "maas-api-internal-url", getEnvAsString("MAAS_API_INTERNAL_URL", ""), "Internal maas-api Service URL for /v1/tenants discovery (e.g. https://maas-api.odh-ai-gateway-infra.svc.cluster.local:8443)")
-	flag.StringVar(&cfg.MaasApiNamespace, "maas-api-namespace", getEnvAsString("MAAS_API_NAMESPACE", ""), "Namespace of the internal maas-api Service when MAAS_API_INTERNAL_URL is not set (overrides DSC-based detection)")
+	flag.StringVar(&cfg.GatewayNamespace, "gateway-namespace", getEnvAsString("GATEWAY_NAMESPACE", "openshift-ingress"), "Namespace where the MaaS Gateway is deployed in")
+	flag.StringVar(&cfg.GatewayName, "gateway-name", getEnvAsString("GATEWAY_NAME", "maas-default-gateway"), "The names of the MaaS Gateway")
+	flag.StringVar(&cfg.MaasApiUrl, "maas-api-url", getEnvAsString("MAAS_API_URL", ""), "The URL of the MaaS API")
 	flag.StringVar(&cfg.MaaSSubscriptionNamespace, "maas-subscription-namespace", getEnvAsString("MAAS_SUBSCRIPTION_NAMESPACE", "models-as-a-service"), "Namespace for MaaSSubscription and MaaSAuthPolicy resources")
 
 	flag.Parse()

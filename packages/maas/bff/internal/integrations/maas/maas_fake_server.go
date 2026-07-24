@@ -21,10 +21,6 @@ func CreateMaasFakeServer() *httptest.Server {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case http.MethodGet:
-			if r.URL.Path == "/v1/tenants" {
-				sendFakeResponse("tenants-response.json", http.StatusOK, w)
-				return
-			}
 			if r.URL.Path == "/v1/models" {
 				sendFakeResponse("maas-models-list.json", http.StatusOK, w)
 				return
