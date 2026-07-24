@@ -16,31 +16,6 @@ let mockDrawerPanelDefaultSize: string | undefined;
 let mockDrawerPanelStyle: React.CSSProperties | undefined;
 let mockDrawerHeadStyle: React.CSSProperties | undefined;
 let mockDrawerBodyStyle: React.CSSProperties | undefined;
-let mockTabsMountCount = 0;
-
-// Component to track Tabs mounts - must be outside jest.mock to use React hooks
-const TabsMountTracker: React.FC<{
-  children: React.ReactNode;
-  activeKey?: string | number;
-  role?: string;
-  [key: string]: unknown;
-}> = ({ children, activeKey, role, ...props }) => {
-  const mountedRef = React.useRef(false);
-
-  React.useEffect(() => {
-    if (!mountedRef.current) {
-      mountedRef.current = true;
-      mockTabsMountCount += 1;
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  return (
-    <div data-testid="mock-tabs" data-active-key={activeKey} role={role} {...props}>
-      {children}
-    </div>
-  );
-};
 
 jest.mock('@patternfly/react-core', () => {
   const actual = jest.requireActual('@patternfly/react-core');
@@ -142,23 +117,6 @@ jest.mock('@patternfly/react-core', () => {
         </div>
       );
     },
-    Tabs: ({
-      children,
-      activeKey,
-      role,
-      ...domProps
-    }: {
-      children: React.ReactNode;
-      activeKey?: string | number;
-      onSelect?: (event: unknown, key: string | number) => void;
-      role?: string;
-      'aria-label'?: string;
-      'data-testid'?: string;
-    }) => (
-      <TabsMountTracker activeKey={activeKey} role={role} {...domProps}>
-        {children}
-      </TabsMountTracker>
-    ),
   };
 });
 
@@ -236,7 +194,6 @@ describe('ChatbotSettingsPanel', () => {
     mockDrawerPanelDefaultSize = undefined;
     mockDrawerHeadStyle = undefined;
     mockDrawerBodyStyle = undefined;
-    mockTabsMountCount = 0;
   });
 
   it('should call onCloseClick and reset sessionStorage when panel is resized below 150px', async () => {
@@ -301,58 +258,6 @@ describe('ChatbotSettingsPanel', () => {
     const resize50Button = screen.getByTestId('trigger-resize-50');
     await expect(user.click(resize50Button)).resolves.not.toThrow();
     expect(sessionStorage.getItem(SETTINGS_PANEL_WIDTH)).toBe(DEFAULT_WIDTH);
-  });
-
-  it('should debounce Tabs remount when panel is resized', async () => {
-    jest.useFakeTimers();
-    const user = userEvent.setup({ delay: null });
-    render(<ChatbotSettingsPanel {...defaultProps} onCloseClick={jest.fn()} />);
-
-    // Verify tabs are rendered and track initial mount count
-    expect(screen.getByTestId('chatbot-settings-page-tabs')).toBeInTheDocument();
-    const initialMountCount = mockTabsMountCount;
-    expect(initialMountCount).toBe(1);
-
-    // Resize panel to 200px
-    const resize200Button = screen.getByTestId('trigger-resize-200');
-    await user.click(resize200Button);
-
-    // Verify the resize was processed
-    expect(sessionStorage.getItem(SETTINGS_PANEL_WIDTH)).toBe('200px');
-
-    // Before debounce timeout, Tabs should not have remounted yet (tabsKey not incremented)
-    expect(mockTabsMountCount).toBe(initialMountCount);
-
-    // Fast-forward past debounce timeout (300ms)
-    await React.act(async () => {
-      jest.advanceTimersByTime(300);
-    });
-
-    // Tabs should have remounted after debounce (tabsKey incremented)
-    expect(mockTabsMountCount).toBe(initialMountCount + 1);
-    expect(screen.getByTestId('chatbot-settings-page-tabs')).toBeInTheDocument();
-
-    // Resize again to 250px
-    const resize250Button = screen.getByTestId('trigger-resize-250');
-    await user.click(resize250Button);
-
-    // Verify the second resize was processed
-    expect(sessionStorage.getItem(SETTINGS_PANEL_WIDTH)).toBe('250px');
-
-    // Mount count should stay the same before debounce
-    const mountCountAfterFirstDebounce = mockTabsMountCount;
-    expect(mountCountAfterFirstDebounce).toBe(initialMountCount + 1);
-
-    // Fast-forward past debounce timeout again
-    await React.act(async () => {
-      jest.advanceTimersByTime(300);
-    });
-
-    // Tabs should have remounted again (tabsKey incremented)
-    expect(mockTabsMountCount).toBe(initialMountCount + 2);
-    expect(screen.getByTestId('chatbot-settings-page-tabs')).toBeInTheDocument();
-
-    jest.useRealTimers();
   });
 
   it('should auto-close when panel is resized below threshold without debouncing', async () => {
@@ -490,14 +395,14 @@ describe('ChatbotSettingsPanel', () => {
       // Both should have DrawerHead and DrawerPanelBody as direct children
       const singleHead = singlePanel?.querySelector('[data-testid="mock-drawer-head"]');
       const singleBody = singlePanel?.querySelector('[data-testid="mock-drawer-body"]');
-      const singleTabs = singleContainer.querySelector(
+      const singleToggleGroup = singleContainer.querySelector(
         '[data-testid="chatbot-settings-page-tabs"]',
       );
 
       // Verify structure
       expect(singleHead?.parentElement).toBe(singlePanel);
       expect(singleBody?.parentElement).toBe(singlePanel);
-      expect(singleTabs).toBeInTheDocument();
+      expect(singleToggleGroup).toBeInTheDocument();
 
       // Now render compare mode
       const { container: compareContainer } = render(
@@ -507,14 +412,14 @@ describe('ChatbotSettingsPanel', () => {
       const comparePanel = compareContainer.querySelector('[data-testid="mock-drawer-panel"]');
       const compareHead = comparePanel?.querySelector('[data-testid="mock-drawer-head"]');
       const compareBody = comparePanel?.querySelector('[data-testid="mock-drawer-body"]');
-      const compareTabs = compareContainer.querySelector(
+      const compareToggleGroup = compareContainer.querySelector(
         '[data-testid="chatbot-settings-page-tabs"]',
       );
 
       // Verify structure is identical to single mode
       expect(compareHead?.parentElement).toBe(comparePanel);
       expect(compareBody?.parentElement).toBe(comparePanel);
-      expect(compareTabs).toBeInTheDocument();
+      expect(compareToggleGroup).toBeInTheDocument();
     });
 
     it('should render content directly in DrawerPanelContent for both modes', () => {
