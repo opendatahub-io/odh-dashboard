@@ -150,7 +150,9 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 	} else if cfg.MaasApiUrl != "" {
 		maasApiURL.Set(cfg.MaasApiUrl)
 	} else {
-		discoveredURL, discoverErr := helper.DiscoverMaasApiURL(context.Background(), cfg, logger, rootCAs)
+		discoverCtx, discoverCancel := context.WithTimeout(context.Background(), helper.MaasDiscoveryAttemptTimeout)
+		discoveredURL, discoverErr := helper.DiscoverMaasApiURL(discoverCtx, cfg, logger, rootCAs)
+		discoverCancel()
 		if discoverErr != nil {
 			logger.Warn("Failed to discover MaaS API URL via /v1/tenants; starting in degraded mode and retrying in background",
 				"error", discoverErr)
@@ -235,7 +237,8 @@ func (app *App) wireMaasApiURL(maasApiURL string) error {
 	if app.maasApiURL != nil {
 		app.maasApiURL.Set(maasApiURL)
 	}
-	app.config.MaasApiUrl = maasApiURL
+	// Do not mutate app.config.MaasApiUrl from the discovery goroutine; readiness
+	// is tracked via repository clients and maasApiURL holder.
 	return nil
 }
 

@@ -99,7 +99,9 @@ func runMaasApiDiscoveryLoop(
 		case <-timer.C:
 		}
 
-		discoveredURL, err := discover(ctx, cfg, logger, rootCAs)
+		attemptCtx, cancel := context.WithTimeout(ctx, MaasDiscoveryAttemptTimeout)
+		discoveredURL, err := discover(attemptCtx, cfg, logger, rootCAs)
+		cancel()
 		if err != nil {
 			backoff = nextDiscoveryBackoff(backoff, maxBackoff)
 			logger.Warn("MaaS API discovery failed; will retry",
@@ -117,9 +119,11 @@ func runMaasApiDiscoveryLoop(
 					"retryIn", backoff.String())
 				continue
 			}
+		} else {
+			// onReady (e.g. App.wireMaasApiURL) already updates the holder when present.
+			holder.Set(discoveredURL)
 		}
 
-		holder.Set(discoveredURL)
 		logger.Info("MaaS API URL discovered after retry", "url", discoveredURL)
 		return
 	}

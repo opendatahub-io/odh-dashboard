@@ -48,6 +48,7 @@ func TestMaasApiDiscoveryLoop_SetsURLOnSuccess(t *testing.T) {
 
 	wired := make(chan string, 1)
 	onReady := func(url string) error {
+		holder.Set(url) // mirrors App.wireMaasApiURL
 		wired <- url
 		return nil
 	}
