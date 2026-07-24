@@ -92,9 +92,18 @@ func TestBuildFederationConfigMap_ExcludesDisabledModules(t *testing.T) {
 	require.NoError(t, err)
 
 	data := cm.Data["module-federation-config.json"]
-	assert.NotContains(t, data, `"genAi"`, "disabled module must be excluded")
-	assert.NotContains(t, data, `"maas"`, "not-deployed module must be excluded")
-	assert.Contains(t, data, `"modelRegistry"`, "deployed module must be included")
+	var entries []map[string]interface{}
+	require.NoError(t, json.Unmarshal([]byte(data), &entries))
+
+	names := make(map[string]bool)
+	for _, entry := range entries {
+		if name, ok := entry["name"].(string); ok {
+			names[name] = true
+		}
+	}
+	assert.False(t, names["genAi"], "disabled module must be excluded")
+	assert.False(t, names["maas"], "not-deployed module must be excluded")
+	assert.True(t, names["modelRegistry"], "deployed module must be included")
 }
 
 func TestBuildFederationConfigMap_NoEnabledField(t *testing.T) {
@@ -278,6 +287,5 @@ func TestPatchDeploymentFederationHash_DeploymentNotFound(t *testing.T) {
 	}
 
 	err := r.PatchDeploymentFederationHash(context.Background(), `[{"name":"genAi"}]`)
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "getting deployment")
+	require.NoError(t, err, "NotFound should be a no-op, not an error")
 }

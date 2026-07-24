@@ -17,6 +17,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -135,6 +136,10 @@ func (r *DashboardReconciler) patchDeploymentFederationHash(
 	var deploy appsv1.Deployment
 	key := client.ObjectKey{Name: deployName, Namespace: r.ApplicationsNamespace}
 	if err := r.Get(ctx, key, &deploy); err != nil {
+		if apierrors.IsNotFound(err) {
+			log.FromContext(ctx).Info("Dashboard deployment not found, skipping federation hash patch", "deployment", deployName)
+			return nil
+		}
 		return fmt.Errorf("getting deployment %s: %w", deployName, err)
 	}
 

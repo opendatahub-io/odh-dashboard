@@ -440,6 +440,7 @@ func (r *DashboardReconciler) reconcileStandalone(
 
 	if err := r.patchDeploymentFederationHash(ctx, fedData); err != nil {
 		logger.Error(err, "Failed to patch federation hash on deployment")
+		return ctrl.Result{}, fmt.Errorf("patching federation hash: %w", err)
 	}
 
 	// Step 8: URL extraction + degraded condition
