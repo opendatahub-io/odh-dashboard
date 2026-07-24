@@ -98,14 +98,25 @@ var interBFFDependencies = map[string][]interBFFDependency{
 	},
 }
 
+// coreBffPort is the port core-bff listens on within the main dashboard pod/service.
+const coreBffPort = 8943
+
+// mainDashboardServiceName returns the platform-specific name of the main
+// dashboard Service that exposes the core-bff port (8943).
+func mainDashboardServiceName(platform cluster.Platform) string {
+	if platform == cluster.SelfManagedRhoai || platform == cluster.ManagedRhoai {
+		return "rhods-dashboard"
+	}
+	return "odh-dashboard"
+}
+
 // --- Platform-aware service name resolution ---
 
-func standaloneServiceName(platform cluster.Platform, slug string) string {
-	prefix := "odh-dashboard"
-	if platform == cluster.SelfManagedRhoai || platform == cluster.ManagedRhoai {
-		prefix = "rhods-dashboard"
-	}
-	return prefix + "-" + slug + "-ui"
+// standaloneServiceName returns the Kubernetes Service name for a standalone module pod.
+// Module manifests (manifests/modules/*/service.yaml) always use the odh-dashboard- prefix
+// regardless of platform, so we do the same here for consistency.
+func standaloneServiceName(_ cluster.Platform, slug string) string {
+	return "odh-dashboard-" + slug + "-ui"
 }
 
 // --- Deploy individual module manifests ---
@@ -126,7 +137,7 @@ func (r *DashboardReconciler) deployModuleManifests(
 			continue
 		}
 
-		modulePath := filepath.Join(r.ManifestsBasePath, "modular-architecture", "modules", mod.ManifestSlug)
+		modulePath := filepath.Join(r.ManifestsBasePath, "modules", mod.ManifestSlug)
 
 		if _, err := os.Stat(modulePath); os.IsNotExist(err) {
 			logger.Info("Module manifest directory not found, skipping standalone deployment", "module", name, "path", modulePath)
@@ -332,6 +343,24 @@ func (r *DashboardReconciler) buildFederationConfigMap(
 		}
 		entries = append(entries, entry)
 	}
+
+	// Add coreBff entry — core-bff is always present when the dashboard is deployed
+	// (it is a core container in the main pod, not a module). The Fastify backend
+	// uses this proxyService entry to route /core-bff/api/* requests to port 8943.
+	entries = append(entries, federationEntry{
+		Name: "coreBff",
+		ProxyService: []proxyServiceEntry{{
+			Authorize:   true,
+			Path:        "/core-bff/api",
+			PathRewrite: "/api",
+			TLS:         true,
+			Service: serviceRef{
+				Name:      mainDashboardServiceName(r.Platform),
+				Namespace: r.ApplicationsNamespace,
+				Port:      coreBffPort,
+			},
+		}},
+	})
 
 	// Add perses entry if observability is enabled
 	if dashboard.Spec.Observability != nil && dashboard.Spec.Observability.Enabled &&

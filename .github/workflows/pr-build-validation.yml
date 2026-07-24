@@ -763,6 +763,23 @@ jobs:
           echo "Waiting for rollout to complete..."
           kubectl rollout status deployment/odh-dashboard -n opendatahub --timeout=120s
 
+          # rollout status exits as soon as new pods are Ready, but old pods from the
+          # previous revision can still be in Terminating state for their gracePeriod.
+          # Wait up to 60s for them to fully disappear so the next step doesn't pick up
+          # a Terminating pod as items[0] and produce a false health-check failure.
+          echo "Waiting for any Terminating pods to clear..."
+          for i in {1..12}; do
+            TERM_COUNT=$(kubectl get pods -n opendatahub -l app=odh-dashboard \
+              -o jsonpath='{range .items[*]}{.metadata.deletionTimestamp}{"\n"}{end}' 2>/dev/null \
+              | grep -vc '^$' || echo "0")
+            if [ "${TERM_COUNT:-0}" -eq 0 ]; then
+              echo "✅ No Terminating pods"
+              break
+            fi
+            echo "  Waiting for ${TERM_COUNT} pod(s) to finish terminating... ($i/12)"
+            sleep 5
+          done
+
       - name: Check container status and validate
         run: |
           set -euo pipefail
@@ -774,17 +791,30 @@ jobs:
           kubectl describe deployment odh-dashboard -n opendatahub
           echo "::endgroup::"
 
+          # Select the active (non-Terminating) pod. After a rolling update items[0] may
+          # still be the old revision with a deletionTimestamp set. Filter it out via
+          # custom-columns so health checks always target the current revision.
+          POD=$(kubectl get pods -n opendatahub -l app=odh-dashboard \
+            -o custom-columns='NAME:.metadata.name,DEL:.metadata.deletionTimestamp' \
+            --no-headers 2>/dev/null | awk '$2 == "<none>"' | head -1 | awk '{print "pod/" $1}')
+
+          if [ -z "$POD" ]; then
+            echo "❌ FAIL: No non-Terminating pod found for app=odh-dashboard"
+            kubectl get pods -n opendatahub -l app=odh-dashboard
+            exit 1
+          fi
+          echo "Active pod: $POD"
+
           # Get pod details
           echo "::group::Pod events and status"
-          POD=$(kubectl get pods -n opendatahub -l app=odh-dashboard -o name | head -1)
-          if [ -n "$POD" ]; then
-            kubectl describe -n opendatahub "$POD"
-          fi
+          kubectl describe -n opendatahub "$POD"
           echo "::endgroup::"
 
           # Check if containers started (even if they fail later)
           echo "Validating container lifecycle..."
-          CONTAINER_STATUSES=$(kubectl get pods -n opendatahub -l app=odh-dashboard -o jsonpath='{.items[0].status.containerStatuses[*].state}' 2>/dev/null || echo "")
+          POD_NAME="${POD#pod/}"
+          CONTAINER_STATUSES=$(kubectl get pod -n opendatahub "$POD_NAME" \
+            -o jsonpath='{.status.containerStatuses[*].state}' 2>/dev/null || echo "")
 
           if [ -z "$CONTAINER_STATUSES" ]; then
             echo "❌ FAIL: No container statuses found - pods may not have started"
@@ -792,7 +822,8 @@ jobs:
           fi
 
           # Check for successful image pulls
-          IMAGES_PULLED=$(kubectl get pods -n opendatahub -l app=odh-dashboard -o jsonpath='{.items[0].status.containerStatuses[*].imageID}' 2>/dev/null | wc -w)
+          IMAGES_PULLED=$(kubectl get pod -n opendatahub "$POD_NAME" \
+            -o jsonpath='{.status.containerStatuses[*].imageID}' 2>/dev/null | wc -w)
 
           if [ "$IMAGES_PULLED" -eq 0 ]; then
             echo "❌ FAIL: No images were pulled successfully"
@@ -812,19 +843,19 @@ jobs:
           # not restarted. A CrashLoopBackOff or any restart count > 0 means the server
           # failed to start and is a hard failure.
           echo "::group::Health check: odh-dashboard container"
-          DASHBOARD_RUNNING=$(kubectl get pods -n opendatahub -l app=odh-dashboard \
-            -o jsonpath='{.items[0].status.containerStatuses[?(@.name=="odh-dashboard")].state.running}' \
+          DASHBOARD_RUNNING=$(kubectl get pod -n opendatahub "$POD_NAME" \
+            -o jsonpath='{.status.containerStatuses[?(@.name=="odh-dashboard")].state.running}' \
             2>/dev/null || echo "")
           # Use -1 as sentinel: a non-negative integer means success, anything else
           # (including -1 or empty) means kubectl itself failed — pod not found,
           # API server timeout, etc. — which should be a hard failure, not a silent pass.
-          DASHBOARD_RESTARTS=$(kubectl get pods -n opendatahub -l app=odh-dashboard \
-            -o jsonpath='{.items[0].status.containerStatuses[?(@.name=="odh-dashboard")].restartCount}' \
+          DASHBOARD_RESTARTS=$(kubectl get pod -n opendatahub "$POD_NAME" \
+            -o jsonpath='{.status.containerStatuses[?(@.name=="odh-dashboard")].restartCount}' \
             2>/dev/null || echo "-1")
 
           if [ -z "$DASHBOARD_RUNNING" ]; then
-            TERM_REASON=$(kubectl get pods -n opendatahub -l app=odh-dashboard \
-              -o jsonpath='{.items[0].status.containerStatuses[?(@.name=="odh-dashboard")].state.terminated.reason}' \
+            TERM_REASON=$(kubectl get pod -n opendatahub "$POD_NAME" \
+              -o jsonpath='{.status.containerStatuses[?(@.name=="odh-dashboard")].state.terminated.reason}' \
               2>/dev/null || echo "unknown")
             echo "❌ FAIL: odh-dashboard container is not running (reason: ${TERM_REASON})"
             echo "   This usually means the server crashed at startup."

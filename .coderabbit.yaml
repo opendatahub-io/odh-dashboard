@@ -230,17 +230,17 @@ reviews:
         4. Resource requests and limits must be set on all containers.
         5. RBAC changes must follow least-privilege principle.
 
-    - path: "manifests/core-bases/base/sa-rbac/**"
+    - path: "manifests/base/sa-rbac/**"
       instructions: |
         Any changes in this folder are likely incorrect.
         Confirm the user has sought out a Staff+ engineer for confirmation on changes.
 
-    - path: "manifests/common/rbac/all-users/**"
+    - path: "manifests/base/rbac/all-users/**"
       instructions: |
         Verify all new "kind: RoleBinding" resources are to the subject `system:authenticated`.
         Changes do not belong in here if they are not to that role binding.
 
-    - path: "manifests/common/rbac/project-users/**"
+    - path: "manifests/base/rbac/project-users/**"
       instructions: |
         This folder shouldn't get changes, if changes are here, ask for an explanation.
         Point the user at the README.md in this folder for clarification
@@ -285,7 +285,7 @@ reviews:
       instructions: |
         MODULE FEDERATION CONFIG:
         1. Shared dependencies in ModuleFederationPlugin must match host app versions.
-        2. Remote entry configuration must be consistent with manifests/modular-architecture/.
+        2. Remote entry configuration must be consistent with manifests/sidecar/.
         3. Changes to shared dependency list require coordination across all plugins.
 
 
