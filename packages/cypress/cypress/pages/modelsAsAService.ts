@@ -1701,7 +1701,7 @@ class DeleteExternalModelModal extends DeleteModal {
 
 class ExternalModelPathModal extends Modal {
   constructor() {
-    super('Resolved path');
+    super('Path');
   }
 
   find(): Cypress.Chainable<JQuery<HTMLElement>> {
