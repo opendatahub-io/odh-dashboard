@@ -2061,7 +2061,7 @@ describe('Workbench page', () => {
     workbenchPage.visit('test-project');
     const notebookRow = workbenchPage.getNotebookRow('Test Notebook');
     notebookRow.shouldHaveNotebookImageName('Test Image');
-    notebookRow.shouldHaveHardwareProfile('None');
+    notebookRow.shouldHaveHardwareProfile('No hardware profile');
     notebookRow.findKebabAction('Edit workbench').click();
 
     hardwareProfileSection.findSelect().should('contain.text', 'Use existing settings');

@@ -36,7 +36,7 @@ import {
   t_global_text_color_regular as RegularColor,
   t_global_text_color_disabled as DisabledColor,
   t_global_text_color_status_danger_default as DangerColor,
-  t_global_text_color_status_warning_default as WarningColor,
+  t_global_color_status_warning_300 as WarningColor,
   t_global_color_nonstatus_purple_400 as PurpleColor,
   t_global_font_weight_body_bold as BoldWeight,
 } from '@patternfly/react-tokens';
@@ -286,8 +286,8 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
     let color: string;
     if (kueueInfo?.status === 'danger') {
       color = DangerColor.var;
-    } else if (showKueueMessage && kueueInfo) {
-      color = WarningColor.var;
+    } else if (showKueueMessage) {
+      color = RegularColor.var;
     } else {
       switch (spawnStatus?.status) {
         case AlertVariant.danger:
@@ -342,8 +342,8 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
                 <kueueInfo.IconComponent className={kueueInfo.iconClassName} />
               </Icon>
             ) : (
-              <Icon isInline status="warning">
-                <ExclamationTriangleIcon />
+              <Icon isInline>
+                <kueueInfo.IconComponent className={kueueInfo.iconClassName} />
               </Icon>
             )
           ) : (!spawnStatus || spawnStatus.status === AlertVariant.info) && inProgress ? (
@@ -502,8 +502,7 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
 
   const treeData: TreeViewDataItem[] = React.useMemo(() => {
     const kueueInfoStatus = kueueStatus ? getKueueStatusInfo(kueueStatus.status).status : undefined;
-    const kueueLabelColor =
-      kueueInfoStatus === 'danger' ? DangerColor.var : kueueStatus ? WarningColor.var : undefined;
+    const kueueLabelColor = kueueInfoStatus === 'danger' ? DangerColor.var : undefined;
 
     return notebookProgress.map((step) => {
       const nodeId = `${step.stepKind}-${step.containerName ?? ''}`;

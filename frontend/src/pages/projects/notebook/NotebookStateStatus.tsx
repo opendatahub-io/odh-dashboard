@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import {
   t_global_text_color_regular as RegularColor,
   t_global_text_color_status_danger_default as DangerColor,
-  t_global_text_color_status_warning_default as WarningColor,
+  t_global_color_status_warning_300 as WarningColor,
 } from '@patternfly/react-tokens';
 import { useDeepCompareMemoize } from '@odh-dashboard/ui-core/hooks';
 import { TrackingOutcome } from '@odh-dashboard/ui-core';
@@ -51,11 +51,10 @@ const getNotebookStatusColor = (
   kueueStatus?: KueueWorkloadStatusWithMessage | null,
 ): string => {
   if (notebookStatus?.currentStatus === EventStatus.ERROR) return DangerColor.var;
-  if (notebookStatus?.currentStatus === EventStatus.WARNING) return WarningColor.var;
   if (kueueStatus?.status && KUEUE_STATUSES_OVERRIDE_WORKBENCH.includes(kueueStatus.status)) {
     const { status: kueueStatusLevel } = getKueueStatusInfo(kueueStatus.status);
     if (kueueStatusLevel === 'danger') return DangerColor.var;
-    return WarningColor.var;
+    if (kueueStatusLevel === 'warning') return WarningColor.var;
   }
   return RegularColor.var;
 };
