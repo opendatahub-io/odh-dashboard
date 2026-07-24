@@ -1,0 +1,99 @@
+name: Test / ESLint Disable Audit
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: 22.x
+
+permissions:
+  contents: read
+
+jobs:
+  Unit-Tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@cdca7365b2dadb8aad0a33bc7601856ffabcc48e # v4.3.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Run unit tests
+        run: node --test scripts/eslint-disable-audit.test.mjs
+
+  Audit:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@cdca7365b2dadb8aad0a33bc7601856ffabcc48e # v4.3.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Compute merge base
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: echo "MERGE_BASE=$(git merge-base HEAD "origin/$BASE_REF")" >> "$GITHUB_ENV"
+
+      - name: Run diff-scoped audit
+        run: |
+          node scripts/eslint-disable-audit.mjs \
+            --diff-base "$MERGE_BASE" \
+            --fail-on-increase \
+            --json --output-file audit-results.json \
+            --github-summary "$GITHUB_STEP_SUMMARY" \
+            --github-annotations
+
+      - name: Save PR number
+        if: always()
+        run: echo "${{ github.event.pull_request.number }}" > pr-number.txt
+
+      - name: Upload audit results
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: eslint-disable-audit
+          path: |
+            audit-results.json
+            pr-number.txt
+          retention-days: 90
+
+  Repo-Report:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@cdca7365b2dadb8aad0a33bc7601856ffabcc48e # v4.3.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Run repo-wide audit
+        run: |
+          node scripts/eslint-disable-audit.mjs \
+            --json --output-file audit-results.json \
+            --github-summary "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload audit results
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: eslint-disable-audit
+          path: audit-results.json
+          retention-days: 90
