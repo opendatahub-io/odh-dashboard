@@ -791,7 +791,7 @@ describe('useNotebookProgress', () => {
     expect(withEvent.find((s) => s.stepKind === 'pvc_attached')).toBeDefined();
   });
 
-  it('bubbles Kueue WARNING up to pod_assigned parent when pod was already Scheduled', () => {
+  it('bubbles Kueue IN_PROGRESS up to pod_assigned parent when workload is Requeued', () => {
     const nb = makeNotebook(['my-wb']);
     const events: EventKind[] = [makeEvent('Scheduled', 'Successfully assigned pod to node')];
     const { result } = renderHook(() =>
@@ -802,9 +802,9 @@ describe('useNotebookProgress', () => {
       }),
     );
     const podAssigned = result.current.find((s) => s.stepKind === 'pod_assigned');
-    expect(podAssigned?.status).toBe(EventStatus.WARNING);
+    expect(podAssigned?.status).toBe(EventStatus.IN_PROGRESS);
     const kueueSub = podAssigned?.subSteps?.find((s) => s.stepKind === 'kueue');
-    expect(kueueSub?.status).toBe(EventStatus.WARNING);
+    expect(kueueSub?.status).toBe(EventStatus.IN_PROGRESS);
   });
 
   it('does NOT override pod_assigned to WARNING when Kueue sub-step is SUCCESS (Admitted)', () => {

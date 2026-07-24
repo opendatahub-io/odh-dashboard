@@ -98,7 +98,7 @@ const HardwareProfileDetailsPopover: React.FC<HardwareProfileDetailsPopoverProps
     tableView && hardwareProfile
       ? getHardwareProfileDisplayName(hardwareProfile)
       : tableView
-      ? 'None'
+      ? 'No hardware profile'
       : 'View details';
 
   return (

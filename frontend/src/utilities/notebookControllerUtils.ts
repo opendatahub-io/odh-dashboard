@@ -341,8 +341,9 @@ const getKueueStepStatus = (status: KueueWorkloadStatus): EventStatus => {
     case KueueWorkloadStatus.Inadmissible:
     case KueueWorkloadStatus.Evicted:
     case KueueWorkloadStatus.Preempted:
-    case KueueWorkloadStatus.Requeued:
       return EventStatus.WARNING;
+    case KueueWorkloadStatus.Requeued:
+      return EventStatus.IN_PROGRESS;
     case KueueWorkloadStatus.BlockedOnPreemptionGates:
       return EventStatus.IN_PROGRESS;
     case KueueWorkloadStatus.AdmissionCheck:
