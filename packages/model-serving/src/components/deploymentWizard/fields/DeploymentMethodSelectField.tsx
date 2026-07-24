@@ -19,6 +19,7 @@ import {
   isDeploymentMethodFieldOverride,
 } from '../types';
 import { useWizardFieldOverrides } from '../dynamicFormUtils';
+import { fireDeployMethodSelected } from '../../../tracking/modelServingTrackingConstants';
 
 // Schema
 
@@ -110,7 +111,13 @@ const DeploymentMethodSelectField: DeploymentMethodSelectFieldType['component'] 
               label={opt.label}
               description={opt.description}
               isChecked={value?.method === opt.key}
-              onChange={() => onChange({ method: opt.key })}
+              onChange={() => {
+                fireDeployMethodSelected({
+                  deploymentMethod: opt.key,
+                  previousDeploymentMethod: value?.method,
+                });
+                onChange({ method: opt.key });
+              }}
               isDisabled={isEditing}
               data-testid={`deployment-method-${opt.key}`}
             />

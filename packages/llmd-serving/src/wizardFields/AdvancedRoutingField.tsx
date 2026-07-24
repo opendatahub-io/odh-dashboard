@@ -30,6 +30,7 @@ import {
 import { isConfigEnabled } from '../utils';
 import { useFetchRouterConfigs } from '../api/LLMInferenceServiceConfigs';
 import { isLLMInferenceServiceActive } from '../formUtils';
+import { fireRoutingSelected } from '../tracking/llmdTrackingConstants';
 
 // --- External data hook ---
 
@@ -167,10 +168,18 @@ const AdvancedRoutingFieldComponent: AdvancedRoutingFieldType['component'] = ({
             options={options}
             onChange={(key, isPlaceholder) => {
               if (!key || isPlaceholder || key === DEFAULT_ROUTING_KEY) {
+                fireRoutingSelected({
+                  routingConfigurationId: DEFAULT_ROUTING_KEY,
+                  isDefaultRouting: true,
+                });
                 onChange({ selectedConfig: undefined });
                 return;
               }
               const config = compatibleConfigs.find((c) => c.metadata.name === key);
+              fireRoutingSelected({
+                routingConfigurationId: key,
+                isDefaultRouting: false,
+              });
               onChange({ selectedConfig: config ?? value?.selectedConfig });
             }}
             value={selectedValue}

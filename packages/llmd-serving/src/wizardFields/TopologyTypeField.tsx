@@ -29,6 +29,7 @@ import {
 import { isConfigEnabled } from '../utils';
 import { useFetchTopologyConfigs } from '../api/LLMInferenceServiceConfigs';
 import { isLLMInferenceServiceActive } from '../formUtils';
+import { fireTopologyTypeSelected } from '../tracking/llmdTrackingConstants';
 
 // --- External data hook ---
 
@@ -139,6 +140,10 @@ const TopologyTypeFieldComponent: TopologyTypeFieldType['component'] = ({
             onChange={(key) => {
               const matched = Object.values(TopologyType).find((v) => v === key);
               if (matched) {
+                fireTopologyTypeSelected({
+                  llmdComposablePattern: matched,
+                  previousPattern: value?.topologyType,
+                });
                 onChange({ topologyType: matched });
               }
             }}
