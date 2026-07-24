@@ -1,6 +1,7 @@
 import * as yaml from 'js-yaml';
 import { LDAP_ADMIN_USER } from '../../../utils/e2eUsers';
 import { agentRuntimesPage } from '../../../pages/agentRuntimes';
+import { retryableBefore } from '../../../utils/retryableHooks';
 import type { AgentRuntimesTestData } from '../../../types';
 
 describe('Agent Runtimes list page', () => {
@@ -8,7 +9,7 @@ describe('Agent Runtimes list page', () => {
   const namespace = Cypress.env('AGENT_OPS_NAMESPACE') as string;
   const filterTest = namespace ? it : it.skip;
 
-  before(() => {
+  retryableBefore(() => {
     cy.fixture('e2e/agentOps/agentRuntimes.yaml', 'utf8').then((yamlContent: string) => {
       testData = yaml.load(yamlContent) as AgentRuntimesTestData;
     });
