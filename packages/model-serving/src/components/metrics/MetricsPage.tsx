@@ -3,7 +3,7 @@ import { Breadcrumb, Button } from '@patternfly/react-core';
 import { useNavigate, useParams } from 'react-router-dom';
 import { CogIcon } from '@patternfly/react-icons';
 import { BreadcrumbItemType } from '@odh-dashboard/internal/types';
-import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
+import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import { TrustyAIContext } from '@odh-dashboard/internal/concepts/trustyai/context/TrustyAIContext';
 import { TrustyInstallState } from '@odh-dashboard/internal/concepts/trustyai/types';
 import type { InferenceServiceKind } from '@odh-dashboard/model-serving/shared';

@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Breadcrumb, Button, EmptyStateVariant, PageSection } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
-import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
+import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import { BreadcrumbItemType } from '@odh-dashboard/internal/types';
 import { useModelBiasData } from '@odh-dashboard/internal/concepts/trustyai/context/useModelBiasData';
 import { TrustyInstallState } from '@odh-dashboard/internal/concepts/trustyai/types';
