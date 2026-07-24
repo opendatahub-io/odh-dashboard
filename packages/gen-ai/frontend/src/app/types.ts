@@ -405,13 +405,13 @@ export interface AAModelResponse {
   model_type?: LlamaModelType;
   embedding_dimension?: number;
   capabilities?: string[];
+  subscriptions?: SubscriptionInfo[];
 }
 
 export interface AIModel extends AAModelResponse {
   // Parse endpoints into usable format
   internalEndpoint?: string;
   externalEndpoint?: string;
-  subscriptions?: SubscriptionInfo[];
 }
 
 export type ExternalModelRequest = {
@@ -592,7 +592,6 @@ export type GenAiAPIs = {
   deleteLSD: DeleteLSD;
   getAAModels: GetAAModels;
   getAAVectorStores: GetAAVectorStores;
-  getMaaSModels: GetMaaSModels;
   generateMaaSToken: GenerateMaaSToken;
   getMCPServerTools: GetMCPServerTools;
   getMCPServers: GetMCPServers;
@@ -618,23 +617,6 @@ export interface SubscriptionInfo {
   name: string;
   displayName?: string;
   description?: string;
-}
-
-export interface MaaSModel {
-  id: string;
-  object: string;
-  created: number;
-  owned_by: string;
-  ready: boolean;
-  url?: string;
-  // Optional fields for display name, description, and use case
-  // These may not be provided by all backends, so we use id as fallback for display_name
-  display_name?: string;
-  description?: string;
-  usecase?: string;
-  model_type?: LlamaModelType;
-  capabilities?: string[];
-  subscriptions?: SubscriptionInfo[];
 }
 
 export type MaaSTokenRequest = {
@@ -682,7 +664,6 @@ type InstallLSD = ModArchRestCREATE<LlamaStackDistributionModel, InstallLSDReque
 type DeleteLSD = ModArchRestDELETE<string, DeleteLSDRequest>;
 type GetAAModels = ModArchRestGET<AAModelResponse[]>;
 type GetAAVectorStores = ModArchRestGET<ExternalVectorStoreSummary[]>;
-type GetMaaSModels = ModArchRestGET<MaaSModel[]>;
 type GenerateMaaSToken = ModArchRestCREATE<MaaSTokenResponse, MaaSTokenRequest>;
 type GetMCPServerTools = ModArchRestGET<MCPToolsStatus>;
 type GetMCPServers = ModArchRestGET<MCPServersResponse>;

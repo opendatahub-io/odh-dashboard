@@ -43,6 +43,7 @@ type AAModel struct {
 	ModelType          ModelTypeEnum       `json:"model_type,omitempty"`
 	EmbeddingDimension *int                `json:"embedding_dimension,omitempty"`
 	Capabilities       []string            `json:"capabilities"`
+	Subscriptions      []SubscriptionInfo  `json:"subscriptions,omitempty"`
 }
 
 type SAToken struct {

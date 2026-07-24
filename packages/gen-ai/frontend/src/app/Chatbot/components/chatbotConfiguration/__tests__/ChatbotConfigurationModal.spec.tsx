@@ -11,8 +11,8 @@ import {
   LlamaModel,
   LlamaStackDistributionModel,
   VectorStore,
+  AAModelResponse,
 } from '~/app/types';
-import type { MaaSModel } from '~/app/types';
 import ChatbotConfigurationModal from '~/app/Chatbot/components/chatbotConfiguration/ChatbotConfigurationModal';
 import useGuardrailsEnabled from '~/app/Chatbot/hooks/useGuardrailsEnabled';
 import useTracingEnabled from '~/app/Chatbot/hooks/useTracingEnabled';
@@ -116,13 +116,19 @@ const createAIModel = (overrides: Partial<AIModel>): AIModel => ({
   ...overrides,
 });
 
-const createMaaSModel = (overrides: Partial<MaaSModel>): MaaSModel => ({
-  id: 'maas-model',
-  object: 'model',
-  created: Date.now(),
-  owned_by: 'maas',
-  ready: true,
-  url: 'https://maas.example.com/v1',
+const createMaaSModel = (overrides: Partial<AAModelResponse> = {}): AAModelResponse => ({
+  model_name: 'maas-model',
+  model_id: 'maas-model',
+  display_name: 'MaaS Model',
+  description: '',
+  endpoints: ['external:https://maas.example.com/v1'],
+  serving_runtime: 'MaaS',
+  api_protocol: 'OpenAI',
+  version: '',
+  usecase: 'LLM',
+  status: 'Running',
+  sa_token: { name: '', token_name: '', token: '' },
+  model_source_type: 'maas',
   ...overrides,
 });
 
@@ -153,7 +159,7 @@ const createLSDVectorStore = (id: string, overrides?: Partial<VectorStore>): Vec
 
 type RenderModalProps = {
   allModels: AIModel[];
-  maasModels?: MaaSModel[];
+  maasModels?: AAModelResponse[];
   existingModels?: LlamaModel[];
   extraSelectedModels?: AIModel[];
   allCollections?: ExternalVectorStoreSummary[];
@@ -297,7 +303,7 @@ describe('ChatbotConfigurationModal MaaS model support', () => {
 
   it('should include both namespace and MaaS versions of the same model', () => {
     const namespaceModel = createAIModel({ model_name: 'granite-7b-lab' });
-    const maasModel = createMaaSModel({ id: 'granite-7b-lab' });
+    const maasModel = createMaaSModel({ model_id: 'granite-7b-lab' });
     renderModal({ allModels: [namespaceModel], maasModels: [maasModel] });
     const names = getSelectedModelNames();
     expect(names).toHaveLength(2);

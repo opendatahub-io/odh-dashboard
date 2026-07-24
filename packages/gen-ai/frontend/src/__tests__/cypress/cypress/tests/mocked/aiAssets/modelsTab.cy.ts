@@ -2,11 +2,12 @@
 import { aiAssetsPage } from '~/__tests__/cypress/cypress/pages/aiAssetsPage';
 import { modelsTabPage } from '~/__tests__/cypress/cypress/pages/modelsTabPage';
 import { setupModelsTabIntercepts } from '~/__tests__/cypress/cypress/support/helpers/modelsTab/modelsTabTestHelpers';
+import { mockAAModel } from '~/__tests__/cypress/cypress/__mocks__/mockAAModels';
 
 const TEST_NAMESPACE = 'test-namespace';
 
 const AI_MODELS = [
-  {
+  mockAAModel({
     model_name: 'Llama-3B-Internal',
     model_id: 'llama-3b-internal',
     display_name: 'Llama 3B Internal',
@@ -16,8 +17,8 @@ const AI_MODELS = [
     model_source_type: 'namespace',
     model_type: 'llm',
     endpoints: ['internal: http://llama-3b.test-namespace.svc.cluster.local:8080'],
-  },
-  {
+  }),
+  mockAAModel({
     model_name: 'GPT-4-External',
     model_id: 'gpt-4-external',
     display_name: 'GPT-4 External',
@@ -27,8 +28,8 @@ const AI_MODELS = [
     model_source_type: 'custom_endpoint',
     model_type: 'llm',
     endpoints: ['https://api.openai.com/v1/models/gpt-4'],
-  },
-  {
+  }),
+  mockAAModel({
     model_name: 'Embedding-Model',
     model_id: 'embedding-model',
     display_name: 'Embedding Model',
@@ -38,19 +39,25 @@ const AI_MODELS = [
     model_source_type: 'custom_endpoint',
     model_type: 'embedding',
     endpoints: ['http://embedding.cluster.local:8080'],
-  },
+  }),
 ];
 
 const MAAS_MODELS = [
-  {
-    id: 'maas-llama-70b',
+  mockAAModel({
+    model_id: 'maas-llama-70b',
+    model_name: 'Llama 70B MaaS',
     display_name: 'Llama 70B MaaS',
     description: 'Llama 70B via Models as a Service',
     usecase: 'text-generation',
-    ready: true,
-    url: 'https://maas.example.com/v1/models/llama-70b',
+    status: 'Running',
+    endpoints: ['external:https://maas.example.com/v1/models/llama-70b'],
     model_type: 'llm',
-  },
+    serving_runtime: 'MaaS',
+    api_protocol: 'OpenAI',
+    version: '',
+    sa_token: { name: '', token_name: '', token: '' },
+    model_source_type: 'maas',
+  }),
 ];
 
 describe('AI Assets - Models Tab', () => {
@@ -130,53 +137,6 @@ describe('AI Assets - Models Tab (MaaS disabled)', () => {
 
       cy.step('Verify no warning alert is shown');
       modelsTabPage.findWarningAlert().should('not.exist');
-    },
-  );
-});
-
-describe('AI Assets - Models Tab (MaaS error)', () => {
-  beforeEach(() => {
-    setupModelsTabIntercepts({
-      namespace: TEST_NAMESPACE,
-      aiModels: AI_MODELS,
-      maasError: true,
-    });
-
-    aiAssetsPage.visit(TEST_NAMESPACE);
-  });
-
-  it(
-    'should show warning alert when MaaS models fail to load',
-    { tags: ['@GenAI', '@ModelsTab', '@AIAssets'] },
-    () => {
-      cy.step('Verify warning alert is displayed');
-      modelsTabPage.findWarningAlert().should('be.visible');
-      modelsTabPage
-        .findWarningAlert()
-        .should('contain.text', 'Models as a Service could not be loaded');
-
-      cy.step('Verify AI models still display');
-      modelsTabPage.findTable().should('be.visible');
-      modelsTabPage.findTableRows().should('have.length', 3);
-    },
-  );
-
-  it(
-    'should allow dismissing the warning alert',
-    { tags: ['@GenAI', '@ModelsTab', '@AIAssets'] },
-    () => {
-      cy.step('Verify warning alert is displayed');
-      modelsTabPage.findWarningAlert().should('be.visible');
-
-      cy.step('Click the close button on the alert');
-      modelsTabPage.findWarningAlert().find('button[aria-label*="Close"]').click();
-
-      cy.step('Verify the alert is dismissed');
-      modelsTabPage.findWarningAlert().should('not.exist');
-
-      cy.step('Verify models table is still visible');
-      modelsTabPage.findTable().should('be.visible');
-      modelsTabPage.findTableRows().should('have.length', 3);
     },
   );
 });

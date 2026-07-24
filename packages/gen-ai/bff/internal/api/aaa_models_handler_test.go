@@ -346,7 +346,16 @@ var _ = Describe("fetchMaaSModels", func() {
 		assert.Equal(t, models.ModelStatusRunning, firstModel.Status)
 		assert.Equal(t, "model-namespace", firstModel.ServingRuntime)
 		assert.Len(t, firstModel.Endpoints, 1)
-		assert.Equal(t, "https://llama-2-7b-chat.apps.example.openshift.com/v1", firstModel.Endpoints[0])
+		assert.Equal(t, "external:https://llama-2-7b-chat.apps.example.openshift.com/v1", firstModel.Endpoints[0])
+
+		// Verify subscriptions are passed through
+		assert.NotNil(t, firstModel.Subscriptions, "Subscriptions should not be nil")
+		assert.Len(t, firstModel.Subscriptions, 2, "First mock model has 2 subscriptions")
+		assert.Equal(t, "basic-subscription", firstModel.Subscriptions[0].Name)
+		assert.Equal(t, "Basic Tier", firstModel.Subscriptions[0].DisplayName)
+		assert.Equal(t, "premium-subscription", firstModel.Subscriptions[1].Name)
+		assert.Equal(t, "Premium Tier", firstModel.Subscriptions[1].DisplayName)
+		assert.Equal(t, "Premium subscription with higher rate limits", firstModel.Subscriptions[1].Description)
 
 		// Verify third model (not ready)
 		thirdModel := aaModels[2]

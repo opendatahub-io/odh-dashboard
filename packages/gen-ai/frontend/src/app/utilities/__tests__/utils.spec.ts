@@ -1,5 +1,5 @@
 /* eslint-disable camelcase */
-import type { AIModel, LlamaModel, MaaSModel } from '~/app/types';
+import type { AAModelResponse, AIModel, LlamaModel } from '~/app/types';
 import {
   convertMaaSModelToAIModel,
   getCapabilityDisplay,
@@ -163,153 +163,135 @@ describe('getSourceLabel', () => {
 });
 
 describe('convertMaaSModelToAIModel', () => {
-  it('should map url to externalEndpoint (not internalEndpoint)', () => {
-    const maasModel: MaaSModel = {
-      id: 'test-model',
-      object: 'model',
-      created: 0,
-      owned_by: 'org',
-      ready: true,
-      url: 'https://maas.example.com/model',
-    };
-    const result = convertMaaSModelToAIModel(maasModel);
+  const makeAAModelResponse = (overrides: Partial<AAModelResponse> = {}): AAModelResponse => ({
+    model_name: 'test-model',
+    model_id: 'test-model',
+    serving_runtime: 'MaaS',
+    api_protocol: 'OpenAI',
+    version: '',
+    usecase: 'LLM',
+    description: '',
+    endpoints: [],
+    status: 'Running',
+    display_name: 'Test Model',
+    sa_token: { name: '', token_name: '', token: '' },
+    model_source_type: 'maas',
+    ...overrides,
+  });
+
+  it('should parse external: prefixed endpoint to externalEndpoint', () => {
+    const aaModel = makeAAModelResponse({
+      endpoints: ['external:https://maas.example.com/model'],
+    });
+    const result = convertMaaSModelToAIModel(aaModel);
     expect(result.externalEndpoint).toBe('https://maas.example.com/model');
+  });
+
+  it('should parse external: with space after colon', () => {
+    const aaModel = makeAAModelResponse({
+      endpoints: ['external: https://maas.example.com/model'],
+    });
+    const result = convertMaaSModelToAIModel(aaModel);
+    expect(result.externalEndpoint).toBe('https://maas.example.com/model');
+  });
+
+  it('should parse non-prefixed endpoint to internalEndpoint', () => {
+    const aaModel = makeAAModelResponse({
+      endpoints: ['http://service.namespace.svc.cluster.local:8080'],
+    });
+    const result = convertMaaSModelToAIModel(aaModel);
+    expect(result.internalEndpoint).toBe('http://service.namespace.svc.cluster.local:8080');
+  });
+
+  it('should parse both external and internal endpoints with prefix', () => {
+    const aaModel = makeAAModelResponse({
+      endpoints: [
+        'external:https://maas.example.com/v1',
+        'internal:http://maas-service.ns.svc.cluster.local:8000',
+      ],
+    });
+    const result = convertMaaSModelToAIModel(aaModel);
+    expect(result.externalEndpoint).toBe('https://maas.example.com/v1');
+    expect(result.internalEndpoint).toBe('http://maas-service.ns.svc.cluster.local:8000');
+  });
+
+  it('should parse external with prefix and internal without prefix', () => {
+    const aaModel = makeAAModelResponse({
+      endpoints: [
+        'external:https://maas.example.com/v1',
+        'http://maas-service.ns.svc.cluster.local:8000',
+      ],
+    });
+    const result = convertMaaSModelToAIModel(aaModel);
+    expect(result.externalEndpoint).toBe('https://maas.example.com/v1');
+    expect(result.internalEndpoint).toBe('http://maas-service.ns.svc.cluster.local:8000');
+  });
+
+  it('should handle empty endpoints array', () => {
+    const aaModel = makeAAModelResponse({ endpoints: [] });
+    const result = convertMaaSModelToAIModel(aaModel);
+    expect(result.externalEndpoint).toBeUndefined();
     expect(result.internalEndpoint).toBeUndefined();
   });
 
-  it('should set internalEndpoint to undefined', () => {
-    const maasModel: MaaSModel = {
-      id: 'test-model',
-      object: 'model',
-      created: 0,
-      owned_by: 'org',
-      ready: true,
-      url: 'https://maas.example.com/model',
-    };
-    const result = convertMaaSModelToAIModel(maasModel);
+  it('should only parse external endpoint when no internal endpoint exists', () => {
+    const aaModel = makeAAModelResponse({
+      endpoints: ['external:https://api.maas.io/models/llama'],
+    });
+    const result = convertMaaSModelToAIModel(aaModel);
+    expect(result.externalEndpoint).toBe('https://api.maas.io/models/llama');
     expect(result.internalEndpoint).toBeUndefined();
   });
 
-  it('should set model_source_type to "maas"', () => {
-    const maasModel: MaaSModel = {
-      id: 'test-model',
-      object: 'model',
-      created: 0,
-      owned_by: 'org',
-      ready: true,
-      url: 'https://maas.example.com/model',
-    };
-    const result = convertMaaSModelToAIModel(maasModel);
+  it('should preserve all AAModelResponse fields', () => {
+    const aaModel = makeAAModelResponse({
+      model_id: 'llama-2-7b',
+      display_name: 'Llama 2 7B',
+      model_source_type: 'maas',
+      status: 'Running',
+      endpoints: ['external: https://example.com'],
+    });
+    const result = convertMaaSModelToAIModel(aaModel);
+    expect(result.model_id).toBe('llama-2-7b');
+    expect(result.display_name).toBe('Llama 2 7B');
     expect(result.model_source_type).toBe('maas');
+    expect(result.status).toBe('Running');
   });
 
-  it('should set capabilities to empty array for MaaS models', () => {
-    const maasModel: MaaSModel = {
-      id: 'test-model',
-      object: 'model',
-      created: 0,
-      owned_by: 'org',
-      ready: true,
-      url: 'https://maas.example.com/model',
-    };
-    const result = convertMaaSModelToAIModel(maasModel);
-    expect(result.capabilities).toEqual([]);
-  });
-
-  it('should use model_type from BFF when available', () => {
-    const maasModel: MaaSModel = {
-      id: 'nomic-embed',
-      object: 'model',
-      created: Date.now(),
-      owned_by: 'maas',
-      ready: true,
-      url: 'https://example.com',
-      usecase: 'Embedding, Semantic search',
+  it('should pass through model_type field', () => {
+    const aaModel = makeAAModelResponse({
       model_type: 'embedding',
-    };
-    const result = convertMaaSModelToAIModel(maasModel);
+    });
+    const result = convertMaaSModelToAIModel(aaModel);
     expect(result.model_type).toBe('embedding');
   });
 
-  it('should leave model_type undefined when not provided by BFF', () => {
-    const maasModel: MaaSModel = {
-      id: 'llama-2',
-      object: 'model',
-      created: Date.now(),
-      owned_by: 'maas',
-      ready: true,
-      url: 'https://example.com',
-      usecase: 'Chat, Question answering',
-    };
-    const result = convertMaaSModelToAIModel(maasModel);
-    expect(result.model_type).toBeUndefined();
+  it('should pass through capabilities field', () => {
+    const aaModel = makeAAModelResponse({
+      capabilities: ['vision', 'audio-transcription'],
+    });
+    const result = convertMaaSModelToAIModel(aaModel);
+    expect(result.capabilities).toEqual(['vision', 'audio-transcription']);
   });
 
-  it('should set model_source_type and model_id correctly', () => {
-    const maasModel: MaaSModel = {
-      id: 'my-maas-model-id',
-      object: 'model',
-      created: 0,
-      owned_by: 'org',
-      ready: true,
-      url: 'https://maas.example.com/model',
-    };
-    const result = convertMaaSModelToAIModel(maasModel);
-    expect(result.model_source_type).toBe('maas');
-    expect(result.model_id).toBe('my-maas-model-id');
-  });
-
-  it('should use display_name for model_name when available', () => {
-    const maasModel: MaaSModel = {
-      id: 'llama-2-7b-chat',
-      object: 'model',
-      created: Date.now(),
-      owned_by: 'maas',
-      ready: true,
-      url: 'https://example.com',
-      display_name: 'Llama 2 7B Chat',
-    };
-    const result = convertMaaSModelToAIModel(maasModel);
-    expect(result.model_name).toBe('Llama 2 7B Chat');
-  });
-
-  it('should fall back to id for model_name when display_name is missing', () => {
-    const maasModel: MaaSModel = {
-      id: 'llama-2-7b-chat',
-      object: 'model',
-      created: Date.now(),
-      owned_by: 'maas',
-      ready: true,
-      url: 'https://example.com',
-    };
-    const result = convertMaaSModelToAIModel(maasModel);
-    expect(result.model_name).toBe('llama-2-7b-chat');
-  });
-
-  it('should use external: prefix in endpoints array', () => {
-    const maasModel: MaaSModel = {
-      id: 'test-model',
-      object: 'model',
-      created: 0,
-      owned_by: 'org',
-      ready: true,
-      url: 'https://maas.example.com/model',
-    };
-    const result = convertMaaSModelToAIModel(maasModel);
-    expect(result.endpoints).toEqual(['external: https://maas.example.com/model']);
-  });
-
-  it('should handle missing url gracefully', () => {
-    const maasModel: MaaSModel = {
-      id: 'no-url-model',
-      object: 'model',
-      created: 0,
-      owned_by: 'org',
-      ready: true,
-    };
-    const result = convertMaaSModelToAIModel(maasModel);
-    expect(result.endpoints).toEqual([]);
+  it('should handle undefined endpoints gracefully', () => {
+    const aaModel = {
+      ...makeAAModelResponse(),
+      endpoints: undefined,
+    } as unknown as AAModelResponse;
+    const result = convertMaaSModelToAIModel(aaModel);
     expect(result.externalEndpoint).toBeUndefined();
+    expect(result.internalEndpoint).toBeUndefined();
+  });
+
+  it('should filter out non-string entries in endpoints array', () => {
+    const aaModel = {
+      ...makeAAModelResponse(),
+      endpoints: ['external:https://valid.com', null, 123, 'http://internal', undefined],
+    } as unknown as AAModelResponse;
+    const result = convertMaaSModelToAIModel(aaModel);
+    expect(result.externalEndpoint).toBe('https://valid.com');
+    expect(result.internalEndpoint).toBe('http://internal');
   });
 });
 

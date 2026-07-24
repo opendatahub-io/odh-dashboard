@@ -43,9 +43,13 @@ const SubscriptionDropdown: React.FunctionComponent<SubscriptionDropdownProps> =
     if (!isMaaSModel && !isMaasLlamaModelId(selectedModel)) {
       return [];
     }
-    const maasModelId = isMaaSModel ? selectedModel : splitLlamaModelId(selectedModel).id;
-    const matchingModel = maasModels.find((m) => m.id === maasModelId);
-    return matchingModel?.subscriptions ?? [];
+    const { id: maasModelId } = splitLlamaModelId(selectedModel);
+    const matchingModel = maasModels.find((m) => m.model_id === maasModelId);
+    const subs = matchingModel?.subscriptions;
+    // Validate each subscription has the required name field before returning
+    return Array.isArray(subs)
+      ? subs.filter((s): s is SubscriptionInfo => typeof s.name === 'string' && s.name !== '')
+      : [];
   }, [selectedModel, isMaaSModel, maasModels]);
 
   // Auto-select highest-priority subscription when current selection is empty or invalid.
@@ -99,7 +103,7 @@ const SubscriptionDropdown: React.FunctionComponent<SubscriptionDropdownProps> =
             onClick={() => setIsOpen(!isOpen)}
             isExpanded={isOpen}
             isDisabled={isDisabled}
-            style={{ width: '100%' }}
+            isFullWidth
             data-testid="subscription-selector-toggle"
           >
             {toggleLabel}

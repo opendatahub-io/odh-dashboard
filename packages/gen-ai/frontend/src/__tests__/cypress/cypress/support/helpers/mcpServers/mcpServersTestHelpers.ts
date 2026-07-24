@@ -128,7 +128,14 @@ export const setupBaseMCPServerMocks = (
     cy.interceptGenAi('GET /api/v1/lsd/models', { query: { namespace } }, mockEmptyList());
   }
 
-  cy.interceptGenAi('GET /api/v1/maas/models', { query: { namespace } }, mockEmptyList());
+  // Mock MaaS models via /aaa/models with sources=maas query param.
+  // Registered AFTER the general /aaa/models intercept so Cypress LIFO
+  // matching gives this more-specific intercept priority for MaaS requests.
+  cy.interceptGenAi(
+    'GET /api/v1/aaa/models',
+    { query: { namespace, sources: 'maas' } },
+    mockEmptyList(),
+  );
 
   // Mock user endpoint to prevent k8s client errors in test environment
   cy.interceptGenAi('GET /api/v1/user', { data: { username: 'test-user' } });

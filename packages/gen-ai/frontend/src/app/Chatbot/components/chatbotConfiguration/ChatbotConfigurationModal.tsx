@@ -24,12 +24,12 @@ import { TrackingOutcome } from '@odh-dashboard/ui-core';
 import { PLAYGROUND_TRACING_EVENTS } from '~/app/tracking/playgroundTracingTrackingConstants';
 import { GenAiContext } from '~/app/context/GenAiContext';
 import {
+  AAModelResponse,
   AIModel,
   ExternalVectorStoreSummary,
   isApiError,
   LlamaModel,
   LlamaStackDistributionModel,
-  MaaSModel,
   VectorStore,
 } from '~/app/types';
 import {
@@ -64,7 +64,7 @@ type ChatbotConfigurationModalProps = {
   /** All available AI assets models in the namespace */
   aiModels: AIModel[];
   /** All available MaaS models in the namespace */
-  maasModels?: MaaSModel[];
+  maasModels?: AAModelResponse[];
   /** Models that are already available in the playground,
    * passing this means that the modal will be in update mode */
   existingModels?: LlamaModel[];

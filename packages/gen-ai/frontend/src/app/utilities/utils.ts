@@ -2,12 +2,12 @@
 import { K8sResourceCommon } from 'mod-arch-shared';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import {
+  AAModelResponse,
   AIModel,
   LlamaModel,
   TokenInfo,
   MCPServerFromAPI,
   MCPServerConfig,
-  MaaSModel,
 } from '~/app/types';
 
 /**
@@ -98,7 +98,7 @@ export const getLlamaModelDisplayName = (modelId: string, aiModels: AIModel[]): 
 export const isLlamaModelEnabled = (
   modelId: string,
   aiModels: AIModel[],
-  maasModels: MaaSModel[],
+  maasModels: AAModelResponse[],
   isCustomLSD: boolean,
 ): boolean => {
   if (isCustomLSD) {
@@ -115,9 +115,9 @@ export const isLlamaModelEnabled = (
     );
   }
 
-  const maasModel = maasModels.find((m) => m.id === id);
+  const maasModel = maasModels.find((m) => m.model_id === id);
   if (maasModel) {
-    return maasModel.ready;
+    return maasModel.status === 'Running';
   }
 
   return false;
@@ -254,33 +254,48 @@ export const getSourceLabelColor = (sourceLabel: string): 'blue' | 'green' | 'or
   SOURCE_LABEL_COLORS[sourceLabel] ?? 'grey';
 
 /**
- * Converts a MaaS model to AIModel format
- * @param maasModel - The MaaS model to convert
- * @returns The converted AIModel
+ * Converts a MaaS model (from /aaa/models?sources=maas) to AIModel format by parsing endpoints
+ * @param aaModel - The AAModel to convert (already in correct format from BFF)
+ * @returns The AIModel with parsed endpoints
  */
-export const convertMaaSModelToAIModel = (maasModel: MaaSModel): AIModel => ({
-  model_name: maasModel.display_name || maasModel.id,
-  model_id: maasModel.id,
-  serving_runtime: 'MaaS',
-  api_protocol: 'OpenAI',
-  version: '',
-  usecase: maasModel.usecase || 'LLM',
-  description: maasModel.description || '',
-  endpoints: maasModel.url ? [`external: ${maasModel.url}`] : [],
-  status: maasModel.ready ? 'Running' : 'Stop',
-  display_name: maasModel.display_name || maasModel.id,
-  sa_token: {
-    name: '',
-    token_name: '',
-    token: '',
-  },
-  model_source_type: 'maas',
-  capabilities: maasModel.capabilities ?? [],
-  externalEndpoint: maasModel.url || undefined,
-  internalEndpoint: undefined,
-  model_type: maasModel.model_type,
-  subscriptions: maasModel.subscriptions,
-});
+export const convertMaaSModelToAIModel = (aaModel: AAModelResponse): AIModel => {
+  // Defensive guard against BFF omitting endpoints field despite type contract
+  // Filter out non-string entries, blank strings, and prefix-only entries (e.g., "external:   ")
+  const endpoints = Array.isArray(aaModel.endpoints)
+    ? aaModel.endpoints
+        .filter((e): e is string => typeof e === 'string' && e.trim() !== '')
+        .map((e) => e.trim())
+        .filter((e) => {
+          // Reject entries that are only "prefix:" with no actual URL
+          if (e.startsWith('external:') || e.startsWith('internal:')) {
+            const url = e.replace(/^(external|internal):/, '').trim();
+            return url !== '';
+          }
+          return true;
+        })
+    : [];
+
+  // Parse endpoints - AAModel already has the correct structure from BFF transformation
+  const bareUrl = endpoints.find(
+    (ep) => !ep.startsWith('external:') && !ep.startsWith('internal:'),
+  );
+  const externalEndpoint = parseEndpointByPrefix(endpoints, 'external');
+  // Bare URLs default to internal endpoint for backward compatibility with legacy MaaS models
+  // that may still arrive without prefixes, though the BFF (line 211) now always adds external: prefix
+  const internalEndpoint = parseEndpointByPrefix(endpoints, 'internal') || bareUrl;
+
+  // Destructure endpoints out to avoid exposing raw array - only return sanitized fields
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { endpoints: rawEndpoints, ...rest } = aaModel;
+  return {
+    ...rest,
+    display_name: rest.display_name || rest.model_id,
+    model_name: rest.model_name || rest.display_name || rest.model_id,
+    endpoints, // sanitized array satisfies AIModel type contract
+    externalEndpoint,
+    internalEndpoint,
+  };
+};
 
 /**
  * Properties for clipboard copy tracking events
