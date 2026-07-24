@@ -429,12 +429,18 @@ func (r *DashboardReconciler) reconcileStandalone(
 	r.reconcileObservability(ctx, dashboard, cm)
 
 	// Step 7: Build and deploy federation ConfigMap (critical for standalone routing)
-	if err := r.deployFederationConfigMap(ctx, nextStatuses, dashboard); err != nil {
+	fedData, err := r.deployFederationConfigMap(ctx, nextStatuses, dashboard)
+	if err != nil {
 		cm.MarkTrue(string(common.ConditionTypeDegraded),
 			conditions.WithReason("FederationConfigMapFailed"),
 			conditions.WithError(err))
 		logger.Error(err, "Failed to deploy federation ConfigMap")
 		return ctrl.Result{}, fmt.Errorf("federation ConfigMap: %w", err)
+	}
+
+	if err := r.patchDeploymentFederationHash(ctx, fedData); err != nil {
+		logger.Error(err, "Failed to patch federation hash on deployment")
+		return ctrl.Result{}, fmt.Errorf("patching federation hash: %w", err)
 	}
 
 	// Step 8: URL extraction + degraded condition
