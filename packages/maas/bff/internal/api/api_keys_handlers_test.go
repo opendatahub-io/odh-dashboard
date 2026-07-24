@@ -344,8 +344,6 @@ var _ = Describe("APIKeysHandlers", Ordered, func() {
 			envConfig := config.EnvConfig{
 				AllowedOrigins:            []string{"*"},
 				AuthMethod:                config.AuthMethodInternal,
-				GatewayNamespace:          "openshift-ingress",
-				GatewayName:               "maas-default-gateway",
 				MockHTTPClient:            true,
 				MaasApiUrl:                failSearchServer.URL,
 				MaaSSubscriptionNamespace: "maas-system",
