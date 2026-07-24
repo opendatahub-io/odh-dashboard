@@ -1,5 +1,6 @@
 # testAgentRuntimes.cy.ts Test Data #
 pageTitle: 'Agents'
+projectResourceName: 'agent-ops-demo'
 filterSearchTerm: 'test-agent'
 filterOptionStatus: 'status'
 statusPending: 'Pending'

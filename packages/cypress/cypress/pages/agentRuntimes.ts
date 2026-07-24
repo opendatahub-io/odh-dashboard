@@ -71,6 +71,10 @@ class AgentRuntimesPage {
     return cy.findByTestId('agent-runtimes-filter-input');
   }
 
+  clearNameFilter(): void {
+    this.findNameFilterInput().find('button[aria-label="Reset"]').click();
+  }
+
   findStatusFilterDropdown(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('agent-runtimes-filter-status');
   }
@@ -80,7 +84,8 @@ class AgentRuntimesPage {
   }
 
   findClearAllFiltersButton(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByRole('button', { name: 'Clear all filters' });
+    // Toolbar chip clear (always when filters active) and empty-table clear
+    return cy.findAllByRole('button', { name: 'Clear all filters' }).first();
   }
 
   findNameFilterChip(): Cypress.Chainable<JQuery<HTMLElement>> {

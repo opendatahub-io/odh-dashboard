@@ -2,16 +2,25 @@ import * as yaml from 'js-yaml';
 import { LDAP_ADMIN_USER } from '../../../utils/e2eUsers';
 import { agentRuntimesPage } from '../../../pages/agentRuntimes';
 import { retryableBefore } from '../../../utils/retryableHooks';
+import { verifyOpenShiftProjectExists } from '../../../utils/oc_commands/project';
 import type { AgentRuntimesTestData } from '../../../types';
 
 describe('Agent Runtimes list page', () => {
   let testData: AgentRuntimesTestData;
-  const namespace = Cypress.env('AGENT_OPS_NAMESPACE') as string;
-  const filterTest = namespace ? it : it.skip;
+  let skipFilterTest = false;
 
   retryableBefore(() => {
     cy.fixture('e2e/agentOps/agentRuntimes.yaml', 'utf8').then((yamlContent: string) => {
       testData = yaml.load(yamlContent) as AgentRuntimesTestData;
+
+      verifyOpenShiftProjectExists(testData.projectResourceName).then((exists) => {
+        if (!exists) {
+          cy.log(
+            `Project '${testData.projectResourceName}' not found; skipping namespace-scoped filter test.`,
+          );
+          skipFilterTest = true;
+        }
+      });
     });
   });
 
@@ -42,12 +51,16 @@ describe('Agent Runtimes list page', () => {
     },
   );
 
-  filterTest(
+  it(
     'should display table toolbar and support filter interactions when a project is selected',
     { tags: ['@Dashboard', '@AgentOps', '@Featureflagged'] },
-    () => {
+    function filterInteractionsWhenProjectSelected() {
+      if (skipFilterTest) {
+        this.skip();
+      }
+
       cy.step('Visit the agents deployments page for the configured namespace');
-      agentRuntimesPage.visit(namespace);
+      agentRuntimesPage.visit(testData.projectResourceName);
 
       cy.step('Verify the project selector shows the current namespace');
       agentRuntimesPage.findProjectSelector().should('exist');
@@ -67,7 +80,7 @@ describe('Agent Runtimes list page', () => {
         agentRuntimesPage.findNameFilterChip().should('contain.text', testData.filterSearchTerm);
 
         cy.step('Clear the name filter and verify its filter chip is removed');
-        agentRuntimesPage.findNameFilterInput().clear();
+        agentRuntimesPage.clearNameFilter();
         agentRuntimesPage.findNameFilterChip().should('not.exist');
 
         cy.step('Switch the filter dropdown to Status');

@@ -860,6 +860,7 @@ export type AutoragTestData = {
 
 export type AgentRuntimesTestData = {
   pageTitle: string;
+  projectResourceName: string;
   filterSearchTerm: string;
   filterOptionStatus: string;
   statusPending: string;
