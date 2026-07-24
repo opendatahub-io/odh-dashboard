@@ -18,14 +18,23 @@ import { NIMServiceModel } from '../nimservices/types';
  * KServe status utilities against that child resource.
  *
  * When the InferenceService hasn't been created yet (operator is still reconciling),
- * we return LOADING rather than undefined so the UI shows a meaningful state.
+ * we check NIMService status.conditions for errors. If a condition with
+ * status 'False' and a message is found, the deployment is marked FAILED_TO_LOAD.
+ * Otherwise we return LOADING so the UI shows a meaningful state.
  */
 export const getNIMDeploymentStatus = (
+  nimService: NIMServiceKind,
   inferenceService: InferenceServiceKind | undefined,
   deploymentPods: PodKind[],
-  nimServiceName: string,
 ): DeploymentStatus => {
   if (!inferenceService) {
+    const errorCondition = getNIMServiceErrorCondition(nimService);
+    if (errorCondition) {
+      return {
+        state: ModelDeploymentState.FAILED_TO_LOAD,
+        message: errorCondition.message ?? 'NIMService reconciliation failed',
+      };
+    }
     return {
       state: ModelDeploymentState.LOADING,
       message: 'Waiting for NIM Operator to provision InferenceService',
@@ -33,7 +42,7 @@ export const getNIMDeploymentStatus = (
   }
 
   const matchingPods = deploymentPods.filter(
-    (pod) => pod.metadata.labels?.['app.kubernetes.io/name'] === nimServiceName,
+    (pod) => pod.metadata.labels?.['app.kubernetes.io/name'] === nimService.metadata.name,
   );
 
   // During re-rollouts there can be multiple pods (old + new).
