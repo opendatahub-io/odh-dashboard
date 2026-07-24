@@ -1,10 +1,11 @@
-import { KueueWorkloadStatus } from '#~/concepts/kueue/types';
+import { KueueWorkloadStatus, type KueueWorkloadStatusWithMessage } from '#~/concepts/kueue/types';
 import {
   getHumanReadableKueueMessage,
   getKueueSubStepInfo,
   getPreemptionToastBody,
   getEvictionToastBody,
   getRequeuedMessage,
+  getKueueAnalyticsSubState,
 } from '#~/concepts/kueue/messageUtils';
 
 describe('getHumanReadableKueueMessage', () => {
@@ -378,5 +379,52 @@ describe('getEvictionToastBody', () => {
     const expected = 'Workbench my-workbench was evicted from the queue.';
     expect(getEvictionToastBody('my-workbench')).toBe(expected);
     expect(getEvictionToastBody('my-workbench', '  ')).toBe(expected);
+  });
+});
+
+describe('getKueueAnalyticsSubState', () => {
+  const status = (
+    value: KueueWorkloadStatus,
+    message?: string,
+  ): KueueWorkloadStatusWithMessage => ({ status: value, message });
+
+  it.each([
+    ['none when status is missing', null, 'none'],
+    ['admitted', status(KueueWorkloadStatus.Admitted), 'admitted'],
+    ['preempted', status(KueueWorkloadStatus.Preempted), 'preempted'],
+    [
+      'queued with no message as waiting_for_quota',
+      status(KueueWorkloadStatus.Queued),
+      'waiting_for_quota',
+    ],
+    [
+      'queued quota message as waiting_for_quota',
+      status(KueueWorkloadStatus.Queued, 'insufficient unused quota'),
+      'waiting_for_quota',
+    ],
+    [
+      'queued non-quota message as waiting_for_resources',
+      status(KueueWorkloadStatus.Queued, 'waiting for pods'),
+      'waiting_for_resources',
+    ],
+    [
+      'failed queue-not-found as invalid_queue',
+      status(KueueWorkloadStatus.Failed, 'queue not found'),
+      'invalid_queue',
+    ],
+    [
+      'failed timeout as timeout',
+      status(KueueWorkloadStatus.Failed, 'admission timed out'),
+      'timeout',
+    ],
+    [
+      'inadmissible with no message as quota_exceeded',
+      status(KueueWorkloadStatus.Inadmissible),
+      'quota_exceeded',
+    ],
+    ['running as none', status(KueueWorkloadStatus.Running), 'none'],
+    ['evicted as none', status(KueueWorkloadStatus.Evicted), 'none'],
+  ] as const)('%s', (_label, input, expected) => {
+    expect(getKueueAnalyticsSubState(input)).toBe(expected);
   });
 });

@@ -66,7 +66,7 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
   canEnablePipelines,
   showOutOfDateElyraInfo,
 }) => {
-  const { currentProject } = React.useContext(ProjectDetailsContext);
+  const { currentProject, kueueStatusByNotebookName } = React.useContext(ProjectDetailsContext);
   const editWorkbenchHref = `/projects/${currentProject.metadata.name}/spawner/${obj.notebook.metadata.name}`;
   const [isExpanded, setExpanded] = React.useState(false);
   const [notebookImage, loaded, loadError] = useNotebookImage(obj.notebook);
@@ -109,16 +109,34 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
       extraPatches,
     )
       .then(() => {
-        fireNotebookTrackingEvent('started', obj.notebook, podSpecOptionsState);
+        fireNotebookTrackingEvent('started', obj.notebook, podSpecOptionsState, {
+          kueueStatus: kueueStatusByNotebookName[notebookName] ?? null,
+          isStarting: true,
+          isRunning: false,
+          isStopping: false,
+        });
         obj.refresh().then(() => setInProgress(false));
       })
       .catch(() => {
         setInProgress(false);
       });
-  }, [obj, canEnablePipelines, podSpecOptionsState, bindingStateInfo, isMlflowAvailable]);
+  }, [
+    obj,
+    canEnablePipelines,
+    podSpecOptionsState,
+    bindingStateInfo,
+    isMlflowAvailable,
+    kueueStatusByNotebookName,
+    notebookName,
+  ]);
 
   const handleStop = React.useCallback(() => {
-    fireNotebookTrackingEvent('stopped', obj.notebook, podSpecOptionsState);
+    fireNotebookTrackingEvent('stopped', obj.notebook, podSpecOptionsState, {
+      kueueStatus: kueueStatusByNotebookName[notebookName] ?? null,
+      isStarting: false,
+      isRunning: obj.isRunning,
+      isStopping: true,
+    });
     setInProgress(true);
     stopNotebook(
       notebookName,
@@ -127,7 +145,14 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
     ).then(() => {
       obj.refresh().then(() => setInProgress(false));
     });
-  }, [podSpecOptionsState, notebookName, notebookNamespace, obj, bindingStateInfo]);
+  }, [
+    podSpecOptionsState,
+    notebookName,
+    notebookNamespace,
+    obj,
+    bindingStateInfo,
+    kueueStatusByNotebookName,
+  ]);
 
   const onStop = React.useCallback(() => {
     if (dontShowModalValue) {
