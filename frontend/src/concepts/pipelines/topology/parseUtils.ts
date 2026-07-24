@@ -370,60 +370,6 @@ export const findIterationExecution = (
     );
   });
 
-/**
- * Scope-aware variant of parseRuntimeInfoFromExecutions that filters by
- * parent_dag_id so each iteration's inner tasks resolve to the correct execution.
- */
-export const parseRuntimeInfoFromExecutionsScoped = (
-  taskId: string,
-  taskName: string,
-  parentDagId: number | undefined,
-  executions?: Execution[] | null,
-): PipelineTaskRunStatus | undefined => {
-  if (!executions) {
-    return undefined;
-  }
-
-  const execution = executions.find((e) => {
-    const props = e.getCustomPropertiesMap();
-    const nameMatch = props.get('task_name')?.getStringValue() === (taskName || taskId);
-    if (!nameMatch) {
-      return false;
-    }
-    if (parentDagId != null) {
-      return props.get('parent_dag_id')?.getIntValue() === parentDagId;
-    }
-    return true;
-  });
-
-  if (!execution) {
-    return undefined;
-  }
-
-  const lastUpdatedTime = execution.getLastUpdateTimeSinceEpoch();
-  let completeTime;
-  const lastKnownState = execution.getLastKnownState();
-  if (
-    lastUpdatedTime &&
-    (lastKnownState === Execution.State.COMPLETE ||
-      lastKnownState === Execution.State.FAILED ||
-      lastKnownState === Execution.State.CACHED ||
-      lastKnownState === Execution.State.CANCELED)
-  ) {
-    completeTime = new Date(lastUpdatedTime).toISOString();
-  }
-  return {
-    startTime: new Date(execution.getCreateTimeSinceEpoch()).toISOString(),
-    completeTime,
-    state: getResourceStateText({
-      resourceType: ResourceType.EXECUTION,
-      resource: execution,
-    }),
-    taskId: `task.${taskId}`,
-    podName: execution.getCustomPropertiesMap().get('pod_name')?.getStringValue(),
-  };
-};
-
 export const parseVolumeMounts = (
   platformSpec?: PlatformSpec,
   executorLabel?: string,

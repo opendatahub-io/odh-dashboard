@@ -127,6 +127,8 @@ export const executionStateToKF = (state: Execution.State): ExecutionStateKF => 
       return ExecutionStateKF.CANCELED;
     case Execution.State.RUNNING:
       return ExecutionStateKF.RUNNING;
+    case Execution.State.NEW:
+      return ExecutionStateKF.NEW;
     default:
       return ExecutionStateKF.RUNNING;
   }
