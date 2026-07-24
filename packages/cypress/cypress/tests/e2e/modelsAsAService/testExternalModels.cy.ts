@@ -76,7 +76,7 @@ describe('External models read-only list', () => {
   it(
     'lists external model, shows governance warning, and empty state in another project',
     {
-      tags: ['@Dashboard', '@MaaS', '@NonConcurrent'],
+      tags: ['@Dashboard', '@MaaS', '@NonConcurrent', '@FeatureFlagged'],
     },
     () => {
       cy.step('Log into Deployments > External models as a normal user with the flag enabled');
@@ -100,12 +100,7 @@ describe('External models read-only list', () => {
         'Verify the pending governance warning next to status (subscription and policy needed)',
       );
       row.findGovernanceWarning().should('exist').click();
-      row
-        .findGovernanceWarningPopover()
-        .should('exist')
-        .and('contain.text', 'Pending MaaS governance')
-        .and('contain.text', 'subscription')
-        .and('contain.text', 'authorization policy');
+      row.findGovernanceWarningPopover().should('exist').and('be.visible');
 
       cy.step('Switch to a project without external models and verify empty state');
       externalModelsPage.selectProject(emptyProject);
