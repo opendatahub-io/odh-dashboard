@@ -2,6 +2,11 @@ import React from 'react';
 import { Flex, FlexItem } from '@patternfly/react-core';
 import { LazyCodeRefComponent } from '@odh-dashboard/plugin-core';
 import { DeploymentResourceVersionLabels } from '../../shared/components';
+import {
+  isUnsupportedResource,
+  getServingRuntimeVersion,
+  getFastVersion,
+} from '../../concepts/versions';
 import type { ExtensionDataEntry } from '../../concepts/extensionHelpers/usePlatformExtensionDataMap';
 import { Deployment, type DeployedModelServingDetails } from '../../../extension-points';
 
@@ -14,9 +19,12 @@ const DeployedModelsVersion: React.FC<DeployedModelsVersionProps> = ({
   deployment,
   servingDetailsEntry,
 }) => {
-  const labels = deployment.server ? (
-    <DeploymentResourceVersionLabels resource={deployment.server} isCompact />
-  ) : null;
+  const { server } = deployment;
+  const hasLabels =
+    !!server &&
+    (isUnsupportedResource(server) ||
+      !!getServingRuntimeVersion(server) ||
+      !!getFastVersion(server));
 
   if (servingDetailsEntry) {
     return (
@@ -27,19 +35,24 @@ const DeployedModelsVersion: React.FC<DeployedModelsVersionProps> = ({
             props={{ deployment, data: servingDetailsEntry.data }}
           />
         </FlexItem>
-        {labels ? <FlexItem>{labels}</FlexItem> : null}
+        {hasLabels ? (
+          <FlexItem>
+            <DeploymentResourceVersionLabels resource={server} isCompact />
+          </FlexItem>
+        ) : null}
       </Flex>
     );
   }
 
-  const displayName =
-    deployment.server?.metadata.annotations?.['opendatahub.io/template-display-name'] ?? '-';
+  const displayName = server?.metadata.annotations?.['opendatahub.io/template-display-name'] ?? '-';
 
-  if (labels) {
+  if (hasLabels) {
     return (
       <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
         <FlexItem>{displayName}</FlexItem>
-        <FlexItem>{labels}</FlexItem>
+        <FlexItem>
+          <DeploymentResourceVersionLabels resource={server} isCompact />
+        </FlexItem>
       </Flex>
     );
   }
