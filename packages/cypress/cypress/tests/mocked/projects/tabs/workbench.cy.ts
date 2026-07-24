@@ -2392,10 +2392,13 @@ describe('Workbench page', () => {
       attachExistingStorageModal
         .findExistingStorageField()
         .findByRole('combobox', { name: 'Persistent storage' })
-        .should('have.attr', 'aria-controls')
-        .then(($el) => {
-          const listboxId = $el.attr('aria-controls') ?? '';
-          expect(listboxId).to.not.equal('');
+        .invoke('attr', 'aria-controls')
+        .should('be.a', 'string')
+        .and('not.be.empty')
+        .then((listboxId) => {
+          if (typeof listboxId !== 'string' || listboxId.length === 0) {
+            throw new Error('expected non-empty aria-controls on Persistent storage combobox');
+          }
           cy.findByRole('dialog').within(() => {
             cy.get(`#${listboxId}`).should('exist');
             cy.findByRole('option', { name: 'pvc-rwx' }).should('exist');
