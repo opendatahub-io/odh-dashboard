@@ -18,7 +18,6 @@ const makeModel = (overrides: Partial<AIModel> = {}): AIModel => ({
   endpoints: ['http://llama.svc/v1'],
   status: 'Running',
   display_name: 'Llama 3 70B',
-  sa_token: { name: '', token_name: '', token: '' },
   model_source_type: 'namespace',
   internalEndpoint: 'http://llama.svc/v1',
   externalEndpoint: undefined,
