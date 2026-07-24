@@ -161,16 +161,33 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
 
     navigate(workbenchesHref);
   };
-  const handleError = (e: K8sStatusError) => {
+  const handleError = (e: unknown) => {
+    const name = editNotebook?.metadata.name || startNotebookData.notebookData.k8sName.value;
+    const kueueQueueName =
+      startNotebookData.hardwareProfileOptions.podSpecOptionsState.hardwareProfile.formData
+        .selectedProfile?.spec.scheduling?.kueue?.localQueueName ||
+      editNotebook?.metadata.labels?.[KUEUE_QUEUE_LABEL];
+
     fireFormTrackingEvent(
       editNotebook ? WorkbenchTrackingEvent.Updated : WorkbenchTrackingEvent.Created,
       {
         outcome: TrackingOutcome.submit,
         success: false,
-        error: `k8s_${e.statusObject.code}`,
+        error: e instanceof K8sStatusError ? `k8s_${e.statusObject.code}` : 'unknown_error',
+        projectName,
+        notebookName: name,
+        ...getWorkbenchKueueTrackingProperties({
+          kueueStatus: kueueStatusByNotebookName[name] ?? null,
+          kueueQueueName,
+          isStarting: true,
+          isRunning: false,
+          isStopping: false,
+        }),
       },
     );
-    setError(e);
+    if (e instanceof K8sStatusError) {
+      setError(e);
+    }
     setCreateInProgress(false);
   };
   const handleStart = () => {
