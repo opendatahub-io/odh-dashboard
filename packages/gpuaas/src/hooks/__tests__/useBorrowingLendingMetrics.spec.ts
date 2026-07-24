@@ -125,4 +125,17 @@ describe('buildSeries', () => {
       expect(series[0].data[0].gpuUsage).toBeCloseTo(expectedGpuUsage);
     },
   );
+
+  it.each([
+    ['NaN string', 'NaN'],
+    ['empty string', ''],
+    ['whitespace', '   '],
+    ['Infinity', 'Infinity'],
+  ])('drops non-finite sample: %s', (_label, valueStr) => {
+    const series = buildSeries(
+      [makeResult('cq-a', [[1700000000, valueStr]])],
+      makeCQInfoMap([['cq-a', { nominalQuota: 4, cohortName: 'cohort-1' }]]),
+    );
+    expect(series[0].data).toHaveLength(0);
+  });
 });

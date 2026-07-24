@@ -148,13 +148,18 @@ const buildSeries = (
         cqName,
         cohortName: info.cohortName,
         nominalQuota: info.nominalQuota,
-        data: result.values.map(([timestamp, valueStr]) => {
-          const gpuUsage = parseFloat(valueStr);
-          return {
-            x: timestamp * 1000,
-            y: Math.max(0, gpuUsage - info.nominalQuota),
-            gpuUsage,
-          };
+        data: result.values.flatMap(([timestamp, valueStr]) => {
+          const gpuUsage = Number(valueStr);
+          if (valueStr.trim() === '' || !Number.isFinite(gpuUsage)) {
+            return [];
+          }
+          return [
+            {
+              x: timestamp * 1000,
+              y: Math.max(0, gpuUsage - info.nominalQuota),
+              gpuUsage,
+            },
+          ];
         }),
       };
     })
