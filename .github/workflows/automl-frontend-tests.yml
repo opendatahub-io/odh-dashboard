@@ -1,0 +1,91 @@
+name: Test / AutoML Frontend Tests
+on:
+  push:
+    paths:
+      - 'packages/automl/**'
+      - '.github/workflows/automl-frontend-tests.yml'
+      - '.github/actions/module-caches/**'
+      - '!LICENSE*'
+      - '!DOCKERFILE*'
+      - '!**.gitignore'
+      - '!**.md'
+
+  pull_request:
+    paths:
+      - 'packages/automl/**'
+      - '.github/workflows/automl-frontend-tests.yml'
+      - '.github/actions/module-caches/**'
+      - '!LICENSE*'
+      - '!DOCKERFILE*'
+      - '!**.gitignore'
+      - '!**.md'
+
+env:
+  NODE_VERSION: 22
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Module caches
+        uses: ./.github/actions/module-caches
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: automl node_modules cache
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: packages/automl/frontend/node_modules
+          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-modules-automl-${{ hashFiles('packages/automl/frontend/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ env.NODE_VERSION }}-modules-automl-
+
+      - name: Install automl dependencies
+        working-directory: packages/automl/frontend
+        run: npm ci && npx --no-install cypress install
+
+      - name: Lint
+        working-directory: packages/automl/frontend
+        run: npm run test:lint
+
+      - name: Type check
+        working-directory: packages/automl/frontend
+        run: npm run test:type-check
+
+      - name: Unit tests (Jest)
+        working-directory: packages/automl/frontend
+        run: npm run test:unit
+
+      - name: Cypress mock tests
+        working-directory: packages/automl/frontend
+        run: npm run test:cypress-ci
+
+      - name: Run clean
+        working-directory: packages/automl/frontend
+        run: npm run build:clean
+
+      - name: Run build
+        working-directory: packages/automl/frontend
+        run: npm run build
+
+      - name: Check if there are uncommitted file changes
+        working-directory: packages/automl/frontend
+        run: |
+          clean=$(git status --porcelain)
+          if [[ -z "$clean" ]]; then
+              echo "Empty git status --porcelain: $clean"
+          else
+              echo "Uncommitted file changes detected: $clean"
+              git diff
+              exit 1
+          fi

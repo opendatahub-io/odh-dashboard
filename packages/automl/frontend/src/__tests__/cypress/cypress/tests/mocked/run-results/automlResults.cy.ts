@@ -52,6 +52,28 @@ const initResultsIntercepts = () => {
     mockModArchResponse(mockPipelineRunWithSpec),
   );
 
+  // S3 files listing — Stage 0: discover training task directory under the run
+  cy.intercept(
+    {
+      method: 'GET',
+      pathname: '/automl/api/v1/s3/files',
+      query: {
+        path: `autogluon-tabular-training-pipeline/${RUN_ID}`,
+      },
+    },
+    mockModArchResponse(
+      mockS3ListObjectsResponse({
+        common_prefixes: [
+          {
+            prefix: `autogluon-tabular-training-pipeline/${RUN_ID}/autogluon-models-training/`,
+          },
+        ],
+        contents: [],
+        key_count: 1,
+      }),
+    ),
+  );
+
   // S3 files listing — Stage 1: list task directories
   cy.intercept(
     {
@@ -102,10 +124,7 @@ const initResultsIntercepts = () => {
     cy.intercept(
       {
         method: 'GET',
-        pathname: '/automl/api/v1/s3/file',
-        query: {
-          key: `${baseDir}/model.json`,
-        },
+        pathname: `/automl/api/v1/s3/files/${encodeURIComponent(`${baseDir}/model.json`)}`,
       },
       {
         body: model,
@@ -117,10 +136,7 @@ const initResultsIntercepts = () => {
     cy.intercept(
       {
         method: 'GET',
-        pathname: '/automl/api/v1/s3/file',
-        query: {
-          key: `${baseDir}/metrics/feature_importance.json`,
-        },
+        pathname: `/automl/api/v1/s3/files/${encodeURIComponent(`${baseDir}/metrics/feature_importance.json`)}`,
       },
       {
         body: mockTabularFeatureImportances[modelName],
@@ -132,10 +148,7 @@ const initResultsIntercepts = () => {
     cy.intercept(
       {
         method: 'GET',
-        pathname: '/automl/api/v1/s3/file',
-        query: {
-          key: `${baseDir}/metrics/confusion_matrix.json`,
-        },
+        pathname: `/automl/api/v1/s3/files/${encodeURIComponent(`${baseDir}/metrics/confusion_matrix.json`)}`,
       },
       {
         body: mockTabularConfusionMatrices[modelName],
@@ -178,22 +191,22 @@ describe('AutoML Results Page', () => {
       automlResultsPage.findTopRankLabel().should('exist');
     });
 
-    it('should open manage columns modal and hide a column', () => {
+    it('should open manage columns modal and show a hidden column', () => {
       automlResultsPage.visit(NAMESPACE, RUN_ID);
 
-      // Verify F1 metric column exists before hiding
-      automlResultsPage.findMetricHeader('f1').should('exist');
+      // Verify f1 metric column is hidden by default (only optimized metric is visible)
+      automlResultsPage.findMetricHeader('f1').should('not.exist');
 
       // Open manage columns modal
       automlResultsPage.findManageColumnsButton().click();
       automlResultsPage.findManageColumnsDescription().should('be.visible');
 
-      // Uncheck F1 column and save
+      // Check f1 column and save
       automlResultsPage.findColumnCheck('metric:f1').click();
       automlResultsPage.findManageColumnsSaveButton().click();
 
-      // F1 column should be hidden
-      automlResultsPage.findMetricHeader('f1').should('not.exist');
+      // f1 column should now be visible
+      automlResultsPage.findMetricHeader('f1').should('exist');
     });
   });
 
@@ -274,7 +287,7 @@ describe('AutoML Results Page', () => {
       automlResultsPage.findTab('confusion-matrix').click();
 
       automlResultsPage.findConfusionMatrixTable().should('exist');
-      automlResultsPage.findConfusionMatrixGradient().should('exist');
+      automlResultsPage.findConfusionMatrixLegend().should('exist');
     });
   });
 
