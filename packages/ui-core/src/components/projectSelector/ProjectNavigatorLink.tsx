@@ -1,0 +1,35 @@
+import React from 'react';
+import { Button, Flex, FlexItem } from '@patternfly/react-core';
+import { Link } from 'react-router-dom';
+import { ProjectIconWithSize } from './ProjectIconWithSize';
+import { IconSize, Namespace } from '../../types';
+
+type ProjectNavigatorLinkProps = {
+  namespace?: Namespace;
+};
+
+const ProjectNavigatorLink: React.FC<ProjectNavigatorLinkProps> = ({ namespace }) => {
+  if (!namespace) {
+    return null;
+  }
+
+  const href = `/projects/${namespace.name}`;
+
+  return (
+    <Button
+      variant="link"
+      component={(props: React.ComponentProps<'a'>) => <Link {...props} to={href} />}
+      data-testid="project-navigator-link"
+    >
+      <Flex alignItems={{ default: 'alignItemsCenter' }} spaceItems={{ default: 'spaceItemsXs' }}>
+        <FlexItem>Go to</FlexItem>
+        <ProjectIconWithSize size={IconSize.LG} />
+        <FlexItem>
+          <strong>{namespace.displayName}</strong>
+        </FlexItem>
+      </Flex>
+    </Button>
+  );
+};
+
+export default ProjectNavigatorLink;

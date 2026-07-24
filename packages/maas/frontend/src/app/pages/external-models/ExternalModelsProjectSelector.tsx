@@ -1,5 +1,5 @@
 import * as React from 'react';
-import ProjectSelector from '@odh-dashboard/internal/concepts/projects/ProjectSelector';
+import ProjectSelector from '@odh-dashboard/ui-core/components/projectSelector/ProjectSelector';
 import { useNavigate } from 'react-router-dom';
 import { useNamespaceSelector } from 'mod-arch-core';
 import { deploymentsExternalPath } from './const';
