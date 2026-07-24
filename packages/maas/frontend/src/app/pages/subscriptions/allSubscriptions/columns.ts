@@ -6,6 +6,7 @@ export const subscriptionsColumns: SortableData<MaaSSubscription>[] = [
   {
     label: 'Subscription',
     field: 'name',
+    width: 30,
     sortable: (a: MaaSSubscription, b: MaaSSubscription): number =>
       (a.displayName ?? a.name).localeCompare(b.displayName ?? b.name),
   },
