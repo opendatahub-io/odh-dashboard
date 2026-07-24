@@ -1,20 +1,31 @@
 package api
 
 import (
+	"log/slog"
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
+	"github.com/opendatahub-io/automl-library/bff/internal/models"
 )
 
-func (app *App) HealthcheckHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	healthCheck, err := app.repositories.HealthCheck.HealthCheck(Version)
+type healthcheckRepository interface {
+	HealthCheck(version string) (models.HealthCheckModel, error)
+}
+
+type HealthcheckHandler struct {
+	logger *slog.Logger
+	repo   healthcheckRepository
+}
+
+func (h *HealthcheckHandler) HealthcheckHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	healthCheck, err := h.repo.HealthCheck(Version)
 	if err != nil {
-		app.serverErrorResponse(w, r, err)
+		serverErrorResponse(h.logger, w, r, err)
 		return
 	}
 
-	err = app.WriteJSON(w, http.StatusOK, healthCheck, nil)
+	err = writeJSON(w, http.StatusOK, healthCheck, nil)
 	if err != nil {
-		app.serverErrorResponse(w, r, err)
+		serverErrorResponse(h.logger, w, r, err)
 	}
 }

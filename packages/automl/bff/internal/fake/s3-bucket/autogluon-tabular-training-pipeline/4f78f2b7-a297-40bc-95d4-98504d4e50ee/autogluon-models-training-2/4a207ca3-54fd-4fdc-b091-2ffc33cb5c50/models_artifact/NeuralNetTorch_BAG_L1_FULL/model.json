@@ -1,0 +1,19 @@
+{
+  "name": "NeuralNetTorch_BAG_L1_FULL",
+  "location": {
+    "model_directory": "NeuralNetTorch_BAG_L1_FULL",
+    "predictor": "NeuralNetTorch_BAG_L1_FULL/predictor",
+    "notebook": "NeuralNetTorch_BAG_L1_FULL/notebooks/automl_predictor_notebook.ipynb",
+    "metrics": "NeuralNetTorch_BAG_L1_FULL/metrics"
+  },
+  "metrics": {
+    "test_data": {
+      "r2": 0.2777484485488485,
+      "root_mean_squared_error": -11.571882802599525,
+      "mean_squared_error": -133.90847159709864,
+      "mean_absolute_error": -9.147487351944397,
+      "pearsonr": 0.5664334680412983,
+      "median_absolute_error": -7.898036956787109
+    }
+  }
+}

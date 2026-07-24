@@ -66,20 +66,26 @@ ARG BFF_SOURCE_CODE
 ARG TARGETOS
 ARG TARGETARCH
 
-WORKDIR /usr/src/app
+# Layout mirrors the monorepo so the go.mod replace directive
+# (../../autox-core/services) resolves correctly inside the container.
 
-# Copy the Go Modules manifests
-COPY ${BFF_SOURCE_CODE}/go.mod ${BFF_SOURCE_CODE}/go.sum ./
+WORKDIR /usr/src/workspace
+
+# Copy module manifests first for dependency caching
+COPY packages/autox-core/services/go.mod packages/autox-core/services/go.sum ./packages/autox-core/services/
+COPY ${BFF_SOURCE_CODE}/go.mod ${BFF_SOURCE_CODE}/go.sum ./${BFF_SOURCE_CODE}/
 
 # Download dependencies
+WORKDIR /usr/src/workspace/${BFF_SOURCE_CODE}
 RUN go mod download
 
-# Copy the go source files
+# Copy source files
+COPY packages/autox-core/services/ /usr/src/workspace/packages/autox-core/services/
 COPY ${BFF_SOURCE_CODE}/cmd/ cmd/
 COPY ${BFF_SOURCE_CODE}/internal/ internal/
 
 # Build the Go application
-RUN CGO_ENABLED=1 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -a -ldflags="-s -w" -tags strictfipsruntime -o bff ./cmd
+RUN CGO_ENABLED=1 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -a -ldflags="-s -w" -tags strictfipsruntime -o /tmp/bff ./cmd
 
 # Final stage
 FROM ${DISTROLESS_BASE_IMAGE}
@@ -87,7 +93,7 @@ FROM ${DISTROLESS_BASE_IMAGE}
 ARG UI_SOURCE_CODE
 
 WORKDIR /
-COPY --from=bff-builder /usr/src/app/bff ./
+COPY --from=bff-builder /tmp/bff ./
 COPY --from=ui-builder /usr/src/workspace/${UI_SOURCE_CODE}/dist ./static/
 USER 65532:65532
 

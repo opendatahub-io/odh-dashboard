@@ -16,7 +16,7 @@ type Envelope[D any, M any] struct {
 
 type None *struct{}
 
-func (app *App) WriteJSON(w http.ResponseWriter, status int, data any, headers http.Header) error {
+func writeJSON(w http.ResponseWriter, status int, data any, headers http.Header) error {
 
 	js, err := json.MarshalIndent(data, "", "\t")
 
@@ -41,7 +41,7 @@ func (app *App) WriteJSON(w http.ResponseWriter, status int, data any, headers h
 	return nil
 }
 
-func (app *App) ReadJSON(w http.ResponseWriter, r *http.Request, dst any) error {
+func readJSON(w http.ResponseWriter, r *http.Request, dst any) error { //nolint:unused
 
 	maxBytes := 1_048_576
 	r.Body = http.MaxBytesReader(w, r.Body, int64(maxBytes))

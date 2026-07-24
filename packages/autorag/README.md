@@ -97,7 +97,7 @@ make run
 **Without Mocks** (requires Kubernetes cluster access):
 
 ```bash
-cd bff && make run PORT=4000 MOCK_K8S_CLIENT=false MOCK_HTTP_CLIENT=false DEV_MODE=true DEPLOYMENT_MODE=standalone
+cd bff && make run PORT=4000 MOCK_K8S_CLIENT=false DEV_MODE=true DEPLOYMENT_MODE=standalone
 ```
 
 ### Running Both Together
@@ -153,7 +153,6 @@ Key environment variables for the BFF:
 | `DEPLOYMENT_MODE`   | `standalone`, `kubeflow`, or `federated` | standalone |
 | `DEV_MODE`          | Enables development features             | false      |
 | `MOCK_K8S_CLIENT`   | Use in-memory mock for Kubernetes        | false      |
-| `MOCK_HTTP_CLIENT`  | Use in-memory mock for HTTP client       | false      |
 | `STATIC_ASSETS_DIR` | Directory for frontend assets            | ./static   |
 | `LOG_LEVEL`         | Logging level (ERROR, WARN, INFO, DEBUG) | INFO       |
 

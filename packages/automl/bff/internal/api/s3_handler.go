@@ -5,217 +5,157 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"mime"
+	"log/slog"
 	"mime/multipart"
-	"net"
 	"net/http"
 	"net/url"
-	"path"
-	"regexp"
 	"strconv"
 	"strings"
-	"time"
 
-	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/automl-library/bff/internal/constants"
-	"github.com/opendatahub-io/automl-library/bff/internal/integrations"
-	"github.com/opendatahub-io/automl-library/bff/internal/integrations/kubernetes"
-	s3int "github.com/opendatahub-io/automl-library/bff/internal/integrations/s3"
-	"github.com/opendatahub-io/automl-library/bff/internal/models"
+	helper "github.com/opendatahub-io/automl-library/bff/internal/helpers"
 	"github.com/opendatahub-io/automl-library/bff/internal/repositories"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	kubernetes "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes"
+	pipelines "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/pipelines"
+	s3 "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/s3"
 )
 
-// s3MetadataTimeout is the deadline for read-only S3 metadata operations
-// (ListObjects, HeadObject, GetCSVSchema, etc.) that should complete quickly.
-// This bounds the response-header phase: if the endpoint accepts the TCP
-// connection but never sends response headers, r.Context() alone won't cancel
-// the call because net/http's WriteTimeout sets a conn deadline, not a context
-// cancellation. File transfers (GetObject, UploadObject) are excluded because
-// legitimate large payloads can exceed any static timeout.
-const s3MetadataTimeout = 15 * time.Second
-
-// resolvedS3 holds a ready-to-use S3 client and the resolved bucket name.
-type resolvedS3 struct {
-	client s3int.S3ClientInterface
-	bucket string
+type s3Repository interface {
+	GetObject(ctx context.Context, req repositories.S3RequestContext, key string) (*repositories.GetObjectResult, error)
+	GetCSVSchema(ctx context.Context, req repositories.S3RequestContext, key string) (helper.CSVSchemaResult, error)
+	UploadCSVFile(ctx context.Context, req repositories.S3RequestContext, key string, body io.Reader, rawContentType, filename string, maxAttempts int) (string, error)
+	ListObjects(ctx context.Context, req repositories.S3RequestContext, options s3.ListObjectsOptions) (*s3.ListObjectsResponse, error)
 }
 
-var trailingNumberPattern = regexp.MustCompile(`^(.*)-(\d+)$`)
+type S3Handler struct {
+	logger *slog.Logger
+	repo   s3Repository
+	// maxFilePartBytes is for package api tests only (see PostS3FileHandler).
+	maxFilePartBytes int64
+	// maxRequestBodyBytes caps total POST body in tests (0 = file max + multipart envelope).
+	maxRequestBodyBytes int64
+	// maxCollisionAttempts limits HeadObject-based key suffix attempts in tests (0 = default cap).
+	maxCollisionAttempts int
+}
 
-// ErrMaxCollisionsExceeded is returned when resolveNonCollidingS3Key exhausts all attempts
-// to find a unique object key due to naming collisions.
-var ErrMaxCollisionsExceeded = errors.New("max collision attempts exceeded")
+// s3MaxUploadFileBytes is the maximum allowed size for the uploaded file (32 MiB).
+const s3MaxUploadFileBytes int64 = 32 << 20
 
-// resolveS3Client resolves S3 credentials (from DSPA context or an explicit secretName),
-// creates an S3 client via the factory, and resolves the bucket.
-// Returns false if an error response was already written to w.
-func (app *App) resolveS3Client(w http.ResponseWriter, r *http.Request, secretName, bucketOverride string) (*resolvedS3, bool) {
-	ctx := r.Context()
+// s3MultipartMaxEnvelopeBytes is headroom for multipart boundaries and non-file form fields.
+const s3MultipartMaxEnvelopeBytes int64 = 64 << 20 // 64 MiB
 
-	identity, ok := ctx.Value(constants.RequestIdentityKey).(*kubernetes.RequestIdentity)
-	if !ok || identity == nil {
-		app.badRequestResponse(w, r, fmt.Errorf("missing RequestIdentity in context"))
-		return nil, false
+// s3PayloadTooLargeMsg is the error message when the total request body exceeds the maximum allowed size.
+const s3PayloadTooLargeMsg = "request body exceeds maximum upload size (32 MiB plus allowance for multipart framing)"
+
+// s3FilePartTooLargeMsg is the error message when the file part exceeds the maximum allowed size.
+const s3FilePartTooLargeMsg = "file exceeds maximum size of 32 MiB"
+
+// s3PostMaxTotalBodyBytes is the maximum allowed size of the entire POST body (multipart framing
+// plus all parts). Matches rejectDeclaredOversizedS3Post and the MaxBytesReader wrapping r.Body
+// before MultipartReader so chunked uploads cannot stream unbounded while skipping non-file parts.
+func (h *S3Handler) s3PostMaxTotalBodyBytes() int64 {
+	if h != nil && h.maxRequestBodyBytes > 0 {
+		return h.maxRequestBodyBytes
 	}
+	return s3MaxUploadFileBytes + s3MultipartMaxEnvelopeBytes
+}
 
-	namespace, ok := ctx.Value(constants.NamespaceHeaderParameterKey).(string)
+// s3PostDeclaredBodyExceedsLimit is true when the client sent a positive Content-Length larger than
+// s3PostMaxTotalBodyBytes (fast reject). Unknown length (e.g. chunked) returns false; the handler
+// still wraps r.Body with http.MaxBytesReader before MultipartReader.
+func (h *S3Handler) s3PostDeclaredBodyExceedsLimit(r *http.Request) bool {
+	if r.ContentLength <= 0 {
+		return false
+	}
+	return r.ContentLength > h.s3PostMaxTotalBodyBytes()
+}
+
+// buildS3Request builds an S3RequestContext from the HTTP request.
+// Writes an error response and returns false if the namespace is missing from context.
+func (h *S3Handler) buildS3Request(w http.ResponseWriter, r *http.Request, secretName, bucketOverride string) (repositories.S3RequestContext, bool) {
+	namespace, ok := r.Context().Value(constants.NamespaceHeaderParameterKey).(string)
 	if !ok || namespace == "" {
-		app.badRequestResponse(w, r, fmt.Errorf("missing namespace in context - ensure AttachNamespace middleware is used first"))
-		return nil, false
+		badRequestResponse(h.logger, w, r, "missing namespace in context — ensure AttachNamespace middleware is used first")
+		return repositories.S3RequestContext{}, false
+	}
+	return repositories.S3RequestContext{
+		Namespace:  namespace,
+		SecretName: strings.TrimSpace(secretName),
+		Bucket:     strings.TrimSpace(bucketOverride),
+	}, true
+}
+
+// handleS3RepoError classifies errors from S3 repository calls and writes the appropriate HTTP response.
+func (h *S3Handler) handleS3RepoError(w http.ResponseWriter, r *http.Request, err error, key string) {
+	switch {
+	case errors.Is(err, kubernetes.ErrNotFound):
+		notFoundResponseWithMessage(h.logger, w, r, err.Error())
+		return
+	case errors.Is(err, kubernetes.ErrForbidden):
+		forbiddenResponse(h.logger, w, r, err.Error())
+		return
+	case errors.Is(err, kubernetes.ErrUnauthorized):
+		unauthorizedResponse(h.logger, w, r, err.Error())
+		return
 	}
 
-	k8sClient, err := app.kubernetesClientFactory.GetClient(ctx)
-	if err != nil {
-		app.serverErrorResponse(w, r, fmt.Errorf("failed to get Kubernetes client: %w", err))
-		return nil, false
+	if errors.Is(err, pipelines.ErrNoDSPAFound) {
+		notFoundResponseWithMessage(h.logger, w, r, "no Pipeline Server (DSPipelineApplication) found in namespace")
+		return
+	}
+	if errors.Is(err, pipelines.ErrDSPANotReady) {
+		serviceUnavailableResponseWithMessage(h.logger, w, r, err,
+			"Pipeline Server exists but is not ready - check that the APIServer component is running")
+		return
 	}
 
-	var creds *s3int.S3Credentials
-	var dspaStorage *models.DSPAObjectStorage
-
-	if secretName != "" {
-		creds, err = app.repositories.S3.GetS3Credentials(ctx, k8sClient, namespace, secretName, identity)
-	} else if storage, ok := ctx.Value(constants.DSPAObjectStorageKey).(*models.DSPAObjectStorage); ok && storage != nil {
-		dspaStorage = storage
-		secretName = dspaStorage.SecretName
-		creds, err = app.repositories.S3.GetS3CredentialsFromDSPA(ctx, k8sClient, namespace, dspaStorage, identity)
-	} else {
-		app.badRequestResponse(w, r, fmt.Errorf("query parameter 'secretName' is required when no DSPA object storage config is available"))
-		return nil, false
+	if errors.Is(err, s3.ErrObjectNotFound) {
+		notFoundResponseWithMessage(h.logger, w, r, fmt.Sprintf("object %q not found in S3 storage", key))
+		return
 	}
-
-	if err != nil {
-		var statusErr *apierrors.StatusError
-		if errors.As(err, &statusErr) {
-			if apierrors.IsNotFound(statusErr) {
-				app.errorResponse(w, r, &integrations.HTTPError{
-					StatusCode: http.StatusNotFound,
-					ErrorResponse: integrations.ErrorResponse{
-						Code:    strconv.Itoa(http.StatusNotFound),
-						Message: fmt.Sprintf("namespace '%s' or secret '%s' not found", namespace, secretName),
-					},
-				})
-				return nil, false
-			}
-			if apierrors.IsForbidden(statusErr) {
-				app.forbiddenResponse(w, r, err.Error())
-				return nil, false
-			}
-			if apierrors.IsUnauthorized(statusErr) {
-				app.unauthorizedResponse(w, r, err.Error())
-				return nil, false
-			}
-		}
-		if strings.Contains(err.Error(), "not found") {
-			app.errorResponse(w, r, &integrations.HTTPError{
-				StatusCode: http.StatusNotFound,
-				ErrorResponse: integrations.ErrorResponse{
-					Code:    strconv.Itoa(http.StatusNotFound),
-					Message: err.Error(),
-				},
-			})
-			return nil, false
-		}
-		if strings.Contains(err.Error(), "missing required field") {
-			app.badRequestResponse(w, r, err)
-			return nil, false
-		}
-		if errors.Is(err, repositories.ErrAmbiguousSecretKey) {
-			app.badRequestResponse(w, r, err)
-			return nil, false
-		}
-		app.serverErrorResponse(w, r, err)
-		return nil, false
+	if errors.Is(err, s3.ErrBucketNotFound) {
+		notFoundResponseWithMessage(h.logger, w, r, "S3 bucket not found")
+		return
 	}
-
-	// Resolve bucket.
-	// SECURITY MODEL:
-	//   - DSPA path: The DSPA-configured bucket always wins. Caller-supplied override
-	//     is IGNORED to prevent bucket substitution and oracle-enumeration attacks.
-	//   - secretName path: Caller-supplied bucketOverride IS ACCEPTED to allow flexible
-	//     bucket access. The secret's IAM credentials determine authorization scope.
-	//     Administrators MUST configure secrets with least-privilege IAM policies scoped
-	//     to specific buckets to prevent unauthorized access.
-	var bucket string
-	if dspaStorage != nil {
-		if dspaStorage.Bucket == "" {
-			app.serviceUnavailableResponseWithMessage(w, r,
-				fmt.Errorf("DSPA object storage configuration does not specify a bucket"),
-				"DSPA object storage is missing a bucket — contact your administrator")
-			return nil, false
-		}
-		bucket = dspaStorage.Bucket
-	} else {
-		bucket = strings.TrimSpace(bucketOverride)
-		if bucket == "" {
-			bucket = strings.TrimSpace(creds.Bucket)
-			if bucket == "" {
-				app.badRequestResponse(w, r, fmt.Errorf("bucket parameter is required either as a query parameter or as AWS_S3_BUCKET in the secret"))
-				return nil, false
-			}
-		}
-	}
-
-	// Dev-only: rewrite S3 endpoint to localhost via dynamic port-forward.
-	// portForwardManager is nil in production (requires DevMode=true).
-	if app.portForwardManager != nil && creds.EndpointURL != "" {
-		if rewritten, pfErr := app.portForwardManager.ForwardURL(ctx, creds.EndpointURL); pfErr != nil {
-			app.logger.Warn("dynamic port-forward failed for S3 endpoint, using original URL",
-				"error", pfErr, "url", creds.EndpointURL)
+	if errors.Is(err, s3.ErrAccessDenied) {
+		if key != "" {
+			forbiddenResponse(h.logger, w, r, fmt.Sprintf("access denied to S3 object %q", key))
 		} else {
-			creds.EndpointURL = rewritten
+			forbiddenResponse(h.logger, w, r, "access denied to S3 bucket")
 		}
+		return
+	}
+	if errors.Is(err, s3.ErrObjectAlreadyExists) {
+		conflictResponse(h.logger, w, r, fmt.Sprintf("object key %q already exists in S3 (upload conflict); retry with a different key", key))
+		return
 	}
 
-	s3Client, err := app.s3ClientFactory.CreateClient(creds)
-	if err != nil {
-		if errors.Is(err, s3int.ErrEndpointValidation) {
-			app.badRequestResponse(w, r, err)
-			return nil, false
-		}
-		app.serverErrorResponse(w, r, fmt.Errorf("failed to create S3 client: %w", err))
-		return nil, false
+	if errors.Is(err, repositories.ErrDSPAConfiguration) {
+		serviceUnavailableResponseWithMessage(h.logger, w, r, err, err.Error())
+		return
+	}
+	if errors.Is(err, s3.ErrInvalidKey) ||
+		errors.Is(err, kubernetes.ErrAmbiguousSecretKey) ||
+		errors.Is(err, s3.ErrEndpointValidation) ||
+		errors.Is(err, repositories.ErrS3Configuration) ||
+		errors.Is(err, repositories.ErrCSVUploadValidation) ||
+		errors.Is(err, helper.ErrCSVValidation) {
+		badRequestResponse(h.logger, w, r, err.Error())
+		return
 	}
 
-	return &resolvedS3{client: s3Client, bucket: bucket}, true
-}
+	if s3.IsConnectivityError(err) {
+		badGatewayResponseWithMessage(h.logger, w, r, err,
+			"Unable to connect to the S3 storage endpoint. "+
+				"The endpoint may be unreachable from this cluster. "+
+				"If this is a disconnected or air-gapped environment, "+
+				"verify the S3 endpoint URL in the data connection secret "+
+				"points to a storage service accessible within the cluster network.")
+		return
+	}
 
-// isS3ConnectivityError checks whether an error is caused by a network-level
-// failure to reach the S3 endpoint (e.g. connection timeout, DNS failure,
-// connection refused, or a metadata timeout deadline). This lets handlers
-// return an actionable 503 instead of a generic 500 when the endpoint is
-// unreachable — common in air-gapped or misconfigured environments.
-func isS3ConnectivityError(err error) bool {
-	if errors.Is(err, context.DeadlineExceeded) {
-		return true
-	}
-	if errors.Is(err, net.ErrClosed) {
-		return true
-	}
-	var netErr net.Error
-	if errors.As(err, &netErr) && netErr.Timeout() {
-		return true
-	}
-	var opErr *net.OpError
-	if errors.As(err, &opErr) && opErr.Op == "dial" {
-		return true
-	}
-	var dnsErr *net.DNSError
-	return errors.As(err, &dnsErr)
-}
-
-// s3ConnectivityErrorMessage returns a user-facing message for S3 connectivity failures.
-func s3ConnectivityErrorMessage(bucket string) string {
-	return fmt.Sprintf(
-		"Unable to connect to the S3 storage endpoint for bucket '%s'. "+
-			"The endpoint may be unreachable from this cluster. "+
-			"If this is a disconnected or air-gapped environment, "+
-			"verify the S3 endpoint URL in the data connection secret "+
-			"points to a storage service accessible within the cluster network.",
-		bucket,
-	)
+	serverErrorResponse(h.logger, w, r, err)
 }
 
 // GetS3FileHandler retrieves a file from S3 storage.
@@ -226,94 +166,143 @@ func s3ConnectivityErrorMessage(bucket string) string {
 //   - secretName (optional): Kubernetes secret with S3 credentials.
 //     If omitted, credentials are taken from the DSPA associated with the namespace.
 //   - bucket (optional): S3 bucket; ignored on the DSPA path.
-func (app *App) GetS3FileHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+func (h *S3Handler) GetS3FileHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	queryParams := r.URL.Query()
 
 	secretName := queryParams.Get("secretName")
-	if secretName != "" && !isValidDNS1123Subdomain(secretName) {
-		app.badRequestResponse(w, r, errors.New("invalid secretName: must be a valid DNS-1123 subdomain (lowercase alphanumeric, '-', or '.', start/end with alphanumeric, max 253 chars)"))
-		return
+	if secretName != "" {
+		if err := kubernetes.ValidateResourceName("secretName", secretName); err != nil {
+			badRequestResponse(h.logger, w, r, fmt.Sprintf("invalid secretName: %s", err))
+			return
+		}
 	}
 
 	key, err := url.PathUnescape(ps.ByName("key"))
 	if err != nil {
-		app.badRequestResponse(w, r, fmt.Errorf("invalid URL encoding in path parameter 'key': %w", err))
+		badRequestResponse(h.logger, w, r, fmt.Sprintf("invalid URL encoding in path parameter 'key': %s", err))
 		return
 	}
 	if key == "" {
-		app.badRequestResponse(w, r, errors.New("path parameter 'key' is required and cannot be empty"))
+		badRequestResponse(h.logger, w, r, "path parameter 'key' is required and cannot be empty")
 		return
 	}
 
 	if v := queryParams.Get("view"); v != "" && v != "schema" {
-		app.badRequestResponse(w, r, fmt.Errorf("unsupported view: %q (supported: schema)", v))
+		badRequestResponse(h.logger, w, r, fmt.Sprintf("unsupported view: %q (supported: schema)", v))
 		return
 	}
 
-	if queryParams.Get("view") == "schema" {
-		app.handleS3FileSchemaView(w, r, key, queryParams)
-		return
-	}
-
-	s3, ok := app.resolveS3Client(w, r, strings.TrimSpace(secretName), queryParams.Get("bucket"))
+	req, ok := h.buildS3Request(w, r, strings.TrimSpace(secretName), queryParams.Get("bucket"))
 	if !ok {
 		return
 	}
 
-	ctx := r.Context()
-	objectReader, contentType, err := s3.client.GetObject(ctx, s3.bucket, key)
-	if err != nil {
-		var noSuchKey *types.NoSuchKey
-		var notFound *types.NotFound
-		if errors.As(err, &noSuchKey) || errors.As(err, &notFound) {
-			app.errorResponse(w, r, &integrations.HTTPError{
-				StatusCode: http.StatusNotFound,
-				ErrorResponse: integrations.ErrorResponse{
-					Code:    strconv.Itoa(http.StatusNotFound),
-					Message: fmt.Sprintf("object '%s' not found in bucket '%s'", key, s3.bucket),
-				},
-			})
-			return
-		}
-
-		var accessDenied interface{ ErrorCode() string }
-		if errors.As(err, &accessDenied) && accessDenied.ErrorCode() == "AccessDenied" {
-			app.forbiddenResponse(w, r, fmt.Sprintf("access denied to S3 object '%s/%s'", s3.bucket, key))
-			return
-		}
-
-		if isS3ConnectivityError(err) {
-			app.badGatewayResponseWithMessage(w, r, err, s3ConnectivityErrorMessage(s3.bucket))
-			return
-		}
-
-		app.serverErrorResponse(w, r, err)
+	if queryParams.Get("view") == "schema" {
+		h.getS3FileSchemaHandler(w, r, req, key)
 		return
 	}
 
-	defer objectReader.Close()
+	result, err := h.repo.GetObject(r.Context(), req, key)
+	if err != nil {
+		h.handleS3RepoError(w, r, err, key)
+		return
+	}
+	defer result.Body.Close()
 
-	sanitizedContentType := sanitizeS3ResponseContentType(contentType)
-	w.Header().Set("Content-Type", sanitizedContentType)
-	if !s3GetResponseTypeAllowsInlineViewing(sanitizedContentType) {
+	w.Header().Set("Content-Type", result.ContentType)
+	if result.ForceDownload {
 		w.Header().Set("Content-Disposition", "attachment")
 		w.Header().Set("X-Content-Type-Options", "nosniff")
 	}
 	w.WriteHeader(http.StatusOK)
-	_, err = io.Copy(w, objectReader)
-	if err != nil {
-		app.logger.Error("error streaming S3 object to response",
-			"error", err, "bucket", s3.bucket, "key", key)
+	if _, err = io.Copy(w, result.Body); err != nil {
+		h.logger.Error("error streaming S3 object to response", "error", err, "key", key)
 	}
 }
 
-const defaultS3PostMaxCollisionAttempts = 10
-
-func (app *App) effectivePostS3CollisionAttempts() int {
-	if app != nil && app.s3PostMaxCollisionAttempts > 0 {
-		return app.s3PostMaxCollisionAttempts
+// getS3FileSchemaHandler handles the ?view=schema path for GetS3FileHandler.
+func (h *S3Handler) getS3FileSchemaHandler(w http.ResponseWriter, r *http.Request, req repositories.S3RequestContext, key string) {
+	schemaResult, err := h.repo.GetCSVSchema(r.Context(), req, key)
+	if err != nil {
+		h.handleS3RepoError(w, r, err, key)
+		return
 	}
-	return defaultS3PostMaxCollisionAttempts
+
+	response := map[string]any{
+		"data": map[string]any{
+			"columns":        schemaResult.Columns,
+			"parse_warnings": schemaResult.ParseWarnings,
+		},
+	}
+
+	if err := writeJSON(w, http.StatusOK, response, nil); err != nil {
+		h.logger.Error("error writing JSON response", "error", err)
+	}
+}
+
+func (h *S3Handler) effectivePostS3CollisionAttempts() int {
+	if h != nil && h.maxCollisionAttempts > 0 {
+		return h.maxCollisionAttempts
+	}
+	return 0
+}
+
+// effectiveFilePartMaxBytes returns the cap for the file part body.
+func (h *S3Handler) effectiveFilePartMaxBytes() int64 {
+	if h.maxFilePartBytes > 0 {
+		return h.maxFilePartBytes
+	}
+	return s3MaxUploadFileBytes
+}
+
+// extractMultipartFilePart caps the total body, reads through the multipart stream,
+// discards non-file parts, and returns the "file" part. Writes an error response
+// and returns a non-nil error if anything goes wrong.
+func (h *S3Handler) extractMultipartFilePart(w http.ResponseWriter, r *http.Request) (*multipart.Part, error) {
+	r.Body = http.MaxBytesReader(w, r.Body, h.s3PostMaxTotalBodyBytes())
+
+	mr, err := r.MultipartReader()
+	if err != nil {
+		if isS3PostRequestBodyTooLarge(err) {
+			payloadTooLargeResponse(h.logger, w, r, s3PayloadTooLargeMsg)
+		} else {
+			badRequestResponse(h.logger, w, r, fmt.Sprintf("failed to parse multipart request: %s", err))
+		}
+		return nil, err
+	}
+	if mr == nil {
+		badRequestResponse(h.logger, w, r, "request must be multipart/form-data with a boundary")
+		return nil, errors.New("nil multipart reader")
+	}
+
+	for {
+		part, nextErr := mr.NextPart()
+		if nextErr == io.EOF {
+			break
+		}
+		if nextErr != nil {
+			if isS3PostRequestBodyTooLarge(nextErr) {
+				payloadTooLargeResponse(h.logger, w, r, s3PayloadTooLargeMsg)
+			} else {
+				badRequestResponse(h.logger, w, r, fmt.Sprintf("reading multipart: %s", nextErr))
+			}
+			return nil, nextErr
+		}
+		if part.FormName() == "file" {
+			return part, nil
+		}
+		if _, copyErr := io.Copy(io.Discard, part); copyErr != nil {
+			if isS3PostRequestBodyTooLarge(copyErr) {
+				payloadTooLargeResponse(h.logger, w, r, s3PayloadTooLargeMsg)
+			} else {
+				badRequestResponse(h.logger, w, r, fmt.Sprintf("reading multipart: %s", copyErr))
+			}
+			return nil, copyErr
+		}
+	}
+
+	badRequestResponse(h.logger, w, r, "missing 'file' part in multipart form")
+	return nil, errors.New("no file part")
 }
 
 // PostS3FileHandler uploads a CSV file to S3 storage using credentials from a Kubernetes secret.
@@ -325,136 +314,60 @@ func (app *App) effectivePostS3CollisionAttempts() int {
 // If HeadObject and PUT disagree (concurrent writer), the handler returns 409 Conflict without retrying.
 //
 // Note: namespace is provided via the AttachNamespace middleware
-func (app *App) PostS3FileHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+func (h *S3Handler) PostS3FileHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	queryParams := r.URL.Query()
 
 	secretName := queryParams.Get("secretName")
 	if secretName == "" {
-		app.badRequestResponse(w, r, errors.New("query parameter 'secretName' is required and cannot be empty"))
+		badRequestResponse(h.logger, w, r, "query parameter 'secretName' is required and cannot be empty")
 		return
 	}
-	if !isValidDNS1123Subdomain(secretName) {
-		app.badRequestResponse(w, r, errors.New("invalid secretName: must be a valid DNS-1123 subdomain (lowercase alphanumeric, '-', or '.', start/end with alphanumeric, max 253 chars)"))
+	if err := kubernetes.ValidateResourceName("secretName", secretName); err != nil {
+		badRequestResponse(h.logger, w, r, fmt.Sprintf("invalid secretName: %s", err))
 		return
 	}
 
 	key, err := url.PathUnescape(ps.ByName("key"))
 	if err != nil {
-		app.badRequestResponse(w, r, fmt.Errorf("invalid URL encoding in path parameter 'key': %w", err))
+		badRequestResponse(h.logger, w, r, fmt.Sprintf("invalid URL encoding in path parameter 'key': %s", err))
 		return
 	}
 	if key == "" {
-		app.badRequestResponse(w, r, errors.New("path parameter 'key' is required and cannot be empty"))
+		badRequestResponse(h.logger, w, r, "path parameter 'key' is required and cannot be empty")
 		return
 	}
 
-	s3, ok := app.resolveS3Client(w, r, secretName, queryParams.Get("bucket"))
+	req, ok := h.buildS3Request(w, r, secretName, queryParams.Get("bucket"))
 	if !ok {
 		return
 	}
 
-	bucket := s3.bucket
-	metadataCtx, metadataCancel := context.WithTimeout(r.Context(), s3MetadataTimeout)
-	defer metadataCancel()
-	resolvedKey, err := resolveNonCollidingS3Key(metadataCtx, s3.client, bucket, key, app.effectivePostS3CollisionAttempts())
+	filePart, err := h.extractMultipartFilePart(w, r)
 	if err != nil {
-		if errors.Is(err, ErrMaxCollisionsExceeded) {
-			app.conflictResponse(w, r,
-				fmt.Sprintf("unable to find unique filename after %d attempts; try a different base name",
-					app.effectivePostS3CollisionAttempts()))
-			return
-		}
-		if isS3ConnectivityError(err) {
-			app.badGatewayResponseWithMessage(w, r, err, s3ConnectivityErrorMessage(bucket))
-			return
-		}
-		app.serverErrorResponse(w, r, fmt.Errorf("error resolving S3 key for upload: %w", err))
 		return
 	}
 
-	maxUploadSize := app.s3PostMaxTotalBodyBytes()
-	r.Body = http.MaxBytesReader(w, r.Body, maxUploadSize)
-
-	mr, err := r.MultipartReader()
-	if err != nil {
-		if isS3PostRequestBodyTooLarge(err) {
-			app.payloadTooLargeResponse(w, r, s3PayloadTooLargeMsg)
-			return
-		}
-		app.badRequestResponse(w, r, fmt.Errorf("failed to parse multipart request: %w", err))
-		return
-	}
-	if mr == nil {
-		app.badRequestResponse(w, r, errors.New("request must be multipart/form-data with a boundary"))
-		return
-	}
-
-	var filePart *multipart.Part
-	for {
-		part, nextErr := mr.NextPart()
-		if nextErr == io.EOF {
-			break
-		}
-		if nextErr != nil {
-			if isS3PostRequestBodyTooLarge(nextErr) {
-				app.payloadTooLargeResponse(w, r, s3PayloadTooLargeMsg)
-				return
-			}
-			app.badRequestResponse(w, r, fmt.Errorf("reading multipart: %w", nextErr))
-			return
-		}
-		if part.FormName() == "file" {
-			filePart = part
-			break
-		}
-		_, copyErr := io.Copy(io.Discard, part)
-		if copyErr != nil {
-			if isS3PostRequestBodyTooLarge(copyErr) {
-				app.payloadTooLargeResponse(w, r, s3PayloadTooLargeMsg)
-				return
-			}
-			app.badRequestResponse(w, r, fmt.Errorf("reading multipart: %w", copyErr))
-			return
-		}
-	}
-
-	if filePart == nil {
-		app.badRequestResponse(w, r, errors.New("missing 'file' part in multipart form"))
-		return
-	}
-
-	contentType, ctypeErr := resolveCsvMultipartContentType(filePart)
-	if ctypeErr != nil {
-		app.badRequestResponse(w, r, ctypeErr)
-		return
-	}
-
-	maxFilePartBytes := s3MaxUploadFileBytes
-	if app.s3PostMaxFilePartBytes > 0 {
-		maxFilePartBytes = app.s3PostMaxFilePartBytes
-	}
-	limitedFile := http.MaxBytesReader(nil, filePart, maxFilePartBytes)
+	limitedFile := http.MaxBytesReader(w, filePart, h.effectiveFilePartMaxBytes())
 	defer limitedFile.Close()
-	if err := s3.client.UploadObject(r.Context(), bucket, resolvedKey, limitedFile, contentType); err != nil {
+
+	resolvedKey, err := h.repo.UploadCSVFile(
+		r.Context(), req, key, limitedFile,
+		filePart.Header.Get("Content-Type"), filePart.FileName(),
+		h.effectivePostS3CollisionAttempts(),
+	)
+	if err != nil {
 		var maxBytesErr *http.MaxBytesError
 		if errors.As(err, &maxBytesErr) {
-			app.payloadTooLargeResponse(w, r, s3FilePartTooLargeMsg)
+			payloadTooLargeResponse(h.logger, w, r, s3FilePartTooLargeMsg)
 			return
 		}
-		if errors.Is(err, s3int.ErrObjectAlreadyExists) {
-			app.conflictResponse(w, r, fmt.Sprintf("object key %q already exists in S3 (upload conflict); retry with a different key", resolvedKey))
+		if errors.Is(err, s3.ErrMaxCollisionsExceeded) {
+			conflictResponse(h.logger, w, r,
+				fmt.Sprintf("unable to find unique filename after %d attempts; try a different base name",
+					h.effectivePostS3CollisionAttempts()))
 			return
 		}
-		var accessDenied interface{ ErrorCode() string }
-		if errors.As(err, &accessDenied) && accessDenied.ErrorCode() == "AccessDenied" {
-			app.forbiddenResponse(w, r, fmt.Sprintf("access denied uploading to S3 '%s/%s'", bucket, resolvedKey))
-			return
-		}
-		if isS3ConnectivityError(err) {
-			app.badGatewayResponseWithMessage(w, r, err, s3ConnectivityErrorMessage(bucket))
-			return
-		}
-		app.serverErrorResponse(w, r, fmt.Errorf("error uploading file to S3: %w", err))
+		h.handleS3RepoError(w, r, err, key)
 		return
 	}
 
@@ -462,86 +375,18 @@ func (app *App) PostS3FileHandler(w http.ResponseWriter, r *http.Request, ps htt
 		"uploaded": true,
 		"key":      resolvedKey,
 	}
-	_ = app.WriteJSON(w, http.StatusCreated, body, nil)
-}
-
-// resolveNonCollidingS3Key picks a candidate object key using HeadObject only (no upload body read).
-// When the requested key exists, it tries name-1, name-2, … up to maxSuffixAttempts times.
-func resolveNonCollidingS3Key(
-	ctx context.Context,
-	client s3int.S3ClientInterface,
-	bucket string,
-	requestedKey string,
-	maxCollisionAttempts int,
-) (string, error) {
-	exists, err := client.ObjectExists(ctx, bucket, requestedKey)
-	if err != nil {
-		return "", err
+	if err := writeJSON(w, http.StatusCreated, body, nil); err != nil {
+		h.logger.Error("failed to write upload response", "error", err, "key", resolvedKey)
 	}
-	if !exists {
-		return requestedKey, nil
-	}
-
-	dir, name := splitS3ObjectPath(requestedKey)
-	stem, ext := splitNameAndExtension(name)
-	stemBase, nextIndex := splitStemAndNextIndex(stem)
-
-	for range maxCollisionAttempts {
-		candidateName := fmt.Sprintf("%s-%d%s", stemBase, nextIndex, ext)
-		candidateKey := dir + candidateName
-
-		candidateExists, checkErr := client.ObjectExists(ctx, bucket, candidateKey)
-		if checkErr != nil {
-			return "", checkErr
-		}
-		if !candidateExists {
-			return candidateKey, nil
-		}
-		nextIndex++
-	}
-	return "", ErrMaxCollisionsExceeded
-}
-
-func splitS3ObjectPath(key string) (dir string, name string) {
-	lastSlashIndex := strings.LastIndex(key, "/")
-	if lastSlashIndex == -1 {
-		return "", key
-	}
-	return key[:lastSlashIndex+1], key[lastSlashIndex+1:]
-}
-
-func splitNameAndExtension(fileName string) (stem string, ext string) {
-	ext = path.Ext(fileName)
-	if ext == "" {
-		return fileName, ""
-	}
-	stem = strings.TrimSuffix(fileName, ext)
-	if stem == "" {
-		return fileName, ""
-	}
-	return stem, ext
-}
-
-func splitStemAndNextIndex(stem string) (base string, nextIndex int) {
-	match := trailingNumberPattern.FindStringSubmatch(stem)
-	if len(match) != 3 {
-		return stem, 1
-	}
-
-	parsedIndex, err := strconv.Atoi(match[2])
-	if err != nil {
-		return stem, 1
-	}
-	return match[1], parsedIndex + 1
 }
 
 // rejectDeclaredOversizedS3Post returns 413 when Content-Length is set and exceeds
 // s3PostMaxTotalBodyBytes. Chunked or unknown length passes here; PostS3FileHandler still wraps
 // r.Body with http.MaxBytesReader before MultipartReader so total bytes read are capped.
-func (app *App) rejectDeclaredOversizedS3Post(next httprouter.Handle) httprouter.Handle {
+func (h *S3Handler) rejectDeclaredOversizedS3Post(next httprouter.Handle) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-		if app.s3PostDeclaredBodyExceedsLimit(r) {
-			app.payloadTooLargeResponse(w, r, s3PayloadTooLargeMsg)
+		if h.s3PostDeclaredBodyExceedsLimit(r) {
+			payloadTooLargeResponse(h.logger, w, r, s3PayloadTooLargeMsg)
 			return
 		}
 		next(w, r, ps)
@@ -553,138 +398,8 @@ func isS3PostRequestBodyTooLarge(err error) bool {
 	return err != nil && errors.As(err, &maxBytesErr)
 }
 
-// resolveCsvMultipartContentType validates CSV-only uploads and returns text/csv for S3 storage.
-// Accepts text/csv; application/octet-stream or missing Content-Type when the filename ends with .csv.
-func resolveCsvMultipartContentType(part *multipart.Part) (string, error) {
-	raw := strings.TrimSpace(part.Header.Get("Content-Type"))
-	fn := strings.ToLower(strings.TrimSpace(part.FileName()))
-
-	if raw == "" {
-		if strings.HasSuffix(fn, ".csv") {
-			return "text/csv", nil
-		}
-		return "", errors.New("only CSV files are supported: use a .csv filename or Content-Type text/csv")
-	}
-
-	mediaType, _, err := mime.ParseMediaType(raw)
-	if err != nil {
-		return "", fmt.Errorf("invalid Content-Type: %w", err)
-	}
-	mediaType = strings.ToLower(mediaType)
-
-	switch mediaType {
-	case "text/csv":
-		return "text/csv", nil
-	case "application/octet-stream":
-		if strings.HasSuffix(fn, ".csv") {
-			return "text/csv", nil
-		}
-		return "", errors.New("only CSV files are supported (application/octet-stream requires a .csv filename)")
-	default:
-		return "", errors.New("only CSV files are supported (Content-Type must be text/csv, or application/octet-stream with a .csv filename)")
-	}
-}
-
-// sanitizeS3ResponseContentType normalizes S3 metadata on GET. text/csv and application/json are
-// echoed for AutoML pipelines; other types become application/octet-stream so arbitrary S3
-// metadata cannot set executable types under the dashboard origin.
-func sanitizeS3ResponseContentType(v string) string {
-	v = strings.TrimSpace(v)
-	if v == "" {
-		return "application/octet-stream"
-	}
-	mediaType, _, err := mime.ParseMediaType(v)
-	if err != nil {
-		return "application/octet-stream"
-	}
-	mediaType = strings.ToLower(mediaType)
-	switch mediaType {
-	case "text/csv":
-		return "text/csv"
-	case "application/json":
-		return "application/json"
-	default:
-		return "application/octet-stream"
-	}
-}
-
-func s3GetResponseTypeAllowsInlineViewing(sanitizedContentType string) bool {
-	switch sanitizedContentType {
-	case "text/csv", "application/json":
-		return true
-	default:
-		return false
-	}
-}
-
-func (app *App) handleS3FileSchemaView(w http.ResponseWriter, r *http.Request, key string, queryParams url.Values) {
-	secretName := strings.TrimSpace(queryParams.Get("secretName"))
-
-	s3, ok := app.resolveS3Client(w, r, secretName, queryParams.Get("bucket"))
-	if !ok {
-		return
-	}
-
-	ctx, cancel := context.WithTimeout(r.Context(), s3MetadataTimeout)
-	defer cancel()
-
-	schemaResult, err := s3.client.GetCSVSchema(ctx, s3.bucket, key)
-	if err != nil {
-		var noSuchKey *types.NoSuchKey
-		var notFound *types.NotFound
-		if errors.As(err, &noSuchKey) || errors.As(err, &notFound) {
-			app.errorResponse(w, r, &integrations.HTTPError{
-				StatusCode: http.StatusNotFound,
-				ErrorResponse: integrations.ErrorResponse{
-					Code:    strconv.Itoa(http.StatusNotFound),
-					Message: fmt.Sprintf("object '%s' not found in bucket '%s'", key, s3.bucket),
-				},
-			})
-			return
-		}
-
-		var accessDenied interface{ ErrorCode() string }
-		if errors.As(err, &accessDenied) && accessDenied.ErrorCode() == "AccessDenied" {
-			app.forbiddenResponse(w, r, fmt.Sprintf("access denied to S3 object '%s/%s'", s3.bucket, key))
-			return
-		}
-
-		errMsg := err.Error()
-		if strings.Contains(errMsg, "CSV file must contain at least one complete line") ||
-			strings.Contains(errMsg, "CSV file is empty") ||
-			strings.Contains(errMsg, "CSV file has no columns") ||
-			strings.Contains(errMsg, "does not appear to be a valid text/CSV file") ||
-			strings.Contains(errMsg, "must contain at least 100 data rows") ||
-			strings.Contains(errMsg, "100 or more lines are supported") ||
-			strings.Contains(errMsg, "only CSV files are supported") ||
-			strings.Contains(errMsg, "endpoint validation failed") {
-			app.badRequestResponse(w, r, err)
-			return
-		}
-
-		if isS3ConnectivityError(err) {
-			app.badGatewayResponseWithMessage(w, r, err, s3ConnectivityErrorMessage(s3.bucket))
-			return
-		}
-
-		app.serverErrorResponse(w, r, err)
-		return
-	}
-
-	response := map[string]interface{}{
-		"data": map[string]interface{}{
-			"columns":        schemaResult.Columns,
-			"parse_warnings": schemaResult.ParseWarnings,
-		},
-	}
-
-	if err := app.WriteJSON(w, http.StatusOK, response, nil); err != nil {
-		app.logger.Error("error writing JSON response", "error", err)
-	}
-}
-
 // S3FilesEnvelope is the response envelope for GET /api/v1/s3/files.
-type S3FilesEnvelope Envelope[models.S3ListObjectsResponse, None]
+type S3FilesEnvelope Envelope[s3.ListObjectsResponse, None]
 
 // GetS3FilesHandler lists objects in an S3 bucket.
 // Query parameters:
@@ -695,53 +410,33 @@ type S3FilesEnvelope Envelope[models.S3ListObjectsResponse, None]
 //   - search (optional): Substring filter; must not contain '/'.
 //   - next (optional): Continuation token for pagination (non-empty if provided).
 //   - limit (optional): Page size 1–1000 (default 1000).
-func (app *App) GetS3FilesHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+func (h *S3Handler) GetS3FilesHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	queryParams := r.URL.Query()
 
 	params, err := validateGetS3FilesParams(queryParams)
 	if err != nil {
-		app.badRequestResponse(w, r, err)
+		badRequestResponse(h.logger, w, r, err.Error())
 		return
 	}
 
-	s3, ok := app.resolveS3Client(w, r, params.secretName, params.bucket)
+	req, ok := h.buildS3Request(w, r, params.secretName, params.bucket)
 	if !ok {
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(r.Context(), s3MetadataTimeout)
-	defer cancel()
-
-	result, err := s3.client.ListObjects(ctx, s3.bucket, s3int.ListObjectsOptions{
+	result, err := h.repo.ListObjects(r.Context(), req, s3.ListObjectsOptions{
 		Path:   params.path,
 		Search: params.search,
 		Next:   params.next,
 		Limit:  params.limit,
 	})
 	if err != nil {
-		var noBucket *types.NoSuchBucket
-		if errors.As(err, &noBucket) {
-			app.notFoundResponseWithMessage(w, r, fmt.Sprintf("bucket '%s' does not exist", s3.bucket))
-			return
-		}
-
-		var accessDenied interface{ ErrorCode() string }
-		if errors.As(err, &accessDenied) && accessDenied.ErrorCode() == "AccessDenied" {
-			app.forbiddenResponse(w, r, fmt.Sprintf("access denied to S3 bucket '%s'", s3.bucket))
-			return
-		}
-
-		if isS3ConnectivityError(err) {
-			app.badGatewayResponseWithMessage(w, r, err, s3ConnectivityErrorMessage(s3.bucket))
-			return
-		}
-
-		app.serverErrorResponse(w, r, err)
+		h.handleS3RepoError(w, r, err, "")
 		return
 	}
 
 	if result == nil {
-		app.serverErrorResponse(w, r, fmt.Errorf("unexpected nil response from S3 ListObjects"))
+		serverErrorResponse(h.logger, w, r, fmt.Errorf("unexpected nil response from S3 ListObjects"))
 		return
 	}
 
@@ -749,8 +444,8 @@ func (app *App) GetS3FilesHandler(w http.ResponseWriter, r *http.Request, _ http
 		Data:     *result,
 		Metadata: &struct{}{},
 	}
-	if err := app.WriteJSON(w, http.StatusOK, envelope, nil); err != nil {
-		app.serverErrorResponse(w, r, err)
+	if err := writeJSON(w, http.StatusOK, envelope, nil); err != nil {
+		serverErrorResponse(h.logger, w, r, err)
 	}
 }
 

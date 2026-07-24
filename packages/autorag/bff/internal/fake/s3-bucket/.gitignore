@@ -1,0 +1,12 @@
+# Ignore everything by default — this directory mimics a real S3 bucket and
+# accumulates uploaded files and new pipeline run artifacts at runtime.
+*
+!.gitignore
+
+# Track the seed data that ships with the repo.
+!autorag input data/
+!autorag input data/**
+!documents-rag-optimization-pipeline/
+!documents-rag-optimization-pipeline/**
+
+.DS_Store

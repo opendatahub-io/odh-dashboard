@@ -1,7 +1,6 @@
 PORT ?= 4000
 MOCK_K8S_CLIENT ?= false
 MOCK_OGX_CLIENT ?= false
-MOCK_HTTP_CLIENT ?= false
 MOCK_PIPELINE_SERVER_CLIENT ?= false
 MOCK_S3_CLIENT ?= false
 DEV_MODE ?= false
@@ -77,7 +76,6 @@ run: fmt vet envtest ## Runs the project.
 		--auth-token-prefix="$(AUTH_TOKEN_PREFIX)" \
 		--static-assets-dir="$(STATIC_ASSETS_DIR)" \
 		--mock-k8s-client="$(MOCK_K8S_CLIENT)" \
-		--mock-http-client="$(MOCK_HTTP_CLIENT)" \
 		--mock-pipeline-server-client="$(MOCK_PIPELINE_SERVER_CLIENT)" \
 		--mock-s3-client="$(MOCK_S3_CLIENT)" \
 		--mock-ogx-client="$(MOCK_OGX_CLIENT)" \
@@ -101,8 +99,8 @@ ENVTEST ?= $(LOCALBIN)/setup-envtest-$(ENVTEST_VERSION)
 GOLANGCI_LINT ?= $(LOCALBIN)/golangci-lint-$(GOLANGCI_LINT_VERSION)
 
 ## Tool Versions
-GOLANGCI_LINT_VERSION ?= v2.0.2
-ENVTEST_VERSION ?= release-0.19
+GOLANGCI_LINT_VERSION ?= v2.12.2
+ENVTEST_VERSION ?= v0.24.1
 
 .PHONY: envtest
 envtest: $(ENVTEST) ## Download setup-envtest locally if necessary.

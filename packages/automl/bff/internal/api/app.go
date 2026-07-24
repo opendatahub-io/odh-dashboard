@@ -1,7 +1,6 @@
 package api
 
 import (
-	"context"
 	"crypto/x509"
 	"fmt"
 	"log/slog"
@@ -12,18 +11,17 @@ import (
 	"strings"
 
 	k8s "github.com/opendatahub-io/automl-library/bff/internal/integrations/kubernetes"
-	k8mocks "github.com/opendatahub-io/automl-library/bff/internal/integrations/kubernetes/k8mocks"
 	"github.com/opendatahub-io/automl-library/bff/internal/integrations/modelregistry"
-	ps "github.com/opendatahub-io/automl-library/bff/internal/integrations/pipelineserver"
-	psmocks "github.com/opendatahub-io/automl-library/bff/internal/integrations/pipelineserver/psmocks"
-	s3int "github.com/opendatahub-io/automl-library/bff/internal/integrations/s3"
-	s3mocks "github.com/opendatahub-io/automl-library/bff/internal/integrations/s3/s3mocks"
-	"k8s.io/client-go/kubernetes"
-	"sigs.k8s.io/controller-runtime/pkg/envtest"
+	kubernetes "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes"
+	pipelines "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/pipelines"
+	s3 "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/s3"
+	k8sclient "k8s.io/client-go/kubernetes"
 
 	helper "github.com/opendatahub-io/automl-library/bff/internal/helpers"
 
 	"github.com/opendatahub-io/automl-library/bff/internal/config"
+	"github.com/opendatahub-io/automl-library/bff/internal/constants"
+	"github.com/opendatahub-io/automl-library/bff/internal/fake"
 	"github.com/opendatahub-io/automl-library/bff/internal/repositories"
 
 	"github.com/julienschmidt/httprouter"
@@ -44,10 +42,6 @@ const (
 	ModelRegistryModelsPath = ModelRegistriesPath + "/:registryId/models"
 	ManagedPipelinesPath    = ApiPathPrefix + "/managed-pipelines/enable"
 )
-
-// modelRegistryHTTPClientFactory builds a client for Model Registry register calls.
-// If nil, modelregistry.NewHTTPClient is used. Set by tests only.
-type modelRegistryHTTPClientFactory func(*slog.Logger, string, http.Header, bool, *x509.CertPool) (modelregistry.HTTPClientInterface, error)
 
 var hashPattern = regexp.MustCompile(`[.\-][0-9a-f]{8,}`)
 var staticAssetPattern = regexp.MustCompile(`(?i)\.(woff2?|ttf|eot|png|jpe?g|gif|svg|ico|webp|avif|bmp)$`)
@@ -72,34 +66,29 @@ func cacheControlForStaticFile(filePath string) string {
 }
 
 type App struct {
-	config                      config.EnvConfig
-	logger                      *slog.Logger
-	kubernetesClientFactory     k8s.KubernetesClientFactory
-	pipelineServerClientFactory ps.PipelineServerClientFactory
-	s3ClientFactory             s3int.S3ClientFactory
-	repositories                *repositories.Repositories
-	// s3PostMaxFilePartBytes is for package api tests only (see PostS3FileHandler).
-	s3PostMaxFilePartBytes int64
-	// s3PostMaxRequestBodyBytes caps total POST body in tests (0 = file max + multipart envelope).
-	s3PostMaxRequestBodyBytes int64
-	// s3PostMaxCollisionAttempts limits HeadObject-based key suffix attempts in tests (0 = default cap).
-	s3PostMaxCollisionAttempts int
-	//used only on mocked k8s client
-	testEnv *envtest.Environment
+	config config.EnvConfig
+	logger *slog.Logger
+	// k8sService provides business logic for Kubernetes operations using autox-core
+	k8sService kubernetes.Service
 	// rootCAs used for outbound TLS connections to Client Service
 	rootCAs *x509.CertPool
-	// modelRegistryHTTPClientFactory is nil in production; tests may set it to inject mock clients.
-	modelRegistryHTTPClientFactory modelRegistryHTTPClientFactory
 	// portForwardManager manages on-demand port-forwards for local dev (nil in production)
 	portForwardManager *k8s.PortForwardManager
+
+	// Handler-composition middleware (namespace extraction, RBAC)
+	mw *Middleware
+
+	// Per-domain handler groups
+	healthcheck   *HealthcheckHandler
+	k8s           *K8sHandler
+	s3            *S3Handler
+	pipelines     *PipelinesHandler
+	modelRegistry *ModelRegistryHandler
 }
 
 func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 	logger.Debug("Initializing app with config", slog.Any("config", cfg))
-	var k8sFactory k8s.KubernetesClientFactory
 	var err error
-	// used only on mocked k8s client
-	var testEnv *envtest.Environment
 	var rootCAs *x509.CertPool
 
 	// Initialize CA pool if bundle paths are provided
@@ -136,30 +125,6 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		}
 	}
 
-	if cfg.MockK8Client {
-		//mock all k8s calls with 'env test'
-		var clientset kubernetes.Interface
-		ctx, cancel := context.WithCancel(context.Background())
-		testEnv, clientset, err = k8mocks.SetupEnvTest(k8mocks.TestEnvInput{
-			Logger: logger,
-			Ctx:    ctx,
-			Cancel: cancel,
-		})
-		if err != nil {
-			return nil, fmt.Errorf("failed to setup envtest: %w", err)
-		}
-		//create mocked kubernetes client factory
-		k8sFactory, err = k8mocks.NewMockedKubernetesClientFactory(clientset, testEnv, cfg, logger)
-
-	} else {
-		//create kubernetes client factory
-		k8sFactory, err = k8s.NewKubernetesClientFactory(cfg, logger)
-	}
-
-	if err != nil {
-		return nil, fmt.Errorf("failed to create Kubernetes client: %w", err)
-	}
-
 	// LOCAL DEVELOPMENT ONLY: Enable dynamic port-forwarding when DevMode is true
 	// and a real K8s client is in use. This rewrites in-cluster service URLs
 	// (*.svc.cluster.local) to localhost via SPDY tunnels, eliminating the need
@@ -169,12 +134,12 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 	// Uses the BFF's own kubeconfig credentials (not per-request user tokens)
 	// since port-forwards are long-lived and shared across requests.
 	var pfManager *k8s.PortForwardManager
-	if cfg.DevMode && !cfg.MockK8Client {
+	if cfg.DevMode && !cfg.MockK8sClient {
 		restCfg, pfErr := helper.GetKubeconfig()
 		if pfErr != nil {
 			logger.Warn("could not initialize dynamic port-forwarding", "error", pfErr)
 		} else {
-			clientset, csErr := kubernetes.NewForConfig(restCfg)
+			clientset, csErr := k8sclient.NewForConfig(restCfg)
 			if csErr != nil {
 				logger.Warn("could not initialize dynamic port-forwarding", "error", csErr)
 			} else {
@@ -184,47 +149,134 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		}
 	}
 
-	// Initialize Pipeline Server client factory
-	var pipelineServerClientFactory ps.PipelineServerClientFactory
-	if cfg.MockPipelineServerClient {
-		logger.Info("Using mock Pipeline Server client factory")
-		pipelineServerClientFactory = psmocks.NewMockClientFactory()
+	// Create autox-core Kubernetes client and service.
+	var k8sClient kubernetes.Client
+	if cfg.MockK8sClient {
+		k8sClient = &fake.K8sClient{}
 	} else {
-		logger.Info("Using real Pipeline Server client factory")
-		pipelineServerClientFactory = ps.NewRealClientFactory()
+		if cfg.AuthMethod == config.AuthMethodUser {
+			k8sClient, err = kubernetes.NewDefaultTokenClient()
+		} else {
+			k8sClient, err = kubernetes.NewDefaultInternalClient()
+		}
+		if err != nil {
+			return nil, fmt.Errorf("failed to create Kubernetes client: %w", err)
+		}
 	}
+	k8sService := kubernetes.NewService(kubernetes.ServiceConfig{Logger: logger}, k8sClient)
 
-	// Initialize S3 client factory
-	var s3ClientFactory s3int.S3ClientFactory
-	if cfg.MockS3Client {
-		logger.Info("Using mock S3 client factory")
-		s3ClientFactory = s3mocks.NewMockClientFactory()
+	// Create autox-core Pipelines client and service.
+	var pipelinesClient pipelines.Client
+	if cfg.MockPipelineServerClient {
+		pipelinesClient = fake.NewPipelinesClient()
 	} else {
-		logger.Info("Using real S3 client factory")
-		// TLS verification uses the operator-mounted CA bundles (rootCAs) so that
-		// self-signed MinIO certificates are validated properly rather than skipped.
-		// The RHOAI operator passes --bundle-paths with cluster CA, service-ca, and
-		// odh-trusted-ca-bundle paths, which are loaded into rootCAs above.
-		// HTTPS is always required; plain HTTP is rejected to prevent credentials
-		// from being transmitted in cleartext.
-		// RFC-1918 private IPs are allowed (MinIO runs in-cluster); loopback,
-		// link-local, and reserved ranges are always blocked.
-		s3ClientFactory = s3int.NewRealClientFactory(s3int.S3ClientOptions{
-			DevMode: cfg.DevMode,
-			RootCAs: rootCAs,
-		})
+		pipelinesCfg := pipelines.ClientConfig{
+			InsecureSkipVerify: cfg.InsecureSkipVerify,
+			RootCAs:            rootCAs,
+		}
+		if pfManager != nil {
+			pipelinesCfg.WrapTransport = k8s.PortForwardWrapTransport(pfManager, logger)
+		}
+		pipelinesClient = pipelines.NewDefaultClient(pipelinesCfg)
+	}
+	pipelinesService := pipelines.NewService(pipelines.ServiceConfig{
+		Logger: logger,
+	}, pipelinesClient, k8sService)
+
+	// Initialize autox-core S3 client and service.
+	// SECURITY: AllowUnresolvableEndpoint requires DevMode — autox-core applies these knobs
+	// without policy judgement, so we enforce the guard here before constructing the client.
+	const envAllowUnresolvedS3Endpoints = "ALLOW_UNRESOLVED_S3_ENDPOINTS"
+	allowUnresolvedS3 := os.Getenv(envAllowUnresolvedS3Endpoints) == "true"
+	if !cfg.DevMode && allowUnresolvedS3 {
+		logger.Error("ALLOW_UNRESOLVED_S3_ENDPOINTS is set but DevMode is false — this weakens SSRF protection and must not be used in production")
+		os.Exit(1)
+	}
+	var s3Client s3.Client
+	if cfg.MockS3Client {
+		s3Client = fake.NewS3Client()
+	} else {
+		s3ClientCfg := s3.ClientConfig{
+			RootCAs:                   rootCAs,
+			InsecureSkipVerify:        cfg.InsecureSkipVerify,
+			AllowUnresolvableEndpoint: cfg.DevMode && allowUnresolvedS3,
+		}
+		if pfManager != nil {
+			s3ClientCfg.WrapTransport = k8s.PortForwardWrapTransport(pfManager, logger)
+		}
+		s3Client = s3.NewDefaultClient(s3ClientCfg)
+	}
+	s3Service := s3.NewService(s3.ServiceConfig{Logger: logger}, s3Client)
+
+	// Initialize Model Registry client (single shared stateless instance).
+	var mrClient modelregistry.ModelRegistryClientInterface
+	if cfg.MockModelRegistryClient {
+		mrClient = &fake.ModelRegistryClient{}
+	} else {
+		mrClientCfg := modelregistry.ModelRegistryClientConfig{
+			InsecureSkipVerify: cfg.InsecureSkipVerify,
+			RootCAs:            rootCAs,
+		}
+
+		// Build transport wrapping chain: base → port-forward (dev only) → auth token
+		var authWrapper func(http.RoundTripper) http.RoundTripper
+		switch cfg.AuthMethod {
+		case config.AuthMethodUser:
+			authWrapper = kubernetes.NewBearerTokenRoundTripper
+		case config.AuthMethodInternal:
+			saWrapper, err := kubernetes.NewSATokenTransportWrapper()
+			if err != nil {
+				return nil, fmt.Errorf("failed to initialize SA token transport for model registry: %w", err)
+			}
+			authWrapper = saWrapper
+		}
+		mrClientCfg.WrapTransport = func(base http.RoundTripper) http.RoundTripper {
+			if pfManager != nil {
+				base = k8s.PortForwardWrapTransport(pfManager, logger)(base)
+			}
+			if authWrapper != nil {
+				base = authWrapper(base)
+			}
+			return base
+		}
+		mrClient = modelregistry.NewDefaultModelRegistryClient(mrClientCfg)
 	}
 
 	app := &App{
-		config:                      cfg,
-		logger:                      logger,
-		kubernetesClientFactory:     k8sFactory,
-		pipelineServerClientFactory: pipelineServerClientFactory,
-		s3ClientFactory:             s3ClientFactory,
-		repositories:                repositories.NewRepositories(logger),
-		testEnv:                     testEnv,
-		rootCAs:                     rootCAs,
-		portForwardManager:          pfManager,
+		config:             cfg,
+		logger:             logger,
+		k8sService:         k8sService,
+		rootCAs:            rootCAs,
+		portForwardManager: pfManager,
+		mw: &Middleware{
+			logger:     logger,
+			config:     cfg,
+			k8sService: k8sService,
+		},
+		healthcheck: &HealthcheckHandler{
+			logger: logger,
+			repo:   repositories.NewHealthCheckRepository(),
+		},
+		k8s: &K8sHandler{
+			logger:     logger,
+			k8sService: k8sService,
+			repo:       repositories.NewK8sRepository(),
+		},
+		s3: &S3Handler{
+			logger: logger,
+			repo:   repositories.NewS3Repository(logger, s3Service, k8sService, pipelinesService),
+		},
+		pipelines: &PipelinesHandler{
+			logger: logger,
+			repo: repositories.NewPipelinesRepository(logger, pipelinesService, repositories.PipelinesRepositoryConfig{
+				TimeSeriesPipelineName: cfg.AutoMLTimeSeriesPipelineNamePrefix,
+				TabularPipelineName:    cfg.AutoMLTabularPipelineNamePrefix,
+			}),
+		},
+		modelRegistry: &ModelRegistryHandler{
+			logger: logger,
+			repo:   repositories.NewModelRegistryRepository(logger, mrClient, k8sService, pipelinesService),
+		},
 	}
 	return app, nil
 }
@@ -234,82 +286,87 @@ func (app *App) Shutdown() error {
 	if app.portForwardManager != nil {
 		app.portForwardManager.Close()
 	}
-	if app.testEnv == nil {
-		return nil
-	}
-	//shutdown the envtest control plane when we are in the mock mode.
-	app.logger.Info("shutting env test...")
-	return app.testEnv.Stop()
-}
-
-// attachPipelineClientIfNeeded is a best-effort shim for the S3 file routes.
-// When the caller supplies an explicit secretName query parameter the handler
-// can resolve S3 credentials directly, so DSPA discovery is skipped and next
-// is called immediately. Otherwise the full AttachPipelineServerClient
-// middleware runs as normal.
-func (app *App) attachPipelineClientIfNeeded(next func(http.ResponseWriter, *http.Request, httprouter.Params)) httprouter.Handle {
-	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-		if strings.TrimSpace(r.URL.Query().Get("secretName")) != "" {
-			next(w, r, ps)
-			return
-		}
-		app.AttachPipelineServerClient(next)(w, r, ps)
-	}
+	return nil
 }
 
 func (app *App) Routes() http.Handler {
 	// Router for /api/v1/*
 	apiRouter := httprouter.New()
 
-	apiRouter.NotFound = http.HandlerFunc(app.notFoundResponse)
-	apiRouter.MethodNotAllowed = http.HandlerFunc(app.methodNotAllowedResponse)
+	apiRouter.NotFound = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		notFoundResponse(app.logger, w, r)
+	})
+	apiRouter.MethodNotAllowed = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		methodNotAllowedResponse(app.logger, w, r)
+	})
 
 	// Minimal Kubernetes-backed starter endpoints
-	apiRouter.GET(UserPath, app.UserHandler)
-	apiRouter.GET(NamespacePath, app.GetNamespacesHandler)
-	apiRouter.GET(SecretsPath, app.AttachNamespace(app.GetSecretsHandler))
+	apiRouter.GET(UserPath, app.k8s.UserHandler)
+	apiRouter.GET(NamespacePath, app.k8s.GetNamespacesHandler)
+
+	// Secrets
+	apiRouter.GET(SecretsPath, app.mw.AttachNamespace(app.k8s.GetSecretsHandler))
+
+	// Pipeline Runs API endpoints (pipeline server and pipeline are auto-discovered)
+	apiRouter.GET(PipelineRunsPath+"/:runId", app.mw.AttachNamespace(app.mw.RequireAccessToService(app.pipelines.PipelineRunHandler)))
+	apiRouter.GET(PipelineRunsPath, app.mw.AttachNamespace(app.mw.RequireAccessToService(app.pipelines.PipelineRunsHandler)))
+	apiRouter.POST(PipelineRunsPath, app.mw.AttachNamespace(app.mw.RequireAccessToService(app.pipelines.CreatePipelineRunHandler)))
+	apiRouter.POST(PipelineRunsPath+"/:runId/terminate", app.mw.AttachNamespace(app.mw.RequireAccessToService(app.pipelines.TerminatePipelineRunHandler)))
+	apiRouter.POST(PipelineRunsPath+"/:runId/retry", app.mw.AttachNamespace(app.mw.RequireAccessToService(app.pipelines.RetryPipelineRunHandler)))
+	apiRouter.DELETE(PipelineRunsPath+"/:runId", app.mw.AttachNamespace(app.mw.RequireAccessToService(app.pipelines.DeletePipelineRunHandler)))
+
+	// S3 operations — credentials resolved from explicit secretName query parameter.
+	apiRouter.GET(S3FilePath, app.mw.AttachNamespace(app.mw.RequireAccessToService(app.s3.GetS3FileHandler)))
+	apiRouter.GET(S3FilesPath, app.mw.AttachNamespace(app.mw.RequireAccessToService(app.s3.GetS3FilesHandler)))
+	// POST /s3/files/:key: secretName is required; there is no DSPA fallback.
+	apiRouter.POST(S3FilePath, app.mw.AttachNamespace(app.s3.rejectDeclaredOversizedS3Post(app.mw.RequireAccessToService(app.s3.PostS3FileHandler))))
 
 	// Model Registry discovery — CRs are namespace-scoped within rhoai-model-registries
 	// but presented as global in the RHOAI UX; no user-supplied namespace parameter needed.
-	apiRouter.GET(ModelRegistriesPath, app.GetModelRegistriesHandler)
-
-	// Pipeline Runs API endpoints (pipeline server and pipeline are auto-discovered)
-	apiRouter.GET(PipelineRunsPath+"/:runId", app.AttachNamespace(app.RequireAccessToPipelineServers(app.AttachPipelineServerClient(app.AttachDiscoveredPipeline(app.PipelineRunHandler)))))
-	apiRouter.GET(PipelineRunsPath, app.AttachNamespace(app.RequireAccessToPipelineServers(app.AttachPipelineServerClient(app.AttachDiscoveredPipeline(app.PipelineRunsHandler)))))
-	apiRouter.POST(PipelineRunsPath, app.AttachNamespace(app.RequireAccessToPipelineServers(app.AttachPipelineServerClient(app.AttachDiscoveredPipeline(app.CreatePipelineRunHandler)))))
-	apiRouter.POST(PipelineRunsPath+"/:runId/terminate", app.AttachNamespace(app.RequireAccessToPipelineServers(app.AttachPipelineServerClient(app.AttachDiscoveredPipeline(app.TerminatePipelineRunHandler)))))
-	apiRouter.POST(PipelineRunsPath+"/:runId/retry", app.AttachNamespace(app.RequireAccessToPipelineServers(app.AttachPipelineServerClient(app.AttachDiscoveredPipeline(app.RetryPipelineRunHandler)))))
-	apiRouter.DELETE(PipelineRunsPath+"/:runId", app.AttachNamespace(app.RequireAccessToPipelineServers(app.AttachPipelineServerClient(app.AttachDiscoveredPipeline(app.DeletePipelineRunHandler)))))
+	apiRouter.GET(ModelRegistriesPath, app.modelRegistry.GetModelRegistriesHandler)
 
 	// Managed pipelines — enable AutoML pipeline definitions on an existing DSPA
-	apiRouter.POST(ManagedPipelinesPath, app.AttachNamespace(app.RequireAccessToPipelineServers(app.EnableManagedPipelinesHandler)))
-
-	// S3 operations — DSPA discovery is skipped when the caller supplies an explicit
-	// secretName (the handler resolves credentials directly in that case).
-	apiRouter.GET(S3FilePath, app.AttachNamespace(app.RequireAccessToPipelineServers(app.attachPipelineClientIfNeeded(app.GetS3FileHandler))))
-	apiRouter.GET(S3FilesPath, app.AttachNamespace(app.RequireAccessToPipelineServers(app.attachPipelineClientIfNeeded(app.GetS3FilesHandler))))
-	// POST /s3/files/:key deliberately omits attachPipelineClientIfNeeded: secretName is required;
-	// there is no DSPA fallback (creation flow uses an explicitly chosen input/target data secret).
-	apiRouter.POST(S3FilePath, app.AttachNamespace(app.rejectDeclaredOversizedS3Post(app.RequireAccessToPipelineServers(app.PostS3FileHandler))))
-
+	apiRouter.POST(ManagedPipelinesPath, app.mw.AttachNamespace(app.mw.RequireAccessToService(app.pipelines.EnableManagedPipelinesHandler)))
 	// Model Registry - register model binary (target registry via path param + discovered ServerURL)
-	// Does NOT use AttachPipelineServerClient (which gates on a ready pipeline server and can
-	// 404/503). The handler performs best-effort DSPA discovery itself via
-	// injectDSPAObjectStorageIfAvailable — this only needs the DSPA spec (present regardless
-	// of pipeline server readiness) to resolve bucket, endpoint, and region for the artifact URI.
-	apiRouter.POST(ModelRegistryModelsPath, app.AttachNamespace(app.RequireAccessToPipelineServers(app.RegisterModelHandler)))
+	apiRouter.POST(ModelRegistryModelsPath, app.mw.AttachNamespace(app.mw.RequireAccessToService(app.modelRegistry.RegisterModelHandler)))
 
 	// App Router
 	appMux := http.NewServeMux()
 
+	// Create identity extractor based on auth method
+	var identityExtractor kubernetes.IdentityExtractor
+	switch app.config.AuthMethod {
+	case config.AuthMethodDisabled:
+		identityExtractor = &fake.IdentityExtractor{}
+	case config.AuthMethodInternal:
+		identityExtractor = &kubernetes.KubeflowHeaderExtractor{
+			UserIDHeader:     constants.KubeflowUserIDHeader,
+			UserGroupsHeader: constants.KubeflowUserGroupsIdHeader,
+		}
+	case config.AuthMethodUser:
+		identityExtractor = &kubernetes.TokenHeaderExtractor{
+			Header: app.config.AuthTokenHeader,
+			Prefix: app.config.AuthTokenPrefix,
+		}
+	}
+
+	// Create identity middleware using autox-core — applied to API routes only
+	injectRequestIdentity := kubernetes.InjectRequestIdentity(kubernetes.InjectRequestIdentityConfig{
+		Extractor: identityExtractor,
+		OnError: func(w http.ResponseWriter, r *http.Request, err error) {
+			badRequestResponse(app.logger, w, r, err.Error())
+		},
+		ContextKey: constants.RequestIdentityKey,
+	})
+
 	// handler for api calls — preserveRawPath ensures percent-encoded path parameters
 	// (e.g., S3 keys containing %2F) are forwarded to the router without decoding,
 	// so :key matches the full encoded segment rather than splitting on /.
-	rawPathRouter := preserveRawPath(apiRouter)
-	appMux.Handle(ApiPathPrefix+"/", rawPathRouter)
-	appMux.Handle(PathPrefix+ApiPathPrefix+"/", http.StripPrefix(PathPrefix, rawPathRouter))
+	authedAPI := injectRequestIdentity(preserveRawPath(apiRouter))
+	appMux.Handle(ApiPathPrefix+"/", authedAPI)
+	appMux.Handle(PathPrefix+ApiPathPrefix+"/", http.StripPrefix(PathPrefix, authedAPI))
 
-	// file server for the frontend file and SPA routes
+	// file server for the frontend files and SPA routes (no auth required)
 	staticDir := http.Dir(app.config.StaticAssetsDir)
 	fileServer := http.FileServer(staticDir)
 	appMux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -318,7 +375,6 @@ func (app *App) Routes() http.Handler {
 		if f, err := staticDir.Open(r.URL.Path); err == nil {
 			f.Close()
 			ctxLogger.Debug("Serving static file", slog.String("path", r.URL.Path))
-			// Serve the file if it exists
 			w.Header().Set("Cache-Control", cacheControlForStaticFile(r.URL.Path))
 			fileServer.ServeHTTP(w, r)
 			return
@@ -333,14 +389,13 @@ func (app *App) Routes() http.Handler {
 	// Create a mux for the healthcheck endpoint
 	healthcheckMux := http.NewServeMux()
 	healthcheckRouter := httprouter.New()
-	healthcheckRouter.GET(HealthCheckPath, app.HealthcheckHandler)
+	healthcheckRouter.GET(HealthCheckPath, app.healthcheck.HealthcheckHandler)
 	healthcheckMux.Handle(HealthCheckPath, app.RecoverPanic(app.EnableTelemetry(healthcheckRouter)))
 
 	// Combines the healthcheck endpoint with the rest of the routes
-	// Apply middleware to appMux which contains the API routes
 	combinedMux := http.NewServeMux()
 	combinedMux.Handle(HealthCheckPath, healthcheckMux)
-	combinedMux.Handle("/", app.RecoverPanic(app.EnableTelemetry(app.EnableCORS(app.InjectRequestIdentity(appMux)))))
+	combinedMux.Handle("/", app.RecoverPanic(app.EnableTelemetry(app.EnableCORS(appMux))))
 
 	return combinedMux
 }

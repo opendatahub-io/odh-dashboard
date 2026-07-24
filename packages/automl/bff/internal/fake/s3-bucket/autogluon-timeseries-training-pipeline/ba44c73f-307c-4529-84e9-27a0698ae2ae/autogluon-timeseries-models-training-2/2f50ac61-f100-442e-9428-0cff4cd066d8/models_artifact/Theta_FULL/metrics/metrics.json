@@ -1,0 +1,13 @@
+{
+  "mean_absolute_scaled_error": -0.2883185134528513,
+  "mean_absolute_percentage_error": -0.105328395769492,
+  "symmetric_mean_absolute_percentage_error": -0.09159784859446037,
+  "root_mean_squared_error": -212.88545467943794,
+  "root_mean_squared_logarithmic_error": -0.20034230627509023,
+  "root_mean_squared_scaled_error": -0.34490143622785535,
+  "weighted_absolute_percentage_error": -0.005478885977037015,
+  "scaled_quantile_loss": -0.23349647301972887,
+  "weighted_quantile_loss": -0.004766878317253618,
+  "mean_squared_error": -45320.21681407103,
+  "mean_absolute_error": -88.52833271670202
+}

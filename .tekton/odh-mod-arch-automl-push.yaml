@@ -11,6 +11,7 @@ metadata:
       event == "push"
       && target_branch == "main"
       && ( "packages/automl/**".pathChanged()
+            || "packages/autox-core/**".pathChanged()
             || ".tekton/odh-mod-arch-automl-push.yaml".pathChanged() )
   creationTimestamp: null
   labels:
