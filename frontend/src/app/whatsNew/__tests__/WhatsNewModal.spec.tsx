@@ -218,7 +218,7 @@ describe('WhatsNewModal', () => {
       startTourAndWait("Tour what's new");
 
       expect(screen.getByText('Projects')).toBeInTheDocument();
-      expect(screen.getByText('Granular role creation')).toBeInTheDocument();
+      expect(screen.getByText('Roles')).toBeInTheDocument();
     });
   });
 

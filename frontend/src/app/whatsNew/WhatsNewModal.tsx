@@ -32,7 +32,7 @@ import { useGuidedTourTracking } from './tracking/useGuidedTourTracking';
 import { useWhatsNewTourListener } from './whatsNewEvent';
 
 const DEFAULT_DOC_URL =
-  'https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed/3.5';
+  'https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed/3.5/html/getting_started_with_red_hat_openshift_ai_self-managed/index';
 
 type NewIn35Feature = {
   title: string;
@@ -74,6 +74,8 @@ const useTourSteps = (isAdmin: boolean): TourStep[] => {
   const connectionTestAvailable = config.connectionTest ?? false;
   const mcpRegistryAvailable = config.mcpRegistry ?? false;
   const externalModelsAvailable = config.externalModels ?? false;
+  const llmdTemplatesAvailable = config.llmdTemplates ?? false;
+  const vllmDeploymentOnMaaSAvailable = config.vLLMDeploymentOnMaaS ?? false;
   const modelCatalogAvailable = !config.disableModelCatalog;
   const modelRegistryAvailable = !config.disableModelRegistry;
   const modelServingAvailable = !config.disableModelServing;
@@ -97,14 +99,14 @@ const useTourSteps = (isAdmin: boolean): TourStep[] => {
         sectionAvailable: true,
         newFeatures: [
           {
-            title: 'Granular role creation',
+            title: 'Roles',
             description:
               'Define what users can do within a project by creating and assigning roles.',
             flagName: 'roleManagement',
             available: roleManagementAvailable,
           },
           {
-            title: 'Connection testing',
+            title: 'Connection test',
             description: 'Test S3, URI, and OCI connections before saving.',
             flagName: 'connectionTest',
             available: connectionTestAvailable,
@@ -118,7 +120,7 @@ const useTourSteps = (isAdmin: boolean): TourStep[] => {
           'Test models and prompts, experiment with RAG, and prepare configurations before building them into applications.',
         navSelector: 'button[id="gen-ai-studio"]',
         docUrl:
-          'https://www.redhat.com/en/blog/introducing-ai-hub-and-genai-studio-new-command-center-enterprise-generative-ai-red-hat-openshift-ai',
+          'https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed/3.5/html/experimenting_with_models_in_the_gen_ai_playground/index',
         sectionAvailable: genAiAvailable,
         newFeatures: [
           {
@@ -147,11 +149,16 @@ const useTourSteps = (isAdmin: boolean): TourStep[] => {
             available: genAiTracingAvailable,
           },
           {
-            title: 'Prompt management',
-            description:
-              'Create, version, and manage reusable prompts powered by MLflow within Gen AI studio.',
+            title: 'Load prompts',
+            description: 'Use versioned prompt templates when testing models.',
             flagName: 'promptManagement',
             available: promptManagementAvailable,
+          },
+          {
+            title: 'Global project prompts',
+            description: 'Load starter prompts from the shared registry in the Playground.',
+            flagName: 'globalProjectPrompts',
+            available: globalProjectPromptsAvailable,
           },
         ],
       },
@@ -161,6 +168,7 @@ const useTourSteps = (isAdmin: boolean): TourStep[] => {
         description:
           'Build pipelines, run training jobs, track experiments, and evaluate model performance.',
         navSelector: 'button[id="develop-and-train"]',
+        docUrl: 'https://docs.redhat.com/en/documentation/red_hat_ai/3#Develop',
         sectionAvailable: true,
         newFeatures: [
           {
@@ -184,13 +192,12 @@ const useTourSteps = (isAdmin: boolean): TourStep[] => {
         newFeatures: [
           {
             title: 'Tool calling',
-            description:
-              'Define and attach tools that models can invoke during inference, enabling agentic workflows with function-calling capabilities.',
+            description: 'Enable tool-calling capability when deploying supported models.',
             flagName: 'toolCalling',
             available: toolCallingAvailable,
           },
           {
-            title: 'MCP catalog',
+            title: 'MCP servers',
             description: 'Find and deploy MCP servers for your organization.',
             flagName: 'mcpCatalog',
             available: mcpCatalogAvailable,
@@ -202,8 +209,8 @@ const useTourSteps = (isAdmin: boolean): TourStep[] => {
             available: agentsCatalogAvailable,
           },
           {
-            title: 'Agent deployments',
-            description: 'Deploy, manage, and monitor agents for your projects.',
+            title: 'Deploy agents',
+            description: 'Deploy agents for your projects from the OpenShift Console. ',
             flagName: 'agentOps',
             available: agentOpsAvailable,
           },
@@ -215,14 +222,13 @@ const useTourSteps = (isAdmin: boolean): TourStep[] => {
           },
           {
             title: 'Safety and security insights',
-            description:
-              'View safety and security evaluation results for models in the model catalog.',
+            description: 'Review safety and security scan results before deploying catalog models.',
             flagName: 'disableLMEval',
             available: lmEvalAvailable,
           },
           {
             title: 'MCP registry',
-            description: 'Register and manage MCP server definitions from a centralized registry.',
+            description: 'Register and manage MCP servers from a centralized registry.',
             flagName: 'mcpRegistry',
             available: mcpRegistryAvailable,
           },
@@ -236,10 +242,16 @@ const useTourSteps = (isAdmin: boolean): TourStep[] => {
         sectionAvailable: true,
         newFeatures: [
           {
-            title: 'Observability dashboard',
+            title: 'Dashboard',
             description: 'View model serving metrics, costs, and workload status.',
             flagName: 'observabilityDashboard',
             available: observabilityAvailable,
+          },
+          {
+            title: 'GPUaaS',
+            description: 'View GPU capacity, utilization, and usage by cohort.',
+            flagName: 'gpuaas',
+            available: gpuaasAvailable,
           },
         ],
       },
@@ -251,51 +263,45 @@ const useTourSteps = (isAdmin: boolean): TourStep[] => {
               description:
                 'Manage user access, environment setup, and model serving resources for your organization.',
               navSelector: 'button[id="settings"]',
+              docUrl: 'https://docs.redhat.com/en/documentation/red_hat_ai/3#Administer',
               sectionAvailable: true,
               newFeatures: [
                 {
-                  title: 'GPUaaS',
-                  description: 'View GPU capacity, utilization, and usage by cohort.',
-                  flagName: 'gpuaas',
-                  available: gpuaasAvailable,
-                },
-                {
-                  title: 'MaaS settings redesign',
-                  description:
-                    'Redesigned Model-as-a-Service settings page with improved information architecture.',
+                  title: 'MaaS settings',
+                  description: 'Manage model access policies and token subscriptions in one place.',
                   flagName: 'maasSettingsIaRedesign',
                   available: true,
                 },
                 {
-                  title: 'MCP catalog settings',
-                  description:
-                    'Configure and manage MCP catalog sources and server settings from the Settings page.',
+                  title: 'MCP catalog sources',
+                  description: 'Add and manage sources for MCP servers in your organization.',
                   flagName: 'mcpCatalog',
                   available: mcpCatalogAvailable,
                 },
                 {
-                  title: 'Global project prompts',
-                  description: 'Use versioned prompt templates when testing models.',
-                  flagName: 'globalProjectPrompts',
-                  available: globalProjectPromptsAvailable,
-                },
-                {
-                  title: 'LLM-D routing configurations',
+                  title: 'llm-d routing configurations',
                   description: 'Control how requests are routed to llm-d deployments.',
-                  flagName: '',
-                  available: true,
+                  flagName: 'llmdTemplates',
+                  available: llmdTemplatesAvailable,
                 },
                 {
-                  title: 'LLM-D topology configurations',
+                  title: 'llm-d topology configurations',
                   description: 'Configure how llm-d services are arranged and scaled.',
-                  flagName: '',
-                  available: true,
+                  flagName: 'llmdTemplates',
+                  available: llmdTemplatesAvailable,
                 },
                 {
                   title: 'LLM accelerator configurations',
                   description: 'Set default accelerators for LLM serving.',
-                  flagName: '',
-                  available: true,
+                  flagName: 'vLLMDeploymentOnMaaS',
+                  available: vllmDeploymentOnMaaSAvailable,
+                },
+                {
+                  title: 'Global project prompts',
+                  description:
+                    'Configure an organization-wide prompt registry so teams can load starter prompts in Gen AI studio.',
+                  flagName: 'globalProjectPrompts',
+                  available: globalProjectPromptsAvailable,
                 },
               ],
             },
@@ -322,6 +328,8 @@ const useTourSteps = (isAdmin: boolean): TourStep[] => {
       connectionTestAvailable,
       mcpRegistryAvailable,
       externalModelsAvailable,
+      llmdTemplatesAvailable,
+      vllmDeploymentOnMaaSAvailable,
       aiHubAvailable,
       isAdmin,
     ],
@@ -722,14 +730,14 @@ const WhatsNewModal: React.FC = () => {
                     To enable unavailable features in your cluster, enable the following feature
                     flags in <code>OdhDashboardConfig</code>:
                     <List>
-                      {unavailableFeatures.map((f) => (
-                        <ListItem key={f.flagName}>
-                          {f.flagName.startsWith('disable') ? (
+                      {[...new Set(unavailableFeatures.map((f) => f.flagName))].map((flagName) => (
+                        <ListItem key={flagName}>
+                          {flagName.startsWith('disable') ? (
                             <>
-                              Set <code>{f.flagName}</code> to <code>false</code>
+                              Set <code>{flagName}</code> to <code>false</code>
                             </>
                           ) : (
-                            <code>{f.flagName}</code>
+                            <code>{flagName}</code>
                           )}
                         </ListItem>
                       ))}
