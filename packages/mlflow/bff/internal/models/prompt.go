@@ -16,14 +16,21 @@ type PromptScope struct {
 	Namespace string          `json:"namespace"`
 }
 
+// PromptModelConfig contains optional model configuration for a prompt.
+type PromptModelConfig struct {
+	Provider  string `json:"provider,omitempty"`
+	ModelName string `json:"model_name,omitempty"`
+}
+
 // Prompt represents a prompt from the MLflow Prompt Registry.
 type Prompt struct {
-	Name              string            `json:"name"`
-	Description       string            `json:"description"`
-	LatestVersion     int               `json:"latest_version"`
-	Tags              map[string]string `json:"tags,omitempty"`
-	CreationTimestamp time.Time         `json:"creation_timestamp"`
-	Scope             PromptScope       `json:"scope"`
+	Name              string             `json:"name"`
+	Description       string             `json:"description"`
+	LatestVersion     int                `json:"latest_version"`
+	ModelConfig       *PromptModelConfig `json:"model_config,omitempty"`
+	Tags              map[string]string  `json:"tags,omitempty"`
+	CreationTimestamp time.Time          `json:"creation_timestamp"`
+	Scope             PromptScope        `json:"scope"`
 }
 
 // PromptsResponse is the response for listing prompts.

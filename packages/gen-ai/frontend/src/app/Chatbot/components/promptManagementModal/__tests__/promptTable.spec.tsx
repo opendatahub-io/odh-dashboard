@@ -15,6 +15,7 @@ const mockPrompts: MLflowPrompt[] = [
     name: 'test-prompt-1',
     description: 'A test prompt',
     latest_version: 2,
+    model_config: { model_name: 'gpt-4', provider: 'openai' },
     tags: { env: 'dev' },
     creation_timestamp: '2024-01-15T10:00:00Z',
     scope: { type: 'project', namespace: 'test-project' },
@@ -176,6 +177,7 @@ describe('PromptTable', () => {
 
     expect(screen.getByRole('columnheader', { name: 'Name' })).toBeInTheDocument();
     expect(screen.getByRole('columnheader', { name: 'Version' })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'Model' })).toBeInTheDocument();
     expect(screen.getByRole('columnheader', { name: 'Last Modified' })).toBeInTheDocument();
     expect(screen.getByRole('columnheader', { name: 'Tags' })).toBeInTheDocument();
   });
@@ -254,6 +256,116 @@ describe('PromptTable', () => {
 
     const loadButton = screen.getByRole('button', { name: /Loading/ });
     expect(within(loadButton).getByLabelText('Loading prompt details')).toBeInTheDocument();
+  });
+
+  it('should display model name for prompts with model config', () => {
+    mockUsePromptsList.mockReturnValue({
+      prompts: mockPrompts,
+      totalCount: mockPrompts.length,
+      isLoading: false,
+      error: null,
+    });
+
+    render(<PromptTable {...defaultProps} />);
+
+    const modelCells = screen.getAllByTestId('prompt-model-name');
+    expect(modelCells[0]).toHaveTextContent('gpt-4');
+  });
+
+  it('should display "Not specified" for prompts without model config', () => {
+    mockUsePromptsList.mockReturnValue({
+      prompts: mockPrompts,
+      totalCount: mockPrompts.length,
+      isLoading: false,
+      error: null,
+    });
+
+    render(<PromptTable {...defaultProps} />);
+
+    const modelCells = screen.getAllByTestId('prompt-model-name');
+    expect(modelCells[1]).toHaveTextContent('Not specified');
+  });
+
+  it('should render long model names with PatternFly Truncate component', () => {
+    const longModelName = 'a-very-long-model-name-that-exceeds-fifty-characters-total-length';
+    const promptsWithLongModel: MLflowPrompt[] = [
+      {
+        name: 'long-model-prompt',
+        description: 'Prompt with long model name',
+        latest_version: 1,
+        model_config: { model_name: longModelName, provider: 'custom' },
+        tags: {},
+        creation_timestamp: '2024-01-15T10:00:00Z',
+        scope: { type: 'project', namespace: 'test-project' },
+      },
+    ];
+
+    mockUsePromptsList.mockReturnValue({
+      prompts: promptsWithLongModel,
+      totalCount: 1,
+      isLoading: false,
+      error: null,
+    });
+
+    render(<PromptTable {...defaultProps} />);
+
+    const modelCell = screen.getByTestId('prompt-model-name');
+    // PatternFly Truncate component will handle overflow detection automatically
+    expect(modelCell).toHaveTextContent(longModelName);
+  });
+
+  it('should render model names with PatternFly Truncate component regardless of length', () => {
+    const exactModelName = 'a'.repeat(50);
+    const promptsWithExactModel: MLflowPrompt[] = [
+      {
+        name: 'exact-model-prompt',
+        description: 'Prompt with exactly 50 char model name',
+        latest_version: 1,
+        model_config: { model_name: exactModelName, provider: 'custom' },
+        tags: {},
+        creation_timestamp: '2024-01-15T10:00:00Z',
+        scope: { type: 'project', namespace: 'test-project' },
+      },
+    ];
+
+    mockUsePromptsList.mockReturnValue({
+      prompts: promptsWithExactModel,
+      totalCount: 1,
+      isLoading: false,
+      error: null,
+    });
+
+    render(<PromptTable {...defaultProps} />);
+
+    const modelCell = screen.getByTestId('prompt-model-name');
+    expect(modelCell).toHaveTextContent(exactModelName);
+    // PatternFly Truncate component handles overflow detection based on actual layout, not character count
+  });
+
+  it('should display "Not specified" when model_config is present but model_name is missing', () => {
+    const promptsWithNoModelName: MLflowPrompt[] = [
+      {
+        name: 'no-model-name-prompt',
+        description: 'Prompt with model_config but no model_name',
+        latest_version: 1,
+        model_config: { provider: 'openai' },
+        tags: {},
+        creation_timestamp: '2024-01-15T10:00:00Z',
+        scope: { type: 'project', namespace: 'test-project' },
+      },
+    ];
+
+    mockUsePromptsList.mockReturnValue({
+      prompts: promptsWithNoModelName,
+      totalCount: 1,
+      isLoading: false,
+      error: null,
+    });
+
+    render(<PromptTable {...defaultProps} />);
+
+    const modelCell = screen.getByTestId('prompt-model-name');
+    expect(modelCell).toHaveTextContent('Not specified');
   });
 });
 

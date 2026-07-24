@@ -2714,6 +2714,18 @@ components:
           description: Whether the current user has read-only access to prompts in this scope
           example: false
 
+    MLflowPromptModelConfig:
+      type: object
+      properties:
+        provider:
+          type: string
+          description: Model provider (e.g., openai, anthropic)
+          example: 'openai'
+        model_name:
+          type: string
+          description: Model name or identifier
+          example: 'gpt-4'
+
     MLflowPrompt:
       type: object
       required:
@@ -2735,6 +2747,9 @@ components:
           type: integer
           description: Latest version number of the prompt
           example: 2
+        model_config:
+          $ref: '#/components/schemas/MLflowPromptModelConfig'
+          description: Optional model configuration for the prompt
         tags:
           type: object
           additionalProperties:

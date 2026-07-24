@@ -496,10 +496,16 @@ export type {
 export type IconType = React.ComponentType<{ style?: React.CSSProperties }>;
 
 /** MLflow Prompt Registry Types */
+export type MLflowPromptModelConfig = {
+  provider?: string;
+  model_name?: string;
+};
+
 export type MLflowPrompt = {
   name: string;
   description: string;
   latest_version: number;
+  model_config?: MLflowPromptModelConfig;
   tags?: Record<string, string>;
   creation_timestamp: string;
   scope?: {
