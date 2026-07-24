@@ -31,7 +31,6 @@ import AgentRuntimeOverviewCard from '~/app/components/AgentRuntimeOverviewCard'
 import AgentRuntimeStatusLabel from '~/app/components/AgentRuntimeStatusLabel';
 import { useAgentRuntimeDetail } from '~/app/hooks/useAgentRuntimeDetail';
 import { hasEnrichedAgentCard } from '~/app/utilities/agentCardUtils';
-import { getAgentRuntimeStatusMessage } from '~/app/utilities/agentRuntimeConditions';
 import { readSparseRuntimeDetailTitle } from '~/app/utilities/sparseApiFields';
 import { agentOpsDeploymentsRoute } from '~/app/utilities/routes';
 
@@ -117,7 +116,6 @@ const AgentDeploymentDetailPage: React.FC = () => {
   const hasSkills = (detail?.agentCard?.skills?.length ?? 0) > 0;
   const showEnrichedAgentCard = hasEnrichedAgentCard(detail?.agentCard);
   const hasMainColumnContent = hasDescription || hasSkills;
-  const statusMessage = getAgentRuntimeStatusMessage(detail?.conditions);
   const detailTitle = detail ? readSparseRuntimeDetailTitle(detail) : undefined;
 
   return (
@@ -150,10 +148,7 @@ const AgentDeploymentDetailPage: React.FC = () => {
                     </Title>
                   </FlexItem>
                   <FlexItem>
-                    <AgentRuntimeStatusLabel
-                      status={detail.runtime.status}
-                      statusMessage={statusMessage}
-                    />
+                    <AgentRuntimeStatusLabel status={detail.runtime.status} />
                   </FlexItem>
                 </Flex>
               </FlexItem>
