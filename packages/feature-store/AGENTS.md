@@ -6,7 +6,7 @@ Package-specific guidance for AI agents working on `@odh-dashboard/feature-store
 
 - **Bundled library, not a Module Federation remote.** Do not create webpack configs, `moduleFederation.js`, dev servers, or `remoteEntry.js`. The package compiles directly into the host dashboard bundle.
 - **No BFF.** There is no Go backend in this package. All API calls use `proxyGET` from `@odh-dashboard/internal/api/proxyUtils` and route through the main dashboard backend.
-- **Read-only UI.** Never add create, update, or delete operations. The package only lists and inspects Feast objects.
+- **Admin UI is feature-flagged.** The browse UI (list/inspect Feast objects) is always available when the package is enabled. Create, manage, and delete operations are gated behind the `featureStoreAdmin` feature flag and RBAC (SSAR) checks. Admin routes (`/create`, `/manage`) use `conditionalArea(SupportedArea.FEATURE_STORE_ADMIN)` and `accessAllowedRouteHoC`.
 - **Backend proxy code lives elsewhere.** Proxy routes are in `backend/src/routes/api/featurestores/`, not in this package. Changes to how Feast requests are proxied require modifying the main backend.
 - **Workbench integration code lives elsewhere.** The spawner form integration is in `frontend/src/pages/projects/screens/spawner/featureStore/`. Changes to how workbenches connect to Feature Store require modifying the main frontend.
 
@@ -26,6 +26,7 @@ packages/feature-store/
 │   ├── routes.ts                  # Route builder functions
 │   ├── api/
 │   │   ├── custom.ts             # All Feast API calls (20+ methods via proxyGET)
+│   │   ├── featureStores.ts      # FeatureStore CR CRUD (create, delete, list, get)
 │   │   └── errorUtils.ts         # Error handling utilities
 │   ├── apiHooks/
 │   │   ├── useFeatureStoreAPIState.tsx  # Binds API methods with resolved hostPath
@@ -35,6 +36,8 @@ packages/feature-store/
 │   │   └── useRegistryFeatureStores.ts  # Service discovery via backend
 │   ├── components/                # Shared UI components
 │   ├── screens/                   # Feature pages (entities, features, lineage, etc.)
+│   │   ├── create/               # Feature Store creation wizard (admin, flag-gated)
+│   │   ├── manage/               # Feature Store list, delete (admin, flag-gated)
 │   ├── types/                     # TypeScript type definitions per object type
 │   ├── utils/                     # Display helpers, filtering, context utilities
 │   ├── icons/header-icons/        # Icon components
@@ -44,7 +47,8 @@ packages/feature-store/
 ## Extension System
 
 Extensions are defined in `extensions.ts` and register:
-- **Area**: `plugin-feature-store` (reliant on `SupportedArea.FEATURE_STORE`, disabled by `disableFeatureStore` flag)
+- **Area (browse)**: `plugin-feature-store` (reliant on `SupportedArea.FEATURE_STORE`, disabled by `disableFeatureStore` flag)
+- **Area (admin)**: `plugin-feature-store-admin` (reliant on `SupportedArea.FEATURE_STORE_ADMIN`, enabled by `featureStoreAdmin` flag)
 - **Navigation section**: Under `develop-and-train`
 - **7 navigation items**: Overview, Entities, Features, Feature Views, Feature Services, Data Sources, Datasets
 - **1 route**: `/develop-train/feature-store/*` -> `FeatureStoreRoutes`

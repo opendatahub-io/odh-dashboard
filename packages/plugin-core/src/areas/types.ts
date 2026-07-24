@@ -92,6 +92,7 @@ export enum SupportedArea {
 
   /* Feature store */
   FEATURE_STORE = 'feature-store',
+  FEATURE_STORE_ADMIN = 'feature-store-admin',
 
   /* Model Training */
   MODEL_TRAINING = 'model-training',

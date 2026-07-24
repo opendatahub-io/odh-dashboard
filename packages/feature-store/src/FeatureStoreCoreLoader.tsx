@@ -1,11 +1,10 @@
 import React from 'react';
-import { Bullseye, Spinner } from '@patternfly/react-core';
+import { Bullseye, Button, Spinner } from '@patternfly/react-core';
 import { CogIcon, ExternalLinkAltIcon } from '@patternfly/react-icons';
 import { Link, Outlet, useParams } from 'react-router-dom';
 import { FeatureStoreModel } from '@odh-dashboard/internal/api/models/odh';
 import { conditionalArea } from '@odh-dashboard/internal/concepts/areas/AreaComponent';
-import { SupportedArea } from '@odh-dashboard/plugin-core/areas';
-
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { ApplicationsPage, WhosMyAdministrator } from '@odh-dashboard/ui-core';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import RedirectErrorState from '@odh-dashboard/internal/pages/external/RedirectErrorState';
@@ -31,6 +30,10 @@ import SupportIcon from './icons/header-icons/SupportIcon';
 import FeatureStorePageTitle from './components/FeatureStorePageTitle';
 import FeatureStoreObjectIcon from './components/FeatureStoreObjectIcon';
 
+const CreateFeatureStoreLink = (props: React.ComponentProps<'a'>) => (
+  <Link {...props} to="/develop-train/feature-store/create" />
+);
+
 type ApplicationPageProps = React.ComponentProps<typeof ApplicationsPage>;
 
 type FeatureStoreCoreLoaderProps = {
@@ -46,6 +49,8 @@ const FeatureStoreContent: React.FC<{
   getInvalidRedirectPath: (featureStoreObject: FeatureStoreObject) => string;
 }> = ({ getInvalidRedirectPath }) => {
   const [isAdmin, isAdminLoaded] = useAccessAllowed(verbModelAccess('create', FeatureStoreModel));
+  const isAdminAreaAvailable = useIsAreaAvailable(SupportedArea.FEATURE_STORE_ADMIN).status;
+  const showAdminUI = isAdmin && isAdminAreaAvailable;
   const {
     data: featureStoreCR,
     loaded: featureStoreCRLoaded,
@@ -78,44 +83,68 @@ const FeatureStoreContent: React.FC<{
   }
 
   if (!featureStoreCR) {
-    const adminTitle = 'Create a feature store';
-    const adminDescription = (
-      <>
-        No feature stores are available to users in your organization. Create a feature store in
-        OpenShift. <br />
-        <br />
-        {osConsoleAction && (
-          <Link
-            target="_blank"
-            rel="noopener noreferrer"
-            to={osConsoleAction.href || ''}
-            style={{ textDecoration: 'none' }}
-          >
-            Go to <b>OpenShift Platform</b> {'   '}
-            <ExternalLinkAltIcon />
-          </Link>
-        )}
-      </>
-    );
+    let title: string;
+    let description: React.ReactNode;
+    let icon: () => React.ReactNode;
+    let action: React.ReactNode;
 
-    const userTitle = 'Request access to a feature store';
-    const userDescription = (
-      <>
-        Feature stores enable teams to organize and collaborate on resources within separate
-        namespaces. To request access to a new or existing feature store, contact your
-        administrator.
-      </>
-    );
+    if (showAdminUI) {
+      title = 'No feature stores yet';
+      description = <>To get started, create a feature store.</>;
+      icon = () => <CogIcon />;
+      action = (
+        <Button
+          variant="primary"
+          component={CreateFeatureStoreLink}
+          data-testid="create-feature-store-btn"
+        >
+          Create feature store
+        </Button>
+      );
+    } else if (isAdmin) {
+      title = 'Create a feature store';
+      description = (
+        <>
+          No feature stores are available to users in your organization. Create a feature store in
+          OpenShift. <br />
+          <br />
+          {osConsoleAction && (
+            <Link
+              target="_blank"
+              rel="noopener noreferrer"
+              to={osConsoleAction.href || ''}
+              style={{ textDecoration: 'none' }}
+            >
+              Go to <b>OpenShift Platform</b> {'   '}
+              <ExternalLinkAltIcon />
+            </Link>
+          )}
+        </>
+      );
+      icon = () => <CogIcon />;
+      action = undefined;
+    } else {
+      title = 'Request access to a feature store';
+      description = (
+        <>
+          Feature stores enable teams to organize and collaborate on resources within separate
+          namespaces. To request access to a new or existing feature store, contact your
+          administrator.
+        </>
+      );
+      icon = () => <SupportIcon />;
+      action = <WhosMyAdministrator />;
+    }
 
     const renderStateProps: ApplicationPageRenderState = {
       empty: true,
       emptyStatePage: (
         <EmptyStateFeatureStore
           testid="empty-state-feature-store"
-          title={isAdmin ? adminTitle : userTitle}
-          description={isAdmin ? adminDescription : userDescription}
-          headerIcon={() => (isAdmin ? <CogIcon /> : <SupportIcon />)}
-          customAction={!isAdmin && <WhosMyAdministrator />}
+          title={title}
+          description={description}
+          headerIcon={icon}
+          customAction={action}
         />
       ),
       headerContent: null,
@@ -161,6 +190,7 @@ const FeatureStoreContent: React.FC<{
             }
           />
         ),
+        headerContent: null,
       };
 
       return (

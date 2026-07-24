@@ -85,6 +85,7 @@ export const advancedAIMLFlags = {
   disableModelRegistry: false,
   disableModelRegistrySecureDB: false,
   disableFeatureStore: false,
+  featureStoreAdmin: false,
   disableFineTuning: true,
   disableLMEval: true,
   trainingJobs: true,
@@ -226,6 +227,10 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   [SupportedArea.FEATURE_STORE]: {
     featureFlags: ['disableFeatureStore'],
     requiredComponents: [DataScienceStackComponent.FEAST_OPERATOR],
+  },
+  [SupportedArea.FEATURE_STORE_ADMIN]: {
+    featureFlags: ['featureStoreAdmin'],
+    reliantAreas: [SupportedArea.FEATURE_STORE],
   },
   [SupportedArea.MODEL_TRAINING]: {
     featureFlags: ['trainingJobs'],

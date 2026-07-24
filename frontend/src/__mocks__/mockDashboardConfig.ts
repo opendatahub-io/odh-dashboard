@@ -38,6 +38,7 @@ export type MockDashboardConfigType = {
   disableLMEval?: boolean;
   disableKueue?: boolean;
   disableFeatureStore?: boolean;
+  featureStoreAdmin?: boolean;
   genAiStudio?: boolean;
   genAiTracing?: boolean;
   automl?: boolean;
@@ -123,6 +124,7 @@ export const mockDashboardConfig = ({
   disableLMEval = true,
   disableKueue = true,
   disableFeatureStore = true,
+  featureStoreAdmin = false,
   trainingJobs = true,
   observabilityDashboard = true,
   disableLLMd = false,
@@ -317,6 +319,7 @@ export const mockDashboardConfig = ({
       disableLMEval,
       disableKueue,
       disableFeatureStore,
+      featureStoreAdmin,
       trainingJobs,
       observabilityDashboard,
       disableLLMd,

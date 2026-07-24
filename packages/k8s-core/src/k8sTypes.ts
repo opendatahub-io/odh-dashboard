@@ -285,6 +285,7 @@ export type DashboardCommonConfig = {
   disableKueue: boolean;
   trainingJobs: boolean;
   disableFeatureStore?: boolean;
+  featureStoreAdmin?: boolean;
   genAiStudio?: boolean;
   guardrails?: boolean;
   genAiTracing?: boolean;
