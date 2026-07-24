@@ -27,6 +27,9 @@ const (
 	maasAPIServicePort     = 8443
 	maasDefaultGatewayName = "maas-default-gateway"
 
+	// Bound for a single discovery attempt (DSC lookup + /v1/tenants HTTP).
+	MaasDiscoveryAttemptTimeout = 15 * time.Second
+
 	// OdhPlatformType values mirrored from the dashboard backend (status.release.name).
 	releaseOpenDataHub      = "Open Data Hub"
 	releaseSelfManagedRHOAI = "OpenShift AI Self-Managed"
@@ -159,6 +162,7 @@ func discoverMaasApiURLWithToken(ctx context.Context, cfg config.EnvConfig, logg
 		TLSClientConfig: &tls.Config{
 			RootCAs:            rootCAs,
 			InsecureSkipVerify: cfg.InsecureSkipVerify,
+			MinVersion:         tls.VersionTLS12,
 		},
 	}
 	client := &http.Client{

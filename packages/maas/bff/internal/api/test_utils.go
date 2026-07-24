@@ -11,6 +11,7 @@ import (
 
 	"github.com/opendatahub-io/maas-library/bff/internal/config"
 	"github.com/opendatahub-io/maas-library/bff/internal/constants"
+	helper "github.com/opendatahub-io/maas-library/bff/internal/helpers"
 	"github.com/opendatahub-io/maas-library/bff/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/maas-library/bff/internal/integrations/maas"
 	"github.com/opendatahub-io/maas-library/bff/internal/repositories"
@@ -69,6 +70,7 @@ func setupApiTest[T any](method, url string, body interface{}, k8Factory kuberne
 		kubernetesClientFactory: k8Factory,
 		repositories:            repos,
 		logger:                  logger,
+		maasApiURL:              helper.NewMaasApiURLHolder(envConfig.MaasApiUrl),
 	}
 
 	ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, identity)

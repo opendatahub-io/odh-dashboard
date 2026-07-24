@@ -15,13 +15,13 @@ import (
 
 // attachAPIKeyHandlers registers the API key routes
 func attachAPIKeyHandlers(apiRouter *httprouter.Router, app *App) {
-	apiRouter.POST(constants.APIKeyCreatePath, handlerWithApp(app, CreateAPIKeyHandler))
-	apiRouter.POST(constants.APIKeySearchPath, handlerWithApp(app, SearchAPIKeysHandler))
-	apiRouter.POST(constants.APIKeyBulkRevokePath, handlerWithApp(app, BulkRevokeAPIKeysHandler))
-	apiRouter.GET(constants.APIKeyByIDPath, handlerWithApp(app, GetAPIKeyHandler))
-	apiRouter.DELETE(constants.APIKeyByIDPath, handlerWithApp(app, RevokeAPIKeyHandler))
-	apiRouter.GET(constants.SubscriptionsPassthroughPath, handlerWithApp(app, ListSubscriptionsPassthroughHandler))
-	apiRouter.GET(constants.SubscriptionByIDPassthroughPath, handlerWithApp(app, GetSubscriptionPassthroughHandler))
+	apiRouter.POST(constants.APIKeyCreatePath, handlerWithMaasApi(app, CreateAPIKeyHandler))
+	apiRouter.POST(constants.APIKeySearchPath, handlerWithMaasApi(app, SearchAPIKeysHandler))
+	apiRouter.POST(constants.APIKeyBulkRevokePath, handlerWithMaasApi(app, BulkRevokeAPIKeysHandler))
+	apiRouter.GET(constants.APIKeyByIDPath, handlerWithMaasApi(app, GetAPIKeyHandler))
+	apiRouter.DELETE(constants.APIKeyByIDPath, handlerWithMaasApi(app, RevokeAPIKeyHandler))
+	apiRouter.GET(constants.SubscriptionsPassthroughPath, handlerWithMaasApi(app, ListSubscriptionsPassthroughHandler))
+	apiRouter.GET(constants.SubscriptionByIDPassthroughPath, handlerWithMaasApi(app, GetSubscriptionPassthroughHandler))
 }
 
 // subscriptionKeyCountCap is the maximum number of API keys fetched per subscription

@@ -3,10 +3,10 @@ package maas
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
 	"os"
 	"testing"
 
@@ -18,9 +18,12 @@ func newTestClient(t *testing.T, handler http.Handler) *MaasClient {
 	t.Helper()
 	ts := httptest.NewServer(handler)
 	t.Cleanup(ts.Close)
-	u, _ := url.Parse(ts.URL)
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
-	return NewMaasClient(logger, u)
+	client, err := NewMaasClient(logger, ts.URL)
+	if err != nil {
+		t.Fatalf("NewMaasClient: %v", err)
+	}
+	return client
 }
 
 // jsonHandler returns an HTTP handler that responds with the JSON encoding of v.
@@ -182,5 +185,48 @@ func TestListModels_ForwardsRequestHeaders(t *testing.T) {
 	}
 	if len(got) != 1 || got[0].ID != "m1" {
 		t.Errorf("unexpected models list: %+v", got)
+	}
+}
+
+func TestNewMaasClient_EmptyURLNotReady(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
+	client, err := NewMaasClient(logger, "")
+	if err != nil {
+		t.Fatalf("NewMaasClient: %v", err)
+	}
+	if client.Ready() {
+		t.Fatal("expected client not ready with empty URL")
+	}
+
+	_, err = client.ListModels(context.Background(), nil)
+	if !errors.Is(err, ErrMaasApiNotConfigured) {
+		t.Fatalf("expected ErrMaasApiNotConfigured, got %v", err)
+	}
+}
+
+func TestMaasClient_SetBaseURLEnablesRequests(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
+	client, err := NewMaasClient(logger, "")
+	if err != nil {
+		t.Fatalf("NewMaasClient: %v", err)
+	}
+
+	body := models.MaaSModelsResponse{Object: "list", Data: []models.MaaSModel{}}
+	ts := httptest.NewServer(jsonHandler(t, body))
+	t.Cleanup(ts.Close)
+
+	if err := client.SetBaseURL(ts.URL); err != nil {
+		t.Fatalf("SetBaseURL: %v", err)
+	}
+	if !client.Ready() {
+		t.Fatal("expected client ready after SetBaseURL")
+	}
+
+	got, err := client.ListModels(context.Background(), nil)
+	if err != nil {
+		t.Fatalf("ListModels: %v", err)
+	}
+	if got == nil {
+		t.Fatal("expected non-nil models slice")
 	}
 }

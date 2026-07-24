@@ -84,7 +84,7 @@ The following environment variables are used to configure the deployment and dev
 ### `MAAS_API_URL`
 
 - **Description**: Specifies the URL of the MaaS API that the BFF connects to for passthrough calls (models, API keys, subscriptions).
-- **Default Value**: *(none)* — when running in-cluster without this set, the BFF discovers the URL by calling `GET /v1/tenants` on the internal `maas-api` Service, selecting the tenant with gateway `maas-default-gateway`, and appending `/maas-api` to `gateway.externalUrl`. Discovery failure prevents BFF startup.
+- **Default Value**: *(none)* — when running in-cluster without this set, the BFF discovers the URL by calling `GET /v1/tenants` on the internal `maas-api` Service, selecting the tenant with gateway `maas-default-gateway`, and appending `/maas-api` to `gateway.externalUrl`. If discovery fails (for example `maas-api` is not installed yet), the BFF still starts in a degraded mode: maas-api-dependent routes return `503`, and discovery is retried in the background until it succeeds.
 - **Example**: `MAAS_API_URL=https://maas.apps.my-cluster.example.com/maas-api`
 
 ### `MAAS_API_INTERNAL_URL`

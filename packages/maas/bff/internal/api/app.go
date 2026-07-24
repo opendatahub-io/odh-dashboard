@@ -64,11 +64,15 @@ type App struct {
 	logger                  *slog.Logger
 	kubernetesClientFactory k8s.KubernetesClientFactory
 	repositories            *repositories.Repositories
-	//used only on mocked k8s client
+	// used only on mocked k8s client
 	testEnv        *envtest.Environment
 	maasFakeServer *httptest.Server
 	// rootCAs used for outbound TLS connections to Client Service
 	rootCAs *x509.CertPool
+	// maasApiURL holds the discovered or configured MaaS API base URL (may be empty while retrying).
+	maasApiURL *helper.MaasApiURLHolder
+	// discoveryCancel stops the background maas-api discovery retry loop.
+	discoveryCancel context.CancelFunc
 }
 
 func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
@@ -79,6 +83,9 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 	var testEnv *envtest.Environment
 	var rootCAs *x509.CertPool
 	var maasFakeServer *httptest.Server
+	maasApiURL := helper.NewMaasApiURLHolder("")
+	var discoveryCancel context.CancelFunc
+	startDiscoveryRetry := false
 
 	// Initialize CA pool if bundle paths are provided
 	if len(cfg.BundlePaths) > 0 {
@@ -139,12 +146,21 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		maasFakeServer = maas.CreateMaasFakeServer()
 		logger.Info("MaaS Fake API Server is running", "url", maasFakeServer.URL)
 		cfg.MaasApiUrl = maasFakeServer.URL
-	} else if cfg.MaasApiUrl == "" {
-		discoveredURL, err := helper.DiscoverMaasApiURL(context.Background(), cfg, logger, rootCAs)
-		if err != nil {
-			return nil, fmt.Errorf("failed to discover MaaS API URL via /v1/tenants: %w", err)
+		maasApiURL.Set(cfg.MaasApiUrl)
+	} else if cfg.MaasApiUrl != "" {
+		maasApiURL.Set(cfg.MaasApiUrl)
+	} else {
+		discoverCtx, discoverCancel := context.WithTimeout(context.Background(), helper.MaasDiscoveryAttemptTimeout)
+		discoveredURL, discoverErr := helper.DiscoverMaasApiURL(discoverCtx, cfg, logger, rootCAs)
+		discoverCancel()
+		if discoverErr != nil {
+			logger.Warn("Failed to discover MaaS API URL via /v1/tenants; starting in degraded mode and retrying in background",
+				"error", discoverErr)
+			startDiscoveryRetry = true
+		} else {
+			cfg.MaasApiUrl = discoveredURL
+			maasApiURL.Set(discoveredURL)
 		}
-		cfg.MaasApiUrl = discoveredURL
 	}
 
 	if err != nil {
@@ -185,14 +201,65 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		testEnv:                 testEnv,
 		maasFakeServer:          maasFakeServer,
 		rootCAs:                 rootCAs,
+		maasApiURL:              maasApiURL,
 	}
+
+	if startDiscoveryRetry {
+		discoveryCtx, cancel := context.WithCancel(context.Background())
+		discoveryCancel = cancel
+		app.discoveryCancel = discoveryCancel
+		helper.StartMaasApiDiscoveryLoop(
+			discoveryCtx,
+			cfg,
+			logger,
+			rootCAs,
+			maasApiURL,
+			app.wireMaasApiURL,
+			nil,
+		)
+	}
+
 	return app, nil
+}
+
+// wireMaasApiURL configures repositories and marks the MaaS API URL ready once discovery succeeds.
+func (app *App) wireMaasApiURL(maasApiURL string) error {
+	if app.repositories.APIKeys != nil {
+		if err := app.repositories.APIKeys.SetMaasApiURL(maasApiURL); err != nil {
+			return fmt.Errorf("wire API keys repository: %w", err)
+		}
+	}
+	if app.repositories.Models != nil {
+		if err := app.repositories.Models.SetMaasApiURL(maasApiURL); err != nil {
+			return fmt.Errorf("wire models repository: %w", err)
+		}
+	}
+	if app.maasApiURL != nil {
+		app.maasApiURL.Set(maasApiURL)
+	}
+	// Do not mutate app.config.MaasApiUrl from the discovery goroutine; readiness
+	// is tracked via repository clients and maasApiURL holder.
+	return nil
+}
+
+// requireMaasApiReady returns false and writes a 503 when maas-api clients are not yet configured.
+func (app *App) requireMaasApiReady(w http.ResponseWriter, r *http.Request) bool {
+	if app.repositories != nil &&
+		app.repositories.APIKeys != nil && app.repositories.APIKeys.Ready() &&
+		app.repositories.Models != nil && app.repositories.Models.Ready() {
+		return true
+	}
+	app.serviceUnavailableResponse(w, r, "maas-api is not available")
+	return false
 }
 
 func (app *App) Shutdown() error {
 	var testEnvStopErr error
 
 	app.logger.Info("shutting down app...")
+	if app.discoveryCancel != nil {
+		app.discoveryCancel()
+	}
 	if app.testEnv != nil {
 		//shutdown the envtest control plane when we are in the mock mode.
 		app.logger.Info("shutting env test...")
@@ -222,7 +289,7 @@ func (app *App) Routes() http.Handler {
 	attachMaaSModelRefHandlers(apiRouter, app)
 	attachExternalModelHandlers(apiRouter, app)
 	attachYamlHandlers(apiRouter, app)
-	apiRouter.GET(constants.ApiPathPrefix+"/models", handlerWithApp(app, ListModelsHandler))
+	apiRouter.GET(constants.ApiPathPrefix+"/models", handlerWithMaasApi(app, ListModelsHandler))
 	apiRouter.GET(constants.ModelsOverviewPath, handlerWithApp(app, ListModelsOverviewHandler))
 	apiRouter.GET(constants.IsMaasAdminPath, handlerWithApp(app, IsMaasAdminHandler))
 

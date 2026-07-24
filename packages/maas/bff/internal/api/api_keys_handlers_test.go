@@ -14,6 +14,7 @@ import (
 
 	"github.com/opendatahub-io/maas-library/bff/internal/config"
 	"github.com/opendatahub-io/maas-library/bff/internal/constants"
+	helper "github.com/opendatahub-io/maas-library/bff/internal/helpers"
 	"github.com/opendatahub-io/maas-library/bff/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/maas-library/bff/internal/models"
 	"github.com/opendatahub-io/maas-library/bff/internal/repositories"
@@ -360,6 +361,7 @@ var _ = Describe("APIKeysHandlers", Ordered, func() {
 				kubernetesClientFactory: k8Factory,
 				repositories:            repos,
 				logger:                  testLogger,
+				maasApiURL:              helper.NewMaasApiURLHolder(envConfig.MaasApiUrl),
 			}
 
 			identity := &kubernetes.RequestIdentity{UserID: "user@example.com"}
