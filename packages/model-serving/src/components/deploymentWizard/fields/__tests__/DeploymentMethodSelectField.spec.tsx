@@ -47,8 +47,8 @@ describe('DeploymentMethodSelectField tracking', () => {
       externalData: {
         data: {
           options: [
-            { key: 'kserve', label: 'KServe', description: 'KServe deployment' },
-            { key: 'llmd', label: 'LLM-D', description: 'LLM-D deployment' },
+            { key: 'kserve', label: 'KServe', description: 'KServe deployment', order: 0 },
+            { key: 'llmd', label: 'LLM-D', description: 'LLM-D deployment', order: 1 },
           ],
         },
         loaded: true,
@@ -69,8 +69,8 @@ describe('DeploymentMethodSelectField tracking', () => {
       externalData: {
         data: {
           options: [
-            { key: 'kserve', label: 'KServe', description: 'KServe deployment' },
-            { key: 'llmd', label: 'LLM-D', description: 'LLM-D deployment' },
+            { key: 'kserve', label: 'KServe', description: 'KServe deployment', order: 0 },
+            { key: 'llmd', label: 'LLM-D', description: 'LLM-D deployment', order: 1 },
           ],
         },
         loaded: true,
@@ -89,7 +89,7 @@ describe('DeploymentMethodSelectField tracking', () => {
     renderComponent({
       externalData: {
         data: {
-          options: [{ key: 'kserve', label: 'KServe', description: 'KServe deployment' }],
+          options: [{ key: 'kserve', label: 'KServe', description: 'KServe deployment', order: 0 }],
         },
         loaded: true,
       },
@@ -106,8 +106,8 @@ describe('DeploymentMethodSelectField tracking', () => {
       externalData: {
         data: {
           options: [
-            { key: 'kserve', label: 'KServe', description: 'KServe deployment' },
-            { key: 'llmd', label: 'LLM-D', description: 'LLM-D deployment' },
+            { key: 'kserve', label: 'KServe', description: 'KServe deployment', order: 0 },
+            { key: 'llmd', label: 'LLM-D', description: 'LLM-D deployment', order: 1 },
           ],
         },
         loaded: true,
@@ -124,8 +124,8 @@ describe('DeploymentMethodSelectField tracking', () => {
       externalData: {
         data: {
           options: [
-            { key: 'kserve', label: 'KServe', description: 'KServe deployment' },
-            { key: 'llmd', label: 'LLM-D', description: 'LLM-D deployment' },
+            { key: 'kserve', label: 'KServe', description: 'KServe deployment', order: 0 },
+            { key: 'llmd', label: 'LLM-D', description: 'LLM-D deployment', order: 1 },
           ],
         },
         loaded: true,
