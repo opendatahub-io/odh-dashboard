@@ -19,6 +19,7 @@ const PGVECTOR_DATABASE = 'testdb';
 const OGX_SERVER_NAME = 'autorag-ogx';
 const OGX_CONFIG_MAP = 'ogx-config';
 const OGX_PORT = 8321;
+const OGX_SCHEME = (Cypress.env('OGX_TLS_ENABLED') as string) === 'true' ? 'https' : 'http';
 
 const INLINE_EMBEDDING_MODEL_ID = 'sentence-transformers/all-MiniLM-L6-v2';
 const INLINE_EMBEDDING_DIMENSION = 384;
@@ -253,7 +254,7 @@ const cleanupVectorStore = (namespace: string): void => {
  */
 /* eslint-disable camelcase -- OGX config.yaml requires snake_case keys */
 const buildOgxConfig = (namespace: string): string => {
-  const llmUrl = `http://${LLM_INFERENCE_SERVICE}-predictor.${namespace}.svc.cluster.local/v1`;
+  const llmUrl = `${OGX_SCHEME}://${LLM_INFERENCE_SERVICE}-predictor.${namespace}.svc.cluster.local/v1`;
   const pgHost = `${PGVECTOR_DEPLOYMENT}.${namespace}.svc.cluster.local`;
 
   const config = {
@@ -576,7 +577,7 @@ export const createOgxDistribution = (namespace: string): Cypress.Chainable<Comm
  */
 export const getOgxServiceURL = (namespace: string): Cypress.Chainable<string> => {
   const svcName = `${OGX_SERVER_NAME}-service`;
-  const url = `http://${svcName}.${namespace}.svc.cluster.local:${OGX_PORT}`;
+  const url = `${OGX_SCHEME}://${svcName}.${namespace}.svc.cluster.local:${OGX_PORT}`;
   cy.log(`OGX service URL: ${url}`);
   return cy.wrap(url);
 };

@@ -520,7 +520,66 @@ describe('OgxConnectionModal', () => {
       screen.queryByText('Enter a valid URL (e.g. https://example.com).'),
     ).not.toBeInTheDocument();
     expect(
-      screen.getByText('The base URL of the Open GenAI Stack connection.'),
+      screen.getByText('The base URL of the Open GenAI Stack connection (https:// recommended).'),
     ).toBeInTheDocument();
+  });
+
+  it('should show HTTPS warning when non-localhost HTTP URL is entered and blurred', async () => {
+    render(
+      <OgxConnectionModal
+        namespace={TEST_NAMESPACE}
+        onClose={onCloseMock}
+        onSubmit={onSubmitMock}
+      />,
+    );
+
+    const baseUrlInput = screen.getByTestId('ogx-connection-base-url');
+
+    await act(async () => {
+      fireEvent.change(baseUrlInput, { target: { value: 'http://ogx.example.com:8321' } });
+      fireEvent.blur(baseUrlInput);
+    });
+
+    expect(screen.getByTestId('ogx-connection-http-warning')).toHaveTextContent(
+      'Using HTTPS is recommended for secure communication with Open GenAI Stack.',
+    );
+  });
+
+  it('should not show HTTPS warning for localhost HTTP URL', async () => {
+    render(
+      <OgxConnectionModal
+        namespace={TEST_NAMESPACE}
+        onClose={onCloseMock}
+        onSubmit={onSubmitMock}
+      />,
+    );
+
+    const baseUrlInput = screen.getByTestId('ogx-connection-base-url');
+
+    await act(async () => {
+      fireEvent.change(baseUrlInput, { target: { value: 'http://localhost:8321' } });
+      fireEvent.blur(baseUrlInput);
+    });
+
+    expect(screen.queryByTestId('ogx-connection-http-warning')).not.toBeInTheDocument();
+  });
+
+  it('should not show HTTPS warning for HTTPS URL', async () => {
+    render(
+      <OgxConnectionModal
+        namespace={TEST_NAMESPACE}
+        onClose={onCloseMock}
+        onSubmit={onSubmitMock}
+      />,
+    );
+
+    const baseUrlInput = screen.getByTestId('ogx-connection-base-url');
+
+    await act(async () => {
+      fireEvent.change(baseUrlInput, { target: { value: 'https://ogx.example.com:8321' } });
+      fireEvent.blur(baseUrlInput);
+    });
+
+    expect(screen.queryByTestId('ogx-connection-http-warning')).not.toBeInTheDocument();
   });
 });
