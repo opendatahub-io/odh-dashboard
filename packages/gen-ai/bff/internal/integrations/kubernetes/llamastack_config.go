@@ -696,11 +696,14 @@ func NewVectorStore(vectorStoreID, embeddingModel string, embeddingDimension int
 
 // EnableRBACAuth enables RBAC authentication using the Kubernetes auth provider.
 // This configures the server to validate tokens against the Kubernetes API server
-// and apply access control rules based on user groups.
+// and apply ownership-based access control rules.
 //
 // Default access policy:
-//   - admin group: full access (create, read, delete)
-//   - system:authenticated: read-only access
+//   - user is owner: full CRUD on own resources
+//   - any authenticated: create new resources
+//   - resource is unowned: read shared resources (models, tools)
+//
+// Also configures storage.stores.vector_stores (required for AuthorizedSqlStore).
 //
 // Parameters:
 //   - apiServerURL: Kubernetes API server URL (use empty string for in-cluster default)
@@ -733,6 +736,18 @@ func (c *LlamaStackConfig) EnableRBACAuthWithCustomPolicy(apiServerURL, tlsCAFil
 		},
 		AccessPolicy: accessPolicy,
 	}
+
+	// AuthorizedSqlStore requires storage.stores.vector_stores to be configured.
+	// Without it, OGX won't enforce ownership filtering on vectorstore operations.
+	if c.Storage.Stores == nil {
+		c.Storage.Stores = make(map[string]interface{})
+	}
+	if _, exists := c.Storage.Stores["vector_stores"]; !exists {
+		c.Storage.Stores["vector_stores"] = map[string]interface{}{
+			"backend":    "sql_default",
+			"table_name": "vector_stores",
+		}
+	}
 }
 
 // DisableRBACAuth disables RBAC authentication by removing the auth configuration.
@@ -750,23 +765,29 @@ func (c *LlamaStackConfig) SetRoutePolicy(routePolicy []RouteAccessRule) {
 }
 
 // NewDefaultAccessPolicy returns the default RBAC access policy for OpenShift integration.
-// - admin group: full access (create, read, delete)
-// - system:authenticated: read-only access
+// Enforces per-user ownership isolation: users can only access their own resources.
+// Shared resources (like models) that have no owner are readable by everyone.
 func NewDefaultAccessPolicy() []AccessRule {
 	return []AccessRule{
 		{
 			Permit: &Scope{
-				Actions: []string{"create", "read", "delete"},
+				Actions: []string{"create", "read", "update", "delete"},
 			},
-			When:        "user with admin in roles",
-			Description: "admin users have full access to all resources",
+			When:        "user is owner",
+			Description: "users have full access to their own resources",
+		},
+		{
+			Permit: &Scope{
+				Actions: []string{"create"},
+			},
+			Description: "any authenticated user can create new resources",
 		},
 		{
 			Permit: &Scope{
 				Actions: []string{"read"},
 			},
-			When:        "user with system:authenticated in roles",
-			Description: "authenticated users have read-only access",
+			When:        "resource is unowned",
+			Description: "shared resources (models, tools) are readable by everyone",
 		},
 	}
 }

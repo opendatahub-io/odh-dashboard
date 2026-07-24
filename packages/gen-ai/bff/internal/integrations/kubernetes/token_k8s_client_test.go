@@ -324,11 +324,11 @@ func TestGenerateLlamaStackConfig_RBACFlag(t *testing.T) {
 		require.NotNil(t, cfg.Server.Auth, "Auth should be set when RBAC flag is enabled")
 		require.NotNil(t, cfg.Server.Auth.ProviderConfig)
 		assert.Equal(t, "kubernetes", cfg.Server.Auth.ProviderConfig.Type)
-		assert.Len(t, cfg.Server.Auth.AccessPolicy, 2)
+		assert.Len(t, cfg.Server.Auth.AccessPolicy, 3)
 
 		// Verify access policies
-		assert.Contains(t, result, "user with admin in roles")
-		assert.Contains(t, result, "user with system:authenticated in roles")
+		assert.Contains(t, result, "user is owner")
+		assert.Contains(t, result, "resource is unowned")
 	})
 
 	t.Run("default EnvConfig should have RBAC disabled", func(t *testing.T) {

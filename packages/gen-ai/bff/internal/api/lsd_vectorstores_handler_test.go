@@ -186,12 +186,12 @@ var _ = Describe("LlamaStackListVectorStoresHandler", func() {
 		err = json.Unmarshal(body, &response)
 		assert.NoError(t, err)
 
-		// Mock returns 2 external stores; handler auto-provisions 1 user store = 3 total
+		// Mock returns 2 stores; handler auto-provisions 1 file-upload store = 3 total
 		vectorStores := response.Data.([]interface{})
 		assert.Len(t, vectorStores, 3)
 
-		// Find the auto-provisioned user store by contract metadata marker
-		var userStore map[string]interface{}
+		// Verify the auto-provisioned store contract
+		var fileUploadStore map[string]interface{}
 		for _, vs := range vectorStores {
 			store := vs.(map[string]interface{})
 			metadata, ok := store["metadata"].(map[string]interface{})
@@ -199,13 +199,12 @@ var _ = Describe("LlamaStackListVectorStoresHandler", func() {
 				continue
 			}
 			if createdBy, ok := metadata["created_by"].(string); ok && createdBy == "auto-provisioning" {
-				userStore = store
+				fileUploadStore = store
 				break
 			}
 		}
-		require.NotNil(t, userStore, "expected auto-provisioned user store")
-		assert.NotEmpty(t, userStore["id"])
-		assert.Contains(t, []string{"completed", "in_progress"}, userStore["status"])
+		require.NotNil(t, fileUploadStore, "expected auto-provisioned file-upload store")
+		assert.Equal(t, "file-uploads", fileUploadStore["name"])
 	})
 
 	It("should list vector stores with limit parameter", func() {
@@ -232,7 +231,7 @@ var _ = Describe("LlamaStackListVectorStoresHandler", func() {
 		err = json.Unmarshal(body, &response)
 		assert.NoError(t, err)
 
-		// Mock returns 2 external stores; handler auto-provisions 1 user store = 3 total
+		// Mock returns 2 stores; handler auto-provisions 1 file-upload store = 3 total
 		vectorStores := response.Data.([]interface{})
 		assert.Len(t, vectorStores, 3)
 	})
@@ -261,7 +260,7 @@ var _ = Describe("LlamaStackListVectorStoresHandler", func() {
 		err = json.Unmarshal(body, &response)
 		assert.NoError(t, err)
 
-		// Mock returns 2 external stores; handler auto-provisions 1 user store = 3 total
+		// Mock returns 2 stores; handler auto-provisions 1 file-upload store = 3 total
 		vectorStores := response.Data.([]interface{})
 		assert.Len(t, vectorStores, 3)
 	})
@@ -290,7 +289,7 @@ var _ = Describe("LlamaStackListVectorStoresHandler", func() {
 		err = json.Unmarshal(body, &response)
 		assert.NoError(t, err)
 
-		// Mock returns 2 external stores; handler auto-provisions 1 user store = 3 total
+		// Mock returns 2 stores; handler auto-provisions 1 file-upload store = 3 total
 		vectorStores := response.Data.([]interface{})
 		assert.Len(t, vectorStores, 3)
 	})

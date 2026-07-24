@@ -110,6 +110,9 @@ func (m *mockLSClientForASR) CreateVectorStore(_ context.Context, _ llamastack.C
 	return nil, nil
 }
 func (m *mockLSClientForASR) DeleteVectorStore(_ context.Context, _ string) error { return nil }
+func (m *mockLSClientForASR) RetrieveVectorStore(_ context.Context, _ string) (*openai.VectorStore, error) {
+	return nil, nil
+}
 func (m *mockLSClientForASR) UploadFile(_ context.Context, _ llamastack.UploadFileParams) (*llamastack.FileUploadResult, error) {
 	return nil, nil
 }

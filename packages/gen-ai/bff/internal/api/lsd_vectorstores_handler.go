@@ -1,8 +1,6 @@
 package api
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -11,8 +9,6 @@ import (
 	"strings"
 
 	"github.com/julienschmidt/httprouter"
-	"github.com/opendatahub-io/gen-ai/internal/constants"
-	"github.com/opendatahub-io/gen-ai/internal/integrations"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack"
 )
 
@@ -27,46 +23,17 @@ type CreateVectorStoreRequest struct {
 	Metadata map[string]string `json:"metadata,omitempty"`
 }
 
-// TEMPORARY: hashUsername creates a deterministic hash for username-based vectorstore isolation
-// TODO: Remove this function when proper multi-tenant vectorstore support is implemented
-func hashUsername(username string) string {
-	hash := sha256.Sum256([]byte(username))
-	// Use first 128 bits (16 bytes) results in 32 hex characters instead of 64
-	return hex.EncodeToString(hash[:16])
-}
-
 // LlamaStackListVectorStoresHandler handles GET /gen-ai/api/v1/vectorstores.
 //
-// Returns all vector stores from LlamaStack. Callers are responsible for
-// distinguishing between the auto-provisioned file-upload inline store and external
-// registered stores using the metadata fields:
-//   - Auto-provisioned (Milvus file-upload): metadata.created_by == "auto-provisioning"
-//   - External (registered from llama-stack-config): metadata.created_by is absent
+// Returns all vector stores visible to the authenticated user. OGX enforces
+// per-user isolation via its AuthorizedSqlStore layer — each user only sees
+// their own stores based on the auth token forwarded in the request.
 //
-// The handler ensures the current user's auto-provisioned store exists, creating
-// it if necessary, before returning all stores.
-// TEMPORARY: Auto-provisioning will be replaced with proper multi-tenant support.
+// Ensures the user has a file-upload store (metadata.created_by == "auto-provisioning")
+// creating one if needed. The frontend relies on this marker to identify the
+// store used for file attachments.
 func (app *App) LlamaStackListVectorStoresHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	ctx := r.Context()
-
-	// TEMPORARY: Ensure the current user's auto-provisioned store exists.
-	identity, ok := ctx.Value(constants.RequestIdentityKey).(*integrations.RequestIdentity)
-	if !ok || identity == nil {
-		app.unauthorizedResponse(w, r, errors.New("user identity not found in context"))
-		return
-	}
-
-	client, err := app.kubernetesClientFactory.GetClient(ctx)
-	if err != nil {
-		app.serverErrorResponse(w, r, err)
-		return
-	}
-
-	username, err := client.GetUser(ctx, identity)
-	if err != nil {
-		app.serverErrorResponse(w, r, err)
-		return
-	}
 
 	vectorStores, err := app.repositories.VectorStores.ListVectorStores(ctx, llamastack.ListVectorStoresParams{})
 	if err != nil {
@@ -74,29 +41,37 @@ func (app *App) LlamaStackListVectorStoresHandler(w http.ResponseWriter, r *http
 		return
 	}
 
-	// TEMPORARY: Create the user's auto-provisioned store if it doesn't exist yet.
-	hashedUsername := hashUsername(username)
-	hasUserStore := false
+	// Ensure the user has a file-upload store. OGX handles ownership isolation,
+	// so we just check if any store has the auto-provisioning marker.
+	hasFileStore := false
 	for _, vs := range vectorStores {
-		if vs.Name == hashedUsername {
-			hasUserStore = true
+		if vs.Metadata != nil && vs.Metadata["created_by"] == "auto-provisioning" {
+			hasFileStore = true
 			break
 		}
 	}
 
-	if !hasUserStore {
+	if !hasFileStore {
 		newStore, err := app.repositories.VectorStores.CreateVectorStore(ctx, llamastack.CreateVectorStoreParams{
-			Name: hashedUsername,
+			Name: "file-uploads",
 			Metadata: map[string]string{
 				"created_by": "auto-provisioning",
-				"username":   username,
 			},
 		})
 		if err != nil {
-			app.handleLlamaStackClientError(w, r, err)
-			return
+			// Tolerate race: concurrent request may have created the store already.
+			// Re-fetch to pick it up; only fail if the list itself errors.
+			app.logger.Warn("Auto-provisioning file-upload store failed, re-fetching (possible race)",
+				"error", err)
+			refreshed, listErr := app.repositories.VectorStores.ListVectorStores(ctx, llamastack.ListVectorStoresParams{})
+			if listErr != nil {
+				app.handleLlamaStackClientError(w, r, listErr)
+				return
+			}
+			vectorStores = refreshed
+		} else {
+			vectorStores = append(vectorStores, *newStore)
 		}
-		vectorStores = append(vectorStores, *newStore)
 	}
 
 	if err := app.WriteJSON(w, http.StatusOK, VectorStoresResponse{Data: vectorStores}, nil); err != nil {
