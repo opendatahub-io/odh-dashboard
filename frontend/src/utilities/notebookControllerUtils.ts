@@ -343,7 +343,7 @@ const getKueueStepStatus = (status: KueueWorkloadStatus): EventStatus => {
     case KueueWorkloadStatus.Preempted:
       return EventStatus.WARNING;
     case KueueWorkloadStatus.Requeued:
-      return EventStatus.IN_PROGRESS;
+      return EventStatus.PENDING;
     case KueueWorkloadStatus.BlockedOnPreemptionGates:
       return EventStatus.IN_PROGRESS;
     case KueueWorkloadStatus.AdmissionCheck:
