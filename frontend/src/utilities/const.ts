@@ -1,32 +1,27 @@
+/* eslint-disable prefer-destructuring */
+// We need to disable the prefer-destructuring rule here due to an issue with how environment variables are handled in the build process with webpack.
 import { FetchStateObject } from '@odh-dashboard/ui-core/hooks/useFetch';
 import { CustomWatchK8sResult, ListWithNonDashboardPresence, OdhDocumentType } from '#~/types';
 
-// Safe accessor: when dotenv-webpack is configured it replaces `process.env.X`
-// at build time so this function is never called at runtime. In environments
-// without a process polyfill (e.g. RHAII, federated plugins) this prevents a
-// ReferenceError: process is not defined.
-// eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- process may not exist in non-webpack environments (RHAII, federated plugins)
-const env = (key: string): string | undefined =>
-  typeof process !== 'undefined' ? process.env[key] : undefined;
-
-const WS_HOSTNAME = window.WS_HOSTNAME ?? env('WS_HOSTNAME') ?? location.host;
-const DEV_MODE = env('APP_ENV') === 'development';
-const POLL_INTERVAL = window.POLL_INTERVAL || Number(env('POLL_INTERVAL')) || 30000;
-const FAST_POLL_INTERVAL = window.FAST_POLL_INTERVAL || Number(env('FAST_POLL_INTERVAL')) || 3000;
-const SERVER_TIMEOUT = Number(env('SERVER_TIMEOUT')) || 300000;
-const DOC_LINK = env('DOC_LINK');
-const COMMUNITY_LINK = env('COMMUNITY_LINK');
-const SUPPORT_LINK = env('SUPPORT_LINK');
-const ODH_LOGO = env('ODH_LOGO') || 'odh-logo-light-theme.svg';
-const ODH_LOGO_DARK = env('ODH_LOGO_DARK') || 'odh-logo-dark-theme.svg';
-const ODH_PRODUCT_NAME = env('ODH_PRODUCT_NAME') ?? '';
-const DASHBOARD_CONFIG = env('DASHBOARD_CONFIG') || 'odh-dashboard-config';
-const EXT_CLUSTER = env('EXT_CLUSTER');
-const INTERNAL_DASHBOARD_VERSION = env('INTERNAL_DASHBOARD_VERSION') || '';
-const CONSOLE_LINK_DOMAIN = env('CONSOLE_LINK_DOMAIN');
-const MF_REMOTES = env('MF_REMOTES') || document.getElementById('mf-remotes-json')?.textContent;
+const WS_HOSTNAME = window.WS_HOSTNAME ?? process.env.WS_HOSTNAME ?? location.host;
+const DEV_MODE = process.env.APP_ENV === 'development';
+const POLL_INTERVAL = window.POLL_INTERVAL || Number(process.env.POLL_INTERVAL) || 30000;
+const FAST_POLL_INTERVAL =
+  window.FAST_POLL_INTERVAL || Number(process.env.FAST_POLL_INTERVAL) || 3000;
+const SERVER_TIMEOUT = Number(process.env.SERVER_TIMEOUT) || 300000;
+const DOC_LINK = process.env.DOC_LINK;
+const COMMUNITY_LINK = process.env.COMMUNITY_LINK;
+const SUPPORT_LINK = process.env.SUPPORT_LINK;
+const ODH_LOGO = process.env.ODH_LOGO || 'odh-logo-light-theme.svg';
+const ODH_LOGO_DARK = process.env.ODH_LOGO_DARK || 'odh-logo-dark-theme.svg';
+const ODH_PRODUCT_NAME = process.env.ODH_PRODUCT_NAME ?? '';
+const DASHBOARD_CONFIG = process.env.DASHBOARD_CONFIG || 'odh-dashboard-config';
+const EXT_CLUSTER = process.env.EXT_CLUSTER;
+const INTERNAL_DASHBOARD_VERSION = process.env.INTERNAL_DASHBOARD_VERSION || '';
+const CONSOLE_LINK_DOMAIN = process.env.CONSOLE_LINK_DOMAIN;
+const MF_REMOTES =
+  process.env.MF_REMOTES || document.getElementById('mf-remotes-json')?.textContent;
 const OOTB_IMAGE_PROVIDER = 'Red Hat';
-
 export {
   DEV_MODE,
   POLL_INTERVAL,
