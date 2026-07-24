@@ -55,7 +55,8 @@
     "@odh-dashboard/internal": "*",
     "@odh-dashboard/k8s-core": "*",
     "@odh-dashboard/plugin-core": "*",
-    "@odh-dashboard/ui-core": "*"
+    "@odh-dashboard/ui-core": "*",
+    "yaml": "^2.9.0"
   },
   "devDependencies": {
     "@odh-dashboard/eslint-config": "*",
