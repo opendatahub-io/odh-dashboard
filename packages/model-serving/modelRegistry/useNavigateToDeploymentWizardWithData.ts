@@ -1,11 +1,11 @@
 import React from 'react';
-import { ServingRuntimeModelType } from '@odh-dashboard/model-serving/shared';
 import {
   translateDisplayNameForK8s,
   LimitNameResourceType,
   resourceTypeLimits,
 } from '@odh-dashboard/k8s-core';
 import { useWatchConnectionTypes } from '@odh-dashboard/internal/utilities/useWatchConnectionTypes';
+import { ServingRuntimeModelType } from '@odh-dashboard/model-serving/shared';
 import type { DeployPrefillData } from './types';
 import {
   ConnectionTypeRefs,
