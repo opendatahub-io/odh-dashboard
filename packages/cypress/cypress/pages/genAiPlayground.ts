@@ -1,6 +1,8 @@
 const GEN_AI_DEV_FLAG = 'devFeatureFlags=genAiStudio=true,modelAsService=false';
 const GEN_AI_CUSTOM_ENDPOINTS_FLAG =
   'devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,modelAsService=false';
+const GEN_AI_CUSTOM_ENDPOINTS_PROMPT_FLAG =
+  'devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,promptManagement=true,modelAsService=false';
 
 class GenAiPlayground {
   navigate(projectName: string) {
@@ -26,7 +28,23 @@ class GenAiPlayground {
   navigateToPlaygroundWithRetry(projectName: string) {
     const playgroundUrl = `/gen-ai-studio/playground/${projectName}?${GEN_AI_CUSTOM_ENDPOINTS_FLAG}`;
     cy.visit(playgroundUrl);
-    cy.findByTestId('chatbot-model-selector-toggle', { timeout: 120000 }).should('be.visible');
+    cy.findByTestId('chatbot-message-bar', { timeout: 120000 }).should('be.visible');
+  }
+
+  navigateToAssetsWithPromptManagement(projectName: string) {
+    cy.visit(`/gen-ai-studio/assets/${projectName}?${GEN_AI_CUSTOM_ENDPOINTS_PROMPT_FLAG}`);
+    cy.url().should('include', `/gen-ai-studio/assets/${projectName}`);
+  }
+
+  navigateToPlaygroundWithPromptManagement(projectName: string) {
+    cy.visit(`/gen-ai-studio/playground/${projectName}?${GEN_AI_CUSTOM_ENDPOINTS_PROMPT_FLAG}`);
+    cy.url().should('include', `/gen-ai-studio/playground/${projectName}`);
+  }
+
+  navigateToPlaygroundWithPromptManagementRetry(projectName: string) {
+    const playgroundUrl = `/gen-ai-studio/playground/${projectName}?${GEN_AI_CUSTOM_ENDPOINTS_PROMPT_FLAG}`;
+    cy.visit(playgroundUrl);
+    cy.findByTestId('chatbot-message-bar', { timeout: 120000 }).should('be.visible');
   }
 
   findEmptyState() {
@@ -50,7 +68,7 @@ class GenAiPlayground {
   }
 
   findModelToggleButton() {
-    return cy.findByTestId('chatbot-model-selector-toggle');
+    return cy.findByTestId('settings-model-selector-toggle');
   }
 
   findMessageInput() {
@@ -161,6 +179,64 @@ class GenAiPlayground {
 
   findTryInPlaygroundButton() {
     return cy.findByTestId('try-playground-button');
+  }
+
+  // Settings panel methods
+  findSettingsButton() {
+    return cy.findByTestId('settings-button');
+  }
+
+  findSettingsPromptTab() {
+    return cy.findByTestId('chatbot-settings-page-tab-prompt');
+  }
+
+  // Prompt management methods (within the playground settings panel)
+  findSystemInstructionsInput() {
+    return cy.findByTestId('system-instructions-input');
+  }
+
+  findPromptSaveToRegistryButton() {
+    return cy.findByTestId('prompt-save-to-registry-button');
+  }
+
+  findPromptNameInput() {
+    return cy.findByTestId('prompt-name-input');
+  }
+
+  findPromptTemplateInput() {
+    return cy.findByTestId('prompt-template-input');
+  }
+
+  findPromptCommitMessageInput() {
+    return cy.findByTestId('prompt-commit-message-input');
+  }
+
+  findPromptSaveButton() {
+    return cy.findByTestId('prompt-save-button');
+  }
+
+  findPromptCreateModal() {
+    return cy.findByTestId('prompt-create-modal');
+  }
+
+  findPromptManagementModal() {
+    return cy.findByTestId('prompt-management-modal');
+  }
+
+  findLoadPromptButton() {
+    return cy.findByTestId('load-prompt-button');
+  }
+
+  findPromptTableRow(promptName: string) {
+    return cy.findByTestId(`prompt-table-row-${promptName}`);
+  }
+
+  findPromptLoadConfirmButton() {
+    return cy.findByTestId('prompt-load-button');
+  }
+
+  findPromptNameTitle() {
+    return cy.findByTestId('prompt-name-title');
   }
 }
 

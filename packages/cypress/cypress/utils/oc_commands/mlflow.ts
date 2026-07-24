@@ -401,7 +401,7 @@ const waitForMlflowRemoteEntry = (): Cypress.Chainable<boolean> => {
  *
  * Useful for composition when a caller will perform its own sidebar check.
  */
-const enableMlflowBackend = (): Cypress.Chainable<Cypress.Exec> => {
+export const enableMlflowBackend = (): Cypress.Chainable<Cypress.Exec> => {
   const namespace = getApplicationsNamespace();
 
   cy.step('Wait for MLflow operator to be ready');
@@ -691,4 +691,52 @@ export const logMlflowRunsViaAPI = (
     );
   };
   return logNext(runs, []);
+};
+
+/**
+ * Create a prompt via the Gen AI BFF MLflow prompts API.
+ *
+ * @param namespace - The workspace/namespace for the prompt.
+ * @param name - Prompt name (alphanumerics, hyphens, underscores, dots).
+ * @param template - Prompt template string.
+ * @param commitMessage - Commit message for the prompt version.
+ */
+export const createMlflowPromptViaAPI = (
+  namespace: string,
+  name: string,
+  template: string,
+  commitMessage: string,
+): Cypress.Chainable<Cypress.Response<unknown>> =>
+  cy
+    .request({
+      method: 'DELETE',
+      url: `/gen-ai/api/v1/mlflow/prompts/${name}?namespace=${namespace}`,
+      failOnStatusCode: false,
+    })
+    .then(() =>
+      cy.request({
+        method: 'POST',
+        url: `/gen-ai/api/v1/mlflow/prompts?namespace=${namespace}`,
+        body: {
+          name,
+          template,
+          commit_message: commitMessage, // eslint-disable-line camelcase
+          create_only: true, // eslint-disable-line camelcase
+        },
+      }),
+    );
+
+/**
+ * Delete a prompt via the Gen AI BFF MLflow prompts API.
+ * Silently succeeds if the prompt does not exist.
+ *
+ * @param namespace - The workspace/namespace for the prompt.
+ * @param name - Prompt name to delete.
+ */
+export const deleteMlflowPromptViaAPI = (namespace: string, name: string): void => {
+  cy.request({
+    method: 'DELETE',
+    url: `/gen-ai/api/v1/mlflow/prompts/${name}?namespace=${namespace}`,
+    failOnStatusCode: false,
+  });
 };

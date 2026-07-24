@@ -13,6 +13,12 @@ import {
   waitForModelInLSD,
   forceDashboardConfigRefresh,
 } from '../../../utils/oc_commands/genAi';
+import {
+  enableMlflowBackend,
+  disablePromptManagementFeatures,
+  createMlflowPromptViaAPI,
+  deleteMlflowPromptViaAPI,
+} from '../../../utils/oc_commands/mlflow';
 import { retryableBefore } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
 import type { CustomEndpointTestData } from '../../../types';
@@ -43,11 +49,20 @@ describe('Verify Custom Endpoints in Playground - Full Lifecycle', () => {
     cy.step(`Create project ${projectName}`);
     createCleanProject(projectName);
     waitForUserProjectAccess(projectName, HTPASSWD_CLUSTER_ADMIN_USER.USERNAME);
+
+    cy.step('Enable MLflow backend (tracking server only — no MF remote check)');
+    enableMlflowBackend();
   });
 
   after(() => {
+    cy.step('Delete test prompt from MLflow');
+    deleteMlflowPromptViaAPI(projectName, testData.prompt.name);
+
     cy.step('Revert externalProviders in OdhDashboardConfig');
     disableExternalProviders();
+
+    cy.step('Clean up MLflow features');
+    disablePromptManagementFeatures();
 
     if (projectName) {
       deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
@@ -55,22 +70,24 @@ describe('Verify Custom Endpoints in Playground - Full Lifecycle', () => {
   });
 
   it(
-    'Verify custom endpoint full lifecycle: create, verify, playground, delete',
+    'Verify custom endpoint lifecycle with prompt creation and playground usage',
     {
-      tags: ['@GenAI', '@FeatureFlagged', '@NonConcurrent'],
+      tags: ['@GenAI', '@FeatureFlagged', '@PromptManagement', '@MLflow', '@NonConcurrent'],
     },
     () => {
-      cy.step('Log into the application with custom endpoints enabled');
+      cy.step('Log into the application with custom endpoints and prompt management enabled');
       cy.visitWithLogin(
-        `/?devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,modelAsService=false`,
+        `/?devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,promptManagement=true,modelAsService=false`,
         HTPASSWD_CLUSTER_ADMIN_USER,
       );
 
       cy.step('Force backend to refresh config from cluster');
       forceDashboardConfigRefresh();
 
-      cy.step('Navigate to AI asset endpoints page with custom endpoints enabled');
-      genAiPlayground.navigateToAssetsWithCustomEndpoints(projectName);
+      // --- Create custom endpoint ---
+
+      cy.step('Navigate to AI asset endpoints page');
+      genAiPlayground.navigateToAssetsWithPromptManagement(projectName);
 
       cy.step('Click Create endpoint button from empty state');
       genAiPlayground.findEmptyStateCreateEndpointButton().should('be.visible').click();
@@ -108,6 +125,8 @@ describe('Verify Custom Endpoints in Playground - Full Lifecycle', () => {
       genAiPlayground.findCreateExternalModelModal().should('not.exist');
       genAiPlayground.findAiModelsTable().should('contain', testData.displayName);
 
+      // --- Add to playground and wait for infrastructure ---
+
       cy.step('Click Add to playground for the custom endpoint model');
       genAiPlayground.findAddToPlaygroundButton().should('be.visible').click();
 
@@ -130,8 +149,22 @@ describe('Verify Custom Endpoints in Playground - Full Lifecycle', () => {
       cy.step('Wait for custom model to be registered in LSD');
       waitForModelInLSD(testData.lsdServiceName, testData.modelId, projectName);
 
-      cy.step('Navigate to playground and wait for model selector');
-      genAiPlayground.navigateToPlaygroundWithRetry(projectName);
+      // --- Create a prompt via API ---
+
+      cy.step('Create prompt via MLflow API');
+      createMlflowPromptViaAPI(
+        projectName,
+        testData.prompt.name,
+        testData.prompt.template,
+        testData.prompt.commitMessage,
+      )
+        .its('status')
+        .should('be.oneOf', [200, 201]);
+
+      // --- Navigate to playground and load the prompt ---
+
+      cy.step('Navigate to playground with prompt management enabled');
+      genAiPlayground.navigateToPlaygroundWithPromptManagementRetry(projectName);
 
       cy.step(`Select ${testData.displayName} model from dropdown`);
       genAiPlayground.selectModelFromDropdown(testData.displayName);
@@ -139,20 +172,50 @@ describe('Verify Custom Endpoints in Playground - Full Lifecycle', () => {
       cy.step(`Verify ${testData.displayName} model is selected`);
       genAiPlayground.verifyModelIsSelected(testData.displayName);
 
+      cy.step('Ensure settings panel is open, navigate to Prompt tab, and click Load Prompt');
+      cy.get('body').then(($body) => {
+        if ($body.find('[data-testid="chatbot-settings-panel-header"]').length === 0) {
+          genAiPlayground.findSettingsButton().should('be.visible').click();
+        }
+      });
+      cy.findByTestId('chatbot-settings-panel-header', { timeout: 10000 }).should('be.visible');
+      genAiPlayground.findSettingsPromptTab().should('be.visible').click();
+      genAiPlayground.findLoadPromptButton().should('be.visible').click();
+
+      cy.step('Select the prompt from the table');
+      genAiPlayground.findPromptManagementModal().should('exist');
+      genAiPlayground.findPromptTableRow(testData.prompt.name).should('be.visible').click();
+
+      cy.step('Click Load in Playground to apply the prompt');
+      genAiPlayground.findPromptLoadConfirmButton().should('be.enabled').click();
+
+      cy.step('Verify prompt is loaded in the settings panel');
+      genAiPlayground
+        .findPromptNameTitle()
+        .should('be.visible')
+        .and('contain', testData.prompt.name);
+
+      // --- Use the prompt in the playground ---
+
       cy.step('Verify message input is ready');
       genAiPlayground.findMessageInput().should('be.enabled').and('be.visible');
 
-      cy.step('Send a test message to the custom endpoint model');
-      genAiPlayground.sendMessage(testData.testMessage);
+      cy.step('Send a test message using the loaded prompt context');
+      genAiPlayground.sendMessage(testData.prompt.testMessageWithPrompt);
 
       cy.step('Verify user message appears in chat');
-      genAiPlayground.findUserMessage().should('exist').and('contain', testData.testMessage);
+      genAiPlayground
+        .findUserMessage()
+        .should('exist')
+        .and('contain', testData.prompt.testMessageWithPrompt);
 
       cy.step('Verify assistant response is received');
       genAiPlayground.findAssistantMessage({ timeout: 60000 }).should('exist').and('not.be.empty');
 
+      // --- Cleanup: delete the endpoint ---
+
       cy.step('Navigate back to AI Assets to delete the endpoint');
-      genAiPlayground.navigateToAssetsWithCustomEndpoints(projectName);
+      genAiPlayground.navigateToAssetsWithPromptManagement(projectName);
 
       cy.step('Open kebab menu for the custom endpoint model');
       genAiPlayground.findModelActionsKebab(testData.displayName).click();
@@ -165,7 +228,7 @@ describe('Verify Custom Endpoints in Playground - Full Lifecycle', () => {
       genAiPlayground.findDeleteModelConfirmButton().click();
 
       cy.step('Reload page and verify endpoint is deleted');
-      genAiPlayground.navigateToAssetsWithCustomEndpoints(projectName);
+      genAiPlayground.navigateToAssetsWithPromptManagement(projectName);
       genAiPlayground.findEmptyStateCreateEndpointButton().should('be.visible');
 
       cy.step('Verify ConfigMap and Secret are cleaned up');
