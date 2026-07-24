@@ -2,7 +2,7 @@ import React from 'react';
 import type { ResolvedExtension } from '@openshift/dynamic-plugin-sdk';
 import type { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import { useResolvedExtensions } from '@odh-dashboard/plugin-core';
-import type { WizardField, WizardFormData } from './types';
+import type { WizardField, WizardFormData } from '../../shared/types/form-data';
 import { type Deployment } from '../../../extension-points';
 import {
   isWizardFieldApplyExtension,

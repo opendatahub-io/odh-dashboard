@@ -4,9 +4,9 @@ import { Alert, FormGroup, HelperText, HelperTextItem, Skeleton } from '@pattern
 import TypeaheadSelect, {
   TypeaheadSelectOption,
 } from '@odh-dashboard/ui-core/components/TypeaheadSelect';
-import type { ProjectSectionType } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/ProjectSection';
-import type { WizardField } from '@odh-dashboard/model-serving/types/form-data';
-import { NIMModelLocationKey } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/modelLocationFields/NIMModelLocation';
+import type { ProjectSectionType } from '@odh-dashboard/model-serving/shared/wizard-fields';
+import type { WizardField } from '@odh-dashboard/model-serving/shared/types/form-data';
+import { NIMModelLocationKey } from '@odh-dashboard/model-serving/shared/wizard-fields';
 import useNIMAccountStatus, { NIMAccountStatus } from '../../../api/accounts/hooks';
 import NIMSettingsLink from '../../projectSettings/NIMSettingsLink';
 import { useNIMImages, type NIMImagesData } from '../../../api/images/hooks';

@@ -11,7 +11,7 @@ import type {
   WizardField,
   WizardFormData,
   WizardReviewSection,
-} from '@odh-dashboard/model-serving/types/form-data';
+} from '@odh-dashboard/model-serving/shared/types/form-data';
 import type { RecursivePartial } from '@odh-dashboard/foundation';
 import { z } from 'zod';
 import SimpleSelect, { SimpleSelectOption } from '@odh-dashboard/ui-core/components/SimpleSelect';

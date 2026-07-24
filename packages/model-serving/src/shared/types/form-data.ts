@@ -17,25 +17,25 @@ import type {
   ModelServerOption,
   ModelServerSelectField,
   ModelServerSelectFieldData,
-} from './fields/ModelServerTemplateSelectField';
-import type { useModelTypeField } from './fields/ModelTypeSelectField';
-import type { useExternalRouteField } from './fields/ExternalRouteField';
-import type { useModelAvailabilityFields } from './fields/ModelAvailabilityFields';
-import type { useEnvironmentVariablesField } from './fields/EnvironmentVariablesField';
-import type { useModelFormatField } from './fields/ModelFormatField';
-import type { useModelLocationData } from './fields/ModelLocationInputFields';
-import type { useNumReplicasField } from './fields/NumReplicasField';
-import type { useRuntimeArgsField } from './fields/RuntimeArgsField';
-import type { useTokenAuthenticationField } from './fields/TokenAuthenticationField';
-import type { useDeploymentStrategyField } from './fields/DeploymentStrategyField';
+} from '../../components/deploymentWizard/fields/ModelServerTemplateSelectField';
+import type { useModelTypeField } from '../../components/deploymentWizard/fields/ModelTypeSelectField';
+import type { useExternalRouteField } from '../../components/deploymentWizard/fields/ExternalRouteField';
+import type { useModelAvailabilityFields } from '../../components/deploymentWizard/fields/ModelAvailabilityFields';
+import type { useEnvironmentVariablesField } from '../../components/deploymentWizard/fields/EnvironmentVariablesField';
+import type { useModelFormatField } from '../../components/deploymentWizard/fields/ModelFormatField';
+import type { useModelLocationData } from '../../components/deploymentWizard/fields/ModelLocationInputFields';
+import type { useNumReplicasField } from '../../components/deploymentWizard/fields/NumReplicasField';
+import type { useRuntimeArgsField } from '../../components/deploymentWizard/fields/RuntimeArgsField';
+import type { useTokenAuthenticationField } from '../../components/deploymentWizard/fields/TokenAuthenticationField';
+import type { useDeploymentStrategyField } from '../../components/deploymentWizard/fields/DeploymentStrategyField';
 import {
   useCreateConnectionData,
   type CreateConnectionData,
-} from './fields/CreateConnectionInputFields';
-import { useProjectSection } from './fields/ProjectSection';
-import { NIMModelLocationKey } from './fields/modelLocationFields/NIMModelLocation';
-import { getStateKey } from './dynamicFormUtils';
-import type { DeploymentMethodFieldData } from './fields/DeploymentMethodSelectField';
+} from '../../components/deploymentWizard/fields/CreateConnectionInputFields';
+import { useProjectSection } from '../../components/deploymentWizard/fields/ProjectSection';
+import { NIMModelLocationKey } from '../../components/deploymentWizard/fields/modelLocationFields/NIMModelLocation';
+import { getStateKey } from '../../components/deploymentWizard/dynamicFormUtils';
+import type { DeploymentMethodFieldData } from '../../components/deploymentWizard/fields/DeploymentMethodSelectField';
 import type { ModelServingClusterSettings } from '../../concepts/useModelServingClusterSettings';
 
 export enum ConnectionTypeRefs {

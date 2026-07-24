@@ -11,9 +11,9 @@ import {
 import {
   WizardField,
   WizardReviewSection,
-} from '@odh-dashboard/model-serving/components/deploymentWizard/types';
+} from '@odh-dashboard/model-serving/shared/types/form-data';
 import SimpleSelect, { SimpleSelectOption } from '@odh-dashboard/ui-core/components/SimpleSelect';
-import { ProjectSectionType } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/ProjectSection';
+import { ProjectSectionType } from '@odh-dashboard/model-serving/shared/wizard-fields';
 import { isLLMInferenceServiceActive } from '../../formUtils';
 import { GatewayOption, useGetGatewayOptions } from '../../api/services/gatewayDiscovery';
 

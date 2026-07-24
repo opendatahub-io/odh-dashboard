@@ -32,7 +32,7 @@ import {
   InitialWizardFormData,
   ModelLocationData,
   ModelLocationType,
-} from '../src/components/deploymentWizard/types';
+} from '../src/shared/types/form-data';
 
 export type PreWizardDeployModalProps = {
   modelDeployPrefill: {

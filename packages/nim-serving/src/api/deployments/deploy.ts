@@ -1,6 +1,6 @@
-import type { WizardFormData } from '@odh-dashboard/model-serving/types/form-data';
+import type { WizardFormData } from '@odh-dashboard/model-serving/shared/types/form-data';
 import type { DeploymentAssemblyFn } from '@odh-dashboard/model-serving/extension-points/deployment-wizard';
-import { NIMModelLocationKey } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/modelLocationFields/NIMModelLocation';
+import { NIMModelLocationKey } from '@odh-dashboard/model-serving/shared/wizard-fields';
 import { type NIMServiceKind, type NIMDeployment } from '../nimservices/types';
 import {
   assembleNIMService,
