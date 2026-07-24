@@ -2401,7 +2401,8 @@ describe('Workbench page', () => {
           }
           cy.findByRole('dialog').within(() => {
             cy.get(`#${listboxId}`).should('exist');
-            cy.findByRole('option', { name: 'pvc-rwx' }).should('exist');
+            // Accessible name is e.g. "pvc-rwx Size: 5Gi" (content + description).
+            cy.get(`#${listboxId}`).contains('[role="option"]', 'pvc-rwx').should('exist');
           });
         });
 
