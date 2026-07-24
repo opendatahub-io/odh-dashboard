@@ -78,12 +78,26 @@ class LlmdRoutingCreatePage {
     return cy.findByTestId('app-page-title');
   }
 
+  findDisplayNameInput() {
+    return cy.findByTestId('routing-config-name');
+  }
+
   findTopologyTypeSelect() {
     return cy.findByTestId('topology-type-select');
   }
 
+  selectTopologyType(topologyTypeTestId: string) {
+    this.findTopologyTypeSelect().click();
+    cy.findByTestId(topologyTypeTestId).click();
+  }
+
   findConfigSourceSelect() {
     return cy.findByTestId('config-source-select');
+  }
+
+  selectConfigSource(key: string) {
+    this.findConfigSourceSelect().click();
+    cy.findByText(key).click();
   }
 
   findYamlEditor() {
@@ -96,6 +110,16 @@ class LlmdRoutingCreatePage {
 
   findCancelButton() {
     return cy.findByTestId('cancel-routing-config-button');
+  }
+
+  findDeleteDialog() {
+    return cy.findByRole('dialog');
+  }
+
+  confirmDelete() {
+    this.findDeleteDialog().within(() => {
+      cy.findByRole('button', { name: /Delete/ }).click();
+    });
   }
 }
 
