@@ -318,4 +318,37 @@ describe('Connections', () => {
       });
     });
   });
+
+  it('Create connection typeahead keeps options inside the modal dialog', () => {
+    initIntercepts({});
+    cy.interceptOdh('GET /api/connection-types', [
+      mockConnectionTypeConfigMap({
+        name: 's3',
+        displayName: 'S3 compatible object storage - v1',
+        fields: mockModelServingFields,
+      }),
+      mockConnectionTypeConfigMap({
+        name: 'uri-v1',
+        displayName: 'URI - v1',
+      }),
+    ]);
+
+    projectDetails.visitSection('test-project', 'connections');
+    connectionsPage.findAddConnectionButton().click();
+
+    cy.findByTestId('connection-type-dropdown')
+      .findByRole('combobox', { name: 'Connection type' })
+      .should('have.attr', 'aria-controls', 'connection-type-listbox')
+      .click();
+
+    cy.findByRole('dialog').within(() => {
+      cy.get('#connection-type-listbox').should('exist');
+      cy.findByRole('option', { name: /URI/i }).should('exist');
+    });
+
+    cy.findByTestId('connection-type-dropdown')
+      .findByRole('combobox', { name: 'Connection type' })
+      .closeSelectMenu();
+    cy.findByRole('dialog').should('contain.text', 'Create connection');
+  });
 });

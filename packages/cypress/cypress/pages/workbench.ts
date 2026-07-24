@@ -34,9 +34,10 @@ class StorageModal extends Modal {
 
   selectExistingPersistentStorage(name: string) {
     cy.findByTestId('persistent-storage-group')
-      .findByRole('button', { name: 'Typeahead menu toggle' })
+      .findByRole('button', { name: 'Persistent storage' })
       .click();
-    cy.findByTestId('persistent-storage-group').findByRole('option', { name }).click();
+    // Options portal into the modal; accessible name includes description (e.g. "pvc-rwx Size: 5Gi").
+    cy.findByRole('listbox').contains('[role="option"]', name).click();
   }
 
   findSubmitButton() {
@@ -417,7 +418,8 @@ class AttachExistingStorageModal extends Modal {
     cy.findByTestId('persistent-storage-group')
       .findByPlaceholderText('Select a persistent storage')
       .click();
-    cy.findByTestId('persistent-storage-typeahead').contains(name).click();
+    // Options portal into the modal; accessible name includes description (e.g. "pvc-rwx Size: 5Gi").
+    cy.findByRole('listbox').contains('[role="option"]', name).click();
   }
 
   verifyPSDropdownIsDisabled(): void {

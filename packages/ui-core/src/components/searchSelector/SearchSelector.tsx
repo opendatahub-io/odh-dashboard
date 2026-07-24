@@ -15,8 +15,10 @@ import {
   SearchInput,
   Spinner,
   Truncate,
+  MenuToggleElement,
 } from '@patternfly/react-core';
 import './SearchSelector.scss';
+import { useMenuPopperInModal } from '../../utilities/useMenuPopperInModal';
 
 type ManualSearchSelectorOpts = {
   menuClose: () => void;
@@ -61,13 +63,29 @@ const SearchSelector: React.FC<SearchSelectorProps> = ({
   toggleVariant,
   toggleAriaLabel,
   toggleLabelledBy,
-  appendTo = 'inline',
+  appendTo,
 }) => {
   const [isOpen, setIsOpen] = React.useState(false);
-  const toggleRef = React.useRef(null);
+  const toggleRef = React.useRef<MenuToggleElement | null>(null);
   const menuRef = React.useRef(null);
   const searchRef = React.useRef<HTMLInputElement | null>(null);
-  const popperProps = { minWidth, maxWidth: 'trigger', appendTo };
+  const userPopperProps = React.useMemo(
+    () => ({
+      minWidth,
+      maxWidth: 'trigger' as const,
+      ...(appendTo !== undefined ? { appendTo } : {}),
+    }),
+    [minWidth, appendTo],
+  );
+  // Dialog-aware appendTo (modal → dialog; else body) replaces the former default
+  // appendTo: 'inline' so menus in modals stay reachable for keyboard/SR users.
+  // Callers may still pass appendTo explicitly to override.
+  const popperProps = useMenuPopperInModal(isOpen, toggleRef, userPopperProps, {
+    onEscapeClose: () => {
+      setIsOpen(false);
+      onSearchClear();
+    },
+  });
   const toggleValueId = toggleLabelledBy ? `${dataTestId}-toggle-value` : undefined;
   const toggleContents =
     typeof toggleContent !== 'string' ? toggleContent : <Truncate content={toggleContent} />;

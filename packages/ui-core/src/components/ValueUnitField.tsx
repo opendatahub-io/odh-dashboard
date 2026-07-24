@@ -10,6 +10,9 @@ import {
 } from '@patternfly/react-core';
 import NumberInputWrapper from './NumberInputWrapper';
 import { splitValueUnit, UnitOption, ValueUnitString } from '../utilities/valueUnits';
+import { useMenuPopperInModal } from '../utilities/useMenuPopperInModal';
+
+import './ValueUnitField.scss';
 
 type ValueUnitFieldProps = {
   /**
@@ -47,9 +50,18 @@ const ValueUnitField: React.FC<ValueUnitFieldProps> = ({
   dataTestId,
 }) => {
   const [open, setOpen] = React.useState(false);
+  const menuToggleRef = React.useRef<HTMLDivElement | null>(null);
   const [currentValue, currentUnitOption] = splitValueUnit(fullValue, options);
   const minAsNumber = typeof min === 'string' ? splitValueUnit(min, options)[0] : min;
   const maxAsNumber = typeof max === 'string' ? splitValueUnit(max, options)[0] : max;
+
+  const userPopperProps = React.useMemo(
+    () => (menuAppendTo !== undefined ? { appendTo: menuAppendTo } : undefined),
+    [menuAppendTo],
+  );
+  const popperProps = useMenuPopperInModal(open, menuToggleRef, userPopperProps, {
+    onEscapeClose: () => setOpen(false),
+  });
 
   return (
     <Split hasGutter>
@@ -84,41 +96,43 @@ const ValueUnitField: React.FC<ValueUnitFieldProps> = ({
         />
       </SplitItem>
       <SplitItem>
-        <Dropdown
-          shouldFocusToggleOnSelect
-          popperProps={{ appendTo: menuAppendTo }}
-          toggle={(toggleRef) => (
-            <MenuToggle
-              data-testid="value-unit-select"
-              aria-label="value unit field toggle"
-              id="toggle-basic"
-              ref={toggleRef}
-              onClick={() => {
-                setOpen(!open);
-              }}
-              isExpanded={open}
-              isDisabled={isDisabled}
-            >
-              {currentUnitOption.name}
-            </MenuToggle>
-          )}
-          isOpen={open}
-          onOpenChange={(isOpened) => setOpen(isOpened)}
-        >
-          <DropdownList>
-            {options.map((option) => (
-              <DropdownItem
-                key={option.unit}
+        <div ref={menuToggleRef} className="odh-value-unit-field__toggle-anchor">
+          <Dropdown
+            shouldFocusToggleOnSelect
+            popperProps={popperProps}
+            toggle={(toggleRef) => (
+              <MenuToggle
+                data-testid="value-unit-select"
+                aria-label="Storage size unit"
+                id="toggle-basic"
+                ref={toggleRef}
                 onClick={() => {
-                  onChange(`${currentValue ?? ''}${option.unit}`);
-                  setOpen(false);
+                  setOpen(!open);
                 }}
+                isExpanded={open}
+                isDisabled={isDisabled}
               >
-                {option.name}
-              </DropdownItem>
-            ))}
-          </DropdownList>
-        </Dropdown>
+                {currentUnitOption.name}
+              </MenuToggle>
+            )}
+            isOpen={open}
+            onOpenChange={(isOpened) => setOpen(isOpened)}
+          >
+            <DropdownList>
+              {options.map((option) => (
+                <DropdownItem
+                  key={option.unit}
+                  onClick={() => {
+                    onChange(`${currentValue ?? ''}${option.unit}`);
+                    setOpen(false);
+                  }}
+                >
+                  {option.name}
+                </DropdownItem>
+              ))}
+            </DropdownList>
+          </Dropdown>
+        </div>
       </SplitItem>
     </Split>
   );

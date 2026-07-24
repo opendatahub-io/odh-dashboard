@@ -346,7 +346,13 @@ export const ManageConnectionModal: React.FC<Props> = ({
                 restarted, redeployed, or otherwise regenerated.
               </Alert>
             )}
-            <Form>
+            <Form
+              onSubmit={(e) => {
+                // Inputs (e.g. TypeaheadSelect) use Enter for open/select; do not
+                // allow native form submit (page refresh). Create uses the footer button.
+                e.preventDefault();
+              }}
+            >
               <ConnectionTypeForm
                 options={!isEdit ? enabledConnectionTypes : undefined}
                 connectionType={
