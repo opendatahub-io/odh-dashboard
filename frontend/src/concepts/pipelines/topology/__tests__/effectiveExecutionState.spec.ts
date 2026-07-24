@@ -2,6 +2,7 @@ import { Execution, Value } from '#~/third_party/mlmd';
 import { ExecutionStateKF } from '#~/concepts/pipelines/kfTypes';
 import {
   getEffectiveExecutionState,
+  buildChildrenIndex,
   executionStateToKF,
   MAX_RECURSION_DEPTH,
 } from '#~/concepts/pipelines/topology/usePipelineTaskTopology';
@@ -60,34 +61,42 @@ describe('getEffectiveExecutionState', () => {
   describe('terminal states', () => {
     it('should return COMPLETE when execution is already COMPLETE', () => {
       const exec = createExecution(1, Execution.State.COMPLETE);
-      expect(getEffectiveExecutionState(exec, [])).toBe(Execution.State.COMPLETE);
+      expect(getEffectiveExecutionState(exec, buildChildrenIndex([]))).toBe(
+        Execution.State.COMPLETE,
+      );
     });
 
     it('should return FAILED when execution is already FAILED', () => {
       const exec = createExecution(1, Execution.State.FAILED);
-      expect(getEffectiveExecutionState(exec, [])).toBe(Execution.State.FAILED);
+      expect(getEffectiveExecutionState(exec, buildChildrenIndex([]))).toBe(Execution.State.FAILED);
     });
 
     it('should return CANCELED when execution is already CANCELED', () => {
       const exec = createExecution(1, Execution.State.CANCELED);
-      expect(getEffectiveExecutionState(exec, [])).toBe(Execution.State.CANCELED);
+      expect(getEffectiveExecutionState(exec, buildChildrenIndex([]))).toBe(
+        Execution.State.CANCELED,
+      );
     });
 
     it('should return CACHED when execution is already CACHED', () => {
       const exec = createExecution(1, Execution.State.CACHED);
-      expect(getEffectiveExecutionState(exec, [])).toBe(Execution.State.CACHED);
+      expect(getEffectiveExecutionState(exec, buildChildrenIndex([]))).toBe(Execution.State.CACHED);
     });
   });
 
   describe('leaf executions (no children)', () => {
     it('should return RUNNING for a RUNNING leaf execution', () => {
       const exec = createExecution(1, Execution.State.RUNNING);
-      expect(getEffectiveExecutionState(exec, [exec])).toBe(Execution.State.RUNNING);
+      expect(getEffectiveExecutionState(exec, buildChildrenIndex([exec]))).toBe(
+        Execution.State.RUNNING,
+      );
     });
 
     it('should return NEW for a NEW leaf execution', () => {
       const exec = createExecution(1, Execution.State.NEW);
-      expect(getEffectiveExecutionState(exec, [exec])).toBe(Execution.State.NEW);
+      expect(getEffectiveExecutionState(exec, buildChildrenIndex([exec]))).toBe(
+        Execution.State.NEW,
+      );
     });
   });
 
@@ -98,7 +107,9 @@ describe('getEffectiveExecutionState', () => {
       const child2 = createExecution(3, Execution.State.COMPLETE, 1);
 
       const allExecs = [parent, child1, child2];
-      expect(getEffectiveExecutionState(parent, allExecs)).toBe(Execution.State.COMPLETE);
+      expect(getEffectiveExecutionState(parent, buildChildrenIndex(allExecs))).toBe(
+        Execution.State.COMPLETE,
+      );
     });
 
     it('should return FAILED when any child is FAILED and all are terminal', () => {
@@ -107,7 +118,9 @@ describe('getEffectiveExecutionState', () => {
       const child2 = createExecution(3, Execution.State.FAILED, 1);
 
       const allExecs = [parent, child1, child2];
-      expect(getEffectiveExecutionState(parent, allExecs)).toBe(Execution.State.FAILED);
+      expect(getEffectiveExecutionState(parent, buildChildrenIndex(allExecs))).toBe(
+        Execution.State.FAILED,
+      );
     });
 
     it('should return CANCELED when any child is CANCELED and none FAILED', () => {
@@ -116,7 +129,9 @@ describe('getEffectiveExecutionState', () => {
       const child2 = createExecution(3, Execution.State.CANCELED, 1);
 
       const allExecs = [parent, child1, child2];
-      expect(getEffectiveExecutionState(parent, allExecs)).toBe(Execution.State.CANCELED);
+      expect(getEffectiveExecutionState(parent, buildChildrenIndex(allExecs))).toBe(
+        Execution.State.CANCELED,
+      );
     });
 
     it('should return RUNNING when some children are still RUNNING', () => {
@@ -125,7 +140,9 @@ describe('getEffectiveExecutionState', () => {
       const child2 = createExecution(3, Execution.State.RUNNING, 1);
 
       const allExecs = [parent, child1, child2];
-      expect(getEffectiveExecutionState(parent, allExecs)).toBe(Execution.State.RUNNING);
+      expect(getEffectiveExecutionState(parent, buildChildrenIndex(allExecs))).toBe(
+        Execution.State.RUNNING,
+      );
     });
 
     it('should return COMPLETE when children are mix of COMPLETE and CACHED', () => {
@@ -134,7 +151,9 @@ describe('getEffectiveExecutionState', () => {
       const child2 = createExecution(3, Execution.State.CACHED, 1);
 
       const allExecs = [parent, child1, child2];
-      expect(getEffectiveExecutionState(parent, allExecs)).toBe(Execution.State.COMPLETE);
+      expect(getEffectiveExecutionState(parent, buildChildrenIndex(allExecs))).toBe(
+        Execution.State.COMPLETE,
+      );
     });
 
     it('should prioritize FAILED over CANCELED', () => {
@@ -143,7 +162,9 @@ describe('getEffectiveExecutionState', () => {
       const child2 = createExecution(3, Execution.State.CANCELED, 1);
 
       const allExecs = [parent, child1, child2];
-      expect(getEffectiveExecutionState(parent, allExecs)).toBe(Execution.State.FAILED);
+      expect(getEffectiveExecutionState(parent, buildChildrenIndex(allExecs))).toBe(
+        Execution.State.FAILED,
+      );
     });
   });
 
@@ -156,7 +177,9 @@ describe('getEffectiveExecutionState', () => {
       const leaf2 = createExecution(4, Execution.State.COMPLETE, 2);
 
       const allExecs = [parent, mid, leaf1, leaf2];
-      expect(getEffectiveExecutionState(parent, allExecs)).toBe(Execution.State.COMPLETE);
+      expect(getEffectiveExecutionState(parent, buildChildrenIndex(allExecs))).toBe(
+        Execution.State.COMPLETE,
+      );
     });
 
     it('should propagate FAILED from deeply nested child', () => {
@@ -166,7 +189,9 @@ describe('getEffectiveExecutionState', () => {
       const leaf2 = createExecution(4, Execution.State.FAILED, 2);
 
       const allExecs = [root, mid, leaf1, leaf2];
-      expect(getEffectiveExecutionState(root, allExecs)).toBe(Execution.State.FAILED);
+      expect(getEffectiveExecutionState(root, buildChildrenIndex(allExecs))).toBe(
+        Execution.State.FAILED,
+      );
     });
 
     it('should return RUNNING when a deeply nested child is still RUNNING', () => {
@@ -176,7 +201,9 @@ describe('getEffectiveExecutionState', () => {
       const leaf2 = createExecution(4, Execution.State.RUNNING, 2);
 
       const allExecs = [root, mid, leaf1, leaf2];
-      expect(getEffectiveExecutionState(root, allExecs)).toBe(Execution.State.RUNNING);
+      expect(getEffectiveExecutionState(root, buildChildrenIndex(allExecs))).toBe(
+        Execution.State.RUNNING,
+      );
     });
   });
 
@@ -191,7 +218,7 @@ describe('getEffectiveExecutionState', () => {
 
       const allExecs = [exec1, exec2];
       // Should return without stack overflow
-      const result = getEffectiveExecutionState(exec1, allExecs);
+      const result = getEffectiveExecutionState(exec1, buildChildrenIndex(allExecs));
       expect(result).toBe(Execution.State.RUNNING);
     });
 
@@ -202,7 +229,7 @@ describe('getEffectiveExecutionState', () => {
 
       // exec is its own child — cycle of length 1
       const allExecs = [exec];
-      const result = getEffectiveExecutionState(exec, allExecs);
+      const result = getEffectiveExecutionState(exec, buildChildrenIndex(allExecs));
       expect(result).toBe(Execution.State.RUNNING);
     });
   });
@@ -226,7 +253,7 @@ describe('getEffectiveExecutionState', () => {
 
       // The root should NOT resolve to FAILED because the chain exceeds MAX_RECURSION_DEPTH
       // At the depth limit, it returns the own state (RUNNING) instead of recursing further
-      const result = getEffectiveExecutionState(executions[0], executions);
+      const result = getEffectiveExecutionState(executions[0], buildChildrenIndex(executions));
       expect(result).toBe(Execution.State.RUNNING);
     });
   });
@@ -234,7 +261,9 @@ describe('getEffectiveExecutionState', () => {
   describe('empty executions list', () => {
     it('should return own state when allExecutions is empty', () => {
       const exec = createExecution(1, Execution.State.RUNNING);
-      expect(getEffectiveExecutionState(exec, [])).toBe(Execution.State.RUNNING);
+      expect(getEffectiveExecutionState(exec, buildChildrenIndex([]))).toBe(
+        Execution.State.RUNNING,
+      );
     });
   });
 
@@ -249,7 +278,9 @@ describe('getEffectiveExecutionState', () => {
       const allExecs = [parent, branch1, branch2, leaf];
       // branch2 is RUNNING but its only child is COMPLETE, so effective is COMPLETE
       // parent: branch1=COMPLETE, branch2=COMPLETE -> COMPLETE
-      expect(getEffectiveExecutionState(parent, allExecs)).toBe(Execution.State.COMPLETE);
+      expect(getEffectiveExecutionState(parent, buildChildrenIndex(allExecs))).toBe(
+        Execution.State.COMPLETE,
+      );
     });
   });
 });

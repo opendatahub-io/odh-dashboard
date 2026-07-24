@@ -49,9 +49,29 @@ import { PipelineTask } from './pipelineTaskTypes';
  */
 export const MAX_RECURSION_DEPTH = 20;
 
+/**
+ * Build a lookup from parent execution ID → child executions.
+ * Call once before recursing so child lookups are O(1) instead of O(n).
+ */
+export const buildChildrenIndex = (allExecutions: Execution[]): Map<number, Execution[]> => {
+  const index = new Map<number, Execution[]>();
+  allExecutions.forEach((e) => {
+    const pid = e.getCustomPropertiesMap().get('parent_dag_id')?.getIntValue();
+    if (pid != null) {
+      const list = index.get(pid);
+      if (list) {
+        list.push(e);
+      } else {
+        index.set(pid, [e]);
+      }
+    }
+  });
+  return index;
+};
+
 export const getEffectiveExecutionState = (
   execution: Execution,
-  allExecutions: Execution[],
+  childrenIndex: Map<number, Execution[]>,
   visited: Set<number> = new Set(),
   depth = 0,
 ): Execution.State => {
@@ -74,10 +94,7 @@ export const getEffectiveExecutionState = (
     return ownState;
   }
 
-  // Collect every child execution whose parent_dag_id == this execution's id.
-  const children = allExecutions.filter(
-    (e) => e.getCustomPropertiesMap().get('parent_dag_id')?.getIntValue() === execId,
-  );
+  const children = childrenIndex.get(execId) ?? [];
 
   // No children means a leaf or an execution we can't introspect — keep the
   // original state.
@@ -87,7 +104,7 @@ export const getEffectiveExecutionState = (
 
   // Recursively resolve each child's effective state.
   const childStates = children.map((c) =>
-    getEffectiveExecutionState(c, allExecutions, visited, depth + 1),
+    getEffectiveExecutionState(c, childrenIndex, visited, depth + 1),
   );
 
   const anyFailed = childStates.includes(Execution.State.FAILED);
@@ -317,6 +334,7 @@ const getNodesForTasks = (
       // RUNNING state even after all children complete.  Find the sub-DAG's
       // own execution and recursively derive its effective status.
       const fullExecs = allExecutions ?? executions ?? [];
+      const childIndex = buildChildrenIndex(fullExecs);
       const subDagExecution =
         dagExecution ??
         fullExecs.find(
@@ -324,7 +342,7 @@ const getNodesForTasks = (
             e.getCustomPropertiesMap().get('task_name')?.getStringValue() === (taskName || taskId),
         );
       if (subDagExecution) {
-        const effectiveState = getEffectiveExecutionState(subDagExecution, fullExecs);
+        const effectiveState = getEffectiveExecutionState(subDagExecution, childIndex);
         const aggregateState = executionStateToKF(effectiveState);
         const isTerminal =
           effectiveState === Execution.State.COMPLETE ||
@@ -365,7 +383,7 @@ const getNodesForTasks = (
           let iterStatus: PipelineTask['status'];
           let iterRunStatus;
           if (iterExecution) {
-            const effectiveState = getEffectiveExecutionState(iterExecution, fullExecs);
+            const effectiveState = getEffectiveExecutionState(iterExecution, childIndex);
             const effectiveStateKF = executionStateToKF(effectiveState);
             const isTerminal =
               effectiveState === Execution.State.COMPLETE ||
