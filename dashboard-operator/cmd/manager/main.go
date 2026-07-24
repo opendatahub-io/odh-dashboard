@@ -75,16 +75,18 @@ func main() {
 		applicationsNamespace = operatorNamespace
 	}
 
+	tlsOpts := []func(*tls.Config){
+		func(c *tls.Config) {
+			c.MinVersion = tls.VersionTLS12
+			c.NextProtos = []string{"http/1.1"}
+		},
+	}
+
 	metricsOpts := metricsserver.Options{BindAddress: metricsAddr}
 	if secureMetrics {
 		metricsOpts.SecureServing = true
 		metricsOpts.CertDir = "/tmp/k8s-metrics-server/serving-certs"
-		metricsOpts.TLSOpts = []func(*tls.Config){
-			func(c *tls.Config) {
-				c.MinVersion = tls.VersionTLS12
-				c.NextProtos = []string{"http/1.1"}
-			},
-		}
+		metricsOpts.TLSOpts = tlsOpts
 	}
 
 	mgrOpts := ctrl.Options{
@@ -95,7 +97,10 @@ func main() {
 		LeaderElectionID:       "dashboard.components.platform.opendatahub.io",
 	}
 	if enableWebhook {
-		mgrOpts.WebhookServer = ctrlwebhook.NewServer(ctrlwebhook.Options{Port: webhookPort})
+		mgrOpts.WebhookServer = ctrlwebhook.NewServer(ctrlwebhook.Options{
+			Port:    webhookPort,
+			TLSOpts: tlsOpts,
+		})
 	}
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), mgrOpts)

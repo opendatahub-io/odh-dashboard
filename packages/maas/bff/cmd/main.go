@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"crypto/tls"
 	"flag"
 	"fmt"
 	"log/slog"
@@ -14,6 +13,7 @@ import (
 
 	"github.com/opendatahub-io/maas-library/bff/internal/api"
 	"github.com/opendatahub-io/maas-library/bff/internal/config"
+	tlsprofile "github.com/opendatahub-io/odh-dashboard/pkg/tls"
 )
 
 func main() {
@@ -96,16 +96,21 @@ func main() {
 		ErrorLog:     slog.NewLogLogger(logger.Handler(), slog.LevelError),
 	}
 
+	// Configure TLS from the cluster-wide security profile when cert/key are provided.
+	if certFile != "" && keyFile != "" {
+		tlsConfig, err := tlsprofile.ServerTLSConfig(context.Background(), logger)
+		if err != nil {
+			logger.Error("failed to configure TLS from cluster profile", "error", err)
+			os.Exit(1)
+		}
+		srv.TLSConfig = tlsConfig
+	}
+
 	// Start the server in a goroutine
 	go func() {
 		logger.Info("starting server", "addr", srv.Addr, "TLS enabled", (certFile != "" && keyFile != ""))
 		var err error
 		if certFile != "" && keyFile != "" {
-			// Configure TLS if both cert and key files are provided
-			tlsConfig := &tls.Config{
-				MinVersion: tls.VersionTLS13,
-			}
-			srv.TLSConfig = tlsConfig
 			err = srv.ListenAndServeTLS(certFile, keyFile)
 		} else {
 			err = srv.ListenAndServe()

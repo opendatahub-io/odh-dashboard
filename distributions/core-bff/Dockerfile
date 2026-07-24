@@ -36,6 +36,7 @@ WORKDIR /usr/src/app
 
 # Copy the Go Modules manifests
 COPY ${BFF_SOURCE_CODE}/go.mod ${BFF_SOURCE_CODE}/go.sum ./
+COPY pkg/tls/ /pkg/tls/
 
 # Download dependencies
 RUN go mod download
