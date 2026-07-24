@@ -25,8 +25,9 @@ type KubernetesClientInterface interface {
 
 	// EvalHub CR auto-discovery (fallback)
 
-	// CanListEvalHubInstances performs a SubjectAccessReview to verify the user has permission
-	// to list EvalHub custom resources in the given namespace.
+	// CanListEvalHubInstances performs SubjectAccessReviews to verify the user has at least
+	// minimal (non-admin) permission to access EvalHub in the given namespace. Allowed if `get`
+	// is permitted on EITHER of two resources — see EvalHubVirtualResource for details.
 	CanListEvalHubInstances(ctx context.Context, identity *RequestIdentity, namespace string) (bool, error)
 	// GetEvalHubServiceURL lists EvalHub CRs in the namespace (filtered by the ODH dashboard label)
 	// and returns the service URL from the first CR's status.url field.
