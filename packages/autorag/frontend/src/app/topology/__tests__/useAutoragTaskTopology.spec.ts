@@ -57,6 +57,14 @@ describe('useAutoragTaskTopology', () => {
     expect(renderResult.result.current).toEqual([]);
   });
 
+  it('should return empty array when root dag is missing', () => {
+    const missingDagSpec = {
+      root: {},
+    } as PipelineSpecVariable;
+    const renderResult = testHook(useAutoragTaskTopology)(missingDagSpec, undefined);
+    expect(renderResult.result.current).toEqual([]);
+  });
+
   it('should create task nodes in topological order', () => {
     const renderResult = testHook(useAutoragTaskTopology)(mockSpec, undefined);
     const nodes = renderResult.result.current;
