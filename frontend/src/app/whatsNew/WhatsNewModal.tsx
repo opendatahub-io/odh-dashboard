@@ -730,14 +730,14 @@ const WhatsNewModal: React.FC = () => {
                     To enable unavailable features in your cluster, enable the following feature
                     flags in <code>OdhDashboardConfig</code>:
                     <List>
-                      {unavailableFeatures.map((f) => (
-                        <ListItem key={f.flagName}>
-                          {f.flagName.startsWith('disable') ? (
+                      {[...new Set(unavailableFeatures.map((f) => f.flagName))].map((flagName) => (
+                        <ListItem key={flagName}>
+                          {flagName.startsWith('disable') ? (
                             <>
-                              Set <code>{f.flagName}</code> to <code>false</code>
+                              Set <code>{flagName}</code> to <code>false</code>
                             </>
                           ) : (
-                            <code>{f.flagName}</code>
+                            <code>{flagName}</code>
                           )}
                         </ListItem>
                       ))}
