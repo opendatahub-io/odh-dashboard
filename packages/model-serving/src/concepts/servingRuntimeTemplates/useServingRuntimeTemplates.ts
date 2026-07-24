@@ -1,6 +1,6 @@
 import React from 'react';
 import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
-import { useTemplates } from '@odh-dashboard/internal/api/index';
+import { useTemplates } from '@odh-dashboard/internal/api/k8s/templates';
 import useTemplateOrder from '@odh-dashboard/internal/pages/modelServing/customServingRuntimes/useTemplateOrder';
 import useTemplateDisablement from '@odh-dashboard/internal/pages/modelServing/customServingRuntimes/useTemplateDisablement';
 import type { CustomWatchK8sResult } from '@odh-dashboard/internal/types';
