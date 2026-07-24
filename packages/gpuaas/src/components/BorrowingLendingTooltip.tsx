@@ -112,7 +112,6 @@ const TooltipSeriesEntry: React.FC<TooltipSeriesEntryProps> = ({ point, info, co
   const quota = Math.round(point.nominalQuota ?? 0);
   const usage = Math.round(point.y + (point.nominalQuota ?? 0));
   const borrowing = Math.max(0, net);
-  const lending = Math.max(0, -net);
   const entryLabel = getEntryLabel(info, point.childName ?? '');
 
   return (
@@ -138,7 +137,7 @@ const TooltipSeriesEntry: React.FC<TooltipSeriesEntryProps> = ({ point, info, co
       </StackItem>
       <StackItem>
         <Content component="small" className="gpuaas-tooltip-subtle">
-          {`Borrowing ${borrowing} · Lending ${lending}`}
+          {`Borrowing ${borrowing}`}
         </Content>
       </StackItem>
     </Stack>
