@@ -54,7 +54,7 @@ describe('MCP Catalog Settings', () => {
   it('should display the "Add a source" button in empty state', () => {
     mcpCatalogSettings.visit();
     mcpCatalogSettings.findAddSourceButton().should('be.visible');
-    mcpCatalogSettings.findAddSourceButton().should('contain', 'Add a source');
+    mcpCatalogSettings.findAddSourceButton().should('contain', 'Add source');
   });
 
   it('should navigate to add-source page when button is clicked', () => {
@@ -63,7 +63,7 @@ describe('MCP Catalog Settings', () => {
     mcpManageSourcePage.findAddSourceTitle();
     mcpManageSourcePage.findAddSourceDescription();
     mcpManageSourcePage.findBreadcrumb().should('exist');
-    mcpManageSourcePage.findBreadcrumbAction().should('contain', 'Add a source');
+    mcpManageSourcePage.findBreadcrumbAction().should('contain', 'Add source');
   });
 });
 
@@ -77,7 +77,7 @@ describe('MCP Manage Source Page - Add Source Mode', () => {
       mcpManageSourcePage.visitAddSource();
       mcpManageSourcePage.findAddSourceTitle();
       mcpManageSourcePage.findBreadcrumb().should('exist');
-      mcpManageSourcePage.findBreadcrumbAction().should('contain', 'Add a source');
+      mcpManageSourcePage.findBreadcrumbAction().should('contain', 'Add source');
     });
 
     it('should show correct page description', () => {
@@ -227,22 +227,6 @@ describe('MCP Manage Source Page - Add Source Mode', () => {
 
       mcpManageSourcePage.findIncludedServersInput().should('have.value', 'Kubernetes, GitHub');
       mcpManageSourcePage.findExcludedServersInput().should('have.value', '*preview*');
-    });
-
-    it('should show correct placeholder text for included servers', () => {
-      mcpManageSourcePage.visitAddSource();
-      mcpManageSourcePage.toggleServerVisibility();
-      mcpManageSourcePage
-        .findIncludedServersInput()
-        .should('have.attr', 'placeholder', 'Example: Kubernetes, GitHub, PostgreSQL');
-    });
-
-    it('should show correct placeholder text for excluded servers', () => {
-      mcpManageSourcePage.visitAddSource();
-      mcpManageSourcePage.toggleServerVisibility();
-      mcpManageSourcePage
-        .findExcludedServersInput()
-        .should('have.attr', 'placeholder', 'Example: *preview*');
     });
   });
 
@@ -790,7 +774,7 @@ describe('MCP Catalog Source Configs Table', () => {
       mcpCatalogSettings
         .findTable()
         .find('thead th')
-        .contains('Source name')
+        .contains('Name')
         .parents('th')
         .should('have.attr', 'aria-sort');
     });

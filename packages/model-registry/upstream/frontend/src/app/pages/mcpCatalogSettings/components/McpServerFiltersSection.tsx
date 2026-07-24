@@ -10,19 +10,15 @@ import {
 import { UpdateObjectAtPropAndValue, ThemeAwareFormGroupWrapper } from 'mod-arch-shared';
 import FormSection from '~/app/pages/modelRegistry/components/pf-overrides/FormSection';
 import { ManageMcpSourceFormData } from '~/app/pages/mcpCatalogSettings/useManageMcpSourceData';
-import {
-  MCP_FORM_LABELS,
-  MCP_PLACEHOLDERS,
-  MCP_DESCRIPTION_TEXT,
-} from '~/app/pages/mcpCatalogSettings/constants';
+import { MCP_FORM_LABELS, MCP_DESCRIPTION_TEXT } from '~/app/pages/mcpCatalogSettings/constants';
 
-type McpServerVisibilitySectionProps = {
+type McpServerFiltersSectionProps = {
   formData: ManageMcpSourceFormData;
   setData: UpdateObjectAtPropAndValue<ManageMcpSourceFormData>;
   isDefaultExpanded?: boolean;
 };
 
-const McpServerVisibilitySection: React.FC<McpServerVisibilitySectionProps> = ({
+const McpServerFiltersSection: React.FC<McpServerFiltersSectionProps> = ({
   formData,
   setData,
   isDefaultExpanded = false,
@@ -36,7 +32,6 @@ const McpServerVisibilitySection: React.FC<McpServerVisibilitySectionProps> = ({
       onChange={(_event, value) => setData('includedServers', value)}
       rows={3}
       resizeOrientation="vertical"
-      placeholder={MCP_PLACEHOLDERS.INCLUDED_SERVERS}
     />
   );
 
@@ -57,7 +52,6 @@ const McpServerVisibilitySection: React.FC<McpServerVisibilitySectionProps> = ({
       onChange={(_event, value) => setData('excludedServers', value)}
       rows={3}
       resizeOrientation="vertical"
-      placeholder={MCP_PLACEHOLDERS.EXCLUDED_SERVERS}
     />
   );
 
@@ -72,18 +66,18 @@ const McpServerVisibilitySection: React.FC<McpServerVisibilitySectionProps> = ({
   return (
     <FormSection>
       <FormFieldGroupExpandable
-        toggleAriaLabel="Server visibility"
+        toggleAriaLabel="Server filters"
         header={
           <FormFieldGroupHeader
             titleText={{
-              text: MCP_FORM_LABELS.SERVER_VISIBILITY,
-              id: 'mcp-server-visibility-title',
+              text: MCP_FORM_LABELS.SERVER_FILTERS,
+              id: 'mcp-server-filters-title',
             }}
             titleDescription={MCP_DESCRIPTION_TEXT.FILTER_INFO}
           />
         }
         isExpanded={isDefaultExpanded}
-        data-testid="mcp-server-visibility-section"
+        data-testid="mcp-server-filters-section"
       >
         <ThemeAwareFormGroupWrapper
           label={MCP_FORM_LABELS.INCLUDED_SERVERS}
@@ -105,4 +99,4 @@ const McpServerVisibilitySection: React.FC<McpServerVisibilitySectionProps> = ({
   );
 };
 
-export default McpServerVisibilitySection;
+export default McpServerFiltersSection;

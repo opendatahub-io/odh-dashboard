@@ -3,7 +3,7 @@ import { Button, Label, Spinner, Stack, StackItem, Truncate } from '@patternfly/
 import { InProgressIcon } from '@patternfly/react-icons';
 import { McpCatalogSourceConfig } from '~/app/mcpServerCatalogTypes';
 import { McpCatalogSettingsContext } from '~/app/context/mcpCatalogSettings/McpCatalogSettingsContext';
-import { CatalogSourceStatus as CatalogSourceStatusEnum } from '~/concepts/modelCatalogSettings/const';
+import { CatalogSourceStatus } from '~/app/shared/types/catalogTypes';
 import CatalogSourceStatusErrorModal from '~/app/pages/modelCatalogSettings/components/CatalogSourceStatusErrorModal';
 
 type McpCatalogSourceStatusProps = {
@@ -47,7 +47,7 @@ const McpCatalogSourceStatus: React.FC<McpCatalogSourceStatusProps> = ({
   }
 
   switch (matchingSource.status) {
-    case CatalogSourceStatusEnum.AVAILABLE:
+    case CatalogSourceStatus.AVAILABLE:
       return (
         <Label
           status="success"
@@ -58,7 +58,7 @@ const McpCatalogSourceStatus: React.FC<McpCatalogSourceStatusProps> = ({
         </Label>
       );
 
-    case CatalogSourceStatusEnum.ERROR: {
+    case CatalogSourceStatus.ERROR: {
       const errorMessage = matchingSource.error || 'Unknown error occurred';
 
       return (
@@ -94,7 +94,7 @@ const McpCatalogSourceStatus: React.FC<McpCatalogSourceStatusProps> = ({
       );
     }
 
-    case CatalogSourceStatusEnum.DISABLED:
+    case CatalogSourceStatus.DISABLED:
       return startingOrUnknownLabel;
     default:
       return startingOrUnknownLabel;

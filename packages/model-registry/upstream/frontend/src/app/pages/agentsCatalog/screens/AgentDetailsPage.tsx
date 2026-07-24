@@ -146,10 +146,10 @@ const AgentDetailsPage: React.FC = () => {
                         href={agent.repositoryUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        data-testid="agent-github-button"
+                        data-testid="agent-repository-button"
                         onClick={handleOpenGitHub}
                       >
-                        Open GitHub
+                        Open repository
                       </Button>
                     </ActionListItem>
                   )}
