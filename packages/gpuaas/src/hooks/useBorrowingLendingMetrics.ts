@@ -139,8 +139,8 @@ const buildSeries = (
         return null;
       }
       const info = cqInfoMap.get(cqName);
-      // Only include CQs that are members of a cohort — borrowing and lending
-      // are cohort-level concepts. Standalone CQs cannot borrow or lend.
+      // Only include CQs that are members of a cohort — borrowing is a
+      // cohort-level concept. Standalone CQs cannot borrow.
       if (!info) {
         return null;
       }
@@ -150,7 +150,7 @@ const buildSeries = (
         nominalQuota: info.nominalQuota,
         data: result.values.map(([timestamp, valueStr]) => ({
           x: timestamp * 1000,
-          y: parseFloat(valueStr) - info.nominalQuota,
+          y: Math.max(0, parseFloat(valueStr) - info.nominalQuota),
         })),
       };
     })
