@@ -24,22 +24,38 @@ import {
   LLMInferenceServiceConfigModel,
   TopologyType,
   TopologyTypeLabels,
+  getConfigTopologyType,
 } from '../types';
-import { isConfigEnabled } from '../utils';
+import { isConfigEnabled, isConfigEffectivelyEnabled } from '../utils';
 import { patchLLMInferenceServiceConfig } from '../api/LLMInferenceServiceConfigs';
 
-const columns: SortableData<LLMInferenceServiceConfigKind>[] = [
-  { label: 'Name', field: 'name', sortable: false },
+const getTopologyTypeLabel = (config: LLMInferenceServiceConfigKind): string => {
+  const type = getConfigTopologyType(config);
+  return type ? TopologyTypeLabels[type] : '';
+};
+
+export const columns: SortableData<LLMInferenceServiceConfigKind>[] = [
+  {
+    label: 'Name',
+    field: 'name',
+    sortable: (a, b) =>
+      getDisplayNameFromK8sResource(a).localeCompare(getDisplayNameFromK8sResource(b)),
+  },
   {
     label: 'Enabled',
     field: 'enabled',
-    sortable: false,
+    sortable: (a, b) =>
+      Number(isConfigEffectivelyEnabled(b)) - Number(isConfigEffectivelyEnabled(a)),
     info: {
       popover: 'When enabled, this configuration is available in the deployment wizard.',
       popoverProps: { showClose: true },
     },
   },
-  { label: 'Topology type', field: 'topologyType', sortable: false },
+  {
+    label: 'Topology type',
+    field: 'topologyType',
+    sortable: (a, b) => getTopologyTypeLabel(a).localeCompare(getTopologyTypeLabel(b)),
+  },
   { label: '', field: 'kebab', sortable: false },
 ];
 

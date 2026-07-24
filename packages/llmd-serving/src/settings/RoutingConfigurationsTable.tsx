@@ -9,23 +9,34 @@ import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import { k8sDeleteResource, K8sStatus } from '@openshift/dynamic-plugin-sdk-utils';
 import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
 import useNotification from '@odh-dashboard/internal/utilities/useNotification';
-import RoutingConfigurationRow from './RoutingConfigurationRow';
+import RoutingConfigurationRow, { getSupportedTopologiesLabel } from './RoutingConfigurationRow';
 import { type LLMInferenceServiceConfigKind, LLMInferenceServiceConfigModel } from '../types';
-import { isConfigEnabled } from '../utils';
+import { isConfigEnabled, isConfigEffectivelyEnabled } from '../utils';
 import { patchLLMInferenceServiceConfig } from '../api/LLMInferenceServiceConfigs';
 
-const columns: SortableData<LLMInferenceServiceConfigKind>[] = [
-  { label: 'Name', field: 'name', sortable: false },
+export const columns: SortableData<LLMInferenceServiceConfigKind>[] = [
+  {
+    label: 'Name',
+    field: 'name',
+    sortable: (a, b) =>
+      getDisplayNameFromK8sResource(a).localeCompare(getDisplayNameFromK8sResource(b)),
+  },
   {
     label: 'Enabled',
     field: 'enabled',
-    sortable: false,
+    sortable: (a, b) =>
+      Number(isConfigEffectivelyEnabled(b)) - Number(isConfigEffectivelyEnabled(a)),
     info: {
       popover: 'When enabled, this configuration is available in the deployment wizard.',
       popoverProps: { showClose: true },
     },
   },
-  { label: 'Topology type', field: 'topologyType', sortable: false },
+  {
+    label: 'Topology type',
+    field: 'topologyType',
+    sortable: (a, b) =>
+      getSupportedTopologiesLabel(a).localeCompare(getSupportedTopologiesLabel(b)),
+  },
   { label: '', field: 'kebab', sortable: false },
 ];
 
