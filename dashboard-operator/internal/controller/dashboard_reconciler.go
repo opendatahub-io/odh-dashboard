@@ -268,6 +268,8 @@ func (r *DashboardReconciler) reconcileSidecar(
 		allResources = append(allResources, rendered...)
 	}
 
+	remapRayDashboardGatewayRBAC(allResources)
+
 	deployer := deploy.NewDeployer(
 		deploy.WithFieldOwner("dashboard-operator"),
 		deploy.WithLabel(labels.PlatformPartOf, strings.ToLower(v1alpha1.DashboardKind)),
@@ -369,6 +371,8 @@ func (r *DashboardReconciler) reconcileStandalone(
 		}
 		allResources = append(allResources, rendered...)
 	}
+
+	remapRayDashboardGatewayRBAC(allResources)
 
 	deployer := deploy.NewDeployer(
 		deploy.WithFieldOwner("dashboard-operator"),

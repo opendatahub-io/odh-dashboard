@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
@@ -260,4 +261,45 @@ func TestExtractDashboardURL(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestRemapRayDashboardGatewayRBAC(t *testing.T) {
+	resources := []unstructured.Unstructured{
+		{
+			Object: map[string]interface{}{
+				"apiVersion": "rbac.authorization.k8s.io/v1",
+				"kind":       "Role",
+				"metadata": map[string]interface{}{
+					"name":      rayDataScienceGatewayRBACName,
+					"namespace": "opendatahub",
+				},
+			},
+		},
+		{
+			Object: map[string]interface{}{
+				"apiVersion": "rbac.authorization.k8s.io/v1",
+				"kind":       "RoleBinding",
+				"metadata": map[string]interface{}{
+					"name":      rayDataScienceGatewayRBACName,
+					"namespace": "opendatahub",
+				},
+			},
+		},
+		{
+			Object: map[string]interface{}{
+				"apiVersion": "rbac.authorization.k8s.io/v1",
+				"kind":       "Role",
+				"metadata": map[string]interface{}{
+					"name":      "fetch-ray-httproutes-role",
+					"namespace": "opendatahub",
+				},
+			},
+		},
+	}
+
+	remapRayDashboardGatewayRBAC(resources)
+
+	assert.Equal(t, dataScienceGatewayNamespace, resources[0].GetNamespace())
+	assert.Equal(t, dataScienceGatewayNamespace, resources[1].GetNamespace())
+	assert.Equal(t, "opendatahub", resources[2].GetNamespace())
 }
