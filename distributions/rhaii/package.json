@@ -20,6 +20,7 @@
     "@odh-dashboard/k8s-core": "*",
     "@odh-dashboard/model-serving": "*",
     "@odh-dashboard/plugin-core": "*",
+    "@odh-dashboard/ui-core": "*",
     "@openshift/dynamic-plugin-sdk": "^5.0.1",
     "@openshift/dynamic-plugin-sdk-utils": "^5.0.0",
     "@patternfly/patternfly": "^6.4.0",
