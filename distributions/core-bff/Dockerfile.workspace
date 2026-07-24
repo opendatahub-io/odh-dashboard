@@ -32,6 +32,7 @@ COPY --chown=default:root packages/plugin-core/ ./packages/plugin-core/
 COPY --chown=default:root packages/tsconfig/ ./packages/tsconfig/
 COPY --chown=default:root packages/foundation/ ./packages/foundation/
 COPY --chown=default:root packages/k8s-core/ ./packages/k8s-core/
+COPY --chown=default:root packages/app-config/ ./packages/app-config/
 # Copy only the frontend source (not the entire frontend build artifacts) for cross-module imports
 COPY --chown=default:root frontend/src/ ./frontend/src/
 
@@ -53,6 +54,11 @@ WORKDIR /usr/src/workspace/${UI_SOURCE_CODE}
 RUN npm ci --omit=optional --ignore-scripts
 
 # Build the module
+# Build app-config (provides webpack federation plugins)
+WORKDIR /usr/src/workspace
+RUN npm run build -w packages/app-config
+WORKDIR /usr/src/workspace/${UI_SOURCE_CODE}
+
 RUN npm run build:prod
 
 # BFF build stage

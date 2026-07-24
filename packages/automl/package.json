@@ -23,7 +23,9 @@
       "port": 8043
     }
   },
-  "e2eCiTags": ["@AutoMLCI"],
+  "e2eCiTags": [
+    "@AutoMLCI"
+  ],
   "scripts": {
     "install:module": "npm install --prefix frontend",
     "test:contract": "BFF_MOCK_FLAGS='--dev-mode --mock-k8s-client --mock-http-client --mock-s3-client --mock-pipeline-server-client --deployment-mode=standalone --auth-method=internal' odh-ct-bff-consumer --bff-dir bff",
@@ -45,6 +47,7 @@
     "@odh-dashboard/ui-core": "*"
   },
   "devDependencies": {
+    "@odh-dashboard/app-config": "*",
     "@odh-dashboard/contract-tests": "*",
     "@odh-dashboard/eslint-config": "*",
     "@odh-dashboard/tsconfig": "*"

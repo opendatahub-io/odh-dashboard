@@ -1,7 +1,5 @@
 const { execSync } = require('child_process');
-const { ModuleFederationPlugin } = require('@module-federation/enhanced/webpack');
-const { getRuntimeOdhPackages } = require('./getRuntimeOdhPackages');
-const deps = require('../package.json').dependencies;
+const { OdhHostFederationPlugin } = require('@odh-dashboard/app-config/webpack');
 
 const updateTypes = !!process.env.MF_UPDATE_TYPES;
 
@@ -81,13 +79,6 @@ const getWorkspacePackages = () => {
 
 const workspacePackages = getWorkspacePackages();
 
-const odhDashboardShared = Object.fromEntries(
-  [...getRuntimeOdhPackages(workspacePackages)].map((name) => [
-    name,
-    { singleton: true, requiredVersion: '*' },
-  ]),
-);
-
 // Function to read module federation config from workspace packages
 const readModuleFederationConfigFromPackages = () => {
   const configs = [];
@@ -115,7 +106,6 @@ const getModuleFederationConfig = () => {
       console.error('Failed to parse module federation config from ENV', e);
     }
   } else {
-    // read the module federation config from the workspace packages
     return readModuleFederationConfigFromPackages();
   }
   return [];
@@ -129,70 +119,27 @@ if (mfConfig.length > 0) {
   );
 }
 
+const remotes = updateTypes
+  ? mfConfig.reduce((acc, config) => {
+      if (!config.backend) {
+        return acc;
+      }
+      const { localService, remoteEntry, service } = config.backend;
+      const host = localService?.host ?? 'localhost';
+      const port = localService?.port ?? service.port;
+      acc[`@mf/${config.name}`] = `${config.name}@http://${host}:${port}${remoteEntry}`;
+      return acc;
+    }, {})
+  : undefined;
+
 module.exports = {
   moduleFederationConfig: mfConfig,
   moduleFederationPlugins:
     mfConfig.length > 0
       ? [
-          new ModuleFederationPlugin({
-            name: 'host',
-            filename: 'remoteEntry.js',
-            remotes: updateTypes
-              ? mfConfig.reduce((acc, config) => {
-                  if (!config.backend) {
-                    return acc;
-                  }
-                  const { localService, remoteEntry, service } = config.backend;
-                  const host = localService?.host ?? 'localhost';
-                  const port = localService?.port ?? service.port;
-                  acc[`@mf/${config.name}`] = `${config.name}@http://${host}:${port}${remoteEntry}`;
-                  return acc;
-                }, {})
-              : undefined,
-            shared: {
-              react: { singleton: true, requiredVersion: deps.react, eager: true },
-              'react-dom': { singleton: true, requiredVersion: deps['react-dom'], eager: true },
-              'react-router': {
-                singleton: true,
-                requiredVersion: deps['react-router'],
-                eager: true,
-              },
-              'react-router-dom': {
-                singleton: true,
-                requiredVersion: deps['react-router-dom'],
-                eager: true,
-              },
-              '@patternfly/react-code-editor': {
-                singleton: true,
-                requiredVersion: deps['@patternfly/react-code-editor'],
-              },
-              '@patternfly/react-core': {
-                singleton: true,
-                requiredVersion: deps['@patternfly/react-core'],
-              },
-              '@patternfly/react-icons': {
-                singleton: true,
-                requiredVersion: deps['@patternfly/react-icons'],
-                eager: true,
-              },
-              '@openshift/dynamic-plugin-sdk': {
-                singleton: true,
-                requiredVersion: deps['@openshift/dynamic-plugin-sdk'],
-                eager: true,
-              },
-              '@openshift/dynamic-plugin-sdk-utils': {
-                singleton: true,
-                requiredVersion: deps['@openshift/dynamic-plugin-sdk-utils'],
-                eager: true,
-              },
-              'use-query-params': { singleton: true, requiredVersion: deps['use-query-params'] },
-              '@tanstack/react-query': {
-                singleton: true,
-                requiredVersion: deps['@tanstack/react-query'],
-              },
-              ...odhDashboardShared,
-            },
-            exposes: {},
+          new OdhHostFederationPlugin({
+            packageJson: require('../package.json'),
+            remotes,
             dts: updateTypes,
           }),
         ]

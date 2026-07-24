@@ -1,6 +1,6 @@
 {
   "private": true,
-  "name": "@odh-dashboard/model-serving-cypress",
+  "name": "model-serving-cypress",
   "description": "Cypress tests for the model-serving package.",
   "version": "0.0.0",
   "scripts": {

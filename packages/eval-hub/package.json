@@ -23,7 +23,9 @@
       "port": 8043
     }
   },
-  "e2eCiTags": ["@EvalHubCI"],
+  "e2eCiTags": [
+    "@EvalHubCI"
+  ],
   "scripts": {
     "install:module": "npm install --prefix frontend",
     "test:contract": "cross-env BFF_MOCK_FLAGS='--mock-k8s-client --mock-evalhub-client' odh-ct-bff-consumer --bff-dir bff",
@@ -46,6 +48,7 @@
     "@odh-dashboard/ui-core": "*"
   },
   "devDependencies": {
+    "@odh-dashboard/app-config": "*",
     "@odh-dashboard/contract-tests": "*",
     "@odh-dashboard/eslint-config": "*",
     "@odh-dashboard/tsconfig": "*"
