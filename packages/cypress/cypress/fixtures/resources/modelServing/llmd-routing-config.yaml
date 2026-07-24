@@ -1,0 +1,14 @@
+apiVersion: serving.kserve.io/v1alpha2
+kind: LLMInferenceServiceConfig
+metadata:
+  name: e2e-scheduler-routing
+  annotations:
+    openshift.io/display-name: E2E Scheduler Routing
+    openshift.io/description: Test routing config for scheduler-based routing
+    opendatahub.io/routing-type: scheduler
+  labels:
+    opendatahub.io/config-type: router
+    opendatahub.io/dashboard: "true"
+spec:
+  router:
+    scheduler: {}

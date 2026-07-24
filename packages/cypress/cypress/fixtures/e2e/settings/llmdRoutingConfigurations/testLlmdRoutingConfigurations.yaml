@@ -1,0 +1,9 @@
+# testLlmdRoutingConfigurations.cy.ts Test Data #
+
+routingConfigName: 'e2e-scheduler-routing'
+routingConfigDisplayName: 'E2E Scheduler Routing'
+routingConfigFixture: 'resources/modelServing/llmd-routing-config.yaml'
+projectResourceName: 'routing-admin'
+modelLocationURI: 'hf://facebook/opt-125m'
+deploymentMethod: 'llm-inference-service-llmd'
+defaultRoutingLabel: 'Default optimized routing'
