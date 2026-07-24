@@ -10,10 +10,10 @@ import {
 } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
-import SearchSelector from '../searchSelector/SearchSelector';
-import { ProjectsContext } from '../../context/ProjectsContext';
 import ProjectNavigatorLink from './ProjectNavigatorLink';
 import { ProjectIconWithSize } from './ProjectIconWithSize';
+import SearchSelector from '../searchSelector/SearchSelector';
+import { ProjectsContext } from '../../context/ProjectsContext';
 import { IconSize, Namespace } from '../../types';
 
 type ProjectSelectorProps = {

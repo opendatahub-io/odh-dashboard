@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { byName } from '@odh-dashboard/k8s-core';
-import { ProjectsContext } from '../../context/ProjectsContext';
 import ProjectSelector from './ProjectSelector';
+import { ProjectsContext } from '../../context/ProjectsContext';
 
 type ProjectSelectorNavigatorProps = {
   getRedirectPath: (namespace: string) => string;
