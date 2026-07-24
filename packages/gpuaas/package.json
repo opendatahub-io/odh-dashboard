@@ -3,7 +3,9 @@
   "name": "@odh-dashboard/gpuaas",
   "description": "GPU-as-a-Service infrastructure monitoring plugin for cluster capacity and accelerator utilization.",
   "version": "0.0.0",
-  "e2eCiTags": ["@GpuaasCI"],
+  "e2eCiTags": [
+    "@GpuaasCI"
+  ],
   "scripts": {
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",

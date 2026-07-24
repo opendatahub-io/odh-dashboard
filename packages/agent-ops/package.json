@@ -27,7 +27,9 @@
       "port": 8843
     }
   },
-  "e2eCiTags": ["@AgentOpsCI"],
+  "e2eCiTags": [
+    "@AgentOpsCI"
+  ],
   "exports": {
     "./extensions": "./extensions.ts"
   },
@@ -52,6 +54,7 @@
     "@odh-dashboard/ui-core": "*"
   },
   "devDependencies": {
+    "@odh-dashboard/app-config": "*",
     "@odh-dashboard/contract-tests": "*",
     "@odh-dashboard/eslint-config": "*",
     "@odh-dashboard/tsconfig": "*"

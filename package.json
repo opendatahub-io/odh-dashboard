@@ -29,8 +29,8 @@
     "packages/model-serving/cypress"
   ],
   "scripts": {
-    "build": "run-p -l build:*",
-    "build:backend": "npm run build --prefix packages/app-config && npm run build --prefix backend",
+    "build": "npm run build --prefix packages/app-config && run-p -l build:*",
+    "build:backend": "npm run build --prefix backend",
     "build:frontend": "npm run build --prefix frontend",
     "dev": "run-p -l dev:*",
     "dev:backend": "cd ./backend && npm run start:dev",
@@ -120,10 +120,10 @@
       "react-router-dom": "^7.17.0",
       "react": "^18.3.1",
       "react-dom": "^18.3.1",
-      "@patternfly/react-core": "6.4.0",
-      "@patternfly/react-icons": "6.4.0",
-      "@patternfly/react-styles": "6.4.0",
-      "@patternfly/react-table": "6.4.0",
+      "@patternfly/react-core": "~6.5.1",
+      "@patternfly/react-icons": "~6.5.1",
+      "@patternfly/react-styles": "~6.5.1",
+      "@patternfly/react-table": "~6.5.1",
       "@patternfly/react-virtualized-extension": "6.2.0"
     },
     "@patternfly/react-topology": {

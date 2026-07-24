@@ -25,46 +25,38 @@ At this time, all known modules must exist in the monorepo. The system automatic
 
 ### Shared Dependencies
 
-The host application defines shared dependencies that are made available to all remote modules:
+Shared module policy is centralized in `@odh-dashboard/app-config` and enforced by two webpack plugins:
 
-#### Required Shared Dependencies
+- **`OdhHostFederationPlugin`** — used by the host (`frontend/`)
+- **`OdhRemoteFederationPlugin`** — used by all federated remotes
 
-All federated modules **must** include these shared dependencies in their configuration:
+These plugins automatically configure the correct shared modules, singleton flags, and version constraints so individual `moduleFederation.js` files do not need to maintain shared dependency lists manually.
 
-```javascript
-const deps = require('../package.json').dependencies;
+#### What is automatically shared
 
-const config = {
-  // ...
-  shared: {
-    react: { singleton: true, requiredVersion: deps.react },
-    'react-dom': { singleton: true, requiredVersion: deps['react-dom'] },
-    'react-router': { singleton: true, requiredVersion: deps['react-router'] },
-    'react-router-dom': { singleton: true, requiredVersion: deps['react-router-dom'] },
-    '@patternfly/react-core': { singleton: true, requiredVersion: deps['@patternfly/react-core'] },
-  }
-};
-```
+| Category | Modules | Notes |
+|----------|---------|-------|
+| React ecosystem | `react`, `react-dom`, `react-router`, `react-router-dom` | Singleton, eager on host |
+| OpenShift SDK | `@openshift/dynamic-plugin-sdk`, `@openshift/dynamic-plugin-sdk-utils` | Singleton, eager on host |
+| Query/params | `@tanstack/react-query`, `use-query-params` | Singleton (opt-in via `additionalShared`, not enabled by default) |
+| PatternFly JS | `@patternfly/react-core`, `react-icons`, `react-table`, `react-templates`, `react-topology`, `react-code-editor`, `react-charts`, `chatbot`, `react-component-groups`, `react-drag-drop`, `react-log-viewer`, `quickstarts`, `react-catalog-view-extension` | Singleton, whole-package |
+| ODH packages | All `@odh-dashboard/*` runtime packages (including `internal`) | Discovered automatically via `npm query .workspace` |
 
-#### Optional Shared Dependencies
+#### CSS ownership
 
-Include these if your module uses the corresponding functionality:
+**Only the host owns PatternFly CSS.** The remote plugin discovers all `.css` files within `@patternfly/react-core`, `@patternfly/react-styles`, and `@patternfly/patternfly` and aliases each file to `false` so remotes never bundle PF stylesheets. JS class-name-map modules from these packages remain resolvable. This prevents CSS load-order issues in Module Federation.
 
-```javascript
-const config = {
-  // ...
-  shared: {
-    '@openshift/dynamic-plugin-sdk': {
-      singleton: true,
-      requiredVersion: deps['@openshift/dynamic-plugin-sdk'],
-    },
-    '@odh-dashboard/plugin-core': {
-      singleton: true,
-      requiredVersion: deps['@odh-dashboard/plugin-core'],
-    },
-  }
-};
-```
+#### Remotes use `import: false`
+
+Remotes are configured with `import: false` on forced shared modules. This means they cannot bundle their own copy — they must consume from the host's share scope at runtime.
+
+#### Additional shared modules
+
+Remotes can pass `additionalShared` to add extra shared modules beyond the forced set. Forced keys (react, PF, ODH packages) always take priority and cannot be overridden.
+
+### Future: Dynamic PatternFly module federation
+
+The current implementation shares PatternFly as whole packages. A follow-up can add per-component sharing via PF's `dist/dynamic-modules.json` to reduce host vendor bundle size. The plugin architecture supports adding this transparently without changes to remote configs.
 
 ## Module Federation Configuration
 
@@ -179,15 +171,18 @@ Federated modules can extend the host application by exposing extensions through
 Your module's webpack configuration must expose extensions:
 
 ```javascript
-// webpack config
+// webpack config (packages/my-module/frontend/config/moduleFederation.js)
+const { OdhRemoteFederationPlugin } = require('@odh-dashboard/app-config/webpack');
+
 module.exports = {
-  plugins: [
-    new ModuleFederationPlugin({
-      name: 'my-module',
+  moduleFederationPlugins: [
+    new OdhRemoteFederationPlugin({
+      name: 'myModule',
+      packageJson: require('../package.json'),
       exposes: {
-        './extensions': './src/extensions',
+        './extensions': './src/odh/extensions',
+        './extension-points': './src/odh/extension-points',
       },
-      // ... other config
     }),
   ],
 };
@@ -198,7 +193,7 @@ module.exports = {
 Extensions should export an array of extension objects:
 
 ```typescript
-// src/extensions.ts
+// src/odh/extensions.ts
 import type { Extension } from '@openshift/dynamic-plugin-sdk';
 
 const extensions: Extension[] = [
@@ -228,55 +223,76 @@ Please refer to the [Extensibility Documentation](./extensibility.md).
 
 ### Required Dependencies
 
-Install the required webpack plugin:
+Install the required packages:
 
 ```bash
-npm install @module-federation/enhanced
+npm install --save-dev @module-federation/enhanced
 ```
 
-### Basic Configuration
+Ensure your module's parent `package.json` includes `@odh-dashboard/app-config` as a dependency:
+
+```json
+{
+  "dependencies": {
+    "@odh-dashboard/app-config": "*"
+  }
+}
+```
+
+### Remote Configuration
+
+Remote modules use `OdhRemoteFederationPlugin` which handles all shared module configuration automatically:
 
 ```javascript
-const { ModuleFederationPlugin } = require('@module-federation/enhanced/webpack');
-const deps = require('./package.json').dependencies;
+// packages/my-module/frontend/config/moduleFederation.js
+const { OdhRemoteFederationPlugin } = require('@odh-dashboard/app-config/webpack');
 
 module.exports = {
-  plugins: [
-    new ModuleFederationPlugin({
-      name: 'my-module', // Must match package.json module-federation.name
-      filename: 'remoteEntry.js',
+  moduleFederationPlugins: [
+    new OdhRemoteFederationPlugin({
+      name: 'myModule',           // Must match package.json module-federation.name
+      packageJson: require('../package.json'),
       exposes: {
-        './extensions': './src/extensions',
+        './extensions': './src/odh/extensions',
+        './extension-points': './src/odh/extension-points',
       },
-      shared: {
-        // Required shared dependencies
-        react: { singleton: true, requiredVersion: deps.react },
-        'react-dom': { singleton: true, requiredVersion: deps['react-dom'] },
-        'react-router': { singleton: true, requiredVersion: deps['react-router'] },
-        'react-router-dom': { singleton: true, requiredVersion: deps['react-router-dom'] },
-        '@patternfly/react-core': {
-          singleton: true,
-          requiredVersion: deps['@patternfly/react-core'],
-        },
-        
-        // Optional shared dependencies (include if used)
-        '@openshift/dynamic-plugin-sdk': {
-          singleton: true,
-          requiredVersion: deps['@openshift/dynamic-plugin-sdk'],
-        },
-        '@odh-dashboard/plugin-core': {
-          singleton: true,
-          requiredVersion: deps['@odh-dashboard/plugin-core'],
-        },
-      },
-      // Important for compatibility with runtimeChunk: "single"
-      runtime: false,
+      // Optional: add extra shared modules beyond the forced set
+      additionalShared: {},
     }),
   ],
-  output: {
-    // Required to allow for dynamic resolution of asset paths
-    publicPath: 'auto',
-  },
+};
+```
+
+### Host Configuration
+
+The host uses `OdhHostFederationPlugin`:
+
+```javascript
+// frontend/config/moduleFederation.js
+const { OdhHostFederationPlugin } = require('@odh-dashboard/app-config/webpack');
+
+const updateTypes = !!process.env.MF_UPDATE_TYPES;
+
+// remotes are built from mfConfig discovery (see full file for details)
+const remotes = updateTypes
+  ? mfConfig.reduce((acc, config) => {
+      if (!config.backend) return acc;
+      const { localService, remoteEntry, service } = config.backend;
+      const host = localService?.host ?? 'localhost';
+      const port = localService?.port ?? service.port;
+      acc[`@mf/${config.name}`] = `${config.name}@http://${host}:${port}${remoteEntry}`;
+      return acc;
+    }, {})
+  : undefined;
+
+module.exports = {
+  moduleFederationPlugins: [
+    new OdhHostFederationPlugin({
+      packageJson: require('../package.json'),
+      remotes,
+      dts: updateTypes,
+    }),
+  ],
 };
 ```
 
@@ -285,9 +301,11 @@ module.exports = {
 ### Creating a New Federated Module
 
 1. Add `module-federation` configuration to your `package.json`
-2. Configure webpack with `ModuleFederationPlugin` and `publicPath: 'auto'`
-3. Create an extensions file to export your module's functionality
-4. Build and serve your module locally
+2. Add `@odh-dashboard/app-config` and `@module-federation/enhanced` to your frontend `package.json` devDependencies
+3. Add `@odh-dashboard/app-config` to the parent `package.json` dependencies
+4. Create a `moduleFederation.js` using `OdhRemoteFederationPlugin`
+5. Create extensions and extension-points files
+6. Build and serve your module locally
 
 ### Local Development
 
@@ -302,9 +320,9 @@ The monorepo contains two types of packages:
 - **Federated remotes** (webpack + MF config): Packages like `gen-ai`, `maas`, `mlflow` that build separately and the host loads at runtime.
 - **Library packages** (no webpack, no MF config): Packages like `llmd-serving`, `model-serving`, `kserve`, `plugin-core` that expose raw TypeScript via `package.json` `exports`.
 
-When a federated remote imports from a library package, webpack must compile the library's TypeScript and the code can end up duplicated between the host and remote bundles. Two mechanisms prevent this:
+When a federated remote imports from a library package, webpack must compile the library's TypeScript and the code can end up duplicated between the host and remote bundles. The plugins prevent this automatically — all `@odh-dashboard/*` runtime packages are shared as singletons.
 
-### 1. Webpack Exclude Regex
+### Webpack Exclude Regex
 
 All `webpack.common.js` files use a negative lookahead in the TS/JS rule to allow `@odh-dashboard/*` packages to be compiled:
 
@@ -314,39 +332,21 @@ exclude: [/node_modules\/(?!@odh-dashboard)/, /__tests__/, /__mocks__/],
 
 This ensures webpack can parse TypeScript from `@odh-dashboard/*` packages resolved through `node_modules`.
 
-### 2. MF Shared Config
-
-All `@odh-dashboard/*` dependencies must be listed in the MF `shared` config so that only one copy is loaded at runtime.
-
-**Host** (`frontend/config/moduleFederation.js`): Uses `npm query .workspace` at build time to dynamically discover all `@odh-dashboard/*` workspace packages and share them with `eager: true`. The `eager` flag means the host's copy loads immediately and takes priority during runtime negotiation. This is automatic — no manual updates needed when new packages are added.
-
-**Remotes** (each package's `moduleFederation.js`): Explicitly list the `@odh-dashboard/*` packages they depend on with `singleton: true`:
-
-```javascript
-shared: {
-  // ...other shared deps (react, patternfly, etc.)...
-  '@odh-dashboard/internal': { singleton: true, requiredVersion: '*' },
-  '@odh-dashboard/plugin-core': { singleton: true, requiredVersion: '*' },
-},
-```
-
-Both host and remote compile the library at build time, but at runtime MF ensures only the host's copy is loaded. The remote's copy is placed in a separate chunk that is never fetched by the browser.
-
 ### Adding a New Library Package
 
 When creating a new `@odh-dashboard/*` library package that will be consumed by federated remotes:
 
 1. Add the package to the monorepo under `packages/`. npm workspaces will hoist it into `node_modules/@odh-dashboard/`.
-2. The host will automatically discover it via `npm query .workspace` — no manual config needed.
-3. Add the package to the `shared` config of each remote that depends on it (e.g. `'@odh-dashboard/my-pkg': { singleton: true, requiredVersion: '*' }`).
-4. Ensure the consumer's `webpack.common.js` has the `node_modules\/(?!@odh-dashboard)` exclude pattern.
+2. The plugins will automatically discover and share it — no manual shared config needed.
+3. Ensure the consumer's `webpack.common.js` has the `node_modules\/(?!@odh-dashboard)` exclude pattern.
 
 ## Troubleshooting
 
 ### Common Issues
 
 1. **Module not loading**: Verify the module name matches between `package.json` and webpack config
-2. **Shared dependency conflicts**: Ensure all required shared dependencies are configured with correct versions  
+2. **Shared dependency conflicts**: The plugins handle this automatically; check `@odh-dashboard/app-config` is properly built (`npm run build` in app-config)
 3. **Proxy issues**: Check that the backend service is running and accessible
-4. **Asset loading issues**: If you see failing requests for `__federation_expose_` files without the module name in the path, add `output.publicPath = 'auto'` to your webpack configuration (see [Webpack Configuration](#webpack-configuration) section above)
+4. **Asset loading issues**: If you see failing requests for `__federation_expose_` files without the module name in the path, add `output.publicPath = 'auto'` to your webpack configuration
 5. **Module parse failed for `@odh-dashboard/*` packages**: Ensure `webpack.common.js` uses `exclude: [/node_modules\/(?!@odh-dashboard)/]` instead of `exclude: [/node_modules/]` in the TS/JS rule
+6. **PatternFly CSS issues in remotes**: The remote plugin aliases PF CSS to `false`. If you see missing styles, verify the host is loading `@patternfly/patternfly` CSS correctly

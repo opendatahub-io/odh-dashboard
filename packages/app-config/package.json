@@ -14,19 +14,38 @@
       "import": "./src/index.ts",
       "require": "./dist/index.js",
       "default": "./src/index.ts"
+    },
+    "./webpack": {
+      "development": "./src/webpack/index.ts",
+      "types": "./dist/webpack/index.d.ts",
+      "import": "./src/webpack/index.ts",
+      "require": "./dist/webpack/index.js",
+      "default": "./src/webpack/index.ts"
     }
   },
   "scripts": {
     "build": "rimraf dist && tsc -p tsconfig.prod.json",
+    "postinstall": "npm run build",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "test-unit": "jest --silent",
     "test-unit-coverage": "jest --silent --coverage",
     "type-check": "tsc --noEmit"
   },
+  "peerDependencies": {
+    "@module-federation/enhanced": ">=0.13.0",
+    "webpack": ">=5.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@module-federation/enhanced": { "optional": true },
+    "webpack": { "optional": true }
+  },
   "devDependencies": {
+    "@module-federation/enhanced": "^0.18.4",
     "@odh-dashboard/eslint-config": "*",
     "@odh-dashboard/jest-config": "*",
-    "@odh-dashboard/tsconfig": "*"
+    "@odh-dashboard/tsconfig": "*",
+    "@types/node": "^22.0.0",
+    "webpack": "5.104.1"
   }
 }

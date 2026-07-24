@@ -46,6 +46,10 @@ runs:
       if: inputs.force-install == 'true' || steps.root-cache.outputs.cache-hit != 'true'
       shell: bash
       run: npm install
+    - name: Build app-config package
+      if: inputs.force-install != 'true' || steps.root-cache.outputs.cache-hit == 'true'
+      shell: bash
+      run: npm run build --prefix packages/app-config
     - name: Ensure Cypress binary is installed
       if: inputs.force-install == 'true' || steps.root-cache.outputs.cache-hit != 'true'
       shell: bash
