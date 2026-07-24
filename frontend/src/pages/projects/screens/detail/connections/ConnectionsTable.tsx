@@ -211,7 +211,7 @@ const ConnectionsTable: React.FC<ConnectionsTableProps> = ({
               ...(isConnectionTestEnabled
                 ? [
                     {
-                      title: <span data-testid="test-connection-action">Test connection</span>,
+                      title: <span data-testid="test-connection-action">Verify</span>,
                       onClick: () => {
                         handleTestConnection(connection);
                       },
