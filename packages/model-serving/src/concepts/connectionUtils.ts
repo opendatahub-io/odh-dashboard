@@ -1,12 +1,4 @@
 import {
-  createSecret,
-  getSecret,
-  patchSecretWithOwnerReference,
-  patchSecretWithProtocolAnnotation,
-  hasProtocolAnnotation,
-  deleteSecret,
-} from '@odh-dashboard/internal/api/index';
-import {
   isGeneratedSecretName,
   getGeneratedSecretName,
   translateDisplayNameForK8s,
@@ -14,11 +6,16 @@ import {
   getConnectionProtocolType,
 } from '@odh-dashboard/k8s-core';
 import type { SecretKind, K8sNameDescriptionType, Connection } from '@odh-dashboard/k8s-core';
-import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
-import { CreateConnectionData } from '../components/deploymentWizard/fields/CreateConnectionInputFields';
+import type { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
+import type { SecretOps } from '@odh-dashboard/plugin-core/host-api';
+import type { CreateConnectionData } from '../components/deploymentWizard/fields/CreateConnectionInputFields';
 import { ModelLocationData, ModelLocationType } from '../components/deploymentWizard/types';
 
+const hasProtocolAnnotation = (resource: SecretKind): boolean =>
+  !!resource.metadata.annotations?.['opendatahub.io/connection-type-protocol'];
+
 export const handleConnectionCreation = async (
+  ops: SecretOps,
   createConnectionData: CreateConnectionData,
   project: string,
   modelLocationData?: ModelLocationData,
@@ -37,10 +34,11 @@ export const handleConnectionCreation = async (
   // If the connection already exists, patch the protocol annotation if it needs it, but don't wait for it
   if (modelLocationData.type === ModelLocationType.EXISTING) {
     if (!dryRun) {
-      getSecret(project, modelLocationData.connection ?? '')
+      ops
+        .getSecret(project, modelLocationData.connection ?? '')
         .then((secret) => {
           if (!hasProtocolAnnotation(secret)) {
-            patchSecretWithProtocolAnnotation(secret, protocolType).catch((err) => {
+            ops.patchSecretWithProtocolAnnotation(secret, protocolType).catch((err) => {
               console.warn('Failed to patch protocol annotation:', err);
             });
           }
@@ -109,7 +107,7 @@ export const handleConnectionCreation = async (
   }
 
   if (dryRun) {
-    const dryRunCreatedSecret = await createSecret(annotatedConnection, { dryRun: true });
+    const dryRunCreatedSecret = await ops.createSecret(annotatedConnection, { dryRun: true });
 
     return dryRunCreatedSecret;
   }
@@ -118,23 +116,24 @@ export const handleConnectionCreation = async (
   const newSecretName = actualSecretName;
   if (oldSecretName && oldSecretName !== newSecretName) {
     try {
-      const existingSecret = await getSecret(project, oldSecretName);
+      const existingSecret = await ops.getSecret(project, oldSecretName);
 
       // Only delete if it was a generated secret
       if (isGeneratedSecretName(existingSecret.metadata.name)) {
-        await deleteSecret(project, existingSecret.metadata.name);
+        await ops.deleteSecret(project, existingSecret.metadata.name);
       }
     } catch {
       console.error('Old secret not found, skipping delete');
     }
   }
 
-  const createdSecret = await createSecret(annotatedConnection);
-  const finalSecret = await getSecret(project, createdSecret.metadata.name);
+  const createdSecret = await ops.createSecret(annotatedConnection);
+  const finalSecret = await ops.getSecret(project, createdSecret.metadata.name);
   return finalSecret;
 };
 
 export const handleSecretOwnerReferencePatch = async (
+  ops: SecretOps,
   createConnectionData: CreateConnectionData,
   resource: K8sResourceCommon & { metadata: { name: string } },
   modelLocationData: ModelLocationData,
@@ -150,12 +149,12 @@ export const handleSecretOwnerReferencePatch = async (
   ) {
     // Patch the secret with owner ref but don't wait for it
     try {
-      const secret = await getSecret(resource.metadata.namespace ?? '', secretName);
+      const secret = await ops.getSecret(resource.metadata.namespace ?? '', secretName);
       if (!uid) {
         console.warn('UID is not present, skipping owner reference patch', uid);
         return;
       }
-      await patchSecretWithOwnerReference(secret, resource, uid);
+      await ops.patchSecretWithOwnerReference(secret, resource, uid);
     } catch (err) {
       console.warn('Skipping owner reference patch, secret not ready yet', err);
     }

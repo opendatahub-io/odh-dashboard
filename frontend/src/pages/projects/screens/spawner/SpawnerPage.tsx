@@ -17,7 +17,11 @@ import {
 } from '@patternfly/react-core';
 import type { HardwareProfileKind } from '@odh-dashboard/k8s-core';
 import { useIsAreaAvailable, SupportedArea } from '@odh-dashboard/plugin-core/areas';
-import { getDisplayNameFromK8sResource, LimitNameResourceType } from '@odh-dashboard/k8s-core';
+import {
+  getDisplayNameFromK8sResource,
+  LimitNameResourceType,
+  getPvcAccessMode,
+} from '@odh-dashboard/k8s-core';
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
 } from '@odh-dashboard/ui-core/components/K8sNameDescriptionField';
@@ -47,7 +51,6 @@ import {
   doesImageStreamSupportHardwareProfile,
 } from '#~/concepts/hardwareProfiles/utils';
 import { UseAssignHardwareProfileResult } from '#~/concepts/hardwareProfiles/useAssignHardwareProfile';
-import { getPvcAccessMode } from '#~/pages/projects/utils';
 import { useDashboardNamespace } from '#~/redux/selectors';
 import { useNotebookHardwareProfile } from '#~/concepts/notebooks/utils';
 import { WORKBENCH_VISIBILITY } from '#~/concepts/hardwareProfiles/const';

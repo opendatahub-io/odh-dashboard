@@ -1,10 +1,8 @@
 import React from 'react';
-import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
-import { useTemplates } from '@odh-dashboard/internal/api/index';
+import { useDashboardNamespace, useTemplates } from '@odh-dashboard/plugin-core/host-api';
 import useTemplateOrder from '@odh-dashboard/internal/pages/modelServing/customServingRuntimes/useTemplateOrder';
 import useTemplateDisablement from '@odh-dashboard/internal/pages/modelServing/customServingRuntimes/useTemplateDisablement';
-import type { CustomWatchK8sResult } from '@odh-dashboard/internal/types';
-import type { TemplateKind } from '@odh-dashboard/k8s-core';
+import type { K8sWatchResult, TemplateKind } from '@odh-dashboard/k8s-core';
 import {
   ServingRuntimePlatform,
   getSortedTemplates,
@@ -44,9 +42,7 @@ import {
  *   - `loaded`: Boolean indicating if all data sources have finished loading
  *   - `error`: Any error that occurred during data fetching from templates, ordering, or disablement
  */
-export const useServingRuntimeTemplates = (
-  namespace?: string,
-): CustomWatchK8sResult<TemplateKind[]> => {
+export const useServingRuntimeTemplates = (namespace?: string): K8sWatchResult<TemplateKind[]> => {
   const { dashboardNamespace } = useDashboardNamespace();
 
   const [templates, loaded, error] = useTemplates(namespace || dashboardNamespace);

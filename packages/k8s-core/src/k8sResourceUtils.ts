@@ -1,6 +1,7 @@
 import { K8sModelCommon, K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import { genRandomChars } from '@odh-dashboard/foundation';
-import type { K8sCondition, K8sDSGResource } from './k8sTypes';
+import type { K8sCondition, K8sDSGResource, PersistentVolumeClaimKind } from './k8sTypes';
+import { AccessMode } from './types';
 
 export const isK8sDSGResource = (x?: K8sResourceCommon): x is K8sDSGResource =>
   x?.metadata?.name != null;
@@ -130,3 +131,6 @@ export const isConditionInStatus = (
 
 export const kindApiVersion = (model: K8sModelCommon): string =>
   [model.apiGroup, model.apiVersion].filter((v) => !!v).join('/');
+
+export const getPvcAccessMode = (pvc: PersistentVolumeClaimKind): AccessMode =>
+  pvc.spec.accessModes[0];

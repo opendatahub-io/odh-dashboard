@@ -1,6 +1,6 @@
 import React from 'react';
 import { setupDefaults } from '@odh-dashboard/k8s-core';
-import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
+import { useDashboardNamespace } from '@odh-dashboard/plugin-core/host-api';
 import { type InitialWizardFormData } from './types';
 import { getExternalRouteFromDeployment, getTokenAuthenticationFromDeployment } from './utils';
 import { useWizardFieldExtractors } from './useWizardFieldExtractors';

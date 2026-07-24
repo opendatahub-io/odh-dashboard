@@ -1,8 +1,8 @@
 import React from 'react';
 import useFetch, { type FetchStateObject } from '@odh-dashboard/ui-core/hooks/useFetch';
+import type { IntegrationAppStatus } from '@odh-dashboard/plugin-core/integrations';
 import { fetchComponents } from '#~/services/componentsServices';
 import { getIntegrationAppEnablementStatus } from '#~/services/integrationAppService';
-import { IntegrationAppStatus } from '#~/types';
 import { isIntegrationApp } from '#~/utilities/utils';
 import { useAppSelector } from '#~/redux/hooks';
 

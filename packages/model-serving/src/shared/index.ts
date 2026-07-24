@@ -55,3 +55,10 @@ export {
 export { default as useModelMetricsEnabled } from './hooks/useModelMetricsEnabled';
 
 export { getServingRuntimeVersion } from '../concepts/versions';
+
+export {
+  ModelServingToolbarFilterOptions,
+  modelServingFilterOptions,
+  initialModelServingFilterData,
+} from './const';
+export type { ModelServingFilterDataType } from './const';

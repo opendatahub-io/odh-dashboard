@@ -1,11 +1,11 @@
 import { testHook } from '@odh-dashboard/jest-config/hooks';
+import { VariablesValidationStatus } from '@odh-dashboard/plugin-core/integrations';
 import { postValidateIsv } from '#~/services/validateIsvService';
 import {
   enableIntegrationApp,
   getIntegrationAppEnablementStatus,
 } from '#~/services/integrationAppService';
 import * as reduxHooks from '#~/redux/hooks';
-import { VariablesValidationStatus } from '#~/types';
 import { EnableApplicationStatus, useEnableApplication } from '#~/utilities/useEnableApplication';
 import useServingPlatformStatuses from '#~/pages/modelServing/useServingPlatformStatuses';
 

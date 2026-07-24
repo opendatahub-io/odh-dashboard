@@ -9,6 +9,7 @@ import {
   ModelServingCompatibleTypes,
 } from '@odh-dashboard/k8s-core';
 import type { SecretKind, Connection, ConnectionTypeConfigMapObj } from '@odh-dashboard/k8s-core';
+import type { SecretOps } from '@odh-dashboard/plugin-core/host-api';
 import { type TokenAuthenticationFieldData } from './fields/TokenAuthenticationField';
 import {
   ModelLocationType,
@@ -62,6 +63,7 @@ export const getTokenAuthenticationFromDeployment = (
 
 export const deployModel = async (
   wizardState: WizardFormData['state'],
+  secretOps: SecretOps,
   secretName?: string,
   deployMethod?: DeployExtension,
   existingDeployment?: Deployment,
@@ -99,6 +101,7 @@ export const deployModel = async (
   // Dry runs
   await Promise.all([
     handleConnectionCreation(
+      secretOps,
       wizardState.createConnectionData.data,
       projectName,
       wizardState.modelLocationData.data,
@@ -137,6 +140,7 @@ export const deployModel = async (
 
   // Create secret
   const newSecret = await handleConnectionCreation(
+    secretOps,
     wizardState.createConnectionData.data,
     projectName,
     wizardState.modelLocationData.data,
@@ -171,6 +175,7 @@ export const deployModel = async (
   // Potentially skip this if YAML is used and model location is set directly in the YAML
   if (newSecret && createdSecretName && wizardState.modelLocationData.data) {
     await handleSecretOwnerReferencePatch(
+      secretOps,
       wizardState.createConnectionData.data,
       deploymentResult.model,
       wizardState.modelLocationData.data,

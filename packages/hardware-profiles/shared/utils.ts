@@ -274,6 +274,14 @@ export const applyHardwareProfileConfig = <T extends K8sResourceCommon>(
   return result;
 };
 
+export const isHardwareProfileEnabled = (hardwareProfile: HardwareProfileKind): boolean =>
+  hardwareProfile.metadata.annotations?.['opendatahub.io/disabled'] === 'false' ||
+  hardwareProfile.metadata.annotations?.['opendatahub.io/disabled'] === undefined;
+
+export const getHardwareProfileDisplayName = (hardwareProfile: HardwareProfileKind): string =>
+  hardwareProfile.metadata.annotations?.['opendatahub.io/display-name'] ||
+  hardwareProfile.metadata.name;
+
 export const getLocalQueueLabel = (queueSource?: QueueSource): string => {
   const commonLabel = 'Local queue';
   if (queueSource === QueueSource.DIRECT) {
