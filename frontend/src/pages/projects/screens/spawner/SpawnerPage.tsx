@@ -6,6 +6,7 @@ import {
   Breadcrumb,
   BreadcrumbItem,
   Button,
+  Content,
   Flex,
   FlexItem,
   Form,
@@ -50,7 +51,7 @@ import { UseAssignHardwareProfileResult } from '#~/concepts/hardwareProfiles/use
 import { getPvcAccessMode } from '#~/pages/projects/utils';
 import { useDashboardNamespace } from '#~/redux/selectors';
 import { useNotebookHardwareProfile } from '#~/concepts/notebooks/utils';
-import { WORKBENCH_VISIBILITY } from '#~/concepts/hardwareProfiles/const';
+import { LOCAL_QUEUE_MISSING_BODY, WORKBENCH_VISIBILITY } from '#~/concepts/hardwareProfiles/const';
 import { SpawnerPageSectionID } from './types';
 import {
   K8_NOTEBOOK_RESOURCE_NAME_VALIDATOR,
@@ -359,6 +360,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
                 podSpecOptionsState={podSpecOptionsState}
                 isHardwareProfileSupported={isHardwareProfileSupported}
                 visibleIn={WORKBENCH_VISIBILITY}
+                isLocalQueueMissing={isLocalQueueMissing}
               />
             </FormSection>
             <FormSection
@@ -460,7 +462,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
                 data-testid="local-queue-missing-warning"
                 variant="warning"
                 isInline
-                title={`Local queue "${selectedLocalQueueName ?? ''}" not found in this project`}
+                title="Invalid hardware profile"
                 actionClose={
                   <AlertActionCloseButton
                     data-testid="local-queue-missing-warning-close"
@@ -468,9 +470,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
                   />
                 }
               >
-                The selected hardware profile references a local queue that does not exist in this
-                project. You can still {existingNotebook ? 'update' : 'create'} the workbench, but
-                it may not start until the local queue is created.
+                <Content component="p">{LOCAL_QUEUE_MISSING_BODY}</Content>
               </Alert>
             </StackItem>
           )}

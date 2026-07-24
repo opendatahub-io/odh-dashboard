@@ -294,6 +294,7 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
                   bindingStateLoaded,
                   loadError: bindingStateLoadError,
                 }}
+                onExpandRow={() => setExpanded(true)}
               />
             </FlexItem>
           </Flex>

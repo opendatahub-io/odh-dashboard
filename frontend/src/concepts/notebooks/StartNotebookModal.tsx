@@ -36,7 +36,9 @@ import {
   t_global_text_color_regular as RegularColor,
   t_global_text_color_disabled as DisabledColor,
   t_global_text_color_status_danger_default as DangerColor,
-  t_global_text_color_status_warning_default as WarningColor,
+  t_global_color_status_warning_300 as WarningColor,
+  t_global_color_nonstatus_purple_400 as PurpleColor,
+  t_global_font_weight_body_bold as BoldWeight,
 } from '@patternfly/react-tokens';
 import {
   CheckCircleIcon,
@@ -62,8 +64,12 @@ import {
   KUEUE_STATUSES_OVERRIDE_WORKBENCH,
   type KueueWorkloadStatusWithMessage,
 } from '#~/concepts/kueue/types';
-import { getHumanReadableKueueMessage, getRequeuedMessage } from '#~/concepts/kueue/messageUtils';
-import { KUEUE_QUEUE_LABEL } from '#~/concepts/kueue/index';
+import {
+  getHumanReadableKueueMessage,
+  getRequeuedMessage,
+  formatQueuePosition,
+} from '#~/concepts/kueue/messageUtils';
+import { KUEUE_QUEUE_LABEL, getKueueStatusInfo } from '#~/concepts/kueue/index';
 import EventLog from '#~/concepts/k8s/EventLog/EventLog';
 import { fireMiscTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 import {
@@ -273,18 +279,27 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
       return null;
     }
 
-    let color: string;
-    switch (spawnStatus?.status) {
-      case AlertVariant.danger:
-        color = DangerColor.var;
-        break;
-      case AlertVariant.warning:
-        color = WarningColor.var;
-        break;
-      default:
-        color = RegularColor.var;
-    }
+    const effectiveKueueStatus = showKueueMessage ? kueueStatus.status : undefined;
+    const kueueInfo =
+      effectiveKueueStatus != null ? getKueueStatusInfo(effectiveKueueStatus) : null;
 
+    let color: string;
+    if (kueueInfo?.status === 'danger') {
+      color = DangerColor.var;
+    } else if (showKueueMessage) {
+      color = RegularColor.var;
+    } else {
+      switch (spawnStatus?.status) {
+        case AlertVariant.danger:
+          color = DangerColor.var;
+          break;
+        case AlertVariant.warning:
+          color = WarningColor.var;
+          break;
+        default:
+          color = RegularColor.var;
+      }
+    }
     let kueueTitle: string | null = null;
     if (showKueueMessage) {
       const message =
@@ -295,12 +310,19 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
               kueueStatus.message,
               kueueStatus.queueName,
             );
-      kueueTitle =
+      if (
         kueueStatus.queuePosition != null &&
+        kueueStatus.queueName &&
         (kueueStatus.status === KueueWorkloadStatus.Queued ||
           kueueStatus.status === KueueWorkloadStatus.Inadmissible)
-          ? `${message} (position ${kueueStatus.queuePosition})`
-          : message;
+      ) {
+        kueueTitle = `${message} (${formatQueuePosition(
+          kueueStatus.queuePosition,
+          kueueStatus.queueName,
+        )})`;
+      } else {
+        kueueTitle = message;
+      }
     }
     const workbenchTitle =
       notebookStatus?.currentEvent ||
@@ -313,18 +335,32 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
 
     return (
       <StackItem>
-        <Flex gap={{ default: 'gapSm' }}>
-          {(!spawnStatus || spawnStatus.status === AlertVariant.info) && inProgress ? (
-            <FlexItem>
+        <Content component="p" style={{ color }} data-testid="notebook-latest-status">
+          {kueueInfo != null ? (
+            kueueInfo.status ? (
+              <Icon isInline status={kueueInfo.status}>
+                <kueueInfo.IconComponent className={kueueInfo.iconClassName} />
+              </Icon>
+            ) : (
+              <Icon isInline>
+                <kueueInfo.IconComponent className={kueueInfo.iconClassName} />
+              </Icon>
+            )
+          ) : (!spawnStatus || spawnStatus.status === AlertVariant.info) && inProgress ? (
+            <Icon isInline>
               <InProgressIcon style={{ color: BrandIconColor.var }} className="ai-u-spin" />
-            </FlexItem>
-          ) : null}
-          <FlexItem>
-            <Content style={{ color }} data-testid="notebook-latest-status">
-              {title}
-            </Content>
-          </FlexItem>
-        </Flex>
+            </Icon>
+          ) : spawnStatus?.status === AlertVariant.danger ? (
+            <Icon isInline status="danger">
+              <ExclamationCircleIcon />
+            </Icon>
+          ) : spawnStatus?.status === AlertVariant.warning ? (
+            <Icon isInline status="warning">
+              <ExclamationTriangleIcon />
+            </Icon>
+          ) : null}{' '}
+          {title}
+        </Content>
       </StackItem>
     );
   };
@@ -464,61 +500,76 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
     );
   };
 
-  const treeData: TreeViewDataItem[] = React.useMemo(
-    () =>
-      notebookProgress.map((step) => {
-        const nodeId = `${step.stepKind}-${step.containerName ?? ''}`;
-        return {
-          id: nodeId,
+  const treeData: TreeViewDataItem[] = React.useMemo(() => {
+    const kueueInfoStatus = kueueStatus ? getKueueStatusInfo(kueueStatus.status).status : undefined;
+    const kueueLabelColor = kueueInfoStatus === 'danger' ? DangerColor.var : undefined;
+
+    return notebookProgress.map((step) => {
+      const nodeId = `${step.stepKind}-${step.containerName ?? ''}`;
+      return {
+        id: nodeId,
+        name: (
+          <Flex
+            component="span"
+            gap={{ default: 'gapSm' }}
+            alignItems={{ default: 'alignItemsFlexStart' }}
+            flexWrap={{ default: 'nowrap' }}
+            data-testid={`step-status-${step.status}`}
+          >
+            <FlexItem component="span" style={{ flexShrink: 0 }}>
+              {stepIcons[step.status]}
+            </FlexItem>
+            <FlexItem component="span">
+              {step.label}
+              {step.description && <Content component="small">{step.description}</Content>}
+            </FlexItem>
+          </Flex>
+        ),
+        children: step.subSteps?.map((sub) => ({
+          id: `${sub.stepKind}-${sub.containerName ?? ''}`,
           name: (
             <Flex
               component="span"
               gap={{ default: 'gapSm' }}
               alignItems={{ default: 'alignItemsFlexStart' }}
               flexWrap={{ default: 'nowrap' }}
-              data-testid={`step-status-${step.status}`}
+              data-testid={`step-status-${sub.status}`}
             >
               <FlexItem component="span" style={{ flexShrink: 0 }}>
-                {stepIcons[step.status]}
+                {stepIcons[sub.status]}
               </FlexItem>
               <FlexItem component="span">
-                {step.label}
-                {step.description && <Content component="small">{step.description}</Content>}
+                <span
+                  style={
+                    sub.stepKind === 'kueue' &&
+                    kueueLabelColor &&
+                    sub.status !== EventStatus.SUCCESS
+                      ? { color: kueueLabelColor }
+                      : undefined
+                  }
+                >
+                  {sub.label}
+                </span>
+                {sub.description && <Content component="small">{sub.description}</Content>}
               </FlexItem>
             </Flex>
           ),
-          children: step.subSteps?.map((sub) => ({
-            id: `${sub.stepKind}-${sub.containerName ?? ''}`,
-            name: (
-              <Flex
-                component="span"
-                gap={{ default: 'gapSm' }}
-                alignItems={{ default: 'alignItemsFlexStart' }}
-                flexWrap={{ default: 'nowrap' }}
-                data-testid={`step-status-${sub.status}`}
-              >
-                <FlexItem component="span" style={{ flexShrink: 0 }}>
-                  {stepIcons[sub.status]}
-                </FlexItem>
-                <FlexItem component="span">
-                  {sub.label}
-                  {sub.description && <Content component="small">{sub.description}</Content>}
-                </FlexItem>
-              </Flex>
-            ),
-          })),
-          defaultExpanded: expandedNodeIds.has(nodeId),
-          isExpanded: expandedNodeIds.has(nodeId),
-        };
-      }),
-    [notebookProgress, expandedNodeIds],
-  );
+        })),
+        defaultExpanded: expandedNodeIds.has(nodeId),
+        isExpanded: expandedNodeIds.has(nodeId),
+      };
+    });
+  }, [notebookProgress, expandedNodeIds, kueueStatus]);
 
   const renderProgress = () => (
     <Flex direction={{ default: 'column' }} gap={{ default: 'gapMd' }} style={{ height: '100%' }}>
       <FlexItem>
         <HelperText>
-          <HelperTextItem variant="indeterminate" icon={<InfoCircleIcon />}>
+          <HelperTextItem
+            variant="indeterminate"
+            icon={<InfoCircleIcon style={{ color: PurpleColor.var }} />}
+            style={{ fontWeight: BoldWeight.var }}
+          >
             Steps may repeat or occur in any order, depending on the workbench&apos;s priority in
             the queue and current resource availability.
           </HelperTextItem>

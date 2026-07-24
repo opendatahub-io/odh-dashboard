@@ -5,9 +5,9 @@ export {
   HardwareProfileBindingState,
   HARDWARE_PROFILE_SELECTION_HELP,
   HARDWARE_PROFILE_BINDING_CONFIG,
+  LOCAL_QUEUE_MISSING_BODY,
   MODEL_SERVING_VISIBILITY,
   INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS,
-  QueueSource,
 } from '@odh-dashboard/hardware-profiles/shared/const';
 
 export const HARDWARE_PROFILES_MISSING_CPU_MEMORY_MESSAGE =

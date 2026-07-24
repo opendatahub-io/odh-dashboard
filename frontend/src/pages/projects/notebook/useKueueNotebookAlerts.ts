@@ -53,13 +53,13 @@ const fireAlert = (
       kueueInfo.message,
       kueueInfo.queueName,
     );
-    notification.error(`Workbench ${displayName} failed to start`, reason, actions);
+    notification.error(`Workbench ${displayName} failed`, reason, actions);
   } else if (kueueInfo.status === KueueWorkloadStatus.Preempted) {
     const body = getPreemptionToastBody(displayName, kueueInfo.timestamp);
-    notification.warning(`Workbench ${displayName} was preempted`, body, actions);
+    notification.warning(`Workbench ${displayName} preempted`, body, actions);
   } else if (kueueInfo.status === KueueWorkloadStatus.Evicted) {
-    const body = getEvictionToastBody(displayName, kueueInfo.message);
-    notification.warning(`Workbench ${displayName} was evicted`, body, actions);
+    const body = getEvictionToastBody(displayName, kueueInfo.message, kueueInfo.timestamp);
+    notification.warning(`Workbench ${displayName} evicted`, body, actions);
   }
 };
 
