@@ -242,6 +242,7 @@ const getNodesForTasks = (
   events?: Event[] | null,
   artifacts?: Artifact[],
   allExecutions?: Execution[] | null,
+  childIndex?: Map<number, Execution[]>,
 ): [nestedNodes: PipelineNodeModelExpanded[], children: string[]] => {
   const nodes: PipelineNodeModelExpanded[] = [];
   const children: string[] = [];
@@ -334,7 +335,7 @@ const getNodesForTasks = (
       // RUNNING state even after all children complete.  Find the sub-DAG's
       // own execution and recursively derive its effective status.
       const fullExecs = allExecutions ?? executions ?? [];
-      const childIndex = buildChildrenIndex(fullExecs);
+      const resolvedChildIndex = childIndex ?? buildChildrenIndex(fullExecs);
       const subDagExecution =
         dagExecution ??
         fullExecs.find(
@@ -342,7 +343,7 @@ const getNodesForTasks = (
             e.getCustomPropertiesMap().get('task_name')?.getStringValue() === (taskName || taskId),
         );
       if (subDagExecution) {
-        const effectiveState = getEffectiveExecutionState(subDagExecution, childIndex);
+        const effectiveState = getEffectiveExecutionState(subDagExecution, resolvedChildIndex);
         const aggregateState = executionStateToKF(effectiveState);
         const isTerminal =
           effectiveState === Execution.State.COMPLETE ||
@@ -383,7 +384,7 @@ const getNodesForTasks = (
           let iterStatus: PipelineTask['status'];
           let iterRunStatus;
           if (iterExecution) {
-            const effectiveState = getEffectiveExecutionState(iterExecution, childIndex);
+            const effectiveState = getEffectiveExecutionState(iterExecution, resolvedChildIndex);
             const effectiveStateKF = executionStateToKF(effectiveState);
             const isTerminal =
               effectiveState === Execution.State.COMPLETE ||
@@ -479,6 +480,7 @@ const getNodesForTasks = (
             events,
             artifacts,
             allExecutions ?? executions,
+            resolvedChildIndex,
           );
 
           const iterGroupNode = createGroupNode(
@@ -525,6 +527,7 @@ const getNodesForTasks = (
           events,
           artifacts,
           allExecutions ?? executions,
+          resolvedChildIndex,
         );
 
         // Recompute runStatus from the (possibly aggregated) pipelineTask.status
@@ -584,6 +587,7 @@ export const usePipelineTaskTopology = (
     const componentArtifactMap = parseComponentsForArtifactRelationship(components);
     const taskArtifactMap = parseTasksForArtifactRelationship('root', tasks);
     const executionLinkedArtifactMap = getExecutionLinkedArtifactMap(artifacts, events);
+    const topLevelChildIndex = executions ? buildChildrenIndex(executions) : undefined;
 
     return _.uniqBy(
       getNodesForTasks(
@@ -601,6 +605,7 @@ export const usePipelineTaskTopology = (
         outputEvents,
         artifacts,
         executions,
+        topLevelChildIndex,
       )[0],
       (node) => node.id,
     );
