@@ -498,6 +498,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
                   connections={notebookConnections}
                   canEnablePipelines={canEnablePipelines}
                   selectedFeatureStores={selectedFeatureStores}
+                  existingNotebook={existingNotebook}
                 />
               )}
             </CanEnableElyraPipelinesCheck>

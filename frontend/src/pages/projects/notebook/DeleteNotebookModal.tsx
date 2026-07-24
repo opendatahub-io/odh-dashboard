@@ -4,6 +4,7 @@ import {
   DATA_CONNECTION_PREFIX,
   getDisplayNameFromK8sResource,
   isGeneratedSecretName,
+  K8sStatusError,
 } from '@odh-dashboard/k8s-core';
 import { TrackingOutcome } from '@odh-dashboard/ui-core';
 import { NotebookKind } from '#~/k8sTypes';
@@ -88,7 +89,7 @@ const DeleteNotebookModal: React.FC<DeleteNotebookModalProps> = ({ notebook, onC
             fireFormTrackingEvent(WorkbenchTrackingEvent.Deleted, {
               outcome: TrackingOutcome.submit,
               success: false,
-              error: e instanceof Error ? e.message : String(e),
+              error: e instanceof K8sStatusError ? `k8s_${e.statusObject.code}` : 'unknown_error',
               projectName: namespace,
               notebookName: notebook.metadata.name,
               ...getWorkbenchKueueTrackingProperties({ kueueStatus }),

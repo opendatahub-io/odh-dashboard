@@ -50,6 +50,8 @@ type SpawnerFooterProps = {
   connections: Connection[];
   canEnablePipelines: boolean;
   selectedFeatureStores?: SelectedFeatureStoreConfig[];
+  /** Present when editing; prefer this over looking up the notebook from context. */
+  existingNotebook?: NotebookKind;
 };
 
 const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
@@ -59,6 +61,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
   connections = [],
   canEnablePipelines,
   selectedFeatureStores = [],
+  existingNotebook,
 }) => {
   const [error, setError] = React.useState<K8sStatusError>();
   const {
@@ -73,7 +76,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
 
   const isProjectScopedAvailable = useIsAreaAvailable(SupportedArea.DS_PROJECT_SCOPED).status;
 
-  const editNotebook = notebookState?.notebook;
+  const editNotebook = existingNotebook ?? notebookState?.notebook;
   const { projectName } = startNotebookData;
   const navigate = useNavigate();
   const [createInProgress, setCreateInProgress] = React.useState(false);
@@ -159,11 +162,14 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
     navigate(workbenchesHref);
   };
   const handleError = (e: K8sStatusError) => {
-    fireFormTrackingEvent(WorkbenchTrackingEvent.Created, {
-      outcome: TrackingOutcome.submit,
-      success: false,
-      error: e.message,
-    });
+    fireFormTrackingEvent(
+      editNotebook ? WorkbenchTrackingEvent.Updated : WorkbenchTrackingEvent.Created,
+      {
+        outcome: TrackingOutcome.submit,
+        success: false,
+        error: `k8s_${e.statusObject.code}`,
+      },
+    );
     setError(e);
     setCreateInProgress(false);
   };
@@ -245,14 +251,15 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
   };
 
   const onUpdateNotebook = async () => {
+    if (!editNotebook) {
+      return;
+    }
     handleStart();
     updateNotebookPromise(true)
       .then(() =>
         updateNotebookPromise(false)
           .then((notebook) => {
-            if (notebook) {
-              afterStart(notebook.metadata.name, 'updated');
-            }
+            afterStart(notebook?.metadata.name ?? editNotebook.metadata.name, 'updated');
           })
           .catch(handleError),
       )
@@ -320,8 +327,11 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
                     onClick={() =>
                       updateNotebookPromise(false)
                         .then((notebook) => {
-                          if (notebook) {
-                            afterStart(notebook.metadata.name, 'updated');
+                          if (editNotebook) {
+                            afterStart(
+                              notebook?.metadata.name ?? editNotebook.metadata.name,
+                              'updated',
+                            );
                           }
                         })
                         .catch(handleError)
