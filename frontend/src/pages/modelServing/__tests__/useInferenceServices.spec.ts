@@ -3,9 +3,9 @@ import { k8sListResource } from '@openshift/dynamic-plugin-sdk-utils';
 import { standardUseFetchStateObject, testHook } from '@odh-dashboard/jest-config/hooks';
 import { KnownLabels } from '@odh-dashboard/k8s-core';
 import type { InferenceServiceKind } from '@odh-dashboard/model-serving/shared';
+import { useAccessReview } from '@odh-dashboard/plugin-core/host-api';
 import useModelServingEnabled from '#~/pages/modelServing/useModelServingEnabled';
 import useInferenceServices from '#~/pages/modelServing/useInferenceServices';
-import { useAccessReview } from '#~/api';
 import { mockK8sResourceList } from '#~/__mocks__/mockK8sResourceList';
 import { mockInferenceServiceK8sResource } from '#~/__mocks__/mockInferenceServiceK8sResource';
 
@@ -42,9 +42,7 @@ jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
   k8sListResource: jest.fn(),
 }));
 
-// Mock the API functions
-jest.mock('#~/api', () => ({
-  ...jest.requireActual('#~/api'),
+jest.mock('@odh-dashboard/plugin-core/host-api', () => ({
   useAccessReview: jest.fn(),
 }));
 

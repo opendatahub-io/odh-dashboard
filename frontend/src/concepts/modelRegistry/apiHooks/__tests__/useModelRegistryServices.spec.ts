@@ -2,7 +2,8 @@ import { act } from 'react';
 import { k8sGetResource } from '@openshift/dynamic-plugin-sdk-utils';
 import { waitFor } from '@testing-library/react';
 import { testHook } from '@odh-dashboard/jest-config/hooks';
-import { useAccessReview, useRulesReview, listServices } from '#~/api';
+import { useAccessReview } from '@odh-dashboard/plugin-core/host-api';
+import { useRulesReview, listServices } from '#~/api';
 import { ServiceKind } from '#~/k8sTypes';
 import {
   useModelRegistryServices,
@@ -16,9 +17,12 @@ jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
 }));
 
 jest.mock('#~/api', () => ({
-  useAccessReview: jest.fn(),
   useRulesReview: jest.fn(),
   listServices: jest.fn(),
+}));
+
+jest.mock('@odh-dashboard/plugin-core/host-api', () => ({
+  useAccessReview: jest.fn(),
 }));
 
 jest.mock('#~/concepts/modelRegistry/apiHooks/useModelRegistryServices', () => ({
@@ -29,8 +33,6 @@ jest.mock('#~/concepts/modelRegistry/apiHooks/useModelRegistryServices', () => (
 jest.mock('#~/api/useRulesReview', () => ({
   useRulesReview: jest.fn(),
 }));
-
-jest.mock('#~/api/useAccessReview');
 jest.mock('#~/api/useRulesReview');
 const objectToStandardUseFetchState = (obj: ModelRegistryServicesResult) => [
   obj.modelRegistryServices,

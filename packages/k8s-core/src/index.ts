@@ -62,6 +62,7 @@ export type {
   DataScienceClusterComponentStatus,
   DataScienceClusterKindStatus,
   DataScienceClusterInitializationKindStatus,
+  K8sWatchResult,
 } from './k8sTypes';
 
 export {
@@ -75,6 +76,7 @@ export {
   getConditionForType,
   isConditionInStatus,
   kindApiVersion,
+  getPvcAccessMode,
 } from './k8sResourceUtils';
 export type {
   AdditionalCriteriaForTranslation,

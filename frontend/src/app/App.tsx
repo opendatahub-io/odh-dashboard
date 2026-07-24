@@ -33,6 +33,7 @@ import { PluginStoreAreaFlagsProvider } from '#~/plugins/PluginStoreAreaFlagsPro
 import { OdhPlatformType } from '#~/types';
 import { HardwareProfilesContextProvider } from '#~/concepts/hardwareProfiles/HardwareProfilesContext';
 import { useFederatedNotificationListener } from '#~/utilities/useFederatedNotificationListener';
+import HostApiProvider from './HostApiProvider';
 import Header from './Header';
 import AppRoutes from './AppRoutes';
 import NavSidebar from './NavSidebar';
@@ -151,52 +152,54 @@ const App: React.FC = () => {
       <AppContext.Provider value={contextValue}>
         <AreaContextProvider flags={devFeatureFlagsProps.devFeatureFlags}>
           <PluginStoreAreaFlagsProvider />
-          <AccessReviewProvider>
-            <Page
-              className="odh-dashboard"
-              isManagedSidebar
-              isContentFilled
-              masthead={
-                <Header
-                  dashboardConfig={dashboardConfig.spec.dashboardConfig}
-                  {...devFeatureFlagsProps}
-                  onNotificationsClick={() => setNotificationsOpen(!notificationsOpen)}
-                />
-              }
-              sidebar={isAllowed ? <NavSidebar /> : undefined}
-              notificationDrawer={
-                <AppNotificationDrawer onClose={() => setNotificationsOpen(false)} />
-              }
-              isNotificationDrawerExpanded={notificationsOpen}
-              mainContainerId={DASHBOARD_MAIN_CONTAINER_ID}
-              data-testid={DASHBOARD_MAIN_CONTAINER_ID}
-              banner={
-                <DevFeatureFlagsBanner
-                  dashboardConfig={dashboardConfig.spec.dashboardConfig}
-                  {...devFeatureFlagsProps}
-                />
-              }
-            >
-              <ErrorBoundary>
-                <IntegrationsStatusProvider>
-                  <ProjectsContextProvider>
-                    <HardwareProfilesContextProvider>
-                      <ModelRegistriesContextProvider>
-                        <QuickStarts>
-                          <NotificationWatcherContextProvider pollInterval={POLL_INTERVAL}>
-                            <AppRoutes />
-                          </NotificationWatcherContextProvider>
-                        </QuickStarts>
-                      </ModelRegistriesContextProvider>
-                    </HardwareProfilesContextProvider>
-                  </ProjectsContextProvider>
-                </IntegrationsStatusProvider>
-                <ToastNotifications />
-                <TelemetrySetup />
-                <WhatsNewModal />
-              </ErrorBoundary>
-            </Page>
-          </AccessReviewProvider>
+          <HostApiProvider>
+            <AccessReviewProvider>
+              <Page
+                className="odh-dashboard"
+                isManagedSidebar
+                isContentFilled
+                masthead={
+                  <Header
+                    dashboardConfig={dashboardConfig.spec.dashboardConfig}
+                    {...devFeatureFlagsProps}
+                    onNotificationsClick={() => setNotificationsOpen(!notificationsOpen)}
+                  />
+                }
+                sidebar={isAllowed ? <NavSidebar /> : undefined}
+                notificationDrawer={
+                  <AppNotificationDrawer onClose={() => setNotificationsOpen(false)} />
+                }
+                isNotificationDrawerExpanded={notificationsOpen}
+                mainContainerId={DASHBOARD_MAIN_CONTAINER_ID}
+                data-testid={DASHBOARD_MAIN_CONTAINER_ID}
+                banner={
+                  <DevFeatureFlagsBanner
+                    dashboardConfig={dashboardConfig.spec.dashboardConfig}
+                    {...devFeatureFlagsProps}
+                  />
+                }
+              >
+                <ErrorBoundary>
+                  <IntegrationsStatusProvider>
+                    <ProjectsContextProvider>
+                      <HardwareProfilesContextProvider>
+                        <ModelRegistriesContextProvider>
+                          <QuickStarts>
+                            <NotificationWatcherContextProvider pollInterval={POLL_INTERVAL}>
+                              <AppRoutes />
+                            </NotificationWatcherContextProvider>
+                          </QuickStarts>
+                        </ModelRegistriesContextProvider>
+                      </HardwareProfilesContextProvider>
+                    </ProjectsContextProvider>
+                  </IntegrationsStatusProvider>
+                  <ToastNotifications />
+                  <TelemetrySetup />
+                  <WhatsNewModal />
+                </ErrorBoundary>
+              </Page>
+            </AccessReviewProvider>
+          </HostApiProvider>
         </AreaContextProvider>
       </AppContext.Provider>
     </DashboardConfigContext.Provider>

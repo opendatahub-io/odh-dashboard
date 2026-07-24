@@ -406,3 +406,5 @@ export type DataScienceClusterInitializationKindStatus = {
   components?: Record<string, never>;
   phase?: string;
 };
+
+export type K8sWatchResult<T> = [data: T, loaded: boolean, error: Error | undefined];

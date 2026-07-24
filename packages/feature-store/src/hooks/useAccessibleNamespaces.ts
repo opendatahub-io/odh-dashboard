@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { ProjectKind } from '@odh-dashboard/k8s-core';
 import { ProjectsContext } from '@odh-dashboard/internal/concepts/projects/ProjectsContext';
-import { checkAccess } from '@odh-dashboard/internal/api/useAccessReview';
+import { useHostApi } from '@odh-dashboard/plugin-core/host-api';
 import { FeatureStoreModel } from '@odh-dashboard/internal/api/models/odh';
 import useFetch, {
   FetchStateCallbackPromise,
@@ -21,6 +21,7 @@ type UseAccessibleNamespacesReturn = {
 
 const useAccessibleNamespaces = (): UseAccessibleNamespacesReturn => {
   const { projects, loaded: projectsLoaded } = React.useContext(ProjectsContext);
+  const { checkAccess } = useHostApi();
 
   const fetchAccessibleNamespaces = React.useCallback<
     FetchStateCallbackPromise<NamespaceInfo[]>
@@ -50,7 +51,7 @@ const useAccessibleNamespaces = (): UseAccessibleNamespacesReturn => {
     ).then((results) =>
       results.filter((r) => r.allowed).map((r) => ({ name: r.name, displayName: r.displayName })),
     );
-  }, [projects, projectsLoaded]);
+  }, [projects, projectsLoaded, checkAccess]);
 
   const { data: namespaces, loaded, error } = useFetch(fetchAccessibleNamespaces, []);
 

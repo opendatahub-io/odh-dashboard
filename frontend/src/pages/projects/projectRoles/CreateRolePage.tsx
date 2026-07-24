@@ -15,7 +15,7 @@ import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
 import { getDisplayNameFromK8sResource, translateDisplayNameForK8s } from '@odh-dashboard/k8s-core';
 import { useK8sNameDescriptionFieldData } from '@odh-dashboard/ui-core/components/K8sNameDescriptionField';
 import { ApplicationsPage, TrackingOutcome } from '@odh-dashboard/ui-core';
-import { useAccessReview } from '#~/api/useAccessReview';
+import { useAccessReview } from '@odh-dashboard/plugin-core/host-api';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import { RoleKind } from '#~/k8sTypes';
 import { createRole, updateRole } from '#~/api';
