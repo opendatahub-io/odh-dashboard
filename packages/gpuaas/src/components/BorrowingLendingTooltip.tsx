@@ -110,7 +110,7 @@ const buildTooltipSnapshot = (
 const TooltipSeriesEntry: React.FC<TooltipSeriesEntryProps> = ({ point, info, color }) => {
   const net = Math.round(point.y);
   const quota = Math.round(point.nominalQuota ?? 0);
-  const usage = Math.round(point.y + (point.nominalQuota ?? 0));
+  const usage = Math.round(point.gpuUsage ?? point.y + (point.nominalQuota ?? 0));
   const borrowing = Math.max(0, net);
   const entryLabel = getEntryLabel(info, point.childName ?? '');
 

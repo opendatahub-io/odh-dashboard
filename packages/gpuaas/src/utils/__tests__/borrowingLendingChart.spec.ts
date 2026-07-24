@@ -35,7 +35,7 @@ const makeSeries = (
   cqName,
   cohortName,
   nominalQuota: 4,
-  data: yValues.map((y, i) => ({ x: i * 1000, y })),
+  data: yValues.map((y, i) => ({ x: i * 1000, y, gpuUsage: y + 4 })),
 });
 
 /** Returns a ref-like object whose getBoundingClientRect reports the given origin. */
