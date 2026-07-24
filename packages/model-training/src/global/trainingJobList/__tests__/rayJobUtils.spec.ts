@@ -1,4 +1,4 @@
-import { WorkloadCondition, WorkloadKind } from '@odh-dashboard/internal/k8sTypes';
+import { WorkloadCondition, WorkloadKind } from '@odh-dashboard/k8s-core';
 import { mockRayJobK8sResource } from '../../../__mocks__/mockRayJobK8sResource';
 import { mockTrainJobK8sResource } from '../../../__mocks__/mockTrainJobK8sResource';
 import {

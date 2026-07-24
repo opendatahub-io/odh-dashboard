@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { renderHook, waitFor, act } from '@testing-library/react';
-import { ProjectsContext } from '@odh-dashboard/internal/concepts/projects/ProjectsContext';
+import { ProjectsContext } from '@odh-dashboard/ui-core/context/ProjectsContext';
 import { ProjectKind } from '@odh-dashboard/k8s-core';
 import { FeatureStoreKind } from '../../k8sTypes';
 import { listFeatureStores } from '../../api/featureStores';

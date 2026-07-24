@@ -10,9 +10,9 @@ import {
   FlexItem,
 } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
-import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
+import { byName, getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import { WORKSPACE_QUERY_PARAM } from '@odh-dashboard/internal/routes/pipelines/mlflow';
-import { byName, ProjectsContext } from '@odh-dashboard/internal/concepts/projects/ProjectsContext';
+import { ProjectsContext } from '@odh-dashboard/ui-core/context/ProjectsContext';
 import { ProjectIconWithSize } from '@odh-dashboard/internal/concepts/projects/ProjectIconWithSize';
 import { IconSize } from '@odh-dashboard/internal/types';
 import './MlflowBreadcrumbs.scss';

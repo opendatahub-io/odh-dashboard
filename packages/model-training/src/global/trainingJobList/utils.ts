@@ -12,8 +12,7 @@ import {
   PlayIcon,
 } from '@patternfly/react-icons';
 import { AlertVariant, LabelProps } from '@patternfly/react-core';
-import { WorkloadCondition } from '@odh-dashboard/internal/k8sTypes';
-import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
+import { getDisplayNameFromK8sResource, WorkloadCondition } from '@odh-dashboard/k8s-core';
 import type { JobsFilterDataType } from './const';
 import { TrainJobKind, RayJobKind, RayClusterKind, RayClusterSpec } from '../../k8sTypes';
 import {

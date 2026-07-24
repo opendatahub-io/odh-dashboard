@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { ProjectsContext } from '@odh-dashboard/internal/concepts/projects/ProjectsContext';
+import { ProjectsContext } from '@odh-dashboard/ui-core/context/ProjectsContext';
 import type { ProjectsBridgeData } from '@mf/modelRegistry/extension-points';
 
 type ProjectsBridgeProviderProps = {

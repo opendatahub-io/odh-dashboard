@@ -1,4 +1,4 @@
-import { ClusterQueueKind, ResourceFlavorKind } from '@odh-dashboard/internal/k8sTypes';
+import { ClusterQueueKind, ResourceFlavorKind } from '@odh-dashboard/k8s-core';
 import parseK8sQuantity from './parseK8sQuantity';
 import { ACCELERATOR_RESOURCE_REGEX } from '../const';
 
