@@ -98,6 +98,11 @@ dev-portforward: ## Start port-forwarding for cluster services (Llama Stack, opt
 		echo "Starting port-forward for ASR model ($${ASR_SERVICE_NAME}) on port $${ASR_LOCAL_PORT:-8790}..."; \
 		oc port-forward -n ${PLAYGROUND_NAMESPACE} svc/$${ASR_SERVICE_NAME} $${ASR_LOCAL_PORT:-8790}:8080 & \
 	fi
+	@if echo "${NEMO_GUARDRAILS_URL}" | grep -q "localhost"; then \
+		sleep 1; \
+		echo "Starting port-forward for nemoguardrails on port 9443..."; \
+		oc port-forward -n ${PLAYGROUND_NAMESPACE} svc/nemoguardrails 9443:443 & \
+	fi
 	@echo "Port-forwarding started in background!"
 
 .PHONY: dev-start
