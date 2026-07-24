@@ -38,6 +38,7 @@ export type MockDashboardConfigType = {
   disableLMEval?: boolean;
   disableKueue?: boolean;
   disableFeatureStore?: boolean;
+  featureStoreAdmin?: boolean;
   genAiStudio?: boolean;
   genAiTracing?: boolean;
   automl?: boolean;
@@ -57,6 +58,7 @@ export type MockDashboardConfigType = {
   toolCalling?: boolean;
   projectRBAC?: boolean;
   disableLLMd?: boolean;
+  llmdTemplates?: boolean;
   deploymentWizardYAMLViewer?: boolean;
   vLLMDeploymentOnMaaS?: boolean;
   llmGatewayField?: boolean;
@@ -122,9 +124,11 @@ export const mockDashboardConfig = ({
   disableLMEval = true,
   disableKueue = true,
   disableFeatureStore = true,
+  featureStoreAdmin = false,
   trainingJobs = true,
   observabilityDashboard = true,
   disableLLMd = false,
+  llmdTemplates = false,
   deploymentWizardYAMLViewer = false,
   externalVectorStores = false,
   agentConfigManagement = false,
@@ -136,7 +140,7 @@ export const mockDashboardConfig = ({
   agentOps = false,
   agentOpsDeploy = false,
   agentsCatalog = false,
-  roleManagement = false,
+  roleManagement = true,
   gpuaas = true,
   connectionTest = false,
   hardwareProfileOrder = ['test-hardware-profile'],
@@ -315,9 +319,11 @@ export const mockDashboardConfig = ({
       disableLMEval,
       disableKueue,
       disableFeatureStore,
+      featureStoreAdmin,
       trainingJobs,
       observabilityDashboard,
       disableLLMd,
+      llmdTemplates,
       deploymentWizardYAMLViewer,
       externalVectorStores,
       agentConfigManagement,

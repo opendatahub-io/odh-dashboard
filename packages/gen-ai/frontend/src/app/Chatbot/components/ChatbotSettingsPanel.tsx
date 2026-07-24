@@ -521,7 +521,7 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
             }}
             data-testid="settings-panel-save-as-button"
           >
-            Save as agent
+            Save as new agent
           </Button>
           {profileApplied && onResetToLastSaved && (
             <Button
@@ -531,7 +531,7 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
               onClick={() => setShowResetModal(true)}
               data-testid="settings-panel-reset-button"
             >
-              Reset to last saved
+              Revert
             </Button>
           )}
         </div>
@@ -546,7 +546,7 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
           data-testid="reset-agent-modal"
         >
           <ModalHeader
-            title="Reset to last saved agent?"
+            title="Revert to last saved agent?"
             labelId="reset-agent-modal-title"
             titleIconVariant="warning"
           />
@@ -560,7 +560,7 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
               }}
               data-testid="reset-agent-confirm-button"
             >
-              Reset
+              Revert
             </Button>
             <Button variant="link" onClick={() => setShowResetModal(false)}>
               Cancel

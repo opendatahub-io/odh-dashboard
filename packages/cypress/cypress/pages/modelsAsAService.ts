@@ -496,7 +496,7 @@ class AdminBulkRevokeAPIKeyModal extends Modal {
 
 class SubscriptionsPage {
   visit(): void {
-    cy.visitWithLogin('/maas/subscriptions');
+    cy.visitWithLogin('/maas/maas-governance/subscriptions');
     this.wait();
   }
 
@@ -667,7 +667,7 @@ class SubscriptionTableRow extends TableRow {
 
 class CreateSubscriptionPage {
   visit(): void {
-    cy.visitWithLogin('/maas/subscriptions/create');
+    cy.visitWithLogin('/maas/maas-governance/subscriptions/create');
     this.wait();
   }
 
@@ -760,7 +760,7 @@ class CreateSubscriptionPage {
 
 class EditSubscriptionPage {
   visit(name: string): void {
-    cy.visitWithLogin(`/maas/subscriptions/edit/${name}`);
+    cy.visitWithLogin(`/maas/maas-governance/subscriptions/edit/${name}`);
     this.wait();
   }
 
@@ -914,7 +914,7 @@ class DeleteSubscriptionModal extends DeleteModal {
 }
 class ViewSubscriptionPage {
   visit(name: string): void {
-    cy.visitWithLogin(`/maas/subscriptions/view/${name}`);
+    cy.visitWithLogin(`/maas/maas-governance/subscriptions/view/${name}`);
     this.wait();
   }
 
@@ -979,8 +979,8 @@ class ViewSubscriptionPage {
 class PolicyPage {
   visit(policyName?: string): void {
     const path = policyName
-      ? `/maas/auth-policies/edit/${encodeURIComponent(policyName)}`
-      : '/maas/auth-policies/create';
+      ? `/maas/maas-governance/auth-policies/edit/${encodeURIComponent(policyName)}`
+      : '/maas/maas-governance/auth-policies/create';
     cy.visitWithLogin(path);
     this.wait();
   }
@@ -1043,7 +1043,7 @@ class PolicyPage {
 
 class AuthPoliciesPage {
   visit(): void {
-    cy.visitWithLogin('/maas/auth-policies');
+    cy.visitWithLogin('/maas/maas-governance/auth-policies');
     this.wait();
   }
 
@@ -1232,7 +1232,7 @@ class DeleteAuthPolicyModal extends DeleteModal {
 
 class ViewAuthPolicyPage {
   visit(name: string): void {
-    cy.visitWithLogin(`/maas/auth-policies/view/${name}`);
+    cy.visitWithLogin(`/maas/maas-governance/auth-policies/view/${name}`);
     this.wait();
   }
 

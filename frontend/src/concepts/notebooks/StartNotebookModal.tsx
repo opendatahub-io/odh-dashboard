@@ -47,6 +47,7 @@ import {
   OutlinedClockIcon,
 } from '@patternfly/react-icons';
 import type { PodContainerStatus } from '@odh-dashboard/k8s-core';
+import { TrackingOutcome } from '@odh-dashboard/ui-core';
 import { EventStatus, NotebookStatus } from '#~/types';
 import { EventKind, NotebookKind } from '#~/k8sTypes';
 import { useNotebookProgress, getNotebookDisplayName } from '#~/utilities/notebookControllerUtils';
@@ -64,6 +65,13 @@ import {
 import { getHumanReadableKueueMessage, getRequeuedMessage } from '#~/concepts/kueue/messageUtils';
 import { KUEUE_QUEUE_LABEL } from '#~/concepts/kueue/index';
 import EventLog from '#~/concepts/k8s/EventLog/EventLog';
+import { fireMiscTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
+import {
+  fireWorkbenchProgressStepExpanded,
+  fireWorkbenchStatusModalAction,
+  getWorkbenchKueueTrackingProperties,
+  WorkbenchTrackingEvent,
+} from '#~/concepts/kueue/workbenchTracking';
 import NotebookStatusLabel from './NotebookStatusLabel';
 import './StartNotebookModal.scss';
 
@@ -98,6 +106,10 @@ const stepIcons: Record<EventStatus, React.ReactNode> = {
   [EventStatus.PENDING]: <OutlinedClockIcon />,
 };
 
+type StartNotebookModalButtonsContext = {
+  activeTab: string;
+};
+
 type StartNotebookModalProps = {
   notebook?: NotebookKind;
   isStarting: boolean;
@@ -108,7 +120,9 @@ type StartNotebookModalProps = {
   kueueStatus?: KueueWorkloadStatusWithMessage | null;
   containerStatuses?: PodContainerStatus[];
   onClose?: () => void;
-  buttons: React.ReactNode;
+  buttons: React.ReactNode | ((ctx: StartNotebookModalButtonsContext) => React.ReactNode);
+  /** When true, fire Workbench Status Modal Action Clicked for close. */
+  trackStatusModalActions?: boolean;
 };
 
 type SpawnStatus = {
@@ -128,6 +142,7 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
   containerStatuses,
   onClose,
   buttons,
+  trackStatusModalActions = false,
 }) => {
   const [spawnStatus, setSpawnStatus] = React.useState<SpawnStatus | null>(null);
   const isError = notebookStatus?.currentStatus === EventStatus.ERROR;
@@ -174,6 +189,28 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
   const { isProjectKueueEnabled, isKueueFeatureEnabled } = useKueueConfiguration(project);
   const showResourcesTab = Boolean(isKueueFeatureEnabled && isProjectKueueEnabled);
   const [activeTab, setActiveTab] = React.useState<string>(PROGRESS_TAB);
+
+  const kueueTrackingInput = React.useMemo(
+    () => ({
+      kueueStatus: kueueStatus ?? null,
+      isStarting,
+      isRunning,
+      isStopping,
+    }),
+    [kueueStatus, isStarting, isRunning, isStopping],
+  );
+
+  const handleClose = React.useCallback(() => {
+    if (trackStatusModalActions) {
+      fireWorkbenchStatusModalAction(
+        'close',
+        TrackingOutcome.cancel,
+        activeTab,
+        kueueTrackingInput,
+      );
+    }
+    onClose?.();
+  }, [trackStatusModalActions, activeTab, kueueTrackingInput, onClose]);
 
   React.useEffect(() => {
     if (!showResourcesTab && activeTab === RESOURCES_TAB) {
@@ -505,6 +542,14 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
                 next.delete(id);
                 return next;
               });
+              const parentStep = notebookProgress.find(
+                (step) => `${step.stepKind}-${step.containerName ?? ''}` === id,
+              );
+              const subStep = notebookProgress
+                .flatMap((step) => step.subSteps ?? [])
+                .find((sub) => `${sub.stepKind}-${sub.containerName ?? ''}` === id);
+              const stepName = parentStep?.label ?? subStep?.label ?? id;
+              fireWorkbenchProgressStepExpanded(stepName, kueueStatus);
             }
           }}
           onCollapse={(_, item) => {
@@ -541,7 +586,7 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
       appendTo={document.body}
       variant={ModalVariant.small}
       isOpen
-      onClose={onClose}
+      onClose={handleClose}
       data-testid="notebook-status-modal"
     >
       <ModalHeader
@@ -570,7 +615,21 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
           <StackItem>
             <Tabs
               activeKey={activeTab}
-              onSelect={(_ev, tabIndex) => setActiveTab(`${tabIndex}`)}
+              onSelect={(_ev, tabIndex) => {
+                const nextTab = `${tabIndex}`;
+                if (nextTab !== activeTab) {
+                  const { primaryWorkbenchStatus, kueueSubState } =
+                    getWorkbenchKueueTrackingProperties(kueueTrackingInput);
+                  fireMiscTrackingEvent(WorkbenchTrackingEvent.StatusModalTabSwitched, {
+                    progressTab: nextTab === PROGRESS_TAB,
+                    eventlogTab: nextTab === EVENT_LOG_TAB,
+                    resourcesTab: nextTab === RESOURCES_TAB,
+                    primaryWorkbenchStatus,
+                    kueueSubState,
+                  });
+                }
+                setActiveTab(nextTab);
+              }}
               aria-label="status details"
             >
               <Tab
@@ -600,7 +659,7 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
           </StackItem>
         </Stack>
       </ModalBody>
-      <ModalFooter>{buttons}</ModalFooter>
+      <ModalFooter>{typeof buttons === 'function' ? buttons({ activeTab }) : buttons}</ModalFooter>
     </Modal>
   );
 };

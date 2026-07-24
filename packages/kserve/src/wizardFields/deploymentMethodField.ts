@@ -11,7 +11,8 @@ export const legacyDeploymentMethodOverride: DeploymentMethodFieldOverride = {
       key: LEGACY_GENERATIVE_DEPLOYMENT_METHOD_KEY,
       label: 'Legacy deployment',
       description:
-        'Deploy a model using a serving runtime and inference server. This deployment method does not support Models as a Service.',
+        'Deploy using a serving runtime template. Use this option for non-LLM models or for compatibility with previous deployments. This method does not support Models as a Service.',
+      order: 3,
     },
   ],
 };

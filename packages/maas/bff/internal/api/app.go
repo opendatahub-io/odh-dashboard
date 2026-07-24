@@ -139,17 +139,12 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		maasFakeServer = maas.CreateMaasFakeServer()
 		logger.Info("MaaS Fake API Server is running", "url", maasFakeServer.URL)
 		cfg.MaasApiUrl = maasFakeServer.URL
-	} else {
-		// Fallback to discovery of MaaS API url, when not provided via envvar, or cmd flags
-		if cfg.MaasApiUrl == "" {
-			clusterDomain, err := helper.GetClusterDomainUsingServiceAccount(context.Background(), logger)
-			if err != nil {
-				logger.Error("Failed to auto-discover cluster domain, MaaS API URL will be unavailable", "error", err)
-			} else {
-				cfg.MaasApiUrl = fmt.Sprintf("https://maas.%s/maas-api", clusterDomain)
-				logger.Info("Using automatically discovered MaaS URL", "url", cfg.MaasApiUrl)
-			}
+	} else if cfg.MaasApiUrl == "" {
+		discoveredURL, err := helper.DiscoverMaasApiURL(context.Background(), cfg, logger, rootCAs)
+		if err != nil {
+			return nil, fmt.Errorf("failed to discover MaaS API URL via /v1/tenants: %w", err)
 		}
+		cfg.MaasApiUrl = discoveredURL
 	}
 
 	if err != nil {

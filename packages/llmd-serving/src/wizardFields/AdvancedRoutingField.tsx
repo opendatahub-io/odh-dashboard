@@ -1,6 +1,5 @@
 import React from 'react';
 import {
-  Content,
   FormGroup,
   FormHelperText,
   HelperText,
@@ -152,13 +151,16 @@ const AdvancedRoutingFieldComponent: AdvancedRoutingFieldType['component'] = ({
   const selectedValue = value?.selectedConfig?.metadata.name ?? DEFAULT_ROUTING_KEY;
 
   return (
-    <FormGroup fieldId="advanced-routing" label="Advanced routing" isRequired>
+    <FormGroup fieldId="advanced-routing" label="Routing" isRequired>
+      <FormHelperText>
+        <HelperText>
+          <HelperTextItem>
+            Select an administrator-defined routing configuration for this topology, or use the
+            default.
+          </HelperTextItem>
+        </HelperText>
+      </FormHelperText>
       <Stack hasGutter>
-        <StackItem>
-          <Content component="p">
-            Select the llm-d routing configuration for this deployment
-          </Content>
-        </StackItem>
         <StackItem>
           <SimpleSelect
             isFullWidth
@@ -200,7 +202,7 @@ const getReviewSections = (value: AdvancedRoutingFieldData): WizardReviewSection
     items: [
       {
         key: 'routing-config',
-        label: 'Routing configuration',
+        label: 'Routing',
         value: () =>
           value.selectedConfig
             ? getDisplayNameFromK8sResource(value.selectedConfig)
@@ -235,7 +237,7 @@ export const AdvancedRoutingFieldWizardField: AdvancedRoutingFieldType = {
     },
     setFieldData: (value: AdvancedRoutingFieldData) => value,
     getInitialFieldData: (existingFieldData?: AdvancedRoutingFieldData): AdvancedRoutingFieldData =>
-      existingFieldData ?? { selectedConfig: undefined },
+      existingFieldData?.selectedConfig ? existingFieldData : { selectedConfig: undefined },
     validationSchema: z.object({
       selectedConfig: z
         .custom<LLMInferenceServiceConfigKind>(
@@ -245,6 +247,8 @@ export const AdvancedRoutingFieldWizardField: AdvancedRoutingFieldType = {
       configRef: z.string().optional(),
     }),
   },
+  shouldResetOnDependencyChange: (prev, next) =>
+    prev.topologyType?.topologyType !== next.topologyType?.topologyType,
   externalDataHook: useAdvancedRoutingData,
   component: AdvancedRoutingFieldComponent,
   getReviewSections,

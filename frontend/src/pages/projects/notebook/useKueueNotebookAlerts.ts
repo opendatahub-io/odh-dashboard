@@ -8,6 +8,7 @@ import {
   getPreemptionToastBody,
   getEvictionToastBody,
 } from '#~/concepts/kueue/messageUtils';
+import { fireWorkbenchStatusToastAction } from '#~/concepts/kueue/workbenchTracking';
 import { NotebookState } from './types';
 
 const ALERT_STATUSES = new Set([
@@ -39,7 +40,10 @@ const fireAlert = (
   const actions = [
     {
       title: 'View details',
-      onClick: () => navigate(`/projects/${projectName}`),
+      onClick: () => {
+        fireWorkbenchStatusToastAction('View details', kueueInfo);
+        navigate(`/projects/${projectName}`);
+      },
     },
   ];
 

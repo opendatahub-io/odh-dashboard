@@ -1,6 +1,6 @@
 import React from 'react';
-import { Button } from '@patternfly/react-core';
-import ConfirmStopModal from '@odh-dashboard/internal/pages/projects/components/ConfirmStopModal';
+import type { ButtonAction } from '@odh-dashboard/ui-core';
+import { ConfirmStopModal } from '@odh-dashboard/ui-core';
 import useStopModalPreference from '../../concepts/useStopModalPreference';
 
 type ModelServingStopModalProps = {
@@ -22,24 +22,22 @@ const ModelServingStopModal: React.FC<ModelServingStopModalProps> = ({
     }
     onClose(confirmStatus);
   };
-  const modalActions = [
-    <Button
-      key="confirm"
-      variant="primary"
-      onClick={() => onBeforeClose(true)}
-      data-testid="stop-model-button"
-    >
-      Stop model deployment
-    </Button>,
-    <Button
-      key="cancel"
-      variant="secondary"
-      onClick={() => onBeforeClose(false)}
-      data-testid="cancel-stop-model-button"
-    >
-      Cancel
-    </Button>,
+
+  const buttonActions: ButtonAction[] = [
+    {
+      label: 'Stop model deployment',
+      onClick: () => onBeforeClose(true),
+      variant: 'primary',
+      dataTestId: 'stop-model-button',
+    },
+    {
+      label: 'Cancel',
+      onClick: () => onBeforeClose(false),
+      variant: 'secondary',
+      dataTestId: 'cancel-stop-model-button',
+    },
   ];
+
   return (
     <ConfirmStopModal
       message={
@@ -49,7 +47,7 @@ const ModelServingStopModal: React.FC<ModelServingStopModalProps> = ({
           asset or MaaS.
         </>
       }
-      modalActions={modalActions}
+      buttonActions={buttonActions}
       onBeforeClose={onBeforeClose}
       title={title}
       dataTestId="stop-model-modal"

@@ -41,6 +41,17 @@ export enum TopologyType {
   MULTI_NODE_DISAGGREGATED = 'workload-multi-node-data-parallel-pd',
 }
 
+export const TopologyTypeDescriptions: Record<TopologyType, string> = {
+  [TopologyType.SINGLE_NODE]:
+    "Each replica runs on a single node. Use when your model fits in a single GPU's memory.",
+  [TopologyType.MULTI_NODE]:
+    "Each replica spans multiple nodes using tensor parallelism. Use when your model is too large for a single GPU's memory.",
+  [TopologyType.SINGLE_NODE_DISAGGREGATED]:
+    'Each replica runs on a single node, with prefill and decode handled by separate pools. Use when you want to optimize time-to-first-token and throughput independently.',
+  [TopologyType.MULTI_NODE_DISAGGREGATED]:
+    'Each replica spans multiple nodes, with prefill and decode handled by separate pools. Use when your model requires both multi-node parallelism and prefill/decode separation.',
+};
+
 export const TopologyTypeLabels: Record<TopologyType, string> = {
   [TopologyType.SINGLE_NODE]: 'Single node',
   [TopologyType.MULTI_NODE]: 'Multi-node',
