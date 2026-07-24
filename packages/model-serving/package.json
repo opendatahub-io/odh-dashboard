@@ -33,7 +33,8 @@
     "./concepts/auth": "./src/concepts/auth.ts",
     "./concepts/useModelServingClusterSettings": "./src/concepts/useModelServingClusterSettings.tsx",
     "./concepts/versions": "./src/concepts/versions.ts",
-    "./utils": "./src/concepts/utils.ts"
+    "./utils": "./src/concepts/utils.ts",
+    "./shared/tracking/limitedSupportTracking": "./src/shared/tracking/limitedSupportTracking.ts"
   },
   "dependencies": {
     "@odh-dashboard/foundation": "*",

@@ -1,9 +1,22 @@
 import * as React from 'react';
 import { Switch } from '@patternfly/react-core';
 import type { TemplateKind } from '@odh-dashboard/k8s-core';
-import { getTemplateEnabled, setListDisabled } from '@odh-dashboard/model-serving/shared';
+import {
+  getTemplateEnabled,
+  setListDisabled,
+  getServingRuntimeDisplayNameFromTemplate,
+} from '@odh-dashboard/model-serving/shared';
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import { isUnsupportedUnaccepted } from '@odh-dashboard/model-serving/concepts/versions';
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import UnsupportedStatusAcceptanceModal from '@odh-dashboard/model-serving/components/UnsupportedStatusAcceptanceModal';
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports
+import type { UnsupportedStatusDismissAction } from '@odh-dashboard/model-serving/components/UnsupportedStatusAcceptanceModal';
+import {
+  fireRiskAccepted,
+  fireRiskDismissed,
+  getResourceVersions,
+} from '@odh-dashboard/model-serving/shared/tracking/limitedSupportTracking';
 import useNotification from '#~/utilities/useNotification';
 import { useDashboardNamespace } from '#~/redux/selectors';
 import { patchDashboardConfigTemplateDisablementBackend } from '#~/services/dashboardService';
@@ -94,6 +107,14 @@ const CustomServingRuntimeEnabledToggle: React.FC<CustomServingRuntimeEnabledTog
     // TODO: Use passthrough API once admin panel has been migrated to support it
     patchTemplateAcceptedAnnotationBackend(template.metadata.namespace, template.metadata.name)
       .then(() => {
+        fireRiskAccepted({
+          runtimeResourceType: 'serving-runtime-template',
+          resourceId: template.metadata.name,
+          resourceName: getServingRuntimeDisplayNameFromTemplate(template),
+          ...getResourceVersions(template),
+          outcome: 'submit',
+          success: true,
+        });
         enableTemplate(true);
       })
       .catch((e) => {
@@ -119,7 +140,17 @@ const CustomServingRuntimeEnabledToggle: React.FC<CustomServingRuntimeEnabledTog
         <UnsupportedStatusAcceptanceModal
           resourceTypeLabel="runtime"
           onAccept={handleAccept}
-          onClose={() => setShowAcceptanceModal(false)}
+          onClose={(dismissAction: UnsupportedStatusDismissAction) => {
+            setShowAcceptanceModal(false);
+            fireRiskDismissed({
+              runtimeResourceType: 'serving-runtime-template',
+              resourceId: template.metadata.name,
+              resourceName: getServingRuntimeDisplayNameFromTemplate(template),
+              ...getResourceVersions(template),
+              dismissAction,
+              outcome: 'cancel',
+            });
+          }}
         />
       ) : null}
     </>

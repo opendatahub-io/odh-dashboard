@@ -1,14 +1,14 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { fireDeployMethodSelected } from '../../../../tracking/modelServingTrackingConstants';
+import { fireDeployMethodSelected } from '../../../../shared/tracking/modelServingTrackingConstants';
 import {
   DeploymentMethodSelectFieldWizardField,
   type DeploymentMethodExternalData,
   type DeploymentMethodFieldData,
 } from '../DeploymentMethodSelectField';
 
-jest.mock('../../../../tracking/modelServingTrackingConstants', () => ({
+jest.mock('../../../../shared/tracking/modelServingTrackingConstants', () => ({
   fireDeployMethodSelected: jest.fn(),
 }));
 
