@@ -15,12 +15,12 @@ export const byonImagesFilterOptions = {
 };
 
 export enum ImageTypeFilter {
-  redHat = 'redHat',
+  preInstalled = 'preInstalled',
   custom = 'custom',
 }
 
 export const imageTypeFilterOptions: SimpleSelectOption[] = [
-  { key: ImageTypeFilter.redHat, label: 'Red Hat' },
+  { key: ImageTypeFilter.preInstalled, label: 'Pre-installed' },
   { key: ImageTypeFilter.custom, label: 'Custom' },
 ];
 
