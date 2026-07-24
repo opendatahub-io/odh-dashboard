@@ -21,6 +21,7 @@ export const techPreviewFlags = {
   externalVectorStores: false,
   agentConfigManagement: false,
   vLLMDeploymentOnMaaS: false,
+  llmdTemplates: false,
   llmGatewayField: false,
   promptManagement: false,
   globalProjectPrompts: false,
@@ -84,6 +85,7 @@ export const advancedAIMLFlags = {
   disableModelRegistry: false,
   disableModelRegistrySecureDB: false,
   disableFeatureStore: false,
+  featureStoreAdmin: false,
   disableFineTuning: true,
   disableLMEval: true,
   trainingJobs: true,
@@ -226,6 +228,10 @@ export const SupportedAreasStateMap: SupportedAreasState = {
     featureFlags: ['disableFeatureStore'],
     requiredComponents: [DataScienceStackComponent.FEAST_OPERATOR],
   },
+  [SupportedArea.FEATURE_STORE_ADMIN]: {
+    featureFlags: ['featureStoreAdmin'],
+    reliantAreas: [SupportedArea.FEATURE_STORE],
+  },
   [SupportedArea.MODEL_TRAINING]: {
     featureFlags: ['trainingJobs'],
     requiredComponents: [DataScienceStackComponent.TRAINER],
@@ -270,6 +276,7 @@ export const SupportedAreasStateMap: SupportedAreasState = {
     reliantAreas: [SupportedArea.LLMD_SERVING],
   },
   [SupportedArea.LLMD_TOPOLOGY_CONFIGS]: {
+    featureFlags: ['llmdTemplates'],
     reliantAreas: [SupportedArea.LLMD_SERVING],
   },
   [SupportedArea.LLMD_GATEWAY_FIELD]: {

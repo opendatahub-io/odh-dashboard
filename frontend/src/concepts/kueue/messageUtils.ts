@@ -150,6 +150,60 @@ export const getEvictionToastBody = (workbenchName: string, rawMessage?: string)
 };
 
 /**
+ * Analytics kueueSubState values from the UX tracking sheet.
+ * Mapped from KueueWorkloadStatus + existing UI message heuristics (messageUtils).
+ */
+export type KueueSubState =
+  | 'waiting_for_quota'
+  | 'waiting_for_resources'
+  | 'admitted'
+  | 'quota_exceeded'
+  | 'invalid_queue'
+  | 'timeout'
+  | 'preempted'
+  | 'none';
+
+/**
+ * Derives the Amplitude/Segment `kueueSubState` property using the same message
+ * heuristics as getHumanReadableKueueMessage. Statuses without a sheet mapping return 'none'.
+ */
+export const getKueueAnalyticsSubState = (
+  kueueStatus: KueueWorkloadStatusWithMessage | null | undefined,
+): KueueSubState => {
+  if (!kueueStatus?.status) {
+    return 'none';
+  }
+
+  const message = kueueStatus.message?.trim();
+
+  switch (kueueStatus.status) {
+    case KueueWorkloadStatus.Admitted:
+      return 'admitted';
+    case KueueWorkloadStatus.Preempted:
+      return 'preempted';
+    case KueueWorkloadStatus.Queued:
+      if (!message || QUOTA_REGEX.test(message) || FLAVOR_REGEX.test(message)) {
+        return 'waiting_for_quota';
+      }
+      return 'waiting_for_resources';
+    case KueueWorkloadStatus.Failed:
+    case KueueWorkloadStatus.Inadmissible:
+      if (message && QUEUE_NOT_FOUND_REGEX.test(message)) {
+        return 'invalid_queue';
+      }
+      if (message && TIMEOUT_REGEX.test(message)) {
+        return 'timeout';
+      }
+      if (!message || QUOTA_REGEX.test(message) || FLAVOR_REGEX.test(message)) {
+        return 'quota_exceeded';
+      }
+      return 'none';
+    default:
+      return 'none';
+  }
+};
+
+/**
  * Returns the label for the Kueue sub-step in the progress tree.
  * Adds a "Re-queued:" prefix only for the Queued state during a recovery, and appends queue position when available.
  */

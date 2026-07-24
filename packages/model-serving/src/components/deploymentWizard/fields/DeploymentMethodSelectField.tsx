@@ -1,5 +1,13 @@
 import React from 'react';
-import { Content, FormGroup, Radio, Stack, StackItem } from '@patternfly/react-core';
+import {
+  FormGroup,
+  FormHelperText,
+  HelperText,
+  HelperTextItem,
+  Radio,
+  Stack,
+  StackItem,
+} from '@patternfly/react-core';
 import { z } from 'zod';
 import type { RecursivePartial } from '@odh-dashboard/foundation';
 import { ServingRuntimeModelType } from '@odh-dashboard/model-serving/shared';
@@ -43,7 +51,7 @@ export const useDeploymentMethodExternalData = (): {
   return React.useMemo(() => {
     const options = overrides
       .flatMap((override) => override.options)
-      .toSorted((a, b) => b.label.localeCompare(a.label));
+      .toSorted((a, b) => a.order - b.order);
     const suggestion = overrides.reduce<DeploymentMethodOption | undefined>(
       (acc, override) => acc ?? override.suggestion?.(modelServingClusterSettings),
       undefined,
@@ -88,6 +96,11 @@ const DeploymentMethodSelectField: DeploymentMethodSelectFieldType['component'] 
       isRequired
       data-testid="deployment-method-field"
     >
+      <FormHelperText>
+        <HelperText>
+          <HelperTextItem>Select how this model will be deployed.</HelperTextItem>
+        </HelperText>
+      </FormHelperText>
       <Stack hasGutter>
         {options.map((opt) => (
           <StackItem key={opt.key}>
@@ -95,9 +108,7 @@ const DeploymentMethodSelectField: DeploymentMethodSelectFieldType['component'] 
               id={`deployment-method-${opt.key}`}
               name="deployment-method"
               label={opt.label}
-              description={
-                opt.description ? <Content component="small">{opt.description}</Content> : undefined
-              }
+              description={opt.description}
               isChecked={value?.method === opt.key}
               onChange={() => onChange({ method: opt.key })}
               isDisabled={isEditing}

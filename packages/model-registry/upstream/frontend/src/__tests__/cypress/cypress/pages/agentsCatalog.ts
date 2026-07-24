@@ -107,8 +107,8 @@ class AgentDetailsPage {
     return cy.findByTestId('agent-framework');
   }
 
-  findGitHubButton() {
-    return cy.findByTestId('agent-github-button');
+  findRepositoryButton() {
+    return cy.findByTestId('agent-repository-button');
   }
 
   findAgentNotFound() {

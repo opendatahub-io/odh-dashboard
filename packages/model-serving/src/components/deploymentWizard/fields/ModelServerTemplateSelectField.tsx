@@ -4,6 +4,9 @@ import {
   Flex,
   FlexItem,
   FormGroup,
+  FormHelperText,
+  HelperText,
+  HelperTextItem,
   Label,
   MenuItem,
   Radio,
@@ -88,12 +91,14 @@ type ModelServerTemplateSelectFieldProps = {
     Required<Pick<ModelServerSelectField, 'setData' | 'options'>>;
   isEditing?: boolean;
   label?: string;
+  helperText?: string;
 };
 
 const ModelServerTemplateSelectField: React.FC<ModelServerTemplateSelectFieldProps> = ({
   modelServerState,
   isEditing,
   label = 'Deployment resource',
+  helperText,
 }) => {
   const { data, setData, options } = modelServerState;
   const [searchServer, setSearchServer] = React.useState('');
@@ -166,7 +171,9 @@ const ModelServerTemplateSelectField: React.FC<ModelServerTemplateSelectFieldPro
               isProject={selectedTemplate?.scope === 'project'}
               projectLabel="Project-scoped"
               globalLabel="Global-scoped"
-              fallback="Select one"
+              fallback={`Select ${
+                /^[aeiou]/i.test(label) ? 'an' : 'a'
+              } ${label.toLocaleLowerCase()}`}
               color={isDisabled ? 'grey' : 'blue'}
               labelTestId="serving-runtime-template-label"
               isEditing={isDisabled}
@@ -228,6 +235,13 @@ const ModelServerTemplateSelectField: React.FC<ModelServerTemplateSelectFieldPro
       role={isEditing ? 'radiogroup' : undefined}
       isStack
     >
+      {helperText && (
+        <FormHelperText>
+          <HelperText>
+            <HelperTextItem>{helperText}</HelperTextItem>
+          </HelperText>
+        </FormHelperText>
+      )}
       {isEditing ? (
         <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
           {templateDropdown(isEditing)}
@@ -240,8 +254,8 @@ const ModelServerTemplateSelectField: React.FC<ModelServerTemplateSelectFieldPro
             label={
               <>
                 <span className="pf-v6-c-form__label-text">Automatic selection:</span> Automatically
-                select the best resource for my model based on model type, model format and hardware
-                profile.
+                select the best {label.toLocaleLowerCase()} for my model based on the selected
+                hardware profile.
               </>
             }
             id="horizontal-inline-radio-01"
@@ -266,7 +280,7 @@ const ModelServerTemplateSelectField: React.FC<ModelServerTemplateSelectFieldPro
             label={
               <>
                 <span className="pf-v6-c-form__label-text">Manual selection:</span> Manually select
-                a resource from a list of preconfigured and custom options.
+                a {label.toLocaleLowerCase()} from a list of preconfigured and custom options.
               </>
             }
             id="horizontal-inline-radio-02"

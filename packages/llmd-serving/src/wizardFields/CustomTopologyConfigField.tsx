@@ -1,7 +1,6 @@
 import React from 'react';
 import {
   FormGroup,
-  Content,
   FormHelperText,
   HelperText,
   HelperTextItem,
@@ -152,12 +151,14 @@ const CustomTopologyConfigFieldComponent: CustomTopologyConfigFieldType['compone
 
   return (
     <FormGroup fieldId="custom-topology-config" label="Topology configuration" isRequired>
+      <FormHelperText>
+        <HelperText>
+          <HelperTextItem>
+            Select an administrator-defined configuration for this topology, or use the default.
+          </HelperTextItem>
+        </HelperText>
+      </FormHelperText>
       <Stack hasGutter>
-        <StackItem>
-          <Content component="p">
-            Select a topology configuration for this deployment pattern.
-          </Content>
-        </StackItem>
         <StackItem>
           <SimpleSelect
             isFullWidth
@@ -247,7 +248,7 @@ export const CustomTopologyConfigFieldWizardField: CustomTopologyConfigFieldType
       externalData?: TopologyTypeExternalData,
       dependencies?: CustomTopologyConfigDependencies,
     ): CustomTopologyConfigFieldData => {
-      if (existingFieldData) {
+      if (existingFieldData?.selectedConfig) {
         return existingFieldData;
       }
       const topologyType = dependencies?.topologyType?.topologyType;

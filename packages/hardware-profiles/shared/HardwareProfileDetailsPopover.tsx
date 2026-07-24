@@ -12,11 +12,13 @@ import {
 } from '@patternfly/react-core';
 import { QuestionCircleIcon } from '@patternfly/react-icons';
 import type { Toleration, NodeSelector, HardwareProfileKind } from '@odh-dashboard/k8s-core';
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import {
   getClusterQueueNameFromLocalQueues,
   getHardwareProfileDescription,
   getHardwareProfileDisplayName,
 } from '@odh-dashboard/internal/pages/hardwareProfiles/utils';
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import { ProjectDetailsContext } from '@odh-dashboard/internal/pages/projects/ProjectDetailsContext';
 import {
   formatToleration,
@@ -47,6 +49,8 @@ const HardwareProfileDetailsPopover: React.FC<HardwareProfileDetailsPopoverProps
   tableView = false,
 }) => {
   const { localQueues } = React.useContext(ProjectDetailsContext);
+  const triggerRef = React.useRef<HTMLButtonElement>(null);
+  const [isPopoverVisible, setIsPopoverVisible] = React.useState(false);
   const clusterQueueName = React.useMemo(
     () => getClusterQueueNameFromLocalQueues(localQueueName, localQueues),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -76,9 +80,21 @@ const HardwareProfileDetailsPopover: React.FC<HardwareProfileDetailsPopoverProps
 
   const description = hardwareProfile && getHardwareProfileDescription(hardwareProfile);
 
+  const closePopover = (event: MouseEvent | KeyboardEvent) => {
+    setIsPopoverVisible(false);
+    if (event instanceof KeyboardEvent) {
+      requestAnimationFrame(() => triggerRef.current?.focus());
+    }
+  };
+
   return (
     <Popover
       hasAutoWidth
+      isVisible={isPopoverVisible}
+      shouldOpen={() => setIsPopoverVisible(true)}
+      shouldClose={closePopover}
+      showClose={false}
+      withFocusTrap={false}
       headerContent={
         hardwareProfile
           ? `${getHardwareProfileDisplayName(hardwareProfile)} details`
@@ -141,6 +157,7 @@ const HardwareProfileDetailsPopover: React.FC<HardwareProfileDetailsPopoverProps
       }
     >
       <Button
+        ref={triggerRef}
         isInline
         variant="link"
         icon={tableView ? undefined : <QuestionCircleIcon />}

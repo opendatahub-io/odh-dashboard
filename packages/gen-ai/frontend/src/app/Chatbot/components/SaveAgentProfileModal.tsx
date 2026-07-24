@@ -199,7 +199,7 @@ const SaveAgentProfileModal: React.FC<SaveAgentProfileModalProps> = ({
     }
   };
 
-  const title = mode === 'save' ? 'Save agent' : 'Save as agent';
+  const title = mode === 'save' ? 'Save agent' : 'Save as new agent';
   const nameError = nameTouched && !name.trim();
   const isSaveDisabled = isSaving || !name.trim();
 
