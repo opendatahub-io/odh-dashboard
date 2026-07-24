@@ -3,13 +3,6 @@ apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: odh-dashboard-modules
 rules:
-  # DSC product type for maas-api infra namespace discovery (maas-ui)
-  - apiGroups:
-      - datasciencecluster.opendatahub.io
-    verbs:
-      - list
-    resources:
-      - datascienceclusters
   # MLflow CR auto-discovery (mlflow-ui, gen-ai-ui)
   - apiGroups:
       - mlflow.opendatahub.io

@@ -51,27 +51,25 @@ Alternatively to run in mock mode run the following from the `packages/maas` dir
 make dev-start-mock-federated
 ```
 
-#### `MAAS_API_URL` for local development
+#### `MAAS_API_URL` auto-detection
 
-The `dev-start-federated` (and `dev-bff-federated`) targets run the BFF **outside** the cluster, so in-cluster `/v1/tenants` discovery is not available. Set `MAAS_API_URL` explicitly (or let the Makefile infer it from the cluster ingress domain for convenience):
+The `dev-start-federated` (and `dev-bff-federated`) targets need a `MAAS_API_URL` to connect to the MaaS API. If you don't set one, the Makefile will auto-detect it by querying your cluster's ingress domain:
 
 ```shell
 oc get ingresses.config.openshift.io cluster -o jsonpath='{.spec.domain}'
 ```
 
-The Makefile builds `https://maas.<CLUSTER_DOMAIN>/maas-api` from that domain when `MAAS_API_URL` is unset. For this to work you must be logged into the cluster (`oc login`).
+The resulting URL is `http://maas.<CLUSTER_DOMAIN>/maas-api`. For this to work you must be logged into the cluster (`oc login`).
 
 You can also set the URL explicitly via environment variable or `.env.local`:
 
 ```shell
 # environment variable
-MAAS_API_URL=https://maas.apps.my-cluster.example.com/maas-api make dev-start-federated
+MAAS_API_URL=http://maas.apps.my-cluster.example.com/maas-api make dev-start-federated
 
 # or in .env.local
-MAAS_API_URL=https://maas.apps.my-cluster.example.com/maas-api
+MAAS_API_URL=http://maas.apps.my-cluster.example.com/maas-api
 ```
-
-When the BFF runs **in-cluster** without `MAAS_API_URL`, it locates the internal `maas-api` Service from the cluster `DataScienceCluster` product type (`status.release.name` → `odh-ai-gateway-infra` or `redhat-ai-gateway-infra`), falling back to `redhat-ai-gateway-infra` if DSC is unavailable. It then calls `GET /v1/tenants` (service account auth), selects the tenant whose gateway name is `maas-default-gateway`, and uses `gateway.externalUrl + /maas-api` as the passthrough base URL. Optional overrides: `MAAS_API_INTERNAL_URL`, `MAAS_API_NAMESPACE`.
 
 ### Kubernetes Deployment
 
