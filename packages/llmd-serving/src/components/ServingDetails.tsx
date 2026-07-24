@@ -1,9 +1,9 @@
 import * as React from 'react';
-import { LabelGroup, Stack, StackItem } from '@patternfly/react-core';
+import { Stack, StackItem } from '@patternfly/react-core';
 import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
 import type { FetchStateObject } from '@odh-dashboard/ui-core/hooks/useFetch';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
-import { ServingRuntimeVersionLabel } from '@odh-dashboard/model-serving/shared/components';
+import { DeploymentResourceVersionLabels } from '@odh-dashboard/model-serving/shared/components';
 import { getServingRuntimeVersionStatus } from '@odh-dashboard/internal/pages/modelServing/utils';
 import ServingRuntimeVersionStatus from '@odh-dashboard/internal/pages/modelServing/screens/ServingRuntimeVersionStatus';
 import ServingRuntimeTemplateStatus from '@odh-dashboard/internal/pages/modelServing/screens/ServingRuntimeTemplateStatus';
@@ -50,19 +50,20 @@ const LLMInferenceServiceServingDetails: React.FC<Props> = ({ deployment, data }
     <Stack>
       <StackItem>{getDisplayNameFromK8sResource(server)}</StackItem>
       <StackItem>
-        <LabelGroup>
-          {childConfigVersion && (
-            <ServingRuntimeVersionLabel version={childConfigVersion} isCompact />
-          )}
-          {versionStatus && (
-            <ServingRuntimeVersionStatus
-              isOutdated={versionStatus === ServingRuntimeVersionStatusLabel.OUTDATED}
-              version={childConfigVersion || ''}
-              templateVersion={parentConfigVersion || ''}
-            />
-          )}
-          {isTemplateRemoved && <ServingRuntimeTemplateStatus />}
-        </LabelGroup>
+        <DeploymentResourceVersionLabels
+          resource={server}
+          isCompact
+          versionStatus={
+            versionStatus ? (
+              <ServingRuntimeVersionStatus
+                isOutdated={versionStatus === ServingRuntimeVersionStatusLabel.OUTDATED}
+                version={childConfigVersion || ''}
+                templateVersion={parentConfigVersion || ''}
+              />
+            ) : undefined
+          }
+          templateStatus={isTemplateRemoved ? <ServingRuntimeTemplateStatus /> : undefined}
+        />
       </StackItem>
     </Stack>
   ) : (

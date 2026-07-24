@@ -1,4 +1,4 @@
-import { LabelGroup, Stack, StackItem } from '@patternfly/react-core';
+import { Stack, StackItem } from '@patternfly/react-core';
 import * as React from 'react';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import type { ServingRuntimeKind } from '@odh-dashboard/model-serving/shared';
@@ -7,7 +7,7 @@ import {
   getServingRuntimeVersion,
   getTemplateNameFromServingRuntime,
 } from '@odh-dashboard/model-serving/shared';
-import { ServingRuntimeVersionLabel } from '@odh-dashboard/model-serving/shared/components';
+import { DeploymentResourceVersionLabels } from '@odh-dashboard/model-serving/shared/components';
 import ScopedLabel from '@odh-dashboard/ui-core/components/ScopedLabel';
 import {
   SERVING_RUNTIME_SCOPE,
@@ -48,29 +48,29 @@ const InferenceServiceServingRuntime: React.FC<Props> = ({ servingRuntime }) => 
         <Stack>
           <StackItem>{getDisplayNameFromServingRuntimeTemplate(servingRuntime)}</StackItem>
           <StackItem>
-            <LabelGroup>
-              {getServingRuntimeVersion(servingRuntime) && (
-                <ServingRuntimeVersionLabel
-                  version={getServingRuntimeVersion(servingRuntime)}
-                  isCompact
-                />
-              )}
-              {versionStatus && (
-                <ServingRuntimeVersionStatus
-                  isOutdated={versionStatus === ServingRuntimeVersionStatusLabel.OUTDATED}
-                  version={getServingRuntimeVersion(servingRuntime) || ''}
-                  templateVersion={getServingRuntimeVersion(template) || ''}
-                />
-              )}
-              {isTemplateRemoved && <ServingRuntimeTemplateStatus />}
-              {isProjectScopedAvailable &&
+            <DeploymentResourceVersionLabels
+              resource={servingRuntime}
+              isCompact
+              versionStatus={
+                versionStatus ? (
+                  <ServingRuntimeVersionStatus
+                    isOutdated={versionStatus === ServingRuntimeVersionStatusLabel.OUTDATED}
+                    version={getServingRuntimeVersion(servingRuntime) || ''}
+                    templateVersion={getServingRuntimeVersion(template) || ''}
+                  />
+                ) : undefined
+              }
+              templateStatus={isTemplateRemoved ? <ServingRuntimeTemplateStatus /> : undefined}
+              scopeLabel={
+                isProjectScopedAvailable &&
                 servingRuntime.metadata.annotations?.['opendatahub.io/serving-runtime-scope'] ===
-                  SERVING_RUNTIME_SCOPE.Project && (
+                  SERVING_RUNTIME_SCOPE.Project ? (
                   <ScopedLabel isProject color="blue" isCompact>
                     Project-scoped
                   </ScopedLabel>
-                )}
-            </LabelGroup>
+                ) : undefined
+              }
+            />
           </StackItem>
         </Stack>
       ) : (
