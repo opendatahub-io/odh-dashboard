@@ -1,14 +1,18 @@
 import React from 'react';
+import {
+  useTemplates,
+  getDashboardConfigTemplateOrder,
+  getDashboardConfigTemplateDisablement,
+} from '@odh-dashboard/internal/api/index';
 import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
-import { useTemplates } from '@odh-dashboard/internal/api/index';
-import useTemplateOrder from '@odh-dashboard/internal/pages/modelServing/customServingRuntimes/useTemplateOrder';
-import useTemplateDisablement from '@odh-dashboard/internal/pages/modelServing/customServingRuntimes/useTemplateDisablement';
 import type { CustomWatchK8sResult } from '@odh-dashboard/internal/types';
 import type { TemplateKind } from '@odh-dashboard/k8s-core';
 import {
   ServingRuntimePlatform,
   getSortedTemplates,
   getTemplateEnabled,
+  useTemplateOrder,
+  useTemplateDisablement,
 } from '@odh-dashboard/model-serving/shared';
 
 /**
@@ -54,12 +58,12 @@ export const useServingRuntimeTemplates = (
     data: order,
     loaded: orderLoaded,
     error: orderError,
-  } = useTemplateOrder(dashboardNamespace);
+  } = useTemplateOrder(dashboardNamespace, getDashboardConfigTemplateOrder);
   const {
     data: disablement,
     loaded: disablementLoaded,
     error: disablementError,
-  } = useTemplateDisablement(dashboardNamespace);
+  } = useTemplateDisablement(dashboardNamespace, getDashboardConfigTemplateDisablement);
 
   const result = React.useMemo(() => {
     if (templates.length === 0 || !orderLoaded || !disablementLoaded) {
