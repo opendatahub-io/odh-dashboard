@@ -1,9 +1,4 @@
-/**
- * Constructs the model-version deployments URL for model-registry navigation.
- *
- * Replicates the route pattern owned by model-registry so that model-serving
- * can build return-navigation URLs without a compile-time package dependency.
- */
+/** Replicates model-registry's route pattern to avoid a compile-time dependency. */
 export const modelVersionDeploymentsUrl = (
   mvId: string,
   rmId?: string,

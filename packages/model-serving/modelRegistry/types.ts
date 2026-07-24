@@ -1,11 +1,6 @@
 import type { ServingRuntimeModelType } from '@odh-dashboard/model-serving/shared';
 
-/**
- * Data shape for prefilling the deployment wizard from model-catalog.
- * Structurally mirrors the type defined in model-registry's
- * `model-catalog-deploy` extension point so the two remain compatible
- * without a compile-time package dependency.
- */
+/** Mirrors model-registry's DeployPrefillData to avoid a compile-time dependency. */
 export type DeployPrefillData = {
   modelName: string;
   modelUri?: string;
@@ -16,11 +11,7 @@ export type DeployPrefillData = {
   prefillAlertText?: string;
 };
 
-/**
- * Minimal interface for a registered-model reference.
- * Only the fields consumed by model-serving components are included,
- * avoiding a dependency on the full model-registry type.
- */
+/** Minimal registered-model ref — only `id` is consumed by model-serving. */
 export type RegisteredModelRef = {
   id: string;
 };
