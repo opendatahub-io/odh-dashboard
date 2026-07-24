@@ -42,7 +42,7 @@ const filterByonImages = (imgs: BYONImage[], data: BYONImagesFilterDataType): BY
       return false;
     }
     if (typeFilter) {
-      const isPreInstalled = typeFilter === ImageTypeFilter.redHat;
+      const isPreInstalled = typeFilter === ImageTypeFilter.preInstalled;
       if (image.isOOTB !== isPreInstalled) {
         return false;
       }
@@ -71,6 +71,14 @@ const getActiveFilterCount = (data: BYONImagesFilterDataType): number => {
     count++;
   }
   return count;
+};
+
+const safeFireFilterEvent = (properties: FormTrackingEventProperties): void => {
+  try {
+    fireFormTrackingEvent('Workbench Images Filter Applied', properties);
+  } catch {
+    // telemetry must not affect filtering
+  }
 };
 
 export type BYONImagesTableProps = {
@@ -136,14 +144,12 @@ export const BYONImagesTable: React.FC<BYONImagesTableProps> = ({ images }) => {
       if (isTextFilter) {
         let debounced = debouncedTrackersRef.current.get(key);
         if (!debounced) {
-          debounced = _.debounce((p: FormTrackingEventProperties) => {
-            fireFormTrackingEvent('Workbench Images Filter Applied', p);
-          }, 400);
+          debounced = _.debounce(safeFireFilterEvent, 400);
           debouncedTrackersRef.current.set(key, debounced);
         }
         debounced(trackingProperties);
       } else {
-        fireFormTrackingEvent('Workbench Images Filter Applied', trackingProperties);
+        safeFireFilterEvent(trackingProperties);
       }
     },
     [filterData, images],
