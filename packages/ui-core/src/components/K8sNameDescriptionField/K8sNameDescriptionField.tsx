@@ -13,7 +13,13 @@ import type {
   UseK8sNameDescriptionDataConfiguration,
   UseK8sNameDescriptionFieldData,
 } from '@odh-dashboard/k8s-core';
-import { handleUpdateLogic, setupDefaults } from '@odh-dashboard/k8s-core';
+import {
+  handleUpdateLogic,
+  isRouteNameTooLong,
+  ROUTE_BASED_RESOURCE_TYPES,
+  ROUTE_NAME_TOO_LONG_MESSAGE,
+  setupDefaults,
+} from '@odh-dashboard/k8s-core';
 import ResourceNameDefinitionTooltip from './ResourceNameDefinitionTooltip';
 import { HelperTextItemResourceNameTaken } from './HelperTextItemVariants';
 import ResourceNameField from './ResourceNameField';
@@ -26,9 +32,44 @@ export const useK8sNameDescriptionFieldData = (
     setupDefaults(configuration),
   );
 
-  const onDataChange = React.useCallback<K8sNameDescriptionFieldUpdateFunction>((key, value) => {
-    setData((currentData) => handleUpdateLogic(currentData)(key, value));
-  }, []);
+  // Re-sync validation when namespace changes after initial render
+  const { namespace, limitNameResourceType } = configuration;
+  const isRouteBased =
+    limitNameResourceType != null && ROUTE_BASED_RESOURCE_TYPES.has(limitNameResourceType);
+  React.useEffect(() => {
+    if (!isRouteBased) {
+      return;
+    }
+    setData((currentData) => {
+      const prevNamespace = currentData.k8sName.state.namespace;
+      // Only update if namespace actually changed
+      if (prevNamespace === namespace) {
+        return currentData;
+      }
+      return {
+        ...currentData,
+        k8sName: {
+          ...currentData.k8sName,
+          state: {
+            ...currentData.k8sName.state,
+            namespace,
+            routeNameTooLong: isRouteNameTooLong(currentData.k8sName.value, namespace),
+          },
+        },
+      };
+    });
+  }, [namespace, isRouteBased]);
+
+  const onDataChange = React.useCallback<K8sNameDescriptionFieldUpdateFunction>(
+    (key, value) => {
+      setData((currentData) =>
+        // Prefer the current configuration namespace over state so typing while the
+        // project/namespace is resolving does not use a stale route-length check.
+        handleUpdateLogic(currentData, isRouteBased ? { namespace } : undefined)(key, value),
+      );
+    },
+    [isRouteBased, namespace],
+  );
 
   return { data, onDataChange };
 };
@@ -109,13 +150,20 @@ const K8sNameDescriptionField: React.FC<K8sNameDescriptionFieldProps> = ({
             {!showK8sField && !k8sName.state.immutable && (
               <>
                 {k8sName.value && (
-                  <HelperTextItem variant={k8sName.state.invalidCharacters ? 'error' : 'default'}>
+                  <HelperTextItem
+                    variant={
+                      k8sName.state.invalidCharacters || k8sName.state.routeNameTooLong
+                        ? 'error'
+                        : 'default'
+                    }
+                  >
                     The resource name will be <b>{k8sName.value}</b>.
                     {k8sName.state.invalidCharacters &&
                       ` ${
                         k8sName.state.invalidCharsMessage ||
                         'Must start and end with a letter or number. Valid characters include lowercase letters, numbers, and hyphens (-).'
                       }`}
+                    {k8sName.state.routeNameTooLong && ` ${ROUTE_NAME_TOO_LONG_MESSAGE}.`}
                   </HelperTextItem>
                 )}
                 <HelperTextItem>

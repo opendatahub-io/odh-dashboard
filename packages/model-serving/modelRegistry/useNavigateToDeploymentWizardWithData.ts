@@ -4,6 +4,7 @@ import {
   translateDisplayNameForK8s,
   LimitNameResourceType,
   resourceTypeLimits,
+  isRouteNameTooLong,
 } from '@odh-dashboard/k8s-core';
 import { useWatchConnectionTypes } from '@odh-dashboard/internal/utilities/useWatchConnectionTypes';
 import { ServingRuntimeModelType } from '@odh-dashboard/model-serving/shared';
@@ -65,6 +66,7 @@ export const useNavigateToDeploymentWizardWithData = (
             invalidCharacters: false,
             invalidLength: false,
             maxLength,
+            routeNameTooLong: isRouteNameTooLong(resourceName, undefined),
             touched: false,
           },
         },

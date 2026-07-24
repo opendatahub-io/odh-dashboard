@@ -2,13 +2,13 @@ import {
   handleUpdateLogic,
   INFERENCE_SERVICE_NAME_REGEX,
   isK8sNameDescriptionDataValid,
+  isRouteNameTooLong,
   LimitNameResourceType,
   resourceTypeLimits,
   setupDefaults,
 } from '@odh-dashboard/k8s-core';
 import type { K8sNameDescriptionFieldData } from '@odh-dashboard/k8s-core';
-import { mockProjectK8sResource } from '#~/__mocks__';
-import { mockK8sNameDescriptionFieldData } from '#~/__mocks__/mockK8sNameDescriptionFieldData';
+import { mockK8sNameDescriptionFieldData, mockProjectK8sResource } from './mocks';
 
 describe('setupDefaults', () => {
   it('should return a sane default', () => {
@@ -406,6 +406,7 @@ describe('isK8sNameDescriptionDataValid', () => {
               invalidLength: false,
               invalidCharacters: false,
               maxLength: 123,
+              routeNameTooLong: false,
               touched: true,
             },
           },
@@ -414,7 +415,7 @@ describe('isK8sNameDescriptionDataValid', () => {
     ).toBe(true);
   });
 
-  it('should be false when k8s name starts with a digit and custom regexp requires a letter', () => {
+  it('should be false when k8s name starts with digit and regexp requires letter', () => {
     expect(
       isK8sNameDescriptionDataValid(
         mockK8sNameDescriptionFieldData({
@@ -430,7 +431,7 @@ describe('isK8sNameDescriptionDataValid', () => {
     ).toBe(false);
   });
 
-  it('should be true when k8s name starts with a letter and custom regexp requires a letter', () => {
+  it('should be true when k8s name starts with letter and regexp requires letter', () => {
     expect(
       isK8sNameDescriptionDataValid(
         mockK8sNameDescriptionFieldData({
@@ -444,5 +445,210 @@ describe('isK8sNameDescriptionDataValid', () => {
         }),
       ),
     ).toBe(true);
+  });
+
+  it('should be false when routeNameTooLong', () => {
+    expect(
+      isK8sNameDescriptionDataValid(
+        mockK8sNameDescriptionFieldData({
+          name: 'test',
+          k8sName: {
+            value: 'my-long-resource-name',
+            state: { routeNameTooLong: true },
+          },
+        }),
+      ),
+    ).toBe(false);
+  });
+
+  it('should be true when routeNameTooLong but immutable', () => {
+    expect(
+      isK8sNameDescriptionDataValid(
+        mockK8sNameDescriptionFieldData({
+          name: 'test',
+          k8sName: {
+            value: 'my-long-resource-name',
+            state: { routeNameTooLong: true, immutable: true },
+          },
+        }),
+      ),
+    ).toBe(true);
+  });
+});
+
+describe('isRouteNameTooLong', () => {
+  it('should return false when no namespace is provided', () => {
+    expect(isRouteNameTooLong('my-resource')).toBe(false);
+    expect(isRouteNameTooLong('my-resource', undefined)).toBe(false);
+    // Empty string means namespace not available yet (same skip as undefined)
+    expect(isRouteNameTooLong('my-resource', '')).toBe(false);
+  });
+
+  it('should return false when k8sName is empty', () => {
+    expect(isRouteNameTooLong('', 'my-namespace')).toBe(false);
+  });
+
+  it('should return false when combined length is within 63 characters', () => {
+    // "short-name" (10) + "-" (1) + "my-namespace" (12) = 23
+    expect(isRouteNameTooLong('short-name', 'my-namespace')).toBe(false);
+  });
+
+  it('should return false when combined length is exactly 63 characters', () => {
+    // Create names that total exactly 63 characters: name + 1 (hyphen) + namespace = 63
+    const name = 'a'.repeat(30);
+    const namespace = 'b'.repeat(32);
+    expect(name.length + 1 + namespace.length).toBe(63);
+    expect(isRouteNameTooLong(name, namespace)).toBe(false);
+  });
+
+  it('should return true when combined length exceeds 63 characters', () => {
+    const name = 'a'.repeat(30);
+    const namespace = 'b'.repeat(33);
+    expect(name.length + 1 + namespace.length).toBe(64);
+    expect(isRouteNameTooLong(name, namespace)).toBe(true);
+  });
+
+  it('should return true with long name and long namespace', () => {
+    // 30-char name + "-" + 40-char namespace = 71 > 63
+    expect(
+      isRouteNameTooLong(
+        'this-is-a-long-resource-name-x',
+        'a-very-long-project-namespace-for-opensh',
+      ),
+    ).toBe(true);
+  });
+});
+
+describe('setupDefaults with namespace', () => {
+  it('should store namespace in state for route-based resource types', () => {
+    const result = setupDefaults({
+      limitNameResourceType: LimitNameResourceType.WORKBENCH,
+      namespace: 'my-project',
+    });
+    expect(result.k8sName.state.namespace).toBe('my-project');
+  });
+
+  it('should not store namespace for non-route-based resource types', () => {
+    const result = setupDefaults({
+      limitNameResourceType: LimitNameResourceType.PVC,
+      namespace: 'my-project',
+    });
+    expect(result.k8sName.state.namespace).toBeUndefined();
+  });
+
+  it('should not store namespace when no limitNameResourceType is set', () => {
+    const result = setupDefaults({
+      namespace: 'my-project',
+    });
+    expect(result.k8sName.state.namespace).toBeUndefined();
+  });
+
+  it('should store namespace for MODEL_DEPLOYMENT type', () => {
+    const result = setupDefaults({
+      limitNameResourceType: LimitNameResourceType.MODEL_DEPLOYMENT,
+      namespace: 'my-project',
+    });
+    expect(result.k8sName.state.namespace).toBe('my-project');
+  });
+
+  it('should initialize routeNameTooLong to true when prefilled name exceeds limit', () => {
+    // k8sName (30 chars) + '-' (1 char) + namespace (33 chars) = 64 > 63
+    const longK8sName = 'a'.repeat(30);
+    const longNamespace = 'b'.repeat(33);
+    const result = setupDefaults({
+      initialData: {
+        name: 'Display Name',
+        k8sName: longK8sName,
+        description: 'test',
+      },
+      limitNameResourceType: LimitNameResourceType.WORKBENCH,
+      namespace: longNamespace,
+    });
+    expect(result.k8sName.state.routeNameTooLong).toBe(true);
+    expect(result.k8sName.state.namespace).toBe(longNamespace);
+    expect(result.k8sName.value).toBe(longK8sName);
+  });
+
+  it('should initialize routeNameTooLong to false when prefilled name is within limit', () => {
+    const shortK8sName = 'my-workbench';
+    const shortNamespace = 'my-project';
+    const result = setupDefaults({
+      initialData: {
+        name: 'Display Name',
+        k8sName: shortK8sName,
+        description: 'test',
+      },
+      limitNameResourceType: LimitNameResourceType.WORKBENCH,
+      namespace: shortNamespace,
+    });
+    expect(result.k8sName.state.routeNameTooLong).toBe(false);
+    expect(result.k8sName.state.namespace).toBe(shortNamespace);
+  });
+});
+
+describe('handleUpdateLogic with namespace (route name validation)', () => {
+  it('should set routeNameTooLong when name update exceeds route limit', () => {
+    const defaults = setupDefaults({
+      limitNameResourceType: LimitNameResourceType.WORKBENCH,
+      namespace: 'a-very-long-project-namespace-name',
+      safePrefix: 'wb-',
+    });
+
+    // The namespace is 34 chars, so max k8s name is 63 - 34 - 1 = 28 chars
+    // With wb- prefix, that leaves 25 chars for the name portion
+    const result = handleUpdateLogic(defaults)('name', 'this is a workbench with a long name');
+    // The k8s name will be auto-trimmed to maxLength (30) by translateDisplayNameForK8s
+    // wb-this-is-a-workbench-with-a (30 chars) + - + namespace (34 chars) = 65 > 63
+    expect(result.k8sName.state.routeNameTooLong).toBe(true);
+  });
+
+  it('should not set routeNameTooLong when k8s name is short enough', () => {
+    const defaults = setupDefaults({
+      limitNameResourceType: LimitNameResourceType.WORKBENCH,
+      namespace: 'short-ns',
+      safePrefix: 'wb-',
+    });
+
+    const result = handleUpdateLogic(defaults)('name', 'my workbench');
+    // wb-my-workbench (15 chars) + - + short-ns (8 chars) = 24 < 63
+    expect(result.k8sName.state.routeNameTooLong).toBe(false);
+  });
+
+  it('should set routeNameTooLong when k8sName is directly edited to exceed route limit', () => {
+    const defaults = setupDefaults({
+      limitNameResourceType: LimitNameResourceType.MODEL_DEPLOYMENT,
+      namespace: 'a-very-long-project-namespace-name',
+      regexp: INFERENCE_SERVICE_NAME_REGEX,
+    });
+
+    // namespace is 34 chars, so max k8s name is 63 - 34 - 1 = 28 chars
+    const result = handleUpdateLogic(defaults)('k8sName', 'my-model-deployment-that-is-long');
+    expect(result.k8sName.state.routeNameTooLong).toBe(true);
+  });
+
+  it('should not set routeNameTooLong when no namespace is configured', () => {
+    const defaults = setupDefaults({
+      limitNameResourceType: LimitNameResourceType.WORKBENCH,
+    });
+
+    const result = handleUpdateLogic(defaults)('name', 'this is a workbench with a long name');
+    expect(result.k8sName.state.routeNameTooLong).toBe(false);
+  });
+
+  it('should prefer namespace override over stale state namespace', () => {
+    const defaults = setupDefaults({
+      limitNameResourceType: LimitNameResourceType.WORKBENCH,
+      namespace: 'short-ns',
+      safePrefix: 'wb-',
+    });
+
+    // Prop namespace resolved to a long value while state still has short-ns
+    const longNamespace = 'a-very-long-project-namespace-name';
+    const result = handleUpdateLogic(defaults, { namespace: longNamespace })(
+      'name',
+      'this is a workbench with a long name',
+    );
+    expect(result.k8sName.state.namespace).toBe(longNamespace);
+    expect(result.k8sName.state.routeNameTooLong).toBe(true);
   });
 });
