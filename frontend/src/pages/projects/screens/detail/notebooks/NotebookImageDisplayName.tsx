@@ -13,7 +13,6 @@ import {
   Button,
   Tooltip,
   Timestamp,
-  TooltipPosition,
 } from '@patternfly/react-core';
 import React from 'react';
 import { Link } from 'react-router-dom';
@@ -69,6 +68,9 @@ export const NotebookImageDisplayName = ({
 }: NotebookImageDisplayNameProps): React.JSX.Element => {
   const isProjectScopedAvailable = useIsAreaAvailable(SupportedArea.DS_PROJECT_SCOPED).status;
   const [isPopoverVisible, setIsPopoverVisible] = React.useState(false);
+  const statusLabelTriggerRef = React.useRef<HTMLSpanElement>(null);
+  const versionTriggerRef = React.useRef<HTMLButtonElement>(null);
+  const [isVersionPopoverVisible, setIsVersionPopoverVisible] = React.useState(false);
   const { isStarting, isRunning, isStopping } = notebookState;
   const [isRestarting, setIsRestarting] = React.useState(false);
 
@@ -217,6 +219,18 @@ export const NotebookImageDisplayName = ({
 
   // get the popover title, body, and variant based on the image availability
   const { title, body, variant, footer } = getNotebookImagePopoverText();
+  const hasInteractiveFooter = Boolean(footer);
+
+  const closeStatusLabelPopover = (event: MouseEvent | KeyboardEvent) => {
+    setIsPopoverVisible(false);
+    if (event instanceof KeyboardEvent) {
+      requestAnimationFrame(() => {
+        const focusable =
+          statusLabelTriggerRef.current?.querySelector<HTMLElement>('button, [tabindex="0"]');
+        focusable?.focus();
+      });
+    }
+  };
 
   const imageBuildDate =
     notebookImage.imageStatus !== NotebookImageStatus.DELETED
@@ -305,12 +319,22 @@ export const NotebookImageDisplayName = ({
                 </>
               }
               position="right"
-              triggerAction="hover"
+              showClose={false}
+              withFocusTrap={false}
+              isVisible={isVersionPopoverVisible}
+              shouldOpen={() => setIsVersionPopoverVisible(true)}
+              shouldClose={(event) => {
+                setIsVersionPopoverVisible(false);
+                if (event instanceof KeyboardEvent) {
+                  requestAnimationFrame(() => versionTriggerRef.current?.focus());
+                }
+              }}
             >
               <UnderlinedTruncateButton
+                innerRef={versionTriggerRef}
                 content={versionDisplayString}
-                truncateProps={{ tooltipPosition: TooltipPosition.left }}
                 contentProps={{ component: ContentVariants.small }}
+                truncateProps={{ tooltipProps: { triggerRef: versionTriggerRef } }}
                 data-testid="notebook-image-version-link"
               />
             </Popover>
@@ -339,18 +363,22 @@ export const NotebookImageDisplayName = ({
                 bodyContent={body}
                 footerContent={footer}
                 shouldOpen={() => setIsPopoverVisible(true)}
-                shouldClose={() => setIsPopoverVisible(false)}
+                shouldClose={closeStatusLabelPopover}
                 isVisible={isPopoverVisible}
+                showClose={hasInteractiveFooter}
+                withFocusTrap={hasInteractiveFooter}
               >
-                <Label
-                  onClick={(e) => e.preventDefault()}
-                  data-testid="notebook-image-availability"
-                  isCompact
-                  color={getNotebookImageLabelColor()}
-                  icon={getNotebookImageIcon()}
-                >
-                  {notebookImage.imageStatus || NotebookImageAvailability.DISABLED}
-                </Label>
+                <span ref={statusLabelTriggerRef}>
+                  <Label
+                    onClick={(e) => e.preventDefault()}
+                    data-testid="notebook-image-availability"
+                    isCompact
+                    color={getNotebookImageLabelColor()}
+                    icon={getNotebookImageIcon()}
+                  >
+                    {notebookImage.imageStatus || NotebookImageAvailability.DISABLED}
+                  </Label>
+                </span>
               </Popover>
             )}
           </FlexItem>
