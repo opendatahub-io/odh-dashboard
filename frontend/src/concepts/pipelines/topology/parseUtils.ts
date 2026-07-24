@@ -166,6 +166,19 @@ export const lowestProgress = (details: TaskDetailKF[]): PipelineTaskRunStatus['
   )[0].state;
 };
 
+const isTerminalRuntimeState = (state: PipelineTaskRunStatus['state']): boolean => {
+  switch (state) {
+    case RuntimeStateKF.SUCCEEDED:
+    case RuntimeStateKF.FAILED:
+    case RuntimeStateKF.CANCELED:
+    case RuntimeStateKF.SKIPPED:
+    case RuntimeStateKF.CACHED:
+      return true;
+    default:
+      return false;
+  }
+};
+
 export const parseRuntimeInfoFromRunDetails = (
   taskId: string,
   runDetails?: RunDetailsKF,
@@ -185,10 +198,28 @@ export const parseRuntimeInfoFromRunDetails = (
     return undefined;
   }
 
+  let state = lowestProgress(thisTaskDetail);
+
+  // For group/loop nodes (e.g., ParallelFor), the backend may report the parent
+  // node as still running after all child iterations have completed. Derive the
+  // group status from child iteration states when all children are terminal.
+  if (state !== undefined && !isTerminalRuntimeState(state)) {
+    const parentTaskIds = new Set(thisTaskDetail.map((d) => d.task_id));
+    const childDetails = taskDetails.filter(
+      (d) => d.parent_task_id != null && parentTaskIds.has(d.parent_task_id),
+    );
+    if (
+      childDetails.length > 0 &&
+      childDetails.every((d) => isTerminalRuntimeState(d.state))
+    ) {
+      state = lowestProgress(childDetails);
+    }
+  }
+
   return {
     startTime: thisTaskDetail[0].start_time,
     completeTime: thisTaskDetail[0].end_time,
-    state: lowestProgress(thisTaskDetail),
+    state,
     taskId: `task.${taskId}`,
     podName: thisTaskDetail[0].child_tasks?.find((o) => o.pod_name)?.pod_name,
   };
