@@ -135,4 +135,11 @@ describe('DeploymentResourceVersionLabels', () => {
     expect(screen.getByTestId('fast-version-label')).toHaveTextContent('fast-1');
     expect(screen.getByTestId('limited-support-label')).toHaveTextContent('Limited support');
   });
+
+  it('should use a custom getVersion function when provided', () => {
+    const resource = makeResource();
+    const customGetVersion = () => '42.0.0';
+    render(<DeploymentResourceVersionLabels resource={resource} getVersion={customGetVersion} />);
+    expect(screen.getByTestId('serving-runtime-version-label')).toHaveTextContent('42.0.0');
+  });
 });
