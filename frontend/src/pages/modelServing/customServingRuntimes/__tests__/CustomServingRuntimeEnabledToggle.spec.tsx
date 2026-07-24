@@ -2,11 +2,10 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import type { TemplateKind } from '@odh-dashboard/k8s-core';
-// eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import {
   fireRiskAccepted,
   fireRiskDismissed,
-} from '@odh-dashboard/model-serving/tracking/limitedSupportTracking';
+} from '@odh-dashboard/model-serving/shared/tracking/limitedSupportTracking';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import { mockServingRuntimeTemplateK8sResource } from '@odh-dashboard/internal/__mocks__/mockServingRuntimeTemplateK8sResource';
 import type { CustomWatchK8sResult } from '#~/types';
@@ -30,7 +29,7 @@ jest.mock('#~/services/templateService', () => ({
   patchTemplateAcceptedAnnotationBackend: jest.fn().mockResolvedValue(undefined),
 }));
 
-jest.mock('@odh-dashboard/model-serving/tracking/limitedSupportTracking', () => ({
+jest.mock('@odh-dashboard/model-serving/shared/tracking/limitedSupportTracking', () => ({
   fireRiskAccepted: jest.fn(),
   fireRiskDismissed: jest.fn(),
   getResourceVersions: jest.fn(() => ({

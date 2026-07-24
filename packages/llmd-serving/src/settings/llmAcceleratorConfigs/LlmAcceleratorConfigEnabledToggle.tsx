@@ -12,7 +12,7 @@ import {
   fireRiskAccepted,
   fireRiskDismissed,
   getResourceVersions,
-} from '@odh-dashboard/model-serving/tracking/limitedSupportTracking';
+} from '@odh-dashboard/model-serving/shared/tracking/limitedSupportTracking';
 import type { LLMInferenceServiceConfigKind } from '../../types';
 import { DISABLED_ANNOTATION } from '../../const';
 import { isConfigEnabled } from '../../utils';

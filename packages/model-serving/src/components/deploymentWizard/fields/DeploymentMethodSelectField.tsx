@@ -19,7 +19,7 @@ import {
   isDeploymentMethodFieldOverride,
 } from '../types';
 import { useWizardFieldOverrides } from '../dynamicFormUtils';
-import { fireDeployMethodSelected } from '../../../tracking/modelServingTrackingConstants';
+import { fireDeployMethodSelected } from '../../../shared/tracking/modelServingTrackingConstants';
 
 // Schema
 

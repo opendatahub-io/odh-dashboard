@@ -12,12 +12,11 @@ import { isUnsupportedUnaccepted } from '@odh-dashboard/model-serving/concepts/v
 import UnsupportedStatusAcceptanceModal from '@odh-dashboard/model-serving/components/UnsupportedStatusAcceptanceModal';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import type { UnsupportedStatusDismissAction } from '@odh-dashboard/model-serving/components/UnsupportedStatusAcceptanceModal';
-// eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import {
   fireRiskAccepted,
   fireRiskDismissed,
   getResourceVersions,
-} from '@odh-dashboard/model-serving/tracking/limitedSupportTracking';
+} from '@odh-dashboard/model-serving/shared/tracking/limitedSupportTracking';
 import useNotification from '#~/utilities/useNotification';
 import { useDashboardNamespace } from '#~/redux/selectors';
 import { patchDashboardConfigTemplateDisablementBackend } from '#~/services/dashboardService';

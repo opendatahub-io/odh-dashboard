@@ -5,7 +5,7 @@ import { mockLLMInferenceServiceConfigK8sResource } from '@odh-dashboard/interna
 import {
   fireRiskAccepted,
   fireRiskDismissed,
-} from '@odh-dashboard/model-serving/tracking/limitedSupportTracking';
+} from '@odh-dashboard/model-serving/shared/tracking/limitedSupportTracking';
 import LlmAcceleratorConfigEnabledToggle from '../LlmAcceleratorConfigEnabledToggle';
 import { patchLLMInferenceServiceConfig } from '../../../api/LLMInferenceServiceConfigs';
 import type { LLMInferenceServiceConfigKind } from '../../../types';
@@ -19,7 +19,7 @@ jest.mock('../../../api/LLMInferenceServiceConfigs', () => ({
   patchLLMInferenceServiceConfig: jest.fn(),
 }));
 
-jest.mock('@odh-dashboard/model-serving/tracking/limitedSupportTracking', () => ({
+jest.mock('@odh-dashboard/model-serving/shared/tracking/limitedSupportTracking', () => ({
   fireRiskAccepted: jest.fn(),
   fireRiskDismissed: jest.fn(),
   getResourceVersions: jest.fn(() => ({
