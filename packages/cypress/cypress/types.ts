@@ -491,6 +491,8 @@ export type ModelRegistryTestData = {
   uriPrimary: string;
   modelFormat: string;
   servingRuntime: string;
+  servingRuntimeS390x: string;
+  servingRuntimeX86: string;
   // New version registration (Versions view)
   version2Name: string;
   version2Description: string;

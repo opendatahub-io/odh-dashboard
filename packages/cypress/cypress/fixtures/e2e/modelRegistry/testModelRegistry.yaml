@@ -19,6 +19,8 @@ objectStoragePath: "models/test-model/v1.0"
 modelOpenVinoPath: "TinyLlama-1.1B-Chat-v1.0"
 modelFormat: 'openvino_ir - opset13'
 servingRuntime: 'vLLM CPU (ppc64le/s390x) ServingRuntime for KServe'
+servingRuntimeS390x: 'vLLM CPU (ppc64le/s390x) ServingRuntime for KServe'
+servingRuntimeX86: 'vLLM CPU (x86) ServingRuntime for KServe'
 deploymentType: 'Legacy deployment'
 
 # Second model (URI)

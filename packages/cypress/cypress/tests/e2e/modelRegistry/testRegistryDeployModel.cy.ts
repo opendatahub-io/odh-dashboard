@@ -39,6 +39,7 @@ import {
   cleanupHardwareProfiles,
   createCleanHardwareProfile,
 } from '../../../utils/oc_commands/hardwareProfiles';
+import { getClusterArchitecture } from '../../../utils/oc_commands/baseCommands';
 
 describe('Verify models can be deployed from model registry', () => {
   // Skip entire suite on BYOIDC clusters
@@ -68,12 +69,18 @@ describe('Verify models can be deployed from model registry', () => {
       projectName = `${testData.deployProjectNamePrefix}-${uuid}`;
 
       deploymentName = testData.operatorDeploymentName;
-      servingRuntime = testData.servingRuntime;
       hardwareProfileName = testData.hardwareProfileName;
       hardwareProfileYamlPath = testData.hardwareProfileYamlPath;
       servingRuntimeArgs = testData.servingRuntimeArgs;
       deploymentType = testData.deploymentType;
       envVars = testData.envVars;
+
+      cy.step('Detect cluster architecture to select the correct serving runtime');
+      getClusterArchitecture().then((arch) => {
+        servingRuntime =
+          arch === 's390x' ? testData.servingRuntimeS390x : testData.servingRuntimeX86;
+        cy.log(`Using serving runtime for arch "${arch}": ${servingRuntime}`);
+      });
 
       // ensure operator has optimal memory
       cy.step('Ensure operator has optimal memory for testing');
