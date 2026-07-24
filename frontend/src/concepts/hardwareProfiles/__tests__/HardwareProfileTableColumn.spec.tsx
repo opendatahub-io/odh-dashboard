@@ -75,7 +75,7 @@ describe('HardwareProfileTableColumn', () => {
   });
 
   describe('No hardware profile scenario', () => {
-    it('renders "None" trigger, shows correct header/body, and no "Expand row" without the prop', async () => {
+    it('renders "No hardware profile" trigger, shows correct header/body, and no "Expand row" without the prop', async () => {
       renderWithContext(
         <HardwareProfileTableColumn
           namespace="test-project"
@@ -88,7 +88,9 @@ describe('HardwareProfileTableColumn', () => {
         />,
       );
 
-      expect(screen.getByTestId('hardware-profile-table-column')).toHaveTextContent('None');
+      expect(screen.getByTestId('hardware-profile-table-column')).toHaveTextContent(
+        'No hardware profile',
+      );
 
       await userEvent.click(screen.getByTestId('hardware-profile-details-popover'));
 
@@ -148,7 +150,7 @@ describe('HardwareProfileTableColumn', () => {
       );
 
       expect(screen.getByTestId('hardware-profile-details-popover')).toBeInTheDocument();
-      expect(screen.queryByText('None')).toBeInTheDocument();
+      expect(screen.queryByText('No hardware profile')).toBeInTheDocument();
 
       await userEvent.click(screen.getByTestId('hardware-profile-details-popover'));
 

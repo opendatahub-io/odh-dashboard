@@ -102,10 +102,12 @@ describe('HardwareProfileDetailsPopover', () => {
       expect(details.querySelectorAll('dl')).toHaveLength(0);
     });
 
-    it('should display "None" trigger and updated header/body in tableView mode', async () => {
+    it('should display "No hardware profile" trigger and updated header/body in tableView mode', async () => {
       renderWithContext(<HardwareProfileDetailsPopover tableView />);
 
-      expect(screen.getByTestId('hardware-profile-details-popover')).toHaveTextContent('None');
+      expect(screen.getByTestId('hardware-profile-details-popover')).toHaveTextContent(
+        'No hardware profile',
+      );
 
       await userEvent.click(screen.getByTestId('hardware-profile-details-popover'));
 
