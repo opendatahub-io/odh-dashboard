@@ -94,7 +94,7 @@ ARG MODULE_NAME=<name>
 ARG UI_SOURCE_CODE=./packages/${MODULE_NAME}/frontend
 ARG BFF_SOURCE_CODE=./packages/${MODULE_NAME}/bff
 
-ARG NODE_BASE_IMAGE=registry.access.redhat.com/ubi9/nodejs-22@sha256:<digest>
+ARG NODE_BASE_IMAGE=registry.access.redhat.com/ubi9/nodejs-22@sha256:0905d5a102059b449b95cf3a926e073e026524e06b132b401c36c9c4f7096e37
 ARG GOLANG_BASE_IMAGE=registry.redhat.io/ubi9/go-toolset@sha256:<digest>
 ARG DISTROLESS_BASE_IMAGE=registry.access.redhat.com/ubi9-minimal@sha256:<digest>
 
