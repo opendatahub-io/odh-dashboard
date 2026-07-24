@@ -5,6 +5,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { BrowserRouter } from 'react-router';
+import { UIErrorHandler } from '~/app/components/common/UIError/UIErrorHandler';
 import AutoragConfigurePage from '~/app/pages/AutoragConfigurePage';
 
 // Truncate relies on DOM measurement APIs (scrollWidth) unavailable in JSDOM.
@@ -318,7 +319,10 @@ const renderWithProviders = (component: React.ReactElement) => {
   const queryClient = createTestQueryClient();
   return render(
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>{component}</BrowserRouter>
+      {/* UIError behavior is tested in UIErrorHandler's own spec */}
+      <UIErrorHandler id="test-uierror" uiErrorMappings={{}}>
+        <BrowserRouter>{component}</BrowserRouter>
+      </UIErrorHandler>
     </QueryClientProvider>,
   );
 };

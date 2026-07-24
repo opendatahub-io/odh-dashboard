@@ -9,7 +9,9 @@ import {
 import React from 'react';
 import AppRoutes from '~/app/AppRoutes';
 import ToastNotifications from '~/app/components/ToastNotifications';
+import { UIErrorHandler } from '~/app/components/common/UIError/UIErrorHandler';
 import { URL_PREFIX } from '~/app/utilities/const';
+import { autoragUIErrorMappings } from '~/app/utilities/autorag.uiErrorMappings.ts';
 import { registerGenAiRemote } from './registerGenAiRemote';
 
 registerGenAiRemote();
@@ -36,15 +38,17 @@ function AppWrapper(): React.JSX.Element {
     <ModularArchContextProvider config={modularArchConfig}>
       <BrowserStorageContextProvider>
         <QueryClientProvider client={queryClient}>
-          <div
-            className={classNames(
-              'pf-v6-u-h-100',
-              'pf-v6-u-display-flex',
-              'pf-v6-u-flex-direction-column',
-            )}
-          >
-            <AppRoutes />
-          </div>
+          <UIErrorHandler id="Autorag-UIErrorHandler" uiErrorMappings={autoragUIErrorMappings}>
+            <div
+              className={classNames(
+                'pf-v6-u-h-100',
+                'pf-v6-u-display-flex',
+                'pf-v6-u-flex-direction-column',
+              )}
+            >
+              <AppRoutes />
+            </div>
+          </UIErrorHandler>
           <ToastNotifications />
         </QueryClientProvider>
       </BrowserStorageContextProvider>
