@@ -1,4 +1,48 @@
-import { DEFAULT_TASK_NODE_TYPE } from '@patternfly/react-topology';
+// Mock @patternfly/react-topology to prevent CSS imports that Jest cannot parse.
+// Provide all exports consumed transitively by usePipelineTaskTopology and its
+// dependency tree (utils.ts, factories.ts, StandardTaskNode, etc.).
+jest.mock('@patternfly/react-topology', () => ({
+  DEFAULT_TASK_NODE_TYPE: 'DEFAULT_TASK_NODE',
+  RunStatus: {
+    Succeeded: 'Succeeded',
+    Failed: 'Failed',
+    Running: 'Running',
+    InProgress: 'InProgress',
+    Idle: 'Idle',
+    Pending: 'Pending',
+    Cancelled: 'Cancelled',
+    Skipped: 'Skipped',
+  },
+  observer: (c: unknown) => c,
+  GraphComponent: {},
+  ModelKind: { graph: 'graph', node: 'node', edge: 'edge' },
+  ComponentFactory: {},
+  Visualization: jest.fn().mockImplementation(() => ({
+    registerLayoutFactory: jest.fn(),
+    registerComponentFactory: jest.fn(),
+    fromModel: jest.fn(),
+    getGraph: jest.fn().mockReturnValue({ layout: jest.fn() }),
+    addEventListener: jest.fn(),
+    removeEventListener: jest.fn(),
+  })),
+  VisualizationProvider: ({ children }: { children: unknown }) => children,
+  VisualizationSurface: () => null,
+  TopologyView: ({ children }: { children: unknown }) => children,
+  SELECTION_EVENT: 'selection',
+  SelectionEventListener: {},
+  isNode: () => true,
+  withSelection: () => (c: unknown) => c,
+  DagreLayout: jest.fn(),
+  useVisualizationController: jest.fn(),
+  DefaultTaskGroup: () => null,
+  TaskGroupPillLabel: () => null,
+  LabelPosition: { top: 'top' },
+  ScaleDetailsLevel: { high: 'high' },
+  useHover: () => [false, { current: null }],
+  WhenStatus: {},
+  WithSelectionProps: {},
+}));
+
 import { testHook } from '@odh-dashboard/jest-config/hooks';
 import { usePipelineTaskTopology } from '#~/concepts/pipelines/topology';
 import { mockLargePipelineSpec } from '#~/concepts/pipelines/topology/__tests__/mockPipelineSpec';
@@ -6,10 +50,12 @@ import {
   mockParallelForPipelineSpec,
   mockParallelForWithArtifactsPipelineSpec,
 } from '#~/concepts/pipelines/topology/__tests__/mockParallelForPipelineSpec';
-import { ICON_TASK_NODE_TYPE } from '#~/concepts/topology/utils';
-import { EXECUTION_TASK_NODE_TYPE } from '#~/concepts/topology/const';
 import { PipelineNodeModelExpanded } from '#~/concepts/topology/types';
 import { Execution, Value } from '#~/third_party/mlmd';
+
+const DEFAULT_TASK_NODE_TYPE = 'DEFAULT_TASK_NODE';
+const EXECUTION_TASK_NODE_TYPE = 'EXECUTION_TASK_NODE';
+const ICON_TASK_NODE_TYPE = 'ICON_TASK_NODE';
 
 /** Helper: create a mock Execution with id, state, task_name, and optional MLMD properties. */
 const createMockExecution = (
@@ -109,8 +155,10 @@ describe('usePipelineTaskTopology', () => {
       expect(forLoopNode?.group).toBe(true);
       expect(forLoopNode?.data?.pipelineTask.iterationCount).toBe(3);
 
-      // Should have 3 iteration group nodes
-      const iterationNodes = nodes.filter((n) => n.id.startsWith('for-loop-2-iteration-'));
+      // Should have 3 iteration group nodes (filter out prefixed child nodes)
+      const iterationNodes = nodes.filter(
+        (n) => n.id.startsWith('for-loop-2-iteration-') && !n.id.includes('~'),
+      );
       expect(iterationNodes).toHaveLength(3);
       expect(iterationNodes[0].id).toBe('for-loop-2-iteration-0');
       expect(iterationNodes[1].id).toBe('for-loop-2-iteration-1');
