@@ -178,7 +178,7 @@ describe('External Models Page', () => {
       awaitingRow
         .findGovernanceWarningPopover()
         .should('exist')
-        .should('contain.text', 'Pending MaaS governance');
+        .should('contain.text', 'Missing MaaS governance setup');
 
       const missingRefRow = externalModelsPage.getRow('Missing Ref Model');
       missingRefRow.findPhaseLabel().should('contain.text', 'Ready');
