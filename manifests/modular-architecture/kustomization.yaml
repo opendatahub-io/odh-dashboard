@@ -14,6 +14,13 @@ configMapGenerator:
 generatorOptions:
   disableNameSuffixHash: true
 vars:
+  - name: dashboard-service-name
+    objref:
+      kind: ConfigMap
+      name: modular-architecture-params
+      apiVersion: v1
+    fieldref:
+      fieldpath: data.dashboard-service-name
   - name: model-registry-ui-image
     objref:
       kind: ConfigMap

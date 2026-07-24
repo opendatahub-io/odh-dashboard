@@ -228,7 +228,7 @@
       - name: RELATED_IMAGE_POSTGRESQL_16_IMAGE
         value: $(pgvector-image)
       - name: BFF_MAAS_SERVICE_NAME
-        value: "odh-dashboard"
+        value: "$(dashboard-service-name)"
       - name: BFF_MAAS_SERVICE_PORT
         value: "8243"
       - name: BFF_MAAS_TLS_ENABLED
@@ -240,7 +240,7 @@
       - name: BFF_MAAS_AUTH_TOKEN_PREFIX
         value: ""
       - name: BFF_MLFLOW_SERVICE_NAME
-        value: "odh-dashboard"
+        value: "$(dashboard-service-name)"
       - name: BFF_MLFLOW_SERVICE_PORT
         value: "8343"
       - name: BFF_MLFLOW_TLS_ENABLED
@@ -481,7 +481,7 @@
           fieldRef:
             fieldPath: metadata.namespace
       - name: BFF_MODEL_CATALOG_SERVICE_NAME
-        value: "odh-dashboard"
+        value: "$(dashboard-service-name)"
       - name: BFF_MODEL_CATALOG_SERVICE_PORT
         value: "8043"
       - name: BFF_MODEL_CATALOG_TLS_ENABLED
