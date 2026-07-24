@@ -70,7 +70,7 @@ ARG TARGETARCH
 WORKDIR /usr/src/app
 
 USER root
-RUN mkdir bff && chown -R default:root /usr/src/app
+RUN chown -R default:root /usr/src/app
 USER default
 
 # Copy the Go Modules manifests
@@ -107,3 +107,4 @@ USER 65532:65532
 EXPOSE 8080
 
 ENTRYPOINT ["/bff"]
+

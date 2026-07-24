@@ -857,6 +857,200 @@ jobs:
   # (references ../common/crd but should be ../../common/crd).
   # Add manifest validation once the upstream path is fixed.
 
+  # Sidecar Module Validation: Build and smoke-test packages/*/Dockerfile.workspace images
+  # Catches startup regressions (e.g. Go protobuf panics) that only surface when the
+  # sidecar binary runs, not when it compiles.
+  detect-sidecar-changes:
+    name: "Detect Sidecar Module Changes"
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    needs: check-skip
+    if: needs.check-skip.outputs.should-skip != 'true'
+    outputs:
+      matrix: ${{ steps.detect.outputs.matrix }}
+      has-changes: ${{ steps.detect.outputs.has-changes }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.2.2
+        with:
+          fetch-depth: 0
+
+      - name: Detect changed sidecar modules
+        id: detect
+        run: |
+          set -euo pipefail
+
+          # Get files changed in this PR
+          CHANGED_FILES=$(git diff --name-only origin/${{ github.event.pull_request.base.ref }}...HEAD)
+
+          # Check if root build files changed (affects all sidecar builds)
+          ROOT_BUILD_CHANGED=false
+          if echo "$CHANGED_FILES" | grep -qE '^(package\.json|package-lock\.json)$'; then
+            ROOT_BUILD_CHANGED=true
+            echo "Root build files changed — all sidecar modules will be built"
+          fi
+
+          # Dynamically discover packages with Dockerfile.workspace
+          MATRIX_ITEMS="[]"
+          while IFS= read -r dockerfile; do
+            [ -z "$dockerfile" ] && continue
+            PKG_DIR=$(dirname "$dockerfile")
+            MODULE_NAME=$(basename "$PKG_DIR")
+
+            # Skip non-module scaffolding packages
+            if [ "$MODULE_NAME" = "plugin-template" ]; then
+              echo "Skipping $MODULE_NAME (scaffold template, not a deployable module)"
+              continue
+            fi
+
+            # Check if this package has changed files, or root build files changed
+            if [ "$ROOT_BUILD_CHANGED" = "true" ] || echo "$CHANGED_FILES" | grep -q "^${PKG_DIR}/"; then
+              MATRIX_ITEMS=$(echo "$MATRIX_ITEMS" | jq -c --arg name "$MODULE_NAME" --arg dockerfile "$dockerfile" '. + [{"module": $name, "dockerfile": $dockerfile}]')
+              echo "Will build: $MODULE_NAME ($dockerfile)"
+            fi
+          done < <(find packages -maxdepth 2 -name "Dockerfile.workspace" -not -path "*/node_modules/*" | sort)
+
+          COUNT=$(echo "$MATRIX_ITEMS" | jq 'length')
+          if [ "$COUNT" -gt 0 ]; then
+            echo "has-changes=true" >> "$GITHUB_OUTPUT"
+            echo "matrix={\"include\":$MATRIX_ITEMS}" >> "$GITHUB_OUTPUT"
+            echo "Found $COUNT sidecar module(s) to build"
+          else
+            echo "has-changes=false" >> "$GITHUB_OUTPUT"
+            echo "matrix={\"include\":[]}" >> "$GITHUB_OUTPUT"
+            echo "No sidecar modules affected by this PR"
+          fi
+
+  sidecar-build-validation:
+    name: "Sidecar Build: ${{ matrix.module }}"
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    needs: [check-skip, detect-sidecar-changes]
+    if: needs.check-skip.outputs.should-skip != 'true' && needs.detect-sidecar-changes.outputs.has-changes == 'true'
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.detect-sidecar-changes.outputs.matrix) }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.2.2
+
+      - name: Free disk space
+        uses: ./.github/actions/free-disk-space
+
+      - name: Build sidecar image
+        run: |
+          set -euo pipefail
+          echo "::group::Building ${{ matrix.module }} from ${{ matrix.dockerfile }}"
+          docker build \
+            --file ${{ matrix.dockerfile }} \
+            --tag sidecar-${{ matrix.module }}:test \
+            .
+          echo "::endgroup::"
+          echo "Build completed for ${{ matrix.module }}"
+
+      - name: Validate sidecar startup
+        run: |
+          set -euo pipefail
+          MODULE="${{ matrix.module }}"
+          CONTAINER_NAME="sidecar-${MODULE}-test"
+          IMAGE="sidecar-${MODULE}:test"
+
+          # Try with --mock-k8s-client=true first (most BFFs support this flag
+          # to run without a real Kubernetes cluster)
+          echo "::group::Starting $MODULE sidecar container (with mock-k8s-client)"
+          docker run -d --name "$CONTAINER_NAME" "$IMAGE" --mock-k8s-client=true
+          echo "::endgroup::"
+
+          sleep 2
+
+          # Check if it immediately died due to unknown flag
+          EARLY_RUNNING=$(docker inspect --format '{{.State.Running}}' "$CONTAINER_NAME" 2>/dev/null || echo "false")
+          if [ "$EARLY_RUNNING" != "true" ]; then
+            EARLY_LOGS=$(docker logs "$CONTAINER_NAME" 2>&1 || echo "")
+            if echo "$EARLY_LOGS" | grep -q "flag provided but not defined"; then
+              echo "BFF does not support --mock-k8s-client, restarting without it"
+              docker rm -f "$CONTAINER_NAME" 2>/dev/null || true
+              echo "::group::Starting $MODULE sidecar container (without mock)"
+              docker run -d --name "$CONTAINER_NAME" "$IMAGE"
+              echo "::endgroup::"
+            fi
+          fi
+
+          echo "Waiting 5 seconds for BFF startup..."
+          sleep 5
+
+          echo "::group::Container status"
+          RUNNING=$(docker inspect --format '{{.State.Running}}' "$CONTAINER_NAME" 2>/dev/null || echo "false")
+          EXIT_CODE=$(docker inspect --format '{{.State.ExitCode}}' "$CONTAINER_NAME" 2>/dev/null || echo "-1")
+          echo "Running: $RUNNING"
+          echo "Exit code: $EXIT_CODE"
+          echo "::endgroup::"
+
+          echo "::group::Container logs"
+          LOGS=$(docker logs "$CONTAINER_NAME" 2>&1 || echo "")
+          echo "$LOGS"
+          echo "::endgroup::"
+
+          # Scan logs for Go/BFF crash patterns
+          FAILURES=0
+          CRASH_PATTERNS=(
+            "panic:"
+            "fatal error:"
+            "runtime error:"
+            "signal: segmentation fault"
+            "SIGSEGV"
+          )
+
+          for pattern in "${CRASH_PATTERNS[@]}"; do
+            if echo "$LOGS" | grep -q "$pattern"; then
+              echo "::error::$MODULE sidecar logs contain crash indicator: $pattern"
+              echo "$LOGS" | grep "$pattern" | head -5
+              FAILURES=$((FAILURES + 1))
+            fi
+          done
+
+          # Check if container exited
+          if [ "$RUNNING" != "true" ]; then
+            # Check if exit was due to missing kubeconfig (expected in CI without a cluster)
+            KUBECONFIG_PATTERNS=(
+              "failed to get kubeconfig"
+              "no configuration has been provided"
+              "KUBERNETES_SERVICE_HOST and KUBERNETES_SERVICE_PORT must be defined"
+              "failed to get Kubernetes config"
+            )
+            KUBECONFIG_EXIT=false
+            for pattern in "${KUBECONFIG_PATTERNS[@]}"; do
+              if echo "$LOGS" | grep -q "$pattern"; then
+                KUBECONFIG_EXIT=true
+                break
+              fi
+            done
+
+            if [ "$KUBECONFIG_EXIT" = "true" ] && [ "$FAILURES" -eq 0 ]; then
+              echo "INFO: $MODULE exited due to missing kubeconfig (expected in CI without cluster)"
+            else
+              echo "::error::$MODULE sidecar container exited (exit code: $EXIT_CODE)"
+              echo "The BFF binary crashed on startup."
+              FAILURES=$((FAILURES + 1))
+            fi
+          fi
+
+          # Clean up
+          docker stop "$CONTAINER_NAME" 2>/dev/null || true
+          docker rm "$CONTAINER_NAME" 2>/dev/null || true
+          docker rmi "$IMAGE" 2>/dev/null || true
+
+          if [ "$FAILURES" -gt 0 ]; then
+            echo ""
+            echo "::error::$MODULE sidecar startup validation failed with $FAILURES issue(s)"
+            echo "Check the container logs above for the root cause."
+            exit 1
+          fi
+
+          echo "PASS: $MODULE sidecar started successfully (no crashes detected)"
+
   summary:
     name: "Build Validation Summary"
     runs-on: ubuntu-latest
@@ -870,6 +1064,7 @@ jobs:
       - runtime-validation-odh
       - runtime-validation-rhoai
       - operator-integration
+      - sidecar-build-validation
     # Run summary even when jobs are skipped, but not when workflow is skipped
     if: always() && needs.check-skip.outputs.should-skip != 'true'
     steps:
@@ -884,6 +1079,7 @@ jobs:
           echo "Phase 2-3 (Runtime ODH): ${{ needs.runtime-validation-odh.result }}"
           echo "Phase 2-3 (Runtime RHOAI): ${{ needs.runtime-validation-rhoai.result }}"
           echo "Phase 4 (Operator Integration): ${{ needs.operator-integration.result }}"
+          echo "Sidecar Build Validation: ${{ needs.sidecar-build-validation.result }}"
 
           # Accept "success" and "skipped" as passing states
           # "skipped" occurs when upstream job was skipped (normal dependency chain)
@@ -894,7 +1090,8 @@ jobs:
                         "${{ needs.docker-build-rhoai.result }}" \
                         "${{ needs.runtime-validation-odh.result }}" \
                         "${{ needs.runtime-validation-rhoai.result }}" \
-                        "${{ needs.operator-integration.result }}"; do
+                        "${{ needs.operator-integration.result }}" \
+                        "${{ needs.sidecar-build-validation.result }}"; do
             if [[ "$result" != "success" && "$result" != "skipped" ]]; then
               FAILED=true
               break
