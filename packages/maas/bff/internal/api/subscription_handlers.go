@@ -22,6 +22,17 @@ func handlerWithApp(app *App, handle AppHandler) httprouter.Handle {
 	}
 }
 
+// handlerWithMaasApi wraps a handler that depends on the upstream maas-api URL.
+// Returns 503 while discovery is still in progress or maas-api is absent.
+func handlerWithMaasApi(app *App, handle AppHandler) httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+		if !app.requireMaasApiReady(w, r) {
+			return
+		}
+		handle(app, w, r, p)
+	}
+}
+
 // attachSubscriptionHandlers registers the subscription routes.
 func attachSubscriptionHandlers(apiRouter *httprouter.Router, app *App) {
 	apiRouter.GET(constants.SubscriptionListPath, handlerWithApp(app, ListSubscriptionsHandler))

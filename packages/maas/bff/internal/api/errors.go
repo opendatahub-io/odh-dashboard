@@ -56,6 +56,11 @@ func (app *App) serverErrorResponse(w http.ResponseWriter, r *http.Request, err 
 	statusCode := http.StatusInternalServerError
 	message := err.Error()
 
+	if errors.Is(err, maas.ErrMaasApiNotConfigured) {
+		app.serviceUnavailableResponse(w, r, maas.ErrMaasApiNotConfigured.Error())
+		return
+	}
+
 	var upstreamErr *maas.MaasUpstreamError
 	if errors.As(err, &upstreamErr) {
 		message = upstreamErr.Error()
@@ -86,6 +91,17 @@ func (app *App) notFoundResponse(w http.ResponseWriter, r *http.Request) {
 func (app *App) methodNotAllowedResponse(w http.ResponseWriter, r *http.Request) {
 
 	httpError := &HTTPError{StatusCode: http.StatusMethodNotAllowed, Error: ErrorPayload{Code: strconv.Itoa(http.StatusMethodNotAllowed), Message: fmt.Sprintf("the %s method is not supported for this resource", r.Method)}}
+	app.errorResponse(w, r, httpError)
+}
+
+func (app *App) serviceUnavailableResponse(w http.ResponseWriter, r *http.Request, message string) {
+	httpError := &HTTPError{
+		StatusCode: http.StatusServiceUnavailable,
+		Error: ErrorPayload{
+			Code:    strconv.Itoa(http.StatusServiceUnavailable),
+			Message: message,
+		},
+	}
 	app.errorResponse(w, r, httpError)
 }
 
