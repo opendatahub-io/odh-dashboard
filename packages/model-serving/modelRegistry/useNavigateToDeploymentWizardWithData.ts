@@ -1,5 +1,4 @@
 import React from 'react';
-import type { DeployPrefillData } from '@odh-dashboard/model-registry/model-catalog-deploy';
 import {
   translateDisplayNameForK8s,
   LimitNameResourceType,
@@ -7,6 +6,7 @@ import {
 } from '@odh-dashboard/k8s-core';
 import { useWatchConnectionTypes } from '@odh-dashboard/internal/utilities/useWatchConnectionTypes';
 import { ServingRuntimeModelType } from '@odh-dashboard/model-serving/shared';
+import type { DeployPrefillData } from './types';
 import {
   ConnectionTypeRefs,
   InitialWizardFormData,
