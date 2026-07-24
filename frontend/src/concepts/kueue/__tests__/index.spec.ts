@@ -507,7 +507,7 @@ describe('getKueueStatusInfo', () => {
   it('should return correct info for Requeued', () => {
     const info = getKueueStatusInfo(KueueWorkloadStatus.Requeued);
     expect(info.label).toBe('Requeued');
-    expect(info.color).toBe('blue');
+    expect(info.color).toBe('grey');
   });
 
   it('should return correct info for Inadmissible', () => {
