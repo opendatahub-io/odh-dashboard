@@ -4,11 +4,21 @@ import {
   type ProjectsContextType,
 } from '@odh-dashboard/ui-core/context/ProjectsContext';
 import type { ProjectKind } from '@odh-dashboard/k8s-core';
-import { byName, isAvailableProject } from '@odh-dashboard/k8s-core';
+import { byName } from '@odh-dashboard/k8s-core';
 
 const PREFERRED_NAMESPACE_STORAGE_KEY = 'mod-arch.namespace.lastUsed';
 /** Dashboard install namespace — excluded from the selectable project list. */
 const DASHBOARD_NAMESPACE = 'opendatahub';
+
+const isAvailableProject = (projectName: string, dashboardNamespace: string): boolean =>
+  !(
+    projectName.startsWith('openshift-') ||
+    projectName.startsWith('kube-') ||
+    projectName === 'default' ||
+    projectName === 'system' ||
+    projectName === 'openshift' ||
+    projectName === dashboardNamespace
+  );
 
 type K8sNamespaceItem = {
   metadata?: { name?: string };
