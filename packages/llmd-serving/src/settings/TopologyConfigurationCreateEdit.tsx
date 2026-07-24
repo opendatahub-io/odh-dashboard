@@ -20,6 +20,7 @@ import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/p
 import {
   getDisplayNameFromK8sResource,
   isK8sNameDescriptionDataValid,
+  translateDisplayNameForK8s,
 } from '@odh-dashboard/k8s-core';
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
@@ -74,16 +75,15 @@ const TopologyConfigurationCreateEditInner: React.FC<{
     }
     if (state?.sourceConfig) {
       const cleanMeta = cleanResourceForYAMLViewer(state.sourceConfig.metadata);
+      const duplicateDisplayName = `Copy of ${getDisplayNameFromK8sResource(state.sourceConfig)}`;
       return {
         ...state.sourceConfig,
         metadata: {
           ...cleanMeta,
-          name: `${state.sourceConfig.metadata.name}-copy`,
+          name: translateDisplayNameForK8s(duplicateDisplayName),
           annotations: {
             ...cleanMeta.annotations,
-            'openshift.io/display-name': `Copy of ${getDisplayNameFromK8sResource(
-              state.sourceConfig,
-            )}`,
+            'openshift.io/display-name': duplicateDisplayName,
           },
         },
       };
@@ -106,17 +106,16 @@ const TopologyConfigurationCreateEditInner: React.FC<{
         cleanMeta.annotations,
         'kubectl.kubernetes.io/last-applied-configuration',
       );
+      const duplicateDisplayName = `Copy of ${getDisplayNameFromK8sResource(state.sourceConfig)}`;
       return YAML.stringify({
         apiVersion: state.sourceConfig.apiVersion,
         kind: state.sourceConfig.kind,
         metadata: {
           ...cleanMeta,
-          name: `${state.sourceConfig.metadata.name}-copy`,
+          name: translateDisplayNameForK8s(duplicateDisplayName),
           annotations: {
             ...cleanAnnotations,
-            'openshift.io/display-name': `Copy of ${getDisplayNameFromK8sResource(
-              state.sourceConfig,
-            )}`,
+            'openshift.io/display-name': duplicateDisplayName,
           },
         },
         spec: state.sourceConfig.spec,
