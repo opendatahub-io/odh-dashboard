@@ -113,7 +113,7 @@ describe('buildSeries', () => {
 
   it.each([
     ['borrowing (usage > quota)', '6', 4, 2],
-    ['lending (usage < quota)', '1', 4, -3],
+    ['unallocated capacity (usage < quota) — clipped to 0', '1', 4, 0],
   ])('computes y correctly for %s', (_label, usage, quota, expectedY) => {
     const series = buildSeries(
       [makeResult('cq-a', [[1700000000, usage]])],
