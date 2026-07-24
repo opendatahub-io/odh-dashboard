@@ -1,6 +1,13 @@
 import { mockLLMInferenceServiceConfigK8sResource } from '@odh-dashboard/internal/__mocks__/mockLLMInferenceServiceConfigK8sResource';
+import { mockLLMInferenceServiceK8sResource } from '@odh-dashboard/internal/__mocks__/mockLLMInferenceServiceK8sResource';
 // eslint-disable-next-line import/no-extraneous-dependencies
-import { ConfigType, TopologyType } from '@odh-dashboard/llmd-serving/types';
+import {
+  ConfigType,
+  TopologyType,
+  TOPOLOGY_TYPE_ANNOTATION,
+  TOPOLOGY_CONFIG_REF_ANNOTATION,
+  ROUTING_CONFIG_REF_ANNOTATION,
+} from '@odh-dashboard/llmd-serving/types';
 import { mockDashboardConfig } from '@odh-dashboard/internal/__mocks__/mockDashboardConfig';
 import { mockDscStatus } from '@odh-dashboard/internal/__mocks__/mockDscStatus';
 import { mockK8sResourceList } from '@odh-dashboard/internal/__mocks__/mockK8sResourceList';
@@ -25,6 +32,7 @@ import {
 import {
   modelServingGlobal,
   modelServingWizard,
+  modelServingWizardEdit,
 } from '@odh-dashboard/cypress/cypress/pages/modelServing';
 
 const buildTopologyConfig = (
@@ -391,6 +399,163 @@ describe('Model Serving LLMD Topology & Routing', () => {
       cy.findByTestId('routing-config-select').click();
       cy.findByTestId('routing-config-option-default').click();
       cy.findByTestId('routing-config-select').should('contain.text', 'Default optimized routing');
+    });
+  });
+
+  describe('edit flow — config resolution', () => {
+    const initEditIntercepts = ({
+      topologyConfigs = mockTopologyConfigs,
+      routerConfigs = mockRouterConfigs,
+      existingDeployment,
+    }: {
+      topologyConfigs?: ReturnType<typeof mockLLMInferenceServiceConfigK8sResource>[];
+      routerConfigs?: ReturnType<typeof mockLLMInferenceServiceConfigK8sResource>[];
+      existingDeployment: ReturnType<typeof mockLLMInferenceServiceK8sResource>;
+    }) => {
+      initIntercepts({ topologyConfigs, routerConfigs });
+      cy.interceptK8sList(
+        { model: LLMInferenceServiceModel, ns: 'test-project' },
+        mockK8sResourceList([existingDeployment]),
+      );
+      cy.intercept('PUT', '**/llminferenceservices/**', (req) => {
+        req.reply({ statusCode: 200, body: req.body });
+      }).as('updateLLMInferenceService');
+    };
+
+    const openEditWizardModelDeploymentStep = (displayName: string) => {
+      modelServingGlobal.visit('test-project');
+      modelServingGlobal.getModelRow(displayName).findKebabAction('Edit').click();
+      modelServingWizardEdit.findNextButton().should('be.enabled').click();
+    };
+
+    it('should pre-select topology config and routing config from existing deployment', () => {
+      initEditIntercepts({
+        existingDeployment: mockLLMInferenceServiceK8sResource({
+          additionalAnnotations: {
+            [TOPOLOGY_TYPE_ANNOTATION]: TopologyType.MULTI_NODE,
+            [TOPOLOGY_CONFIG_REF_ANNOTATION]: 'multi-node-config',
+            [ROUTING_CONFIG_REF_ANNOTATION]: 'managed-scheduler',
+          },
+          baseRefs: [{ name: 'multi-node-config' }, { name: 'managed-scheduler' }],
+        }),
+      });
+
+      openEditWizardModelDeploymentStep('Test LLM Inference Service');
+
+      cy.findByTestId('topology-type-select').should('contain.text', 'Multi-node data parallel');
+      cy.findByTestId('custom-topology-config-select').should(
+        'contain.text',
+        'Multi-node Data Parallel',
+      );
+      cy.findByTestId('routing-config-select').should('contain.text', 'Managed scheduler');
+      modelServingWizardEdit.findNextButton().should('be.enabled');
+    });
+
+    it('should fall back to default routing when routing config has been deleted', () => {
+      initEditIntercepts({
+        existingDeployment: mockLLMInferenceServiceK8sResource({
+          additionalAnnotations: {
+            [TOPOLOGY_TYPE_ANNOTATION]: TopologyType.SINGLE_NODE,
+            [ROUTING_CONFIG_REF_ANNOTATION]: 'deleted-router',
+          },
+          baseRefs: [{ name: 'deleted-router' }],
+        }),
+      });
+
+      openEditWizardModelDeploymentStep('Test LLM Inference Service');
+
+      cy.findByTestId('routing-config-select').should('contain.text', 'Default optimized routing');
+      modelServingWizardEdit.findNextButton().should('be.enabled');
+    });
+
+    it('should show warning when routing config is incompatible with topology type', () => {
+      const incompatibleRouterConfig = mockLLMInferenceServiceConfigK8sResource({
+        name: 'multi-only-router',
+        displayName: 'Multi-only Router',
+        configType: ConfigType.ROUTER,
+        supportedTopologies: [TopologyType.MULTI_NODE],
+      });
+
+      initEditIntercepts({
+        routerConfigs: [...mockRouterConfigs, incompatibleRouterConfig],
+        existingDeployment: mockLLMInferenceServiceK8sResource({
+          additionalAnnotations: {
+            [TOPOLOGY_TYPE_ANNOTATION]: TopologyType.SINGLE_NODE,
+            [ROUTING_CONFIG_REF_ANNOTATION]: 'multi-only-router',
+          },
+          baseRefs: [{ name: 'multi-only-router' }],
+        }),
+      });
+
+      openEditWizardModelDeploymentStep('Test LLM Inference Service');
+
+      cy.findByTestId('routing-config-select').should('contain.text', 'Multi-only Router');
+      cy.findByText(/is not compatible with the current topology type/).should('exist');
+      modelServingWizardEdit.findNextButton().should('be.enabled');
+    });
+
+    it('should retain selection of topology config on edit if it is incompatible with topology type', () => {
+      initEditIntercepts({
+        existingDeployment: mockLLMInferenceServiceK8sResource({
+          additionalAnnotations: {
+            [TOPOLOGY_TYPE_ANNOTATION]: TopologyType.SINGLE_NODE,
+            [TOPOLOGY_CONFIG_REF_ANNOTATION]: 'multi-node-config',
+          },
+          baseRefs: [{ name: 'multi-node-config' }],
+        }),
+      });
+
+      openEditWizardModelDeploymentStep('Test LLM Inference Service');
+
+      cy.findByTestId('custom-topology-config-select').should(
+        'contain.text',
+        'Multi-node Data Parallel',
+      );
+      modelServingWizardEdit.findNextButton().should('be.enabled');
+    });
+
+    it('should auto-select another config when topology config has been deleted', () => {
+      initEditIntercepts({
+        existingDeployment: mockLLMInferenceServiceK8sResource({
+          additionalAnnotations: {
+            [TOPOLOGY_TYPE_ANNOTATION]: TopologyType.MULTI_NODE,
+            [TOPOLOGY_CONFIG_REF_ANNOTATION]: 'deleted-topo-config',
+          },
+          baseRefs: [{ name: 'deleted-topo-config' }],
+        }),
+      });
+
+      openEditWizardModelDeploymentStep('Test LLM Inference Service');
+
+      cy.findByTestId('topology-type-select').should('contain.text', 'Multi-node data parallel');
+      cy.findByTestId('custom-topology-config-select').should(
+        'contain.text',
+        'Multi-node Data Parallel',
+      );
+      modelServingWizardEdit.findNextButton().should('be.enabled');
+    });
+
+    it('should allow switching to single-node after deleted topology config is resolved', () => {
+      initEditIntercepts({
+        existingDeployment: mockLLMInferenceServiceK8sResource({
+          additionalAnnotations: {
+            [TOPOLOGY_TYPE_ANNOTATION]: TopologyType.MULTI_NODE,
+            [TOPOLOGY_CONFIG_REF_ANNOTATION]: 'deleted-topo-config',
+          },
+          baseRefs: [{ name: 'deleted-topo-config' }],
+        }),
+      });
+
+      openEditWizardModelDeploymentStep('Test LLM Inference Service');
+
+      cy.findByTestId('topology-type-select').click();
+      cy.findByTestId('topology-type-option-workload-single-node').click();
+      cy.findByTestId('topology-type-select').should('contain.text', 'Single node');
+      cy.findByTestId('custom-topology-config-select').should(
+        'contain.text',
+        'Single node (default)',
+      );
+      modelServingWizardEdit.findNextButton().should('be.enabled');
     });
   });
 });
