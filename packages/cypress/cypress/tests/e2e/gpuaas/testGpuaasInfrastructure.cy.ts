@@ -32,8 +32,8 @@ describe('GPUaaS Infrastructure Page', () => {
       cy.step('Verify Hardware usage section is present');
       infrastructurePage.findHardwareUsageSection().should('exist');
 
-      cy.step('Verify Borrowing & lending section is present');
-      infrastructurePage.findBorrowingLendingSection().should('exist');
+      cy.step('Verify Borrowing section is present');
+      infrastructurePage.findBorrowingSection().should('exist');
 
       cy.step('Verify Cluster queue utilization section is present');
       infrastructurePage.findClusterQueueUtilizationSection().should('exist');

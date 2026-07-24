@@ -25,8 +25,8 @@ describe('BorrowingLendingChart', () => {
 
   it('shows empty state when loaded with no data', () => {
     render(<BorrowingLendingChart series={[]} loaded error={undefined} />);
-    expect(screen.getByTestId('borrowing-lending-empty-state')).toBeInTheDocument();
-    expect(screen.getByText(/No borrowing\/lending activity detected/i)).toBeInTheDocument();
+    expect(screen.getByTestId('borrowing-empty-state')).toBeInTheDocument();
+    expect(screen.getByText(/No borrowing activity detected/i)).toBeInTheDocument();
   });
 
   it('shows error message when an error is provided', () => {
@@ -40,6 +40,6 @@ describe('BorrowingLendingChart', () => {
     const series = [makeSeries('cq-a', 'cohort-1')];
     render(<BorrowingLendingChart series={series} loaded error={undefined} />);
     expect(document.querySelector('svg')).toBeInTheDocument();
-    expect(screen.queryByTestId('borrowing-lending-empty-state')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('borrowing-empty-state')).not.toBeInTheDocument();
   });
 });
