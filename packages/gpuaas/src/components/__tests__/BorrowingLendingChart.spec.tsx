@@ -13,7 +13,8 @@ const makeSeries = (cqName: string, cohortName: string, points = 3): CQMetricSer
   nominalQuota: 8,
   data: Array.from({ length: points }, (_, i) => ({
     x: NOW - (points - i) * ONE_HOUR_MS,
-    y: i % 2 === 0 ? 2 : -1,
+    y: i % 2 === 0 ? 2 : 0,
+    gpuUsage: i % 2 === 0 ? 10 : 7,
   })),
 });
 

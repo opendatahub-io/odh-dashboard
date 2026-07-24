@@ -79,7 +79,7 @@ const ClusterQueueCard: React.FC<ClusterQueueCardProps> = ({
   }));
 
   return (
-    <Card isCompact data-testid={`cq-card-${name}`}>
+    <Card isCompact isFullHeight data-testid={`cq-card-${name}`}>
       <CardTitle>
         <Flex
           alignItems={{ default: 'alignItemsCenter' }}

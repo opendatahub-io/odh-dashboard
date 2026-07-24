@@ -45,7 +45,7 @@ export type CQMetricSeries = {
   cohortName: string;
   /** Nominal GPU quota declared for this cluster queue (in GPU units). */
   nominalQuota: number;
-  data: { x: number; y: number }[];
+  data: { x: number; y: number; gpuUsage: number }[];
 };
 
 type CQInfo = {
@@ -148,10 +148,14 @@ const buildSeries = (
         cqName,
         cohortName: info.cohortName,
         nominalQuota: info.nominalQuota,
-        data: result.values.map(([timestamp, valueStr]) => ({
-          x: timestamp * 1000,
-          y: Math.max(0, parseFloat(valueStr) - info.nominalQuota),
-        })),
+        data: result.values.map(([timestamp, valueStr]) => {
+          const gpuUsage = parseFloat(valueStr);
+          return {
+            x: timestamp * 1000,
+            y: Math.max(0, gpuUsage - info.nominalQuota),
+            gpuUsage,
+          };
+        }),
       };
     })
     .filter((s): s is CQMetricSeries => s !== null);

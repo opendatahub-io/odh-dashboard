@@ -13,6 +13,7 @@ export type TooltipPoint = {
   x: number;
   y: number;
   nominalQuota?: number;
+  gpuUsage?: number;
 };
 
 /**

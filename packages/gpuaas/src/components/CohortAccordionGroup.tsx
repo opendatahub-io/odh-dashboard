@@ -117,7 +117,12 @@ const CohortAccordionGroup: React.FC<CohortAccordionGroupProps> = ({
                       )}
                       {borrowActive && (
                         <FlexItem>
-                          <Label color="purple" isCompact data-testid="cohort-borrow-badge">
+                          <Label
+                            color="orange"
+                            variant="outline"
+                            isCompact
+                            data-testid="cohort-borrow-badge"
+                          >
                             Borrowing enabled
                           </Label>
                         </FlexItem>
