@@ -89,7 +89,7 @@ The controller is **not** part of the npm workspace or Turbo pipeline. It has it
 
 ## Distributions (`distributions/`)
 
-Independently-deployable dashboard variants. These are NOT part of the npm workspace or Turbo pipeline — monorepo-wide `npm run` commands do not apply. Each sub-distribution is self-contained.
+Independently-deployable dashboard variants. All three are **npm workspace members** and participate in the **Turbo pipeline** — Turbo-based root commands (`lint`, `type-check`, `test:contract`) run on distributions that define matching scripts. Some root convenience scripts (`build`, `test`, `dev`) are hardcoded to `frontend/` and `backend/` and do not cover distributions.
 
 | Directory | Description | Has BFF? | Build System |
 |-----------|-------------|----------|--------------|
@@ -100,7 +100,7 @@ Independently-deployable dashboard variants. These are NOT part of the npm works
 - `base/` is a shared library/framework (not independently deployed) — it provides the app shell (masthead, sidebar, error boundary, theme context) that `core-bff/` and `rhaii/` extend
 - `rhaii/` is frontend-only — React + Webpack + Module Federation host configuration
 - `core-bff/` has both a Go BFF (`bff/`) and React frontend (`frontend/`) with its own contract tests (`contract-tests/`)
-- Each distribution has its own `package.json`, `tsconfig.json`, and webpack config
+- Each distribution has its own `package.json`, `tsconfig.json`, and webpack config; dependencies on internal packages resolve through the workspace
 - `core-bff/` follows contract-first development (OpenAPI → BFF stub → Frontend → Production BFF)
 
 See `distributions/core-bff/AGENTS.md` for the most detailed reference. See `.claude/rules/distributions.md` for distribution-specific conventions and `.claude/rules/bff-go.md` for Go BFF conventions (applies to core-bff BFF code).
