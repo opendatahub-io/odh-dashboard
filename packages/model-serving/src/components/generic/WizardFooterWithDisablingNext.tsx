@@ -13,6 +13,8 @@ import {
   AlertActionLink,
 } from '@patternfly/react-core';
 import { K8sStatusError } from '@odh-dashboard/k8s-core';
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports
+import { translateModelServingError } from '@odh-dashboard/internal/api/errorUtils';
 
 type DeploymentFooterProps = {
   submitButtonText?: string;
@@ -154,6 +156,8 @@ const DeployErrorAlert: React.FC<{
   error?: Error | null;
   clearError?: () => void;
 }> = ({ error, clearError, onOverwrite: onOverwrite, onRefresh }) => {
+  const translatedMessage = error ? translateModelServingError(error) : '';
+
   return (
     <StackItem>
       <Alert
@@ -176,7 +180,7 @@ const DeployErrorAlert: React.FC<{
           ) : undefined
         }
       >
-        {error instanceof Error ? error.message : error}
+        {translatedMessage}
       </Alert>
     </StackItem>
   );

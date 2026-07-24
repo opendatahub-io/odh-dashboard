@@ -25,3 +25,38 @@ export const getGenericErrorCode = (error: unknown): number | undefined => {
   }
   return undefined;
 };
+
+const K8S_RESOURCE_REPLACEMENTS: [RegExp, string][] = [
+  [/inferenceservices\.serving\.kserve\.io/i, 'model deployment'],
+  [/servingruntimes\.serving\.kserve\.io/i, 'serving runtime'],
+];
+
+const getResourceDisplayName = (kind?: string): string => {
+  if (kind === 'inferenceservices') {
+    return 'model deployment';
+  }
+  return 'resource';
+};
+
+export const translateModelServingError = (error: unknown): string => {
+  if (
+    error instanceof K8sStatusError &&
+    error.statusObject.code === 409 &&
+    error.statusObject.reason === 'AlreadyExists'
+  ) {
+    const name = error.statusObject.details?.name;
+    const resourceName = getResourceDisplayName(error.statusObject.details?.kind);
+    return name
+      ? `A ${resourceName} with the name "${name}" already exists. Please choose a different ${resourceName} name.`
+      : `A ${resourceName} with this name already exists. Please choose a different ${resourceName} name.`;
+  }
+
+  let message = error instanceof Error ? error.message : String(error || 'Unknown error');
+  for (const [pattern, replacement] of K8S_RESOURCE_REPLACEMENTS) {
+    message = message.replace(pattern, replacement);
+  }
+  return message;
+};
+
+export const createModelServingError = (error: unknown): Error =>
+  new Error(translateModelServingError(error));

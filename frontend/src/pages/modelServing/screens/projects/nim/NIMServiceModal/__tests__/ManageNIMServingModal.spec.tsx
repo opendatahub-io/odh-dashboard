@@ -21,6 +21,17 @@ jest.mock('#~/pages/modelServing/screens/projects/utils', () => ({
   getSubmitServingRuntimeResourcesFn: jest.fn(() => jest.fn()),
   useCreateInferenceServiceObject: jest.fn(),
   useCreateServingRuntimeObject: jest.fn(),
+  validateEnvVarName: jest.fn(() => true),
+  handleModelServingError: jest.fn(
+    (
+      e: unknown,
+      setError: (err: Error | undefined) => void,
+      setActionInProgress: (v: boolean) => void,
+    ) => {
+      setError(new Error(e instanceof Error ? e.message : String(e)));
+      setActionInProgress(false);
+    },
+  ),
 }));
 
 jest.mock('#~/pages/modelServing/customServingRuntimes/useCustomServingRuntimesEnabled', () => ({
@@ -148,11 +159,6 @@ jest.mock('../../../ServingRuntimeModal/AuthServingRuntimeSection', () => ({
   default: jest.fn(() => <div data-testid="auth-serving-runtime-section">Auth Section</div>),
 }));
 
-jest.mock('#~/concepts/dashboard/DashboardModalFooter', () => ({
-  __esModule: true,
-  default: jest.fn(() => <div data-testid="modal-footer">Modal Footer</div>),
-}));
-
 jest.mock('../../../kServeModal/EnvironmentVariablesSection', () => ({
   __esModule: true,
   default: jest.fn(
@@ -278,6 +284,8 @@ describe('ManageNIMServingModal', () => {
     project: 'test-project',
     k8sName: 'test-model',
     format: { name: 'test-model-format' },
+    minReplicas: 1,
+    maxReplicas: 1,
   };
 
   const defaultMockServingRuntimeData = {
@@ -474,12 +482,13 @@ describe('ManageNIMServingModal', () => {
         jest.fn(),
       ]);
       render(<ManageNIMServingModal onClose={mockOnClose} projectContext={mockProjectContext} />);
-      expect(screen.getByTestId('modal-footer')).toBeInTheDocument();
+      expect(screen.getByTestId('modal-submit-button')).toBeInTheDocument();
+      expect(screen.getByTestId('modal-submit-button')).toBeDisabled();
     });
 
     it('enables submit button when form is valid', () => {
       render(<ManageNIMServingModal onClose={mockOnClose} projectContext={mockProjectContext} />);
-      expect(screen.getByTestId('modal-footer')).toBeInTheDocument();
+      expect(screen.getByTestId('modal-submit-button')).not.toBeDisabled();
     });
   });
 
@@ -491,9 +500,10 @@ describe('ManageNIMServingModal', () => {
       expect(mockOnClose).toHaveBeenCalledWith(false);
     });
 
-    it('handles form submission', () => {
+    it('calls onClose when cancel button is clicked', () => {
       render(<ManageNIMServingModal onClose={mockOnClose} projectContext={mockProjectContext} />);
-      expect(screen.getByTestId('modal-footer')).toBeInTheDocument();
+      fireEvent.click(screen.getByTestId('modal-cancel-button'));
+      expect(mockOnClose).toHaveBeenCalledWith(false);
     });
   });
 
