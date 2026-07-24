@@ -393,6 +393,14 @@ func TestBuildKFPRunRequest(t *testing.T) {
 
 		assert.Equal(t, "my description", result.Description)
 	})
+
+	t.Run("should pass description through unchanged", func(t *testing.T) {
+		req := newValidTabularRequest()
+		req.Description = "plain description"
+		result := BuildKFPRunRequest(req, "test-pipeline-id", "test-version-id", constants.PipelineTypeTabular)
+
+		assert.Equal(t, "plain description", result.Description)
+	})
 }
 
 func TestDeterminePipelineType(t *testing.T) {
@@ -723,6 +731,40 @@ func TestValidateCreateAutoMLRunRequest(t *testing.T) {
 		err := ValidateCreateAutoMLRunRequest(req, constants.PipelineTypeTabular)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "display_name must be at most 250 characters")
+	})
+
+	t.Run("should strip UTF-8 BOM from ASCII label_column before building KFP request", func(t *testing.T) {
+		req := newValidTabularRequest()
+		labelWithBOM := "\ufefftarget"
+		req.LabelColumn = &labelWithBOM
+
+		normalized := normalizeCreateAutoMLRunRequest(req)
+		result := BuildKFPRunRequest(normalized, "test-pipeline-id", "test-version-id", constants.PipelineTypeTabular)
+
+		assert.Equal(t, "target", result.RuntimeConfig.Parameters["label_column"])
+	})
+
+	t.Run("should reject non-ASCII label_column", func(t *testing.T) {
+		req := newValidTabularRequest()
+		label := "لديه روح"
+		req.LabelColumn = &label
+
+		err := ValidateCreateAutoMLRunRequest(req, constants.PipelineTypeTabular)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "ASCII")
+	})
+
+	t.Run("should strip UTF-8 BOM before whitespace in column names", func(t *testing.T) {
+		assert.Equal(t, "target", normalizeColumnName("\ufeff target"))
+	})
+
+	t.Run("should preserve train_data_file_key whitespace during normalization", func(t *testing.T) {
+		req := newValidTabularRequest()
+		req.TrainDataFileKey = " data/train.csv "
+
+		normalized := normalizeCreateAutoMLRunRequest(req)
+
+		assert.Equal(t, " data/train.csv ", normalized.TrainDataFileKey)
 	})
 
 	t.Run("should allow nil eval_metric", func(t *testing.T) {

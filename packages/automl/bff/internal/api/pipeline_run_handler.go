@@ -80,6 +80,12 @@ func (app *App) CreatePipelineRunHandler(w http.ResponseWriter, r *http.Request,
 	// pipelineType is tabular or timeseries; HasAllRequiredAutoMLPipelines guarantees both are present.
 	discovered := discoveredPipelines[pipelineType]
 
+	req, err = repositories.ValidateAndNormalizeCreateAutoMLRunRequest(req, pipelineType)
+	if err != nil {
+		app.badRequestResponse(w, r, err)
+		return
+	}
+
 	runResponse, err := app.repositories.PipelineRuns.CreatePipelineRun(
 		client,
 		ctx,
@@ -93,6 +99,12 @@ func (app *App) CreatePipelineRunHandler(w http.ResponseWriter, r *http.Request,
 		var validationErr *repositories.ValidationError
 		if errors.As(err, &validationErr) {
 			app.badRequestResponse(w, r, err)
+			return
+		}
+		var httpErr *ps.HTTPError
+		if errors.As(err, &httpErr) && httpErr.Status() >= http.StatusInternalServerError {
+			message := formatPipelineServerCreateRunError(httpErr)
+			app.serverErrorResponseWithMessage(w, r, err, message)
 			return
 		}
 		app.serverErrorResponse(w, r, fmt.Errorf("failed to create pipeline run: %w", err))

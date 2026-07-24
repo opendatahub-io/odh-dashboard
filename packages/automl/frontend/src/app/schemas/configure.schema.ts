@@ -16,6 +16,7 @@ import {
   TASK_TYPE_TIMESERIES,
 } from '~/app/utilities/const';
 import { createSchema } from '~/app/utilities/schema';
+import { isASCIIOnly, NON_ASCII_COLUMN_NAME_MESSAGE } from '~/app/utilities/columnUtils';
 
 // Make sure every field has a default to ensure RHF works as intended.
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
@@ -76,6 +77,27 @@ function createConfigureSchema() {
             });
           }
         }
+        return issues;
+      },
+      // Reject non-ASCII column names (KFP MySQL charset limitation)
+      (data) => {
+        const issues: z.core.$ZodRawIssue[] = [];
+        const check = (path: string[], value: string | undefined) => {
+          if (value && value.trim() !== '' && !isASCIIOnly(value)) {
+            issues.push({
+              code: 'custom',
+              path,
+              message: NON_ASCII_COLUMN_NAME_MESSAGE,
+              input: value,
+            });
+          }
+        };
+        check(['target_column'], data.target_column);
+        check(['id_column'], data.id_column);
+        check(['timestamp_column'], data.timestamp_column);
+        data.known_covariates_names?.forEach((name, index) => {
+          check(['known_covariates_names', String(index)], name);
+        });
         return issues;
       },
       // Validate timeseries-specific required fields

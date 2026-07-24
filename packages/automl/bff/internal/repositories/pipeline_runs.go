@@ -42,6 +42,8 @@ func NewValidationError(message string) error {
 // to prevent unbounded memory accumulation when paginating through large result sets.
 const maxRunsPerPipeline = 10000
 
+const pipelineServerRejectedRunRequestMsg = "pipeline server rejected run request; verify the run parameters and training data"
+
 // PipelineRunsRepository handles business logic for pipeline runs
 type PipelineRunsRepository struct{}
 
@@ -193,14 +195,31 @@ func buildFilter(versionIDs []string) (string, error) {
 
 // toPipelineRun transforms a Kubeflow pipeline run to our stable API format.
 // pipelineType identifies which discovered pipeline produced this run (e.g. "timeseries", "tabular").
+// Non-ASCII column aliases stored in the description (or legacy runtime param) are reverse-mapped
+// so API consumers see the original column names.
 func toPipelineRun(kfRun *models.KFPipelineRun, pipelineType string) models.PipelineRun {
+	description, aliases := StripColumnAliasMapFromDescription(kfRun.Description)
+
+	var runtimeConfig *models.RuntimeConfig
+	if kfRun.RuntimeConfig != nil {
+		params := cloneRuntimeParameters(kfRun.RuntimeConfig.Parameters)
+		if len(aliases) == 0 {
+			aliases = parseColumnAliasMapFromParameters(params)
+		}
+		RestoreOriginalColumnNamesInParameters(params, aliases)
+		runtimeConfig = &models.RuntimeConfig{
+			Parameters:   params,
+			PipelineRoot: kfRun.RuntimeConfig.PipelineRoot,
+		}
+	}
+
 	return models.PipelineRun{
 		RunID:                    kfRun.RunID,
 		DisplayName:              kfRun.DisplayName,
-		Description:              kfRun.Description,
+		Description:              description,
 		ExperimentID:             kfRun.ExperimentID,
 		PipelineVersionReference: kfRun.PipelineVersionReference,
-		RuntimeConfig:            kfRun.RuntimeConfig,
+		RuntimeConfig:            runtimeConfig,
 		State:                    kfRun.State,
 		StorageState:             kfRun.StorageState,
 		ServiceAccount:           kfRun.ServiceAccount,
@@ -213,6 +232,17 @@ func toPipelineRun(kfRun *models.KFPipelineRun, pipelineType string) models.Pipe
 		RunDetails:               kfRun.RunDetails,
 		PipelineType:             pipelineType,
 	}
+}
+
+func cloneRuntimeParameters(params map[string]interface{}) map[string]interface{} {
+	if params == nil {
+		return map[string]interface{}{}
+	}
+	cloned := make(map[string]interface{}, len(params))
+	for k, v := range params {
+		cloned[k] = v
+	}
+	return cloned
 }
 
 // fieldCheck defines a field validation rule
@@ -507,7 +537,62 @@ func ValidateCreateAutoMLRunRequest(req models.CreateAutoMLRunRequest, pipelineT
 		return NewValidationError("display_name must be at most 250 characters")
 	}
 
+	if err := ValidateASCIIColumnNames(req, pipelineType); err != nil {
+		return err
+	}
+
 	return nil
+}
+
+// normalizeColumnName strips a leading UTF-8 BOM then surrounding whitespace from CSV-derived names.
+func normalizeColumnName(name string) string {
+	name = strings.TrimPrefix(name, "\ufeff")
+	return strings.TrimSpace(name)
+}
+
+// normalizeCreateAutoMLRunRequest trims whitespace/BOM from user-supplied fields so
+// CSV-derived column names match the training file header. TrainDataFileKey is left
+// unchanged so S3 lookups use the exact object key provided by the client.
+func normalizeCreateAutoMLRunRequest(req models.CreateAutoMLRunRequest) models.CreateAutoMLRunRequest {
+	req.DisplayName = strings.TrimSpace(req.DisplayName)
+	req.Description = strings.TrimSpace(req.Description)
+	req.TrainDataSecretName = strings.TrimSpace(req.TrainDataSecretName)
+	req.TrainDataBucketName = strings.TrimSpace(req.TrainDataBucketName)
+
+	if req.LabelColumn != nil {
+		v := normalizeColumnName(*req.LabelColumn)
+		req.LabelColumn = &v
+	}
+	if req.Target != nil {
+		v := normalizeColumnName(*req.Target)
+		req.Target = &v
+	}
+	if req.IDColumn != nil {
+		v := normalizeColumnName(*req.IDColumn)
+		req.IDColumn = &v
+	}
+	if req.TimestampColumn != nil {
+		v := normalizeColumnName(*req.TimestampColumn)
+		req.TimestampColumn = &v
+	}
+	if req.KnownCovariatesNames != nil {
+		names := make([]string, len(*req.KnownCovariatesNames))
+		for i, name := range *req.KnownCovariatesNames {
+			names[i] = normalizeColumnName(name)
+		}
+		req.KnownCovariatesNames = &names
+	}
+
+	return req
+}
+
+// ValidateAndNormalizeCreateAutoMLRunRequest normalizes and validates a create-run request.
+func ValidateAndNormalizeCreateAutoMLRunRequest(req models.CreateAutoMLRunRequest, pipelineType string) (models.CreateAutoMLRunRequest, error) {
+	req = normalizeCreateAutoMLRunRequest(req)
+	if err := ValidateCreateAutoMLRunRequest(req, pipelineType); err != nil {
+		return models.CreateAutoMLRunRequest{}, err
+	}
+	return req, nil
 }
 
 // BuildKFPRunRequest maps AutoML parameters to a KFP v2beta1 create-run request.
@@ -583,9 +668,10 @@ func BuildKFPRunRequest(req models.CreateAutoMLRunRequest, pipelineID, pipelineV
 	}
 }
 
-// CreatePipelineRun validates the request, builds the KFP payload, and submits it.
+// CreatePipelineRun builds the KFP payload and submits it.
 // pipelineID and pipelineVersionID are provided by the caller (from dynamic discovery).
 // pipelineType is set on the returned run to identify the pipeline type (e.g. "timeseries", "tabular").
+// Callers must validate/normalize the request (ValidateAndNormalizeCreateAutoMLRunRequest) before calling.
 func (r *PipelineRunsRepository) CreatePipelineRun(
 	client ps.PipelineServerClientInterface,
 	ctx context.Context,
@@ -595,10 +681,6 @@ func (r *PipelineRunsRepository) CreatePipelineRun(
 ) (*models.PipelineRun, error) {
 	if client == nil {
 		return nil, fmt.Errorf("pipeline server client is nil")
-	}
-
-	if err := ValidateCreateAutoMLRunRequest(req, pipelineType); err != nil {
-		return nil, err
 	}
 
 	if pipelineID == "" {
@@ -612,6 +694,14 @@ func (r *PipelineRunsRepository) CreatePipelineRun(
 
 	kfRun, err := client.CreateRun(ctx, kfpRequest)
 	if err != nil {
+		var httpErr *ps.HTTPError
+		if errors.As(err, &httpErr) && httpErr.Status() == http.StatusBadRequest {
+			slog.Warn("pipeline server rejected create run request",
+				"status", httpErr.Status(),
+				"message", httpErr.Message,
+			)
+			return nil, NewValidationError(pipelineServerRejectedRunRequestMsg)
+		}
 		return nil, fmt.Errorf("failed to create pipeline run: %w", err)
 	}
 
