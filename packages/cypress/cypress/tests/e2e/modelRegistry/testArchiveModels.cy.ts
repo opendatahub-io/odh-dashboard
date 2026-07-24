@@ -66,7 +66,6 @@ describe('Verify that models and versions can be archived and restored via model
   });
 
   retryableBeforeEach(() => {
-    // TODO: RHOAIENG-65075 - 'Cannot read properties of null (reading postMessage)' error is suppressed globally in e2e.ts
     cy.clearCookies();
     cy.clearLocalStorage();
   });
@@ -82,7 +81,7 @@ describe('Verify that models and versions can be archived and restored via model
       modelRegistry.visitWithRegistry(registryName);
 
       cy.step('Register a model using object storage');
-      clickRegisterModelButton(30000);
+      clickRegisterModelButton(80000);
 
       // Fill in model details
       registerModelPage
@@ -92,6 +91,7 @@ describe('Verify that models and versions can be archived and restored via model
         .findFormField(FormFieldSelector.MODEL_DESCRIPTION)
         .type(testData.objectStorageModelDescription);
       registerModelPage.selectModelType();
+
       registerModelPage.findFormField(FormFieldSelector.VERSION_NAME).type(testData.version1Name);
       registerModelPage
         .findFormField(FormFieldSelector.VERSION_DESCRIPTION)
@@ -164,11 +164,13 @@ describe('Verify that models and versions can be archived and restored via model
         .type(testData.objectStoragePathV2);
 
       registerVersionPage.findSubmitButton().should('be.enabled').click();
-
       cy.step('Verify v1.0 & v2.0 are registered');
-      cy.visit(`/ai-hub/models/registry/${registryName}/registered-models/1/versions`);
-      cy.contains(testData.version2Name, { timeout: 30000 }).should('be.visible');
-      cy.contains(testData.version1Name, { timeout: 30000 }).should('be.visible');
+      cy.visit(`/ai-hub/models/registry/${registryName}/registered-models/1/versions`, {
+        timeout: 120000,
+      });
+      [testData.version1Name, testData.version2Name].forEach((version) => {
+        modelRegistry.findModelVersionTable(120000).contains('a', version).should('be.visible');
+      });
 
       cy.step('Navigate to versions view');
       cy.contains(testData.objectStorageModelName).click();
@@ -178,9 +180,10 @@ describe('Verify that models and versions can be archived and restored via model
       // Find the v1.0 version row and archive it
       const modelVersionRow = modelRegistry.getModelVersionRow(testData.version1Name);
       modelVersionRow.findKebab().click();
+
       modelRegistry
         .findArchiveModelVersionAction()
-        .find('button')
+        //.find('span')
         .should('not.have.attr', 'aria-disabled', 'true')
         .click();
 

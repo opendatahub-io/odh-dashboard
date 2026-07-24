@@ -88,11 +88,9 @@ items:
               secretKeyRef:
                 key: database-name
                 name: {{DATABASE_NAME}}
-          args:
-            - --datadir
-            - /var/lib/mysql/datadir
-            - --default-authentication-plugin=mysql_native_password
-          image: public.ecr.aws/docker/library/mysql:8.3.0
+          command:
+            - run-mysqld
+          image: registry.redhat.io/rhel9/mysql-84@sha256:c16d572a6ff2ba6029a261ea4ba6342a14743f1e2615b23a32964a201bda9566
           imagePullPolicy: IfNotPresent
           livenessProbe:
             exec:
@@ -148,7 +146,7 @@ items:
     name: {{DATABASE_NAME}}
     namespace: {{NAMESPACE}}
   stringData:
-    database-name: "model-registry"
+    database-name: "model_registry"
     database-password: "TheBlurstOfTimes" # notsecret
     database-user: "mlmduser" # notsecret
 kind: List

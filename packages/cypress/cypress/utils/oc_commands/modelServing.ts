@@ -162,8 +162,10 @@ export const checkInferenceServiceState = (
         serviceState.status?.modelStatus?.states?.activeModelState || 'EMPTY';
       const conditions = serviceState.status?.conditions || [];
 
-      // Check deployment mode
+      // Check deployment mode — Standard mode does not populate activeModelState;
+      // readiness is tracked through conditions only.
       const actualDeploymentMode = serviceState.status?.deploymentMode || 'EMPTY';
+      const isStandardMode = actualDeploymentMode === 'Standard';
 
       // Detailed initial logging
       cy.log(`🧐 Attempt ${attempts}: Checking InferenceService state
@@ -229,20 +231,27 @@ export const checkInferenceServiceState = (
         };
       });
 
-      // Check if active model state is "Loaded"
+      // activeModelState is only meaningful in RawDeployment mode.
+      // Standard mode keeps it empty while using conditions for readiness tracking.
       const isModelLoaded = activeModelState === 'Loaded';
-      cy.log(`Active Model State Check: ${isModelLoaded ? '✅ Loaded' : '❌ Not Loaded'}`);
+      const loadedCheckApplies = !isStandardMode && options.requireLoadedState !== false;
 
-      // Always RawDeployment (no validation needed)
+      cy.log(
+        `Active Model State Check: ${
+          isStandardMode
+            ? '⏭ Skipped (Standard mode uses conditions)'
+            : isModelLoaded
+            ? '✅ Loaded'
+            : '❌ Not Loaded'
+        }`,
+      );
       cy.log(`📋 InferenceService ${serviceName} deployment mode: ${actualDeploymentMode}`);
+
       // Determine overall success
-      // If no condition checks were specified, only check model state
       const allConditionsPassed =
         !shouldValidateConditions || checkedConditions.every((check) => check.isPassed);
-      // If the user does not want to check the loaded state, then we can return if all conditions are met
-      const requireLoaded = options.requireLoadedState !== false;
 
-      if ((!requireLoaded || isModelLoaded) && allConditionsPassed) {
+      if ((!loadedCheckApplies || isModelLoaded) && allConditionsPassed) {
         cy.log(
           `✅ InferenceService ${serviceName} meets all conditions after ${attempts} attempts`,
         );
@@ -273,14 +282,14 @@ export const checkInferenceServiceState = (
                 )})`,
             )
             .join('\n')}
-          
+
           Full Condition Details:
           ${conditionDetails}`;
 
         cy.log(errorMessage);
         throw new Error(errorMessage);
       } else {
-        return cy.wait(5000).then(() => {
+        return cy.wait(50000).then(() => {
           failOnDeploymentStatus(serviceName);
           return checkState();
         });
@@ -442,7 +451,7 @@ export const checkLLMInferenceServiceState = (
                 )})`,
             )
             .join('\n')}
-          
+
           Full Condition Details:
           ${conditionDetails}`;
 

@@ -1013,6 +1013,10 @@ class ModelServingWizard extends Wizard {
     return cy.findByTestId('serving-runtime-template-selection-toggle');
   }
 
+  findServingRuntimeTemplateSelectionSearchInputBox() {
+    return cy.findByTestId('serving-runtime-template-selection-search');
+  }
+
   /** Selects the manual-select radio (works for both serving runtimes and model deployment configs). */
   findModelServerManualSelectRadio() {
     return cy.findByTestId('model-server-manual-select-radio');
@@ -1052,14 +1056,17 @@ class ModelServingWizard extends Wizard {
         // Select from a list of serving runtimes, including custom ones
         this.findServingRuntimeTemplateSearchSelector().click();
         // Duplicate display names can match multiple menu items; pick the first for E2E stability
-        this.getGlobalScopedServingRuntime()
-          .find()
-          .findAllByRole('menuitem', { name: new RegExp(name), hidden: true })
+        this.findServingRuntimeTemplateSelectionSearchInputBox().type(name);
+        cy.findByTestId('global-scoped-serving-runtimes')
+          .find('[data-testid^="servingRuntime"]')
           .first()
-          .should('exist')
           .click();
       }
     });
+  }
+
+  selectDeploymentType(name: string) {
+    cy.findByText(name).click();
   }
 
   findServingRuntimeTemplateSearchInput() {
@@ -1293,6 +1300,7 @@ class ModelServingWizard extends Wizard {
 
   findAddVariableButton() {
     return cy.findByTestId('add-environment-variable');
+    //return cy.get('[data-testid="add-environment-variable"] > .pf-v6-c-button__text');
   }
 
   findEnvVariableName(key: string) {
@@ -1479,8 +1487,9 @@ class ModelServingWizard extends Wizard {
    */
   selectFirstAvailableDeploymentMethod() {
     cy.get('body').then(($body) => {
-      if ($body.find('[data-testid="deployment-method-field"]').length > 0) {
-        cy.findByTestId('deployment-method-field').find('input[type="radio"]').first().click();
+      const radios = $body.find('[data-testid^="deployment-method-"]');
+      if (radios.length > 0) {
+        cy.wrap(radios.first()).click();
       }
     });
   }
