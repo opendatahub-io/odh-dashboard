@@ -57,6 +57,7 @@ type LeaderboardEntry = {
   chunkingMethod: string;
   chunkingChunkSize: number | string;
   chunkingChunkOverlap: number | string;
+  chunkingMetadata: boolean;
   embeddingsModelId: string;
   retrievalMethod: string;
   retrievalNumberOfChunks: number | string;
@@ -66,7 +67,10 @@ type LeaderboardEntry = {
 };
 
 // Format a settings cell value: capitalize the first letter, with special cases
-const formatSettingsValue = (value: string | number): string | number => {
+const formatSettingsValue = (value: string | number | boolean): string | number => {
+  if (typeof value === 'boolean') {
+    return value ? 'Yes' : 'No';
+  }
   if (typeof value !== 'string' || value === 'N/A' || value.length === 0) {
     return value;
   }
@@ -96,6 +100,7 @@ type SettingsField =
   | 'chunkingMethod'
   | 'chunkingChunkSize'
   | 'chunkingChunkOverlap'
+  | 'chunkingMetadata'
   | 'retrievalMethod'
   | 'retrievalNumberOfChunks'
   | 'retrievalSearchMode'
@@ -194,11 +199,19 @@ const COLUMN_META: Record<
     field: 'chunkingChunkOverlap',
     testId: 'chunking-chunk-overlap',
   },
+  chunkingMetadata: {
+    name: 'Chunk metadata',
+    description: 'Whether document metadata is included alongside chunk text during indexing.',
+    minWidth: '12rem',
+    priority: 5,
+    field: 'chunkingMetadata',
+    testId: 'chunking-metadata',
+  },
   // Retrieval group (search stage)
   retrievalMethod: {
     name: 'Retrieval method',
     description: 'The method used to retrieve relevant chunks from the vector database.',
-    priority: 5,
+    priority: 6,
     field: 'retrievalMethod',
     testId: 'retrieval-method',
     minWidth: '13rem',
@@ -208,7 +221,7 @@ const COLUMN_META: Record<
     description:
       'The search strategy. Hybrid search combines vector and keyword search and is available only with Milvus.',
     minWidth: '14rem',
-    priority: 6,
+    priority: 7,
     field: 'retrievalSearchMode',
     testId: 'retrieval-search-mode',
   },
@@ -217,7 +230,7 @@ const COLUMN_META: Record<
     description:
       'The ranking algorithm used to combine and reorder results when hybrid retrieval search mode is active. RRF (reciprocal rank fusion) merges rankings from multiple sources into a single list. Weighted ranking assigns different importance levels to each source. Only applicable when retrieval search mode is hybrid.',
     minWidth: '12rem',
-    priority: 7,
+    priority: 8,
     field: 'retrievalRankerStrategy',
     testId: 'retrieval-ranker-strategy',
   },
@@ -225,7 +238,7 @@ const COLUMN_META: Record<
     name: 'Number of chunks',
     description: 'The number of document chunks retrieved per query.',
     minWidth: '13rem',
-    priority: 8,
+    priority: 9,
     field: 'retrievalNumberOfChunks',
     testId: 'retrieval-number-of-chunks',
   },
@@ -518,6 +531,8 @@ function AutoragLeaderboard({
           // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition, @typescript-eslint/prefer-nullish-coalescing -- 0 is a valid value, must use ?? not ||
           chunkingChunkOverlap: pattern.settings?.chunking?.chunk_overlap ?? 'N/A',
           // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+          chunkingMetadata: pattern.settings?.chunking?.include_metadata ?? false,
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
           embeddingsModelId: pattern.settings?.embedding?.model_id || 'N/A',
           // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
           retrievalMethod: pattern.settings?.retrieval?.method || 'N/A',
@@ -628,6 +643,12 @@ function AutoragLeaderboard({
           return activeSort.direction === 'asc' ? comparison : -comparison;
         }
 
+        // Handle boolean sorting (false before true)
+        if (typeof aVal === 'boolean' && typeof bVal === 'boolean') {
+          const comparison = Number(aVal) - Number(bVal);
+          return activeSort.direction === 'asc' ? comparison : -comparison;
+        }
+
         return 0;
       });
     }
@@ -666,7 +687,12 @@ function AutoragLeaderboard({
   const columnPresets: ColumnPreset[] = React.useMemo(() => {
     const leadingKeys = ['rank', 'pattern', 'modelNames', 'optimized-metric'];
     const metricColumnKeys = nonOptimizedMetricKeys.map((key) => `metric:${key}`);
-    const chunkingKeys = ['chunkingMethod', 'chunkingChunkSize', 'chunkingChunkOverlap'];
+    const chunkingKeys = [
+      'chunkingMethod',
+      'chunkingChunkSize',
+      'chunkingChunkOverlap',
+      'chunkingMetadata',
+    ];
     const allSettingKeys = SETTINGS_COLUMNS.map((col) => col.id);
 
     return [
