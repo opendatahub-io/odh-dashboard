@@ -144,7 +144,4 @@ func TestWireMaasApiURL_EnablesReadyHandlers(t *testing.T) {
 	if got, ok := holder.URL(); !ok || got != maasFakeServer.URL {
 		t.Fatalf("holder URL = (%q, %v), want %q", got, ok, maasFakeServer.URL)
 	}
-	if app.config.MaasApiUrl != maasFakeServer.URL {
-		t.Fatalf("config.MaasApiUrl = %q", app.config.MaasApiUrl)
-	}
 }

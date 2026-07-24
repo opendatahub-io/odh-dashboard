@@ -8,31 +8,31 @@ The standalone module manifests live at [`../modules/`](../modules/).
 
 ## Files
 
-| File | Role |
-|------|------|
-| `deployment.yaml` | JSON6902 patches: SA isolation (`automountServiceAccountToken: false`, projected `dashboard-sa-token`), federation config env var, and all eight BFF sidecar containers |
-| `service.yaml` | JSON6902 patches adding BFF module ports to the shared `odh-dashboard` Service |
-| `networkpolicy.yaml` | Ingress/egress for all ports on the dashboard pod (8443 + all BFF ports) |
-| `federation-configmap.yaml` | Static `federation-config` ConfigMap for sidecar mode |
-| `modules-service-account.yaml` | Shared `odh-dashboard-modules` ServiceAccount for in-pod token access |
-| `modules-cluster-role.yaml` | ClusterRole for the shared modules SA |
-| `modules-cluster-role-binding.yaml` | Binds the modules ClusterRole to the shared SA |
-| `modules-sa-token-secret.yaml` | Projected token Secret for module SA |
-| `params.env` | BFF module container image defaults (injected by operator at install) |
-| `params.yaml` | kustomize var reference config |
+| File                                | Role                                                                                                                                                                    |
+| ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `deployment.yaml`                   | JSON6902 patches: SA isolation (`automountServiceAccountToken: false`, projected `dashboard-sa-token`), federation config env var, and all eight BFF sidecar containers |
+| `service.yaml`                      | JSON6902 patches adding BFF module ports to the shared `odh-dashboard` Service                                                                                          |
+| `networkpolicy.yaml`                | Ingress/egress for all ports on the dashboard pod (8443 + all BFF ports)                                                                                                |
+| `federation-configmap.yaml`         | Static `federation-config` ConfigMap for sidecar mode                                                                                                                   |
+| `modules-service-account.yaml`      | Shared `odh-dashboard-modules` ServiceAccount for in-pod token access                                                                                                   |
+| `modules-cluster-role.yaml`         | ClusterRole for the shared modules SA                                                                                                                                   |
+| `modules-cluster-role-binding.yaml` | Binds the modules ClusterRole to the shared SA                                                                                                                          |
+| `modules-sa-token-secret.yaml`      | Projected token Secret for module SA                                                                                                                                    |
+| `params.env`                        | BFF module container image defaults (injected by operator at install)                                                                                                   |
+| `params.yaml`                       | kustomize var reference config                                                                                                                                          |
 
 ## BFF modules (eight containers, sidecar mode)
 
-| Container | Port |
-|-----------|------|
+| Container           | Port |
+| ------------------- | ---- |
 | `model-registry-ui` | 8043 |
-| `gen-ai-ui` | 8143 |
-| `maas-ui` | 8243 |
-| `mlflow-ui` | 8343 |
-| `eval-hub-ui` | 8543 |
-| `automl-ui` | 8643 |
-| `autorag-ui` | 8743 |
-| `agent-ops-ui` | 8843 |
+| `gen-ai-ui`         | 8143 |
+| `maas-ui`           | 8243 |
+| `mlflow-ui`         | 8343 |
+| `eval-hub-ui`       | 8543 |
+| `automl-ui`         | 8643 |
+| `autorag-ui`        | 8743 |
+| `agent-ops-ui`      | 8843 |
 
 ## Usage
 
