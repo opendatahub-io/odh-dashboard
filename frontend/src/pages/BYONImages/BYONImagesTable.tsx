@@ -1,5 +1,5 @@
 import React from 'react';
-import * as _ from 'lodash-es';
+import { debounce, type DebouncedFunc } from 'lodash-es';
 import {
   DashboardEmptyTableView,
   Table,
@@ -77,7 +77,7 @@ const safeFireFilterEvent = (properties: FormTrackingEventProperties): void => {
   try {
     fireFormTrackingEvent('Workbench Images Filter Applied', properties);
   } catch {
-    // telemetry must not affect filtering
+    // noop
   }
 };
 
@@ -102,8 +102,15 @@ export const BYONImagesTable: React.FC<BYONImagesTableProps> = ({ images }) => {
   const { globalProfiles: hardwareProfiles } =
     useHardwareProfilesByFeatureVisibility(WORKBENCH_VISIBILITY);
 
+  const pendingTrackRef = React.useRef<{
+    key: string;
+    filterValue: string;
+    previousValue: string;
+    isTextFilter: boolean;
+  } | null>(null);
+
   const debouncedTrackersRef = React.useRef(
-    new Map<string, _.DebouncedFunc<(p: FormTrackingEventProperties) => void>>(),
+    new Map<string, DebouncedFunc<(p: FormTrackingEventProperties) => void>>(),
   );
 
   React.useEffect(
@@ -120,40 +127,51 @@ export const BYONImagesTable: React.FC<BYONImagesTableProps> = ({ images }) => {
       }
       const filterValue = typeof value === 'string' ? value : value?.value;
 
-      setFilterData((prevValues) => ({ ...prevValues, [key]: filterValue }));
-
-      const previousValue = filterData[key];
-      const newFilterData = { ...filterData, [key]: filterValue };
-      const newActiveFilterCount = getActiveFilterCount(newFilterData);
-
-      const trackingProperties: FormTrackingEventProperties = {
-        outcome: TrackingOutcome.submit,
-        filterType: key,
-        filterValue: filterValue ?? '',
-        previousFilterValue: previousValue ?? '',
-        hasActiveFilters: newActiveFilterCount > 0,
-        activeFilterCount: newActiveFilterCount,
-        resultCount: filterByonImages(images, newFilterData).length,
-        totalImageCount: images.length,
-      };
-
-      const isTextFilter =
-        key === BYONImagesToolbarFilterOptions.name ||
-        key === BYONImagesToolbarFilterOptions.provider;
-
-      if (isTextFilter) {
-        let debounced = debouncedTrackersRef.current.get(key);
-        if (!debounced) {
-          debounced = _.debounce(safeFireFilterEvent, 400);
-          debouncedTrackersRef.current.set(key, debounced);
-        }
-        debounced(trackingProperties);
-      } else {
-        safeFireFilterEvent(trackingProperties);
-      }
+      setFilterData((prev) => {
+        pendingTrackRef.current = {
+          key,
+          filterValue: filterValue ?? '',
+          previousValue: prev[key] ?? '',
+          isTextFilter:
+            key === BYONImagesToolbarFilterOptions.name ||
+            key === BYONImagesToolbarFilterOptions.provider,
+        };
+        return { ...prev, [key]: filterValue };
+      });
     },
-    [filterData, images],
+    [],
   );
+
+  React.useEffect(() => {
+    const pending = pendingTrackRef.current;
+    if (!pending) {
+      return;
+    }
+    pendingTrackRef.current = null;
+
+    const activeFilterCount = getActiveFilterCount(filterData);
+    const trackingProperties: FormTrackingEventProperties = {
+      outcome: TrackingOutcome.submit,
+      filterType: pending.key,
+      filterValue: pending.filterValue,
+      previousFilterValue: pending.previousValue,
+      hasActiveFilters: activeFilterCount > 0,
+      activeFilterCount,
+      resultCount: filteredImages.length,
+      totalImageCount: images.length,
+    };
+
+    if (pending.isTextFilter) {
+      let debounced = debouncedTrackersRef.current.get(pending.key);
+      if (!debounced) {
+        debounced = debounce(safeFireFilterEvent, 400);
+        debouncedTrackersRef.current.set(pending.key, debounced);
+      }
+      debounced(trackingProperties);
+    } else {
+      safeFireFilterEvent(trackingProperties);
+    }
+  }, [filterData, filteredImages.length, images.length]);
 
   const onClearFilters = React.useCallback(
     () => setFilterData(initialBYONImagesFilterData),

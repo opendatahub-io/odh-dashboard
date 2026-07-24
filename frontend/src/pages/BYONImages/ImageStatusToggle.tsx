@@ -63,7 +63,7 @@ const ImageStatusToggle: React.FC<ImageStatusToggleProps> = ({
           hiddenOotbCountAfter,
         });
       } catch {
-        // telemetry must not affect toggle outcome
+        // noop
       }
     } catch (e) {
       try {
@@ -78,7 +78,7 @@ const ImageStatusToggle: React.FC<ImageStatusToggleProps> = ({
           errorCategory: 'toggle_request_failed',
         });
       } catch {
-        // telemetry must not affect error handling
+        // noop
       }
       notification.error(
         `Error ${visible ? 'enabling' : 'disabling'} the workbench image`,
