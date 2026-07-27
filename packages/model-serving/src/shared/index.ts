@@ -7,6 +7,7 @@ export {
   isInferenceServiceKind,
 } from './types';
 export type {
+  LabeledConnection,
   ModelStatus,
   SupportedModelFormatsInfo,
   ServingRuntimeToken,
