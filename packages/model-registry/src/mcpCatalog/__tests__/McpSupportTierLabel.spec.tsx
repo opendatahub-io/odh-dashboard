@@ -22,9 +22,9 @@ const boolProp = (): MetadataProp =>
 
 describe('McpSupportTierLabel', () => {
   it.each([
-    ['partnerSupported', 'Partner Supported'],
-    ['redHatSupported', 'Red Hat Supported'],
-    ['communitySupported', 'Community Supported'],
+    ['partnerSupported', 'Partner supported'],
+    ['redHatSupported', 'Red Hat supported'],
+    ['communitySupported', 'Community supported'],
   ])('renders %s as "%s"', (tier, display) => {
     render(
       <McpSupportTierLabel

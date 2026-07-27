@@ -112,7 +112,9 @@ export const useAutomlTaskTopology = (
     }
 
     const pipelineSpec = spec.pipeline_spec ?? spec;
-    const tasks = pipelineSpec.root?.dag.tasks;
+    // Runtime pipeline_spec may omit intermediate dag even though PipelineSpec types it as required.
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- defensive for incomplete specs
+    const tasks = pipelineSpec.root?.dag?.tasks;
     if (!tasks) {
       return [];
     }

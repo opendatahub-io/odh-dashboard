@@ -23,17 +23,17 @@ const ConnectionTestStatusLabel: React.FC<ConnectionTestStatusLabelProps> = ({
     case ConnectionTestStatus.NOT_TESTED:
       return (
         <Label variant="outline" data-testid="connection-test-label-not-tested">
-          Not tested
+          Unverified
         </Label>
       );
     case ConnectionTestStatus.TESTING:
       return (
         <Label
           variant="outline"
-          icon={<Spinner size="sm" aria-label="Testing connection" />}
+          icon={<Spinner size="sm" aria-label="Verifying connection" />}
           data-testid="connection-test-label-testing"
         >
-          Testing...
+          Verifying
         </Label>
       );
     case ConnectionTestStatus.VERIFIED:
@@ -56,7 +56,7 @@ const ConnectionTestStatusLabel: React.FC<ConnectionTestStatusLabelProps> = ({
         <Stack data-testid="connection-test-label-failed">
           <StackItem>
             <Label status="danger" variant="outline">
-              Failed
+              Verification failed
             </Label>
           </StackItem>
           {timestamp && formatTimestamp(timestamp) ? (

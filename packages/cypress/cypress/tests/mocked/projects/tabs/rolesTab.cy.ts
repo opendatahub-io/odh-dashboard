@@ -1,6 +1,6 @@
 /**
  * Tests for the Roles tab feature flag gating.
- * Verifies that the Roles tab is visible only when the roleManagement feature flag is enabled
+ * Verifies that the Roles tab is visible when the roleManagement feature flag is enabled (GA default)
  * and the user has SSAR access to list roles.
  */
 import {
@@ -15,7 +15,7 @@ import { projectRoles } from '../../../../pages/projectRoles';
 
 const NAMESPACE = 'test-project';
 
-const initIntercepts = ({ roleManagement = false }: { roleManagement?: boolean } = {}) => {
+const initIntercepts = ({ roleManagement = true }: { roleManagement?: boolean } = {}) => {
   cy.interceptOdh(
     'GET /api/config',
     mockDashboardConfig({
@@ -31,7 +31,7 @@ const initIntercepts = ({ roleManagement = false }: { roleManagement?: boolean }
 };
 
 describe('Roles tab feature flag gating', () => {
-  describe('with roleManagement flag disabled (default)', () => {
+  describe('with roleManagement flag disabled', () => {
     beforeEach(() => {
       asProjectAdminUser();
       initIntercepts({ roleManagement: false });

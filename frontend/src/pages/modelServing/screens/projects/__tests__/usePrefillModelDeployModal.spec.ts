@@ -4,6 +4,7 @@ import type { ProjectKind } from '@odh-dashboard/k8s-core';
 import type { ModelDeployPrefillInfo } from '@odh-dashboard/model-serving/shared';
 import { mockInferenceServiceModalData } from '#~/__mocks__/mockInferenceServiceModalData';
 import useConnections from '#~/pages/projects/screens/detail/connections/useConnections';
+import useServingConnections from '#~/pages/projects/screens/detail/connections/useServingConnections';
 import { useWatchConnectionTypes } from '#~/utilities/useWatchConnectionTypes';
 import { mockConnection } from '#~/__mocks__/mockConnection';
 import { mockConnectionTypeConfigMapObj } from '#~/__mocks__/mockConnectionType';
@@ -36,13 +37,19 @@ const mockProjectContext = {
 const data = mockInferenceServiceModalData({});
 const mockSetCreateData = jest.fn();
 jest.mock('#~/pages/projects/screens/detail/connections/useConnections');
+jest.mock('#~/pages/projects/screens/detail/connections/useServingConnections', () => ({
+  __esModule: true,
+  default: jest.fn(() => [[], false, undefined, jest.fn()]),
+}));
 jest.mock('#~/utilities/useWatchConnectionTypes');
 const mockUseConnections = jest.mocked(useConnections);
+const mockUseServingConnections = jest.mocked(useServingConnections);
 const mockuseWatchConnectionTypes = jest.mocked(useWatchConnectionTypes);
 
 describe('usePrefillModelDeployModal', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockUseServingConnections.mockReturnValue([[mockConnection({})], true, undefined, jest.fn()]);
   });
 
   it('when no storage filed exist', () => {
@@ -140,6 +147,7 @@ describe('usePrefillModelDeployModal', () => {
         error: undefined,
         refresh: jest.fn(),
       });
+      mockUseServingConnections.mockReturnValue([[], false, undefined, jest.fn()]);
       mockuseWatchConnectionTypes.mockReturnValue([[], true, undefined, jest.fn()]);
       const renderResult = testHook(usePrefillModelDeployModal)(
         mockProjectContext,
@@ -168,6 +176,7 @@ describe('usePrefillModelDeployModal', () => {
         error: undefined,
         refresh: jest.fn(),
       });
+      mockUseServingConnections.mockReturnValue([[], true, undefined, jest.fn()]);
       mockuseWatchConnectionTypes.mockReturnValue([[], false, undefined, jest.fn()]);
       const renderResult = testHook(usePrefillModelDeployModal)(
         mockProjectContext,
@@ -262,22 +271,24 @@ describe('usePrefillModelDeployModal', () => {
         modelArtifactUri: 's3://test/test?endpoint=test&defaultRegion=test',
         initialConnectionName: 'test-key',
       };
+      const s3Connections = [
+        mockConnection({
+          data: {
+            AWS_ACCESS_KEY_ID: 'dGVzdA==',
+            AWS_DEFAULT_REGION: 'dGVzdA==',
+            AWS_S3_BUCKET: 'dGVzdA==',
+            AWS_S3_ENDPOINT: 'dGVzdA==',
+            AWS_SECRET_ACCESS_KEY: 'dGVzdA==',
+          },
+        }),
+      ];
       mockUseConnections.mockReturnValue({
-        data: [
-          mockConnection({
-            data: {
-              AWS_ACCESS_KEY_ID: 'dGVzdA==',
-              AWS_DEFAULT_REGION: 'dGVzdA==',
-              AWS_S3_BUCKET: 'dGVzdA==',
-              AWS_S3_ENDPOINT: 'dGVzdA==',
-              AWS_SECRET_ACCESS_KEY: 'dGVzdA==',
-            },
-          }),
-        ],
+        data: s3Connections,
         loaded: true,
         error: undefined,
         refresh: jest.fn(),
       });
+      mockUseServingConnections.mockReturnValue([s3Connections, true, undefined, jest.fn()]);
       mockuseWatchConnectionTypes.mockReturnValue([
         [mockConnectionTypeConfigMapObj({})],
         true,
@@ -338,31 +349,33 @@ describe('usePrefillModelDeployModal', () => {
         modelArtifactUri: 's3://test/test?endpoint=test&defaultRegion=test',
         initialConnectionName: 'test-key',
       };
+      const s3Connections = [
+        mockConnection({
+          data: {
+            AWS_ACCESS_KEY_ID: 'dGVzdA==',
+            AWS_DEFAULT_REGION: 'dGVzdA==',
+            AWS_S3_BUCKET: 'dGVzdA==',
+            AWS_S3_ENDPOINT: 'dGVzdA==',
+            AWS_SECRET_ACCESS_KEY: 'dGVzdA==',
+          },
+        }),
+        mockConnection({
+          data: {
+            AWS_ACCESS_KEY_ID: 'dGVzdA==',
+            AWS_DEFAULT_REGION: 'dGVzdA==',
+            AWS_S3_BUCKET: 'dGVzdA==',
+            AWS_S3_ENDPOINT: 'dGVzdA==',
+            AWS_SECRET_ACCESS_KEY: 'dGVzdA==',
+          },
+        }),
+      ];
       mockUseConnections.mockReturnValue({
-        data: [
-          mockConnection({
-            data: {
-              AWS_ACCESS_KEY_ID: 'dGVzdA==',
-              AWS_DEFAULT_REGION: 'dGVzdA==',
-              AWS_S3_BUCKET: 'dGVzdA==',
-              AWS_S3_ENDPOINT: 'dGVzdA==',
-              AWS_SECRET_ACCESS_KEY: 'dGVzdA==',
-            },
-          }),
-          mockConnection({
-            data: {
-              AWS_ACCESS_KEY_ID: 'dGVzdA==',
-              AWS_DEFAULT_REGION: 'dGVzdA==',
-              AWS_S3_BUCKET: 'dGVzdA==',
-              AWS_S3_ENDPOINT: 'dGVzdA==',
-              AWS_SECRET_ACCESS_KEY: 'dGVzdA==',
-            },
-          }),
-        ],
+        data: s3Connections,
         loaded: true,
         error: undefined,
         refresh: jest.fn(),
       });
+      mockUseServingConnections.mockReturnValue([s3Connections, true, undefined, jest.fn()]);
       mockuseWatchConnectionTypes.mockReturnValue([
         [mockConnectionTypeConfigMapObj({})],
         true,
@@ -504,18 +517,20 @@ describe('usePrefillModelDeployModal', () => {
         modelArtifactUri: 'http://tests',
         initialConnectionName: 'test-key',
       };
+      const uriConnections = [
+        mockConnection({
+          data: {
+            URI: 'aHR0cDovL3Rlc3Rz',
+          },
+        }),
+      ];
       mockUseConnections.mockReturnValue({
-        data: [
-          mockConnection({
-            data: {
-              URI: 'aHR0cDovL3Rlc3Rz',
-            },
-          }),
-        ],
+        data: uriConnections,
         loaded: true,
         error: undefined,
         refresh: jest.fn(),
       });
+      mockUseServingConnections.mockReturnValue([uriConnections, true, undefined, jest.fn()]);
       mockuseWatchConnectionTypes.mockReturnValue([
         [mockConnectionTypeConfigMapObj({})],
         true,
@@ -570,19 +585,21 @@ describe('usePrefillModelDeployModal', () => {
         modelArtifactUri: 'http://tests',
         initialConnectionName: 'test-key',
       };
+      const uriConnections = [
+        mockConnection({
+          data: { URI: 'aHR0cDovL3Rlc3Rz' },
+        }),
+        mockConnection({
+          data: { URI: 'aHR0cDovL3Rlc3Rz' },
+        }),
+      ];
       mockUseConnections.mockReturnValue({
-        data: [
-          mockConnection({
-            data: { URI: 'aHR0cDovL3Rlc3Rz' },
-          }),
-          mockConnection({
-            data: { URI: 'aHR0cDovL3Rlc3Rz' },
-          }),
-        ],
+        data: uriConnections,
         loaded: true,
         error: undefined,
         refresh: jest.fn(),
       });
+      mockUseServingConnections.mockReturnValue([uriConnections, true, undefined, jest.fn()]);
       mockuseWatchConnectionTypes.mockReturnValue([
         [mockConnectionTypeConfigMapObj({})],
         true,
@@ -772,20 +789,22 @@ describe('usePrefillModelDeployModal', () => {
         modelArtifactUri: 'oci://registry.redhat.io/rhelai1/private:test',
         initialConnectionName: 'test-key',
       };
+      const ociConnections = [
+        mockConnection({
+          data: {
+            OCI_HOST: 'cmVnaXN0cnkucmVkaGF0LmlvL3JoZWxhaTE=',
+            '.dockerconfigjson': 'aHR0cHM6Ly9kZW1vLW1vZGVscy9zb21lLXBhdGguemlw',
+            ACCESS_TYPE: 'WyJQdWxsIl0',
+          },
+        }),
+      ];
       mockUseConnections.mockReturnValue({
-        data: [
-          mockConnection({
-            data: {
-              OCI_HOST: 'cmVnaXN0cnkucmVkaGF0LmlvL3JoZWxhaTE=',
-              '.dockerconfigjson': 'aHR0cHM6Ly9kZW1vLW1vZGVscy9zb21lLXBhdGguemlw',
-              ACCESS_TYPE: 'WyJQdWxsIl0',
-            },
-          }),
-        ],
+        data: ociConnections,
         loaded: true,
         error: undefined,
         refresh: jest.fn(),
       });
+      mockUseServingConnections.mockReturnValue([ociConnections, true, undefined, jest.fn()]);
       mockuseWatchConnectionTypes.mockReturnValue([
         [mockConnectionTypeConfigMapObj({})],
         true,
@@ -848,19 +867,21 @@ describe('usePrefillModelDeployModal', () => {
         modelArtifactUri: 'oci://registry.redhat.io/rhelai1/private:test',
         initialConnectionName: 'test-key',
       };
+      const ociConnections = [
+        mockConnection({
+          data: { OCI_HOST: 'cmVnaXN0cnkucmVkaGF0LmlvL3JoZWxhaTE=', ACCESS_TYPE: 'WyJQdWxsIl0' },
+        }),
+        mockConnection({
+          data: { OCI_HOST: 'cmVnaXN0cnkucmVkaGF0LmlvL3JoZWxhaTE=', ACCESS_TYPE: 'WyJQdWxsIl0' },
+        }),
+      ];
       mockUseConnections.mockReturnValue({
-        data: [
-          mockConnection({
-            data: { OCI_HOST: 'cmVnaXN0cnkucmVkaGF0LmlvL3JoZWxhaTE=', ACCESS_TYPE: 'WyJQdWxsIl0' },
-          }),
-          mockConnection({
-            data: { OCI_HOST: 'cmVnaXN0cnkucmVkaGF0LmlvL3JoZWxhaTE=', ACCESS_TYPE: 'WyJQdWxsIl0' },
-          }),
-        ],
+        data: ociConnections,
         loaded: true,
         error: undefined,
         refresh: jest.fn(),
       });
+      mockUseServingConnections.mockReturnValue([ociConnections, true, undefined, jest.fn()]);
       mockuseWatchConnectionTypes.mockReturnValue([
         [mockConnectionTypeConfigMapObj({})],
         true,

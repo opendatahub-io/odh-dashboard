@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Bullseye, Spinner } from '@patternfly/react-core';
 import { Navigate, useParams } from 'react-router-dom';
-import ApplicationsPage from '#~/pages/ApplicationsPage';
+import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import { getRole } from '#~/api';
 import { RoleKind } from '#~/k8sTypes';
 import CreateRolePage from './CreateRolePage';

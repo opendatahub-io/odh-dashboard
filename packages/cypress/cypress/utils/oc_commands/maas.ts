@@ -336,6 +336,148 @@ EOF`;
   });
 };
 
+const applyExternalModelsFixture = (
+  resourceLabel: string,
+  projectName: string,
+  resourceName: string,
+  fixturePath: string,
+  failOnNonZeroExit = true,
+): Cypress.Chainable<CommandLineResult> => {
+  cy.log(`Creating ${resourceLabel} "${resourceName}" in namespace "${projectName}"`);
+  return cy.fixture(fixturePath).then((yamlContent: string) => {
+    const processedYaml = replacePlaceholdersInYaml(yamlContent, {
+      PROJECT_NAME: projectName,
+      RESOURCE_NAME: resourceName,
+    });
+    const ocCommand = `cat <<'EOF' | oc apply -f -
+${processedYaml}
+EOF`;
+    cy.log(`Applying ${resourceLabel} YAML for "${resourceName}" in "${projectName}"`);
+    return cy.exec(ocCommand, { failOnNonZeroExit });
+  });
+};
+
+export const createExternalProviderSecret = (
+  projectName: string,
+  resourceName: string,
+  fixturePath = 'resources/modelsAsService/ExternalProviderSecret.yaml',
+): Cypress.Chainable<CommandLineResult> =>
+  applyExternalModelsFixture('Secret', projectName, resourceName, fixturePath);
+
+export const createExternalProvider = (
+  projectName: string,
+  resourceName: string,
+  fixturePath = 'resources/modelsAsService/ExternalProvider.yaml',
+): Cypress.Chainable<CommandLineResult> =>
+  applyExternalModelsFixture('ExternalProvider', projectName, resourceName, fixturePath);
+
+export const createExternalModel = (
+  projectName: string,
+  resourceName: string,
+  fixturePath = 'resources/modelsAsService/ExternalModel.yaml',
+): Cypress.Chainable<CommandLineResult> =>
+  applyExternalModelsFixture('ExternalModel', projectName, resourceName, fixturePath);
+
+export const createMaaSModelRefForExternalModel = (
+  projectName: string,
+  resourceName: string,
+  fixturePath = 'resources/modelsAsService/MaaSModelRefExternalModel.yaml',
+): Cypress.Chainable<CommandLineResult> =>
+  applyExternalModelsFixture('MaaSModelRef', projectName, resourceName, fixturePath, false);
+
+/**
+ * Deletes ExternalModel-related resources created by Cypress e2e setup.
+ * Order: MaaSModelRef → ExternalModel → ExternalProvider → Secret.
+ */
+export const cleanupExternalModelsResources = (
+  projectName: string,
+  resourceName: string,
+): Cypress.Chainable<CommandLineResult> => {
+  cy.log(`Cleaning up external model resources "${resourceName}" in namespace "${projectName}"`);
+  return cy
+    .exec(`oc delete MaaSModelRef ${resourceName} -n ${projectName} --ignore-not-found`, {
+      failOnNonZeroExit: false,
+    })
+    .then(() =>
+      cy.exec(`oc delete ExternalModel ${resourceName} -n ${projectName} --ignore-not-found`, {
+        failOnNonZeroExit: false,
+      }),
+    )
+    .then(() =>
+      cy.exec(`oc delete ExternalProvider ${resourceName} -n ${projectName} --ignore-not-found`, {
+        failOnNonZeroExit: false,
+      }),
+    )
+    .then(() =>
+      cy.exec(`oc delete Secret ${resourceName} -n ${projectName} --ignore-not-found`, {
+        failOnNonZeroExit: false,
+      }),
+    );
+};
+
+type MaaSModelRefCondition = {
+  type?: string;
+  status?: string;
+};
+
+type MaaSModelRefDoc = {
+  status?: {
+    conditions?: MaaSModelRefCondition[];
+  };
+};
+
+/**
+ * Poll until the companion MaaSModelRef exists and GovernanceAttached is not True
+ * (no subscription/policy yet → UI shows the pending governance warning).
+ */
+export const waitForExternalModelGovernancePending = (
+  projectName: string,
+  resourceName: string,
+  options: { maxAttempts?: number; retryIntervalMs?: number } = {},
+): Cypress.Chainable<CommandLineResult> => {
+  const maxAttempts = options.maxAttempts ?? MAAS_STATE_DEFAULT_MAX_ATTEMPTS;
+  const retryIntervalMs = options.retryIntervalMs ?? MAAS_STATE_DEFAULT_RETRY_INTERVAL_MS;
+  const ocCommand = `oc get MaaSModelRef ${resourceName} -n ${projectName} -o json`;
+  let attempts = 0;
+
+  const checkState = (): Cypress.Chainable<CommandLineResult> =>
+    cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result) => {
+      attempts++;
+      if (result.exitCode === 0) {
+        let doc: MaaSModelRefDoc;
+        try {
+          doc = JSON.parse(result.stdout) as MaaSModelRefDoc;
+        } catch {
+          throw new Error(`Failed to parse MaaSModelRef JSON for ${resourceName}`);
+        }
+        const governanceCondition = doc.status?.conditions?.find(
+          (condition) => condition.type === 'GovernanceAttached',
+        );
+        const governanceAttached = governanceCondition?.status === 'True';
+        if (!governanceAttached) {
+          cy.log(
+            `✅ MaaSModelRef ${resourceName} exists with GovernanceAttached not True (attempt ${attempts})`,
+          );
+          return cy.wrap(result);
+        }
+      }
+
+      if (attempts < maxAttempts) {
+        cy.log(
+          `⏳ Waiting for MaaSModelRef ${resourceName} governance pending (attempt ${attempts}/${maxAttempts})`,
+        );
+        // eslint-disable-next-line cypress/no-unnecessary-waiting -- poll for controller reconcile
+        return cy.wait(retryIntervalMs).then(() => checkState());
+      }
+
+      throw new Error(
+        `MaaSModelRef ${resourceName} did not reach governance-pending state in namespace ${projectName}`,
+      );
+    });
+
+  return checkState();
+};
+
 const parseMaaSSubscriptionDoc = (
   subscriptionName: string,
   stdout: string,

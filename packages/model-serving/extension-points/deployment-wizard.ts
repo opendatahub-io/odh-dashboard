@@ -11,9 +11,8 @@ import type {
   DeploymentWizardFieldOverride,
   WizardField,
   ModelLocationData,
-} from '../src/components/deploymentWizard/types';
-import type { ModelTypeFieldData } from '../src/components/deploymentWizard/fields/ModelTypeSelectField';
-import type { ModelServerSelectFieldData } from '../src/components/deploymentWizard/fields/ModelServerTemplateSelectField';
+} from '../src/shared/types/form-data';
+import type { ModelTypeFieldData, ModelServerSelectFieldData } from '../src/shared/wizard-fields';
 
 export type ModelServingDeploymentFormDataExtension<D extends Deployment = Deployment> = Extension<
   'model-serving.deployment/form-data',

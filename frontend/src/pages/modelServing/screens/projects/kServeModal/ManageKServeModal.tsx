@@ -31,6 +31,7 @@ import { getServingRuntimeFromName } from '@odh-dashboard/model-serving/shared';
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
 } from '@odh-dashboard/ui-core/components/K8sNameDescriptionField';
+import { type FormTrackingEventProperties, TrackingOutcome } from '@odh-dashboard/ui-core';
 import {
   getCreateInferenceServiceLabels,
   getSubmitInferenceServiceResourceFn,
@@ -54,10 +55,6 @@ import InferenceServiceFrameworkSection from '#~/pages/modelServing/screens/proj
 import AuthServingRuntimeSection from '#~/pages/modelServing/screens/projects/ServingRuntimeModal/AuthServingRuntimeSection';
 import { useAccessReview, useTemplates } from '#~/api';
 import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
-import {
-  FormTrackingEventProperties,
-  TrackingOutcome,
-} from '#~/concepts/analyticsTracking/trackingProperties';
 import { Connection } from '#~/concepts/connectionTypes/types';
 import { ConnectionSection } from '#~/pages/modelServing/screens/projects/InferenceServiceModal/ConnectionSection';
 import { useProfileIdentifiers } from '#~/concepts/hardwareProfiles/utils';

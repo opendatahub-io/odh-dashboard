@@ -8,7 +8,11 @@ import { ModelSourceStepContent } from '../ModelSourceStep';
 import { modelTypeSelectFieldSchema } from '../../fields/ModelTypeSelectField';
 import { mockDeploymentWizardState } from '../../../../__tests__/mockUtils';
 import { isValidModelLocationData } from '../../fields/ModelLocationInputFields';
-import { ModelLocationData, ModelLocationType, ModelTypeLabel } from '../../types';
+import {
+  ModelLocationData,
+  ModelLocationType,
+  ModelTypeLabel,
+} from '../../../../shared/types/form-data';
 import { createConnectionDataSchema } from '../../fields/CreateConnectionInputFields';
 
 const modelSourceStepSchema = z.object({
@@ -21,6 +25,11 @@ const modelSourceStepSchema = z.object({
 });
 
 type ModelSourceStepData = z.infer<typeof modelSourceStepSchema>;
+
+jest.mock('@odh-dashboard/plugin-core', () => ({
+  useResolvedExtensions: jest.fn().mockReturnValue([[], true]),
+  useExtensions: jest.fn().mockReturnValue([]),
+}));
 
 // Mock PatternFly wizard hooks
 jest.mock('@patternfly/react-core', () => ({

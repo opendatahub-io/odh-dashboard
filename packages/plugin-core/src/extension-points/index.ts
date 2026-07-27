@@ -16,6 +16,7 @@ export * from './detail-tabs';
 export * from './actions';
 export * from './detail-cards';
 export * from './table-columns';
+export * from './connection-types';
 
 // Utilities
 export * from './utils';

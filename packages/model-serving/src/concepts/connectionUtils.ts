@@ -16,7 +16,7 @@ import {
 import type { SecretKind, K8sNameDescriptionType, Connection } from '@odh-dashboard/k8s-core';
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import { CreateConnectionData } from '../components/deploymentWizard/fields/CreateConnectionInputFields';
-import { ModelLocationData, ModelLocationType } from '../components/deploymentWizard/types';
+import { ModelLocationData, ModelLocationType } from '../shared/types/form-data';
 
 export const handleConnectionCreation = async (
   createConnectionData: CreateConnectionData,

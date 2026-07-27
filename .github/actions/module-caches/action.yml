@@ -155,6 +155,19 @@ runs:
       shell: bash
       run: npm install --prefix packages/model-registry/upstream/frontend
 
+    - name: core-bff node_modules cache
+      id: core-bff-cache
+      if: inputs.include-modules == 'true'
+      uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+      with:
+        path: distributions/core-bff/frontend/node_modules
+        key: ${{ runner.os }}-${{ inputs.node-version }}-modules-core-bff-${{ hashFiles('distributions/core-bff/frontend/package-lock.json') }}
+        restore-keys: ${{ runner.os }}-${{ inputs.node-version }}-modules-core-bff-
+    - name: Install core-bff dependencies
+      if: inputs.include-modules == 'true' && (inputs.force-install == 'true' || steps.core-bff-cache.outputs.cache-hit != 'true')
+      shell: bash
+      run: npm install --prefix distributions/core-bff/frontend
+
     - name: notebooks node_modules cache
       id: notebooks-cache
       if: inputs.include-modules == 'true'

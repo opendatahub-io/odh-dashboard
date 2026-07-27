@@ -160,6 +160,49 @@ export const verifyWorkloadAdmitted = (namespace: string): Cypress.Chainable<str
 };
 
 /**
+ * Updates the ClusterQueue quota to the specified CPU and memory values.
+ *
+ * @param clusterQueueName - The ClusterQueue to patch
+ * @param cpuQuota - New CPU quota value
+ * @param memoryQuota - New memory quota value (in Gi)
+ * @returns A Cypress chainable with the command result
+ */
+export const updateClusterQueueQuota = (
+  clusterQueueName: string,
+  cpuQuota: number,
+  memoryQuota: number,
+): Cypress.Chainable<CommandLineResult> => {
+  const patchJson = JSON.stringify([
+    {
+      op: 'replace',
+      path: '/spec/resourceGroups/0/flavors/0/resources/0/nominalQuota',
+      value: String(cpuQuota),
+    },
+    {
+      op: 'replace',
+      path: '/spec/resourceGroups/0/flavors/0/resources/1/nominalQuota',
+      value: `${memoryQuota}Gi`,
+    },
+  ]);
+
+  cy.log(
+    `Updating ClusterQueue ${clusterQueueName} quota: cpu=${cpuQuota}, memory=${memoryQuota}Gi`,
+  );
+  return cy
+    .exec(`oc patch clusterqueue ${clusterQueueName} --type=json -p='${patchJson}'`, {
+      failOnNonZeroExit: false,
+      timeout: 60000,
+    })
+    .then((result) => {
+      if (result.exitCode !== 0) {
+        const maskedStderr = maskSensitiveInfo(result.stderr);
+        cy.log(`Warning: Failed to update ClusterQueue quota: ${maskedStderr}`);
+      }
+      return cy.wrap(result);
+    });
+};
+
+/**
  * Cleans up all Kueue resources created for workbench testing.
  *
  * @param config - Configuration containing resource names

@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Button, SearchInput, ToolbarGroup, ToolbarItem } from '@patternfly/react-core';
 import FilterToolbar from '@odh-dashboard/ui-core/components/FilterToolbar';
 import { Link } from 'react-router-dom';
-import { URL_PREFIX } from '~/app/utilities/const';
+import { getSubscriptionCreateUrl } from '~/app/utilities/subscriptionManagementNavigation';
 import {
   SubscriptionsFilterDataType,
   SubscriptionsFilterOptions,
@@ -48,7 +48,7 @@ const SubscriptionsToolbar: React.FC<SubscriptionsToolbarProps> = ({
           component={(props) => (
             <Link
               {...props}
-              to={`${(returnTo ?? `${URL_PREFIX}/subscriptions`).split('?')[0]}/create`}
+              to={getSubscriptionCreateUrl()}
               state={returnTo ? { returnTo } : undefined}
             />
           )}

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@patternfly/react-core';
-import ApplicationsPage from '#~/pages/ApplicationsPage';
+import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import RedirectErrorState from '#~/pages/external/RedirectErrorState';
 import { useRedirect } from '#~/utilities/useRedirect';
 import { modelCatalogRoute } from '#~/routes/modelCatalog/catalogModelDetails';

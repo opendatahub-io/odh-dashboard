@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { Link } from 'react-router-dom';
 import {
+  Button,
   Content,
   Flex,
   FlexItem,
@@ -81,9 +82,17 @@ const NotebookFeatureStoreList: React.FC<NotebookFeatureStoreListProps> = ({
                       </FlexItem>
                       <FlexItem>
                         <Tooltip content="This feature store is no longer available. It may have been deleted or access has been revoked.">
-                          <Icon isInline status="info" data-testid="feature-store-unavailable-icon">
-                            <InfoCircleIcon />
-                          </Icon>
+                          <Button
+                            hasNoPadding
+                            variant="plain"
+                            isInline
+                            aria-label="This feature store is no longer available"
+                            data-testid="feature-store-unavailable-icon"
+                          >
+                            <Icon isInline status="info">
+                              <InfoCircleIcon />
+                            </Icon>
+                          </Button>
                         </Tooltip>
                       </FlexItem>
                     </Flex>

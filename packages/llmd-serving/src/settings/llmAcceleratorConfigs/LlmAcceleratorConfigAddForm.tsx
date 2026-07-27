@@ -13,12 +13,12 @@ import {
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
 import YAML from 'yaml';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports -- standard page shell wrapper
-import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
+import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
 } from '@odh-dashboard/ui-core/components/K8sNameDescriptionField';
-import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
+import { getDisplayNameFromK8sResource, translateDisplayNameForK8s } from '@odh-dashboard/k8s-core';
 import { LlmAcceleratorConfigContext } from './LlmAcceleratorConfigContext';
 import { overrideLlmConfigFields } from '../configYamlUtils';
 import ConfigYAMLEditor from '../ConfigYAMLEditor';
@@ -53,14 +53,15 @@ const LlmAcceleratorConfigAddForm: React.FC<LlmAcceleratorConfigAddFormProps> = 
     if (!isDuplicate) {
       return sourceConfig;
     }
+    const duplicateDisplayName = `Copy of ${getDisplayNameFromK8sResource(sourceConfig)}`;
     return {
       ...sourceConfig,
       metadata: {
         ...sourceConfig.metadata,
-        name: `${sourceConfig.metadata.name}-copy`,
+        name: translateDisplayNameForK8s(duplicateDisplayName),
         annotations: {
           ...sourceConfig.metadata.annotations,
-          'openshift.io/display-name': `Copy of ${getDisplayNameFromK8sResource(sourceConfig)}`,
+          'openshift.io/display-name': duplicateDisplayName,
         },
       },
     };
@@ -83,14 +84,15 @@ const LlmAcceleratorConfigAddForm: React.FC<LlmAcceleratorConfigAddFormProps> = 
     }
     if (isDuplicate) {
       const cleanMeta = cleanResourceForYAMLViewer(sourceConfig.metadata);
+      const duplicateDisplayName = `Copy of ${getDisplayNameFromK8sResource(sourceConfig)}`;
       return YAML.stringify({
         ...sourceConfig,
         metadata: {
           ...cleanMeta,
-          name: `${sourceConfig.metadata.name}-copy`,
+          name: translateDisplayNameForK8s(duplicateDisplayName),
           annotations: {
             ...cleanMeta.annotations,
-            'openshift.io/display-name': `Copy of ${getDisplayNameFromK8sResource(sourceConfig)}`,
+            'openshift.io/display-name': duplicateDisplayName,
           },
         },
       });

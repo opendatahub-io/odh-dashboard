@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { Alert, Button, Split, SplitItem, Stack, StackItem } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
+import { type FormTrackingEventProperties, TrackingOutcome } from '@odh-dashboard/ui-core';
 import { RunFormData, RunTypeOption } from '#~/concepts/pipelines/content/createRun/types';
 import { isFilledRunFormData } from '#~/concepts/pipelines/content/createRun/utils';
 import { handleSubmit } from '#~/concepts/pipelines/content/createRun/submitUtils';
@@ -8,10 +9,6 @@ import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import { isRunSchedule } from '#~/concepts/pipelines/utils';
 import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 import useIsMlflowPipelinesAvailable from '#~/concepts/mlflow/hooks/useIsMlflowPipelinesAvailable';
-import {
-  FormTrackingEventProperties,
-  TrackingOutcome,
-} from '#~/concepts/analyticsTracking/trackingProperties';
 
 type RunPageFooterProps = {
   data: RunFormData;

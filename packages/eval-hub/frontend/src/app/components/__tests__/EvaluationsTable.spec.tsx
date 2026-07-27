@@ -287,6 +287,39 @@ describe('EvaluationsTable', () => {
 
       expect(screen.getByTestId('evaluation-row-0')).toBeInTheDocument();
     });
+
+    it('should filter by status, matching partially_failed jobs when "Failed" is selected', () => {
+      const partiallyFailedJob = mockEvaluationJob({
+        id: 'job-partially-failed',
+        name: 'Delta Evaluation',
+        state: 'partially_failed',
+        modelName: 'gpt-4',
+        createdAt: '2026-02-19T10:00:00Z',
+      });
+
+      renderTable({ evaluations: [...mockJobs, partiallyFailedJob], loaded: true });
+
+      fireEvent.click(screen.getByTestId('filter-type-toggle'));
+      fireEvent.click(screen.getByRole('option', { name: 'Status' }));
+
+      fireEvent.click(screen.getByTestId('filter-status-toggle'));
+      fireEvent.click(screen.getByRole('option', { name: 'Failed' }));
+
+      expect(screen.getByText('Gamma Evaluation')).toBeInTheDocument();
+      expect(screen.getByText('Delta Evaluation')).toBeInTheDocument();
+      expect(screen.queryByText('Alpha Evaluation')).not.toBeInTheDocument();
+      expect(screen.queryByText('Beta Evaluation')).not.toBeInTheDocument();
+    });
+
+    it('should not offer a separate "Partially failed" status filter option', () => {
+      renderTable({ evaluations: mockJobs, loaded: true });
+
+      fireEvent.click(screen.getByTestId('filter-type-toggle'));
+      fireEvent.click(screen.getByRole('option', { name: 'Status' }));
+      fireEvent.click(screen.getByTestId('filter-status-toggle'));
+
+      expect(screen.queryByRole('option', { name: 'Partially failed' })).not.toBeInTheDocument();
+    });
   });
 
   describe('pagination', () => {

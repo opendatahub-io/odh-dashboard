@@ -9,6 +9,7 @@ import {
   getExternalModelStatusMessage,
   getProviderRefResource,
   isAwaitingGovernancePairing,
+  isMissingMaaSModelRef,
   mapAuthMechanismToHumanReadable,
 } from '~/app/pages/external-models/utils';
 
@@ -20,6 +21,20 @@ const baseModel = (overrides: Partial<ExternalModel> = {}): ExternalModel => ({
   providerRefs: [],
   phase: PhaseStatus.READY,
   ...overrides,
+});
+
+describe('isMissingMaaSModelRef', () => {
+  it('should return true when maaSModelRef is undefined', () => {
+    expect(isMissingMaaSModelRef(baseModel())).toBe(true);
+  });
+
+  it('should return false when maaSModelRef is present', () => {
+    expect(isMissingMaaSModelRef(baseModel({ maaSModelRef: { phase: 'Ready' } }))).toBe(false);
+  });
+
+  it('should return false when maaSModelRef is present with empty object', () => {
+    expect(isMissingMaaSModelRef(baseModel({ maaSModelRef: {} }))).toBe(false);
+  });
 });
 
 describe('isAwaitingGovernancePairing', () => {
@@ -97,7 +112,7 @@ describe('getExternalModelStatusMessage', () => {
     const { container } = render(
       <>{getExternalModelStatusMessage(baseModel({ phase: PhaseStatus.PENDING }))}</>,
     );
-    expect(container.textContent).toContain('is being reconciled');
+    expect(container.textContent).toContain('is being set up');
     expect(container.textContent).toContain('GPT-4o External');
   });
 
@@ -105,12 +120,14 @@ describe('getExternalModelStatusMessage', () => {
     const { container } = render(
       <>{getExternalModelStatusMessage(baseModel({ phase: PhaseStatus.FAILED }))}</>,
     );
-    expect(container.textContent).toContain('could not be reconciled');
+    expect(container.textContent).toContain('failed to set up');
   });
 
   it('should return ready reconciliation copy', () => {
     const { container } = render(<>{getExternalModelStatusMessage(baseModel())}</>);
-    expect(container.textContent).toContain('have been created successfully');
+    expect(container.textContent).toContain(
+      'Requests are being routed to the configured provider(s).',
+    );
   });
 
   it('should fall back to resource name when display name is missing', () => {
@@ -140,10 +157,10 @@ describe('mapAuthMechanismToHumanReadable', () => {
 });
 
 describe('getExternalModelResource', () => {
-  it('should build a MaaSExternalModel resource reference', () => {
+  it('should build a ExternalModel resource reference', () => {
     expect(getExternalModelResource(baseModel())).toEqual({
       apiVersion: 'maas.opendatahub.io/v1alpha1',
-      kind: 'MaaSExternalModel',
+      kind: 'ExternalModel',
       metadata: {
         name: 'gpt-4o-external',
         namespace: 'test-project',
@@ -153,7 +170,7 @@ describe('getExternalModelResource', () => {
 });
 
 describe('getProviderRefResource', () => {
-  it('should build a MaaSExternalProvider resource reference', () => {
+  it('should build a ExternalProvider resource reference', () => {
     expect(
       getProviderRefResource({
         providerName: 'openai-prod',
@@ -164,7 +181,7 @@ describe('getProviderRefResource', () => {
       }),
     ).toEqual({
       apiVersion: 'maas.opendatahub.io/v1alpha1',
-      kind: 'MaaSExternalProvider',
+      kind: 'ExternalProvider',
       metadata: {
         name: 'openai-prod',
       },

@@ -55,7 +55,11 @@
     "./hooks/useZodFormValidation": "./src/hooks/useZodFormValidation.ts",
     "./utilities/useGenericObjectState": "./src/utilities/useGenericObjectState.ts",
     "./utilities/useValidation": "./src/utilities/useValidation.ts",
-    "./context/ProjectsContext": "./src/context/ProjectsContext.tsx"
+    "./context/ProjectsContext": "./src/context/ProjectsContext.tsx",
+    "./contexts/ThemeContext": "./src/contexts/ThemeContext.tsx",
+    "./contexts/AnalyticsContext": "./src/contexts/AnalyticsContext.tsx",
+    "./contexts/NotificationContext": "./src/contexts/NotificationContext.tsx",
+    "./contexts/NotificationWatcherContext": "./src/contexts/NotificationWatcherContext.tsx"
   },
   "scripts": {
     "lint": "eslint .",

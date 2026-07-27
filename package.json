@@ -24,6 +24,7 @@
     "frontend/src",
     "packages/*",
     "distributions/base",
+    "distributions/core-bff",
     "distributions/rhaii",
     "packages/model-serving/cypress"
   ],

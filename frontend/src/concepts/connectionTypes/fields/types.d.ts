@@ -1,4 +1,6 @@
-export type FieldMode = 'preview' | 'default' | 'instance';
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports -- re-exporting from k8s-core for backward compatibility
+export type { FieldMode } from '@odh-dashboard/k8s-core';
+import type { ConnectionTypeDataField, FieldMode } from '@odh-dashboard/k8s-core';
 
 export type FieldProps<T extends ConnectionTypeDataField> = {
   id: string;

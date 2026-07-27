@@ -1,7 +1,6 @@
 import React from 'react';
 import {
   FormGroup,
-  Content,
   FormHelperText,
   HelperText,
   HelperTextItem,
@@ -12,7 +11,7 @@ import type {
   WizardField,
   WizardReviewSection,
   WizardFormData,
-} from '@odh-dashboard/model-serving/types/form-data';
+} from '@odh-dashboard/model-serving/shared/types/form-data';
 import type { RecursivePartial } from '@odh-dashboard/foundation';
 import { z } from 'zod';
 import SimpleSelect, { SimpleSelectOption } from '@odh-dashboard/ui-core/components/SimpleSelect';
@@ -152,12 +151,14 @@ const CustomTopologyConfigFieldComponent: CustomTopologyConfigFieldType['compone
 
   return (
     <FormGroup fieldId="custom-topology-config" label="Topology configuration" isRequired>
+      <FormHelperText>
+        <HelperText>
+          <HelperTextItem>
+            Select an administrator-defined configuration for this topology, or use the default.
+          </HelperTextItem>
+        </HelperText>
+      </FormHelperText>
       <Stack hasGutter>
-        <StackItem>
-          <Content component="p">
-            Select a topology configuration for this deployment pattern.
-          </Content>
-        </StackItem>
         <StackItem>
           <SimpleSelect
             isFullWidth
@@ -247,7 +248,7 @@ export const CustomTopologyConfigFieldWizardField: CustomTopologyConfigFieldType
       externalData?: TopologyTypeExternalData,
       dependencies?: CustomTopologyConfigDependencies,
     ): CustomTopologyConfigFieldData => {
-      if (existingFieldData) {
+      if (existingFieldData?.selectedConfig) {
         return existingFieldData;
       }
       const topologyType = dependencies?.topologyType?.topologyType;
