@@ -85,3 +85,11 @@ jobs:
               git diff
               exit 1
           fi
+
+      - name: Upload Cypress results on failure
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: autorag-cypress-results
+          path: packages/autorag/frontend/src/__tests__/cypress/results/
+          retention-days: 1
