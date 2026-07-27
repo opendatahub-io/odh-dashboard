@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useLocation } from 'react-router-dom';
 import { SupportedArea } from '@odh-dashboard/plugin-core/areas';
 import { conditionalArea } from '@odh-dashboard/internal/concepts/areas/AreaComponent';
 import { useRegistryFeatureStores, RegistryFeatureStore } from './hooks/useRegistryFeatureStores';
@@ -76,22 +76,39 @@ const FeatureStoreContextProviderComponent: React.FC<FeatureStoreContextProvider
     refresh: refreshRegistry,
   } = useRegistryFeatureStores();
 
+  const location = useLocation();
+  const navRegistryNamespace: string | undefined = location.state?.registryNamespace;
+
   // Reserved for future multi-store UI selection. GA currently defaults to first discovered store.
   const [selectedFeatureStoreName, setSelectedFeatureStoreName] = React.useState<string | null>(
     null,
   );
 
+  React.useEffect(() => {
+    if (!navRegistryNamespace || !registryLoaded) {
+      return;
+    }
+    const match = registryFeatureStores.find((fs) => fs.namespace === navRegistryNamespace);
+    if (match) {
+      setSelectedFeatureStoreName(match.name);
+    }
+  }, [navRegistryNamespace, registryLoaded, registryFeatureStores]);
+
   const activeFeatureStore = React.useMemo(() => {
     if (selectedFeatureStoreName) {
       const featureStore = registryFeatureStores.find((fs) => fs.name === selectedFeatureStoreName);
-
       if (featureStore) {
         return featureStore;
       }
     }
-    // NOTE: Currently limited to one FeatureStore. Selecting the first enabled available one.
+    if (navRegistryNamespace) {
+      const match = registryFeatureStores.find((fs) => fs.namespace === navRegistryNamespace);
+      if (match) {
+        return match;
+      }
+    }
     return registryFeatureStores.length > 0 ? registryFeatureStores[0] : null;
-  }, [registryFeatureStores, selectedFeatureStoreName]);
+  }, [registryFeatureStores, selectedFeatureStoreName, navRegistryNamespace]);
 
   // Use backend proxy to access registry services
   const hostPath = activeFeatureStore

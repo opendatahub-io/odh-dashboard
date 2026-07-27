@@ -1,5 +1,5 @@
 import { testHook } from '@odh-dashboard/jest-config/hooks';
-import { useEventListener } from '#~/utilities/useEventListener';
+import { useEventListener } from '@odh-dashboard/ui-core/hooks';
 
 describe('useEventListener', () => {
   it('should add and remove event listener', () => {

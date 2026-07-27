@@ -1,15 +1,22 @@
 /* eslint-disable camelcase */
-import { renderHook, act } from '@testing-library/react';
+import { renderHook, act, waitFor } from '@testing-library/react';
 import type { ResponsesTemplate } from '~/types/embeddable-chatbot';
 import { createPassthroughResponse } from '~/app/services/llamaStackService';
 import type { SimplifiedResponseData } from '~/app/types';
 import useEmbeddedChatbotMessages, {
   USER_QUERY_PLACEHOLDER,
 } from '~/app/Chatbot/hooks/useEmbeddedChatbotMessages';
+import { classifyError } from '~/app/utilities/errorClassifier';
 
 jest.mock('~/app/services/llamaStackService', () => ({
   createPassthroughResponse: jest.fn(),
 }));
+
+jest.mock('~/app/utilities/errorClassifier', () => ({
+  classifyError: jest.fn(),
+}));
+
+const mockClassifyError = jest.mocked(classifyError);
 
 const createPassthroughResponseMock = jest.mocked(createPassthroughResponse);
 
@@ -71,6 +78,18 @@ const mockResponse: SimplifiedResponseData = {
 describe('useEmbeddedChatbotMessages', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockClassifyError.mockReturnValue({
+      pattern: 'full-failure',
+      variant: 'danger',
+      isRetriable: false,
+      title: 'Error',
+      description: 'An error occurred',
+      details: {
+        component: 'Unknown',
+        errorCode: 'UNKNOWN',
+        rawMessage: 'Network failure',
+      },
+    });
   });
 
   it('should initialize with empty state', () => {
@@ -161,7 +180,7 @@ describe('useEmbeddedChatbotMessages', () => {
     });
   });
 
-  it('should display error message when request fails', async () => {
+  it('should classify errors instead of storing them in message content', async () => {
     createPassthroughResponseMock.mockRejectedValue(new Error('Network failure'));
 
     const { result } = renderHook(() => useEmbeddedChatbotMessages(defaultProps));
@@ -172,8 +191,136 @@ describe('useEmbeddedChatbotMessages', () => {
 
     expect(result.current.messages).toHaveLength(2);
     expect(result.current.messages[1].role).toBe('bot');
-    expect(result.current.messages[1].content).toBe('Network failure');
+    expect(result.current.messages[1].content).toBe('');
+    expect(result.current.messages[1].errorClassification).toBeDefined();
+    expect(mockClassifyError).toHaveBeenCalled();
     expect(result.current.isLoading).toBe(false);
+  });
+
+  it('should not include failed bot messages in subsequent request input', async () => {
+    createPassthroughResponseMock
+      .mockRejectedValueOnce(new Error('Network failure'))
+      .mockResolvedValueOnce(mockResponse);
+
+    const { result } = renderHook(() => useEmbeddedChatbotMessages(defaultProps));
+
+    await act(async () => {
+      await result.current.handleMessageSend('First question');
+    });
+
+    await act(async () => {
+      await result.current.handleMessageSend('Follow-up question');
+    });
+
+    const secondCallBody = createPassthroughResponseMock.mock.calls[1][3] as {
+      input: Array<{ role: string; content: Array<{ text: string }> }>;
+    };
+
+    expect(secondCallBody.input).toHaveLength(2);
+    expect(secondCallBody.input[0].role).toBe('user');
+    expect(secondCallBody.input[0].content[0].text).toBe('First question');
+    expect(secondCallBody.input[1].content[0].text).toBe('Answer: Follow-up question');
+    expect(
+      secondCallBody.input.some((msg) => msg.content[0].text.includes('Network failure')),
+    ).toBe(false);
+  });
+
+  it('should retry after a retriable error', async () => {
+    mockClassifyError.mockReturnValue({
+      pattern: 'full-failure',
+      variant: 'danger',
+      isRetriable: true,
+      title: 'Error',
+      description: 'Try again',
+      details: {
+        component: 'bff',
+        errorCode: 'server_error',
+        rawMessage: 'Temporary failure',
+      },
+    });
+
+    createPassthroughResponseMock
+      .mockRejectedValueOnce(new Error('Temporary failure'))
+      .mockResolvedValueOnce(mockResponse);
+
+    const { result } = renderHook(() => useEmbeddedChatbotMessages(defaultProps));
+
+    await act(async () => {
+      await result.current.handleMessageSend('Hello');
+    });
+
+    const errorMessage = result.current.messages[1];
+    expect(errorMessage.onRetryError).toBeDefined();
+
+    act(() => {
+      errorMessage.onRetryError?.();
+    });
+
+    await waitFor(() => {
+      expect(createPassthroughResponseMock).toHaveBeenCalledTimes(2);
+      expect(result.current.messages[result.current.messages.length - 1].content).toBe(
+        'Bot response content',
+      );
+    });
+
+    expect(result.current.messages[result.current.messages.length - 1].errorClassification).toBe(
+      undefined,
+    );
+  });
+
+  it('should retry the failed turn even after a later message was sent', async () => {
+    mockClassifyError.mockReturnValue({
+      pattern: 'full-failure',
+      variant: 'danger',
+      isRetriable: true,
+      title: 'Error',
+      description: 'Try again',
+      details: {
+        component: 'bff',
+        errorCode: 'server_error',
+        rawMessage: 'Temporary failure',
+      },
+    });
+
+    createPassthroughResponseMock
+      .mockRejectedValueOnce(new Error('Temporary failure'))
+      .mockResolvedValueOnce(mockResponse)
+      .mockResolvedValueOnce({ ...mockResponse, content: 'Retry success' });
+
+    const { result } = renderHook(() => useEmbeddedChatbotMessages(defaultProps));
+
+    await act(async () => {
+      await result.current.handleMessageSend('First message');
+    });
+
+    await waitFor(() => {
+      expect(result.current.messages.some((msg) => msg.errorClassification)).toBe(true);
+    });
+
+    const firstErrorRetry = result.current.messages.find(
+      (msg) => msg.role === 'bot' && msg.errorClassification,
+    )?.onRetryError;
+
+    await act(async () => {
+      await result.current.handleMessageSend('Second message');
+    });
+
+    await waitFor(() => {
+      expect(createPassthroughResponseMock).toHaveBeenCalledTimes(2);
+    });
+
+    act(() => {
+      firstErrorRetry?.();
+    });
+
+    await waitFor(() => {
+      expect(createPassthroughResponseMock).toHaveBeenCalledTimes(3);
+      const thirdCallBody = createPassthroughResponseMock.mock.calls[2][3] as {
+        input: Array<{ role: string; content: Array<{ text: string }> }>;
+      };
+      const lastInputMessage = thirdCallBody.input[thirdCallBody.input.length - 1];
+      expect(lastInputMessage.content[0].text).toBe('Answer: First message');
+    });
   });
 
   it('should clear conversation', async () => {

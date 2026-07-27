@@ -1,8 +1,10 @@
 import * as React from 'react';
 import { Label, Content, ContentVariants } from '@patternfly/react-core';
 import type { TemplateKind } from '@odh-dashboard/k8s-core';
-import { getAPIProtocolFromTemplate } from '#~/pages/modelServing/customServingRuntimes/utils';
-import { ServingRuntimeAPIProtocol } from '#~/types';
+import {
+  getAPIProtocolFromTemplate,
+  ServingRuntimeAPIProtocol,
+} from '@odh-dashboard/model-serving/shared';
 
 type CustomServingRuntimeAPIProtocolLabelProps = {
   template: TemplateKind;

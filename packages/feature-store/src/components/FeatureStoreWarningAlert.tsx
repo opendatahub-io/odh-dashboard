@@ -7,7 +7,7 @@ import { useAccessAllowed } from '@odh-dashboard/internal/concepts/userSSAR/useA
 import { verbModelAccess } from '@odh-dashboard/internal/concepts/userSSAR/utils';
 import { useClusterInfo } from '@odh-dashboard/internal/redux/selectors/clusterInfo';
 import { getOpenShiftConsoleAction } from '@odh-dashboard/internal/app/AppLauncher';
-import WhosMyAdministrator from '@odh-dashboard/internal/components/WhosMyAdministrator';
+import { WhosMyAdministrator } from '@odh-dashboard/ui-core';
 import { ODH_PRODUCT_NAME } from '@odh-dashboard/ui-core/utilities';
 import { FeatureStoreContext } from '../FeatureStoreContext';
 

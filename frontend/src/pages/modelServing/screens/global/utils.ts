@@ -1,6 +1,6 @@
 import type { ProjectKind } from '@odh-dashboard/k8s-core';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
-import { InferenceServiceKind } from '#~/k8sTypes';
+import type { InferenceServiceKind } from '@odh-dashboard/model-serving/shared';
 
 export const getInferenceServiceProjectDisplayName = (
   is: InferenceServiceKind,

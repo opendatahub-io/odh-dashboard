@@ -1,5 +1,8 @@
 import React from 'react';
-import useFetchState, { FetchState, FetchStateCallbackPromise } from '#~/utilities/useFetchState';
+import useFetchState, {
+  FetchState,
+  FetchStateCallbackPromise,
+} from '@odh-dashboard/ui-core/hooks/useFetchState';
 import { DataScienceClusterKind } from '#~/k8sTypes';
 import { listDataScienceClusters } from '#~/api';
 

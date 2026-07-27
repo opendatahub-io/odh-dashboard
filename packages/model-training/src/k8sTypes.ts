@@ -278,6 +278,11 @@ export type GatewayResource = K8sResourceCommon & {
   };
 };
 
+export type GatewayConfigResource = K8sResourceCommon & {
+  spec?: { domain?: string };
+  status?: { domain?: string };
+};
+
 export type HTTPRouteResource = K8sResourceCommon & {
   spec?: {
     rules?: Array<{

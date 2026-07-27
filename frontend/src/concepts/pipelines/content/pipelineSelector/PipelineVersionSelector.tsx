@@ -2,13 +2,13 @@ import * as React from 'react';
 import { EmptyStateVariant } from '@patternfly/react-core';
 import { TableVariant } from '@patternfly/react-table';
 import { DashboardEmptyTableView, getTableColumnSort, TableBase } from '@odh-dashboard/ui-core';
+import SearchSelector from '@odh-dashboard/ui-core/components/searchSelector/SearchSelector';
 import PipelineSelectorTableRow from '#~/concepts/pipelines/content/pipelineSelector/PipelineSelectorTableRow';
 import { PipelineVersionKF } from '#~/concepts/pipelines/kfTypes';
 import { pipelineVersionSelectorColumns } from '#~/concepts/pipelines/content/pipelineSelector/columns';
 import PipelineViewMoreFooterRow from '#~/concepts/pipelines/content/tables/PipelineViewMoreFooterRow';
 import usePipelineVersionSelector from '#~/concepts/pipelines/content/pipelineSelector/usePipelineVersionSelector';
 import { isArgoWorkflow } from '#~/concepts/pipelines/content/tables/utils';
-import SearchSelector from '#~/components/searchSelector/SearchSelector';
 
 type PipelineVersionSelectorProps = {
   pipelineId?: string;

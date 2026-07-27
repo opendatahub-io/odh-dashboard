@@ -1,8 +1,10 @@
 import React from 'react';
 import { Td } from '@patternfly/react-table';
-import HardwareProfileTableColumn from '@odh-dashboard/internal/concepts/hardwareProfiles/HardwareProfileTableColumn';
-import { useHardwareProfileBindingState } from '@odh-dashboard/internal/concepts/hardwareProfiles/useHardwareProfileBindingState';
-import { MODEL_SERVING_VISIBILITY } from '@odh-dashboard/internal/concepts/hardwareProfiles/const';
+import {
+  HardwareProfileTableColumn,
+  useHardwareProfileBindingState,
+  MODEL_SERVING_VISIBILITY,
+} from '@odh-dashboard/hardware-profiles/shared';
 import { type Deployment } from '../../../../extension-points';
 
 type DeploymentHardwareProfileCellProps = {

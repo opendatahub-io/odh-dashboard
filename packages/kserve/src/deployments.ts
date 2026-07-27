@@ -1,10 +1,11 @@
 import React from 'react';
 import type { ProjectKind } from '@odh-dashboard/k8s-core';
+import { K8sAPIOptions } from '@odh-dashboard/internal/k8sTypes';
 import {
-  InferenceServiceKind,
-  K8sAPIOptions,
-  ServingRuntimeKind,
-} from '@odh-dashboard/internal/k8sTypes';
+  type InferenceServiceKind,
+  type ServingRuntimeKind,
+  getAPIProtocolFromServingRuntime,
+} from '@odh-dashboard/model-serving/shared';
 import {
   Deployment,
   isModelServingExcludeDeployment,
@@ -16,7 +17,6 @@ import {
   getInferenceService,
   getInferenceServicePods,
 } from '@odh-dashboard/internal/api/index';
-import { getAPIProtocolFromServingRuntime } from '@odh-dashboard/internal/pages/modelServing/customServingRuntimes/utils';
 import { getKServeDeploymentEndpoints } from './deploymentEndpoints';
 import {
   useWatchDeploymentPods,

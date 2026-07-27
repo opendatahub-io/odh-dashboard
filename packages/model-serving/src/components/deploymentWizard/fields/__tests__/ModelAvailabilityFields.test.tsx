@@ -2,7 +2,7 @@ import React, { act } from 'react';
 import { render, screen, renderHook } from '@testing-library/react';
 import { useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import type { IsAreaAvailableStatus } from '@odh-dashboard/plugin-core/areas';
-import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
+import { ServingRuntimeModelType } from '@odh-dashboard/model-serving/shared';
 import { mockExtensions } from '../../../../__tests__/mockUtils';
 import type { UseModelDeploymentWizardState } from '../../useDeploymentWizard';
 import {

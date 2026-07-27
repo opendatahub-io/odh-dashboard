@@ -456,7 +456,7 @@ describe('Workbench Hardware Profiles', () => {
       );
     });
 
-    it('should show "Local queue (applied directly)" in table column popover for GitOps-managed notebook with direct queue label', () => {
+    it('should show "Local queue" in table column popover for GitOps-managed notebook with direct queue label', () => {
       const notebookWithDirectQueue = mockNotebookK8sResource({
         displayName: 'Test Notebook',
         opts: {
@@ -491,55 +491,8 @@ describe('Workbench Hardware Profiles', () => {
         .findDetails()
         .should('be.visible')
         .within(() => {
-          cy.contains('Local queue (applied directly)').should('be.visible');
+          cy.contains('Local queue').should('be.visible');
           cy.contains('direct-queue').should('be.visible');
-        });
-    });
-
-    it('should show "Local queue (via hardware profile)" in table column popover when queue comes from hardware profile', () => {
-      const queueProfile = mockHardwareProfile({
-        name: 'queue-profile',
-        displayName: 'Queue Profile',
-        schedulingType: SchedulingType.QUEUE,
-        localQueueName: 'hp-queue',
-      });
-      const notebookWithHPQueue = mockNotebookK8sResource({
-        displayName: 'Test Notebook',
-        opts: {
-          metadata: {
-            annotations: {
-              'opendatahub.io/hardware-profile-name': 'queue-profile',
-              'opendatahub.io/hardware-profile-namespace': 'opendatahub',
-            },
-          },
-        },
-      });
-
-      cy.interceptK8sList(
-        { model: HardwareProfileModel, ns: 'opendatahub' },
-        mockK8sResourceList([...mockGlobalScopedHardwareProfiles, queueProfile]),
-      );
-      cy.interceptK8sList(
-        { model: LocalQueueModel, ns: 'test-project' },
-        mockK8sResourceList([
-          mockLocalQueueK8sResource({ name: 'hp-queue', namespace: 'test-project' }),
-        ]),
-      );
-      cy.interceptK8sList(
-        { model: NotebookModel, ns: 'test-project' },
-        mockK8sResourceList([notebookWithHPQueue]),
-      );
-
-      projectDetails.visit(projectName);
-      projectDetails.findSectionTab('workbenches').click();
-
-      hardwareProfileSection.findDetailsPopover().should('exist').click();
-      hardwareProfileSection
-        .findDetails()
-        .should('be.visible')
-        .within(() => {
-          cy.contains('Local queue (via hardware profile)').should('be.visible');
-          cy.contains('hp-queue').should('be.visible');
         });
     });
   });
@@ -1379,40 +1332,23 @@ describe('Workbench Hardware Profiles', () => {
         );
     });
 
-    it('shows warning when selected HP references a missing local queue and can be dismissed', () => {
+    it('hides Kueue profile from dropdown when its local queue does not exist in the project', () => {
       setupKueueIntercepts({ localQueueExists: false });
-      projectDetails.visit('test-project');
-      projectDetails.findSectionTab('workbenches').click();
-      workbenchPage.findCreateButton().click();
-      cy.wait('@hardwareProfiles');
-
-      hardwareProfileSection.findSelect().should('contain', 'Kueue Profile');
-      createSpawnerPage
-        .findLocalQueueMissingWarning()
-        .should('be.visible')
-        .and('contain.text', 'my-local-queue')
-        .and('contain.text', 'create');
-
-      // Dismiss the warning
-      createSpawnerPage.findLocalQueueMissingWarningCloseButton().click();
-      createSpawnerPage.findLocalQueueMissingWarning().should('not.exist');
-    });
-
-    it('does not show LQ warning when the referenced local queue exists', () => {
-      setupKueueIntercepts({ localQueueExists: true });
       projectDetails.visit('test-project');
       projectDetails.findSectionTab('workbenches').click();
       workbenchPage.findCreateButton().click();
       cy.wait('@hardwareProfiles');
       cy.wait('@getLocalQueues');
 
+      // Missing LQ → profile filtered out in create mode; no auto-selection, no warning banner.
+      hardwareProfileSection.findKueueFilteringInfo().should('be.visible');
       createSpawnerPage.findLocalQueueMissingWarning().should('not.exist');
     });
 
-    it('shows warning with "update" wording on the edit spawner when the local queue is missing', () => {
+    it('shows warning icon next to HP dropdown when local queue is missing (edit mode)', () => {
       setupKueueIntercepts({ localQueueExists: false });
-
-      // Override notebook list with one that has the kueue-profile annotation
+      // In edit mode the pre-selected profile is preserved even if its LQ is absent, so the
+      // warning icon and banner both appear.
       cy.interceptK8sList(
         { model: NotebookModel, ns: 'test-project' },
         mockK8sResourceList([
@@ -1430,12 +1366,23 @@ describe('Workbench Hardware Profiles', () => {
 
       editSpawnerPage.visit('test-notebook');
       cy.wait('@hardwareProfiles');
+      cy.wait('@getLocalQueues');
 
-      editSpawnerPage
-        .findLocalQueueMissingWarning()
-        .should('be.visible')
-        .and('contain.text', 'my-local-queue')
-        .and('contain.text', 'update');
+      cy.findByTestId('local-queue-missing-icon').should('be.visible').click();
+      cy.contains(
+        'The selected hardware profile references a local queue that does not exist in this project and may prevent the workbench from starting.',
+      ).should('be.visible');
+    });
+
+    it('does not show LQ warning when the referenced local queue exists', () => {
+      setupKueueIntercepts({ localQueueExists: true });
+      projectDetails.visit('test-project');
+      projectDetails.findSectionTab('workbenches').click();
+      workbenchPage.findCreateButton().click();
+      cy.wait('@hardwareProfiles');
+      cy.wait('@getLocalQueues');
+
+      createSpawnerPage.findLocalQueueMissingWarning().should('not.exist');
     });
   });
 });

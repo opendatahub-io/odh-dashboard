@@ -2,10 +2,13 @@ import type { Extension } from '@openshift/dynamic-plugin-sdk';
 import type {
   AutofillConnectionButtonExtension,
   CatalogSettingsUrlExtension,
+  McpCatalogCardLabelExtension,
+  McpCatalogSettingsUrlExtension,
   ModelCatalogBannerExtension,
   NamespaceSelectorExtension,
   ProjectsBridgeProviderExtension,
   RegistrySettingsUrlExtension,
+  UserInteractionProviderExtension,
 } from '@mf/modelRegistry/extension-points';
 
 const CATALOG_SETTINGS_PAGE_TITLE = 'Model catalog settings';
@@ -14,12 +17,18 @@ const CATALOG_SETTINGS_URL = '/settings/model-resources-operations/model-catalog
 const REGISTRY_SETTINGS_PAGE_TITLE = 'Model registry settings';
 const REGISTRY_SETTINGS_URL = '/settings/model-resources-operations/model-registry';
 
+const MCP_CATALOG_SETTINGS_NAV_TITLE = 'MCP catalog sources';
+const MCP_CATALOG_SETTINGS_URL = '/settings/mcp-resources/mcp-catalog';
+
 const extensions: (
   | AutofillConnectionButtonExtension
+  | McpCatalogCardLabelExtension
   | NamespaceSelectorExtension
   | ProjectsBridgeProviderExtension
+  | UserInteractionProviderExtension
   | ModelCatalogBannerExtension
   | CatalogSettingsUrlExtension
+  | McpCatalogSettingsUrlExtension
   | RegistrySettingsUrlExtension
   | Extension
 )[] = [
@@ -34,6 +43,13 @@ const extensions: (
     properties: {
       id: 'validated-models-banner',
       component: () => import('./src/modelCatalog/ValidatedModelsBanner').then((m) => m.default),
+    },
+  },
+  {
+    type: 'mcp-catalog.card/label',
+    properties: {
+      id: 'mcp-support-tier-label',
+      component: () => import('./src/mcpCatalog/McpSupportTierLabel').then((m) => m.default),
     },
   },
   {
@@ -57,6 +73,13 @@ const extensions: (
     },
   },
   {
+    type: 'mcp-catalog.settings/url',
+    properties: {
+      url: MCP_CATALOG_SETTINGS_URL,
+      title: MCP_CATALOG_SETTINGS_NAV_TITLE,
+    },
+  },
+  {
     type: 'model-registry.namespace/selector',
     properties: {
       component: () => import('./src/projectSelector/ProjectSelectorField'),
@@ -66,6 +89,12 @@ const extensions: (
     type: 'model-registry.projects/bridge-provider',
     properties: {
       component: () => import('./src/projectSelector/ProjectsBridgeProvider'),
+    },
+  },
+  {
+    type: 'model-registry.tracking/provider',
+    properties: {
+      component: () => import('./src/tracking/SegmentUserInteractionProvider'),
     },
   },
 ];

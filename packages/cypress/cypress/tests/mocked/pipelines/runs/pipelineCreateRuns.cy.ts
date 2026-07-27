@@ -946,15 +946,12 @@ describe('Pipeline create runs', () => {
         },
       };
 
-      // Mock experiements, pipelines, and versions
+      // Mock experiements, pipelines, and versions — initially without the new
+      // version so the debounced duplicate-name check does not find a false match
       createRunPage.mockGetExperiments(projectName, mockExperiments);
       createRunPage.mockGetPipelines(projectName, [mockPipeline]);
       createRunPage
-        .mockGetPipelineVersions(
-          projectName,
-          [mockPipelineVersion, buildMockPipelineVersion(newPipelineVersion)],
-          mockPipeline.pipeline_id,
-        )
+        .mockGetPipelineVersions(projectName, [mockPipelineVersion], mockPipeline.pipeline_id)
         .as('getPipelineVersions');
 
       // Mock create new pipeline version
@@ -983,6 +980,15 @@ describe('Pipeline create runs', () => {
       pipelineVersionImportModal.fillVersionName(newPipelineVersion.display_name);
       pipelineVersionImportModal.fillVersionDescription(newPipelineVersion.description);
       pipelineVersionImportModal.uploadPipelineYaml(mockPipelineYamlPath);
+
+      // Update the versions mock to include the new version so the dropdown
+      // refetch after creation returns it
+      createRunPage.mockGetPipelineVersions(
+        projectName,
+        [mockPipelineVersion, buildMockPipelineVersion(newPipelineVersion)],
+        mockPipeline.pipeline_id,
+      );
+
       pipelineVersionImportModal.submit();
 
       cy.wait('@createPipelineVersion').then((interception) => {

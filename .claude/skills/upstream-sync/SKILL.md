@@ -113,7 +113,7 @@ When conflicts are detected:
 After the sync completes successfully, run lint and tests. Check which scripts are available in the package's upstream frontend:
 
 ```bash
-cd packages/<package-name>/upstream/frontend && cat package.json | grep -E '"test:|"type-check'
+jq -r '.scripts | keys[] | select(test("^(test:|type-check)"))' packages/<package-name>/upstream/frontend/package.json
 ```
 
 **Step 1: Lint (required before creating a PR)**

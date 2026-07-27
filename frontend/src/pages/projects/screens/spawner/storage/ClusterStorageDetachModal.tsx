@@ -1,5 +1,5 @@
 import React from 'react';
-import ContentModal, { ButtonAction } from '#~/components/modals/ContentModal.tsx';
+import ContentModal, { ButtonAction } from '@odh-dashboard/ui-core/components/ContentModal';
 
 interface ClusterStorageDetachModalProps {
   storageName: string;

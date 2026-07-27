@@ -29,6 +29,15 @@ func newIdentityContext(token string) context.Context {
 	return context.WithValue(context.Background(), constants.RequestIdentityKey, identity)
 }
 
+func newDevFallbackIdentityContext(token string) context.Context {
+	identity := &k8s.RequestIdentity{
+		UserID:      "dev-user",
+		Token:       k8s.NewBearerToken(token),
+		DevFallback: true,
+	}
+	return context.WithValue(context.Background(), constants.RequestIdentityKey, identity)
+}
+
 func TestK8sProxy_PathStripping(t *testing.T) {
 	backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("X-Got-Path", r.URL.Path)
@@ -351,5 +360,78 @@ func TestK8sProxy_RedirectToPrivateIPBlocked(t *testing.T) {
 
 	if rec.Code != http.StatusForbidden {
 		t.Errorf("status = %d, want %d for redirect to private IP", rec.Code, http.StatusForbidden)
+	}
+}
+
+func TestK8sProxy_DevFallbackToken(t *testing.T) {
+	backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("X-Got-Auth", r.Header.Get("Authorization"))
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer backend.Close()
+
+	cfg := testK8sProxyConfig(backend.URL)
+	cfg.DevFallbackToken = "kubeconfig-real-token"
+	handler, err := NewK8sProxyHandler(cfg)
+	if err != nil {
+		t.Fatalf("NewK8sProxyHandler() error = %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/api/k8s/api/v1/pods", nil)
+	req = req.WithContext(newDevFallbackIdentityContext("FAKE_CLUSTER_ADMIN_TOKEN"))
+	rec := httptest.NewRecorder()
+
+	handler.ServeHTTP(rec, req)
+
+	if got := rec.Header().Get("X-Got-Auth"); got != "Bearer kubeconfig-real-token" {
+		t.Errorf("auth = %q, want %q", got, "Bearer kubeconfig-real-token")
+	}
+}
+
+func TestK8sProxy_DevFallbackToken_NotUsedForNormalIdentity(t *testing.T) {
+	backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("X-Got-Auth", r.Header.Get("Authorization"))
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer backend.Close()
+
+	cfg := testK8sProxyConfig(backend.URL)
+	cfg.DevFallbackToken = "kubeconfig-real-token"
+	handler, err := NewK8sProxyHandler(cfg)
+	if err != nil {
+		t.Fatalf("NewK8sProxyHandler() error = %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/api/k8s/api/v1/pods", nil)
+	req = req.WithContext(newIdentityContext("user-bearer-token"))
+	rec := httptest.NewRecorder()
+
+	handler.ServeHTTP(rec, req)
+
+	if got := rec.Header().Get("X-Got-Auth"); got != "Bearer user-bearer-token" {
+		t.Errorf("auth = %q, want %q", got, "Bearer user-bearer-token")
+	}
+}
+
+func TestK8sProxy_DevFallbackToken_EmptyFallsBackToIdentityToken(t *testing.T) {
+	backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("X-Got-Auth", r.Header.Get("Authorization"))
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer backend.Close()
+
+	handler, err := NewK8sProxyHandler(testK8sProxyConfig(backend.URL))
+	if err != nil {
+		t.Fatalf("NewK8sProxyHandler() error = %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/api/k8s/api/v1/pods", nil)
+	req = req.WithContext(newDevFallbackIdentityContext("FAKE_CLUSTER_ADMIN_TOKEN"))
+	rec := httptest.NewRecorder()
+
+	handler.ServeHTTP(rec, req)
+
+	if got := rec.Header().Get("X-Got-Auth"); got != "Bearer FAKE_CLUSTER_ADMIN_TOKEN" {
+		t.Errorf("auth = %q, want %q (fallback to identity token when DevFallbackToken empty)", got, "Bearer FAKE_CLUSTER_ADMIN_TOKEN")
 	}
 }

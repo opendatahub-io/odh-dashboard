@@ -1,9 +1,9 @@
-import { Connection } from '@odh-dashboard/internal/concepts/connectionTypes/types';
 import {
   isConnectionType,
   isConnectionTypeDataField,
   S3ConnectionTypeKeys,
-} from '@odh-dashboard/internal/concepts/connectionTypes/utils';
+} from '@odh-dashboard/k8s-core';
+import type { Connection } from '@odh-dashboard/k8s-core';
 import { useWatchConnectionTypes } from '@odh-dashboard/internal/utilities/useWatchConnectionTypes';
 import {
   Alert,
@@ -51,10 +51,10 @@ import { findKey } from 'es-toolkit';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Controller, useFormContext, useWatch } from 'react-hook-form';
 import { Navigate, useParams } from 'react-router';
+import S3FileExplorer from '@odh-dashboard/internal/concepts/fileExplorer/S3FileExplorer/S3FileExplorer';
+import type { ExplorerFile } from '@odh-dashboard/internal/concepts/fileExplorer/types';
 import AutomlConnectionModal from '~/app/components/common/AutomlConnectionModal';
 import ConfigureFormGroup from '~/app/components/common/ConfigureFormGroup';
-import S3FileExplorer from '~/app/components/common/S3FileExplorer/S3FileExplorer.tsx';
-import type { File as S3ExplorerFile } from '~/app/components/common/FileExplorer/FileExplorer.tsx';
 import SecretSelector, { SecretSelection } from '~/app/components/common/SecretSelector';
 import useReconfigureSafeEffect from '~/app/hooks/useReconfigureSafeEffect';
 import { useS3FileUploadMutation } from '~/app/hooks/mutations';
@@ -133,7 +133,7 @@ function AutomlConfigure({
     'select',
   );
   const [selectedTrainingDataFile, setSelectedTrainingDataFile] = useState<
-    S3ExplorerFile | undefined
+    ExplorerFile | undefined
   >(() => {
     if (!initialFileKey) {
       return undefined;
@@ -810,9 +810,21 @@ function AutomlConfigure({
                     <StackItem className="automl-configure__form-field">
                       <ConfigureFormGroup
                         label="Target column"
+                        description="Select the column containing the values you want to predict."
                         labelHelp={{
                           header: 'Target column',
-                          body: 'Name of the target/label column in the dataset containing the value to predict or forecast (in the case of time series).',
+                          body: (
+                            <Stack hasGutter>
+                              <StackItem>
+                                The target column contains the values you want to predict. Other
+                                columns in your dataset are used as inputs.
+                              </StackItem>
+                              <StackItem>
+                                Look for a column with outcomes (like sales_total) or categories
+                                (like approved/denied) that you want your model to learn to predict.
+                              </StackItem>
+                            </Stack>
+                          ),
                         }}
                         isRequired
                       >
@@ -885,15 +897,31 @@ function AutomlConfigure({
                             </FormHelperText>
                           )}
                         </LoadingFormField>
+                        {isTargetColumnSelected && (
+                          <AutomlPredictionTypeHelperText
+                            targetColumn={targetColumn}
+                            selectedColumn={selectedColumn}
+                          />
+                        )}
                       </ConfigureFormGroup>
                     </StackItem>
 
-                    <StackItem>
-                      <ConfigureFormGroup label="Prediction type" isRequired>
-                        <AutomlPredictionTypeHelperText
-                          targetColumn={targetColumn}
-                          selectedColumn={selectedColumn}
-                        />
+                    <StackItem className="automl-configure__form-field">
+                      <ConfigureFormGroup
+                        label="Prediction type"
+                        isRequired
+                        description="Select the type of prediction to use for this run. Recommended types are determined based on the number of unique values detected in the selected target column."
+                      >
+                        {!isTargetColumnSelected && (
+                          <FormHelperText data-testid="prediction-type-helper-no-target">
+                            <HelperText>
+                              <HelperTextItem variant="indeterminate">
+                                To view prediction type options, first complete the Target column
+                                field.
+                              </HelperTextItem>
+                            </HelperText>
+                          </FormHelperText>
+                        )}
                         {isTargetColumnSelected && (
                           <Controller
                             control={form.control}
@@ -931,23 +959,6 @@ function AutomlConfigure({
                         <ConfigureFormGroup
                           label="Run preset"
                           description="Choose a predefined resource allocation and optimization strategy for this run."
-                          labelHelp={{
-                            header: 'Run preset',
-                            body: (
-                              <>
-                                <Content component="p">
-                                  Select how to balance training speed and model quality.
-                                </Content>
-                                <Content component="p">
-                                  <strong>Faster:</strong> Uses fewer resources to prioritize speed.
-                                </Content>
-                                <Content component="p">
-                                  <strong>Better quality:</strong> Trains more models with stronger
-                                  ensembling to prioritize accuracy.
-                                </Content>
-                              </>
-                            ),
-                          }}
                         >
                           <Controller
                             control={form.control}
@@ -961,9 +972,19 @@ function AutomlConfigure({
                                     name="preset"
                                     label={PRESET_LABELS[preset]}
                                     description={
-                                      preset === PRESET_FASTER
-                                        ? '4 vCPU, 16 GiB | A good default for most datasets.'
-                                        : '8 vCPU, 32 GiB | Prioritizes stronger accuracy, but requires longer training.'
+                                      preset === PRESET_FASTER ? (
+                                        <>
+                                          4 vCPU / 16 GiB
+                                          <br />
+                                          Use fewer resources to prioritize speed
+                                        </>
+                                      ) : (
+                                        <>
+                                          8 vCPU / 32 GiB
+                                          <br />
+                                          Use more resources to prioritize accuracy
+                                        </>
+                                      )
                                     }
                                     isChecked={field.value === preset}
                                     isDisabled={formIsSubmitting}
@@ -1100,8 +1121,9 @@ function AutomlConfigure({
       )}
       <S3FileExplorer
         id="AutoMLConfigure-S3FileExplorer"
+        apiPath="/automl/api/v1/s3"
         namespace={namespace}
-        s3Secret={selectedSecret}
+        s3SecretName={selectedSecret?.name}
         isOpen={isFileExplorerOpen}
         onClose={() => setIsFileExplorerOpen(false)}
         onSelectFiles={(files) => {
@@ -1115,6 +1137,10 @@ function AutomlConfigure({
         allowFolderSelection={false}
         selectableExtensions={['csv']}
         unselectableReason="You can only select CSV files"
+        disabledPaths={[
+          '/autogluon-tabular-training-pipeline',
+          '/autogluon-timeseries-training-pipeline',
+        ]}
       />
       <OptimizationMetricModal
         isOpen={isMetricModalOpen}

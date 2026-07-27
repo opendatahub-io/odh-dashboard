@@ -1,11 +1,11 @@
 import * as React from 'react';
-import { RouteKind } from '#~/k8sTypes';
-import { getPipelineAPIRoute } from '#~/api';
 import useFetchState, {
   FetchState,
   FetchStateCallbackPromise,
   NotReadyError,
-} from '#~/utilities/useFetchState';
+} from '@odh-dashboard/ui-core/hooks/useFetchState';
+import { RouteKind } from '#~/k8sTypes';
+import { getPipelineAPIRoute } from '#~/api';
 import { FAST_POLL_INTERVAL } from '#~/utilities/const';
 import { PIPELINE_ROUTE_NAME_PREFIX } from '#~/concepts/pipelines/const';
 

@@ -15,10 +15,10 @@ import {
   ToolbarItem,
 } from '@patternfly/react-core';
 import { FilterIcon } from '@patternfly/react-icons';
+import FilterToolbar from '@odh-dashboard/ui-core/components/FilterToolbar';
+import SimpleSelect from '@odh-dashboard/ui-core/components/SimpleSelect';
 import { ProjectSectionID } from '#~/pages/projects/screens/detail/types';
 import { usePermissionsContext } from '#~/concepts/permissions/PermissionsContext';
-import FilterToolbar from '#~/components/FilterToolbar';
-import SimpleSelect from '#~/components/SimpleSelect';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import { fireMiscTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 import SubjectRolesTableSection from './SubjectRolesTableSection';

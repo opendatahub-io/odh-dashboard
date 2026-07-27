@@ -4,15 +4,17 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/k8sutil"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/models"
-	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 )
 
-// ComponentsRepository handles OdhApplication CRD listing and removal.
+// ComponentsRepository handles OdhApplication CRD listing and removal from the
+// enabled-apps ConfigMap. "Components" here refers specifically to OdhApplication
+// resources, not generic Kubernetes components.
 // Uses the SA clients for all operations, matching the privileged watcher model.
 type ComponentsRepository struct {
 	saDynClient dynamic.Interface
@@ -28,20 +30,20 @@ func NewComponentsRepository(saDynClient dynamic.Interface, saClientset kubernet
 func (r *ComponentsRepository) ListComponents(
 	ctx context.Context,
 	namespace string, installedOnly bool,
-) ([]map[string]interface{}, error) {
+) ([]map[string]any, error) {
 	if r.saDynClient == nil {
-		return []map[string]interface{}{}, nil
+		return []map[string]any{}, nil
 	}
 
 	list, err := r.saDynClient.Resource(models.OdhApplicationGVR).Namespace(namespace).List(ctx, metav1.ListOptions{})
 	if err != nil {
-		if k8serrors.IsNotFound(err) || isDiscoveryError(err) {
-			return []map[string]interface{}{}, nil
+		if k8sutil.IsResourceUnavailable(err) {
+			return []map[string]any{}, nil
 		}
 		return nil, fmt.Errorf("failed to list components: %w", err)
 	}
 
-	result := make([]map[string]interface{}, 0, len(list.Items))
+	result := make([]map[string]any, 0, len(list.Items))
 	for _, item := range list.Items {
 		if installedOnly && !isShownOnEnabledPage(item) {
 			continue
@@ -81,7 +83,7 @@ func (r *ComponentsRepository) RemoveComponent(ctx context.Context, namespace, a
 }
 
 func isShownOnEnabledPage(item unstructured.Unstructured) bool {
-	spec, ok := item.Object["spec"].(map[string]interface{})
+	spec, ok := item.Object["spec"].(map[string]any)
 	if !ok {
 		return false
 	}

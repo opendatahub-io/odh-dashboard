@@ -1,14 +1,15 @@
 import * as React from 'react';
 import '@testing-library/jest-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import AgentDeployWizardPage from '~/app/deployWizard/AgentDeployWizardPage';
 import AgentDeployWizardRoutes from '~/odh/AgentDeployWizardRoutes';
 import { agentDeployWizardPath } from '~/app/utilities/routes';
 
-jest.mock('@odh-dashboard/internal/pages/ApplicationsPage', () => ({
-  __esModule: true,
-  default: ({ title, children }: { title: string; children: React.ReactNode }) => (
+jest.mock('@odh-dashboard/ui-core', () => ({
+  ...jest.requireActual('@odh-dashboard/ui-core'),
+  ApplicationsPage: ({ title, children }: { title: string; children: React.ReactNode }) => (
     <div>
       <h1>{title}</h1>
       {children}
@@ -38,6 +39,7 @@ jest.mock('~/app/hooks/useAgentOpsProjectNamespaces', () => ({
   useAgentOpsProjectNamespaces: () => ({
     projectNamespaces: [{ name: 'aa-fede', displayName: 'aa-fede' }],
     isLoading: false,
+    loadError: null,
     onProjectSelection: jest.fn(),
   }),
 }));
@@ -64,7 +66,7 @@ jest.mock('@odh-dashboard/internal/concepts/projects/ProjectSelector', () => ({
   ),
 }));
 
-jest.mock('@odh-dashboard/internal/components/SimpleSelect', () => ({
+jest.mock('@odh-dashboard/ui-core/components/SimpleSelect', () => ({
   __esModule: true,
   default: ({
     dataTestId,
@@ -119,9 +121,20 @@ const wizardLocationState = {
   returnRoute: '/ai-hub/agents/deployments/aa-fede',
 };
 
+const renderWithQueryClient = (ui: React.ReactElement) => {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
+
+  return render(<QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>);
+};
+
 describe('AgentDeployWizardRoutes', () => {
   it('renders the deploy wizard when mounted as a host app.route breakout', () => {
-    render(
+    renderWithQueryClient(
       <MemoryRouter
         initialEntries={[
           {

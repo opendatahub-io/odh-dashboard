@@ -38,11 +38,13 @@ export type MockDashboardConfigType = {
   disableLMEval?: boolean;
   disableKueue?: boolean;
   disableFeatureStore?: boolean;
+  featureStoreAdmin?: boolean;
   genAiStudio?: boolean;
+  genAiTracing?: boolean;
   automl?: boolean;
   autorag?: boolean;
   modelAsService?: boolean;
-  maasAuthPolicies?: boolean;
+  externalModels?: boolean;
   externalVectorStores?: boolean;
   agentConfigManagement?: boolean;
   aiAssetCustomEndpoints?: boolean;
@@ -52,18 +54,23 @@ export type MockDashboardConfigType = {
   pvcSize?: string;
   mlflowPipelines?: boolean;
   mcpCatalog?: boolean;
+  mcpRegistry?: boolean;
   toolCalling?: boolean;
   projectRBAC?: boolean;
   disableLLMd?: boolean;
+  llmdTemplates?: boolean;
   deploymentWizardYAMLViewer?: boolean;
   vLLMDeploymentOnMaaS?: boolean;
   llmGatewayField?: boolean;
   promptManagement?: boolean;
+  globalProjectPrompts?: boolean;
   nimWizard?: boolean;
-  mySubscriptions?: boolean;
-  maasSettingsIaRedesign?: boolean;
   agentOps?: boolean;
+  agentOpsDeploy?: boolean;
+  agentsCatalog?: boolean;
   roleManagement?: boolean;
+  gpuaas?: boolean;
+  connectionTest?: boolean;
   globalMLflowNamespaces?: string[];
   genAiStudioConfig?: {
     aiAssetCustomEndpoints?: {
@@ -74,7 +81,7 @@ export type MockDashboardConfigType = {
 };
 
 export const mockDashboardConfig = ({
-  mlflowPipelines = false,
+  mlflowPipelines = true,
   projectRBAC = false,
   disableInfo = false,
   disableSupport = false,
@@ -83,10 +90,11 @@ export const mockDashboardConfig = ({
   disableBYONImageStream = false,
   disableISVBadges = false,
   genAiStudio = false,
+  genAiTracing = false,
   automl = false,
   autorag = false,
   modelAsService = true,
-  maasAuthPolicies = true,
+  externalModels = true,
   aiAssetCustomEndpoints = true,
   disableAppLauncher = false,
   disableUserManagement = false,
@@ -105,6 +113,7 @@ export const mockDashboardConfig = ({
   disableDistributedWorkloads = false,
   disableModelCatalog = false,
   mcpCatalog = false,
+  mcpRegistry = false,
   toolCalling = false,
   disableModelRegistry = false,
   disableModelRegistrySecureDB = false,
@@ -115,20 +124,25 @@ export const mockDashboardConfig = ({
   disableLMEval = true,
   disableKueue = true,
   disableFeatureStore = true,
+  featureStoreAdmin = false,
   trainingJobs = true,
-  observabilityDashboard = false,
+  observabilityDashboard = true,
   disableLLMd = false,
+  llmdTemplates = false,
   deploymentWizardYAMLViewer = false,
   externalVectorStores = false,
   agentConfigManagement = false,
   vLLMDeploymentOnMaaS = false,
   llmGatewayField = false,
   promptManagement = false,
+  globalProjectPrompts = false,
   nimWizard = false,
-  mySubscriptions = true,
-  maasSettingsIaRedesign = false,
   agentOps = false,
-  roleManagement = false,
+  agentOpsDeploy = false,
+  agentsCatalog = false,
+  roleManagement = true,
+  gpuaas = true,
+  connectionTest = false,
   hardwareProfileOrder = ['test-hardware-profile'],
   globalMLflowNamespaces = [],
   genAiStudioConfig = {
@@ -281,17 +295,19 @@ export const mockDashboardConfig = ({
       disablePerformanceMetrics,
       disableKServe,
       genAiStudio,
+      genAiTracing,
       automl,
       autorag,
       modelAsService,
       aiAssetCustomEndpoints,
-      maasAuthPolicies,
+      externalModels,
       disableKServeAuth,
       disableKServeMetrics,
       disableKServeRaw,
       disableDistributedWorkloads,
       disableModelCatalog,
       mcpCatalog,
+      mcpRegistry,
       toolCalling,
       disableModelRegistry,
       disableModelRegistrySecureDB,
@@ -303,20 +319,25 @@ export const mockDashboardConfig = ({
       disableLMEval,
       disableKueue,
       disableFeatureStore,
+      featureStoreAdmin,
       trainingJobs,
       observabilityDashboard,
       disableLLMd,
+      llmdTemplates,
       deploymentWizardYAMLViewer,
       externalVectorStores,
       agentConfigManagement,
       vLLMDeploymentOnMaaS,
       llmGatewayField,
       promptManagement,
+      globalProjectPrompts,
       nimWizard,
-      mySubscriptions,
-      maasSettingsIaRedesign,
       agentOps,
+      agentOpsDeploy,
+      agentsCatalog,
       roleManagement,
+      gpuaas,
+      connectionTest,
     },
     notebookController: {
       enabled: !disableNotebookController,

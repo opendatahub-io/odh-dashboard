@@ -35,7 +35,7 @@ describe('searchUtils', () => {
 
     it('should return features route for feature type without featureView', () => {
       const result = getFeatureStoreRoute('feature', testProject, testName);
-      expect(result).toBe(`/develop-train/feature-store/features/${testProject}//${testName}`);
+      expect(result).toBe(`/develop-train/feature-store/${testProject}`);
     });
 
     it('should return feature view route for featureView type', () => {

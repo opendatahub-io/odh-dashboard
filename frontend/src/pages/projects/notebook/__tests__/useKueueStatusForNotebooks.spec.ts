@@ -37,6 +37,7 @@ function notebookState(name: string): NotebookState {
     isStopping: false,
     isStopped: true,
     runningPodUid: '',
+    containerStatuses: [],
     refresh: jest.fn(),
   };
 }
@@ -155,6 +156,24 @@ describe('useKueueStatusForNotebooks', () => {
     const { result } = testHook(useKueueStatusForNotebooks)(states, project);
     expect(result.current.kueueStatusByNotebookName['my-notebook']).toEqual(
       expect.objectContaining({ status: KueueWorkloadStatus.Failed }),
+    );
+  });
+
+  it('includes workloadName in status entry', () => {
+    const wl = mockWorkloadK8sResource({
+      k8sName: 'wl-named',
+      namespace: 'test-project',
+      ownerName: 'my-notebook',
+      mockStatus: WorkloadStatusType.Pending,
+    });
+    if (wl.metadata) {
+      wl.metadata.labels = { ...wl.metadata.labels, 'kueue.x-k8s.io/job-name': 'my-notebook' };
+    }
+    useWatchWorkloadsMock.mockReturnValue([[wl], true, undefined]);
+    const states = [notebookState('my-notebook')];
+    const { result } = testHook(useKueueStatusForNotebooks)(states, project);
+    expect(result.current.kueueStatusByNotebookName['my-notebook']).toEqual(
+      expect.objectContaining({ workloadName: 'wl-named' }),
     );
   });
 

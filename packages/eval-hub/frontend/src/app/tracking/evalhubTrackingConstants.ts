@@ -17,6 +17,11 @@ export const EVAL_HUB_EVENTS = {
   RUN_THRESHOLD_CHANGED: 'Evaluations Run Threshold Changed',
   RUN_METRIC_SELECTED: 'Evaluations Run Metric Selected',
   RUN_PARAMETER_CHANGED: 'Evaluations Run Parameter Changed',
+  SECURITY_INSIGHTS_VIEWED: 'Security Insights Viewed',
+  SECURITY_INSIGHTS_FILTER_TYPE_CHANGED: 'Security Insights Filter Type Changed',
+  SECURITY_INSIGHTS_FILTER_APPLIED: 'Security Insights Filter Applied',
+  SECURITY_INSIGHTS_SORT_CHANGED: 'Security Insights Sort Changed',
+  SECURITY_INSIGHTS_PAGINATION_CHANGED: 'Security Insights Pagination Changed',
 } as const;
 
 /**
@@ -131,4 +136,32 @@ export type RunParameterChangedProperties = {
   parameterValueShape: string;
   benchmarkName: string;
   isDefault: boolean;
+};
+
+export type SecurityInsightsViewedProperties = {
+  sourceId: string;
+  modelName: string;
+  insightCount: number;
+};
+
+export type SecurityInsightsFilterTypeChangedProperties = {
+  previousFilterType: string;
+  newFilterType: string;
+};
+
+export type SecurityInsightsFilterAppliedProperties = {
+  filterType: string;
+  hasResults: boolean;
+  resultCount: number;
+};
+
+export type SecurityInsightsSortChangedProperties = {
+  column: string;
+  direction: 'asc' | 'desc';
+};
+
+export type SecurityInsightsPaginationChangedProperties = {
+  page: number;
+  perPage: number;
+  totalItems: number;
 };

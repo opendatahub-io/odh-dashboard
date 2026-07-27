@@ -8,7 +8,8 @@ import {
   Spinner,
 } from '@patternfly/react-core';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
-import { InferenceServiceKind, NotebookKind } from '#~/k8sTypes';
+import { InferenceServiceKind } from '@odh-dashboard/model-serving/shared';
+import { NotebookKind } from '#~/k8sTypes';
 import { useNotebooksStates } from '#~/pages/projects/notebook/useNotebooksStates';
 
 type ConnectedResourcesDeleteModalProps = {

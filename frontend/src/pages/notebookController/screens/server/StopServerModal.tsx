@@ -1,11 +1,11 @@
 import * as React from 'react';
 import { Button } from '@patternfly/react-core';
-import { Notebook } from '#~/types';
+import { NotebookKind } from '#~/k8sTypes';
 import useStopNotebookModalAvailability from '#~/pages/projects/notebook/useStopNotebookModalAvailability';
 import ConfirmStopModal from '#~/pages/projects/components/ConfirmStopModal.tsx';
 
 type StopServerModalProps = {
-  notebooksToStop: Notebook[];
+  notebooksToStop: NotebookKind[];
   link?: string;
   isDeleting: boolean;
   onNotebooksStop: (didStop: boolean) => void;

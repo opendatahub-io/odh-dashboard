@@ -74,7 +74,7 @@ describe('Verify that models and versions can be archived and restored via model
   it(
     'Registers model, adds versions, archives version, restores version, archives whole model, restores whole model',
     {
-      tags: ['@Dashboard', '@ModelRegistry', '@NonConcurrent', '@Sanity', '@SanitySet4'],
+      tags: ['@Dashboard', '@ModelRegistry', '@Sanity', '@SanitySet4'],
     },
     () => {
       cy.step('Login as an Admin and navigate to Model Registry');
@@ -178,7 +178,11 @@ describe('Verify that models and versions can be archived and restored via model
       // Find the v1.0 version row and archive it
       const modelVersionRow = modelRegistry.getModelVersionRow(testData.version1Name);
       modelVersionRow.findKebab().click();
-      modelRegistry.findArchiveModelVersionAction().click({ force: true });
+      modelRegistry
+        .findArchiveModelVersionAction()
+        .find('button')
+        .should('not.have.attr', 'aria-disabled', 'true')
+        .click();
 
       // Confirm archiving in the modal
       archiveVersionModal.findArchiveButton().should('be.disabled');

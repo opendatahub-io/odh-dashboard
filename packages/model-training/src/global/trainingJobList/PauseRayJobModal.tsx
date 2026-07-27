@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Checkbox, Stack, StackItem } from '@patternfly/react-core';
-import ContentModal from '@odh-dashboard/internal/components/modals/ContentModal';
+import ContentModal from '@odh-dashboard/ui-core/components/ContentModal';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import { RayJobKind } from '../../k8sTypes';
 

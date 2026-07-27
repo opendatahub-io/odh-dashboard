@@ -1,6 +1,9 @@
 import * as React from 'react';
+import useFetchState, {
+  FetchState,
+  NotReadyError,
+} from '@odh-dashboard/ui-core/hooks/useFetchState';
 import { IntegrationAppStatus, OdhApplication, VariablesValidationStatus } from '#~/types';
-import useFetchState, { FetchState, NotReadyError } from '#~/utilities/useFetchState';
 import { getIntegrationAppEnablementStatus } from '#~/services/integrationAppService';
 import { isIntegrationApp } from '#~/utilities/utils';
 import { useAppSelector } from '#~/redux/hooks';

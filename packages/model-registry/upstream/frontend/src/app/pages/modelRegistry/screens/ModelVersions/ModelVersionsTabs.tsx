@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useExtensions } from '@odh-dashboard/plugin-core';
+import { isDetailTabExtension } from '@odh-dashboard/plugin-core/extension-points';
 import { ExtensibleDetailTabs } from '@odh-dashboard/plugin-core/helpers/ui';
 import ModelDetailsView from '~/app/pages/modelRegistry/screens/ModelVersions/ModelDetailsView';
 import { ModelVersion, RegisteredModel } from '~/app/types';
@@ -9,8 +10,9 @@ import {
   ModelVersionsTabTitle,
 } from '~/app/pages/modelRegistry/screens/ModelVersions/const';
 import ModelVersionListView from '~/app/pages/modelRegistry/screens/ModelVersions/ModelVersionListView';
-import { isModelRegistryDetailsTabExtension } from '~/odh/extension-points/details';
 import { ModelRegistrySelectorContext } from '~/app/context/ModelRegistrySelectorContext';
+
+const MODEL_REGISTRY_DETAILS_GROUP = 'model-registry.details';
 import { DEPLOYMENTS_TAB_EXTENSION_ID } from '~/odh/const';
 
 type ModelVersionsTabProps = {
@@ -31,7 +33,7 @@ const ModelVersionsTabs: React.FC<ModelVersionsTabProps> = ({
   mvRefresh,
 }) => {
   const navigate = useNavigate();
-  const tabExtensions = useExtensions(isModelRegistryDetailsTabExtension);
+  const tabExtensions = useExtensions(isDetailTabExtension);
   const { registeredModelId: rmId } = useParams();
   const { preferredModelRegistry } = React.useContext(ModelRegistrySelectorContext);
 
@@ -74,6 +76,7 @@ const ModelVersionsTabs: React.FC<ModelVersionsTabProps> = ({
         },
       ]}
       extensionTabs={tabExtensions}
+      group={MODEL_REGISTRY_DETAILS_GROUP}
       componentProps={{ rmId, mrName: preferredModelRegistry?.name }}
       ariaLabel="Model versions page tabs"
       testId="model-versions-page-tabs"

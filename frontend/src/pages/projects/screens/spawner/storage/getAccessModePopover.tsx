@@ -1,9 +1,9 @@
 import * as React from 'react';
+import { PopoverListContent } from '@odh-dashboard/ui-core';
 import {
   ACCESS_MODE_DESCRIPTIONS,
   toAccessModeFullName,
 } from '#~/pages/projects/screens/detail/storage/AccessModeFullName';
-import PopoverListContent from '#~/components/PopoverListContent';
 import { AccessMode } from '#~/pages/storageClasses/storageEnums';
 
 type AccessModePopoverProps = {

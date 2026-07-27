@@ -9,6 +9,11 @@ type GenerateExtensionTabRoutesOptions<TExtension extends Extension<string, Deta
     /** Loaded tab extensions (from `useExtensions`). */
     tabExtensions: LoadedExtension<TExtension>[];
     /**
+     * When set, only extensions whose `group` property matches this value
+     * get routes generated. Used with generic extension points.
+     */
+    group?: string;
+    /**
      * A React element to render as the route content for each tab.
      * Receives the extension's `id` as the `tab` prop and `empty` set to `false`.
      */
@@ -41,9 +46,11 @@ export const generateExtensionTabRoutes = <
   TExtension extends Extension<string, DetailTabProperties>,
 >({
   tabExtensions,
+  group,
   renderElement,
 }: GenerateExtensionTabRoutesOptions<TExtension>): React.ReactElement[] =>
   tabExtensions
+    .filter((ext) => (group ? ext.properties.group === group : true))
     .filter((extension) => isValidExtensionId(extension.properties.id))
     .map((extension) => (
       <Route

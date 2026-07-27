@@ -1,0 +1,28 @@
+// Drives --autorag-pulse-progress on the tree container; pulse rings inherit the live value.
+@property --autorag-pulse-progress {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 0;
+}
+
+@keyframes autorag-tree-node-pulse-driver {
+  from {
+    --autorag-pulse-progress: 0;
+  }
+
+  to {
+    --autorag-pulse-progress: 1;
+  }
+}
+
+// Pulse cycle duration (2s). Applied only while at least one node uses the pulse icon.
+.autorag-tree-topology-container--pulse-active {
+  animation: autorag-tree-node-pulse-driver 2s ease-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .autorag-tree-topology-container--pulse-active {
+    animation: none;
+    --autorag-pulse-progress: 0;
+  }
+}

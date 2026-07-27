@@ -8,9 +8,10 @@ import {
   ModalHeader,
   ModalFooter,
 } from '@patternfly/react-core';
+import type { InferenceServiceKind } from '@odh-dashboard/model-serving/shared';
+import DashboardHelpTooltip from '@odh-dashboard/ui-core/components/DashboardHelpTooltip';
 import { BiasMetricConfig } from '#~/concepts/trustyai/types';
 import { BiasMetricType } from '#~/api';
-import { InferenceServiceKind } from '#~/k8sTypes';
 import { TrustyAIContext } from '#~/concepts/trustyai/context/TrustyAIContext';
 import DashboardModalFooter from '#~/concepts/dashboard/DashboardModalFooter';
 import {
@@ -18,7 +19,6 @@ import {
   convertConfigurationRequestType,
   getThresholdDefaultDelta,
 } from '#~/pages/modelServing/screens/metrics/utils';
-import DashboardHelpTooltip from '#~/concepts/dashboard/DashboardHelpTooltip';
 import useBiasConfigurationObject from './useBiasConfigurationObject';
 import MetricTypeField from './MetricTypeField';
 

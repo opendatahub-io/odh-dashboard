@@ -1,10 +1,10 @@
 import * as React from 'react';
 import { Button, ButtonVariant, ToolbarItem } from '@patternfly/react-core';
 import { DashboardEmptyTableView, Table } from '@odh-dashboard/ui-core';
+import type { InferenceServiceKind } from '@odh-dashboard/model-serving/shared';
 import DashboardSearchField, { SearchType } from '#~/concepts/dashboard/DashboardSearchField';
 import { BiasMetricConfig } from '#~/concepts/trustyai/types';
 import { useModelBiasData } from '#~/concepts/trustyai/context/useModelBiasData';
-import { InferenceServiceKind } from '#~/k8sTypes';
 import DeleteBiasConfigurationModal from '#~/pages/modelServing/screens/metrics/bias/BiasConfigurationPage/BiasConfigurationModal/DeleteBiasConfigurationModal';
 import ManageBiasConfigurationModal from '#~/pages/modelServing/screens/metrics/bias/BiasConfigurationPage/BiasConfigurationModal/ManageBiasConfigurationModal';
 import BiasConfigurationTableRow from './BiasConfigurationTableRow';

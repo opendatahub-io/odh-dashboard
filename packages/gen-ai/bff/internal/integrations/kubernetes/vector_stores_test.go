@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes/pgvector"
 	"github.com/opendatahub-io/gen-ai/internal/models"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -498,13 +499,13 @@ func TestGenerateLlamaStackConfig_VectorStoreProviderConfig(t *testing.T) {
 			CredSecretRef:  &models.SecretKeyRef{Name: "pg-secret", Key: "password"},
 		}
 
-		result, err := newTestClient().generateLlamaStackConfig(ctx, "ns", nil, []ValidatedVectorStore{vs}, nil, "")
+		result, err := newTestClient().generateLlamaStackConfig(ctx, "ns", nil, []ValidatedVectorStore{vs}, nil, "", nil)
 		require.NoError(t, err)
 
 		var cfg LlamaStackConfig
 		require.NoError(t, cfg.FromYAML(result))
 
-		require.Len(t, cfg.Providers.VectorIO, 2) // default milvus + pg-provider
+		require.Len(t, cfg.Providers.VectorIO, 1) // pg-provider (no default milvus)
 		var pgProv *Provider
 		for i := range cfg.Providers.VectorIO {
 			if cfg.Providers.VectorIO[i].ProviderID == "pg-provider" {
@@ -547,7 +548,7 @@ func TestGenerateLlamaStackConfig_VectorStoreProviderConfig(t *testing.T) {
 			CredSecretRef:  &models.SecretKeyRef{Name: "milvus-creds", Key: "token"},
 		}
 
-		result, err := newTestClient().generateLlamaStackConfig(ctx, "ns", nil, []ValidatedVectorStore{vs}, nil, "")
+		result, err := newTestClient().generateLlamaStackConfig(ctx, "ns", nil, []ValidatedVectorStore{vs}, nil, "", nil)
 		require.NoError(t, err)
 
 		var cfg LlamaStackConfig
@@ -587,7 +588,7 @@ func TestGenerateLlamaStackConfig_VectorStoreProviderConfig(t *testing.T) {
 			CredSecretRef:  &models.SecretKeyRef{Name: "qdrant-creds", Key: "api_key"},
 		}
 
-		result, err := newTestClient().generateLlamaStackConfig(ctx, "ns", nil, []ValidatedVectorStore{vs}, nil, "")
+		result, err := newTestClient().generateLlamaStackConfig(ctx, "ns", nil, []ValidatedVectorStore{vs}, nil, "", nil)
 		require.NoError(t, err)
 
 		var cfg LlamaStackConfig
@@ -629,7 +630,7 @@ func TestGenerateLlamaStackConfig_VectorStoreProviderConfig(t *testing.T) {
 			},
 		}
 
-		result, err := newTestClient().generateLlamaStackConfig(ctx, "ns", nil, []ValidatedVectorStore{vs}, nil, "")
+		result, err := newTestClient().generateLlamaStackConfig(ctx, "ns", nil, []ValidatedVectorStore{vs}, nil, "", nil)
 		require.NoError(t, err)
 
 		// Verify the custom namespace is preserved in the output
@@ -653,7 +654,7 @@ func TestGenerateLlamaStackConfig_VectorStoreProviderConfig(t *testing.T) {
 			},
 		}
 
-		result, err := newTestClient().generateLlamaStackConfig(ctx, "ns", nil, []ValidatedVectorStore{vs}, nil, "")
+		result, err := newTestClient().generateLlamaStackConfig(ctx, "ns", nil, []ValidatedVectorStore{vs}, nil, "", nil)
 		require.NoError(t, err)
 
 		var cfg LlamaStackConfig
@@ -688,7 +689,7 @@ func TestGenerateLlamaStackConfig_VectorStoreProviderConfig(t *testing.T) {
 		}
 
 		result, err := newTestClient().generateLlamaStackConfig(ctx, "ns", nil,
-			[]ValidatedVectorStore{makeVS("vs-a"), makeVS("vs-b")}, nil, "")
+			[]ValidatedVectorStore{makeVS("vs-a"), makeVS("vs-b")}, nil, "", nil)
 		require.NoError(t, err)
 
 		var cfg LlamaStackConfig
@@ -705,24 +706,31 @@ func TestGenerateLlamaStackConfig_VectorStoreProviderConfig(t *testing.T) {
 	})
 
 	t.Run("error when external provider_id collides with built-in provider", func(t *testing.T) {
-		// "milvus" is pre-registered by NewDefaultLlamaStackConfig; using the same ID for an
-		// external provider must be rejected, not silently produce a duplicate provider entry.
+		// The default vector_io provider is empty by default (populated at install time
+		// by SetDefaultPgvectorProvider). If a pgvector provider is added first and then
+		// an external provider uses the same ID, it should be rejected.
+		pgConn := &pgvector.Connection{
+			Host: "pg.svc.cluster.local",
+			Port: pgvector.DefaultPort,
+			DB:   pgvector.DefaultDB,
+			User: pgvector.DefaultUser,
+		}
 		vs := ValidatedVectorStore{
 			Provider: models.VectorIOProvider{
-				ProviderID:   "milvus", // same as the built-in default
-				ProviderType: "remote::milvus",
-				Config:       models.VectorIOProviderConfig{Extra: map[string]interface{}{"uri": "http://external-milvus:19530"}},
+				ProviderID:   pgvector.DefaultProviderID, // same as the default
+				ProviderType: "remote::pgvector",
+				Config:       models.VectorIOProviderConfig{Extra: map[string]interface{}{"host": "external-pg:5432"}},
 			},
 			RegisteredStore: models.RegisteredVectorStore{
 				VectorStoreID:  "vs-conflict",
-				ProviderID:     "milvus",
+				ProviderID:     pgvector.DefaultProviderID,
 				EmbeddingModel: defaultEmbeddingProviderModelID,
 			},
 		}
 
-		_, err := newTestClient().generateLlamaStackConfig(ctx, "ns", nil, []ValidatedVectorStore{vs}, nil, "")
+		_, err := newTestClient().generateLlamaStackConfig(ctx, "ns", nil, []ValidatedVectorStore{vs}, nil, "", pgConn)
 		require.Error(t, err)
-		assert.Contains(t, err.Error(), "milvus")
+		assert.Contains(t, err.Error(), pgvector.DefaultProviderID)
 		assert.Contains(t, err.Error(), "conflicts")
 	})
 
@@ -740,7 +748,7 @@ func TestGenerateLlamaStackConfig_VectorStoreProviderConfig(t *testing.T) {
 			},
 		}
 
-		_, err := newTestClient().generateLlamaStackConfig(ctx, "ns", nil, []ValidatedVectorStore{vs}, nil, "")
+		_, err := newTestClient().generateLlamaStackConfig(ctx, "ns", nil, []ValidatedVectorStore{vs}, nil, "", nil)
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "nonexistent-embedding-model")
 	})

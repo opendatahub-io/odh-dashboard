@@ -14,6 +14,7 @@ import { AppContext } from '~/app/context/AppContext';
 import McpDeploymentsRoutes from '~/odh/pages/mcpDeployments/McpDeploymentsRoutes';
 import NotificationListener from '~/odh/components/NotificationListener';
 import OdhDevFeatureFlagOverridesProvider from '~/odh/components/OdhDevFeatureFlagOverridesProvider';
+import UserInteractionProviderWrapper from '~/odh/components/UserInteractionProviderWrapper';
 import ProjectsBridgeProviderWrapper from '~/odh/components/ProjectsBridgeProviderWrapper';
 
 const McpDeploymentsWrapperContent: React.FC = () => {
@@ -35,9 +36,11 @@ const McpDeploymentsWrapperContent: React.FC = () => {
           <OdhDevFeatureFlagOverridesProvider crdOverrides={{}}>
             <NotificationContextProvider>
               <NotificationListener>
-                <ProjectsBridgeProviderWrapper>
-                  <McpDeploymentsRoutes />
-                </ProjectsBridgeProviderWrapper>
+                <UserInteractionProviderWrapper>
+                  <ProjectsBridgeProviderWrapper>
+                    <McpDeploymentsRoutes />
+                  </ProjectsBridgeProviderWrapper>
+                </UserInteractionProviderWrapper>
               </NotificationListener>
             </NotificationContextProvider>
           </OdhDevFeatureFlagOverridesProvider>

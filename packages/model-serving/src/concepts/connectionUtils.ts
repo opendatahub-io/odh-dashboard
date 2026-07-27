@@ -6,20 +6,17 @@ import {
   hasProtocolAnnotation,
   deleteSecret,
 } from '@odh-dashboard/internal/api/index';
-import type { SecretKind, K8sNameDescriptionType } from '@odh-dashboard/k8s-core';
 import {
   isGeneratedSecretName,
   getGeneratedSecretName,
   translateDisplayNameForK8s,
-} from '@odh-dashboard/k8s-core';
-import {
   assembleConnectionSecret,
   getConnectionProtocolType,
-} from '@odh-dashboard/internal/concepts/connectionTypes/utils';
+} from '@odh-dashboard/k8s-core';
+import type { SecretKind, K8sNameDescriptionType, Connection } from '@odh-dashboard/k8s-core';
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
-import { Connection } from '@odh-dashboard/internal/concepts/connectionTypes/types';
 import { CreateConnectionData } from '../components/deploymentWizard/fields/CreateConnectionInputFields';
-import { ModelLocationData, ModelLocationType } from '../components/deploymentWizard/types';
+import { ModelLocationData, ModelLocationType } from '../shared/types/form-data';
 
 export const handleConnectionCreation = async (
   createConnectionData: CreateConnectionData,

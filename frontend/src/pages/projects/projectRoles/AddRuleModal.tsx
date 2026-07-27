@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { Alert, Content, Form, FormGroup, getUniqueId } from '@patternfly/react-core';
+import ContentModal from '@odh-dashboard/ui-core/components/ContentModal';
+import FieldGroupHelpLabelIcon from '@odh-dashboard/ui-core/components/FieldGroupHelpLabelIcon';
 import { MultiSelection, SelectionOptions } from '#~/components/MultiSelection';
-import ContentModal from '#~/components/modals/ContentModal';
-import FieldGroupHelpLabelIcon from '#~/components/FieldGroupHelpLabelIcon';
 import VerbsTreeSelect from './VerbsTreeSelect';
 import useApiResources, { DiscoveredResource } from './useApiResources';
 import type { RuleEntry } from './types';

@@ -7,7 +7,7 @@ const mockTypeaheadSelect = jest.fn((props: unknown) => {
   return null;
 });
 
-jest.mock('#~/components/TypeaheadSelect', () => ({
+jest.mock('@odh-dashboard/ui-core/components/TypeaheadSelect', () => ({
   __esModule: true,
   default: (props: unknown) => mockTypeaheadSelect(props),
 }));

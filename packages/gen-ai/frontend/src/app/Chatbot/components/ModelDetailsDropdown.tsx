@@ -11,7 +11,9 @@ import {
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
-import { getLlamaModelDisplayName, isLlamaModelEnabled } from '~/app/utilities';
+import { getLlamaModelDisplayName, isLlamaModelEnabled, splitLlamaModelId } from '~/app/utilities';
+import { convertMaaSModelToAIModel, isPlaygroundModelMatchForAIModel } from '~/app/utilities/utils';
+import CapabilityBadges from '~/app/components/CapabilityBadges';
 import useFetchBFFConfig from '~/app/hooks/useFetchBFFConfig';
 
 interface ModelDetailsDropdownProps {
@@ -33,12 +35,20 @@ const ModelDetailsDropdown: React.FunctionComponent<ModelDetailsDropdownProps> =
   const { data: bffConfig } = useFetchBFFConfig();
   const [isOpen, setIsOpen] = React.useState(false);
 
+  const allAIModels = React.useMemo(
+    () => [...aiModels, ...maasModels.map(convertMaaSModelToAIModel)],
+    [aiModels, maasModels],
+  );
+
   const placeholder = models.length === 0 ? 'No models available' : 'Select a model';
   const onModelSelect = (value: string) => {
     setIsOpen(false);
     onModelChange(value);
+    const { id: baseId } = splitLlamaModelId(value);
+    const selectedAIModel = aiModels.find((m) => m.model_id === baseId);
     fireMiscTrackingEvent('Playground Model Dropdown Option Selected', {
       selectedModel: getLlamaModelDisplayName(value, aiModels),
+      capabilities: JSON.stringify(selectedAIModel?.capabilities ?? []),
     });
   };
 
@@ -77,6 +87,10 @@ const ModelDetailsDropdown: React.FunctionComponent<ModelDetailsDropdownProps> =
             maasModels,
             bffConfig?.isCustomLSD ?? false,
           );
+          const matchedAIModel = allAIModels.find((ai) =>
+            isPlaygroundModelMatchForAIModel(option, ai),
+          );
+          const caps = matchedAIModel?.capabilities ?? [];
           return (
             <DropdownItem
               value={option.id}
@@ -97,7 +111,17 @@ const ModelDetailsDropdown: React.FunctionComponent<ModelDetailsDropdownProps> =
               }
               isAriaDisabled={isOptionDisabled}
             >
-              {getLlamaModelDisplayName(option.id, aiModels)}
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  width: '100%',
+                }}
+              >
+                <span>{getLlamaModelDisplayName(option.id, aiModels)}</span>
+                <CapabilityBadges capabilities={caps} />
+              </div>
             </DropdownItem>
           );
         })}

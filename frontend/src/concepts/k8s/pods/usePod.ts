@@ -4,7 +4,7 @@ import useFetchState, {
   FetchState,
   FetchStateCallbackPromise,
   NotReadyError,
-} from '#~/utilities/useFetchState';
+} from '@odh-dashboard/ui-core/hooks/useFetchState';
 import { getPod } from '#~/api';
 import { POD_REFRESH_RATE } from '#~/concepts/pipelines/content/pipelinesDetails/pipelineRun/runLogs/const';
 

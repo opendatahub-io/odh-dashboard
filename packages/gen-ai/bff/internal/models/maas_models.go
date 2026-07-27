@@ -19,6 +19,7 @@ type MaaSModel struct {
 	Description   string             `json:"description,omitempty"`
 	Usecase       string             `json:"usecase,omitempty"`
 	ModelType     string             `json:"model_type,omitempty"`
+	Capabilities  []string           `json:"capabilities,omitempty"`
 	Subscriptions []SubscriptionInfo `json:"subscriptions,omitempty"`
 }
 
@@ -48,10 +49,11 @@ type MaaSTokenResponse struct {
 
 // MaaSBFFModelDetails contains model metadata from MaaS BFF
 type MaaSBFFModelDetails struct {
-	DisplayName   string `json:"displayName,omitempty"`
-	Description   string `json:"description,omitempty"`
-	GenAIUseCase  string `json:"genaiUseCase,omitempty"`
-	ContextWindow int    `json:"contextWindow,omitempty"`
+	DisplayName       string   `json:"displayName,omitempty"`
+	Description       string   `json:"description,omitempty"`
+	GenAIUseCase      string   `json:"genaiUseCase,omitempty"`
+	ContextWindow     int      `json:"contextWindow,omitempty"`
+	ModelCapabilities []string `json:"modelCapabilities,omitempty"`
 }
 
 // MaaSBFFModel represents a model from MaaS BFF with nested modelDetails

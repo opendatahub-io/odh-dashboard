@@ -1,8 +1,12 @@
 package api
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
+
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // HTTPError represents an HTTP error response with status code and error details.
@@ -68,4 +72,49 @@ func (app *App) methodNotAllowedResponse(w http.ResponseWriter, r *http.Request)
 
 	httpError := &HTTPError{StatusCode: http.StatusMethodNotAllowed, Error: ErrorPayload{Code: "METHOD_NOT_ALLOWED", Message: fmt.Sprintf("the %s method is not supported for this resource", r.Method)}}
 	app.errorResponse(w, r, httpError)
+}
+
+// k8sErrorResponse extracts the status code from a K8s StatusError and returns
+// the appropriate HTTP response. Falls back to 500 for non-K8s errors.
+// The client-facing message is derived from the Reason, not the raw Status.Message,
+// to avoid leaking resource names, RBAC details, or service account identifiers.
+func (app *App) k8sErrorResponse(w http.ResponseWriter, r *http.Request, err error) {
+	var statusErr *k8serrors.StatusError
+	if errors.As(err, &statusErr) {
+		code := int(statusErr.Status().Code)
+		if code == 0 {
+			code = http.StatusInternalServerError
+		}
+		reason := statusErr.Status().Reason
+		httpError := &HTTPError{StatusCode: code, Error: ErrorPayload{Code: string(reason), Message: sanitizeK8sReason(reason)}}
+		app.LogError(r, err)
+		app.errorResponse(w, r, httpError)
+		return
+	}
+	app.serverErrorResponse(w, r, err)
+}
+
+func sanitizeK8sReason(reason metav1.StatusReason) string {
+	switch reason {
+	case metav1.StatusReasonNotFound:
+		return "the requested resource could not be found"
+	case metav1.StatusReasonAlreadyExists:
+		return "the resource already exists"
+	case metav1.StatusReasonConflict:
+		return "the resource was modified by another request"
+	case metav1.StatusReasonForbidden:
+		return "insufficient permissions for this operation"
+	case metav1.StatusReasonUnauthorized:
+		return "authentication required"
+	case metav1.StatusReasonBadRequest:
+		return "invalid request"
+	case metav1.StatusReasonGone:
+		return "the requested resource is no longer available"
+	case metav1.StatusReasonExpired:
+		return "the request has expired"
+	case metav1.StatusReasonServiceUnavailable:
+		return "the service is temporarily unavailable"
+	default:
+		return "the server encountered an error processing your request"
+	}
 }

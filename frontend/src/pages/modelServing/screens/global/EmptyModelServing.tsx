@@ -1,5 +1,5 @@
 import * as React from 'react';
-import EmptyDetailsView from '#~/components/EmptyDetailsView';
+import { EmptyDetailsView } from '@odh-dashboard/ui-core';
 import { ProjectObjectType, typedEmptyImage } from '#~/concepts/design/utils';
 import ServeModelButton from '#~/pages/modelServing/screens/global/ServeModelButton';
 

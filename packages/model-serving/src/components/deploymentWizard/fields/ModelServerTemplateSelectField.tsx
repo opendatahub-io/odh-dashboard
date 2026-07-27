@@ -4,22 +4,24 @@ import {
   Flex,
   FlexItem,
   FormGroup,
+  FormHelperText,
+  HelperText,
+  HelperTextItem,
   Label,
   MenuItem,
   Radio,
   Truncate,
 } from '@patternfly/react-core';
 import { HardwareProfileKind, IdentifierResourceType, TemplateKind } from '@odh-dashboard/k8s-core';
-import { ScopedType } from '@odh-dashboard/internal/pages/modelServing/screens/const';
-import ProjectScopedPopover from '@odh-dashboard/internal/components/ProjectScopedPopover';
-import ProjectScopedIcon from '@odh-dashboard/internal/components/searchSelector/ProjectScopedIcon';
+import { ProjectScopedPopover } from '@odh-dashboard/ui-core';
+import ProjectScopedIcon from '@odh-dashboard/ui-core/components/searchSelector/ProjectScopedIcon';
 import {
   ProjectScopedGroupLabel,
   ProjectScopedSearchDropdown,
-} from '@odh-dashboard/internal/components/searchSelector/ProjectScopedSearchDropdown';
-import ProjectScopedToggleContent from '@odh-dashboard/internal/components/searchSelector/ProjectScopedToggleContent';
-import ServingRuntimeVersionLabel from '@odh-dashboard/internal/pages/modelServing/screens/ServingRuntimeVersionLabel';
+} from '@odh-dashboard/ui-core/components/searchSelector/ProjectScopedSearchDropdown';
+import ProjectScopedToggleContent from '@odh-dashboard/ui-core/components/searchSelector/ProjectScopedToggleContent';
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
+import { DeploymentResourceVersionLabels } from '@odh-dashboard/model-serving/shared/components';
 
 // Schema
 const ModelServerOptionSchema = z.object({
@@ -69,11 +71,11 @@ const OptionDropdownLabel: React.FC<{ option: ModelServerOption }> = ({ option }
     <FlexItem>
       <Truncate content={option.label || option.name || ''} />
     </FlexItem>
-    {option.version && (
+    {option.template ? (
       <FlexItem>
-        <ServingRuntimeVersionLabel version={option.version} isCompact />
+        <DeploymentResourceVersionLabels resource={option.template} isCompact />
       </FlexItem>
-    )}
+    ) : null}
     {option.template && (
       <FlexItem align={{ default: 'alignRight' }}>
         {option.compatibleWithHardwareProfile && (
@@ -89,12 +91,14 @@ type ModelServerTemplateSelectFieldProps = {
     Required<Pick<ModelServerSelectField, 'setData' | 'options'>>;
   isEditing?: boolean;
   label?: string;
+  helperText?: string;
 };
 
 const ModelServerTemplateSelectField: React.FC<ModelServerTemplateSelectFieldProps> = ({
   modelServerState,
   isEditing,
   label = 'Deployment resource',
+  helperText,
 }) => {
   const { data, setData, options } = modelServerState;
   const [searchServer, setSearchServer] = React.useState('');
@@ -165,9 +169,11 @@ const ModelServerTemplateSelectField: React.FC<ModelServerTemplateSelectFieldPro
             <ProjectScopedToggleContent
               displayName={selectedTemplate?.label || selectedTemplate?.name}
               isProject={selectedTemplate?.scope === 'project'}
-              projectLabel={ScopedType.Project}
-              globalLabel={ScopedType.Global}
-              fallback="Select one"
+              projectLabel="Project-scoped"
+              globalLabel="Global-scoped"
+              fallback={`Select ${
+                /^[aeiou]/i.test(label) ? 'an' : 'a'
+              } ${label.toLocaleLowerCase()}`}
               color={isDisabled ? 'grey' : 'blue'}
               labelTestId="serving-runtime-template-label"
               isEditing={isDisabled}
@@ -177,13 +183,13 @@ const ModelServerTemplateSelectField: React.FC<ModelServerTemplateSelectFieldPro
                   : undefined
               }
               additionalContent={
-                selectedTemplate?.version && (
-                  <ServingRuntimeVersionLabel
-                    version={selectedTemplate.version}
+                selectedTemplate?.template ? (
+                  <DeploymentResourceVersionLabels
+                    resource={selectedTemplate.template}
                     isCompact
                     isEditing={isEditing}
                   />
-                )
+                ) : null
               }
             />
           }
@@ -229,6 +235,13 @@ const ModelServerTemplateSelectField: React.FC<ModelServerTemplateSelectFieldPro
       role={isEditing ? 'radiogroup' : undefined}
       isStack
     >
+      {helperText && (
+        <FormHelperText>
+          <HelperText>
+            <HelperTextItem>{helperText}</HelperTextItem>
+          </HelperText>
+        </FormHelperText>
+      )}
       {isEditing ? (
         <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
           {templateDropdown(isEditing)}
@@ -241,8 +254,8 @@ const ModelServerTemplateSelectField: React.FC<ModelServerTemplateSelectFieldPro
             label={
               <>
                 <span className="pf-v6-c-form__label-text">Automatic selection:</span> Automatically
-                select the best resource for my model based on model type, model format and hardware
-                profile.
+                select the best {label.toLocaleLowerCase()} for my model based on the selected
+                hardware profile.
               </>
             }
             id="horizontal-inline-radio-01"
@@ -267,7 +280,7 @@ const ModelServerTemplateSelectField: React.FC<ModelServerTemplateSelectFieldPro
             label={
               <>
                 <span className="pf-v6-c-form__label-text">Manual selection:</span> Manually select
-                a resource from a list of preconfigured and custom options.
+                a {label.toLocaleLowerCase()} from a list of preconfigured and custom options.
               </>
             }
             id="horizontal-inline-radio-02"

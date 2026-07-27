@@ -207,9 +207,8 @@ jest.mock('mod-arch-shared', () => ({
 }));
 
 // Mock S3FileExplorer used by AutoragConfigure
-// TODO: Once test data input is hooked up, cleanup mock
 let mockFileExplorerCallCount = 0;
-jest.mock('~/app/components/common/S3FileExplorer/S3FileExplorer.tsx', () => ({
+jest.mock('@odh-dashboard/internal/concepts/fileExplorer/S3FileExplorer/S3FileExplorer', () => ({
   __esModule: true,
   default: ({
     isOpen,
@@ -469,7 +468,7 @@ describe('AutoragConfigurePage', () => {
 
     it('should display experiment name in subtitle in configure step', async () => {
       const subtitle = await screen.findByTestId('configure-step-subtitle');
-      expect(subtitle).toHaveTextContent('"My Experiment" configurations');
+      expect(subtitle).toHaveTextContent('Run “My Experiment” AutoRAG experiment');
     });
 
     it('should NOT display description text in configure step', async () => {
@@ -1306,7 +1305,7 @@ describe('AutoragConfigurePage', () => {
 
       // Verify we're in configure step with correct subtitle
       const subtitle = await screen.findByTestId('configure-step-subtitle');
-      expect(subtitle).toHaveTextContent('"Persistent Experiment" configurations');
+      expect(subtitle).toHaveTextContent('Run “Persistent Experiment” AutoRAG experiment');
     });
   });
 });

@@ -14,7 +14,6 @@ import { mockProjectK8sResource } from '@odh-dashboard/internal/__mocks__/mockPr
 import { mockRouteK8sResource } from '@odh-dashboard/internal/__mocks__/mockRouteK8sResource';
 import { mockSecretK8sResource } from '@odh-dashboard/internal/__mocks__/mockSecretK8sResource';
 import { mockServingRuntimeTemplateK8sResource } from '@odh-dashboard/internal/__mocks__/mockServingRuntimeTemplateK8sResource';
-import { ServingRuntimePlatform } from '@odh-dashboard/internal/types';
 import { mockServingRuntimeK8sResource } from '@odh-dashboard/internal/__mocks__/mockServingRuntimeK8sResource';
 import { mockInferenceServiceK8sResource } from '@odh-dashboard/internal/__mocks__/mockInferenceServiceK8sResource';
 import { mockNimServingRuntimeTemplate } from '@odh-dashboard/internal/__mocks__/mockLegacyNimResource';
@@ -25,7 +24,11 @@ import {
   mockConsoleLinks,
   mockMLflowLink,
 } from '@odh-dashboard/internal/__mocks__/mockConsoleLinks';
-import type { InferenceServiceKind, ServingRuntimeKind } from '@odh-dashboard/internal/k8sTypes';
+import {
+  type InferenceServiceKind,
+  type ServingRuntimeKind,
+  ServingRuntimePlatform,
+} from '@odh-dashboard/model-serving/shared';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import { deleteProjectModal, editProjectModal, projectDetails } from '../../../pages/projects';
 import {

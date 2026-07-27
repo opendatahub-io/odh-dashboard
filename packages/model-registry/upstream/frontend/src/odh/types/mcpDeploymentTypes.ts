@@ -126,3 +126,12 @@ export type McpDeploymentUpdateRequest = {
   image?: string;
   yaml?: string;
 };
+
+export type McpDeployModalData = {
+  name?: string;
+  displayName?: string;
+  namespace?: string;
+  serverName?: string;
+  image: string;
+  yaml?: string;
+};

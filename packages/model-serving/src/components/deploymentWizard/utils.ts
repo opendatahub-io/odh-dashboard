@@ -3,27 +3,21 @@ import {
   getGeneratedSecretName,
   getDisplayNameFromK8sResource,
   getResourceNameFromK8sResource,
-} from '@odh-dashboard/k8s-core';
-import type { SecretKind } from '@odh-dashboard/k8s-core';
-import {
   getConnectionTypeRef,
   getModelServingCompatibility,
   getModelServingConnectionTypeName,
   ModelServingCompatibleTypes,
-} from '@odh-dashboard/internal/concepts/connectionTypes/utils';
-import {
-  Connection,
-  ConnectionTypeConfigMapObj,
-} from '@odh-dashboard/internal/concepts/connectionTypes/types';
+} from '@odh-dashboard/k8s-core';
+import type { SecretKind, Connection, ConnectionTypeConfigMapObj } from '@odh-dashboard/k8s-core';
 import { type TokenAuthenticationFieldData } from './fields/TokenAuthenticationField';
+import { DeployExtension } from './deploying/useDeployMethod';
 import {
   ModelLocationType,
   ModelLocationData,
   WizardFormData,
   type InitialWizardFormData,
   WizardStepTitle,
-} from './types';
-import { DeployExtension } from './deploying/useDeployMethod';
+} from '../../shared/types/form-data';
 import {
   handleConnectionCreation,
   handleSecretOwnerReferencePatch,

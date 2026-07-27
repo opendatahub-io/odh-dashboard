@@ -1,7 +1,12 @@
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { UseSearchStateReturn } from './useSearchState';
 import { getFeatureStoreRoute } from '../utils/searchUtils';
+import {
+  FEATURE_STORE_EVENTS,
+  SearchResultSelectedProperties,
+} from '../../../tracking/featureStoreTrackingConstants';
 
 export interface ISearchItem {
   id: string;
@@ -19,6 +24,7 @@ export interface UseSearchHandlersOptions {
   onClear?: () => void;
   onSelect?: (item: ISearchItem) => void;
   project?: string;
+  pageType?: 'overview' | 'list' | 'detail';
 }
 
 export interface UseSearchHandlersReturn {
@@ -31,7 +37,7 @@ export const useSearchHandlers = (
   state: UseSearchStateReturn,
   options: UseSearchHandlersOptions = {},
 ): UseSearchHandlersReturn => {
-  const { onSearchChange, onClear, onSelect, project } = options;
+  const { onSearchChange, onClear, onSelect, project, pageType } = options;
   const navigate = useNavigate();
 
   const { setSearchValue, setIsSearchOpen, setIsSearching, searchInputRef, searchMenuRef } = state;
@@ -62,6 +68,10 @@ export const useSearchHandlers = (
       setSearchValue(trimmedValue);
 
       if (trimmedValue === '') {
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current);
+          timeoutRef.current = undefined;
+        }
         if (onClear) {
           onClear();
         }
@@ -77,6 +87,11 @@ export const useSearchHandlers = (
     (selectedItem: ISearchItem) => {
       setSearchValue('');
       setIsSearchOpen(false);
+
+      fireMiscTrackingEvent(FEATURE_STORE_EVENTS.SEARCH_RESULT_SELECTED, {
+        resultType: selectedItem.type,
+        pageType: pageType || 'list',
+      } satisfies SearchResultSelectedProperties);
 
       if (onSelect) {
         onSelect(selectedItem);
@@ -95,10 +110,14 @@ export const useSearchHandlers = (
         }
       }
     },
-    [onSelect, navigate, project, setSearchValue, setIsSearchOpen],
+    [onSelect, navigate, project, pageType, setSearchValue, setIsSearchOpen],
   );
 
   const handleSearchClear = React.useCallback(() => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = undefined;
+    }
     setSearchValue('');
     setIsSearching(false);
     if (onClear) {
@@ -109,6 +128,10 @@ export const useSearchHandlers = (
   React.useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape' && (state.isSearchOpen || state.searchValue.trim() !== '')) {
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current);
+          timeoutRef.current = undefined;
+        }
         setSearchValue('');
         setIsSearchOpen(false);
         setIsSearching(false);
@@ -138,6 +161,10 @@ export const useSearchHandlers = (
         !searchInputRef.current.contains(target) &&
         !searchMenuRef.current.contains(target)
       ) {
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current);
+          timeoutRef.current = undefined;
+        }
         setSearchValue('');
         setIsSearchOpen(false);
         setIsSearching(false);

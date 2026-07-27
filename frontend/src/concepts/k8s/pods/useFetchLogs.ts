@@ -1,5 +1,8 @@
 import * as React from 'react';
-import useFetchState, { FetchState, NotReadyError } from '#~/utilities/useFetchState';
+import useFetchState, {
+  FetchState,
+  NotReadyError,
+} from '@odh-dashboard/ui-core/hooks/useFetchState';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import { getPodContainerLogText } from '#~/api';
 import { LOG_REFRESH_RATE } from '#~/concepts/pipelines/content/pipelinesDetails/pipelineRun/runLogs/const';

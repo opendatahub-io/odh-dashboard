@@ -19,11 +19,6 @@ func (app *App) GetStatusHandler(w http.ResponseWriter, r *http.Request, _ httpr
 		return
 	}
 
-	if err := app.validateCallerToken(ctx); err != nil {
-		app.unauthorizedResponse(w, r, err)
-		return
-	}
-
 	client, err := app.kubernetesClientFactory.GetClient(ctx)
 	if err != nil {
 		app.serverErrorResponse(w, r, fmt.Errorf("failed to get Kubernetes client: %w", err))

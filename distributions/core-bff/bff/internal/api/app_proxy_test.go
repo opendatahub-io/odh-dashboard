@@ -7,13 +7,14 @@ import (
 
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/config"
 	k8s "github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/integrations/kubernetes"
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/models"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestImpersonateFromIdentity_SetsHeaders(t *testing.T) {
 	identity := &k8s.RequestIdentity{
 		UserID: "giulio@example.com",
-		Groups: []string{"system:authenticated", "team-a"},
+		Groups: []string{models.SystemAuthenticated, "team-a"},
 	}
 	req := reqWithIdentity(httptest.NewRequest(http.MethodGet, "/", nil), identity)
 	out := http.Header{}
@@ -21,7 +22,7 @@ func TestImpersonateFromIdentity_SetsHeaders(t *testing.T) {
 	impersonateFromIdentity(req, out)
 
 	assert.Equal(t, "giulio@example.com", out.Get("Impersonate-User"))
-	assert.Equal(t, []string{"system:authenticated", "team-a"}, out.Values("Impersonate-Group"))
+	assert.Equal(t, []string{models.SystemAuthenticated, "team-a"}, out.Values("Impersonate-Group"))
 }
 
 func TestImpersonateFromIdentity_NoIdentity(t *testing.T) {
@@ -37,7 +38,7 @@ func TestImpersonateFromIdentity_NoIdentity(t *testing.T) {
 func TestImpersonateFromIdentity_EmptyUserID(t *testing.T) {
 	identity := &k8s.RequestIdentity{
 		UserID: "",
-		Groups: []string{"system:authenticated"},
+		Groups: []string{models.SystemAuthenticated},
 	}
 	req := reqWithIdentity(httptest.NewRequest(http.MethodGet, "/", nil), identity)
 	out := http.Header{}

@@ -1,5 +1,8 @@
 import { mockServingRuntimeTemplateK8sResource } from '@odh-dashboard/internal/__mocks__/mockServingRuntimeTemplateK8sResource';
-import { ServingRuntimeAPIProtocol, ServingRuntimePlatform } from '@odh-dashboard/internal/types';
+import {
+  ServingRuntimeAPIProtocol,
+  ServingRuntimePlatform,
+} from '@odh-dashboard/model-serving/shared';
 import { mockServingRuntimeK8sResource } from '@odh-dashboard/internal/__mocks__/mockServingRuntimeK8sResource';
 import { customServingRuntimesIntercept } from './customServingRuntimesUtils';
 import { servingRuntimes } from '../../../pages/servingRuntimes';

@@ -23,6 +23,10 @@ class ObservabilityDashboardPage {
     return cy.findByText('Unable to reach observability dashboards');
   }
 
+  findNotFoundPage() {
+    return cy.findByTestId('not-found-page');
+  }
+
   findTabs() {
     return cy.findByTestId('observability-dashboard-tabs');
   }
@@ -42,6 +46,11 @@ class ObservabilityDashboardPage {
 
   shouldHavePersesLoadError() {
     this.findPersesLoadErrorTitle().should('exist');
+    return this;
+  }
+
+  shouldHaveNotFoundPage() {
+    this.findNotFoundPage().should('exist');
     return this;
   }
 

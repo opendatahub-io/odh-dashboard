@@ -2,7 +2,7 @@ import type {
   ExternalRouteFieldOverride,
   TokenAuthFieldOverride,
   DeploymentStrategyFieldOverride,
-} from '@odh-dashboard/model-serving/types/form-data';
+} from '@odh-dashboard/model-serving/shared/types/form-data';
 import { isLLMInferenceServiceActive } from '../formUtils';
 
 export const externalRouteField: ExternalRouteFieldOverride = {

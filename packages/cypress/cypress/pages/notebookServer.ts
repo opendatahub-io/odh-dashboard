@@ -64,6 +64,10 @@ class NotebookServer {
     return cy.findByTestId('expand-logs');
   }
 
+  findNotebookStartupSteps() {
+    return cy.findByTestId('notebook-startup-steps');
+  }
+
   findStopServerButton() {
     return cy.findByTestId('stop-wb-button');
   }

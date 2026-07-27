@@ -25,6 +25,7 @@ export type {
   PodAffinity,
   Volume,
   VolumeMount,
+  ImagePullSecret,
 } from './types';
 
 export {
@@ -32,8 +33,10 @@ export {
   MetadataAnnotation,
   HardwareProfileFeatureVisibility,
   DataScienceStackComponent,
+  MODELS_AS_A_SERVICE_READY,
 } from './k8sTypes';
 export type {
+  K8sAPIOptions,
   K8sVerb,
   AccessReviewResourceAttributes,
   K8sResourceCommon,
@@ -52,6 +55,7 @@ export type {
   PodKind,
   TemplateKind,
   HardwareProfileKind,
+  AcceleratorProfileKind,
   DashboardCommonConfig,
   DashboardConfigKind,
   ManagementState,
@@ -61,7 +65,6 @@ export type {
 } from './k8sTypes';
 
 export {
-  genRandomChars,
   isK8sDSGResource,
   getDisplayNameFromK8sResource,
   getResourceNameFromK8sResource,
@@ -91,7 +94,6 @@ export {
 } from './k8sNameDescriptionFieldUtils';
 
 export type {
-  RecursivePartial,
   K8sNameDescriptionFieldData,
   K8sNameDescriptionType,
   UseK8sNameDescriptionDataConfiguration,
@@ -106,3 +108,73 @@ export {
   getGeneratedSecretName,
   isGeneratedSecretName,
 } from './secretUtils';
+
+export {
+  ConnectionTypeFieldType,
+  connectionTypeDataFields,
+  AwsKeys,
+  AccessTypes,
+} from './connectionTypes';
+export type {
+  ConnectionTypeDataFieldTypeUnion,
+  ConnectionTypeFieldTypeUnion,
+  ConnectionTypeCommonProperties,
+  DataField,
+  SectionField,
+  HiddenField,
+  ShortTextField,
+  TextField,
+  UriField,
+  FileField,
+  BooleanField,
+  DropdownField,
+  NumericField,
+  ConnectionTypeField,
+  ConnectionTypeDataField,
+  ConnectionTypeConfigMap,
+  ConnectionTypeConfigMapObj,
+  ConnectionTypeValueType,
+  Connection,
+  ConnectionTypeFormData,
+  AWSDataEntry,
+  FieldMode,
+} from './connectionTypes';
+
+export { NamespaceApplicationCase, byName, namespaceToProjectDisplayName } from './projectUtils';
+export { isK8sStatus, K8sStatusError } from './errorUtils';
+
+export {
+  isSecretKind,
+  isConnectionTypeDataFieldType,
+  isConnectionTypeDataField,
+  isConnectionType,
+  isConnection,
+  getConnectionTypeRef,
+  toConnectionTypeConfigMapObj,
+  toConnectionTypeConfigMap,
+  defaultValueToString,
+  fieldTypeToString,
+  fieldNameToEnvVar,
+  ENV_VAR_NAME_REGEX,
+  isValidEnvVar,
+  ModelServingCompatibleTypes,
+  URIConnectionTypeKeys,
+  OCIConnectionTypeKeys,
+  OCIAccessTypeKey,
+  S3ConnectionTypeKeys,
+  isModelServingEnvVar,
+  getModelServingConnectionTypeName,
+  isModelServingCompatible,
+  getModelServingCompatibility,
+  filterModelServingConnectionTypes,
+  getDefaultValues,
+  getMRConnectionValues,
+  withRequiredFields,
+  assembleConnectionSecret,
+  parseConnectionSecretValues,
+  getConnectionTypeDisplayName,
+  filterEnabledConnectionTypes,
+  findSectionFields,
+  convertObjectStorageSecretData,
+  getConnectionProtocolType,
+} from './connectionTypeUtils';

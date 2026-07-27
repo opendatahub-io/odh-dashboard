@@ -40,14 +40,19 @@ core-bff/
 │   ├── cmd/
 │   │   └── main.go              # Application entrypoint and wiring
 │   ├── internal/
-│   │   ├── api/                 # HTTP handlers
-│   │   ├── config/              # Configuration management
+│   │   ├── api/                 # HTTP handlers, middleware, platform resolution
+│   │   ├── config/              # Environment-driven configuration
 │   │   ├── constants/           # Shared constants
-│   │   ├── helpers/             # Utility functions (k8s helpers)
-│   │   ├── integrations/        # External service integrations
+│   │   ├── helpers/             # Utility functions (kubeconfig, context)
+│   │   ├── integrations/        # External service clients (k8s, bffclient)
+│   │   ├── k8sutil/             # K8s error detection helpers
+│   │   ├── maputil/             # Generic map utilities
 │   │   ├── mocks/               # Mock data and stub implementations
-│   │   ├── models/              # DTOs and data models
-│   │   └── repositories/        # Data access layer
+│   │   ├── models/              # DTOs, data models, and domain constants
+│   │   ├── proxy/               # K8s API and WebSocket proxy
+│   │   ├── ptr/                 # Generic pointer helper
+│   │   ├── repositories/        # Data access layer for K8s resources
+│   │   └── ssrf/                # SSRF protection utilities
 │   ├── openapi/
 │   │   └── src/
 │   │       └── core-bff.yaml    # OpenAPI specification (contract-first)
@@ -179,12 +184,9 @@ cd frontend && npm run test:cypress-ci -- --spec "**/testfile.cy.ts"
 
 ### Current Endpoints
 
-| Method | Path                 | Description                          |
-| ------ | -------------------- | ------------------------------------ |
-| GET    | `/healthcheck`       | Liveness probe (no auth)             |
-| GET    | `/api/v1/healthcheck` | Health check (with auth middleware) |
-| GET    | `/api/v1/user`       | Returns authenticated user info      |
-| GET    | `/api/v1/namespaces` | List namespaces (dev/mock mode only) |
+See the [BFF README](bff/README.md) for sample calls and route security details, and the
+[OpenAPI spec](bff/openapi/src/core-bff.yaml) for the full endpoint catalog with request/response
+schemas.
 
 ---
 
@@ -195,11 +197,16 @@ cd frontend && npm run test:cypress-ci -- --spec "**/testfile.cy.ts"
 | Directory                | Purpose                                  |
 | ------------------------ | ---------------------------------------- |
 | `cmd/`                   | Application wiring and entrypoint        |
-| `internal/api/`          | HTTP handlers                            |
-| `internal/models/`       | DTOs and data transfer objects           |
-| `internal/repositories/` | Kubernetes/external service integrations |
-| `internal/helpers/`      | Utility functions (k8s.go helpers)       |
+| `internal/api/`          | HTTP handlers, middleware, platform resolution |
+| `internal/config/`       | Environment-driven configuration         |
+| `internal/constants/`    | Shared constants                         |
+| `internal/helpers/`      | Utility functions (kubeconfig, context)  |
 | `internal/integrations/` | External service clients (k8s, bffclient)|
+| `internal/k8sutil/`      | K8s error detection helpers              |
+| `internal/maputil/`      | Generic map utilities (deep merge, copy) |
+| `internal/models/`       | DTOs, data models, and domain constants  |
+| `internal/ptr/`          | Generic pointer helper (`ptr.To[T]`)     |
+| `internal/repositories/` | Data access layer for K8s resources      |
 
 ### Development Guidelines
 
@@ -224,6 +231,7 @@ cd frontend && npm run test:cypress-ci -- --spec "**/testfile.cy.ts"
 | ----------------------- | ---------------------- | ---------------------------------------- | ------------- |
 | `-port`                 | `PORT`                 | Listen port                              | 4000          |
 | `-deployment-mode`      | `DEPLOYMENT_MODE`      | `standalone` or `federated`              | standalone    |
+| `-platform-type`        | `ODH_PLATFORM_TYPE`    | `OpenShift`, `XKS`, or empty (auto-detect) | (auto-detect) |
 | `-dev-mode`             | `DEV_MODE`             | Enables relaxed behaviors                | false         |
 | `-mock-k8s-client`      | `MOCK_K8S_CLIENT`      | Use in-memory stub for k8s              | false         |
 | `-mock-http-client`     | `MOCK_HTTP_CLIENT`     | Use mock HTTP client                     | false         |
@@ -234,9 +242,13 @@ cd frontend && npm run test:cypress-ci -- --spec "**/testfile.cy.ts"
 | `-auth-method`          | `AUTH_METHOD`           | `disabled` (mock) or `user_token`        | user_token    |
 | `-auth-token-header`    | `AUTH_TOKEN_HEADER`    | Header to read bearer token from         | x-forwarded-access-token |
 | `-auth-token-prefix`    | `AUTH_TOKEN_PREFIX`    | Prefix to strip from token header value  | (none)        |
+| `-cert-file`            | (CLI only)             | TLS certificate path                     | (none)        |
+| `-key-file`             | (CLI only)             | TLS key path                             | (none)        |
 | `-insecure-skip-verify` | `INSECURE_SKIP_VERIFY` | Skip upstream TLS verify (dev only)      | false         |
-| `-namespace`            | `NAMESPACE`            | Dashboard namespace                      | opendatahub   |
+| `-namespace`            | `NAMESPACE` / `OC_PROJECT` | Dashboard namespace                  | opendatahub   |
+| `-workbench-namespace`  | `WORKBENCH_NAMESPACE`  | Workbench namespace (defaults to dashboard ns) | (namespace) |
 | `-dashboard-config-name`| `DASHBOARD_CONFIG_NAME`| OdhDashboardConfig CR name               | odh-dashboard-config |
+| `-enabled-apps-cm`      | `ENABLED_APPS_CM`      | ConfigMap tracking enabled applications  | ""            |
 | `-mf-remotes-config`    | `MF_REMOTES_CONFIG`    | Path to module federation remotes config | ""            |
 | `-bundle-paths`         |                        | Comma-separated PEM CA bundle paths      | (system defaults) |
 

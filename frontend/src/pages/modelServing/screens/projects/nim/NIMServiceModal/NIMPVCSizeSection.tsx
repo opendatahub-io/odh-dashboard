@@ -10,8 +10,8 @@ import {
   Popover,
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
+import { MEMORY_UNITS_FOR_SELECTION } from '@odh-dashboard/ui-core/utilities/valueUnits';
 import PVSizeField from '#~/pages/projects/components/PVSizeField';
-import { MEMORY_UNITS_FOR_SELECTION } from '#~/utilities/valueUnits';
 import NIMPVCSelector from './NIMPVCSelector';
 
 export type PVCMode = 'create-new' | 'use-existing';

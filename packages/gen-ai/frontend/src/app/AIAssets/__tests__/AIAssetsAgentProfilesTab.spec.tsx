@@ -69,7 +69,7 @@ describe('AIAssetsAgentProfilesTab', () => {
     });
 
     renderTab();
-    expect(screen.getByText('Unable to load agent configurations')).toBeInTheDocument();
+    expect(screen.getByText('Unable to load agents')).toBeInTheDocument();
   });
 
   it('should render empty state when no profiles exist', () => {
@@ -81,7 +81,7 @@ describe('AIAssetsAgentProfilesTab', () => {
     });
 
     renderTab();
-    expect(screen.getByText('No agent configurations')).toBeInTheDocument();
+    expect(screen.getByText('No agents')).toBeInTheDocument();
   });
 
   it('should render the profiles table when profiles exist', () => {

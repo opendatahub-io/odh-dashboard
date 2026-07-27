@@ -1,5 +1,5 @@
 import React from 'react';
-import useFetchState, { FetchState } from '#~/utilities/useFetchState';
+import useFetchState, { FetchState } from '@odh-dashboard/ui-core/hooks/useFetchState';
 import { AcceleratorProfileKind } from '#~/k8sTypes';
 import { listAcceleratorProfiles } from '#~/api';
 

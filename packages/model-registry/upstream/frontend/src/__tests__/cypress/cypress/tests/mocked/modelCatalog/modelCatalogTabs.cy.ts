@@ -247,7 +247,7 @@ describe('Model Catalog Details Tabs', () => {
           .should('have.attr', 'aria-label', 'Model details page tabs');
 
         // Check individual tabs have proper attributes
-        modelCatalog.findOverviewTab().should('have.attr', 'aria-label', 'Model overview tab');
+        modelCatalog.findOverviewTab().should('have.attr', 'aria-label', 'Overview tab');
         modelCatalog
           .findPerformanceInsightsTab()
           .should('have.attr', 'aria-label', 'Performance insights tab');
@@ -587,9 +587,13 @@ describe('Server-Side Filtering', () => {
 
       cy.wait('@getFilteredChatbotArtifacts');
 
-      // Verify table shows filtered results with Chatbot workload type
+      // Wait for table to stabilize with new data, then verify all rows
+      modelCatalog
+        .findHardwareConfigurationColumn('Workload type')
+        .first()
+        .should('contain.text', 'Chatbot');
       modelCatalog.findHardwareConfigurationColumn('Workload type').each(($el) => {
-        cy.wrap($el).should('contain.text', 'Chatbot');
+        expect($el.text()).to.include('Chatbot');
       });
     });
 

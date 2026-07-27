@@ -2,7 +2,7 @@ import React from 'react';
 import { renderHook } from '@odh-dashboard/jest-config/hooks';
 import { isEnabled } from '@odh-dashboard/internal/concepts/integrations/useIsComponentIntegrationEnabled';
 import { IntegrationAppStatus } from '@odh-dashboard/internal/types';
-import { NamespaceApplicationCase } from '@odh-dashboard/internal/pages/projects/types';
+import { NamespaceApplicationCase } from '@odh-dashboard/k8s-core';
 import { useAvailableClusterPlatforms } from '../useAvailableClusterPlatforms';
 import { ModelServingPlatform } from '../useProjectServingPlatform';
 import { mockExtensions, mockModelServingPlatform } from '../../__tests__/mockUtils';

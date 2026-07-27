@@ -30,7 +30,7 @@ jest.mock(
 );
 
 jest.mock(
-  '#~/concepts/design/TitleWithIcon',
+  '@odh-dashboard/ui-core/design/TitleWithIcon',
   () =>
     function MockTitleWithIcon({ title, objectType }: { title: string; objectType: string }) {
       return (

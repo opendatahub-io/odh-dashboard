@@ -24,3 +24,15 @@ export const createToolRuntime = (): AgentRuntime =>
     status: 'Stopped',
     type: 'tool',
   });
+
+export const createStoppedRuntime = (): AgentRuntime =>
+  mockAgentRuntime({
+    name: 'stopped-agent',
+    status: 'Stopped',
+  });
+
+export const createUnknownRuntime = (): AgentRuntime =>
+  mockAgentRuntime({
+    name: 'unknown-agent',
+    status: 'mystery',
+  });

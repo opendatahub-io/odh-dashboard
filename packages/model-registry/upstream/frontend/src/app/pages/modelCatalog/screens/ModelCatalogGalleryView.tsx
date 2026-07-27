@@ -21,9 +21,12 @@ import { CatalogGalleryLayout, EmptyCatalogState } from '~/app/shared/components
 import {
   ModelCatalogNumberFilterKey,
   ModelCatalogStringFilterKey,
+  ModelCatalogSortOption,
   parseLatencyFilterKey,
   BASIC_FILTER_KEYS,
   PERFORMANCE_FILTER_KEYS,
+  RESET_ALL_FILTERS_LABEL,
+  SortField,
 } from '~/concepts/modelCatalog/const';
 
 type ModelCatalogPageProps = {
@@ -83,12 +86,17 @@ const ModelCatalogGalleryView: React.FC<ModelCatalogPageProps> = ({
       ? parseLatencyFilterKey(activeLatencyField).propertyKey
       : undefined;
 
+    const orderBy =
+      sortBy === ModelCatalogSortOption.LOWEST_COLD_START
+        ? ModelCatalogNumberFilterKey.COLD_START_LOAD_TIME
+        : SortField.RECOMMENDED;
+
     return {
       targetRPS,
       latencyProperty,
-      recommendations: true,
+      orderBy,
     };
-  }, [performanceViewEnabled, filters, activeLatencyField]);
+  }, [performanceViewEnabled, filters, activeLatencyField, sortBy]);
 
   const { catalogModels, catalogModelsLoaded, catalogModelsLoadError } = useCatalogModelsBySources(
     '',
@@ -213,7 +221,10 @@ const ModelCatalogGalleryView: React.FC<ModelCatalogPageProps> = ({
       categoryDescription={categoryDescription}
       headerExtra={
         isSingleCategory && performanceViewEnabled ? (
-          <ModelCatalogSortDropdown performanceViewEnabled={performanceViewEnabled} />
+          <ModelCatalogSortDropdown
+            performanceViewEnabled={performanceViewEnabled}
+            testId="model-catalog-category-sort-dropdown"
+          />
         ) : undefined
       }
       renderExtraEmptyStates={() => {
@@ -281,9 +292,7 @@ const ModelCatalogGalleryView: React.FC<ModelCatalogPageProps> = ({
           description="Adjust your filters and try again."
           primaryAction={
             <Button variant="link" onClick={handleFilterReset}>
-              {performanceViewEnabled && hasPerformanceFiltersChanged
-                ? 'Reset all defaults'
-                : 'Reset all filters'}
+              {RESET_ALL_FILTERS_LABEL}
             </Button>
           }
         />

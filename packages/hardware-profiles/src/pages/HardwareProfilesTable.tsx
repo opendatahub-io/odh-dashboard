@@ -1,0 +1,155 @@
+import * as React from 'react';
+import type { HardwareProfileKind } from '@odh-dashboard/k8s-core';
+import { DashboardEmptyTableView, Table } from '@odh-dashboard/ui-core';
+import useDraggableTable from '@odh-dashboard/internal/utilities/useDraggableTable';
+import {
+  hardwareProfileColumns,
+  HardwareProfileEnableType,
+  HardwareProfileFilterDataType,
+  HardwareProfileFilterOptions,
+  initialHardwareProfileFilterData,
+} from './const';
+import HardwareProfilesTableRow from './HardwareProfilesTableRow';
+import DeleteHardwareProfileModal from './DeleteHardwareProfileModal';
+import HardwareProfilesToolbar from './HardwareProfilesToolbar';
+import {
+  getHardwareProfileDisplayName,
+  isHardwareProfileEnabled,
+  orderHardwareProfiles,
+} from './utils';
+
+type HardwareProfilesTableProps = {
+  hardwareProfiles: HardwareProfileKind[];
+  hardwareProfileOrder: string[];
+  setHardwareProfileOrder: (order: string[]) => void;
+};
+
+const HardwareProfilesTable: React.FC<HardwareProfilesTableProps> = ({
+  hardwareProfiles,
+  hardwareProfileOrder,
+  setHardwareProfileOrder,
+}) => {
+  const [deleteHardwareProfile, setDeleteHardwareProfile] = React.useState<
+    HardwareProfileKind | undefined
+  >();
+
+  const [filterData, setFilterData] = React.useState<HardwareProfileFilterDataType>(
+    initialHardwareProfileFilterData,
+  );
+  const [expandedRows, setExpandedRows] = React.useState<Set<string>>(new Set());
+  const toggleRowExpansion = React.useCallback((hardwareProfileName: string) => {
+    setExpandedRows((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(hardwareProfileName)) {
+        newSet.delete(hardwareProfileName);
+      } else {
+        newSet.add(hardwareProfileName);
+      }
+      return newSet;
+    });
+  }, []);
+
+  const onClearFilters = React.useCallback(
+    () => setFilterData(initialHardwareProfileFilterData),
+    [setFilterData],
+  );
+  const filteredHardwareProfiles = React.useMemo(
+    () =>
+      hardwareProfiles.filter((cr) => {
+        const nameFilter = filterData[HardwareProfileFilterOptions.name]?.toLowerCase();
+        const enableFilter = filterData[HardwareProfileFilterOptions.enabled];
+        const visibilityFilter = filterData[HardwareProfileFilterOptions.visibility];
+        const enabledCr = isHardwareProfileEnabled(cr);
+        const displayName = getHardwareProfileDisplayName(cr);
+        if (nameFilter && !displayName.toLowerCase().includes(nameFilter)) {
+          return false;
+        }
+
+        try {
+          if (cr.metadata.annotations?.['opendatahub.io/dashboard-feature-visibility']) {
+            const visibility = JSON.parse(
+              cr.metadata.annotations['opendatahub.io/dashboard-feature-visibility'],
+            );
+            if (visibilityFilter && !visibility.includes(visibilityFilter)) {
+              return false;
+            }
+          }
+        } catch (e) {
+          // If the use cases are not set, don't filter
+        }
+
+        return (
+          !enableFilter ||
+          (enableFilter === HardwareProfileEnableType.enabled && enabledCr) ||
+          (enableFilter === HardwareProfileEnableType.disabled && !enabledCr)
+        );
+      }),
+    [hardwareProfiles, filterData],
+  );
+
+  const resetFilters = () => {
+    setFilterData(initialHardwareProfileFilterData);
+  };
+
+  const onFilterUpdate = React.useCallback(
+    (key: string, value: string | { label: string; value: string } | undefined) =>
+      setFilterData((prevValues) => ({ ...prevValues, [key]: value })),
+    [setFilterData],
+  );
+  const isAnyFilterActive = React.useMemo(
+    () => filteredHardwareProfiles.length !== hardwareProfiles.length,
+    [filteredHardwareProfiles.length, hardwareProfiles.length],
+  );
+  const orderedHardwareProfiles = orderHardwareProfiles(
+    filteredHardwareProfiles,
+    hardwareProfileOrder,
+  );
+  const currentOrder = orderedHardwareProfiles.map((profile) => profile.metadata.name);
+  //drag-and-drop for persisted ordering, close expanded rows when dragging
+  const { tableProps, rowProps } = useDraggableTable(currentOrder, setHardwareProfileOrder, {
+    onDragStart: () => setExpandedRows(new Set()),
+  });
+
+  return (
+    <>
+      <Table
+        {...tableProps}
+        onClearFilters={onClearFilters}
+        data-testid="hardware-profile-table"
+        id="hardware-profile-table"
+        style={{ tableLayout: 'fixed' }}
+        enablePagination={false}
+        data={orderedHardwareProfiles}
+        columns={hardwareProfileColumns}
+        emptyTableView={<DashboardEmptyTableView onClearFilters={resetFilters} />}
+        rowRenderer={(cr, index) => {
+          return (
+            <HardwareProfilesTableRow
+              {...rowProps}
+              key={cr.metadata.name}
+              rowIndex={index}
+              hardwareProfile={cr}
+              handleDelete={setDeleteHardwareProfile}
+              isExpanded={expandedRows.has(cr.metadata.name)}
+              onToggleExpansion={() => toggleRowExpansion(cr.metadata.name)}
+              dragDisabled={isAnyFilterActive}
+            />
+          );
+        }}
+        toolbarContent={
+          <HardwareProfilesToolbar onFilterUpdate={onFilterUpdate} filterData={filterData} />
+        }
+      />
+      {deleteHardwareProfile ? (
+        <DeleteHardwareProfileModal
+          hardwareProfile={deleteHardwareProfile}
+          onClose={() => {
+            setDeleteHardwareProfile(undefined);
+          }}
+        />
+      ) : null}
+    </>
+  );
+};
+
+export default HardwareProfilesTable;

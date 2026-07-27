@@ -41,7 +41,7 @@ const ChatbotConfigurationState: React.FC<ChatbotConfigurationStateProps> = ({
   const playgroundReady = lsdReady && nemoReady;
 
   React.useEffect(() => {
-    if (lsdStatus?.phase && lsdStatus.phase !== 'Initializing') {
+    if (lsdStatus?.phase === 'Ready' || lsdStatus?.phase === 'Failed') {
       setLsdRefreshing(false);
     }
   }, [lsdStatus?.phase]);
@@ -90,7 +90,7 @@ const ChatbotConfigurationState: React.FC<ChatbotConfigurationStateProps> = ({
   }
 
   return (
-    <Stack hasGutter style={{ textAlign: 'center' }}>
+    <Stack hasGutter className="pf-v6-u-text-align-center">
       <StackItem>{icon}</StackItem>
       <StackItem>
         <Title headingLevel="h4">{title}</Title>

@@ -1,11 +1,11 @@
 import * as React from 'react';
 import { Language } from '@patternfly/react-code-editor';
 import YAML from 'yaml';
+import ContentModal from '@odh-dashboard/ui-core/components/ContentModal';
 import type { ClusterRoleKind, RoleKind } from '#~/k8sTypes';
 import { getRoleDisplayName } from '#~/concepts/permissions/utils';
 import type { RoleRef } from '#~/concepts/permissions/types';
 import DashboardCodeEditor from '#~/concepts/dashboard/codeEditor/DashboardCodeEditor';
-import ContentModal from '#~/components/modals/ContentModal';
 
 type PreviewYAMLModalProps = {
   roleRef: RoleRef;

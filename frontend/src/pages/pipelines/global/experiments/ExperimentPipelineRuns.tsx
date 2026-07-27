@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { BreadcrumbItem, Label, Truncate } from '@patternfly/react-core';
 import { Outlet } from 'react-router';
+import TitleWithIcon from '@odh-dashboard/ui-core/design/TitleWithIcon';
 import {
   runGroupRunsPageDescription,
   pipelineRunsPageTitle,
@@ -8,7 +9,6 @@ import {
 import PipelineCoreApplicationPage from '#~/pages/pipelines/global/PipelineCoreApplicationPage';
 import PipelineRunVersionsContextProvider from '#~/pages/pipelines/global/runs/PipelineRunVersionsContext';
 import { ProjectObjectType } from '#~/concepts/design/utils';
-import TitleWithIcon from '#~/concepts/design/TitleWithIcon';
 import { PipelineCoreDetailsPageComponent } from '#~/concepts/pipelines/content/types';
 import {
   ExperimentContext,

@@ -1,0 +1,80 @@
+.autorag-evaluation-creator__body {
+  height: 50vh;
+  overflow: hidden;
+}
+
+.autorag-evaluation-creator__grid {
+  height: 100%;
+}
+
+.autorag-evaluation-creator__form-column {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.autorag-evaluation-creator__form {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.autorag-evaluation-creator__table-container {
+  overflow-y: auto;
+}
+
+.autorag-evaluation-creator__add-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.autorag-evaluation-creator__documents {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+// TODO: PF FormGroup does not expose layout variables for label alignment or control flex.
+// These overrides are scoped to the creator's document section to make the list fill available height.
+.autorag-evaluation-creator__documents .pf-v6-c-form__group-label {
+  align-items: center;
+}
+
+.autorag-evaluation-creator__documents .pf-v6-c-form__group-control {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.autorag-evaluation-creator__table-container .pf-v6-c-table {
+  --pf-v6-c-table--cell--VerticalAlign: middle;
+}
+
+.autorag-evaluation-creator__cell-truncate {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.autorag-evaluation-creator__doc-list {
+  margin-top: var(--pf-t--global--spacer--sm);
+  flex: 1;
+  overflow-y: auto;
+}
+
+.autorag-evaluation-creator__doc-list li {
+  overflow: hidden;
+}
+
+.autorag-evaluation-creator__doc-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

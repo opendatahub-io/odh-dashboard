@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { Navigate, Route } from 'react-router-dom';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
+import { useModelMetricsEnabled } from '@odh-dashboard/model-serving/shared';
 import ProjectsRoutes from '#~/concepts/projects/ProjectsRoutes';
 import ModelServingExplainabilityWrapper from '#~/pages/modelServing/screens/metrics/ModelServingExplainabilityWrapper';
 import GlobalModelServingCoreLoader from '#~/pages/modelServing/screens/global/GlobalModelServingCoreLoader';
@@ -8,7 +9,6 @@ import BiasConfigurationBreadcrumbPage from './screens/metrics/bias/BiasConfigur
 import GlobalModelMetricsPage from './screens/metrics/GlobalModelMetricsPage';
 import GlobalModelMetricsWrapper from './screens/metrics/GlobalModelMetricsWrapper';
 import ModelServingGlobal from './screens/global/ModelServingGlobal';
-import useModelMetricsEnabled from './useModelMetricsEnabled';
 
 const ModelServingRoutes: React.FC = () => {
   const [modelMetricsEnabled] = useModelMetricsEnabled();

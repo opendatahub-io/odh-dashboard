@@ -7,34 +7,35 @@ import {
 
 export const techPreviewFlags = {
   genAiStudio: false,
+  genAiTracing: false,
   automl: false,
   autorag: false,
   guardrails: false,
   modelAsService: true,
-  maasAuthPolicies: true,
+  externalModels: false,
   aiAssetCustomEndpoints: false,
   mcpCatalog: false,
+  mcpRegistry: false,
   toolCalling: false,
-  projectRBAC: true,
-  observabilityDashboard: false,
   deploymentWizardYAMLViewer: false,
   externalVectorStores: false,
   agentConfigManagement: false,
   vLLMDeploymentOnMaaS: false,
+  llmdTemplates: false,
   llmGatewayField: false,
-  llmdTopologyConfigs: false,
   promptManagement: false,
-  mySubscriptions: true,
-  maasSettingsIaRedesign: false,
+  globalProjectPrompts: false,
+  agentOps: false,
+  connectionTest: false,
 } satisfies Partial<DashboardCommonConfig>;
 
 export const devTemporaryFeatureFlags = {
   disableKueue: true,
   disableProjectScoped: true,
-  mlflowPipelines: false,
+  mlflowPipelines: true,
   nimWizard: false,
-  agentOps: false,
-  roleManagement: false,
+  agentOpsDeploy: false,
+  agentsCatalog: false,
 } satisfies Partial<DashboardCommonConfig>;
 
 // Group 1: Core Dashboard Features
@@ -57,6 +58,8 @@ export const projectManagementFlags = {
   disableBYONImageStream: false,
   disableAdminConnectionTypes: false,
   disableStorageClasses: false,
+  projectRBAC: true,
+  roleManagement: true,
 } satisfies Partial<DashboardCommonConfig>;
 
 // Group 3: Model Serving & AI/ML Infrastructure
@@ -82,9 +85,12 @@ export const advancedAIMLFlags = {
   disableModelRegistry: false,
   disableModelRegistrySecureDB: false,
   disableFeatureStore: false,
+  featureStoreAdmin: false,
   disableFineTuning: true,
   disableLMEval: true,
   trainingJobs: true,
+  gpuaas: true,
+  observabilityDashboard: true,
 } satisfies Partial<DashboardCommonConfig>;
 
 // Combined feature flags object
@@ -222,6 +228,10 @@ export const SupportedAreasStateMap: SupportedAreasState = {
     featureFlags: ['disableFeatureStore'],
     requiredComponents: [DataScienceStackComponent.FEAST_OPERATOR],
   },
+  [SupportedArea.FEATURE_STORE_ADMIN]: {
+    featureFlags: ['featureStoreAdmin'],
+    reliantAreas: [SupportedArea.FEATURE_STORE],
+  },
   [SupportedArea.MODEL_TRAINING]: {
     featureFlags: ['trainingJobs'],
     requiredComponents: [DataScienceStackComponent.TRAINER],
@@ -233,12 +243,23 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   [SupportedArea.AGENT_OPS]: {
     featureFlags: ['agentOps'],
   },
+  [SupportedArea.AGENT_OPS_DEPLOY]: {
+    featureFlags: ['agentOpsDeploy'],
+  },
+  [SupportedArea.AGENTS_CATALOG]: {
+    featureFlags: ['agentsCatalog'],
+    requiredComponents: [DataScienceStackComponent.MODEL_REGISTRY],
+  },
   [SupportedArea.MLFLOW]: {
     requiredComponents: [DataScienceStackComponent.MLFLOW],
   },
   [SupportedArea.MLFLOW_PIPELINES]: {
     featureFlags: ['mlflowPipelines'],
     requiredComponents: [DataScienceStackComponent.DS_PIPELINES, DataScienceStackComponent.MLFLOW],
+  },
+  [SupportedArea.MCP_REGISTRY]: {
+    featureFlags: ['mcpRegistry'],
+    requiredComponents: [DataScienceStackComponent.MLFLOW],
   },
   [SupportedArea.PROJECT_RBAC_SETTINGS]: {
     featureFlags: ['projectRBAC'],
@@ -255,7 +276,7 @@ export const SupportedAreasStateMap: SupportedAreasState = {
     reliantAreas: [SupportedArea.LLMD_SERVING],
   },
   [SupportedArea.LLMD_TOPOLOGY_CONFIGS]: {
-    featureFlags: ['llmdTopologyConfigs'],
+    featureFlags: ['llmdTemplates'],
     reliantAreas: [SupportedArea.LLMD_SERVING],
   },
   [SupportedArea.LLMD_GATEWAY_FIELD]: {
@@ -265,14 +286,15 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   [SupportedArea.PLUGIN_GEN_AI]: {
     featureFlags: ['genAiStudio'],
   },
-  [SupportedArea.MAAS_AUTH_POLICIES]: {
-    featureFlags: ['maasAuthPolicies'],
+  [SupportedArea.EXTERNAL_MODELS]: {
+    featureFlags: ['externalModels'],
   },
-  [SupportedArea.MY_SUBSCRIPTIONS]: {
-    featureFlags: ['mySubscriptions'],
+  [SupportedArea.GPUAAS_INFRASTRUCTURE]: {
+    featureFlags: ['gpuaas'],
+    requiredComponents: [DataScienceStackComponent.KUEUE],
   },
-  [SupportedArea.MAAS_SETTINGS_IA_REDESIGN]: {
-    featureFlags: ['maasSettingsIaRedesign'],
+  [SupportedArea.CONNECTION_TEST]: {
+    featureFlags: ['connectionTest'],
   },
 };
 

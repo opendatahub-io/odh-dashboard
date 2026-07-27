@@ -1,7 +1,7 @@
 import * as React from 'react';
+import useFetch, { NotReadyError } from '@odh-dashboard/ui-core/hooks/useFetch';
 import { WorkloadKind } from '#~/k8sTypes';
 import { listWorkloads } from '#~/api';
-import useFetch, { NotReadyError } from '#~/utilities/useFetch';
 import { getAssignedFlavorFromWorkload } from '#~/utilities/clusterQueueUtils';
 
 /**

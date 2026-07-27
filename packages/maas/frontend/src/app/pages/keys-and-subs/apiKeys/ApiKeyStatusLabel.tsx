@@ -30,15 +30,17 @@ const getApiKeyStatusProps = (
 type ApiKeyStatusLabelProps = {
   status: APIKeyDisplayStatus;
   showInactivePopover?: boolean;
+  'data-testid'?: string;
 };
 
 const ApiKeyStatusLabel: React.FC<ApiKeyStatusLabelProps> = ({
   status,
   showInactivePopover = false,
+  'data-testid': dataTestId,
 }) => {
   const { variant, ...labelProps } = getApiKeyStatusProps(status);
   const label = (
-    <Label variant={variant ?? 'outline'} {...labelProps}>
+    <Label variant={variant ?? 'outline'} {...labelProps} data-testid={dataTestId}>
       {capitalize(status)}
     </Label>
   );

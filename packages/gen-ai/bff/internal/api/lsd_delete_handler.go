@@ -50,20 +50,22 @@ func (app *App) LlamaStackDistributionDeleteHandler(w http.ResponseWriter, r *ht
 		return
 	}
 
-	response, err := app.repositories.OGXServer.DeleteOGXServer(client, ctx, identity, namespace, deleteRequest.Name)
+	// By default pgvector is cleaned up (full playground delete). When the
+	// frontend sends preserve_vector_store=true (reconfigure/model switch),
+	// pgvector resources are kept so uploaded document embeddings survive.
+	deletePgvector := deleteRequest.PreserveVectorStore == nil || !*deleteRequest.PreserveVectorStore
+
+	response, err := app.repositories.OGXServer.DeleteOGXServer(client, ctx, identity, namespace, deleteRequest.Name, deletePgvector)
 	if err != nil {
 		app.badRequestResponse(w, r, err)
 		return
 	}
 
-	// Send success response
 	envelope := OGXServerDeleteEnvelope{
 		Data: response,
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	if err := json.NewEncoder(w).Encode(envelope); err != nil {
+	if err := app.WriteJSON(w, http.StatusOK, envelope, nil); err != nil {
 		app.logger.Error("error encoding response", "error", err)
 	}
 }

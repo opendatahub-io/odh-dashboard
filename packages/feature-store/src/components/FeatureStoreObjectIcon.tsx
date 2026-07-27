@@ -1,7 +1,6 @@
 import React from 'react';
 import { Flex, FlexItem } from '@patternfly/react-core';
-import '@odh-dashboard/internal/concepts/design/vars.scss';
-import '@odh-dashboard/internal/concepts/design/utils';
+import '@odh-dashboard/ui-core/design/vars.scss';
 import {
   getFeatureStoreObjectIcon,
   getFeatureStoreObjectBackgroundColor,

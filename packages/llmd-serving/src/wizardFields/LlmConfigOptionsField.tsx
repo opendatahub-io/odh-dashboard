@@ -1,18 +1,23 @@
 import React from 'react';
 import { z } from 'zod';
-import type { WizardField } from '@odh-dashboard/model-serving/types/form-data';
-import ModelServerTemplateSelectField, {
+import type { WizardField } from '@odh-dashboard/model-serving/shared/types/form-data';
+import {
+  ModelServerTemplateSelectField,
   ModelServerOption,
   ModelServerSelectFieldData,
   modelServerSelectFieldSchema,
-} from '@odh-dashboard/model-serving/components/deploymentWizard/fields/ModelServerTemplateSelectField';
+} from '@odh-dashboard/model-serving/shared/wizard-fields';
 import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import type { HardwareProfileKind } from '@odh-dashboard/k8s-core';
 import { isCompatibleWithIdentifier } from '@odh-dashboard/internal/pages/projects/screens/spawner/spawnerUtils';
+import {
+  isUnsupportedUnaccepted,
+  RUNTIME_VERSION_ANNOTATION,
+} from '@odh-dashboard/model-serving/concepts/versions';
 import { useFetchLLMInferenceServiceConfigs } from '../api/LLMInferenceServiceConfigs';
 import { LLMInferenceServiceConfigKind } from '../types';
-import { isSimpleLLMInferenceService } from '../formUtils';
+import { isLLMInferenceServiceActive, isSimpleLLMInferenceService } from '../formUtils';
 
 // External data hook
 
@@ -35,7 +40,9 @@ export const useLLMConfigOptions = (): {
   const llmEnabledConfigs = React.useMemo(
     () =>
       llmInferenceServiceConfigs.filter(
-        (config) => config.metadata.annotations?.['opendatahub.io/disabled'] !== 'true',
+        (config) =>
+          config.metadata.annotations?.['opendatahub.io/disabled'] !== 'true' &&
+          !isUnsupportedUnaccepted(config),
       ),
     [llmInferenceServiceConfigs],
   );
@@ -65,7 +72,7 @@ const getOptionFromLLMInferenceServiceConfig = (
     name: llmInferenceServiceConfig.metadata.name,
     namespace: llmInferenceServiceConfig.metadata.namespace,
     label: getDisplayNameFromK8sResource(llmInferenceServiceConfig),
-    version: llmInferenceServiceConfig.metadata.annotations?.['opendatahub.io/runtime-version'],
+    version: llmInferenceServiceConfig.metadata.annotations?.[RUNTIME_VERSION_ANNOTATION],
     template: llmInferenceServiceConfig,
     compatibleWithHardwareProfile: isCompatible,
   };
@@ -82,6 +89,19 @@ const getOptions = (
     ) ?? []),
   );
   return result;
+};
+
+const computeSuggestion = (options: ModelServerOption[]): ModelServerOption | undefined => {
+  if (options.length === 1) {
+    return options[0];
+  }
+
+  const compatibleOptions = options.filter((option) => option.compatibleWithHardwareProfile);
+  if (compatibleOptions.length === 1) {
+    return compatibleOptions[0];
+  }
+
+  return undefined;
 };
 
 export type LLMConfigOptionsFieldValue = {
@@ -108,7 +128,8 @@ const LLMConfigOptionsField: LLMConfigOptionsFieldType['component'] = ({
 
   return (
     <ModelServerTemplateSelectField
-      label="Deployment resource"
+      label="Accelerator configuration"
+      helperText="Select the hardware accelerator configuration for this deployment."
       modelServerState={{
         data: value?.data,
         setData: (data: ModelServerSelectFieldData) => onChange({ data }),
@@ -119,12 +140,13 @@ const LLMConfigOptionsField: LLMConfigOptionsFieldType['component'] = ({
   );
 };
 
-export const LLMConfigOptionsFieldWizardField: LLMConfigOptionsFieldType = {
+// When llmdTemplates disabled: show for ALL llm-d methods (single-node fallback)
+export const LLMConfigOptionsFieldNoTemplates: LLMConfigOptionsFieldType = {
   id: 'llmd-serving/modelServer',
   step: 'modelDeployment',
   type: 'replacement',
   stateKey: 'modelServer',
-  isActive: isSimpleLLMInferenceService,
+  isActive: isLLMInferenceServiceActive,
   reducerFunctions: {
     resolveDependencies: (formData) => ({
       hardwareProfile: formData.hardwareProfileConfig.formData.selectedProfile,
@@ -140,28 +162,18 @@ export const LLMConfigOptionsFieldWizardField: LLMConfigOptionsFieldType = {
       }
 
       const options = getOptions(externalData, dependencies?.hardwareProfile);
+      const suggestion = computeSuggestion(options);
 
-      // if there is only one matching hardware profile, select it
-      const matchingHardwareProfileOption = options.filter(
-        (option) => option.compatibleWithHardwareProfile,
-      );
-      if (matchingHardwareProfileOption.length === 1) {
+      if (suggestion) {
         return {
           data: {
-            selection: matchingHardwareProfileOption[0],
+            selection: suggestion,
             autoSelect: true,
-            suggestion: matchingHardwareProfileOption[0],
+            suggestion,
           },
         };
       }
-      // if there is only one option, select it
-      if (options.length === 1) {
-        return {
-          data: {
-            selection: options[0],
-          },
-        };
-      }
+
       return { data: { autoSelect: false } };
     },
     validationSchema: z.object({
@@ -170,4 +182,10 @@ export const LLMConfigOptionsFieldWizardField: LLMConfigOptionsFieldType = {
   },
   component: LLMConfigOptionsField,
   externalDataHook: useLLMConfigOptions,
+};
+
+// When llmdTemplates enabled: show only for simple vLLM (non-llm-d), topology fields handle the rest
+export const LLMConfigOptionsFieldWithTemplates: LLMConfigOptionsFieldType = {
+  ...LLMConfigOptionsFieldNoTemplates,
+  isActive: isSimpleLLMInferenceService,
 };

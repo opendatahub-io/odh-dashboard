@@ -1,11 +1,11 @@
 import * as React from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
-import AgentDeploymentListPage from '~/app/pages/AgentDeploymentListPage';
+import AgentDeploymentsCoreLoader from '~/app/pages/AgentDeploymentsCoreLoader';
 
 const AgentDeploymentsRoutes: React.FC = () => (
   <Routes>
-    <Route index element={<AgentDeploymentListPage />} />
-    <Route path=":namespace" element={<AgentDeploymentListPage />} />
+    <Route index element={<AgentDeploymentsCoreLoader />} />
+    <Route path=":namespace" element={<AgentDeploymentsCoreLoader />} />
     <Route path="*" element={<Navigate to="." replace />} />
   </Routes>
 );

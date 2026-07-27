@@ -1,5 +1,9 @@
 import { DEFAULT_TASK_NODE_TYPE, RunStatus } from '@patternfly/react-topology';
-import { PipelineTask, PipelineNodeModelExpanded } from '~/app/types/topology';
+import {
+  PipelineTask,
+  PipelineNodeModelExpanded,
+  type ActiveIconVariant,
+} from '~/app/types/topology';
 import { NODE_FONT, NODE_HEIGHT, NODE_PADDING, NODE_WIDTH } from './const';
 
 let cachedCtx: CanvasRenderingContext2D | null = null;
@@ -23,35 +27,38 @@ export const measurePipelineTaskLabelWidth = (text: string): number => {
 
 // Stage-map topologies have many nodes (steps × branches) so variable chrome
 // makes the graph too wide. Hardcode a fixed value until we have fewer nodes.
-// /** Layout chrome (status icon, pill padding) — scales slightly with label length. */
-// const layoutChromeForTaskLabel = (label: string): number => {
-//   const base = 40;
-//   const fromLength = Math.min(80, Math.ceil(label.length * 0.9));
-//   return base + fromLength;
-// };
 const LAYOUT_CHROME = 32;
 
 /** Full layout width for a task node: text measure + fixed chrome. */
 export const measurePipelineTaskNodeLayoutWidth = (label: string): number =>
   measurePipelineTaskLabelWidth(label) + LAYOUT_CHROME;
 
-export const createNode = (
-  id: string,
-  label: string,
-  pipelineTask: PipelineTask,
-  runAfterTasks?: string[],
-  runStatus?: RunStatus,
-  /** Override computed width (e.g. in unit tests). */
-  layoutWidth?: number,
-): PipelineNodeModelExpanded => ({
+export type CreateNodeOptions = {
+  id: string;
+  label: string;
+  pipelineTask: PipelineTask;
+  runAfterTasks?: string[];
+  runStatus?: RunStatus;
+  activeIconVariant?: ActiveIconVariant;
+};
+
+export const createNode = ({
+  id,
+  label,
+  pipelineTask,
+  runAfterTasks,
+  runStatus,
+  activeIconVariant,
+}: CreateNodeOptions): PipelineNodeModelExpanded => ({
   id,
   label,
   type: DEFAULT_TASK_NODE_TYPE,
-  width: layoutWidth ?? measurePipelineTaskNodeLayoutWidth(label),
+  width: measurePipelineTaskNodeLayoutWidth(label),
   height: NODE_HEIGHT,
   runAfterTasks,
   data: {
     pipelineTask,
     runStatus,
+    activeIconVariant,
   },
 });

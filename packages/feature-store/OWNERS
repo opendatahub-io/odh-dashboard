@@ -1,12 +1,12 @@
 approvers:
   - dpanshug
   - claudialphonse78
-  - manaswinidas
 
 reviewers:
   - dpanshug
   - claudialphonse78
-  - manaswinidas
+  - kanishka-commits
+  - PR3MM
 
 labels:
   - area/feature-store

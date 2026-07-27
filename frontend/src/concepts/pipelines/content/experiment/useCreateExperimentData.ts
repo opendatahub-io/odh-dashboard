@@ -1,4 +1,6 @@
-import useGenericObjectState, { GenericObjectState } from '#~/utilities/useGenericObjectState';
+import useGenericObjectState, {
+  GenericObjectState,
+} from '@odh-dashboard/ui-core/utilities/useGenericObjectState';
 
 export type CreateExperimentData = {
   name: string;

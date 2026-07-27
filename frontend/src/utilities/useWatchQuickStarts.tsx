@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { QuickStart } from '@patternfly/quickstarts';
+import { useDeepCompareMemoize } from '@odh-dashboard/ui-core/hooks';
 import { fetchQuickStarts } from '#~/services/quickStartsService';
 import { POLL_INTERVAL } from './const';
-import { useDeepCompareMemoize } from './useDeepCompareMemoize';
 
 export const useWatchQuickStarts = (): {
   quickStarts: QuickStart[];

@@ -1,4 +1,7 @@
-import { convertToUnit, MEMORY_UNITS_FOR_PARSING } from './valueUnits';
+import {
+  convertToUnit,
+  MEMORY_UNITS_FOR_PARSING,
+} from '@odh-dashboard/ui-core/utilities/valueUnits';
 
 /**
  * Returns the given number rounded to 1 decimal point, unless it is less than 0.1,

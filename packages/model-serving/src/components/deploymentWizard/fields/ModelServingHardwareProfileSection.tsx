@@ -1,11 +1,13 @@
 import React from 'react';
-import HardwareProfileFormSection from '@odh-dashboard/internal/concepts/hardwareProfiles/HardwareProfileFormSection';
-import { type UseHardwareProfileConfigResult } from '@odh-dashboard/internal/concepts/hardwareProfiles/useHardwareProfileConfig';
-import { MODEL_SERVING_VISIBILITY } from '@odh-dashboard/internal/concepts/hardwareProfiles/const';
+import {
+  HardwareProfileFormSection,
+  MODEL_SERVING_VISIBILITY,
+} from '@odh-dashboard/hardware-profiles/shared';
 import type {
+  UseHardwareProfileConfigResult,
   HardwarePodSpecOptionsState,
   PodSpecOptions,
-} from '@odh-dashboard/internal/concepts/hardwareProfiles/types';
+} from '@odh-dashboard/hardware-profiles/shared';
 
 type ModelServingHardwareProfileSectionComponentProps = {
   hardwareProfileConfig: UseHardwareProfileConfigResult;

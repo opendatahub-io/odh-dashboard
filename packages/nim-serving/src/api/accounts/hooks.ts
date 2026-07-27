@@ -2,7 +2,7 @@ import React from 'react';
 import useFetch, {
   FetchStateCallbackPromise,
   NotReadyError,
-} from '@odh-dashboard/internal/utilities/useFetch';
+} from '@odh-dashboard/ui-core/hooks/useFetch';
 import { POLL_INTERVAL, FAST_POLL_INTERVAL } from '@odh-dashboard/internal/utilities/const';
 import { NIMAccountKind } from '@odh-dashboard/internal/k8sTypes';
 import { listNIMAccounts } from './k8s';

@@ -11,7 +11,7 @@ import {
 import { t_global_spacer_xs as ExtraSmallSpacerSize } from '@patternfly/react-tokens';
 import { PathMissingIcon, SearchIcon } from '@patternfly/react-icons';
 import { Link, useParams } from 'react-router-dom';
-import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
+import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import FeatureServiceDetailsTabs from './FeatureServiceDetailsTabs';
 import { useFeatureStoreProject } from '../../../FeatureStoreContext';
 import useFeatureServiceByName from '../../../apiHooks/useFeatureServiceByName';

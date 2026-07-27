@@ -8,7 +8,7 @@ import ModelParameterFormGroup from '~/app/Chatbot/components/ModelParameterForm
 import ModelDetailsDropdown from '~/app/Chatbot/components/ModelDetailsDropdown';
 import SubscriptionDropdown from '~/app/Chatbot/components/SubscriptionDropdown';
 import TranscriptionModelSection from '~/app/Chatbot/components/settingsPanelTabs/TranscriptionModelSection';
-import { useChatbotConfigStore, selectIsPreview } from '~/app/Chatbot/store';
+import { useChatbotConfigStore } from '~/app/Chatbot/store';
 
 interface ModelTabContentProps {
   temperature: number;
@@ -36,16 +36,15 @@ const ModelTabContent: React.FunctionComponent<ModelTabContentProps> = ({
   onSubscriptionChange,
   configId,
 }) => {
-  const { aiModels, aiModelsLoaded, aiModelsError, maasModelsLoaded } =
+  const { aiModels, aiModelsLoaded, aiModelsError, maasModels, maasModelsLoaded } =
     React.useContext(ChatbotContext);
-
-  const isPreview = useChatbotConfigStore(selectIsPreview(configId));
 
   const { hasASRModel, capabilitiesReady, capabilitiesError } = useWorkspaceCapabilities(
     aiModels,
     aiModelsLoaded,
     maasModelsLoaded,
     aiModelsError,
+    maasModels,
   );
 
   React.useEffect(() => {
@@ -65,14 +64,14 @@ const ModelTabContent: React.FunctionComponent<ModelTabContentProps> = ({
             onModelChange={onModelChange}
             style={{ width: '100%' }}
             testId="settings-model-selector-toggle"
-            isDisabled={isPreview}
+            isDisabled={false}
           />
         </FormGroup>
         <SubscriptionDropdown
           selectedModel={selectedModel}
           selectedSubscription={selectedSubscription}
           onSubscriptionChange={onSubscriptionChange}
-          isDisabled={isPreview}
+          isDisabled={false}
         />
         <ModelParameterFormGroup
           fieldId="temperature"
@@ -88,7 +87,7 @@ const ModelTabContent: React.FunctionComponent<ModelTabContentProps> = ({
           }}
           max={2}
           showPopoverCloseButton={false}
-          isDisabled={isPreview}
+          isDisabled={false}
         />
 
         <FormGroup fieldId="streaming" data-testid="streaming-section">
@@ -99,10 +98,10 @@ const ModelTabContent: React.FunctionComponent<ModelTabContentProps> = ({
             onChange={(_event, checked) => onStreamingToggle(checked)}
             aria-label="Toggle streaming responses"
             data-testid="streaming-toggle"
-            isDisabled={isPreview}
+            isDisabled={false}
           />
         </FormGroup>
-        {hasASRModel && <TranscriptionModelSection configId={configId} />}
+        <TranscriptionModelSection configId={configId} />
       </Form>
     </TabContentWrapper>
   );

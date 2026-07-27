@@ -1,6 +1,6 @@
 import { Content, Divider, Flex, FlexItem, MenuItem, Truncate } from '@patternfly/react-core';
 import React from 'react';
-import SearchSelector from '@odh-dashboard/internal/components/searchSelector/SearchSelector';
+import SearchSelector from '@odh-dashboard/ui-core/components/searchSelector/SearchSelector';
 import { FeatureStoreProject } from '../../types/featureStoreProjects';
 import useFeatureStoreProjects from '../../apiHooks/useFeatureStoreProjects';
 import { FeatureStoreObject } from '../../const';

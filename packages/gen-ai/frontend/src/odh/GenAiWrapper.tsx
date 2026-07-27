@@ -11,6 +11,9 @@ import { AppRoutes } from '~/app/AppRoutes';
 import { URL_PREFIX } from '~/app/utilities/const';
 import { UserContextProvider } from '~/app/context/UserContext';
 import { useNotificationListener } from '~/odh/hooks/useNotificationListener';
+import { registerMlflowEmbeddedRemote } from './registerMlflowEmbeddedRemote';
+
+registerMlflowEmbeddedRemote();
 
 const queryClient = new QueryClient({
   defaultOptions: {

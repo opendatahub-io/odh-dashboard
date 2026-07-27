@@ -274,7 +274,7 @@ def _guardrail_check(messages, rails, task, prompt_content):
                     "type": "main",
                     "engine": "openai",
                     "parameters": {
-                        "openai_api_base": GUARDRAIL_MODEL_ENDPOINT,
+                        "base_url": GUARDRAIL_MODEL_ENDPOINT,
                         "model_name": GUARDRAIL_MODEL_NAME,
                         "api_key": GUARDRAIL_API_KEY or "fake",
                     },

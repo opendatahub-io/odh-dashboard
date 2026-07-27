@@ -1,9 +1,9 @@
 import React from 'react';
 import { FormGroup, Stack, StackItem } from '@patternfly/react-core';
+import { useZodFormValidation } from '@odh-dashboard/ui-core/hooks/useZodFormValidation';
+import NumberInputWrapper from '@odh-dashboard/ui-core/components/NumberInputWrapper';
+import { ZodErrorHelperText } from '@odh-dashboard/ui-core/components/ZodErrorFormHelperText';
 import { trainingNodeSchema } from '#~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/validationUtils';
-import { useZodFormValidation } from '#~/hooks/useZodFormValidation';
-import NumberInputWrapper from '#~/components/NumberInputWrapper';
-import { ZodErrorHelperText } from '#~/components/ZodErrorFormHelperText';
 
 type TrainingNodeInputProps = {
   data: number;

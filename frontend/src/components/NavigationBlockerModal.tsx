@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { useBlocker, Location } from 'react-router-dom';
-import ContentModal from '#~/components/modals/ContentModal';
+import ContentModal from '@odh-dashboard/ui-core/components/ContentModal';
 
 interface NavigationBlockerModalProps {
   hasUnsavedChanges: boolean;

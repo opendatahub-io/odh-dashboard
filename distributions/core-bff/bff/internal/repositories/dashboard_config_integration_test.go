@@ -4,11 +4,11 @@ import (
 	"context"
 	"testing"
 
-	"fmt"
-
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/config"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/models"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -21,15 +21,15 @@ func newFakeDynClientWithDashboardConfig(disableProjects bool) *dynamicfake.Fake
 	scheme := runtime.NewScheme()
 
 	cr := &unstructured.Unstructured{
-		Object: map[string]interface{}{
+		Object: map[string]any{
 			"apiVersion": "opendatahub.io/v1alpha",
 			"kind":       "OdhDashboardConfig",
-			"metadata": map[string]interface{}{
+			"metadata": map[string]any{
 				"name":      "odh-dashboard-config",
 				"namespace": "test-ns",
 			},
-			"spec": map[string]interface{}{
-				"dashboardConfig": map[string]interface{}{
+			"spec": map[string]any{
+				"dashboardConfig": map[string]any{
 					"disableProjects": disableProjects,
 					"disableKServe":   true,
 				},
@@ -48,7 +48,7 @@ func newFakeDynClientWithDashboardConfig(disableProjects bool) *dynamicfake.Fake
 
 func TestGetDashboardConfig_PrivilegedRead_ReturnsRealConfig(t *testing.T) {
 	fakeDyn := newFakeDynClientWithDashboardConfig(true)
-	repo := NewDashboardConfigRepository(false, fakeDyn)
+	repo := NewDashboardConfigRepository(config.PlatformOpenShift, fakeDyn)
 
 	config, err := repo.GetDashboardConfig(context.Background(), "test-ns", "odh-dashboard-config", nil)
 	require.NoError(t, err)
@@ -74,9 +74,13 @@ func TestGetDashboardConfig_CRDAbsent_FallsBackToDefaults(t *testing.T) {
 		},
 	)
 	emptyDyn.PrependReactor("get", "odhdashboardconfigs", func(action k8stesting.Action) (bool, runtime.Object, error) {
-		return true, nil, fmt.Errorf("the server could not find the requested resource")
+		return true, nil, &k8serrors.StatusError{ErrStatus: metav1.Status{
+			Reason:  metav1.StatusReasonNotFound,
+			Code:    404,
+			Message: "the server could not find the requested resource",
+		}}
 	})
-	repo := NewDashboardConfigRepository(false, emptyDyn)
+	repo := NewDashboardConfigRepository(config.PlatformOpenShift, emptyDyn)
 
 	config, err := repo.GetDashboardConfig(context.Background(), "test-ns", "odh-dashboard-config", nil)
 	require.NoError(t, err)
@@ -96,7 +100,7 @@ func TestGetDashboardConfig_AutoCreatesWhenInstanceMissing(t *testing.T) {
 			models.DashboardConfigGVR: "OdhDashboardConfigList",
 		},
 	)
-	repo := NewDashboardConfigRepository(false, fakeDyn)
+	repo := NewDashboardConfigRepository(config.PlatformOpenShift, fakeDyn)
 
 	config, err := repo.GetDashboardConfig(context.Background(), "test-ns", "odh-dashboard-config", nil)
 	require.NoError(t, err)
@@ -115,19 +119,19 @@ func TestGetDashboardConfig_AutoCreatesWhenInstanceMissing(t *testing.T) {
 
 	// Persisted CR is deliberately sparse (no spec.dashboardConfig).
 	// Defaults are applied at read time via deepMerge, not persisted.
-	spec, ok := persisted.Object["spec"].(map[string]interface{})
+	spec, ok := persisted.Object["spec"].(map[string]any)
 	require.True(t, ok, "persisted CR should have spec")
 
 	_, hasDC := spec["dashboardConfig"]
 	assert.False(t, hasDC, "persisted CR should NOT contain spec.dashboardConfig")
 
-	nc, ok := spec["notebookController"].(map[string]interface{})
+	nc, ok := spec["notebookController"].(map[string]any)
 	require.True(t, ok, "persisted CR should have spec.notebookController")
 	assert.Equal(t, true, nc["enabled"])
 
-	gasc, ok := spec["genAiStudioConfig"].(map[string]interface{})
+	gasc, ok := spec["genAiStudioConfig"].(map[string]any)
 	require.True(t, ok, "persisted CR should have spec.genAiStudioConfig")
-	endpoints, ok := gasc["aiAssetCustomEndpoints"].(map[string]interface{})
+	endpoints, ok := gasc["aiAssetCustomEndpoints"].(map[string]any)
 	require.True(t, ok, "genAiStudioConfig should have aiAssetCustomEndpoints")
 	assert.Equal(t, false, endpoints["externalProviders"])
 }
@@ -135,7 +139,7 @@ func TestGetDashboardConfig_AutoCreatesWhenInstanceMissing(t *testing.T) {
 func TestGetDashboardConfig_IndependentCRDHandling(t *testing.T) {
 	// DashboardConfig CRD present with a real CR
 	fakeDyn := newFakeDynClientWithDashboardConfig(false)
-	repo := NewDashboardConfigRepository(false, fakeDyn)
+	repo := NewDashboardConfigRepository(config.PlatformOpenShift, fakeDyn)
 
 	// This should succeed even though Auth CRD and OdhApplication CRD are absent
 	config, err := repo.GetDashboardConfig(context.Background(), "test-ns", "odh-dashboard-config", nil)
@@ -167,7 +171,7 @@ func TestGetDashboardConfig_IndependentCRDHandling(t *testing.T) {
 func TestGetDashboardConfig_XKSPlatform_OverridesCRValues(t *testing.T) {
 	// CR has disableProjects=false, but XKS platform should force it to true
 	fakeDyn := newFakeDynClientWithDashboardConfig(false)
-	repo := NewDashboardConfigRepository(true, fakeDyn)
+	repo := NewDashboardConfigRepository(config.PlatformXKS, fakeDyn)
 
 	config, err := repo.GetDashboardConfig(context.Background(), "test-ns", "odh-dashboard-config", nil)
 	require.NoError(t, err)

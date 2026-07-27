@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/config"
 	k8s "github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/integrations/kubernetes/k8mocks"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/repositories"
@@ -43,26 +44,16 @@ func TestGetConfigHandler_ReturnsDefaults(t *testing.T) {
 	assert.Equal(t, false, dc["disableProjects"])
 }
 
-func TestGetConfigHandler_InvalidToken_Returns401(t *testing.T) {
-	app := newTestApp()
-
-	rr := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, ConfigPath, nil)
-	req = reqWithIdentity(req, &k8s.RequestIdentity{
-		UserID: "attacker",
-		Token:  k8s.NewBearerToken("garbage-token-abc123"),
-	})
-
-	app.GetConfigHandler(rr, req, nil)
-
-	assert.Equal(t, http.StatusUnauthorized, rr.Code)
-}
-
 func TestGetConfigHandler_XKSPlatform_DisablesProjects(t *testing.T) {
 	app := newTestApp(func(a *App) {
 		a.config.Namespace = "opendatahub"
 		a.config.DashboardConfigName = "odh-dashboard-config"
-		a.repositories = repositories.NewRepositories(true, testSADynClient, testSAClientset, "")
+		a.repositories = repositories.NewRepositories(repositories.RepositoriesConfig{
+			Platform:    config.PlatformXKS,
+			SADynClient: testSADynClient,
+			SAClientset: testSAClientset,
+			Namespace:   "",
+		})
 	})
 	admin := k8mocks.DefaultTestUsers[0]
 
@@ -95,7 +86,12 @@ func TestPatchConfigHandler_Success(t *testing.T) {
 	app := newTestApp(func(a *App) {
 		a.config.Namespace = "dash-ns"
 		a.config.DashboardConfigName = "odh-dashboard-config"
-		a.repositories = repositories.NewRepositories(false, fakeDyn, testSAClientset, "")
+		a.repositories = repositories.NewRepositories(repositories.RepositoriesConfig{
+			Platform:    config.PlatformOpenShift,
+			SADynClient: fakeDyn,
+			SAClientset: testSAClientset,
+			Namespace:   "",
+		})
 	})
 	admin := k8mocks.DefaultTestUsers[0]
 

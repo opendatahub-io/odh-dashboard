@@ -21,7 +21,15 @@ const mockMlflowExperiments = (experiments: { id: string; name: string }[] = [])
   });
 };
 
-const mockInferenceServices = (items: { name: string; url?: string; ready: boolean }[] = []) => {
+const mockInferenceServices = (
+  items: {
+    name: string;
+    url?: string;
+    ready: boolean;
+    model_format_name?: string;
+    api_protocol?: string;
+  }[] = [],
+) => {
   cy.interceptApi('GET /api/:apiVersion/inferenceservices', { path: API_VERSION }, { items });
 };
 
@@ -29,7 +37,12 @@ const mockVerifyConnectionSuccess = () => {
   cy.interceptApi(
     'POST /api/:apiVersion/evaluations/verify-connection',
     { path: API_VERSION },
-    { success: true, message: 'Connection established successfully.', response_time_ms: 120 },
+    {
+      success: true,
+      message: 'Connection established successfully.',
+      response_time_ms: 120,
+      openai_compatible: true,
+    },
   ).as('verifyConnection');
 };
 
@@ -188,6 +201,7 @@ describe('Start Evaluation Run - Benchmark Mode', () => {
     startEvaluationRunPage.findEndpointUrlInput().should('exist');
     startEvaluationRunPage.findApiKeyInput().should('exist');
     startEvaluationRunPage.findValidateConnectionButton().should('exist');
+    cy.findByTestId('external-endpoint-compatibility-alert').should('exist');
   });
 
   it('should submit evaluation job and show success toast', () => {
@@ -602,6 +616,51 @@ describe('Start Evaluation Run - Cluster Model Selection', () => {
     cy.wait('@createClusterJob').then((interception) => {
       expect(interception.request.body.model).to.have.property('name', 'llama-3.2-1b-instruct');
     });
+  });
+
+  it('should disable incompatible models in the dropdown', () => {
+    mockInferenceServices([
+      {
+        name: 'vllm-model',
+        url: 'http://vllm.svc.cluster.local:8080/v1',
+        ready: true,
+        model_format_name: 'vLLM',
+      },
+      {
+        name: 'autogluon-model',
+        url: 'http://autogluon.svc.cluster.local:8080/v1',
+        ready: true,
+        model_format_name: 'AutoGluon',
+      },
+    ]);
+
+    navigateToBenchmarkStart();
+
+    startEvaluationRunPage.findModelPickerToggle().click();
+    cy.findByTestId('model-option-vllm-model').click();
+    startEvaluationRunPage.findModelPickerToggle().should('contain.text', 'vllm-model');
+
+    startEvaluationRunPage.findModelPickerToggle().click();
+    cy.findByTestId('model-option-autogluon-model')
+      .should('contain.text', 'autogluon-model')
+      .and('contain.text', 'not compatible with evaluation benchmarks');
+  });
+
+  it('should allow selecting models without a model_format_name', () => {
+    mockInferenceServices([
+      {
+        name: 'legacy-model',
+        url: 'http://legacy.svc.cluster.local:8080/v1',
+        ready: true,
+      },
+    ]);
+
+    navigateToBenchmarkStart();
+
+    startEvaluationRunPage.findModelPickerToggle().click();
+    cy.findByTestId('model-option-legacy-model').click();
+
+    startEvaluationRunPage.findSubmitButton().should('be.enabled');
   });
 });
 

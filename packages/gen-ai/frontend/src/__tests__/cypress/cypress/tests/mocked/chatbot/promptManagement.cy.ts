@@ -44,13 +44,24 @@ const setupPromptMocks = (namespace: string): void => {
     if (req.url.includes('/versions')) {
       return;
     }
+    const isGlobalPrompt =
+      req.url.includes('translation-prompt') || req.url.includes('starter-template-prompt');
     req.reply({
       statusCode: 200,
       body: {
-        data: mockMLflowPromptVersion({
-          name: 'summarization-prompt',
-          template: 'You are a helpful summarization assistant.',
-        }),
+        data: isGlobalPrompt
+          ? mockMLflowPromptVersion({
+              name: req.url.includes('starter-template-prompt')
+                ? 'starter-template-prompt'
+                : 'translation-prompt',
+              template: 'You are a global starter template.',
+              scope: { type: 'global', namespace: 'rhoai-templates', read_only: true },
+            })
+          : mockMLflowPromptVersion({
+              name: 'summarization-prompt',
+              template: 'You are a helpful summarization assistant.',
+              scope: { type: 'project', namespace: 'mock-tests-namespace-2' },
+            }),
       },
     });
   }).as('getPrompt');
@@ -646,6 +657,144 @@ describe('Chatbot - Prompt Management (Mocked)', () => {
 
         cy.step('Verify reset back to new prompt state');
         promptAssistant.findNameTitle().should('contain.text', 'New Prompt');
+      },
+    );
+  });
+
+  describe('Save As - Global Prompts', () => {
+    beforeEach(() => {
+      const namespace = config.defaultNamespace;
+
+      setupBaseMCPServerMocks(config, {
+        lsdStatus: 'Ready',
+        includeLsdModel: true,
+        includeAAModel: true,
+      });
+      cy.interceptGenAi('GET /api/v1/aaa/mcps', { query: { namespace } }, mockMCPServers([]));
+      cy.interceptGenAi('GET /api/v1/config', { data: { isCustomLSD: false } }).as('bffConfig');
+      cy.intercept('GET', '**/api/v1/mcp/status**', {
+        statusCode: 200,
+        body: { status: 'ready' },
+      });
+      setupPromptMocks(namespace);
+
+      appChrome.visit(['genAiStudio', 'promptManagement']);
+      chatbotPage.visit(namespace);
+      chatbotPage.verifyOnChatbotPage(namespace);
+      cy.wait('@bffConfig');
+      cy.wait('@aaModels');
+    });
+
+    it(
+      'should show Save As button when global prompt is loaded and edited',
+      { tags: ['@GenAI', '@PromptManagement', '@SaveAs'] },
+      () => {
+        cy.step('Load global prompt (starter-template-prompt)');
+        openSettingsPromptTab();
+        promptAssistant.findLoadPromptButton().click();
+        cy.wait('@listPrompts');
+        cy.findByTestId('global-prompts-tab').click();
+        promptManagementModal.findTableRow('starter-template-prompt').click();
+        promptManagementModal.findLoadButton().should('be.enabled').click();
+
+        cy.step('Verify global prompt loaded with scope label');
+        promptAssistant.findNameTitle().should('contain.text', 'starter-template-prompt');
+
+        cy.step('Enter edit mode and make changes');
+        promptAssistant.findEditButton().should('be.visible').click();
+        promptAssistant.findTextarea().clear().type('Modified global template.');
+
+        cy.step('Verify Save is disabled and Save As is enabled');
+        promptAssistant.findSaveButton().should('be.disabled');
+        promptAssistant.findSaveAsButton().should('be.enabled');
+      },
+    );
+
+    it(
+      'should open Save As modal and create prompt in project namespace',
+      { tags: ['@GenAI', '@PromptManagement', '@SaveAs'] },
+      () => {
+        cy.step('Load and edit global prompt');
+        openSettingsPromptTab();
+        promptAssistant.findLoadPromptButton().click();
+        cy.wait('@listPrompts');
+        cy.findByTestId('global-prompts-tab').click();
+        promptManagementModal.findTableRow('starter-template-prompt').click();
+        promptManagementModal.findLoadButton().should('be.enabled').click();
+        promptAssistant.findEditButton().should('be.visible').click();
+        promptAssistant.findTextarea().clear().type('My custom translation instructions.');
+
+        cy.step('Click Save As');
+        promptAssistant.findSaveAsButton().click();
+
+        cy.step('Verify Save As modal opens with editable name prefilled');
+        createPromptModal.find().should('be.visible');
+        createPromptModal.findNameInput().should('have.value', 'copy-of-starter-template-prompt');
+        createPromptModal.findNameInput().should('not.have.attr', 'readonly');
+
+        cy.step('Modify name and submit');
+        createPromptModal.findNameInput().clear().type('my-translation-copy');
+        createPromptModal.findCommitMessageInput().type('Copied from global template');
+        createPromptModal.findSaveButton().click();
+
+        cy.step('Verify POST payload has create_only=true');
+        cy.wait('@createPrompt').then((interception) => {
+          expect(interception.request.body).to.have.property('name', 'my-translation-copy');
+          expect(interception.request.body).to.have.property('create_only', true);
+        });
+      },
+    );
+
+    it(
+      'should show permission denied alert with Save As fallback on 403',
+      { tags: ['@GenAI', '@PromptManagement', '@SaveAs', '@RBAC'] },
+      () => {
+        // Override the createPrompt intercept to return 403
+        cy.intercept('POST', '**/api/v1/mlflow/prompts**', {
+          statusCode: 403,
+          body: { error: { message: 'Insufficient permissions to write prompts' } },
+        }).as('createPromptForbidden');
+
+        cy.step('Load a project prompt and edit it');
+        openSettingsPromptTab();
+        promptAssistant.findLoadPromptButton().click();
+        cy.wait('@listPrompts');
+        promptManagementModal.findTableRow('summarization-prompt').click();
+        promptManagementModal.findLoadButton().should('be.enabled').click();
+        promptAssistant.findEditButton().should('be.visible').click();
+        promptAssistant.findTextarea().clear().type('Modified prompt content.');
+
+        cy.step('Click Save (user had permission when they loaded the prompt)');
+        promptAssistant.findSaveButton().should('be.enabled').click();
+
+        cy.step('Fill commit message and submit');
+        createPromptModal.find().should('be.visible');
+        createPromptModal.findCommitMessageInput().type('Attempting save');
+        createPromptModal.findSaveButton().click();
+
+        cy.step('Verify permission denied alert appears with Save As fallback');
+        cy.wait('@createPromptForbidden');
+        cy.findByTestId('prompt-permission-denied-alert').should('be.visible');
+        cy.findByTestId('prompt-permission-denied-alert').should(
+          'contain.text',
+          'You no longer have permission',
+        );
+        cy.findByTestId('prompt-save-as-fallback-button').should('be.visible');
+
+        cy.step('Click fallback Save As and verify name and create_only');
+        cy.intercept('POST', '**/api/v1/mlflow/prompts**', {
+          statusCode: 201,
+          body: { data: { name: 'copy-of-summarization-prompt', version: 1 } },
+        }).as('createPromptSaveAs');
+        cy.findByTestId('prompt-save-as-fallback-button').click();
+        createPromptModal.find().should('be.visible');
+        createPromptModal.findNameInput().should('have.value', 'copy-of-summarization-prompt');
+        createPromptModal.findNameInput().should('not.have.attr', 'readonly');
+        createPromptModal.findCommitMessageInput().type('Saved as copy');
+        createPromptModal.findSaveButton().click();
+        cy.wait('@createPromptSaveAs').then((interception) => {
+          expect(interception.request.body).to.have.property('create_only', true);
+        });
       },
     );
   });

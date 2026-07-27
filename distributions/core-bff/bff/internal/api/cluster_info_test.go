@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"testing"
 
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/models"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
@@ -92,7 +93,7 @@ func TestQueryClusterID_Success(t *testing.T) {
 	scheme := runtime.NewScheme()
 	dynClient := dynamicfake.NewSimpleDynamicClientWithCustomListKinds(scheme,
 		map[schema.GroupVersionResource]string{
-			clusterVersionGVR: "ClusterVersionList",
+			models.ClusterVersionGVR: "ClusterVersionList",
 		}, cv)
 
 	clusterID, err := queryClusterID(dynClient, testLogger())
@@ -118,7 +119,7 @@ func TestQueryClusterID_ForbiddenReturnsError(t *testing.T) {
 	scheme := runtime.NewScheme()
 	dynClient := dynamicfake.NewSimpleDynamicClientWithCustomListKinds(scheme,
 		map[schema.GroupVersionResource]string{
-			clusterVersionGVR: "ClusterVersionList",
+			models.ClusterVersionGVR: "ClusterVersionList",
 		})
 	dynClient.PrependReactor("get", "clusterversions", func(action k8stesting.Action) (bool, runtime.Object, error) {
 		return true, nil, k8serrors.NewForbidden(
@@ -133,14 +134,14 @@ func TestQueryClusterID_ForbiddenReturnsError(t *testing.T) {
 	assert.Contains(t, err.Error(), "ClusterVersion probe failed")
 }
 
-func TestResolveStartupPlatform_ProbeError_DefaultsToOpenShift(t *testing.T) {
+func TestResolveStartupPlatform_ProbeError_DefaultsToXKS(t *testing.T) {
 	ci := clusterInfo{}
 	probeErr := k8serrors.NewForbidden(
 		schema.GroupResource{Group: "config.openshift.io", Resource: "clusterversions"},
 		clusterVersionName, nil,
 	)
 	result := resolveStartupPlatform(ci, probeErr, false, "", testLogger())
-	assert.Equal(t, config.PlatformOpenShift, result)
+	assert.Equal(t, config.PlatformXKS, result)
 }
 
 func TestResolveStartupPlatform_NoError_DetectsXKS(t *testing.T) {
@@ -157,6 +158,30 @@ func TestResolveStartupPlatform_ExplicitOverridesProbeError(t *testing.T) {
 	)
 	result := resolveStartupPlatform(ci, probeErr, true, config.PlatformXKS, testLogger())
 	assert.Equal(t, config.PlatformXKS, result)
+}
+
+func TestResolveStartupPlatform_ExplicitOpenShift_MismatchDetected(t *testing.T) {
+	ci := clusterInfo{}
+	result := resolveStartupPlatform(ci, nil, true, config.PlatformOpenShift, testLogger())
+	assert.Equal(t, config.PlatformOpenShift, result)
+}
+
+func TestResolveStartupPlatform_ExplicitOpenShift_MatchesProbe(t *testing.T) {
+	ci := clusterInfo{clusterID: "real-cluster-id"}
+	result := resolveStartupPlatform(ci, nil, true, config.PlatformOpenShift, testLogger())
+	assert.Equal(t, config.PlatformOpenShift, result)
+}
+
+func TestResolveStartupPlatform_ExplicitXKS_NoProbeError(t *testing.T) {
+	ci := clusterInfo{clusterID: "real-cluster-id"}
+	result := resolveStartupPlatform(ci, nil, true, config.PlatformXKS, testLogger())
+	assert.Equal(t, config.PlatformXKS, result)
+}
+
+func TestResolveStartupPlatform_AutoDetect_OpenShift(t *testing.T) {
+	ci := clusterInfo{clusterID: "abc-123"}
+	result := resolveStartupPlatform(ci, nil, false, "", testLogger())
+	assert.Equal(t, config.PlatformOpenShift, result)
 }
 
 func TestQueryClusterInfo_BothFail(t *testing.T) {
@@ -197,7 +222,7 @@ func TestQueryClusterInfo_BothSucceed(t *testing.T) {
 	scheme := runtime.NewScheme()
 	dynClient := dynamicfake.NewSimpleDynamicClientWithCustomListKinds(scheme,
 		map[schema.GroupVersionResource]string{
-			clusterVersionGVR: "ClusterVersionList",
+			models.ClusterVersionGVR: "ClusterVersionList",
 		}, cv)
 
 	info, err := queryClusterInfo(typedClient, dynClient, testLogger())

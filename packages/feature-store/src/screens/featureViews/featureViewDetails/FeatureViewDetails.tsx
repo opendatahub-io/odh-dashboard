@@ -13,7 +13,7 @@ import React from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { t_global_spacer_xs as ExtraSmallSpacerSize } from '@patternfly/react-tokens';
 import { PathMissingIcon, SearchIcon } from '@patternfly/react-icons';
-import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
+import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import FeatureViewTabs from './FeatureViewTabs';
 import { getFeatureViewType } from '../utils';
 import { useFeatureStoreProject } from '../../../FeatureStoreContext';

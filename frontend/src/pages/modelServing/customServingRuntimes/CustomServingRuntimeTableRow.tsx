@@ -4,17 +4,14 @@ import { useNavigate } from 'react-router-dom';
 import { Label, LabelGroup } from '@patternfly/react-core';
 import type { TemplateKind } from '@odh-dashboard/k8s-core';
 import { ResourceNameTooltip } from '@odh-dashboard/ui-core';
-import { ServingRuntimeKind } from '#~/k8sTypes';
-import CustomServingRuntimePlatformsLabelGroup from '#~/pages/modelServing/customServingRuntimes/CustomServingRuntimePlatformsLabelGroup';
-import { isOOTB, PreInstalledName } from '#~/concepts/k8s/utils';
-import ServingRuntimeVersionLabel from '#~/pages/modelServing/screens/ServingRuntimeVersionLabel';
-import CustomServingRuntimeEnabledToggle from './CustomServingRuntimeEnabledToggle';
 import {
   getServingRuntimeDisplayNameFromTemplate,
-  getServingRuntimeFromTemplate,
   getServingRuntimeNameFromTemplate,
-  getServingRuntimeVersion,
-} from './utils';
+} from '@odh-dashboard/model-serving/shared';
+import { DeploymentResourceVersionLabels } from '@odh-dashboard/model-serving/shared/components';
+import CustomServingRuntimePlatformsLabelGroup from '#~/pages/modelServing/customServingRuntimes/CustomServingRuntimePlatformsLabelGroup';
+import { isOOTB, PreInstalledName } from '#~/concepts/k8s/utils';
+import CustomServingRuntimeEnabledToggle from './CustomServingRuntimeEnabledToggle';
 import CustomServingRuntimeAPIProtocolLabel from './CustomServingRuntimeAPIProtocolLabel';
 
 type CustomServingRuntimeTableRowProps = {
@@ -32,8 +29,6 @@ const CustomServingRuntimeTableRow: React.FC<CustomServingRuntimeTableRowProps> 
   const navigate = useNavigate();
   const servingRuntimeName = getServingRuntimeNameFromTemplate(template);
   const templateOOTB = isOOTB(template);
-  const sr: ServingRuntimeKind | undefined = getServingRuntimeFromTemplate(template);
-  const srVersion: string | undefined = getServingRuntimeVersion(sr);
   return (
     <Tr
       key={rowIndex}
@@ -53,7 +48,7 @@ const CustomServingRuntimeTableRow: React.FC<CustomServingRuntimeTableRowProps> 
         </ResourceNameTooltip>
         <LabelGroup>
           {templateOOTB && <Label data-testid="pre-installed-label">{PreInstalledName}</Label>}
-          {srVersion && <ServingRuntimeVersionLabel version={srVersion} />}
+          <DeploymentResourceVersionLabels resource={template} />
         </LabelGroup>
       </Td>
       <Td dataLabel="Enabled">
@@ -99,6 +94,7 @@ const CustomServingRuntimeTableRow: React.FC<CustomServingRuntimeTableRowProps> 
                   {
                     title: 'Delete',
                     onClick: () => onDeleteTemplate(template),
+                    isDanger: true,
                   },
                 ]
           }

@@ -4,7 +4,7 @@ import useFetchState, {
   FetchState,
   FetchStateCallbackPromise,
   NotReadyError,
-} from '#~/utilities/useFetchState';
+} from '@odh-dashboard/ui-core/hooks/useFetchState';
 import { TrustyAIKind } from '#~/k8sTypes';
 import { getTrustyAICR } from '#~/api';
 import { FAST_POLL_INTERVAL } from '#~/utilities/const';

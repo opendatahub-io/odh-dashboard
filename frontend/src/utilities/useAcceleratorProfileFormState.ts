@@ -1,8 +1,8 @@
 import React from 'react';
 import type { ContainerResources, Toleration } from '@odh-dashboard/k8s-core';
+import useGenericObjectState from '@odh-dashboard/ui-core/utilities/useGenericObjectState';
+import type { UpdateObjectAtPropAndValue } from '@odh-dashboard/ui-core';
 import { AcceleratorProfileKind } from '#~/k8sTypes';
-import { UpdateObjectAtPropAndValue } from '#~/pages/projects/types';
-import useGenericObjectState from './useGenericObjectState';
 import useReadAcceleratorState, { AcceleratorProfileState } from './useReadAcceleratorState';
 
 /**

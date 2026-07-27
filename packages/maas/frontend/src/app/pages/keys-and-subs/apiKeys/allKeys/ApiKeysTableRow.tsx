@@ -34,16 +34,20 @@ type CellRenderer = (ctx: CellRenderContext) => React.ReactNode;
 
 const cellRenderers: Record<string, CellRenderer> = {
   name: ({ apiKey }) => (
-    <TableRowTitleDescription
-      title={apiKey.name}
-      description={apiKey.description}
-      truncateDescriptionLines={2}
-    />
+    <span data-testid="api-key-name">
+      <TableRowTitleDescription
+        title={apiKey.name}
+        description={apiKey.description}
+        truncateDescriptionLines={2}
+      />
+    </span>
   ),
 
   status: ({ apiKey, isInactive }) => {
     const displayStatus = getDisplayStatus(apiKey, isInactive);
-    return <ApiKeyStatusLabel status={displayStatus} showInactivePopover />;
+    return (
+      <ApiKeyStatusLabel status={displayStatus} showInactivePopover data-testid="api-key-status" />
+    );
   },
 
   subscription: ({ apiKey, subscriptionDetail }) => (
@@ -53,10 +57,16 @@ const cellRenderers: Record<string, CellRenderer> = {
     />
   ),
 
-  username: ({ apiKey }) => apiKey.username ?? '—',
-  creationDate: ({ apiKey }) => formatDate(apiKey.creationDate, '—'),
-  lastUsedAt: ({ apiKey }) => formatDate(apiKey.lastUsedAt, 'Never'),
-  expirationDate: ({ apiKey }) => formatDate(apiKey.expirationDate, 'Never'),
+  username: ({ apiKey }) => <span data-testid="api-key-owner">{apiKey.username ?? '—'}</span>,
+  creationDate: ({ apiKey }) => (
+    <span data-testid="api-key-creation-date">{formatDate(apiKey.creationDate, '—')}</span>
+  ),
+  lastUsedAt: ({ apiKey }) => (
+    <span data-testid="api-key-last-used-at">{formatDate(apiKey.lastUsedAt, 'Never')}</span>
+  ),
+  expirationDate: ({ apiKey }) => (
+    <span data-testid="api-key-expiration-date">{formatDate(apiKey.expirationDate, 'Never')}</span>
+  ),
 };
 
 type ApiKeysTableRowProps = {

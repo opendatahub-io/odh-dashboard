@@ -11,7 +11,7 @@ import {
   formatMemory,
   MEMORY_UNITS_FOR_SELECTION,
   CPU_UNITS,
-} from '#~/utilities/valueUnits';
+} from '@odh-dashboard/ui-core/utilities/valueUnits';
 
 describe('splitValueUnit', () => {
   const options: UnitOption[] = [

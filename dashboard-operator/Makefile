@@ -86,7 +86,7 @@ check-chart-crds:
 
 .PHONY: docker-build
 docker-build: ## Build container image (run from repo root).
-	docker build -t $(IMG) -f Dockerfile ..
+	docker build --build-arg OPERATOR_VERSION=$(SAFE_VERSION) -t $(IMG) -f Dockerfile ..
 
 .PHONY: docker-push
 docker-push: ## Push container image.

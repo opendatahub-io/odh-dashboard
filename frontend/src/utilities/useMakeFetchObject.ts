@@ -1,6 +1,6 @@
 import * as React from 'react';
-import { FetchStateObject } from '#~/utilities/useFetch';
-import { FetchState } from '#~/utilities/useFetchState';
+import { FetchStateObject } from '@odh-dashboard/ui-core/hooks/useFetch';
+import { FetchState } from '@odh-dashboard/ui-core/hooks/useFetchState';
 
 /**
  * @deprecated Use useFetch instead of useFetchState and you won't need this helper.

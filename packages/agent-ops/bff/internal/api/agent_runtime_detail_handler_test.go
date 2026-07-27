@@ -41,23 +41,16 @@ func TestGetAgentRuntimeDetailHandler(t *testing.T) {
 	detail := envelope.Data
 	assert.Equal(t, "sample-support-agent", detail.Name)
 	assert.Equal(t, "agent-ops-demo", detail.Namespace)
-	assert.Equal(t, "Ready", detail.WorkloadStatus)
-	assert.Equal(t, 2, detail.PodCount)
+	assert.Equal(t, "ready", detail.WorkloadStatus)
 	require.Len(t, detail.ServiceEndpoints, 1)
 
 	runtime := detail.Runtime
-	assert.Equal(t, "Ready", runtime.Status)
+	assert.Equal(t, "ready", runtime.Status)
 	assert.Equal(t, "agent", runtime.Type)
 	assert.Equal(t, "http://sample-support-agent.agent-ops-demo.svc.cluster.local:8080", runtime.EndpointURL)
-
-	require.NotNil(t, detail.AgentCard)
-	assert.Equal(t, "Sample Support Agent", detail.AgentCard.Name)
-	assert.Equal(t, "1.0.0", detail.AgentCard.Version)
-	assert.Contains(t, detail.AgentCard.AgentCardURL, "/.well-known/agent-card.json")
-	assert.Equal(t, "https://sample-support-agent.apps.example.com/.well-known/agent-card.json", detail.AgentCard.ExternalAgentCardURL)
-	assert.Equal(t, []string{"Bearer"}, detail.AgentCard.AuthenticationMethods)
-	assert.Equal(t, []string{"summarizer"}, detail.AgentCard.LinkedSkills)
-	assert.Equal(t, []string{"weather_"}, detail.AgentCard.ToolConnections)
+	assert.Equal(t, "Sample Support Agent", detail.DisplayName)
+	assert.Equal(t, "langgraph", detail.Framework)
+	assert.NotEmpty(t, detail.Conditions)
 }
 
 func TestGetAgentRuntimeDetailHandler_NotFound(t *testing.T) {

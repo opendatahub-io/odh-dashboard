@@ -10,6 +10,7 @@ import ClusterSettingsCard from '~/app/components/ClusterSettingsCard';
 import ComponentsCard from '~/app/components/ComponentsCard';
 import ConnectionTypesCard from '~/app/components/ConnectionTypesCard';
 import AllowedUsersCard from '~/app/components/AllowedUsersCard';
+import AuthProbeCard from '~/app/components/AuthProbeCard';
 import { useBffStatus } from '~/app/context/BffStatusContext';
 
 const MainPage: React.FC = () => {
@@ -35,6 +36,9 @@ const MainPage: React.FC = () => {
               <Stack hasGutter>
                 <StackItem>
                   <SessionStatusCard />
+                </StackItem>
+                <StackItem>
+                  <AuthProbeCard />
                 </StackItem>
                 <StackItem>
                   <NamespacesCard />

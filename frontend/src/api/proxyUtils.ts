@@ -1,6 +1,6 @@
+import type { EitherOrNone } from '@odh-dashboard/foundation';
 import { mergeRequestInit } from '#~/api/apiMergeUtils';
 import { K8sAPIOptions } from '#~/k8sTypes';
-import { EitherOrNone } from '#~/typeHelpers';
 
 /**
  * Thrown when a proxy call receives a transient HTTP error (e.g. 502/503) from the

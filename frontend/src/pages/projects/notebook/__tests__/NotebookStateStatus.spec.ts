@@ -204,7 +204,7 @@ describe('getStatusSubtitle', () => {
       ).toContain('attempt 3');
     });
 
-    it('should return generic requeued message when no requeueInfo', () => {
+    it('should return queue waiting message when no requeueInfo', () => {
       expect(
         getStatusSubtitle({
           isStarting: false,
@@ -214,7 +214,7 @@ describe('getStatusSubtitle', () => {
             status: KueueWorkloadStatus.Requeued,
           },
         }),
-      ).toBe('Re-queued, waiting to retry');
+      ).toBe('Waiting for quota in the queue');
     });
 
     it('should return null when status is not in override list (e.g. Running)', () => {
@@ -226,6 +226,63 @@ describe('getStatusSubtitle', () => {
           kueueStatus: { status: KueueWorkloadStatus.Running },
         }),
       ).toBeNull();
+    });
+
+    it.each([
+      [
+        KueueWorkloadStatus.Queued,
+        'insufficient unused quota',
+        3,
+        'Waiting for quota in test-queue (3rd in test-queue)',
+      ],
+      [
+        KueueWorkloadStatus.Inadmissible,
+        'queue not found',
+        1,
+        'Queue test-queue does not exist (1st in test-queue)',
+      ],
+    ])(
+      'should append queue position for %s status when position is available',
+      (status, message, position, expected) => {
+        expect(
+          getStatusSubtitle({
+            isStarting: false,
+            isStopping: false,
+            notebookStatus: null,
+            kueueStatus: { status, message, queueName: 'test-queue', queuePosition: position },
+          }),
+        ).toBe(expected);
+      },
+    );
+
+    it('should not append position for non-pending statuses even if queuePosition is set', () => {
+      expect(
+        getStatusSubtitle({
+          isStarting: false,
+          isStopping: false,
+          notebookStatus: null,
+          kueueStatus: {
+            status: KueueWorkloadStatus.Failed,
+            message: 'error occurred',
+            queueName: 'test-queue',
+            queuePosition: 5,
+          },
+        }),
+      ).toBe('error occurred');
+    });
+
+    it('should not append position when queuePosition is undefined', () => {
+      expect(
+        getStatusSubtitle({
+          isStarting: false,
+          isStopping: false,
+          notebookStatus: null,
+          kueueStatus: {
+            status: KueueWorkloadStatus.Queued,
+            queueName: 'test-queue',
+          },
+        }),
+      ).toBe('Waiting for quota in test-queue');
     });
   });
 

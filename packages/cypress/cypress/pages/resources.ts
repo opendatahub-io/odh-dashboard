@@ -183,20 +183,17 @@ class LearningCenterToolbar extends Contextual<HTMLElement> {
   selectResourceType(name: string) {
     this.find()
       .findByTestId('resources-select-type')
-      .findByRole('button', { name: 'Options menu' })
+      .findByRole('button', { name: 'Select sort type' })
       .findSelectOption(name)
       .click();
   }
 
-  private findSortOrderToggle() {
-    return this.find()
-      .findByTestId('resources-order-type')
-      .findByRole('button', { name: 'Options menu' })
-      .click();
-  }
-
   selectResourceOrder(order: string) {
-    this.findSortOrderToggle().parents().findByTestId(order).click();
+    this.find()
+      .findByTestId('resources-order-type')
+      .findByRole('button', { name: 'Select sort order' })
+      .findSelectOptionByTestId(order)
+      .click();
   }
 }
 

@@ -65,3 +65,31 @@ func TestIsConnectionTypeConfigMap_FalseValues(t *testing.T) {
 	}
 	assert.False(t, isConnectionTypeConfigMap(cm))
 }
+
+func TestRequireConnectionTypeLabels_Valid(t *testing.T) {
+	cm := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Labels: map[string]string{
+				models.LabelDashboardResource: "true",
+				models.LabelConnectionType:    "true",
+			},
+		},
+	}
+	assert.Nil(t, requireConnectionTypeLabels(cm))
+}
+
+func TestRequireConnectionTypeLabels_Missing(t *testing.T) {
+	cm := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{},
+	}
+	resp := requireConnectionTypeLabels(cm)
+	assert.NotNil(t, resp)
+	assert.False(t, resp.Success)
+	assert.Contains(t, resp.Error, "connection-type labels")
+}
+
+func TestRequireConnectionTypeLabels_Nil(t *testing.T) {
+	resp := requireConnectionTypeLabels(nil)
+	assert.NotNil(t, resp)
+	assert.False(t, resp.Success)
+}

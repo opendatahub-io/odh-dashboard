@@ -8,7 +8,7 @@ import {
   Alert,
   AlertVariant,
 } from '@patternfly/react-core';
-import SimpleSelect, { SimpleSelectOption } from '#~/components/SimpleSelect';
+import SimpleSelect, { SimpleSelectOption } from '@odh-dashboard/ui-core/components/SimpleSelect';
 import { relativeTime } from '#~/utilities/time';
 import { useNIMCompatiblePVCs, NIMPVCInfo } from './useNIMCompatiblePVCs';
 

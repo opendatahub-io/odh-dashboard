@@ -27,6 +27,11 @@ type K8sOptions = { model: K8sModelCommon } & QueryOptions & Pick<RouteMatcherOp
 declare global {
   namespace Cypress {
     interface Chainable {
+      wsSend: (
+        matcher: string | { pathname: string; searchParams?: URLSearchParams },
+        data: string | object,
+      ) => void;
+
       /**
        * Send a web socket K8s resource.
        * By default all the URL will include the namespace but not the name of the provided resource.

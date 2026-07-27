@@ -2,6 +2,7 @@
 import * as React from 'react';
 import { MessageProps, ToolResponseProps } from '@patternfly/chatbot';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { Modality } from '~/app/tracking/playgroundMultimodalTrackingConstants';
 import userAvatar from '~/app/bgimages/user_avatar.svg';
 import botAvatar from '~/app/bgimages/bot_avatar.svg';
 import { getId, getLlamaModelDisplayName, splitLlamaModelId } from '~/app/utilities/utils';
@@ -39,6 +40,7 @@ import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
 import { useChatbotConfigStore } from '~/app/Chatbot/store';
 import { StreamingThinkingSection } from '~/app/Chatbot/components/StreamingThinkingSection';
+import { PLAYGROUND_AGENT_EVENTS } from '~/app/tracking/playgroundAgentTrackingConstants';
 
 export type GuardrailsConfig = {
   enabled: boolean;
@@ -99,12 +101,19 @@ interface UseChatbotMessagesProps {
   guardrailsConfig?: GuardrailsConfig;
   // MaaS subscription name for API key generation
   subscription?: string;
+  // Tracing
+  isTracingEnabled?: boolean;
   // Compare-mode analytics
   configIndex?: number;
   isCompareMode?: boolean;
   isGuardrailEnabled?: boolean;
   promptVersion?: number;
   promptName?: string;
+  // Multimodal tracking
+  hasAudioInCurrentMessage?: boolean;
+  hasImageInConversation?: boolean;
+  hasAudioInConversation?: boolean;
+  isProfileDirty?: boolean;
 }
 
 const useChatbotMessages = ({
@@ -125,11 +134,16 @@ const useChatbotMessages = ({
   namespace,
   guardrailsConfig,
   subscription,
+  isTracingEnabled,
   configIndex,
   isCompareMode,
   isGuardrailEnabled,
   promptVersion,
   promptName,
+  hasAudioInCurrentMessage,
+  hasImageInConversation,
+  hasAudioInConversation,
+  isProfileDirty,
 }: UseChatbotMessagesProps): UseChatbotMessagesReturn => {
   const [messages, setMessages] = React.useState<ChatbotMessageProps[]>([]);
   const [isMessageSendButtonDisabled, setIsMessageSendButtonDisabled] = React.useState(false);
@@ -150,14 +164,19 @@ const useChatbotMessages = ({
   const messagesRef = React.useRef<ChatbotMessageProps[]>(messages);
   // Keep handleMessageSend in a ref for handleRetry to access latest function
   const handleMessageSendRef = React.useRef<
-    ((message: string, compareID?: string) => Promise<void>) | null
+    | ((
+        message: string,
+        compareID?: string,
+        fileId?: string,
+        imagePreview?: { previewUrl: string; fileName: string },
+      ) => Promise<void>)
+    | null
   >(null);
-  // Keep bot message ID in a ref for handleRetry to access latest value
-  const botMessageIdRef = React.useRef<string | undefined>(undefined);
   const multimodalContentRef = React.useRef<Map<string, InputContentPart[]>>(new Map());
   const imagePreviewRef = React.useRef<Map<string, { previewUrl: string; fileName: string }>>(
     new Map(),
   );
+  const sessionIdRef = React.useRef<string>(getId());
   const { api, apiAvailable } = useGenAiAPI();
   const { aiModels } = React.useContext(ChatbotContext);
 
@@ -282,6 +301,8 @@ const useChatbotMessages = ({
       fireMiscTrackingEvent('Playground Query Stopped', {
         isStreaming: isStreamingEnabled,
         isRag: isRagEnabled,
+        hasImage: hasImageInConversation ?? false,
+        hasAudio: hasAudioInConversation ?? false,
       });
 
       // Clear any pending streaming updates to prevent them from overwriting the stop message
@@ -292,7 +313,7 @@ const useChatbotMessages = ({
       abortControllerRef.current.abort();
       abortControllerRef.current = null;
     }
-  }, [isStreamingEnabled, isRagEnabled]);
+  }, [isStreamingEnabled, isRagEnabled, hasImageInConversation, hasAudioInConversation]);
 
   const clearConversation = React.useCallback(() => {
     // Mark that we're clearing (not just stopping)
@@ -390,18 +411,22 @@ const useChatbotMessages = ({
       setIsStreamingWithoutContent(true);
     }
 
+    let botMessageId: string | undefined;
+
     try {
       // Create placeholder bot message FIRST (before any validation that could throw)
       // This ensures error handling can update the message consistently
-      botMessageIdRef.current = getId();
-      const placeholderBotMessage: MessageProps = {
-        id: botMessageIdRef.current,
+      botMessageId = getId();
+      const requestStartTime = Date.now();
+      const placeholderBotMessage: ChatbotMessageProps = {
+        id: botMessageId,
         role: 'bot',
         content: '',
         name: modelDisplayName,
         avatar: botAvatar,
         isLoading: true,
         timestamp: new Date().toLocaleString(),
+        metrics: { latency_ms: 0 },
       };
       setMessages((prevMessages) => [...prevMessages, placeholderBotMessage]);
 
@@ -427,6 +452,7 @@ const useChatbotMessages = ({
             vector_store_ids: [currentVectorStoreId],
           }),
         chat_context: messages
+          .filter((msg) => msg.content && !msg.errorClassification)
           .map((msg) => ({
             role:
               msg.role === ChatMessageRole.USER ? ChatMessageRole.USER : ChatMessageRole.ASSISTANT,
@@ -444,6 +470,22 @@ const useChatbotMessages = ({
         ...(subscription && { subscription }),
       };
 
+      const hasImage = !!fileId;
+      const hasAudio = hasAudioInCurrentMessage ?? false;
+      const modality: Modality = (() => {
+        if (hasImage && hasAudio) {
+          return 'imageaudio';
+        }
+        if (hasImage) {
+          return 'image';
+        }
+        if (hasAudio) {
+          return 'audio';
+        }
+        return 'text';
+      })();
+
+      const { profileApplied } = useChatbotConfigStore.getState();
       fireMiscTrackingEvent('Playground Query Submitted', {
         configID: configIndex ?? 0,
         compareMode: isCompareMode ?? false,
@@ -458,6 +500,16 @@ const useChatbotMessages = ({
         promptName: promptName ?? '',
         ragSource: isRagEnabled ? (knowledgeMode === 'inline' ? 'upload' : 'vectorstore') : '',
         selectedCollectionId: isRagEnabled ? (currentVectorStoreId ?? '') : '',
+        hasImage,
+        hasAudio,
+        modality,
+        hasLoadedAgent: profileApplied,
+        agentSavedState: profileApplied
+          ? isProfileDirty
+            ? 'unsaved_changes'
+            : 'saved'
+          : 'temporary_session',
+        tracingEnabled: !!isTracingEnabled,
       });
 
       if (!apiAvailable) {
@@ -467,11 +519,19 @@ const useChatbotMessages = ({
       // Create abort controller for this request (works for both streaming and non-streaming)
       abortControllerRef.current = new AbortController();
 
+      const tracingHeaders: Record<string, string> = isTracingEnabled
+        ? { 'X-Session-ID': sessionIdRef.current }
+        : {};
+
       if (isStreamingEnabled) {
         // Handle streaming response with line-by-line display like ChatGPT
         const completeLines: string[] = [];
         let currentPartialLine = '';
         let isInReasoningPhase = false;
+
+        // Progressive metrics tracking (updates per SSE event)
+        let firstTokenTime: number | undefined;
+        let streamedResponseBytes = 0;
 
         // Separate accumulators for reasoning content (streamed inside collapsible)
         const reasoningLines: string[] = [];
@@ -487,7 +547,7 @@ const useChatbotMessages = ({
 
           setMessages((prevMessages) =>
             prevMessages.map((msg) =>
-              msg.id === botMessageIdRef.current
+              msg.id === botMessageId
                 ? {
                     ...msg,
                     content: '',
@@ -524,14 +584,23 @@ const useChatbotMessages = ({
               }
             : {};
 
+          const progressiveMetrics: ResponseMetrics = {
+            latency_ms: Date.now() - requestStartTime,
+            ...(firstTokenTime && {
+              time_to_first_token_ms: firstTokenTime - requestStartTime,
+            }),
+            response_size_bytes: streamedResponseBytes,
+          };
+
           setMessages((prevMessages) =>
             prevMessages.map((msg) =>
-              msg.id === botMessageIdRef.current
+              msg.id === botMessageId
                 ? {
                     ...msg,
                     content: displayContent,
                     isLoading: !hasContent,
                     ...thinkingExtra,
+                    metrics: progressiveMetrics,
                   }
                 : msg,
             ),
@@ -540,6 +609,7 @@ const useChatbotMessages = ({
 
         const streamingResponse = await api.createResponse(responsesPayload, {
           abortSignal: abortControllerRef.current.signal,
+          headers: tracingHeaders,
           onStreamData: (chunk: string, clearPrevious?: boolean, isReasoning?: boolean) => {
             if (clearPrevious) {
               completeLines.length = 0;
@@ -584,6 +654,14 @@ const useChatbotMessages = ({
             // Track if we have any content
             const hasAnyContent =
               completeLines.length > 0 || currentPartialLine.length > 0 || chunk.length > 0;
+
+            // Record first answer token time for TTFT
+            if (chunk && !firstTokenTime) {
+              firstTokenTime = Date.now();
+            }
+
+            // Accumulate response payload size
+            streamedResponseBytes += new TextEncoder().encode(chunk).length;
 
             // On first non-empty chunk, hide loading dots
             if (chunk && isStreamingWithoutContent) {
@@ -642,7 +720,7 @@ const useChatbotMessages = ({
 
         setMessages((prevMessages) =>
           prevMessages.map((msg) =>
-            msg.id === botMessageIdRef.current
+            msg.id === botMessageId
               ? {
                   ...msg,
                   content: streamingResponse.content,
@@ -657,7 +735,9 @@ const useChatbotMessages = ({
                   ...(streamingResponse.citationMap && {
                     citationMap: streamingResponse.citationMap,
                   }),
-                  ...(streamingResponse.metrics && { metrics: streamingResponse.metrics }),
+                  ...(streamingResponse.metrics && {
+                    metrics: { ...msg.metrics, ...streamingResponse.metrics },
+                  }),
                   ...(streamingResponse.fileSearchData && {
                     fileSearchData: streamingResponse.fileSearchData,
                   }),
@@ -673,6 +753,7 @@ const useChatbotMessages = ({
         // Handle non-streaming response
         const response = await api.createResponse(responsesPayload, {
           abortSignal: abortControllerRef.current.signal,
+          headers: tracingHeaders,
         });
 
         const toolResponse = response.toolCallData
@@ -687,7 +768,7 @@ const useChatbotMessages = ({
         // Update the placeholder message with the full response
         setMessages((prevMessages) =>
           prevMessages.map((msg) =>
-            msg.id === botMessageIdRef.current
+            msg.id === botMessageId
               ? {
                   ...msg,
                   content: response.content || 'No response received',
@@ -755,6 +836,15 @@ const useChatbotMessages = ({
 
       if (apiError.error.code === GUARDRAIL_ERROR_CODES.INPUT_VIOLATION) {
         fireMiscTrackingEvent('Guardrail Activated', { violationDetected: true });
+        fireMiscTrackingEvent(PLAYGROUND_AGENT_EVENTS.CHAT_BLOCKED, {
+          agentID: useChatbotConfigStore.getState().loadedProfileId ?? '',
+          blockType: 'input',
+        });
+      } else if (apiError.error.code === GUARDRAIL_ERROR_CODES.OUTPUT_VIOLATION) {
+        fireMiscTrackingEvent(PLAYGROUND_AGENT_EVENTS.CHAT_BLOCKED, {
+          agentID: useChatbotConfigStore.getState().loadedProfileId ?? '',
+          blockType: 'output',
+        });
       }
 
       // Check if this was a user-initiated stop (stop button, not clear conversation)
@@ -763,12 +853,12 @@ const useChatbotMessages = ({
         (isAbortError || errorMessage === 'Response stopped by user');
 
       // Handle user-stopped messages (not errors, just user action)
-      if (wasUserStopped) {
-        if (isStreamingEnabled && botMessageIdRef.current) {
+      if (wasUserStopped && botMessageId) {
+        if (isStreamingEnabled) {
           // For streaming, append "You stopped this message" to existing content
           setMessages((prevMessages) =>
             prevMessages.map((msg) => {
-              if (msg.id === botMessageIdRef.current) {
+              if (msg.id === botMessageId) {
                 const stoppedContent = msg.content
                   ? `${msg.content}\n\n*You stopped this message*`
                   : '*You stopped this message*';
@@ -804,47 +894,25 @@ const useChatbotMessages = ({
         // TODO: Add toolName if error is from MCP tool call
       });
 
-      // Retry handler - resends the same prompt (uses refs to avoid stale closure)
-      // botMessageIdRef.current is set before errors can occur, so it's always available when retry is called
       const handleRetry = () => {
-        // Read latest messages from ref (avoid stale closure)
-        const currentMessages = messagesRef.current;
-        const lastUserMessage = currentMessages
-          .slice()
-          .reverse()
-          .find((msg) => msg.role === 'user');
-
-        if (!lastUserMessage?.content) {
-          return; // No user message to retry
+        if (!botMessageId) {
+          return;
         }
 
-        const userContent = lastUserMessage.content;
+        setMessages((prevMessages) => prevMessages.filter((msg) => msg.id !== botMessageId));
 
-        // Remove the error message (pure state update)
-        setMessages((prevMessages) =>
-          prevMessages.filter((msg) => msg.id !== botMessageIdRef.current),
-        );
-
-        // Schedule retry outside the updater, with guard against clearing
         setTimeout(() => {
-          if (!isClearingRef.current) {
-            // Verify messages still exist and include the user message (read from ref)
-            const stillHasUserMessage = messagesRef.current.some(
-              (msg) => msg.id === lastUserMessage.id && msg.role === 'user',
-            );
-            // Call latest handleMessageSend from ref
-            if (stillHasUserMessage && handleMessageSendRef.current) {
-              handleMessageSendRef.current(userContent);
-            }
+          if (!isClearingRef.current && handleMessageSendRef.current) {
+            handleMessageSendRef.current(message, compareID, fileId, imagePreview);
           }
         }, 0);
       };
 
-      if (isStreamingEnabled && botMessageIdRef.current) {
+      if (isStreamingEnabled && botMessageId) {
         // For streaming errors, update existing bot message with error classification
         setMessages((prevMessages) =>
           prevMessages.map((msg) => {
-            if (msg.id === botMessageIdRef.current) {
+            if (msg.id === botMessageId) {
               // Determine if this is a streaming interruption (had some content)
               const hadContent = msg.content && msg.content.length > 0;
 
@@ -869,11 +937,11 @@ const useChatbotMessages = ({
             return msg;
           }),
         );
-      } else {
+      } else if (botMessageId) {
         // For non-streaming, update the placeholder bot message with error classification
         setMessages((prevMessages) =>
           prevMessages.map((msg) =>
-            msg.id === botMessageIdRef.current
+            msg.id === botMessageId
               ? {
                   ...msg,
                   content: '', // No content, error alert will be shown
@@ -886,6 +954,10 @@ const useChatbotMessages = ({
         );
       }
     } finally {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
       setIsMessageSendButtonDisabled(false);
       setIsLoading(false);
       setIsStreamingWithoutContent(false);

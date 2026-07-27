@@ -6,30 +6,32 @@ import {
   FormHelperText,
   HelperText,
   HelperTextItem,
+  TextArea,
   TextInput,
   ValidatedOptions,
 } from '@patternfly/react-core';
 import FormSection from '@odh-dashboard/internal/components/pf-overrides/FormSection';
 import { useAgentDeployWizardContext } from '~/app/deployWizard/useAgentDeployWizard';
 import DeployWizardSelectField from '~/app/deployWizard/DeployWizardSelectField';
-import { isValidAgentName, isValidPullSecretName } from '~/app/deployWizard/utils';
+import { getAgentNameError, isValidPullSecretName } from '~/app/deployWizard/utils';
 import {
+  AGENT_OPS_PROJECTS_LOAD_ERROR_MESSAGE,
   getEffectiveProjectNamespaces,
   useAgentOpsProjectNamespaces,
 } from '~/app/hooks/useAgentOpsProjectNamespaces';
 
 const ImageSelectionStep: React.FC = () => {
   const { formData, setFormField, setAgentNameManuallyEdited } = useAgentDeployWizardContext();
-  const { projectNamespaces, isLoading, onProjectSelection } = useAgentOpsProjectNamespaces();
+  const { projectNamespaces, isLoading, loadError, onProjectSelection } =
+    useAgentOpsProjectNamespaces();
 
   const effectiveNamespaces = React.useMemo(
     () => getEffectiveProjectNamespaces(projectNamespaces, isLoading, formData.project),
     [projectNamespaces, isLoading, formData.project],
   );
 
-  const agentNameInvalid =
-    formData.agentName.trim().length > 0 && !isValidAgentName(formData.agentName);
-
+  const agentNameError = getAgentNameError(formData.agentName);
+  const agentNameInvalid = formData.agentName.trim().length > 0 && agentNameError.length > 0;
   const pullSecretInvalid =
     formData.pullSecret.trim().length > 0 && !isValidPullSecretName(formData.pullSecret);
 
@@ -53,7 +55,15 @@ const ImageSelectionStep: React.FC = () => {
           </DeployWizardSelectField>
           <FormHelperText>
             <HelperText>
-              <HelperTextItem>The namespace where the agent will be deployed</HelperTextItem>
+              {loadError ? (
+                <HelperTextItem id="deploy-agent-project-error" variant="error">
+                  {AGENT_OPS_PROJECTS_LOAD_ERROR_MESSAGE}
+                </HelperTextItem>
+              ) : (
+                <HelperTextItem id="deploy-agent-project-helper">
+                  The namespace where the agent will be deployed
+                </HelperTextItem>
+              )}
             </HelperText>
           </FormHelperText>
         </FormGroup>
@@ -62,10 +72,11 @@ const ImageSelectionStep: React.FC = () => {
             id="deploy-agent-container-image"
             data-testid="deploy-agent-container-image"
             value={formData.containerImage}
+            aria-describedby="deploy-agent-container-image-helper"
             onChange={(_event, value) => setFormField('containerImage', value)}
             placeholder="quay.io/myorg/my-agent"
           />
-          <FormHelperText>
+          <FormHelperText id="deploy-agent-container-image-helper">
             <HelperText>
               <HelperTextItem>
                 Full image path without tag (e.g., quay.io/myorg/my-agent)
@@ -78,10 +89,11 @@ const ImageSelectionStep: React.FC = () => {
             id="deploy-agent-image-tag"
             data-testid="deploy-agent-image-tag"
             value={formData.imageTag}
+            aria-describedby="deploy-agent-image-tag-helper"
             onChange={(_event, value) => setFormField('imageTag', value)}
             placeholder="latest"
           />
-          <FormHelperText>
+          <FormHelperText id="deploy-agent-image-tag-helper">
             <HelperText>
               <HelperTextItem>Tag to apply to the image (e.g., latest, v1.0.0)</HelperTextItem>
             </HelperText>
@@ -102,22 +114,41 @@ const ImageSelectionStep: React.FC = () => {
               setFormField('agentName', value);
             }}
           />
-          <FormHelperText id="deploy-agent-name-helper">
-            <HelperText>
-              <HelperTextItem>
-                Kubernetes resource name. Auto-generated from the image name; you can edit it.
-              </HelperTextItem>
-            </HelperText>
-          </FormHelperText>
-          {agentNameInvalid && (
+          {agentNameInvalid ? (
             <FormHelperText>
               <HelperText>
                 <HelperTextItem id="deploy-agent-name-error" variant="error">
-                  Agent name must be a valid DNS-1123 label.
+                  {agentNameError}
+                </HelperTextItem>
+              </HelperText>
+            </FormHelperText>
+          ) : (
+            <FormHelperText id="deploy-agent-name-helper">
+              <HelperText>
+                <HelperTextItem>
+                  Kubernetes resource name. Auto-generated from the image name; you can edit it.
                 </HelperTextItem>
               </HelperText>
             </FormHelperText>
           )}
+        </FormGroup>
+        <FormGroup label="Description" fieldId="deploy-agent-description">
+          <TextArea
+            id="deploy-agent-description"
+            data-testid="deploy-agent-description"
+            value={formData.description}
+            maxLength={512}
+            aria-describedby="deploy-agent-description-helper"
+            onChange={(_event, value) => setFormField('description', value)}
+            placeholder="Optional summary of what this agent does"
+          />
+          <FormHelperText id="deploy-agent-description-helper">
+            <HelperText>
+              <HelperTextItem>
+                Optional human-readable summary shown on the agent detail page.
+              </HelperTextItem>
+            </HelperText>
+          </FormHelperText>
         </FormGroup>
         <FormGroup label="Pull secret" fieldId="deploy-agent-pull-secret">
           <TextInput

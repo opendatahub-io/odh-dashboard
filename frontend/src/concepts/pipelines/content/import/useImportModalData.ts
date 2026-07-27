@@ -1,10 +1,12 @@
 import React from 'react';
+import useGenericObjectState, {
+  GenericObjectState,
+} from '@odh-dashboard/ui-core/utilities/useGenericObjectState';
 import {
   PipelineUploadOption,
   generatePipelineVersionName,
 } from '#~/concepts/pipelines/content/import/utils';
 import { PipelineKF } from '#~/concepts/pipelines/kfTypes';
-import useGenericObjectState, { GenericObjectState } from '#~/utilities/useGenericObjectState';
 
 export type PipelineImportData = {
   displayName: string;

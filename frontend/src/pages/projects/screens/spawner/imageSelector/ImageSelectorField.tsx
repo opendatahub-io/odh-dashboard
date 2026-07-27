@@ -5,6 +5,7 @@ import { ImageStreamKind } from '#~/k8sTypes';
 import {
   getDefaultVersionForImageStream,
   getExistingVersionsForImageStream,
+  isHiddenOOTBImageStream,
   isInvalidBYONImageStream,
 } from '#~/pages/projects/screens/spawner/spawnerUtils';
 import { ImageStreamAndVersion } from '#~/types';
@@ -85,7 +86,10 @@ const ImageSelectorField: React.FC<ImageSelectorFieldProps> = ({
       <ImageStreamSelector
         currentProjectStreams={currentProjectImageStreams}
         currentProject={currentProject}
-        imageStreams={imageStreams.filter((imageStream) => !isInvalidBYONImageStream(imageStream))}
+        imageStreams={imageStreams.filter(
+          (imageStream) =>
+            !isInvalidBYONImageStream(imageStream) && !isHiddenOOTBImageStream(imageStream),
+        )}
         buildStatuses={buildStatuses}
         onImageStreamSelect={onImageStreamSelect}
         selectedImageStream={selectedImage.imageStream}

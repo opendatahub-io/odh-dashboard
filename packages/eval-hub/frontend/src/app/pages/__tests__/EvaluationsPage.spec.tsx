@@ -32,11 +32,11 @@ jest.mock('~/app/hooks/useUser', () => ({
   default: () => mockUseUser(),
 }));
 
-jest.mock('@odh-dashboard/internal/components/WhosMyAdministrator', () => {
-  const WhosMyAdministrator = () => <div data-testid="whos-my-administrator" />;
-  WhosMyAdministrator.displayName = 'WhosMyAdministrator';
-  return WhosMyAdministrator;
-});
+jest.mock('@odh-dashboard/ui-core', () => ({
+  ...jest.requireActual('@odh-dashboard/ui-core'),
+  WhosMyAdministrator: () => <div data-testid="whos-my-administrator" />,
+  ...require('~/__tests__/unit/testUtils/mocks').mockApplicationsPageModule(),
+}));
 
 jest.mock('mod-arch-core', () => ({
   useNamespaceSelector: jest.fn().mockReturnValue({
@@ -60,10 +60,6 @@ jest.mock('~/app/context/CollectionsContext', () => ({
     refresh: jest.fn(),
   }),
 }));
-
-jest.mock('@odh-dashboard/internal/pages/ApplicationsPage', () =>
-  require('~/__tests__/unit/testUtils/mocks').mockApplicationsPageModule(),
-);
 
 jest.mock('@odh-dashboard/internal/concepts/projects/ProjectIconWithSize', () =>
   require('~/__tests__/unit/testUtils/mocks').mockProjectIconWithSizeModule(),

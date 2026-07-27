@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
+import { FetchStateObject } from '@odh-dashboard/ui-core/hooks/useFetch';
 import { PrometheusQueryRangeResponseDataResult, PrometheusQueryRangeResultValue } from '#~/types';
-import { FetchStateObject } from '#~/utilities/useFetch';
 import { ModelMetricType } from '#~/pages/modelServing/screens/metrics/ModelServingMetricsContext';
 import { PerformanceMetricType } from '#~/pages/modelServing/screens/types';
 import { RefreshIntervalTitle, TimeframeTitle } from '#~/concepts/metrics/types';

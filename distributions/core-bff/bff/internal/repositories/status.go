@@ -79,8 +79,6 @@ func (r *StatusRepository) GetStatus(
 	}, nil
 }
 
-const systemAuthenticated = "system:authenticated"
-
 // resolveIsAllowed determines if a non-admin user is allowed to access the dashboard.
 // 1. If Auth CRD is absent (discovery error): all users allowed (no group restrictions).
 // 2. If Auth CR has system:authenticated in allowedGroups: all authenticated users allowed.
@@ -154,7 +152,7 @@ func hasSystemAuthenticatedGroup(auth *AuthConfig) bool {
 		return false
 	}
 	for _, g := range auth.AllowedGroups {
-		if g == systemAuthenticated {
+		if g == models.SystemAuthenticated {
 			return true
 		}
 	}

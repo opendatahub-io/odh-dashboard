@@ -63,12 +63,34 @@ describe('Model Catalog Performance Filters API Behavior', () => {
     });
 
     it('should NOT include performance filter params in /models requests when toggle is OFF', () => {
-      cy.intercept('GET', '**/model_catalog/models*').as('getModels');
+      const capturedUrls: string[] = [];
 
-      triggerFilterRefresh();
+      cy.intercept('GET', '**/model_catalog/models*', (req) => {
+        capturedUrls.push(req.url);
+        req.continue();
+      });
 
-      cy.wait('@getModels').then((interception) => {
-        const { url } = interception.request;
+      modelCatalog.findFilter('Task').should('be.visible');
+      modelCatalog.findModelCatalogDetailLink().should('have.length.at.least', 1);
+
+      let baselineCount = 0;
+      cy.then(() => {
+        baselineCount = capturedUrls.length;
+      });
+
+      modelCatalog.findFilterCheckbox('Task', 'text-generation').click();
+
+      cy.wrap(null).should(() => {
+        const postClickUrls = capturedUrls.slice(baselineCount);
+        expect(
+          postClickUrls,
+          'models request should fire after filter click',
+        ).to.have.length.at.least(1);
+
+        const url = postClickUrls.find((u) => u.includes('task')) ?? postClickUrls[0];
+
+        // Basic filters should still work
+        expect(url).to.include('task');
 
         // Performance filter params should NOT be present
         expect(url).to.not.include('artifacts.use_case');
@@ -81,9 +103,6 @@ describe('Model Catalog Performance Filters API Behavior', () => {
         expect(url).to.not.include('modelcar_image_size');
         expect(url).to.not.include('targetRPS');
         expect(url).to.not.include('latencyProperty');
-
-        // Basic filters should still work
-        expect(url).to.include('task');
       });
     });
 
@@ -136,7 +155,8 @@ describe('Model Catalog Performance Filters API Behavior', () => {
 
       cy.wait('@getPerformanceArtifactsWithFilter').then((interception) => {
         const { url } = interception.request;
-        expect(url).to.include('recommendations=true');
+        expect(url).to.include('orderBy=');
+        expect(url).to.not.include('recommendations=');
       });
     });
 
@@ -263,7 +283,7 @@ describe('Model Catalog Performance Filters API Behavior', () => {
     });
   });
 
-  describe('Reset all defaults functionality', () => {
+  describe('Reset all filters functionality', () => {
     beforeEach(() => {
       visitWithPerformanceToggle(true);
     });
@@ -280,8 +300,8 @@ describe('Model Catalog Performance Filters API Behavior', () => {
       modelCatalog.openColdStartLatencyFilter();
       modelCatalog.applyColdStartLatencyFilter();
 
-      // Click Reset all defaults button in the toolbar
-      cy.findByRole('button', { name: 'Reset all defaults' }).click();
+      // Click Reset all filters button in the toolbar
+      cy.findByRole('button', { name: 'Reset all filters' }).click();
 
       // Verify workload type is reset - should NOT show Code Fixing
       cy.findByTestId(PERFORMANCE_FILTER_TEST_IDS.workloadType)
@@ -302,8 +322,8 @@ describe('Model Catalog Performance Filters API Behavior', () => {
       modelCatalog.selectLatencyMetric('E2E');
       modelCatalog.clickApplyFilter();
 
-      // Click 'Reset all defaults (PatternFly's native button)
-      cy.findByRole('button', { name: 'Reset all defaults' }).click();
+      // Click 'Reset all filters' (PatternFly's native button)
+      cy.findByRole('button', { name: 'Reset all filters' }).click();
 
       // Latency filter should be reset to default (TTFT, not E2E)
       cy.findByTestId(PERFORMANCE_FILTER_TEST_IDS.latency)
@@ -326,6 +346,25 @@ describe('Model Catalog Performance Filters API Behavior', () => {
       cy.wait('@getModelsWithColdStart').then((interception) => {
         const decodedUrl = decodeURIComponent(interception.request.url);
         expect(decodedUrl).to.include('cold_start_time_to_load_seconds');
+      });
+    });
+
+    it('should use AND (not OR) for cold-start filter to exclude non-matching models', () => {
+      visitWithPerformanceToggle(true);
+
+      modelCatalog.openColdStartLatencyFilter();
+      modelCatalog.applyColdStartLatencyFilter();
+
+      cy.intercept('GET', '**/model_catalog/models*').as('getModelsWithColdStartAnd');
+
+      triggerFilterRefresh();
+
+      cy.wait('@getModelsWithColdStartAnd').then((interception) => {
+        const decodedUrl = decodeURIComponent(interception.request.url);
+        const filterQuery = decodedUrl.match(/filterQuery=([^&]+)/)?.[1] ?? '';
+        expect(filterQuery).to.include('cold_start_time_to_load_seconds');
+        expect(filterQuery).to.not.include(' OR ');
+        expect(filterQuery).to.not.include('performance_sub_type');
       });
     });
 
@@ -419,6 +458,81 @@ describe('Model Catalog Performance Filters API Behavior', () => {
         const decodedUrl = decodeURIComponent(interception.request.url);
         expect(decodedUrl).to.include('modelcar_image_size');
       });
+    });
+  });
+
+  describe('Accessibility', () => {
+    it('should have no a11y violations when performance toggle is OFF', () => {
+      visitWithPerformanceToggle(false);
+
+      cy.testA11y({ exclude: ['.pf-v6-c-tooltip'] });
+    });
+
+    it('should have no a11y violations when performance toggle is ON', () => {
+      visitWithPerformanceToggle(true);
+
+      assertPerformanceFiltersVisible(true);
+
+      cy.testA11y({ exclude: ['.pf-v6-c-tooltip'] });
+    });
+
+    it('should have no a11y violations on Performance Insights tab with filters visible', () => {
+      visitWithPerformanceToggle(true);
+
+      navigateToPerformanceInsightsTab();
+
+      cy.findByTestId(PERFORMANCE_FILTER_TEST_IDS.hardwareTable).should('be.visible');
+      cy.findByTestId(PERFORMANCE_FILTER_TEST_IDS.workloadType).should('be.visible');
+
+      cy.testA11y({ exclude: ['.pf-v6-c-tooltip'] });
+    });
+
+    it('should have no a11y violations with latency filter dropdown open', () => {
+      visitWithPerformanceToggle(true);
+
+      navigateToPerformanceInsightsTab();
+
+      cy.findByTestId(PERFORMANCE_FILTER_TEST_IDS.hardwareTable).should('be.visible');
+
+      modelCatalog.openLatencyFilter();
+
+      cy.findByTestId('latency-filter-content').should('be.visible');
+
+      // Exclude .pf-v6-c-menu: PF Dropdown wraps content in a Menu container whose Slider,
+      // MenuToggle and InputGroup children have insufficient color-contrast (~1.3:1 vs 4.5:1
+      // WCAG AA minimum). This is a PatternFly framework issue, not application code.
+      cy.testA11y({ exclude: ['.pf-v6-c-tooltip', '.pf-v6-c-menu'] });
+    });
+
+    it('should have no a11y violations with cold start filter dropdown open', () => {
+      visitWithPerformanceToggle(true);
+
+      navigateToPerformanceInsightsTab();
+
+      cy.findByTestId(PERFORMANCE_FILTER_TEST_IDS.hardwareTable).should('be.visible');
+
+      modelCatalog.openColdStartLatencyFilter();
+
+      cy.findByTestId('cold-start-load-time-apply-filter').should('be.visible');
+
+      // Exclude .pf-v6-c-menu: PF Slider step-labels and input inside the dropdown panel
+      // fail color-contrast checks — this is a PatternFly framework issue.
+      cy.testA11y({ exclude: ['.pf-v6-c-tooltip', '.pf-v6-c-menu'] });
+    });
+
+    it('should have no a11y violations with max rps filter dropdown open', () => {
+      visitWithPerformanceToggle(true);
+
+      navigateToPerformanceInsightsTab();
+
+      cy.findByTestId(PERFORMANCE_FILTER_TEST_IDS.hardwareTable).should('be.visible');
+
+      cy.findByTestId(PERFORMANCE_FILTER_TEST_IDS.maxRps).click();
+
+      cy.findByTestId('max-rps-apply-filter').should('be.visible');
+
+      // Exclude .pf-v6-c-menu: same PF color-contrast issue as latency/cold-start filters.
+      cy.testA11y({ exclude: ['.pf-v6-c-tooltip', '.pf-v6-c-menu'] });
     });
   });
 

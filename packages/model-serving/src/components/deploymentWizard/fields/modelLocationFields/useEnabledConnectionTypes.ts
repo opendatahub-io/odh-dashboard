@@ -1,9 +1,9 @@
-import { ConnectionTypeConfigMapObj } from '@odh-dashboard/internal/concepts/connectionTypes/types';
 import {
   filterEnabledConnectionTypes,
   isModelServingCompatible,
   ModelServingCompatibleTypes,
-} from '@odh-dashboard/internal/concepts/connectionTypes/utils';
+} from '@odh-dashboard/k8s-core';
+import type { ConnectionTypeConfigMapObj } from '@odh-dashboard/k8s-core';
 import React from 'react';
 
 export const useEnabledModelServingConnectionTypes = (

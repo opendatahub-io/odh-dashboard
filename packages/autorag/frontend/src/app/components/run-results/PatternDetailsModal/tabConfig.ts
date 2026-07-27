@@ -1,5 +1,4 @@
-import type { AutoragPattern, TabDefinition } from '~/app/types/autoragPattern';
-import { humanize } from '~/app/utilities/utils';
+import type { TabDefinition } from '~/app/types/autoragPattern';
 import PatternInformationTab from './tabs/PatternInformationTab';
 import SampleQATab from './tabs/SampleQATab';
 import { createKeyValueTab } from './tabs/KeyValueTab';
@@ -7,66 +6,94 @@ import { createKeyValueTab } from './tabs/KeyValueTab';
 const OVERVIEW_KEY = 'pattern_information';
 const SAMPLE_QA_KEY = 'sample_qa';
 
-/**
- * Static tab definitions that are always present.
- */
-const FIXED_TABS: TabDefinition[] = [
+// When the backend adds a new settings section key, a matching entry must be
+// added here or the section will be silently omitted from the modal.
+export const TAB_DEFINITIONS: TabDefinition[] = [
   {
     key: OVERVIEW_KEY,
     label: 'Pattern information',
+    tooltip: 'Review pattern performance, evaluation metrics, and confidence intervals.',
+    description:
+      'Summarizes pattern name, iteration, run duration, final score, and confidence interval scores for this pattern.',
+    section: 'Pattern configuration',
     component: PatternInformationTab,
+  },
+  {
+    key: 'vector_store_binding',
+    label: 'Vector store binding',
+    tooltip:
+      'Vector store settings define where embedded document chunks are stored for retrieval at query time.',
+    description: 'Shows the vector store datasource type and collection name used by this pattern.',
+    section: 'Pattern configuration',
+    component: createKeyValueTab('vector_store_binding'),
+  },
+  {
+    key: 'chunking',
+    label: 'Chunking',
+    tooltip:
+      'Chunking parameters affect retrieval granularity and how much context is passed to the generation model.',
+    description:
+      'Shows how source documents are split into chunks, including method, size, and overlap.',
+    section: 'Pattern configuration',
+    component: createKeyValueTab('chunking'),
+  },
+  {
+    key: 'embedding',
+    label: 'Embedding',
+    tooltip:
+      'Embedding configuration determines how text is converted into vectors for similarity search and retrieval.',
+    description:
+      'Lists the embedding model ID, distance metric, dimensions, context length, timeout, and provider details.',
+    section: 'Pattern configuration',
+    component: createKeyValueTab('embedding'),
+  },
+  {
+    key: 'retrieval',
+    label: 'Retrieval',
+    tooltip:
+      'Retrieval settings control which chunks are selected and ranked before answer generation.',
+    description:
+      'Shows retrieval method, chunk count, search mode, and hybrid ranker settings used to select context.',
+    section: 'Retrieval & generation',
+    component: createKeyValueTab('retrieval'),
+  },
+  {
+    key: 'generation',
+    label: 'Generation',
+    tooltip:
+      'Generation settings define how the model formats context, user questions, and system instructions.',
+    description:
+      'Shows the generation model ID and prompt templates used to compose answers from retrieved context.',
+    section: 'Retrieval & generation',
+    component: createKeyValueTab('generation'),
+  },
+  {
+    key: SAMPLE_QA_KEY,
+    label: 'Sample Q&A',
+    tooltip:
+      'Sample Q&A helps stakeholders review grounding quality and compare generated answers against expected references.',
+    description:
+      'Shows sample questions with evaluation radar charts, generated answers, and expandable expected answer references.',
+    section: 'Retrieval & generation',
+    component: SampleQATab,
   },
 ];
 
-const SAMPLE_QA_TAB: TabDefinition = {
-  key: SAMPLE_QA_KEY,
-  label: 'Sample Q&A',
-  component: SampleQATab,
-};
+const NON_SETTINGS_KEYS = new Set([OVERVIEW_KEY, SAMPLE_QA_KEY]);
 
-/**
- * Module-level cache: maps settings section keys (e.g. 'chunking') to their
- * factory-created React components. Preserves component identity across renders
- * so React doesn't unmount/remount tabs (which would lose internal state).
- */
-const keyValueTabCache = new Map<string, TabDefinition['component']>();
-
-function getOrCreateKeyValueTab(sectionKey: string): TabDefinition['component'] {
-  let component = keyValueTabCache.get(sectionKey);
-  if (!component) {
-    component = createKeyValueTab(sectionKey);
-    keyValueTabCache.set(sectionKey, component);
-  }
-  return component;
-}
-
-/**
- * Builds the visible tab list for a given pattern and evaluation state.
- *
- * Tab order: [Pattern information] + [dynamic settings tabs] + [Sample Q&A]
- *
- * The three tab categories correspond to different data sources:
- * - Pattern information: top-level fields on AutoragPattern (name, scores, etc.)
- * - Settings tabs: created dynamically from `pattern.settings` keys — all sections
- *   are key-value shaped, so they share the KeyValueTab factory. New settings
- *   sections from the backend appear automatically without code changes.
- * - Sample Q&A: loaded separately from S3 via usePatternEvaluationResults, only
- *   shown when evaluation results exist.
- *
- * To add a custom tab with non-key-value rendering, create a dedicated component
- * and add it to FIXED_TABS or handle it as a special case (like SAMPLE_QA_TAB).
- */
 export function getVisibleTabs(
-  pattern: AutoragPattern,
+  settingsKeys: Set<string>,
   hasEvaluationResults: boolean,
 ): TabDefinition[] {
-  const settingsTabs: TabDefinition[] = Object.keys(pattern.settings).map((key) => ({
-    key,
-    label: humanize(key),
-    component: getOrCreateKeyValueTab(key),
-  }));
-
-  return [...FIXED_TABS, ...settingsTabs, ...(hasEvaluationResults ? [SAMPLE_QA_TAB] : [])];
+  return TAB_DEFINITIONS.filter((tab) => {
+    if (tab.key === SAMPLE_QA_KEY) {
+      return hasEvaluationResults;
+    }
+    if (NON_SETTINGS_KEYS.has(tab.key)) {
+      return true;
+    }
+    return settingsKeys.has(tab.key);
+  });
 }
 
 export { OVERVIEW_KEY, SAMPLE_QA_KEY };

@@ -5,6 +5,7 @@ import type { DashboardResource, DurationString, TimeRangeValue } from '@perses-
 import {
   DashboardProvider,
   DatasourceStoreProvider,
+  PanelFocusProvider,
   VariableProvider,
 } from '@perses-dev/dashboards';
 import {
@@ -31,6 +32,7 @@ const createQueryClient = () =>
       queries: {
         refetchOnWindowFocus: false,
         retry: 0,
+        keepPreviousData: true,
       },
     },
   });
@@ -146,25 +148,29 @@ const PersesProvider: React.FC<PersesProviderProps> = ({
   if (syncToUrl) {
     return (
       <QueryClientProvider client={queryClient}>
-        <QueryParamProvider adapter={ReactRouter6Adapter}>
-          <PersesProviderWithUrlSync
-            {...rest}
-            defaultDuration={defaultDuration}
-            defaultRefreshInterval={defaultRefreshInterval}
-          />
-        </QueryParamProvider>
+        <PanelFocusProvider>
+          <QueryParamProvider adapter={ReactRouter6Adapter}>
+            <PersesProviderWithUrlSync
+              {...rest}
+              defaultDuration={defaultDuration}
+              defaultRefreshInterval={defaultRefreshInterval}
+            />
+          </QueryParamProvider>
+        </PanelFocusProvider>
       </QueryClientProvider>
     );
   }
 
   return (
     <QueryClientProvider client={queryClient}>
-      <PersesProviderCore
-        {...rest}
-        initialTimeRange={{ pastDuration: defaultDuration }}
-        initialRefreshInterval={defaultRefreshInterval}
-        syncToUrl={false}
-      />
+      <PanelFocusProvider>
+        <PersesProviderCore
+          {...rest}
+          initialTimeRange={{ pastDuration: defaultDuration }}
+          initialRefreshInterval={defaultRefreshInterval}
+          syncToUrl={false}
+        />
+      </PanelFocusProvider>
     </QueryClientProvider>
   );
 };

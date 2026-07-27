@@ -8,7 +8,7 @@ import {
   TabRouteTabExtension,
 } from '@odh-dashboard/plugin-core/extension-points';
 import { LazyCodeRefComponent, useExtensions } from '@odh-dashboard/plugin-core';
-import TitleWithIcon from '#~/concepts/design/TitleWithIcon';
+import TitleWithIcon from '@odh-dashboard/ui-core/design/TitleWithIcon';
 import { ProjectObjectType } from '#~/concepts/design/utils';
 import NotFound from '#~/pages/NotFound';
 

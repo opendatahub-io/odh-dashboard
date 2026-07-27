@@ -1,12 +1,12 @@
 import React from 'react';
 
+import TitleWithIcon from '@odh-dashboard/ui-core/design/TitleWithIcon';
 import { usePipelinesAPI, MlmdListContextProvider } from '#~/concepts/pipelines/context';
 import PipelineServerActions from '#~/concepts/pipelines/content/PipelineServerActions';
 import PipelineCoreApplicationPage from '#~/pages/pipelines/global/PipelineCoreApplicationPage';
 import EnsureAPIAvailability from '#~/concepts/pipelines/EnsureAPIAvailability';
 import EnsureCompatiblePipelineServer from '#~/concepts/pipelines/EnsureCompatiblePipelineServer';
 import { artifactsBaseRoute } from '#~/routes/pipelines/artifacts';
-import TitleWithIcon from '#~/concepts/design/TitleWithIcon';
 import { ProjectObjectType } from '#~/concepts/design/utils';
 import { ArtifactsList } from './ArtifactsList';
 import { artifactsPageDescription, artifactsPageTitle } from './constants';

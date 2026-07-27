@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Button, Label, LabelGroup, Tooltip } from '@patternfly/react-core';
 import { ExternalLinkAltIcon } from '@patternfly/react-icons';
 import { Td, Tr } from '@patternfly/react-table';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import {
   CONNECTED_WORKBENCH_PERMISSION_LABEL_THRESHOLD,
   NO_CONNECTED_WORKBENCH_TOOLTIP,
@@ -51,6 +51,7 @@ const PermissionLabels: React.FC<{ permissions: string[] }> = ({ permissions }) 
 };
 
 const ConnectedWorkbenchTableRow: React.FC<Props> = ({ row }) => {
+  const navigate = useNavigate();
   const projectHref = `/projects/${row.authorizedProject}?section=workbenches`;
 
   return (
@@ -60,12 +61,13 @@ const ConnectedWorkbenchTableRow: React.FC<Props> = ({ row }) => {
           <Button
             variant="link"
             isInline
-            component="a"
-            href={getWorkbenchLaunchPath(row)}
-            target="_blank"
-            rel="noopener noreferrer"
             icon={<ExternalLinkAltIcon />}
             iconPosition="end"
+            aria-label={`Open workbench ${row.workbenchName} in new tab`}
+            data-testid={`connected-workbench-link-${row.workbenchName}`}
+            onClick={() => {
+              window.open(getWorkbenchLaunchPath(row), '_blank', 'noopener,noreferrer');
+            }}
           >
             {row.workbenchName}
           </Button>
@@ -76,9 +78,17 @@ const ConnectedWorkbenchTableRow: React.FC<Props> = ({ row }) => {
         )}
       </Td>
       <Td dataLabel="Authorized project">
-        <Link to={projectHref}>{row.authorizedProject}</Link>
+        <Button
+          variant="link"
+          isInline
+          aria-label={`View project ${row.authorizedProject}`}
+          data-testid={`connected-workbench-project-link-${row.authorizedProject}`}
+          onClick={() => navigate(projectHref)}
+        >
+          {row.authorizedProject}
+        </Button>
       </Td>
-      <Td dataLabel="Permission">
+      <Td dataLabel="Permissions">
         {row.permissionLevel.length > 0 ? (
           <PermissionLabels permissions={row.permissionLevel} />
         ) : (

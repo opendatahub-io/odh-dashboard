@@ -1,8 +1,8 @@
 import { Alert, Flex, FlexItem, FormGroup, FormHelperText, Spinner } from '@patternfly/react-core';
 import * as React from 'react';
+import FieldGroupHelpLabelIcon from '@odh-dashboard/ui-core/components/FieldGroupHelpLabelIcon';
 import { AccessMode } from '#~/pages/storageClasses/storageEnums';
 import { toAccessModeFullName } from '#~/pages/projects/screens/detail/storage/AccessModeFullName';
-import FieldGroupHelpLabelIcon from '#~/components/FieldGroupHelpLabelIcon';
 import AccessModeRadio from './AccessModeRadio';
 import { getAccessModePopover } from './getAccessModePopover';
 

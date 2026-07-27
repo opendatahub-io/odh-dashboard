@@ -8,6 +8,7 @@ import {
   DisplayNameAnnotation,
   ImageStreamAnnotation,
   ImageStreamLabel,
+  ImageStreamSpecTagAnnotation,
 } from '#~/types';
 import { mockImageStreamK8sResource } from '#~/__mocks__/mockImageStreamK8sResource';
 import { ImageStreamKind } from '#~/k8sTypes';
@@ -35,16 +36,166 @@ describe('imageStreamUtils', () => {
         // eslint-disable-next-line camelcase
         imported_time: '2023-06-30T15:07:35Z',
         url: 'https://github.com//opendatahub-io/notebooks/tree/main/jupyter/minimal',
-        provider: undefined,
+        provider: 'Red Hat',
         recommendedAcceleratorIdentifiers: [],
+        isOOTB: true,
       });
+    });
+
+    it('should set isOOTB to false for BYON images', () => {
+      const image: ImageStreamKind = mockImageStreamK8sResource({
+        opts: {
+          metadata: {
+            labels: {
+              'app.kubernetes.io/created-by': 'byon',
+              'opendatahub.io/notebook-image': 'true',
+            },
+          },
+        },
+      });
+      const result: BYONImage = mapImageStreamToBYONImage(image);
+      expect(result.isOOTB).toBe(false);
+    });
+
+    it('should set provider to "Red Hat" for OOTB images without creator annotation', () => {
+      const image: ImageStreamKind = mockImageStreamK8sResource({});
+      const result: BYONImage = mapImageStreamToBYONImage(image);
+      expect(result.provider).toBe('Red Hat');
+      expect(result.isOOTB).toBe(true);
+    });
+
+    it('should use creator annotation when present for OOTB images', () => {
+      const image: ImageStreamKind = mockImageStreamK8sResource({
+        opts: {
+          metadata: {
+            annotations: {
+              [ImageStreamAnnotation.CREATOR]: 'custom-provider',
+            },
+          },
+        },
+      });
+      const result: BYONImage = mapImageStreamToBYONImage(image);
+      expect(result.provider).toBe('custom-provider');
+    });
+
+    it('should return empty error for OOTB images even when status has error', () => {
+      const image: ImageStreamKind = mockImageStreamK8sResource({
+        opts: {
+          status: {
+            tags: [
+              {
+                tag: '1.2',
+                items: [],
+                conditions: [
+                  {
+                    type: 'ImportSuccess',
+                    status: 'False',
+                    message: 'Import failed',
+                  },
+                ],
+              },
+            ],
+          },
+        },
+      });
+      const result: BYONImage = mapImageStreamToBYONImage(image);
+      expect(result.error).toBe('');
+      expect(result.isOOTB).toBe(true);
+    });
+
+    it('should use recommended tag for OOTB images when available', () => {
+      const image: ImageStreamKind = mockImageStreamK8sResource({
+        opts: {
+          spec: {
+            tags: [
+              {
+                name: 'first-tag',
+                annotations: {
+                  [ImageStreamSpecTagAnnotation.SOFTWARE]: '[{"name":"Python","version":"3.8"}]',
+                  [ImageStreamSpecTagAnnotation.DEPENDENCIES]: '[]',
+                },
+              },
+              {
+                name: 'recommended-tag',
+                annotations: {
+                  [ImageStreamSpecTagAnnotation.SOFTWARE]: '[{"name":"Python","version":"3.11"}]',
+                  [ImageStreamSpecTagAnnotation.DEPENDENCIES]:
+                    '[{"name":"JupyterLab","version":"4.0"}]',
+                  [ImageStreamSpecTagAnnotation.RECOMMENDED]: 'true',
+                },
+              },
+            ],
+          },
+        },
+      });
+      const result: BYONImage = mapImageStreamToBYONImage(image);
+      expect(result.software).toEqual([{ name: 'Python', version: '3.11' }]);
+      expect(result.packages).toEqual([{ name: 'JupyterLab', version: '4.0' }]);
+    });
+
+    it('should use default tag for OOTB images when no recommended tag', () => {
+      const image: ImageStreamKind = mockImageStreamK8sResource({
+        opts: {
+          spec: {
+            tags: [
+              {
+                name: 'first-tag',
+                annotations: {
+                  [ImageStreamSpecTagAnnotation.SOFTWARE]: '[{"name":"Python","version":"3.8"}]',
+                  [ImageStreamSpecTagAnnotation.DEPENDENCIES]: '[]',
+                },
+              },
+              {
+                name: 'default-tag',
+                annotations: {
+                  [ImageStreamSpecTagAnnotation.SOFTWARE]: '[{"name":"Python","version":"3.10"}]',
+                  [ImageStreamSpecTagAnnotation.DEPENDENCIES]:
+                    '[{"name":"Notebook","version":"6.5"}]',
+                  [ImageStreamSpecTagAnnotation.DEFAULT]: 'true',
+                },
+              },
+            ],
+          },
+        },
+      });
+      const result: BYONImage = mapImageStreamToBYONImage(image);
+      expect(result.software).toEqual([{ name: 'Python', version: '3.10' }]);
+      expect(result.packages).toEqual([{ name: 'Notebook', version: '6.5' }]);
+    });
+
+    it('should set visible to false when OOTB image has hidden annotation', () => {
+      const image: ImageStreamKind = mockImageStreamK8sResource({
+        opts: {
+          metadata: {
+            annotations: {
+              [ImageStreamAnnotation.HIDDEN]: 'true',
+            },
+          },
+        },
+      });
+      const result: BYONImage = mapImageStreamToBYONImage(image);
+      expect(result.visible).toBe(false);
+      expect(result.isOOTB).toBe(true);
+    });
+
+    it('should set visible to true when OOTB image has no hidden annotation', () => {
+      const image: ImageStreamKind = mockImageStreamK8sResource({});
+      const result: BYONImage = mapImageStreamToBYONImage(image);
+      expect(result.visible).toBe(true);
+      expect(result.isOOTB).toBe(true);
     });
   });
 
-  it('returns correct error message when present', () => {
+  it('returns correct error message when present for BYON images', () => {
     const errorMsg = 'Build failed';
     const image = mockImageStreamK8sResource({
       opts: {
+        metadata: {
+          labels: {
+            'app.kubernetes.io/created-by': 'byon',
+            'opendatahub.io/notebook-image': 'true',
+          },
+        },
         status: {
           tags: [
             {
@@ -65,6 +216,7 @@ describe('imageStreamUtils', () => {
     });
     const result = mapImageStreamToBYONImage(image);
     expect(result.error).toBe(errorMsg);
+    expect(result.isOOTB).toBe(false);
   });
 
   it('uses fallback display_name if main display annotation is missing', () => {
@@ -100,23 +252,31 @@ describe('imageStreamUtils', () => {
     expect(result.display_name).toBe('user-display');
   });
 
-  it('visible field is set to false when notebook-image label is set to false', () => {
+  it('visible field is set to false when notebook-image label is set to false for BYON images', () => {
     const image = mockImageStreamK8sResource({
       opts: {
         metadata: {
           labels: {
             [ImageStreamLabel.NOTEBOOK]: 'false',
+            'app.kubernetes.io/created-by': 'byon',
           },
         },
       },
     });
     const result = mapImageStreamToBYONImage(image);
     expect(result.visible).toBe(false);
+    expect(result.isOOTB).toBe(false);
   });
 
-  it('error is empty if there are no status tags', () => {
+  it('error is empty for BYON image if there are no status tags', () => {
     const image = mockImageStreamK8sResource({
       opts: {
+        metadata: {
+          labels: {
+            'app.kubernetes.io/created-by': 'byon',
+            'opendatahub.io/notebook-image': 'true',
+          },
+        },
         status: { tags: [] },
       },
     });

@@ -1,11 +1,6 @@
 import { K8sModelCommon, K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
+import { genRandomChars } from '@odh-dashboard/foundation';
 import type { K8sCondition, K8sDSGResource } from './k8sTypes';
-
-export const genRandomChars = (len = 6): string =>
-  Math.random()
-    .toString(36)
-    .replace(/[^a-z0-9]+/g, '')
-    .substr(1, len);
 
 export const isK8sDSGResource = (x?: K8sResourceCommon): x is K8sDSGResource =>
   x?.metadata?.name != null;

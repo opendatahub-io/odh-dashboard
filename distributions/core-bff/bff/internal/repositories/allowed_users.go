@@ -6,13 +6,22 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/k8sutil"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/models"
-	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/dynamic"
 )
 
-// AllowedUsersRepository lists users with notebook access in a namespace.
+const (
+	labelUserType             = "opendatahub.io/user-type"
+	annotationUsername        = "opendatahub.io/username"
+	annotationLastActivity    = "notebooks.kubeflow.org/last-activity"
+	annotationResourceStopped = "kubeflow-resource-stopped"
+)
+
+// AllowedUsersRepository lists users derived from Notebook CRs in a namespace.
+// The user list is intentionally scoped to notebook owners; broader user discovery
+// (e.g., from RBAC bindings) is out of scope.
 type AllowedUsersRepository struct {
 	saDynClient dynamic.Interface
 }
@@ -31,7 +40,7 @@ func (r *AllowedUsersRepository) GetAllowedUsers(ctx context.Context, namespace 
 
 	list, err := r.saDynClient.Resource(models.NotebookGVR).Namespace(namespace).List(ctx, metav1.ListOptions{})
 	if err != nil {
-		if k8serrors.IsNotFound(err) || isDiscoveryError(err) {
+		if k8sutil.IsResourceUnavailable(err) {
 			return []models.AllowedUser{}, nil
 		}
 		return nil, fmt.Errorf("failed to list notebooks: %w", err)
@@ -44,8 +53,8 @@ func (r *AllowedUsersRepository) GetAllowedUsers(ctx context.Context, namespace 
 			continue
 		}
 		if existing, ok := users[user.Username]; ok {
-			if user.Privilege == "Admin" {
-				existing.Privilege = "Admin"
+			if user.Privilege == models.PrivilegeAdmin {
+				existing.Privilege = models.PrivilegeAdmin
 			}
 		} else {
 			users[user.Username] = user
@@ -59,14 +68,14 @@ func (r *AllowedUsersRepository) GetAllowedUsers(ctx context.Context, namespace 
 	return result, nil
 }
 
-func parseNotebookUser(obj map[string]interface{}) *models.AllowedUser {
-	metadata, ok := obj["metadata"].(map[string]interface{})
+func parseNotebookUser(obj map[string]any) *models.AllowedUser {
+	metadata, ok := obj["metadata"].(map[string]any)
 	if !ok {
 		return nil
 	}
 
-	annotations, _ := metadata["annotations"].(map[string]interface{})
-	labels, _ := metadata["labels"].(map[string]interface{})
+	annotations, _ := metadata["annotations"].(map[string]any)
+	labels, _ := metadata["labels"].(map[string]any)
 
 	username := decodeNotebookUsername(annotations)
 	if username == "" {
@@ -80,18 +89,18 @@ func parseNotebookUser(obj map[string]interface{}) *models.AllowedUser {
 	}
 }
 
-func notebookPrivilege(labels map[string]interface{}) string {
-	if userType, _ := labels["opendatahub.io/user-type"].(string); userType == "admin" {
-		return "Admin"
+func notebookPrivilege(labels map[string]any) string {
+	if userType, _ := labels[labelUserType].(string); userType == "admin" {
+		return models.PrivilegeAdmin
 	}
-	return "User"
+	return models.PrivilegeUser
 }
 
-func notebookLastActivity(annotations map[string]interface{}) string {
-	if la, ok := annotations["notebooks.kubeflow.org/last-activity"].(string); ok && la != "" {
+func notebookLastActivity(annotations map[string]any) string {
+	if la, ok := annotations[annotationLastActivity].(string); ok && la != "" {
 		return la
 	}
-	if rs, ok := annotations["kubeflow-resource-stopped"].(string); ok && rs != "" {
+	if rs, ok := annotations[annotationResourceStopped].(string); ok && rs != "" {
 		return rs
 	}
 	return "Now"
@@ -99,8 +108,8 @@ func notebookLastActivity(annotations map[string]interface{}) string {
 
 const kubeSafePrefix = "b64:"
 
-func decodeNotebookUsername(annotations map[string]interface{}) string {
-	raw, _ := annotations["opendatahub.io/username"].(string)
+func decodeNotebookUsername(annotations map[string]any) string {
+	raw, _ := annotations[annotationUsername].(string)
 	if raw == "" {
 		return ""
 	}

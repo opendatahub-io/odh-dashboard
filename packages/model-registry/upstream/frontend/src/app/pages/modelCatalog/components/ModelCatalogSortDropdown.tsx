@@ -13,10 +13,12 @@ import { getActiveLatencyFieldName } from '~/app/pages/modelCatalog/utils/modelC
 
 type ModelCatalogSortDropdownProps = {
   performanceViewEnabled: boolean;
+  testId?: string;
 };
 
 const ModelCatalogSortDropdown: React.FC<ModelCatalogSortDropdownProps> = ({
   performanceViewEnabled,
+  testId = 'model-catalog-sort-dropdown',
 }) => {
   const { sortBy, setSortBy, filters } = React.useContext(ModelCatalogContext);
   const [isOpen, setIsOpen] = React.useState(false);
@@ -73,7 +75,7 @@ const ModelCatalogSortDropdown: React.FC<ModelCatalogSortDropdownProps> = ({
             onClick={() => setIsOpen(!isOpen)}
             isExpanded={isOpen}
             aria-label="Sort options"
-            data-testid="model-catalog-sort-dropdown"
+            data-testid={testId}
           >
             {getDisplayValue()}
           </MenuToggle>

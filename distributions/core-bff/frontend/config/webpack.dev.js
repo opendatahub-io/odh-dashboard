@@ -27,28 +27,62 @@ const ROOT_NODE_MODULES = path.resolve(RELATIVE_DIRNAME, '../../../node_modules'
 const AUTH_METHOD = process.env._AUTH_METHOD;
 const BASE_PATH = PUBLIC_PATH;
 
-const getProxyHeaders = () => {
-  if (AUTH_METHOD === 'user_token') {
+const toBearerHeaders = (token) => ({
+  Authorization: `Bearer ${token}`,
+  'x-forwarded-access-token': token,
+});
+
+const getTokenFromEnv = () => {
+  const token = process.env.K8S_TOKEN;
+  if (!token) {
+    return null;
+  }
+  try {
+    const payload = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
+    console.info('Using K8S_TOKEN from environment, subject:', payload.sub || 'unknown');
+  } catch {
+    console.info('Using K8S_TOKEN from environment');
+  }
+  return token;
+};
+
+const getTokenFromKubeconfig = () => {
+  try {
+    const token = execSync(
+      "kubectl config view --raw --minify --flatten -o jsonpath='{.users[].user.token}'",
+    )
+      .toString()
+      .trim()
+      .replaceAll(/^'|'$/g, '');
+    if (!token) {
+      console.warn(
+        'No bearer token found in kubeconfig (cert-based auth?).',
+        'Set K8S_TOKEN to a valid SA token, e.g.:',
+        'K8S_TOKEN=$(kubectl create token kind-admin -n kube-system) make dev-start-federated',
+      );
+      return null;
+    }
     try {
-      const token = execSync(
-        "kubectl config view --raw --minify --flatten -o jsonpath='{.users[].user.token}'",
-      )
-        .toString()
-        .trim();
       const username = execSync("kubectl auth whoami -o jsonpath='{.status.userInfo.username}'")
         .toString()
         .trim();
       console.info('Logged in as user:', username);
-      return {
-        Authorization: `Bearer ${token}`,
-        'x-forwarded-access-token': token,
-      };
-    } catch (error) {
-      console.error('Failed to get Kubernetes token:', error.message);
-      return {};
+    } catch {
+      console.warn('kubectl auth whoami failed; continuing with kubeconfig token');
     }
+    return token;
+  } catch (error) {
+    console.error('Failed to get Kubernetes token:', error.message);
+    return null;
   }
-  return {};
+};
+
+const getProxyHeaders = () => {
+  if (AUTH_METHOD !== 'user_token') {
+    return {};
+  }
+  const token = getTokenFromEnv() || getTokenFromKubeconfig();
+  return token ? toBearerHeaders(token) : {};
 };
 
 module.exports = smp.wrap(

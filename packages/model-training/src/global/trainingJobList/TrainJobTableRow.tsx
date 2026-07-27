@@ -10,7 +10,7 @@ import {
 } from '@patternfly/react-core';
 import { CubesIcon, PencilAltIcon } from '@patternfly/react-icons';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
-import { relativeTime } from '@odh-dashboard/internal/utilities/time';
+import { relativeTime } from '@odh-dashboard/ui-core/utilities/time';
 import JobProject from './JobProject';
 import { getTrainingJobStatusSync, getStatusFlags } from './utils';
 import TrainingJobClusterQueue from './TrainingJobClusterQueue';

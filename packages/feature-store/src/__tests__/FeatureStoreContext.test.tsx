@@ -15,7 +15,13 @@ import { DEFAULT_PROJECT_LIST } from '../const';
 jest.mock('../hooks/useRegistryFeatureStores');
 jest.mock('../apiHooks/useFeatureStoreAPIState');
 jest.mock('../apiHooks/useFeatureStoreProjectsAPI');
-jest.mock('react-router-dom', () => ({ useParams: jest.fn(() => ({})) }));
+const mockUseLocation = jest.fn<{ state: { registryNamespace: string } | null }, []>(() => ({
+  state: null,
+}));
+jest.mock('react-router-dom', () => ({
+  useParams: jest.fn(() => ({})),
+  useLocation: () => mockUseLocation(),
+}));
 jest.mock('@odh-dashboard/internal/concepts/areas/AreaComponent', () => ({
   conditionalArea: () => (Component: React.ComponentType) => Component,
 }));
@@ -112,6 +118,22 @@ describe('FeatureStoreContext — activeFeatureStore', () => {
     setupStores([makeStore('store-a')]);
     rerender();
 
+    expect(result.current.activeFeatureStore?.name).toBe('store-a');
+  });
+
+  it('selects the matching store when navRegistryNamespace is provided', () => {
+    mockUseLocation.mockReturnValue({ state: { registryNamespace: 'ns-b' } });
+    setupStores([makeStore('store-a', 'ns-a'), makeStore('store-b', 'ns-b')]);
+
+    const { result } = renderHook(useContextHook, { wrapper });
+    expect(result.current.activeFeatureStore?.name).toBe('store-b');
+  });
+
+  it('falls back to the first store when navRegistryNamespace does not match', () => {
+    mockUseLocation.mockReturnValue({ state: { registryNamespace: 'ns-unknown' } });
+    setupStores([makeStore('store-a', 'ns-a'), makeStore('store-b', 'ns-b')]);
+
+    const { result } = renderHook(useContextHook, { wrapper });
     expect(result.current.activeFeatureStore?.name).toBe('store-a');
   });
 });

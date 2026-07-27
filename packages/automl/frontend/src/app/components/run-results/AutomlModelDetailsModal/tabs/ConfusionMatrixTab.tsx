@@ -1,15 +1,20 @@
 import React from 'react';
 import {
   Bullseye,
+  Content,
+  ContentVariants,
   EmptyState,
   EmptyStateBody,
   EmptyStateVariant,
+  Flex,
+  FlexItem,
   FormGroup,
   MenuToggle,
   Select,
   SelectList,
   SelectOption,
   Skeleton,
+  Truncate,
 } from '@patternfly/react-core';
 import { InnerScrollContainer, Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
 import type { ConfusionMatrixData } from '~/app/types';
@@ -17,27 +22,6 @@ import type { TabContentProps } from '~/app/components/run-results/AutomlModelDe
 import { TASK_TYPE_MULTICLASS } from '~/app/utilities/const';
 
 const MULTI_CLASS_VIEW = 'multi-class';
-
-function getCellClassName(rowLabel: string, colLabel: string): string {
-  const isDiagonal = rowLabel === colLabel;
-  return isDiagonal
-    ? 'automl-confusion-matrix__cell--diagonal'
-    : 'automl-confusion-matrix__cell--off-diagonal';
-}
-
-function getCellIntensityClass(value: number, maxValue: number): string {
-  if (maxValue <= 0 || value <= 0) {
-    return '';
-  }
-  const intensity = value / maxValue;
-  if (intensity > 0.66) {
-    return 'm-intensity-high';
-  }
-  if (intensity > 0.33) {
-    return 'm-intensity-medium';
-  }
-  return 'm-intensity-low';
-}
 
 /**
  * Collapse an N×N confusion matrix into a 2×2 "One vs Rest" matrix
@@ -68,6 +52,9 @@ export function computeOneVsRest(
   };
 }
 
+const formatPct = (correct: number, total: number): string =>
+  total > 0 ? `${((correct / total) * 100).toFixed(1)}%` : '0.0%';
+
 const ConfusionMatrixTab: React.FC<TabContentProps> = ({
   confusionMatrix,
   isArtifactsLoading,
@@ -86,71 +73,74 @@ const ConfusionMatrixTab: React.FC<TabContentProps> = ({
   if (isArtifactsLoading) {
     return (
       <>
-        {taskType === TASK_TYPE_MULTICLASS && (
-          <FormGroup
-            label="View"
-            fieldId="confusion-matrix-view-loading"
-            className="automl-confusion-matrix-view"
-          >
-            <MenuToggle isDisabled aria-label="Loading view selector">
-              {selectedView === MULTI_CLASS_VIEW ? 'Multi-class' : `${selectedView} (One v. Rest)`}
-            </MenuToggle>
-          </FormGroup>
-        )}
-        <Table
-          aria-label="Confusion matrix loading"
-          variant="compact"
-          className="automl-confusion-matrix m-loading"
-          gridBreakPoint=""
-          data-testid="confusion-matrix-loading"
+        <Flex
+          alignItems={{ default: 'alignItemsFlexEnd' }}
+          spaceItems={{ default: 'spaceItemsLg' }}
+          className="pf-v6-u-mb-md"
         >
-          <Thead>
-            <Tr>
-              <Th />
-              <Th colSpan={3} textCenter>
-                Predicted
-              </Th>
-              <Th />
-            </Tr>
-            <Tr>
-              <Th>Observed</Th>
-              {Array.from({ length: 3 }, (_, i) => (
-                <Th key={i} textCenter>
-                  <Skeleton screenreaderText="Loading column label" />
-                </Th>
-              ))}
-              <Th textCenter>Percent correct</Th>
-            </Tr>
-          </Thead>
-          <Tbody>
-            {Array.from({ length: 3 }, (_, i) => (
-              <Tr key={i}>
-                <Th>
-                  <Skeleton screenreaderText="Loading row label" />
-                </Th>
-                {Array.from({ length: 3 }, (_v, j) => (
-                  <Td key={j} textCenter>
-                    <Skeleton screenreaderText="Loading cell value" />
-                  </Td>
+          {taskType === TASK_TYPE_MULTICLASS && (
+            <FlexItem>
+              <FormGroup label="View" fieldId="confusion-matrix-view-loading">
+                <MenuToggle
+                  isDisabled
+                  aria-label="Loading view selector"
+                  className="automl-confusion-matrix__view-toggle"
+                >
+                  {selectedView === MULTI_CLASS_VIEW
+                    ? 'Multi-class'
+                    : `${selectedView} (One v. Rest)`}
+                </MenuToggle>
+              </FormGroup>
+            </FlexItem>
+          )}
+          <FlexItem>
+            <div
+              className="automl-confusion-matrix__stat-box"
+              data-testid="confusion-matrix-accuracy"
+            >
+              <Content component={ContentVariants.small}>Overall accuracy</Content>
+              <Skeleton width="60px" screenreaderText="Loading accuracy" />
+            </div>
+          </FlexItem>
+        </Flex>
+        <div className="automl-confusion-matrix__outer">
+          <div className="automl-confusion-matrix__predicted-header">PREDICTED CLASS</div>
+          <div className="automl-confusion-matrix__body">
+            <div className="automl-confusion-matrix__actual-class-label">ACTUAL CLASS</div>
+            <Table
+              aria-label="Confusion matrix loading"
+              variant="compact"
+              className="automl-confusion-matrix m-loading"
+              gridBreakPoint=""
+              data-testid="confusion-matrix-loading"
+            >
+              <Thead>
+                <Tr>
+                  <Th screenReaderText="Class" />
+                  {Array.from({ length: 3 }, (_, i) => (
+                    <Th key={i} textCenter>
+                      <Skeleton screenreaderText="Loading column label" />
+                    </Th>
+                  ))}
+                </Tr>
+              </Thead>
+              <Tbody>
+                {Array.from({ length: 3 }, (_, i) => (
+                  <Tr key={i}>
+                    <Th>
+                      <Skeleton screenreaderText="Loading row label" />
+                    </Th>
+                    {Array.from({ length: 3 }, (_v, j) => (
+                      <Td key={j} textCenter>
+                        <Skeleton screenreaderText="Loading cell value" />
+                      </Td>
+                    ))}
+                  </Tr>
                 ))}
-                <Td textCenter>
-                  <Skeleton screenreaderText="Loading percentage" />
-                </Td>
-              </Tr>
-            ))}
-            <Tr>
-              <Th>Percent correct</Th>
-              {Array.from({ length: 3 }, (_, i) => (
-                <Td key={i} textCenter>
-                  <Skeleton screenreaderText="Loading column percentage" />
-                </Td>
-              ))}
-              <Td textCenter>
-                <Skeleton screenreaderText="Loading overall percentage" />
-              </Td>
-            </Tr>
-          </Tbody>
-        </Table>
+              </Tbody>
+            </Table>
+          </div>
+        </div>
       </>
     );
   }
@@ -172,146 +162,151 @@ const ConfusionMatrixTab: React.FC<TabContentProps> = ({
   const originalLabels = Object.keys(confusionMatrix);
   const showViewSelector = taskType === TASK_TYPE_MULTICLASS && originalLabels.length > 2;
 
-  // effectiveMatrix is always defined here: the useMemo returns confusionMatrix
-  // (guaranteed non-null past the guard above) or the computeOneVsRest result.
-  // The ?? fallback satisfies TypeScript without a non-null assertion.
   const matrix = effectiveMatrix ?? confusionMatrix;
   const labels = Object.keys(matrix);
   const getCell = (row: string, col: string): number => matrix[row]?.[col] ?? 0;
 
-  // Find max value for color scaling
-  const allValues = labels.flatMap((row) => labels.map((col) => getCell(row, col)));
-  const maxValue = Math.max(...allValues);
-
-  // Compute per-row totals
   const rowTotals = labels.map((row) => labels.reduce((sum, col) => sum + getCell(row, col), 0));
-
-  // Compute per-column totals
   const colTotals = labels.map((col) => labels.reduce((sum, row) => sum + getCell(row, col), 0));
 
-  // Overall accuracy
   const totalCorrect = labels.reduce((sum, label) => sum + getCell(label, label), 0);
   const grandTotal = rowTotals.reduce((sum, t) => sum + t, 0);
-  const overallPct = grandTotal > 0 ? ((totalCorrect / grandTotal) * 100).toFixed(1) : '0.0';
+  const overallAccuracy = formatPct(totalCorrect, grandTotal);
 
   return (
     <>
-      {showViewSelector && (
-        <FormGroup
-          label="View"
-          fieldId="confusion-matrix-view"
-          className="automl-confusion-matrix-view"
-        >
-          <Select
-            id="confusion-matrix-view"
-            isOpen={isViewOpen}
-            selected={selectedView}
-            onSelect={(_e, value) => {
-              setSelectedView(typeof value === 'string' ? value : MULTI_CLASS_VIEW);
-              setIsViewOpen(false);
-            }}
-            onOpenChange={setIsViewOpen}
-            toggle={(toggleRef) => (
-              <MenuToggle
-                ref={toggleRef}
-                onClick={() => setIsViewOpen(!isViewOpen)}
-                isExpanded={isViewOpen}
-                aria-label="Select confusion matrix view"
-                data-testid="confusion-matrix-view-toggle"
+      <Flex
+        alignItems={{ default: 'alignItemsFlexEnd' }}
+        spaceItems={{ default: 'spaceItemsLg' }}
+        className="pf-v6-u-mb-md"
+      >
+        {showViewSelector && (
+          <FlexItem>
+            <FormGroup label="View" fieldId="confusion-matrix-view">
+              <Select
+                id="confusion-matrix-view"
+                isOpen={isViewOpen}
+                selected={selectedView}
+                onSelect={(_e, value) => {
+                  setSelectedView(typeof value === 'string' ? value : MULTI_CLASS_VIEW);
+                  setIsViewOpen(false);
+                }}
+                onOpenChange={setIsViewOpen}
+                toggle={(toggleRef) => (
+                  <MenuToggle
+                    ref={toggleRef}
+                    onClick={() => setIsViewOpen(!isViewOpen)}
+                    isExpanded={isViewOpen}
+                    aria-label="Select confusion matrix view"
+                    className="automl-confusion-matrix__view-toggle"
+                    data-testid="confusion-matrix-view-toggle"
+                  >
+                    {selectedView === MULTI_CLASS_VIEW
+                      ? 'Multi-class'
+                      : `${selectedView} (One v. Rest)`}
+                  </MenuToggle>
+                )}
+                shouldFocusToggleOnSelect
+                data-testid="confusion-matrix-view-select"
               >
-                {selectedView === MULTI_CLASS_VIEW
-                  ? 'Multi-class'
-                  : `${selectedView} (One v. Rest)`}
-              </MenuToggle>
-            )}
-            shouldFocusToggleOnSelect
-            data-testid="confusion-matrix-view-select"
+                <SelectList>
+                  <SelectOption value={MULTI_CLASS_VIEW}>Multi-class</SelectOption>
+                  {originalLabels.map((label) => (
+                    <SelectOption key={label} value={label}>
+                      {label} (One v. Rest)
+                    </SelectOption>
+                  ))}
+                </SelectList>
+              </Select>
+            </FormGroup>
+          </FlexItem>
+        )}
+        <FlexItem>
+          <div
+            className="automl-confusion-matrix__stat-box"
+            data-testid="confusion-matrix-accuracy"
           >
-            <SelectList>
-              <SelectOption value={MULTI_CLASS_VIEW}>Multi-class</SelectOption>
-              {originalLabels.map((label) => (
-                <SelectOption key={label} value={label}>
-                  {label} (One v. Rest)
-                </SelectOption>
-              ))}
-            </SelectList>
-          </Select>
-        </FormGroup>
-      )}
-      <InnerScrollContainer>
-        <Table
-          aria-label="Confusion matrix"
-          variant="compact"
-          className="automl-confusion-matrix"
-          gridBreakPoint=""
-          data-testid="confusion-matrix-table"
-        >
-          <Thead>
-            <Tr>
-              <Th />
-              <Th colSpan={labels.length} textCenter>
-                Predicted
-              </Th>
-              <Th />
-            </Tr>
-            <Tr>
-              <Th>Observed</Th>
-              {labels.map((label) => (
-                <Th key={label} textCenter modifier="truncate">
-                  {label}
-                </Th>
-              ))}
-              <Th textCenter>Percent correct</Th>
-            </Tr>
-          </Thead>
-          <Tbody>
-            {labels.map((rowLabel, rowIdx) => {
-              const rowCorrect = getCell(rowLabel, rowLabel);
-              const rowTotal = rowTotals[rowIdx];
-              const pct = rowTotal > 0 ? ((rowCorrect / rowTotal) * 100).toFixed(1) : '0.0';
-
-              return (
-                <Tr key={rowLabel}>
-                  <Th dataLabel="Observed">{rowLabel}</Th>
-                  {labels.map((colLabel) => {
-                    const val = getCell(rowLabel, colLabel);
-                    const cellClass = [
-                      getCellClassName(rowLabel, colLabel),
-                      getCellIntensityClass(val, maxValue),
-                    ]
-                      .filter(Boolean)
-                      .join(' ');
+            <Content component={ContentVariants.small}>Overall accuracy</Content>
+            <Content component="p" className="automl-confusion-matrix__stat-value">
+              {overallAccuracy}
+            </Content>
+          </div>
+        </FlexItem>
+      </Flex>
+      <div className="automl-confusion-matrix__outer">
+        <div className="automl-confusion-matrix__predicted-header">PREDICTED CLASS</div>
+        <div className="automl-confusion-matrix__body">
+          <div className="automl-confusion-matrix__actual-class-label">ACTUAL CLASS</div>
+          <InnerScrollContainer>
+            <Table
+              aria-label="Confusion matrix"
+              variant="compact"
+              className="automl-confusion-matrix"
+              gridBreakPoint=""
+              data-testid="confusion-matrix-table"
+            >
+              <Thead>
+                <Tr>
+                  <Th screenReaderText="Class" />
+                  {labels.map((label, colIdx) => {
+                    const precision = formatPct(getCell(label, label), colTotals[colIdx]);
                     return (
-                      <Td key={colLabel} className={cellClass} textCenter>
-                        {val}
-                      </Td>
+                      <Th key={label} textCenter>
+                        <div className="automl-confusion-matrix__header-label">
+                          <Truncate content={label} />
+                        </div>
+                        <div className="automl-confusion-matrix__sub-label">
+                          Precision {precision}
+                        </div>
+                      </Th>
                     );
                   })}
-                  <Td textCenter>{pct}%</Td>
                 </Tr>
-              );
-            })}
-            <Tr>
-              <Th>Percent correct</Th>
-              {labels.map((colLabel, colIdx) => {
-                const colCorrect = getCell(colLabel, colLabel);
-                const colTotal = colTotals[colIdx];
-                const pct = colTotal > 0 ? ((colCorrect / colTotal) * 100).toFixed(1) : '0.0';
-                return (
-                  <Td key={colLabel} textCenter>
-                    {pct}%
-                  </Td>
-                );
-              })}
-              <Td textCenter>{overallPct}%</Td>
-            </Tr>
-          </Tbody>
-        </Table>
-      </InnerScrollContainer>
-      <div className="automl-confusion-gradient" data-testid="confusion-matrix-gradient">
-        <span>Less correct</span>
-        <span>More correct</span>
+              </Thead>
+              <Tbody>
+                {labels.map((rowLabel, rowIdx) => {
+                  const recall = formatPct(getCell(rowLabel, rowLabel), rowTotals[rowIdx]);
+
+                  return (
+                    <Tr key={rowLabel}>
+                      <Th dataLabel="Actual class" textCenter>
+                        <div className="automl-confusion-matrix__header-label">
+                          <Truncate content={rowLabel} />
+                        </div>
+                        <div className="automl-confusion-matrix__sub-label">Recall {recall}</div>
+                      </Th>
+                      {labels.map((colLabel) => {
+                        const val = getCell(rowLabel, colLabel);
+                        const isCorrect = rowLabel === colLabel;
+                        return (
+                          <Td
+                            key={colLabel}
+                            className={
+                              isCorrect ? 'automl-confusion-matrix__cell--correct' : undefined
+                            }
+                            textCenter
+                          >
+                            {val}
+                          </Td>
+                        );
+                      })}
+                    </Tr>
+                  );
+                })}
+              </Tbody>
+            </Table>
+          </InnerScrollContainer>
+        </div>
       </div>
+      <Flex
+        alignItems={{ default: 'alignItemsCenter' }}
+        spaceItems={{ default: 'spaceItemsSm' }}
+        className="pf-v6-u-mt-md pf-v6-u-font-size-sm pf-v6-u-color-200"
+        data-testid="confusion-matrix-legend"
+      >
+        <span className="automl-confusion-matrix__legend-dot" />
+        <span>Correct prediction</span>
+      </Flex>
     </>
   );
 };

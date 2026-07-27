@@ -17,23 +17,29 @@ import {
   StackItem,
 } from '@patternfly/react-core';
 import { ApplicationsIcon, SearchIcon } from '@patternfly/react-icons';
+import { useExtensions } from '@odh-dashboard/plugin-core';
+import { isActionExtension } from '@odh-dashboard/plugin-core/extension-points';
+import { ExtensibleActions } from '@odh-dashboard/plugin-core/helpers/ui';
 import { ApplicationsPage } from 'mod-arch-shared';
 import { useMcpServerWithAPI } from '~/app/hooks/mcpServerCatalog/useMcpServer';
 import { McpCatalogContext } from '~/app/context/mcpCatalog/McpCatalogContext';
 import { mcpCatalogUrl } from '~/app/routes/mcpCatalog/mcpCatalog';
+import { MCP_CATALOG_TITLE } from '~/app/pages/mcpCatalog/const';
 import ScrollViewOnMount from '~/app/shared/components/ScrollViewOnMount';
 import {
   McpCardIconType,
   getMcpCardIconConfig,
 } from '~/app/pages/mcpCatalog/components/McpCatalogCardIcons';
 import { isMcpRemoteDeploymentMode } from '~/app/pages/mcpCatalog/utils/mcpCatalogUtils';
-import McpDeployButton from '~/odh/components/McpDeployButton';
 import McpServerDetailsView from './McpServerDetailsView';
+
+const MCP_DEPLOY_ACTION_GROUP = 'mcp-catalog.server-deploy';
 
 const McpServerDetailsPage: React.FC = () => {
   const { serverId = '' } = useParams<{ serverId: string }>();
   const { mcpApiState } = React.useContext(McpCatalogContext);
   const [server, serverLoaded, serverLoadError] = useMcpServerWithAPI(mcpApiState, serverId);
+  const actionExtensions = useExtensions(isActionExtension);
 
   const isNotFound = !server && (serverLoaded || !!serverLoadError);
 
@@ -44,10 +50,10 @@ const McpServerDetailsPage: React.FC = () => {
         breadcrumb={
           <Breadcrumb>
             <BreadcrumbItem>
-              <Link to={mcpCatalogUrl()}>MCP Catalog</Link>
+              <Link to={mcpCatalogUrl()}>{MCP_CATALOG_TITLE}</Link>
             </BreadcrumbItem>
             <BreadcrumbItem isActive data-testid="breadcrumb-server-name">
-              {server?.name || 'Details'}
+              {server?.displayName || server?.name || 'Details'}
             </BreadcrumbItem>
           </Breadcrumb>
         }
@@ -76,7 +82,7 @@ const McpServerDetailsPage: React.FC = () => {
                     alignItems={{ default: 'alignItemsCenter' }}
                     flexWrap={{ default: 'wrap' }}
                   >
-                    <FlexItem>{server.name}</FlexItem>
+                    <FlexItem>{server.displayName || server.name}</FlexItem>
                     {isMcpRemoteDeploymentMode(server.deploymentMode) && (
                       <FlexItem>
                         <Label data-testid="mcp-server-details-remote-label">
@@ -109,13 +115,17 @@ const McpServerDetailsPage: React.FC = () => {
                   variant="primary"
                   component={(props) => <Link {...props} to={mcpCatalogUrl()} />}
                 >
-                  Return to MCP Catalog
+                  Return to {MCP_CATALOG_TITLE}
                 </Button>
               </EmptyStateFooter>
             </EmptyState>
           ) : undefined
         }
-        headerAction={server?.artifacts?.some((a) => a.uri) ? <McpDeployButton /> : undefined}
+        headerAction={
+          server?.artifacts?.some((a) => a.uri) ? (
+            <ExtensibleActions actions={actionExtensions} group={MCP_DEPLOY_ACTION_GROUP} />
+          ) : undefined
+        }
         loadError={isNotFound ? undefined : serverLoadError}
         loaded={isNotFound || serverLoaded}
         errorMessage="Unable to load MCP server details"

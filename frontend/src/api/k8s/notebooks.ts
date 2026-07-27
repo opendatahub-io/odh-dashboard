@@ -37,6 +37,7 @@ export const assembleNotebook = (
     projectName,
     notebookData,
     envFrom,
+    secretKeyRefEnvVars,
     image,
     volumes: formVolumes,
     volumeMounts: formVolumeMounts,
@@ -134,6 +135,7 @@ export const assembleNotebook = (
                   name: 'JUPYTER_IMAGE',
                   value: imageUrl,
                 },
+                ...(secretKeyRefEnvVars ?? []),
               ],
               envFrom,
               volumeMounts,
@@ -313,11 +315,27 @@ export const updateNotebook = (
   oldNotebook.spec.template.spec.volumes = [];
   container.volumeMounts = [];
 
+  // Preserve entries not managed by the dashboard (operator-injected, webhooks, etc.)
+  // Compare by name against the newly assembled notebook's env to avoid duplicating managed vars
+  const dashboardEnvNames = new Set(
+    notebook.spec.template.spec.containers[0].env.map((e) => e.name),
+  );
+  const operatorEnvEntries = container.env.filter((entry) => !dashboardEnvNames.has(entry.name));
+  container.env = [];
+
+  const merged = _.merge({}, oldNotebook, notebook);
+  if (operatorEnvEntries.length > 0) {
+    merged.spec.template.spec.containers[0].env = [
+      ...merged.spec.template.spec.containers[0].env,
+      ...operatorEnvEntries,
+    ];
+  }
+
   return k8sUpdateResource<NotebookKind>(
     applyK8sAPIOptions(
       {
         model: NotebookModel,
-        resource: _.merge({}, oldNotebook, notebook),
+        resource: merged,
       },
       opts,
     ),

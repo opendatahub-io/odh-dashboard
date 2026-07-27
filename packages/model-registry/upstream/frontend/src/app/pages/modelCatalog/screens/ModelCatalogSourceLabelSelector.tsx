@@ -20,10 +20,8 @@ import { BASIC_FILTER_KEYS } from '~/concepts/modelCatalog/const';
 import ModelCatalogActiveFilters from '~/app/pages/modelCatalog/components/ModelCatalogActiveFilters';
 import HardwareConfigurationFilterToolbar from '~/app/pages/modelCatalog/components/HardwareConfigurationFilterToolbar';
 import { ModelCatalogContext } from '~/app/context/modelCatalog/ModelCatalogContext';
-import {
-  hasFiltersApplied,
-  getActiveSourceLabels,
-} from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
+import { getActiveSourceLabels, RESET_ALL_FILTERS_LABEL } from '~/app/shared/components/catalog';
+import { hasFiltersApplied } from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
 import ModelCatalogSortDropdown from '~/app/pages/modelCatalog/components/ModelCatalogSortDropdown';
 import ModelCatalogSourceLabelBlocks from './ModelCatalogSourceLabelBlocks';
 
@@ -137,7 +135,7 @@ const ModelCatalogSourceLabelSelector: React.FC<ModelCatalogSourceLabelSelectorP
           {...(onResetAllFilters && !performanceViewEnabled && hasBasicFiltersApplied
             ? {
                 clearAllFilters: handleClearAllFilters,
-                clearFiltersButtonText: 'Reset all filters',
+                clearFiltersButtonText: RESET_ALL_FILTERS_LABEL,
               }
             : {})}
         >

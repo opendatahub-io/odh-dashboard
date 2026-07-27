@@ -352,19 +352,21 @@ func TestBuildKFPRunRequest(t *testing.T) {
 		assert.Equal(t, 5, result.RuntimeConfig.Parameters["top_n"])
 	})
 
-	t.Run("should include preset when provided", func(t *testing.T) {
-		req := newValidTabularRequest()
-		result := BuildKFPRunRequest(req, "test-pipeline-id", "test-version-id", constants.PipelineTypeTabular)
-
-		assert.Equal(t, "speed", result.RuntimeConfig.Parameters["preset"])
-	})
-
-	t.Run("should omit preset when nil", func(t *testing.T) {
+	t.Run("should default preset to speed", func(t *testing.T) {
 		req := newValidTabularRequest()
 		req.Preset = nil
 		result := BuildKFPRunRequest(req, "test-pipeline-id", "test-version-id", constants.PipelineTypeTabular)
 
-		assert.NotContains(t, result.RuntimeConfig.Parameters, "preset")
+		assert.Equal(t, constants.DefaultPreset, result.RuntimeConfig.Parameters["preset"])
+	})
+
+	t.Run("should use provided preset", func(t *testing.T) {
+		req := newValidTabularRequest()
+		balanced := "balanced"
+		req.Preset = &balanced
+		result := BuildKFPRunRequest(req, "test-pipeline-id", "test-version-id", constants.PipelineTypeTabular)
+
+		assert.Equal(t, "balanced", result.RuntimeConfig.Parameters["preset"])
 	})
 
 	t.Run("should include eval_metric when provided", func(t *testing.T) {

@@ -1,14 +1,14 @@
 import * as React from 'react';
 import type { TemplateKind } from '@odh-dashboard/k8s-core';
-import DeleteModal from '#~/pages/projects/components/DeleteModal';
-import { useDashboardNamespace } from '#~/redux/selectors';
-import { deleteTemplateBackend } from '#~/services/templateService';
-import { patchDashboardConfigTemplateDisablementBackend } from '#~/services/dashboardService';
 import {
   getServingRuntimeDisplayNameFromTemplate,
   getTemplateEnabled,
   setListDisabled,
-} from './utils';
+} from '@odh-dashboard/model-serving/shared';
+import DeleteModal from '#~/pages/projects/components/DeleteModal';
+import { useDashboardNamespace } from '#~/redux/selectors';
+import { deleteTemplateBackend } from '#~/services/templateService';
+import { patchDashboardConfigTemplateDisablementBackend } from '#~/services/dashboardService';
 import { CustomServingRuntimeContext } from './CustomServingRuntimeContext';
 
 type DeleteCustomServingRuntimeModalProps = {

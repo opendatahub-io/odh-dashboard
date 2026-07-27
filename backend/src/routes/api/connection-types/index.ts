@@ -1,6 +1,7 @@
 import { V1ConfigMap } from '@kubernetes/client-node';
 import { FastifyReply, FastifyRequest } from 'fastify';
-import { KubeFastifyInstance, RecursivePartial } from '../../../types';
+import type { RecursivePartial } from '@odh-dashboard/foundation';
+import { KubeFastifyInstance } from '../../../types';
 import { secureAdminRoute } from '../../../utils/route-security';
 import {
   getConnectionType,

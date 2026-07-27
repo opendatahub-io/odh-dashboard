@@ -4,7 +4,7 @@ import useFetchState, {
   FetchState,
   FetchStateCallbackPromise,
   NotReadyError,
-} from '#~/utilities/useFetchState';
+} from '@odh-dashboard/ui-core/hooks/useFetchState';
 import { getElyraSecret } from '#~/api';
 
 const useElyraSecret = (namespace: string, hasCR: boolean): FetchState<SecretKind | null> => {

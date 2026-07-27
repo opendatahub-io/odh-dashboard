@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { FormGroup, MenuToggle, Select, SelectList, SelectOption } from '@patternfly/react-core';
-import FieldGroupHelpLabelIcon from '@odh-dashboard/internal/components/FieldGroupHelpLabelIcon';
+import FieldGroupHelpLabelIcon from '@odh-dashboard/ui-core/components/FieldGroupHelpLabelIcon';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
 import { SubscriptionInfo } from '~/app/types';
 import { isMaasLlamaModelId, splitLlamaModelId } from '~/app/utilities/utils';
@@ -10,13 +10,28 @@ interface SubscriptionDropdownProps {
   selectedSubscription: string;
   onSubscriptionChange: (subscription: string) => void;
   isDisabled?: boolean;
+  /** When true, treat selectedModel as a raw MaaS model ID (skip LlamaStack prefix check) */
+  isMaaSModel?: boolean;
+  /** Custom label for the FormGroup (defaults to "Subscription") */
+  label?: string;
+  /** Custom help text tooltip (defaults to generic subscription help) */
+  helpText?: string;
+  /** Additional className on the FormGroup wrapper */
+  className?: string;
 }
+
+const DEFAULT_HELP_TEXT =
+  'Select the subscription to use for this model. Subscriptions control access and rate limits for model endpoints.';
 
 const SubscriptionDropdown: React.FunctionComponent<SubscriptionDropdownProps> = ({
   selectedModel,
   selectedSubscription,
   onSubscriptionChange,
   isDisabled = false,
+  isMaaSModel = false,
+  label = 'Subscription',
+  helpText = DEFAULT_HELP_TEXT,
+  className,
 }) => {
   const [isOpen, setIsOpen] = React.useState(false);
   const { maasModels } = React.useContext(ChatbotContext);
@@ -25,15 +40,13 @@ const SubscriptionDropdown: React.FunctionComponent<SubscriptionDropdownProps> =
     if (!selectedModel) {
       return [];
     }
-    // Only look up subscriptions for MaaS models — without this guard, a namespace model
-    // sharing the same base model_id as a MaaS model would incorrectly pull up MaaS subscriptions.
-    if (!isMaasLlamaModelId(selectedModel)) {
+    if (!isMaaSModel && !isMaasLlamaModelId(selectedModel)) {
       return [];
     }
-    const { id: maasModelId } = splitLlamaModelId(selectedModel);
+    const maasModelId = isMaaSModel ? selectedModel : splitLlamaModelId(selectedModel).id;
     const matchingModel = maasModels.find((m) => m.id === maasModelId);
     return matchingModel?.subscriptions ?? [];
-  }, [selectedModel, maasModels]);
+  }, [selectedModel, isMaaSModel, maasModels]);
 
   // Auto-select highest-priority subscription when current selection is empty or invalid.
   // Subscriptions arrive pre-sorted by priority (desc) from the MaaS API.
@@ -70,10 +83,9 @@ const SubscriptionDropdown: React.FunctionComponent<SubscriptionDropdownProps> =
   return (
     <FormGroup
       fieldId="subscription-selector"
-      label="Subscription"
-      labelHelp={
-        <FieldGroupHelpLabelIcon content="Select the subscription to use for this model. Subscriptions control access and rate limits for model endpoints." />
-      }
+      label={label}
+      labelHelp={<FieldGroupHelpLabelIcon content={helpText} />}
+      className={className}
     >
       <Select
         id="subscription-selector"

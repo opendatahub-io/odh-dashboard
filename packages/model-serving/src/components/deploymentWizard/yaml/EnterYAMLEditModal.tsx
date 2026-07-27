@@ -1,4 +1,4 @@
-import ContentModal from '@odh-dashboard/internal/components/modals/ContentModal';
+import ContentModal from '@odh-dashboard/ui-core/components/ContentModal';
 import React from 'react';
 
 type EnterYAMLEditModalProps = {

@@ -9,11 +9,6 @@ import (
 
 // GetComponentsHandler lists OdhApplication CRDs. Returns empty array when CRD is absent.
 func (app *App) GetComponentsHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	if err := app.validateCallerToken(r.Context()); err != nil {
-		app.unauthorizedResponse(w, r, err)
-		return
-	}
-
 	installedOnly := r.URL.Query().Get("installed") != ""
 
 	components, err := app.repositories.Components.ListComponents(r.Context(), app.config.Namespace, installedOnly)

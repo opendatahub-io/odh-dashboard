@@ -2,8 +2,11 @@ import * as React from 'react';
 import { FormGroup, FormHelperText, HelperText, HelperTextItem } from '@patternfly/react-core';
 import { ExclamationTriangleIcon } from '@patternfly/react-icons';
 import type { PersistentVolumeClaimKind } from '@odh-dashboard/k8s-core';
-import ValueUnitField from '#~/components/ValueUnitField';
-import { MEMORY_UNITS_FOR_SELECTION, UnitOption } from '#~/utilities/valueUnits';
+import ValueUnitField from '@odh-dashboard/ui-core/components/ValueUnitField';
+import {
+  MEMORY_UNITS_FOR_SELECTION,
+  UnitOption,
+} from '@odh-dashboard/ui-core/utilities/valueUnits';
 import {
   ConnectedNotebookContext,
   useRelatedNotebooks,

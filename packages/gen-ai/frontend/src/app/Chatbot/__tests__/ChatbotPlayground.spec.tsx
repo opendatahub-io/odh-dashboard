@@ -65,15 +65,19 @@ jest.mock('~/app/Chatbot/hooks/useAlertManagement', () => ({
   default: () => ({
     showUploadSuccessAlert: false,
     showDeleteSuccessAlert: false,
+    showTranscriptionSuccessAlert: false,
     showErrorAlert: false,
     errorAlertKey: 0,
+    transcriptionAlertKey: 0,
     errorMessage: '',
     errorTitle: '',
     onShowUploadSuccessAlert: jest.fn(),
     onShowDeleteSuccessAlert: jest.fn(),
+    onShowTranscriptionSuccessAlert: jest.fn(),
     onShowErrorAlert: mockOnShowErrorAlert,
     onHideUploadSuccessAlert: jest.fn(),
     onHideDeleteSuccessAlert: jest.fn(),
+    onHideTranscriptionSuccessAlert: jest.fn(),
     onHideErrorAlert: jest.fn(),
   }),
 }));
@@ -171,14 +175,16 @@ jest.mock('~/app/utilities', () => ({
   URL_PREFIX: '/gen-ai',
 }));
 
+const mockIsVisionModel: jest.Mock = jest.fn(() => true);
+const mockIsPlaygroundModelMatch: jest.Mock = jest.fn(() => true);
+
 jest.mock('~/app/utilities/utils', () => ({
   getId: jest.fn(() => 'mock-compare-id'),
   getLlamaModelDisplayName: jest.fn((id: string) => id),
   splitLlamaModelId: jest.fn((id: string) => ({ providerId: 'p', id })),
   convertMaaSModelToAIModel: jest.fn((m: unknown) => m),
-  isPlaygroundModelMatchForAIModel: jest.fn(() => true),
-  isVisionModel: jest.fn(() => true),
-  isMaasLlamaModelId: jest.fn(() => false),
+  isPlaygroundModelMatchForAIModel: (a: unknown, b: unknown) => mockIsPlaygroundModelMatch(a, b),
+  isVisionModel: (m: unknown) => mockIsVisionModel(m),
 }));
 
 jest.mock('~/app/hooks/useWorkspaceCapabilities', () => ({
@@ -362,19 +368,22 @@ jest.mock('@patternfly/react-core', () => {
       children,
       onClick,
       isDisabled,
+      isAriaDisabled,
     }: {
       children: string;
       onClick?: () => void;
       isDisabled?: boolean;
+      isAriaDisabled?: boolean;
       icon?: unknown;
     }) => {
       const label = typeof children === 'string' ? children : 'item';
+      const effectiveDisabled = isDisabled || isAriaDisabled;
       return React.createElement(
         'button',
         {
           'data-testid': `menu-item-${label.replace(/\s+/g, '-').toLowerCase()}`,
-          onClick: isDisabled ? undefined : onClick,
-          disabled: isDisabled,
+          onClick: effectiveDisabled ? undefined : onClick,
+          disabled: effectiveDisabled,
           type: 'button',
         },
         children,
@@ -478,7 +487,6 @@ import { DEFAULT_CONFIGURATION } from '~/app/Chatbot/store/types';
 import { DEFAULT_CONFIG_ID } from '~/app/Chatbot/store';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
 
-// Access the setLastInput mock from the mocked context default value
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const mockSetLastInput = (ChatbotContext as any)._currentValue.setLastInput as jest.Mock;
 
@@ -880,7 +888,7 @@ describe('ChatbotPlayground — audio transcription', () => {
     expect(screen.queryByTestId('audio-per-message-modal')).not.toBeInTheDocument();
   });
 
-  it('clearing transcribed text resets hasAudioInCurrentMessage allowing new audio', async () => {
+  it('audio chip is visible in ready state after transcription completes', async () => {
     const { uploadMediaFile, transcribeAudio } = require('~/app/services/llamaStackService');
     uploadMediaFile.mockReturnValue({
       promise: Promise.resolve({ data: { id: 'file-123' } }),
@@ -901,18 +909,10 @@ describe('ChatbotPlayground — audio transcription', () => {
       expect(transcribeAudio).toHaveBeenCalled();
     });
 
-    // Clear the transcribed text (simulates user selecting all + deleting)
-    await act(async () => {
-      fireEvent.click(screen.getByTestId('clear-message-button'));
+    // The audio chip should remain visible in ready state
+    await waitFor(() => {
+      expect(screen.getByTestId('audio-file-chip')).toBeInTheDocument();
     });
-
-    // Now a new audio upload should work (no per-message modal)
-    const file2 = new File(['audio-data'], 'second.wav', { type: 'audio/wav' });
-    await act(async () => {
-      fireEvent.change(audioInput, { target: { files: [file2] } });
-    });
-
-    expect(screen.queryByTestId('audio-per-message-modal')).not.toBeInTheDocument();
   });
 
   it('namespace is included in the audio transcription API URL', async () => {
@@ -938,6 +938,7 @@ describe('ChatbotPlayground — audio transcription', () => {
         'file-123',
         'whisper-model',
         expect.any(AbortSignal),
+        undefined,
       );
     });
   });
@@ -988,5 +989,157 @@ describe('ChatbotPlayground — audio transcription', () => {
     });
 
     expect(mockXhrAbort).toHaveBeenCalled();
+  });
+});
+
+describe('ChatbotPlayground — compare mode attachments', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    uuidCounter = 0;
+    mockFilesWithSettings = [];
+    mockFileManagementFiles = [];
+    mockIsVisionModel.mockReturnValue(true);
+    mockIsPlaygroundModelMatch.mockReturnValue(true);
+
+    // Reset useWorkspaceCapabilities to default — guards against mock leaks from prior tests
+    const useWorkspaceCapabilities = require('~/app/hooks/useWorkspaceCapabilities').default;
+    useWorkspaceCapabilities.mockReturnValue({
+      hasVisionModel: true,
+      hasASRModel: true,
+      capabilitiesReady: true,
+      capabilitiesError: false,
+    });
+
+    act(() => {
+      useChatbotConfigStore.setState({
+        configurations: {
+          [DEFAULT_CONFIG_ID]: {
+            ...DEFAULT_CONFIGURATION,
+            selectedModel: 'test-model',
+          },
+          'config-2': {
+            ...DEFAULT_CONFIGURATION,
+            selectedModel: 'test-model',
+          },
+        },
+        configIds: [DEFAULT_CONFIG_ID, 'config-2'],
+      });
+    });
+  });
+
+  it('shows attach button in compare mode', () => {
+    renderPlayground();
+    expect(screen.getByTestId('attach-toggle')).toBeInTheDocument();
+  });
+
+  it('shows document file input in compare mode', () => {
+    renderPlayground();
+    expect(screen.getByTestId('document-file-input')).toBeInTheDocument();
+  });
+
+  it('image upload is enabled when all compared models have vision', async () => {
+    renderPlayground();
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('attach-toggle'));
+    });
+
+    const imageMenuItem = screen.getByTestId('menu-item-upload-image');
+    expect(imageMenuItem).not.toBeDisabled();
+  });
+
+  it('image upload is disabled when one compared model lacks vision capability', async () => {
+    const visionModel = { id: 'vision-ai', capabilities: ['vision', 'text-generation'] };
+    const textModel = { id: 'text-ai', capabilities: ['text-generation'] };
+
+    mockIsPlaygroundModelMatch.mockImplementation(
+      (llama: { id: string }, ai: { id: string }) =>
+        (llama.id === 'vision-llama' && ai.id === 'vision-ai') ||
+        (llama.id === 'text-llama' && ai.id === 'text-ai'),
+    );
+    mockIsVisionModel.mockImplementation(
+      (model: { capabilities?: string[] }) => model.capabilities?.includes('vision') ?? false,
+    );
+
+    render(
+      <MemoryRouter initialEntries={['/gen-ai-studio/playground/test-ns']}>
+        <ChatbotContext.Provider
+          value={
+            {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              ...(ChatbotContext as any)._currentValue,
+              models: [
+                { id: 'vision-llama', name: 'Vision Model' },
+                { id: 'text-llama', name: 'Text Model' },
+              ],
+              aiModels: [visionModel, textModel],
+              aiModelsLoaded: true,
+            } as React.ContextType<typeof ChatbotContext>
+          }
+        >
+          <ChatbotPlayground
+            isViewCodeModalOpen={false}
+            setIsViewCodeModalOpen={jest.fn()}
+            isNewChatModalOpen={false}
+            setIsNewChatModalOpen={jest.fn()}
+          />
+        </ChatbotContext.Provider>
+      </MemoryRouter>,
+    );
+
+    await act(async () => {
+      useChatbotConfigStore.setState({
+        configurations: {
+          [DEFAULT_CONFIG_ID]: {
+            ...DEFAULT_CONFIGURATION,
+            selectedModel: 'vision-llama',
+          },
+          'config-2': {
+            ...DEFAULT_CONFIGURATION,
+            selectedModel: 'text-llama',
+          },
+        },
+        configIds: [DEFAULT_CONFIG_ID, 'config-2'],
+      });
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('attach-toggle'));
+    });
+
+    const imageMenuItem = screen.getByTestId('menu-item-upload-image');
+    expect(imageMenuItem).toBeDisabled();
+  });
+
+  it('image upload is disabled when workspace has no vision models', async () => {
+    const useWorkspaceCapabilities = require('~/app/hooks/useWorkspaceCapabilities').default;
+    useWorkspaceCapabilities.mockReturnValue({
+      hasVisionModel: false,
+      hasASRModel: true,
+      capabilitiesReady: true,
+      capabilitiesError: false,
+    });
+
+    renderPlayground();
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('attach-toggle'));
+    });
+
+    const imageMenuItem = screen.getByTestId('menu-item-upload-image');
+    expect(imageMenuItem).toBeDisabled();
+  });
+
+  it('audio file input is rendered in compare mode', () => {
+    renderPlayground();
+    expect(screen.getByTestId('audio-file-input')).toBeInTheDocument();
+  });
+
+  it('document upload calls sourceManagement in compare mode', async () => {
+    renderPlayground();
+
+    await triggerDocumentUpload([createFile('doc.pdf')]);
+
+    expect(mockHandleSourceDrop).toHaveBeenCalledTimes(1);
   });
 });

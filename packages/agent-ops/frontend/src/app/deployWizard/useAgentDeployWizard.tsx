@@ -1,10 +1,13 @@
 import * as React from 'react';
 import {
+  createEnvVar,
+  createServicePort,
   DEFAULT_IMAGE_TAG,
   DEFAULT_PERSISTENT_VOLUME_SIZE,
   DEFAULT_PROTOCOL,
+  DEFAULT_WORKLOAD_TYPE,
 } from './wizardOptions';
-import type { DeployAgentWizardFormData } from './types';
+import type { DeployAgentEnvVar, DeployAgentServicePort, DeployAgentWizardFormData } from './types';
 import { buildFullImageReference, deriveAgentNameFromImage } from './utils';
 
 export type DeployAgentWizardFormField = keyof DeployAgentWizardFormData;
@@ -15,6 +18,12 @@ type AgentDeployWizardContextValue = {
     field: K,
     value: DeployAgentWizardFormData[K],
   ) => void;
+  updateServicePort: (rowId: string, partial: Partial<DeployAgentServicePort>) => void;
+  addServicePort: () => void;
+  removeServicePort: (rowId: string) => void;
+  updateEnvVar: (rowId: string, partial: Partial<DeployAgentEnvVar>) => void;
+  addEnvVar: () => void;
+  removeEnvVar: (rowId: string) => void;
   isDirty: boolean;
   setAgentNameManuallyEdited: (value: boolean) => void;
 };
@@ -26,31 +35,45 @@ export const createInitialFormData = (namespace: string): DeployAgentWizardFormD
   containerImage: '',
   imageTag: DEFAULT_IMAGE_TAG,
   agentName: '',
+  description: '',
   pullSecret: '',
   fullImageReference: '',
   protocol: DEFAULT_PROTOCOL,
-  workloadType: '',
+  framework: '',
+  workloadType: DEFAULT_WORKLOAD_TYPE,
   enablePersistentStorage: false,
   persistentVolumeSize: DEFAULT_PERSISTENT_VOLUME_SIZE,
+  servicePorts: [createServicePort()],
+  envVars: [],
 });
 
-const FORM_FIELDS: DeployAgentWizardFormField[] = [
-  'project',
-  'containerImage',
-  'imageTag',
-  'agentName',
-  'pullSecret',
-  'fullImageReference',
-  'protocol',
-  'workloadType',
-  'enablePersistentStorage',
-  'persistentVolumeSize',
-];
+const normalizeFormDataForComparison = (data: DeployAgentWizardFormData) => ({
+  ...data,
+  servicePorts: data.servicePorts.map(({ name, port, targetPort, protocol }) => ({
+    name,
+    port,
+    targetPort,
+    protocol,
+  })),
+  envVars: data.envVars.map(
+    ({ name, type, value, secretName, secretKey, configMapName, configMapKey }) => ({
+      name,
+      type,
+      value,
+      secretName,
+      secretKey,
+      configMapName,
+      configMapKey,
+    }),
+  ),
+});
 
 const isFormDataEqual = (
   left: DeployAgentWizardFormData,
   right: DeployAgentWizardFormData,
-): boolean => FORM_FIELDS.every((key) => left[key] === right[key]);
+): boolean =>
+  JSON.stringify(normalizeFormDataForComparison(left)) ===
+  JSON.stringify(normalizeFormDataForComparison(right));
 
 type AgentDeployWizardProviderProps = {
   namespace: string;
@@ -91,16 +114,82 @@ export const AgentDeployWizardProvider: React.FC<AgentDeployWizardProviderProps>
     [],
   );
 
+  const updateServicePort = React.useCallback(
+    (rowId: string, partial: Partial<DeployAgentServicePort>) => {
+      setFormData((current) => ({
+        ...current,
+        servicePorts: current.servicePorts.map((port) =>
+          port.rowId === rowId ? { ...port, ...partial } : port,
+        ),
+      }));
+    },
+    [],
+  );
+
+  const addServicePort = React.useCallback(() => {
+    setFormData((current) => ({
+      ...current,
+      servicePorts: [...current.servicePorts, createServicePort({ name: '' })],
+    }));
+  }, []);
+
+  const removeServicePort = React.useCallback((rowId: string) => {
+    setFormData((current) => ({
+      ...current,
+      servicePorts: current.servicePorts.filter((port) => port.rowId !== rowId),
+    }));
+  }, []);
+
+  const updateEnvVar = React.useCallback((rowId: string, partial: Partial<DeployAgentEnvVar>) => {
+    setFormData((current) => ({
+      ...current,
+      envVars: current.envVars.map((envVar) =>
+        envVar.rowId === rowId ? { ...envVar, ...partial } : envVar,
+      ),
+    }));
+  }, []);
+
+  const addEnvVar = React.useCallback(() => {
+    setFormData((current) => ({
+      ...current,
+      envVars: [...current.envVars, createEnvVar()],
+    }));
+  }, []);
+
+  const removeEnvVar = React.useCallback((rowId: string) => {
+    setFormData((current) => ({
+      ...current,
+      envVars: current.envVars.filter((envVar) => envVar.rowId !== rowId),
+    }));
+  }, []);
+
   const isDirty = !isFormDataEqual(formData, initialFormData);
 
   const value = React.useMemo(
     () => ({
       formData,
       setFormField,
+      updateServicePort,
+      addServicePort,
+      removeServicePort,
+      updateEnvVar,
+      addEnvVar,
+      removeEnvVar,
       isDirty,
       setAgentNameManuallyEdited,
     }),
-    [formData, setFormField, isDirty, setAgentNameManuallyEdited],
+    [
+      formData,
+      setFormField,
+      updateServicePort,
+      addServicePort,
+      removeServicePort,
+      updateEnvVar,
+      addEnvVar,
+      removeEnvVar,
+      isDirty,
+      setAgentNameManuallyEdited,
+    ],
   );
 
   return (

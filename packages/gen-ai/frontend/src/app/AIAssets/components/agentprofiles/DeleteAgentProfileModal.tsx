@@ -9,7 +9,9 @@ import {
   HelperText,
   HelperTextItem,
 } from '@patternfly/react-core';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { AgentProfileSummary } from '~/app/agentProfile/types';
+import { PLAYGROUND_AGENT_EVENTS } from '~/app/tracking/playgroundAgentTrackingConstants';
 
 type DeleteAgentProfileModalProps = {
   profile: AgentProfileSummary;
@@ -30,6 +32,9 @@ const DeleteAgentProfileModal: React.FC<DeleteAgentProfileModalProps> = ({
     setError(null);
     try {
       await onConfirm();
+      fireMiscTrackingEvent(PLAYGROUND_AGENT_EVENTS.DETAILS_DELETE_EXECUTED, {
+        agentID: profile.profileId,
+      });
       onClose();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'An unexpected error occurred.');
@@ -46,15 +51,15 @@ const DeleteAgentProfileModal: React.FC<DeleteAgentProfileModalProps> = ({
       data-testid="delete-agent-profile-modal"
     >
       <ModalHeader
-        title="Delete agent configuration?"
+        title="Delete agent?"
         labelId="delete-agent-profile-modal-title"
         titleIconVariant="warning"
       />
       <ModalBody>
         <Content>
           <p>
-            The <strong>{profile.displayName}</strong> agent configuration will be permanently
-            deleted. This action cannot be undone.
+            The <strong>{profile.displayName}</strong> agent will be permanently deleted. This
+            action cannot be undone.
           </p>
           {error && (
             <HelperText>

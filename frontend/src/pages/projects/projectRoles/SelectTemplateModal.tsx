@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { DataList, Flex, SearchInput } from '@patternfly/react-core';
-import ContentModal from '#~/components/modals/ContentModal';
+import ContentModal from '@odh-dashboard/ui-core/components/ContentModal';
 import { ROLE_TEMPLATE_CATALOG, type RoleTemplate } from './roleTemplateCatalog';
 import TemplateCategoryGroup from './TemplateCategoryGroup';
 

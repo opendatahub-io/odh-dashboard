@@ -14,11 +14,14 @@ const EmptyBYONImages: React.FC = () => (
     <EmptyState
       headingLevel="h1"
       icon={PlusCircleIcon}
-      titleText="No custom workbench images"
+      titleText="No workbench images"
       variant={EmptyStateVariant.full}
       data-id="empty-empty-state"
     >
-      <EmptyStateBody>To get started, import a custom workbench image.</EmptyStateBody>
+      <EmptyStateBody>
+        To get started, import a custom workbench image. Pre-installed images will appear
+        automatically when available.
+      </EmptyStateBody>
       <EmptyStateFooter>
         <ImportBYONImageButton />
       </EmptyStateFooter>

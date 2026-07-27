@@ -11,6 +11,7 @@ import { ModelCatalogNumberFilterKey } from '~/concepts/modelCatalog/const';
 import { useCatalogNumberFilterState } from '~/app/pages/modelCatalog/hooks/useCatalogFilterState';
 import { COLD_START_LOAD_TIME_RANGE } from '~/app/pages/modelCatalog/utils/performanceMetricsUtils';
 import { ModelCatalogContext } from '~/app/context/modelCatalog/ModelCatalogContext';
+import useDropdownAutoFocus from '~/app/pages/modelCatalog/hooks/useDropdownAutoFocus';
 import SliderWithInput from './SliderWithInput';
 
 const filterKey = ModelCatalogNumberFilterKey.COLD_START_LOAD_TIME;
@@ -19,6 +20,7 @@ const ColdStartLatencyFilter: React.FC = () => {
   const { filterOptions } = React.useContext(ModelCatalogContext);
   const { value: filterValue, setValue: setFilterValue } = useCatalogNumberFilterState(filterKey);
   const [isOpen, setIsOpen] = React.useState(false);
+  const contentRef = useDropdownAutoFocus(isOpen);
 
   const { minValue, maxValue, isSliderDisabled } = React.useMemo(() => {
     const option = filterOptions?.filters?.[filterKey];
@@ -86,55 +88,58 @@ const ColdStartLatencyFilter: React.FC = () => {
   );
 
   const filterContent = (
-    <Flex
-      direction={{ default: 'column' }}
-      spaceItems={{ default: 'spaceItemsSm' }}
-      flexWrap={{ default: 'wrap' }}
-      style={{ minWidth: '450px', padding: '16px' }}
-    >
-      <FlexItem>Cold start load time (seconds)</FlexItem>
-      <FlexItem>
-        <SliderWithInput
-          value={clampedValue}
-          min={minValue}
-          max={maxValue}
-          isDisabled={isSliderDisabled}
-          onChange={setLocalValue}
-          ariaLabel="Cold start load time value input"
-          shouldRound
-          showBoundaries
-        />
-      </FlexItem>
-      <FlexItem>
-        <Flex spaceItems={{ default: 'spaceItemsSm' }}>
-          <FlexItem>
-            <Button
-              variant="primary"
-              onClick={handleApplyFilter}
-              isDisabled={isSliderDisabled}
-              data-testid="cold-start-load-time-apply-filter"
-            >
-              Apply filter
-            </Button>
-          </FlexItem>
-          <FlexItem>
-            <Button
-              variant="link"
-              onClick={handleReset}
-              data-testid="cold-start-load-time-reset-filter"
-            >
-              Reset
-            </Button>
-          </FlexItem>
-        </Flex>
-      </FlexItem>
-    </Flex>
+    <div ref={contentRef} role="group" aria-label="Cold start load time filter controls">
+      <Flex
+        direction={{ default: 'column' }}
+        spaceItems={{ default: 'spaceItemsSm' }}
+        flexWrap={{ default: 'wrap' }}
+        style={{ minWidth: '450px', padding: '16px' }}
+      >
+        <FlexItem>Cold start load time (seconds)</FlexItem>
+        <FlexItem>
+          <SliderWithInput
+            value={clampedValue}
+            min={minValue}
+            max={maxValue}
+            isDisabled={isSliderDisabled}
+            onChange={setLocalValue}
+            ariaLabel="Cold start load time value input"
+            shouldRound
+            showBoundaries
+          />
+        </FlexItem>
+        <FlexItem>
+          <Flex spaceItems={{ default: 'spaceItemsSm' }}>
+            <FlexItem>
+              <Button
+                variant="primary"
+                onClick={handleApplyFilter}
+                isDisabled={isSliderDisabled}
+                data-testid="cold-start-load-time-apply-filter"
+              >
+                Apply filter
+              </Button>
+            </FlexItem>
+            <FlexItem>
+              <Button
+                variant="link"
+                onClick={handleReset}
+                data-testid="cold-start-load-time-reset-filter"
+              >
+                Reset
+              </Button>
+            </FlexItem>
+          </Flex>
+        </FlexItem>
+      </Flex>
+    </div>
   );
 
   return (
     <Dropdown
       isOpen={isOpen}
       onOpenChange={setIsOpen}
+      onOpenChangeKeys={['Escape']}
       toggle={toggle}
       shouldFocusToggleOnSelect={false}
     >

@@ -3,9 +3,9 @@ import { Alert, FormGroup, MenuItem, Stack, StackItem, Truncate } from '@pattern
 import { Link } from 'react-router-dom';
 import type { ProjectKind } from '@odh-dashboard/k8s-core';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
+import SearchSelector from '@odh-dashboard/ui-core/components/searchSelector/SearchSelector';
 import { ProjectsContext } from '#~/concepts/projects/ProjectsContext';
 import { ProjectSectionID } from '#~/pages/projects/screens/detail/types';
-import SearchSelector from '#~/components/searchSelector/SearchSelector';
 
 type ProjectSelectorProps = {
   selectedProject: ProjectKind | null;

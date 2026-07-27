@@ -12,7 +12,7 @@ metadata:
       event == "pull_request"
       && target_branch == "main"
       && ( "packages/automl/**".pathChanged()
-            || ".tekton/odh-mod-arch-automl-ci-pull-request.yaml".pathChanged() )
+            || ".tekton/odh-mod-arch-automl-pull-request.yaml".pathChanged() )
   creationTimestamp: null
   labels:
     appstudio.openshift.io/application: opendatahub-builds

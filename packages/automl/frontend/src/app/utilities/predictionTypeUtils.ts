@@ -16,26 +16,37 @@ export type PredictionTypeOption = {
   value: PredictionTypeValue;
   label: string;
   description: string;
+  popoverText: string;
 };
 
 const PREDICTION_TYPE_CONFIG = {
   [TASK_TYPE_BINARY]: {
     label: TASK_TYPE_LABELS[TASK_TYPE_BINARY],
     description: 'Classify data into exactly 2 categories (for example, yes/no or true/false).',
+    popoverText:
+      'Binary classification requires the target column to contain exactly 2 unique values (categories).',
   },
   [TASK_TYPE_MULTICLASS]: {
     label: TASK_TYPE_LABELS[TASK_TYPE_MULTICLASS],
     description: 'Classify data into 3 or more categories with distinct boundaries.',
+    popoverText:
+      'Multi-class classification performs best when the target column contains fewer than 20 unique numeric values (categories).',
   },
   [TASK_TYPE_REGRESSION]: {
     label: TASK_TYPE_LABELS[TASK_TYPE_REGRESSION],
     description: 'Predict a continuous numeric output from input features.',
+    popoverText:
+      'Regression requires the target column to contain numeric data with multiple distinct values.',
   },
   [TASK_TYPE_TIMESERIES]: {
     label: TASK_TYPE_LABELS[TASK_TYPE_TIMESERIES],
     description: 'Predict future values based on time-ordered historical data.',
+    popoverText: 'Time series forecasting requires the target column to contain time-ordered data.',
   },
-} satisfies Record<PredictionTypeValue, { label: string; description: string }>;
+} satisfies Record<
+  PredictionTypeValue,
+  { label: string; description: string; popoverText: string }
+>;
 
 export const PREDICTION_TYPE_OPTIONS: PredictionTypeOption[] = TASK_TYPES.map((taskType) => ({
   value: taskType,
@@ -48,12 +59,10 @@ type PredictionTypeAssessmentBase = {
 
 export type RecommendedPredictionTypeAssessment = PredictionTypeAssessmentBase & {
   isRecommended: true;
-  recommendationReason: string;
 };
 
 export type NotRecommendedPredictionTypeAssessment = PredictionTypeAssessmentBase & {
   isRecommended: false;
-  notRecommendedReason: string;
 };
 
 export type PredictionTypeAssessment =
@@ -116,37 +125,6 @@ export const getPredictionTypeSoftNotRecommendedReason = (
   return undefined;
 };
 
-export const getPredictionTypeRecommendationReason = (
-  taskType: PredictionTypeValue,
-  selectedColumn: ColumnSchema | undefined,
-  columns: { name: string; type: string }[] = [],
-): string => {
-  const uniqueCount = getTargetColumnUniqueValueCount(selectedColumn);
-  const countLabel = uniqueCount != null ? String(uniqueCount) : 'Multiple';
-  const isNumeric = selectedColumn != null && isNumericColumnType(selectedColumn.type);
-
-  switch (taskType) {
-    case TASK_TYPE_BINARY:
-      return uniqueCount != null
-        ? `Exactly ${uniqueCount} unique values detected in ${selectedColumn?.name ?? 'the target column'}.`
-        : 'Exactly 2 unique values detected in the target column.';
-    case TASK_TYPE_MULTICLASS:
-      return isNumeric
-        ? `${countLabel} unique numeric values detected. This typically represents categories.`
-        : `${countLabel} unique values detected. This typically represents categories.`;
-    case TASK_TYPE_REGRESSION:
-      return 'Target column is numeric with multiple distinct values.';
-    case TASK_TYPE_TIMESERIES: {
-      const timestampColumn = findTimestampColumn(columns);
-      return timestampColumn
-        ? `Column "${timestampColumn}" indicates a time-based series.`
-        : 'A date or time column was detected, and indicates a time-based series.';
-    }
-    default:
-      return '';
-  }
-};
-
 export const assessPredictionTypes = (
   selectedColumn: ColumnSchema | undefined,
   columns: { name: string; type: string }[],
@@ -164,18 +142,12 @@ export const assessPredictionTypes = (
       return {
         value: option.value,
         isRecommended: true,
-        recommendationReason: getPredictionTypeRecommendationReason(
-          option.value,
-          selectedColumn,
-          columns,
-        ),
       };
     }
 
     return {
       value: option.value,
       isRecommended: false,
-      notRecommendedReason,
     };
   });
 

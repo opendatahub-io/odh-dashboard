@@ -17,10 +17,10 @@ import (
 // K8sProxyPrefix is the URL path prefix for Kubernetes API proxy requests.
 const K8sProxyPrefix = "/api/k8s/"
 
-// sensitiveIngressHeaders returns header names that must not leak from the ingress
-// layer to the K8s API server. authTokenHeader is included dynamically because it
+// SensitiveIngressHeaders returns header names that must not leak from the ingress
+// layer to upstream services. authTokenHeader is included dynamically because it
 // is configurable (default: x-forwarded-access-token).
-func sensitiveIngressHeaders(authTokenHeader string) []string {
+func SensitiveIngressHeaders(authTokenHeader string) []string {
 	headers := []string{
 		"cookie",
 		"x-forwarded-for",
@@ -61,6 +61,9 @@ type K8sProxyConfig struct {
 	// The configured K8s host is automatically allowlisted so private-IP blocking
 	// does not reject the proxy's own target.
 	SSRFValidateTarget bool
+	// DevFallbackToken is the kubeconfig's bearer token used when the request identity
+	// has DevFallback set. Empty means no token fallback (client cert auth handles it).
+	DevFallbackToken string
 	// Logger is used for logging proxy operations.
 	Logger *slog.Logger
 }
@@ -85,7 +88,7 @@ func NewK8sProxyHandler(cfg K8sProxyConfig) (http.Handler, error) {
 		InsecureSkipVerify:   cfg.InsecureSkipVerify,
 		AllowHTTP:            cfg.AllowHTTP,
 		SetOutboundHeadersFn: cfg.SetOutboundHeadersFn,
-		StripHeaders:         sensitiveIngressHeaders(cfg.AuthTokenHeader),
+		StripHeaders:         SensitiveIngressHeaders(cfg.AuthTokenHeader),
 		SSRFValidateTarget:   cfg.SSRFValidateTarget,
 		SSRFAllowedHosts:     []string{targetURL.Hostname()},
 		Logger:               cfg.Logger,
@@ -97,7 +100,7 @@ func NewK8sProxyHandler(cfg K8sProxyConfig) (http.Handler, error) {
 			if !ok || identity == nil {
 				return ""
 			}
-			return "Bearer " + identity.Token.Raw()
+			return k8s.BearerTokenPrefix + identity.ResolveToken(cfg.DevFallbackToken)
 		},
 		ModifyResponse: ssrf.NewRedirectValidator(cfg.Logger),
 	})

@@ -11,6 +11,7 @@ export const mockClusterSettings = ({
   },
   isDistributedInferencingDefault = true,
   defaultDeploymentStrategy = 'rolling',
+  globalMLflowNamespaces = [],
 }: Partial<ClusterSettingsType>): ClusterSettingsType => ({
   userTrackingEnabled,
   cullerTimeout,
@@ -18,4 +19,5 @@ export const mockClusterSettings = ({
   modelServingPlatformEnabled,
   isDistributedInferencingDefault,
   defaultDeploymentStrategy,
+  globalMLflowNamespaces,
 });

@@ -7,6 +7,8 @@ import (
 	"io"
 	"net/http"
 	"strings"
+
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/constants"
 )
 
 // Envelope wraps API response data with optional metadata.
@@ -32,7 +34,7 @@ func (app *App) WriteJSON(w http.ResponseWriter, status int, data any, headers h
 		w.Header()[key] = value
 	}
 
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set(constants.HeaderContentType, constants.ContentTypeJSON)
 	w.WriteHeader(status)
 	_, err = w.Write(js)
 

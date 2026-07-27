@@ -10,7 +10,7 @@ import { NotebookKind } from '#~/k8sTypes';
 import { AccessMode } from '#~/pages/storageClasses/storageEnums';
 import { Connection } from '#~/concepts/connectionTypes/types.ts';
 import { UseAssignHardwareProfileResult } from '#~/concepts/hardwareProfiles/useAssignHardwareProfile';
-import { AwsKeys } from './dataConnections/const';
+
 import { NotebookFeatureStore } from './screens/spawner/featureStore/utils';
 
 export type FeastData = {
@@ -18,11 +18,6 @@ export type FeastData = {
   annotations?: Record<string, string>;
   labels?: Record<string, string>;
 };
-
-export type UpdateObjectAtPropAndValue<T> = <K extends keyof T>(
-  propKey: K,
-  propValue: T[K],
-) => void;
 
 export type NameDescType = {
   name: string;
@@ -85,6 +80,17 @@ export type StorageData = {
   modelPath?: string;
 };
 
+export type SecretKeyRefEnvVar = {
+  name: string;
+  valueFrom: {
+    secretKeyRef: {
+      name: string;
+      key: string;
+      optional?: boolean;
+    };
+  };
+};
+
 export type StartNotebookData = {
   projectName: string;
   notebookData: K8sNameDescriptionFieldData;
@@ -92,6 +98,7 @@ export type StartNotebookData = {
   volumes?: Volume[];
   volumeMounts?: VolumeMount[];
   envFrom?: EnvironmentFromVariable[];
+  secretKeyRefEnvVars?: SecretKeyRefEnvVar[];
   dashboardNamespace?: string;
   connections?: Connection[];
   hardwareProfileOptions: UseAssignHardwareProfileResult<NotebookKind>;
@@ -100,9 +107,12 @@ export type StartNotebookData = {
 };
 
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports -- re-exporting shared types for backward compatibility
-export type { SecretRef, ConfigMapRef, EnvironmentFromVariable } from '@odh-dashboard/k8s-core';
-
-export type AWSDataEntry = { key: AwsKeys; value: string }[];
+export type {
+  SecretRef,
+  ConfigMapRef,
+  EnvironmentFromVariable,
+  AWSDataEntry,
+} from '@odh-dashboard/k8s-core';
 
 export type EnvVariableDataEntry = KeyValuePair;
 
@@ -111,10 +121,25 @@ export type EnvVariableData = {
   data: EnvVariableDataEntry[];
 };
 
+export type ExistingSecretRef = {
+  secretName: string;
+  selectedKeys: string[];
+  /** Maps secret key → original env var name when they differ (edit round-trip) */
+  keyEnvNameMap?: Record<string, string>;
+  /** Maps secret key → true when the original entry had optional: true */
+  keyOptionalMap?: Record<string, boolean>;
+};
+
+export type ExistingSecretMetadata = {
+  name: string;
+  keys: string[];
+};
+
 export type EnvVariable = {
   type: EnvironmentVariableType | null;
   existingName?: string;
   values?: EnvVariableData;
+  existingSecretRefs?: ExistingSecretRef[];
 };
 
 export enum EnvironmentVariableType {
@@ -125,27 +150,12 @@ export enum SecretCategory {
   GENERIC = 'secret key-value',
   AWS = 'aws',
   UPLOAD = 'secret upload',
+  EXISTING = 'existing secret',
 }
 export enum ConfigMapCategory {
   GENERIC = 'configmap key-value',
   UPLOAD = 'configmap upload',
 }
 
-export enum NamespaceApplicationCase {
-  /**
-   * Supports the flow for when a project is created in the DSG create project flow.
-   */
-  DSG_CREATION,
-  /**
-   * Upgrade an existing DSG project to work with model kserve.
-   */
-  KSERVE_PROMOTION,
-  /**
-   * Nvidia NIMs run on KServe but have different requirements than regular models.
-   */
-  KSERVE_NIM_PROMOTION,
-  /**
-   * Reset a project's model serving platform configuration so the platform can be selected again.
-   */
-  RESET_MODEL_SERVING_PLATFORM,
-}
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports -- re-exporting shared type
+export { NamespaceApplicationCase } from '@odh-dashboard/k8s-core';

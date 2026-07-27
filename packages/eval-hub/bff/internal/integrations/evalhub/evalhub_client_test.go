@@ -14,27 +14,39 @@ import (
 func TestEvalHubClient_HealthCheck(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "/api/v1/health", r.URL.Path)
+		assert.Equal(t, "my-ns", r.Header.Get("X-Tenant"))
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(HealthResponse{Status: "healthy"})
 	}))
 	defer server.Close()
 
 	client := NewEvalHubClient(server.URL, "", false, nil, "/api/v1")
-	resp, err := client.HealthCheck(context.Background())
+	resp, err := client.HealthCheck(context.Background(), "my-ns")
 
 	require.NoError(t, err)
 	assert.Equal(t, "healthy", resp.Status)
 }
 
+func TestEvalHubClient_HealthCheck_RequiresNamespace(t *testing.T) {
+	client := NewEvalHubClient("http://example.invalid", "", false, nil, "/api/v1")
+	_, err := client.HealthCheck(context.Background(), "")
+
+	require.Error(t, err)
+	var ehErr *EvalHubError
+	require.ErrorAs(t, err, &ehErr)
+	assert.Equal(t, ErrCodeInvalidRequest, ehErr.Code)
+}
+
 func TestEvalHubClient_HealthCheck_ServerError(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "my-ns", r.Header.Get("X-Tenant"))
 		w.WriteHeader(http.StatusInternalServerError)
 		_, _ = w.Write([]byte("internal error"))
 	}))
 	defer server.Close()
 
 	client := NewEvalHubClient(server.URL, "", false, nil, "/api/v1")
-	_, err := client.HealthCheck(context.Background())
+	_, err := client.HealthCheck(context.Background(), "my-ns")
 
 	require.Error(t, err)
 	var ehErr *EvalHubError
@@ -232,7 +244,7 @@ func TestEvalHubClient_ListCollections_ServerError(t *testing.T) {
 
 func TestEvalHubClient_ConnectionError(t *testing.T) {
 	client := NewEvalHubClient("http://localhost:1", "", false, nil, "/api/v1")
-	_, err := client.HealthCheck(context.Background())
+	_, err := client.HealthCheck(context.Background(), "my-ns")
 
 	require.Error(t, err)
 	var ehErr *EvalHubError

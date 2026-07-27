@@ -1,3 +1,8 @@
 import * as React from 'react';
-declare const McpCatalogCoreLoader: React.FC;
+type McpCatalogCoreLoaderProps = {
+    customAction?: React.ReactNode;
+    customEmptyStateTitle?: string;
+    customEmptyStateDescription?: React.ReactNode;
+};
+declare const McpCatalogCoreLoader: React.FC<McpCatalogCoreLoaderProps>;
 export default McpCatalogCoreLoader;

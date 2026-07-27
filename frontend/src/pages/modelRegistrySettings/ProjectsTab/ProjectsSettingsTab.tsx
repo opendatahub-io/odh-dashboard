@@ -10,6 +10,7 @@ import {
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import React from 'react';
+import { FetchStateObject } from '@odh-dashboard/ui-core/hooks/useFetch';
 import {
   RoleBindingPermissionsRBType,
   RoleBindingPermissionsRoleType,
@@ -23,7 +24,6 @@ import {
   createModelRegistryRoleBinding,
   deleteModelRegistryRoleBinding,
 } from '#~/services/modelRegistrySettingsService';
-import { FetchStateObject } from '#~/utilities/useFetch';
 
 type RoleBindingProjectPermissionsProps = {
   ownerReference?: K8sResourceCommon;

@@ -12,12 +12,12 @@ import {
 } from '@patternfly/react-core';
 
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
+import HeaderIcon from '@odh-dashboard/ui-core/design/HeaderIcon';
 import { NotebookKind } from '#~/k8sTypes';
 import useNotebookPVCItems from '#~/pages/projects/pvc/useNotebookPVCItems';
 import StorageSizeBar from '#~/pages/projects/components/StorageSizeBars';
 import { getNotebookPVCMountPathMap } from '#~/pages/projects/notebook/utils';
 import { ProjectObjectType } from '#~/concepts/design/utils';
-import HeaderIcon from '#~/concepts/design/HeaderIcon';
 import InlineTruncatedClipboardCopy from '#~/components/InlineTruncatedClipboardCopy';
 import ShowAllButton from './ShowAllButton';
 

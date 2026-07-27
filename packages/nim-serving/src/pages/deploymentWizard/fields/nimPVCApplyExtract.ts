@@ -1,7 +1,7 @@
 import {
   convertToUnit,
   MEMORY_UNITS_FOR_PARSING,
-} from '@odh-dashboard/internal/utilities/valueUnits';
+} from '@odh-dashboard/ui-core/utilities/valueUnits';
 import { NIMPVCStorageMode, type NIMPVCFieldValue } from './NIMPVCField';
 import type { NIMDeployment } from '../../../api/nimservices/types';
 
