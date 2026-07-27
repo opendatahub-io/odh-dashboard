@@ -95,7 +95,7 @@
     "webpack": "5.104.1",
     "webpack-bundle-analyzer": "^4.10.2",
     "webpack-cli": "^6.0.1",
-    "webpack-dev-server": "^5.2.0",
+    "webpack-dev-server": "^6.0.0",
     "webpack-merge": "^6.0.1"
   },
   "dependencies": {
@@ -120,7 +120,7 @@
     "@babel/preset-env": "^7.26.9",
     "@babel/preset-react": "^7.18.6",
     "@babel/preset-typescript": "^7.21.5",
-    "@cypress/code-coverage": "^3.14.7",
+    "@cypress/code-coverage": "^4.0.3",
     "@cypress/webpack-preprocessor": "^6.0.4",
     "@testing-library/cypress": "^10.0.3",
     "cypress": "^15.10.0",
