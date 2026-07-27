@@ -1,7 +1,8 @@
 import type { PersistentVolumeClaimKind } from '@odh-dashboard/k8s-core';
 import { ServingRuntimePlatform } from '@odh-dashboard/model-serving/shared';
 import type { ServingRuntimeKind } from '@odh-dashboard/model-serving/shared';
-import { mockProjectK8sResource } from '#~/__mocks__/mockProjectK8sResource';
+import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
+import { mockPVCK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockPVCK8sResource';
 import {
   createNIMPVC,
   createNIMSecret,
@@ -25,7 +26,6 @@ import {
   updateServingRuntimeTemplate,
 } from '#~/pages/modelServing/screens/projects/nim/nimUtils';
 import { AccessMode } from '#~/pages/storageClasses/storageEnums';
-import { mockPVCK8sResource } from '#~/__mocks__/mockPVCK8sResource';
 
 jest.mock('#~/api', () => ({
   getSecret: jest.fn(),

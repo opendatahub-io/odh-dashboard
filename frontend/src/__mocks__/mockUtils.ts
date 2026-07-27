@@ -1,7 +1,6 @@
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
-import { genRandomChars } from '@odh-dashboard/foundation';
 
-export const genUID = (name: string): string => `test-uid_${name}_${genRandomChars()}`;
+export { genUID } from '@odh-dashboard/foundation';
 
 /**
  * Clones the resource and increments its metadata.resourceVersion.

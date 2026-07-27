@@ -6,7 +6,7 @@ import {
   translateDisplayNameForK8s,
   translateDisplayNameForK8sAndReport,
 } from '@odh-dashboard/k8s-core';
-import { mockProjectK8sResource } from '#~/__mocks__';
+import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import { isValidK8sLabelKeyValue } from '#~/concepts/k8s/utils';
 import { K8_NOTEBOOK_RESOURCE_NAME_VALIDATOR } from '#~/pages/projects/screens/spawner/const';
 
