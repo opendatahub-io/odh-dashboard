@@ -1,3 +1,5 @@
+import React from 'react';
+import { render, waitFor } from '@testing-library/react';
 import { mockLLMInferenceServiceConfigK8sResource } from '@odh-dashboard/internal/__mocks__/mockLLMInferenceServiceConfigK8sResource';
 import { TopologyType } from '../../types';
 import {
@@ -8,6 +10,7 @@ import type { TopologyTypeExternalData } from '../TopologyTypeField';
 import type { CustomTopologyConfigFieldData } from '../CustomTopologyConfigField';
 
 const { getInitialFieldData } = CustomTopologyConfigFieldWizardField.reducerFunctions;
+const CustomTopologyConfigFieldComponent = CustomTopologyConfigFieldWizardField.component;
 
 const mockMultiNodeConfig = mockLLMInferenceServiceConfigK8sResource({
   name: 'multi-node-config-1',
@@ -56,8 +59,15 @@ describe('CustomTopologyConfigField getInitialFieldData', () => {
     expect(result).toBe(existing);
   });
 
-  it('should fall through to defaults when only configRef is set (unresolved edit extractor)', () => {
+  it('should preserve configRef from edit extractor for resolution by the component', () => {
     const existing: CustomTopologyConfigFieldData = { configRef: 'some-config' };
+    const result = getInitialFieldData(existing);
+
+    expect(result).toBe(existing);
+  });
+
+  it('should fall through to defaults when neither selectedConfig nor configRef is set', () => {
+    const existing: CustomTopologyConfigFieldData = {};
     const result = getInitialFieldData(existing);
 
     expect(result).toEqual({ selectedConfig: TOPOLOGY_CONFIG_DEFAULT });
@@ -123,5 +133,101 @@ describe('CustomTopologyConfigField getInitialFieldData', () => {
     const result = getInitialFieldData(undefined, undefined, deps);
 
     expect(result).toEqual({ selectedConfig: undefined });
+  });
+});
+
+describe('CustomTopologyConfigField component — edit flow configRef resolution', () => {
+  const fieldId = 'llmd-serving/custom-topology-config';
+
+  it('should resolve a compatible configRef and show it selected', async () => {
+    const onChange = jest.fn();
+
+    render(
+      <CustomTopologyConfigFieldComponent
+        id={fieldId}
+        value={{ configRef: 'multi-node-config-1' }}
+        onChange={onChange}
+        externalData={{
+          data: {
+            configsByTopology: {
+              ...emptyConfigsByTopology,
+              [TopologyType.MULTI_NODE]: [mockMultiNodeConfig, mockMultiNodeConfig2],
+            },
+          },
+          loaded: true,
+        }}
+        dependencies={{ topologyType: { topologyType: TopologyType.MULTI_NODE } }}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(onChange).toHaveBeenCalledWith({ selectedConfig: mockMultiNodeConfig });
+    });
+  });
+
+  it('should clear configRef and auto-select when it references a deleted config', async () => {
+    const onChange = jest.fn();
+    const externalData = {
+      data: {
+        configsByTopology: {
+          ...emptyConfigsByTopology,
+          [TopologyType.MULTI_NODE]: [mockMultiNodeConfig],
+        },
+      },
+      loaded: true,
+    };
+    const deps = { topologyType: { topologyType: TopologyType.MULTI_NODE } };
+
+    const { rerender } = render(
+      <CustomTopologyConfigFieldComponent
+        id={fieldId}
+        value={{ configRef: 'deleted-config' }}
+        onChange={onChange}
+        externalData={externalData}
+        dependencies={deps}
+      />,
+    );
+
+    // The resolution effect clears configRef when the config isn't found
+    await waitFor(() => {
+      expect(onChange).toHaveBeenCalledWith({ configRef: undefined });
+    });
+
+    // Simulate the wizard framework applying the cleared configRef
+    rerender(
+      <CustomTopologyConfigFieldComponent
+        id={fieldId}
+        value={{}}
+        onChange={onChange}
+        externalData={externalData}
+        dependencies={deps}
+      />,
+    );
+
+    // The auto-select effect should now pick the first available config
+    await waitFor(() => {
+      expect(onChange).toHaveBeenCalledWith({ selectedConfig: mockMultiNodeConfig });
+    });
+  });
+
+  it('should set default when deleted configRef is resolved on single-node topology', async () => {
+    const onChange = jest.fn();
+
+    render(
+      <CustomTopologyConfigFieldComponent
+        id={fieldId}
+        value={{ configRef: 'deleted-config' }}
+        onChange={onChange}
+        externalData={{
+          data: { configsByTopology: emptyConfigsByTopology },
+          loaded: true,
+        }}
+        dependencies={{ topologyType: { topologyType: TopologyType.SINGLE_NODE } }}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(onChange).toHaveBeenCalledWith({ selectedConfig: TOPOLOGY_CONFIG_DEFAULT });
+    });
   });
 });
