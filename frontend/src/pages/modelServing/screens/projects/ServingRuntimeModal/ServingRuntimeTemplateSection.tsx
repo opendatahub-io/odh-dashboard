@@ -23,8 +23,9 @@ import {
   getServingRuntimeNameFromTemplate,
   setServingRuntimeTemplate,
   isServingRuntimeKind,
+  getServingRuntimeVersion,
 } from '@odh-dashboard/model-serving/shared';
-import { DeploymentResourceVersionLabels } from '@odh-dashboard/model-serving/shared/components';
+import { ServingRuntimeVersionLabel } from '@odh-dashboard/model-serving/shared/components';
 import ProjectScopedPopover from '@odh-dashboard/ui-core/components/ProjectScopedPopover';
 import ProjectScopedIcon from '@odh-dashboard/ui-core/components/searchSelector/ProjectScopedIcon';
 import {
@@ -105,9 +106,11 @@ const ServingRuntimeTemplateSection: React.FC<ServingRuntimeTemplateSectionProps
       <FlexItem>
         <Truncate content={getServingRuntimeDisplayNameFromTemplate(template)} />
       </FlexItem>
-      <FlexItem>
-        <DeploymentResourceVersionLabels resource={template} isCompact />
-      </FlexItem>
+      {getServingRuntimeVersion(template) && (
+        <FlexItem>
+          <ServingRuntimeVersionLabel version={getServingRuntimeVersion(template)} isCompact />
+        </FlexItem>
+      )}
       <FlexItem align={{ default: 'alignRight' }}>
         {compatibleIdentifiers?.some((identifier) =>
           isCompatibleWithIdentifier(identifier, template.objects[0]),
@@ -200,19 +203,13 @@ const ServingRuntimeTemplateSection: React.FC<ServingRuntimeTemplateSectionProps
             color={isEditing ? 'grey' : 'blue'}
             fallback="Select one"
             additionalContent={
-              servingRuntimeSelected ? (
-                <DeploymentResourceVersionLabels
-                  resource={servingRuntimeSelected}
+              getServingRuntimeVersion(servingRuntimeSelected || selectedTemplate) && (
+                <ServingRuntimeVersionLabel
+                  version={getServingRuntimeVersion(servingRuntimeSelected || selectedTemplate)}
                   isCompact
                   isEditing={isEditing}
                 />
-              ) : selectedTemplate ? (
-                <DeploymentResourceVersionLabels
-                  resource={selectedTemplate}
-                  isCompact
-                  isEditing={isEditing}
-                />
-              ) : undefined
+              )
             }
           />
         }

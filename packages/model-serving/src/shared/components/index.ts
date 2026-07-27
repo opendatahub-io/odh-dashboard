@@ -1,5 +1,7 @@
 export { ModelStatusIcon } from './ModelStatusIcon';
-export { default as DeploymentResourceVersionLabels } from './DeploymentResourceVersionLabels';
+export { renderDeploymentResourceVersionLabels } from './renderDeploymentResourceVersionLabels';
+/** @deprecated Use renderDeploymentResourceVersionLabels instead. */
+export { default as ServingRuntimeVersionLabel } from './ServingRuntimeVersionLabel';
 export { default as ModelServingPlatformSelectErrorAlert } from './ModelServingPlatformSelectErrorAlert';
 export { default as ServingRuntimeTokenDisplay } from './ServingRuntimeTokenDisplay';
 export { default as ServingRuntimeTokenTableRow } from './ServingRuntimeTokenTableRow';

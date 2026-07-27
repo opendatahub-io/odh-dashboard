@@ -8,6 +8,7 @@ import {
   HelperText,
   HelperTextItem,
   Label,
+  LabelGroup,
   MenuItem,
   Radio,
   Truncate,
@@ -21,7 +22,7 @@ import {
 } from '@odh-dashboard/ui-core/components/searchSelector/ProjectScopedSearchDropdown';
 import ProjectScopedToggleContent from '@odh-dashboard/ui-core/components/searchSelector/ProjectScopedToggleContent';
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
-import { DeploymentResourceVersionLabels } from '@odh-dashboard/model-serving/shared/components';
+import { renderDeploymentResourceVersionLabels } from '@odh-dashboard/model-serving/shared/components';
 
 // Schema
 const ModelServerOptionSchema = z.object({
@@ -73,7 +74,9 @@ const OptionDropdownLabel: React.FC<{ option: ModelServerOption }> = ({ option }
     </FlexItem>
     {option.template ? (
       <FlexItem>
-        <DeploymentResourceVersionLabels resource={option.template} isCompact />
+        <LabelGroup>
+          {...renderDeploymentResourceVersionLabels(option.template, { isCompact: true })}
+        </LabelGroup>
       </FlexItem>
     ) : null}
     {option.template && (
@@ -184,11 +187,12 @@ const ModelServerTemplateSelectField: React.FC<ModelServerTemplateSelectFieldPro
               }
               additionalContent={
                 selectedTemplate?.template ? (
-                  <DeploymentResourceVersionLabels
-                    resource={selectedTemplate.template}
-                    isCompact
-                    isEditing={isEditing}
-                  />
+                  <LabelGroup>
+                    {...renderDeploymentResourceVersionLabels(selectedTemplate.template, {
+                      isCompact: true,
+                      isEditing,
+                    })}
+                  </LabelGroup>
                 ) : null
               }
             />
