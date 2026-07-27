@@ -2,7 +2,7 @@ import * as React from 'react';
 import type { AccessReviewResourceAttributes } from '@odh-dashboard/k8s-core';
 import TitleWithIcon from '@odh-dashboard/ui-core/design/TitleWithIcon';
 import { ApplicationsPage } from '@odh-dashboard/ui-core';
-import { useAccessReview } from '#~/api';
+import { useAccessReview } from '@odh-dashboard/plugin-core/host-api';
 import { ProjectsContext } from '#~/concepts/projects/ProjectsContext';
 import { ProjectObjectType } from '#~/concepts/design/utils';
 import LaunchJupyterButton from '#~/pages/projects/screens/projects/LaunchJupyterButton';

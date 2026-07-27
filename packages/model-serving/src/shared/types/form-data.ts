@@ -37,6 +37,7 @@ import { NIMModelLocationKey } from '../../components/deploymentWizard/fields/mo
 import { getStateKey } from '../../components/deploymentWizard/dynamicFormUtils';
 import type { DeploymentMethodFieldData } from '../../components/deploymentWizard/fields/DeploymentMethodSelectField';
 import type { ModelServingClusterSettings } from '../../concepts/useModelServingClusterSettings';
+import type { LabeledConnection } from '../connectionTypes/types';
 
 export enum ConnectionTypeRefs {
   S3 = 's3',

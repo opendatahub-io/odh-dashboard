@@ -3,6 +3,7 @@ import { Button, Popover, Tooltip } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { EmptyDetailsView, DashboardPopupIconButton } from '@odh-dashboard/ui-core';
+import { useAccessReview } from '@odh-dashboard/plugin-core/host-api';
 import { ProjectSectionID } from '#~/pages/projects/screens/detail/types';
 import {
   ProjectSectionTitles,
@@ -15,7 +16,6 @@ import { ProjectObjectType, typedEmptyImage } from '#~/concepts/design/utils';
 import useRefreshInterval from '#~/utilities/useRefreshInterval';
 import { useKueueConfiguration } from '#~/concepts/hardwareProfiles/kueueUtils';
 import { KUEUE_WORKBENCH_CREATION_DISABLED_MESSAGE } from '#~/concepts/hardwareProfiles/kueueConstants';
-import { useAccessReview } from '#~/api/useAccessReview';
 import { NotebookModel } from '#~/api/models/kubeflow';
 import useKueueNotebookAlerts from '#~/pages/projects/notebook/useKueueNotebookAlerts';
 import NotebookTable from './NotebookTable';

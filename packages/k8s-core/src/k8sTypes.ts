@@ -998,3 +998,5 @@ export type ConfigSecretItem = {
   name: string;
   keys: string[];
 };
+
+export type K8sWatchResult<T> = [data: T, loaded: boolean, error: Error | undefined];
