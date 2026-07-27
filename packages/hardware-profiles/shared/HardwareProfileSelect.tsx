@@ -18,7 +18,7 @@ import {
 import * as React from 'react';
 import { InfoCircleIcon } from '@patternfly/react-icons';
 import { t_global_icon_color_disabled as disabledIconColor } from '@patternfly/react-tokens';
-import type { HardwareProfileKind } from '@odh-dashboard/k8s-core';
+import { type HardwareProfileKind, byName } from '@odh-dashboard/k8s-core';
 import SimpleSelect, { SimpleSelectOption } from '@odh-dashboard/ui-core/components/SimpleSelect';
 import TruncatedText from '@odh-dashboard/ui-core/components/TruncatedText';
 import ProjectScopedIcon from '@odh-dashboard/ui-core/components/searchSelector/ProjectScopedIcon';
@@ -35,7 +35,7 @@ import {
   orderHardwareProfiles,
 } from '@odh-dashboard/internal/pages/hardwareProfiles/utils';
 import { ProjectDetailsContext } from '@odh-dashboard/internal/pages/projects/ProjectDetailsContext';
-import { ProjectsContext, byName } from '@odh-dashboard/internal/concepts/projects/ProjectsContext';
+import { ProjectsContext } from '@odh-dashboard/ui-core/context/ProjectsContext';
 import { useApplicationSettings } from '@odh-dashboard/internal/app/useApplicationSettings';
 import {
   computeLocalQueueNamesResult,

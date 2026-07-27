@@ -29,13 +29,11 @@ import {
   SupportedModelFormats,
   isModelServingCompatible,
   ModelServingCompatibleTypes,
-} from '@odh-dashboard/k8s-core';
-import {
   K8sAPIOptions,
   RoleBindingKind,
-  ServiceAccountKind,
   RoleKind,
-} from '@odh-dashboard/internal/k8sTypes';
+} from '@odh-dashboard/k8s-core';
+import { ServiceAccountKind } from '@odh-dashboard/internal/k8sTypes';
 import {
   type InferenceServiceKind,
   ServingRuntimeModelType,
