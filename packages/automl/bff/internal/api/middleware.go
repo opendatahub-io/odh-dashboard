@@ -633,6 +633,70 @@ func isDSPAReady(dspa *models.DSPipelineApplication) bool {
 	return false
 }
 
+type dspaListResult struct {
+	dspas []models.DSPipelineApplication
+	gvr   schema.GroupVersionResource
+}
+
+// listDSPipelineApplicationsWithGVR lists all DSPipelineApplication CRs and returns the discovered GVR.
+// Callers that need to perform further dynamic client operations on the same resource
+// can reuse the returned GVR to avoid a second API-discovery round-trip.
+func listDSPipelineApplicationsWithGVR(
+	ctx context.Context,
+	client k8s.KubernetesClientInterface,
+	namespace string,
+	mockK8Client bool,
+	logger *slog.Logger,
+) (dspaListResult, error) {
+	if mockK8Client {
+		return dspaListResult{dspas: getMockDSPipelineApplications(namespace)}, nil
+	}
+
+	cfg := client.GetRestConfig()
+	if cfg == nil {
+		return dspaListResult{}, fmt.Errorf("failed to get rest.Config from kubernetes client")
+	}
+
+	dynamicClient, err := dynamic.NewForConfig(cfg)
+	if err != nil {
+		return dspaListResult{}, fmt.Errorf("failed to create dynamic client: %w", err)
+	}
+
+	gvr, err := discoverDSPipelineApplicationGVR(ctx, cfg, namespace)
+	if err != nil {
+		return dspaListResult{}, fmt.Errorf("failed to discover DSPipelineApplication API version: %w", err)
+	}
+
+	unstructuredList, err := dynamicClient.Resource(gvr).
+		Namespace(namespace).
+		List(ctx, metav1.ListOptions{})
+	if err != nil {
+		if k8serrors.IsNotFound(err) {
+			return dspaListResult{}, fmt.Errorf("namespace not found: %s", namespace)
+		}
+		if k8serrors.IsForbidden(err) {
+			return dspaListResult{}, fmt.Errorf("forbidden: cannot list DSPipelineApplications in namespace %s", namespace)
+		}
+		return dspaListResult{}, fmt.Errorf("failed to list DSPipelineApplications in namespace %s: %w", namespace, err)
+	}
+
+	dspas := make([]models.DSPipelineApplication, 0, len(unstructuredList.Items))
+	for _, item := range unstructuredList.Items {
+		dspa, convErr := unstructuredToDSPipelineApplication(&item)
+		if convErr != nil {
+			logger.Warn("Failed to convert DSPipelineApplication",
+				"namespace", item.GetNamespace(),
+				"name", item.GetName(),
+				"uid", item.GetUID(),
+				"error", convErr)
+			continue
+		}
+		dspas = append(dspas, *dspa)
+	}
+
+	return dspaListResult{dspas: dspas, gvr: gvr}, nil
+}
+
 // listDSPipelineApplications lists all DSPipelineApplication CRs in a namespace
 func listDSPipelineApplications(
 	ctx context.Context,
@@ -641,65 +705,11 @@ func listDSPipelineApplications(
 	mockK8Client bool,
 	logger *slog.Logger,
 ) ([]models.DSPipelineApplication, error) {
-	// Check if we're running in mock K8s mode
-	if mockK8Client {
-		// Running with mock K8s client - return mock data
-		return getMockDSPipelineApplications(namespace), nil
-	}
-
-	// Get rest.Config from the injected client (proper dependency injection)
-	config := client.GetRestConfig()
-	if config == nil {
-		return nil, fmt.Errorf("failed to get rest.Config from kubernetes client")
-	}
-
-	// Create dynamic client using the injected config
-	dynamicClient, err := dynamic.NewForConfig(config)
+	result, err := listDSPipelineApplicationsWithGVR(ctx, client, namespace, mockK8Client, logger)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create dynamic client: %w", err)
+		return nil, err
 	}
-
-	// Discover the preferred API version for DSPipelineApplication
-	gvr, err := discoverDSPipelineApplicationGVR(ctx, config, namespace)
-	if err != nil {
-		return nil, fmt.Errorf("failed to discover DSPipelineApplication API version: %w", err)
-	}
-
-	// List DSPipelineApplication CRs
-	unstructuredList, err := dynamicClient.Resource(gvr).
-		Namespace(namespace).
-		List(ctx, metav1.ListOptions{})
-	if err != nil {
-		// Check for specific Kubernetes error types
-		if k8serrors.IsNotFound(err) {
-			// Namespace doesn't exist or resource type not found
-			return nil, fmt.Errorf("namespace not found: %s", namespace)
-		}
-		if k8serrors.IsForbidden(err) {
-			// No permission to list resources in this namespace
-			return nil, fmt.Errorf("forbidden: cannot list DSPipelineApplications in namespace %s", namespace)
-		}
-		// Other unexpected errors
-		return nil, fmt.Errorf("failed to list DSPipelineApplications in namespace %s: %w", namespace, err)
-	}
-
-	// Convert to our models
-	dspas := make([]models.DSPipelineApplication, 0, len(unstructuredList.Items))
-	for _, item := range unstructuredList.Items {
-		dspa, err := unstructuredToDSPipelineApplication(&item)
-		if err != nil {
-			// Log warning with context and continue with other items
-			logger.Warn("Failed to convert DSPipelineApplication",
-				"namespace", item.GetNamespace(),
-				"name", item.GetName(),
-				"uid", item.GetUID(),
-				"error", err)
-			continue
-		}
-		dspas = append(dspas, *dspa)
-	}
-
-	return dspas, nil
+	return result.dspas, nil
 }
 
 // unstructuredToDSPipelineApplication converts an unstructured object to DSPipelineApplication model

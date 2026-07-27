@@ -5,14 +5,24 @@ import { ActionsColumn, ExpandableRowContent, Tbody, Td, Tr } from '@patternfly/
 import { Content, ContentVariants } from '@patternfly/react-core';
 import { Link, useNavigate } from 'react-router-dom';
 import type { K8sResourceCommon } from '@odh-dashboard/k8s-core';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { MaaSSubscription } from '~/app/types/subscriptions';
-import { URL_PREFIX } from '~/app/utilities/const';
+import {
+  getSubscriptionEditUrl,
+  getSubscriptionViewUrl,
+} from '~/app/utilities/subscriptionManagementNavigation';
 import { convertSubscriptionToK8sResource } from '~/app/utilities/subscriptions';
 import PhaseLabel from '~/app/shared/PhaseLabel';
-import { PhaseResourceType } from '~/app/utilities/phaseLabelUtils';
+import { PhaseLabelLocation, PhaseResourceType } from '~/app/utilities/phaseLabelUtils';
 import ExpandedGroupsPanel from '~/app/shared/ExpandedGroupsPanel';
 import CompoundExpandCountCell from '~/app/shared/CompoundExpandCountCell';
 import ExpandedModelsPanel from '~/app/shared/ExpandedModelsPanel';
+import {
+  EventTrackingExpandedSection,
+  EventTrackingResourceType,
+  EventTrackingSource,
+  MaaSEvents,
+} from '~/app/types/event-tracking';
 import { subscriptionsColumns } from './columns';
 
 type ExpandedPanel = 'groups' | 'models' | null;
@@ -31,7 +41,6 @@ const SubscriptionTableRow: React.FC<SubscriptionTableRowProps> = ({
   returnTo,
 }) => {
   const navigate = useNavigate();
-  const base = returnTo ?? `${URL_PREFIX}/subscriptions`;
   const navState = returnTo ? { state: { returnTo } } : undefined;
   const [expandedPanel, setExpandedPanel] = React.useState<ExpandedPanel>(null);
 
@@ -40,10 +49,15 @@ const SubscriptionTableRow: React.FC<SubscriptionTableRowProps> = ({
   };
 
   const onViewDetailsSubscription = (subscriptionName: string) => {
-    navigate(`${base}/view/${subscriptionName}`, navState);
+    fireMiscTrackingEvent(MaaSEvents.MAAS_RESOURCE_DETAILS_VIEWED, {
+      resourceType: EventTrackingResourceType.SUBSCRIPTION,
+      source: EventTrackingSource.TAB_KEBAB,
+      resourceStatus: subscription.phase ?? '',
+    });
+    navigate(getSubscriptionViewUrl(subscriptionName), navState);
   };
   const onEditSubscription = (subscriptionName: string) => {
-    navigate(`${base}/edit/${subscriptionName}`, navState);
+    navigate(getSubscriptionEditUrl(subscriptionName), navState);
   };
 
   const subscriptionResource: K8sResourceCommon = {
@@ -75,8 +89,15 @@ const SubscriptionTableRow: React.FC<SubscriptionTableRowProps> = ({
           ) : (
             <ResourceNameTooltip resource={convertSubscriptionToK8sResource(subscription)}>
               <Link
-                to={`${base}/view/${subscription.name}`}
+                to={getSubscriptionViewUrl(subscription.name)}
                 state={returnTo ? { returnTo } : undefined}
+                onClick={() =>
+                  fireMiscTrackingEvent(MaaSEvents.MAAS_RESOURCE_DETAILS_VIEWED, {
+                    resourceType: EventTrackingResourceType.SUBSCRIPTION,
+                    source: EventTrackingSource.TAB_LINK,
+                    resourceStatus: subscription.phase ?? '',
+                  })
+                }
               >
                 {subscription.displayName ?? subscription.name}
               </Link>
@@ -95,6 +116,7 @@ const SubscriptionTableRow: React.FC<SubscriptionTableRowProps> = ({
         phase={subscription.phase}
         statusMessage={subscription.statusMessage}
         resourceType={PhaseResourceType.SUBSCRIPTION}
+        location={PhaseLabelLocation.SUBSCRIPTIONS_TAB}
       />
     </Td>
   );
@@ -150,7 +172,19 @@ const SubscriptionTableRow: React.FC<SubscriptionTableRowProps> = ({
           dataLabel={subscriptionsColumns[2].label}
           compoundExpand={{
             isExpanded: expandedPanel === 'groups',
-            onToggle: () => togglePanel('groups'),
+            onToggle: () => {
+              togglePanel('groups');
+              // So it doesn't fire on open and close of the expanded section
+              if (expandedPanel !== 'groups') {
+                fireMiscTrackingEvent(MaaSEvents.MAAS_SETTINGS_LIST_ROW_EXPANDED, {
+                  resourceType: EventTrackingResourceType.SUBSCRIPTION,
+                  expandedSection: EventTrackingExpandedSection.GROUPS,
+                  resourceStatus: subscription.phase ?? '',
+                  modelCount: modelsCount,
+                  groupCount: groupsCount,
+                });
+              }
+            },
             expandId: `expand-${subscription.name}-groups`,
             rowIndex,
             columnIndex: 2,
@@ -163,7 +197,19 @@ const SubscriptionTableRow: React.FC<SubscriptionTableRowProps> = ({
           dataLabel={subscriptionsColumns[3].label}
           compoundExpand={{
             isExpanded: expandedPanel === 'models',
-            onToggle: () => togglePanel('models'),
+            onToggle: () => {
+              togglePanel('models');
+              // So it doesn't fire on open and close of the expanded section
+              if (expandedPanel !== 'models') {
+                fireMiscTrackingEvent(MaaSEvents.MAAS_SETTINGS_LIST_ROW_EXPANDED, {
+                  resourceType: EventTrackingResourceType.SUBSCRIPTION,
+                  expandedSection: EventTrackingExpandedSection.MODELS,
+                  resourceStatus: subscription.phase ?? '',
+                  modelCount: modelsCount,
+                  groupCount: groupsCount,
+                });
+              }
+            },
             expandId: `expand-${subscription.name}-models`,
             rowIndex,
             columnIndex: 3,

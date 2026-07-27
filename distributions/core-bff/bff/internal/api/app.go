@@ -54,6 +54,8 @@ type App struct {
 	// devFallbackToken is the kubeconfig bearer token used in dev mode for
 	// proxied requests (Prometheus, model-serving) when the identity has no real token.
 	devFallbackToken string
+	// probeSemaphore limits concurrent connection test probes
+	probeSemaphore chan struct{}
 }
 
 type k8sSetupResult struct {
@@ -107,6 +109,7 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		bffClientFactory: bffFactory,
 		openAPI:          openAPIHandler,
 		clusterInfo:      ci,
+		probeSemaphore:   NewProbeSemaphore(),
 	}
 
 	if err := app.initK8sProxy(cfg, k8sResult); err != nil {

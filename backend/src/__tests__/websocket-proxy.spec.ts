@@ -3,7 +3,6 @@ import { KubeFastifyInstance, OauthFastifyRequest } from '../types';
 import wssK8sRoutes, {
   CONNECTION_TIMEOUT_MS,
   HEARTBEAT_INTERVAL_MS,
-  STALE_CONNECTION_MS,
 } from '../routes/wss/k8s/index';
 import { getDirectCallOptions, getAccessToken } from '../utils/directCallUtils';
 
@@ -111,12 +110,6 @@ describe('WebSocket K8s Proxy', () => {
 
       expect(mockFastify.get).toHaveBeenCalledWith('/*', { websocket: true }, expect.any(Function));
     });
-
-    it('should register cleanup hook for server shutdown', async () => {
-      await wssK8sRoutes(mockFastify);
-
-      expect(mockFastify.addHook).toHaveBeenCalledWith('onClose', expect.any(Function));
-    });
   });
 
   describe('Connection Timeout', () => {
@@ -180,6 +173,7 @@ describe('WebSocket K8s Proxy', () => {
       jest.advanceTimersByTime(HEARTBEAT_INTERVAL_MS);
 
       expect(mockTargetSocket.ping).toHaveBeenCalled();
+      expect(mockSourceSocket.ping).toHaveBeenCalled();
     });
 
     it('should send pings at regular intervals', async () => {
@@ -194,12 +188,15 @@ describe('WebSocket K8s Proxy', () => {
       // Advance through multiple heartbeat intervals
       jest.advanceTimersByTime(HEARTBEAT_INTERVAL_MS);
       expect(mockTargetSocket.ping).toHaveBeenCalledTimes(1);
+      expect(mockSourceSocket.ping).toHaveBeenCalledTimes(1);
 
       jest.advanceTimersByTime(HEARTBEAT_INTERVAL_MS);
       expect(mockTargetSocket.ping).toHaveBeenCalledTimes(2);
+      expect(mockSourceSocket.ping).toHaveBeenCalledTimes(2);
 
       jest.advanceTimersByTime(HEARTBEAT_INTERVAL_MS);
       expect(mockTargetSocket.ping).toHaveBeenCalledTimes(3);
+      expect(mockSourceSocket.ping).toHaveBeenCalledTimes(3);
     });
 
     it('should not ping when socket is not OPEN', async () => {
@@ -213,16 +210,19 @@ describe('WebSocket K8s Proxy', () => {
 
       // First heartbeat with socket OPEN
       jest.advanceTimersByTime(HEARTBEAT_INTERVAL_MS);
-      const pingsWhileOpen = mockTargetSocket.ping.mock.calls.length;
+      const targetPingsWhileOpen = mockTargetSocket.ping.mock.calls.length;
+      const sourcePingsWhileOpen = mockSourceSocket.ping.mock.calls.length;
 
       // Change socket state to CLOSING
       mockTargetSocket.readyState = WebSocket.CLOSING;
+      mockSourceSocket.readyState = WebSocket.CLOSING;
 
       // Next heartbeat with socket CLOSING
       jest.advanceTimersByTime(HEARTBEAT_INTERVAL_MS);
 
       // Should not have sent additional pings
-      expect(mockTargetSocket.ping.mock.calls.length).toBe(pingsWhileOpen);
+      expect(mockTargetSocket.ping.mock.calls.length).toBe(targetPingsWhileOpen);
+      expect(mockSourceSocket.ping.mock.calls.length).toBe(sourcePingsWhileOpen);
     });
 
     it('should stop heartbeat after connection closes', async () => {
@@ -236,7 +236,8 @@ describe('WebSocket K8s Proxy', () => {
 
       // First heartbeat
       jest.advanceTimersByTime(HEARTBEAT_INTERVAL_MS);
-      const firstPingCount = mockTargetSocket.ping.mock.calls.length;
+      const firstTargetPingCount = mockTargetSocket.ping.mock.calls.length;
+      const firstSourcePingCount = mockSourceSocket.ping.mock.calls.length;
 
       // Close connection
       const closeHandler = mockSourceSocket.on.mock.calls.find(
@@ -248,7 +249,8 @@ describe('WebSocket K8s Proxy', () => {
       jest.advanceTimersByTime(HEARTBEAT_INTERVAL_MS * 3);
 
       // No more pings
-      expect(mockTargetSocket.ping.mock.calls.length).toBe(firstPingCount);
+      expect(mockTargetSocket.ping.mock.calls.length).toBe(firstTargetPingCount);
+      expect(mockSourceSocket.ping.mock.calls.length).toBe(firstSourcePingCount);
     });
   });
 
@@ -618,113 +620,9 @@ describe('WebSocket K8s Proxy', () => {
     });
   });
 
-  describe('Stale Connection Cleanup', () => {
-    it('should periodically clean up stale connections', async () => {
-      await wssK8sRoutes(mockFastify);
-      routeHandler = (mockFastify.get as jest.Mock).mock.calls[0][2];
-
-      // Create a connection
-      await routeHandler(mockConnection, mockRequest);
-
-      // Advance time to trigger cleanup (runs every minute)
-      jest.advanceTimersByTime(60000);
-
-      // Connection is still active, so no cleanup warning yet
-      expect(mockLog.warn).not.toHaveBeenCalledWith(
-        expect.anything(),
-        expect.stringContaining('Closing stale websocket connection'),
-      );
-
-      // Advance time beyond stale threshold
-      jest.advanceTimersByTime(STALE_CONNECTION_MS);
-      jest.advanceTimersByTime(60000); // Trigger another cleanup cycle
-
-      // Now stale connection should be cleaned up
-      expect(mockLog.warn).toHaveBeenCalledWith(
-        expect.objectContaining({
-          inactivityDuration: expect.any(Number),
-        }),
-        expect.stringContaining('Closing stale websocket connection'),
-      );
-    });
-
-    /**
-     * This test verifies the fix for the zombie connection bug:
-     *
-     * When a connection becomes stale, both websockets are now properly closed
-     * so that the client receives the close event and can reconnect.
-     */
-    it('should close websockets when cleaning up stale connections', async () => {
-      await wssK8sRoutes(mockFastify);
-      routeHandler = (mockFastify.get as jest.Mock).mock.calls[0][2];
-
-      // Create a connection
-      await routeHandler(mockConnection, mockRequest);
-
-      // Verify sockets haven't been closed yet
-      expect(mockSourceSocket.close).not.toHaveBeenCalled();
-      expect(mockTargetSocket.close).not.toHaveBeenCalled();
-
-      // Let connection become stale (advance past threshold + cleanup cycle)
-      jest.advanceTimersByTime(STALE_CONNECTION_MS + 60000);
-
-      // Verify stale cleanup ran
-      expect(mockLog.warn).toHaveBeenCalledWith(
-        expect.objectContaining({
-          inactivityDuration: expect.any(Number),
-        }),
-        expect.stringContaining('Closing stale websocket connection'),
-      );
-
-      // Both websockets should be closed with code 1001 (Going Away)
-      expect(mockSourceSocket.close).toHaveBeenCalledWith(
-        1001,
-        'Connection stale due to inactivity',
-      );
-      expect(mockTargetSocket.close).toHaveBeenCalledWith(
-        1001,
-        'Connection stale due to inactivity',
-      );
-    });
-
-    /**
-     * This test verifies that heartbeat intervals are properly cleared
-     * when cleaning up stale connections.
-     */
-    it('should clear heartbeat interval when cleaning up stale connections', async () => {
-      await wssK8sRoutes(mockFastify);
-      routeHandler = (mockFastify.get as jest.Mock).mock.calls[0][2];
-
-      // Create a connection
-      await routeHandler(mockConnection, mockRequest);
-
-      // Simulate connection opening to start heartbeat
-      const openHandler = mockTargetSocket.on.mock.calls.find(
-        (call: any) => call[0] === 'open',
-      )?.[1];
-      openHandler();
-
-      // Verify heartbeat is running
-      jest.advanceTimersByTime(HEARTBEAT_INTERVAL_MS);
-      expect(mockTargetSocket.ping).toHaveBeenCalledTimes(1);
-
-      // Advance time beyond stale threshold + cleanup cycle
-      jest.advanceTimersByTime(STALE_CONNECTION_MS + 60000);
-
-      // After cleanup, heartbeat should be stopped - no more pings
-      const pingCountAfterCleanup = mockTargetSocket.ping.mock.calls.length;
-      jest.advanceTimersByTime(HEARTBEAT_INTERVAL_MS * 3);
-      expect(mockTargetSocket.ping.mock.calls.length).toBe(pingCountAfterCleanup);
-    });
-  });
-
   describe('Configuration Constants', () => {
     it('should have connection timeout less than heartbeat interval', () => {
       expect(CONNECTION_TIMEOUT_MS).toBeLessThan(HEARTBEAT_INTERVAL_MS);
-    });
-
-    it('should have heartbeat interval less than stale connection threshold', () => {
-      expect(HEARTBEAT_INTERVAL_MS).toBeLessThan(STALE_CONNECTION_MS);
     });
   });
 });

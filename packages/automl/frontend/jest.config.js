@@ -20,6 +20,12 @@ module.exports = {
     '^@odh-dashboard/internal(.*)$': '<rootDir>/../../../frontend/src$1',
   },
   testEnvironment: 'jest-environment-jsdom',
+  transform: {
+    '^.+\\.(js|tsx?)$': [
+      'babel-jest',
+      { targets: 'current node', envName: 'test', rootMode: 'upward' },
+    ],
+  },
   transformIgnorePatterns: [
     'node_modules/(?!yaml|lodash-es|uuid|@patternfly|delaunator|mod-arch-core|mod-arch-shared)',
   ],

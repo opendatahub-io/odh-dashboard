@@ -14,28 +14,45 @@ import BYONImageHardwareProfiles from '#~/pages/BYONImages/BYONImageHardwareProf
 import { TableRowTitleDescription } from '#~/components/table';
 import { useHardwareProfilesByFeatureVisibility } from '#~/pages/hardwareProfiles/useHardwareProfilesByFeatureVisibility';
 import { PreInstalledName } from '#~/concepts/k8s/utils';
+import { useDashboardNamespace } from '#~/redux/selectors';
+import { updateBYONImageStream, patchOOTBImageStreamHidden } from '#~/api/k8s/imageStreams';
 import ImageErrorStatus from './ImageErrorStatus';
-import BYONImageStatusToggle from './BYONImageStatusToggle';
-import OOTBImageStatusToggle from './OOTBImageStatusToggle';
+import ImageStatusToggle from './ImageStatusToggle';
 import { convertBYONImageToK8sResource } from './utils';
 import BYONImageDependenciesList from './BYONImageDependenciesList';
 
 type BYONImagesTableRowProps = {
   obj: BYONImage;
+  images: BYONImage[];
   rowIndex: number;
   hardwareProfiles: ReturnType<typeof useHardwareProfilesByFeatureVisibility>['globalProfiles'];
   onEditImage: (obj: BYONImage) => void;
   onDeleteImage: (obj: BYONImage) => void;
+  claimSessionToggleIndex: () => number;
 };
 
 const BYONImagesTableRow: React.FC<BYONImagesTableRowProps> = ({
   obj,
+  images,
   rowIndex,
   hardwareProfiles,
   onEditImage,
   onDeleteImage,
+  claimSessionToggleIndex,
 }) => {
+  const { dashboardNamespace } = useDashboardNamespace();
   const [isExpanded, setExpanded] = React.useState(false);
+
+  const handleToggle = React.useCallback(
+    async (visible: boolean) => {
+      if (obj.isOOTB) {
+        await patchOOTBImageStreamHidden(dashboardNamespace, obj.name, !visible);
+      } else {
+        await updateBYONImageStream(dashboardNamespace, { name: obj.name, visible });
+      }
+    },
+    [dashboardNamespace, obj.isOOTB, obj.name],
+  );
   const columnModifier =
     obj.software.length > 0 && obj.packages.length > 0
       ? '3Col'
@@ -70,11 +87,13 @@ const BYONImagesTableRow: React.FC<BYONImagesTableRowProps> = ({
           )}
         </Td>
         <Td dataLabel="Enable" modifier="nowrap">
-          {obj.isOOTB ? (
-            <OOTBImageStatusToggle image={obj} />
-          ) : (
-            <BYONImageStatusToggle image={obj} />
-          )}
+          <ImageStatusToggle
+            image={obj}
+            images={images}
+            onToggle={handleToggle}
+            isDisabledByError={!obj.isOOTB && !!obj.error}
+            claimSessionToggleIndex={claimSessionToggleIndex}
+          />
         </Td>
         <Td dataLabel="Recommended hardware profiles">
           <BYONImageHardwareProfiles

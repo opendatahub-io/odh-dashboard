@@ -6,7 +6,7 @@ import {
   type DeploymentAssemblyResources,
   isAssembleModelResourceExtension,
 } from '../../../../extension-points/deployment-wizard';
-import type { WizardFormData } from '../types';
+import type { WizardFormData } from '../../../shared/types/form-data';
 import { useWizardFieldApply } from '../useWizardFieldApply';
 
 /**

@@ -25,7 +25,7 @@ import {
   getServingRuntimeNameFromTemplate,
   isServingRuntimeKind,
 } from '@odh-dashboard/model-serving/shared';
-import ApplicationsPage from '#~/pages/ApplicationsPage';
+import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import { useDashboardNamespace } from '#~/redux/selectors';
 import DashboardCodeEditor from '#~/concepts/dashboard/codeEditor/DashboardCodeEditor';
 import {

@@ -23,13 +23,12 @@ type PathModalProps = {
 
 const PathModal: React.FC<PathModalProps> = ({ path, isOpen, onClose, providerRef }) => (
   <Modal isOpen={isOpen} onClose={onClose} variant={ModalVariant.medium} data-testid="path-modal">
-    <ModalHeader title="Resolved path" data-testid="path-modal-header" />
+    <ModalHeader title="Path" data-testid="path-modal-header" />
     <ModalBody>
       <Stack hasGutter>
         <StackItem>
-          The resolved request path for this provider reference, with configuration values
-          substituted into the template. This is the path appended to the provider URL when routing
-          inference requests.
+          The request path appended to the provider URL. If path variables were configured,
+          they&apos;re shown with resolved values.
         </StackItem>
         <StackItem>
           <InputGroup>

@@ -18,6 +18,7 @@ import {
   ImageVersionSelectOptionObjectType,
 } from './types';
 import { FAILED_PHASES, PENDING_PHASES, IMAGE_ANNOTATIONS } from './const';
+import { detectExistingSecretKeyCollisions } from './environmentVariables/existingSecretCollisions';
 
 /******************* Common utils *******************/
 export const getVersion = (version?: string | number, prefix?: string): string => {
@@ -344,15 +345,38 @@ export const isEnvVariableDataValid = (envVariables: EnvVariable[]): boolean => 
     }
   };
 
-  const isValid = envVariables.every(
-    (envVar) =>
-      !!envVar.type &&
-      !!envVar.values &&
-      !!envVar.values.category &&
-      hasValidValuesForType(envVar.values.data, envVar.values.category),
-  );
+  const allExistingRefs = envVariables
+    .filter((v) => v.values?.category === SecretCategory.EXISTING)
+    .flatMap((v) => v.existingSecretRefs ?? []);
 
-  return isValid;
+  const inlineKeyNames = new Set<string>();
+  envVariables.forEach((v) => {
+    const cat = v.values?.category;
+    if (cat === SecretCategory.GENERIC || cat === ConfigMapCategory.GENERIC) {
+      v.values?.data.forEach((entry) => {
+        if (entry.key) {
+          inlineKeyNames.add(entry.key);
+        }
+      });
+    }
+  });
+
+  const isValid = envVariables.every((envVar) => {
+    if (!envVar.type || !envVar.values || !envVar.values.category) {
+      return false;
+    }
+    if (envVar.values.category === SecretCategory.EXISTING) {
+      const refs = envVar.existingSecretRefs ?? [];
+      return refs.length > 0 && refs.some((ref) => ref.selectedKeys.length > 0);
+    }
+    return hasValidValuesForType(envVar.values.data, envVar.values.category);
+  });
+
+  if (!isValid) {
+    return false;
+  }
+
+  return detectExistingSecretKeyCollisions(allExistingRefs, inlineKeyNames).length === 0;
 };
 
 export const checkRequiredFieldsForNotebookStart = (

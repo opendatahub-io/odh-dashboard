@@ -3,11 +3,16 @@ import {
   getRelatedVersionDescription,
   checkVersionRecommended,
   getVersion,
-  isHiddenOOTBImageStream,
-  isBYONImageStream,
+  isEnvVariableDataValid,
 } from '#~/pages/projects/screens/spawner/spawnerUtils';
 import { mockImageStreamK8sResource } from '#~/__mocks__/mockImageStreamK8sResource';
 import { IMAGE_ANNOTATIONS } from '#~/pages/projects/screens/spawner/const';
+import {
+  EnvVariable,
+  EnvironmentVariableType,
+  SecretCategory,
+  ConfigMapCategory,
+} from '#~/pages/projects/types';
 
 describe('getExistingVersionsForImageStream', () => {
   it('should handle no image tags', () => {
@@ -142,88 +147,6 @@ describe('getRelatedVersionDescription', () => {
   });
 });
 
-describe('isBYONImageStream', () => {
-  it('should return true when image has byon created-by label', () => {
-    const imageStream = mockImageStreamK8sResource({
-      opts: {
-        metadata: {
-          labels: {
-            'app.kubernetes.io/created-by': 'byon',
-          },
-        },
-      },
-    });
-    expect(isBYONImageStream(imageStream)).toBe(true);
-  });
-
-  it('should return false when image does not have byon label', () => {
-    const imageStream = mockImageStreamK8sResource({});
-    expect(isBYONImageStream(imageStream)).toBe(false);
-  });
-
-  it('should return false when image has different created-by value', () => {
-    const imageStream = mockImageStreamK8sResource({
-      opts: {
-        metadata: {
-          labels: {
-            'app.kubernetes.io/created-by': 'operator',
-          },
-        },
-      },
-    });
-    expect(isBYONImageStream(imageStream)).toBe(false);
-  });
-});
-
-describe('isHiddenOOTBImageStream', () => {
-  it('should return false for BYON images even with hidden annotation', () => {
-    const imageStream = mockImageStreamK8sResource({
-      opts: {
-        metadata: {
-          labels: {
-            'app.kubernetes.io/created-by': 'byon',
-          },
-          annotations: {
-            'opendatahub.io/notebook-image-hidden': 'true',
-          },
-        },
-      },
-    });
-    expect(isHiddenOOTBImageStream(imageStream)).toBe(false);
-  });
-
-  it('should return true for OOTB images with hidden annotation set to true', () => {
-    const imageStream = mockImageStreamK8sResource({
-      opts: {
-        metadata: {
-          annotations: {
-            'opendatahub.io/notebook-image-hidden': 'true',
-          },
-        },
-      },
-    });
-    expect(isHiddenOOTBImageStream(imageStream)).toBe(true);
-  });
-
-  it('should return false for OOTB images with hidden annotation set to false', () => {
-    const imageStream = mockImageStreamK8sResource({
-      opts: {
-        metadata: {
-          annotations: {
-            'opendatahub.io/notebook-image-hidden': 'false',
-          },
-        },
-      },
-    });
-    expect(isHiddenOOTBImageStream(imageStream)).toBe(false);
-  });
-
-  it('should return false for OOTB images without hidden annotation', () => {
-    const imageStream = mockImageStreamK8sResource({});
-    expect(isHiddenOOTBImageStream(imageStream)).toBe(false);
-  });
-});
-
 describe('checkVersionRecommended', () => {
   it('should return true if the image version is recommended', () => {
     const imageVersion = {
@@ -273,5 +196,135 @@ describe('checkVersionRecommended', () => {
     expect(getVersion(0.1)).toEqual('0.1');
     expect(getVersion(3.1, 'v')).toEqual('v3.1');
     expect(getVersion(1000.5, 'V')).toEqual('V1000.5');
+  });
+});
+
+describe('isEnvVariableDataValid', () => {
+  const makeExistingEnvVar = (
+    refs: { secretName: string; selectedKeys: string[] }[],
+  ): EnvVariable => ({
+    type: EnvironmentVariableType.SECRET,
+    values: { category: SecretCategory.EXISTING, data: [] },
+    existingSecretRefs: refs,
+  });
+
+  const makeGenericSecretEnvVar = (entries: { key: string; value: string }[]): EnvVariable => ({
+    type: EnvironmentVariableType.SECRET,
+    values: { category: SecretCategory.GENERIC, data: entries },
+  });
+
+  const makeGenericConfigMapEnvVar = (entries: { key: string; value: string }[]): EnvVariable => ({
+    type: EnvironmentVariableType.CONFIG_MAP,
+    values: { category: ConfigMapCategory.GENERIC, data: entries },
+  });
+
+  it('should return true for empty env variables', () => {
+    expect(isEnvVariableDataValid([])).toBe(true);
+  });
+
+  it('should return true for EXISTING category with valid refs', () => {
+    const envVars = [makeExistingEnvVar([{ secretName: 'my-secret', selectedKeys: ['API_KEY'] }])];
+    expect(isEnvVariableDataValid(envVars)).toBe(true);
+  });
+
+  it('should return true for EXISTING category with multiple refs having selected keys', () => {
+    const envVars = [
+      makeExistingEnvVar([
+        { secretName: 'secret-a', selectedKeys: ['KEY_A'] },
+        { secretName: 'secret-b', selectedKeys: ['KEY_B'] },
+      ]),
+    ];
+    expect(isEnvVariableDataValid(envVars)).toBe(true);
+  });
+
+  it('should return false for EXISTING category with empty existingSecretRefs', () => {
+    const envVars = [makeExistingEnvVar([])];
+    expect(isEnvVariableDataValid(envVars)).toBe(false);
+  });
+
+  it('should return false for EXISTING category with undefined existingSecretRefs', () => {
+    const envVars: EnvVariable[] = [
+      {
+        type: EnvironmentVariableType.SECRET,
+        values: { category: SecretCategory.EXISTING, data: [] },
+      },
+    ];
+    expect(isEnvVariableDataValid(envVars)).toBe(false);
+  });
+
+  it('should return false for EXISTING category when all refs have empty selectedKeys', () => {
+    const envVars = [
+      makeExistingEnvVar([
+        { secretName: 'secret-a', selectedKeys: [] },
+        { secretName: 'secret-b', selectedKeys: [] },
+      ]),
+    ];
+    expect(isEnvVariableDataValid(envVars)).toBe(false);
+  });
+
+  it('should return false for EXISTING category with key collisions across refs', () => {
+    const envVars = [
+      makeExistingEnvVar([
+        { secretName: 'secret-a', selectedKeys: ['SHARED_KEY', 'UNIQUE_A'] },
+        { secretName: 'secret-b', selectedKeys: ['SHARED_KEY', 'UNIQUE_B'] },
+      ]),
+    ];
+    expect(isEnvVariableDataValid(envVars)).toBe(false);
+  });
+
+  it('should return true for EXISTING category with no key collisions', () => {
+    const envVars = [
+      makeExistingEnvVar([
+        { secretName: 'secret-a', selectedKeys: ['KEY_A'] },
+        { secretName: 'secret-b', selectedKeys: ['KEY_B'] },
+      ]),
+    ];
+    expect(isEnvVariableDataValid(envVars)).toBe(true);
+  });
+
+  it('should return true for mixed GENERIC and EXISTING when all valid', () => {
+    const envVars = [
+      makeGenericSecretEnvVar([{ key: 'TOKEN', value: 'abc123' }]),
+      makeExistingEnvVar([{ secretName: 'my-secret', selectedKeys: ['DB_HOST'] }]),
+    ];
+    expect(isEnvVariableDataValid(envVars)).toBe(true);
+  });
+
+  it('should return false for mixed env variables when EXISTING entry is invalid', () => {
+    const envVars = [
+      makeGenericConfigMapEnvVar([{ key: 'APP_NAME', value: 'dashboard' }]),
+      makeExistingEnvVar([]),
+    ];
+    expect(isEnvVariableDataValid(envVars)).toBe(false);
+  });
+
+  it('should return false for mixed env variables when GENERIC entry is invalid', () => {
+    const envVars = [
+      makeGenericSecretEnvVar([{ key: '', value: 'no-key' }]),
+      makeExistingEnvVar([{ secretName: 'my-secret', selectedKeys: ['VALID_KEY'] }]),
+    ];
+    expect(isEnvVariableDataValid(envVars)).toBe(false);
+  });
+
+  it('should return false when envVar has no type', () => {
+    const envVars: EnvVariable[] = [
+      { type: null, values: { category: SecretCategory.EXISTING, data: [] } },
+    ];
+    expect(isEnvVariableDataValid(envVars)).toBe(false);
+  });
+
+  it('should return false when envVar has no values', () => {
+    const envVars: EnvVariable[] = [{ type: EnvironmentVariableType.SECRET }];
+    expect(isEnvVariableDataValid(envVars)).toBe(false);
+  });
+
+  it('should return true for EXISTING when at least one ref has selected keys among empty ones', () => {
+    const envVars = [
+      makeExistingEnvVar([
+        { secretName: 'secret-a', selectedKeys: [] },
+        { secretName: 'secret-b', selectedKeys: ['VALID_KEY'] },
+      ]),
+    ];
+    expect(isEnvVariableDataValid(envVars)).toBe(true);
   });
 });

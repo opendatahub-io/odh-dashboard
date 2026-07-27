@@ -47,5 +47,6 @@ export default {
     '!**/__tests__/**',
     '!**/__mocks__/**',
     '!**/*.spec.{ts,tsx}',
+    '!**/*.d.ts',
   ],
 };

@@ -1,47 +1,50 @@
 import * as React from 'react';
-import { FormGroup, Stack, StackItem } from '@patternfly/react-core';
-import SimpleSelect, { SimpleSelectOption } from '@odh-dashboard/ui-core/components/SimpleSelect';
-import IndentSection from '#~/pages/projects/components/IndentSection';
-import { getDashboardMainContainer } from '#~/utilities/utils';
+import { Radio, Stack, StackItem } from '@patternfly/react-core';
 
-const ENV_VAR_POPPER_PROPS = { appendTo: getDashboardMainContainer() };
-
-type EnvDataTypeFieldProps = {
-  options: { [value: string]: { label: string; render: React.ReactNode } };
-  selection: string;
-  onSelection: (value: string) => void;
+export type EnvDataTypeOption = {
+  label: string;
+  description?: string;
+  render: React.ReactNode;
+  isDisabled?: boolean;
+  labelIcon?: React.ReactNode;
 };
 
-const EnvDataTypeField: React.FC<EnvDataTypeFieldProps> = ({ options, onSelection, selection }) => {
-  const selectId = React.useId().replace(/:/g, '');
+type EnvDataTypeFieldProps = {
+  options: { [value: string]: EnvDataTypeOption };
+  selection: string;
+  onSelection: (value: string) => void;
+  radioGroupName?: string;
+};
 
+const EnvDataTypeField: React.FC<EnvDataTypeFieldProps> = ({
+  options,
+  onSelection,
+  selection,
+  radioGroupName = 'env-data-type',
+}) => {
+  const uniqueId = React.useId();
   return (
-    <Stack hasGutter>
-      <StackItem data-testid="env-data-type-field">
-        <FormGroup label="Data type" fieldId={selectId}>
-          <SimpleSelect
-            dataTestId="environment-variable-data-type-toggle"
-            isFullWidth
-            placeholder="Select one"
-            ariaLabel="Data type"
-            toggleProps={{ id: selectId }}
-            popperProps={ENV_VAR_POPPER_PROPS}
-            value={selection}
-            options={Object.keys(options).map(
-              (option): SimpleSelectOption => ({
-                key: option,
-                label: options[option].label,
-              }),
-            )}
-            onChange={onSelection}
+    <Stack hasGutter data-testid="env-data-type-field">
+      {Object.entries(options).map(([value, option]) => (
+        <StackItem key={value}>
+          <Radio
+            id={`${uniqueId}-env-data-type-${value}`}
+            name={`${uniqueId}-${radioGroupName}`}
+            label={
+              <>
+                {option.label}
+                {option.labelIcon}
+              </>
+            }
+            description={option.description}
+            isChecked={selection === value}
+            onChange={() => onSelection(value)}
+            isDisabled={option.isDisabled}
+            body={selection === value ? option.render : undefined}
+            data-testid={`env-data-type-radio-${value}`}
           />
-        </FormGroup>
-      </StackItem>
-      {selection && (
-        <StackItem>
-          <IndentSection>{options[selection].render}</IndentSection>
         </StackItem>
-      )}
+      ))}
     </Stack>
   );
 };

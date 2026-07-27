@@ -1,4 +1,5 @@
 import React from 'react';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import FeatureStoreDataSetsTable from './FeatureStoreDatasetTable';
 import { FeatureStoreToolbar } from '../../../components/FeatureStoreToolbar';
 import { useFeatureStoreProject } from '../../../FeatureStoreContext';
@@ -7,6 +8,10 @@ import { dataSetTableFilterOptions } from '../const';
 import { applyDataSetFilters } from '../utils';
 import { useTagFilterHandlers } from '../../../utils/useTagFilterHandlers';
 import { applyTagFilters } from '../../../utils/filterUtils';
+import {
+  FEATURE_STORE_EVENTS,
+  FilterRemovedProperties,
+} from '../../../tracking/featureStoreTrackingConstants';
 
 const FeatureStoreDataSetsListView = ({
   dataSets,
@@ -39,6 +44,10 @@ const FeatureStoreDataSetsListView = ({
   );
 
   const onClearFilters = React.useCallback(() => {
+    fireMiscTrackingEvent(FEATURE_STORE_EVENTS.FILTER_REMOVED, {
+      action: 'clearAll',
+      resourceType: 'dataSet',
+    } satisfies FilterRemovedProperties);
     setFilterData({});
     setTagFilters([]);
   }, []);
@@ -64,6 +73,7 @@ const FeatureStoreDataSetsListView = ({
           tagFilters={tagFilters}
           onTagFilterRemove={tagHandlers.handleTagFilterRemove}
           onTagFilterAdd={tagHandlers.handleTagFilterAdd}
+          trackingResourceType="dataSet"
         />
       }
     />

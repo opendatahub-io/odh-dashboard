@@ -195,3 +195,66 @@ func TestNewConnectionProbeClient_NilOptions(t *testing.T) {
 	require.NotNil(t, client)
 	assert.False(t, client.skipSSRFValidation)
 }
+
+func TestIsOpenAICompatibleResponse(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+
+	tests := []struct {
+		name     string
+		body     string
+		expected bool
+	}{
+		{
+			"valid OpenAI response",
+			`{"id":"chatcmpl-123","choices":[{"message":{"role":"assistant","content":"hello"}}]}`,
+			true,
+		},
+		{
+			"missing id",
+			`{"choices":[{"message":{"role":"assistant","content":"hello"}}]}`,
+			false,
+		},
+		{
+			"empty choices",
+			`{"id":"chatcmpl-123","choices":[]}`,
+			false,
+		},
+		{
+			"missing choices",
+			`{"id":"chatcmpl-123"}`,
+			false,
+		},
+		{
+			"prediction array (AutoGluon/sklearn)",
+			`{"predictions":[0.85,0.12]}`,
+			false,
+		},
+		{
+			"TensorFlow Serving response",
+			`{"predictions":[[0.1,0.9]]}`,
+			false,
+		},
+		{
+			"empty body",
+			``,
+			false,
+		},
+		{
+			"invalid JSON",
+			`not json`,
+			false,
+		},
+		{
+			"httpbin echo response",
+			`{"args":{},"data":"{\"model\":\"test\"}","headers":{},"url":"https://httpbin.org/anything/chat/completions"}`,
+			false,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			result := isOpenAICompatibleResponse([]byte(tc.body), logger)
+			assert.Equal(t, tc.expected, result)
+		})
+	}
+}

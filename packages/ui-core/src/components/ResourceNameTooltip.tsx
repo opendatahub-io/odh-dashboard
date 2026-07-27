@@ -19,12 +19,14 @@ type ResourceNameTooltipProps = {
   resource: K8sResourceCommon;
   children: React.ReactNode;
   wrap?: boolean;
+  onShowPopover?: () => void;
 };
 
 const ResourceNameTooltip: React.FC<ResourceNameTooltipProps> = ({
   children,
   resource,
   wrap = true,
+  onShowPopover,
 }) => (
   <div style={{ display: wrap ? 'block' : 'inline-flex' }}>
     <Flex
@@ -36,6 +38,11 @@ const ResourceNameTooltip: React.FC<ResourceNameTooltipProps> = ({
       {resource.metadata?.name && (
         <Popover
           position="right"
+          onShow={(): void => {
+            if (onShowPopover) {
+              onShowPopover();
+            }
+          }}
           bodyContent={
             <Stack hasGutter>
               <StackItem>

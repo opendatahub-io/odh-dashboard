@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
+import { K8sStatusError } from '@odh-dashboard/k8s-core';
 import ErrorOverviewCard from '#~/pages/projects/screens/detail/overview/components/ErrorOverviewCard';
-import { K8sStatusError } from '#~/api/errorUtils';
 import { ProjectObjectType, SectionType } from '#~/concepts/design/utils';
 
 describe('ErrorOverviewCard', () => {

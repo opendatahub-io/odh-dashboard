@@ -15,10 +15,11 @@ import {
 import type { AutoRAGEvaluationResult } from '~/app/types/autoragPattern';
 import ScoreRadarChart from './ScoreRadarChart';
 
-const SampleQAEntry: React.FC<{ result: AutoRAGEvaluationResult; questionNumber: number }> = ({
-  result,
-  questionNumber,
-}) => {
+const SampleQAEntry: React.FC<{
+  result: AutoRAGEvaluationResult;
+  questionNumber: number;
+  allMetricNames: string[];
+}> = ({ result, questionNumber, allMetricNames }) => {
   const [isExpanded, setIsExpanded] = React.useState(false);
 
   return (
@@ -35,7 +36,7 @@ const SampleQAEntry: React.FC<{ result: AutoRAGEvaluationResult; questionNumber:
             <Content component={ContentVariants.p} className="autorag-pre-wrap">
               {result.question}
             </Content>
-            <ScoreRadarChart scores={result.scores} />
+            <ScoreRadarChart metrics={result.metrics} allMetricNames={allMetricNames} />
           </FlexItem>
           <FlexItem flex={{ default: 'flex_1' }}>
             <Content component={ContentVariants.small}>

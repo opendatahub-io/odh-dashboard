@@ -4,9 +4,11 @@ import { Link } from 'react-router-dom';
 import {
   t_global_text_color_regular as RegularColor,
   t_global_text_color_status_danger_default as DangerColor,
-  t_global_text_color_status_warning_default as WarningColor,
+  t_global_color_status_warning_300 as WarningColor,
 } from '@patternfly/react-tokens';
 import { useDeepCompareMemoize } from '@odh-dashboard/ui-core/hooks';
+import { TrackingOutcome } from '@odh-dashboard/ui-core';
+import { getKueueStatusInfo } from '#~/concepts/kueue/index';
 import { EventStatus, NotebookStatus } from '#~/types';
 import { useNotebookStatus } from '#~/utilities/notebookControllerUtils';
 import StartNotebookModal from '#~/concepts/notebooks/StartNotebookModal';
@@ -16,9 +18,19 @@ import {
   KUEUE_STATUSES_OVERRIDE_WORKBENCH,
   type KueueWorkloadStatusWithMessage,
 } from '#~/concepts/kueue/types';
-import { getHumanReadableKueueMessage, getRequeuedMessage } from '#~/concepts/kueue/messageUtils';
+import {
+  getHumanReadableKueueMessage,
+  getRequeuedMessage,
+  formatQueuePosition,
+} from '#~/concepts/kueue/messageUtils';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import UnderlinedTruncateButton from '#~/components/UnderlinedTruncateButton';
+import { fireMiscTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
+import {
+  fireWorkbenchStatusModalAction,
+  getWorkbenchKueueTrackingProperties,
+  WorkbenchTrackingEvent,
+} from '#~/concepts/kueue/workbenchTracking';
 import { NotebookState } from './types';
 
 type NotebookStateStatusProps = {
@@ -34,20 +46,28 @@ type GetStatusSubtitleParams = {
   kueueStatus: KueueWorkloadStatusWithMessage | null;
 };
 
-const getNotebookStatusColor = (notebookStatus?: NotebookStatus | null) =>
-  notebookStatus?.currentStatus === EventStatus.ERROR
-    ? DangerColor.var
-    : notebookStatus?.currentStatus === EventStatus.WARNING
-    ? WarningColor.var
-    : RegularColor.var;
+const getNotebookStatusColor = (
+  notebookStatus?: NotebookStatus | null,
+  kueueStatus?: KueueWorkloadStatusWithMessage | null,
+): string => {
+  if (notebookStatus?.currentStatus === EventStatus.ERROR) return DangerColor.var;
+  if (kueueStatus?.status && KUEUE_STATUSES_OVERRIDE_WORKBENCH.includes(kueueStatus.status)) {
+    const { status: kueueStatusLevel } = getKueueStatusInfo(kueueStatus.status);
+    if (kueueStatusLevel === 'danger') return DangerColor.var;
+    if (kueueStatusLevel === 'warning') return WarningColor.var;
+  }
+  return RegularColor.var;
+};
 
 const getNotebookStatusTextDecoration = (
   notebookStatus?: NotebookStatus | null,
   isStarting?: boolean,
-) =>
+  kueueStatus?: KueueWorkloadStatusWithMessage | null,
+): string | undefined =>
   isStarting ||
   notebookStatus?.currentStatus === EventStatus.ERROR ||
-  notebookStatus?.currentStatus === EventStatus.WARNING
+  notebookStatus?.currentStatus === EventStatus.WARNING ||
+  (kueueStatus?.status && KUEUE_STATUSES_OVERRIDE_WORKBENCH.includes(kueueStatus.status))
     ? undefined
     : 'none';
 
@@ -74,10 +94,14 @@ export const getStatusSubtitle = ({
     );
     if (
       kueueStatus.queuePosition != null &&
+      kueueStatus.queueName &&
       (kueueStatus.status === KueueWorkloadStatus.Queued ||
         kueueStatus.status === KueueWorkloadStatus.Inadmissible)
     ) {
-      return `${message} (position ${kueueStatus.queuePosition})`;
+      return `${message} (${formatQueuePosition(
+        kueueStatus.queuePosition,
+        kueueStatus.queueName,
+      )})`;
     }
     return message;
   }
@@ -118,12 +142,23 @@ const NotebookStateStatus: React.FC<NotebookStateStatusProps> = ({
     kueueStatus,
   });
 
+  const openStatusModal = React.useCallback(() => {
+    const { isKueueBlocking } = getWorkbenchKueueTrackingProperties({
+      kueueStatus,
+      isStarting,
+      isRunning,
+      isStopping,
+    });
+    fireMiscTrackingEvent(WorkbenchTrackingEvent.StatusLogViewed, { isKueueBlocking });
+    setStartModalOpen(true);
+  }, [kueueStatus, isStarting, isRunning, isStopping]);
+
   return (
     <>
       <Flex
         direction={{ default: isVertical ? 'column' : 'row' }}
         gap={{ default: isVertical ? 'gapXs' : 'gapMd' }}
-        onClick={() => setStartModalOpen(true)}
+        onClick={openStatusModal}
       >
         <FlexItem>
           <NotebookStatusLabel
@@ -133,15 +168,20 @@ const NotebookStateStatus: React.FC<NotebookStateStatusProps> = ({
             isStopping={isStopping}
             notebookStatus={notebookStatus}
             kueueStatus={kueueStatus}
-            onClick={() => setStartModalOpen(true)}
+            onClick={openStatusModal}
           />
         </FlexItem>
         {statusSubtitle != null ? (
           <UnderlinedTruncateButton
+            data-testid="notebook-status-subtitle"
             content={statusSubtitle}
-            color={getNotebookStatusColor(notebookStatus)}
-            textDecoration={getNotebookStatusTextDecoration(notebookStatus, isStarting)}
-            onClick={() => setStartModalOpen(true)}
+            color={getNotebookStatusColor(notebookStatus, kueueStatus)}
+            textDecoration={getNotebookStatusTextDecoration(
+              notebookStatus,
+              isStarting,
+              kueueStatus,
+            )}
+            onClick={openStatusModal}
           />
         ) : null}
       </Flex>
@@ -154,48 +194,81 @@ const NotebookStateStatus: React.FC<NotebookStateStatusProps> = ({
           notebookStatus={notebookStatus}
           events={events}
           kueueStatus={kueueStatus}
+          trackStatusModalActions
           containerStatuses={containerStatuses}
           onClose={() => {
             setStartModalOpen(false);
           }}
-          buttons={
-            <>
-              {isStopped ? (
+          buttons={({ activeTab }) => {
+            const trackingInput = {
+              kueueStatus,
+              isStarting,
+              isRunning,
+              isStopping,
+            };
+            return (
+              <>
+                {isStopped ? (
+                  <Button
+                    data-id="start-spawn"
+                    key="start"
+                    variant="primary"
+                    onClick={() => {
+                      fireWorkbenchStatusModalAction(
+                        'Start workbench',
+                        TrackingOutcome.submit,
+                        activeTab,
+                        trackingInput,
+                      );
+                      startNotebook();
+                    }}
+                  >
+                    Start workbench
+                  </Button>
+                ) : (
+                  <Button
+                    data-id="close-spawn"
+                    key="stop"
+                    variant="primary"
+                    onClick={() => {
+                      fireWorkbenchStatusModalAction(
+                        'Stop workbench',
+                        TrackingOutcome.submit,
+                        activeTab,
+                        trackingInput,
+                      );
+                      stopNotebook();
+                    }}
+                  >
+                    Stop workbench
+                  </Button>
+                )}
                 <Button
-                  data-id="start-spawn"
-                  key="start"
-                  variant="primary"
-                  onClick={() => startNotebook()}
+                  data-id="edit-workbench"
+                  key="edit"
+                  variant="link"
+                  component={
+                    editWorkbenchHref
+                      ? (props: React.ComponentProps<'a'>) => (
+                          <Link {...props} to={editWorkbenchHref} />
+                        )
+                      : 'button'
+                  }
+                  isAriaDisabled={!notebook.metadata.namespace || !notebook.metadata.name}
+                  onClick={() => {
+                    fireWorkbenchStatusModalAction(
+                      'Edit workbench',
+                      TrackingOutcome.submit,
+                      activeTab,
+                      trackingInput,
+                    );
+                  }}
                 >
-                  Start workbench
+                  Edit workbench
                 </Button>
-              ) : (
-                <Button
-                  data-id="close-spawn"
-                  key="stop"
-                  variant="primary"
-                  onClick={() => stopNotebook()}
-                >
-                  Stop workbench
-                </Button>
-              )}
-              <Button
-                data-id="edit-workbench"
-                key="edit"
-                variant="link"
-                component={
-                  editWorkbenchHref
-                    ? (props: React.ComponentProps<'a'>) => (
-                        <Link {...props} to={editWorkbenchHref} />
-                      )
-                    : 'button'
-                }
-                isAriaDisabled={!notebook.metadata.namespace || !notebook.metadata.name}
-              >
-                Edit workbench
-              </Button>
-            </>
-          }
+              </>
+            );
+          }}
         />
       ) : null}
     </>

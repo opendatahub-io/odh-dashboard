@@ -1,4 +1,5 @@
 import { mockDashboardConfig, mockDscStatus } from '@odh-dashboard/internal/__mocks__';
+import { MODELS_AS_A_SERVICE_READY } from '@odh-dashboard/k8s-core';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import type { APIKey, SubscriptionDetail } from '@odh-dashboard/maas/types/api-key';
 import { formatApiKeyHiddenPreview } from '@odh-dashboard/maas/utils/api-keys';
@@ -69,7 +70,7 @@ describe('API Keys Page', () => {
         components: {
           [DataScienceStackComponent.OGX_OPERATOR]: { managementState: 'Managed' },
         },
-        conditions: [{ type: 'ModelsAsServiceReady', status: 'True', reason: 'Ready' }],
+        conditions: [{ type: MODELS_AS_A_SERVICE_READY, status: 'True', reason: 'Ready' }],
       }),
     );
     cy.interceptOdh(
@@ -822,7 +823,7 @@ describe('API Keys Page (Admin)', () => {
         components: {
           [DataScienceStackComponent.OGX_OPERATOR]: { managementState: 'Managed' },
         },
-        conditions: [{ type: 'ModelsAsServiceReady', status: 'True', reason: 'Ready' }],
+        conditions: [{ type: MODELS_AS_A_SERVICE_READY, status: 'True', reason: 'Ready' }],
       }),
     );
     cy.interceptOdh('POST /maas/api/v1/api-keys/search', mockSearchResponse(mockAPIKeys())).as(
@@ -922,7 +923,7 @@ describe('API keys (mySubscriptions feature flag)', () => {
         components: {
           [DataScienceStackComponent.OGX_OPERATOR]: { managementState: 'Managed' },
         },
-        conditions: [{ type: 'ModelsAsServiceReady', status: 'True', reason: 'Ready' }],
+        conditions: [{ type: MODELS_AS_A_SERVICE_READY, status: 'True', reason: 'Ready' }],
       }),
     );
 

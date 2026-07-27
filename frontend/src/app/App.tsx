@@ -14,18 +14,18 @@ import {
   StackItem,
 } from '@patternfly/react-core';
 import { DashboardConfigContext } from '@odh-dashboard/plugin-core';
+import { NotificationWatcherContextProvider } from '@odh-dashboard/ui-core/contexts/NotificationWatcherContext';
 import ErrorBoundary from '#~/components/error/ErrorBoundary';
 import ToastNotifications from '#~/components/ToastNotifications';
 import { useWatchBuildStatus } from '#~/utilities/useWatchBuildStatus';
 import { useUser } from '#~/redux/selectors';
-import { DASHBOARD_MAIN_CONTAINER_ID } from '#~/utilities/const';
+import { DASHBOARD_MAIN_CONTAINER_ID, POLL_INTERVAL } from '#~/utilities/const';
 import useDetectUser from '#~/utilities/useDetectUser';
 import ProjectsContextProvider from '#~/concepts/projects/ProjectsContext';
 import { ModelRegistriesContextProvider } from '#~/concepts/modelRegistry/context/ModelRegistriesContext';
 import useStorageClasses from '#~/concepts/k8s/useStorageClasses';
 import AreaContextProvider from '#~/concepts/areas/AreaContext';
 import { IntegrationsStatusProvider } from '#~/concepts/integrations/IntegrationsStatusContext';
-import { NotificationWatcherContextProvider } from '#~/concepts/notificationWatcher/NotificationWatcherContext';
 import { AccessReviewProvider } from '#~/concepts/userSSAR';
 import { ExtensibilityContextProvider } from '#~/plugins/ExtensibilityContext';
 import useFetchDscStatus from '#~/concepts/areas/useFetchDscStatus';
@@ -183,7 +183,7 @@ const App: React.FC = () => {
                     <HardwareProfilesContextProvider>
                       <ModelRegistriesContextProvider>
                         <QuickStarts>
-                          <NotificationWatcherContextProvider>
+                          <NotificationWatcherContextProvider pollInterval={POLL_INTERVAL}>
                             <AppRoutes />
                           </NotificationWatcherContextProvider>
                         </QuickStarts>

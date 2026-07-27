@@ -24,6 +24,8 @@ export type KueueWorkloadStatusWithMessage = {
   queueName?: string;
   workloadName?: string;
   queuePosition?: number;
+  /** Pending workloads in the local queue (Visibility API items.length). */
+  queueTotal?: number;
   requeueInfo?: {
     count: number;
     requeueAt?: string;

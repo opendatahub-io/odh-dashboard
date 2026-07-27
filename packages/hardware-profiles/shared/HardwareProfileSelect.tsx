@@ -7,6 +7,7 @@ import {
   Label,
   Split,
   SplitItem,
+  Tooltip,
   Truncate,
   Stack,
   StackItem,
@@ -16,10 +17,12 @@ import {
 } from '@patternfly/react-core';
 import * as React from 'react';
 import { InfoCircleIcon } from '@patternfly/react-icons';
+import { t_global_icon_color_disabled as disabledIconColor } from '@patternfly/react-tokens';
 import type { HardwareProfileKind } from '@odh-dashboard/k8s-core';
 import SimpleSelect, { SimpleSelectOption } from '@odh-dashboard/ui-core/components/SimpleSelect';
 import TruncatedText from '@odh-dashboard/ui-core/components/TruncatedText';
 import ProjectScopedIcon from '@odh-dashboard/ui-core/components/searchSelector/ProjectScopedIcon';
+import { DashboardPopupIconButton } from '@odh-dashboard/ui-core';
 import {
   ProjectScopedGroupLabel,
   ProjectScopedSearchDropdown,
@@ -34,7 +37,12 @@ import {
 import { ProjectDetailsContext } from '@odh-dashboard/internal/pages/projects/ProjectDetailsContext';
 import { ProjectsContext, byName } from '@odh-dashboard/internal/concepts/projects/ProjectsContext';
 import { useApplicationSettings } from '@odh-dashboard/internal/app/useApplicationSettings';
-import { filterProfilesByKueue, KueueFilteringState, useKueueConfiguration } from './kueueUtils';
+import {
+  computeLocalQueueNamesResult,
+  filterProfilesByKueue,
+  KueueFilteringState,
+  useKueueConfiguration,
+} from './kueueUtils';
 import { formatResource, formatResourceValue } from './utils';
 import { HardwareProfileConfig } from './useHardwareProfileConfig';
 import HardwareProfileDetailsPopover from './HardwareProfileDetailsPopover';
@@ -56,6 +64,7 @@ type HardwareProfileSelectProps = {
   isHardwareProfileSupported: (profile: HardwareProfileKind) => boolean;
   onChange: (profile: HardwareProfileKind | undefined) => void;
   project?: string;
+  selectionIndicator?: React.ReactNode;
 };
 
 const EXISTING_SETTINGS_KEY = '.existing';
@@ -69,6 +78,7 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
   hardwareProfilesLoaded,
   hardwareProfilesError,
   projectScopedHardwareProfiles,
+  selectionIndicator,
   allowExistingSettings = false,
   hardwareProfileConfig,
   isHardwareProfileSupported,
@@ -82,7 +92,7 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
     currentProjectHardwareProfilesError,
   ] = projectScopedHardwareProfiles;
 
-  const { currentProject } = React.useContext(ProjectDetailsContext);
+  const { currentProject, localQueues } = React.useContext(ProjectDetailsContext);
   const { projects } = React.useContext(ProjectsContext);
   const { dashboardConfig } = useApplicationSettings();
   const hardwareProfileOrder = React.useMemo(
@@ -99,13 +109,36 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
 
   const { kueueFilteringState } = useKueueConfiguration(projectForKueue);
 
+  const { data: lqData, loaded: lqLoaded, error: lqError } = localQueues;
+  const localQueueNamesResult = React.useMemo(
+    () => computeLocalQueueNamesResult({ data: lqData, loaded: lqLoaded, error: lqError }),
+    [lqData, lqLoaded, lqError],
+  );
+  const availableLocalQueueNames =
+    localQueueNamesResult.status === 'ready' ? localQueueNamesResult.names : undefined;
+
+  const isQueueMissing = React.useCallback(
+    (profile: HardwareProfileKind): boolean => {
+      const localQueueName = profile.spec.scheduling?.kueue?.localQueueName;
+      if (!localQueueName || !availableLocalQueueNames) {
+        return false;
+      }
+      return !availableLocalQueueNames.has(localQueueName);
+    },
+    [availableLocalQueueNames],
+  );
+
   const options = React.useMemo(() => {
     const enabledProfiles = orderHardwareProfiles(
-      filterProfilesByKueue(hardwareProfiles.filter(isHardwareProfileEnabled), kueueFilteringState),
+      filterProfilesByKueue(
+        hardwareProfiles.filter(isHardwareProfileEnabled),
+        kueueFilteringState,
+        availableLocalQueueNames,
+      ),
       hardwareProfileOrder,
     );
 
-    if (initialHardwareProfile && !isHardwareProfileEnabled(initialHardwareProfile)) {
+    if (initialHardwareProfile && !enabledProfiles.includes(initialHardwareProfile)) {
       enabledProfiles.push(initialHardwareProfile);
     }
 
@@ -114,6 +147,7 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
         !isHardwareProfileEnabled(profile) ? ' (disabled)' : ''
       }`;
       const description = getHardwareProfileDescription(profile);
+      const queueMissing = profile === initialHardwareProfile && isQueueMissing(profile);
 
       return {
         key: profile.metadata.name,
@@ -171,6 +205,17 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
             <SplitItem>
               {isHardwareProfileSupported(profile) && <Label color="blue">Compatible</Label>}
             </SplitItem>
+            {queueMissing && (
+              <SplitItem>
+                <Tooltip content="The local queue for this profile is no longer available in this project.">
+                  <DashboardPopupIconButton
+                    aria-label="Local queue unavailable"
+                    data-testid="queue-missing-icon"
+                    icon={<InfoCircleIcon color={disabledIconColor.value} />}
+                  />
+                </Tooltip>
+              </SplitItem>
+            )}
           </Split>
         ),
       };
@@ -190,6 +235,8 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
     initialHardwareProfile,
     allowExistingSettings,
     isHardwareProfileSupported,
+    isQueueMissing,
+    availableLocalQueueNames,
     kueueFilteringState,
     hardwareProfileOrder,
   ]);
@@ -200,6 +247,7 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
     scope: 'project' | 'global',
   ) => {
     const description = getHardwareProfileDescription(profile);
+    const queueMissing = profile === initialHardwareProfile && isQueueMissing(profile);
     return (
       <MenuItem
         key={`${index}-${scope}-hardware-profile-${profile.metadata.name}`}
@@ -258,18 +306,37 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
           <SplitItem>
             {isHardwareProfileSupported(profile) && <Label color="blue">Compatible</Label>}
           </SplitItem>
+          {queueMissing && (
+            <SplitItem>
+              <Tooltip content="The local queue for this profile is no longer available in this project.">
+                <DashboardPopupIconButton
+                  aria-label="Local queue unavailable"
+                  data-testid="queue-missing-icon"
+                  icon={<InfoCircleIcon color={disabledIconColor.value} />}
+                />
+              </Tooltip>
+            </SplitItem>
+          )}
         </Split>
       </MenuItem>
     );
   };
 
   const processHardwareProfilesForSelection = (profiles: HardwareProfileKind[]) => {
-    const enabledProfiles = profiles.filter(isHardwareProfileEnabled);
-    if (initialHardwareProfile && !isHardwareProfileEnabled(initialHardwareProfile)) {
-      enabledProfiles.push(initialHardwareProfile);
+    const filteredProfiles = filterProfilesByKueue(
+      profiles.filter(isHardwareProfileEnabled),
+      kueueFilteringState,
+      availableLocalQueueNames,
+    );
+    // Rescue only in the group the profile came from, to avoid showing it in both sections.
+    if (
+      initialHardwareProfile &&
+      profiles.includes(initialHardwareProfile) &&
+      !filteredProfiles.includes(initialHardwareProfile)
+    ) {
+      filteredProfiles.push(initialHardwareProfile);
     }
-    const orderedProfiles = orderHardwareProfiles(enabledProfiles, hardwareProfileOrder);
-    return filterProfilesByKueue(orderedProfiles, kueueFilteringState).filter((profile) =>
+    return orderHardwareProfiles(filteredProfiles, hardwareProfileOrder).filter((profile) =>
       getHardwareProfileDisplayName(profile)
         .toLocaleLowerCase()
         .includes(searchHardwareProfile.toLocaleLowerCase()),
@@ -311,45 +378,56 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
         <FlexItem grow={{ default: 'grow' }}>
           {isProjectScoped && currentProjectHardwareProfiles.length > 0 ? (
             <>
-              <ProjectScopedSearchDropdown
-                projectScopedItems={projectHardwareProfiles}
-                globalScopedItems={globalHardwareProfiles}
-                renderMenuItem={renderMenuItem}
-                searchValue={searchHardwareProfile}
-                onSearchChange={setSearchHardwareProfile}
-                onSearchClear={() => setSearchHardwareProfile('')}
-                toggleContent={
-                  <ProjectScopedToggleContent
-                    displayName={
-                      hardwareProfileConfig.selectedProfile
-                        ? getHardwareProfileDisplayName(hardwareProfileConfig.selectedProfile)
-                        : undefined
+              <Flex
+                alignItems={{ default: 'alignItemsCenter' }}
+                spaceItems={{ default: 'spaceItemsSm' }}
+                flexWrap={{ default: 'nowrap' }}
+              >
+                <FlexItem grow={{ default: 'grow' }}>
+                  <ProjectScopedSearchDropdown
+                    projectScopedItems={projectHardwareProfiles}
+                    globalScopedItems={globalHardwareProfiles}
+                    renderMenuItem={renderMenuItem}
+                    searchValue={searchHardwareProfile}
+                    onSearchChange={setSearchHardwareProfile}
+                    onSearchClear={() => setSearchHardwareProfile('')}
+                    toggleContent={
+                      <ProjectScopedToggleContent
+                        displayName={
+                          hardwareProfileConfig.selectedProfile
+                            ? getHardwareProfileDisplayName(hardwareProfileConfig.selectedProfile)
+                            : undefined
+                        }
+                        isProject={
+                          hardwareProfileConfig.selectedProfile?.metadata.namespace === project
+                        }
+                        projectLabel="Project-scoped"
+                        globalLabel="Global-scoped"
+                        fallback={
+                          allowExistingSettings
+                            ? 'Use existing settings'
+                            : 'Select hardware profile...'
+                        }
+                      />
                     }
-                    isProject={
-                      hardwareProfileConfig.selectedProfile?.metadata.namespace === project
+                    projectGroupLabel={
+                      <ProjectScopedGroupLabel isProject>
+                        Project-scoped hardware profiles
+                      </ProjectScopedGroupLabel>
                     }
-                    projectLabel="Project-scoped"
-                    globalLabel="Global-scoped"
-                    fallback={
-                      allowExistingSettings ? 'Use existing settings' : 'Select hardware profile...'
+                    globalGroupLabel={
+                      <ProjectScopedGroupLabel isProject={false}>
+                        Global-scoped hardware profiles
+                      </ProjectScopedGroupLabel>
                     }
+                    dataTestId="hardware-profile-selection"
+                    projectGroupTestId="project-scoped-hardware-profiles"
+                    globalGroupTestId="global-scoped-hardware-profiles"
+                    isFullWidth
                   />
-                }
-                projectGroupLabel={
-                  <ProjectScopedGroupLabel isProject>
-                    Project-scoped hardware profiles
-                  </ProjectScopedGroupLabel>
-                }
-                globalGroupLabel={
-                  <ProjectScopedGroupLabel isProject={false}>
-                    Global-scoped hardware profiles
-                  </ProjectScopedGroupLabel>
-                }
-                dataTestId="hardware-profile-selection"
-                projectGroupTestId="project-scoped-hardware-profiles"
-                globalGroupTestId="global-scoped-hardware-profiles"
-                isFullWidth
-              />
+                </FlexItem>
+                {selectionIndicator && <FlexItem>{selectionIndicator}</FlexItem>}
+              </Flex>
               {previewDescription &&
               hardwareProfileConfig.selectedProfile &&
               (getHardwareProfileDescription(hardwareProfileConfig.selectedProfile) ||
@@ -410,35 +488,46 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
             </>
           ) : (
             <>
-              <SimpleSelect
-                dataTestId="hardware-profile-select"
-                previewDescription={previewDescription}
-                options={options}
-                value={
-                  hardwareProfileConfig.selectedProfile?.metadata.name ??
-                  (hardwareProfileConfig.useExistingSettings ? EXISTING_SETTINGS_KEY : undefined)
-                }
-                onChange={(key) => {
-                  if (key === EXISTING_SETTINGS_KEY) {
-                    onChange(undefined);
-                  } else {
-                    const profile = hardwareProfiles.find((hp) => hp.metadata.name === key);
-                    if (profile) {
-                      onChange(profile);
+              <Flex
+                alignItems={{ default: 'alignItemsFlexStart' }}
+                spaceItems={{ default: 'spaceItemsSm' }}
+                flexWrap={{ default: 'nowrap' }}
+              >
+                <FlexItem grow={{ default: 'grow' }}>
+                  <SimpleSelect
+                    dataTestId="hardware-profile-select"
+                    previewDescription={previewDescription}
+                    options={options}
+                    value={
+                      hardwareProfileConfig.selectedProfile?.metadata.name ??
+                      (hardwareProfileConfig.useExistingSettings
+                        ? EXISTING_SETTINGS_KEY
+                        : undefined)
                     }
-                  }
-                }}
-                placeholder={
-                  options.length > 0
-                    ? 'Select hardware profile...'
-                    : hardwareProfilesError
-                    ? 'Error loading hardware profiles'
-                    : 'No enabled or valid hardware profiles are available. Contact your administrator.'
-                }
-                isFullWidth
-                isSkeleton={!hardwareProfilesLoaded && !hardwareProfilesError}
-                isScrollable
-              />
+                    onChange={(key) => {
+                      if (key === EXISTING_SETTINGS_KEY) {
+                        onChange(undefined);
+                      } else {
+                        const profile = hardwareProfiles.find((hp) => hp.metadata.name === key);
+                        if (profile) {
+                          onChange(profile);
+                        }
+                      }
+                    }}
+                    placeholder={
+                      options.length > 0
+                        ? 'Select hardware profile...'
+                        : hardwareProfilesError
+                        ? 'Error loading hardware profiles'
+                        : 'No enabled or valid hardware profiles are available. Contact your administrator.'
+                    }
+                    isFullWidth
+                    isSkeleton={!hardwareProfilesLoaded && !hardwareProfilesError}
+                    isScrollable
+                  />
+                </FlexItem>
+                {selectionIndicator && <FlexItem>{selectionIndicator}</FlexItem>}
+              </Flex>
               {kueueFilteringInfoHelper}
               {hardwareProfilesError && (
                 <HelperText isLiveRegion>

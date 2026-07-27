@@ -101,6 +101,7 @@ const PipelineVisualizationSurface: React.FC<PipelineVisualizationSurfaceProps> 
         },
         true,
       );
+      controller.getGraph().layout();
     } catch (e) {
       if (e instanceof Error) {
         setError(e);

@@ -10,6 +10,7 @@ const TITLE = 'RHAII';
 
 const additionalIncludes = [];
 if (process.env.ENABLE_MODEL_SERVING === 'true') {
+  additionalIncludes.push(path.resolve(REPO_ROOT, 'packages/connection-types'));
   additionalIncludes.push(path.resolve(REPO_ROOT, 'packages/model-serving'));
   additionalIncludes.push(path.resolve(REPO_ROOT, 'packages/k8s-core'));
   additionalIncludes.push(path.resolve(REPO_ROOT, 'packages/model-registry'));

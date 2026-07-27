@@ -29,7 +29,7 @@ export const GLOBAL_DEPLOYMENTS_DETAIL_TAB_GROUP = 'model-serving.global-deploym
 const INTERNAL_MODELS_TAB_ID = 'internal-models';
 const EXTERNAL_MODELS_TAB_ID = 'external-models';
 const DEPLOYMENTS_PAGE_DESCRIPTION =
-  'Manage and view the health and performance of your deployed models.';
+  'View and manage the health and performance of deployed models. ';
 
 type GlobalModelsPageContentProps = {
   hidePageDescription?: boolean;

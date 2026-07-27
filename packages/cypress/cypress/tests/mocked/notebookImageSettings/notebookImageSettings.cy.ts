@@ -15,6 +15,7 @@ import {
 import { mockImageStreamK8sResource } from '@odh-dashboard/internal/__mocks__/mockImageStreamK8sResource';
 import { deleteModal } from '../../../pages/components/DeleteModal';
 import {
+  disableLastImageModal,
   importNotebookImageModal,
   notebookImageDeleteModal,
   notebookImageSettings,
@@ -709,6 +710,74 @@ describe('Workbench image settings', () => {
         'include',
         '/settings/environment-setup/workbench-images/hardware-profile/create',
       );
+    });
+  });
+
+  describe('Disable last enabled image confirmation', () => {
+    it('should show confirmation modal when disabling the last enabled BYON image', () => {
+      cy.interceptK8sList(
+        { model: ImageStreamModel, ns: 'opendatahub' },
+        mockK8sResourceList([
+          mockImageStreamK8sResource({
+            name: 'byon-1',
+            displayName: 'Only Enabled Image',
+            opts: {
+              metadata: {
+                labels: {
+                  'app.kubernetes.io/created-by': 'byon',
+                  [ImageStreamLabel.NOTEBOOK]: 'true',
+                },
+                annotations: {
+                  [ImageStreamAnnotation.DISP_NAME]: 'Only Enabled Image',
+                },
+              },
+            },
+          }),
+        ]),
+      );
+
+      notebookImageSettings.visit();
+
+      const row = notebookImageSettings.getRow('Only Enabled Image');
+      row.findEnableSwitchInput().should('be.checked');
+      row.clickEnableSwitch();
+
+      disableLastImageModal.find().should('exist');
+      disableLastImageModal.find().should('contain.text', 'will leave no workbench images enabled');
+    });
+
+    it('should close confirmation modal and keep image enabled when Cancel is clicked', () => {
+      cy.interceptK8sList(
+        { model: ImageStreamModel, ns: 'opendatahub' },
+        mockK8sResourceList([
+          mockImageStreamK8sResource({
+            name: 'byon-1',
+            displayName: 'Only Enabled Image',
+            opts: {
+              metadata: {
+                labels: {
+                  'app.kubernetes.io/created-by': 'byon',
+                  [ImageStreamLabel.NOTEBOOK]: 'true',
+                },
+                annotations: {
+                  [ImageStreamAnnotation.DISP_NAME]: 'Only Enabled Image',
+                },
+              },
+            },
+          }),
+        ]),
+      );
+
+      notebookImageSettings.visit();
+
+      const row = notebookImageSettings.getRow('Only Enabled Image');
+      row.clickEnableSwitch();
+
+      disableLastImageModal.find().should('exist');
+      disableLastImageModal.findCancelButton().click();
+
+      disableLastImageModal.find().should('not.exist');
+      row.findEnableSwitchInput().should('be.checked');
     });
   });
 });

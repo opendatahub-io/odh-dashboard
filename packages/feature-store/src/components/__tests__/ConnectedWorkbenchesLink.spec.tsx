@@ -166,7 +166,7 @@ describe('ConnectedWorkbenchesLink', () => {
   });
 
   describe('loading state', () => {
-    it('should render disabled without tooltip while projects are loading', () => {
+    it('should render a loading skeleton while projects are loading', () => {
       mockUseAccessAllowed.mockReturnValue([false, false]);
       mockUseFeatureStoreAccessibleProjects.mockReturnValue({
         accessibleProjects: [],
@@ -176,8 +176,8 @@ describe('ConnectedWorkbenchesLink', () => {
 
       render(<ConnectedWorkbenchesLink />);
 
-      const button = screen.getByTestId('connected-workbenches-link');
-      expect(button).toBeDisabled();
+      expect(screen.getByTestId('skeleton-loader')).toBeInTheDocument();
+      expect(screen.queryByTestId('connected-workbenches-link')).not.toBeInTheDocument();
       expect(screen.queryByText(/To connect a workbench/)).not.toBeInTheDocument();
     });
   });

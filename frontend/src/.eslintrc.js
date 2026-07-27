@@ -32,6 +32,8 @@ module.exports = require('@odh-dashboard/eslint-config')
                 '!@odh-dashboard/k8s-core/**',
                 '!@odh-dashboard/hardware-profiles',
                 '!@odh-dashboard/hardware-profiles/**',
+                '!@odh-dashboard/connection-types',
+                '!@odh-dashboard/connection-types/**',
                 '!@odh-dashboard/ui-core',
                 '!@odh-dashboard/ui-core/**',
                 '!@odh-dashboard/model-serving/shared',

@@ -1,7 +1,11 @@
 /* eslint-disable camelcase */
-import type { AutoragPattern } from '~/app/types/autoragPattern';
+import type { AutoragPattern, AutoragPatternV1 } from '~/app/types/autoragPattern';
 
-const basePattern = {
+// ---------------------------------------------------------------------------
+// V1 (legacy) base pattern — kept for normalizer tests
+// ---------------------------------------------------------------------------
+
+const basePatternV1 = {
   max_combinations: 20,
   duration_seconds: 0,
   settings: {
@@ -39,44 +43,26 @@ const basePattern = {
   final_score: 0.5,
 };
 
-const models = [
-  'granite-3.1-8b-instruct',
-  'llama-3.3-70b-instruct',
-  'mistral-7b-instruct-v0.3',
-  'deepseek-r1-distill-llama-70b',
-  'qwen-2.5-72b-instruct',
-];
-
-// Simple seeded PRNG for deterministic mock data
-// Using a seed ensures mock patterns are consistent across test runs,
-// which is critical for snapshot testing and reproducible test results
-const seededRandom = (seed: number): number => {
-  const x = Math.sin(seed) * 10000;
-  return x - Math.floor(x);
-};
-
-const makePattern = (index: number, modelId: string): AutoragPattern => {
-  // Generate deterministic values based on index
+export const makePatternV1 = (index: number, modelId: string): AutoragPatternV1 => {
   const finalScore = 0.4 + seededRandom(index * 3) * 0.4;
   const acMean = 0.4 + seededRandom(index * 3 + 1) * 0.4;
   const faithMean = 0.3 + seededRandom(index * 3 + 2) * 0.5;
 
-  // Ensure CI bounds are consistent: ci_low <= mean <= ci_high
   const acDeltaLow = 0.1;
   const acDeltaHigh = 0.2;
   const faithDeltaLow = 0.15;
   const faithDeltaHigh = 0.25;
 
   return {
-    ...basePattern,
+    ...basePatternV1,
     name: `pattern${index}`,
     iteration: index,
     settings: {
-      ...basePattern.settings,
-      generation: { ...basePattern.settings.generation, model_id: modelId },
+      ...basePatternV1.settings,
+      generation: { ...basePatternV1.settings.generation, model_id: modelId },
     },
     scores: {
-      ...basePattern.scores,
+      ...basePatternV1.scores,
       answer_correctness: {
         mean: acMean,
         ci_low: Math.max(0, acMean - acDeltaLow),
@@ -89,6 +75,123 @@ const makePattern = (index: number, modelId: string): AutoragPattern => {
       },
     },
     final_score: finalScore,
+  };
+};
+
+// ---------------------------------------------------------------------------
+// V2 (current) base pattern
+// ---------------------------------------------------------------------------
+
+const basePattern = {
+  max_combinations: 20,
+  duration_seconds: 0,
+  settings: {
+    vector_store_binding: {
+      provider_id: 'milvus-provider',
+      provider_type: 'milvus',
+      vector_store_id: 'collection0',
+    },
+    chunking: { method: 'recursive', chunk_size: 256, chunk_overlap: 128 },
+    embedding: {
+      model_id: 'mock-embed-a',
+      embedding_params: {
+        embedding_dimension: 768,
+        context_length: 512,
+      },
+    },
+    retrieval: { method: 'window', number_of_chunks: 5 },
+    generation: {
+      model_id: '',
+    },
+  },
+  evaluation: {
+    metrics: [
+      {
+        evaluator: 'unitxt',
+        name: 'answer_correctness',
+        description: 'Answer correctness',
+        scores: { mean: 0.5, ci_low: 0.4, ci_high: 0.7 },
+      },
+      {
+        evaluator: 'unitxt',
+        name: 'faithfulness',
+        description: 'Faithfulness',
+        scores: { mean: 0.2, ci_low: 0.1, ci_high: 0.5 },
+      },
+      {
+        evaluator: 'unitxt',
+        name: 'context_correctness',
+        description: 'Context correctness',
+        scores: { mean: 1.0, ci_low: 0.9, ci_high: 1.0 },
+      },
+      {
+        evaluator: 'custom',
+        name: 'overall_score',
+        description: 'Aggregate score',
+        scores: { mean: 0.5, ci_low: null, ci_high: null },
+        optimization_metric: true,
+      },
+    ],
+  },
+} as const satisfies Omit<AutoragPattern, 'name' | 'iteration'>;
+
+const models = [
+  'granite-3.1-8b-instruct',
+  'llama-3.3-70b-instruct',
+  'mistral-7b-instruct-v0.3',
+  'deepseek-r1-distill-llama-70b',
+  'qwen-2.5-72b-instruct',
+];
+
+// Simple seeded PRNG for deterministic mock data
+const seededRandom = (seed: number): number => {
+  const x = Math.sin(seed) * 10000;
+  return x - Math.floor(x);
+};
+
+const makePattern = (index: number, modelId: string): AutoragPattern => {
+  const finalScore = 0.4 + seededRandom(index * 3) * 0.4;
+  const acMean = 0.4 + seededRandom(index * 3 + 1) * 0.4;
+  const faithMean = 0.3 + seededRandom(index * 3 + 2) * 0.5;
+
+  const acDeltaLow = 0.1;
+  const acDeltaHigh = 0.2;
+  const faithDeltaLow = 0.15;
+  const faithDeltaHigh = 0.25;
+
+  const acScore = {
+    mean: acMean,
+    ci_low: Math.max(0, acMean - acDeltaLow),
+    ci_high: Math.min(1, acMean + acDeltaHigh),
+  };
+  const faithScore = {
+    mean: faithMean,
+    ci_low: Math.max(0, faithMean - faithDeltaLow),
+    ci_high: Math.min(1, faithMean + faithDeltaHigh),
+  };
+
+  return {
+    ...basePattern,
+    name: `pattern${index}`,
+    iteration: index,
+    settings: {
+      ...basePattern.settings,
+      generation: { ...basePattern.settings.generation, model_id: modelId },
+    },
+    evaluation: {
+      metrics: [
+        { ...basePattern.evaluation.metrics[0], scores: acScore },
+        { ...basePattern.evaluation.metrics[1], scores: faithScore },
+        basePattern.evaluation.metrics[2],
+        {
+          evaluator: 'custom' as const,
+          name: 'overall_score',
+          description: 'Aggregate score',
+          scores: { mean: finalScore, ci_low: null, ci_high: null },
+          optimization_metric: true as const,
+        },
+      ],
+    },
   };
 };
 

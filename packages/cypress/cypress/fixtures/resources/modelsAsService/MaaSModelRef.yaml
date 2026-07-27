@@ -5,6 +5,7 @@ metadata:
   namespace: "{{PROJECT_NAME}}"
   annotations:
     openshift.io/display-name: "{{MODEL_NAME}}"
+    openshift.io/description: "Model for testing MaaS"
   labels:
     opendatahub.io/dashboard: "true"
 spec:

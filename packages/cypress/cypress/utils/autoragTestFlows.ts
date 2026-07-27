@@ -73,11 +73,8 @@ export const configureAutoragRun = (
   autoragConfigurePage.findBrowseBucketButton().click();
   autoragConfigurePage.findFileExplorerTable().should('be.visible');
   autoragConfigurePage.findFileExplorerSearch().type(uploadFileName);
-  autoragConfigurePage
-    .findFileExplorerTable()
-    .contains('td', uploadFileName)
-    .should('be.visible')
-    .click();
+  autoragConfigurePage.findFileExplorerTable().contains('td', uploadFileName).should('be.visible');
+  autoragConfigurePage.findFileExplorerTable().contains('td', uploadFileName).click();
   autoragConfigurePage.findFileExplorerSelectBtn().click();
 
   cy.step('Create evaluation file via creator modal');

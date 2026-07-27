@@ -763,6 +763,23 @@ jobs:
           echo "Waiting for rollout to complete..."
           kubectl rollout status deployment/odh-dashboard -n opendatahub --timeout=120s
 
+          # rollout status exits as soon as new pods are Ready, but old pods from the
+          # previous revision can still be in Terminating state for their gracePeriod.
+          # Wait up to 60s for them to fully disappear so the next step doesn't pick up
+          # a Terminating pod as items[0] and produce a false health-check failure.
+          echo "Waiting for any Terminating pods to clear..."
+          for i in {1..12}; do
+            TERM_COUNT=$(kubectl get pods -n opendatahub -l app=odh-dashboard \
+              -o jsonpath='{range .items[*]}{.metadata.deletionTimestamp}{"\n"}{end}' 2>/dev/null \
+              | grep -vc '^$' || echo "0")
+            if [ "${TERM_COUNT:-0}" -eq 0 ]; then
+              echo "✅ No Terminating pods"
+              break
+            fi
+            echo "  Waiting for ${TERM_COUNT} pod(s) to finish terminating... ($i/12)"
+            sleep 5
+          done
+
       - name: Check container status and validate
         run: |
           set -euo pipefail
@@ -774,17 +791,30 @@ jobs:
           kubectl describe deployment odh-dashboard -n opendatahub
           echo "::endgroup::"
 
+          # Select the active (non-Terminating) pod. After a rolling update items[0] may
+          # still be the old revision with a deletionTimestamp set. Filter it out via
+          # custom-columns so health checks always target the current revision.
+          POD=$(kubectl get pods -n opendatahub -l app=odh-dashboard \
+            -o custom-columns='NAME:.metadata.name,DEL:.metadata.deletionTimestamp' \
+            --no-headers 2>/dev/null | awk '$2 == "<none>"' | head -1 | awk '{print "pod/" $1}')
+
+          if [ -z "$POD" ]; then
+            echo "❌ FAIL: No non-Terminating pod found for app=odh-dashboard"
+            kubectl get pods -n opendatahub -l app=odh-dashboard
+            exit 1
+          fi
+          echo "Active pod: $POD"
+
           # Get pod details
           echo "::group::Pod events and status"
-          POD=$(kubectl get pods -n opendatahub -l app=odh-dashboard -o name | head -1)
-          if [ -n "$POD" ]; then
-            kubectl describe -n opendatahub "$POD"
-          fi
+          kubectl describe -n opendatahub "$POD"
           echo "::endgroup::"
 
           # Check if containers started (even if they fail later)
           echo "Validating container lifecycle..."
-          CONTAINER_STATUSES=$(kubectl get pods -n opendatahub -l app=odh-dashboard -o jsonpath='{.items[0].status.containerStatuses[*].state}' 2>/dev/null || echo "")
+          POD_NAME="${POD#pod/}"
+          CONTAINER_STATUSES=$(kubectl get pod -n opendatahub "$POD_NAME" \
+            -o jsonpath='{.status.containerStatuses[*].state}' 2>/dev/null || echo "")
 
           if [ -z "$CONTAINER_STATUSES" ]; then
             echo "❌ FAIL: No container statuses found - pods may not have started"
@@ -792,7 +822,8 @@ jobs:
           fi
 
           # Check for successful image pulls
-          IMAGES_PULLED=$(kubectl get pods -n opendatahub -l app=odh-dashboard -o jsonpath='{.items[0].status.containerStatuses[*].imageID}' 2>/dev/null | wc -w)
+          IMAGES_PULLED=$(kubectl get pod -n opendatahub "$POD_NAME" \
+            -o jsonpath='{.status.containerStatuses[*].imageID}' 2>/dev/null | wc -w)
 
           if [ "$IMAGES_PULLED" -eq 0 ]; then
             echo "❌ FAIL: No images were pulled successfully"
@@ -812,19 +843,19 @@ jobs:
           # not restarted. A CrashLoopBackOff or any restart count > 0 means the server
           # failed to start and is a hard failure.
           echo "::group::Health check: odh-dashboard container"
-          DASHBOARD_RUNNING=$(kubectl get pods -n opendatahub -l app=odh-dashboard \
-            -o jsonpath='{.items[0].status.containerStatuses[?(@.name=="odh-dashboard")].state.running}' \
+          DASHBOARD_RUNNING=$(kubectl get pod -n opendatahub "$POD_NAME" \
+            -o jsonpath='{.status.containerStatuses[?(@.name=="odh-dashboard")].state.running}' \
             2>/dev/null || echo "")
           # Use -1 as sentinel: a non-negative integer means success, anything else
           # (including -1 or empty) means kubectl itself failed — pod not found,
           # API server timeout, etc. — which should be a hard failure, not a silent pass.
-          DASHBOARD_RESTARTS=$(kubectl get pods -n opendatahub -l app=odh-dashboard \
-            -o jsonpath='{.items[0].status.containerStatuses[?(@.name=="odh-dashboard")].restartCount}' \
+          DASHBOARD_RESTARTS=$(kubectl get pod -n opendatahub "$POD_NAME" \
+            -o jsonpath='{.status.containerStatuses[?(@.name=="odh-dashboard")].restartCount}' \
             2>/dev/null || echo "-1")
 
           if [ -z "$DASHBOARD_RUNNING" ]; then
-            TERM_REASON=$(kubectl get pods -n opendatahub -l app=odh-dashboard \
-              -o jsonpath='{.items[0].status.containerStatuses[?(@.name=="odh-dashboard")].state.terminated.reason}' \
+            TERM_REASON=$(kubectl get pod -n opendatahub "$POD_NAME" \
+              -o jsonpath='{.status.containerStatuses[?(@.name=="odh-dashboard")].state.terminated.reason}' \
               2>/dev/null || echo "unknown")
             echo "❌ FAIL: odh-dashboard container is not running (reason: ${TERM_REASON})"
             echo "   This usually means the server crashed at startup."
@@ -857,6 +888,172 @@ jobs:
   # (references ../common/crd but should be ../../common/crd).
   # Add manifest validation once the upstream path is fixed.
 
+  # Sidecar Module Validation: Build and smoke-test packages/*/Dockerfile.workspace images
+  # Catches startup regressions (e.g. Go protobuf panics) that only surface when the
+  # sidecar binary runs, not when it compiles.
+  detect-sidecar-changes:
+    name: "Detect Sidecar Module Changes"
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    needs: check-skip
+    if: needs.check-skip.outputs.should-skip != 'true'
+    outputs:
+      matrix: ${{ steps.detect.outputs.matrix }}
+      has-changes: ${{ steps.detect.outputs.has-changes }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.2.2
+        with:
+          fetch-depth: 0
+
+      - name: Detect changed sidecar modules
+        id: detect
+        run: |
+          set -euo pipefail
+
+          # Get files changed in this PR
+          CHANGED_FILES=$(git diff --name-only origin/${{ github.event.pull_request.base.ref }}...HEAD)
+
+          # Check if root build files changed (affects all sidecar builds)
+          ROOT_BUILD_CHANGED=false
+          if echo "$CHANGED_FILES" | grep -qE '^(package\.json|package-lock\.json)$'; then
+            ROOT_BUILD_CHANGED=true
+            echo "Root build files changed — all sidecar modules will be built"
+          fi
+
+          # Dynamically discover packages with Dockerfile.workspace
+          MATRIX_ITEMS="[]"
+          while IFS= read -r dockerfile; do
+            [ -z "$dockerfile" ] && continue
+            PKG_DIR=$(dirname "$dockerfile")
+            MODULE_NAME=$(basename "$PKG_DIR")
+
+            # Skip non-module scaffolding packages
+            if [ "$MODULE_NAME" = "plugin-template" ]; then
+              echo "Skipping $MODULE_NAME (scaffold template, not a deployable module)"
+              continue
+            fi
+
+            # Check if this package has changed files, or root build files changed
+            if [ "$ROOT_BUILD_CHANGED" = "true" ] || echo "$CHANGED_FILES" | grep -qF "${PKG_DIR}/"; then
+              MATRIX_ITEMS=$(echo "$MATRIX_ITEMS" | jq -c --arg name "$MODULE_NAME" --arg dockerfile "$dockerfile" '. + [{"module": $name, "dockerfile": $dockerfile}]')
+              echo "Will build: $MODULE_NAME ($dockerfile)"
+            fi
+          done < <(find packages -maxdepth 2 -name "Dockerfile.workspace" -not -path "*/node_modules/*" | sort)
+
+          COUNT=$(echo "$MATRIX_ITEMS" | jq 'length')
+          if [ "$COUNT" -gt 0 ]; then
+            echo "has-changes=true" >> "$GITHUB_OUTPUT"
+            echo "matrix={\"include\":$MATRIX_ITEMS}" >> "$GITHUB_OUTPUT"
+            echo "Found $COUNT sidecar module(s) to build"
+          else
+            echo "has-changes=false" >> "$GITHUB_OUTPUT"
+            echo "matrix={\"include\":[]}" >> "$GITHUB_OUTPUT"
+            echo "No sidecar modules affected by this PR"
+          fi
+
+  sidecar-build-validation:
+    name: "Sidecar Build: ${{ matrix.module }}"
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    needs: [check-skip, detect-sidecar-changes]
+    if: needs.check-skip.outputs.should-skip != 'true' && needs.detect-sidecar-changes.outputs.has-changes == 'true'
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.detect-sidecar-changes.outputs.matrix) }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.2.2
+
+      - name: Free disk space
+        uses: ./.github/actions/free-disk-space
+
+      - name: Build sidecar image
+        env:
+          MODULE: ${{ matrix.module }}
+          DOCKERFILE: ${{ matrix.dockerfile }}
+        run: |
+          set -euo pipefail
+          echo "::group::Building ${MODULE} from ${DOCKERFILE}"
+          docker build \
+            --no-cache \
+            --file "${DOCKERFILE}" \
+            --tag "sidecar-${MODULE}:test" \
+            .
+          echo "::endgroup::"
+          echo "Build completed for ${MODULE}"
+
+      - name: Validate sidecar startup
+        run: |
+          set -euo pipefail
+          MODULE="${{ matrix.module }}"
+          CONTAINER_NAME="sidecar-${MODULE}-test"
+          IMAGE="sidecar-${MODULE}:test"
+
+          # Run the container with no special flags. BFFs will likely exit quickly
+          # because there is no Kubernetes cluster in CI — that is expected.
+          # We only care that the binary does not *crash* (panic, segfault, etc.).
+          echo "::group::Starting $MODULE sidecar container"
+          docker run -d --name "$CONTAINER_NAME" "$IMAGE"
+          echo "::endgroup::"
+
+          echo "Waiting 5 seconds for BFF startup..."
+          sleep 5
+
+          echo "::group::Container status"
+          RUNNING=$(docker inspect --format '{{.State.Running}}' "$CONTAINER_NAME" 2>/dev/null || echo "false")
+          EXIT_CODE=$(docker inspect --format '{{.State.ExitCode}}' "$CONTAINER_NAME" 2>/dev/null || echo "-1")
+          echo "Running: $RUNNING"
+          echo "Exit code: $EXIT_CODE"
+          echo "::endgroup::"
+
+          echo "::group::Container logs"
+          LOGS=$(docker logs "$CONTAINER_NAME" 2>&1 || echo "")
+          echo "$LOGS"
+          echo "::endgroup::"
+
+          # Scan logs for Go runtime crash patterns only.
+          # Clean exits (missing kubeconfig, no cluster, invalid config) are fine —
+          # they prove the binary compiled, loaded, and ran its init logic.
+          FAILURES=0
+          CRASH_PATTERNS=(
+            "panic:"
+            "fatal error:"
+            "runtime error:"
+            "signal: segmentation fault"
+            "SIGSEGV"
+          )
+
+          for pattern in "${CRASH_PATTERNS[@]}"; do
+            if echo "$LOGS" | grep -q "$pattern"; then
+              echo "::error::$MODULE sidecar logs contain crash indicator: $pattern"
+              echo "$LOGS" | grep "$pattern" | head -5
+              FAILURES=$((FAILURES + 1))
+            fi
+          done
+
+          if [ "$RUNNING" = "true" ]; then
+            echo "INFO: $MODULE sidecar is still running after 5s"
+          else
+            echo "INFO: $MODULE exited (exit code: $EXIT_CODE) — expected without a Kubernetes cluster"
+          fi
+
+          # Clean up
+          docker stop "$CONTAINER_NAME" 2>/dev/null || true
+          docker rm "$CONTAINER_NAME" 2>/dev/null || true
+          docker rmi "$IMAGE" 2>/dev/null || true
+
+          if [ "$FAILURES" -gt 0 ]; then
+            echo ""
+            echo "::error::$MODULE sidecar startup validation failed with $FAILURES issue(s)"
+            echo "Check the container logs above for the root cause."
+            exit 1
+          fi
+
+          echo "PASS: $MODULE sidecar built and started without crashes"
+
   summary:
     name: "Build Validation Summary"
     runs-on: ubuntu-latest
@@ -870,6 +1067,8 @@ jobs:
       - runtime-validation-odh
       - runtime-validation-rhoai
       - operator-integration
+      - detect-sidecar-changes
+      - sidecar-build-validation
     # Run summary even when jobs are skipped, but not when workflow is skipped
     if: always() && needs.check-skip.outputs.should-skip != 'true'
     steps:
@@ -884,6 +1083,8 @@ jobs:
           echo "Phase 2-3 (Runtime ODH): ${{ needs.runtime-validation-odh.result }}"
           echo "Phase 2-3 (Runtime RHOAI): ${{ needs.runtime-validation-rhoai.result }}"
           echo "Phase 4 (Operator Integration): ${{ needs.operator-integration.result }}"
+          echo "Sidecar Detection: ${{ needs.detect-sidecar-changes.result }}"
+          echo "Sidecar Build Validation: ${{ needs.sidecar-build-validation.result }}"
 
           # Accept "success" and "skipped" as passing states
           # "skipped" occurs when upstream job was skipped (normal dependency chain)
@@ -894,7 +1095,9 @@ jobs:
                         "${{ needs.docker-build-rhoai.result }}" \
                         "${{ needs.runtime-validation-odh.result }}" \
                         "${{ needs.runtime-validation-rhoai.result }}" \
-                        "${{ needs.operator-integration.result }}"; do
+                        "${{ needs.operator-integration.result }}" \
+                        "${{ needs.detect-sidecar-changes.result }}" \
+                        "${{ needs.sidecar-build-validation.result }}"; do
             if [[ "$result" != "success" && "$result" != "skipped" ]]; then
               FAILED=true
               break

@@ -17,6 +17,7 @@ import { TypeBorderedCard } from '@odh-dashboard/ui-core';
 import SectionIcon from '#~/concepts/design/SectionIcon';
 import { SectionType } from '#~/concepts/design/utils';
 import type { ResolvedTaskGroup, ResolvedTaskItem } from './types';
+import { fireShortcutClicked } from './taskAssistantTracking';
 
 type TaskGroupCardProps = {
   group: Pick<ResolvedTaskGroup, 'id' | 'title' | 'description' | 'type' | 'icon'>;
@@ -51,6 +52,14 @@ const TaskGroupCard: React.FC<TaskGroupCardProps> = ({ group, tasks }) => {
                 variant={ButtonVariant.link}
                 isInline
                 component={(props: React.ComponentProps<'a'>) => <Link {...props} to={task.href} />}
+                onClick={() =>
+                  fireShortcutClicked({
+                    taskName: task.title,
+                    category: group.id,
+                    destination: task.href,
+                    viewContext: 'default-row',
+                  })
+                }
                 data-testid={`task-link-${task.id}`}
               >
                 {task.title}

@@ -5,6 +5,7 @@ import {
   LimitNameResourceType,
   resourceTypeLimits,
   setupDefaults,
+  translateDisplayNameForK8s,
 } from '@odh-dashboard/k8s-core';
 import type { K8sNameDescriptionFieldData } from '@odh-dashboard/k8s-core';
 import { mockProjectK8sResource } from '#~/__mocks__';
@@ -150,6 +151,55 @@ describe('setupDefaults', () => {
         },
       }),
     );
+  });
+
+  it('should not mark k8s name as touched when editableK8sName and name matches translation', () => {
+    const displayName = 'Copy of My Config';
+    const k8sName = translateDisplayNameForK8s(displayName);
+    const result = setupDefaults({
+      initialData: mockProjectK8sResource({
+        displayName,
+        k8sName,
+        description: '',
+      }),
+      editableK8sName: true,
+    });
+
+    expect(result.k8sName.state.touched).toBe(false);
+    expect(result.k8sName.state.immutable).toBe(false);
+    expect(result.k8sName.value).toBe(k8sName);
+  });
+
+  it('should mark k8s name as touched when editableK8sName and name does not match translation', () => {
+    const result = setupDefaults({
+      initialData: mockProjectK8sResource({
+        displayName: 'Copy of My Config',
+        k8sName: 'my-config-copy',
+        description: '',
+      }),
+      editableK8sName: true,
+    });
+
+    expect(result.k8sName.state.touched).toBe(true);
+    expect(result.k8sName.state.immutable).toBe(false);
+  });
+
+  it('should auto-update k8s name when display name changes in duplicate mode with untouched state', () => {
+    const displayName = 'Copy of My Config';
+    const k8sName = translateDisplayNameForK8s(displayName);
+    const defaults = setupDefaults({
+      initialData: mockProjectK8sResource({
+        displayName,
+        k8sName,
+        description: '',
+      }),
+      editableK8sName: true,
+    });
+
+    expect(defaults.k8sName.state.touched).toBe(false);
+
+    const updated = handleUpdateLogic(defaults)('name', 'My Duplicate');
+    expect(updated.k8sName.value).toBe('my-duplicate');
   });
 });
 

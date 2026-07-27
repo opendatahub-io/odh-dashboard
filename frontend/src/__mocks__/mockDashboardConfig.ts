@@ -38,6 +38,7 @@ export type MockDashboardConfigType = {
   disableLMEval?: boolean;
   disableKueue?: boolean;
   disableFeatureStore?: boolean;
+  featureStoreAdmin?: boolean;
   genAiStudio?: boolean;
   genAiTracing?: boolean;
   automl?: boolean;
@@ -53,21 +54,23 @@ export type MockDashboardConfigType = {
   pvcSize?: string;
   mlflowPipelines?: boolean;
   mcpCatalog?: boolean;
+  mcpRegistry?: boolean;
   toolCalling?: boolean;
   projectRBAC?: boolean;
   disableLLMd?: boolean;
+  llmdTemplates?: boolean;
   deploymentWizardYAMLViewer?: boolean;
   vLLMDeploymentOnMaaS?: boolean;
   llmGatewayField?: boolean;
   promptManagement?: boolean;
   globalProjectPrompts?: boolean;
   nimWizard?: boolean;
-  maasSettingsIaRedesign?: boolean;
   agentOps?: boolean;
   agentOpsDeploy?: boolean;
   agentsCatalog?: boolean;
   roleManagement?: boolean;
   gpuaas?: boolean;
+  connectionTest?: boolean;
   globalMLflowNamespaces?: string[];
   genAiStudioConfig?: {
     aiAssetCustomEndpoints?: {
@@ -110,6 +113,7 @@ export const mockDashboardConfig = ({
   disableDistributedWorkloads = false,
   disableModelCatalog = false,
   mcpCatalog = false,
+  mcpRegistry = false,
   toolCalling = false,
   disableModelRegistry = false,
   disableModelRegistrySecureDB = false,
@@ -120,9 +124,11 @@ export const mockDashboardConfig = ({
   disableLMEval = true,
   disableKueue = true,
   disableFeatureStore = true,
+  featureStoreAdmin = false,
   trainingJobs = true,
   observabilityDashboard = true,
   disableLLMd = false,
+  llmdTemplates = false,
   deploymentWizardYAMLViewer = false,
   externalVectorStores = false,
   agentConfigManagement = false,
@@ -131,12 +137,12 @@ export const mockDashboardConfig = ({
   promptManagement = false,
   globalProjectPrompts = false,
   nimWizard = false,
-  maasSettingsIaRedesign = true,
   agentOps = false,
   agentOpsDeploy = false,
   agentsCatalog = false,
-  roleManagement = false,
-  gpuaas = false,
+  roleManagement = true,
+  gpuaas = true,
+  connectionTest = false,
   hardwareProfileOrder = ['test-hardware-profile'],
   globalMLflowNamespaces = [],
   genAiStudioConfig = {
@@ -301,6 +307,7 @@ export const mockDashboardConfig = ({
       disableDistributedWorkloads,
       disableModelCatalog,
       mcpCatalog,
+      mcpRegistry,
       toolCalling,
       disableModelRegistry,
       disableModelRegistrySecureDB,
@@ -312,9 +319,11 @@ export const mockDashboardConfig = ({
       disableLMEval,
       disableKueue,
       disableFeatureStore,
+      featureStoreAdmin,
       trainingJobs,
       observabilityDashboard,
       disableLLMd,
+      llmdTemplates,
       deploymentWizardYAMLViewer,
       externalVectorStores,
       agentConfigManagement,
@@ -323,12 +332,12 @@ export const mockDashboardConfig = ({
       promptManagement,
       globalProjectPrompts,
       nimWizard,
-      maasSettingsIaRedesign,
       agentOps,
       agentOpsDeploy,
       agentsCatalog,
       roleManagement,
       gpuaas,
+      connectionTest,
     },
     notebookController: {
       enabled: !disableNotebookController,

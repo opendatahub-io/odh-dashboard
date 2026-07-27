@@ -128,6 +128,13 @@ export type KueueWorkbenchTestData = {
   notebookImage: string;
 };
 
+export type KueueWorkbenchLifecycleTestData = KueueWorkbenchTestData & {
+  updatedCpuQuota: number;
+  updatedMemoryQuota: number;
+  waitingForQuotaMessage: string;
+  queuePositionMarker: string;
+};
+
 export type WBControlSuiteTestData = {
   controlSuiteTestNamespace: string;
   controlSuiteTestDescription: string;
@@ -702,6 +709,7 @@ export type ModelCatalogSourceTestData = {
 export type ModelAsAServiceTestData = {
   projectResourceName: string;
   singleModelName: string;
+  singleModelDescription: string;
   llmInferenceServiceConfigName: string;
   llmInferenceServiceConfigDisplayName: string;
   llmInferenceServiceConfigContainerImage: string;
@@ -737,6 +745,18 @@ export enum ApiKeyStatus {
   active = 'Active',
   expired = 'Expired',
   revoked = 'Revoked',
+}
+
+export enum PhaseStatus {
+  ACTIVE = 'Active',
+  READY = 'Ready',
+  PENDING = 'Pending',
+  FAILED = 'Failed',
+  INVALID = 'Invalid',
+  DEGRADED = 'Degraded',
+  UNAVAILABLE = 'Unavailable',
+  UNHEALTHY = 'Unhealthy',
+  UNKNOWN = 'Unknown',
 }
 
 export type TrainJobTestData = {
@@ -856,4 +876,13 @@ export type AutoragTestData = {
   awsBucket: 'BUCKET_2' | 'BUCKET_3';
   maxRagPatterns: number;
   optimizationMetric?: string;
+};
+
+export type AgentRuntimesTestData = {
+  pageTitle: string;
+  projectResourceName: string;
+  filterSearchTerm: string;
+  filterOptionStatus: string;
+  statusPending: string;
+  statusReady: string;
 };

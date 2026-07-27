@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
@@ -34,10 +35,34 @@ import (
 const dashboardFinalizer = "components.platform.opendatahub.io/cleanup"
 const conditionObservabilityAvailable = "ObservabilityAvailable"
 
+var operatorDeploymentName = getOperatorDeploymentName()
+
+func getOperatorDeploymentName() string {
+	if name := os.Getenv("OPERATOR_DEPLOYMENT_NAME"); name != "" {
+		return name
+	}
+	return "dashboard-operator"
+}
+
+func operatorOwnedResourceNames() map[string]bool {
+	base := operatorDeploymentName
+	return map[string]bool{
+		base:                  true,
+		base + "-role":        true,
+		base + "-rolebinding": true,
+	}
+}
+
 var persesdashboardGVK = schema.GroupVersionKind{
 	Group:   "perses.dev",
 	Version: "v1alpha1",
 	Kind:    "PersesDashboardList",
+}
+
+var deploymentGVK = schema.GroupVersionKind{
+	Group:   "apps",
+	Version: "v1",
+	Kind:    "Deployment",
 }
 
 // Version is set at build time via -ldflags.
@@ -253,6 +278,7 @@ func (r *DashboardReconciler) reconcileSidecar(
 		deploy.WithFieldOwner("dashboard-operator"),
 		deploy.WithLabel(labels.PlatformPartOf, strings.ToLower(v1alpha1.DashboardKind)),
 		deploy.WithApplyOrder(),
+		deploy.WithMergeStrategy(deploymentGVK, deploy.MergeDeployments),
 	)
 
 	if err := deployer.Deploy(ctx, deploy.DeployInput{
@@ -328,8 +354,9 @@ func (r *DashboardReconciler) reconcileStandalone(
 ) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
 
-	// Step 1: Deploy core manifests (main dashboard deployment without sidecar patches)
-	manifests := manifestSets(r.ManifestsBasePath, r.Platform)
+	// Step 1: Deploy core manifests (3-container pod: odh-dashboard, kube-rbac-proxy, core-bff).
+	// Uses the standalone overlay which excludes BFF module sidecar containers.
+	manifests := standaloneManifestSets(r.ManifestsBasePath, r.Platform)
 
 	if err := applyKustomizeParams(dashboard, manifests, r.Platform); err != nil {
 		cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded),
@@ -355,6 +382,7 @@ func (r *DashboardReconciler) reconcileStandalone(
 		deploy.WithFieldOwner("dashboard-operator"),
 		deploy.WithLabel(labels.PlatformPartOf, strings.ToLower(v1alpha1.DashboardKind)),
 		deploy.WithApplyOrder(),
+		deploy.WithMergeStrategy(deploymentGVK, deploy.MergeDeployments),
 	)
 
 	if err := deployer.Deploy(ctx, deploy.DeployInput{
@@ -410,12 +438,18 @@ func (r *DashboardReconciler) reconcileStandalone(
 	r.reconcileObservability(ctx, dashboard, cm)
 
 	// Step 7: Build and deploy federation ConfigMap (critical for standalone routing)
-	if err := r.deployFederationConfigMap(ctx, nextStatuses, dashboard); err != nil {
+	fedData, err := r.deployFederationConfigMap(ctx, nextStatuses, dashboard)
+	if err != nil {
 		cm.MarkTrue(string(common.ConditionTypeDegraded),
 			conditions.WithReason("FederationConfigMapFailed"),
 			conditions.WithError(err))
 		logger.Error(err, "Failed to deploy federation ConfigMap")
 		return ctrl.Result{}, fmt.Errorf("federation ConfigMap: %w", err)
+	}
+
+	if err := r.patchDeploymentFederationHash(ctx, fedData); err != nil {
+		logger.Error(err, "Failed to patch federation hash on deployment")
+		return ctrl.Result{}, fmt.Errorf("patching federation hash: %w", err)
 	}
 
 	// Step 8: URL extraction + degraded condition
@@ -638,8 +672,18 @@ func (r *DashboardReconciler) teardownManagedResources(ctx context.Context, dash
 	}
 
 	var deployments appsv1.DeploymentList
-	if err := deleteTyped(&deployments, "Deployment", matchLabels, inNamespace); err != nil {
-		return err
+	if err := r.List(ctx, &deployments, matchLabels, inNamespace); err != nil {
+		return fmt.Errorf("listing Deployments: %w", err)
+	}
+	for i := range deployments.Items {
+		dep := &deployments.Items[i]
+		if dep.Name == operatorDeploymentName {
+			continue
+		}
+		logger.Info("Deleting managed resource", "kind", "Deployment", "name", dep.Name)
+		if err := r.Delete(ctx, dep); client.IgnoreNotFound(err) != nil {
+			return fmt.Errorf("deleting Deployment %s: %w", dep.Name, err)
+		}
 	}
 
 	var services corev1.ServiceList
@@ -652,9 +696,21 @@ func (r *DashboardReconciler) teardownManagedResources(ctx context.Context, dash
 		return err
 	}
 
+	operatorResources := operatorOwnedResourceNames()
+
 	var serviceAccounts corev1.ServiceAccountList
-	if err := deleteTyped(&serviceAccounts, "ServiceAccount", matchLabels, inNamespace); err != nil {
-		return err
+	if err := r.List(ctx, &serviceAccounts, matchLabels, inNamespace); err != nil {
+		return fmt.Errorf("listing ServiceAccounts: %w", err)
+	}
+	for i := range serviceAccounts.Items {
+		sa := &serviceAccounts.Items[i]
+		if operatorResources[sa.Name] {
+			continue
+		}
+		logger.Info("Deleting managed resource", "kind", "ServiceAccount", "name", sa.Name)
+		if err := r.Delete(ctx, sa); client.IgnoreNotFound(err) != nil {
+			return fmt.Errorf("deleting ServiceAccount %s: %w", sa.Name, err)
+		}
 	}
 
 	var secrets corev1.SecretList
@@ -678,13 +734,33 @@ func (r *DashboardReconciler) teardownManagedResources(ctx context.Context, dash
 	}
 
 	var clusterRoles rbacv1.ClusterRoleList
-	if err := deleteTyped(&clusterRoles, "ClusterRole", matchLabels); err != nil {
-		return err
+	if err := r.List(ctx, &clusterRoles, matchLabels); err != nil {
+		return fmt.Errorf("listing ClusterRoles: %w", err)
+	}
+	for i := range clusterRoles.Items {
+		cr := &clusterRoles.Items[i]
+		if operatorResources[cr.Name] {
+			continue
+		}
+		logger.Info("Deleting managed resource", "kind", "ClusterRole", "name", cr.Name)
+		if err := r.Delete(ctx, cr); client.IgnoreNotFound(err) != nil {
+			return fmt.Errorf("deleting ClusterRole %s: %w", cr.Name, err)
+		}
 	}
 
 	var clusterRoleBindings rbacv1.ClusterRoleBindingList
-	if err := deleteTyped(&clusterRoleBindings, "ClusterRoleBinding", matchLabels); err != nil {
-		return err
+	if err := r.List(ctx, &clusterRoleBindings, matchLabels); err != nil {
+		return fmt.Errorf("listing ClusterRoleBindings: %w", err)
+	}
+	for i := range clusterRoleBindings.Items {
+		crb := &clusterRoleBindings.Items[i]
+		if operatorResources[crb.Name] {
+			continue
+		}
+		logger.Info("Deleting managed resource", "kind", "ClusterRoleBinding", "name", crb.Name)
+		if err := r.Delete(ctx, crb); client.IgnoreNotFound(err) != nil {
+			return fmt.Errorf("deleting ClusterRoleBinding %s: %w", crb.Name, err)
+		}
 	}
 
 	if err := r.cleanupCrossNamespaceResources(ctx, dashboard); err != nil {

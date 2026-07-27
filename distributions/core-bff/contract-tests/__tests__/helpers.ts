@@ -40,4 +40,4 @@ export const restrictedClient = new ContractApiClient({
   },
 });
 
-export const apiSchema = loadOpenAPISchema('../bff/openapi/src/core-bff.yaml');
+export const apiSchema = loadOpenAPISchema('bff/openapi/src/core-bff.yaml');

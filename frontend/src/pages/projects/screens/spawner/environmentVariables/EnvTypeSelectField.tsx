@@ -1,75 +1,80 @@
 import * as React from 'react';
-import { Button, FormGroup, Split, SplitItem, Stack, StackItem } from '@patternfly/react-core';
+import {
+  Button,
+  FormGroup,
+  Radio,
+  Split,
+  SplitItem,
+  Stack,
+  StackItem,
+} from '@patternfly/react-core';
 import { MinusCircleIcon } from '@patternfly/react-icons';
-import { asEnumMember } from '@odh-dashboard/foundation';
-import SimpleSelect, { SimpleSelectOption } from '@odh-dashboard/ui-core/components/SimpleSelect';
 import { EnvironmentVariableType, EnvVariable } from '#~/pages/projects/types';
-import IndentSection from '#~/pages/projects/components/IndentSection';
-import { getDashboardMainContainer } from '#~/utilities/utils';
 import EnvTypeSwitch from './EnvTypeSwitch';
-
-const ENV_VAR_POPPER_PROPS = { appendTo: getDashboardMainContainer() };
 
 type EnvTypeSelectFieldProps = {
   envVariable: EnvVariable;
   onUpdate: (envVariable: EnvVariable) => void;
   onRemove: () => void;
+  namespace: string;
+  usedSecretNames?: Set<string>;
+  inlineKeyNames?: Set<string>;
+};
+
+const ENV_TYPE_DESCRIPTIONS: Record<EnvironmentVariableType, string> = {
+  [EnvironmentVariableType.CONFIG_MAP]:
+    'Store non-confidential configuration data as key-value pairs',
+  [EnvironmentVariableType.SECRET]: 'Store sensitive data such as passwords, tokens, and keys',
 };
 
 const EnvTypeSelectField: React.FC<EnvTypeSelectFieldProps> = ({
   envVariable,
   onUpdate,
   onRemove,
+  namespace,
+  usedSecretNames,
+  inlineKeyNames,
 }) => {
-  const selectId = React.useId().replace(/:/g, '');
-
+  const uniqueId = React.useId();
   return (
-    <FormGroup isRequired label="Variable type" fieldId={selectId}>
+    <FormGroup isRequired label="Variable type" fieldId="environment-variable-type-select">
       <Split data-testid="environment-variable-field">
         <SplitItem isFilled>
-          <Stack hasGutter>
-            <StackItem data-testid="environment-variable-type-select">
-              <SimpleSelect
-                dataTestId="environment-variable-type-toggle"
-                ariaLabel="Variable type"
-                toggleProps={{ id: selectId }}
-                popperProps={ENV_VAR_POPPER_PROPS}
-                isFullWidth
-                value={envVariable.type ?? undefined}
-                placeholder="Select environment variable type"
-                options={Object.values(EnvironmentVariableType).map(
-                  (type): SimpleSelectOption => ({
-                    key: type,
-                    label: type,
-                  }),
-                )}
-                onChange={(value) => {
-                  const enumValue = asEnumMember(value, EnvironmentVariableType);
-                  if (enumValue !== null) {
-                    onUpdate({
-                      type: enumValue,
-                    });
+          <Stack hasGutter data-testid="environment-variable-type-select">
+            {Object.values(EnvironmentVariableType).map((type) => (
+              <StackItem key={type}>
+                <Radio
+                  id={`${uniqueId}-env-type-${type}`}
+                  name={`${uniqueId}-env-variable-type`}
+                  label={type}
+                  description={ENV_TYPE_DESCRIPTIONS[type]}
+                  isChecked={envVariable.type === type}
+                  onChange={() => onUpdate({ type })}
+                  data-testid={`env-type-radio-${type}`}
+                  body={
+                    envVariable.type === type ? (
+                      <EnvTypeSwitch
+                        env={envVariable}
+                        onUpdate={(envValue) => onUpdate({ ...envVariable, values: envValue })}
+                        namespace={namespace}
+                        onExistingSecretRefsUpdate={(refs) =>
+                          onUpdate({ ...envVariable, existingSecretRefs: refs })
+                        }
+                        usedSecretNames={usedSecretNames}
+                        inlineKeyNames={inlineKeyNames}
+                      />
+                    ) : undefined
                   }
-                }}
-              />
-            </StackItem>
-            {envVariable.type && (
-              <StackItem>
-                <IndentSection>
-                  <EnvTypeSwitch
-                    env={envVariable}
-                    onUpdate={(envValue) => onUpdate({ ...envVariable, values: envValue })}
-                  />
-                </IndentSection>
+                />
               </StackItem>
-            )}
+            ))}
           </Stack>
         </SplitItem>
         <SplitItem>
           <Button
             variant="plain"
             data-testid="remove-environment-variable-button"
-            aria-label={`Remove ${envVariable.type ?? 'environment'} variable`}
+            aria-label="Remove environment variable"
             icon={<MinusCircleIcon />}
             onClick={() => onRemove()}
           />

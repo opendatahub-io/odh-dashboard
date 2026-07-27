@@ -43,12 +43,31 @@ const mockPattern: AutoragPattern = {
       system_message_text: '',
     },
   },
-  scores: {
-    answer_correctness: { mean: 0.65, ci_low: 0.4, ci_high: 0.8 },
-    faithfulness: { mean: 0.42, ci_low: 0.2, ci_high: 0.6 },
-    context_correctness: { mean: 0.91, ci_low: 0.85, ci_high: 0.95 },
+  evaluation: {
+    metrics: [
+      {
+        evaluator: 'unitxt',
+        name: 'answer_correctness',
+        scores: { mean: 0.65, ci_low: 0.4, ci_high: 0.8 },
+      },
+      {
+        evaluator: 'unitxt',
+        name: 'faithfulness',
+        scores: { mean: 0.42, ci_low: 0.2, ci_high: 0.6 },
+      },
+      {
+        evaluator: 'unitxt',
+        name: 'context_correctness',
+        scores: { mean: 0.91, ci_low: 0.85, ci_high: 0.95 },
+      },
+      {
+        evaluator: 'custom',
+        name: 'overall_score',
+        scores: { mean: 0.66, ci_low: null, ci_high: null },
+        optimization_metric: true,
+      },
+    ],
   },
-  final_score: 0.66,
 };
 
 const mockEvaluationResults: AutoRAGEvaluationResult[] = [
@@ -58,7 +77,13 @@ const mockEvaluationResults: AutoRAGEvaluationResult[] = [
     question_id: 'q0',
     answer: 'Several models are available.',
     answer_contexts: [{ text: 'Models include A and B.', document_id: 'doc0' }],
-    scores: { answer_correctness: 0.75, faithfulness: 0.5, context_correctness: 0.9 },
+    metrics: [
+      { name: 'answer_correctness', evaluator: 'unitxt', score: 0.75 },
+      { name: 'faithfulness', evaluator: 'unitxt', score: 0.5 },
+      { name: 'context_correctness', evaluator: 'unitxt', score: 0.9 },
+      { name: 'answer_relevance', evaluator: 'judge', score: 0.85 },
+      { name: 'overall_score', evaluator: 'custom', score: 0.75 },
+    ],
   },
   {
     question: 'How does RAG work?',
@@ -66,7 +91,13 @@ const mockEvaluationResults: AutoRAGEvaluationResult[] = [
     question_id: 'q1',
     answer: 'RAG uses retrieval and generation.',
     answer_contexts: [{ text: 'RAG is a pattern.', document_id: 'doc1' }],
-    scores: { answer_correctness: 0.6, faithfulness: 0.8, context_correctness: 0.7 },
+    metrics: [
+      { name: 'answer_correctness', evaluator: 'unitxt', score: 0.6 },
+      { name: 'faithfulness', evaluator: 'unitxt', score: 0.8 },
+      { name: 'context_correctness', evaluator: 'unitxt', score: 0.7 },
+      { name: 'answer_relevance', evaluator: 'judge', score: 0.9 },
+      { name: 'overall_score', evaluator: 'custom', score: 0.75 },
+    ],
   },
 ];
 
@@ -212,7 +243,7 @@ describe('PatternDetailsModal', () => {
       expect(screen.getByText('128')).toBeInTheDocument();
     });
 
-    it('should show vector store settings when Vector Store tab is clicked', async () => {
+    it('should show vector store settings when Vector Store Binding tab is clicked', async () => {
       const user = userEvent.setup();
       render(<PatternDetailsModal {...defaultProps} />);
 
@@ -440,7 +471,7 @@ describe('PatternDetailsModal', () => {
     it('should handle pattern with no scores gracefully', () => {
       const patternNoScores: AutoragPattern = {
         ...mockPattern,
-        scores: {},
+        evaluation: { ...mockPattern.evaluation, metrics: [] },
       };
       render(<PatternDetailsModal {...defaultProps} patterns={[patternNoScores]} />);
 
@@ -465,11 +496,30 @@ describe('PatternDetailsModal', () => {
       iteration: 1,
       max_combinations: 10,
       duration_seconds: 90,
-      final_score: 0.45,
-      scores: {
-        answer_correctness: { mean: 0.55, ci_low: 0.3, ci_high: 0.7 },
-        faithfulness: { mean: 0.38, ci_low: 0.15, ci_high: 0.5 },
-        context_correctness: { mean: 0.82, ci_low: 0.75, ci_high: 0.88 },
+      evaluation: {
+        metrics: [
+          {
+            evaluator: 'unitxt',
+            name: 'answer_correctness',
+            scores: { mean: 0.55, ci_low: 0.3, ci_high: 0.7 },
+          },
+          {
+            evaluator: 'unitxt',
+            name: 'faithfulness',
+            scores: { mean: 0.38, ci_low: 0.15, ci_high: 0.5 },
+          },
+          {
+            evaluator: 'unitxt',
+            name: 'context_correctness',
+            scores: { mean: 0.82, ci_low: 0.75, ci_high: 0.88 },
+          },
+          {
+            evaluator: 'custom',
+            name: 'overall_score',
+            scores: { mean: 0.45, ci_low: null, ci_high: null },
+            optimization_metric: true,
+          },
+        ],
       },
     };
 
@@ -595,7 +645,12 @@ describe('PatternDetailsModal', () => {
         ...mockPattern,
         name: 'pattern2',
         iteration: 2,
-        final_score: 0.3,
+        evaluation: {
+          ...mockPattern.evaluation,
+          metrics: mockPattern.evaluation.metrics.map((m) =>
+            m.optimization_metric ? { ...m, scores: { ...m.scores, mean: 0.3 } } : m,
+          ),
+        },
       };
       const threePatternProps = {
         ...defaultProps,
@@ -688,8 +743,7 @@ describe('PatternDetailsModal', () => {
       const user = userEvent.setup();
       const patternWithTemplate: AutoragPattern = {
         ...mockPattern,
-        settings: {
-          ...mockPattern.settings,
+        inference: {
           responses_template: {
             model: 'test-model',
             stream: false,
@@ -753,8 +807,7 @@ describe('PatternDetailsModal', () => {
       const user = userEvent.setup();
       const patternWithTemplate: AutoragPattern = {
         ...mockPattern,
-        settings: {
-          ...mockPattern.settings,
+        inference: {
           responses_template: {
             model: 'test-model',
             stream: false,

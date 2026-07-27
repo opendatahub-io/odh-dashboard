@@ -1,5 +1,5 @@
 import React from 'react';
-import { FormGroup, HelperText, HelperTextItem } from '@patternfly/react-core';
+import { FormGroup, FormHelperText, HelperText, HelperTextItem } from '@patternfly/react-core';
 import { z } from 'zod';
 import NumberInputWrapper from '@odh-dashboard/ui-core/components/NumberInputWrapper';
 import { normalizeBetween } from '@odh-dashboard/ui-core/utilities';
@@ -79,12 +79,7 @@ export const NumReplicasField: React.FC<NumReplicasFieldProps> = ({ replicaState
   };
 
   return (
-    <FormGroup
-      label="Number of replicas to deploy"
-      fieldId="num-replicas"
-      data-testid="num-replicas"
-      isRequired
-    >
+    <FormGroup label="Replica count" fieldId="num-replicas" data-testid="num-replicas" isRequired>
       <NumberInputWrapper
         min={LOWER_LIMIT}
         max={UPPER_LIMIT}
@@ -92,9 +87,11 @@ export const NumReplicasField: React.FC<NumReplicasFieldProps> = ({ replicaState
         onChange={handleChange}
         onBlur={handleBlur}
       />
-      <HelperText>
-        <HelperTextItem>Non-production models usually require 1 replica only.</HelperTextItem>
-      </HelperText>
+      <FormHelperText>
+        <HelperText>
+          <HelperTextItem>Non-production models typically require only one replica.</HelperTextItem>
+        </HelperText>
+      </FormHelperText>
     </FormGroup>
   );
 };

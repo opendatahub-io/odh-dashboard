@@ -8,33 +8,35 @@ import { maskSensitiveInfo } from '../maskSensitiveInfo';
  *
  * No-ops when OC_SERVER is not set (non-localhost runs don't switch oc users).
  */
-export const ensureAdminOcSession = (): void => {
+export const ensureAdminOcSession = (): Cypress.Chainable<null> => {
   const ocServer = Cypress.env('OC_SERVER');
   if (!ocServer) {
-    return;
+    return cy.wrap(null);
   }
   const admin: UserAuthConfig = Cypress.env('HTPASSWD_CLUSTER_ADMIN_USER');
 
   // Check if already logged in as admin before attempting oc login,
   // because a failed oc login --server=... overwrites the kubeconfig
   // context and invalidates the existing session.
-  cy.exec('oc whoami', { failOnNonZeroExit: false, log: false }).then(
-    (whoami: CommandLineResult) => {
-      if (whoami.exitCode === 0 && whoami.stdout.trim() === admin.USERNAME) {
-        return;
-      }
-
-      cy.exec(
-        `oc login -u "${admin.USERNAME}" -p "${admin.PASSWORD}" --server="${ocServer}" --insecure-skip-tls-verify`,
-        { failOnNonZeroExit: false, log: false },
-      ).then((result: CommandLineResult) => {
-        if (result.exitCode !== 0) {
-          const maskedStderr = maskSensitiveInfo(result.stderr || result.stdout);
-          cy.log(`⚠️ oc login as admin failed: ${maskedStderr}`);
+  return cy.wrap(null).then(() => {
+    cy.exec('oc whoami', { failOnNonZeroExit: false, log: false }).then(
+      (whoami: CommandLineResult) => {
+        if (whoami.exitCode === 0 && whoami.stdout.trim() === admin.USERNAME) {
+          return;
         }
-      });
-    },
-  );
+
+        cy.exec(
+          `oc login -u "${admin.USERNAME}" -p "${admin.PASSWORD}" --server="${ocServer}" --insecure-skip-tls-verify`,
+          { failOnNonZeroExit: false, log: false },
+        ).then((result: CommandLineResult) => {
+          if (result.exitCode !== 0) {
+            const maskedStderr = maskSensitiveInfo(result.stderr || result.stdout);
+            cy.log(`⚠️ oc login as admin failed: ${maskedStderr}`);
+          }
+        });
+      },
+    );
+  });
 };
 
 /**

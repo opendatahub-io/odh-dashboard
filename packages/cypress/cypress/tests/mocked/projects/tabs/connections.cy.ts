@@ -48,25 +48,7 @@ const initIntercepts = ({ isEmpty = false }) => {
 };
 
 describe('Connections', () => {
-  it('Empty state when no data connections are available', () => {
-    initIntercepts({ isEmpty: true });
-    projectDetails.visitSection('test-project', 'connections');
-    projectDetails.shouldBeEmptyState('Connections', 'connections', true);
-  });
-
-  it('List connections', () => {
-    initIntercepts({});
-    projectDetails.visitSection('test-project', 'connections');
-    projectDetails.shouldBeEmptyState('Connections', 'connections', false);
-    const row1 = connectionsPage.getConnectionRow('test1');
-    row1.find().findByText('test1').should('exist');
-    row1.find().findByText('s3').should('exist');
-    row1.find().findByText('S3 compatible object storage').should('exist');
-    const row2 = connectionsPage.getConnectionRow('test2');
-    row2.find().findByText('test2').should('exist');
-    row2.find().findByText('postgres').should('exist');
-    row2.find().findByText('S3 compatible object storage').should('not.exist');
-  });
+  // Table rendering tests moved to ConnectionsTable.spec.tsx
 
   it('Delete a connection', () => {
     initIntercepts({});

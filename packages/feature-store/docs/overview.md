@@ -2,15 +2,17 @@
 
 ## Overview
 
-- The Feature Store package is the UI for browsing and inspecting ML features backed by a Feast-compatible REST API.
+- The Feature Store package is the UI for browsing, inspecting, and managing ML features backed by a Feast-compatible REST API.
 - Helps users discover feature groups, lineage, and how features relate to models.
+- Admin operations (create wizard, manage/delete) are gated behind the `featureStoreAdmin` feature flag and RBAC checks.
 - **Frontend-only**: every data call goes through the main ODH Dashboard backend, which proxies to the Feast service.
 
 ## Design Intent
 
 - **No BFF**: `src/api/custom.ts` uses `proxyGET` from `@odh-dashboard/internal/api/proxyUtils`; all Feast traffic is **main dashboard backend → Feast REST** (`/api/v1/...`).
 - **Discovery**: Backend resolves upstream host from a Kubernetes `FeatureStore` CR (or equivalent) using label `feature-store-ui=enabled` on the target service.
-- **Read-only UI**: List and inspect projects, entities, feature views, features, feature services, data sources, saved datasets, lineage, search, and overview metrics — no create/update/delete through this package.
+- **Browse UI**: List and inspect projects, entities, feature views, features, feature services, data sources, saved datasets, lineage, search, and overview metrics.
+- **Admin UI** (flag-gated): Create, manage, and delete FeatureStore CRs. Gated by `featureStoreAdmin` flag (`SupportedArea.FEATURE_STORE_ADMIN`) and `accessAllowedRouteHoC` SSAR checks. Disabled by default.
 - **No Webpack remote**: Library package; `extensions.ts` registers with the host; `package.json` exports `./extensions`, `./routes`, `./types/*`, `./components/*`, and `./screens/lineage/*` for the plugin system.
 
 ## Key Concepts
@@ -88,5 +90,5 @@ Shared utilities are in `featureStoreUtils.ts`: ConfigMap parsing, service info 
 
 - Detail views rely on `include_relationships=true`; omitting it yields incomplete lineage-related data.
 - Lineage graph needs `/api/v1/lineage/complete`; older Feast builds may show an empty graph without a clear error.
-- No write path in the UI — manage objects outside the dashboard (Feast SDK, CI, etc.).
+- Admin write operations (create/delete FeatureStore CRs) require both the `featureStoreAdmin` flag and appropriate RBAC permissions.
 - Nav visibility: `disableFeatureStore` on `OdhDashboardConfig` and the `feature-store-ui=enabled` service label.

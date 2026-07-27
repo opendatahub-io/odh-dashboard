@@ -7,7 +7,6 @@ import type {
   ServingContainer,
   ServingRuntimeKind,
 } from '@odh-dashboard/model-serving/shared';
-import { Connection } from '#~/concepts/connectionTypes/types';
 import { EnvVariableDataEntry } from '#~/pages/projects/types';
 
 export enum PerformanceMetricType {
@@ -87,9 +86,4 @@ export type ServingPlatformStatuses = {
   kServeNIM: PlatformStatus;
   platformEnabledCount: number;
   refreshNIMAvailability: () => Promise<boolean | undefined>;
-};
-
-export type LabeledConnection = {
-  connection: Connection;
-  isRecommended?: boolean;
 };

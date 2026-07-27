@@ -12,4 +12,5 @@ type VerifyConnectionResponse struct {
 	Success      bool   `json:"success"`
 	Message      string `json:"message"`
 	ResponseTime int    `json:"response_time_ms,omitempty"`
+	OpenAICompat *bool  `json:"openai_compatible,omitempty"`
 }

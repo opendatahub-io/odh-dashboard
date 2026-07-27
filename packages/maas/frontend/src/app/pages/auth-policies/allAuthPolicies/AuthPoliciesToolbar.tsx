@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Button, SearchInput, ToolbarGroup, ToolbarItem } from '@patternfly/react-core';
 import FilterToolbar from '@odh-dashboard/ui-core/components/FilterToolbar';
 import { Link } from 'react-router-dom';
-import { URL_PREFIX } from '~/app/utilities/const';
+import { getAuthPolicyCreateUrl } from '~/app/utilities/subscriptionManagementNavigation';
 import {
   AuthPoliciesFilterDataType,
   AuthPoliciesFilterOptions,
@@ -48,7 +48,7 @@ const AuthPoliciesToolbar: React.FC<AuthPoliciesToolbarProps> = ({
           component={(props) => (
             <Link
               {...props}
-              to={`${(returnTo ?? `${URL_PREFIX}/auth-policies`).split('?')[0]}/create`}
+              to={getAuthPolicyCreateUrl()}
               state={returnTo ? { returnTo } : undefined}
             />
           )}

@@ -2,15 +2,14 @@ import * as React from 'react';
 import {
   Button,
   Dropdown,
+  DropdownItem,
+  DropdownList,
   Flex,
   FlexItem,
   FormGroup,
   MenuToggle,
   MenuToggleElement,
   Popover,
-  Select,
-  SelectList,
-  SelectOption,
 } from '@patternfly/react-core';
 import { HelpIcon } from '@patternfly/react-icons';
 import {
@@ -29,6 +28,7 @@ import {
   formatLatency,
 } from '~/app/pages/modelCatalog/utils/performanceMetricsUtils';
 import { getDefaultPerformanceFilters } from '~/app/pages/modelCatalog/utils/performanceFilterUtils';
+import useDropdownAutoFocus from '~/app/pages/modelCatalog/hooks/useDropdownAutoFocus';
 import SliderWithInput from './SliderWithInput';
 
 type LatencyFilterState = {
@@ -59,8 +59,19 @@ const PERCENTILE_OPTIONS: { value: LatencyPercentile; label: LatencyPercentile }
 const LatencyFilter: React.FC = () => {
   const { filters, setFilters, filterOptions } = React.useContext(ModelCatalogContext);
   const [isOpen, setIsOpen] = React.useState(false);
+  const contentRef = useDropdownAutoFocus(isOpen);
   const [isMetricOpen, setIsMetricOpen] = React.useState(false);
   const [isPercentileOpen, setIsPercentileOpen] = React.useState(false);
+
+  const isInnerDropdownOpenRef = React.useRef(false);
+  isInnerDropdownOpenRef.current = isMetricOpen || isPercentileOpen;
+
+  const handleOuterOpenChange = React.useCallback((open: boolean) => {
+    if (!open && isInnerDropdownOpenRef.current) {
+      return;
+    }
+    setIsOpen(open);
+  }, []);
 
   // Show all available metrics - in production this could be filtered based on backend data
   const availableMetrics = React.useMemo(() => METRIC_OPTIONS, []);
@@ -219,204 +230,177 @@ const LatencyFilter: React.FC = () => {
   );
 
   const filterContent = (
-    <Flex
-      data-testid="latency-filter-content"
-      direction={{ default: 'column' }}
-      spaceItems={{ default: 'spaceItemsSm' }}
-      flexWrap={{ default: 'wrap' }}
-      style={{ width: '550px', padding: '16px' }}
-    >
-      {/* Metric and Percentile on the same line */}
-      <FlexItem>
-        <Flex spaceItems={{ default: 'spaceItemsMd' }}>
-          <FlexItem flex={{ default: 'flex_1' }}>
-            <FormGroup>
-              <Select
-                isOpen={isMetricOpen}
-                selected={localFilter.metric}
-                onClick={(e) => e.stopPropagation()}
-                onSelect={(_, value) => {
-                  if (
-                    typeof value === 'string' &&
-                    METRIC_OPTIONS.some((opt) => opt.value === value)
-                  ) {
-                    const selectedMetric = METRIC_OPTIONS.find((opt) => opt.value === value);
-                    if (selectedMetric) {
-                      setLocalFilter((prev) => ({ ...prev, metric: selectedMetric.value }));
-                    }
-                  }
-                  setIsMetricOpen(false);
-                }}
-                onOpenChange={(isSelectOpen) => {
-                  setIsMetricOpen(isSelectOpen);
-                  // Prevent parent dropdown from closing when this select opens/closes
-                  if (isSelectOpen) {
-                    setIsOpen(true);
-                  }
-                }}
-                toggle={(toggleRef) => (
-                  <MenuToggle
-                    ref={toggleRef}
-                    data-testid="latency-metric-select"
-                    onClick={() => setIsMetricOpen(!isMetricOpen)}
-                    isExpanded={isMetricOpen}
-                    className="pf-v6-u-w-100"
-                  >
-                    <span>Metric: {localFilter.metric}</span>
-                  </MenuToggle>
-                )}
-              >
-                <SelectList data-testid="latency-metric-options">
-                  {availableMetrics.map((option) => (
-                    <SelectOption
-                      key={option.value}
-                      value={option.value}
-                      data-testid={`latency-metric-option-${option.value}`}
-                      description={option.description}
+    <div ref={contentRef} role="group" aria-label="Latency filter controls">
+      <Flex
+        data-testid="latency-filter-content"
+        direction={{ default: 'column' }}
+        spaceItems={{ default: 'spaceItemsSm' }}
+        flexWrap={{ default: 'wrap' }}
+        style={{ width: '550px', padding: '16px' }}
+      >
+        {/* Metric and Percentile on the same line */}
+        <FlexItem>
+          <Flex spaceItems={{ default: 'spaceItemsMd' }}>
+            <FlexItem flex={{ default: 'flex_1' }}>
+              <FormGroup label="Metric">
+                <Dropdown
+                  isOpen={isMetricOpen}
+                  onOpenChange={setIsMetricOpen}
+                  onSelect={() => setIsMetricOpen(false)}
+                  toggle={(toggleRef) => (
+                    <MenuToggle
+                      ref={toggleRef}
+                      data-testid="latency-metric-select"
+                      onClick={() => setIsMetricOpen(!isMetricOpen)}
+                      isExpanded={isMetricOpen}
+                      className="pf-v6-u-w-100"
                     >
-                      {option.label}
-                    </SelectOption>
-                  ))}
-                </SelectList>
-              </Select>
-            </FormGroup>
-          </FlexItem>
-
-          <FlexItem>
-            <Flex
-              alignItems={{ default: 'alignItemsCenter' }}
-              spaceItems={{ default: 'spaceItemsXs' }}
-            >
-              <FlexItem flex={{ default: 'flex_1' }}>
-                <FormGroup>
-                  <Select
-                    isOpen={isPercentileOpen}
-                    selected={localFilter.percentile}
-                    onClick={(e) => e.stopPropagation()}
-                    onSelect={(_, value) => {
-                      if (
-                        typeof value === 'string' &&
-                        PERCENTILE_OPTIONS.some((opt) => opt.value === value)
-                      ) {
-                        const selectedPercentile = PERCENTILE_OPTIONS.find(
-                          (opt) => opt.value === value,
-                        );
-                        if (selectedPercentile) {
-                          setLocalFilter((prev) => ({
-                            ...prev,
-                            percentile: selectedPercentile.value,
-                          }));
-                        }
-                      }
-                      setIsPercentileOpen(false);
-                    }}
-                    onOpenChange={(isSelectOpen) => {
-                      setIsPercentileOpen(isSelectOpen);
-                      // Prevent parent dropdown from closing when this select opens/closes
-                      if (isSelectOpen) {
-                        setIsOpen(true);
-                      }
-                    }}
-                    toggle={(toggleRef) => (
-                      <MenuToggle
-                        ref={toggleRef}
-                        data-testid="latency-percentile-select"
-                        onClick={() => setIsPercentileOpen(!isPercentileOpen)}
-                        isExpanded={isPercentileOpen}
-                        className="pf-v6-u-w-100"
-                      >
-                        <span>Percentile: {localFilter.percentile}</span>
-                      </MenuToggle>
-                    )}
-                  >
-                    <SelectList data-testid="latency-percentile-options">
-                      {getAvailablePercentiles().map((option) => (
-                        <SelectOption
-                          key={option.value}
-                          value={option.value}
-                          data-testid={`latency-percentile-option-${option.value}`}
-                        >
-                          {option.label}
-                        </SelectOption>
-                      ))}
-                    </SelectList>
-                  </Select>
-                </FormGroup>
-              </FlexItem>
-              <FlexItem>
-                <Popover
-                  bodyContent={
-                    <>
-                      Select the latency measure used for benchmarking - percentile or mean.
-                      <ul style={{ marginTop: '8px' }}>
-                        <li>
-                          <strong>P90, P95, P99:</strong> The selected percentage of requests must
-                          meet the latency threshold.
-                        </li>
-                        <li>
-                          <strong>Mean:</strong> The average latency across all requests.
-                        </li>
-                      </ul>
-                    </>
-                  }
-                  appendTo={() => document.body}
+                      {localFilter.metric}
+                    </MenuToggle>
+                  )}
+                  shouldFocusToggleOnSelect
+                  shouldFocusFirstItemOnOpen
                 >
-                  <Button
-                    variant="plain"
-                    aria-label="More info for Percentile"
-                    className="pf-v6-u-p-xs"
-                    icon={<HelpIcon />}
-                  />
-                </Popover>
-              </FlexItem>
-            </Flex>
-          </FlexItem>
-        </Flex>
-      </FlexItem>
+                  <DropdownList data-testid="latency-metric-options">
+                    {availableMetrics.map((option) => (
+                      <DropdownItem
+                        key={option.value}
+                        onClick={() =>
+                          setLocalFilter((prev) => ({ ...prev, metric: option.value }))
+                        }
+                        isSelected={localFilter.metric === option.value}
+                        data-testid={`latency-metric-option-${option.value}`}
+                        description={option.description}
+                      >
+                        {option.label}
+                      </DropdownItem>
+                    ))}
+                  </DropdownList>
+                </Dropdown>
+              </FormGroup>
+            </FlexItem>
 
-      {/* Slider with value display */}
-      <FlexItem>
-        <SliderWithInput
-          value={clampedValue}
-          min={minValue}
-          max={maxValue}
-          isDisabled={isSliderDisabled}
-          onChange={(value) => setLocalFilter({ ...localFilter, value })}
-          suffix="ms"
-          ariaLabel="Latency value input"
-          shouldRound
-          showBoundaries={!isSliderDisabled}
-          hasTooltipOverThumb={isSliderDisabled}
-        />
-      </FlexItem>
+            <FlexItem>
+              <Flex
+                alignItems={{ default: 'alignItemsCenter' }}
+                spaceItems={{ default: 'spaceItemsXs' }}
+              >
+                <FlexItem flex={{ default: 'flex_1' }}>
+                  <FormGroup label="Percentile">
+                    <Dropdown
+                      isOpen={isPercentileOpen}
+                      onOpenChange={setIsPercentileOpen}
+                      onSelect={() => setIsPercentileOpen(false)}
+                      toggle={(toggleRef) => (
+                        <MenuToggle
+                          ref={toggleRef}
+                          data-testid="latency-percentile-select"
+                          onClick={() => setIsPercentileOpen(!isPercentileOpen)}
+                          isExpanded={isPercentileOpen}
+                          className="pf-v6-u-w-100"
+                        >
+                          {localFilter.percentile}
+                        </MenuToggle>
+                      )}
+                      shouldFocusToggleOnSelect
+                      shouldFocusFirstItemOnOpen
+                    >
+                      <DropdownList data-testid="latency-percentile-options">
+                        {getAvailablePercentiles().map((option) => (
+                          <DropdownItem
+                            key={option.value}
+                            onClick={() =>
+                              setLocalFilter((prev) => ({
+                                ...prev,
+                                percentile: option.value,
+                              }))
+                            }
+                            isSelected={localFilter.percentile === option.value}
+                            data-testid={`latency-percentile-option-${option.value}`}
+                          >
+                            {option.label}
+                          </DropdownItem>
+                        ))}
+                      </DropdownList>
+                    </Dropdown>
+                  </FormGroup>
+                </FlexItem>
+                <FlexItem>
+                  <Popover
+                    bodyContent={
+                      <>
+                        Select the latency measure used for benchmarking - percentile or mean.
+                        <ul style={{ marginTop: '8px' }}>
+                          <li>
+                            <strong>P90, P95, P99:</strong> The selected percentage of requests must
+                            meet the latency threshold.
+                          </li>
+                          <li>
+                            <strong>Mean:</strong> The average latency across all requests.
+                          </li>
+                        </ul>
+                      </>
+                    }
+                    appendTo={() => document.body}
+                  >
+                    <Button
+                      variant="plain"
+                      aria-label="More info for Percentile"
+                      className="pf-v6-u-p-xs"
+                      icon={<HelpIcon />}
+                    />
+                  </Popover>
+                </FlexItem>
+              </Flex>
+            </FlexItem>
+          </Flex>
+        </FlexItem>
 
-      {/* Buttons: Apply filter first, then Reset */}
-      <FlexItem>
-        <Flex spaceItems={{ default: 'spaceItemsSm' }}>
-          <FlexItem>
-            <Button
-              data-testid="latency-apply-filter"
-              variant="primary"
-              onClick={handleApplyFilter}
-              isDisabled={isSliderDisabled}
-            >
-              Apply
-            </Button>
-          </FlexItem>
-          <FlexItem>
-            <Button data-testid="latency-reset-filter" variant="link" onClick={handleReset}>
-              Reset
-            </Button>
-          </FlexItem>
-        </Flex>
-      </FlexItem>
-    </Flex>
+        {/* Slider with value display */}
+        <FlexItem>
+          <SliderWithInput
+            value={clampedValue}
+            min={minValue}
+            max={maxValue}
+            isDisabled={isSliderDisabled}
+            onChange={(value) => setLocalFilter({ ...localFilter, value })}
+            suffix="ms"
+            ariaLabel="Latency value input"
+            shouldRound
+            showBoundaries={!isSliderDisabled}
+            hasTooltipOverThumb={isSliderDisabled}
+          />
+        </FlexItem>
+
+        {/* Buttons: Apply filter first, then Reset */}
+        <FlexItem>
+          <Flex spaceItems={{ default: 'spaceItemsSm' }}>
+            <FlexItem>
+              <Button
+                data-testid="latency-apply-filter"
+                variant="primary"
+                onClick={handleApplyFilter}
+                isDisabled={isSliderDisabled}
+              >
+                Apply
+              </Button>
+            </FlexItem>
+            <FlexItem>
+              <Button data-testid="latency-reset-filter" variant="link" onClick={handleReset}>
+                Reset
+              </Button>
+            </FlexItem>
+          </Flex>
+        </FlexItem>
+      </Flex>
+    </div>
   );
 
   return (
     <Dropdown
       isOpen={isOpen}
-      onOpenChange={setIsOpen}
+      onOpenChange={handleOuterOpenChange}
+      onOpenChangeKeys={['Escape']}
       toggle={toggle}
       shouldFocusToggleOnSelect={false}
       popperProps={{

@@ -1,8 +1,15 @@
 import React from 'react';
 import '@testing-library/jest-dom';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import { fireShortcutClicked } from '#~/pages/home/taskAssistant/taskAssistantTracking';
 import TaskGroupCard from '#~/pages/home/taskAssistant/TaskGroupCard';
+
+jest.mock('#~/pages/home/taskAssistant/taskAssistantTracking', () => ({
+  fireShortcutClicked: jest.fn(),
+}));
+
+const mockFireShortcutClicked = jest.mocked(fireShortcutClicked);
 
 const MockIcon: React.FC = () => <span data-testid="group-icon">icon</span>;
 
@@ -85,5 +92,18 @@ describe('TaskGroupCard', () => {
 
     const card = screen.getByTestId('task-group-card-general-group');
     expect(card).toHaveClass('general');
+  });
+
+  it('should fire Home Task Shortcut Clicked when a task link is clicked', () => {
+    renderCard();
+
+    fireEvent.click(screen.getByTestId('task-link-task-1'));
+
+    expect(mockFireShortcutClicked).toHaveBeenCalledWith({
+      taskName: 'Find models',
+      category: 'ai-hub',
+      destination: '/models',
+      viewContext: 'default-row',
+    });
   });
 });

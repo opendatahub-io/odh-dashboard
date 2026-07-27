@@ -10,11 +10,11 @@ import {
 } from '@patternfly/react-core';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
+import { ApplicationsPage, TrackingOutcome } from '@odh-dashboard/ui-core';
 import {
   PermissionsContextProvider,
   usePermissionsContext,
 } from '#~/concepts/permissions/PermissionsContext';
-import ApplicationsPage from '#~/pages/ApplicationsPage';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import { useAccessReview } from '#~/api/useAccessReview.ts';
 import { RBAC_SUBJECT_KIND_USER, RBAC_SUBJECT_KIND_GROUP } from '#~/concepts/permissions/const';
@@ -22,7 +22,6 @@ import type { SupportedSubjectKind } from '#~/concepts/permissions/types';
 import { RoleLabelType } from '#~/concepts/permissions/types';
 import { getRoleLabelTypeForRole, getRoleLabelTypeForRoleRef } from '#~/concepts/permissions/utils';
 import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
-import { TrackingOutcome } from '#~/concepts/analyticsTracking/trackingProperties';
 import NavigationBlockerModal from '#~/components/NavigationBlockerModal';
 import AssignRolesFooterActions from './manageRoles/AssignRolesFooterActions';
 import AssignRolesSubjectSection from './manageRoles/AssignRolesSubjectSection';

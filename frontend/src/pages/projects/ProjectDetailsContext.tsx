@@ -101,7 +101,11 @@ const ProjectDetailsContextProvider: React.FC = () => {
     for (const [name, status] of Object.entries(rawKueueStatus)) {
       result[name] =
         status && name in queuePositions
-          ? { ...status, queuePosition: queuePositions[name] }
+          ? {
+              ...status,
+              queuePosition: queuePositions[name].queuePosition,
+              queueTotal: queuePositions[name].queueTotal,
+            }
           : status;
     }
     return result;

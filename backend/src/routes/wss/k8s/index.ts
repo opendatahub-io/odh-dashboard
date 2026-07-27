@@ -49,8 +49,6 @@ const waitConnection = (socket: WebSocket, write: () => void) => {
 // Connection metrics for monitoring
 type ConnectionMetrics = {
   created: number;
-  lastMessageReceived: number;
-  lastMessageSent: number;
   messagesReceived: number;
   messagesSent: number;
   lastResourceVersion?: string;
@@ -70,63 +68,9 @@ const activeConnections = new Map<string, TrackedConnection>();
 
 // Constants for connection management (exported for testing)
 export const CONNECTION_TIMEOUT_MS = 10000; // 10 seconds to establish connection
-export const HEARTBEAT_INTERVAL_MS = 15000; // 15 seconds between heartbeats
-export const STALE_CONNECTION_MS = 300000; // 5 minutes of inactivity
-
-// Periodic cleanup of stale connections
-const cleanupStaleConnections = (fastify: KubeFastifyInstance) => {
-  const now = Date.now();
-  let cleanedCount = 0;
-
-  for (const [connectionId, tracked] of activeConnections.entries()) {
-    const { metrics, source, target, kubeUri, heartbeatInterval } = tracked;
-    const inactivityDuration = now - Math.max(metrics.lastMessageReceived, metrics.lastMessageSent);
-
-    if (inactivityDuration > STALE_CONNECTION_MS) {
-      fastify.log.warn(
-        {
-          connectionId,
-          inactivityDuration,
-          messagesReceived: metrics.messagesReceived,
-          messagesSent: metrics.messagesSent,
-          duration: now - metrics.created,
-        },
-        `Closing stale websocket connection: ${kubeUri}`,
-      );
-
-      // Clear heartbeat interval if it exists
-      if (heartbeatInterval) {
-        clearInterval(heartbeatInterval);
-      }
-
-      // Close both websockets so the client receives the close event and can reconnect
-      // Use code 1001 (going away) to indicate the server is closing due to inactivity
-      closeWebSocket(source, 1001, 'Connection stale due to inactivity');
-      closeWebSocket(target, 1001, 'Connection stale due to inactivity');
-
-      activeConnections.delete(connectionId);
-      cleanedCount++;
-    }
-  }
-
-  if (cleanedCount > 0) {
-    fastify.log.info(
-      `Cleaned up ${cleanedCount} stale connection(s). Active: ${activeConnections.size}`,
-    );
-  }
-};
+export const HEARTBEAT_INTERVAL_MS = 30000; // 30 seconds between heartbeats (matches OpenShift Console)
 
 export default async (fastify: KubeFastifyInstance): Promise<void> => {
-  // Start periodic cleanup of stale connections
-  const cleanupInterval = setInterval(() => {
-    cleanupStaleConnections(fastify);
-  }, 60000); // Run every minute
-
-  // Clean up on server shutdown
-  fastify.addHook('onClose', async () => {
-    clearInterval(cleanupInterval);
-  });
-
   fastify.get(
     '/*',
     { websocket: true },
@@ -148,11 +92,8 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
         }/${kubeUri}?${new URLSearchParams(req.query)}`;
 
         // Initialize connection metrics
-        const now = Date.now();
         const metrics: ConnectionMetrics = {
-          created: now,
-          lastMessageReceived: now,
-          lastMessageSent: now,
+          created: Date.now(),
           messagesReceived: 0,
           messagesSent: 0,
         };
@@ -265,16 +206,26 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
             `WebSocket connection established to K8s API: ${kubeUri}`,
           );
 
-          // Start heartbeat monitoring
+          // Ping both sides to keep the connection alive through proxies/load balancers
+          // (OpenShift Console pings the client every 30s for the same reason).
           tracked.heartbeatInterval = setInterval(() => {
-            // Send ping to keep connection alive
             if (target.readyState === WebSocket.OPEN) {
               try {
                 target.ping();
               } catch (error) {
                 fastify.log.error(
                   { connectionId, error: error.message },
-                  `Failed to send ping: ${error.message}`,
+                  `Failed to send ping to K8s API: ${error.message}`,
+                );
+              }
+            }
+            if (source.readyState === WebSocket.OPEN) {
+              try {
+                source.ping();
+              } catch (error) {
+                fastify.log.error(
+                  { connectionId, error: error.message },
+                  `Failed to send ping to client: ${error.message}`,
                 );
               }
             }
@@ -283,7 +234,6 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
 
         // Handle messages from K8s API to client
         target.on('message', (data, binary) => {
-          metrics.lastMessageReceived = Date.now();
           metrics.messagesReceived++;
 
           // Try to extract resourceVersion from watch events for diagnostics
@@ -314,7 +264,6 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
             try {
               source.send(data, { binary });
               metrics.messagesSent++;
-              metrics.lastMessageSent = Date.now();
             } catch (error) {
               fastify.log.error(
                 {

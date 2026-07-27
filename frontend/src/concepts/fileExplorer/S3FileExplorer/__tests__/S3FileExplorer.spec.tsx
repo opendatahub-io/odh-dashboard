@@ -759,6 +759,24 @@ describe('S3FileExplorer', () => {
       expect(mockGetFiles).toHaveBeenCalledTimes(1);
     });
 
+    it('should re-fetch after unmount and remount with the same connection', async () => {
+      const { unmount } = render(<S3FileExplorer {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(mockGetFiles).toHaveBeenCalledTimes(1);
+      });
+
+      unmount();
+
+      mockGetFiles.mockResolvedValueOnce(mockS3ListObjectsResponse());
+
+      render(<S3FileExplorer {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(mockGetFiles).toHaveBeenCalledTimes(2);
+      });
+    });
+
     it('should re-fetch when apiPath changes even if namespace/secret/bucket stay the same', async () => {
       const { rerender } = render(<S3FileExplorer {...defaultProps} apiPath="/v1/s3" />);
 

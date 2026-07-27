@@ -4,6 +4,7 @@ import {
   LineageCenterProvider,
   useLineageCenter,
 } from '@odh-dashboard/internal/components/lineage/context/LineageCenterContext';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import FeatureViewLineageTab from './FeatureViewLineageTab';
 import FeatureViewDetailsView from './FeatureViewDetailsTab';
 import FeatureViewMaterialization from './FeatureViewMaterialization';
@@ -11,6 +12,11 @@ import FeatureViewTransformation from './FeatureViewTransformation';
 import FeatureViewConsumingTab from './FeatureViewConsumingTab';
 import { FeatureView } from '../../../types/featureView';
 import FeatureStoreInfoTooltip from '../../components/FeatureStoreInfoTooltip';
+import {
+  FEATURE_STORE_EVENTS,
+  RESOURCE_TYPES,
+  TabSwitchedProperties,
+} from '../../../tracking/featureStoreTrackingConstants';
 import { FeatureViewTab } from '../const';
 
 type FeatureViewTabsProps = {
@@ -44,6 +50,13 @@ const FeatureViewTabsInner: React.FC<FeatureViewTabsProps> = ({ featureView }) =
       role="region"
       data-testid="feature-view-details-page"
       onSelect={(e, tabIndex) => {
+        if (tabIndex !== activeTabKey) {
+          fireMiscTrackingEvent(FEATURE_STORE_EVENTS.TAB_SWITCHED, {
+            tabName: String(tabIndex),
+            pageType: 'detail',
+            resourceType: RESOURCE_TYPES.FEATURE_VIEW,
+          } satisfies TabSwitchedProperties);
+        }
         setActiveTabKey(tabIndex);
       }}
     >

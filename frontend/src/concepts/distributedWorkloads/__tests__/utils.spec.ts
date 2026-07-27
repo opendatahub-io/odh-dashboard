@@ -28,7 +28,10 @@ describe('getStatusInfo', () => {
   };
 
   it('provides correct info for workloads of each status', () => {
-    testWorkloadStatus(WorkloadStatusType.Pending, 'Waiting for resources');
+    testWorkloadStatus(
+      WorkloadStatusType.Pending,
+      "couldn't assign flavors to pod set main: insufficient unused quota for resource cpu in flavor default-flavor, 0 more needed",
+    );
     testWorkloadStatus(WorkloadStatusType.Inadmissible, 'The workload is inadmissible');
     testWorkloadStatus(WorkloadStatusType.Admitted, 'The workload is admitted');
     testWorkloadStatus(WorkloadStatusType.Running, 'The workload is running');
@@ -140,6 +143,19 @@ describe('getWorkloadOwner', () => {
     expect(getWorkloadOwner(mockWorkload)).toStrictEqual({
       kind: 'StatefulSet',
       name: 'test-notebook-0',
+    });
+  });
+
+  it('returns the name of a replicaset found in ownerReferences of a workload if present', () => {
+    const mockWorkload = mockWorkloadK8sResource({
+      k8sName: 'test-workload',
+      namespace: 'test-project',
+      ownerKind: WorkloadOwnerType.ReplicaSet,
+      ownerName: 'test-replicaset-6c8949d6dc',
+    });
+    expect(getWorkloadOwner(mockWorkload)).toStrictEqual({
+      kind: 'ReplicaSet',
+      name: 'test-replicaset-6c8949d6dc',
     });
   });
 

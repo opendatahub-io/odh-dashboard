@@ -14,7 +14,7 @@ import {
   Spinner,
 } from '@patternfly/react-core';
 import { CubesIcon } from '@patternfly/react-icons';
-import { ChartDonutUtilization } from '@patternfly/react-charts/victory';
+import { ChartContainer, ChartDonutUtilization } from '@patternfly/react-charts/victory';
 import { ClusterMetrics } from '../hooks/useInfrastructureMetrics';
 import './ClusterSummaryCards.scss';
 
@@ -106,18 +106,16 @@ const TotalAcceleratorsCard: React.FC<TotalAcceleratorsCardProps> = ({ accelerat
       <CardBody>
         <Bullseye>
           <ChartDonutUtilization
-            ariaTitle="Total accelerator utilization"
+            containerComponent={<ChartContainer aria-hidden="true" />}
             constrainToVisibleArea
             data={{ x: 'Accelerators in use', y: percentage }}
             height={CHART_HEIGHT}
             width={CHART_WIDTH}
             innerRadius={INNER_RADIUS}
             labels={({ datum }) =>
-              datum.x === 'Accelerators in use'
-                ? `Accelerators in use: ${percentage}%`
-                : `Available: ${100 - percentage}%`
+              datum.x === 'Accelerators in use' ? `${percentage}% in use` : ''
             }
-            subTitle="Accelerators in use"
+            subTitle="in use"
             title={`${inUse}/${total}`}
             name="total-accelerators"
           />
@@ -137,14 +135,14 @@ const ComputeUtilizationCard: React.FC<UtilizationCardProps> = ({ utilization })
       <Card isFullHeight data-testid="cluster-card-compute-utilization">
         <CardTitle>
           <Flex justifyContent={{ default: 'justifyContentCenter' }}>
-            <FlexItem>Avg. compute utilization</FlexItem>
+            <FlexItem>Average compute consumption</FlexItem>
           </Flex>
         </CardTitle>
         <CardBody>
           <EmptyState
             headingLevel="h4"
             icon={CubesIcon}
-            titleText="Utilization metrics unavailable"
+            titleText="Consumption metrics unavailable"
             variant={EmptyStateVariant.xs}
           >
             <EmptyStateBody>
@@ -160,24 +158,20 @@ const ComputeUtilizationCard: React.FC<UtilizationCardProps> = ({ utilization })
     <Card isFullHeight data-testid="cluster-card-compute-utilization">
       <CardTitle>
         <Flex justifyContent={{ default: 'justifyContentCenter' }}>
-          <FlexItem>Avg. compute utilization</FlexItem>
+          <FlexItem>Average compute consumption</FlexItem>
         </Flex>
       </CardTitle>
       <CardBody>
         <Bullseye>
           <ChartDonutUtilization
-            ariaTitle="Average compute utilization"
+            containerComponent={<ChartContainer aria-hidden="true" />}
             constrainToVisibleArea
             data={{ x: 'Compute', y: utilization.percentage }}
             height={CHART_HEIGHT}
             width={CHART_WIDTH}
             innerRadius={INNER_RADIUS}
-            labels={({ datum }) =>
-              datum.x === 'Compute'
-                ? `Compute: ${utilization.percentage}%`
-                : `Available: ${100 - utilization.percentage}%`
-            }
-            subTitle="utilization"
+            labels={() => null}
+            subTitle="consumption"
             title={`${utilization.percentage}%`}
             name="compute-utilization"
           />
@@ -193,14 +187,14 @@ const MemoryUtilizationCard: React.FC<UtilizationCardProps> = ({ utilization }) 
       <Card isFullHeight data-testid="cluster-card-memory-utilization">
         <CardTitle>
           <Flex justifyContent={{ default: 'justifyContentCenter' }}>
-            <FlexItem>Avg. accelerator memory utilization</FlexItem>
+            <FlexItem>Average memory consumption</FlexItem>
           </Flex>
         </CardTitle>
         <CardBody>
           <EmptyState
             headingLevel="h4"
             icon={CubesIcon}
-            titleText="Utilization metrics unavailable"
+            titleText="Consumption metrics unavailable"
             variant={EmptyStateVariant.xs}
           >
             <EmptyStateBody>
@@ -216,24 +210,20 @@ const MemoryUtilizationCard: React.FC<UtilizationCardProps> = ({ utilization }) 
     <Card isFullHeight data-testid="cluster-card-memory-utilization">
       <CardTitle>
         <Flex justifyContent={{ default: 'justifyContentCenter' }}>
-          <FlexItem>Avg. accelerator memory utilization</FlexItem>
+          <FlexItem>Average memory consumption</FlexItem>
         </Flex>
       </CardTitle>
       <CardBody>
         <Bullseye>
           <ChartDonutUtilization
-            ariaTitle="Average accelerator memory utilization"
+            containerComponent={<ChartContainer aria-hidden="true" />}
             constrainToVisibleArea
             data={{ x: 'Memory', y: utilization.percentage }}
             height={CHART_HEIGHT}
             width={CHART_WIDTH}
             innerRadius={INNER_RADIUS}
-            labels={({ datum }) =>
-              datum.x === 'Memory'
-                ? `Memory: ${utilization.percentage}%`
-                : `Available: ${100 - utilization.percentage}%`
-            }
-            subTitle="utilization"
+            labels={() => null}
+            subTitle="consumption"
             title={`${utilization.percentage}%`}
             name="memory-utilization"
           />

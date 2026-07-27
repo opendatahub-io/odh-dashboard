@@ -9,6 +9,8 @@ import {
   RAG_METRIC_FAITHFULNESS,
   RAG_METRIC_ANSWER_CORRECTNESS,
   RAG_METRIC_CONTEXT_CORRECTNESS,
+  RAG_METRIC_OVERALL_SCORE,
+  DEFAULT_OPTIMIZATION_METRIC,
 } from '~/app/utilities/const';
 import { createSchema } from '~/app/utilities/schema';
 // TODO: Re-enable in 3.5 when DEFAULT_IN_MEMORY_PROVIDER is available.
@@ -31,6 +33,7 @@ export const RAG_OPTIMIZATION_METRICS = z.enum([
   RAG_METRIC_FAITHFULNESS,
   RAG_METRIC_ANSWER_CORRECTNESS,
   RAG_METRIC_CONTEXT_CORRECTNESS,
+  RAG_METRIC_OVERALL_SCORE,
 ]);
 
 export const EXPERIMENT_SETTINGS_FIELDS = ['embedding_models', 'generation_models'] as const;
@@ -75,7 +78,7 @@ function createConfigureSchema() {
       generation_models: z.array(z.string()).min(1).default([]),
       embedding_models: z.array(z.string()).min(1).default([]),
 
-      optimization_metric: RAG_OPTIMIZATION_METRICS.default(RAG_METRIC_FAITHFULNESS),
+      optimization_metric: RAG_OPTIMIZATION_METRICS.default(DEFAULT_OPTIMIZATION_METRIC),
       optimization_max_rag_patterns: z
         .number()
         .min(MIN_RAG_PATTERNS, `Minimum number of RAG patterns is ${MIN_RAG_PATTERNS}`)

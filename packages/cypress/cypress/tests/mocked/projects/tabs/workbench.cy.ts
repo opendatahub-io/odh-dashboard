@@ -694,17 +694,8 @@ describe('Workbench page', () => {
     createSpawnerPage.findAddVariableButton().click();
 
     const environmentVariableField = createSpawnerPage.getEnvironmentVariableTypeField(0);
-    environmentVariableField
-      .find()
-      .findByTestId('environment-variable-type-toggle')
-      .should('have.attr', 'aria-expanded', 'false')
-      .findSelectOptionByTestId('Config Map')
-      .click();
-
-    environmentVariableField
-      .find()
-      .findByTestId('environment-variable-type-toggle')
-      .should('have.text', 'Config Map');
+    environmentVariableField.selectEnvironmentVariableType('Config Map');
+    environmentVariableField.find().findByTestId('env-type-radio-Config Map').should('be.checked');
   });
 
   it('Create workbench', () => {
@@ -2070,7 +2061,7 @@ describe('Workbench page', () => {
     workbenchPage.visit('test-project');
     const notebookRow = workbenchPage.getNotebookRow('Test Notebook');
     notebookRow.shouldHaveNotebookImageName('Test Image');
-    notebookRow.shouldHaveHardwareProfile('Custom');
+    notebookRow.shouldHaveHardwareProfile('No hardware profile');
     notebookRow.findKebabAction('Edit workbench').click();
 
     hardwareProfileSection.findSelect().should('contain.text', 'Use existing settings');
@@ -2798,7 +2789,7 @@ describe('Workbench page', () => {
       workbenchPage
         .getNotebookRow('Test Notebook')
         .find()
-        .should('contain.text', 'Paused by a higher-priority job');
+        .should('contain.text', 'Paused by higher-priority job');
     });
 
     it('displays Evicted when workload has Evicted condition with non-preemption reason', () => {
@@ -2846,7 +2837,10 @@ describe('Workbench page', () => {
       ).as('pendingWorkloads');
       workbenchPage.visit('test-project');
       cy.wait('@pendingWorkloads');
-      workbenchPage.getNotebookRow('Test Notebook').find().should('contain.text', 'position 3');
+      workbenchPage
+        .getNotebookRow('Test Notebook')
+        .find()
+        .should('contain.text', 'Waiting for quota in test-queue (3rd in test-queue)');
     });
 
     it('displays subtitle without position when Visibility API returns 403', () => {
@@ -3053,7 +3047,8 @@ describe('Workbench page', () => {
         .click();
       workbenchStatusModal.find().should('contain.text', 'attempt 2');
       workbenchStatusModal.findProgressTab().click();
-      workbenchStatusModal.findProgressStepByLabel('Re-queued').should('exist');
+      // Sub-step label is now the full getRequeuedMessage output, which includes "attempt 2"
+      workbenchStatusModal.findProgressStepByLabel('attempt 2').should('exist');
     });
 
     it('Progress tab — BlockedOnPreemptionGates sub-step shows in-progress label', () => {

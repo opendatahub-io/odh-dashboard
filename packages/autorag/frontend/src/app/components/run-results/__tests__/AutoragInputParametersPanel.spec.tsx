@@ -166,9 +166,9 @@ describe('AutoragInputParametersPanel', () => {
             duration_seconds: 10,
             settings: {
               vector_store_binding: {
-                provider_id: 'milvus',
-                provider_type: 'remote::milvus',
-                vector_store_id: 'vs_c1',
+                provider_id: 'milvus-provider',
+                provider_type: 'milvus',
+                vector_store_id: 'vs-1',
               },
               chunking: { method: 'recursive', chunk_size: 256, chunk_overlap: 32 },
               embedding: {
@@ -177,10 +177,6 @@ describe('AutoragInputParametersPanel', () => {
                 embedding_params: {
                   embedding_dimension: 768,
                   context_length: 512,
-                  timeout: null,
-                  model_type: null,
-                  provider_id: null,
-                  provider_resource_id: null,
                 },
               },
               retrieval: { method: 'vector', number_of_chunks: 5 },
@@ -189,11 +185,19 @@ describe('AutoragInputParametersPanel', () => {
                 context_template_text: '',
                 user_message_text: '',
                 system_message_text: '',
-                detected_language: { code: 'de', name: 'German' },
+                language: { code: 'de', name: 'German' },
               },
             },
-            scores: {},
-            final_score: 0.8,
+            evaluation: {
+              metrics: [
+                {
+                  evaluator: 'custom',
+                  name: 'overall_score',
+                  scores: { mean: 0.8, ci_low: null, ci_high: null },
+                  optimization_metric: true,
+                },
+              ],
+            },
           },
         },
       },

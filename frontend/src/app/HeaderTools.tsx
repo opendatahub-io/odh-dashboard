@@ -156,7 +156,7 @@ const HeaderTools: React.FC<Props> = ({ onNotificationsClick, ...devFeatureFlags
               <Button
                 variant="plain"
                 aria-label="What's new"
-                onClick={openWhatsNewTour}
+                onClick={() => openWhatsNewTour('masthead')}
                 data-testid="whats-new-button"
               >
                 <LightBulbIcon style={{ fontSize: 'var(--pf-t--global--font--size--lg)' }} />

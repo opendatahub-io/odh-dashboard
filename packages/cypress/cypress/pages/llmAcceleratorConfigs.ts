@@ -50,6 +50,10 @@ class UnsupportedStatusAcceptanceModal {
     return this;
   }
 
+  findAcceptanceCheckbox() {
+    return this.find().findByTestId('unsupported-status-acceptance-checkbox');
+  }
+
   findAcceptButton() {
     return this.find().findByTestId('unsupported-status-accept-button');
   }

@@ -8,7 +8,7 @@ import { initialOverviewFilterData, OverviewFilterDataType } from './overview/co
 import { filterOverviewModels } from './overview/utils';
 import EmptyStatePage from './EmptyStatePage';
 
-const OVERVIEW_RETURN_TO = `${URL_PREFIX}/subscription-management/overview`;
+const OVERVIEW_RETURN_TO = `${URL_PREFIX}/maas-governance/overview`;
 
 const OverviewTab: React.FC = () => {
   const [rows, loaded, error] = useModelsOverview();

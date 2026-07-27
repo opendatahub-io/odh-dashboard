@@ -14,6 +14,7 @@ type TableRowTitleDescriptionProps = {
   truncateDescriptionLines?: number;
   label?: React.ReactNode;
   wrapResourceTitle?: boolean;
+  onShowPopover?: () => void;
 };
 
 const TableRowTitleDescription: React.FC<TableRowTitleDescriptionProps> = ({
@@ -26,6 +27,7 @@ const TableRowTitleDescription: React.FC<TableRowTitleDescriptionProps> = ({
   truncateDescriptionLines,
   label,
   wrapResourceTitle = true,
+  onShowPopover,
 }) => {
   let descriptionNode: React.ReactNode;
   if (description) {
@@ -50,7 +52,11 @@ const TableRowTitleDescription: React.FC<TableRowTitleDescriptionProps> = ({
     <div>
       <div data-testid="table-row-title">
         {resource ? (
-          <ResourceNameTooltip resource={resource} wrap={wrapResourceTitle}>
+          <ResourceNameTooltip
+            resource={resource}
+            wrap={wrapResourceTitle}
+            onShowPopover={onShowPopover}
+          >
             {title}
           </ResourceNameTooltip>
         ) : (

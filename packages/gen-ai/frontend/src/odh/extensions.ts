@@ -26,7 +26,7 @@ export const PROMPT_MANAGEMENT = 'promptManagement';
 export const AI_ASSET_CUSTOM_ENDPOINTS = 'aiAssetCustomEndpoints';
 export const EXTERNAL_VECTOR_STORES = 'externalVectorStores';
 export const AGENT_CONFIG_MANAGEMENT = 'agentConfigManagement';
-const MODELS_AS_SERVICE_READY = 'ModelsAsServiceReady';
+const MODELS_AS_A_SERVICE_READY = 'ModelsAsAServiceReady';
 
 const extensions: (
   | NavExtension
@@ -116,7 +116,7 @@ const extensions: (
       featureFlags: [MODEL_AS_SERVICE_CAMEL],
       customCondition: ({ dscStatus }) =>
         !!dscStatus?.conditions.some(
-          (c) => c.type === MODELS_AS_SERVICE_READY && c.status === 'True',
+          (c) => c.type === MODELS_AS_A_SERVICE_READY && c.status === 'True',
         ),
     },
   },

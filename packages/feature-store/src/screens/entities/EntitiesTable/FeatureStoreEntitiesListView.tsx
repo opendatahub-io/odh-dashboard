@@ -1,4 +1,5 @@
 import React from 'react';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import FeatureStoreEntitiesTable from './FeatureStoreEntitiesTable';
 import { EntityList } from '../../../types/entities';
 import { FeatureStoreToolbar } from '../../../components/FeatureStoreToolbar';
@@ -7,6 +8,10 @@ import { entityTableFilterOptions } from '../const';
 import { useFeatureStoreProject } from '../../../FeatureStoreContext';
 import { useTagFilterHandlers } from '../../../utils/useTagFilterHandlers';
 import { applyTagFilters } from '../../../utils/filterUtils';
+import {
+  FEATURE_STORE_EVENTS,
+  FilterRemovedProperties,
+} from '../../../tracking/featureStoreTrackingConstants';
 
 const FeatureStoreEntitiesListView = ({
   entities,
@@ -39,6 +44,10 @@ const FeatureStoreEntitiesListView = ({
   );
 
   const onClearFilters = React.useCallback(() => {
+    fireMiscTrackingEvent(FEATURE_STORE_EVENTS.FILTER_REMOVED, {
+      action: 'clearAll',
+      resourceType: 'entity',
+    } satisfies FilterRemovedProperties);
     setFilterData({});
     setTagFilters([]);
   }, []);
@@ -66,6 +75,7 @@ const FeatureStoreEntitiesListView = ({
           tagFilters={tagFilters}
           onTagFilterRemove={tagHandlers.handleTagFilterRemove}
           onTagFilterAdd={tagHandlers.handleTagFilterAdd}
+          trackingResourceType="entity"
         />
       }
     />

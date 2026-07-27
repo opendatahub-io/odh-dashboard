@@ -40,6 +40,8 @@ export type AccessReviewResourceAttributes = {
   namespace?: string;
 };
 
+export const MODELS_AS_A_SERVICE_READY = 'ModelsAsAServiceReady';
+
 export enum KnownLabels {
   DASHBOARD_RESOURCE = 'opendatahub.io/dashboard',
   PROJECT_SHARING = 'opendatahub.io/project-sharing',
@@ -283,6 +285,7 @@ export type DashboardCommonConfig = {
   disableKueue: boolean;
   trainingJobs: boolean;
   disableFeatureStore?: boolean;
+  featureStoreAdmin?: boolean;
   genAiStudio?: boolean;
   guardrails?: boolean;
   genAiTracing?: boolean;
@@ -293,10 +296,12 @@ export type DashboardCommonConfig = {
   aiAssetCustomEndpoints?: boolean;
   mlflowPipelines?: boolean;
   mcpCatalog?: boolean;
+  mcpRegistry?: boolean;
   toolCalling?: boolean;
   projectRBAC?: boolean;
   observabilityDashboard?: boolean;
   disableLLMd?: boolean;
+  llmdTemplates?: boolean;
   deploymentWizardYAMLViewer?: boolean;
   externalVectorStores?: boolean;
   agentConfigManagement?: boolean;
@@ -306,12 +311,12 @@ export type DashboardCommonConfig = {
   globalProjectPrompts?: boolean;
   nimWizard?: boolean;
   mySubscriptions?: boolean;
-  maasSettingsIaRedesign?: boolean;
   agentOps?: boolean;
   agentOpsDeploy?: boolean;
   agentsCatalog?: boolean;
   roleManagement?: boolean;
   gpuaas?: boolean;
+  connectionTest?: boolean;
 };
 
 export type DashboardConfigKind = K8sResourceCommon & {

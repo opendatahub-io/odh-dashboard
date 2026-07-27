@@ -1479,9 +1479,8 @@ class ModelServingWizard extends Wizard {
    */
   selectFirstAvailableDeploymentMethod() {
     cy.get('body').then(($body) => {
-      const radios = $body.find('[data-testid^="deployment-method-"]');
-      if (radios.length > 0) {
-        cy.wrap(radios.first()).click();
+      if ($body.find('[data-testid="deployment-method-field"]').length > 0) {
+        cy.findByTestId('deployment-method-field').find('input[type="radio"]').first().click();
       }
     });
   }

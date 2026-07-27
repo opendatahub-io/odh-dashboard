@@ -9,9 +9,9 @@ enum SupportTier {
 }
 
 const SUPPORT_TIER_DISPLAY: Record<SupportTier, string> = {
-  [SupportTier.COMMUNITY]: 'Community Supported',
-  [SupportTier.PARTNER]: 'Partner Supported',
-  [SupportTier.RED_HAT]: 'Red Hat Supported',
+  [SupportTier.COMMUNITY]: 'Community supported',
+  [SupportTier.PARTNER]: 'Partner supported',
+  [SupportTier.RED_HAT]: 'Red Hat supported',
 };
 
 const SUPPORT_TIER_VALUES = new Set<string>(Object.values(SupportTier));

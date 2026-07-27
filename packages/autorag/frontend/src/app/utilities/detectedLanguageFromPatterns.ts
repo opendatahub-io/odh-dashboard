@@ -12,16 +12,15 @@ export const isDetectedLanguageMetadata = (value: unknown): value is DetectedLan
 
 /**
  * Returns detected language from the first RAG pattern that includes pipeline metadata.
- * Backend (pipelines-components PR #116) writes this to pattern.json under
- * settings.generation.detected_language.
+ * Backend writes this to pattern.json under settings.generation.language.
  */
 export const getDetectedLanguageFromPatterns = (
   patterns: Record<string, AutoragPattern>,
 ): DetectedLanguageMetadata | undefined => {
   for (const pattern of Object.values(patterns)) {
-    const detectedLanguage = pattern.settings.generation.detected_language;
-    if (isDetectedLanguageMetadata(detectedLanguage)) {
-      return detectedLanguage;
+    const lang = pattern.settings.generation.language;
+    if (isDetectedLanguageMetadata(lang)) {
+      return lang;
     }
   }
   return undefined;

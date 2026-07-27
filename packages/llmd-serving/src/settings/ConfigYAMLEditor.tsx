@@ -5,17 +5,20 @@ type ConfigYAMLEditorProps = {
   code: string;
   onCodeChange: (code: string) => void;
   topologyTypeLabel?: string;
+  isUploadEnabled?: boolean;
 };
 
 const ConfigYAMLEditor: React.FC<ConfigYAMLEditorProps> = ({
   code,
   onCodeChange,
   topologyTypeLabel,
+  isUploadEnabled = true,
 }) => (
   <div data-testid="config-yaml-editor">
     <CodeEditor
       code={code}
-      isUploadEnabled
+      isCopyEnabled
+      isUploadEnabled={isUploadEnabled}
       isLanguageLabelVisible
       language={Language.yaml}
       height="400px"
