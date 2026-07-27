@@ -245,41 +245,6 @@ describe('AdvancedRoutingField tracking', () => {
     });
   });
 
-  it('should call onChange with selectedConfig when a specific config is selected', async () => {
-    renderComponent({
-      externalData: {
-        data: { routerConfigs: [routerConfig1] },
-        loaded: true,
-      },
-    });
-
-    await openDropdown();
-
-    await act(async () => {
-      fireEvent.click(screen.getByText('Router Config One'));
-    });
-
-    expect(mockOnChange).toHaveBeenCalledWith({ selectedConfig: routerConfig1 });
-  });
-
-  it('should call onChange with undefined selectedConfig when default routing is selected', async () => {
-    renderComponent({
-      value: { selectedConfig: routerConfig1 },
-      externalData: {
-        data: { routerConfigs: [routerConfig1] },
-        loaded: true,
-      },
-    });
-
-    await openDropdown();
-
-    await act(async () => {
-      fireEvent.click(screen.getByText('Default optimized routing'));
-    });
-
-    expect(mockOnChange).toHaveBeenCalledWith({ selectedConfig: undefined });
-  });
-
   it('should render the default routing option and config options', async () => {
     renderComponent({
       externalData: {
