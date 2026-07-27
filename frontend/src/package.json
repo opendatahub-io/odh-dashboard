@@ -41,7 +41,8 @@
     "@odh-dashboard/foundation": "*",
     "@odh-dashboard/k8s-core": "*",
     "@odh-dashboard/plugin-core": "*",
-    "@odh-dashboard/ui-core": "*"
+    "@odh-dashboard/ui-core": "*",
+    "dompurify": "^3.4.12"
   },
   "devDependencies": {
     "@odh-dashboard/eslint-config": "*"
