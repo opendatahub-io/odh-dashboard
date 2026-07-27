@@ -3,6 +3,7 @@ import { retryableBefore } from '../../../../utils/retryableHooks';
 import {
   llmdRoutingSettingsPage,
   llmdRoutingCreatePage,
+  deleteRouteModal,
 } from '../../../../pages/llmdRoutingSettings';
 import { cleanupLLMInferenceServiceConfig } from '../../../../utils/oc_commands/llmInferenceServiceConfig';
 import { projectDetails, projectListPage } from '../../../../pages/projects';
@@ -53,8 +54,8 @@ describe('LLMD Routing Configurations - Admin Settings', () => {
       cy.step('Create routing config from UI');
       llmdRoutingSettingsPage.findAddButton().click();
       llmdRoutingCreatePage.findDisplayNameInput().clear().type(testData.routingConfigDisplayName);
-      llmdRoutingCreatePage.selectTopologyType('topology-type-workload-single-node');
-      llmdRoutingCreatePage.selectConfigSource('Open code editor');
+      llmdRoutingCreatePage.selectTopologyType(testData.topologyTypeTestId);
+      llmdRoutingCreatePage.selectConfigSource(testData.configSourceEditorKey);
       llmdRoutingCreatePage.findYamlEditor().should('exist');
       cy.fixture(testData.routingConfigFixture).then((yamlContent: string) => {
         llmdRoutingCreatePage.findYamlEditor().find('textarea').clear({ force: true });
@@ -70,8 +71,9 @@ describe('LLMD Routing Configurations - Admin Settings', () => {
       const row = llmdRoutingSettingsPage.getRow(testData.routingConfigName);
       row.find().should('exist');
       row.findEnabledSwitch().should('exist');
+      row.find().should('contain.text', testData.topologyTypeLabel);
 
-      cy.step('Edit the routing config — change topology type');
+      cy.step('Edit the routing config');
       row.findKebabAction('Edit').click();
       llmdRoutingCreatePage.findTopologyTypeSelect().should('not.be.disabled');
       llmdRoutingCreatePage.findSubmitButton().should('be.enabled').click();
@@ -89,8 +91,7 @@ describe('LLMD Routing Configurations - Admin Settings', () => {
 
       cy.step('Delete the original routing config');
       llmdRoutingSettingsPage.getRow(testData.routingConfigName).findKebabAction('Delete').click();
-      llmdRoutingCreatePage.findDeleteDialog().should('exist');
-      llmdRoutingCreatePage.confirmDelete();
+      deleteRouteModal.findSubmitButton().should('be.enabled').click();
       llmdRoutingSettingsPage.getRow(testData.routingConfigName).find().should('not.exist');
       llmdRoutingSettingsPage.getRow(`${testData.routingConfigName}-copy`).find().should('exist');
 

@@ -333,6 +333,9 @@ export type RoutingTestData = DataScienceProjectData & {
   routingConfigName: string;
   routingConfigDisplayName: string;
   routingConfigFixture: string;
+  topologyTypeTestId: string;
+  topologyTypeLabel: string;
+  configSourceEditorKey: string;
   modelLocationURI: string;
   deploymentMethod: string;
   defaultRoutingLabel: string;

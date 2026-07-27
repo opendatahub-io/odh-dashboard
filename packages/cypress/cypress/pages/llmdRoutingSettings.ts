@@ -1,5 +1,6 @@
 import { appChrome } from './appChrome';
 import { TableRow } from './components/table';
+import { DeleteModal } from './components/DeleteModal';
 
 class RoutingConfigRow extends TableRow {
   findEnabledSwitch() {
@@ -95,9 +96,9 @@ class LlmdRoutingCreatePage {
     return cy.findByTestId('config-source-select');
   }
 
-  selectConfigSource(key: string) {
+  selectConfigSource(optionKey: string) {
     this.findConfigSourceSelect().click();
-    cy.findByText(key).click();
+    cy.findByTestId(optionKey).click();
   }
 
   findYamlEditor() {
@@ -111,17 +112,14 @@ class LlmdRoutingCreatePage {
   findCancelButton() {
     return cy.findByTestId('cancel-routing-config-button');
   }
+}
 
-  findDeleteDialog() {
-    return cy.findByRole('dialog');
-  }
-
-  confirmDelete() {
-    this.findDeleteDialog().within(() => {
-      cy.findByRole('button', { name: /Delete/ }).click();
-    });
+class DeleteRouteModal extends DeleteModal {
+  constructor() {
+    super(/Delete llm-d routing configuration/);
   }
 }
 
 export const llmdRoutingSettingsPage = new LlmdRoutingSettingsPage();
 export const llmdRoutingCreatePage = new LlmdRoutingCreatePage();
+export const deleteRouteModal = new DeleteRouteModal();
