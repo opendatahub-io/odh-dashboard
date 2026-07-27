@@ -190,7 +190,7 @@ describe('EvaluationFileCreator', () => {
     navigateToConfigure();
     advanceToStep2();
 
-    evaluationFileCreator.find().should('not.exist');
+    evaluationFileCreator.find().should('exist');
     evaluationFileSelector.findCreateButton().click();
 
     evaluationFileCreator.find().should('be.visible');
