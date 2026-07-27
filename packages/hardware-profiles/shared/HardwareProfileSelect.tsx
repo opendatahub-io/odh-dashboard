@@ -64,6 +64,7 @@ type HardwareProfileSelectProps = {
   isHardwareProfileSupported: (profile: HardwareProfileKind) => boolean;
   onChange: (profile: HardwareProfileKind | undefined) => void;
   project?: string;
+  selectionIndicator?: React.ReactNode;
 };
 
 const EXISTING_SETTINGS_KEY = '.existing';
@@ -77,6 +78,7 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
   hardwareProfilesLoaded,
   hardwareProfilesError,
   projectScopedHardwareProfiles,
+  selectionIndicator,
   allowExistingSettings = false,
   hardwareProfileConfig,
   isHardwareProfileSupported,
@@ -376,45 +378,56 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
         <FlexItem grow={{ default: 'grow' }}>
           {isProjectScoped && currentProjectHardwareProfiles.length > 0 ? (
             <>
-              <ProjectScopedSearchDropdown
-                projectScopedItems={projectHardwareProfiles}
-                globalScopedItems={globalHardwareProfiles}
-                renderMenuItem={renderMenuItem}
-                searchValue={searchHardwareProfile}
-                onSearchChange={setSearchHardwareProfile}
-                onSearchClear={() => setSearchHardwareProfile('')}
-                toggleContent={
-                  <ProjectScopedToggleContent
-                    displayName={
-                      hardwareProfileConfig.selectedProfile
-                        ? getHardwareProfileDisplayName(hardwareProfileConfig.selectedProfile)
-                        : undefined
+              <Flex
+                alignItems={{ default: 'alignItemsCenter' }}
+                spaceItems={{ default: 'spaceItemsSm' }}
+                flexWrap={{ default: 'nowrap' }}
+              >
+                <FlexItem grow={{ default: 'grow' }}>
+                  <ProjectScopedSearchDropdown
+                    projectScopedItems={projectHardwareProfiles}
+                    globalScopedItems={globalHardwareProfiles}
+                    renderMenuItem={renderMenuItem}
+                    searchValue={searchHardwareProfile}
+                    onSearchChange={setSearchHardwareProfile}
+                    onSearchClear={() => setSearchHardwareProfile('')}
+                    toggleContent={
+                      <ProjectScopedToggleContent
+                        displayName={
+                          hardwareProfileConfig.selectedProfile
+                            ? getHardwareProfileDisplayName(hardwareProfileConfig.selectedProfile)
+                            : undefined
+                        }
+                        isProject={
+                          hardwareProfileConfig.selectedProfile?.metadata.namespace === project
+                        }
+                        projectLabel="Project-scoped"
+                        globalLabel="Global-scoped"
+                        fallback={
+                          allowExistingSettings
+                            ? 'Use existing settings'
+                            : 'Select hardware profile...'
+                        }
+                      />
                     }
-                    isProject={
-                      hardwareProfileConfig.selectedProfile?.metadata.namespace === project
+                    projectGroupLabel={
+                      <ProjectScopedGroupLabel isProject>
+                        Project-scoped hardware profiles
+                      </ProjectScopedGroupLabel>
                     }
-                    projectLabel="Project-scoped"
-                    globalLabel="Global-scoped"
-                    fallback={
-                      allowExistingSettings ? 'Use existing settings' : 'Select hardware profile...'
+                    globalGroupLabel={
+                      <ProjectScopedGroupLabel isProject={false}>
+                        Global-scoped hardware profiles
+                      </ProjectScopedGroupLabel>
                     }
+                    dataTestId="hardware-profile-selection"
+                    projectGroupTestId="project-scoped-hardware-profiles"
+                    globalGroupTestId="global-scoped-hardware-profiles"
+                    isFullWidth
                   />
-                }
-                projectGroupLabel={
-                  <ProjectScopedGroupLabel isProject>
-                    Project-scoped hardware profiles
-                  </ProjectScopedGroupLabel>
-                }
-                globalGroupLabel={
-                  <ProjectScopedGroupLabel isProject={false}>
-                    Global-scoped hardware profiles
-                  </ProjectScopedGroupLabel>
-                }
-                dataTestId="hardware-profile-selection"
-                projectGroupTestId="project-scoped-hardware-profiles"
-                globalGroupTestId="global-scoped-hardware-profiles"
-                isFullWidth
-              />
+                </FlexItem>
+                {selectionIndicator && <FlexItem>{selectionIndicator}</FlexItem>}
+              </Flex>
               {previewDescription &&
               hardwareProfileConfig.selectedProfile &&
               (getHardwareProfileDescription(hardwareProfileConfig.selectedProfile) ||
@@ -475,35 +488,46 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
             </>
           ) : (
             <>
-              <SimpleSelect
-                dataTestId="hardware-profile-select"
-                previewDescription={previewDescription}
-                options={options}
-                value={
-                  hardwareProfileConfig.selectedProfile?.metadata.name ??
-                  (hardwareProfileConfig.useExistingSettings ? EXISTING_SETTINGS_KEY : undefined)
-                }
-                onChange={(key) => {
-                  if (key === EXISTING_SETTINGS_KEY) {
-                    onChange(undefined);
-                  } else {
-                    const profile = hardwareProfiles.find((hp) => hp.metadata.name === key);
-                    if (profile) {
-                      onChange(profile);
+              <Flex
+                alignItems={{ default: 'alignItemsFlexStart' }}
+                spaceItems={{ default: 'spaceItemsSm' }}
+                flexWrap={{ default: 'nowrap' }}
+              >
+                <FlexItem grow={{ default: 'grow' }}>
+                  <SimpleSelect
+                    dataTestId="hardware-profile-select"
+                    previewDescription={previewDescription}
+                    options={options}
+                    value={
+                      hardwareProfileConfig.selectedProfile?.metadata.name ??
+                      (hardwareProfileConfig.useExistingSettings
+                        ? EXISTING_SETTINGS_KEY
+                        : undefined)
                     }
-                  }
-                }}
-                placeholder={
-                  options.length > 0
-                    ? 'Select hardware profile...'
-                    : hardwareProfilesError
-                    ? 'Error loading hardware profiles'
-                    : 'No enabled or valid hardware profiles are available. Contact your administrator.'
-                }
-                isFullWidth
-                isSkeleton={!hardwareProfilesLoaded && !hardwareProfilesError}
-                isScrollable
-              />
+                    onChange={(key) => {
+                      if (key === EXISTING_SETTINGS_KEY) {
+                        onChange(undefined);
+                      } else {
+                        const profile = hardwareProfiles.find((hp) => hp.metadata.name === key);
+                        if (profile) {
+                          onChange(profile);
+                        }
+                      }
+                    }}
+                    placeholder={
+                      options.length > 0
+                        ? 'Select hardware profile...'
+                        : hardwareProfilesError
+                        ? 'Error loading hardware profiles'
+                        : 'No enabled or valid hardware profiles are available. Contact your administrator.'
+                    }
+                    isFullWidth
+                    isSkeleton={!hardwareProfilesLoaded && !hardwareProfilesError}
+                    isScrollable
+                  />
+                </FlexItem>
+                {selectionIndicator && <FlexItem>{selectionIndicator}</FlexItem>}
+              </Flex>
               {kueueFilteringInfoHelper}
               {hardwareProfilesError && (
                 <HelperText isLiveRegion>
