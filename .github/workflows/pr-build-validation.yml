@@ -936,7 +936,7 @@ jobs:
             fi
 
             # Check if this package has changed files, or root build files changed
-            if [ "$ROOT_BUILD_CHANGED" = "true" ] || echo "$CHANGED_FILES" | grep -q "^${PKG_DIR}/"; then
+            if [ "$ROOT_BUILD_CHANGED" = "true" ] || echo "$CHANGED_FILES" | grep -qF "${PKG_DIR}/"; then
               MATRIX_ITEMS=$(echo "$MATRIX_ITEMS" | jq -c --arg name "$MODULE_NAME" --arg dockerfile "$dockerfile" '. + [{"module": $name, "dockerfile": $dockerfile}]')
               echo "Will build: $MODULE_NAME ($dockerfile)"
             fi
@@ -971,15 +971,19 @@ jobs:
         uses: ./.github/actions/free-disk-space
 
       - name: Build sidecar image
+        env:
+          MODULE: ${{ matrix.module }}
+          DOCKERFILE: ${{ matrix.dockerfile }}
         run: |
           set -euo pipefail
-          echo "::group::Building ${{ matrix.module }} from ${{ matrix.dockerfile }}"
+          echo "::group::Building ${MODULE} from ${DOCKERFILE}"
           docker build \
-            --file ${{ matrix.dockerfile }} \
-            --tag sidecar-${{ matrix.module }}:test \
+            --no-cache \
+            --file "${DOCKERFILE}" \
+            --tag "sidecar-${MODULE}:test" \
             .
           echo "::endgroup::"
-          echo "Build completed for ${{ matrix.module }}"
+          echo "Build completed for ${MODULE}"
 
       - name: Validate sidecar startup
         run: |
@@ -1063,6 +1067,7 @@ jobs:
       - runtime-validation-odh
       - runtime-validation-rhoai
       - operator-integration
+      - detect-sidecar-changes
       - sidecar-build-validation
     # Run summary even when jobs are skipped, but not when workflow is skipped
     if: always() && needs.check-skip.outputs.should-skip != 'true'
@@ -1078,6 +1083,7 @@ jobs:
           echo "Phase 2-3 (Runtime ODH): ${{ needs.runtime-validation-odh.result }}"
           echo "Phase 2-3 (Runtime RHOAI): ${{ needs.runtime-validation-rhoai.result }}"
           echo "Phase 4 (Operator Integration): ${{ needs.operator-integration.result }}"
+          echo "Sidecar Detection: ${{ needs.detect-sidecar-changes.result }}"
           echo "Sidecar Build Validation: ${{ needs.sidecar-build-validation.result }}"
 
           # Accept "success" and "skipped" as passing states
@@ -1090,6 +1096,7 @@ jobs:
                         "${{ needs.runtime-validation-odh.result }}" \
                         "${{ needs.runtime-validation-rhoai.result }}" \
                         "${{ needs.operator-integration.result }}" \
+                        "${{ needs.detect-sidecar-changes.result }}" \
                         "${{ needs.sidecar-build-validation.result }}"; do
             if [[ "$result" != "success" && "$result" != "skipped" ]]; then
               FAILED=true
