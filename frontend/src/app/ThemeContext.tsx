@@ -1,4 +1,8 @@
 import * as React from 'react';
+import {
+  ThemeContext as SharedThemeContext,
+  type ThemeContextProps as SharedThemeContextProps,
+} from '@odh-dashboard/ui-core/contexts/ThemeContext';
 import { useBrowserStorage } from '@odh-dashboard/ui-core/utilities';
 
 const MLFLOW_DARK_MODE_KEY = '_mlflow_dark_mode_toggle_enabled';
@@ -40,5 +44,16 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     [odhTheme, setAllThemes],
   );
 
-  return <ThemeContext.Provider value={contextValue}>{children}</ThemeContext.Provider>;
+  const sharedContextValue = React.useMemo<SharedThemeContextProps>(
+    () => ({ theme: odhTheme, setTheme: setAllThemes }),
+    [odhTheme, setAllThemes],
+  );
+
+  return (
+    <ThemeContext.Provider value={contextValue}>
+      <SharedThemeContext.Provider value={sharedContextValue}>
+        {children}
+      </SharedThemeContext.Provider>
+    </ThemeContext.Provider>
+  );
 };

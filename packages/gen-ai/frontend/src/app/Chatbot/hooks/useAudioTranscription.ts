@@ -3,7 +3,7 @@ import {
   fireMiscTrackingEvent,
   fireFormTrackingEvent,
 } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import { TrackingOutcome } from '@odh-dashboard/internal/concepts/analyticsTracking/trackingProperties';
+import { TrackingOutcome } from '@odh-dashboard/ui-core';
 import { uploadMediaFile, transcribeAudio } from '~/app/services/llamaStackService';
 import { AUDIO_TRANSCRIPTION_TIMEOUT_MS } from '~/app/Chatbot/const';
 import { URL_PREFIX } from '~/app/utilities';

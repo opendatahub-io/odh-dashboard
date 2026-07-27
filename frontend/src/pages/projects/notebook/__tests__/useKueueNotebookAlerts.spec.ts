@@ -186,7 +186,7 @@ describe('useKueueNotebookAlerts', () => {
 
       expect(mockNotification.error).toHaveBeenCalledTimes(1);
       expect(mockNotification.error).toHaveBeenCalledWith(
-        expect.stringContaining('failed to start'),
+        expect.stringContaining('failed'),
         expect.any(String),
         expect.arrayContaining([expect.objectContaining({ title: 'View details' })]),
       );
@@ -209,7 +209,7 @@ describe('useKueueNotebookAlerts', () => {
 
       expect(mockNotification.warning).toHaveBeenCalledTimes(1);
       expect(mockNotification.warning).toHaveBeenCalledWith(
-        expect.stringContaining('was preempted'),
+        expect.stringContaining('preempted'),
         expect.stringContaining('higher-priority job'),
         expect.arrayContaining([expect.objectContaining({ title: 'View details' })]),
       );
@@ -230,8 +230,8 @@ describe('useKueueNotebookAlerts', () => {
 
       expect(mockNotification.warning).toHaveBeenCalledTimes(1);
       expect(mockNotification.warning).toHaveBeenCalledWith(
-        expect.stringContaining('was evicted'),
-        expect.stringContaining('queue was stopped'),
+        expect.stringContaining('evicted'),
+        expect.stringContaining('Manually removed from queue'),
         expect.arrayContaining([expect.objectContaining({ title: 'View details' })]),
       );
     });

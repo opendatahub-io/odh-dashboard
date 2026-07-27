@@ -1,8 +1,8 @@
+import { TrackingOutcome } from '@odh-dashboard/ui-core';
 import {
   fireFormTrackingEvent,
   fireMiscTrackingEvent,
 } from '#~/concepts/analyticsTracking/segmentIOUtils';
-import { TrackingOutcome } from '#~/concepts/analyticsTracking/trackingProperties';
 
 /** Event names from the Guided Tour Amplitude tracking plan. */
 export const GUIDED_TOUR_EVENTS = {

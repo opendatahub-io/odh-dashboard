@@ -9,9 +9,9 @@ export const LLMD_DEPLOYMENT_METHOD_KEY = 'llm-inference-service-llmd';
 
 const SIMPLE_VLLM_OPTION = {
   key: SIMPLE_VLLM_DEPLOYMENT_METHOD_KEY,
-  label: 'LLM inference service deployment',
-  description:
-    'Deploy an LLM using a preconfigured LLMInferenceService and LLM accelerator configuration.',
+  label: 'LLM inference service',
+  description: 'Deploy a large language model using the standard LLM inference service.',
+  order: 1,
 };
 
 export const vllmDeploymentMethodOverride: DeploymentMethodFieldOverride = {
@@ -25,9 +25,10 @@ export const vllmDeploymentMethodOverride: DeploymentMethodFieldOverride = {
 
 const LLMD_OPTION = {
   key: LLMD_DEPLOYMENT_METHOD_KEY,
-  label: 'LLM inference service deployment with llm-d',
+  label: 'LLM inference service with llm-d',
   description:
-    'Deploy an LLM using an LLMInferenceService with additional capabilities such as distributed inference, prefill-decode disaggregation and advanced routing.',
+    'Deploy a large language model with llm-d for additional scheduling and routing capabilities.',
+  order: 2,
 };
 
 export const llmdDeploymentMethodOverride: DeploymentMethodFieldOverride = {

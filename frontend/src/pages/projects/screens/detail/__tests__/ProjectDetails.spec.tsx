@@ -19,10 +19,10 @@ import {
 } from '#~/concepts/projects/accessChecks';
 import { mockProjectK8sResource } from '#~/__mocks__/mockProjectK8sResource';
 
-jest.mock('#~/pages/ApplicationsPage', () =>
-  // eslint-disable-next-line react/display-name
-  ({ children }: React.PropsWithChildren) => <div>{children}</div>,
-);
+jest.mock('@odh-dashboard/ui-core', () => ({
+  ...jest.requireActual('@odh-dashboard/ui-core'),
+  ApplicationsPage: ({ children }: React.PropsWithChildren) => <div>{children}</div>,
+}));
 
 jest.mock('#~/pages/projects/components/GenericHorizontalBar', () => () => null);
 

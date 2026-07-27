@@ -8,7 +8,10 @@ import {
 } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 import { CubesIcon, PlusCircleIcon } from '@patternfly/react-icons';
-import { URL_PREFIX } from '~/app/utilities/const';
+import {
+  getAuthPolicyCreateUrl,
+  getSubscriptionCreateUrl,
+} from '~/app/utilities/subscriptionManagementNavigation';
 
 type EmptyStatePageProps = {
   title?: string;
@@ -47,7 +50,7 @@ const EmptyStatePage: React.FC<EmptyStatePageProps> = ({
               <Button
                 variant="primary"
                 component={(props) => (
-                  <Link {...props} to={`${URL_PREFIX}/subscriptions/create`} state={navState} />
+                  <Link {...props} to={getSubscriptionCreateUrl()} state={navState} />
                 )}
                 data-testid="create-subscription-button"
               >
@@ -58,7 +61,7 @@ const EmptyStatePage: React.FC<EmptyStatePageProps> = ({
               <Button
                 variant="primary"
                 component={(props) => (
-                  <Link {...props} to={`${URL_PREFIX}/auth-policies/create`} state={navState} />
+                  <Link {...props} to={getAuthPolicyCreateUrl()} state={navState} />
                 )}
                 data-testid="create-auth-policy-button"
               >

@@ -1,8 +1,7 @@
 import React from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Flex } from '@patternfly/react-core';
-// eslint-disable-next-line @odh-dashboard/no-restricted-imports
-import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
+import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import FeaturesList from './FeaturesList';
 import { useFeatureStoreProject } from '../../FeatureStoreContext';
 import { featureStoreRoute } from '../../FeatureStoreRoutes';

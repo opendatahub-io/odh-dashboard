@@ -39,8 +39,8 @@ const ProviderURLModal: React.FC<ProviderURLModalProps> = ({
     <ModalBody>
       <Stack hasGutter>
         <StackItem>
-          This is the backend URL that the MaaS gateway routes traffic to for this provider.
-          Consumers do not use this URL directly — they use the gateway endpoint shown in the table.
+          The URL where requests are routed for this provider. Consumers use the gateway endpoint,
+          not this URL directly.
         </StackItem>
         <StackItem>
           <InputGroup>

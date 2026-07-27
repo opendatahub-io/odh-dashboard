@@ -9,7 +9,12 @@ import {
   ModalFooter,
   Toolbar,
   ToolbarContent,
+  ToolbarGroup,
   ToolbarItem,
+  Dropdown,
+  DropdownList,
+  DropdownItem,
+  MenuToggle,
   Pagination,
   PageSection,
   Flex,
@@ -28,7 +33,7 @@ import {
   Tab,
   TabTitleText,
 } from '@patternfly/react-core';
-import { SearchIcon, ExclamationCircleIcon } from '@patternfly/react-icons';
+import { SearchIcon, ExclamationCircleIcon, FilterIcon } from '@patternfly/react-icons';
 import { Table, Thead, Tr, Th, Tbody, Td, InnerScrollContainer } from '@patternfly/react-table';
 import { MLflowPrompt, MLflowPromptVersion } from '~/app/types';
 import { usePromptsList, usePromptVersions } from './usePromptQueries';
@@ -52,6 +57,7 @@ export default function PromptTable({
   const [filterName, setFilterName] = useState('');
   const [debouncedFilterName, setDebouncedFilterName] = useState('');
   const [activeTabKey, setActiveTabKey] = useState<number>(0);
+  const [isFilterDropdownOpen, setIsFilterDropdownOpen] = useState(false);
 
   const debounceTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
 
@@ -147,7 +153,6 @@ export default function PromptTable({
               Cancel
             </Button>
           </Flex>
-          {!isDrawerOpen && renderPagination('bottom', false)}
         </Flex>
       </ModalFooter>
     );
@@ -156,7 +161,6 @@ export default function PromptTable({
   function renderPagination(variant: PaginationVariant | 'bottom' | 'top', isCompact: boolean) {
     return (
       <Pagination
-        isStatic
         isCompact={isCompact}
         itemCount={filteredRowsCount}
         page={activePage}
@@ -169,10 +173,10 @@ export default function PromptTable({
         }}
         onPerPageSelect={(_, newPerPage) => handlePerPageSelect(newPerPage)}
         variant={variant}
+        menuAppendTo="inline"
         titles={{
           paginationAriaLabel: `${variant} pagination`,
         }}
-        style={{ backgroundColor: 'inherit' }}
       />
     );
   }
@@ -189,25 +193,55 @@ export default function PromptTable({
   }
 
   const tableToolbar = (
-    <Toolbar id="pagination-toolbar" className="pf-v6-u-pt-md">
+    <Toolbar id="pagination-toolbar">
       <ToolbarContent>
-        <ToolbarItem style={{ minWidth: '300px' }}>
-          <SearchInput
-            data-testid="prompt-search-input"
-            aria-label="Search prompts"
-            placeholder="Find by name prefix"
-            value={filterName}
-            onChange={(_event, value) => {
-              setFilterName(value);
-              debouncedSetFilterName(value);
-            }}
-            onClear={() => {
-              setFilterName('');
-              setDebouncedFilterName('');
-            }}
-          />
+        <ToolbarGroup variant="filter-group">
+          <ToolbarItem>
+            <Dropdown
+              onOpenChange={(isOpen) => setIsFilterDropdownOpen(isOpen)}
+              shouldFocusToggleOnSelect
+              toggle={(toggleRef) => (
+                <MenuToggle
+                  ref={toggleRef}
+                  aria-label="Filter by Name"
+                  onClick={() => setIsFilterDropdownOpen(!isFilterDropdownOpen)}
+                  isExpanded={isFilterDropdownOpen}
+                  icon={<FilterIcon />}
+                >
+                  Name
+                </MenuToggle>
+              )}
+              isOpen={isFilterDropdownOpen}
+              popperProps={{ appendTo: 'inline' }}
+            >
+              <DropdownList>
+                <DropdownItem key="name" id="name" onClick={() => setIsFilterDropdownOpen(false)}>
+                  Name
+                </DropdownItem>
+              </DropdownList>
+            </Dropdown>
+          </ToolbarItem>
+          <ToolbarItem style={{ minWidth: '300px' }}>
+            <SearchInput
+              data-testid="prompt-search-input"
+              aria-label="Search prompts"
+              placeholder="Filter by name"
+              value={filterName}
+              onChange={(_event, value) => {
+                setFilterName(value);
+                debouncedSetFilterName(value);
+              }}
+              onClear={() => {
+                clearTimeout(debounceTimeoutRef.current);
+                setFilterName('');
+                setDebouncedFilterName('');
+              }}
+            />
+          </ToolbarItem>
+        </ToolbarGroup>
+        <ToolbarItem variant="pagination" align={{ default: 'alignEnd' }}>
+          {renderPagination('top', true)}
         </ToolbarItem>
-        <ToolbarItem variant="pagination">{renderPagination('top', true)}</ToolbarItem>
       </ToolbarContent>
     </Toolbar>
   );
@@ -366,7 +400,7 @@ export default function PromptTable({
               data-testid="project-prompts-tab"
             >
               {activeTabKey === 0 && (
-                <div style={{ marginTop: 'var(--pf-t--global--spacer--lg)' }}>
+                <div className="pf-v6-u-mt-lg">
                   {tableToolbar}
                   {tableContent}
                 </div>
@@ -378,7 +412,7 @@ export default function PromptTable({
               data-testid="global-prompts-tab"
             >
               {activeTabKey === 1 && (
-                <div style={{ marginTop: 'var(--pf-t--global--spacer--lg)' }}>
+                <div className="pf-v6-u-mt-lg">
                   {tableToolbar}
                   {tableContent}
                 </div>

@@ -12,6 +12,9 @@ import {
   parseRuntimeInfoFromExecutions,
   parseVolumeMounts,
   getExecutionLinkedArtifactMap,
+  findParallelForDagExecution,
+  getIterationCount,
+  findIterationExecution,
 } from '#~/concepts/pipelines/topology/parseUtils';
 import {
   ArtifactStateKF,
@@ -641,6 +644,129 @@ describe('pipeline topology parseUtils', () => {
       const result = parseVolumeMounts(testPlatformSpec, 'test-executor-label');
       expect(result).toEqual([]);
     });
+  });
+});
+
+describe('findParallelForDagExecution', () => {
+  it('should return undefined when executions are not provided', () => {
+    expect(findParallelForDagExecution('task-name', 'task-id')).toBeUndefined();
+  });
+
+  it('should return undefined when executions is null', () => {
+    expect(findParallelForDagExecution('task-name', 'task-id', null)).toBeUndefined();
+  });
+
+  it('should return undefined when executions is empty', () => {
+    expect(findParallelForDagExecution('task-name', 'task-id', [])).toBeUndefined();
+  });
+
+  it('should return undefined when no execution matches task_name and has iteration_count', () => {
+    const exec = new Execution();
+    const value = new Value();
+    exec.getCustomPropertiesMap().set('task_name', value.setStringValue('other-task'));
+    expect(findParallelForDagExecution('task-name', 'task-id', [exec])).toBeUndefined();
+  });
+
+  it('should return undefined when execution matches task_name but has no iteration_count', () => {
+    const exec = new Execution();
+    const value = new Value();
+    exec.getCustomPropertiesMap().set('task_name', value.setStringValue('task-name'));
+    expect(findParallelForDagExecution('task-name', 'task-id', [exec])).toBeUndefined();
+  });
+
+  it('should return the execution when task_name matches and iteration_count exists', () => {
+    const exec = new Execution();
+    const nameValue = new Value();
+    const countValue = new Value();
+    exec.getCustomPropertiesMap().set('task_name', nameValue.setStringValue('for-loop'));
+    exec.getCustomPropertiesMap().set('iteration_count', countValue.setIntValue(3));
+    expect(findParallelForDagExecution('for-loop', 'for-loop-2', [exec])).toBe(exec);
+  });
+
+  it('should match by taskId when taskName is empty', () => {
+    const exec = new Execution();
+    const nameValue = new Value();
+    const countValue = new Value();
+    exec.getCustomPropertiesMap().set('task_name', nameValue.setStringValue('task-id'));
+    exec.getCustomPropertiesMap().set('iteration_count', countValue.setIntValue(5));
+    expect(findParallelForDagExecution('', 'task-id', [exec])).toBe(exec);
+  });
+});
+
+describe('getIterationCount', () => {
+  it('should return undefined when iteration_count property is absent', () => {
+    const exec = new Execution();
+    expect(getIterationCount(exec)).toBeUndefined();
+  });
+
+  it('should return the iteration count when property exists', () => {
+    const exec = new Execution();
+    const value = new Value();
+    exec.getCustomPropertiesMap().set('iteration_count', value.setIntValue(4));
+    expect(getIterationCount(exec)).toBe(4);
+  });
+
+  it('should return 0 for zero iterations', () => {
+    const exec = new Execution();
+    const value = new Value();
+    exec.getCustomPropertiesMap().set('iteration_count', value.setIntValue(0));
+    expect(getIterationCount(exec)).toBe(0);
+  });
+
+  it('should return large counts', () => {
+    const exec = new Execution();
+    const value = new Value();
+    exec.getCustomPropertiesMap().set('iteration_count', value.setIntValue(1000));
+    expect(getIterationCount(exec)).toBe(1000);
+  });
+});
+
+describe('findIterationExecution', () => {
+  it('should return undefined when executions is empty', () => {
+    expect(findIterationExecution(100, 0, [])).toBeUndefined();
+  });
+
+  it('should return undefined when no execution matches parent_dag_id and iteration_index', () => {
+    const exec = new Execution();
+    const parentValue = new Value();
+    const indexValue = new Value();
+    exec.getCustomPropertiesMap().set('parent_dag_id', parentValue.setIntValue(999));
+    exec.getCustomPropertiesMap().set('iteration_index', indexValue.setIntValue(0));
+    expect(findIterationExecution(100, 0, [exec])).toBeUndefined();
+  });
+
+  it('should return undefined when parent_dag_id matches but iteration_index does not', () => {
+    const exec = new Execution();
+    const parentValue = new Value();
+    const indexValue = new Value();
+    exec.getCustomPropertiesMap().set('parent_dag_id', parentValue.setIntValue(100));
+    exec.getCustomPropertiesMap().set('iteration_index', indexValue.setIntValue(1));
+    expect(findIterationExecution(100, 0, [exec])).toBeUndefined();
+  });
+
+  it('should return the execution when both parent_dag_id and iteration_index match', () => {
+    const exec = new Execution();
+    const parentValue = new Value();
+    const indexValue = new Value();
+    exec.getCustomPropertiesMap().set('parent_dag_id', parentValue.setIntValue(100));
+    exec.getCustomPropertiesMap().set('iteration_index', indexValue.setIntValue(2));
+    expect(findIterationExecution(100, 2, [exec])).toBe(exec);
+  });
+
+  it('should return the first match when multiple executions match', () => {
+    const exec1 = new Execution();
+    const p1 = new Value();
+    const i1 = new Value();
+    exec1.getCustomPropertiesMap().set('parent_dag_id', p1.setIntValue(100));
+    exec1.getCustomPropertiesMap().set('iteration_index', i1.setIntValue(0));
+
+    const exec2 = new Execution();
+    const p2 = new Value();
+    const i2 = new Value();
+    exec2.getCustomPropertiesMap().set('parent_dag_id', p2.setIntValue(100));
+    exec2.getCustomPropertiesMap().set('iteration_index', i2.setIntValue(0));
+
+    expect(findIterationExecution(100, 0, [exec1, exec2])).toBe(exec1);
   });
 });
 

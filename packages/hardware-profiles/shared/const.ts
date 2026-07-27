@@ -70,7 +70,5 @@ export const HARDWARE_PROFILE_BINDING_CONFIG: Record<
   },
 };
 
-export enum QueueSource {
-  HARDWARE_PROFILE = 'hardware-profile',
-  DIRECT = 'direct',
-}
+export const LOCAL_QUEUE_MISSING_BODY =
+  'The selected hardware profile references a local queue that does not exist in this project and may prevent the workbench from starting. Select a different hardware profile.';

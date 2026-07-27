@@ -16,19 +16,45 @@ The ODH Dashboard uses a modular architecture where multiple BFF services run as
 
 ### Architecture
 
+Two deployment modes affect how inter-BFF calls are made:
+
+**Sidecar mode** — all BFFs share one pod; calls go to `localhost:<port>` or the shared `odh-dashboard` service:
+
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                        ODH Dashboard Pod                         │
-├─────────────────────────────────────────────────────────────────┤
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────────────┐   │
-│  │  Gen-AI BFF  │──│   MaaS BFF   │──│  Model Registry BFF  │   │
-│  │   :8043      │  │    :8243     │  │        :8143         │   │
-│  └──────────────┘  └──────────────┘  └──────────────────────┘   │
-│         │                  │                    │                │
-│         └──────────────────┴────────────────────┘                │
-│                    Inter-BFF HTTP Calls                          │
-│              (localhost or K8s service DNS)                      │
-└─────────────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────────────────┐
+│                          ODH Dashboard Pod                              │
+├────────────────────────────────────────────────────────────────────────┤
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────────────┐         │
+│  │  Gen-AI BFF  │──│   MaaS BFF   │──│  Model Registry BFF  │   ...   │
+│  │    :8143     │  │    :8243     │  │        :8043         │         │
+│  └──────┬───────┘  └──────┬───────┘  └──────────────────────┘         │
+│         │                 │                                            │
+│         └─────────────────┘──────────────────────────────────┐        │
+│                        ┌──────────────┐                       │        │
+│                        │  core-bff    │◄──── any module ──────┘        │
+│                        │    :8943     │                                │
+│                        └──────────────┘                                │
+│                    odh-dashboard service (port 8943)                   │
+└────────────────────────────────────────────────────────────────────────┘
+```
+
+**Standalone mode** — each BFF is its own pod; calls go to K8s service DNS. core-bff remains in the **main dashboard pod** in both modes:
+
+```
+┌─────────────────────────────────────────────┐
+│  Main Dashboard Pod (odh-dashboard svc)      │
+│  ┌─────────────┐  ┌──────────────┐          │
+│  │ odh-dashboard│  │  core-bff   │           │
+│  │    :8080    │  │    :8943    │           │
+│  └─────────────┘  └──────┬──────┘           │
+└──────────────────────────┼──────────────────┘
+                            │ ← port 8943 on odh-dashboard svc
+         ┌──────────────────┼─────────────────┐
+         │                  │                 │
+┌────────┴──────┐  ┌────────┴──────┐  ┌───────┴───────┐
+│  gen-ai pod   │  │   maas pod    │  │  mlflow pod   │
+│    :8143      │  │    :8243      │  │    :8343      │
+└───────────────┘  └───────────────┘  └───────────────┘
 ```
 
 ## Configuration
@@ -366,8 +392,70 @@ if err != nil {
 - Check NetworkPolicy allows egress on target port
 - DNS format: `<service>.<namespace>.svc.cluster.local:<port>`
 
+## Calling core-bff from a Module BFF
+
+`core-bff` is the Go-based central BFF (`distributions/core-bff/`) that runs on **port 8943** inside the main dashboard pod (alongside `odh-dashboard` and `kube-rbac-proxy`). It exposes platform-level APIs (connection testing, cluster settings, serving runtimes, etc.) that module BFFs can call instead of duplicating Kubernetes client code.
+
+### Service coordinates
+
+| Mode | Variable | Value |
+|---|---|---|
+| Both | `BFF_CORE_BFF_SERVICE_NAME` | `odh-dashboard` (ODH) / `rhods-dashboard` (RHOAI) |
+| Both | `BFF_CORE_BFF_SERVICE_PORT` | `8943` |
+| Both | `BFF_CORE_BFF_TLS_ENABLED` | `true` (K8s) / `false` (local dev) |
+
+In **standalone mode** the service coordinates (`BFF_CORE_BFF_SERVICE_NAME`, `BFF_CORE_BFF_SERVICE_PORT`) must be injected manually via the module's `deployment.yaml` env vars or wired through `interBFFDependencies` in `dashboard-operator/internal/controller/module_deploy.go`.
+
+In **sidecar mode** the same env vars point to the shared `odh-dashboard` service, which works identically since core-bff is just another port on that service.
+
+### federation ConfigMap proxy route
+
+The Fastify backend routes `/core-bff/api/*` requests to core-bff via the `coreBff` `proxyService` entry in `federation-config` ConfigMap (added in PR #8708):
+
+```json
+{
+  "name": "coreBff",
+  "proxyService": [{
+    "authorize": true,
+    "path": "/core-bff/api",
+    "pathRewrite": "/api",
+    "tls": true,
+    "service": { "name": "odh-dashboard", "namespace": "opendatahub", "port": 8943 }
+  }]
+}
+```
+
+Without this entry, `/core-bff/api/*` requests return 404 from Fastify (no proxy route registered). This is the finding from @DaoDaoNoCode in #8547 that prompted the addition.
+
+### Adding a new module that calls core-bff
+
+1. Add an env var entry for `BFF_CORE_BFF_SERVICE_NAME` / `BFF_CORE_BFF_SERVICE_PORT` in the module's standalone `manifests/modules/<slug>/deployment.yaml`, or wire it via `interBFFDependencies` in `dashboard-operator/internal/controller/module_deploy.go`
+2. Add an egress rule to `manifests/modules/<slug>/networkpolicy.yaml`:
+   ```yaml
+   - to:
+       - podSelector:
+           matchLabels:
+             deployment: odh-dashboard
+     ports:
+       - port: 8943
+         protocol: TCP
+   ```
+3. Use `BFF_CORE_BFF_SERVICE_NAME` / `BFF_CORE_BFF_SERVICE_PORT` env vars as service coordinates (auto-injected in standalone mode; set manually for local dev with `BFF_CORE_BFF_DEV_URL`)
+
+### Local development
+
+```bash
+# Terminal 1 — start core-bff locally
+cd distributions/core-bff/bff
+go run cmd/main.go --port=8943 --auth-method=disabled
+
+# Terminal 2 — start gen-ai BFF pointing at local core-bff
+cd packages/gen-ai/bff
+BFF_CORE_BFF_DEV_URL=http://localhost:8943/api go run cmd/main.go --port=8080
+```
+
 ## Related Documentation
 
 - [Gen-AI BFF Inter-BFF Implementation](../packages/gen-ai/bff/README.md#inter-bff-communication)
 - [Modular Architecture Overview](./architecture.md)
-- [Network Policy Configuration](../manifests/modular-architecture/networkpolicy.yaml)
+- [Network Policy Configuration](../manifests/sidecar/networkpolicy.yaml)

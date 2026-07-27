@@ -52,7 +52,7 @@ describe('ModelServerTemplateSelectField', () => {
       expect(radio1).toBeDisabled();
       expect(radio2).toBeChecked();
       expect(screen.getByTestId('serving-runtime-template-selection-toggle')).toBeInTheDocument();
-      expect(screen.getByText('Select one')).toBeInTheDocument();
+      expect(screen.getByText('Select a deployment resource')).toBeInTheDocument();
     });
 
     it('should check radio 1, show the suggestion body, and hide the dropdown when autoSelect is true', () => {
@@ -300,7 +300,7 @@ describe('ModelServerTemplateSelectField', () => {
         />,
       );
       expect(screen.queryAllByRole('radio')).toHaveLength(0);
-      expect(screen.getByText('Select one')).toBeInTheDocument();
+      expect(screen.getByText('Select a deployment resource')).toBeInTheDocument();
     });
   });
 });

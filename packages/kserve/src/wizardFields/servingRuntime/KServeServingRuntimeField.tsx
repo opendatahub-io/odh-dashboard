@@ -161,7 +161,7 @@ const KServeServingRuntimeField: KServeServingRuntimeFieldType['component'] = ({
 
   return (
     <ModelServerTemplateSelectField
-      label="Deployment resource"
+      label="Serving runtime template"
       modelServerState={{
         data: value?.data,
         setData: (data: ModelServerSelectFieldData) => onChange({ data }),

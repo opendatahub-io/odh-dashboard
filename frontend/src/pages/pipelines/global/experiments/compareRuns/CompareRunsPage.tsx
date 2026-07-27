@@ -1,7 +1,7 @@
 import React from 'react';
 import { BreadcrumbItem, Stack, StackItem, Truncate } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
-import ApplicationsPage from '#~/pages/ApplicationsPage';
+import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import { PathProps } from '#~/concepts/pipelines/content/types';
 import { useCompareRuns } from '#~/concepts/pipelines/content/compareRuns/CompareRunsContext';
 import { CompareRunsInvalidRunCount } from '#~/concepts/pipelines/content/compareRuns/CompareRunInvalidRunCount';

@@ -8,11 +8,14 @@ import {
   Button,
   Form,
   FormGroup,
+  FormHelperText,
+  HelperText,
+  HelperTextItem,
 } from '@patternfly/react-core';
 import { Link, Navigate, useLocation, useNavigate, useParams } from 'react-router';
 import YAML from 'yaml';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports -- standard page shell wrapper
-import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
+import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
 import {
   getDisplayNameFromK8sResource,
@@ -269,7 +272,7 @@ const RoutingConfigurationCreateEditInner: React.FC<{
     },
     {
       key: 'editor',
-      label: 'Upload an existing configuration file',
+      label: 'Open code editor',
     },
   ];
 
@@ -348,7 +351,6 @@ const RoutingConfigurationCreateEditInner: React.FC<{
             dataTestId="topology-type-select"
             value={selectedTopology || undefined}
             placeholder="Select topology type"
-            isDisabled={isEditMode}
             options={topologyOptions}
             onChange={(key) => {
               const matched = Object.values(TopologyType).find((v) => v === key);
@@ -360,6 +362,11 @@ const RoutingConfigurationCreateEditInner: React.FC<{
         </FormGroup>
         {!isEditMode && !isDuplicateMode && (
           <FormGroup label="Configuration source" isRequired fieldId="config-source">
+            <FormHelperText>
+              <HelperText>
+                <HelperTextItem>Select how to provide the routing configuration.</HelperTextItem>
+              </HelperText>
+            </FormHelperText>
             <SimpleSelect
               options={configSourceOptions}
               value={configSource}
@@ -382,6 +389,7 @@ const RoutingConfigurationCreateEditInner: React.FC<{
               code={yamlCode}
               onCodeChange={setYamlCode}
               topologyTypeLabel="routing"
+              isUploadEnabled={configSource !== 'template'}
             />
           </FormGroup>
         )}

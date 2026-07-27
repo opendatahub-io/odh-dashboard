@@ -9,8 +9,8 @@ import {
 } from '@patternfly/react-core';
 import { PlusCircleIcon } from '@patternfly/react-icons';
 import TitleWithIcon from '@odh-dashboard/ui-core/design/TitleWithIcon';
+import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import { AreaContext } from '#~/concepts/areas/AreaContext';
-import ApplicationsPage from '#~/pages/ApplicationsPage';
 import RedirectErrorState from '#~/pages/external/RedirectErrorState';
 import { ProjectObjectType } from '#~/concepts/design/utils';
 import useModelRegistriesBackend from '#~/concepts/modelRegistrySettings/useModelRegistriesBackend';

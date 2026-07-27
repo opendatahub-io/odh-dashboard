@@ -54,4 +54,10 @@ export type PipelineTask = {
   /** Volume Mounts */
   volumeMounts?: VolumeMount[];
   whenStatus?: WhenStatus;
+  /** True when this node represents a sub-DAG (static or ParallelFor) that can be drilled into */
+  isSubDag?: boolean;
+  /** Number of ParallelFor iterations — present only on the ParallelFor group node */
+  iterationCount?: number;
+  /** MLMD execution ID of the iteration DAG — used to scope drawer executions in inline mode */
+  iterationParentDagId?: number;
 };

@@ -396,7 +396,7 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
 
       cy.step('Verify the view subscription page');
       subscriptionsPage.findViewDetailsButton(`${subscriptionName}-2`).click();
-      cy.url().should('include', `/maas/subscriptions/view/${subscriptionName}-2`);
+      cy.url().should('include', `/maas/maas-governance/subscriptions/view/${subscriptionName}-2`);
 
       viewSubscriptionPage.findTitle().should('contain.text', `${subscriptionName}-2`);
 
@@ -417,7 +417,7 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
         .and('contain.text', tokenRateLimit.limit.toString());
 
       viewSubscriptionPage.findBreadcrumbSubscriptionsLink().click();
-      cy.url().should('include', '/maas/subscriptions');
+      cy.url().should('include', '/maas/maas-governance/subscriptions');
 
       cy.step('Delete the second subscription');
       subscriptionsPage.findDeleteButton(`${subscriptionName}-2`).click();

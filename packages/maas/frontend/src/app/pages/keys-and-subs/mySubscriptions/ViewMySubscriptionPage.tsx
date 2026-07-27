@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Link, useParams } from 'react-router-dom';
-import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
+import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import {
   Breadcrumb,
   BreadcrumbItem,

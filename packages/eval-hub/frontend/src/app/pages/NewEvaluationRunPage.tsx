@@ -11,7 +11,7 @@ import {
   PageSection,
 } from '@patternfly/react-core';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
+import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import {
   evaluationBenchmarksRoute,
   evaluationCollectionsRoute,

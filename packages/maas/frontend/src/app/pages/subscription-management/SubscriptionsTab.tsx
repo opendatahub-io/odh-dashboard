@@ -1,7 +1,15 @@
 import * as React from 'react';
-import { Alert, Bullseye, PageSection, Spinner } from '@patternfly/react-core';
+import {
+  Bullseye,
+  EmptyState,
+  EmptyStateBody,
+  EmptyStateVariant,
+  PageSection,
+  Spinner,
+} from '@patternfly/react-core';
+import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import { TrackingOutcome } from '@odh-dashboard/internal/concepts/analyticsTracking/trackingProperties';
+import { TrackingOutcome } from '@odh-dashboard/ui-core';
 import { useListSubscriptions } from '~/app/hooks/useListSubscriptions';
 import { MaaSSubscription } from '~/app/types/subscriptions';
 import { SubscriptionsTable } from '~/app/pages/subscriptions/allSubscriptions/SubscriptionsTable';
@@ -66,9 +74,15 @@ const SubscriptionsTab: React.FC<SubscriptionsTabProps> = ({ returnTo }) => {
   if (error) {
     return (
       <PageSection isFilled>
-        <Alert variant="danger" isInline title="Error loading subscriptions">
-          {error.message}
-        </Alert>
+        <EmptyState
+          headingLevel="h2"
+          icon={ExclamationCircleIcon}
+          titleText="Error loading subscriptions"
+          variant={EmptyStateVariant.lg}
+          data-testid="error-empty-state"
+        >
+          <EmptyStateBody data-testid="error-empty-state-body">{error.message}</EmptyStateBody>
+        </EmptyState>
       </PageSection>
     );
   }

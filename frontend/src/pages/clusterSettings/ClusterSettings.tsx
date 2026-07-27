@@ -3,7 +3,7 @@ import * as _ from 'lodash-es';
 import { AlertVariant, Button, Stack, StackItem } from '@patternfly/react-core';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import TitleWithIcon from '@odh-dashboard/ui-core/design/TitleWithIcon';
-import ApplicationsPage from '#~/pages/ApplicationsPage';
+import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import { useAppContext } from '#~/app/AppContext';
 import { fetchClusterSettings, updateClusterSettings } from '#~/services/clusterSettingsService';
 import { ClusterSettingsType, ModelServingPlatformEnabled } from '#~/types';
