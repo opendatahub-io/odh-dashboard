@@ -1300,7 +1300,10 @@ class ModelServingWizard extends Wizard {
 
   findAddVariableButton() {
     return cy.findByTestId('add-environment-variable');
-    //return cy.get('[data-testid="add-environment-variable"] > .pf-v6-c-button__text');
+  }
+
+  findAddVariable() {
+    return cy.findByText('Add variable');
   }
 
   findEnvVariableName(key: string) {

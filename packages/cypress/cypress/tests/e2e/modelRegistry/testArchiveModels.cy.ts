@@ -183,7 +183,6 @@ describe('Verify that models and versions can be archived and restored via model
 
       modelRegistry
         .findArchiveModelVersionAction()
-        //.find('span')
         .should('not.have.attr', 'aria-disabled', 'true')
         .click();
 

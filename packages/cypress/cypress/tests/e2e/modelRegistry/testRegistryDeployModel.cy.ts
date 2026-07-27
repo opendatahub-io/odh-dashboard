@@ -187,7 +187,7 @@ describe('Verify models can be deployed from model registry', () => {
       registerModelPage
         .findFormField(FormFieldSelector.MODEL_DESCRIPTION)
         .type(testData.objectStorageModelDescription);
-      registerModelPage.selectModelType('Generative AI model (Example, LLM)', 30000);
+      registerModelPage.selectModelType(ModelTypeLabel.GENERATIVE, 30000);
       registerModelPage.findFormField(FormFieldSelector.VERSION_NAME).type(testData.version1Name);
       registerModelPage
         .findFormField(FormFieldSelector.VERSION_DESCRIPTION)
@@ -287,12 +287,11 @@ describe('Verify models can be deployed from model registry', () => {
 
       // Enable and fill environment variables (one row per entry)
       modelServingWizard.findEnvVariablesCheckbox().click();
-      cy.findByText('Add variable').click();
+      modelServingWizard.findAddVariable().click();
       envVars.forEach((envVar, index) => {
         if (index > 0) {
           modelServingWizard.findAddVariableButton().click({ force: true });
         }
-        //cy.get('[data-testid="add-environment-variable"] > .pf-v6-c-button__text').click()
         modelServingWizard.findEnvVariableName(String(index)).clear().type(envVar.name);
         modelServingWizard.findEnvVariableValue(String(index)).clear().type(envVar.value);
       });
