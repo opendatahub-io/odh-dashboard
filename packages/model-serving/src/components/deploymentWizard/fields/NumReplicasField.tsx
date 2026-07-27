@@ -1,5 +1,5 @@
 import React from 'react';
-import { FormGroup, FormHelperText, HelperText, HelperTextItem } from '@patternfly/react-core';
+import { FormGroup } from '@patternfly/react-core';
 import { z } from 'zod';
 import NumberInputWrapper from '@odh-dashboard/ui-core/components/NumberInputWrapper';
 import { normalizeBetween } from '@odh-dashboard/ui-core/utilities';
@@ -87,11 +87,6 @@ export const NumReplicasField: React.FC<NumReplicasFieldProps> = ({ replicaState
         onChange={handleChange}
         onBlur={handleBlur}
       />
-      <FormHelperText>
-        <HelperText>
-          <HelperTextItem>Non-production models typically require only one replica.</HelperTextItem>
-        </HelperText>
-      </FormHelperText>
     </FormGroup>
   );
 };

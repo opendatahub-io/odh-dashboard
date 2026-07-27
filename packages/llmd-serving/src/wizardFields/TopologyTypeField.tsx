@@ -8,7 +8,6 @@ import {
   StackItem,
   Tooltip,
 } from '@patternfly/react-core';
-import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { z } from 'zod';
 import type {
   WizardField,
@@ -116,12 +115,9 @@ const TopologyTypeFieldComponent: TopologyTypeFieldType['component'] = ({
           label: TopologyTypeLabels[topoType],
           description: TopologyTypeDescriptions[topoType],
           dropdownLabel: isOptionDisabled ? (
-            <>
-              {TopologyTypeLabels[topoType]}{' '}
-              <Tooltip content="No configurations available. To request one, contact your administrator.">
-                <OutlinedQuestionCircleIcon />
-              </Tooltip>
-            </>
+            <Tooltip content="No configurations available. To request one, contact your administrator.">
+              <span>{TopologyTypeLabels[topoType]}</span>
+            </Tooltip>
           ) : undefined,
           isAriaDisabled: isOptionDisabled,
           dataTestId: `topology-type-${topoType}`,
@@ -136,6 +132,7 @@ const TopologyTypeFieldComponent: TopologyTypeFieldType['component'] = ({
         <StackItem>
           <SimpleSelect
             isFullWidth
+            previewDescription={false}
             options={options}
             onChange={(key) => {
               const matched = Object.values(TopologyType).find((v) => v === key);

@@ -63,6 +63,7 @@ const getStatusSections = (
   projectName: string | undefined,
   extensionStatusSections: StatusSection[] | undefined,
   isGenAiEnabled: boolean,
+  modelServerLabel: string,
 ): StatusSection[] => {
   return [
     {
@@ -253,7 +254,7 @@ const getStatusSections = (
         },
         {
           key: 'modelServer',
-          label: 'Deployment resource',
+          label: modelServerLabel,
           comp: (state) => state.modelServer?.data?.selection?.label || 'Auto-selected',
         },
         {
@@ -406,9 +407,21 @@ export const ReviewStepContent: React.FC<ReviewStepContentProps> = ({
     }));
   }, [extensionSections]);
 
+  const modelServerLabel = React.useMemo(() => {
+    const hasReplacement = wizardState.fields.some(
+      (field) =>
+        field.type === 'replacement' &&
+        field.stateKey === 'modelServer' &&
+        field.isActive(wizardState.state),
+    );
+    return hasReplacement ? 'Accelerator configuration' : 'Serving runtime';
+  }, [wizardState.fields, wizardState.state]);
+
   const statusSections = React.useMemo(
-    () => [...getStatusSections(projectName, extensionStatusSections, isGenAiEnabled)],
-    [projectName, extensionStatusSections, isGenAiEnabled],
+    () => [
+      ...getStatusSections(projectName, extensionStatusSections, isGenAiEnabled, modelServerLabel),
+    ],
+    [projectName, extensionStatusSections, isGenAiEnabled, modelServerLabel],
   );
 
   if (!wizardState.loaded.summaryLoaded) {
