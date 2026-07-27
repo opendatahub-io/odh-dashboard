@@ -107,8 +107,8 @@ describe('Subscription Management Page / Overview Tab', () => {
     authPoliciesPage.findTable().should('exist');
 
     // subscriptionManagementPage.findOverviewTab().click();
-    // cy.url().should('include', '/subscription-management/overview');
-    // authPoliciesPage.findTable().should('exist');
+    // cy.url().should('include', '/maas-governance/overview');
+    // overviewTabPage.findTable().should('exist');
   });
 
   it('should display subscriptions content within the subscriptions tab, and navigate to the yaml tab', () => {
