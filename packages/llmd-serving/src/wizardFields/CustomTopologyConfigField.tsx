@@ -86,15 +86,18 @@ const CustomTopologyConfigFieldComponent: CustomTopologyConfigFieldType['compone
 
   const configRef = value?.configRef;
 
-  // Auto-select first config for non-single-node when configs load (new deploy only)
+  // Auto-select first config for non-single-node when configs load (new deploy only,
+  // or after a deleted configRef is cleared by the resolution effect below).
   React.useEffect(() => {
     if (isLoaded && !isSingleNode && !hasRealConfig && !configRef && filteredConfigs.length > 0) {
       onChange({ selectedConfig: filteredConfigs[0] });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLoaded, filteredConfigs.length, topologyType]);
+  }, [isLoaded, filteredConfigs.length, topologyType, configRef]);
 
-  // Resolve configRef from extractor (edit flow) once external data loads
+  // Resolve configRef from extractor (edit flow) once external data loads.
+  // If the config was deleted, clear configRef and set the default for single-node,
+  // or clear configRef so the auto-select effect can pick one for other topologies.
   React.useEffect(() => {
     if (!configRef || hasRealConfig || !isLoaded) {
       return;
@@ -103,6 +106,10 @@ const CustomTopologyConfigFieldComponent: CustomTopologyConfigFieldType['compone
     const resolved = allConfigs.find((c) => c.metadata.name === configRef);
     if (resolved) {
       onChange({ selectedConfig: resolved });
+    } else if (isSingleNode) {
+      onChange({ selectedConfig: TOPOLOGY_CONFIG_DEFAULT });
+    } else {
+      onChange({ configRef: undefined });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [configRef, isLoaded, existingSelection, configsByTopology]);
@@ -248,7 +255,7 @@ export const CustomTopologyConfigFieldWizardField: CustomTopologyConfigFieldType
       externalData?: TopologyTypeExternalData,
       dependencies?: CustomTopologyConfigDependencies,
     ): CustomTopologyConfigFieldData => {
-      if (existingFieldData?.selectedConfig) {
+      if (existingFieldData?.selectedConfig || existingFieldData?.configRef) {
         return existingFieldData;
       }
       const topologyType = dependencies?.topologyType?.topologyType;
