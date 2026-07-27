@@ -3,6 +3,8 @@ import {
   enablePromptManagementFeatures,
   disablePromptManagementFeatures,
   doesMlflowCRExist,
+  deleteStalePromptByName,
+  findAvailablePromptSuffix,
 } from '../../../utils/oc_commands/mlflow';
 import { deleteOpenShiftProject, createOpenShiftProject } from '../../../utils/oc_commands/project';
 import { retryableBefore } from '../../../utils/retryableHooks';
@@ -16,6 +18,7 @@ describe('Verify Prompt Management page', () => {
   let testData: PromptManagementTestData;
   let projectName: string;
   let crExisted: boolean | undefined;
+  let testSuffix: string;
   const uuid = generateTestUUID();
 
   retryableBefore(() => {
@@ -39,11 +42,27 @@ describe('Verify Prompt Management page', () => {
       .then(() => {
         cy.step('Enable all features required for Prompt Management');
         return enablePromptManagementFeatures();
+      })
+      .then(() => {
+        cy.step('Clean up stale prompts from prior runs');
+        return deleteStalePromptByName(projectName, `${testData.prompts[0].name}-${uuid}`);
+      })
+      .then(() => {
+        cy.step('Find available prompt suffix to avoid stale name collisions');
+        const allBaseNames = [testData.prompts[0].name];
+        return findAvailablePromptSuffix(projectName, allBaseNames, uuid).then((suffix) => {
+          testSuffix = suffix;
+          if (suffix !== uuid) {
+            cy.log(`UUID ${uuid} had collisions, using suffix ${suffix} instead`);
+          }
+        });
       });
   });
 
   after(() => {
     disablePromptManagementFeatures(crExisted ?? false);
+    deleteStalePromptByName(projectName, `${testData.prompts[0].name}-${testSuffix}`);
+    disablePromptManagementFeatures();
     deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
   });
 
@@ -54,6 +73,7 @@ describe('Verify Prompt Management page', () => {
     },
     () => {
       const prompt = testData.prompts[0];
+      const promptName = `${prompt.name}-${testSuffix}`;
 
       cy.step('Log into the application');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
@@ -75,7 +95,7 @@ describe('Verify Prompt Management page', () => {
       promptManagement.findCreatePromptButton().click();
 
       cy.step('Fill in prompt name');
-      promptManagement.findPromptNameInput().should('be.visible').type(prompt.name);
+      promptManagement.findPromptNameInput().should('be.visible').type(promptName);
 
       cy.step('Fill in prompt template');
       promptManagement
@@ -90,7 +110,7 @@ describe('Verify Prompt Management page', () => {
       promptManagement.findCreateDialogSubmitButton().click();
 
       cy.step('Verify the prompt detail page is shown');
-      promptManagement.findPromptDetailHeading(prompt.name).should('be.visible');
+      promptManagement.findPromptDetailHeading(promptName).should('be.visible');
       promptManagement.findCreatePromptVersionButton().should('be.visible');
 
       cy.step('Verify Version 1 appears in the versions table');
@@ -130,7 +150,7 @@ describe('Verify Prompt Management page', () => {
       promptManagement.visit(projectName);
 
       cy.step('Verify the prompt persists after navigation');
-      promptManagement.findPromptInTable(prompt.name).should('be.visible');
+      promptManagement.findPromptInTable(promptName).should('be.visible');
     },
   );
 });
