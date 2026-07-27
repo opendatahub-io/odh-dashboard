@@ -6,7 +6,7 @@ import { modelTypeSelectFieldSchema, ModelTypeSelectField } from '../fields/Mode
 import { UseModelDeploymentWizardState } from '../useDeploymentWizard';
 import { ModelLocationSelectField } from '../fields/ModelLocationSelectField';
 import { isValidModelLocationData } from '../fields/ModelLocationInputFields';
-import { ModelLocationData, ModelLocationType } from '../types';
+import { ModelLocationData, ModelLocationType } from '../../../shared/types/form-data';
 import { createConnectionDataSchema } from '../fields/CreateConnectionInputFields';
 import type { ExternalDataMap } from '../ExternalDataLoader';
 import { GenericFieldRenderer } from '../fields/GenericFieldRenderer';
