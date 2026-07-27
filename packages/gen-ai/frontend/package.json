@@ -8,7 +8,7 @@
   "overrides": {
     "axios": "^1.16.1",
     "csstype": "3.2.3",
-    "shell-quote": ">=1.8.4",
+    "shell-quote": ">=1.10.0",
     "@types/react": "18.3.31"
   },
   "scripts": {
