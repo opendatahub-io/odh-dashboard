@@ -28,7 +28,10 @@ describe('getStatusInfo', () => {
   };
 
   it('provides correct info for workloads of each status', () => {
-    testWorkloadStatus(WorkloadStatusType.Pending, 'Waiting for resources');
+    testWorkloadStatus(
+      WorkloadStatusType.Pending,
+      "couldn't assign flavors to pod set main: insufficient unused quota for resource cpu in flavor default-flavor, 0 more needed",
+    );
     testWorkloadStatus(WorkloadStatusType.Inadmissible, 'The workload is inadmissible');
     testWorkloadStatus(WorkloadStatusType.Admitted, 'The workload is admitted');
     testWorkloadStatus(WorkloadStatusType.Running, 'The workload is running');
