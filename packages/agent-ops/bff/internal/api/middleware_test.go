@@ -43,7 +43,6 @@ func (c *rbacTestK8sClient) CanListServicesInNamespace(context.Context, *k8s.Req
 	return c.allowed, c.err
 }
 
-
 func (c *rbacTestK8sClient) CanAccessAgentCardEnrichment(context.Context, *k8s.RequestIdentity, string) (k8s.AgentCardEnrichmentAccess, error) {
 	if c.err != nil {
 		return k8s.AgentCardEnrichmentAccess{}, c.err
@@ -226,8 +225,8 @@ func TestRequireAuthenticatedForAgents_AuthDisabled(t *testing.T) {
 
 func TestRequireAuthenticatedForAgents_DoesNotCallGetClient(t *testing.T) {
 	app := &App{
-		config: config.EnvConfig{AuthMethod: config.AuthMethodInternal},
-		logger: slog.New(slog.NewTextHandler(io.Discard, nil)),
+		config:                  config.EnvConfig{AuthMethod: config.AuthMethodInternal},
+		logger:                  slog.New(slog.NewTextHandler(io.Discard, nil)),
 		kubernetesClientFactory: &fatalIfCalledFactory{t: t},
 	}
 
