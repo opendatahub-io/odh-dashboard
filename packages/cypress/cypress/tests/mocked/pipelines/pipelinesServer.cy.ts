@@ -7,6 +7,7 @@ import {
 } from '@odh-dashboard/internal/__mocks__';
 import { DSPipelineAPIServerStore } from '@odh-dashboard/internal/k8sTypes.ts';
 import { projectName, initIntercepts } from './pipelinesTestUtils';
+import { asProductAdminUser, asProjectAdminUser } from '../../../utils/mockUsers';
 import {
   pipelinesGlobal,
   configurePipelineServerModal,
@@ -17,6 +18,13 @@ import { DataSciencePipelineApplicationModel, SecretModel } from '../../../utils
 import { toastNotifications } from '../../../pages/components/ToastNotifications';
 
 describe('Pipeline Server', () => {
+  it('Empty state', () => {
+    initIntercepts({ isEmpty: true });
+    pipelinesGlobal.visit(projectName);
+    pipelinesGlobal.findEmptyState().should('exist');
+    pipelinesGlobal.findConfigurePipelineServerButton().should('be.enabled');
+  });
+
   it('Configure pipeline server when viable connection exists', () => {
     initIntercepts({ isEmpty: true });
 
@@ -814,5 +822,33 @@ describe('Pipeline Server', () => {
     pipelinesGlobal
       .findPipelineTimeoutErrorMessage()
       .should('have.text', 'Data connection unsuccessfully verified');
+  });
+
+  describe('Pipeline server actions per role', () => {
+    afterEach(() => {
+      Cypress.env('USER_CONFIG', undefined);
+    });
+
+    it('should show enabled pipeline server action button for product admin', () => {
+      asProductAdminUser();
+      initIntercepts({});
+      pipelinesGlobal.visit(projectName);
+      pipelinesGlobal.findPipelineServerActionButton().should('exist').should('be.enabled');
+    });
+
+    it('should show pipeline server action button for project admin', () => {
+      asProjectAdminUser();
+      initIntercepts({});
+      pipelinesGlobal.visit(projectName);
+      pipelinesGlobal.findPipelineServerActionButton().should('exist');
+    });
+
+    it('should show disabled pipeline server action button when server is unconfigured', () => {
+      asProductAdminUser();
+      initIntercepts({ isEmpty: true });
+      pipelinesGlobal.visit(projectName);
+      pipelinesGlobal.findEmptyState().should('exist');
+      pipelinesGlobal.findPipelineServerActionButton().should('exist').should('be.disabled');
+    });
   });
 });
