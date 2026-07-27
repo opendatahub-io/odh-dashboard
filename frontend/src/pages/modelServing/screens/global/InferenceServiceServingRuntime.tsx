@@ -49,7 +49,7 @@ const InferenceServiceServingRuntime: React.FC<Props> = ({ servingRuntime }) => 
           <StackItem>{getDisplayNameFromServingRuntimeTemplate(servingRuntime)}</StackItem>
           <StackItem>
             <LabelGroup numLabels={5}>
-              {...renderDeploymentResourceVersionLabels(servingRuntime, { isCompact: true })}
+              {renderDeploymentResourceVersionLabels(servingRuntime, { isCompact: true })}
               {versionStatus && (
                 <ServingRuntimeVersionStatus
                   isOutdated={versionStatus === ServingRuntimeVersionStatusLabel.OUTDATED}

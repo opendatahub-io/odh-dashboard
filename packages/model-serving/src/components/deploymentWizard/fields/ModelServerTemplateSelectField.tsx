@@ -75,7 +75,7 @@ const OptionDropdownLabel: React.FC<{ option: ModelServerOption }> = ({ option }
     {option.template ? (
       <FlexItem>
         <LabelGroup>
-          {...renderDeploymentResourceVersionLabels(option.template, { isCompact: true })}
+          {renderDeploymentResourceVersionLabels(option.template, { isCompact: true })}
         </LabelGroup>
       </FlexItem>
     ) : null}
@@ -188,7 +188,7 @@ const ModelServerTemplateSelectField: React.FC<ModelServerTemplateSelectFieldPro
               additionalContent={
                 selectedTemplate?.template ? (
                   <LabelGroup>
-                    {...renderDeploymentResourceVersionLabels(selectedTemplate.template, {
+                    {renderDeploymentResourceVersionLabels(selectedTemplate.template, {
                       isCompact: true,
                       isEditing,
                     })}

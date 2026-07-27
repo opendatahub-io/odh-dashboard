@@ -48,7 +48,7 @@ const CustomServingRuntimeTableRow: React.FC<CustomServingRuntimeTableRowProps> 
         </ResourceNameTooltip>
         <LabelGroup>
           {templateOOTB && <Label data-testid="pre-installed-label">{PreInstalledName}</Label>}
-          {...renderDeploymentResourceVersionLabels(template)}
+          {renderDeploymentResourceVersionLabels(template)}
         </LabelGroup>
       </Td>
       <Td dataLabel="Enabled">

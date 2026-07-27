@@ -59,7 +59,7 @@ const LlmAcceleratorConfigTableRow: React.FC<LlmAcceleratorConfigTableRowProps> 
         </ResourceNameTooltip>
         <LabelGroup>
           {preInstalled && <Label data-testid="pre-installed-label">{PreInstalledName}</Label>}
-          {...renderDeploymentResourceVersionLabels(config)}
+          {renderDeploymentResourceVersionLabels(config)}
         </LabelGroup>
       </Td>
       <Td dataLabel="Enabled">

@@ -51,7 +51,7 @@ const LLMInferenceServiceServingDetails: React.FC<Props> = ({ deployment, data }
       <StackItem>{getDisplayNameFromK8sResource(server)}</StackItem>
       <StackItem>
         <LabelGroup numLabels={5}>
-          {...renderDeploymentResourceVersionLabels(server, { isCompact: true })}
+          {renderDeploymentResourceVersionLabels(server, { isCompact: true })}
           {versionStatus && (
             <ServingRuntimeVersionStatus
               isOutdated={versionStatus === ServingRuntimeVersionStatusLabel.OUTDATED}
