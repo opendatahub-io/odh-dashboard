@@ -1,9 +1,9 @@
 import React from 'react';
 import { setupDefaults } from '@odh-dashboard/k8s-core';
 import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
-import { type InitialWizardFormData } from './types';
 import { getExternalRouteFromDeployment, getTokenAuthenticationFromDeployment } from './utils';
 import { useWizardFieldExtractors } from './useWizardFieldExtractors';
+import { type InitialWizardFormData } from '../../shared/types/form-data';
 import { type Deployment, type ExtractionResult } from '../../../extension-points';
 import { isModelServingDeploymentFormDataExtension } from '../../../extension-points/deployment-wizard';
 import { isModelServingAuthExtension } from '../../../extension-points';

@@ -4,9 +4,9 @@ import {
   getExistingResources,
   MODEL_SERVING_VISIBILITY,
 } from '@odh-dashboard/hardware-profiles/shared';
-import type { ModelLocationData } from '@odh-dashboard/model-serving/components/deploymentWizard/types';
-import { ModelLocationType } from '@odh-dashboard/model-serving/components/deploymentWizard/types';
-import type { ModelTypeFieldData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/ModelTypeSelectField';
+import type { ModelLocationData } from '@odh-dashboard/model-serving/shared/types/form-data';
+import { ModelLocationType } from '@odh-dashboard/model-serving/shared/types/form-data';
+import type { ModelTypeFieldData } from '@odh-dashboard/model-serving/shared/wizard-fields';
 import type { ExtractionResult } from '@odh-dashboard/model-serving/extension-points';
 import type { NIMDeployment } from '../../api/nimservices/types';
 import { NIM_SERVICE_HARDWARE_PROFILE_PATHS } from '../../api/nimservices/utils';

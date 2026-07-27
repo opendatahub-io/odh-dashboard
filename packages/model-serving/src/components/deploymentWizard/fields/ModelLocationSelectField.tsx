@@ -28,7 +28,11 @@ import { hasOnlyExtensionFields, ModelLocationInputFields } from './ModelLocatio
 import { NIMModelLocationOption } from './modelLocationFields/NIMModelLocation';
 import { useEnabledModelServingConnectionTypes } from './modelLocationFields/useEnabledConnectionTypes';
 import { ociOption, s3Option, uriOption } from './modelLocationFields/modelLocationTypes';
-import { isModelLocationType, ModelLocationData, ModelLocationType } from '../types';
+import {
+  isModelLocationType,
+  ModelLocationData,
+  ModelLocationType,
+} from '../../../shared/types/form-data';
 import { UseModelDeploymentWizardState } from '../useDeploymentWizard';
 
 // Component

@@ -6,8 +6,10 @@ import {
   isUnsupportedUnaccepted,
   UNSUPPORTED_STATUS_ACCEPTED_ANNOTATION,
 } from '@odh-dashboard/model-serving/concepts/versions';
-import UnsupportedStatusAcceptanceModal from '@odh-dashboard/model-serving/components/UnsupportedStatusAcceptanceModal';
-import type { UnsupportedStatusDismissAction } from '@odh-dashboard/model-serving/components/UnsupportedStatusAcceptanceModal';
+import {
+  UnsupportedStatusAcceptanceModal,
+  type UnsupportedStatusDismissAction,
+} from '@odh-dashboard/model-serving/shared/components';
 import {
   fireRiskAccepted,
   fireRiskDismissed,

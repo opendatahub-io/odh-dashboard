@@ -1,10 +1,7 @@
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import type { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
-import {
-  getServingRuntimeVersion,
-  getFastVersion,
-} from '@odh-dashboard/model-serving/concepts/versions';
-import type { UnsupportedStatusDismissAction } from '@odh-dashboard/model-serving/components/UnsupportedStatusAcceptanceModal';
+import type { UnsupportedStatusDismissAction } from '../../components/UnsupportedStatusAcceptanceModal';
+import { getServingRuntimeVersion, getFastVersion } from '../../concepts/versions';
 
 export enum LimitedSupportEvent {
   RISK_ACCEPTED = 'Model Serving Unsupported Runtime Risk Accepted',
