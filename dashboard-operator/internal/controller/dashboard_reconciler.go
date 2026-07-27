@@ -60,6 +60,12 @@ var persesdashboardGVK = schema.GroupVersionKind{
 	Kind:    "PersesDashboardList",
 }
 
+var deploymentGVK = schema.GroupVersionKind{
+	Group:   "apps",
+	Version: "v1",
+	Kind:    "Deployment",
+}
+
 // Version is set at build time via -ldflags.
 var Version = "unknown"
 
@@ -306,6 +312,7 @@ func (r *DashboardReconciler) reconcileSidecar(
 		deploy.WithFieldOwner("dashboard-operator"),
 		deploy.WithLabel(labels.PlatformPartOf, strings.ToLower(v1alpha1.DashboardKind)),
 		deploy.WithApplyOrder(),
+		deploy.WithMergeStrategy(deploymentGVK, deploy.MergeDeployments),
 	)
 
 	if err := deployer.Deploy(ctx, deploy.DeployInput{
@@ -425,6 +432,7 @@ func (r *DashboardReconciler) reconcileStandalone(
 		deploy.WithFieldOwner("dashboard-operator"),
 		deploy.WithLabel(labels.PlatformPartOf, strings.ToLower(v1alpha1.DashboardKind)),
 		deploy.WithApplyOrder(),
+		deploy.WithMergeStrategy(deploymentGVK, deploy.MergeDeployments),
 	)
 
 	if err := deployer.Deploy(ctx, deploy.DeployInput{
