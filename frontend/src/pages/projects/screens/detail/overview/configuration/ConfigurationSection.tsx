@@ -3,7 +3,7 @@ import { Content } from '@patternfly/react-core';
 import type { AccessReviewResourceAttributes } from '@odh-dashboard/k8s-core';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { CollapsibleSection } from '@odh-dashboard/ui-core';
-import { useAccessReview } from '#~/api';
+import { useAccessReview } from '@odh-dashboard/plugin-core/host-api';
 import { ProjectObjectType, SectionType, sectionTypeBorderColor } from '#~/concepts/design/utils';
 import DividedGallery from '#~/concepts/design/DividedGallery';
 import InfoGalleryItem from '#~/concepts/design/InfoGalleryItem';

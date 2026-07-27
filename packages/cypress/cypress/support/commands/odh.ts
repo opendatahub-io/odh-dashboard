@@ -69,7 +69,6 @@ import type {
   ClusterSettingsType,
   DetectedAccelerators,
   ImageInfo,
-  IntegrationAppStatus,
   OdhApplication,
   OdhDocument,
   PrometheusQueryRangeResponse,
@@ -77,6 +76,7 @@ import type {
   ResponseStatus,
   SubscriptionStatusData,
 } from '@odh-dashboard/internal/types';
+import type { IntegrationAppStatus } from '@odh-dashboard/plugin-core/integrations';
 import type {
   ArgoWorkflowPipelineVersion,
   ExperimentKF,

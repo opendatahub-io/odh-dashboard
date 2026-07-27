@@ -1,8 +1,10 @@
 import React from 'react';
 import { useExtensions } from '@odh-dashboard/plugin-core';
-import { IntegrationsStatusContext } from '@odh-dashboard/internal/concepts/integrations/IntegrationsStatusContext';
-import { isEnabled } from '@odh-dashboard/internal/concepts/integrations/useIsComponentIntegrationEnabled';
-import type { IntegrationAppStatus } from '@odh-dashboard/internal/types';
+import {
+  IntegrationsContext,
+  isEnabled,
+  type IntegrationAppStatus,
+} from '@odh-dashboard/plugin-core/integrations';
 import type { ModelServingPlatform } from './useProjectServingPlatform';
 import { isModelServingPlatformExtension } from '../../extension-points';
 
@@ -32,7 +34,7 @@ type ClusterPlatformsType = {
 export const useAvailableClusterPlatforms = (): ClusterPlatformsType => {
   const allPlatforms = useExtensions<ModelServingPlatform>(isModelServingPlatformExtension);
 
-  const { integrationStatus, loaded, error } = React.useContext(IntegrationsStatusContext);
+  const { integrationStatus, loaded, error } = React.useContext(IntegrationsContext);
 
   const platforms = React.useMemo(() => {
     const availablePlatforms = [];
