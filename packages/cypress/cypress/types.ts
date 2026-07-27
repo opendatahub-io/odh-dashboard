@@ -331,7 +331,6 @@ export type DataScienceProjectData = {
 
 export type RoutingTestData = DataScienceProjectData & {
   routingConfigName: string;
-  routingConfigDisplayName: string;
   routingConfigFixture: string;
   topologyTypeTestId: string;
   topologyTypeLabel: string;

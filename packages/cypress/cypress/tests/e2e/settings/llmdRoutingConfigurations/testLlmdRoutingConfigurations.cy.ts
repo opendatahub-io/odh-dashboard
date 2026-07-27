@@ -18,6 +18,7 @@ import type { RoutingTestData, DataScienceProjectData } from '../../../../types'
 let testData: RoutingTestData;
 const uuid = generateTestUUID();
 let projectName: string;
+let routingConfigName: string;
 
 describe('LLMD Routing Configurations - Admin Settings', () => {
   retryableBefore(() => {
@@ -27,6 +28,7 @@ describe('LLMD Routing Configurations - Admin Settings', () => {
       .then((fixtureData: DataScienceProjectData) => {
         testData = fixtureData as RoutingTestData;
         projectName = `${testData.projectResourceName}-${uuid}`;
+        routingConfigName = `${testData.routingConfigName}-${uuid}`;
       })
       .then(() => {
         createCleanProject(projectName);
@@ -34,8 +36,8 @@ describe('LLMD Routing Configurations - Admin Settings', () => {
   });
 
   after(() => {
-    cleanupLLMInferenceServiceConfig(testData.routingConfigName);
-    cleanupLLMInferenceServiceConfig(`${testData.routingConfigName}-copy`);
+    cleanupLLMInferenceServiceConfig(routingConfigName);
+    cleanupLLMInferenceServiceConfig(`${routingConfigName}-copy`);
     deleteOpenShiftProject(projectName, { wait: true, ignoreNotFound: true, timeout: 300000 });
   });
 
@@ -53,7 +55,7 @@ describe('LLMD Routing Configurations - Admin Settings', () => {
 
       cy.step('Create routing config from UI');
       llmdRoutingSettingsPage.findAddButton().click();
-      llmdRoutingCreatePage.findDisplayNameInput().clear().type(testData.routingConfigDisplayName);
+      llmdRoutingCreatePage.findDisplayNameInput().clear().type(routingConfigName);
       llmdRoutingCreatePage.selectTopologyType(testData.topologyTypeTestId);
       llmdRoutingCreatePage.selectConfigSource(testData.configSourceEditorKey);
       llmdRoutingCreatePage.findYamlEditor().should('exist');
@@ -68,7 +70,7 @@ describe('LLMD Routing Configurations - Admin Settings', () => {
 
       cy.step('Validate routing row: exists, enabled, topology type');
       llmdRoutingSettingsPage.findTable().should('exist');
-      const row = llmdRoutingSettingsPage.getRow(testData.routingConfigName);
+      const row = llmdRoutingSettingsPage.getRow(routingConfigName);
       row.find().should('exist');
       row.findEnabledSwitch().should('exist');
       row.find().should('contain.text', testData.topologyTypeLabel);
@@ -78,22 +80,19 @@ describe('LLMD Routing Configurations - Admin Settings', () => {
       llmdRoutingCreatePage.findTopologyTypeSelect().should('not.be.disabled');
       llmdRoutingCreatePage.findSubmitButton().should('be.enabled').click();
       llmdRoutingSettingsPage.findTable().should('exist');
-      llmdRoutingSettingsPage.getRow(testData.routingConfigName).find().should('exist');
+      llmdRoutingSettingsPage.getRow(routingConfigName).find().should('exist');
 
       cy.step('Duplicate the routing config');
-      llmdRoutingSettingsPage
-        .getRow(testData.routingConfigName)
-        .findKebabAction('Duplicate')
-        .click();
+      llmdRoutingSettingsPage.getRow(routingConfigName).findKebabAction('Duplicate').click();
       llmdRoutingCreatePage.findSubmitButton().should('be.enabled').click();
       llmdRoutingSettingsPage.findTable().should('exist');
-      llmdRoutingSettingsPage.getRow(`${testData.routingConfigName}-copy`).find().should('exist');
+      llmdRoutingSettingsPage.getRow(`${routingConfigName}-copy`).find().should('exist');
 
       cy.step('Delete the original routing config');
-      llmdRoutingSettingsPage.getRow(testData.routingConfigName).findKebabAction('Delete').click();
+      llmdRoutingSettingsPage.getRow(routingConfigName).findKebabAction('Delete').click();
       deleteRouteModal.findSubmitButton().should('be.enabled').click();
-      llmdRoutingSettingsPage.getRow(testData.routingConfigName).find().should('not.exist');
-      llmdRoutingSettingsPage.getRow(`${testData.routingConfigName}-copy`).find().should('exist');
+      llmdRoutingSettingsPage.getRow(routingConfigName).find().should('not.exist');
+      llmdRoutingSettingsPage.getRow(`${routingConfigName}-copy`).find().should('exist');
 
       cy.step('Navigate to project and open deploy wizard');
       projectListPage.navigate();
@@ -121,9 +120,7 @@ describe('LLMD Routing Configurations - Admin Settings', () => {
         .findRoutingConfigSelect()
         .should('contain.text', testData.defaultRoutingLabel);
       modelServingWizard.findRoutingConfigSelect().click();
-      modelServingWizard
-        .findRoutingConfigOption(`${testData.routingConfigName}-copy`)
-        .should('exist');
+      modelServingWizard.findRoutingConfigOption(`${routingConfigName}-copy`).should('exist');
     },
   );
 });
