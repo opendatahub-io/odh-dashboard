@@ -46,7 +46,7 @@ const CustomServingRuntimeTableRow: React.FC<CustomServingRuntimeTableRowProps> 
         <ResourceNameTooltip resource={template}>
           {getServingRuntimeDisplayNameFromTemplate(template)}
         </ResourceNameTooltip>
-        <LabelGroup>
+        <LabelGroup numLabels={5}>
           {templateOOTB && <Label data-testid="pre-installed-label">{PreInstalledName}</Label>}
           {renderDeploymentResourceVersionLabels(template)}
         </LabelGroup>

@@ -57,7 +57,7 @@ const LlmAcceleratorConfigTableRow: React.FC<LlmAcceleratorConfigTableRowProps> 
         <ResourceNameTooltip resource={config}>
           {getDisplayNameFromK8sResource(config)}
         </ResourceNameTooltip>
-        <LabelGroup>
+        <LabelGroup numLabels={5}>
           {preInstalled && <Label data-testid="pre-installed-label">{PreInstalledName}</Label>}
           {renderDeploymentResourceVersionLabels(config)}
         </LabelGroup>
