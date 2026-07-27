@@ -38,7 +38,7 @@ import {
 } from '~/app/pages/mcpCatalogSettings/tracking/mcpCatalogSourcesTracking';
 import McpSourceDetailsSection from './McpSourceDetailsSection';
 import McpYamlSection from './McpYamlSection';
-import McpServerVisibilitySection from './McpServerVisibilitySection';
+import McpServerFiltersSection from './McpServerFiltersSection';
 import McpPreviewPanel from './McpPreviewPanel';
 import McpManageSourceFormFooter from './McpManageSourceFormFooter';
 
@@ -195,7 +195,7 @@ const McpManageSourceForm: React.FC<McpManageSourceFormProps> = ({
               )}
 
               <StackItem>
-                <McpServerVisibilitySection
+                <McpServerFiltersSection
                   formData={formData}
                   setData={setData}
                   isDefaultExpanded={

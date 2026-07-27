@@ -1,4 +1,4 @@
-import { Button, Spinner, Flex, FlexItem, Popover, Tooltip } from '@patternfly/react-core';
+import { Spinner, Flex, FlexItem, Popover } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import React from 'react';
 import { DashboardPopupIconButton, ScopedLabel } from '@odh-dashboard/ui-core';
@@ -10,7 +10,7 @@ import type { HardwareProfileResource } from './types';
 import { resourceTypeOf } from './utils';
 import HardwareProfileDetailsPopover from './HardwareProfileDetailsPopover';
 import HardwareProfileBindingStateLabel from './HardwareProfileBindingStateLabel';
-import { HardwareProfileBindingState, QueueSource } from './const';
+import { HardwareProfileBindingState } from './const';
 import { HardwareProfileBindingStateInfo } from './types';
 
 type HardwareProfileTableColumnProps = {
@@ -22,6 +22,7 @@ type HardwareProfileTableColumnProps = {
     bindingStateLoaded: boolean;
     loadError: Error | undefined;
   };
+  onExpandRow?: () => void;
 };
 
 const HardwareProfileTableColumn: React.FC<HardwareProfileTableColumnProps> = ({
@@ -29,6 +30,7 @@ const HardwareProfileTableColumn: React.FC<HardwareProfileTableColumnProps> = ({
   resource,
   isActive = false,
   bindingState,
+  onExpandRow,
 }) => {
   const isProjectScoped = useIsAreaAvailable(SupportedArea.DS_PROJECT_SCOPED).status;
   const { bindingStateInfo, bindingStateLoaded, loadError } = bindingState;
@@ -75,29 +77,15 @@ const HardwareProfileTableColumn: React.FC<HardwareProfileTableColumnProps> = ({
                 tolerations={hardwareProfile.spec.scheduling?.node?.tolerations}
                 nodeSelector={hardwareProfile.spec.scheduling?.node?.nodeSelector}
                 localQueueName={hardwareProfile.spec.scheduling?.kueue?.localQueueName}
-                queueSource={
-                  hardwareProfile.spec.scheduling?.kueue?.localQueueName
-                    ? QueueSource.HARDWARE_PROFILE
-                    : undefined
-                }
                 priorityClass={hardwareProfile.spec.scheduling?.kueue?.priorityClass}
                 tableView
               />
-            ) : directQueueName ? (
+            ) : (
               <HardwareProfileDetailsPopover
                 localQueueName={directQueueName}
-                queueSource={QueueSource.DIRECT}
+                onExpandRow={onExpandRow}
                 tableView
               />
-            ) : (
-              <Tooltip
-                content="No matching hardware profile found, using existing settings. Default, min, and max values are not available. Expand the row to view the current resource settings."
-                data-testid="hardware-profile-custom-tooltip"
-              >
-                <Button isInline variant="plain" aria-label="Custom hardware profile">
-                  <i>Custom</i>
-                </Button>
-              </Tooltip>
             )}
           </FlexItem>
         )}

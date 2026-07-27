@@ -200,7 +200,7 @@ const ChatbotHeaderActions: React.FC<ChatbotHeaderActionsProps> = ({
                   key="save-as-agent-configuration"
                   data-testid="save-as-agent-profile-button"
                 >
-                  Save as agent
+                  Save as new agent
                 </DropdownItem>
               )}
               {agentConfigManagementEnabled && profileApplied && (

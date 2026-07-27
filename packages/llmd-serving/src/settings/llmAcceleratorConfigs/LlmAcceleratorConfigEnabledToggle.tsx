@@ -1,11 +1,18 @@
 import * as React from 'react';
 import { Switch } from '@patternfly/react-core';
+import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import useNotification from '@odh-dashboard/internal/utilities/useNotification';
 import {
   isUnsupportedUnaccepted,
   UNSUPPORTED_STATUS_ACCEPTED_ANNOTATION,
 } from '@odh-dashboard/model-serving/concepts/versions';
 import UnsupportedStatusAcceptanceModal from '@odh-dashboard/model-serving/components/UnsupportedStatusAcceptanceModal';
+import type { UnsupportedStatusDismissAction } from '@odh-dashboard/model-serving/components/UnsupportedStatusAcceptanceModal';
+import {
+  fireRiskAccepted,
+  fireRiskDismissed,
+  getResourceVersions,
+} from '@odh-dashboard/model-serving/shared/tracking/limitedSupportTracking';
 import type { LLMInferenceServiceConfigKind } from '../../types';
 import { DISABLED_ANNOTATION } from '../../const';
 import { isConfigEnabled } from '../../utils';
@@ -27,7 +34,7 @@ const LlmAcceleratorConfigEnabledToggle: React.FC<LlmAcceleratorConfigEnabledTog
   const effectiveEnabled = unsupportedUnaccepted ? false : isConfigEnabled(config);
 
   const patchConfigAnnotations = React.useCallback(
-    async (annotationUpdates: Record<string, string>) => {
+    async (annotationUpdates: Record<string, string>): Promise<boolean> => {
       setIsToggling(true);
       const updatedConfig: LLMInferenceServiceConfigKind = {
         ...config,
@@ -42,11 +49,13 @@ const LlmAcceleratorConfigEnabledToggle: React.FC<LlmAcceleratorConfigEnabledTog
 
       try {
         await patchLLMInferenceServiceConfig(config, updatedConfig);
+        return true;
       } catch (e) {
         notification.error(
           'Error updating accelerator configuration',
           e instanceof Error ? e.message : 'Unknown error',
         );
+        return false;
       } finally {
         setIsToggling(false);
       }
@@ -64,13 +73,23 @@ const LlmAcceleratorConfigEnabledToggle: React.FC<LlmAcceleratorConfigEnabledTog
     }
   }, [effectiveEnabled, unsupportedUnaccepted, patchConfigAnnotations]);
 
-  const handleAccept = React.useCallback(() => {
+  const handleAccept = React.useCallback(async () => {
     setShowAcceptanceModal(false);
-    patchConfigAnnotations({
+    const success = await patchConfigAnnotations({
       [UNSUPPORTED_STATUS_ACCEPTED_ANNOTATION]: 'true',
       [DISABLED_ANNOTATION]: 'false',
     });
-  }, [patchConfigAnnotations]);
+    if (success) {
+      fireRiskAccepted({
+        runtimeResourceType: 'llm-accelerator-config',
+        resourceId: config.metadata.name,
+        resourceName: getDisplayNameFromK8sResource(config),
+        ...getResourceVersions(config),
+        outcome: 'submit',
+        success: true,
+      });
+    }
+  }, [config, patchConfigAnnotations]);
 
   return (
     <>
@@ -86,7 +105,17 @@ const LlmAcceleratorConfigEnabledToggle: React.FC<LlmAcceleratorConfigEnabledTog
         <UnsupportedStatusAcceptanceModal
           resourceTypeLabel="accelerator configuration"
           onAccept={handleAccept}
-          onClose={() => setShowAcceptanceModal(false)}
+          onClose={(dismissAction: UnsupportedStatusDismissAction) => {
+            setShowAcceptanceModal(false);
+            fireRiskDismissed({
+              runtimeResourceType: 'llm-accelerator-config',
+              resourceId: config.metadata.name,
+              resourceName: getDisplayNameFromK8sResource(config),
+              ...getResourceVersions(config),
+              dismissAction,
+              outcome: 'cancel',
+            });
+          }}
         />
       ) : null}
     </>

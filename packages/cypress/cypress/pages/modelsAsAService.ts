@@ -1,6 +1,7 @@
 import { DeleteModal } from './components/DeleteModal';
 import { Modal } from './components/Modal';
 import { TableRow } from './components/table';
+import type { UserAuthConfig } from '../types';
 
 // MaaS Wizard Field helpers for the model deployment wizard
 class MaaSWizardField {
@@ -1512,6 +1513,18 @@ class ExternalModelsPage {
     cy.testA11y();
   }
 
+  visitAsUser(
+    user: UserAuthConfig,
+    options?: { enableExternalModelsFlag?: boolean; projectName?: string },
+  ): void {
+    const projectSegment = options?.projectName ? `/${options.projectName}` : '';
+    const flagQuery = options?.enableExternalModelsFlag
+      ? '?devFeatureFlags=externalModels=true'
+      : '';
+    cy.visitWithLogin(`/ai-hub/models/deployments/external${projectSegment}${flagQuery}`, user);
+    cy.testA11y();
+  }
+
   findTabPageTitle(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('app-tab-page-title');
   }
@@ -1526,6 +1539,19 @@ class ExternalModelsPage {
 
   findProjectSelector(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('external-models-project-selector');
+  }
+
+  findProjectSelectorToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findProjectSelector().findByTestId('project-selector-toggle');
+  }
+
+  findProjectSelectorOption(name: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('project-selector-menuList').findByRole('menuitem', { name });
+  }
+
+  selectProject(name: string): void {
+    this.findProjectSelectorToggle().click();
+    this.findProjectSelectorOption(name).click();
   }
 
   findEmptyState(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -1675,7 +1701,7 @@ class DeleteExternalModelModal extends DeleteModal {
 
 class ExternalModelPathModal extends Modal {
   constructor() {
-    super('Resolved path');
+    super('Path');
   }
 
   find(): Cypress.Chainable<JQuery<HTMLElement>> {

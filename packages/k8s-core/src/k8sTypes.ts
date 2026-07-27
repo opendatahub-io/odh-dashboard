@@ -285,6 +285,7 @@ export type DashboardCommonConfig = {
   disableKueue: boolean;
   trainingJobs: boolean;
   disableFeatureStore?: boolean;
+  featureStoreAdmin?: boolean;
   genAiStudio?: boolean;
   guardrails?: boolean;
   genAiTracing?: boolean;
@@ -300,6 +301,7 @@ export type DashboardCommonConfig = {
   projectRBAC?: boolean;
   observabilityDashboard?: boolean;
   disableLLMd?: boolean;
+  llmdTemplates?: boolean;
   deploymentWizardYAMLViewer?: boolean;
   externalVectorStores?: boolean;
   agentConfigManagement?: boolean;

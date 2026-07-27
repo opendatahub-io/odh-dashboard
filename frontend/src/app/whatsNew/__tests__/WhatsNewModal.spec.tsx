@@ -155,6 +155,7 @@ describe('WhatsNewModal', () => {
       autorag: false,
       guardrails: false,
       agentConfigManagement: false,
+      roleManagement: false,
     };
 
     it('should tell admins which flag to enable in OdhDashboardConfig', () => {
@@ -217,7 +218,7 @@ describe('WhatsNewModal', () => {
       startTourAndWait("Tour what's new");
 
       expect(screen.getByText('Projects')).toBeInTheDocument();
-      expect(screen.getByText('Granular role creation')).toBeInTheDocument();
+      expect(screen.getByText('Roles')).toBeInTheDocument();
     });
   });
 

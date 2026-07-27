@@ -86,6 +86,10 @@ const AutomlPipelineVisualization: React.FC<AutomlPipelineVisualizationProps> = 
     [selectedIds, showDetails],
   );
 
+  const handleCloseDetails = React.useCallback(() => {
+    setShowDetails(false);
+  }, []);
+
   React.useEffect(() => {
     if (showTreeLoadingState) {
       setSelectedIds([]);
@@ -130,31 +134,17 @@ const AutomlPipelineVisualization: React.FC<AutomlPipelineVisualizationProps> = 
             spaceItems={{ default: 'spaceItemsMd' }}
             flexWrap={{ default: 'wrap' }}
           >
-            {showDetails ? (
-              <FlexItem>
-                <Button
-                  variant="tertiary"
-                  isInline
-                  aria-expanded
-                  onClick={() => setShowDetails(false)}
-                  data-testid="hide-details"
-                >
-                  Hide details
-                </Button>
-              </FlexItem>
-            ) : (
-              <FlexItem>
-                <Button
-                  variant="tertiary"
-                  isInline
-                  aria-expanded={false}
-                  onClick={() => setShowDetails(true)}
-                  data-testid="show-details"
-                >
-                  Show details
-                </Button>
-              </FlexItem>
-            )}
+            <FlexItem>
+              <Button
+                variant="tertiary"
+                isInline
+                aria-expanded={showDetails}
+                onClick={() => setShowDetails((prev) => !prev)}
+                data-testid={showDetails ? 'hide-details' : 'show-details'}
+              >
+                {showDetails ? 'Hide details' : 'Show details'}
+              </Button>
+            </FlexItem>
           </Flex>
         </FlexItem>
       </Flex>
@@ -178,7 +168,7 @@ const AutomlPipelineVisualization: React.FC<AutomlPipelineVisualizationProps> = 
                   treeLoadingMode={treeLoadingMode}
                   componentStageMap={componentStageMap}
                   pipelineRun={pipelineRun}
-                  onClose={() => setShowDetails(false)}
+                  onClose={handleCloseDetails}
                 />
               </DrawerPanelContent>
             }

@@ -75,6 +75,37 @@ const PipelineRunDetails: React.FC<
     return selectedIds ? nodes.find((n) => n.id === selectedIds[0]) : undefined;
   }, [isInvalidPipelineVersion, selectedIds, nodes]);
 
+  // Scope executions for the drawer based on the selected node's iteration context
+  const drawerExecutions = React.useMemo(() => {
+    if (selectedNode) {
+      // Check the selected node itself for iterationParentDagId (iteration group)
+      const directDagId = selectedNode.data?.pipelineTask?.iterationParentDagId;
+      if (directDagId != null) {
+        return executions.filter((e) => {
+          const parentId = e.getCustomPropertiesMap().get('parent_dag_id')?.getIntValue();
+          return parentId === directDagId;
+        });
+      }
+      // Otherwise, find the parent iteration group that contains this node as a child
+      const parentIterGroup = nodes.find(
+        (n) =>
+          n.group &&
+          n.children?.includes(selectedNode.id) &&
+          n.data?.pipelineTask?.iterationParentDagId != null,
+      );
+      if (parentIterGroup) {
+        const iterDagId = parentIterGroup.data?.pipelineTask?.iterationParentDagId;
+        if (iterDagId != null) {
+          return executions.filter((e) => {
+            const parentId = e.getCustomPropertiesMap().get('parent_dag_id')?.getIntValue();
+            return parentId === iterDagId;
+          });
+        }
+      }
+    }
+    return executions;
+  }, [executions, nodes, selectedNode]);
+
   const loaded = runLoaded && (versionLoaded || !!run?.pipeline_spec || !!versionError);
   const error = runError;
 
@@ -105,7 +136,7 @@ const PipelineRunDetails: React.FC<
       task={selectedNode.data.pipelineTask}
       upstreamTaskName={selectedNode.runAfterTasks?.[0]}
       onClose={() => setSelectedIds(undefined)}
-      executions={executions}
+      executions={drawerExecutions}
     />
   ) : null;
 

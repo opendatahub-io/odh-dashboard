@@ -8,6 +8,9 @@ import {
   Button,
   Form,
   FormGroup,
+  FormHelperText,
+  HelperText,
+  HelperTextItem,
 } from '@patternfly/react-core';
 import { Link, Navigate, useLocation, useNavigate, useParams } from 'react-router';
 import YAML from 'yaml';
@@ -215,7 +218,7 @@ const TopologyConfigurationCreateEditInner: React.FC<{
     },
     {
       key: 'editor',
-      label: 'Upload an existing configuration file',
+      label: 'Open code editor',
     },
   ];
 
@@ -287,6 +290,11 @@ const TopologyConfigurationCreateEditInner: React.FC<{
         />
         {!isEditMode && !isDuplicateMode && (
           <FormGroup label="Configuration source" isRequired fieldId="config-source">
+            <FormHelperText>
+              <HelperText>
+                <HelperTextItem>Select how to provide the topology configuration.</HelperTextItem>
+              </HelperText>
+            </FormHelperText>
             <SimpleSelect
               options={configSourceOptions}
               value={configSource}
@@ -309,6 +317,7 @@ const TopologyConfigurationCreateEditInner: React.FC<{
               code={yamlCode}
               onCodeChange={setYamlCode}
               topologyTypeLabel={topologyTypeLabel}
+              isUploadEnabled={configSource !== 'template'}
             />
           </FormGroup>
         )}

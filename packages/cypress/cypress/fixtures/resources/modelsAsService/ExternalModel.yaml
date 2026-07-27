@@ -1,0 +1,12 @@
+apiVersion: inference.opendatahub.io/v1alpha1
+kind: ExternalModel
+metadata:
+  name: "{{RESOURCE_NAME}}"
+  namespace: "{{PROJECT_NAME}}"
+spec:
+  externalProviderRefs:
+    - ref:
+        name: "{{RESOURCE_NAME}}"
+      targetModel: "{{RESOURCE_NAME}}"
+      apiFormat: openai-chat
+      path: /v1/chat/completions

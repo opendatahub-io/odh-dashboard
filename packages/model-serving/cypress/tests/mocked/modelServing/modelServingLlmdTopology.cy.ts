@@ -84,6 +84,7 @@ const initIntercepts = ({
     genAiStudio: true,
     modelAsService: true,
     disableLLMd: false,
+    llmdTemplates: true,
     vLLMDeploymentOnMaaS: true,
   });
   cy.interceptOdh('GET /api/config', config);

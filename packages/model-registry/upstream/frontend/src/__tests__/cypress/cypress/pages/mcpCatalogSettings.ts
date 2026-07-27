@@ -24,11 +24,11 @@ class McpCatalogSettings {
 
   findHeading() {
     cy.findByTestId('app-page-title').should('exist');
-    cy.findByTestId('app-page-title').contains('MCP catalog settings');
+    cy.findByTestId('app-page-title').contains('MCP catalog sources');
   }
 
   findNavItem() {
-    return appChrome.findNavItem('MCP catalog settings', 'Settings');
+    return appChrome.findNavItem('MCP catalog sources', 'Settings');
   }
 
   findDescription() {
@@ -109,7 +109,7 @@ class McpManageSourcePage {
   }
 
   findAddSourceTitle() {
-    return cy.findByTestId('app-page-title').contains('Add a source');
+    return cy.findByTestId('app-page-title').contains('Add source');
   }
 
   findManageSourceTitle() {
@@ -121,9 +121,7 @@ class McpManageSourcePage {
   }
 
   findManageSourceDescription() {
-    return cy.contains(
-      'Configure which MCP servers from this pre-loaded catalog source are visible in the MCP catalog.',
-    );
+    return cy.contains('Configure which servers from this source appear in the MCP catalog.');
   }
 
   // Form field methods
@@ -148,7 +146,7 @@ class McpManageSourcePage {
   }
 
   findServerVisibilitySection() {
-    return cy.findByTestId('mcp-server-visibility-section');
+    return cy.findByTestId('mcp-server-filters-section');
   }
 
   toggleServerVisibility() {

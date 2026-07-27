@@ -42,6 +42,7 @@ func main() {
 		leaderElect       bool
 		secureMetrics     bool
 		operatorNamespace string
+		enableWebhook     bool
 		webhookPort       int
 	)
 
@@ -51,6 +52,7 @@ func main() {
 	flag.BoolVar(&leaderElect, "leader-elect", false, "Enable leader election for controller manager")
 	flag.BoolVar(&secureMetrics, "secure-metrics", true, "Serve metrics over HTTPS using cert-manager certificates")
 	flag.StringVar(&operatorNamespace, "namespace", "", "Namespace where the operator is deployed")
+	flag.BoolVar(&enableWebhook, "enable-webhook", false, "Enable the validating webhook server (requires TLS certs)")
 	flag.IntVar(&webhookPort, "webhook-port", 9443, "Port the webhook server binds to")
 
 	opts := zap.Options{Development: true}
@@ -85,14 +87,18 @@ func main() {
 		}
 	}
 
-	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
+	mgrOpts := ctrl.Options{
 		Scheme:                 scheme,
 		Metrics:                metricsOpts,
 		HealthProbeBindAddress: healthProbeAddr,
 		LeaderElection:         leaderElect,
 		LeaderElectionID:       "dashboard.components.platform.opendatahub.io",
-		WebhookServer:          ctrlwebhook.NewServer(ctrlwebhook.Options{Port: webhookPort}),
-	})
+	}
+	if enableWebhook {
+		mgrOpts.WebhookServer = ctrlwebhook.NewServer(ctrlwebhook.Options{Port: webhookPort})
+	}
+
+	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), mgrOpts)
 	if err != nil {
 		setupLog.Error(err, "unable to create manager")
 		os.Exit(1)
@@ -116,8 +122,10 @@ func main() {
 		os.Exit(1)
 	}
 
-	mgr.GetWebhookServer().Register("/validate-dashboard", webhook.NewSingletonHandler(mgr.GetAPIReader()))
-	setupLog.Info("Registered singleton validation webhook", "path", "/validate-dashboard")
+	if enableWebhook {
+		mgr.GetWebhookServer().Register("/validate-dashboard", webhook.NewSingletonHandler(mgr.GetAPIReader()))
+		setupLog.Info("Registered singleton validation webhook", "path", "/validate-dashboard")
+	}
 
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
 		setupLog.Error(err, "unable to set up health check")
