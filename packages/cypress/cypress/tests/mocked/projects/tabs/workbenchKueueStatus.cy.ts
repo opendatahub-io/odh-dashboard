@@ -238,7 +238,7 @@ describe('Workbench page — Kueue & Status', () => {
       workbenchPage
         .getNotebookRow('Test Notebook')
         .find()
-        .should('contain.text', 'Paused by a higher-priority job');
+        .should('contain.text', 'Paused by higher-priority job');
     });
 
     it('displays Evicted when workload has Evicted condition with non-preemption reason', () => {
@@ -286,7 +286,10 @@ describe('Workbench page — Kueue & Status', () => {
       ).as('pendingWorkloads');
       workbenchPage.visit('test-project');
       cy.wait('@pendingWorkloads');
-      workbenchPage.getNotebookRow('Test Notebook').find().should('contain.text', 'position 3');
+      workbenchPage
+        .getNotebookRow('Test Notebook')
+        .find()
+        .should('contain.text', '3rd in test-queue');
     });
 
     it('displays subtitle without position when Visibility API returns 403', () => {
@@ -493,7 +496,9 @@ describe('Workbench page — Kueue & Status', () => {
         .click();
       workbenchStatusModal.find().should('contain.text', 'attempt 2');
       workbenchStatusModal.findProgressTab().click();
-      workbenchStatusModal.findProgressStepByLabel('Re-queued').should('exist');
+      workbenchStatusModal
+        .findProgressStepByLabel('Waiting for resources in test-queue')
+        .should('exist');
     });
 
     it('Progress tab — BlockedOnPreemptionGates sub-step shows in-progress label', () => {
