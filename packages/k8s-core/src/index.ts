@@ -101,6 +101,7 @@ export {
   isConditionInStatus,
   kindApiVersion,
   getPvcAccessMode,
+  hasProtocolAnnotation,
 } from './k8sResourceUtils';
 export type {
   AdditionalCriteriaForTranslation,

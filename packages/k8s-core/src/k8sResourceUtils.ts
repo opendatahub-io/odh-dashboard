@@ -1,6 +1,11 @@
 import { K8sModelCommon, K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import { genRandomChars } from '@odh-dashboard/foundation';
-import type { K8sCondition, K8sDSGResource, PersistentVolumeClaimKind } from './k8sTypes';
+import type {
+  K8sCondition,
+  K8sDSGResource,
+  PersistentVolumeClaimKind,
+  SecretKind,
+} from './k8sTypes';
 import { AccessMode } from './types';
 
 export const isK8sDSGResource = (x?: K8sResourceCommon): x is K8sDSGResource =>
@@ -134,3 +139,6 @@ export const kindApiVersion = (model: K8sModelCommon): string =>
 
 export const getPvcAccessMode = (pvc: PersistentVolumeClaimKind): AccessMode =>
   pvc.spec.accessModes[0];
+
+export const hasProtocolAnnotation = (resource: SecretKind): boolean =>
+  !!resource.metadata.annotations?.['opendatahub.io/connection-type-protocol'];
