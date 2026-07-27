@@ -3,7 +3,11 @@ import useFetchState, {
   FetchState,
   NotReadyError,
 } from '@odh-dashboard/ui-core/hooks/useFetchState';
-import { IntegrationAppStatus, OdhApplication, VariablesValidationStatus } from '#~/types';
+import {
+  type IntegrationAppStatus,
+  VariablesValidationStatus,
+} from '@odh-dashboard/plugin-core/integrations';
+import { OdhApplication } from '#~/types';
 import { getIntegrationAppEnablementStatus } from '#~/services/integrationAppService';
 import { isIntegrationApp } from '#~/utilities/utils';
 import { useAppSelector } from '#~/redux/hooks';

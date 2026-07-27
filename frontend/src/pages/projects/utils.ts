@@ -5,7 +5,6 @@ import {
   MEMORY_UNITS_FOR_PARSING,
 } from '@odh-dashboard/ui-core/utilities/valueUnits';
 import { bytesAsPreciseGiB } from '#~/utilities/number';
-import { AccessMode } from '#~/pages/storageClasses/storageEnums';
 import { NotebookState } from './notebook/types';
 
 export const getNotebookStatusPriority = (notebookState: NotebookState): number =>
@@ -63,6 +62,3 @@ export const getPvcPercentageUsed = (
 
   return Number(((bytesAsPreciseGiB(inUseInBytes) / capacityGiB) * 100).toFixed(2));
 };
-
-export const getPvcAccessMode = (pvc: PersistentVolumeClaimKind): AccessMode =>
-  pvc.spec.accessModes[0];
