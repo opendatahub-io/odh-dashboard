@@ -1,7 +1,6 @@
 import { PodModel } from '@odh-dashboard/internal/api/models/index';
-import type { PodKind, ProjectKind } from '@odh-dashboard/k8s-core';
+import type { K8sAPIOptions, PodKind, ProjectKind } from '@odh-dashboard/k8s-core';
 import type { InferenceServiceKind } from '@odh-dashboard/model-serving/shared';
-import type { K8sAPIOptions } from '@odh-dashboard/internal/k8sTypes';
 import useK8sWatchResourceList from '@odh-dashboard/internal/utilities/useK8sWatchResourceList';
 import { groupVersionKind } from '@odh-dashboard/internal/api/k8sUtils';
 import { InferenceServiceModel } from '@odh-dashboard/internal/api/models/kserve';

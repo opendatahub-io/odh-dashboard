@@ -1,9 +1,8 @@
 import * as React from 'react';
-import { ClusterQueueKind, CohortKind } from '@odh-dashboard/internal/k8sTypes';
 import useFetch, { FetchStateObject } from '@odh-dashboard/ui-core/hooks/useFetch';
 import { listClusterQueues } from '@odh-dashboard/internal/api/k8s/clusterQueues';
 import { listCohorts } from '@odh-dashboard/internal/api/k8s/cohorts';
-import { ContainerResourceAttributes } from '@odh-dashboard/k8s-core';
+import { ClusterQueueKind, CohortKind, ContainerResourceAttributes } from '@odh-dashboard/k8s-core';
 import { FlavorQuota, UnifiedCohort } from '../types';
 import { INFRASTRUCTURE_REFRESH_INTERVAL } from '../const';
 import parseK8sQuantity from '../utils/parseK8sQuantity';

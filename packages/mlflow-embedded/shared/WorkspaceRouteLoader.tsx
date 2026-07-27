@@ -3,7 +3,8 @@ import { Navigate, useSearchParams, useNavigate } from 'react-router-dom';
 import { EmptyState, EmptyStateBody, EmptyStateFooter } from '@patternfly/react-core';
 import { WrenchIcon } from '@patternfly/react-icons/dist/esm/icons/wrench-icon';
 import { ApplicationsPage } from '@odh-dashboard/ui-core';
-import { byName, ProjectsContext } from '@odh-dashboard/internal/concepts/projects/ProjectsContext';
+import { ProjectsContext } from '@odh-dashboard/ui-core/context/ProjectsContext';
+import { byName } from '@odh-dashboard/k8s-core';
 import InvalidProject from '@odh-dashboard/internal/concepts/projects/InvalidProject';
 import { getStoredPreferredProject } from '@odh-dashboard/internal/concepts/projects/getStoredPreferredProject';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports

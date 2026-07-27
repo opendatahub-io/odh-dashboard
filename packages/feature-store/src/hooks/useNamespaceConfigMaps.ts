@@ -4,7 +4,7 @@ import useFetch, {
   FetchStateCallbackPromise,
   NotReadyError,
 } from '@odh-dashboard/ui-core/hooks/useFetch';
-import { ConfigMapKind } from '@odh-dashboard/internal/k8sTypes';
+import { ConfigMapKind } from '@odh-dashboard/k8s-core';
 import { ConfigMapModel } from '@odh-dashboard/internal/api/models';
 
 const useNamespaceConfigMaps = (

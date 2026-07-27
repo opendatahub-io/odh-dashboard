@@ -9,7 +9,7 @@ import {
   mockDashboardConfig,
 } from '@odh-dashboard/internal/__mocks__';
 import type { PipelineRunKF } from '@odh-dashboard/internal/concepts/pipelines/kfTypes';
-import { DSPAMlflowIntegrationMode } from '@odh-dashboard/internal/k8sTypes';
+import { DSPAMlflowIntegrationMode } from '@odh-dashboard/k8s-core';
 import { manageRunsPage, manageRunsTable } from '../../../../pages/pipelines/manageRuns';
 import { configIntercept, dspaIntercepts, projectsIntercept } from '../intercepts';
 import {

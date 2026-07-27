@@ -1,5 +1,4 @@
-import { ClusterQueueKind } from '@odh-dashboard/internal/k8sTypes';
-import { ContainerResourceAttributes } from '@odh-dashboard/k8s-core';
+import { ClusterQueueKind, ContainerResourceAttributes } from '@odh-dashboard/k8s-core';
 import parseK8sQuantity from './parseK8sQuantity';
 
 type FlavorResourceUsage = {

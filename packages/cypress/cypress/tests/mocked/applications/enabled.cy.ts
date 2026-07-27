@@ -1,4 +1,4 @@
-import type { RoleBindingSubject } from '@odh-dashboard/internal/k8sTypes';
+import type { RoleBindingSubject } from '@odh-dashboard/k8s-core';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import { mockComponents } from '@odh-dashboard/internal/__mocks__/mockComponents';
 import { mockDashboardConfig, mockK8sResourceList } from '@odh-dashboard/internal/__mocks__';

@@ -1,4 +1,4 @@
-import { K8sAPIOptions } from '@odh-dashboard/internal/k8sTypes';
+import { K8sAPIOptions } from '@odh-dashboard/k8s-core';
 import { DataSource } from './dataSources';
 import { FeatureStoreMeta, FeatureStorePagination, FeatureStoreRelationship } from './global';
 

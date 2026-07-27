@@ -40,23 +40,23 @@ import type {
   RegisteredModelList,
 } from '@odh-dashboard/internal/concepts/modelRegistry/types';
 import type {
+  ConfigMapKind,
   ConnectionTypeConfigMap,
   DashboardConfigKind,
   DataScienceClusterInitializationKindStatus,
   DataScienceClusterKindStatus,
+  NotebookKind,
+  RoleBindingKind,
   SecretKind,
   TemplateKind,
 } from '@odh-dashboard/k8s-core';
 import type { FeatureStoreKind } from '@odh-dashboard/feature-store/k8sTypes';
 import type {
-  ConfigMapKind,
   ConsoleLinkKind,
   ListConfigSecretsResponse,
   ModelRegistry,
   ModelRegistryKind,
-  NotebookKind,
   OdhQuickStart,
-  RoleBindingKind,
 } from '@odh-dashboard/internal/k8sTypes';
 import type { ServingRuntimeKind } from '@odh-dashboard/model-serving/shared';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports

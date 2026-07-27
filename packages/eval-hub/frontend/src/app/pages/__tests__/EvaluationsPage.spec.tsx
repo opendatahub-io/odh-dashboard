@@ -69,7 +69,7 @@ jest.mock('@odh-dashboard/internal/types', () =>
   require('~/__tests__/unit/testUtils/mocks').mockIconSizeModule(),
 );
 
-jest.mock('@odh-dashboard/internal/concepts/projects/ProjectSelector', () =>
+jest.mock('@odh-dashboard/ui-core/components/projectSelector/ProjectSelector', () =>
   require('~/__tests__/unit/testUtils/mocks').mockProjectSelectorModule(),
 );
 
