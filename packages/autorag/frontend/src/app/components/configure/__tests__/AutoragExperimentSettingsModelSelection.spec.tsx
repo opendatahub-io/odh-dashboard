@@ -150,6 +150,14 @@ describe('AutoragExperimentSettingsModelSelection', () => {
           'To verify model details, including language support, view the models in the Model catalog.',
         ),
       ).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          /For multilingual AutoRAG setups, you must enable a tool-call parser on the model server/,
+        ),
+      ).toBeInTheDocument();
+      expect(screen.getByTestId('models-to-test-tool-call-parser-args')).toHaveTextContent(
+        '--enable-auto-tool-choice --tool-call-parser=mistral',
+      );
       expect(screen.queryByRole('link', { name: /model catalog/i })).not.toBeInTheDocument();
     });
   });
