@@ -35,7 +35,7 @@ const makeSeries = (
   cqName,
   cohortName,
   nominalQuota: 4,
-  data: yValues.map((y, i) => ({ x: i * 1000, y })),
+  data: yValues.map((y, i) => ({ x: i * 1000, y, gpuUsage: y + 4 })),
 });
 
 /** Returns a ref-like object whose getBoundingClientRect reports the given origin. */
@@ -65,9 +65,7 @@ describe('formatYTick', () => {
   it.each([
     [0, '0'],
     [3, '+3'],
-    [-3, '-3'],
     [1000, '+1.0k'],
-    [-2500, '-2.5k'],
   ])('formats %d as "%s"', (y, expected) => {
     expect(formatYTick(y)).toBe(expected);
   });
@@ -124,14 +122,14 @@ describe('getLegendLabel', () => {
 });
 
 describe('buildYDomain', () => {
-  it('returns ±1 buffer around zero for empty series', () => {
-    expect(buildYDomain([])).toEqual({ minY: -1, maxY: 1 });
+  it('returns 0..1 buffer for empty series (minY pinned to 0)', () => {
+    expect(buildYDomain([])).toEqual({ minY: 0, maxY: 1 });
   });
 
   it.each([
-    ['only positive values', [3, 5], { minY: -1, maxY: 6 }],
-    ['mixed values', [-3, 4], { minY: -4, maxY: 5 }],
-  ])('applies ±1 buffer and always includes zero for %s', (_desc, yValues, expected) => {
+    ['only positive values', [3, 5], { minY: 0, maxY: 6 }],
+    ['values already clipped to zero', [0, 4], { minY: 0, maxY: 5 }],
+  ])('pins minY to 0 and applies +1 buffer on max for %s', (_desc, yValues, expected) => {
     expect(buildYDomain([makeSeries('cq', SHORT_COHORT, yValues)])).toEqual(expected);
   });
 });

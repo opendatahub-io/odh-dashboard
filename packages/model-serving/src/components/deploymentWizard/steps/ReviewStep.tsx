@@ -23,7 +23,7 @@ import {
   WizardReviewSection,
   WizardStepTitle,
   resolveFieldValue,
-} from '../types';
+} from '../../../shared/types/form-data';
 import { deploymentStrategyRecreate } from '../fields/DeploymentStrategyField';
 import { ExternalDataMap } from '../ExternalDataLoader';
 import { isWizardStepTitle } from '../utils';

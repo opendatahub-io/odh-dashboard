@@ -28,6 +28,7 @@ type BYONImagesTableRowProps = {
   hardwareProfiles: ReturnType<typeof useHardwareProfilesByFeatureVisibility>['globalProfiles'];
   onEditImage: (obj: BYONImage) => void;
   onDeleteImage: (obj: BYONImage) => void;
+  claimSessionToggleIndex: () => number;
 };
 
 const BYONImagesTableRow: React.FC<BYONImagesTableRowProps> = ({
@@ -37,6 +38,7 @@ const BYONImagesTableRow: React.FC<BYONImagesTableRowProps> = ({
   hardwareProfiles,
   onEditImage,
   onDeleteImage,
+  claimSessionToggleIndex,
 }) => {
   const { dashboardNamespace } = useDashboardNamespace();
   const [isExpanded, setExpanded] = React.useState(false);
@@ -90,6 +92,7 @@ const BYONImagesTableRow: React.FC<BYONImagesTableRowProps> = ({
             images={images}
             onToggle={handleToggle}
             isDisabledByError={!obj.isOOTB && !!obj.error}
+            claimSessionToggleIndex={claimSessionToggleIndex}
           />
         </Td>
         <Td dataLabel="Recommended hardware profiles">

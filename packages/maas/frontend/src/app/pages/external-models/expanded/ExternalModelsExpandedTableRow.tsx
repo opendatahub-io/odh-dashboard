@@ -82,7 +82,7 @@ const ExternalModelsExpandedTableRow: React.FC<ExternalModelsExpandedTableRowPro
               }}
               data-testid={`expanded-table-row-view-path-button-${row.providerName}`}
             >
-              View Path
+              View path
             </Button>
           </Td>
           <Td data-testid={`expanded-table-row-auth-mechanism-${row.providerName}`}>

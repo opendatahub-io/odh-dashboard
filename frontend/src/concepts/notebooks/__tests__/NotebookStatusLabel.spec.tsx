@@ -132,22 +132,9 @@ describe('NotebookStatusLabel', () => {
     expect(getStatusLabelElement()).not.toHaveClass('pf-m-info');
   });
 
-  it('should use outline variant when onClick is not provided', () => {
+  it('should always use filled variant', () => {
     render(
       <NotebookStatusLabel isStarting={false} isStopping={false} isRunning kueueStatus={null} />,
-    );
-    expect(getStatusLabelElement()).toHaveClass('pf-m-outline');
-  });
-
-  it('should use filled variant when onClick is provided', () => {
-    render(
-      <NotebookStatusLabel
-        isStarting={false}
-        isStopping={false}
-        isRunning
-        kueueStatus={null}
-        onClick={jest.fn()}
-      />,
     );
     expect(getStatusLabelElement()).not.toHaveClass('pf-m-outline');
   });

@@ -155,7 +155,7 @@ export const getFeatureStoreObjectDescription = (
     case FeatureStoreObject.DATA_SETS:
       return 'View and manage datasets generated from feature services. These datasets contain point-in-time-correct feature values to avoid leakage and support reliable training, validation, and offline analysis. You can add labels and apply additional preprocessing as needed.';
     case FeatureStoreObject.OVERVIEW:
-      return 'Feature stores are shared catalogs for defining and managing features across teams. They help ensure consistent feature values from training to production and reduce duplicated feature engineering. Connect your workbenches to use and manage features in your projects.';
+      return 'Feature store repositories connect models to data by enabling you to store, manage, and serve ML features from your existing data sources. To consume and manage resources within feature store repositories, connect repos with your workbenches. Learn how to connect.';
     default:
       return 'Feature store object details';
   }

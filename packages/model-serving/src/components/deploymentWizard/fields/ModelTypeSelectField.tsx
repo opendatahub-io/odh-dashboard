@@ -10,7 +10,7 @@ import {
   ModelLocationData,
   ModelTypeFieldOverride,
   ModelTypeLabel,
-} from '../types';
+} from '../../../shared/types/form-data';
 import { useWizardFieldOverrides } from '../dynamicFormUtils';
 
 // Schema

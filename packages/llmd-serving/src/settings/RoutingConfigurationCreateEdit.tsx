@@ -8,6 +8,9 @@ import {
   Button,
   Form,
   FormGroup,
+  FormHelperText,
+  HelperText,
+  HelperTextItem,
 } from '@patternfly/react-core';
 import { Link, Navigate, useLocation, useNavigate, useParams } from 'react-router';
 import YAML from 'yaml';
@@ -17,6 +20,7 @@ import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/p
 import {
   getDisplayNameFromK8sResource,
   isK8sNameDescriptionDataValid,
+  translateDisplayNameForK8s,
 } from '@odh-dashboard/k8s-core';
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
@@ -176,16 +180,15 @@ const RoutingConfigurationCreateEditInner: React.FC<{
     }
     if (state?.sourceConfig) {
       const cleanMeta = cleanResourceForYAMLViewer(state.sourceConfig.metadata);
+      const duplicateDisplayName = `Copy of ${getDisplayNameFromK8sResource(state.sourceConfig)}`;
       return {
         ...state.sourceConfig,
         metadata: {
           ...cleanMeta,
-          name: `${state.sourceConfig.metadata.name}-copy`,
+          name: translateDisplayNameForK8s(duplicateDisplayName),
           annotations: {
             ...cleanMeta.annotations,
-            'openshift.io/display-name': `Copy of ${getDisplayNameFromK8sResource(
-              state.sourceConfig,
-            )}`,
+            'openshift.io/display-name': duplicateDisplayName,
           },
         },
       };
@@ -208,17 +211,16 @@ const RoutingConfigurationCreateEditInner: React.FC<{
         cleanMeta.annotations,
         'kubectl.kubernetes.io/last-applied-configuration',
       );
+      const duplicateDisplayName = `Copy of ${getDisplayNameFromK8sResource(state.sourceConfig)}`;
       return YAML.stringify({
         apiVersion: state.sourceConfig.apiVersion,
         kind: state.sourceConfig.kind,
         metadata: {
           ...cleanMeta,
-          name: `${state.sourceConfig.metadata.name}-copy`,
+          name: translateDisplayNameForK8s(duplicateDisplayName),
           annotations: {
             ...cleanAnnotations,
-            'openshift.io/display-name': `Copy of ${getDisplayNameFromK8sResource(
-              state.sourceConfig,
-            )}`,
+            'openshift.io/display-name': duplicateDisplayName,
           },
         },
         spec: state.sourceConfig.spec,
@@ -269,7 +271,7 @@ const RoutingConfigurationCreateEditInner: React.FC<{
     },
     {
       key: 'editor',
-      label: 'Upload an existing configuration file',
+      label: 'Open code editor',
     },
   ];
 
@@ -348,7 +350,6 @@ const RoutingConfigurationCreateEditInner: React.FC<{
             dataTestId="topology-type-select"
             value={selectedTopology || undefined}
             placeholder="Select topology type"
-            isDisabled={isEditMode}
             options={topologyOptions}
             onChange={(key) => {
               const matched = Object.values(TopologyType).find((v) => v === key);
@@ -360,6 +361,11 @@ const RoutingConfigurationCreateEditInner: React.FC<{
         </FormGroup>
         {!isEditMode && !isDuplicateMode && (
           <FormGroup label="Configuration source" isRequired fieldId="config-source">
+            <FormHelperText>
+              <HelperText>
+                <HelperTextItem>Select how to provide the routing configuration.</HelperTextItem>
+              </HelperText>
+            </FormHelperText>
             <SimpleSelect
               options={configSourceOptions}
               value={configSource}

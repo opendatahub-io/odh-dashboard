@@ -110,7 +110,7 @@ const AgentsCatalogGalleryView: React.FC<AgentsCatalogGalleryViewProps> = ({
           testid="empty-agents-catalog-state"
           title="No results found"
           headerIcon={SearchIcon}
-          description="Adjust your filters and try again."
+          description="No agent templates match your filters. Adjust your filters and try again."
           primaryAction={
             <Button variant="link" onClick={handleFilterReset}>
               Reset filters

@@ -41,18 +41,18 @@ import {
   ServingRuntimeModelType,
 } from '@odh-dashboard/model-serving/shared';
 import { getTokenNames } from '@odh-dashboard/model-serving/concepts/auth';
-import { ModelLocationData } from '@odh-dashboard/model-serving/types/form-data';
-import { type ModelTypeFieldData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/ModelTypeSelectField';
-import type { ModelAvailabilityFieldsData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/ModelAvailabilityFields';
-import type { RuntimeArgsFieldData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/RuntimeArgsField';
-import type { EnvironmentVariablesFieldData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/EnvironmentVariablesField';
-import { CreateConnectionData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/CreateConnectionInputFields';
-import type { DeploymentStrategyFieldData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/DeploymentStrategyField';
+import { ModelLocationData } from '@odh-dashboard/model-serving/shared/types/form-data';
 import {
+  type ModelTypeFieldData,
+  type ModelAvailabilityFieldsData,
+  type RuntimeArgsFieldData,
+  type EnvironmentVariablesFieldData,
+  type CreateConnectionData,
+  type DeploymentStrategyFieldData,
+  type DeploymentMethodFieldData,
   deploymentStrategyRolling,
   deploymentStrategyRecreate,
-} from '@odh-dashboard/model-serving/components/deploymentWizard/fields/DeploymentStrategyField';
-import type { DeploymentMethodFieldData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/DeploymentMethodSelectField';
+} from '@odh-dashboard/model-serving/shared/wizard-fields';
 import { LEGACY_GENERATIVE_DEPLOYMENT_METHOD_KEY } from './wizardFields/deploymentMethodField';
 import type { CreatingInferenceServiceObject } from './deployModel';
 import type { KServeDeployment } from './deployments';

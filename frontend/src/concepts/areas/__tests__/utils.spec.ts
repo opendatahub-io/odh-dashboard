@@ -417,4 +417,79 @@ describe('isAreaAvailable', () => {
       expect(isAvailable.featureFlags).toEqual({ roleManagement: 'on' });
     });
   });
+
+  describe('FEATURE_STORE_ADMIN area', () => {
+    it('should be available when featureStoreAdmin is true and FEATURE_STORE area is available', () => {
+      const isAvailable = isAreaAvailable(
+        SupportedArea.FEATURE_STORE_ADMIN,
+        mockDashboardConfig({ disableFeatureStore: false, featureStoreAdmin: true }).spec,
+        mockDscStatus({
+          components: {
+            [DataScienceStackComponent.FEAST_OPERATOR]: { managementState: 'Managed' },
+          },
+        }),
+        null,
+      );
+
+      expect(isAvailable.status).toBe(true);
+      expect(isAvailable.featureFlags).toEqual({ featureStoreAdmin: 'on' });
+      expect(isAvailable.reliantAreas).toEqual({ [SupportedArea.FEATURE_STORE]: true });
+    });
+
+    it('should not be available when featureStoreAdmin is false', () => {
+      const isAvailable = isAreaAvailable(
+        SupportedArea.FEATURE_STORE_ADMIN,
+        mockDashboardConfig({ disableFeatureStore: false, featureStoreAdmin: false }).spec,
+        mockDscStatus({
+          components: {
+            [DataScienceStackComponent.FEAST_OPERATOR]: { managementState: 'Managed' },
+          },
+        }),
+        null,
+      );
+
+      expect(isAvailable.status).toBe(false);
+      expect(isAvailable.featureFlags).toEqual({ featureStoreAdmin: 'off' });
+    });
+
+    it('should not be available by default (flag defaults to false)', () => {
+      const isAvailable = isAreaAvailable(
+        SupportedArea.FEATURE_STORE_ADMIN,
+        mockDashboardConfig({}).spec,
+        null,
+        null,
+      );
+
+      expect(isAvailable.status).toBe(false);
+      expect(isAvailable.featureFlags).toEqual({ featureStoreAdmin: 'off' });
+    });
+
+    it('should not be available when FEATURE_STORE area is disabled even if admin flag is true', () => {
+      const isAvailable = isAreaAvailable(
+        SupportedArea.FEATURE_STORE_ADMIN,
+        mockDashboardConfig({ disableFeatureStore: true, featureStoreAdmin: true }).spec,
+        null,
+        null,
+      );
+
+      expect(isAvailable.status).toBe(false);
+      expect(isAvailable.reliantAreas).toEqual({ [SupportedArea.FEATURE_STORE]: false });
+    });
+
+    it('should not affect FEATURE_STORE browse area when admin flag is false', () => {
+      const isAvailable = isAreaAvailable(
+        SupportedArea.FEATURE_STORE,
+        mockDashboardConfig({ disableFeatureStore: false, featureStoreAdmin: false }).spec,
+        mockDscStatus({
+          components: {
+            [DataScienceStackComponent.FEAST_OPERATOR]: { managementState: 'Managed' },
+          },
+        }),
+        null,
+      );
+
+      expect(isAvailable.status).toBe(true);
+      expect(isAvailable.featureFlags).toEqual({ disableFeatureStore: 'on' });
+    });
+  });
 });
