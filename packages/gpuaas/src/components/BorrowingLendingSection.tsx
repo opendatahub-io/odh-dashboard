@@ -110,7 +110,7 @@ const BorrowingLendingSection: React.FC = () => {
           <ToolbarGroup style={{ width: '100%' }}>
             <ToolbarItem className="gpuaas-cohort-select-toolbar-item">
               <FormGroup
-                fieldId="borrowing-lending-cohort-select-toggle"
+                fieldId="borrowing-cohort-select-toggle"
                 label="Cohort"
                 style={{ width: '100%' }}
               >
@@ -120,8 +120,8 @@ const BorrowingLendingSection: React.FC = () => {
                   onChange={(val) => setSelectedCohort(val)}
                   groupedOptions={cohortGroupedOptions}
                   isDisabled={!cohortsLoaded}
-                  toggleProps={{ id: 'borrowing-lending-cohort-select-toggle' }}
-                  dataTestId="borrowing-lending-cohort-select"
+                  toggleProps={{ id: 'borrowing-cohort-select-toggle' }}
+                  dataTestId="borrowing-cohort-select"
                   popperProps={{ maxWidth: undefined }}
                 />
               </FormGroup>
@@ -134,13 +134,13 @@ const BorrowingLendingSection: React.FC = () => {
                 value={cqNameFilter}
                 onChange={(_ev, val) => setCqNameFilter(val)}
                 onClear={() => setCqNameFilter('')}
-                inputProps={{ 'data-testid': 'borrowing-lending-cq-filter' }}
+                inputProps={{ 'data-testid': 'borrowing-cq-filter' }}
               />
             </ToolbarItem>
           </ToolbarGroup>
         </ToolbarContent>
       </Toolbar>
-      <Content component="small" data-testid="borrowing-lending-count-label">
+      <Content component="small" data-testid="borrowing-count-label">
         {`Showing ${visibleCQCount} of ${totalCQCount} cluster queues`}
       </Content>
       <div ref={chartContainerRef}>

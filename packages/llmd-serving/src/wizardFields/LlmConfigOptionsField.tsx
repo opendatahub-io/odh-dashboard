@@ -1,11 +1,12 @@
 import React from 'react';
 import { z } from 'zod';
-import type { WizardField } from '@odh-dashboard/model-serving/types/form-data';
-import ModelServerTemplateSelectField, {
+import type { WizardField } from '@odh-dashboard/model-serving/shared/types/form-data';
+import {
+  ModelServerTemplateSelectField,
   ModelServerOption,
   ModelServerSelectFieldData,
   modelServerSelectFieldSchema,
-} from '@odh-dashboard/model-serving/components/deploymentWizard/fields/ModelServerTemplateSelectField';
+} from '@odh-dashboard/model-serving/shared/wizard-fields';
 import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import type { HardwareProfileKind } from '@odh-dashboard/k8s-core';

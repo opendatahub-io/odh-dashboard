@@ -1,4 +1,4 @@
-import type { DeploymentMethodFieldOverride } from '@odh-dashboard/model-serving/types/form-data';
+import type { DeploymentMethodFieldOverride } from '@odh-dashboard/model-serving/shared/types/form-data';
 
 export const LEGACY_GENERATIVE_DEPLOYMENT_METHOD_KEY = 'legacy';
 

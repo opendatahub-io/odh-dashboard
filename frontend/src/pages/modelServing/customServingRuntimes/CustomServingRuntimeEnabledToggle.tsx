@@ -8,10 +8,10 @@ import {
 } from '@odh-dashboard/model-serving/shared';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import { isUnsupportedUnaccepted } from '@odh-dashboard/model-serving/concepts/versions';
-// eslint-disable-next-line @odh-dashboard/no-restricted-imports
-import UnsupportedStatusAcceptanceModal from '@odh-dashboard/model-serving/components/UnsupportedStatusAcceptanceModal';
-// eslint-disable-next-line @odh-dashboard/no-restricted-imports
-import type { UnsupportedStatusDismissAction } from '@odh-dashboard/model-serving/components/UnsupportedStatusAcceptanceModal';
+import {
+  UnsupportedStatusAcceptanceModal,
+  type UnsupportedStatusDismissAction,
+} from '@odh-dashboard/model-serving/shared/components';
 import {
   fireRiskAccepted,
   fireRiskDismissed,
