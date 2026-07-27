@@ -13,6 +13,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -441,6 +442,65 @@ func TestReconcile_Deletion_WithCrossNamespaceResources(t *testing.T) {
 	var cms corev1.ConfigMapList
 	require.NoError(t, cli.List(context.Background(), &cms, client.InNamespace(obsNS)))
 	assert.Empty(t, cms.Items, "cross-namespace configmaps should be deleted")
+}
+
+func TestReconcile_Deletion_CleansRayGatewayRBAC(t *testing.T) {
+	s := testScheme(t)
+
+	const gatewayNS = "openshift-ingress"
+	const gatewayRBACName = "fetch-ray-data-science-gateway"
+
+	dashboard := &v1alpha1.Dashboard{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:       v1alpha1.DashboardInstanceName,
+			Finalizers: []string{"components.platform.opendatahub.io/cleanup"},
+			DeletionTimestamp: &metav1.Time{
+				Time: time.Now(),
+			},
+		},
+		Spec: v1alpha1.DashboardSpec{},
+	}
+
+	gatewayRole := &rbacv1.Role{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      gatewayRBACName,
+			Namespace: gatewayNS,
+		},
+	}
+	gatewayRoleBinding := &rbacv1.RoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      gatewayRBACName,
+			Namespace: gatewayNS,
+		},
+	}
+
+	cli := fake.NewClientBuilder().
+		WithScheme(s).
+		WithObjects(dashboard, gatewayRole, gatewayRoleBinding).
+		WithStatusSubresource(dashboard).
+		Build()
+
+	r := &ctrlpkg.DashboardReconciler{
+		Client:                cli,
+		Scheme:                s,
+		ManifestsBasePath:     t.TempDir(),
+		Platform:              cluster.OpenDataHub,
+		Namespace:             testNamespace,
+		ApplicationsNamespace: testNamespace,
+	}
+
+	result, err := r.Reconcile(context.Background(), ctrl.Request{
+		NamespacedName: types.NamespacedName{Name: v1alpha1.DashboardInstanceName},
+	})
+
+	require.NoError(t, err)
+	assert.Equal(t, ctrl.Result{}, result)
+
+	err = cli.Get(context.Background(), types.NamespacedName{Name: gatewayRBACName, Namespace: gatewayNS}, &rbacv1.Role{})
+	assert.True(t, k8serrors.IsNotFound(err), "gateway Role should be deleted")
+
+	err = cli.Get(context.Background(), types.NamespacedName{Name: gatewayRBACName, Namespace: gatewayNS}, &rbacv1.RoleBinding{})
+	assert.True(t, k8serrors.IsNotFound(err), "gateway RoleBinding should be deleted")
 }
 
 func TestReconcile_Deletion_SameNamespaceObservability(t *testing.T) {

@@ -564,12 +564,41 @@ func (r *DashboardReconciler) reconcileDegradedCondition(
 	}
 }
 
+// cleanupRayDashboardGatewayRBAC deletes the Gateway Role/RoleBinding remapped
+// into openshift-ingress. OwnerReference GC does not run across namespaces, so
+// these must be removed explicitly on Dashboard teardown.
+func (r *DashboardReconciler) cleanupRayDashboardGatewayRBAC(ctx context.Context) error {
+	logger := log.FromContext(ctx)
+
+	role := &rbacv1.Role{}
+	role.SetName(rayDataScienceGatewayRBACName)
+	role.SetNamespace(dataScienceGatewayNamespace)
+	logger.Info("Deleting remapped Ray Gateway Role", "name", role.GetName(), "namespace", role.GetNamespace())
+	if err := r.Delete(ctx, role); client.IgnoreNotFound(err) != nil {
+		return fmt.Errorf("deleting Role %s/%s: %w", dataScienceGatewayNamespace, rayDataScienceGatewayRBACName, err)
+	}
+
+	rb := &rbacv1.RoleBinding{}
+	rb.SetName(rayDataScienceGatewayRBACName)
+	rb.SetNamespace(dataScienceGatewayNamespace)
+	logger.Info("Deleting remapped Ray Gateway RoleBinding", "name", rb.GetName(), "namespace", rb.GetNamespace())
+	if err := r.Delete(ctx, rb); client.IgnoreNotFound(err) != nil {
+		return fmt.Errorf("deleting RoleBinding %s/%s: %w", dataScienceGatewayNamespace, rayDataScienceGatewayRBACName, err)
+	}
+
+	return nil
+}
+
 // cleanupCrossNamespaceResources deletes Perses monitoring resources in the
 // observability namespace. OwnerReference GC only works within the same
 // namespace (or for cluster-scoped owners referencing cluster-scoped children),
 // so resources deployed to a different namespace need explicit cleanup.
 func (r *DashboardReconciler) cleanupCrossNamespaceResources(ctx context.Context, dashboard *v1alpha1.Dashboard) error {
 	logger := log.FromContext(ctx)
+
+	if err := r.cleanupRayDashboardGatewayRBAC(ctx); err != nil {
+		return err
+	}
 
 	obsNS := ""
 	if dashboard.Spec.Observability != nil &&
@@ -578,7 +607,7 @@ func (r *DashboardReconciler) cleanupCrossNamespaceResources(ctx context.Context
 	}
 
 	if obsNS == "" || obsNS == r.ApplicationsNamespace {
-		logger.Info("No cross-namespace resources to clean up")
+		logger.Info("No observability cross-namespace resources to clean up")
 		return nil
 	}
 
