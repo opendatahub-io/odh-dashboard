@@ -60,7 +60,11 @@ func (app *App) CreatePipelineRunHandler(w http.ResponseWriter, r *http.Request,
 
 	// Validate pipelineType — only constants.PipelineTypeAutoRAG is supported
 	if pipelineType != constants.PipelineTypeAutoRAG {
-		app.badRequestResponse(w, r, fmt.Errorf("unsupported pipelineType %q: only %q is supported", pipelineType, constants.PipelineTypeAutoRAG))
+    errorReason := fmt.Sprintf("unsupported pipelineType %q: only %q is supported", pipelineType, constants.PipelineTypeAutoRAG)
+    NewUIError(http.StatusBadRequest, "unsupported_pipeline_type", errorReason).
+      WithDetail("reason", errorReason).
+      WithTracing(r).
+      WriteTo(w)
 		return
 	}
 
@@ -75,15 +79,6 @@ func (app *App) CreatePipelineRunHandler(w http.ResponseWriter, r *http.Request,
 	var extra interface{}
 	if err := decoder.Decode(&extra); err != io.EOF {
 		app.badRequestResponse(w, r, fmt.Errorf("request body must contain only a single JSON object"))
-		return
-	}
-
-	if req.DisplayName == "invalid-name-2f8851a3-8973-4f90-a99f-8f0ebd852557" {
-		NewUIError(http.StatusBadRequest, "example_ui_error_invalid_pipeline_run_name",
-			fmt.Sprintf("pipeline run name %q is not allowed", req.DisplayName)).
-			WithDetail("displayName", req.DisplayName).
-			WithTracing(r).
-			WriteTo(w)
 		return
 	}
 
