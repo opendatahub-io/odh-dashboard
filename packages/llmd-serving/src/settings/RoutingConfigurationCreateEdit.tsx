@@ -37,7 +37,12 @@ import {
   CONFIG_TYPE_LABEL,
   SUPPORTED_TOPOLOGIES_ANNOTATION,
 } from '../types';
-import { isConfigObject, cleanResourceForYAMLViewer, stripAnnotation } from '../utils';
+import {
+  isConfigObject,
+  cleanResourceForYAMLViewer,
+  stripDuplicatingAnnotations,
+  stripDuplicatingLabels,
+} from '../utils';
 import {
   createLLMInferenceServiceConfig,
   patchLLMInferenceServiceConfig,
@@ -207,10 +212,12 @@ const RoutingConfigurationCreateEditInner: React.FC<{
     }
     if (state?.sourceConfig) {
       const cleanMeta = cleanResourceForYAMLViewer(state.sourceConfig.metadata);
-      const cleanAnnotations = stripAnnotation(
-        cleanMeta.annotations,
-        'kubectl.kubernetes.io/last-applied-configuration',
-      );
+      let cleanAnnotations = cleanMeta.annotations;
+      let cleanLabels = cleanMeta.annotations;
+      if (isDuplicateMode) {
+        cleanAnnotations = stripDuplicatingAnnotations(cleanMeta.annotations);
+        cleanLabels = stripDuplicatingLabels(cleanMeta.labels);
+      }
       const duplicateDisplayName = `Copy of ${getDisplayNameFromK8sResource(state.sourceConfig)}`;
       return YAML.stringify({
         apiVersion: state.sourceConfig.apiVersion,
@@ -222,6 +229,7 @@ const RoutingConfigurationCreateEditInner: React.FC<{
             ...cleanAnnotations,
             'openshift.io/display-name': duplicateDisplayName,
           },
+          labels: cleanLabels,
         },
         spec: state.sourceConfig.spec,
       });

@@ -32,15 +32,34 @@ export const cleanResourceForYAMLViewer = (
   return result;
 };
 
-export const stripAnnotation = (
+export const stripDuplicatingAnnotations = (
   annotations: Record<string, string> | undefined,
-  key: string,
 ): Record<string, string> | undefined => {
   if (!annotations) {
     return annotations;
   }
-  const result = { ...annotations };
-  delete result[key];
+  const result = annotations;
+  delete result['kubectl.kubernetes.io/last-applied-configuration'];
+  delete result['serving.kserve.io/well-known-config'];
+  delete result['platform.opendatahub.io/instance.name'];
+  delete result['platform.opendatahub.io/instance.uid'];
+  delete result['platform.opendatahub.io/instance.generation'];
+  delete result['internal.config.kubernetes.io/previousNamespaces'];
+  delete result['internal.config.kubernetes.io/previousKinds'];
+  delete result['internal.config.kubernetes.io/previousNames'];
+  return result;
+};
+
+export const stripDuplicatingLabels = (
+  labels: Record<string, string> | undefined,
+): Record<string, string> | undefined => {
+  if (!labels) {
+    return labels;
+  }
+  const result = labels;
+  delete result['platform.opendatahub.io/part-of'];
+  delete result['app.kubernetes.io/part-of'];
+  delete result['app.opendatahub.io/kserve'];
   return result;
 };
 
