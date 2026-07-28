@@ -26,18 +26,25 @@ export function useOgxModelsQuery(
     queryFn: async () => {
       try {
         const response = await getOgxModels('')(namespace, secretName)({});
-        z.object({
-          models: z.array(
-            z.object({
-              id: z.string(),
-              type: z.union([z.literal('llm'), z.literal('embedding')]),
-              provider: z.string(),
-              // eslint-disable-next-line camelcase
-              resource_path: z.string(),
-            }),
+        const validated = z
+          .object({
+            models: z.array(
+              z.object({
+                id: z.string(),
+                type: z.string(),
+                provider: z.string(),
+                // eslint-disable-next-line camelcase
+                resource_path: z.string(),
+              }),
+            ),
+          })
+          .parse(response);
+        return {
+          models: validated.models.filter(
+            (m): m is typeof m & { type: 'llm' | 'embedding' } =>
+              m.type === 'llm' || m.type === 'embedding',
           ),
-        }).parse(response);
-        return response;
+        };
       } catch (error) {
         if (error instanceof z.ZodError) {
           throw new Error('Invalid Open GenAI Stack models response');
