@@ -45,7 +45,7 @@ const fetchNamespaces = async (signal?: AbortSignal): Promise<ProjectKind[]> => 
   return (data.items ?? [])
     .map((item) => {
       const name = item.metadata?.name;
-      if (!name) {
+      if (typeof name !== 'string' || name.length === 0) {
         return null;
       }
       return namespaceToProject(name, item.status?.phase);

@@ -62,6 +62,21 @@ describe('fetchNamespaces', () => {
     expect(result[0].metadata.name).toBe('valid');
   });
 
+  it('skips items with non-string metadata.name', async () => {
+    mockFetch({
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          items: [{ metadata: { name: 42 } }, { metadata: { name: 'valid' } }],
+        }),
+    } as Response);
+
+    const result = await fetchNamespaces();
+
+    expect(result).toHaveLength(1);
+    expect(result[0].metadata.name).toBe('valid');
+  });
+
   it('returns empty array for malformed response', async () => {
     mockFetch({
       ok: true,
