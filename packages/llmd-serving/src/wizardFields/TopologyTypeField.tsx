@@ -115,15 +115,12 @@ const TopologyTypeFieldComponent: TopologyTypeFieldType['component'] = ({
           description: TopologyTypeDescriptions[topoType],
           isAriaDisabled: isOptionDisabled,
           dataTestId: `topology-type-${topoType}`,
-          props: {
-            tooltipProps: isOptionDisabled
-              ? {
-                  content:
-                    'No configurations available. To request one, contact your administrator.',
-                  position: 'left',
-                }
-              : undefined,
-          },
+          tooltipProps: isOptionDisabled
+            ? {
+                content: 'No configurations available. To request one, contact your administrator.',
+                position: 'left',
+              }
+            : undefined,
         };
       }),
     [configsByTopology],
