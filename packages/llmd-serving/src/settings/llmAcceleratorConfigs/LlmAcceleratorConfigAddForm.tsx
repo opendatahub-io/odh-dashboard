@@ -18,7 +18,7 @@ import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/p
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
 } from '@odh-dashboard/ui-core/components/K8sNameDescriptionField';
-import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
+import { getDisplayNameFromK8sResource, translateDisplayNameForK8s } from '@odh-dashboard/k8s-core';
 import { LlmAcceleratorConfigContext } from './LlmAcceleratorConfigContext';
 import { overrideLlmConfigFields } from '../configYamlUtils';
 import ConfigYAMLEditor from '../ConfigYAMLEditor';
@@ -26,7 +26,12 @@ import {
   createLLMInferenceServiceConfig,
   updateLLMInferenceServiceConfig,
 } from '../../api/LLMInferenceServiceConfigs';
-import { isConfigObject, cleanResourceForYAMLViewer } from '../../utils';
+import {
+  isConfigObject,
+  cleanResourceForYAMLViewer,
+  stripDuplicatingAnnotations,
+  stripDuplicatingLabels,
+} from '../../utils';
 import { ConfigType, CONFIG_TYPE_LABEL } from '../../types';
 import type { LLMInferenceServiceConfigKind } from '../../types';
 
@@ -53,14 +58,15 @@ const LlmAcceleratorConfigAddForm: React.FC<LlmAcceleratorConfigAddFormProps> = 
     if (!isDuplicate) {
       return sourceConfig;
     }
+    const duplicateDisplayName = `Copy of ${getDisplayNameFromK8sResource(sourceConfig)}`;
     return {
       ...sourceConfig,
       metadata: {
         ...sourceConfig.metadata,
-        name: `${sourceConfig.metadata.name}-copy`,
+        name: translateDisplayNameForK8s(duplicateDisplayName),
         annotations: {
           ...sourceConfig.metadata.annotations,
-          'openshift.io/display-name': `Copy of ${getDisplayNameFromK8sResource(sourceConfig)}`,
+          'openshift.io/display-name': duplicateDisplayName,
         },
       },
     };
@@ -83,15 +89,19 @@ const LlmAcceleratorConfigAddForm: React.FC<LlmAcceleratorConfigAddFormProps> = 
     }
     if (isDuplicate) {
       const cleanMeta = cleanResourceForYAMLViewer(sourceConfig.metadata);
+      const cleanAnnotations = stripDuplicatingAnnotations(cleanMeta.annotations);
+      const cleanLabels = stripDuplicatingLabels(cleanMeta.labels);
+      const duplicateDisplayName = `Copy of ${getDisplayNameFromK8sResource(sourceConfig)}`;
       return YAML.stringify({
         ...sourceConfig,
         metadata: {
           ...cleanMeta,
-          name: `${sourceConfig.metadata.name}-copy`,
+          name: translateDisplayNameForK8s(duplicateDisplayName),
           annotations: {
-            ...cleanMeta.annotations,
-            'openshift.io/display-name': `Copy of ${getDisplayNameFromK8sResource(sourceConfig)}`,
+            ...cleanAnnotations,
+            'openshift.io/display-name': duplicateDisplayName,
           },
+          labels: cleanLabels,
         },
       });
     }

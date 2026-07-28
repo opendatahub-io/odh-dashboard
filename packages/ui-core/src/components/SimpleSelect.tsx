@@ -35,6 +35,10 @@ export type SimpleSelectOption = {
   isFavorited?: boolean;
   dataTestId?: string;
   optionKey?: string; // Used to differentiate the only option with the same key to trigger the one-option hook in the component
+  tooltipProps?: {
+    content: React.ReactNode;
+    position?: 'auto' | 'top' | 'bottom' | 'left' | 'right';
+  };
 };
 
 export type SimpleGroupSelectOption = {
@@ -204,6 +208,7 @@ const SimpleSelect: React.FC<SimpleSelectProps> = ({
                     isDisabled: optionDisabled,
                     isAriaDisabled: optionAriaDisabled,
                     dataTestId: optionDataTestId,
+                    tooltipProps: optionTooltipProps,
                   }) => (
                     <SelectOption
                       key={optionKey ?? key}
@@ -213,6 +218,7 @@ const SimpleSelect: React.FC<SimpleSelectProps> = ({
                       isAriaDisabled={optionAriaDisabled}
                       isFavorited={isFavorited}
                       data-testid={optionDataTestId || key}
+                      tooltipProps={optionTooltipProps}
                     >
                       {dropdownLabel || label}
                     </SelectOption>
@@ -237,6 +243,7 @@ const SimpleSelect: React.FC<SimpleSelectProps> = ({
                   isDisabled: optionDisabled,
                   isAriaDisabled: optionAriaDisabled,
                   dataTestId: optionDataTestId,
+                  tooltipProps: optionTooltipProps,
                 }) => (
                   <SelectOption
                     key={optionKey ?? key}
@@ -246,6 +253,7 @@ const SimpleSelect: React.FC<SimpleSelectProps> = ({
                     isDisabled={optionDisabled}
                     isAriaDisabled={optionAriaDisabled}
                     data-testid={optionDataTestId || key}
+                    tooltipProps={optionTooltipProps}
                   >
                     {dropdownLabel || label}
                   </SelectOption>

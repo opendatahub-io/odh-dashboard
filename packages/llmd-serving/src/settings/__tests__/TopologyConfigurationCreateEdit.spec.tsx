@@ -4,8 +4,8 @@ import '@testing-library/jest-dom';
 import { useNavigate, useParams, useLocation } from 'react-router';
 import { mockLLMInferenceServiceConfigK8sResource } from '@odh-dashboard/internal/__mocks__/mockLLMInferenceServiceConfigK8sResource';
 import { TopologyType } from '../../types';
-import { useWatchRouterConfigs } from '../../api/LLMInferenceServiceConfigs';
-import RoutingConfigurationCreateEdit from '../RoutingConfigurationCreateEdit';
+import { useWatchTopologyConfigs } from '../../api/LLMInferenceServiceConfigs';
+import TopologyConfigurationCreateEdit from '../TopologyConfigurationCreateEdit';
 
 jest.mock('react-router', () => ({
   Link: ({ children, to }: { children: React.ReactNode; to: string }) => (
@@ -48,15 +48,15 @@ jest.mock('../ConfigYAMLEditor', () =>
 jest.mock('../../api/LLMInferenceServiceConfigs', () => ({
   createLLMInferenceServiceConfig: jest.fn(),
   patchLLMInferenceServiceConfig: jest.fn(),
-  useWatchRouterConfigs: jest.fn(),
+  useWatchTopologyConfigs: jest.fn(),
 }));
 
 const mockUseNavigate = jest.mocked(useNavigate);
 const mockUseParams = jest.mocked(useParams);
 const mockUseLocation = jest.mocked(useLocation);
-const mockUseWatchRouterConfigs = jest.mocked(useWatchRouterConfigs);
+const mockUseWatchTopologyConfigs = jest.mocked(useWatchTopologyConfigs);
 
-describe('RoutingConfigurationCreateEdit', () => {
+describe('TopologyConfigurationCreateEdit', () => {
   const navigateMock = jest.fn();
 
   beforeEach(() => {
@@ -65,32 +65,17 @@ describe('RoutingConfigurationCreateEdit', () => {
     mockUseLocation.mockReturnValue({ state: null, key: '', pathname: '', search: '', hash: '' });
   });
 
-  describe('create mode', () => {
-    beforeEach(() => {
-      mockUseParams.mockReturnValue({});
-      mockUseWatchRouterConfigs.mockReturnValue([[], true, undefined]);
-    });
-
-    it('should not disable the topology type select', () => {
-      render(<RoutingConfigurationCreateEdit />);
-
-      const topologySelect = screen.getByTestId('topology-type-select');
-      expect(topologySelect).not.toBeDisabled();
-    });
-  });
-
   describe('duplicate mode', () => {
     beforeEach(() => {
       mockUseParams.mockReturnValue({});
-      mockUseWatchRouterConfigs.mockReturnValue([[], true, undefined]);
+      mockUseWatchTopologyConfigs.mockReturnValue([[], true, undefined]);
     });
 
     it('should auto-update resource name when display name changes', () => {
       const sourceConfig = mockLLMInferenceServiceConfigK8sResource({
-        name: 'source-router',
-        displayName: 'Source Router',
-        configType: 'router' as never,
-        supportedTopologies: [TopologyType.SINGLE_NODE],
+        name: 'source-topology',
+        displayName: 'Source Topology',
+        topologyType: TopologyType.SINGLE_NODE,
       });
 
       mockUseLocation.mockReturnValue({
@@ -101,33 +86,12 @@ describe('RoutingConfigurationCreateEdit', () => {
         hash: '',
       });
 
-      render(<RoutingConfigurationCreateEdit />);
+      render(<TopologyConfigurationCreateEdit />);
 
-      const nameInput = screen.getByTestId('routing-config-name');
-      fireEvent.change(nameInput, { target: { value: 'My Custom Router' } });
+      const nameInput = screen.getByTestId('topology-config-name');
+      fireEvent.change(nameInput, { target: { value: 'My Custom Topology' } });
 
-      expect(screen.getByText('my-custom-router', { exact: false })).toBeInTheDocument();
-    });
-  });
-
-  describe('edit mode', () => {
-    const existingConfig = mockLLMInferenceServiceConfigK8sResource({
-      name: 'test-router',
-      displayName: 'Test Router',
-      configType: 'router' as never,
-      supportedTopologies: [TopologyType.SINGLE_NODE],
-    });
-
-    beforeEach(() => {
-      mockUseParams.mockReturnValue({ configName: 'test-router' });
-      mockUseWatchRouterConfigs.mockReturnValue([[existingConfig], true, undefined]);
-    });
-
-    it('should not disable the topology type select', () => {
-      render(<RoutingConfigurationCreateEdit />);
-
-      const topologySelect = screen.getByTestId('topology-type-select');
-      expect(topologySelect).not.toBeDisabled();
+      expect(screen.getByText('my-custom-topology', { exact: false })).toBeInTheDocument();
     });
   });
 });
