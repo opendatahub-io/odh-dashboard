@@ -1,0 +1,11 @@
+apiVersion: maas.opendatahub.io/v1alpha1
+kind: MaaSModelRef
+metadata:
+  name: "{{RESOURCE_NAME}}"
+  namespace: "{{PROJECT_NAME}}"
+  labels:
+    opendatahub.io/dashboard: "true"
+spec:
+  modelRef:
+    kind: ExternalModel
+    name: "{{RESOURCE_NAME}}"

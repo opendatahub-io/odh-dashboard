@@ -1,13 +1,13 @@
 import React from 'react';
 import { isEqual } from 'lodash-es';
 import type { ExternalDataMap } from './ExternalDataLoader';
+import { getFieldDependencies, getStateKey, useActiveFields } from './dynamicFormUtils';
 import type {
   InitialWizardFormData,
   WizardField,
   WizardFormData,
   WizardStateOverrides,
-} from './types';
-import { getFieldDependencies, getStateKey, useActiveFields } from './dynamicFormUtils';
+} from '../../shared/types/form-data';
 
 ///// Field type stuff
 

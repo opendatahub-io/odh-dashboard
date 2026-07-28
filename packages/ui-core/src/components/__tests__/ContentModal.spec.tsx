@@ -136,4 +136,21 @@ describe('ContentModal', () => {
     const header = screen.getByTestId('generic-modal-header');
     expect(header).toBeInTheDocument();
   });
+
+  it('should wrap long titles when wrapTitle is set', () => {
+    const longTitle = 'Remove Red Hat OpenShift AI administrator group?';
+    render(
+      <ContentModal
+        onClose={mockOnClose}
+        title={longTitle}
+        titleIconVariant="warning"
+        wrapTitle
+        variant="small"
+        contents={<div>Test content</div>}
+      />,
+    );
+
+    expect(screen.getByTestId('content-modal')).toHaveClass('odh-content-modal--wrap-title');
+    expect(screen.getByText(longTitle)).toBeInTheDocument();
+  });
 });

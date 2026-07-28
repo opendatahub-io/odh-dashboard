@@ -77,6 +77,7 @@ spec:
             - --leader-elect
             {{- end }}
             {{- if .Values.webhook.enabled }}
+            - --enable-webhook
             - --webhook-port={{ .Values.webhook.port }}
             {{- end }}
           env:

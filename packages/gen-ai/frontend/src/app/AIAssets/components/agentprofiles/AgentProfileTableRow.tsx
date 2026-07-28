@@ -109,6 +109,9 @@ const AgentProfileTableRow: React.FC<AgentProfileTableRowProps> = ({
                   key="edit"
                   onClick={() => {
                     setIsKebabOpen(false);
+                    fireMiscTrackingEvent(PLAYGROUND_AGENT_EVENTS.DETAILS_EDIT_SELECTED, {
+                      agentID: profile.profileId,
+                    });
                     setIsEditModalOpen(true);
                   }}
                   data-testid={`edit-agent-profile-${profile.profileId}`}

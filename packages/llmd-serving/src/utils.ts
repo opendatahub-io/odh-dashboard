@@ -1,4 +1,5 @@
 import type { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
+import { isUnsupportedUnaccepted } from '@odh-dashboard/model-serving/concepts/versions';
 import { WELL_KNOWN_ANNOTATION, DISABLED_ANNOTATION, DASHBOARD_RESOURCE_LABEL } from './const';
 import type { LLMInferenceServiceConfigKind } from './types';
 
@@ -31,15 +32,34 @@ export const cleanResourceForYAMLViewer = (
   return result;
 };
 
-export const stripAnnotation = (
+export const stripDuplicatingAnnotations = (
   annotations: Record<string, string> | undefined,
-  key: string,
 ): Record<string, string> | undefined => {
   if (!annotations) {
     return annotations;
   }
   const result = { ...annotations };
-  delete result[key];
+  delete result['kubectl.kubernetes.io/last-applied-configuration'];
+  delete result['serving.kserve.io/well-known-config'];
+  delete result['platform.opendatahub.io/instance.name'];
+  delete result['platform.opendatahub.io/instance.uid'];
+  delete result['platform.opendatahub.io/instance.generation'];
+  delete result['internal.config.kubernetes.io/previousNamespaces'];
+  delete result['internal.config.kubernetes.io/previousKinds'];
+  delete result['internal.config.kubernetes.io/previousNames'];
+  return result;
+};
+
+export const stripDuplicatingLabels = (
+  labels: Record<string, string> | undefined,
+): Record<string, string> | undefined => {
+  if (!labels) {
+    return labels;
+  }
+  const result = { ...labels };
+  delete result['platform.opendatahub.io/part-of'];
+  delete result['app.kubernetes.io/part-of'];
+  delete result['app.opendatahub.io/kserve'];
   return result;
 };
 
@@ -58,3 +78,6 @@ export const isConfigPreInstalled = (config: LLMInferenceServiceConfigKind): boo
 
 export const isConfigEnabled = (config: LLMInferenceServiceConfigKind): boolean =>
   config.metadata.annotations?.[DISABLED_ANNOTATION] !== 'true';
+
+export const isConfigEffectivelyEnabled = (config: LLMInferenceServiceConfigKind): boolean =>
+  isUnsupportedUnaccepted(config) ? false : isConfigEnabled(config);

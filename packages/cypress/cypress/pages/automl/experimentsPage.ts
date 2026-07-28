@@ -39,6 +39,15 @@ class AutomlExperimentsPage {
   findHeaderCreateRunButton() {
     return cy.findByTestId('automl-header-create-experiment-button');
   }
+
+  findAnyCreateRunButton(options?: Partial<Cypress.Loggable & Cypress.Timeoutable>) {
+    return cy
+      .get(
+        '[data-testid="automl-header-create-experiment-button"], [data-testid="create-run-button"]',
+        options,
+      )
+      .first();
+  }
 }
 
 export const automlExperimentsPage = new AutomlExperimentsPage();

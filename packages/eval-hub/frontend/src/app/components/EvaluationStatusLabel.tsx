@@ -7,6 +7,7 @@ import {
   InProgressIcon,
   OffIcon,
   PendingIcon,
+  QuestionCircleIcon,
 } from '@patternfly/react-icons';
 import { EvaluationJobState } from '~/app/types';
 
@@ -18,7 +19,7 @@ type StatusConfig = {
   isFilled?: boolean;
 };
 
-const statusMap: Record<EvaluationJobState, StatusConfig> = {
+const statusMap: Partial<Record<EvaluationJobState, StatusConfig>> = {
   pending: {
     label: 'Pending',
     color: 'purple',
@@ -55,6 +56,20 @@ const statusMap: Record<EvaluationJobState, StatusConfig> = {
     color: 'grey',
     icon: <OffIcon />,
   },
+
+  // eslint-disable-next-line camelcase -- matches the API's state value verbatim
+  partially_failed: {
+    label: 'Failed',
+    status: 'danger',
+    icon: <ExclamationCircleIcon />,
+    isFilled: true,
+  },
+};
+
+const unknownStatusConfig: StatusConfig = {
+  label: 'Unknown',
+  color: 'grey',
+  icon: <QuestionCircleIcon />,
 };
 
 type EvaluationStatusLabelProps = {
@@ -63,8 +78,8 @@ type EvaluationStatusLabelProps = {
 };
 
 const EvaluationStatusLabel: React.FC<EvaluationStatusLabelProps> = ({ state, message }) => {
-  const config = statusMap[state];
-  const hasPopover = state === 'failed' && !!message;
+  const config = statusMap[state] ?? unknownStatusConfig;
+  const hasPopover = (state === 'failed' || state === 'partially_failed') && !!message;
 
   const label = (
     <Label

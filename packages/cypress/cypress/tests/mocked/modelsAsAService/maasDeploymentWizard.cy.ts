@@ -10,6 +10,7 @@ import {
 import { mockGlobalScopedHardwareProfiles } from '@odh-dashboard/internal/__mocks__/mockHardwareProfile';
 import { mockStandardModelServingTemplateK8sResources } from '@odh-dashboard/internal/__mocks__/mockServingRuntimeTemplateK8sResource';
 import { mockConnectionTypeConfigMap } from '@odh-dashboard/internal/__mocks__/mockConnectionType';
+import { MODELS_AS_A_SERVICE_READY } from '@odh-dashboard/k8s-core';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import { hardwareProfileSection } from '../../../pages/components/HardwareProfileSection';
 import { ModelLocationSelectOption, ModelTypeLabel } from '../../../utils/modelServingConstants';
@@ -39,7 +40,7 @@ describe('MaaS Deployment Wizard', () => {
           [DataScienceStackComponent.K_SERVE]: { managementState: 'Managed' },
           [DataScienceStackComponent.OGX_OPERATOR]: { managementState: 'Managed' },
         },
-        conditions: [{ type: 'ModelsAsServiceReady', status: 'True', reason: 'Ready' }],
+        conditions: [{ type: MODELS_AS_A_SERVICE_READY, status: 'True', reason: 'Ready' }],
       }),
     );
     cy.interceptOdh(

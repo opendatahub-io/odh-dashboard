@@ -8,6 +8,9 @@ import {
   Button,
   Form,
   FormGroup,
+  FormHelperText,
+  HelperText,
+  HelperTextItem,
 } from '@patternfly/react-core';
 import { Link, Navigate, useLocation, useNavigate, useParams } from 'react-router';
 import YAML from 'yaml';
@@ -17,6 +20,7 @@ import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/p
 import {
   getDisplayNameFromK8sResource,
   isK8sNameDescriptionDataValid,
+  translateDisplayNameForK8s,
 } from '@odh-dashboard/k8s-core';
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
@@ -31,7 +35,12 @@ import {
   TopologyTypeLabels,
   CONFIG_TYPE_LABEL,
 } from '../types';
-import { isConfigObject, cleanResourceForYAMLViewer, stripAnnotation } from '../utils';
+import {
+  isConfigObject,
+  cleanResourceForYAMLViewer,
+  stripDuplicatingAnnotations,
+  stripDuplicatingLabels,
+} from '../utils';
 import {
   createLLMInferenceServiceConfig,
   patchLLMInferenceServiceConfig,
@@ -71,16 +80,15 @@ const TopologyConfigurationCreateEditInner: React.FC<{
     }
     if (state?.sourceConfig) {
       const cleanMeta = cleanResourceForYAMLViewer(state.sourceConfig.metadata);
+      const duplicateDisplayName = `Copy of ${getDisplayNameFromK8sResource(state.sourceConfig)}`;
       return {
         ...state.sourceConfig,
         metadata: {
           ...cleanMeta,
-          name: `${state.sourceConfig.metadata.name}-copy`,
+          name: translateDisplayNameForK8s(duplicateDisplayName),
           annotations: {
             ...cleanMeta.annotations,
-            'openshift.io/display-name': `Copy of ${getDisplayNameFromK8sResource(
-              state.sourceConfig,
-            )}`,
+            'openshift.io/display-name': duplicateDisplayName,
           },
         },
       };
@@ -97,24 +105,22 @@ const TopologyConfigurationCreateEditInner: React.FC<{
     if (existingConfig) {
       return YAML.stringify(existingConfig);
     }
-    if (state?.sourceConfig) {
+    if (isDuplicateMode) {
       const cleanMeta = cleanResourceForYAMLViewer(state.sourceConfig.metadata);
-      const cleanAnnotations = stripAnnotation(
-        cleanMeta.annotations,
-        'kubectl.kubernetes.io/last-applied-configuration',
-      );
+      const cleanAnnotations = stripDuplicatingAnnotations(cleanMeta.annotations);
+      const cleanLabels = stripDuplicatingLabels(cleanMeta.labels);
+      const duplicateDisplayName = `Copy of ${getDisplayNameFromK8sResource(state.sourceConfig)}`;
       return YAML.stringify({
         apiVersion: state.sourceConfig.apiVersion,
         kind: state.sourceConfig.kind,
         metadata: {
           ...cleanMeta,
-          name: `${state.sourceConfig.metadata.name}-copy`,
+          name: translateDisplayNameForK8s(duplicateDisplayName),
           annotations: {
             ...cleanAnnotations,
-            'openshift.io/display-name': `Copy of ${getDisplayNameFromK8sResource(
-              state.sourceConfig,
-            )}`,
+            'openshift.io/display-name': duplicateDisplayName,
           },
+          labels: cleanLabels,
         },
         spec: state.sourceConfig.spec,
       });
@@ -215,7 +221,7 @@ const TopologyConfigurationCreateEditInner: React.FC<{
     },
     {
       key: 'editor',
-      label: 'Upload an existing configuration file',
+      label: 'Open code editor',
     },
   ];
 
@@ -287,6 +293,11 @@ const TopologyConfigurationCreateEditInner: React.FC<{
         />
         {!isEditMode && !isDuplicateMode && (
           <FormGroup label="Configuration source" isRequired fieldId="config-source">
+            <FormHelperText>
+              <HelperText>
+                <HelperTextItem>Select how to provide the topology configuration.</HelperTextItem>
+              </HelperText>
+            </FormHelperText>
             <SimpleSelect
               options={configSourceOptions}
               value={configSource}
@@ -309,6 +320,7 @@ const TopologyConfigurationCreateEditInner: React.FC<{
               code={yamlCode}
               onCodeChange={setYamlCode}
               topologyTypeLabel={topologyTypeLabel}
+              isUploadEnabled={configSource !== 'template'}
             />
           </FormGroup>
         )}

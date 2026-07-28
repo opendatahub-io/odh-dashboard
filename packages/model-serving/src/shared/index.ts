@@ -7,6 +7,7 @@ export {
   isInferenceServiceKind,
 } from './types';
 export type {
+  LabeledConnection,
   ModelStatus,
   SupportedModelFormatsInfo,
   ServingRuntimeToken,
@@ -53,5 +54,14 @@ export {
 } from './utils/kserveStatusUtils';
 
 export { default as useModelMetricsEnabled } from './hooks/useModelMetricsEnabled';
+export { default as useTemplateOrder } from './hooks/useTemplateOrder';
+export { default as useTemplateDisablement } from './hooks/useTemplateDisablement';
 
 export { getServingRuntimeVersion } from '../concepts/versions';
+
+export {
+  ModelServingToolbarFilterOptions,
+  modelServingFilterOptions,
+  initialModelServingFilterData,
+} from './const';
+export type { ModelServingFilterDataType } from './const';

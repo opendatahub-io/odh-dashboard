@@ -5,11 +5,10 @@ import {
   k8sListResource,
   K8sStatus,
 } from '@openshift/dynamic-plugin-sdk-utils';
-import { K8sAPIOptions } from '@odh-dashboard/internal/k8sTypes';
 import { FeatureStoreModel } from '@odh-dashboard/internal/api/models/odh';
 import { PodModel } from '@odh-dashboard/internal/api/models/k8s';
 import { applyK8sAPIOptions } from '@odh-dashboard/internal/api/apiMergeUtils';
-import { isValidK8sName, PodKind } from '@odh-dashboard/k8s-core';
+import { isValidK8sName, K8sAPIOptions, PodKind } from '@odh-dashboard/k8s-core';
 import { FeatureStoreKind } from '../k8sTypes';
 import {
   assembleFeatureStore,

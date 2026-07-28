@@ -1,7 +1,7 @@
 import { act } from '@testing-library/react';
 import { testHook } from '@odh-dashboard/jest-config/hooks';
 import { stringify } from 'yaml';
-import type { WizardFormData } from '../../types';
+import type { WizardFormData } from '../../../../shared/types/form-data';
 import type { Deployment, ModelResourceType } from '../../../../../extension-points';
 import { DeploymentAssemblyResources } from '../../../../../extension-points/deployment-wizard';
 import { useFormToResourcesTransformer } from '../useFormToResourcesTransformer';

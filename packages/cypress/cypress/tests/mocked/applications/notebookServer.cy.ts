@@ -6,14 +6,13 @@ import {
   mockNotebookK8sResource,
   mockStorageClassList,
 } from '@odh-dashboard/internal/__mocks__';
-import type { RoleBindingSubject } from '@odh-dashboard/internal/k8sTypes';
+import type { EnvironmentVariable, RoleBindingSubject } from '@odh-dashboard/k8s-core';
 import { mockAllowedUsers } from '@odh-dashboard/internal/__mocks__/mockAllowedUsers';
 import { mockStartNotebookData } from '@odh-dashboard/internal/__mocks__/mockStartNotebookData';
 import {
   mockGlobalScopedHardwareProfiles,
   mockProjectScopedHardwareProfiles,
 } from '@odh-dashboard/internal/__mocks__/mockHardwareProfile';
-import type { EnvironmentVariable } from '@odh-dashboard/k8s-core';
 import type { NotebookData } from '@odh-dashboard/internal/types';
 import { mockConfigMap } from '@odh-dashboard/internal/__mocks__/mockConfigMap';
 import { mockImageStreamK8sResourceList } from '@odh-dashboard/internal/__mocks__/mockImageStreamK8sResource';

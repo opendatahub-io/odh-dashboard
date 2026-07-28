@@ -59,6 +59,12 @@ var persesdashboardGVK = schema.GroupVersionKind{
 	Kind:    "PersesDashboardList",
 }
 
+var deploymentGVK = schema.GroupVersionKind{
+	Group:   "apps",
+	Version: "v1",
+	Kind:    "Deployment",
+}
+
 // Version is set at build time via -ldflags.
 var Version = "unknown"
 
@@ -272,6 +278,7 @@ func (r *DashboardReconciler) reconcileSidecar(
 		deploy.WithFieldOwner("dashboard-operator"),
 		deploy.WithLabel(labels.PlatformPartOf, strings.ToLower(v1alpha1.DashboardKind)),
 		deploy.WithApplyOrder(),
+		deploy.WithMergeStrategy(deploymentGVK, deploy.MergeDeployments),
 	)
 
 	if err := deployer.Deploy(ctx, deploy.DeployInput{
@@ -347,8 +354,9 @@ func (r *DashboardReconciler) reconcileStandalone(
 ) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
 
-	// Step 1: Deploy core manifests (main dashboard deployment without sidecar patches)
-	manifests := manifestSets(r.ManifestsBasePath, r.Platform)
+	// Step 1: Deploy core manifests (3-container pod: odh-dashboard, kube-rbac-proxy, core-bff).
+	// Uses the standalone overlay which excludes BFF module sidecar containers.
+	manifests := standaloneManifestSets(r.ManifestsBasePath, r.Platform)
 
 	if err := applyKustomizeParams(dashboard, manifests, r.Platform); err != nil {
 		cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded),
@@ -374,6 +382,7 @@ func (r *DashboardReconciler) reconcileStandalone(
 		deploy.WithFieldOwner("dashboard-operator"),
 		deploy.WithLabel(labels.PlatformPartOf, strings.ToLower(v1alpha1.DashboardKind)),
 		deploy.WithApplyOrder(),
+		deploy.WithMergeStrategy(deploymentGVK, deploy.MergeDeployments),
 	)
 
 	if err := deployer.Deploy(ctx, deploy.DeployInput{
@@ -429,12 +438,18 @@ func (r *DashboardReconciler) reconcileStandalone(
 	r.reconcileObservability(ctx, dashboard, cm)
 
 	// Step 7: Build and deploy federation ConfigMap (critical for standalone routing)
-	if err := r.deployFederationConfigMap(ctx, nextStatuses, dashboard); err != nil {
+	fedData, err := r.deployFederationConfigMap(ctx, nextStatuses, dashboard)
+	if err != nil {
 		cm.MarkTrue(string(common.ConditionTypeDegraded),
 			conditions.WithReason("FederationConfigMapFailed"),
 			conditions.WithError(err))
 		logger.Error(err, "Failed to deploy federation ConfigMap")
 		return ctrl.Result{}, fmt.Errorf("federation ConfigMap: %w", err)
+	}
+
+	if err := r.patchDeploymentFederationHash(ctx, fedData); err != nil {
+		logger.Error(err, "Failed to patch federation hash on deployment")
+		return ctrl.Result{}, fmt.Errorf("patching federation hash: %w", err)
 	}
 
 	// Step 8: URL extraction + degraded condition

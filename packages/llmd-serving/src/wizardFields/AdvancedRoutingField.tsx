@@ -1,6 +1,5 @@
 import React from 'react';
 import {
-  Content,
   FormGroup,
   FormHelperText,
   HelperText,
@@ -12,7 +11,7 @@ import type {
   WizardField,
   WizardFormData,
   WizardReviewSection,
-} from '@odh-dashboard/model-serving/types/form-data';
+} from '@odh-dashboard/model-serving/shared/types/form-data';
 import type { RecursivePartial } from '@odh-dashboard/foundation';
 import { z } from 'zod';
 import SimpleSelect, { SimpleSelectOption } from '@odh-dashboard/ui-core/components/SimpleSelect';
@@ -31,6 +30,7 @@ import {
 import { isConfigEnabled } from '../utils';
 import { useFetchRouterConfigs } from '../api/LLMInferenceServiceConfigs';
 import { isLLMInferenceServiceActive } from '../formUtils';
+import { fireRoutingSelected } from '../tracking/llmdTrackingConstants';
 
 // --- External data hook ---
 
@@ -110,9 +110,14 @@ const AdvancedRoutingFieldComponent: AdvancedRoutingFieldType['component'] = ({
     [routerConfigs, topologyType],
   );
 
-  // Resolve configRef from extractor (edit flow) once external data loads
+  // Resolve configRef from extractor (edit flow) once external data loads.
+  // Resolves against all routerConfigs so a previously selected incompatible config
+  // remains visible in the dropdown with a warning.
   const configRef = value?.configRef;
   const existingSelection = value?.selectedConfig;
+  const [preSelectedIncompatibleConfig, setPreSelectedIncompatibleConfig] = React.useState<
+    LLMInferenceServiceConfigKind | undefined
+  >();
   React.useEffect(() => {
     if (!configRef || existingSelection || !isLoaded) {
       return;
@@ -120,9 +125,30 @@ const AdvancedRoutingFieldComponent: AdvancedRoutingFieldType['component'] = ({
     const resolved = (routerConfigs ?? []).find((c) => c.metadata.name === configRef);
     if (resolved) {
       onChange({ selectedConfig: resolved });
+      if (!compatibleConfigs.some((c) => c.metadata.name === resolved.metadata.name)) {
+        setPreSelectedIncompatibleConfig(resolved);
+      }
+    } else {
+      onChange({ configRef: undefined });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [configRef, isLoaded, existingSelection, routerConfigs]);
+  }, [configRef, isLoaded, existingSelection, routerConfigs, compatibleConfigs]);
+
+  // Clear stale incompatible state when the config becomes compatible
+  // (e.g. topology type changed to one the config supports).
+  React.useEffect(() => {
+    if (
+      preSelectedIncompatibleConfig &&
+      compatibleConfigs.some((c) => c.metadata.name === preSelectedIncompatibleConfig.metadata.name)
+    ) {
+      setPreSelectedIncompatibleConfig(undefined);
+    }
+  }, [compatibleConfigs, preSelectedIncompatibleConfig]);
+
+  const isIncompatibleSelected =
+    !!existingSelection &&
+    !!preSelectedIncompatibleConfig &&
+    existingSelection.metadata.name === preSelectedIncompatibleConfig.metadata.name;
 
   const options: SimpleSelectOption[] = React.useMemo(() => {
     const result: SimpleSelectOption[] = [
@@ -146,38 +172,67 @@ const AdvancedRoutingFieldComponent: AdvancedRoutingFieldType['component'] = ({
       }),
     );
 
+    // Include the incompatible config only if it's not already in the compatible list
+    if (
+      preSelectedIncompatibleConfig &&
+      !compatibleConfigs.some(
+        (c) => c.metadata.name === preSelectedIncompatibleConfig.metadata.name,
+      )
+    ) {
+      result.push({
+        key: preSelectedIncompatibleConfig.metadata.name,
+        label: getDisplayNameFromK8sResource(preSelectedIncompatibleConfig),
+        dataTestId: `routing-config-option-${preSelectedIncompatibleConfig.metadata.name}`,
+      });
+    }
+
     return result;
-  }, [compatibleConfigs]);
+  }, [compatibleConfigs, preSelectedIncompatibleConfig]);
 
   const selectedValue = value?.selectedConfig?.metadata.name ?? DEFAULT_ROUTING_KEY;
 
   return (
-    <FormGroup fieldId="advanced-routing" label="Advanced routing" isRequired>
+    <FormGroup fieldId="advanced-routing" label="Routing" isRequired>
+      <FormHelperText>
+        <HelperText>
+          <HelperTextItem>
+            Select an administrator-defined routing configuration for this topology, or use the
+            default.
+          </HelperTextItem>
+        </HelperText>
+      </FormHelperText>
       <Stack hasGutter>
-        <StackItem>
-          <Content component="p">
-            Select the llm-d routing configuration for this deployment
-          </Content>
-        </StackItem>
         <StackItem>
           <SimpleSelect
             isFullWidth
             options={options}
             onChange={(key, isPlaceholder) => {
               if (!key || isPlaceholder || key === DEFAULT_ROUTING_KEY) {
+                fireRoutingSelected({
+                  routingConfigurationId: DEFAULT_ROUTING_KEY,
+                  isDefaultRouting: true,
+                });
                 onChange({ selectedConfig: undefined });
                 return;
               }
-              const config = compatibleConfigs.find((c) => c.metadata.name === key);
+              const config = (routerConfigs ?? []).find((c) => c.metadata.name === key);
+              fireRoutingSelected({
+                routingConfigurationId: key,
+                isDefaultRouting: false,
+              });
               onChange({ selectedConfig: config ?? value?.selectedConfig });
             }}
             value={selectedValue}
             dataTestId="routing-config-select"
-            isDisabled={!isLoaded || hasLoadError || compatibleConfigs.length === 0}
+            isDisabled={
+              !isLoaded ||
+              hasLoadError ||
+              (compatibleConfigs.length === 0 && !preSelectedIncompatibleConfig)
+            }
             autoSelectOnlyOption={false}
-            toggleProps={hasLoadError ? { status: 'warning' } : undefined}
+            toggleProps={hasLoadError || isIncompatibleSelected ? { status: 'warning' } : undefined}
           />
-          {hasLoadError && (
+          {hasLoadError ? (
             <FormHelperText>
               <HelperText>
                 <HelperTextItem variant="warning">
@@ -185,7 +240,16 @@ const AdvancedRoutingFieldComponent: AdvancedRoutingFieldType['component'] = ({
                 </HelperTextItem>
               </HelperText>
             </FormHelperText>
-          )}
+          ) : isIncompatibleSelected ? (
+            <FormHelperText>
+              <HelperText>
+                <HelperTextItem variant="warning">
+                  The selected routing configuration is not compatible with the current topology
+                  type. Select a different routing configuration or contact your administrator.
+                </HelperTextItem>
+              </HelperText>
+            </FormHelperText>
+          ) : null}
         </StackItem>
       </Stack>
     </FormGroup>
@@ -200,7 +264,7 @@ const getReviewSections = (value: AdvancedRoutingFieldData): WizardReviewSection
     items: [
       {
         key: 'routing-config',
-        label: 'Routing configuration',
+        label: 'Routing',
         value: () =>
           value.selectedConfig
             ? getDisplayNameFromK8sResource(value.selectedConfig)
@@ -235,7 +299,9 @@ export const AdvancedRoutingFieldWizardField: AdvancedRoutingFieldType = {
     },
     setFieldData: (value: AdvancedRoutingFieldData) => value,
     getInitialFieldData: (existingFieldData?: AdvancedRoutingFieldData): AdvancedRoutingFieldData =>
-      existingFieldData ?? { selectedConfig: undefined },
+      existingFieldData?.selectedConfig || existingFieldData?.configRef
+        ? existingFieldData
+        : { selectedConfig: undefined },
     validationSchema: z.object({
       selectedConfig: z
         .custom<LLMInferenceServiceConfigKind>(
@@ -245,6 +311,8 @@ export const AdvancedRoutingFieldWizardField: AdvancedRoutingFieldType = {
       configRef: z.string().optional(),
     }),
   },
+  shouldResetOnDependencyChange: (prev, next) =>
+    prev.topologyType?.topologyType !== next.topologyType?.topologyType,
   externalDataHook: useAdvancedRoutingData,
   component: AdvancedRoutingFieldComponent,
   getReviewSections,

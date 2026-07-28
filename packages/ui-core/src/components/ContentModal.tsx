@@ -40,6 +40,8 @@ type ContentModalProps = {
   variant?: ModalProps['variant'];
   bodyLabel?: string;
   titleIconVariant?: ModalHeaderProps['titleIconVariant'];
+  /** When true, apply a scoped CSS override so PF modal title text wraps instead of ellipsis. */
+  wrapTitle?: boolean;
   error?: Error | React.ReactNode;
   alertTitle?: string;
   alertLinks?: React.ReactNode;
@@ -69,6 +71,7 @@ const ContentModal: React.FC<ContentModalProps> = ({
   variant = 'medium',
   bodyLabel,
   titleIconVariant,
+  wrapTitle = false,
   error,
   alertTitle,
   alertLinks,
@@ -78,6 +81,7 @@ const ContentModal: React.FC<ContentModalProps> = ({
 
   return (
     <Modal
+      className={wrapTitle ? 'odh-content-modal--wrap-title' : undefined}
       data-testid={dataTestId}
       isOpen
       variant={variant}

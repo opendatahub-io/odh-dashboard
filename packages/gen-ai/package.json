@@ -45,8 +45,8 @@
   "dependencies": {
     "@odh-dashboard/internal": "*",
     "@odh-dashboard/k8s-core": "*",
-    "@odh-dashboard/ui-core": "*",
-    "@odh-dashboard/plugin-core": "*"
+    "@odh-dashboard/plugin-core": "*",
+    "@odh-dashboard/ui-core": "*"
   },
   "devDependencies": {
     "@odh-dashboard/contract-tests": "*",

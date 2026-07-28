@@ -24,6 +24,7 @@ import {
 } from '@odh-dashboard/k8s-core';
 import type { InferenceServiceKind, ServingRuntimeKind } from '@odh-dashboard/model-serving/shared';
 import { getServingRuntimeFromTemplate } from '@odh-dashboard/model-serving/shared';
+import { useAccessReview } from '@odh-dashboard/plugin-core/host-api';
 import {
   createNIMPVC,
   createNIMSecret,
@@ -45,7 +46,7 @@ import NIMModelListSection from '#~/pages/modelServing/screens/projects/nim/NIMS
 import NIMModelDeploymentNameSection from '#~/pages/modelServing/screens/projects/nim/NIMServiceModal/NIMModelDeploymentNameSection';
 import ProjectSection from '#~/pages/modelServing/screens/projects/InferenceServiceModal/ProjectSection';
 import { NamespaceApplicationCase } from '#~/pages/projects/types';
-import { getSecret, updatePvc, useAccessReview, patchInferenceServiceStoppedStatus } from '#~/api';
+import { getSecret, updatePvc, patchInferenceServiceStoppedStatus } from '#~/api';
 import KServeAutoscalerReplicaSection from '#~/pages/modelServing/screens/projects/kServeModal/KServeAutoscalerReplicaSection';
 import NIMPVCSizeSection, {
   PVCMode,

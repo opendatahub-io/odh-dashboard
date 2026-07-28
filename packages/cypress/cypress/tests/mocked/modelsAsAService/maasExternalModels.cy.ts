@@ -1,5 +1,6 @@
 import { mockDashboardConfig } from '@odh-dashboard/internal/__mocks__/mockDashboardConfig.js';
 import { mockDscStatus } from '@odh-dashboard/internal/__mocks__/mockDscStatus.js';
+import { MODELS_AS_A_SERVICE_READY } from '@odh-dashboard/k8s-core';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import { ProjectModel } from '@odh-dashboard/internal/api/models/index';
 import { mockK8sResourceList } from '@odh-dashboard/internal/__mocks__/mockK8sResourceList';
@@ -35,7 +36,7 @@ const setupCommonIntercepts = () => {
         [DataScienceStackComponent.OGX_OPERATOR]: { managementState: 'Managed' },
         [DataScienceStackComponent.K_SERVE]: { managementState: 'Managed' },
       },
-      conditions: [{ type: 'ModelsAsServiceReady', status: 'True', reason: 'Ready' }],
+      conditions: [{ type: MODELS_AS_A_SERVICE_READY, status: 'True', reason: 'Ready' }],
     }),
   );
 };
@@ -88,7 +89,7 @@ describe('External Models Page', () => {
           [DataScienceStackComponent.OGX_OPERATOR]: { managementState: 'Managed' },
           [DataScienceStackComponent.K_SERVE]: { managementState: 'Managed' },
         },
-        conditions: [{ type: 'ModelsAsServiceReady', status: 'False', reason: 'NotReady' }],
+        conditions: [{ type: MODELS_AS_A_SERVICE_READY, status: 'False', reason: 'NotReady' }],
       }),
     );
     externalModelsPage.visit();
@@ -133,13 +134,13 @@ describe('External Models Page', () => {
 
       gptRow.findExpandedViewUrlButton('openai-prod').click();
       externalModelProviderUrlModal.findInputValue().should('have.value', 'api.openai.com');
-      externalModelProviderUrlModal.findProviderRef().should('contain.text', 'OpenAI Production');
+      externalModelProviderUrlModal.findProviderRef().should('contain.text', 'openai');
       externalModelProviderUrlModal.findTargetModelId().should('contain.text', 'gpt-4o');
       externalModelProviderUrlModal.findCloseButton().click();
 
       gptRow.findExpandedViewPathButton('openai-prod').click();
       externalModelPathModal.findInputValue().should('have.value', '/v1/chat/completions');
-      externalModelPathModal.findProviderRef().should('contain.text', 'OpenAI Production');
+      externalModelPathModal.findProviderRef().should('contain.text', 'openai');
       externalModelPathModal.findCloseButton().click();
 
       const splitRow = externalModelsPage.getRow('Claude A/B Split');
@@ -160,7 +161,7 @@ describe('External Models Page', () => {
       externalModelProviderUrlModal
         .findInputValue()
         .should('have.value', 'bedrock.us-east-1.amazonaws.com');
-      externalModelProviderUrlModal.findProviderRef().should('contain.text', 'AWS Bedrock US East');
+      externalModelProviderUrlModal.findProviderRef().should('contain.text', 'aws-bedrock');
       externalModelProviderUrlModal
         .findTargetModelId()
         .should('contain.text', 'anthropic.claude-3-sonnet');
@@ -168,7 +169,7 @@ describe('External Models Page', () => {
 
       splitRow.findExpandedViewPathButton('anthropic-dev').click();
       externalModelPathModal.findInputValue().should('have.value', '/v1/messages');
-      externalModelPathModal.findProviderRef().should('contain.text', 'Anthropic Development');
+      externalModelPathModal.findProviderRef().should('contain.text', 'anthropic');
       externalModelPathModal.findCloseButton().click();
 
       const awaitingRow = externalModelsPage.getRow('Awaiting Pairing Model');
@@ -177,7 +178,7 @@ describe('External Models Page', () => {
       awaitingRow
         .findGovernanceWarningPopover()
         .should('exist')
-        .should('contain.text', 'Pending MaaS governance');
+        .should('contain.text', 'Missing MaaS governance setup');
 
       const missingRefRow = externalModelsPage.getRow('Missing Ref Model');
       missingRefRow.findPhaseLabel().should('contain.text', 'Ready');
