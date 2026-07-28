@@ -121,6 +121,7 @@ const CustomTopologyConfigFieldComponent: CustomTopologyConfigFieldType['compone
       result.push({
         key: SINGLE_NODE_DEFAULT_KEY,
         label: 'Single node (default)',
+        description: 'Pre-installed configuration for single-node deployments.',
         dataTestId: 'topology-config-option-single-node-default',
       });
     }
