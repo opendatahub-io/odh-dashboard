@@ -2,6 +2,7 @@ import * as React from 'react';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { useAccessReview } from '@odh-dashboard/plugin-core/host-api';
+import userEvent from '@testing-library/user-event';
 import { mockRoleK8sResource, mockProjectK8sResource } from '#~/__mocks__';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import CreateRolePage from '#~/pages/projects/projectRoles/CreateRolePage';
@@ -149,5 +150,29 @@ describe('CreateRolePage', () => {
     renderPage();
     expect(screen.queryByTestId('create-role-page')).not.toBeInTheDocument();
     expect(screen.getByTestId('redirected')).toBeInTheDocument();
+  });
+
+  it('should render the title and description', () => {
+    renderPage();
+
+    expect(screen.getByTestId('form-view-title')).toHaveTextContent('Role configuration');
+  });
+
+  it('should render the yaml title and description on YAML toggle', async () => {
+    const user = userEvent.setup();
+
+    const { container } = renderPage();
+
+    const button = container.querySelector('#yaml-view-toggle') as HTMLButtonElement;
+
+    await user.click(button);
+
+    expect(await screen.findByTestId('yaml-view-title')).toHaveTextContent(
+      'Role configuration YAML',
+    );
+    expect(await screen.findByTestId('yaml-view-description')).toBeInTheDocument();
+    expect(
+      await screen.findByText(/View the live, read-only YAML for this role/),
+    ).toBeInTheDocument();
   });
 });
