@@ -150,28 +150,33 @@ const ProjectsContextProvider: React.FC<ProjectsContextProviderProps> = ({ child
   const waitForProject = React.useCallback<ProjectsContextType['waitForProject']>(
     (projectName) =>
       new Promise((resolve, reject) => {
-        const deadline = Date.now() + WAIT_FOR_PROJECT_TIMEOUT_MS;
+        const controller = new AbortController();
+        const timer = setTimeout(() => {
+          controller.abort();
+          reject(new Error(`Timed out waiting for project "${projectName}"`));
+        }, WAIT_FOR_PROJECT_TIMEOUT_MS);
+
         const poll = async (): Promise<void> => {
-          if (!isMounted.current) {
+          if (!isMounted.current || controller.signal.aborted) {
             return;
           }
           try {
-            const fresh = await fetchNamespaces();
+            const fresh = await fetchNamespaces(controller.signal);
             // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- ref may change during await
-            if (!isMounted.current) {
+            if (!isMounted.current || controller.signal.aborted) {
               return;
             }
             if (fresh.find(byName(projectName))) {
+              clearTimeout(timer);
               setProjectData(fresh);
               resolve();
               return;
             }
           } catch {
-            // fetch failed — keep polling until timeout
-          }
-          if (Date.now() >= deadline) {
-            reject(new Error(`Timed out waiting for project "${projectName}"`));
-            return;
+            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- signal may change during await
+            if (controller.signal.aborted) {
+              return;
+            }
           }
           setTimeout(() => void poll(), WAIT_FOR_PROJECT_POLL_MS);
         };
