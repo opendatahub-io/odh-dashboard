@@ -380,4 +380,3 @@ func corev1PodTemplateSpec(labels map[string]string) corev1.PodTemplateSpec {
 		},
 	}
 }
-
