@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	networkingv1 "k8s.io/api/networking/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -1046,6 +1047,81 @@ func runPreservesOperatorResourcesTest(t *testing.T, opDep, opSA, opCR, opCRB, d
 	}
 	assert.Contains(t, crbNames, opCRB, "operator ClusterRoleBinding must survive teardown")
 	assert.NotContains(t, crbNames, delCRB, "non-operator ClusterRoleBindings must be deleted")
+}
+
+func TestDeleteSidecarResources(t *testing.T) {
+	t.Run("deletes all sidecar-specific resources", func(t *testing.T) {
+		s := testScheme(t)
+		ctx := context.Background()
+
+		sidecarSA := &corev1.ServiceAccount{
+			ObjectMeta: metav1.ObjectMeta{Name: "odh-dashboard-modules", Namespace: testNamespace},
+		}
+		sidecarSecret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: "odh-dashboard-modules-token", Namespace: testNamespace},
+		}
+		sidecarNetpol := &networkingv1.NetworkPolicy{
+			ObjectMeta: metav1.ObjectMeta{Name: "odh-dashboard-allow-ports", Namespace: testNamespace},
+		}
+		sidecarCM := &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{Name: "sidecar-params", Namespace: testNamespace},
+		}
+		sidecarCR := &rbacv1.ClusterRole{
+			ObjectMeta: metav1.ObjectMeta{Name: "odh-dashboard-modules"},
+		}
+		sidecarCRB := &rbacv1.ClusterRoleBinding{
+			ObjectMeta: metav1.ObjectMeta{Name: "odh-dashboard-modules"},
+		}
+
+		unrelatedCM := &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{Name: "unrelated-config", Namespace: testNamespace},
+		}
+
+		cli := fake.NewClientBuilder().
+			WithScheme(s).
+			WithObjects(sidecarSA, sidecarSecret, sidecarNetpol, sidecarCM, sidecarCR, sidecarCRB, unrelatedCM).
+			Build()
+
+		r := &ctrlpkg.DashboardReconciler{
+			Client:                cli,
+			Scheme:                s,
+			ApplicationsNamespace: testNamespace,
+		}
+
+		err := r.DeleteSidecarResources(ctx)
+		require.NoError(t, err)
+
+		assert.True(t, k8sNotFound(t, cli, ctx, &corev1.ServiceAccount{}, testNamespace, "odh-dashboard-modules"))
+		assert.True(t, k8sNotFound(t, cli, ctx, &corev1.Secret{}, testNamespace, "odh-dashboard-modules-token"))
+		assert.True(t, k8sNotFound(t, cli, ctx, &networkingv1.NetworkPolicy{}, testNamespace, "odh-dashboard-allow-ports"))
+		assert.True(t, k8sNotFound(t, cli, ctx, &corev1.ConfigMap{}, testNamespace, "sidecar-params"))
+		assert.True(t, k8sNotFound(t, cli, ctx, &rbacv1.ClusterRole{}, "", "odh-dashboard-modules"))
+		assert.True(t, k8sNotFound(t, cli, ctx, &rbacv1.ClusterRoleBinding{}, "", "odh-dashboard-modules"))
+
+		assert.False(t, k8sNotFound(t, cli, ctx, &corev1.ConfigMap{}, testNamespace, "unrelated-config"),
+			"unrelated resources must not be deleted")
+	})
+
+	t.Run("succeeds when resources already absent", func(t *testing.T) {
+		s := testScheme(t)
+		cli := fake.NewClientBuilder().WithScheme(s).Build()
+
+		r := &ctrlpkg.DashboardReconciler{
+			Client:                cli,
+			Scheme:                s,
+			ApplicationsNamespace: testNamespace,
+		}
+
+		err := r.DeleteSidecarResources(context.Background())
+		require.NoError(t, err)
+	})
+}
+
+func k8sNotFound(t *testing.T, cli client.Client, ctx context.Context, obj client.Object, ns, name string) bool {
+	t.Helper()
+	key := types.NamespacedName{Namespace: ns, Name: name}
+	err := cli.Get(ctx, key, obj)
+	return err != nil && client.IgnoreNotFound(err) == nil
 }
 
 func boolPtr(b bool) *bool {

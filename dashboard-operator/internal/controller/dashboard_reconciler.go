@@ -346,6 +346,50 @@ func (r *DashboardReconciler) reconcileSidecar(
 	return ctrl.Result{RequeueAfter: requeueAfter}, nil
 }
 
+func (r *DashboardReconciler) deleteSidecarResources(ctx context.Context) error {
+	logger := log.FromContext(ctx)
+	ns := r.ApplicationsNamespace
+	var errs []error
+
+	namespacedResources := []client.Object{
+		&corev1.ServiceAccount{},
+		&corev1.Secret{},
+		&networkingv1.NetworkPolicy{},
+		&corev1.ConfigMap{},
+	}
+	namespacedNames := []string{
+		"odh-dashboard-modules",
+		"odh-dashboard-modules-token",
+		"odh-dashboard-allow-ports",
+		"sidecar-params",
+	}
+
+	for i, obj := range namespacedResources {
+		obj.SetName(namespacedNames[i])
+		obj.SetNamespace(ns)
+		if err := r.Delete(ctx, obj); client.IgnoreNotFound(err) != nil {
+			errs = append(errs, fmt.Errorf("deleting %T %s: %w", obj, namespacedNames[i], err))
+		}
+	}
+
+	clusterResources := []client.Object{
+		&rbacv1.ClusterRole{},
+		&rbacv1.ClusterRoleBinding{},
+	}
+	for _, obj := range clusterResources {
+		obj.SetName("odh-dashboard-modules")
+		if err := r.Delete(ctx, obj); client.IgnoreNotFound(err) != nil {
+			errs = append(errs, fmt.Errorf("deleting %T odh-dashboard-modules: %w", obj, err))
+		}
+	}
+
+	if len(errs) == 0 {
+		logger.Info("Cleaned up sidecar-specific resources")
+	}
+
+	return errors.Join(errs...)
+}
+
 func (r *DashboardReconciler) reconcileStandalone(
 	ctx context.Context,
 	dashboard *v1alpha1.Dashboard,
@@ -353,6 +397,12 @@ func (r *DashboardReconciler) reconcileStandalone(
 	cfg OperatorConfig,
 ) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
+
+	// Step 0: Clean up sidecar-specific resources that are not part of the standalone overlay.
+	// This handles the Sidecar → Standalone upgrade path where these resources would be orphaned.
+	if err := r.deleteSidecarResources(ctx); err != nil {
+		logger.Error(err, "Failed to clean up sidecar resources")
+	}
 
 	// Step 1: Deploy core manifests (3-container pod: odh-dashboard, kube-rbac-proxy, core-bff).
 	// Uses the standalone overlay which excludes BFF module sidecar containers.
