@@ -274,6 +274,11 @@ func (r *DashboardReconciler) reconcileSidecar(
 		allResources = append(allResources, rendered...)
 	}
 
+	if err := r.deleteDeploymentsWithStaleSelectorLabels(ctx, allResources); err != nil {
+		logger.Error(err, "Failed to remove Deployments with stale selector labels")
+		return ctrl.Result{}, fmt.Errorf("failed to remove stale-selector Deployments: %w", err)
+	}
+
 	deployer := deploy.NewDeployer(
 		deploy.WithFieldOwner("dashboard-operator"),
 		deploy.WithLabel(labels.PlatformPartOf, strings.ToLower(v1alpha1.DashboardKind)),
@@ -376,6 +381,11 @@ func (r *DashboardReconciler) reconcileStandalone(
 			return ctrl.Result{}, fmt.Errorf("failed to render core manifests from %s: %w", m, err)
 		}
 		allResources = append(allResources, rendered...)
+	}
+
+	if err := r.deleteDeploymentsWithStaleSelectorLabels(ctx, allResources); err != nil {
+		logger.Error(err, "Failed to remove Deployments with stale selector labels")
+		return ctrl.Result{}, fmt.Errorf("failed to remove stale-selector Deployments: %w", err)
 	}
 
 	deployer := deploy.NewDeployer(
@@ -566,6 +576,82 @@ func (r *DashboardReconciler) reconcileDegradedCondition(
 			conditions.WithError(fmt.Errorf("%d module(s) degraded", degradedModules)),
 			conditions.WithSeverity(common.ConditionSeverityInfo))
 	}
+}
+
+// deleteDeploymentsWithStaleSelectorLabels compares each Deployment in the
+// rendered resource set against the corresponding on-cluster Deployment. If
+// the existing Deployment's spec.selector.matchLabels differ from the desired
+// set, the existing Deployment is deleted so the deployer can recreate it.
+//
+// This handles version upgrades where the manifest's selector labels change
+// (e.g. a label is added or removed). Kubernetes forbids mutating
+// spec.selector on an existing Deployment, so the only path forward is
+// delete-and-recreate.
+func (r *DashboardReconciler) deleteDeploymentsWithStaleSelectorLabels(
+	ctx context.Context,
+	resources []unstructured.Unstructured,
+) error {
+	logger := log.FromContext(ctx)
+
+	for i := range resources {
+		res := &resources[i]
+		gvk := res.GroupVersionKind()
+		if gvk.Group != "apps" || gvk.Kind != "Deployment" {
+			continue
+		}
+
+		desiredSelector, found, err := unstructured.NestedStringMap(res.Object, "spec", "selector", "matchLabels")
+		if err != nil || !found || len(desiredSelector) == 0 {
+			continue
+		}
+
+		ns := res.GetNamespace()
+		if ns == "" {
+			ns = r.ApplicationsNamespace
+		}
+
+		existing := &appsv1.Deployment{}
+		key := client.ObjectKey{Name: res.GetName(), Namespace: ns}
+		if err := r.Get(ctx, key, existing); err != nil {
+			if k8serrors.IsNotFound(err) {
+				continue
+			}
+			return fmt.Errorf("checking existing deployment %s/%s: %w", ns, key.Name, err)
+		}
+
+		if existing.Spec.Selector == nil {
+			continue
+		}
+
+		if selectorLabelsMatch(existing.Spec.Selector.MatchLabels, desiredSelector) {
+			continue
+		}
+
+		logger.Info("Deleting Deployment with stale selector labels to allow recreation",
+			"deployment", key.Name,
+			"namespace", ns,
+			"existingSelector", existing.Spec.Selector.MatchLabels,
+			"desiredSelector", desiredSelector)
+
+		if err := r.Delete(ctx, existing); err != nil && !k8serrors.IsNotFound(err) {
+			return fmt.Errorf("deleting deployment %s/%s with stale selector: %w", ns, key.Name, err)
+		}
+	}
+
+	return nil
+}
+
+// selectorLabelsMatch returns true if the two label maps are identical.
+func selectorLabelsMatch(existing, desired map[string]string) bool {
+	if len(existing) != len(desired) {
+		return false
+	}
+	for k, v := range desired {
+		if existing[k] != v {
+			return false
+		}
+	}
+	return true
 }
 
 // cleanupCrossNamespaceResources deletes Perses monitoring resources in the
