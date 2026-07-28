@@ -351,24 +351,22 @@ func (r *DashboardReconciler) deleteSidecarResources(ctx context.Context) error 
 	ns := r.ApplicationsNamespace
 	var errs []error
 
-	namespacedResources := []client.Object{
-		&corev1.ServiceAccount{},
-		&corev1.Secret{},
-		&networkingv1.NetworkPolicy{},
-		&corev1.ConfigMap{},
+	type namedResource struct {
+		obj  client.Object
+		name string
 	}
-	namespacedNames := []string{
-		"odh-dashboard-modules",
-		"odh-dashboard-modules-token",
-		"odh-dashboard-allow-ports",
-		"sidecar-params",
+	namespacedResources := []namedResource{
+		{&corev1.ServiceAccount{}, "odh-dashboard-modules"},
+		{&corev1.Secret{}, "odh-dashboard-modules-token"},
+		{&networkingv1.NetworkPolicy{}, "odh-dashboard-allow-ports"},
+		{&corev1.ConfigMap{}, "sidecar-params"},
 	}
 
-	for i, obj := range namespacedResources {
-		obj.SetName(namespacedNames[i])
-		obj.SetNamespace(ns)
-		if err := r.Delete(ctx, obj); client.IgnoreNotFound(err) != nil {
-			errs = append(errs, fmt.Errorf("deleting %T %s: %w", obj, namespacedNames[i], err))
+	for _, nr := range namespacedResources {
+		nr.obj.SetName(nr.name)
+		nr.obj.SetNamespace(ns)
+		if err := r.Delete(ctx, nr.obj); client.IgnoreNotFound(err) != nil {
+			errs = append(errs, fmt.Errorf("deleting %T %s: %w", nr.obj, nr.name, err))
 		}
 	}
 
