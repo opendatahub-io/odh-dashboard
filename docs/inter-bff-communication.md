@@ -239,7 +239,7 @@ egress:
   - to:
       - podSelector:
           matchLabels:
-            deployment: odh-dashboard-maas-ui
+            deployment: maas-ui
     ports:
       - port: 8243
         protocol: TCP
@@ -269,7 +269,7 @@ ingress:
   - from:
       - podSelector:
           matchLabels:
-            deployment: odh-dashboard-autorag-ui
+            deployment: autorag-ui
     ports:
       - port: 8143
         protocol: TCP
