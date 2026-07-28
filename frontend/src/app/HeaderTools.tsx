@@ -152,7 +152,7 @@ const HeaderTools: React.FC<Props> = ({ onNotificationsClick, ...devFeatureFlags
       <ToolbarContent>
         <ToolbarGroup variant="action-group-plain" align={{ default: 'alignEnd' }}>
           <ToolbarItem>
-            <Tooltip content="What's new in 3.5" position="bottom">
+            <Tooltip content="Take a guided tour" position="bottom">
               <Button
                 variant="plain"
                 aria-label="What's new"
