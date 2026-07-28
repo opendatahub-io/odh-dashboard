@@ -74,7 +74,12 @@ import {
   TASK_TYPE_TIMESERIES,
   TASK_TYPES,
 } from '~/app/utilities/const';
-import { getTypeAcronym, findTimestampColumn, isASCIIOnly } from '~/app/utilities/columnUtils';
+import {
+  findTimestampColumn,
+  formatFilteredNonASCIIColumnsMessage,
+  getTypeAcronym,
+  isASCIIOnly,
+} from '~/app/utilities/columnUtils';
 import { automlExperimentsPathname } from '~/app/utilities/routes';
 import { getMissingRequiredKeys } from '~/app/utilities/secretValidation';
 import {
@@ -274,6 +279,7 @@ function AutomlConfigure({
     () => schemaColumns.filter((column) => isASCIIOnly(column.name)),
     [schemaColumns],
   );
+  const filteredNonASCIIColumnCount = schemaColumns.length - columns.length;
 
   const selectedColumn = columns.find((c) => c.name === targetColumn);
 
@@ -898,6 +904,20 @@ function AutomlConfigure({
                               <HelperText>
                                 <HelperTextItem variant="error">
                                   {columnsError.message}
+                                </HelperTextItem>
+                              </HelperText>
+                            </FormHelperText>
+                          )}
+                          {!columnsError && filteredNonASCIIColumnCount > 0 && (
+                            <FormHelperText>
+                              <HelperText>
+                                <HelperTextItem
+                                  variant="warning"
+                                  data-testid="non-ascii-columns-filtered-helper"
+                                >
+                                  {formatFilteredNonASCIIColumnsMessage(
+                                    filteredNonASCIIColumnCount,
+                                  )}
                                 </HelperTextItem>
                               </HelperText>
                             </FormHelperText>

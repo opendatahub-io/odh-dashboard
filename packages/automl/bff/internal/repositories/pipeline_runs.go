@@ -195,20 +195,11 @@ func buildFilter(versionIDs []string) (string, error) {
 
 // toPipelineRun transforms a Kubeflow pipeline run to our stable API format.
 // pipelineType identifies which discovered pipeline produced this run (e.g. "timeseries", "tabular").
-// Non-ASCII column aliases stored in the description (or legacy runtime param) are reverse-mapped
-// so API consumers see the original column names.
 func toPipelineRun(kfRun *models.KFPipelineRun, pipelineType string) models.PipelineRun {
-	description, aliases := StripColumnAliasMapFromDescription(kfRun.Description)
-
 	var runtimeConfig *models.RuntimeConfig
 	if kfRun.RuntimeConfig != nil {
-		params := cloneRuntimeParameters(kfRun.RuntimeConfig.Parameters)
-		if len(aliases) == 0 {
-			aliases = parseColumnAliasMapFromParameters(params)
-		}
-		RestoreOriginalColumnNamesInParameters(params, aliases)
 		runtimeConfig = &models.RuntimeConfig{
-			Parameters:   params,
+			Parameters:   cloneRuntimeParameters(kfRun.RuntimeConfig.Parameters),
 			PipelineRoot: kfRun.RuntimeConfig.PipelineRoot,
 		}
 	}
@@ -216,7 +207,7 @@ func toPipelineRun(kfRun *models.KFPipelineRun, pipelineType string) models.Pipe
 	return models.PipelineRun{
 		RunID:                    kfRun.RunID,
 		DisplayName:              kfRun.DisplayName,
-		Description:              description,
+		Description:              kfRun.Description,
 		ExperimentID:             kfRun.ExperimentID,
 		PipelineVersionReference: kfRun.PipelineVersionReference,
 		RuntimeConfig:            runtimeConfig,

@@ -1,6 +1,7 @@
 /* eslint-disable camelcase -- ColumnSchema.task_type matches BFF API response field name */
 import {
   findTimestampColumn,
+  formatFilteredNonASCIIColumnsMessage,
   formatTargetColumnUniqueValuesMessage,
   getTargetColumnUniqueValueCount,
   getTypeAcronym,
@@ -163,5 +164,19 @@ describe('isASCIIOnly', () => {
   it('returns false for non-ASCII strings', () => {
     expect(isASCIIOnly('لديه روح')).toBe(false);
     expect(isASCIIOnly('café')).toBe(false);
+  });
+});
+
+describe('formatFilteredNonASCIIColumnsMessage', () => {
+  it('formats a singular message', () => {
+    expect(formatFilteredNonASCIIColumnsMessage(1)).toBe(
+      '1 column with non-ASCII names is not shown because Kubeflow Pipelines does not support them.',
+    );
+  });
+
+  it('formats a plural message', () => {
+    expect(formatFilteredNonASCIIColumnsMessage(3)).toBe(
+      '3 columns with non-ASCII names are not shown because Kubeflow Pipelines does not support them.',
+    );
   });
 });

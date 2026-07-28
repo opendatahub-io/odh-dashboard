@@ -18,12 +18,7 @@ import {
   DEFAULT_EVAL_METRIC_BY_TASK,
   EVAL_METRIC_ALIASES,
 } from '~/app/utilities/const';
-import {
-  generateReconfigureName,
-  getTaskType,
-  parseErrorStatus,
-  resolveOriginalColumnNames,
-} from '~/app/utilities/utils';
+import { generateReconfigureName, getTaskType, parseErrorStatus } from '~/app/utilities/utils';
 import { useNamespaceSelectorWithPersistence } from '~/app/hooks/useNamespaceSelectorWithPersistence';
 import AutomlConfigurePage from './AutomlConfigurePage';
 
@@ -73,7 +68,7 @@ function AutomlReconfigureLoader(): React.JSX.Element {
     if (params == null) {
       return undefined;
     }
-    return configureBasePartial.safeParse(resolveOriginalColumnNames(params));
+    return configureBasePartial.safeParse(params);
   }, [params]);
 
   const shownWarnings = React.useRef({

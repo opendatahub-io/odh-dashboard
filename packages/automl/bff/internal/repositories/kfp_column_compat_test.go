@@ -1,8 +1,6 @@
 package repositories
 
 import (
-	"encoding/base64"
-	"encoding/json"
 	"testing"
 
 	"github.com/opendatahub-io/automl-library/bff/internal/constants"
@@ -68,35 +66,4 @@ func TestValidateASCIIColumnNames_TimeSeriesRejectsNonASCIICovariate(t *testing.
 	err := ValidateASCIIColumnNames(req, constants.PipelineTypeTimeSeries)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "known_covariates_names")
-}
-
-func TestStripColumnAliasMapFromDescription_LegacyRoundTrip(t *testing.T) {
-	t.Parallel()
-
-	arabic := "لديه روح"
-	aliases := map[string]string{arabic: "_ac_91554e399889"}
-	raw, err := json.Marshal(aliases)
-	require.NoError(t, err)
-	encoded := "hello" + columnAliasMapDescriptionMarker + base64.RawURLEncoding.EncodeToString(raw)
-
-	clean, decoded := StripColumnAliasMapFromDescription(encoded)
-	assert.Equal(t, "hello", clean)
-	assert.Equal(t, aliases, decoded)
-}
-
-func TestRestoreOriginalColumnNamesInParameters(t *testing.T) {
-	t.Parallel()
-
-	arabic := "لديه روح"
-	alias := "_ac_91554e399889"
-	params := map[string]interface{}{
-		"label_column":            alias,
-		KFPColumnAliasMapParamKey: `{"` + arabic + `":"` + alias + `"}`,
-		"known_covariates_names":  []interface{}{alias, "promo"},
-	}
-
-	RestoreOriginalColumnNamesInParameters(params, map[string]string{arabic: alias})
-	assert.Equal(t, arabic, params["label_column"])
-	assert.Equal(t, []interface{}{arabic, "promo"}, params["known_covariates_names"])
-	assert.NotContains(t, params, KFPColumnAliasMapParamKey)
 }

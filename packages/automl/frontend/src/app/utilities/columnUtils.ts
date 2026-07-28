@@ -79,3 +79,10 @@ export const isASCIIOnly = (value: string): boolean => {
 
 export const NON_ASCII_COLUMN_NAME_MESSAGE =
   'Column names must use only ASCII characters because Kubeflow Pipelines does not support non-ASCII column names';
+
+/** Message when non-ASCII columns are filtered out of the target column picker. */
+export const formatFilteredNonASCIIColumnsMessage = (count: number): string => {
+  const noun = count === 1 ? 'column' : 'columns';
+  const verb = count === 1 ? 'is' : 'are';
+  return `${count} ${noun} with non-ASCII names ${verb} not shown because Kubeflow Pipelines does not support them.`;
+};

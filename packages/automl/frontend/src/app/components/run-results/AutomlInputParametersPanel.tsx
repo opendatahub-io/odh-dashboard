@@ -24,17 +24,12 @@ import { Link, useParams } from 'react-router';
 import type { ConfigureSchema } from '~/app/schemas/configure.schema';
 import { useAutomlResultsContext } from '~/app/context/AutomlResultsContext';
 import { PRESET_LABELS, TASK_TYPE_LABELS, TASK_TYPE_TIMESERIES } from '~/app/utilities/const';
-import {
-  AUTOML_COLUMN_ALIAS_MAP_PARAM,
-  formatMetricName,
-  isRunCompleted,
-  isRunInTerminalState,
-} from '~/app/utilities/utils';
+import { formatMetricName, isRunCompleted, isRunInTerminalState } from '~/app/utilities/utils';
 
 import './AutomlInputParametersPanel.scss';
 
 /** Keys excluded from the drawer because they are already shown elsewhere on the page. */
-const EXCLUDED_KEYS = new Set(['display_name', AUTOML_COLUMN_ALIAS_MAP_PARAM]);
+const EXCLUDED_KEYS = new Set(['display_name']);
 
 /** Keys that only apply to tabular task types (binary, multiclass, regression). */
 const TABULAR_ONLY_KEYS = new Set(['label_column']);
