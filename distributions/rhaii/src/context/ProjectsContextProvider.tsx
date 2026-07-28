@@ -4,72 +4,12 @@ import {
   type ProjectsContextType,
 } from '@odh-dashboard/ui-core/context/ProjectsContext';
 import type { ProjectKind } from '@odh-dashboard/k8s-core';
-import { byName } from '@odh-dashboard/k8s-core';
+import { byName, isAvailableProject } from '@odh-dashboard/k8s-core';
+import fetchNamespaces, { FETCH_TIMEOUT_MS } from './fetchNamespaces';
 
 const PREFERRED_NAMESPACE_STORAGE_KEY = 'mod-arch.namespace.lastUsed';
 /** Dashboard install namespace — excluded from the selectable project list. */
 const DASHBOARD_NAMESPACE = 'opendatahub';
-
-const isAvailableProject = (projectName: string, dashboardNamespace: string): boolean =>
-  !(
-    projectName.startsWith('openshift-') ||
-    projectName.startsWith('kube-') ||
-    projectName === 'default' ||
-    projectName === 'system' ||
-    projectName === 'openshift' ||
-    projectName === dashboardNamespace
-  );
-
-type K8sNamespaceItem = {
-  metadata?: { name?: string };
-  status?: { phase?: string };
-};
-
-type K8sNamespaceList = {
-  items?: K8sNamespaceItem[];
-};
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null;
-
-const parseNamespaceList = (value: unknown): K8sNamespaceList => {
-  if (!isRecord(value)) {
-    return { items: [] };
-  }
-  const { items } = value;
-  if (!Array.isArray(items)) {
-    return { items: [] };
-  }
-  return {
-    items: items.filter((item): item is K8sNamespaceItem => isRecord(item)),
-  };
-};
-
-const namespaceToProject = (name: string, phase?: string): ProjectKind => ({
-  apiVersion: 'v1',
-  kind: 'Namespace',
-  metadata: { name },
-  status: {
-    phase: phase === 'Terminating' ? 'Terminating' : 'Active',
-  },
-});
-
-const fetchNamespaces = async (): Promise<ProjectKind[]> => {
-  const resp = await fetch('/api/k8s/api/v1/namespaces');
-  if (!resp.ok) {
-    throw new Error(`Failed to list namespaces (HTTP ${resp.status})`);
-  }
-  const data = parseNamespaceList(await resp.json());
-  return (data.items ?? [])
-    .map((item) => {
-      const name = item.metadata?.name;
-      if (!name) {
-        return null;
-      }
-      return namespaceToProject(name, item.status?.phase);
-    })
-    .filter((project): project is ProjectKind => project !== null);
-};
 
 const WAIT_FOR_PROJECT_TIMEOUT_MS = 30_000;
 const WAIT_FOR_PROJECT_POLL_MS = 2_000;
@@ -111,22 +51,24 @@ const ProjectsContextProvider: React.FC<ProjectsContextProviderProps> = ({ child
   const initializedFromStorage = React.useRef(false);
 
   React.useEffect(() => {
-    let cancelled = false;
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
 
     const load = async (): Promise<void> => {
       try {
-        const projects = await fetchNamespaces();
-        if (!cancelled) {
+        const projects = await fetchNamespaces(controller.signal);
+        if (!controller.signal.aborted) {
           setProjectData(projects);
           setLoadError(undefined);
         }
       } catch (err) {
-        if (!cancelled) {
+        if (!controller.signal.aborted) {
           setProjectData([]);
           setLoadError(err instanceof Error ? err : new Error(String(err)));
         }
       } finally {
-        if (!cancelled) {
+        clearTimeout(timer);
+        if (!controller.signal.aborted) {
           setLoaded(true);
         }
       }
@@ -136,7 +78,8 @@ const ProjectsContextProvider: React.FC<ProjectsContextProviderProps> = ({ child
     void load();
 
     return () => {
-      cancelled = true;
+      clearTimeout(timer);
+      controller.abort();
     };
   }, []);
 

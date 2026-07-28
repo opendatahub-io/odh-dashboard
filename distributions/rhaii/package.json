@@ -12,6 +12,7 @@
     "start:dev": "concurrently -k -n bff,shell \"make -C ../core-bff dev-bff\" \"webpack serve --hot --color --config ./config/webpack.dev.js\"",
     "build": "webpack --config ./config/webpack.prod.js",
     "build:prod": "webpack --config ./config/webpack.prod.js",
+    "test-unit": "jest",
     "type-check": "tsc --noEmit",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix"
@@ -39,6 +40,7 @@
   },
   "devDependencies": {
     "@odh-dashboard/eslint-config": "*",
+    "@odh-dashboard/jest-config": "*",
     "@odh-dashboard/tsconfig": "*",
     "@swc/core": "^1.15.40",
     "concurrently": "^9.2.1",
