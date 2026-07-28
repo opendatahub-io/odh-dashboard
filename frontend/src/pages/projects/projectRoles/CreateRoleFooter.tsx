@@ -14,6 +14,7 @@ type CreateRoleFooterProps = {
   isSubmitDisabled: boolean;
   isEdit?: boolean;
   onSubmit: () => Promise<void>;
+  onCancel: () => void;
   submitError?: Error;
 };
 
@@ -22,6 +23,7 @@ const CreateRoleFooter: React.FC<CreateRoleFooterProps> = ({
   isSubmitDisabled,
   isEdit = false,
   onSubmit,
+  onCancel,
   submitError,
 }) => {
   const navigate = useNavigate();
@@ -70,7 +72,10 @@ const CreateRoleFooter: React.FC<CreateRoleFooterProps> = ({
               variant="link"
               data-testid="create-role-cancel"
               isDisabled={isSubmitting}
-              onClick={() => navigate(`/projects/${namespace}?section=roles`)}
+              onClick={() => {
+                onCancel();
+                navigate(`/projects/${namespace}?section=roles`);
+              }}
             >
               Cancel
             </Button>

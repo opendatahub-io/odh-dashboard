@@ -21,8 +21,8 @@ import {
 } from '@patternfly/react-core';
 
 import React from 'react';
+import FieldGroupHelpLabelIcon from '@odh-dashboard/ui-core/components/FieldGroupHelpLabelIcon';
 import { AccessMode, AccessModeLabelMap } from '#~/pages/storageClasses/storageEnums';
-import FieldGroupHelpLabelIcon from '#~/components/FieldGroupHelpLabelIcon';
 import { accessModeDescriptions } from '#~/pages/storageClasses/constants';
 import { StorageClassKind } from '#~/k8sTypes';
 import DashboardModalFooter from '#~/concepts/dashboard/DashboardModalFooter';

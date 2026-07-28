@@ -13,6 +13,7 @@ import {
 import { TruncatedText } from 'mod-arch-shared';
 import { ApplicationsIcon } from '@patternfly/react-icons';
 import { Link, type LinkProps } from 'react-router-dom';
+import { LazyCodeRefComponent, useExtensions } from '@odh-dashboard/plugin-core';
 import type { McpServer } from '~/app/mcpServerCatalogTypes';
 import {
   getSecurityIndicatorLabels,
@@ -23,6 +24,7 @@ import {
   McpCardIconByLabel,
   getMcpCardIconConfig,
 } from '~/app/pages/mcpCatalog/components/McpCatalogCardIcons';
+import { isMcpCatalogCardLabelExtension } from '~/odh/extension-points';
 import { mcpServerDetailsUrl } from '~/app/routes/mcpCatalog/mcpCatalog';
 
 type McpCatalogCardProps = {
@@ -41,6 +43,7 @@ const SecurityTag: React.FC<{ label: string }> = ({ label }) => (
 const McpCatalogCard: React.FC<McpCatalogCardProps> = React.memo(({ server }) => {
   const securityLabels = getSecurityIndicatorLabels(server.securityIndicators);
   const serverId = server.id;
+  const cardLabelExtensions = useExtensions(isMcpCatalogCardLabelExtension);
 
   return (
     <Card isFullHeight data-testid={`mcp-catalog-card-${serverId}`}>
@@ -68,11 +71,25 @@ const McpCatalogCard: React.FC<McpCatalogCardProps> = React.memo(({ server }) =>
               </span>
             )}
           </FlexItem>
-          {isMcpRemoteDeploymentMode(server.deploymentMode) && (
+          {(cardLabelExtensions.length > 0 || isMcpRemoteDeploymentMode(server.deploymentMode)) && (
             <FlexItem>
-              <Label data-testid={`mcp-catalog-card-deployment-${serverId}`}>
-                {getMcpCardIconConfig(McpCardIconType.REMOTE).label}
-              </Label>
+              <Flex gap={{ default: 'gapSm' }}>
+                {cardLabelExtensions.map((extension) => (
+                  <FlexItem key={extension.properties.id}>
+                    <LazyCodeRefComponent
+                      component={extension.properties.component}
+                      props={{ server }}
+                    />
+                  </FlexItem>
+                ))}
+                {isMcpRemoteDeploymentMode(server.deploymentMode) && (
+                  <FlexItem>
+                    <Label data-testid={`mcp-catalog-card-deployment-${serverId}`}>
+                      {getMcpCardIconConfig(McpCardIconType.REMOTE).label}
+                    </Label>
+                  </FlexItem>
+                )}
+              </Flex>
             </FlexItem>
           )}
         </Flex>

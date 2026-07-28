@@ -9,16 +9,20 @@ import (
 
 // Repositories is a convenient container that holds all repository instances.
 type Repositories struct {
-	HealthCheck     *HealthCheckRepository
-	User            *UserRepository
-	Namespace       *NamespaceRepository
-	DashboardConfig *DashboardConfigRepository
-	Status          *StatusRepository
-	Auth            *AuthRepository
-	Components      *ComponentsRepository
-	ClusterSettings *ClusterSettingsRepository
-	ConnectionType  *ConnectionTypeRepository
-	AllowedUsers    *AllowedUsersRepository
+	HealthCheck       *HealthCheckRepository
+	User              *UserRepository
+	Namespace         *NamespaceRepository
+	DashboardConfig   *DashboardConfigRepository
+	Status            *StatusRepository
+	Auth              *AuthRepository
+	Components        *ComponentsRepository
+	ClusterSettings   *ClusterSettingsRepository
+	ConnectionType    *ConnectionTypeRepository
+	AllowedUsers      *AllowedUsersRepository
+	ServingRuntime    *ServingRuntimeRepository
+	NIM               *NIMRepository
+	NamespaceMutation *NamespaceMutationRepository
+	Prometheus        *PrometheusRepository
 }
 
 // RepositoriesConfig holds the dependencies needed to construct all repositories.
@@ -29,21 +33,26 @@ type RepositoriesConfig struct {
 	SADynClient dynamic.Interface
 	SAClientset kubernetes.Interface
 	Namespace   string
+	Prometheus  PrometheusConfig
 }
 
 // NewRepositories creates a new Repositories instance with all repositories initialized.
 func NewRepositories(cfg RepositoriesConfig) *Repositories {
 	auth := NewAuthRepository(cfg.SADynClient)
 	return &Repositories{
-		HealthCheck:     NewHealthCheckRepository(),
-		User:            NewUserRepository(),
-		Namespace:       NewNamespaceRepository(),
-		DashboardConfig: NewDashboardConfigRepository(cfg.Platform, cfg.SADynClient),
-		Status:          NewStatusRepository(cfg.SADynClient, cfg.Namespace, auth),
-		Auth:            auth,
-		Components:      NewComponentsRepository(cfg.SADynClient, cfg.SAClientset),
-		ClusterSettings: NewClusterSettingsRepository(cfg.SAClientset),
-		ConnectionType:  NewConnectionTypeRepository(cfg.SAClientset),
-		AllowedUsers:    NewAllowedUsersRepository(cfg.SADynClient),
+		HealthCheck:       NewHealthCheckRepository(),
+		User:              NewUserRepository(),
+		Namespace:         NewNamespaceRepository(),
+		DashboardConfig:   NewDashboardConfigRepository(cfg.Platform, cfg.SADynClient),
+		Status:            NewStatusRepository(cfg.SADynClient, cfg.Namespace, auth),
+		Auth:              auth,
+		Components:        NewComponentsRepository(cfg.SADynClient, cfg.SAClientset),
+		ClusterSettings:   NewClusterSettingsRepository(cfg.SAClientset),
+		ConnectionType:    NewConnectionTypeRepository(cfg.SAClientset),
+		AllowedUsers:      NewAllowedUsersRepository(cfg.SADynClient),
+		ServingRuntime:    NewServingRuntimeRepository(cfg.SADynClient),
+		NIM:               NewNIMRepository(cfg.SADynClient, cfg.SAClientset),
+		NamespaceMutation: NewNamespaceMutationRepository(cfg.SAClientset),
+		Prometheus:        NewPrometheusRepository(cfg.Prometheus),
 	}
 }

@@ -14,7 +14,7 @@ func NewMockEvalHubClient() *MockEvalHubClient {
 	return &MockEvalHubClient{}
 }
 
-func (m *MockEvalHubClient) HealthCheck(_ context.Context) (*evalhub.HealthResponse, error) {
+func (m *MockEvalHubClient) HealthCheck(_ context.Context, _ string) (*evalhub.HealthResponse, error) {
 	return &evalhub.HealthResponse{Status: "healthy"}, nil
 }
 

@@ -1,7 +1,7 @@
 class RegisterAndStorePage {
   visit() {
     const preferredModelRegistry = 'modelregistry-sample';
-    cy.visitWithLogin(`/ai-hub/registry/${preferredModelRegistry}/register/model`);
+    cy.visitWithLogin(`/ai-hub/models/registry/${preferredModelRegistry}/register/model`);
     this.wait();
   }
 

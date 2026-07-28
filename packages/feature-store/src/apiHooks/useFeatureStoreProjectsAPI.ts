@@ -3,7 +3,7 @@ import * as React from 'react';
 import useFetch, {
   FetchStateCallbackPromise,
   FetchStateObject,
-} from '@odh-dashboard/internal/utilities/useFetch';
+} from '@odh-dashboard/ui-core/hooks/useFetch';
 import { FeatureStoreAPIState } from './useFeatureStoreAPIState';
 import { ProjectList } from '../types/featureStoreProjects';
 import { DEFAULT_PROJECT_LIST } from '../const';

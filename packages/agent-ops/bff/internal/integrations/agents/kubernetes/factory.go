@@ -15,7 +15,7 @@ type Factory struct {
 	logger     *slog.Logger
 }
 
-// NewFactory returns a ClientFactory that reads kagenti workloads from Kubernetes.
+// NewFactory returns a ClientFactory that reads agent Sandbox CRs from Kubernetes.
 func NewFactory(k8sFactory k8s.KubernetesClientFactory, logger *slog.Logger) *Factory {
 	return &Factory{
 		k8sFactory: k8sFactory,

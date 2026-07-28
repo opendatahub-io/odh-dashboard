@@ -3,12 +3,14 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter as Router } from 'react-router-dom';
+import { QueryClientProvider } from '@tanstack/react-query';
 import {
   BrowserStorageContextProvider,
   NotificationContextProvider,
   ModularArchContextProvider,
   ModularArchConfig,
 } from 'mod-arch-core';
+import { createAgentOpsQueryClient } from '~/app/hooks/queryClient';
 import {
   BFF_API_VERSION,
   DEPLOYMENT_MODE,
@@ -18,6 +20,7 @@ import {
 import App from '~/app/App';
 
 const root = ReactDOM.createRoot(document.getElementById('root')!);
+const queryClient = createAgentOpsQueryClient();
 
 const modularArchConfig: ModularArchConfig = {
   deploymentMode: DEPLOYMENT_MODE,
@@ -28,14 +31,16 @@ const modularArchConfig: ModularArchConfig = {
 
 root.render(
   <React.StrictMode>
-    <Router>
-      <ModularArchContextProvider config={modularArchConfig}>
-        <BrowserStorageContextProvider>
-          <NotificationContextProvider>
-            <App />
-          </NotificationContextProvider>
-        </BrowserStorageContextProvider>
-      </ModularArchContextProvider>
-    </Router>
+    <QueryClientProvider client={queryClient}>
+      <Router>
+        <ModularArchContextProvider config={modularArchConfig}>
+          <BrowserStorageContextProvider>
+            <NotificationContextProvider>
+              <App />
+            </NotificationContextProvider>
+          </BrowserStorageContextProvider>
+        </ModularArchContextProvider>
+      </Router>
+    </QueryClientProvider>
   </React.StrictMode>,
 );

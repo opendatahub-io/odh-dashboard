@@ -16,11 +16,46 @@ This service exposes core dashboard endpoints plus agent runtime APIs backed by 
 - GET `/api/v1/agents/runtimes` – list deployed agent and tool runtimes
 - GET `/api/v1/agents/runtimes/{ns}/{name}` – full runtime detail for one agent
 
-Agent endpoints validate `{ns}` and `{name}` as DNS-1123 identifiers. Runtime data is loaded from labeled Deployments, StatefulSets, and Jobs in namespaces where kagenti is enabled. Per-request RBAC checks filter namespaces and gate detail access. Optional `agentCard` enrichment reads `AgentRuntime.status.card` (best-effort; omitted when unavailable).
+Agent endpoints validate `{ns}` and `{name}` as DNS-1123 identifiers. List discovery loads Sandbox CRs (`agents.x-k8s.io/v1beta1/sandboxes`) labeled `openshell.ai/managed-by=openshell`. Detail loads any authorized Sandbox CR by name (no label filter).
 
-**Cluster RBAC (modules service account):** `manifests/modular-architecture/modules-cluster-role.yaml` grants `impersonate` on users/groups/serviceaccounts (for `AUTH_METHOD=internal`), `create` on `subjectaccessreviews`, and `get`/`list` on agent card discovery CRDs. With **`AUTH_METHOD=user_token`** (ODH/RHOAI default), the BFF uses the forwarded user token for Kubernetes reads and enrichment; the caller's RBAC must allow workload, service (Deployments/StatefulSets), and optional CRD access in target namespaces.
+Discovery metadata uses Starter Kit annotations: `openshift.io/display-name`, `openshift.io/description`, and `opendatahub.io/agent-framework`. Container ports are read from `spec.podTemplate.spec.containers[].ports` and exposed with `status.serviceFQDN` in list/detail responses. Agent card enrichment is disabled for 3.5 discovery scope.
+
+Per-request RBAC checks filter namespaces and gate detail access via `agents.x-k8s.io/sandboxes` list/get; stop/start require `patch`; delete requires `delete`. Deploy RBAC requires `agents.x-k8s.io/sandboxes` create and get.
+
+**Cluster RBAC (modules service account):** `manifests/modular-architecture/modules-cluster-role.yaml` grants `impersonate` on users/groups/serviceaccounts (for `AUTH_METHOD=internal`), `create` on `subjectaccessreviews`, and `get`/`list` on agent card discovery CRDs. With **`AUTH_METHOD=user_token`** (ODH/RHOAI default), the BFF uses the forwarded user token for Kubernetes reads and enrichment; the caller's RBAC must allow `agents.x-k8s.io/sandboxes` list/get in target namespaces, plus optional Service and enrichment CRD access.
 
 Set `MOCK_AGENT_CLIENT=true` to serve built-in demo data (`agent-ops-demo` / `sample-support-agent`) without cluster access.
+
+## OpenAPI and Swagger UI
+
+The BFF serves the OpenAPI contract for local and cluster developer documentation. The canonical spec lives at `../api/openapi/agent-ops.yaml`; a synced runtime copy is kept at `openapi/src/agent-ops.yaml` for the running binary.
+
+| Route | Description |
+|-------|-------------|
+| GET `/mod-arch/openapi.json` | OpenAPI 3.0 document (JSON; includes dynamic server URL) |
+| GET `/mod-arch/openapi.yaml` | OpenAPI 3.0 document (YAML) |
+| GET `/mod-arch/swagger-ui` | Swagger UI (loads spec from `/mod-arch/openapi.json`) |
+| GET `/mod-arch/openapi` | Redirects to `/mod-arch/swagger-ui` |
+
+These routes are unauthenticated (same pattern as gen-ai and eval-hub).
+
+After editing `api/openapi/agent-ops.yaml`, sync the runtime copy:
+
+```shell
+make sync-openapi
+```
+
+`make test`, `make build`, and `npm run test:contract` (from `packages/agent-ops/`) run `check-openapi-sync` and fail if the two files differ.
+
+**Local example** (default port 4000):
+
+```shell
+make dev-bff
+open http://localhost:4000/mod-arch/swagger-ui
+curl -s http://localhost:4000/mod-arch/openapi.json | jq .info
+```
+
+**Federated dev note:** the Module Federation dev proxy forwards `/agent-ops/api` and `/healthcheck` only. Open Swagger against the BFF port directly (for example `4021` when using `bffConfig.port`).
 
 ## Development
 
@@ -57,6 +92,7 @@ make run LOG_LEVEL=DEBUG
 | `-deployment-mode` | `DEPLOYMENT_MODE` | `standalone` or `integrated` (default `standalone`) |
 | `-dev-mode` | `DEV_MODE` | Enables relaxed behaviors (namespaces listing, etc.) |
 | `-mock-k8s-client` | `MOCK_K8S_CLIENT` | Use in‑memory stub for namespace/user resolution |
+| `-mock-agent-client` | `MOCK_AGENT_CLIENT` | Use in‑memory demo agent data (local dev only; no cluster RBAC) |
 | `-static-assets-dir` | `STATIC_ASSETS_DIR` | Directory to serve single‑page frontend assets |
 | `-log-level` | `LOG_LEVEL` | ERROR, WARN, INFO, DEBUG (default INFO) |
 | `-allowed-origins` | `ALLOWED_ORIGINS` | Comma separated CORS origins |
@@ -126,7 +162,7 @@ curl -i localhost:4000/healthcheck
 curl -i -H "$TOKEN_HDR" localhost:4000/api/v1/user
 curl -i -H "$TOKEN_HDR" localhost:4000/api/v1/namespaces   # dev / mock only
 
-# Agent APIs (use -mock-agent-client for demo data; otherwise reads kagenti workloads from the cluster)
+# Agent APIs (use -mock-agent-client for demo data; otherwise reads Sandbox CRs from the cluster)
 curl -s -H "$TOKEN_HDR" localhost:4000/api/v1/agents/runtimes | jq .
 curl -s -H "$TOKEN_HDR" localhost:4000/api/v1/agents/runtimes/agent-ops-demo/sample-support-agent | jq .
 ```

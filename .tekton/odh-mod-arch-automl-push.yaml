@@ -11,7 +11,7 @@ metadata:
       event == "push"
       && target_branch == "main"
       && ( "packages/automl/**".pathChanged()
-            || ".tekton/odh-mod-arch-automl-ci-on-push.yaml".pathChanged() )
+            || ".tekton/odh-mod-arch-automl-push.yaml".pathChanged() )
   creationTimestamp: null
   labels:
     appstudio.openshift.io/application: opendatahub-builds

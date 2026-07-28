@@ -78,6 +78,13 @@ const mockCpuUsageResults: WorkloadMetricPromQueryResponse['data']['result'] = [
     },
     value: [1711495542.368, '0.008'],
   },
+  {
+    metric: {
+      owner_kind: WorkloadOwnerType.ReplicaSet, // eslint-disable-line camelcase
+      owner_name: 'test-deployment-6c8949d6dc', // eslint-disable-line camelcase
+    },
+    value: [1711495542.368, '0.005'],
+  },
 ];
 
 const mockMemoryUsageResults: WorkloadMetricPromQueryResponse['data']['result'] = [
@@ -136,6 +143,13 @@ const mockMemoryUsageResults: WorkloadMetricPromQueryResponse['data']['result'] 
       owner_name: 'test-notebook-0', // eslint-disable-line camelcase
     },
     value: [1711495542.37, '5000000'],
+  },
+  {
+    metric: {
+      owner_kind: WorkloadOwnerType.ReplicaSet, // eslint-disable-line camelcase
+      owner_name: 'test-deployment-6c8949d6dc', // eslint-disable-line camelcase
+    },
+    value: [1711495542.37, '10485760'],
   },
 ];
 
@@ -233,6 +247,9 @@ describe('indexWorkloadMetricByOwner', () => {
       },
       [WorkloadOwnerType.StatefulSet]: {
         'test-notebook-0': 0.008,
+      },
+      [WorkloadOwnerType.ReplicaSet]: {
+        'test-deployment-6c8949d6dc': 0.005,
       },
     };
     expect(indexWorkloadMetricByOwner(promResponse)).toEqual(indexedValues);
@@ -387,11 +404,11 @@ describe('useDWProjectCurrentMetrics', () => {
     expect(mockAxios).toHaveBeenCalledTimes(2);
     expect(mockAxios).toHaveBeenCalledWith('/api/prometheus/query', {
       query:
-        'namespace=test-project&query=sum by(owner_name, owner_kind)  (kube_pod_owner{owner_kind=~"RayCluster|Job|StatefulSet", namespace="test-project"} * on (namespace, pod) group_right(owner_name, owner_kind) node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate)',
+        'namespace=test-project&query=sum by(owner_name, owner_kind)  (kube_pod_owner{owner_kind=~"RayCluster|Job|StatefulSet|ReplicaSet", namespace="test-project"} * on (namespace, pod) group_right(owner_name, owner_kind) node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate)',
     });
     expect(mockAxios).toHaveBeenCalledWith('/api/prometheus/query', {
       query:
-        'namespace=test-project&query=sum by(owner_name, owner_kind) (kube_pod_owner{owner_kind=~"RayCluster|Job|StatefulSet", namespace="test-project"} * on (namespace, pod) group_right(owner_name, owner_kind) node_namespace_pod_container:container_memory_working_set_bytes)',
+        'namespace=test-project&query=sum by(owner_name, owner_kind) (kube_pod_owner{owner_kind=~"RayCluster|Job|StatefulSet|ReplicaSet", namespace="test-project"} * on (namespace, pod) group_right(owner_name, owner_kind) node_namespace_pod_container:container_memory_working_set_bytes)',
     });
     expect(renderResult).hookToHaveUpdateCount(1);
 
@@ -415,6 +432,9 @@ describe('useDWProjectCurrentMetrics', () => {
             [WorkloadOwnerType.StatefulSet]: {
               'test-notebook-0': 0.008,
             },
+            [WorkloadOwnerType.ReplicaSet]: {
+              'test-deployment-6c8949d6dc': 0.005,
+            },
           },
           error: undefined,
           loaded: true,
@@ -435,6 +455,9 @@ describe('useDWProjectCurrentMetrics', () => {
             },
             [WorkloadOwnerType.StatefulSet]: {
               'test-notebook-0': 5000000,
+            },
+            [WorkloadOwnerType.ReplicaSet]: {
+              'test-deployment-6c8949d6dc': 10485760,
             },
           },
           error: undefined,

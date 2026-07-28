@@ -15,7 +15,7 @@ class AutomlExperimentsPage {
     this.findNavItem().should('exist');
 
     // Now navigate to AutoML experiments page
-    cy.visit(`/develop-train/automl/experiments/${namespace}`);
+    cy.visit(`/develop-train/automl/experiments/${namespace}`, { timeout: 120000 });
     this.wait();
   }
 
@@ -38,6 +38,15 @@ class AutomlExperimentsPage {
 
   findHeaderCreateRunButton() {
     return cy.findByTestId('automl-header-create-experiment-button');
+  }
+
+  findAnyCreateRunButton(options?: Partial<Cypress.Loggable & Cypress.Timeoutable>) {
+    return cy
+      .get(
+        '[data-testid="automl-header-create-experiment-button"], [data-testid="create-run-button"]',
+        options,
+      )
+      .first();
   }
 }
 

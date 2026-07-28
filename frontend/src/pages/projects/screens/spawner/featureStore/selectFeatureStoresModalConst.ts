@@ -5,16 +5,14 @@ import type {
   SelectedFeatureStoreConfig,
 } from './useWorkbenchFeatureStores';
 
-export const SELECT_FEATURE_STORES_MODAL_TITLE = 'Select feature stores';
+export const SELECT_FEATURE_STORES_MODAL_TITLE = 'Connect feature stores';
 
-export const SELECT_FEATURE_STORES_MODAL_DESCRIPTION = 'Select feature stores to connect';
+export const SELECT_FEATURE_STORES_MODAL_DESCRIPTION =
+  'Select feature stores to connect to this workbench.';
 
 export const SELECT_FEATURE_STORES_MODAL_SELECT_BUTTON = 'Select';
 
 export const SELECT_FEATURE_STORES_MODAL_CONNECT_BUTTON = 'Connect';
-
-export const FEATURE_STORE_NAMESPACE_COLUMN_INFO =
-  'Kubernetes namespace where the Feature Store registry is deployed.';
 
 export const FEATURE_STORE_PERMISSION_LABEL_THRESHOLD = 2;
 
@@ -31,17 +29,14 @@ export const selectFeatureStoresColumns: SortableData<SelectedFeatureStoreConfig
     sortable: (a, b) => a.projectName.localeCompare(b.projectName),
   },
   {
-    label: 'Namespace',
+    label: 'Project',
     field: 'namespace',
     width: 30,
     sortable: (a, b) => a.namespace.localeCompare(b.namespace),
-    info: {
-      popover: FEATURE_STORE_NAMESPACE_COLUMN_INFO,
-    },
   },
   {
-    label: 'Permission level',
-    field: 'permissionLevel',
+    label: 'Permissions',
+    field: 'permissions',
     width: 30,
     sortable: false,
   },

@@ -18,3 +18,7 @@ yamlEditorModelName: 'facebook-opt-125m-single'
 # llm-d LLMInferenceService path
 deploymentMethod: 'llm-inference-service-llmd'
 servingRuntime: 'Distributed inference with llm-d'
+
+# topology config
+topologyConfigName: 'e2e-multi-node-topology'
+topologyConfigFixture: 'resources/modelServing/llmd-topology-config.yaml'

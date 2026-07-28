@@ -30,6 +30,31 @@ describe('MLflow Prompt Registry Contract Tests', () => {
         status: 200,
       });
     });
+
+    it('should include scope annotations on prompts from inter-BFF response', async () => {
+      const result = await apiClient.get('/gen-ai/api/v1/mlflow/prompts?namespace=default');
+      expect(result).toMatchContract(apiSchema, {
+        ref: '#/paths/~1gen-ai~1api~1v1~1mlflow~1prompts/get/responses/200/content/application~1json/schema',
+        status: 200,
+      });
+
+      const prompts = result.response?.data?.data?.prompts ?? [];
+      expect(prompts.length).toBeGreaterThan(0);
+      for (const prompt of prompts) {
+        expect(prompt.scope).toBeDefined();
+        expect(['project', 'global']).toContain(prompt.scope.type);
+        expect(typeof prompt.scope.namespace).toBe('string');
+        expect(prompt.scope.namespace.length).toBeGreaterThan(0);
+      }
+    });
+
+    it('should return 400 when namespace parameter is missing', async () => {
+      const result = await apiClient.get('/gen-ai/api/v1/mlflow/prompts');
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.status).toBe(400);
+      }
+    });
   });
 
   describe('Register Prompt Endpoint', () => {
@@ -91,6 +116,37 @@ describe('MLflow Prompt Registry Contract Tests', () => {
       expect(result).toMatchContract(apiSchema, {
         ref: '#/paths/~1gen-ai~1api~1v1~1mlflow~1prompts~1{name}/delete/responses/204',
         status: 204,
+      });
+    });
+  });
+
+  describe('Save As Flow', () => {
+    const saveAsPromptName = `ct-save-as-${Date.now()}`;
+
+    afterAll(async () => {
+      await apiClient
+        .delete(`/gen-ai/api/v1/mlflow/prompts/${saveAsPromptName}?namespace=default`)
+        .catch(() => undefined);
+    });
+
+    it('should create a new prompt with create_only=true and project scope (Save As semantics)', async () => {
+      const result = await apiClient.post('/gen-ai/api/v1/mlflow/prompts?namespace=default', {
+        name: saveAsPromptName,
+        messages: [{ role: 'system', content: 'You are a copied prompt from a global template.' }],
+        // eslint-disable-next-line camelcase
+        commit_message: 'Saved as copy from global template',
+        tags: {
+          // eslint-disable-next-line camelcase
+          scope_type: 'project',
+          // eslint-disable-next-line camelcase
+          scope_namespace: 'default',
+        },
+        // eslint-disable-next-line camelcase
+        create_only: true,
+      });
+      expect(result).toMatchContract(apiSchema, {
+        ref: '#/paths/~1gen-ai~1api~1v1~1mlflow~1prompts/post/responses/201/content/application~1json/schema',
+        status: 201,
       });
     });
   });

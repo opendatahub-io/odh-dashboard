@@ -1,6 +1,7 @@
 import { FastifyReply, FastifyRequest } from 'fastify';
 import { secureAdminRoute } from '../../../utils/route-security';
-import { KubeFastifyInstance, ModelRegistryKind, RecursivePartial } from '../../../types';
+import type { RecursivePartial } from '@odh-dashboard/foundation';
+import { KubeFastifyInstance, ModelRegistryKind } from '../../../types';
 import createError from 'http-errors';
 import {
   createModelRegistryAndCredentials,

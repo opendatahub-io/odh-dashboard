@@ -1,4 +1,4 @@
-import type { InferenceServiceKind } from '@odh-dashboard/internal/k8sTypes';
+import type { InferenceServiceKind } from '@odh-dashboard/model-serving/shared';
 import { TimeoutFieldValue } from './TimeoutField';
 import { KServeDeployment } from '../../deployments';
 

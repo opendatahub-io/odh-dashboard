@@ -33,6 +33,18 @@ var (
 		Resource: "maasmodelrefs",
 	}
 
+	ExternalProviderGvr = schema.GroupVersionResource{
+		Group:    "inference.opendatahub.io",
+		Version:  "v1alpha1",
+		Resource: "externalproviders",
+	}
+
+	ExternalModelGvr = schema.GroupVersionResource{
+		Group:    "inference.opendatahub.io",
+		Version:  "v1alpha1",
+		Resource: "externalmodels",
+	}
+
 	GroupGvr = schema.GroupVersionResource{
 		Group:    "user.openshift.io",
 		Version:  "v1",

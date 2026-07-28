@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { TextInput } from '@patternfly/react-core';
+import SimpleSelect, { SimpleSelectOption } from '@odh-dashboard/ui-core/components/SimpleSelect';
 import PipelineFilterBar from '#~/concepts/pipelines/content/tables/PipelineFilterBar';
-import SimpleSelect, { SimpleSelectOption } from '#~/components/SimpleSelect';
 import { FilterOptions } from '#~/concepts/pipelines/content/tables/usePipelineFilter';
 import { RuntimeStateKF, runtimeStateLabels } from '#~/concepts/pipelines/kfTypes';
 import DashboardDatePicker from '#~/components/DashboardDatePicker';

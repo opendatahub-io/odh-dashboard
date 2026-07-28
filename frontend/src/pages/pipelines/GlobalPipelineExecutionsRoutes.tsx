@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Navigate, Route } from 'react-router-dom';
+import TitleWithIcon from '@odh-dashboard/ui-core/design/TitleWithIcon';
 import ProjectsRoutes from '#~/concepts/projects/ProjectsRoutes';
-import TitleWithIcon from '#~/concepts/design/TitleWithIcon';
 import { ProjectObjectType } from '#~/concepts/design/utils';
 import GlobalPipelineCoreLoader from '#~/pages/pipelines/global/GlobalPipelineCoreLoader';
 import { executionsBaseRoute } from '#~/routes/pipelines/executions';

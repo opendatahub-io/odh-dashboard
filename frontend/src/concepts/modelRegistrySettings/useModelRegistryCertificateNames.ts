@@ -1,5 +1,8 @@
 import React from 'react';
-import useFetchState, { FetchState, NotReadyError } from '#~/utilities/useFetchState';
+import useFetchState, {
+  FetchState,
+  NotReadyError,
+} from '@odh-dashboard/ui-core/hooks/useFetchState';
 import { ListConfigSecretsResponse } from '#~/k8sTypes';
 import { listModelRegistryCertificateNames } from '#~/services/modelRegistrySettingsService';
 

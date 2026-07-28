@@ -1,3 +1,4 @@
+/* eslint-disable cypress/no-unnecessary-waiting */
 import { createCustomResource } from './customResources';
 import type { CommandLineResult } from '../../types';
 
@@ -51,6 +52,81 @@ export const createCleanLLMInferenceServiceConfig = (
     cy.log(`Creating LLMInferenceServiceConfig: ${configYamlPath}`);
     createCustomResource(applicationNamespace, configYamlPath);
   });
+};
+
+/**
+ * Creates a topology configuration in the applications namespace by applying a YAML fixture.
+ *
+ * @param configName - Name of the config resource (for cleanup).
+ * @param configYamlPath - Fixture-relative path to the topology config YAML.
+ */
+export const createTopologyConfig = (configName: string, configYamlPath: string): void => {
+  createCleanLLMInferenceServiceConfig(configName, configYamlPath);
+};
+
+/**
+ * Verifies that an LLMInferenceService has the expected baseRef names.
+ * Retries up to `maxAttempts` times (5s apart) to handle propagation delay.
+ *
+ * @param serviceName - The `metadata.name` of the LLMInferenceService.
+ * @param namespace - The namespace the service is deployed in.
+ * @param expectedBaseRefs - Array of baseRef names that must appear in `spec.baseRefs`.
+ */
+export const checkLLMInferenceServiceBaseRefs = (
+  serviceName: string,
+  namespace: string,
+  expectedBaseRefs: string[],
+): Cypress.Chainable<CommandLineResult> => {
+  const sanitizedName = serviceName.replace(/[^a-zA-Z0-9_-]/g, '');
+  const sanitizedNamespace = namespace.replace(/[^a-zA-Z0-9_-]/g, '');
+  const ocCommand = `oc get LLMInferenceService ${sanitizedName} -n ${sanitizedNamespace} -o json`;
+  const maxAttempts = 12;
+  let attempts = 0;
+
+  const check = (): Cypress.Chainable<CommandLineResult> =>
+    cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result) => {
+      attempts++;
+
+      if (result.exitCode !== 0) {
+        if (attempts < maxAttempts) {
+          cy.wait(5000);
+          return check();
+        }
+        throw new Error(`Failed to get LLMInferenceService ${serviceName}: ${result.stderr}`);
+      }
+
+      let service;
+      try {
+        service = JSON.parse(result.stdout);
+      } catch (e) {
+        throw new Error(
+          `Failed to parse LLMInferenceService JSON for ${serviceName}: ${result.stdout}`,
+        );
+      }
+
+      const actualBaseRefs: string[] = (service.spec?.baseRefs ?? []).map(
+        (ref: { name?: string }) => ref.name,
+      );
+      const allPresent = expectedBaseRefs.every((expected) => actualBaseRefs.includes(expected));
+
+      if (!allPresent && attempts < maxAttempts) {
+        cy.log(
+          `Attempt ${attempts}: baseRefs not yet updated (found: [${actualBaseRefs.join(', ')}])`,
+        );
+        cy.wait(5000);
+        return check();
+      }
+
+      for (const expected of expectedBaseRefs) {
+        expect(actualBaseRefs).to.include(expected);
+        cy.log(`baseRef verified: ${expected}`);
+      }
+
+      return cy.wrap(result);
+    });
+
+  cy.log(`Checking LLMInferenceService baseRefs: ${serviceName} (with retries)`);
+  return check();
 };
 
 /**

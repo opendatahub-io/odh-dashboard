@@ -16,6 +16,7 @@ import ModelCatalogRoutes from '~/app/pages/modelCatalog/ModelCatalogRoutes';
 import { ModelRegistrySelectorContextProvider } from '~/app/context/ModelRegistrySelectorContext';
 import NotificationListener from '~/odh/components/NotificationListener';
 import OdhDevFeatureFlagOverridesProvider from '~/odh/components/OdhDevFeatureFlagOverridesProvider';
+import UserInteractionProviderWrapper from '~/odh/components/UserInteractionProviderWrapper';
 
 const ModelCatalogWrapperContent: React.FC = () => {
   const { configSettings, userSettings, loaded, loadError } = useSettings();
@@ -37,9 +38,11 @@ const ModelCatalogWrapperContent: React.FC = () => {
             <NotificationContextProvider>
               {/* TODO: TECH DEBT - Remove NotificationListener once midstream uses mod-arch-core NotificationContext */}
               <NotificationListener>
-                <ModelRegistrySelectorContextProvider>
-                  <ModelCatalogRoutes />
-                </ModelRegistrySelectorContextProvider>
+                <UserInteractionProviderWrapper>
+                  <ModelRegistrySelectorContextProvider>
+                    <ModelCatalogRoutes />
+                  </ModelRegistrySelectorContextProvider>
+                </UserInteractionProviderWrapper>
               </NotificationListener>
             </NotificationContextProvider>
           </OdhDevFeatureFlagOverridesProvider>

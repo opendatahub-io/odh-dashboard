@@ -1,7 +1,7 @@
-// eslint-disable-next-line no-restricted-syntax, @odh-dashboard/no-restricted-imports
-import { NamespaceApplicationCase } from '@odh-dashboard/internal/pages/projects/types';
 // eslint-disable-next-line no-restricted-syntax
-import { ProjectObjectType } from '@odh-dashboard/internal/concepts/design/utils';
+import { NamespaceApplicationCase } from '@odh-dashboard/k8s-core';
+// eslint-disable-next-line no-restricted-syntax
+import { ProjectObjectType } from '@odh-dashboard/ui-core';
 import type {
   ModelServingPlatformExtension,
   ModelServingDeleteModal,
@@ -20,10 +20,10 @@ import type {
   WizardFieldExtractorExtension,
   DeploymentWizardFieldOverrideExtension,
 } from '@odh-dashboard/model-serving/extension-points/deployment-wizard';
-import type { WizardField } from '@odh-dashboard/model-serving/types/form-data';
+import type { WizardField } from '@odh-dashboard/model-serving/shared/types/form-data';
 import type { AreaExtension } from '@odh-dashboard/plugin-core/extension-points';
 import { DataScienceStackComponent, SupportedArea } from '@odh-dashboard/plugin-core/areas';
-import type { DeploymentMethodFieldData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/DeploymentMethodSelectField';
+import type { DeploymentMethodFieldData } from '@odh-dashboard/model-serving/shared/wizard-fields';
 import type { TimeoutFieldValue } from './src/wizardFields/timeout/TimeoutField';
 import type { KServeServingRuntimeFieldType } from './src/wizardFields/servingRuntime/KServeServingRuntimeField';
 import type { KServeDeployment } from './src/deployments';

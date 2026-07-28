@@ -32,6 +32,9 @@ func (s *stubDynClient) IsUserAdmin(_ context.Context, _ *k8s.RequestIdentity) (
 func (s *stubDynClient) IsUserAllowed(_ context.Context, _ *k8s.RequestIdentity) (bool, error) {
 	return false, nil
 }
+func (s *stubDynClient) CheckAccess(_ context.Context, _ *k8s.RequestIdentity, _, _, _, _ string) (bool, error) {
+	return true, nil
+}
 func (s *stubDynClient) GetConfigMap(_ context.Context, _, _ string) (*corev1.ConfigMap, error) {
 	return nil, nil
 }

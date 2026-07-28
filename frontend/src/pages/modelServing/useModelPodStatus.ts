@@ -1,6 +1,6 @@
 import * as React from 'react';
 import type { PodKind } from '@odh-dashboard/k8s-core';
-import useFetch, { FetchStateObject } from '#~/utilities/useFetch';
+import useFetch, { FetchStateObject } from '@odh-dashboard/ui-core/hooks/useFetch';
 import { getPodsForKserve } from '#~/api/k8s/pods';
 /**
  * Hook to fetch the first predictor pod for a KServe InferenceService.

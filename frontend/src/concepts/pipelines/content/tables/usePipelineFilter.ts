@@ -1,6 +1,7 @@
 /* eslint-disable camelcase */
 import * as React from 'react';
 import { useSearchParams } from 'react-router-dom';
+import FilterToolbar from '@odh-dashboard/ui-core/components/FilterToolbar';
 import {
   PipelinesFilterOp,
   PipelinesFilterPredicate,
@@ -9,7 +10,6 @@ import {
 
 import { PipelinesFilter } from '#~/concepts/pipelines/types';
 import useDebounceCallback from '#~/utilities/useDebounceCallback';
-import FilterToolbar from '#~/components/FilterToolbar';
 import { PipelineRunVersionsContext } from '#~/pages/pipelines/global/runs/PipelineRunVersionsContext';
 import { PipelineRunExperimentsContext } from '#~/pages/pipelines/global/runs/PipelineRunExperimentsContext';
 import useIsMlflowPipelinesAvailable from '#~/concepts/mlflow/hooks/useIsMlflowPipelinesAvailable';

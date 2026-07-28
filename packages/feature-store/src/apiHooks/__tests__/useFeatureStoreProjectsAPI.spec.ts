@@ -6,12 +6,12 @@ import { ProjectList } from '../../types/featureStoreProjects';
 import { FeatureStoreAPIState } from '../useFeatureStoreAPIState';
 import useFeatureStoreProjectsAPI from '../useFeatureStoreProjectsAPI';
 
-jest.mock('@odh-dashboard/internal/utilities/useFetch', () => ({
+jest.mock('@odh-dashboard/ui-core/hooks/useFetch', () => ({
   __esModule: true,
   default: jest.fn(),
 }));
 
-const mockUseFetch = jest.mocked(require('@odh-dashboard/internal/utilities/useFetch').default);
+const mockUseFetch = jest.mocked(require('@odh-dashboard/ui-core/hooks/useFetch').default);
 
 describe('useFeatureStoreProjectsAPI', () => {
   const mockProjectList: ProjectList = {

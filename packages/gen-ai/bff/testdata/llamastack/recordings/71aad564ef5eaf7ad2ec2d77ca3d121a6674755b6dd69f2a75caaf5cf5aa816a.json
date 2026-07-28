@@ -40,7 +40,7 @@
     "endpoint": "/v1/chat/completions",
     "model": "models/gemini-2.5-flash",
     "provider_metadata": {
-      "openai_sdk_version": "2.41.1"
+      "openai_sdk_version": "2.45.0"
     }
   },
   "response": {
@@ -52,7 +52,7 @@
           "choices": [
             {
               "delta": {
-                "content": "I saw the color red.",
+                "content": "I saw only the color red.",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -70,9 +70,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 6,
+            "completion_tokens": 7,
             "prompt_tokens": 287,
-            "total_tokens": 329,
+            "total_tokens": 327,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }

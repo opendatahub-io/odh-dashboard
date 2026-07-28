@@ -8,6 +8,7 @@ type MockConfigType = {
   isStopping?: boolean;
   isStopped?: boolean;
   runningPodUid?: string;
+  containerStatuses?: NotebookState['containerStatuses'];
   refresh?: NotebookRefresh;
 };
 
@@ -23,6 +24,7 @@ export const mockNotebookState = (
       isStopping: false,
       isStopped: false,
       runningPodUid: '',
+      containerStatuses: [],
       refresh: () => Promise.resolve(),
     },
     mockConfig,

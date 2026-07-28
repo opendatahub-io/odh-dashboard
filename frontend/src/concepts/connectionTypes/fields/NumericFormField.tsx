@@ -6,8 +6,8 @@ import {
   ValidatedOptions,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
+import NumberInputWrapper from '@odh-dashboard/ui-core/components/NumberInputWrapper';
 import { NumericField } from '#~/concepts/connectionTypes/types';
-import NumberInputWrapper from '#~/components/NumberInputWrapper';
 import { FieldProps } from '#~/concepts/connectionTypes/fields/types';
 import DefaultValueTextRenderer from '#~/concepts/connectionTypes/fields/DefaultValueTextRenderer';
 

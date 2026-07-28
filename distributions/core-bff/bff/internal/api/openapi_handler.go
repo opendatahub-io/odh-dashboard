@@ -8,6 +8,7 @@ import (
 
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/julienschmidt/httprouter"
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/constants"
 	openapispec "github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/openapi"
 )
 
@@ -49,10 +50,10 @@ func NewOpenAPIHandler(logger *slog.Logger) (*OpenAPIHandler, error) {
 // OpenAPI endpoints use permissive CORS (Allow-Origin: *) intentionally - they serve
 // public developer documentation and must be accessible from Swagger UI on any origin.
 func (h *OpenAPIHandler) HandleOpenAPIJSON(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
-	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+	w.Header().Set(constants.HeaderContentType, constants.ContentTypeJSON)
+	w.Header().Set(constants.HeaderAccessControlOrigin, constants.AllowedOriginAll)
+	w.Header().Set(constants.HeaderAccessControlMethod, constants.AllowedMethodsReadOnly)
+	w.Header().Set(constants.HeaderAccessControlHeader, constants.HeaderContentType)
 
 	if r.Method == "OPTIONS" {
 		w.WriteHeader(http.StatusOK)
@@ -85,10 +86,10 @@ func (h *OpenAPIHandler) HandleOpenAPIJSON(w http.ResponseWriter, r *http.Reques
 }
 
 func (h *OpenAPIHandler) HandleOpenAPIYAML(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	w.Header().Set("Content-Type", "text/yaml")
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
-	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+	w.Header().Set(constants.HeaderContentType, constants.ContentTypeYAML)
+	w.Header().Set(constants.HeaderAccessControlOrigin, constants.AllowedOriginAll)
+	w.Header().Set(constants.HeaderAccessControlMethod, constants.AllowedMethodsReadOnly)
+	w.Header().Set(constants.HeaderAccessControlHeader, constants.HeaderContentType)
 
 	if r.Method == "OPTIONS" {
 		w.WriteHeader(http.StatusOK)
@@ -102,8 +103,8 @@ func (h *OpenAPIHandler) HandleOpenAPIYAML(w http.ResponseWriter, r *http.Reques
 }
 
 func (h *OpenAPIHandler) HandleSwaggerUI(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	w.Header().Set("Content-Type", "text/html")
-	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set(constants.HeaderContentType, constants.ContentTypeHTML)
+	w.Header().Set(constants.HeaderAccessControlOrigin, constants.AllowedOriginAll)
 
 	html := `<!DOCTYPE html>
 <html lang="en">

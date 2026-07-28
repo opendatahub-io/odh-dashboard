@@ -2,7 +2,6 @@ import { HTPASSWD_CLUSTER_ADMIN_USER } from '../../../utils/e2eUsers';
 import {
   enablePromptManagementFeatures,
   disablePromptManagementFeatures,
-  doesMlflowCRExist,
 } from '../../../utils/oc_commands/mlflow';
 import { deleteOpenShiftProject, createOpenShiftProject } from '../../../utils/oc_commands/project';
 import { retryableBefore } from '../../../utils/retryableHooks';
@@ -15,7 +14,6 @@ import type { PromptManagementTestData } from '../../../types';
 describe('Verify Prompt Management page', () => {
   let testData: PromptManagementTestData;
   let projectName: string;
-  let crExisted: boolean | undefined;
   const uuid = generateTestUUID();
 
   retryableBefore(() => {
@@ -26,16 +24,6 @@ describe('Verify Prompt Management page', () => {
         return deleteOpenShiftProject(projectName, { wait: true, ignoreNotFound: true });
       })
       .then(() => createOpenShiftProject(projectName))
-      .then(() =>
-        doesMlflowCRExist().then((v) => {
-          if (crExisted === undefined) {
-            crExisted = v;
-            cy.log(`Pre-test state (first run): CR=${crExisted ? 'exists' : 'absent'}`);
-          } else {
-            cy.log(`Retry: skipping crExisted overwrite (current=${crExisted})`);
-          }
-        }),
-      )
       .then(() => {
         cy.step('Enable all features required for Prompt Management');
         return enablePromptManagementFeatures();
@@ -43,7 +31,7 @@ describe('Verify Prompt Management page', () => {
   });
 
   after(() => {
-    disablePromptManagementFeatures(crExisted ?? false);
+    disablePromptManagementFeatures();
     deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
   });
 

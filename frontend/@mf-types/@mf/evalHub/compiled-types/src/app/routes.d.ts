@@ -1,0 +1,11 @@
+export declare const globNamespaceAll = "/:namespace?/*";
+export declare const evaluationRootSegment = "evaluation";
+export declare const evaluationsBaseRoute: (namespace?: string) => string;
+export declare const evaluationCreateRoute: (namespace?: string) => string;
+export declare const evaluationCollectionsRoute: (namespace?: string) => string;
+export declare const evaluationBenchmarksRoute: (namespace?: string) => string;
+export declare const evaluationStartRoute: (namespace?: string) => string;
+export declare const evaluationResultsRoute: (namespace?: string, jobId?: string) => string;
+export declare const evaluationComparePathSegment = "compare-runs";
+export declare const evaluationCompareRoute: (namespace?: string) => string;
+export declare const evaluationCompareBenchmarksRoute: (namespace?: string) => string;

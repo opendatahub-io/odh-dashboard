@@ -9,7 +9,7 @@ import {
   ContentVariants,
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
-import HeaderIcon from '#~/concepts/design/HeaderIcon';
+import HeaderIcon from '@odh-dashboard/ui-core/design/HeaderIcon';
 import { ProjectObjectType, SectionType } from '#~/concepts/design/utils';
 
 interface ProjectsSectionHeaderProps {

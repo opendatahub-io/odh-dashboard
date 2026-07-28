@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -8,6 +9,7 @@ import (
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/kubeflow/hub/ui/bff/internal/constants"
+	"github.com/kubeflow/hub/ui/bff/internal/integrations/kubernetes"
 	"github.com/kubeflow/hub/ui/bff/internal/models"
 	"github.com/kubeflow/hub/ui/bff/internal/repositories"
 )
@@ -38,6 +40,10 @@ func (app *App) GetAllModelTransferJobsHandler(w http.ResponseWriter, r *http.Re
 	}
 
 	jobNamespace := r.URL.Query().Get("jobNamespace")
+	if err := app.authorizeJobNamespace(ctx, client, jobNamespace); err != nil {
+		app.forbiddenResponse(w, r, err.Error())
+		return
+	}
 
 	transferJobs, err := app.repositories.ModelRegistry.GetAllModelTransferJobs(ctx, client, namespace, modelRegistryID, jobNamespace)
 	if err != nil {
@@ -83,6 +89,10 @@ func (app *App) GetModelTransferJobHandler(w http.ResponseWriter, r *http.Reques
 	jobNamespace, err := getRequiredJobNamespace(r)
 	if err != nil {
 		app.badRequestResponse(w, r, err)
+		return
+	}
+	if err := app.authorizeJobNamespace(ctx, client, jobNamespace); err != nil {
+		app.forbiddenResponse(w, r, err.Error())
 		return
 	}
 	modelRegistryID := ps.ByName(ModelRegistryId)
@@ -142,6 +152,14 @@ func (app *App) CreateModelTransferJobHandler(w http.ResponseWriter, r *http.Req
 
 	payload := *envelope.Data
 
+	if payload.Namespace == "" {
+		payload.Namespace = namespace
+	}
+	if err := app.authorizeJobNamespace(ctx, client, payload.Namespace); err != nil {
+		app.forbiddenResponse(w, r, err.Error())
+		return
+	}
+
 	modelRegistryID := ps.ByName(ModelRegistryId)
 
 	if modelRegistryID == "" {
@@ -198,6 +216,14 @@ func (app *App) UpdateModelTransferJobHandler(w http.ResponseWriter, r *http.Req
 		return
 	}
 	payload := *envelope.Data
+
+	if payload.Namespace == "" {
+		payload.Namespace = namespace
+	}
+	if err := app.authorizeJobNamespace(ctx, client, payload.Namespace); err != nil {
+		app.forbiddenResponse(w, r, err.Error())
+		return
+	}
 
 	jobName := ps.ByName(ModelTransferJobName)
 	if jobName == "" {
@@ -263,6 +289,10 @@ func (app *App) DeleteModelTransferJobHandler(w http.ResponseWriter, r *http.Req
 		app.badRequestResponse(w, r, err)
 		return
 	}
+	if err := app.authorizeJobNamespace(ctx, client, jobNamespace); err != nil {
+		app.forbiddenResponse(w, r, err.Error())
+		return
+	}
 
 	modelRegistryID := ps.ByName(ModelRegistryId)
 	if modelRegistryID == "" {
@@ -320,6 +350,10 @@ func (app *App) GetModelTransferJobEventsHandler(w http.ResponseWriter, r *http.
 		app.badRequestResponse(w, r, err)
 		return
 	}
+	if err := app.authorizeJobNamespace(ctx, client, jobNamespace); err != nil {
+		app.forbiddenResponse(w, r, err.Error())
+		return
+	}
 
 	events, err := app.repositories.ModelRegistry.GetModelTransferJobEvents(ctx, client, jobNamespace, jobName, modelRegistryID)
 	if err != nil {
@@ -348,4 +382,28 @@ func getRequiredJobNamespace(r *http.Request) (string, error) {
 		return "", fmt.Errorf("missing required query parameter: jobNamespace")
 	}
 	return jobNamespace, nil
+}
+
+// authorizeJobNamespace verifies the caller has service-level access in the
+// namespace where the transfer-job handler will operate. The middleware
+// (RequireAccessToMRService) authorizes the model-registry service namespace,
+// but jobs legitimately run in a different namespace (the user's project), so
+// a separate access check is required for that namespace. An empty namespace
+// is left to the caller's existing handling (e.g. cluster-wide list).
+func (app *App) authorizeJobNamespace(ctx context.Context, client kubernetes.KubernetesClientInterface, jobNamespace string) error {
+	if jobNamespace == "" {
+		return nil
+	}
+	identity, ok := ctx.Value(constants.RequestIdentityKey).(*kubernetes.RequestIdentity)
+	if !ok || identity == nil {
+		return fmt.Errorf("missing request identity")
+	}
+	allowed, err := client.CanListServicesInNamespace(ctx, identity, jobNamespace)
+	if err != nil {
+		return fmt.Errorf("authorization check failed for namespace %q: %w", jobNamespace, err)
+	}
+	if !allowed {
+		return fmt.Errorf("access denied to namespace %q", jobNamespace)
+	}
+	return nil
 }

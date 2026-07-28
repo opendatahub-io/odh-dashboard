@@ -13,6 +13,8 @@ import (
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/constants"
 )
 
 // BFFClientInterface defines the interface for inter-BFF communication
@@ -151,9 +153,9 @@ func (c *HTTPBFFClient) buildRequest(ctx context.Context, method, path string, b
 	}
 
 	if body != nil {
-		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set(constants.HeaderContentType, constants.ContentTypeJSON)
 	}
-	req.Header.Set("Accept", "application/json")
+	req.Header.Set(constants.HeaderAccept, constants.ContentTypeJSON)
 
 	authHeader := c.authTokenHeader
 	if authHeader == "" {
@@ -164,7 +166,7 @@ func (c *HTTPBFFClient) buildRequest(ctx context.Context, method, path string, b
 	}
 
 	for key, value := range c.customHeaders {
-		if strings.EqualFold(key, authHeader) || strings.EqualFold(key, "Authorization") {
+		if strings.EqualFold(key, authHeader) || strings.EqualFold(key, constants.HeaderAuthorization) {
 			continue
 		}
 		req.Header.Set(key, value)

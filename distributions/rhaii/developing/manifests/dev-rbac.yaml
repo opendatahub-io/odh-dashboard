@@ -1,0 +1,44 @@
+# Dev-only RBAC for the rhaii-dashboard ServiceAccount.
+#
+# In production, the BFF creates per-request K8s clients using the user's
+# Bearer token — the SA's own permissions are never exercised for user
+# operations. In dev mode (DEV_MODE=true), the BFF falls back to the SA's
+# in-cluster credentials when no user token is present, so the SA needs
+# cluster-scoped permissions to list namespaces.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: rhaii-dashboard-dev
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - namespaces
+    verbs:
+      - get
+      - list
+  - apiGroups:
+      - authorization.k8s.io
+    resources:
+      - subjectaccessreviews
+    verbs:
+      - create
+  - apiGroups:
+      - authentication.k8s.io
+    resources:
+      - tokenreviews
+    verbs:
+      - create
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: rhaii-dashboard-dev
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: rhaii-dashboard-dev
+subjects:
+  - kind: ServiceAccount
+    name: rhaii-dashboard
+    namespace: opendatahub

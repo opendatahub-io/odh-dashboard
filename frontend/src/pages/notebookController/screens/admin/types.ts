@@ -1,4 +1,5 @@
-import { Notebook, UsernameMap } from '#~/types';
+import { UsernameMap } from '#~/types';
+import { NotebookKind } from '#~/k8sTypes';
 
 export enum PrivilegeState {
   ADMIN = 'Admin',
@@ -22,7 +23,7 @@ export type AdminViewUserData = {
 };
 
 export type ServerStatus = {
-  notebook: Notebook | null;
+  notebook: NotebookKind | null;
   isNotebookRunning: boolean;
   forceRefresh: () => void;
 };

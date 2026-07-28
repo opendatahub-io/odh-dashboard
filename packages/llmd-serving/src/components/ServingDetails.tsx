@@ -1,9 +1,9 @@
 import * as React from 'react';
 import { LabelGroup, Stack, StackItem } from '@patternfly/react-core';
 import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
-import type { FetchStateObject } from '@odh-dashboard/internal/utilities/useFetch';
+import type { FetchStateObject } from '@odh-dashboard/ui-core/hooks/useFetch';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
-import ServingRuntimeVersionLabel from '@odh-dashboard/internal/pages/modelServing/screens/ServingRuntimeVersionLabel';
+import { renderDeploymentResourceVersionLabels } from '@odh-dashboard/model-serving/shared/components';
 import { getServingRuntimeVersionStatus } from '@odh-dashboard/internal/pages/modelServing/utils';
 import ServingRuntimeVersionStatus from '@odh-dashboard/internal/pages/modelServing/screens/ServingRuntimeVersionStatus';
 import ServingRuntimeTemplateStatus from '@odh-dashboard/internal/pages/modelServing/screens/ServingRuntimeTemplateStatus';
@@ -50,10 +50,8 @@ const LLMInferenceServiceServingDetails: React.FC<Props> = ({ deployment, data }
     <Stack>
       <StackItem>{getDisplayNameFromK8sResource(server)}</StackItem>
       <StackItem>
-        <LabelGroup>
-          {childConfigVersion && (
-            <ServingRuntimeVersionLabel version={childConfigVersion} isCompact />
-          )}
+        <LabelGroup numLabels={5}>
+          {renderDeploymentResourceVersionLabels(server, { isCompact: true })}
           {versionStatus && (
             <ServingRuntimeVersionStatus
               isOutdated={versionStatus === ServingRuntimeVersionStatusLabel.OUTDATED}

@@ -11,8 +11,9 @@ const (
 	// Deprecated: Use pipeline discovery instead
 	AutoMLPipelineVersionID = "22e57c06-030f-4c63-900d-0a808d577899"
 
-	DefaultTopN = 3
-	MinTopN     = 1
+	DefaultPreset = "speed"
+	DefaultTopN   = 3
+	MinTopN       = 1
 
 	// Maximum top_n values based on pipeline type
 	MaxTopNTabular    = 10

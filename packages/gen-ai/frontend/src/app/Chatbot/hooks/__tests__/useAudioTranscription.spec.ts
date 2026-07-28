@@ -1,11 +1,24 @@
 import { renderHook, act, waitFor } from '@testing-library/react';
+import {
+  fireMiscTrackingEvent,
+  fireFormTrackingEvent,
+} from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { useAudioTranscription } from '~/app/Chatbot/hooks/useAudioTranscription';
 import { uploadMediaFile, transcribeAudio } from '~/app/services/llamaStackService';
+import { PLAYGROUND_MULTIMODAL_EVENTS } from '~/app/tracking/playgroundMultimodalTrackingConstants';
 
 jest.mock('~/app/services/llamaStackService', () => ({
   uploadMediaFile: jest.fn(),
   transcribeAudio: jest.fn(),
 }));
+
+jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
+  fireMiscTrackingEvent: jest.fn(),
+  fireFormTrackingEvent: jest.fn(),
+}));
+
+const mockFireMisc = jest.mocked(fireMiscTrackingEvent);
+const mockFireForm = jest.mocked(fireFormTrackingEvent);
 
 const mockUploadMediaFile = uploadMediaFile as jest.MockedFunction<typeof uploadMediaFile>;
 const mockTranscribeAudio = transcribeAudio as jest.MockedFunction<typeof transcribeAudio>;
@@ -86,10 +99,48 @@ describe('useAudioTranscription', () => {
       'file-123',
       'whisper-model',
       expect.any(AbortSignal),
+      undefined,
+    );
+
+    expect(mockFireForm).toHaveBeenCalledWith(
+      PLAYGROUND_MULTIMODAL_EVENTS.AUDIO_UPLOAD_COMPLETED,
+      expect.objectContaining({ success: true, fileType: 'audio/wav' }),
+    );
+    expect(mockFireMisc).toHaveBeenCalledWith(
+      PLAYGROUND_MULTIMODAL_EVENTS.AUDIO_TRANSCRIPTION_STARTED,
+      expect.objectContaining({ modelName: 'whisper-model' }),
     );
   });
 
-  it('should transition to complete after successful transcription', async () => {
+  it('should forward subscription to transcribeAudio when provided', async () => {
+    const xhrMock = { abort: jest.fn() } as unknown as XMLHttpRequest;
+    mockUploadMediaFile.mockReturnValue({
+      promise: Promise.resolve({ data: { id: 'file-123' } }),
+      xhr: xhrMock,
+    });
+    mockTranscribeAudio.mockResolvedValue({ text: 'With subscription' });
+
+    const { result } = renderHook(() => useAudioTranscription());
+    const file = createMockFile();
+
+    act(() => {
+      result.current.startUpload(file, 'whisper-model', 'test-ns', 'my-subscription');
+    });
+
+    await waitFor(() => {
+      expect(result.current.state.phase).toBe('ready');
+    });
+
+    expect(mockTranscribeAudio).toHaveBeenCalledWith(
+      expect.stringContaining('namespace=test-ns'),
+      'file-123',
+      'whisper-model',
+      expect.any(AbortSignal),
+      'my-subscription',
+    );
+  });
+
+  it('should transition to ready after successful transcription', async () => {
     const xhrMock = { abort: jest.fn() } as unknown as XMLHttpRequest;
     mockUploadMediaFile.mockReturnValue({
       promise: Promise.resolve({ data: { id: 'file-123' } }),
@@ -105,10 +156,14 @@ describe('useAudioTranscription', () => {
     });
 
     await waitFor(() => {
-      expect(result.current.state.phase).toBe('complete');
+      expect(result.current.state.phase).toBe('ready');
     });
 
     expect(result.current.state.transcribedText).toBe('Hello world');
+    expect(mockFireForm).toHaveBeenCalledWith(
+      PLAYGROUND_MULTIMODAL_EVENTS.AUDIO_TRANSCRIPTION_COMPLETED,
+      expect.objectContaining({ success: true, modelName: 'whisper-model' }),
+    );
   });
 
   it('should transition to error on upload failure', async () => {
@@ -133,6 +188,10 @@ describe('useAudioTranscription', () => {
     expect(result.current.state.error?.title).toBe('Audio transcription failed');
     expect(result.current.state.error?.description).toBe('Network error during upload');
     expect(result.current.state.error?.variant).toBe('danger');
+    expect(mockFireForm).toHaveBeenCalledWith(
+      PLAYGROUND_MULTIMODAL_EVENTS.AUDIO_UPLOAD_COMPLETED,
+      expect.objectContaining({ success: false, error: 'Network error during upload' }),
+    );
   });
 
   it('should transition to error on transcription failure', async () => {
@@ -157,6 +216,10 @@ describe('useAudioTranscription', () => {
     expect(result.current.state.error).not.toBeNull();
     expect(result.current.state.error?.title).toBe('Audio transcription failed');
     expect(result.current.state.error?.description).toBe('ASR model unavailable');
+    expect(mockFireForm).toHaveBeenCalledWith(
+      PLAYGROUND_MULTIMODAL_EVENTS.AUDIO_TRANSCRIPTION_COMPLETED,
+      expect.objectContaining({ success: false, error: 'ASR model unavailable' }),
+    );
   });
 
   it('should handle structured ApiError from transcription', async () => {
@@ -214,6 +277,37 @@ describe('useAudioTranscription', () => {
     expect(result.current.state.error).not.toBeNull();
     expect(result.current.state.error?.title).toBe('No speech detected');
     expect(result.current.state.error?.description).toContain('silence.wav');
+    expect(mockFireForm).toHaveBeenCalledWith(
+      PLAYGROUND_MULTIMODAL_EVENTS.AUDIO_TRANSCRIPTION_COMPLETED,
+      expect.objectContaining({ success: false, error: 'No speech detected' }),
+    );
+  });
+
+  it('should pass configIndex to AUDIO_TRANSCRIPTION_STARTED event', async () => {
+    const xhrMock = { abort: jest.fn() } as unknown as XMLHttpRequest;
+    mockUploadMediaFile.mockReturnValue({
+      promise: Promise.resolve({ data: { id: 'file-123' } }),
+      xhr: xhrMock,
+    });
+    mockTranscribeAudio.mockReturnValue(
+      // eslint-disable-next-line @typescript-eslint/no-empty-function
+      new Promise(() => {}),
+    );
+
+    const { result } = renderHook(() => useAudioTranscription());
+
+    act(() => {
+      result.current.startUpload(createMockFile(), 'whisper-model', 'test-ns', undefined, 2);
+    });
+
+    await waitFor(() => {
+      expect(result.current.state.phase).toBe('transcribing');
+    });
+
+    expect(mockFireMisc).toHaveBeenCalledWith(
+      PLAYGROUND_MULTIMODAL_EVENTS.AUDIO_TRANSCRIPTION_STARTED,
+      expect.objectContaining({ configID: 2, modelName: 'whisper-model' }),
+    );
   });
 
   it('should timeout after AUDIO_TRANSCRIPTION_TIMEOUT_MS', async () => {
@@ -291,11 +385,38 @@ describe('useAudioTranscription', () => {
     });
 
     await waitFor(() => {
-      expect(result.current.state.phase).toBe('complete');
+      expect(result.current.state.phase).toBe('ready');
     });
 
     act(() => {
       result.current.reset();
+    });
+
+    expect(result.current.state.phase).toBe('idle');
+    expect(result.current.state.transcribedText).toBe('');
+  });
+
+  it('should discard transcription and reset to idle', async () => {
+    const xhrMock = { abort: jest.fn() } as unknown as XMLHttpRequest;
+    mockUploadMediaFile.mockReturnValue({
+      promise: Promise.resolve({ data: { id: 'file-123' } }),
+      xhr: xhrMock,
+    });
+    mockTranscribeAudio.mockResolvedValue({ text: 'Hello' });
+
+    const { result } = renderHook(() => useAudioTranscription());
+    const file = createMockFile();
+
+    act(() => {
+      result.current.startUpload(file, 'whisper-model', 'test-ns');
+    });
+
+    await waitFor(() => {
+      expect(result.current.state.phase).toBe('ready');
+    });
+
+    act(() => {
+      result.current.discard();
     });
 
     expect(result.current.state.phase).toBe('idle');
@@ -332,7 +453,7 @@ describe('useAudioTranscription', () => {
     expect(xhrMock1.abort).toHaveBeenCalled();
 
     await waitFor(() => {
-      expect(result.current.state.phase).toBe('complete');
+      expect(result.current.state.phase).toBe('ready');
     });
 
     expect(result.current.state.transcribedText).toBe('Second recording');

@@ -1,9 +1,11 @@
 import * as React from 'react';
-import { InferenceServiceKind } from '#~/k8sTypes';
+import type { InferenceServiceKind } from '@odh-dashboard/model-serving/shared';
+import {
+  ModelDeploymentState,
+  getInferenceServiceModelState,
+} from '@odh-dashboard/model-serving/shared';
 import { getRoute } from '#~/api';
 import { getUrlFromKserveInferenceService } from '#~/pages/modelServing/screens/projects/utils';
-import { ModelDeploymentState } from '#~/pages/modelServing/screens/types';
-import { getInferenceServiceModelState } from '#~/concepts/modelServingKServe/kserveStatusUtils';
 
 const useRouteForInferenceService = (
   inferenceService: InferenceServiceKind,

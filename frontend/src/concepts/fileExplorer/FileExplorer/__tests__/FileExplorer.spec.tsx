@@ -1090,6 +1090,119 @@ describe('FileExplorer', () => {
       expect(within(file3Item as HTMLElement).queryByTitle('Viewing details')).toBeInTheDocument();
     });
   });
+  describe('clear all selections', () => {
+    it('should render "Clear selection" button in the details panel when files are selected', () => {
+      const files = mockFiles(3);
+      render(<FileExplorer {...defaultProps} files={files} selection="checkbox" />);
+
+      const row1 = screen.getByTestId('file-explorer-row--file-1-json');
+      const row2 = screen.getByTestId('file-explorer-row--file-2-json');
+      fireEvent.click(within(row1).getByRole('checkbox'));
+      fireEvent.click(within(row2).getByRole('checkbox'));
+
+      expect(screen.getByTestId('file-explorer-clear-all-selections')).toBeInTheDocument();
+      expect(screen.getByText('Clear selection')).toBeInTheDocument();
+    });
+    it('should clear all selected files when "Clear selection" is clicked', () => {
+      const files = mockFiles(3);
+      const onSelectFile = jest.fn();
+      render(
+        <FileExplorer
+          {...defaultProps}
+          files={files}
+          selection="checkbox"
+          onSelectFile={onSelectFile}
+        />,
+      );
+
+      const row1 = screen.getByTestId('file-explorer-row--file-1-json');
+      const row2 = screen.getByTestId('file-explorer-row--file-2-json');
+      fireEvent.click(within(row1).getByRole('checkbox'));
+      fireEvent.click(within(row2).getByRole('checkbox'));
+
+      onSelectFile.mockClear();
+      fireEvent.click(screen.getByTestId('file-explorer-clear-all-selections'));
+
+      // onSelectFile should be called with false for each previously selected file
+      expect(onSelectFile).toHaveBeenCalledWith(files[0], false);
+      expect(onSelectFile).toHaveBeenCalledWith(files[1], false);
+
+      // Select button should be disabled (nothing selected)
+      expect(screen.getByTestId('file-explorer-select-btn')).toBeDisabled();
+    });
+    it('should not show "Clear selection" button when no files are selected', () => {
+      const files = mockFiles(3);
+      render(<FileExplorer {...defaultProps} files={files} selection="checkbox" />);
+
+      // Select then deselect to get to the panel with no selections
+      const row1 = screen.getByTestId('file-explorer-row--file-1-json');
+      fireEvent.click(within(row1).getByRole('checkbox'));
+      fireEvent.click(within(row1).getByRole('checkbox'));
+
+      expect(screen.queryByTestId('file-explorer-clear-all-selections')).not.toBeInTheDocument();
+    });
+  });
+  describe('disabled folder rendering', () => {
+    it('should render disabled folder name as plain text, not a link', () => {
+      const folder = mockFolder({
+        name: 'disabled-folder',
+        path: '/disabled-folder',
+        disabled: true,
+      });
+      const onFolderClick = jest.fn();
+      render(<FileExplorer {...defaultProps} files={[folder]} onFolderClick={onFolderClick} />);
+
+      const row = screen.getByTestId('file-explorer-row--disabled-folder');
+      // Should render as text, not a clickable link
+      expect(within(row).queryByRole('link')).not.toBeInTheDocument();
+      expect(within(row).getByText('disabled-folder')).toBeInTheDocument();
+    });
+    it('should not navigate when clicking a disabled folder name', () => {
+      const folder = mockFolder({
+        name: 'disabled-folder',
+        path: '/disabled-folder',
+        disabled: true,
+      });
+      const onFolderClick = jest.fn();
+      render(<FileExplorer {...defaultProps} files={[folder]} onFolderClick={onFolderClick} />);
+
+      fireEvent.click(screen.getByText('disabled-folder'));
+      expect(onFolderClick).not.toHaveBeenCalled();
+    });
+  });
+  describe('unselectable file actions', () => {
+    it('should not show "Select file" action for an unselectable file', () => {
+      const file = mockFile({ name: 'readonly.txt', path: '/readonly.txt', selectable: false });
+      render(<FileExplorer {...defaultProps} files={[file]} />);
+
+      const row = screen.getByTestId('file-explorer-row--readonly-txt');
+      const kebab = within(row).getByRole('button', { name: /readonly\.txt actions/i });
+      fireEvent.click(kebab);
+
+      const menu = screen.getByRole('menu');
+      expect(within(menu).queryByRole('menuitem', { name: 'Select file' })).not.toBeInTheDocument();
+    });
+  });
+  describe('searchPlaceholder prop', () => {
+    it('should use provided searchPlaceholder instead of default', () => {
+      render(<FileExplorer {...defaultProps} searchPlaceholder="Custom search text" />);
+
+      const searchInput = screen
+        .getByTestId('file-explorer-search')
+        .querySelector('input') as HTMLInputElement;
+      expect(searchInput.placeholder).toBe('Custom search text');
+    });
+    it('should use default placeholder when searchPlaceholder is not provided', () => {
+      render(
+        <FileExplorer {...defaultProps} source={mockSource({ name: 'my-bucket' })} folders={[]} />,
+      );
+
+      const searchInput = screen
+        .getByTestId('file-explorer-search')
+        .querySelector('input') as HTMLInputElement;
+      expect(searchInput.placeholder).toBe("Search within 'my-bucket (root)'");
+    });
+  });
   describe('details panel interactions', () => {
     it('should close details panel when close button is clicked', () => {
       const files = mockFiles(3);

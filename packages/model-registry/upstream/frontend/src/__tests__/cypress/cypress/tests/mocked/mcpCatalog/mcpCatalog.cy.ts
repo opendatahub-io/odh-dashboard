@@ -73,7 +73,7 @@ describe('MCP Catalog Page', () => {
 });
 
 describe('MCP Catalog Empty State', () => {
-  it('should show empty state when no sources are configured', () => {
+  beforeEach(() => {
     cy.interceptApi(
       `GET /api/:apiVersion/model_catalog/sources`,
       {
@@ -93,8 +93,13 @@ describe('MCP Catalog Empty State', () => {
       { method: 'GET', pathname: MCP_FILTER_OPTIONS_PATH },
       mockModArchResponse(mockMcpCatalogFilterOptions()),
     );
+  });
+
+  it("should show non-admin empty state with Who's my administrator link when no sources are configured", () => {
     mcpCatalog.visit();
     mcpCatalog.findEmptyState().should('be.visible');
+    mcpCatalog.findEmptyStateTitle().should('contain.text', 'MCP catalog configuration required');
+    mcpCatalog.findEmptyStateWhosMyAdminLink().should('exist');
   });
 });
 

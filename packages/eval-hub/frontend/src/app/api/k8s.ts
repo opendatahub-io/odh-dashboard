@@ -271,13 +271,21 @@ export const getInferenceServices =
     });
 
 export const getCatalogSecurityArtifacts =
-  (hostPath: string, sourceId: string, modelName: string, namespace?: string) =>
-  (opts: APIOptions): Promise<CatalogSecurityArtifactList> =>
-    handleRestFailures(
+  (hostPath: string, sourceId: string, modelName: string, namespace?: string, pageSize?: number) =>
+  (opts: APIOptions): Promise<CatalogSecurityArtifactList> => {
+    const queryParams: Record<string, string> = {};
+    if (namespace) {
+      queryParams.namespace = namespace;
+    }
+    if (pageSize != null) {
+      queryParams.pageSize = String(pageSize);
+    }
+
+    return handleRestFailures(
       restGET(
         hostPath,
         `${URL_PREFIX}/api/${BFF_API_VERSION}/catalog/sources/${encodeURIComponent(sourceId)}/security_artifacts/${encodeURIComponent(modelName)}`,
-        { ...(namespace && { namespace }) },
+        queryParams,
         opts,
       ),
     ).then((response) => {
@@ -286,6 +294,7 @@ export const getCatalogSecurityArtifacts =
       }
       throw new Error('Invalid response format');
     });
+  };
 
 export const verifyConnection =
   (hostPath: string, namespace: string, request: VerifyConnectionRequest) =>

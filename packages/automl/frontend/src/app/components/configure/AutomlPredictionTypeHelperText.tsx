@@ -16,9 +16,6 @@ import {
   getTargetColumnUniqueValueCount,
 } from '~/app/utilities/columnUtils';
 
-const NO_TARGET_COLUMN_MESSAGE =
-  'Select a target column above to see prediction type recommendations.';
-
 const UNIQUE_VALUE_COUNT_POPOVER_BODY =
   'This count is based on a data sample and might not reflect all unique values.';
 
@@ -31,18 +28,6 @@ const AutomlPredictionTypeHelperText: React.FC<AutomlPredictionTypeHelperTextPro
   targetColumn,
   selectedColumn,
 }) => {
-  const hasTargetColumn = Boolean(targetColumn?.trim());
-
-  if (!hasTargetColumn) {
-    return (
-      <FormHelperText data-testid="prediction-type-helper-no-target">
-        <HelperText>
-          <HelperTextItem variant="indeterminate">{NO_TARGET_COLUMN_MESSAGE}</HelperTextItem>
-        </HelperText>
-      </FormHelperText>
-    );
-  }
-
   const uniqueCount = getTargetColumnUniqueValueCount(selectedColumn);
   const summaryMessage =
     uniqueCount != null

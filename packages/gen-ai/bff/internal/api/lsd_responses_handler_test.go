@@ -1723,7 +1723,7 @@ func (f *guardrailTestK8sFactory) ValidateRequestIdentity(_ *integrations.Reques
 
 // TestGetGuardrailModelEndpointAndKey_MaaS verifies that both the explicit
 // (guardrail_model_source_type: "maas") and auto-detect paths resolve the NeMo
-// openai_api_base to the model-specific inference URL from the live MaaS catalog,
+// base_url to the model-specific inference URL from the live MaaS catalog,
 // not to the MaaS management API (resolveMaaSBaseURL).
 func TestGetGuardrailModelEndpointAndKey_MaaS(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{Level: slog.LevelDebug}))

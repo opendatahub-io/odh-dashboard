@@ -1,5 +1,7 @@
 import * as React from 'react';
-import TypeaheadSelect, { TypeaheadSelectOption } from '#~/components/TypeaheadSelect';
+import TypeaheadSelect, {
+  TypeaheadSelectOption,
+} from '@odh-dashboard/ui-core/components/TypeaheadSelect';
 
 type SubjectNameTypeaheadSelectProps = {
   groupLabel: string;

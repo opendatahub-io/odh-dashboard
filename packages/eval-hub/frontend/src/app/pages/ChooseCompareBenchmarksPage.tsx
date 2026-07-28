@@ -13,9 +13,9 @@ import {
   ToolbarGroup,
   ToolbarItem,
 } from '@patternfly/react-core';
-import { DashboardEmptyTableView } from '@odh-dashboard/ui-core';
+import { ApplicationsPage, DashboardEmptyTableView } from '@odh-dashboard/ui-core';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
+
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import CompareBenchmarksTable from '~/app/components/compare/CompareBenchmarksTable';
 import { useCollectionNameMap } from '~/app/hooks/useCollectionNameMap';

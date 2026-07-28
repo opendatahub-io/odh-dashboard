@@ -2,6 +2,7 @@ import {
   restoreDefaultGroupsConfig,
   updateGroupsConfig,
 } from '../../../../utils/oc_commands/groupConfig';
+import { ensureAdminOcSession } from '../../../../utils/oc_commands/baseCommands';
 import { HTPASSWD_CLUSTER_ADMIN_USER, LDAP_CONTRIBUTOR_USER } from '../../../../utils/e2eUsers';
 import { userManagement } from '../../../../pages/userManagement';
 import { retryableBeforeEach } from '../../../../utils/retryableHooks';
@@ -14,6 +15,7 @@ describe('Settings - User Management - Unauthorized Permission Change', () => {
   });
 
   after(() => {
+    ensureAdminOcSession();
     cy.step('Restore default groups configuration');
     restoreDefaultGroupsConfig();
   });

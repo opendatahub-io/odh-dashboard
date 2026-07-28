@@ -4,6 +4,7 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { useExtensions, useResolvedExtensions } from '@odh-dashboard/plugin-core';
 import { useBrowserStorage } from '@odh-dashboard/ui-core/utilities';
+import { fireSectionToggled } from '#~/pages/home/taskAssistant/taskAssistantTracking';
 import TaskAssistantSection from '#~/pages/home/taskAssistant/TaskAssistantSection';
 import { makeGroupExtension, makeItemExtension } from './taskAssistantTestUtils';
 
@@ -16,6 +17,12 @@ jest.mock('@odh-dashboard/ui-core/utilities', () => ({
   ...jest.requireActual('@odh-dashboard/ui-core/utilities'),
   useBrowserStorage: jest.fn(),
 }));
+
+jest.mock('#~/pages/home/taskAssistant/taskAssistantTracking', () => ({
+  fireSectionToggled: jest.fn(),
+}));
+
+const mockFireSectionToggled = jest.mocked(fireSectionToggled);
 
 const mockUseResolvedExtensions = jest.mocked(useResolvedExtensions);
 const mockUseExtensions = jest.mocked(useExtensions);
@@ -108,6 +115,13 @@ describe('TaskAssistantSection', () => {
       fireEvent.click(screen.getByRole('button', { expanded: true }));
       expect(mockSetIsOpen).toHaveBeenCalledWith(false);
     });
+
+    it('should fire Section Toggled with isExpanded false when collapsing', () => {
+      renderSection();
+
+      fireEvent.click(screen.getByRole('button', { expanded: true }));
+      expect(mockFireSectionToggled).toHaveBeenCalledWith({ isExpanded: false });
+    });
   });
 
   describe('collapsed state', () => {
@@ -137,6 +151,22 @@ describe('TaskAssistantSection', () => {
       const clickTarget = pill.querySelector('.pf-v6-c-label__content') ?? pill;
       fireEvent.click(clickTarget);
       expect(mockSetIsOpen).toHaveBeenCalledWith(true);
+    });
+
+    it('should fire Section Toggled with category when expanding via pill click', () => {
+      renderSection();
+
+      const pill = screen.getByTestId('task-pill-g1');
+      const clickTarget = pill.querySelector('.pf-v6-c-label__content') ?? pill;
+      fireEvent.click(clickTarget);
+      expect(mockFireSectionToggled).toHaveBeenCalledWith({ isExpanded: true, category: 'g1' });
+    });
+
+    it('should fire Section Toggled without category when expanding via toggle button', () => {
+      renderSection();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Task shortcuts', expanded: false }));
+      expect(mockFireSectionToggled).toHaveBeenCalledWith({ isExpanded: true });
     });
   });
 });

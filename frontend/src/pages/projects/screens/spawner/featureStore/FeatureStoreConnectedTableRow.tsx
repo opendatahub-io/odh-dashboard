@@ -61,12 +61,12 @@ export const FeatureStoreConnectedTableRow: React.FC<FeatureStoreConnectedTableR
           <Truncate content={featureStore.projectName} />
         )}
       </Td>
-      <Td dataLabel="Namespace">
+      <Td dataLabel="Project">
         <Truncate content={featureStore.isUnavailable ? '-' : featureStore.namespace} />
       </Td>
-      <Td dataLabel="Permission level">
-        {!featureStore.isUnavailable && featureStore.permissionLevel.length > 0 ? (
-          <FeatureStorePermissionLabels permissions={featureStore.permissionLevel} />
+      <Td dataLabel="Permissions">
+        {!featureStore.isUnavailable && featureStore.permissions.length > 0 ? (
+          <FeatureStorePermissionLabels permissions={featureStore.permissions} />
         ) : (
           '-'
         )}

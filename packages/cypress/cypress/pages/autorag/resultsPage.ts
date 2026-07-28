@@ -84,7 +84,7 @@ class AutoragResultsPage {
   }
 
   findPatternDetailsModalCloseButton() {
-    return this.findPatternDetailsModal().findByRole('button', { name: 'Close' });
+    return cy.findByTestId('pattern-details-close');
   }
 
   findPatternSelectorDropdown() {
@@ -129,9 +129,16 @@ class AutoragResultsPage {
     return cy.findByTestId('retry-run-action');
   }
 
-  // Score type radios (inside pattern details overview tab)
-  findScoreTypeRadio(type: 'mean' | 'ci_high' | 'ci_low') {
-    return cy.findByTestId(`score-type-${type}`);
+  findReconfigureButton() {
+    return cy.findByTestId('reconfigure-run-button');
+  }
+
+  findCIScoresChart() {
+    return cy.findByTestId('ci-scores-chart');
+  }
+
+  findCIScoresLegend() {
+    return cy.findByTestId('ci-legend');
   }
 
   // Pattern details modal actions

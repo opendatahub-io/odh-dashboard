@@ -86,12 +86,8 @@ describe('AI Playground - Chatbot Interactions (Mocked)', () => {
         cy.step('Verify bot response is received');
         chatbotPage.verifyBotResponseContains('mock response');
 
-        cy.step('Verify metrics toggle is visible');
-        chatbotPage.findMetricsToggle().should('be.visible');
-
-        cy.step('Expand metrics and verify content');
-        chatbotPage.expandMetrics();
-        cy.get('.pf-v6-c-label').should('exist');
+        cy.step('Verify metrics are displayed');
+        chatbotPage.verifyMetricsDisplayed();
 
         cy.step('Test completed - Metrics displayed successfully');
       },

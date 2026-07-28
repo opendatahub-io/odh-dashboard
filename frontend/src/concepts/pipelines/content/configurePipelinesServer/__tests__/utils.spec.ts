@@ -1,3 +1,4 @@
+import { genRandomChars } from '@odh-dashboard/foundation';
 import { mockDataSciencePipelineApplicationK8sResource } from '#~/__mocks__/mockDataSciencePipelinesApplicationK8sResource';
 import { deleteSecret, getPipelinesCR } from '#~/api';
 import { DSPA_SECRET_NAME } from '#~/concepts/pipelines/content/configurePipelinesServer/const';
@@ -6,7 +7,6 @@ import { createDSPipelineResourceSpec } from '#~/concepts/pipelines/content/conf
 import { deleteServer, isGeneratedDSPAExternalStorageSecret } from '#~/concepts/pipelines/utils';
 import { DSPipelineAPIServerStore } from '#~/k8sTypes.ts';
 import { AwsKeys } from '#~/pages/projects/dataConnections/const';
-import { genRandomChars } from '#~/utilities/string';
 
 jest.mock('#~/api', () => ({
   getPipelinesCR: jest.fn(),

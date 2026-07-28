@@ -24,13 +24,6 @@
     }
   },
   "e2eCiTags": ["@AutoRAGCI"],
-  "bffConfig": {
-    "enabled": true,
-    "port": 4001,
-    "healthEndpoint": "/healthcheck",
-    "startCommand": "make dev-bff-e2e-mock",
-    "startCommandCluster": "make dev-bff-e2e-cluster"
-  },
   "scripts": {
     "install:module": "npm install --prefix frontend",
     "test:contract": "BFF_MOCK_FLAGS='--dev-mode --mock-k8s-client --mock-ogx-client --mock-http-client --mock-pipeline-server-client --mock-s3-client --deployment-mode=standalone --auth-method=internal' odh-ct-bff-consumer --bff-dir bff",
@@ -38,7 +31,10 @@
     "cypress:server:build:coverage": "COVERAGE=true npm run cypress:server:build",
     "cypress:server": "cd frontend && serve ./public-cypress -p 9107 -s -L",
     "cypress:server:dev": "cd frontend && DEPLOYMENT_MODE=federated PORT=9107 PROXY_PORT=4001 npm run start:dev",
-    "cypress:server:wait": "wait-on -i 1000 http://localhost:9107",
+    "cypress:server:wait": "wait-on -i 1000 http-get://localhost:9107/healthcheck",
+    "cypress:server:e2e:wait": "npm run cypress:server:wait",
+    "prepare:e2e": "cd bff && go mod download",
+    "cypress:server:e2e": "STATIC_ASSETS_DIR=../frontend/public-cypress make dev-bff-e2e-cluster E2E_BFF_PORT=9107",
     "lint": "cd frontend && npm run lint",
     "lint:fix": "cd frontend && npm run lint:fix"
   },

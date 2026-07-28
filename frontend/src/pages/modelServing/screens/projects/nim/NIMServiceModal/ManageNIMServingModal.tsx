@@ -9,7 +9,7 @@ import {
   ModalFooter,
   ModalHeader,
 } from '@patternfly/react-core';
-import { EitherOrNone } from '@openshift/dynamic-plugin-sdk';
+import type { EitherOrNone } from '@odh-dashboard/foundation';
 import type {
   PersistentVolumeClaimKind,
   ProjectKind,
@@ -22,6 +22,9 @@ import {
   translateDisplayNameForK8s,
   translateDisplayNameForK8sAndReport,
 } from '@odh-dashboard/k8s-core';
+import type { InferenceServiceKind, ServingRuntimeKind } from '@odh-dashboard/model-serving/shared';
+import { getServingRuntimeFromTemplate } from '@odh-dashboard/model-serving/shared';
+import { useAccessReview } from '@odh-dashboard/plugin-core/host-api';
 import {
   createNIMPVC,
   createNIMSecret,
@@ -31,7 +34,6 @@ import {
   useCreateServingRuntimeObject,
   validateEnvVarName,
 } from '#~/pages/modelServing/screens/projects/utils';
-import { InferenceServiceKind, ServingRuntimeKind } from '#~/k8sTypes';
 import { EMPTY_AWS_SECRET_DATA } from '#~/pages/projects/dataConnections/const';
 import useCustomServingRuntimesEnabled from '#~/pages/modelServing/customServingRuntimes/useCustomServingRuntimesEnabled';
 import DashboardModalFooter from '#~/concepts/dashboard/DashboardModalFooter';
@@ -44,7 +46,7 @@ import NIMModelListSection from '#~/pages/modelServing/screens/projects/nim/NIMS
 import NIMModelDeploymentNameSection from '#~/pages/modelServing/screens/projects/nim/NIMServiceModal/NIMModelDeploymentNameSection';
 import ProjectSection from '#~/pages/modelServing/screens/projects/InferenceServiceModal/ProjectSection';
 import { NamespaceApplicationCase } from '#~/pages/projects/types';
-import { getSecret, updatePvc, useAccessReview, patchInferenceServiceStoppedStatus } from '#~/api';
+import { getSecret, updatePvc, patchInferenceServiceStoppedStatus } from '#~/api';
 import KServeAutoscalerReplicaSection from '#~/pages/modelServing/screens/projects/kServeModal/KServeAutoscalerReplicaSection';
 import NIMPVCSizeSection, {
   PVCMode,
@@ -54,7 +56,6 @@ import {
   updateServingRuntimeTemplate,
 } from '#~/pages/modelServing/screens/projects/nim/nimUtils';
 import { useDashboardNamespace } from '#~/redux/selectors';
-import { getServingRuntimeFromTemplate } from '#~/pages/modelServing/customServingRuntimes/utils';
 import { useNIMPVC } from '#~/pages/modelServing/screens/projects/nim/NIMServiceModal/useNIMPVC';
 import AuthServingRuntimeSection from '#~/pages/modelServing/screens/projects/ServingRuntimeModal/AuthServingRuntimeSection';
 import { useNIMTemplateName } from '#~/pages/modelServing/screens/projects/nim/useNIMTemplateName';

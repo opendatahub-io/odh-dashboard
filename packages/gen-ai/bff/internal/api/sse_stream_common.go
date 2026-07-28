@@ -11,6 +11,8 @@ import (
 
 	"github.com/openai/openai-go/v2/responses"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 )
 
 // DeltaEventHandler processes delta events (output_text.delta, reasoning_text.delta).
@@ -237,11 +239,18 @@ func (app *App) streamSSEEvents(cfg StreamConfig) error {
 			continue
 		}
 
-		// Extract usage and process citations on completion
+		// Extract usage, process citations, and set span outputs from completed event
 		if streamingEvent.Type == "response.completed" {
 			*cfg.Usage = extractUsageFromEvent(event)
 			if streamingEvent.Response != nil {
 				processResponseCitations(streamingEvent.Response)
+				if span := trace.SpanFromContext(ctx); span.IsRecording() && len(streamingEvent.Response.Output) > 0 {
+					outputJSON, _ := json.Marshal(streamingEvent.Response.Output)
+					span.SetAttributes(
+						attribute.String("mlflow.spanOutputs", string(outputJSON)),
+						attribute.String("gen_ai.output.messages", string(outputJSON)),
+					)
+				}
 			}
 		}
 

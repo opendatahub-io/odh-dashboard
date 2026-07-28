@@ -7,9 +7,9 @@ import {
   HelperTextItem,
 } from '@patternfly/react-core';
 import type { SupportedModelFormats } from '@odh-dashboard/k8s-core';
-import { UpdateObjectAtPropAndValue } from '#~/pages/projects/types';
+import SimpleSelect, { SimpleSelectOption } from '@odh-dashboard/ui-core/components/SimpleSelect';
+import type { UpdateObjectAtPropAndValue } from '@odh-dashboard/ui-core';
 import { CreatingInferenceServiceObject } from '#~/pages/modelServing/screens/types';
-import SimpleSelect, { SimpleSelectOption } from '#~/components/SimpleSelect';
 import useModelFramework from './useModelFramework';
 
 type InferenceServiceFrameworkSectionProps = {

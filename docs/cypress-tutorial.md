@@ -551,6 +551,7 @@ Common test configuration via environment variables and flags (full list in [doc
 | ------ | --------- | --------- | --------- |
 | `CY_TEST_CONFIG` | Path to test config | - | `export CY_TEST_CONFIG='./test-variables.yml'` |
 | `CY_MOCK` | Enable mocked mode | `0` | `CY_MOCK=1 npm run cypress:run` |
+| `CYPRESS_E2E_PROXY` | Use E2E proxy (implies baseUrl + /e2e-login auth) | - | `CYPRESS_E2E_PROXY=true` |
 | `grepTags` | Filter by tags | - | `--env grepTags="@Smoke"` |
 | `skipTags` | Skip by tags | - | `--env skipTags="@Bug"` |
 | `CY_COVERAGE` | Enable coverage | `false` | `CY_COVERAGE=true npm run cypress:run:mock` |
@@ -643,11 +644,28 @@ npm run cypress:run -- --env grepTags="@Smoke",skipTags="@Bug" --browser chrome
 npm run cypress:run -- --spec "cypress/tests/e2e/testProjectCreation.cy.ts" --browser chrome
 ```
 
-**If using localhost**, start the dev server first:
+**If using localhost with webpack** (dev workflow), start the dev server first:
 
 ```bash
 npm run start:dev:ext  # Proxies to your logged-in cluster
 ```
+
+**Alternatively, use the build-then-serve model** (mirrors CI):
+
+```bash
+# One command: starts local stack + proxy, runs tests
+npm run test:cypress:e2e
+
+# Or step by step with tag filtering:
+npm run prepare:e2e
+turbo run cypress:server:e2e --concurrency=20 &
+turbo run cypress:server:e2e:wait
+cd packages/cypress
+CYPRESS_E2E_PROXY=true CY_TEST_CONFIG=./test-variables.yml \
+  CY_TEST_TAGS=@ci-dashboard-regression-tags npm run run:e2e
+```
+
+See [bff-e2e-testing.md](./bff-e2e-testing.md) for details on the local stack model.
 
 ### Results
 

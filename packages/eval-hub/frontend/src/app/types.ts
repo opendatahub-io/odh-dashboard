@@ -84,7 +84,8 @@ export type EvaluationJobState =
   | 'failed'
   | 'cancelled'
   | 'stopping'
-  | 'stopped';
+  | 'stopped'
+  | 'partially_failed';
 
 type JobMessage = {
   message?: string;
@@ -439,6 +440,8 @@ export type InferenceServiceItem = {
   name: string;
   url?: string;
   ready: boolean;
+  model_format_name?: string;
+  api_protocol?: 'REST' | 'gRPC';
 };
 
 export type InferenceServicesResponse = {
@@ -462,6 +465,7 @@ export type VerifyConnectionResponse = {
   success: boolean;
   message: string;
   response_time_ms?: number;
+  openai_compatible?: boolean;
 };
 
 export type ConnectionValidationStatus = 'idle' | 'validating' | 'success' | 'error';

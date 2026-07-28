@@ -12,11 +12,11 @@ import (
 )
 
 func TestDeepMerge_OverridesTakePrecedence(t *testing.T) {
-	defaults := map[string]interface{}{
+	defaults := map[string]any{
 		"a": "default",
 		"b": "default",
 	}
-	overrides := map[string]interface{}{
+	overrides := map[string]any{
 		"a": "override",
 	}
 
@@ -27,18 +27,18 @@ func TestDeepMerge_OverridesTakePrecedence(t *testing.T) {
 }
 
 func TestDeepMerge_NestedMaps(t *testing.T) {
-	defaults := map[string]interface{}{
-		"spec": map[string]interface{}{
-			"dashboardConfig": map[string]interface{}{
+	defaults := map[string]any{
+		"spec": map[string]any{
+			"dashboardConfig": map[string]any{
 				"enablement":    true,
 				"disableInfo":   false,
 				"disableKServe": false,
 			},
 		},
 	}
-	overrides := map[string]interface{}{
-		"spec": map[string]interface{}{
-			"dashboardConfig": map[string]interface{}{
+	overrides := map[string]any{
+		"spec": map[string]any{
+			"dashboardConfig": map[string]any{
 				"disableKServe": true,
 			},
 		},
@@ -46,16 +46,16 @@ func TestDeepMerge_NestedMaps(t *testing.T) {
 
 	result := maputil.DeepMerge(defaults, overrides)
 
-	spec := result["spec"].(map[string]interface{})
-	dc := spec["dashboardConfig"].(map[string]interface{})
+	spec := result["spec"].(map[string]any)
+	dc := spec["dashboardConfig"].(map[string]any)
 	assert.Equal(t, true, dc["enablement"])
 	assert.Equal(t, false, dc["disableInfo"])
 	assert.Equal(t, true, dc["disableKServe"])
 }
 
 func TestDeepMerge_OverrideDoesNotMutateDefaults(t *testing.T) {
-	defaults := map[string]interface{}{"key": "original"}
-	overrides := map[string]interface{}{"key": "changed"}
+	defaults := map[string]any{"key": "original"}
+	overrides := map[string]any{"key": "changed"}
 
 	_ = maputil.DeepMerge(defaults, overrides)
 
@@ -63,28 +63,28 @@ func TestDeepMerge_OverrideDoesNotMutateDefaults(t *testing.T) {
 }
 
 func TestDeepMerge_NestedDefaultsNotMutated(t *testing.T) {
-	defaults := map[string]interface{}{
-		"spec": map[string]interface{}{
-			"nested": map[string]interface{}{
+	defaults := map[string]any{
+		"spec": map[string]any{
+			"nested": map[string]any{
 				"flag": false,
 			},
 		},
 	}
 
-	result := maputil.DeepMerge(defaults, map[string]interface{}{})
+	result := maputil.DeepMerge(defaults, map[string]any{})
 
 	// Mutate the result's nested map
-	result["spec"].(map[string]interface{})["nested"].(map[string]interface{})["flag"] = true
+	result["spec"].(map[string]any)["nested"].(map[string]any)["flag"] = true
 
 	// Original defaults must be unchanged
-	nested := defaults["spec"].(map[string]interface{})["nested"].(map[string]interface{})
+	nested := defaults["spec"].(map[string]any)["nested"].(map[string]any)
 	assert.Equal(t, false, nested["flag"])
 }
 
 func TestApplyFeatureLockouts(t *testing.T) {
-	config := map[string]interface{}{
-		"spec": map[string]interface{}{
-			"dashboardConfig": map[string]interface{}{
+	config := map[string]any{
+		"spec": map[string]any{
+			"dashboardConfig": map[string]any{
 				"disableFineTuning": false,
 				"mlflow":            false,
 				"disableKServe":     false,
@@ -94,22 +94,22 @@ func TestApplyFeatureLockouts(t *testing.T) {
 
 	applyFeatureLockouts(config)
 
-	dc := config["spec"].(map[string]interface{})["dashboardConfig"].(map[string]interface{})
+	dc := config["spec"].(map[string]any)["dashboardConfig"].(map[string]any)
 	assert.Equal(t, true, dc["disableFineTuning"])
 	assert.Equal(t, true, dc["mlflow"])
 	assert.Equal(t, false, dc["disableKServe"])
 }
 
 func TestApplyFeatureLockouts_MissingSpec(t *testing.T) {
-	config := map[string]interface{}{}
+	config := map[string]any{}
 	applyFeatureLockouts(config)
 	// Should not panic
 }
 
 func TestApplyFeatureFlagOverrides(t *testing.T) {
-	config := map[string]interface{}{
-		"spec": map[string]interface{}{
-			"dashboardConfig": map[string]interface{}{
+	config := map[string]any{
+		"spec": map[string]any{
+			"dashboardConfig": map[string]any{
 				"disableKServe": false,
 				"enablement":    true,
 			},
@@ -123,16 +123,16 @@ func TestApplyFeatureFlagOverrides(t *testing.T) {
 
 	applyFeatureFlagOverrides(config, overrides)
 
-	dc := config["spec"].(map[string]interface{})["dashboardConfig"].(map[string]interface{})
+	dc := config["spec"].(map[string]any)["dashboardConfig"].(map[string]any)
 	assert.Equal(t, true, dc["disableKServe"])
 	assert.Equal(t, true, dc["newFlag"])
 	assert.Equal(t, true, dc["enablement"])
 }
 
 func TestApplyXKSOverrides(t *testing.T) {
-	config := map[string]interface{}{
-		"spec": map[string]interface{}{
-			"dashboardConfig": map[string]interface{}{
+	config := map[string]any{
+		"spec": map[string]any{
+			"dashboardConfig": map[string]any{
 				"enablement":             true,
 				"disableProjects":        false,
 				"disableBYONImageStream": false,
@@ -147,7 +147,7 @@ func TestApplyXKSOverrides(t *testing.T) {
 
 	applyXKSOverrides(config)
 
-	dc := config["spec"].(map[string]interface{})["dashboardConfig"].(map[string]interface{})
+	dc := config["spec"].(map[string]any)["dashboardConfig"].(map[string]any)
 	assert.Equal(t, false, dc["enablement"])
 	assert.Equal(t, true, dc["disableProjects"])
 	assert.Equal(t, true, dc["disableBYONImageStream"])
@@ -159,9 +159,9 @@ func TestApplyXKSOverrides(t *testing.T) {
 }
 
 func TestLockoutsAndXKSOverridesCannotBeOverriddenByHeaders(t *testing.T) {
-	config := map[string]interface{}{
-		"spec": map[string]interface{}{
-			"dashboardConfig": map[string]interface{}{
+	config := map[string]any{
+		"spec": map[string]any{
+			"dashboardConfig": map[string]any{
 				"enablement":        true,
 				"disableFineTuning": false,
 				"mlflow":            true,
@@ -184,7 +184,7 @@ func TestLockoutsAndXKSOverridesCannotBeOverriddenByHeaders(t *testing.T) {
 	applyFeatureLockouts(config)
 	applyXKSOverrides(config)
 
-	dc := config["spec"].(map[string]interface{})["dashboardConfig"].(map[string]interface{})
+	dc := config["spec"].(map[string]any)["dashboardConfig"].(map[string]any)
 	assert.Equal(t, true, dc["disableFineTuning"])
 	assert.Equal(t, false, dc["enablement"])
 	assert.Equal(t, false, dc["mlflow"])
@@ -203,7 +203,7 @@ func TestHandleFetchError_DiscoveryErrorReturnsDefaults(t *testing.T) {
 
 	require.NoError(t, err)
 	require.NotNil(t, result, "discovery error should return blank defaults, not nil")
-	spec, ok := result["spec"].(map[string]interface{})
+	spec, ok := result["spec"].(map[string]any)
 	require.True(t, ok, "defaults should have a spec")
 	_, hasDC := spec["dashboardConfig"]
 	assert.True(t, hasDC, "defaults should have dashboardConfig in spec")

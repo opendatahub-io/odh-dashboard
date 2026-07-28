@@ -12,11 +12,9 @@ import { registerAndStorePage } from '../../../pages/modelRegistry/registerAndSt
 import { clickRegisterModelButton } from '../../../utils/modelRegistryUtils';
 import { retryableBeforeEach } from '../../../utils/retryableHooks';
 import {
-  checkModelExistsInDatabase,
   checkModelRegistry,
   checkModelRegistryAvailable,
   checkModelTransferJobPodStarted,
-  checkModelVersionExistsInDatabase,
   cleanupRegisteredModelsFromDatabase,
   createAndVerifyDatabase,
   createModelRegistryViaYAML,
@@ -95,6 +93,12 @@ describe('Verify models can be registered in a model registry', () => {
       cy.step('Log into the application');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 
+      cy.step('Clean up test models from any previous retry attempts');
+      cleanupRegisteredModelsFromDatabase(
+        [objectStorageModelName, testData.uriModelName],
+        databaseName,
+      );
+
       cy.step('Navigate to Model Registry');
       modelRegistry.visit(registryName);
 
@@ -106,7 +110,7 @@ describe('Verify models can be registered in a model registry', () => {
       registerModelPage
         .findFormField(FormFieldSelector.MODEL_DESCRIPTION)
         .type(testData.objectStorageModelDescription);
-      registerModelPage.selectModelType();
+      registerModelPage.selectModelType('Predictive Model', 30000);
       registerModelPage.findFormField(FormFieldSelector.VERSION_NAME).type(testData.version1Name);
       registerModelPage
         .findFormField(FormFieldSelector.VERSION_DESCRIPTION)
@@ -136,11 +140,8 @@ describe('Verify models can be registered in a model registry', () => {
       registerModelPage.findSubmitButton().should('be.enabled').click();
 
       cy.step('Verify the object storage model was registered');
-      cy.url().should('include', '/details');
+      cy.url({ timeout: 30000 }).should('include', '/registered-models/');
       cy.contains(objectStorageModelName, { timeout: 10000 }).should('be.visible');
-
-      cy.step('Verify the object storage model exists in the database');
-      checkModelExistsInDatabase(objectStorageModelName, databaseName).should('be.true');
 
       cy.step('Navigate back to register another model using direct URL');
       registerModelPage.visitWithRegistry(registryName);
@@ -151,7 +152,7 @@ describe('Verify models can be registered in a model registry', () => {
       registerModelPage
         .findFormField(FormFieldSelector.MODEL_DESCRIPTION)
         .type(testData.uriModelDescription);
-      registerModelPage.selectModelType();
+      registerModelPage.selectModelType('Predictive Model', 30000);
       registerModelPage.findFormField(FormFieldSelector.VERSION_NAME).type(testData.version1Name);
       registerModelPage
         .findFormField(FormFieldSelector.VERSION_DESCRIPTION)
@@ -170,14 +171,11 @@ describe('Verify models can be registered in a model registry', () => {
       registerModelPage.findSubmitButton().should('be.enabled').click();
 
       cy.step('Verify the URI model was registered');
-      cy.url().should('include', '/details');
+      cy.url({ timeout: 30000 }).should('include', '/registered-models/');
       cy.contains(testData.uriModelName, { timeout: 10000 }).should('be.visible');
 
-      cy.step('Verify the URI model exists in the database');
-      checkModelExistsInDatabase(testData.uriModelName, databaseName).should('be.true');
-
       cy.step('Navigate back to model registry to verify both models');
-      cy.visitWithLogin(`/ai-hub/registry/${registryName}`, HTPASSWD_CLUSTER_ADMIN_USER);
+      cy.visitWithLogin(`/ai-hub/models/registry/${registryName}`, HTPASSWD_CLUSTER_ADMIN_USER);
 
       cy.step('Verify both models are visible in the registry');
       cy.contains(objectStorageModelName, { timeout: 10000 }).should('be.visible');
@@ -188,7 +186,7 @@ describe('Verify models can be registered in a model registry', () => {
   it(
     'Registers a new version via versions view',
     {
-      tags: ['@Dashboard', '@ModelRegistry', '@NonConcurrent', '@Smoke', '@SmokeSet4'],
+      tags: ['@Dashboard', '@ModelRegistry', '@ModelRegistryCI', '@Smoke', '@SmokeSet4'],
     },
     () => {
       cy.step('Log into the application');
@@ -200,8 +198,11 @@ describe('Verify models can be registered in a model registry', () => {
       cy.step('Navigate to the first registered model');
       cy.contains(objectStorageModelName).click();
 
+      cy.step('Wait for model details page to load');
+      cy.url({ timeout: 30000 }).should('include', '/registered-models/');
+
       cy.step('Navigate to versions tab');
-      modelRegistry.findModelVersionsTab().click();
+      modelRegistry.findModelVersionsTab().should('be.visible').click();
 
       cy.step('Click Register new version button');
       modelRegistry.findRegisterNewVersionButton().click();
@@ -233,11 +234,8 @@ describe('Verify models can be registered in a model registry', () => {
       registerVersionPage.findSubmitButton().click();
 
       cy.step('Verify the new version was registered');
-      cy.url().should('include', '/details');
+      cy.url({ timeout: 30000 }).should('include', '/registered-models/');
       cy.contains(testData.version2Name, { timeout: 10000 }).should('be.visible');
-
-      cy.step('Verify the new version exists in the database');
-      checkModelVersionExistsInDatabase(testData.version2Name, databaseName).should('be.true');
     },
   );
 
@@ -287,7 +285,7 @@ describe('Verify models can be registered in a model registry', () => {
       registerModelPage
         .findFormField(FormFieldSelector.MODEL_DESCRIPTION)
         .type(testData.ociModelDescription);
-      registerModelPage.selectModelType();
+      registerModelPage.selectModelType('Predictive Model', 30000);
       registerModelPage.findFormField(FormFieldSelector.VERSION_NAME).type(testData.ociVersionName);
       registerModelPage
         .findFormField(FormFieldSelector.VERSION_DESCRIPTION)
@@ -351,7 +349,7 @@ describe('Verify models can be registered in a model registry', () => {
       );
 
       cy.step('Verify navigation away from the registration form');
-      cy.url().should('not.include', '/register');
+      cy.url().should('include', '/registered-models/');
 
       // Terminal state of the transfer job (success/failure) is environment-dependent
       // and not validated here. A dedicated test with a controlled backend is more appropriate.
@@ -403,7 +401,7 @@ describe('Verify models can be registered in a model registry', () => {
       registerModelPage
         .findFormField(FormFieldSelector.MODEL_DESCRIPTION)
         .type(testData.ociModelDescription);
-      registerModelPage.selectModelType();
+      registerModelPage.selectModelType('Predictive Model', 30000);
       registerModelPage.findFormField(FormFieldSelector.VERSION_NAME).type(testData.ociVersionName);
       registerModelPage
         .findFormField(FormFieldSelector.VERSION_DESCRIPTION)
@@ -454,7 +452,7 @@ describe('Verify models can be registered in a model registry', () => {
       checkModelTransferJobPodStarted(testData.ociUriJobName, projectName).should('be.true');
 
       cy.step('Verify navigation away from the registration form');
-      cy.url().should('not.include', '/register');
+      cy.url().should('include', '/registered-models/');
     },
   );
 

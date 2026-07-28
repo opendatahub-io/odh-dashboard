@@ -1,14 +1,17 @@
 import React from 'react';
-import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
-import { useTemplates } from '@odh-dashboard/internal/api/index';
-import useTemplateOrder from '@odh-dashboard/internal/pages/modelServing/customServingRuntimes/useTemplateOrder';
-import useTemplateDisablement from '@odh-dashboard/internal/pages/modelServing/customServingRuntimes/useTemplateDisablement';
-import { ServingRuntimePlatform, type CustomWatchK8sResult } from '@odh-dashboard/internal/types';
-import type { TemplateKind } from '@odh-dashboard/k8s-core';
 import {
+  getDashboardConfigTemplateOrder,
+  getDashboardConfigTemplateDisablement,
+} from '@odh-dashboard/internal/api/index';
+import { useDashboardNamespace, useTemplates } from '@odh-dashboard/plugin-core/host-api';
+import type { K8sWatchResult, TemplateKind } from '@odh-dashboard/k8s-core';
+import {
+  ServingRuntimePlatform,
   getSortedTemplates,
   getTemplateEnabled,
-} from '@odh-dashboard/internal/pages/modelServing/customServingRuntimes/utils';
+  useTemplateOrder,
+  useTemplateDisablement,
+} from '@odh-dashboard/model-serving/shared';
 
 /**
  * Custom hook that retrieves, sorts, and filters serving runtime templates for model serving.
@@ -43,9 +46,7 @@ import {
  *   - `loaded`: Boolean indicating if all data sources have finished loading
  *   - `error`: Any error that occurred during data fetching from templates, ordering, or disablement
  */
-export const useServingRuntimeTemplates = (
-  namespace?: string,
-): CustomWatchK8sResult<TemplateKind[]> => {
+export const useServingRuntimeTemplates = (namespace?: string): K8sWatchResult<TemplateKind[]> => {
   const { dashboardNamespace } = useDashboardNamespace();
 
   const [templates, loaded, error] = useTemplates(namespace || dashboardNamespace);
@@ -53,12 +54,12 @@ export const useServingRuntimeTemplates = (
     data: order,
     loaded: orderLoaded,
     error: orderError,
-  } = useTemplateOrder(dashboardNamespace);
+  } = useTemplateOrder(dashboardNamespace, getDashboardConfigTemplateOrder);
   const {
     data: disablement,
     loaded: disablementLoaded,
     error: disablementError,
-  } = useTemplateDisablement(dashboardNamespace);
+  } = useTemplateDisablement(dashboardNamespace, getDashboardConfigTemplateDisablement);
 
   const result = React.useMemo(() => {
     if (templates.length === 0 || !orderLoaded || !disablementLoaded) {

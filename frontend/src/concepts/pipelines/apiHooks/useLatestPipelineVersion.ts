@@ -1,12 +1,12 @@
 import React from 'react';
 
-import { PipelineVersionKF } from '#~/concepts/pipelines/kfTypes';
-import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import useFetchState, {
   FetchState,
   FetchStateCallbackPromise,
   NotReadyError,
-} from '#~/utilities/useFetchState';
+} from '@odh-dashboard/ui-core/hooks/useFetchState';
+import { PipelineVersionKF } from '#~/concepts/pipelines/kfTypes';
+import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 
 /**
  * Based on the pipeline associated with the provided pipelineId,

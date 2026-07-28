@@ -1,8 +1,12 @@
 import * as React from 'react';
 import type { SecretKind } from '@odh-dashboard/k8s-core';
+import useFetch, {
+  FetchOptions,
+  FetchStateObject,
+  NotReadyError,
+} from '@odh-dashboard/ui-core/hooks/useFetch';
 import { getSecretsByLabel } from '#~/api';
 import useModelServingEnabled from '#~/pages/modelServing/useModelServingEnabled';
-import useFetch, { FetchOptions, FetchStateObject, NotReadyError } from '#~/utilities/useFetch';
 import { LABEL_SELECTOR_DASHBOARD_RESOURCE } from '#~/const';
 
 const useServingRuntimeSecrets = (

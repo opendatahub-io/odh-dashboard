@@ -5,10 +5,12 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/binary"
 	"encoding/json"
 	"fmt"
 	"io"
 	"log/slog"
+	"mime/multipart"
 	"net"
 	"net/http"
 	"net/url"
@@ -217,9 +219,47 @@ func NewExternalModelsClient(
 	}, nil
 }
 
+// buildMinimalWAV creates a valid WAV file with 0.1s of silence (800 samples at
+// 8kHz, 8-bit mono). Providers like Groq require minimum audio length (0.01s).
+func buildMinimalWAV() []byte {
+	numSamples := 800          // 0.1s at 8000 Hz
+	dataSize := numSamples     // 1 byte per sample (8-bit mono)
+	chunkSize := 36 + dataSize // 36 = header remainder before data bytes
+	totalSize := 44 + dataSize
+
+	wav := make([]byte, totalSize)
+	copy(wav[0:4], "RIFF")
+	binary.LittleEndian.PutUint32(wav[4:8], uint32(chunkSize))
+	copy(wav[8:12], "WAVE")
+	copy(wav[12:16], "fmt ")
+	binary.LittleEndian.PutUint32(wav[16:20], 16)   // Subchunk1Size
+	binary.LittleEndian.PutUint16(wav[20:22], 1)    // AudioFormat: PCM
+	binary.LittleEndian.PutUint16(wav[22:24], 1)    // NumChannels: mono
+	binary.LittleEndian.PutUint32(wav[24:28], 8000) // SampleRate
+	binary.LittleEndian.PutUint32(wav[28:32], 8000) // ByteRate
+	binary.LittleEndian.PutUint16(wav[32:34], 1)    // BlockAlign
+	binary.LittleEndian.PutUint16(wav[34:36], 8)    // BitsPerSample
+	copy(wav[36:40], "data")
+	binary.LittleEndian.PutUint32(wav[40:44], uint32(dataSize))
+	// Fill audio data with silence (0x80 = zero crossing for unsigned 8-bit PCM)
+	for i := 44; i < totalSize; i++ {
+		wav[i] = 0x80
+	}
+	return wav
+}
+
+var minimalWAV = buildMinimalWAV()
+
 // VerifyModel tests the external model endpoint and validates OpenAI compatibility
 func (c *ExternalModelsClient) VerifyModel(ctx context.Context, modelID string, embeddingDimension *int) (*models.VerifyExternalModelResponse, error) {
 	startTime := time.Now()
+
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
+	if c.modelType == models.ModelTypeTranscription {
+		return c.verifyTranscriptionModel(ctx, modelID, startTime)
+	}
 
 	// Build test request based on model type using typed OpenAI-compatible structs
 	var requestBody []byte
@@ -227,7 +267,6 @@ func (c *ExternalModelsClient) VerifyModel(ctx context.Context, modelID string, 
 	var err error
 
 	if c.modelType == models.ModelTypeLLM {
-		// Chat completions test - send minimal request to validate endpoint compatibility
 		endpoint = "/chat/completions"
 		chatReq := chatCompletionRequest{
 			Model: modelID,
@@ -240,7 +279,6 @@ func (c *ExternalModelsClient) VerifyModel(ctx context.Context, modelID string, 
 			return nil, NewConnectionError(c.baseURL, fmt.Sprintf("Failed to marshal chat request: %v", err))
 		}
 	} else {
-		// Embeddings test - send minimal request to validate endpoint compatibility - LLS appends the /v1 here
 		endpoint = "/v1/embeddings"
 		embeddingReq := embeddingRequest{
 			Model:      modelID,
@@ -253,24 +291,17 @@ func (c *ExternalModelsClient) VerifyModel(ctx context.Context, modelID string, 
 		}
 	}
 
-	// Make request with timeout
-	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
-	defer cancel()
-
-	// Create HTTP request
 	fullURL := strings.TrimSuffix(c.baseURL, "/") + endpoint
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, fullURL, bytes.NewReader(requestBody))
 	if err != nil {
 		return nil, NewConnectionError(c.baseURL, fmt.Sprintf("Failed to create request: %v", err))
 	}
 
-	// Set headers — omit Authorization over plain HTTP to avoid leaking tokens
 	if c.apiKey != "" && req.URL.Scheme == "https" {
 		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.apiKey))
 	}
 	req.Header.Set("Content-Type", "application/json")
 
-	// SSRF protection: validate destination at request time (prevents DNS rebinding attacks)
 	if !c.skipSSRFValidation {
 		parsedURL, err := url.Parse(fullURL)
 		if err != nil {
@@ -282,10 +313,8 @@ func (c *ExternalModelsClient) VerifyModel(ctx context.Context, modelID string, 
 		}
 	}
 
-	// Execute request (redirects are blocked via CheckRedirect in client config)
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		// Check for timeout
 		if ctx.Err() == context.DeadlineExceeded {
 			return nil, NewTimeoutError(c.baseURL)
 		}
@@ -293,16 +322,13 @@ func (c *ExternalModelsClient) VerifyModel(ctx context.Context, modelID string, 
 	}
 	defer resp.Body.Close()
 
-	// Read response body with size limit to prevent memory exhaustion
 	limitedReader := io.LimitReader(resp.Body, maxResponseBodySize)
 	responseBody, err := io.ReadAll(limitedReader)
 	if err != nil {
 		return nil, NewConnectionError(c.baseURL, fmt.Sprintf("Failed to read response: %v", err))
 	}
 
-	// Check if response exceeded size limit
 	if int64(len(responseBody)) == maxResponseBodySize {
-		// Try to read one more byte to see if there's more data
 		extraByte := make([]byte, 1)
 		n, _ := resp.Body.Read(extraByte)
 		if n > 0 {
@@ -310,32 +336,22 @@ func (c *ExternalModelsClient) VerifyModel(ctx context.Context, modelID string, 
 		}
 	}
 
-	// Check HTTP status code
 	switch resp.StatusCode {
 	case http.StatusOK, http.StatusCreated:
-		// Success - continue to validate response format
+		// Success
 	case http.StatusUnauthorized, http.StatusForbidden:
 		return nil, NewUnauthorizedError(c.baseURL)
 	default:
-		// Other error status codes - provide detailed error message
-		// Include the endpoint to help diagnose configuration issues
 		errorMsg := fmt.Sprintf("Request to %s returned HTTP %d", fullURL, resp.StatusCode)
-
-		// Include response body if present, otherwise provide helpful context
 		responseStr := strings.TrimSpace(string(responseBody))
 		if responseStr != "" {
 			errorMsg += fmt.Sprintf(": %s", responseStr)
-		} else {
-			// Empty response body - provide context about what might be wrong
-			if resp.StatusCode == http.StatusNotFound {
-				errorMsg += ". The endpoint may not exist or the base URL may be incorrect. Verify the base URL points to an OpenAI-compatible API."
-			}
+		} else if resp.StatusCode == http.StatusNotFound {
+			errorMsg += ". The endpoint may not exist or the base URL may be incorrect. Verify the base URL points to an OpenAI-compatible API."
 		}
-
 		return nil, NewConnectionError(c.baseURL, errorMsg)
 	}
 
-	// Validate response can be unmarshaled (basic JSON structure check)
 	if c.modelType == models.ModelTypeLLM {
 		var chatCompletion openai.ChatCompletion
 		if err := json.Unmarshal(responseBody, &chatCompletion); err != nil {
@@ -350,11 +366,103 @@ func (c *ExternalModelsClient) VerifyModel(ctx context.Context, modelID string, 
 		}
 	}
 
-	// Success!
 	elapsed := int(time.Since(startTime).Milliseconds())
 	return &models.VerifyExternalModelResponse{
 		Success:      true,
 		Message:      "External model verified successfully",
+		ResponseTime: elapsed,
+	}, nil
+}
+
+// verifyTranscriptionModel sends a minimal WAV file to /audio/transcriptions via multipart form
+func (c *ExternalModelsClient) verifyTranscriptionModel(ctx context.Context, modelID string, startTime time.Time) (*models.VerifyExternalModelResponse, error) {
+	endpoint := "/audio/transcriptions"
+	fullURL := strings.TrimSuffix(c.baseURL, "/") + endpoint
+
+	// SSRF protection at request time
+	if !c.skipSSRFValidation {
+		parsedURL, err := url.Parse(fullURL)
+		if err != nil {
+			return nil, NewConnectionError(c.baseURL, fmt.Sprintf("Failed to parse request URL: %v", err))
+		}
+		if err := validateRequestSSRF(parsedURL.Hostname(), c.logger); err != nil {
+			return nil, NewConnectionError(c.baseURL, err.Error())
+		}
+	}
+
+	// Build multipart form body with minimal WAV
+	var buf bytes.Buffer
+	writer := multipart.NewWriter(&buf)
+
+	filePart, err := writer.CreateFormFile("file", "verify.wav")
+	if err != nil {
+		return nil, NewConnectionError(c.baseURL, fmt.Sprintf("Failed to create multipart form: %v", err))
+	}
+	if _, err := filePart.Write(minimalWAV); err != nil {
+		return nil, NewConnectionError(c.baseURL, fmt.Sprintf("Failed to write WAV data: %v", err))
+	}
+
+	if err := writer.WriteField("model", modelID); err != nil {
+		return nil, NewConnectionError(c.baseURL, fmt.Sprintf("Failed to write model field: %v", err))
+	}
+	if err := writer.Close(); err != nil {
+		return nil, NewConnectionError(c.baseURL, fmt.Sprintf("Failed to finalize multipart form: %v", err))
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, fullURL, &buf)
+	if err != nil {
+		return nil, NewConnectionError(c.baseURL, fmt.Sprintf("Failed to create request: %v", err))
+	}
+
+	if c.apiKey != "" && req.URL.Scheme == "https" {
+		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.apiKey))
+	}
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		if ctx.Err() == context.DeadlineExceeded {
+			return nil, NewTimeoutError(c.baseURL)
+		}
+		return nil, NewConnectionError(c.baseURL, err.Error())
+	}
+	defer resp.Body.Close()
+
+	limitedReader := io.LimitReader(resp.Body, maxResponseBodySize)
+	responseBody, err := io.ReadAll(limitedReader)
+	if err != nil {
+		return nil, NewConnectionError(c.baseURL, fmt.Sprintf("Failed to read response: %v", err))
+	}
+
+	switch resp.StatusCode {
+	case http.StatusOK, http.StatusCreated:
+		// Success
+	case http.StatusUnauthorized, http.StatusForbidden:
+		return nil, NewUnauthorizedError(c.baseURL)
+	default:
+		errorMsg := fmt.Sprintf("Request to %s returned HTTP %d", fullURL, resp.StatusCode)
+		responseStr := strings.TrimSpace(string(responseBody))
+		if responseStr != "" {
+			errorMsg += fmt.Sprintf(": %s", responseStr)
+		} else if resp.StatusCode == http.StatusNotFound {
+			errorMsg += ". The endpoint may not support /audio/transcriptions. Verify the base URL points to a Whisper-compatible API."
+		}
+		return nil, NewConnectionError(c.baseURL, errorMsg)
+	}
+
+	// Validate response has a "text" field (OpenAI transcription response format)
+	var transcriptionResp struct {
+		Text string `json:"text"`
+	}
+	if err := json.Unmarshal(responseBody, &transcriptionResp); err != nil {
+		return nil, NewNotOpenAICompatibleError(c.baseURL,
+			fmt.Sprintf("Response is not valid transcription JSON: %v", err))
+	}
+
+	elapsed := int(time.Since(startTime).Milliseconds())
+	return &models.VerifyExternalModelResponse{
+		Success:      true,
+		Message:      "Transcription model verified successfully",
 		ResponseTime: elapsed,
 	}, nil
 }

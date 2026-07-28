@@ -1,6 +1,6 @@
 import { type LLMInferenceServiceKind } from '@odh-dashboard/llmd-serving/types';
+import { ServingRuntimeModelType } from '@odh-dashboard/model-serving/shared';
 import { genUID } from '@odh-dashboard/internal/__mocks__/mockUtils';
-import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
 import { ModelAnnotation } from '#~/pages/projects/screens/spawner/storage/types.ts';
 
 type MockLLMInferenceServiceConfigType = {
@@ -26,6 +26,7 @@ type MockLLMInferenceServiceConfigType = {
   secretName?: string;
   gatewayRefs?: { name: string; namespace: string }[];
   isLLMd?: boolean;
+  additionalAnnotations?: Record<string, string>;
 };
 
 export const mockLLMInferenceServiceK8sResource = ({
@@ -48,6 +49,7 @@ export const mockLLMInferenceServiceK8sResource = ({
   secretName,
   gatewayRefs,
   isLLMd = true,
+  additionalAnnotations,
 }: MockLLMInferenceServiceConfigType): LLMInferenceServiceKind => ({
   apiVersion: 'serving.kserve.io/v1alpha2',
   kind: 'LLMInferenceService',
@@ -60,6 +62,7 @@ export const mockLLMInferenceServiceK8sResource = ({
       ...(isStopped ? { [ModelAnnotation.STOPPED_ANNOTATION]: 'true' } : {}),
       ...(description && { 'openshift.io/description': description }),
       ...(secretName && { 'opendatahub.io/connections': secretName }),
+      ...additionalAnnotations,
     },
     creationTimestamp,
     ...(deleted ? { deletionTimestamp: new Date().toUTCString() } : {}),

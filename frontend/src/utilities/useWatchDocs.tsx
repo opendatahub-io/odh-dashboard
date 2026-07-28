@@ -1,8 +1,8 @@
 import * as React from 'react';
+import { useDeepCompareMemoize } from '@odh-dashboard/ui-core/hooks';
 import { OdhDocument, OdhDocumentType } from '#~/types';
 import { fetchDocs } from '#~/services/docsService';
 import { POLL_INTERVAL } from './const';
-import { useDeepCompareMemoize } from './useDeepCompareMemoize';
 
 export const useWatchDocs = (
   docType?: OdhDocumentType | 'getting-started',

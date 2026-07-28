@@ -47,21 +47,31 @@ lint-fix: golangci-lint ## Run golangci-lint to automatically check source code 
 vet:  . ## Runs static analysis tools on source files and reports suspicious constructs that could be bugs or syntactical errors.
 	go vet ./...
 
+.PHONY: check-openapi-sync
+check-openapi-sync: ## Fail when runtime OpenAPI spec differs from api/openapi/agent-ops.yaml.
+	@test -f openapi/src/agent-ops.yaml || (echo "Missing bff/openapi/src/agent-ops.yaml. Run: make sync-openapi" && exit 1)
+	@diff -q ../api/openapi/agent-ops.yaml openapi/src/agent-ops.yaml >/dev/null || (echo "OpenAPI spec drift: api/openapi/agent-ops.yaml and bff/openapi/src/agent-ops.yaml differ. Run: make sync-openapi" && exit 1)
+
 .PHONY: test
-test: fmt vet envtest ## Runs the full test suite.
+test: check-openapi-sync fmt vet envtest ## Runs the full test suite.
 	ENVTEST_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" \
 	go test ./...
 
 .PHONY: build
-build: fmt vet test ## Builds the project to produce a binary executable.
+build: check-openapi-sync fmt vet test ## Builds the project to produce a binary executable.
 ifeq ($(DEBUG), true) ## If DEBUG is true, build with debugging symbols
 	go build $(GCFLAGS_DEBUG) -o bin/bff ./cmd
 else
 	go build -o bin/bff ./cmd
 endif
 
+.PHONY: sync-openapi
+sync-openapi: ## Copy canonical OpenAPI spec into the BFF runtime path.
+	mkdir -p openapi/src
+	cp ../api/openapi/agent-ops.yaml openapi/src/agent-ops.yaml
+
 .PHONY: run
-run: fmt vet envtest ## Runs the project.
+run: sync-openapi fmt vet envtest ## Runs the project.
 	trap 'exit 0' INT; \
 	ENVTEST_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" \
 	go run ./cmd --port=$(PORT) --auth-method=${AUTH_METHOD} --auth-token-header=$(AUTH_TOKEN_HEADER) --auth-token-prefix="$(AUTH_TOKEN_PREFIX)" --static-assets-dir=$(STATIC_ASSETS_DIR) --mock-k8s-client=$(MOCK_K8S_CLIENT) --mock-http-client=$(MOCK_HTTP_CLIENT) --mock-agent-client=$(MOCK_AGENT_CLIENT) --dev-mode=$(DEV_MODE) --dev-mode-client-port=$(DEV_MODE_CLIENT_PORT) --deployment-mode=$(DEPLOYMENT_MODE) --log-level=$(LOG_LEVEL) --allowed-origins=$(ALLOWED_ORIGINS) --insecure-skip-verify=$(INSECURE_SKIP_VERIFY)

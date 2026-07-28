@@ -34,9 +34,12 @@ export type PipelineTask = {
   whenStatus?: WhenStatus;
 };
 
+export type ActiveIconVariant = 'sync' | 'pulse';
+
 export type StandardTaskNodeData = {
   pipelineTask: PipelineTask;
   runStatus?: RunStatus;
+  activeIconVariant?: ActiveIconVariant;
   badge?: string;
 };
 

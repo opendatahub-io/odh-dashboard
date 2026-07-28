@@ -8,7 +8,6 @@ import { FormProvider, useForm } from 'react-hook-form';
 import { useParams } from 'react-router';
 import AutoragEvaluationSelect from '~/app/components/configure/AutoragEvaluationSelect';
 import { useUploadToStorageMutation } from '~/app/hooks/mutations';
-import { useSecretsQuery } from '~/app/hooks/queries';
 import { createConfigureSchema } from '~/app/schemas/configure.schema';
 import {
   AUTORAG_UPLOAD_MAX_BYTES,
@@ -18,11 +17,6 @@ import {
 jest.mock('react-router', () => ({
   ...jest.requireActual('react-router'),
   useParams: jest.fn(),
-}));
-
-jest.mock('~/app/hooks/queries', () => ({
-  ...jest.requireActual('~/app/hooks/queries'),
-  useSecretsQuery: jest.fn(),
 }));
 
 jest.mock('~/app/hooks/mutations', () => ({
@@ -40,6 +34,29 @@ jest.mock('~/app/hooks/useNotification', () => ({
     warning: jest.fn(),
     remove: jest.fn(),
   })),
+}));
+
+jest.mock('~/app/components/configure/EvaluationFileCreator', () => ({
+  __esModule: true,
+  default: ({
+    isOpen,
+    onClose,
+    onCreated,
+  }: {
+    isOpen: boolean;
+    onClose: () => void;
+    onCreated: (key: string) => void;
+  }) =>
+    isOpen ? (
+      <div data-testid="evaluation-creator-modal">
+        <button data-testid="creator-close" onClick={onClose}>
+          Close
+        </button>
+        <button data-testid="creator-submit" onClick={() => onCreated('created-eval.json')}>
+          Submit
+        </button>
+      </div>
+    ) : null,
 }));
 
 jest.mock('@odh-dashboard/internal/concepts/fileExplorer/S3FileExplorer/S3FileExplorer', () => ({
@@ -78,7 +95,6 @@ jest.mock('@odh-dashboard/internal/concepts/fileExplorer/S3FileExplorer/S3FileEx
 }));
 
 const mockUseParams = jest.mocked(useParams);
-const mockUseSecretsQuery = jest.mocked(useSecretsQuery);
 const mockUseUploadToStorageMutation = jest.mocked(useUploadToStorageMutation);
 
 const configureSchema = createConfigureSchema();
@@ -187,20 +203,11 @@ const renderWithProviders = (
 };
 
 describe('AutoragEvaluationSelect', () => {
-  const mockSecrets = [
-    { name: 'test-secret-1', type: 'storage' },
-    { name: 'test-secret-2', type: 'storage' },
-  ];
-
   const mockUploadMutateAsync = jest.fn();
 
   beforeEach(() => {
     jest.clearAllMocks();
     mockUseParams.mockReturnValue({ namespace: 'test-namespace' });
-    mockUseSecretsQuery.mockReturnValue({
-      data: mockSecrets,
-      isLoading: false,
-    } as unknown as ReturnType<typeof useSecretsQuery>);
     mockUseUploadToStorageMutation.mockReturnValue({
       mutateAsync: mockUploadMutateAsync,
     } as unknown as ReturnType<typeof useUploadToStorageMutation>);
@@ -579,5 +586,65 @@ describe('AutoragEvaluationSelect', () => {
 
     // The S3FileExplorer should be rendered with the correct secret
     expect(screen.getByTestId('s3-file-explorer')).toBeInTheDocument();
+  });
+
+  it('should render the Create button', () => {
+    renderWithProviders(<AutoragEvaluationSelect />);
+
+    expect(screen.getByTestId('evaluation-create-button')).toBeInTheDocument();
+    expect(screen.getByTestId('evaluation-create-button')).toHaveTextContent('Create');
+  });
+
+  it('should open EvaluationFileCreator when Create button is clicked', async () => {
+    const user = userEvent.setup();
+
+    renderWithProviders(<AutoragEvaluationSelect />, {
+      // eslint-disable-next-line camelcase
+      defaultValues: { test_data_secret_name: 'test-secret-1' },
+    });
+
+    expect(screen.queryByTestId('evaluation-creator-modal')).not.toBeInTheDocument();
+
+    await user.click(screen.getByTestId('evaluation-create-button'));
+
+    expect(screen.getByTestId('evaluation-creator-modal')).toBeInTheDocument();
+  });
+
+  it('should close EvaluationFileCreator when close is triggered', async () => {
+    const user = userEvent.setup();
+
+    renderWithProviders(<AutoragEvaluationSelect />, {
+      // eslint-disable-next-line camelcase
+      defaultValues: { test_data_secret_name: 'test-secret-1' },
+    });
+
+    await user.click(screen.getByTestId('evaluation-create-button'));
+    expect(screen.getByTestId('evaluation-creator-modal')).toBeInTheDocument();
+
+    await user.click(screen.getByTestId('creator-close'));
+    expect(screen.queryByTestId('evaluation-creator-modal')).not.toBeInTheDocument();
+  });
+
+  it('should update form field when EvaluationFileCreator creates a file', async () => {
+    const user = userEvent.setup();
+    let formValues: unknown;
+    const onFormChange = (values: unknown) => {
+      formValues = values;
+    };
+
+    renderWithProviders(<AutoragEvaluationSelect />, {
+      onFormChange,
+      // eslint-disable-next-line camelcase
+      defaultValues: { test_data_secret_name: 'test-secret-1' },
+    });
+
+    await user.click(screen.getByTestId('evaluation-create-button'));
+    await user.click(screen.getByTestId('creator-submit'));
+
+    await waitFor(() => {
+      expect(formValues).toMatchObject({
+        test_data_key: 'created-eval.json', // eslint-disable-line camelcase
+      });
+    });
   });
 });

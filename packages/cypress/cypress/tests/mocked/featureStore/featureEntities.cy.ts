@@ -528,11 +528,7 @@ describe('Global Search in Feature Entities', () => {
     featureStoreGlobal.findGlobalSearchInput().should('be.visible');
     featureStoreGlobal
       .findGlobalSearchInput()
-      .should(
-        'have.attr',
-        'placeholder',
-        'Search by name, description, or tag (Example: team=platform)',
-      );
+      .should('have.attr', 'placeholder', 'Search by name, description, or tag (key=value)');
   });
 
   it('should perform global search and display results', () => {
@@ -718,7 +714,7 @@ describe('Global Search in Feature Entities', () => {
       featureStoreGlobal
         .findGlobalSearchTooltip()
         .should('be.visible')
-        .should('contain.text', 'Search by name, description, or tag (Example: team=platform)');
+        .should('contain.text', 'Search by name, description, or tag (key=value)');
     });
 
     it('should display tooltip on click when search input is empty', () => {
@@ -729,7 +725,7 @@ describe('Global Search in Feature Entities', () => {
       featureStoreGlobal
         .findGlobalSearchTooltip()
         .should('be.visible')
-        .should('contain.text', 'Search by name, description, or tag (Example: team=platform)');
+        .should('contain.text', 'Search by name, description, or tag (key=value)');
     });
 
     it('should hide tooltip when user starts typing', () => {

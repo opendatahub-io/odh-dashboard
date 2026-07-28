@@ -68,14 +68,14 @@ func (r *AllowedUsersRepository) GetAllowedUsers(ctx context.Context, namespace 
 	return result, nil
 }
 
-func parseNotebookUser(obj map[string]interface{}) *models.AllowedUser {
-	metadata, ok := obj["metadata"].(map[string]interface{})
+func parseNotebookUser(obj map[string]any) *models.AllowedUser {
+	metadata, ok := obj["metadata"].(map[string]any)
 	if !ok {
 		return nil
 	}
 
-	annotations, _ := metadata["annotations"].(map[string]interface{})
-	labels, _ := metadata["labels"].(map[string]interface{})
+	annotations, _ := metadata["annotations"].(map[string]any)
+	labels, _ := metadata["labels"].(map[string]any)
 
 	username := decodeNotebookUsername(annotations)
 	if username == "" {
@@ -89,14 +89,14 @@ func parseNotebookUser(obj map[string]interface{}) *models.AllowedUser {
 	}
 }
 
-func notebookPrivilege(labels map[string]interface{}) string {
+func notebookPrivilege(labels map[string]any) string {
 	if userType, _ := labels[labelUserType].(string); userType == "admin" {
 		return models.PrivilegeAdmin
 	}
 	return models.PrivilegeUser
 }
 
-func notebookLastActivity(annotations map[string]interface{}) string {
+func notebookLastActivity(annotations map[string]any) string {
 	if la, ok := annotations[annotationLastActivity].(string); ok && la != "" {
 		return la
 	}
@@ -108,7 +108,7 @@ func notebookLastActivity(annotations map[string]interface{}) string {
 
 const kubeSafePrefix = "b64:"
 
-func decodeNotebookUsername(annotations map[string]interface{}) string {
+func decodeNotebookUsername(annotations map[string]any) string {
 	raw, _ := annotations[annotationUsername].(string)
 	if raw == "" {
 		return ""

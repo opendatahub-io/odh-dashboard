@@ -76,7 +76,13 @@ import {
   ActionsColumn,
   type IAction,
 } from '@patternfly/react-table';
-import { EllipsisVIcon, InfoCircleIcon, OutlinedEyeIcon, TimesIcon } from '@patternfly/react-icons';
+import {
+  EllipsisVIcon,
+  InfoCircleIcon,
+  OutlinedEyeIcon,
+  TimesIcon,
+  TrashIcon,
+} from '@patternfly/react-icons';
 import React, { type ReactNode, useCallback, useEffect, useId, useRef, useState } from 'react';
 import type {
   ExplorerFile,
@@ -177,6 +183,8 @@ const defaults = {
     detailsPanelTitle: 'Details',
     detailsPanelTitleFiles: 'Selected files',
     detailsPanelName: 'Name',
+
+    clearSelection: 'Clear selection',
 
     emptyStateTitle: 'No files found',
     emptyStateBody: 'No files are available in the current folder.',
@@ -433,7 +441,7 @@ const FilesTable: React.FC<FilesTableProps> = ({
                     title: defaults.labels.tableActionRemoveSelection,
                     onClick: () => onRemoveSelection(file),
                   });
-                } else {
+                } else if (!isUnselectable) {
                   actions.push({
                     title: isFolder(file)
                       ? defaults.labels.tableActionSelectFolder
@@ -496,7 +504,7 @@ const FilesTable: React.FC<FilesTableProps> = ({
                         flexWrap={{ default: 'nowrap' }}
                       >
                         <FlexItem>
-                          {isFolder(file) ? (
+                          {isFolder(file) && !file.disabled ? (
                             <Button variant="link" isInline onClick={() => onFolderClick?.(file)}>
                               <Truncate content={file.name} />
                             </Button>
@@ -810,6 +818,7 @@ interface DetailsPanelProps {
   filesToView?: ExplorerFiles;
   onViewDetails: (file: ExplorerFile) => void;
   onRemoveSelection: (file: ExplorerFile) => void;
+  onClearAllSelections: () => void;
   onClearDetails: () => void;
 }
 const DetailsPanel: React.FC<DetailsPanelProps> = ({
@@ -817,6 +826,7 @@ const DetailsPanel: React.FC<DetailsPanelProps> = ({
   filesToView,
   onViewDetails,
   onRemoveSelection,
+  onClearAllSelections,
   onClearDetails,
 }) => {
   const detailsSubCard = (
@@ -851,7 +861,27 @@ const DetailsPanel: React.FC<DetailsPanelProps> = ({
 
   const selectedFilesSubCard = (
     <Card isPlain isCompact>
-      <CardTitle>{defaults.labels.detailsPanelTitleFiles}</CardTitle>
+      <CardHeader
+        actions={{
+          hasNoOffset: true,
+          actions: [
+            <Button
+              key="clear"
+              variant="link"
+              isInline
+              isDisabled={!Array.isArray(selectedFiles) || selectedFiles.length < 1}
+              onClick={onClearAllSelections}
+              data-testid="file-explorer-clear-all-selections"
+              icon={<TrashIcon />}
+              iconPosition="end"
+            >
+              {defaults.labels.clearSelection}
+            </Button>,
+          ],
+        }}
+      >
+        <CardTitle>{defaults.labels.detailsPanelTitleFiles}</CardTitle>
+      </CardHeader>
       <CardBody className="pf-v6-u-pt-sm">
         {Array.isArray(selectedFiles) && selectedFiles.length > 0 && (
           <SelectedFilesDataList
@@ -956,6 +986,9 @@ interface FileExplorerProps {
   /** Callback fired when the primary action button is clicked, passing the selected files. */
   onPrimary: (files: ExplorerFiles) => void;
 
+  /** Override the default search input placeholder text. When omitted, the placeholder is derived from the current folder name. */
+  searchPlaceholder?: string;
+
   /** A regex pattern describing the allowed characters in the search input. Characters not matching this pattern are stripped. */
   allowedSearchCharacters?: RegExp;
 
@@ -989,6 +1022,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
   onSetPage,
   onPerPageSelect,
   onPrimary,
+  searchPlaceholder: searchPlaceholderProp,
   allowedSearchCharacters,
   allowedSearchCharactersLabel,
 }) => {
@@ -1066,6 +1100,12 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
     },
     [onSelectFile],
   );
+
+  const handleClearAllSelections = useCallback(() => {
+    selectedFiles.forEach((file) => onSelectFile?.(file, false));
+    setSelectedFiles([]);
+    setFilesToView([]);
+  }, [selectedFiles, onSelectFile]);
 
   const handleClearDetails = useCallback(() => {
     setFilesToView([]);
@@ -1163,13 +1203,16 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
                   searchInputId={`${rootId}-FileExplorer-search-input`}
                   data-testid="file-explorer-search"
                   aria-label={defaults.labels.searchAriaLabel}
-                  placeholder={defaults.labels.searchPlaceholder(
-                    folders && folders.length > 0
-                      ? folders[folders.length - 1].name
-                      : source
-                      ? `${source.name} (root)`
-                      : undefined,
-                  )}
+                  placeholder={
+                    searchPlaceholderProp ??
+                    defaults.labels.searchPlaceholder(
+                      folders && folders.length > 0
+                        ? folders[folders.length - 1].name
+                        : source
+                        ? `${source.name} (root)`
+                        : undefined,
+                    )
+                  }
                   value={searchQuery}
                   onChange={handleSearchChange}
                   onClear={handleSearchClear}
@@ -1233,6 +1276,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
                     filesToView={filesToView}
                     onViewDetails={handleViewDetails}
                     onRemoveSelection={handleRemoveSelection}
+                    onClearAllSelections={handleClearAllSelections}
                     onClearDetails={handleClearDetails}
                   />
                 </GridItem>

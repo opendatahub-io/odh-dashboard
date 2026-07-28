@@ -24,7 +24,7 @@ var _ = Describe("TestNamespacesHandler", func() {
 
 		BeforeAll(func() {
 			By("setting up the test app in dev mode")
-			repos, err := repositories.NewRepositories(logger, k8Factory, envConfig, nil, nil, nil, nil)
+			repos, err := repositories.NewRepositories(logger, k8Factory, envConfig, nil, nil, nil, nil, nil)
 			Expect(err).NotTo(HaveOccurred())
 
 			testApp = App{
@@ -61,8 +61,8 @@ var _ = Describe("TestNamespacesHandler", func() {
 			Expect(rr.Code).To(Equal(http.StatusOK))
 
 			By("validating the response contains only dora-namespace")
-			doraDisplayName := "dora-namespace-maas"
-			expected := []models.NamespaceModel{{Name: "dora-namespace-maas", DisplayName: &doraDisplayName}}
+			doraDisplayName := "dora-namespace"
+			expected := []models.NamespaceModel{{Name: "dora-namespace", DisplayName: &doraDisplayName}}
 			Expect(actual.Data).To(ConsistOf(expected))
 		})
 
@@ -91,14 +91,18 @@ var _ = Describe("TestNamespacesHandler", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(rr.Code).To(Equal(http.StatusOK))
 
-			By("validating the response contains all namespaces")
-			maasDisplayName := "default-maas"
-			doraDisplayName := "dora-namespace-maas"
+			By("validating the response contains accessible namespaces and excludes system namespaces")
+			doraDisplayName := "dora-namespace"
 			expected := []models.NamespaceModel{
-				{Name: "default-maas", DisplayName: &maasDisplayName},
-				{Name: "dora-namespace-maas", DisplayName: &doraDisplayName},
+				{Name: "dora-namespace", DisplayName: &doraDisplayName},
 			}
 			Expect(actual.Data).To(ContainElements(expected))
+
+			names := make([]string, 0, len(actual.Data))
+			for _, ns := range actual.Data {
+				names = append(names, ns.Name)
+			}
+			Expect(names).NotTo(ContainElement("openshift-ingress"))
 		})
 
 		It("should return no namespaces for non-existent user", func() {
@@ -137,7 +141,7 @@ var _ = Describe("TestNamespacesHandler", func() {
 			By("setting up the test app in dev mode")
 			kubernetesMockedTokenClientFactory, err := k8mocks.NewTokenClientFactory(clientset, restConfig, logger)
 			Expect(err).NotTo(HaveOccurred())
-			repos, err := repositories.NewRepositories(logger, kubernetesMockedTokenClientFactory, envConfig, nil, nil, nil, nil)
+			repos, err := repositories.NewRepositories(logger, kubernetesMockedTokenClientFactory, envConfig, nil, nil, nil, nil, nil)
 			Expect(err).NotTo(HaveOccurred())
 			testApp = App{
 				config:                  config.EnvConfig{DevMode: true},

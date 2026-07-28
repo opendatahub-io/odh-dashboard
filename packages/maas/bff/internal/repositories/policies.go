@@ -159,14 +159,14 @@ func (r *PoliciesRepository) UpdatePolicy(ctx context.Context, name string, requ
 		annotations = make(map[string]string)
 	}
 	if request.DisplayName != "" {
-		annotations["openshift.io/display-name"] = request.DisplayName
+		annotations[constants.DisplayNameAnnotation] = request.DisplayName
 	} else {
-		delete(annotations, "openshift.io/display-name")
+		delete(annotations, constants.DisplayNameAnnotation)
 	}
 	if request.Description != "" {
-		annotations["openshift.io/description"] = request.Description
+		annotations[constants.DescriptionAnnotation] = request.Description
 	} else {
-		delete(annotations, "openshift.io/description")
+		delete(annotations, constants.DescriptionAnnotation)
 	}
 	existingObj.SetAnnotations(annotations)
 

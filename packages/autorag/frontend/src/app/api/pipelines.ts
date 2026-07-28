@@ -1,5 +1,11 @@
 /* eslint-disable camelcase -- BFF API uses snake_case for total_size, next_page_token */
-import { APIOptions, handleRestFailures, isModArchResponse, restGET } from 'mod-arch-core';
+import {
+  APIOptions,
+  handleRestFailures,
+  isModArchResponse,
+  restCREATE,
+  restGET,
+} from 'mod-arch-core';
 import type { PipelineDefinition, PipelineRun } from '~/app/types';
 import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
 
@@ -86,6 +92,16 @@ export async function getPipelineRunFromBFF(
     return response.data;
   }
   throw new Error('Invalid response format');
+}
+
+export async function enableManagedPipelines(hostPath: string, namespace: string): Promise<void> {
+  await handleRestFailures(
+    restCREATE(
+      hostPath,
+      `${URL_PREFIX}/api/${BFF_API_VERSION}/managed-pipelines/enable?namespace=${encodeURIComponent(namespace)}`,
+      {},
+    ),
+  );
 }
 
 export async function getPipelineDefinitions(

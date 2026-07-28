@@ -1,14 +1,13 @@
 import React from 'react';
-import DetailsSection from '@odh-dashboard/internal/pages/projects/screens/detail/DetailsSection';
-import { ProjectSectionID } from '@odh-dashboard/internal/pages/projects/screens/detail/types';
+import DetailsSection from '@odh-dashboard/ui-core/components/detail/DetailsSection';
 import { Flex, Label, Popover } from '@patternfly/react-core';
-import { DashboardPopupIconButton } from '@odh-dashboard/ui-core';
+import { DashboardPopupIconButton, ProjectObjectType } from '@odh-dashboard/ui-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
-import { ProjectObjectType } from '@odh-dashboard/internal/concepts/design/utils';
 import type { ProjectKind } from '@odh-dashboard/k8s-core';
 import { SelectPlatformView } from './SelectPlatformView';
 import { NoModelsView } from './NoModelsView';
 import { ProjectDeploymentsTable } from './ProjectDeploymentsTable';
+import { MODEL_SERVER_SECTION_ID } from '../global/const';
 import {
   useProjectServingPlatform,
   type ModelServingPlatform,
@@ -43,7 +42,7 @@ const ModelsProjectDetailsView: React.FC<{
   return (
     <DetailsSection
       objectType={hasModels ? ProjectObjectType.model : undefined}
-      id={ProjectSectionID.MODEL_SERVER}
+      id={MODEL_SERVER_SECTION_ID}
       title={hasModels ? 'Deployments' : undefined}
       popover={
         hasModels ? (

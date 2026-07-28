@@ -7,8 +7,8 @@ jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
   k8sListResource: jest.fn(),
 }));
 
-jest.mock('@odh-dashboard/internal/utilities/useFetch', () => {
-  const actual = jest.requireActual('@odh-dashboard/internal/utilities/useFetch');
+jest.mock('@odh-dashboard/ui-core/hooks/useFetch', () => {
+  const actual = jest.requireActual('@odh-dashboard/ui-core/hooks/useFetch');
   return actual;
 });
 

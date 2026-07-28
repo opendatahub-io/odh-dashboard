@@ -1,10 +1,10 @@
 import * as React from 'react';
-import { Notebook } from '#~/types';
+import { NotebookKind } from '#~/k8sTypes';
 import { useUser } from '#~/redux/selectors';
 import { NotebookContextStorage, SetNotebookState } from './notebookControllerContextTypes';
 
 export type SetImpersonating = (
-  impersonateNotebookState?: { notebook: Notebook | null; isRunning: boolean },
+  impersonateNotebookState?: { notebook: NotebookKind | null; isRunning: boolean },
   impersonateUsername?: string,
 ) => void;
 

@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/constants"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/ssrf"
 )
 
@@ -72,17 +73,17 @@ func (cfg ProxyConfig) rewriteFunc() func(*httputil.ProxyRequest) {
 }
 
 func rewriteAuthHeader(pr *httputil.ProxyRequest, authHeaderFn func(*http.Request) string) {
-	pr.Out.Header.Del("Authorization")
+	pr.Out.Header.Del(constants.HeaderAuthorization)
 	if authHeaderFn != nil {
 		if authValue := authHeaderFn(pr.In); authValue != "" {
-			pr.Out.Header.Set("Authorization", authValue)
+			pr.Out.Header.Set(constants.HeaderAuthorization, authValue)
 		}
 	}
 }
 
 func stripImpersonationHeaders(h http.Header) {
-	h.Del("Impersonate-User")
-	h.Del("Impersonate-Group")
+	h.Del(constants.HeaderImpersonateUser)
+	h.Del(constants.HeaderImpersonateGroup)
 	for key := range h {
 		if strings.HasPrefix(strings.ToLower(key), "impersonate-extra-") {
 			h.Del(key)

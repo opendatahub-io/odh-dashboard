@@ -129,8 +129,17 @@ function AutoragResultsPage(): React.JSX.Element {
 
   const failedPatternsNotifiedKey = React.useRef('');
   React.useEffect(() => {
+    // Wait for all queries to settle; without this guard each individual pattern
+    // failure triggers a separate notification as the failedPatterns array grows.
+    if (patternsLoading) {
+      return;
+    }
+    if (failedPatterns.length === 0) {
+      failedPatternsNotifiedKey.current = '';
+      return;
+    }
     const key = [...failedPatterns].toSorted().join(',');
-    if (failedPatterns.length > 0 && failedPatternsNotifiedKey.current !== key) {
+    if (failedPatternsNotifiedKey.current !== key) {
       failedPatternsNotifiedKey.current = key;
       const total = failedPatterns.length + Object.keys(patterns).length;
       notification.warning(
@@ -138,7 +147,7 @@ function AutoragResultsPage(): React.JSX.Element {
         `The following patterns failed to load: ${failedPatterns.join(', ')}`,
       );
     }
-  }, [failedPatterns, patterns, notification]);
+  }, [failedPatterns, patterns, notification, patternsLoading]);
 
   const runTerminatable = isRunTerminatable(pipelineRun?.state);
   const runRetryable = isRunRetryable(pipelineRun?.state);
@@ -233,14 +242,14 @@ function AutoragResultsPage(): React.JSX.Element {
       if (!pattern) {
         return;
       }
-      const responsesTemplate = pattern.settings?.responses_template;
+      const responsesTemplate = pattern.inference?.responses_template;
       if (!responsesTemplate) {
         return;
       }
 
       const optimizedMetric = getOptimizedMetricForRAG(pipelineRun);
       const scoreLookup = Object.fromEntries(
-        Object.entries(pattern.scores ?? {}).map(([k, v]) => [k.toLowerCase(), v]),
+        pattern.evaluation.metrics.map((m) => [m.name.toLowerCase(), m.scores]),
       );
       const metricMean = scoreLookup[optimizedMetric.toLowerCase()]?.mean;
       setDrawerContent({
@@ -268,7 +277,7 @@ function AutoragResultsPage(): React.JSX.Element {
   const handleViewCode = React.useCallback(
     (patternName: string) => {
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-      const responsesTemplate = patterns?.[patternName]?.settings?.responses_template;
+      const responsesTemplate = patterns?.[patternName]?.inference?.responses_template;
       if (responsesTemplate) {
         setViewCodePattern({ patternName, responsesTemplate });
       }

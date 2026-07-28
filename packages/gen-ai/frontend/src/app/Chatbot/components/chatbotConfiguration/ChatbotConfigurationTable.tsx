@@ -160,7 +160,11 @@ const ChatbotConfigurationTable: React.FC<ChatbotConfigurationTableProps> = ({
               model={model}
               modelType={
                 modelTypeMap.get(model.model_name) ??
-                (model.model_type === 'embedding' ? 'Embedding' : 'Inference')
+                (model.model_type === 'embedding'
+                  ? 'Embedding'
+                  : model.model_type === 'transcription'
+                    ? 'Transcription'
+                    : 'Inference')
               }
               onModelTypeChange={(value) => onModelTypeChange(model.model_name, value)}
               maxTokens={maxTokensMap.get(model.model_name)}

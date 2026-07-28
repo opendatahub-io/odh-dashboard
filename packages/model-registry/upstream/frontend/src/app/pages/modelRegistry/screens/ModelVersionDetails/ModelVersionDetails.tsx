@@ -11,6 +11,9 @@ import {
   ToolbarGroup,
   ToolbarItem,
 } from '@patternfly/react-core';
+import { useExtensions } from '@odh-dashboard/plugin-core';
+import { isActionExtension } from '@odh-dashboard/plugin-core/extension-points';
+import { ExtensibleActions } from '@odh-dashboard/plugin-core/helpers/ui';
 import { ApplicationsPage } from 'mod-arch-shared';
 import { ModelRegistrySelectorContext } from '~/app/context/ModelRegistrySelectorContext';
 import { KnownLabels } from '~/odh/k8sTypes';
@@ -28,8 +31,9 @@ import {
 import ModelVersionSelector from '~/app/pages/modelRegistry/screens/ModelVersionDetails/ModelVersionSelector';
 import ModelVersionDetailsTabs from '~/app/pages/modelRegistry/screens/ModelVersionDetails/ModelVersionDetailsTabs';
 import ModelVersionsDetailsHeaderActions from '~/app/pages/modelRegistry/screens/ModelVersionDetails/ModelVersionDetailsHeaderActions';
-import { MRDeployButton } from '~/odh/components/MRDeployButton';
 import { MRDeploymentsContextProvider } from '~/odh/components/MRDeploymentsContextProvider';
+
+const MODEL_VERSION_DEPLOY_GROUP = 'model-registry.version-deploy';
 
 type ModelVersionsDetailProps = {
   tab: string;
@@ -42,6 +46,7 @@ const ModelVersionsDetailsContent: React.FC<ModelVersionsDetailProps> = ({ tab, 
   const navigate = useNavigate();
 
   const { preferredModelRegistry } = React.useContext(ModelRegistrySelectorContext);
+  const actionExtensions = useExtensions(isActionExtension);
 
   const { modelVersionId: mvId, registeredModelId: rmId } = useParams();
   const [rm, rmLoaded, rmLoadError, rmRefresh] = useRegisteredModelById(rmId);
@@ -120,7 +125,11 @@ const ModelVersionsDetailsContent: React.FC<ModelVersionsDetailProps> = ({ tab, 
             <ToolbarContent>
               <ToolbarGroup>
                 <ToolbarItem>
-                  <MRDeployButton mv={mv} />
+                  <ExtensibleActions
+                    actions={actionExtensions}
+                    group={MODEL_VERSION_DEPLOY_GROUP}
+                    componentProps={{ mv }}
+                  />
                 </ToolbarItem>
                 <ToolbarItem>
                   <ModelVersionsDetailsHeaderActions mv={mv} />

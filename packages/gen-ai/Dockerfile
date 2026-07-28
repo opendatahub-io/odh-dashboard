@@ -44,6 +44,12 @@ COPY --from=bff-builder /tmp/bff ./
 COPY --from=ui-builder /usr/src/workspace/packages/gen-ai/frontend/dist/ ./static/
 COPY packages/gen-ai/bff/openapi/ ./openapi/
 
+# Suppress protobuf duplicate-registration panic caused by mlflow-go's
+# stub trace.proto conflicting with the OTel SDK's real trace.proto.
+# Remove once the mlflow-go proto conflict is resolved (e.g. mlflow-go
+# adopts go.opentelemetry.io/proto/otlp directly).
+ENV GOLANG_PROTOBUF_REGISTRATION_CONFLICT=warn
+
 # OAuth environment variables
 ENV OAUTH_ENABLED=false \
     OAUTH_CLIENT_ID="" \

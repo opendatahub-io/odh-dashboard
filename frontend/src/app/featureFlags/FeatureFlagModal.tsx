@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { Checkbox, Content, Grid, GridItem, Tab, TabTitleText, Tabs } from '@patternfly/react-core';
+import ContentModal, { ButtonAction } from '@odh-dashboard/ui-core/components/ContentModal';
 import { FeatureFlagLauncherProps } from '#~/app/featureFlags/FeatureFlagLauncher';
 import { useDevFlags } from '#~/app/featureFlags/useDevFeatureFlags';
 import {
@@ -10,7 +11,6 @@ import {
   modelServingFlags,
   advancedAIMLFlags,
 } from '#~/concepts/areas/const';
-import ContentModal, { ButtonAction } from '#~/components/modals/ContentModal.tsx';
 
 type Props = FeatureFlagLauncherProps & { onClose: () => void };
 

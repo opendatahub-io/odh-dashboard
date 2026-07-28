@@ -13,13 +13,13 @@ import {
   Tooltip,
 } from '@patternfly/react-core';
 import { ArrowRightIcon } from '@patternfly/react-icons';
+import OverviewCard from '@odh-dashboard/ui-core/components/detail/OverviewCard';
+import { useAccessReview } from '@odh-dashboard/plugin-core/host-api';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import { ProjectObjectType, SectionType, typedEmptyImage } from '#~/concepts/design/utils';
-import OverviewCard from '#~/pages/projects/screens/detail/overview/components/OverviewCard';
 import { useKueueConfiguration } from '#~/concepts/hardwareProfiles/kueueUtils';
 import { KUEUE_WORKBENCH_CREATION_DISABLED_MESSAGE } from '#~/concepts/hardwareProfiles/kueueConstants';
 import ErrorOverviewCard from '#~/pages/projects/screens/detail/overview/components/ErrorOverviewCard';
-import { useAccessReview } from '#~/api/useAccessReview';
 import { NotebookModel } from '#~/api/models/kubeflow';
 import { CREATE_WORKBENCH_DISABLED_MESSAGE } from '#~/pages/projects/screens/detail/const';
 import NotebooksCardItems from './NotebooksCardItems';

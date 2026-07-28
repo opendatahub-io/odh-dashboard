@@ -1,0 +1,17 @@
+import { DeploymentMode } from 'mod-arch-core';
+declare const STYLE_THEME: string;
+declare const DEPLOYMENT_MODE: DeploymentMode;
+declare const DEV_MODE: boolean;
+declare const POLL_INTERVAL: number;
+declare const STATUS_REFRESH_INTERVAL = 3000;
+declare const NO_REFRESH_INTERVAL = 0;
+declare const KUBEFLOW_USERNAME: string;
+declare const IMAGE_DIR: string;
+declare const LOGO_LIGHT: string;
+declare const MANDATORY_NAMESPACE: string | undefined;
+declare const URL_PREFIX = "/eval-hub";
+declare const BFF_API_VERSION = "v1";
+declare const COMPANY_URI: string;
+export { STYLE_THEME, POLL_INTERVAL, STATUS_REFRESH_INTERVAL, NO_REFRESH_INTERVAL, DEV_MODE, KUBEFLOW_USERNAME, IMAGE_DIR, LOGO_LIGHT, URL_PREFIX, DEPLOYMENT_MODE, BFF_API_VERSION, MANDATORY_NAMESPACE, COMPANY_URI, };
+export declare const COLLECTION_FETCH_LIMIT = 200;
+export declare const FindAdministratorOptions: string[];

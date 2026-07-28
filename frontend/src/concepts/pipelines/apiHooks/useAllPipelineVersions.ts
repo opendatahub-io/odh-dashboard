@@ -1,4 +1,6 @@
 import React from 'react';
+import { FetchState, NotReadyError } from '@odh-dashboard/ui-core/hooks/useFetchState';
+import { useDeepCompareMemoize } from '@odh-dashboard/ui-core/hooks';
 import { PipelineVersionKF } from '#~/concepts/pipelines/kfTypes';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import usePipelineQuery from '#~/concepts/pipelines/apiHooks/usePipelineQuery';
@@ -8,9 +10,7 @@ import {
   PipelineOptions,
   PipelineParams,
 } from '#~/concepts/pipelines/types';
-import { FetchState, NotReadyError } from '#~/utilities/useFetchState';
 import { useAllPipelines } from '#~/concepts/pipelines/apiHooks/usePipelines';
-import { useDeepCompareMemoize } from '#~/utilities/useDeepCompareMemoize';
 import { K8sAPIOptions } from '#~/k8sTypes';
 
 /**

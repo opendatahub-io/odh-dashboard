@@ -4,19 +4,21 @@ import {
   DropdownGroup,
   DropdownList,
   MenuToggle,
-  DropdownItem,
   Flex,
   FlexItem,
-  Divider,
 } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
+import { useExtensions } from '@odh-dashboard/plugin-core';
+import { isActionExtension } from '@odh-dashboard/plugin-core/extension-points';
+import { ExtensibleActions } from '@odh-dashboard/plugin-core/helpers/ui';
 import { ModelState, RegisteredModel, ModelVersion } from '~/app/types';
 import { ModelRegistryContext } from '~/app/context/ModelRegistryContext';
 import { ModelRegistrySelectorContext } from '~/app/context/ModelRegistrySelectorContext';
 import { ArchiveRegisteredModelModal } from '~/app/pages/modelRegistry/screens/components/ArchiveRegisteredModelModal';
 import { modelRegistryUrl } from '~/app/pages/modelRegistry/screens/routeUtils';
-import DeployModalExtension from '~/odh/components/DeployModalExtension';
 import ArchiveButtonDropdownItem from '~/odh/components/ArchiveButtonDropdownItem';
+
+const MODEL_VERSION_DEPLOY_GROUP = 'model-registry.version-deploy';
 
 interface ModelVersionsHeaderActionsProps {
   rm: RegisteredModel;
@@ -32,84 +34,51 @@ const ModelVersionsHeaderActions: React.FC<ModelVersionsHeaderActionsProps> = ({
   const navigate = useNavigate();
   const [isOpen, setOpen] = React.useState(false);
   const [isArchiveModalOpen, setIsArchiveModalOpen] = React.useState(false);
+  const [deployModal, setDeployModal] = React.useState<React.ReactNode>(null);
+  const actionExtensions = useExtensions(isActionExtension);
 
   return (
     <>
       <Flex>
         <FlexItem>
-          {latestModelVersion ? (
-            <DeployModalExtension
-              mv={latestModelVersion}
-              render={(buttonState, onOpenModal, isModalAvailable) => (
-                <Dropdown
-                  isOpen={isOpen}
-                  onSelect={() => setOpen(false)}
-                  onOpenChange={(open) => setOpen(open)}
-                  popperProps={{ position: 'end', appendTo: 'inline' }}
-                  toggle={(toggleRef) => (
-                    <MenuToggle
-                      variant="secondary"
-                      ref={toggleRef}
-                      onClick={() => setOpen(!isOpen)}
-                      isExpanded={isOpen}
-                      aria-label="Model action toggle"
-                      data-testid="model-action-toggle"
-                    >
-                      Actions
-                    </MenuToggle>
-                  )}
-                >
-                  <DropdownList>
-                    {isModalAvailable && (
-                      <DropdownGroup label="Latest version actions">
-                        <DropdownItem
-                          onClick={() => {
-                            setOpen(false);
-                            onOpenModal();
-                          }}
-                          isAriaDisabled={!buttonState.enabled}
-                          tooltipProps={
-                            buttonState.tooltip ? { content: buttonState.tooltip } : undefined
-                          }
-                        >
-                          Deploy <strong>{latestModelVersion.name}</strong>
-                        </DropdownItem>
-                        <Divider />
-                      </DropdownGroup>
-                    )}
-                    <ArchiveButtonDropdownItem setIsArchiveModalOpen={setIsArchiveModalOpen} />
-                  </DropdownList>
-                </Dropdown>
-              )}
-            />
-          ) : (
-            <Dropdown
-              isOpen={isOpen}
-              onSelect={() => setOpen(false)}
-              onOpenChange={(open) => setOpen(open)}
-              popperProps={{ position: 'end', appendTo: 'inline' }}
-              toggle={(toggleRef) => (
-                <MenuToggle
-                  variant="secondary"
-                  ref={toggleRef}
-                  onClick={() => setOpen(!isOpen)}
-                  isExpanded={isOpen}
-                  aria-label="Model version action toggle"
-                  data-testid="model-version-action-toggle"
-                >
-                  Actions
-                </MenuToggle>
-              )}
-            >
-              <DropdownList>
-                <DropdownGroup>
-                  <ArchiveButtonDropdownItem setIsArchiveModalOpen={setIsArchiveModalOpen} />
+          <Dropdown
+            isOpen={isOpen}
+            onSelect={() => setOpen(false)}
+            onOpenChange={(open) => setOpen(open)}
+            popperProps={{ position: 'end', appendTo: 'inline' }}
+            toggle={(toggleRef) => (
+              <MenuToggle
+                variant="secondary"
+                ref={toggleRef}
+                onClick={() => setOpen(!isOpen)}
+                isExpanded={isOpen}
+                aria-label="Model version action toggle"
+                data-testid="model-version-action-toggle"
+              >
+                Actions
+              </MenuToggle>
+            )}
+          >
+            <DropdownList>
+              {latestModelVersion && (
+                <DropdownGroup label="Latest version actions">
+                  <ExtensibleActions
+                    actions={actionExtensions}
+                    group={MODEL_VERSION_DEPLOY_GROUP}
+                    componentProps={{
+                      mv: latestModelVersion,
+                      renderAs: 'dropdown-item',
+                      onRenderModal: setDeployModal,
+                    }}
+                  />
                 </DropdownGroup>
-              </DropdownList>
-            </Dropdown>
-          )}
+              )}
+              <ArchiveButtonDropdownItem setIsArchiveModalOpen={setIsArchiveModalOpen} />
+            </DropdownList>
+          </Dropdown>
         </FlexItem>
       </Flex>
+      {deployModal}
       {isArchiveModalOpen ? (
         <ArchiveRegisteredModelModal
           onCancel={() => setIsArchiveModalOpen(false)}

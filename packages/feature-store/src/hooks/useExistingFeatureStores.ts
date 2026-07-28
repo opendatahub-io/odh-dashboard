@@ -1,6 +1,6 @@
 import React from 'react';
 import { ProjectKind } from '@odh-dashboard/k8s-core';
-import { ProjectsContext } from '@odh-dashboard/internal/concepts/projects/ProjectsContext';
+import { ProjectsContext } from '@odh-dashboard/ui-core/context/ProjectsContext';
 import { FeatureStoreKind } from '../k8sTypes';
 import { listFeatureStores } from '../api/featureStores';
 import {

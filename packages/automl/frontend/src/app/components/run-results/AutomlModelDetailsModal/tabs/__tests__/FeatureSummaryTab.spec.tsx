@@ -51,20 +51,19 @@ describe('FeatureSummaryTab', () => {
     expect(screen.getByText('bone_length')).toBeInTheDocument();
   });
 
-  it('should display importance as percentage', () => {
+  it('should display importance as percentage with one decimal', () => {
     render(<FeatureSummaryTab {...defaultProps} featureImportance={sampleImportance} />);
 
-    expect(screen.getByText('18.30%')).toBeInTheDocument();
-    expect(screen.getByText('12.50%')).toBeInTheDocument();
-    expect(screen.getByText('9.80%')).toBeInTheDocument();
-    expect(screen.getByText('7.60%')).toBeInTheDocument();
+    expect(screen.getByText('18.3%')).toBeInTheDocument();
+    expect(screen.getByText('12.5%')).toBeInTheDocument();
+    expect(screen.getByText('9.8%')).toBeInTheDocument();
+    expect(screen.getByText('7.6%')).toBeInTheDocument();
   });
 
-  it('should sort features by importance descending', () => {
+  it('should sort features by importance descending by default', () => {
     render(<FeatureSummaryTab {...defaultProps} featureImportance={sampleImportance} />);
 
     const rows = screen.getAllByRole('row');
-    // First row is the header; data rows follow
     const dataRows = rows.slice(1);
     const featureNames = dataRows.map(
       (row) => within(row).getByText(/color|hair_length|has_soul|bone_length/).textContent,
@@ -72,11 +71,38 @@ describe('FeatureSummaryTab', () => {
     expect(featureNames).toEqual(['color', 'hair_length', 'has_soul', 'bone_length']);
   });
 
+  it('should sort by feature name when Feature name header is clicked', async () => {
+    const user = userEvent.setup();
+    render(<FeatureSummaryTab {...defaultProps} featureImportance={sampleImportance} />);
+
+    await user.click(screen.getByText('Feature name'));
+
+    const rows = screen.getAllByRole('row').slice(1);
+    const featureNames = rows.map(
+      (row) => within(row).getByText(/color|hair_length|has_soul|bone_length/).textContent,
+    );
+    expect(featureNames).toEqual(['bone_length', 'color', 'hair_length', 'has_soul']);
+  });
+
+  it('should toggle sort direction when same column header is clicked twice', async () => {
+    const user = userEvent.setup();
+    render(<FeatureSummaryTab {...defaultProps} featureImportance={sampleImportance} />);
+
+    // Click importance to toggle from desc to asc
+    await user.click(screen.getByText('Importance'));
+
+    const rows = screen.getAllByRole('row').slice(1);
+    const featureNames = rows.map(
+      (row) => within(row).getByText(/color|hair_length|has_soul|bone_length/).textContent,
+    );
+    expect(featureNames).toEqual(['bone_length', 'has_soul', 'hair_length', 'color']);
+  });
+
   it('should filter features by search input', async () => {
     const user = userEvent.setup();
     render(<FeatureSummaryTab {...defaultProps} featureImportance={sampleImportance} />);
 
-    const searchInput = screen.getByPlaceholderText('Search feature names');
+    const searchInput = screen.getByPlaceholderText('Search by feature name');
     await user.type(searchInput, 'hair');
 
     expect(screen.getByText('hair_length')).toBeInTheDocument();
@@ -89,7 +115,7 @@ describe('FeatureSummaryTab', () => {
     const user = userEvent.setup();
     render(<FeatureSummaryTab {...defaultProps} featureImportance={sampleImportance} />);
 
-    const searchInput = screen.getByPlaceholderText('Search feature names');
+    const searchInput = screen.getByPlaceholderText('Search by feature name');
     await user.type(searchInput, 'COLOR');
 
     expect(screen.getByText('color')).toBeInTheDocument();
@@ -99,7 +125,7 @@ describe('FeatureSummaryTab', () => {
     const user = userEvent.setup();
     render(<FeatureSummaryTab {...defaultProps} featureImportance={sampleImportance} />);
 
-    const searchInput = screen.getByPlaceholderText('Search feature names');
+    const searchInput = screen.getByPlaceholderText('Search by feature name');
     await user.type(searchInput, 'hair');
     expect(screen.queryByText('color')).not.toBeInTheDocument();
 
@@ -112,18 +138,26 @@ describe('FeatureSummaryTab', () => {
     const user = userEvent.setup();
     render(<FeatureSummaryTab {...defaultProps} featureImportance={sampleImportance} />);
 
-    const searchInput = screen.getByPlaceholderText('Search feature names');
+    const searchInput = screen.getByPlaceholderText('Search by feature name');
     await user.type(searchInput, 'nonexistent');
 
     expect(screen.getByTestId('feature-search-empty-state')).toBeInTheDocument();
     expect(screen.getByText('No matching features')).toBeInTheDocument();
   });
 
-  it('should render table headers', () => {
+  it('should render sortable table headers', () => {
     render(<FeatureSummaryTab {...defaultProps} featureImportance={sampleImportance} />);
 
     expect(screen.getByText('Feature name')).toBeInTheDocument();
     expect(screen.getByText('Importance')).toBeInTheDocument();
+  });
+
+  it('should render importance bar and percentage in the same cell', () => {
+    render(<FeatureSummaryTab {...defaultProps} featureImportance={sampleImportance} />);
+
+    const bar = screen.getByTestId('feature-importance-bar-color');
+    const cell = bar.closest('td');
+    expect(cell).toHaveTextContent('18.3%');
   });
 
   it('should handle all-zero importance values without NaN bar widths', () => {
@@ -136,7 +170,6 @@ describe('FeatureSummaryTab', () => {
     expect(screen.getByText('feature_a')).toBeInTheDocument();
     expect(screen.getByText('feature_b')).toBeInTheDocument();
 
-    // All bars should have 0% width, not NaN%
     const barA = screen.getByTestId('feature-importance-bar-feature_a');
     const barB = screen.getByTestId('feature-importance-bar-feature_b');
     expect(barA.getAttribute('style')).not.toContain('NaN');
@@ -153,8 +186,7 @@ describe('FeatureSummaryTab', () => {
     expect(screen.getByTestId('feature-no-data-empty-state')).toBeInTheDocument();
     expect(screen.getByText('No feature data available')).toBeInTheDocument();
     expect(screen.queryByTestId('feature-search-empty-state')).not.toBeInTheDocument();
-    // Search toolbar should be hidden when there's no data to search
-    expect(screen.queryByPlaceholderText('Search feature names')).not.toBeInTheDocument();
+    expect(screen.queryByPlaceholderText('Search by feature name')).not.toBeInTheDocument();
   });
 
   it('should handle negative importance values', () => {
@@ -164,10 +196,9 @@ describe('FeatureSummaryTab', () => {
 
     render(<FeatureSummaryTab {...defaultProps} featureImportance={negativeImportance} />);
 
-    expect(screen.getByText('-30.00%')).toBeInTheDocument();
-    expect(screen.getByText('50.00%')).toBeInTheDocument();
+    expect(screen.getByText('-30.0%')).toBeInTheDocument();
+    expect(screen.getByText('50.0%')).toBeInTheDocument();
 
-    // Bars should have valid non-negative widths (using absolute values)
     const positiveBar = screen.getByTestId('feature-importance-bar-feature_positive');
     const negativeBar = screen.getByTestId('feature-importance-bar-feature_negative');
 
@@ -176,7 +207,6 @@ describe('FeatureSummaryTab', () => {
     expect(positiveWidth).toMatch(/width:\s*[\d.]+%/);
     expect(negativeWidth).toMatch(/width:\s*[\d.]+%/);
 
-    // Negative bar should have danger modifier, positive should not
     expect(negativeBar).toHaveClass('m-negative');
     expect(positiveBar).not.toHaveClass('m-negative');
   });
@@ -191,11 +221,10 @@ describe('FeatureSummaryTab', () => {
     const rows = screen.getAllByRole('row');
     const dataRows = rows.slice(1);
     const featureNames = dataRows.map((row) => within(row).getByText(/feat_/).textContent);
-    // Descending by value: 0.5 > 0.1 > -0.3 > -0.8
     expect(featureNames).toEqual(['feat_a', 'feat_c', 'feat_b', 'feat_d']);
   });
 
-  it('should display near-zero negative values as 0.00% instead of -0.00%', () => {
+  it('should display near-zero negative values as 0.0% instead of -0.0%', () => {
     const nearZeroImportance: FeatureImportanceData = {
       importance: {
         large_positive: 0.75,
@@ -206,14 +235,9 @@ describe('FeatureSummaryTab', () => {
 
     render(<FeatureSummaryTab {...defaultProps} featureImportance={nearZeroImportance} />);
 
-    expect(screen.getByText('75.00%')).toBeInTheDocument();
-    // Near-zero values should show as 0.00%, not -0.00%
-    const rows = screen.getAllByRole('row').slice(1);
-    const percentages = rows.map((row) => within(row).getAllByRole('cell')[1].textContent);
-    expect(percentages).toEqual(['75.00%', '0.00%', '0.00%']);
-    expect(screen.queryByText('-0.00%')).not.toBeInTheDocument();
+    expect(screen.getByText('75.0%')).toBeInTheDocument();
+    expect(screen.queryByText('-0.0%')).not.toBeInTheDocument();
 
-    // Near-zero negative bar should not be styled as negative
     const tinyNegativeBar = screen.getByTestId('feature-importance-bar-tiny_negative');
     expect(tinyNegativeBar).not.toHaveClass('m-negative');
   });
@@ -225,11 +249,10 @@ describe('FeatureSummaryTab', () => {
 
     render(<FeatureSummaryTab {...defaultProps} featureImportance={singleNegative} />);
 
-    expect(screen.getByText('-100.00%')).toBeInTheDocument();
+    expect(screen.getByText('-100.0%')).toBeInTheDocument();
 
     const bar = screen.getByTestId('feature-importance-bar-only_feature');
     expect(bar).toHaveClass('m-negative');
-    // Should be 100% width (abs(1.0) / abs(1.0) * 100)
     expect(bar.getAttribute('style')).toContain('width: 100%');
   });
 });

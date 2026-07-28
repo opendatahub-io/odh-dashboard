@@ -1,7 +1,7 @@
 import React from 'react';
 import { Checkbox, Flex, FlexItem, Label, Stack, StackItem, Tooltip } from '@patternfly/react-core';
 import { DragDropSort, DraggableObject } from '@patternfly/react-drag-drop';
-import ContentModal, { ButtonAction } from '#~/components/modals/ContentModal';
+import ContentModal, { ButtonAction } from '@odh-dashboard/ui-core/components/ContentModal';
 import { getMetricsColumnsLocalStorageKey } from './utils';
 import { MetricColumnSearchInput } from './MetricColumnSearchInput';
 

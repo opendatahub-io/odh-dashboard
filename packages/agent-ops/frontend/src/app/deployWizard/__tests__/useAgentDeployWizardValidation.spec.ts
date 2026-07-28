@@ -14,13 +14,13 @@ describe('useAgentDeployWizardValidation', () => {
     expect(result.current.isStepAccessible(2)).toBe(false);
   });
 
-  it('requires valid configuration on step 2', () => {
+  it('requires valid configuration on step 2 when protocol is cleared', () => {
     const formData = {
       ...createInitialFormData('team1'),
       containerImage: 'quay.io/myorg/my-agent',
       imageTag: 'latest',
       agentName: 'my-agent',
-      workloadType: '',
+      protocol: '',
     };
     const { result } = renderHook(() => useAgentDeployWizardValidation(formData));
 
@@ -30,25 +30,22 @@ describe('useAgentDeployWizardValidation', () => {
     expect(result.current.isStepAccessible(3)).toBe(false);
   });
 
-  it('validates persistent volume size when enabled', () => {
+  it('enables configuration step with default sandbox workload', () => {
     const formData = {
       ...createInitialFormData('team1'),
       containerImage: 'quay.io/myorg/my-agent',
       imageTag: 'latest',
       agentName: 'my-agent',
-      protocol: 'a2a',
-      workloadType: 'deployment',
-      enablePersistentStorage: true,
-      persistentVolumeSize: 'invalid',
     };
     const { result } = renderHook(() => useAgentDeployWizardValidation(formData));
 
-    expect(result.current.isConfigurationValid).toBe(false);
+    expect(result.current.isConfigurationValid).toBe(true);
+    expect(result.current.isNextStepDisabled(2)).toBe(false);
   });
 
   it('uses the shared step registry', () => {
-    expect(deployAgentWizardStepRegistry).toHaveLength(6);
+    expect(deployAgentWizardStepRegistry).toHaveLength(5);
     expect(deployAgentWizardStepRegistry[0].name).toBe('Image selection');
-    expect(deployAgentWizardStepRegistry[5].name).toBe('Summary');
+    expect(deployAgentWizardStepRegistry[4].name).toBe('Summary');
   });
 });

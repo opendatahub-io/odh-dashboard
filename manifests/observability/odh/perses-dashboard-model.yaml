@@ -34,7 +34,7 @@ spec:
                 name: cluster-prometheus-tenancy-datasource
               labelName: model_name
               matchers:
-                - kserve_vllm:num_requests_running
+                - kserve_vllm:num_requests_running{namespace=~"$namespace"}
     panels:
       # Model Deployments Table
       modelDeploymentsTable:

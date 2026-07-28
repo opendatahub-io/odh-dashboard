@@ -17,10 +17,10 @@ import (
 // K8sProxyPrefix is the URL path prefix for Kubernetes API proxy requests.
 const K8sProxyPrefix = "/api/k8s/"
 
-// sensitiveIngressHeaders returns header names that must not leak from the ingress
-// layer to the K8s API server. authTokenHeader is included dynamically because it
+// SensitiveIngressHeaders returns header names that must not leak from the ingress
+// layer to upstream services. authTokenHeader is included dynamically because it
 // is configurable (default: x-forwarded-access-token).
-func sensitiveIngressHeaders(authTokenHeader string) []string {
+func SensitiveIngressHeaders(authTokenHeader string) []string {
 	headers := []string{
 		"cookie",
 		"x-forwarded-for",
@@ -88,7 +88,7 @@ func NewK8sProxyHandler(cfg K8sProxyConfig) (http.Handler, error) {
 		InsecureSkipVerify:   cfg.InsecureSkipVerify,
 		AllowHTTP:            cfg.AllowHTTP,
 		SetOutboundHeadersFn: cfg.SetOutboundHeadersFn,
-		StripHeaders:         sensitiveIngressHeaders(cfg.AuthTokenHeader),
+		StripHeaders:         SensitiveIngressHeaders(cfg.AuthTokenHeader),
 		SSRFValidateTarget:   cfg.SSRFValidateTarget,
 		SSRFAllowedHosts:     []string{targetURL.Hostname()},
 		Logger:               cfg.Logger,

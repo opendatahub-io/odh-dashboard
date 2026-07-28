@@ -10,8 +10,8 @@ import {
   getUniqueId,
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
-import { UpdateObjectAtPropAndValue } from '#~/pages/projects/types';
-import { CreatingModelServingObjectCommon } from '#~/pages/modelServing/screens/types';
+import type { CreatingModelServingObjectCommon } from '@odh-dashboard/model-serving/shared';
+import type { UpdateObjectAtPropAndValue } from '@odh-dashboard/ui-core';
 
 import ServingRuntimeTokenSection from './ServingRuntimeTokenSection';
 

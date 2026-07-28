@@ -155,7 +155,8 @@ describe('Model Catalog Performance Filters API Behavior', () => {
 
       cy.wait('@getPerformanceArtifactsWithFilter').then((interception) => {
         const { url } = interception.request;
-        expect(url).to.include('recommendations=true');
+        expect(url).to.include('orderBy=');
+        expect(url).to.not.include('recommendations=');
       });
     });
 
@@ -457,6 +458,81 @@ describe('Model Catalog Performance Filters API Behavior', () => {
         const decodedUrl = decodeURIComponent(interception.request.url);
         expect(decodedUrl).to.include('modelcar_image_size');
       });
+    });
+  });
+
+  describe('Accessibility', () => {
+    it('should have no a11y violations when performance toggle is OFF', () => {
+      visitWithPerformanceToggle(false);
+
+      cy.testA11y({ exclude: ['.pf-v6-c-tooltip'] });
+    });
+
+    it('should have no a11y violations when performance toggle is ON', () => {
+      visitWithPerformanceToggle(true);
+
+      assertPerformanceFiltersVisible(true);
+
+      cy.testA11y({ exclude: ['.pf-v6-c-tooltip'] });
+    });
+
+    it('should have no a11y violations on Performance Insights tab with filters visible', () => {
+      visitWithPerformanceToggle(true);
+
+      navigateToPerformanceInsightsTab();
+
+      cy.findByTestId(PERFORMANCE_FILTER_TEST_IDS.hardwareTable).should('be.visible');
+      cy.findByTestId(PERFORMANCE_FILTER_TEST_IDS.workloadType).should('be.visible');
+
+      cy.testA11y({ exclude: ['.pf-v6-c-tooltip'] });
+    });
+
+    it('should have no a11y violations with latency filter dropdown open', () => {
+      visitWithPerformanceToggle(true);
+
+      navigateToPerformanceInsightsTab();
+
+      cy.findByTestId(PERFORMANCE_FILTER_TEST_IDS.hardwareTable).should('be.visible');
+
+      modelCatalog.openLatencyFilter();
+
+      cy.findByTestId('latency-filter-content').should('be.visible');
+
+      // Exclude .pf-v6-c-menu: PF Dropdown wraps content in a Menu container whose Slider,
+      // MenuToggle and InputGroup children have insufficient color-contrast (~1.3:1 vs 4.5:1
+      // WCAG AA minimum). This is a PatternFly framework issue, not application code.
+      cy.testA11y({ exclude: ['.pf-v6-c-tooltip', '.pf-v6-c-menu'] });
+    });
+
+    it('should have no a11y violations with cold start filter dropdown open', () => {
+      visitWithPerformanceToggle(true);
+
+      navigateToPerformanceInsightsTab();
+
+      cy.findByTestId(PERFORMANCE_FILTER_TEST_IDS.hardwareTable).should('be.visible');
+
+      modelCatalog.openColdStartLatencyFilter();
+
+      cy.findByTestId('cold-start-load-time-apply-filter').should('be.visible');
+
+      // Exclude .pf-v6-c-menu: PF Slider step-labels and input inside the dropdown panel
+      // fail color-contrast checks — this is a PatternFly framework issue.
+      cy.testA11y({ exclude: ['.pf-v6-c-tooltip', '.pf-v6-c-menu'] });
+    });
+
+    it('should have no a11y violations with max rps filter dropdown open', () => {
+      visitWithPerformanceToggle(true);
+
+      navigateToPerformanceInsightsTab();
+
+      cy.findByTestId(PERFORMANCE_FILTER_TEST_IDS.hardwareTable).should('be.visible');
+
+      cy.findByTestId(PERFORMANCE_FILTER_TEST_IDS.maxRps).click();
+
+      cy.findByTestId('max-rps-apply-filter').should('be.visible');
+
+      // Exclude .pf-v6-c-menu: same PF color-contrast issue as latency/cold-start filters.
+      cy.testA11y({ exclude: ['.pf-v6-c-tooltip', '.pf-v6-c-menu'] });
     });
   });
 

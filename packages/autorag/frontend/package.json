@@ -104,6 +104,7 @@
     "@patternfly/react-charts": "^8.4.0",
     "@patternfly/react-component-groups": "^6.4.0",
     "@patternfly/react-core": "^6.3.1",
+    "@patternfly/react-drag-drop": "^6.3.1",
     "@patternfly/react-icons": "^6.3.1",
     "@patternfly/react-styles": "^6.3.1",
     "@patternfly/react-table": "^6.3.1",

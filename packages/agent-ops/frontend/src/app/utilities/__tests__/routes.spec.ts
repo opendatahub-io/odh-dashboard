@@ -26,6 +26,11 @@ describe('agent-ops routes', () => {
       expect(isSafeAgentOpsInternalRoute('/ai-hub/agents\\deployments')).toBe(false);
     });
 
+    it('rejects control characters before URL parsing', () => {
+      expect(isSafeAgentOpsInternalRoute('/ai-hub/agents/deployments/team1\n/evil')).toBe(false);
+      expect(isSafeAgentOpsInternalRoute('/ai-hub/agents/deployments\tteam1')).toBe(false);
+    });
+
     it('rejects non-string values', () => {
       expect(isSafeAgentOpsInternalRoute(123)).toBe(false);
     });

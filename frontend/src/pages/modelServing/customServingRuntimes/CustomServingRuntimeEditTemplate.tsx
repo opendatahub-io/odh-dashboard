@@ -9,7 +9,7 @@ import {
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import type { TemplateKind } from '@odh-dashboard/k8s-core';
-import { getServingRuntimeNameFromTemplate } from './utils';
+import { getServingRuntimeNameFromTemplate } from '@odh-dashboard/model-serving/shared';
 import CustomServingRuntimeAddTemplate from './CustomServingRuntimeAddTemplate';
 import { CustomServingRuntimeContext } from './CustomServingRuntimeContext';
 

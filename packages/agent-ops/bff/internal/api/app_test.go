@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 
 	"github.com/opendatahub-io/mod-arch-library/bff/internal/config"
@@ -15,18 +16,6 @@ import (
 
 func testAppLogger() *slog.Logger {
 	return slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{Level: slog.LevelError}))
-}
-
-func testRoutesApp(t *testing.T) *App {
-	t.Helper()
-	return &App{
-		config: config.EnvConfig{
-			AuthMethod:      config.AuthMethodDisabled,
-			StaticAssetsDir: t.TempDir(),
-		},
-		logger:       testAppLogger(),
-		repositories: testRepositoriesWithAgents(),
-	}
 }
 
 func TestAgentRoutes_Registered(t *testing.T) {
@@ -54,6 +43,26 @@ func TestNewApp_AuthDisabledRequiresMockAgentClient(t *testing.T) {
 	}, testAppLogger())
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "MOCK_AGENT_CLIENT")
+}
+
+func TestNewApp_OpenAPIHandlerFailureNonFatal(t *testing.T) {
+	originalWd, err := os.Getwd()
+	require.NoError(t, err)
+
+	tempDir := t.TempDir()
+	require.NoError(t, os.Chdir(tempDir))
+	t.Cleanup(func() {
+		assert.NoError(t, os.Chdir(originalWd))
+	})
+
+	app, err := NewApp(config.EnvConfig{
+		AuthMethod:      config.AuthMethodDisabled,
+		MockAgentClient: true,
+		StaticAssetsDir: t.TempDir(),
+	}, testAppLogger())
+	require.NoError(t, err)
+	require.NotNil(t, app)
+	assert.Nil(t, app.openAPI)
 }
 
 func TestInjectRequestIdentity_UnauthorizedWithoutToken(t *testing.T) {

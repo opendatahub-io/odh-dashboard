@@ -17,7 +17,7 @@ export const PERMISSION_OPTIONS = [
 ] as const;
 
 export const NO_CONNECTED_WORKBENCH_TOOLTIP =
-  'Go to the Authorized project page, edit a workbench or create a new one to connect with desired feature stores.';
+  'Create or edit a workbench in this project to connect it to this feature store.';
 
 export const getConnectedWorkbenchColumns = (
   featureStoreName?: string,
@@ -39,16 +39,16 @@ export const getConnectedWorkbenchColumns = (
       sortable: (a: ConnectedWorkbenchTableRow, b: ConnectedWorkbenchTableRow): number =>
         a.authorizedProject.localeCompare(b.authorizedProject),
       info: {
-        popover: 'Projects that have permission to access the selected feature store.',
+        popover: `Authorized projects have permission to access the ${featureStoreLabel} feature store.`,
       },
     },
     {
       field: 'permissionLevel',
-      label: 'Permission',
+      label: 'Permissions',
       width: 25,
       sortable: false,
       info: {
-        popover: `Your access permission to ${featureStoreLabel} feature store.`,
+        popover: `The permissions this project has to the ${featureStoreLabel} feature store.`,
       },
     },
   ];

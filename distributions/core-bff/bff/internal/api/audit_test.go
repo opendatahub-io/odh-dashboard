@@ -209,14 +209,14 @@ func TestSecureAdminRoute_EmitsAuditLogOnAdminCheckError(t *testing.T) {
 
 	handler(rr, req, nil)
 
-	assert.Equal(t, http.StatusUnauthorized, rr.Code)
+	assert.Equal(t, http.StatusInternalServerError, rr.Code)
 
 	rec := ch.findAuditRecord()
 	require.NotNil(t, rec, "expected audit log on admin check error")
 	assert.Equal(t, "test-user", auditAttr(rec, "user"))
 	assert.True(t, auditAttrBool(rec, "needsAdmin"))
 	assert.False(t, auditAttrBool(rec, "isAdmin"))
-	assert.NotEmpty(t, auditAttr(rec, "adminCheckError"))
+	assert.NotEmpty(t, auditAttr(rec, "error"))
 	assert.Equal(t, "test-ns", auditAttr(rec, "namespace"))
 }
 

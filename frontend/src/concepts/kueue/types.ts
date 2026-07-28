@@ -8,6 +8,10 @@ export enum KueueWorkloadStatus {
   Evicted = 'Evicted',
   Requeued = 'Requeued',
   Inadmissible = 'Inadmissible',
+  /** Admitted but one or more admission checks are still pending/retrying. */
+  AdmissionCheck = 'AdmissionCheck',
+  /** Admitted but blocked waiting for preemption gates to clear. */
+  BlockedOnPreemptionGates = 'BlockedOnPreemptionGates',
   Running = 'Running',
   Admitted = 'Admitted',
   Complete = 'Complete',
@@ -20,6 +24,8 @@ export type KueueWorkloadStatusWithMessage = {
   queueName?: string;
   workloadName?: string;
   queuePosition?: number;
+  /** Pending workloads in the local queue (Visibility API items.length). */
+  queueTotal?: number;
   requeueInfo?: {
     count: number;
     requeueAt?: string;

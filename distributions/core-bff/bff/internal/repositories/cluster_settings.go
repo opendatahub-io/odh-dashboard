@@ -78,16 +78,16 @@ func (r *ClusterSettingsRepository) BuildDashboardConfigPatch(
 		return nil, fmt.Errorf("currentConfig must not be nil")
 	}
 
-	patch := map[string]interface{}{
-		"spec": map[string]interface{}{
-			"dashboardConfig": map[string]interface{}{
+	patch := map[string]any{
+		"spec": map[string]any{
+			"dashboardConfig": map[string]any{
 				"disableKServe": !settings.ModelServingPlatformEnabled.KServe,
 				"disableLLMd":   !settings.ModelServingPlatformEnabled.LLMd,
 			},
 		},
 	}
 
-	modelServing := map[string]interface{}{}
+	modelServing := map[string]any{}
 	if settings.IsDistributedInferencingDefault != nil {
 		modelServing["isLLMdDefault"] = *settings.IsDistributedInferencingDefault
 	}
@@ -99,7 +99,7 @@ func (r *ClusterSettingsRepository) BuildDashboardConfigPatch(
 		modelServing["deploymentStrategy"] = settings.DefaultDeploymentStrategy
 	}
 	if len(modelServing) > 0 {
-		patch["spec"].(map[string]interface{})["modelServing"] = modelServing
+		patch["spec"].(map[string]any)["modelServing"] = modelServing
 	}
 
 	currentPVC := currentPVCSize(currentConfig)
@@ -109,7 +109,7 @@ func (r *ClusterSettingsRepository) BuildDashboardConfigPatch(
 			isJupyterEnabled = currentConfig.Spec.NotebookController.Enabled
 		}
 		pvcStr := fmt.Sprintf("%dGi", settings.PVCSize)
-		patch["spec"].(map[string]interface{})["notebookController"] = map[string]interface{}{
+		patch["spec"].(map[string]any)["notebookController"] = map[string]any{
 			"enabled": isJupyterEnabled,
 			"pvcSize": pvcStr,
 		}

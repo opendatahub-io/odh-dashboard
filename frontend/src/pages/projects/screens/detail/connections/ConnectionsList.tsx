@@ -1,12 +1,11 @@
 import * as React from 'react';
 import { Button, Popover, Tooltip } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
-import { DashboardPopupIconButton } from '@odh-dashboard/ui-core';
+import { EmptyDetailsView, DashboardPopupIconButton } from '@odh-dashboard/ui-core';
 import { ProjectSectionID } from '#~/pages/projects/screens/detail/types';
 import { ProjectSectionTitles } from '#~/pages/projects/screens/detail/const';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import DetailsSection from '#~/pages/projects/screens/detail/DetailsSection';
-import EmptyDetailsView from '#~/components/EmptyDetailsView';
 import { ProjectObjectType, typedEmptyImage } from '#~/concepts/design/utils';
 import { Connection } from '#~/concepts/connectionTypes/types';
 import { useWatchConnectionTypes } from '#~/utilities/useWatchConnectionTypes';

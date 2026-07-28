@@ -1,18 +1,3 @@
-import type { Extension, ExtensionPredicate } from '@openshift/dynamic-plugin-sdk';
-import type { ComponentCodeRef } from '@odh-dashboard/plugin-core';
-import type { DetailTabProperties } from '@odh-dashboard/plugin-core/extension-points';
-export type ModelRegistryVersionDetailsTabExtension = Extension<'model-registry.version-details/tab', Omit<DetailTabProperties, 'component'> & {
-    component: ComponentCodeRef<{
-        rmId?: string;
-        mvId?: string;
-        mrName?: string;
-    }>;
-}>;
-export declare const isModelRegistryVersionDetailsTabExtension: ExtensionPredicate<ModelRegistryVersionDetailsTabExtension>;
-export type ModelRegistryDetailsTabExtension = Extension<'model-registry.details/tab', Omit<DetailTabProperties, 'component'> & {
-    component: ComponentCodeRef<{
-        rmId?: string;
-        mrName?: string;
-    }>;
-}>;
-export declare const isModelRegistryDetailsTabExtension: ExtensionPredicate<ModelRegistryDetailsTabExtension>;
+export { type DetailTabExtension, isDetailTabExtension } from '@odh-dashboard/plugin-core/extension-points';
+export declare const MODEL_REGISTRY_DETAILS_GROUP = "model-registry.details";
+export declare const MODEL_REGISTRY_VERSION_DETAILS_GROUP = "model-registry.version-details";

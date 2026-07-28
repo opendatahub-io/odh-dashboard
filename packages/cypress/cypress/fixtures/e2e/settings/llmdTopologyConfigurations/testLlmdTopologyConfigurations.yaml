@@ -1,0 +1,5 @@
+# testLlmdTopologyConfigurations.cy.ts Test Data #
+
+topologyConfigName: 'e2e-multi-node-topology'
+topologyConfigFixture: 'resources/modelServing/llmd-topology-config.yaml'
+projectResourceName: 'topo-admin'

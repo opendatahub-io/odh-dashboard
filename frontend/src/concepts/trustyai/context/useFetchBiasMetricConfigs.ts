@@ -1,11 +1,11 @@
 import React from 'react';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
-import { TrustyAPIState } from '#~/concepts/trustyai/useTrustyAIAPIState';
 import useFetchState, {
   FetchState,
   FetchStateCallbackPromise,
   NotReadyError,
-} from '#~/utilities/useFetchState';
+} from '@odh-dashboard/ui-core/hooks/useFetchState';
+import { TrustyAPIState } from '#~/concepts/trustyai/useTrustyAIAPIState';
 import { BiasMetricConfig } from '#~/concepts/trustyai/types';
 import { formatListResponse } from '#~/concepts/trustyai/utils';
 

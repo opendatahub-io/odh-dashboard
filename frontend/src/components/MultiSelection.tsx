@@ -24,6 +24,10 @@ import {
 } from '@patternfly/react-core';
 
 import { TimesIcon } from '@patternfly/react-icons/dist/esm/icons/times-icon';
+import {
+  resolveSelectPopperAppendTo,
+  useModalOverflowUnlock,
+} from '#~/utilities/useModalOverflowUnlock';
 
 export type SelectionOptions = Omit<SelectOptionProps, 'id'> & {
   id: number | string;
@@ -45,7 +49,7 @@ type MultiSelectionProps = {
   isScrollable?: boolean;
   toggleId?: string;
   inputId?: string;
-  ariaLabel: string;
+  ariaLabel?: string;
   placeholder?: string;
   isDisabled?: boolean;
   selectionRequired?: boolean;
@@ -68,6 +72,52 @@ type MultiSelectionProps = {
 const defaultCreateOptionMessage = (newValue: string) => `Create "${newValue}"`;
 const defaultFilterFunction = (filterText: string, options: SelectionOptions[]) =>
   options.filter((o) => !filterText || o.name.toLowerCase().includes(filterText.toLowerCase()));
+
+/** Encode option ids for stable, injective DOM id segments (e.g. 'a b' vs 'a-b', 'core/pods' vs 'coreu47upods'). */
+const encodeOptionIdForDom = (optionId: number | string): string =>
+  String(optionId)
+    .replace(/u/g, 'uu')
+    .replace(/[^a-zA-Z0-9_-]/g, (ch) => `u${ch.charCodeAt(0)}u`);
+
+const createOptionElementId = (instanceId: string, optionId: number | string): string =>
+  `${instanceId}-option-${encodeOptionIdForDom(optionId)}`;
+
+const normalizeOptionId = (optionId: number | string): string => String(optionId);
+
+const getOptionTestId = (name: string) =>
+  `select-multi-typeahead-${name.replace(/[^a-zA-Z0-9]+/g, '-')}`;
+
+type MultiSelectionOptionProps = {
+  option: SelectionOptions;
+  children?: React.ReactNode;
+  showCheckbox?: boolean;
+  hasCheckbox: boolean;
+  isFocused: boolean;
+  instanceId: string;
+};
+
+const MultiSelectionOption: React.FC<MultiSelectionOptionProps> = ({
+  option,
+  children,
+  showCheckbox = true,
+  hasCheckbox,
+  isFocused,
+  instanceId,
+}) => (
+  <SelectOption
+    id={createOptionElementId(instanceId, option.id)}
+    {...(showCheckbox && hasCheckbox ? { hasCheckbox: true } : {})}
+    isFocused={isFocused}
+    data-testid={getOptionTestId(option.name)}
+    value={option.id}
+    isSelected={option.selected}
+    description={option.description}
+    isDisabled={option.isDisabled}
+    isAriaDisabled={option.isAriaDisabled}
+  >
+    {children ?? option.name}
+  </SelectOption>
+);
 
 export const MultiSelection: React.FC<MultiSelectionProps> = ({
   value = [],
@@ -94,44 +144,52 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
   const [isOpen, setIsOpen] = React.useState(false);
   const [inputValue, setInputValue] = React.useState<string>('');
   const [focusedItemIndex, setFocusedItemIndex] = React.useState<number | null>(null);
-  const [activeItem, setActiveItem] = React.useState<string | null>(null);
-  const textInputRef = React.useRef<HTMLInputElement>();
+  const [activeItemId, setActiveItemId] = React.useState<string | null>(null);
+  const textInputRef = React.useRef<HTMLInputElement | null>(null);
+  const focusTimeoutRef = React.useRef<ReturnType<typeof setTimeout>>();
+  const generatedInstanceId = React.useId().replace(/:/g, '');
+  const instanceId = id ?? `multi-select-${generatedInstanceId}`;
+  const listboxId = `${instanceId}-listbox`;
+  const selectionErrorId = `${instanceId}-selection-error`;
 
-  const selectGroups = React.useMemo(() => {
-    let counter = 0;
-    return groupedValues
-      .map((g) => {
-        const values = filterFunction(inputValue, g.values);
-        return {
+  useModalOverflowUnlock(isOpen, textInputRef);
+
+  const getPopperAppendTo = React.useCallback(
+    () => resolveSelectPopperAppendTo(textInputRef.current),
+    [],
+  );
+
+  const mergedPopperProps = React.useMemo(
+    () => ({
+      ...popperProps,
+      appendTo: popperProps?.appendTo ?? getPopperAppendTo,
+    }),
+    [popperProps, getPopperAppendTo],
+  );
+
+  const selectGroups = React.useMemo(
+    () =>
+      groupedValues
+        .map((g) => ({
           ...g,
-          values: values.map((v) => ({ ...v, index: counter++ })),
-        };
-      })
-      .filter((g) => g.values.length);
-  }, [filterFunction, groupedValues, inputValue]);
+          values: filterFunction(inputValue, g.values),
+        }))
+        .filter((g) => g.values.length),
+    [filterFunction, groupedValues, inputValue],
+  );
 
-  const setOpen = (open: boolean) => {
-    setIsOpen(open);
-    if (!open) {
-      setInputValue('');
-    }
-  };
-  const groupOptions = selectGroups.reduce<SelectionOptions[]>((acc, g) => {
-    acc.push(...g.values);
-    return acc;
-  }, []);
+  const groupOptions = React.useMemo(
+    () => selectGroups.reduce<SelectionOptions[]>((acc, g) => acc.concat(g.values), []),
+    [selectGroups],
+  );
 
   const selectOptions = React.useMemo(
-    () =>
-      filterFunction(inputValue, value).map((v, index) => ({
-        ...v,
-        index: groupOptions.length + index,
-      })),
-    [filterFunction, groupOptions, inputValue, value],
+    () => filterFunction(inputValue, value),
+    [filterFunction, inputValue, value],
   );
 
   const allValues = React.useMemo(() => {
-    const options = [];
+    const options: SelectionOptions[] = [];
     groupedValues.forEach((group) => options.push(...group.values));
     options.push(...value);
     return options;
@@ -143,7 +201,11 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
     if (
       isCreatable &&
       inputValueTrim &&
-      !allValues.find((o) => String(o.name).toLowerCase() === inputValueTrim.toLowerCase())
+      !allValues.find(
+        (o) =>
+          String(o.name).toLowerCase() === inputValueTrim.toLowerCase() ||
+          String(o.id).toLowerCase() === inputValueTrim.toLowerCase(),
+      )
     ) {
       return {
         id: inputValueTrim,
@@ -178,44 +240,88 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
 
   const selected = React.useMemo(() => allOptions.filter((v) => v.selected), [allOptions]);
 
-  React.useEffect(() => {
-    if (inputValue) {
-      setOpen(true);
+  const isOptionKeyboardNavigable = (option: SelectionOptions) => !option.isDisabled;
+
+  const getNextFocusableIndex = (
+    startIndex: number | null,
+    direction: 'up' | 'down',
+  ): number | null => {
+    const optionsLength = visibleOptions.length;
+    if (optionsLength === 0) {
+      return null;
     }
+
+    let index = startIndex ?? (direction === 'down' ? -1 : optionsLength);
+    for (let step = 0; step < optionsLength; step += 1) {
+      index =
+        direction === 'down'
+          ? (index + 1) % optionsLength
+          : (index - 1 + optionsLength) % optionsLength;
+      if (isOptionKeyboardNavigable(visibleOptions[index])) {
+        return index;
+      }
+    }
+    return null;
+  };
+
+  const resetActiveAndFocusedItem = () => {
     setFocusedItemIndex(null);
-    setActiveItem(null);
-  }, [inputValue]);
+    setActiveItemId(null);
+  };
+
+  const setActiveAndFocusedItem = (itemIndex: number) => {
+    const focusedItem = visibleOptions[itemIndex];
+    setFocusedItemIndex(itemIndex);
+    setActiveItemId(createOptionElementId(instanceId, focusedItem.id));
+  };
+
+  const openMenu = (focusFirstOption = false) => {
+    setIsOpen(true);
+    if (focusFirstOption) {
+      const firstFocusableIndex = getNextFocusableIndex(null, 'down');
+      if (firstFocusableIndex !== null) {
+        setActiveAndFocusedItem(firstFocusableIndex);
+      }
+    }
+  };
+
+  const closeMenu = () => {
+    if (focusTimeoutRef.current) {
+      clearTimeout(focusTimeoutRef.current);
+      focusTimeoutRef.current = undefined;
+    }
+    setIsOpen(false);
+    setInputValue('');
+    resetActiveAndFocusedItem();
+  };
+
+  React.useEffect(
+    () => () => {
+      if (focusTimeoutRef.current) {
+        clearTimeout(focusTimeoutRef.current);
+      }
+    },
+    [],
+  );
 
   const handleMenuArrowKeys = (key: string) => {
-    let indexToFocus;
     if (!isOpen) {
-      setOpen(true);
-      setFocusedItemIndex(0);
-      return;
+      setIsOpen(true);
     }
 
     const optionsLength = visibleOptions.length;
-
-    if (key === 'ArrowUp') {
-      if (focusedItemIndex === null || focusedItemIndex === 0) {
-        indexToFocus = optionsLength - 1;
-      } else {
-        indexToFocus = focusedItemIndex - 1;
-      }
+    if (optionsLength === 0) {
+      return;
     }
 
-    if (key === 'ArrowDown') {
-      if (focusedItemIndex === null || focusedItemIndex === optionsLength - 1) {
-        indexToFocus = 0;
-      } else {
-        indexToFocus = focusedItemIndex + 1;
-      }
+    if (key !== 'ArrowUp' && key !== 'ArrowDown') {
+      return;
     }
 
-    if (indexToFocus != null) {
-      setFocusedItemIndex(indexToFocus);
-      const focusedItem = visibleOptions[indexToFocus];
-      setActiveItem(`select-multi-typeahead-${focusedItem.name.replace(' ', '-')}`);
+    const direction = key === 'ArrowDown' ? 'down' : 'up';
+    const indexToFocus = getNextFocusableIndex(focusedItemIndex, direction);
+    if (indexToFocus !== null) {
+      setActiveAndFocusedItem(indexToFocus);
     }
   };
 
@@ -223,55 +329,115 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
     const focusedItem = focusedItemIndex !== null ? visibleOptions[focusedItemIndex] : null;
     switch (event.key) {
       case 'Enter':
-        if (isOpen && focusedItem) {
+        event.preventDefault();
+        if (isOpen && focusedItem && !focusedItem.isAriaDisabled && !focusedItem.isDisabled) {
           onSelect(focusedItem);
-          setInputValue('');
         }
         if (!isOpen) {
-          setIsOpen(true);
+          openMenu(true);
         }
         break;
       case 'Tab':
+        closeMenu();
+        break;
       case 'Escape':
-        setOpen(false);
-        setActiveItem(null);
+        if (isOpen) {
+          event.preventDefault();
+          event.stopPropagation();
+          closeMenu();
+        }
         break;
       case 'ArrowUp':
       case 'ArrowDown':
         event.preventDefault();
         handleMenuArrowKeys(event.key);
         break;
+      default:
+        break;
     }
   };
 
   const onToggleClick = () => {
-    setOpen(!isOpen);
-    setTimeout(() => textInputRef.current?.focus(), 100);
+    if (!isOpen) {
+      openMenu(true);
+    } else {
+      closeMenu();
+    }
+    if (focusTimeoutRef.current) {
+      clearTimeout(focusTimeoutRef.current);
+    }
+    focusTimeoutRef.current = setTimeout(() => {
+      textInputRef.current?.focus();
+      focusTimeoutRef.current = undefined;
+    }, 100);
   };
+
   const onTextInputChange = (_event: React.FormEvent<HTMLInputElement>, valueOfInput: string) => {
     setInputValue(valueOfInput);
+    if (valueOfInput) {
+      setIsOpen(true);
+    }
+    resetActiveAndFocusedItem();
   };
+
+  const persistOptions = (options: SelectionOptions[]): SelectionOptions[] => {
+    if (!createOption) {
+      return options;
+    }
+    return options.filter(
+      (option) =>
+        normalizeOptionId(option.id) !== normalizeOptionId(createOption.id) || option.selected,
+    );
+  };
+
   const onSelect = (menuItem?: SelectionOptions) => {
+    if (menuItem?.isAriaDisabled || menuItem?.isDisabled) {
+      return;
+    }
     if (menuItem) {
       setValue(
-        allOptions.map((option) =>
-          option.id === menuItem.id ? { ...option, selected: !option.selected } : option,
+        persistOptions(
+          allOptions.map((option) =>
+            normalizeOptionId(option.id) === normalizeOptionId(menuItem.id)
+              ? { ...option, selected: !option.selected }
+              : option,
+          ),
         ),
       );
       setInputValue('');
+      resetActiveAndFocusedItem();
     }
     textInputRef.current?.focus();
   };
 
-  const noSelectedItems = allOptions.filter((option) => option.selected).length === 0;
+  const showSelectionError = selectionRequired && selected.length === 0;
+
+  const renderSelectOption = (
+    option: SelectionOptions,
+    children?: React.ReactNode,
+    showCheckbox = true,
+  ) => {
+    const optionVisibleIndex = visibleOptions.indexOf(option);
+    return (
+      <MultiSelectionOption
+        key={normalizeOptionId(option.id)}
+        option={option}
+        hasCheckbox={hasCheckbox}
+        isFocused={focusedItemIndex === optionVisibleIndex}
+        instanceId={instanceId}
+        showCheckbox={showCheckbox}
+      >
+        {children}
+      </MultiSelectionOption>
+    );
+  };
 
   const toggle = (toggleRef: React.Ref<MenuToggleElement>) => (
     <MenuToggle
       id={toggleId}
       data-testid={toggleTestId}
       variant="typeahead"
-      status={selectionRequired && noSelectedItems ? 'danger' : undefined}
-      aria-label={ariaLabel}
+      status={selectionRequired && selected.length === 0 ? 'danger' : undefined}
       onClick={onToggleClick}
       innerRef={toggleRef}
       isDisabled={isDisabled}
@@ -282,23 +448,39 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
         <TextInputGroupMain
           inputId={inputId}
           value={inputValue}
-          onClick={onToggleClick}
+          onClick={(event) => {
+            event.stopPropagation();
+            if (!isOpen) {
+              openMenu(false);
+            }
+          }}
           onChange={onTextInputChange}
           onKeyDown={onInputKeyDown}
           autoComplete="off"
           innerRef={textInputRef}
-          {...(activeItem && { 'aria-activedescendant': activeItem })}
+          placeholder={placeholder}
+          aria-label={ariaLabel}
+          {...(activeItemId && { 'aria-activedescendant': activeItemId })}
+          inputProps={{
+            'aria-haspopup': 'listbox',
+            ...(showSelectionError && {
+              'aria-describedby': selectionErrorId,
+              'aria-invalid': true,
+            }),
+          }}
           role="combobox"
           isExpanded={isOpen}
-          aria-controls="select-multi-typeahead-listbox"
-          placeholder={placeholder}
+          aria-controls={listboxId}
         >
           <LabelGroup aria-label="Current selections">
-            {selected.map((selection, index) => (
+            {selected.map((selection) => (
               <Label
                 variant={isDisabled ? 'filled' : 'outline'}
-                key={index}
-                closeBtnProps={{ isDisabled }}
+                key={normalizeOptionId(selection.id)}
+                closeBtnProps={{
+                  isDisabled,
+                  'aria-label': `Remove ${selection.name}`,
+                }}
                 onClose={(ev) => {
                   ev.stopPropagation();
                   if (!isDisabled) {
@@ -312,18 +494,21 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
           </LabelGroup>
         </TextInputGroupMain>
         <TextInputGroupUtilities>
-          {selected.length > 0 && (
+          {selected.length > 0 ? (
             <Button
               icon={<TimesIcon aria-hidden />}
               variant="plain"
               onClick={() => {
                 setInputValue('');
-                setValue(allOptions.map((option) => ({ ...option, selected: false })));
+                resetActiveAndFocusedItem();
+                setValue(
+                  persistOptions(allOptions.map((option) => ({ ...option, selected: false }))),
+                );
                 textInputRef.current?.focus();
               }}
-              aria-label="Clear input value"
+              aria-label="Clear all selections"
             />
-          )}
+          ) : null}
         </TextInputGroupUtilities>
       </TextInputGroup>
     </MenuToggle>
@@ -331,91 +516,78 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
 
   return (
     <>
+      <div
+        aria-live="polite"
+        aria-atomic="true"
+        aria-relevant="additions text"
+        className="pf-v6-u-screen-reader"
+      >
+        {isOpen && visibleOptions.length === 0 ? 'No results found' : ''}
+      </div>
       <Select
         isScrollable={isScrollable}
         id={id}
         isOpen={isOpen}
         selected={selected}
         onSelect={(ev, selection) => {
-          const selectedOption = allOptions.find((option) => option.id === selection);
+          const selectedOption = allOptions.find(
+            (option) => normalizeOptionId(option.id) === normalizeOptionId(selection),
+          );
           onSelect(selectedOption);
         }}
-        onOpenChange={() => setOpen(false)}
+        onOpenChange={(open) => {
+          if (!open) {
+            closeMenu();
+          }
+        }}
         toggle={toggle}
-        popperProps={popperProps}
+        variant="typeahead"
+        popperProps={mergedPopperProps}
       >
-        {createOption && isCreateOptionOnTop && groupOptions.length > 0 ? (
-          <SelectList isAriaMultiselectable>
-            <SelectOption value={createOption.id} isFocused={focusedItemIndex === 0}>
-              {createOptionDisplayName}
+        {/* Single SelectList id for aria-controls; SelectGroup inside matches TypeaheadSelect. */}
+        <SelectList
+          isAriaMultiselectable
+          id={listboxId}
+          aria-label={ariaLabel}
+          {...(listTestId ? { 'data-testid': listTestId } : {})}
+        >
+          {createOption && isCreateOptionOnTop && groupOptions.length > 0
+            ? renderSelectOption(createOption, createOptionDisplayName, false)
+            : null}
+          {!createOption && visibleOptions.length === 0 ? (
+            <SelectOption isDisabled aria-hidden="true">
+              No results found
             </SelectOption>
-          </SelectList>
-        ) : null}
-        {!createOption && visibleOptions.length === 0 && inputValue ? (
-          <SelectList isAriaMultiselectable>
-            <SelectOption isDisabled>No results found</SelectOption>
-          </SelectList>
-        ) : null}
-        {selectGroups.map((g, index) => (
-          <React.Fragment key={g.id}>
-            <SelectGroup label={g.name} key={g.id}>
-              <SelectList isAriaMultiselectable>
-                {g.values.map((option) => (
-                  <SelectOption
-                    key={option.id}
-                    hasCheckbox={hasCheckbox}
-                    isFocused={focusedItemIndex === option.index + (isCreateOptionOnTop ? 1 : 0)}
-                    data-testid={`select-multi-typeahead-${option.name.replace(' ', '-')}`}
-                    value={option.id}
-                    ref={null}
-                    isSelected={option.selected}
-                    description={option.description}
-                    isAriaDisabled={option.isAriaDisabled}
-                  >
-                    {option.name}
-                  </SelectOption>
-                ))}
-              </SelectList>
-            </SelectGroup>
-            {index < selectGroups.length - 1 || selectOptions.length ? <Divider /> : null}
-          </React.Fragment>
-        ))}
-        {selectOptions.length ||
-        (createOption && (!isCreateOptionOnTop || groupOptions.length === 0)) ? (
-          <SelectList isAriaMultiselectable data-testid={listTestId}>
-            {createOption && isCreateOptionOnTop && groupOptions.length === 0 ? (
-              <SelectOption value={createOption.id}>{createOptionDisplayName}</SelectOption>
-            ) : null}
-            {selectOptions.map((option) => (
-              <SelectOption
-                key={option.id}
-                hasCheckbox={hasCheckbox}
-                isFocused={focusedItemIndex === option.index + (isCreateOptionOnTop ? 1 : 0)}
-                data-testid={`select-multi-typeahead-${option.name.replace(' ', '-')}`}
-                value={option.id}
-                ref={null}
-                isSelected={option.selected}
-                description={option.description}
-                isAriaDisabled={option.isAriaDisabled}
-              >
-                {option.name}
-              </SelectOption>
-            ))}
-            {createOption && !isCreateOptionOnTop ? (
-              <SelectOption
-                data-testid={`select-multi-typeahead-${createOption.name.replace(' ', '-')}`}
-                value={createOption.id}
-                isFocused={focusedItemIndex === visibleOptions.length - 1}
-              >
-                {createOptionDisplayName}
-              </SelectOption>
-            ) : null}
-          </SelectList>
-        ) : null}
+          ) : null}
+          {selectGroups.map((g, index) => (
+            <React.Fragment key={g.id}>
+              <SelectGroup label={g.name}>
+                {g.values.map((option) => renderSelectOption(option))}
+              </SelectGroup>
+              {index < selectGroups.length - 1 || selectOptions.length > 0 ? <Divider /> : null}
+            </React.Fragment>
+          ))}
+          {selectOptions.length > 0 ||
+          (createOption && (!isCreateOptionOnTop || groupOptions.length === 0)) ? (
+            <>
+              {createOption && isCreateOptionOnTop && groupOptions.length === 0
+                ? renderSelectOption(createOption, createOptionDisplayName, false)
+                : null}
+              {selectOptions.map((option) => renderSelectOption(option))}
+              {createOption && !isCreateOptionOnTop
+                ? renderSelectOption(createOption, createOptionDisplayName, false)
+                : null}
+            </>
+          ) : null}
+        </SelectList>
       </Select>
-      {noSelectedItems && selectionRequired && (
+      {showSelectionError && (
         <HelperText isLiveRegion>
-          <HelperTextItem variant="error" data-testid="group-selection-error-text">
+          <HelperTextItem
+            variant="error"
+            id={selectionErrorId}
+            data-testid="group-selection-error-text"
+          >
             {noSelectedOptionsMessage}
           </HelperTextItem>
         </HelperText>

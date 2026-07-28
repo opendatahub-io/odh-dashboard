@@ -6,8 +6,7 @@ import {
   EmptyStateVariant,
 } from '@patternfly/react-core';
 import { CogIcon } from '@patternfly/react-icons';
-// eslint-disable-next-line @odh-dashboard/no-restricted-imports
-import WhosMyAdministrator from '@odh-dashboard/internal/components/WhosMyAdministrator';
+import { WhosMyAdministrator } from '@odh-dashboard/ui-core';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import { useUser } from '@odh-dashboard/internal/redux/selectors/user';
 import {

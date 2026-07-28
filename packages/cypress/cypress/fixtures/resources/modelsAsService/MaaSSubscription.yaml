@@ -1,0 +1,20 @@
+apiVersion: maas.opendatahub.io/v1alpha1
+kind: MaaSSubscription
+metadata:
+  annotations:
+    openshift.io/display-name: "{{SUBSCRIPTION_NAME}}"
+    openshift.io/description: "{{SUBSCRIPTION_DESCRIPTION}}"
+  name: "{{SUBSCRIPTION_NAME}}"
+  namespace: models-as-a-service
+spec:
+  modelRefs:
+    - name: "{{MODEL_NAME}}"
+      namespace: "{{PROJECT_NAME}}"
+      tokenRateLimits:
+        - limit: 1000
+          window: 1h
+  owner:
+    groups:
+      - name: rhods-admins
+      - name: rhods-users
+  priority: 1

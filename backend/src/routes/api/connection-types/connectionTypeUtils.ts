@@ -1,5 +1,6 @@
 import { PatchUtils, V1ConfigMap } from '@kubernetes/client-node';
-import { KnownLabels, KubeFastifyInstance, RecursivePartial } from '../../../types';
+import type { RecursivePartial } from '@odh-dashboard/foundation';
+import { KnownLabels, KubeFastifyInstance } from '../../../types';
 import { getNamespaces } from '../../../utils/notebookUtils';
 import { errorHandler } from '../../../utils';
 

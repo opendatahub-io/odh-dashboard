@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { FormGroup, TextInput } from '@patternfly/react-core';
 import { translateDisplayNameForK8s } from '@odh-dashboard/k8s-core';
-import { UpdateObjectAtPropAndValue } from '#~/pages/projects/types';
+import type { UpdateObjectAtPropAndValue } from '@odh-dashboard/ui-core';
 import { CreatingInferenceServiceObject } from '#~/pages/modelServing/screens/types';
 
 type NIMModelDeploymentNameSectionProps = {

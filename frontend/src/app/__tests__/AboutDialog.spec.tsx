@@ -8,6 +8,7 @@ import type {
   DataScienceClusterKindStatus,
 } from '@odh-dashboard/k8s-core';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
+import { FetchState } from '@odh-dashboard/ui-core/hooks/useFetchState';
 import { ClusterState, UserState } from '#~/redux/selectors/types';
 import { useUser, useClusterInfo } from '#~/redux/selectors';
 import { useAppContext } from '#~/app/AppContext';
@@ -16,7 +17,6 @@ import useFetchDscStatus from '#~/concepts/areas/useFetchDscStatus';
 import { mockDashboardConfig } from '#~/__mocks__';
 import { BuildStatus, SubscriptionStatusData } from '#~/types';
 import { StorageClassKind } from '#~/k8sTypes';
-import { FetchState } from '#~/utilities/useFetchState';
 import AboutDialog from '#~/app/AboutDialog';
 import { useWatchOperatorSubscriptionStatus } from '#~/utilities/useWatchOperatorSubscriptionStatus';
 

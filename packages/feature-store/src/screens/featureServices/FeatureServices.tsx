@@ -1,8 +1,6 @@
 import React from 'react';
-import { EmptyStateBody, EmptyStateVariant, EmptyState, Flex } from '@patternfly/react-core';
-import { SearchIcon } from '@patternfly/react-icons';
-// eslint-disable-next-line @odh-dashboard/no-restricted-imports
-import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
+import { Flex } from '@patternfly/react-core';
+import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import FeatureServicesListView from './FeatureServicesListView';
 import FeatureStoreProjectSelectorNavigator from '../components/FeatureStoreProjectSelectorNavigator';
 import FeatureStorePageTitle from '../../components/FeatureStorePageTitle';
@@ -14,6 +12,7 @@ import FeatureStoreAccessDenied from '../../components/FeatureStoreAccessDenied'
 import { getFeatureStoreObjectDescription } from '../../utils';
 import { FeatureStoreObject } from '../../const';
 import ConnectedWorkbenchesLink from '../../components/ConnectedWorkbenchesLink';
+import { FeatureStoreEmptyState } from '../components/EmptyStateFeatureStore';
 
 const title = 'Feature services';
 const description = getFeatureStoreObjectDescription(FeatureStoreObject.FEATURE_SERVICES);
@@ -27,17 +26,10 @@ const FeatureServices = (): React.ReactElement => {
   } = useFeatureServices(currentProject);
 
   const emptyState = (
-    <EmptyState
-      headingLevel="h6"
-      icon={SearchIcon}
-      titleText="No feature services"
-      variant={EmptyStateVariant.lg}
-      data-testid="empty-state-title"
-    >
-      <EmptyStateBody data-testid="empty-state-body">
-        Select a different feature store or create a feature service in a workbench.
-      </EmptyStateBody>
-    </EmptyState>
+    <FeatureStoreEmptyState
+      resourceTypeSingular="feature service"
+      resourceTypePlural="feature services"
+    />
   );
 
   return (

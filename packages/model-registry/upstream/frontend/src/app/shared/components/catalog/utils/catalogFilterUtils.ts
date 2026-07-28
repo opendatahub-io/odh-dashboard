@@ -53,3 +53,17 @@ export function stringFiltersToFilterQuery(
   }
   return clauses.join(' AND ');
 }
+
+export function hasFiltersApplied(
+  filters: Record<string, string[] | undefined>,
+  filterKeys: readonly string[],
+  searchQuery: string,
+): boolean {
+  if (searchQuery && searchQuery.trim().length > 0) {
+    return true;
+  }
+  return filterKeys.some((key) => {
+    const value = filters[key];
+    return Array.isArray(value) && value.length > 0;
+  });
+}

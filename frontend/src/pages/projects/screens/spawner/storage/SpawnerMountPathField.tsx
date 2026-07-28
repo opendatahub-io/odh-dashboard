@@ -15,7 +15,7 @@ import {
   TextInput,
 } from '@patternfly/react-core';
 
-import FieldGroupHelpLabelIcon from '#~/components/FieldGroupHelpLabelIcon';
+import FieldGroupHelpLabelIcon from '@odh-dashboard/ui-core/components/FieldGroupHelpLabelIcon';
 import { MountPath } from '#~/pages/projects/types';
 import { validateMountPath } from './utils';
 import { MountPathFormat } from './types';

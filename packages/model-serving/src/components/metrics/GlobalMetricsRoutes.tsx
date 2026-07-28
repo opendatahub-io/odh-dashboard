@@ -1,11 +1,11 @@
 import React from 'react';
 import { Navigate, Route } from 'react-router-dom';
-import GlobalModelServingCoreLoader from '@odh-dashboard/internal/pages/modelServing/screens/global/GlobalModelServingCoreLoader';
-import BiasConfigurationBreadcrumbPage from '@odh-dashboard/internal/pages/modelServing/screens/metrics/bias/BiasConfigurationPage/BiasConfigurationBreadcrumbPage';
-import GlobalModelMetricsPage from '@odh-dashboard/internal/pages/modelServing/screens/metrics/GlobalModelMetricsPage';
-import GlobalModelMetricsWrapper from '@odh-dashboard/internal/pages/modelServing/screens/metrics/GlobalModelMetricsWrapper';
-import ModelServingExplainabilityWrapper from '@odh-dashboard/internal/pages/modelServing/screens/metrics/ModelServingExplainabilityWrapper';
 import { useIsAreaAvailable, SupportedArea } from '@odh-dashboard/plugin-core/areas';
+import BiasConfigurationBreadcrumbPage from './bias/BiasConfigurationPage/BiasConfigurationBreadcrumbPage';
+import GlobalModelMetricsPage from './GlobalModelMetricsPage';
+import GlobalModelMetricsWrapper from './GlobalModelMetricsWrapper';
+import ModelServingExplainabilityWrapper from './ModelServingExplainabilityWrapper';
+import GlobalModelServingCoreLoader from '../global/GlobalModelServingCoreLoader';
 
 // Returns metrics <Route> elements to be included as direct children of <Routes>.
 // These must NOT be wrapped in their own <Routes> — they must share the parent
@@ -14,11 +14,12 @@ import { useIsAreaAvailable, SupportedArea } from '@odh-dashboard/plugin-core/ar
 // TODO: refactor metrics https://issues.redhat.com/browse/RHOAIENG-30172
 export const useMetricsRoutes = (
   getInvalidRedirectPath: (namespace: string) => string,
+  routePath = ':namespace/metrics',
 ): React.ReactNode => {
   const biasMetricsAreaAvailable = useIsAreaAvailable(SupportedArea.BIAS_METRICS).status;
   return (
     <Route
-      path=":namespace/metrics"
+      path={routePath}
       element={<GlobalModelServingCoreLoader getInvalidRedirectPath={getInvalidRedirectPath} />}
     >
       <Route path="" element={<ModelServingExplainabilityWrapper />}>

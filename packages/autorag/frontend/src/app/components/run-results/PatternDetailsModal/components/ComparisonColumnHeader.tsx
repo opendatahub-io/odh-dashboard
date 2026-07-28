@@ -21,7 +21,7 @@ const ComparisonColumnHeader: React.FC<ComparisonColumnHeaderProps> = ({
   'data-testid': testId,
 }) => (
   <Flex
-    alignItems={{ default: 'alignItemsCenter' }}
+    alignItems={{ default: 'alignItemsFlexEnd' }}
     gap={{ default: 'gapSm' }}
     data-testid={testId}
   >

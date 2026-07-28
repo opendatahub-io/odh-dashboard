@@ -10,6 +10,7 @@ import {
 import { ModelCatalogNumberFilterKey } from '~/concepts/modelCatalog/const';
 import { useCatalogNumberFilterState } from '~/app/pages/modelCatalog/hooks/useCatalogFilterState';
 import { MAX_RPS_RANGE } from '~/app/pages/modelCatalog/utils/performanceMetricsUtils';
+import useDropdownAutoFocus from '~/app/pages/modelCatalog/hooks/useDropdownAutoFocus';
 import SliderWithInput from './SliderWithInput';
 
 const filterKey = ModelCatalogNumberFilterKey.MAX_RPS;
@@ -18,6 +19,7 @@ const MaxRpsFilter: React.FC = () => {
   const { value: rpsFilterValue, setValue: setRpsFilterValue } =
     useCatalogNumberFilterState(filterKey);
   const [isOpen, setIsOpen] = React.useState(false);
+  const contentRef = useDropdownAutoFocus(isOpen);
 
   const { minValue, maxValue, isSliderDisabled } = MAX_RPS_RANGE;
 
@@ -70,49 +72,52 @@ const MaxRpsFilter: React.FC = () => {
   );
 
   const filterContent = (
-    <Flex
-      direction={{ default: 'column' }}
-      spaceItems={{ default: 'spaceItemsSm' }}
-      flexWrap={{ default: 'wrap' }}
-      style={{ minWidth: '400px', padding: '16px' }}
-    >
-      <FlexItem>Max requests per second (RPS)</FlexItem>
-      <FlexItem>
-        <SliderWithInput
-          value={clampedValue}
-          min={minValue}
-          max={maxValue}
-          isDisabled={isSliderDisabled}
-          onChange={setLocalValue}
-          ariaLabel="RPS value input"
-        />
-      </FlexItem>
-      <FlexItem>
-        <Flex spaceItems={{ default: 'spaceItemsSm' }}>
-          <FlexItem>
-            <Button
-              variant="primary"
-              onClick={handleApplyFilter}
-              isDisabled={isSliderDisabled}
-              data-testid="max-rps-apply-filter"
-            >
-              Apply filter
-            </Button>
-          </FlexItem>
-          <FlexItem>
-            <Button variant="link" onClick={handleReset} data-testid="max-rps-reset-filter">
-              Reset
-            </Button>
-          </FlexItem>
-        </Flex>
-      </FlexItem>
-    </Flex>
+    <div ref={contentRef} role="group" aria-label="Max RPS filter controls">
+      <Flex
+        direction={{ default: 'column' }}
+        spaceItems={{ default: 'spaceItemsSm' }}
+        flexWrap={{ default: 'wrap' }}
+        style={{ minWidth: '400px', padding: '16px' }}
+      >
+        <FlexItem>Max requests per second (RPS)</FlexItem>
+        <FlexItem>
+          <SliderWithInput
+            value={clampedValue}
+            min={minValue}
+            max={maxValue}
+            isDisabled={isSliderDisabled}
+            onChange={setLocalValue}
+            ariaLabel="RPS value input"
+          />
+        </FlexItem>
+        <FlexItem>
+          <Flex spaceItems={{ default: 'spaceItemsSm' }}>
+            <FlexItem>
+              <Button
+                variant="primary"
+                onClick={handleApplyFilter}
+                isDisabled={isSliderDisabled}
+                data-testid="max-rps-apply-filter"
+              >
+                Apply filter
+              </Button>
+            </FlexItem>
+            <FlexItem>
+              <Button variant="link" onClick={handleReset} data-testid="max-rps-reset-filter">
+                Reset
+              </Button>
+            </FlexItem>
+          </Flex>
+        </FlexItem>
+      </Flex>
+    </div>
   );
 
   return (
     <Dropdown
       isOpen={isOpen}
       onOpenChange={setIsOpen}
+      onOpenChangeKeys={['Escape']}
       toggle={toggle}
       shouldFocusToggleOnSelect={false}
     >

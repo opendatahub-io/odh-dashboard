@@ -6,7 +6,6 @@ import (
 	"path"
 
 	"github.com/julienschmidt/httprouter"
-	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/config"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/helpers"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/proxy"
 )
@@ -18,33 +17,6 @@ const (
 	APIPathPrefix = "/api"
 	// APIVersion is the API version path segment.
 	APIVersion = "/v1"
-
-	// Infrastructure paths
-	HealthCheckPath    = "/healthcheck"
-	APIHealthCheckPath = APIPathPrefix + APIVersion + "/healthcheck"
-	OpenAPIPath        = PathPrefix + "/openapi"
-	OpenAPIJSONPath    = PathPrefix + "/openapi.json"
-	OpenAPIYAMLPath    = PathPrefix + "/openapi.yaml"
-	SwaggerUIPath      = PathPrefix + "/swagger-ui"
-
-	// Starter endpoints (mod-arch-starter convention, /api/v1/ prefix)
-	UserPath      = APIPathPrefix + APIVersion + "/user"
-	NamespacePath = APIPathPrefix + APIVersion + "/namespaces"
-
-	// Config endpoints, /api/ prefix
-	ConfigPath           = APIPathPrefix + "/config"
-	ComponentsPath       = APIPathPrefix + "/components"
-	StatusPath           = APIPathPrefix + "/status"
-	DashboardConfigPath  = APIPathPrefix + "/dashboardConfig/:namespace/:name"
-	ClusterSettingsPath  = APIPathPrefix + "/cluster-settings"
-	ComponentsRemovePath = APIPathPrefix + "/components/remove"
-
-	// OpenShift-only endpoints
-	AllowedUsersPath = APIPathPrefix + "/status/:namespace/allowedUsers"
-
-	// Connection type endpoints
-	ConnectionTypesPath      = APIPathPrefix + "/connection-types"
-	ConnectionTypeSinglePath = APIPathPrefix + "/connection-types/:name"
 )
 
 // Routes builds the full HTTP handler tree: API router, proxies, static files, and middleware.
@@ -54,16 +26,20 @@ func (app *App) Routes() http.Handler {
 	return app.newCombinedMux(serviceMux, staticHandler)
 }
 
+// Auth contract: apiRouter routes require a token (InjectRequestIdentity).
+// Route-level auth is via secureRoute (user) or secureAdminRoute (admin).
+// Unauthenticated routes use publicRoute on the outer mux.
+//
 // newServiceMux creates the mux for API routes and proxies (all require authentication).
 func (app *App) newServiceMux() *http.ServeMux {
 	apiRouter := httprouter.New()
 	apiRouter.NotFound = http.HandlerFunc(app.notFoundResponse)
 	apiRouter.MethodNotAllowed = http.HandlerFunc(app.methodNotAllowedResponse)
 
-	app.registerStarterRoutes(apiRouter)
+	app.registerBaseRoutes(apiRouter)
 	app.registerConfigRoutes(apiRouter)
 	app.registerConnectionTypeRoutes(apiRouter)
-	app.registerOpenShiftRoutes(apiRouter)
+	app.registerModelServingRoutes(apiRouter)
 
 	mux := http.NewServeMux()
 	mux.Handle(APIPathPrefix+"/", apiRouter)
@@ -83,6 +59,7 @@ func (app *App) newServiceMux() *http.ServeMux {
 		mux.Handle(proxy.WssProxyPrefix, app.wsProxy)
 		mux.Handle(PathPrefix+proxy.WssProxyPrefix, http.StripPrefix(PathPrefix, app.wsProxy))
 	}
+	app.registerModelServingProxy(mux)
 
 	return mux
 }
@@ -109,19 +86,11 @@ func (app *App) newStaticHandler() http.Handler {
 func (app *App) newCombinedMux(serviceMux *http.ServeMux, staticHandler http.Handler) *http.ServeMux {
 	authedHandler := app.RecoverPanic(app.EnableTelemetry(app.EnableCORS(app.InjectRequestIdentity(serviceMux))))
 
-	healthcheckRouter := httprouter.New()
-	healthcheckRouter.GET(HealthCheckPath, app.HealthcheckHandler)
-
 	mux := http.NewServeMux()
 
-	// Public routes (no authentication required)
-	mux.Handle(HealthCheckPath, app.publicRoute(healthcheckRouter))
-	mux.Handle(OpenAPIJSONPath, app.publicRouteFunc(app.openAPI.HandleOpenAPIJSONWrapper))
-	mux.Handle(OpenAPIYAMLPath, app.publicRouteFunc(app.openAPI.HandleOpenAPIYAMLWrapper))
-	if app.config.DevMode {
-		mux.Handle(SwaggerUIPath, app.publicRouteFunc(app.openAPI.HandleSwaggerUIWrapper))
-		mux.Handle(OpenAPIPath, app.publicRouteFunc(app.openAPI.HandleOpenAPIRedirectWrapper))
-	}
+	app.registerPublicHealthcheckRoute(mux)
+	app.registerPublicNIMRoutes(mux)
+	app.registerPublicOpenAPIRoutes(mux)
 	mux.Handle("/", app.publicRoute(staticHandler))
 
 	// Authenticated routes (token required)
@@ -134,47 +103,4 @@ func (app *App) newCombinedMux(serviceMux *http.ServeMux, staticHandler http.Han
 	mux.HandleFunc(PathPrefix, app.notFoundResponse)
 
 	return mux
-}
-
-// Auth contract: every route in the register* functions below must be wrapped
-// with secureRoute (authenticated) or secureAdminRoute (admin-only).
-// The only exception is APIHealthCheckPath which is unauthenticated by convention
-// (K8s probes use /healthcheck which bypasses auth entirely).
-// When adding a new route, choose the appropriate wrapper explicitly.
-
-func (app *App) registerStarterRoutes(r *httprouter.Router) {
-	r.GET(APIHealthCheckPath, app.HealthcheckHandler)
-	r.GET(UserPath, app.secureRoute(app.UserHandler))
-	r.GET(NamespacePath, app.secureRoute(app.GetNamespacesHandler))
-}
-
-func (app *App) registerConfigRoutes(r *httprouter.Router) {
-	// Authenticated
-	r.GET(ConfigPath, app.secureRoute(app.GetConfigHandler))
-	r.GET(ComponentsPath, app.secureRoute(app.GetComponentsHandler))
-	r.GET(StatusPath, app.secureRoute(app.GetStatusHandler))
-
-	// Admin-only
-	r.PATCH(ConfigPath, app.secureAdminRoute(app.PatchConfigHandler))
-	r.GET(ComponentsRemovePath, app.secureAdminRoute(app.RemoveComponentHandler))
-	r.GET(DashboardConfigPath, app.secureAdminRoute(app.GetDashboardConfigByNameHandler))
-	r.PATCH(DashboardConfigPath, app.secureAdminRoute(app.PatchDashboardConfigByNameHandler))
-	r.GET(ClusterSettingsPath, app.secureAdminRoute(app.GetClusterSettingsHandler))
-	r.PUT(ClusterSettingsPath, app.secureAdminRoute(app.UpdateClusterSettingsHandler))
-}
-
-func (app *App) registerOpenShiftRoutes(r *httprouter.Router) {
-	r.GET(AllowedUsersPath, app.requirePlatform(config.PlatformOpenShift, app.secureAdminRoute(app.GetAllowedUsersHandler)))
-}
-
-func (app *App) registerConnectionTypeRoutes(r *httprouter.Router) {
-	// Authenticated
-	r.GET(ConnectionTypesPath, app.secureRoute(app.ListConnectionTypesHandler))
-	r.GET(ConnectionTypeSinglePath, app.secureRoute(app.GetConnectionTypeHandler))
-
-	// Admin-only
-	r.POST(ConnectionTypesPath, app.secureAdminRoute(app.CreateConnectionTypeHandler))
-	r.PUT(ConnectionTypeSinglePath, app.secureAdminRoute(app.UpdateConnectionTypeHandler))
-	r.PATCH(ConnectionTypeSinglePath, app.secureAdminRoute(app.PatchConnectionTypeHandler))
-	r.DELETE(ConnectionTypeSinglePath, app.secureAdminRoute(app.DeleteConnectionTypeHandler))
 }

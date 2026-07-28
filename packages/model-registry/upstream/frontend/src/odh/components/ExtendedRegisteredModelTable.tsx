@@ -1,11 +1,15 @@
 import * as React from 'react';
 import { Table, DashboardEmptyTableView } from 'mod-arch-shared';
 import { useResolvedExtensions } from '@odh-dashboard/plugin-core';
+import { isTableColumnExtension } from '@odh-dashboard/plugin-core/extension-points';
 import { ModelVersion, RegisteredModel } from '~/app/types';
 import { getLatestVersionForRegisteredModel } from '~/app/pages/modelRegistry/screens/utils';
 import { rmColumns } from '~/app/pages/modelRegistry/screens/RegisteredModels/RegisteredModelsTableColumns';
-import { isModelRegistryTableColumnExtension } from '~/odh/extension-points/table';
+import { useDeploymentsState } from '~/odh/hooks/useDeploymentsState';
+import { KnownLabels, type ModelRegistryDeploymentListItem } from '~/odh/k8sTypes';
 import ExtendedRegisteredModelTableRow from './ExtendedRegisteredModelTableRow';
+
+const MODEL_REGISTRY_TABLE_COLUMN_GROUP = 'model-registry.registered-models';
 
 type ExtendedRegisteredModelTableProps = {
   clearFilters: () => void;
@@ -14,6 +18,9 @@ type ExtendedRegisteredModelTableProps = {
   refresh: () => void;
 } & Partial<Pick<React.ComponentProps<typeof Table>, 'toolbarContent'>>;
 
+const isInferenceService = (deployment: ModelRegistryDeploymentListItem) =>
+  deployment.model?.kind === 'InferenceService';
+
 const ExtendedRegisteredModelTable: React.FC<ExtendedRegisteredModelTableProps> = ({
   clearFilters,
   registeredModels,
@@ -21,8 +28,32 @@ const ExtendedRegisteredModelTable: React.FC<ExtendedRegisteredModelTableProps> 
   toolbarContent,
   refresh,
 }) => {
-  const [columnExtensions, columnExtensionsLoaded] = useResolvedExtensions(
-    isModelRegistryTableColumnExtension,
+  const [allColumnExtensions, columnExtensionsLoaded] =
+    useResolvedExtensions(isTableColumnExtension);
+  const { deployments, loaded: deploymentsLoaded } = useDeploymentsState();
+
+  const hasDeploysForModel = React.useCallback(
+    (rmId: string) => {
+      if (!deploymentsLoaded || !deployments) {
+        return true;
+      }
+      return deployments.some((deployment) => {
+        if (!isInferenceService(deployment)) {
+          return false;
+        }
+        const deploymentRegisteredModelId =
+          deployment.model?.metadata?.labels?.[KnownLabels.REGISTERED_MODEL_ID];
+        return deploymentRegisteredModelId === rmId;
+      });
+    },
+    [deployments, deploymentsLoaded],
+  );
+  const columnExtensions = React.useMemo(
+    () =>
+      allColumnExtensions.filter(
+        (ext) => ext.properties.group === MODEL_REGISTRY_TABLE_COLUMN_GROUP,
+      ),
+    [allColumnExtensions],
   );
 
   const { extendedColumns, defaultSortColumnIndex } = React.useMemo(() => {
@@ -82,7 +113,8 @@ const ExtendedRegisteredModelTable: React.FC<ExtendedRegisteredModelTableProps> 
       rowRenderer={(rm: RegisteredModel) => (
         <ExtendedRegisteredModelTableRow
           key={rm.name}
-          hasDeploys={false}
+          hasDeploys={hasDeploysForModel(rm.id)}
+          loaded={deploymentsLoaded}
           registeredModel={rm}
           latestModelVersion={getLatestVersionForRegisteredModel(modelVersions, rm.id)}
           refresh={refresh}

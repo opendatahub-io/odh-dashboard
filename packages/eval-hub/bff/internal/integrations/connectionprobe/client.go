@@ -211,6 +211,18 @@ func (c *ConnectionProbeClient) Probe(ctx context.Context, req models.VerifyConn
 	}
 }
 
+// chatCompletionResponse is the minimal OpenAI-compatible response shape
+// needed to verify the endpoint speaks the expected protocol.
+type chatCompletionResponse struct {
+	ID      string `json:"id"`
+	Choices []struct {
+		Message struct {
+			Role    string `json:"role"`
+			Content string `json:"content"`
+		} `json:"message"`
+	} `json:"choices"`
+}
+
 func (c *ConnectionProbeClient) probeModelEndpoint(ctx context.Context, req models.VerifyConnectionRequest, startTime time.Time) (*models.VerifyConnectionResponse, error) {
 	chatReq := chatCompletionRequest{
 		Model: "test",
@@ -242,7 +254,25 @@ func (c *ConnectionProbeClient) probeModelEndpoint(ctx context.Context, req mode
 	}
 	httpReq.Header.Set("Content-Type", "application/json")
 
-	return c.executeAndMap(ctx, httpReq, fullURL, startTime)
+	return c.executeAndMap(ctx, httpReq, fullURL, startTime, true)
+}
+
+// isOpenAICompatibleResponse checks whether the body matches the minimal
+// OpenAI chat completion shape (has "id" and non-empty "choices").
+func isOpenAICompatibleResponse(body []byte, logger *slog.Logger) bool {
+	if len(body) == 0 {
+		return false
+	}
+	var parsed chatCompletionResponse
+	if err := json.Unmarshal(body, &parsed); err != nil {
+		logger.Debug("OpenAI compat check: failed to parse response", "error", err)
+		return false
+	}
+	if parsed.ID == "" || len(parsed.Choices) == 0 {
+		logger.Debug("OpenAI compat check: missing id or choices", "id", parsed.ID, "choicesLen", len(parsed.Choices))
+		return false
+	}
+	return true
 }
 
 func (c *ConnectionProbeClient) probePrerecordedEndpoint(ctx context.Context, _ models.VerifyConnectionRequest, startTime time.Time) (*models.VerifyConnectionResponse, error) {
@@ -256,10 +286,10 @@ func (c *ConnectionProbeClient) probePrerecordedEndpoint(ctx context.Context, _ 
 		httpReq.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.secretValue))
 	}
 
-	return c.executeAndMap(ctx, httpReq, fullURL, startTime)
+	return c.executeAndMap(ctx, httpReq, fullURL, startTime, false)
 }
 
-func (c *ConnectionProbeClient) executeAndMap(ctx context.Context, httpReq *http.Request, fullURL string, startTime time.Time) (*models.VerifyConnectionResponse, error) {
+func (c *ConnectionProbeClient) executeAndMap(ctx context.Context, httpReq *http.Request, fullURL string, startTime time.Time, checkOpenAI bool) (*models.VerifyConnectionResponse, error) {
 	if !c.skipSSRFValidation {
 		parsedURL, err := url.Parse(fullURL)
 		if err != nil {
@@ -279,7 +309,6 @@ func (c *ConnectionProbeClient) executeAndMap(ctx context.Context, httpReq *http
 	}
 	defer resp.Body.Close()
 
-	// Drain body with size limit
 	limitedReader := io.LimitReader(resp.Body, maxResponseBodySize)
 	responseBody, err := io.ReadAll(limitedReader)
 	if err != nil {
@@ -289,11 +318,16 @@ func (c *ConnectionProbeClient) executeAndMap(ctx context.Context, httpReq *http
 	switch resp.StatusCode {
 	case http.StatusOK, http.StatusCreated, http.StatusNoContent:
 		elapsed := int(time.Since(startTime).Milliseconds())
-		return &models.VerifyConnectionResponse{
+		result := &models.VerifyConnectionResponse{
 			Success:      true,
 			Message:      "Connection verified successfully",
 			ResponseTime: elapsed,
-		}, nil
+		}
+		if checkOpenAI {
+			compat := isOpenAICompatibleResponse(responseBody, c.logger)
+			result.OpenAICompat = &compat
+		}
+		return result, nil
 	case http.StatusUnauthorized:
 		return nil, NewUnauthorizedError(c.baseURL)
 	case http.StatusForbidden:

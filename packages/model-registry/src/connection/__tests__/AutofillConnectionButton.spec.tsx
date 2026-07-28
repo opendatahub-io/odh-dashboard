@@ -42,7 +42,8 @@ jest.mock('@odh-dashboard/internal/concepts/modelRegistry/content/ConnectionModa
   ),
 }));
 
-jest.mock('@odh-dashboard/internal/concepts/connectionTypes/utils', () => ({
+jest.mock('@odh-dashboard/k8s-core', () => ({
+  ...jest.requireActual('@odh-dashboard/k8s-core'),
   convertObjectStorageSecretData: () => [
     { key: 'AWS_S3_ENDPOINT', value: 'https://s3.amazonaws.com' },
     { key: 'AWS_S3_BUCKET', value: 'my-bucket' },

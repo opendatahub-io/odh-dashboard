@@ -1,5 +1,6 @@
 import { getClusterStatus, getDashboardConfig } from './resourceUtils';
 import { mergeWith } from 'lodash';
+import type { RecursivePartial } from '@odh-dashboard/foundation';
 import {
   BYONImagePackage,
   ContainerResources,
@@ -13,7 +14,6 @@ import {
   Notebook,
   NotebookData,
   NotebookList,
-  RecursivePartial,
   TagContent,
   VolumeMount,
   RouteKind,

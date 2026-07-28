@@ -10,24 +10,26 @@ import {
   chart_color_green_300 as chartColorGreen300,
   chart_color_green_100 as chartColorGreen100,
 } from '@patternfly/react-tokens';
-import type { AutoRAGEvaluationScores } from '~/app/types/autoragPattern';
-import { getCSSVar } from '~/app/utilities/utils';
-import { scoreIndicators } from './ScoreRadarChart';
+import type { AutoRAGEvaluationMetricResult } from '~/app/types/autoragPattern';
+import { formatMetricName, getCSSVar } from '~/app/utilities/utils';
+import { formatRadarLabel, metricValues } from './radarChartUtils';
 
 let echartsRegistered = false;
 
 type ComparisonRadarChartProps = {
-  primaryScores: AutoRAGEvaluationScores;
+  primaryMetrics: AutoRAGEvaluationMetricResult[];
   primaryLabel: string;
-  comparisonScores: AutoRAGEvaluationScores;
+  comparisonMetrics: AutoRAGEvaluationMetricResult[];
   comparisonLabel: string;
+  allMetricNames: string[];
 };
 
 const ComparisonRadarChart: React.FC<ComparisonRadarChartProps> = ({
-  primaryScores,
+  primaryMetrics,
   primaryLabel,
-  comparisonScores,
+  comparisonMetrics,
   comparisonLabel,
+  allMetricNames,
 }) => {
   if (!echartsRegistered) {
     echarts.use([RadarChart, RadarComponent, SVGRenderer, TooltipComponent, LegendComponent]);
@@ -48,10 +50,13 @@ const ComparisonRadarChart: React.FC<ComparisonRadarChartProps> = ({
         selectedMode: false,
       },
       radar: {
-        indicator: scoreIndicators.map(({ label }) => ({ name: label, max: 1 })),
+        indicator: allMetricNames.map((name) => ({
+          name: formatRadarLabel(formatMetricName(name)),
+          max: 1,
+        })),
         radius: 70,
         center: ['50%', '45%'],
-        axisName: { color: labelColor },
+        axisName: { color: labelColor, lineHeight: 20 },
         splitLine: { lineStyle: { color: splitLineColor } },
         splitArea: { show: false },
         axisLine: { lineStyle: { color: splitLineColor } },
@@ -62,7 +67,7 @@ const ComparisonRadarChart: React.FC<ComparisonRadarChartProps> = ({
           data: [
             {
               name: primaryLabel,
-              value: scoreIndicators.map(({ key }) => primaryScores[key]),
+              value: metricValues(primaryMetrics, allMetricNames),
               lineStyle: { color: chartColorBlue300.var },
               itemStyle: { color: chartColorBlue300.var },
               areaStyle: { color: chartColorBlue100.var, opacity: 0.3 },
@@ -71,7 +76,7 @@ const ComparisonRadarChart: React.FC<ComparisonRadarChartProps> = ({
             },
             {
               name: comparisonLabel,
-              value: scoreIndicators.map(({ key }) => comparisonScores[key]),
+              value: metricValues(comparisonMetrics, allMetricNames),
               lineStyle: { color: chartColorGreen300.var },
               itemStyle: { color: chartColorGreen300.var },
               areaStyle: { color: chartColorGreen100.var, opacity: 0.3 },
@@ -86,7 +91,15 @@ const ComparisonRadarChart: React.FC<ComparisonRadarChartProps> = ({
         appendToBody: true,
       },
     }),
-    [primaryScores, comparisonScores, primaryLabel, comparisonLabel, labelColor, splitLineColor],
+    [
+      primaryMetrics,
+      comparisonMetrics,
+      allMetricNames,
+      primaryLabel,
+      comparisonLabel,
+      labelColor,
+      splitLineColor,
+    ],
   );
 
   return (

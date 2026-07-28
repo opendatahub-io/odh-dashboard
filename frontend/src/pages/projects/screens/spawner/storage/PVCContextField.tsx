@@ -8,7 +8,7 @@ import {
   Radio,
   TextInput,
 } from '@patternfly/react-core';
-import FieldGroupHelpLabelIcon from '#~/components/FieldGroupHelpLabelIcon.tsx';
+import FieldGroupHelpLabelIcon from '@odh-dashboard/ui-core/components/FieldGroupHelpLabelIcon';
 
 type PVCContextFieldProps = {
   setModelName: (name: string) => void;

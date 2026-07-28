@@ -11,7 +11,8 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { ExclamationCircleIcon } from '@patternfly/react-icons/dist/esm/icons/exclamation-circle-icon';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
-import ApplicationsPage from '#~/pages/ApplicationsPage';
+import { FetchState } from '@odh-dashboard/ui-core/hooks/useFetchState';
+import { ApplicationsPage, TrackingOutcome } from '@odh-dashboard/ui-core';
 import MarkdownView from '#~/components/MarkdownView';
 import { PathProps } from '#~/concepts/pipelines/content/types';
 import PipelineRunDetailsActions from '#~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunDetailsActions';
@@ -26,13 +27,11 @@ import PipelineRecurringRunReferenceName from '#~/concepts/pipelines/content/Pip
 import useExecutionsForPipelineRun from '#~/concepts/pipelines/content/pipelinesDetails/pipelineRun/useExecutionsForPipelineRun';
 import { useGetEventsByExecutionIds } from '#~/concepts/pipelines/apiHooks/mlmd/useGetEventsByExecutionId';
 import { PipelineTopology } from '#~/concepts/topology';
-import { FetchState } from '#~/utilities/useFetchState';
 import { PipelineRunKF } from '#~/concepts/pipelines/kfTypes';
 import PipelineNotSupported from '#~/concepts/pipelines/content/pipelinesDetails/pipeline/PipelineNotSupported';
 import { isArgoWorkflow } from '#~/concepts/pipelines/content/tables/utils';
 import { isPipelineRunRegistered } from '#~/concepts/pipelines/content/tables/pipelineRun/utils';
 import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
-import { TrackingOutcome } from '#~/concepts/analyticsTracking/trackingProperties';
 import PipelineContextBreadcrumb from '#~/concepts/pipelines/content/PipelineContextBreadcrumb';
 import { usePipelineRunArtifacts } from './artifacts';
 import { PipelineRunDetailsTabs } from './PipelineRunDetailsTabs';
@@ -76,6 +75,37 @@ const PipelineRunDetails: React.FC<
     return selectedIds ? nodes.find((n) => n.id === selectedIds[0]) : undefined;
   }, [isInvalidPipelineVersion, selectedIds, nodes]);
 
+  // Scope executions for the drawer based on the selected node's iteration context
+  const drawerExecutions = React.useMemo(() => {
+    if (selectedNode) {
+      // Check the selected node itself for iterationParentDagId (iteration group)
+      const directDagId = selectedNode.data?.pipelineTask?.iterationParentDagId;
+      if (directDagId != null) {
+        return executions.filter((e) => {
+          const parentId = e.getCustomPropertiesMap().get('parent_dag_id')?.getIntValue();
+          return parentId === directDagId;
+        });
+      }
+      // Otherwise, find the parent iteration group that contains this node as a child
+      const parentIterGroup = nodes.find(
+        (n) =>
+          n.group &&
+          n.children?.includes(selectedNode.id) &&
+          n.data?.pipelineTask?.iterationParentDagId != null,
+      );
+      if (parentIterGroup) {
+        const iterDagId = parentIterGroup.data?.pipelineTask?.iterationParentDagId;
+        if (iterDagId != null) {
+          return executions.filter((e) => {
+            const parentId = e.getCustomPropertiesMap().get('parent_dag_id')?.getIntValue();
+            return parentId === iterDagId;
+          });
+        }
+      }
+    }
+    return executions;
+  }, [executions, nodes, selectedNode]);
+
   const loaded = runLoaded && (versionLoaded || !!run?.pipeline_spec || !!versionError);
   const error = runError;
 
@@ -106,7 +136,7 @@ const PipelineRunDetails: React.FC<
       task={selectedNode.data.pipelineTask}
       upstreamTaskName={selectedNode.runAfterTasks?.[0]}
       onClose={() => setSelectedIds(undefined)}
-      executions={executions}
+      executions={drawerExecutions}
     />
   ) : null;
 

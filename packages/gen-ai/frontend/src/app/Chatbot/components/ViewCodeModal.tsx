@@ -15,6 +15,7 @@ import { CodeExportRequest, FileModel, MCPServerFromAPI, TokenInfo } from '~/app
 import { GUARDRAIL_INPUT_PROMPT, GUARDRAIL_OUTPUT_PROMPT } from '~/app/Chatbot/const';
 import { substituteTemplateVariables } from '~/app/Chatbot/promptTemplateUtils';
 import { generateMCPServerConfig, getLlamaModelDisplayName } from '~/app/utilities';
+import useDarkMode from '~/app/Chatbot/hooks/useDarkMode';
 import useFetchVectorStores from '~/app/hooks/useFetchVectorStores';
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
@@ -70,6 +71,7 @@ const CodePanel: React.FC<CodePanelProps> = ({
   const { aiModels } = React.useContext(ChatbotContext);
   const model = useChatbotConfigStore(selectSelectedModel(configId));
   const displayName = getLlamaModelDisplayName(model, aiModels) || model;
+  const isDarkMode = useDarkMode();
 
   return (
     <div
@@ -103,6 +105,7 @@ const CodePanel: React.FC<CodePanelProps> = ({
           isCopyEnabled
           code={code}
           isLanguageLabelVisible
+          isDarkTheme={isDarkMode}
           language={Language.python}
           height="400px"
           isReadOnly
@@ -124,6 +127,7 @@ const ViewCodeModal: React.FunctionComponent<ViewCodeModalProps> = ({
   // Get all config IDs from store
   const configIds = useChatbotConfigStore(selectConfigIds);
   const isCompareMode = configIds.length > 1;
+  const isDarkMode = useDarkMode();
 
   // Dynamic state for each config's code export
   const [codeStates, setCodeStates] = React.useState<Record<string, ConfigCodeState | undefined>>(
@@ -362,6 +366,7 @@ const ViewCodeModal: React.FunctionComponent<ViewCodeModalProps> = ({
                 isCopyEnabled
                 code={state.code}
                 isLanguageLabelVisible
+                isDarkTheme={isDarkMode}
                 language={Language.python}
                 height="400px"
                 isReadOnly

@@ -1,15 +1,15 @@
 import { renderHook } from '@testing-library/react';
-import { IntegrationAppStatus } from '#~/types';
+import type { IntegrationAppStatus } from '@odh-dashboard/plugin-core/integrations';
 import { useComponentIntegrationsStatus } from '#~/concepts/integrations/useComponentIntegrationsStatus';
 
 // Mock dependencies
-jest.mock('#~/utilities/useFetch');
+jest.mock('@odh-dashboard/ui-core/hooks/useFetch');
 jest.mock('#~/services/componentsServices');
 jest.mock('#~/services/integrationAppService');
 jest.mock('#~/utilities/utils.ts');
 jest.mock('#~/redux/hooks');
 
-const mockUseFetch = jest.requireMock('#~/utilities/useFetch').default;
+const mockUseFetch = jest.requireMock('@odh-dashboard/ui-core/hooks/useFetch').default;
 const mockFetchComponents = jest.requireMock('#~/services/componentsServices').fetchComponents;
 const mockGetIntegrationAppEnablementStatus = jest.requireMock(
   '#~/services/integrationAppService',

@@ -1,4 +1,8 @@
 import { PaginationParams } from './modelCatalogTypes';
+import { ModelRegistryCustomPropertyInt, ModelRegistryCustomPropertyDouble, ModelRegistryCustomPropertyString, ModelRegistryCustomPropertyBool, ModelRegistryMetadataType } from './types';
+export { ModelRegistryMetadataType as MetadataType } from './types';
+export type MetadataProperty = ModelRegistryCustomPropertyInt | ModelRegistryCustomPropertyDouble | ModelRegistryCustomPropertyString | ModelRegistryCustomPropertyBool;
+export type McpCustomProperties = Record<string, MetadataProperty>;
 export type McpDeploymentMode = 'local' | 'remote';
 export type McpTransportType = 'stdio' | 'sse' | 'http';
 export type McpToolAccessType = 'read_only' | 'read_write' | 'execute';
@@ -137,6 +141,7 @@ export type McpServer = {
     deploymentMode?: McpDeploymentMode;
     endpoints?: McpEndpoints;
     runtimeMetadata?: McpRuntimeMetadata;
+    customProperties?: McpCustomProperties;
 };
 export type McpServerList = PaginationParams & {
     items?: McpServer[];

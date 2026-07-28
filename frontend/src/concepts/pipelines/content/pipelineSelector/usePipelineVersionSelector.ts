@@ -1,3 +1,4 @@
+import { FetchState } from '@odh-dashboard/ui-core/hooks/useFetchState';
 import {
   useSelectorSearch,
   UseSelectorSearchValue,
@@ -14,7 +15,6 @@ import {
 } from '#~/concepts/pipelines/content/tables/usePipelineTable';
 import { PipelineCoreResourceKF, PipelineVersionKF } from '#~/concepts/pipelines/kfTypes';
 import { PipelineListPaged } from '#~/concepts/pipelines/types';
-import { FetchState } from '#~/utilities/useFetchState';
 
 type UseLoadMoreFunc<T> = [T[], () => Promise<void>];
 type UsePipelineSelectorData<DataType> = {

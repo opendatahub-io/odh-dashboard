@@ -1,0 +1,11 @@
+export type CollectionNameMap = Record<string, string>;
+export type UseCollectionNameMapResult = {
+    collectionNameMap: CollectionNameMap;
+    loaded: boolean;
+};
+/**
+ * Returns a lookup map of collection resource ID → display name, derived from
+ * the shared CollectionsContext. No additional network request is made; the
+ * context fetch is shared with useCollections on the same page tree.
+ */
+export declare const useCollectionNameMap: () => UseCollectionNameMapResult;

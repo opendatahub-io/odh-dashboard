@@ -20,7 +20,7 @@
     "endpoint": "/v1/chat/completions",
     "model": "models/gemini-2.5-flash",
     "provider_metadata": {
-      "openai_sdk_version": "2.41.1"
+      "openai_sdk_version": "2.45.0"
     }
   },
   "response": {
@@ -32,7 +32,7 @@
           "choices": [
             {
               "delta": {
-                "content": "The best first message depends entirely on the **context** of the conversation, your **relationship** with the person, and your **goal**.\n\nHere are various examples categorized by common",
+                "content": "The best \"first message\" depends entirely on the **context**! Who are you messaging, why, and on what platform?\n\nTo give you the",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -50,9 +50,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 36,
+            "completion_tokens": 31,
             "prompt_tokens": 5,
-            "total_tokens": 1249,
+            "total_tokens": 1002,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -65,7 +65,7 @@
           "choices": [
             {
               "delta": {
-                "content": " scenarios:\n\n---\n\n### 1. **Casual/Social (Friends, Acquaintances, Family)**\n\n*   **Simple Check-in:**\n    *   \"Hey [Name], how are you doing?\"\n    *",
+                "content": " best advice, please tell me:\n\n1.  **Who are you messaging?** (e.g., a new acquaintance, an old friend, a potential date, a colleague, customer service, someone you admire)\n2.  ",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -83,9 +83,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 85,
+            "completion_tokens": 79,
             "prompt_tokens": 5,
-            "total_tokens": 1298,
+            "total_tokens": 1050,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -98,7 +98,7 @@
           "choices": [
             {
               "delta": {
-                "content": "   \"Hi! Hope you're having a good day.\"\n    *   \"What's up, [Name]?\"\n*   **With a specific context:**\n    *   \"Hey, just saw that [movie",
+                "content": "**What is your goal?** (e.g., to flirt, to ask a question, to network, to reconnect, to make a sale, to apologize)\n3.  **What platform are you on?** (e",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -116,9 +116,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 132,
+            "completion_tokens": 127,
             "prompt_tokens": 5,
-            "total_tokens": 1345,
+            "total_tokens": 1098,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -131,7 +131,7 @@
           "choices": [
             {
               "delta": {
-                "content": "/show/news] and it reminded me of you. Did you see it?\"\n    *   \"Hi [Name]! Long time no talk. How have things been?\"\n    *   \"Hey, I was just thinking about [event",
+                "content": ".g., dating app, LinkedIn, Instagram DM, email, text message, Discord)\n\n---\n\n**However, here are some general principles for a good first message, applicable in most scenarios:**\n\n1.  **Context is King:** Reference",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -149,9 +149,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 183,
+            "completion_tokens": 177,
             "prompt_tokens": 5,
-            "total_tokens": 1396,
+            "total_tokens": 1148,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -164,7 +164,7 @@
           "choices": [
             {
               "delta": {
-                "content": "/memory] and smiled. How's life treating you?\"\n*   **Asking for a quick favor/info:**\n    *   \"Hey, quick question about [topic] when you have a moment.\"\n    *   ",
+                "content": " *how* you know them, *where* you encountered them, or *why* you're reaching out. This immediately establishes relevance.\n2.  **Be Clear & Concise:** Get to the point without writing an essay. People",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -182,9 +182,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 230,
+            "completion_tokens": 226,
             "prompt_tokens": 5,
-            "total_tokens": 1443,
+            "total_tokens": 1197,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -197,7 +197,7 @@
           "choices": [
             {
               "delta": {
-                "content": "\"Hi! Do you happen to know [piece of information]?\"\n\n---\n\n### 2. **Professional (Work, Networking, New Contact)**\n\n*   **To a colleague/peer you know:**\n    *   \"Hi",
+                "content": " are busy.\n3.  **Personalize It:** Avoid generic greetings. Mention something specific about their profile, a shared interest, a recent event, or something unique to them.\n4.  **Friendly & Appropriate Tone:** Match the tone",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -215,9 +215,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 279,
+            "completion_tokens": 276,
             "prompt_tokens": 5,
-            "total_tokens": 1492,
+            "total_tokens": 1247,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -230,7 +230,7 @@
           "choices": [
             {
               "delta": {
-                "content": " [Name], hope you're having a productive day. Quick question about [project/topic].\"\n    *   \"Morning [Name]! Just wanted to follow up on [previous discussion/email].\"\n*   **To a new",
+                "content": " to the relationship and platform (e.g., casual for a friend, professional for a colleague).\n5.  **Include an Open-Ended Question or Clear Call to Action:** This makes it easy for them to reply. Avoid yes/no",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -248,9 +248,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 328,
+            "completion_tokens": 326,
             "prompt_tokens": 5,
-            "total_tokens": 1541,
+            "total_tokens": 1297,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -263,7 +263,7 @@
           "choices": [
             {
               "delta": {
-                "content": " contact/networking (LinkedIn, after an event):**\n    *   \"Hello [Name], I'm [Your Name] from [Your Company/Event]. It was great connecting with you at [Event Name]/I enjoyed your post",
+                "content": " questions if you want to encourage conversation.\n6.  **Proofread:** Typos make a bad first impression.\n\n---\n\n**Example Templates (Choose based on your situation):**\n\n**1. On a Dating App:**\n    ",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -281,9 +281,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 377,
+            "completion_tokens": 373,
             "prompt_tokens": 5,
-            "total_tokens": 1590,
+            "total_tokens": 1344,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -296,7 +296,7 @@
           "choices": [
             {
               "delta": {
-                "content": " about [Topic].\"\n    *   \"Hi [Name], I'm reaching out because I saw your work on [Project/Company] and was really impressed. I'd love to learn more about [Specific Area].\"\n*",
+                "content": "*   \"Hey [Name], your photo from [location/activity] caught my eye \u2013 looks like you had a great time! What's your favorite thing about [that activity/place]?\"\n    *   \"Hi [Name], I",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -314,9 +314,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 425,
+            "completion_tokens": 424,
             "prompt_tokens": 5,
-            "total_tokens": 1638,
+            "total_tokens": 1395,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -329,7 +329,7 @@
           "choices": [
             {
               "delta": {
-                "content": "   **Requesting information/meeting from someone you don't know well:**\n    *   \"Dear [Name], My name is [Your Name] and I'm a [Your Title] at [Your Company]. I'm reaching",
+                "content": " noticed you're into [specific interest mentioned in profile]. I'm a big fan of [related thing] too! Any recommendations for [something related]?\"\n    *   \"Hey! Just saw you mentioned [book/movie/band",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -349,7 +349,7 @@
           "usage": {
             "completion_tokens": 474,
             "prompt_tokens": 5,
-            "total_tokens": 1687,
+            "total_tokens": 1445,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -362,7 +362,7 @@
           "choices": [
             {
               "delta": {
-                "content": " out regarding [Reason for contact] and was hoping to schedule a brief call/meeting.\"\n\n---\n\n### 3. **Dating Apps (or meeting new people online)**\n\n*   **Referencing their profile (best approach):**\n    ",
+                "content": "]. Love that one! What other [category] have you been enjoying lately?\"\n\n**2. Professional/Networking (LinkedIn, Email):**\n    *   \"Hi [Name], I hope you're having a good week. I",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -382,7 +382,7 @@
           "usage": {
             "completion_tokens": 523,
             "prompt_tokens": 5,
-            "total_tokens": 1736,
+            "total_tokens": 1494,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -395,7 +395,7 @@
           "choices": [
             {
               "delta": {
-                "content": "*   \"Hey [Name]! Your photos from [Location] look amazing \u2013 did you have a good time there?\"\n    *   \"Hi there! I saw you're into [Hobby] \u2013 what's your favorite part about",
+                "content": " came across your profile/article about [specific topic] and was really impressed by [specific detail]. I'm particularly interested in [your area of interest] and would love to hear your insights on [a specific question].\"\n    *   \"",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -413,9 +413,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 574,
+            "completion_tokens": 573,
             "prompt_tokens": 5,
-            "total_tokens": 1787,
+            "total_tokens": 1544,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -428,7 +428,7 @@
           "choices": [
             {
               "delta": {
-                "content": " it?\"\n    *   \"Your bio mentioned [Specific Interest], I'm a big fan of that too! What's your go-to [related item]?\"\n*   **A bit more playful/creative:**\n    ",
+                "content": "Dear [Name], My name is [Your Name] and I'm a [Your Role] at [Your Company]. I'm reaching out because I saw your post about [topic] and wanted to connect as I'm also",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -448,7 +448,7 @@
           "usage": {
             "completion_tokens": 621,
             "prompt_tokens": 5,
-            "total_tokens": 1834,
+            "total_tokens": 1592,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -461,7 +461,7 @@
           "choices": [
             {
               "delta": {
-                "content": "*   \"Okay, so what's your most controversial opinion about [random topic]?\"\n    *   \"I'm terrible at opening lines, but I really wanted to say hi. How's your [day of week]",
+                "content": " working on [related project/goal]. Would you be open to a brief chat sometime next week?\"\n\n**3. Connecting with Someone You Met Briefly:**\n    *   \"Hey [Name], it was great meeting you at [event/",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -481,7 +481,7 @@
           "usage": {
             "completion_tokens": 670,
             "prompt_tokens": 5,
-            "total_tokens": 1883,
+            "total_tokens": 1641,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -494,7 +494,7 @@
           "choices": [
             {
               "delta": {
-                "content": " going?\"\n*   **Avoid:** Just \"Hey,\" \"Hello,\" \"Hi,\" \"How are you?\" (unless it's paired with something else, as it's too generic and doesn't invite engagement).\n\n---\n\n",
+                "content": "place] the other day! I really enjoyed our conversation about [specific topic]. Hope you're having a good week!\" (Add a question if you want to continue the convo: \"Did you ever get around to [doing X] after",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -512,9 +512,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 718,
+            "completion_tokens": 719,
             "prompt_tokens": 5,
-            "total_tokens": 1931,
+            "total_tokens": 1690,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -527,7 +527,7 @@
           "choices": [
             {
               "delta": {
-                "content": "### 4. **Asking for Help/Advice**\n\n*   \"Hi [Name], hope you're well! I was wondering if you might have a moment to give me some advice on [topic]?\"\n*   \"Hey",
+                "content": " we talked?\")\n\n**4. Social Media DM (Casual/Admiration):**\n    *   \"Hey [Name]! Just wanted to say I really love your [art/photos/content] \u2013 it's always",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -547,7 +547,7 @@
           "usage": {
             "completion_tokens": 767,
             "prompt_tokens": 5,
-            "total_tokens": 1980,
+            "total_tokens": 1738,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -560,7 +560,7 @@
           "choices": [
             {
               "delta": {
-                "content": " [Name], I'm stuck on [problem] and thought you might be the best person to ask. Do you have any insights?\"\n*   \"Hello [Name], I'm looking for a recommendation for [type of service/product",
+                "content": " so [adjective]! Keep up the great work!\" (No expectation of reply, just a compliment.)\n    *   \"Hi [Name], awesome [story/post] about [topic]! I completely agree with your point about [specific",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -578,9 +578,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 817,
+            "completion_tokens": 818,
             "prompt_tokens": 5,
-            "total_tokens": 2030,
+            "total_tokens": 1789,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -593,7 +593,7 @@
           "choices": [
             {
               "delta": {
-                "content": "]. Do you happen to know anyone/any place good?\"\n\n---\n\n### 5. **Group Chat**\n\n*   **General Announcement:**\n    *   \"Hey everyone! Quick update on [topic]: [info].\"\n    *",
+                "content": " point]. So true!\"\n\n**5. Reaching out to an Old Friend:**\n    *   \"Hey [Name]! Random thought, but I was just thinking about [shared memory/inside joke] the other day and it",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -611,9 +611,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 867,
+            "completion_tokens": 866,
             "prompt_tokens": 5,
-            "total_tokens": 2080,
+            "total_tokens": 1837,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -626,7 +626,7 @@
           "choices": [
             {
               "delta": {
-                "content": "   \"Hi team, just wanted to share [link/document].\"\n*   **Question to the group:**\n    *   \"Hey all, quick question \u2013 has anyone had experience with [topic]?\"\n    *   \"Morning",
+                "content": " made me smile. How have you been? Would love to catch up sometime!\"\n\n---\n\n**What to Avoid:**\n\n*   **Generic \"Hey\" or \"How are you?\"** (unless it's an existing close relationship)\n*",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -644,9 +644,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 915,
+            "completion_tokens": 917,
             "prompt_tokens": 5,
-            "total_tokens": 2128,
+            "total_tokens": 1888,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -659,7 +659,7 @@
           "choices": [
             {
               "delta": {
-                "content": " everyone! What are we thinking about [plan/event]?\"\n\n---\n\n### Key Principles for a Good First Message:\n\n1.  **Be Clear:** State your purpose or intention clearly, even if it's just to say",
+                "content": "   **Overly familiar or demanding language.**\n*   **Excessive emojis or slang** (unless appropriate for the context).\n*   **Spammy or salesy pitches** in a first message (unless it's a cold",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -677,9 +677,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 963,
+            "completion_tokens": 965,
             "prompt_tokens": 5,
-            "total_tokens": 2176,
+            "total_tokens": 1936,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -692,106 +692,7 @@
           "choices": [
             {
               "delta": {
-                "content": " hello.\n2.  **Be Concise:** Get to the point without unnecessary fluff.\n3.  **Personalize It:** If you know the person, use their name. If it's a new contact, reference something specific (",
-                "function_call": null,
-                "refusal": null,
-                "role": "assistant",
-                "tool_calls": null
-              },
-              "finish_reason": null,
-              "index": 0,
-              "logprobs": null
-            }
-          ],
-          "created": 0,
-          "model": "models/gemini-2.5-flash",
-          "object": "chat.completion.chunk",
-          "moderation": null,
-          "service_tier": null,
-          "system_fingerprint": null,
-          "usage": {
-            "completion_tokens": 1012,
-            "prompt_tokens": 5,
-            "total_tokens": 2225,
-            "completion_tokens_details": null,
-            "prompt_tokens_details": null
-          }
-        }
-      },
-      {
-        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
-        "__data__": {
-          "id": "rec-7f5ebfb8ef6a",
-          "choices": [
-            {
-              "delta": {
-                "content": "their profile, a shared event).\n4.  **Ask an Open-Ended Question:** If you want a reply, give them something easy to respond to. Avoid yes/no questions if you want to foster a conversation.\n5",
-                "function_call": null,
-                "refusal": null,
-                "role": "assistant",
-                "tool_calls": null
-              },
-              "finish_reason": null,
-              "index": 0,
-              "logprobs": null
-            }
-          ],
-          "created": 0,
-          "model": "models/gemini-2.5-flash",
-          "object": "chat.completion.chunk",
-          "moderation": null,
-          "service_tier": null,
-          "system_fingerprint": null,
-          "usage": {
-            "completion_tokens": 1060,
-            "prompt_tokens": 5,
-            "total_tokens": 2273,
-            "completion_tokens_details": null,
-            "prompt_tokens_details": null
-          }
-        }
-      },
-      {
-        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
-        "__data__": {
-          "id": "rec-7f5ebfb8ef6a",
-          "choices": [
-            {
-              "delta": {
-                "content": ".  **Consider the Platform:** LinkedIn is more formal than WhatsApp. Instagram DMs are different from a text message.\n6.  **Proofread:** A quick check for typos makes a good impression.\n\nChoose the one that best fits your",
-                "function_call": null,
-                "refusal": null,
-                "role": "assistant",
-                "tool_calls": null
-              },
-              "finish_reason": null,
-              "index": 0,
-              "logprobs": null
-            }
-          ],
-          "created": 0,
-          "model": "models/gemini-2.5-flash",
-          "object": "chat.completion.chunk",
-          "moderation": null,
-          "service_tier": null,
-          "system_fingerprint": null,
-          "usage": {
-            "completion_tokens": 1110,
-            "prompt_tokens": 5,
-            "total_tokens": 2323,
-            "completion_tokens_details": null,
-            "prompt_tokens_details": null
-          }
-        }
-      },
-      {
-        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
-        "__data__": {
-          "id": "rec-7f5ebfb8ef6a",
-          "choices": [
-            {
-              "delta": {
-                "content": " situation!",
+                "content": " sales email, which is a different strategy).\n*   **Being negative or complaining.**\n\nTell me your specific situation, and I can give you a tailored message!",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -809,9 +710,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 1112,
+            "completion_tokens": 999,
             "prompt_tokens": 5,
-            "total_tokens": 2325,
+            "total_tokens": 1970,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }

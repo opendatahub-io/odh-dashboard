@@ -1,7 +1,10 @@
 import type { PersistentVolumeClaimKind } from '@odh-dashboard/k8s-core';
+import {
+  convertToUnit,
+  formatMemory,
+  MEMORY_UNITS_FOR_PARSING,
+} from '@odh-dashboard/ui-core/utilities/valueUnits';
 import { bytesAsPreciseGiB } from '#~/utilities/number';
-import { convertToUnit, formatMemory, MEMORY_UNITS_FOR_PARSING } from '#~/utilities/valueUnits';
-import { AccessMode } from '#~/pages/storageClasses/storageEnums';
 import { NotebookState } from './notebook/types';
 
 export const getNotebookStatusPriority = (notebookState: NotebookState): number =>
@@ -59,6 +62,3 @@ export const getPvcPercentageUsed = (
 
   return Number(((bytesAsPreciseGiB(inUseInBytes) / capacityGiB) * 100).toFixed(2));
 };
-
-export const getPvcAccessMode = (pvc: PersistentVolumeClaimKind): AccessMode =>
-  pvc.spec.accessModes[0];

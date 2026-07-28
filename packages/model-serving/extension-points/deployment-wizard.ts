@@ -1,6 +1,8 @@
 import type { CodeRef, Extension } from '@openshift/dynamic-plugin-sdk';
-import type { CrPathConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/types';
-import type { useHardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/useHardwareProfileConfig';
+import type {
+  CrPathConfig,
+  useHardwareProfileConfig,
+} from '@odh-dashboard/hardware-profiles/shared';
 import type { SupportedModelFormats } from '@odh-dashboard/k8s-core';
 import type { Deployment, ExtractionResult } from './index';
 import type {
@@ -9,9 +11,8 @@ import type {
   DeploymentWizardFieldOverride,
   WizardField,
   ModelLocationData,
-} from '../src/components/deploymentWizard/types';
-import type { ModelTypeFieldData } from '../src/components/deploymentWizard/fields/ModelTypeSelectField';
-import type { ModelServerSelectFieldData } from '../src/components/deploymentWizard/fields/ModelServerTemplateSelectField';
+} from '../src/shared/types/form-data';
+import type { ModelTypeFieldData, ModelServerSelectFieldData } from '../src/shared/wizard-fields';
 
 export type ModelServingDeploymentFormDataExtension<D extends Deployment = Deployment> = Extension<
   'model-serving.deployment/form-data',

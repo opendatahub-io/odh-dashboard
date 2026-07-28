@@ -18,6 +18,7 @@ import (
 	"github.com/openai/openai-go/v2/responses"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	nemo "github.com/opendatahub-io/gen-ai/internal/integrations/nemo"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
 
 // LlamaStackClient wraps the OpenAI client for Llama Stack communication.
@@ -41,9 +42,9 @@ func NewLlamaStackClient(baseURL string, authToken string, insecureSkipVerify bo
 	}
 
 	httpClient := &http.Client{
-		Transport: &http.Transport{
+		Transport: otelhttp.NewTransport(&http.Transport{
 			TLSClientConfig: tlsConfig,
-		},
+		}),
 		Timeout: 8 * time.Minute, // Overall request timeout (matches server WriteTimeout)
 	}
 

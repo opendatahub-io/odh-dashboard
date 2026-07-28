@@ -2,6 +2,11 @@ import * as React from 'react';
 import { Flex, Popover, Stack, StackItem, Title } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { DashboardPopupIconButton } from '@odh-dashboard/ui-core';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import {
+  FEATURE_STORE_EVENTS,
+  HelpViewedProperties,
+} from '../../tracking/featureStoreTrackingConstants';
 
 type FeatureStoreInfoTooltipProps = {
   wrap?: boolean;
@@ -22,6 +27,12 @@ const FeatureStoreInfoTooltip: React.FC<FeatureStoreInfoTooltipProps> = ({
     >
       <Popover
         position="top"
+        onShow={() => {
+          fireMiscTrackingEvent(FEATURE_STORE_EVENTS.HELP_VIEWED, {
+            helpType: 'columnInfo',
+            pageType: 'detail',
+          } satisfies HelpViewedProperties);
+        }}
         bodyContent={
           <Stack hasGutter>
             {title && (

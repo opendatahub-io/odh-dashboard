@@ -1,9 +1,14 @@
 package k8mocks
 
 import (
+	"context"
+	"fmt"
 	"log/slog"
 
 	k8s "github.com/opendatahub-io/maas-library/bff/internal/integrations/kubernetes"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -16,13 +21,14 @@ type TokenKubernetesClientMock struct {
 	*k8s.TokenKubernetesClient
 }
 
-func newMockedTokenKubernetesClientFromClientset(clientset kubernetes.Interface, logger *slog.Logger) k8s.KubernetesClientInterface {
+func newMockedTokenKubernetesClientFromClientset(clientset kubernetes.Interface, dynamicClient dynamic.Interface, logger *slog.Logger) k8s.KubernetesClientInterface {
 	return &TokenKubernetesClientMock{
 		TokenKubernetesClient: &k8s.TokenKubernetesClient{
 			SharedClientLogic: k8s.SharedClientLogic{
-				Client: clientset,
-				Logger: logger,
-				Token:  k8s.NewBearerToken(""), // Unused because impersonation is already handled in the client config
+				Client:        clientset,
+				DynamicClient: dynamicClient,
+				Logger:        logger,
+				Token:         k8s.NewBearerToken(""), // Unused because impersonation is already handled in the client config
 			},
 		},
 	}
@@ -30,6 +36,15 @@ func newMockedTokenKubernetesClientFromClientset(clientset kubernetes.Interface,
 
 // GetServiceDetails overrides to simulate ClusterIP for localhost access
 // Client service discovery removed in minimal starter.
+
+// GetNamespaces lists namespaces from the envtest cluster.
+func (m *TokenKubernetesClientMock) GetNamespaces(ctx context.Context, identity *k8s.RequestIdentity) ([]corev1.Namespace, error) {
+	nsList, err := m.Client.CoreV1().Namespaces().List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to list namespaces: %w", err)
+	}
+	return nsList.Items, nil
+}
 
 // BearerToken always returns a fake token for tests
 func (m *TokenKubernetesClientMock) BearerToken() (string, error) {

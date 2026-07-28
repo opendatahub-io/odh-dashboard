@@ -68,6 +68,7 @@ const ModelGroupRow: React.FC<{
                     <Tr key={sub.subscriptionIdHeader} data-testid="model-subscription-row">
                       <Td dataLabel="Subscription">
                         <Link
+                          data-testid={`subscription-detail-link-${sub.subscriptionIdHeader}`}
                           to={`${URL_PREFIX}/keys-and-subs/subscriptions/${sub.subscriptionIdHeader}`}
                         >
                           {sub.displayName || sub.subscriptionIdHeader}

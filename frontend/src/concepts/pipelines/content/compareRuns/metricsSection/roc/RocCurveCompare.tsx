@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Bullseye, Flex, Spinner, Split, SplitItem, Content } from '@patternfly/react-core';
-import DashboardHelpTooltip from '#~/concepts/dashboard/DashboardHelpTooltip';
+import DashboardHelpTooltip from '@odh-dashboard/ui-core/components/DashboardHelpTooltip';
 import { useCheckboxTableBase } from '#~/components/table';
 import ROCCurve from '#~/concepts/pipelines/content/artifacts/charts/ROCCurve';
 import { RunArtifact } from '#~/concepts/pipelines/apiHooks/mlmd/types';

@@ -181,3 +181,9 @@ export type OgxCredentials = {
   baseUrl: string;
   apiKey: string;
 };
+
+export type EvaluationFileEntry = {
+  question: string;
+  correct_answers: string[];
+  correct_answer_document_ids: string[];
+};

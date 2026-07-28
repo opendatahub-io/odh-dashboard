@@ -1,13 +1,13 @@
 import * as React from 'react';
 import { Button, Tooltip } from '@patternfly/react-core';
 import { useParams } from 'react-router-dom';
-import { ModelServingContext } from '#~/pages/modelServing/ModelServingContext';
 import {
   getSortedTemplates,
   getTemplateEnabled,
   getTemplateEnabledForPlatform,
-} from '#~/pages/modelServing/customServingRuntimes/utils';
-import { ServingRuntimePlatform } from '#~/types';
+  ServingRuntimePlatform,
+} from '@odh-dashboard/model-serving/shared';
+import { ModelServingContext } from '#~/pages/modelServing/ModelServingContext';
 import { getProjectModelServingPlatform } from '#~/pages/modelServing/screens/projects/utils';
 import ManageKServeModal from '#~/pages/modelServing/screens/projects/kServeModal/ManageKServeModal';
 import { byName, ProjectsContext } from '#~/concepts/projects/ProjectsContext';

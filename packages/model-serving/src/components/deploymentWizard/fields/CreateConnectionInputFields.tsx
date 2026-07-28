@@ -5,10 +5,10 @@ import { z } from 'zod';
 import { DashboardPopupIconButton } from '@odh-dashboard/ui-core';
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
-} from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
+} from '@odh-dashboard/ui-core/components/K8sNameDescriptionField';
 import { isGeneratedSecretName, translateDisplayNameForK8s } from '@odh-dashboard/k8s-core';
 import type { K8sNameDescriptionFieldData } from '@odh-dashboard/k8s-core';
-import { ModelLocationData, ModelLocationType } from '../types';
+import { ModelLocationData, ModelLocationType } from '../../../shared/types/form-data';
 
 export type CreateConnectionData = {
   saveConnection?: boolean;

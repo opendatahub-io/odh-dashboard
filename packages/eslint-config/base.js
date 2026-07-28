@@ -66,12 +66,13 @@ module.exports = {
             group: ['@patternfly/react-core'],
             importNames: ['Select'],
             message:
-              "Import 'SimpleSelect', 'MultiSelection' or 'TypeaheadSelect' from '#~/components' instead.",
+              "Import 'SimpleSelect' from '@odh-dashboard/ui-core/components/SimpleSelect', 'MultiSelection' from '@odh-dashboard/ui-core/components/MultiSelection', or 'TypeaheadSelect' from '@odh-dashboard/ui-core/components/TypeaheadSelect' instead.",
           },
           {
             group: ['@patternfly/react-core'],
             importNames: ['NumberInput'],
-            message: "Import 'NumberInputWrapper' from '#~/components' instead.",
+            message:
+              "Import 'NumberInputWrapper' from '@odh-dashboard/ui-core/components/NumberInputWrapper' instead.",
           },
         ],
       },

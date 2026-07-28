@@ -1,9 +1,6 @@
 import { renderHook } from '@odh-dashboard/jest-config/hooks';
-import { KnownLabels } from '@odh-dashboard/k8s-core';
-import {
-  ConnectionTypeConfigMapObj,
-  ConnectionTypeFieldType,
-} from '@odh-dashboard/internal/concepts/connectionTypes/types';
+import { KnownLabels, ConnectionTypeFieldType } from '@odh-dashboard/k8s-core';
+import type { ConnectionTypeConfigMapObj } from '@odh-dashboard/k8s-core';
 import { useEnabledModelServingConnectionTypes } from '../useEnabledConnectionTypes';
 
 const createMockConnectionType = (

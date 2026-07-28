@@ -1,4 +1,4 @@
-import { ServingRuntimeKind } from '#~/k8sTypes';
+import type { ServingRuntimeKind } from '@odh-dashboard/model-serving/shared';
 import { fetchInferenceServiceCount } from '#~/pages/modelServing/screens/projects/utils';
 import { deletePvc, deleteSecret, listNIMAccounts, listServingRuntimes, getPvc } from '#~/api';
 import {

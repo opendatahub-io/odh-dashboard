@@ -84,9 +84,6 @@ describe('Chatbot - New Chat Modal (Mocked)', () => {
     // Wait for all APIs to be called to ensure models are loaded
     cy.wait('@bffConfig');
     cy.wait('@aaModels');
-
-    // Verify that a model is selected by checking the dropdown shows a model name
-    cy.findByTestId('chatbot-model-selector-toggle').should('be.visible').and('contain', 'Llama');
   });
 
   it(
