@@ -230,6 +230,8 @@ func (r *MLflowPromptsRepository) DeletePromptVersion(ctx context.Context, name 
 }
 
 // toMLflowPromptModelConfig converts an SDK PromptModelConfig to a BFF model.
+// Only provider and model_name are mapped; the remaining SDK fields (temperature,
+// max_tokens, top_p, etc.) are not needed for the prompt table display.
 func toMLflowPromptModelConfig(mc *promptregistry.PromptModelConfig) *models.MLflowPromptModelConfig {
 	if mc == nil {
 		return nil

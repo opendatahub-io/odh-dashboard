@@ -310,11 +310,11 @@ describe('PromptTable', () => {
     render(<PromptTable {...defaultProps} />);
 
     const modelCell = screen.getByTestId('prompt-model-name');
-    // PatternFly Truncate component will handle overflow detection automatically
     expect(modelCell).toHaveTextContent(longModelName);
+    expect(modelCell.querySelector('[class*="truncate"]')).toBeInTheDocument();
   });
 
-  it('should render model names with PatternFly Truncate component regardless of length', () => {
+  it('should render model names with Truncate component regardless of length', () => {
     const exactModelName = 'a'.repeat(50);
     const promptsWithExactModel: MLflowPrompt[] = [
       {
@@ -339,7 +339,7 @@ describe('PromptTable', () => {
 
     const modelCell = screen.getByTestId('prompt-model-name');
     expect(modelCell).toHaveTextContent(exactModelName);
-    // PatternFly Truncate component handles overflow detection based on actual layout, not character count
+    expect(modelCell.querySelector('[class*="truncate"]')).toBeInTheDocument();
   });
 
   it('should display "Not specified" when model_config is present but model_name is missing', () => {

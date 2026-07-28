@@ -2716,6 +2716,7 @@ components:
 
     MLflowPromptModelConfig:
       type: object
+      description: Optional model configuration for the prompt
       properties:
         provider:
           type: string
@@ -2749,7 +2750,6 @@ components:
           example: 2
         model_config:
           $ref: '#/components/schemas/MLflowPromptModelConfig'
-          description: Optional model configuration for the prompt
         tags:
           type: object
           additionalProperties:
