@@ -202,7 +202,7 @@ func validateInsecureSkipVerify(insecureSkipVerify bool, allowInsecureTLSRaw, en
 
 	// Check for CI environment (normalize to handle "true", "1", "yes", case variants, whitespace)
 	ciValue := strings.ToLower(strings.TrimSpace(ci))
-	isCI := ciValue == "true" || ciValue == "1" || ciValue == "yes"
+	isCI := ciValue == "true" || ciValue == "1" || ciValue == "yes" || ciValue == "on"
 
 	// Check production/staging/CI environments FIRST - reject regardless of ALLOW_INSECURE_TLS
 	if normalizedEnv == "prod" || normalizedEnv == "production" || normalizedEnv == "staging" || isCI {
