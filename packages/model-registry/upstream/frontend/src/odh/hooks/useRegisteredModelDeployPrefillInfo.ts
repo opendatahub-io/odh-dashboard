@@ -1,22 +1,11 @@
 import React from 'react';
+import type { ModelDeployPrefillInfo } from '@odh-dashboard/model-registry/shared';
 import { ModelVersion, RegisteredModel } from '~/app/types';
+import { modelVersionDeploymentsUrl } from '~/app/pages/modelRegistry/screens/routeUtils';
 import { useModelArtifactsByVersionId, useRegisteredModelById } from '~/odh/api';
 import { uriToConnectionTypeName } from '~/odh/utils';
-import { modelVersionDeploymentsUrl } from '~/app/pages/modelRegistry/screens/routeUtils';
 
-export type ModelDeployPrefillInfo = {
-  modelName: string;
-  modelFormat?: string;
-  modelArtifactUri?: string;
-  connectionTypeName?: string;
-  initialConnectionName?: string;
-  modelRegistryInfo?: {
-    modelVersionId?: string;
-    registeredModelId?: string;
-    mrName?: string;
-  };
-  returnRoute?: string;
-};
+export type { ModelDeployPrefillInfo } from '@odh-dashboard/model-registry/shared';
 
 const useRegisteredModelDeployPrefillInfo = (
   modelVersion: ModelVersion,
