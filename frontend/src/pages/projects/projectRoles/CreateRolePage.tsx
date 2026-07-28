@@ -3,7 +3,6 @@ import {
   Breadcrumb,
   BreadcrumbItem,
   Bullseye,
-  Button,
   Flex,
   PageSection,
   Spinner,
@@ -131,7 +130,7 @@ const CreateRolePage: React.FC<CreateRolePageProps> = ({ existingRole, duplicate
     yamlExportActionsRef.current.add(action);
   }, []);
 
-  const handleSelectTemplateClick = React.useCallback(() => {
+  const handleSelectRoleTemplate = React.useCallback(() => {
     setTemplateModal({ type: 'selectTemplate', mode: 'select' });
   }, []);
 
@@ -355,13 +354,6 @@ const CreateRolePage: React.FC<CreateRolePageProps> = ({ existingRole, duplicate
         description="Create a custom role to control what users can see and do across your cluster resources. Define permissions, navigation access, and resource scopes to implement fine-grained access control."
         headerAction={
           <Flex gap={{ default: 'gapMd' }} alignItems={{ default: 'alignItemsCenter' }}>
-            <Button
-              variant="secondary"
-              data-testid="select-role-template-button"
-              onClick={handleSelectTemplateClick}
-            >
-              Select role template
-            </Button>
             <ToggleGroup aria-label="Form or YAML view toggle" data-testid="form-yaml-toggle">
               <ToggleGroupItem
                 text="Form"
@@ -395,6 +387,7 @@ const CreateRolePage: React.FC<CreateRolePageProps> = ({ existingRole, duplicate
               rules={rules}
               onRulesChange={handleRulesChange}
               onImportTemplate={handleImportTemplateClick}
+              onSelectRoleTemplate={handleSelectRoleTemplate}
             />
           </div>
           {viewMode === 'yaml' && (
