@@ -104,29 +104,29 @@ func TestDeleteDeploymentsWithStaleSelectorLabels(t *testing.T) {
 		{
 			name: "matching selectors — no deletion",
 			existingSelector: map[string]string{
-				"app":                            "rhods-dashboard",
-				"app.kubernetes.io/part-of":      "rhods-dashboard",
-				"deployment":                     "rhods-dashboard",
+				"app":                       "rhods-dashboard",
+				"app.kubernetes.io/part-of": "rhods-dashboard",
+				"deployment":                "rhods-dashboard",
 			},
 			desiredSelector: map[string]string{
-				"app":                            "rhods-dashboard",
-				"app.kubernetes.io/part-of":      "rhods-dashboard",
-				"deployment":                     "rhods-dashboard",
+				"app":                       "rhods-dashboard",
+				"app.kubernetes.io/part-of": "rhods-dashboard",
+				"deployment":                "rhods-dashboard",
 			},
 			wantDeleted: false,
 		},
 		{
 			name: "stale label in existing — deletion required",
 			existingSelector: map[string]string{
-				"app":                                      "rhods-dashboard",
-				"app.kubernetes.io/part-of":                "rhods-dashboard",
-				"app.opendatahub.io/rhods-dashboard":       "true",
-				"deployment":                               "rhods-dashboard",
+				"app":                                "rhods-dashboard",
+				"app.kubernetes.io/part-of":          "rhods-dashboard",
+				"app.opendatahub.io/rhods-dashboard": "true",
+				"deployment":                         "rhods-dashboard",
 			},
 			desiredSelector: map[string]string{
-				"app":                            "rhods-dashboard",
-				"app.kubernetes.io/part-of":      "rhods-dashboard",
-				"deployment":                     "rhods-dashboard",
+				"app":                       "rhods-dashboard",
+				"app.kubernetes.io/part-of": "rhods-dashboard",
+				"deployment":                "rhods-dashboard",
 			},
 			wantDeleted: true,
 		},
@@ -137,9 +137,9 @@ func TestDeleteDeploymentsWithStaleSelectorLabels(t *testing.T) {
 				"deployment": "rhods-dashboard",
 			},
 			desiredSelector: map[string]string{
-				"app":                            "rhods-dashboard",
-				"app.kubernetes.io/part-of":      "rhods-dashboard",
-				"deployment":                     "rhods-dashboard",
+				"app":                       "rhods-dashboard",
+				"app.kubernetes.io/part-of": "rhods-dashboard",
+				"deployment":                "rhods-dashboard",
 			},
 			wantDeleted: true,
 		},
@@ -180,8 +180,9 @@ func TestDeleteDeploymentsWithStaleSelectorLabels(t *testing.T) {
 				makeDeploymentUnstructured("rhods-dashboard", testNamespace, tt.desiredSelector),
 			}
 
-			err := r.DeleteDeploymentsWithStaleSelectorLabels(context.Background(), resources)
+			deleted, err := r.DeleteDeploymentsWithStaleSelectorLabels(context.Background(), resources)
 			require.NoError(t, err)
+			assert.Equal(t, tt.wantDeleted, deleted, "deleted return value mismatch")
 
 			dep := &appsv1.Deployment{}
 			getErr := cli.Get(context.Background(), types.NamespacedName{
@@ -215,8 +216,9 @@ func TestDeleteDeploymentsWithStaleSelectorLabels_NoExisting(t *testing.T) {
 		makeDeploymentUnstructured("odh-dashboard", testNamespace, map[string]string{"app": "odh-dashboard"}),
 	}
 
-	err := r.DeleteDeploymentsWithStaleSelectorLabels(context.Background(), resources)
+	deleted, err := r.DeleteDeploymentsWithStaleSelectorLabels(context.Background(), resources)
 	require.NoError(t, err, "should succeed when no existing deployment exists")
+	assert.False(t, deleted, "should not report deletion when no deployment exists")
 }
 
 func TestDeleteDeploymentsWithStaleSelectorLabels_NonDeploymentIgnored(t *testing.T) {
@@ -243,8 +245,9 @@ func TestDeleteDeploymentsWithStaleSelectorLabels_NonDeploymentIgnored(t *testin
 		},
 	}
 
-	err := r.DeleteDeploymentsWithStaleSelectorLabels(context.Background(), []unstructured.Unstructured{configMap})
+	deleted, err := r.DeleteDeploymentsWithStaleSelectorLabels(context.Background(), []unstructured.Unstructured{configMap})
 	require.NoError(t, err, "non-Deployment resources should be ignored")
+	assert.False(t, deleted, "should not report deletion for non-Deployment resources")
 }
 
 func TestDeleteDeploymentsWithStaleSelectorLabels_FallbackNamespace(t *testing.T) {
@@ -285,8 +288,9 @@ func TestDeleteDeploymentsWithStaleSelectorLabels_FallbackNamespace(t *testing.T
 
 	depNoNS := makeDeploymentUnstructured("odh-dashboard", "", map[string]string{"app": "odh-dashboard"})
 
-	err := r.DeleteDeploymentsWithStaleSelectorLabels(context.Background(), []unstructured.Unstructured{depNoNS})
+	deleted, err := r.DeleteDeploymentsWithStaleSelectorLabels(context.Background(), []unstructured.Unstructured{depNoNS})
 	require.NoError(t, err)
+	assert.True(t, deleted, "should report deletion when selector labels differ")
 
 	dep := &appsv1.Deployment{}
 	getErr := cli.Get(context.Background(), types.NamespacedName{
@@ -350,8 +354,9 @@ func TestDeleteDeploymentsWithStaleSelectorLabels_MultipleDeployments(t *testing
 		makeDeploymentUnstructured("other-deployment", testNamespace, map[string]string{"app": "other"}),
 	}
 
-	err := r.DeleteDeploymentsWithStaleSelectorLabels(context.Background(), resources)
+	deleted, err := r.DeleteDeploymentsWithStaleSelectorLabels(context.Background(), resources)
 	require.NoError(t, err)
+	assert.True(t, deleted, "should report deletion when stale deployment exists")
 
 	staleResult := &appsv1.Deployment{}
 	assert.Error(t, cli.Get(context.Background(), types.NamespacedName{

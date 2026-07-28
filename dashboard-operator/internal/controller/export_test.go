@@ -21,7 +21,7 @@ var MainDashboardDeploymentName = mainDashboardDeploymentName
 
 var SelectorLabelsMatch = selectorLabelsMatch
 
-func (r *DashboardReconciler) DeleteDeploymentsWithStaleSelectorLabels(ctx context.Context, resources []unstructured.Unstructured) error {
+func (r *DashboardReconciler) DeleteDeploymentsWithStaleSelectorLabels(ctx context.Context, resources []unstructured.Unstructured) (bool, error) {
 	return r.deleteDeploymentsWithStaleSelectorLabels(ctx, resources)
 }
 

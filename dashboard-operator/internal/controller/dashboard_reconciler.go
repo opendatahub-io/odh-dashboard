@@ -274,9 +274,14 @@ func (r *DashboardReconciler) reconcileSidecar(
 		allResources = append(allResources, rendered...)
 	}
 
-	if err := r.deleteDeploymentsWithStaleSelectorLabels(ctx, allResources); err != nil {
+	staleSelectorDeleted, err := r.deleteDeploymentsWithStaleSelectorLabels(ctx, allResources)
+	if err != nil {
 		logger.Error(err, "Failed to remove Deployments with stale selector labels")
 		return ctrl.Result{}, fmt.Errorf("failed to remove stale-selector Deployments: %w", err)
+	}
+	if staleSelectorDeleted {
+		logger.Info("Requeuing after stale-selector Deployment deletion to allow finalization")
+		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 	}
 
 	deployer := deploy.NewDeployer(
@@ -383,9 +388,14 @@ func (r *DashboardReconciler) reconcileStandalone(
 		allResources = append(allResources, rendered...)
 	}
 
-	if err := r.deleteDeploymentsWithStaleSelectorLabels(ctx, allResources); err != nil {
+	staleSelectorDeleted, err := r.deleteDeploymentsWithStaleSelectorLabels(ctx, allResources)
+	if err != nil {
 		logger.Error(err, "Failed to remove Deployments with stale selector labels")
 		return ctrl.Result{}, fmt.Errorf("failed to remove stale-selector Deployments: %w", err)
+	}
+	if staleSelectorDeleted {
+		logger.Info("Requeuing after stale-selector Deployment deletion to allow finalization")
+		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 	}
 
 	deployer := deploy.NewDeployer(
@@ -590,8 +600,9 @@ func (r *DashboardReconciler) reconcileDegradedCondition(
 func (r *DashboardReconciler) deleteDeploymentsWithStaleSelectorLabels(
 	ctx context.Context,
 	resources []unstructured.Unstructured,
-) error {
+) (bool, error) {
 	logger := log.FromContext(ctx)
+	deleted := false
 
 	for i := range resources {
 		res := &resources[i]
@@ -616,7 +627,7 @@ func (r *DashboardReconciler) deleteDeploymentsWithStaleSelectorLabels(
 			if k8serrors.IsNotFound(err) {
 				continue
 			}
-			return fmt.Errorf("checking existing deployment %s/%s: %w", ns, key.Name, err)
+			return false, fmt.Errorf("checking existing deployment %s/%s: %w", ns, key.Name, err)
 		}
 
 		if existing.Spec.Selector == nil {
@@ -634,11 +645,12 @@ func (r *DashboardReconciler) deleteDeploymentsWithStaleSelectorLabels(
 			"desiredSelector", desiredSelector)
 
 		if err := r.Delete(ctx, existing); err != nil && !k8serrors.IsNotFound(err) {
-			return fmt.Errorf("deleting deployment %s/%s with stale selector: %w", ns, key.Name, err)
+			return false, fmt.Errorf("deleting deployment %s/%s with stale selector: %w", ns, key.Name, err)
 		}
+		deleted = true
 	}
 
-	return nil
+	return deleted, nil
 }
 
 // selectorLabelsMatch returns true if the two label maps are identical.
