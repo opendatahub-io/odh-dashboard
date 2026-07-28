@@ -62,7 +62,13 @@ func NewLlamaStackClient(baseURL string, authToken string, insecureSkipVerify bo
 
 // ListModels retrieves all available models from Llama Stack.
 func (c *LlamaStackClient) ListModels(ctx context.Context) ([]openai.Model, error) {
-	modelsPage, err := c.client.Models.List(ctx)
+	return c.ListModelsWithProviderData(ctx, nil)
+}
+
+// ListModelsWithProviderData retrieves models, forwarding provider data as X-OGX-Provider-Data.
+func (c *LlamaStackClient) ListModelsWithProviderData(ctx context.Context, providerData map[string]any) ([]openai.Model, error) {
+	opts := c.buildRequestOptions(providerData)
+	modelsPage, err := c.client.Models.List(ctx, opts...)
 	if err != nil {
 		return nil, wrapClientError(err, "ListModels")
 	}
