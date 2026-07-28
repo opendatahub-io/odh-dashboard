@@ -6,7 +6,6 @@ import {
   HelperTextItem,
   Stack,
   StackItem,
-  Tooltip,
 } from '@patternfly/react-core';
 import { z } from 'zod';
 import type {
@@ -105,7 +104,7 @@ const TopologyTypeFieldComponent: TopologyTypeFieldType['component'] = ({
 
   const options: SimpleSelectOption[] = React.useMemo(
     () =>
-      Object.values(TopologyType).map((topoType) => {
+      Object.values(TopologyType).map((topoType): SimpleSelectOption => {
         const configs = configsByTopology?.[topoType];
         const hasConfigs = configs !== undefined && configs.length > 0;
         const isSingleNode = topoType === TopologyType.SINGLE_NODE;
@@ -114,13 +113,17 @@ const TopologyTypeFieldComponent: TopologyTypeFieldType['component'] = ({
           key: topoType,
           label: TopologyTypeLabels[topoType],
           description: TopologyTypeDescriptions[topoType],
-          dropdownLabel: isOptionDisabled ? (
-            <Tooltip content="No configurations available. To request one, contact your administrator.">
-              <span>{TopologyTypeLabels[topoType]}</span>
-            </Tooltip>
-          ) : undefined,
           isAriaDisabled: isOptionDisabled,
           dataTestId: `topology-type-${topoType}`,
+          props: {
+            tooltipProps: isOptionDisabled
+              ? {
+                  content:
+                    'No configurations available. To request one, contact your administrator.',
+                  position: 'left',
+                }
+              : undefined,
+          },
         };
       }),
     [configsByTopology],
