@@ -261,13 +261,13 @@ func TestDeleteDeploymentsWithStaleSelectorLabels_FallbackNamespace(t *testing.T
 		Spec: appsv1.DeploymentSpec{
 			Selector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{
-					"app":        "odh-dashboard",
-					"stale-key":  "stale-value",
+					"app":       "odh-dashboard",
+					"stale-key": "stale-value",
 				},
 			},
 			Template: corev1PodTemplateSpec(map[string]string{
-				"app":        "odh-dashboard",
-				"stale-key":  "stale-value",
+				"app":       "odh-dashboard",
+				"stale-key": "stale-value",
 			}),
 		},
 	}
