@@ -121,7 +121,6 @@ const CustomTopologyConfigFieldComponent: CustomTopologyConfigFieldType['compone
       result.push({
         key: SINGLE_NODE_DEFAULT_KEY,
         label: 'Single node (default)',
-        description: 'LLMInferenceServiceConfig template for this topology type.',
         dataTestId: 'topology-config-option-single-node-default',
       });
     }
@@ -158,6 +157,13 @@ const CustomTopologyConfigFieldComponent: CustomTopologyConfigFieldType['compone
 
   return (
     <FormGroup fieldId="custom-topology-config" label="Topology configuration" isRequired>
+      <FormHelperText>
+        <HelperText>
+          <HelperTextItem>
+            Select an administrator-defined configuration for this topology, or use the default.
+          </HelperTextItem>
+        </HelperText>
+      </FormHelperText>
       <Stack hasGutter>
         <StackItem>
           <SimpleSelect
