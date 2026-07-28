@@ -28,6 +28,9 @@ type MockResourceConfigType = {
   resourceVersion?: string;
 };
 
+/*
+The hardware profiles when mocked need to have unique names if they are in a list, or else they won't render properly.
+*/
 export const mockHardwareProfile = ({
   name = 'migrated-gpu',
   namespace = 'opendatahub',

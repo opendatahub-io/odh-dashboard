@@ -1,7 +1,5 @@
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 
-export { genUID } from '@odh-dashboard/foundation';
-
 /**
  * Clones the resource and increments its metadata.resourceVersion.
  */
