@@ -22,8 +22,11 @@
       "dependsOn": ["^test-unit-coverage"],
       "outputs": ["jest-coverage/**"]
     },
+    "transit": {
+      "dependsOn": ["^transit"]
+    },
     "type-check": {
-      "dependsOn": ["^type-check"]
+      "dependsOn": ["transit"]
     },
     "test:contract": {
       "inputs": ["contract-tests/**", "upstream/bff/**"],
