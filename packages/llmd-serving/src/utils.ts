@@ -38,7 +38,7 @@ export const stripDuplicatingAnnotations = (
   if (!annotations) {
     return annotations;
   }
-  const result = annotations;
+  const result = { ...annotations };
   delete result['kubectl.kubernetes.io/last-applied-configuration'];
   delete result['serving.kserve.io/well-known-config'];
   delete result['platform.opendatahub.io/instance.name'];
@@ -56,7 +56,7 @@ export const stripDuplicatingLabels = (
   if (!labels) {
     return labels;
   }
-  const result = labels;
+  const result = { ...labels };
   delete result['platform.opendatahub.io/part-of'];
   delete result['app.kubernetes.io/part-of'];
   delete result['app.opendatahub.io/kserve'];
