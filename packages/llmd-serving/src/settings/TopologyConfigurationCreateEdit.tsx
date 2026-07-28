@@ -108,7 +108,7 @@ const TopologyConfigurationCreateEditInner: React.FC<{
     if (state?.sourceConfig) {
       const cleanMeta = cleanResourceForYAMLViewer(state.sourceConfig.metadata);
       let cleanAnnotations = cleanMeta.annotations;
-      let cleanLabels = cleanMeta.annotations;
+      let cleanLabels = cleanMeta.labels;
       if (isDuplicateMode) {
         cleanAnnotations = stripDuplicatingAnnotations(cleanMeta.annotations);
         cleanLabels = stripDuplicatingLabels(cleanMeta.labels);
