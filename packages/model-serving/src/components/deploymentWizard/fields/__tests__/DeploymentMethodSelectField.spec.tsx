@@ -8,7 +8,7 @@ import {
   type DeploymentMethodExternalData,
   type DeploymentMethodFieldData,
 } from '../DeploymentMethodSelectField';
-import type { DeploymentMethodFieldOverride } from '../../../../shared/types/form-data';
+import type { DeploymentMethodFieldOverride } from '../../types';
 
 jest.mock('../../../../shared/tracking/modelServingTrackingConstants', () => ({
   fireDeployMethodSelected: jest.fn(),

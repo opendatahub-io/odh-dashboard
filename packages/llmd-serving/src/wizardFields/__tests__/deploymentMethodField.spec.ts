@@ -1,5 +1,5 @@
 import type { RecursivePartial } from '@odh-dashboard/foundation';
-import type { WizardFormData } from '@odh-dashboard/model-serving/shared/types/form-data';
+import type { WizardFormData } from '@odh-dashboard/model-serving/types/form-data';
 import {
   vllmDeploymentMethodOverride,
   llmdDeploymentMethodOverride,
