@@ -19,6 +19,8 @@ export const vllmDeploymentMethodOverride: DeploymentMethodFieldOverride = {
   type: 'modifier',
   isActive: () => true,
   options: [SIMPLE_VLLM_OPTION],
+  suggestion: (clusterSettings) =>
+    !clusterSettings?.isLLMdDefault ? SIMPLE_VLLM_OPTION : undefined,
 };
 
 // LLM-d
