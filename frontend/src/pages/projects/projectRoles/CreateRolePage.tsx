@@ -130,7 +130,7 @@ const CreateRolePage: React.FC<CreateRolePageProps> = ({ existingRole, duplicate
     yamlExportActionsRef.current.add(action);
   }, []);
 
-  const handleSelectRoleTemplate = React.useCallback(() => {
+  const handleSelectRoleTemplateClick = React.useCallback(() => {
     setTemplateModal({ type: 'selectTemplate', mode: 'select' });
   }, []);
 
@@ -387,7 +387,7 @@ const CreateRolePage: React.FC<CreateRolePageProps> = ({ existingRole, duplicate
               rules={rules}
               onRulesChange={handleRulesChange}
               onImportTemplate={handleImportTemplateClick}
-              onSelectRoleTemplate={handleSelectRoleTemplate}
+              onSelectRoleTemplate={handleSelectRoleTemplateClick}
             />
           </div>
           {viewMode === 'yaml' && (
