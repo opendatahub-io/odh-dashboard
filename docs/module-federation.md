@@ -83,7 +83,7 @@ Each federated module must include a `module-federation` property in its `packag
   - **host** (string, optional): Development host (defaults to `localhost`)
   - **port** (number): Development server port
 - **service** (object): Production service configuration
-  - **name** (string): Kubernetes service name
+  - **name** (string): Kubernetes service name. In standalone deployment mode, this should match the module's standalone Service name (e.g., `odh-dashboard-<slug>-ui`). In sidecar mode (legacy), this typically points to the shared `odh-dashboard` service.
   - **namespace** (string, optional): Kubernetes namespace (uses current namespace if not specified)
   - **port** (number): Service port
 
@@ -146,7 +146,7 @@ In this example:
       "port": 9000
     },
     "service": {
-      "name": "my-module-ui-service",
+      "name": "odh-dashboard-my-module-ui",
       "namespace": "my-namespace",
       "port": 8080
     }
@@ -169,6 +169,67 @@ For each configured module, the backend sets up:
 2. **API Proxy**: Forwards API requests to the module's backend service
    - Uses the `proxy` configuration from the module-federation config
    - Supports path rewriting and authorization
+
+In standalone deployment mode (primary), each module runs as its own Kubernetes Service. The proxy routes requests to the module's standalone Service (e.g., `odh-dashboard-gen-ai-ui`) rather than to localhost ports within a shared pod. The `federation-config` ConfigMap provides the Fastify backend with the service name, namespace, and port for each enabled module.
+
+## Federation Configuration in Production
+
+The `federation-config` ConfigMap is the bridge between the Dashboard Module Controller (operator) and the frontend's Module Federation system. It tells the Fastify backend how to proxy requests to each module's BFF and where to find each module's `remoteEntry.js`.
+
+### How it Works
+
+In standalone deployment mode, the operator dynamically builds the `federation-config` ConfigMap based on which modules are currently enabled. The process works as follows:
+
+1. **Module resolution**: The operator evaluates DSC component gates, CR overrides, and inter-module dependencies to determine which modules are enabled.
+2. **ConfigMap generation**: For each enabled module, the operator creates an entry in the ConfigMap containing:
+   - **Service name**: The module's standalone Kubernetes Service (e.g., `odh-dashboard-gen-ai-ui`)
+   - **Namespace**: The namespace where the module is deployed
+   - **Port**: The container port the module listens on
+   - **Proxy paths**: API paths that should be forwarded to the module's BFF
+   - **Remote entry path**: Where to find `remoteEntry.js` for the module's frontend
+3. **Rolling restart**: The operator computes a content hash of the ConfigMap and sets it as an annotation on the main dashboard Deployment. When the ConfigMap changes (modules enabled/disabled), the annotation changes and triggers a rolling restart of the dashboard pods, ensuring the Fastify backend picks up the new configuration.
+
+### ConfigMap Structure
+
+Each module entry in the ConfigMap follows this structure:
+
+```json
+{
+  "name": "genAi",
+  "remoteEntry": "/remoteEntry.js",
+  "authorize": true,
+  "tls": true,
+  "proxyService": [
+    {
+      "path": "/gen-ai/api",
+      "pathRewrite": "/api",
+      "authorize": true,
+      "tls": true,
+      "service": {
+        "name": "odh-dashboard-gen-ai-ui",
+        "namespace": "redhat-ods-applications",
+        "port": 8143
+      }
+    }
+  ],
+  "service": {
+    "name": "odh-dashboard-gen-ai-ui",
+    "namespace": "redhat-ods-applications",
+    "port": 8143
+  }
+}
+```
+
+### Module Enable/Disable Flow
+
+When a module is enabled or disabled:
+
+1. The `Dashboard` CR spec changes (or a DSC component becomes available/unavailable)
+2. The operator reconciles and re-evaluates module statuses
+3. The `federation-config` ConfigMap is regenerated with only the enabled modules
+4. The content hash annotation on the dashboard Deployment changes
+5. Kubernetes triggers a rolling restart of dashboard pods
+6. The Fastify backend reads the updated ConfigMap on startup and registers/deregisters proxy routes accordingly
 
 ## Extension System
 
