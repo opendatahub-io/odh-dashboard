@@ -5,7 +5,7 @@ import {
 } from '@odh-dashboard/internal/__mocks__';
 import { mock200Status } from '@odh-dashboard/internal/__mocks__/mockK8sStatus';
 import { mockRoleBindingK8sResource } from '@odh-dashboard/internal/__mocks__/mockRoleBindingK8sResource';
-import type { RoleBindingSubject } from '@odh-dashboard/internal/k8sTypes';
+import type { RoleBindingSubject } from '@odh-dashboard/k8s-core';
 import { mockModelRegistry } from '@odh-dashboard/internal/__mocks__/mockModelRegistry';
 import { mockGroup } from '@odh-dashboard/internal/__mocks__/mockGroup';
 import { be } from '../../../utils/should';

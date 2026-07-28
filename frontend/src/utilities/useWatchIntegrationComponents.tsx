@@ -1,11 +1,10 @@
 import * as React from 'react';
-import { useAppSelector } from '#~/redux/hooks';
 import {
-  IntegrationAppStatus,
-  OdhApplication,
-  OdhIntegrationApplication,
+  type IntegrationAppStatus,
   VariablesValidationStatus,
-} from '#~/types';
+} from '@odh-dashboard/plugin-core/integrations';
+import { useAppSelector } from '#~/redux/hooks';
+import { OdhApplication, OdhIntegrationApplication } from '#~/types';
 import { getIntegrationAppEnablementStatus } from '#~/services/integrationAppService';
 import { allSettledPromises } from '#~/utilities/allSettledPromises';
 import { POLL_INTERVAL } from './const';

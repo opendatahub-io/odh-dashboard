@@ -6,7 +6,7 @@ import {
   runtimeStateLabels,
   StorageStateKF,
 } from '@odh-dashboard/internal/concepts/pipelines/kfTypes';
-import { DSPAMlflowIntegrationMode } from '@odh-dashboard/internal/k8sTypes';
+import { DSPAMlflowIntegrationMode } from '@odh-dashboard/k8s-core';
 import {
   mockK8sResourceList,
   mockProjectK8sResource,

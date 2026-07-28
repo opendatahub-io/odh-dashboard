@@ -19,6 +19,8 @@ aliases:
     - andyatmiami
     - chrjones-rh
     - nickmazzi
+    - paulovmr
+    - caponetto
 
   # Backup alias for managers to help with unblocking during PTO
   managers-backup-approvers:

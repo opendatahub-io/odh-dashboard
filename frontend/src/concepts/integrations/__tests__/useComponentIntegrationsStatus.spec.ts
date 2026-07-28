@@ -1,5 +1,5 @@
 import { renderHook } from '@testing-library/react';
-import { IntegrationAppStatus } from '#~/types';
+import type { IntegrationAppStatus } from '@odh-dashboard/plugin-core/integrations';
 import { useComponentIntegrationsStatus } from '#~/concepts/integrations/useComponentIntegrationsStatus';
 
 // Mock dependencies
