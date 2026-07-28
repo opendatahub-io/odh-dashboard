@@ -105,14 +105,10 @@ const TopologyConfigurationCreateEditInner: React.FC<{
     if (existingConfig) {
       return YAML.stringify(existingConfig);
     }
-    if (state?.sourceConfig) {
+    if (isDuplicateMode) {
       const cleanMeta = cleanResourceForYAMLViewer(state.sourceConfig.metadata);
-      let cleanAnnotations = cleanMeta.annotations;
-      let cleanLabels = cleanMeta.labels;
-      if (isDuplicateMode) {
-        cleanAnnotations = stripDuplicatingAnnotations(cleanMeta.annotations);
-        cleanLabels = stripDuplicatingLabels(cleanMeta.labels);
-      }
+      const cleanAnnotations = stripDuplicatingAnnotations(cleanMeta.annotations);
+      const cleanLabels = stripDuplicatingLabels(cleanMeta.labels);
       const duplicateDisplayName = `Copy of ${getDisplayNameFromK8sResource(state.sourceConfig)}`;
       return YAML.stringify({
         apiVersion: state.sourceConfig.apiVersion,
