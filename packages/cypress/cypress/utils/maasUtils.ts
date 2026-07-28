@@ -451,6 +451,7 @@ export const mockSubscriptionFormData = (
 export const mockModelsOverview = (): ModelOverviewItem[] => [
   {
     id: 'granite-3-8b-instruct',
+    namespace: 'maas-models',
     modelDetails: {
       displayName: 'Granite 3 8B Instruct',
       description: 'A large language model for instruction following',
@@ -495,6 +496,7 @@ export const mockModelsOverview = (): ModelOverviewItem[] => [
   },
   {
     id: 'flan-t5-small',
+    namespace: 'maas-models',
     modelDetails: {
       displayName: 'Flan T5 Small',
       description: 'A compact text-to-text model',
@@ -535,6 +537,7 @@ export const mockModelsOverview = (): ModelOverviewItem[] => [
   },
   {
     id: 'llama-3-70b-instruct',
+    namespace: 'maas-models',
     modelDetails: {
       displayName: 'Llama 3 70B Instruct',
       description: 'A large open-weight model for complex reasoning and multi-turn dialogue',
@@ -570,6 +573,7 @@ export const mockModelsOverview = (): ModelOverviewItem[] => [
   },
   {
     id: 'gemma-7b-it',
+    namespace: 'maas-models',
     modelDetails: {
       displayName: 'Gemma 7B IT',
       description: 'Google Gemma 7B instruction-tuned model for general-purpose tasks',
