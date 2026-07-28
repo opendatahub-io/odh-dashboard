@@ -831,6 +831,7 @@ export enum WorkloadOwnerType {
   Job = 'Job',
   StatefulSet = 'StatefulSet',
   ReplicaSet = 'ReplicaSet',
+  LeaderWorkerSet = 'LeaderWorkerSet',
 }
 
 export type WorkloadKind = K8sResourceCommon & {
