@@ -195,7 +195,7 @@ export default function PromptDrawer({
   }
 
   return (
-    <Drawer isExpanded={isExpanded} isInline>
+    <Drawer isExpanded={isExpanded}>
       <DrawerContent panelContent={buildContent()}>
         <DrawerContentBody>{children}</DrawerContentBody>
       </DrawerContent>
