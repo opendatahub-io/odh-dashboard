@@ -51,24 +51,25 @@ const ProjectsContextProvider: React.FC<ProjectsContextProviderProps> = ({ child
   const initializedFromStorage = React.useRef(false);
 
   React.useEffect(() => {
+    let unmounted = false;
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
 
     const load = async (): Promise<void> => {
       try {
         const projects = await fetchNamespaces(controller.signal);
-        if (!controller.signal.aborted) {
+        if (!unmounted) {
           setProjectData(projects);
           setLoadError(undefined);
         }
       } catch (err) {
-        if (!controller.signal.aborted) {
+        if (!unmounted) {
           setProjectData([]);
           setLoadError(err instanceof Error ? err : new Error(String(err)));
         }
       } finally {
         clearTimeout(timer);
-        if (!controller.signal.aborted) {
+        if (!unmounted) {
           setLoaded(true);
         }
       }
@@ -78,6 +79,7 @@ const ProjectsContextProvider: React.FC<ProjectsContextProviderProps> = ({ child
     void load();
 
     return () => {
+      unmounted = true;
       clearTimeout(timer);
       controller.abort();
     };
