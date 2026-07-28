@@ -416,8 +416,7 @@ export const ReviewStepContent: React.FC<ReviewStepContentProps> = ({
     (section) =>
       section.title === WizardStepTitle.MODEL_DEPLOYMENT &&
       section.items.some(
-        (item) =>
-          item.key === 'modelServer' && (!item.isVisible || item.isVisible(wizardState.state)),
+        (item) => item.key === 'modelServer' && (item.isVisible?.(wizardState.state) ?? true),
       ),
   );
 
