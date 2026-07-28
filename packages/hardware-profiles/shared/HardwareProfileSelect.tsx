@@ -47,6 +47,36 @@ import { formatResource, formatResourceValue } from './utils';
 import { HardwareProfileConfig } from './useHardwareProfileConfig';
 import HardwareProfileDetailsPopover from './HardwareProfileDetailsPopover';
 
+const getIdentifiersText = (
+  identifiers: HardwareProfileKind['spec']['identifiers'],
+): string | undefined => {
+  if (!identifiers?.length) {
+    return undefined;
+  }
+  return identifiers
+    .map((identifier) => {
+      const defaultVal = formatResourceValue(
+        identifier.defaultCount,
+        identifier.resourceType,
+      ).toString();
+      const maxVal =
+        identifier.maxCount === undefined
+          ? 'unrestricted'
+          : formatResourceValue(identifier.maxCount, identifier.resourceType).toString();
+      return formatResource(identifier.displayName, defaultVal, maxVal);
+    })
+    .join('; ');
+};
+
+const getKueueText = (profile: HardwareProfileKind): string | undefined => {
+  const localQueueName = profile.spec.scheduling?.kueue?.localQueueName;
+  if (!localQueueName) {
+    return undefined;
+  }
+  const priorityClass = profile.spec.scheduling?.kueue?.priorityClass;
+  return `Local queue: ${localQueueName}${priorityClass ? `; Priority: ${priorityClass}` : ''}`;
+};
+
 type HardwareProfileSelectProps = {
   initialHardwareProfile?: HardwareProfileKind;
   previewDescription?: boolean;
@@ -147,6 +177,8 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
         !isHardwareProfileEnabled(profile) ? ' (disabled)' : ''
       }`;
       const description = getHardwareProfileDescription(profile);
+      const identifiersText = getIdentifiersText(profile.spec.identifiers);
+      const kueueText = getKueueText(profile);
       const queueMissing = profile === initialHardwareProfile && isQueueMissing(profile);
 
       return {
@@ -163,37 +195,14 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
                 />
               </StackItem>
             )}
-            {profile.spec.identifiers && (
+            {identifiersText && (
               <StackItem>
-                <Truncate
-                  content={profile.spec.identifiers
-                    .map((identifier) => {
-                      const defaultVal = formatResourceValue(
-                        identifier.defaultCount,
-                        identifier.resourceType,
-                      ).toString();
-                      const maxVal =
-                        identifier.maxCount === undefined
-                          ? 'unrestricted'
-                          : formatResourceValue(
-                              identifier.maxCount,
-                              identifier.resourceType,
-                            ).toString();
-                      return formatResource(identifier.displayName, defaultVal, maxVal);
-                    })
-                    .join('; ')}
-                />
+                <Truncate content={identifiersText} />
               </StackItem>
             )}
-            {profile.spec.scheduling?.kueue?.localQueueName && (
+            {kueueText && (
               <StackItem>
-                <Truncate
-                  content={`Local queue: ${profile.spec.scheduling.kueue.localQueueName}${
-                    profile.spec.scheduling.kueue.priorityClass
-                      ? `; Priority: ${profile.spec.scheduling.kueue.priorityClass}`
-                      : ''
-                  }`}
-                />
+                <Truncate content={kueueText} />
               </StackItem>
             )}
           </Stack>
@@ -247,6 +256,8 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
     scope: 'project' | 'global',
   ) => {
     const description = getHardwareProfileDescription(profile);
+    const identifiersText = getIdentifiersText(profile.spec.identifiers);
+    const kueueText = getKueueText(profile);
     const queueMissing = profile === initialHardwareProfile && isQueueMissing(profile);
     return (
       <MenuItem
@@ -264,37 +275,14 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
                 <Truncate content={description} />
               </StackItem>
             )}
-            {profile.spec.identifiers && (
+            {identifiersText && (
               <StackItem>
-                <Truncate
-                  content={profile.spec.identifiers
-                    .map((identifier) => {
-                      const defaultVal = formatResourceValue(
-                        identifier.defaultCount,
-                        identifier.resourceType,
-                      ).toString();
-                      const maxVal =
-                        identifier.maxCount === undefined
-                          ? 'unrestricted'
-                          : formatResourceValue(
-                              identifier.maxCount,
-                              identifier.resourceType,
-                            ).toString();
-                      return formatResource(identifier.displayName, defaultVal, maxVal);
-                    })
-                    .join('; ')}
-                />
+                <Truncate content={identifiersText} />
               </StackItem>
             )}
-            {profile.spec.scheduling?.kueue?.localQueueName && (
+            {kueueText && (
               <StackItem>
-                <Truncate
-                  content={`Local queue: ${profile.spec.scheduling.kueue.localQueueName}${
-                    profile.spec.scheduling.kueue.priorityClass
-                      ? `; Priority: ${profile.spec.scheduling.kueue.priorityClass}`
-                      : ''
-                  }`}
-                />
+                <Truncate content={kueueText} />
               </StackItem>
             )}
           </Stack>
@@ -428,57 +416,75 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
                 </FlexItem>
                 {selectionIndicator && <FlexItem>{selectionIndicator}</FlexItem>}
               </Flex>
-              {previewDescription &&
-              hardwareProfileConfig.selectedProfile &&
-              (getHardwareProfileDescription(hardwareProfileConfig.selectedProfile) ||
-                hardwareProfileConfig.selectedProfile.spec.identifiers) ? (
-                <FormHelperText>
-                  <HelperText>
-                    <HelperTextItem>
-                      <TruncatedText
-                        maxLines={2}
-                        tooltipMaxLines={TOOLTIP_MAX_LINES}
-                        content={
-                          getHardwareProfileDescription(hardwareProfileConfig.selectedProfile) ||
-                          (hardwareProfileConfig.selectedProfile.spec.identifiers &&
-                            hardwareProfileConfig.selectedProfile.spec.identifiers
-                              .map((identifier) => {
-                                const defaultVal = formatResourceValue(
-                                  identifier.defaultCount,
-                                  identifier.resourceType,
-                                ).toString();
-                                const maxVal =
-                                  identifier.maxCount === undefined
-                                    ? 'unrestricted'
-                                    : formatResourceValue(
-                                        identifier.maxCount,
-                                        identifier.resourceType,
-                                      ).toString();
-                                return formatResource(identifier.displayName, defaultVal, maxVal);
-                              })
-                              .join('; '))
-                        }
-                      />
-                    </HelperTextItem>
-                    {!getHardwareProfileDescription(hardwareProfileConfig.selectedProfile) &&
-                      (() => {
-                        const kueue = hardwareProfileConfig.selectedProfile.spec.scheduling?.kueue;
-                        if (!kueue?.localQueueName) {
-                          return null;
-                        }
-                        return (
-                          <HelperTextItem>
-                            {`Local queue: ${kueue.localQueueName}${
-                              kueue.priorityClass ? `; Priority: ${kueue.priorityClass}` : ''
-                            }`}
-                          </HelperTextItem>
-                        );
-                      })()}
-                  </HelperText>
-                </FormHelperText>
-              ) : hardwareProfileConfig.useExistingSettings ? (
-                'Use existing resource requests/limits, tolerations, and node selectors.'
-              ) : null}
+              {(() => {
+                if (!previewDescription || !hardwareProfileConfig.selectedProfile) {
+                  return hardwareProfileConfig.useExistingSettings ? (
+                    <FormHelperText>
+                      <HelperText>
+                        <HelperTextItem>
+                          Use existing resource requests/limits, tolerations, and node selectors.
+                        </HelperTextItem>
+                      </HelperText>
+                    </FormHelperText>
+                  ) : null;
+                }
+
+                const description = getHardwareProfileDescription(
+                  hardwareProfileConfig.selectedProfile,
+                );
+                const identifiersText = getIdentifiersText(
+                  hardwareProfileConfig.selectedProfile.spec.identifiers,
+                );
+                const kueueText = getKueueText(hardwareProfileConfig.selectedProfile);
+
+                if (!description && !identifiersText && !kueueText) {
+                  return hardwareProfileConfig.useExistingSettings ? (
+                    <FormHelperText>
+                      <HelperText>
+                        <HelperTextItem>
+                          Use existing resource requests/limits, tolerations, and node selectors.
+                        </HelperTextItem>
+                      </HelperText>
+                    </FormHelperText>
+                  ) : null;
+                }
+
+                return (
+                  <FormHelperText>
+                    <HelperText>
+                      <HelperTextItem>
+                        <TruncatedText
+                          maxLines={2}
+                          tooltipMaxLines={TOOLTIP_MAX_LINES}
+                          content={
+                            <Stack>
+                              {description && (
+                                <StackItem>
+                                  <TruncatedText
+                                    maxLines={1}
+                                    tooltipMaxLines={TOOLTIP_MAX_LINES}
+                                    content={description}
+                                  />
+                                </StackItem>
+                              )}
+                              {identifiersText && (
+                                <StackItem>
+                                  <Truncate content={identifiersText} />
+                                </StackItem>
+                              )}
+                              {kueueText && (
+                                <StackItem>
+                                  <Truncate content={kueueText} />
+                                </StackItem>
+                              )}
+                            </Stack>
+                          }
+                        />
+                      </HelperTextItem>
+                    </HelperText>
+                  </FormHelperText>
+                );
+              })()}
               {kueueFilteringInfoHelper}
               {(hardwareProfilesError || currentProjectHardwareProfilesError) && (
                 <HelperText isLiveRegion>

@@ -620,3 +620,146 @@ describe('HardwareProfileSelect - LocalQueue availability filtering', () => {
     expect(screen.getByTestId('queue-missing-icon')).toBeInTheDocument();
   });
 });
+
+describe('HardwareProfileSelect - Project-scoped preview description', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  const profileWithDescriptionAndKueue = mockHardwareProfile({
+    name: 'desc-kueue-profile',
+    displayName: 'Full Profile',
+    namespace: 'test-project',
+    description: 'A profile with all details',
+    schedulingType: SchedulingType.QUEUE,
+    localQueueName: 'my-queue',
+    priorityClass: 'high-priority',
+  });
+
+  const profileWithIdentifiersAndKueue = mockHardwareProfile({
+    name: 'id-kueue-profile',
+    displayName: 'Identifiers and Kueue Profile',
+    namespace: 'test-project',
+    description: '',
+    schedulingType: SchedulingType.QUEUE,
+    localQueueName: 'my-queue',
+    priorityClass: 'high-priority',
+  });
+
+  const profileWithKueueOnly = mockHardwareProfile({
+    name: 'kueue-only-profile',
+    displayName: 'Kueue Only Profile',
+    namespace: 'test-project',
+    description: '',
+    identifiers: [],
+    schedulingType: SchedulingType.QUEUE,
+    localQueueName: 'my-queue',
+    priorityClass: 'high-priority',
+  });
+
+  const renderProjectScopedPreview = (
+    selectedProfile: HardwareProfileKind,
+    previewDescription = true,
+  ) => {
+    const project = mockProjectK8sResource({ k8sName: 'test-project' });
+
+    useKueueConfigurationMock.mockReturnValue({
+      isKueueDisabled: false,
+      isKueueFeatureEnabled: true,
+      isProjectKueueEnabled: true,
+      kueueFilteringState: KueueFilteringState.ALL_PROFILES,
+    });
+
+    const hardwareProfileConfig = {
+      selectedProfile,
+      useExistingSettings: false,
+      resources: undefined,
+    };
+
+    useHardwareProfileConfigMock.mockReturnValue({
+      formData: hardwareProfileConfig,
+      useExistingSettings: false,
+      setFormData: () => null,
+      resetFormData: () => null,
+      isFormDataValid: true,
+      profilesLoaded: true,
+      profilesLoadError: undefined,
+      initialHardwareProfile: undefined,
+    });
+
+    return render(
+      <ProjectsContext.Provider
+        value={{
+          projects: [project],
+          modelServingProjects: [],
+          nonActiveProjects: [],
+          preferredProject: null,
+          updatePreferredProject: () => undefined,
+          loaded: true,
+          loadError: undefined,
+          waitForProject: () => Promise.resolve(),
+        }}
+      >
+        <ProjectDetailsContext.Provider
+          value={
+            {
+              currentProject: project,
+              refresh: jest.fn(),
+              localQueues: DEFAULT_LIST_FETCH_STATE,
+            } as unknown as ProjectDetailsContextType
+          }
+        >
+          <HardwareProfileSelect
+            isProjectScoped
+            previewDescription={previewDescription}
+            hardwareProfiles={[nodeHardwareProfile]}
+            hardwareProfilesLoaded
+            hardwareProfilesError={undefined}
+            projectScopedHardwareProfiles={[[selectedProfile], true, undefined]}
+            allowExistingSettings={false}
+            hardwareProfileConfig={hardwareProfileConfig}
+            isHardwareProfileSupported={() => true}
+            onChange={() => null}
+            project="test-project"
+          />
+        </ProjectDetailsContext.Provider>
+      </ProjectsContext.Provider>,
+    );
+  };
+
+  it('should show description, identifiers, and kueue info in project-scoped preview', () => {
+    renderProjectScopedPreview(profileWithDescriptionAndKueue);
+
+    expect(screen.getByText('A profile with all details')).toBeInTheDocument();
+    expect(screen.getByText(/Memory:.*Default.*Max/)).toBeInTheDocument();
+    expect(screen.getByText(/CPU:.*Default.*Max/)).toBeInTheDocument();
+    const kueuePreview = 'Local queue: my-queue; Priority: high-priority';
+    expect(screen.getByText(kueuePreview)).toBeInTheDocument();
+  });
+
+  it('should show identifiers and kueue info when description is empty in project-scoped preview', () => {
+    renderProjectScopedPreview(profileWithIdentifiersAndKueue);
+
+    expect(screen.getByText(/Memory:.*Default.*Max/)).toBeInTheDocument();
+    expect(screen.getByText(/CPU:.*Default.*Max/)).toBeInTheDocument();
+    const kueuePreview = 'Local queue: my-queue; Priority: high-priority';
+    expect(screen.getByText(kueuePreview)).toBeInTheDocument();
+  });
+
+  it('should show only kueue info when no description or identifiers in project-scoped preview', () => {
+    renderProjectScopedPreview(profileWithKueueOnly);
+
+    const kueuePreview = 'Local queue: my-queue; Priority: high-priority';
+    expect(screen.getByText(kueuePreview)).toBeInTheDocument();
+    expect(screen.queryByText(/Memory:/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/CPU:/)).not.toBeInTheDocument();
+  });
+
+  it('should not show preview when previewDescription is false', () => {
+    renderProjectScopedPreview(profileWithDescriptionAndKueue, false);
+
+    expect(screen.queryByText('A profile with all details')).not.toBeInTheDocument();
+    expect(screen.queryByText(/Local queue:/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Memory:.*Default.*Max/)).not.toBeInTheDocument();
+  });
+});
