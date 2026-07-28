@@ -15,7 +15,7 @@ jest.mock('mod-arch-core', () => ({
   useNamespaceSelector: jest.fn(),
 }));
 
-jest.mock('@odh-dashboard/internal/concepts/projects/ProjectSelector', () => ({
+jest.mock('@odh-dashboard/ui-core/components/projectSelector/ProjectSelector', () => ({
   __esModule: true,
   default: ({
     onSelection,

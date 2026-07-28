@@ -221,6 +221,7 @@ func (r *DashboardReconciler) deployModuleManifests(
 			deploy.WithLabel(labels.PlatformPartOf, strings.ToLower(v1alpha1.DashboardKind)),
 			deploy.WithLabel(moduleComponentLabel, mod.ManifestSlug),
 			deploy.WithApplyOrder(),
+			deploy.WithMergeStrategy(deploymentGVK, deploy.MergeDeployments),
 		)
 
 		if err := deployer.Deploy(ctx, deploy.DeployInput{

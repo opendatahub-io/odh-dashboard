@@ -1,14 +1,5 @@
 import React from 'react';
-import { IntegrationAppStatus } from '#~/types';
-import { IntegrationsStatusContext } from '#~/concepts/integrations/IntegrationsStatusContext';
-
-export const isEnabled = (
-  components: Record<string, IntegrationAppStatus>,
-  componentName: string,
-): boolean => {
-  const component = componentName in components ? components[componentName] : undefined;
-  return !!(component?.isEnabled && component.isInstalled);
-};
+import { IntegrationsContext, isEnabled } from '@odh-dashboard/plugin-core/integrations';
 
 export const useIsComponentIntegrationEnabled = (
   componentName: string,
@@ -18,7 +9,7 @@ export const useIsComponentIntegrationEnabled = (
   error: Error | undefined;
   refresh: () => Promise<boolean | undefined>;
 } => {
-  const { integrationStatus, loaded, error, refresh } = React.useContext(IntegrationsStatusContext);
+  const { integrationStatus, loaded, error, refresh } = React.useContext(IntegrationsContext);
 
   const refreshCallback = React.useCallback(async () => {
     const status = await refresh();

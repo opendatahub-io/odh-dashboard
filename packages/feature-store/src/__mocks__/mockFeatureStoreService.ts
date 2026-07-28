@@ -1,4 +1,4 @@
-import { ServiceKind } from '@odh-dashboard/internal/k8sTypes';
+import { ServiceKind } from '@odh-dashboard/k8s-core';
 
 type MockFeatureStoreServiceType = {
   name?: string;

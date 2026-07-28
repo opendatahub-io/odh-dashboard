@@ -1,4 +1,4 @@
-import { ClusterQueueKind } from '@odh-dashboard/internal/k8sTypes';
+import { ClusterQueueKind } from '@odh-dashboard/k8s-core';
 import parseK8sQuantity from './parseK8sQuantity';
 import { ModelGpuCount } from './hardwareModels';
 import { ACCELERATOR_RESOURCE_REGEX } from '../const';

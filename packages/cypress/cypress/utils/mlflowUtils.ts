@@ -1,4 +1,4 @@
-import type { DSPAMlflowIntegrationMode } from '@odh-dashboard/internal/k8sTypes';
+import type { DSPAMlflowIntegrationMode } from '@odh-dashboard/k8s-core';
 import {
   mockDataSciencePipelineApplicationK8sResource,
   mockK8sResourceList,
