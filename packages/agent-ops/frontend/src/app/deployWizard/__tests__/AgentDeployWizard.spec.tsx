@@ -31,9 +31,9 @@ jest.mock('~/app/hooks/useNotification', () => ({
   }),
 }));
 
-jest.mock('@odh-dashboard/internal/pages/ApplicationsPage', () => ({
-  __esModule: true,
-  default: ({
+jest.mock('@odh-dashboard/ui-core', () => ({
+  ...jest.requireActual('@odh-dashboard/ui-core'),
+  ApplicationsPage: ({
     title,
     description,
     children,

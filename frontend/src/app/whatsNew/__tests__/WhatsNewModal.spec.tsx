@@ -3,13 +3,20 @@ import { render, screen, fireEvent, act } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import type { DashboardConfigKind } from '@odh-dashboard/k8s-core';
 import { useBrowserStorage } from '@odh-dashboard/ui-core/utilities';
+import { TrackingOutcome } from '@odh-dashboard/ui-core';
 import type { UserState } from '#~/redux/selectors/types';
 import { useUser } from '#~/redux/selectors';
 import { useAppContext } from '#~/app/AppContext';
 import { mockDashboardConfig } from '#~/__mocks__';
 import type { BuildStatus } from '#~/types';
 import type { StorageClassKind } from '#~/k8sTypes';
+import {
+  fireFormTrackingEvent,
+  fireMiscTrackingEvent,
+} from '#~/concepts/analyticsTracking/segmentIOUtils';
 import WhatsNewModal from '#~/app/whatsNew/WhatsNewModal';
+import { GUIDED_TOUR_EVENTS } from '#~/app/whatsNew/tracking/guidedTourTracking';
+import { openWhatsNewTour } from '#~/app/whatsNew/whatsNewEvent';
 
 jest.mock('#~/app/AppContext', () => ({
   __esModule: true,
@@ -26,9 +33,16 @@ jest.mock('@odh-dashboard/ui-core/utilities', () => ({
   useBrowserStorage: jest.fn(),
 }));
 
+jest.mock('#~/concepts/analyticsTracking/segmentIOUtils', () => ({
+  fireFormTrackingEvent: jest.fn(),
+  fireMiscTrackingEvent: jest.fn(),
+}));
+
 const useAppContextMock = jest.mocked(useAppContext);
 const useUserMock = jest.mocked(useUser);
 const mockUseBrowserStorage = jest.mocked(useBrowserStorage);
+const mockFireFormTrackingEvent = jest.mocked(fireFormTrackingEvent);
+const mockFireMiscTrackingEvent = jest.mocked(fireMiscTrackingEvent);
 
 const mockSetSeen = jest.fn();
 
@@ -70,7 +84,8 @@ const openWelcomeModal = () => {
 const startTourAndWait = (buttonText: string) => {
   fireEvent.click(screen.getByText(buttonText));
   act(() => {
-    jest.advanceTimersByTime(200);
+    // Allow time for nav target lookup (and sidebar open delay when collapsed).
+    jest.advanceTimersByTime(350);
   });
 };
 
@@ -104,7 +119,7 @@ describe('WhatsNewModal', () => {
       render(<WhatsNewModal />);
       openWelcomeModal();
 
-      fireEvent.click(screen.getByText('Skip tour'));
+      fireEvent.click(screen.getByText('Close'));
 
       expect(mockSetSeen).toHaveBeenCalledWith(true);
     });
@@ -117,7 +132,7 @@ describe('WhatsNewModal', () => {
 
       render(<WhatsNewModal />);
       openWelcomeModal();
-      startTourAndWait('Start tour');
+      startTourAndWait('Start full tour');
 
       expect(screen.getByText(/of 6/)).toBeInTheDocument();
     });
@@ -128,7 +143,7 @@ describe('WhatsNewModal', () => {
 
       render(<WhatsNewModal />);
       openWelcomeModal();
-      startTourAndWait('Start tour');
+      startTourAndWait('Start full tour');
 
       expect(screen.getByText(/of 5/)).toBeInTheDocument();
     });
@@ -140,6 +155,7 @@ describe('WhatsNewModal', () => {
       autorag: false,
       guardrails: false,
       agentConfigManagement: false,
+      roleManagement: false,
     };
 
     it('should tell admins which flag to enable in OdhDashboardConfig', () => {
@@ -148,10 +164,11 @@ describe('WhatsNewModal', () => {
 
       render(<WhatsNewModal />);
       openWelcomeModal();
-      startTourAndWait("What's new in 3.5");
+      startTourAndWait("Tour what's new");
 
+      // First step with features is now Projects (roleManagement disabled)
       expect(screen.getByText(/OdhDashboardConfig/)).toBeInTheDocument();
-      expect(screen.getByText('autorag')).toBeInTheDocument();
+      expect(screen.getByText('roleManagement')).toBeInTheDocument();
       expect(screen.queryByText(/Contact your administrator/)).not.toBeInTheDocument();
     });
 
@@ -161,7 +178,7 @@ describe('WhatsNewModal', () => {
 
       render(<WhatsNewModal />);
       openWelcomeModal();
-      startTourAndWait("What's new in 3.5");
+      startTourAndWait("Tour what's new");
 
       expect(screen.getByText(/Contact your administrator/)).toBeInTheDocument();
       expect(screen.queryByText(/OdhDashboardConfig/)).not.toBeInTheDocument();
@@ -173,7 +190,7 @@ describe('WhatsNewModal', () => {
 
       render(<WhatsNewModal />);
       openWelcomeModal();
-      startTourAndWait('Start tour');
+      startTourAndWait('Start full tour');
 
       // Navigate to Develop & train (step 3) which only has automl
       fireEvent.click(screen.getByText('Next'));
@@ -192,15 +209,101 @@ describe('WhatsNewModal', () => {
   });
 
   describe("What's new in 3.5 button", () => {
-    it('should skip to the first step with new features, not Projects', () => {
+    it('should skip to the first step with new features (Projects)', () => {
       useAppContextMock.mockReturnValue(buildAppContext({ genAiStudio: true }));
       useUserMock.mockReturnValue(regularUser);
 
       render(<WhatsNewModal />);
       openWelcomeModal();
-      startTourAndWait("What's new in 3.5");
+      startTourAndWait("Tour what's new");
 
-      expect(screen.getByText('Gen AI studio')).toBeInTheDocument();
+      expect(screen.getByText('Projects')).toBeInTheDocument();
+      expect(screen.getByText('Roles')).toBeInTheDocument();
+    });
+  });
+
+  describe('nav sidebar during tour', () => {
+    const mountNavToggle = (expanded: boolean) => {
+      const toggle = document.createElement('button');
+      toggle.id = 'page-nav-toggle';
+      toggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+      const onClick = jest.fn(() => {
+        const next = toggle.getAttribute('aria-expanded') === 'true' ? 'false' : 'true';
+        toggle.setAttribute('aria-expanded', next);
+      });
+      toggle.addEventListener('click', onClick);
+      document.body.appendChild(toggle);
+      return { toggle, onClick };
+    };
+
+    it('should open a collapsed navbar when anchoring a tour step', () => {
+      useAppContextMock.mockReturnValue(buildAppContext());
+      useUserMock.mockReturnValue(regularUser);
+
+      const { toggle, onClick } = mountNavToggle(false);
+
+      try {
+        render(<WhatsNewModal />);
+        openWelcomeModal();
+        // Click starts the step effect; sidebar open happens before the target timer.
+        fireEvent.click(screen.getByText('Start full tour'));
+
+        expect(onClick).toHaveBeenCalledTimes(1);
+        expect(toggle.getAttribute('aria-expanded')).toBe('true');
+
+        act(() => {
+          jest.advanceTimersByTime(350);
+        });
+      } finally {
+        toggle.remove();
+      }
+    });
+
+    it('should restore a navbar the tour opened when the tour is dismissed', () => {
+      useAppContextMock.mockReturnValue(buildAppContext());
+      useUserMock.mockReturnValue(regularUser);
+
+      const { toggle, onClick } = mountNavToggle(false);
+
+      try {
+        render(<WhatsNewModal />);
+        openWelcomeModal();
+        startTourAndWait('Start full tour');
+
+        expect(toggle.getAttribute('aria-expanded')).toBe('true');
+        expect(onClick).toHaveBeenCalledTimes(1);
+
+        fireEvent.click(screen.getByText('Skip tour'));
+
+        expect(onClick).toHaveBeenCalledTimes(2);
+        expect(toggle.getAttribute('aria-expanded')).toBe('false');
+      } finally {
+        toggle.remove();
+      }
+    });
+
+    it('should not toggle an already open navbar', () => {
+      useAppContextMock.mockReturnValue(buildAppContext());
+      useUserMock.mockReturnValue(regularUser);
+
+      const { toggle, onClick } = mountNavToggle(true);
+
+      try {
+        render(<WhatsNewModal />);
+        openWelcomeModal();
+        startTourAndWait('Start full tour');
+
+        expect(onClick).not.toHaveBeenCalled();
+        expect(toggle.getAttribute('aria-expanded')).toBe('true');
+
+        fireEvent.click(screen.getByText('Skip tour'));
+
+        // Tour did not open the sidebar, so dismiss must leave it open.
+        expect(onClick).not.toHaveBeenCalled();
+        expect(toggle.getAttribute('aria-expanded')).toBe('true');
+      } finally {
+        toggle.remove();
+      }
     });
   });
 
@@ -211,7 +314,7 @@ describe('WhatsNewModal', () => {
 
       render(<WhatsNewModal />);
       openWelcomeModal();
-      startTourAndWait('Start tour');
+      startTourAndWait('Start full tour');
 
       for (let i = 0; i < 5; i++) {
         fireEvent.click(screen.getByText('Next'));
@@ -222,6 +325,236 @@ describe('WhatsNewModal', () => {
 
       expect(screen.getByText("You're ready to go!")).toBeInTheDocument();
       expect(screen.getByText('documentation')).toBeInTheDocument();
+    });
+  });
+
+  describe('segment tracking', () => {
+    it('should fire Guided Tour Started as a form event on auto-launch', () => {
+      useAppContextMock.mockReturnValue(buildAppContext());
+      useUserMock.mockReturnValue(regularUser);
+
+      render(<WhatsNewModal />);
+      openWelcomeModal();
+
+      expect(mockFireFormTrackingEvent).toHaveBeenCalledWith(GUIDED_TOUR_EVENTS.STARTED, {
+        outcome: TrackingOutcome.submit,
+        success: true,
+        entryPoint: 'auto-launch',
+        tourVersion: '3.5',
+        tourVariant: 'non-admin',
+        isReturningUser: false,
+        roleType: 'Data Scientist',
+      });
+    });
+
+    it('should cancel pending auto-launch when the tour is opened manually', () => {
+      useAppContextMock.mockReturnValue(buildAppContext());
+      useUserMock.mockReturnValue(regularUser);
+
+      render(<WhatsNewModal />);
+
+      // Open from masthead before the 1.5s auto-launch timer fires.
+      act(() => {
+        jest.advanceTimersByTime(500);
+        openWhatsNewTour('masthead');
+      });
+
+      expect(mockFireFormTrackingEvent).toHaveBeenCalledTimes(1);
+      expect(mockFireFormTrackingEvent).toHaveBeenCalledWith(
+        GUIDED_TOUR_EVENTS.STARTED,
+        expect.objectContaining({ entryPoint: 'masthead' }),
+      );
+
+      // Auto-launch timer would have fired by now — must not start a second session.
+      act(() => {
+        jest.advanceTimersByTime(1500);
+      });
+
+      expect(mockFireFormTrackingEvent).toHaveBeenCalledTimes(1);
+      expect(mockFireFormTrackingEvent).not.toHaveBeenCalledWith(
+        GUIDED_TOUR_EVENTS.STARTED,
+        expect.objectContaining({ entryPoint: 'auto-launch' }),
+      );
+    });
+
+    it('should fire Dismissed as a form cancel when skipping from welcome', () => {
+      useAppContextMock.mockReturnValue(buildAppContext());
+      useUserMock.mockReturnValue(adminUser);
+
+      render(<WhatsNewModal />);
+      openWelcomeModal();
+      mockFireFormTrackingEvent.mockClear();
+
+      fireEvent.click(screen.getByText('Close'));
+
+      expect(mockFireFormTrackingEvent).toHaveBeenCalledWith(
+        GUIDED_TOUR_EVENTS.DISMISSED,
+        expect.objectContaining({
+          outcome: TrackingOutcome.cancel,
+          entryPoint: 'auto-launch',
+          tourVariant: 'admin',
+          dismissStepId: 'welcome',
+          dismissStepIndex: -1,
+          dismissMethod: 'skip_button',
+          stepsViewed: 0,
+        }),
+      );
+      expect(mockFireFormTrackingEvent).not.toHaveBeenCalledWith(
+        GUIDED_TOUR_EVENTS.PATH_SELECTED,
+        expect.anything(),
+      );
+    });
+
+    it('should include tourPath on Dismissed after a path is selected', () => {
+      useAppContextMock.mockReturnValue(buildAppContext());
+      useUserMock.mockReturnValue(regularUser);
+
+      render(<WhatsNewModal />);
+      openWelcomeModal();
+      startTourAndWait('Start full tour');
+      mockFireFormTrackingEvent.mockClear();
+
+      fireEvent.click(screen.getByTestId('tour-step-skip'));
+
+      expect(mockFireFormTrackingEvent).toHaveBeenCalledWith(
+        GUIDED_TOUR_EVENTS.DISMISSED,
+        expect.objectContaining({
+          outcome: TrackingOutcome.cancel,
+          tourPath: 'full',
+          dismissMethod: 'skip_button',
+          dismissStepId: 'projects',
+        }),
+      );
+    });
+
+    it('should fire Path Selected and Completed as form events', () => {
+      useAppContextMock.mockReturnValue(buildAppContext());
+      useUserMock.mockReturnValue(regularUser);
+
+      render(<WhatsNewModal />);
+      openWelcomeModal();
+      startTourAndWait('Start full tour');
+
+      expect(mockFireFormTrackingEvent).toHaveBeenCalledWith(GUIDED_TOUR_EVENTS.PATH_SELECTED, {
+        outcome: TrackingOutcome.submit,
+        success: true,
+        tourPath: 'full',
+        tourVersion: '3.5',
+        tourVariant: 'non-admin',
+        entryPoint: 'auto-launch',
+      });
+
+      for (let i = 0; i < 5; i++) {
+        fireEvent.click(screen.getByText('Next'));
+        act(() => {
+          jest.advanceTimersByTime(200);
+        });
+      }
+
+      mockFireFormTrackingEvent.mockClear();
+      fireEvent.click(screen.getByTestId('whats-new-done-close'));
+
+      expect(mockFireFormTrackingEvent).toHaveBeenCalledWith(
+        GUIDED_TOUR_EVENTS.COMPLETED,
+        expect.objectContaining({
+          outcome: TrackingOutcome.submit,
+          success: true,
+          tourPath: 'full',
+          entryPoint: 'auto-launch',
+          tourVariant: 'non-admin',
+          stepsViewed: 5,
+          totalSteps: 5,
+        }),
+      );
+      expect(mockFireFormTrackingEvent).not.toHaveBeenCalledWith(
+        GUIDED_TOUR_EVENTS.DISMISSED,
+        expect.anything(),
+      );
+    });
+
+    it('should fire Completed (not Dismissed) when closing the summary modal via X', () => {
+      useAppContextMock.mockReturnValue(buildAppContext());
+      useUserMock.mockReturnValue(regularUser);
+
+      render(<WhatsNewModal />);
+      openWelcomeModal();
+      startTourAndWait('Start full tour');
+
+      for (let i = 0; i < 5; i++) {
+        fireEvent.click(screen.getByText('Next'));
+        act(() => {
+          jest.advanceTimersByTime(200);
+        });
+      }
+
+      expect(screen.getByText("You're ready to go!")).toBeInTheDocument();
+      mockFireFormTrackingEvent.mockClear();
+
+      // PatternFly modal X (not the footer Close button) — still Completed, not abandon.
+      const modalCloseButtons = screen.getAllByRole('button', { name: /^close$/i });
+      const modalX = modalCloseButtons.find(
+        (button) => button.getAttribute('data-testid') !== 'whats-new-done-close',
+      );
+      if (!modalX) {
+        throw new Error('Expected PatternFly modal close (X) button');
+      }
+      fireEvent.click(modalX);
+
+      expect(mockFireFormTrackingEvent).toHaveBeenCalledWith(
+        GUIDED_TOUR_EVENTS.COMPLETED,
+        expect.objectContaining({
+          outcome: TrackingOutcome.submit,
+          success: true,
+          tourPath: 'full',
+        }),
+      );
+      expect(mockFireFormTrackingEvent).not.toHaveBeenCalledWith(
+        GUIDED_TOUR_EVENTS.DISMISSED,
+        expect.anything(),
+      );
+    });
+
+    it('should fire Started with masthead entry point on manual reopen', () => {
+      mockUseBrowserStorage.mockReturnValue([true, mockSetSeen]);
+      useAppContextMock.mockReturnValue(buildAppContext());
+      useUserMock.mockReturnValue(regularUser);
+
+      render(<WhatsNewModal />);
+      act(() => {
+        openWhatsNewTour('masthead');
+      });
+
+      expect(mockFireFormTrackingEvent).toHaveBeenCalledWith(GUIDED_TOUR_EVENTS.STARTED, {
+        outcome: TrackingOutcome.submit,
+        success: true,
+        entryPoint: 'masthead',
+        tourVersion: '3.5',
+        tourVariant: 'non-admin',
+        isReturningUser: true,
+        roleType: 'Data Scientist',
+      });
+    });
+
+    it('should fire Learn More with Amplitude plan property names', () => {
+      useAppContextMock.mockReturnValue(buildAppContext());
+      useUserMock.mockReturnValue(regularUser);
+
+      render(<WhatsNewModal />);
+      openWelcomeModal();
+      startTourAndWait('Start full tour');
+      mockFireMiscTrackingEvent.mockClear();
+
+      fireEvent.click(screen.getByText('Learn more'));
+
+      expect(mockFireMiscTrackingEvent).toHaveBeenCalledWith(
+        GUIDED_TOUR_EVENTS.LEARN_MORE_CLICKED,
+        expect.objectContaining({
+          stepId: 'projects',
+          destinationUrl: expect.any(String),
+          tourPath: 'full',
+          presentationType: 'modal',
+        }),
+      );
     });
   });
 });

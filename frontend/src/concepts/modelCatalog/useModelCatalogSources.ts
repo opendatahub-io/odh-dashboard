@@ -4,7 +4,8 @@ import useFetchState, {
   NotReadyError,
   FetchState,
 } from '@odh-dashboard/ui-core/hooks/useFetchState';
-import { getConfigMap, isK8sStatus } from '#~/api';
+import { isK8sStatus } from '@odh-dashboard/k8s-core';
+import { getConfigMap } from '#~/api';
 import useNamespaces from '#~/pages/notebookController/useNamespaces';
 import { allSettledPromises } from '#~/utilities/allSettledPromises';
 import { ModelCatalogSource, ModelCatalogSourcesObject } from './types';

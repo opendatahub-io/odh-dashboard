@@ -1,7 +1,7 @@
 import * as React from 'react';
+import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import { NotebookRunningState } from '#~/types';
 import useWatchNotebooksForUsers from '#~/utilities/useWatchNotebooksForUsers';
-import ApplicationsPage from '#~/pages/ApplicationsPage';
 import { useSpecificNotebookUserState } from '#~/utilities/notebookControllerUtils';
 import { useGetNotebookRoute } from '#~/utilities/useGetNotebookRoute';
 import { NotebookContextStorage, SetNotebookState } from './notebookControllerContextTypes';

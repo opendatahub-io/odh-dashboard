@@ -2,12 +2,12 @@
 import * as React from 'react';
 import { FormGroup, StackItem } from '@patternfly/react-core';
 import { useNavigate } from 'react-router';
+import { TrackingOutcome } from '@odh-dashboard/ui-core';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import { PipelineKF, PipelineVersionKF } from '#~/concepts/pipelines/kfTypes';
 import PipelineSelector from '#~/concepts/pipelines/content/pipelineSelector/PipelineSelector';
 import { getNameEqualsFilter } from '#~/concepts/pipelines/utils';
 import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
-import { TrackingOutcome } from '#~/concepts/analyticsTracking/trackingProperties';
 import { pipelineVersionDetailsRoute } from '#~/routes/pipelines/global';
 import { DSPipelineAPIServerStore } from '#~/k8sTypes.ts';
 import { generatePipelineVersionName, PipelineUploadOption } from './utils';

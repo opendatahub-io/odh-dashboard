@@ -267,7 +267,7 @@ func TestBuildKFPRunRequest(t *testing.T) {
 		assert.Equal(t, "balanced", result.RuntimeConfig.Parameters["preset"])
 	})
 
-	t.Run("should default optimization_metric to faithfulness", func(t *testing.T) {
+	t.Run("should default optimization_metric to the configured default", func(t *testing.T) {
 		req := newValidCreateRequest()
 		result := BuildKFPRunRequest(req, testPipelineID, testPipelineVersionID)
 
@@ -381,7 +381,7 @@ func TestValidateCreateAutoRAGRunRequest(t *testing.T) {
 	})
 
 	t.Run("should accept valid optimization_metric values", func(t *testing.T) {
-		for _, metric := range []string{"faithfulness", "answer_correctness", "context_correctness"} {
+		for _, metric := range []string{"faithfulness", "answer_correctness", "context_correctness", "overall_score"} {
 			req := newValidCreateRequest()
 			req.OptimizationMetric = metric
 			err := ValidateCreateAutoRAGRunRequest(req)

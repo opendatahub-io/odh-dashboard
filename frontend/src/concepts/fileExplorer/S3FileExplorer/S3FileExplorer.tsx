@@ -311,8 +311,17 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
   // Cancel stale debounce when debouncedSearch is recreated
   useEffect(() => () => debouncedSearch.cancel(), [debouncedSearch]);
 
-  // Abort in-flight requests only on unmount
-  useEffect(() => () => controllerRef.current?.abort(), []);
+  // Abort in-flight requests on unmount; clear connection identity so a
+  // StrictMode remount (setup → cleanup → setup) re-fetches instead of
+  // seeing the stale key and skipping.
+  useEffect(
+    () => () => {
+      controllerRef.current?.abort();
+      controllerRef.current = null;
+      connectionKeyRef.current = null;
+    },
+    [],
+  );
 
   // Derived state -------------------------------------------------------------->
 

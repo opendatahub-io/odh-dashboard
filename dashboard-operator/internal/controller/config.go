@@ -16,7 +16,7 @@ import (
 )
 
 const operatorConfigMapName = "dashboard-operator-config"
-const distributionConfigMapName = "opendatahub-dashboard-config"
+const distributionConfigMapName = "odh-dashboard-config"
 const minReconcileInterval = 5 * time.Second
 const maxDistributionFieldLen = 256
 

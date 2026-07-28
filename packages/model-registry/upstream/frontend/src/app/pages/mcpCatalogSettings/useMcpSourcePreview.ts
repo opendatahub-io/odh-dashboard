@@ -9,6 +9,8 @@ import {
   McpCatalogSourcePreviewSummary,
 } from '~/app/mcpServerCatalogTypes';
 import { McpCatalogSettingsAPIState } from '~/app/hooks/mcpCatalogSettings/useMcpCatalogSettingsAPIState';
+import { useUserInteraction } from '~/concepts/userInteraction';
+import { MCP_CATALOG_SOURCES_EVENTS } from '~/app/pages/mcpCatalogSettings/tracking/mcpCatalogSourcesTracking';
 import { ManageMcpSourceFormData } from './useManageMcpSourceData';
 
 export enum McpPreviewTab {
@@ -73,6 +75,8 @@ export const useMcpSourcePreview = ({
   apiState,
   isEditMode,
 }: UseMcpSourcePreviewOptions): UseMcpSourcePreviewResult => {
+  const { trackSimpleEvent } = useUserInteraction();
+  const trackingContext = isEditMode ? 'manage_source' : 'add_source';
   const [previewState, setPreviewState] = React.useState<McpPreviewState>({
     isLoadingInitial: false,
     isLoadingMore: false,
@@ -109,6 +113,25 @@ export const useMcpSourcePreview = ({
     return !isEqual(currentRequest, previewState.lastPreviewedData);
   }, [buildPreviewRequest, previewState.lastPreviewedData]);
 
+  const trackPreviewCompleted = React.useCallback(
+    (
+      success: boolean,
+      requestData: McpCatalogSourcePreviewRequest | undefined,
+      serversFoundCount: number,
+      errorType?: string,
+    ) => {
+      trackSimpleEvent(MCP_CATALOG_SOURCES_EVENTS.PREVIEW_COMPLETED, {
+        context: trackingContext,
+        success,
+        serversFoundCount,
+        includedFiltersUsed: (requestData?.includedServers?.length ?? 0) > 0,
+        excludedFiltersUsed: (requestData?.excludedServers?.length ?? 0) > 0,
+        ...(errorType ? { errorType } : {}),
+      });
+    },
+    [trackSimpleEvent, trackingContext],
+  );
+
   const handlePreviewInternal = React.useCallback(
     async (options?: { loadMore?: boolean; switchToTab?: McpPreviewTab }) => {
       const { loadMore = false, switchToTab } = options ?? {};
@@ -117,6 +140,9 @@ export const useMcpSourcePreview = ({
       const targetTab = getTargetTab(isFreshPreview, switchToTab, currentState.activeTab);
 
       if (!apiState.apiAvailable) {
+        if (isFreshPreview) {
+          trackPreviewCompleted(false, undefined, 0, 'api_unavailable');
+        }
         setPreviewState((prev) => ({
           ...prev,
           isLoadingInitial: false,
@@ -162,6 +188,10 @@ export const useMcpSourcePreview = ({
           nextPageToken,
         });
 
+        if (isFreshPreview) {
+          trackPreviewCompleted(true, requestData, result.summary.totalAssets);
+        }
+
         setPreviewState((prev) => {
           const currentTabState = prev.tabStates[targetTab];
           const newItems = loadMore ? [...currentTabState.items, ...result.items] : result.items;
@@ -184,6 +214,9 @@ export const useMcpSourcePreview = ({
           };
         });
       } catch (error) {
+        if (isFreshPreview) {
+          trackPreviewCompleted(false, requestData, 0, 'preview_failed');
+        }
         const err = error instanceof Error ? error : new Error('Failed to preview source');
         setPreviewState((prev) => ({
           ...prev,
@@ -193,7 +226,7 @@ export const useMcpSourcePreview = ({
         }));
       }
     },
-    [apiState, buildPreviewRequest],
+    [apiState, buildPreviewRequest, trackPreviewCompleted],
   );
 
   const handlePreview = React.useCallback(async () => {

@@ -26,8 +26,10 @@ repo_root = os.path.join(tilt_root, "../../..")
 
 # ── Optional packages (set env vars to "true" to enable) ─────────────────────
 
+enable_model_serving = os.environ.get("ENABLE_MODEL_SERVING", "false") == "true"
+
 build_args = {}
-if os.environ.get("ENABLE_MODEL_SERVING", "false") == "true":
+if enable_model_serving:
     build_args["ENABLE_MODEL_SERVING"] = "true"
 
 # ── RHAII Dashboard ───────────────────────────────────────────────────────────
@@ -58,3 +60,15 @@ k8s_resource(
     port_forwards=[port_forward(4000, 4000, name="RHAII Dashboard")],
     labels=["rhaii"],
 )
+
+# ── Model Serving (optional — KServe backend) ────────────────────────────────
+# Requires: make setup-kserve (called automatically by make tilt-up-model-serving)
+
+if enable_model_serving:
+    # Stream logs from the externally-installed KServe controller for visibility
+    local_resource(
+        "kserve-controller",
+        cmd="kubectl get deployment -n kserve kserve-controller-manager -o jsonpath='{.status.readyReplicas}' 2>/dev/null || echo 'not installed'",
+        serve_cmd="kubectl logs -n kserve deployment/kserve-controller-manager -f --tail=50",
+        labels=["model-serving"],
+    )

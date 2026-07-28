@@ -74,6 +74,8 @@ describe('Model Catalog Performance Filters Alert', () => {
           'include.text',
           'The performance constraints and results have been updated to match the constraints you applied to the',
         );
+
+      cy.testA11y({ exclude: ['.pf-v6-c-tooltip'] });
     });
 
     it('should not show alert when no filters were changed on details page', () => {

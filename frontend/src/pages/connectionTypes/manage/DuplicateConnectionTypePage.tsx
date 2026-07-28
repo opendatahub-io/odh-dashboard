@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { useLocation, useParams } from 'react-router';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
-import ApplicationsPage from '#~/pages/ApplicationsPage';
+import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import { useConnectionType } from '#~/concepts/connectionTypes/useConnectionType';
 import CreateConnectionTypePage from './CreateConnectionTypePage';
 

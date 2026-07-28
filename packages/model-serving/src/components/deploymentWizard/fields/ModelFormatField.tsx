@@ -4,7 +4,7 @@ import { z } from 'zod';
 import SimpleSelect, {
   type SimpleSelectOption,
 } from '@odh-dashboard/ui-core/components/SimpleSelect';
-import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
+import { useDashboardNamespace } from '@odh-dashboard/plugin-core/host-api';
 import type { SupportedModelFormats, TemplateKind } from '@odh-dashboard/k8s-core';
 import {
   getModelTypesFromTemplate,

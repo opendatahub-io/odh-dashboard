@@ -33,6 +33,9 @@ export {
   MetadataAnnotation,
   HardwareProfileFeatureVisibility,
   DataScienceStackComponent,
+  MODELS_AS_A_SERVICE_READY,
+  DSPAMlflowIntegrationMode,
+  WorkloadOwnerType,
 } from './k8sTypes';
 export type {
   K8sAPIOptions,
@@ -61,6 +64,29 @@ export type {
   DataScienceClusterComponentStatus,
   DataScienceClusterKindStatus,
   DataScienceClusterInitializationKindStatus,
+  ConfigMapKind,
+  EventKind,
+  StorageClassKind,
+  NotebookAnnotations,
+  NotebookKind,
+  RoleBindingSubject,
+  RoleBindingRoleRef,
+  ResourceRule,
+  RoleKind,
+  RoleBindingKind,
+  TrustyAIKind,
+  ClusterQueueKind,
+  LocalQueueKind,
+  WorkloadPodSet,
+  WorkloadKind,
+  WorkloadConditionType,
+  WorkloadCondition,
+  CohortKind,
+  ResourceFlavorKind,
+  ServiceKind,
+  NIMAccountKind,
+  ConfigSecretItem,
+  K8sWatchResult,
 } from './k8sTypes';
 
 export {
@@ -74,6 +100,8 @@ export {
   getConditionForType,
   isConditionInStatus,
   kindApiVersion,
+  getPvcAccessMode,
+  hasProtocolAnnotation,
 } from './k8sResourceUtils';
 export type {
   AdditionalCriteriaForTranslation,
@@ -136,9 +164,21 @@ export type {
   Connection,
   ConnectionTypeFormData,
   AWSDataEntry,
+  FieldMode,
 } from './connectionTypes';
 
-export { NamespaceApplicationCase, byName, namespaceToProjectDisplayName } from './projectUtils';
+export {
+  NamespaceApplicationCase,
+  byName,
+  namespaceToProjectDisplayName,
+  isAvailableProject,
+  isAiProject,
+  getProjectOwner,
+  getProjectCreationTime,
+  projectDisplayNameToNamespace,
+} from './projectUtils';
+export type { GetByName } from './projectUtils';
+export { isK8sStatus, K8sStatusError } from './errorUtils';
 
 export {
   isSecretKind,

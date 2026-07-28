@@ -15,17 +15,16 @@ export const techPreviewFlags = {
   externalModels: false,
   aiAssetCustomEndpoints: false,
   mcpCatalog: false,
+  mcpRegistry: false,
   toolCalling: false,
-  projectRBAC: true,
-  roleManagement: false,
   deploymentWizardYAMLViewer: false,
   externalVectorStores: false,
   agentConfigManagement: false,
   vLLMDeploymentOnMaaS: false,
+  llmdTemplates: false,
   llmGatewayField: false,
   promptManagement: false,
   globalProjectPrompts: false,
-  maasSettingsIaRedesign: true,
   agentOps: false,
   connectionTest: false,
 } satisfies Partial<DashboardCommonConfig>;
@@ -37,7 +36,6 @@ export const devTemporaryFeatureFlags = {
   nimWizard: false,
   agentOpsDeploy: false,
   agentsCatalog: false,
-  mcpRegistry: false,
 } satisfies Partial<DashboardCommonConfig>;
 
 // Group 1: Core Dashboard Features
@@ -60,6 +58,8 @@ export const projectManagementFlags = {
   disableBYONImageStream: false,
   disableAdminConnectionTypes: false,
   disableStorageClasses: false,
+  projectRBAC: true,
+  roleManagement: true,
 } satisfies Partial<DashboardCommonConfig>;
 
 // Group 3: Model Serving & AI/ML Infrastructure
@@ -85,10 +85,11 @@ export const advancedAIMLFlags = {
   disableModelRegistry: false,
   disableModelRegistrySecureDB: false,
   disableFeatureStore: false,
+  featureStoreAdmin: false,
   disableFineTuning: true,
   disableLMEval: true,
   trainingJobs: true,
-  gpuaas: false,
+  gpuaas: true,
   observabilityDashboard: true,
 } satisfies Partial<DashboardCommonConfig>;
 
@@ -227,6 +228,10 @@ export const SupportedAreasStateMap: SupportedAreasState = {
     featureFlags: ['disableFeatureStore'],
     requiredComponents: [DataScienceStackComponent.FEAST_OPERATOR],
   },
+  [SupportedArea.FEATURE_STORE_ADMIN]: {
+    featureFlags: ['featureStoreAdmin'],
+    reliantAreas: [SupportedArea.FEATURE_STORE],
+  },
   [SupportedArea.MODEL_TRAINING]: {
     featureFlags: ['trainingJobs'],
     requiredComponents: [DataScienceStackComponent.TRAINER],
@@ -271,6 +276,7 @@ export const SupportedAreasStateMap: SupportedAreasState = {
     reliantAreas: [SupportedArea.LLMD_SERVING],
   },
   [SupportedArea.LLMD_TOPOLOGY_CONFIGS]: {
+    featureFlags: ['llmdTemplates'],
     reliantAreas: [SupportedArea.LLMD_SERVING],
   },
   [SupportedArea.LLMD_GATEWAY_FIELD]: {
@@ -282,9 +288,6 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   },
   [SupportedArea.EXTERNAL_MODELS]: {
     featureFlags: ['externalModels'],
-  },
-  [SupportedArea.MAAS_SETTINGS_IA_REDESIGN]: {
-    featureFlags: ['maasSettingsIaRedesign'],
   },
   [SupportedArea.GPUAAS_INFRASTRUCTURE]: {
     featureFlags: ['gpuaas'],

@@ -64,7 +64,7 @@ import {
   MaaSTokenResponse,
 } from '~/app/types';
 import { URL_PREFIX, extractMCPToolCallData } from '~/app/utilities';
-import { GUARDRAIL_ERROR_CODES } from '~/app/Chatbot/const';
+import { GUARDRAIL_ERROR_CODES, GUARDRAIL_MESSAGES } from '~/app/Chatbot/const';
 import { ThinkTagParser } from './thinkTagParser';
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -456,8 +456,20 @@ const streamCreateResponse = (
                         const isFirstRefusal = !receivedRefusal;
                         if (isFirstRefusal) {
                           receivedRefusal = true;
-                          fullContent = '';
                           fireMiscTrackingEvent('Guardrail Activated', { violationDetected: true });
+                          if (fullContent.length > 0) {
+                            await reader.cancel('Output guardrail violation');
+                            reject(
+                              new ApiErrorClass({
+                                code: GUARDRAIL_ERROR_CODES.OUTPUT_VIOLATION,
+                                message: GUARDRAIL_MESSAGES.OUTPUT_VIOLATION,
+                                component: ERROR_COMPONENTS.GUARDRAILS,
+                                retriable: false,
+                              }),
+                            );
+                            return;
+                          }
+                          fullContent = '';
                         }
                         fullContent += data.delta;
                         onStreamData(data.delta, isFirstRefusal);
@@ -502,8 +514,19 @@ const streamCreateResponse = (
                       const isFirstRefusal = !receivedRefusal;
                       if (isFirstRefusal) {
                         receivedRefusal = true;
-                        fullContent = '';
                         fireMiscTrackingEvent('Guardrail Activated', { violationDetected: true });
+                        if (fullContent.length > 0) {
+                          reject(
+                            new ApiErrorClass({
+                              code: GUARDRAIL_ERROR_CODES.OUTPUT_VIOLATION,
+                              message: GUARDRAIL_MESSAGES.OUTPUT_VIOLATION,
+                              component: ERROR_COMPONENTS.GUARDRAILS,
+                              retriable: false,
+                            }),
+                          );
+                          return;
+                        }
+                        fullContent = '';
                       }
                       fullContent += data.delta;
                       onStreamData(data.delta, isFirstRefusal);
@@ -717,6 +740,18 @@ export const createPassthroughResponse = (
                       fullContent += data.delta;
                       onStreamData(data.delta);
                     } else if (data.type === 'response.refusal.delta' && data.delta) {
+                      if (fullContent.length > 0) {
+                        await reader.cancel('Output guardrail violation');
+                        reject(
+                          new ApiErrorClass({
+                            code: GUARDRAIL_ERROR_CODES.OUTPUT_VIOLATION,
+                            message: GUARDRAIL_MESSAGES.OUTPUT_VIOLATION,
+                            component: ERROR_COMPONENTS.GUARDRAILS,
+                            retriable: false,
+                          }),
+                        );
+                        return;
+                      }
                       fullContent += data.delta;
                       onStreamData(data.delta);
                     } else if (data.type === 'response.completed' && data.response) {
@@ -752,6 +787,17 @@ export const createPassthroughResponse = (
                     fullContent += data.delta;
                     onStreamData(data.delta);
                   } else if (data.type === 'response.refusal.delta' && data.delta) {
+                    if (fullContent.length > 0) {
+                      reject(
+                        new ApiErrorClass({
+                          code: GUARDRAIL_ERROR_CODES.OUTPUT_VIOLATION,
+                          message: GUARDRAIL_MESSAGES.OUTPUT_VIOLATION,
+                          component: ERROR_COMPONENTS.GUARDRAILS,
+                          retriable: false,
+                        }),
+                      );
+                      return;
+                    }
                     fullContent += data.delta;
                     onStreamData(data.delta);
                   } else if (data.type === 'response.completed' && data.response) {

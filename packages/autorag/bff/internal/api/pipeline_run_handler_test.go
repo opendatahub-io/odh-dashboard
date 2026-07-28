@@ -41,7 +41,7 @@ func validCreateRequest() models.CreateAutoRAGRunRequest {
 		InputDataBucketName: "input-bucket",
 		InputDataKey:        "input-key",
 		OGXSecretName:       "ogx-secret",
-		OptimizationMetric:  "faithfulness",
+		OptimizationMetric:  constants.DefaultOptimizationMetric,
 	}
 }
 
@@ -97,10 +97,10 @@ func TestCreatePipelineRunHandler_Success(t *testing.T) {
 		assert.Equal(t, "test-run", response.Data.DisplayName)
 		assert.Equal(t, "PENDING", response.Data.State)
 		assert.NotNil(t, response.Data.RuntimeConfig)
-		assert.Equal(t, "faithfulness", response.Data.RuntimeConfig.Parameters["optimization_metric"])
+		assert.Equal(t, constants.DefaultOptimizationMetric, response.Data.RuntimeConfig.Parameters["optimization_metric"])
 	})
 
-	t.Run("should default optimization_metric to faithfulness", func(t *testing.T) {
+	t.Run("should default optimization_metric to the configured default", func(t *testing.T) {
 		rr := httptest.NewRecorder()
 		body := validCreateRequest()
 		body.OptimizationMetric = ""
@@ -117,7 +117,7 @@ func TestCreatePipelineRunHandler_Success(t *testing.T) {
 		assert.NotEmpty(t, response.Data.RunID)
 		assert.Equal(t, "PENDING", response.Data.State)
 		assert.NotNil(t, response.Data.RuntimeConfig)
-		assert.Equal(t, "faithfulness", response.Data.RuntimeConfig.Parameters["optimization_metric"])
+		assert.Equal(t, constants.DefaultOptimizationMetric, response.Data.RuntimeConfig.Parameters["optimization_metric"])
 	})
 
 	t.Run("should accept answer_correctness metric", func(t *testing.T) {
@@ -371,7 +371,7 @@ func TestCreatePipelineRunHandler_ResponseContract(t *testing.T) {
 		assert.Equal(t, "input-bucket", params["input_data_bucket_name"])
 		assert.Equal(t, "input-key", params["input_data_key"])
 		assert.Equal(t, "ogx-secret", params["ogx_secret_name"])
-		assert.Equal(t, "faithfulness", params["optimization_metric"])
+		assert.Equal(t, constants.DefaultOptimizationMetric, params["optimization_metric"])
 	})
 
 	t.Run("should include pipeline_version_reference from discovered pipeline", func(t *testing.T) {

@@ -96,8 +96,43 @@ function matchesGlobPattern(filePath, pattern, packagePath) {
   }
 }
 
+// Type-definition files have no runtime JavaScript and cannot be meaningfully covered
+function isTypeDefinitionFile(filePath) {
+  const basename = path.basename(filePath);
+  if (basename.endsWith('.d.ts')) {
+    return true;
+  }
+  if (basename.endsWith('Types.ts') || basename.endsWith('types.ts')) {
+    try {
+      const content = fs.readFileSync(filePath, 'utf8');
+      const lines = content
+        .split('\n')
+        .filter(
+          (l) =>
+            l.trim() &&
+            !l.trim().startsWith('//') &&
+            !l.trim().startsWith('/*') &&
+            !l.trim().startsWith('*'),
+        );
+      const hasRuntimeCode = lines.some(
+        (l) =>
+          /^\s*(export\s+)?(const|let|var|function|class|enum|if|for|while|switch|return|throw|try|catch)\b/.test(
+            l,
+          ) && !/^\s*(export\s+)?(type|interface)\b/.test(l),
+      );
+      return !hasRuntimeCode;
+    } catch {
+      return false;
+    }
+  }
+  return false;
+}
+
 // Function to check if a file should be excluded
 function isFileExcluded(filePath, exclusionPatterns, packagePath) {
+  if (isTypeDefinitionFile(filePath)) {
+    return true;
+  }
   return exclusionPatterns.some((pattern) => matchesGlobPattern(filePath, pattern, packagePath));
 }
 
@@ -242,39 +277,82 @@ function createEmptyCoverageForPackages(
   return emptyCoverageFiles;
 }
 
-// Get all workspace packages
-console.log('Finding workspace packages...');
-const workspacePackagesResult = execCommandSafe('npm query .workspace --json');
-if (!workspacePackagesResult) {
-  console.error('Failed to get workspace packages. Make sure npm workspace is configured.');
-  process.exit(1);
-}
+function main() {
+  // Get all workspace packages
+  console.log('Finding workspace packages...');
+  const workspacePackagesResult = execCommandSafe('npm query .workspace --json');
+  if (!workspacePackagesResult) {
+    throw new Error('Failed to get workspace packages. Make sure npm workspace is configured.');
+  }
 
-// Parse the JSON output and extract paths
-let packagePaths = [];
-try {
-  const workspacePackages = JSON.parse(workspacePackagesResult);
-  packagePaths = workspacePackages.map((pkg) => pkg.path).filter((path) => path && path.length > 0);
-} catch (error) {
-  console.error('Failed to parse workspace packages JSON:', error.message);
-  process.exit(1);
-}
-
-console.log(`Found ${packagePaths.length} workspace packages`);
-
-// Get collectCoverageFrom patterns from the Jest config
-function getCoveragePatterns() {
-  // Try to read and parse the Jest config file directly
-  const jestConfigPath = path.join(process.cwd(), 'packages/jest-config/jest.config.ts');
-
+  // Parse the JSON output and extract paths
+  let packagePaths = [];
   try {
-    const configContent = fs.readFileSync(jestConfigPath, 'utf8');
+    const workspacePackages = JSON.parse(workspacePackagesResult);
+    for (const pkg of workspacePackages) {
+      if (pkg.path && pkg.path.length > 0) {
+        packagePaths.push(pkg.path);
+      }
+    }
+  } catch (error) {
+    throw new Error(`Failed to parse workspace packages JSON: ${error.message}`);
+  }
 
-    // Extract collectCoverageFrom array using regex
-    const collectCoverageFromMatch = configContent.match(/collectCoverageFrom:\s*\[([\s\S]*?)\]/);
+  console.log(`Found ${packagePaths.length} workspace packages`);
 
-    if (!collectCoverageFromMatch) {
-      console.warn('Could not find collectCoverageFrom in jest config, using default patterns');
+  // Get collectCoverageFrom patterns from the Jest config
+  function getCoveragePatterns() {
+    // Try to read and parse the Jest config file directly
+    const jestConfigPath = path.join(process.cwd(), 'packages/jest-config/jest.config.ts');
+
+    try {
+      const configContent = fs.readFileSync(jestConfigPath, 'utf8');
+
+      // Extract collectCoverageFrom array using regex
+      const collectCoverageFromMatch = configContent.match(/collectCoverageFrom:\s*\[([\s\S]*?)\]/);
+
+      if (!collectCoverageFromMatch) {
+        console.warn('Could not find collectCoverageFrom in jest config, using default patterns');
+        return {
+          inclusion: [
+            'src/**/*.{ts,tsx}',
+            'extensions.ts',
+            'extensions/**/*.{ts,tsx}',
+            'extension-points.ts',
+            'extension-points/**/*.{ts,tsx}',
+          ],
+          exclusion: [
+            '**/__tests__/**',
+            '**/__mocks__/**',
+            '**/*.spec.{ts,tsx}',
+            'upstream/**',
+            'src/third_party/**',
+          ],
+        };
+      }
+
+      // Parse patterns from the matched content
+      const patternsText = collectCoverageFromMatch[1];
+      const patterns = [];
+      const patternRegex = /['"`]([^'"`]+)['"`]/g;
+      let match;
+
+      while ((match = patternRegex.exec(patternsText)) !== null) {
+        patterns.push(match[1]);
+      }
+
+      // Separate inclusion and exclusion patterns
+      const inclusion = patterns.filter((pattern) => !pattern.startsWith('!'));
+      const exclusion = patterns
+        .filter((pattern) => pattern.startsWith('!'))
+        .map((pattern) => pattern.slice(1));
+
+      console.log(
+        `Extracted ${inclusion.length} inclusion and ${exclusion.length} exclusion patterns from jest config`,
+      );
+      return { inclusion, exclusion };
+    } catch (error) {
+      console.warn(`Error reading jest config: ${error.message}, using default patterns`);
       return {
         inclusion: [
           'src/**/*.{ts,tsx}',
@@ -287,198 +365,163 @@ function getCoveragePatterns() {
           '**/__tests__/**',
           '**/__mocks__/**',
           '**/*.spec.{ts,tsx}',
+          '**/*.d.ts',
           'upstream/**',
           'src/third_party/**',
         ],
       };
     }
+  }
 
-    // Parse patterns from the matched content
-    const patternsText = collectCoverageFromMatch[1];
-    const patterns = [];
-    const patternRegex = /['"`]([^'"`]+)['"`]/g;
-    let match;
+  const coveragePatterns = getCoveragePatterns();
+  const inclusionPatterns = coveragePatterns.inclusion;
+  const exclusionPatterns = coveragePatterns.exclusion;
 
-    while ((match = patternRegex.exec(patternsText)) !== null) {
-      patterns.push(match[1]);
+  // Find packages with jest-coverage directories containing coverage files
+  const packagesWithCoverage = [];
+  const packagesWithoutCoverage = [];
+
+  for (const packagePath of packagePaths) {
+    const coverageDir = path.join(packagePath, 'jest-coverage');
+    if (fs.existsSync(coverageDir)) {
+      // Package has jest-coverage directory - check if it contains coverage files
+      const coverageFiles = fs
+        .readdirSync(coverageDir)
+        .filter((file) => file === 'coverage-final.json');
+
+      if (coverageFiles.length > 0) {
+        packagesWithCoverage.push(packagePath);
+        console.log(`Found coverage in: ${packagePath}`);
+      }
+      // Note: If jest-coverage exists but is empty, we don't add to packagesWithoutCoverage
+      // because the user specifically requested only packages WITHOUT jest-coverage folder
+    } else {
+      // Only add to packagesWithoutCoverage if jest-coverage directory doesn't exist at all
+      // Exclude frontend/ folder since nested packages will handle their own coverage
+      const isFrontendRoot =
+        path.basename(packagePath) === 'frontend' && packagePath.endsWith('/frontend');
+
+      if (!isFrontendRoot) {
+        packagesWithoutCoverage.push(packagePath);
+      }
     }
+  }
 
-    // Separate inclusion and exclusion patterns
-    const inclusion = patterns.filter((pattern) => !pattern.startsWith('!'));
-    const exclusion = patterns
-      .filter((pattern) => pattern.startsWith('!'))
-      .map((pattern) => pattern.slice(1));
+  // Create empty coverage for packages without tests but with source files
+  console.log(`Found ${packagesWithoutCoverage.length} packages without coverage`);
+  console.log(
+    `Using ${inclusionPatterns.length} inclusion patterns and ${exclusionPatterns.length} exclusion patterns`,
+  );
+  const emptyCoverageFiles = createEmptyCoverageForPackages(
+    packagesWithoutCoverage,
+    inclusionPatterns,
+    exclusionPatterns,
+  );
 
+  if (packagesWithCoverage.length === 0 && emptyCoverageFiles.length === 0) {
+    console.log('No packages with coverage or source files found');
+    return;
+  }
+
+  // Create root coverage directory
+  const rootCoverageDir = path.join(process.cwd(), 'jest-coverage');
+  console.log(`Creating root coverage directory: ${rootCoverageDir}`);
+
+  // Clean up existing root coverage directory
+  if (fs.existsSync(rootCoverageDir)) {
+    fs.rmSync(rootCoverageDir, { recursive: true, force: true });
+  }
+  fs.mkdirSync(rootCoverageDir, { recursive: true });
+
+  // Find all coverage-final.json files
+  const coverageFiles = [];
+  for (const packagePath of packagesWithCoverage) {
+    const coverageDir = path.join(packagePath, 'jest-coverage');
+    const coverageFinalPath = path.join(coverageDir, 'coverage-final.json');
+
+    if (fs.existsSync(coverageFinalPath)) {
+      coverageFiles.push(coverageFinalPath);
+      console.log(`${colors.green}Found coverage file: ${coverageFinalPath}${colors.reset}`);
+    }
+  }
+
+  // Add empty coverage files
+  for (const emptyCoverageFile of emptyCoverageFiles) {
+    coverageFiles.push(emptyCoverageFile);
     console.log(
-      `Extracted ${inclusion.length} inclusion and ${exclusion.length} exclusion patterns from jest config`,
+      `${colors.yellow}Including empty coverage file: ${emptyCoverageFile}${colors.reset}`,
     );
-    return { inclusion, exclusion };
-  } catch (error) {
-    console.warn(`Error reading jest config: ${error.message}, using default patterns`);
-    return {
-      inclusion: [
-        'src/**/*.{ts,tsx}',
-        'extensions.ts',
-        'extensions/**/*.{ts,tsx}',
-        'extension-points.ts',
-        'extension-points/**/*.{ts,tsx}',
-      ],
-      exclusion: [
-        '**/__tests__/**',
-        '**/__mocks__/**',
-        '**/*.spec.{ts,tsx}',
-        'upstream/**',
-        'src/third_party/**',
-      ],
-    };
   }
-}
 
-const coveragePatterns = getCoveragePatterns();
-const inclusionPatterns = coveragePatterns.inclusion;
-const exclusionPatterns = coveragePatterns.exclusion;
+  if (coverageFiles.length === 0) {
+    console.log('No coverage-final.json files found');
+    return;
+  }
 
-// Find packages with jest-coverage directories containing coverage files
-const packagesWithCoverage = [];
-const packagesWithoutCoverage = [];
+  // Use nyc to merge coverage reports
+  console.log('Merging coverage reports...');
+  const tempCoverageDir = path.join(rootCoverageDir, '.nyc_output');
+  fs.mkdirSync(tempCoverageDir, { recursive: true });
 
-for (const packagePath of packagePaths) {
-  const coverageDir = path.join(packagePath, 'jest-coverage');
-  if (fs.existsSync(coverageDir)) {
-    // Package has jest-coverage directory - check if it contains coverage files
-    const coverageFiles = fs
-      .readdirSync(coverageDir)
-      .filter((file) => file.endsWith('.json') || file === 'coverage-final.json');
+  // Copy coverage files to temp directory for merging
+  coverageFiles.forEach((file, index) => {
+    const tempFile = path.join(tempCoverageDir, `coverage-${index}.json`);
+    fs.copyFileSync(file, tempFile);
+  });
 
-    if (coverageFiles.length > 0) {
-      packagesWithCoverage.push(packagePath);
-      console.log(`Found coverage in: ${packagePath}`);
+  // Merge coverage files
+  const mergedCoverageFile = path.join(rootCoverageDir, 'coverage-final.json');
+  const nycMergeCommand = `npx nyc merge ${tempCoverageDir} ${mergedCoverageFile}`;
+
+  console.log(`Executing: ${nycMergeCommand}`);
+  const mergeResult = execCommand(nycMergeCommand);
+  if (mergeResult === null) {
+    throw new Error('Failed to merge coverage reports');
+  }
+
+  // Generate different types of reports
+  console.log('Generating coverage reports...');
+
+  // Generate HTML report
+  const htmlReportCommand = `npx nyc report --reporter=html --report-dir=${rootCoverageDir}/html --temp-dir=${tempCoverageDir}`;
+  console.log(`Executing: ${htmlReportCommand}`);
+  execCommand(htmlReportCommand);
+
+  // Generate lcov report
+  const lcovReportCommand = `npx nyc report --reporter=lcov --report-dir=${rootCoverageDir} --temp-dir=${tempCoverageDir}`;
+  console.log(`Executing: ${lcovReportCommand}`);
+  execCommand(lcovReportCommand);
+
+  // Generate text summary
+  const textReportCommand = `npx nyc report --reporter=text --temp-dir=${tempCoverageDir}`;
+  console.log(`Executing: ${textReportCommand}`);
+  execCommand(textReportCommand);
+
+  // Generate JSON summary
+  const jsonReportCommand = `npx nyc report --reporter=json-summary --report-dir=${rootCoverageDir} --temp-dir=${tempCoverageDir}`;
+  console.log(`Executing: ${jsonReportCommand}`);
+  execCommand(jsonReportCommand);
+
+  // Clean up temp directory
+  fs.rmSync(tempCoverageDir, { recursive: true, force: true });
+
+  // Clean up empty coverage files
+  for (const emptyCoverageFile of emptyCoverageFiles) {
+    try {
+      if (fs.existsSync(emptyCoverageFile)) {
+        fs.unlinkSync(emptyCoverageFile);
+        console.log(`Cleaned up empty coverage file: ${emptyCoverageFile}`);
+      }
+    } catch (error) {
+      console.warn(`Failed to clean up empty coverage file ${emptyCoverageFile}: ${error.message}`);
     }
-    // Note: If jest-coverage exists but is empty, we don't add to packagesWithoutCoverage
-    // because the user specifically requested only packages WITHOUT jest-coverage folder
-  } else {
-    // Only add to packagesWithoutCoverage if jest-coverage directory doesn't exist at all
-    // Exclude frontend/ folder since nested packages will handle their own coverage
-    const isFrontendRoot =
-      path.basename(packagePath) === 'frontend' && packagePath.endsWith('/frontend');
-
-    if (!isFrontendRoot) {
-      packagesWithoutCoverage.push(packagePath);
-    }
   }
+
+  console.log(`${colors.green}\nCoverage aggregation complete!${colors.reset}`);
+  console.log(`Reports available in: ${rootCoverageDir}`);
+  console.log(`- HTML report: ${rootCoverageDir}/html/index.html`);
+  console.log(`- LCOV report: ${rootCoverageDir}/lcov.info`);
+  console.log(`- JSON summary: ${rootCoverageDir}/coverage-summary.json`);
 }
 
-// Create empty coverage for packages without tests but with source files
-console.log(`Found ${packagesWithoutCoverage.length} packages without coverage`);
-console.log(
-  `Using ${inclusionPatterns.length} inclusion patterns and ${exclusionPatterns.length} exclusion patterns`,
-);
-const emptyCoverageFiles = createEmptyCoverageForPackages(
-  packagesWithoutCoverage,
-  inclusionPatterns,
-  exclusionPatterns,
-);
-
-if (packagesWithCoverage.length === 0 && emptyCoverageFiles.length === 0) {
-  console.log('No packages with coverage or source files found');
-  process.exit(0);
-}
-
-// Create root coverage directory
-const rootCoverageDir = path.join(process.cwd(), 'jest-coverage');
-console.log(`Creating root coverage directory: ${rootCoverageDir}`);
-
-// Clean up existing root coverage directory
-if (fs.existsSync(rootCoverageDir)) {
-  fs.rmSync(rootCoverageDir, { recursive: true, force: true });
-}
-fs.mkdirSync(rootCoverageDir, { recursive: true });
-
-// Find all coverage-final.json files
-const coverageFiles = [];
-for (const packagePath of packagesWithCoverage) {
-  const coverageDir = path.join(packagePath, 'jest-coverage');
-  const coverageFinalPath = path.join(coverageDir, 'coverage-final.json');
-
-  if (fs.existsSync(coverageFinalPath)) {
-    coverageFiles.push(coverageFinalPath);
-    console.log(`${colors.green}Found coverage file: ${coverageFinalPath}${colors.reset}`);
-  }
-}
-
-// Add empty coverage files
-for (const emptyCoverageFile of emptyCoverageFiles) {
-  coverageFiles.push(emptyCoverageFile);
-  console.log(`${colors.yellow}Including empty coverage file: ${emptyCoverageFile}${colors.reset}`);
-}
-
-if (coverageFiles.length === 0) {
-  console.log('No coverage-final.json files found');
-  process.exit(0);
-}
-
-// Use nyc to merge coverage reports
-console.log('Merging coverage reports...');
-const tempCoverageDir = path.join(rootCoverageDir, '.nyc_output');
-fs.mkdirSync(tempCoverageDir, { recursive: true });
-
-// Copy coverage files to temp directory for merging
-coverageFiles.forEach((file, index) => {
-  const tempFile = path.join(tempCoverageDir, `coverage-${index}.json`);
-  fs.copyFileSync(file, tempFile);
-});
-
-// Merge coverage files
-const mergedCoverageFile = path.join(rootCoverageDir, 'coverage-final.json');
-const nycMergeCommand = `npx nyc merge ${tempCoverageDir} ${mergedCoverageFile}`;
-
-console.log(`Executing: ${nycMergeCommand}`);
-const mergeResult = execCommand(nycMergeCommand);
-if (mergeResult === null) {
-  console.error('Failed to merge coverage reports');
-  process.exit(1);
-}
-
-// Generate different types of reports
-console.log('Generating coverage reports...');
-
-// Generate HTML report
-const htmlReportCommand = `npx nyc report --reporter=html --report-dir=${rootCoverageDir}/html --temp-dir=${tempCoverageDir}`;
-console.log(`Executing: ${htmlReportCommand}`);
-execCommand(htmlReportCommand);
-
-// Generate lcov report
-const lcovReportCommand = `npx nyc report --reporter=lcov --report-dir=${rootCoverageDir} --temp-dir=${tempCoverageDir}`;
-console.log(`Executing: ${lcovReportCommand}`);
-execCommand(lcovReportCommand);
-
-// Generate text summary
-const textReportCommand = `npx nyc report --reporter=text --temp-dir=${tempCoverageDir}`;
-console.log(`Executing: ${textReportCommand}`);
-execCommand(textReportCommand);
-
-// Generate JSON summary
-const jsonReportCommand = `npx nyc report --reporter=json-summary --report-dir=${rootCoverageDir} --temp-dir=${tempCoverageDir}`;
-console.log(`Executing: ${jsonReportCommand}`);
-execCommand(jsonReportCommand);
-
-// Clean up temp directory
-fs.rmSync(tempCoverageDir, { recursive: true, force: true });
-
-// Clean up empty coverage files
-for (const emptyCoverageFile of emptyCoverageFiles) {
-  try {
-    if (fs.existsSync(emptyCoverageFile)) {
-      fs.unlinkSync(emptyCoverageFile);
-      console.log(`Cleaned up empty coverage file: ${emptyCoverageFile}`);
-    }
-  } catch (error) {
-    console.warn(`Failed to clean up empty coverage file ${emptyCoverageFile}: ${error.message}`);
-  }
-}
-
-console.log(`${colors.green}\nCoverage aggregation complete!${colors.reset}`);
-console.log(`Reports available in: ${rootCoverageDir}`);
-console.log(`- HTML report: ${rootCoverageDir}/html/index.html`);
-console.log(`- LCOV report: ${rootCoverageDir}/lcov.info`);
-console.log(`- JSON summary: ${rootCoverageDir}/coverage-summary.json`);
+main();

@@ -174,6 +174,7 @@ export type ModelOverviewSubscription = {
   name: string;
   displayName?: string;
   phase?: string;
+  statusMessage?: string;
   groups?: string[];
   tokenRateLimits?: TokenRateLimit[];
 };
@@ -182,6 +183,7 @@ export type ModelOverviewPolicy = {
   name: string;
   displayName?: string;
   phase?: string;
+  statusMessage?: string;
   groups?: string[];
 };
 

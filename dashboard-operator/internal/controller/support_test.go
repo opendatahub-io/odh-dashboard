@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"maps"
 	"os"
 	"path/filepath"
 	"testing"
@@ -168,4 +169,24 @@ func TestWriteParamsEnv(t *testing.T) {
 
 	expected := "alpha=a\nmid=m\nzebra=z\n"
 	assert.Equal(t, expected, string(data), "params must be sorted alphabetically")
+}
+
+func TestParamsPreservation(t *testing.T) {
+	dir := t.TempDir()
+
+	existing := "module-specific-key=module-value\nshared-key=original\n"
+	require.NoError(t, os.WriteFile(filepath.Join(dir, "params.env"), []byte(existing), 0644))
+
+	params := readExistingParams(filepath.Join(dir, "params.env"))
+	computed := map[string]string{
+		"computed-key": "computed-value",
+		"shared-key":   "overwritten-by-computed",
+	}
+	maps.Copy(params, computed)
+	require.NoError(t, writeParamsEnv(dir, params))
+
+	result := readExistingParams(filepath.Join(dir, "params.env"))
+	assert.Equal(t, "module-value", result["module-specific-key"], "existing module-specific params must be preserved")
+	assert.Equal(t, "computed-value", result["computed-key"], "computed params must be added")
+	assert.Equal(t, "overwritten-by-computed", result["shared-key"], "computed params must take precedence over existing")
 }

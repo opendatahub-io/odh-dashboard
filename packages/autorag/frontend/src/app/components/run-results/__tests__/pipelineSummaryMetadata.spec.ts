@@ -2,39 +2,29 @@ import type { ComponentStageMap } from '~/app/hooks/useComponentStageMap';
 import type { PipelineRun } from '~/app/types';
 import type { AutoragPattern } from '~/app/types/autoragPattern';
 import { getPipelineSummaryDetails } from '~/app/components/run-results/pipelineSummaryMetadata';
+import { DEFAULT_OPTIMIZATION_METRIC, OPTIMIZATION_METRIC_LABELS } from '~/app/utilities/const';
 
 /* eslint-disable camelcase */
 
-const mockPattern = (name: string, finalScore: number): AutoragPattern => ({
+const mockPattern = (name: string): AutoragPattern => ({
   name,
   iteration: 0,
   max_combinations: 1,
   duration_seconds: 12,
-  final_score: finalScore,
   settings: {
-    vector_store: { datasource_type: 'milvus', collection_name: 'test' },
     chunking: { method: 'fixed', chunk_size: 512, chunk_overlap: 50 },
     embedding: {
       model_id: 'embed-model',
-      distance_metric: 'cosine',
       embedding_params: {
         embedding_dimension: 768,
-        context_length: 512,
-        timeout: null,
-        model_type: null,
-        provider_id: null,
-        provider_resource_id: null,
       },
     },
     retrieval: { method: 'vector', number_of_chunks: 5 },
     generation: {
       model_id: 'gen-model',
-      context_template_text: '',
-      user_message_text: '',
-      system_message_text: '',
     },
   },
-  scores: {},
+  evaluation: { metrics: [] },
 });
 
 const mockStageMap: ComponentStageMap = {
@@ -67,8 +57,8 @@ const mockPipelineRun: PipelineRun = {
 };
 
 const patterns = {
-  Pattern1: mockPattern('Pattern1', 0.9),
-  Pattern2: mockPattern('Pattern2', 0.75),
+  Pattern1: mockPattern('Pattern1'),
+  Pattern2: mockPattern('Pattern2'),
 };
 
 describe('getPipelineSummaryDetails', () => {
@@ -79,7 +69,10 @@ describe('getPipelineSummaryDetails', () => {
       { label: 'Total run time', value: '2 m 55 s' },
       { label: 'Patterns evaluated', value: '2' },
       { label: 'Winning pattern', value: 'Pattern1' },
-      { label: 'Evaluation metric', value: 'Answer faithfulness' },
+      {
+        label: 'Evaluation metric',
+        value: OPTIMIZATION_METRIC_LABELS[DEFAULT_OPTIMIZATION_METRIC],
+      },
     ]);
   });
 
@@ -169,7 +162,10 @@ describe('getPipelineSummaryDetails', () => {
       { label: 'Total run time', value: '—' },
       { label: 'Patterns evaluated', value: '—' },
       { label: 'Winning pattern', value: '—' },
-      { label: 'Evaluation metric', value: 'Answer faithfulness' },
+      {
+        label: 'Evaluation metric',
+        value: OPTIMIZATION_METRIC_LABELS[DEFAULT_OPTIMIZATION_METRIC],
+      },
     ]);
   });
 

@@ -9,30 +9,19 @@ const createPattern = (name: string): AutoragPattern => ({
   max_combinations: 1,
   duration_seconds: 0,
   settings: {
-    vector_store: { datasource_type: 'milvus', collection_name: 'collection0' },
     chunking: { method: 'recursive', chunk_size: 256, chunk_overlap: 128 },
     embedding: {
       model_id: 'mock-embed',
-      distance_metric: 'cosine',
       embedding_params: {
         embedding_dimension: 768,
-        context_length: 512,
-        timeout: null,
-        model_type: null,
-        provider_id: null,
-        provider_resource_id: null,
       },
     },
     retrieval: { method: 'window', number_of_chunks: 5 },
     generation: {
       model_id: 'mock-gen',
-      context_template_text: '{document}',
-      user_message_text: '',
-      system_message_text: '',
     },
   },
-  scores: {},
-  final_score: 0,
+  evaluation: { metrics: [] },
 });
 
 describe('useTreeViewData', () => {

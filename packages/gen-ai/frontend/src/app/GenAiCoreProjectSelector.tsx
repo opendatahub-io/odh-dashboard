@@ -1,5 +1,5 @@
 import * as React from 'react';
-import ProjectSelector from '@odh-dashboard/internal/concepts/projects/ProjectSelector';
+import ProjectSelector from '@odh-dashboard/ui-core/components/projectSelector/ProjectSelector';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { useNavigate } from 'react-router-dom';
 import { useNamespaceSelectorWithPersistence } from './hooks/useNamespaceSelectorWithPersistence';

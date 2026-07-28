@@ -22,6 +22,16 @@ jest.mock('~/app/pages/mcpCatalogSettings/utils/mcpCatalogSettingsUtils', () => 
   })),
 }));
 
+const mockTrackSimpleEvent = jest.fn();
+jest.mock('~/concepts/userInteraction', () => ({
+  useUserInteraction: () => ({
+    trackFormEvent: jest.fn(),
+    trackLinkEvent: jest.fn(),
+    trackSimpleEvent: mockTrackSimpleEvent,
+    trackPageEvent: jest.fn(),
+  }),
+}));
+
 const mockFormData: ManageMcpSourceFormData = {
   name: 'Test MCP Source',
   id: 'test-mcp-id',
@@ -64,6 +74,7 @@ const createMockApiState = (
 describe('useMcpSourcePreview', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockTrackSimpleEvent.mockClear();
   });
 
   it('should return initial state', () => {
@@ -128,6 +139,13 @@ describe('useMcpSourcePreview', () => {
     );
     expect(result.current.previewState.tabStates[McpPreviewTab.INCLUDED].items).toHaveLength(2);
     expect(result.current.previewState.summary?.totalAssets).toBe(10);
+    expect(mockTrackSimpleEvent).toHaveBeenCalledWith('MCP Catalog Sources Preview Completed', {
+      context: 'add_source',
+      success: true,
+      serversFoundCount: 10,
+      includedFiltersUsed: true,
+      excludedFiltersUsed: false,
+    });
   });
 
   it('should handle load more and append items', async () => {

@@ -1,12 +1,17 @@
 import React from 'react';
-// eslint-disable-next-line @odh-dashboard/no-restricted-imports
-import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
+import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import { Tab, Tabs, TabTitleText, TabContent, PageSection, Flex } from '@patternfly/react-core';
 import {
   LineageCenterProvider,
   useLineageCenter,
 } from '@odh-dashboard/internal/components/lineage/context/LineageCenterContext';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import FeatureStoreProjectSelectorNavigator from './screens/components/FeatureStoreProjectSelectorNavigator';
+import {
+  FEATURE_STORE_EVENTS,
+  RESOURCE_TYPES,
+  TabSwitchedProperties,
+} from './tracking/featureStoreTrackingConstants';
 import FeatureStorePageTitle from './components/FeatureStorePageTitle';
 import FeatureStoreWarningAlert from './components/FeatureStoreWarningAlert';
 import ConnectedWorkbenchesLink from './components/ConnectedWorkbenchesLink';
@@ -90,6 +95,13 @@ const FeatureStoreInner: React.FC<FeatureStoreProps> = ({ ...pageProps }) => {
         <Tabs
           activeKey={activeTabKey}
           onSelect={(e, tabIndex) => {
+            if (tabIndex !== activeTabKey) {
+              fireMiscTrackingEvent(FEATURE_STORE_EVENTS.TAB_SWITCHED, {
+                tabName: String(tabIndex),
+                pageType: 'overview',
+                resourceType: RESOURCE_TYPES.FEATURE_STORE,
+              } satisfies TabSwitchedProperties);
+            }
             setActiveTabKey(tabIndex);
           }}
           aria-label="Overview page"

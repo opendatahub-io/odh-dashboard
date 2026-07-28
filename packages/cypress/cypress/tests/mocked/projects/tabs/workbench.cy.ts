@@ -22,9 +22,8 @@ import { mockPVCK8sResource } from '@odh-dashboard/internal/__mocks__/mockPVCK8s
 import { mockPodK8sResource } from '@odh-dashboard/internal/__mocks__/mockPodK8sResource';
 import { mock200Status, mock404Error } from '@odh-dashboard/internal/__mocks__/mockK8sStatus';
 import { mockConnectionTypeConfigMap } from '@odh-dashboard/internal/__mocks__/mockConnectionType';
-import type { HardwareProfileKind, PodKind } from '@odh-dashboard/k8s-core';
+import type { HardwareProfileKind, NotebookKind, PodKind } from '@odh-dashboard/k8s-core';
 import { IdentifierResourceType, SchedulingType } from '@odh-dashboard/k8s-core';
-import type { NotebookKind } from '@odh-dashboard/internal/k8sTypes';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import { SpawnerPageSectionID } from '@odh-dashboard/internal/pages/projects/screens/spawner/types';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
@@ -2061,7 +2060,7 @@ describe('Workbench page', () => {
     workbenchPage.visit('test-project');
     const notebookRow = workbenchPage.getNotebookRow('Test Notebook');
     notebookRow.shouldHaveNotebookImageName('Test Image');
-    notebookRow.shouldHaveHardwareProfile('Custom');
+    notebookRow.shouldHaveHardwareProfile('No hardware profile');
     notebookRow.findKebabAction('Edit workbench').click();
 
     hardwareProfileSection.findSelect().should('contain.text', 'Use existing settings');
@@ -2789,7 +2788,7 @@ describe('Workbench page', () => {
       workbenchPage
         .getNotebookRow('Test Notebook')
         .find()
-        .should('contain.text', 'Paused by a higher-priority job');
+        .should('contain.text', 'Paused by higher-priority job');
     });
 
     it('displays Evicted when workload has Evicted condition with non-preemption reason', () => {
@@ -2837,7 +2836,10 @@ describe('Workbench page', () => {
       ).as('pendingWorkloads');
       workbenchPage.visit('test-project');
       cy.wait('@pendingWorkloads');
-      workbenchPage.getNotebookRow('Test Notebook').find().should('contain.text', 'position 3');
+      workbenchPage
+        .getNotebookRow('Test Notebook')
+        .find()
+        .should('contain.text', 'Waiting for quota in test-queue (3rd in test-queue)');
     });
 
     it('displays subtitle without position when Visibility API returns 403', () => {
@@ -3044,7 +3046,8 @@ describe('Workbench page', () => {
         .click();
       workbenchStatusModal.find().should('contain.text', 'attempt 2');
       workbenchStatusModal.findProgressTab().click();
-      workbenchStatusModal.findProgressStepByLabel('Re-queued').should('exist');
+      // Sub-step label is now the full getRequeuedMessage output, which includes "attempt 2"
+      workbenchStatusModal.findProgressStepByLabel('attempt 2').should('exist');
     });
 
     it('Progress tab — BlockedOnPreemptionGates sub-step shows in-progress label', () => {

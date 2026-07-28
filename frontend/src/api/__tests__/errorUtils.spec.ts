@@ -1,11 +1,7 @@
+import { K8sStatusError, isK8sStatus } from '@odh-dashboard/k8s-core';
 import { mock200Status, mock404Error } from '#~/__mocks__/mockK8sStatus';
-import {
-  K8sStatusError,
-  getGenericErrorCode,
-  isK8sStatus,
-  throwErrorFromAxios,
-} from '#~/api/errorUtils';
 import { mockAxiosError } from '#~/__mocks__/mockAxiosError';
+import { getGenericErrorCode, throwErrorFromAxios } from '#~/api/errorUtils';
 
 describe('isK8sStatus', () => {
   it('should return true when data is k8sStatus', () => {

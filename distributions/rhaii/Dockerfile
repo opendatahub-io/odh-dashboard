@@ -30,6 +30,7 @@ COPY packages/tsconfig/ ./packages/tsconfig/
 COPY packages/model-serving/ ./packages/model-serving/
 COPY packages/foundation/ ./packages/foundation/
 COPY packages/hardware-profiles/ ./packages/hardware-profiles/
+COPY packages/connection-types/ ./packages/connection-types/
 COPY packages/k8s-core/ ./packages/k8s-core/
 COPY packages/model-registry/ ./packages/model-registry/
 COPY packages/ui-core/ ./packages/ui-core/

@@ -16,18 +16,23 @@ type QueuedEntry = {
   workloadName: string;
 };
 
+export type NotebookQueueMetrics = {
+  queuePosition: number;
+  queueTotal: number;
+};
+
 /**
  * Fetches queue positions from the Kueue Visibility API for pending workloads.
- * Returns a map of notebook name → 1-indexed position in the local queue.
+ * Returns a map of notebook name → 1-indexed position and pending queue total.
  *
  * Handles 403 gracefully: when the user lacks RBAC for the Visibility API,
- * positions are silently omitted (no error, empty map).
+ * metrics are silently omitted (no error, empty map).
  */
 export const useQueuePositions = (
   namespace: string | undefined,
   kueueStatusByNotebookName: Record<string, KueueWorkloadStatusWithMessage | null>,
-): Record<string, number> => {
-  const [positions, setPositions] = React.useState<Record<string, number>>({});
+): Record<string, NotebookQueueMetrics> => {
+  const [metrics, setMetrics] = React.useState<Record<string, NotebookQueueMetrics>>({});
 
   const queuedEntries: QueuedEntry[] = React.useMemo(() => {
     const entries: QueuedEntry[] = [];
@@ -52,7 +57,7 @@ export const useQueuePositions = (
 
   React.useEffect(() => {
     if (!namespace || stableEntries.length === 0) {
-      setPositions({});
+      setMetrics({});
       return undefined;
     }
 
@@ -68,16 +73,20 @@ export const useQueuePositions = (
         byQueue.set(entry.queueName, list);
       }
 
-      const newPositions: Record<string, number> = {};
+      const newMetrics: Record<string, NotebookQueueMetrics> = {};
 
       await Promise.all(
         Array.from(byQueue.entries()).map(async ([queueName, entries]) => {
           try {
             const summary = await getPendingWorkloads(namespace, queueName);
+            const queueTotal = summary.items.length;
             for (const entry of entries) {
               const found = summary.items.find((pw) => pw.metadata.name === entry.workloadName);
               if (found != null) {
-                newPositions[entry.notebookName] = found.positionInLocalQueue + 1;
+                newMetrics[entry.notebookName] = {
+                  queuePosition: found.positionInLocalQueue + 1,
+                  queueTotal,
+                };
               }
             }
           } catch {
@@ -87,7 +96,7 @@ export const useQueuePositions = (
       );
 
       if (!cancelled && requestId === latestRequestId) {
-        setPositions(newPositions);
+        setMetrics(newMetrics);
       }
     };
 
@@ -100,5 +109,5 @@ export const useQueuePositions = (
     };
   }, [namespace, stableEntries]);
 
-  return positions;
+  return metrics;
 };

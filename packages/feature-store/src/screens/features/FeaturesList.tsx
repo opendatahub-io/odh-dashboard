@@ -1,4 +1,5 @@
 import React from 'react';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { featureTableFilterOptions } from './const';
 import FeaturesTable from './FeaturesTable';
 import { applyFeatureFilters, applyFeatureTagFilters } from './utils';
@@ -6,6 +7,10 @@ import { Features } from '../../types/features';
 import { FeatureStoreToolbar } from '../../components/FeatureStoreToolbar';
 import { useFeatureStoreProject } from '../../FeatureStoreContext';
 import { useTagFilterHandlers } from '../../utils/useTagFilterHandlers';
+import {
+  FEATURE_STORE_EVENTS,
+  FilterRemovedProperties,
+} from '../../tracking/featureStoreTrackingConstants';
 
 type FeaturesListProps = {
   features: Features[];
@@ -45,6 +50,10 @@ const FeaturesList = ({
   );
 
   const onClearFilters = React.useCallback(() => {
+    fireMiscTrackingEvent(FEATURE_STORE_EVENTS.FILTER_REMOVED, {
+      action: 'clearAll',
+      resourceType: 'feature',
+    } satisfies FilterRemovedProperties);
     setFilterData({});
     setTagFilters([]);
   }, []);
@@ -71,6 +80,7 @@ const FeaturesList = ({
           tagFilters={tagFilters}
           onTagFilterRemove={tagHandlers.handleTagFilterRemove}
           onTagFilterAdd={tagHandlers.handleTagFilterAdd}
+          trackingResourceType="feature"
         />
       }
     />

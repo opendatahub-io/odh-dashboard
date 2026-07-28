@@ -4,20 +4,20 @@ import "time"
 
 // AgentRuntime describes a deployed agent or tool runtime.
 type AgentRuntime struct {
-	Name         string                  `json:"name"`
-	Namespace    string                  `json:"namespace"`
-	DisplayName  string                  `json:"displayName"`
-	Description  string                  `json:"description"`
-	Framework    string                  `json:"framework,omitempty"`
-	Status        string                  `json:"status"`
-	StatusMessage string                  `json:"statusMessage,omitempty"`
-	Type          string                  `json:"type"`
-	ServiceFQDN  string                  `json:"serviceFqdn,omitempty"`
-	PodIP        string                  `json:"podIp,omitempty"`
-	Ports        []AgentServiceEndpoint  `json:"ports"`
-	EndpointURL  string                  `json:"endpointUrl,omitempty"`
-	WorkloadType string                  `json:"workloadType,omitempty"`
-	LastSyncTime time.Time               `json:"lastSyncTime"`
+	Name          string                 `json:"name"`
+	Namespace     string                 `json:"namespace"`
+	DisplayName   string                 `json:"displayName"`
+	Description   string                 `json:"description"`
+	Framework     string                 `json:"framework,omitempty"`
+	Status        string                 `json:"status"`
+	StatusMessage string                 `json:"statusMessage,omitempty"`
+	Type          string                 `json:"type"`
+	ServiceFQDN   string                 `json:"serviceFqdn,omitempty"`
+	PodIP         string                 `json:"podIp,omitempty"`
+	Ports         []AgentServiceEndpoint `json:"ports"`
+	EndpointURL   string                 `json:"endpointUrl,omitempty"`
+	WorkloadType  string                 `json:"workloadType,omitempty"`
+	LastSyncTime  time.Time              `json:"lastSyncTime"`
 }
 
 // AgentRuntimesResponse is the list payload for deployed agent runtimes.

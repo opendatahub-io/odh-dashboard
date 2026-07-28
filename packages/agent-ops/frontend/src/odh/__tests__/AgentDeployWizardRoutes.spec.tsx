@@ -7,9 +7,9 @@ import AgentDeployWizardPage from '~/app/deployWizard/AgentDeployWizardPage';
 import AgentDeployWizardRoutes from '~/odh/AgentDeployWizardRoutes';
 import { agentDeployWizardPath } from '~/app/utilities/routes';
 
-jest.mock('@odh-dashboard/internal/pages/ApplicationsPage', () => ({
-  __esModule: true,
-  default: ({ title, children }: { title: string; children: React.ReactNode }) => (
+jest.mock('@odh-dashboard/ui-core', () => ({
+  ...jest.requireActual('@odh-dashboard/ui-core'),
+  ApplicationsPage: ({ title, children }: { title: string; children: React.ReactNode }) => (
     <div>
       <h1>{title}</h1>
       {children}

@@ -1,5 +1,6 @@
 import type { DashboardResource, ListVariableDefinition } from '@perses-dev/core';
-import { transformNamespaceVariable, NAMESPACE_URL_PARAM } from '../transformDashboardVariables';
+import { NAMESPACE_URL_PARAM } from '../dashboardUtils';
+import { transformNamespaceVariable } from '../transformDashboardVariables';
 
 // Helper to create a mock dashboard with namespace variable
 const createMockDashboardWithNamespaceVariable = (

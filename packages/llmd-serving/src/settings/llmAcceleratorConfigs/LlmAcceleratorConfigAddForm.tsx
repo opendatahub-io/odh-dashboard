@@ -13,21 +13,21 @@ import {
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
 import YAML from 'yaml';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports -- standard page shell wrapper
-import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
+import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
 } from '@odh-dashboard/ui-core/components/K8sNameDescriptionField';
-import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
+import { getDisplayNameFromK8sResource, translateDisplayNameForK8s } from '@odh-dashboard/k8s-core';
 import { LlmAcceleratorConfigContext } from './LlmAcceleratorConfigContext';
 import { overrideLlmConfigFields } from '../configYamlUtils';
 import ConfigYAMLEditor from '../ConfigYAMLEditor';
-import { DASHBOARD_RESOURCE_LABEL } from '../../const';
 import {
   createLLMInferenceServiceConfig,
   updateLLMInferenceServiceConfig,
 } from '../../api/LLMInferenceServiceConfigs';
 import { isConfigObject, cleanResourceForYAMLViewer } from '../../utils';
+import { ConfigType, CONFIG_TYPE_LABEL } from '../../types';
 import type { LLMInferenceServiceConfigKind } from '../../types';
 
 type FormMode = 'add' | 'edit' | 'duplicate';
@@ -53,14 +53,15 @@ const LlmAcceleratorConfigAddForm: React.FC<LlmAcceleratorConfigAddFormProps> = 
     if (!isDuplicate) {
       return sourceConfig;
     }
+    const duplicateDisplayName = `Copy of ${getDisplayNameFromK8sResource(sourceConfig)}`;
     return {
       ...sourceConfig,
       metadata: {
         ...sourceConfig.metadata,
-        name: `${sourceConfig.metadata.name}-copy`,
+        name: translateDisplayNameForK8s(duplicateDisplayName),
         annotations: {
           ...sourceConfig.metadata.annotations,
-          'openshift.io/display-name': `Copy of ${getDisplayNameFromK8sResource(sourceConfig)}`,
+          'openshift.io/display-name': duplicateDisplayName,
         },
       },
     };
@@ -83,14 +84,15 @@ const LlmAcceleratorConfigAddForm: React.FC<LlmAcceleratorConfigAddFormProps> = 
     }
     if (isDuplicate) {
       const cleanMeta = cleanResourceForYAMLViewer(sourceConfig.metadata);
+      const duplicateDisplayName = `Copy of ${getDisplayNameFromK8sResource(sourceConfig)}`;
       return YAML.stringify({
         ...sourceConfig,
         metadata: {
           ...cleanMeta,
-          name: `${sourceConfig.metadata.name}-copy`,
+          name: translateDisplayNameForK8s(duplicateDisplayName),
           annotations: {
             ...cleanMeta.annotations,
-            'openshift.io/display-name': `Copy of ${getDisplayNameFromK8sResource(sourceConfig)}`,
+            'openshift.io/display-name': duplicateDisplayName,
           },
         },
       });
@@ -120,33 +122,20 @@ const LlmAcceleratorConfigAddForm: React.FC<LlmAcceleratorConfigAddFormProps> = 
     try {
       parsed = YAML.parse(yamlCode);
     } catch (e) {
-      if (e instanceof Error) {
-        setError(e);
-      }
+      setError(e instanceof Error ? e : new Error(String(e)));
       return;
     }
     if (!isConfigObject(parsed)) {
-      setError(new Error('YAML must represent a valid object'));
+      setError(new Error('YAML must represent a valid kubernetes resource object'));
       return;
     }
-    let config = overrideLlmConfigFields(parsed, {
+    const config = overrideLlmConfigFields(parsed, {
       name: isEdit ? sourceConfig?.metadata.name : nameDescData.k8sName.value,
+      namespace: dashboardNamespace,
       displayName: nameDescData.name,
       version,
+      labels: { [CONFIG_TYPE_LABEL]: ConfigType.ACCELERATOR },
     });
-    config = {
-      ...config,
-      metadata: {
-        ...config.metadata,
-        namespace: dashboardNamespace,
-        ...(!isEdit && {
-          labels: {
-            ...config.metadata.labels,
-            [DASHBOARD_RESOURCE_LABEL]: 'true',
-          },
-        }),
-      },
-    };
     setLoading(true);
     const submitFn = isEdit
       ? updateLLMInferenceServiceConfig(config)

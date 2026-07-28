@@ -8,15 +8,19 @@ import {
   Button,
   Form,
   FormGroup,
+  FormHelperText,
+  HelperText,
+  HelperTextItem,
 } from '@patternfly/react-core';
 import { Link, Navigate, useLocation, useNavigate, useParams } from 'react-router';
 import YAML from 'yaml';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports -- standard page shell wrapper
-import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
+import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
 import {
   getDisplayNameFromK8sResource,
   isK8sNameDescriptionDataValid,
+  translateDisplayNameForK8s,
 } from '@odh-dashboard/k8s-core';
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
@@ -27,11 +31,9 @@ import ConfigYAMLEditor from './ConfigYAMLEditor';
 import { overrideLlmConfigFields } from './configYamlUtils';
 import {
   type LLMInferenceServiceConfigKind,
-  LLMInferenceServiceConfigModel,
   TopologyType,
   TopologyTypeLabels,
   CONFIG_TYPE_LABEL,
-  DASHBOARD_RESOURCE_LABEL,
 } from '../types';
 import { isConfigObject, cleanResourceForYAMLViewer, stripAnnotation } from '../utils';
 import {
@@ -73,16 +75,15 @@ const TopologyConfigurationCreateEditInner: React.FC<{
     }
     if (state?.sourceConfig) {
       const cleanMeta = cleanResourceForYAMLViewer(state.sourceConfig.metadata);
+      const duplicateDisplayName = `Copy of ${getDisplayNameFromK8sResource(state.sourceConfig)}`;
       return {
         ...state.sourceConfig,
         metadata: {
           ...cleanMeta,
-          name: `${state.sourceConfig.metadata.name}-copy`,
+          name: translateDisplayNameForK8s(duplicateDisplayName),
           annotations: {
             ...cleanMeta.annotations,
-            'openshift.io/display-name': `Copy of ${getDisplayNameFromK8sResource(
-              state.sourceConfig,
-            )}`,
+            'openshift.io/display-name': duplicateDisplayName,
           },
         },
       };
@@ -105,17 +106,16 @@ const TopologyConfigurationCreateEditInner: React.FC<{
         cleanMeta.annotations,
         'kubectl.kubernetes.io/last-applied-configuration',
       );
+      const duplicateDisplayName = `Copy of ${getDisplayNameFromK8sResource(state.sourceConfig)}`;
       return YAML.stringify({
         apiVersion: state.sourceConfig.apiVersion,
         kind: state.sourceConfig.kind,
         metadata: {
           ...cleanMeta,
-          name: `${state.sourceConfig.metadata.name}-copy`,
+          name: translateDisplayNameForK8s(duplicateDisplayName),
           annotations: {
             ...cleanAnnotations,
-            'openshift.io/display-name': `Copy of ${getDisplayNameFromK8sResource(
-              state.sourceConfig,
-            )}`,
+            'openshift.io/display-name': duplicateDisplayName,
           },
         },
         spec: state.sourceConfig.spec,
@@ -217,7 +217,7 @@ const TopologyConfigurationCreateEditInner: React.FC<{
     },
     {
       key: 'editor',
-      label: 'Upload an existing configuration file',
+      label: 'Open code editor',
     },
   ];
 
@@ -237,30 +237,16 @@ const TopologyConfigurationCreateEditInner: React.FC<{
 
       const parsed: unknown = YAML.parse(yamlCode);
       if (!isConfigObject(parsed)) {
-        throw new Error('YAML must represent a valid object');
+        throw new Error('YAML must represent a valid kubernetes resource object');
       }
 
-      const withFormFields = overrideLlmConfigFields(parsed, {
+      const newConfig = overrideLlmConfigFields(parsed, {
         name: resourceName,
+        namespace: dashboardNamespace,
         displayName: k8sNameDesc.data.name,
         description: k8sNameDesc.data.description,
+        labels: { [CONFIG_TYPE_LABEL]: resolvedTopologyType },
       });
-      const apiGroup = LLMInferenceServiceConfigModel.apiGroup ?? '';
-      const apiVer = LLMInferenceServiceConfigModel.apiVersion;
-      const newConfig: LLMInferenceServiceConfigKind = {
-        ...withFormFields,
-        apiVersion: `${apiGroup}/${apiVer}`,
-        kind: 'LLMInferenceServiceConfig',
-        metadata: {
-          ...withFormFields.metadata,
-          namespace: dashboardNamespace,
-          labels: {
-            ...withFormFields.metadata.labels,
-            [CONFIG_TYPE_LABEL]: resolvedTopologyType,
-            [DASHBOARD_RESOURCE_LABEL]: 'true',
-          },
-        },
-      };
 
       if (isEditMode && existingConfig) {
         await patchLLMInferenceServiceConfig(existingConfig, newConfig);
@@ -303,6 +289,11 @@ const TopologyConfigurationCreateEditInner: React.FC<{
         />
         {!isEditMode && !isDuplicateMode && (
           <FormGroup label="Configuration source" isRequired fieldId="config-source">
+            <FormHelperText>
+              <HelperText>
+                <HelperTextItem>Select how to provide the topology configuration.</HelperTextItem>
+              </HelperText>
+            </FormHelperText>
             <SimpleSelect
               options={configSourceOptions}
               value={configSource}
@@ -325,6 +316,7 @@ const TopologyConfigurationCreateEditInner: React.FC<{
               code={yamlCode}
               onCodeChange={setYamlCode}
               topologyTypeLabel={topologyTypeLabel}
+              isUploadEnabled={configSource !== 'template'}
             />
           </FormGroup>
         )}

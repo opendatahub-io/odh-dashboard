@@ -13,9 +13,9 @@ import type {
   DataScienceClusterKindStatus,
 } from '@odh-dashboard/k8s-core';
 import { useDeepCompareMemoize } from '@odh-dashboard/ui-core/hooks';
+import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import useFetchDscStatus from '#~/concepts/areas/useFetchDscStatus';
 import useFetchDsciStatus from '#~/concepts/areas/useFetchDsciStatus';
-import ApplicationsPage from '#~/pages/ApplicationsPage';
 import RedirectErrorState from '#~/pages/external/RedirectErrorState';
 import { useAppContext } from '#~/app/AppContext';
 import { FlagState, getFlags, isAreaAvailable } from '#~/concepts/areas/utils';

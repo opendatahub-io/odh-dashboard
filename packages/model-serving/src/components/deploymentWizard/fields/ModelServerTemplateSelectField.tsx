@@ -4,7 +4,11 @@ import {
   Flex,
   FlexItem,
   FormGroup,
+  FormHelperText,
+  HelperText,
+  HelperTextItem,
   Label,
+  LabelGroup,
   MenuItem,
   Radio,
   Truncate,
@@ -18,7 +22,7 @@ import {
 } from '@odh-dashboard/ui-core/components/searchSelector/ProjectScopedSearchDropdown';
 import ProjectScopedToggleContent from '@odh-dashboard/ui-core/components/searchSelector/ProjectScopedToggleContent';
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
-import { DeploymentResourceVersionLabels } from '@odh-dashboard/model-serving/shared/components';
+import { renderDeploymentResourceVersionLabels } from '@odh-dashboard/model-serving/shared/components';
 
 // Schema
 const ModelServerOptionSchema = z.object({
@@ -70,7 +74,9 @@ const OptionDropdownLabel: React.FC<{ option: ModelServerOption }> = ({ option }
     </FlexItem>
     {option.template ? (
       <FlexItem>
-        <DeploymentResourceVersionLabels resource={option.template} isCompact />
+        <LabelGroup numLabels={5}>
+          {renderDeploymentResourceVersionLabels(option.template, { isCompact: true })}
+        </LabelGroup>
       </FlexItem>
     ) : null}
     {option.template && (
@@ -88,12 +94,14 @@ type ModelServerTemplateSelectFieldProps = {
     Required<Pick<ModelServerSelectField, 'setData' | 'options'>>;
   isEditing?: boolean;
   label?: string;
+  helperText?: string;
 };
 
 const ModelServerTemplateSelectField: React.FC<ModelServerTemplateSelectFieldProps> = ({
   modelServerState,
   isEditing,
   label = 'Deployment resource',
+  helperText,
 }) => {
   const { data, setData, options } = modelServerState;
   const [searchServer, setSearchServer] = React.useState('');
@@ -166,7 +174,9 @@ const ModelServerTemplateSelectField: React.FC<ModelServerTemplateSelectFieldPro
               isProject={selectedTemplate?.scope === 'project'}
               projectLabel="Project-scoped"
               globalLabel="Global-scoped"
-              fallback="Select one"
+              fallback={`Select ${
+                /^[aeiou]/i.test(label) ? 'an' : 'a'
+              } ${label.toLocaleLowerCase()}`}
               color={isDisabled ? 'grey' : 'blue'}
               labelTestId="serving-runtime-template-label"
               isEditing={isDisabled}
@@ -177,11 +187,12 @@ const ModelServerTemplateSelectField: React.FC<ModelServerTemplateSelectFieldPro
               }
               additionalContent={
                 selectedTemplate?.template ? (
-                  <DeploymentResourceVersionLabels
-                    resource={selectedTemplate.template}
-                    isCompact
-                    isEditing={isEditing}
-                  />
+                  <LabelGroup numLabels={5}>
+                    {renderDeploymentResourceVersionLabels(selectedTemplate.template, {
+                      isCompact: true,
+                      isEditing,
+                    })}
+                  </LabelGroup>
                 ) : null
               }
             />
@@ -228,6 +239,13 @@ const ModelServerTemplateSelectField: React.FC<ModelServerTemplateSelectFieldPro
       role={isEditing ? 'radiogroup' : undefined}
       isStack
     >
+      {helperText && (
+        <FormHelperText>
+          <HelperText>
+            <HelperTextItem>{helperText}</HelperTextItem>
+          </HelperText>
+        </FormHelperText>
+      )}
       {isEditing ? (
         <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
           {templateDropdown(isEditing)}
@@ -240,8 +258,8 @@ const ModelServerTemplateSelectField: React.FC<ModelServerTemplateSelectFieldPro
             label={
               <>
                 <span className="pf-v6-c-form__label-text">Automatic selection:</span> Automatically
-                select the best resource for my model based on model type, model format and hardware
-                profile.
+                select the best {label.toLocaleLowerCase()} for my model based on the selected
+                hardware profile.
               </>
             }
             id="horizontal-inline-radio-01"
@@ -266,7 +284,7 @@ const ModelServerTemplateSelectField: React.FC<ModelServerTemplateSelectFieldPro
             label={
               <>
                 <span className="pf-v6-c-form__label-text">Manual selection:</span> Manually select
-                a resource from a list of preconfigured and custom options.
+                a {label.toLocaleLowerCase()} from a list of preconfigured and custom options.
               </>
             }
             id="horizontal-inline-radio-02"

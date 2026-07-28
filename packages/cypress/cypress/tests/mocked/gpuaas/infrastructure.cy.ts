@@ -264,7 +264,7 @@ describe('GPUaaS Infrastructure Page', () => {
       infrastructurePage.visit();
       infrastructurePage.findClusterSection().should('exist');
       infrastructurePage.findTotalAcceleratorsCard().should('contain.text', '11/16');
-      infrastructurePage.findTotalAcceleratorsCard().should('contain.text', 'Accelerators in use');
+      infrastructurePage.findTotalAcceleratorsCard().should('contain.text', 'in use');
       infrastructurePage.findComputeUtilizationCard().should('contain.text', '80%');
       infrastructurePage.findMemoryUtilizationCard().should('contain.text', '83%');
       infrastructurePage.findRefreshBadge().should('exist');
@@ -280,10 +280,10 @@ describe('GPUaaS Infrastructure Page', () => {
         .should('contain.text', 'No accelerator resources detected');
       infrastructurePage
         .findComputeUtilizationCard()
-        .should('contain.text', 'Utilization metrics unavailable');
+        .should('contain.text', 'Consumption metrics unavailable');
       infrastructurePage
         .findMemoryUtilizationCard()
-        .should('contain.text', 'Utilization metrics unavailable');
+        .should('contain.text', 'Consumption metrics unavailable');
     });
 
     it('should show accelerator data but empty utilization cards when DCGM is unavailable', () => {
@@ -293,10 +293,10 @@ describe('GPUaaS Infrastructure Page', () => {
       infrastructurePage.findTotalAcceleratorsCard().should('contain.text', '11/16');
       infrastructurePage
         .findComputeUtilizationCard()
-        .should('contain.text', 'Utilization metrics unavailable');
+        .should('contain.text', 'Consumption metrics unavailable');
       infrastructurePage
         .findMemoryUtilizationCard()
-        .should('contain.text', 'Utilization metrics unavailable');
+        .should('contain.text', 'Consumption metrics unavailable');
     });
   });
 
@@ -342,7 +342,7 @@ describe('GPUaaS Infrastructure Page', () => {
     });
   });
 
-  describe('Borrowing & lending chart', () => {
+  describe('Borrowing chart', () => {
     const cq1Opts = { name: 'cq-inference', cohortName: 'cohort-inference' };
     const cq2Opts = { name: 'cq-training', cohortName: 'cohort-inference' };
     const cohortName = 'cohort-inference';
@@ -356,7 +356,7 @@ describe('GPUaaS Infrastructure Page', () => {
       });
       infrastructurePage.visit();
 
-      infrastructurePage.findBorrowingLendingChart().should('exist');
+      infrastructurePage.findBorrowingChart().should('exist');
 
       infrastructurePage
         .findCohortSelect()
@@ -380,7 +380,7 @@ describe('GPUaaS Infrastructure Page', () => {
       asClusterAdminUser();
       initIntercepts({ hasChartData: false, clusterQueues: [cq1Opts], cohortNames: [cohortName] });
       infrastructurePage.visit();
-      infrastructurePage.findBorrowingLendingEmptyState().should('exist');
+      infrastructurePage.findBorrowingEmptyState().should('exist');
     });
   });
 
@@ -434,14 +434,14 @@ describe('GPUaaS Infrastructure Page', () => {
       infrastructurePage.visit();
       infrastructurePage
         .findCQUtilizationSubtitle()
-        .should('contain.text', 'Cluster queue accelerator utilization grouped by Kueue cohort.');
+        .should('contain.text', 'Cluster queue accelerator consumption grouped by cohort.');
       infrastructurePage.findCohortAccordion('cohort-1').should('exist');
       infrastructurePage.findCQCard('cq-gpu').should('exist');
       infrastructurePage.findHardwareModelBadge('NVIDIA A100').should('exist');
       infrastructurePage.findAcceleratorDonutChart().should('exist');
       infrastructurePage
         .findCQWorkloadCounts()
-        .should('contain.text', '2 active workloads · 1 pending');
+        .should('contain.text', 'Workloads: 2 active, 1 pending');
     });
 
     it('should render two CQ cards with DCGM utilization columns when telemetry is available', () => {
@@ -484,8 +484,8 @@ describe('GPUaaS Infrastructure Page', () => {
       infrastructurePage.findAcceleratorDonutChartInCard('experiment-queues').should('exist');
     });
 
-    describe('borrow-lend donut state', () => {
-      // a100-train-queues: 6 nominal, 4 used → lends 2; burst-training: 8 nominal, 10 used, 2 borrowed
+    describe('borrow donut state', () => {
+      // a100-train-queues: 6 nominal, 4 used → 2 unallocated (available to borrow); burst-training: 8 nominal, 10 used, 2 borrowed
       const COHORT = 'ml-training-cohort';
       const FLAVOR = 'a100-flavor';
 
@@ -520,61 +520,49 @@ describe('GPUaaS Infrastructure Page', () => {
         infrastructurePage.scrollToCQUtilizationSection();
       });
 
-      it('shows lend/borrow badges, workload counts, all chart columns, and per-model badge popovers', () => {
+      it('shows borrow badge, no lent badge, workload counts, all chart columns, and per-model badge popovers', () => {
         // Cohort-level badges
         infrastructurePage.findCohortAccordion(COHORT).should('exist');
-        infrastructurePage.findCohortBorrowLendBadge().should('exist');
+        infrastructurePage.findCohortBorrowBadge().should('exist');
         infrastructurePage
           .findCohortUnallocatedBorrowable()
-          .should('contain.text', '2 unallocated, borrowable');
+          .should('contain.text', '2 available to borrow');
 
-        // Lender card
-        infrastructurePage
-          .findCQLendBadgeInCard('a100-train-queues')
-          .should('contain.text', '2 lent');
+        // Unallocated-capacity CQ — no borrow badge, normal donut
         infrastructurePage
           .findWorkloadCountsInCard('a100-train-queues')
-          .should('contain.text', '1 active workload · 2 pending');
+          .should('contain.text', 'Workloads: 1 active, 2 pending');
         infrastructurePage.findAcceleratorDonutChartInCard('a100-train-queues').should('exist');
         infrastructurePage
           .findCQCard('a100-train-queues')
-          .should('contain.text', 'Accelerator compute utilization')
-          .should('contain.text', 'Accelerator memory utilization');
-
-        // Lent badge popover: shows counterpart CQ and per-model lent count
-        infrastructurePage.findCQLendBadgeInCard('a100-train-queues').click();
-        infrastructurePage
-          .findOpenPopover()
-          .should('contain.text', 'Lent capacity')
-          .should('contain.text', 'burst-training')
-          .should('contain.text', '2 × NVIDIA A100');
-        cy.get('body').type('{esc}');
+          .should('contain.text', 'Compute consumption')
+          .should('contain.text', 'Memory consumption');
 
         // Borrower card
         infrastructurePage
           .findCQBorrowBadgeInCard('burst-training')
-          .should('contain.text', '+2 borrowed');
+          .should('contain.text', 'Borrowed: 2');
         infrastructurePage
           .findWorkloadCountsInCard('burst-training')
-          .should('contain.text', '2 active workloads · 2 pending');
+          .should('contain.text', 'Workloads: 2 active, 2 pending');
         infrastructurePage.findAcceleratorDonutChartInCard('burst-training').should('exist');
         infrastructurePage
           .findCQCard('burst-training')
-          .should('contain.text', 'Accelerator compute utilization')
-          .should('contain.text', 'Accelerator memory utilization');
+          .should('contain.text', 'Compute consumption')
+          .should('contain.text', 'Memory consumption');
 
-        // Borrowed badge popover: shows counterpart CQ and per-model borrowed count
+        // Borrowed badge popover: shows per-model borrowed count
         infrastructurePage.findCQBorrowBadgeInCard('burst-training').click();
         infrastructurePage
           .findOpenPopover()
           .should('contain.text', 'Borrowed capacity')
-          .should('contain.text', 'a100-train-queues')
           .should('contain.text', '2 × NVIDIA A100');
         cy.get('body').type('{esc}');
       });
 
       it('shows per-model breakdown in donut segment hover tooltip', () => {
-        // Total accelerators — Own segment
+        // a100-train-queues has unallocated capacity but is shown as a normal donut (no Lent segment).
+        // Hovering the used segment shows the own-capacity tooltip.
         infrastructurePage
           .findAcceleratorDonutChartInCard('a100-train-queues')
           .find('svg path')
@@ -583,27 +571,6 @@ describe('GPUaaS Infrastructure Page', () => {
         infrastructurePage
           .findCQCard('a100-train-queues')
           .should('contain.text', 'NVIDIA A100: 4/6 in use');
-
-        // Total accelerators — Lent segment
-        infrastructurePage
-          .findAcceleratorDonutChartInCard('a100-train-queues')
-          .find('svg path')
-          .eq(1)
-          .trigger('mouseover', { force: true });
-        infrastructurePage
-          .findCQCard('a100-train-queues')
-          .should('contain.text', '2 GPUs lent')
-          .should('contain.text', 'NVIDIA A100: 2 lent');
-
-        // DCGM compute — Lent segment
-        infrastructurePage
-          .findDcgmComputeDonutInCard('a100-train-queues')
-          .find('svg path')
-          .eq(1)
-          .trigger('mouseover', { force: true });
-        infrastructurePage
-          .findCQCard('a100-train-queues')
-          .should('contain.text', 'NVIDIA A100: 30% utilization');
       });
 
       describe('pure borrower CQ (nominal=0, used>0)', () => {
@@ -634,12 +601,12 @@ describe('GPUaaS Infrastructure Page', () => {
           infrastructurePage.findAcceleratorDonutChartInCard('pure-borrower-cq').should('exist');
           infrastructurePage
             .findCQCard('pure-borrower-cq')
-            .findByText('+6 borrowed')
+            .findByText('Borrowed: 6')
             .should('exist');
           infrastructurePage
             .findCQCard('pure-borrower-cq')
-            .should('contain.text', 'Accelerator compute utilization')
-            .should('contain.text', 'Accelerator memory utilization');
+            .should('contain.text', 'Compute consumption')
+            .should('contain.text', 'Memory consumption');
         });
       });
     });

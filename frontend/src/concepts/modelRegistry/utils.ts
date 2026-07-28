@@ -1,4 +1,4 @@
-import { LabeledConnection } from '#~/pages/modelServing/screens/types';
+import type { LabeledConnection } from '@odh-dashboard/model-serving/shared';
 import {
   ConnectionTypeConfigMapObj,
   ConnectionTypeValueType,

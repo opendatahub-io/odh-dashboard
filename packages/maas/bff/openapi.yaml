@@ -225,6 +225,7 @@ paths:
                       - name: premium-team-sub
                         displayName: Premium Team Subscription
                         phase: Active
+                        statusMessage: Active subscription
                         groups:
                           - premium-users
                         tokenRateLimits:
@@ -234,6 +235,7 @@ paths:
                       - name: premium-team-sub-policy
                         displayName: Premium Team Policy
                         phase: Active
+                        statusMessage: Active policy
                         groups:
                           - premium-users
                   - id: flan-t5-small
@@ -245,6 +247,7 @@ paths:
                       - name: premium-team-sub
                         displayName: Premium Team Subscription
                         phase: Active
+                        statusMessage: Active subscription
                         groups:
                           - premium-users
                         tokenRateLimits:
@@ -2794,6 +2797,10 @@ components:
           type: string
           description: Subscription phase (e.g. Active, Pending, Degraded).
           example: Active
+        statusMessage:
+          type: string
+          description: Subscription status message.
+          example: Active subscription
         groups:
           type: array
           description: Group names that own this subscription.
@@ -2825,6 +2832,10 @@ components:
           type: string
           description: Auth policy phase (e.g. Active, Pending, Unknown).
           example: Active
+        statusMessage:
+          type: string
+          description: Auth policy status message.
+          example: Active policy
         groups:
           type: array
           description: Group names subject to this policy.

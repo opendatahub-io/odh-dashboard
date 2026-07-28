@@ -119,10 +119,21 @@ const createMockPattern = (name: string): AutoragPattern => ({
       system_message_text: '',
     },
   },
-  scores: {
-    faithfulness: { mean: 0.9, ci_low: 0.85, ci_high: 0.95 },
+  evaluation: {
+    metrics: [
+      {
+        evaluator: 'unitxt',
+        name: 'faithfulness',
+        scores: { mean: 0.9, ci_low: 0.85, ci_high: 0.95 },
+      },
+      {
+        evaluator: 'custom',
+        name: 'overall_score',
+        scores: { mean: 0.9, ci_low: null, ci_high: null },
+        optimization_metric: true,
+      },
+    ],
   },
-  final_score: 0.9,
 });
 
 const fetchS3FileMock = jest.mocked(queries.fetchS3File);

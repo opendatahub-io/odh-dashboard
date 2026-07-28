@@ -4,7 +4,7 @@ import { Label, LabelGroup } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
 import { ResourceNameTooltip } from '@odh-dashboard/ui-core';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
-import { DeploymentResourceVersionLabels } from '@odh-dashboard/model-serving/shared/components';
+import { renderDeploymentResourceVersionLabels } from '@odh-dashboard/model-serving/shared/components';
 import { PreInstalledName } from '@odh-dashboard/internal/concepts/k8s/utils';
 import LlmAcceleratorConfigEnabledToggle from './LlmAcceleratorConfigEnabledToggle';
 import type { LLMInferenceServiceConfigKind } from '../../types';
@@ -47,6 +47,7 @@ const LlmAcceleratorConfigTableRow: React.FC<LlmAcceleratorConfigTableRowProps> 
         {
           title: 'Delete',
           onClick: () => onDeleteConfig(config),
+          isDanger: true,
         },
       ];
 
@@ -56,9 +57,9 @@ const LlmAcceleratorConfigTableRow: React.FC<LlmAcceleratorConfigTableRowProps> 
         <ResourceNameTooltip resource={config}>
           {getDisplayNameFromK8sResource(config)}
         </ResourceNameTooltip>
-        <LabelGroup>
+        <LabelGroup numLabels={5}>
           {preInstalled && <Label data-testid="pre-installed-label">{PreInstalledName}</Label>}
-          <DeploymentResourceVersionLabels resource={config} />
+          {renderDeploymentResourceVersionLabels(config)}
         </LabelGroup>
       </Td>
       <Td dataLabel="Enabled">

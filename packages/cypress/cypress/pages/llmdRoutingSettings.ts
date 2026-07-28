@@ -1,5 +1,6 @@
 import { appChrome } from './appChrome';
 import { TableRow } from './components/table';
+import { DeleteModal } from './components/DeleteModal';
 
 class RoutingConfigRow extends TableRow {
   findEnabledSwitch() {
@@ -78,12 +79,26 @@ class LlmdRoutingCreatePage {
     return cy.findByTestId('app-page-title');
   }
 
+  findDisplayNameInput() {
+    return cy.findByTestId('routing-config-name');
+  }
+
   findTopologyTypeSelect() {
     return cy.findByTestId('topology-type-select');
   }
 
+  selectTopologyType(topologyTypeTestId: string) {
+    this.findTopologyTypeSelect().click();
+    cy.findByTestId(topologyTypeTestId).click();
+  }
+
   findConfigSourceSelect() {
     return cy.findByTestId('config-source-select');
+  }
+
+  selectConfigSource(optionKey: string) {
+    this.findConfigSourceSelect().click();
+    cy.findByTestId(optionKey).click();
   }
 
   findYamlEditor() {
@@ -99,5 +114,12 @@ class LlmdRoutingCreatePage {
   }
 }
 
+class DeleteRouteModal extends DeleteModal {
+  constructor() {
+    super(/Delete llm-d routing configuration/);
+  }
+}
+
 export const llmdRoutingSettingsPage = new LlmdRoutingSettingsPage();
 export const llmdRoutingCreatePage = new LlmdRoutingCreatePage();
+export const deleteRouteModal = new DeleteRouteModal();

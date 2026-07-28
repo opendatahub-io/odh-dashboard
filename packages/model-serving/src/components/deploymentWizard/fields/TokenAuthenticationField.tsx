@@ -21,7 +21,7 @@ import { z } from 'zod';
 import type { ModelServerSelectField } from './ModelServerTemplateSelectField';
 import type { ModelTypeField } from './ModelTypeSelectField';
 import { DeploymentMethodFieldData } from './DeploymentMethodSelectField';
-import { isTokenAuthFieldOverride } from '../types';
+import { isTokenAuthFieldOverride } from '../../../shared/types/form-data';
 import { useWizardFieldOverrides } from '../dynamicFormUtils';
 import { showAuthWarning } from '../hooks/useAuthWarning';
 

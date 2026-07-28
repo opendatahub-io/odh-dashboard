@@ -13,7 +13,12 @@ import { isHardwareProfileEnabled } from '@odh-dashboard/internal/pages/hardware
 import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors';
 import { ProjectDetailsContext } from '@odh-dashboard/internal/pages/projects/ProjectDetailsContext';
 import { useHardwareProfilesByFeatureVisibility } from '@odh-dashboard/internal/pages/hardwareProfiles/useHardwareProfilesByFeatureVisibility';
-import { filterProfilesByKueue, useKueueConfiguration } from './kueueUtils';
+import {
+  computeLocalQueueNamesResult,
+  filterProfilesByKueue,
+  KueueFilteringState,
+  useKueueConfiguration,
+} from './kueueUtils';
 import { isHardwareProfileConfigValid } from './validationUtils';
 import { getContainerResourcesFromHardwareProfile } from './utils';
 
@@ -116,7 +121,7 @@ export const useHardwareProfileConfig = (
   hardwareProfileNamespace?: string | null,
 ): UseHardwareProfileConfigResult => {
   const { dashboardNamespace } = useDashboardNamespace();
-  const { currentProject } = React.useContext(ProjectDetailsContext);
+  const { currentProject, localQueues } = React.useContext(ProjectDetailsContext);
 
   const {
     globalProfiles: [dashboardProfiles, dashboardProfilesLoaded, dashboardProfilesLoadError],
@@ -142,6 +147,12 @@ export const useHardwareProfileConfig = (
 
   const isFormDataValid = React.useMemo(() => isHardwareProfileConfigValid(formData), [formData]);
   const { kueueFilteringState } = useKueueConfiguration(currentProject);
+
+  const { data: lqData, loaded: lqLoaded, error: lqError } = localQueues;
+  const availableLocalQueueNames = React.useMemo(() => {
+    const result = computeLocalQueueNamesResult({ data: lqData, loaded: lqLoaded, error: lqError });
+    return result.status === 'ready' ? result.names : undefined;
+  }, [lqData, lqLoaded, lqError]);
 
   React.useEffect(() => {
     if (!profilesLoaded || formData.selectedProfile) {
@@ -181,9 +192,19 @@ export const useHardwareProfileConfig = (
 
       // if not editing existing profile, select the first enabled profile
       else {
+        // Wait for localQueues to load before auto-selecting, so we don't pick a profile
+        // whose localQueueName doesn't exist in the namespace. Fail-open on error.
+        if (
+          kueueFilteringState === KueueFilteringState.ONLY_KUEUE_PROFILES &&
+          !lqLoaded &&
+          !lqError
+        ) {
+          return;
+        }
         const filteredProfiles = filterProfilesByKueue(
           profiles.filter(isHardwareProfileEnabled),
           kueueFilteringState,
+          availableLocalQueueNames,
         );
         selectedProfile = filteredProfiles.length > 0 ? filteredProfiles[0] : undefined;
         if (selectedProfile) {
@@ -207,6 +228,9 @@ export const useHardwareProfileConfig = (
     dashboardProfiles,
     dashboardNamespace,
     kueueFilteringState,
+    availableLocalQueueNames,
+    lqLoaded,
+    lqError,
   ]);
 
   return {

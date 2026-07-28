@@ -1,6 +1,6 @@
 import * as React from 'react';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports -- standard page shell wrapper
-import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
+import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
 import RoutingConfigurationsTable from './RoutingConfigurationsTable';
 import EmptyRoutingConfigurations from './EmptyRoutingConfigurations';
@@ -13,7 +13,7 @@ const RoutingConfigurationsView: React.FC = () => {
   return (
     <ApplicationsPage
       title="llm-d routing configurations"
-      description="Manage llm-d routing configurations. Enabled configurations can be selected when deploying models with advanced routing."
+      description="Manage routing configurations for LLM inference service deployments. Enabled configurations are available in the deployment wizard."
       loaded={loaded}
       loadError={error}
       empty={loaded && configs.length === 0}

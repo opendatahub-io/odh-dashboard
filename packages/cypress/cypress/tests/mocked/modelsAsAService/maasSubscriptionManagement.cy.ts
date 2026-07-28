@@ -1,4 +1,5 @@
 import { mockDashboardConfig, mockDscStatus } from '@odh-dashboard/internal/__mocks__';
+import { MODELS_AS_A_SERVICE_READY } from '@odh-dashboard/k8s-core';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import { asProductAdminUser } from '../../../utils/mockUsers';
 import {
@@ -15,10 +16,7 @@ import {
 
 const setupCommonIntercepts = () => {
   asProductAdminUser();
-  cy.interceptOdh(
-    'GET /api/config',
-    mockDashboardConfig({ modelAsService: true, maasSettingsIaRedesign: true }),
-  );
+  cy.interceptOdh('GET /api/config', mockDashboardConfig({ modelAsService: true }));
   cy.interceptOdh('GET /maas/api/v1/user', {
     data: { userId: 'test-user', clusterAdmin: false },
   });
@@ -29,7 +27,7 @@ const setupCommonIntercepts = () => {
       components: {
         [DataScienceStackComponent.OGX_OPERATOR]: { managementState: 'Managed' },
       },
-      conditions: [{ type: 'ModelsAsServiceReady', status: 'True', reason: 'Ready' }],
+      conditions: [{ type: MODELS_AS_A_SERVICE_READY, status: 'True', reason: 'Ready' }],
     }),
   );
   cy.interceptOdh('GET /maas/api/v1/subscription-policy-form-data', {
@@ -43,7 +41,7 @@ const setupCommonIntercepts = () => {
   });
 };
 
-describe('Subscription Management Page', () => {
+describe('Subscription Management Page / Overview Tab', () => {
   beforeEach(() => {
     setupCommonIntercepts();
   });
@@ -81,100 +79,22 @@ describe('Subscription Management Page', () => {
   //   overviewTabPage.findModelRows().should('have.length', 4);
   // });
 
-  it('should show the subscriptions empty state when there are no subscriptions', () => {
-    cy.interceptOdh('GET /maas/api/v1/all-subscriptions', { data: [] });
-    subscriptionManagementPage.visit('subscriptions');
-    subscriptionManagementPage.findSubscriptionsEmptyState().should('exist');
-    subscriptionManagementPage.findCreateSubscriptionButton().should('exist');
-  });
-
-  it('should show the auth policies empty state when there are no policies', () => {
-    cy.interceptOdh('GET /maas/api/v1/all-policies', { data: [] });
-    subscriptionManagementPage.visit('auth-policies');
-    subscriptionManagementPage.findAuthPoliciesEmptyState().should('exist');
-    subscriptionManagementPage.findCreateAuthPolicyButton().should('exist');
-  });
-
   it('should navigate between tabs and update the URL', () => {
     subscriptionManagementPage.visit();
-    subscriptionManagementPage.findTitle().should('contain.text', 'Subscription management');
+    subscriptionManagementPage.findTitle().should('contain.text', 'MaaS governance');
     //subscriptionManagementPage.findOverviewTab().should('have.attr', 'aria-selected', 'true');
 
     subscriptionManagementPage.findSubscriptionsTab().click();
-    cy.url().should('include', '/subscription-management/subscriptions');
+    cy.url().should('include', '/maas-governance/subscriptions');
     subscriptionsPage.findTable().should('exist');
 
     subscriptionManagementPage.findAuthPoliciesTab().click();
-    cy.url().should('include', '/subscription-management/auth-policies');
+    cy.url().should('include', '/maas-governance/auth-policies');
     authPoliciesPage.findTable().should('exist');
 
     // subscriptionManagementPage.findOverviewTab().click();
-    // cy.url().should('include', '/subscription-management/overview');
+    // cy.url().should('include', '/maas-governance/overview');
     // overviewTabPage.findTable().should('exist');
-  });
-
-  it('should display subscriptions content within the subscriptions tab', () => {
-    subscriptionManagementPage.visit('subscriptions');
-    subscriptionsPage.findTable().should('exist');
-    subscriptionsPage.findRows().should('have.length', 7);
-    subscriptionsPage.findCreateSubscriptionButton().should('exist');
-
-    subscriptionsPage.findFilterInput().type('premium');
-    subscriptionsPage.findRows().should('have.length', 1);
-    subscriptionsPage.findFilterResetButton().click();
-    subscriptionsPage.findRows().should('have.length', 7);
-  });
-
-  it('should expand and collapse inline rows in the subscriptions tab', () => {
-    subscriptionManagementPage.visit('subscriptions');
-
-    const premiumRow = subscriptionsPage.getRow('Premium Team Subscription');
-
-    // Expand the groups panel
-    premiumRow.findExpandGroupButton().click();
-    premiumRow.findExpandedGroupName().should('exist');
-    premiumRow.findExpandedGroupName().should('have.length', 1);
-    premiumRow.findExpandedGroupName().eq(0).should('contain.text', 'premium-users');
-    premiumRow.findExpandedModelName().should('not.be.visible');
-
-    // Clicking models while groups is open replaces the panel
-    premiumRow.findExpandModelButton().click();
-    premiumRow.findExpandedModelName().should('exist');
-    premiumRow.findExpandedModelName().should('have.length', 2);
-    premiumRow.findExpandedModelName().eq(0).should('contain.text', 'Granite 3 8B Instruct');
-    premiumRow.findExpandedModelDescription().should('have.length', 2);
-    premiumRow
-      .findExpandedModelDescription()
-      .eq(0)
-      .should(
-        'contain.text',
-        'Granite 3 8B Instruct is a large language model that is used for advanced tasks.',
-      );
-    premiumRow.findExpandedModelResourceName().should('have.length', 2);
-    premiumRow
-      .findExpandedModelResourceName()
-      .eq(0)
-      .should('contain.text', 'granite-3-8b-instruct');
-    premiumRow.findExpandedModelTokenLimits().should('have.length', 2);
-    premiumRow.findExpandedModelTokenLimits().eq(0).should('contain.text', '100,000 / 24 hours');
-    premiumRow.findExpandedGroupName().should('not.be.visible');
-
-    // Clicking models again collapses it
-    premiumRow.findExpandModelButton().click();
-    premiumRow.findExpandedModelName().should('not.be.visible');
-    premiumRow.findExpandedGroupName().should('not.be.visible');
-  });
-
-  it('should display auth policies content within the auth policies tab', () => {
-    subscriptionManagementPage.visit('auth-policies');
-    authPoliciesPage.findTable().should('exist');
-    authPoliciesPage.findRows().should('have.length', 7);
-    authPoliciesPage.findCreateAuthPolicyButton().should('exist');
-
-    authPoliciesPage.findKeywordFilterInput().type('premium');
-    authPoliciesPage.findRows().should('have.length', 1);
-    authPoliciesPage.clearAllFilters();
-    authPoliciesPage.findRows().should('have.length', 7);
   });
 
   // it('should test sorting, expand/collapse, warning, and group chips in the overview tab', () => {
@@ -236,55 +156,17 @@ describe('Subscription Management Page', () => {
   //   // Test kebab menu
   //   overviewTabPage.findKebabToggleInRow(0).click();
   //   overviewTabPage.findKebabAction('Create subscription').should('be.visible').click();
-  //   cy.url().should('include', '/subscription-management/subscriptions/create');
+  //   cy.url().should('include', '/maas-governance/subscriptions/create');
   //   createSubscriptionPage.findModelsTable().should('contain.text', 'Llama 3 70B Instruct');
   //   createSubscriptionPage.findCancelButton().click();
-  //   cy.url().should('include', '/subscription-management/overview');
+  //   cy.url().should('include', '/maas-governance/overview');
   //   overviewTabPage.findKebabToggleInRow(0).click();
   //   overviewTabPage.findKebabAction('Create authorization policy').should('be.visible').click();
-  //   cy.url().should('include', '/subscription-management/auth-policies/create');
+  //   cy.url().should('include', '/maas-governance/auth-policies/create');
   //   policyPage.findModelsTable().should('contain.text', 'Granite 3 8B Instruct');
   //   policyPage.findCancelButton().click();
-  //   cy.url().should('include', '/subscription-management/overview');
+  //   cy.url().should('include', '/maas-governance/overview');
   // });
-
-  it('should expand and collapse inline rows in the auth policies tab', () => {
-    subscriptionManagementPage.visit('auth-policies');
-
-    const premiumPolicy = authPoliciesPage.getRow('Premium Team Policy');
-
-    // Expand the groups panel
-    premiumPolicy.findExpandGroupButton().click();
-    premiumPolicy.findExpandedGroupName().should('exist');
-    premiumPolicy.findExpandedGroupName().should('have.length', 1);
-    premiumPolicy.findExpandedGroupName().eq(0).should('contain.text', 'premium-users');
-    premiumPolicy.findExpandedModelName().should('not.be.visible');
-
-    // Clicking models while groups is open replaces the panel
-    premiumPolicy.findExpandModelButton().click();
-    premiumPolicy.findExpandedModelName().should('exist');
-    premiumPolicy.findExpandedModelName().should('have.length', 2);
-    premiumPolicy.findExpandedModelName().eq(0).should('contain.text', 'Granite 3 8B Instruct');
-    premiumPolicy.findExpandedModelDescription().should('have.length', 2);
-    premiumPolicy
-      .findExpandedModelDescription()
-      .eq(0)
-      .should(
-        'contain.text',
-        'Granite 3 8B Instruct is a large language model that is used for advanced tasks.',
-      );
-    premiumPolicy.findExpandedModelResourceName().should('have.length', 2);
-    premiumPolicy
-      .findExpandedModelResourceName()
-      .eq(0)
-      .should('contain.text', 'granite-3-8b-instruct');
-    premiumPolicy.findExpandedGroupName().should('not.be.visible');
-
-    // Clicking models again collapses it
-    premiumPolicy.findExpandModelButton().click();
-    premiumPolicy.findExpandedModelName().should('not.be.visible');
-    premiumPolicy.findExpandedGroupName().should('not.be.visible');
-  });
 
   // it('should filter by model name, model ID, description, group name, subscription name, and authorization policy name', () => {
   //   subscriptionManagementPage.visit('overview');
@@ -331,13 +213,13 @@ describe('Subscription Management Page', () => {
   // it('should navigate to the correct form when creating a subscription or authorization policy via the overview toolbar', () => {
   //   subscriptionManagementPage.visit('overview');
   //   overviewTabPage.findCreateSubscriptionButton().click();
-  //   cy.url().should('include', '/subscription-management/subscriptions/create');
+  //   cy.url().should('include', '/maas-governance/subscriptions/create');
   //   createSubscriptionPage.findCancelButton().click();
-  //   cy.url().should('include', '/subscription-management/overview');
+  //   cy.url().should('include', '/maas-governance/overview');
   //   subscriptionManagementPage.findOverviewTab().click();
   //   overviewTabPage.findCreateAuthorizationPolicyButton().click();
-  //   cy.url().should('include', '/subscription-management/auth-policies/create');
+  //   cy.url().should('include', '/maas-governance/auth-policies/create');
   //   policyPage.findCancelButton().click();
-  //   cy.url().should('include', '/subscription-management/overview');
+  //   cy.url().should('include', '/maas-governance/overview');
   // });
 });
