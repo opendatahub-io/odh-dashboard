@@ -130,6 +130,11 @@ func (app *App) streamSSEEvents(cfg StreamConfig) error {
 		// Allow custom error handling (e.g., passthrough's response.failed check)
 		if cfg.CustomErrorHandler != nil {
 			if errorJSON, shouldTerminate := cfg.CustomErrorHandler(event); shouldTerminate {
+				var errorData map[string]interface{}
+				if json.Unmarshal(errorJSON, &errorData) == nil {
+					withTraceID(errorData)
+					errorJSON, _ = json.Marshal(errorData)
+				}
 				_ = sendEvent(errorJSON)
 				return nil
 			}
