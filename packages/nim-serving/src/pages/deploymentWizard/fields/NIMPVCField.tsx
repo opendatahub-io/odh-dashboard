@@ -11,9 +11,9 @@ import {
 import SimpleSelect from '@odh-dashboard/ui-core/components/SimpleSelect';
 import NumberInputWrapper from '@odh-dashboard/ui-core/components/NumberInputWrapper';
 import type { SimpleSelectOption } from '@odh-dashboard/ui-core/components/SimpleSelect';
-import type { ProjectSectionType } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/ProjectSection';
-import type { WizardField } from '@odh-dashboard/model-serving/types/form-data';
-import { NIMModelLocationKey } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/modelLocationFields/NIMModelLocation';
+import type { ProjectSectionType } from '@odh-dashboard/model-serving/shared/wizard-fields';
+import type { WizardField } from '@odh-dashboard/model-serving/shared/types/form-data';
+import { NIMModelLocationKey } from '@odh-dashboard/model-serving/shared/wizard-fields';
 import { getStorageClasses } from '@odh-dashboard/internal/api/k8s/storageClasses';
 import { getDashboardPvcs } from '@odh-dashboard/internal/api/k8s/pvcs';
 import type { PersistentVolumeClaimKind } from '@odh-dashboard/k8s-core';

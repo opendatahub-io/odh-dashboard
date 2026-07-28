@@ -1,12 +1,16 @@
 import * as React from 'react';
 import type { SecretKind } from '@odh-dashboard/k8s-core';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
-import type { InferenceServiceKind, ServingRuntimeKind } from '@odh-dashboard/model-serving/shared';
+import type {
+  InferenceServiceKind,
+  ServingRuntimeKind,
+  ModelServingFilterDataType,
+} from '@odh-dashboard/model-serving/shared';
+import { initialModelServingFilterData } from '@odh-dashboard/model-serving/shared';
 import { ProjectsContext } from '#~/concepts/projects/ProjectsContext';
 import { getInferenceServiceProjectDisplayName } from './utils';
 import InferenceServiceTable from './InferenceServiceTable';
 import ModelServingToolbar from './ModelServingToolbar';
-import { ModelServingFilterDataType, initialModelServingFilterData } from './const';
 
 type InferenceServiceListViewProps = {
   inferenceServices: InferenceServiceKind[];

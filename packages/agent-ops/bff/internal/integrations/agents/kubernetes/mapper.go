@@ -44,21 +44,21 @@ func sandboxToSummary(sandbox unstructured.Unstructured, service *agents.AgentSe
 	}
 
 	return agents.AgentSummary{
-		Name:         sandbox.GetName(),
-		Namespace:    sandbox.GetNamespace(),
-		DisplayName:  mapper.AgentDisplayName(annotations, sandbox.GetName()),
-		Description:  mapper.AgentDescription(annotations),
-		Framework:    mapper.AgentFramework(annotations),
+		Name:          sandbox.GetName(),
+		Namespace:     sandbox.GetNamespace(),
+		DisplayName:   mapper.AgentDisplayName(annotations, sandbox.GetName()),
+		Description:   mapper.AgentDescription(annotations),
+		Framework:     mapper.AgentFramework(annotations),
 		Status:        sandboxPhase(sandbox),
 		StatusMessage: sandboxConditionMessage(sandbox),
 		ResourceType:  agents.ResolveAgentResourceType(labels),
-		WorkloadType: agents.WorkloadTypeSandbox,
-		ServiceFQDN:  serviceFQDN,
-		PodIP:        sandboxPodIP(sandbox),
-		Ports:        append([]agents.AgentServicePort(nil), ports...),
-		EndpointURL:  sandboxEndpointURL(sandbox, resolved),
-		CreatedAt:    formatTimestamp(sandbox.GetCreationTimestamp()),
-		LastSyncAt:   sandboxLastSyncTimestamp(sandbox),
+		WorkloadType:  agents.WorkloadTypeSandbox,
+		ServiceFQDN:   serviceFQDN,
+		PodIP:         sandboxPodIP(sandbox),
+		Ports:         append([]agents.AgentServicePort(nil), ports...),
+		EndpointURL:   sandboxEndpointURL(sandbox, resolved),
+		CreatedAt:     formatTimestamp(sandbox.GetCreationTimestamp()),
+		LastSyncAt:    sandboxLastSyncTimestamp(sandbox),
 	}
 }
 

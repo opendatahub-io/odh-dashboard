@@ -8,7 +8,7 @@ import {
 import TypeaheadSelect, {
   TypeaheadSelectOption,
 } from '@odh-dashboard/ui-core/components/TypeaheadSelect';
-import { LabeledConnection } from '#~/pages/modelServing/screens/types';
+import type { LabeledConnection } from '@odh-dashboard/model-serving/shared';
 import { ConnectionDetailsHelperText } from './ConnectionDetailsHelperText';
 import { getConnectionTypeDisplayName, getConnectionTypeRef } from './utils';
 import { Connection, ConnectionTypeConfigMapObj } from './types';

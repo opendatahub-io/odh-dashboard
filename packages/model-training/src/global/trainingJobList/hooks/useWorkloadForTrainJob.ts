@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { WorkloadKind } from '@odh-dashboard/internal/k8sTypes';
+import { WorkloadKind } from '@odh-dashboard/k8s-core';
 import { WorkloadModel } from '@odh-dashboard/internal/api/models/kueue';
 import { groupVersionKind } from '@odh-dashboard/internal/api/k8sUtils';
 import useK8sWatchResourceList from '@odh-dashboard/internal/utilities/useK8sWatchResourceList';

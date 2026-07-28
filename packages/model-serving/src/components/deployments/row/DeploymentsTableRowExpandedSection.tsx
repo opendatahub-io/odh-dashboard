@@ -28,7 +28,7 @@ import {
   useWizardFieldExtractors,
 } from '../../deploymentWizard/useWizardFieldExtractors';
 import { isModelServingDeploymentFormDataExtension } from '../../../../extension-points/deployment-wizard';
-import type { ModelAvailabilityFieldsData } from '../../deploymentWizard/types';
+import type { ModelAvailabilityFieldsData } from '../../../shared/types/form-data';
 
 const MAAS_ENDPOINT_FIELD_ID = 'maas/save-as-maas-checkbox';
 type MaaSCheckboxFieldValue = { isChecked: boolean };

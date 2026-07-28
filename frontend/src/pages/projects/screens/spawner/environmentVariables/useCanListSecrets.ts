@@ -1,4 +1,4 @@
-import { useAccessReview } from '#~/api/useAccessReview';
+import { useAccessReview } from '@odh-dashboard/plugin-core/host-api';
 
 /**
  * Lightweight hook that checks whether the current user has permission

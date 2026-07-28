@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { useNavigate, useParams, useLocation } from 'react-router';
 import { mockLLMInferenceServiceConfigK8sResource } from '@odh-dashboard/internal/__mocks__/mockLLMInferenceServiceConfigK8sResource';
@@ -76,6 +76,37 @@ describe('RoutingConfigurationCreateEdit', () => {
 
       const topologySelect = screen.getByTestId('topology-type-select');
       expect(topologySelect).not.toBeDisabled();
+    });
+  });
+
+  describe('duplicate mode', () => {
+    beforeEach(() => {
+      mockUseParams.mockReturnValue({});
+      mockUseWatchRouterConfigs.mockReturnValue([[], true, undefined]);
+    });
+
+    it('should auto-update resource name when display name changes', () => {
+      const sourceConfig = mockLLMInferenceServiceConfigK8sResource({
+        name: 'source-router',
+        displayName: 'Source Router',
+        configType: 'router' as never,
+        supportedTopologies: [TopologyType.SINGLE_NODE],
+      });
+
+      mockUseLocation.mockReturnValue({
+        state: { sourceConfig },
+        key: '',
+        pathname: '',
+        search: '',
+        hash: '',
+      });
+
+      render(<RoutingConfigurationCreateEdit />);
+
+      const nameInput = screen.getByTestId('routing-config-name');
+      fireEvent.change(nameInput, { target: { value: 'My Custom Router' } });
+
+      expect(screen.getByText('my-custom-router', { exact: false })).toBeInTheDocument();
     });
   });
 

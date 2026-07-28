@@ -4,7 +4,7 @@ import { z } from 'zod';
 import type { ModelServerSelectField } from './ModelServerTemplateSelectField';
 import type { ModelTypeField } from './ModelTypeSelectField';
 import { DeploymentMethodFieldData } from './DeploymentMethodSelectField';
-import { isExternalRouteFieldOverride } from '../types';
+import { isExternalRouteFieldOverride } from '../../../shared/types/form-data';
 import { useWizardFieldOverrides } from '../dynamicFormUtils';
 
 // Schema
