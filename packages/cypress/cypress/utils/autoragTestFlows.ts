@@ -108,6 +108,9 @@ export const configureAutoragRun = (
       { force: true },
     );
 
+  cy.step('Wait for evaluation file upload to complete');
+  autoragConfigurePage.findEvaluationFileValue().invoke('val').should('not.be.empty');
+
   cy.step('Select first available vector store');
   autoragConfigurePage.findVectorStoreSelector().should('not.be.disabled').click();
   autoragConfigurePage.findFirstVectorStoreOption().should('be.visible').click();
