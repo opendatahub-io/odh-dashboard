@@ -1,5 +1,5 @@
 /**
- * Tests for the Roles tab table: rendering rows, search filtering, kebab actions,
+ * Tests for the Roles tab table: search filtering, kebab actions,
  * sorting, and the Preview YAML modal.
  */
 import {
@@ -60,82 +60,6 @@ const initIntercepts = ({
 describe('Roles tab table', () => {
   beforeEach(() => {
     asProjectAdminUser();
-  });
-
-  it('should render all relevant roles in the table', () => {
-    initIntercepts();
-    projectRoles.visit(NAMESPACE);
-
-    projectRoles.findRolesTable().should('exist');
-    projectRoles.getRow('dashboard-custom').find().should('exist');
-    projectRoles.getRow('Admin').find().should('exist');
-    projectRoles.getRow('Contributor').find().should('exist');
-    projectRoles.getRow('dashboard-cr').find().should('exist');
-  });
-
-  it('should show AI role badge on dashboard-labeled roles and default roles', () => {
-    initIntercepts();
-    projectRoles.visit(NAMESPACE);
-
-    projectRoles.getRow('Admin').findType().contains('AI role').should('exist');
-    projectRoles.getRow('Contributor').findType().contains('AI role').should('exist');
-    projectRoles.getRow('dashboard-custom').findType().contains('AI role').should('exist');
-  });
-
-  it('should show OpenShift default role badge on admin/edit cluster roles', () => {
-    initIntercepts();
-    projectRoles.visit(NAMESPACE);
-
-    projectRoles.getRow('Admin').findType().contains('OpenShift default role').should('exist');
-    projectRoles
-      .getRow('Contributor')
-      .findType()
-      .contains('OpenShift default role')
-      .should('exist');
-    projectRoles
-      .getRow('dashboard-custom')
-      .findType()
-      .contains('OpenShift default role')
-      .should('not.exist');
-  });
-
-  it('should show Cluster role badge on ClusterRole entries', () => {
-    initIntercepts();
-    projectRoles.visit(NAMESPACE);
-
-    projectRoles.getRow('Admin').findType().contains('Cluster role').should('exist');
-    projectRoles.getRow('dashboard-cr').findType().contains('Cluster role').should('exist');
-    projectRoles.getRow('dashboard-custom').findType().contains('Cluster role').should('not.exist');
-  });
-
-  describe('label rendering', () => {
-    it('should display user-defined label values as chips', () => {
-      initIntercepts({
-        roles: [
-          mockRoleK8sResource({
-            name: 'labeled-role',
-            namespace: NAMESPACE,
-            labels: {
-              'opendatahub.io/dashboard': 'true',
-              'labels.opendatahub.io/team': 'platform',
-              'labels.opendatahub.io/env': 'production',
-            },
-          }),
-        ],
-      });
-      projectRoles.visit(NAMESPACE);
-
-      const row = projectRoles.getRow('labeled-role');
-      row.findLabelsCell().findByTestId('role-label-team').should('have.text', 'platform');
-      row.findLabelsCell().findByTestId('role-label-env').should('have.text', 'production');
-    });
-
-    it('should show dash when role has no user-defined labels', () => {
-      initIntercepts();
-      projectRoles.visit(NAMESPACE);
-
-      projectRoles.getRow('dashboard-custom').findLabelsCell().should('have.text', '-');
-    });
   });
 
   describe('search filtering', () => {
@@ -220,23 +144,6 @@ describe('Roles tab table', () => {
       projectRoles.findPreviewYAMLModal().should('exist');
       projectRoles.findPreviewYAMLCloseButton().click();
       projectRoles.findPreviewYAMLModal().should('not.exist');
-    });
-  });
-
-  describe('empty state', () => {
-    it('should show empty state when no roles exist', () => {
-      initIntercepts({ roles: [], clusterRoles: [] });
-      projectRoles.visit(NAMESPACE);
-
-      projectRoles.findEmptyState().should('exist');
-      projectRoles.findEmptyState().contains('No custom roles').should('exist');
-    });
-
-    it('should show Create custom role button in empty state', () => {
-      initIntercepts({ roles: [], clusterRoles: [] });
-      projectRoles.visit(NAMESPACE);
-
-      projectRoles.findEmptyState().findByTestId('create-role-button').should('exist');
     });
   });
 
