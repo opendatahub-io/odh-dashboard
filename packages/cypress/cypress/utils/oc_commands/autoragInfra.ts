@@ -278,7 +278,7 @@ const buildOgxConfig = (namespace: string): string => {
         {
           provider_id: 'sentence-transformers',
           provider_type: 'inline::sentence-transformers',
-          config: {},
+          config: { refresh_models: false },
         },
         {
           provider_id: 'vllm-inference-llm',
