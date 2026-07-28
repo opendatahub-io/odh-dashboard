@@ -909,18 +909,15 @@ function AutomlConfigure({
                             </FormHelperText>
                           )}
                           {!columnsError && filteredNonASCIIColumnCount > 0 && (
-                            <FormHelperText>
-                              <HelperText>
-                                <HelperTextItem
-                                  variant="warning"
-                                  data-testid="non-ascii-columns-filtered-helper"
-                                >
-                                  {formatFilteredNonASCIIColumnsMessage(
-                                    filteredNonASCIIColumnCount,
-                                  )}
-                                </HelperTextItem>
-                              </HelperText>
-                            </FormHelperText>
+                            <Alert
+                              variant="info"
+                              isInline
+                              isPlain
+                              title={formatFilteredNonASCIIColumnsMessage(
+                                filteredNonASCIIColumnCount,
+                              )}
+                              data-testid="non-ascii-columns-filtered-helper"
+                            />
                           )}
                         </LoadingFormField>
                         {isTargetColumnSelected && (

@@ -82,7 +82,6 @@ export const NON_ASCII_COLUMN_NAME_MESSAGE =
 
 /** Message when non-ASCII columns are filtered out of the target column picker. */
 export const formatFilteredNonASCIIColumnsMessage = (count: number): string => {
-  const noun = count === 1 ? 'column' : 'columns';
-  const verb = count === 1 ? 'is' : 'are';
-  return `${count} ${noun} with non-ASCII names ${verb} not shown because Kubeflow Pipelines does not support them.`;
+  const subject = count === 1 ? 'column is' : 'columns are';
+  return `${count} ${subject} hidden because Kubeflow pipelines do not support non-ASCII names.`;
 };

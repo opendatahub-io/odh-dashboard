@@ -170,13 +170,13 @@ describe('isASCIIOnly', () => {
 describe('formatFilteredNonASCIIColumnsMessage', () => {
   it('formats a singular message', () => {
     expect(formatFilteredNonASCIIColumnsMessage(1)).toBe(
-      '1 column with non-ASCII names is not shown because Kubeflow Pipelines does not support them.',
+      '1 column is hidden because Kubeflow pipelines do not support non-ASCII names.',
     );
   });
 
   it('formats a plural message', () => {
     expect(formatFilteredNonASCIIColumnsMessage(3)).toBe(
-      '3 columns with non-ASCII names are not shown because Kubeflow Pipelines does not support them.',
+      '3 columns are hidden because Kubeflow pipelines do not support non-ASCII names.',
     );
   });
 });
