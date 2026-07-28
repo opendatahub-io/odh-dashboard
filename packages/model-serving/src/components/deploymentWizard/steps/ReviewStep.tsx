@@ -63,7 +63,7 @@ const getStatusSections = (
   projectName: string | undefined,
   extensionStatusSections: StatusSection[] | undefined,
   isGenAiEnabled: boolean,
-  modelServerLabel: string,
+  hasModelServerExtension: boolean,
 ): StatusSection[] => {
   return [
     {
@@ -252,11 +252,16 @@ const getStatusSections = (
           },
           optional: true,
         },
-        {
-          key: 'modelServer',
-          label: modelServerLabel,
-          comp: (state) => state.modelServer?.data?.selection?.label || 'Auto-selected',
-        },
+        ...(hasModelServerExtension
+          ? []
+          : ([
+              {
+                key: 'modelServer',
+                label: 'Serving runtime',
+                comp: (state: WizardState) =>
+                  state.modelServer?.data?.selection?.label || 'Auto-selected',
+              },
+            ] satisfies StatusItem[])),
         {
           key: 'numReplicas',
           label: 'Replicas',
@@ -407,21 +412,20 @@ export const ReviewStepContent: React.FC<ReviewStepContentProps> = ({
     }));
   }, [extensionSections]);
 
-  const modelServerLabel = React.useMemo(() => {
-    const hasReplacement = wizardState.fields.some(
-      (field) =>
-        field.type === 'replacement' &&
-        field.stateKey === 'modelServer' &&
-        field.isActive(wizardState.state),
-    );
-    return hasReplacement ? 'Accelerator configuration' : 'Serving runtime';
-  }, [wizardState.fields, wizardState.state]);
+  const hasModelServerExtension = extensionSections.some((section) =>
+    section.items.some((item) => item.key === 'modelServer'),
+  );
 
   const statusSections = React.useMemo(
     () => [
-      ...getStatusSections(projectName, extensionStatusSections, isGenAiEnabled, modelServerLabel),
+      ...getStatusSections(
+        projectName,
+        extensionStatusSections,
+        isGenAiEnabled,
+        hasModelServerExtension,
+      ),
     ],
-    [projectName, extensionStatusSections, isGenAiEnabled, modelServerLabel],
+    [projectName, extensionStatusSections, isGenAiEnabled, hasModelServerExtension],
   );
 
   if (!wizardState.loaded.summaryLoaded) {

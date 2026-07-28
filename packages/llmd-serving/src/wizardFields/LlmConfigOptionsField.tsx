@@ -1,6 +1,9 @@
 import React from 'react';
 import { z } from 'zod';
-import type { WizardField } from '@odh-dashboard/model-serving/shared/types/form-data';
+import type {
+  WizardField,
+  WizardReviewSection,
+} from '@odh-dashboard/model-serving/shared/types/form-data';
 import {
   ModelServerTemplateSelectField,
   ModelServerOption,
@@ -108,6 +111,19 @@ export type LLMConfigOptionsFieldValue = {
   data?: ModelServerSelectFieldData;
 };
 
+const getReviewSections = (value: LLMConfigOptionsFieldValue): WizardReviewSection[] => [
+  {
+    title: 'Model deployment',
+    items: [
+      {
+        key: 'modelServer',
+        label: 'Accelerator configuration',
+        value: () => value.data?.selection?.label || 'Auto-selected',
+      },
+    ],
+  },
+];
+
 export type LLMConfigOptionsFieldType = WizardField<
   LLMConfigOptionsFieldValue,
   LLMConfigOptionsData,
@@ -182,6 +198,7 @@ export const LLMConfigOptionsFieldNoTemplates: LLMConfigOptionsFieldType = {
   },
   component: LLMConfigOptionsField,
   externalDataHook: useLLMConfigOptions,
+  getReviewSections,
 };
 
 // When llmdTemplates enabled: show only for simple vLLM (non-llm-d), topology fields handle the rest
