@@ -2,11 +2,11 @@ import * as React from 'react';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { mockRoleK8sResource, mockProjectK8sResource } from '#~/__mocks__';
-import { useAccessReview } from '#~/api/useAccessReview';
+import { useAccessReview } from '@odh-dashboard/plugin-core/host-api';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import CreateRolePage from '#~/pages/projects/projectRoles/CreateRolePage';
 
-jest.mock('#~/api/useAccessReview');
+jest.mock('@odh-dashboard/plugin-core/host-api');
 jest.mock('#~/api', () => ({
   createRole: jest.fn(),
   updateRole: jest.fn(),
