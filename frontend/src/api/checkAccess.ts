@@ -1,5 +1,4 @@
 import { k8sCreateResource } from '@openshift/dynamic-plugin-sdk-utils';
-import * as React from 'react';
 import type { AccessReviewResourceAttributes } from '@odh-dashboard/k8s-core';
 import { ProjectModel, SelfSubjectAccessReviewModel } from '#~/api/models';
 import { SelfSubjectAccessReviewKind } from '#~/k8sTypes';
@@ -40,40 +39,4 @@ export const checkAccess = ({
       console.warn('SelfSubjectAccessReview failed', e);
       return true; // if it critically fails, don't block SSAR checks; let it fail/succeed on future calls
     });
-};
-
-/**
- * Used for a non-cached SSAR request.
- *
- * Potentially obsolete -- depending on if we need a non-cached variant.
- *
- * @see useAccessAllowed - Cached variant
- * @see verbModelAccess - Helper util for resourceAttributes
- */
-export const useAccessReview = (
-  resourceAttributes: AccessReviewResourceAttributes,
-  shouldRunCheck = true,
-): [boolean, boolean] => {
-  const [isLoaded, setIsLoaded] = React.useState(false);
-  const [isAllowed, setAllowed] = React.useState(false);
-
-  const {
-    group = '',
-    resource = '',
-    subresource = '',
-    verb,
-    name = '',
-    namespace = '',
-  } = resourceAttributes;
-
-  React.useEffect(() => {
-    if (shouldRunCheck) {
-      checkAccess({ group, resource, subresource, verb, name, namespace }).then((allowed) => {
-        setAllowed(allowed);
-        setIsLoaded(true);
-      });
-    }
-  }, [group, name, namespace, resource, subresource, verb, shouldRunCheck]);
-
-  return [isAllowed, isLoaded];
 };

@@ -1,13 +1,12 @@
 import * as React from 'react';
 import { Alert, FormGroup, FormHelperText, Label } from '@patternfly/react-core';
 import { TypeaheadSelectOption } from '@patternfly/react-templates';
-import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
+import { getDisplayNameFromK8sResource, getPvcAccessMode } from '@odh-dashboard/k8s-core';
 import TypeaheadSelect from '@odh-dashboard/ui-core/components/TypeaheadSelect';
 import { ExistingStorageObject } from '#~/pages/projects/types';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import useProjectPvcs from '#~/pages/projects/screens/detail/storage/useProjectPvcs';
 import { AccessMode } from '#~/pages/storageClasses/storageEnums';
-import { getPvcAccessMode } from '#~/pages/projects/utils.ts';
 
 type AddExistingStorageFieldProps = {
   data: ExistingStorageObject;

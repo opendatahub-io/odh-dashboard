@@ -1,5 +1,4 @@
-import { ClusterQueueKind, CohortKind } from '@odh-dashboard/internal/k8sTypes';
-import { ContainerResourceAttributes } from '@odh-dashboard/k8s-core';
+import { ClusterQueueKind, CohortKind, ContainerResourceAttributes } from '@odh-dashboard/k8s-core';
 
 export type CohortState = 'explicit' | 'implicit' | 'standalone';
 

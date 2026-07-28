@@ -329,6 +329,17 @@ export type DataScienceProjectData = {
   deploymentMethod: 'llm-inference-service-llmd' | 'llm-inference-service-simple-vllm' | 'legacy';
 };
 
+export type RoutingTestData = DataScienceProjectData & {
+  routingConfigName: string;
+  routingConfigFixture: string;
+  topologyTypeTestId: string;
+  topologyTypeLabel: string;
+  configSourceEditorKey: string;
+  modelLocationURI: string;
+  deploymentMethod: string;
+  defaultRoutingLabel: string;
+};
+
 export type NotebookImageData = {
   codeserverImageName: string;
 };
