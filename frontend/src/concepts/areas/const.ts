@@ -32,7 +32,6 @@ export const techPreviewFlags = {
 export const devTemporaryFeatureFlags = {
   disableKueue: true,
   disableProjectScoped: true,
-  mlflowPipelines: true,
   nimWizard: false,
   agentOpsDeploy: false,
   agentsCatalog: false,
@@ -254,7 +253,6 @@ export const SupportedAreasStateMap: SupportedAreasState = {
     requiredComponents: [DataScienceStackComponent.MLFLOW],
   },
   [SupportedArea.MLFLOW_PIPELINES]: {
-    featureFlags: ['mlflowPipelines'],
     requiredComponents: [DataScienceStackComponent.DS_PIPELINES, DataScienceStackComponent.MLFLOW],
   },
   [SupportedArea.MCP_REGISTRY]: {

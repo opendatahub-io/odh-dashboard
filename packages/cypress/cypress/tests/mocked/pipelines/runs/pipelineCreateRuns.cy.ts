@@ -135,7 +135,7 @@ describe('Pipeline create runs', () => {
   describe('Runs', () => {
     describe('MLflow integration', () => {
       beforeEach(() => {
-        cy.interceptOdh('GET /api/config', mockDashboardConfig({ mlflowPipelines: true }));
+        cy.interceptOdh('GET /api/config', mockDashboardConfig({}));
         interceptMlflowStatus();
         pipelineRunsGlobal.visit(projectName);
 
@@ -367,27 +367,8 @@ describe('Pipeline create runs', () => {
         createRunPage.findMlflowIntegrationJumpLink().should('not.exist');
       });
 
-      it('hides the MLflow integration section when mlflowPipelines is disabled', () => {
-        cy.interceptOdh('GET /api/config', mockDashboardConfig({ mlflowPipelines: false }));
-        pipelineRunsGlobal.visit(projectName);
-
-        createRunPage.mockGetExperiments(projectName, mockExperiments);
-        createRunPage.mockGetPipelines(projectName, [mockPipeline]);
-        createRunPage.mockGetPipelineVersions(
-          projectName,
-          [mockPipelineVersion],
-          mockPipelineVersion.pipeline_id,
-        );
-
-        pipelineRunsGlobal.findCreateRunButton().click();
-        createRunPage.find();
-
-        createRunPage.findMlflowIntegrationSection().should('not.exist');
-        createRunPage.findMlflowIntegrationJumpLink().should('not.exist');
-      });
-
       it('hides the MLflow integration section when BFF status is not configured', () => {
-        cy.interceptOdh('GET /api/config', mockDashboardConfig({ mlflowPipelines: true }));
+        cy.interceptOdh('GET /api/config', mockDashboardConfig({}));
         interceptMlflowStatus(false);
         pipelineRunsGlobal.visit(projectName);
 
@@ -407,7 +388,7 @@ describe('Pipeline create runs', () => {
       });
 
       it('hides the MLflow integration section when DSPA has MLflow integration disabled', () => {
-        cy.interceptOdh('GET /api/config', mockDashboardConfig({ mlflowPipelines: true }));
+        cy.interceptOdh('GET /api/config', mockDashboardConfig({}));
         interceptMlflowStatus();
         interceptDSPAMlflowIntegration(projectName, DSPAMlflowIntegrationMode.DISABLED);
         pipelineRunsGlobal.visit(projectName);
@@ -428,7 +409,7 @@ describe('Pipeline create runs', () => {
       });
 
       it('shows the MLflow integration section and sidebar link when MLflow is enabled', () => {
-        cy.interceptOdh('GET /api/config', mockDashboardConfig({ mlflowPipelines: true }));
+        cy.interceptOdh('GET /api/config', mockDashboardConfig({}));
         interceptMlflowStatus();
         pipelineRunsGlobal.visit(projectName);
 
@@ -1109,7 +1090,7 @@ describe('Pipeline create runs', () => {
     });
 
     it('creates a schedule with MLflow plugin payload', () => {
-      cy.interceptOdh('GET /api/config', mockDashboardConfig({ mlflowPipelines: true }));
+      cy.interceptOdh('GET /api/config', mockDashboardConfig({}));
       interceptMlflowStatus();
       pipelineRunsGlobal.visit(projectName);
       pipelineRunsGlobal.findSchedulesTab().click();
@@ -1184,7 +1165,7 @@ describe('Pipeline create runs', () => {
       });
 
       it('hides the MLflow integration section when BFF status is not configured', () => {
-        cy.interceptOdh('GET /api/config', mockDashboardConfig({ mlflowPipelines: true }));
+        cy.interceptOdh('GET /api/config', mockDashboardConfig({}));
         interceptMlflowStatus(false);
         pipelineRunsGlobal.visit(projectName);
         pipelineRunsGlobal.findSchedulesTab().click();
@@ -1205,7 +1186,7 @@ describe('Pipeline create runs', () => {
       });
 
       it('hides the MLflow integration section when DSPA has MLflow integration disabled', () => {
-        cy.interceptOdh('GET /api/config', mockDashboardConfig({ mlflowPipelines: true }));
+        cy.interceptOdh('GET /api/config', mockDashboardConfig({}));
         interceptMlflowStatus();
         interceptDSPAMlflowIntegration(projectName, DSPAMlflowIntegrationMode.DISABLED);
         pipelineRunsGlobal.visit(projectName);
@@ -1227,7 +1208,7 @@ describe('Pipeline create runs', () => {
       });
 
       it('shows the MLflow integration section when MLflow is enabled', () => {
-        cy.interceptOdh('GET /api/config', mockDashboardConfig({ mlflowPipelines: true }));
+        cy.interceptOdh('GET /api/config', mockDashboardConfig({}));
         interceptMlflowStatus();
         pipelineRunsGlobal.visit(projectName);
         pipelineRunsGlobal.findSchedulesTab().click();
