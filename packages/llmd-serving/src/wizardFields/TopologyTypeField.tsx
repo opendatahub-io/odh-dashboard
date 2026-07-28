@@ -132,7 +132,6 @@ const TopologyTypeFieldComponent: TopologyTypeFieldType['component'] = ({
         <StackItem>
           <SimpleSelect
             isFullWidth
-            previewDescription={false}
             options={options}
             onChange={(key) => {
               const matched = Object.values(TopologyType).find((v) => v === key);
