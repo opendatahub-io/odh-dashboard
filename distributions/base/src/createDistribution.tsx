@@ -4,6 +4,7 @@ import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import type { Extension } from '@openshift/dynamic-plugin-sdk';
 import { PluginStoreProvider } from '@openshift/dynamic-plugin-sdk';
 import { PluginStore } from '@odh-dashboard/plugin-core';
+import { BrowserStorageContextProvider } from '@odh-dashboard/ui-core/hooks/useBrowserStorage';
 import Shell from './Shell';
 import ShellHeader from './ShellHeader';
 import ShellNav from './ShellNav';
@@ -41,7 +42,13 @@ const DistributionApp: React.FC<{ config: DistributionConfig }> = ({ config }) =
     </PluginStoreProvider>
   );
 
-  return <ThemeProvider>{AppWrapper ? <AppWrapper>{shell}</AppWrapper> : shell}</ThemeProvider>;
+  return (
+    <ThemeProvider>
+      <BrowserStorageContextProvider>
+        {AppWrapper ? <AppWrapper>{shell}</AppWrapper> : shell}
+      </BrowserStorageContextProvider>
+    </ThemeProvider>
+  );
 };
 
 export function createDistribution(config: DistributionConfig): void {

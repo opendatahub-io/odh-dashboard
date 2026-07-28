@@ -5,6 +5,7 @@ import {
 } from '@odh-dashboard/ui-core/context/ProjectsContext';
 import type { ProjectKind } from '@odh-dashboard/k8s-core';
 import { byName, isAvailableProject } from '@odh-dashboard/k8s-core';
+import { useBrowserStorage } from '@odh-dashboard/ui-core/hooks/useBrowserStorage';
 import fetchNamespaces, { FETCH_TIMEOUT_MS } from './fetchNamespaces';
 
 const PREFERRED_NAMESPACE_STORAGE_KEY = 'mod-arch.namespace.lastUsed';
@@ -13,24 +14,6 @@ const DASHBOARD_NAMESPACE = 'opendatahub';
 
 const WAIT_FOR_PROJECT_TIMEOUT_MS = 30_000;
 const WAIT_FOR_PROJECT_POLL_MS = 2_000;
-
-const readStoredPreferredName = (): string | null => {
-  let raw: string | null;
-  try {
-    raw = localStorage.getItem(PREFERRED_NAMESPACE_STORAGE_KEY);
-  } catch {
-    return null;
-  }
-  if (!raw) {
-    return null;
-  }
-  try {
-    const parsed: unknown = JSON.parse(raw);
-    return typeof parsed === 'string' ? parsed : null;
-  } catch {
-    return raw.length > 0 ? raw : null;
-  }
-};
 
 type ProjectsContextProviderProps = {
   children: React.ReactNode;
@@ -46,6 +29,10 @@ const ProjectsContextProvider: React.FC<ProjectsContextProviderProps> = ({ child
   const [projectData, setProjectData] = React.useState<ProjectKind[]>([]);
   const [loaded, setLoaded] = React.useState(false);
   const [loadError, setLoadError] = React.useState<Error | undefined>(undefined);
+  const [storedPreferredName, setStoredPreferredName] = useBrowserStorage<string>(
+    PREFERRED_NAMESPACE_STORAGE_KEY,
+    '',
+  );
   const [preferredProject, setPreferredProject] =
     React.useState<ProjectsContextType['preferredProject']>(null);
   const initializedFromStorage = React.useRef(false);
@@ -85,21 +72,13 @@ const ProjectsContextProvider: React.FC<ProjectsContextProviderProps> = ({ child
     };
   }, []);
 
-  const updatePreferredProject = React.useCallback((project: ProjectKind | null) => {
-    setPreferredProject(project);
-    try {
-      if (project?.metadata.name) {
-        localStorage.setItem(
-          PREFERRED_NAMESPACE_STORAGE_KEY,
-          JSON.stringify(project.metadata.name),
-        );
-      } else {
-        localStorage.removeItem(PREFERRED_NAMESPACE_STORAGE_KEY);
-      }
-    } catch {
-      // Ignore storage failures (private mode, quota, etc.)
-    }
-  }, []);
+  const updatePreferredProject = React.useCallback(
+    (project: ProjectKind | null) => {
+      setPreferredProject(project);
+      setStoredPreferredName(project?.metadata.name ?? '');
+    },
+    [setStoredPreferredName],
+  );
 
   const { projects, modelServingProjects, nonActiveProjects } = React.useMemo(() => {
     const active: ProjectKind[] = [];
@@ -130,14 +109,13 @@ const ProjectsContextProvider: React.FC<ProjectsContextProviderProps> = ({ child
       return;
     }
     initializedFromStorage.current = true;
-    const stored = readStoredPreferredName();
-    if (stored) {
-      const match = projects.find(byName(stored));
+    if (storedPreferredName) {
+      const match = projects.find(byName(storedPreferredName));
       if (match) {
         setPreferredProject(match);
       }
     }
-  }, [loaded, projects]);
+  }, [loaded, projects, storedPreferredName]);
 
   const isMounted = React.useRef(true);
   React.useEffect(() => {
