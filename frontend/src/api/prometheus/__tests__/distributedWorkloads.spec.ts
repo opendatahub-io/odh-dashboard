@@ -426,14 +426,12 @@ describe('useDWProjectCurrentMetrics', () => {
     } satisfies DWProjectCurrentMetrics);
     expect(mockAxios).toHaveBeenCalledTimes(2);
     expect(mockAxios).toHaveBeenCalledWith('/api/prometheus/query', {
-      query: expect.stringContaining(
-        'namespace=test-project&query=sum by(owner_name, owner_kind) (kube_pod_owner{owner_kind=~"RayCluster|Job|StatefulSet|ReplicaSet", namespace="test-project"} * on (namespace, pod) group_right(owner_name, owner_kind) node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate)',
-      ),
+      query:
+        'namespace=test-project&query=sum by(owner_name, owner_kind) (kube_pod_owner{owner_kind=~"RayCluster|Job|StatefulSet|ReplicaSet", namespace="test-project"} * on (namespace, pod) group_right(owner_name, owner_kind) node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate) or sum by(owner_name, owner_kind) (label_replace(label_replace(kube_pod_labels{label_leaderworkerset_sigs_k8s_io_name!="", namespace="test-project"} * on (namespace, pod) group_right(label_leaderworkerset_sigs_k8s_io_name) node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate, "owner_name", "$1", "label_leaderworkerset_sigs_k8s_io_name", "(.*)"), "owner_kind", "LeaderWorkerSet", "", ""))',
     });
     expect(mockAxios).toHaveBeenCalledWith('/api/prometheus/query', {
-      query: expect.stringContaining(
-        'namespace=test-project&query=sum by(owner_name, owner_kind) (kube_pod_owner{owner_kind=~"RayCluster|Job|StatefulSet|ReplicaSet", namespace="test-project"} * on (namespace, pod) group_right(owner_name, owner_kind) node_namespace_pod_container:container_memory_working_set_bytes)',
-      ),
+      query:
+        'namespace=test-project&query=sum by(owner_name, owner_kind) (kube_pod_owner{owner_kind=~"RayCluster|Job|StatefulSet|ReplicaSet", namespace="test-project"} * on (namespace, pod) group_right(owner_name, owner_kind) node_namespace_pod_container:container_memory_working_set_bytes) or sum by(owner_name, owner_kind) (label_replace(label_replace(kube_pod_labels{label_leaderworkerset_sigs_k8s_io_name!="", namespace="test-project"} * on (namespace, pod) group_right(label_leaderworkerset_sigs_k8s_io_name) node_namespace_pod_container:container_memory_working_set_bytes, "owner_name", "$1", "label_leaderworkerset_sigs_k8s_io_name", "(.*)"), "owner_kind", "LeaderWorkerSet", "", ""))',
     });
     expect(renderResult).hookToHaveUpdateCount(1);
 
