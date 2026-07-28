@@ -33,17 +33,15 @@ const DistributionApp: React.FC<{ config: DistributionConfig }> = ({ config }) =
 
   const { AppWrapper } = config;
 
-  const app = (
-    <ThemeProvider>
-      <PluginStoreProvider store={store}>
-        <Shell masthead={<ShellHeader />} sidebar={<ShellNav />}>
-          <ShellRoutes />
-        </Shell>
-      </PluginStoreProvider>
-    </ThemeProvider>
+  const shell = (
+    <PluginStoreProvider store={store}>
+      <Shell masthead={<ShellHeader />} sidebar={<ShellNav />}>
+        <ShellRoutes />
+      </Shell>
+    </PluginStoreProvider>
   );
 
-  return AppWrapper ? <AppWrapper>{app}</AppWrapper> : app;
+  return <ThemeProvider>{AppWrapper ? <AppWrapper>{shell}</AppWrapper> : shell}</ThemeProvider>;
 };
 
 export function createDistribution(config: DistributionConfig): void {
