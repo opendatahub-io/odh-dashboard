@@ -135,7 +135,7 @@ export const setupBaseMCPServerMocks = (
     'GET /api/v1/aaa/models',
     { query: { namespace, sources: 'maas' } },
     mockEmptyList(),
-  );
+  ).as('maasModels');
 
   // Mock user endpoint to prevent k8s client errors in test environment
   cy.interceptGenAi('GET /api/v1/user', { data: { username: 'test-user' } });
