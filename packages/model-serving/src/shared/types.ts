@@ -72,6 +72,8 @@ export type ModelDeployPrefillInfo = {
     registeredModelId?: string;
     mrName?: string;
   };
+  /** Route to navigate back to after deployment (provided by the caller). */
+  returnRoute?: string;
 };
 
 export type ServingRuntimeAnnotations = Partial<{

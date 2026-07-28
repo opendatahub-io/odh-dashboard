@@ -2,6 +2,7 @@ import React from 'react';
 import { ModelVersion, RegisteredModel } from '~/app/types';
 import { useModelArtifactsByVersionId, useRegisteredModelById } from '~/odh/api';
 import { uriToConnectionTypeName } from '~/odh/utils';
+import { modelVersionDeploymentsUrl } from '~/app/pages/modelRegistry/screens/routeUtils';
 
 export type ModelDeployPrefillInfo = {
   modelName: string;
@@ -14,6 +15,7 @@ export type ModelDeployPrefillInfo = {
     registeredModelId?: string;
     mrName?: string;
   };
+  returnRoute?: string;
 };
 
 const useRegisteredModelDeployPrefillInfo = (
@@ -60,6 +62,11 @@ const useRegisteredModelDeployPrefillInfo = (
           registeredModelId: modelVersion.registeredModelId,
           mrName,
         },
+        returnRoute: modelVersionDeploymentsUrl(
+          modelVersion.id,
+          modelVersion.registeredModelId,
+          mrName,
+        ),
       } satisfies ModelDeployPrefillInfo,
       registeredModel,
       loaded: registeredModelLoaded && modelArtifactListLoaded,
