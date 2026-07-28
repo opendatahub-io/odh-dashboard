@@ -116,6 +116,60 @@ const useTourSteps = (isAdmin: boolean): TourStep[] => {
         ],
       },
       {
+        id: 'ai-hub',
+        title: 'AI hub',
+        description:
+          'Discover, register, and deploy models. Browse agent templates to build agents, and connect to MCP servers.',
+        navSelector: 'button[id="ai-hub"]',
+        docUrl:
+          'https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed/3.5/html/working_with_the_model_catalog/index',
+        sectionAvailable: aiHubAvailable,
+        newFeatures: [
+          {
+            title: 'Tool calling',
+            description: 'Enable tool-calling capability when deploying supported models.',
+            flagName: 'toolCalling',
+            available: toolCallingAvailable,
+          },
+          {
+            title: 'MCP servers',
+            description: 'Find and deploy MCP servers for your organization.',
+            flagName: 'mcpCatalog',
+            available: mcpCatalogAvailable,
+          },
+          {
+            title: 'Agents catalog',
+            description: 'Browse agent templates for your projects.',
+            flagName: 'agentsCatalog',
+            available: agentsCatalogAvailable,
+          },
+          {
+            title: 'Deploy agents',
+            description: 'Deploy agents for your projects from the OpenShift Console.',
+            flagName: 'agentOps',
+            available: agentOpsAvailable,
+          },
+          {
+            title: 'External models',
+            description: 'View models from external providers alongside your deployed models.',
+            flagName: 'externalModels',
+            available: externalModelsAvailable,
+          },
+          {
+            title: 'Safety and security insights',
+            description: 'Review safety and security scan results before deploying catalog models.',
+            flagName: 'disableLMEval',
+            available: lmEvalAvailable,
+          },
+          {
+            title: 'MCP registry',
+            description: 'Register and manage MCP servers from a centralized registry.',
+            flagName: 'mcpRegistry',
+            available: mcpRegistryAvailable,
+          },
+        ],
+      },
+      {
         id: 'gen-ai-studio',
         title: 'Gen AI studio',
         description:
@@ -180,60 +234,6 @@ const useTourSteps = (isAdmin: boolean): TourStep[] => {
               'Train machine learning models using automated model selection, parameter optimization, and feature engineering.',
             flagName: 'automl',
             available: automlAvailable,
-          },
-        ],
-      },
-      {
-        id: 'ai-hub',
-        title: 'AI hub',
-        description:
-          'Discover, register, and deploy models. Browse agent templates to build agents, and connect to MCP servers.',
-        navSelector: 'button[id="ai-hub"]',
-        docUrl:
-          'https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed/3.5/html/working_with_the_model_catalog/index',
-        sectionAvailable: aiHubAvailable,
-        newFeatures: [
-          {
-            title: 'Tool calling',
-            description: 'Enable tool-calling capability when deploying supported models.',
-            flagName: 'toolCalling',
-            available: toolCallingAvailable,
-          },
-          {
-            title: 'MCP servers',
-            description: 'Find and deploy MCP servers for your organization.',
-            flagName: 'mcpCatalog',
-            available: mcpCatalogAvailable,
-          },
-          {
-            title: 'Agents catalog',
-            description: 'Browse agent templates for your projects.',
-            flagName: 'agentsCatalog',
-            available: agentsCatalogAvailable,
-          },
-          {
-            title: 'Deploy agents',
-            description: 'Deploy agents for your projects from the OpenShift Console.',
-            flagName: 'agentOps',
-            available: agentOpsAvailable,
-          },
-          {
-            title: 'External models',
-            description: 'View models from external providers alongside your deployed models.',
-            flagName: 'externalModels',
-            available: externalModelsAvailable,
-          },
-          {
-            title: 'Safety and security insights',
-            description: 'Review safety and security scan results before deploying catalog models.',
-            flagName: 'disableLMEval',
-            available: lmEvalAvailable,
-          },
-          {
-            title: 'MCP registry',
-            description: 'Register and manage MCP servers from a centralized registry.',
-            flagName: 'mcpRegistry',
-            available: mcpRegistryAvailable,
           },
         ],
       },
@@ -728,7 +728,7 @@ const WhatsNewModal: React.FC = () => {
               <strong>New in 3.5</strong>
             </Content>
             {currentStep.newFeatures.map((feature) => (
-              <div key={feature.title}>
+              <div key={feature.title} className="pf-v6-u-mb-md">
                 <Flex
                   alignItems={{ default: 'alignItemsCenter' }}
                   gap={{ default: 'gapSm' }}
