@@ -401,7 +401,10 @@ func (r *DashboardReconciler) reconcileStandalone(
 	// Step 0: Clean up sidecar-specific resources that are not part of the standalone overlay.
 	// This handles the Sidecar → Standalone upgrade path where these resources would be orphaned.
 	if err := r.deleteSidecarResources(ctx); err != nil {
-		logger.Error(err, "Failed to clean up sidecar resources")
+		cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded),
+			conditions.WithReason("SidecarCleanupFailed"),
+			conditions.WithError(err))
+		return ctrl.Result{}, fmt.Errorf("failed to clean up sidecar resources: %w", err)
 	}
 
 	// Step 1: Deploy core manifests (3-container pod: odh-dashboard, kube-rbac-proxy, core-bff).

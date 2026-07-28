@@ -14,6 +14,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -1121,7 +1122,11 @@ func k8sNotFound(t *testing.T, cli client.Client, ctx context.Context, obj clien
 	t.Helper()
 	key := types.NamespacedName{Namespace: ns, Name: name}
 	err := cli.Get(ctx, key, obj)
-	return err != nil && client.IgnoreNotFound(err) == nil
+	if err == nil {
+		return false
+	}
+	require.True(t, k8serrors.IsNotFound(err), "unexpected error fetching %s/%s: %v", ns, name, err)
+	return true
 }
 
 func boolPtr(b bool) *bool {
