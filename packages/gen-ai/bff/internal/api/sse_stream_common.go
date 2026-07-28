@@ -81,6 +81,12 @@ func (app *App) streamSSEEvents(cfg StreamConfig) error {
 	ctx := cfg.Context
 	logger := cfg.Logger
 
+	withTraceID := func(data map[string]interface{}) {
+		if traceID := otelTraceID(ctx); traceID != "" {
+			data["trace_id"] = traceID
+		}
+	}
+
 	// Thread-safe event sender
 	sendEvent := func(data []byte) error {
 		if cfg.WriteMu != nil {
@@ -138,7 +144,7 @@ func (app *App) streamSSEEvents(cfg StreamConfig) error {
 				statusCode = 0
 			}
 			retriable := app.isRetriable(event.Code, statusCode)
-			errorJSON := buildStreamingErrorEvent(event.Code, event.Message, component, retriable)
+			errorJSON := buildStreamingErrorEvent(event.Code, event.Message, component, retriable, withTraceID)
 			_ = sendEvent(errorJSON)
 			return nil
 		}
@@ -159,7 +165,7 @@ func (app *App) streamSSEEvents(cfg StreamConfig) error {
 			logger.Error("Response failed event received", "code", errorCode, "message", errorMessage)
 			component := llamastack.ResolveComponent(errorCode)
 			retriable := app.isRetriable(errorCode, 0)
-			errorJSON := buildStreamingErrorEvent(errorCode, errorMessage, component, retriable)
+			errorJSON := buildStreamingErrorEvent(errorCode, errorMessage, component, retriable, withTraceID)
 			_ = sendEvent(errorJSON)
 			return nil
 		}
@@ -276,7 +282,7 @@ func (app *App) streamSSEEvents(cfg StreamConfig) error {
 		var errorJSON []byte
 		if cfg.UseAdvancedErrorLogic {
 			message, code, component, retriable := app.extractStreamingError(err)
-			errorJSON = buildStreamingErrorEvent(code, message, component, retriable)
+			errorJSON = buildStreamingErrorEvent(code, message, component, retriable, withTraceID)
 		} else {
 			errorData := map[string]interface{}{
 				"error": map[string]interface{}{
@@ -284,6 +290,7 @@ func (app *App) streamSSEEvents(cfg StreamConfig) error {
 					"code":    "500",
 				},
 			}
+			withTraceID(errorData)
 			errorJSON, _ = json.Marshal(errorData)
 		}
 		_ = sendEvent(errorJSON)
