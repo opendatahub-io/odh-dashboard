@@ -728,7 +728,7 @@ const WhatsNewModal: React.FC = () => {
               <strong>New in 3.5</strong>
             </Content>
             {currentStep.newFeatures.map((feature) => (
-              <Content key={feature.title} component={ContentVariants.p}>
+              <div key={feature.title}>
                 <Flex
                   alignItems={{ default: 'alignItemsCenter' }}
                   gap={{ default: 'gapSm' }}
@@ -752,43 +752,44 @@ const WhatsNewModal: React.FC = () => {
                     </FlexItem>
                   )}
                 </Flex>
-                <br />
-                {feature.description}
-              </Content>
+                <Content component={ContentVariants.p}>{feature.description}</Content>
+              </div>
             ))}
             {(unavailableFeatures.length > 0 ||
-              (sectionUnavailable && currentStep.sectionFlagName)) && (
-              <Content component={ContentVariants.p}>
+              (!currentStep.sectionAvailable && currentStep.sectionFlagName)) && (
+              <div>
                 <ExclamationTriangleIcon color="var(--pf-t--global--color--nonstatus--orange--default)" />{' '}
                 {isAdmin ? (
                   <strong>
                     To enable unavailable features in your cluster, enable the following feature
                     flags in OdhDashboardConfig:
-                    <List>
-                      {sectionUnavailable && currentStep.sectionFlagName && (
-                        <ListItem key={currentStep.sectionFlagName}>
-                          <code>{currentStep.sectionFlagName}</code> (section)
-                        </ListItem>
-                      )}
-                      {[...new Set(unavailableFeatures.map((f) => f.flagName))].map((flagName) => (
-                        <ListItem key={flagName}>
-                          {flagName.startsWith('disable') ? (
-                            <>
-                              Set <code>{flagName}</code> to <code>false</code>
-                            </>
-                          ) : (
-                            <code>{flagName}</code>
-                          )}
-                        </ListItem>
-                      ))}
-                    </List>
                   </strong>
                 ) : (
                   <strong>
                     Contact your administrator to request access to unavailable features.
                   </strong>
                 )}
-              </Content>
+                {isAdmin && (
+                  <List>
+                    {!currentStep.sectionAvailable && currentStep.sectionFlagName && (
+                      <ListItem key={currentStep.sectionFlagName}>
+                        <code>{currentStep.sectionFlagName}</code> (section)
+                      </ListItem>
+                    )}
+                    {[...new Set(unavailableFeatures.map((f) => f.flagName))].map((flagName) => (
+                      <ListItem key={flagName}>
+                        {flagName.startsWith('disable') ? (
+                          <>
+                            Set <code>{flagName}</code> to <code>false</code>
+                          </>
+                        ) : (
+                          <code>{flagName}</code>
+                        )}
+                      </ListItem>
+                    ))}
+                  </List>
+                )}
+              </div>
             )}
           </FlexItem>
         </>

@@ -155,7 +155,7 @@ const HeaderTools: React.FC<Props> = ({ onNotificationsClick, ...devFeatureFlags
             <Tooltip content="Take a guided tour" position="bottom">
               <Button
                 variant="plain"
-                aria-label="What's new"
+                aria-label="Take a guided tour"
                 onClick={() => openWhatsNewTour('masthead')}
                 data-testid="whats-new-button"
               >
