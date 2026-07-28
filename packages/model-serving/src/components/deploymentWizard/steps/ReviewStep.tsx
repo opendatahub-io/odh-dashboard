@@ -412,8 +412,10 @@ export const ReviewStepContent: React.FC<ReviewStepContentProps> = ({
     }));
   }, [extensionSections]);
 
-  const hasModelServerExtension = extensionSections.some((section) =>
-    section.items.some((item) => item.key === 'modelServer'),
+  const hasModelServerExtension = extensionSections.some(
+    (section) =>
+      section.title === WizardStepTitle.MODEL_DEPLOYMENT &&
+      section.items.some((item) => item.key === 'modelServer'),
   );
 
   const statusSections = React.useMemo(
