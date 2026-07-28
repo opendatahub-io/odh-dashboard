@@ -54,6 +54,26 @@ const namespaceToProject = (name: string, phase?: string): ProjectKind => ({
   },
 });
 
+const fetchNamespaces = async (): Promise<ProjectKind[]> => {
+  const resp = await fetch('/api/k8s/api/v1/namespaces');
+  if (!resp.ok) {
+    throw new Error(`Failed to list namespaces (HTTP ${resp.status})`);
+  }
+  const data = parseNamespaceList(await resp.json());
+  return (data.items ?? [])
+    .map((item) => {
+      const name = item.metadata?.name;
+      if (!name) {
+        return null;
+      }
+      return namespaceToProject(name, item.status?.phase);
+    })
+    .filter((project): project is ProjectKind => project !== null);
+};
+
+const WAIT_FOR_PROJECT_TIMEOUT_MS = 30_000;
+const WAIT_FOR_PROJECT_POLL_MS = 2_000;
+
 const readStoredPreferredName = (): string | null => {
   let raw: string | null;
   try {
@@ -93,27 +113,13 @@ const ProjectsContextProvider: React.FC<ProjectsContextProviderProps> = ({ child
   React.useEffect(() => {
     let cancelled = false;
 
-    const loadNamespaces = async (): Promise<void> => {
+    const load = async (): Promise<void> => {
       try {
-        const resp = await fetch('/api/k8s/api/v1/namespaces');
-        if (!resp.ok) {
-          throw new Error(`Failed to list namespaces (HTTP ${resp.status})`);
+        const projects = await fetchNamespaces();
+        if (!cancelled) {
+          setProjectData(projects);
+          setLoadError(undefined);
         }
-        const data = parseNamespaceList(await resp.json());
-        if (cancelled) {
-          return;
-        }
-        const projects = (data.items ?? [])
-          .map((item) => {
-            const name = item.metadata?.name;
-            if (!name) {
-              return null;
-            }
-            return namespaceToProject(name, item.status?.phase);
-          })
-          .filter((project): project is ProjectKind => project !== null);
-        setProjectData(projects);
-        setLoadError(undefined);
       } catch (err) {
         if (!cancelled) {
           setProjectData([]);
@@ -127,7 +133,7 @@ const ProjectsContextProvider: React.FC<ProjectsContextProviderProps> = ({ child
     };
 
     setLoaded(false);
-    void loadNamespaces();
+    void load();
 
     return () => {
       cancelled = true;
@@ -196,24 +202,35 @@ const ProjectsContextProvider: React.FC<ProjectsContextProviderProps> = ({ child
     };
   }, []);
 
-  const projectsRef = React.useRef(projects);
-  projectsRef.current = projects;
-
   const waitForProject = React.useCallback<ProjectsContextType['waitForProject']>(
     (projectName) =>
-      new Promise((resolve) => {
-        const doCheckAgain = (): void => {
-          setTimeout(() => {
-            if (projectsRef.current.find(byName(projectName))) {
+      new Promise((resolve, reject) => {
+        const deadline = Date.now() + WAIT_FOR_PROJECT_TIMEOUT_MS;
+        const poll = async (): Promise<void> => {
+          if (!isMounted.current) {
+            return;
+          }
+          try {
+            const fresh = await fetchNamespaces();
+            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- ref may change during await
+            if (!isMounted.current) {
+              return;
+            }
+            if (fresh.find(byName(projectName))) {
+              setProjectData(fresh);
               resolve();
               return;
             }
-            if (isMounted.current) {
-              doCheckAgain();
-            }
-          }, 200);
+          } catch {
+            // fetch failed — keep polling until timeout
+          }
+          if (Date.now() >= deadline) {
+            reject(new Error(`Timed out waiting for project "${projectName}"`));
+            return;
+          }
+          setTimeout(() => void poll(), WAIT_FOR_PROJECT_POLL_MS);
         };
-        doCheckAgain();
+        void poll();
       }),
     [],
   );
