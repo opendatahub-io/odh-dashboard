@@ -131,7 +131,7 @@ func (app *App) streamSSEEvents(cfg StreamConfig) error {
 		if cfg.CustomErrorHandler != nil {
 			if errorJSON, shouldTerminate := cfg.CustomErrorHandler(event); shouldTerminate {
 				var errorData map[string]interface{}
-				if json.Unmarshal(errorJSON, &errorData) == nil {
+				if err := json.Unmarshal(errorJSON, &errorData); err == nil && errorData != nil {
 					withTraceID(errorData)
 					errorJSON, _ = json.Marshal(errorData)
 				}
