@@ -480,7 +480,7 @@ describe('Pipeline runs', () => {
         });
 
         it('compare runs button navigates to MLflow when dev flag is enabled', () => {
-          cy.interceptOdh('GET /api/config', mockDashboardConfig({ mlflowPipelines: true }));
+          cy.interceptOdh('GET /api/config', mockDashboardConfig({}));
           interceptMlflowStatus();
           interceptDSPAMlflowIntegration(projectName);
           pipelineRunsGlobal.visit(projectName, 'active');
@@ -498,48 +498,8 @@ describe('Pipeline runs', () => {
           verifyRelativeURL(`/develop-train/mlflow/experiments/compare-runs?${params.toString()}`);
         });
 
-        it('compare runs button navigates to KFP when MLflow dev flag is disabled', () => {
-          cy.interceptOdh('GET /api/config', mockDashboardConfig({ mlflowPipelines: false }));
-          interceptMlflowStatus(false);
-          interceptDSPAMlflowIntegration(projectName, DSPAMlflowIntegrationMode.DISABLED);
-          cy.interceptOdh(
-            'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/runs/:runId',
-            {
-              path: {
-                namespace: projectName,
-                serviceName: 'dspa',
-                runId: mockActiveRuns[0].run_id,
-              },
-            },
-            mockActiveRuns[0],
-          );
-          cy.interceptOdh(
-            'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/runs/:runId',
-            {
-              path: {
-                namespace: projectName,
-                serviceName: 'dspa',
-                runId: mockActiveRuns[1].run_id,
-              },
-            },
-            mockActiveRuns[1],
-          );
-          pipelineRunsGlobal.visit(projectName, 'active');
-          cy.wait('@mlflowStatus');
-
-          activeRunsTable.getRowByName(mockActiveRuns[0].display_name).findCheckbox().click();
-          activeRunsTable.getRowByName(mockActiveRuns[1].display_name).findCheckbox().click();
-
-          pipelineRunsGlobal.findCompareRunsButton().should('not.be.disabled');
-          pipelineRunsGlobal.findCompareRunsButton().click();
-
-          verifyRelativeURL(
-            `/develop-train/pipelines/runs/${projectName}/compare-runs?compareRuns=${mockActiveRuns[0].run_id},${mockActiveRuns[1].run_id}`,
-          );
-        });
-
         it('compare runs falls back to KFP for mixed MLflow metadata when MLflow is enabled', () => {
-          cy.interceptOdh('GET /api/config', mockDashboardConfig({ mlflowPipelines: true }));
+          cy.interceptOdh('GET /api/config', mockDashboardConfig({}));
           interceptMlflowStatus();
           interceptDSPAMlflowIntegration(projectName);
           const runWithoutMlflow = buildMockRunKF({
@@ -589,7 +549,7 @@ describe('Pipeline runs', () => {
         });
 
         it('per-row kebab Compare runs navigates to MLflow when MLflow metadata is present', () => {
-          cy.interceptOdh('GET /api/config', mockDashboardConfig({ mlflowPipelines: true }));
+          cy.interceptOdh('GET /api/config', mockDashboardConfig({}));
           interceptMlflowStatus();
           interceptDSPAMlflowIntegration(projectName);
           pipelineRunsGlobal.visit(projectName, 'active');
@@ -643,7 +603,7 @@ describe('Pipeline runs', () => {
         });
 
         it('navigate to MLflow experiment details from active run row', () => {
-          cy.interceptOdh('GET /api/config', mockDashboardConfig({ mlflowPipelines: true }));
+          cy.interceptOdh('GET /api/config', mockDashboardConfig({}));
           interceptMlflowStatus();
           const runWithMlflow = buildMockRunKF({
             display_name: 'Run with mlflow',
@@ -677,7 +637,7 @@ describe('Pipeline runs', () => {
         });
 
         it('shows the MLflow experiment column when MLflow is enabled', () => {
-          cy.interceptOdh('GET /api/config', mockDashboardConfig({ mlflowPipelines: true }));
+          cy.interceptOdh('GET /api/config', mockDashboardConfig({}));
           interceptMlflowStatus();
           activeRunsTable.mockGetActiveRuns(mockActiveRuns, projectName);
           pipelineRunsGlobal.visit(projectName, 'active');
@@ -685,16 +645,8 @@ describe('Pipeline runs', () => {
           activeRunsTable.findColumnHeaders().should('contain', 'MLflow experiment');
         });
 
-        it('hides the MLflow experiment column when mlflowPipelines is disabled', () => {
-          cy.interceptOdh('GET /api/config', mockDashboardConfig({ mlflowPipelines: false }));
-          activeRunsTable.mockGetActiveRuns(mockActiveRuns, projectName);
-          pipelineRunsGlobal.visit(projectName, 'active');
-
-          activeRunsTable.findColumnHeaders().should('not.contain', 'MLflow experiment');
-        });
-
         it('hides the MLflow experiment column when BFF status is not configured', () => {
-          cy.interceptOdh('GET /api/config', mockDashboardConfig({ mlflowPipelines: true }));
+          cy.interceptOdh('GET /api/config', mockDashboardConfig({}));
           interceptMlflowStatus(false);
           activeRunsTable.mockGetActiveRuns(mockActiveRuns, projectName);
           pipelineRunsGlobal.visit(projectName, 'active');
@@ -703,7 +655,7 @@ describe('Pipeline runs', () => {
         });
 
         it('hides the MLflow experiment column when DSPA has MLflow integration disabled', () => {
-          cy.interceptOdh('GET /api/config', mockDashboardConfig({ mlflowPipelines: true }));
+          cy.interceptOdh('GET /api/config', mockDashboardConfig({}));
           interceptMlflowStatus();
           interceptDSPAMlflowIntegration(projectName, DSPAMlflowIntegrationMode.DISABLED);
           activeRunsTable.mockGetActiveRuns(mockActiveRuns, projectName);
@@ -769,7 +721,7 @@ describe('Pipeline runs', () => {
         });
 
         it('filter by MLflow experiment', () => {
-          cy.interceptOdh('GET /api/config', mockDashboardConfig({ mlflowPipelines: true }));
+          cy.interceptOdh('GET /api/config', mockDashboardConfig({}));
           interceptMlflowStatus();
           const runsWithMlflow = [
             buildMockRunKF({
@@ -1454,22 +1406,15 @@ describe('Pipeline runs', () => {
         });
 
         it('shows the MLflow experiment column in schedules when MLflow is enabled', () => {
-          cy.interceptOdh('GET /api/config', mockDashboardConfig({ mlflowPipelines: true }));
+          cy.interceptOdh('GET /api/config', mockDashboardConfig({}));
           interceptMlflowStatus();
           pipelineRunsGlobal.visit(projectName, 'scheduled');
 
           pipelineRecurringRunTable.findColumnHeaders().should('contain', 'MLflow experiment');
         });
 
-        it('hides the MLflow experiment column in schedules when mlflowPipelines is disabled', () => {
-          cy.interceptOdh('GET /api/config', mockDashboardConfig({ mlflowPipelines: false }));
-          pipelineRunsGlobal.visit(projectName, 'scheduled');
-
-          pipelineRecurringRunTable.findColumnHeaders().should('not.contain', 'MLflow experiment');
-        });
-
         it('hides the MLflow experiment column in schedules when BFF status is not configured', () => {
-          cy.interceptOdh('GET /api/config', mockDashboardConfig({ mlflowPipelines: true }));
+          cy.interceptOdh('GET /api/config', mockDashboardConfig({}));
           interceptMlflowStatus(false);
           pipelineRunsGlobal.visit(projectName, 'scheduled');
 
@@ -1477,7 +1422,7 @@ describe('Pipeline runs', () => {
         });
 
         it('hides the MLflow experiment column in schedules when DSPA has MLflow integration disabled', () => {
-          cy.interceptOdh('GET /api/config', mockDashboardConfig({ mlflowPipelines: true }));
+          cy.interceptOdh('GET /api/config', mockDashboardConfig({}));
           interceptMlflowStatus();
           interceptDSPAMlflowIntegration(projectName, DSPAMlflowIntegrationMode.DISABLED);
           pipelineRunsGlobal.visit(projectName, 'scheduled');

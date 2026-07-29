@@ -170,7 +170,7 @@ describe('Compare runs', () => {
     });
 
     it('shows the MLflow experiment column when MLflow is enabled', () => {
-      cy.interceptOdh('GET /api/config', mockDashboardConfig({ mlflowPipelines: true }));
+      cy.interceptOdh('GET /api/config', mockDashboardConfig({}));
       cy.interceptOdh('GET /api/dsc/status', mockDscStatus({}));
       interceptMlflowStatus();
       compareRunsGlobal.visit(projectName, [mockRun.run_id, mockRun2.run_id]);
@@ -180,7 +180,7 @@ describe('Compare runs', () => {
     });
 
     it('hides the MLflow experiment column when DSPA has MLflow integration disabled', () => {
-      cy.interceptOdh('GET /api/config', mockDashboardConfig({ mlflowPipelines: true }));
+      cy.interceptOdh('GET /api/config', mockDashboardConfig({}));
       interceptMlflowStatus();
       interceptDSPAMlflowIntegration(projectName, DSPAMlflowIntegrationMode.DISABLED);
       compareRunsGlobal.visit(projectName, [mockRun.run_id, mockRun2.run_id]);
@@ -209,7 +209,7 @@ describe('Compare runs', () => {
         },
       });
 
-      cy.interceptOdh('GET /api/config', mockDashboardConfig({ mlflowPipelines: true }));
+      cy.interceptOdh('GET /api/config', mockDashboardConfig({}));
       cy.interceptOdh('GET /api/dsc/status', mockDscStatus({}));
       interceptMlflowStatus();
       cy.interceptOdh(

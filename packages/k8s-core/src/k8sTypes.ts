@@ -294,7 +294,6 @@ export type DashboardCommonConfig = {
   modelAsService?: boolean;
   externalModels?: boolean;
   aiAssetCustomEndpoints?: boolean;
-  mlflowPipelines?: boolean;
   mcpCatalog?: boolean;
   mcpRegistry?: boolean;
   toolCalling?: boolean;
