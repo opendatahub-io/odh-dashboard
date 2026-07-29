@@ -31,7 +31,7 @@ import {
   WorkbenchTrackingEvent,
 } from '#~/concepts/kueue/workbenchTracking';
 import { KUEUE_QUEUE_LABEL } from '#~/concepts/kueue/index';
-import { useExistingSecrets } from './environmentVariables/useExistingSecrets';
+import { UseExistingSecretsResult } from './environmentVariables/useExistingSecrets';
 import {
   createConfigMapsAndSecretsForNotebook,
   createPvcDataForNotebook,
@@ -52,6 +52,7 @@ type SpawnerFooterProps = {
   selectedFeatureStores?: SelectedFeatureStoreConfig[];
   /** Present when editing; prefer this over looking up the notebook from context. */
   existingNotebook?: NotebookKind;
+  existingSecretsData: UseExistingSecretsResult;
 };
 
 const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
@@ -62,6 +63,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
   canEnablePipelines,
   selectedFeatureStores = [],
   existingNotebook,
+  existingSecretsData,
 }) => {
   const [error, setError] = React.useState<K8sStatusError>();
   const {
@@ -82,7 +84,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
   const [createInProgress, setCreateInProgress] = React.useState(false);
   const isHardwareProfileValid =
     startNotebookData.hardwareProfileOptions.validateHardwareProfileForm();
-  const { secrets: availableSecrets, loaded: secretsLoaded } = useExistingSecrets(projectName);
+  const { secrets: availableSecrets, loaded: secretsLoaded } = existingSecretsData;
   const hasDeletedOrMissingRefs = React.useMemo(() => {
     if (!secretsLoaded) {
       return false;
