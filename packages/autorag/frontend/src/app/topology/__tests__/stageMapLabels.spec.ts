@@ -23,7 +23,7 @@ describe('resolveStepLabel', () => {
   it('returns mapped display names for known step IDs', () => {
     expect(resolveStepLabel('chunking')).toBe('Chunk documents');
     expect(resolveStepLabel('embedding')).toBe('Generate embeddings');
-    expect(resolveStepLabel('retrieval')).toBe('Retrieve document');
+    expect(resolveStepLabel('retrieval')).toBe('Retrieve documents');
     expect(resolveStepLabel('generation')).toBe('Generate responses');
     expect(resolveStepLabel('evaluation')).toBe('Evaluate results');
   });

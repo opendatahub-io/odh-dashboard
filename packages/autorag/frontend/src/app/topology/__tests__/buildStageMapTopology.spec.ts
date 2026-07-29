@@ -258,7 +258,7 @@ describe('buildStageMapTopology', () => {
 
       expect(step1?.label).toBe('Chunk documents');
       expect(step2?.label).toBe('Generate embeddings');
-      expect(step3?.label).toBe('Retrieve document');
+      expect(step3?.label).toBe('Retrieve documents');
     });
 
     it('should cap branch step expansion to MAX_PATTERN_SELECTION_STEPS', () => {

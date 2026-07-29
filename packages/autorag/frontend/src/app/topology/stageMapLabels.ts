@@ -24,7 +24,7 @@ export const STAGE_DISPLAY_NAMES: Record<string, string> = {
 export const STEP_DISPLAY_NAMES: Record<string, string> = {
   chunking: 'Chunk documents',
   embedding: 'Generate embeddings',
-  retrieval: 'Retrieve document',
+  retrieval: 'Retrieve documents',
   generation: 'Generate responses',
   evaluation: 'Evaluate results',
 };
