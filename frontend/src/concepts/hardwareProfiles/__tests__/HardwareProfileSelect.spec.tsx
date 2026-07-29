@@ -667,7 +667,7 @@ describe('HardwareProfileSelect - Project-scoped preview description', () => {
       isKueueDisabled: false,
       isKueueFeatureEnabled: true,
       isProjectKueueEnabled: true,
-      kueueFilteringState: KueueFilteringState.ALL_PROFILES,
+      kueueFilteringState: KueueFilteringState.ONLY_KUEUE_PROFILES,
     });
 
     const hardwareProfileConfig = {
@@ -678,7 +678,6 @@ describe('HardwareProfileSelect - Project-scoped preview description', () => {
 
     useHardwareProfileConfigMock.mockReturnValue({
       formData: hardwareProfileConfig,
-      useExistingSettings: false,
       setFormData: () => null,
       resetFormData: () => null,
       isFormDataValid: true,
