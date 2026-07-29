@@ -197,7 +197,12 @@ jobs:
               key="${line%%=*}"
               parent_line=$(grep "^${key}=" "$PARENT" || true)
               [[ -n "$parent_line" ]] || continue
-              sed -i "s|^${key}=.*|${parent_line}|" "$params_file"
+              tmp_file="$(mktemp "${params_file}.XXXXXX")"
+              KEY="$key" REPLACEMENT="$parent_line" \
+                awk 'BEGIN { key = ENVIRON["KEY"]; replacement = ENVIRON["REPLACEMENT"] }
+                     index($0, key "=") == 1 { print replacement; next }
+                     { print }' "$params_file" > "$tmp_file"
+              mv "$tmp_file" "$params_file"
             done < "$params_file"
             echo "Synced $params_file"
           done
