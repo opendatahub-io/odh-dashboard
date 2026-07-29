@@ -142,7 +142,10 @@ const GatewaySelectFieldComponent: GatewaySelectFieldType['component'] = ({
               content="Routing, API keys, and subscription access go through the MaaS gateway. A different gateway cannot be selected while Publish as MaaS is on."
               data-testid="gateway-disabled-tooltip"
             >
-              <div>{selectComponent}</div>
+              {/* eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- focusable wrapper lets keyboard users reach the disabled-control tooltip */}
+              <span tabIndex={0} data-testid="gateway-disabled-tooltip-wrapper">
+                {selectComponent}
+              </span>
             </Tooltip>
           ) : (
             selectComponent
