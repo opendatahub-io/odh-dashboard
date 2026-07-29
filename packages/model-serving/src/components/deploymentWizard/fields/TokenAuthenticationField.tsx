@@ -198,6 +198,7 @@ type TokenAuthenticationFieldProps = {
   shouldAutoCheck: boolean;
   isExternalRouteVisible: boolean;
   externalRouteData?: boolean;
+  isMaaSDisabled?: boolean;
 };
 
 export const TokenAuthenticationField: React.FC<TokenAuthenticationFieldProps> = ({
@@ -207,6 +208,7 @@ export const TokenAuthenticationField: React.FC<TokenAuthenticationFieldProps> =
   shouldAutoCheck,
   isExternalRouteVisible,
   externalRouteData,
+  isMaaSDisabled,
 }) => {
   const isDisabled = !allowCreate;
   const createNewToken = React.useCallback(() => {
@@ -250,6 +252,16 @@ export const TokenAuthenticationField: React.FC<TokenAuthenticationFieldProps> =
             }
           }}
         />
+        {isMaaSDisabled && (
+          <FormHelperText>
+            <HelperText>
+              <HelperTextItem data-testid="maas-token-auth-helper-text">
+                Deployment token authentication does not apply for MaaS. API keys are used instead.
+                Manage API keys in Gen AI Studio → API keys.
+              </HelperTextItem>
+            </HelperText>
+          </FormHelperText>
+        )}
       </StackItem>
       {tokens.length > 0 && (
         <StackItem>

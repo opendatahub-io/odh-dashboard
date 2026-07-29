@@ -390,6 +390,39 @@ describe('GatewaySelectFieldComponent', () => {
       expect(mockOnChange).toHaveBeenCalledWith({ selection: missingGateway });
     });
   });
+
+  describe('help popover', () => {
+    it('should render a help popover icon on the Gateway label', () => {
+      renderComponent({
+        externalData: { data: [makeGateway('gw-alpha', 'ns-1')], loaded: true },
+      });
+
+      expect(screen.getByTestId('gateway-help-popover-icon')).toBeInTheDocument();
+    });
+  });
+
+  describe('disabled tooltip', () => {
+    it('should wrap the select in a tooltip when disabled', () => {
+      renderComponent({
+        value: { selection: makeGateway('maas-default-gateway', 'openshift-ingress') },
+        externalData: {
+          data: [makeGateway('maas-default-gateway', 'openshift-ingress')],
+          loaded: true,
+        },
+        isDisabled: true,
+      });
+
+      expect(screen.getByTestId('gateway-select')).toBeDisabled();
+    });
+
+    it('should not wrap the select in a tooltip when not disabled', () => {
+      renderComponent({
+        externalData: { data: [makeGateway('gw-alpha', 'ns-1')], loaded: true },
+      });
+
+      expect(screen.getByTestId('gateway-select')).not.toBeDisabled();
+    });
+  });
 });
 
 describe('GatewaySelectField definition', () => {
