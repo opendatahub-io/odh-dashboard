@@ -84,10 +84,6 @@ const getCuratedDescription = (nodeId: string): string | undefined => {
     return STEP_DESCRIPTIONS[stepId];
   }
 
-  if (/^.+__model__branch-\d+$/.test(nodeId)) {
-    return BRANCH_MODEL_DESCRIPTION;
-  }
-
   const stageId = extractStageId(nodeId);
   if (stageId && Object.hasOwn(STAGE_DESCRIPTIONS, stageId)) {
     return STAGE_DESCRIPTIONS[stageId];
