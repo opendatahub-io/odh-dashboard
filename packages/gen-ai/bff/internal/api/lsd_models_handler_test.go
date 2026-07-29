@@ -25,14 +25,7 @@ var _ = Describe("LlamaStackModelsHandler", func() {
 	var app App
 
 	BeforeEach(func() {
-		llamaStackClientFactory := lsmocks.NewMockClientFactory()
-		app = App{
-			config: config.EnvConfig{
-				Port: 4000,
-			},
-			llamaStackClientFactory: llamaStackClientFactory,
-			repositories:            repositories.NewRepositories(),
-		}
+		app = NewLSOnlyTestApp()
 	})
 
 	It("should return all models successfully", func() {
