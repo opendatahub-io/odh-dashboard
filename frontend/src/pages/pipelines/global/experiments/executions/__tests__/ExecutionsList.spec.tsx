@@ -44,7 +44,7 @@ describe('ExecutionsList', () => {
 
   it('should show error state when executions fail to load', () => {
     mockUseGetExecutionsList.mockReturnValue([
-      undefined,
+      null,
       false,
       new Error('Failed to fetch'),
       jest.fn(),
@@ -73,7 +73,7 @@ describe('ExecutionsList', () => {
   });
 
   it('should show loading spinner when executions are not loaded', () => {
-    mockUseGetExecutionsList.mockReturnValue([undefined, false, undefined, jest.fn()]);
+    mockUseGetExecutionsList.mockReturnValue([null, false, undefined, jest.fn()]);
 
     render(<ExecutionsList />);
 
@@ -98,7 +98,7 @@ describe('ExecutionsList', () => {
 
   it('should show unauthorized error when error code is 403', () => {
     mockGetGenericErrorCode.mockReturnValue(403);
-    mockUseGetExecutionsList.mockReturnValue([undefined, false, new Error('Forbidden'), jest.fn()]);
+    mockUseGetExecutionsList.mockReturnValue([null, false, new Error('Forbidden'), jest.fn()]);
 
     render(<ExecutionsList />);
 
