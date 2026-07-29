@@ -20,58 +20,6 @@ configMapGenerator:
     env: params.env
 generatorOptions:
   disableNameSuffixHash: true
-vars:
-  - name: odh-dashboard-image
-    objref:
-      kind: ConfigMap
-      name: rhoai-dashboard-params
-      apiVersion: v1
-    fieldref:
-      fieldpath: data.odh-dashboard-image
-  - name: kube-rbac-proxy
-    objref:
-      kind: ConfigMap
-      name: rhoai-dashboard-params
-      apiVersion: v1
-    fieldref:
-      fieldpath: data.kube-rbac-proxy
-  - name: core-bff-image
-    objref:
-      kind: ConfigMap
-      name: rhoai-dashboard-params
-      apiVersion: v1
-    fieldref:
-      fieldpath: data.core-bff-image
-  - name: section-title
-    objref:
-      kind: ConfigMap
-      name: rhoai-dashboard-params
-      apiVersion: v1
-    fieldref:
-      fieldpath: data.section-title
-  - name: dashboard-url
-    objref:
-      kind: ConfigMap
-      name: rhoai-dashboard-params
-      apiVersion: v1
-    fieldref:
-      fieldpath: data.dashboard-url
-  - name: gateway-name
-    objref:
-      kind: ConfigMap
-      name: rhoai-dashboard-params
-      apiVersion: v1
-    fieldref:
-      fieldpath: data.gateway-name
-  - name: images-jobs-async-upload
-    objref:
-      kind: ConfigMap
-      name: rhoai-dashboard-params
-      apiVersion: v1
-    fieldref:
-      fieldpath: data.images-jobs-async-upload
-configurations:
-  - params.yaml
 patchesJson6902:
   # Core RHOAI renames only — NO sidecar container-index patches
   - path: deployment.yaml
@@ -135,6 +83,76 @@ patchesJson6902:
   # NetworkPolicy only exists in manifests/sidecar/ — not present in ../../base.
   # No NetworkPolicy patch needed in standalone mode.
 replacements:
+  - source:
+      kind: ConfigMap
+      name: rhoai-dashboard-params
+      fieldPath: data.odh-dashboard-image
+    targets:
+      - select:
+          kind: Deployment
+          name: rhods-dashboard
+        fieldPaths:
+          - spec.template.spec.containers.[name=rhods-dashboard].image
+  - source:
+      kind: ConfigMap
+      name: rhoai-dashboard-params
+      fieldPath: data.kube-rbac-proxy
+    targets:
+      - select:
+          kind: Deployment
+          name: rhods-dashboard
+        fieldPaths:
+          - spec.template.spec.containers.[name=kube-rbac-proxy].image
+  - source:
+      kind: ConfigMap
+      name: rhoai-dashboard-params
+      fieldPath: data.core-bff-image
+    targets:
+      - select:
+          kind: Deployment
+          name: rhods-dashboard
+        fieldPaths:
+          - spec.template.spec.containers.[name=core-bff].image
+  - source:
+      kind: ConfigMap
+      name: rhoai-dashboard-params
+      fieldPath: data.section-title
+    targets:
+      - select:
+          kind: ConsoleLink
+          name: rhodslink
+        fieldPaths:
+          - spec.applicationMenu.section
+  - source:
+      kind: ConfigMap
+      name: rhoai-dashboard-params
+      fieldPath: data.dashboard-url
+    targets:
+      - select:
+          kind: ConsoleLink
+          name: rhodslink
+        fieldPaths:
+          - spec.href
+  - source:
+      kind: ConfigMap
+      name: rhoai-dashboard-params
+      fieldPath: data.gateway-name
+    targets:
+      - select:
+          kind: HTTPRoute
+          name: rhods-dashboard
+        fieldPaths:
+          - spec.parentRefs.0.name
+  - source:
+      kind: ConfigMap
+      name: rhoai-dashboard-params
+      fieldPath: data.images-jobs-async-upload
+    targets:
+      - select:
+          kind: ConfigMap
+          name: model-registry-ui-config
+        fieldPaths:
+          - data.images-jobs-async-upload
   - source:
       kind: ConfigMap
       name: rhoai-dashboard-params

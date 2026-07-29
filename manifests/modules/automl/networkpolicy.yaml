@@ -38,11 +38,3 @@ spec:
       ports:
         - port: 8443
           protocol: TCP
-    - to:
-        - ipBlock:
-            cidr: 0.0.0.0/0
-      ports:
-        - port: 443
-          protocol: TCP
-        - port: 80
-          protocol: TCP

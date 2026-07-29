@@ -12,20 +12,24 @@ configMapGenerator:
     env: params.env
 generatorOptions:
   disableNameSuffixHash: true
-vars:
-  - name: automl-ui-image
-    objref:
+replacements:
+  - source:
       kind: ConfigMap
       name: automl-params
-      apiVersion: v1
-    fieldref:
-      fieldpath: data.automl-ui-image
-  - name: automl-pipeline-runtime-image
-    objref:
+      fieldPath: data.automl-ui-image
+    targets:
+      - select:
+          kind: Deployment
+          name: automl-ui
+        fieldPaths:
+          - spec.template.spec.containers.[name=automl-ui].image
+  - source:
       kind: ConfigMap
       name: automl-params
-      apiVersion: v1
-    fieldref:
-      fieldpath: data.automl-pipeline-runtime-image
-configurations:
-  - params.yaml
+      fieldPath: data.automl-pipeline-runtime-image
+    targets:
+      - select:
+          kind: Deployment
+          name: automl-ui
+        fieldPaths:
+          - spec.template.spec.containers.[name=automl-ui].env.[name=RELATED_IMAGE_ODH_AUTOML_IMAGE].value
