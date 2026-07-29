@@ -40,7 +40,11 @@ const worstStatus = (details: TaskDetailKF[]): TaskDetailKF['state'] =>
 
 /**
  * Get the run status of a task from the RunDetailsKF (task_details array).
- * Considers both the main task and its driver task, picking the most-progressed status.
+ * The `-driver` task only resolves inputs/caching and can finish independently of the
+ * actual executor container — e.g. it may report SUCCEEDED before the executor even starts,
+ * or CANCELED as cleanup after the executor has already finished. Its state must never
+ * override the executor's real state, so the executor entry (if present) is authoritative;
+ * the driver entry is only used as a fallback before the executor appears in task_details.
  */
 export const parseRuntimeInfoFromRunDetails = (
   taskId: string,
@@ -50,7 +54,11 @@ export const parseRuntimeInfoFromRunDetails = (
     return undefined;
   }
 
-  const nameVariants = [taskId, `${taskId}-driver`];
+  const driverName = `${taskId}-driver`;
+  const isDriverEntry = (td: TaskDetailKF): boolean =>
+    td.display_name === driverName || td.task_id === driverName;
+
+  const nameVariants = [taskId, driverName];
   const matchingDetails = runDetails.task_details.filter(
     (td) =>
       (td.display_name != null && nameVariants.includes(td.display_name)) ||
@@ -61,11 +69,14 @@ export const parseRuntimeInfoFromRunDetails = (
     return undefined;
   }
 
+  const executorDetails = matchingDetails.filter((td) => !isDriverEntry(td));
+  const relevantDetails = executorDetails.length > 0 ? executorDetails : matchingDetails;
+
   return {
-    startTime: matchingDetails[0].start_time,
-    completeTime: matchingDetails[0].end_time,
-    state: worstStatus(matchingDetails),
-    taskId: matchingDetails[0].task_id,
+    startTime: relevantDetails[0].start_time,
+    completeTime: relevantDetails[0].end_time,
+    state: worstStatus(relevantDetails),
+    taskId: relevantDetails[0].task_id,
   };
 };
 
