@@ -32,7 +32,7 @@ import {
   DEFAULT_TABLE_PER_PAGE,
   TABLE_PER_PAGE_OPTIONS,
 } from '~/app/utilities/tablePaginationConstants';
-import { getCategoryColor, capitalizeFirst } from '~/app/components/benchmarkUtils';
+import { getCategoryColor, capitalizeFirst, toTitleCase } from '~/app/components/benchmarkUtils';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import SecurityInsightsEmptyState from './SecurityInsightsEmptyState';
 import { type SecurityInsightsViewProps } from './securityInsightsTypes';
@@ -226,7 +226,7 @@ const SecurityInsightsView: React.FC<SecurityInsightsViewProps> = ({
                         value="evaluation"
                         data-testid="security-filter-option-evaluation"
                       >
-                        Evaluation name
+                        Evaluation Name
                       </SelectOption>
                       <SelectOption value="category" data-testid="security-filter-option-category">
                         Category
@@ -285,7 +285,7 @@ const SecurityInsightsView: React.FC<SecurityInsightsViewProps> = ({
           <Thead>
             <Tr>
               <Th sort={getSortParams(0)} modifier="nowrap">
-                Evaluation name
+                Evaluation Name
               </Th>
               <Th sort={getSortParams(1)} modifier="nowrap">
                 Category
@@ -299,7 +299,7 @@ const SecurityInsightsView: React.FC<SecurityInsightsViewProps> = ({
                     'The normalized, weighted value of the benchmarks’ primary metric, such as accuracy, speed, or resource efficiency.',
                 }}
               >
-                Evaluation score
+                Evaluation Score
               </Th>
             </Tr>
           </Thead>
@@ -309,22 +309,22 @@ const SecurityInsightsView: React.FC<SecurityInsightsViewProps> = ({
                 key={`${insight.benchmarkName}-${insight.evaluation}`}
                 data-testid="security-insight-row"
               >
-                <Td dataLabel="Evaluation name">{insight.evaluation}</Td>
+                <Td dataLabel="Evaluation Name">{toTitleCase(insight.evaluation)}</Td>
                 <Td dataLabel="Category">
                   {insight.category && (
-                    <Label color={getCategoryColor(insight.category)} isCompact>
+                    <Label color={getCategoryColor(insight.category)}>
                       {capitalizeFirst(insight.category)}
                     </Label>
                   )}
                 </Td>
                 <Td dataLabel="Benchmark">
                   <TableRowTitleDescription
-                    title={insight.benchmarkName}
+                    title={toTitleCase(insight.benchmarkName)}
                     description={insight.benchmarkDescription}
                     truncateDescriptionLines={2}
                   />
                 </Td>
-                <Td dataLabel="Evaluation score">{insight.result}</Td>
+                <Td dataLabel="Evaluation Score">{insight.result}</Td>
               </Tr>
             ))}
           </Tbody>
