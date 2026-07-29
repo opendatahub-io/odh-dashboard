@@ -24,6 +24,21 @@ export const getCategoryColor = (category?: string): CategoryColor => {
 export const capitalizeFirst = (value: string): string =>
   value.charAt(0).toUpperCase() + value.slice(1);
 
+export const toTitleCase = (value: string): string => {
+  if (!value) {
+    return value;
+  }
+  return value
+    .split(' ')
+    .map((word) => {
+      if (word === word.toUpperCase() && word.length > 1) {
+        return word;
+      }
+      return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+    })
+    .join(' ');
+};
+
 export const VISIBLE_METRICS_COUNT = 3;
 
 export const toSafeExternalUrl = (raw?: string): string | undefined => {

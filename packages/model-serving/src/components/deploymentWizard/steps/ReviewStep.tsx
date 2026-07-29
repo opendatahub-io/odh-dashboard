@@ -63,6 +63,7 @@ const getStatusSections = (
   projectName: string | undefined,
   extensionStatusSections: StatusSection[] | undefined,
   isGenAiEnabled: boolean,
+  hasModelServerExtension: boolean,
 ): StatusSection[] => {
   return [
     {
@@ -251,11 +252,16 @@ const getStatusSections = (
           },
           optional: true,
         },
-        {
-          key: 'modelServer',
-          label: 'Deployment resource',
-          comp: (state) => state.modelServer?.data?.selection?.label || 'Auto-selected',
-        },
+        ...(hasModelServerExtension
+          ? []
+          : ([
+              {
+                key: 'modelServer',
+                label: 'Serving runtime',
+                comp: (state: WizardState) =>
+                  state.modelServer?.data?.selection?.label || 'Auto-selected',
+              },
+            ] satisfies StatusItem[])),
         {
           key: 'numReplicas',
           label: 'Replicas',
@@ -406,9 +412,24 @@ export const ReviewStepContent: React.FC<ReviewStepContentProps> = ({
     }));
   }, [extensionSections]);
 
+  const hasModelServerExtension = extensionSections.some(
+    (section) =>
+      section.title === WizardStepTitle.MODEL_DEPLOYMENT &&
+      section.items.some(
+        (item) => item.key === 'modelServer' && (item.isVisible?.(wizardState.state) ?? true),
+      ),
+  );
+
   const statusSections = React.useMemo(
-    () => [...getStatusSections(projectName, extensionStatusSections, isGenAiEnabled)],
-    [projectName, extensionStatusSections, isGenAiEnabled],
+    () => [
+      ...getStatusSections(
+        projectName,
+        extensionStatusSections,
+        isGenAiEnabled,
+        hasModelServerExtension,
+      ),
+    ],
+    [projectName, extensionStatusSections, isGenAiEnabled, hasModelServerExtension],
   );
 
   if (!wizardState.loaded.summaryLoaded) {
