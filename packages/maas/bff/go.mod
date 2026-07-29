@@ -9,7 +9,7 @@ require (
 	github.com/onsi/gomega v1.39.0
 	github.com/rs/cors v1.11.1
 	github.com/stretchr/testify v1.11.0
-	go.yaml.in/yaml/v3 v3.0.4
+	go.yaml.in/yaml/v3 v3.0.5
 	gopkg.in/yaml.v3 v3.0.1
 	k8s.io/api v0.34.1
 	k8s.io/apimachinery v0.34.1
