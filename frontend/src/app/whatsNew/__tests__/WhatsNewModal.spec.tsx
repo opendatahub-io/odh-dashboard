@@ -89,6 +89,13 @@ const startTourAndWait = (buttonText: string) => {
   });
 };
 
+const clickNextStep = () => {
+  fireEvent.click(screen.getByText('Next'));
+  act(() => {
+    jest.advanceTimersByTime(200);
+  });
+};
+
 describe('WhatsNewModal', () => {
   beforeEach(() => {
     jest.useFakeTimers();
@@ -192,15 +199,11 @@ describe('WhatsNewModal', () => {
       openWelcomeModal();
       startTourAndWait('Start full tour');
 
-      // Navigate to Develop & train (step 3) which only has automl
-      fireEvent.click(screen.getByText('Next'));
-      act(() => {
-        jest.advanceTimersByTime(200);
-      });
-      fireEvent.click(screen.getByText('Next'));
-      act(() => {
-        jest.advanceTimersByTime(200);
-      });
+      // Navigate to Develop & train (step 4) which only has automl
+      // Step order: Projects → AI hub → Gen AI studio → Develop & train
+      clickNextStep();
+      clickNextStep();
+      clickNextStep();
 
       expect(screen.getByText('Develop & train')).toBeInTheDocument();
       expect(screen.queryByText(/OdhDashboardConfig/)).not.toBeInTheDocument();
@@ -273,7 +276,7 @@ describe('WhatsNewModal', () => {
         expect(toggle.getAttribute('aria-expanded')).toBe('true');
         expect(onClick).toHaveBeenCalledTimes(1);
 
-        fireEvent.click(screen.getByText('Skip tour'));
+        fireEvent.click(screen.getByRole('button', { name: 'Close' }));
 
         expect(onClick).toHaveBeenCalledTimes(2);
         expect(toggle.getAttribute('aria-expanded')).toBe('false');
@@ -296,7 +299,7 @@ describe('WhatsNewModal', () => {
         expect(onClick).not.toHaveBeenCalled();
         expect(toggle.getAttribute('aria-expanded')).toBe('true');
 
-        fireEvent.click(screen.getByText('Skip tour'));
+        fireEvent.click(screen.getByRole('button', { name: 'Close' }));
 
         // Tour did not open the sidebar, so dismiss must leave it open.
         expect(onClick).not.toHaveBeenCalled();
@@ -414,14 +417,14 @@ describe('WhatsNewModal', () => {
       startTourAndWait('Start full tour');
       mockFireFormTrackingEvent.mockClear();
 
-      fireEvent.click(screen.getByTestId('tour-step-skip'));
+      fireEvent.click(screen.getByRole('button', { name: 'Close' }));
 
       expect(mockFireFormTrackingEvent).toHaveBeenCalledWith(
         GUIDED_TOUR_EVENTS.DISMISSED,
         expect.objectContaining({
           outcome: TrackingOutcome.cancel,
           tourPath: 'full',
-          dismissMethod: 'skip_button',
+          dismissMethod: 'modal_close',
           dismissStepId: 'projects',
         }),
       );
