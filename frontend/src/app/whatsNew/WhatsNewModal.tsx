@@ -32,7 +32,7 @@ import { useGuidedTourTracking } from './tracking/useGuidedTourTracking';
 import { useWhatsNewTourListener } from './whatsNewEvent';
 
 const DEFAULT_DOC_URL =
-  'https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed/3.5/html/getting_started_with_red_hat_openshift_ai_self-managed/index';
+  'https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed/3.5';
 
 type NewIn35Feature = {
   title: string;
@@ -48,6 +48,7 @@ type TourStep = {
   navSelector: string;
   docUrl?: string;
   sectionAvailable: boolean;
+  sectionFlagName?: string;
   newFeatures: NewIn35Feature[];
 };
 
@@ -95,7 +96,8 @@ const useTourSteps = (isAdmin: boolean): TourStep[] => {
         description:
           'Organize workbenches, pipelines, model servers, and storage so your team can collaborate in one place.',
         navSelector: 'a[href="/projects"]',
-        docUrl: DEFAULT_DOC_URL,
+        docUrl:
+          'https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed/3.5/html/getting_started_with_red_hat_openshift_ai_self-managed/index',
         sectionAvailable: true,
         newFeatures: [
           {
@@ -114,6 +116,60 @@ const useTourSteps = (isAdmin: boolean): TourStep[] => {
         ],
       },
       {
+        id: 'ai-hub',
+        title: 'AI hub',
+        description:
+          'Discover, register, and deploy models. Browse agent templates to build agents, and connect to MCP servers.',
+        navSelector: 'button[id="ai-hub"]',
+        docUrl:
+          'https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed/3.5/html/working_with_the_model_catalog/index',
+        sectionAvailable: aiHubAvailable,
+        newFeatures: [
+          {
+            title: 'Tool calling',
+            description: 'Enable tool-calling capability when deploying supported models.',
+            flagName: 'toolCalling',
+            available: toolCallingAvailable,
+          },
+          {
+            title: 'MCP servers',
+            description: 'Find and deploy MCP servers for your organization.',
+            flagName: 'mcpCatalog',
+            available: mcpCatalogAvailable,
+          },
+          {
+            title: 'Agents catalog',
+            description: 'Browse agent templates for your projects.',
+            flagName: 'agentsCatalog',
+            available: agentsCatalogAvailable,
+          },
+          {
+            title: 'Deploy agents',
+            description: 'Deploy agents for your projects from the OpenShift Console.',
+            flagName: 'agentOps',
+            available: agentOpsAvailable,
+          },
+          {
+            title: 'External models',
+            description: 'View models from external providers alongside your deployed models.',
+            flagName: 'externalModels',
+            available: externalModelsAvailable,
+          },
+          {
+            title: 'Safety and security insights',
+            description: 'Review safety and security scan results before deploying catalog models.',
+            flagName: 'disableLMEval',
+            available: lmEvalAvailable,
+          },
+          {
+            title: 'MCP registry',
+            description: 'Register and manage MCP servers from a centralized registry.',
+            flagName: 'mcpRegistry',
+            available: mcpRegistryAvailable,
+          },
+        ],
+      },
+      {
         id: 'gen-ai-studio',
         title: 'Gen AI studio',
         description:
@@ -122,6 +178,7 @@ const useTourSteps = (isAdmin: boolean): TourStep[] => {
         docUrl:
           'https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed/3.5/html/experimenting_with_models_in_the_gen_ai_playground/index',
         sectionAvailable: genAiAvailable,
+        sectionFlagName: 'genAiStudio',
         newFeatures: [
           {
             title: 'AutoRAG',
@@ -181,64 +238,12 @@ const useTourSteps = (isAdmin: boolean): TourStep[] => {
         ],
       },
       {
-        id: 'ai-hub',
-        title: 'AI hub',
-        description:
-          'Discover, register, and deploy models. Browse agent templates to build agents, and connect to MCP servers.',
-        navSelector: 'button[id="ai-hub"]',
-        docUrl:
-          'https://www.redhat.com/en/blog/introducing-ai-hub-and-genai-studio-new-command-center-enterprise-generative-ai-red-hat-openshift-ai',
-        sectionAvailable: aiHubAvailable,
-        newFeatures: [
-          {
-            title: 'Tool calling',
-            description: 'Enable tool-calling capability when deploying supported models.',
-            flagName: 'toolCalling',
-            available: toolCallingAvailable,
-          },
-          {
-            title: 'MCP servers',
-            description: 'Find and deploy MCP servers for your organization.',
-            flagName: 'mcpCatalog',
-            available: mcpCatalogAvailable,
-          },
-          {
-            title: 'Agents catalog',
-            description: 'Browse agent templates for your projects.',
-            flagName: 'agentsCatalog',
-            available: agentsCatalogAvailable,
-          },
-          {
-            title: 'Deploy agents',
-            description: 'Deploy agents for your projects from the OpenShift Console. ',
-            flagName: 'agentOps',
-            available: agentOpsAvailable,
-          },
-          {
-            title: 'External models',
-            description: 'View models from external providers alongside your deployed models.',
-            flagName: 'externalModels',
-            available: externalModelsAvailable,
-          },
-          {
-            title: 'Safety and security insights',
-            description: 'Review safety and security scan results before deploying catalog models.',
-            flagName: 'disableLMEval',
-            available: lmEvalAvailable,
-          },
-          {
-            title: 'MCP registry',
-            description: 'Register and manage MCP servers from a centralized registry.',
-            flagName: 'mcpRegistry',
-            available: mcpRegistryAvailable,
-          },
-        ],
-      },
-      {
         id: 'observe-and-monitor',
         title: 'Observe & monitor',
         description: 'Check resource usage and workload health across your projects.',
         navSelector: 'button[id="observe-and-monitor"]',
+        docUrl:
+          'https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed/3.5/#Monitor',
         sectionAvailable: true,
         newFeatures: [
           {
@@ -269,7 +274,7 @@ const useTourSteps = (isAdmin: boolean): TourStep[] => {
                 {
                   title: 'MaaS settings',
                   description: 'Manage model access policies and token subscriptions in one place.',
-                  flagName: 'maasSettingsIaRedesign',
+                  flagName: 'maasSettingsIARedesign',
                   available: true,
                 },
                 {
@@ -686,7 +691,14 @@ const WhatsNewModal: React.FC = () => {
         {sectionUnavailable && (
           <Flex gap={{ default: 'gapSm' }} className="pf-v6-u-mb-sm">
             <FlexItem>
-              <Label color="orange" isCompact icon={<ExclamationTriangleIcon />}>
+              <Label
+                variant="outline"
+                color="orange"
+                isCompact
+                icon={
+                  <ExclamationTriangleIcon color="var(--pf-t--global--color--nonstatus--orange--default)" />
+                }
+              >
                 Unavailable in the cluster
               </Label>
             </FlexItem>
@@ -716,37 +728,68 @@ const WhatsNewModal: React.FC = () => {
               <strong>New in 3.5</strong>
             </Content>
             {currentStep.newFeatures.map((feature) => (
-              <Content key={feature.title} component={ContentVariants.p}>
-                <strong>{feature.title}</strong>
-                <br />
-                {feature.description}
-              </Content>
+              <div key={feature.title} className="pf-v6-u-mb-md">
+                <Flex
+                  alignItems={{ default: 'alignItemsCenter' }}
+                  gap={{ default: 'gapSm' }}
+                  display={{ default: 'inlineFlex' }}
+                >
+                  <FlexItem>
+                    <strong>{feature.title}</strong>
+                  </FlexItem>
+                  {!feature.available && (
+                    <FlexItem>
+                      <Label
+                        variant="outline"
+                        color="orange"
+                        isCompact
+                        icon={
+                          <ExclamationTriangleIcon color="var(--pf-t--global--color--nonstatus--orange--default)" />
+                        }
+                      >
+                        Unavailable in the cluster
+                      </Label>
+                    </FlexItem>
+                  )}
+                </Flex>
+                <Content component={ContentVariants.p}>{feature.description}</Content>
+              </div>
             ))}
-            {unavailableFeatures.length > 0 && (
-              <Content component={ContentVariants.small}>
+            {(unavailableFeatures.length > 0 ||
+              (!currentStep.sectionAvailable && currentStep.sectionFlagName)) && (
+              <div>
                 <ExclamationTriangleIcon color="var(--pf-t--global--color--nonstatus--orange--default)" />{' '}
                 {isAdmin ? (
-                  <>
+                  <strong>
                     To enable unavailable features in your cluster, enable the following feature
-                    flags in <code>OdhDashboardConfig</code>:
-                    <List>
-                      {[...new Set(unavailableFeatures.map((f) => f.flagName))].map((flagName) => (
-                        <ListItem key={flagName}>
-                          {flagName.startsWith('disable') ? (
-                            <>
-                              Set <code>{flagName}</code> to <code>false</code>
-                            </>
-                          ) : (
-                            <code>{flagName}</code>
-                          )}
-                        </ListItem>
-                      ))}
-                    </List>
-                  </>
+                    flags in OdhDashboardConfig:
+                  </strong>
                 ) : (
-                  <>Contact your administrator to request access to unavailable features.</>
+                  <strong>
+                    Contact your administrator to request access to unavailable features.
+                  </strong>
                 )}
-              </Content>
+                {isAdmin && (
+                  <List>
+                    {!currentStep.sectionAvailable && currentStep.sectionFlagName && (
+                      <ListItem key={currentStep.sectionFlagName}>
+                        <code>{currentStep.sectionFlagName}</code> (section)
+                      </ListItem>
+                    )}
+                    {[...new Set(unavailableFeatures.map((f) => f.flagName))].map((flagName) => (
+                      <ListItem key={flagName}>
+                        {flagName.startsWith('disable') ? (
+                          <>
+                            Set <code>{flagName}</code> to <code>false</code>
+                          </>
+                        ) : (
+                          <code>{flagName}</code>
+                        )}
+                      </ListItem>
+                    ))}
+                  </List>
+                )}
+              </div>
             )}
           </FlexItem>
         </>
@@ -768,19 +811,15 @@ const WhatsNewModal: React.FC = () => {
           <Button
             data-testid="tour-step-back"
             variant="secondary"
-            onClick={() => setStepIndex((i) => i - 1)}
-            isDisabled={stepIndex === 0}
+            onClick={() => {
+              if (stepIndex === 0) {
+                setShowWelcome(true);
+              } else {
+                setStepIndex((i) => i - 1);
+              }
+            }}
           >
             Back
-          </Button>
-        </FlexItem>
-        <FlexItem>
-          <Button
-            data-testid="tour-step-skip"
-            variant="link"
-            onClick={() => handleDismiss('skip_button')}
-          >
-            Skip tour
           </Button>
         </FlexItem>
         <FlexItem>
@@ -806,7 +845,8 @@ const WhatsNewModal: React.FC = () => {
           data-testid="nav-tour-popover"
           isVisible
           shouldClose={() => handleDismiss('popover_close')}
-          position="right"
+          position="right-start"
+          flipBehavior={['right-start', 'right-end', 'right']}
           triggerRef={() => targetEl}
           headerContent={currentStep.title}
           bodyContent={
