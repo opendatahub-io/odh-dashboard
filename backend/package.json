@@ -42,7 +42,7 @@
   "dependencies": {
     "@fastify/accepts": "^4.3.0",
     "@fastify/autoload": "^5.10.0",
-    "@fastify/http-proxy": "^9.5.0",
+    "@fastify/http-proxy": "^11.4.4",
     "@fastify/sensible": "^5.6.0",
     "@fastify/static": "^6.12.0",
     "@fastify/view": "^9.1.0",
