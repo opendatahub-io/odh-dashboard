@@ -50,7 +50,9 @@ const EnvSecret: React.FC<EnvSecretProps> = ({
   const noSecrets = loaded && canList && !error && secrets.length === 0;
   const existingDisabled = !loaded || noPermission || loadFailed || noSecrets;
 
-  const disabledMessage = loadFailed
+  const disabledMessage = !loaded
+    ? 'Loading secrets...'
+    : loadFailed
     ? 'Unable to load secrets. Retry or contact your administrator.'
     : noPermission
     ? EXISTING_SECRET_DISABLED_MESSAGES.noPermission
