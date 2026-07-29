@@ -101,14 +101,7 @@ const getRuntimeOdhPackages = (packages?: WorkspacePackageInfo[]): RuntimeOdhPac
   const pkgs = packages ?? getWorkspacePackages(root);
   const byName = new Map(pkgs.map((p) => [p.name, p]));
   const hostPkg = byName.get('odh-dashboard-frontend');
-  if (!hostPkg) {
-    throw new Error(
-      "Missing workspace package 'odh-dashboard-frontend' required for Module Federation " +
-        'host dependency discovery. Ensure frontend/package.json name is odh-dashboard-frontend ' +
-        'and npm query .workspace includes it.',
-    );
-  }
-  const hostDeps = Object.keys(hostPkg.dependencies ?? {}).filter((n) =>
+  const hostDeps = Object.keys(hostPkg?.dependencies ?? {}).filter((n) =>
     n.startsWith('@odh-dashboard/'),
   );
   const extensionPackages = pkgs

@@ -15,7 +15,7 @@
     "url": "https://github.com/opendatahub-io/odh-dashboard/issues"
   },
   "engines": {
-    "node": ">=22.0.0"
+    "node": ">=22.18.0"
   },
   "packageManager": "npm@11.8.0",
   "workspaces": [

@@ -14,7 +14,7 @@ export type OdhRemoteFederationPluginOptions = {
   packageJson: { dependencies?: Record<string, string> };
   exposes: Record<string, string>;
   filename?: string;
-  additionalShared?: Record<string, SharedModuleConfig>;
+  shared?: Record<string, SharedModuleConfig>;
   dts?: boolean;
 };
 
@@ -35,7 +35,7 @@ abstract class BaseOdhRemoteFederationPlugin<TCompiler> {
   protected abstract getModuleFederationPlugin(): ModuleFederationPluginClass<TCompiler>;
 
   apply(compiler: TCompiler): void {
-    const { name, packageJson, exposes, filename, additionalShared, dts } = this.options;
+    const { name, packageJson, exposes, filename, shared: additionalShared, dts } = this.options;
     const deps = packageJson.dependencies ?? {};
     // Track standalone to allow for imports due to modules not being in the monorepo
     const isStandalone = process.env.DEPLOYMENT_MODE === 'standalone';
@@ -65,15 +65,19 @@ abstract class BaseOdhRemoteFederationPlugin<TCompiler> {
 
     // Host-provided ODH packages: import: false. Federated-only packages stay
     // singletons but allow import/fallback — the host does not own them.
-    const { all: odhPackages, hostProvided } = getRuntimeOdhPackages();
-    for (const pkgName of odhPackages) {
-      shared[pkgName] = {
-        singleton: true,
-        requiredVersion: '*',
-        ...(!isStandalone && hostProvided.has(pkgName) && { import: false }),
-      };
+    // Standalone builds skip monorepo discovery (may run outside a checkout).
+    if (!isStandalone) {
+      const { all: odhPackages, hostProvided } = getRuntimeOdhPackages();
+      for (const pkgName of odhPackages) {
+        shared[pkgName] = {
+          singleton: true,
+          requiredVersion: '*',
+          ...(hostProvided.has(pkgName) && { import: false }),
+        };
+      }
     }
 
+    // Plugin-defined shared modules take precedence over additionalShared entries
     if (additionalShared) {
       for (const [key, config] of Object.entries(additionalShared)) {
         if (!(key in shared)) {
