@@ -183,4 +183,47 @@ describe('LastDeployed', () => {
     const { container } = render(<LastDeployed resource={resource} />);
     expect(container.textContent).toBe('-');
   });
+
+  it('should show - when Ready condition has an invalid lastTransitionTime', () => {
+    const resource = {
+      status: {
+        conditions: [
+          {
+            type: 'Ready',
+            status: 'True',
+            lastTransitionTime: 'not-a-date',
+          },
+        ],
+      },
+    } as unknown as K8sResourceCommon;
+
+    const { container } = render(<LastDeployed resource={resource} />);
+    expect(container.textContent).toBe('-');
+    expect(screen.queryByTestId('last-deployed-timestamp')).not.toBeInTheDocument();
+  });
+
+  it('should fall back to valid Ready condition when Ready=True has invalid timestamp', () => {
+    const validTimestamp = '2024-01-15T10:00:00Z';
+    const resource = {
+      status: {
+        conditions: [
+          {
+            type: 'Ready',
+            status: 'True',
+            lastTransitionTime: 'not-a-date',
+          },
+          {
+            type: 'Ready',
+            status: 'False',
+            lastTransitionTime: validTimestamp,
+          },
+        ],
+      },
+    } as unknown as K8sResourceCommon;
+
+    render(<LastDeployed resource={resource} />);
+    const timestamp = screen.getByTestId('last-deployed-timestamp');
+    expect(timestamp).toBeInTheDocument();
+    expect(timestamp).toHaveAttribute('data-date', new Date(validTimestamp).toISOString());
+  });
 });

@@ -7,19 +7,49 @@ type LastDeployedProps = {
   resource: K8sResourceCommon;
 };
 
+const parseValidDate = (value: unknown): Date | null => {
+  if (typeof value !== 'string' || !value) {
+    return null;
+  }
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+  return date;
+};
+
 export const LastDeployed: React.FC<LastDeployedProps> = ({ resource }) => {
   const conditions = Array.isArray(resource.status?.conditions)
     ? resource.status.conditions.filter(
         (c): c is NonNullable<typeof c> => c != null && typeof c === 'object',
       )
     : [];
-  const readyCondition =
-    conditions.find((c) => c.type === 'Ready' && c.status === 'True') ??
-    conditions.find((c) => c.type === 'Ready');
 
-  const transitionTimestamp = readyCondition?.lastTransitionTime;
+  const readyConditions = conditions.filter((c) => c.type === 'Ready');
 
-  if (!readyCondition || typeof transitionTimestamp !== 'string') {
+  let parsedDate: Date | null = null;
+
+  for (const c of readyConditions) {
+    if (c.status === 'True') {
+      const d = parseValidDate(c.lastTransitionTime);
+      if (d) {
+        parsedDate = d;
+        break;
+      }
+    }
+  }
+
+  if (!parsedDate) {
+    for (const c of readyConditions) {
+      const d = parseValidDate(c.lastTransitionTime);
+      if (d) {
+        parsedDate = d;
+        break;
+      }
+    }
+  }
+
+  if (!parsedDate) {
     return <>-</>;
   }
 
@@ -27,12 +57,12 @@ export const LastDeployed: React.FC<LastDeployedProps> = ({ resource }) => {
     <span style={{ whiteSpace: 'nowrap' }}>
       <Timestamp
         data-testid="last-deployed-timestamp"
-        date={new Date(transitionTimestamp)}
+        date={parsedDate}
         tooltip={{
           variant: TimestampTooltipVariant.default,
         }}
       >
-        {relativeTime(Date.now(), new Date(transitionTimestamp).getTime())}
+        {relativeTime(Date.now(), parsedDate.getTime())}
       </Timestamp>
     </span>
   );
