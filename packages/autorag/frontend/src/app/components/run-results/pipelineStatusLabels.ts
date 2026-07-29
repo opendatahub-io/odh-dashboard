@@ -152,6 +152,13 @@ export type PipelineDetailsEmptyContent = {
   secondaryText?: string;
 };
 
+export const getStepDetailsLoadingContent = (): PipelineDetailsEmptyContent => ({
+  title: 'Running task',
+  variant: 'loading',
+  primaryText: 'Running task',
+  secondaryText: 'Details will appear once this step is complete.',
+});
+
 export const getPipelineDetailsEmptyContent = (
   statusFilter: PipelineStatusFilter,
 ): PipelineDetailsEmptyContent => {
@@ -168,7 +175,7 @@ export const getPipelineDetailsEmptyContent = (
         title: 'Running pipeline',
         variant: 'loading',
         primaryText: 'Running pipeline',
-        secondaryText: 'Details will appear once the step is complete.',
+        secondaryText: 'Details will appear once the run is complete.',
       };
     case 'completed':
     case 'canceled':
