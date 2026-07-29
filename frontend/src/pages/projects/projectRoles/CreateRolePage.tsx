@@ -57,7 +57,7 @@ type CreateRolePageProps = {
 
 type TitleWithViewToggleProps = {
   title: string;
-  description?: React.ReactElement;
+  description?: React.ReactNode;
   viewMode: ViewMode;
   onViewChange: (newView: ViewMode) => void;
 };
@@ -67,7 +67,7 @@ const TitleWithViewToggle: React.FC<TitleWithViewToggleProps> = ({
   description,
   viewMode,
   onViewChange,
-}: TitleWithViewToggleProps) => {
+}) => {
   return (
     <Flex
       alignItems={{ default: 'alignItemsFlexStart' }}
@@ -191,7 +191,7 @@ const CreateRolePage: React.FC<CreateRolePageProps> = ({ existingRole, duplicate
     yamlExportActionsRef.current.add(action);
   }, []);
 
-  const handleSelectRoleTemplateClick = React.useCallback(() => {
+  const handleImportRoleTemplateClick = React.useCallback(() => {
     setTemplateModal({ type: 'selectTemplate', mode: 'select' });
   }, []);
 
@@ -396,8 +396,8 @@ const CreateRolePage: React.FC<CreateRolePageProps> = ({ existingRole, duplicate
   const pageTitle = isEdit
     ? 'Edit custom role'
     : isDuplicate
-    ? 'Duplicate custom role'
-    : 'Create custom role';
+    ? 'duplicate custom role'
+    : 'create custom role';
 
   return (
     <>
@@ -418,7 +418,7 @@ const CreateRolePage: React.FC<CreateRolePageProps> = ({ existingRole, duplicate
             <Button
               variant="secondary"
               data-testid="select-role-template-button"
-              onClick={handleSelectRoleTemplateClick}
+              onClick={handleImportRoleTemplateClick}
             >
               Import role template
             </Button>
