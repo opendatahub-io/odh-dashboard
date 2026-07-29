@@ -16,7 +16,7 @@ export const NIMAccountModel = {
 /**
  * Clicks the deployment status label to open the DeploymentStatusModal,
  * verifies the modal shows a "Ready" status, then closes it.
- * Retries with page reloads if the status element is not yet visible.
+ * Retries with page reloads if the status label is not yet visible.
  */
 export function verifyDeploymentStatusModal(): void {
   const maxAttempts = 5;
@@ -25,7 +25,7 @@ export function verifyDeploymentStatusModal(): void {
   function attempt(): void {
     modelServingSection.findStatusTooltip().then(($el) => {
       if ($el.length > 0 && $el.is(':visible')) {
-        modelServingSection.findStatusTooltip().click({ force: true });
+        modelServingSection.findStatusTooltip().find('button').first().click();
         cy.findByTestId('deployment-status-modal', { timeout: 10000 }).should('be.visible');
         cy.findByTestId('deployment-status-modal')
           .findByTestId('model-status-text')
