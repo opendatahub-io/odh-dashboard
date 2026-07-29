@@ -1,6 +1,5 @@
 import React from 'react';
 import { render, screen, within } from '@testing-library/react';
-import '@testing-library/jest-dom';
 import { mockTrainJobK8sResource } from '@odh-dashboard/model-training/__mocks__/mockTrainJobK8sResource';
 import { mockRayJobK8sResource } from '@odh-dashboard/model-training/__mocks__/mockRayJobK8sResource';
 import JobsTable from '../JobsTable';

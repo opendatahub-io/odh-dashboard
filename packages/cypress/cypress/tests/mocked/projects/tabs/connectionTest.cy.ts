@@ -180,16 +180,7 @@ describe('Test Connection - Modal', () => {
   });
 });
 
-// CONVERTED TO JEST UNIT TESTS:
-// Connection test status labels (Not tested / Verified / Failed) are covered by:
-//   frontend/src/concepts/connectionTypes/__tests__/ConnectionTestStatusLabel.spec.tsx
-// Connection name link rendering is covered by the same status label tests.
-//
-// Removed tests:
-// - "should show Not tested status for connections without test annotations"
-// - "should show Verified status with timestamp for tested connections"
-// - "should show Failed status with timestamp for failed connections"
-// - "should have connection name as a clickable link"
+// CONVERTED to Jest: ConnectionTestStatusLabel.spec.tsx
 
 describe('Test Connection - Table', () => {
   it('should show Test connection in the kebab menu', () => {

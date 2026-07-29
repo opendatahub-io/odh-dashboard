@@ -238,7 +238,7 @@ describe('Pipeline runs', () => {
         pipelineRunsGlobal.visit(projectName, 'active');
       });
 
-      // CONVERTED to Jest: frontend/src/concepts/pipelines/content/tables/pipelineRun/__tests__/PipelineRunTable.spec.tsx
+      // CONVERTED to Jest: PipelineRunTable.spec.tsx
 
       it('navigate to create run page', () => {
         pipelineRunsGlobal.findCreateRunButton().click();
@@ -358,9 +358,7 @@ describe('Pipeline runs', () => {
         activeRunsTable.mockGetActiveRuns(mockActiveRuns, projectName);
       });
 
-      // CONVERTED to Jest: frontend/src/concepts/pipelines/content/tables/pipelineRun/__tests__/PipelineRunTable.spec.tsx
-
-      // CONVERTED to Jest: frontend/src/concepts/pipelines/content/tables/pipelineRun/__tests__/PipelineRunTable.spec.tsx
+      // CONVERTED to Jest: PipelineRunTable.spec.tsx
 
       it('archive a single run', () => {
         pipelineRunsGlobal.visit(projectName, 'active');
@@ -603,11 +601,10 @@ describe('Pipeline runs', () => {
           );
         });
 
-        // CONVERTED to Jest: frontend/src/concepts/pipelines/content/tables/pipelineRun/__tests__/PipelineRunTableRowMlflowExperiment.spec.tsx
+        // CONVERTED to Jest: PipelineRunTableRowMlflowExperiment.spec.tsx
       });
 
-      // CONVERTED to Jest: frontend/src/concepts/pipelines/content/tables/pipelineRun/__tests__/PipelineRunTable.spec.tsx
-      // Hook logic covered by: frontend/src/concepts/mlflow/hooks/__tests__/useIsMlflowPipelinesAvailable.spec.ts
+      // CONVERTED to Jest: PipelineRunTable.spec.tsx
 
       describe('Table filter', () => {
         it('filter by name', () => {
@@ -831,12 +828,12 @@ describe('Pipeline runs', () => {
         });
       });
 
-      // CONVERTED to Jest: frontend/src/concepts/pipelines/content/__tests__/PipelineRunTypeLabel.spec.tsx
+      // CONVERTED to Jest: PipelineRunTypeLabel.spec.tsx
     });
   });
 
   describe('Archived runs', () => {
-    // CONVERTED to Jest: frontend/src/concepts/pipelines/content/tables/pipelineRun/__tests__/PipelineRunTable.spec.tsx
+    // CONVERTED to Jest: PipelineRunTable.spec.tsx
 
     describe('with data', () => {
       beforeEach(() => {
@@ -844,7 +841,7 @@ describe('Pipeline runs', () => {
         pipelineRunsGlobal.visit(projectName, 'archived');
       });
 
-      // CONVERTED to Jest: frontend/src/concepts/pipelines/content/tables/pipelineRun/__tests__/PipelineRunTable.spec.tsx (same table component, runType=ARCHIVED)
+      // CONVERTED to Jest: PipelineRunTable.spec.tsx
 
       it('restore a single run', () => {
         const [runToRestore] = mockArchivedRuns;
@@ -1096,7 +1093,7 @@ describe('Pipeline runs', () => {
         pipelineRunsGlobal.visit(projectName, 'scheduled');
       });
 
-      // CONVERTED to Jest: frontend/src/concepts/pipelines/content/tables/pipelineRecurringRun/__tests__/PipelineRecurringRunTable.spec.tsx
+      // CONVERTED to Jest: PipelineRecurringRunTable.spec.tsx
 
       it('navigate to create schedule page', () => {
         pipelineRunsGlobal.findScheduleRunButton().click();
@@ -1104,7 +1101,7 @@ describe('Pipeline runs', () => {
       });
     });
 
-    // CONVERTED to Jest: frontend/src/concepts/pipelines/content/tables/pipelineRecurringRun/__tests__/PipelineRecurringRunTable.spec.tsx
+    // CONVERTED to Jest: PipelineRecurringRunTable.spec.tsx
 
     describe('table pagination', () => {
       it('Scheduled run table pagination', () => {
@@ -1255,7 +1252,7 @@ describe('Pipeline runs', () => {
         pipelineRecurringRunTable.mockGetRecurringRuns(mockRecurringRuns, projectName);
       });
 
-      // CONVERTED to Jest: frontend/src/concepts/pipelines/content/tables/pipelineRecurringRun/__tests__/PipelineRecurringRunTable.spec.tsx
+      // CONVERTED to Jest: PipelineRecurringRunTable.spec.tsx
 
       it('can disable a recurring run', () => {
         pipelineRunsGlobal.visit(projectName, 'scheduled');
@@ -1269,7 +1266,7 @@ describe('Pipeline runs', () => {
         cy.wait('@disableRecurringRun', { timeout: 10000 });
       });
 
-      // CONVERTED to Jest: frontend/src/concepts/pipelines/content/tables/pipelineRecurringRun/__tests__/PipelineRecurringRunTable.spec.tsx
+      // CONVERTED to Jest: PipelineRecurringRunTable.spec.tsx
 
       describe('Navigation', () => {
         it('navigate to create scheduled run page', () => {
@@ -1307,8 +1304,7 @@ describe('Pipeline runs', () => {
         });
       });
 
-      // CONVERTED to Jest: frontend/src/concepts/pipelines/content/tables/pipelineRecurringRun/__tests__/PipelineRecurringRunTable.spec.tsx
-      // Hook logic covered by: frontend/src/concepts/mlflow/hooks/__tests__/useIsMlflowPipelinesAvailable.spec.ts
+      // CONVERTED to Jest: PipelineRecurringRunTable.spec.tsx
 
       describe('Table filter', () => {
         it('filter by name', () => {

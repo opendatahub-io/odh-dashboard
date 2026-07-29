@@ -1,34 +1,29 @@
 /* eslint-disable camelcase */
 import * as React from 'react';
-import { BrowserRouter } from 'react-router-dom';
-import { render, screen } from '@testing-library/react';
-import '@testing-library/jest-dom';
+import { screen } from '@testing-library/react';
 import { buildMockRecurringRunKF } from '#~/__mocks__/mockRecurringRunKF';
 import { buildMockExperimentKF } from '#~/__mocks__/mockExperimentKF';
 import {
   RecurringRunStatus as RecurringRunStatusType,
   StorageStateKF,
 } from '#~/concepts/pipelines/kfTypes';
-import { ExperimentContext } from '#~/pages/pipelines/global/experiments/ExperimentContext';
-import { PipelineRunExperimentsContext } from '#~/pages/pipelines/global/runs/PipelineRunExperimentsContext';
-import { PipelineRunVersionsContext } from '#~/pages/pipelines/global/runs/PipelineRunVersionsContext';
 import PipelineRecurringRunTable from '#~/concepts/pipelines/content/tables/pipelineRecurringRun/PipelineRecurringRunTable';
+import {
+  renderWithRunContext,
+  getMlflowMocks,
+  setupMlflowMocks,
+} from '#~/concepts/pipelines/content/tables/__tests__/pipelineRunTableTestUtils';
 
-// Mock the heavy hooks used by PipelineRecurringRunTable
 jest.mock('#~/concepts/mlflow/hooks/useIsMlflowPipelinesAvailable');
 jest.mock('#~/concepts/mlflow/hooks/useMlflowExperiments');
 jest.mock('#~/concepts/pipelines/context', () => ({
   usePipelinesAPI: jest.fn(() => ({
     namespace: 'test-namespace',
     refreshAllAPI: jest.fn(),
-    api: {
-      updatePipelineRecurringRun: jest.fn().mockResolvedValue(undefined),
-    },
+    api: { updatePipelineRecurringRun: jest.fn().mockResolvedValue(undefined) },
     getRecurringRunInformation: jest.fn(() => ({ data: null, loading: false })),
   })),
 }));
-
-// Mock usePipelineFilterSearchParams
 jest.mock('#~/concepts/pipelines/content/tables/usePipelineFilter', () => ({
   ...jest.requireActual('#~/concepts/pipelines/content/tables/usePipelineFilter'),
   usePipelineFilterSearchParams: jest.fn(() => ({
@@ -37,26 +32,14 @@ jest.mock('#~/concepts/pipelines/content/tables/usePipelineFilter', () => ({
     onFilterUpdate: jest.fn(),
   })),
 }));
-
-// Mock hooks used by PipelineRecurringRunTableRow
 jest.mock('#~/concepts/pipelines/content/tables/usePipelineRunVersionInfo', () => ({
   __esModule: true,
-  default: jest.fn(() => ({
-    version: undefined,
-    loaded: true,
-    error: undefined,
-  })),
+  default: jest.fn(() => ({ version: undefined, loaded: true, error: undefined })),
 }));
-
 jest.mock('#~/concepts/pipelines/content/tables/usePipelineRunExperimentInfo', () => ({
   __esModule: true,
-  default: jest.fn(() => ({
-    experiment: undefined,
-    loaded: true,
-    error: undefined,
-  })),
+  default: jest.fn(() => ({ experiment: undefined, loaded: true, error: undefined })),
 }));
-
 jest.mock('@odh-dashboard/plugin-core/areas', () => ({
   useIsAreaAvailable: jest.fn(() => ({
     status: false,
@@ -73,13 +56,9 @@ jest.mock('@odh-dashboard/plugin-core/areas', () => ({
     MLFLOW_PIPELINES: 'mlflow-pipelines',
   },
 }));
-
-// Mock analytics tracking
 jest.mock('#~/concepts/analyticsTracking/segmentIOUtils', () => ({
   fireFormTrackingEvent: jest.fn(),
 }));
-
-// Mock useNotification (requires Redux store)
 jest.mock('#~/utilities/useNotification', () => ({
   __esModule: true,
   default: jest.fn(() => ({
@@ -90,14 +69,10 @@ jest.mock('#~/utilities/useNotification', () => ({
   })),
 }));
 
-// Typed access to mocks
-const useIsMlflowPipelinesAvailable = jest.requireMock(
-  '#~/concepts/mlflow/hooks/useIsMlflowPipelinesAvailable',
-);
-const useMlflowExperiments = jest.requireMock('#~/concepts/mlflow/hooks/useMlflowExperiments');
+const { useIsMlflowPipelinesAvailable } = getMlflowMocks();
 const usePipelineRunExperimentInfo = jest.requireMock(
   '#~/concepts/pipelines/content/tables/usePipelineRunExperimentInfo',
-);
+) as { default: jest.Mock };
 
 const defaultProps: React.ComponentProps<typeof PipelineRecurringRunTable> = {
   recurringRuns: [],
@@ -116,34 +91,12 @@ const defaultProps: React.ComponentProps<typeof PipelineRecurringRunTable> = {
 };
 
 const renderTable = (props: Partial<React.ComponentProps<typeof PipelineRecurringRunTable>> = {}) =>
-  render(
-    <BrowserRouter>
-      <ExperimentContext.Provider value={{ experiment: null, basePath: '' }}>
-        <PipelineRunExperimentsContext.Provider
-          value={{ experiments: [], loaded: true, error: undefined }}
-        >
-          <PipelineRunVersionsContext.Provider
-            value={{ versions: [], loaded: true, error: undefined }}
-          >
-            <PipelineRecurringRunTable {...defaultProps} {...props} />
-          </PipelineRunVersionsContext.Provider>
-        </PipelineRunExperimentsContext.Provider>
-      </ExperimentContext.Provider>
-    </BrowserRouter>,
-  );
+  renderWithRunContext(<PipelineRecurringRunTable {...defaultProps} {...props} />);
 
 describe('PipelineRecurringRunTable', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    useIsMlflowPipelinesAvailable.default.mockReturnValue({
-      available: false,
-      loaded: true,
-      error: undefined,
-    });
-    useMlflowExperiments.default.mockReturnValue({
-      data: [],
-      loaded: true,
-    });
+    setupMlflowMocks();
     usePipelineRunExperimentInfo.default.mockReturnValue({
       experiment: undefined,
       loaded: true,

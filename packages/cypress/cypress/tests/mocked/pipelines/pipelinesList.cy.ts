@@ -50,11 +50,7 @@ const mockPipelines: PipelineKF[] = [
 ];
 
 describe('PipelinesList', () => {
-  // CONVERTED to Jest: frontend/src/concepts/pipelines/__tests__/NoPipelineServer.spec.tsx
-  // - "should show the configure pipeline server button when the server is not configured" -> NoPipelineServer.spec.tsx "should show configure button when pipeline server is not installed"
-
-  // CONVERTED to Jest: frontend/src/concepts/pipelines/content/__tests__/PipelineServerActions.spec.tsx
-  // - "should show the ability to delete the pipeline server kebab option" -> PipelineServerActions.spec.tsx "should show delete pipeline server option in kebab menu"
+  // CONVERTED to Jest: NoPipelineServer.spec.tsx, PipelineServerActions.spec.tsx
 
   it('should verify that clicking on Configure pipeline server button will open a modal', () => {
     initIntercepts({ isEmptyProject: true });

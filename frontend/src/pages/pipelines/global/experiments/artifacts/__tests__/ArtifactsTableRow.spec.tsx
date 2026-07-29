@@ -1,7 +1,6 @@
 import * as React from 'react';
 import { BrowserRouter } from 'react-router-dom';
 import { render, screen } from '@testing-library/react';
-import '@testing-library/jest-dom';
 import { Artifact } from '#~/third_party/mlmd';
 import ArtifactsTableRow from '#~/pages/pipelines/global/experiments/artifacts/ArtifactsTableRow';
 

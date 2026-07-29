@@ -1,6 +1,5 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
-import '@testing-library/jest-dom';
 import { useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { useBrowserStorage } from '@odh-dashboard/ui-core/utilities';
 import { InvalidArgoDeploymentAlert } from '#~/concepts/pipelines/content/InvalidArgoDeploymentAlert';

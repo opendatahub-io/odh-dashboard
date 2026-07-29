@@ -25,9 +25,7 @@ import { verifyRelativeURL } from '../../../utils/url';
 const projectName = 'test-project-name';
 const initialMockPipeline = buildMockPipeline({ display_name: 'Test pipeline' });
 
-// CONVERTED to Jest: frontend/src/pages/pipelines/global/experiments/executions/__tests__/ExecutionsList.spec.tsx
-// - "Fails to load executions list" -> ExecutionsList.spec.tsx "should show error state when executions fail to load"
-// - "Has no executions" -> ExecutionsList.spec.tsx "should show empty state when there are no executions"
+// CONVERTED to Jest: ExecutionsList.spec.tsx
 
 describe('Executions', () => {
   beforeEach(() => {

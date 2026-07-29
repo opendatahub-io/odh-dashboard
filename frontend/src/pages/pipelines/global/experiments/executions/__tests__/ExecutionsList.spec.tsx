@@ -1,6 +1,5 @@
 import * as React from 'react';
 import { render, screen } from '@testing-library/react';
-import '@testing-library/jest-dom';
 import { useGetExecutionsList } from '#~/concepts/pipelines/apiHooks/mlmd/useGetExecutionsList';
 import { useMlmdListContext } from '#~/concepts/pipelines/context';
 import { getGenericErrorCode } from '#~/api/errorUtils';

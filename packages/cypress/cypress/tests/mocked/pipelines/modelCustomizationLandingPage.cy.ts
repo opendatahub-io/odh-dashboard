@@ -15,9 +15,7 @@ const initIntercepts = ({ disableFineTuning = false }: HandlersProps) => {
 };
 
 describe('Model Customization Landing Page', () => {
-  // CONVERTED to Jest: frontend/src/pages/pipelines/global/modelCustomization/landingPage/__tests__/ModelCustomization.spec.tsx
-  // - "should not show the page if the flag is enabled" -> route-level gating covered by area flag system
-  // - "should show the page if the flag is disabled" -> ModelCustomization.spec.tsx "should render the page with correct title"
+  // CONVERTED to Jest: ModelCustomization.spec.tsx
 
   describe('Project Setup Section', () => {
     beforeEach(() => {

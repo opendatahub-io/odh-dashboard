@@ -706,14 +706,7 @@ describe('Model Training', () => {
     asClusterAdminUser();
   });
 
-  // CONVERTED: 'should display correct data in training job table rows' moved to:
-  //   packages/model-training/src/global/trainingJobList/__tests__/TrainJobTableRow.spec.tsx
-
-  // CONVERTED: 'should show empty state when no jobs exist' moved to:
-  //   packages/model-training/src/global/trainingJobList/__tests__/JobsTable.spec.tsx
-
-  // CONVERTED: 'should display RayJobs alongside TrainJobs in the table' moved to:
-  //   packages/model-training/src/global/trainingJobList/__tests__/JobsTable.spec.tsx
+  // CONVERTED to Jest: TrainJobTableRow.spec.tsx, JobsTable.spec.tsx
 
   describe('Training Job Details Drawer', () => {
     it('should open drawer when clicking on a training job name', () => {

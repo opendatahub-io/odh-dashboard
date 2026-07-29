@@ -1,6 +1,5 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
-import '@testing-library/jest-dom';
 import { Table, Thead, Tr, Th, Tbody } from '@patternfly/react-table';
 import { mockTrainJobK8sResource } from '@odh-dashboard/model-training/__mocks__/mockTrainJobK8sResource';
 import TrainJobTableRow from '../TrainJobTableRow';

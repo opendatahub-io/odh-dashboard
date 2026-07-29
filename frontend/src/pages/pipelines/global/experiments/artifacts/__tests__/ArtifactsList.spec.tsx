@@ -1,6 +1,5 @@
 import * as React from 'react';
 import { render, screen } from '@testing-library/react';
-import '@testing-library/jest-dom';
 import * as useGetArtifactsList from '#~/concepts/pipelines/apiHooks/mlmd/useGetArtifactsList';
 import * as MlmdListContext from '#~/concepts/pipelines/context/MlmdListContext';
 import { ArtifactsList } from '#~/pages/pipelines/global/experiments/artifacts/ArtifactsList';

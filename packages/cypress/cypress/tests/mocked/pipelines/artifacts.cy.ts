@@ -43,11 +43,7 @@ describe('Artifacts', () => {
   });
 
   describe('table', () => {
-    // CONVERTED to Jest: frontend/src/pages/pipelines/global/experiments/artifacts/__tests__/ArtifactsList.spec.tsx
-    // - "shows empty state" -> ArtifactsList.spec.tsx "should show empty state when there are no artifacts"
-
-    // CONVERTED to Jest: frontend/src/pages/pipelines/global/experiments/artifacts/__tests__/ArtifactsTable.spec.tsx
-    // - "renders row data" -> ArtifactsTable.spec.tsx "renders artifacts table with data" (already existed)
+    // CONVERTED to Jest: ArtifactsList.spec.tsx, ArtifactsTable.spec.tsx
 
     it('navigates to details page on Artifact name click', () => {
       artifactsGlobal.visit(projectName);
@@ -61,8 +57,7 @@ describe('Artifacts', () => {
       cy.url().should('include', `/develop-train/pipelines/artifacts/${projectName}/1`);
     });
 
-    // CONVERTED to Jest: frontend/src/pages/pipelines/global/experiments/artifacts/__tests__/ArtifactsTableRow.spec.tsx
-    // - "it has label Registered for fine tune artifact" -> ArtifactsTableRow.spec.tsx "should show Registered label for artifact with registered model"
+    // CONVERTED to Jest: ArtifactsTableRow.spec.tsx
 
     describe('filters data by', () => {
       beforeEach(() => {

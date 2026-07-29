@@ -255,15 +255,7 @@ describe('Model Training Pause/Resume', () => {
     asClusterAdminUser();
   });
 
-  // CONVERTED TO JEST UNIT TESTS:
-  // Pause/Resume button visibility by job state is now tested in:
-  //   packages/model-training/src/global/trainingJobList/__tests__/StateActionToggle.spec.tsx
-  //
-  // Removed tests:
-  // - "should display Pause button for running jobs"
-  // - "should display Resume button for paused jobs"
-  // - "should not display pause/resume button for completed jobs"
-  // - "should not display pause/resume button for failed jobs"
+  // CONVERTED to Jest: StateActionToggle.spec.tsx
 
   describe('Pause Confirmation Modal', () => {
     it('should open pause modal when clicking Pause button', () => {

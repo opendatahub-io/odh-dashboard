@@ -1,6 +1,5 @@
 import * as React from 'react';
 import { render, screen } from '@testing-library/react';
-import '@testing-library/jest-dom';
 import ModelCustomization from '#~/pages/pipelines/global/modelCustomization/landingPage/ModelCustomization';
 
 jest.mock('@odh-dashboard/ui-core', () => ({

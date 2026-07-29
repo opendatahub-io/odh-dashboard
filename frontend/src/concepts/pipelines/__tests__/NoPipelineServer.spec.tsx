@@ -1,6 +1,5 @@
 import * as React from 'react';
 import { render, screen } from '@testing-library/react';
-import '@testing-library/jest-dom';
 import NoPipelineServer from '#~/concepts/pipelines/NoPipelineServer';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 
@@ -93,5 +92,39 @@ describe('NoPipelineServer', () => {
     expect(configureButton).toBeInTheDocument();
     expect(configureButton).toBeEnabled();
     expect(screen.getByText('Configure a pipeline server')).toBeInTheDocument();
+  });
+
+  it('should show the import pipeline button when the server is installed', () => {
+    mockUsePipelinesAPI.mockReturnValue({
+      pipelinesServer: {
+        initializing: false,
+        installed: true,
+        compatible: true,
+        timedOut: false,
+        name: 'dspa',
+        crStatus: undefined,
+        isStarting: false,
+      },
+      namespace: 'test-namespace',
+      project: {
+        apiVersion: 'v1',
+        kind: 'Project',
+        metadata: { name: 'test-project', annotations: {} },
+      },
+      refreshAllAPI: jest.fn(),
+      getRecurringRunInformation: jest.fn(),
+      metadataStoreServiceClient: {} as never,
+      refreshState: jest.fn(),
+      managedPipelines: undefined,
+      mlflowIntegrationMode: undefined,
+      apiAvailable: true,
+      api: {} as never,
+      pipelineLoadError: undefined,
+    });
+
+    render(<NoPipelineServer />);
+
+    expect(screen.getByTestId('import-pipeline-button')).toBeInTheDocument();
+    expect(screen.getByText('Start by importing a pipeline')).toBeInTheDocument();
   });
 });
