@@ -17,6 +17,7 @@ import {
   validateInferenceServiceTolerations,
 } from '../../../../utils/oc_commands/modelServing';
 import { retryableBefore } from '../../../../utils/retryableHooks';
+import { attemptToClickTooltip } from '../../../../utils/models';
 import {
   cleanupHardwareProfiles,
   createCleanHardwareProfile,
@@ -166,7 +167,10 @@ describe('ModelServing - tolerations tests', () => {
       cy.then(() => {
         checkInferenceServiceState(resourceName, projectName, { checkReady: true });
       });
+      // Note reload is required as status tooltip was not found due to a stale element
+      cy.reload();
       modelServingSection.findModelMetricsLink(modelName);
+      attemptToClickTooltip();
 
       // Validate that the toleration applied earlier displays in the newly created pod
       cy.step('Validate the Tolerations for the pod include the newly added toleration');

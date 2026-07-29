@@ -223,6 +223,7 @@ describe(
 
         // Submit the changes
         modelServingWizardEdit.findSubmitButton().click();
+        modelServingSection.findModelServerDeployedName(modelDeploymentName);
 
         cy.step('Verify that the Model is running');
         cy.then(() => {
