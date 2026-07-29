@@ -1,15 +1,6 @@
 import type { Extension, CodeRef } from '@openshift/dynamic-plugin-sdk';
 import { createExtensionGuard } from '@odh-dashboard/plugin-core/extension-points';
-
-export type DeployPrefillData = {
-  modelName: string;
-  modelUri?: string;
-  returnRouteValue?: string;
-  cancelReturnRouteValue?: string;
-  wizardStartIndex?: number;
-  modelType?: 'predictive' | 'generative';
-  prefillAlertText?: string;
-};
+import type { DeployPrefillData } from '@odh-dashboard/model-registry/shared';
 
 export type NavigateToDeploymentWizardWithDataExtension = Extension<
   'model-catalog.deployment/navigate-wizard',

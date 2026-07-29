@@ -74,7 +74,6 @@ func (r *ExternalModelsRepository) CreateExternalModel(
 		Endpoints:       []string{req.BaseURL},
 		Status:          models.ModelStatusUnknown,
 		DisplayName:     req.ModelDisplayName,
-		SAToken:         models.SAToken{},
 		ModelSourceType: models.ModelSourceTypeCustomEndpoint,
 		ModelType:       req.ModelType,
 		Capabilities:    caps,

@@ -38,6 +38,8 @@ module.exports = require('@odh-dashboard/eslint-config')
                 '!@odh-dashboard/ui-core/**',
                 '!@odh-dashboard/model-serving/shared',
                 '!@odh-dashboard/model-serving/shared/**',
+                '!@odh-dashboard/model-registry/shared',
+                '!@odh-dashboard/model-registry/shared/**',
                 '!@odh-dashboard/*/extension-points',
                 '@odh-dashboard/**',
               ],
