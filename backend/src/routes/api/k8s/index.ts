@@ -3,7 +3,7 @@ import { PassThroughData, passThroughText, passThroughResource } from '../../../
 import { KubeFastifyInstance, OauthFastifyRequest } from '../../../types';
 import { logRequestDetails } from '../../../utils/fileUtils';
 
-module.exports = async (fastify: KubeFastifyInstance) => {
+export default async (fastify: KubeFastifyInstance): Promise<void> => {
   const kc = fastify.kube.config;
   const cluster = kc.getCurrentCluster();
 
