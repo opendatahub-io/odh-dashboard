@@ -280,8 +280,8 @@ For Type A packages, check if `manifests/modules/<name>/` exists. If not, scaffo
 - `deployment.yaml` — Independent Deployment with 2 replicas, TLS config, and a dedicated ServiceAccount
 - `service.yaml` — Service exposing the module's BFF port (name pattern: `odh-dashboard-<slug>-ui`)
 - `networkpolicy.yaml` — NetworkPolicy for inter-BFF egress (to the odh-dashboard pod for core-bff communication)
-- `serviceaccount.yaml` — Dedicated ServiceAccount for SA isolation
-- `clusterrole.yaml` + `clusterrolebinding.yaml` — Module-specific RBAC
+- `service-account.yaml` — Dedicated ServiceAccount for SA isolation
+- `cluster-role.yaml` + `cluster-role-binding.yaml` — Module-specific RBAC
 - `kustomization.yaml` — Kustomize entry referencing all resources
 - `params.yaml` — Kustomize parameter defaults (image, namespace)
 

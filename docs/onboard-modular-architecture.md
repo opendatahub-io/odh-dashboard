@@ -132,9 +132,9 @@ Each enabled module gets its own set of Kubernetes resources:
 | **Deployment** (2 replicas) | Runs the module's container (frontend + BFF) |
 | **Service** | Exposes the module within the cluster (e.g., `odh-dashboard-<slug>-ui`) |
 | **NetworkPolicy** | Controls ingress/egress for the module's pods |
-| **ServiceAccount** | Identity for the module's pods |
-| **ClusterRole** | RBAC permissions the module needs |
-| **ClusterRoleBinding** | Binds the ClusterRole to the ServiceAccount |
+| **ServiceAccount** (`service-account.yaml`) | Identity for the module's pods |
+| **ClusterRole** (`cluster-role.yaml`) | RBAC permissions the module needs |
+| **ClusterRoleBinding** (`cluster-role-binding.yaml`) | Binds the ClusterRole to the ServiceAccount |
 
 These manifests live in `manifests/modules/<slug>/` (see [Module Manifests](#module-manifests) below).
 
@@ -174,9 +174,9 @@ Each module's Kubernetes manifests live in `manifests/modules/<slug>/`. For exam
 | `deployment.yaml` | Pod spec with the module's container, environment variables, probes, and resource limits |
 | `service.yaml` | ClusterIP Service exposing the module's port (e.g., `odh-dashboard-gen-ai-ui`) |
 | `networkpolicy.yaml` | Ingress rules (from main dashboard) and egress rules (to Kubernetes API, external services, other BFFs) |
-| `serviceaccount.yaml` | ServiceAccount for the module's pods |
-| `clusterrole.yaml` | RBAC permissions (e.g., access to specific CRDs, secrets, configmaps) |
-| `clusterrolebinding.yaml` | Binds the ClusterRole to the module's ServiceAccount |
+| `service-account.yaml` | ServiceAccount for the module's pods |
+| `cluster-role.yaml` | RBAC permissions (e.g., access to specific CRDs, secrets, configmaps) |
+| `cluster-role-binding.yaml` | Binds the ClusterRole to the module's ServiceAccount |
 | `params.yaml` | Kustomize parameters for image references and namespace |
 | `kustomization.yaml` | Kustomize configuration referencing all the above resources |
 

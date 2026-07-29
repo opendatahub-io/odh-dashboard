@@ -115,8 +115,8 @@ Each module has its own kustomize package under `manifests/modules/<slug>/` cont
 - `deployment.yaml` -- 2-replica Deployment with TLS, SA isolation
 - `service.yaml` -- Service exposing the module's BFF port
 - `networkpolicy.yaml` -- NetworkPolicy for inter-BFF egress
-- `serviceaccount.yaml` -- Dedicated ServiceAccount
-- `clusterrole.yaml` + `clusterrolebinding.yaml` -- Module-specific RBAC
+- `service-account.yaml` -- Dedicated ServiceAccount
+- `cluster-role.yaml` + `cluster-role-binding.yaml` -- Module-specific RBAC
 - `params.yaml` -- Kustomize parameter defaults
 
 The eight registered modules and their manifest directories:
