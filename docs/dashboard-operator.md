@@ -141,9 +141,9 @@ A static map compiled into the controller binary defining each BFF module's prop
 | Module | Container | Port | Image Env Var | DSC Gate | Dependencies |
 |--------|-----------|------|---------------|----------|-------------|
 | agentOps | agent-ops-ui | 8843 | `RELATED_IMAGE_ODH_MOD_ARCH_AGENT_OPS_IMAGE` | -- | -- |
-| automl | automl-ui | 8543 | `RELATED_IMAGE_ODH_MOD_ARCH_AUTOML_IMAGE` | `aipipelines` | -- |
-| autorag | autorag-ui | 8643 | `RELATED_IMAGE_ODH_MOD_ARCH_AUTORAG_IMAGE` | `aipipelines` | `genAi` |
-| evalHub | eval-hub-ui | 8443 | `RELATED_IMAGE_ODH_MOD_ARCH_EVAL_HUB_IMAGE` | `trustyai` | -- |
+| automl | automl-ui | 8643 | `RELATED_IMAGE_ODH_MOD_ARCH_AUTOML_IMAGE` | `aipipelines` | -- |
+| autorag | autorag-ui | 8743 | `RELATED_IMAGE_ODH_MOD_ARCH_AUTORAG_IMAGE` | `aipipelines` | `genAi` |
+| evalHub | eval-hub-ui | 8543 | `RELATED_IMAGE_ODH_MOD_ARCH_EVAL_HUB_IMAGE` | `trustyai` | -- |
 | genAi | gen-ai-ui | 8143 | `RELATED_IMAGE_ODH_MOD_ARCH_GEN_AI_IMAGE` | -- | -- |
 | maas | maas-ui | 8243 | `RELATED_IMAGE_ODH_MOD_ARCH_MAAS_IMAGE` | -- | -- |
 | mlflow | mlflow-ui | 8343 | `RELATED_IMAGE_ODH_MOD_ARCH_MLFLOW_IMAGE` | `mlflowoperator` | -- |
