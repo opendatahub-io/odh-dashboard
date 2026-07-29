@@ -442,7 +442,7 @@ describe('Pipeline runs', () => {
         });
 
         it('compare runs button navigates to MLflow when dev flag is enabled', () => {
-          cy.interceptOdh('GET /api/config', mockDashboardConfig({ mlflowPipelines: true }));
+          cy.interceptOdh('GET /api/config', mockDashboardConfig({}));
           interceptMlflowStatus();
           interceptDSPAMlflowIntegration(projectName);
           pipelineRunsGlobal.visit(projectName, 'active');
@@ -461,7 +461,6 @@ describe('Pipeline runs', () => {
         });
 
         it('compare runs button navigates to KFP when MLflow dev flag is disabled', () => {
-          cy.interceptOdh('GET /api/config', mockDashboardConfig({ mlflowPipelines: false }));
           interceptMlflowStatus(false);
           interceptDSPAMlflowIntegration(projectName, DSPAMlflowIntegrationMode.DISABLED);
           cy.interceptOdh(
@@ -501,7 +500,7 @@ describe('Pipeline runs', () => {
         });
 
         it('compare runs falls back to KFP for mixed MLflow metadata when MLflow is enabled', () => {
-          cy.interceptOdh('GET /api/config', mockDashboardConfig({ mlflowPipelines: true }));
+          cy.interceptOdh('GET /api/config', mockDashboardConfig({}));
           interceptMlflowStatus();
           interceptDSPAMlflowIntegration(projectName);
           const runWithoutMlflow = buildMockRunKF({
@@ -551,7 +550,7 @@ describe('Pipeline runs', () => {
         });
 
         it('per-row kebab Compare runs navigates to MLflow when MLflow metadata is present', () => {
-          cy.interceptOdh('GET /api/config', mockDashboardConfig({ mlflowPipelines: true }));
+          cy.interceptOdh('GET /api/config', mockDashboardConfig({}));
           interceptMlflowStatus();
           interceptDSPAMlflowIntegration(projectName);
           pipelineRunsGlobal.visit(projectName, 'active');
@@ -666,7 +665,7 @@ describe('Pipeline runs', () => {
         });
 
         it('filter by MLflow experiment', () => {
-          cy.interceptOdh('GET /api/config', mockDashboardConfig({ mlflowPipelines: true }));
+          cy.interceptOdh('GET /api/config', mockDashboardConfig({}));
           interceptMlflowStatus();
           const runsWithMlflow = [
             buildMockRunKF({
