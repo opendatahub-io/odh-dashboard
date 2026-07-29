@@ -22,7 +22,9 @@ export const DeploymentMetricsLink: React.FC<{
       data-testid={`metrics-link-${getDisplayNameFromK8sResource(deployment.model)}`}
       {...props}
     >
-      {getDisplayNameFromK8sResource(deployment.model)}
+      <span data-testid="deployed-model-name">
+        {getDisplayNameFromK8sResource(deployment.model)}
+      </span>
     </Link>
   );
 };
