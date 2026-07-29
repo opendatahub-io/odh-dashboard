@@ -9,6 +9,7 @@ import type {
 } from '@odh-dashboard/k8s-core';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import type { InferenceServiceKind, ServingRuntimeKind } from '@odh-dashboard/model-serving/shared';
+import { CurrentProjectContext } from '@odh-dashboard/ui-core/context/CurrentProjectContext';
 import { FetchStateObject } from '@odh-dashboard/ui-core/hooks/useFetch';
 import { DEFAULT_LIST_FETCH_STATE } from '@odh-dashboard/ui-core/utilities/fetchState';
 import { GroupKind, LocalQueueKind, RoleBindingKind } from '#~/k8sTypes';
@@ -209,16 +210,23 @@ const ProjectDetailsContextProvider: React.FC = () => {
     );
   }
 
+  const currentProjectValue = React.useMemo(
+    () => ({ currentProject: project }),
+    [project],
+  );
+
   return (
-    <ProjectDetailsContext.Provider value={contextValue}>
-      {pipelinesEnabled ? (
-        <PipelineContextProvider namespace={project.metadata.name}>
+    <CurrentProjectContext.Provider value={currentProjectValue}>
+      <ProjectDetailsContext.Provider value={contextValue}>
+        {pipelinesEnabled ? (
+          <PipelineContextProvider namespace={project.metadata.name}>
+            <Outlet />
+          </PipelineContextProvider>
+        ) : (
           <Outlet />
-        </PipelineContextProvider>
-      ) : (
-        <Outlet />
-      )}
-    </ProjectDetailsContext.Provider>
+        )}
+      </ProjectDetailsContext.Provider>
+    </CurrentProjectContext.Provider>
   );
 };
 

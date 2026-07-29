@@ -4,6 +4,7 @@ import {
   HardwareProfileFeatureVisibility,
 } from '@odh-dashboard/k8s-core';
 import { HardwareProfilesContext } from '@odh-dashboard/internal/concepts/hardwareProfiles/HardwareProfilesContext';
+import { useCurrentProject } from '@odh-dashboard/ui-core/context/CurrentProjectContext';
 import { ProjectDetailsContext } from '@odh-dashboard/internal/pages/projects/ProjectDetailsContext';
 import { useWatchHardwareProfiles } from '@odh-dashboard/internal/utilities/useWatchHardwareProfiles';
 import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors';
@@ -39,8 +40,8 @@ export const useHardwareProfilesByFeatureVisibility = (
     globalHardwareProfiles: [globalProfiles, globalProfilesLoaded, globalProfilesError],
   } = React.useContext(HardwareProfilesContext);
 
-  // Try to get project profiles from ProjectDetailsContext
-  const { currentProject, projectHardwareProfiles: contextProjectProfiles } =
+  const currentProject = useCurrentProject();
+  const { projectHardwareProfiles: contextProjectProfiles } =
     React.useContext(ProjectDetailsContext);
 
   // Determine if we should use context project profiles or fetch them
