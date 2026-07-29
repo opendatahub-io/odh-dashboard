@@ -396,8 +396,8 @@ const CreateRolePage: React.FC<CreateRolePageProps> = ({ existingRole, duplicate
   const pageTitle = isEdit
     ? 'Edit custom role'
     : isDuplicate
-    ? 'duplicate custom role'
-    : 'create custom role';
+    ? 'Duplicate custom role'
+    : 'Create custom role';
 
   return (
     <>
