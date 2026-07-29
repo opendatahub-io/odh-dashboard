@@ -5,8 +5,6 @@ import { modelVersionDeploymentsUrl } from '~/app/pages/modelRegistry/screens/ro
 import { useModelArtifactsByVersionId, useRegisteredModelById } from '~/odh/api';
 import { uriToConnectionTypeName } from '~/odh/utils';
 
-export type { ModelDeployPrefillInfo } from '@odh-dashboard/model-registry/shared';
-
 const useRegisteredModelDeployPrefillInfo = (
   modelVersion: ModelVersion,
   mrName?: string,

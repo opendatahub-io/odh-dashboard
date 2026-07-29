@@ -61,8 +61,6 @@ export type CreatingServingRuntimeObject = CreatingModelServingObjectCommon & {
   scope?: string;
 };
 
-export type { ModelDeployPrefillInfo } from '@odh-dashboard/model-registry/shared';
-
 export type ServingRuntimeAnnotations = Partial<{
   'opendatahub.io/template-name': string;
   'opendatahub.io/template-display-name': string;

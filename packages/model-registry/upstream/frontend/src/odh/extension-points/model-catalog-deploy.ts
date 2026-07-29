@@ -2,8 +2,6 @@ import type { Extension, CodeRef } from '@openshift/dynamic-plugin-sdk';
 import { createExtensionGuard } from '@odh-dashboard/plugin-core/extension-points';
 import type { DeployPrefillData } from '@odh-dashboard/model-registry/shared';
 
-export type { DeployPrefillData } from '@odh-dashboard/model-registry/shared';
-
 export type NavigateToDeploymentWizardWithDataExtension = Extension<
   'model-catalog.deployment/navigate-wizard',
   {

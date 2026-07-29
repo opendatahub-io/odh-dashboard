@@ -5,8 +5,8 @@ import {
   resourceTypeLimits,
 } from '@odh-dashboard/k8s-core';
 import { useWatchConnectionTypes } from '@odh-dashboard/internal/utilities/useWatchConnectionTypes';
+import type { DeployPrefillData } from '@odh-dashboard/model-registry/shared';
 import { ServingRuntimeModelType } from '@odh-dashboard/model-serving/shared';
-import type { DeployPrefillData } from './types';
 import {
   ConnectionTypeRefs,
   InitialWizardFormData,
