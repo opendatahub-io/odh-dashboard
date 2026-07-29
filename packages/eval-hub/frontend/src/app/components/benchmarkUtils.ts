@@ -24,7 +24,7 @@ export const getCategoryColor = (category?: string): CategoryColor => {
 export const capitalizeFirst = (value: string): string =>
   value.charAt(0).toUpperCase() + value.slice(1);
 
-export const toSentenceCase = (value: string): string => {
+export const toTitleCase = (value: string): string => {
   if (!value) {
     return value;
   }
