@@ -10,6 +10,7 @@ import type { McpCatalogFilterOptionsList } from '~/app/pages/mcpCatalog/types/m
 export const mockMcpServer = (partial?: Partial<McpServer>): McpServer => ({
   id: '1',
   name: 'Kubernetes',
+  displayName: 'Kubernetes MCP',
   description: 'Control and inspect Kubernetes clusters.',
   deploymentMode: 'local',
   securityIndicators: { verifiedSource: true, sast: true },

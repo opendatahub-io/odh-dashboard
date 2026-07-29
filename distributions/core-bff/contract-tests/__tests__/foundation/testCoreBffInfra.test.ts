@@ -244,8 +244,83 @@ describe('Core BFF Infrastructure', () => {
   });
 
   describe('Unmatched API Path', () => {
-    it('should return 404 for GET /api/nonexistent', async () => {
-      expectError(await apiClient.get('/api/nonexistent-path-12345'), 404);
+    it('should return 404 with ErrorResponse shape for GET /api/nonexistent', async () => {
+      const result = await apiClient.get('/api/nonexistent-path-12345');
+      const err = expectError(result, 404);
+      expect({ status: err.status, data: err.data, headers: err.headers }).toMatchContract(
+        apiSchema,
+        {
+          ref: '#/components/schemas/ErrorResponse',
+          status: 404,
+        },
+      );
+      const body = err.data as { error: { code: string; message: string } };
+      expect(body.error.code).toBe('NOT_FOUND');
+    });
+
+    it('should return 405 with ErrorResponse shape for wrong method on known path', async () => {
+      const result = await apiClient.delete('/api/config');
+      const err = expectError(result, 405);
+      expect({ status: err.status, data: err.data, headers: err.headers }).toMatchContract(
+        apiSchema,
+        {
+          ref: '#/components/schemas/ErrorResponse',
+          status: 405,
+        },
+      );
+      const body = err.data as { error: { code: string } };
+      expect(body.error.code).toBe('METHOD_NOT_ALLOWED');
+    });
+
+    it('should return 401 for unauthenticated request to non-existent API path', async () => {
+      expectError(await unauthenticatedClient.get('/api/nonexistent-path-12345'), 401);
+    });
+  });
+
+  describe('SPA Catch-all', () => {
+    it('should return HTML for GET /', async () => {
+      const result = await apiClient.get('/');
+      const { response } = expectSuccess(result);
+      expect(response.status).toBe(200);
+      const contentType = response.headers['content-type'] || '';
+      expect(contentType).toContain('text/html');
+    });
+
+    it('should return index.html fallback for unknown non-API path', async () => {
+      const result = await apiClient.get('/some/client-side/route');
+      const { response } = expectSuccess(result);
+      expect(response.status).toBe(200);
+      const contentType = response.headers['content-type'] || '';
+      expect(contentType).toContain('text/html');
+    });
+
+    it('should serve static assets directly', async () => {
+      const result = await apiClient.get('/sub/test.html');
+      const { response } = expectSuccess(result);
+      expect(response.status).toBe(200);
+      const contentType = response.headers['content-type'] || '';
+      expect(contentType).toContain('text/html');
+      const body =
+        typeof response.data === 'string' ? response.data : JSON.stringify(response.data);
+      expect(body).toContain('Subfolder Page');
+    });
+
+    it('should not require authentication for SPA routes', async () => {
+      const result = await unauthenticatedClient.get('/');
+      const { response } = expectSuccess(result);
+      expect(response.status).toBe(200);
+    });
+  });
+
+  describe('WebSocket Proxy Path', () => {
+    it('should return 400 for non-upgrade HTTP request to WebSocket path', async () => {
+      const err = expectError(await apiClient.get('/wss/k8s/api/v1/namespaces'), 400);
+      const body = typeof err.data === 'string' ? err.data : JSON.stringify(err.data);
+      expect(body).toContain('WebSocket upgrade required');
+    });
+
+    it('should return 401 for unauthenticated WebSocket path request', async () => {
+      expectError(await unauthenticatedClient.get('/wss/k8s/api/v1/namespaces'), 401);
     });
   });
 });

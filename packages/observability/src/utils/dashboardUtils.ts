@@ -3,7 +3,8 @@ import type { AccessReviewResourceAttributes } from '@odh-dashboard/k8s-core';
 import { isClusterDetailsVariable } from './variables';
 
 export const BASE_PATH = '/observe-and-monitor/dashboard';
-export const DASHBOARD_QUERY_PARAM = 'dashboard';
+export const DASHBOARD_URL_PARAM = 'dashboard';
+export const NAMESPACE_URL_PARAM = 'var-namespace';
 
 const PERSES_DASHBOARD_PREFIX = 'dashboard-';
 const PERSES_DASHBOARD_ADMIN_SUFFIX = '-admin';
@@ -24,31 +25,6 @@ export const THANOS_QUERIER_NON_TENANCY_ACCESS: AccessReviewResourceAttributes =
   verb: 'get',
   namespace: 'openshift-monitoring',
   name: 'k8s',
-};
-
-/**
- * Perses dashboards backed by the Thanos querier non-tenancy path (cluster-wide metrics).
- * Gated by {@link THANOS_QUERIER_NON_TENANCY_ACCESS}.
- */
-export const THANOS_NON_TENANCY_GATED_DASHBOARD_NAMES: ReadonlySet<string> = new Set([
-  'dashboard-0-cluster-admin',
-  'dashboard-1-model',
-]);
-
-/**
- * Removes dashboards that require Thanos non-tenancy / cluster-monitoring-equivalent access
- * when the user fails the corresponding RBAC check.
- */
-export const filterDashboardsByThanosNonTenancyAccess = (
-  dashboards: DashboardResource[],
-  canAccessThanosNonTenancy: boolean,
-): DashboardResource[] => {
-  if (canAccessThanosNonTenancy) {
-    return dashboards;
-  }
-  return dashboards.filter(
-    ({ metadata: { name } }) => !THANOS_NON_TENANCY_GATED_DASHBOARD_NAMES.has(name),
-  );
 };
 
 /**
@@ -95,7 +71,7 @@ export function filterDashboards(
  */
 export const buildDashboardUrl = (dashboardName: string, currentSearch?: string): string => {
   const params = new URLSearchParams(currentSearch);
-  params.set(DASHBOARD_QUERY_PARAM, dashboardName);
+  params.set(DASHBOARD_URL_PARAM, dashboardName);
   return `${BASE_PATH}?${params.toString()}`;
 };
 
@@ -111,4 +87,12 @@ export const getDashboardDisplayName = (dashboard: DashboardResource): string =>
 export const hasClusterDetailsVariables = (dashboard: DashboardResource): boolean => {
   const { variables = [] } = dashboard.spec;
   return variables.some((variable) => isClusterDetailsVariable(variable.spec.name));
+};
+
+/**
+ * Check if a dashboard has a `namespace` variable (project-scoped / tenancy metrics).
+ */
+export const hasNamespaceVariable = (dashboard: DashboardResource): boolean => {
+  const { variables = [] } = dashboard.spec;
+  return variables.some((variable) => variable.spec.name === 'namespace');
 };

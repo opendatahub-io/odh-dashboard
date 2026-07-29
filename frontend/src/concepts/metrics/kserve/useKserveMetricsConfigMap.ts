@@ -1,5 +1,8 @@
 import * as React from 'react';
-import useFetchState, { FetchState, FetchStateCallbackPromise } from '#~/utilities/useFetchState';
+import useFetchState, {
+  FetchState,
+  FetchStateCallbackPromise,
+} from '@odh-dashboard/ui-core/hooks/useFetchState';
 import { getConfigMap } from '#~/api';
 import { KSERVE_METRICS_CONFIG_MAP_NAME_SUFFIX } from '#~/concepts/metrics/kserve/const';
 import { KserveMetricsConfigMapKind } from '#~/concepts/metrics/kserve/types';

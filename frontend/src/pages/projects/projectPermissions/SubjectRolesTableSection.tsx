@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Flex, FlexItem, Stack, StackItem, Title } from '@patternfly/react-core';
-import HeaderIcon from '#~/concepts/design/HeaderIcon';
+import HeaderIcon from '@odh-dashboard/ui-core/design/HeaderIcon';
 import { ProjectObjectType } from '#~/concepts/design/utils';
 import type { FilterDataType } from './const';
 import SubjectRolesTable from './SubjectRolesTable';

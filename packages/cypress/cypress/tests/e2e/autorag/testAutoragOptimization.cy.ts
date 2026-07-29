@@ -21,6 +21,7 @@ import {
   verifyAutoragRunSubmitted,
   waitForAutoragRunCompletion,
   verifyAutoragResultsInteraction,
+  verifyTryThisPatternInteraction,
 } from '../../../utils/autoragTestFlows';
 
 const uuid = generateTestUUID();
@@ -132,6 +133,7 @@ describe('AutoRAG Optimization E2E', { testIsolation: false }, () => {
 
       waitForAutoragRunCompletion();
       verifyAutoragResultsInteraction();
+      verifyTryThisPatternInteraction();
     },
   );
 });

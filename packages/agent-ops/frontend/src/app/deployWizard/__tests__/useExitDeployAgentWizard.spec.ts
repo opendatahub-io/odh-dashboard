@@ -1,7 +1,10 @@
 import '@testing-library/jest-dom';
 import { act, renderHook } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { useExitDeployAgentWizard } from '~/app/deployWizard/useExitDeployAgentWizard';
+import {
+  resolveDeployWizardCancelRoute,
+  useExitDeployAgentWizard,
+} from '~/app/deployWizard/useExitDeployAgentWizard';
 
 const mockNavigate = jest.fn();
 
@@ -9,6 +12,28 @@ jest.mock('react-router-dom', () => ({
   ...jest.requireActual<typeof import('react-router-dom')>('react-router-dom'),
   useNavigate: () => mockNavigate,
 }));
+
+describe('resolveDeployWizardCancelRoute', () => {
+  it('uses returnRoute when project matches entry namespace', () => {
+    expect(
+      resolveDeployWizardCancelRoute({
+        namespace: 'team1',
+        entryNamespace: 'team1',
+        returnRoute: '/ai-hub/agents/deployments/team1/my-agent',
+      }),
+    ).toBe('/ai-hub/agents/deployments/team1/my-agent');
+  });
+
+  it('falls back to current project deployments when project changed', () => {
+    expect(
+      resolveDeployWizardCancelRoute({
+        namespace: 'team2',
+        entryNamespace: 'team1',
+        returnRoute: '/ai-hub/agents/deployments/team1/my-agent',
+      }),
+    ).toBe('/ai-hub/agents/deployments/team2');
+  });
+});
 
 describe('useExitDeployAgentWizard', () => {
   beforeEach(() => {
@@ -34,6 +59,39 @@ describe('useExitDeployAgentWizard', () => {
       () =>
         useExitDeployAgentWizard({
           namespace: 'team2',
+          entryNamespace: 'team1',
+          isDirty: false,
+        }),
+      { wrapper: MemoryRouter },
+    );
+
+    result.current.exitWizard();
+    expect(mockNavigate).toHaveBeenCalledWith('/ai-hub/agents/deployments/team2');
+  });
+
+  it('navigates to returnRoute on cancel when provided and project unchanged', () => {
+    const { result } = renderHook(
+      () =>
+        useExitDeployAgentWizard({
+          namespace: 'team1',
+          entryNamespace: 'team1',
+          returnRoute: '/ai-hub/agents/deployments/team1/my-agent',
+          isDirty: false,
+        }),
+      { wrapper: MemoryRouter },
+    );
+
+    result.current.exitWizard();
+    expect(mockNavigate).toHaveBeenCalledWith('/ai-hub/agents/deployments/team1/my-agent');
+  });
+
+  it('ignores returnRoute when project changed from entry namespace', () => {
+    const { result } = renderHook(
+      () =>
+        useExitDeployAgentWizard({
+          namespace: 'team2',
+          entryNamespace: 'team1',
+          returnRoute: '/ai-hub/agents/deployments/team1/my-agent',
           isDirty: false,
         }),
       { wrapper: MemoryRouter },
@@ -59,51 +117,6 @@ describe('useExitDeployAgentWizard', () => {
 
     expect(result.current.isExitModalOpen).toBe(true);
     expect(mockNavigate).not.toHaveBeenCalled();
-  });
-
-  it('navigates to return route on submit when form is valid', () => {
-    const { result } = renderHook(
-      () =>
-        useExitDeployAgentWizard({
-          namespace: 'team1',
-          returnRoute: '/ai-hub/agents/deployments/team1',
-          isDeployFormValid: true,
-        }),
-      { wrapper: MemoryRouter },
-    );
-
-    result.current.exitWizardOnSubmit();
-    expect(mockNavigate).toHaveBeenCalledWith('/ai-hub/agents/deployments/team1');
-  });
-
-  it('does not navigate on submit when form is invalid', () => {
-    const { result } = renderHook(
-      () =>
-        useExitDeployAgentWizard({
-          namespace: 'team1',
-          returnRoute: '/ai-hub/agents/deployments/team1',
-          isDeployFormValid: false,
-        }),
-      { wrapper: MemoryRouter },
-    );
-
-    result.current.exitWizardOnSubmit();
-    expect(mockNavigate).not.toHaveBeenCalled();
-  });
-
-  it('falls back to namespace deployments route for unsafe returnRoute', () => {
-    const { result } = renderHook(
-      () =>
-        useExitDeployAgentWizard({
-          namespace: 'team1',
-          returnRoute: 'https://evil.com',
-          isDeployFormValid: true,
-        }),
-      { wrapper: MemoryRouter },
-    );
-
-    result.current.exitWizardOnSubmit();
-    expect(mockNavigate).toHaveBeenCalledWith('/ai-hub/agents/deployments/team1');
   });
 
   it('closes exit modal without navigating', () => {

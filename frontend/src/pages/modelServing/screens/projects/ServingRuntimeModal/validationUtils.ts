@@ -5,7 +5,7 @@ import {
   isMemoryLimitLarger,
   MEMORY_UNITS_FOR_PARSING,
   splitValueUnit,
-} from '#~/utilities/valueUnits.ts';
+} from '@odh-dashboard/ui-core/utilities/valueUnits';
 
 const resourceSchema = z
   .object({

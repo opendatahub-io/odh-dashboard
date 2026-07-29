@@ -1,6 +1,7 @@
 import { FastifyReply, FastifyRequest } from 'fastify';
 import { PatchUtils } from '@kubernetes/client-node';
-import { KubeFastifyInstance, RecursivePartial, Template } from '../../../types';
+import type { RecursivePartial } from '@odh-dashboard/foundation';
+import { KubeFastifyInstance, Template } from '../../../types';
 import { secureAdminRoute } from '../../../utils/route-security';
 
 module.exports = async (fastify: KubeFastifyInstance) => {

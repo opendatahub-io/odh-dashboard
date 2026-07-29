@@ -4,6 +4,7 @@ import {
   restoreDefaultGroupsConfig,
   updateGroupsConfig,
 } from '../../../../utils/oc_commands/groupConfig';
+import { ensureAdminOcSession } from '../../../../utils/oc_commands/baseCommands';
 
 describe('Verify Unauthorized User Is Not Able To Spawn Jupyter Notebook', () => {
   before(() => {
@@ -15,6 +16,7 @@ describe('Verify Unauthorized User Is Not Able To Spawn Jupyter Notebook', () =>
   });
 
   after(() => {
+    ensureAdminOcSession();
     cy.step('Restore default groups configuration');
     restoreDefaultGroupsConfig();
   });

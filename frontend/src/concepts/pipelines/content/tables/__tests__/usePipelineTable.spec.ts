@@ -1,10 +1,10 @@
 import { act } from 'react';
 import * as React from 'react';
 import { testHook } from '@odh-dashboard/jest-config/hooks';
+import { FetchState } from '@odh-dashboard/ui-core/hooks/useFetchState';
 import createUsePipelineTable from '#~/concepts/pipelines/content/tables/usePipelineTable';
 import { PipelineCoreResourceKF, PipelineRunKF } from '#~/concepts/pipelines/kfTypes';
 import { PipelineListPaged, PipelineOptions } from '#~/concepts/pipelines/types';
-import { FetchState } from '#~/utilities/useFetchState';
 
 describe('usePipelineTable', () => {
   it('should indicate initialLoaded after first load', async () => {

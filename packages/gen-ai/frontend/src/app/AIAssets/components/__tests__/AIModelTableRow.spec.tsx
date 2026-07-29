@@ -27,6 +27,13 @@ jest.mock('../AIModelsTableRowInfo', () => ({
   ),
 }));
 
+jest.mock('~/app/components/CapabilityBadges', () => ({
+  __esModule: true,
+  default: ({ capabilities }: { capabilities?: string[] }) => (
+    <div data-testid="capability-badges">{(capabilities ?? []).join(',')}</div>
+  ),
+}));
+
 jest.mock('~/app/Chatbot/components/chatbotConfiguration/ChatbotConfigurationModal', () => ({
   __esModule: true,
   default: ({ onClose }: { onClose: () => void }) => (

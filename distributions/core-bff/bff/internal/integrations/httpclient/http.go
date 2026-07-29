@@ -12,6 +12,7 @@ import (
 	"strconv"
 
 	"github.com/google/uuid"
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/constants"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/helpers"
 )
 
@@ -91,7 +92,7 @@ func (c *HTTPClient) doRequest(ctx context.Context, method, url string, body io.
 	}
 
 	if body != nil {
-		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set(constants.HeaderContentType, constants.ContentTypeJSON)
 	}
 
 	c.applyHeaders(req)

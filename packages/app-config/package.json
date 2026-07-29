@@ -4,7 +4,8 @@
   "description": "Configuration and utilities for application",
   "version": "0.0.0",
   "bin": {
-    "package-subtree": "./scripts/package-subtree.sh"
+    "package-subtree": "./scripts/package-subtree.sh",
+    "package-subtree-local": "./scripts/package-subtree-local.sh"
   },
   "exports": {
     ".": {

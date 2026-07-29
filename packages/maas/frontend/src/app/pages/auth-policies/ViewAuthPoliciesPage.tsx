@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
-import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
+import { ApplicationsPage, TrackingOutcome } from '@odh-dashboard/ui-core';
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -10,15 +10,22 @@ import {
   TabTitleText,
 } from '@patternfly/react-core';
 import SimpleMenuActions from '@odh-dashboard/internal/components/SimpleMenuActions';
+import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { useGetPolicyInfo } from '~/app/hooks/useGetPolicyInfo';
 import { MaaSAuthPolicy, MaaSModelRefSummary } from '~/app/types/subscriptions';
 import { PolicyInfoResponse } from '~/app/types/auth-policies';
-import { URL_PREFIX } from '~/app/utilities/const';
 import {
+  getAuthPolicyEditUrl,
   getBackUrl,
   getBreadcrumbLabelFromState,
+  getSectionUrl,
 } from '~/app/utilities/subscriptionManagementNavigation';
 import MaasModelsSection from '~/app/shared/MaasModelsSection';
+import {
+  EventTrackingResourceType,
+  EventTrackingSource,
+  MaaSEvents,
+} from '~/app/types/event-tracking';
 import DeleteAuthPolicyModal from './DeleteAuthPolicyModal';
 import PolicyDetailsSection from './viewAuthPolicy/PolicyDetailsSection';
 import PolicyGroupsSection from './viewAuthPolicy/PolicyGroupsSection';
@@ -49,7 +56,7 @@ const viewModelRefSummaries = (info: PolicyInfoResponse): MaaSModelRefSummary[] 
 const PolicyActions: React.FC<PolicyActionsProps> = ({ policy, returnTo }) => {
   const navigate = useNavigate();
   const [isDeleteOpen, setIsDeleteOpen] = React.useState(false);
-  const base = returnTo ?? `${URL_PREFIX}/auth-policies`;
+  const backUrl = returnTo ?? getSectionUrl('auth-policies');
   const navState = returnTo ? { state: { returnTo } } : undefined;
 
   return (
@@ -60,7 +67,7 @@ const PolicyActions: React.FC<PolicyActionsProps> = ({ policy, returnTo }) => {
           {
             key: 'edit',
             label: 'Edit',
-            onClick: () => navigate(`${base}/edit/${encodeURIComponent(policy.name)}`, navState),
+            onClick: () => navigate(getAuthPolicyEditUrl(policy.name), navState),
             isDisabled: !!policy.deletionTimestamp,
           },
           { isSpacer: true },
@@ -78,7 +85,20 @@ const PolicyActions: React.FC<PolicyActionsProps> = ({ policy, returnTo }) => {
           onClose={(deleted) => {
             setIsDeleteOpen(false);
             if (deleted) {
-              navigate(base);
+              fireFormTrackingEvent(MaaSEvents.MAAS_RESOURCE_DELETED, {
+                resourceType: EventTrackingResourceType.AUTHPOLICY,
+                source: EventTrackingSource.DETAIL_KEBAB,
+                resourceStatus: policy.phase ?? '',
+                outcome: TrackingOutcome.submit,
+              });
+              navigate(backUrl);
+            } else {
+              fireFormTrackingEvent(MaaSEvents.MAAS_RESOURCE_DELETED, {
+                resourceType: EventTrackingResourceType.AUTHPOLICY,
+                source: EventTrackingSource.DETAIL_KEBAB,
+                resourceStatus: policy.phase ?? '',
+                outcome: TrackingOutcome.cancel,
+              });
             }
           }}
         />
@@ -93,7 +113,7 @@ const ViewAuthPoliciesPage: React.FC = () => {
   const [activeTab, setActiveTab] = React.useState<string | number>('details');
   const [policyInfo, loaded, loadError] = useGetPolicyInfo(authPolicyName);
 
-  const backUrl = getBackUrl(location.pathname, location.state, 'auth-policies');
+  const backUrl = getBackUrl(location.state, 'auth-policies');
   const breadcrumbLabel = getBreadcrumbLabelFromState(location.state) ?? 'Authorization policies';
 
   const breadcrumb = (

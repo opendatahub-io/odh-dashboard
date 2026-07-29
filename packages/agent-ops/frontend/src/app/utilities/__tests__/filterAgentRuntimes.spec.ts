@@ -29,10 +29,6 @@ describe('filterAgentRuntimes', () => {
     endpointUrl: '',
   });
   const runtimes = [...agentOpsRuntimes, otherProjectRuntime];
-  const projectDisplayNames = {
-    'agent-ops-demo': 'Agent Ops Demo',
-    'other-project': 'Other Project',
-  };
 
   it('returns all runtimes when no filters are active', () => {
     expect(filterAgentRuntimes(runtimes, emptyAgentRuntimesFilterData)).toEqual(runtimes);
@@ -45,45 +41,6 @@ describe('filterAgentRuntimes', () => {
         [AgentRuntimesFilterOption.Name]: 'pending',
       }),
     ).toEqual([createPendingRuntime()]);
-  });
-
-  it('filters runtimes by project namespace', () => {
-    expect(
-      filterAgentRuntimes(
-        runtimes,
-        {
-          ...emptyAgentRuntimesFilterData,
-          [AgentRuntimesFilterOption.Project]: 'agent-ops',
-        },
-        projectDisplayNames,
-      ),
-    ).toEqual(agentOpsRuntimes);
-  });
-
-  it('filters runtimes by project display name', () => {
-    expect(
-      filterAgentRuntimes(
-        runtimes,
-        {
-          ...emptyAgentRuntimesFilterData,
-          [AgentRuntimesFilterOption.Project]: 'demo',
-        },
-        projectDisplayNames,
-      ),
-    ).toEqual(agentOpsRuntimes);
-  });
-
-  it('excludes runtimes that do not match the project filter', () => {
-    expect(
-      filterAgentRuntimes(
-        runtimes,
-        {
-          ...emptyAgentRuntimesFilterData,
-          [AgentRuntimesFilterOption.Project]: 'other-project',
-        },
-        projectDisplayNames,
-      ),
-    ).toEqual([otherProjectRuntime]);
   });
 
   it('filters runtimes by Ready status', () => {
@@ -141,18 +98,11 @@ describe('hasActiveAgentRuntimesFilters', () => {
     expect(hasActiveAgentRuntimesFilters(emptyAgentRuntimesFilterData)).toBe(false);
   });
 
-  it('returns true when name, project, or status filters are set', () => {
+  it('returns true when name or status filters are set', () => {
     expect(
       hasActiveAgentRuntimesFilters({
         ...emptyAgentRuntimesFilterData,
         [AgentRuntimesFilterOption.Name]: 'agent',
-      }),
-    ).toBe(true);
-
-    expect(
-      hasActiveAgentRuntimesFilters({
-        ...emptyAgentRuntimesFilterData,
-        [AgentRuntimesFilterOption.Project]: 'demo',
       }),
     ).toBe(true);
 

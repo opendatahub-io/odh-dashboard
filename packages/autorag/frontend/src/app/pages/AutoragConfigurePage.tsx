@@ -171,15 +171,15 @@ function AutoragConfigurePage({
             )
           ) : (
             <span data-testid="configure-step-subtitle">
-              &quot;
+              Run &ldquo;
               <Truncate content={displayName || ''} />
-              &quot; configurations
+              &rdquo; AutoRAG experiment
             </span>
           )}
         </h2>
       }
       description={
-        step === 'create' && (
+        step === 'create' ? (
           <Content>
             Automatically test and tune retrieval, indexing, and model settings to improve
             Retrieval-Augmented Generation (RAG) response quality.
@@ -191,6 +191,8 @@ function AutoragConfigurePage({
               </>
             )}
           </Content>
+        ) : (
+          <Content>Configure details for this experiment run.</Content>
         )
       }
       breadcrumb={

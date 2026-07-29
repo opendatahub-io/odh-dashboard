@@ -20,7 +20,7 @@
     "endpoint": "/v1/chat/completions",
     "model": "models/gemini-2.5-flash",
     "provider_metadata": {
-      "openai_sdk_version": "2.41.1"
+      "openai_sdk_version": "2.45.0"
     }
   },
   "response": {
@@ -32,7 +32,7 @@
           "choices": [
             {
               "delta": {
-                "content": "Hello there!\n\nAh, from the world of Mobility as a Service, I presume? That's an incredibly dynamic and vital field.\n\nHow can I assist you today? What's on your mind from the integrated transportation ecosystem",
+                "content": "Hello there!\n\nAh, Mobility as a Service \u2013 a truly fascinating and transformative",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -50,9 +50,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 47,
+            "completion_tokens": 16,
             "prompt_tokens": 5,
-            "total_tokens": 807,
+            "total_tokens": 804,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -65,7 +65,7 @@
           "choices": [
             {
               "delta": {
-                "content": "?",
+                "content": " concept for urban transportation and beyond! Integrating all those different travel options into one seamless experience is such a powerful idea.\n\nWhat's on your mind today, or what aspects of MaaS are you interested in discussing?",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -83,9 +83,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 48,
+            "completion_tokens": 60,
             "prompt_tokens": 5,
-            "total_tokens": 808,
+            "total_tokens": 848,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }

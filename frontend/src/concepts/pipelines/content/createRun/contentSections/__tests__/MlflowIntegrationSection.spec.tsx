@@ -12,7 +12,7 @@ jest.mock('#~/concepts/mlflow/MlflowExperimentSelector', () => {
   return MockMlflowExperimentSelector;
 });
 
-jest.mock('#~/concepts/dashboard/DashboardHelpTooltip', () => {
+jest.mock('@odh-dashboard/ui-core/components/DashboardHelpTooltip', () => {
   const MockDashboardHelpTooltip = () => <div data-testid="dashboard-help-tooltip" />;
   MockDashboardHelpTooltip.displayName = 'MockDashboardHelpTooltip';
   return MockDashboardHelpTooltip;

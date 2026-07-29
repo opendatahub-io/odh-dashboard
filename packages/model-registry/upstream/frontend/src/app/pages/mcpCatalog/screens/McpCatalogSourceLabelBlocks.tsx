@@ -7,14 +7,24 @@ import { OTHER_MCP_SERVERS_DISPLAY_NAME } from '~/app/pages/mcpCatalog/const';
 const ALL_SERVERS_LABEL = 'All MCP servers';
 
 const McpCatalogSourceLabelBlocks: React.FC = () => {
-  const { catalogSources, catalogLabels, selectedSourceLabel, setSelectedSourceLabel } =
-    React.useContext(McpCatalogContext);
+  const {
+    catalogSources,
+    catalogLabels,
+    selectedSourceLabel,
+    setSelectedSourceLabel,
+    emptyCategoryLabels,
+    categoriesResolved,
+  } = React.useContext(McpCatalogContext);
 
   const getLabelDisplayNameForMcp = React.useCallback(
     (label: string) =>
       getLabelDisplayName(label, catalogLabels, OTHER_MCP_SERVERS_DISPLAY_NAME, 'servers'),
     [catalogLabels],
   );
+
+  if (!categoriesResolved) {
+    return null;
+  }
 
   return (
     <CatalogSourceLabelToggle
@@ -24,6 +34,7 @@ const McpCatalogSourceLabelBlocks: React.FC = () => {
       onSelectSourceLabel={setSelectedSourceLabel}
       allBlockLabel={undefined}
       allBlockDisplayName={ALL_SERVERS_LABEL}
+      emptyCategoryLabels={emptyCategoryLabels}
       testId="mcp-catalog-category-toggle"
       ariaLabel="MCP category selection"
       hideWhenSingleCategory

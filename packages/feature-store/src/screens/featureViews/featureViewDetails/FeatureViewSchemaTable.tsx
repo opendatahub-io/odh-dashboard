@@ -12,11 +12,16 @@ import { Td, Tr } from '@patternfly/react-table';
 import { SearchIcon } from '@patternfly/react-icons';
 import { Link } from 'react-router';
 import { Table } from '@odh-dashboard/ui-core';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { FeatureView } from '../../../types/featureView';
 import { FeatureStoreToolbar } from '../../../components/FeatureStoreToolbar';
 import { useFeatureStoreProject } from '../../../FeatureStoreContext';
 import { getSchemaItemValue, getSchemaItemLink } from '../utils';
 import { schemaColumns, schemaFilterOptions } from '../const';
+import {
+  FEATURE_STORE_EVENTS,
+  FilterRemovedProperties,
+} from '../../../tracking/featureStoreTrackingConstants';
 
 export type SchemaItem = {
   column: string;
@@ -61,7 +66,13 @@ const FeatureViewSchemaTable: React.FC<FeatureViewSchemaTableProps> = ({ feature
     [],
   );
 
-  const onClearFilters = React.useCallback(() => setFilterData({}), []);
+  const onClearFilters = React.useCallback(() => {
+    fireMiscTrackingEvent(FEATURE_STORE_EVENTS.FILTER_REMOVED, {
+      action: 'clearAll',
+      resourceType: 'featureView',
+    } satisfies FilterRemovedProperties);
+    setFilterData({});
+  }, []);
 
   const schemaData = React.useMemo(
     () => [
@@ -139,6 +150,7 @@ const FeatureViewSchemaTable: React.FC<FeatureViewSchemaTableProps> = ({ feature
           filterOptions={schemaFilterOptions}
           filterData={filterData}
           onFilterUpdate={onFilterUpdate}
+          trackingResourceType="featureView"
         />
       }
       onClearFilters={onClearFilters}

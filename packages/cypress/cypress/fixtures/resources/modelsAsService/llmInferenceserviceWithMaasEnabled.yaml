@@ -1,0 +1,37 @@
+apiVersion: serving.kserve.io/v1alpha1
+kind: LLMInferenceService
+metadata:
+  name: "{{MODEL_NAME}}"
+  namespace: "{{PROJECT_NAME}}"
+  annotations:
+    openshift.io/display-name: "{{MODEL_NAME}}"
+    opendatahub.io/model-type: generative
+    opendatahub.io/connections: {{CONNECTION_NAME}}
+    opendatahub.io/hardware-profile-name: default-profile
+    opendatahub.io/hardware-profile-namespace: redhat-ods-applications
+    opendatahub.io/hardware-profile-resource-version: "59004239"
+  labels:
+    opendatahub.io/dashboard: "true"
+spec:
+  model:
+    uri: ""
+    name: "{{MODEL_NAME}}"
+  router:
+    scheduler: {}
+    route: {}
+    gateway:
+      refs:
+        - name: maas-default-gateway
+          namespace: openshift-ingress
+  template:
+    containers:
+      - name: main
+        image: quay.io/pierdipi/vllm-cpu:latest
+        resources:
+          requests:
+            cpu: "1"
+            memory: 8Gi
+          limits:
+            cpu: "1"
+            memory: 8Gi
+  replicas: 1

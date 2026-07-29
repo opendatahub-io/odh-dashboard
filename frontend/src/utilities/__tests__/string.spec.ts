@@ -1,6 +1,5 @@
+import { containsOnlySlashes, isS3PathValid } from '@odh-dashboard/ui-core/utilities';
 import {
-  isS3PathValid,
-  containsOnlySlashes,
   downloadString,
   removeLeadingSlash,
   containsMultipleSlashesPattern,

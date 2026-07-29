@@ -34,3 +34,17 @@ export const VisibilityLocalQueueModel: K8sModelCommon = {
   kind: 'LocalQueue',
   plural: 'localqueues',
 };
+
+export const CohortModel: K8sModelCommon = {
+  apiVersion: 'v1beta2',
+  apiGroup: 'kueue.x-k8s.io',
+  kind: 'Cohort',
+  plural: 'cohorts',
+};
+
+export const ResourceFlavorModel: K8sModelCommon = {
+  apiVersion: 'v1beta2',
+  apiGroup: 'kueue.x-k8s.io',
+  kind: 'ResourceFlavor',
+  plural: 'resourceflavors',
+};

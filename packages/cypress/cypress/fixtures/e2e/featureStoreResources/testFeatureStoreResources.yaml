@@ -3,3 +3,8 @@ projectName: "test-fs-ui-proj"
 feastInstanceName: "test-s3"
 feastCreditScoringProject: "credit_scoring_local"
 feastDriverRankingProject: "driver_ranking"
+# Workbench connection test data
+dspProjectName: "dsp-fs-wb-connect"
+workbenchName: "fs-connected-workbench"
+sectionTab: "workbenches"
+notebookImage: "code-server-notebook"

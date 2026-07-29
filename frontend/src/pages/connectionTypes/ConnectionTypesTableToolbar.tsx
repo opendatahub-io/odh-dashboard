@@ -1,7 +1,7 @@
 import { Button, SearchInput, ToolbarItem } from '@patternfly/react-core';
 import React from 'react';
 import { Link } from 'react-router-dom';
-import FilterToolbar from '#~/components/FilterToolbar';
+import FilterToolbar from '@odh-dashboard/ui-core/components/FilterToolbar';
 import { ConnectionTypesOptions, FilterDataType, options } from '#~/pages/connectionTypes/const';
 
 type Props = {

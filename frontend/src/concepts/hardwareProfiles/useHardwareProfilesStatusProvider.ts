@@ -7,7 +7,6 @@ import {
 } from '#~/pages/hardwareProfiles/utils';
 import { useDashboardNamespace } from '#~/redux/selectors';
 
-// todo: ask if this hook is still needed (to @christian vogt to start)
 export const useHardwareProfilesStatusProvider: StatusProviderHook = () => {
   const { dashboardNamespace } = useDashboardNamespace();
   const [hardwareProfiles] = useWatchHardwareProfiles(dashboardNamespace);

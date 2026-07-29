@@ -81,8 +81,13 @@ func (app *App) EvalHubServiceHealthHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
+	tenantNS := app.dashboardNamespace
+	if ns, ok := ctx.Value(constants.NamespaceHeaderParameterKey).(string); ok && ns != "" {
+		tenantNS = ns
+	}
+
 	ehClient := app.evalHubClientFactory.CreateClient(serviceURL, authToken, app.config.InsecureSkipVerify, app.rootCAs, "/api/v1")
-	if _, err := ehClient.HealthCheck(ctx); err != nil {
+	if _, err := ehClient.HealthCheck(ctx, tenantNS); err != nil {
 		writeHealth(EvalHubHealthStatusServiceUnreachable, false)
 		return
 	}

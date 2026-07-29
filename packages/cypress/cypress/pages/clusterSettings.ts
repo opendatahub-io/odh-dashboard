@@ -115,9 +115,29 @@ class TelemetrySettings extends ClusterSettings {
   }
 }
 
+class GlobalProjectSettingsPage extends ClusterSettings {
+  findSection() {
+    return cy.findByTestId('global-project-settings');
+  }
+
+  findSelectorToggle() {
+    return cy.findByTestId('project-selector-toggle');
+  }
+
+  selectProject(name: string) {
+    this.findSelectorToggle().click();
+    cy.findByTestId('project-selector-menuList').contains(name).click();
+  }
+
+  selectNone() {
+    this.selectProject('None');
+  }
+}
+
 export const clusterSettings = new ClusterSettings();
 export const modelServingSettings = new ModelSergingSettings();
 export const modelDeploymentSettings = new ModelDeploymentSettings();
 export const pvcSizeSettings = new PVCSizeSettings();
 export const cullerSettings = new CullterSettings();
 export const telemetrySettings = new TelemetrySettings();
+export const globalProjectSettings = new GlobalProjectSettingsPage();

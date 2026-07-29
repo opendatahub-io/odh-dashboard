@@ -17,8 +17,8 @@ import {
   TextInput,
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
-import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
-import { DashboardPopupIconButton } from '@odh-dashboard/ui-core';
+
+import { ApplicationsPage, DashboardPopupIconButton } from '@odh-dashboard/ui-core';
 import {
   MlflowExperimentSelector,
   type MlflowExperiment,

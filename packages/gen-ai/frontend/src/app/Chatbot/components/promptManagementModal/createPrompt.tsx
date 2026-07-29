@@ -37,7 +37,7 @@ export default function CreatePrompt({
   displayText,
   onClose,
 }: CreatePromptProps): React.ReactNode {
-  const { modalMode, closeModal } = usePlaygroundStore();
+  const { modalMode, closeModal, openModal } = usePlaygroundStore();
   const dirtyPrompt = useChatbotConfigStore(selectDirtyPrompt(configId));
   const updateActivePrompt = useChatbotConfigStore((state) => state.updateActivePrompt);
   const updateDirtyPrompt = useChatbotConfigStore((state) => state.updateDirtyPrompt);
@@ -45,12 +45,14 @@ export default function CreatePrompt({
   const { namespace } = useContext(GenAiContext);
   const notification = useNotification();
   const isEditMode = modalMode === 'edit';
+  const isSaveAsMode = modalMode === 'save-as';
   const { latestVersion, isLoading: isLoadingVersion } = useLatestPromptVersion(
     isEditMode ? (dirtyPrompt?.name ?? null) : null,
   );
   const nextVersion = latestVersion != null ? latestVersion + 1 : null;
   const [nameError, setNameError] = React.useState<string | null>(null);
   const [saveError, setSaveError] = React.useState<string | null>(null);
+  const [permissionDenied, setPermissionDenied] = React.useState(false);
 
   const { createPrompt, isCreating } = useCreatePrompt({
     onSuccess: (newPrompt) => {
@@ -81,6 +83,12 @@ export default function CreatePrompt({
       const errorMessage = error.message || 'An error occurred while saving the prompt.';
       if (error.message.toLowerCase().includes('already exists')) {
         setNameError(errorMessage);
+      } else if (
+        error.message.toLowerCase().includes('permission') ||
+        error.message.toLowerCase().includes('forbidden') ||
+        error.message.toLowerCase().includes('403')
+      ) {
+        setPermissionDenied(true);
       } else {
         setSaveError(errorMessage);
       }
@@ -130,7 +138,7 @@ export default function CreatePrompt({
       // eslint-disable-next-line camelcase -- MLflow API uses snake_case
       commit_message: dirtyPrompt.commit_message,
       // eslint-disable-next-line camelcase -- MLflow API uses snake_case
-      create_only: !isEditMode,
+      create_only: isSaveAsMode || !isEditMode,
     });
   };
 
@@ -168,7 +176,7 @@ export default function CreatePrompt({
                   data-testid="prompt-name-input"
                   aria-label="Prompt name"
                   value={dirtyPrompt?.name}
-                  readOnlyVariant={isEditMode ? 'default' : undefined}
+                  readOnlyVariant={isEditMode && !isSaveAsMode ? 'default' : undefined}
                   onChange={(_event, value) => handleChange('name', value)}
                   validated={nameError ? 'error' : 'default'}
                 />
@@ -182,7 +190,7 @@ export default function CreatePrompt({
                   </FormHelperText>
                 )}
               </SplitItem>
-              {isEditMode && (
+              {isEditMode && !isSaveAsMode && (
                 <SplitItem>
                   <Title
                     headingLevel="h6"
@@ -231,6 +239,39 @@ export default function CreatePrompt({
               placeholder="Describe your changes"
             />
           </FlexItem>
+          {permissionDenied && (
+            <FlexItem>
+              <Alert
+                data-testid="prompt-permission-denied-alert"
+                variant="warning"
+                isInline
+                title="Permission denied"
+                actionLinks={
+                  <Button
+                    variant="link"
+                    isInline
+                    data-testid="prompt-save-as-fallback-button"
+                    onClick={() => {
+                      if (dirtyPrompt) {
+                        const saveAsPrompt = {
+                          ...dirtyPrompt,
+                          name: `copy-of-${dirtyPrompt.name}`,
+                        };
+                        updateDirtyPrompt(configId, saveAsPrompt);
+                        setPermissionDenied(false);
+                        openModal('save-as', configId, dirtyPrompt);
+                      }
+                    }}
+                  >
+                    Save As instead
+                  </Button>
+                }
+              >
+                You no longer have permission to save to this namespace. You can save a copy to your
+                project instead.
+              </Alert>
+            </FlexItem>
+          )}
           {saveError && (
             <FlexItem>
               <Alert
@@ -252,7 +293,7 @@ export default function CreatePrompt({
           onClick={handleSave}
           isLoading={isCreating}
         >
-          {isEditMode ? 'Save' : 'Create'}
+          {isSaveAsMode ? 'Save As' : isEditMode ? 'Save' : 'Create'}
         </Button>
         <Button
           data-testid="prompt-create-cancel-button"

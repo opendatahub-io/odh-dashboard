@@ -1,6 +1,11 @@
 import * as React from 'react';
 import { Popover, Stack, StackItem, Button } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import {
+  FEATURE_STORE_EVENTS,
+  HelpViewedProperties,
+} from '../tracking/featureStoreTrackingConstants';
 
 type IntegrationInstructionsPopoverProps = {
   trigger?: React.ReactElement;
@@ -57,6 +62,12 @@ const IntegrationInstructionsPopover: React.FC<IntegrationInstructionsPopoverPro
       bodyContent={popoverContent}
       className={className}
       data-testid="integration-instructions-popover"
+      onShow={() => {
+        fireMiscTrackingEvent(FEATURE_STORE_EVENTS.HELP_VIEWED, {
+          helpType: 'integration',
+          pageType: 'overview',
+        } satisfies HelpViewedProperties);
+      }}
     >
       {trigger || (
         <Button

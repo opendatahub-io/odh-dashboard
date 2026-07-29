@@ -1,7 +1,7 @@
+import { FetchStateRefreshPromise } from '@odh-dashboard/ui-core/hooks/useFetchState';
 import usePipelineVersionsForPipeline from '#~/concepts/pipelines/apiHooks/usePipelineVersionsForPipeline';
 import { PipelineKF, PipelineVersionKF } from '#~/concepts/pipelines/kfTypes';
 import { PipelineListPaged } from '#~/concepts/pipelines/types';
-import { FetchStateRefreshPromise } from '#~/utilities/useFetchState';
 
 const usePipelineTableRowData = (
   pipeline: PipelineKF,

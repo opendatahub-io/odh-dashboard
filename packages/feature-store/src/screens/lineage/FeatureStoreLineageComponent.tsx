@@ -7,6 +7,7 @@ import { useLineageCenter } from '@odh-dashboard/internal/components/lineage/con
 import FeatureStoreLineageNode from './node/FeatureStoreLineageNode';
 import FeatureStoreLineageNodePopover from './node/FeatureStoreLineageNodePopover';
 import { applyLineageFilters } from './utils';
+import { LineagePageProvider } from './LineagePageContext';
 import FeatureStoreLineageToolbar from '../../components/FeatureStoreLineageToolbar';
 import useFeatureStoreLineage from '../../apiHooks/useFeatureStoreLineage';
 import useFeatureViewLineage from '../../apiHooks/useFeatureViewLineage';
@@ -188,24 +189,26 @@ const FeatureStoreLineageComponent: React.FC<FeatureStoreLineageComponentProps> 
       padding={{ default: 'noPadding' }}
       style={{ height, display: 'flex', flexDirection: 'column' }}
     >
-      <Lineage
-        key={lineageKey}
-        data={visualizationData}
-        loading={!lineageDataLoaded}
-        error={
-          error ? `Failed to load lineage data: ${String(error)}` : conversionError || undefined
-        }
-        emptyStateMessage={
-          featureViewName
-            ? 'No lineage data available for this feature view'
-            : 'No lineage data available for this feature store'
-        }
-        height="100%"
-        componentFactory={componentFactory}
-        popoverComponent={PopoverComponent}
-        toolbarComponent={ToolbarComponent}
-        autoResetOnDataChange
-      />
+      <LineagePageProvider pageType={featureViewName ? 'detail' : 'overview'}>
+        <Lineage
+          key={lineageKey}
+          data={visualizationData}
+          loading={!lineageDataLoaded}
+          error={
+            error ? `Failed to load lineage data: ${String(error)}` : conversionError || undefined
+          }
+          emptyStateMessage={
+            featureViewName
+              ? 'No lineage data available for this feature view'
+              : 'No lineage data available for this feature store'
+          }
+          height="100%"
+          componentFactory={componentFactory}
+          popoverComponent={PopoverComponent}
+          toolbarComponent={ToolbarComponent}
+          autoResetOnDataChange
+        />
+      </LineagePageProvider>
     </PageSection>
   );
 };

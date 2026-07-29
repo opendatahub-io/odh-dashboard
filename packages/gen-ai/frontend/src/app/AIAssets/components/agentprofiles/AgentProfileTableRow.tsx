@@ -11,8 +11,10 @@ import { EllipsisVIcon } from '@patternfly/react-icons';
 import { Td, Tr } from '@patternfly/react-table';
 import { useNavigate, useParams } from 'react-router-dom';
 import { TruncatedText } from 'mod-arch-shared';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { AgentProfileSummary } from '~/app/agentProfile/types';
 import { genAiChatPlaygroundRoute } from '~/app/utilities/routes';
+import { PLAYGROUND_AGENT_EVENTS } from '~/app/tracking/playgroundAgentTrackingConstants';
 import DeleteAgentProfileModal from './DeleteAgentProfileModal';
 import EditAgentProfileModal from './EditAgentProfileModal';
 
@@ -48,6 +50,9 @@ const AgentProfileTableRow: React.FC<AgentProfileTableRowProps> = ({
   const [isDeleteModalOpen, setIsDeleteModalOpen] = React.useState(false);
 
   const handleTryInPlayground = () => {
+    fireMiscTrackingEvent(PLAYGROUND_AGENT_EVENTS.TRY_IN_PLAYGROUND_SELECTED, {
+      agentID: profile.profileId,
+    });
     navigate({
       pathname: genAiChatPlaygroundRoute(namespace),
       search: `?agentProfileId=${encodeURIComponent(profile.profileId)}`,
@@ -104,6 +109,9 @@ const AgentProfileTableRow: React.FC<AgentProfileTableRowProps> = ({
                   key="edit"
                   onClick={() => {
                     setIsKebabOpen(false);
+                    fireMiscTrackingEvent(PLAYGROUND_AGENT_EVENTS.DETAILS_EDIT_SELECTED, {
+                      agentID: profile.profileId,
+                    });
                     setIsEditModalOpen(true);
                   }}
                   data-testid={`edit-agent-profile-${profile.profileId}`}

@@ -1,6 +1,6 @@
 import * as _ from 'lodash-es';
+import type { RecursivePartial } from '@odh-dashboard/foundation';
 import { ImageStreamKind } from '#~/k8sTypes';
-import { RecursivePartial } from '#~/typeHelpers';
 import { ImageStreamAnnotation, ImageStreamSpecTagAnnotation } from '#~/types';
 
 type MockResourceConfigType = {

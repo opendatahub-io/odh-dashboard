@@ -22,7 +22,7 @@ import (
 // ─── unstructuredString tests ───────────────────────────────────────────────
 
 func TestUnstructuredString_TopLevelKey(t *testing.T) {
-	obj := map[string]interface{}{
+	obj := map[string]any{
 		"name": "test-user",
 	}
 	val, ok := unstructuredString(obj, "name")
@@ -31,8 +31,8 @@ func TestUnstructuredString_TopLevelKey(t *testing.T) {
 }
 
 func TestUnstructuredString_NestedKey(t *testing.T) {
-	obj := map[string]interface{}{
-		"metadata": map[string]interface{}{
+	obj := map[string]any{
+		"metadata": map[string]any{
 			"name": "test-user",
 		},
 	}
@@ -42,8 +42,8 @@ func TestUnstructuredString_NestedKey(t *testing.T) {
 }
 
 func TestUnstructuredString_MissingKey(t *testing.T) {
-	obj := map[string]interface{}{
-		"metadata": map[string]interface{}{},
+	obj := map[string]any{
+		"metadata": map[string]any{},
 	}
 	val, ok := unstructuredString(obj, "metadata", "name")
 	assert.False(t, ok)
@@ -51,7 +51,7 @@ func TestUnstructuredString_MissingKey(t *testing.T) {
 }
 
 func TestUnstructuredString_MissingIntermediateKey(t *testing.T) {
-	obj := map[string]interface{}{
+	obj := map[string]any{
 		"other": "value",
 	}
 	val, ok := unstructuredString(obj, "metadata", "name")
@@ -60,7 +60,7 @@ func TestUnstructuredString_MissingIntermediateKey(t *testing.T) {
 }
 
 func TestUnstructuredString_NonStringValue(t *testing.T) {
-	obj := map[string]interface{}{
+	obj := map[string]any{
 		"count": 42,
 	}
 	val, ok := unstructuredString(obj, "count")
@@ -69,7 +69,7 @@ func TestUnstructuredString_NonStringValue(t *testing.T) {
 }
 
 func TestUnstructuredString_EmptyKeys(t *testing.T) {
-	obj := map[string]interface{}{
+	obj := map[string]any{
 		"name": "test",
 	}
 	val, ok := unstructuredString(obj)
@@ -80,21 +80,21 @@ func TestUnstructuredString_EmptyKeys(t *testing.T) {
 // ─── unstructuredStringSlice tests ──────────────────────────────────────────
 
 func TestUnstructuredStringSlice_ValidSlice(t *testing.T) {
-	obj := map[string]interface{}{
-		"groups": []interface{}{"admin", "users", "editors"},
+	obj := map[string]any{
+		"groups": []any{"admin", "users", "editors"},
 	}
 	result := unstructuredStringSlice(obj, "groups")
 	assert.Equal(t, []string{"admin", "users", "editors"}, result)
 }
 
 func TestUnstructuredStringSlice_MissingKey(t *testing.T) {
-	obj := map[string]interface{}{}
+	obj := map[string]any{}
 	result := unstructuredStringSlice(obj, "groups")
 	assert.Nil(t, result)
 }
 
 func TestUnstructuredStringSlice_NotASlice(t *testing.T) {
-	obj := map[string]interface{}{
+	obj := map[string]any{
 		"groups": "not-a-slice",
 	}
 	result := unstructuredStringSlice(obj, "groups")
@@ -102,16 +102,16 @@ func TestUnstructuredStringSlice_NotASlice(t *testing.T) {
 }
 
 func TestUnstructuredStringSlice_MixedTypes(t *testing.T) {
-	obj := map[string]interface{}{
-		"groups": []interface{}{"admin", 42, "users", true},
+	obj := map[string]any{
+		"groups": []any{"admin", 42, "users", true},
 	}
 	result := unstructuredStringSlice(obj, "groups")
 	assert.Equal(t, []string{"admin", "users"}, result)
 }
 
 func TestUnstructuredStringSlice_EmptySlice(t *testing.T) {
-	obj := map[string]interface{}{
-		"groups": []interface{}{},
+	obj := map[string]any{
+		"groups": []any{},
 	}
 	result := unstructuredStringSlice(obj, "groups")
 	assert.Equal(t, []string{}, result)
@@ -136,13 +136,13 @@ func TestResolveUserViaOpenShiftAPI_XKSReturnsEarly(t *testing.T) {
 // construction, dynamic Get, unstructured parsing of username and groups).
 func TestResolveUserViaOpenShiftAPI_OpenShiftResolvesUser(t *testing.T) {
 	userObj := &unstructured.Unstructured{
-		Object: map[string]interface{}{
+		Object: map[string]any{
 			"apiVersion": "user.openshift.io/v1",
 			"kind":       "User",
-			"metadata": map[string]interface{}{
+			"metadata": map[string]any{
 				"name": "~",
 			},
-			"groups": []interface{}{"dev-team", "editors"},
+			"groups": []any{"dev-team", "editors"},
 		},
 	}
 

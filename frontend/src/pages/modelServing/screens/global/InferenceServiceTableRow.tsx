@@ -8,8 +8,8 @@ import {
 } from '@odh-dashboard/ui-core';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
-import useModelMetricsEnabled from '#~/pages/modelServing/useModelMetricsEnabled';
-import { InferenceServiceKind, ServingRuntimeKind } from '#~/k8sTypes';
+import { useModelMetricsEnabled } from '@odh-dashboard/model-serving/shared';
+import type { InferenceServiceKind, ServingRuntimeKind } from '@odh-dashboard/model-serving/shared';
 import { byName, ProjectsContext } from '#~/concepts/projects/ProjectsContext';
 import { isProjectNIMSupported } from '#~/pages/modelServing/screens/projects/nim/nimUtils';
 import useServingPlatformStatuses from '#~/pages/modelServing/useServingPlatformStatuses';

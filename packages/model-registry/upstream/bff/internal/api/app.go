@@ -83,6 +83,14 @@ const (
 	ModelTransferJobPath       = ModelTransferJobListPath + "/:" + ModelTransferJobName
 	ModelTransferJobEventsPath = ModelTransferJobPath + "/events"
 
+	// Agent catalog
+	AgentId                   = "agent_id"
+	AgentCatalogPathPrefix    = ApiPathPrefix + "/agent_catalog"
+	AgentListPath             = AgentCatalogPathPrefix + "/agents"
+	AgentFilterOptionListPath = AgentCatalogPathPrefix + "/agents_filter_options"
+	AgentPath                 = AgentListPath + "/:" + AgentId
+	AgentArtifactsPath        = AgentPath + "/artifacts"
+
 	// MCP server catalog
 	McpServerId                   = "server_id"
 	McpServerCatalogPathPrefix    = ApiPathPrefix + "/mcp_catalog"
@@ -95,6 +103,11 @@ const (
 	// Swagger UI (interactive API docs)
 	SwaggerPath    = ApiPathPrefix + "/swagger"
 	SwaggerDocPath = SwaggerPath + "/doc.json"
+
+	// MCP catalog settings
+	McpCatalogSettingsPathPrefix           = SettingsPath + "/mcp_catalog"
+	McpCatalogSettingsSourceConfigListPath = McpCatalogSettingsPathPrefix + "/source_configs"
+	McpCatalogSettingsSourceConfigPath     = McpCatalogSettingsSourceConfigListPath + "/:" + CatalogSourceId
 
 	// Kubernetes resource endpoints (downstream-only implementations)
 	KubernetesServicesListPath = SettingsPath + "/services"
@@ -301,14 +314,14 @@ func (app *App) Routes() http.Handler {
 	apiRouter.DELETE(ModelTransferJobPath, app.AttachNamespace(app.RequireAccessToMRService(app.DeleteModelTransferJobHandler)))
 
 	// Model catalog HTTP client routes (requests that we forward to Model Catalog API)
-	apiRouter.GET(CatalogModelListPath, app.AttachNamespace(app.AttachModelCatalogRESTClient(app.GetAllCatalogModelsAcrossSourcesHandler)))
-	apiRouter.GET(CatalogSourceListPath, app.AttachNamespace(app.AttachModelCatalogRESTClient(app.GetAllCatalogSourcesHandler)))
-	apiRouter.GET(CatalogLabelsPath, app.AttachNamespace(app.AttachModelCatalogRESTClient(app.GetCatalogLabelsHandler)))
-	apiRouter.GET(CatalogFilterOptionListPath, app.AttachNamespace(app.AttachModelCatalogRESTClient(app.GetCatalogFilterListHandler)))
-	apiRouter.GET(CatalogSourceModelCatchAllPath, app.AttachNamespace(app.AttachModelCatalogRESTClient(app.GetCatalogSourceModelHandler)))
-	apiRouter.GET(CatalogSourceModelArtifactsCatchAll, app.AttachNamespace(app.AttachModelCatalogRESTClient(app.GetCatalogSourceModelArtifactsHandler)))
-	apiRouter.GET(CatalogModelPerformanceArtifacts, app.AttachNamespace(app.AttachModelCatalogRESTClient(app.GetCatalogModelPerformanceArtifactsHandler)))
-	apiRouter.GET(CatalogModelSecurityArtifacts, app.AttachNamespace(app.AttachModelCatalogRESTClient(app.GetCatalogModelSecurityArtifactsHandler)))
+	apiRouter.GET(CatalogModelListPath, app.AttachNamespace(app.RequireListServiceAccessInNamespace(app.AttachModelCatalogRESTClient(app.GetAllCatalogModelsAcrossSourcesHandler))))
+	apiRouter.GET(CatalogSourceListPath, app.AttachNamespace(app.RequireListServiceAccessInNamespace(app.AttachModelCatalogRESTClient(app.GetAllCatalogSourcesHandler))))
+	apiRouter.GET(CatalogLabelsPath, app.AttachNamespace(app.RequireListServiceAccessInNamespace(app.AttachModelCatalogRESTClient(app.GetCatalogLabelsHandler))))
+	apiRouter.GET(CatalogFilterOptionListPath, app.AttachNamespace(app.RequireListServiceAccessInNamespace(app.AttachModelCatalogRESTClient(app.GetCatalogFilterListHandler))))
+	apiRouter.GET(CatalogSourceModelCatchAllPath, app.AttachNamespace(app.RequireListServiceAccessInNamespace(app.AttachModelCatalogRESTClient(app.GetCatalogSourceModelHandler))))
+	apiRouter.GET(CatalogSourceModelArtifactsCatchAll, app.AttachNamespace(app.RequireListServiceAccessInNamespace(app.AttachModelCatalogRESTClient(app.GetCatalogSourceModelArtifactsHandler))))
+	apiRouter.GET(CatalogModelPerformanceArtifacts, app.AttachNamespace(app.RequireListServiceAccessInNamespace(app.AttachModelCatalogRESTClient(app.GetCatalogModelPerformanceArtifactsHandler))))
+	apiRouter.GET(CatalogModelSecurityArtifacts, app.AttachNamespace(app.RequireListServiceAccessInNamespace(app.AttachModelCatalogRESTClient(app.GetCatalogModelSecurityArtifactsHandler))))
 	// Kubernetes routes
 	apiRouter.GET(UserPath, app.UserHandler)
 	apiRouter.POST(CheckNamespaceRegistryAccessPath, app.CheckNamespaceRegistryAccessHandler)
@@ -333,31 +346,31 @@ func (app *App) Routes() http.Handler {
 		apiRouter.GET(
 			ModelRegistrySettingsListPath,
 			app.handlerWithOverride(handlerModelRegistrySettingsListID, func() httprouter.Handle {
-				return app.AttachNamespace(app.GetAllModelRegistriesSettingsHandler)
+				return app.AttachNamespace(app.RequireListServiceAccessInNamespace(app.GetAllModelRegistriesSettingsHandler))
 			}),
 		)
 		apiRouter.POST(
 			ModelRegistrySettingsListPath,
 			app.handlerWithOverride(handlerModelRegistrySettingsCreateID, func() httprouter.Handle {
-				return app.AttachNamespace(app.CreateModelRegistrySettingsHandler)
+				return app.AttachNamespace(app.RequireListServiceAccessInNamespace(app.CreateModelRegistrySettingsHandler))
 			}),
 		)
 		apiRouter.GET(
 			ModelRegistrySettingsPath,
 			app.handlerWithOverride(handlerModelRegistrySettingsGetID, func() httprouter.Handle {
-				return app.AttachNamespace(app.GetModelRegistrySettingsHandler)
+				return app.AttachNamespace(app.RequireListServiceAccessInNamespace(app.GetModelRegistrySettingsHandler))
 			}),
 		)
 		apiRouter.PATCH(
 			ModelRegistrySettingsPath,
 			app.handlerWithOverride(handlerModelRegistrySettingsUpdateID, func() httprouter.Handle {
-				return app.AttachNamespace(app.UpdateModelRegistrySettingsHandler)
+				return app.AttachNamespace(app.RequireListServiceAccessInNamespace(app.UpdateModelRegistrySettingsHandler))
 			}),
 		)
 		apiRouter.DELETE(
 			ModelRegistrySettingsPath,
 			app.handlerWithOverride(handlerModelRegistrySettingsDeleteID, func() httprouter.Handle {
-				return app.AttachNamespace(app.DeleteModelRegistrySettingsHandler)
+				return app.AttachNamespace(app.RequireListServiceAccessInNamespace(app.DeleteModelRegistrySettingsHandler))
 			}),
 		)
 
@@ -417,13 +430,13 @@ func (app *App) Routes() http.Handler {
 		)
 
 		//SettingsPath: Certificate endpoints
-		apiRouter.GET(CertificatesPath, app.AttachNamespace(app.GetCertificatesHandler))
+		apiRouter.GET(CertificatesPath, app.AttachNamespace(app.RequireListServiceAccessInNamespace(app.GetCertificatesHandler)))
 
 		//SettingsPath: Role Binding endpoints
-		apiRouter.GET(RoleBindingListPath, app.AttachNamespace(app.GetRoleBindingsHandler))
-		apiRouter.POST(RoleBindingListPath, app.AttachNamespace(app.CreateRoleBindingHandler))
-		apiRouter.PATCH(RoleBindingPath, app.AttachNamespace(app.PatchRoleBindingHandler))
-		apiRouter.DELETE(RoleBindingPath, app.AttachNamespace(app.DeleteRoleBindingHandler))
+		apiRouter.GET(RoleBindingListPath, app.AttachNamespace(app.RequireListServiceAccessInNamespace(app.GetRoleBindingsHandler)))
+		apiRouter.POST(RoleBindingListPath, app.AttachNamespace(app.RequireListServiceAccessInNamespace(app.CreateRoleBindingHandler)))
+		apiRouter.PATCH(RoleBindingPath, app.AttachNamespace(app.RequireListServiceAccessInNamespace(app.PatchRoleBindingHandler)))
+		apiRouter.DELETE(RoleBindingPath, app.AttachNamespace(app.RequireListServiceAccessInNamespace(app.DeleteRoleBindingHandler)))
 
 		//SettingsPath Groups endpoints
 		apiRouter.GET(GroupsPath, app.GetGroupsHandler)
@@ -433,18 +446,31 @@ func (app *App) Routes() http.Handler {
 		apiRouter.GET(SettingsNamespacePath, app.GetNamespacesHandler)
 
 		// Model catalog settings page
-		apiRouter.GET(ModelCatalogSettingsSourceConfigListPath, app.AttachNamespace(app.GetAllCatalogSourceConfigsHandler))
-		apiRouter.POST(ModelCatalogSettingsSourceConfigListPath, app.AttachNamespace(app.CreateCatalogSourceConfigHandler))
-		apiRouter.GET(ModelCatalogSettingsSourceConfigPath, app.AttachNamespace(app.GetCatalogSourceConfigHandler))
-		apiRouter.PATCH(ModelCatalogSettingsSourceConfigPath, app.AttachNamespace(app.UpdateCatalogSourceConfigHandler))
-		apiRouter.DELETE(ModelCatalogSettingsSourceConfigPath, app.AttachNamespace(app.DeleteCatalogSourceConfigHandler))
-		apiRouter.POST(CatalogSourcePreviewPath, app.AttachNamespace(app.AttachModelCatalogRESTClient(app.CreateCatalogSourcePreviewHandler)))
+		apiRouter.GET(ModelCatalogSettingsSourceConfigListPath, app.AttachNamespace(app.RequireListServiceAccessInNamespace(app.GetAllCatalogSourceConfigsHandler)))
+		apiRouter.POST(ModelCatalogSettingsSourceConfigListPath, app.AttachNamespace(app.RequireListServiceAccessInNamespace(app.CreateCatalogSourceConfigHandler)))
+		apiRouter.GET(ModelCatalogSettingsSourceConfigPath, app.AttachNamespace(app.RequireListServiceAccessInNamespace(app.GetCatalogSourceConfigHandler)))
+		apiRouter.PATCH(ModelCatalogSettingsSourceConfigPath, app.AttachNamespace(app.RequireListServiceAccessInNamespace(app.UpdateCatalogSourceConfigHandler)))
+		apiRouter.DELETE(ModelCatalogSettingsSourceConfigPath, app.AttachNamespace(app.RequireListServiceAccessInNamespace(app.DeleteCatalogSourceConfigHandler)))
+		apiRouter.POST(CatalogSourcePreviewPath, app.AttachNamespace(app.RequireListServiceAccessInNamespace(app.AttachModelCatalogRESTClient(app.CreateCatalogSourcePreviewHandler))))
+
+		// Agent catalog endpoints
+		apiRouter.GET(AgentListPath, app.AttachNamespace(app.AttachModelCatalogRESTClient(app.GetAllAgentsHandler)))
+		apiRouter.GET(AgentFilterOptionListPath, app.AttachNamespace(app.AttachModelCatalogRESTClient(app.GetAgentsFiltersHandler)))
+		apiRouter.GET(AgentArtifactsPath, app.AttachNamespace(app.AttachModelCatalogRESTClient(app.GetAgentArtifactsHandler)))
+		apiRouter.GET(AgentPath, app.AttachNamespace(app.AttachModelCatalogRESTClient(app.GetAgentHandler)))
 
 		// MCP server catalog endpoints
-		apiRouter.GET(McpServerListPath, app.AttachNamespace(app.AttachModelCatalogRESTClient(app.GetAllMcpServersHandler)))
-		apiRouter.GET(McpServerFilterOptionListPath, app.AttachNamespace(app.AttachModelCatalogRESTClient(app.GetMcpServersFiltersHandler)))
-		apiRouter.GET(McpServerPath, app.AttachNamespace(app.AttachModelCatalogRESTClient(app.GetMcpServerHandler)))
-		apiRouter.GET(McpServersToolListPath, app.AttachNamespace(app.AttachModelCatalogRESTClient(app.GetMcpServersToolsHandler)))
+		apiRouter.GET(McpServerListPath, app.AttachNamespace(app.RequireListServiceAccessInNamespace(app.AttachModelCatalogRESTClient(app.GetAllMcpServersHandler))))
+		apiRouter.GET(McpServerFilterOptionListPath, app.AttachNamespace(app.RequireListServiceAccessInNamespace(app.AttachModelCatalogRESTClient(app.GetMcpServersFiltersHandler))))
+		apiRouter.GET(McpServerPath, app.AttachNamespace(app.RequireListServiceAccessInNamespace(app.AttachModelCatalogRESTClient(app.GetMcpServerHandler))))
+		apiRouter.GET(McpServersToolListPath, app.AttachNamespace(app.RequireListServiceAccessInNamespace(app.AttachModelCatalogRESTClient(app.GetMcpServersToolsHandler))))
+
+		// MCP catalog settings page
+		apiRouter.GET(McpCatalogSettingsSourceConfigListPath, app.AttachNamespace(app.RequireListServiceAccessInNamespace(app.GetAllMcpCatalogSourceConfigsHandler)))
+		apiRouter.POST(McpCatalogSettingsSourceConfigListPath, app.AttachNamespace(app.RequireListServiceAccessInNamespace(app.CreateMcpCatalogSourceConfigHandler)))
+		apiRouter.GET(McpCatalogSettingsSourceConfigPath, app.AttachNamespace(app.RequireListServiceAccessInNamespace(app.GetMcpCatalogSourceConfigHandler)))
+		apiRouter.PATCH(McpCatalogSettingsSourceConfigPath, app.AttachNamespace(app.RequireListServiceAccessInNamespace(app.UpdateMcpCatalogSourceConfigHandler)))
+		apiRouter.DELETE(McpCatalogSettingsSourceConfigPath, app.AttachNamespace(app.RequireListServiceAccessInNamespace(app.DeleteMcpCatalogSourceConfigHandler)))
 	}
 
 	// App Router

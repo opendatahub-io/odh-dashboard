@@ -7,6 +7,7 @@
     "lint": "eslint .",
     "type-check": "tsc --noEmit",
     "update-subtree": "package-subtree --package=@odh-dashboard/notebooks",
+    "update-subtree-local": "package-subtree-local --package=@odh-dashboard/notebooks",
     "install:module": "npm install --prefix upstream/workspaces/frontend",
     "start:dev": "cd upstream/workspaces/frontend && PORT=9105 DEPLOYMENT_MODE=federated npm run start:dev",
     "start:dev:ext": "cd upstream/workspaces/frontend && DEPLOYMENT_MODE=federated PORT=9105 npm run start:dev",

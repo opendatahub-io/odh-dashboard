@@ -12,7 +12,7 @@ metadata:
       event == "pull_request" 
       && target_branch == "main"
       && ( "packages/autorag/**".pathChanged()
-            || ".tekton/odh-mod-arch-autorag-ci-pull-request.yaml".pathChanged() )
+            || ".tekton/odh-mod-arch-autorag-pull-request.yaml".pathChanged() )
   creationTimestamp: null
   labels:
     appstudio.openshift.io/application: opendatahub-builds

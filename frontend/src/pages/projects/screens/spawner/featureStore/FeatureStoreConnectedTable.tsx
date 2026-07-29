@@ -8,11 +8,13 @@ import { getFeatureStoreProjectId } from './selectFeatureStoresModalConst';
 
 export type FeatureStoreConnectedTableProps = {
   featureStores: SelectedFeatureStoreConfig[];
+  availabilityLoaded: boolean;
   onRemove: (projectId: string) => void;
 };
 
 export const FeatureStoreConnectedTable: React.FC<FeatureStoreConnectedTableProps> = ({
   featureStores,
+  availabilityLoaded,
   onRemove,
 }) => (
   <Table
@@ -23,6 +25,7 @@ export const FeatureStoreConnectedTable: React.FC<FeatureStoreConnectedTableProp
       <FeatureStoreConnectedTableRow
         key={getFeatureStoreProjectId(featureStore)}
         featureStore={featureStore}
+        availabilityLoaded={availabilityLoaded}
         onRemove={onRemove}
       />
     )}

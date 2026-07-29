@@ -1,4 +1,9 @@
 import type { ContainerResources } from '@odh-dashboard/k8s-core';
+import { getModelServingPVCAnnotations } from '@odh-dashboard/model-serving/shared';
+import type {
+  ServingRuntimeKind,
+  CreatingServingRuntimeObject,
+} from '@odh-dashboard/model-serving/shared';
 import {
   getInferenceServiceSizeOrReturnEmpty,
   getServingRuntimeOrReturnEmpty,
@@ -10,7 +15,6 @@ import {
   isOciModelUri,
   getInferenceServiceStoppedStatus,
   getServingRuntimeVersionStatus,
-  getModelServingPVCAnnotations,
   isModelServerEditInfoChanged,
 } from '#~/pages/modelServing/utils';
 import { mockServingRuntimeK8sResource } from '#~/__mocks__/mockServingRuntimeK8sResource';
@@ -30,11 +34,7 @@ import { mock404Error } from '#~/__mocks__/mockK8sStatus';
 import { mockInferenceServiceK8sResource } from '#~/__mocks__/mockInferenceServiceK8sResource';
 import { mockRoleK8sResource } from '#~/__mocks__/mockRoleK8sResource';
 import { ServingRuntimeVersionStatusLabel } from '#~/pages/modelServing/screens/const';
-import { ServingRuntimeKind } from '#~/k8sTypes';
-import {
-  CreatingServingRuntimeObject,
-  ServingRuntimeEditInfo,
-} from '#~/pages/modelServing/screens/types';
+import { ServingRuntimeEditInfo } from '#~/pages/modelServing/screens/types';
 import { ModelServingPodSpecOptionsState } from '#~/concepts/hardwareProfiles/deprecated/useModelServingAcceleratorDeprecatedPodSpecOptionsState';
 
 jest.mock('#~/api', () => ({

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { trimInputOnBlur, trimInputOnPaste } from '#~/utilities/trimInput';
+import { trimInputOnBlur, trimInputOnPaste } from '@odh-dashboard/ui-core/utilities';
 
 describe('trimInputOnBlur', () => {
   it('trims whitespace on blur and calls onChange', () => {

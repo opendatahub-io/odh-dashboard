@@ -1,5 +1,5 @@
 import { k8sGetResource } from '@openshift/dynamic-plugin-sdk-utils';
-import { ConfigMapKind, NIMAccountKind } from '@odh-dashboard/internal/k8sTypes';
+import { ConfigMapKind, NIMAccountKind } from '@odh-dashboard/k8s-core';
 import { ConfigMapModel } from '@odh-dashboard/internal/api/models';
 import type { NIMImage } from './types';
 

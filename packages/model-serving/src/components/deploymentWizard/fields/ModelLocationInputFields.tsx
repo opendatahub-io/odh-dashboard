@@ -1,20 +1,22 @@
 import React from 'react';
 import { Alert } from '@patternfly/react-core';
 import {
-  Connection,
-  ConnectionTypeConfigMapObj,
-  ConnectionTypeDataField,
-} from '@odh-dashboard/internal/concepts/connectionTypes/types';
-import {
   getModelServingCompatibility,
   isModelServingCompatible,
   ModelServingCompatibleTypes,
   parseConnectionSecretValues,
-} from '@odh-dashboard/internal/concepts/connectionTypes/utils';
+  getResourceNameFromK8sResource,
+  isGeneratedSecretName,
+} from '@odh-dashboard/k8s-core';
+import type {
+  Connection,
+  ConnectionTypeConfigMapObj,
+  ConnectionTypeDataField,
+  PersistentVolumeClaimKind,
+} from '@odh-dashboard/k8s-core';
 import { z } from 'zod';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import { ConnectionOciAlert } from '@odh-dashboard/internal/pages/modelServing/screens/projects/InferenceServiceModal/ConnectionOciAlert';
-import type { PersistentVolumeClaimKind } from '@odh-dashboard/k8s-core';
 import {
   getPVCNameFromURI,
   isPVCUri,
@@ -22,7 +24,6 @@ import {
 import { useWatchConnectionTypes } from '@odh-dashboard/internal/utilities/useWatchConnectionTypes';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import useServingConnections from '@odh-dashboard/internal/pages/projects/screens/detail/connections/useServingConnections';
-import { getResourceNameFromK8sResource, isGeneratedSecretName } from '@odh-dashboard/k8s-core';
 import { containsOnlySlashes, isS3PathValid } from '@odh-dashboard/ui-core/utilities';
 import { ExistingConnectionField } from './modelLocationFields/ExistingConnectionField';
 import NewConnectionField from './modelLocationFields/NewConnectionField';
@@ -31,7 +32,7 @@ import { CustomTypeSelectField } from './modelLocationFields/CustomTypeSelectFie
 import { useEnabledModelServingConnectionTypes } from './modelLocationFields/useEnabledConnectionTypes';
 import { ociOption, s3Option, uriOption } from './modelLocationFields/modelLocationTypes';
 import usePvcs from '../../../concepts/usePvcs';
-import { ModelLocationData, ModelLocationType } from '../types';
+import { ModelLocationData, ModelLocationType } from '../../../shared/types/form-data';
 import { resolveConnectionType } from '../utils';
 import { UseModelDeploymentWizardState } from '../useDeploymentWizard';
 

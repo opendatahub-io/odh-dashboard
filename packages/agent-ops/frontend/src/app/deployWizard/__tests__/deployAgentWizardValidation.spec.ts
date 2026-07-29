@@ -5,6 +5,17 @@ import {
   isDeployAgentWizardStepValid,
 } from '~/app/deployWizard/deployAgentWizardValidation';
 import { createInitialFormData } from '~/app/deployWizard/useAgentDeployWizard';
+import { DeployAgentEnvVarType } from '~/app/deployWizard/types';
+import { DEFAULT_ENV_VAR } from '~/app/deployWizard/wizardOptions';
+
+const completeFormData = () => ({
+  ...createInitialFormData('team1'),
+  containerImage: 'quay.io/myorg/my-agent',
+  imageTag: 'latest',
+  agentName: 'my-agent',
+  protocol: 'a2a',
+  workloadType: 'sandbox',
+});
 
 describe('deployAgentWizardValidation', () => {
   describe('createDeployAgentWizardValidationState', () => {
@@ -15,44 +26,102 @@ describe('deployAgentWizardValidation', () => {
       expect(state.isDeployFormValid).toBe(false);
     });
 
-    it('requires valid configuration on step 2', () => {
+    it('requires valid configuration on step 2 when protocol is cleared', () => {
       const state = createDeployAgentWizardValidationState({
         ...createInitialFormData('team1'),
         containerImage: 'quay.io/myorg/my-agent',
         imageTag: 'latest',
         agentName: 'my-agent',
-        workloadType: '',
+        protocol: '',
       });
 
       expect(state.isImageSelectionValid).toBe(true);
       expect(state.isConfigurationValid).toBe(false);
     });
 
-    it('validates persistent volume size when enabled', () => {
+    it('rejects invalid framework labels on step 2', () => {
       const state = createDeployAgentWizardValidationState({
-        ...createInitialFormData('team1'),
-        containerImage: 'quay.io/myorg/my-agent',
-        imageTag: 'latest',
-        agentName: 'my-agent',
-        protocol: 'a2a',
-        workloadType: 'deployment',
-        enablePersistentStorage: true,
-        persistentVolumeSize: 'invalid',
+        ...completeFormData(),
+        framework: 'Invalid Framework',
       });
 
       expect(state.isConfigurationValid).toBe(false);
     });
+
+    it('validates default service ports on step 3', () => {
+      const state = createDeployAgentWizardValidationState(completeFormData());
+
+      expect(state.isNetworkingValid).toBe(true);
+    });
+
+    it('fails networking validation when service ports are empty', () => {
+      const state = createDeployAgentWizardValidationState({
+        ...completeFormData(),
+        servicePorts: [],
+      });
+
+      expect(state.isNetworkingValid).toBe(false);
+      expect(state.isDeployFormValid).toBe(false);
+    });
+
+    it('fails networking validation for invalid port range', () => {
+      const state = createDeployAgentWizardValidationState({
+        ...completeFormData(),
+        servicePorts: [
+          { rowId: 'port-1', name: 'http', port: 0, targetPort: 8000, protocol: 'TCP' },
+        ],
+      });
+
+      expect(state.isNetworkingValid).toBe(false);
+    });
+
+    it('fails environment variable validation for unsupported secret reference rows', () => {
+      const state = createDeployAgentWizardValidationState({
+        ...completeFormData(),
+        envVars: [
+          {
+            ...DEFAULT_ENV_VAR,
+            rowId: 'env-1',
+            name: 'API_KEY',
+            type: DeployAgentEnvVarType.SECRET,
+            secretName: 'my-secret',
+            secretKey: 'api-key',
+          },
+        ],
+      });
+
+      expect(state.isEnvironmentVariablesValid).toBe(false);
+      expect(state.isDeployFormValid).toBe(false);
+    });
+
+    it('fails environment variable validation for invalid names', () => {
+      const state = createDeployAgentWizardValidationState({
+        ...completeFormData(),
+        envVars: [
+          {
+            ...DEFAULT_ENV_VAR,
+            rowId: 'env-1',
+            name: '1INVALID',
+            type: DeployAgentEnvVarType.DIRECT,
+            value: 'value',
+          },
+        ],
+      });
+
+      expect(state.isEnvironmentVariablesValid).toBe(false);
+      expect(state.isDeployFormValid).toBe(false);
+    });
+
+    it('allows empty environment variables', () => {
+      const state = createDeployAgentWizardValidationState(completeFormData());
+
+      expect(state.isEnvironmentVariablesValid).toBe(true);
+      expect(state.isDeployFormValid).toBe(true);
+    });
   });
 
   describe('step registry helpers', () => {
-    const completeState = createDeployAgentWizardValidationState({
-      ...createInitialFormData('team1'),
-      containerImage: 'quay.io/myorg/my-agent',
-      imageTag: 'latest',
-      agentName: 'my-agent',
-      protocol: 'a2a',
-      workloadType: 'deployment',
-    });
+    const completeState = createDeployAgentWizardValidationState(completeFormData());
 
     const imageOnlyState = createDeployAgentWizardValidationState({
       ...createInitialFormData('team1'),
@@ -79,8 +148,19 @@ describe('deployAgentWizardValidation', () => {
     });
 
     it('blocks step 3 until configuration is valid', () => {
+      const invalidConfigState = createDeployAgentWizardValidationState({
+        ...createInitialFormData('team1'),
+        containerImage: 'quay.io/myorg/my-agent',
+        imageTag: 'latest',
+        agentName: 'my-agent',
+        protocol: '',
+      });
+
       expect(
         isDeployAgentWizardStepAccessible(3, imageOnlyState, deployAgentWizardStepRegistry),
+      ).toBe(true);
+      expect(
+        isDeployAgentWizardStepAccessible(3, invalidConfigState, deployAgentWizardStepRegistry),
       ).toBe(false);
       expect(
         isDeployAgentWizardStepAccessible(3, completeState, deployAgentWizardStepRegistry),
@@ -88,16 +168,30 @@ describe('deployAgentWizardValidation', () => {
     });
 
     it('uses per-step validators for Next button state', () => {
+      const invalidConfigState = createDeployAgentWizardValidationState({
+        ...createInitialFormData('team1'),
+        containerImage: 'quay.io/myorg/my-agent',
+        imageTag: 'latest',
+        agentName: 'my-agent',
+        protocol: '',
+      });
+
       expect(isDeployAgentWizardStepValid(1, imageOnlyState, deployAgentWizardStepRegistry)).toBe(
         true,
       );
       expect(isDeployAgentWizardStepValid(2, imageOnlyState, deployAgentWizardStepRegistry)).toBe(
-        false,
+        true,
       );
+      expect(
+        isDeployAgentWizardStepValid(2, invalidConfigState, deployAgentWizardStepRegistry),
+      ).toBe(false);
       expect(isDeployAgentWizardStepValid(2, completeState, deployAgentWizardStepRegistry)).toBe(
         true,
       );
-      expect(isDeployAgentWizardStepValid(6, completeState, deployAgentWizardStepRegistry)).toBe(
+      expect(isDeployAgentWizardStepValid(3, completeState, deployAgentWizardStepRegistry)).toBe(
+        true,
+      );
+      expect(isDeployAgentWizardStepValid(5, completeState, deployAgentWizardStepRegistry)).toBe(
         true,
       );
     });

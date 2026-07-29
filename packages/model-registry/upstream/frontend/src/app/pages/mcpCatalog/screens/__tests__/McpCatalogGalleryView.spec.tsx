@@ -9,6 +9,11 @@ import type { McpServersResult } from '~/app/hooks/mcpServerCatalog/useMcpServer
 import { useMcpServersBySourceLabelWithAPI } from '~/app/hooks/mcpServerCatalog/useMcpServersBySourceLabel';
 import McpCatalogGalleryView from '~/app/pages/mcpCatalog/screens/McpCatalogGalleryView';
 
+jest.mock('@odh-dashboard/plugin-core', () => ({
+  useExtensions: () => [],
+  LazyCodeRefComponent: () => null,
+}));
+
 jest.mock('~/app/hooks/mcpServerCatalog/useMcpServersBySourceLabel', () => ({
   useMcpServersBySourceLabelWithAPI: jest.fn(),
 }));
@@ -49,6 +54,10 @@ const defaultContext: McpCatalogContextType = {
   filterOptions: null,
   filterOptionsLoaded: true,
   filterOptionsLoadError: undefined,
+  emptyCategoryLabels: new Set<string>(),
+  categoriesResolved: true,
+  reportCategoryEmpty: jest.fn(),
+  setCategoryCount: jest.fn(),
 };
 
 const defaultHookResult: McpServersResult = {

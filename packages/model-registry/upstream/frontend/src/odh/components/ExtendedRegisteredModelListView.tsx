@@ -2,10 +2,9 @@ import * as React from 'react';
 import { Button } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
 import { ProjectObjectType, typedEmptyImage, ToolbarFilter, FilterState } from 'mod-arch-shared';
-import { useResolvedExtensions } from '@odh-dashboard/plugin-core';
 import { ModelVersion, RegisteredModel } from '~/app/types';
 import { ModelRegistrySelectorContext } from '~/app/context/ModelRegistrySelectorContext';
-import { isModelRegistryVersionDeploymentsContextExtension } from '~/odh/extension-points/deploy';
+import { MRDeploymentsContextProvider } from '~/odh/components/MRDeploymentsContextProvider';
 import {
   modelTransferJobsUrl,
   registeredModelArchiveUrl,
@@ -42,10 +41,6 @@ const ExtendedRegisteredModelListView: React.FC<ExtendedRegisteredModelListViewP
   );
   const unfilteredRegisteredModels = filterLiveModels(registeredModels);
   const archiveRegisteredModels = filterArchiveModels(registeredModels);
-
-  const [deploymentsContextExtensions, deploymentsContextLoaded] = useResolvedExtensions(
-    isModelRegistryVersionDeploymentsContextExtension,
-  );
 
   const onFilterChange = React.useCallback(
     (key: ModelRegistryFilterOptions, value: string | string[]) =>
@@ -110,41 +105,27 @@ const ExtendedRegisteredModelListView: React.FC<ExtendedRegisteredModelListViewP
     filterData,
   );
 
-  const tableContent = (
-    <ExtendedRegisteredModelTable
-      refresh={refresh}
-      clearFilters={onClearAllFilters}
-      registeredModels={filteredRegisteredModels}
-      modelVersions={modelVersions}
-      toolbarContent={
-        <ToolbarFilter
-          filterConfig={registeredModelsFilterConfig}
-          visibleFilterKeys={registeredModelsVisibleFilterKeys}
-          filterValues={filterValues}
-          onFilterChange={onFilterChange}
-          onClearAllFilters={onClearAllFilters}
-          toolbarActions={<RegisteredModelsToolbarActions />}
-          testIdPrefix="registered-models-table"
-        />
-      }
-    />
+  return (
+    <MRDeploymentsContextProvider mrName={preferredModelRegistry?.name}>
+      <ExtendedRegisteredModelTable
+        refresh={refresh}
+        clearFilters={onClearAllFilters}
+        registeredModels={filteredRegisteredModels}
+        modelVersions={modelVersions}
+        toolbarContent={
+          <ToolbarFilter
+            filterConfig={registeredModelsFilterConfig}
+            visibleFilterKeys={registeredModelsVisibleFilterKeys}
+            filterValues={filterValues}
+            onFilterChange={onFilterChange}
+            onClearAllFilters={onClearAllFilters}
+            toolbarActions={<RegisteredModelsToolbarActions />}
+            testIdPrefix="registered-models-table"
+          />
+        }
+      />
+    </MRDeploymentsContextProvider>
   );
-
-  if (deploymentsContextLoaded && deploymentsContextExtensions.length > 0) {
-    return deploymentsContextExtensions.reduce((content, extension) => {
-      const { DeploymentsProvider } = extension.properties;
-      return (
-        <DeploymentsProvider
-          key={extension.properties.DeploymentsProvider.toString()}
-          mrName={preferredModelRegistry?.name}
-        >
-          {() => tableContent}
-        </DeploymentsProvider>
-      );
-    }, tableContent);
-  }
-
-  return tableContent;
 };
 
 export default ExtendedRegisteredModelListView;

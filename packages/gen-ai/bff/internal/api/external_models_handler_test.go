@@ -410,7 +410,7 @@ var _ = Describe("CreateExternalModelHandler", func() {
 		assert.Equal(t, []interface{}{"text-generation"}, caps, "default should be text-generation only")
 	})
 
-	It("should filter out unknown capabilities and keep valid ones", func() {
+	It("should pass through all capabilities including unknown ones", func() {
 		t := GinkgoT()
 
 		requestBody := models.ExternalModelRequest{
@@ -449,9 +449,9 @@ var _ = Describe("CreateExternalModelHandler", func() {
 		assert.True(t, ok, "capabilities should be an array")
 		assert.Contains(t, caps, "text-generation")
 		assert.Contains(t, caps, "vision")
-		assert.NotContains(t, caps, "unknown-capability", "unknown capabilities should be filtered out")
-		assert.NotContains(t, caps, "made-up", "unknown capabilities should be filtered out")
-		assert.Len(t, caps, 2, "should only contain text-generation and vision")
+		assert.Contains(t, caps, "unknown-capability", "unknown capabilities should pass through")
+		assert.Contains(t, caps, "made-up", "unknown capabilities should pass through")
+		assert.Len(t, caps, 4, "should contain text-generation + all provided capabilities")
 	})
 
 	It("should strip capabilities for embedding models", func() {

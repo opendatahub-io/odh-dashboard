@@ -131,6 +131,27 @@ describe('AutoragExperimentSettingsModelSelection', () => {
       const table = screen.getByTestId('llm-models-table');
       expect(table.querySelector('thead th button')).toBeInTheDocument();
     });
+
+    it('should render Models to test label with red required indicator and help popover', async () => {
+      const user = userEvent.setup();
+      renderComponent();
+      expect(screen.getByTestId('models-to-test-label')).toHaveTextContent('Models to test');
+      expect(screen.getByTestId('models-to-test-required')).toHaveTextContent('*');
+      expect(screen.getByTestId('models-to-test-required')).toHaveAttribute('aria-hidden', 'true');
+      expect(screen.getByTestId('models-to-test-required')).toHaveClass(
+        'autorag-model-selection__required-asterisk',
+      );
+      expect(screen.getByText('required')).toHaveClass('pf-v6-screen-reader');
+      const helpButton = screen.getByTestId('models-to-test-help');
+      expect(helpButton).toBeInTheDocument();
+      await user.click(helpButton);
+      expect(
+        screen.getByText(
+          'To verify model details, including language support, view the models in the Model catalog.',
+        ),
+      ).toBeInTheDocument();
+      expect(screen.queryByRole('link', { name: /model catalog/i })).not.toBeInTheDocument();
+    });
   });
 
   describe('Tab switching', () => {

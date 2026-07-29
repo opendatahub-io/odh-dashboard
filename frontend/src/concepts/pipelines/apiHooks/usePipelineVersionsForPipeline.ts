@@ -1,9 +1,9 @@
 import * as React from 'react';
+import { FetchState, NotReadyError } from '@odh-dashboard/ui-core/hooks/useFetchState';
 import { PipelineVersionKF } from '#~/concepts/pipelines/kfTypes';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import usePipelineQuery from '#~/concepts/pipelines/apiHooks/usePipelineQuery';
 import { PipelineListPaged, PipelineOptions } from '#~/concepts/pipelines/types';
-import { FetchState, NotReadyError } from '#~/utilities/useFetchState';
 
 const usePipelineVersionsForPipeline = (
   pipelineId?: string,

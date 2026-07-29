@@ -4,8 +4,9 @@ import type { ResponsesTemplate } from '~/types/embeddable-chatbot';
 import userAvatar from '~/app/bgimages/user_avatar.svg';
 import botAvatar from '~/app/bgimages/bot_avatar.svg';
 import { getId } from '~/app/utilities/utils';
-import { ResponseMetrics } from '~/app/types';
+import { ApiError, isApiError, ResponseMetrics } from '~/app/types';
 import { createPassthroughResponse } from '~/app/services/llamaStackService';
+import { classifyError } from '~/app/utilities/errorClassifier';
 import { ChatbotMessageProps, UseChatbotMessagesReturn } from './useChatbotMessages';
 
 // Must match the placeholder the AutoRAG pipeline embeds in responses_template.input[0].content[0].text
@@ -55,7 +56,7 @@ export const buildRequestBody = (
   }
 
   const inputMessages: ResponsesInputMessage[] = previousMessages
-    .filter((msg) => msg.content)
+    .filter((msg) => msg.content && !msg.errorClassification)
     .map((msg) => ({
       type: 'message' as const,
       role: msg.role === 'user' ? 'user' : 'assistant',
@@ -109,6 +110,7 @@ const useEmbeddedChatbotMessages = ({
   const isClearingRef = React.useRef<boolean>(false);
   const timeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const isStreamingWithoutContentRef = React.useRef(false);
+  const handleMessageSendRef = React.useRef<((message: string) => Promise<void>) | null>(null);
 
   const modelDisplayName = responsesTemplate.model || 'Bot';
   const messagesRef = React.useRef<ChatbotMessageProps[]>(messages);
@@ -175,6 +177,8 @@ const useEmbeddedChatbotMessages = ({
 
   const handleMessageSend = React.useCallback(
     async (message: string) => {
+      let hadStreamingContent = false;
+
       const userMessage: MessageProps = {
         id: getId(),
         role: 'user',
@@ -238,6 +242,10 @@ const useEmbeddedChatbotMessages = ({
             const hasAnyContent =
               completeLines.length > 0 || currentPartialLine.length > 0 || chunk.length > 0;
 
+            if (chunk) {
+              hadStreamingContent = true;
+            }
+
             if (chunk && isStreamingWithoutContentRef.current) {
               isStreamingWithoutContentRef.current = false;
               setIsStreamingWithoutContent(false);
@@ -291,52 +299,102 @@ const useEmbeddedChatbotMessages = ({
           setLastResponseMetrics(streamingResponse.metrics);
         }
       } catch (error) {
+        if (isClearingRef.current) {
+          return;
+        }
+
+        const apiError: ApiError = isApiError(error)
+          ? error
+          : {
+              error: {
+                component: 'bff',
+                code: 'unknown',
+                message:
+                  error instanceof Error
+                    ? error.message
+                    : 'Sorry, I encountered an error while processing your request. Please try again.',
+                retriable: false,
+              },
+            };
+
         const isAbortError =
           error instanceof Error &&
           (error.name === 'AbortError' ||
             error.message.includes('aborted') ||
             error.message === 'Response stopped by user');
 
-        if (isClearingRef.current) {
-          return;
-        }
-
-        const errorMessage =
-          error instanceof Error
-            ? error.message
-            : 'Sorry, I encountered an error while processing your request. Please try again.';
+        const errorMessage = apiError.error.message;
 
         const wasUserStopped =
           isStoppingStreamRef.current &&
           (isAbortError || errorMessage === 'Response stopped by user');
 
-        if (botMessageId) {
+        if (wasUserStopped && botMessageId) {
           setMessages((prevMessages) =>
             prevMessages.map((msg) => {
               if (msg.id === botMessageId) {
-                if (wasUserStopped) {
-                  const stoppedContent = msg.content
-                    ? `${msg.content}\n\n*You stopped this message*`
-                    : '*You stopped this message*';
-                  return { ...msg, content: stoppedContent, isLoading: false };
-                }
-                return { ...msg, content: errorMessage, isLoading: false };
+                const stoppedContent = msg.content
+                  ? `${msg.content}\n\n*You stopped this message*`
+                  : '*You stopped this message*';
+                return { ...msg, content: stoppedContent, isLoading: false };
               }
               return msg;
             }),
           );
-        } else {
-          const botErrorMessage: MessageProps = {
-            id: getId(),
-            role: 'bot',
-            content: wasUserStopped ? '*You stopped this message*' : errorMessage,
-            name: modelDisplayName,
-            avatar: botAvatar,
-            timestamp: new Date().toLocaleString(),
-          };
-          setMessages((prevMessages) => [...prevMessages, botErrorMessage]);
+          return;
+        }
+
+        const errorClassification = classifyError(apiError, {
+          modelName: modelDisplayName,
+          wasStreamStarted: true,
+          wasResponseGenerated: hadStreamingContent,
+        });
+
+        const handleRetry = () => {
+          if (!botMessageId) {
+            return;
+          }
+
+          setMessages((prevMessages) => prevMessages.filter((msg) => msg.id !== botMessageId));
+
+          setTimeout(() => {
+            if (!isClearingRef.current && handleMessageSendRef.current) {
+              handleMessageSendRef.current(message);
+            }
+          }, 0);
+        };
+
+        if (botMessageId) {
+          setMessages((prevMessages) =>
+            prevMessages.map((msg) => {
+              if (msg.id === botMessageId) {
+                const hadContent = msg.content && msg.content.length > 0;
+
+                return hadContent
+                  ? {
+                      ...msg,
+                      content: `${msg.content}...`,
+                      isLoading: false,
+                      errorClassification,
+                      onRetryError: errorClassification.isRetriable ? handleRetry : undefined,
+                    }
+                  : {
+                      ...msg,
+                      content: '',
+                      isLoading: false,
+                      errorClassification,
+                      onRetryError: errorClassification.isRetriable ? handleRetry : undefined,
+                    };
+              }
+              return msg;
+            }),
+          );
         }
       } finally {
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current);
+          timeoutRef.current = null;
+        }
         setIsMessageSendButtonDisabled(false);
         setIsLoading(false);
         setIsStreamingWithoutContent(false);
@@ -346,6 +404,8 @@ const useEmbeddedChatbotMessages = ({
     },
     [buildRequestBodyFn, bffBasePath, namespace, secretName, username, modelDisplayName],
   );
+
+  handleMessageSendRef.current = handleMessageSend;
 
   return {
     messages,

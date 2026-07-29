@@ -1,5 +1,6 @@
 import { HTPASSWD_CLUSTER_ADMIN_USER } from './e2eUsers';
 import { waitForDspaReady } from './oc_commands/dspa';
+import { waitForManagedPipelines } from './autoXPipelines';
 import { autoragExperimentsPage } from '../pages/autorag/experimentsPage';
 import { autoragConfigurePage } from '../pages/autorag/configurePage';
 import { autoragResultsPage } from '../pages/autorag/resultsPage';
@@ -25,6 +26,7 @@ export const configureAutoragRun = (
   cy.step('Login and wait for pipeline server');
   cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
   waitForDspaReady(projectName);
+  waitForManagedPipelines(projectName);
 
   cy.step('Navigate to AutoRAG experiments page');
   autoragExperimentsPage.visit(projectName);
@@ -71,12 +73,31 @@ export const configureAutoragRun = (
   autoragConfigurePage.findBrowseBucketButton().click();
   autoragConfigurePage.findFileExplorerTable().should('be.visible');
   autoragConfigurePage.findFileExplorerSearch().type(uploadFileName);
-  autoragConfigurePage
-    .findFileExplorerTable()
-    .contains('td', uploadFileName)
-    .should('be.visible')
-    .click();
+  autoragConfigurePage.findFileExplorerTable().contains('td', uploadFileName).should('be.visible');
+  autoragConfigurePage.findFileExplorerTable().contains('td', uploadFileName).click();
   autoragConfigurePage.findFileExplorerSelectBtn().click();
+
+  cy.step('Create evaluation file via creator modal');
+  autoragConfigurePage.findEvaluationCreateButton().should('exist').click();
+  autoragConfigurePage.findEvaluationCreatorModal().should('be.visible');
+  autoragConfigurePage.findEvalQuestion().type('What information does this document contain?');
+  autoragConfigurePage.findEvalAnswer().type('It contains test data for AutoRAG evaluation.');
+  autoragConfigurePage.findEvalAddRow().should('be.enabled');
+  autoragConfigurePage.findEvalAddRow().click();
+  autoragConfigurePage
+    .findEvalEntriesTable()
+    .contains('What information does this document contain?')
+    .should('be.visible');
+  autoragConfigurePage.findEvalSubmit().should('be.enabled');
+  autoragConfigurePage.findEvalSubmit().click();
+  autoragConfigurePage.findEvaluationCreatorModal().should('not.exist');
+
+  cy.step('Verify created evaluation file appears in the selector');
+  autoragConfigurePage.findEvaluationFileValue().invoke('val').should('not.be.empty');
+
+  cy.step('Clear creator-uploaded evaluation file to test dropzone upload path');
+  autoragConfigurePage.findEvaluationFileClearButton().click();
+  autoragConfigurePage.findEvaluationFileValue().should('have.value', '');
 
   cy.step('Upload evaluation dataset JSON');
   const evalFileName = `${testData.evaluationFile.replace('.json', '')}-${uuid}.json`;
@@ -127,7 +148,7 @@ export const waitForAutoragRunCompletion = (timeoutMs = 2700000): void => {
 
 /**
  * Full post-run results verification: leaderboard, drawer, manage columns,
- * pattern details modal with all tabs, score type radios, notebook download.
+ * pattern details modal with all tabs, CI scores chart, notebook download.
  */
 export const verifyAutoragResultsInteraction = (): void => {
   cy.step('Verify leaderboard has at least one pattern row');
@@ -152,12 +173,9 @@ export const verifyAutoragResultsInteraction = (): void => {
   cy.step('Verify Pattern information tab (overview) is active by default');
   autoragResultsPage.findPatternDetailsTab('pattern_information').should('exist');
 
-  cy.step('Verify score type radio buttons on overview tab');
-  autoragResultsPage.findScoreTypeRadio('mean').should('exist');
-  autoragResultsPage.findScoreTypeRadio('ci_high').should('exist');
-  autoragResultsPage.findScoreTypeRadio('ci_low').should('exist');
-  autoragResultsPage.findScoreTypeRadio('ci_high').click();
-  autoragResultsPage.findScoreTypeRadio('mean').click();
+  cy.step('Verify CI scores chart on overview tab');
+  autoragResultsPage.findCIScoresChart().should('exist');
+  autoragResultsPage.findCIScoresLegend().should('exist');
 
   cy.step('Navigate to Vector store settings tab');
   autoragResultsPage.findPatternDetailsTab('vector_store_binding').should('exist').click();
@@ -193,6 +211,96 @@ export const verifyAutoragResultsInteraction = (): void => {
   cy.window().its('print').should('have.been.calledOnce');
   autoragResultsPage.findPatternDetailsModalCloseButton().click();
   autoragResultsPage.findPatternDetailsModal().should('not.exist');
+};
+
+/**
+ * Verify "Try this pattern" playground drawer interaction:
+ * - Open from pattern details modal actions dropdown
+ * - Verify playground drawer panel elements
+ * - Submit a query and verify a bot response is received
+ * - Close and reopen from leaderboard row actions
+ */
+export const verifyTryThisPatternInteraction = (): void => {
+  cy.step('Open pattern details modal for top-ranked pattern');
+  autoragResultsPage.findPatternLink(1).click();
+  autoragResultsPage.findPatternDetailsModal().should('be.visible');
+
+  cy.step('Open Actions dropdown and click "Try this pattern"');
+  autoragResultsPage.findPatternDetailsActionsToggle().click();
+  autoragResultsPage.findTryPatternAction().should('be.visible').click();
+
+  cy.step('Verify pattern details modal closes and playground drawer opens');
+  autoragResultsPage.findPatternDetailsModal().should('not.exist');
+  autoragResultsPage.findPlaygroundDrawerPanel().should('be.visible');
+
+  cy.step('Verify playground drawer panel elements');
+  autoragResultsPage.findPlaygroundPatternSelect().should('be.visible');
+  autoragResultsPage.findPlaygroundViewCodeButton().should('be.visible');
+
+  cy.step('Type a query into the chatbot message bar');
+  autoragResultsPage
+    .findPlaygroundDrawerPanel()
+    .find('textarea')
+    .should('be.visible')
+    .type('What is this document about?');
+
+  cy.step('Send the query');
+  autoragResultsPage.findPlaygroundDrawerPanel().findByTestId('chatbot-send-button').click();
+
+  cy.step('Verify user message appears');
+  autoragResultsPage
+    .findPlaygroundDrawerPanel()
+    .findByTestId('chatbot-message-user')
+    .should('exist');
+
+  cy.step('Wait for bot response to complete');
+  autoragResultsPage
+    .findPlaygroundDrawerPanel()
+    .findByTestId('chatbot-message-bot', { timeout: 120000 })
+    .should('exist')
+    .find('.pf-chatbot__message-loading')
+    .should('not.exist');
+
+  cy.step('Switch pattern via the pattern selector dropdown (if multiple patterns exist)');
+  autoragResultsPage.findPlaygroundPatternSelect().then(($toggle) => {
+    const currentPattern = $toggle.text().trim();
+    $toggle.trigger('click');
+    cy.get('[role="option"]').then(($options) => {
+      const otherOptions = $options.filter((_i, el) => !el.textContent.includes(currentPattern));
+      if (otherOptions.length === 0) {
+        cy.log('Only one pattern available — skipping pattern switch test');
+        cy.get('body').type('{esc}');
+        return;
+      }
+      cy.wrap(otherOptions.first()).click();
+
+      cy.step('Verify chat messages are cleared after pattern switch');
+      autoragResultsPage
+        .findPlaygroundDrawerPanel()
+        .findByTestId('chatbot-message-user')
+        .should('not.exist');
+      autoragResultsPage
+        .findPlaygroundDrawerPanel()
+        .findByTestId('chatbot-message-bot')
+        .should('not.exist');
+    });
+  });
+
+  cy.step('Close playground drawer');
+  autoragResultsPage.findPlaygroundDrawerClose().click();
+  autoragResultsPage.findPlaygroundDrawerPanel().should('not.exist');
+
+  cy.step('Open "Try this pattern" from leaderboard row actions');
+  autoragResultsPage.findLeaderboardActions(1).find('button').click();
+  cy.findByRole('menuitem', { name: 'Try this pattern' }).click();
+
+  cy.step('Verify playground drawer opens again from leaderboard');
+  autoragResultsPage.findPlaygroundDrawerPanel().should('be.visible');
+  autoragResultsPage.findPlaygroundPatternSelect().should('be.visible');
+
+  cy.step('Close playground drawer');
+  autoragResultsPage.findPlaygroundDrawerClose().click();
+  autoragResultsPage.findPlaygroundDrawerPanel().should('not.exist');
 };
 
 /**

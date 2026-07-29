@@ -1,5 +1,5 @@
 import { KnownLabels } from '@odh-dashboard/k8s-core';
-import type { K8sAPIOptions } from '@odh-dashboard/internal/k8sTypes';
+import type { K8sAPIOptions } from '@odh-dashboard/k8s-core';
 import {
   k8sCreateResource,
   k8sPatchResource,
@@ -10,9 +10,9 @@ import { createPatchesFromDiff } from '@odh-dashboard/internal/api/k8sUtils';
 import type {
   EnvironmentVariablesFieldData,
   RuntimeArgsFieldData,
-} from '@odh-dashboard/model-serving/types/form-data';
-import type { HardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/useHardwareProfileConfig';
-import { applyHardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/utils';
+} from '@odh-dashboard/model-serving/shared/types/form-data';
+import type { HardwareProfileConfig } from '@odh-dashboard/hardware-profiles/shared';
+import { applyHardwareProfileConfig } from '@odh-dashboard/hardware-profiles/shared';
 import {
   KSERVE_AUTH_ANNOTATION,
   KSERVE_VISIBILITY_LABEL,

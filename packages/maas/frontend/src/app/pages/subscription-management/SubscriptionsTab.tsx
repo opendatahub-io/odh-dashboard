@@ -1,5 +1,15 @@
 import * as React from 'react';
-import { Alert, Bullseye, PageSection, Spinner } from '@patternfly/react-core';
+import {
+  Bullseye,
+  EmptyState,
+  EmptyStateBody,
+  EmptyStateVariant,
+  PageSection,
+  Spinner,
+} from '@patternfly/react-core';
+import { ExclamationCircleIcon } from '@patternfly/react-icons';
+import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { TrackingOutcome } from '@odh-dashboard/ui-core';
 import { useListSubscriptions } from '~/app/hooks/useListSubscriptions';
 import { MaaSSubscription } from '~/app/types/subscriptions';
 import { SubscriptionsTable } from '~/app/pages/subscriptions/allSubscriptions/SubscriptionsTable';
@@ -10,7 +20,12 @@ import {
   SubscriptionsFilterOptions,
 } from '~/app/pages/subscriptions/allSubscriptions/const';
 import DeleteSubscriptionModal from '~/app/pages/subscriptions/DeleteSubscriptionModal';
-import EmptySubscriptionsPage from '~/app/pages/subscriptions/EmptySubscriptionsPage';
+import {
+  EventTrackingResourceType,
+  EventTrackingSource,
+  MaaSEvents,
+} from '~/app/types/event-tracking';
+import EmptyStatePage from './EmptyStatePage';
 
 type SubscriptionsTabProps = {
   returnTo?: string;
@@ -59,15 +74,29 @@ const SubscriptionsTab: React.FC<SubscriptionsTabProps> = ({ returnTo }) => {
   if (error) {
     return (
       <PageSection isFilled>
-        <Alert variant="danger" isInline title="Error loading subscriptions">
-          {error.message}
-        </Alert>
+        <EmptyState
+          headingLevel="h2"
+          icon={ExclamationCircleIcon}
+          titleText="Error loading subscriptions"
+          variant={EmptyStateVariant.lg}
+          data-testid="error-empty-state"
+        >
+          <EmptyStateBody data-testid="error-empty-state-body">{error.message}</EmptyStateBody>
+        </EmptyState>
       </PageSection>
     );
   }
 
   if (subscriptions.length === 0) {
-    return <EmptySubscriptionsPage returnTo={returnTo} />;
+    return (
+      <EmptyStatePage
+        returnTo={returnTo}
+        testId="empty-subscriptions-page"
+        title="No subscriptions"
+        bodyText="Subscriptions define token limits for model access. Create a subscription to control usage for each user group."
+        showSubsButton
+      />
+    );
   }
 
   return (
@@ -95,7 +124,20 @@ const SubscriptionsTab: React.FC<SubscriptionsTabProps> = ({ returnTo }) => {
           onClose={(deleted?: boolean) => {
             setDeleteSubscription(undefined);
             if (deleted) {
+              fireFormTrackingEvent(MaaSEvents.MAAS_RESOURCE_DELETED, {
+                resourceType: EventTrackingResourceType.SUBSCRIPTION,
+                source: EventTrackingSource.LIST_KEBAB,
+                resourceStatus: deleteSubscription.phase ?? '',
+                outcome: TrackingOutcome.submit,
+              });
               refresh();
+            } else {
+              fireFormTrackingEvent(MaaSEvents.MAAS_RESOURCE_DELETED, {
+                resourceType: EventTrackingResourceType.SUBSCRIPTION,
+                source: EventTrackingSource.LIST_KEBAB,
+                resourceStatus: deleteSubscription.phase ?? '',
+                outcome: TrackingOutcome.cancel,
+              });
             }
           }}
         />

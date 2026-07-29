@@ -4,23 +4,22 @@ import {
   getDescriptionFromK8sResource,
   getDisplayNameFromK8sResource,
   getResourceNameFromK8sResource,
-} from '@odh-dashboard/k8s-core';
-import TypeaheadSelect, {
-  TypeaheadSelectOption,
-} from '@odh-dashboard/internal/components/TypeaheadSelect';
-import { ConnectionDetailsHelperText } from '@odh-dashboard/internal/concepts/connectionTypes/ConnectionDetailsHelperText';
-import {
   getConnectionTypeDisplayName,
   isModelServingCompatible,
   ModelServingCompatibleTypes,
-} from '@odh-dashboard/internal/concepts/connectionTypes/utils';
-import {
-  Connection,
-  ConnectionTypeConfigMapObj,
-} from '@odh-dashboard/internal/concepts/connectionTypes/types';
+} from '@odh-dashboard/k8s-core';
+import type { Connection, ConnectionTypeConfigMapObj } from '@odh-dashboard/k8s-core';
+import TypeaheadSelect, {
+  TypeaheadSelectOption,
+} from '@odh-dashboard/ui-core/components/TypeaheadSelect';
+import { ConnectionDetailsHelperText } from '@odh-dashboard/internal/concepts/connectionTypes/ConnectionDetailsHelperText';
 import ConnectionS3FolderPathField from '@odh-dashboard/internal/pages/modelServing/screens/projects/InferenceServiceModal/ConnectionS3FolderPathField';
 import ConnectionOciPathField from '@odh-dashboard/internal/pages/modelServing/screens/projects/InferenceServiceModal/ConnectionOciPathField';
-import { ConnectionTypeRefs, ModelLocationData, ModelLocationType } from '../../types';
+import {
+  ConnectionTypeRefs,
+  ModelLocationData,
+  ModelLocationType,
+} from '../../../../shared/types/form-data';
 import { isExistingModelLocation, resolveConnectionType } from '../../utils';
 
 type ExistingConnectionFieldProps = {

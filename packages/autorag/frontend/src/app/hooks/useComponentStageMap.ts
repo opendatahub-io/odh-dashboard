@@ -1,33 +1,44 @@
 import { useQuery } from '@tanstack/react-query';
+import * as z from 'zod';
 import { useS3ListFilesQuery, fetchS3Json } from '~/app/hooks/queries';
 import { useAutoragOutputDir } from '~/app/hooks/useAutoragOutputDir';
 import type { PipelineRun } from '~/app/types';
 
 /* eslint-disable camelcase */
-export type ComponentStageMapStage = {
-  id: string;
-  description: string;
-  steps?: string[];
-  status?: string;
-  timestamp?: string;
-} & Record<string, unknown>;
+const ComponentStageMapStageSchema = z
+  .object({
+    id: z.string(),
+    description: z.string(),
+    steps: z.array(z.string()).optional(),
+    status: z.string().optional(),
+    timestamp: z.string().optional(),
+  })
+  .catchall(z.unknown());
 
-export type ComponentStageMapComponent = {
-  id: string;
-  description: string;
-  stages: ComponentStageMapStage[];
-  started_at?: string;
-  completed_at?: string;
-  metadata?: Record<string, unknown>;
-} & Record<string, unknown>;
+const ComponentStageMapComponentSchema = z
+  .object({
+    id: z.string(),
+    description: z.string(),
+    stages: z.array(ComponentStageMapStageSchema),
+    started_at: z.string().optional(),
+    completed_at: z.string().optional(),
+    metadata: z.record(z.string(), z.unknown()).optional(),
+  })
+  .catchall(z.unknown());
 
-export type ComponentStageMap = {
-  pipeline_id: string;
-  description: string;
-  components: ComponentStageMapComponent[];
-  kfp_run_id: string;
-  published_at: string;
-} & Record<string, unknown>;
+export const ComponentStageMapSchema = z
+  .object({
+    pipeline_id: z.string(),
+    description: z.string(),
+    components: z.array(ComponentStageMapComponentSchema),
+    kfp_run_id: z.string(),
+    published_at: z.string(),
+  })
+  .catchall(z.unknown());
+
+export type ComponentStageMapStage = z.infer<typeof ComponentStageMapStageSchema>;
+export type ComponentStageMapComponent = z.infer<typeof ComponentStageMapComponentSchema>;
+export type ComponentStageMap = z.infer<typeof ComponentStageMapSchema>;
 /* eslint-enable camelcase */
 
 type UseComponentStageMapReturn = {
@@ -87,7 +98,10 @@ export function useComponentStageMap(
       if (!namespace || !stageMapJsonPath) {
         throw new Error('namespace and path are required');
       }
-      return fetchS3Json(namespace, stageMapJsonPath, { signal });
+      return fetchS3Json(namespace, stageMapJsonPath, {
+        signal,
+        schema: ComponentStageMapSchema,
+      });
     },
     enabled: Boolean(namespace && stageMapJsonPath),
     retry: false,

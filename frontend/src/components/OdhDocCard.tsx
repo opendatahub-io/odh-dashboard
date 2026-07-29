@@ -13,6 +13,7 @@ import {
 } from '@patternfly/react-core';
 import { ExternalLinkAltIcon } from '@patternfly/react-icons';
 import { QuickStartContextValues } from '@patternfly/quickstarts';
+import TruncatedText from '@odh-dashboard/ui-core/components/TruncatedText';
 import { OdhDocument, OdhDocumentType } from '#~/types';
 import {
   getLaunchStatus,
@@ -25,7 +26,6 @@ import BrandImage from './BrandImage';
 import DocCardBadges from './DocCardBadges';
 import { useQuickStartCardSelected } from './useQuickStartCardSelected';
 import FavoriteButton from './FavoriteButton';
-import TruncatedText from './TruncatedText';
 
 import './OdhCard.scss';
 

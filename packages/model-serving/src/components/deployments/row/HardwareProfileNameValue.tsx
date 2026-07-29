@@ -10,11 +10,10 @@ import {
 import {
   isHardwareProfileEnabled,
   getHardwareProfileDisplayName,
-} from '@odh-dashboard/internal/pages/hardwareProfiles/utils';
-import ScopedLabel from '@odh-dashboard/internal/components/ScopedLabel';
-import { ScopedType } from '@odh-dashboard/internal/pages/modelServing/screens/const';
+} from '@odh-dashboard/hardware-profiles/shared/utils';
+import { ScopedLabel } from '@odh-dashboard/ui-core';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
-import type { UseAssignHardwareProfileResult } from '@odh-dashboard/internal/concepts/hardwareProfiles/useAssignHardwareProfile';
+import type { UseAssignHardwareProfileResult } from '@odh-dashboard/hardware-profiles/shared';
 import type { ModelResourceType } from '../../../../extension-points';
 
 const HardwareProfileNameValue = ({
@@ -45,7 +44,7 @@ const HardwareProfileNameValue = ({
               <FlexItem>
                 {isProjectScopedAvailable && hardwareProfile.metadata.namespace === project && (
                   <ScopedLabel isProject color="blue" isCompact>
-                    {ScopedType.Project}
+                    Project-scoped
                   </ScopedLabel>
                 )}
               </FlexItem>

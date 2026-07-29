@@ -61,6 +61,16 @@ func (app *App) MaaSModelsHandler(w http.ResponseWriter, r *http.Request, _ http
 			genAIModel.DisplayName = bffModel.ModelDetails.DisplayName
 			genAIModel.Description = bffModel.ModelDetails.Description
 			genAIModel.Usecase = bffModel.ModelDetails.GenAIUseCase
+
+			genAIModel.Capabilities = constants.BuildCapabilities(bffModel.ModelDetails.ModelCapabilities)
+		}
+
+		if genAIModel.Capabilities == nil {
+			genAIModel.Capabilities = constants.DefaultCapabilities()
+		}
+
+		if genAIModel.ModelType == "" {
+			genAIModel.ModelType = constants.InferModelTypeFromCapabilities(genAIModel.Capabilities)
 		}
 
 		maasModels[i] = genAIModel

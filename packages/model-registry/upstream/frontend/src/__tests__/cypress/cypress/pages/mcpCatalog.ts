@@ -78,6 +78,14 @@ class McpCatalog {
   findEmptyState() {
     return cy.findByTestId('empty-mcp-catalog-state');
   }
+
+  findEmptyStateTitle() {
+    return this.findEmptyState().find('.pf-v6-c-empty-state__title-text');
+  }
+
+  findEmptyStateWhosMyAdminLink() {
+    return this.findEmptyState().contains("Who's my administrator?");
+  }
 }
 
 class McpServerDetails {
@@ -89,6 +97,10 @@ class McpServerDetails {
   private wait() {
     cy.findByTestId('app-page-title').should('exist');
     cy.testA11y();
+  }
+
+  findPageTitle() {
+    return cy.findByTestId('app-page-title');
   }
 
   findBreadcrumbCatalogLink() {

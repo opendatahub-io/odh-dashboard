@@ -15,6 +15,7 @@ import { AppContext } from '~/app/context/AppContext';
 import McpCatalogRoutes from '~/app/pages/mcpCatalog/McpCatalogRoutes';
 import NotificationListener from '~/odh/components/NotificationListener';
 import OdhDevFeatureFlagOverridesProvider from '~/odh/components/OdhDevFeatureFlagOverridesProvider';
+import UserInteractionProviderWrapper from '~/odh/components/UserInteractionProviderWrapper';
 
 const McpCatalogWrapperContent: React.FC = () => {
   const { configSettings, userSettings, loaded, loadError } = useSettings();
@@ -35,7 +36,9 @@ const McpCatalogWrapperContent: React.FC = () => {
           <OdhDevFeatureFlagOverridesProvider crdOverrides={{}}>
             <NotificationContextProvider>
               <NotificationListener>
-                <McpCatalogRoutes />
+                <UserInteractionProviderWrapper>
+                  <McpCatalogRoutes />
+                </UserInteractionProviderWrapper>
               </NotificationListener>
             </NotificationContextProvider>
           </OdhDevFeatureFlagOverridesProvider>

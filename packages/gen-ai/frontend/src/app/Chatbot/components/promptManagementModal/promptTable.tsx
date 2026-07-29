@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import {
   Button,
   Content,
@@ -8,7 +9,12 @@ import {
   ModalFooter,
   Toolbar,
   ToolbarContent,
+  ToolbarGroup,
   ToolbarItem,
+  Dropdown,
+  DropdownList,
+  DropdownItem,
+  MenuToggle,
   Pagination,
   PageSection,
   Flex,
@@ -20,12 +26,14 @@ import {
   EmptyState,
   EmptyStateBody,
   EmptyStateVariant,
-  debounce,
   LabelGroup,
   Label,
   Title,
+  Tabs,
+  Tab,
+  TabTitleText,
 } from '@patternfly/react-core';
-import { SearchIcon, ExclamationCircleIcon } from '@patternfly/react-icons';
+import { SearchIcon, ExclamationCircleIcon, FilterIcon } from '@patternfly/react-icons';
 import { Table, Thead, Tr, Th, Tbody, Td, InnerScrollContainer } from '@patternfly/react-table';
 import { MLflowPrompt, MLflowPromptVersion } from '~/app/types';
 import { usePromptsList, usePromptVersions } from './usePromptQueries';
@@ -48,31 +56,43 @@ export default function PromptTable({
   const [selectedVersion, setSelectedVersion] = useState<number | null>(null);
   const [filterName, setFilterName] = useState('');
   const [debouncedFilterName, setDebouncedFilterName] = useState('');
+  const [activeTabKey, setActiveTabKey] = useState<number>(0);
+  const [isFilterDropdownOpen, setIsFilterDropdownOpen] = useState(false);
 
-  const debouncedSetFilterName = useMemo(
-    () =>
-      debounce((value: string) => {
-        setDebouncedFilterName(value);
-        setSelectedRow(null);
-      }, 300),
-    [],
-  );
+  const debounceTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
+
+  const debouncedSetFilterName = useCallback((value: string) => {
+    clearTimeout(debounceTimeoutRef.current);
+    debounceTimeoutRef.current = setTimeout(() => {
+      setDebouncedFilterName(value);
+      setSelectedRow(null);
+      setActivePage(1);
+    }, 300);
+  }, []);
 
   const {
     fetchNextPage,
     prompts: rows,
-    totalCount,
     isLoading: isLoadingList,
     isFetchingNextPage,
+    hasNextPage,
     error: listError,
   } = usePromptsList({ maxResults: perPage, filterName: debouncedFilterName });
   const {
     versions: selectedPromptVersions,
     isLoading: isLoadingDetails,
     error,
-  } = usePromptVersions(selectedRow?.name ?? null);
-  const thisPage = rows.slice((activePage - 1) * perPage, activePage * perPage);
+  } = usePromptVersions(selectedRow?.name ?? null, selectedRow?.scope);
+
+  const projectPrompts = useMemo(() => rows.filter((r) => r.scope?.type === 'project'), [rows]);
+  const globalPrompts = useMemo(() => rows.filter((r) => r.scope?.type === 'global'), [rows]);
+
+  const filteredRows = activeTabKey === 0 ? projectPrompts : globalPrompts;
+  const filteredRowsCount = filteredRows.length;
+  const thisPage = filteredRows.slice((activePage - 1) * perPage, activePage * perPage);
   const isDrawerOpen = selectedRow !== null || isLoadingDetails;
+
+  useEffect(() => () => clearTimeout(debounceTimeoutRef.current), []);
 
   useEffect(() => {
     if (selectedPromptVersions.length > 0) {
@@ -133,7 +153,6 @@ export default function PromptTable({
               Cancel
             </Button>
           </Flex>
-          {!isDrawerOpen && renderPagination('bottom', false)}
         </Flex>
       </ModalFooter>
     );
@@ -142,28 +161,29 @@ export default function PromptTable({
   function renderPagination(variant: PaginationVariant | 'bottom' | 'top', isCompact: boolean) {
     return (
       <Pagination
-        isStatic
         isCompact={isCompact}
-        itemCount={totalCount}
+        itemCount={filteredRowsCount}
         page={activePage}
         perPage={perPage}
         onSetPage={(_, newPage) => {
           setActivePage(newPage);
-          if (newPage > rows.length / perPage) {
+          if (hasNextPage && newPage > Math.ceil(rows.length / perPage)) {
             fetchNextPage();
           }
         }}
         onPerPageSelect={(_, newPerPage) => handlePerPageSelect(newPerPage)}
         variant={variant}
+        menuAppendTo="inline"
         titles={{
           paginationAriaLabel: `${variant} pagination`,
         }}
-        style={{ backgroundColor: 'inherit' }}
       />
     );
   }
 
-  const columns = isDrawerOpen ? ['Name', 'Version'] : ['Name', 'Version', 'Last Modified', 'Tags'];
+  const columns = isDrawerOpen
+    ? ['Name', 'Last Modified']
+    : ['Name', 'Version', 'Last Modified', 'Tags'];
 
   function handleRowClick(row: MLflowPrompt) {
     if (selectedRow?.name !== row.name) {
@@ -175,23 +195,53 @@ export default function PromptTable({
   const tableToolbar = (
     <Toolbar id="pagination-toolbar">
       <ToolbarContent>
-        <ToolbarItem style={{ minWidth: '300px' }}>
-          <SearchInput
-            data-testid="prompt-search-input"
-            aria-label="Search prompts"
-            placeholder="Find by name prefix"
-            value={filterName}
-            onChange={(_event, value) => {
-              setFilterName(value);
-              debouncedSetFilterName(value);
-            }}
-            onClear={() => {
-              setFilterName('');
-              setDebouncedFilterName('');
-            }}
-          />
+        <ToolbarGroup variant="filter-group">
+          <ToolbarItem>
+            <Dropdown
+              onOpenChange={(isOpen) => setIsFilterDropdownOpen(isOpen)}
+              shouldFocusToggleOnSelect
+              toggle={(toggleRef) => (
+                <MenuToggle
+                  ref={toggleRef}
+                  aria-label="Filter by Name"
+                  onClick={() => setIsFilterDropdownOpen(!isFilterDropdownOpen)}
+                  isExpanded={isFilterDropdownOpen}
+                  icon={<FilterIcon />}
+                >
+                  Name
+                </MenuToggle>
+              )}
+              isOpen={isFilterDropdownOpen}
+              popperProps={{ appendTo: 'inline' }}
+            >
+              <DropdownList>
+                <DropdownItem key="name" id="name" onClick={() => setIsFilterDropdownOpen(false)}>
+                  Name
+                </DropdownItem>
+              </DropdownList>
+            </Dropdown>
+          </ToolbarItem>
+          <ToolbarItem style={{ minWidth: '300px' }}>
+            <SearchInput
+              data-testid="prompt-search-input"
+              aria-label="Search prompts"
+              placeholder="Filter by name"
+              value={filterName}
+              onChange={(_event, value) => {
+                setFilterName(value);
+                debouncedSetFilterName(value);
+              }}
+              onClear={() => {
+                clearTimeout(debounceTimeoutRef.current);
+                setFilterName('');
+                setDebouncedFilterName('');
+              }}
+            />
+          </ToolbarItem>
+        </ToolbarGroup>
+        <ToolbarItem variant="pagination" align={{ default: 'alignEnd' }}>
+          {renderPagination('top', true)}
         </ToolbarItem>
-        <ToolbarItem variant="pagination">{renderPagination('top', true)}</ToolbarItem>
       </ToolbarContent>
     </Toolbar>
   );
@@ -221,15 +271,20 @@ export default function PromptTable({
       </EmptyState>
     );
   } else if (thisPage.length === 0) {
+    const isGlobalTab = activeTabKey === 1;
     tableContent = (
       <EmptyState
-        data-testid="prompt-table-empty-state"
-        titleText="No prompts found"
+        data-testid={isGlobalTab ? 'global-prompts-empty-state' : 'prompt-table-empty-state'}
+        titleText={isGlobalTab ? 'No global prompts available' : 'No prompts found'}
         icon={SearchIcon}
         headingLevel="h4"
         variant={EmptyStateVariant.sm}
       >
-        <EmptyStateBody>No saved prompts are available in this project.</EmptyStateBody>
+        <EmptyStateBody>
+          {isGlobalTab
+            ? 'Global prompts are starter templates made available by your administrator. No global prompts are currently configured.'
+            : 'No saved prompts are available in this project.'}
+        </EmptyStateBody>
       </EmptyState>
     );
   } else {
@@ -238,65 +293,73 @@ export default function PromptTable({
 
   function buildBody() {
     return (
-      <PromptDrawer
-        isLoadingDetails={isLoadingDetails}
-        selectedPromptVersions={selectedPromptVersions}
-        selectedVersion={selectedVersion}
-        onVersionChange={handleVersionChange}
-        onClose={handleClearSelectedRow}
-      >
-        <PageSection isFilled aria-label="Paginated table data" style={{ minHeight: '400px' }}>
-          <InnerScrollContainer>
-            <Table variant="compact" aria-label="Paginated Table" data-testid="prompt-table">
-              <Thead>
-                <Tr>
-                  {columns.map((column, columnIndex) => (
-                    <Th key={columnIndex}>{column}</Th>
-                  ))}
-                </Tr>
-              </Thead>
-              <Tbody>
-                {thisPage.map((row, rowIndex) => (
-                  <Tr
-                    key={rowIndex}
-                    data-testid={`prompt-table-row-${row.name}`}
-                    isClickable
-                    isRowSelected={selectedRow?.name === row.name}
-                    onClick={() => handleRowClick(row)}
-                  >
-                    <Td dataLabel={columns[0]}>
-                      <div
-                        className="pf-u-truncate pf-v6-u-text-color-link"
-                        style={{ textDecoration: 'underline' }}
-                      >
+      <PageSection isFilled aria-label="Paginated table data" style={{ minHeight: '400px' }}>
+        <InnerScrollContainer>
+          <Table variant="compact" aria-label="Paginated Table" data-testid="prompt-table">
+            <Thead>
+              <Tr>
+                {columns.map((column, columnIndex) => (
+                  <Th key={columnIndex}>{column}</Th>
+                ))}
+              </Tr>
+            </Thead>
+            <Tbody>
+              {thisPage.map((row, rowIndex) => (
+                <Tr
+                  key={rowIndex}
+                  data-testid={`prompt-table-row-${row.name}`}
+                  isClickable
+                  isRowSelected={selectedRow?.name === row.name}
+                  onClick={() => handleRowClick(row)}
+                >
+                  <Td dataLabel={columns[0]}>
+                    <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+                      <div className="pf-v6-u-truncate pf-v6-u-text-color-link gen-ai-prompt-table__name-link">
                         {row.name}
                       </div>
+                      {row.scope?.read_only && (
+                        <Label
+                          data-testid="read-only-label"
+                          isCompact
+                          variant="outline"
+                          style={{ backgroundColor: 'transparent' }}
+                        >
+                          Read-only
+                        </Label>
+                      )}
+                    </Flex>
+                  </Td>
+                  {isDrawerOpen ? (
+                    <Td dataLabel={columns[1]}>
+                      <Timestamp
+                        date={new Date(row.creation_timestamp)}
+                        dateFormat={TimestampFormat.full}
+                      />
                     </Td>
-                    <Td dataLabel={columns[1]}>{row.latest_version}</Td>
-                    {!isDrawerOpen && (
-                      <>
-                        <Td dataLabel={columns[2]}>
-                          <Timestamp
-                            date={new Date(row.creation_timestamp)}
-                            dateFormat={TimestampFormat.full}
-                          />
-                        </Td>
-                        <Td dataLabel={columns[3]}>
-                          <LabelGroup>
-                            {Object.entries(row.tags ?? {}).map(([key, value]) => (
-                              <Label variant="outline" key={key}>{`${key}: ${value}`}</Label>
-                            ))}
-                          </LabelGroup>
-                        </Td>
-                      </>
-                    )}
-                  </Tr>
-                ))}
-              </Tbody>
-            </Table>
-          </InnerScrollContainer>
-        </PageSection>
-      </PromptDrawer>
+                  ) : (
+                    <>
+                      <Td dataLabel={columns[1]}>{row.latest_version}</Td>
+                      <Td dataLabel={columns[2]}>
+                        <Timestamp
+                          date={new Date(row.creation_timestamp)}
+                          dateFormat={TimestampFormat.full}
+                        />
+                      </Td>
+                      <Td dataLabel={columns[3]}>
+                        <LabelGroup numLabels={3}>
+                          {Object.entries(row.tags ?? {}).map(([key, value]) => (
+                            <Label variant="outline" key={key}>{`${key}: ${value}`}</Label>
+                          ))}
+                        </LabelGroup>
+                      </Td>
+                    </>
+                  )}
+                </Tr>
+              ))}
+            </Tbody>
+          </Table>
+        </InnerScrollContainer>
+      </PageSection>
     );
   }
 
@@ -307,9 +370,57 @@ export default function PromptTable({
         <Content component="p" className="pf-v6-u-text-color-subtle">
           {displayText.description}
         </Content>
-        {tableToolbar}
       </ModalHeader>
-      <ModalBody style={{ height: '40vh', overflow: 'auto' }}>{tableContent}</ModalBody>
+      <ModalBody style={{ height: '40vh', overflow: 'auto' }}>
+        <PromptDrawer
+          isLoadingDetails={isLoadingDetails}
+          selectedPromptVersions={selectedPromptVersions}
+          selectedVersion={selectedVersion}
+          onVersionChange={handleVersionChange}
+          onClose={handleClearSelectedRow}
+        >
+          <Tabs
+            activeKey={activeTabKey}
+            onSelect={(_, key) => {
+              clearTimeout(debounceTimeoutRef.current);
+              const newKey = typeof key === 'number' ? key : Number(key);
+              setActiveTabKey(newKey);
+              setActivePage(1);
+              setSelectedRow(null);
+              setFilterName('');
+              setDebouncedFilterName('');
+              if (newKey === 1) {
+                fireMiscTrackingEvent('Playground Global Prompts Tab Viewed', {});
+              }
+            }}
+          >
+            <Tab
+              eventKey={0}
+              title={<TabTitleText>Project prompts</TabTitleText>}
+              data-testid="project-prompts-tab"
+            >
+              {activeTabKey === 0 && (
+                <div className="pf-v6-u-mt-lg">
+                  {tableToolbar}
+                  {tableContent}
+                </div>
+              )}
+            </Tab>
+            <Tab
+              eventKey={1}
+              title={<TabTitleText>Global prompts</TabTitleText>}
+              data-testid="global-prompts-tab"
+            >
+              {activeTabKey === 1 && (
+                <div className="pf-v6-u-mt-lg">
+                  {tableToolbar}
+                  {tableContent}
+                </div>
+              )}
+            </Tab>
+          </Tabs>
+        </PromptDrawer>
+      </ModalBody>
       {buildFooter()}
     </Modal>
   );

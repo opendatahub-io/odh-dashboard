@@ -1,6 +1,9 @@
 import * as React from 'react';
+import useFetchState, {
+  FetchState,
+  FetchStateCallbackPromise,
+} from '@odh-dashboard/ui-core/hooks/useFetchState';
 import { PipelineCoreResourceKF, PipelineKFCallCommon } from '#~/concepts/pipelines/kfTypes';
-import useFetchState, { FetchState, FetchStateCallbackPromise } from '#~/utilities/useFetchState';
 import { PipelineListPaged, PipelineOptions, PipelineParams } from '#~/concepts/pipelines/types';
 import { POLL_INTERVAL } from '#~/utilities/const';
 import { K8sAPIOptions } from '#~/k8sTypes';

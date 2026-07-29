@@ -2,11 +2,11 @@ import React from 'react';
 import { TextInput } from '@patternfly/react-core';
 import { TableVariant } from '@patternfly/react-table';
 import { DashboardEmptyTableView, TableBase } from '@odh-dashboard/ui-core';
+import SimpleSelect, { SimpleSelectOption } from '@odh-dashboard/ui-core/components/SimpleSelect';
+import FilterToolbar from '@odh-dashboard/ui-core/components/FilterToolbar';
 import { Artifact } from '#~/third_party/mlmd';
-import SimpleSelect, { SimpleSelectOption } from '#~/components/SimpleSelect';
 import { ArtifactType } from '#~/concepts/pipelines/kfTypes';
 import { useMlmdListContext } from '#~/concepts/pipelines/context';
-import FilterToolbar from '#~/components/FilterToolbar';
 import { FilterOptions, columns, initialFilterData, options } from './constants';
 import ArtifactsTableRow from './ArtifactsTableRow';
 

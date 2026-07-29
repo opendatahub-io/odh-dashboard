@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { LabelGroup, Spinner } from '@patternfly/react-core';
 import type { PersistentVolumeClaimKind } from '@odh-dashboard/k8s-core';
-import type { EitherNotBoth } from '@odh-dashboard/ui-core';
+import type { EitherNotBoth } from '@odh-dashboard/foundation';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import {
   useRelatedNotebooks,

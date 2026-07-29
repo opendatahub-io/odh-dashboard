@@ -32,6 +32,6 @@ func (app *App) emitAuditLogWithAdminCheckError(username string, r *http.Request
 		slog.String("endpoint", r.URL.Path),
 		slog.Bool("isAdmin", false),
 		slog.Bool("needsAdmin", true),
-		slog.String("adminCheckError", adminErr.Error()),
+		slog.Any("error", adminErr),
 	)
 }

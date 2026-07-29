@@ -12,7 +12,7 @@ import {
   TabTitleText,
   Truncate,
 } from '@patternfly/react-core';
-import ApplicationsPage from '#~/pages/ApplicationsPage';
+import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import { usePipelineTaskTopology } from '#~/concepts/pipelines/topology';
 import { PipelineTopology, PipelineTopologyEmpty } from '#~/concepts/topology';
 import MarkdownView from '#~/components/MarkdownView';

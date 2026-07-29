@@ -1,18 +1,9 @@
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports -- re-exporting from k8s-core for backward compatibility
+export { AwsKeys, AccessTypes } from '@odh-dashboard/k8s-core';
+import { AwsKeys } from '@odh-dashboard/k8s-core';
 import { FieldOptions } from '#~/components/FieldList';
 import { AWSDataEntry } from '#~/pages/projects/types';
 
-export enum AwsKeys {
-  NAME = 'Name',
-  ACCESS_KEY_ID = 'AWS_ACCESS_KEY_ID',
-  SECRET_ACCESS_KEY = 'AWS_SECRET_ACCESS_KEY',
-  S3_ENDPOINT = 'AWS_S3_ENDPOINT',
-  DEFAULT_REGION = 'AWS_DEFAULT_REGION',
-  AWS_S3_BUCKET = 'AWS_S3_BUCKET',
-}
-export enum AccessTypes {
-  PULL = 'Pull',
-  PUSH = 'Push',
-}
 export const PIPELINE_AWS_KEY = [
   AwsKeys.ACCESS_KEY_ID,
   AwsKeys.SECRET_ACCESS_KEY,

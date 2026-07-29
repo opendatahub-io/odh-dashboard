@@ -555,9 +555,11 @@ func BuildKFPRunRequest(req models.CreateAutoMLRunRequest, pipelineID, pipelineV
 	}
 
 	// Add optional common parameters
+	preset := constants.DefaultPreset
 	if req.Preset != nil {
-		params["preset"] = *req.Preset
+		preset = *req.Preset
 	}
+	params["preset"] = preset
 	if req.EvalMetric != nil {
 		params["eval_metric"] = *req.EvalMetric
 	}

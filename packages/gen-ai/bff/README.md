@@ -620,23 +620,17 @@ make run STATIC_ASSETS_DIR=../frontend/dist
 - `MOCK_MCP_CLIENT=true`: Enables mock MCP client
 - `MOCK_MCP_CLIENT=false` (or not set): Uses real MCP servers
 
-#### 5. Mock MaaS Client
+#### 5. Mock BFF Clients (MaaS)
 
-**Start BFF with Mock MaaS Client:**
+MaaS communication is handled via inter-BFF calls. Use `MOCK_BFF_CLIENTS=true`
+to mock MaaS BFF responses without a running MaaS BFF instance.
 
 ```bash
-LLAMA_STACK_URL=http://localhost:8321 \
-AUTH_METHOD=user_token \
-AUTH_TOKEN_HEADER=Authorization \
-AUTH_TOKEN_PREFIX="Bearer " \
-MOCK_MAAS_CLIENT=true \
-make run STATIC_ASSETS_DIR=../frontend/dist
+MOCK_BFF_CLIENTS=true make run STATIC_ASSETS_DIR=../frontend/dist
 ```
 
-**Environment Variables:**
-
-- `MOCK_MAAS_CLIENT=true`: Enables mock MaaS client
-- `MOCK_MAAS_CLIENT=false` (or not set): Uses real MaaS server
+For real MaaS testing, use `make dev-start-maas` from the `packages/gen-ai/` root
+which starts the MaaS BFF alongside the gen-ai BFF (see [Inter-BFF Communication](#inter-bff-communication-gen-ai--maas)).
 
 #### 6. Mock MLflow Client
 
@@ -664,8 +658,8 @@ AUTH_TOKEN_PREFIX="Bearer " \
 MOCK_K8S_CLIENT=true \
 MOCK_LS_CLIENT=true \
 MOCK_MCP_CLIENT=true \
-MOCK_MAAS_CLIENT=true \
 MOCK_MLFLOW_CLIENT=true \
+MOCK_BFF_CLIENTS=true \
 make run STATIC_ASSETS_DIR=../frontend/dist
 ```
 
@@ -1425,22 +1419,46 @@ The Gen-AI BFF calls the MaaS BFF for token management in Playground sessions.
 
 ### Quick Start
 
-**Run with MaaS BFF locally:**
+**All-in-one (recommended): Start MaaS BFF + Gen-AI BFF + Frontend + port-forwards:**
 
 ```bash
-# Terminal 1: Start MaaS BFF
-cd packages/maas/bff && go run cmd/main.go --port=4000
+# 1. Set MAAS_URL in packages/gen-ai/.env.local (Kuadrant gateway or direct maas-api URL):
+#    MAAS_URL=https://maas.apps.<your-cluster-domain>/maas-api
+#    INSECURE_SKIP_VERIFY=true
 
-# Terminal 2: Start Gen-AI BFF with dev override
-cd packages/gen-ai/bff
-BFF_MAAS_DEV_URL=http://localhost:4000/api/v1 go run cmd/main.go --port=8080
+# 2. Run from packages/gen-ai/:
+make dev-start-maas
 ```
 
-**Run with mock BFF clients:**
+This starts:
+- MaaS BFF on `:8081` (connected to cluster maas-api via `MAAS_URL`)
+- Gen-AI BFF on `:8080` (connected to local MaaS BFF via `BFF_MAAS_DEV_URL=http://localhost:8081/api/v1`)
+- Frontend on `:4010`
+- Port-forwards for Llama Stack (`:8321`) and optional ASR
+
+**Manual multi-terminal setup (if you need separate control):**
 
 ```bash
+# Terminal 1: Start MaaS BFF (federated mode, connects to cluster maas-api)
+cd packages/maas && make dev-bff-federated MAAS_API_URL=https://maas.apps.<cluster>/maas-api
+
+# Terminal 2: Start Gen-AI BFF with dev override pointing to local MaaS BFF
 cd packages/gen-ai/bff
-MOCK_BFF_CLIENTS=true go run cmd/main.go --port=8080
+BFF_MAAS_DEV_URL=http://localhost:8081/api/v1 MAAS_URL=http://localhost:8081 \
+  LLAMA_STACK_URL=http://localhost:8321 make run LOG_LEVEL=debug
+
+# Terminal 3: Frontend
+cd packages/gen-ai/frontend && npm run start:dev
+
+# Terminal 4: Port-forward Llama Stack
+oc port-forward -n <namespace> svc/lsd-genai-playground-service 8321:8321
+```
+
+**Run with mock BFF clients (no cluster needed):**
+
+```bash
+cd packages/gen-ai
+make dev-start-mock
 ```
 
 ### Gen-AI Specific Environment Variables

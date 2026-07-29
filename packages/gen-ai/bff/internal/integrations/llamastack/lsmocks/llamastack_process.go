@@ -117,6 +117,7 @@ func SetupLlamaStack(logger *slog.Logger) (state *LlamaStackState, err error) {
 		"--with-requirements", requirementsPath,
 		"ogx", "run", configPath,
 		"--port", fmt.Sprintf("%d", port),
+		"--insecure",
 	)
 
 	cmd.Env = append(os.Environ(),

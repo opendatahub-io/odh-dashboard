@@ -1,6 +1,5 @@
-// eslint-disable-next-line @odh-dashboard/no-restricted-imports
-import type { ModelDeployPrefillInfo } from '@odh-dashboard/internal/pages/modelServing/screens/projects/usePrefillModelDeployModal';
 import type { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
+import type { ModelDeployPrefillInfo } from '@odh-dashboard/model-serving/shared';
 
 /**
  * Builds serializable metadata from model registry info.

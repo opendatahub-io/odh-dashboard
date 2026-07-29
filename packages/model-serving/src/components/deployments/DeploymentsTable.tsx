@@ -1,7 +1,5 @@
 import React from 'react';
-import { SortableData, Table } from '@odh-dashboard/ui-core';
-import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import { TrackingOutcome } from '@odh-dashboard/internal/concepts/analyticsTracking/trackingProperties';
+import { SortableData, Table, useAnalytics, TrackingOutcome } from '@odh-dashboard/ui-core';
 import { DeploymentRow } from './row/DeploymentsTableRow';
 import {
   isDataHook,
@@ -83,6 +81,7 @@ const DeploymentsTable: React.FC<DeploymentsTableProps> = ({
   alertContent,
   ...tableProps
 }) => {
+  const { fireFormTrackingEvent } = useAnalytics();
   const [deleteDeployment, setDeleteDeployment] = React.useState<Deployment | undefined>(undefined);
   const allColumns: SortableData<Deployment>[] = React.useMemo(
     () => [

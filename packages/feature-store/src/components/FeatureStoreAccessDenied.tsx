@@ -5,7 +5,7 @@ import {
   EmptyStateFooter,
   EmptyStateVariant,
 } from '@patternfly/react-core';
-import WhosMyAdministrator from '@odh-dashboard/internal/components/WhosMyAdministrator';
+import { WhosMyAdministrator } from '@odh-dashboard/ui-core';
 import SupportIcon from '../icons/header-icons/SupportIcon';
 
 interface FeatureStoreAccessDeniedProps {

@@ -1,6 +1,7 @@
 import React from 'react';
 import { CatalogSourceList } from '~/app/modelCatalogTypes';
 import { useCatalogModelsBySources } from '~/app/hooks/modelCatalog/useCatalogModelsBySource';
+import useReportCategoryEmpty from '~/app/hooks/useReportCategoryEmpty';
 import { CatalogCategorySection } from '~/app/shared/components/catalog';
 import {
   getLabelDescription,
@@ -25,7 +26,7 @@ const ModelCatalogCategorySection: React.FC<CategorySectionProps> = ({
   catalogSources,
   onShowMore,
 }) => {
-  const { catalogLabels } = React.useContext(ModelCatalogContext);
+  const { catalogLabels, reportCategoryEmpty } = React.useContext(ModelCatalogContext);
   const { catalogModels, catalogModelsLoaded, catalogModelsLoadError } = useCatalogModelsBySources(
     undefined,
     label,
@@ -33,10 +34,22 @@ const ModelCatalogCategorySection: React.FC<CategorySectionProps> = ({
     searchTerm,
   );
 
-  // Get display name and description from labels API
   const categoryTitle = getLabelDisplayName(label, catalogLabels);
   const categoryDescription = getLabelDescription(label, catalogLabels);
   const labelSlug = label.toLowerCase().replace(/\s+/g, '-');
+
+  useReportCategoryEmpty(
+    reportCategoryEmpty,
+    label,
+    catalogModelsLoaded,
+    catalogModels.items.length,
+    searchTerm,
+    catalogModelsLoadError,
+  );
+
+  if (catalogModelsLoaded && catalogModels.items.length === 0 && !searchTerm) {
+    return null;
+  }
 
   return (
     <CatalogCategorySection

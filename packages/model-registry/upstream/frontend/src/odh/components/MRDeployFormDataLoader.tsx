@@ -37,13 +37,7 @@ const MRDeployFormDataLoader = ({
     }
   }, [apiState.api, mv, registeredModel]);
 
-  const modelDeployPrefill: {
-    data: ModelDeployPrefillInfo;
-    loaded: boolean;
-    error: Error | undefined;
-  } | null = loaded && !error ? { data: modelDeployPrefillInfo, loaded, error } : null;
-
-  return modelDeployPrefill ? renderData(modelDeployPrefill, onSubmit) : null;
+  return renderData({ data: modelDeployPrefillInfo, loaded, error }, onSubmit);
 };
 
 export default MRDeployFormDataLoader;

@@ -1,10 +1,10 @@
 import * as React from 'react';
+import { asEnumMember } from '@odh-dashboard/foundation';
 import {
   ConfigMapCategory,
   EnvironmentVariableType,
   EnvVariableData,
 } from '#~/pages/projects/types';
-import { asEnumMember } from '#~/utilities/utils';
 import EnvDataTypeField from './EnvDataTypeField';
 import GenericKeyValuePairField from './GenericKeyValuePairField';
 import { EMPTY_KEY_VALUE_PAIR } from './const';
@@ -26,9 +26,11 @@ const EnvConfigMap: React.FC<EnvConfigMapProps> = ({ env = DEFAULT_ENV, onUpdate
     onSelection={(value) =>
       onUpdate({ ...env, category: asEnumMember(value, ConfigMapCategory), data: [] })
     }
+    radioGroupName="env-configmap-subtype"
     options={{
       [ConfigMapCategory.GENERIC]: {
         label: 'Key / value',
+        description: 'Create a new key-value pair for this environment variable',
         render: (
           <GenericKeyValuePairField
             values={env.data.length === 0 ? [EMPTY_KEY_VALUE_PAIR] : env.data}
@@ -38,6 +40,7 @@ const EnvConfigMap: React.FC<EnvConfigMapProps> = ({ env = DEFAULT_ENV, onUpdate
       },
       [ConfigMapCategory.UPLOAD]: {
         label: 'Upload',
+        description: 'Upload environment variables from a file',
         render: (
           <EnvUploadField
             envVarType={EnvironmentVariableType.CONFIG_MAP}

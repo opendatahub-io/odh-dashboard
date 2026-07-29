@@ -4,6 +4,7 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
+import SimpleSelect from '@odh-dashboard/ui-core/components/SimpleSelect';
 import StorageClassSelect from '#~/pages/projects/screens/spawner/storage/StorageClassSelect';
 import { StorageClassConfig, StorageClassKind } from '#~/k8sTypes';
 
@@ -36,7 +37,7 @@ jest.mock('#~/pages/projects/screens/spawner/storage/AccessModeLabel', () => ({
   )),
 }));
 
-jest.mock('#~/components/SimpleSelect', () => ({
+jest.mock('@odh-dashboard/ui-core/components/SimpleSelect', () => ({
   __esModule: true,
   default: jest.fn(),
 }));
@@ -47,7 +48,6 @@ import {
   getStorageClassConfig,
   getPossibleStorageClassAccessModes,
 } from '#~/pages/storageClasses/utils';
-import SimpleSelect from '#~/components/SimpleSelect';
 
 const mockUseDefaultStorageClass = useDefaultStorageClass as jest.Mock;
 const mockGetStorageClassConfig = getStorageClassConfig as jest.Mock;

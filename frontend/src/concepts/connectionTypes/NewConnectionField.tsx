@@ -4,8 +4,8 @@ import {
   getResourceNameFromK8sResource,
 } from '@odh-dashboard/k8s-core';
 import type { UseK8sNameDescriptionFieldData } from '@odh-dashboard/k8s-core';
+import { useK8sNameDescriptionFieldData } from '@odh-dashboard/ui-core/components/K8sNameDescriptionField';
 import usePersistentData from '#~/pages/projects/screens/detail/connections/usePersistentData';
-import { useK8sNameDescriptionFieldData } from '#~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
 import {
   Connection,
   ConnectionTypeConfigMapObj,

@@ -1,0 +1,46 @@
+@keyframes automl-tree-node-spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.automl-tree-node__spinner {
+  animation: automl-tree-node-spin 1.5s linear infinite;
+  transform-origin: center;
+  transform-box: fill-box;
+}
+
+.automl-tree-node__pulse-ring {
+  transform: scale(calc(1 + var(--automl-pulse-progress) * 0.8));
+  opacity: calc(0.75 * (1 - var(--automl-pulse-progress)));
+  transform-origin: center;
+  transform-box: fill-box;
+}
+
+.automl-tree-node__label {
+  width: 100%;
+  text-align: center;
+  color: var(--pf-t--global--text--color--subtle);
+  font-size: var(--pf-t--global--font--size--body--sm);
+  font-family: var(--pf-t--global--font--family--body);
+  line-height: 1.3;
+  overflow-wrap: break-word;
+
+  &--selected {
+    font-weight: 600;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .automl-tree-node__pulse-ring {
+    transform: scale(1);
+    opacity: 0.75;
+  }
+  .automl-tree-node__spinner {
+    animation: none;
+  }
+}

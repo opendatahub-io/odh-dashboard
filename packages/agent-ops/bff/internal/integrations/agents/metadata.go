@@ -1,23 +1,37 @@
 package agents
 
-import "os"
+import (
+	"os"
+)
 
-// Kubernetes label and annotation keys used to describe kagenti agent resources.
 const (
-	LabelAgentType        = "kagenti.io/type"
-	LabelWorkloadType     = "kagenti.io/workload-type"
-	AnnotationDescription = "kagenti.io/description"
-	LabelProtocolPrefix   = "protocol.kagenti.io/"
+	LabelAgentType        = "opendatahub.io/agent-type"
+	LabelWorkloadType     = "opendatahub.io/workload-type"
+	AnnotationDisplayName = "openshift.io/display-name"
+	AnnotationDescription = "openshift.io/description"
+	LabelProtocolPrefix   = "protocol.opendatahub.io/"
 
-	LabelKagentiEnabled      = "kagenti-enabled"
-	LabelKagentiEnabledValue = "true"
+	AnnotationProtocol  = "opendatahub.io/agent-protocol"
+	AnnotationFramework = "opendatahub.io/agent-framework"
+	AnnotationImageRef  = "opendatahub.io/agent-image"
+
+	LabelOpenShellManagedBy = "openshell.ai/managed-by"
+	OpenShellManagedByValue = "openshell"
+	LabelOpenShellSandboxID = "openshell.ai/sandbox-id"
 
 	AgentTypeAgent = "agent"
 
-	WorkloadTypeDeployment  = "deployment"
-	WorkloadTypeStatefulSet = "statefulset"
-	WorkloadTypeJob         = "job"
+	WorkloadTypeSandbox = "sandbox"
 )
+
+// ResolveAgentResourceType returns the agent resource type from sandbox labels.
+// Discovery is OpenShell-only; sandboxes with openshell.ai/managed-by=openshell are agents.
+func ResolveAgentResourceType(labels map[string]string) string {
+	if labels[LabelOpenShellManagedBy] == OpenShellManagedByValue {
+		return AgentTypeAgent
+	}
+	return ""
+}
 
 const (
 	defaultA2AAgentCardPath  = "/.well-known/agent-card.json"
@@ -40,12 +54,10 @@ func init() {
 	}
 }
 
-// A2AAgentCardPath returns the configured in-cluster/public path suffix for A2A agent card discovery.
 func A2AAgentCardPath() string {
 	return configuredA2AAgentCardPath
 }
 
-// DefaultSpiffeTrustDomain returns the configured SPIFFE trust domain when none is attested on the card.
 func DefaultSpiffeTrustDomain() string {
 	return configuredSpiffeTrustDomain
 }

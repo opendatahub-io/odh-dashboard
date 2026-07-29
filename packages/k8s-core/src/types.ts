@@ -1,4 +1,4 @@
-import type { EitherNotBoth } from '@openshift/dynamic-plugin-sdk';
+import type { EitherNotBoth } from '@odh-dashboard/foundation';
 
 export enum ContainerResourceAttributes {
   CPU = 'cpu',
@@ -162,6 +162,10 @@ export type Volume = {
 };
 
 export type VolumeMount = { mountPath: string; name: string; subPath?: string };
+
+export type ImagePullSecret = {
+  name: string;
+};
 
 export enum AccessMode {
   RWO = 'ReadWriteOnce',

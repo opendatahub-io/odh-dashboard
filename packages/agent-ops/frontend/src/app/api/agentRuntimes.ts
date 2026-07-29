@@ -3,6 +3,7 @@ import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
 import { AgentRuntime, AgentRuntimeDetail, AgentRuntimesList } from '~/app/types/agentRuntimes';
 
 export type ListAgentRuntimesParams = {
+  namespace?: string;
   limit?: number;
   continueToken?: string;
 };
@@ -18,6 +19,9 @@ export const listAgentRuntimes =
     const queryParams: Record<string, string> = {};
     if (params?.limit != null) {
       queryParams.limit = String(params.limit);
+    }
+    if (params?.namespace) {
+      queryParams.namespace = params.namespace;
     }
     if (params?.continueToken) {
       queryParams.continueToken = params.continueToken;

@@ -1,8 +1,7 @@
 import React from 'react';
-import { Connection } from '@odh-dashboard/internal/concepts/connectionTypes/types';
-import { convertObjectStorageSecretData } from '@odh-dashboard/internal/concepts/connectionTypes/utils';
+import { convertObjectStorageSecretData, AccessTypes, AwsKeys } from '@odh-dashboard/k8s-core';
+import type { Connection } from '@odh-dashboard/k8s-core';
 import { uriToModelLocation } from '@odh-dashboard/internal/concepts/modelRegistry/utils';
-import { AccessTypes, AwsKeys } from '@odh-dashboard/internal/pages/projects/dataConnections/const';
 
 /**
  * Custom hook that filters connections to return only those that match a model artifact location.

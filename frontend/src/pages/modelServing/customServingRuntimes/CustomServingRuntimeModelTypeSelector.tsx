@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { FormGroup } from '@patternfly/react-core';
 import { CheckboxSelect, CheckboxSelectOption } from '@patternfly/react-templates';
-import { ServingRuntimeModelType } from '#~/types';
+import { ServingRuntimeModelType } from '@odh-dashboard/model-serving/shared';
 
 type CustomServingRuntimeModelTypeSelectorProps = {
   selectedModelTypes: ServingRuntimeModelType[];

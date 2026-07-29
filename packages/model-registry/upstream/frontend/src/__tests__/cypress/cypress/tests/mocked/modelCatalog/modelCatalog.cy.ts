@@ -454,6 +454,7 @@ describe('Performance Empty State', () => {
       });
       setupFilteredModelsIntercept({ returnModelsForFilters: false });
       modelCatalog.visit();
+      modelCatalog.findModelCatalogCards().should('have.length.at.least', 1);
 
       modelCatalog.togglePerformanceView();
       modelCatalog.findPerformanceViewToggleValue().should('be.checked');
@@ -472,6 +473,7 @@ describe('Performance Empty State', () => {
         sources: mockProviderAndCustomSources(),
       });
       modelCatalog.visit();
+      modelCatalog.findModelCatalogCards().should('have.length.at.least', 1);
 
       modelCatalog.findCategoryToggle('no-labels').click();
 
@@ -489,6 +491,7 @@ describe('Performance Empty State', () => {
       // No user filters/search; this scenario should hit the special "No performance data" state.
       setupFilteredModelsIntercept({ returnModelsForFilters: false });
       modelCatalog.visit();
+      modelCatalog.findModelCatalogCards().should('have.length.at.least', 1);
 
       modelCatalog.togglePerformanceView();
       modelCatalog.findPerformanceViewToggleValue().should('be.checked');
@@ -504,6 +507,7 @@ describe('Performance Empty State', () => {
         hasValidatedModels: false,
       });
       modelCatalog.visit();
+      modelCatalog.findModelCatalogCards().should('have.length.at.least', 1);
 
       modelCatalog.findCategoryToggle('label-Provider one').click();
 
@@ -518,6 +522,7 @@ describe('Performance Empty State', () => {
         hasValidatedModels: true,
       });
       modelCatalog.visit();
+      modelCatalog.findModelCatalogCards().should('have.length.at.least', 1);
 
       modelCatalog.togglePerformanceView();
       modelCatalog.findCategoryToggle('label-Provider one').click();
@@ -535,6 +540,7 @@ describe('Performance Empty State', () => {
       });
       setupFilteredModelsIntercept({ returnModelsForFilters: false });
       modelCatalog.visit();
+      modelCatalog.findModelCatalogCards().should('have.length.at.least', 1);
 
       modelCatalog.togglePerformanceView();
       modelCatalog.findCategoryToggle('no-labels').click();
@@ -553,6 +559,7 @@ describe('Performance Empty State', () => {
       });
       setupFilteredModelsIntercept({ returnModelsForFilters: false });
       modelCatalog.visit();
+      modelCatalog.findModelCatalogCards().should('have.length.at.least', 1);
 
       modelCatalog.togglePerformanceView();
       modelCatalog.findCategoryToggle('no-labels').click();
@@ -570,6 +577,7 @@ describe('Performance Empty State', () => {
       });
       setupFilteredModelsIntercept({ returnModelsForFilters: false });
       modelCatalog.visit();
+      modelCatalog.findModelCatalogCards().should('have.length.at.least', 1);
 
       modelCatalog.togglePerformanceView();
       modelCatalog.findCategoryToggle('label-Provider one').click();
@@ -641,6 +649,7 @@ describe('Performance Empty State', () => {
     });
     setupFilteredModelsIntercept({ returnModelsForFilters: false });
     modelCatalog.visit();
+    modelCatalog.findModelCatalogCards().should('have.length.at.least', 1);
 
     modelCatalog.togglePerformanceView();
     modelCatalog.findPerformanceViewToggleValue().should('be.checked');
@@ -666,6 +675,7 @@ describe('Performance Empty State', () => {
     setupFilteredModelsIntercept({ returnModelsForFilters: false });
 
     modelCatalog.visit();
+    modelCatalog.findModelCatalogCards().should('have.length.at.least', 1);
     modelCatalog.togglePerformanceView();
     modelCatalog.findCategoryToggle('label-Provider one').click();
     modelCatalog.findFilterShowMoreButton('Task').click();
@@ -685,6 +695,7 @@ describe('All Models Section', () => {
       hasValidatedModels: true,
     });
     modelCatalog.visit();
+    modelCatalog.findModelCatalogCards().should('have.length.at.least', 1);
 
     modelCatalog.togglePerformanceView();
     modelCatalog.findPerformanceViewToggleValue().should('be.checked');
@@ -724,6 +735,22 @@ describe('Single Category Behavior', () => {
 
     modelCatalog.togglePerformanceView();
     modelCatalog.findModelCatalogCards().should('have.length.at.least', 1);
+  });
+});
+
+describe('Reset Button Label', () => {
+  it('should show "Reset all filters" in empty state', () => {
+    initIntercepts({
+      sources: mockDefaultSources(),
+    });
+    setupFilteredModelsIntercept({ returnModelsForFilters: false });
+    modelCatalog.visit();
+
+    modelCatalog.findFilterShowMoreButton('Task').click();
+    modelCatalog.findFilterCheckbox('Task', 'audio-to-text').click();
+
+    modelCatalog.findModelCatalogEmptyState().should('contain.text', 'No results found');
+    modelCatalog.findEmptyStateResetFiltersButton().should('contain.text', 'Reset all filters');
   });
 });
 
