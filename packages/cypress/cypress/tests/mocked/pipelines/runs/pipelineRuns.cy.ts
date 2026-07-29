@@ -238,9 +238,7 @@ describe('Pipeline runs', () => {
         pipelineRunsGlobal.visit(projectName, 'active');
       });
 
-      it('shows empty state', () => {
-        activeRunsTable.findEmptyState().should('exist');
-      });
+      // CONVERTED to Jest: frontend/src/concepts/pipelines/content/tables/pipelineRun/__tests__/PipelineRunTable.spec.tsx
 
       it('navigate to create run page', () => {
         pipelineRunsGlobal.findCreateRunButton().click();
@@ -360,45 +358,9 @@ describe('Pipeline runs', () => {
         activeRunsTable.mockGetActiveRuns(mockActiveRuns, projectName);
       });
 
-      it('renders the page with table data', () => {
-        pipelineRunsGlobal.visit(projectName, 'active');
-        activeRunsTable.getRowByName('Test active run 1').find().should('exist');
-      });
+      // CONVERTED to Jest: frontend/src/concepts/pipelines/content/tables/pipelineRun/__tests__/PipelineRunTable.spec.tsx
 
-      it('displays the retry start time instead of created_at for a retried run', () => {
-        const retriedRun = buildMockRunKF({
-          display_name: 'Retried run',
-          run_id: 'retried-run-1',
-          pipeline_version_reference: {
-            pipeline_id: pipelineId,
-            pipeline_version_id: 'test-version-1',
-          },
-          experiment_id: 'test-experiment-1',
-          created_at: '2024-01-01T00:00:00Z',
-          scheduled_at: '2024-01-01T00:00:00Z',
-          finished_at: '2024-01-02T11:00:00Z',
-          state: RuntimeStateKF.SUCCEEDED,
-          state_history: [
-            { update_time: '2024-01-01T00:00:01Z', state: 'PENDING' },
-            { update_time: '2024-01-01T00:00:05Z', state: 'RUNNING' },
-            { update_time: '2024-01-01T01:00:00Z', state: 'FAILED' },
-            { update_time: '2024-01-02T10:00:00Z', state: 'PENDING' },
-            { update_time: '2024-01-02T10:00:05Z', state: 'RUNNING' },
-            { update_time: '2024-01-02T11:00:00Z', state: 'SUCCEEDED' },
-          ],
-        });
-
-        activeRunsTable.mockGetActiveRuns([retriedRun], projectName);
-        pipelineRunsGlobal.visit(projectName, 'active');
-
-        activeRunsTable
-          .getRowByName('Retried run')
-          .find()
-          .find('[data-label=Started]')
-          .find('time')
-          .should('have.attr', 'datetime')
-          .and('include', '2024-01-02');
-      });
+      // CONVERTED to Jest: frontend/src/concepts/pipelines/content/tables/pipelineRun/__tests__/PipelineRunTable.spec.tsx
 
       it('archive a single run', () => {
         pipelineRunsGlobal.visit(projectName, 'active');
@@ -480,7 +442,7 @@ describe('Pipeline runs', () => {
         });
 
         it('compare runs button navigates to MLflow when dev flag is enabled', () => {
-          cy.interceptOdh('GET /api/config', mockDashboardConfig({}));
+          cy.interceptOdh('GET /api/config', mockDashboardConfig({ mlflowPipelines: true }));
           interceptMlflowStatus();
           interceptDSPAMlflowIntegration(projectName);
           pipelineRunsGlobal.visit(projectName, 'active');
@@ -498,8 +460,48 @@ describe('Pipeline runs', () => {
           verifyRelativeURL(`/develop-train/mlflow/experiments/compare-runs?${params.toString()}`);
         });
 
+        it('compare runs button navigates to KFP when MLflow dev flag is disabled', () => {
+          cy.interceptOdh('GET /api/config', mockDashboardConfig({ mlflowPipelines: false }));
+          interceptMlflowStatus(false);
+          interceptDSPAMlflowIntegration(projectName, DSPAMlflowIntegrationMode.DISABLED);
+          cy.interceptOdh(
+            'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/runs/:runId',
+            {
+              path: {
+                namespace: projectName,
+                serviceName: 'dspa',
+                runId: mockActiveRuns[0].run_id,
+              },
+            },
+            mockActiveRuns[0],
+          );
+          cy.interceptOdh(
+            'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/runs/:runId',
+            {
+              path: {
+                namespace: projectName,
+                serviceName: 'dspa',
+                runId: mockActiveRuns[1].run_id,
+              },
+            },
+            mockActiveRuns[1],
+          );
+          pipelineRunsGlobal.visit(projectName, 'active');
+          cy.wait('@mlflowStatus');
+
+          activeRunsTable.getRowByName(mockActiveRuns[0].display_name).findCheckbox().click();
+          activeRunsTable.getRowByName(mockActiveRuns[1].display_name).findCheckbox().click();
+
+          pipelineRunsGlobal.findCompareRunsButton().should('not.be.disabled');
+          pipelineRunsGlobal.findCompareRunsButton().click();
+
+          verifyRelativeURL(
+            `/develop-train/pipelines/runs/${projectName}/compare-runs?compareRuns=${mockActiveRuns[0].run_id},${mockActiveRuns[1].run_id}`,
+          );
+        });
+
         it('compare runs falls back to KFP for mixed MLflow metadata when MLflow is enabled', () => {
-          cy.interceptOdh('GET /api/config', mockDashboardConfig({}));
+          cy.interceptOdh('GET /api/config', mockDashboardConfig({ mlflowPipelines: true }));
           interceptMlflowStatus();
           interceptDSPAMlflowIntegration(projectName);
           const runWithoutMlflow = buildMockRunKF({
@@ -549,7 +551,7 @@ describe('Pipeline runs', () => {
         });
 
         it('per-row kebab Compare runs navigates to MLflow when MLflow metadata is present', () => {
-          cy.interceptOdh('GET /api/config', mockDashboardConfig({}));
+          cy.interceptOdh('GET /api/config', mockDashboardConfig({ mlflowPipelines: true }));
           interceptMlflowStatus();
           interceptDSPAMlflowIntegration(projectName);
           pipelineRunsGlobal.visit(projectName, 'active');
@@ -602,68 +604,11 @@ describe('Pipeline runs', () => {
           );
         });
 
-        it('navigate to MLflow experiment details from active run row', () => {
-          cy.interceptOdh('GET /api/config', mockDashboardConfig({}));
-          interceptMlflowStatus();
-          const runWithMlflow = buildMockRunKF({
-            display_name: 'Run with mlflow',
-            run_id: 'run-with-mlflow',
-            plugins_output: {
-              mlflow: {
-                entries: {
-                  experiment_name: { value: 'MLflow experiment 1' },
-                  experiment_id: { value: 'mlflow-exp-1' },
-                },
-                state: PluginStateKF.PLUGIN_SUCCEEDED,
-              },
-            },
-          });
-          activeRunsTable.mockGetActiveRuns([runWithMlflow], projectName);
-
-          pipelineRunsGlobal.visit(projectName, 'active');
-          activeRunsTable
-            .findMlflowExperimentLink(runWithMlflow.display_name)
-            .should('have.attr', 'href')
-            .and('include', '/develop-train/mlflow/experiments/mlflow-exp-1')
-            .and('include', `workspace=${projectName}`);
-        });
+        // CONVERTED to Jest: frontend/src/concepts/pipelines/content/tables/pipelineRun/__tests__/PipelineRunTableRowMlflowExperiment.spec.tsx
       });
 
-      describe('MLflow column visibility', () => {
-        it('hides the MLflow experiment column when MLflow is disabled', () => {
-          pipelineRunsGlobal.visit(projectName, 'active');
-
-          activeRunsTable.findColumnHeaders().should('not.contain', 'MLflow experiment');
-        });
-
-        it('shows the MLflow experiment column when MLflow is enabled', () => {
-          cy.interceptOdh('GET /api/config', mockDashboardConfig({}));
-          interceptMlflowStatus();
-          activeRunsTable.mockGetActiveRuns(mockActiveRuns, projectName);
-          pipelineRunsGlobal.visit(projectName, 'active');
-
-          activeRunsTable.findColumnHeaders().should('contain', 'MLflow experiment');
-        });
-
-        it('hides the MLflow experiment column when BFF status is not configured', () => {
-          cy.interceptOdh('GET /api/config', mockDashboardConfig({}));
-          interceptMlflowStatus(false);
-          activeRunsTable.mockGetActiveRuns(mockActiveRuns, projectName);
-          pipelineRunsGlobal.visit(projectName, 'active');
-
-          activeRunsTable.findColumnHeaders().should('not.contain', 'MLflow experiment');
-        });
-
-        it('hides the MLflow experiment column when DSPA has MLflow integration disabled', () => {
-          cy.interceptOdh('GET /api/config', mockDashboardConfig({}));
-          interceptMlflowStatus();
-          interceptDSPAMlflowIntegration(projectName, DSPAMlflowIntegrationMode.DISABLED);
-          activeRunsTable.mockGetActiveRuns(mockActiveRuns, projectName);
-          pipelineRunsGlobal.visit(projectName, 'active');
-
-          activeRunsTable.findColumnHeaders().should('not.contain', 'MLflow experiment');
-        });
-      });
+      // CONVERTED to Jest: frontend/src/concepts/pipelines/content/tables/pipelineRun/__tests__/PipelineRunTable.spec.tsx
+      // Hook logic covered by: frontend/src/concepts/mlflow/hooks/__tests__/useIsMlflowPipelinesAvailable.spec.ts
 
       describe('Table filter', () => {
         it('filter by name', () => {
@@ -721,7 +666,7 @@ describe('Pipeline runs', () => {
         });
 
         it('filter by MLflow experiment', () => {
-          cy.interceptOdh('GET /api/config', mockDashboardConfig({}));
+          cy.interceptOdh('GET /api/config', mockDashboardConfig({ mlflowPipelines: true }));
           interceptMlflowStatus();
           const runsWithMlflow = [
             buildMockRunKF({
@@ -887,23 +832,12 @@ describe('Pipeline runs', () => {
         });
       });
 
-      describe('Labels', () => {
-        it('shows model registered label when fine tuning and model registry is enabled', () => {
-          pipelineRunsGlobal.visit(projectName, 'active');
-          activeRunsTable
-            .findModelRegisteredLabel('Test active run 1')
-            .should('have.text', 'Model registered');
-        });
-      });
+      // CONVERTED to Jest: frontend/src/concepts/pipelines/content/__tests__/PipelineRunTypeLabel.spec.tsx
     });
   });
 
   describe('Archived runs', () => {
-    it('shows empty state', () => {
-      archivedRunsTable.mockGetArchivedRuns([], projectName);
-      pipelineRunsGlobal.visit(projectName, 'archived');
-      archivedRunsTable.findEmptyState().should('exist');
-    });
+    // CONVERTED to Jest: frontend/src/concepts/pipelines/content/tables/pipelineRun/__tests__/PipelineRunTable.spec.tsx
 
     describe('with data', () => {
       beforeEach(() => {
@@ -911,11 +845,7 @@ describe('Pipeline runs', () => {
         pipelineRunsGlobal.visit(projectName, 'archived');
       });
 
-      it('renders the page with table data', () => {
-        mockArchivedRuns.forEach((archivedRun) =>
-          archivedRunsTable.getRowByName(archivedRun.display_name).find().should('exist'),
-        );
-      });
+      // CONVERTED to Jest: frontend/src/concepts/pipelines/content/tables/pipelineRun/__tests__/PipelineRunTable.spec.tsx (same table component, runType=ARCHIVED)
 
       it('restore a single run', () => {
         const [runToRestore] = mockArchivedRuns;
@@ -1167,9 +1097,7 @@ describe('Pipeline runs', () => {
         pipelineRunsGlobal.visit(projectName, 'scheduled');
       });
 
-      it('shows empty state', () => {
-        pipelineRecurringRunTable.findEmptyState().should('exist');
-      });
+      // CONVERTED to Jest: frontend/src/concepts/pipelines/content/tables/pipelineRecurringRun/__tests__/PipelineRecurringRunTable.spec.tsx
 
       it('navigate to create schedule page', () => {
         pipelineRunsGlobal.findScheduleRunButton().click();
@@ -1177,11 +1105,7 @@ describe('Pipeline runs', () => {
       });
     });
 
-    it('shows empty state', () => {
-      pipelineRecurringRunTable.mockGetRecurringRuns([], projectName);
-      pipelineRunsGlobal.visit(projectName, 'scheduled');
-      pipelineRecurringRunTable.findEmptyState().should('exist');
-    });
+    // CONVERTED to Jest: frontend/src/concepts/pipelines/content/tables/pipelineRecurringRun/__tests__/PipelineRecurringRunTable.spec.tsx
 
     describe('table pagination', () => {
       it('Scheduled run table pagination', () => {
@@ -1332,13 +1256,7 @@ describe('Pipeline runs', () => {
         pipelineRecurringRunTable.mockGetRecurringRuns(mockRecurringRuns, projectName);
       });
 
-      it('renders the page with table rows', () => {
-        pipelineRunsGlobal.visit(projectName, 'scheduled');
-        pipelineRecurringRunTable.find().should('exist');
-        pipelineRecurringRunTable.getRowByName('test-pipeline').find().should('exist');
-        pipelineRecurringRunTable.getRowByName('other-pipeline').find().should('exist');
-        pipelineRecurringRunTable.getRowByName('another-pipeline').find().should('exist');
-      });
+      // CONVERTED to Jest: frontend/src/concepts/pipelines/content/tables/pipelineRecurringRun/__tests__/PipelineRecurringRunTable.spec.tsx
 
       it('can disable a recurring run', () => {
         pipelineRunsGlobal.visit(projectName, 'scheduled');
@@ -1352,15 +1270,7 @@ describe('Pipeline runs', () => {
         cy.wait('@disableRecurringRun', { timeout: 10000 });
       });
 
-      it('schedules toggle should be disabled for the schedules with archived experiment', () => {
-        pipelineRunsGlobal.visit(projectName, 'scheduled');
-        pipelineRecurringRunTable
-          .getRowByName(mockRecurringRuns[0].display_name)
-          .shouldHaveToggleEnabled();
-        pipelineRecurringRunTable
-          .getRowByName(mockRecurringRuns[1].display_name)
-          .shouldHaveToggleDisabled();
-      });
+      // CONVERTED to Jest: frontend/src/concepts/pipelines/content/tables/pipelineRecurringRun/__tests__/PipelineRecurringRunTable.spec.tsx
 
       describe('Navigation', () => {
         it('navigate to create scheduled run page', () => {
@@ -1398,38 +1308,8 @@ describe('Pipeline runs', () => {
         });
       });
 
-      describe('MLflow column visibility', () => {
-        it('hides the MLflow experiment column in schedules when MLflow is disabled', () => {
-          pipelineRunsGlobal.visit(projectName, 'scheduled');
-
-          pipelineRecurringRunTable.findColumnHeaders().should('not.contain', 'MLflow experiment');
-        });
-
-        it('shows the MLflow experiment column in schedules when MLflow is enabled', () => {
-          cy.interceptOdh('GET /api/config', mockDashboardConfig({}));
-          interceptMlflowStatus();
-          pipelineRunsGlobal.visit(projectName, 'scheduled');
-
-          pipelineRecurringRunTable.findColumnHeaders().should('contain', 'MLflow experiment');
-        });
-
-        it('hides the MLflow experiment column in schedules when BFF status is not configured', () => {
-          cy.interceptOdh('GET /api/config', mockDashboardConfig({}));
-          interceptMlflowStatus(false);
-          pipelineRunsGlobal.visit(projectName, 'scheduled');
-
-          pipelineRecurringRunTable.findColumnHeaders().should('not.contain', 'MLflow experiment');
-        });
-
-        it('hides the MLflow experiment column in schedules when DSPA has MLflow integration disabled', () => {
-          cy.interceptOdh('GET /api/config', mockDashboardConfig({}));
-          interceptMlflowStatus();
-          interceptDSPAMlflowIntegration(projectName, DSPAMlflowIntegrationMode.DISABLED);
-          pipelineRunsGlobal.visit(projectName, 'scheduled');
-
-          pipelineRecurringRunTable.findColumnHeaders().should('not.contain', 'MLflow experiment');
-        });
-      });
+      // CONVERTED to Jest: frontend/src/concepts/pipelines/content/tables/pipelineRecurringRun/__tests__/PipelineRecurringRunTable.spec.tsx
+      // Hook logic covered by: frontend/src/concepts/mlflow/hooks/__tests__/useIsMlflowPipelinesAvailable.spec.ts
 
       describe('Table filter', () => {
         it('filter by name', () => {

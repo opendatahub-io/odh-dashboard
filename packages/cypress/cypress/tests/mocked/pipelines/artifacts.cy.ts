@@ -43,43 +43,11 @@ describe('Artifacts', () => {
   });
 
   describe('table', () => {
-    it('shows empty state', () => {
-      artifactsTable.mockGetArtifacts(projectName, mockGetArtifactsResponse({ artifacts: [] }));
-      artifactsGlobal.visit(projectName);
-      artifactsTable.findEmptyState().should('be.visible');
-    });
+    // CONVERTED to Jest: frontend/src/pages/pipelines/global/experiments/artifacts/__tests__/ArtifactsList.spec.tsx
+    // - "shows empty state" -> ArtifactsList.spec.tsx "should show empty state when there are no artifacts"
 
-    it('renders row data', () => {
-      artifactsTable.mockGetArtifacts(
-        projectName,
-        mockGetArtifactsResponse(mockedArtifactsResponse),
-      );
-      artifactsGlobal.visit(projectName);
-
-      const scalarMetricsRow = artifactsTable.getRowByName('scalar metrics');
-      scalarMetricsRow.findId().should('have.text', '1');
-      scalarMetricsRow.findType().should('have.text', 'system.Metrics');
-      scalarMetricsRow.findUri().should('have.text', '-');
-      scalarMetricsRow.findCreated().should('have.text', '23 Jan 2021');
-
-      const datasetRow = artifactsTable.getRowByName('dataset');
-      datasetRow.findId().should('have.text', '2');
-      datasetRow.findType().should('have.text', 'system.Dataset');
-      datasetRow.findUri().should('have.text', 's3://dataset-uri');
-      datasetRow.findCreated().should('have.text', '23 Jan 2021');
-
-      const confidenceMetricsRow = artifactsTable.getRowByName('confidence metrics');
-      confidenceMetricsRow.findId().should('have.text', '3');
-      confidenceMetricsRow.findType().should('have.text', 'system.ClassificationMetrics');
-      confidenceMetricsRow.findUri().should('have.text', '-');
-      confidenceMetricsRow.findCreated().should('have.text', '23 Jan 2021');
-
-      const confusionMatrixRow = artifactsTable.getRowByName('confusion matrix');
-      confusionMatrixRow.findId().should('have.text', '4');
-      confusionMatrixRow.findType().should('have.text', 'system.ClassificationMetrics');
-      confusionMatrixRow.findUri().should('have.text', '-');
-      confusionMatrixRow.findCreated().should('have.text', '23 Jan 2021');
-    });
+    // CONVERTED to Jest: frontend/src/pages/pipelines/global/experiments/artifacts/__tests__/ArtifactsTable.spec.tsx
+    // - "renders row data" -> ArtifactsTable.spec.tsx "renders artifacts table with data" (already existed)
 
     it('navigates to details page on Artifact name click', () => {
       artifactsGlobal.visit(projectName);
@@ -93,17 +61,8 @@ describe('Artifacts', () => {
       cy.url().should('include', `/develop-train/pipelines/artifacts/${projectName}/1`);
     });
 
-    it('it has label Registered for fine tune artifact', () => {
-      artifactsTable.mockGetArtifacts(
-        projectName,
-        mockGetArtifactsResponse(mockedArtifactsResponse),
-      );
-      artifactsGlobal.visit(projectName);
-      artifactsTable
-        .getRowByName('registered model metrics')
-        .findLabel()
-        .should('have.text', 'Registered');
-    });
+    // CONVERTED to Jest: frontend/src/pages/pipelines/global/experiments/artifacts/__tests__/ArtifactsTableRow.spec.tsx
+    // - "it has label Registered for fine tune artifact" -> ArtifactsTableRow.spec.tsx "should show Registered label for artifact with registered model"
 
     describe('filters data by', () => {
       beforeEach(() => {
@@ -171,30 +130,14 @@ describe('Artifacts', () => {
   });
 
   describe('details', () => {
-    it('renders the project navigator link', () => {
-      artifactDetails.mockGetArtifactById(
-        projectName,
-        mockGetArtifactsById({
-          artifacts: [mockedArtifactsResponse.artifacts[0]],
-          artifactTypes: [],
-        }),
-      );
-      artifactDetails.visit(projectName, 'metrics', '1');
-      artifactDetails.findProjectNavigatorLink().should('exist');
-    });
+    // CONVERTED to Jest: frontend/src/pages/pipelines/global/experiments/artifacts/__tests__/ArtifactDetails.spec.tsx
+    // - "renders the project navigator link" -> ArtifactDetails.spec.tsx breadcrumb tests
+    // - "shows empty state for properties and custom properties" -> ArtifactDetails.spec.tsx "should show empty state for properties and custom properties"
+    // - "Registered models section" -> ArtifactDetails.spec.tsx "should show Registered models section"
+    // - "should show an error icon when pipeline run fails to run" -> ArtifactDetails.spec.tsx "should show an error icon when pipeline run fails to load"
 
-    it('shows empty state for properties and custom properties', () => {
-      artifactDetails.mockGetArtifactById(
-        projectName,
-        mockGetArtifactsById({
-          artifacts: [mockedArtifactsResponse.artifacts[5]],
-          artifactTypes: [],
-        }),
-      );
-      artifactDetails.visit(projectName, '(No name)', '7');
-      artifactDetails.findPropSection().should('contain.text', 'No properties');
-      artifactDetails.findCustomPropSection().should('contain.text', 'No custom properties');
-    });
+    // CONVERTED to Jest: frontend/src/utilities/__tests__/v2Redirect.spec.tsx
+    // - "redirect from v2 to v3 route" -> covered by v2Redirect.spec.tsx wildcard redirect tests
 
     it('shows Overview tab content', () => {
       artifactDetails.mockGetArtifactById(
@@ -216,42 +159,6 @@ describe('Artifacts', () => {
       artifactDetails.findExecutionLink('execution/211');
       artifactDetails.findExecutionLink('execution/211').click();
       verifyRelativeURL('/develop-train/pipelines/executions/test-project-name/211');
-    });
-
-    it('Registered models section', () => {
-      artifactDetails.mockGetArtifactById(
-        projectName,
-        mockGetArtifactsById({
-          artifacts: [mockedArtifactsResponse.artifacts[6]],
-          artifactTypes: [],
-        }),
-      );
-      artifactDetails.visit(projectName, 'registered model metrics', '8');
-      artifactDetails
-        .findRegisteredModelSection()
-        .should('have.text', 'model (1) in model-registry registry');
-      artifactDetails
-        .findModelVersionLink()
-        .should('eq', '/ai-hub/models/registry/model-registry/registered-models/1/versions/1');
-    });
-
-    it('redirect from v2 to v3 route', () => {
-      const artifact = mockedArtifactsResponse.artifacts[0];
-      artifactDetails.mockGetArtifactById(
-        projectName,
-        mockGetArtifactsById({
-          artifacts: [artifact],
-          artifactTypes: [],
-        }),
-      );
-      cy.visitWithLogin(`/artifacts/${projectName}/${String(artifact.id)}`);
-      cy.findByTestId('app-page-title').contains(
-        String(artifact.customProperties.display_name.stringValue),
-      );
-      cy.url().should(
-        'include',
-        `/develop-train/pipelines/artifacts/${projectName}/${String(artifact.id)}`,
-      );
     });
   });
 
@@ -301,20 +208,6 @@ describe('Artifacts', () => {
       artifactDrawer.findIframeContent().should('have.text', 'helloWorld');
     });
   });
-});
-
-it('should show an error icon when pipeline run fails to run', () => {
-  initIntercepts(true);
-
-  artifactDetails.mockGetArtifactById(
-    projectName,
-    mockGetArtifactsById({
-      artifacts: [mockedArtifactsResponse.artifacts[0]],
-      artifactTypes: [],
-    }),
-  );
-  artifactDetails.visit(projectName, 'metrics', '1');
-  artifactDetails.shouldFailToLoadRun();
 });
 
 export const initIntercepts = (isRunError = false): void => {

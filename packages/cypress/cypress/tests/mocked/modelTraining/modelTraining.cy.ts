@@ -706,45 +706,14 @@ describe('Model Training', () => {
     asClusterAdminUser();
   });
 
-  it('should display correct data in training job table rows', () => {
-    initIntercepts();
-    modelTrainingGlobal.visit(projectName);
+  // CONVERTED: 'should display correct data in training job table rows' moved to:
+  //   packages/model-training/src/global/trainingJobList/__tests__/TrainJobTableRow.spec.tsx
 
-    // Wait for the table to be visible (ensures page has loaded)
-    trainingJobTable.findTable().should('be.visible');
+  // CONVERTED: 'should show empty state when no jobs exist' moved to:
+  //   packages/model-training/src/global/trainingJobList/__tests__/JobsTable.spec.tsx
 
-    const imageClassificationRow = trainingJobTable.getTableRow('image-classification-job');
-    imageClassificationRow.findTrainingJobName().should('contain', 'image-classification-job');
-    imageClassificationRow.findProject().should('contain', projectDisplayName);
-    imageClassificationRow.findNodes().should('contain', '4');
-    imageClassificationRow.findClusterQueue().should('contain', 'test-cluster-queue');
-    imageClassificationRow.findType().should('contain', 'TrainJob');
-    imageClassificationRow.findRayCluster().should('contain', '-');
-    imageClassificationRow.findStatus().should('contain', TrainingJobState.RUNNING);
-  });
-
-  it('should show empty state when no jobs exist', () => {
-    initIntercepts({ isEmpty: true });
-    modelTrainingGlobal.visit(projectName);
-
-    modelTrainingGlobal.findEmptyState().should('contain', 'No jobs');
-    modelTrainingGlobal
-      .findEmptyStateDescription()
-      .should('contain', 'No TrainJobs or RayJobs have been found in this project.');
-  });
-
-  it('should display RayJobs alongside TrainJobs in the table', () => {
-    initIntercepts();
-    modelTrainingGlobal.visit(projectName);
-
-    trainingJobTable.findTable().should('be.visible');
-
-    const trainJobRow = trainingJobTable.getTableRow('image-classification-job');
-    trainJobRow.findTrainingJobName().should('contain', 'image-classification-job');
-
-    const rayJobRow = trainingJobTable.getTableRow('ray-data-processing');
-    rayJobRow.findTrainingJobName().should('contain', 'ray-data-processing');
-  });
+  // CONVERTED: 'should display RayJobs alongside TrainJobs in the table' moved to:
+  //   packages/model-training/src/global/trainingJobList/__tests__/JobsTable.spec.tsx
 
   describe('Training Job Details Drawer', () => {
     it('should open drawer when clicking on a training job name', () => {
@@ -824,14 +793,9 @@ describe('Model Training', () => {
       trainingJobDetailsDrawer.findTitle().should('contain', 'nlp-model-training');
     });
 
-    it('should display progress bar for running job with progress percentage', () => {
-      initIntercepts();
-      modelTrainingGlobal.visit(projectName);
-
-      const row = trainingJobTable.getTableRow('image-classification-job');
-      row.findStatusProgressBar().should('exist');
-      row.findStatusProgressBar().should('contain', '64%');
-    });
+    // CONVERTED: 'should display progress bar for running job with progress percentage' moved to:
+    //   packages/model-training/src/global/trainingJobList/components/__tests__/TrainingJobStatus.spec.tsx
+    //   packages/model-training/src/global/trainingJobList/__tests__/TrainJobTableRow.spec.tsx
   });
 
   describe('Training Details Tab', () => {

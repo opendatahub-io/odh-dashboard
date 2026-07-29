@@ -255,41 +255,15 @@ describe('Model Training Pause/Resume', () => {
     asClusterAdminUser();
   });
 
-  describe('Pause/Resume Column in Table', () => {
-    it('should display Pause button for running jobs', () => {
-      initIntercepts();
-      modelTrainingGlobal.visit(projectName);
-
-      const row = trainingJobTable.getTableRow('running-job');
-      row.findPauseResumeToggle().should('be.visible');
-      row.findPauseResumeToggle().should('contain', 'Pause');
-    });
-
-    it('should display Resume button for paused jobs', () => {
-      initIntercepts();
-      modelTrainingGlobal.visit(projectName);
-
-      const row = trainingJobTable.getTableRow('paused-job');
-      row.findPauseResumeToggle().should('be.visible');
-      row.findPauseResumeToggle().should('contain', 'Resume');
-    });
-
-    it('should not display pause/resume button for completed jobs', () => {
-      initIntercepts();
-      modelTrainingGlobal.visit(projectName);
-
-      const row = trainingJobTable.getTableRow('completed-job');
-      row.findPauseResumeToggle().should('not.exist');
-    });
-
-    it('should not display pause/resume button for failed jobs', () => {
-      initIntercepts();
-      modelTrainingGlobal.visit(projectName);
-
-      const row = trainingJobTable.getTableRow('failed-job');
-      row.findPauseResumeToggle().should('not.exist');
-    });
-  });
+  // CONVERTED TO JEST UNIT TESTS:
+  // Pause/Resume button visibility by job state is now tested in:
+  //   packages/model-training/src/global/trainingJobList/__tests__/StateActionToggle.spec.tsx
+  //
+  // Removed tests:
+  // - "should display Pause button for running jobs"
+  // - "should display Resume button for paused jobs"
+  // - "should not display pause/resume button for completed jobs"
+  // - "should not display pause/resume button for failed jobs"
 
   describe('Pause Confirmation Modal', () => {
     it('should open pause modal when clicking Pause button', () => {

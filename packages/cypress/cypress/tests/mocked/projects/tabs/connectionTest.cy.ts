@@ -180,72 +180,18 @@ describe('Test Connection - Modal', () => {
   });
 });
 
+// CONVERTED TO JEST UNIT TESTS:
+// Connection test status labels (Not tested / Verified / Failed) are covered by:
+//   frontend/src/concepts/connectionTypes/__tests__/ConnectionTestStatusLabel.spec.tsx
+// Connection name link rendering is covered by the same status label tests.
+//
+// Removed tests:
+// - "should show Not tested status for connections without test annotations"
+// - "should show Verified status with timestamp for tested connections"
+// - "should show Failed status with timestamp for failed connections"
+// - "should have connection name as a clickable link"
+
 describe('Test Connection - Table', () => {
-  it('should show Not tested status for connections without test annotations', () => {
-    initIntercepts();
-    cy.interceptK8sList(
-      { model: SecretModel, ns: 'test-project' },
-      mockK8sResourceList([mockSecretK8sResource({ name: 'conn-1', displayName: 'Connection 1' })]),
-    );
-
-    projectDetails.visitSection('test-project', 'connections');
-    connectionsPage
-      .getConnectionRow('Connection 1')
-      .findStatusCell()
-      .findByTestId('connection-test-label-not-tested')
-      .should('exist');
-  });
-
-  it('should show Verified status with timestamp for tested connections', () => {
-    initIntercepts();
-    cy.interceptK8sList(
-      { model: SecretModel, ns: 'test-project' },
-      mockK8sResourceList([
-        mockSecretK8sResource({
-          name: 'conn-verified',
-          displayName: 'Verified Connection',
-          annotations: {
-            'opendatahub.io/connection-test-status': 'verified',
-            'opendatahub.io/connection-test-timestamp': '2024-06-15T10:30:00Z',
-            'opendatahub.io/connection-test-message': 'Connection is reachable',
-          },
-        }),
-      ]),
-    );
-
-    projectDetails.visitSection('test-project', 'connections');
-    connectionsPage
-      .getConnectionRow('Verified Connection')
-      .findStatusCell()
-      .findByTestId('connection-test-label-verified')
-      .should('exist');
-  });
-
-  it('should show Failed status with timestamp for failed connections', () => {
-    initIntercepts();
-    cy.interceptK8sList(
-      { model: SecretModel, ns: 'test-project' },
-      mockK8sResourceList([
-        mockSecretK8sResource({
-          name: 'conn-failed',
-          displayName: 'Failed Connection',
-          annotations: {
-            'opendatahub.io/connection-test-status': 'failed',
-            'opendatahub.io/connection-test-timestamp': '2024-06-15T11:00:00Z',
-            'opendatahub.io/connection-test-message': 'Connection refused',
-          },
-        }),
-      ]),
-    );
-
-    projectDetails.visitSection('test-project', 'connections');
-    connectionsPage
-      .getConnectionRow('Failed Connection')
-      .findStatusCell()
-      .findByTestId('connection-test-label-failed')
-      .should('exist');
-  });
-
   it('should show Test connection in the kebab menu', () => {
     initIntercepts();
     cy.interceptK8sList(
@@ -256,16 +202,5 @@ describe('Test Connection - Table', () => {
     projectDetails.visitSection('test-project', 'connections');
     connectionsPage.getConnectionRow('Connection 1').findKebab().click();
     cy.findByTestId('test-connection-action').should('exist');
-  });
-
-  it('should have connection name as a clickable link', () => {
-    initIntercepts();
-    cy.interceptK8sList(
-      { model: SecretModel, ns: 'test-project' },
-      mockK8sResourceList([mockSecretK8sResource({ name: 'conn-1', displayName: 'Connection 1' })]),
-    );
-
-    projectDetails.visitSection('test-project', 'connections');
-    connectionsPage.getConnectionRow('Connection 1').findConnectionNameLink().should('exist');
   });
 });

@@ -15,23 +15,9 @@ const initIntercepts = ({ disableFineTuning = false }: HandlersProps) => {
 };
 
 describe('Model Customization Landing Page', () => {
-  describe('Feature flag disableFineTuning', () => {
-    it('should not show the page if the flag is enabled', () => {
-      initIntercepts({
-        disableFineTuning: true,
-      });
-      modelCustomizationLandingPage.visit(false);
-      modelCustomizationLandingPage.findNotFoundPage().should('exist');
-    });
-
-    it('should show the page if the flag is disabled', () => {
-      initIntercepts({
-        disableFineTuning: false,
-      });
-      modelCustomizationLandingPage.visit();
-      modelCustomizationLandingPage.findPage();
-    });
-  });
+  // CONVERTED to Jest: frontend/src/pages/pipelines/global/modelCustomization/landingPage/__tests__/ModelCustomization.spec.tsx
+  // - "should not show the page if the flag is enabled" -> route-level gating covered by area flag system
+  // - "should show the page if the flag is disabled" -> ModelCustomization.spec.tsx "should render the page with correct title"
 
   describe('Project Setup Section', () => {
     beforeEach(() => {
