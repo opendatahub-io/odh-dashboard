@@ -71,6 +71,45 @@ module.exports = merge(
   {
     mode: 'development',
     devtool: 'eval-source-map',
+    // Persist compile artifacts across `rspack dev` restarts. Default is
+    // memory-only, which forces a full cold rebuild every process start.
+    cache: {
+      type: 'persistent',
+      // CLI env / dotenv values are not auto-tracked. Digest vars that are
+      // inlined (dotenv-webpack / DefinePlugin / EnvironmentPlugin) or that
+      // change the compile graph so CLI overrides bust the cache too.
+      version: JSON.stringify({
+        // frontend/src/utilities/const.ts (+ HtmlWebpackPlugin branding)
+        APP_ENV: process.env.APP_ENV,
+        WS_HOSTNAME: process.env.WS_HOSTNAME,
+        POLL_INTERVAL: process.env.POLL_INTERVAL,
+        FAST_POLL_INTERVAL: process.env.FAST_POLL_INTERVAL,
+        SERVER_TIMEOUT: process.env.SERVER_TIMEOUT,
+        DOC_LINK: process.env.DOC_LINK,
+        COMMUNITY_LINK: process.env.COMMUNITY_LINK,
+        SUPPORT_LINK: process.env.SUPPORT_LINK,
+        ODH_LOGO: process.env.ODH_LOGO,
+        ODH_LOGO_DARK: process.env.ODH_LOGO_DARK,
+        ODH_PRODUCT_NAME: process.env.ODH_PRODUCT_NAME,
+        ODH_FAVICON: process.env.ODH_FAVICON,
+        DASHBOARD_CONFIG: process.env.DASHBOARD_CONFIG,
+        EXT_CLUSTER: process.env.EXT_CLUSTER,
+        INTERNAL_DASHBOARD_VERSION: process.env.INTERNAL_DASHBOARD_VERSION,
+        CONSOLE_LINK_DOMAIN: process.env.CONSOLE_LINK_DOMAIN,
+        // EnvironmentPlugin default / override (webpack.common.js)
+        MF_REMOTES: process.env.MF_REMOTES,
+        // Compile-graph toggles (loaders, MF, plugin discovery)
+        COVERAGE: process.env.COVERAGE,
+        MF_DEV: process.env.MF_DEV,
+        PLUGIN_PACKAGES: process.env.PLUGIN_PACKAGES,
+        MODULE_FEDERATION_CONFIG: process.env.MODULE_FEDERATION_CONFIG,
+        MF_UPDATE_TYPES: process.env.MF_UPDATE_TYPES,
+      }),
+      storage: {
+        type: 'filesystem',
+        directory: path.join(__dirname, '../node_modules/.cache/rspack'),
+      },
+    },
     optimization: {
       // Module Federation embeds its runtime in the entry; a separate runtime
       // chunk races with shared consume factories (undefined.call) especially
