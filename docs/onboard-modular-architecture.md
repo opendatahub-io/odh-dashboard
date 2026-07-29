@@ -105,7 +105,7 @@ cd packages/<your-module>
 make dev-start-federated
 ```
 
-This command will start:
+These three commands collectively start:
 
 - The Dashboard Backend
 - The Dashboard Frontend (Shell)

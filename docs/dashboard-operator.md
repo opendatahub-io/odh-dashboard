@@ -334,9 +334,9 @@ The Dashboard type provides five methods:
 | `Ready` | All sub-conditions healthy | One or more sub-conditions unhealthy |
 | `ProvisioningSucceeded` | Manifests rendered and applied | Render or deploy failed |
 | `Degraded` | One or more modules degraded (standalone) | No degradation / route not ready |
-| `ObservabilityAvailable` | Perses proxy deployed | Perses proxy not configured/failed |
+| `ObservabilityAvailable` | Perses proxy deployed | Perses proxy not configured/failed (set with `severity: Info` when simply disabled, which does not block `Ready`) |
 
-The `Ready` condition is a rollup -- it is automatically derived by the conditions manager from `ProvisioningSucceeded`, `Degraded`, and `ObservabilityAvailable`. It is never set explicitly.
+The `Ready` condition is a rollup -- it is automatically derived by the conditions manager from `ProvisioningSucceeded`, `Degraded`, and `ObservabilityAvailable`. It is never set explicitly. Conditions set with `severity: Info` (such as `ObservabilityAvailable` when observability is not enabled) are treated as non-blocking by the rollup.
 
 ### Phase Derivation
 

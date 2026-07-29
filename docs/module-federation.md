@@ -199,17 +199,10 @@ Each module entry in the ConfigMap follows this structure:
   "remoteEntry": "/remoteEntry.js",
   "authorize": true,
   "tls": true,
-  "proxyService": [
+  "proxy": [
     {
       "path": "/gen-ai/api",
-      "pathRewrite": "/api",
-      "authorize": true,
-      "tls": true,
-      "service": {
-        "name": "odh-dashboard-gen-ai-ui",
-        "namespace": "redhat-ods-applications",
-        "port": 8143
-      }
+      "pathRewrite": "/api"
     }
   ],
   "service": {
