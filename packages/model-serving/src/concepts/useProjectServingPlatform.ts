@@ -1,6 +1,6 @@
 import React from 'react';
 import { type ProjectKind, NamespaceApplicationCase } from '@odh-dashboard/k8s-core';
-import { addSupportServingPlatformProject } from '@odh-dashboard/internal/api/k8s/projects';
+import { useHostApi } from '@odh-dashboard/plugin-core/host-api';
 import { ModelServingPlatformExtension } from '../../extension-points';
 
 export type ModelServingPlatform = ModelServingPlatformExtension;
@@ -72,6 +72,7 @@ export const useProjectServingPlatform = (
   projectPlatformError: Error | null;
   clearProjectPlatformError: () => void;
 } => {
+  const { setProjectServingPlatform } = useHostApi();
   const [tmpProjectPlatform, setTmpProjectPlatform] = React.useState<
     ModelServingPlatform | null | undefined
   >(project && platforms ? getProjectServingPlatform(project, platforms) : undefined);
@@ -97,7 +98,7 @@ export const useProjectServingPlatform = (
       setLoadingState({ type: 'platform', platform: platformToEnable });
       setProjectPlatformError(null);
 
-      addSupportServingPlatformProject(
+      setProjectServingPlatform(
         project.metadata.name,
         platformToEnable.properties.manage.namespaceApplicationCase,
       ).catch((e) => {
@@ -109,7 +110,7 @@ export const useProjectServingPlatform = (
         setLoadingState({ type: null });
       });
     },
-    [project],
+    [project, setProjectServingPlatform],
   );
 
   const resetProjectPlatform = React.useCallback(() => {
@@ -119,7 +120,7 @@ export const useProjectServingPlatform = (
     setLoadingState({ type: 'reset' });
     setProjectPlatformError(null);
 
-    addSupportServingPlatformProject(
+    setProjectServingPlatform(
       project.metadata.name,
       NamespaceApplicationCase.RESET_MODEL_SERVING_PLATFORM,
     ).catch((e) => {
@@ -130,7 +131,7 @@ export const useProjectServingPlatform = (
       }
       setLoadingState({ type: null });
     });
-  }, [project]);
+  }, [project, setProjectServingPlatform]);
 
   const activePlatform = React.useMemo(
     () =>

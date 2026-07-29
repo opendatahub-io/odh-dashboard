@@ -11,8 +11,8 @@ import type {
   SecretKind,
   SupportedModelFormats,
 } from '@odh-dashboard/k8s-core';
-import type { LabeledConnection } from '@odh-dashboard/internal/pages/modelServing/screens/types';
 import type { SimpleSelectOption } from '@odh-dashboard/ui-core/components/SimpleSelect';
+import type { LabeledConnection } from '@odh-dashboard/model-serving/shared';
 import type {
   ModelServerOption,
   ModelServerSelectField,

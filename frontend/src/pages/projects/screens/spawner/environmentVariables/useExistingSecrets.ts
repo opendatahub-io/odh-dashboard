@@ -2,8 +2,8 @@ import * as React from 'react';
 import { k8sListResource } from '@openshift/dynamic-plugin-sdk-utils';
 import { KnownLabels, type SecretKind } from '@odh-dashboard/k8s-core';
 import { isConnection } from '@odh-dashboard/k8s-core';
+import { useAccessReview } from '@odh-dashboard/plugin-core/host-api';
 import { SecretModel } from '#~/api/models';
-import { useAccessReview } from '#~/api/useAccessReview';
 import { ExistingSecretMetadata } from '#~/pages/projects/types';
 
 /**

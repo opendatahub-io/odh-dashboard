@@ -3,7 +3,7 @@ import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import React from 'react';
 import { DashboardPopupIconButton, ScopedLabel } from '@odh-dashboard/ui-core';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
-import type { NotebookKind } from '@odh-dashboard/internal/k8sTypes';
+import type { NotebookKind } from '@odh-dashboard/k8s-core';
 import { getHardwareProfileDisplayName } from '@odh-dashboard/internal/pages/hardwareProfiles/utils';
 import { KUEUE_QUEUE_LABEL } from '@odh-dashboard/internal/concepts/kueue/index';
 import type { HardwareProfileResource } from './types';

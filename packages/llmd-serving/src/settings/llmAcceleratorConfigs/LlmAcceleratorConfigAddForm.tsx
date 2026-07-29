@@ -26,7 +26,12 @@ import {
   createLLMInferenceServiceConfig,
   updateLLMInferenceServiceConfig,
 } from '../../api/LLMInferenceServiceConfigs';
-import { isConfigObject, cleanResourceForYAMLViewer } from '../../utils';
+import {
+  isConfigObject,
+  cleanResourceForYAMLViewer,
+  stripDuplicatingAnnotations,
+  stripDuplicatingLabels,
+} from '../../utils';
 import { ConfigType, CONFIG_TYPE_LABEL } from '../../types';
 import type { LLMInferenceServiceConfigKind } from '../../types';
 
@@ -84,6 +89,8 @@ const LlmAcceleratorConfigAddForm: React.FC<LlmAcceleratorConfigAddFormProps> = 
     }
     if (isDuplicate) {
       const cleanMeta = cleanResourceForYAMLViewer(sourceConfig.metadata);
+      const cleanAnnotations = stripDuplicatingAnnotations(cleanMeta.annotations);
+      const cleanLabels = stripDuplicatingLabels(cleanMeta.labels);
       const duplicateDisplayName = `Copy of ${getDisplayNameFromK8sResource(sourceConfig)}`;
       return YAML.stringify({
         ...sourceConfig,
@@ -91,9 +98,10 @@ const LlmAcceleratorConfigAddForm: React.FC<LlmAcceleratorConfigAddFormProps> = 
           ...cleanMeta,
           name: translateDisplayNameForK8s(duplicateDisplayName),
           annotations: {
-            ...cleanMeta.annotations,
+            ...cleanAnnotations,
             'openshift.io/display-name': duplicateDisplayName,
           },
+          labels: cleanLabels,
         },
       });
     }

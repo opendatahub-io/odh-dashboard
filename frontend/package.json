@@ -93,7 +93,7 @@
     "axios": "^1.17.0",
     "classnames": "^2.5.1",
     "compare-versions": "^3.6.0",
-    "dompurify": "^3.4.8",
+    "dompurify": "^3.4.12",
     "google-protobuf": "^3.21.4",
     "grpc-web": "^1.5.0",
     "lodash-es": "^4.18.1",
@@ -239,7 +239,7 @@
     },
     "react-router": "^7.17.0",
     "ws": "^8.21.0",
-    "dompurify": "^3.4.8",
+    "dompurify": "^3.4.12",
     "redux": "^4.2.1",
     "form-data": "^4.0.5",
     "axios": "^1.17.0"

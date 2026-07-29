@@ -36,6 +36,9 @@ jest.mock('@odh-dashboard/plugin-core/areas', () => ({
 jest.mock('#~/api', () => ({
   getSecret: jest.fn(),
   updatePvc: jest.fn(),
+}));
+
+jest.mock('@odh-dashboard/plugin-core/host-api', () => ({
   useAccessReview: jest.fn(() => [true]),
 }));
 
