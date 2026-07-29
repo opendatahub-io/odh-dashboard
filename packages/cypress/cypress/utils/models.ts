@@ -13,22 +13,35 @@ export const NIMAccountModel = {
   plural: 'accounts',
 };
 
-const maxAttempts = 5;
-let attempts = 0;
+/**
+ * Clicks the deployment status label to open the DeploymentStatusModal,
+ * verifies the modal shows a "Ready" status, then closes it.
+ * Retries with page reloads if the status element is not yet visible.
+ */
+export function verifyDeploymentStatusModal(): void {
+  const maxAttempts = 5;
+  let attempts = 0;
 
-export function attemptToClickTooltip(): void {
-  if (attempts >= maxAttempts) {
-    throw new Error('Failed to find and click the status tooltip after 5 attempts');
+  function attempt(): void {
+    if (attempts >= maxAttempts) {
+      throw new Error('Failed to find and click the status label after 5 attempts');
+    }
+
+    modelServingSection.findStatusTooltip().then(($el) => {
+      if ($el.length > 0 && $el.is(':visible')) {
+        modelServingSection.findStatusTooltip().click({ force: true });
+        cy.findByTestId('deployment-status-modal', { timeout: 10000 }).should('be.visible');
+        cy.findByTestId('deployment-status-modal')
+          .findByTestId('model-status-text')
+          .should('include.text', 'Ready');
+        cy.findByTestId('deployment-status-modal').find('button[aria-label="Close"]').click();
+      } else {
+        attempts++;
+        cy.reload();
+        attempt();
+      }
+    });
   }
 
-  modelServingSection.findStatusTooltip().then(($tooltip) => {
-    if ($tooltip.length > 0 && $tooltip.is(':visible')) {
-      modelServingSection.findStatusTooltip().click({ force: true });
-      cy.contains('Model deployment is active', { timeout: 120000 }).should('be.visible');
-    } else {
-      attempts++;
-      cy.reload();
-      attemptToClickTooltip();
-    }
-  });
+  attempt();
 }
