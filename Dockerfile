@@ -6,7 +6,7 @@ ARG BUILD_MODE=ODH
 ARG BASE_IMAGE="registry.access.redhat.com/ubi9/nodejs-22:latest"
 ARG MINIMAL_IMAGE="registry.access.redhat.com/ubi9/nodejs-22-minimal:latest"
 
-FROM ${BASE_IMAGE} as builder
+FROM ${BASE_IMAGE} AS builder
 
 ## Build args to be used at this step
 ARG SOURCE_CODE
@@ -54,12 +54,12 @@ RUN node scripts/prepare-production-manifest.js \
 # These Go binaries are NOT needed at runtime and are NOT FIPS compliant
 RUN rm -rf node_modules/esbuild node_modules/@esbuild node_modules/.bin/esbuild
 
-FROM ${MINIMAL_IMAGE} as runtime
+FROM ${MINIMAL_IMAGE} AS runtime
 
 # The curl binary is required in the final image, as it's used for
 # liveness and readiness probes
 USER root
-RUN dnf install -y curl-minimal && dnf clean all && curl --version
+RUN microdnf install -y curl-minimal && microdnf clean all && curl --version
 USER 1001:0
 
 WORKDIR /usr/src/app
