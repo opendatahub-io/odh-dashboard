@@ -50,4 +50,10 @@ var (
 		Version:  "v1",
 		Resource: "groups",
 	}
+
+	DataScienceClusterGvr = schema.GroupVersionResource{
+		Group:    "datasciencecluster.opendatahub.io",
+		Version:  "v2",
+		Resource: "datascienceclusters",
+	}
 )
