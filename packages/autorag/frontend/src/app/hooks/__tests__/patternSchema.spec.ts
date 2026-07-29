@@ -157,15 +157,14 @@ describe('AutoragPatternSchema', () => {
     expect(result.success).toBe(true);
   });
 
-  it('should parse a pattern with null vector_store_id', () => {
+  it('should parse a V2 pattern with null vector_store_id', () => {
     // Real pipeline may set vector_store_id to null when no collection is bound.
     const withNullBinding = {
-      ...v1Pattern,
+      ...v2Pattern,
       settings: {
-        ...baseSettings,
+        ...v2Pattern.settings,
         vector_store_binding: {
-          provider_id: 'milvus',
-          provider_type: 'unknown',
+          ...v2Pattern.settings.vector_store_binding,
           vector_store_id: null,
         },
       },
