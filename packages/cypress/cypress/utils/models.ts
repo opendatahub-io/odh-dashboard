@@ -23,10 +23,6 @@ export function verifyDeploymentStatusModal(): void {
   let attempts = 0;
 
   function attempt(): void {
-    if (attempts >= maxAttempts) {
-      throw new Error('Failed to find and click the status label after 5 attempts');
-    }
-
     modelServingSection.findStatusTooltip().then(($el) => {
       if ($el.length > 0 && $el.is(':visible')) {
         modelServingSection.findStatusTooltip().click({ force: true });
@@ -36,9 +32,11 @@ export function verifyDeploymentStatusModal(): void {
           .should('include.text', 'Ready');
         cy.findByTestId('deployment-status-modal').find('button[aria-label="Close"]').click();
       } else {
+        if (attempts + 1 >= maxAttempts) {
+          throw new Error('Failed to find and click the status label after 5 attempts');
+        }
         attempts++;
-        cy.reload();
-        attempt();
+        cy.reload().then(() => attempt());
       }
     });
   }
