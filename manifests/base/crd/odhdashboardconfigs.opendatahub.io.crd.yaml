@@ -204,6 +204,9 @@ spec:
                     disableLLMd:
                       type: boolean
                       description: 'When true, disables the LLMd (Large Language Model daemon) serving features on KServe.'
+                    llmdTemplates:
+                      type: boolean
+                      description: 'When true, enables llm-d topology and routing configuration fields in the deployment wizard and admin settings pages. Tech Preview.'
                     deploymentWizardYAMLViewer:
                       type: boolean
                       description: 'When true, enables the YAML viewer in the model deployment wizard.'
