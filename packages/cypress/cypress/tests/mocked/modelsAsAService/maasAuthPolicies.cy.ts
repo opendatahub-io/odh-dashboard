@@ -232,7 +232,7 @@ describe('Auth policy create and edit pages', () => {
       policyPage.selectGroup('premium-users');
       policyPage.findAddModelsButton().click();
       policyPage.findAddModelsModal().should('exist');
-      policyPage.findToggleModelInModal('granite-3-8b-instruct').click();
+      policyPage.findToggleModelInModal('granite-3-8b-instruct', 'maas-models').click();
       policyPage.findConfirmAddModelsButton().click();
       policyPage.findModelsTable().should('contain.text', 'Granite 3 8B Instruct');
 
