@@ -98,6 +98,12 @@ module.exports = merge(
         CONSOLE_LINK_DOMAIN: process.env.CONSOLE_LINK_DOMAIN,
         // EnvironmentPlugin default / override (webpack.common.js)
         MF_REMOTES: process.env.MF_REMOTES,
+        // Dotenv seeds that change entry/includes/output/publicPath (webpack.common.js)
+        ODH_SRC_DIR: process.env.ODH_SRC_DIR,
+        ODH_COMMON_DIR: process.env.ODH_COMMON_DIR,
+        ODH_DIST_DIR: process.env.ODH_DIST_DIR,
+        ODH_PUBLIC_PATH: process.env.ODH_PUBLIC_PATH,
+        ODH_IMAGES_DIRNAME: process.env.ODH_IMAGES_DIRNAME,
         // Compile-graph toggles (loaders, MF, plugin discovery)
         COVERAGE: process.env.COVERAGE,
         MF_DEV: process.env.MF_DEV,
