@@ -38,8 +38,8 @@ These plugins configure shared modules, singleton flags, and version constraints
 |----------|---------|-------|
 | React ecosystem | `react`, `react-dom`, `react-router`, `react-router-dom` | Singleton, eager on host; remotes use `import: false` |
 | OpenShift SDK | `@openshift/dynamic-plugin-sdk`, `@openshift/dynamic-plugin-sdk-utils` | Singleton, eager on host; remotes use `import: false` |
-| Query/params | `@tanstack/react-query`, `use-query-params` | Not in the default map; add via `additionalShared` if needed |
-| PatternFly | `@patternfly/react-core`, `react-styles`, `react-tokens`, `react-icons`, `react-table`, `react-templates`, `react-topology`, `react-code-editor`, `react-charts`, `chatbot`, `react-component-groups`, `react-drag-drop`, `react-log-viewer`, `quickstarts`, `react-catalog-view-extension` | Singleton. `react-core` and `react-styles` are eager on host; remotes use `import: false` for those two; other listed packages allow remote fallback |
+| Query/params | `@tanstack/react-query`, `use-query-params` | In the default map; shared when present in that package's `dependencies` |
+| PatternFly | `@patternfly/react-core`, `@patternfly/react-styles`, `@patternfly/react-tokens`, `@patternfly/react-icons`, `@patternfly/react-table`, `@patternfly/react-templates`, `@patternfly/react-topology`, `@patternfly/react-code-editor`, `@patternfly/react-charts`, `@patternfly/chatbot`, `@patternfly/react-component-groups`, `@patternfly/react-drag-drop`, `@patternfly/react-log-viewer`, `@patternfly/quickstarts`, `@patternfly/react-catalog-view-extension` | Singleton. `@patternfly/react-core` and `@patternfly/react-styles` are eager on host; remotes use `import: false` for those two; other listed packages allow remote fallback |
 | ODH packages | Discovered via `npm query .workspace` | Shared as singletons. **Host-provided** (host `@odh-dashboard/*` dependency closure + packages that export `./extensions`): remotes use `import: false`. **Federated-only** packages (and their deps that are not host-provided): shared as singletons with import/fallback allowed |
 
 #### Remotes and `import: false`
@@ -48,7 +48,7 @@ In federated mode, remotes set `import: false` on modules that must come from th
 
 #### Additional shared modules
 
-Host and remotes can pass `additionalShared` for modules beyond the forced set. Keys already registered by the plugin always take priority and cannot be overridden.
+Host and remotes can pass `shared` for modules beyond the forced set. Keys already registered by the plugin always take priority and cannot be overridden.
 
 ## Module Federation Configuration
 
@@ -285,7 +285,7 @@ In the module's **parent** `package.json`, add `@odh-dashboard/app-config` as a 
 }
 ```
 
-`@odh-dashboard/app-config` exports TypeScript source directly — there is no separate build step.
+`@odh-dashboard/app-config` exports TypeScript source directly — there is no separate build step. Consumers require **Node.js 22.18.0+** so Node can load those `.ts` entrypoints via native type stripping.
 
 ### Remote Configuration
 
@@ -305,7 +305,7 @@ module.exports = {
         './extension-points': './src/odh/extension-points',
       },
       // Optional: add extra shared modules beyond the forced set
-      additionalShared: {},
+      shared: {},
     }),
   ],
 };
@@ -354,7 +354,7 @@ module.exports = {
 
 1. Add camelCase `module-federation` configuration to the parent `package.json`
 2. Add `@module-federation/enhanced` to the frontend `package.json` `devDependencies`
-3. Add `@odh-dashboard/app-config` to the parent `package.json` `devDependencies`
+3. Add `@odh-dashboard/app-config` to the parent `package.json` `devDependencies` (requires Node.js 22.18.0+; no separate app-config build)
 4. Create a `moduleFederation.js` using `OdhRemoteFederationPlugin` from `@odh-dashboard/app-config/webpack`
 5. Create extensions and extension-points files under `src/odh/`
 6. Build and serve your module locally

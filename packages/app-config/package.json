@@ -12,6 +12,9 @@
     "./rspack": "./src/rspack/index.ts",
     "./webpack": "./src/webpack/index.ts"
   },
+  "engines": {
+    "node": ">=22.18.0"
+  },
   "scripts": {
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",

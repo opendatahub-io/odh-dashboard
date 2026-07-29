@@ -28,8 +28,8 @@ const sharedPluginModules: Record<string, Partial<SharedModuleMetadata>> = {
   '@openshift/dynamic-plugin-sdk': { eager: true, allowFallback: false },
   '@openshift/dynamic-plugin-sdk-utils': { eager: true, allowFallback: false },
 
-  // '@tanstack/react-query': {},
-  // 'use-query-params': { allowFallback: false },
+  '@tanstack/react-query': {},
+  'use-query-params': {},
 
   '@patternfly/chatbot': {},
   '@patternfly/quickstarts': {},

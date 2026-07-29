@@ -7,7 +7,7 @@ export type OdhHostFederationPluginOptions = {
   packageJson: { dependencies?: Record<string, string> };
   remotes?: Record<string, string>;
   dts?: boolean;
-  additionalShared?: Record<string, SharedModuleConfig>;
+  shared?: Record<string, SharedModuleConfig>;
 };
 
 export type HostModuleFederationConfig = {
@@ -39,7 +39,7 @@ abstract class BaseOdhHostFederationPlugin<TCompiler> {
   protected abstract getModuleFederationPlugin(): ModuleFederationPluginClass<TCompiler>;
 
   apply(compiler: TCompiler): void {
-    const { packageJson, remotes, dts, additionalShared } = this.options;
+    const { packageJson, remotes, dts, shared: additionalShared } = this.options;
     const deps = packageJson.dependencies ?? {};
 
     const shared: Record<string, SharedModuleConfig> = {};
@@ -70,6 +70,7 @@ abstract class BaseOdhHostFederationPlugin<TCompiler> {
       shared[pkgName] = { singleton: true, requiredVersion: '*' };
     }
 
+    // Plugin-defined shared modules take precedence over additionalShared entries
     if (additionalShared) {
       for (const [key, config] of Object.entries(additionalShared)) {
         if (!(key in shared)) {

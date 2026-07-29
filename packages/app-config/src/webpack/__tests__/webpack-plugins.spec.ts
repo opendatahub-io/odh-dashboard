@@ -87,10 +87,13 @@ describe('getSharedModuleMetadata', () => {
 });
 
 describe('getRuntimeOdhPackages', () => {
-  it('throws when the host package is missing from the workspace', () => {
-    expect(() =>
-      getRuntimeOdhPackages([{ name: '@odh-dashboard/internal', dependencies: {} }]),
-    ).toThrow(/odh-dashboard-frontend/);
+  it('returns empty host deps when the host package is missing from the workspace', () => {
+    const { all, hostProvided } = getRuntimeOdhPackages([
+      { name: '@odh-dashboard/internal', dependencies: {} },
+    ]);
+
+    expect(hostProvided.size).toBe(0);
+    expect(all.size).toBe(0);
   });
 
   it('marks host transitive deps as host-provided', () => {
