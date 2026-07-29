@@ -1,5 +1,14 @@
 import * as React from 'react';
-import { FormGroup, Stack, StackItem, ExpandableSection } from '@patternfly/react-core';
+import {
+  FormGroup,
+  Stack,
+  StackItem,
+  ExpandableSection,
+  Popover,
+  Button,
+} from '@patternfly/react-core';
+import { ExclamationTriangleIcon } from '@patternfly/react-icons';
+import { t_global_icon_color_status_warning_default as WarningIconColor } from '@patternfly/react-tokens';
 import {
   type HardwareProfileKind,
   HardwareProfileFeatureVisibility,
@@ -11,7 +20,7 @@ import { useHardwareProfilesByFeatureVisibility } from '@odh-dashboard/internal/
 import { ZodErrorHelperText } from '@odh-dashboard/ui-core/components/ZodErrorFormHelperText';
 import { ProjectScopedPopover } from '@odh-dashboard/ui-core';
 import DashboardHelpTooltip from '@odh-dashboard/ui-core/components/DashboardHelpTooltip';
-import { HARDWARE_PROFILE_SELECTION_HELP } from './const';
+import { HARDWARE_PROFILE_SELECTION_HELP, LOCAL_QUEUE_MISSING_BODY } from './const';
 import { hardwareProfileValidationSchema } from './validationUtils';
 import HardwareProfileSelect from './HardwareProfileSelect';
 import HardwareProfileCustomize from './HardwareProfileCustomize';
@@ -24,6 +33,7 @@ type HardwareProfileFormSectionProps<T extends HardwarePodSpecOptions> = {
   visibleIn?: HardwareProfileFeatureVisibility[];
   podSpecOptionsState: HardwarePodSpecOptionsState<T>;
   isHardwareProfileSupported?: (profile: HardwareProfileKind) => boolean;
+  isLocalQueueMissing?: boolean;
 };
 
 const HardwareProfileFormSection: React.FC<HardwareProfileFormSectionProps<PodSpecOptions>> = ({
@@ -32,6 +42,7 @@ const HardwareProfileFormSection: React.FC<HardwareProfileFormSectionProps<PodSp
   isEditing,
   visibleIn = [],
   isHardwareProfileSupported = () => false,
+  isLocalQueueMissing = false,
 }) => {
   const {
     hardwareProfile: { formData, initialHardwareProfile, setFormData },
@@ -103,6 +114,19 @@ const HardwareProfileFormSection: React.FC<HardwareProfileFormSectionProps<PodSp
               onChange={onProfileSelect}
               allowExistingSettings={isEditing && !initialHardwareProfile}
               project={project}
+              selectionIndicator={
+                isLocalQueueMissing ? (
+                  <Popover alertSeverityVariant="warning" bodyContent={LOCAL_QUEUE_MISSING_BODY}>
+                    <Button
+                      variant="plain"
+                      aria-label="Invalid hardware profile"
+                      data-testid="local-queue-missing-icon"
+                    >
+                      <ExclamationTriangleIcon color={WarningIconColor.var} />
+                    </Button>
+                  </Popover>
+                ) : undefined
+              }
             />
             <ZodErrorHelperText zodIssue={validation.getAllValidationIssues()} showAllErrors />
           </FormGroup>

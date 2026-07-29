@@ -1,4 +1,4 @@
-import type { WizardFormData } from '@odh-dashboard/model-serving/types/form-data';
+import type { WizardFormData } from '@odh-dashboard/model-serving/shared/types/form-data';
 import { mockNimAccount } from '@odh-dashboard/internal/__mocks__/mockNimAccount';
 import { isNIMDeployActive, deployNIMDeployment } from '../deploy';
 import { createNIMService, updateNIMService, patchNIMService } from '../../nimservices/k8s';

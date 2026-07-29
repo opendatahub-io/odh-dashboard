@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Navigate, useParams } from 'react-router-dom';
-import { useAgentOpsDiscoveryMode } from '~/app/hooks/useAgentOpsDiscoveryMode';
+import { useAgentOpsDeploy } from '~/app/hooks/useAgentOpsDeploy';
 import { agentOpsDeploymentsRoute } from '~/app/utilities/routes';
 
 type AgentDeploymentDetailGateProps = {
@@ -8,10 +8,10 @@ type AgentDeploymentDetailGateProps = {
 };
 
 const AgentDeploymentDetailGate: React.FC<AgentDeploymentDetailGateProps> = ({ children }) => {
-  const discoveryMode = useAgentOpsDiscoveryMode();
+  const deployMode = useAgentOpsDeploy();
   const { namespace } = useParams<{ namespace: string }>();
 
-  if (discoveryMode) {
+  if (!deployMode) {
     return <Navigate to={agentOpsDeploymentsRoute(namespace)} replace />;
   }
 

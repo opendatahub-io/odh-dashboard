@@ -17,6 +17,28 @@ type ResultErrorKF = {
 const isErrorKF = (e: unknown): e is ErrorKF =>
   typeof e === 'object' && e !== null && ['error', 'code', 'message'].every((key) => key in e);
 
+type GrpcErrorKF = {
+  code: number;
+  message: string;
+  details?: unknown[];
+};
+
+const isGrpcErrorKF = (e: unknown): e is GrpcErrorKF => {
+  if (typeof e !== 'object' || e === null || !('code' in e) || !('message' in e)) {
+    return false;
+  }
+  const obj: Record<string, unknown> = e;
+  return (
+    typeof obj.code === 'number' &&
+    obj.code !== 0 &&
+    typeof obj.message === 'string' &&
+    !('error' in e) &&
+    !('details' in e) &&
+    !('run_id' in e) &&
+    !('recurring_run_id' in e)
+  );
+};
+
 const isErrorDetailsKF = (result: unknown): result is ResultErrorKF =>
   typeof result === 'object' &&
   result !== null &&
@@ -27,6 +49,9 @@ export const handlePipelineFailures = <T>(promise: Promise<T>): Promise<T> =>
     .then((result) => {
       if (isErrorKF(result)) {
         throw result;
+      }
+      if (isGrpcErrorKF(result)) {
+        throw new Error(result.message);
       }
       if (isErrorDetailsKF(result)) {
         const errorKF: ErrorKF = {
@@ -55,6 +80,10 @@ export const handlePipelineFailures = <T>(promise: Promise<T>): Promise<T> =>
       // on the next poll — no error message is shown to the user.
       if (e instanceof ProxyTransientError) {
         throw new NotReadyError('Pipeline server route is not yet available');
+      }
+
+      if (e instanceof Error) {
+        throw e;
       }
 
       // eslint-disable-next-line no-console

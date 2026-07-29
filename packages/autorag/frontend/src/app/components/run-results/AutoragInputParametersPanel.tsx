@@ -22,15 +22,15 @@ import {
   Stack,
   StackItem,
   Title,
-  Tooltip,
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { DashboardPopupIconButton } from 'mod-arch-shared';
 import { Link, useParams } from 'react-router';
+import InlineTooltip from '~/app/components/InlineTooltip';
 import type { ConfigureSchema } from '~/app/schemas/configure.schema';
 import type { DetectedLanguageMetadata } from '~/app/types/autoragPattern';
 import { useAutoragResultsContext } from '~/app/context/AutoragResultsContext';
-import { OPTIMIZATION_METRIC_LABELS } from '~/app/utilities/const';
+import { OPTIMIZATION_METRIC_LABELS, PRESET_LABELS } from '~/app/utilities/const';
 import {
   formatDetectedLanguage,
   formatDetectedLanguageMetadata,
@@ -39,8 +39,8 @@ import {
   getDetectedLanguageFromPatterns,
   isDetectedLanguageMetadata,
 } from '~/app/utilities/detectedLanguageFromPatterns';
-import './AutoragInputParametersPanel.scss';
 import { isRunCompleted, isRunInTerminalState } from '~/app/utilities/utils';
+import './AutoragInputParametersPanel.scss';
 
 /** Keys that are handled by the special "Model configuration" entry. */
 const MODEL_KEYS = new Set(['generation_models', 'embedding_models']);
@@ -63,6 +63,7 @@ const EXCLUDED_KEYS = new Set([
 /* eslint-disable camelcase */
 const PANEL_PARAMETERS: { key: string; label: string }[] = [
   { key: 'description', label: 'Description' },
+  { key: 'preset', label: 'Run preset' },
   { key: 'ogx_secret_name', label: 'Open GenAI Stack connection' },
   { key: 'input_data_secret_name', label: 'S3 connection' },
   { key: 'input_data_bucket_name', label: 'S3 connection bucket' },
@@ -109,6 +110,9 @@ const formatValue = (
   if (value == null || value === '') {
     return '-';
   }
+  if (key === 'preset' && typeof value === 'string') {
+    return Object.hasOwn(PRESET_LABELS, value) ? PRESET_LABELS[value] : value;
+  }
   if (key === 'detected_language') {
     if (typeof value === 'string') {
       const confidence = allParameters?.detected_language_confidence;
@@ -126,7 +130,9 @@ const formatValue = (
     }
   }
   if (key === 'optimization_metric' && typeof value === 'string') {
-    return OPTIMIZATION_METRIC_LABELS[value] ?? value;
+    return Object.hasOwn(OPTIMIZATION_METRIC_LABELS, value)
+      ? OPTIMIZATION_METRIC_LABELS[value]
+      : value;
   }
   if (Array.isArray(value)) {
     return value.join(', ');
@@ -185,11 +191,11 @@ const ModelConfigurationValue: React.FC<ModelConfigurationValueProps> = ({
 
   if (generationModels.length > 0) {
     parts.push(
-      <Tooltip key="generation" content={generationModels.join(', ')}>
-        <span className="odh-autorag-input-parameters-panel__tooltip-text">
-          {generationModels.length} foundation model{generationModels.length !== 1 ? 's' : ''}
-        </span>
-      </Tooltip>,
+      <InlineTooltip
+        key="generation"
+        text={`${generationModels.length} foundation model${generationModels.length !== 1 ? 's' : ''}`}
+        tooltip={generationModels.join(', ')}
+      />,
     );
   }
 
@@ -198,11 +204,11 @@ const ModelConfigurationValue: React.FC<ModelConfigurationValueProps> = ({
       parts.push(', ');
     }
     parts.push(
-      <Tooltip key="embeddings" content={embeddingsModels.join(', ')}>
-        <span className="odh-autorag-input-parameters-panel__tooltip-text">
-          {embeddingsModels.length} embedding model{embeddingsModels.length !== 1 ? 's' : ''}
-        </span>
-      </Tooltip>,
+      <InlineTooltip
+        key="embeddings"
+        text={`${embeddingsModels.length} embedding model${embeddingsModels.length !== 1 ? 's' : ''}`}
+        tooltip={embeddingsModels.join(', ')}
+      />,
     );
   }
 

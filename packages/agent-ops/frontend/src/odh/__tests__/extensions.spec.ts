@@ -6,7 +6,7 @@ import {
 } from '~/app/utilities/routes';
 
 const AGENT_OPS = 'agent-ops';
-const AGENT_OPS_DISCOVERY_MODE = 'agent-ops-discovery-mode';
+const AGENT_OPS_DEPLOY = 'agent-ops-deploy';
 
 describe('agent-ops extensions', () => {
   it('should register area, tab-route tab, and route extensions', () => {
@@ -33,16 +33,16 @@ describe('agent-ops extensions', () => {
     });
   });
 
-  it('should register the discovery mode area with feature flag', () => {
+  it('should register the deploy mode area with feature flag', () => {
     const area = extensions.find(
       (extension) =>
-        extension.type === 'app.area' && extension.properties.id === AGENT_OPS_DISCOVERY_MODE,
+        extension.type === 'app.area' && extension.properties.id === AGENT_OPS_DEPLOY,
     );
     expect(area).toMatchObject({
       type: 'app.area',
       properties: {
-        id: AGENT_OPS_DISCOVERY_MODE,
-        featureFlags: ['agentOpsDiscoveryMode'],
+        id: AGENT_OPS_DEPLOY,
+        featureFlags: ['agentOpsDeploy'],
       },
     });
   });
@@ -83,8 +83,7 @@ describe('agent-ops extensions', () => {
       expect(route).toMatchObject({
         type: 'app.route',
         flags: {
-          required: [AGENT_OPS],
-          disallowed: [AGENT_OPS_DISCOVERY_MODE],
+          required: [AGENT_OPS, AGENT_OPS_DEPLOY],
         },
       });
       expect(route.properties.component).toBeTruthy();

@@ -36,7 +36,14 @@ const FORECAST_LEGEND_ITEMS = [
 
 const SUMMARY_METRIC_KEYS = ['RMSE', 'MAE', 'MAPE'];
 
-const BacktestingTab: React.FC<TabContentProps> = ({ model, backTesting, isArtifactsLoading }) => {
+const BacktestingTab: React.FC<TabContentProps> = ({
+  print,
+  model,
+  backTesting,
+  isArtifactsLoading,
+  backtestSelectedMetrics,
+  onBacktestMetricsChange,
+}) => {
   const windowMetricMeans = React.useMemo(() => {
     const windows = backTesting?.per_window_metrics;
     if (!windows || windows.length === 0) {
@@ -133,6 +140,9 @@ const BacktestingTab: React.FC<TabContentProps> = ({ model, backTesting, isArtif
           perWindowMetrics={backTesting.per_window_metrics}
           evalMetric={backTesting.eval_metric}
           holdoutMetrics={testData}
+          print={print}
+          initialSelectedMetrics={backtestSelectedMetrics}
+          onSelectedMetricsChange={onBacktestMetricsChange}
         />
       </div>
 

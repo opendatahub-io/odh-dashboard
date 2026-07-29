@@ -36,7 +36,7 @@ type ListCollectionsParams struct {
 
 // EvalHubClientInterface defines the operations available against the EvalHub API.
 type EvalHubClientInterface interface {
-	HealthCheck(ctx context.Context) (*HealthResponse, error)
+	HealthCheck(ctx context.Context, namespace string) (*HealthResponse, error)
 	ListEvaluationJobs(ctx context.Context, params ListEvaluationJobsParams) ([]EvaluationJob, error)
 	GetEvaluationJob(ctx context.Context, id string, namespace string) (*EvaluationJob, error)
 	CreateEvaluationJob(ctx context.Context, namespace string, req CreateEvaluationJobRequest) (*EvaluationJob, error)
@@ -395,8 +395,14 @@ func NewEvalHubClient(baseURL string, authToken string, insecureSkipVerify bool,
 }
 
 // HealthCheck retrieves the health status from EvalHub.
-func (c *EvalHubClient) HealthCheck(ctx context.Context) (*HealthResponse, error) {
-	resp, err := get[HealthResponse](c, ctx, "/health", nil)
+// The namespace is sent as the X-Tenant header; /api/v1/health requires it in cluster mode.
+func (c *EvalHubClient) HealthCheck(ctx context.Context, namespace string) (*HealthResponse, error) {
+	headers, err := tenantHeaders(namespace)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := get[HealthResponse](c, ctx, "/health", headers)
 	if err != nil {
 		return nil, wrapClientError(err, "HealthCheck")
 	}

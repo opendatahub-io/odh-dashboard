@@ -1,8 +1,8 @@
 import React from 'react';
 import { HookNotify } from '@odh-dashboard/plugin-core';
-import type { WizardField } from './types';
 import { WizardFormAction, WizardFormState } from './useDeploymentWizardReducer';
 import { getFieldDependencies } from './dynamicFormUtils';
+import type { WizardField } from '../../shared/types/form-data';
 
 export type ExternalDataMap = Record<string, { loaded: boolean; loadError?: Error; data: unknown }>;
 

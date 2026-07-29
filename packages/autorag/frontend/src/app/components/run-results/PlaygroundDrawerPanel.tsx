@@ -93,7 +93,7 @@ const PlaygroundDrawerPanel: React.FC<PlaygroundDrawerPanelProps> = ({
             >
               <SelectList>
                 {Object.entries(patterns)
-                  .filter(([, p]) => p.settings.responses_template)
+                  .filter(([, p]) => p.inference?.responses_template)
                   .map(([name]) => (
                     <SelectOption key={name} value={name}>
                       {formatPatternName(name)}

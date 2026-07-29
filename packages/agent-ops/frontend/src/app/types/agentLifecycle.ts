@@ -1,4 +1,4 @@
-export type AgentLifecycleAction = 'stop' | 'start';
+export type AgentLifecycleAction = 'stop' | 'start' | 'restart';
 
 export type LifecycleResult = {
   success: boolean;

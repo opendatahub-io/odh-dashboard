@@ -10,10 +10,10 @@ describe('GPUaaS Infrastructure Page', () => {
 
   it(
     'Verify Infrastructure page is accessible for admin users and displays expected sections',
-    { tags: ['@Dashboard', '@GPUaaS', '@Featureflagged'] },
+    { tags: ['@Dashboard', '@GPUaaS'] },
     () => {
-      cy.step('Log in as admin user with gpuaas feature flag enabled');
-      cy.visitWithLogin('/?devFeatureFlags=gpuaas=true', LDAP_ADMIN_USER);
+      cy.step('Log in as admin user');
+      cy.visitWithLogin('/', LDAP_ADMIN_USER);
 
       cy.step('Verify Infrastructure nav item is visible under Observe & monitor');
       infrastructurePage.findNavItem().should('be.visible');
@@ -32,8 +32,8 @@ describe('GPUaaS Infrastructure Page', () => {
       cy.step('Verify Hardware usage section is present');
       infrastructurePage.findHardwareUsageSection().should('exist');
 
-      cy.step('Verify Borrowing & lending section is present');
-      infrastructurePage.findBorrowingLendingSection().should('exist');
+      cy.step('Verify Borrowing section is present');
+      infrastructurePage.findBorrowingSection().should('exist');
 
       cy.step('Verify Cluster queue utilization section is present');
       infrastructurePage.findClusterQueueUtilizationSection().should('exist');
@@ -42,19 +42,16 @@ describe('GPUaaS Infrastructure Page', () => {
 
   it(
     'Verify Infrastructure page is not accessible for non-admin users',
-    { tags: ['@Dashboard', '@GPUaaS', '@Featureflagged'] },
+    { tags: ['@Dashboard', '@GPUaaS'] },
     () => {
-      cy.step('Log in as non-admin user with gpuaas feature flag enabled');
-      cy.visitWithLogin('/?devFeatureFlags=gpuaas=true', LDAP_CONTRIBUTOR_USER);
+      cy.step('Log in as non-admin user');
+      cy.visitWithLogin('/', LDAP_CONTRIBUTOR_USER);
 
       cy.step('Verify Infrastructure nav item is NOT visible');
       infrastructurePage.findNavItem().should('not.exist');
 
       cy.step('Navigate directly to Infrastructure page URL');
-      cy.visitWithLogin(
-        '/observe-and-monitor/infrastructure?devFeatureFlags=gpuaas=true',
-        LDAP_CONTRIBUTOR_USER,
-      );
+      cy.visitWithLogin('/observe-and-monitor/infrastructure', LDAP_CONTRIBUTOR_USER);
 
       cy.step('Verify page does not render for non-admin');
       infrastructurePage.shouldNotFoundPage();

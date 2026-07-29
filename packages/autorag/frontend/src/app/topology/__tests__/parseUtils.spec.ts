@@ -14,7 +14,12 @@ jest.mock('@patternfly/react-topology', () => ({
 }));
 
 // eslint-disable-next-line import/first
-import { parseRuntimeInfoFromRunDetails, translateStatusForNode } from '~/app/topology/parseUtils';
+import {
+  buildTaskRuntimeById,
+  parseRuntimeInfoFromRunDetails,
+  resolveTaskTopologyRunStatuses,
+  translateStatusForNode,
+} from '~/app/topology/parseUtils';
 
 const makeRunDetails = (
   ...tasks: { task_id: string; display_name?: string; state?: RuntimeStateKF }[]
@@ -29,6 +34,9 @@ const makeRunDetails = (
     state: t.state,
   })),
 });
+
+const linearDeps = (taskIds: string[]): Map<string, string[]> =>
+  new Map(taskIds.map((taskId, index) => [taskId, index > 0 ? [taskIds[index - 1]] : []]));
 
 describe('parseRuntimeInfoFromRunDetails', () => {
   it('should return undefined when runDetails is undefined', () => {
@@ -127,9 +135,16 @@ describe('translateStatusForNode', () => {
     expect(translateStatusForNode('UNKNOWN_STATE')).toBeUndefined();
   });
 
+  it('should return undefined for malformed non-string states', () => {
+    expect(translateStatusForNode(42 as unknown as RuntimeStateKF)).toBeUndefined();
+    expect(translateStatusForNode({} as unknown as RuntimeStateKF)).toBeUndefined();
+    expect(translateStatusForNode('   ')).toBeUndefined();
+  });
+
   it.each([
     [RuntimeStateKF.SUCCEEDED, 'Succeeded'],
     ['SUCCEEDED', 'Succeeded'],
+    ['succeeded', 'Succeeded'],
     [RuntimeStateKF.FAILED, 'Failed'],
     ['FAILED', 'Failed'],
     [RuntimeStateKF.RUNNING, 'InProgress'],
@@ -148,5 +163,161 @@ describe('translateStatusForNode', () => {
     ['PAUSED', 'Pending'],
   ])('should translate %s to %s', (input, expected) => {
     expect(translateStatusForNode(input)).toBe(expected);
+  });
+});
+
+describe('resolveTaskTopologyRunStatuses', () => {
+  it('marks the first DAG task failed when the run failed before task details exist', () => {
+    const taskIds = ['publish-component-stage-map', 'test-data-loader', 'documents-discovery'];
+    const runDetails = makeRunDetails({
+      task_id: 'root-driver',
+      display_name: 'root-driver',
+      state: RuntimeStateKF.FAILED,
+    });
+    const statuses = resolveTaskTopologyRunStatuses(
+      taskIds,
+      buildTaskRuntimeById(taskIds, runDetails),
+      RuntimeStateKF.FAILED,
+      linearDeps(taskIds),
+    );
+
+    expect(statuses.get('publish-component-stage-map')).toBe('Failed');
+    expect(statuses.get('test-data-loader')).toBe('Pending');
+    expect(statuses.get('documents-discovery')).toBe('Pending');
+  });
+
+  it('keeps later tasks pending after an explicit task failure', () => {
+    const taskIds = ['test-data-loader', 'documents-sampling', 'text-extraction'];
+    const runDetails = makeRunDetails(
+      {
+        task_id: 'test-data-loader',
+        display_name: 'test-data-loader',
+        state: RuntimeStateKF.SUCCEEDED,
+      },
+      {
+        task_id: 'documents-sampling',
+        display_name: 'documents-sampling',
+        state: RuntimeStateKF.FAILED,
+      },
+    );
+    const statuses = resolveTaskTopologyRunStatuses(
+      taskIds,
+      buildTaskRuntimeById(taskIds, runDetails),
+      RuntimeStateKF.FAILED,
+      linearDeps(taskIds),
+    );
+
+    expect(statuses.get('test-data-loader')).toBe('Succeeded');
+    expect(statuses.get('documents-sampling')).toBe('Failed');
+    expect(statuses.get('text-extraction')).toBe('Pending');
+  });
+
+  it('leaves unresolved tasks unset when another task failed explicitly on a failed run', () => {
+    const taskIds = ['test-data-loader', 'documents-sampling', 'text-extraction'];
+    const runDetails = makeRunDetails({
+      task_id: 'documents-sampling',
+      display_name: 'documents-sampling',
+      state: RuntimeStateKF.FAILED,
+    });
+    const statuses = resolveTaskTopologyRunStatuses(
+      taskIds,
+      buildTaskRuntimeById(taskIds, runDetails),
+      RuntimeStateKF.FAILED,
+      linearDeps(taskIds),
+    );
+
+    expect(statuses.get('test-data-loader')).toBeUndefined();
+    expect(statuses.get('documents-sampling')).toBe('Failed');
+    expect(statuses.get('text-extraction')).toBe('Pending');
+  });
+
+  it('leaves parallel siblings unset while pending only downstream merge tasks after branch failure', () => {
+    const taskIds = ['root', 'branch-a', 'branch-b', 'merge'];
+    const depsByTaskId = new Map<string, string[]>([
+      ['root', []],
+      ['branch-a', ['root']],
+      ['branch-b', ['root']],
+      ['merge', ['branch-a', 'branch-b']],
+    ]);
+    const runDetails = makeRunDetails(
+      { task_id: 'root', display_name: 'root', state: RuntimeStateKF.SUCCEEDED },
+      { task_id: 'branch-a', display_name: 'branch-a', state: RuntimeStateKF.FAILED },
+    );
+    const statuses = resolveTaskTopologyRunStatuses(
+      taskIds,
+      buildTaskRuntimeById(taskIds, runDetails),
+      RuntimeStateKF.FAILED,
+      depsByTaskId,
+    );
+
+    expect(statuses.get('root')).toBe('Succeeded');
+    expect(statuses.get('branch-a')).toBe('Failed');
+    expect(statuses.get('branch-b')).toBeUndefined();
+    expect(statuses.get('merge')).toBe('Pending');
+  });
+
+  it('infers run-level failure on all eligible parallel branches after a succeeded root', () => {
+    const taskIds = ['root', 'branch-b', 'branch-a', 'merge'];
+    const depsByTaskId = new Map<string, string[]>([
+      ['root', []],
+      ['branch-b', ['root']],
+      ['branch-a', ['root']],
+      ['merge', ['branch-a', 'branch-b']],
+    ]);
+    const runDetails = makeRunDetails({
+      task_id: 'root',
+      display_name: 'root',
+      state: RuntimeStateKF.SUCCEEDED,
+    });
+    const statuses = resolveTaskTopologyRunStatuses(
+      taskIds,
+      buildTaskRuntimeById(taskIds, runDetails),
+      RuntimeStateKF.FAILED,
+      depsByTaskId,
+    );
+
+    expect(statuses.get('root')).toBe('Succeeded');
+    expect(statuses.get('branch-a')).toBe('Failed');
+    expect(statuses.get('branch-b')).toBe('Failed');
+    expect(statuses.get('merge')).toBe('Pending');
+  });
+
+  it('preserves explicit in-progress branch statuses after a succeeded root on a failed run', () => {
+    const taskIds = ['root', 'branch-a', 'branch-b', 'merge'];
+    const depsByTaskId = new Map<string, string[]>([
+      ['root', []],
+      ['branch-a', ['root']],
+      ['branch-b', ['root']],
+      ['merge', ['branch-a', 'branch-b']],
+    ]);
+    const runDetails = makeRunDetails(
+      { task_id: 'root', display_name: 'root', state: RuntimeStateKF.SUCCEEDED },
+      { task_id: 'branch-a', display_name: 'branch-a', state: RuntimeStateKF.RUNNING },
+      { task_id: 'branch-b', display_name: 'branch-b', state: RuntimeStateKF.PENDING },
+    );
+    const statuses = resolveTaskTopologyRunStatuses(
+      taskIds,
+      buildTaskRuntimeById(taskIds, runDetails),
+      RuntimeStateKF.FAILED,
+      depsByTaskId,
+    );
+
+    expect(statuses.get('root')).toBe('Succeeded');
+    expect(statuses.get('branch-a')).toBe('InProgress');
+    expect(statuses.get('branch-b')).toBe('Pending');
+    expect(statuses.get('merge')).toBeUndefined();
+  });
+
+  it('ignores malformed run-level states when resolving task statuses', () => {
+    const taskIds = ['test-data-loader', 'documents-sampling'];
+    const statuses = resolveTaskTopologyRunStatuses(
+      taskIds,
+      buildTaskRuntimeById(taskIds, undefined),
+      42 as unknown as string,
+      linearDeps(taskIds),
+    );
+
+    expect(statuses.get('test-data-loader')).toBeUndefined();
+    expect(statuses.get('documents-sampling')).toBeUndefined();
   });
 });

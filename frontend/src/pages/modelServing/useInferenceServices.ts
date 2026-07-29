@@ -8,7 +8,8 @@ import useFetch, {
   FetchStateCallbackPromise,
   NotReadyError,
 } from '@odh-dashboard/ui-core/hooks/useFetch';
-import { getInferenceServiceContext, listInferenceService, useAccessReview } from '#~/api';
+import { useAccessReview } from '@odh-dashboard/plugin-core/host-api';
+import { getInferenceServiceContext, listInferenceService } from '#~/api';
 import { ListWithNonDashboardPresence } from '#~/types';
 import useModelServingEnabled from '#~/pages/modelServing/useModelServingEnabled';
 import { DEFAULT_LIST_WITH_NON_DASHBOARD_PRESENCE } from '#~/utilities/const';

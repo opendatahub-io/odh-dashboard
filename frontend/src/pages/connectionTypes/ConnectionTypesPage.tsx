@@ -1,8 +1,8 @@
 import React from 'react';
 import { PageSection } from '@patternfly/react-core';
 import TitleWithIcon from '@odh-dashboard/ui-core/design/TitleWithIcon';
+import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import ConnectionTypesTable from '#~/pages/connectionTypes/ConnectionTypesTable';
-import ApplicationsPage from '#~/pages/ApplicationsPage';
 import { useWatchConnectionTypes } from '#~/utilities/useWatchConnectionTypes';
 import EmptyConnectionTypes from '#~/pages/connectionTypes/EmptyConnectionTypes';
 import { ProjectObjectType } from '#~/concepts/design/utils';

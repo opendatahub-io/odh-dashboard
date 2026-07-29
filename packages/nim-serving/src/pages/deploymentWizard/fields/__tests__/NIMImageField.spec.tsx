@@ -2,11 +2,11 @@ import React from 'react';
 import '@testing-library/jest-dom';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { useAccessReview } from '@odh-dashboard/internal/api/useAccessReview';
+import { useAccessReview } from '@odh-dashboard/plugin-core/host-api';
 import { NIMAccountStatus } from '../../../../api/accounts/hooks';
 import type { NIMImageFieldExternalData } from '../NIMImageField';
 
-jest.mock('@odh-dashboard/internal/api/useAccessReview', () => ({
+jest.mock('@odh-dashboard/plugin-core/host-api', () => ({
   useAccessReview: jest.fn(),
 }));
 

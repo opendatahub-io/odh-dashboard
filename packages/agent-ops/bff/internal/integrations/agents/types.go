@@ -9,19 +9,21 @@ type AgentList struct {
 
 // AgentSummary is a single agent in a list response.
 type AgentSummary struct {
-	Name         string
-	Namespace    string
-	DisplayName  string
-	Description  string
-	Framework    string
-	Status       string
-	ResourceType string
-	WorkloadType string
-	ServiceFQDN  string
-	Ports        []AgentServicePort
-	EndpointURL  string
-	CreatedAt    string
-	LastSyncAt   string
+	Name          string
+	Namespace     string
+	DisplayName   string
+	Description   string
+	Framework     string
+	Status        string
+	StatusMessage string
+	ResourceType  string
+	WorkloadType  string
+	ServiceFQDN   string
+	PodIP         string
+	Ports         []AgentServicePort
+	EndpointURL   string
+	CreatedAt     string
+	LastSyncAt    string
 }
 
 // AgentDetail is the full workload view for one agent.

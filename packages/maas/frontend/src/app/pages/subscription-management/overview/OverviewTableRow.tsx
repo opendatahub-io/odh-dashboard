@@ -16,7 +16,7 @@ type OverviewTableRowProps = {
   onToggleExpand: () => void;
 };
 
-const RETURN_TO = `${URL_PREFIX}/subscription-management/overview`;
+const RETURN_TO = `${URL_PREFIX}/maas-governance/overview`;
 
 const NoSubscriptionsWarning: React.FC = () => (
   <Popover
@@ -141,10 +141,10 @@ const OverviewTableRow: React.FC<OverviewTableRowProps> = ({
               {
                 title: 'Create subscription',
                 onClick: () =>
-                  navigate(`${URL_PREFIX}/subscription-management/subscriptions/create`, {
+                  navigate(`${URL_PREFIX}/maas-governance/subscriptions/create`, {
                     state: {
                       returnTo: RETURN_TO,
-                      breadcrumbLabel: 'Subscription management',
+                      breadcrumbLabel: 'MaaS governance',
                       preSelectedModel: { name: row.id },
                     },
                   }),
@@ -152,10 +152,10 @@ const OverviewTableRow: React.FC<OverviewTableRowProps> = ({
               {
                 title: 'Create authorization policy',
                 onClick: () =>
-                  navigate(`${URL_PREFIX}/subscription-management/auth-policies/create`, {
+                  navigate(`${URL_PREFIX}/maas-governance/auth-policies/create`, {
                     state: {
                       returnTo: RETURN_TO,
-                      breadcrumbLabel: 'Subscription management',
+                      breadcrumbLabel: 'MaaS governance',
                       preSelectedModel: { name: row.id },
                     },
                   }),

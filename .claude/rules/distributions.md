@@ -8,7 +8,7 @@ paths:
 
 # Distribution Conventions
 
-Distributions are independently-deployable dashboard variants in `distributions/`. They are NOT part of the npm workspace or Turbo pipeline — monorepo-wide `npm run` commands do not apply.
+Distributions are independently-deployable dashboard variants in `distributions/`. All three are **npm workspace members** and participate in the **Turbo pipeline** — Turbo-based root commands (`npm run lint`, `npm run type-check`, `npm run test:contract`, etc.) include distributions that define matching scripts.
 
 ## Sub-distributions
 
@@ -20,19 +20,29 @@ Distributions are independently-deployable dashboard variants in `distributions/
 
 > **`base/` is a library, not a deployable distribution.** It provides the shared app shell framework (masthead, sidebar, error boundary, theme context, extensibility hooks) that concrete distributions like `core-bff/` and `rhaii/` extend. Do not treat it as a standalone application.
 
-## Isolation from npm workspaces
+## Workspace integration
 
-Distributions are self-contained. Always `cd` into the distribution directory before running commands:
+Distributions are workspace members listed in the root `package.json`. Dependencies on internal packages (`@odh-dashboard/eslint-config`, `@odh-dashboard/tsconfig`, `@odh-dashboard/plugin-core`, etc.) resolve through the workspace — no special workarounds are needed.
+
+Turbo-based commands run on any distribution that defines the matching script:
 
 ```bash
-# WRONG — distributions are invisible to the root workspace
-npm run lint          # won't touch distributions/
-npm run type-check    # won't touch distributions/
-
-# RIGHT — run from within the distribution
-cd distributions/base && npx eslint src/
-cd distributions/core-bff && make lint
+# These Turbo commands DO cover distributions
+npm run lint          # runs lint on base, core-bff, rhaii (all define "lint")
+npm run type-check    # runs type-check on base, rhaii (both define "type-check")
+npm run test:contract # runs test:contract on core-bff (defines "test:contract")
 ```
+
+Some root convenience scripts are hardcoded to `frontend/` and `backend/` and do **not** cover distributions:
+
+```bash
+# These do NOT cover distributions — they target frontend/ and backend/ directly
+npm run build         # only builds frontend + backend
+npm run test          # only tests frontend + backend
+npm run dev           # only starts frontend + backend dev servers
+```
+
+For distribution-specific builds and BFF operations, work from within the distribution directory or use `make` targets (see commands below).
 
 ## Build and dev commands
 
@@ -108,7 +118,6 @@ When modifying Module Federation config in distributions, verify that remote nam
 
 ## Common mistakes
 
-- **Running `npm install` from a distribution directory without the workspace workaround** — dependencies on internal packages (`@odh-dashboard/eslint-config`, `@odh-dashboard/tsconfig`) won't resolve. See `distributions/base/README.md` for the workaround.
 - **Confusing `core-bff/bff/` with `dashboard-operator/`** — They are separate Go modules with different `go.mod` files and different patterns. `core-bff/bff/` is an HTTP BFF (uses httprouter); `dashboard-operator/` is a Kubernetes controller (uses controller-runtime).
-- **Assuming monorepo-wide lint/test commands cover distributions** — They don't. Always run validation from within the distribution directory.
+- **Assuming root `build`/`test`/`dev` commands cover distributions** — They don't; those scripts are hardcoded to `frontend/` and `backend/`. Turbo-based commands (`lint`, `type-check`, `test:contract`) *do* cover distributions.
 - **Forgetting to update the OpenAPI spec** when adding new endpoints to `core-bff/bff/` — Reviewers must see a diff in the OpenAPI file alongside code changes.

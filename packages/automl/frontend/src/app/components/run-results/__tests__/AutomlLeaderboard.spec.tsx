@@ -18,6 +18,19 @@ jest.mock('~/app/components/empty-states/AutomlRunInProgress', () => ({
   ),
 }));
 
+// Mock DragDropSort to avoid createPortal issues in jsdom
+jest.mock('@patternfly/react-drag-drop', () => ({
+  DragDropSort: ({ items }: { items: { id: string; content: React.ReactNode }[] }) => (
+    <>
+      {items.map((item) => (
+        <div key={item.id}>{item.content}</div>
+      ))}
+    </>
+  ),
+  Droppable: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  DraggableObject: {},
+}));
+
 // ============================================================================
 // Mock Data Fixtures
 // ============================================================================
@@ -235,6 +248,17 @@ const renderWithContext = ({
   );
 };
 
+const showAllColumns = () => {
+  fireEvent.click(screen.getByTestId('manage-columns-button'));
+  const checkboxes = screen.getAllByTestId(/^column-check-/);
+  checkboxes.forEach((cb) => {
+    if (!(cb as HTMLInputElement).checked) {
+      fireEvent.click(cb);
+    }
+  });
+  fireEvent.click(screen.getByText('Save'));
+};
+
 // ============================================================================
 // Utility Function Tests
 // ============================================================================
@@ -262,6 +286,7 @@ describe('AutomlLeaderboard utility functions', () => {
         },
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'binary'),
       });
+      showAllColumns();
 
       // Check that special case acronyms are displayed correctly
       expect(screen.getByText('ROC AUC')).toBeInTheDocument();
@@ -289,6 +314,7 @@ describe('AutomlLeaderboard utility functions', () => {
         },
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'binary'),
       });
+      showAllColumns();
 
       expect(screen.getByText('Custom Metric')).toBeInTheDocument();
       expect(screen.getByText('Another Test Metric')).toBeInTheDocument();
@@ -635,6 +661,7 @@ describe('AutomlLeaderboard component', () => {
         models: mockBinaryModels,
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'binary'),
       });
+      showAllColumns();
 
       expect(screen.getByTestId('rank-header')).toHaveTextContent('Rank');
       expect(screen.getByTestId('model-name-header')).toHaveTextContent('Model name');
@@ -804,6 +831,7 @@ describe('AutomlLeaderboard component', () => {
         models: mockBinaryModels,
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'binary'),
       });
+      showAllColumns();
 
       // Check first model (rank 1 - XGBoost with highest accuracy)
       expect(screen.getByTestId('metric-accuracy-1')).toHaveTextContent('0.970');
@@ -830,6 +858,7 @@ describe('AutomlLeaderboard component', () => {
         models: mockRegressionModels,
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'regression'),
       });
+      showAllColumns();
 
       // All models should have all metric columns even if values differ
       expect(screen.getByTestId('metric-r2-1')).toBeInTheDocument();
@@ -898,6 +927,7 @@ describe('AutomlLeaderboard component', () => {
         models: mockBinaryModels,
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'binary'),
       });
+      showAllColumns();
 
       const f1Header = screen.getByTestId('metric-header-f1');
       const sortButton = f1Header.querySelector('button');
@@ -1049,38 +1079,30 @@ describe('AutomlLeaderboard component', () => {
 
       // Modal should be open with column checkboxes
       expect(
-        screen.getByText('Selected categories will be displayed in the table.'),
+        screen.getByText(/Selected categories will be displayed in the table/),
       ).toBeInTheDocument();
-      // Verify always-visible columns are present but disabled
-      const rankCheckbox = screen.getByTestId('column-check-rank');
-      expect(rankCheckbox).toBeDisabled();
-      const modelCheckbox = screen.getByTestId('column-check-model');
-      expect(modelCheckbox).toBeDisabled();
-      const optimizedCheckbox = screen.getByTestId('column-check-optimized-metric');
-      expect(optimizedCheckbox).toBeDisabled();
+      // All columns should have checkboxes (none disabled)
+      expect(screen.getByTestId('column-check-rank')).toBeInTheDocument();
+      expect(screen.getByTestId('column-check-model')).toBeInTheDocument();
+      expect(screen.getByTestId('column-check-optimized-metric')).toBeInTheDocument();
     });
 
-    it('should allow toggling non-sticky metric columns', () => {
+    it('should allow toggling metric columns', () => {
       renderWithContext({
         models: mockBinaryModels,
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'binary'),
       });
+      showAllColumns();
 
       // Verify metric columns exist before hiding
       expect(screen.getByTestId('metric-header-f1')).toBeInTheDocument();
       expect(screen.getByTestId('metric-header-roc_auc')).toBeInTheDocument();
 
-      // Open modal
+      // Open modal and uncheck F1
       fireEvent.click(screen.getByTestId('manage-columns-button'));
-
-      // Non-sticky metric columns should be toggleable (not disabled)
       const f1Checkbox = screen.getByTestId('column-check-metric:f1');
       expect(f1Checkbox).not.toBeDisabled();
-
-      // Uncheck F1
       fireEvent.click(f1Checkbox);
-
-      // Save
       fireEvent.click(screen.getByText('Save'));
 
       // F1 column should be hidden
@@ -1094,35 +1116,33 @@ describe('AutomlLeaderboard component', () => {
         models: mockBinaryModels,
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'binary'),
       });
+      showAllColumns();
 
-      // Verify data cells exist
       expect(screen.getByTestId('metric-f1-1')).toBeInTheDocument();
 
-      // Hide F1 column
       fireEvent.click(screen.getByTestId('manage-columns-button'));
       fireEvent.click(screen.getByTestId('column-check-metric:f1'));
       fireEvent.click(screen.getByText('Save'));
 
-      // F1 data cells should also be hidden
       expect(screen.queryByTestId('metric-f1-1')).not.toBeInTheDocument();
-      // Optimized metric cell should still be visible
       expect(screen.getByTestId('metric-accuracy-1')).toBeInTheDocument();
     });
 
-    it('should keep optimized metric visible even when not in metric columns', () => {
+    it('should allow toggling the optimized metric column', () => {
       renderWithContext({
         models: mockBinaryModels,
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'binary'),
       });
 
-      // Optimized metric (accuracy) should always be visible as a sticky column
       expect(screen.getByTestId('metric-header-accuracy')).toBeInTheDocument();
-      expect(screen.getByTestId('metric-accuracy-1')).toBeInTheDocument();
 
-      // The optimized metric checkbox should be disabled (untoggleable)
       fireEvent.click(screen.getByTestId('manage-columns-button'));
       const optimizedCheckbox = screen.getByTestId('column-check-optimized-metric');
-      expect(optimizedCheckbox).toBeDisabled();
+      expect(optimizedCheckbox).not.toBeDisabled();
+      fireEvent.click(optimizedCheckbox);
+      fireEvent.click(screen.getByText('Save'));
+
+      expect(screen.queryByTestId('metric-header-accuracy')).not.toBeInTheDocument();
     });
 
     it('should not change columns when modal is cancelled', () => {
@@ -1130,15 +1150,14 @@ describe('AutomlLeaderboard component', () => {
         models: mockBinaryModels,
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'binary'),
       });
+      showAllColumns();
 
       expect(screen.getByTestId('metric-header-f1')).toBeInTheDocument();
 
-      // Open modal, uncheck F1, then cancel
       fireEvent.click(screen.getByTestId('manage-columns-button'));
       fireEvent.click(screen.getByTestId('column-check-metric:f1'));
       fireEvent.click(screen.getByText('Cancel'));
 
-      // F1 column should still be visible
       expect(screen.getByTestId('metric-header-f1')).toBeInTheDocument();
     });
 
@@ -1147,24 +1166,208 @@ describe('AutomlLeaderboard component', () => {
         models: mockBinaryModels,
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'binary'),
       });
+      showAllColumns();
 
-      // Sort by model name first
       const modelNameHeader = screen.getByTestId('model-name-header');
       const sortButton = modelNameHeader.querySelector('button');
       fireEvent.click(sortButton!);
 
-      // Verify sort order: Logistic, Random, XGBoost
       let modelLinks = screen.getAllByTestId(/^model-link-/);
       expect(modelLinks[0]).toHaveTextContent('Logistic Regression');
 
-      // Hide a column
       fireEvent.click(screen.getByTestId('manage-columns-button'));
       fireEvent.click(screen.getByTestId('column-check-metric:f1'));
       fireEvent.click(screen.getByText('Save'));
 
-      // Sort order should be preserved
       modelLinks = screen.getAllByTestId(/^model-link-/);
       expect(modelLinks[0]).toHaveTextContent('Logistic Regression');
+    });
+
+    it('should reset sort when a sorted column is hidden', () => {
+      renderWithContext({
+        models: mockBinaryModels,
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'binary'),
+      });
+      showAllColumns();
+
+      // Sort by f1
+      const f1Header = screen.getByTestId('metric-header-f1');
+      const sortButton = f1Header.querySelector('button');
+      fireEvent.click(sortButton!);
+
+      // Now hide that column
+      fireEvent.click(screen.getByTestId('manage-columns-button'));
+      fireEvent.click(screen.getByTestId('column-check-metric:f1'));
+      fireEvent.click(screen.getByText('Save'));
+
+      // Table should still render (sort reset to rank)
+      expect(screen.getByTestId('leaderboard-table')).toBeInTheDocument();
+      const rows = screen.getAllByTestId(/^leaderboard-row-\d+$/);
+      expect(within(rows[0]).getByTestId('rank-1')).toBeInTheDocument();
+    });
+
+    it('should default to only rank, model, and optimized metric visible', () => {
+      renderWithContext({
+        models: mockBinaryModels,
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'binary'),
+      });
+
+      expect(screen.getByTestId('rank-header')).toBeInTheDocument();
+      expect(screen.getByTestId('model-name-header')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-header-accuracy')).toBeInTheDocument();
+      expect(screen.queryByTestId('metric-header-f1')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('metric-header-roc_auc')).not.toBeInTheDocument();
+    });
+
+    it('should display column count in toolbar', () => {
+      renderWithContext({
+        models: mockBinaryModels,
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'binary'),
+      });
+
+      expect(screen.getByTestId('columns-selected-count')).toHaveTextContent(
+        /3\/\d+ columns selected/,
+      );
+    });
+
+    it('should reset to default when reset button is clicked', () => {
+      renderWithContext({
+        models: mockBinaryModels,
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'binary'),
+      });
+      showAllColumns();
+
+      expect(screen.getByTestId('metric-header-f1')).toBeInTheDocument();
+
+      fireEvent.click(screen.getByTestId('manage-columns-button'));
+      fireEvent.click(screen.getByTestId('manage-columns-reset'));
+      fireEvent.click(screen.getByText('Save'));
+
+      expect(screen.getByTestId('rank-header')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-header-accuracy')).toBeInTheDocument();
+      expect(screen.queryByTestId('metric-header-f1')).not.toBeInTheDocument();
+    });
+
+    it('should persist column order after save', () => {
+      renderWithContext({
+        models: mockBinaryModels,
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'binary'),
+      });
+      showAllColumns();
+
+      // Verify the table headers are in the expected default order
+      const headers = screen.getAllByTestId(/^(rank-header|model-name-header|metric-header-)/);
+      const headerIds = headers.map((h) => h.getAttribute('data-testid'));
+
+      // First three should be rank, model, optimized metric (accuracy)
+      expect(headerIds[0]).toBe('rank-header');
+      expect(headerIds[1]).toBe('model-name-header');
+      expect(headerIds[2]).toBe('metric-header-accuracy');
+
+      // Remaining metric headers should follow
+      expect(headerIds.length).toBeGreaterThan(3);
+    });
+
+    it('should reset column order (not just visibility) when reset is clicked', () => {
+      renderWithContext({
+        models: mockBinaryModels,
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'binary'),
+      });
+      showAllColumns();
+
+      // Capture original header order
+      const originalHeaders = screen.getAllByTestId(
+        /^(rank-header|model-name-header|metric-header-)/,
+      );
+      const originalOrder = originalHeaders.map((h) => h.getAttribute('data-testid'));
+
+      // Reset to default — should restore default visibility (only 3 columns) and default order
+      fireEvent.click(screen.getByTestId('manage-columns-button'));
+      fireEvent.click(screen.getByTestId('manage-columns-reset'));
+      fireEvent.click(screen.getByText('Save'));
+
+      const headersAfterReset = screen.getAllByTestId(
+        /^(rank-header|model-name-header|metric-header-)/,
+      );
+      const orderAfterReset = headersAfterReset.map((h) => h.getAttribute('data-testid'));
+
+      // Only default columns visible, in default order
+      expect(orderAfterReset).toEqual([
+        'rank-header',
+        'model-name-header',
+        'metric-header-accuracy',
+      ]);
+
+      // Re-show all and verify original order is restored
+      showAllColumns();
+      const headersRestored = screen.getAllByTestId(
+        /^(rank-header|model-name-header|metric-header-)/,
+      );
+      const restoredOrder = headersRestored.map((h) => h.getAttribute('data-testid'));
+      expect(restoredOrder).toEqual(originalOrder);
+    });
+
+    it('should discard dirty state when modal is cancelled and reopened', () => {
+      renderWithContext({
+        models: mockBinaryModels,
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'binary'),
+      });
+
+      // Open modal and uncheck rank
+      fireEvent.click(screen.getByTestId('manage-columns-button'));
+      const rankCheckbox = screen.getByTestId('column-check-rank');
+      expect((rankCheckbox as HTMLInputElement).checked).toBe(true);
+      fireEvent.click(rankCheckbox);
+      expect((rankCheckbox as HTMLInputElement).checked).toBe(false);
+
+      // Cancel
+      fireEvent.click(screen.getByText('Cancel'));
+
+      // Reopen — rank should be checked again
+      fireEvent.click(screen.getByTestId('manage-columns-button'));
+      const rankCheckboxAfterReopen = screen.getByTestId('column-check-rank');
+      expect((rankCheckboxAfterReopen as HTMLInputElement).checked).toBe(true);
+    });
+
+    it('should disable save button when no changes are made', () => {
+      renderWithContext({
+        models: mockBinaryModels,
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'binary'),
+      });
+
+      fireEvent.click(screen.getByTestId('manage-columns-button'));
+      expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
+    });
+
+    it('should enable save button after toggling a column', () => {
+      renderWithContext({
+        models: mockBinaryModels,
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'binary'),
+      });
+
+      fireEvent.click(screen.getByTestId('manage-columns-button'));
+      expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
+
+      fireEvent.click(screen.getByTestId('column-check-metric:f1'));
+      expect(screen.getByRole('button', { name: 'Save' })).not.toBeDisabled();
+    });
+
+    it('should disable save button when all columns are unchecked', () => {
+      renderWithContext({
+        models: mockBinaryModels,
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'binary'),
+      });
+
+      fireEvent.click(screen.getByTestId('manage-columns-button'));
+
+      const checkboxes = screen.getAllByTestId(/^column-check-/);
+      checkboxes.forEach((cb) => {
+        if ((cb as HTMLInputElement).checked) {
+          fireEvent.click(cb);
+        }
+      });
+
+      expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
     });
   });
 

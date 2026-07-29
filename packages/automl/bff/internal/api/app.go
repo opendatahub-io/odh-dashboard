@@ -42,6 +42,7 @@ const (
 	PipelineRunsPath        = ApiPathPrefix + "/pipeline-runs"
 	ModelRegistriesPath     = ApiPathPrefix + "/model-registries"
 	ModelRegistryModelsPath = ModelRegistriesPath + "/:registryId/models"
+	ManagedPipelinesPath    = ApiPathPrefix + "/managed-pipelines/enable"
 )
 
 // modelRegistryHTTPClientFactory builds a client for Model Registry register calls.
@@ -279,6 +280,9 @@ func (app *App) Routes() http.Handler {
 	apiRouter.POST(PipelineRunsPath+"/:runId/terminate", app.AttachNamespace(app.RequireAccessToPipelineServers(app.AttachPipelineServerClient(app.AttachDiscoveredPipeline(app.TerminatePipelineRunHandler)))))
 	apiRouter.POST(PipelineRunsPath+"/:runId/retry", app.AttachNamespace(app.RequireAccessToPipelineServers(app.AttachPipelineServerClient(app.AttachDiscoveredPipeline(app.RetryPipelineRunHandler)))))
 	apiRouter.DELETE(PipelineRunsPath+"/:runId", app.AttachNamespace(app.RequireAccessToPipelineServers(app.AttachPipelineServerClient(app.AttachDiscoveredPipeline(app.DeletePipelineRunHandler)))))
+
+	// Managed pipelines — enable AutoML pipeline definitions on an existing DSPA
+	apiRouter.POST(ManagedPipelinesPath, app.AttachNamespace(app.RequireAccessToPipelineServers(app.EnableManagedPipelinesHandler)))
 
 	// S3 operations — DSPA discovery is skipped when the caller supplies an explicit
 	// secretName (the handler resolves credentials directly in that case).

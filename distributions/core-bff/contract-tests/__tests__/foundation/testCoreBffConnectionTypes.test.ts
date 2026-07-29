@@ -150,6 +150,115 @@ describe('Core BFF Connection Types', () => {
     });
   });
 
+  describe('Connection Test Endpoint', () => {
+    it('should return mock success for S3 connection test', async () => {
+      const result = await apiClient.post('/api/v1/connections/test', {
+        connectionType: 's3',
+        fieldValues: {
+          AWS_S3_ENDPOINT: 'http://minio:9000',
+          AWS_S3_BUCKET: 'test-bucket',
+          AWS_ACCESS_KEY_ID: 'key',
+          AWS_SECRET_ACCESS_KEY: 'secret',
+        },
+      });
+      expect(result).toMatchContract(apiSchema, {
+        ref: '#/components/responses/ConnectionTestResponse/content/application/json/schema',
+        status: 200,
+      });
+      const { response } = expectSuccess(result);
+      const data = response.data as { data: { success: boolean; message: string } };
+      expect(data.data.success).toBe(true);
+      expect(data.data.message).toContain('test-bucket');
+    });
+
+    it('should return mock success for URI connection test', async () => {
+      const result = await apiClient.post('/api/v1/connections/test', {
+        connectionType: 'uri',
+        fieldValues: { URI: 'https://example.com/data' },
+      });
+      expect(result).toMatchContract(apiSchema, {
+        ref: '#/components/responses/ConnectionTestResponse/content/application/json/schema',
+        status: 200,
+      });
+      const { response } = expectSuccess(result);
+      const data = response.data as { data: { success: boolean; message: string } };
+      expect(data.data.success).toBe(true);
+    });
+
+    it('should return mock success for OCI connection test', async () => {
+      const result = await apiClient.post('/api/v1/connections/test', {
+        connectionType: 'oci',
+        fieldValues: { OCI_HOST: 'quay.io' },
+      });
+      expect(result).toMatchContract(apiSchema, {
+        ref: '#/components/responses/ConnectionTestResponse/content/application/json/schema',
+        status: 200,
+      });
+      const { response } = expectSuccess(result);
+      const data = response.data as { data: { success: boolean; message: string } };
+      expect(data.data.success).toBe(true);
+    });
+
+    it('should return 400 for unsupported connection type', async () => {
+      const { data } = expectError(
+        await apiClient.post('/api/v1/connections/test', {
+          connectionType: 'unknown-type',
+          fieldValues: {},
+        }),
+        400,
+      );
+      expect((data as { error: { code: string } }).error.code).toBe('UNSUPPORTED_TYPE');
+    });
+
+    it('should return 400 for empty connectionType', async () => {
+      const { data } = expectError(
+        await apiClient.post('/api/v1/connections/test', {
+          connectionType: '',
+          fieldValues: {},
+        }),
+        400,
+      );
+      expect((data as { error: { code: string } }).error.code).toBe('INVALID_REQUEST');
+    });
+
+    it('should return 400 for null fieldValues', async () => {
+      const { data } = expectError(
+        await apiClient.post('/api/v1/connections/test', {
+          connectionType: 's3',
+          fieldValues: null,
+        }),
+        400,
+      );
+      expect((data as { error: { code: string } }).error.code).toBe('INVALID_REQUEST');
+    });
+
+    it('should return 401 when no auth token is provided', async () => {
+      expectError(
+        await unauthenticatedClient.post('/api/v1/connections/test', {
+          connectionType: 's3',
+          fieldValues: {},
+        }),
+        401,
+      );
+    });
+
+    it('should allow non-admin users to test connections', async () => {
+      const result = await restrictedClient.post('/api/v1/connections/test', {
+        connectionType: 's3',
+        fieldValues: {
+          AWS_S3_ENDPOINT: 'http://minio:9000',
+          AWS_S3_BUCKET: 'test',
+          AWS_ACCESS_KEY_ID: 'key',
+          AWS_SECRET_ACCESS_KEY: 'secret',
+        },
+      });
+      expect(result).toMatchContract(apiSchema, {
+        ref: '#/components/responses/ConnectionTestResponse/content/application/json/schema',
+        status: 200,
+      });
+    });
+  });
+
   describe('Patch Paths', () => {
     const ctName = 'contract-test-ct-patch';
 

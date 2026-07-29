@@ -388,6 +388,7 @@ const ChatbotMain: React.FunctionComponent = () => {
               hasConversationMessagesRef={hasConversationMessagesRef}
               isDrawerExpanded={isDrawerExpanded}
               setIsDrawerExpanded={setIsDrawerExpanded}
+              lsdTracingEnabled={lsdStatus.tracingEnabled}
               onOpenLoad={handleOpenLoad}
               onOpenSave={handleOpenSave}
               onOpenSaveAs={handleOpenSaveAs}

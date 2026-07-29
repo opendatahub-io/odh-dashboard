@@ -6,9 +6,11 @@
 export function usePipelineDefinitions(namespace: string): {
   loaded: boolean;
   error: Error | undefined;
+  refresh: () => void;
 } {
   return {
     loaded: true,
     error: undefined,
+    refresh: () => undefined,
   };
 }

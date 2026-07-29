@@ -17,7 +17,10 @@ import {
   mockInvalidTemplateK8sResource,
   mockServingRuntimeTemplateK8sResource,
 } from '@odh-dashboard/internal/__mocks__/mockServingRuntimeTemplateK8sResource';
-import type { DataScienceClusterKindStatus } from '@odh-dashboard/k8s-core';
+import {
+  type DataScienceClusterKindStatus,
+  NamespaceApplicationCase,
+} from '@odh-dashboard/k8s-core';
 import {
   type InferenceServiceKind,
   type ServingRuntimeKind,
@@ -32,7 +35,6 @@ import {
 import { STOP_MODAL_PREFERENCE_KEY } from '@odh-dashboard/internal/pages/modelServing/useStopModalPreference';
 import { mockOdhApplication } from '@odh-dashboard/internal/__mocks__/mockOdhApplication';
 import { mockNimServingRuntimeTemplate } from '@odh-dashboard/internal/__mocks__/mockLegacyNimResource';
-import { NamespaceApplicationCase } from '@odh-dashboard/internal/pages/projects/types';
 import {
   modelServingGlobal,
   modelServingSection,

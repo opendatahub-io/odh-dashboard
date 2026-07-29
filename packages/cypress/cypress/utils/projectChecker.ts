@@ -3,6 +3,7 @@ import {
   deleteOpenShiftProject,
   createOpenShiftProject,
 } from './oc_commands/project';
+import { ensureAdminOcSession } from './oc_commands/baseCommands';
 
 export const createAndVerifyProject = (projectName: string): void => {
   createOpenShiftProject(projectName).then((result) => {
@@ -13,6 +14,20 @@ export const createAndVerifyProject = (projectName: string): void => {
     if (!exists) {
       throw new Error(`Expected project ${projectName} to exist, but it does not.`);
     }
+  });
+};
+
+// Best-effort cleanup for after() hooks — failures are logged, never thrown.
+export const cleanupTestProject = (projectName: string): void => {
+  cy.log(`Cleaning up project ${projectName}`);
+  ensureAdminOcSession().then(() => {
+    cy.exec(`oc delete project ${projectName} --wait=false --ignore-not-found`, {
+      failOnNonZeroExit: false,
+    }).then((result) => {
+      if (result.exitCode !== 0) {
+        cy.log(`⚠️ Cleanup: could not delete project ${projectName} (non-fatal): ${result.stderr}`);
+      }
+    });
   });
 };
 

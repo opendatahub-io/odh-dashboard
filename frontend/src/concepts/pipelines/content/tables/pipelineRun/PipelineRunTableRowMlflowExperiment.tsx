@@ -8,8 +8,10 @@ import { mlflowExperimentRoute } from '#~/routes/pipelines/mlflow';
 import { MlflowTrackingEvents } from '#~/concepts/mlflow/const';
 import { NoRunContent } from '#~/concepts/pipelines/content/tables/renderUtils';
 import { MlflowExperimentData } from '#~/concepts/mlflow/types';
-import { getMlflowExperimentNameFromRun } from '#~/concepts/pipelines/content/tables/pipelineRun/utils';
-import { isPipelineRun } from '#~/concepts/pipelines/content/utils';
+import {
+  getMlflowExperimentNameFromRun,
+  getMlflowPluginOutput,
+} from '#~/concepts/pipelines/content/tables/pipelineRun/utils';
 import { fireLinkTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 
 type PipelineRunTableRowMlflowExperimentProps = {
@@ -24,9 +26,7 @@ const PipelineRunTableRowMlflowExperiment: React.FC<PipelineRunTableRowMlflowExp
   const { namespace } = usePipelinesAPI();
 
   const experimentName = getMlflowExperimentNameFromRun(run);
-  const experimentIdFromOutput = isPipelineRun(run)
-    ? run.plugins_output?.mlflow?.entries.experiment_id?.value
-    : undefined;
+  const experimentIdFromOutput = getMlflowPluginOutput(run)?.entries.experiment_id?.value;
   const experimentId =
     experimentIdFromOutput ??
     (experimentName ? mlflow.experiments.find((e) => e.name === experimentName)?.id : undefined);

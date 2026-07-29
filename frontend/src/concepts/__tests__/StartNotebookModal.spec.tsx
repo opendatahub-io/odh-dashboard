@@ -178,7 +178,7 @@ describe('Start Notebook modal', () => {
     );
 
     const statusLabel = screen.getByTestId('notebook-latest-status');
-    expect(statusLabel).toHaveTextContent('Re-queued (attempt 2');
+    expect(statusLabel).toHaveTextContent('attempt 2');
   });
 
   it.each([

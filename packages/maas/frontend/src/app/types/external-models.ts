@@ -5,6 +5,7 @@ export type ExternalProviderDetails = {
   description?: string;
   endpointUrl: string;
   authMechanism: AuthMechanism;
+  credentialSecretRef: string;
   provider: string;
   config?: Record<string, string>;
   phase?: string;
@@ -25,6 +26,7 @@ export type ExternalModelMaaSModelRefStatus = {
   phase?: string;
   endpoint?: string;
   statusMessage?: string;
+  governanceAttached?: boolean;
 };
 
 export type ExternalModel = {

@@ -60,6 +60,7 @@ var _ = Describe("MLflow Prompts Handler", func() {
 								"scope": map[string]interface{}{
 									"type":      "global",
 									"namespace": "shared-prompts",
+									"read_only": true,
 								},
 							},
 							{
@@ -159,10 +160,12 @@ var _ = Describe("MLflow Prompts Handler", func() {
 			dora := promptsByName["vet-appointment-dora"]
 			Expect(string(dora.Scope.Type)).To(Equal("project"))
 			Expect(dora.Scope.Namespace).To(Equal("default"))
+			Expect(dora.Scope.ReadOnly).To(BeFalse())
 
 			ellie := promptsByName["medication-reminder-ellie"]
 			Expect(string(ellie.Scope.Type)).To(Equal("global"))
 			Expect(ellie.Scope.Namespace).To(Equal("shared-prompts"))
+			Expect(ellie.Scope.ReadOnly).To(BeTrue())
 		})
 
 		It("should pass through failed_namespaces from MLflow BFF", func() {
@@ -483,7 +486,39 @@ var _ = Describe("MLflow Prompts Handler", func() {
 			ReadJSONResponse(resp, &envelope)
 
 			Expect(envelope.Data.Name).To(Equal("vet-appointment-dora"))
-			Expect(envelope.Data.Version).To(BeNumerically(">=", 1))
+			Expect(envelope.Data.Version).To(BeNumerically(">=", 2))
+			Expect(envelope.Data.Messages).NotTo(BeEmpty())
+		})
+
+		It("should load a specific version when version param is provided", func() {
+			mockBFFClient.CallHandler = func(ctx context.Context, method, path string, body interface{}, response interface{}) error {
+				if method == "GET" && path == "/prompts/vet-appointment-dora?workspace=default&version=1" {
+					data := map[string]interface{}{
+						"data": map[string]interface{}{
+							"name":       "vet-appointment-dora",
+							"version":    1,
+							"created_at": time.Now().Format(time.RFC3339),
+							"updated_at": time.Now().Format(time.RFC3339),
+						},
+					}
+					return marshalToResponse(data, response)
+				}
+				return bffclient.NewNotFoundError(bffclient.BFFTargetMLflow, fmt.Sprintf("mock not implemented for %s %s", method, path))
+			}
+
+			resp := MakeRequest(TestRequest{
+				Method: http.MethodGet,
+				Path:   "/gen-ai/api/v1/mlflow/prompts/vet-appointment-dora?namespace=default&version=1",
+			})
+			defer resp.Body.Close()
+
+			Expect(resp.StatusCode).To(Equal(http.StatusOK))
+
+			var envelope MLflowPromptVersionEnvelope
+			ReadJSONResponse(resp, &envelope)
+
+			Expect(envelope.Data.Name).To(Equal("vet-appointment-dora"))
+			Expect(envelope.Data.Version).To(Equal(1))
 		})
 
 		It("should return 404 for a nonexistent prompt", func() {

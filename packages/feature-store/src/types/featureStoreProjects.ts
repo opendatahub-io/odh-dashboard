@@ -1,4 +1,4 @@
-import { K8sAPIOptions } from '@odh-dashboard/internal/k8sTypes';
+import { K8sAPIOptions } from '@odh-dashboard/k8s-core';
 import { FeatureStoreMeta, FeatureStorePagination } from './global';
 
 export type FeatureStoreProject = {

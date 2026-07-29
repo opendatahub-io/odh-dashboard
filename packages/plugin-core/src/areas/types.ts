@@ -69,7 +69,6 @@ export enum SupportedArea {
   LLMD_GATEWAY_FIELD = 'llmd-gateway-field',
   MY_SUBSCRIPTIONS = 'my-subscriptions',
   EXTERNAL_MODELS = 'external-models',
-  MAAS_SETTINGS_IA_REDESIGN = 'maas-settings-ia-redesign',
 
   /* Distributed Workloads areas */
   DISTRIBUTED_WORKLOADS = 'distributed-workloads',
@@ -93,6 +92,7 @@ export enum SupportedArea {
 
   /* Feature store */
   FEATURE_STORE = 'feature-store',
+  FEATURE_STORE_ADMIN = 'feature-store-admin',
 
   /* Model Training */
   MODEL_TRAINING = 'model-training',
@@ -100,7 +100,7 @@ export enum SupportedArea {
 
   /* Agent Ops */
   AGENT_OPS = 'agent-ops',
-  AGENT_OPS_DISCOVERY_MODE = 'agent-ops-discovery-mode',
+  AGENT_OPS_DEPLOY = 'agent-ops-deploy',
 
   /* Agents catalog */
   AGENTS_CATALOG = 'agents-catalog',
@@ -108,6 +108,9 @@ export enum SupportedArea {
   /* MLflow */
   MLFLOW = 'mlflow',
   MLFLOW_PIPELINES = 'mlflow-pipelines',
+
+  /* MCP Registry */
+  MCP_REGISTRY = 'mcp-registry',
 
   /* GPUaaS */
   GPUAAS_INFRASTRUCTURE = 'gpuaas-infrastructure',
@@ -117,6 +120,9 @@ export enum SupportedArea {
 
   /* Role Management */
   ROLE_MANAGEMENT = 'role-management',
+
+  /* Connection Test */
+  CONNECTION_TEST = 'connection-test',
 }
 
 export type SupportedAreaType = SupportedArea | string;

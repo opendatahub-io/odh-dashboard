@@ -35,6 +35,7 @@ COPY --chown=default:root packages/k8s-core/ ./packages/k8s-core/
 COPY --chown=default:root packages/ui-core/ ./packages/ui-core/
 COPY --chown=default:root packages/model-serving/ ./packages/model-serving/
 COPY --chown=default:root packages/hardware-profiles/ ./packages/hardware-profiles/
+COPY --chown=default:root packages/connection-types/ ./packages/connection-types/
 # Copy only the frontend source (not the entire frontend build artifacts) for cross-module imports
 COPY --chown=default:root frontend/src/ ./frontend/src/
 

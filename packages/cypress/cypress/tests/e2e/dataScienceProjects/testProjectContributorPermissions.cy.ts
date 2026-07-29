@@ -1,11 +1,9 @@
-import { deleteOpenShiftProject } from '../../../utils/oc_commands/project';
-import { ensureAdminOcSession } from '../../../utils/oc_commands/baseCommands';
 import { projectDetails, projectListPage } from '../../../pages/projects';
 import type { DataScienceProjectData } from '../../../types';
 import { projectRbacPermissions } from '../../../pages/projectRbacPermissions';
 import { HTPASSWD_CLUSTER_ADMIN_USER, LDAP_CONTRIBUTOR_USER } from '../../../utils/e2eUsers';
 import { loadDSPFixture } from '../../../utils/dataLoader';
-import { createCleanProject } from '../../../utils/projectChecker';
+import { cleanupTestProject, createCleanProject } from '../../../utils/projectChecker';
 import { retryableBefore } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
 import { assignRoleViaProjectRbac } from '../../../utils/projectRbacUtils';
@@ -33,11 +31,8 @@ describe('Verify that users can provide contributor project permissions to non-a
       }),
   );
   after(() => {
-    // Delete provisioned Project
     if (projectName) {
-      cy.log(`Deleting Project ${projectName} after the test has finished.`);
-      ensureAdminOcSession();
-      deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
+      cleanupTestProject(projectName);
     }
   });
 

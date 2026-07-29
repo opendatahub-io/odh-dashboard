@@ -1,6 +1,6 @@
 import { useMutation, type UseMutationResult } from '@tanstack/react-query';
 import type { APIOptions } from 'mod-arch-core';
-import { deleteAgent, startAgent, stopAgent } from '~/app/api/agentLifecycle';
+import { deleteAgent, restartAgent, startAgent, stopAgent } from '~/app/api/agentLifecycle';
 import { deployAgent } from '~/app/api/deployAgent';
 import type { AgentLifecycleParams, LifecycleResult } from '~/app/types/agentLifecycle';
 import type { DeployAgentRequest, DeployAgentResponse } from '~/app/types/deployAgent';
@@ -48,6 +48,21 @@ export function useStartAgentMutation(
     mutationFn: async (params: AgentLifecycleParams) => {
       const apiOpts: APIOptions = {};
       return startAgent(hostPath)(apiOpts, params);
+    },
+    retry: false,
+  });
+}
+
+export function useRestartAgentMutation(
+  namespace: string,
+  name: string,
+  hostPath = '',
+): UseMutationResult<LifecycleResult, Error, AgentLifecycleParams> {
+  return useMutation({
+    mutationKey: ['agent-ops', 'restartAgent', namespace, name],
+    mutationFn: async (params: AgentLifecycleParams) => {
+      const apiOpts: APIOptions = {};
+      return restartAgent(hostPath)(apiOpts, params);
     },
     retry: false,
   });

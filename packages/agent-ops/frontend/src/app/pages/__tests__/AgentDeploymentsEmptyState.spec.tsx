@@ -25,7 +25,7 @@ describe('AgentDeploymentsEmptyState', () => {
   it('should render deploy agent button in the empty state footer', async () => {
     const user = userEvent.setup();
 
-    render(<AgentDeploymentsEmptyState namespace="team1" onDeployAgent={onDeployAgent} />);
+    render(<AgentDeploymentsEmptyState deployMode namespace="team1" onDeployAgent={onDeployAgent} />);
 
     expect(screen.getByTestId('agent-deployments-empty-state')).toBeInTheDocument();
     const deployButton = screen.getByTestId('deploy-agent-button');

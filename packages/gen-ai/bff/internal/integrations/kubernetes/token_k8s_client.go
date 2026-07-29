@@ -1448,7 +1448,7 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 		},
 		{
 			Name:  "SENTENCE_TRANSFORMERS_HOME",
-			Value: "/opt/app-root/src/.cache/huggingface/hub",
+			Value: "/opt/app-root/.cache/huggingface/hub",
 		},
 		{
 			Name:  "HF_HUB_OFFLINE",

@@ -4,15 +4,15 @@ import { render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import AgentDeploymentDetailGate from '~/app/components/AgentDeploymentDetailGate';
 
-const mockUseAgentOpsDiscoveryMode = jest.fn();
+const mockUseAgentOpsDeploy = jest.fn();
 
-jest.mock('~/app/hooks/useAgentOpsDiscoveryMode', () => ({
-  useAgentOpsDiscoveryMode: () => mockUseAgentOpsDiscoveryMode(),
+jest.mock('~/app/hooks/useAgentOpsDeploy', () => ({
+  useAgentOpsDeploy: () => mockUseAgentOpsDeploy(),
 }));
 
 describe('AgentDeploymentDetailGate', () => {
-  it('redirects away when discovery mode is on', () => {
-    mockUseAgentOpsDiscoveryMode.mockReturnValue(true);
+  it('redirects away when deploy mode is off', () => {
+    mockUseAgentOpsDeploy.mockReturnValue(false);
 
     render(
       <MemoryRouter initialEntries={['/ai-hub/agents/deployments/team1/my-agent']}>
@@ -37,8 +37,8 @@ describe('AgentDeploymentDetailGate', () => {
     expect(screen.getByTestId('list-page')).toBeInTheDocument();
   });
 
-  it('renders children when discovery mode is off', () => {
-    mockUseAgentOpsDiscoveryMode.mockReturnValue(false);
+  it('renders children when deploy mode is on', () => {
+    mockUseAgentOpsDeploy.mockReturnValue(true);
 
     render(
       <MemoryRouter initialEntries={['/ai-hub/agents/deployments/team1/my-agent']}>

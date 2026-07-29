@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { LocalQueueKind } from '@odh-dashboard/internal/k8sTypes';
+import { LocalQueueKind } from '@odh-dashboard/k8s-core';
 import useFetch, { NotReadyError } from '@odh-dashboard/ui-core/hooks/useFetch';
 import { getLocalQueue } from '../api/queue';
 

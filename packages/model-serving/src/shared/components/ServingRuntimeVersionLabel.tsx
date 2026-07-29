@@ -7,6 +7,7 @@ type ServingRuntimeVersionLabelProps = {
   isEditing?: boolean;
 };
 
+/** @deprecated Use renderDeploymentResourceVersionLabels instead, which includes version, fast, and unsupported labels. */
 const ServingRuntimeVersionLabel: React.FC<ServingRuntimeVersionLabelProps> = ({
   version,
   isCompact,

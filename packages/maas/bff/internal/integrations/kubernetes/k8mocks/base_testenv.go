@@ -44,6 +44,27 @@ func readyResourceStatusWithEndpoint(phase, message, endpoint string) map[string
 	return status
 }
 
+func readyModelRefStatusWithGovernance(phase, message, endpoint string, governanceAttached bool) map[string]interface{} {
+	status := readyResourceStatusWithEndpoint(phase, message, endpoint)
+	conditions, _ := status["conditions"].([]interface{})
+	governanceStatus := "False"
+	governanceReason := "NoPairingFound"
+	governanceMessage := "No active subscription and auth policy pairing found"
+	if governanceAttached {
+		governanceStatus = "True"
+		governanceReason = "PairingFound"
+		governanceMessage = "Active subscription and auth policy pairing found"
+	}
+	status["conditions"] = append(conditions, map[string]interface{}{
+		"type":               "GovernanceAttached",
+		"status":             governanceStatus,
+		"reason":             governanceReason,
+		"message":            governanceMessage,
+		"lastTransitionTime": "2026-01-01T00:00:00Z",
+	})
+	return status
+}
+
 func createDynamicResourceWithStatus(
 	ctx context.Context,
 	dynamicClient dynamic.Interface,
@@ -550,10 +571,11 @@ func createMaaSModelRefs(dynamicClient dynamic.Interface, ctx context.Context) e
 					"name": "gpt-4o-external",
 				},
 			},
-			"status": readyResourceStatusWithEndpoint(
+			"status": readyModelRefStatusWithGovernance(
 				"Ready",
 				"Published external GPT-4o model",
 				"https://gpt-4o-external.maas.example.com",
+				true,
 			),
 		},
 	}

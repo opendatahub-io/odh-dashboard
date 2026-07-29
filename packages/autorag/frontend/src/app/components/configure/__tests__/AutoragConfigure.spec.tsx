@@ -16,6 +16,7 @@ import {
   AUTORAG_UPLOAD_TOO_MANY_FILES_DETAIL,
 } from '~/app/utilities/dropzoneFileUpload';
 import { INPUT_DATA_INVALID_FILE_TYPE_DESCRIPTION } from '~/app/utilities/autoragInputDataFile';
+import { DEFAULT_OPTIMIZATION_METRIC, OPTIMIZATION_METRIC_LABELS } from '~/app/utilities/const';
 
 const mockNotificationError = jest.fn();
 
@@ -705,6 +706,53 @@ describe('AutoragConfigure', () => {
     });
   });
 
+  describe('Run preset', () => {
+    const selectSecretAndFile = () => {
+      fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+      fireEvent.click(screen.getByRole('button', { name: 'Browse bucket' }));
+      fireEvent.click(screen.getByTestId('file-explorer-select-file'));
+    };
+
+    it('should render preset radio buttons with Faster selected by default', () => {
+      renderComponent();
+      selectSecretAndFile();
+
+      const fasterRadio = screen.getByTestId('preset-radio-speed');
+      const betterQualityRadio = screen.getByTestId('preset-radio-balanced');
+      expect(fasterRadio).toBeInTheDocument();
+      expect(betterQualityRadio).toBeInTheDocument();
+      expect(fasterRadio).toBeChecked();
+      expect(betterQualityRadio).not.toBeChecked();
+    });
+
+    it('should display human-readable labels for presets', () => {
+      renderComponent();
+      selectSecretAndFile();
+
+      expect(screen.getByText('Faster')).toBeInTheDocument();
+      expect(screen.getByText('Better quality')).toBeInTheDocument();
+    });
+
+    it('should switch preset when clicking the other radio', () => {
+      renderComponent();
+      selectSecretAndFile();
+
+      const betterQualityRadio = screen.getByTestId('preset-radio-balanced');
+      fireEvent.click(betterQualityRadio);
+
+      expect(betterQualityRadio).toBeChecked();
+      expect(screen.getByTestId('preset-radio-speed')).not.toBeChecked();
+    });
+
+    it('should render with balanced preset when configured', () => {
+      renderComponent({ preset: 'balanced' });
+      selectSecretAndFile();
+
+      expect(screen.getByTestId('preset-radio-balanced')).toBeChecked();
+      expect(screen.getByTestId('preset-radio-speed')).not.toBeChecked();
+    });
+  });
+
   describe('Optimization metric', () => {
     const selectSecretAndFile = () => {
       fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
@@ -718,11 +766,11 @@ describe('AutoragConfigure', () => {
 
       expect(screen.getByTestId('optimization-metric-select')).toBeInTheDocument();
       expect(screen.getByTestId('optimization-metric-select')).toHaveTextContent(
-        'Answer faithfulness',
+        OPTIMIZATION_METRIC_LABELS[DEFAULT_OPTIMIZATION_METRIC],
       );
     });
 
-    it('should only offer faithfulness and answer_correctness as selectable metrics', async () => {
+    it('should only offer overall_score, faithfulness, and answer_correctness as selectable metrics', async () => {
       const user = userEvent.setup();
       renderComponent();
       selectSecretAndFile();
@@ -730,13 +778,14 @@ describe('AutoragConfigure', () => {
       await user.click(screen.getByTestId('optimization-metric-select'));
 
       await waitFor(() => {
+        expect(screen.getByTestId('metric-option-overall_score')).toBeInTheDocument();
         expect(screen.getByTestId('metric-option-faithfulness')).toBeInTheDocument();
         expect(screen.getByTestId('metric-option-answer_correctness')).toBeInTheDocument();
       });
       expect(screen.queryByTestId('metric-option-context_correctness')).not.toBeInTheDocument();
     });
 
-    it('should offer exactly two optimization metrics', async () => {
+    it('should offer exactly three optimization metrics', async () => {
       const user = userEvent.setup();
       renderComponent();
       selectSecretAndFile();
@@ -749,7 +798,7 @@ describe('AutoragConfigure', () => {
 
       const selectList = screen.getByTestId('optimization-metric-select-list');
       const options = selectList.querySelectorAll('[data-testid^="metric-option-"]');
-      expect(options).toHaveLength(2);
+      expect(options).toHaveLength(3);
     });
 
     it('should render with a non-default metric when configured', () => {

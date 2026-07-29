@@ -117,5 +117,6 @@ export function classifyError(error: ApiError, context: ClassifyContext = {}): C
       rawMessage,
     },
     isRetriable: finalIsRetriable,
+    traceId: error.trace_id,
   };
 }

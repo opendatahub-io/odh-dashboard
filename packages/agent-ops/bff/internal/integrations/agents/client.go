@@ -14,6 +14,7 @@ type Client interface {
 	DeleteAgent(ctx context.Context, namespace, name string) error
 	StopAgent(ctx context.Context, namespace, name string) error
 	StartAgent(ctx context.Context, namespace, name string) error
+	RestartAgent(ctx context.Context, namespace, name string) error
 }
 
 // ClientFactory creates a Client for the current request (e.g. with caller identity from context).

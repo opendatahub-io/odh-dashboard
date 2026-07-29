@@ -377,20 +377,13 @@ class ChatbotPage {
   }
 
   // Metrics Section
-  findMetricsToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.contains('button', /Show metrics|Hide metrics/i) as unknown as Cypress.Chainable<
-      JQuery<HTMLElement>
-    >;
-  }
-
-  expandMetrics(): void {
-    cy.contains('button', 'Show metrics').click();
+  findMetrics(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('chatbot-message-metrics');
   }
 
   verifyMetricsDisplayed(): void {
-    // Verify latency label is visible after expanding
-    cy.contains('button', 'Show metrics').click();
-    cy.get('.pf-v6-c-label').should('have.length.at.least', 1);
+    this.findMetrics().should('be.visible');
+    this.findMetrics().find('.pf-v6-c-label').should('have.length.at.least', 1);
   }
 
   // Compare Mode Methods

@@ -6,12 +6,17 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/opendatahub-io/gen-ai/internal/integrations/bffclient"
 )
+
+// registeredPrompts stores dynamically registered prompts so that a POST followed
+// by a GET for the same name returns the prompt instead of 404.
+var registeredPrompts sync.Map
 
 // MockBFFClient provides a mock implementation of the BFFClientInterface for testing
 type MockBFFClient struct {
@@ -182,75 +187,115 @@ func (m *MockBFFClient) handleMLflowCall(ctx context.Context, method, path strin
 		// List prompts or load specific prompt
 		if strings.Contains(path, "/prompts/") {
 			// Load specific prompt (GET /prompts/{name})
-			promptResp := map[string]interface{}{
-				"data": map[string]interface{}{
-					"name":     "ct-prompt",
-					"version":  1,
-					"template": "You are a helpful assistant.",
-					"messages": []map[string]interface{}{
-						{
-							"role":    "system",
-							"content": "You are a helpful assistant.",
-						},
+			promptName := extractPromptName(path)
+			prompt, found := findMockPrompt(promptName)
+			if !found {
+				return bffclient.NewNotFoundError(m.target, fmt.Sprintf("prompt %q not found", promptName))
+			}
+			latestVersion := 1
+			if v, ok := prompt["latest_version"].(int); ok {
+				latestVersion = v
+			}
+			versionInt := latestVersion
+			if v := extractQueryParam(path, "version"); v != "" {
+				parsed, err := strconv.Atoi(v)
+				if err != nil || parsed < 1 || parsed > latestVersion {
+					return bffclient.NewBFFClientErrorWithTarget(bffclient.ErrCodeNotFound, fmt.Sprintf("version %s not found for prompt %q", v, promptName), m.target, 404)
+				}
+				versionInt = parsed
+			}
+			template := mockPromptTemplateForVersion(promptName, versionInt)
+			promptData := map[string]interface{}{
+				"name":     prompt["name"],
+				"version":  versionInt,
+				"template": template,
+				"messages": []map[string]interface{}{
+					{
+						"role":    "system",
+						"content": template,
 					},
-					"created_at": time.Now().Format(time.RFC3339),
-					"updated_at": time.Now().Format(time.RFC3339),
 				},
+				"created_at": mockVersionTimestamp(prompt["creation_timestamp"], versionInt),
+				"updated_at": mockVersionTimestamp(prompt["creation_timestamp"], versionInt+1),
+			}
+			if scope, ok := prompt["scope"]; ok {
+				promptData["scope"] = scope
+			}
+			promptResp := map[string]interface{}{
+				"data": promptData,
 			}
 			return marshalToResponse(promptResp, response)
 		}
 		// List prompts (GET /prompts)
+		prompts := mockPromptsList()
 		promptsResp := map[string]interface{}{
 			"data": map[string]interface{}{
-				"prompts": []map[string]interface{}{
-					{
-						"name":               "ct-prompt",
-						"latest_version":     1,
-						"creation_timestamp": time.Now().Format(time.RFC3339),
-						"scope": map[string]interface{}{
-							"type":      "project",
-							"namespace": "default",
-						},
-					},
-					{
-						"name":               "global-shared-prompt",
-						"latest_version":     1,
-						"creation_timestamp": time.Now().Format(time.RFC3339),
-						"scope": map[string]interface{}{
-							"type":      "global",
-							"namespace": "shared-prompts",
-						},
-					},
-				},
-				"total_count": 2,
+				"prompts":     prompts,
+				"total_count": len(prompts),
 			},
 		}
 		return marshalToResponse(promptsResp, response)
 
 	case strings.HasPrefix(path, "/prompts") && method == "POST":
 		// Register prompt (POST /prompts)
+		promptName := "ct-prompt"
+		if body != nil {
+			if bodyBytes, err := json.Marshal(body); err == nil {
+				var bodyMap map[string]interface{}
+				if json.Unmarshal(bodyBytes, &bodyMap) == nil {
+					if name, ok := bodyMap["name"].(string); ok && name != "" {
+						promptName = name
+					}
+				}
+			}
+		}
+		now := time.Now().Format(time.RFC3339)
+		registeredPrompts.Store(promptName, map[string]interface{}{
+			"name":               promptName,
+			"description":        "",
+			"latest_version":     1,
+			"creation_timestamp": now,
+			"scope": map[string]interface{}{
+				"type":      "project",
+				"namespace": extractQueryParam(path, "workspace"),
+			},
+		})
 		promptResp := map[string]interface{}{
 			"data": map[string]interface{}{
-				"name":       "ct-prompt",
+				"name":       promptName,
 				"version":    1,
 				"template":   "Hello {{name}}",
-				"created_at": time.Now().Format(time.RFC3339),
-				"updated_at": time.Now().Format(time.RFC3339),
+				"created_at": now,
+				"updated_at": now,
 			},
 		}
 		return marshalToResponse(promptResp, response)
 
 	case strings.Contains(path, "/versions") && method == "GET":
 		// List prompt versions (GET /prompts/{name}/versions)
+		promptName := extractPromptName(path)
+		prompt, found := findMockPrompt(promptName)
+		if !found {
+			return bffclient.NewNotFoundError(m.target, fmt.Sprintf("prompt %q not found", promptName))
+		}
+		latestVersion := 1
+		if v, ok := prompt["latest_version"].(int); ok {
+			latestVersion = v
+		}
+		versions := make([]map[string]interface{}, 0, latestVersion)
+		for i := latestVersion; i >= 1; i-- {
+			versions = append(versions, map[string]interface{}{
+				"name":           promptName,
+				"version":        i,
+				"commit_message": fmt.Sprintf("Version %d", i),
+				"template":       mockPromptTemplateForVersion(promptName, i),
+				"created_at":     mockVersionTimestamp(prompt["creation_timestamp"], i),
+				"updated_at":     mockVersionTimestamp(prompt["creation_timestamp"], i+1),
+			})
+		}
 		versionsResp := map[string]interface{}{
 			"data": map[string]interface{}{
-				"versions": []map[string]interface{}{
-					{
-						"name":       "ct-prompt",
-						"version":    1,
-						"created_at": time.Now().Format(time.RFC3339),
-					},
-				},
+				"versions":        versions,
 				"next_page_token": "",
 			},
 		}
@@ -258,7 +303,8 @@ func (m *MockBFFClient) handleMLflowCall(ctx context.Context, method, path strin
 
 	case strings.HasPrefix(path, "/prompts/") && method == "DELETE":
 		// Delete prompt or prompt version (DELETE /prompts/{name} or DELETE /prompts/{name}/versions/{version})
-		// Both return 204 No Content, so response is nil
+		promptName := extractPromptName(path)
+		registeredPrompts.Delete(promptName)
 		return nil
 
 	default:
@@ -377,5 +423,157 @@ func NewMockClientFactoryWithConfig(config *bffclient.BFFClientConfig, rootCAs *
 		config:  config,
 		clients: make(map[bffclient.BFFTarget]*MockBFFClient),
 		logger:  logger,
+	}
+}
+
+func extractQueryParam(path, key string) string {
+	if idx := strings.Index(path, "?"); idx != -1 {
+		query := path[idx+1:]
+		for _, param := range strings.Split(query, "&") {
+			parts := strings.SplitN(param, "=", 2)
+			if len(parts) == 2 && parts[0] == key {
+				return parts[1]
+			}
+		}
+	}
+	return ""
+}
+
+func extractPromptName(path string) string {
+	// path is like "/prompts/my-prompt" or "/prompts/my-prompt/versions"
+	trimmed := strings.TrimPrefix(path, "/prompts/")
+	if idx := strings.Index(trimmed, "/"); idx != -1 {
+		return trimmed[:idx]
+	}
+	if idx := strings.Index(trimmed, "?"); idx != -1 {
+		return trimmed[:idx]
+	}
+	return trimmed
+}
+
+func findMockPrompt(name string) (map[string]interface{}, bool) {
+	for _, p := range mockPromptsList() {
+		if p["name"] == name {
+			return p, true
+		}
+	}
+	if val, ok := registeredPrompts.Load(name); ok {
+		if prompt, ok := val.(map[string]interface{}); ok {
+			return prompt, true
+		}
+	}
+	return nil, false
+}
+
+func mockPromptTemplateForVersion(name string, version int) string {
+	return fmt.Sprintf("%s (version %d)", mockPromptTemplate(name), version)
+}
+
+func mockVersionTimestamp(base interface{}, version int) string {
+	if s, ok := base.(string); ok {
+		if t, err := time.Parse(time.RFC3339, s); err == nil {
+			return t.AddDate(0, 0, (version-1)*7).Format(time.RFC3339)
+		}
+	}
+	return time.Now().AddDate(0, 0, -(version-1)*7).Format(time.RFC3339)
+}
+
+func mockPromptTemplate(name string) string {
+	templates := map[string]string{
+		"summarization-prompt":     "You are a summarization assistant. Condense the following text into a brief summary preserving key points.",
+		"code-review-prompt":       "You are a code review assistant. Analyze the provided code for quality, best practices, and potential issues.",
+		"translation-prompt":       "You are a translation assistant. Translate the following text accurately while preserving tone and meaning.",
+		"data-extraction-prompt":   "You are a data extraction assistant. Extract structured data from the provided document and return it as JSON.",
+		"starter-template-prompt":  "You are a helpful AI assistant. Answer questions clearly and concisely.",
+		"safety-guidelines-prompt": "You are a responsible AI safety reviewer. Evaluate the following content against safety guidelines and flag any concerns.",
+		"customer-support-prompt":  "You are a customer support assistant. Help resolve the customer's inquiry professionally and efficiently.",
+	}
+	if t, ok := templates[name]; ok {
+		return t
+	}
+	return "You are a helpful assistant."
+}
+
+func mockPromptsList() []map[string]interface{} {
+	now := time.Now().Format(time.RFC3339)
+	return []map[string]interface{}{
+		{
+			"name":               "summarization-prompt",
+			"description":        "Summarize content",
+			"latest_version":     1,
+			"creation_timestamp": now,
+			"tags":               map[string]string{"use_case": "summarization", "language": "en"},
+			"scope": map[string]interface{}{
+				"type":      "project",
+				"namespace": "default",
+			},
+		},
+		{
+			"name":               "code-review-prompt",
+			"description":        "Review code for quality and best practices",
+			"latest_version":     3,
+			"creation_timestamp": now,
+			"tags":               map[string]string{"use_case": "code-review"},
+			"scope": map[string]interface{}{
+				"type":      "project",
+				"namespace": "default",
+			},
+		},
+		{
+			"name":               "translation-prompt",
+			"description":        "Translate text between languages",
+			"latest_version":     2,
+			"creation_timestamp": now,
+			"scope": map[string]interface{}{
+				"type":      "project",
+				"namespace": "default",
+			},
+		},
+		{
+			"name":               "data-extraction-prompt",
+			"description":        "Extract structured data from documents",
+			"latest_version":     4,
+			"creation_timestamp": "2025-05-20T08:30:00Z",
+			"tags":               map[string]string{"use_case": "extraction", "format": "json"},
+			"scope": map[string]interface{}{
+				"type":      "project",
+				"namespace": "my-data-science-project",
+			},
+		},
+		{
+			"name":               "starter-template-prompt",
+			"description":        "A global starter template for new projects",
+			"latest_version":     1,
+			"creation_timestamp": now,
+			"scope": map[string]interface{}{
+				"type":      "global",
+				"namespace": "rhoai-templates",
+				"read_only": true,
+			},
+		},
+		{
+			"name":               "safety-guidelines-prompt",
+			"description":        "Enforces responsible AI safety guidelines",
+			"latest_version":     5,
+			"creation_timestamp": "2025-04-01T14:00:00Z",
+			"tags":               map[string]string{"category": "safety", "compliance": "required"},
+			"scope": map[string]interface{}{
+				"type":      "global",
+				"namespace": "rhoai-policies",
+				"read_only": true,
+			},
+		},
+		{
+			"name":               "customer-support-prompt",
+			"description":        "Handle customer support inquiries",
+			"latest_version":     2,
+			"creation_timestamp": "2025-06-01T09:00:00Z",
+			"tags":               map[string]string{"department": "support"},
+			"scope": map[string]interface{}{
+				"type":      "global",
+				"namespace": "shared-team-prompts",
+				"read_only": true,
+			},
+		},
 	}
 }

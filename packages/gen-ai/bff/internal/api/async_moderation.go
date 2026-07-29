@@ -371,6 +371,7 @@ func (app *App) handleStreamingResponseWithModeration(w http.ResponseWriter, r *
 				LatencyMs:          latencyMs,
 				TimeToFirstTokenMs: calculateTTFT(startTime, firstTokenTime),
 				Usage:              usage,
+				TraceID:            otelTraceID(ctx),
 			},
 		}
 		eventData, _ := json.Marshal(metricsEvent)
@@ -517,6 +518,7 @@ func (app *App) handleStreamingResponseWithModeration(w http.ResponseWriter, r *
 			LatencyMs:          latencyMs,
 			TimeToFirstTokenMs: calculateTTFT(startTime, firstTokenTime),
 			Usage:              usage,
+			TraceID:            otelTraceID(ctx),
 		},
 	}
 	eventData, _ := json.Marshal(metricsEvent)

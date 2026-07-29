@@ -1,0 +1,27 @@
+.autorag-pipeline-preparing {
+  height: 100%;
+  min-height: 320px;
+}
+
+.autorag-pipeline-preparing__content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  max-width: 420px;
+  padding: var(--pf-t--global--spacer--xl);
+}
+
+.autorag-pipeline-preparing__spinner {
+  --pf-v6-c-spinner--diameter: 4rem;
+
+  margin-bottom: var(--pf-t--global--spacer--lg);
+}
+
+.autorag-pipeline-preparing__title {
+  margin-bottom: var(--pf-t--global--spacer--sm);
+}
+
+.autorag-pipeline-preparing__subtitle {
+  color: var(--pf-t--global--text--color--subtle);
+}

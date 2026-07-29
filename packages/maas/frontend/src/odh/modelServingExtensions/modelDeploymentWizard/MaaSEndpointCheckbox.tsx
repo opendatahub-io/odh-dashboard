@@ -4,7 +4,7 @@ import { z } from 'zod';
 import type {
   WizardField,
   WizardStateOverrides,
-} from '@odh-dashboard/model-serving/types/form-data';
+} from '@odh-dashboard/model-serving/shared/types/form-data';
 import { isLLMInferenceServiceActive } from '@odh-dashboard/llmd-serving/formUtils';
 import { MAAS_DEFAULT_GATEWAY } from './maasDeploymentTransformer';
 

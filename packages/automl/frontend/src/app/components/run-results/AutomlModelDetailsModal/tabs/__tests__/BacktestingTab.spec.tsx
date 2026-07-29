@@ -10,7 +10,7 @@ jest.mock(
   '~/app/components/run-results/AutomlModelDetailsModal/components/BacktestWindowChart',
   () => ({
     __esModule: true,
-    default: ({ evalMetric }: { evalMetric: string }) => (
+    default: ({ evalMetric }: { evalMetric: string; print?: boolean }) => (
       <div data-testid="backtest-window-chart">{evalMetric}</div>
     ),
   }),

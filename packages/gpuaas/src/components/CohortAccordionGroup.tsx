@@ -22,8 +22,7 @@ import {
   filterAcceleratorCQs,
   getCohortTotalAccelerators,
   getCohortUnallocatedBorrowable,
-  getCounterpartCQNames,
-  isCohortBorrowLendActive,
+  isCohortBorrowActive,
   resolveCQDcgmUtilization,
   resolvePerModelDcgmData,
 } from '../utils/clusterQueueUtils';
@@ -64,7 +63,7 @@ const CohortAccordionGroup: React.FC<CohortAccordionGroupProps> = ({
         const acceleratorCQs = filterAcceleratorCQs(cohort.memberClusterQueues);
         const total = getCohortTotalAccelerators(cohort);
         const unallocatedBorrowable = getCohortUnallocatedBorrowable(cohort);
-        const borrowLendActive = isCohortBorrowLendActive(cohort);
+        const borrowActive = isCohortBorrowActive(cohort);
         const isExpanded = expanded.has(cohort.name);
         const cohortLabel = cohort.name || 'Not in a cohort';
 
@@ -92,9 +91,18 @@ const CohortAccordionGroup: React.FC<CohortAccordionGroupProps> = ({
                       <FlexItem>
                         <Title headingLevel="h3">{cohortLabel}</Title>
                       </FlexItem>
+                      {cohort.name && (
+                        <FlexItem>
+                          <Title headingLevel="h3" style={{ fontWeight: 'normal' }}>
+                            Cohort
+                          </Title>
+                        </FlexItem>
+                      )}
                       <FlexItem>
                         <Content component={ContentVariants.small}>
-                          {`${total} total accelerators`}
+                          {`${total} accelerators across ${acceleratorCQs.length} cluster queue${
+                            acceleratorCQs.length !== 1 ? 's' : ''
+                          }`}
                         </Content>
                       </FlexItem>
                       {unallocatedBorrowable > 0 && (
@@ -103,14 +111,19 @@ const CohortAccordionGroup: React.FC<CohortAccordionGroupProps> = ({
                             component={ContentVariants.small}
                             data-testid="cohort-unallocated-borrowable"
                           >
-                            {`· ${unallocatedBorrowable} unallocated, borrowable`}
+                            {`· ${unallocatedBorrowable} available to borrow`}
                           </Content>
                         </FlexItem>
                       )}
-                      {borrowLendActive && (
+                      {borrowActive && (
                         <FlexItem>
-                          <Label color="purple" isCompact data-testid="cohort-borrow-lend-badge">
-                            Borrow / lend active
+                          <Label
+                            color="orange"
+                            variant="outline"
+                            isCompact
+                            data-testid="cohort-borrow-badge"
+                          >
+                            Borrowing enabled
                           </Label>
                         </FlexItem>
                       )}
@@ -119,7 +132,7 @@ const CohortAccordionGroup: React.FC<CohortAccordionGroupProps> = ({
                   {cohort.state === 'standalone' && (
                     <StackItem>
                       <Content component={ContentVariants.small}>
-                        Cluster queues not assigned to a Kueue cohort.
+                        Cluster queues not assigned to a cohort.
                       </Content>
                     </StackItem>
                   )}
@@ -147,20 +160,12 @@ const CohortAccordionGroup: React.FC<CohortAccordionGroupProps> = ({
                         // 1 card → full width; 2+ → half each so they always fill the row
                         const span = acceleratorCQs.length === 1 ? 12 : 6;
 
-                        // Use all member CQs (not just accelerator-filtered ones) so borrowing CQs
-                        // with nominal=0 GPU quota are still found as counterparts.
-                        const counterpartCQNames = getCounterpartCQNames(
-                          cq,
-                          cohort.memberClusterQueues,
-                        );
-
                         return (
                           <GridItem key={cqName} span={span}>
                             <ClusterQueueCard
                               cq={cq}
                               hardwareModels={models}
                               perModelGpus={perModelGpus}
-                              counterpartCQNames={counterpartCQNames}
                               dcgmAvailable={dcgmAvailable}
                               computeUtilization={computeUtilization}
                               memoryUtilization={memoryUtilization}

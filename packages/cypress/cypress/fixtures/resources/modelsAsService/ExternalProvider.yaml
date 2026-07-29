@@ -1,0 +1,12 @@
+apiVersion: inference.opendatahub.io/v1alpha1
+kind: ExternalProvider
+metadata:
+  name: "{{RESOURCE_NAME}}"
+  namespace: "{{PROJECT_NAME}}"
+spec:
+  provider: openai
+  endpoint: api.openai.com
+  auth:
+    type: oauth2
+    secretRef:
+      name: "{{RESOURCE_NAME}}"

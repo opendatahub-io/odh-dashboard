@@ -22,7 +22,7 @@ const isLifecycleResult = (value: unknown): value is LifecycleResult => {
     value.name.length > 0 &&
     typeof value.namespace === 'string' &&
     value.namespace.length > 0 &&
-    (value.action === 'stop' || value.action === 'start') &&
+    (value.action === 'stop' || value.action === 'start' || value.action === 'restart') &&
     typeof value.message === 'string'
   );
 };
@@ -76,6 +76,31 @@ export const startAgent =
       }
       if (!response.data.success) {
         throw new Error(response.data.message || 'Start operation failed');
+      }
+      return response.data;
+    });
+
+export const restartAgent =
+  (hostPath = '') =>
+  (opts: APIOptions, params: AgentLifecycleParams): Promise<LifecycleResult> =>
+    handleRestFailures(
+      restCREATE(
+        hostPath,
+        `${agentRuntimeLifecyclePath(params.namespace, params.name)}/restart`,
+        {},
+        {},
+        opts,
+      ),
+    ).then((response) => {
+      if (
+        !isModArchResponse<unknown>(response) ||
+        !isLifecycleResult(response.data) ||
+        response.data.action !== 'restart'
+      ) {
+        throw new Error('Invalid response format');
+      }
+      if (!response.data.success) {
+        throw new Error(response.data.message || 'Restart operation failed');
       }
       return response.data;
     });

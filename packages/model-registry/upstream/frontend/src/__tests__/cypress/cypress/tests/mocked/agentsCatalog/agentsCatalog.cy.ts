@@ -116,15 +116,15 @@ describe('Agent Details Page', () => {
   });
 
   describe('Action buttons', () => {
-    it('should show Open GitHub button when repositoryUrl is present', () => {
+    it('should show Open repository button when repositoryUrl is present', () => {
       initAgentsCatalogIntercepts();
       const agent = mockAgent({ name: 'gh-agent', repositoryUrl: 'https://github.com/test' });
       interceptSingleAgent(agent);
 
       agentDetailsPage.visit('gh-agent');
-      agentDetailsPage.findGitHubButton().should('be.visible');
+      agentDetailsPage.findRepositoryButton().should('be.visible');
       agentDetailsPage
-        .findGitHubButton()
+        .findRepositoryButton()
         .should('have.attr', 'href', 'https://github.com/test')
         .and('have.attr', 'target', '_blank');
     });
@@ -135,7 +135,7 @@ describe('Agent Details Page', () => {
       interceptSingleAgent(agent);
 
       agentDetailsPage.visit('no-gh');
-      agentDetailsPage.findGitHubButton().should('not.exist');
+      agentDetailsPage.findRepositoryButton().should('not.exist');
     });
   });
 
@@ -218,7 +218,8 @@ describe('Agents Catalog Gallery', () => {
     initAgentsCatalogIntercepts({ agentsPerCategory: 1 });
     agentsCatalog.visit();
     agentsCatalog.findCardDetailLink('agent_templates-agent-1').click();
-    cy.url().should('include', `${agentsCatalogUrl()}/`);
+    cy.url().should('include', `${agentsCatalogUrl()}/agent_templates-agent-1/overview`);
+    cy.findByTestId('app-page-title').should('exist');
   });
 
   it('should display labels on agent cards with mapped display names', () => {

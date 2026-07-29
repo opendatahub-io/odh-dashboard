@@ -25,6 +25,10 @@ const moduleFederationConfig = {
       singleton: true,
       requiredVersion: deps['@patternfly/react-tokens'],
     },
+    '@patternfly/react-drag-drop': {
+      singleton: true,
+      requiredVersion: deps['@patternfly/react-drag-drop'],
+    },
     '@openshift/dynamic-plugin-sdk': {
       singleton: true,
     },

@@ -13,9 +13,10 @@ type ProviderRef struct {
 
 // ExternalModelMaaSModelRefStatus contains published endpoint details from the companion MaaSModelRef.
 type ExternalModelMaaSModelRefStatus struct {
-	Phase         string `json:"phase,omitempty"`
-	Endpoint      string `json:"endpoint,omitempty"`
-	StatusMessage string `json:"statusMessage,omitempty"`
+	Phase              string `json:"phase,omitempty"`
+	Endpoint           string `json:"endpoint,omitempty"`
+	StatusMessage      string `json:"statusMessage,omitempty"`
+	GovernanceAttached bool   `json:"governanceAttached"`
 }
 
 // ExternalModelSummary is the BFF representation of an ExternalModel CR.

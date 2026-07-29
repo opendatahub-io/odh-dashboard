@@ -23,7 +23,7 @@ import {
   ToolbarItem,
 } from '@patternfly/react-core';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
+import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import FilterToolbar from '@odh-dashboard/ui-core/components/FilterToolbar';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { useProviders } from '~/app/hooks/useProviders';

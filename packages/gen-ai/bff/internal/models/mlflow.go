@@ -10,10 +10,11 @@ const (
 	MLflowPromptScopeGlobal  MLflowPromptScopeType = "global"
 )
 
-// MLflowPromptScope identifies the origin namespace and scope type of a prompt.
+// MLflowPromptScope represents the scope of a prompt (global or project-specific).
 type MLflowPromptScope struct {
 	Type      MLflowPromptScopeType `json:"type"`
 	Namespace string                `json:"namespace"`
+	ReadOnly  bool                  `json:"read_only"`
 }
 
 // MLflowPrompt represents a prompt from MLflow in BFF response format.
@@ -54,15 +55,16 @@ type MLflowRegisterPromptRequest struct {
 
 // MLflowPromptVersion represents a full prompt version with content.
 type MLflowPromptVersion struct {
-	Name          string            `json:"name"`
-	Version       int               `json:"version"`
-	Template      string            `json:"template,omitempty"`
-	Messages      []MLflowMessage   `json:"messages,omitempty"`
-	CommitMessage string            `json:"commit_message,omitempty"`
-	Aliases       []string          `json:"aliases,omitempty"`
-	Tags          map[string]string `json:"tags,omitempty"`
-	CreatedAt     time.Time         `json:"created_at"`
-	UpdatedAt     time.Time         `json:"updated_at"`
+	Name          string             `json:"name"`
+	Version       int                `json:"version"`
+	Template      string             `json:"template,omitempty"`
+	Messages      []MLflowMessage    `json:"messages,omitempty"`
+	CommitMessage string             `json:"commit_message,omitempty"`
+	Aliases       []string           `json:"aliases,omitempty"`
+	Tags          map[string]string  `json:"tags,omitempty"`
+	CreatedAt     time.Time          `json:"created_at"`
+	UpdatedAt     time.Time          `json:"updated_at"`
+	Scope         *MLflowPromptScope `json:"scope,omitempty"`
 }
 
 // MLflowPromptVersionMeta represents version metadata without full content.
