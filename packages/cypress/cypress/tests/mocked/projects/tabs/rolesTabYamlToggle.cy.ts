@@ -52,7 +52,9 @@ describe('Create Role - Form/YAML toggle', () => {
     projectRoles.findYamlViewToggle().click();
 
     projectRoles.findYamlView().should('exist');
-    projectRoles.findCreateRoleForm().should('not.be.visible');
+    // findcreateroleform should fail
+
+    projectRoles.findCreateRoleForm().should('not.exist');
     cy.testA11y();
   });
 
