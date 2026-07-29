@@ -8,7 +8,9 @@
     "package-subtree-local": "./scripts/package-subtree-local.sh"
   },
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./rspack": "./src/rspack/index.ts",
+    "./webpack": "./src/webpack/index.ts"
   },
   "scripts": {
     "lint": "eslint .",
@@ -17,9 +19,22 @@
     "test-unit-coverage": "jest --silent --coverage",
     "type-check": "tsc --noEmit"
   },
+  "peerDependencies": {
+    "@module-federation/enhanced": "^0.24.1",
+    "@rspack/core": "^2.1.6",
+    "webpack": "^5.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@module-federation/enhanced": { "optional": true },
+    "@rspack/core": { "optional": true },
+    "webpack": { "optional": true }
+  },
   "devDependencies": {
+    "@module-federation/enhanced": "^0.24.1",
     "@odh-dashboard/eslint-config": "*",
     "@odh-dashboard/jest-config": "*",
-    "@odh-dashboard/tsconfig": "*"
+    "@odh-dashboard/tsconfig": "*",
+    "@types/node": "^22.0.0",
+    "webpack": "^5.0.0"
   }
 }

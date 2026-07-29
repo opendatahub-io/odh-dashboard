@@ -3,7 +3,9 @@
   "name": "@odh-dashboard/llmd-serving",
   "description": "Support for LLM-d model serving deployments via kserve",
   "version": "0.0.0",
-  "e2eCiTags": ["@LLMDServingCI"],
+  "e2eCiTags": [
+    "@LLMDServingCI"
+  ],
   "scripts": {
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
@@ -25,7 +27,6 @@
     "@odh-dashboard/k8s-core": "*",
     "@odh-dashboard/kserve": "*",
     "@odh-dashboard/model-serving": "*",
-
     "@odh-dashboard/plugin-core": "*",
     "@odh-dashboard/ui-core": "*",
     "zod": "^3.25.76"
