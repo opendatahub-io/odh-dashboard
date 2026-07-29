@@ -9,7 +9,9 @@ type LastDeployedProps = {
 
 export const LastDeployed: React.FC<LastDeployedProps> = ({ resource }) => {
   const conditions = Array.isArray(resource.status?.conditions) ? resource.status.conditions : [];
-  const readyCondition = conditions.find((c) => c.type === 'Ready' && c.status === 'True');
+  const readyCondition =
+    conditions.find((c) => c.type === 'Ready' && c.status === 'True') ??
+    conditions.find((c) => c.type === 'Ready');
 
   if (!readyCondition) {
     return <>-</>;
