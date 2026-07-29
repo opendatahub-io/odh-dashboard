@@ -31,6 +31,27 @@ var (
 	ErrPersesServiceRequired  = errors.New("observability is enabled but PersesService is not configured")
 )
 
+// Ray Gateway RBAC must live in openshift-ingress; kustomize WithNamespace(apps)
+// would otherwise place these Role/RoleBinding objects in the applications namespace.
+const (
+	dataScienceGatewayNamespace   = "openshift-ingress"
+	rayDataScienceGatewayRBACName = "fetch-ray-data-science-gateway"
+)
+
+// remapRayDashboardGatewayRBAC moves the named Gateway Role/RoleBinding into
+// openshift-ingress so authenticated users can get data-science-gateway there.
+func remapRayDashboardGatewayRBAC(resources []unstructured.Unstructured) {
+	for i := range resources {
+		r := &resources[i]
+		switch r.GetKind() {
+		case "Role", "RoleBinding":
+			if r.GetName() == rayDataScienceGatewayRBACName {
+				r.SetNamespace(dataScienceGatewayNamespace)
+			}
+		}
+	}
+}
+
 func manifestSets(basePath string, platform cluster.Platform) []render.ManifestInfo {
 	return []render.ManifestInfo{
 		defaultManifestInfo(basePath, platform),

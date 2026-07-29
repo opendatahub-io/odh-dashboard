@@ -12,7 +12,7 @@
 #   Optional: license, license_link, readme, transports, deploymentMode, tools,
 #             repositoryUrl, documentationUrl, publishedDate
 #
-#   transports     — list of supported transports (for example: stdio, http, SSE)
+#   transports     — list of supported transports (for example: http, SSE)
 #   deploymentMode — local or remote
 #   tools          — list of tool definitions with name, description, accessType
 #
@@ -45,7 +45,7 @@ mcp_servers:
       Interact with Kubernetes clusters through natural language for pods,
       deployments, and logs.
     transports:
-      - stdio
+      - http
     deploymentMode: local
     tools:
       - name: get_pods
