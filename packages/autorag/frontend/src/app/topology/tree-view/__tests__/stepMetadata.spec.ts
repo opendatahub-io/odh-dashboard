@@ -135,7 +135,9 @@ describe('getStepMetadata', () => {
       componentStageMap,
     });
 
-    expect(metadata.description).toBe('Validating inputs from the stage map.');
+    expect(metadata.description).toBe(
+      'Validating pipeline inputs and configuration before processing begins.',
+    );
     expect(metadata.details[0]).toEqual({ label: 'Duration', value: '10 s' });
   });
 
@@ -186,7 +188,9 @@ describe('getStepMetadata', () => {
       },
     );
 
-    expect(metadata.description).toBe('Download and sample from the stage map.');
+    expect(metadata.description).toBe(
+      'Downloading the source documents and sampling a representative subset for evaluation.',
+    );
     expect(metadata.details).toEqual(
       expect.arrayContaining([
         { label: 'Duration', value: '10 s' },
@@ -316,5 +320,145 @@ describe('getStepMetadata', () => {
       { label: 'Duration', value: '1 m 42 s' },
       { label: 'Error', value: 'Component failed before stage map entry existed' },
     ]);
+  });
+
+  it('prefers curated stage descriptions over stage map copy', () => {
+    const componentStageMap: ComponentStageMap = {
+      pipeline_id: 'pipeline-1',
+      description: 'test',
+      kfp_run_id: 'run-1',
+      published_at: '2024-01-01T10:00:00Z',
+      components: [
+        {
+          id: 'test_data_loader',
+          description: 'Test data',
+          stages: [
+            {
+              id: 'load_benchmark',
+              description: 'Stage map load benchmark description.',
+              status: 'completed',
+              timestamp: '2024-01-01T10:00:10Z',
+            },
+            {
+              id: 'optimize_templates',
+              description: 'Stage map optimize templates description.',
+              status: 'completed',
+              timestamp: '2024-01-01T10:01:00Z',
+            },
+            {
+              id: 'build_leaderboard',
+              description: 'Stage map build leaderboard description.',
+              status: 'completed',
+              timestamp: '2024-01-01T10:02:00Z',
+            },
+          ],
+        },
+        {
+          id: 'documents_discovery',
+          description: 'Documents',
+          stages: [
+            {
+              id: 'discover_documents',
+              description: 'Stage map discover documents description.',
+              status: 'completed',
+              timestamp: '2024-01-01T10:00:20Z',
+            },
+            {
+              id: 'extract_documents',
+              description: 'Stage map extract documents description.',
+              status: 'completed',
+              timestamp: '2024-01-01T10:00:30Z',
+            },
+            {
+              id: 'prepare_search_space',
+              description: 'Stage map prepare search space description.',
+              status: 'completed',
+              timestamp: '2024-01-01T10:00:40Z',
+            },
+          ],
+        },
+      ],
+    };
+
+    expect(
+      getStepMetadata('test_data_loader__load_benchmark', 'Load benchmark', 'completed', {
+        componentStageMap,
+      }).description,
+    ).toBe('Loading the benchmark and metrics configuration.');
+    expect(
+      getStepMetadata(
+        'documents_discovery__discover_documents',
+        'Discover documents',
+        'completed',
+        {
+          componentStageMap,
+        },
+      ).description,
+    ).toBe('Scanning knowledge sources for documents.');
+    expect(
+      getStepMetadata('documents_discovery__extract_documents', 'Extract documents', 'completed', {
+        componentStageMap,
+      }).description,
+    ).toBe('Extracting and normalizing document content.');
+    expect(
+      getStepMetadata(
+        'documents_discovery__prepare_search_space',
+        'Prepare search space',
+        'completed',
+        { componentStageMap },
+      ).description,
+    ).toBe('Chunking documents and indexing embeddings in the vector store.');
+    expect(
+      getStepMetadata('test_data_loader__optimize_templates', 'Optimize templates', 'completed', {
+        componentStageMap,
+      }).description,
+    ).toBe(
+      'Testing prompt templates across parallel branches. Branch steps will show as pending until all branches complete.',
+    );
+    expect(
+      getStepMetadata('test_data_loader__build_leaderboard', 'Select best pattern', 'completed', {
+        componentStageMap,
+      }).description,
+    ).toBe('Selecting the best-performing pattern for deployment.');
+    expect(
+      getStepMetadata(
+        'rag_optimization__step__evaluation__branch-0',
+        'Evaluate results',
+        'completed',
+        { componentStageMap },
+      ).description,
+    ).toBe('Comprehensive evaluation of the final pattern using holdout test data.');
+  });
+
+  it('falls back to stage map description when no curated mapping exists', () => {
+    const componentStageMap: ComponentStageMap = {
+      pipeline_id: 'pipeline-1',
+      description: 'test',
+      kfp_run_id: 'run-1',
+      published_at: '2024-01-01T10:00:00Z',
+      components: [
+        {
+          id: 'custom_component',
+          description: 'Custom',
+          stages: [
+            {
+              id: 'custom_unmapped_stage',
+              description: 'Custom stage map description.',
+              status: 'completed',
+              timestamp: '2024-01-01T10:00:10Z',
+            },
+          ],
+        },
+      ],
+    };
+
+    expect(
+      getStepMetadata(
+        'custom_component__custom_unmapped_stage',
+        'Custom unmapped stage',
+        'completed',
+        { componentStageMap },
+      ).description,
+    ).toBe('Custom stage map description.');
   });
 });
