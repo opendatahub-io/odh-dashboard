@@ -10,8 +10,8 @@ export const FILTER_LABELS: Record<FilterOption, string> = {
 
 export const FILTER_PLACEHOLDERS: Record<FilterOption, string> = {
   evaluation: 'Filter by Evaluation Name',
-  category: 'Filter by category',
-  benchmark: 'Filter by benchmark',
+  category: 'Filter by Category',
+  benchmark: 'Filter by Benchmark',
 };
 
 export type SortConfig = {
