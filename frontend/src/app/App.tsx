@@ -42,12 +42,13 @@ import { AppContext } from './AppContext';
 import { useApplicationSettings } from './useApplicationSettings';
 import TelemetrySetup from './TelemetrySetup';
 import { logout } from './appUtils';
-import QuickStarts from './QuickStarts';
 import SessionExpiredModal from './SessionExpiredModal';
 import DevFeatureFlagsBanner from './featureFlags/DevFeatureFlagsBanner';
 import useDevFeatureFlags from './featureFlags/useDevFeatureFlags';
 import WhatsNewModal from './whatsNew/WhatsNewModal';
 import './App.scss';
+
+const QuickStarts = React.lazy(() => import('./QuickStarts'));
 
 const App: React.FC = () => {
   const [notificationsOpen, setNotificationsOpen] = React.useState(false);
@@ -184,11 +185,19 @@ const App: React.FC = () => {
                     <ProjectsContextProvider>
                       <HardwareProfilesContextProvider>
                         <ModelRegistriesContextProvider>
-                          <QuickStarts>
-                            <NotificationWatcherContextProvider pollInterval={POLL_INTERVAL}>
-                              <AppRoutes />
-                            </NotificationWatcherContextProvider>
-                          </QuickStarts>
+                          <React.Suspense
+                            fallback={
+                              <Bullseye>
+                                <Spinner />
+                              </Bullseye>
+                            }
+                          >
+                            <QuickStarts>
+                              <NotificationWatcherContextProvider pollInterval={POLL_INTERVAL}>
+                                <AppRoutes />
+                              </NotificationWatcherContextProvider>
+                            </QuickStarts>
+                          </React.Suspense>
                         </ModelRegistriesContextProvider>
                       </HardwareProfilesContextProvider>
                     </ProjectsContextProvider>

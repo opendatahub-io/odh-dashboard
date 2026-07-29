@@ -1,8 +1,11 @@
 import React from 'react';
 import { Label, LabelGroup, Tooltip } from '@patternfly/react-core';
 import { InProgressIcon, CheckCircleIcon, ExclamationCircleIcon } from '@patternfly/react-icons';
-import { QuickStartContext, QuickStartContextValues } from '@patternfly/quickstarts';
 import { asEnumMember } from '@odh-dashboard/foundation';
+import {
+  QuickStartsContext,
+  type QuickStartContextValues,
+} from '#~/concepts/quickStarts/QuickStartsContext';
 import { OdhDocument, OdhDocumentType } from '#~/types';
 import { getQuickStartCompletionStatus, CompletionStatusEnum } from '#~/utilities/quickStartUtils';
 import { DOC_TYPE_TOOLTIPS } from '#~/utilities/const';
@@ -16,7 +19,7 @@ type DocCardBadgesProps = {
 };
 
 const DocCardBadges: React.FC<DocCardBadgesProps> = ({ odhDoc }) => {
-  const qsContext = React.useContext<QuickStartContextValues>(QuickStartContext);
+  const qsContext = React.useContext<QuickStartContextValues>(QuickStartsContext);
   const [completionStatus, setCompletionStatus] = React.useState<
     CompletionStatusEnum | undefined
   >();

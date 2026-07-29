@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { render, screen } from '@testing-library/react';
-import { QuickStartContext } from '@patternfly/quickstarts';
+import { QuickStartsContext } from '#~/concepts/quickStarts/QuickStartsContext';
 import { OdhDocument, OdhDocumentType } from '#~/types';
 import { CompletionStatusEnum } from '#~/utilities/quickStartUtils';
 import DocCardBadges from '#~/components/DocCardBadges';
@@ -44,9 +44,9 @@ const renderWithContext = (odhDoc: OdhDocument) => {
   };
 
   return render(
-    <QuickStartContext.Provider value={contextValue as never}>
+    <QuickStartsContext.Provider value={contextValue as never}>
       <DocCardBadges odhDoc={odhDoc} />
-    </QuickStartContext.Provider>,
+    </QuickStartsContext.Provider>,
   );
 };
 

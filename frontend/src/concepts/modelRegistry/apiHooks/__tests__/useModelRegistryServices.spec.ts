@@ -2,7 +2,7 @@ import { act } from 'react';
 import { k8sGetResource } from '@openshift/dynamic-plugin-sdk-utils';
 import { waitFor } from '@testing-library/react';
 import { testHook } from '@odh-dashboard/jest-config/hooks';
-import { useAccessReview } from '@odh-dashboard/plugin-core/host-api';
+import { useAccessAllowed } from '#~/concepts/userSSAR';
 import { useRulesReview, listServices } from '#~/api';
 import { ServiceKind } from '#~/k8sTypes';
 import {
@@ -21,8 +21,8 @@ jest.mock('#~/api', () => ({
   listServices: jest.fn(),
 }));
 
-jest.mock('@odh-dashboard/plugin-core/host-api', () => ({
-  useAccessReview: jest.fn(),
+jest.mock('#~/concepts/userSSAR', () => ({
+  useAccessAllowed: jest.fn(),
 }));
 
 jest.mock('#~/concepts/modelRegistry/apiHooks/useModelRegistryServices', () => ({
@@ -47,7 +47,7 @@ const mockListServices = jest.mocked(listServices);
 describe('useModelRegistryServices', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    (useAccessReview as jest.Mock).mockReturnValue([false, true]);
+    (useAccessAllowed as jest.Mock).mockReturnValue([false, true]);
     (useRulesReview as jest.Mock).mockReturnValue([{ resourceRules: [] }, true, jest.fn()]);
   });
   it('should return loading state initially', () => {
@@ -60,7 +60,7 @@ describe('useModelRegistryServices', () => {
     expect(error).toBeUndefined();
   });
   it('returns services fetched by names when allowList is false', async () => {
-    (useAccessReview as jest.Mock).mockReturnValue([false, true]);
+    (useAccessAllowed as jest.Mock).mockReturnValue([false, true]);
     (useRulesReview as jest.Mock).mockReturnValue([
       {
         resourceRules: [
@@ -114,7 +114,7 @@ describe('useModelRegistryServices', () => {
   });
 
   it('returns services when allowList is true', async () => {
-    (useAccessReview as jest.Mock).mockReturnValue([true, true]);
+    (useAccessAllowed as jest.Mock).mockReturnValue([true, true]);
     (useRulesReview as jest.Mock).mockReturnValue([{ resourceRules: [] }, true, jest.fn()]);
     mockListServices.mockResolvedValue([
       mockModelRegistryService({ name: 'service-1', namespace: 'test-namespace' }),
@@ -137,7 +137,7 @@ describe('useModelRegistryServices', () => {
   });
 
   it('returns empty array if no service names are provided', async () => {
-    (useAccessReview as jest.Mock).mockReturnValue([false, true]);
+    (useAccessAllowed as jest.Mock).mockReturnValue([false, true]);
     (useRulesReview as jest.Mock).mockReturnValue([
       {
         resourceRules: [
@@ -168,7 +168,7 @@ describe('useModelRegistryServices', () => {
     jest.useFakeTimers();
     const mockError = new Error('Test error');
     mockListServices.mockRejectedValue(mockError);
-    (useAccessReview as jest.Mock).mockReturnValue([true, true]);
+    (useAccessAllowed as jest.Mock).mockReturnValue([true, true]);
     (useRulesReview as jest.Mock).mockReturnValue([{ resourceRules: [] }, true, jest.fn()]);
 
     const { result } = testHook(() => useModelRegistryServices('namespace'))();
@@ -187,7 +187,7 @@ describe('useModelRegistryServices', () => {
   });
 
   test('returns empty array if no service names are provided', async () => {
-    (useAccessReview as jest.Mock).mockReturnValue([false, true]);
+    (useAccessAllowed as jest.Mock).mockReturnValue([false, true]);
     (useRulesReview as jest.Mock).mockReturnValue([
       {
         resourceRules: [

@@ -1,5 +1,5 @@
 import * as _ from 'lodash-es';
-import { QuickStart } from '@patternfly/quickstarts/src/utils/quick-start-types';
+import type { QuickStart } from '#~/concepts/quickStarts/types';
 import { OdhApplication, OdhDocument, OdhDocumentType } from '#~/types';
 import { combineCategoryAnnotations } from '#~/utilities/utils';
 

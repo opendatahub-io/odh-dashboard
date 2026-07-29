@@ -12,8 +12,8 @@ import {
   Content,
 } from '@patternfly/react-core';
 import { ExternalLinkAltIcon } from '@patternfly/react-icons';
-import { QuickStartContextValues } from '@patternfly/quickstarts';
 import TruncatedText from '@odh-dashboard/ui-core/components/TruncatedText';
+import type { QuickStartContextValues } from '#~/concepts/quickStarts/QuickStartsContext';
 import { OdhDocument, OdhDocumentType } from '#~/types';
 import {
   getLaunchStatus,

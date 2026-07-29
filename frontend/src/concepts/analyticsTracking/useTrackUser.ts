@@ -1,6 +1,6 @@
 import React from 'react';
 import type { AccessReviewResourceAttributes } from '@odh-dashboard/k8s-core';
-import { useAccessReview } from '@odh-dashboard/plugin-core/host-api';
+import { useAccessAllowed } from '#~/concepts/userSSAR';
 import { useUser } from '#~/redux/selectors';
 import { IdentifyEventProperties } from '#~/concepts/analyticsTracking/trackingProperties';
 
@@ -13,7 +13,7 @@ export const useTrackUser = (username?: string): [IdentifyEventProperties, boole
     resource: 'projectrequests',
     verb: 'create',
   };
-  const [allowCreate, acLoaded] = useAccessReview(createReviewResource);
+  const [allowCreate, acLoaded] = useAccessAllowed(createReviewResource);
 
   React.useEffect(() => {
     const computeAnonymousUserId = async () => {

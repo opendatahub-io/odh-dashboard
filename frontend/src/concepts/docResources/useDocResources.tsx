@@ -1,14 +1,17 @@
 import React from 'react';
-import { QuickStartContext, QuickStartContextValues } from '@patternfly/quickstarts';
+import {
+  QuickStartsContext,
+  type QuickStartContextValues,
+} from '#~/concepts/quickStarts/QuickStartsContext';
 import { useWatchDocs } from '#~/utilities/useWatchDocs';
-import { useWatchComponents } from '#~/utilities/useWatchComponents';
+import { useWatchComponentsQuery } from '#~/utilities/useWatchComponentsQuery';
 import { OdhDocument, OdhDocumentType } from '#~/types';
 import { getQuickStartDocs, updateDocToComponent } from './docUtils';
 
 export const useDocResources = (): { docs: OdhDocument[]; loaded: boolean; loadError?: Error } => {
   const { docs: odhDocs, loaded: docsLoaded, loadError: docsLoadError } = useWatchDocs();
-  const { components, loaded, loadError } = useWatchComponents(false);
-  const qsContext = React.useContext<QuickStartContextValues>(QuickStartContext);
+  const { components, loaded, loadError } = useWatchComponentsQuery(false);
+  const qsContext = React.useContext<QuickStartContextValues>(QuickStartsContext);
 
   return React.useMemo(() => {
     if (docsLoadError || loadError) {

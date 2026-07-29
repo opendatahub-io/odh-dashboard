@@ -11,7 +11,7 @@ import {
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import TitleWithIcon from '@odh-dashboard/ui-core/design/TitleWithIcon';
 import { ApplicationsPage } from '@odh-dashboard/ui-core';
-import { useWatchComponents } from '#~/utilities/useWatchComponents';
+import { useWatchComponentsQuery } from '#~/utilities/useWatchComponentsQuery';
 import OdhExploreCard from '#~/components/OdhExploreCard';
 import { OdhApplication } from '#~/types';
 import { removeQueryArgument, setQueryArgument } from '#~/utilities/router';
@@ -101,7 +101,7 @@ const ExploreApplicationsInner: React.FC<ExploreApplicationsInnerProps> = React.
 ExploreApplicationsInner.displayName = 'ExploreApplicationsInner';
 
 const ExploreApplications: React.FC = () => {
-  const { components, loaded, loadError } = useWatchComponents(false);
+  const { components, loaded, loadError } = useWatchComponentsQuery(false);
   const mlflowEnabled = useIsAreaAvailable(SupportedArea.MLFLOW).status;
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
