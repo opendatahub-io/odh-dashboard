@@ -40,18 +40,6 @@ RUN if [ "$BUILD_MODE" = "RHOAI" ]; then \
     fi
 RUN . /tmp/env.sh && npm run build
 
-# npm prune --omit=dev does not correctly handle npm workspaces -- it only
-# removes root-level devDependencies while leaving all workspace devDependencies
-# hoisted in node_modules/. See scripts/prepare-production-manifest.js for details.
-RUN node scripts/prepare-production-manifest.js \
-    && npm install --omit=dev --omit=optional --ignore-scripts
-
-# This rm -rf is a safety net. It is currently not needed, but it is a good idea to keep it in case future changes accidentally introduce esbuild binaries.
-# Remove esbuild binaries to ensure FIPS compliance
-# esbuild is a build-time dependency transitively included through @perses-dev/plugin-system
-# -> @module-federation/enhanced -> @module-federation/cli -> @modern-js/node-bundle-require
-# These Go binaries are NOT needed at runtime and are NOT FIPS compliant
-RUN rm -rf node_modules/esbuild node_modules/@esbuild node_modules/.bin/esbuild
 
 FROM ${BASE_IMAGE} as runtime
 
@@ -66,21 +54,16 @@ WORKDIR /usr/src/app
 RUN mkdir /usr/src/app/logs && chmod 775 /usr/src/app/logs
 
 COPY --chown=default:root --from=builder /usr/src/app/frontend/public /usr/src/app/frontend/public
-COPY --chown=default:root --from=builder /usr/src/app/backend/package.json /usr/src/app/backend/package.json
-COPY --chown=default:root --from=builder /usr/src/app/backend/node_modules /usr/src/app/backend/node_modules
 COPY --chown=default:root --from=builder /usr/src/app/backend/dist /usr/src/app/backend/dist
-COPY --chown=default:root --from=builder /usr/src/app/packages/app-config/package.json /usr/src/app/packages/app-config/package.json
-COPY --chown=default:root --from=builder /usr/src/app/packages/app-config/dist /usr/src/app/packages/app-config/dist
-COPY --chown=default:root --from=builder /usr/src/app/package.json /usr/src/app/package.json
-COPY --chown=default:root --from=builder /usr/src/app/package-lock.json /usr/src/app/package-lock.json
-COPY --chown=default:root --from=builder /usr/src/app/node_modules /usr/src/app/node_modules
-COPY --chown=default:root --from=builder /usr/src/app/.npmrc /usr/src/app/.npmrc
 COPY --chown=default:root --from=builder /usr/src/app/.env /usr/src/app/.env
 COPY --chown=default:root --from=builder /usr/src/app/data /usr/src/app/data
 
 WORKDIR /usr/src/app/backend
 
-CMD ["npm", "run", "start"]
+# Mirrors backend package.json "start"
+ENV NODE_ENV=production
+ENV IP=127.0.0.1
+CMD ["node", "./dist/server.js"]
 
 LABEL io.opendatahub.component="odh-dashboard" \
       io.k8s.display-name="odh-dashboard" \

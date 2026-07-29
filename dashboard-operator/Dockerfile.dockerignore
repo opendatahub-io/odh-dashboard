@@ -11,7 +11,6 @@ tests/
 **/__mocks__/
 **/__tests__/
 scripts/
-!scripts/prepare-production-manifest.js
 
 # Local .env files
 **/.env
