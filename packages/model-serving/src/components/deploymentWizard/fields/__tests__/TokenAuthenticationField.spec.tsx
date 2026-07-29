@@ -55,6 +55,35 @@ describe('TokenAuthenticationField', () => {
     expect(checkbox).not.toBeChecked();
   });
 
+  it('should force checkbox unchecked and disabled when isMaaSDisabled even with existing tokens and allowCreate', () => {
+    const existingTokens = [{ uuid: 'tok-1', displayName: 'my-token', error: '' }];
+    render(
+      <TokenAuthenticationField
+        {...defaultProps}
+        tokens={existingTokens}
+        allowCreate
+        isMaaSDisabled
+      />,
+    );
+    const checkbox = screen.getByTestId('token-authentication-checkbox');
+    expect(checkbox).toBeDisabled();
+    expect(checkbox).not.toBeChecked();
+  });
+
+  it('should not render token inputs when isMaaSDisabled even with existing tokens', () => {
+    const existingTokens = [{ uuid: 'tok-1', displayName: 'my-token', error: '' }];
+    render(
+      <TokenAuthenticationField
+        {...defaultProps}
+        tokens={existingTokens}
+        allowCreate
+        isMaaSDisabled
+      />,
+    );
+    expect(screen.queryByTestId('service-account-form-name')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('add-service-account-button')).not.toBeInTheDocument();
+  });
+
   it('should call onChange when checkbox is checked', () => {
     const onChange = jest.fn();
     render(<TokenAuthenticationField {...defaultProps} onChange={onChange} />);

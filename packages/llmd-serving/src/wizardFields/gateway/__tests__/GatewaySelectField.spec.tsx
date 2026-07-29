@@ -401,13 +401,32 @@ describe('GatewaySelectFieldComponent', () => {
       expect(screen.getByTestId('gateway-help-popover-icon')).toBeInTheDocument();
     });
 
-    it('should show MaaS gateway guidance when the popover is opened', async () => {
+    it('should show MaaS gateway guidance when the popover is opened via click', async () => {
       const user = userEvent.setup();
       renderComponent({
         externalData: { data: [makeGateway('gw-alpha', 'ns-1')], loaded: true },
       });
 
       await user.click(screen.getByTestId('gateway-help-popover-icon'));
+
+      await waitFor(() => {
+        expect(
+          screen.getByText(
+            /Models published as MaaS use the MaaS gateway for routing, API key management, and subscription access/,
+          ),
+        ).toBeInTheDocument();
+      });
+    });
+
+    it('should open the popover when the help button is activated via keyboard', async () => {
+      const user = userEvent.setup();
+      renderComponent({
+        externalData: { data: [makeGateway('gw-alpha', 'ns-1')], loaded: true },
+      });
+
+      const helpButton = screen.getByTestId('gateway-help-popover-icon');
+      helpButton.focus();
+      await user.keyboard('{Enter}');
 
       await waitFor(() => {
         expect(

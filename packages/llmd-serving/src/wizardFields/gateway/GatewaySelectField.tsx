@@ -1,5 +1,6 @@
 import React from 'react';
 import {
+  Button,
   Content,
   FormGroup,
   FormHelperText,
@@ -126,7 +127,13 @@ const GatewaySelectFieldComponent: GatewaySelectFieldType['component'] = ({
       label="Gateway"
       labelHelp={
         <Popover bodyContent="Models published as MaaS use the MaaS gateway for routing, API key management, and subscription access. When Publish as MaaS is selected, the gateway is automatically set to the MaaS gateway and cannot be changed.">
-          <OutlinedQuestionCircleIcon data-testid="gateway-help-popover-icon" />
+          <Button
+            variant="plain"
+            aria-label="More info about gateway selection"
+            data-testid="gateway-help-popover-icon"
+          >
+            <OutlinedQuestionCircleIcon />
+          </Button>
         </Popover>
       }
     >

@@ -210,7 +210,7 @@ export const TokenAuthenticationField: React.FC<TokenAuthenticationFieldProps> =
   externalRouteData,
   isMaaSDisabled,
 }) => {
-  const isDisabled = !allowCreate;
+  const isDisabled = !allowCreate || !!isMaaSDisabled;
   const createNewToken = React.useCallback(() => {
     const displayName = 'default-name';
     const duplicated = tokens.filter((token) => token.displayName === displayName);
@@ -243,7 +243,7 @@ export const TokenAuthenticationField: React.FC<TokenAuthenticationFieldProps> =
           data-testid="token-authentication-checkbox"
           name="alt-form-checkbox-auth"
           isDisabled={isDisabled}
-          isChecked={tokens.length > 0}
+          isChecked={!isMaaSDisabled && tokens.length > 0}
           onChange={(e, check) => {
             if (check && tokens.length === 0) {
               createNewToken();
@@ -263,7 +263,7 @@ export const TokenAuthenticationField: React.FC<TokenAuthenticationFieldProps> =
           </FormHelperText>
         )}
       </StackItem>
-      {tokens.length > 0 && (
+      {!isMaaSDisabled && tokens.length > 0 && (
         <StackItem>
           <div style={{ marginLeft: 'var(--pf-t--global--spacer--lg)' }}>
             <Stack hasGutter>
