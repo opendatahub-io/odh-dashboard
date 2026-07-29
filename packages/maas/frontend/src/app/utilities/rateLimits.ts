@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import { ModelSubscriptionRef, RateLimit, TokenRateLimit } from '~/app/types/subscriptions';
 
 const WINDOW_SUFFIX_TO_UNIT: Record<string, RateLimit['unit']> = {
@@ -61,3 +62,52 @@ export const formatTokenLimits = (limits: ModelSubscriptionRef['tokenRateLimits'
     .map((l) => `${l.limit.toLocaleString('en-US')} / ${formatWindow(l.window)}`)
     .join(' | ');
 };
+
+export const DEFAULT_RATE_LIMIT: RateLimit = { count: 1000, time: 1, unit: 'hour' };
+export const MAX_VALUE = 999_999_999;
+
+export const exceedsTokenLimit = (n: number): boolean =>
+  !Number.isNaN(n) && Math.trunc(Math.abs(n)) > MAX_VALUE;
+
+export const rateLimitExceedsMaxDigits = (limit: RateLimit): boolean =>
+  exceedsTokenLimit(limit.count) || exceedsTokenLimit(limit.time);
+
+export const rateLimitSchema = z.object({
+  count: z
+    .number()
+    .int()
+    .min(1, 'Token count must be greater than 0')
+    .max(Number.MAX_SAFE_INTEGER, 'Token count exceeds maximum allowed value'),
+  time: z
+    .number()
+    .int()
+    .min(1, 'Time value must be greater than 0')
+    .max(Number.MAX_SAFE_INTEGER, 'Time value exceeds maximum allowed value'),
+  unit: z.enum(['hour', 'minute', 'second']),
+});
+
+export const rateLimitsSchema = z
+  .array(rateLimitSchema)
+  .min(1, 'At least one token rate limit is required');
+
+export const getCountError = (limit: RateLimit): string | undefined => {
+  if (Number.isNaN(limit.count)) {
+    return 'Token count is required';
+  }
+  const result = rateLimitSchema.shape.count.safeParse(limit.count);
+  return result.success ? undefined : result.error.issues[0].message;
+};
+
+export const getTimeError = (limit: RateLimit): string | undefined => {
+  if (Number.isNaN(limit.time)) {
+    return 'Time value is required';
+  }
+  const result = rateLimitSchema.shape.time.safeParse(limit.time);
+  return result.success ? undefined : result.error.issues[0].message;
+};
+
+export const getCountDigitError = (limit: RateLimit): string | undefined =>
+  exceedsTokenLimit(limit.count) ? 'Token count exceeds maximum allowed value' : undefined;
+
+export const getTimeDigitError = (limit: RateLimit): string | undefined =>
+  exceedsTokenLimit(limit.time) ? 'Time value exceeds maximum allowed value' : undefined;
