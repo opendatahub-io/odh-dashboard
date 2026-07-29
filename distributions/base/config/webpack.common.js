@@ -1,4 +1,5 @@
 const path = require('path');
+const webpack = require('webpack');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 
 const BASE_DIR = path.resolve(__dirname, '..');
@@ -112,6 +113,9 @@ module.exports = ({
       new HtmlWebpackPlugin({
         template: path.join(normalizedDistDir, 'index.html'),
         title,
+      }),
+      new webpack.DefinePlugin({
+        'process.env': '({})',
       }),
     ],
     resolve: {
