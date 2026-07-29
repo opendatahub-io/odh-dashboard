@@ -8,7 +8,7 @@ import {
   getServingRuntimeDisplayNameFromTemplate,
   getServingRuntimeNameFromTemplate,
 } from '@odh-dashboard/model-serving/shared';
-import { DeploymentResourceVersionLabels } from '@odh-dashboard/model-serving/shared/components';
+import { renderDeploymentResourceVersionLabels } from '@odh-dashboard/model-serving/shared/components';
 import CustomServingRuntimePlatformsLabelGroup from '#~/pages/modelServing/customServingRuntimes/CustomServingRuntimePlatformsLabelGroup';
 import { isOOTB, PreInstalledName } from '#~/concepts/k8s/utils';
 import CustomServingRuntimeEnabledToggle from './CustomServingRuntimeEnabledToggle';
@@ -46,9 +46,9 @@ const CustomServingRuntimeTableRow: React.FC<CustomServingRuntimeTableRowProps> 
         <ResourceNameTooltip resource={template}>
           {getServingRuntimeDisplayNameFromTemplate(template)}
         </ResourceNameTooltip>
-        <LabelGroup>
+        <LabelGroup numLabels={5}>
           {templateOOTB && <Label data-testid="pre-installed-label">{PreInstalledName}</Label>}
-          <DeploymentResourceVersionLabels resource={template} />
+          {renderDeploymentResourceVersionLabels(template)}
         </LabelGroup>
       </Td>
       <Td dataLabel="Enabled">
@@ -94,6 +94,7 @@ const CustomServingRuntimeTableRow: React.FC<CustomServingRuntimeTableRowProps> 
                   {
                     title: 'Delete',
                     onClick: () => onDeleteTemplate(template),
+                    isDanger: true,
                   },
                 ]
           }

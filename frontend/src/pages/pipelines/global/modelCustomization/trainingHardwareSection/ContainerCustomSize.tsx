@@ -10,8 +10,8 @@ import {
 import type { ContainerResources } from '@odh-dashboard/k8s-core';
 import { ZodErrorHelperText } from '@odh-dashboard/ui-core/components/ZodErrorFormHelperText';
 import { useZodFormValidation } from '@odh-dashboard/ui-core/hooks/useZodFormValidation';
-import MemoryField from '#~/components/MemoryField';
-import CPUField from '#~/components/CPUField';
+import MemoryField from '@odh-dashboard/ui-core/components/MemoryField';
+import CPUField from '@odh-dashboard/ui-core/components/CPUField';
 import { podSpecSizeSchema } from '#~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/validationUtils';
 
 type ContainerCustomSizeProps = {

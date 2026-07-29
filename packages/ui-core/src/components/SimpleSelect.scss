@@ -7,3 +7,8 @@
   --pf-v6-c-truncate--MinWidth: 0;
   --pf-v6-c-truncate__start--MinWidth: 0;
 }
+
+// innerRef anchor without adding a layout box (keeps parent flex/grid intact).
+.odh-simple-select__toggle-anchor {
+  display: contents;
+}

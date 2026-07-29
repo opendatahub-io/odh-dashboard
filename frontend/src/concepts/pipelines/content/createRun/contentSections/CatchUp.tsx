@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { Flex, FlexItem, Split, SplitItem, Switch, Content } from '@patternfly/react-core';
+import DashboardHelpTooltip from '@odh-dashboard/ui-core/components/DashboardHelpTooltip';
 import DashboardSplitItemLabel from '#~/concepts/dashboard/split/DashboardSplitItemLabel';
 import { RUN_OPTION_LABEL_SIZE } from '#~/concepts/pipelines/content/createRun/const';
-import DashboardHelpTooltip from '#~/concepts/dashboard/DashboardHelpTooltip';
 
 type CatchUpProps = {
   enabled: boolean;

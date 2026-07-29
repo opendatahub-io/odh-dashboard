@@ -10,6 +10,7 @@ import {
   Radio,
   TextInput,
 } from '@patternfly/react-core';
+import DashboardHelpTooltip from '@odh-dashboard/ui-core/components/DashboardHelpTooltip';
 import {
   CreateRunPageSections,
   runPageSectionTitles,
@@ -20,7 +21,6 @@ import {
 } from '#~/concepts/pipelines/content/createRun/types';
 import { CharLimitHelperText } from '#~/components/CharLimitHelperText';
 import { NAME_CHARACTER_LIMIT } from '#~/concepts/pipelines/content/const';
-import DashboardHelpTooltip from '#~/concepts/dashboard/DashboardHelpTooltip';
 import MlflowExperimentSelector from '#~/concepts/mlflow/MlflowExperimentSelector';
 
 const MLFLOW_AUTOLOG_SNIPPET = `import mlflow

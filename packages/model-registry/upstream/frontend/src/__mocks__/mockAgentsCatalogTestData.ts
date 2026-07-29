@@ -7,13 +7,12 @@ export const mockAgent = (partial?: Partial<Agent>): Agent => ({
   name: 'research-assistant',
   displayName: 'Research Assistant',
   description: 'An agent that performs research tasks using web search and summarization.',
-  framework: 'LangGraph',
-  source_id: 'sample',
-  labels: ['research', 'summarization'],
+  framework: 'langgraph',
+  source_id: 'agent-templates-source',
+  labels: ['Web search', 'General purpose'],
   logo: undefined,
-  repositoryUrl: 'https://github.com/example/research-assistant',
   env: [{ name: 'OPENAI_API_KEY', required: true, description: 'API key for the LLM provider' }],
-  artifacts: [{ uri: 'ghcr.io/example/research-assistant:latest' }],
+  repositoryUrl: 'https://github.com/example/research-assistant',
   readme: '# Research Assistant\n\n### Overview\n\nAn agent for automated research.',
   ...partial,
 });
@@ -30,12 +29,9 @@ export const mockAgentsCatalogFilterOptions = (
   partial?: Partial<AgentsCatalogFilterOptionsList>,
 ): AgentsCatalogFilterOptionsList => ({
   filters: {
-    framework: { type: 'string', values: ['LangGraph', 'CrewAI', 'AutoGen'] },
-    category: { type: 'string', values: ['General purpose', 'Multi-agent', 'Tool use'] },
-    communicationProtocol: { type: 'string', values: ['A2A', 'MCP', 'Custom'] },
-    testedModels: {
+    framework: {
       type: 'string',
-      values: ['OpenAI-compatible endpoint', 'Anthropic-compatible endpoint'],
+      values: ['a2a', 'autogen', 'claude-code', 'crewai', 'google-adk', 'langgraph'],
     },
   },
   ...partial,

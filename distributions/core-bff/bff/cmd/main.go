@@ -11,6 +11,7 @@ import (
 
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/api"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/config"
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/constants"
 
 	"log/slog"
 	"net/http"
@@ -150,7 +151,7 @@ func startMockPrometheus(cfg *config.EnvConfig, logger *slog.Logger) func() {
 		return nil
 	}
 	mockProm := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set(constants.HeaderContentType, constants.ContentTypeJSON)
 		_, _ = w.Write([]byte(`{"status":"success","data":{"resultType":"vector","result":[]}}`))
 	}))
 	cfg.PrometheusHost = mockProm.URL

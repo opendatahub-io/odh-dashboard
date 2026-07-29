@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import { FetchStateCallbackPromise, useFetchState } from 'mod-arch-core';
 import { Agent, AgentList, AgentListParams } from '~/app/agentsCatalogTypes';
 import { AgentsCatalogContext } from '~/app/context/agentsCatalog/AgentsCatalogContext';

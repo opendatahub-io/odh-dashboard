@@ -48,7 +48,7 @@ func originChecker(allowedOrigins []string) func(*http.Request) bool {
 		allowed[strings.TrimRight(o, "/")] = true
 	}
 	return func(r *http.Request) bool {
-		origin := r.Header.Get("Origin")
+		origin := r.Header.Get(constants.HeaderOrigin)
 		if origin == "" {
 			return false
 		}
@@ -60,7 +60,7 @@ func originChecker(allowedOrigins []string) func(*http.Request) bool {
 // matches the request's Host. This is the default when ALLOWED_ORIGINS is
 // unset, so WebSockets work out of the box without opening cross-origin access.
 func sameOriginCheck(r *http.Request) bool {
-	origin := r.Header.Get("Origin")
+	origin := r.Header.Get(constants.HeaderOrigin)
 	if origin == "" {
 		return false
 	}
@@ -157,9 +157,9 @@ func dialK8sWebSocket(targetWSURL string, tlsConfig *tls.Config, token string, t
 	}
 
 	dialHeaders := http.Header{}
-	dialHeaders.Set("Host", targetURL.Host)
-	dialHeaders.Set("Origin", targetURL.Scheme+"://"+targetURL.Host)
-	dialHeaders.Set("Authorization", k8s.BearerTokenPrefix+token)
+	dialHeaders.Set(constants.HeaderHost, targetURL.Host)
+	dialHeaders.Set(constants.HeaderOrigin, targetURL.Scheme+"://"+targetURL.Host)
+	dialHeaders.Set(constants.HeaderAuthorization, k8s.BearerTokenPrefix+token)
 
 	return dialer.Dial(targetWSURL, dialHeaders)
 }
@@ -176,7 +176,7 @@ func negotiatedSubprotocolHeader(targetConn *websocket.Conn, clientSubprotocols 
 	for _, csp := range clientSubprotocols {
 		if csp == sp {
 			h := http.Header{}
-			h.Set("Sec-WebSocket-Protocol", sp)
+			h.Set(constants.HeaderSecWebSocketProto, sp)
 			return h
 		}
 	}

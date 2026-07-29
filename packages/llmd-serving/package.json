@@ -19,6 +19,7 @@
     "./__tests__/utils": "./src/__tests__/utils.ts"
   },
   "dependencies": {
+    "@odh-dashboard/foundation": "*",
     "@odh-dashboard/hardware-profiles": "*",
     "@odh-dashboard/internal": "*",
     "@odh-dashboard/k8s-core": "*",

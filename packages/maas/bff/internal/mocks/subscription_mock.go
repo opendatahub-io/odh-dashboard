@@ -45,6 +45,15 @@ func GetMockMaaSSubscriptions() []models.MaaSSubscription {
 						{Limit: 200000, Window: "24h"},
 					},
 				},
+				{
+					Name:        "gpt-4o-external",
+					Namespace:   "maas-models",
+					DisplayName: "GPT-4o External",
+					Description: "External GPT-4o model routed through OpenAI provider.",
+					TokenRateLimits: []models.TokenRateLimit{
+						{Limit: 50000, Window: "24h"},
+					},
+				},
 			},
 			TokenMetadata: &models.TokenMetadata{
 				OrganizationID: "org-123",
@@ -159,6 +168,7 @@ func GetMockMaaSAuthPolicies() []models.MaaSAuthPolicy {
 			ModelRefs: []models.ModelRef{
 				{Name: "granite-3-8b-instruct", Namespace: "maas-models", DisplayName: "Granite 3 8B Instruct", Description: "IBM Granite 3 8B instruction-tuned language model."},
 				{Name: "flan-t5-small", Namespace: "maas-models", DisplayName: "Flan T5 Small", Description: "Google Flan T5 small text-to-text transfer transformer model."},
+				{Name: "gpt-4o-external", Namespace: "maas-models", DisplayName: "GPT-4o External", Description: "External GPT-4o model routed through OpenAI provider."},
 			},
 			Subjects: models.SubjectSpec{
 				Groups: []models.GroupReference{
@@ -294,9 +304,10 @@ func GetMockMaaSModelRefSummaries() []models.MaaSModelRefSummary {
 				Kind: "ExternalModel",
 				Name: "gpt-4o-external",
 			},
-			Phase:         "Ready",
-			Endpoint:      "https://gpt-4o-external.maas.example.com",
-			StatusMessage: "Published external GPT-4o model",
+			Phase:              "Ready",
+			Endpoint:           "https://gpt-4o-external.maas.example.com",
+			StatusMessage:      "Published external GPT-4o model",
+			GovernanceAttached: true,
 		},
 	}
 }

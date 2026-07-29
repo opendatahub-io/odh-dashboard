@@ -262,6 +262,35 @@ describe('FileSelector', () => {
     });
   });
 
+  it('should render extraButtons inside the FileUpload input group via portal', () => {
+    const { container } = render(
+      <FileSelector
+        id="test-selector"
+        onUpload={mockOnUpload}
+        onClear={mockOnClear}
+        extraButtons={<button data-testid="extra-btn">Extra</button>}
+      />,
+    );
+
+    const extraBtn = screen.getByTestId('extra-btn');
+    expect(extraBtn).toBeInTheDocument();
+
+    const portalItem = extraBtn.closest('.pf-v6-c-input-group__item');
+    expect(portalItem).not.toBeNull();
+
+    const fileUploadInputGroup = container.querySelector(
+      '.pf-v6-c-file-upload .pf-v6-c-input-group',
+    );
+    expect(fileUploadInputGroup).not.toBeNull();
+    expect(fileUploadInputGroup!.contains(portalItem)).toBe(true);
+  });
+
+  it('should not render extra buttons container when extraButtons is not provided', () => {
+    render(<FileSelector id="test-selector" onUpload={mockOnUpload} onClear={mockOnClear} />);
+
+    expect(screen.queryByTestId('extra-btn')).not.toBeInTheDocument();
+  });
+
   it('should reset upload progress when new file is selected', async () => {
     const user = userEvent.setup();
     const file1 = new File(['test1'], 'test1.json', { type: 'application/json' });

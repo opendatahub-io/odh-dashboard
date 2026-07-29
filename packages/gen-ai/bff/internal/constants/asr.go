@@ -11,7 +11,6 @@ const (
 	ASRCodeTimeout         = "timeout"
 	ASRCodeAuthFailed      = "auth_failed"
 	ASRCodeServiceError    = "service_error"
-	ASRCodeInvalidResponse = "invalid_response"
 	ASRCodeNoSpeech        = "no_speech"
 	ASRCodeFileRetrieval   = "file_retrieval_failed"
 	ASRCodeInvalidFormat   = "invalid_format"

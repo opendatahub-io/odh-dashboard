@@ -4,8 +4,8 @@ import type { CreatingServingRuntimeObject } from '@odh-dashboard/model-serving/
 import TypeaheadSelect, {
   TypeaheadSelectOption,
 } from '@odh-dashboard/ui-core/components/TypeaheadSelect';
+import type { UpdateObjectAtPropAndValue } from '@odh-dashboard/ui-core';
 import { fetchNIMModelNames, ModelInfo } from '#~/pages/modelServing/screens/projects/utils';
-import { UpdateObjectAtPropAndValue } from '#~/pages/projects/types';
 import { CreatingInferenceServiceObject } from '#~/pages/modelServing/screens/types';
 
 type NIMModelListSectionProps = {

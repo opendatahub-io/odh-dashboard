@@ -3,8 +3,8 @@ import {
   type HardwareProfileKind,
   type Identifier,
   IdentifierResourceType,
+  LocalQueueKind,
 } from '@odh-dashboard/k8s-core';
-import { LocalQueueKind } from '@odh-dashboard/internal/k8sTypes';
 import { DisplayNameAnnotation } from '@odh-dashboard/internal/types';
 import {
   HardwareProfileWarningType,
@@ -16,7 +16,7 @@ import {
   OTHER,
   splitValueUnit,
   UnitOption,
-} from '@odh-dashboard/internal/utilities/valueUnits';
+} from '@odh-dashboard/ui-core/utilities/valueUnits';
 import { DEFAULT_PROFILE_NAME } from './const';
 import { DEFAULT_CPU_IDENTIFIER, DEFAULT_MEMORY_IDENTIFIER } from './nodeResource/const';
 import { hasCPUandMemory } from './manage/ManageNodeResourceSection';

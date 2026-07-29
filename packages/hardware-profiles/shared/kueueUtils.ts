@@ -21,6 +21,38 @@ export enum KueueFilteringState {
   NO_PROFILES = 'no-profiles',
 }
 
+export type LocalQueueNamesResult =
+  | { status: 'loading' }
+  | { status: 'error'; error: Error }
+  | { status: 'ready'; names: Set<string> };
+
+/**
+ * Pure helper — converts a LocalQueue fetch-state object into a typed result.
+ * Keeps context reads out of the utility layer: callers read context and pass the data in.
+ */
+export const computeLocalQueueNamesResult = (localQueues: {
+  data: Array<{ metadata?: { name?: string } }>;
+  loaded: boolean;
+  error?: Error;
+}): LocalQueueNamesResult => {
+  if (localQueues.error) {
+    return { status: 'error', error: localQueues.error };
+  }
+  if (!localQueues.loaded) {
+    return { status: 'loading' };
+  }
+  return {
+    status: 'ready',
+    names: new Set(
+      localQueues.data
+        .filter((lq): lq is typeof lq & { metadata: { name: string } } =>
+          Boolean(lq.metadata?.name),
+        )
+        .map((lq) => lq.metadata.name),
+    ),
+  };
+};
+
 export const useKueueConfiguration = (
   project: ProjectKind | undefined,
 ): {
@@ -67,6 +99,7 @@ export const useKueueConfiguration = (
 export const filterProfilesByKueue = (
   profiles: HardwareProfileKind[],
   kueueFilteringState: KueueFilteringState,
+  availableLocalQueueNames?: Set<string>,
 ): HardwareProfileKind[] => {
   if (kueueFilteringState === KueueFilteringState.NO_PROFILES) {
     return [];
@@ -75,8 +108,17 @@ export const filterProfilesByKueue = (
   return profiles.filter((profile) => {
     const isKueueProfile = profile.spec.scheduling?.type === SchedulingType.QUEUE;
     switch (kueueFilteringState) {
-      case KueueFilteringState.ONLY_KUEUE_PROFILES:
-        return isKueueProfile;
+      case KueueFilteringState.ONLY_KUEUE_PROFILES: {
+        if (!isKueueProfile) {
+          return false;
+        }
+        // When we know which local queues exist, hide profiles whose queue is absent
+        const localQueueName = profile.spec.scheduling?.kueue?.localQueueName;
+        if (availableLocalQueueNames && localQueueName) {
+          return availableLocalQueueNames.has(localQueueName);
+        }
+        return true;
+      }
       case KueueFilteringState.ONLY_NON_KUEUE_PROFILES:
         return !isKueueProfile;
       default:

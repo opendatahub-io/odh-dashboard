@@ -161,7 +161,15 @@ export type CheckMaaSOptions = {
   groups?: string[];
   models?: string[];
   phase?: string;
+  maxAttempts?: number;
+  retryIntervalMs?: number;
 };
+
+/** Default poll budget for MaaS subscription/policy phase checks (6 attempts × 5s ≈ 30s). */
+export const MAAS_STATE_DEFAULT_MAX_ATTEMPTS = 6;
+export const MAAS_STATE_DEFAULT_RETRY_INTERVAL_MS = 5000;
+
+type MaaSOptionsCheckResult = { met: true } | { met: false; reason: string; retryable: boolean };
 
 export const cleanupSubscription = (
   subscriptionName: string,
@@ -282,6 +290,194 @@ EOF`;
   });
 };
 
+export const createMaaSSubscription = (
+  subscriptionName: string,
+  subscriptionDescription: string,
+  projectName: string,
+  modelName: string,
+  fixturePath = 'resources/modelsAsService/MaaSSubscription.yaml',
+): Cypress.Chainable<CommandLineResult> => {
+  cy.log(`Creating MaaSSubscription "${subscriptionName} through yaml"`);
+  return cy.fixture(fixturePath).then((yamlContent: string) => {
+    const replacements = {
+      SUBSCRIPTION_NAME: subscriptionName,
+      SUBSCRIPTION_DESCRIPTION: subscriptionDescription,
+      MODEL_NAME: modelName,
+      PROJECT_NAME: projectName,
+    };
+    const processedYaml = replacePlaceholdersInYaml(yamlContent, replacements);
+    const ocCommand = `cat <<'EOF' | oc apply -f -
+${processedYaml}
+EOF`;
+    cy.log(`Applying MaaSSubscription YAML for "${subscriptionName}"`);
+    return cy.exec(ocCommand, { failOnNonZeroExit: true });
+  });
+};
+
+export const createMaaSAuthPolicy = (
+  policyName: string,
+  projectName: string,
+  modelName: string,
+  fixturePath = 'resources/modelsAsService/MaaSAuthPolicy.yaml',
+): Cypress.Chainable<CommandLineResult> => {
+  cy.log(`Creating MaaSAuthPolicy "${policyName} through yaml"`);
+  return cy.fixture(fixturePath).then((yamlContent: string) => {
+    const replacements = {
+      POLICY_NAME: policyName,
+      MODEL_NAME: modelName,
+      PROJECT_NAME: projectName,
+    };
+    const processedYaml = replacePlaceholdersInYaml(yamlContent, replacements);
+    const ocCommand = `cat <<'EOF' | oc apply -f -
+${processedYaml}
+EOF`;
+    cy.log(`Applying MaaSAuthPolicy YAML for "${policyName}"`);
+    return cy.exec(ocCommand, { failOnNonZeroExit: true });
+  });
+};
+
+const applyExternalModelsFixture = (
+  resourceLabel: string,
+  projectName: string,
+  resourceName: string,
+  fixturePath: string,
+  failOnNonZeroExit = true,
+): Cypress.Chainable<CommandLineResult> => {
+  cy.log(`Creating ${resourceLabel} "${resourceName}" in namespace "${projectName}"`);
+  return cy.fixture(fixturePath).then((yamlContent: string) => {
+    const processedYaml = replacePlaceholdersInYaml(yamlContent, {
+      PROJECT_NAME: projectName,
+      RESOURCE_NAME: resourceName,
+    });
+    const ocCommand = `cat <<'EOF' | oc apply -f -
+${processedYaml}
+EOF`;
+    cy.log(`Applying ${resourceLabel} YAML for "${resourceName}" in "${projectName}"`);
+    return cy.exec(ocCommand, { failOnNonZeroExit });
+  });
+};
+
+export const createExternalProviderSecret = (
+  projectName: string,
+  resourceName: string,
+  fixturePath = 'resources/modelsAsService/ExternalProviderSecret.yaml',
+): Cypress.Chainable<CommandLineResult> =>
+  applyExternalModelsFixture('Secret', projectName, resourceName, fixturePath);
+
+export const createExternalProvider = (
+  projectName: string,
+  resourceName: string,
+  fixturePath = 'resources/modelsAsService/ExternalProvider.yaml',
+): Cypress.Chainable<CommandLineResult> =>
+  applyExternalModelsFixture('ExternalProvider', projectName, resourceName, fixturePath);
+
+export const createExternalModel = (
+  projectName: string,
+  resourceName: string,
+  fixturePath = 'resources/modelsAsService/ExternalModel.yaml',
+): Cypress.Chainable<CommandLineResult> =>
+  applyExternalModelsFixture('ExternalModel', projectName, resourceName, fixturePath);
+
+export const createMaaSModelRefForExternalModel = (
+  projectName: string,
+  resourceName: string,
+  fixturePath = 'resources/modelsAsService/MaaSModelRefExternalModel.yaml',
+): Cypress.Chainable<CommandLineResult> =>
+  applyExternalModelsFixture('MaaSModelRef', projectName, resourceName, fixturePath, false);
+
+/**
+ * Deletes ExternalModel-related resources created by Cypress e2e setup.
+ * Order: MaaSModelRef → ExternalModel → ExternalProvider → Secret.
+ */
+export const cleanupExternalModelsResources = (
+  projectName: string,
+  resourceName: string,
+): Cypress.Chainable<CommandLineResult> => {
+  cy.log(`Cleaning up external model resources "${resourceName}" in namespace "${projectName}"`);
+  return cy
+    .exec(`oc delete MaaSModelRef ${resourceName} -n ${projectName} --ignore-not-found`, {
+      failOnNonZeroExit: false,
+    })
+    .then(() =>
+      cy.exec(`oc delete ExternalModel ${resourceName} -n ${projectName} --ignore-not-found`, {
+        failOnNonZeroExit: false,
+      }),
+    )
+    .then(() =>
+      cy.exec(`oc delete ExternalProvider ${resourceName} -n ${projectName} --ignore-not-found`, {
+        failOnNonZeroExit: false,
+      }),
+    )
+    .then(() =>
+      cy.exec(`oc delete Secret ${resourceName} -n ${projectName} --ignore-not-found`, {
+        failOnNonZeroExit: false,
+      }),
+    );
+};
+
+type MaaSModelRefCondition = {
+  type?: string;
+  status?: string;
+};
+
+type MaaSModelRefDoc = {
+  status?: {
+    conditions?: MaaSModelRefCondition[];
+  };
+};
+
+/**
+ * Poll until the companion MaaSModelRef exists and GovernanceAttached is not True
+ * (no subscription/policy yet → UI shows the pending governance warning).
+ */
+export const waitForExternalModelGovernancePending = (
+  projectName: string,
+  resourceName: string,
+  options: { maxAttempts?: number; retryIntervalMs?: number } = {},
+): Cypress.Chainable<CommandLineResult> => {
+  const maxAttempts = options.maxAttempts ?? MAAS_STATE_DEFAULT_MAX_ATTEMPTS;
+  const retryIntervalMs = options.retryIntervalMs ?? MAAS_STATE_DEFAULT_RETRY_INTERVAL_MS;
+  const ocCommand = `oc get MaaSModelRef ${resourceName} -n ${projectName} -o json`;
+  let attempts = 0;
+
+  const checkState = (): Cypress.Chainable<CommandLineResult> =>
+    cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result) => {
+      attempts++;
+      if (result.exitCode === 0) {
+        let doc: MaaSModelRefDoc;
+        try {
+          doc = JSON.parse(result.stdout) as MaaSModelRefDoc;
+        } catch {
+          throw new Error(`Failed to parse MaaSModelRef JSON for ${resourceName}`);
+        }
+        const governanceCondition = doc.status?.conditions?.find(
+          (condition) => condition.type === 'GovernanceAttached',
+        );
+        const governanceAttached = governanceCondition?.status === 'True';
+        if (!governanceAttached) {
+          cy.log(
+            `✅ MaaSModelRef ${resourceName} exists with GovernanceAttached not True (attempt ${attempts})`,
+          );
+          return cy.wrap(result);
+        }
+      }
+
+      if (attempts < maxAttempts) {
+        cy.log(
+          `⏳ Waiting for MaaSModelRef ${resourceName} governance pending (attempt ${attempts}/${maxAttempts})`,
+        );
+        // eslint-disable-next-line cypress/no-unnecessary-waiting -- poll for controller reconcile
+        return cy.wait(retryIntervalMs).then(() => checkState());
+      }
+
+      throw new Error(
+        `MaaSModelRef ${resourceName} did not reach governance-pending state in namespace ${projectName}`,
+      );
+    });
+
+  return checkState();
+};
+
 const parseMaaSSubscriptionDoc = (
   subscriptionName: string,
   stdout: string,
@@ -318,37 +514,101 @@ const parseMaaSAuthPolicyDoc = (policyName: string, stdout: string): MaaSAuthPol
 const subscriptionOptionsMet = (
   doc: MaaSSubscriptionState,
   options: CheckMaaSOptions,
-): string | undefined => {
+): MaaSOptionsCheckResult => {
   if (options.models) {
     const modelNames = getSubscriptionModelRefNames(doc);
     const expected = [...options.models].toSorted();
     const actual = [...modelNames].toSorted();
     if (expected.length !== actual.length || !expected.every((name, i) => name === actual[i])) {
-      return `models: expected [${expected.join(', ')}], got [${actual.join(', ')}]`;
+      return {
+        met: false,
+        reason: `models: expected [${expected.join(', ')}], got [${actual.join(', ')}]`,
+        retryable: true,
+      };
     }
   }
   if (options.phase && doc.status?.phase !== options.phase) {
-    return `phase: expected ${options.phase}, got ${doc.status?.phase ?? 'Unknown'}`;
+    return {
+      met: false,
+      reason: `phase: expected ${options.phase}, got ${doc.status?.phase ?? 'Unknown'}`,
+      retryable: true,
+    };
   }
-  return undefined;
+  return { met: true };
 };
 
 const authPolicyOptionsMet = (
   doc: MaaSAuthPolicyState,
   options: CheckMaaSOptions,
-): string | undefined => {
+): MaaSOptionsCheckResult => {
   if (options.groups) {
     const groupNames = getAuthPolicyGroupNames(doc);
     const expected = [...options.groups].toSorted();
     const actual = [...groupNames].toSorted();
     if (expected.length !== actual.length || !expected.every((name, i) => name === actual[i])) {
-      return `groups: expected [${expected.join(', ')}], got [${actual.join(', ')}]`;
+      return {
+        met: false,
+        reason: `groups: expected [${expected.join(', ')}], got [${actual.join(', ')}]`,
+        retryable: true,
+      };
     }
   }
   if (options.phase && doc.status?.phase !== options.phase) {
-    return `phase: expected ${options.phase}, got ${doc.status?.phase ?? 'Unknown'}`;
+    return {
+      met: false,
+      reason: `phase: expected ${options.phase}, got ${doc.status?.phase ?? 'Unknown'}`,
+      retryable: true,
+    };
   }
-  return undefined;
+  return { met: true };
+};
+
+const shouldPollMaaSState = (options: CheckMaaSOptions): boolean =>
+  !!(options.phase || options.models || options.groups);
+
+const getMaaSPollBudget = (
+  options: CheckMaaSOptions,
+  pollForState: boolean,
+): { maxAttempts: number; retryIntervalMs: number } => ({
+  maxAttempts: pollForState ? options.maxAttempts ?? MAAS_STATE_DEFAULT_MAX_ATTEMPTS : 1,
+  retryIntervalMs: options.retryIntervalMs ?? MAAS_STATE_DEFAULT_RETRY_INTERVAL_MS,
+});
+
+const pollMaaSResourceState = <T>(
+  resourceLabel: string,
+  ocCommand: string,
+  parseDoc: (stdout: string) => T,
+  optionsMet: (doc: T, options: CheckMaaSOptions) => MaaSOptionsCheckResult,
+  options: CheckMaaSOptions,
+  pollForState: boolean,
+): Cypress.Chainable<CommandLineResult> => {
+  const { maxAttempts, retryIntervalMs } = getMaaSPollBudget(options, pollForState);
+  let attempts = 0;
+
+  const checkState = (): Cypress.Chainable<CommandLineResult> =>
+    cy.exec(ocCommand, { failOnNonZeroExit: true }).then((result) => {
+      attempts++;
+      const doc = parseDoc(result.stdout);
+      const checkResult = optionsMet(doc, options);
+
+      if (checkResult.met) {
+        cy.log(`✅ ${resourceLabel} conditions met after ${attempts} attempt(s)`);
+        return cy.wrap(result);
+      }
+
+      if (checkResult.retryable && attempts < maxAttempts) {
+        cy.log(
+          `⏳ ${resourceLabel}: ${checkResult.reason}, retrying in ${
+            retryIntervalMs / 1000
+          }s (attempt ${attempts}/${maxAttempts})`,
+        );
+        return cy.wait(retryIntervalMs).then(() => checkState());
+      }
+
+      throw new Error(`${resourceLabel} did not meet expected state. ${checkResult.reason}`);
+    });
+
+  return checkState();
 };
 
 const getAuthPolicyGroupNames = (doc: MaaSAuthPolicyState): string[] => {
@@ -408,21 +668,22 @@ export const checkMaaSSubscriptionState = (
   cy.log(`Checking MaaSSubscription exists: ${subscriptionName} in namespace ${namespace}`);
   const resourceLabel = `MaaSSubscription ${subscriptionName} in namespace ${namespace}`;
 
-  return cy.exec(ocCommand, { failOnNonZeroExit: true }).then((result) => {
-    const doc = parseMaaSSubscriptionDoc(subscriptionName, result.stdout);
-
-    if (options.phase || options.models) {
-      const failureReason = subscriptionOptionsMet(doc, options);
-      if (failureReason) {
-        throw new Error(`${resourceLabel} did not meet expected state. ${failureReason}`);
-      }
-      cy.log(`✅ ${resourceLabel} conditions met`);
-    } else {
+  if (!options.phase && !options.models) {
+    return cy.exec(ocCommand, { failOnNonZeroExit: true }).then((result) => {
+      parseMaaSSubscriptionDoc(subscriptionName, result.stdout);
       cy.log(`✅ ${resourceLabel} exists`);
-    }
+      return cy.wrap(result);
+    });
+  }
 
-    return cy.wrap(result);
-  });
+  return pollMaaSResourceState(
+    resourceLabel,
+    ocCommand,
+    (stdout) => parseMaaSSubscriptionDoc(subscriptionName, stdout),
+    subscriptionOptionsMet,
+    options,
+    shouldPollMaaSState(options),
+  );
 };
 
 /**
@@ -454,21 +715,22 @@ export const checkMaaSAuthPolicyState = (
   cy.log(`Checking MaaSAuthPolicy exists: ${policyName} in namespace ${namespace}`);
   const resourceLabel = `MaaSAuthPolicy ${policyName} in namespace ${namespace}`;
 
-  return cy.exec(ocCommand, { failOnNonZeroExit: true }).then((result) => {
-    const doc = parseMaaSAuthPolicyDoc(policyName, result.stdout);
-
-    if (options.phase || options.groups) {
-      const failureReason = authPolicyOptionsMet(doc, options);
-      if (failureReason) {
-        throw new Error(`${resourceLabel} did not meet expected state. ${failureReason}`);
-      }
-      cy.log(`✅ ${resourceLabel} conditions met`);
-    } else {
+  if (!options.phase && !options.groups) {
+    return cy.exec(ocCommand, { failOnNonZeroExit: true }).then((result) => {
+      parseMaaSAuthPolicyDoc(policyName, result.stdout);
       cy.log(`✅ ${resourceLabel} exists`);
-    }
+      return cy.wrap(result);
+    });
+  }
 
-    return cy.wrap(result);
-  });
+  return pollMaaSResourceState(
+    resourceLabel,
+    ocCommand,
+    (stdout) => parseMaaSAuthPolicyDoc(policyName, stdout),
+    authPolicyOptionsMet,
+    options,
+    shouldPollMaaSState(options),
+  );
 };
 
 export const MAAS_COMPLETIONS_DEFAULT_MAX_ATTEMPTS = 24;

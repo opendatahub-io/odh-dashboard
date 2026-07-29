@@ -15,7 +15,7 @@ jest.mock('react-router-dom', () => ({
   useSearchParams: () => mockUseSearchParams(),
 }));
 
-jest.mock('#~/concepts/projects/ProjectSelector', () => {
+jest.mock('@odh-dashboard/ui-core/components/projectSelector/ProjectSelector', () => {
   function MockProjectSelector(props: {
     namespace: string;
     onSelection: (projectName: string) => void;

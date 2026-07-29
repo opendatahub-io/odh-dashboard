@@ -2,7 +2,7 @@ import React from 'react';
 import { Button, FlexItem, FormGroup } from '@patternfly/react-core';
 import { AddCircleOIcon } from '@patternfly/react-icons';
 import type { Toleration } from '@odh-dashboard/k8s-core';
-import DashboardHelpTooltip from '@odh-dashboard/internal/concepts/dashboard/DashboardHelpTooltip.tsx';
+import DashboardHelpTooltip from '@odh-dashboard/ui-core/components/DashboardHelpTooltip';
 import { ManageHardwareProfileSectionID } from './types';
 import ManageTolerationModal from '../toleration/ManageTolerationModal';
 import TolerationTable from '../toleration/TolerationTable';

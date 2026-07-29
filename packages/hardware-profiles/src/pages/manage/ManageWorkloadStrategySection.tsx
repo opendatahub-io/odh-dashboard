@@ -11,7 +11,7 @@ import {
   StackItem,
 } from '@patternfly/react-core';
 import { SchedulingType } from '@odh-dashboard/k8s-core';
-import DashboardHelpTooltip from '@odh-dashboard/internal/concepts/dashboard/DashboardHelpTooltip.tsx';
+import DashboardHelpTooltip from '@odh-dashboard/ui-core/components/DashboardHelpTooltip';
 import { ManageHardwareProfileSectionID } from './types.ts';
 import { ManageHardwareProfileSectionTitles } from '../const.tsx';
 import {

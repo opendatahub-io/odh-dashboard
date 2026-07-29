@@ -130,6 +130,38 @@ describe('Select role template (header button)', () => {
     cy.contains('Workbench maintainer').should('not.exist');
     cy.contains('Workbench updater').should('not.exist');
   });
+
+  it('should display explicit verbs instead of wildcards for workbench-maintainer template', () => {
+    projectRoles.visitCreateRole(NAMESPACE);
+
+    projectRoles.findSelectRoleTemplateButton().click();
+    projectRoles.findSelectTemplateButton('workbench-maintainer').click();
+
+    projectRoles.findPermissionRulesTable().should('exist');
+    projectRoles.findPermissionRuleActionCells().each(($cell) => {
+      expect($cell.text()).to.not.equal('All');
+      expect($cell.text()).to.not.contain('*');
+    });
+    projectRoles
+      .findPermissionRuleActionCells()
+      .first()
+      .should('contain.text', 'get')
+      .and('contain.text', 'create')
+      .and('contain.text', 'delete');
+  });
+
+  it('should display explicit verbs instead of wildcards for workbench-updater template', () => {
+    projectRoles.visitCreateRole(NAMESPACE);
+
+    projectRoles.findSelectRoleTemplateButton().click();
+    projectRoles.findSelectTemplateButton('workbench-updater').click();
+
+    projectRoles.findPermissionRulesTable().should('exist');
+    projectRoles.findPermissionRuleActionCells().each(($cell) => {
+      expect($cell.text()).to.not.equal('All');
+      expect($cell.text()).to.not.contain('*');
+    });
+  });
 });
 
 describe('Import rules from template (toolbar button)', () => {

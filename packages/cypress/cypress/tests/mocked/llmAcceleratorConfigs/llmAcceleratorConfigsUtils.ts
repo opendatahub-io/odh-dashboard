@@ -1,3 +1,4 @@
+import { mockDashboardConfig } from '@odh-dashboard/internal/__mocks__';
 import { mockK8sResourceList } from '@odh-dashboard/internal/__mocks__/mockK8sResourceList';
 import {
   mockLLMInferenceServiceConfigK8sResource,
@@ -51,6 +52,7 @@ export const llmAcceleratorConfigsInitialMock = [
 ];
 
 export const llmAcceleratorConfigsIntercept = (): void => {
+  cy.interceptOdh('GET /api/config', mockDashboardConfig({ vLLMDeploymentOnMaaS: true }));
   cy.interceptK8sList(
     {
       model: llmAcceleratorConfigModel,

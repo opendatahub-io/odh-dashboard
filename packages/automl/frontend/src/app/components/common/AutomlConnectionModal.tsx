@@ -3,22 +3,22 @@ import { Form, Modal, ModalBody, ModalHeader, ModalFooter } from '@patternfly/re
 import DashboardModalFooter from '@odh-dashboard/internal/concepts/dashboard/DashboardModalFooter';
 import ConnectionTypeForm from '@odh-dashboard/internal/concepts/connectionTypes/ConnectionTypeForm';
 import {
-  Connection,
-  ConnectionTypeConfigMapObj,
   ConnectionTypeFieldType,
-  ConnectionTypeValueType,
-} from '@odh-dashboard/internal/concepts/connectionTypes/types';
-import { useK8sNameDescriptionFieldData } from '@odh-dashboard/ui-core/components/K8sNameDescriptionField';
-import { isK8sNameDescriptionDataValid } from '@odh-dashboard/k8s-core';
-import type { K8sNameDescriptionFieldData } from '@odh-dashboard/k8s-core';
-import {
+  isK8sNameDescriptionDataValid,
   assembleConnectionSecret,
   filterEnabledConnectionTypes,
   getConnectionProtocolType,
   getDefaultValues,
   isConnectionTypeDataField,
   withRequiredFields,
-} from '@odh-dashboard/internal/concepts/connectionTypes/utils';
+} from '@odh-dashboard/k8s-core';
+import type {
+  Connection,
+  ConnectionTypeConfigMapObj,
+  ConnectionTypeValueType,
+  K8sNameDescriptionFieldData,
+} from '@odh-dashboard/k8s-core';
+import { useK8sNameDescriptionFieldData } from '@odh-dashboard/ui-core/components/K8sNameDescriptionField';
 import { createSecret } from '@odh-dashboard/internal/api/k8s/secrets';
 
 const S3_REQUIRED_ENV_VARS = ['AWS_DEFAULT_REGION', 'AWS_S3_BUCKET'];

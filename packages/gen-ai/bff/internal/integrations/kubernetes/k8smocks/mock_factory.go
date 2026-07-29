@@ -78,7 +78,7 @@ func NewTokenClientFactory(ctrlClient client.Client, restConfig *rest.Config, lo
 		AuthTokenHeader: config.DefaultAuthTokenHeader,
 		AuthTokenPrefix: config.DefaultAuthTokenPrefix,
 	}
-	realFactory := k8s.NewTokenClientFactory(logger, cfg)
+	realFactory := k8s.NewTokenClientFactory(logger, cfg, nil)
 
 	return &MockedTokenClientFactory{
 		logger:         logger,

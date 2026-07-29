@@ -193,6 +193,40 @@ func TestConvertUnstructuredToModelRefSummary_NoAnnotations(t *testing.T) {
 	}
 }
 
+func TestConvertUnstructuredToModelRefSummary_GovernanceAttached(t *testing.T) {
+	obj := newModelRefObj("paired-model", "my-ns", "Paired", "", "Ready", "http://ep:8080")
+	status, _, _ := unstructured.NestedMap(obj.Object, "status")
+	conditions, _ := status["conditions"].([]interface{})
+	status["conditions"] = append(conditions, map[string]interface{}{
+		"type":    "GovernanceAttached",
+		"status":  "True",
+		"reason":  "PairingFound",
+		"message": "Active subscription and auth policy pairing found",
+	})
+	_ = unstructured.SetNestedMap(obj.Object, status, "status")
+
+	summary := convertUnstructuredToModelRefSummary(obj)
+	if !summary.GovernanceAttached {
+		t.Fatal("expected GovernanceAttached=true")
+	}
+
+	falseObj := newModelRefObj("unpaired-model", "my-ns", "Unpaired", "", "Pending", "")
+	falseStatus, _, _ := unstructured.NestedMap(falseObj.Object, "status")
+	falseConditions, _ := falseStatus["conditions"].([]interface{})
+	falseStatus["conditions"] = append(falseConditions, map[string]interface{}{
+		"type":    "GovernanceAttached",
+		"status":  "False",
+		"reason":  "NoPairingFound",
+		"message": "No active subscription and auth policy pairing found",
+	})
+	_ = unstructured.SetNestedMap(falseObj.Object, falseStatus, "status")
+
+	falseSummary := convertUnstructuredToModelRefSummary(falseObj)
+	if falseSummary.GovernanceAttached {
+		t.Fatal("expected GovernanceAttached=false")
+	}
+}
+
 // --- listAllModelRefSummaries ---
 
 // newFakeDynamicClient creates a dynamicfake client that supports listing MaaSModelRef resources,

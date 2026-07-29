@@ -1,4 +1,8 @@
-import { mockAgentCardDetail, mockAgentRuntimeDetail } from '~/__mocks__/mockAgentRuntime';
+import {
+  mockAgentCardDetail,
+  mockAgentRuntimeDetail,
+  mockSparseAgentRuntimeDetail,
+} from '~/__mocks__/mockAgentRuntime';
 import { agentDeploymentDetailPage } from '~/__tests__/cypress/cypress/pages/agentDeploymentDetail';
 import { CLIENT_API_VERSION } from '~/__tests__/cypress/cypress/support/commands/api';
 
@@ -7,7 +11,7 @@ const TEST_AGENT = 'sample-support-agent';
 
 const detailPathname = `/agent-ops/api/${CLIENT_API_VERSION}/agents/runtimes/${TEST_NAMESPACE}/${TEST_AGENT}`;
 
-const interceptDetail = (detail = mockAgentRuntimeDetail()) => {
+const interceptDetail = (detail = mockAgentRuntimeDetail({ agentCard: mockAgentCardDetail() })) => {
   cy.interceptApi(
     'GET /api/:apiVersion/agents/runtimes/:namespace/:name',
     {
@@ -25,7 +29,7 @@ describe('Agent deployment detail', () => {
   it('should display agent title, description, and details sidebar', () => {
     interceptDetail();
     agentDeploymentDetailPage.visit(TEST_NAMESPACE, TEST_AGENT);
-    agentDeploymentDetailPage.findTitle().should('contain.text', TEST_AGENT);
+    agentDeploymentDetailPage.findTitle().should('contain.text', 'Sample Support Agent');
     agentDeploymentDetailPage.findStatusLabel().should('contain.text', 'Ready');
     agentDeploymentDetailPage
       .findDescription()
@@ -78,6 +82,17 @@ describe('Agent deployment detail', () => {
 
     agentDeploymentDetailPage.findDescriptionCard().should('not.exist');
     agentDeploymentDetailPage.findAgentDetailsCard().should('be.visible');
+  });
+
+  it('should show runtime overview for sparse sandbox detail without agent card', () => {
+    interceptDetail(mockSparseAgentRuntimeDetail());
+    agentDeploymentDetailPage.visit(TEST_NAMESPACE, TEST_AGENT);
+
+    agentDeploymentDetailPage.findRuntimeOverviewCard().should('be.visible');
+    cy.findByTestId('agent-runtime-resource-type').should('contain.text', 'agent');
+    cy.findByTestId('agent-runtime-workload-status').should('contain.text', 'pending');
+    cy.findByTestId('agent-runtime-endpoint-http').should('not.exist');
+    agentDeploymentDetailPage.findAgentDetailsCard().should('not.exist');
   });
 
   it('should show loading state while detail is being fetched', () => {

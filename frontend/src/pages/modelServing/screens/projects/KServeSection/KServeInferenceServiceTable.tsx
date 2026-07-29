@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { useParams } from 'react-router-dom';
-import { Table } from '@odh-dashboard/ui-core';
+import { Table, TrackingOutcome } from '@odh-dashboard/ui-core';
 import type { InferenceServiceKind, ServingRuntimeKind } from '@odh-dashboard/model-serving/shared';
 import { getKServeInferenceServiceColumns } from '#~/pages/modelServing/screens/global/data';
 import KServeInferenceServiceTableRow from '#~/pages/modelServing/screens/projects/KServeSection/KServeInferenceServiceTableRow';
@@ -8,7 +8,6 @@ import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import ManageKServeModal from '#~/pages/modelServing/screens/projects/kServeModal/ManageKServeModal';
 import DeleteInferenceServiceModal from '#~/pages/modelServing/screens/global/DeleteInferenceServiceModal';
 import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
-import { TrackingOutcome } from '#~/concepts/analyticsTracking/trackingProperties';
 import { byName, ProjectsContext } from '#~/concepts/projects/ProjectsContext';
 import { isProjectNIMSupported } from '#~/pages/modelServing/screens/projects/nim/nimUtils';
 import ManageNIMServingModal from '#~/pages/modelServing/screens/projects/nim/NIMServiceModal/ManageNIMServingModal';

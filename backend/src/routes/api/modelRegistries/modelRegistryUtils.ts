@@ -1,4 +1,5 @@
-import { KubeFastifyInstance, ModelRegistryKind, RecursivePartial } from '../../../types';
+import type { RecursivePartial } from '@odh-dashboard/foundation';
+import { KubeFastifyInstance, ModelRegistryKind } from '../../../types';
 import { PatchUtils, V1ConfigMap, V1Secret, V1Status } from '@kubernetes/client-node';
 import { getClusterStatus } from '../../../utils/resourceUtils';
 

@@ -142,6 +142,15 @@ rules:
       - update
       - patch
       - delete
+  # Escalation for user Ray dashboard URL reads (manifests/common/rbac/all-users)
+  - apiGroups:
+      - gateway.networking.k8s.io
+    resources:
+      - gateways
+    resourceNames:
+      - data-science-gateway
+    verbs:
+      - get
   # Events
   - apiGroups:
       - ""
@@ -285,14 +294,14 @@ rules:
       - get
       - update
       - delete
-  # Storage classes — write-only mirrors sa-rbac/cluster-role.yaml exactly.
-  # Read verbs are not granted by the operand; add here only if the operand
-  # ClusterRole is updated to include them.
+  # Storage classes — mirrors sa-rbac/cluster-role.yaml + gen-ai module ClusterRole.
   - apiGroups:
       - storage.k8s.io
     resources:
       - storageclasses
     verbs:
+      - get
+      - list
       - update
       - patch
   # Auth delegation for operand service accounts
@@ -499,6 +508,14 @@ rules:
       - auths
     verbs:
       - get
+  - apiGroups:
+      - services.platform.opendatahub.io
+    resources:
+      - gatewayconfigs
+    resourceNames:
+      - default-gateway
+    verbs:
+      - get
   # Kubeflow notebooks
   - apiGroups:
       - kubeflow.org
@@ -589,12 +606,13 @@ rules:
       - watch
   # AI agent and MCP server resources
   - apiGroups:
-      - agent.kagenti.dev
+      - agents.x-k8s.io
     resources:
-      - agentruntimes
+      - sandboxes
     verbs:
       - get
       - list
+      - patch
   - apiGroups:
       - mcp.kuadrant.io
       - mcp.kagenti.com
@@ -603,6 +621,17 @@ rules:
     verbs:
       - get
       - list
+  # OTel Collector — gen-ai BFF creates per-namespace trace routing CRs
+  - apiGroups:
+      - opentelemetry.io
+    resources:
+      - opentelemetrycollectors
+    verbs:
+      - get
+      - list
+      - create
+      - update
+      - delete
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding

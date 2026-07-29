@@ -31,19 +31,20 @@ import (
 )
 
 const (
-	Version             = "1.0.0"
-	PathPrefix          = "/autorag"
-	ApiPathPrefix       = "/api/v1"
-	HealthCheckPath     = "/healthcheck"
-	UserPath            = ApiPathPrefix + "/user"
-	NamespacePath       = ApiPathPrefix + "/namespaces"
-	SecretsPath         = ApiPathPrefix + "/secrets"
-	SecretPath          = ApiPathPrefix + "/secret/:name"
-	S3FilePath          = ApiPathPrefix + "/s3/files/:key"
-	S3FilesPath         = ApiPathPrefix + "/s3/files"
-	OGXModelsPath       = ApiPathPrefix + "/ogx/models"
-	OGXVectorStoresPath = ApiPathPrefix + "/ogx/vector-stores"
-	PipelineRunsPath    = ApiPathPrefix + "/pipeline-runs"
+	Version              = "1.0.0"
+	PathPrefix           = "/autorag"
+	ApiPathPrefix        = "/api/v1"
+	HealthCheckPath      = "/healthcheck"
+	UserPath             = ApiPathPrefix + "/user"
+	NamespacePath        = ApiPathPrefix + "/namespaces"
+	SecretsPath          = ApiPathPrefix + "/secrets"
+	SecretPath           = ApiPathPrefix + "/secret/:name"
+	S3FilePath           = ApiPathPrefix + "/s3/files/:key"
+	S3FilesPath          = ApiPathPrefix + "/s3/files"
+	OGXModelsPath        = ApiPathPrefix + "/ogx/models"
+	OGXVectorStoresPath  = ApiPathPrefix + "/ogx/vector-stores"
+	PipelineRunsPath     = ApiPathPrefix + "/pipeline-runs"
+	ManagedPipelinesPath = ApiPathPrefix + "/managed-pipelines/enable"
 )
 
 var hashPattern = regexp.MustCompile(`[.\-][0-9a-f]{8,}`)
@@ -298,6 +299,9 @@ func (app *App) Routes() http.Handler {
 	apiRouter.POST(PipelineRunsPath+"/:runId/terminate", app.AttachNamespace(app.RequireAccessToService(app.AttachPipelineServerClient(app.AttachDiscoveredPipeline(app.TerminatePipelineRunHandler)))))
 	apiRouter.POST(PipelineRunsPath+"/:runId/retry", app.AttachNamespace(app.RequireAccessToService(app.AttachPipelineServerClient(app.AttachDiscoveredPipeline(app.RetryPipelineRunHandler)))))
 	apiRouter.DELETE(PipelineRunsPath+"/:runId", app.AttachNamespace(app.RequireAccessToService(app.AttachPipelineServerClient(app.AttachDiscoveredPipeline(app.DeletePipelineRunHandler)))))
+
+	// Managed pipelines — enable AutoRAG pipeline definitions on an existing DSPA
+	apiRouter.POST(ManagedPipelinesPath, app.AttachNamespace(app.RequireAccessToService(app.EnableManagedPipelinesHandler)))
 
 	// App Router
 	appMux := http.NewServeMux()

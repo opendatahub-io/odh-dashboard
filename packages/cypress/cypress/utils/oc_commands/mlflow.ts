@@ -114,19 +114,21 @@ export const deleteMlflowCR = (namespace: string): Cypress.Chainable<CommandLine
 };
 
 /**
- * Poll until the MLflow CR has a ready status.address.url.
+ * Poll until the MLflow CR's Available condition is True.
  *
- * @param namespace - The namespace in which to check the MLflow CR status.
- * @returns A Cypress.Chainable that resolves when the CR has status.address.url.
+ * The operator sets Available=True only after any pending version migration
+ * completes and the tracking-server deployment is rolled out. Polling this
+ * condition (rather than status.address.url) naturally handles the migration
+ * phase where the deployment is intentionally scaled to zero.
  */
-const waitForMlflowCRReady = (namespace: string): Cypress.Chainable<Cypress.Exec> =>
-  pollUntilSuccess(
-    `oc get mlflows.mlflow.opendatahub.io -n ${assertNamespace(
-      namespace,
-    )} -o json | jq -e '.items[0].status.address.url'`,
-    'MLflow CR to have status.address.url',
-    { maxAttempts: 60, pollIntervalMs: 5000 },
+const waitForMlflowCRAvailable = (namespace: string): Cypress.Chainable<Cypress.Exec> => {
+  const ns = assertNamespace(namespace);
+  return pollUntilSuccess(
+    `oc get mlflows.mlflow.opendatahub.io mlflow -n ${ns} -o json | jq -e '.status.conditions[]? | select(.type=="Available") | .status == "True"'`,
+    'MLflow CR Available condition to be True',
+    { maxAttempts: 120, pollIntervalMs: 5000 },
   );
+};
 
 /**
  * Poll until a nav item with the given label appears in the sidebar.
@@ -405,12 +407,12 @@ const enableMlflowBackend = (): Cypress.Chainable<Cypress.Exec> => {
   cy.step('Wait for MLflow operator to be ready');
   return waitForMlflowOperatorReady()
     .then(() => {
-      cy.step('Create MLflow CR');
+      cy.step('Create MLflow CR if absent');
       return ensureMlflowCR(namespace);
     })
     .then(() => {
-      cy.step('Wait for MLflow CR to be ready');
-      return waitForMlflowCRReady(namespace);
+      cy.step('Wait for MLflow CR Available condition (includes migration)');
+      return waitForMlflowCRAvailable(namespace);
     })
     .then(() => {
       cy.step('Wait for MLflow tracking server deployment to be available');
@@ -452,14 +454,12 @@ export const enableMlflowFeatures = (): Cypress.Chainable<boolean> => {
 /**
  * Restore MLflow to its pre-test state.
  *
- * @param crExisted - If true, the MLflow CR already existed before the test; skip deleting it.
+ * The MLflow CR is intentionally left on the cluster — it is no longer
+ * auto-created by the platform operator, so deleting it would force
+ * subsequent tests to wait through the full CR creation + migration cycle.
  */
-export const disableMlflowFeatures = (crExisted = true): void => {
-  if (!crExisted) {
-    const namespace = getApplicationsNamespace();
-    cy.step('Delete MLflow CR (was not present before test)');
-    deleteMlflowCR(namespace);
-  }
+export const disableMlflowFeatures = (): void => {
+  // no-op: keep the MLflow CR for subsequent test suites
 };
 
 /**
@@ -501,11 +501,8 @@ export const enablePromptManagementFeatures = (): Cypress.Chainable<boolean> => 
 
 /**
  * Restore MLflow features to their pre-test state.
- *
- * @param crExisted - If true, the MLflow CR already existed before the test.
  */
-export const disablePromptManagementFeatures = (crExisted = true): void =>
-  disableMlflowFeatures(crExisted);
+export const disablePromptManagementFeatures = (): void => disableMlflowFeatures();
 
 /**
  * Get the MLflow tracking server URL from the MLflow CR status.
@@ -554,6 +551,7 @@ const execCurlInMlflowPod = (
   endpoint: string,
   body: object,
   workspace: string,
+  method: 'POST' | 'DELETE' = 'POST',
 ): Cypress.Chainable<string> => {
   const namespace = getApplicationsNamespace();
   const bodyJson = JSON.stringify(body);
@@ -564,11 +562,36 @@ const execCurlInMlflowPod = (
       `printf '%s' '${escapedBody}'`,
       '|',
       `oc exec -n ${namespace} -i ${podName} -c mlflow --`,
-      `curl -sk -X POST 'https://localhost:8443/mlflow${endpoint}'`,
+      `curl -sk -X ${method} 'https://localhost:8443/mlflow${endpoint}'`,
       `-H 'Content-Type: application/json'`,
       `-H "Authorization: Bearer $(oc whoami -t)"`,
       `-H 'X-MLFLOW-WORKSPACE: ${ns}'`,
       `--data-binary @-`,
+    ].join(' ');
+    return cy.exec(cmd, { timeout: 30000, log: false }).then((result) => result.stdout.trim());
+  });
+};
+
+/**
+ * Execute a GET request inside the MLflow pod against the tracking server.
+ */
+const execGetInMlflowPod = (
+  endpoint: string,
+  queryParams: Record<string, string>,
+  workspace: string,
+): Cypress.Chainable<string> => {
+  const namespace = getApplicationsNamespace();
+  const qs = Object.entries(queryParams)
+    .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
+    .join('&');
+  const url = `https://localhost:8443/mlflow${endpoint}${qs ? `?${qs}` : ''}`;
+  return getMlflowPodName().then((podName) => {
+    const ns = assertNamespace(workspace);
+    const cmd = [
+      `oc exec -n ${namespace} -i ${podName} -c mlflow --`,
+      `curl -sk '${url}'`,
+      `-H "Authorization: Bearer $(oc whoami -t)"`,
+      `-H 'X-MLFLOW-WORKSPACE: ${ns}'`,
     ].join(' ');
     return cy.exec(cmd, { timeout: 30000, log: false }).then((result) => result.stdout.trim());
   });
@@ -669,6 +692,144 @@ export const getMlflowExperimentIdByName = (
   });
 
 /**
+ * Check whether an MLflow experiment name is taken, including soft-deleted
+ * experiments. MLflow's standard get-by-name only returns active experiments,
+ * but a soft-deleted experiment still reserves the name.
+ */
+export const doesMlflowExperimentNameExist = (
+  workspace: string,
+  experimentName: string,
+): Cypress.Chainable<boolean> =>
+  execCurlInMlflowPod(
+    '/api/2.0/mlflow/experiments/search',
+    // eslint-disable-next-line camelcase
+    { filter: `name = '${experimentName}'`, view_type: 'ALL', max_results: 10 },
+    workspace,
+  ).then((response) => {
+    try {
+      const experiments = JSON.parse(response)?.experiments ?? [];
+      return experiments.length > 0;
+    } catch {
+      return false;
+    }
+  });
+
+/**
+ * Find a test suffix that does not collide with any existing (active or
+ * soft-deleted) MLflow experiment. Checks every name in `baseNames` for a
+ * given suffix and increments until all names are available.
+ */
+export const findAvailableExperimentSuffix = (
+  workspace: string,
+  baseNames: string[],
+  startSuffix: string,
+  attempt = 0,
+): Cypress.Chainable<string> => {
+  if (attempt >= 20) {
+    throw new Error(
+      `Could not find available experiment suffix after ${attempt} attempts ` +
+        `(last tried: ${startSuffix})`,
+    );
+  }
+  const results: boolean[] = [];
+  return baseNames
+    .reduce<Cypress.Chainable<boolean>>(
+      (prev, name) =>
+        prev.then(() =>
+          doesMlflowExperimentNameExist(workspace, `${name}-${startSuffix}`).then(
+            (exists: boolean) => {
+              results.push(exists);
+              return exists;
+            },
+          ),
+        ),
+      cy.wrap(false),
+    )
+    .then(() => {
+      if (!results.some(Boolean)) {
+        return cy.wrap(startSuffix);
+      }
+      const taken = baseNames.filter((_, i) => results[i]);
+      cy.log(`Suffix ${startSuffix} collides on: ${taken.join(', ')}. Trying next suffix.`);
+      const next = String(Number(startSuffix) + 1).padStart(startSuffix.length, '0');
+      return findAvailableExperimentSuffix(workspace, baseNames, next, attempt + 1);
+    });
+};
+
+/**
+ * Delete an MLflow prompt (registered model) by name if it exists.
+ * Silently succeeds when the prompt is not found.
+ * Uses DELETE method — POST to this endpoint returns ENDPOINT_NOT_FOUND.
+ */
+export const deleteStalePromptByName = (
+  workspace: string,
+  promptName: string,
+): Cypress.Chainable<string> =>
+  execCurlInMlflowPod(
+    '/api/2.0/mlflow/registered-models/delete',
+    { name: promptName },
+    workspace,
+    'DELETE',
+  );
+
+/**
+ * Check whether an MLflow prompt (registered model) with the given name exists.
+ * Uses GET — the POST search endpoint returns ENDPOINT_NOT_FOUND on this server.
+ */
+export const doesMlflowPromptNameExist = (
+  workspace: string,
+  promptName: string,
+): Cypress.Chainable<boolean> =>
+  execGetInMlflowPod('/api/2.0/mlflow/registered-models/get', { name: promptName }, workspace).then(
+    (response) => {
+      try {
+        return !!JSON.parse(response)?.registered_model;
+      } catch {
+        return false;
+      }
+    },
+  );
+
+/**
+ * Find a test suffix that does not collide with any existing MLflow prompt
+ * (registered model). Same approach as findAvailableExperimentSuffix.
+ */
+export const findAvailablePromptSuffix = (
+  workspace: string,
+  baseNames: string[],
+  startSuffix: string,
+  attempt = 0,
+): Cypress.Chainable<string> => {
+  if (attempt >= 20) {
+    throw new Error(
+      `Could not find available prompt suffix after ${attempt} attempts ` +
+        `(last tried: ${startSuffix})`,
+    );
+  }
+  const results: boolean[] = [];
+  return baseNames
+    .reduce<Cypress.Chainable<boolean>>(
+      (prev, name) =>
+        prev.then(() =>
+          doesMlflowPromptNameExist(workspace, `${name}-${startSuffix}`).then((exists: boolean) => {
+            results.push(exists);
+            return exists;
+          }),
+        ),
+      cy.wrap(false),
+    )
+    .then(() => {
+      if (!results.some(Boolean)) {
+        return cy.wrap(startSuffix);
+      }
+      const taken = baseNames.filter((_, i) => results[i]);
+      cy.log(`Suffix ${startSuffix} collides on: ${taken.join(', ')}. Trying next suffix.`);
+      const next = String(Number(startSuffix) + 1).padStart(startSuffix.length, '0');
+      return findAvailablePromptSuffix(workspace, baseNames, next, attempt + 1);
+    });
+};
+
+/**
  * Log multiple runs sequentially under a single experiment.
  *
  * @param workspace - Namespace to scope the runs to.
@@ -689,7 +850,7 @@ export const logMlflowRunsViaAPI = (
       return cy.wrap(collected);
     }
     const [run, ...rest] = remaining;
-    return logMlflowRunViaAPI(workspace, experimentId, run).then((runId) =>
+    return logMlflowRunViaAPI(workspace, experimentId, run).then((runId: string) =>
       logNext(rest, [...collected, runId]),
     );
   };

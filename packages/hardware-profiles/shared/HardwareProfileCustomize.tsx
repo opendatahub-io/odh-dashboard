@@ -13,11 +13,11 @@ import {
 } from '@patternfly/react-core';
 import { QuestionCircleIcon } from '@patternfly/react-icons';
 import type { ContainerResources, Identifier } from '@odh-dashboard/k8s-core';
-import CPUField from '@odh-dashboard/internal/components/CPUField';
-import MemoryField from '@odh-dashboard/internal/components/MemoryField';
+import CPUField from '@odh-dashboard/ui-core/components/CPUField';
+import MemoryField from '@odh-dashboard/ui-core/components/MemoryField';
 import NumberInputWrapper from '@odh-dashboard/ui-core/components/NumberInputWrapper';
 import { ValidationContext } from '@odh-dashboard/ui-core/utilities/useValidation';
-import DashboardHelpTooltip from '@odh-dashboard/internal/concepts/dashboard/DashboardHelpTooltip';
+import DashboardHelpTooltip from '@odh-dashboard/ui-core/components/DashboardHelpTooltip';
 import { formatResourceValue } from './utils';
 
 type HardwareProfileCustomizeProps = {

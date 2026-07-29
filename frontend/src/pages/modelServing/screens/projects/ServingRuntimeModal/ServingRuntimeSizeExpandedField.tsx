@@ -2,8 +2,8 @@ import * as React from 'react';
 import { Grid } from '@patternfly/react-core';
 import { ContainerResourceAttributes, type ContainerResources } from '@odh-dashboard/k8s-core';
 import { useZodFormValidation } from '@odh-dashboard/ui-core/hooks/useZodFormValidation';
-import { CPUFieldWithCheckbox } from '#~/components/CPUField';
-import { MemoryFieldWithCheckbox } from '#~/components/MemoryField';
+import { CPUFieldWithCheckbox } from '@odh-dashboard/ui-core/components/CPUField';
+import { MemoryFieldWithCheckbox } from '@odh-dashboard/ui-core/components/MemoryField';
 import { ModelServingSize, modelServingSizeSchema } from './validationUtils';
 
 type ServingRuntimeSizeExpandedFieldProps = {

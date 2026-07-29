@@ -1,7 +1,7 @@
 import { z, ZodIssue } from 'zod';
 import type { Identifier } from '@odh-dashboard/k8s-core';
 import { HardwareProfileWarningType } from '@odh-dashboard/internal/concepts/hardwareProfiles/types';
-import { isLarger, splitValueUnit, UnitOption } from '@odh-dashboard/internal/utilities/valueUnits';
+import { isLarger, splitValueUnit, UnitOption } from '@odh-dashboard/ui-core/utilities/valueUnits';
 
 const defaultCountSchema = (identifier: Identifier, unitOptions?: UnitOption[]) =>
   z.union([z.string(), z.number()]).superRefine((defaultCount, ctx) => {

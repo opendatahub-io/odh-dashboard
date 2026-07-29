@@ -1,10 +1,10 @@
 import * as React from 'react';
 import { FormGroup, FormHelperText, HelperText, HelperTextItem } from '@patternfly/react-core';
 import { IdentifierResourceType } from '@odh-dashboard/k8s-core';
-import MemoryField from '@odh-dashboard/internal/components/MemoryField';
-import CPUField from '@odh-dashboard/internal/components/CPUField';
+import MemoryField from '@odh-dashboard/ui-core/components/MemoryField';
+import CPUField from '@odh-dashboard/ui-core/components/CPUField';
 import NumberInputWrapper from '@odh-dashboard/ui-core/components/NumberInputWrapper';
-import DashboardHelpTooltip from '@odh-dashboard/internal/concepts/dashboard/DashboardHelpTooltip';
+import DashboardHelpTooltip from '@odh-dashboard/ui-core/components/DashboardHelpTooltip';
 
 type CountFormFieldProps = {
   label?: string;

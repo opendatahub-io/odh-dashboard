@@ -159,6 +159,134 @@ func TestSandboxPhaseSuspendedOperatingMode(t *testing.T) {
 	assert.Equal(t, statusStopped, sandboxPhase(sandbox))
 }
 
+func TestSandboxPhaseFromConditions(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		sandbox  map[string]any
+		expected string
+	}{
+		{
+			name: "weatherservice shape Ready=True DependenciesReady",
+			sandbox: map[string]any{
+				"metadata": map[string]any{"name": "weatherservice", "namespace": "dan"},
+				"spec":     map[string]any{"operatingMode": "Running"},
+				"status": map[string]any{
+					"conditions": []any{
+						map[string]any{
+							"type":    sandboxConditionReady,
+							"status":  "True",
+							"reason":  sandboxReasonDependenciesReady,
+							"message": "Pod is Ready; Service Exists",
+						},
+					},
+					"serviceFQDN": "weatherservice.dan.svc.cluster.local",
+				},
+			},
+			expected: statusReady,
+		},
+		{
+			name: "weatherservice2 shape Ready=False DependenciesNotReady",
+			sandbox: map[string]any{
+				"metadata": map[string]any{"name": "weatherservice2", "namespace": "dan"},
+				"spec":     map[string]any{"operatingMode": "Running"},
+				"status": map[string]any{
+					"conditions": []any{
+						map[string]any{
+							"type":    sandboxConditionReady,
+							"status":  "False",
+							"reason":  sandboxReasonDependenciesNotReady,
+							"message": "Pod is Running but not Ready; Service Exists",
+						},
+					},
+				},
+			},
+			expected: statusPending,
+		},
+		{
+			name: "ReconcilerError maps to failed",
+			sandbox: map[string]any{
+				"metadata": map[string]any{"name": "broken-agent", "namespace": "dan"},
+				"status": map[string]any{
+					"conditions": []any{
+						map[string]any{
+							"type":   sandboxConditionReady,
+							"status": "False",
+							"reason": sandboxReasonReconcilerError,
+						},
+					},
+				},
+			},
+			expected: statusFailed,
+		},
+		{
+			name: "SandboxSuspended reason maps to stopped",
+			sandbox: map[string]any{
+				"metadata": map[string]any{"name": "paused-agent", "namespace": "dan"},
+				"status": map[string]any{
+					"conditions": []any{
+						map[string]any{
+							"type":   sandboxConditionReady,
+							"status": "False",
+							"reason": sandboxReasonSandboxSuspended,
+						},
+					},
+				},
+			},
+			expected: statusStopped,
+		},
+		{
+			name: "legacy phase only without conditions",
+			sandbox: map[string]any{
+				"metadata": map[string]any{"name": "legacy-agent", "namespace": "dan"},
+				"status": map[string]any{
+					"phase": "Ready",
+				},
+			},
+			expected: statusReady,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			sandbox := unstructured.Unstructured{Object: tt.sandbox}
+			assert.Equal(t, tt.expected, sandboxPhase(sandbox))
+		})
+	}
+}
+
+func TestSandboxToSummaryAndDetailFromConditionsOnly(t *testing.T) {
+	sandbox := unstructured.Unstructured{Object: map[string]any{
+		"metadata": map[string]any{
+			"name":      "weatherservice",
+			"namespace": "dan",
+			"labels": map[string]any{
+				agents.LabelOpenShellManagedBy: agents.OpenShellManagedByValue,
+			},
+		},
+		"spec": map[string]any{"operatingMode": "Running"},
+		"status": map[string]any{
+			"conditions": []any{
+				map[string]any{
+					"type":   sandboxConditionReady,
+					"status": "True",
+					"reason": sandboxReasonDependenciesReady,
+				},
+			},
+			"serviceFQDN": "weatherservice.dan.svc.cluster.local",
+		},
+	}}
+
+	summary := sandboxToSummary(sandbox, nil)
+	assert.Equal(t, statusReady, summary.Status)
+
+	detail := sandboxToDetail(sandbox, nil)
+	require.NotNil(t, detail)
+	assert.Equal(t, statusReady, detail.ReadyStatus)
+}
+
 func TestSandboxEndpointURLConsistentBetweenSummaryAndDetail(t *testing.T) {
 	sandbox := unstructured.Unstructured{Object: map[string]any{
 		"metadata": map[string]any{

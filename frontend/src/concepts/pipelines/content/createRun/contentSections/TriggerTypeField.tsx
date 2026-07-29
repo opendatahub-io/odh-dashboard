@@ -9,6 +9,7 @@ import {
 } from '@patternfly/react-core';
 import SimpleSelect, { SimpleSelectOption } from '@odh-dashboard/ui-core/components/SimpleSelect';
 import NumberInputWrapper from '@odh-dashboard/ui-core/components/NumberInputWrapper';
+import DashboardHelpTooltip from '@odh-dashboard/ui-core/components/DashboardHelpTooltip';
 import {
   PeriodicOptions,
   RunTypeScheduledData,
@@ -18,7 +19,6 @@ import {
   DEFAULT_CRON_STRING,
   DEFAULT_PERIODIC_OPTION,
 } from '#~/concepts/pipelines/content/createRun/const';
-import DashboardHelpTooltip from '#~/concepts/dashboard/DashboardHelpTooltip';
 import { extractNumberAndTimeUnit } from './utils';
 
 type TriggerTypeFieldProps = {

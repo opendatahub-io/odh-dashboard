@@ -7,4 +7,7 @@ export const DISABLED_ANNOTATION = 'opendatahub.io/disabled';
 export const ROUTING_TYPE_ANNOTATION = 'opendatahub.io/routing-type';
 export const SUPPORTED_TOPOLOGIES_ANNOTATION = 'opendatahub.io/supported-topologies';
 export const DASHBOARD_RESOURCE_LABEL = 'opendatahub.io/dashboard';
+export const TOPOLOGY_TYPE_ANNOTATION = 'opendatahub.io/topology-type';
+export const TOPOLOGY_CONFIG_REF_ANNOTATION = 'opendatahub.io/topology-config-ref';
+export const ROUTING_CONFIG_REF_ANNOTATION = 'opendatahub.io/routing-config-ref';
 export const VLLM_ADDITIONAL_ARGS = 'VLLM_ADDITIONAL_ARGS';

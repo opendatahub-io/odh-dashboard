@@ -8,6 +8,7 @@ import {
   filterBlankPackages,
   filterHardwareProfilesByRecommendedIdentifiers,
   getEnabledStatus,
+  isImageEffectivelyEnabled,
 } from '#~/pages/BYONImages/utils';
 import { BYONImage, BYONImagePackage } from '#~/types';
 
@@ -71,6 +72,57 @@ describe('getEnabledStatus', () => {
       },
     ])[0];
     expect(getEnabledStatus(image)).toBe(0);
+  });
+});
+
+describe('isImageEffectivelyEnabled', () => {
+  it('should return true for visible image without error', () => {
+    const image: BYONImage = mockByon([
+      { name: 'img', display_name: 'Img', visible: true, error: '', packages: [] },
+    ])[0];
+    expect(isImageEffectivelyEnabled(image)).toBe(true);
+  });
+
+  it('should return false for non-visible image', () => {
+    const image: BYONImage = mockByon([
+      { name: 'img', display_name: 'Img', visible: false, error: '', packages: [] },
+    ])[0];
+    expect(isImageEffectivelyEnabled(image)).toBe(false);
+  });
+
+  it('should return false for non-OOTB image with error', () => {
+    const image: BYONImage = mockByon([
+      { name: 'img', display_name: 'Img', visible: true, error: 'broken', packages: [] },
+    ])[0];
+    expect(isImageEffectivelyEnabled(image)).toBe(false);
+  });
+
+  it('should return true for OOTB image with error (recoverable)', () => {
+    const image: BYONImage = mockByon([
+      {
+        name: 'img',
+        display_name: 'Img',
+        visible: true,
+        error: 'broken',
+        isOOTB: true,
+        packages: [],
+      },
+    ])[0];
+    expect(isImageEffectivelyEnabled(image)).toBe(true);
+  });
+
+  it('should return false for non-visible OOTB image with error', () => {
+    const image: BYONImage = mockByon([
+      {
+        name: 'img',
+        display_name: 'Img',
+        visible: false,
+        error: 'broken',
+        isOOTB: true,
+        packages: [],
+      },
+    ])[0];
+    expect(isImageEffectivelyEnabled(image)).toBe(false);
   });
 });
 

@@ -1,5 +1,5 @@
 import { FetchState, FetchStateCallbackPromise, NotReadyError, useFetchState } from 'mod-arch-core';
-import React from 'react';
+import * as React from 'react';
 import { Agent } from '~/app/agentsCatalogTypes';
 import { AgentsCatalogContext } from '~/app/context/agentsCatalog/AgentsCatalogContext';
 import type { ModelCatalogAPIState } from '~/app/hooks/modelCatalog/useModelCatalogAPIState';

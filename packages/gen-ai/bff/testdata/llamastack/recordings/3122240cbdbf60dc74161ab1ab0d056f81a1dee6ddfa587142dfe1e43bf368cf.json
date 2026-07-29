@@ -20,7 +20,7 @@
     "endpoint": "/v1/chat/completions",
     "model": "models/gemini-2.5-flash",
     "provider_metadata": {
-      "openai_sdk_version": "2.41.1"
+      "openai_sdk_version": "2.45.0"
     }
   },
   "response": {
@@ -32,40 +32,7 @@
           "choices": [
             {
               "delta": {
-                "content": "Hello! How can I",
-                "function_call": null,
-                "refusal": null,
-                "role": "assistant",
-                "tool_calls": null
-              },
-              "finish_reason": null,
-              "index": 0,
-              "logprobs": null
-            }
-          ],
-          "created": 0,
-          "model": "models/gemini-2.5-flash",
-          "object": "chat.completion.chunk",
-          "moderation": null,
-          "service_tier": null,
-          "system_fingerprint": null,
-          "usage": {
-            "completion_tokens": 5,
-            "prompt_tokens": 2,
-            "total_tokens": 21,
-            "completion_tokens_details": null,
-            "prompt_tokens_details": null
-          }
-        }
-      },
-      {
-        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
-        "__data__": {
-          "id": "rec-3122240cbdbf",
-          "choices": [
-            {
-              "delta": {
-                "content": " help you today?",
+                "content": "Hello! How can I help you today?",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -85,7 +52,7 @@
           "usage": {
             "completion_tokens": 9,
             "prompt_tokens": 2,
-            "total_tokens": 25,
+            "total_tokens": 33,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }

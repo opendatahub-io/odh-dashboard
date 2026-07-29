@@ -56,7 +56,12 @@ export const ModelInfoPopover: React.FC<{
       </div>
     }
   >
-    <Button variant="plain" aria-label={`More info about ${displayName}`} className="pf-v6-u-p-0">
+    <Button
+      variant="plain"
+      aria-label={`More info about ${displayName}`}
+      className="pf-v6-u-p-0"
+      data-testid={`model-info-button-${modelId}`}
+    >
       <OutlinedQuestionCircleIcon />
     </Button>
   </Popover>

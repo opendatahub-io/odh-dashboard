@@ -21,18 +21,18 @@ import {
 import { isEnumMember } from '@odh-dashboard/foundation';
 import { ContainerResourceAttributes } from '@odh-dashboard/k8s-core';
 import {
+  CPU_UNITS,
+  MEMORY_UNITS_FOR_PARSING,
+  UnitOption,
+  convertToUnit,
+} from '@odh-dashboard/ui-core/utilities/valueUnits';
+import {
   ClusterQueueKind,
   LocalQueueKind,
   WorkloadCondition,
   WorkloadKind,
   WorkloadOwnerType,
 } from '#~/k8sTypes';
-import {
-  CPU_UNITS,
-  MEMORY_UNITS_FOR_PARSING,
-  UnitOption,
-  convertToUnit,
-} from '#~/utilities/valueUnits';
 import { WorkloadWithUsage } from '#~/api';
 
 export enum WorkloadStatusType {

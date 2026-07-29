@@ -16,6 +16,7 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/config"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes/pgvector"
+	"github.com/opendatahub-io/gen-ai/internal/telemetry"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
@@ -35,7 +36,6 @@ func main() {
 	flag.BoolVar(&cfg.MockLSClient, "mock-ls-client", getEnvAsBool("MOCK_LS_CLIENT", false), "Use mock Llama Stack client")
 	flag.BoolVar(&cfg.MockK8sClient, "mock-k8s-client", getEnvAsBool("MOCK_K8S_CLIENT", false), "Use mock Kubernetes client")
 	flag.BoolVar(&cfg.MockMCPClient, "mock-mcp-client", getEnvAsBool("MOCK_MCP_CLIENT", false), "Use mock MCP client")
-	flag.BoolVar(&cfg.MockMaaSClient, "mock-maas-client", getEnvAsBool("MOCK_MAAS_CLIENT", false), "Use mock MaaS client")
 	flag.BoolVar(&cfg.MockMLflowClient, "mock-mlflow-client", getEnvAsBool("MOCK_MLFLOW_CLIENT", false), "Use mock MLflow client")
 	flag.StringVar(&cfg.AuthMethod, "auth-method", "user_token", "Authentication method (disabled or user_token)")
 	flag.StringVar(&cfg.AuthTokenHeader, "auth-token-header", getEnvAsString("AUTH_TOKEN_HEADER", config.DefaultAuthTokenHeader), "Header used to extract the token (e.g., Authorization)")
@@ -77,6 +77,7 @@ func main() {
 	flag.StringVar(&cfg.PgvectorUser, "pgvector-user", getEnvAsString("PGVECTOR_USER", "vectoruser"), "PostgreSQL user for pgvector")
 	flag.StringVar(&cfg.PgvectorPasswordSecretName, "pgvector-password-secret-name", getEnvAsString("PGVECTOR_PASSWORD_SECRET_NAME", ""), "Kubernetes Secret name containing the pgvector password")
 	flag.StringVar(&cfg.PgvectorPasswordSecretKey, "pgvector-password-secret-key", getEnvAsString("PGVECTOR_PASSWORD_SECRET_KEY", pgvector.DefaultPasswordKey), "Key in the pgvector password Secret")
+	flag.StringVar(&cfg.PgvectorImage, "pgvector-image", getEnvAsString(pgvector.RelatedImageEnvVar, ""), "Container image for auto-provisioned pgvector (set via RELATED_IMAGE_POSTGRESQL_16_IMAGE)")
 
 	// BFF inter-communication configuration
 	flag.BoolVar(&cfg.MockBFFClients, "mock-bff-clients", getEnvAsBool("MOCK_BFF_CLIENTS", false), "Use mock BFF clients for inter-BFF communication")
@@ -87,6 +88,13 @@ func main() {
 	flag.StringVar(&cfg.BFFMaaSAuthMethod, "bff-maas-auth-method", getEnvAsString("BFF_MAAS_AUTH_METHOD", "user_token"), "Auth method for MaaS BFF: 'user_token' (default) or 'internal' (Kubeflow)")
 	flag.StringVar(&cfg.BFFMaaSAuthTokenHeader, "bff-maas-auth-token-header", getEnvAsString("BFF_MAAS_AUTH_TOKEN_HEADER", "x-forwarded-access-token"), "Header to send auth token to MaaS BFF")
 	flag.StringVar(&cfg.BFFMaaSAuthTokenPrefix, "bff-maas-auth-token-prefix", getEnvAsString("BFF_MAAS_AUTH_TOKEN_PREFIX", ""), "Prefix for auth token header (e.g., 'Bearer ')")
+	flag.StringVar(&cfg.BFFMLflowServiceName, "bff-mlflow-service-name", getEnvAsString("BFF_MLFLOW_SERVICE_NAME", "odh-dashboard"), "Kubernetes service name for MLflow BFF")
+	flag.IntVar(&cfg.BFFMLflowServicePort, "bff-mlflow-service-port", getEnvAsInt("BFF_MLFLOW_SERVICE_PORT", 8343), "Port for MLflow BFF service")
+	flag.BoolVar(&cfg.BFFMLflowTLSEnabled, "bff-mlflow-tls-enabled", getEnvAsBool("BFF_MLFLOW_TLS_ENABLED", true), "Enable TLS for MLflow BFF communication")
+	flag.StringVar(&cfg.BFFMLflowDevURL, "bff-mlflow-dev-url", getEnvAsString("BFF_MLFLOW_DEV_URL", ""), "Developer override URL for MLflow BFF (e.g., http://localhost:8443/api/v1)")
+	flag.StringVar(&cfg.BFFMLflowAuthMethod, "bff-mlflow-auth-method", getEnvAsString("BFF_MLFLOW_AUTH_METHOD", "user_token"), "Auth method for MLflow BFF: 'user_token' (default) or 'internal' (Kubeflow)")
+	flag.StringVar(&cfg.BFFMLflowAuthTokenHeader, "bff-mlflow-auth-token-header", getEnvAsString("BFF_MLFLOW_AUTH_TOKEN_HEADER", "x-forwarded-access-token"), "Header to send auth token to MLflow BFF")
+	flag.StringVar(&cfg.BFFMLflowAuthTokenPrefix, "bff-mlflow-auth-token-prefix", getEnvAsString("BFF_MLFLOW_AUTH_TOKEN_PREFIX", ""), "Prefix for auth token header (e.g., 'Bearer ')")
 
 	// Initialize klog flags before parsing
 	klog.InitFlags(nil)
@@ -113,6 +121,8 @@ func main() {
 
 	// Only use for logging errors about logging configuration.
 	slog.SetDefault(logger)
+
+	shutdownTelemetry := telemetry.Setup(logger)
 
 	app, err := api.NewApp(cfg, slog.New(logger.Handler()))
 	if err != nil {
@@ -163,6 +173,14 @@ func main() {
 	// Shutdown the HTTP server gracefully
 	if err := srv.Shutdown(ctx); err != nil {
 		logger.Error("server shutdown failed", "error", err)
+	}
+
+	// Shutdown telemetry (with its own deadline so span flush isn't starved
+	// by a slow HTTP drain consuming the shared 30s budget above)
+	telCtx, telCancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer telCancel()
+	if err := shutdownTelemetry(telCtx); err != nil {
+		logger.Error("telemetry shutdown failed", "error", err)
 	}
 
 	// Shutdown the App gracefully

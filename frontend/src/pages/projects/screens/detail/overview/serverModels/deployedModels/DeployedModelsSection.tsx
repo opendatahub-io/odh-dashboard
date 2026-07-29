@@ -15,12 +15,12 @@ import {
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import type { InferenceServiceKind } from '@odh-dashboard/model-serving/shared';
 import { ModelServingPlatformSelectErrorAlert } from '@odh-dashboard/model-serving/shared/components';
+import { CollapsibleSection } from '@odh-dashboard/ui-core';
+import OverviewCard from '@odh-dashboard/ui-core/components/detail/OverviewCard';
 import { ProjectObjectType, SectionType } from '#~/concepts/design/utils';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import { getProjectModelServingPlatform } from '#~/pages/modelServing/screens/projects/utils';
 import useServingPlatformStatuses from '#~/pages/modelServing/useServingPlatformStatuses';
-import CollapsibleSection from '#~/concepts/design/CollapsibleSection';
-import OverviewCard from '#~/pages/projects/screens/detail/overview/components/OverviewCard';
 import AddModelFooter from '#~/pages/projects/screens/detail/overview/serverModels/AddModelFooter';
 import ModelServingContextProvider from '#~/pages/modelServing/ModelServingContext';
 import { isProjectNIMSupported } from '#~/pages/modelServing/screens/projects/nim/nimUtils';

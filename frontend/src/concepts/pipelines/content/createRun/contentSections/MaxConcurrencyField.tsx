@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { FormGroup, FormHelperText, HelperText, HelperTextItem } from '@patternfly/react-core';
 import NumberInputWrapper from '@odh-dashboard/ui-core/components/NumberInputWrapper';
-import DashboardHelpTooltip from '#~/concepts/dashboard/DashboardHelpTooltip';
+import DashboardHelpTooltip from '@odh-dashboard/ui-core/components/DashboardHelpTooltip';
 
 type MaxConcurrencyFieldProps = {
   onChange: (value: number) => void;

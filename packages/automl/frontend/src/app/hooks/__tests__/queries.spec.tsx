@@ -909,5 +909,71 @@ describe('useModelEvaluationArtifactsQuery', () => {
 
     expect(result.current.curves).toBeUndefined();
   });
+
+  it('should load back_testing.json for timeseries runs (isTimeseries=true)', async () => {
+    const mockBackTesting = {
+      schema_version: 1,
+      model_name: 'Theta_FULL',
+      prediction_length: 1,
+      num_val_windows: 2,
+      eval_metric: 'MASE',
+      target: 'target',
+      id_column: 'item_id',
+      timestamp_column: 'timestamp',
+      per_window_metrics: [
+        {
+          window_id: 0,
+          test_start: '2025-12-08',
+          test_end: '2025-12-14',
+          metrics: { MASE: 0.39 },
+        },
+      ],
+      series_analysis: {
+        num_series_evaluated: 10,
+        best_performer: {
+          item_id: 'H1',
+          avg_metrics: { MASE: 0.2 },
+          windows: [],
+        },
+        worst_performer: {
+          item_id: 'H2',
+          avg_metrics: { MASE: 0.9 },
+          windows: [],
+        },
+      },
+    };
+
+    // featureImportance, confusionMatrix, and curves are all disabled for timeseries
+    (global.fetch as jest.Mock).mockResolvedValueOnce(mockBlobJsonResponse(mockBackTesting));
+
+    const { result } = renderHook(
+      () => useModelEvaluationArtifactsQuery('test-ns', 'models/best/', false, true),
+      { wrapper: createWrapper() },
+    );
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    expect(result.current.backTesting).toEqual(mockBackTesting);
+    expect(result.current.confusionMatrix).toBeUndefined();
+    expect(result.current.curves).toBeUndefined();
+  });
+
+  it('should not fetch back_testing.json for non-timeseries runs (isTimeseries=false)', async () => {
+    (global.fetch as jest.Mock).mockResolvedValueOnce(mockBlobJsonResponse(mockFeatureImportance));
+
+    const { result } = renderHook(
+      () => useModelEvaluationArtifactsQuery('test-ns', 'models/best/', false, false),
+      { wrapper: createWrapper() },
+    );
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    expect(result.current.backTesting).toBeUndefined();
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+  });
 });
 /* eslint-enable camelcase */

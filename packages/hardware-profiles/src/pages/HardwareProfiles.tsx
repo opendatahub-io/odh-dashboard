@@ -15,7 +15,7 @@ import {
 } from '@patternfly/react-core';
 import { BanIcon, PlusCircleIcon } from '@patternfly/react-icons';
 import { Link } from 'react-router-dom';
-import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
+import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import { useAccessAllowed, verbModelAccess } from '@odh-dashboard/internal/concepts/userSSAR';
 import {
   HardwareProfileModel,
@@ -23,7 +23,7 @@ import {
 } from '@odh-dashboard/internal/api';
 import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors';
 import { ProjectObjectType } from '@odh-dashboard/internal/concepts/design/utils';
-import TitleWithIcon from '@odh-dashboard/internal/concepts/design/TitleWithIcon';
+import TitleWithIcon from '@odh-dashboard/ui-core/design/TitleWithIcon';
 import { useApplicationSettings } from '@odh-dashboard/internal/app/useApplicationSettings';
 import { HardwareProfilesContext } from '@odh-dashboard/internal/concepts/hardwareProfiles/HardwareProfilesContext';
 import { generateWarningForHardwareProfiles } from './utils';

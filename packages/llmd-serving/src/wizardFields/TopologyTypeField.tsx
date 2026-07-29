@@ -1,34 +1,33 @@
 import React from 'react';
 import {
   FormGroup,
-  Content,
   FormHelperText,
   HelperText,
   HelperTextItem,
   Stack,
   StackItem,
-  Tooltip,
 } from '@patternfly/react-core';
-import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { z } from 'zod';
 import type {
   WizardField,
   WizardFormData,
   WizardReviewSection,
-} from '@odh-dashboard/model-serving/types/form-data';
-import type { RecursivePartial } from '@odh-dashboard/internal/typeHelpers';
+} from '@odh-dashboard/model-serving/shared/types/form-data';
+import type { RecursivePartial } from '@odh-dashboard/foundation';
 import SimpleSelect, { SimpleSelectOption } from '@odh-dashboard/ui-core/components/SimpleSelect';
 import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
 import { LLMD_DEPLOYMENT_METHOD_KEY } from './deploymentMethodField';
 import {
   TopologyType,
   TopologyTypeLabels,
+  TopologyTypeDescriptions,
   type LLMInferenceServiceConfigKind,
   getConfigTopologyType,
 } from '../types';
 import { isConfigEnabled } from '../utils';
 import { useFetchTopologyConfigs } from '../api/LLMInferenceServiceConfigs';
 import { isLLMInferenceServiceActive } from '../formUtils';
+import { fireTopologyTypeSelected } from '../tracking/llmdTrackingConstants';
 
 // --- External data hook ---
 
@@ -105,7 +104,7 @@ const TopologyTypeFieldComponent: TopologyTypeFieldType['component'] = ({
 
   const options: SimpleSelectOption[] = React.useMemo(
     () =>
-      Object.values(TopologyType).map((topoType) => {
+      Object.values(TopologyType).map((topoType): SimpleSelectOption => {
         const configs = configsByTopology?.[topoType];
         const hasConfigs = configs !== undefined && configs.length > 0;
         const isSingleNode = topoType === TopologyType.SINGLE_NODE;
@@ -113,16 +112,15 @@ const TopologyTypeFieldComponent: TopologyTypeFieldType['component'] = ({
         return {
           key: topoType,
           label: TopologyTypeLabels[topoType],
-          dropdownLabel: isOptionDisabled ? (
-            <>
-              {TopologyTypeLabels[topoType]}{' '}
-              <Tooltip content="No configurations available. To request one, contact your administrator.">
-                <OutlinedQuestionCircleIcon />
-              </Tooltip>
-            </>
-          ) : undefined,
+          description: TopologyTypeDescriptions[topoType],
           isAriaDisabled: isOptionDisabled,
           dataTestId: `topology-type-${topoType}`,
+          tooltipProps: isOptionDisabled
+            ? {
+                content: 'No configurations available. To request one, contact your administrator.',
+                position: 'left',
+              }
+            : undefined,
         };
       }),
     [configsByTopology],
@@ -132,18 +130,16 @@ const TopologyTypeFieldComponent: TopologyTypeFieldType['component'] = ({
     <FormGroup fieldId="topology-type-select" label="Topology type" isRequired>
       <Stack hasGutter>
         <StackItem>
-          <Content component="p">
-            Select the deployment topology for your model. This determines how the workload is
-            distributed across nodes.
-          </Content>
-        </StackItem>
-        <StackItem>
           <SimpleSelect
             isFullWidth
             options={options}
             onChange={(key) => {
               const matched = Object.values(TopologyType).find((v) => v === key);
               if (matched) {
+                fireTopologyTypeSelected({
+                  llmdComposablePattern: matched,
+                  previousPattern: value?.topologyType,
+                });
                 onChange({ topologyType: matched });
               }
             }}

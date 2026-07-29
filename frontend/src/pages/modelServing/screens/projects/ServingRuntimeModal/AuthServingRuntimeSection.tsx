@@ -11,7 +11,7 @@ import {
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import type { CreatingModelServingObjectCommon } from '@odh-dashboard/model-serving/shared';
-import { UpdateObjectAtPropAndValue } from '#~/pages/projects/types';
+import type { UpdateObjectAtPropAndValue } from '@odh-dashboard/ui-core';
 
 import ServingRuntimeTokenSection from './ServingRuntimeTokenSection';
 

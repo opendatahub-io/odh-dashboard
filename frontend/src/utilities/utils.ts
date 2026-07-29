@@ -144,8 +144,6 @@ export const isHTMLInputElement = (object: unknown): object is HTMLInputElement 
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   (object as Partial<HTMLInputElement>).value !== undefined;
 
-export { normalizeBetween } from '@odh-dashboard/ui-core/utilities';
-
 /**
  * @deprecated
  * modelmesh: RHOAIENG-34917, RHOAIENG-19185

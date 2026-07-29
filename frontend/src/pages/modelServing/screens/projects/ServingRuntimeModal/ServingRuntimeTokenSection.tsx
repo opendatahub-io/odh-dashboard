@@ -2,8 +2,8 @@ import * as React from 'react';
 import { Alert, Button, Checkbox, FormGroup, Stack, StackItem } from '@patternfly/react-core';
 import { PlusCircleIcon } from '@patternfly/react-icons';
 import type { CreatingModelServingObjectCommon } from '@odh-dashboard/model-serving/shared';
+import type { UpdateObjectAtPropAndValue } from '@odh-dashboard/ui-core';
 import IndentSection from '#~/pages/projects/components/IndentSection';
-import { UpdateObjectAtPropAndValue } from '#~/pages/projects/types';
 import ServingRuntimeTokenInput from './ServingRuntimeTokenInput';
 
 type ServingRuntimeTokenSectionProps<D extends CreatingModelServingObjectCommon> = {

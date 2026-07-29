@@ -81,7 +81,7 @@ describe('useQueuePositions', () => {
     await renderResult.waitForNextUpdate();
 
     expect(getPendingWorkloadsMock).toHaveBeenCalledWith('test-ns', 'user-queue');
-    expect(renderResult).hookToStrictEqual({ nb1: 1 });
+    expect(renderResult).hookToStrictEqual({ nb1: { queuePosition: 1, queueTotal: 1 } });
   });
 
   it('should fetch positions for Inadmissible workloads', async () => {
@@ -96,7 +96,7 @@ describe('useQueuePositions', () => {
 
     await renderResult.waitForNextUpdate();
 
-    expect(renderResult).hookToStrictEqual({ nb1: 2 });
+    expect(renderResult).hookToStrictEqual({ nb1: { queuePosition: 2, queueTotal: 1 } });
   });
 
   it('should return 1-indexed positions', async () => {
@@ -112,7 +112,10 @@ describe('useQueuePositions', () => {
 
     await renderResult.waitForNextUpdate();
 
-    expect(renderResult).hookToStrictEqual({ nb1: 1, nb2: 2 });
+    expect(renderResult).hookToStrictEqual({
+      nb1: { queuePosition: 1, queueTotal: 2 },
+      nb2: { queuePosition: 2, queueTotal: 2 },
+    });
   });
 
   it('should batch requests by queue name', async () => {
@@ -134,7 +137,10 @@ describe('useQueuePositions', () => {
     expect(getPendingWorkloadsMock).toHaveBeenCalledTimes(2);
     expect(getPendingWorkloadsMock).toHaveBeenCalledWith('test-ns', 'queue-a');
     expect(getPendingWorkloadsMock).toHaveBeenCalledWith('test-ns', 'queue-b');
-    expect(renderResult).hookToStrictEqual({ nb1: 1, nb2: 1 });
+    expect(renderResult).hookToStrictEqual({
+      nb1: { queuePosition: 1, queueTotal: 1 },
+      nb2: { queuePosition: 1, queueTotal: 1 },
+    });
   });
 
   it.each([

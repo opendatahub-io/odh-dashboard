@@ -32,8 +32,8 @@ import {
   MaaSModelRefSummary,
   SubscriptionPolicyFormDataResponse,
 } from '~/app/types/subscriptions';
-import { URL_PREFIX } from '~/app/utilities/const';
 import { modelRefsToSummaries } from '~/app/utilities/authpolicies';
+import { getSectionUrl } from '~/app/utilities/subscriptionManagementNavigation';
 
 const policyFormSchema = z.object({
   groups: z.array(z.string()).min(1, 'One or more groups must be selected'),
@@ -151,7 +151,7 @@ const PolicyForm: React.FC<PolicyFormProps> = ({
         const request: UpdatePolicyRequest = sharedFields;
         await updateAuthPolicy(initialPolicy.name)(apiOpts, request);
       }
-      navigate(returnTo ?? `${URL_PREFIX}/auth-policies`);
+      navigate(returnTo ?? getSectionUrl('auth-policies'));
     } catch (e) {
       setSubmitError(e instanceof Error ? e.message : 'Failed to save policy');
     } finally {
@@ -281,7 +281,7 @@ const PolicyForm: React.FC<PolicyFormProps> = ({
           </Button>
           <Button
             variant="link"
-            onClick={() => navigate(returnTo ?? `${URL_PREFIX}/auth-policies`)}
+            onClick={() => navigate(returnTo ?? getSectionUrl('auth-policies'))}
             isDisabled={isSubmitting}
             data-testid="policy-cancel-button"
           >

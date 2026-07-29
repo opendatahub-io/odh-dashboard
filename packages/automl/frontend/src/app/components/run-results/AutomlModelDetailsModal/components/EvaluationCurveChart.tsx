@@ -1,3 +1,15 @@
+/**
+ * EvaluationCurveChart — shared chart shell for classification evaluation tabs.
+ *
+ * Consumers: ROCCurveChart, PrecisionRecallChart
+ *
+ * Provides the interactive chart canvas (PF Victory), custom SVG tooltip with
+ * crosshair + per-series dot indicators, Voronoi hover with linear interpolation
+ * (findYAtX), and a side legend with eye-toggle visibility per curve.
+ *
+ * Each consumer builds its own curve lines and baseline, then passes them in as
+ * props — this component handles rendering, tooltip positioning, and legend state.
+ */
 import React from 'react';
 import {
   Chart,
@@ -66,9 +78,10 @@ const CursorVoronoiContainer = createContainer('cursor', 'voronoi');
 // These singletons bridge that gap.
 const chartState: {
   curveLines: CurveLine[];
+  isMulticlass: boolean;
   xMetricLabel: string;
   yMetricLabel: string;
-} = { curveLines: [], xMetricLabel: '', yMetricLabel: '' };
+} = { curveLines: [], isMulticlass: false, xMetricLabel: '', yMetricLabel: '' };
 
 const TOOLTIP_ROW_H = 16;
 const TOOLTIP_PAD = 10;
@@ -114,13 +127,13 @@ const CurveChartTooltip = ({
   const formattedX = datum.x.toFixed(4);
   const dotX = AXIS_LEFT + datum.x * PLOT_WIDTH;
   const lines = chartState.curveLines;
-  const isBinary = lines.length === 1;
+  const isBinary = !chartState.isMulticlass;
 
   const seriesPoints: SeriesPoint[] = isBinary
     ? [{ label: datum.name, index: 0, y: datum.y }]
-    : lines.map((line, idx) => ({
+    : lines.map((line) => ({
         label: line.label,
-        index: idx,
+        index: line.points[0]?.index ?? 0,
         y: findYAtX(line.points, datum.x),
       }));
 
@@ -256,6 +269,7 @@ const EvaluationCurveChart: React.FC<EvaluationCurveChartProps> = ({
   );
 
   chartState.curveLines = visibleLines;
+  chartState.isMulticlass = curveLines.length > 1;
   chartState.xMetricLabel = xMetricLabel;
   chartState.yMetricLabel = yMetricLabel;
 

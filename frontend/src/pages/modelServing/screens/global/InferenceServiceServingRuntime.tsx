@@ -7,13 +7,13 @@ import {
   getServingRuntimeVersion,
   getTemplateNameFromServingRuntime,
 } from '@odh-dashboard/model-serving/shared';
-import { ServingRuntimeVersionLabel } from '@odh-dashboard/model-serving/shared/components';
+import { renderDeploymentResourceVersionLabels } from '@odh-dashboard/model-serving/shared/components';
+import ScopedLabel from '@odh-dashboard/ui-core/components/ScopedLabel';
 import {
   SERVING_RUNTIME_SCOPE,
   ServingRuntimeVersionStatusLabel,
 } from '#~/pages/modelServing/screens/const';
 import ServingRuntimeTemplateStatus from '#~/pages/modelServing/screens/ServingRuntimeTemplateStatus';
-import ScopedLabel from '#~/components/ScopedLabel';
 import { useTemplateByName } from '#~/pages/modelServing/customServingRuntimes/useTemplateByName';
 import ServingRuntimeVersionStatus from '#~/pages/modelServing/screens/ServingRuntimeVersionStatus';
 import { getServingRuntimeVersionStatus } from '#~/pages/modelServing/utils';
@@ -48,13 +48,8 @@ const InferenceServiceServingRuntime: React.FC<Props> = ({ servingRuntime }) => 
         <Stack>
           <StackItem>{getDisplayNameFromServingRuntimeTemplate(servingRuntime)}</StackItem>
           <StackItem>
-            <LabelGroup>
-              {getServingRuntimeVersion(servingRuntime) && (
-                <ServingRuntimeVersionLabel
-                  version={getServingRuntimeVersion(servingRuntime)}
-                  isCompact
-                />
-              )}
+            <LabelGroup numLabels={5}>
+              {renderDeploymentResourceVersionLabels(servingRuntime, { isCompact: true })}
               {versionStatus && (
                 <ServingRuntimeVersionStatus
                   isOutdated={versionStatus === ServingRuntimeVersionStatusLabel.OUTDATED}

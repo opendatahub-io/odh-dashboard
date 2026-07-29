@@ -1,21 +1,37 @@
 import type { PipelineRun } from '~/app/types';
-import type { AutoragPattern } from '~/app/types/autoragPattern';
+import type { AutoragEvaluationMetric, AutoragPattern } from '~/app/types/autoragPattern';
 import { RuntimeStateKF } from '~/app/types/pipeline';
-import { MAX_DISPLAY_NAME_LENGTH } from './const';
+import { DEFAULT_OPTIMIZATION_METRIC, MAX_DISPLAY_NAME_LENGTH } from './const';
+
+const VALID_RUNTIME_STATES = new Set<string>(Object.values(RuntimeStateKF));
+
+/** Accepts only known KFP runtime state strings; otherwise returns undefined. */
+export const normalizePipelineRunState = (state: unknown): string | undefined => {
+  if (typeof state !== 'string') {
+    return undefined;
+  }
+  const normalized = state.trim();
+  if (normalized.length === 0) {
+    return undefined;
+  }
+  const upper = normalized.toUpperCase();
+  return VALID_RUNTIME_STATES.has(upper) ? upper : undefined;
+};
 
 /**
  * Whether the run is in a state where it completed successfully.
  */
-export const isRunCompleted = (state: string | undefined): boolean => {
-  const s = state?.toUpperCase();
-  return s === RuntimeStateKF.SUCCEEDED;
-};
+export const isRunCompleted = (state: unknown): boolean =>
+  normalizePipelineRunState(state) === RuntimeStateKF.SUCCEEDED;
 
 /**
  * Whether the run is in a state where it is no longer running.
  */
-export const isRunInTerminalState = (state: string | undefined): boolean => {
-  const s = state?.toUpperCase() ?? '';
+export const isRunInTerminalState = (state: unknown): boolean => {
+  const s = normalizePipelineRunState(state);
+  if (!s) {
+    return false;
+  }
   const TERMINAL_STATES: Set<string> = new Set([
     RuntimeStateKF.SUCCEEDED,
     RuntimeStateKF.FAILED,
@@ -29,8 +45,8 @@ export const isRunInTerminalState = (state: string | undefined): boolean => {
 /**
  * Whether the run is in a state where it can be terminated (stopped).
  */
-export const isRunTerminatable = (state: string | undefined): boolean => {
-  const s = state?.toUpperCase();
+export const isRunTerminatable = (state: unknown): boolean => {
+  const s = normalizePipelineRunState(state);
   return (
     s === RuntimeStateKF.RUNNING || s === RuntimeStateKF.PENDING || s === RuntimeStateKF.PAUSED
   );
@@ -40,8 +56,8 @@ export const isRunTerminatable = (state: string | undefined): boolean => {
  * Whether the run is still in progress (not yet in a terminal state).
  * Includes CANCELING — the pipeline is still running but cannot be stopped again.
  */
-export const isRunInProgress = (state: string | undefined): boolean => {
-  const s = state?.toUpperCase();
+export const isRunInProgress = (state: unknown): boolean => {
+  const s = normalizePipelineRunState(state);
   return (
     s === RuntimeStateKF.RUNNING || s === RuntimeStateKF.PENDING || s === RuntimeStateKF.CANCELING
   );
@@ -50,16 +66,16 @@ export const isRunInProgress = (state: string | undefined): boolean => {
 /**
  * Whether the run is in a terminal failure state where it can be retried.
  */
-export const isRunRetryable = (state: string | undefined): boolean => {
-  const s = state?.toUpperCase();
+export const isRunRetryable = (state: unknown): boolean => {
+  const s = normalizePipelineRunState(state);
   return s === RuntimeStateKF.FAILED || s === RuntimeStateKF.CANCELED;
 };
 
 /**
  * Whether the run is in a terminal state where it can be deleted.
  */
-export const isRunDeletable = (state: string | undefined): boolean => {
-  const s = state?.toUpperCase();
+export const isRunDeletable = (state: unknown): boolean => {
+  const s = normalizePipelineRunState(state);
   return (
     s === RuntimeStateKF.SUCCEEDED || s === RuntimeStateKF.FAILED || s === RuntimeStateKF.CANCELED
   );
@@ -84,9 +100,15 @@ export function parseErrorStatus(error: Error): number | undefined {
 }
 
 /**
- * Gets the optimized metric for AutoRAG from pipeline parameters.
+ * Gets the optimized metric name from the pipeline run's runtime parameters.
+ *
+ * Backend contract: this value always matches the `optimization_metric: true`
+ * flag on exactly one metric inside each pattern's evaluation block.
+ * Both sources are authoritative; prefer this for contexts where the pipeline
+ * run is available but individual pattern data is not (e.g. leaderboard headers).
+ *
  * @param pipelineRun - The pipeline run object containing parameters
- * @returns The optimized metric name from parameters, or 'faithfulness' as default
+ * @returns The optimized metric name from parameters, or the default optimization metric
  */
 export function getOptimizedMetricForRAG(pipelineRun?: PipelineRun): string {
   const parameters = pipelineRun?.runtime_config?.parameters;
@@ -96,7 +118,36 @@ export function getOptimizedMetricForRAG(pipelineRun?: PipelineRun): string {
       return metric;
     }
   }
-  return 'faithfulness';
+  return DEFAULT_OPTIMIZATION_METRIC;
+}
+
+/**
+ * Formats the elapsed time between two ISO timestamps as a short human-readable string
+ * (e.g. "34 s", "1 m 42 s", "2 h 5 m"). Returns undefined when either timestamp is missing
+ * or the resulting duration is invalid.
+ */
+export function formatDurationBetween(startStr?: string, endStr?: string): string | undefined {
+  if (!startStr || !endStr) {
+    return undefined;
+  }
+
+  const ms = new Date(endStr).getTime() - new Date(startStr).getTime();
+  if (ms < 0 || !Number.isFinite(ms)) {
+    return undefined;
+  }
+
+  const totalSeconds = Math.floor(ms / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  if (hours > 0) {
+    return minutes > 0 ? `${hours} h ${minutes} m` : `${hours} h`;
+  }
+  if (minutes > 0) {
+    return seconds > 0 ? `${minutes} m ${seconds} s` : `${minutes} m`;
+  }
+  return seconds > 0 ? `${seconds} s` : '< 1 s';
 }
 
 export function sanitizeFilename(str: string): string {
@@ -170,9 +221,11 @@ export function formatMetricName(metricKey: string): string {
     faithfulness: 'Answer faithfulness',
     answer_correctness: 'Answer correctness',
     context_correctness: 'Context correctness',
+    answer_relevance: 'Answer relevance',
     answer_relevancy: 'Answer relevancy',
     context_precision: 'Context precision',
     context_recall: 'Context recall',
+    overall_score: 'Overall score',
   };
   /* eslint-enable camelcase */
 
@@ -189,8 +242,17 @@ export function formatMetricName(metricKey: string): string {
 /**
  * Convert a snake_case key to Title Case (e.g. 'chunk_size' → 'Chunk Size').
  */
+const HUMANIZE_OVERRIDES: Record<string, string> = {
+  // eslint-disable-next-line camelcase
+  duration_seconds: 'Duration (seconds)',
+};
+
 export const humanize = (key: string): string =>
-  key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+  HUMANIZE_OVERRIDES[key] ??
+  key
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (c) => c.toUpperCase())
+    .replace(/\bId\b/g, 'ID');
 
 /**
  * Format an unknown value for display in a key-value list.
@@ -207,16 +269,83 @@ export const formatDisplayValue = (value: unknown): string => {
 };
 
 /**
- * Compute a rank map from an array of patterns, ranked by final_score descending.
+ * Look up a metric by name from a pattern's evaluation metrics.
+ */
+export function getMetricByName(
+  pattern: AutoragPattern,
+  name: string,
+): AutoragEvaluationMetric | undefined {
+  const normalized = name.toLowerCase();
+  return pattern.evaluation.metrics.find((m) => m.name.toLowerCase() === normalized);
+}
+
+/**
+ * Returns the metric flagged as the optimization target (`optimization_metric: true`).
+ *
+ * Backend contract: its `name` matches the run's `optimization_metric` pipeline
+ * parameter (see {@link getOptimizedMetricForRAG}). Prefer this for contexts
+ * where pattern data is available but the pipeline run is not (e.g. modals).
+ */
+export function getOptimizationMetric(
+  pattern: AutoragPattern,
+): AutoragEvaluationMetric | undefined {
+  return pattern.evaluation.metrics.find((m) => m.optimization_metric);
+}
+
+/**
+ * Returns the name of the optimization metric, or undefined if none is flagged.
+ */
+export function getOptimizationMetricName(pattern: AutoragPattern): string | undefined {
+  return getOptimizationMetric(pattern)?.name;
+}
+
+/**
+ * Returns the mean score of the optimization metric (the "final score" for ranking).
+ */
+export function getOptimizedScore(pattern: AutoragPattern): number {
+  const metric = getOptimizationMetric(pattern);
+  if (!metric) {
+    // eslint-disable-next-line no-console
+    console.warn(
+      `Pattern "${pattern.name}" has no metric with optimization_metric flag set; defaulting score to 0`,
+    );
+  }
+  const mean = metric?.scores.mean;
+  return mean != null && Number.isFinite(mean) ? mean : 0;
+}
+
+/**
+ * Compute a rank map from an array of patterns, ranked by optimization metric score descending.
  * Returns a Record mapping pattern name to rank (1-based).
+ *
+ * Uses the pattern-level `optimization_metric` flag, which the backend guarantees
+ * matches the run's `optimization_metric` pipeline parameter.
  */
 export function computePatternRankMap(patterns: AutoragPattern[]): Record<string, number> {
-  const sorted = patterns.toSorted((a, b) => b.final_score - a.final_score);
+  const sorted = patterns.toSorted((a, b) => getOptimizedScore(b) - getOptimizedScore(a));
   const map: Record<string, number> = {};
   sorted.forEach((p, i) => {
     map[p.name] = i + 1;
   });
   return map;
+}
+
+/**
+ * Resolves the winning pattern from a patterns record: the record key of the pattern with
+ * the highest optimization metric score. Ranking uses record keys (not `AutoragPattern.name`)
+ * so duplicate display names still resolve to a stable, unique key. Client-side only — there
+ * is no backend `best_model`-equivalent field for AutoRAG patterns.
+ */
+export function resolveBestPatternKey(
+  patterns: Record<string, AutoragPattern>,
+): string | undefined {
+  const patternKeys = Object.keys(patterns);
+  if (patternKeys.length === 0) {
+    return undefined;
+  }
+  return patternKeys.toSorted(
+    (a, b) => getOptimizedScore(patterns[b]) - getOptimizedScore(patterns[a]),
+  )[0];
 }
 
 /**
@@ -227,6 +356,53 @@ export const getCSSVar = (name: string, fallback: string): string => {
   const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
   return value || fallback;
 };
+
+/** Compares two optimized-metric values for leaderboard sorting; 'N/A' always sorts last. */
+export function compareOptimizedMetricValues(aVal: number | string, bVal: number | string): number {
+  if (aVal === 'N/A' && bVal === 'N/A') {
+    return 0;
+  }
+  if (aVal === 'N/A') {
+    return 1;
+  }
+  if (bVal === 'N/A') {
+    return -1;
+  }
+  const aNum = typeof aVal === 'number' ? aVal : 0;
+  const bNum = typeof bVal === 'number' ? bVal : 0;
+  if (Object.is(aNum, bNum)) {
+    return 0;
+  }
+  // NaN is not ordered by >/<; keep it consistently below every finite/infinite metric.
+  if (Number.isNaN(aNum)) {
+    return 1;
+  }
+  if (Number.isNaN(bNum)) {
+    return -1;
+  }
+  return bNum > aNum ? 1 : -1;
+}
+
+/**
+ * Orders pattern keys by optimized metric, pinning `bestPatternKey` first when provided.
+ * Keeps the leaderboard's rank-1 row consistent with the pipeline visualization's winning
+ * pattern (both derived client-side via `computePatternRankMap`/`resolveBestPatternKey`).
+ */
+export function orderPatternsByLeaderboardRank(
+  patternKeys: string[],
+  getOptimizedValue: (patternKey: string) => number | string,
+  bestPatternKey?: string,
+): string[] {
+  const sorted = patternKeys.toSorted((a, b) =>
+    compareOptimizedMetricValues(getOptimizedValue(a), getOptimizedValue(b)),
+  );
+
+  if (!bestPatternKey || !patternKeys.includes(bestPatternKey)) {
+    return sorted;
+  }
+
+  return [bestPatternKey, ...sorted.filter((key) => key !== bestPatternKey)];
+}
 
 /**
  * Format metric values for display.
@@ -242,4 +418,34 @@ export function formatMetricValue(value: number | string): string {
     return value.toExponential(3);
   }
   return fixed;
+}
+
+/** Match exact task dir or task dir + hyphen + KFP branch numeric suffix (e.g. `-2`). */
+export function isComponentTaskDirName(dirName: string, pattern: string): boolean {
+  if (dirName === pattern) {
+    return true;
+  }
+  if (!dirName.startsWith(`${pattern}-`)) {
+    return false;
+  }
+  const suffix = dirName.slice(pattern.length + 1);
+  return suffix.length > 0 && /^\d+$/.test(suffix);
+}
+
+/**
+ * Find an S3 common-prefix directory whose leaf name matches the task path or a
+ * KFP branch suffix variant (`task-2`). The suffix disambiguates conditional
+ * branches and is unrelated to retries or recency; at most one match is expected.
+ * Returns the prefix without a trailing slash, or `undefined` when none match.
+ */
+export function findComponentTaskPrefix(
+  commonPrefixes: { prefix: string }[],
+  pattern: string,
+): string | undefined {
+  const match = commonPrefixes.find((p) => {
+    const segments = p.prefix.split('/').filter(Boolean);
+    const dirName = segments[segments.length - 1] ?? '';
+    return isComponentTaskDirName(dirName, pattern);
+  });
+  return match ? match.prefix.replace(/\/$/, '') : undefined;
 }

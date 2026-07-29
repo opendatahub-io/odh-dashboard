@@ -19,3 +19,11 @@ export const COLOR_SCALE = [
 
 export const TICK_VALUES = Array.from({ length: 11 }, (_, i) => i / 10);
 export const CHART_PADDING = { bottom: 60, left: 80, right: 50, top: 20 };
+export const BACKTEST_CHART_PADDING = { bottom: 60, left: 80, right: 40, top: 20 };
+export const HOLDOUT_COLOR = 'var(--automl-holdout-color)';
+
+export const TOOLTIP_TEXT_PROPS = {
+  fontSize: 11,
+  fill: 'var(--pf-t--global--text--color--regular)',
+  fontFamily: 'var(--pf-t--global--font--family--body)',
+};

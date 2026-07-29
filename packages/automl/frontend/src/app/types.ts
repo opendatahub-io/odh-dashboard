@@ -239,3 +239,50 @@ export type MulticlassCurvesData = {
 };
 
 export type CurvesData = BinaryCurvesData | MulticlassCurvesData;
+
+export type BackTestingForecastPoint = {
+  timestamp: string;
+  actual: number;
+  predicted: number;
+  lower_bound: number;
+  upper_bound: number;
+  lower_quantile?: number;
+  upper_quantile?: number;
+};
+
+export type BackTestingWindowEntry = {
+  window_id: number;
+  metrics: Record<string, number>;
+  forecast_data: BackTestingForecastPoint[];
+};
+
+export type BackTestingSeriesPerformer = {
+  item_id: string;
+  avg_metrics: Record<string, number>;
+  windows: BackTestingWindowEntry[];
+};
+
+export type BackTestingPerWindowMetric = {
+  window_id: number;
+  cutoff?: number;
+  test_start: string;
+  test_end: string;
+  metrics: Record<string, number>;
+};
+
+export type BackTestingData = {
+  schema_version?: number;
+  model_name: string;
+  prediction_length: number;
+  num_val_windows: number;
+  eval_metric: string;
+  target: string;
+  id_column: string;
+  timestamp_column: string;
+  per_window_metrics: BackTestingPerWindowMetric[];
+  series_analysis: {
+    num_series_evaluated: number;
+    best_performer: BackTestingSeriesPerformer;
+    worst_performer: BackTestingSeriesPerformer;
+  };
+};

@@ -3,6 +3,7 @@ import React from 'react';
 import type { ProjectKind } from '@odh-dashboard/k8s-core';
 import { getResourceNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import type { ModelDeployPrefillInfo } from '@odh-dashboard/model-serving/shared';
+import type { UpdateObjectAtPropAndValue } from '@odh-dashboard/ui-core';
 import {
   Connection,
   ConnectionTypeConfigMapObj,
@@ -17,7 +18,6 @@ import {
   AwsKeys,
   EMPTY_AWS_SECRET_DATA,
 } from '#~/pages/projects/dataConnections/const';
-import { UpdateObjectAtPropAndValue } from '#~/pages/projects/types';
 import {
   getMRConnectionValues,
   OCIAccessTypeKey,

@@ -2,11 +2,13 @@ import type { Extension } from '@openshift/dynamic-plugin-sdk';
 import type {
   AutofillConnectionButtonExtension,
   CatalogSettingsUrlExtension,
+  McpCatalogCardLabelExtension,
   McpCatalogSettingsUrlExtension,
   ModelCatalogBannerExtension,
   NamespaceSelectorExtension,
   ProjectsBridgeProviderExtension,
   RegistrySettingsUrlExtension,
+  UserInteractionProviderExtension,
 } from '@mf/modelRegistry/extension-points';
 
 const CATALOG_SETTINGS_PAGE_TITLE = 'Model catalog settings';
@@ -20,8 +22,10 @@ const MCP_CATALOG_SETTINGS_URL = '/settings/mcp-resources/mcp-catalog';
 
 const extensions: (
   | AutofillConnectionButtonExtension
+  | McpCatalogCardLabelExtension
   | NamespaceSelectorExtension
   | ProjectsBridgeProviderExtension
+  | UserInteractionProviderExtension
   | ModelCatalogBannerExtension
   | CatalogSettingsUrlExtension
   | McpCatalogSettingsUrlExtension
@@ -39,6 +43,13 @@ const extensions: (
     properties: {
       id: 'validated-models-banner',
       component: () => import('./src/modelCatalog/ValidatedModelsBanner').then((m) => m.default),
+    },
+  },
+  {
+    type: 'mcp-catalog.card/label',
+    properties: {
+      id: 'mcp-support-tier-label',
+      component: () => import('./src/mcpCatalog/McpSupportTierLabel').then((m) => m.default),
     },
   },
   {
@@ -78,6 +89,12 @@ const extensions: (
     type: 'model-registry.projects/bridge-provider',
     properties: {
       component: () => import('./src/projectSelector/ProjectsBridgeProvider'),
+    },
+  },
+  {
+    type: 'model-registry.tracking/provider',
+    properties: {
+      component: () => import('./src/tracking/SegmentUserInteractionProvider'),
     },
   },
 ];

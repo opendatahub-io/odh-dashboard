@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { useParams } from 'react-router';
 import { useNavigate } from 'react-router-dom';
-import ApplicationsPage from '#~/pages/ApplicationsPage';
+import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import { useConnectionType } from '#~/concepts/connectionTypes/useConnectionType';
 import { updateConnectionType } from '#~/services/connectionTypesService';
 import { isOOTB } from '#~/concepts/k8s/utils';

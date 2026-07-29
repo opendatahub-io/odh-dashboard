@@ -1,8 +1,5 @@
 import type { Identifier } from '@odh-dashboard/k8s-core';
-import {
-  CPU_UNITS,
-  MEMORY_UNITS_FOR_SELECTION,
-} from '@odh-dashboard/internal/utilities/valueUnits';
+import { CPU_UNITS, MEMORY_UNITS_FOR_SELECTION } from '@odh-dashboard/ui-core/utilities/valueUnits';
 import {
   getValidationMessage,
   validateDefaultCount,

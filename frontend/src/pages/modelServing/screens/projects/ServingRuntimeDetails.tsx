@@ -11,12 +11,12 @@ import {
 } from '@patternfly/react-core';
 import { useIsAreaAvailable, SupportedArea } from '@odh-dashboard/plugin-core/areas';
 import type { InferenceServiceKind, ServingRuntimeKind } from '@odh-dashboard/model-serving/shared';
+import { formatMemory } from '@odh-dashboard/ui-core/utilities/valueUnits';
+import ScopedLabel from '@odh-dashboard/ui-core/components/ScopedLabel';
 import { AppContext } from '#~/app/AppContext';
 import { getModelServingSizes } from '#~/concepts/modelServing/modelServingSizesUtils';
 import { getResourceSize } from '#~/pages/modelServing/utils';
-import { formatMemory } from '#~/utilities/valueUnits';
 import { useModelServingPodSpecOptionsState } from '#~/concepts/hardwareProfiles/deprecated/useModelServingAcceleratorDeprecatedPodSpecOptionsState';
-import ScopedLabel from '#~/components/ScopedLabel';
 import { ScopedType } from '#~/pages/modelServing/screens/const';
 import {
   getHardwareProfileDisplayName,

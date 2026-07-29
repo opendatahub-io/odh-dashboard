@@ -1,4 +1,4 @@
-import { RecursivePartial } from '#~/typeHelpers';
+import type { RecursivePartial } from '@odh-dashboard/foundation';
 import { ConfigSecretItem, ModelRegistryKind } from '#~/k8sTypes';
 import {
   CA_BUNDLE_CRT,

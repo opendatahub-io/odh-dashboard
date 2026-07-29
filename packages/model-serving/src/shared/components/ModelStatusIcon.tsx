@@ -100,6 +100,34 @@ export const ModelStatusIcon: React.FC<ModelStatusIconProps> = ({
     }
   }, [state, defaultHeaderContent, stoppedStates]);
 
+  const content = hideLabel ? (
+    <Icon
+      style={{ cursor: 'pointer' }}
+      status={statusSettings.status}
+      aria-label={statusSettings.label}
+      color={statusSettings.color}
+      onClick={onClick}
+    >
+      {statusSettings.icon}
+    </Icon>
+  ) : (
+    <Label
+      isCompact={isCompact}
+      color={statusSettings.color}
+      status={statusSettings.status}
+      icon={statusSettings.icon}
+      data-testid="model-status-text"
+      style={{ width: 'fit-content', cursor: 'pointer' }}
+      onClick={onClick}
+    >
+      {statusSettings.label}
+    </Label>
+  );
+
+  if (onClick) {
+    return content;
+  }
+
   return (
     <Popover
       data-testid="model-status-tooltip"
@@ -109,29 +137,7 @@ export const ModelStatusIcon: React.FC<ModelStatusIconProps> = ({
       bodyContent={statusSettings.message || bodyContent}
       isVisible={bodyContent ? undefined : false}
     >
-      {hideLabel ? (
-        <Icon
-          style={{ cursor: 'pointer' }}
-          status={statusSettings.status}
-          aria-label={statusSettings.label}
-          color={statusSettings.color}
-          onClick={onClick}
-        >
-          {statusSettings.icon}
-        </Icon>
-      ) : (
-        <Label
-          isCompact={isCompact}
-          color={statusSettings.color}
-          status={statusSettings.status}
-          icon={statusSettings.icon}
-          data-testid="model-status-text"
-          style={{ width: 'fit-content', cursor: 'pointer' }}
-          onClick={onClick}
-        >
-          {statusSettings.label}
-        </Label>
-      )}
+      {content}
     </Popover>
   );
 };

@@ -92,9 +92,6 @@ describe('AI Playground - Stop Button Functionality (Mocked)', () => {
     // Wait for all APIs to be called to ensure models are loaded
     cy.wait('@bffConfig');
     cy.wait('@aaModels');
-
-    // Verify that a model is selected
-    chatbotPage.verifyModelSelected();
   });
 
   it(

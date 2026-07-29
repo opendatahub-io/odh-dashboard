@@ -14,6 +14,7 @@ const { execSync } = require('child_process');
 // Configuration
 const TESTS_DIR = 'packages/cypress/cypress/tests/mocked';
 const SIZE_THRESHOLD = 15 * 1024; // 15KB - files larger than this get split into individual groups
+const GROUP_SIZE_THRESHOLD = 40 * 1024; // 40KB - grouped shards larger than this get split into balanced sub-groups
 
 /**
  * Validate that a string is safe for use in shell contexts
@@ -107,6 +108,44 @@ function getTestFiles(dir) {
 }
 
 /**
+ * Split an array of files into N balanced bins by total size (greedy largest-first).
+ * Returns an array of arrays, each bin containing files with roughly equal total size.
+ */
+function balancedSplit(files, numBins) {
+  const bins = Array.from({ length: numBins }, () => ({ files: [], totalSize: 0 }));
+
+  const sorted = [...files].toSorted((a, b) => b.size - a.size);
+  for (const file of sorted) {
+    const smallest = bins.reduce((min, bin) => (bin.totalSize < min.totalSize ? bin : min));
+    smallest.files.push(file);
+    smallest.totalSize += file.size;
+  }
+
+  return bins.filter((bin) => bin.files.length > 0);
+}
+
+/**
+ * Create a grouped shard entry from a list of files
+ */
+function createGroupedEntry(dir, files, suffix) {
+  const fileNames = files.map((f) => f.name).join(',');
+  const totalSize = files.reduce((sum, f) => sum + f.size, 0);
+
+  const spec =
+    files.length === 1
+      ? `cypress/cypress/tests/mocked/${files[0].path}`
+      : `cypress/cypress/tests/mocked/${dir}/{${fileNames}}.cy.ts`;
+
+  return {
+    name: `${dir}/${suffix}`,
+    spec,
+    size: totalSize,
+    count: files.length,
+    strategy: 'grouped',
+  };
+}
+
+/**
  * Generate test groups for central mock tests
  */
 function generateCentralTestGroups() {
@@ -134,24 +173,21 @@ function generateCentralTestGroups() {
       });
     }
 
-    // Small files grouped together
+    // Small files grouped together, split if total size exceeds threshold
     if (smallFiles.length > 0) {
-      const fileNames = smallFiles.map((f) => f.name).join(',');
       const totalSize = smallFiles.reduce((sum, f) => sum + f.size, 0);
 
-      // If only one file, use direct path instead of brace expansion
-      const spec =
-        smallFiles.length === 1
-          ? `cypress/cypress/tests/mocked/${smallFiles[0].path}`
-          : `cypress/cypress/tests/mocked/${dir}/{${fileNames}}.cy.ts`;
+      if (totalSize > GROUP_SIZE_THRESHOLD && smallFiles.length >= 2) {
+        const numBins = Math.ceil(totalSize / GROUP_SIZE_THRESHOLD);
+        const bins = balancedSplit(smallFiles, numBins);
 
-      groups.push({
-        name: `${dir}/other`,
-        spec,
-        size: totalSize,
-        count: smallFiles.length,
-        strategy: 'grouped',
-      });
+        for (let i = 0; i < bins.length; i++) {
+          const suffix = bins.length === 1 ? 'other' : `other-${i + 1}`;
+          groups.push(createGroupedEntry(dir, bins[i].files, suffix));
+        }
+      } else {
+        groups.push(createGroupedEntry(dir, smallFiles, 'other'));
+      }
     }
   }
 

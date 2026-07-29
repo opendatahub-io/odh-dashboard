@@ -41,14 +41,14 @@ func createNIMTestData(ctx context.Context, k8sClient k8sclient.Interface, dynCl
 		return fmt.Errorf("failed to create NIM config map: %w", err)
 	}
 
-	account := &unstructured.Unstructured{Object: map[string]interface{}{
+	account := &unstructured.Unstructured{Object: map[string]any{
 		"apiVersion": "nim.opendatahub.io/v1",
 		"kind":       "Account",
-		"metadata":   map[string]interface{}{"name": models.NIMAccountName, "namespace": ns},
-		"spec":       map[string]interface{}{"apiKeySecret": map[string]interface{}{"name": "nvidia-nim-access"}},
-		"status": map[string]interface{}{
-			"nimPullSecret": map[string]interface{}{"name": "nim-pull-secret"},
-			"nimConfig":     map[string]interface{}{"name": "nim-config"},
+		"metadata":   map[string]any{"name": models.NIMAccountName, "namespace": ns},
+		"spec":       map[string]any{"apiKeySecret": map[string]any{"name": "nvidia-nim-access"}},
+		"status": map[string]any{
+			"nimPullSecret": map[string]any{"name": "nim-pull-secret"},
+			"nimConfig":     map[string]any{"name": "nim-config"},
 		},
 	}}
 	_, err = dynClient.Resource(models.NIMAccountGVR).Namespace(ns).Create(ctx, account, metav1.CreateOptions{})

@@ -1,5 +1,3 @@
-import { AUTOML_RUN_TIMEOUT } from '../../support/timeouts';
-
 class AutomlResultsPage {
   findStopRunButton() {
     return cy.findByTestId('stop-run-button');
@@ -158,6 +156,31 @@ class AutomlResultsPage {
     return cy.findByTestId('precision-recall-no-data');
   }
 
+  // Back-testing tab
+  findBacktestingContent() {
+    return cy.findByTestId('backtest-window-content');
+  }
+
+  findBacktestingNoData() {
+    return cy.findByTestId('backtest-window-no-data');
+  }
+
+  findBacktestMetricCard(key: string) {
+    return cy.findByTestId(`metric-card-${key}`);
+  }
+
+  findBacktestMetricSelector() {
+    return cy.findByTestId('metric-selector-toggle');
+  }
+
+  findBacktestWindowChart() {
+    return cy.findByTestId('backtest-window-chart');
+  }
+
+  findForecastChart(title: string) {
+    return cy.findByTestId(`forecast-chart-${title}`);
+  }
+
   // Register model modal
   findRegisterModelModal() {
     return cy.findByTestId('register-model-modal');
@@ -210,116 +233,6 @@ class AutomlResultsPage {
 
   findReconfigureButton() {
     return cy.findByTestId('reconfigure-run-button');
-  }
-
-  /**
-   * Waits up to `timeoutMs` (default 5 min) for the run to complete.
-   * Checks UI state with reduced timeout to fail fast if run doesn't complete.
-   * Timeout can be overridden via AUTOML_RUN_TIMEOUT environment variable.
-   *
-   * @param timeoutMs Maximum wait time in milliseconds
-   */
-  waitForRunCompletion(timeoutMs?: number) {
-    const timeout = timeoutMs ?? AUTOML_RUN_TIMEOUT;
-
-    cy.step(`Wait for AutoML run to complete (timeout: ${timeout}ms)`);
-
-    // Wait for in-progress message to disappear (run finished)
-    // This will fail fast after timeout instead of waiting 45 minutes
-    cy.findByTestId('automl-run-in-progress', { timeout }).should('not.exist');
-
-    // Verify no failure/canceled status label appeared
-    this.findRunStatusLabel().should('not.exist');
-
-    // Verify the leaderboard table loaded with results
-    this.findLeaderboardTable().should('be.visible');
-    this.findTopRankLabel().should('exist');
-  }
-
-  /**
-   * Runs the common post-run results verification flow:
-   * - Leaderboard interaction (drawer, manage columns)
-   * - Model details modal (tab navigation based on task type)
-   * - Download notebook (with window.print stub)
-   *
-   * Tab visibility per task type:
-   * | Tab                | binary | multiclass | regression | timeseries |
-   * |--------------------|--------|------------|------------|------------|
-   * | model-information  | yes    | yes        | yes        | yes        |
-   * | feature-summary    | yes    | yes        | yes        | no         |
-   * | model-evaluation   | yes    | yes        | yes        | yes        |
-   * | confusion-matrix   | yes    | yes        | no         | no         |
-   * | roc-curve          | yes    | yes        | no         | no         |
-   * | precision-recall   | yes    | yes        | no         | no         |
-   */
-  verifyResultsInteraction(taskType: 'binary' | 'multiclass' | 'regression' | 'timeseries') {
-    const isClassification = taskType === 'binary' || taskType === 'multiclass';
-    const isTimeseries = taskType === 'timeseries';
-
-    cy.step('Verify leaderboard has at least one model row');
-    this.findLeaderboardRow(1).should('exist');
-
-    cy.step('Open and close run details drawer');
-    this.findRunDetailsButton().click();
-    this.findRunDetailsDrawerPanel().should('be.visible');
-    this.findRunDetailsDrawerClose().click();
-    this.findRunDetailsDrawerPanel().should('not.be.visible');
-
-    cy.step('Open manage columns modal and close it');
-    this.findManageColumnsButton().click();
-    this.findManageColumnsModal().should('be.visible');
-    this.findManageColumnsCancelButton().click();
-    this.findManageColumnsModal().should('not.exist');
-
-    cy.step('Open model details modal');
-    this.findModelLink(1).click();
-    this.findModelDetailsModal().should('be.visible');
-
-    cy.step('Verify expected tabs are present');
-    this.findModelDetailsTab('model-information').should('exist');
-    this.findModelDetailsTab('model-evaluation').should('exist');
-
-    if (!isTimeseries) {
-      this.findModelDetailsTab('feature-summary').should('exist');
-      this.findModelDetailsTab('feature-summary').click();
-      this.findFeatureSearchInput().should('be.visible');
-    } else {
-      this.findModelDetailsTab('feature-summary').should('not.exist');
-    }
-
-    if (isClassification) {
-      this.findModelDetailsTab('confusion-matrix').should('exist');
-      this.findModelDetailsTab('confusion-matrix').click();
-      this.findConfusionMatrixTable().should('be.visible');
-
-      cy.step('Verify ROC curve tab renders chart');
-      this.findModelDetailsTab('roc-curve').should('exist');
-      this.findModelDetailsTab('roc-curve').click();
-      this.findROCCurveSection().should('exist').scrollIntoView();
-      this.findROCCurveChart().should('be.visible');
-
-      cy.step('Verify precision-recall tab renders chart');
-      this.findModelDetailsTab('precision-recall').should('exist');
-      this.findModelDetailsTab('precision-recall').click();
-      this.findPrecisionRecallChart().should('be.visible');
-    } else {
-      this.findModelDetailsTab('confusion-matrix').should('not.exist');
-      this.findModelDetailsTab('roc-curve').should('not.exist');
-      this.findModelDetailsTab('precision-recall').should('not.exist');
-    }
-
-    cy.step('Close model details modal');
-    this.findModelDetailsModalCloseButton().click();
-    this.findModelDetailsModal().should('not.exist');
-
-    cy.step('Download notebook (stub window.print)');
-    this.findModelLink(1).click();
-    this.findModelDetailsModal().should('be.visible');
-    cy.window().then((win) => cy.stub(win, 'print'));
-    this.findModelDetailsDownloadButton().click();
-    cy.window().its('print').should('have.been.calledOnce');
-    this.findModelDetailsModalCloseButton().click();
-    this.findModelDetailsModal().should('not.exist');
   }
 }
 

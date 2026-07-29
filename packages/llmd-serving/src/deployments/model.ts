@@ -1,17 +1,19 @@
-import { KnownLabels, MetadataAnnotation, SupportedModelFormats } from '@odh-dashboard/k8s-core';
-import { ServingRuntimeModelType } from '@odh-dashboard/model-serving/shared';
-import type { ModelTypeFieldData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/ModelTypeSelectField';
 import {
+  KnownLabels,
+  MetadataAnnotation,
+  SupportedModelFormats,
   isModelServingCompatible,
   ModelServingCompatibleTypes,
-} from '@odh-dashboard/internal/concepts/connectionTypes/utils';
+} from '@odh-dashboard/k8s-core';
+import { ServingRuntimeModelType } from '@odh-dashboard/model-serving/shared';
+import type { ModelTypeFieldData } from '@odh-dashboard/model-serving/shared/wizard-fields';
 import {
   ModelLocationData,
   ModelLocationType,
   CreateConnectionFieldData,
   EnvironmentVariablesFieldData,
   RuntimeArgsFieldData,
-} from '@odh-dashboard/model-serving/types/form-data';
+} from '@odh-dashboard/model-serving/shared/types/form-data';
 import {
   getPVCNameFromURI,
   isPVCUri,

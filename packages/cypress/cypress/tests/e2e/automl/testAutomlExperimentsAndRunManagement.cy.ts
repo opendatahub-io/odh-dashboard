@@ -7,12 +7,15 @@ import { waitForDspaReady } from '../../../utils/oc_commands/dspa';
 import { retryableBefore } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
 import type { AutomlTestData } from '../../../types';
-import {
-  automlExperimentsPage,
-  automlConfigurePage,
-  automlResultsPage,
-} from '../../../pages/automl';
+import { automlConfigurePage } from '../../../pages/automl/configurePage';
+import { automlExperimentsPage } from '../../../pages/automl/experimentsPage';
+import { automlResultsPage } from '../../../pages/automl/resultsPage';
 import { isAutomlEnabled, setAutomlEnabled } from '../../../utils/oc_commands/autoX';
+import {
+  configureAutomlRun,
+  submitAutomlRun,
+  verifyAutomlRunSubmitted,
+} from '../../../utils/automlTestFlows';
 
 const uuid = generateTestUUID();
 
@@ -71,10 +74,10 @@ describe('AutoML Experiments List and Run Management E2E', { testIsolation: fals
   );
 
   it(
-    'Can submit a run and verify it appears in the experiments list',
+    'Can submit a run, verify it in experiments list, and stop it',
     { tags: ['@AutoML', '@AutoMLRegression', '@Featureflagged'] },
     () => {
-      automlConfigurePage.submitRunSetup(testData, projectName, uuid);
+      configureAutomlRun(testData, projectName, uuid);
 
       cy.step('Select target column and task type');
       automlConfigurePage.findTargetColumnSelect().should('not.be.disabled').click();
@@ -82,21 +85,12 @@ describe('AutoML Experiments List and Run Management E2E', { testIsolation: fals
       automlConfigurePage.findTaskTypeCard('binary').click();
 
       cy.step('Set top N models to minimize run time');
-      automlConfigurePage.setTopN(testData.topN as number);
+      automlConfigurePage.findTopNInputField().type(`{selectall}${testData.topN as number}`);
 
-      automlConfigurePage.submitRun();
+      submitAutomlRun();
 
-      cy.step('Navigate back to experiments page and verify run appears');
-      automlExperimentsPage.visit(projectName);
-      automlResultsPage.findRunsTable().should('be.visible');
-      automlResultsPage.findRunsTable().should('contain.text', testData.runName);
-    },
-  );
+      verifyAutomlRunSubmitted(projectName, testData.runName);
 
-  it(
-    'Can stop a running experiment from the results page',
-    { tags: ['@AutoML', '@AutoMLRegression', '@Featureflagged'] },
-    () => {
       cy.step('Click on the run to go to results page');
       automlResultsPage.findRunsTable().contains(testData.runName).click();
 
@@ -109,10 +103,9 @@ describe('AutoML Experiments List and Run Management E2E', { testIsolation: fals
       automlResultsPage.findConfirmStopRunButton().click();
 
       cy.step('Verify run status shows as canceling, canceled, or failed');
-      automlResultsPage
-        .findRunStatusLabel(80000)
-        .invoke('text')
-        .should('match', /CANCEL|FAIL/i);
+      automlResultsPage.findRunStatusLabel(80000).should(($el) => {
+        expect($el.text()).to.match(/CANCEL|FAIL/i);
+      });
     },
   );
 });

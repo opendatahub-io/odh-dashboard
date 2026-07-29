@@ -7,30 +7,54 @@ import {
 } from '@patternfly/react-core';
 import { formatDisplayValue, humanize } from '~/app/utilities/utils';
 
-const flattenEntries = (obj: Record<string, unknown>, prefix = ''): [string, string][] =>
+const flattenEntries = (obj: Record<string, unknown>): [string, string][] =>
   Object.entries(obj).flatMap(([key, value]) => {
-    const label = prefix ? `${prefix} ${humanize(key)}` : humanize(key);
+    const label = humanize(key);
     if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
       const nested: Record<string, unknown> = Object.fromEntries(Object.entries(value));
-      return flattenEntries(nested, label);
+      return flattenEntries(nested);
     }
     return [[label, formatDisplayValue(value)]];
   });
 
 export { flattenEntries };
 
-const KeyValueList: React.FC<{ entries: Record<string, unknown>; 'data-testid'?: string }> = ({
-  entries,
-  'data-testid': testId,
-}) => (
-  <DescriptionList isHorizontal data-testid={testId}>
-    {flattenEntries(entries).map(([label, value]) => (
-      <DescriptionListGroup key={label}>
-        <DescriptionListTerm>{label}</DescriptionListTerm>
-        <DescriptionListDescription>{value}</DescriptionListDescription>
-      </DescriptionListGroup>
-    ))}
-  </DescriptionList>
-);
+// PF's default term width may not fit all labels; compute from the longest label so columns align consistently.
+const computeTermWidth = (labels: string[]): string => {
+  const maxLen = labels.reduce((max, label) => Math.max(max, label.length), 0);
+  return `min(${maxLen}ch, 50%)`;
+};
+
+export { computeTermWidth };
+
+const KeyValueList: React.FC<{
+  entries: Record<string, unknown>;
+  'data-testid'?: string;
+}> = ({ entries, 'data-testid': testId }) => {
+  const rows = React.useMemo(() => flattenEntries(entries), [entries]);
+
+  const customStyle: Record<string, string> = React.useMemo(
+    () => ({
+      '--pf-v6-c-description-list__term--width': computeTermWidth(rows.map(([label]) => label)),
+    }),
+    [rows],
+  );
+
+  return (
+    <DescriptionList
+      isHorizontal
+      className="autorag-pattern-info-list"
+      data-testid={testId}
+      style={customStyle}
+    >
+      {rows.map(([label, value], idx) => (
+        <DescriptionListGroup key={`${label}-${idx}`}>
+          <DescriptionListTerm>{label}</DescriptionListTerm>
+          <DescriptionListDescription>{value}</DescriptionListDescription>
+        </DescriptionListGroup>
+      ))}
+    </DescriptionList>
+  );
+};
 
 export default KeyValueList;

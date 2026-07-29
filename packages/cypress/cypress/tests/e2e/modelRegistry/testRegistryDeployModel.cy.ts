@@ -14,6 +14,7 @@ import { isBYOIDCCluster, skipSuiteIfBYOIDC } from '../../../utils/skipUtils';
 import {
   checkModelExistsInDatabase,
   cleanupModelRegistryComponents,
+  cleanupRegisteredModelsFromDatabase,
   createAndVerifyDatabase,
   createAndVerifyModelRegistry,
   deleteModelRegistryDatabase,
@@ -117,8 +118,8 @@ describe('Verify models can be deployed from model registry', () => {
       tags: [
         '@Dashboard',
         '@ModelRegistry',
+        '@ModelRegistryCI',
         '@TestRegistryDeployModel',
-        '@NonConcurrent',
         '@Sanity',
         '@SanitySet4',
       ],
@@ -126,6 +127,9 @@ describe('Verify models can be deployed from model registry', () => {
     () => {
       cy.step('Log into the application');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
+
+      cy.step('Clean up model from any previous retry attempts');
+      cleanupRegisteredModelsFromDatabase([modelName], databaseName);
 
       cy.step('Visit Model Registry Page');
       modelRegistry.visitWithRegistry(registryName);
@@ -138,7 +142,7 @@ describe('Verify models can be deployed from model registry', () => {
       registerModelPage
         .findFormField(FormFieldSelector.MODEL_DESCRIPTION)
         .type(testData.objectStorageModelDescription);
-      registerModelPage.selectModelType();
+      registerModelPage.selectModelType('Predictive Model', 30000);
       registerModelPage.findFormField(FormFieldSelector.VERSION_NAME).type(testData.version1Name);
       registerModelPage
         .findFormField(FormFieldSelector.VERSION_DESCRIPTION)
@@ -168,7 +172,7 @@ describe('Verify models can be deployed from model registry', () => {
       registerModelPage.findSubmitButton().should('be.enabled').click();
 
       cy.step('Verify the model was registered');
-      cy.url().should('include', '/details');
+      cy.url({ timeout: 30000 }).should('include', '/registered-models/');
       cy.contains(modelName, { timeout: 10000 }).should('be.visible');
 
       cy.step('Verify the model exists in the database');
@@ -176,7 +180,8 @@ describe('Verify models can be deployed from model registry', () => {
 
       cy.step('Navigate to model versions to deploy the model');
       cy.contains(modelName).click();
-      modelRegistry.findModelVersionsTab().click();
+      cy.url({ timeout: 30000 }).should('include', '/registered-models/');
+      modelRegistry.findModelVersionsTab().should('be.visible').click();
 
       cy.step('Deploy the model from the versions table');
       const modelVersionRow = modelRegistry.getModelVersionRow(testData.version1Name);

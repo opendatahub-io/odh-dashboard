@@ -90,6 +90,7 @@ func newTestApp(overrides ...func(*App)) *App {
 		bffClientFactory: bffmocks.NewMockClientFactory(logger),
 		openAPI:          openAPIHandler,
 		clusterInfo:      clusterInfo{clusterBranding: defaultClusterBranding},
+		probeSemaphore:   NewProbeSemaphore(),
 	}
 
 	for _, o := range overrides {

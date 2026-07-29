@@ -3,11 +3,15 @@ package api
 import "github.com/julienschmidt/httprouter"
 
 const (
+	ConnectionTestPath       = APIPathPrefix + APIVersion + "/connections/test"
 	ConnectionTypesPath      = APIPathPrefix + "/connection-types"
 	ConnectionTypeSinglePath = APIPathPrefix + "/connection-types/:name"
 )
 
 func (app *App) registerConnectionTypeRoutes(r *httprouter.Router) {
+	// Connection test — any authenticated user
+	r.POST(ConnectionTestPath, app.secureRoute(app.TestConnectionHandler))
+
 	// Authenticated
 	r.GET(ConnectionTypesPath, app.secureRoute(app.ListConnectionTypesHandler))
 	r.GET(ConnectionTypeSinglePath, app.secureRoute(app.GetConnectionTypeHandler))

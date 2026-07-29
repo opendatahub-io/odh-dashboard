@@ -29,7 +29,7 @@ func (app *App) GetCurrentUserHandler(w http.ResponseWriter, r *http.Request, _ 
 
 	// Always use real Kubernetes client for user info, even in mock mode
 	// This ensures we get the actual cluster user from the token
-	realK8sFactory, err := k8s.NewKubernetesClientFactory(app.config, app.logger)
+	realK8sFactory, err := k8s.NewKubernetesClientFactory(app.config, app.logger, app.rootCAs)
 	if err != nil {
 		app.logger.Error("Failed to create real k8s factory", "error", err)
 		_ = app.WriteJSON(w, http.StatusOK, UserEnvelope{Data: resp}, nil)

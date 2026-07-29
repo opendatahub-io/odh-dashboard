@@ -7,10 +7,8 @@ import ChatbotPaneHeader from './components/ChatbotPaneHeader';
 interface ChatbotPaneProps {
   /** The configId used for state management */
   configId: string;
-  /** Display label shown in the UI (e.g., "Model 1", "Model 2") */
+  /** Display label shown in the UI (e.g., "Chat 1", "Chat 2") */
   displayLabel: string;
-  selectedModel: string;
-  onModelChange: (model: string) => void;
   onClose: () => void;
   children: React.ReactNode;
   /** Metrics from the last response (latency, tokens, TTFT) */
@@ -19,25 +17,21 @@ interface ChatbotPaneProps {
   isLoading?: boolean;
   isSettingsOpen?: boolean;
   isActiveConfig?: boolean;
-  isDisabled?: boolean;
 }
 
 /**
  * Wrapper component for a single chatbot pane in compare mode.
- * Includes header with label, model dropdown, settings, and close button.
+ * Includes header with label and close button.
  */
 const ChatbotPane: React.FC<ChatbotPaneProps> = ({
   configId,
   displayLabel,
-  selectedModel,
-  onModelChange,
   onClose,
   children,
   metrics,
   isLoading,
   isSettingsOpen,
   isActiveConfig,
-  isDisabled = false,
 }) => {
   const isDarkMode = useDarkMode();
   return (
@@ -51,8 +45,6 @@ const ChatbotPane: React.FC<ChatbotPaneProps> = ({
     >
       <ChatbotPaneHeader
         label={displayLabel}
-        selectedModel={selectedModel}
-        onModelChange={onModelChange}
         onCloseClick={onClose}
         metrics={metrics}
         isLoading={isLoading}
@@ -61,7 +53,6 @@ const ChatbotPane: React.FC<ChatbotPaneProps> = ({
         hasDivider
         testIdPrefix={`chatbot-pane-${configId}`}
         isDarkMode={isDarkMode}
-        isDisabled={isDisabled}
       />
       <CardBody
         style={{

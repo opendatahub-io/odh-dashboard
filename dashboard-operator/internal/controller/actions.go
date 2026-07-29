@@ -31,9 +31,39 @@ var (
 	ErrPersesServiceRequired  = errors.New("observability is enabled but PersesService is not configured")
 )
 
+// Ray Gateway RBAC must live in openshift-ingress; kustomize WithNamespace(apps)
+// would otherwise place these Role/RoleBinding objects in the applications namespace.
+const (
+	dataScienceGatewayNamespace   = "openshift-ingress"
+	rayDataScienceGatewayRBACName = "fetch-ray-data-science-gateway"
+)
+
+// remapRayDashboardGatewayRBAC moves the named Gateway Role/RoleBinding into
+// openshift-ingress so authenticated users can get data-science-gateway there.
+func remapRayDashboardGatewayRBAC(resources []unstructured.Unstructured) {
+	for i := range resources {
+		r := &resources[i]
+		switch r.GetKind() {
+		case "Role", "RoleBinding":
+			if r.GetName() == rayDataScienceGatewayRBACName {
+				r.SetNamespace(dataScienceGatewayNamespace)
+			}
+		}
+	}
+}
+
 func manifestSets(basePath string, platform cluster.Platform) []render.ManifestInfo {
 	return []render.ManifestInfo{
 		defaultManifestInfo(basePath, platform),
+	}
+}
+
+// standaloneManifestSets returns the manifest paths for standalone deployment mode.
+// In standalone mode, the core dashboard pod has only 3 containers (odh-dashboard,
+// kube-rbac-proxy, core-bff). BFF module pods are deployed separately.
+func standaloneManifestSets(basePath string, platform cluster.Platform) []render.ManifestInfo {
+	return []render.ManifestInfo{
+		standaloneManifestInfo(basePath, platform),
 	}
 }
 
@@ -43,7 +73,7 @@ func applyKustomizeParams(dashboard *v1alpha1.Dashboard, manifests []render.Mani
 
 	for _, m := range manifests {
 		manifestPath := m.String()
-		params := readExistingParams(manifestPath + "/params.env")
+		params := readExistingParams(filepath.Join(manifestPath, "params.env"))
 		maps.Copy(params, computed)
 		if err := writeParamsEnv(manifestPath, params); err != nil {
 			return fmt.Errorf("failed to write params.env to %s: %w", manifestPath, err)
@@ -51,14 +81,19 @@ func applyKustomizeParams(dashboard *v1alpha1.Dashboard, manifests []render.Mani
 	}
 
 	if len(manifests) > 0 {
-		modArchPath := filepath.Join(manifests[0].Path, "modular-architecture")
-		if _, err := os.Stat(modArchPath); os.IsNotExist(err) {
-			return fmt.Errorf("modular-architecture directory not found at %s", modArchPath)
+		sidecarPath := filepath.Join(manifests[0].Path, "sidecar")
+		if _, err := os.Stat(sidecarPath); os.IsNotExist(err) {
+			// Skip gracefully only in standalone mode (SourcePath contains "standalone").
+			// In sidecar mode an absent sidecar/ directory means a bad image build — return error.
+			if strings.Contains(manifests[0].SourcePath, "standalone") {
+				return nil
+			}
+			return fmt.Errorf("sidecar directory not found at %s: check operator image", sidecarPath)
 		}
-		params := readExistingParams(modArchPath + "/params.env")
+		params := readExistingParams(sidecarPath + "/params.env")
 		maps.Copy(params, computed)
-		if err := writeParamsEnv(modArchPath, params); err != nil {
-			return fmt.Errorf("failed to write params.env to %s: %w", modArchPath, err)
+		if err := writeParamsEnv(sidecarPath, params); err != nil {
+			return fmt.Errorf("failed to write params.env to %s: %w", sidecarPath, err)
 		}
 	}
 

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { isAvailableProject } from '@odh-dashboard/internal/concepts/projects/utils';
+import { isAvailableProject } from '@odh-dashboard/k8s-core';
 import type { Namespace } from '@odh-dashboard/internal/types';
 import { useNamespaceSelector } from 'mod-arch-core';
 import { useProjectsBridge } from '~/odh/context/ProjectsBridgeContext';

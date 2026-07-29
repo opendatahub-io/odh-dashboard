@@ -31,8 +31,13 @@ describe('handlePipelineFailures', () => {
     ).rejects.toThrow('error');
   });
 
-  it('should handle other errors', async () => {
-    await expect(handlePipelineFailures(Promise.reject(new Error('error')))).rejects.toThrow(
+  it('should re-throw the same Error instance', async () => {
+    const original = new Error('error');
+    await expect(handlePipelineFailures(Promise.reject(original))).rejects.toBe(original);
+  });
+
+  it('should wrap non-Error rejections in a generic message', async () => {
+    await expect(handlePipelineFailures(Promise.reject('string error'))).rejects.toThrow(
       'Error communicating with pipeline server',
     );
   });

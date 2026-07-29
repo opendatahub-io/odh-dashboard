@@ -63,7 +63,6 @@ function useAgentsCatalogSetup(providerState: CatalogProviderState) {
   const { emptyCategoryLabels, categoriesResolved, reportCategoryEmpty, setCategoryCount } =
     useEmptyCategoryTracking();
 
-  // ponytail: skip first syncToUrl to avoid interfering with <Navigate replace> redirect
   const hasMounted = React.useRef(false);
 
   React.useEffect(() => {

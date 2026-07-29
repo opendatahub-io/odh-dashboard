@@ -1,7 +1,7 @@
 // Feature Store Lineage Data Types
 // Reusing existing types from the feature store package
 
-import { K8sAPIOptions } from '@odh-dashboard/internal/k8sTypes';
+import { K8sAPIOptions } from '@odh-dashboard/k8s-core';
 import { Entity } from './entities';
 import { DataSource } from './dataSources';
 import {

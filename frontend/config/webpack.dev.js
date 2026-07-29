@@ -88,41 +88,6 @@ module.exports = smp.wrap(
               throw new Error('Login with `oc login` prior to starting dev server.');
             }
 
-            // Token refresh mechanism (for when oc user is switched during tests)
-            // Gated behind ODH_TOKEN_REFRESH to avoid unexpected user switches in local dev
-            let cachedToken = token;
-            const tokenRefreshEnabled = process.env.ODH_TOKEN_REFRESH === 'true';
-
-            const getCurrentToken = (() => {
-              if (!tokenRefreshEnabled) {
-                return () => cachedToken;
-              }
-
-              let lastTokenFetch = Date.now();
-              const TOKEN_REFRESH_MIN_INTERVAL = 5000;
-              return () => {
-                const now = Date.now();
-                if (now - lastTokenFetch > TOKEN_REFRESH_MIN_INTERVAL) {
-                  try {
-                    const newToken = execSync('oc whoami --show-token', {
-                      stdio: ['pipe', 'pipe', 'ignore'],
-                    })
-                      .toString()
-                      .trim();
-                    if (newToken !== cachedToken) {
-                      console.info('Token refreshed (oc user may have switched)');
-                      cachedToken = newToken;
-                    }
-                  } catch (e) {
-                    console.warn('Failed to refresh oc token, using cached token');
-                  } finally {
-                    lastTokenFetch = now;
-                  }
-                }
-                return cachedToken;
-              };
-            })();
-
             const odhProject = process.env.OC_PROJECT || 'opendatahub';
             const app = process.env.ODH_APP || 'odh-dashboard';
             console.info('Using project:', odhProject);
@@ -230,13 +195,6 @@ module.exports = smp.wrap(
                 secure: false,
                 changeOrigin: true,
                 headers,
-                onProxyReq: (proxyReq) => {
-                  const currentToken = getCurrentToken();
-                  proxyReq.setHeader('Authorization', `Bearer ${currentToken}`);
-                  if (shouldFwdAccessToken) {
-                    proxyReq.setHeader('x-forwarded-access-token', currentToken);
-                  }
-                },
               },
               {
                 context: ['/wss/k8s'],
@@ -245,13 +203,6 @@ module.exports = smp.wrap(
                 ws: true,
                 changeOrigin: true,
                 headers,
-                onProxyReq: (proxyReq) => {
-                  const currentToken = getCurrentToken();
-                  proxyReq.setHeader('Authorization', `Bearer ${currentToken}`);
-                  if (shouldFwdAccessToken) {
-                    proxyReq.setHeader('x-forwarded-access-token', currentToken);
-                  }
-                },
               },
             ];
           }

@@ -11,7 +11,7 @@ import {
   ConnectionTypeRefs,
   InitialWizardFormData,
   ModelLocationType,
-} from '../src/components/deploymentWizard/types';
+} from '../src/shared/types/form-data';
 import { useNavigateToDeploymentWizard } from '../src/components/deploymentWizard/useNavigateToDeploymentWizard';
 
 export const useNavigateToDeploymentWizardWithData = (

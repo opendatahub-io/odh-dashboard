@@ -275,13 +275,45 @@ func TestLoadPromptSuccess(t *testing.T) {
 	mockClient := &mlflowpkg.MockClient{}
 
 	now := time.Now()
+	mockClient.On("ListPromptVersions", tmock.Anything, "my-prompt", tmock.Anything).
+		Return(&promptregistry.PromptVersionList{
+			Versions: []promptregistry.PromptVersion{
+				{Version: 2, CreatedAt: now, UpdatedAt: now},
+			},
+		}, nil)
+	mockClient.On("LoadPrompt", tmock.Anything, "my-prompt", tmock.Anything).
+		Return(&promptregistry.PromptVersion{
+			Name: "my-prompt", Version: 2, Template: "Hello {{name}}",
+			CreatedAt: now, UpdatedAt: now,
+		}, nil)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/prompts/my-prompt", nil)
+	req = requestWithMLflowClient(req, mockClient)
+	rr := httptest.NewRecorder()
+
+	ps := httprouter.Params{{Key: "name", Value: "my-prompt"}}
+	app.MLflowLoadPromptHandler(rr, req, ps)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+
+	var envelope PromptVersionEnvelope
+	require.NoError(t, json.NewDecoder(rr.Body).Decode(&envelope))
+	assert.Equal(t, "my-prompt", envelope.Data.Name)
+	assert.Equal(t, 2, envelope.Data.Version)
+}
+
+func TestLoadPromptSuccessWithExplicitVersion(t *testing.T) {
+	app := newTestAppWithPromptsRepos()
+	mockClient := &mlflowpkg.MockClient{}
+
+	now := time.Now()
 	mockClient.On("LoadPrompt", tmock.Anything, "my-prompt", tmock.Anything).
 		Return(&promptregistry.PromptVersion{
 			Name: "my-prompt", Version: 1, Template: "Hello {{name}}",
 			CreatedAt: now, UpdatedAt: now,
 		}, nil)
 
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/prompts/my-prompt", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/prompts/my-prompt?version=1", nil)
 	req = requestWithMLflowClient(req, mockClient)
 	rr := httptest.NewRecorder()
 
@@ -300,7 +332,7 @@ func TestLoadPromptNotFound(t *testing.T) {
 	app := newTestAppWithPromptsRepos()
 	mockClient := &mlflowpkg.MockClient{}
 
-	mockClient.On("LoadPrompt", tmock.Anything, "nonexistent", tmock.Anything).
+	mockClient.On("ListPromptVersions", tmock.Anything, "nonexistent", tmock.Anything).
 		Return(nil, &sdkmlflow.APIError{StatusCode: http.StatusNotFound, Message: "not found"})
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/prompts/nonexistent", nil)

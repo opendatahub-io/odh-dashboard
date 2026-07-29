@@ -3630,23 +3630,23 @@ func GetAgentMocks() []models.Agent {
 	crewaiFramework := "crewai"
 	autogenFramework := "autogen"
 
-	sourceID1 := "community-agent-source"
-	sourceID2 := "organization-agent-source"
+	sourceID := "agent-templates-source"
 
 	desc1 := "An intelligent code review agent that analyzes pull requests, identifies potential issues, and suggests improvements."
 	desc2 := "A research assistant agent that can search academic papers, summarize findings, and generate literature reviews."
 	desc3 := "A deployment automation agent that manages CI/CD pipelines, monitors deployments, and handles rollbacks."
 	desc4 := "A data pipeline orchestration agent that automates ETL workflows, monitors data quality, and handles schema evolution."
 
-	readme1 := "# Code Review Agent\n\nThis agent performs automated code reviews using LLM-powered analysis.\n\n## Features\n- Identifies bugs and security vulnerabilities\n- Suggests performance improvements\n- Checks coding style compliance"
-	readme2 := "# Research Assistant\n\nAn AI-powered research assistant for academic work.\n\n## Features\n- Search across multiple paper databases\n- Generate summaries and citations\n- Create literature review drafts"
-	readme3 := "# Deploy Bot\n\nAutomates deployment workflows with intelligent rollback capabilities.\n\n## Features\n- Multi-cloud deployment support\n- Canary and blue-green deployments\n- Automatic rollback on failure detection"
-	readme4 := "# Data Pipeline Agent\n\nOrchestrates complex data pipelines with built-in quality monitoring.\n\n## Features\n- Schema evolution handling\n- Data quality assertions\n- Automated retry and recovery"
+	readme1 := "# Code Review Agent\n\nThis agent performs automated code reviews using LLM-powered analysis. It integrates with GitHub and GitLab to automatically review pull requests and merge requests, providing actionable feedback powered by large language models.\n\n## Features\n- Identifies bugs and security vulnerabilities\n- Suggests performance improvements\n- Checks coding style compliance\n- Detects common anti-patterns and code smells\n- Supports custom rule sets via YAML configuration\n\n## Prerequisites\n- Go 1.21+ or Python 3.11+\n- A GitHub or GitLab personal access token with repo read permissions\n- An API key for one of the supported LLM providers (OpenAI, Anthropic, or Granite)\n\n## Installation\n\n```bash\npip install code-review-agent\n```\n\nOr with Docker:\n\n```bash\ndocker pull ghcr.io/example/code-review-agent:v1.2.0\ndocker run -e GITHUB_TOKEN=\\$TOKEN -e OPENAI_API_KEY=\\$KEY ghcr.io/example/code-review-agent:v1.2.0\n```\n\n## Configuration\n\nCreate a `.code-review-agent.yaml` file in your repository root:\n\n```yaml\nrules:\n  max_function_length: 50\n  require_docstrings: true\n  check_type_hints: true\nseverity_threshold: warning\nignore_paths:\n  - vendor/\n  - generated/\n```\n\n## Usage Examples\n\nRun a review on a specific PR:\n\n```bash\ncode-review-agent review --repo owner/repo --pr 42\n```\n\nRun in CI mode (exits with non-zero on critical findings):\n\n```bash\ncode-review-agent review --repo owner/repo --pr $PR_NUMBER --ci\n```\n\n## Supported Languages\n- Python\n- Go\n- TypeScript / JavaScript\n- Java\n- Rust\n\n## Architecture\nThe agent uses a two-pass approach: first a fast static analysis pass to collect structural information, then an LLM pass that receives the code context along with static analysis results for deeper semantic review.\n\n## License\nApache-2.0"
+	readme2 := "# Research Assistant\n\nAn AI-powered research assistant for academic work. It connects to Semantic Scholar, arXiv, and PubMed to help researchers discover, summarize, and synthesize academic literature efficiently.\n\n## Features\n- Search across multiple paper databases (Semantic Scholar, arXiv, PubMed)\n- Generate summaries and citations in APA, MLA, or BibTeX format\n- Create literature review drafts with proper attribution\n- Track citation graphs and find related work\n- Export results to Markdown, PDF, or LaTeX\n\n## Prerequisites\n- Python 3.11+\n- A Semantic Scholar API key (free tier available)\n- An API key for the LLM provider of your choice\n\n## Installation\n\n```bash\npip install research-assistant-agent\n```\n\n## Configuration\n\nSet the following environment variables:\n\n```bash\nexport SEMANTIC_SCHOLAR_API_KEY=your_key_here\nexport OPENAI_API_KEY=your_key_here\nexport ARXIV_RATE_LIMIT=3  # requests per second, optional\n```\n\n## Usage Examples\n\nSearch for papers on a topic:\n\n```bash\nresearch-assistant search \"transformer architectures for code generation\"\n```\n\nGenerate a literature review from a list of paper IDs:\n\n```bash\nresearch-assistant review --papers paper1_id,paper2_id,paper3_id --format markdown\n```\n\nSummarize a single paper by DOI:\n\n```bash\nresearch-assistant summarize --doi 10.1234/example.2024.001\n```\n\n## Output Formats\n- Markdown (default)\n- BibTeX for citation management\n- LaTeX for direct inclusion in papers\n- JSON for programmatic consumption\n\n## Rate Limits\nThe agent respects API rate limits for all data sources. Default rate limiting is 3 req/s for arXiv and 10 req/s for Semantic Scholar. Override via environment variables if you have higher-tier access.\n\n## License\nApache-2.0"
+	readme3 := "# Deploy Bot\n\nAutomates deployment workflows with intelligent rollback capabilities. Deploy Bot integrates with Kubernetes, AWS ECS, and Google Cloud Run to provide a unified deployment interface with built-in safety checks.\n\n## Features\n- Multi-cloud deployment support (Kubernetes, AWS ECS, GCP Cloud Run)\n- Canary and blue-green deployment strategies\n- Automatic rollback on failure detection (health check, error rate, latency thresholds)\n- Slack and PagerDuty notifications\n- Deployment approval workflows via chat commands\n\n## Prerequisites\n- A valid `KUBECONFIG` file for Kubernetes deployments\n- AWS credentials for ECS deployments (optional)\n- GCP service account for Cloud Run deployments (optional)\n- Slack webhook URL for notifications (optional)\n\n## Installation\n\n```bash\ndocker pull ghcr.io/example/deploy-bot:v3.1.0\n```\n\nOr install the CLI:\n\n```bash\ncurl -sSL https://example.com/deploy-bot/install.sh | bash\n```\n\n## Configuration\n\nCreate a `deploy-bot.yaml` configuration file:\n\n```yaml\nclusters:\n  production:\n    context: prod-cluster\n    namespace: default\n  staging:\n    context: staging-cluster\n    namespace: staging\nrollback:\n  error_rate_threshold: 5  # percent\n  latency_p99_threshold: 2000  # milliseconds\n  health_check_interval: 10s\nnotifications:\n  slack_channel: \"#deployments\"\n```\n\n## Usage Examples\n\nDeploy to staging with canary strategy:\n\n```bash\ndeploy-bot deploy --cluster staging --strategy canary --image myapp:v2.0.0\n```\n\nPromote a canary to full rollout:\n\n```bash\ndeploy-bot promote --cluster staging --deployment myapp\n```\n\nTrigger an immediate rollback:\n\n```bash\ndeploy-bot rollback --cluster production --deployment myapp\n```\n\n## Deployment Strategies\n\n| Strategy | Description | Risk Level |\n|----------|-------------|------------|\n| Rolling | Gradual pod replacement | Low |\n| Canary | Route percentage of traffic to new version | Medium |\n| Blue-Green | Full parallel environment swap | Low |\n\n## License\nApache-2.0"
+	readme4 := "# Data Pipeline Agent\n\nOrchestrates complex data pipelines with built-in quality monitoring. This agent integrates with Apache Airflow, dbt, and Great Expectations to automate ETL workflows end to end.\n\n## Features\n- Schema evolution handling with automatic migration generation\n- Data quality assertions using Great Expectations\n- Automated retry and recovery with exponential backoff\n- Pipeline lineage tracking and impact analysis\n- Anomaly detection on data volume and freshness\n\n## Prerequisites\n- Python 3.11+\n- PostgreSQL 14+ or MySQL 8+ as the metadata database\n- Apache Airflow 2.7+ (optional, for DAG-based orchestration)\n- An API key for the LLM provider used for anomaly summarization\n\n## Installation\n\n```bash\npip install data-pipeline-agent\n```\n\nOr with Docker Compose:\n\n```bash\ngit clone https://github.com/example/data-pipeline-agent.git\ncd data-pipeline-agent\ndocker compose up -d\n```\n\n## Configuration\n\nSet the required environment variables:\n\n```bash\nexport DATABASE_URL=postgresql://user:pass@localhost:5432/pipelines\nexport AIRFLOW_API_KEY=your_airflow_key\nexport SLACK_WEBHOOK_URL=https://hooks.slack.com/services/xxx  # optional\n```\n\nPipeline definitions use YAML:\n\n```yaml\npipeline:\n  name: daily-sales-etl\n  schedule: \"0 6 * * *\"\n  sources:\n    - type: postgres\n      connection: $DATABASE_URL\n      table: raw_sales\n  transforms:\n    - name: deduplicate\n      strategy: last_write_wins\n      key: [order_id]\n    - name: validate\n      expectations:\n        - column: amount\n          condition: \"amount > 0\"\n        - column: order_date\n          condition: \"order_date IS NOT NULL\"\n  destination:\n    type: parquet\n    path: s3://data-lake/sales/\n```\n\n## Usage Examples\n\nRun a pipeline manually:\n\n```bash\ndata-pipeline-agent run --pipeline daily-sales-etl\n```\n\nValidate schema compatibility before deployment:\n\n```bash\ndata-pipeline-agent schema check --pipeline daily-sales-etl --target production\n```\n\nView pipeline lineage:\n\n```bash\ndata-pipeline-agent lineage --pipeline daily-sales-etl --depth 3\n```\n\n## Retry Policy\nFailed tasks are retried up to 3 times with exponential backoff (30s, 2m, 8m). After all retries are exhausted, the agent sends a Slack notification and marks the pipeline as failed for manual intervention.\n\n## License\nApache-2.0"
 
-	logo1 := "https://example.com/logos/code-review-agent.png"
-	logo2 := "https://example.com/logos/research-assistant.png"
-	logo3 := "https://example.com/logos/deploy-bot.png"
-	logo4 := "https://example.com/logos/data-pipeline.png"
+	agentLogoSvg := "data:image/svg+xml;base64,PHN2ZyBpZD0iTGF5ZXJfMSIgZGF0YS1uYW1lPSJMYXllciAxIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxOTIgMTQ1Ij48ZGVmcz48c3R5bGU+LmNscy0xe2ZpbGw6I2UwMDt9PC9zdHlsZT48L2RlZnM+PHRpdGxlPlJlZEhhdC1Mb2dvLUhhdC1Db2xvcjwvdGl0bGU+PHBhdGggZD0iTTE1Ny43Nyw2Mi42MWExNCwxNCwwLDAsMSwuMzEsMy40MmMwLDE0Ljg4LTE4LjEsMTcuNDYtMzAuNjEsMTcuNDZDNzguODMsODMuNDksNDIuNTMsNTMuMjYsNDIuNTMsNDRhNi40Myw2LjQzLDAsMCwxLC4yMi0xLjk0bC0zLjY2LDkuMDZhMTguNDUsMTguNDUsMCwwLDAtMS41MSw3LjMzYzAsMTguMTEsNDEsNDUuNDgsODcuNzQsNDUuNDgsMjAuNjksMCwzNi40My03Ljc2LDM2LjQzLTIxLjc3LDAtMS4wOCwwLTEuOTQtMS43My0xMC4xM1oiLz48cGF0aCBjbGFzcz0iY2xzLTEiIGQ9Ik0xMjcuNDcsODMuNDljMTIuNTEsMCwzMC42MS0yLjU4LDMwLjYxLTE3LjQ2YTE0LDE0LDAsMCwwLS4zMS0zLjQybC03LjQ1LTMyLjM2Yy0xLjcyLTcuMTItMy4yMy0xMC4zNS0xNS43My0xNi42QzEyNC44OSw4LjY5LDEwMy43Ni41LDk3LjUxLjUsOTEuNjkuNSw5MCw4LDgzLjA2LDhjLTYuNjgsMC0xMS42NC01LjYtMTcuODktNS42LTYsMC05LjkxLDQuMDktMTIuOTMsMTIuNSwwLDAtOC40MSwyMy43Mi05LjQ5LDI3LjE2QTYuNDMsNi40MywwLDAsMCw0Mi41Myw0NGMwLDkuMjIsMzYuMywzOS40NSw4NC45NCwzOS40NU0xNjAsNzIuMDdjMS43Myw4LjE5LDEuNzMsOS4wNSwxLjczLDEwLjEzLDAsMTQtMTUuNzQsMjEuNzctMzYuNDMsMjEuNzdDNzguNTQsMTA0LDM3LjU4LDc2LjYsMzcuNTgsNTguNDlhMTguNDUsMTguNDUsMCwwLDEsMS41MS03LjMzQzIyLjI3LDUyLC41LDU1LC41LDc0LjIyYzAsMzEuNDgsNzQuNTksNzAuMjgsMTMzLjY1LDcwLjI4LDQ1LjI4LDAsNTYuNy0yMC40OCw1Ni43LTM2LjY1LDAtMTIuNzItMTEtMjcuMTYtMzAuODMtMzUuNzgiLz48L3N2Zz4="
+	logo1 := agentLogoSvg
+	logo2 := agentLogoSvg
+	logo3 := agentLogoSvg
+	logo4 := agentLogoSvg
 
 	repoURL1 := "https://github.com/example/code-review-agent"
 	repoURL2 := "https://github.com/example/research-assistant"
@@ -3693,12 +3693,12 @@ func GetAgentMocks() []models.Agent {
 		{
 			ID:            "1",
 			Name:          "code-review-agent",
-			SourceID:      &sourceID1,
+			SourceID:      &sourceID,
 			DisplayName:   stringToPointer("Code Review Agent"),
 			Description:   &desc1,
 			Readme:        &readme1,
 			Framework:     &langgraphFramework,
-			Labels:        []string{"code-review", "developer-tools", "security"},
+			Labels:        []string{"Tool use", "General purpose"},
 			Logo:          &logo1,
 			RepositoryURL: &repoURL1,
 			Env: []models.AgentEnvVar{
@@ -3706,8 +3706,9 @@ func GetAgentMocks() []models.Agent {
 				{Name: "OPENAI_API_KEY", Required: true, Description: stringToPointer("API key for the LLM provider")},
 				{Name: "LOG_LEVEL", Required: false, Description: stringToPointer("Logging verbosity (debug, info, warn, error)")},
 			},
-			Artifacts: []models.AgentArtifact{
+			Artifacts: []models.AgentImageArtifact{
 				{
+					ArtifactType:             "image-artifact",
 					URI:                      "ghcr.io/example/code-review-agent:v1.2.0",
 					CreateTimeSinceEpoch:     &createTime,
 					LastUpdateTimeSinceEpoch: &updateTime,
@@ -3720,12 +3721,12 @@ func GetAgentMocks() []models.Agent {
 		{
 			ID:            "2",
 			Name:          "research-assistant",
-			SourceID:      &sourceID1,
+			SourceID:      &sourceID,
 			DisplayName:   stringToPointer("Research Assistant"),
 			Description:   &desc2,
 			Readme:        &readme2,
 			Framework:     &crewaiFramework,
-			Labels:        []string{"research", "academic", "summarization"},
+			Labels:        []string{"General purpose", "Web search"},
 			Logo:          &logo2,
 			RepositoryURL: &repoURL2,
 			Env: []models.AgentEnvVar{
@@ -3733,8 +3734,8 @@ func GetAgentMocks() []models.Agent {
 				{Name: "OPENAI_API_KEY", Required: true},
 				{Name: "ARXIV_RATE_LIMIT", Required: false},
 			},
-			Artifacts: []models.AgentArtifact{
-				{URI: "ghcr.io/example/research-assistant:v2.0.1"},
+			Artifacts: []models.AgentImageArtifact{
+				{ArtifactType: "image-artifact", URI: "ghcr.io/example/research-assistant:v2.0.1"},
 			},
 			CreateTimeSinceEpoch:     &createTime,
 			LastUpdateTimeSinceEpoch: &updateTime,
@@ -3742,20 +3743,20 @@ func GetAgentMocks() []models.Agent {
 		{
 			ID:            "3",
 			Name:          "deploy-bot",
-			SourceID:      &sourceID2,
+			SourceID:      &sourceID,
 			DisplayName:   stringToPointer("Deploy Bot"),
 			Description:   &desc3,
 			Readme:        &readme3,
 			Framework:     &autogenFramework,
-			Labels:        []string{"deployment", "ci-cd", "operations"},
+			Labels:        []string{"Deployment", "Tool use"},
 			Logo:          &logo3,
 			RepositoryURL: &repoURL3,
 			Env: []models.AgentEnvVar{
 				{Name: "KUBECONFIG", Required: true},
 				{Name: "SLACK_WEBHOOK_URL", Required: false},
 			},
-			Artifacts: []models.AgentArtifact{
-				{URI: "ghcr.io/example/deploy-bot:v3.1.0"},
+			Artifacts: []models.AgentImageArtifact{
+				{ArtifactType: "image-artifact", URI: "ghcr.io/example/deploy-bot:v3.1.0"},
 			},
 			CreateTimeSinceEpoch:     &createTime,
 			LastUpdateTimeSinceEpoch: &updateTime,
@@ -3763,12 +3764,12 @@ func GetAgentMocks() []models.Agent {
 		{
 			ID:            "4",
 			Name:          "data-pipeline-agent",
-			SourceID:      &sourceID2,
+			SourceID:      &sourceID,
 			DisplayName:   stringToPointer("Data Pipeline Agent"),
 			Description:   &desc4,
 			Readme:        &readme4,
 			Framework:     &langgraphFramework,
-			Labels:        []string{"data-engineering", "etl", "monitoring"},
+			Labels:        []string{"General purpose", "Tool use"},
 			Logo:          &logo4,
 			RepositoryURL: &repoURL4,
 			Env: []models.AgentEnvVar{
@@ -3776,8 +3777,8 @@ func GetAgentMocks() []models.Agent {
 				{Name: "AIRFLOW_API_KEY", Required: true},
 				{Name: "SLACK_WEBHOOK_URL", Required: false},
 			},
-			Artifacts: []models.AgentArtifact{
-				{URI: "ghcr.io/example/data-pipeline-agent:v1.0.0"},
+			Artifacts: []models.AgentImageArtifact{
+				{ArtifactType: "image-artifact", URI: "ghcr.io/example/data-pipeline-agent:v1.0.0"},
 			},
 			CreateTimeSinceEpoch:     &createTime,
 			LastUpdateTimeSinceEpoch: &updateTime,
@@ -3785,13 +3786,13 @@ func GetAgentMocks() []models.Agent {
 		{
 			ID:          "5",
 			Name:        "websearch-agent",
-			SourceID:    &sourceID1,
+			SourceID:    &sourceID,
 			DisplayName: stringToPointer("Websearch Agent"),
 			Description: stringToPointer("Web search agent built with the CrewAI framework. Uses a ReAct-style crew with a web search tool to answer user questions."),
 			Framework:   &crewaiFramework,
-			Labels:      []string{"web-search", "a2a", "crewai"},
-			Artifacts: []models.AgentArtifact{
-				{URI: "ghcr.io/example/websearch-agent:v1.0.0"},
+			Labels:      []string{"Web search", "MCP"},
+			Artifacts: []models.AgentImageArtifact{
+				{ArtifactType: "image-artifact", URI: "ghcr.io/example/websearch-agent:v1.0.0"},
 			},
 			CreateTimeSinceEpoch:     &createTime,
 			LastUpdateTimeSinceEpoch: &updateTime,
@@ -3799,13 +3800,13 @@ func GetAgentMocks() []models.Agent {
 		{
 			ID:          "6",
 			Name:        "google-adk-agent",
-			SourceID:    &sourceID1,
+			SourceID:    &sourceID,
 			DisplayName: stringToPointer("Google ADK 2.0 Agent"),
 			Description: stringToPointer("General-purpose agent using Google Agent Development Kit (ADK) 2.0 with a web search tool, routing inference through a LiteLLM OpenAI-compatible API."),
 			Framework:   stringToPointer("google-adk"),
-			Labels:      []string{"web-search", "google-adk", "general-purpose"},
-			Artifacts: []models.AgentArtifact{
-				{URI: "ghcr.io/example/google-adk-agent:v2.0.0"},
+			Labels:      []string{"Web search", "General purpose"},
+			Artifacts: []models.AgentImageArtifact{
+				{ArtifactType: "image-artifact", URI: "ghcr.io/example/google-adk-agent:v2.0.0"},
 			},
 			CreateTimeSinceEpoch:     &createTime,
 			LastUpdateTimeSinceEpoch: &updateTime,
@@ -3813,13 +3814,13 @@ func GetAgentMocks() []models.Agent {
 		{
 			ID:          "7",
 			Name:        "simple-tool-calling-agent",
-			SourceID:    &sourceID2,
+			SourceID:    &sourceID,
 			DisplayName: stringToPointer("Simple Tool Calling Agent"),
 			Description: stringToPointer("Tool-calling agent built with Langflow's visual flow builder. It calls external APIs as tools (weather forecasts, national park data) and reasons over the results to answer user questions."),
-			Framework:   stringToPointer("langflow"),
-			Labels:      []string{"tool-use", "external-apis", "langflow"},
-			Artifacts: []models.AgentArtifact{
-				{URI: "ghcr.io/example/simple-tool-calling-agent:v1.0.0"},
+			Framework:   stringToPointer("claude-code"),
+			Labels:      []string{"Tool use", "MCP"},
+			Artifacts: []models.AgentImageArtifact{
+				{ArtifactType: "image-artifact", URI: "ghcr.io/example/simple-tool-calling-agent:v1.0.0"},
 			},
 			CreateTimeSinceEpoch:     &createTime,
 			LastUpdateTimeSinceEpoch: &updateTime,
@@ -3827,13 +3828,13 @@ func GetAgentMocks() []models.Agent {
 		{
 			ID:          "8",
 			Name:        "react-database-agent",
-			SourceID:    &sourceID2,
+			SourceID:    &sourceID,
 			DisplayName: stringToPointer("ReACT Agent with Database Memory"),
 			Description: stringToPointer("ReAct agent with PostgreSQL-based conversation memory. It reasons and calls tools step by step, storing conversation history by thread ID so sessions persist across requests."),
 			Framework:   &langgraphFramework,
-			Labels:      []string{"react", "database", "memory"},
-			Artifacts: []models.AgentArtifact{
-				{URI: "ghcr.io/example/react-database-agent:v1.1.0"},
+			Labels:      []string{"General purpose", "Tool use"},
+			Artifacts: []models.AgentImageArtifact{
+				{ArtifactType: "image-artifact", URI: "ghcr.io/example/react-database-agent:v1.1.0"},
 			},
 			CreateTimeSinceEpoch:     &createTime,
 			LastUpdateTimeSinceEpoch: &updateTime,
@@ -3841,13 +3842,13 @@ func GetAgentMocks() []models.Agent {
 		{
 			ID:          "9",
 			Name:        "llamaindex-websearch-agent",
-			SourceID:    &sourceID1,
+			SourceID:    &sourceID,
 			DisplayName: stringToPointer("LlamaIndex Websearch Agent"),
 			Description: stringToPointer("Agent built on LlamaIndex that uses a web search tool to query the internet and use the results in its answers."),
 			Framework:   stringToPointer("llamaindex"),
-			Labels:      []string{"web-search", "llamaindex"},
-			Artifacts: []models.AgentArtifact{
-				{URI: "ghcr.io/example/llamaindex-websearch:v1.0.0"},
+			Labels:      []string{"Web search", "Multi-agent"},
+			Artifacts: []models.AgentImageArtifact{
+				{ArtifactType: "image-artifact", URI: "ghcr.io/example/llamaindex-websearch:v1.0.0"},
 			},
 			CreateTimeSinceEpoch:     &createTime,
 			LastUpdateTimeSinceEpoch: &updateTime,
@@ -3855,13 +3856,13 @@ func GetAgentMocks() []models.Agent {
 		{
 			ID:          "10",
 			Name:        "openclaw-agent",
-			SourceID:    &sourceID2,
+			SourceID:    &sourceID,
 			DisplayName: stringToPointer("OpenClaw"),
 			Description: stringToPointer("OpenClaw agent deployment templates for Red Hat OpenShift AI, including container images and Helm-based deployment patterns."),
-			Framework:   &autogenFramework,
-			Labels:      []string{"deployment", "openshift", "helm"},
-			Artifacts: []models.AgentArtifact{
-				{URI: "ghcr.io/example/openclaw:v2.0.0"},
+			Framework:   stringToPointer("openclaw"),
+			Labels:      []string{"Deployment", "General purpose"},
+			Artifacts: []models.AgentImageArtifact{
+				{ArtifactType: "image-artifact", URI: "ghcr.io/example/openclaw:v2.0.0"},
 			},
 			CreateTimeSinceEpoch:     &createTime,
 			LastUpdateTimeSinceEpoch: &updateTime,
@@ -3869,13 +3870,13 @@ func GetAgentMocks() []models.Agent {
 		{
 			ID:          "11",
 			Name:        "multi-agent-orchestrator",
-			SourceID:    &sourceID1,
+			SourceID:    &sourceID,
 			DisplayName: stringToPointer("Multi-Agent Orchestrator"),
 			Description: stringToPointer("Orchestrates multiple sub-agents using a planning-based approach. Decomposes complex tasks and routes to specialized agents."),
 			Framework:   &crewaiFramework,
-			Labels:      []string{"multi-agent", "orchestration", "planning"},
-			Artifacts: []models.AgentArtifact{
-				{URI: "ghcr.io/example/multi-agent-orchestrator:v1.3.0"},
+			Labels:      []string{"Multi-agent", "General purpose"},
+			Artifacts: []models.AgentImageArtifact{
+				{ArtifactType: "image-artifact", URI: "ghcr.io/example/multi-agent-orchestrator:v1.3.0"},
 			},
 			CreateTimeSinceEpoch:     &createTime,
 			LastUpdateTimeSinceEpoch: &updateTime,
@@ -3883,13 +3884,13 @@ func GetAgentMocks() []models.Agent {
 		{
 			ID:          "12",
 			Name:        "a2a-langgraph-crewai",
-			SourceID:    &sourceID1,
+			SourceID:    &sourceID,
 			DisplayName: stringToPointer("A2A: LangGraph → CrewAI"),
 			Description: stringToPointer("A2A example where a CrewAI pod exposes an A2A JSON-RPC server and a LangGraph pod orchestrates calls to the Crew specialist over HTTP/A2A, locally or on OpenShift."),
 			Framework:   &crewaiFramework,
-			Labels:      []string{"a2a", "multi-agent", "a2a-protocol"},
-			Artifacts: []models.AgentArtifact{
-				{URI: "ghcr.io/example/a2a-langgraph-crewai:v1.0.0"},
+			Labels:      []string{"Multi-agent", "MCP"},
+			Artifacts: []models.AgentImageArtifact{
+				{ArtifactType: "image-artifact", URI: "ghcr.io/example/a2a-langgraph-crewai:v1.0.0"},
 			},
 			CreateTimeSinceEpoch:     &createTime,
 			LastUpdateTimeSinceEpoch: &updateTime,
@@ -3914,24 +3915,17 @@ func GetAgentFilterOptionsListMock() models.FilterOptionsList {
 	filters["framework"] = models.FilterOption{
 		Type: FilterOptionTypeString,
 		Values: []interface{}{
-			"A2A",
-			"Autogen",
-			"Claude Code",
-			"CrewAI",
-			"Google ADK",
-			"LangGraph",
-		},
-	}
-
-	filters["category"] = models.FilterOption{
-		Type: FilterOptionTypeString,
-		Values: []interface{}{
-			"Deployment",
-			"General purpose",
-			"MCP",
-			"Multi-agent",
-			"Tool use",
-			"Web search",
+			"a2a",
+			"autogen",
+			"claude-code",
+			"crewai",
+			"google-adk",
+			"langflow",
+			"langgraph",
+			"llamaindex",
+			"openclaw",
+			"opencode",
+			"vanilla_python",
 		},
 	}
 
@@ -3959,24 +3953,72 @@ func GetAgentFilterOptionsListMock() models.FilterOptionsList {
 	}
 }
 
+func GetAgentArtifactsMock(agentID string) map[string][]models.AgentArtifact {
+	createTime := "1706745600000"
+	updateTime := "1709424000000"
+
+	agentTemplates := map[string][]models.AgentArtifact{
+		"1": {
+			{
+				ArtifactType:             "template-artifact",
+				ID:                       stringToPointer("101"),
+				Name:                     stringToPointer("sample_agents:code-review-agent:agent.yaml"),
+				Content:                  stringToPointer("name: code-review-agent\ndisplayName: \"Code Review Agent\"\nframework: langgraph\ndescription: \"An intelligent code review agent that analyzes pull requests.\"\nenv:\n  required:\n    - GITHUB_TOKEN\n    - OPENAI_API_KEY\n  optional:\n    - LOG_LEVEL\n"),
+				CreateTimeSinceEpoch:     &createTime,
+				LastUpdateTimeSinceEpoch: &updateTime,
+			},
+		},
+		"2": {
+			{
+				ArtifactType:             "template-artifact",
+				ID:                       stringToPointer("102"),
+				Name:                     stringToPointer("sample_agents:research-assistant:agent.yaml"),
+				Content:                  stringToPointer("name: research-assistant\ndisplayName: \"Research Assistant\"\nframework: crewai\ndescription: \"A research assistant agent that searches academic papers.\"\nenv:\n  required:\n    - SEMANTIC_SCHOLAR_API_KEY\n    - OPENAI_API_KEY\n  optional:\n    - ARXIV_RATE_LIMIT\n"),
+				CreateTimeSinceEpoch:     &createTime,
+				LastUpdateTimeSinceEpoch: &updateTime,
+			},
+		},
+		"5": {
+			{
+				ArtifactType:             "template-artifact",
+				ID:                       stringToPointer("105"),
+				Name:                     stringToPointer("sample_agents:websearch-agent:agent.yaml"),
+				Content:                  stringToPointer("name: websearch-agent\ndisplayName: \"Websearch Agent\"\nframework: crewai\ndescription: \"Web search agent built with CrewAI.\"\nenv:\n  required:\n    - OPENAI_API_KEY\n"),
+				CreateTimeSinceEpoch:     &createTime,
+				LastUpdateTimeSinceEpoch: &updateTime,
+			},
+		},
+	}
+
+	return agentTemplates
+}
+
+func GetAgentArtifactListMock(agentID string) *models.AgentArtifactList {
+	allArtifacts := GetAgentArtifactsMock(agentID)
+	items, ok := allArtifacts[agentID]
+	if !ok {
+		items = []models.AgentArtifact{}
+	}
+
+	return &models.AgentArtifactList{
+		Items:         items,
+		Size:          int32(len(items)),
+		PageSize:      int32(10),
+		NextPageToken: "",
+	}
+}
+
 func GetAgentCatalogSourceMocks() []models.CatalogSource {
 	enabled := true
 	availableStatus := "available"
 
 	return []models.CatalogSource{
 		{
-			Id:      "community-agent-source",
-			Name:    "Community Agents",
+			Id:      "agent-templates-source",
+			Name:    "Agent Templates",
 			Enabled: &enabled,
 			Status:  &availableStatus,
-			Labels:  []string{"community_agents"},
-		},
-		{
-			Id:      "organization-agent-source",
-			Name:    "Organization Agents",
-			Enabled: &enabled,
-			Status:  &availableStatus,
-			Labels:  []string{"organization_agents"},
+			Labels:  []string{"agent_templates"},
 		},
 	}
 }
@@ -3993,24 +4035,15 @@ func GetAgentCatalogSourceListMock() models.CatalogSourceList {
 }
 
 func GetAgentCatalogLabelListMock() models.CatalogLabelList {
-	communityName := "community_agents"
-	communityDisplay := "Community Agents"
-	communityDesc := "Community contributed agents from various sources."
-
-	orgName := "organization_agents"
-	orgDisplay := "Organization Agents"
-	orgDesc := "Agents provided and maintained by your organization."
+	labelName := "agent_templates"
+	labelDisplay := "Agent templates"
+	labelDesc := "Pre-built agent templates from the agentic starter kits collection."
 
 	labels := []models.CatalogLabel{
 		{
-			Name:        &communityName,
-			DisplayName: &communityDisplay,
-			Description: &communityDesc,
-		},
-		{
-			Name:        &orgName,
-			DisplayName: &orgDisplay,
-			Description: &orgDesc,
+			Name:        &labelName,
+			DisplayName: &labelDisplay,
+			Description: &labelDesc,
 		},
 	}
 

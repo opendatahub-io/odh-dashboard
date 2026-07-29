@@ -16,6 +16,7 @@ import { isEnumMember } from '@odh-dashboard/foundation';
 import { DashboardPopupIconButton } from '@odh-dashboard/ui-core';
 import ContentModal from '@odh-dashboard/ui-core/components/ContentModal';
 import SimpleSelect, { SimpleSelectOption } from '@odh-dashboard/ui-core/components/SimpleSelect';
+import useGenericObjectState from '@odh-dashboard/ui-core/utilities/useGenericObjectState';
 import {
   ConnectionTypeDataField,
   connectionTypeDataFields,
@@ -31,7 +32,6 @@ import {
 } from '#~/concepts/connectionTypes/utils';
 import DataFieldPropertiesForm from '#~/pages/connectionTypes/manage/DataFieldPropertiesForm';
 import { prepareFieldForSave } from '#~/pages/connectionTypes/manage/manageFieldUtils';
-import useGenericObjectState from '#~/utilities/useGenericObjectState';
 
 const isConnectionTypeFieldType = (
   fieldType: string | number | undefined,

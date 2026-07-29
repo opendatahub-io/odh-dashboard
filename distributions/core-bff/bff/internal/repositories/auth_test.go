@@ -26,20 +26,20 @@ func TestGetAuth_ErrorClassification(t *testing.T) {
 }
 
 func TestGetAuth_ParsesAuthConfig(t *testing.T) {
-	spec := map[string]interface{}{
-		"adminGroups":   []interface{}{"admin-group-1", "admin-group-2"},
-		"allowedGroups": []interface{}{models.SystemAuthenticated, "allowed-group"},
+	spec := map[string]any{
+		"adminGroups":   []any{"admin-group-1", "admin-group-2"},
+		"allowedGroups": []any{models.SystemAuthenticated, "allowed-group"},
 	}
 
 	auth := &AuthConfig{}
-	if groups, ok := spec["adminGroups"].([]interface{}); ok {
+	if groups, ok := spec["adminGroups"].([]any); ok {
 		for _, g := range groups {
 			if s, ok := g.(string); ok {
 				auth.AdminGroups = append(auth.AdminGroups, s)
 			}
 		}
 	}
-	if groups, ok := spec["allowedGroups"].([]interface{}); ok {
+	if groups, ok := spec["allowedGroups"].([]any); ok {
 		for _, g := range groups {
 			if s, ok := g.(string); ok {
 				auth.AllowedGroups = append(auth.AllowedGroups, s)
@@ -52,10 +52,10 @@ func TestGetAuth_ParsesAuthConfig(t *testing.T) {
 }
 
 func TestGetAuth_EmptySpec(t *testing.T) {
-	spec := map[string]interface{}{}
+	spec := map[string]any{}
 
 	auth := &AuthConfig{}
-	if groups, ok := spec["adminGroups"].([]interface{}); ok {
+	if groups, ok := spec["adminGroups"].([]any); ok {
 		for _, g := range groups {
 			if s, ok := g.(string); ok {
 				auth.AdminGroups = append(auth.AdminGroups, s)

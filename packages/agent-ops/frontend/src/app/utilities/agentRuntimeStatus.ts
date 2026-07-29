@@ -4,8 +4,11 @@ export enum AgentRuntimeApiStatus {
   Ready = 'ready',
   Running = 'running',
   Stopped = 'stopped',
+  Suspended = 'suspended',
   Pending = 'pending',
+  Provisioning = 'provisioning',
   Failed = 'failed',
+  NotReady = 'not ready',
 }
 
 export enum AgentRuntimeDisplayStatus {
@@ -40,8 +43,10 @@ export const mapAgentRuntimeStatus = (status: string | undefined): AgentRuntimeS
     case AgentRuntimeApiStatus.Running:
       return { displayStatus: AgentRuntimeDisplayStatus.Ready, labelStatus: 'success' };
     case AgentRuntimeApiStatus.Stopped:
+    case AgentRuntimeApiStatus.Suspended:
       return { displayStatus: AgentRuntimeDisplayStatus.Stopped, labelColor: 'grey' };
     case AgentRuntimeApiStatus.Pending:
+    case AgentRuntimeApiStatus.NotReady:
       return { displayStatus: AgentRuntimeDisplayStatus.Pending, labelColor: 'purple' };
     case AgentRuntimeApiStatus.Failed:
       return {

@@ -14,7 +14,7 @@ import (
 // CreateServingRuntimeHandler handles POST /api/v1/servingRuntimes.
 // Creates a ServingRuntime CR in the specified namespace.
 func (app *App) CreateServingRuntimeHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	var body map[string]interface{}
+	var body map[string]any
 	if err := app.ReadJSON(w, r, &body); err != nil {
 		app.badRequestResponse(w, r, err)
 		return
@@ -50,12 +50,12 @@ func (app *App) CreateServingRuntimeHandler(w http.ResponseWriter, r *http.Reque
 	}
 }
 
-func extractNamespaceFromBody(body map[string]interface{}) (string, error) {
+func extractNamespaceFromBody(body map[string]any) (string, error) {
 	metadata, ok := body["metadata"]
 	if !ok {
 		return "", errors.New("missing metadata in request body")
 	}
-	metaMap, ok := metadata.(map[string]interface{})
+	metaMap, ok := metadata.(map[string]any)
 	if !ok {
 		return "", errors.New("metadata must be an object")
 	}

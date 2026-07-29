@@ -88,7 +88,7 @@ const ConnectedWorkbenchTableRow: React.FC<Props> = ({ row }) => {
           {row.authorizedProject}
         </Button>
       </Td>
-      <Td dataLabel="Permission">
+      <Td dataLabel="Permissions">
         {row.permissionLevel.length > 0 ? (
           <PermissionLabels permissions={row.permissionLevel} />
         ) : (

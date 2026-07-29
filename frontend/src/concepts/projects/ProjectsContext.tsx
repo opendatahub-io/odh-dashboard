@@ -1,50 +1,23 @@
 import * as React from 'react';
 import type { ProjectKind } from '@odh-dashboard/k8s-core';
-import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
-import { FetchState } from '@odh-dashboard/ui-core/hooks/useFetchState';
+import { getDisplayNameFromK8sResource, byName } from '@odh-dashboard/k8s-core';
+import {
+  ProjectsContext,
+  type ProjectsContextType,
+} from '@odh-dashboard/ui-core/context/ProjectsContext';
 import { useProjects } from '#~/api';
 import { useDashboardNamespace } from '#~/redux/selectors';
 import { isAvailableProject } from './utils';
 import { PREFERRED_NAMESPACE_STORAGE_KEY } from './getStoredPreferredProject';
 
+// Re-export shared definitions for backward compatibility
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports -- re-exporting shared context
+export { ProjectsContext } from '@odh-dashboard/ui-core/context/ProjectsContext';
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports -- re-exporting shared utility
+export { byName } from '@odh-dashboard/k8s-core';
+
 const projectSorter = (projectA: ProjectKind, projectB: ProjectKind) =>
   getDisplayNameFromK8sResource(projectA).localeCompare(getDisplayNameFromK8sResource(projectB));
-
-type ProjectFetchState = FetchState<ProjectKind[]>;
-type ProjectsContextType = {
-  projects: ProjectKind[];
-  modelServingProjects: ProjectKind[];
-  /** eg. Terminating state, etc */
-  nonActiveProjects: ProjectKind[];
-
-  /** Some component set this value, you should use this instead of projects[0] */
-  preferredProject: ProjectKind | null;
-  /**
-   * Allows for navigation to be unimpeded by project selection
-   * @see useSyncPreferredProject
-   */
-  updatePreferredProject: (project: ProjectKind | null) => void;
-  waitForProject: (projectName: string) => Promise<void>;
-
-  // ...the rest of the state variables
-  loaded: ProjectFetchState[1];
-  loadError: ProjectFetchState[2];
-};
-
-export const ProjectsContext = React.createContext<ProjectsContextType>({
-  projects: [],
-  modelServingProjects: [],
-  nonActiveProjects: [],
-  preferredProject: null,
-  updatePreferredProject: () => undefined,
-  loaded: false,
-  loadError: new Error('Not in project provider'),
-  waitForProject: () => Promise.resolve(),
-});
-
-/** Allow for name to be not passed; won't match, but ease of use. */
-type GetByName = (name?: string) => Parameters<Array<ProjectKind>['find']>[0];
-export const byName: GetByName = (name) => (project) => project.metadata.name === name;
 
 type ProjectsProviderProps = {
   children: React.ReactNode;

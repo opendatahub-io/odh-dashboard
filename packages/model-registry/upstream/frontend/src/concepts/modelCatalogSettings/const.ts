@@ -3,6 +3,9 @@ import {
   HuggingFaceCatalogSourceConfig,
   CatalogSourceType,
 } from '~/app/modelCatalogTypes';
+import { CatalogSourceStatus } from '~/app/shared/types/catalogTypes';
+
+export { CatalogSourceStatus };
 
 export const CATALOG_SOURCE_TYPE_LABELS: Record<CatalogSourceType, string> = {
   [CatalogSourceType.YAML]: 'YAML file',
@@ -12,14 +15,6 @@ export const CATALOG_SOURCE_TYPE_LABELS: Record<CatalogSourceType, string> = {
 export enum ModelVisibilityBadgeColor {
   FILTERED = 'purple',
   UNFILTERED = 'grey',
-}
-
-// Catalog source status values from the API
-export enum CatalogSourceStatus {
-  AVAILABLE = 'available',
-  PARTIALLY_AVAILABLE = 'partially-available',
-  ERROR = 'error',
-  DISABLED = 'disabled',
 }
 
 /**

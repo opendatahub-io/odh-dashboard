@@ -26,7 +26,7 @@ import { useZodFormValidation } from '@odh-dashboard/ui-core/hooks/useZodFormVal
 import { APIOptions } from 'mod-arch-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { z } from 'zod';
-import { URL_PREFIX } from '~/app/utilities/const';
+import { getSectionUrl } from '~/app/utilities/subscriptionManagementNavigation';
 import { createSubscription, updateSubscription } from '~/app/api/subscriptions';
 import { useSubscriptionModels } from '~/app/hooks/useSubscriptionModels';
 import {
@@ -264,7 +264,7 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
         };
         await createSubscription()(apiOpts, request);
       }
-      navigate(returnTo ?? `${URL_PREFIX}/subscriptions`);
+      navigate(returnTo ?? getSectionUrl('subscriptions'));
     } catch (e) {
       setSubmitError(
         e instanceof Error
@@ -488,7 +488,7 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
             If this subscription has associated authorization policies, you must manually update
             them from the{' '}
             <b>
-              <Link to={`${URL_PREFIX}/auth-policies`}>Authorization policies page</Link>
+              <Link to={getSectionUrl('auth-policies')}>Authorization policies page</Link>
             </b>{' '}
             after saving your changes.
           </Alert>
@@ -522,7 +522,7 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
           </Button>
           <Button
             variant="link"
-            onClick={() => navigate(returnTo ?? `${URL_PREFIX}/subscriptions`)}
+            onClick={() => navigate(returnTo ?? getSectionUrl('subscriptions'))}
             isDisabled={isSubmitting}
             data-testid="cancel-subscription-button"
           >

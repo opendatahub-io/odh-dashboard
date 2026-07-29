@@ -16,3 +16,20 @@ func extractReadyConditionMessage(content map[string]interface{}) string {
 	}
 	return ""
 }
+
+// isConditionStatusTrue reports whether status.conditions contains type==conditionType with status=="True".
+func isConditionStatusTrue(content map[string]interface{}, conditionType string) bool {
+	conditions, _, _ := unstructured.NestedSlice(content, "status", "conditions")
+	for _, c := range conditions {
+		cMap, ok := c.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		if condType, _ := cMap["type"].(string); condType != conditionType {
+			continue
+		}
+		status, _ := cMap["status"].(string)
+		return status == "True"
+	}
+	return false
+}

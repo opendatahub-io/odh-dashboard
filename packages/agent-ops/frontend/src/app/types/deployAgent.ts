@@ -10,7 +10,7 @@ export type DeployAgentServicePortRequest = {
   protocol?: string;
 };
 
-/** POST /api/v1/agents/deploy request body (no kagenti auth fields). */
+/** POST /api/v1/agents/deploy request body. */
 export type DeployAgentRequest = {
   name: string;
   namespace: string;

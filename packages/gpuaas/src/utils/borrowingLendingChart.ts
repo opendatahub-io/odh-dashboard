@@ -1,4 +1,5 @@
 import { ChartThemeColor, getTheme } from '@patternfly/react-charts/victory';
+import { chart_color_black_300 as chartColorGray } from '@patternfly/react-tokens';
 import { CQMetricSeries } from '../hooks/useBorrowingLendingMetrics';
 import {
   CURSOR_GAP,
@@ -12,6 +13,7 @@ export type TooltipPoint = {
   x: number;
   y: number;
   nominalQuota?: number;
+  gpuUsage?: number;
 };
 
 /**
@@ -47,14 +49,13 @@ export const formatTooltipDate = (x: number): string => {
   return `${weekday} ${day} ${month}, ${time}`;
 };
 
-/** Signed values: "+2", "0", "-3" so positive = borrowing, negative = lending */
+/** Positive values: "+2" for borrowing above quota, "0" at quota. */
 export const formatYTick = (y: number): string => {
   if (y === 0) {
     return '0';
   }
-  const abs = Math.abs(y);
-  const val = abs >= 1000 ? `${(abs / 1000).toFixed(1)}k` : String(Math.round(abs));
-  return y > 0 ? `+${val}` : `-${val}`;
+  const val = y >= 1000 ? `${(y / 1000).toFixed(1)}k` : String(Math.round(y));
+  return `+${val}`;
 };
 
 /**
@@ -69,7 +70,7 @@ export const getEntryLabel = (info: CQMetricSeries | undefined, fallback: string
   if (!info) {
     return fallback;
   }
-  return info.cohortName ? `${info.cohortName} · ${info.cqName}` : info.cqName;
+  return info.cohortName ? `${info.cohortName}, ${info.cqName}` : `No cohort, ${info.cqName}`;
 };
 
 /** Truncated legend label for the SVG legend column (CSS text-overflow is unavailable in SVG). */
@@ -83,9 +84,8 @@ export const getLegendLabel = (s: CQMetricSeries): string =>
  */
 export const buildYDomain = (series: CQMetricSeries[]): { minY: number; maxY: number } => {
   const allY = series.flatMap((s) => s.data.map((d) => d.y));
-  const rawMin = allY.reduce((min, y) => Math.min(min, y), 0);
   const rawMax = allY.reduce((max, y) => Math.max(max, y), 0);
-  return { minY: rawMin - 1, maxY: rawMax + 1 };
+  return { minY: 0, maxY: rawMax + 1 };
 };
 
 /**
@@ -116,7 +116,9 @@ export const buildColorByName = (
       .filter((s) => !hiddenSeries.has(s.cqName))
       .map((s, i) => [
         s.cqName,
-        CHART_COLOR_SCALE.length > 0 ? CHART_COLOR_SCALE[i % CHART_COLOR_SCALE.length] : '#aaa',
+        CHART_COLOR_SCALE.length > 0
+          ? CHART_COLOR_SCALE[i % CHART_COLOR_SCALE.length]
+          : chartColorGray.value,
       ]),
   );
 

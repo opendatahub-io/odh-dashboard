@@ -325,6 +325,51 @@ export const translateStatusForNode = (
   }
 };
 
+/**
+ * Find the ParallelFor DAG execution for a given task — the one that has
+ * `iteration_count` set and whose `task_name` matches.
+ */
+export const findParallelForDagExecution = (
+  taskName: string,
+  taskId: string,
+  executions?: Execution[] | null,
+): Execution | undefined =>
+  executions?.find((e) => {
+    const props = e.getCustomPropertiesMap();
+    return (
+      props.get('task_name')?.getStringValue() === (taskName || taskId) &&
+      props.has('iteration_count')
+    );
+  });
+
+/**
+ * Read `iteration_count` from an execution's MLMD custom properties.
+ * Returns undefined when the property is absent.
+ */
+export const getIterationCount = (execution: Execution): number | undefined => {
+  const props = execution.getCustomPropertiesMap();
+  if (!props.has('iteration_count')) {
+    return undefined;
+  }
+  return props.get('iteration_count')?.getIntValue();
+};
+
+/**
+ * Find the iteration execution for a specific index under a ParallelFor parent.
+ */
+export const findIterationExecution = (
+  parentDagId: number,
+  iterationIndex: number,
+  executions: Execution[],
+): Execution | undefined =>
+  executions.find((e) => {
+    const props = e.getCustomPropertiesMap();
+    return (
+      props.get('parent_dag_id')?.getIntValue() === parentDagId &&
+      props.get('iteration_index')?.getIntValue() === iterationIndex
+    );
+  });
+
 export const parseVolumeMounts = (
   platformSpec?: PlatformSpec,
   executorLabel?: string,

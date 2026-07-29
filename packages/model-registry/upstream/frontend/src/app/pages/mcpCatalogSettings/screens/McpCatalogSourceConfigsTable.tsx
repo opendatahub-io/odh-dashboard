@@ -15,6 +15,12 @@ import { Table } from 'mod-arch-shared';
 import { McpCatalogSourceConfig } from '~/app/mcpServerCatalogTypes';
 import { McpCatalogSettingsContext } from '~/app/context/mcpCatalogSettings/McpCatalogSettingsContext';
 import { MCP_ADD_SOURCE_TITLE } from '~/app/routes/mcpCatalogSettings/mcpCatalogSettings';
+import { useUserInteraction } from '~/concepts/userInteraction';
+import {
+  MCP_CATALOG_SOURCES_EVENTS,
+  getMcpPreloadedTier,
+  getMcpTrackingSourceType,
+} from '~/app/pages/mcpCatalogSettings/tracking/mcpCatalogSourcesTracking';
 import { mcpCatalogSourceConfigsColumns } from './McpCatalogSourceConfigsTableColumns';
 import McpCatalogSourceConfigsTableRow from './McpCatalogSourceConfigsTableRow';
 
@@ -31,6 +37,7 @@ const McpCatalogSourceConfigsTable: React.FC<McpCatalogSourceConfigsTableProps> 
 }) => {
   const [toggleError, setToggleError] = React.useState<Error | undefined>(undefined);
   const [updatingToggleId, setUpdatingToggleId] = React.useState<string | null>(null);
+  const { trackSimpleEvent } = useUserInteraction();
   const { apiState, refreshMcpCatalogSourceConfigs, mcpCatalogSourcesLoadError } =
     React.useContext(McpCatalogSettingsContext);
 
@@ -45,9 +52,18 @@ const McpCatalogSourceConfigsTable: React.FC<McpCatalogSourceConfigsTableProps> 
     setUpdatingToggleId(catalogSourceConfig.id);
     setToggleError(undefined);
 
+    const previousEnabledState = catalogSourceConfig.enabled ?? true;
+
     try {
       await apiState.api.updateMcpCatalogSourceConfig({}, catalogSourceConfig.id, {
         enabled: checked,
+      });
+      trackSimpleEvent(MCP_CATALOG_SOURCES_EVENTS.SOURCE_ENABLE_TOGGLED, {
+        sourceId: catalogSourceConfig.id,
+        sourceType: getMcpTrackingSourceType(catalogSourceConfig),
+        preloadedTier: getMcpPreloadedTier(catalogSourceConfig),
+        newEnabledState: checked,
+        previousEnabledState,
       });
       refreshMcpCatalogSourceConfigs();
     } catch (e) {

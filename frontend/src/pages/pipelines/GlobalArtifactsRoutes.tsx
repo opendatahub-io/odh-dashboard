@@ -1,10 +1,10 @@
 import React from 'react';
 import { Navigate, Route } from 'react-router-dom';
 
+import TitleWithIcon from '@odh-dashboard/ui-core/design/TitleWithIcon';
 import ProjectsRoutes from '#~/concepts/projects/ProjectsRoutes';
 import GlobalPipelineCoreLoader from '#~/pages/pipelines/global/GlobalPipelineCoreLoader';
 import { artifactsBaseRoute } from '#~/routes/pipelines/artifacts';
-import TitleWithIcon from '#~/concepts/design/TitleWithIcon';
 import { ProjectObjectType } from '#~/concepts/design/utils';
 import { GlobalArtifactsPage } from './global/experiments/artifacts/GlobalArtifactsPage';
 import GlobalPipelineCoreDetails from './global/GlobalPipelineCoreDetails';

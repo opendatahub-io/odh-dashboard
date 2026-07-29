@@ -2,8 +2,8 @@ import React from 'react';
 import { Button } from '@patternfly/react-core';
 import { OptimizeIcon } from '@patternfly/react-icons';
 import { ConnectionModal } from '@odh-dashboard/internal/concepts/modelRegistry/content/ConnectionModal';
-import { Connection } from '@odh-dashboard/internal/concepts/connectionTypes/types';
-import { convertObjectStorageSecretData } from '@odh-dashboard/internal/concepts/connectionTypes/utils';
+import { convertObjectStorageSecretData } from '@odh-dashboard/k8s-core';
+import type { Connection } from '@odh-dashboard/k8s-core';
 import {
   RegistrationCommonFormData,
   ModelLocationType,

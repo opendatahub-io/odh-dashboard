@@ -1,34 +1,25 @@
+import { Alert, AlertActionCloseButton, Stack, StackItem } from '@patternfly/react-core';
 import React from 'react';
-import {
-  Alert,
-  AlertActionCloseButton,
-  EmptyState,
-  EmptyStateBody,
-  EmptyStateVariant,
-  Flex,
-  FlexItem,
-  Label,
-  Spinner,
-  Stack,
-  StackItem,
-  Title,
-} from '@patternfly/react-core';
 import { useParams } from 'react-router';
-import PipelineTopology from '~/app/topology/PipelineTopology';
+import { useAutoragResultsContext } from '~/app/context/AutoragResultsContext';
+import { isTaskSucceeded } from '~/app/hooks/useComponentStageMap';
+import { fetchS3File } from '~/app/hooks/queries';
+import { useTreeViewData } from '~/app/topology/tree-view';
+import { transformPipelineData } from '~/app/topology/tree-view/transformPipelineData';
 import { useAutoragTaskTopology } from '~/app/topology/useAutoragTaskTopology';
 import { buildStageMapTopology } from '~/app/topology/buildStageMapTopology';
-import { RuntimeStateKF } from '~/app/types/pipeline';
 import type { RunDetailsKF } from '~/app/types/pipeline';
-import { useAutoragResultsContext } from '~/app/context/AutoragResultsContext';
-import { fetchS3File } from '~/app/hooks/queries';
 import {
   computePatternRankMap,
   downloadBlob,
   getOptimizedMetricForRAG,
   isRunInTerminalState,
+  normalizePipelineRunState,
   sanitizeFilename,
 } from '~/app/utilities/utils';
+import type { PipelineTreeLoadingMode } from './pipelineStatusLabels';
 import AutoragLeaderboard from './AutoragLeaderboard';
+import AutoragPipelineVisualization from './AutoragPipelineVisualization';
 import './AutoragResults.scss';
 
 const PatternDetailsModal = React.lazy(() => import('./PatternDetailsModal/PatternDetailsModal'));
@@ -43,17 +34,23 @@ function AutoragResults({ onTryPattern, onViewCode }: AutoragResultsProps): Reac
   const {
     pipelineRun,
     patterns,
+    patternsLoading,
     ragPatternsBasePath,
     componentStageMap,
     componentStageMapLoading,
     componentStageMapError,
     parameters,
+    bestPatternKey,
   } = useAutoragResultsContext();
-  const [selectedIds, setSelectedIds] = React.useState<string[] | undefined>();
   const [selectedPatternName, setSelectedPatternName] = React.useState<string | null>(null);
 
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   const runDetails = pipelineRun?.run_details as RunDetailsKF | undefined;
+
+  const runState = React.useMemo(
+    () => normalizePipelineRunState(pipelineRun?.state),
+    [pipelineRun?.state],
+  );
 
   const leaderboardPatternNames = React.useMemo(() => Object.keys(patterns), [patterns]);
 
@@ -63,25 +60,94 @@ function AutoragResults({ onTryPattern, onViewCode }: AutoragResultsProps): Reac
         ? buildStageMapTopology(
             componentStageMap,
             runDetails,
-            pipelineRun?.state,
+            runState,
             parameters?.optimization_max_rag_patterns,
             leaderboardPatternNames.length > 0 ? leaderboardPatternNames : undefined,
+            patterns,
           )
         : [],
     [
       componentStageMap,
       runDetails,
-      pipelineRun?.state,
+      runState,
       parameters?.optimization_max_rag_patterns,
       leaderboardPatternNames,
+      patterns,
     ],
   );
-  const fallbackNodes = useAutoragTaskTopology(pipelineRun?.pipeline_spec, runDetails);
+  const fallbackNodes = useAutoragTaskTopology(pipelineRun?.pipeline_spec, runDetails, runState);
   const pipelineSpec = pipelineRun?.pipeline_spec?.pipeline_spec ?? pipelineRun?.pipeline_spec;
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- pipelineSpec shape varies at runtime
   const hasStageMapTask = Boolean(pipelineSpec?.root?.dag?.tasks?.['publish-component-stage-map']);
   const useStageMap = hasStageMapTask && !componentStageMapError;
-  const nodes = useStageMap && stageMapNodes.length > 0 ? stageMapNodes : fallbackNodes;
+
+  // Prefer stage-map nodes when transformable; otherwise keep showing pipeline_spec fallback.
+  const treeSourceNodes = React.useMemo(() => {
+    if (!(useStageMap && stageMapNodes.length > 0)) {
+      return fallbackNodes;
+    }
+    const transformResult = transformPipelineData({ stageMapNodes });
+    return transformResult.status === 'ok' ? stageMapNodes : fallbackNodes;
+  }, [useStageMap, stageMapNodes, fallbackNodes]);
+
+  const treeViewData = useTreeViewData(patterns, treeSourceNodes, bestPatternKey);
+
+  const runIsTerminal = isRunInTerminalState(runState);
+  const stageMapPublished = isTaskSucceeded(pipelineRun);
+  const runId = pipelineRun?.run_id;
+  const [readyRunId, setReadyRunId] = React.useState<string | undefined>();
+
+  React.useEffect(() => {
+    if (readyRunId === runId || !useStageMap || !runId) {
+      return;
+    }
+
+    const stageMapReady = Boolean(componentStageMap) && !componentStageMapLoading;
+    const patternsReady = !runIsTerminal || !patternsLoading;
+
+    if (stageMapReady && patternsReady) {
+      setReadyRunId(runId);
+    }
+  }, [
+    readyRunId,
+    runId,
+    useStageMap,
+    componentStageMap,
+    componentStageMapLoading,
+    patternsLoading,
+    runIsTerminal,
+  ]);
+
+  const treeLoadingMode = React.useMemo((): PipelineTreeLoadingMode | undefined => {
+    if (!useStageMap) {
+      return undefined;
+    }
+    if (!stageMapPublished && !runIsTerminal && !componentStageMap) {
+      return 'preparing';
+    }
+    // Hold the initial tree behind the loader until status merges and patterns settle.
+    // After that, background polling updates nodes in place without re-showing the loader.
+    if (readyRunId !== runId) {
+      const awaitingStageMap = !componentStageMap && componentStageMapLoading;
+      const awaitingStabilization =
+        Boolean(componentStageMap) &&
+        (componentStageMapLoading || (runIsTerminal && patternsLoading));
+      if (awaitingStageMap || awaitingStabilization) {
+        return 'hydrating';
+      }
+    }
+    return undefined;
+  }, [
+    useStageMap,
+    componentStageMap,
+    stageMapPublished,
+    runIsTerminal,
+    componentStageMapLoading,
+    patternsLoading,
+    readyRunId,
+    runId,
+  ]);
+
   const optimizedMetric = getOptimizedMetricForRAG(pipelineRun);
 
   const patternsArray = React.useMemo(() => Object.values(patterns), [patterns]);
@@ -151,9 +217,6 @@ function AutoragResults({ onTryPattern, onViewCode }: AutoragResultsProps): Reac
     [namespace, ragPatternsBasePath, pipelineRun?.display_name],
   );
 
-  const isCanceled = pipelineRun?.state.toUpperCase() === RuntimeStateKF.CANCELED;
-  const isFailed = pipelineRun?.state.toUpperCase() === RuntimeStateKF.FAILED;
-
   return (
     <>
       <Stack hasGutter>
@@ -170,47 +233,16 @@ function AutoragResults({ onTryPattern, onViewCode }: AutoragResultsProps): Reac
             </Alert>
           </StackItem>
         )}
-        <StackItem className="autorag-topology-wrapper">
-          <Flex
-            className="autorag-topology-overlay"
-            spaceItems={{ default: 'spaceItemsSm' }}
-            alignItems={{ default: 'alignItemsCenter' }}
-          >
-            <FlexItem>
-              <Title headingLevel="h3">Experiment pipeline</Title>
-            </FlexItem>
-            {(isCanceled || isFailed) && (
-              <FlexItem>
-                <Label
-                  variant="outline"
-                  status={isCanceled ? 'warning' : 'danger'}
-                  data-testid="run-status-label"
-                >
-                  {pipelineRun.state}
-                </Label>
-              </FlexItem>
-            )}
-          </Flex>
-          {useStageMap &&
-          !componentStageMap &&
-          (componentStageMapLoading || !isRunInTerminalState(pipelineRun?.state)) ? (
-            <EmptyState
-              variant={EmptyStateVariant.sm}
-              icon={Spinner}
-              headingLevel="h3"
-              titleText="Preparing the optimization pipeline"
-              className="autorag-topology-container"
-            >
-              <EmptyStateBody>This may take a moment.</EmptyStateBody>
-            </EmptyState>
-          ) : (
-            <PipelineTopology
-              nodes={nodes}
-              selectedIds={selectedIds}
-              onSelectionChange={setSelectedIds}
-              className="autorag-topology-container"
-            />
-          )}
+        <StackItem>
+          <AutoragPipelineVisualization
+            key={pipelineRun?.run_id}
+            runTitle="AutoRAG pipeline run"
+            runState={runState}
+            treeViewData={treeViewData}
+            treeLoadingMode={treeLoadingMode}
+            componentStageMap={componentStageMap}
+            pipelineRun={pipelineRun}
+          />
         </StackItem>
         <StackItem>
           <AutoragLeaderboard

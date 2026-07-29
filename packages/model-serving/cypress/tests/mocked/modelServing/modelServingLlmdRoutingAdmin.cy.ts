@@ -11,7 +11,6 @@ import {
   llmdRoutingSettingsPage,
   llmdRoutingCreatePage,
 } from '@odh-dashboard/cypress/cypress/pages/llmdRoutingSettings';
-import { pageNotfound } from '@odh-dashboard/cypress/cypress/pages/pageNotFound';
 
 const mockPreInstalledScheduler = mockLLMInferenceServiceConfigK8sResource({
   name: 'managed-scheduler',
@@ -54,10 +53,8 @@ const allConfigs = [
 
 const initIntercepts = ({
   configs = allConfigs,
-  llmdTopologyConfigsEnabled = true,
 }: {
   configs?: ReturnType<typeof mockLLMInferenceServiceConfigK8sResource>[];
-  llmdTopologyConfigsEnabled?: boolean;
 } = {}) => {
   asProductAdminUser();
 
@@ -73,8 +70,8 @@ const initIntercepts = ({
   const config = mockDashboardConfig({
     disableKServe: false,
     disableLLMd: false,
+    llmdTemplates: true,
   });
-  config.spec.dashboardConfig.llmdTopologyConfigs = llmdTopologyConfigsEnabled;
   cy.interceptOdh('GET /api/config', config);
   cy.interceptOdh('GET /api/components', null, []);
 
@@ -92,11 +89,25 @@ describe('LLMD Routing Admin Settings', () => {
       llmdRoutingSettingsPage.findAppTitle().should('contain', 'llm-d routing configurations');
       llmdRoutingSettingsPage.findTable().should('exist');
     });
+  });
 
-    it('should show 404 when flag disabled', () => {
-      initIntercepts({ llmdTopologyConfigsEnabled: false });
+  describe('empty state', () => {
+    it('should show empty state when no routing configurations exist', () => {
+      initIntercepts({ configs: [] });
       llmdRoutingSettingsPage.visit(false);
-      pageNotfound.findPage().should('exist');
+      llmdRoutingSettingsPage.findAppTitle().should('contain', 'llm-d routing configurations');
+      llmdRoutingSettingsPage.findEmptyState().should('exist');
+      llmdRoutingSettingsPage
+        .findEmptyState()
+        .should('contain.text', 'No llm-d routing configurations');
+      llmdRoutingSettingsPage.findEmptyStateAddButton().should('exist');
+    });
+
+    it('should navigate to add page from empty state button', () => {
+      initIntercepts({ configs: [] });
+      llmdRoutingSettingsPage.visit(false);
+      llmdRoutingSettingsPage.findEmptyStateAddButton().click();
+      cy.url().should('include', '/add');
     });
   });
 

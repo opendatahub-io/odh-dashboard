@@ -320,7 +320,8 @@ func (app *App) MLflowRegisterPromptHandler(w http.ResponseWriter, r *http.Reque
 	// TOCTOU: not atomic, but MLflow's RegisterPrompt is idempotent (worst case
 	// is a duplicate version, not corruption). Atomic create requires server support.
 	if req.CreateOnly {
-		_, err := app.repositories.Prompts.LoadPrompt(ctx, req.Name, nil)
+		v := 1
+		_, err := app.repositories.Prompts.LoadPrompt(ctx, req.Name, &v)
 		if err == nil {
 			app.conflictResponse(w, r, fmt.Errorf("a prompt with the name %q already exists", req.Name))
 			return
@@ -373,6 +374,22 @@ func (app *App) MLflowLoadPromptHandler(w http.ResponseWriter, r *http.Request, 
 			return
 		}
 		version = &n
+	}
+
+	// When no version is requested, resolve the latest version explicitly to
+	// avoid the MLflow SDK's reserved "latest" alias path.
+	if version == nil {
+		versions, err := app.repositories.Prompts.ListPromptVersions(ctx, name, "", "1")
+		if err != nil {
+			app.handleMLflowClientError(w, r, err)
+			return
+		}
+		if len(versions.Versions) == 0 {
+			app.notFoundResponse(w, r)
+			return
+		}
+		v := versions.Versions[0].Version
+		version = &v
 	}
 
 	result, err := app.repositories.Prompts.LoadPrompt(ctx, name, version)

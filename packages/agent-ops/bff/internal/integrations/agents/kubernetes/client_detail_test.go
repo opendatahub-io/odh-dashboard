@@ -20,7 +20,7 @@ import (
 	ktesting "k8s.io/client-go/testing"
 )
 
-func TestGetAgentDetailReturnsWithoutServiceOrAgentCard(t *testing.T) {
+func TestGetAgentDetailReturnsSyntheticServiceWithoutK8sService(t *testing.T) {
 	namespace := "agent-ops-demo"
 	agentName := "sample-support-agent"
 
@@ -37,7 +37,7 @@ func TestGetAgentDetailReturnsWithoutServiceOrAgentCard(t *testing.T) {
 	detail, err := client.GetAgent(context.Background(), namespace, agentName)
 	require.NoError(t, err)
 	require.NotNil(t, detail)
-	assert.Nil(t, detail.Service)
+	assert.Nil(t, detail.Service, "service should be nil when status.serviceFQDN is absent and no K8s Service exists")
 	assert.Nil(t, detail.AgentCard)
 }
 

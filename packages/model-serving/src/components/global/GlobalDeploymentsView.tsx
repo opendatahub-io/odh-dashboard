@@ -1,10 +1,9 @@
 import React from 'react';
-import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
-import { ProjectObjectType } from '@odh-dashboard/ui-core';
+import { ApplicationsPage, ProjectObjectType } from '@odh-dashboard/ui-core';
 import TitleWithIcon from '@odh-dashboard/ui-core/design/TitleWithIcon';
-import type { ProjectKind } from '@odh-dashboard/k8s-core';
+import { byName, type ProjectKind } from '@odh-dashboard/k8s-core';
 import { useNavigate, useParams } from 'react-router-dom';
-import { byName, ProjectsContext } from '@odh-dashboard/internal/concepts/projects/ProjectsContext';
+import { ProjectsContext } from '@odh-dashboard/ui-core/context/ProjectsContext';
 import { useExtensions } from '@odh-dashboard/plugin-core';
 import { Alert, List, ListItem } from '@patternfly/react-core';
 import { GlobalNoModelsView } from './GlobalNoModelsView';
@@ -51,7 +50,7 @@ const GlobalDeploymentsView: React.FC<GlobalDeploymentsViewProps> = ({
   const hasDeploymentErrors = Boolean(deploymentsErrors && deploymentsErrors.length > 0);
   const pageDescription = hidePageDescription
     ? undefined
-    : 'Manage and view the health and performance of your deployed models.';
+    : 'View and manage the health and performance of deployed models. ';
 
   const deploymentErrorsAlert =
     hasDeploymentErrors && deploymentsErrors ? (

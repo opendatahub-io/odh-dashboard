@@ -22,7 +22,7 @@ import {
   ExclamationCircleIcon,
 } from '@patternfly/react-icons';
 import type { ServingContainer } from '@odh-dashboard/model-serving/shared';
-import { UpdateObjectAtPropAndValue } from '#~/pages/projects/types';
+import type { UpdateObjectAtPropAndValue } from '@odh-dashboard/ui-core';
 import { CreatingInferenceServiceObject } from '#~/pages/modelServing/screens/types';
 import {
   isValueFromEnvVar,

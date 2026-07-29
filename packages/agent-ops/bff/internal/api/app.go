@@ -41,6 +41,7 @@ const (
 	AgentDeployPath        = ApiPathPrefix + "/agents/deploy"
 	AgentStopPath          = AgentRuntimeDetailPath + "/stop"
 	AgentStartPath         = AgentRuntimeDetailPath + "/start"
+	AgentRestartPath       = AgentRuntimeDetailPath + "/restart"
 )
 
 var hashPattern = regexp.MustCompile(`[.\-][0-9a-f]{8,}`)
@@ -227,22 +228,27 @@ func (app *App) Routes() http.Handler {
 		return app.GetNamespacesHandler
 	}))
 
-	// Agent list: RequireAuthenticatedForAgents gates identity when auth is enabled; per-namespace
-	// SSAR filtering happens inside the Kubernetes agent client (ListNamespaces / ListAgents).
+	// Agent routes — K8s RBAC is enforced on actual API calls via impersonation
+	// (AuthMethodInternal) or user token (AuthMethodUser). Detail/mutation routes
+	// have no pre-flight SAR; 403s from K8s are surfaced directly. List uses SAR
+	// in the agent client layer to filter namespaces (performance, not security).
 	apiRouter.GET(AgentRuntimesPath, app.RequireAuthenticatedForAgents(app.ListAgentRuntimesHandler))
 	apiRouter.GET(AgentRuntimeDetailPath,
 		app.AttachNamespaceFromParam("ns",
-			app.RequireAccessToAgent(app.GetAgentRuntimeDetailHandler)))
+			app.RequireAuthenticatedForAgents(app.GetAgentRuntimeDetailHandler)))
 	apiRouter.POST(AgentDeployPath, app.RequireAuthenticatedForAgents(app.DeployAgentHandler))
 	apiRouter.POST(AgentStopPath,
 		app.AttachNamespaceFromParam("ns",
-			app.RequireAccessToPatchAgent(app.StopAgentHandler)))
+			app.RequireAuthenticatedForAgents(app.StopAgentHandler)))
 	apiRouter.POST(AgentStartPath,
 		app.AttachNamespaceFromParam("ns",
-			app.RequireAccessToPatchAgent(app.StartAgentHandler)))
+			app.RequireAuthenticatedForAgents(app.StartAgentHandler)))
+	apiRouter.POST(AgentRestartPath,
+		app.AttachNamespaceFromParam("ns",
+			app.RequireAuthenticatedForAgents(app.RestartAgentHandler)))
 	apiRouter.DELETE(AgentRuntimeDetailPath,
 		app.AttachNamespaceFromParam("ns",
-			app.RequireAccessToDeleteAgent(app.DeleteAgentHandler)))
+			app.RequireAuthenticatedForAgents(app.DeleteAgentHandler)))
 
 	// Inter-BFF Communication routes — wire your target BFF endpoints here.
 	// Example:
