@@ -233,6 +233,11 @@ func buildManagedMinIOSpec(dspaName, namespace string, minioMap map[string]any) 
 }
 
 // validateDSPAURL ensures the base URL is safe to use as a pipeline server endpoint.
+//
+// DSPA URLs come from the DSPA controller's own status (a deterministic in-cluster
+// service DNS name), not user input, so this check is a lighter defense-in-depth
+// guard against a compromised/misconfigured CR rather than a hardened SSRF boundary
+// like S3's validateAndNormalizeEndpoint, which handles genuinely user-supplied endpoints.
 func validateDSPAURL(rawURL string) error {
 	parsed, err := url.Parse(rawURL)
 	if err != nil {
