@@ -8,9 +8,12 @@ violations=0
 while IFS= read -r -d '' file; do
   rel="${file#./}"
 
-  matches=$(yq eval-all \
-    'select(.apiVersion != null and .kind != null and .metadata.namespace != null and .metadata.namespace != "") | .kind + "/" + .metadata.name + " has metadata.namespace=\"" + .metadata.namespace + "\""' \
-    "$file" 2>/dev/null || true)
+  if ! matches=$(yq eval-all \
+    'select(tag == "!!map") | select(.apiVersion != null and .kind != null and .metadata.namespace != null and .metadata.namespace != "") | .kind + "/" + .metadata.name + " has metadata.namespace=\"" + .metadata.namespace + "\""' \
+    "$file"); then
+    printf 'ERROR: failed to inspect %s\n' "$rel" >&2
+    exit 2
+  fi
 
   if [[ -n "$matches" ]]; then
     while IFS= read -r line; do

@@ -136,14 +136,16 @@ func TestBuildFederationConfigMap_NamespaceValues(t *testing.T) {
 	s := testScheme(t)
 	cli := fake.NewClientBuilder().WithScheme(s).Build()
 
+	const appNS = "apps-ns"
+	const operatorNS = "operator-ns"
 	const persesNS = "observability-ns"
 
 	r := &ctrlpkg.DashboardReconciler{
 		Client:                cli,
 		Scheme:                s,
 		Platform:              cluster.OpenDataHub,
-		Namespace:             testNamespace,
-		ApplicationsNamespace: testNamespace,
+		Namespace:             operatorNS,
+		ApplicationsNamespace: appNS,
 	}
 
 	dashboard := &v1alpha1.Dashboard{
@@ -163,7 +165,7 @@ func TestBuildFederationConfigMap_NamespaceValues(t *testing.T) {
 	cm, err := ctrlpkg.BuildFederationConfigMap(r, statuses, dashboard)
 	require.NoError(t, err)
 
-	assert.Equal(t, testNamespace, cm.Namespace,
+	assert.Equal(t, appNS, cm.Namespace,
 		"ConfigMap metadata.namespace must match ApplicationsNamespace")
 
 	data := cm.Data["module-federation-config.json"]
@@ -187,13 +189,13 @@ func TestBuildFederationConfigMap_NamespaceValues(t *testing.T) {
 			require.NotEmpty(t, proxyServices, "coreBff must have proxyService entries")
 			ps, _ := proxyServices[0].(map[string]interface{})
 			svc, _ := ps["service"].(map[string]interface{})
-			assert.Equal(t, testNamespace, svc["namespace"],
+			assert.Equal(t, appNS, svc["namespace"],
 				"coreBff proxyService.service.namespace must match ApplicationsNamespace")
 
 		default:
 			svc, ok := entry["service"].(map[string]interface{})
 			if ok {
-				assert.Equalf(t, testNamespace, svc["namespace"],
+				assert.Equalf(t, appNS, svc["namespace"],
 					"%s service.namespace must match ApplicationsNamespace", name)
 			}
 		}
