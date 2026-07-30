@@ -96,7 +96,7 @@ func readJSON(w http.ResponseWriter, r *http.Request, dst any) error { //nolint:
 }
 
 func ParseURLTemplate(tmpl string, params map[string]string) string {
-	args := make([]string, len(params)*2)
+	args := make([]string, 0, len(params)*2)
 
 	for k, v := range params {
 		args = append(args, ":"+k, v)
