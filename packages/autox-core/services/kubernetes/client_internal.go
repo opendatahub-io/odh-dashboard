@@ -379,9 +379,6 @@ func (t *impersonationRoundTripper) RoundTrip(req *http.Request) (*http.Response
 	req2.Header.Del("Impersonate-Group")
 	req2.Header.Del("Impersonate-Uid")
 
-	// Clear any existing group headers
-	req2.Header.Del("Impersonate-Group")
-
 	// Add group headers
 	for _, group := range identity.Groups {
 		req2.Header.Add("Impersonate-Group", group)
