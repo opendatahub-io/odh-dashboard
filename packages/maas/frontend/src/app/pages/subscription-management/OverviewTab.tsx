@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Alert, Bullseye, PageSection, Spinner } from '@patternfly/react-core';
-import { useModelsOverview } from '~/app/hooks/useModelsOverview';
+import { useMaaSGovernanceContext } from '~/app/context/MaaSGovernanceContext';
 import { URL_PREFIX } from '~/app/utilities/const';
 import OverviewTable from './overview/OverviewTable';
 import OverviewToolbar from './overview/OverviewToolbar';
@@ -11,7 +11,7 @@ import EmptyStatePage from './EmptyStatePage';
 const OVERVIEW_RETURN_TO = `${URL_PREFIX}/maas-governance/overview`;
 
 const OverviewTab: React.FC = () => {
-  const [rows, loaded, error] = useModelsOverview();
+  const { overviewRows: rows, overviewLoaded: loaded, error } = useMaaSGovernanceContext();
   const [filterData, setFilterData] =
     React.useState<OverviewFilterDataType>(initialOverviewFilterData);
 
