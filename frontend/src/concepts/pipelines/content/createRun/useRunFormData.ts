@@ -1,5 +1,8 @@
 import * as React from 'react';
-import useGenericObjectState, { GenericObjectState } from '#~/utilities/useGenericObjectState';
+import useGenericObjectState, {
+  GenericObjectState,
+} from '@odh-dashboard/ui-core/utilities/useGenericObjectState';
+import type { UpdateObjectAtPropAndValue } from '@odh-dashboard/ui-core';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import {
   MlflowExperimentMode,
@@ -18,7 +21,6 @@ import {
   RuntimeConfigParameters,
 } from '#~/concepts/pipelines/kfTypes';
 
-import { UpdateObjectAtPropAndValue } from '#~/pages/projects/types';
 import {
   DEFAULT_CRON_STRING,
   DEFAULT_MAX_CONCURRENCY,

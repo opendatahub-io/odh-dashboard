@@ -11,6 +11,11 @@ import {
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { DashboardPopupIconButton } from '@odh-dashboard/ui-core';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import {
+  FEATURE_STORE_EVENTS,
+  CodeCopiedProperties,
+} from '../tracking/featureStoreTrackingConstants';
 
 type FeatureStoreCodeBlockProps = {
   id: string;
@@ -39,6 +44,9 @@ const FeatureStoreCodeBlock: React.FC<FeatureStoreCodeBlockProps> = ({
   const onClick = (text: string) => {
     clipboardCopyFunc(text);
     setCopied(true);
+    fireMiscTrackingEvent(FEATURE_STORE_EVENTS.CODE_COPIED, {
+      resourceType: featureStoreType || 'resource',
+    } satisfies CodeCopiedProperties);
   };
 
   return (

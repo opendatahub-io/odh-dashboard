@@ -138,7 +138,7 @@ func (kc *TokenKubernetesClient) CanListServicesInNamespace(ctx context.Context,
 		}
 
 		if !resp.Status.Allowed {
-			kc.Logger.Error("self-SAR denied", "namespace", namespace, "verb", verb)
+			kc.Logger.Warn("self-SAR denied", "namespace", namespace, "verb", verb)
 			return false, nil
 		}
 	}
@@ -168,7 +168,7 @@ func (kc *TokenKubernetesClient) CanAccessServiceInNamespace(ctx context.Context
 		return false, err
 	}
 	if !resp.Status.Allowed {
-		kc.Logger.Error("self-SAR denied", "service", serviceName, "namespace", namespace)
+		kc.Logger.Warn("self-SAR denied", "service", serviceName, "namespace", namespace)
 		return false, nil
 	}
 
@@ -176,14 +176,15 @@ func (kc *TokenKubernetesClient) CanAccessServiceInNamespace(ctx context.Context
 }
 
 // RequestIdentity is unused because the token already represents the user identity.
-// This endpoint is used only on dev mode that is why is safe to ignore permissions errors
+// This endpoint is used only in dev mode. Permission failures are expected there,
+// so they are logged at Warn, but the request still returns an error to the caller.
 func (kc *TokenKubernetesClient) GetNamespaces(ctx context.Context, _ *RequestIdentity) ([]corev1.Namespace, error) {
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
 	nsList, err := kc.Client.CoreV1().Namespaces().List(ctx, metav1.ListOptions{})
 	if err != nil {
-		kc.Logger.Error("user is not allowed to list namespaces or failed to list namespaces")
+		kc.Logger.Warn("user is not allowed to list namespaces or failed to list namespaces")
 		return []corev1.Namespace{}, fmt.Errorf("failed to list namespaces: %w", err)
 	}
 
@@ -259,6 +260,34 @@ func (kc *TokenKubernetesClient) checkAuthSingletonAccess(ctx context.Context, v
 	resp, err := kc.Client.AuthorizationV1().SelfSubjectAccessReviews().Create(ctx, sar, metav1.CreateOptions{})
 	if err != nil {
 		return false, fmt.Errorf("failed to perform auth singleton SAR (verb=%s): %w", verb, err)
+	}
+
+	return resp.Status.Allowed, nil
+}
+
+func (kc *TokenKubernetesClient) CheckAccess(ctx context.Context, _ *RequestIdentity, verb, group, resource, namespace string) (bool, error) {
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	sar := &authv1.SelfSubjectAccessReview{
+		Spec: authv1.SelfSubjectAccessReviewSpec{
+			ResourceAttributes: &authv1.ResourceAttributes{
+				Verb:      verb,
+				Group:     group,
+				Resource:  resource,
+				Namespace: namespace,
+			},
+		},
+	}
+
+	resp, err := kc.Client.AuthorizationV1().SelfSubjectAccessReviews().Create(ctx, sar, metav1.CreateOptions{})
+	if err != nil {
+		kc.Logger.Error("SSAR check failed", "verb", verb, "group", group, "resource", resource, "namespace", namespace, "error", err)
+		return false, fmt.Errorf("failed to check access (verb=%s, resource=%s/%s): %w", verb, group, resource, err)
+	}
+
+	if !resp.Status.Allowed {
+		kc.Logger.Info("SSAR denied", "verb", verb, "group", group, "resource", resource, "namespace", namespace)
 	}
 
 	return resp.Status.Allowed, nil

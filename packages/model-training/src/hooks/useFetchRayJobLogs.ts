@@ -1,6 +1,5 @@
 import * as React from 'react';
-import { NotReadyError } from '@odh-dashboard/internal/utilities/useFetchState';
-import useFetch, { FetchStateObject } from '@odh-dashboard/internal/utilities/useFetch';
+import useFetch, { NotReadyError, FetchStateObject } from '@odh-dashboard/ui-core/hooks/useFetch';
 import { getRayJobDriverLogs } from '../api/rayJobLogs';
 
 const LOG_REFRESH_RATE = 30000;

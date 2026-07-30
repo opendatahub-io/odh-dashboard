@@ -14,8 +14,6 @@ import EvaluationResultsPage from './pages/EvaluationResultsPage';
 import CompareEvaluationsPage from './pages/CompareEvaluationsPage';
 import ChooseCompareBenchmarksPage from './pages/ChooseCompareBenchmarksPage';
 import { evaluationComparePathSegment } from './routes';
-// TODO: remove when extension wiring is complete (RHOAIENG-67399)
-import SecurityInsightsDevPage from './pages/modelCatalog/SecurityInsightsDevPage';
 
 export const useNavData = (): NavDataItem[] => [
   {
@@ -47,8 +45,6 @@ const AppRoutes: React.FC = () => (
         <Route path=":namespace/create/collections" element={<ChooseBenchmarkCollectionPage />} />
         <Route path=":namespace/create/benchmarks" element={<ChooseStandardisedBenchmarksPage />} />
         <Route path=":namespace/create/start" element={<StartEvaluationRunPage />} />
-        {/* TODO: remove when extension wiring is complete (RHOAIENG-67399) */}
-        <Route path=":namespace/dev/security-insights" element={<SecurityInsightsDevPage />} />
       </Route>
       <Route path="*" element={<NotFound />} />
     </Routes>

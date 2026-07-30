@@ -1,7 +1,7 @@
 /* eslint-disable camelcase */
 import * as _ from 'lodash-es';
 
-import { RecursivePartial } from '#~/typeHelpers';
+import type { RecursivePartial } from '@odh-dashboard/foundation';
 import { BYONImage } from '#~/types';
 
 export const mockByon = (opts?: RecursivePartial<BYONImage[]>): BYONImage[] =>
@@ -32,6 +32,7 @@ export const mockByon = (opts?: RecursivePartial<BYONImage[]>): BYONImage[] =>
         url: 'vault.habana.ai/gaudi-docker/1.11.0/rhel8.6/habanalabs/tensorflow-installer-tf-cpu-2.12.1:latest',
         provider: 'admin',
         error: '',
+        isOOTB: false,
       },
     ],
     opts,

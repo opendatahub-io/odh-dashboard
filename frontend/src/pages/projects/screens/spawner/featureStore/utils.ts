@@ -18,10 +18,10 @@ export const FEATURE_STORE_CODE_HELP =
 export const FEATURE_STORE_CODE_DESCRIPTION =
   "Modify and run this example code in your workbench to create a FeatureStore object for each connected feature store. Make sure to update each object's name and the path to the corresponding client configuration YAML file. After creation, you can access this code in the";
 
-export const FEATURE_STORE_EMPTY_STATE_TITLE = 'No selected feature store';
+export const FEATURE_STORE_EMPTY_STATE_TITLE = 'No connected feature stores';
 
 export const FEATURE_STORE_EMPTY_STATE_BODY =
-  'Select feature stores to connect to this workbench. Features in selected feature stores have read and write access to this workbench.';
+  'Select feature stores to connect to this workbench. Features in connected feature stores have read and write access to this workbench.';
 
 export const FEATURE_STORE_UNAVAILABLE_TOOLTIP =
   'This feature store is no longer available. It may have been deleted or access has been revoked.';
@@ -75,7 +75,7 @@ export const getFeatureStoresFromNotebook = (
         projectName,
         configMap: null,
         hasAccessToFeatureStore: false,
-        permissionLevel: [],
+        permissions: [],
         isUnavailable: true,
       });
     }

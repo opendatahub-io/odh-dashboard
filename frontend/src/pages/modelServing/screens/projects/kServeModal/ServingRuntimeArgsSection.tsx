@@ -13,7 +13,7 @@ import {
   Tooltip,
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
-import { UpdateObjectAtPropAndValue } from '#~/pages/projects/types';
+import type { UpdateObjectAtPropAndValue } from '@odh-dashboard/ui-core';
 import { CreatingInferenceServiceObject } from '#~/pages/modelServing/screens/types';
 
 type ServingRuntimeArgsSectionType = {

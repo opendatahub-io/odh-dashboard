@@ -31,7 +31,8 @@ export const isSafeAgentOpsInternalRoute = (path: unknown): boolean => {
     path.startsWith('//') ||
     path.includes('://') ||
     path.includes('..') ||
-    path.includes('\\')
+    path.includes('\\') ||
+    /[\t\n\r]/.test(path)
   ) {
     return false;
   }

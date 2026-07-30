@@ -3,10 +3,13 @@ kind: Kustomization
 commonLabels:
   app: odh-dashboard
   app.kubernetes.io/part-of: odh-dashboard
+  # Legacy label from the old opendatahub-operator's CreateAddLabelsPlugin.
+  # Required for upgrade compatibility: spec.selector.matchLabels is immutable,
+  # so the selector must match what the old operator wrote to existing Deployments.
+  app.opendatahub.io/odh-dashboard: "true"
 resources:
-  - ../common
-  - ../modular-architecture
-  - ../core-bases/consolelink
+  - ../sidecar
+  - ../base/consolelink
   - ./apps
 configMapGenerator:
   - name: odh-dashboard-params
@@ -28,6 +31,13 @@ vars:
       apiVersion: v1
     fieldref:
       fieldpath: data.kube-rbac-proxy
+  - name: core-bff-image
+    objref:
+      kind: ConfigMap
+      name: odh-dashboard-params
+      apiVersion: v1
+    fieldref:
+      fieldpath: data.core-bff-image
   - name: section-title
     objref:
       kind: ConfigMap

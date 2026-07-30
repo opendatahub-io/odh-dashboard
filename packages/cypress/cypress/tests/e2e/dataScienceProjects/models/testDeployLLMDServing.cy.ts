@@ -1,10 +1,10 @@
+import { deleteOpenShiftProject } from '../../../../utils/oc_commands/project';
 import {
   ModelLocationSelectOption,
   ModelStateLabel,
   ModelTypeLabel,
   YAMLViewerToggleOption,
-} from '@odh-dashboard/model-serving/types/form-data';
-import { deleteOpenShiftProject } from '../../../../utils/oc_commands/project';
+} from '../../../../utils/modelServingConstants';
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '../../../../utils/e2eUsers';
 import { projectDetails, projectListPage } from '../../../../pages/projects';
 import { retryableBefore } from '../../../../utils/retryableHooks';

@@ -1,6 +1,5 @@
 import React from 'react';
-import type { ProjectKind } from '@odh-dashboard/k8s-core';
-import type { K8sAPIOptions } from '@odh-dashboard/internal/k8sTypes';
+import type { K8sAPIOptions, ProjectKind } from '@odh-dashboard/k8s-core';
 import { getLLMdDeploymentEndpoints } from './endpoints';
 import { getLLMdDeploymentStatus, useLLMInferenceServicePods } from './status';
 import { type LLMdDeployment, type LLMInferenceServiceKind } from '../types';
@@ -26,7 +25,7 @@ export const useWatchDeployments = (
     llmInferenceServiceConfigs,
     llmInferenceServiceConfigsLoaded,
     llmInferenceServiceConfigsError,
-  ] = useWatchLLMInferenceServiceConfigs(project.metadata.name, opts);
+  ] = useWatchLLMInferenceServiceConfigs(project.metadata.name, undefined, opts);
 
   const [deploymentPods, deploymentPodsLoaded, deploymentPodsError] = useLLMInferenceServicePods(
     project.metadata.name,

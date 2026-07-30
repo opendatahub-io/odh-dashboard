@@ -1,13 +1,14 @@
 import * as React from 'react';
 import { SearchInput, ToolbarGroup, ToolbarItem } from '@patternfly/react-core';
-import FilterToolbar from '@odh-dashboard/internal/components/FilterToolbar';
+import FilterToolbar from '@odh-dashboard/ui-core/components/FilterToolbar';
+import { ProjectsContext } from '@odh-dashboard/ui-core/context/ProjectsContext';
+import { byName } from '@odh-dashboard/k8s-core';
+import { useParams } from 'react-router';
 import {
-  ModelServingFilterDataType,
+  type ModelServingFilterDataType,
   modelServingFilterOptions,
   ModelServingToolbarFilterOptions,
-} from '@odh-dashboard/internal/pages/modelServing/screens/global/const';
-import { ProjectsContext, byName } from '@odh-dashboard/internal/concepts/projects/ProjectsContext';
-import { useParams } from 'react-router';
+} from '../../shared/const';
 import { DeployButton } from '../deploy/DeployButton';
 
 type GlobalModelsToolbarProps = {

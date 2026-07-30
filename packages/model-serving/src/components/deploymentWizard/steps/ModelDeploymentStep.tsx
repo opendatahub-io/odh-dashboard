@@ -1,6 +1,6 @@
 import React from 'react';
 import { Form, FormSection, Spinner } from '@patternfly/react-core';
-import K8sNameDescriptionField from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
+import K8sNameDescriptionField from '@odh-dashboard/ui-core/components/K8sNameDescriptionField';
 import { UseModelDeploymentWizardState } from '../useDeploymentWizard';
 import ProjectSection from '../fields/ProjectSection';
 import { ModelServingHardwareProfileSection } from '../fields/ModelServingHardwareProfileSection';
@@ -13,6 +13,7 @@ import { isNonSingleNodeTopologyActive } from '../topologyUtils';
 const EXPLICIT_TOPOLOGY_FIELD_IDS = [
   'llmd-serving/topology-type',
   'llmd-serving/custom-topology-config',
+  'llmd-serving/advanced-routing',
 ];
 
 type ModelDeploymentStepProps = {
@@ -62,7 +63,7 @@ export const ModelDeploymentStepContent: React.FC<ModelDeploymentStepProps> = ({
           onDataChange={wizardState.state.k8sNameDesc.onDataChange}
           dataTestId="model-deployment"
           nameLabel="Model deployment name"
-          nameHelperTextAbove="Name this deployment. This name is also used for the inference service created when the model is deployed."
+          nameHelperTextAbove="This is the name of the inference service created when the model is deployed."
         />
         <GenericFieldRenderer
           fieldId="deploymentMethod"
@@ -97,6 +98,12 @@ export const ModelDeploymentStepContent: React.FC<ModelDeploymentStepProps> = ({
         )}
         <GenericFieldRenderer
           stateKey="modelServer"
+          wizardState={wizardState}
+          externalData={externalData}
+          isEditing={wizardState.initialData?.isEditing}
+        />
+        <GenericFieldRenderer
+          fieldId="llmd-serving/advanced-routing"
           wizardState={wizardState}
           externalData={externalData}
           isEditing={wizardState.initialData?.isEditing}

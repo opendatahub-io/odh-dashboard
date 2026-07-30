@@ -397,10 +397,20 @@ func TestRoutes_OpenShiftRoutesReturn404OnNonOpenShift(t *testing.T) {
 	ts := httptest.NewServer(app.Routes())
 	defer ts.Close()
 
-	resp, err := http.Get(ts.URL + "/api/status/test-ns/allowedUsers")
-	require.NoError(t, err)
-	defer resp.Body.Close()
+	openShiftOnlyPaths := []string{
+		"/api/status/test-ns/allowedUsers",
+		"/api/integrations/nim",
+		"/api/nim-serving/apiKeySecret",
+	}
 
-	assert.Equal(t, http.StatusNotFound, resp.StatusCode,
-		"allowed users should return 404 on non-OpenShift platforms")
+	for _, path := range openShiftOnlyPaths {
+		t.Run(path, func(t *testing.T) {
+			resp, err := http.Get(ts.URL + path)
+			require.NoError(t, err)
+			defer resp.Body.Close()
+
+			assert.Equal(t, http.StatusNotFound, resp.StatusCode,
+				"%s should return 404 on non-OpenShift platforms", path)
+		})
+	}
 }

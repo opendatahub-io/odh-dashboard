@@ -609,6 +609,54 @@ describe('AutoML API Contract Tests', () => {
     });
   });
 
+  describe('Enable Managed Pipelines Endpoint', () => {
+    describe('Success Cases', () => {
+      it('should return 200 when enabling managed pipelines on a namespace with a DSPA', async () => {
+        const result = await apiClient.post(
+          '/api/v1/managed-pipelines/enable?namespace=test-namespace',
+          undefined,
+        );
+        expect(result).toMatchContract(apiSchema, {
+          ref: '#/components/responses/EnableManagedPipelinesResponse/content/application/json/schema',
+          status: 200,
+        });
+      });
+
+      it('should return response with expected data structure', async () => {
+        const result = await apiClient.post(
+          '/api/v1/managed-pipelines/enable?namespace=test-namespace',
+          undefined,
+        );
+        expect(result.success).toBe(true);
+        if (result.success) {
+          const responseData = result.response.data as { message?: string; dspa?: string };
+          expect(responseData.message).toBeDefined();
+          expect(responseData.dspa).toBeDefined();
+          expect(typeof responseData.message).toBe('string');
+          expect(typeof responseData.dspa).toBe('string');
+        }
+      });
+    });
+
+    describe('Error Cases', () => {
+      it('should return 400 when namespace query parameter is missing', async () => {
+        const result = await apiClient.post('/api/v1/managed-pipelines/enable', undefined);
+        expect(result.success).toBe(false);
+        expect(result.error?.status).toBe(400);
+        expect(result.error?.data).toHaveProperty('error');
+      });
+
+      it('should return 404 when no DSPA exists in namespace', async () => {
+        const result = await apiClient.post(
+          '/api/v1/managed-pipelines/enable?namespace=no-dspas-namespace',
+          undefined,
+        );
+        expect(result.success).toBe(false);
+        expect(result.error?.status).toBe(404);
+      });
+    });
+  });
+
   describe('S3 File Upload (POST)', () => {
     const buildFormDataWithFile = (): FormData => {
       const form = new FormData();
@@ -1144,6 +1192,21 @@ describe('AutoML API Contract Tests', () => {
             ref: '#/components/responses/CreatePipelineRunResponse/content/application/json/schema',
             status: 200,
           });
+        });
+
+        it('should return 400 for non-ASCII label_column', async () => {
+          const result = await apiClient.post('/api/v1/pipeline-runs?namespace=test-namespace', {
+            display_name: 'arabic-label-column-run',
+            train_data_secret_name: 'minio-secret',
+            train_data_bucket_name: 'automl-bucket',
+            train_data_file_key: 'data/train.csv',
+            label_column: 'لديه روح',
+            task_type: 'binary',
+          });
+          expect(result.success).toBe(false);
+          if (!result.success) {
+            expect(result.error.status).toBe(400);
+          }
         });
 
         it('should return 400 for missing required tabular fields', async () => {

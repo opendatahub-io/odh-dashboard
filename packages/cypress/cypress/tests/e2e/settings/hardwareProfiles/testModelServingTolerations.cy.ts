@@ -1,9 +1,7 @@
-import {
-  ModelLocationSelectOption,
-  ModelTypeLabel,
-} from '@odh-dashboard/model-serving/components/deploymentWizard/types';
 import type { ModelTolerationsTestData } from '../../../../types';
+import { ModelLocationSelectOption, ModelTypeLabel } from '../../../../utils/modelServingConstants';
 import { addUserToProject, deleteOpenShiftProject } from '../../../../utils/oc_commands/project';
+import { ensureAdminOcSession } from '../../../../utils/oc_commands/baseCommands';
 import { loadModelTolerationsFixture } from '../../../../utils/dataLoader';
 import { LDAP_CONTRIBUTOR_USER } from '../../../../utils/e2eUsers';
 import { projectListPage, projectDetails } from '../../../../pages/projects';
@@ -19,7 +17,7 @@ import {
   validateInferenceServiceTolerations,
 } from '../../../../utils/oc_commands/modelServing';
 import { retryableBefore } from '../../../../utils/retryableHooks';
-import { attemptToClickTooltip } from '../../../../utils/models';
+import { verifyDeploymentStatusModal } from '../../../../utils/models';
 import {
   cleanupHardwareProfiles,
   createCleanHardwareProfile,
@@ -82,6 +80,7 @@ describe('ModelServing - tolerations tests', () => {
 
   //Cleanup: Delete Hardware Profile and the associated Project
   after(() => {
+    ensureAdminOcSession();
     // Use the actual hardware profile name from the YAML, not the variable with UUID
     cy.log(`Cleaning up Hardware Profile: ${testData.hardwareProfileName}`);
 
@@ -171,7 +170,7 @@ describe('ModelServing - tolerations tests', () => {
       // Note reload is required as status tooltip was not found due to a stale element
       cy.reload();
       modelServingSection.findModelMetricsLink(modelName);
-      attemptToClickTooltip();
+      verifyDeploymentStatusModal();
 
       // Validate that the toleration applied earlier displays in the newly created pod
       cy.step('Validate the Tolerations for the pod include the newly added toleration');

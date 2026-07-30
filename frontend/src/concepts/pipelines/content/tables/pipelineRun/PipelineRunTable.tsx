@@ -5,7 +5,12 @@ import { Button, Skeleton, Tooltip } from '@patternfly/react-core';
 import { TableVariant, Td } from '@patternfly/react-table';
 import { ColumnsIcon } from '@patternfly/react-icons';
 
-import { DashboardEmptyTableView, getTableColumnSort, TableBase } from '@odh-dashboard/ui-core';
+import {
+  DashboardEmptyTableView,
+  getTableColumnSort,
+  TableBase,
+  TrackingOutcome,
+} from '@odh-dashboard/ui-core';
 import { useCheckboxTable } from '#~/components/table';
 import { ExperimentKF, PipelineRunKF, StorageStateKF } from '#~/concepts/pipelines/kfTypes';
 import { getPipelineRunColumns } from '#~/concepts/pipelines/content/tables/columns';
@@ -31,7 +36,6 @@ import {
   useContextExperimentArchivedOrDeleted,
 } from '#~/pages/pipelines/global/experiments/ExperimentContext';
 import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
-import { TrackingOutcome } from '#~/concepts/analyticsTracking/trackingProperties';
 import { PipelineRunExperimentsContext } from '#~/pages/pipelines/global/runs/PipelineRunExperimentsContext';
 import RestoreRunWithArchivedExperimentModal from '#~/pages/pipelines/global/runs/RestoreRunWithArchivedExperimentModal';
 import useMlflowExperiments from '#~/concepts/mlflow/hooks/useMlflowExperiments';

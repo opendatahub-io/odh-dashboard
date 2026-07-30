@@ -56,6 +56,11 @@ make run LOG_LEVEL=DEBUG
 | `-dashboard-config-name` | `DASHBOARD_CONFIG_NAME` | Name of the OdhDashboardConfig CR (default `odh-dashboard-config`) |
 | `-enabled-apps-cm` | `ENABLED_APPS_CM` | Name of the ConfigMap tracking enabled applications |
 | `-mf-remotes-config` | `MF_REMOTES_CONFIG` | Path to module federation remotes config file |
+| `-model-serving-host` | `MODEL_SERVING_HOST` | Override URL for model-serving proxy target (default: auto-constructed from namespace) |
+| `-prometheus-host` | `PROMETHEUS_HOST` | Full Prometheus/Thanos host URL override |
+| `-prometheus-namespace` | `PROMETHEUS_NAMESPACE` | Prometheus/Thanos namespace (default `openshift-monitoring`) |
+| `-prometheus-instance` | `PROMETHEUS_INSTANCE` | Prometheus/Thanos instance name (default `thanos-querier`) |
+| `-prometheus-port` | `PROMETHEUS_PORT` | Prometheus/Thanos RBAC port (default `9092`) |
 
 TLS: If both `cert-file` and `key-file` are provided the server starts with HTTPS.
 
@@ -88,11 +93,16 @@ curl -i -H "x-forwarded-access-token: FAKE_CLUSTER_ADMIN_TOKEN" localhost:4000/a
 curl -i -H "x-forwarded-access-token: FAKE_CLUSTER_ADMIN_TOKEN" localhost:4000/api/cluster-settings
 curl -i -H "x-forwarded-access-token: FAKE_CLUSTER_ADMIN_TOKEN" localhost:4000/api/components
 curl -i -H "x-forwarded-access-token: FAKE_CLUSTER_ADMIN_TOKEN" localhost:4000/api/connection-types
+
+# Model Serving
+curl -i -H "x-forwarded-access-token: FAKE_CLUSTER_ADMIN_TOKEN" localhost:4000/api/nim-serving/apiKeySecret
+curl -i -H "x-forwarded-access-token: FAKE_CLUSTER_ADMIN_TOKEN" localhost:4000/api/integrations/nim
+curl -i -X POST -H "x-forwarded-access-token: FAKE_CLUSTER_ADMIN_TOKEN" -H "Content-Type: application/json" -d '{"query":"up"}' localhost:4000/api/prometheus/query
 ```
 
 ### Route Security
 
-Authenticated endpoints use `secureRoute()` (token validation + audit logging) and admin endpoints use `secureAdminRoute()` (token validation + SSAR admin check + audit logging). Admin detection checks SSAR for `patch` on `auths/default-auth`. Non-admin users receive 401. Namespace validation is handled separately by `isAllowedNamespace`.
+Authenticated endpoints use `secureRoute()` (token validation + audit logging) and admin endpoints use `secureAdminRoute()` (token validation + SSAR admin check + audit logging). Admin detection checks SSAR for `patch` on `auths/default-auth`. Non-admin users receive 403. Namespace validation is handled separately by `isAllowedNamespace`.
 
 ### Privilege Model
 

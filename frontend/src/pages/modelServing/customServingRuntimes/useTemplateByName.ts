@@ -1,8 +1,8 @@
 import * as React from 'react';
 import type { TemplateKind } from '@odh-dashboard/k8s-core';
+import { findTemplateByName } from '@odh-dashboard/model-serving/shared';
 import { useTemplates } from '#~/api';
 import { useDashboardNamespace } from '#~/redux/selectors';
-import { findTemplateByName } from './utils';
 
 export const useTemplateByName = (
   templateName?: string,

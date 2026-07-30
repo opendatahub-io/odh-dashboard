@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Button, SearchInput, ToolbarGroup, ToolbarItem } from '@patternfly/react-core';
-import FilterToolbar from '@odh-dashboard/internal/components/FilterToolbar';
+import FilterToolbar from '@odh-dashboard/ui-core/components/FilterToolbar';
 import { Link } from 'react-router-dom';
 import { URL_PREFIX } from '~/app/utilities/const';
 import { OverviewFilterDataType, OverviewFilterOptions, overviewFilterOptions } from './const';
@@ -74,10 +74,10 @@ const OverviewToolbar: React.FC<OverviewToolbarProps> = ({
           component={(props) => (
             <Link
               {...props}
-              to={`${URL_PREFIX}/subscription-management/subscriptions/create`}
+              to={`${URL_PREFIX}/maas-governance/subscriptions/create`}
               state={{
-                returnTo: returnTo ?? `${URL_PREFIX}/subscription-management/overview`,
-                breadcrumbLabel: 'Subscription management',
+                returnTo: returnTo ?? `${URL_PREFIX}/maas-governance/overview`,
+                breadcrumbLabel: 'MaaS governance',
               }}
             />
           )}
@@ -92,10 +92,10 @@ const OverviewToolbar: React.FC<OverviewToolbarProps> = ({
           component={(props) => (
             <Link
               {...props}
-              to={`${URL_PREFIX}/subscription-management/auth-policies/create`}
+              to={`${URL_PREFIX}/maas-governance/auth-policies/create`}
               state={{
-                returnTo: returnTo ?? `${URL_PREFIX}/subscription-management/overview`,
-                breadcrumbLabel: 'Subscription management',
+                returnTo: returnTo ?? `${URL_PREFIX}/maas-governance/overview`,
+                breadcrumbLabel: 'MaaS governance',
               }}
             />
           )}

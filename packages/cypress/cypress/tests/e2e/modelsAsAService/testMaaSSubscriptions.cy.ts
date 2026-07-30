@@ -1,13 +1,10 @@
 import {
-  ModelLocationSelectOption,
-  ModelTypeLabel,
-} from '@odh-dashboard/model-serving/types/form-data';
-import {
   checkMaaSSubscriptionState,
   cleanupApiKeys,
   cleanupAuthPolicy,
   cleanupSubscription,
 } from '../../../utils/oc_commands/maas';
+import { ModelLocationSelectOption, ModelTypeLabel } from '../../../utils/modelServingConstants';
 import {
   stubClipboardWriteTextForApiKeyModal,
   verifyMaaSModelInferenceUsingCopiedApiKeyFromModal,
@@ -19,6 +16,7 @@ import {
   verifyOpenShiftProjectExists,
 } from '../../../utils/oc_commands/project';
 import { LDAP_ADMIN_USER } from '../../../utils/e2eUsers';
+import { ensureAdminOcSession } from '../../../utils/oc_commands/baseCommands';
 import { projectDetails, projectListPage } from '../../../pages/projects';
 import { retryableBefore } from '../../../utils/retryableHooks';
 import { createCleanProject } from '../../../utils/projectChecker';
@@ -42,8 +40,9 @@ import {
   viewSubscriptionPage,
 } from '../../../pages/modelsAsAService';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
-import type { DataScienceProjectData } from '../../../types';
-import { loadDSPFixture } from '../../../utils/dataLoader';
+import type { ModelAsAServiceTestData } from '../../../types';
+import { PhaseStatus } from '../../../types';
+import { loadMaaSFixture } from '../../../utils/dataLoader';
 import {
   createCleanHardwareProfile,
   cleanupHardwareProfiles,
@@ -58,7 +57,7 @@ import {
   cleanupLLMInferenceService,
 } from '../../../utils/oc_commands/modelServing';
 
-let testData: DataScienceProjectData;
+let testData: ModelAsAServiceTestData;
 let projectName: string;
 let resourceName: string;
 let modelName: string;
@@ -68,7 +67,8 @@ let secondSubscriptionPriority: number;
 let subscriptionGroups: string[];
 let subscriptionName: string;
 let subscriptionNamespace: string;
-let tokenRateLimit: { limit: number; window: string };
+let tokenRateLimit: { limit: string; window: string; unit: string };
+let tokenLimit: string;
 const uuid = generateTestUUID();
 let apiKeyName: string;
 let hardwareProfileResourceName: string;
@@ -82,8 +82,8 @@ let llmInferenceServiceConfigContainerImage: string;
 describe('A model can be deployed and accessed with a MaaS subscription and API key', () => {
   retryableBefore(() => {
     cy.log('Loading test data');
-    return loadDSPFixture('e2e/dataScienceProjects/testMaaSSubscriptions.yaml')
-      .then((fixtureData: DataScienceProjectData) => {
+    return loadMaaSFixture('e2e/modelsAsService/testMaaSSubscriptions.yaml')
+      .then((fixtureData: ModelAsAServiceTestData) => {
         testData = fixtureData;
         projectName = `${testData.projectResourceName}-${uuid}`;
         modelName = `${testData.singleModelName}-maassubs-${uuid}`;
@@ -100,16 +100,18 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
         subscriptionGroups = ['rhods-admins'];
         apiKeyName = `maas-api-key-${uuid}`;
         tokenRateLimit = {
-          limit: 1000,
+          limit: '1,000',
           window: '1000',
+          unit: 'hour',
         };
+        tokenLimit = `${tokenRateLimit.limit} / ${tokenRateLimit.window} ${tokenRateLimit.unit}`;
 
         // Clean up any stale MaaS resources from a previous attempt so retries are idempotent
         cleanupSubscription(subscriptionName, subscriptionNamespace);
         cleanupSubscription(`${subscriptionName}-2`, subscriptionNamespace);
         cleanupAuthPolicy(`${subscriptionName}-policy`, subscriptionNamespace);
         cleanupAuthPolicy(`${subscriptionName}-2-policy`, subscriptionNamespace);
-        cleanupApiKeys();
+        cleanupApiKeys(apiKeyName);
 
         cy.log(`Loaded project name: ${projectName}`);
         createCleanProject(projectName);
@@ -141,6 +143,7 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
   });
 
   after(() => {
+    ensureAdminOcSession();
     cy.log(`Cleaning up Hardware Profile: ${hardwareProfileResourceName}`);
     cleanupHardwareProfiles(hardwareProfileResourceName);
     cy.log(`Cleaning up LLMInferenceServiceConfig: ${llmInferenceServiceConfigName}`);
@@ -156,7 +159,7 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
     cleanupAuthPolicy(`${subscriptionName}-2-policy`, subscriptionNamespace);
 
     cy.log('Cleaning up API keys');
-    cleanupApiKeys();
+    cleanupApiKeys(apiKeyName);
 
     // Delete the LLMInferenceService before the project to prevent KServe finalizer hangs
     // that would time out deleteOpenShiftProject and orphan subscriptions (RHOAIENG-68936)
@@ -217,6 +220,10 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
         .then((val) => {
           resourceName = String(val ?? '');
         });
+      modelServingWizard
+        .findModelDeploymentDescriptionInput()
+        .clear()
+        .type(testData.singleModelDescription);
       modelServingWizard.selectPotentiallyDisabledProfile(hardwareProfileResourceName);
       modelServingWizard.selectDeploymentMethodByKey('llm-inference-service-simple-vllm');
       modelServingWizard.findModelServerManualSelectRadio().click();
@@ -292,14 +299,27 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
 
       cy.step('Verify the subscription exists on the cluster');
       cy.then(() => {
-        checkMaaSSubscriptionState(subscriptionName, subscriptionNamespace);
+        checkMaaSSubscriptionState(subscriptionName, subscriptionNamespace, {
+          phase: PhaseStatus.ACTIVE,
+        });
       });
 
       cy.step('Verify the subscription is created');
       subscriptionsPage.visit();
       subscriptionsPage.findFilterInput().type(subscriptionName);
       subscriptionsPage.findRows().should('have.length', 1);
-      subscriptionsPage.findRows().should('contain.text', subscriptionName);
+      const subscriptionRow = subscriptionsPage.getRow(subscriptionName);
+      subscriptionRow.findTitleButton().should('contain.text', subscriptionName);
+      subscriptionRow.findPhaseLabel().should('contain.text', PhaseStatus.READY);
+      subscriptionRow.findExpandGroupButton().click();
+      subscriptionRow.findExpandedGroupName().should('contain.text', subscriptionGroups[0]);
+      subscriptionRow.findExpandModelButton().click();
+      subscriptionRow.findExpandedModelName().should('contain.text', modelName);
+      subscriptionRow
+        .findExpandedModelDescription()
+        .should('contain.text', testData.singleModelDescription);
+      subscriptionRow.findExpandedModelTokenLimits().should('contain.text', tokenLimit);
+      subscriptionRow.findPriority().should('contain.text', subscriptionPriority);
 
       cy.step('Create another subscription to test edit and delete');
       subscriptionsPage.findCreateSubscriptionButton().click();
@@ -376,7 +396,7 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
 
       cy.step('Verify the view subscription page');
       subscriptionsPage.findViewDetailsButton(`${subscriptionName}-2`).click();
-      cy.url().should('include', `/maas/subscriptions/view/${subscriptionName}-2`);
+      cy.url().should('include', `/maas/maas-governance/subscriptions/view/${subscriptionName}-2`);
 
       viewSubscriptionPage.findTitle().should('contain.text', `${subscriptionName}-2`);
 
@@ -397,7 +417,7 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
         .and('contain.text', tokenRateLimit.limit.toString());
 
       viewSubscriptionPage.findBreadcrumbSubscriptionsLink().click();
-      cy.url().should('include', '/maas/subscriptions');
+      cy.url().should('include', '/maas/maas-governance/subscriptions');
 
       cy.step('Delete the second subscription');
       subscriptionsPage.findDeleteButton(`${subscriptionName}-2`).click();

@@ -10,7 +10,12 @@
       "dependsOn": ["^build"]
     },
     "lint": {
-      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/packages/eslint-config/**/*"]
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/packages/eslint-config/**/*",
+        "!$TURBO_ROOT$/packages/eslint-config/.turbo/**",
+        "!$TURBO_ROOT$/packages/eslint-config/node_modules/**"
+      ]
     },
     "lint:fix": {
       "cache": false
@@ -26,13 +31,8 @@
       "dependsOn": ["^type-check"]
     },
     "test:contract": {
-      "inputs": [
-        "contract-tests/**",
-        "upstream/bff/**"
-      ],
-      "outputs": [
-        "contract-tests/contract-test-results/**"
-      ]
+      "inputs": ["contract-tests/**", "upstream/bff/**"],
+      "outputs": ["contract-tests/contract-test-results/**"]
     },
 
     // Prepares modules for testing by installing dependencies
@@ -73,7 +73,15 @@
     },
     "cypress:server:wait": {
       "cache": false
-    }
+    },
+    "prepare:e2e": {
+      "cache": false
+    },
+    "cypress:server:e2e": {
+      "cache": false,
+      "persistent": true
+    },
+    "cypress:server:e2e:wait": { "cache": false }
 
     /*
      * TODO waiting for feature https://github.com/vercel/turborepo/discussions/10495

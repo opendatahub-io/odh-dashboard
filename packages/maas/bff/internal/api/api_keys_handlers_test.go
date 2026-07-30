@@ -14,6 +14,7 @@ import (
 
 	"github.com/opendatahub-io/maas-library/bff/internal/config"
 	"github.com/opendatahub-io/maas-library/bff/internal/constants"
+	helper "github.com/opendatahub-io/maas-library/bff/internal/helpers"
 	"github.com/opendatahub-io/maas-library/bff/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/maas-library/bff/internal/models"
 	"github.com/opendatahub-io/maas-library/bff/internal/repositories"
@@ -354,7 +355,7 @@ var _ = Describe("APIKeysHandlers", Ordered, func() {
 			subsRepo := repositories.NewSubscriptionsRepository(testLogger, k8Factory, envConfig.MaaSSubscriptionNamespace)
 			policiesRepo := repositories.NewPoliciesRepository(testLogger, k8Factory, envConfig.MaaSSubscriptionNamespace)
 			modelRefsRepo := repositories.NewMaaSModelRefsRepository(testLogger, k8Factory)
-			repos, err := repositories.NewRepositories(testLogger, k8Factory, envConfig, subsRepo, policiesRepo, modelRefsRepo, nil)
+			repos, err := repositories.NewRepositories(testLogger, k8Factory, envConfig, subsRepo, policiesRepo, modelRefsRepo, nil, nil)
 			Expect(err).NotTo(HaveOccurred())
 
 			app := &App{
@@ -362,6 +363,7 @@ var _ = Describe("APIKeysHandlers", Ordered, func() {
 				kubernetesClientFactory: k8Factory,
 				repositories:            repos,
 				logger:                  testLogger,
+				maasApiURL:              helper.NewMaasApiURLHolder(envConfig.MaasApiUrl),
 			}
 
 			identity := &kubernetes.RequestIdentity{UserID: "user@example.com"}

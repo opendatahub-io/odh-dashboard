@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Badge, Checkbox, ExpandableSection, List, ListItem } from '@patternfly/react-core';
-import ContentModal from '#~/components/modals/ContentModal';
+import ContentModal from '@odh-dashboard/ui-core/components/ContentModal';
 import { ConnectionTypeField, SectionField } from '#~/concepts/connectionTypes/types';
 
 type Props = {

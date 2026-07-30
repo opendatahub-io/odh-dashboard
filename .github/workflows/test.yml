@@ -134,7 +134,7 @@ jobs:
         shell: bash
         run: |
           # Generate test groups using Node.js script
-          # Automatically splits large files (>20KB) into individual groups
+          # Automatically splits large files (>15KB) into individual groups
           # Groups smaller files together
           # New test files are automatically picked up
           TEST_GROUPS=$(node scripts/generate-cypress-test-matrix.js)
@@ -181,7 +181,7 @@ jobs:
         if: always()
         run: |
           # Find and upload the most recent contract test results
-          LATEST_DIR=$(find packages/*/contract-tests/contract-test-results -name "ci-*" -type d 2>/dev/null | head -1)
+          LATEST_DIR=$(find packages/*/contract-tests/contract-test-results distributions/*/contract-tests/contract-test-results -name "ci-*" -type d 2>/dev/null | head -1)
           if [ -n "$LATEST_DIR" ] && [ -d "$LATEST_DIR" ]; then
             echo "Uploading from: $LATEST_DIR" && echo "results-dir=$LATEST_DIR" >> $GITHUB_OUTPUT
           else
@@ -195,49 +195,68 @@ jobs:
           name: contract-test-results
           path: ${{ steps.upload-results.outputs.results-dir }}
 
-  Cypress-Setup:
+  Get-Cypress-Packages:
     needs: [Setup]
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     outputs:
-      cypress-cache-key: ${{ steps.key.outputs.cypress-cache-key }}
+      packages: ${{ steps.cypress.outputs.packages }}
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
-      - name: Generate cypress cache key
-        id: key
-        run: |
-          echo "cypress-cache-key=${{ runner.os }}-${{ env.NODE_VERSION }}-cypress-build-${{ github.sha }}" >> $GITHUB_OUTPUT
-      - name: Cypress build cache
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
-        id: cypress-build-cache
         with:
-          lookup-only: true
-          path: |
-            **/public-cypress
-          key: ${{ steps.key.outputs.cypress-cache-key }}
+          persist-credentials: false
+      - name: Discover Cypress packages
+        id: cypress
+        uses: ./.github/actions/cypress-build-restore
+        with:
+          mode: discover
+          github-token: ${{ github.token }}
+
+  Cypress-Setup:
+    needs: [Setup, Get-Cypress-Packages]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        package: ${{ fromJson(needs.Get-Cypress-Packages.outputs.packages) }}
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
       - name: Setup Node.js ${{ env.NODE_VERSION }}
-        if: steps.cypress-build-cache.outputs.cache-hit != 'true'
         uses: actions/setup-node@cdca7365b2dadb8aad0a33bc7601856ffabcc48e # v4.3.0
         with:
           node-version: ${{ env.NODE_VERSION }}
       - name: Module caches
-        if: steps.cypress-build-cache.outputs.cache-hit != 'true'
         uses: ./.github/actions/module-caches
         with:
           node-version: ${{ env.NODE_VERSION }}
           include-modules: 'true'
-      - name: Build for cypress
-        if: steps.cypress-build-cache.outputs.cache-hit != 'true'
-        run: npm run cypress:server:build:coverage -- --concurrency=4
+      - name: Build and upload ${{ matrix.package.name }}
+        uses: ./.github/actions/cypress-build-restore
+        with:
+          mode: build
+          package-workspace: ${{ matrix.package.workspace }}
+          package-name: ${{ matrix.package.name }}
+          github-token: ${{ github.token }}
 
   Cypress-Mock-Tests:
-    needs: [Setup, Lint, Type-Check, Cypress-Setup, Get-Test-Groups]
+    needs: [Setup, Lint, Type-Check, Cypress-Setup, Get-Test-Groups, Get-Cypress-Packages]
     runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
     strategy:
       fail-fast: false
       matrix:
         test-group: ${{ fromJson(needs.Get-Test-Groups.outputs.test-groups) }}
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
       - name: Setup Node.js ${{ env.NODE_VERSION }}
         uses: actions/setup-node@cdca7365b2dadb8aad0a33bc7601856ffabcc48e # v4.3.0
         with:
@@ -247,18 +266,12 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           include-modules: 'true'
-      - name: Restore Cypress build cache
-        id: cypress-build-cache
-        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+      - name: Restore Cypress builds
+        uses: ./.github/actions/cypress-build-restore
         with:
-          path: |
-            **/public-cypress
-          key: ${{ needs.Cypress-Setup.outputs.cypress-cache-key }}
-      - name: Rebuild on cache miss
-        if: steps.cypress-build-cache.outputs.cache-hit != 'true'
-        run: |
-          echo "::warning::Cypress build cache miss — rebuilding (key: ${{ needs.Cypress-Setup.outputs.cypress-cache-key }})"
-          npm run cypress:server:build:coverage -- --concurrency=4
+          mode: restore
+          packages: ${{ needs.Get-Cypress-Packages.outputs.packages }}
+          github-token: ${{ github.token }}
       - name: Run Cypress Mock tests
         env:
           CYPRESS_SPEC: ${{ matrix.test-group.spec }}
@@ -297,46 +310,62 @@ jobs:
           path: all-artifacts
       - name: Install dependencies
         run: npm install nyc --no-save
-      - name: Combine coverage reports
+
+      - name: Prepare unit coverage
+        run: |
+          mkdir -p ./unit-coverage
+          cp all-artifacts/unit-coverage/coverage-final.json ./unit-coverage/coverage-final.json || true
+      - name: Upload unit coverage to Codecov
+        uses: codecov/codecov-action@b9fd7d16f6d7d1b5d2bec1a2887e65ceed900238 # v4.6.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: false
+          flags: unit
+          name: unit-tests
+          file: ./unit-coverage/coverage-final.json
+          disable_search: true
+          verbose: true
+
+      - name: Merge Cypress coverage reports
+        run: |
+          mkdir -p ./cypress-coverage
+          find all-artifacts -name "cypress-coverage-*" -type d | while read dir; do
+            group_name=$(basename "$dir")
+            if [ -f "$dir/coverage-final.json" ]; then
+              cp "$dir/coverage-final.json" "./cypress-coverage/${group_name}-coverage-final.json"
+            fi
+          done
+          echo "Cypress coverage files:"
+          ls -la ./cypress-coverage/
+          npx nyc merge ./cypress-coverage ./cypress-coverage/merged-cypress-coverage.json
+      - name: Upload Cypress mock coverage to Codecov
+        uses: codecov/codecov-action@b9fd7d16f6d7d1b5d2bec1a2887e65ceed900238 # v4.6.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: false
+          flags: cypress-mock
+          name: cypress-mock-tests
+          file: ./cypress-coverage/merged-cypress-coverage.json
+          disable_search: true
+          verbose: true
+
+      - name: Combine all coverage reports
         run: |
           mkdir -p ./coverage
-          cp all-artifacts/unit-coverage/coverage-final.json ./coverage/unit-coverage-final.json || true
-          find all-artifacts -name "cypress-coverage-*" -type d | while read dir; do
-          group_name=$(basename "$dir")
-          cp "$dir/coverage-final.json" "./coverage/${group_name}-coverage-final.json" || true
-          done
-          echo "Combined coverage files:"
-          ls -R ./coverage
-      - name: Merge coverage reports
-        run: |
+          cp ./unit-coverage/coverage-final.json ./coverage/unit-coverage-final.json || true
+          cp ./cypress-coverage/merged-cypress-coverage.json ./coverage/cypress-coverage-final.json || true
           npx nyc merge ./coverage ./coverage/merged-coverage.json
-          echo "Cleaning up merged coverage file..."
           jq 'del(.[] | select(.statementMap == {}))' ./coverage/merged-coverage.json > ./coverage/cleaned-coverage.json
           mv ./coverage/cleaned-coverage.json ./coverage/merged-coverage.json
       - name: Generate coverage report
         run: |
           mkdir -p ./coverage/report
           npx nyc report --reporter=html --reporter=text-summary --temp-directory ./coverage -t ./coverage --report-dir ./coverage/report
-          cp ./coverage/unit-coverage-final.json ./coverage/combined-coverage-final.json || true
       - name: Upload combined results
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: combined-coverage-results
-          path: ./coverage/combined-coverage-final.json
-      - name: Cleanup interim coverage files
-        run: |
-          rm -rf ./coverage/unit-coverage-final.json
-          find ./coverage -name "*-coverage-final.json" -type f -delete
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@b9fd7d16f6d7d1b5d2bec1a2887e65ceed900238 # v4.6.0
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          fail_ci_if_error: false
-          name: frontend-and-backend
-          file: ./coverage/merged-coverage.json
-          disable_search: true
-          directory: ./coverage
-          verbose: true
+          path: ./coverage/merged-coverage.json
 
   Tests:
     if: always()

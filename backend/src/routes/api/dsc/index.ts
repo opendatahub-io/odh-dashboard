@@ -1,6 +1,6 @@
 import { KubeFastifyInstance } from '../../../types';
 import { getClusterStatus } from '../../../utils/resourceUtils';
 
-module.exports = async (fastify: KubeFastifyInstance) => {
+export default async (fastify: KubeFastifyInstance): Promise<void> => {
   fastify.get('/status', async () => getClusterStatus(fastify));
 };

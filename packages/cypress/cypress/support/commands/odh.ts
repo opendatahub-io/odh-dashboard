@@ -40,24 +40,25 @@ import type {
   RegisteredModelList,
 } from '@odh-dashboard/internal/concepts/modelRegistry/types';
 import type {
+  ConfigMapKind,
+  ConnectionTypeConfigMap,
   DashboardConfigKind,
   DataScienceClusterInitializationKindStatus,
   DataScienceClusterKindStatus,
+  NotebookKind,
+  RoleBindingKind,
   SecretKind,
   TemplateKind,
 } from '@odh-dashboard/k8s-core';
 import type { FeatureStoreKind } from '@odh-dashboard/feature-store/k8sTypes';
 import type {
-  ConfigMapKind,
   ConsoleLinkKind,
   ListConfigSecretsResponse,
   ModelRegistry,
   ModelRegistryKind,
-  NotebookKind,
   OdhQuickStart,
-  RoleBindingKind,
-  ServingRuntimeKind,
 } from '@odh-dashboard/internal/k8sTypes';
+import type { ServingRuntimeKind } from '@odh-dashboard/model-serving/shared';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import type { StartNotebookData } from '@odh-dashboard/internal/pages/projects/types';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
@@ -68,7 +69,6 @@ import type {
   ClusterSettingsType,
   DetectedAccelerators,
   ImageInfo,
-  IntegrationAppStatus,
   OdhApplication,
   OdhDocument,
   PrometheusQueryRangeResponse,
@@ -76,6 +76,7 @@ import type {
   ResponseStatus,
   SubscriptionStatusData,
 } from '@odh-dashboard/internal/types';
+import type { IntegrationAppStatus } from '@odh-dashboard/plugin-core/integrations';
 import type {
   ArgoWorkflowPipelineVersion,
   ExperimentKF,
@@ -93,7 +94,6 @@ import type { GrpcResponse } from '@odh-dashboard/internal/__mocks__/mlmd/utils'
 import type { NimServingResponse } from '@odh-dashboard/internal/__mocks__/mockLegacyNimResource';
 import type { BuildMockPipelinveVersionsType } from '@odh-dashboard/internal/__mocks__';
 import type { ArtifactStorage } from '@odh-dashboard/internal/concepts/pipelines/types';
-import type { ConnectionTypeConfigMap } from '@odh-dashboard/internal/concepts/connectionTypes/types';
 import type {
   APIKey,
   APIKeyListResponse,
@@ -111,6 +111,7 @@ import type {
 } from '@odh-dashboard/maas/types/subscriptions';
 import type { MaaSModelRef } from '@odh-dashboard/maas/types/maas-model';
 import type { PolicyInfoResponse } from '@odh-dashboard/maas/types/auth-policies';
+import type { ExternalModel } from '@odh-dashboard/maas/types/external-models';
 
 type SuccessErrorResponse = {
   success: boolean;
@@ -400,6 +401,10 @@ declare global {
         ) => Cypress.Chainable<null>) &
         ((
           type: 'POST /api/prometheus/bias',
+          response: OdhResponse<{ code: number; response: PrometheusQueryRangeResponse }>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'POST /api/prometheus/queryRange',
           response: OdhResponse<{ code: number; response: PrometheusQueryRangeResponse }>,
         ) => Cypress.Chainable<null>) &
         ((
@@ -1153,7 +1158,17 @@ declare global {
         ) => Cypress.Chainable<null>) &
         ((
           type: 'GET /maas/api/v1/namespaces',
-          response: OdhResponse<{ data: { metadata: { name: string } }[] }>,
+          response: OdhResponse<{ data: { name: string; displayName?: string }[] }>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /maas/api/v1/externalmodel',
+          options: { query: { namespace: string } },
+          response: OdhResponse<{ data: ExternalModel[] }>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'DELETE /maas/api/v1/externalmodel/:namespace/:name',
+          options: { path: { namespace: string; name: string } },
+          response: OdhResponse<{ data: null }>,
         ) => Cypress.Chainable<null>) &
         ((
           type: 'GET /maas/api/v1/all-subscriptions',

@@ -6,15 +6,21 @@ type UseCanDeployAgentResult = {
   disabledReason: string;
 };
 
+const sandboxAccessReview = (namespace: string, verb: 'create' | 'get') => ({
+  group: 'agents.x-k8s.io',
+  resource: 'sandboxes',
+  verb,
+  namespace,
+});
+
 export const useCanDeployAgent = (namespace?: string): UseCanDeployAgentResult => {
   const shouldCheck = !!namespace;
-  const [canCreateAgentRuntime, accessLoaded] = useAccessReview(
-    {
-      group: 'agent.kagenti.dev',
-      resource: 'agentruntimes',
-      verb: 'create',
-      namespace: namespace ?? '',
-    },
+  const [canCreateSandbox, createLoaded] = useAccessReview(
+    sandboxAccessReview(namespace ?? '', 'create'),
+    shouldCheck,
+  );
+  const [canGetSandbox, getLoaded] = useAccessReview(
+    sandboxAccessReview(namespace ?? '', 'get'),
     shouldCheck,
   );
 
@@ -26,7 +32,7 @@ export const useCanDeployAgent = (namespace?: string): UseCanDeployAgentResult =
     };
   }
 
-  if (!accessLoaded) {
+  if (!createLoaded || !getLoaded) {
     return {
       canDeploy: false,
       loaded: false,
@@ -34,7 +40,7 @@ export const useCanDeployAgent = (namespace?: string): UseCanDeployAgentResult =
     };
   }
 
-  if (!canCreateAgentRuntime) {
+  if (!canCreateSandbox || !canGetSandbox) {
     return {
       canDeploy: false,
       loaded: true,

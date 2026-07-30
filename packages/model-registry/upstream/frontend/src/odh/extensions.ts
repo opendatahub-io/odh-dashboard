@@ -10,6 +10,7 @@ import {
   CATALOG_SETTINGS_PAGE_TITLE,
   catalogSettingsUrl,
 } from '~/app/routes/modelCatalogSettings/modelCatalogSettings';
+import { mcpCatalogSettingsUrl } from '~/app/routes/mcpCatalogSettings/mcpCatalogSettings';
 import { mcpCatalogUrl } from '~/app/routes/mcpCatalog/mcpCatalog';
 
 const reliantAreas = ['model-registry'];
@@ -83,6 +84,22 @@ const extensions: (
       singleTabTitle: 'Catalog',
       objectType: 'mcp-catalog',
       component: () => import('./McpCatalogWrapper'),
+      group: '1_catalog',
+    },
+  },
+  // Tab extension for Agents tabbed page
+  {
+    type: 'app.tab-route/tab',
+    flags: {
+      required: [SupportedArea.AGENTS_CATALOG],
+    },
+    properties: {
+      pageId: 'agents-tab-page',
+      id: 'catalog',
+      title: 'Catalog',
+      singleTabTitle: 'Agents catalog',
+      objectType: 'agents-catalog',
+      component: () => import('./AgentsCatalogWrapper'),
       group: '1_catalog',
     },
   },
@@ -217,6 +234,45 @@ const extensions: (
     properties: {
       path: `${catalogSettingsUrl()}/*`,
       component: () => import('./ModelCatalogSettingsRoutesWrapper'),
+    },
+  },
+  // MCP catalog settings
+  {
+    type: 'app.navigation/href',
+    flags: {
+      required: [ADMIN_USER, SupportedArea.MCP_CATALOG],
+    },
+    properties: {
+      id: 'settings-mcp-catalog',
+      title: 'MCP catalog sources',
+      href: mcpCatalogSettingsUrl(),
+      section: 'settings-mcp-resources',
+      path: `${mcpCatalogSettingsUrl()}/*`,
+      group: '1_mcp-resources',
+    },
+  },
+  {
+    type: 'app.route',
+    flags: {
+      required: [ADMIN_USER, SupportedArea.MCP_CATALOG],
+    },
+    properties: {
+      path: `${mcpCatalogSettingsUrl()}/*`,
+      component: () => import('./McpCatalogSettingsRoutesWrapper'),
+    },
+  },
+  // Redirect from old MCP catalog settings URL
+  {
+    type: 'app.route',
+    flags: {
+      required: [ADMIN_USER, SupportedArea.MCP_CATALOG],
+    },
+    properties: {
+      path: '/mcp-catalog-settings/*',
+      component: createRedirectComponent({
+        from: '/mcp-catalog-settings/*',
+        to: `${mcpCatalogSettingsUrl()}/*`,
+      }),
     },
   },
   {

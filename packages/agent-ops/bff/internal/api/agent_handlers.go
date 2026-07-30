@@ -45,7 +45,15 @@ func (app *App) handleAgentRepositoryError(w http.ResponseWriter, r *http.Reques
 		return
 	}
 	if errors.Is(err, bfferrors.ErrAlreadyExists) {
-		app.logger.Warn("Agent deployment conflict",
+		app.logger.Warn("Agent already exists",
+			"error", err.Error(),
+			"method", r.Method,
+			"uri", r.URL.RequestURI())
+		app.conflictResponse(w, r, err)
+		return
+	}
+	if errors.Is(err, bfferrors.ErrConflict) {
+		app.logger.Warn("Agent state conflict",
 			"error", err.Error(),
 			"method", r.Method,
 			"uri", r.URL.RequestURI())

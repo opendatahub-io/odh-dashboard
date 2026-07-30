@@ -1,4 +1,4 @@
-import { ModelLocationType } from '@odh-dashboard/model-serving/components/deploymentWizard/types';
+import { ModelLocationType } from '@odh-dashboard/model-serving/shared/types/form-data';
 import type { NIMDeployment } from '../../../api/nimservices/types';
 import { NIM_ID, NIM_MODEL_TYPE } from '../../../../extensions';
 import {
@@ -13,7 +13,7 @@ import {
   isNIMAuthEnabled,
 } from '../extractNIMFormData';
 
-jest.mock('@odh-dashboard/internal/concepts/hardwareProfiles/utils', () => ({
+jest.mock('@odh-dashboard/hardware-profiles/shared', () => ({
   getExistingHardwareProfileData: jest.fn((resource) => ({
     name: resource?.metadata?.labels?.['opendatahub.io/hardware-profile-name'],
     namespace: resource?.metadata?.labels?.['opendatahub.io/hardware-profile-namespace'],
@@ -23,9 +23,6 @@ jest.mock('@odh-dashboard/internal/concepts/hardwareProfiles/utils', () => ({
     existingTolerations: resource?.spec?.tolerations,
     existingNodeSelector: resource?.spec?.nodeSelector,
   })),
-}));
-
-jest.mock('@odh-dashboard/internal/concepts/hardwareProfiles/const', () => ({
   MODEL_SERVING_VISIBILITY: ['modelServing'],
 }));
 

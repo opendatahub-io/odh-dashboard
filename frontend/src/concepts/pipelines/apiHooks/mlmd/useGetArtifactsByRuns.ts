@@ -1,8 +1,11 @@
 import React from 'react';
 
+import useFetchState, {
+  FetchState,
+  FetchStateCallbackPromise,
+} from '@odh-dashboard/ui-core/hooks/useFetchState';
 import { Artifact, Context } from '#~/third_party/mlmd';
 import { GetArtifactsByContextRequest } from '#~/third_party/mlmd/generated/ml_metadata/proto/metadata_store_service_pb';
-import useFetchState, { FetchState, FetchStateCallbackPromise } from '#~/utilities/useFetchState';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import { PipelineRunKF } from '#~/concepts/pipelines/kfTypes';
 

@@ -9,6 +9,7 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/bffclient"
 	k8s "github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes/pgvector"
 	"github.com/opendatahub-io/gen-ai/internal/models"
 	"github.com/opendatahub-io/gen-ai/internal/types"
 	gorchv1alpha1 "github.com/trustyai-explainability/trustyai-service-operator/api/gorch/v1alpha1"
@@ -365,7 +366,7 @@ func (m *TokenKubernetesClientMock) GetOGXServers(ctx context.Context, identity 
 	}, nil
 }
 
-func (m *TokenKubernetesClientMock) InstallOGXServer(ctx context.Context, identity *integrations.RequestIdentity, namespace string, installModels []models.InstallModel, vectorStores []models.InstallVectorStore, bffClient bffclient.BFFClientInterface) (*ogxapi.OGXServer, error) {
+func (m *TokenKubernetesClientMock) InstallOGXServer(ctx context.Context, identity *integrations.RequestIdentity, namespace string, installModels []models.InstallModel, vectorStores []models.InstallVectorStore, enableTracing bool, bffClient bffclient.BFFClientInterface) (*ogxapi.OGXServer, error) {
 	if len(vectorStores) > 0 {
 		if _, err := m.LoadAndValidateVectorStores(ctx, identity, namespace, vectorStores); err != nil {
 			return nil, err
@@ -422,7 +423,6 @@ providers:
     config:
       base_url: http://mock-model-predictor.` + namespace + `.svc.cluster.local:8080/v1
       max_tokens: ${env.VLLM_MAX_TOKENS_1:=4096}
-      api_token: ${env.VLLM_API_TOKEN_1:=fake}
       tls_verify: ${env.VLLM_TLS_VERIFY:=true}
   - provider_id: sentence-transformers
     provider_type: inline::sentence-transformers
@@ -553,7 +553,7 @@ server:
 				Replicas:  &replicas,
 				Resources: workloadResources,
 				Overrides: &ogxapi.WorkloadOverrides{
-					Command: []string{"/bin/sh", "-c", "ogx run /etc/ogx/config.yaml"},
+					Command: []string{"/bin/sh", "-c", "ogx run /etc/ogx/config.yaml --insecure"},
 					Env: []corev1.EnvVar{
 						{Name: "VLLM_TLS_VERIFY", Value: "false"},
 						{Name: "FAISS_STORE_DIR", Value: "~/.llama/faiss"},
@@ -588,7 +588,7 @@ server:
 	return ogxServer, nil
 }
 
-func (m *TokenKubernetesClientMock) DeleteOGXServer(ctx context.Context, identity *integrations.RequestIdentity, namespace string, name string) (*ogxapi.OGXServer, error) {
+func (m *TokenKubernetesClientMock) DeleteOGXServer(ctx context.Context, identity *integrations.RequestIdentity, namespace string, name string, deletePgvector bool) (*ogxapi.OGXServer, error) {
 	serverList, err := m.GetOGXServers(ctx, identity, namespace)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch OGXServers: %w", err)
@@ -608,12 +608,24 @@ func (m *TokenKubernetesClientMock) DeleteOGXServer(ctx context.Context, identit
 	}
 
 	if target == nil {
+		if !deletePgvector {
+			return nil, nil
+		}
 		return nil, fmt.Errorf("OGXServer with name '%s' not found in namespace %s", name, namespace)
 	}
 
 	err = m.Client.Delete(ctx, &ogxapi.OGXServer{ObjectMeta: metav1.ObjectMeta{Name: target.Name, Namespace: namespace}})
 	if err != nil {
 		return nil, fmt.Errorf("failed to delete OGXServer: %w", err)
+	}
+
+	// Clean up pgvector resources only on full playground delete (mirrors real implementation).
+	if deletePgvector {
+		deleteClient := m.SAClient
+		if deleteClient == nil {
+			deleteClient = m.Client
+		}
+		_ = pgvector.DeletePostgresResources(ctx, deleteClient, namespace)
 	}
 
 	return target, nil

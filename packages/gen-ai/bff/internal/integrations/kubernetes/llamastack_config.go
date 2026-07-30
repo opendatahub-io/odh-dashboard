@@ -169,15 +169,7 @@ func NewDefaultLlamaStackConfig() *LlamaStackConfig {
 		},
 		Providers: Providers{
 			Inference: []Provider{NewSentenceTransformerProvider()},
-			VectorIO: []Provider{
-				NewProvider("milvus", "inline::milvus", map[string]interface{}{
-					"db_path": "${env.MILVUS_DB_PATH:=~/.llama}/milvus.db",
-					"persistence": map[string]interface{}{
-						"namespace": "vector_io::milvus",
-						"backend":   "kv_default",
-					},
-				}),
-			},
+			VectorIO:  []Provider{},
 			Responses: []Provider{
 				NewProvider("builtin", "inline::builtin", map[string]interface{}{
 					"persistence": map[string]interface{}{
@@ -252,7 +244,7 @@ func NewDefaultLlamaStackConfig() *LlamaStackConfig {
 			},
 		},
 		VectorStores: VectorStores{
-			DefaultProviderID: "milvus",
+			DefaultProviderID: pgvector.DefaultProviderID,
 			DefaultEmbeddingModel: VectorStoreModelReference{
 				ProviderID: "sentence-transformers",
 				ModelID:    "ibm-granite/granite-embedding-125m-english",
@@ -434,7 +426,6 @@ func (c *LlamaStackConfig) AddVLLMProviderAndModel(providerID, endpointURL strin
 	providerConfig := EmptyConfig()
 	providerConfig["base_url"] = endpointURL
 	providerConfig["max_tokens"] = fmt.Sprintf("${env.VLLM_MAX_TOKENS_%d:=4096}", index+1)
-	providerConfig["api_token"] = fmt.Sprintf("${env.VLLM_API_TOKEN_%d:=fake}", index+1)
 	providerConfig["tls_verify"] = "${env.VLLM_TLS_VERIFY:=true}"
 
 	// Add provider

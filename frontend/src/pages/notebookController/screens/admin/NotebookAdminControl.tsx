@@ -10,9 +10,9 @@ import {
   Title,
 } from '@patternfly/react-core';
 import { Td, Tr } from '@patternfly/react-table';
-import { Table } from '@odh-dashboard/ui-core';
+import { ApplicationsPage, Table } from '@odh-dashboard/ui-core';
 import ExternalLink from '#~/components/ExternalLink';
-import ApplicationsPage from '#~/pages/ApplicationsPage';
+
 import { ODH_PRODUCT_NAME } from '#~/utilities/const';
 import { UserIcon } from '#~/images/icons';
 import { columns } from './data';

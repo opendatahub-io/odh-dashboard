@@ -19,10 +19,10 @@ import (
 func newModelRefObj(name, namespace, displayName, description, phase, endpoint string) *unstructured.Unstructured {
 	annotations := map[string]interface{}{}
 	if displayName != "" {
-		annotations["openshift.io/display-name"] = displayName
+		annotations[constants.DisplayNameAnnotation] = displayName
 	}
 	if description != "" {
-		annotations["openshift.io/description"] = description
+		annotations[constants.DescriptionAnnotation] = description
 	}
 	return &unstructured.Unstructured{
 		Object: map[string]interface{}{
@@ -42,6 +42,12 @@ func newModelRefObj(name, namespace, displayName, description, phase, endpoint s
 			"status": map[string]interface{}{
 				"phase":    phase,
 				"endpoint": endpoint,
+				"conditions": []interface{}{
+					map[string]interface{}{
+						"type":    "Ready",
+						"message": "Model endpoint is ready",
+					},
+				},
 			},
 		},
 	}
@@ -106,12 +112,63 @@ func TestConvertUnstructuredToModelRefSummary_Full(t *testing.T) {
 		"Description":   {"A test model", summary.Description},
 		"Phase":         {"Ready", summary.Phase},
 		"Endpoint":      {"http://ep:8080", summary.Endpoint},
+		"StatusMessage": {"Model endpoint is ready", summary.StatusMessage},
 		"ModelRef.Kind": {"LLMInferenceService", summary.ModelRef.Kind},
 		"ModelRef.Name": {"my-model", summary.ModelRef.Name},
 	} {
 		if c.want != c.got {
 			t.Errorf("%s: expected %q, got %q", field, c.want, c.got)
 		}
+	}
+}
+
+func TestConvertUnstructuredToModelRefSummary_WithModelCapabilities(t *testing.T) {
+	obj := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": "maas.opendatahub.io/v1alpha1",
+			"kind":       "MaaSModelRef",
+			"metadata": map[string]interface{}{
+				"name":      "capable-model",
+				"namespace": "test-ns",
+				"annotations": map[string]interface{}{
+					"opendatahub.io/model-capabilities": `["text-generation","vision"]`,
+				},
+			},
+		},
+	}
+
+	summary := convertUnstructuredToModelRefSummary(obj)
+
+	if len(summary.ModelCapabilities) != 2 {
+		t.Fatalf("expected 2 capabilities, got %d", len(summary.ModelCapabilities))
+	}
+	if summary.ModelCapabilities[0] != "text-generation" {
+		t.Errorf("ModelCapabilities[0]: expected %q, got %q", "text-generation", summary.ModelCapabilities[0])
+	}
+	if summary.ModelCapabilities[1] != "vision" {
+		t.Errorf("ModelCapabilities[1]: expected %q, got %q", "vision", summary.ModelCapabilities[1])
+	}
+}
+
+func TestConvertUnstructuredToModelRefSummary_MalformedCapabilities(t *testing.T) {
+	obj := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": "maas.opendatahub.io/v1alpha1",
+			"kind":       "MaaSModelRef",
+			"metadata": map[string]interface{}{
+				"name":      "bad-caps-model",
+				"namespace": "test-ns",
+				"annotations": map[string]interface{}{
+					"opendatahub.io/model-capabilities": "not-valid-json",
+				},
+			},
+		},
+	}
+
+	summary := convertUnstructuredToModelRefSummary(obj)
+
+	if summary.ModelCapabilities != nil {
+		t.Errorf("expected nil ModelCapabilities for malformed annotation, got %v", summary.ModelCapabilities)
 	}
 }
 
@@ -133,6 +190,40 @@ func TestConvertUnstructuredToModelRefSummary_NoAnnotations(t *testing.T) {
 	}
 	if summary.Description != "" {
 		t.Errorf("expected empty Description, got %q", summary.Description)
+	}
+}
+
+func TestConvertUnstructuredToModelRefSummary_GovernanceAttached(t *testing.T) {
+	obj := newModelRefObj("paired-model", "my-ns", "Paired", "", "Ready", "http://ep:8080")
+	status, _, _ := unstructured.NestedMap(obj.Object, "status")
+	conditions, _ := status["conditions"].([]interface{})
+	status["conditions"] = append(conditions, map[string]interface{}{
+		"type":    "GovernanceAttached",
+		"status":  "True",
+		"reason":  "PairingFound",
+		"message": "Active subscription and auth policy pairing found",
+	})
+	_ = unstructured.SetNestedMap(obj.Object, status, "status")
+
+	summary := convertUnstructuredToModelRefSummary(obj)
+	if !summary.GovernanceAttached {
+		t.Fatal("expected GovernanceAttached=true")
+	}
+
+	falseObj := newModelRefObj("unpaired-model", "my-ns", "Unpaired", "", "Pending", "")
+	falseStatus, _, _ := unstructured.NestedMap(falseObj.Object, "status")
+	falseConditions, _ := falseStatus["conditions"].([]interface{})
+	falseStatus["conditions"] = append(falseConditions, map[string]interface{}{
+		"type":    "GovernanceAttached",
+		"status":  "False",
+		"reason":  "NoPairingFound",
+		"message": "No active subscription and auth policy pairing found",
+	})
+	_ = unstructured.SetNestedMap(falseObj.Object, falseStatus, "status")
+
+	falseSummary := convertUnstructuredToModelRefSummary(falseObj)
+	if falseSummary.GovernanceAttached {
+		t.Fatal("expected GovernanceAttached=false")
 	}
 }
 

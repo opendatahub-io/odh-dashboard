@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { CardBody, FlexItem, Content } from '@patternfly/react-core';
+import OverviewCard from '@odh-dashboard/ui-core/components/detail/OverviewCard';
+import { CollapsibleSection } from '@odh-dashboard/ui-core';
 import { ProjectObjectType, SectionType } from '#~/concepts/design/utils';
-import OverviewCard from '#~/pages/projects/screens/detail/overview/components/OverviewCard';
-import CollapsibleSection from '#~/concepts/design/CollapsibleSection';
 
 const NoProjectServingEnabledSection: React.FC = () => (
   <CollapsibleSection title="Serve models" data-testid="section-model-server">

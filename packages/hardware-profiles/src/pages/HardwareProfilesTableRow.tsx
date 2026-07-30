@@ -1,0 +1,278 @@
+import * as React from 'react';
+import {
+  Divider,
+  Label,
+  LabelGroup,
+  Icon,
+  List,
+  ListItem,
+  Popover,
+  Stack,
+  StackItem,
+  Timestamp,
+  TimestampTooltipVariant,
+  Truncate,
+} from '@patternfly/react-core';
+import { ActionsColumn, ExpandableRowContent, Td, Tr } from '@patternfly/react-table';
+import { useNavigate } from 'react-router-dom';
+import { ExclamationTriangleIcon } from '@patternfly/react-icons';
+import {
+  type HardwareProfileKind,
+  HardwareProfileFeatureVisibility,
+} from '@odh-dashboard/k8s-core';
+import { relativeTime } from '@odh-dashboard/internal/utilities/time';
+import { TableRowTitleDescription } from '@odh-dashboard/internal/components/table';
+import { useKebabAccessAllowed, verbModelAccess } from '@odh-dashboard/internal/concepts/userSSAR';
+import { HardwareProfileModel } from '@odh-dashboard/internal/api';
+import HardwareProfileEnableToggle from './HardwareProfileEnableToggle';
+import NodeResourceTable from './nodeResource/NodeResourceTable';
+import NodeSelectorTable from './nodeSelector/NodeSelectorTable';
+import TolerationTable from './toleration/TolerationTable';
+import {
+  createHardwareProfileWarningTitle,
+  filterRecognizedVisibility,
+  getHardwareProfileDescription,
+  getHardwareProfileDisplayName,
+  isDefaultHardwareProfile,
+  validateProfileWarning,
+} from './utils';
+import { HardwareProfileFeatureVisibilityTitles } from './manage/const';
+
+type HardwareProfilesTableRowProps = {
+  rowIndex: number;
+  hardwareProfile: HardwareProfileKind;
+  handleDelete: (cr: HardwareProfileKind) => void;
+  isExpanded: boolean;
+  onToggleExpansion: () => void;
+  dragDisabled?: boolean;
+};
+
+const HardwareProfilesTableRow: React.FC<HardwareProfilesTableRowProps> = ({
+  hardwareProfile,
+  rowIndex,
+  handleDelete,
+  isExpanded,
+  onToggleExpansion,
+  dragDisabled = false,
+  ...props
+}) => {
+  const modifiedDate = hardwareProfile.metadata.annotations?.['opendatahub.io/modified-date'];
+  const navigate = useNavigate();
+
+  const useCases: HardwareProfileFeatureVisibility[] = React.useMemo(() => {
+    if (hardwareProfile.metadata.annotations?.['opendatahub.io/dashboard-feature-visibility']) {
+      try {
+        const raw: string[] = JSON.parse(
+          hardwareProfile.metadata.annotations['opendatahub.io/dashboard-feature-visibility'],
+        );
+        return filterRecognizedVisibility(raw);
+      } catch (error) {
+        return [];
+      }
+    }
+    return [];
+  }, [hardwareProfile.metadata.annotations]);
+
+  const hardwareProfileWarnings = validateProfileWarning(hardwareProfile);
+
+  const renderFeatureVisibility = () => {
+    if (useCases.length === 0) {
+      return <i data-testid="feature-visibility-all">All features</i>;
+    }
+
+    return (
+      <LabelGroup>
+        {useCases.map((v) => (
+          <Label key={v} data-testid={`label-${v}`}>
+            {HardwareProfileFeatureVisibilityTitles[v]}
+          </Label>
+        ))}
+      </LabelGroup>
+    );
+  };
+
+  const { kueue, node } = hardwareProfile.spec.scheduling ?? {};
+  const localQueueName = kueue?.localQueueName;
+  const priorityClass = kueue?.priorityClass;
+  const nodeSelector = node?.nodeSelector;
+  const tolerations = node?.tolerations;
+
+  const editKebabItems = useKebabAccessAllowed(
+    [
+      {
+        title: <span data-testid="edit-hardware-profile-action">Edit</span>,
+        onClick: () =>
+          navigate(
+            `/settings/environment-setup/hardware-profiles/edit/${hardwareProfile.metadata.name}`,
+          ),
+      },
+    ],
+    verbModelAccess('update', HardwareProfileModel),
+  );
+  const duplicateKebabItems = useKebabAccessAllowed(
+    [
+      {
+        title: <span data-testid="duplicate-hardware-profile-action">Duplicate</span>,
+        onClick: () =>
+          navigate(
+            `/settings/environment-setup/hardware-profiles/duplicate/${hardwareProfile.metadata.name}`,
+          ),
+      },
+    ],
+    verbModelAccess('create', HardwareProfileModel),
+  );
+  const separatorKebabItems = useKebabAccessAllowed(
+    [],
+    verbModelAccess('create', HardwareProfileModel),
+  );
+  const deleteKebabItems = useKebabAccessAllowed(
+    [
+      { isSeparator: true },
+      {
+        title: <span data-testid="delete-hardware-profile-action">Delete</span>,
+        onClick: () => handleDelete(hardwareProfile),
+      },
+    ],
+    verbModelAccess('delete', HardwareProfileModel),
+  );
+
+  return (
+    <>
+      <Tr
+        key={hardwareProfile.metadata.name}
+        id={hardwareProfile.metadata.name}
+        draggable={!dragDisabled}
+        {...props}
+      >
+        <Td
+          expand={{
+            rowIndex,
+            expandId: `hardware-profile-${hardwareProfile.metadata.name}`,
+            isExpanded,
+            onToggle: onToggleExpansion,
+          }}
+        />
+        <Td
+          draggableRow={{
+            id: `draggable-row-${hardwareProfile.metadata.name}`,
+          }}
+          style={dragDisabled ? { pointerEvents: 'none', opacity: 0.5 } : undefined}
+        />
+        <Td dataLabel="Name">
+          <TableRowTitleDescription
+            title={<Truncate content={getHardwareProfileDisplayName(hardwareProfile)} />}
+            description={getHardwareProfileDescription(hardwareProfile)}
+            resource={hardwareProfile}
+            truncateDescriptionLines={2}
+            wrapResourceTitle={false}
+            titleIcon={
+              hardwareProfileWarnings.length > 0 && (
+                <Popover
+                  hasAutoWidth
+                  headerIcon={
+                    <Icon status="warning">
+                      <ExclamationTriangleIcon />
+                    </Icon>
+                  }
+                  headerContent={createHardwareProfileWarningTitle(hardwareProfile)}
+                  bodyContent={() => (
+                    <>
+                      {hardwareProfileWarnings.length === 1 ? (
+                        <div>{hardwareProfileWarnings[0].message}</div>
+                      ) : (
+                        <List>
+                          {hardwareProfileWarnings.map((warning, index) => (
+                            <ListItem key={index}>{warning.message}</ListItem>
+                          ))}
+                        </List>
+                      )}
+                    </>
+                  )}
+                >
+                  <Icon status="warning" data-testid="icon-warning">
+                    <ExclamationTriangleIcon />
+                  </Icon>
+                </Popover>
+              )
+            }
+          />
+        </Td>
+        <Td dataLabel="Features">{renderFeatureVisibility()}</Td>
+        <Td dataLabel="Enabled">
+          <HardwareProfileEnableToggle hardwareProfile={hardwareProfile} />
+        </Td>
+        <Td dataLabel="Last modified">
+          {modifiedDate && !Number.isNaN(new Date(modifiedDate).getTime()) ? (
+            <Timestamp
+              date={new Date(modifiedDate)}
+              tooltip={{
+                variant: TimestampTooltipVariant.default,
+              }}
+            >
+              {relativeTime(Date.now(), new Date(modifiedDate).getTime())}
+            </Timestamp>
+          ) : (
+            '--'
+          )}
+        </Td>
+        <Td isActionCell>
+          <ActionsColumn
+            items={[
+              ...editKebabItems,
+              ...duplicateKebabItems,
+              ...separatorKebabItems,
+              ...(!isDefaultHardwareProfile(hardwareProfile) ? [...deleteKebabItems] : []),
+            ]}
+          />
+        </Td>
+      </Tr>
+      {isExpanded && (
+        <Tr key={`${hardwareProfile.metadata.name}-expanded`} isExpanded={isExpanded}>
+          <Td />
+          <Td dataLabel="Other information" colSpan={4}>
+            <ExpandableRowContent>
+              <Stack hasGutter>
+                {hardwareProfile.spec.identifiers &&
+                  hardwareProfile.spec.identifiers.length !== 0 && (
+                    <StackItem>
+                      <p className="pf-v6-u-font-weight-bold">Node resources</p>
+                      <NodeResourceTable nodeResources={hardwareProfile.spec.identifiers} />
+                      <Divider />
+                    </StackItem>
+                  )}
+                {localQueueName && (
+                  <StackItem>
+                    <p className="pf-v6-u-font-weight-bold">Local queue</p>
+                    {localQueueName}
+                  </StackItem>
+                )}
+                {priorityClass && (
+                  <StackItem>
+                    <p className="pf-v6-u-font-weight-bold">Workload priority</p>
+                    {priorityClass}
+                  </StackItem>
+                )}
+                {nodeSelector && Object.keys(nodeSelector).length !== 0 && (
+                  <StackItem>
+                    <p className="pf-v6-u-font-weight-bold">Node selectors</p>
+                    <NodeSelectorTable nodeSelector={nodeSelector} />
+                    <Divider />
+                  </StackItem>
+                )}
+                {tolerations && tolerations.length !== 0 && (
+                  <StackItem>
+                    <p className="pf-v6-u-font-weight-bold">Tolerations</p>
+                    <TolerationTable tolerations={tolerations} />
+                    <Divider />
+                  </StackItem>
+                )}
+              </Stack>
+            </ExpandableRowContent>
+          </Td>
+        </Tr>
+      )}
+    </>
+  );
+};
+
+export default HardwareProfilesTableRow;

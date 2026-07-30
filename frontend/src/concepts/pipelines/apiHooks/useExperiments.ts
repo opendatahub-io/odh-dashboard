@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { FetchState } from '@odh-dashboard/ui-core/hooks/useFetchState';
 import { ExperimentKF, PipelinesFilterOp, StorageStateKF } from '#~/concepts/pipelines/kfTypes';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import usePipelineQuery from '#~/concepts/pipelines/apiHooks/usePipelineQuery';
@@ -8,7 +9,6 @@ import {
   PipelineOptions,
   PipelineParams,
 } from '#~/concepts/pipelines/types';
-import { FetchState } from '#~/utilities/useFetchState';
 import { K8sAPIOptions } from '#~/k8sTypes';
 
 const useExperimentsByStorageState = (

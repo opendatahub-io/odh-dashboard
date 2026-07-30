@@ -11,6 +11,7 @@ import (
 
 	"github.com/opendatahub-io/maas-library/bff/internal/config"
 	"github.com/opendatahub-io/maas-library/bff/internal/constants"
+	helper "github.com/opendatahub-io/maas-library/bff/internal/helpers"
 	"github.com/opendatahub-io/maas-library/bff/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/maas-library/bff/internal/integrations/maas"
 	"github.com/opendatahub-io/maas-library/bff/internal/repositories"
@@ -59,9 +60,10 @@ func setupApiTest[T any](method, url string, body interface{}, k8Factory kuberne
 	subscriptionsRepo := repositories.NewSubscriptionsRepository(logger, k8Factory, envConfig.MaaSSubscriptionNamespace)
 	policiesRepo := repositories.NewPoliciesRepository(logger, k8Factory, envConfig.MaaSSubscriptionNamespace)
 	modelRefsRepo := repositories.NewMaaSModelRefsRepository(logger, k8Factory)
+	externalModelsRepo := repositories.NewExternalModelsRepository(logger, k8Factory, modelRefsRepo)
 	yamlRepo := repositories.NewYamlRepository(logger, k8Factory, envConfig.MaaSSubscriptionNamespace)
 
-	repos, err := repositories.NewRepositories(logger, k8Factory, envConfig, subscriptionsRepo, policiesRepo, modelRefsRepo, yamlRepo)
+	repos, err := repositories.NewRepositories(logger, k8Factory, envConfig, subscriptionsRepo, policiesRepo, modelRefsRepo, externalModelsRepo, yamlRepo)
 	if err != nil {
 		return empty, nil, err
 	}
@@ -70,6 +72,7 @@ func setupApiTest[T any](method, url string, body interface{}, k8Factory kuberne
 		kubernetesClientFactory: k8Factory,
 		repositories:            repos,
 		logger:                  logger,
+		maasApiURL:              helper.NewMaasApiURLHolder(envConfig.MaasApiUrl),
 	}
 
 	ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, identity)

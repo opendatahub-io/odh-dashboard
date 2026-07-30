@@ -3,15 +3,16 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { z } from 'zod';
 import { useWizardContext, useWizardFooter } from '@patternfly/react-core';
 import { renderHook } from '@odh-dashboard/jest-config/hooks';
-import { KnownLabels, PersistentVolumeClaimKind } from '@odh-dashboard/k8s-core';
-import {
+import { KnownLabels } from '@odh-dashboard/k8s-core';
+import type {
+  PersistentVolumeClaimKind,
   ConnectionTypeConfigMapObj,
   Connection,
-} from '@odh-dashboard/internal/concepts/connectionTypes/types';
+} from '@odh-dashboard/k8s-core';
 import { mockPVCK8sResource } from '@odh-dashboard/internal/__mocks__/mockPVCK8sResource';
 import { useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import type { IsAreaAvailableStatus } from '@odh-dashboard/plugin-core/areas';
-import { ModelLocationData, ModelLocationType } from '../../types';
+import { ModelLocationData, ModelLocationType } from '../../../../shared/types/form-data';
 import { isValidModelLocationData, useModelLocationData } from '../ModelLocationInputFields';
 import { ModelLocationSelectField } from '../ModelLocationSelectField';
 import type { UseModelDeploymentWizardState } from '../../useDeploymentWizard';

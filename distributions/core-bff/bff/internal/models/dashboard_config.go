@@ -67,6 +67,7 @@ type DashboardFeatureFlags struct {
 	DisableNIMModelServing       bool `json:"disableNIMModelServing"`
 	DisableAdminConnectionTypes  bool `json:"disableAdminConnectionTypes"`
 	DisableFeatureStore          bool `json:"disableFeatureStore"`
+	FeatureStoreAdmin            bool `json:"featureStoreAdmin"`
 	DisableFineTuning            bool `json:"disableFineTuning"`
 	DisableKueue                 bool `json:"disableKueue"`
 	DisableLMEval                bool `json:"disableLMEval"`
@@ -80,9 +81,12 @@ type DashboardFeatureFlags struct {
 	MaasAuthPolicies             bool `json:"maasAuthPolicies"`
 	Mlflow                       bool `json:"mlflow"`
 	McpCatalog                   bool `json:"mcpCatalog"`
+	McpRegistry                  bool `json:"mcpRegistry"`
+	AgentsCatalog                bool `json:"agentsCatalog"`
 	ToolCalling                  bool `json:"toolCalling"`
 	TrainingJobs                 bool `json:"trainingJobs"`
 	ProjectRBAC                  bool `json:"projectRBAC"`
+	RoleManagement               bool `json:"roleManagement"`
 	DeploymentWizardYAMLViewer   bool `json:"deploymentWizardYAMLViewer"`
 	ExternalVectorStores         bool `json:"externalVectorStores"`
 	AgentConfigManagement        bool `json:"agentConfigManagement"`
@@ -90,7 +94,7 @@ type DashboardFeatureFlags struct {
 	LlmGatewayField              bool `json:"llmGatewayField"`
 	PromptManagement             bool `json:"promptManagement"`
 	MySubscriptions              bool `json:"mySubscriptions"`
-	MaasSettingsIaRedesign       bool `json:"maasSettingsIaRedesign"`
+	ConnectionTest               bool `json:"connectionTest"`
 }
 
 type NotebookController struct {
@@ -158,6 +162,7 @@ var BlankDashboardCR = DashboardConfig{
 			DisableNIMModelServing:       false,
 			DisableAdminConnectionTypes:  false,
 			DisableFeatureStore:          false,
+			FeatureStoreAdmin:            false,
 			DisableFineTuning:            true,
 			DisableKueue:                 true,
 			DisableLMEval:                true,
@@ -171,16 +176,19 @@ var BlankDashboardCR = DashboardConfig{
 			MaasAuthPolicies:             true,
 			Mlflow:                       true,
 			McpCatalog:                   false,
+			McpRegistry:                  false,
+			AgentsCatalog:                false,
 			ToolCalling:                  false,
 			TrainingJobs:                 true,
 			ProjectRBAC:                  true,
+			RoleManagement:               true,
 			DeploymentWizardYAMLViewer:   false,
 			ExternalVectorStores:         false,
 			VLLMDeploymentOnMaaS:         false,
 			LlmGatewayField:              false,
 			PromptManagement:             false,
 			MySubscriptions:              false,
-			MaasSettingsIaRedesign:       false,
+			ConnectionTest:               false,
 		},
 		NotebookController: &NotebookController{
 			Enabled: true,

@@ -1,5 +1,4 @@
-import { ClusterQueueKind, CohortKind } from '@odh-dashboard/internal/k8sTypes';
-import { ContainerResourceAttributes } from '@odh-dashboard/k8s-core';
+import { ClusterQueueKind, CohortKind, ContainerResourceAttributes } from '@odh-dashboard/k8s-core';
 
 export type CohortState = 'explicit' | 'implicit' | 'standalone';
 
@@ -19,4 +18,10 @@ export type UnifiedCohort = {
   cohortResource?: CohortKind;
   memberClusterQueues: ClusterQueueKind[];
   effectivePool: FlavorQuota[];
+};
+
+/** null = still loading; undefined = loaded but no telemetry data for this model */
+export type CQDcgmResult = {
+  computePercentage: number | null | undefined;
+  memoryPercentage: number | null | undefined;
 };

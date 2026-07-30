@@ -3,8 +3,8 @@ import {
   mockConnectionTypeConfigMapObj,
 } from '@odh-dashboard/internal/__mocks__/mockConnectionType';
 import { mockDashboardConfig } from '@odh-dashboard/internal/__mocks__';
-import type { ConnectionTypeField } from '@odh-dashboard/internal/concepts/connectionTypes/types';
-import { toConnectionTypeConfigMap } from '@odh-dashboard/internal/concepts/connectionTypes/utils';
+import { toConnectionTypeConfigMap } from '@odh-dashboard/k8s-core';
+import type { ConnectionTypeField } from '@odh-dashboard/k8s-core';
 import { asProductAdminUser } from '../../../utils/mockUsers';
 import { createConnectionTypePage } from '../../../pages/connectionTypes';
 

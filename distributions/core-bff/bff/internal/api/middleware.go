@@ -19,7 +19,7 @@ func (app *App) RecoverPanic(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
 			if err := recover(); err != nil {
-				w.Header().Set("Connection", "close")
+				w.Header().Set(constants.HeaderConnection, constants.ConnectionClose)
 				app.serverErrorResponse(w, r, fmt.Errorf("%s", err))
 				app.logger.Error("Recovered from panic", slog.String("stack_trace", string(debug.Stack())))
 			}
@@ -34,8 +34,8 @@ func (app *App) EnableCORS(next http.Handler) http.Handler {
 		return next
 	}
 
-	allowedHeaders := []string{"Content-Type", "Authorization", "X-Forwarded-Access-Token", "x-odh-feature-flags"}
-	if h := app.config.AuthTokenHeader; h != "" && h != "Authorization" && h != "X-Forwarded-Access-Token" {
+	allowedHeaders := []string{constants.HeaderContentType, constants.HeaderAuthorization, constants.HeaderForwardedToken, constants.HeaderFeatureFlags}
+	if h := app.config.AuthTokenHeader; h != "" && h != constants.HeaderAuthorization && h != constants.HeaderForwardedToken {
 		allowedHeaders = append(allowedHeaders, h)
 	}
 

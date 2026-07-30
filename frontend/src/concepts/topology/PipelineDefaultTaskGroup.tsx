@@ -69,6 +69,9 @@ const DefaultTaskGroupInner: React.FunctionComponent<PipelinesDefaultGroupInnerP
       }
     }, [state, runStatus]);
 
+    const iterationCount = element.getData()?.pipelineTask.iterationCount;
+    const badgeText = iterationCount != null ? `x${iterationCount}` : undefined;
+
     const groupNode = (
       <DefaultTaskGroup
         element={element}
@@ -77,6 +80,7 @@ const DefaultTaskGroupInner: React.FunctionComponent<PipelinesDefaultGroupInnerP
         GroupLabelComponent={(props) => (
           <TaskGroupPillLabel
             {...props}
+            badge={badgeText}
             customStatusIcon={status === RunStatus.Cancelled ? <BanIcon /> : undefined}
           />
         )}

@@ -8,16 +8,10 @@ import (
 	"net/http"
 	"net/http/httptest"
 
-	"log/slog"
-
 	. "github.com/onsi/ginkgo/v2"
-	"github.com/opendatahub-io/gen-ai/internal/config"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
-	"github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes/k8smocks"
-	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack/lsmocks"
 	"github.com/opendatahub-io/gen-ai/internal/models"
-	"github.com/opendatahub-io/gen-ai/internal/repositories"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -26,19 +20,7 @@ var _ = Describe("CreateExternalModelHandler", func() {
 	var app App
 
 	BeforeEach(func() {
-		k8sFactory, err := k8smocks.NewTokenClientFactory(testK8sClient, testCfg, slog.Default())
-		require.NoError(GinkgoT(), err)
-
-		llamaStackClientFactory := lsmocks.NewMockClientFactory()
-		app = App{
-			config: config.EnvConfig{
-				Port: 4000,
-			},
-			logger:                  slog.Default(),
-			kubernetesClientFactory: k8sFactory,
-			llamaStackClientFactory: llamaStackClientFactory,
-			repositories:            repositories.NewRepositories(),
-		}
+		app = NewK8sLSTestApp()
 	})
 
 	It("should successfully create an external model with all required fields", func() {
@@ -410,7 +392,7 @@ var _ = Describe("CreateExternalModelHandler", func() {
 		assert.Equal(t, []interface{}{"text-generation"}, caps, "default should be text-generation only")
 	})
 
-	It("should filter out unknown capabilities and keep valid ones", func() {
+	It("should pass through all capabilities including unknown ones", func() {
 		t := GinkgoT()
 
 		requestBody := models.ExternalModelRequest{
@@ -449,9 +431,9 @@ var _ = Describe("CreateExternalModelHandler", func() {
 		assert.True(t, ok, "capabilities should be an array")
 		assert.Contains(t, caps, "text-generation")
 		assert.Contains(t, caps, "vision")
-		assert.NotContains(t, caps, "unknown-capability", "unknown capabilities should be filtered out")
-		assert.NotContains(t, caps, "made-up", "unknown capabilities should be filtered out")
-		assert.Len(t, caps, 2, "should only contain text-generation and vision")
+		assert.Contains(t, caps, "unknown-capability", "unknown capabilities should pass through")
+		assert.Contains(t, caps, "made-up", "unknown capabilities should pass through")
+		assert.Len(t, caps, 4, "should contain text-generation + all provided capabilities")
 	})
 
 	It("should strip capabilities for embedding models", func() {
@@ -501,19 +483,7 @@ var _ = Describe("DeleteExternalModelHandler", func() {
 	var app App
 
 	BeforeEach(func() {
-		k8sFactory, err := k8smocks.NewTokenClientFactory(testK8sClient, testCfg, slog.Default())
-		require.NoError(GinkgoT(), err)
-
-		llamaStackClientFactory := lsmocks.NewMockClientFactory()
-		app = App{
-			config: config.EnvConfig{
-				Port: 4000,
-			},
-			logger:                  slog.Default(),
-			kubernetesClientFactory: k8sFactory,
-			llamaStackClientFactory: llamaStackClientFactory,
-			repositories:            repositories.NewRepositories(),
-		}
+		app = NewK8sLSTestApp()
 	})
 
 	It("should successfully delete an existing external model", func() {
@@ -720,19 +690,7 @@ var _ = Describe("VerifyExternalModelHandler", func() {
 	var app App
 
 	BeforeEach(func() {
-		k8sFactory, err := k8smocks.NewTokenClientFactory(testK8sClient, testCfg, slog.Default())
-		require.NoError(GinkgoT(), err)
-
-		llamaStackClientFactory := lsmocks.NewMockClientFactory()
-		app = App{
-			config: config.EnvConfig{
-				Port: 4000,
-			},
-			logger:                  slog.Default(),
-			kubernetesClientFactory: k8sFactory,
-			llamaStackClientFactory: llamaStackClientFactory,
-			repositories:            repositories.NewRepositories(),
-		}
+		app = NewK8sLSTestApp()
 	})
 
 	It("should return 400 when namespace query parameter is missing", func() {

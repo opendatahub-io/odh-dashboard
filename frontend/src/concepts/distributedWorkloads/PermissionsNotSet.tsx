@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { EmptyState, EmptyStateBody, EmptyStateFooter } from '@patternfly/react-core';
 import { WrenchIcon } from '@patternfly/react-icons';
-import WhosMyAdministrator from '#~/components/WhosMyAdministrator.tsx';
+import { WhosMyAdministrator } from '@odh-dashboard/ui-core';
 
 const PermissionsNotSet: React.FC = () => (
   <EmptyState headingLevel="h4" icon={WrenchIcon} titleText="Request Distributed Workloads access">

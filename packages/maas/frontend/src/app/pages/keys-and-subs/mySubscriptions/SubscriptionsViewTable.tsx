@@ -45,6 +45,7 @@ const SubscriptionRow: React.FC<{
             <FlexItem>
               <Link
                 className="pf-v6-u-font-weight-bold"
+                data-testid={`subscription-detail-link-${subscription.subscription_id_header}`}
                 to={`${URL_PREFIX}/keys-and-subs/subscriptions/${subscription.subscription_id_header}`}
               >
                 {subscription.display_name || subscription.subscription_id_header}

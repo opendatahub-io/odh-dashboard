@@ -41,6 +41,10 @@ jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
   k8sGetResource: jest.fn(),
 }));
 
+jest.mock('@odh-dashboard/plugin-core/host-api', () => ({
+  useAccessReview: jest.fn().mockReturnValue([true, true]),
+}));
+
 const k8sCreateSecretMock = jest.mocked(k8sCreateResource<SecretKind>);
 const k8sCreatePVCMock = jest.mocked(k8sCreateResource<PersistentVolumeClaimKind>);
 const k8sCreateConfigMapMock = jest.mocked(k8sCreateResource<ConfigMapKind>);
@@ -94,6 +98,7 @@ describe('EmptyProjects', () => {
         canEnablePipelines
         envVariables={mockEnvVariables}
         connections={[mockConnection({})]}
+        existingSecretsData={{ secrets: [], loaded: true, canList: true }}
       />,
     );
     expect(result.getByTestId('submit-button')).toBeEnabled();
@@ -133,6 +138,7 @@ describe('EmptyProjects', () => {
         canEnablePipelines
         envVariables={mockEnvVariables}
         connections={[mockConnection({})]}
+        existingSecretsData={{ secrets: [], loaded: true, canList: true }}
       />,
     );
 

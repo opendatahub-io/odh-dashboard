@@ -1,5 +1,6 @@
 import React from 'react';
 import useDebounceCallback from '@odh-dashboard/internal/utilities/useDebounceCallback';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { applyFeatureViewFilters } from './utils';
 import { featureViewTableFilterOptions } from './const';
 import FeatureViewsTable from './FeatureViewsTable';
@@ -8,6 +9,10 @@ import { useFeatureStoreProject } from '../../FeatureStoreContext';
 import { FeatureStoreToolbar } from '../../components/FeatureStoreToolbar';
 import { useTagFilterHandlers } from '../../utils/useTagFilterHandlers';
 import { applyTagFilters } from '../../utils/filterUtils';
+import {
+  FEATURE_STORE_EVENTS,
+  FilterRemovedProperties,
+} from '../../tracking/featureStoreTrackingConstants';
 
 const FeatureViewsListView = ({
   featureViews: featureViewsList,
@@ -63,6 +68,10 @@ const FeatureViewsListView = ({
   );
 
   const onClearFilters = React.useCallback(() => {
+    fireMiscTrackingEvent(FEATURE_STORE_EVENTS.FILTER_REMOVED, {
+      action: 'clearAll',
+      resourceType: 'featureView',
+    } satisfies FilterRemovedProperties);
     setFilterData({});
     setDebouncedFilterData({});
     setTagFilters([]);
@@ -130,6 +139,7 @@ const FeatureViewsListView = ({
           tagFilters={tagFilters}
           onTagFilterRemove={tagHandlers.handleTagFilterRemove}
           onTagFilterAdd={tagHandlers.handleTagFilterAdd}
+          trackingResourceType="featureView"
         />
       }
     />

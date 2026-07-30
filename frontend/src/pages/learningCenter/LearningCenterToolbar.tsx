@@ -22,9 +22,9 @@ import {
   PficonSortCommonAscIcon,
   PficonSortCommonDescIcon,
 } from '@patternfly/react-icons';
+import SimpleSelect, { SimpleSelectOption } from '@odh-dashboard/ui-core/components/SimpleSelect';
 import { removeQueryArgument, setQueryArgument } from '#~/utilities/router';
 import { fireMiscTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
-import SimpleSelect, { SimpleSelectOption } from '#~/components/SimpleSelect';
 import {
   SEARCH_FILTER_KEY,
   DOC_SORT_KEY,
@@ -200,7 +200,7 @@ const LearningCenterToolbar: React.FC<LearningCenterToolbarProps> = ({
             <ToolbarItem data-testid="resources-select-type">
               <SimpleSelect
                 options={sortTypeDropdownItems}
-                aria-label="Select sort type"
+                ariaLabel="Select sort type"
                 toggleLabel={`Sort by ${sortTypes[sortType]}`}
                 value={sortType}
                 onChange={onSortTypeSelect}
@@ -208,7 +208,7 @@ const LearningCenterToolbar: React.FC<LearningCenterToolbarProps> = ({
             </ToolbarItem>
             <ToolbarItem data-testid="resources-order-type">
               <SimpleSelect
-                aria-label="Select sort order"
+                ariaLabel="Select sort order"
                 options={sortOrderDropdownItems}
                 toggleLabel={
                   <SortOrderIcon isAsc={sortOrder === 'ASC'} alt={sortOrders[sortOrder]} />

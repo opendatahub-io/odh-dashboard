@@ -1,4 +1,5 @@
 import * as _ from 'lodash-es';
+import type { RecursivePartial } from '@odh-dashboard/foundation';
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import {
   getDescriptionFromK8sResource,
@@ -8,7 +9,6 @@ import {
   translateDisplayNameForK8s,
 } from './k8sResourceUtils';
 import type {
-  RecursivePartial,
   K8sNameDescriptionFieldData,
   K8sNameDescriptionFieldUpdateFunctionInternal,
   K8sNameDescriptionType,

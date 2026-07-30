@@ -18,17 +18,17 @@ import (
 
 func fakeNotebook(name, namespace, username, userType, lastActivity string) *unstructured.Unstructured {
 	return &unstructured.Unstructured{
-		Object: map[string]interface{}{
+		Object: map[string]any{
 			"apiVersion": "kubeflow.org/v1",
 			"kind":       "Notebook",
-			"metadata": map[string]interface{}{
+			"metadata": map[string]any{
 				"name":      name,
 				"namespace": namespace,
-				"annotations": map[string]interface{}{
+				"annotations": map[string]any{
 					"opendatahub.io/username":              username,
 					"notebooks.kubeflow.org/last-activity": lastActivity,
 				},
-				"labels": map[string]interface{}{
+				"labels": map[string]any{
 					"opendatahub.io/user-type": userType,
 				},
 			},
@@ -102,7 +102,7 @@ func TestGetAllowedUsers_NilClient_ReturnsEmpty(t *testing.T) {
 }
 
 func TestDecodeNotebookUsername_Plain(t *testing.T) {
-	annotations := map[string]interface{}{
+	annotations := map[string]any{
 		"opendatahub.io/username": "user@example.com",
 	}
 	assert.Equal(t, "user@example.com", decodeNotebookUsername(annotations))
@@ -110,7 +110,7 @@ func TestDecodeNotebookUsername_Plain(t *testing.T) {
 
 func TestDecodeNotebookUsername_B64Encoded(t *testing.T) {
 	encoded := kubeSafePrefix + base64.StdEncoding.EncodeToString([]byte("user@example.com"))
-	annotations := map[string]interface{}{
+	annotations := map[string]any{
 		"opendatahub.io/username": encoded,
 	}
 	assert.Equal(t, "user@example.com", decodeNotebookUsername(annotations))
@@ -118,5 +118,5 @@ func TestDecodeNotebookUsername_B64Encoded(t *testing.T) {
 
 func TestDecodeNotebookUsername_Empty(t *testing.T) {
 	assert.Equal(t, "", decodeNotebookUsername(nil))
-	assert.Equal(t, "", decodeNotebookUsername(map[string]interface{}{}))
+	assert.Equal(t, "", decodeNotebookUsername(map[string]any{}))
 }

@@ -9,8 +9,8 @@ import {
   InputGroup,
   InputGroupItem,
 } from '@patternfly/react-core';
-import { ValidationContext } from '#~/utilities/useValidation';
-import { ZodErrorHelperText } from '#~/components/ZodErrorFormHelperText';
+import { ValidationContext } from '@odh-dashboard/ui-core/utilities/useValidation';
+import { ZodErrorHelperText } from '@odh-dashboard/ui-core/components/ZodErrorFormHelperText';
 import FormSection from '#~/components/pf-overrides/FormSection';
 
 type FineTunedModelOciPathFieldProps = {

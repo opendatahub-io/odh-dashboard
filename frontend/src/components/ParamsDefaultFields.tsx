@@ -7,6 +7,8 @@ import {
 } from '@patternfly/react-core';
 import * as React from 'react';
 import { ZodIssue } from 'zod';
+import { FieldValidationProps } from '@odh-dashboard/ui-core/hooks/useZodFormValidation';
+import { ZodErrorHelperText } from '@odh-dashboard/ui-core/components/ZodErrorFormHelperText';
 import { JsonInputParam } from '#~/concepts/pipelines/content/createRun/contentSections/ParamsSection/JsonInputParam';
 import { NumberInputParam } from '#~/concepts/pipelines/content/createRun/contentSections/ParamsSection/NumberInputParam';
 import { RadioInputParam } from '#~/concepts/pipelines/content/createRun/contentSections/ParamsSection/RadioInputParam';
@@ -14,8 +16,6 @@ import {
   InputDefinitionParameterType,
   RuntimeConfigParamValue,
 } from '#~/concepts/pipelines/kfTypes';
-import { FieldValidationProps } from '#~/hooks/useZodFormValidation';
-import { ZodErrorHelperText } from './ZodErrorFormHelperText';
 
 type ParamsDefaultFieldsProps = {
   parameterType: InputDefinitionParameterType | undefined;

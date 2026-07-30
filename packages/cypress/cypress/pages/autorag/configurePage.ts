@@ -142,6 +142,44 @@ class AutoragConfigurePage {
     return cy.findByTestId('evaluation-file-selector').find('input[type="file"]');
   }
 
+  // Evaluation file selector (text input showing the selected file key)
+  findEvaluationFileValue() {
+    return cy.findByTestId('evaluation-file-selector').find('input[readonly]');
+  }
+
+  findEvaluationFileClearButton() {
+    return cy.findByTestId('evaluation-file-selector').findByRole('button', { name: 'Clear file' });
+  }
+
+  // Evaluation file creator modal
+  findEvaluationCreateButton() {
+    return cy.findByTestId('evaluation-create-button');
+  }
+
+  findEvaluationCreatorModal() {
+    return cy.findByRole('dialog', { name: 'Create an evaluation source' });
+  }
+
+  findEvalQuestion() {
+    return cy.findByTestId('eval-question');
+  }
+
+  findEvalAnswer() {
+    return cy.findByTestId('eval-answer');
+  }
+
+  findEvalAddRow() {
+    return cy.findByTestId('eval-add-row');
+  }
+
+  findEvalEntriesTable() {
+    return cy.findByTestId('eval-entries-table');
+  }
+
+  findEvalSubmit() {
+    return cy.findByTestId('eval-create-submit');
+  }
+
   // Uploaded file table
   findUploadedFileCell() {
     return cy.findByTestId('uploaded-file-cell');

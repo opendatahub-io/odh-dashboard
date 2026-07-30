@@ -2,11 +2,13 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import { Provider } from 'react-redux';
+import { BrowserStorageContextProvider } from '@odh-dashboard/ui-core/hooks';
 import { sdkStore, store } from './redux/store/store';
 import App from './app/App';
 import { ThemeProvider } from './app/ThemeContext';
+import { AnalyticsProvider } from './concepts/analyticsTracking/AnalyticsProvider';
+import { NotificationProvider } from './utilities/NotificationProvider';
 import SDKInitialize from './SDKInitialize';
-import { BrowserStorageContextProvider } from './components/browserStorage/BrowserStorageContext';
 import ErrorBoundary from './components/error/ErrorBoundary';
 import RouteErrorElement from './components/error/RouteErrorElement';
 import { ReduxContext } from './redux/context';
@@ -19,7 +21,11 @@ const router = createBrowserRouter([
       <SDKInitialize>
         <BrowserStorageContextProvider>
           <ThemeProvider>
-            <App />
+            <NotificationProvider>
+              <AnalyticsProvider>
+                <App />
+              </AnalyticsProvider>
+            </NotificationProvider>
           </ThemeProvider>
         </BrowserStorageContextProvider>
       </SDKInitialize>

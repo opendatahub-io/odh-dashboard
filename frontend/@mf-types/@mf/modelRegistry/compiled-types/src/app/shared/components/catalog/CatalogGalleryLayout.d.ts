@@ -1,0 +1,24 @@
+import * as React from 'react';
+import type { CatalogGridSpans } from './types/catalogFilterTypes';
+type CatalogGalleryLayoutProps<T> = {
+    items: T[];
+    loaded: boolean;
+    loadError: Error | undefined;
+    renderCard: (item: T) => React.ReactNode;
+    getItemKey: (item: T) => string;
+    gridSpans?: CatalogGridSpans;
+    hasMore?: boolean;
+    isLoadingMore?: boolean;
+    onLoadMore?: () => void;
+    loadMoreLabel?: string;
+    loadingMoreLabel?: string;
+    loadingLabel?: string;
+    errorTitle?: string;
+    renderEmptyState?: () => React.ReactNode;
+    renderExtraEmptyStates?: () => React.ReactNode | null;
+    categoryTitle?: string;
+    categoryDescription?: string;
+    headerExtra?: React.ReactNode;
+};
+declare function CatalogGalleryLayout<T>({ items, loaded, loadError, renderCard, getItemKey, gridSpans: gridSpansProp, hasMore, isLoadingMore, onLoadMore, loadMoreLabel, loadingMoreLabel, loadingLabel, errorTitle, renderEmptyState, renderExtraEmptyStates, categoryTitle, categoryDescription, headerExtra, }: CatalogGalleryLayoutProps<T>): React.ReactElement | null;
+export default CatalogGalleryLayout;

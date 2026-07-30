@@ -8,9 +8,10 @@ import useApiResources, {
 const mockCoreResponse = {
   kind: 'APIGroupDiscoveryList',
   apiVersion: 'apidiscovery.k8s.io/v2',
+  metadata: {},
   items: [
     {
-      metadata: { name: '' },
+      metadata: {},
       versions: [
         {
           version: 'v1',
@@ -235,6 +236,50 @@ describe('parseDiscoveryItems', () => {
 
     expect(result.apiGroups).toEqual(['']);
     expect(result.resources).toEqual([{ name: 'pods', kind: 'Pod', apiGroup: '' }]);
+  });
+
+  it('should handle core API group with no name in metadata (real K8s behavior)', () => {
+    const items = [
+      {
+        metadata: {},
+        versions: [
+          {
+            version: 'v1',
+            resources: [
+              {
+                resource: 'pods',
+                responseKind: { group: '', version: 'v1', kind: 'Pod' },
+                scope: 'Namespaced',
+                verbs: ['get', 'list'],
+              },
+            ],
+          },
+        ],
+      },
+    ] as APIGroupDiscoveryItem[];
+
+    const result = parseDiscoveryItems(items);
+
+    expect(result.apiGroups).toEqual(['']);
+    expect(result.resources).toEqual([{ name: 'pods', kind: 'Pod', apiGroup: '' }]);
+  });
+
+  it('should handle versions without a resources array', () => {
+    const items: APIGroupDiscoveryItem[] = [
+      {
+        metadata: { name: 'external.metrics.k8s.io' },
+        versions: [
+          {
+            version: 'v1beta1',
+          },
+        ],
+      },
+    ];
+
+    const result = parseDiscoveryItems(items);
+
+    expect(result.apiGroups).toEqual(['external.metrics.k8s.io']);
+    expect(result.resources).toEqual([]);
   });
 
   it('should skip subresources (resources containing a slash)', () => {

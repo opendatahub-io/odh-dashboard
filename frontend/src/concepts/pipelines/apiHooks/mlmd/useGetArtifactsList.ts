@@ -1,9 +1,9 @@
 import React from 'react';
 
+import useFetchState, { FetchState } from '@odh-dashboard/ui-core/hooks/useFetchState';
 import { usePipelinesAPI, useMlmdListContext } from '#~/concepts/pipelines/context';
 import { Artifact, GetArtifactsRequest } from '#~/third_party/mlmd';
 import { ListOperationOptions } from '#~/third_party/mlmd/generated/ml_metadata/proto/metadata_store_pb';
-import useFetchState, { FetchState } from '#~/utilities/useFetchState';
 
 export interface ArtifactsListResponse {
   artifacts: Artifact[];

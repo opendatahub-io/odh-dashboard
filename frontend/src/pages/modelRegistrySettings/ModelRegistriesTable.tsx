@@ -11,8 +11,8 @@ import {
   ToolbarItem,
 } from '@patternfly/react-core';
 import { Table } from '@odh-dashboard/ui-core';
+import { FetchStateObject } from '@odh-dashboard/ui-core/hooks/useFetch';
 import { ModelRegistryKind, RoleBindingKind } from '#~/k8sTypes';
-import { FetchStateObject } from '#~/utilities/useFetch';
 import { modelRegistryColumns } from './columns';
 import ModelRegistriesTableRow from './ModelRegistriesTableRow';
 import DeleteModelRegistryModal from './DeleteModelRegistryModal';

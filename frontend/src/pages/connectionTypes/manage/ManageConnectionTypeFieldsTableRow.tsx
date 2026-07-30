@@ -2,6 +2,7 @@ import * as React from 'react';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { ActionsColumn, TableText, Td, Tr } from '@patternfly/react-table';
 import { Button, Flex, FlexItem, Icon, Label, Switch, Truncate } from '@patternfly/react-core';
+import { ValidationContext } from '@odh-dashboard/ui-core/utilities/useValidation';
 import {
   ConnectionTypeField,
   ConnectionTypeFieldType,
@@ -17,7 +18,6 @@ import { columns } from '#~/pages/connectionTypes/manage/fieldTableColumns';
 import ConnectionTypeDataFieldRemoveModal from '#~/pages/connectionTypes/manage/ConnectionTypeDataFieldRemoveModal';
 import ConnectionTypeSectionRemoveModal from '#~/pages/connectionTypes/manage/ConnectionTypeSectionRemoveModal';
 import { TableRowTitleDescription } from '#~/components/table';
-import { ValidationContext } from '#~/utilities/useValidation';
 import { ValidationErrorCodes } from '#~/concepts/connectionTypes/validationUtils';
 
 type Props = {

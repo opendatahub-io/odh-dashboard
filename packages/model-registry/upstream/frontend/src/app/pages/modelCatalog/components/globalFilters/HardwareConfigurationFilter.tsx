@@ -14,6 +14,7 @@ import {
 import { useHardwareConfigurationFilterState } from '~/app/pages/modelCatalog/hooks/useHardwareConfigurationFilterState';
 import { ModelCatalogContext } from '~/app/context/modelCatalog/ModelCatalogContext';
 import { ModelCatalogStringFilterKey } from '~/concepts/modelCatalog/const';
+import useDropdownAutoFocus from '~/app/pages/modelCatalog/hooks/useDropdownAutoFocus';
 
 type HardwareConfigurationOption = {
   value: string;
@@ -24,6 +25,7 @@ const HardwareConfigurationFilter: React.FC = () => {
   const { appliedValues, setAppliedValues } = useHardwareConfigurationFilterState();
   const { filterOptions } = React.useContext(ModelCatalogContext);
   const [isOpen, setIsOpen] = React.useState(false);
+  const contentRef = useDropdownAutoFocus(isOpen);
   const [searchValue, setSearchValue] = React.useState('');
 
   // Get hardware configuration options from filterOptions (from API filter_options endpoint)
@@ -78,50 +80,55 @@ const HardwareConfigurationFilter: React.FC = () => {
   );
 
   const filterContent = (
-    <Panel>
-      <PanelMain className="pf-v6-u-p-md" style={{ maxHeight: '300px', overflowY: 'auto' }}>
-        <Flex direction={{ default: 'column' }} spaceItems={{ default: 'spaceItemsSm' }}>
-          {/* Search input */}
-          <FlexItem>
-            <SearchInput
-              placeholder="Search hardware"
-              value={searchValue}
-              onChange={(_event, value) => setSearchValue(value)}
-              onClear={() => setSearchValue('')}
-            />
-          </FlexItem>
-          {/* Hardware configuration checkboxes */}
-          <FlexItem>
-            <Flex direction={{ default: 'column' }} spaceItems={{ default: 'spaceItemsXs' }}>
-              {filteredOptions.length === 0 ? (
-                <FlexItem>No results found</FlexItem>
-              ) : (
-                filteredOptions.map((option) => (
-                  <FlexItem key={option.value}>
-                    <Flex alignItems={{ default: 'alignItemsCenter' }}>
-                      <FlexItem flex={{ default: 'flex_1' }}>
-                        <Checkbox
-                          label={option.label}
-                          id={option.value}
-                          isChecked={isHardwareSelected(option.value)}
-                          onChange={(_, checked) => toggleHardwareSelection(option.value, checked)}
-                        />
-                      </FlexItem>
-                    </Flex>
-                  </FlexItem>
-                ))
-              )}
-            </Flex>
-          </FlexItem>
-        </Flex>
-      </PanelMain>
-    </Panel>
+    <div ref={contentRef} role="group" aria-label="Hardware configuration filter controls">
+      <Panel>
+        <PanelMain className="pf-v6-u-p-md" style={{ maxHeight: '300px', overflowY: 'auto' }}>
+          <Flex direction={{ default: 'column' }} spaceItems={{ default: 'spaceItemsSm' }}>
+            {/* Search input */}
+            <FlexItem>
+              <SearchInput
+                placeholder="Search hardware"
+                value={searchValue}
+                onChange={(_event, value) => setSearchValue(value)}
+                onClear={() => setSearchValue('')}
+              />
+            </FlexItem>
+            {/* Hardware configuration checkboxes */}
+            <FlexItem>
+              <Flex direction={{ default: 'column' }} spaceItems={{ default: 'spaceItemsXs' }}>
+                {filteredOptions.length === 0 ? (
+                  <FlexItem>No results found</FlexItem>
+                ) : (
+                  filteredOptions.map((option) => (
+                    <FlexItem key={option.value}>
+                      <Flex alignItems={{ default: 'alignItemsCenter' }}>
+                        <FlexItem flex={{ default: 'flex_1' }}>
+                          <Checkbox
+                            label={option.label}
+                            id={option.value}
+                            isChecked={isHardwareSelected(option.value)}
+                            onChange={(_, checked) =>
+                              toggleHardwareSelection(option.value, checked)
+                            }
+                          />
+                        </FlexItem>
+                      </Flex>
+                    </FlexItem>
+                  ))
+                )}
+              </Flex>
+            </FlexItem>
+          </Flex>
+        </PanelMain>
+      </Panel>
+    </div>
   );
 
   return (
     <Dropdown
       isOpen={isOpen}
       onOpenChange={setIsOpen}
+      onOpenChangeKeys={['Escape']}
       toggle={toggle}
       shouldFocusToggleOnSelect={false}
     >

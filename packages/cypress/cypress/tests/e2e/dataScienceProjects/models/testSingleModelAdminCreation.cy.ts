@@ -1,10 +1,10 @@
+import type { DataScienceProjectData } from '../../../../types';
 import {
   ModelLocationSelectOption,
   ModelTypeLabel,
   ModelStateLabel,
   ModelStateToggleLabel,
-} from '@odh-dashboard/model-serving/types/form-data';
-import type { DataScienceProjectData } from '../../../../types';
+} from '../../../../utils/modelServingConstants';
 import { deleteOpenShiftProject } from '../../../../utils/oc_commands/project';
 import { loadDSPFixture } from '../../../../utils/dataLoader';
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '../../../../utils/e2eUsers';

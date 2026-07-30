@@ -258,6 +258,10 @@ class ProjectRolesTab {
     return cy.findByTestId('permission-rules-table');
   }
 
+  findPermissionRuleActionCells() {
+    return this.findPermissionRulesTable().find('tbody td[data-label="Actions"]');
+  }
+
   getRow(name: string) {
     return new RolesTableRow(() =>
       this.findRolesTable().findAllByTestId('role-name-link').contains(name).parents('tr'),

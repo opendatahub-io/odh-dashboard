@@ -24,11 +24,6 @@ const createMockAIModel = (overrides: Partial<AIModel>): AIModel => ({
   description: 'Test model',
   endpoints: [],
   status: 'Running',
-  sa_token: {
-    name: 'token',
-    token_name: 'token',
-    token: 'test-token',
-  },
   model_source_type: 'namespace',
   ...overrides,
 });
@@ -91,6 +86,7 @@ describe('ModelDetailsDropdown', () => {
     model_name: 'test-model-2',
     model_id: 'test-model-2',
     display_name: 'Test Model 2',
+    capabilities: ['vision', 'chat-completion'],
   });
 
   const aiModelDisabled = createMockAIModel({
@@ -169,6 +165,7 @@ describe('ModelDetailsDropdown', () => {
       'Playground Model Dropdown Option Selected',
       {
         selectedModel: 'provider/Test Model 2',
+        capabilities: JSON.stringify(['vision', 'chat-completion']),
       },
     );
   });

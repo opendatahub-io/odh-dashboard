@@ -43,9 +43,9 @@ export const MODEL_CARD_TEST_IDS = {
  */
 export const MODEL_DETAILS_TEST_IDS = {
   tabs: 'model-details-page-tabs',
-  overviewTab: 'model-overview-tab',
+  overviewTab: 'overview-tab',
   performanceInsightsTab: 'performance-insights-tab',
-  overviewTabContent: 'model-overview-tab-content',
+  overviewTabContent: 'overview-tab-content',
   performanceInsightsTabContent: 'performance-insights-tab-content',
   longDescription: 'model-long-description',
 } as const;

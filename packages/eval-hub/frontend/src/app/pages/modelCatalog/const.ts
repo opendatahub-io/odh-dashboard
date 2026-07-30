@@ -3,20 +3,27 @@ import { type SecurityInsight } from './securityInsightsTypes';
 export type FilterOption = 'evaluation' | 'category' | 'benchmark';
 
 export const FILTER_LABELS: Record<FilterOption, string> = {
-  evaluation: 'Evaluation name',
+  evaluation: 'Evaluation Name',
   category: 'Category',
   benchmark: 'Benchmark',
 };
 
 export const FILTER_PLACEHOLDERS: Record<FilterOption, string> = {
-  evaluation: 'Filter by evaluation name',
-  category: 'Filter by category',
-  benchmark: 'Filter by benchmark',
+  evaluation: 'Filter by Evaluation Name',
+  category: 'Filter by Category',
+  benchmark: 'Filter by Benchmark',
 };
 
 export type SortConfig = {
   index: number;
   direction: 'asc' | 'desc';
+};
+
+export const COLUMN_NAMES: Record<number, string> = {
+  0: 'Evaluation',
+  1: 'Category',
+  2: 'Benchmark',
+  3: 'Result',
 };
 
 export const getFilterValue = (insight: SecurityInsight, filterType: FilterOption): string => {

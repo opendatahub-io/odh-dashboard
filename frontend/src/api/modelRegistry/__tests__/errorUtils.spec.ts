@@ -1,4 +1,4 @@
-import { NotReadyError } from '#~/utilities/useFetchState';
+import { NotReadyError } from '@odh-dashboard/ui-core/hooks/useFetchState';
 import { handleModelRegistryFailures } from '#~/api/modelRegistry/errorUtils';
 import { mockRegisteredModel } from '#~/__mocks__/mockRegisteredModel';
 import { ModelRegistryError } from '#~/concepts/modelRegistry/types';

@@ -1,6 +1,6 @@
 import * as React from 'react';
+import { FetchStateObject } from '@odh-dashboard/ui-core/hooks/useFetch';
 import { ClusterRoleKind, RoleBindingKind, RoleKind } from '#~/k8sTypes';
-import { FetchStateObject } from '#~/utilities/useFetch';
 import { useClusterRoles } from './apiHooks/useClusterRoles';
 import { useRoleBindings } from './apiHooks/useRoleBindings';
 import { useRoles } from './apiHooks/useRoles';

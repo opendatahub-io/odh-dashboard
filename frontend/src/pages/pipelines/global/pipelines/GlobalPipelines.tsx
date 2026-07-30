@@ -1,4 +1,5 @@
 import * as React from 'react';
+import TitleWithIcon from '@odh-dashboard/ui-core/design/TitleWithIcon';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import {
   pipelinesPageDescription,
@@ -12,7 +13,6 @@ import PipelineAndVersionContextProvider from '#~/concepts/pipelines/content/Pip
 import EnsureCompatiblePipelineServer from '#~/concepts/pipelines/EnsureCompatiblePipelineServer';
 import { pipelinesBaseRoute } from '#~/routes/pipelines/global';
 import { ProjectObjectType } from '#~/concepts/design/utils';
-import TitleWithIcon from '#~/concepts/design/TitleWithIcon';
 
 const GlobalPipelines: React.FC = () => {
   const pipelinesAPI = usePipelinesAPI();

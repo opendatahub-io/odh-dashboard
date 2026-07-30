@@ -6,8 +6,9 @@ import OverviewTable from './overview/OverviewTable';
 import OverviewToolbar from './overview/OverviewToolbar';
 import { initialOverviewFilterData, OverviewFilterDataType } from './overview/const';
 import { filterOverviewModels } from './overview/utils';
+import EmptyStatePage from './EmptyStatePage';
 
-const OVERVIEW_RETURN_TO = `${URL_PREFIX}/subscription-management/overview`;
+const OVERVIEW_RETURN_TO = `${URL_PREFIX}/maas-governance/overview`;
 
 const OverviewTab: React.FC = () => {
   const [rows, loaded, error] = useModelsOverview();
@@ -43,6 +44,21 @@ const OverviewTab: React.FC = () => {
         <Alert variant="danger" isInline title="Error loading overview data">
           {error.message}
         </Alert>
+      </PageSection>
+    );
+  }
+
+  if (rows.length === 0) {
+    return (
+      <PageSection isFilled>
+        <EmptyStatePage
+          returnTo={OVERVIEW_RETURN_TO}
+          title="No subscriptions or policies configured"
+          bodyText="Create subscriptions to define rate limits and authorization policies to control which groups can access MaaS models."
+          showSubsButton
+          showPoliciesButton
+          testId="empty-overview-page"
+        />
       </PageSection>
     );
   }

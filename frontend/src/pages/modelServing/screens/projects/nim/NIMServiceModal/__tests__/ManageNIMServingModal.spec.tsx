@@ -2,9 +2,9 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import type { ProjectKind, SecretKind } from '@odh-dashboard/k8s-core';
+import type { InferenceServiceKind, ServingRuntimeKind } from '@odh-dashboard/model-serving/shared';
 import ManageNIMServingModal from '#~/pages/modelServing/screens/projects/nim/NIMServiceModal/ManageNIMServingModal';
 import { mockStorageClasses } from '#~/__mocks__';
-import { InferenceServiceKind, ServingRuntimeKind } from '#~/k8sTypes';
 import { ServingRuntimeEditInfo } from '#~/pages/modelServing/screens/types';
 import * as utils from '#~/pages/modelServing/screens/projects/utils';
 import * as useNIMPVCModule from '#~/pages/modelServing/screens/projects/nim/NIMServiceModal/useNIMPVC';
@@ -36,6 +36,9 @@ jest.mock('@odh-dashboard/plugin-core/areas', () => ({
 jest.mock('#~/api', () => ({
   getSecret: jest.fn(),
   updatePvc: jest.fn(),
+}));
+
+jest.mock('@odh-dashboard/plugin-core/host-api', () => ({
   useAccessReview: jest.fn(() => [true]),
 }));
 
@@ -48,7 +51,8 @@ jest.mock('#~/redux/selectors', () => ({
   useDashboardNamespace: jest.fn(() => ({ dashboardNamespace: 'test-namespace' })),
 }));
 
-jest.mock('#~/pages/modelServing/customServingRuntimes/utils', () => ({
+jest.mock('@odh-dashboard/model-serving/shared', () => ({
+  ...jest.requireActual('@odh-dashboard/model-serving/shared'),
   getServingRuntimeFromTemplate: jest.fn(),
 }));
 

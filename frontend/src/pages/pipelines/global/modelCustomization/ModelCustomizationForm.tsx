@@ -8,11 +8,11 @@ import {
 } from '@patternfly/react-core';
 import * as React from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
-import ApplicationsPage from '#~/pages/ApplicationsPage';
+import { useValidation, ValidationContext } from '@odh-dashboard/ui-core/utilities/useValidation';
+import useGenericObjectState from '@odh-dashboard/ui-core/utilities/useGenericObjectState';
+import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import GenericSidebar from '#~/components/GenericSidebar';
 import EnsureAPIAvailability from '#~/concepts/pipelines/EnsureAPIAvailability';
-import { useValidation, ValidationContext } from '#~/utilities/useValidation';
-import useGenericObjectState from '#~/utilities/useGenericObjectState';
 import {
   ModelCustomizationFormData,
   modelCustomizationFormSchema,
