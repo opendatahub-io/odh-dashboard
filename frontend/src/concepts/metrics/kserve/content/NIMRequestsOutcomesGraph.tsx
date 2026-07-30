@@ -2,7 +2,7 @@ import React from 'react';
 import { NimMetricGraphDefinition } from '#~/concepts/metrics/kserve/types';
 import { useFetchNimRequestsOutcomesData } from '#~/api';
 import MetricsChart from '#~/pages/modelServing/screens/metrics/MetricsChart';
-import { TimeframeTitle } from '#~/concepts/metrics/types';
+import { TimeframeTitle } from '@odh-dashboard/ui-core/types/metrics';
 import { MetricsChartTypes } from '#~/pages/modelServing/screens/metrics/types';
 
 type NimRequestsOutcomesGraphProps = {

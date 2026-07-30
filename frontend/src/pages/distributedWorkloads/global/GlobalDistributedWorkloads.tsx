@@ -9,7 +9,7 @@ import { DistributedWorkloadsTabConfig } from '#~/pages/distributedWorkloads/glo
 import DistributedWorkloadsNoProjects from '#~/pages/distributedWorkloads/global/DistributedWorkloadsNoProjects';
 import GlobalDistributedWorkloadsTabs from '#~/pages/distributedWorkloads/global/GlobalDistributedWorkloadsTabs';
 import { MetricsCommonContextProvider } from '#~/concepts/metrics/MetricsCommonContext';
-import { RefreshIntervalTitle } from '#~/concepts/metrics/types';
+import { RefreshIntervalTitle } from '@odh-dashboard/ui-core/types/metrics';
 import ProjectSelectorNavigator from '#~/concepts/projects/ProjectSelectorNavigator';
 import { ProjectObjectType } from '#~/concepts/design/utils';
 import { getStoredPreferredProject } from '#~/concepts/projects/getStoredPreferredProject';

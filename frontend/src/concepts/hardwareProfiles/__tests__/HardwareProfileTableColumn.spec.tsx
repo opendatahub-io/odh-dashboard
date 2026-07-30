@@ -7,7 +7,7 @@ import {
   ProjectDetailsContext,
   ProjectDetailsContextType,
 } from '#~/pages/projects/ProjectDetailsContext';
-import { DEFAULT_LIST_FETCH_STATE } from '#~/utilities/const';
+import { DEFAULT_LIST_FETCH_STATE } from '@odh-dashboard/ui-core/utilities/metrics';
 import { NotebookKind } from '#~/k8sTypes';
 import { KUEUE_QUEUE_LABEL } from '#~/concepts/kueue/index';
 import HardwareProfileTableColumn from '#~/concepts/hardwareProfiles/HardwareProfileTableColumn';

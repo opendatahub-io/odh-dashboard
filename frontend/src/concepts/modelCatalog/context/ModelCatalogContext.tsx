@@ -2,7 +2,7 @@ import React from 'react';
 import { FetchStateObject } from '@odh-dashboard/ui-core/hooks/useFetch';
 import { ModelCatalogSource } from '#~/concepts/modelCatalog/types';
 import { useModelCatalogSources } from '#~/concepts/modelCatalog/useModelCatalogSources';
-import { DEFAULT_LIST_FETCH_STATE } from '#~/utilities/const';
+import { DEFAULT_LIST_FETCH_STATE } from '@odh-dashboard/ui-core/utilities/metrics';
 import { useMakeFetchObject } from '#~/utilities/useMakeFetchObject';
 
 export type ModelCatalogContextType = {

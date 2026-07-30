@@ -20,7 +20,7 @@ import {
   ProjectDetailsContext,
   ProjectDetailsContextType,
 } from '#~/pages/projects/ProjectDetailsContext';
-import { DEFAULT_LIST_FETCH_STATE } from '#~/utilities/const';
+import { DEFAULT_LIST_FETCH_STATE } from '@odh-dashboard/ui-core/utilities/metrics';
 import { ProjectsContext } from '#~/concepts/projects/ProjectsContext';
 import HardwareProfileSelect from '#~/concepts/hardwareProfiles/HardwareProfileSelect';
 

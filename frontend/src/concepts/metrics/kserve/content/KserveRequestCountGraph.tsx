@@ -2,7 +2,7 @@ import React from 'react';
 import { KserveMetricGraphDefinition } from '#~/concepts/metrics/kserve/types';
 import { useFetchKserveRequestCountData } from '#~/api';
 import MetricsChart from '#~/pages/modelServing/screens/metrics/MetricsChart';
-import { TimeframeTitle } from '#~/concepts/metrics/types';
+import { TimeframeTitle } from '@odh-dashboard/ui-core/types/metrics';
 
 type KserveRequestCountGraphProps = {
   graphDefinition: KserveMetricGraphDefinition;

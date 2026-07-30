@@ -2,7 +2,7 @@ import { Stack, StackItem } from '@patternfly/react-core/dist/esm';
 import React from 'react';
 import { NimMetricGraphDefinition } from '#~/concepts/metrics/kserve/types';
 import { NimMetricsGraphTypes } from '#~/concepts/metrics/kserve/const';
-import { TimeframeTitle } from '#~/concepts/metrics/types';
+import { TimeframeTitle } from '@odh-dashboard/ui-core/types/metrics';
 import NIMTimeToFirstTokenGraph from './NIMTimeForFirstTokenGraphs';
 import NIMKVCacheUsageGraph from './NIMKVCacheUsageGraph';
 import NIMTokensCountGraph from './NIMTokensCountGraph';

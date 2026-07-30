@@ -1,10 +1,11 @@
+import type { FetchStateObject } from '../hooks/useFetch';
 import {
-  TimeframeTimeType,
   TimeframeTitle,
-  TimeframeStepType,
-  RefreshIntervalValueType,
   RefreshIntervalTitle,
-} from '#~/concepts/metrics/types';
+  type TimeframeTimeType,
+  type TimeframeStepType,
+  type RefreshIntervalValueType,
+} from '../types/metrics';
 
 /**
  * The desired range (x-axis) of the charts.
@@ -54,3 +55,9 @@ export const RefreshIntervalValue: RefreshIntervalValueType = {
  * queries (e.g. http requests) that the time series will contain values for number of requests per 5m.
  */
 export const PROMETHEUS_REQUEST_RESOLUTION = '300s';
+
+export const DEFAULT_LIST_FETCH_STATE: FetchStateObject<never[]> = {
+  data: [],
+  loaded: false,
+  refresh: () => Promise.resolve(undefined),
+};

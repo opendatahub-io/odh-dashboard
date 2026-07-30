@@ -2,7 +2,7 @@ import * as React from 'react';
 import { asEnumMember, enumIterator } from '@odh-dashboard/foundation';
 import SimpleSelect, { SimpleSelectOption } from '@odh-dashboard/ui-core/components/SimpleSelect';
 import { MetricsCommonContext } from '#~/concepts/metrics/MetricsCommonContext';
-import { TimeframeTitle } from '#~/concepts/metrics/types';
+import { TimeframeTitle } from '@odh-dashboard/ui-core/types/metrics';
 import { isTimeframeTitle } from '#~/concepts/metrics/utils';
 
 export const MetricsTimeRangeSelect: React.FC = () => {

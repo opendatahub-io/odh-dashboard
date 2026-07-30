@@ -5,7 +5,7 @@ import {
   NimMetricGraphDefinition,
 } from '#~/concepts/metrics/kserve/types';
 import { defaultResponsePredicate } from '#~/api/prometheus/usePrometheusQueryRange';
-import { TimeframeTitle } from '#~/concepts/metrics/types';
+import { TimeframeTitle } from '@odh-dashboard/ui-core/types/metrics';
 import useQueryRangeResourceData from '#~/api/prometheus/useQueryRangeResourceData';
 import { PendingContextResourceData, PrometheusQueryRangeResultValue } from '#~/types';
 import { DEFAULT_PENDING_CONTEXT_RESOURCE } from '#~/api/prometheus/const';

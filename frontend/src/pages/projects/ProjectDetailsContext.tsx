@@ -12,8 +12,8 @@ import type { InferenceServiceKind, ServingRuntimeKind } from '@odh-dashboard/mo
 import { FetchStateObject } from '@odh-dashboard/ui-core/hooks/useFetch';
 import { GroupKind, LocalQueueKind, RoleBindingKind } from '#~/k8sTypes';
 import type { KueueWorkloadStatusWithMessage } from '#~/concepts/kueue/types';
+import { DEFAULT_LIST_FETCH_STATE } from '@odh-dashboard/ui-core/utilities/metrics';
 import {
-  DEFAULT_LIST_FETCH_STATE,
   DEFAULT_LIST_WATCH_RESULT,
   DEFAULT_LIST_WITH_NON_DASHBOARD_PRESENCE_FETCH_STATE,
   POLL_INTERVAL,
