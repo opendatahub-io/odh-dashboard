@@ -50,7 +50,6 @@ jobs:
       - name: Integration tests (envtest)
         working-directory: dashboard-operator
         run: make test-integration
-        continue-on-error: true
 
       - name: Validate Helm chart
         working-directory: dashboard-operator

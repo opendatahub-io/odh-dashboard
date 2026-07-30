@@ -51,9 +51,9 @@ If you need to manage envtest binaries manually:
 
 ## CI
 
-The integration tests run in the `dashboard-operator-tests.yml` GitHub Actions workflow. The step is configured with `continue-on-error: true` so failures don't block other PRs while the tests are being stabilized. Once trusted, this flag should be removed.
+The integration tests run in the `dashboard-operator-tests.yml` GitHub Actions workflow. A failure in this step will block the merge.
 
-The workflow only triggers on changes to `dashboard-operator/**` or `manifests/**`.
+The workflow only triggers on changes to `dashboard-operator/**` or `manifests/**`, so it won't affect PRs that don't touch operator code.
 
 ## Writing New Integration Tests
 
