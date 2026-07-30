@@ -606,19 +606,10 @@ describe('Pipeline runs - Active runs', () => {
           // Verify no "Canceled" and "Paused" status filter
           pipelineRunsGlobal.findActiveRunsToolbar().within(() => {
             pipelineRunFilterBar.findStatusSelect().click();
-            pipelineRunFilterBar
-              .findStatusSelect()
-              .find(`[data-testid="${runtimeStateLabels[RuntimeStateKF.SKIPPED]}"]`)
-              .should('exist');
-            pipelineRunFilterBar
-              .findStatusSelect()
-              .find(`[data-testid="${runtimeStateLabels[RuntimeStateKF.PAUSED]}"]`)
-              .should('not.exist');
-            pipelineRunFilterBar
-              .findStatusSelect()
-              .find(`[data-testid="${runtimeStateLabels[RuntimeStateKF.CANCELED]}"]`)
-              .should('not.exist');
           });
+          cy.findByTestId(runtimeStateLabels[RuntimeStateKF.SKIPPED]).should('exist');
+          cy.findByTestId(runtimeStateLabels[RuntimeStateKF.PAUSED]).should('not.exist');
+          cy.findByTestId(runtimeStateLabels[RuntimeStateKF.CANCELED]).should('not.exist');
         });
 
         it('Sort by Name', () => {

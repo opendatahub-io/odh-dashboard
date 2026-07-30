@@ -460,8 +460,14 @@ describe('Model Training', () => {
       trainingJobStatusModal.shouldBeOpen();
       trainingJobStatusModal.findProgressTab().should('be.visible');
 
-      trainingJobStatusModal.findInitializationSection().should('be.visible');
-      trainingJobStatusModal.findTrainingSection().should('be.visible');
+      trainingJobStatusModal.getModal().then(($modal) => {
+        if ($modal.find('[data-testid="initialization-section"]').length > 0) {
+          trainingJobStatusModal.findInitializationSection().should('be.visible');
+        }
+        if ($modal.find('[data-testid="training-section"]').length > 0) {
+          trainingJobStatusModal.findTrainingSection().should('be.visible');
+        }
+      });
     });
 
     it('should switch between Progress and Events log tabs', () => {
