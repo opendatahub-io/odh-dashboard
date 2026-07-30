@@ -350,6 +350,7 @@ describe('View Auth Policy Page', () => {
   });
 
   it('should display auth policies content within the auth policies tab, and navigate to the yaml tab', () => {
+    cy.interceptOdh('GET /maas/api/v1/all-policies', { data: mockAuthPolicies() });
     cy.interceptOdh('GET /maas/api/v1/yaml', {
       content:
         'apiVersion: maas.opendatahub.io/v1alpha1\nkind: MaaSAuthPolicy\nmetadata:\n  name: premium-team-policy\n',

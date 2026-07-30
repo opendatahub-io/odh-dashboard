@@ -303,6 +303,7 @@ describe('View Subscription Page', () => {
   });
 
   it('should display subscriptions content within the subscriptions tab, and navigate to the yaml tab', () => {
+    cy.interceptOdh('GET /maas/api/v1/all-subscriptions', { data: mockSubscriptions() });
     cy.interceptOdh('GET /maas/api/v1/yaml', {
       content:
         'apiVersion: maas.opendatahub.io/v1alpha1\nkind: MaaSSubscription\nmetadata:\n  name: premium-team-sub\n',
