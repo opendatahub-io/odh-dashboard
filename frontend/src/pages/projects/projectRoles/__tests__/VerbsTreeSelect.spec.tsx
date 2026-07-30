@@ -36,12 +36,6 @@ describe('VerbsTreeSelect', () => {
     expect(screen.getByText('Delete collection:')).toBeInTheDocument();
   });
 
-  // it('should render helper text about wildcard verbs', () => {
-  //   render(<VerbsTreeSelect selectedVerbs={[]} onSelectedVerbsChange={mockOnChange} />);
-  //
-  //   expect(screen.getByText(/Selecting "All operations" grants the wildcard/)).toBeInTheDocument();
-  // });
-
   describe('individual verb selection', () => {
     it('should call onSelectedVerbsChange with the verb when an unchecked verb is clicked', async () => {
       const user = userEvent.setup();

@@ -47,7 +47,7 @@ export const permissionRulesColumns: SortableData<RuleEntry>[] = [
     label: 'Resource names',
     info: {
       popover:
-        'If no names are listed, the rule applies to all resources of that type. Defining resource names in the dashboard is not currently supported so they appear as read-only.',
+        'The specific resources that this rule applies to. If no names are listed, the rule applies to all resources of that type.',
       ariaLabel: 'Resource name help',
     },
     sortable: compareField('resourceNames'),

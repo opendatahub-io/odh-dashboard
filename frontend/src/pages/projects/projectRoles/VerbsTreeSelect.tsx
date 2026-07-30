@@ -50,7 +50,6 @@ const VerbsTreeSelect: React.FC<VerbsTreeSelectProps> = ({
   );
 
   const treeData = React.useMemo((): TreeViewDataItem[] => {
-    // Categories with more than one verb are not shown as a grouping node as a workaround to Patternfly's tree component
     const categoryNodes: TreeViewDataItem[] = VERB_CATEGORIES.flatMap((category) => {
       const categoryVerbs = category.verbs.map((v) => v.verb);
       const allCategorySelected =
@@ -77,7 +76,8 @@ const VerbsTreeSelect: React.FC<VerbsTreeSelectProps> = ({
           id: category.id,
           name: (
             <>
-              <strong>{category.label}:</strong> {category.description}
+              {category.verbs.length !== 1 && <strong>{category.label}:</strong>}{' '}
+              {category.description}
             </>
           ),
           hasCheckbox: true,
@@ -86,6 +86,7 @@ const VerbsTreeSelect: React.FC<VerbsTreeSelectProps> = ({
             checked: allCategorySelected || (someCategorySelected ? null : false),
             'data-testid': `verb-category-${category.id}`,
           },
+          // categories with less than one node should not show verbs
           children: category.verbs.length === 1 ? undefined : verbNodes,
         },
       ];

@@ -28,7 +28,8 @@ const RolesTableRow: React.FC<RolesTableRowProps> = ({
 
   const clusterRoleEditTooltip =
     'Cluster roles can be edited only in OpenShift. For help, contact your cluster administrator. ';
-  const clusterRoleDuplicateTooltip = 'Cluster roles cannot be duplicated from a project page';
+  const clusterRoleDuplicateTooltip =
+    'Cluster roles can be managed only in OpenShift. For help, contact your cluster administrator.';
 
   const actionItems = [
     {

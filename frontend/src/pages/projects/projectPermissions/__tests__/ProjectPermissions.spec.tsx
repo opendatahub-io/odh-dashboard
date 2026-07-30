@@ -8,7 +8,6 @@ import ProjectPermissions from '#~/pages/projects/projectPermissions/ProjectPerm
 const renderWithProject = (projectName: string) =>
   render(
     <ProjectDetailsContext.Provider
-      // Only currentProject.metadata.name is read by the component under test.
       value={{ currentProject: { metadata: { name: projectName } } } as never}
     >
       <MemoryRouter>

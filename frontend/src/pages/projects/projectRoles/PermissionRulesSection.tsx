@@ -186,7 +186,7 @@ const PermissionRulesSection: React.FC<PermissionRulesSectionProps> = ({
                   data-testid="role-import-template"
                   onClick={onImportTemplate}
                 >
-                  Import rules from template
+                  Add rules from template
                 </Button>
               </ToolbarItem>
             </>
@@ -223,7 +223,7 @@ const PermissionRulesSection: React.FC<PermissionRulesSectionProps> = ({
                 data-testid="role-import-template"
                 onClick={onImportTemplate}
               >
-                Import rules from template
+                Add rules from template
               </Button>
             </FlexItem>
           </Flex>

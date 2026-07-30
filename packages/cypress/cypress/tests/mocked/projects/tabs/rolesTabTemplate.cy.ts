@@ -164,7 +164,7 @@ describe('Select role template (header button)', () => {
   });
 });
 
-describe('Import rules from template (toolbar button)', () => {
+describe('Add rules from template (toolbar button)', () => {
   beforeEach(() => {
     asProjectAdminUser();
     initIntercepts();
