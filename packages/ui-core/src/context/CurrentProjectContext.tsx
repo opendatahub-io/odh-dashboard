@@ -13,5 +13,8 @@ export const CurrentProjectContext = React.createContext<CurrentProjectContextTy
 
 export const useCurrentProject = (): ProjectKind => {
   const { currentProject } = React.useContext(CurrentProjectContext);
+  if (!currentProject.metadata.name) {
+    throw new Error('useCurrentProject must be used within a CurrentProjectContext provider');
+  }
   return currentProject;
 };
