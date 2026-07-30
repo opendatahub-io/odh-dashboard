@@ -3,11 +3,7 @@ import { render, screen, within, waitFor, fireEvent } from '@testing-library/rea
 import userEvent from '@testing-library/user-event';
 import { ExistingSecretRef, ExistingSecretMetadata } from '#~/pages/projects/types';
 import EnvExistingSecretField from '#~/pages/projects/screens/spawner/environmentVariables/EnvExistingSecretField';
-import { useExistingSecrets } from '#~/pages/projects/screens/spawner/environmentVariables/useExistingSecrets';
-
-jest.mock('../useExistingSecrets');
-
-const mockUseExistingSecrets = jest.mocked(useExistingSecrets);
+import { UseExistingSecretsResult } from '#~/pages/projects/screens/spawner/environmentVariables/useExistingSecrets';
 
 const mockSecrets: ExistingSecretMetadata[] = [
   { name: 'db-credentials', keys: ['username', 'password', 'host'] },
@@ -15,125 +11,48 @@ const mockSecrets: ExistingSecretMetadata[] = [
   { name: 'tls-cert', keys: ['cert', 'key'] },
 ];
 
+const mockExistingSecretsData = (
+  overrides: Partial<UseExistingSecretsResult> = {},
+): UseExistingSecretsResult => ({
+  secrets: mockSecrets,
+  loaded: true,
+  canList: true,
+  ...overrides,
+});
+
 describe('EnvExistingSecretField', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  describe('loading state', () => {
-    it('should show loading spinner when secrets are not loaded', () => {
-      mockUseExistingSecrets.mockReturnValue({
-        secrets: [],
-        loaded: false,
-        canList: true,
-      });
-
+  describe('all-used state', () => {
+    it('should show message when all secrets are already attached elsewhere', () => {
       render(
-        <EnvExistingSecretField namespace="test-ns" existingSecretRefs={[]} onUpdate={jest.fn()} />,
+        <EnvExistingSecretField
+          existingSecretRefs={[]}
+          onUpdate={jest.fn()}
+          usedSecretNames={new Set(['db-credentials', 'api-key-secret', 'tls-cert'])}
+          existingSecretsData={mockExistingSecretsData()}
+        />,
       );
 
-      expect(screen.getByTestId('env-existing-secret-loading')).toBeInTheDocument();
-    });
-  });
-
-  describe('RBAC disabled state', () => {
-    it('should show RBAC message when user cannot list secrets', () => {
-      mockUseExistingSecrets.mockReturnValue({
-        secrets: [],
-        loaded: true,
-        canList: false,
-      });
-
-      render(
-        <EnvExistingSecretField namespace="test-ns" existingSecretRefs={[]} onUpdate={jest.fn()} />,
+      expect(screen.getByTestId('env-existing-secret-all-used')).toBeInTheDocument();
+      expect(screen.getByTestId('env-existing-secret-all-used')).toHaveTextContent(
+        'All secrets in this project are already attached in other variables.',
       );
-
-      expect(screen.getByTestId('env-existing-secret-rbac-message')).toBeInTheDocument();
-      expect(screen.getByTestId('env-existing-secret-rbac-message')).toHaveTextContent(
-        'You do not have permission to list secrets in this project.',
-      );
-    });
-
-    it('should show RBAC popover trigger', () => {
-      mockUseExistingSecrets.mockReturnValue({
-        secrets: [],
-        loaded: true,
-        canList: false,
-      });
-
-      render(
-        <EnvExistingSecretField namespace="test-ns" existingSecretRefs={[]} onUpdate={jest.fn()} />,
-      );
-
-      expect(screen.getByTestId('env-existing-secret-rbac-popover')).toBeInTheDocument();
-    });
-  });
-
-  describe('error state', () => {
-    it('should show error message when loading fails', () => {
-      mockUseExistingSecrets.mockReturnValue({
-        secrets: [],
-        loaded: true,
-        canList: true,
-        error: new Error('Network error'),
-      });
-
-      render(
-        <EnvExistingSecretField namespace="test-ns" existingSecretRefs={[]} onUpdate={jest.fn()} />,
-      );
-
-      expect(screen.getByTestId('env-existing-secret-error')).toBeInTheDocument();
-      expect(screen.getByTestId('env-existing-secret-error')).toHaveTextContent(
-        'Unable to load secrets: Network error',
-      );
-    });
-  });
-
-  describe('empty state', () => {
-    it('should show empty message when no secrets exist', () => {
-      mockUseExistingSecrets.mockReturnValue({
-        secrets: [],
-        loaded: true,
-        canList: true,
-      });
-
-      render(
-        <EnvExistingSecretField namespace="test-ns" existingSecretRefs={[]} onUpdate={jest.fn()} />,
-      );
-
-      expect(screen.getByTestId('env-existing-secret-empty-message')).toBeInTheDocument();
-      expect(screen.getByTestId('env-existing-secret-empty-message')).toHaveTextContent(
-        'No third-party secrets available in this project.',
-      );
-    });
-
-    it('should show empty state popover trigger', () => {
-      mockUseExistingSecrets.mockReturnValue({
-        secrets: [],
-        loaded: true,
-        canList: true,
-      });
-
-      render(
-        <EnvExistingSecretField namespace="test-ns" existingSecretRefs={[]} onUpdate={jest.fn()} />,
-      );
-
-      expect(screen.getByTestId('env-existing-secret-empty-popover')).toBeInTheDocument();
     });
   });
 
   describe('with available secrets', () => {
-    beforeEach(() => {
-      mockUseExistingSecrets.mockReturnValue({
-        secrets: mockSecrets,
-        loaded: true,
-        canList: true,
-      });
-    });
+    const loadedSecretsData = mockExistingSecretsData();
 
     it('should render the dropdown toggle', () => {
       render(
-        <EnvExistingSecretField namespace="test-ns" existingSecretRefs={[]} onUpdate={jest.fn()} />,
+        <EnvExistingSecretField
+          existingSecretRefs={[]}
+          onUpdate={jest.fn()}
+          existingSecretsData={loadedSecretsData}
+        />,
       );
 
       expect(screen.getByTestId('env-existing-secret-toggle')).toBeInTheDocument();
@@ -141,7 +60,11 @@ describe('EnvExistingSecretField', () => {
 
     it('should show search input with placeholder', () => {
       render(
-        <EnvExistingSecretField namespace="test-ns" existingSecretRefs={[]} onUpdate={jest.fn()} />,
+        <EnvExistingSecretField
+          existingSecretRefs={[]}
+          onUpdate={jest.fn()}
+          existingSecretsData={loadedSecretsData}
+        />,
       );
 
       expect(screen.getByTestId('env-existing-secret-search')).toBeInTheDocument();
@@ -151,7 +74,11 @@ describe('EnvExistingSecretField', () => {
     it('should show secret options when dropdown is opened', async () => {
       const user = userEvent.setup();
       render(
-        <EnvExistingSecretField namespace="test-ns" existingSecretRefs={[]} onUpdate={jest.fn()} />,
+        <EnvExistingSecretField
+          existingSecretRefs={[]}
+          onUpdate={jest.fn()}
+          existingSecretsData={loadedSecretsData}
+        />,
       );
 
       await user.click(screen.getByTestId('env-existing-secret-search'));
@@ -166,7 +93,11 @@ describe('EnvExistingSecretField', () => {
     it('should display key count and preview in option descriptions', async () => {
       const user = userEvent.setup();
       render(
-        <EnvExistingSecretField namespace="test-ns" existingSecretRefs={[]} onUpdate={jest.fn()} />,
+        <EnvExistingSecretField
+          existingSecretRefs={[]}
+          onUpdate={jest.fn()}
+          existingSecretsData={loadedSecretsData}
+        />,
       );
 
       await user.click(screen.getByTestId('env-existing-secret-search'));
@@ -183,17 +114,19 @@ describe('EnvExistingSecretField', () => {
       const onUpdate = jest.fn();
 
       render(
-        <EnvExistingSecretField namespace="test-ns" existingSecretRefs={[]} onUpdate={onUpdate} />,
+        <EnvExistingSecretField
+          existingSecretRefs={[]}
+          onUpdate={onUpdate}
+          existingSecretsData={loadedSecretsData}
+        />,
       );
 
-      // Open dropdown
       await user.click(screen.getByTestId('env-existing-secret-search'));
 
       await waitFor(() => {
         expect(screen.getByTestId('env-existing-secret-option-db-credentials')).toBeInTheDocument();
       });
 
-      // Click the option text to trigger PF Select's onSelect
       await user.click(screen.getByText('db-credentials'));
 
       expect(onUpdate).toHaveBeenCalledWith([
@@ -213,20 +146,18 @@ describe('EnvExistingSecretField', () => {
 
       render(
         <EnvExistingSecretField
-          namespace="test-ns"
           existingSecretRefs={existingRefs}
           onUpdate={onUpdate}
+          existingSecretsData={loadedSecretsData}
         />,
       );
 
-      // Open dropdown
       await user.click(screen.getByTestId('env-existing-secret-search'));
 
       await waitFor(() => {
         expect(screen.getByTestId('env-existing-secret-option-db-credentials')).toBeInTheDocument();
       });
 
-      // Click the option in the dropdown to deselect
       const option = screen.getByTestId('env-existing-secret-option-db-credentials');
       await user.click(within(option).getByText('db-credentials'));
 
@@ -241,9 +172,9 @@ describe('EnvExistingSecretField', () => {
 
       render(
         <EnvExistingSecretField
-          namespace="test-ns"
           existingSecretRefs={existingRefs}
           onUpdate={jest.fn()}
+          existingSecretsData={loadedSecretsData}
         />,
       );
 
@@ -252,7 +183,11 @@ describe('EnvExistingSecretField', () => {
 
     it('should not show badge when no secrets are selected', () => {
       render(
-        <EnvExistingSecretField namespace="test-ns" existingSecretRefs={[]} onUpdate={jest.fn()} />,
+        <EnvExistingSecretField
+          existingSecretRefs={[]}
+          onUpdate={jest.fn()}
+          existingSecretsData={loadedSecretsData}
+        />,
       );
 
       expect(screen.queryByTestId('env-existing-secret-badge')).not.toBeInTheDocument();
@@ -260,10 +195,13 @@ describe('EnvExistingSecretField', () => {
 
     it('should filter secrets by search text', async () => {
       render(
-        <EnvExistingSecretField namespace="test-ns" existingSecretRefs={[]} onUpdate={jest.fn()} />,
+        <EnvExistingSecretField
+          existingSecretRefs={[]}
+          onUpdate={jest.fn()}
+          existingSecretsData={loadedSecretsData}
+        />,
       );
 
-      // Target the actual input element inside the TextInputGroupMain
       const inputEl = screen.getByRole('combobox');
       fireEvent.change(inputEl, { target: { value: 'db' } });
 
@@ -278,7 +216,11 @@ describe('EnvExistingSecretField', () => {
 
     it('should show no results when search matches nothing', async () => {
       render(
-        <EnvExistingSecretField namespace="test-ns" existingSecretRefs={[]} onUpdate={jest.fn()} />,
+        <EnvExistingSecretField
+          existingSecretRefs={[]}
+          onUpdate={jest.fn()}
+          existingSecretsData={loadedSecretsData}
+        />,
       );
 
       const inputEl = screen.getByRole('combobox');
@@ -293,7 +235,11 @@ describe('EnvExistingSecretField', () => {
       const user = userEvent.setup();
 
       render(
-        <EnvExistingSecretField namespace="test-ns" existingSecretRefs={[]} onUpdate={jest.fn()} />,
+        <EnvExistingSecretField
+          existingSecretRefs={[]}
+          onUpdate={jest.fn()}
+          existingSecretsData={loadedSecretsData}
+        />,
       );
 
       await user.click(screen.getByTestId('env-existing-secret-search'));
@@ -302,42 +248,13 @@ describe('EnvExistingSecretField', () => {
         expect(screen.getByTestId('env-existing-secret-option-db-credentials')).toBeInTheDocument();
       });
 
-      // The component renders only secret names and key names, never actual values
       const listEl = screen.getByTestId('env-existing-secret-list');
       expect(within(listEl).getByText('db-credentials')).toBeInTheDocument();
       expect(within(listEl).getByText(/username/)).toBeInTheDocument();
     });
   });
 
-  describe('namespace propagation', () => {
-    it('should call useExistingSecrets with the provided namespace', () => {
-      mockUseExistingSecrets.mockReturnValue({
-        secrets: [],
-        loaded: true,
-        canList: true,
-      });
-
-      render(
-        <EnvExistingSecretField
-          namespace="my-project"
-          existingSecretRefs={[]}
-          onUpdate={jest.fn()}
-        />,
-      );
-
-      expect(mockUseExistingSecrets).toHaveBeenCalledWith('my-project');
-    });
-  });
-
   describe('collision warning', () => {
-    beforeEach(() => {
-      mockUseExistingSecrets.mockReturnValue({
-        secrets: mockSecrets,
-        loaded: true,
-        canList: true,
-      });
-    });
-
     it('should not show collision warning when no collisions exist', () => {
       const existingRefs: ExistingSecretRef[] = [
         { secretName: 'db-credentials', selectedKeys: ['username'] },
@@ -346,9 +263,9 @@ describe('EnvExistingSecretField', () => {
 
       render(
         <EnvExistingSecretField
-          namespace="test-ns"
           existingSecretRefs={existingRefs}
           onUpdate={jest.fn()}
+          existingSecretsData={mockExistingSecretsData()}
         />,
       );
 
@@ -360,11 +277,6 @@ describe('EnvExistingSecretField', () => {
         { name: 'secret-a', keys: ['SHARED_KEY', 'key-a'] },
         { name: 'secret-b', keys: ['SHARED_KEY', 'key-b'] },
       ];
-      mockUseExistingSecrets.mockReturnValue({
-        secrets: collidingSecrets,
-        loaded: true,
-        canList: true,
-      });
       const existingRefs: ExistingSecretRef[] = [
         { secretName: 'secret-a', selectedKeys: ['SHARED_KEY', 'key-a'] },
         { secretName: 'secret-b', selectedKeys: ['SHARED_KEY', 'key-b'] },
@@ -372,9 +284,9 @@ describe('EnvExistingSecretField', () => {
 
       render(
         <EnvExistingSecretField
-          namespace="test-ns"
           existingSecretRefs={existingRefs}
           onUpdate={jest.fn()}
+          existingSecretsData={mockExistingSecretsData({ secrets: collidingSecrets })}
         />,
       );
 
@@ -391,11 +303,6 @@ describe('EnvExistingSecretField', () => {
         { name: 'secret-a', keys: ['KEY_1', 'KEY_2', 'unique-a'] },
         { name: 'secret-b', keys: ['KEY_1', 'KEY_2', 'unique-b'] },
       ];
-      mockUseExistingSecrets.mockReturnValue({
-        secrets: collidingSecrets,
-        loaded: true,
-        canList: true,
-      });
       const existingRefs: ExistingSecretRef[] = [
         { secretName: 'secret-a', selectedKeys: ['KEY_1', 'KEY_2', 'unique-a'] },
         { secretName: 'secret-b', selectedKeys: ['KEY_1', 'KEY_2', 'unique-b'] },
@@ -403,9 +310,9 @@ describe('EnvExistingSecretField', () => {
 
       render(
         <EnvExistingSecretField
-          namespace="test-ns"
           existingSecretRefs={existingRefs}
           onUpdate={jest.fn()}
+          existingSecretsData={mockExistingSecretsData({ secrets: collidingSecrets })}
         />,
       );
 
@@ -423,9 +330,9 @@ describe('EnvExistingSecretField', () => {
 
       render(
         <EnvExistingSecretField
-          namespace="test-ns"
           existingSecretRefs={existingRefs}
           onUpdate={jest.fn()}
+          existingSecretsData={mockExistingSecretsData()}
         />,
       );
 

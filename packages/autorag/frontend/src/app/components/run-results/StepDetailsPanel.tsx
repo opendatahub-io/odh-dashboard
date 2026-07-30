@@ -12,9 +12,11 @@ import {
   DrawerPanelBody,
   Label,
   Spinner,
+  type SpinnerProps,
   Stack,
   StackItem,
   Title,
+  type TitleProps,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import React from 'react';
@@ -35,6 +37,7 @@ import {
   getPipelineStatusFilterLabel,
   getPipelineStatusLabelProps,
   getPipelineTreeLoadingContent,
+  getStepDetailsLoadingContent,
   getStepStateLabel,
   type PipelineStatusLabel,
   type PipelineTreeLoadingMode,
@@ -120,16 +123,20 @@ const StepDetailsPanelHeader: React.FC<StepDetailsPanelHeaderProps> = ({
 type StepDetailsLoadingBodyProps = {
   primaryText: string;
   secondaryText: string;
+  spinnerSize?: SpinnerProps['size'];
+  titleSize?: TitleProps['size'];
 };
 
 const StepDetailsLoadingBody: React.FC<StepDetailsLoadingBodyProps> = ({
   primaryText,
   secondaryText,
+  spinnerSize = 'xl',
+  titleSize = 'xl',
 }) => (
   <div className="autorag-step-details__empty-state">
     <div className="autorag-step-details__empty-state-content">
-      <Spinner size="xl" className="autorag-step-details__empty-state-spinner" />
-      <Title headingLevel="h3" size="xl" className="autorag-step-details__empty-state-title">
+      <Spinner size={spinnerSize} className="autorag-step-details__empty-state-spinner" />
+      <Title headingLevel="h3" size={titleSize} className="autorag-step-details__empty-state-title">
         {primaryText}
       </Title>
       <Content component={ContentVariants.p} className="autorag-step-details__empty-state-subtitle">
@@ -235,7 +242,7 @@ const StepDetailsPanel: React.FC<StepDetailsPanelProps> = ({
     nodeData.stepState === 'completed';
   const panelTitle = isBestPattern ? 'Best pattern' : (nodeData.label ?? 'Step details');
   const statusLabel = getStepStateLabel(nodeData.stepState);
-  const inProgressLoadingContent = getPipelineDetailsEmptyContent('in-progress');
+  const inProgressLoadingContent = getStepDetailsLoadingContent();
   const isStepLoading = nodeData.stepState === 'active';
 
   return (
@@ -268,6 +275,8 @@ const StepDetailsPanel: React.FC<StepDetailsPanelProps> = ({
               <StepDetailsLoadingBody
                 primaryText={inProgressLoadingContent.primaryText ?? inProgressLoadingContent.title}
                 secondaryText={inProgressLoadingContent.secondaryText ?? ''}
+                spinnerSize="lg"
+                titleSize="lg"
               />
             </StackItem>
           ) : (
