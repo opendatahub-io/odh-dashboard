@@ -76,7 +76,7 @@ const IntegrationInstructionsPopover: React.FC<IntegrationInstructionsPopoverPro
           isInline
           style={{ textDecoration: 'none' }}
         >
-          Learn how to connect to workbenches
+          Learn how to connect workbenches
         </Button>
       )}
     </Popover>
