@@ -173,7 +173,7 @@ describe('getComponentRunStatus', () => {
     expect(getComponentRunStatus(component, undefined)).toBe(RunStatus.Succeeded);
   });
 
-  it('should include driver task variants and prefer the worst matching status', () => {
+  it('should include driver task variants and prefer the executor status', () => {
     const component = makeComponent();
     const runDetails = {
       task_details: [
@@ -198,7 +198,7 @@ describe('getComponentRunStatus', () => {
       ],
     } as RunDetailsKF;
 
-    expect(getComponentRunStatus(component, runDetails)).toBe(RunStatus.Failed);
+    expect(getComponentRunStatus(component, runDetails)).toBe(RunStatus.Succeeded);
   });
 });
 
