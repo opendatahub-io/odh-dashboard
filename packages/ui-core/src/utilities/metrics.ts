@@ -1,4 +1,3 @@
-import type { FetchStateObject } from '../hooks/useFetch';
 import {
   TimeframeTitle,
   RefreshIntervalTitle,
@@ -55,9 +54,3 @@ export const RefreshIntervalValue: RefreshIntervalValueType = {
  * queries (e.g. http requests) that the time series will contain values for number of requests per 5m.
  */
 export const PROMETHEUS_REQUEST_RESOLUTION = '300s';
-
-export const DEFAULT_LIST_FETCH_STATE: FetchStateObject<never[]> = {
-  data: [],
-  loaded: false,
-  refresh: () => Promise.resolve(undefined),
-};

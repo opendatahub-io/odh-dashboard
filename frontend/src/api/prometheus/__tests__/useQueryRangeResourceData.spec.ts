@@ -1,7 +1,7 @@
 import { testHook } from '@odh-dashboard/jest-config/hooks';
 import { TimeframeTitle } from '@odh-dashboard/ui-core/types/metrics';
-import useQueryRangeResourceData from '#~/api/prometheus/useQueryRangeResourceData';
 import { TimeframeStep, TimeframeTimeRange } from '@odh-dashboard/ui-core/utilities/metrics';
+import useQueryRangeResourceData from '#~/api/prometheus/useQueryRangeResourceData';
 import * as usePrometheusQueryRangeModule from '#~/api/prometheus/usePrometheusQueryRange';
 import { mockPrometheusQueryResponse } from '#~/__mocks__/mockPrometheusQueryResponse';
 

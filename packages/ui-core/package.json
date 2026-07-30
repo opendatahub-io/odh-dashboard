@@ -22,6 +22,7 @@
     "./design/TypedObjectIcon": "./src/design/TypedObjectIcon.tsx",
     "./design/HeaderIcon": "./src/design/HeaderIcon.tsx",
     "./design/TitleWithIcon": "./src/design/TitleWithIcon.tsx",
+    "./utilities/fetchState": "./src/utilities/fetchState.ts",
     "./utilities/metrics": "./src/utilities/metrics.ts",
     "./utilities/time": "./src/utilities/time.ts",
     "./components/detail": "./src/components/detail/index.ts",
