@@ -13,7 +13,6 @@ export type {
   ServingRuntimeToken,
   CreatingModelServingObjectCommon,
   CreatingServingRuntimeObject,
-  ModelDeployPrefillInfo,
   ServingRuntimeAnnotations,
   ServingContainer,
   ServingRuntimeKind,

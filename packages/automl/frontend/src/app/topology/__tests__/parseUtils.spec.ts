@@ -95,14 +95,14 @@ describe('parseRuntimeInfoFromRunDetails', () => {
     expect(result?.state).toBe(RuntimeStateKF.FAILED);
   });
 
-  it('should pick worst status when main and driver tasks both exist', () => {
+  it('should prefer the executor status over the driver when both exist', () => {
     const details = makeRunDetails(
       { task_id: 'task-1', display_name: 'task-1', state: RuntimeStateKF.SUCCEEDED },
       { task_id: 'task-1-driver', display_name: 'task-1-driver', state: RuntimeStateKF.FAILED },
     );
     const result = parseRuntimeInfoFromRunDetails('task-1', details);
 
-    expect(result?.state).toBe(RuntimeStateKF.FAILED);
+    expect(result?.state).toBe(RuntimeStateKF.SUCCEEDED);
   });
 
   it('should keep succeeded when paired with canceled driver status', () => {
@@ -115,14 +115,14 @@ describe('parseRuntimeInfoFromRunDetails', () => {
     expect(result?.state).toBe(RuntimeStateKF.SUCCEEDED);
   });
 
-  it('should pick failed over canceled', () => {
+  it('should prefer the executor status over the driver even when the driver failed', () => {
     const details = makeRunDetails(
       { task_id: 'task-1', display_name: 'task-1', state: RuntimeStateKF.CANCELED },
       { task_id: 'task-1-driver', display_name: 'task-1-driver', state: RuntimeStateKF.FAILED },
     );
     const result = parseRuntimeInfoFromRunDetails('task-1', details);
 
-    expect(result?.state).toBe(RuntimeStateKF.FAILED);
+    expect(result?.state).toBe(RuntimeStateKF.CANCELED);
   });
 });
 

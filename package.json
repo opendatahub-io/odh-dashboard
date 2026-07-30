@@ -30,7 +30,7 @@
   ],
   "scripts": {
     "build": "run-p -l build:*",
-    "build:backend": "npm run build --prefix packages/app-config && npm run build --prefix backend",
+    "build:backend": "npm run build --prefix backend",
     "build:frontend": "npm run build --prefix frontend",
     "dev": "run-p -l dev:*",
     "dev:backend": "cd ./backend && npm run start:dev",

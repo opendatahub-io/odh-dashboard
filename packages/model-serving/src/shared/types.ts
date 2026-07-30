@@ -61,19 +61,6 @@ export type CreatingServingRuntimeObject = CreatingModelServingObjectCommon & {
   scope?: string;
 };
 
-export type ModelDeployPrefillInfo = {
-  modelName: string;
-  modelFormat?: string;
-  modelArtifactUri?: string;
-  connectionTypeName?: string;
-  initialConnectionName?: string;
-  modelRegistryInfo?: {
-    modelVersionId?: string;
-    registeredModelId?: string;
-    mrName?: string;
-  };
-};
-
 export type ServingRuntimeAnnotations = Partial<{
   'opendatahub.io/template-name': string;
   'opendatahub.io/template-display-name': string;

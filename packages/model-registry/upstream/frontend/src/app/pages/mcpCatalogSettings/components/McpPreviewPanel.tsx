@@ -79,8 +79,8 @@ const McpPreviewPanel: React.FC<McpPreviewPanelProps> = ({ preview }) => {
     return (
       <EmptyState titleText={MCP_PAGE_TITLES.PREVIEW_SERVERS} variant={EmptyStateVariant.sm}>
         <EmptyStateBody>
-          To view the MCP servers from this source that will appear in the MCP catalog with your
-          current configuration, complete all required fields, then click <strong>Preview</strong>.
+          Complete all required fields, then click <strong>Preview</strong> to see which servers
+          will appear in the catalog.
         </EmptyStateBody>
         <EmptyStateFooter>
           <EmptyStateActions>

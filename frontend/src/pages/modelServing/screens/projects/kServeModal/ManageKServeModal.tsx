@@ -23,10 +23,8 @@ import {
   isK8sNameDescriptionDataValid,
   LimitNameResourceType,
 } from '@odh-dashboard/k8s-core';
-import type {
-  InferenceServiceKind,
-  ModelDeployPrefillInfo,
-} from '@odh-dashboard/model-serving/shared';
+import type { InferenceServiceKind } from '@odh-dashboard/model-serving/shared';
+import type { ModelDeployPrefillInfo } from '@odh-dashboard/model-registry/shared';
 import { getServingRuntimeFromName } from '@odh-dashboard/model-serving/shared';
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,

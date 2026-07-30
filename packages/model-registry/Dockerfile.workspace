@@ -39,6 +39,8 @@ COPY --chown=default:root packages/connection-types/ ./packages/connection-types
 COPY --chown=default:root frontend/src/ ./frontend/src/
 
 # Copy the specific module source code
+COPY --chown=default:root packages/${MODULE_NAME}/package.json ./packages/${MODULE_NAME}/
+COPY --chown=default:root packages/${MODULE_NAME}/shared/ ./packages/${MODULE_NAME}/shared/
 COPY --chown=default:root ${UI_SOURCE_CODE} ./${UI_SOURCE_CODE}
 
 # Change file ownership to the assemble user

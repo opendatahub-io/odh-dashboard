@@ -5,11 +5,13 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
 	"net/url"
+	"sync"
 	"time"
 
 	"github.com/opendatahub-io/maas-library/bff/internal/constants"
@@ -17,11 +19,17 @@ import (
 	"github.com/opendatahub-io/maas-library/bff/internal/models"
 )
 
+// ErrMaasApiNotConfigured is returned when the client has no base URL yet
+// (for example while waiting for maas-api discovery).
+var ErrMaasApiNotConfigured = errors.New("maas-api is not available")
+
 type MaasClient struct {
 	httpClient      *http.Client
-	prefix          *url.URL
 	logger          *slog.Logger
 	maxResponseSize int64
+
+	mu     sync.RWMutex
+	prefix *url.URL // nil until SetBaseURL / NewMaasClient with a non-empty URL
 }
 
 type MaasApiError struct {
@@ -37,8 +45,10 @@ func (e *MaasUpstreamError) Error() string {
 	return e.Message
 }
 
-func NewMaasClient(logger *slog.Logger, prefix *url.URL) *MaasClient {
-	return &MaasClient{
+// NewMaasClient creates a MaaS API client. An empty baseURL is allowed so the BFF
+// can start before maas-api is discoverable; call SetBaseURL once the URL is known.
+func NewMaasClient(logger *slog.Logger, baseURL string) (*MaasClient, error) {
+	client := &MaasClient{
 		httpClient: &http.Client{
 			Timeout: 10 * time.Second,
 			Transport: &http.Transport{
@@ -47,10 +57,51 @@ func NewMaasClient(logger *slog.Logger, prefix *url.URL) *MaasClient {
 				},
 			},
 		},
-		prefix:          prefix.JoinPath("v1"),
 		logger:          logger,
 		maxResponseSize: 2 << 20, // 2MB
 	}
+	if baseURL == "" {
+		return client, nil
+	}
+	if err := client.SetBaseURL(baseURL); err != nil {
+		return nil, err
+	}
+	return client, nil
+}
+
+// SetBaseURL configures (or reconfigures) the maas-api base URL used for requests.
+func (c *MaasClient) SetBaseURL(baseURL string) error {
+	if baseURL == "" {
+		return fmt.Errorf("maas-api base URL must not be empty")
+	}
+	parsed, err := url.Parse(baseURL)
+	if err != nil {
+		return err
+	}
+	if parsed.Scheme == "" || parsed.Host == "" {
+		return fmt.Errorf("maas-api base URL %q is missing scheme or host", baseURL)
+	}
+
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.prefix = parsed.JoinPath("v1")
+	return nil
+}
+
+// Ready reports whether a base URL has been configured.
+func (c *MaasClient) Ready() bool {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.prefix != nil
+}
+
+func (c *MaasClient) endpoint(parts ...string) (*url.URL, error) {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	if c.prefix == nil {
+		return nil, ErrMaasApiNotConfigured
+	}
+	return c.prefix.JoinPath(parts...), nil
 }
 
 func (c *MaasClient) CreateAPIKey(ctx context.Context, request models.APIKeyCreateRequest) (*models.APIKeyCreateResponse, error) {
@@ -59,7 +110,10 @@ func (c *MaasClient) CreateAPIKey(ctx context.Context, request models.APIKeyCrea
 		return nil, err
 	}
 
-	endpoint := c.prefix.JoinPath("api-keys")
+	endpoint, err := c.endpoint("api-keys")
+	if err != nil {
+		return nil, err
+	}
 	var apiResponse models.APIKeyCreateResponse
 	err = c.sendRequest(ctx, "POST", endpoint, jsonRequest, &apiResponse, nil)
 	if err != nil {
@@ -75,7 +129,10 @@ func (c *MaasClient) SearchAPIKeys(ctx context.Context, request models.APIKeySea
 		return nil, err
 	}
 
-	endpoint := c.prefix.JoinPath("api-keys", "search")
+	endpoint, err := c.endpoint("api-keys", "search")
+	if err != nil {
+		return nil, err
+	}
 	var apiResponse models.APIKeyListResponse
 	err = c.sendRequest(ctx, "POST", endpoint, jsonRequest, &apiResponse, nil)
 	if err != nil {
@@ -90,10 +147,13 @@ func (c *MaasClient) SearchAPIKeys(ctx context.Context, request models.APIKeySea
 }
 
 func (c *MaasClient) GetAPIKey(ctx context.Context, id string) (*models.APIKey, error) {
-	endpoint := c.prefix.JoinPath("api-keys", id)
+	endpoint, err := c.endpoint("api-keys", id)
+	if err != nil {
+		return nil, err
+	}
 
 	var apiResponse models.APIKey
-	err := c.sendRequest(ctx, "GET", endpoint, nil, &apiResponse, nil)
+	err = c.sendRequest(ctx, "GET", endpoint, nil, &apiResponse, nil)
 
 	if err != nil {
 		return nil, err
@@ -103,10 +163,13 @@ func (c *MaasClient) GetAPIKey(ctx context.Context, id string) (*models.APIKey, 
 }
 
 func (c *MaasClient) RevokeAPIKey(ctx context.Context, id string) (*models.APIKey, error) {
-	endpoint := c.prefix.JoinPath("api-keys", id)
+	endpoint, err := c.endpoint("api-keys", id)
+	if err != nil {
+		return nil, err
+	}
 
 	var apiResponse models.APIKey
-	err := c.sendRequest(ctx, "DELETE", endpoint, nil, &apiResponse, nil)
+	err = c.sendRequest(ctx, "DELETE", endpoint, nil, &apiResponse, nil)
 
 	if err != nil {
 		return nil, err
@@ -121,7 +184,10 @@ func (c *MaasClient) BulkRevokeAPIKeys(ctx context.Context, request models.APIKe
 		return nil, err
 	}
 
-	endpoint := c.prefix.JoinPath("api-keys", "bulk-revoke")
+	endpoint, err := c.endpoint("api-keys", "bulk-revoke")
+	if err != nil {
+		return nil, err
+	}
 	var apiResponse models.APIKeyBulkRevokeResponse
 	err = c.sendRequest(ctx, "POST", endpoint, jsonRequest, &apiResponse, nil)
 	if err != nil {
@@ -132,10 +198,13 @@ func (c *MaasClient) BulkRevokeAPIKeys(ctx context.Context, request models.APIKe
 }
 
 func (c *MaasClient) ListModels(ctx context.Context, headers http.Header) ([]models.MaaSModel, error) {
-	endpoint := c.prefix.JoinPath("models")
+	endpoint, err := c.endpoint("models")
+	if err != nil {
+		return nil, err
+	}
 
 	var apiResponse models.MaaSModelsResponse
-	err := c.sendRequest(ctx, "GET", endpoint, nil, &apiResponse, headers)
+	err = c.sendRequest(ctx, "GET", endpoint, nil, &apiResponse, headers)
 
 	if err != nil {
 		return nil, err
@@ -145,10 +214,13 @@ func (c *MaasClient) ListModels(ctx context.Context, headers http.Header) ([]mod
 }
 
 func (c *MaasClient) ListSubscriptionsForApiKeys(ctx context.Context) ([]models.SubscriptionListItem, error) {
-	endpoint := c.prefix.JoinPath("subscriptions")
+	endpoint, err := c.endpoint("subscriptions")
+	if err != nil {
+		return nil, err
+	}
 
 	var apiResponse []models.SubscriptionListItem
-	err := c.sendRequest(ctx, "GET", endpoint, nil, &apiResponse, nil)
+	err = c.sendRequest(ctx, "GET", endpoint, nil, &apiResponse, nil)
 
 	if err != nil {
 		return nil, err
