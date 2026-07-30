@@ -84,8 +84,20 @@ jobs:
       - name: Run linting and formatting checks
         run: NODE_OPTIONS="--max-old-space-size=8192" npm run lint
 
-  Cancel-On-Quality-Failure:
-    needs: [Lint, Type-Check]
+  Cancel-On-Lint-Failure:
+    needs: [Lint]
+    if: failure()
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - name: Cancel workflow run
+        run: gh run cancel ${{ github.run_id }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+  Cancel-On-TypeCheck-Failure:
+    needs: [Type-Check]
     if: failure()
     runs-on: ubuntu-latest
     permissions:
