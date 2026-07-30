@@ -2,6 +2,10 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { mockLLMInferenceServiceConfigK8sResource } from '@odh-dashboard/internal/__mocks__/mockLLMInferenceServiceConfigK8sResource';
+import {
+  fireRiskAccepted,
+  fireRiskDismissed,
+} from '@odh-dashboard/model-serving/shared/tracking/limitedSupportTracking';
 import LlmAcceleratorConfigEnabledToggle from '../LlmAcceleratorConfigEnabledToggle';
 import { patchLLMInferenceServiceConfig } from '../../../api/LLMInferenceServiceConfigs';
 import type { LLMInferenceServiceConfigKind } from '../../../types';
@@ -15,6 +19,17 @@ jest.mock('../../../api/LLMInferenceServiceConfigs', () => ({
   patchLLMInferenceServiceConfig: jest.fn(),
 }));
 
+jest.mock('@odh-dashboard/model-serving/shared/tracking/limitedSupportTracking', () => ({
+  fireRiskAccepted: jest.fn(),
+  fireRiskDismissed: jest.fn(),
+  getResourceVersions: jest.fn(() => ({
+    version: undefined,
+    fastVersion: undefined,
+  })),
+}));
+
+const mockFireRiskAccepted = jest.mocked(fireRiskAccepted);
+const mockFireRiskDismissed = jest.mocked(fireRiskDismissed);
 const mockPatchConfig = jest.mocked(patchLLMInferenceServiceConfig);
 
 const mockNotification =
@@ -128,7 +143,7 @@ describe('LlmAcceleratorConfigEnabledToggle', () => {
     expect(mockPatchConfig).not.toHaveBeenCalled();
   });
 
-  it('should patch both annotations on accept from the modal', async () => {
+  it('should patch both annotations on accept from the modal and fire tracking event', async () => {
     const config = mockLLMInferenceServiceConfigK8sResource({ unsupported: true });
 
     render(<LlmAcceleratorConfigEnabledToggle config={config} />);
@@ -151,10 +166,38 @@ describe('LlmAcceleratorConfigEnabledToggle', () => {
       );
     });
 
+    await waitFor(() => {
+      expect(mockFireRiskAccepted).toHaveBeenCalledWith({
+        runtimeResourceType: 'llm-accelerator-config',
+        resourceId: config.metadata.name,
+        resourceName: 'Test vLLM Config',
+        version: undefined,
+        fastVersion: undefined,
+        outcome: 'submit',
+        success: true,
+      });
+    });
     expect(screen.queryByTestId('unsupported-status-acceptance-modal')).not.toBeInTheDocument();
   });
 
-  it('should close modal without patching when cancel is clicked', () => {
+  it('should not fire risk accepted tracking when patch fails', async () => {
+    const config = mockLLMInferenceServiceConfigK8sResource({ unsupported: true });
+    mockPatchConfig.mockRejectedValue(new Error('Network error'));
+
+    render(<LlmAcceleratorConfigEnabledToggle config={config} />);
+
+    fireEvent.click(screen.getByRole('switch'));
+    fireEvent.click(screen.getByTestId('unsupported-status-acceptance-checkbox'));
+    fireEvent.click(screen.getByTestId('unsupported-status-accept-button'));
+
+    await waitFor(() => {
+      expect(mockNotification.error).toHaveBeenCalled();
+    });
+
+    expect(mockFireRiskAccepted).not.toHaveBeenCalled();
+  });
+
+  it('should close modal without patching when cancel is clicked and fire tracking event', () => {
     const config = mockLLMInferenceServiceConfigK8sResource({ unsupported: true });
 
     render(<LlmAcceleratorConfigEnabledToggle config={config} />);
@@ -166,6 +209,38 @@ describe('LlmAcceleratorConfigEnabledToggle', () => {
 
     expect(screen.queryByTestId('unsupported-status-acceptance-modal')).not.toBeInTheDocument();
     expect(mockPatchConfig).not.toHaveBeenCalled();
+    expect(mockFireRiskDismissed).toHaveBeenCalledWith({
+      runtimeResourceType: 'llm-accelerator-config',
+      resourceId: config.metadata.name,
+      resourceName: 'Test vLLM Config',
+      version: undefined,
+      fastVersion: undefined,
+      dismissAction: 'cancel',
+      outcome: 'cancel',
+    });
+  });
+
+  it('should fire tracking event with close action when modal close control is used', () => {
+    const config = mockLLMInferenceServiceConfigK8sResource({ unsupported: true });
+
+    render(<LlmAcceleratorConfigEnabledToggle config={config} />);
+
+    fireEvent.click(screen.getByRole('switch'));
+    expect(screen.getByTestId('unsupported-status-acceptance-modal')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByLabelText('Close'));
+
+    expect(screen.queryByTestId('unsupported-status-acceptance-modal')).not.toBeInTheDocument();
+    expect(mockPatchConfig).not.toHaveBeenCalled();
+    expect(mockFireRiskDismissed).toHaveBeenCalledWith({
+      runtimeResourceType: 'llm-accelerator-config',
+      resourceId: config.metadata.name,
+      resourceName: 'Test vLLM Config',
+      version: undefined,
+      fastVersion: undefined,
+      dismissAction: 'close',
+      outcome: 'cancel',
+    });
   });
 
   it('should toggle normally without modal for already-accepted unsupported config', async () => {

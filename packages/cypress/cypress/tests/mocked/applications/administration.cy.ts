@@ -1,7 +1,7 @@
 import { mockHardwareProfile } from '@odh-dashboard/internal/__mocks__/mockHardwareProfile';
 import { mockRoleBindingK8sResource } from '@odh-dashboard/internal/__mocks__/mockRoleBindingK8sResource';
 import { mockK8sResourceList, mockNotebookK8sResource } from '@odh-dashboard/internal/__mocks__';
-import type { RoleBindingSubject } from '@odh-dashboard/internal/k8sTypes';
+import type { RoleBindingSubject } from '@odh-dashboard/k8s-core';
 import { mockAllowedUsers } from '@odh-dashboard/internal/__mocks__/mockAllowedUsers';
 import type { AllowedUser } from '@odh-dashboard/internal/pages/notebookController/screens/admin/types';
 import { mockStartNotebookData } from '@odh-dashboard/internal/__mocks__/mockStartNotebookData';

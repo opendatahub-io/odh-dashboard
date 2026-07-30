@@ -11,7 +11,6 @@ import {
   Button,
   ListItem,
   List,
-  Label,
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { Link, useSearchParams } from 'react-router-dom';
@@ -213,11 +212,6 @@ const ProjectDetails: React.FC = () => {
                   {
                     id: ProjectSectionID.ROLES,
                     title: 'Roles',
-                    label: (
-                      <Label isCompact color="yellow" variant="outline">
-                        Tech preview
-                      </Label>
-                    ),
                     component: (
                       <PermissionsContextProvider namespace={currentProject.metadata.name}>
                         <ProjectRoles />

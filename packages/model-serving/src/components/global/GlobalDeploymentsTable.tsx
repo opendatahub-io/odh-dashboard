@@ -1,10 +1,5 @@
 import React from 'react';
 import {
-  initialModelServingFilterData,
-  type ModelServingFilterDataType,
-  ModelServingToolbarFilterOptions,
-} from '@odh-dashboard/internal/pages/modelServing/screens/global/const';
-import {
   getDisplayNameFromK8sResource,
   namespaceToProjectDisplayName,
 } from '@odh-dashboard/k8s-core';
@@ -14,6 +9,11 @@ import { Label } from '@patternfly/react-core';
 import { ProjectsContext } from '@odh-dashboard/ui-core/context/ProjectsContext';
 import { useExtensions, useResolvedExtensions } from '@odh-dashboard/plugin-core';
 import GlobalModelsToolbar from './GlobalModelsToolbar';
+import {
+  initialModelServingFilterData,
+  type ModelServingFilterDataType,
+  ModelServingToolbarFilterOptions,
+} from '../../shared/const';
 import DeploymentsTable from '../deployments/DeploymentsTable';
 import {
   isModelServingDeploymentsTableExtension,

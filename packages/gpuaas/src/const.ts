@@ -16,10 +16,10 @@ export const INFRASTRUCTURE_SECTIONS = [
     isPlain: false,
   },
   {
-    id: 'borrowing-lending',
-    title: 'Borrowing and lending',
+    id: 'borrowing',
+    title: 'Borrowing trends',
     description:
-      '7-day borrowing and lending trends by cluster queue. When a cluster queue uses its full quota, it can borrow accelerators from other queues. ',
+      '7-day borrowing trends by cluster queue. When a cluster queue uses its full quota, it can borrow accelerators from other queues.',
     isPlain: false,
   },
   {

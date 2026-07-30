@@ -2,8 +2,11 @@ import { renderHook } from '@testing-library/react';
 import type { LoadedExtension, Extension } from '@openshift/dynamic-plugin-sdk';
 import { mockExtensions } from '../../../__tests__/mockUtils';
 import { useWizardFieldOverrides } from '../dynamicFormUtils';
-import type { ModelTypeFieldOverride, DeploymentWizardFieldOverride } from '../types';
-import { isModelTypeFieldOverride } from '../types';
+import type {
+  ModelTypeFieldOverride,
+  DeploymentWizardFieldOverride,
+} from '../../../shared/types/form-data';
+import { isModelTypeFieldOverride } from '../../../shared/types/form-data';
 
 jest.mock('@odh-dashboard/plugin-core');
 

@@ -21,6 +21,7 @@
   },
   "dependencies": {
     "@odh-dashboard/plugin-core": "*",
+    "@odh-dashboard/ui-core": "*",
     "@openshift/dynamic-plugin-sdk": "^5.0.1",
     "@patternfly/patternfly": "6.4.0",
     "@patternfly/react-core": "6.4.1",

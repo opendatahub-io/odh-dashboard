@@ -1,4 +1,4 @@
-import { ResourceFlavorKind } from '@odh-dashboard/internal/k8sTypes';
+import type { ResourceFlavorKind } from '@odh-dashboard/k8s-core';
 import { genUID } from '#~/__mocks__/mockUtils';
 
 type MockResourceFlavorConfigType = {

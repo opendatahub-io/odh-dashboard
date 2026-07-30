@@ -329,6 +329,17 @@ export type DataScienceProjectData = {
   deploymentMethod: 'llm-inference-service-llmd' | 'llm-inference-service-simple-vllm' | 'legacy';
 };
 
+export type RoutingTestData = DataScienceProjectData & {
+  routingConfigName: string;
+  routingConfigFixture: string;
+  topologyTypeTestId: string;
+  topologyTypeLabel: string;
+  configSourceEditorKey: string;
+  modelLocationURI: string;
+  deploymentMethod: string;
+  defaultRoutingLabel: string;
+};
+
 export type NotebookImageData = {
   codeserverImageName: string;
 };
@@ -876,4 +887,13 @@ export type AutoragTestData = {
   awsBucket: 'BUCKET_2' | 'BUCKET_3';
   maxRagPatterns: number;
   optimizationMetric?: string;
+};
+
+export type AgentRuntimesTestData = {
+  pageTitle: string;
+  projectResourceName: string;
+  filterSearchTerm: string;
+  filterOptionStatus: string;
+  statusPending: string;
+  statusReady: string;
 };

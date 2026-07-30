@@ -17,12 +17,11 @@ export const techPreviewFlags = {
   mcpCatalog: false,
   mcpRegistry: false,
   toolCalling: false,
-  projectRBAC: true,
-  roleManagement: false,
   deploymentWizardYAMLViewer: false,
   externalVectorStores: false,
   agentConfigManagement: false,
   vLLMDeploymentOnMaaS: false,
+  llmdTemplates: false,
   llmGatewayField: false,
   promptManagement: false,
   globalProjectPrompts: false,
@@ -33,7 +32,6 @@ export const techPreviewFlags = {
 export const devTemporaryFeatureFlags = {
   disableKueue: true,
   disableProjectScoped: true,
-  mlflowPipelines: true,
   nimWizard: false,
   agentOpsDeploy: false,
   agentsCatalog: false,
@@ -59,6 +57,8 @@ export const projectManagementFlags = {
   disableBYONImageStream: false,
   disableAdminConnectionTypes: false,
   disableStorageClasses: false,
+  projectRBAC: true,
+  roleManagement: true,
 } satisfies Partial<DashboardCommonConfig>;
 
 // Group 3: Model Serving & AI/ML Infrastructure
@@ -84,6 +84,7 @@ export const advancedAIMLFlags = {
   disableModelRegistry: false,
   disableModelRegistrySecureDB: false,
   disableFeatureStore: false,
+  featureStoreAdmin: false,
   disableFineTuning: true,
   disableLMEval: true,
   trainingJobs: true,
@@ -226,6 +227,10 @@ export const SupportedAreasStateMap: SupportedAreasState = {
     featureFlags: ['disableFeatureStore'],
     requiredComponents: [DataScienceStackComponent.FEAST_OPERATOR],
   },
+  [SupportedArea.FEATURE_STORE_ADMIN]: {
+    featureFlags: ['featureStoreAdmin'],
+    reliantAreas: [SupportedArea.FEATURE_STORE],
+  },
   [SupportedArea.MODEL_TRAINING]: {
     featureFlags: ['trainingJobs'],
     requiredComponents: [DataScienceStackComponent.TRAINER],
@@ -248,7 +253,6 @@ export const SupportedAreasStateMap: SupportedAreasState = {
     requiredComponents: [DataScienceStackComponent.MLFLOW],
   },
   [SupportedArea.MLFLOW_PIPELINES]: {
-    featureFlags: ['mlflowPipelines'],
     requiredComponents: [DataScienceStackComponent.DS_PIPELINES, DataScienceStackComponent.MLFLOW],
   },
   [SupportedArea.MCP_REGISTRY]: {
@@ -270,6 +274,7 @@ export const SupportedAreasStateMap: SupportedAreasState = {
     reliantAreas: [SupportedArea.LLMD_SERVING],
   },
   [SupportedArea.LLMD_TOPOLOGY_CONFIGS]: {
+    featureFlags: ['llmdTemplates'],
     reliantAreas: [SupportedArea.LLMD_SERVING],
   },
   [SupportedArea.LLMD_GATEWAY_FIELD]: {

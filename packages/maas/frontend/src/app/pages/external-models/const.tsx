@@ -56,22 +56,22 @@ export const MissingMaaSModelRefWarning: React.FC = () => (
 const GOVERNANCE_PAIRING_WARNING_BODY = (
   <div>
     <p>
-      Consumers can&apos;t access this model until they are given access in a MaaS subscription and
-      authorization policy from the <strong>MaaS governance</strong> page.
+      Consumers can&apos;t access this model yet. A MaaS subscription and authorization policy must
+      be configured on the <strong>MaaS governance</strong> page.
     </p>
   </div>
 );
 
 export const GovernancePairingWarning: React.FC = () => (
   <Popover
-    headerContent="Pending MaaS governance"
+    headerContent="Missing MaaS governance setup"
     bodyContent={GOVERNANCE_PAIRING_WARNING_BODY}
     data-testid="external-model-governance-pairing-warning-popover"
   >
     <Button
       variant="plain"
       data-testid="external-model-governance-pairing-warning"
-      aria-label="Awaiting governance pairing"
+      aria-label="Missing governance pairing"
       onClick={() => {
         fireMiscTrackingEvent(MaaSEvents.EXTERNAL_MODELS_INFO_POPOVER_VIEWED, {
           infoTarget: ExternalModelsInfoPopoverTarget.SECONDARY_STATUS,

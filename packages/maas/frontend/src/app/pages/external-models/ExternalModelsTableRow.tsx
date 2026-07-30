@@ -257,7 +257,7 @@ const ExternalModelTableRow: React.FC<ExternalModelTableRowProps> = ({
         onClose={() => {
           setPathModalRef(null);
         }}
-        providerRef={pathModalRef?.provider?.displayName ?? pathModalRef?.providerName ?? ''}
+        providerRef={pathModalRef?.provider?.provider ?? ''}
       />
       <ProviderURLModal
         isOpen={!!providerURLModalRef}
@@ -265,9 +265,7 @@ const ExternalModelTableRow: React.FC<ExternalModelTableRowProps> = ({
           setProviderURLModalRef(null);
         }}
         providerURL={providerURLModalRef?.provider?.endpointUrl ?? ''}
-        providerRef={
-          providerURLModalRef?.provider?.displayName ?? providerURLModalRef?.providerName ?? ''
-        }
+        providerRef={providerURLModalRef?.provider?.provider ?? ''}
         targetModelId={providerURLModalRef?.targetModel ?? ''}
       />
     </>

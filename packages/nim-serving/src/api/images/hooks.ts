@@ -3,7 +3,7 @@ import useFetch, {
   NotReadyError,
   type FetchStateCallbackPromise,
 } from '@odh-dashboard/ui-core/hooks/useFetch';
-import { NIMAccountKind } from '@odh-dashboard/internal/k8sTypes';
+import { NIMAccountKind } from '@odh-dashboard/k8s-core';
 import type { NIMImage } from './types';
 import { fetchNIMImages } from './api';
 

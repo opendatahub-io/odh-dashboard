@@ -114,10 +114,10 @@ describe('AgentDetailsPage tracking', () => {
     });
   });
 
-  it('should fire open github clicked when Open GitHub is clicked', () => {
+  it('should fire open github clicked when Open repository is clicked', () => {
     renderPage();
 
-    fireEvent.click(screen.getByTestId('agent-github-button'));
+    fireEvent.click(screen.getByTestId('agent-repository-button'));
 
     expect(mockTrackLinkEvent).toHaveBeenCalledWith(AGENT_CATALOG_EVENTS.OPEN_GITHUB_CLICKED, {
       href: 'https://github.com/example/agent-one',

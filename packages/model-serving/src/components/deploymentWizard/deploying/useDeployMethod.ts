@@ -1,7 +1,7 @@
 import React from 'react';
 import type { ResolvedExtension } from '@openshift/dynamic-plugin-sdk';
 import { useResolvedExtensions } from '@odh-dashboard/plugin-core';
-import type { WizardFormData } from '../types';
+import type { WizardFormData } from '../../../shared/types/form-data';
 import type { Deployment } from '../../../../extension-points';
 import {
   DeploymentAssemblyResources,

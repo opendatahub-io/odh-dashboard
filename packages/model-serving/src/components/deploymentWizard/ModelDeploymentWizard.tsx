@@ -11,7 +11,6 @@ import { ModelSourceStepContent } from './steps/ModelSourceStep';
 import { AdvancedSettingsStepContent } from './steps/AdvancedOptionsStep';
 import { ModelDeploymentStepContent } from './steps/ModelDeploymentStep';
 import { ReviewStepContent } from './steps/ReviewStep';
-import { InitialWizardFormData, WizardStepTitle } from './types';
 import { ExitDeploymentModal } from './exitModal/ExitDeploymentModal';
 import { useRefreshWizardPage } from './useRefreshWizardPage';
 import { useExitDeploymentWizard } from './exitModal/useExitDeploymentWizard';
@@ -20,6 +19,7 @@ import { DeploymentWizardViewModeToggle } from './yaml/DeploymentWizardViewModeT
 import { useFormYamlResources } from './yaml/useYamlResourcesResult';
 import { useFormToResourcesTransformer } from './yaml/useFormToResourcesTransformer';
 import { useModelDeploymentSubmit } from './deploying/useModelDeploymentSubmit';
+import { InitialWizardFormData, WizardStepTitle } from '../../shared/types/form-data';
 import { Deployment } from '../../../extension-points';
 import {
   ModelDeploymentFooter,

@@ -23,7 +23,7 @@ type PathModalProps = {
 
 const PathModal: React.FC<PathModalProps> = ({ path, isOpen, onClose, providerRef }) => (
   <Modal isOpen={isOpen} onClose={onClose} variant={ModalVariant.medium} data-testid="path-modal">
-    <ModalHeader title="Resolved path" data-testid="path-modal-header" />
+    <ModalHeader title="Path" data-testid="path-modal-header" />
     <ModalBody>
       <Stack hasGutter>
         <StackItem>

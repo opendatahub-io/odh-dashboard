@@ -7,7 +7,7 @@ import {
 import { mockDsciStatus } from '@odh-dashboard/internal/__mocks__/mockDsciStatus';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import { mockModelRegistry } from '@odh-dashboard/internal/__mocks__/mockModelRegistry';
-import type { ConfigSecretItem, RoleBindingSubject } from '@odh-dashboard/internal/k8sTypes';
+import type { ConfigSecretItem, RoleBindingSubject } from '@odh-dashboard/k8s-core';
 import { mockRoleBindingK8sResource } from '@odh-dashboard/internal/__mocks__/mockRoleBindingK8sResource';
 import {
   DatabaseType,

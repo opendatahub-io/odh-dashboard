@@ -13,7 +13,7 @@ const TopologyConfigurationsView: React.FC = () => {
   return (
     <ApplicationsPage
       title="llm-d topology configurations"
-      description="Manage your llm-d topology configurations. Enabled configurations appear to deployers in the model serving wizard; out-of-the-box configurations can be disabled but not deleted."
+      description="Manage topology configurations for LLM inference service deployments with llm-d. Enabled configurations are available in the deployment wizard."
       loaded={loaded}
       loadError={error}
       empty={loaded && configs.length === 0}

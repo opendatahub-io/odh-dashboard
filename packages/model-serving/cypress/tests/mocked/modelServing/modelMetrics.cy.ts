@@ -7,8 +7,7 @@ import {
   mockCustomSecretK8sResource,
   mockSecretK8sResource,
 } from '@odh-dashboard/internal/__mocks__/mockSecretK8sResource';
-import type { SecretKind } from '@odh-dashboard/k8s-core';
-import type { TrustyAIKind } from '@odh-dashboard/internal/k8sTypes';
+import type { SecretKind, TrustyAIKind } from '@odh-dashboard/k8s-core';
 import {
   type InferenceServiceKind,
   type ServingRuntimeKind,

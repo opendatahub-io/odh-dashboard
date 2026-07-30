@@ -8,11 +8,11 @@ import { mockWorkloadK8sResource } from '@odh-dashboard/internal/__mocks__/mockW
 import type {
   ClusterQueueKind,
   LocalQueueKind,
+  PodContainer,
   WorkloadKind,
   WorkloadPodSet,
-} from '@odh-dashboard/internal/k8sTypes';
-import { WorkloadOwnerType } from '@odh-dashboard/internal/k8sTypes';
-import type { PodContainer } from '@odh-dashboard/k8s-core';
+} from '@odh-dashboard/k8s-core';
+import { WorkloadOwnerType } from '@odh-dashboard/k8s-core';
 import { WorkloadStatusType } from '@odh-dashboard/internal/concepts/distributedWorkloads/utils';
 import { mockClusterQueueK8sResource } from '@odh-dashboard/internal/__mocks__/mockClusterQueueK8sResource';
 import { mockLocalQueueK8sResource } from '@odh-dashboard/internal/__mocks__/mockLocalQueueK8sResource';

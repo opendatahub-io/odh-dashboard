@@ -5,8 +5,11 @@ import {
   FormGroup,
   FormSection,
   MenuToggleStatus,
+  Popover,
   Truncate,
 } from '@patternfly/react-core';
+import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
+import { DashboardPopupIconButton } from '@odh-dashboard/ui-core';
 import {
   getDescriptionFromK8sResource,
   getDisplayNameFromK8sResource,
@@ -150,6 +153,14 @@ const ConnectionTypeForm: React.FC<Props> = ({
         fieldId="connection-type"
         data-testid="connection-type-dropdown"
         isRequired
+        labelHelp={
+          <Popover bodyContent="The category of external resource you're connecting to. Connection types determine which credentials and settings are required.">
+            <DashboardPopupIconButton
+              icon={<OutlinedQuestionCircleIcon />}
+              aria-label="More info for Connection type"
+            />
+          </Popover>
+        }
       >
         <Flex direction={{ default: 'row' }} spaceItems={{ default: 'spaceItemsSm' }}>
           <FlexItem grow={{ default: 'grow' }}>

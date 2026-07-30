@@ -2,16 +2,16 @@ import * as React from 'react';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { MemoryRouter } from 'react-router-dom';
+import { useAccessReview } from '@odh-dashboard/plugin-core/host-api';
 import NotebookList from '#~/pages/projects/screens/detail/notebooks/NotebookList';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
-import { useAccessReview } from '#~/api/useAccessReview';
 import {
   useKueueConfiguration,
   KueueFilteringState,
 } from '#~/concepts/hardwareProfiles/kueueUtils';
 import { mockProjectK8sResource } from '#~/__mocks__/mockProjectK8sResource';
 
-jest.mock('#~/api/useAccessReview', () => ({
+jest.mock('@odh-dashboard/plugin-core/host-api', () => ({
   useAccessReview: jest.fn(),
 }));
 

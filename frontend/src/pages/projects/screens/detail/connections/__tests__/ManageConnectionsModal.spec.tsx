@@ -778,7 +778,7 @@ describe('ManageConnectionModal test connection', () => {
     });
 
     expect(screen.getByTestId('connection-test-failure-alert')).toBeInTheDocument();
-    expect(screen.getByText('Show additional information')).toBeInTheDocument();
+    expect(screen.getByText('Show API details')).toBeInTheDocument();
   });
 
   it('should not block Create button while test is in progress', async () => {

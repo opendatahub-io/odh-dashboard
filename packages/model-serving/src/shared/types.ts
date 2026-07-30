@@ -1,4 +1,5 @@
 import type {
+  Connection,
   K8sResourceCommon,
   ContainerResources,
   DisplayNameAnnotations,
@@ -10,6 +11,11 @@ import type {
   VolumeMount,
   ImagePullSecret,
 } from '@odh-dashboard/k8s-core';
+
+export type LabeledConnection = {
+  connection: Connection;
+  isRecommended?: boolean;
+};
 
 export enum ModelDeploymentState {
   PENDING = 'Pending',
@@ -53,19 +59,6 @@ export type CreatingServingRuntimeObject = CreatingModelServingObjectCommon & {
   imageName?: string;
   supportedModelFormatsInfo?: SupportedModelFormatsInfo;
   scope?: string;
-};
-
-export type ModelDeployPrefillInfo = {
-  modelName: string;
-  modelFormat?: string;
-  modelArtifactUri?: string;
-  connectionTypeName?: string;
-  initialConnectionName?: string;
-  modelRegistryInfo?: {
-    modelVersionId?: string;
-    registeredModelId?: string;
-    mrName?: string;
-  };
 };
 
 export type ServingRuntimeAnnotations = Partial<{

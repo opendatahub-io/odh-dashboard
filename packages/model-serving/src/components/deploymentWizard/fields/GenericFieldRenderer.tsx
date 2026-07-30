@@ -1,5 +1,9 @@
 import React from 'react';
-import { resolveFieldValue, type GenericFieldProps, WizardField } from '../types';
+import {
+  resolveFieldValue,
+  type GenericFieldProps,
+  WizardField,
+} from '../../../shared/types/form-data';
 import type { UseModelDeploymentWizardState } from '../useDeploymentWizard';
 import type { ExternalDataMap } from '../ExternalDataLoader';
 import { getFieldDependencies, getStateKey } from '../dynamicFormUtils';

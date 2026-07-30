@@ -23,8 +23,8 @@ func NewDemoClient() *Client {
 				Ports: []agents.AgentServicePort{
 					{Name: "http", Port: 8080},
 				},
-				EndpointURL:  "http://sample-support-agent.agent-ops-demo.svc.cluster.local:8080",
-				CreatedAt:    "2026-05-12T16:00:03.214610Z",
+				EndpointURL: "http://sample-support-agent.agent-ops-demo.svc.cluster.local:8080",
+				CreatedAt:   "2026-05-12T16:00:03.214610Z",
 			},
 		},
 	}

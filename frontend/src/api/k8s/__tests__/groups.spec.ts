@@ -1,6 +1,7 @@
 import { testHook } from '@odh-dashboard/jest-config/hooks';
 import { K8sStatusError } from '@odh-dashboard/k8s-core';
-import { groupVersionKind, useAccessReview, useGroups } from '#~/api';
+import { useAccessReview } from '@odh-dashboard/plugin-core/host-api';
+import { groupVersionKind, useGroups } from '#~/api';
 import { GroupModel } from '#~/api/models';
 import { mockGroup } from '#~/__mocks__/mockGroup';
 import { mock404Error, mock500Error } from '#~/__mocks__/mockK8sStatus';
@@ -12,7 +13,7 @@ jest.mock('#~/utilities/useK8sWatchResourceList', () => ({
   default: jest.fn(),
 }));
 
-jest.mock('#~/api/useAccessReview', () => ({
+jest.mock('@odh-dashboard/plugin-core/host-api', () => ({
   useAccessReview: jest.fn(),
 }));
 
