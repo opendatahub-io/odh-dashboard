@@ -25,11 +25,13 @@ const PipelineRunTableRowMlflowExperiment: React.FC<PipelineRunTableRowMlflowExp
 }) => {
   const { namespace } = usePipelinesAPI();
 
-  const experimentName = getMlflowExperimentNameFromRun(run);
-  const experimentIdFromOutput = getMlflowPluginOutput(run)?.entries.experiment_id?.value;
-  const experimentId =
-    experimentIdFromOutput ??
-    (experimentName ? mlflow.experiments.find((e) => e.name === experimentName)?.id : undefined);
+  const experimentId = getMlflowPluginOutput(run)?.entries.experiment_id?.value;
+
+  const liveName =
+    experimentId != null
+      ? mlflow.experiments.find((e) => e.id === String(experimentId))?.name
+      : undefined;
+  const experimentName = liveName ?? getMlflowExperimentNameFromRun(run);
 
   const handleExperimentClick = React.useCallback(() => {
     fireLinkTrackingEvent(MlflowTrackingEvents.EMBEDDED_VIEW_OPENED, {
@@ -42,7 +44,7 @@ const PipelineRunTableRowMlflowExperiment: React.FC<PipelineRunTableRowMlflowExp
     return <NoRunContent />;
   }
 
-  if (!experimentIdFromOutput && !mlflow.loaded) {
+  if (!mlflow.loaded) {
     return <Skeleton data-testid="mlflow-experiment-loading" />;
   }
 

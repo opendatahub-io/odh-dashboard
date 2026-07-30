@@ -147,6 +147,7 @@ export const createDSPipelineResourceSpec = (
         ? DSPipelineAPIServerStore.KUBERNETES
         : DSPipelineAPIServerStore.DATABASE,
     },
+    mlflow: config.mlflow,
   };
 };
 

@@ -39,10 +39,19 @@ import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUt
 import { PipelineRunExperimentsContext } from '#~/pages/pipelines/global/runs/PipelineRunExperimentsContext';
 import RestoreRunWithArchivedExperimentModal from '#~/pages/pipelines/global/runs/RestoreRunWithArchivedExperimentModal';
 import useMlflowExperiments from '#~/concepts/mlflow/hooks/useMlflowExperiments';
+import { useMlmdContextsByType } from '#~/concepts/pipelines/apiHooks/mlmd/useMlmdContextsByType';
+import { MlmdContextTypes } from '#~/concepts/pipelines/apiHooks/mlmd/types';
+import { useGetExecutionsByRuns } from '#~/concepts/pipelines/apiHooks/mlmd/useGetExecutionsByRuns';
 import { CustomMetricsColumnsModal } from './CustomMetricsColumnsModal';
 import { UnavailableMetricValue } from './UnavailableMetricValue';
 import { useMetricColumns } from './useMetricColumns';
-import { filterByMlflowExperiment, getMlflowExperimentId, getMlflowRunId } from './utils';
+import {
+  extractMlflowNestedRuns,
+  filterByMlflowExperiment,
+  getMlflowExperimentId,
+  getMlflowRunId,
+} from './utils';
+import { MlflowNestedRun } from './types';
 
 type PipelineRunTableProps = {
   runs: PipelineRunKF[];
@@ -80,14 +89,29 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
     workspace: isMlflowAvailable ? namespace : '',
   });
   const { onClearFilters, ...filterToolbarProps } = usePipelineFilterSearchParams(setFilter);
+  const [contexts, , contextsError] = useMlmdContextsByType(MlmdContextTypes.RUN);
   const {
     metricsColumnNames,
     runs: runsWithMetrics,
-    contextsError,
     runArtifactsError,
     runArtifactsLoaded,
-    metricsNames,
-  } = useMetricColumns(runWithoutMetrics, experiment?.experiment_id);
+  } = useMetricColumns(runWithoutMetrics, contexts, experiment?.experiment_id);
+  const [runExecutions, runExecutionsLoaded] = useGetExecutionsByRuns(runWithoutMetrics, contexts);
+  const nestedRunsByRunId = React.useMemo<Partial<Record<string, MlflowNestedRun[]>>>(() => {
+    if (!runExecutionsLoaded) {
+      return {};
+    }
+    const result: Partial<Record<string, MlflowNestedRun[]>> = {};
+    runExecutions.forEach((executionMap) => {
+      Object.entries(executionMap).forEach(([runId, executions]) => {
+        const nested = extractMlflowNestedRuns(executions);
+        if (nested.length) {
+          result[runId] = nested;
+        }
+      });
+    });
+    return result;
+  }, [runExecutions, runExecutionsLoaded]);
 
   const mlflowFilter = getDataValue(filterToolbarProps.filterData[FilterOptions.MLFLOW_EXPERIMENT]);
   const runs = React.useMemo(
@@ -95,6 +119,19 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
     [runsWithMetrics, mlflowFilter],
   );
   const effectiveTotalSize = mlflowFilter ? runs.length : totalSize;
+
+  const visibleMetricsNames = React.useMemo(() => {
+    const names = new Set<string>();
+    runs.forEach((run) => {
+      run.metrics.forEach((metric) => names.add(metric.name));
+    });
+    return names;
+  }, [runs]);
+
+  const visibleMetricsColumnNames = React.useMemo(
+    () => metricsColumnNames.filter((name) => visibleMetricsNames.has(name)),
+    [metricsColumnNames, visibleMetricsNames],
+  );
   const {
     selections: selectedIds,
     tableProps: checkboxTableProps,
@@ -143,18 +180,24 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
   const hasSelectedRuns = selectedIds.length > 0;
 
   const { compareRunsHref, isCompareDisabled } = React.useMemo(() => {
-    const validRunIds = selectedRuns.map(getMlflowRunId).filter((id): id is string => !!id);
+    const rootRunIds = selectedRuns.map(getMlflowRunId).filter((id): id is string => !!id);
     const validExpIds = selectedRuns.map(getMlflowExperimentId).filter((id): id is string => !!id);
     const allHaveMlflow =
       hasSelectedRuns &&
-      validRunIds.length === selectedIds.length &&
+      rootRunIds.length === selectedIds.length &&
       validExpIds.length === selectedIds.length;
-    const href =
-      isMlflowAvailable && allHaveMlflow
-        ? mlflowCompareRunsRoute(namespace, validRunIds, [...new Set(validExpIds)])
-        : compareRunsRoute(namespace, selectedIds, experiment?.experiment_id);
+    if (isMlflowAvailable && allHaveMlflow) {
+      const nestedRunIds = selectedRuns.flatMap(
+        (run) => nestedRunsByRunId[run.run_id]?.map((n) => n.mlflowRunId) ?? [],
+      );
+      const allRunIds = [...rootRunIds, ...nestedRunIds];
+      return {
+        compareRunsHref: mlflowCompareRunsRoute(namespace, allRunIds, [...new Set(validExpIds)]),
+        isCompareDisabled: selectedIds.length > 10,
+      };
+    }
     return {
-      compareRunsHref: href,
+      compareRunsHref: compareRunsRoute(namespace, selectedIds, experiment?.experiment_id),
       isCompareDisabled: !hasSelectedRuns || selectedIds.length > 10,
     };
   }, [
@@ -162,6 +205,7 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
     selectedIds,
     hasSelectedRuns,
     isMlflowAvailable,
+    nestedRunsByRunId,
     namespace,
     experiment?.experiment_id,
   ]);
@@ -247,10 +291,10 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
   );
 
   const columns = experiment
-    ? getPipelineRunColumns(metricsColumnNames, isMlflowAvailable).filter(
+    ? getPipelineRunColumns(visibleMetricsColumnNames, isMlflowAvailable).filter(
         (column) => column.field !== 'run_group',
       )
-    : getPipelineRunColumns(metricsColumnNames, isMlflowAvailable);
+    : getPipelineRunColumns(visibleMetricsColumnNames, isMlflowAvailable);
 
   return (
     <>
@@ -286,7 +330,7 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
                   content={
                     !runArtifactsLoaded
                       ? 'Customize metrics columns: Loading metrics...'
-                      : !(metricsColumnNames.length || metricsNames.size)
+                      : !(visibleMetricsColumnNames.length || visibleMetricsNames.size)
                       ? 'Customize metrics columns: No metrics available'
                       : 'Customize metrics columns'
                   }
@@ -295,7 +339,8 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
                     variant="plain"
                     aria-label="Customize metrics column button"
                     isAriaDisabled={
-                      !runArtifactsLoaded || !(metricsColumnNames.length || metricsNames.size)
+                      !runArtifactsLoaded ||
+                      !(visibleMetricsColumnNames.length || visibleMetricsNames.size)
                     }
                     onClick={() => setIsCustomColModalOpen(true)}
                     icon={<ColumnsIcon />}
@@ -324,7 +369,8 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
               experiments: mlflowExperiments,
               loaded: mlflowExperimentsLoaded,
             }}
-            customCells={metricsColumnNames.map((metricName: string) => (
+            nestedMlflowRuns={nestedRunsByRunId[run.run_id]}
+            customCells={visibleMetricsColumnNames.map((metricName: string) => (
               <Td key={metricName} dataLabel={metricName}>
                 {!runArtifactsLoaded && !runArtifactsError && !contextsError ? (
                   <Skeleton />
@@ -397,13 +443,15 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
       )}
       {isCustomColModalOpen && (
         <CustomMetricsColumnsModal
-          key={metricsNames.size}
+          key={visibleMetricsNames.size}
           experimentId={experiment?.experiment_id}
-          columns={[...new Set([...metricsColumnNames, ...metricsNames])].map((metricName) => ({
-            id: metricName,
-            content: metricName,
-            props: { checked: metricsColumnNames.includes(metricName) },
-          }))}
+          columns={[...new Set([...visibleMetricsColumnNames, ...visibleMetricsNames])].map(
+            (metricName) => ({
+              id: metricName,
+              content: metricName,
+              props: { checked: visibleMetricsColumnNames.includes(metricName) },
+            }),
+          )}
           onClose={() => setIsCustomColModalOpen(false)}
         />
       )}

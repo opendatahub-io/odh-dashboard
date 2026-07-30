@@ -21,6 +21,7 @@ import {
 } from '#~/concepts/pipelines/content/createRun/types';
 import { CharLimitHelperText } from '#~/components/CharLimitHelperText';
 import { NAME_CHARACTER_LIMIT } from '#~/concepts/pipelines/content/const';
+import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import MlflowExperimentSelector from '#~/concepts/mlflow/MlflowExperimentSelector';
 
 const MLFLOW_AUTOLOG_SNIPPET = `import mlflow
@@ -39,6 +40,7 @@ const MlflowIntegrationSection: React.FC<MlflowIntegrationSectionProps> = ({
   onChange,
   workspace,
 }) => {
+  const { mlflowInjectUserEnvVars } = usePipelinesAPI();
   const isDisabled = !data.isExperimentTrackingEnabled;
   const [copied, setCopied] = React.useState(false);
   const lastModeRef = React.useRef(
@@ -190,40 +192,42 @@ const MlflowIntegrationSection: React.FC<MlflowIntegrationSectionProps> = ({
         }
       />
 
-      <FormGroup
-        label="MLflow autologging"
-        fieldId="mlflow-autologging"
-        labelHelp={
-          <DashboardHelpTooltip content="To enable automatic metric tracking, add this code to your training script or notebook." />
-        }
-      >
-        <div style={isDisabled ? { opacity: 0.5, pointerEvents: 'none' } : undefined}>
-          <CodeBlock
-            actions={
-              <CodeBlockAction>
-                <ClipboardCopyButton
-                  id="mlflow-autolog-copy"
-                  aria-label="Copy to clipboard"
-                  disabled={isDisabled}
-                  onClick={() => {
-                    navigator.clipboard
-                      .writeText(MLFLOW_AUTOLOG_SNIPPET)
-                      .then(() => setCopied(true))
-                      .catch(() => undefined);
-                  }}
-                  exitDelay={copied ? 1500 : 600}
-                  variant="plain"
-                  onTooltipHidden={() => setCopied(false)}
-                >
-                  {copied ? 'Successfully copied to clipboard!' : 'Copy to clipboard'}
-                </ClipboardCopyButton>
-              </CodeBlockAction>
-            }
-          >
-            <CodeBlockCode id="mlflow-autolog-code">{MLFLOW_AUTOLOG_SNIPPET}</CodeBlockCode>
-          </CodeBlock>
-        </div>
-      </FormGroup>
+      {mlflowInjectUserEnvVars && (
+        <FormGroup
+          label="MLflow autologging"
+          fieldId="mlflow-autologging"
+          labelHelp={
+            <DashboardHelpTooltip content="To enable automatic metric tracking, add this code to your training script or notebook." />
+          }
+        >
+          <div style={isDisabled ? { opacity: 0.5, pointerEvents: 'none' } : undefined}>
+            <CodeBlock
+              actions={
+                <CodeBlockAction>
+                  <ClipboardCopyButton
+                    id="mlflow-autolog-copy"
+                    aria-label="Copy to clipboard"
+                    disabled={isDisabled}
+                    onClick={() => {
+                      navigator.clipboard
+                        .writeText(MLFLOW_AUTOLOG_SNIPPET)
+                        .then(() => setCopied(true))
+                        .catch(() => undefined);
+                    }}
+                    exitDelay={copied ? 1500 : 600}
+                    variant="plain"
+                    onTooltipHidden={() => setCopied(false)}
+                  >
+                    {copied ? 'Successfully copied to clipboard!' : 'Copy to clipboard'}
+                  </ClipboardCopyButton>
+                </CodeBlockAction>
+              }
+            >
+              <CodeBlockCode id="mlflow-autolog-code">{MLFLOW_AUTOLOG_SNIPPET}</CodeBlockCode>
+            </CodeBlock>
+          </div>
+        </FormGroup>
+      )}
     </FormSection>
   );
 };

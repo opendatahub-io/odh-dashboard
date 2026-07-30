@@ -1,4 +1,4 @@
-import { Artifact } from '#~/third_party/mlmd';
+import { Artifact, Execution } from '#~/third_party/mlmd';
 import { getArtifactModelData } from '#~/concepts/pipelines/content/pipelinesDetails/pipelineRun/artifacts/utils';
 import {
   PluginOutputKF,
@@ -6,6 +6,7 @@ import {
   PipelineRunKF,
 } from '#~/concepts/pipelines/kfTypes';
 import { isPipelineRun } from '#~/concepts/pipelines/content/utils';
+import { MlflowNestedRun } from './types';
 
 export const ALL_RUNS_METRICS_COLUMNS_STORAGE_KEY = 'all-runs-metrics-columns';
 
@@ -77,3 +78,14 @@ export const getMlflowRunId = (run: PipelineRunKF): string | undefined => {
   }
   return undefined;
 };
+
+export const extractMlflowNestedRuns = (executions: Execution[]): MlflowNestedRun[] =>
+  executions.reduce<MlflowNestedRun[]>((acc, execution) => {
+    const props = execution.getCustomPropertiesMap();
+    const mlflowRunId = props.get('plugins.mlflow.run_id')?.getStringValue();
+    const taskName = props.get('task_name')?.getStringValue();
+    if (mlflowRunId && taskName) {
+      acc.push({ taskName, mlflowRunId });
+    }
+    return acc;
+  }, []);
