@@ -185,7 +185,7 @@ describe('AdvancedRoutingField tracking', () => {
     });
   };
 
-  it('should fire fireRoutingSelected with isDefaultRouting true when default routing is selected', async () => {
+  it('should fire routing selected tracking with isDefaultRouting true when default routing is selected', async () => {
     renderComponent({
       value: { selectedConfig: routerConfig1 },
       externalData: {
@@ -205,7 +205,7 @@ describe('AdvancedRoutingField tracking', () => {
     });
   });
 
-  it('should fire fireRoutingSelected with isDefaultRouting false when a specific config is selected', async () => {
+  it('should fire routing selected tracking with isDefaultRouting false when a specific config is selected', async () => {
     renderComponent({
       externalData: {
         data: { routerConfigs: [routerConfig1, routerConfig2] },
@@ -224,7 +224,7 @@ describe('AdvancedRoutingField tracking', () => {
     });
   });
 
-  it('should fire fireRoutingSelected for a different config selection', async () => {
+  it('should fire routing selected tracking for a different config selection', async () => {
     renderComponent({
       value: { selectedConfig: routerConfig1 },
       externalData: {

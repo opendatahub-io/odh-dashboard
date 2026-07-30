@@ -128,7 +128,7 @@ describe('DeploymentMethodSelectField tracking', () => {
       />,
     );
 
-  it('should fire fireDeployMethodSelected with undefined previousDeploymentMethod on first selection', () => {
+  it('should fire deploy method selected tracking with undefined previousDeploymentMethod on first selection', () => {
     renderComponent({
       externalData: {
         data: {
@@ -152,7 +152,7 @@ describe('DeploymentMethodSelectField tracking', () => {
     );
   });
 
-  it('should fire fireDeployMethodSelected with previous method when switching', () => {
+  it('should fire deploy method selected tracking with previous method when switching', () => {
     renderComponent({
       value: { method: 'kserve' },
       externalData: {

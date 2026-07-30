@@ -47,7 +47,7 @@ describe('TopologyTypeField tracking', () => {
     });
   };
 
-  it('should fire fireTopologyTypeSelected with undefined previousPattern on first selection', async () => {
+  it('should fire topology type selected tracking with undefined previousPattern on first selection', async () => {
     renderComponent({
       externalData: {
         data: {
@@ -77,7 +77,7 @@ describe('TopologyTypeField tracking', () => {
     );
   });
 
-  it('should fire fireTopologyTypeSelected with previous pattern when switching', async () => {
+  it('should fire topology type selected tracking with previous pattern when switching', async () => {
     renderComponent({
       value: { topologyType: TopologyType.SINGLE_NODE },
       externalData: {
