@@ -17,8 +17,11 @@ import (
 	k8s "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes"
 )
 
-// maxPipelineErrorBodySize limits the size of error response bodies to prevent memory exhaustion.
-const maxPipelineErrorBodySize = 64 * 1024 // 64 KB
+// maxPipelineErrorBodySize bounds how much of an error response body is read and
+// embedded in the resulting error's message. KFP error bodies are small, structured
+// JSON payloads (akin to a Kubernetes Status message), so this is sized generously
+// for that shape rather than for arbitrary/large payloads.
+const maxPipelineErrorBodySize = 2 * 1024 // 2 KB
 
 // maxSuccessBodySize limits the size of success response bodies to prevent memory exhaustion.
 const maxSuccessBodySize = 10 << 20 // 10 MB
