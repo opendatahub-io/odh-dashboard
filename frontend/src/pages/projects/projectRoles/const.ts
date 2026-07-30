@@ -9,6 +9,6 @@ export const LABELS_HELP =
   "Labels are optional key/value pairs for organizing roles. They help you filter and find roles but don't affect permissions.";
 
 export const LABELS_FORM_DESCRIPTION =
-  'Add key/value labels to organize and filter roles (for example by organization, category or team).';
+  'Optionally, add key/value pair labels to help organize and filter roles. ';
 
 export const SEARCH_PLACEHOLDER = 'Filter by name, description, label or type';

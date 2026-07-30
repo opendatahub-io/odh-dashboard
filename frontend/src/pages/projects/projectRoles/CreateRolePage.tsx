@@ -337,7 +337,7 @@ const CreateRolePage: React.FC<CreateRolePageProps> = ({ existingRole, duplicate
     ? 'Edit custom role'
     : isDuplicate
     ? 'Duplicate custom role'
-    : 'Create custom role';
+    : 'Create a role';
 
   return (
     <>
@@ -352,7 +352,7 @@ const CreateRolePage: React.FC<CreateRolePageProps> = ({ existingRole, duplicate
             <BreadcrumbItem isActive>{pageTitle}</BreadcrumbItem>
           </Breadcrumb>
         }
-        description="Create a custom role to control what users can see and do across your cluster resources. Define permissions, navigation access, and resource scopes to implement fine-grained access control."
+        description="Define what actions users with this role can perform on project resources."
         headerAction={
           <Flex gap={{ default: 'gapMd' }} alignItems={{ default: 'alignItemsCenter' }}>
             <Button

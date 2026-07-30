@@ -35,6 +35,18 @@ class PermissionsTab {
     return cy.findByTestId('add-button group');
   }
 
+  findTabTitle() {
+    return cy.findByTestId('permissions-tab-title');
+  }
+
+  findTabDescription() {
+    return cy.findByTestId('permissions-tab-description');
+  }
+
+  findRolesTabLink() {
+    return cy.findByTestId('permissions-tab-roles-link');
+  }
+
   getUserTable() {
     return new PermissionTable(() => cy.findByTestId('role-binding-table User'));
   }

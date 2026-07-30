@@ -262,6 +262,18 @@ class ProjectRolesTab {
     return this.findPermissionRulesTable().find('tbody td[data-label="Actions"]');
   }
 
+  findTabTitle() {
+    return cy.findByTestId('roles-tab-title');
+  }
+
+  findTabDescription() {
+    return cy.findByTestId('roles-tab-description');
+  }
+
+  findPermissionsTabLink() {
+    return cy.findByTestId('roles-tab-permissions-link');
+  }
+
   getRow(name: string) {
     return new RolesTableRow(() =>
       this.findRolesTable().findAllByTestId('role-name-link').contains(name).parents('tr'),
