@@ -93,5 +93,8 @@ describe('HardwareProfileDetailsPopover', () => {
     fireEvent.click(screen.getByTestId('hardware-profile-details-popover'));
     expect(screen.getByTestId('hardware-profile-details')).toBeInTheDocument();
     expect(screen.getByText('Test Profile details')).toBeInTheDocument();
+    expect(screen.getByText('A test profile')).toBeInTheDocument();
+    expect(screen.getByText('CPU')).toBeInTheDocument();
+    expect(screen.getByText('Memory')).toBeInTheDocument();
   });
 });
