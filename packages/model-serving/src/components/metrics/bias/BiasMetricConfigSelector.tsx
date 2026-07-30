@@ -1,10 +1,7 @@
 import React from 'react';
 import { useModelBiasData } from '@odh-dashboard/internal/concepts/trustyai/context/useModelBiasData';
-import {
-  BiasMetricConfig,
-  TrustyInstallState,
-} from '@odh-dashboard/internal/concepts/trustyai/types';
-import { BiasMetricType } from '@odh-dashboard/internal/api';
+import type { BiasMetricConfig } from '@odh-dashboard/k8s-core/trustyai';
+import { BiasMetricType, TrustyInstallState } from '@odh-dashboard/k8s-core/trustyai';
 import {
   MultiSelection,
   SelectionOptions,

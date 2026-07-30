@@ -1,4 +1,4 @@
-import { BiasMetricType } from '@odh-dashboard/internal/api';
+import { BiasMetricType } from '@odh-dashboard/k8s-core/trustyai';
 import { BiasChartConfigMap, MetricsChartTypes } from './types';
 import { ModelMetricType } from './ModelServingMetricsContext';
 import { calculateThresholds } from './utils';

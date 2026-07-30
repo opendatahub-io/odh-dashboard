@@ -1,5 +1,6 @@
 /* eslint-disable camelcase */
-import { PrometheusQueryRangeResponse, PrometheusQueryRangeResponseDataResult } from '#~/types';
+import type { PrometheusQueryRangeResponseDataResult } from '@odh-dashboard/k8s-core/trustyai';
+import { PrometheusQueryRangeResponse } from '#~/types';
 
 type MockPrometheusServingType = {
   result?: PrometheusQueryRangeResponseDataResult[];

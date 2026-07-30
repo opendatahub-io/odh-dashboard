@@ -4,7 +4,6 @@
 
 import { K8sResourceCommon, WatchK8sResult } from '@openshift/dynamic-plugin-sdk-utils';
 import { AxiosError } from 'axios';
-// eslint-disable-next-line @odh-dashboard/no-restricted-imports -- re-exporting shared types for backward compatibility
 import type {
   Toleration,
   NodeSelector,
@@ -12,6 +11,7 @@ import type {
   PodContainer,
   Volume,
 } from '@odh-dashboard/k8s-core';
+import type { PrometheusQueryRangeResponseDataResult } from '@odh-dashboard/k8s-core/trustyai';
 import { FeatureFlag } from '@odh-dashboard/plugin-core/areas';
 import { FetchStateObject } from '@odh-dashboard/ui-core/hooks/useFetch';
 import { HardwarePodSpecOptions } from '#~/concepts/hardwareProfiles/types';
@@ -39,13 +39,6 @@ export type PrometheusQueryResponse<TResultExtraProps extends object = object> =
   status: string;
 };
 
-export type PrometheusQueryRangeResponseDataResult = {
-  metric: {
-    request?: string;
-    pod?: string;
-  };
-  values: PrometheusQueryRangeResultValue[];
-};
 export type PrometheusQueryRangeResponseData = {
   result?: PrometheusQueryRangeResponseDataResult[];
   resultType: string;
@@ -54,8 +47,6 @@ export type PrometheusQueryRangeResponse = {
   data: PrometheusQueryRangeResponseData;
   status: string;
 };
-
-export type PrometheusQueryRangeResultValue = [number, string];
 
 export type NotebookControllerUserState = {
   user: string;

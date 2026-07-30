@@ -15,7 +15,7 @@ import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import MetricsPageToolbar from '@odh-dashboard/internal/concepts/metrics/MetricsPageToolbar';
 import { useModelBiasData } from '@odh-dashboard/internal/concepts/trustyai/context/useModelBiasData';
 import DashboardExpandableSection from '@odh-dashboard/internal/concepts/dashboard/DashboardExpandableSection';
-import { TrustyInstallState } from '@odh-dashboard/internal/concepts/trustyai/types';
+import { TrustyInstallState } from '@odh-dashboard/k8s-core/trustyai';
 import BiasMetricConfigSelector from './BiasMetricConfigSelector';
 import BiasChart from './BiasChart';
 import EmptyBiasConfigurationCard from './BiasConfigurationPage/EmptyBiasConfigurationCard';

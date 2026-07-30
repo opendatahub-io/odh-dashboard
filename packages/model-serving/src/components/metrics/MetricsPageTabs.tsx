@@ -5,7 +5,7 @@ import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/ar
 import { useModelBiasData } from '@odh-dashboard/internal/concepts/trustyai/context/useModelBiasData';
 import NotFound from '@odh-dashboard/internal/pages/NotFound';
 import useDoesTrustyAICRExist from '@odh-dashboard/internal/concepts/trustyai/context/useDoesTrustyAICRExist';
-import { TrustyInstallState } from '@odh-dashboard/internal/concepts/trustyai/types';
+import { TrustyInstallState } from '@odh-dashboard/k8s-core/trustyai';
 import './MetricsPageTabs.scss';
 import useServingPlatformStatuses from '@odh-dashboard/internal/pages/modelServing/useServingPlatformStatuses';
 import { ProjectsContext } from '@odh-dashboard/ui-core/context/ProjectsContext';

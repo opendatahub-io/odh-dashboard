@@ -1,10 +1,10 @@
 import * as React from 'react';
 import { FetchStateObject } from '@odh-dashboard/ui-core/hooks/useFetch';
 import { useModelServingMetrics } from '@odh-dashboard/internal/api';
-import {
+import type {
   PrometheusQueryRangeResponseDataResult,
   PrometheusQueryRangeResultValue,
-} from '@odh-dashboard/internal/types';
+} from '@odh-dashboard/k8s-core/trustyai';
 import { DEFAULT_LIST_FETCH_STATE } from '@odh-dashboard/ui-core/utilities/fetchState';
 import { PerformanceMetricType } from '@odh-dashboard/internal/pages/modelServing/screens/types';
 import { MetricsCommonContext } from '@odh-dashboard/internal/concepts/metrics/MetricsCommonContext';

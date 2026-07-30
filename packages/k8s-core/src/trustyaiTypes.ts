@@ -1,0 +1,63 @@
+export type PrometheusQueryRangeResultValue = [number, string];
+
+export type PrometheusQueryRangeResponseDataResult = {
+  metric: {
+    request?: string;
+    pod?: string;
+  };
+  values: PrometheusQueryRangeResultValue[];
+};
+
+export enum BiasMetricType {
+  SPD = 'SPD',
+  DIR = 'DIR',
+}
+
+export enum TrustyInstallState {
+  UNINSTALLING = 'uninstalling',
+  INSTALLED = 'installed',
+  INSTALLING = 'installing',
+  /** Unrelated to Trusty error / infra failed, network issue, etc */
+  INFRA_ERROR = 'infra-error',
+  /** Specific error with the CR */
+  CR_ERROR = 'error',
+  UNINSTALLED = 'uninstalled',
+  LOADING_INITIAL_STATE = 'unknown',
+}
+
+export type BaseMetric = {
+  protectedAttribute: string;
+  outcomeName: string;
+  modelId: string;
+  requestName?: string;
+  thresholdDelta?: number;
+  batchSize?: number;
+};
+
+// Request type only for user input
+export type BaseMetricRequestInput = {
+  favorableOutcome: string | number | boolean;
+  privilegedAttribute: string | number | boolean;
+  unprivilegedAttribute: string | number | boolean;
+} & BaseMetric;
+
+// Request type for creating
+export type BaseMetricRequest = {
+  favorableOutcome: string | number | boolean;
+  privilegedAttribute: string | number | boolean;
+  unprivilegedAttribute: string | number | boolean;
+} & BaseMetric;
+
+export type BiasMetricConfig = {
+  id: string;
+  name: string;
+  metricType: BiasMetricType;
+  protectedAttribute: string;
+  outcomeName: string;
+  favorableOutcome: string;
+  privilegedAttribute: string;
+  unprivilegedAttribute: string;
+  modelId: string;
+  thresholdDelta?: number;
+  batchSize?: number;
+};

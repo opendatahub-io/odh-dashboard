@@ -3,7 +3,10 @@ import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/ar
 import { FetchStateObject } from '@odh-dashboard/ui-core/hooks/useFetch';
 import { RefreshIntervalTitle, TimeframeTitle } from '@odh-dashboard/ui-core/types/metrics';
 import { RefreshIntervalValue } from '@odh-dashboard/ui-core/utilities/metrics';
-import { PrometheusQueryRangeResponseDataResult, PrometheusQueryRangeResultValue } from '#~/types';
+import type {
+  PrometheusQueryRangeResponseDataResult,
+  PrometheusQueryRangeResultValue,
+} from '@odh-dashboard/k8s-core/trustyai';
 import { ModelMetricType } from '#~/pages/modelServing/screens/metrics/ModelServingMetricsContext';
 import { PerformanceMetricType } from '#~/pages/modelServing/screens/types';
 import useRefreshInterval from '#~/utilities/useRefreshInterval';
