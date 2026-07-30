@@ -215,6 +215,10 @@ const ProjectDetailsContextProvider: React.FC = () => {
     );
   }
 
+  // CurrentProjectContext (ui-core) exposes only currentProject so feature packages
+  // can consume it without depending on the full ProjectDetailsContext from internal.
+  // During migration, both providers coexist; this wrapper will shrink as more fields
+  // are extracted into standalone shared contexts.
   return (
     <CurrentProjectContext.Provider value={currentProjectValue}>
       <ProjectDetailsContext.Provider value={contextValue}>
