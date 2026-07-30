@@ -83,9 +83,21 @@ The following environment variables are used to configure the deployment and dev
 
 ### `MAAS_API_URL`
 
-- **Description**: Specifies the URL of the MaaS API that the BFF connects to.
-- **Default Value**: *(none)* — if not set, the `dev-bff-federated` Makefile target will auto-detect it by querying the cluster's ingress domain via `oc get ingresses.config.openshift.io cluster`. The resolved URL follows the pattern `http://maas.<CLUSTER_DOMAIN>/maas-api`. When running in-cluster, the BFF performs the same auto-detection using its service account.
-- **Example**: `MAAS_API_URL=http://maas.apps.my-cluster.example.com/maas-api`
+- **Description**: Specifies the URL of the MaaS API that the BFF connects to for passthrough calls (models, API keys, subscriptions).
+- **Default Value**: _(none)_ — when running in-cluster without this set, the BFF discovers the URL by calling `GET /v1/tenants` on the internal `maas-api` Service, selecting the tenant with gateway `maas-default-gateway`, and appending `/maas-api` to `gateway.externalUrl`. If discovery fails (for example `maas-api` is not installed yet), the BFF still starts in a degraded mode: maas-api-dependent routes return `503`, and discovery is retried in the background until it succeeds.
+- **Example**: `MAAS_API_URL=https://maas.apps.my-cluster.example.com/maas-api`
+
+### `MAAS_API_INTERNAL_URL`
+
+- **Description**: Internal `maas-api` Service base URL used only for `/v1/tenants` gateway discovery (not for passthrough). Overrides namespace-based auto-detection.
+- **Default Value**: _(none)_ — when unset, the BFF lists the cluster `DataScienceCluster` and maps `status.release.name` to the infra namespace (`Open Data Hub` → `odh-ai-gateway-infra`; `OpenShift AI Self-Managed` / `OpenShift AI Cloud Service` → `redhat-ai-gateway-infra`). If DSC is unavailable or unrecognized, falls back to `redhat-ai-gateway-infra` unless `MAAS_API_NAMESPACE` is set. Standalone module deployments grant DSC `list` only on the dedicated `odh-dashboard-maas` ClusterRole; sidecar mode sets `MAAS_API_NAMESPACE` from the ODH/RHOAI overlay instead of sharing DSC access on `odh-dashboard-modules`.
+- **Example**: `MAAS_API_INTERNAL_URL=https://maas-api.odh-ai-gateway-infra.svc.cluster.local:8443`
+
+### `MAAS_API_NAMESPACE`
+
+- **Description**: Namespace of the internal `maas-api` Service when `MAAS_API_INTERNAL_URL` is not set. Overrides DSC-based auto-detection.
+- **Default Value**: _(none)_ — auto-resolved from DSC `status.release.name`, then `redhat-ai-gateway-infra` as fallback.
+- **Example**: `MAAS_API_NAMESPACE=redhat-ai-gateway-infra`
 
 ### Example `.env.local` File
 
@@ -106,14 +118,17 @@ The following Makefile targets are used to build and push the Docker images the 
 ### Build Commands
 
 - **`docker-build`**: Builds the Docker image for the UI platform.
+
   - Command: `make docker-build`
   - This command uses the `CONTAINER_TOOL` and `IMG_UI` environment variables to push the image.
 
 - **`docker-buildx`**: Builds the Docker image with buildX for multiarch support.
+
   - Command: `make docker-buildx`
   - This command uses the `CONTAINER_TOOL` and `IMG_UI` environment variables to push the image.
 
 - **`docker-build-standalone`**: Builds the Docker image for the UI platform **in standalone mode**.
+
   - Command: `make docker-build-standalone`
   - This command uses the `CONTAINER_TOOL` and `IMG_UI_STANDALONE` environment variables to push the image.
 
@@ -124,6 +139,7 @@ The following Makefile targets are used to build and push the Docker images the 
 ### Push Commands
 
 - **`docker-push`**: Pushes the Docker image for the UI service to the container registry.
+
   - Command: `make docker-push`
   - This command uses the `CONTAINER_TOOL` and `IMG_UI` environment variables to push the image.
 

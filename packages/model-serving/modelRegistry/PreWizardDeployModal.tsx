@@ -21,8 +21,7 @@ import ProjectSelector from '@odh-dashboard/internal/pages/modelServing/screens/
 import useServingConnections from '@odh-dashboard/internal/pages/projects/screens/detail/connections/useServingConnections';
 import { useWatchConnectionTypes } from '@odh-dashboard/internal/utilities/useWatchConnectionTypes';
 import { uriToModelLocation } from '@odh-dashboard/internal/concepts/modelRegistry/utils';
-import { modelVersionDeploymentsUrl } from '@odh-dashboard/model-registry/routeUtils';
-import { ModelDeployPrefillInfo } from '@odh-dashboard/model-serving/shared';
+import type { ModelDeployPrefillInfo } from '@odh-dashboard/model-registry/shared';
 import useRegistryConnections from './useRegistryConnections';
 import { useExtractFormDataFromRegistry } from './useExtractFormDataFromRegistry';
 import { useNavigateToDeploymentWizard } from '../src/components/deploymentWizard/useNavigateToDeploymentWizard';
@@ -82,11 +81,7 @@ export const PreWizardDeployModal: React.FC<PreWizardDeployModalProps> = ({
   const navigateToWizard = useNavigateToDeploymentWizard(
     undefined,
     undefined,
-    modelVersionDeploymentsUrl(
-      modelDeployPrefill.data.modelRegistryInfo?.modelVersionId ?? '',
-      modelDeployPrefill.data.modelRegistryInfo?.registeredModelId ?? '',
-      modelDeployPrefill.data.modelRegistryInfo?.mrName ?? undefined,
-    ),
+    modelDeployPrefill.data.returnRoute,
   );
 
   const handleDeploy = React.useCallback(() => {

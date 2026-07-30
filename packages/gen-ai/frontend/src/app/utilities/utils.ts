@@ -269,11 +269,6 @@ export const convertMaaSModelToAIModel = (maasModel: MaaSModel): AIModel => ({
   endpoints: maasModel.url ? [`external: ${maasModel.url}`] : [],
   status: maasModel.ready ? 'Running' : 'Stop',
   display_name: maasModel.display_name || maasModel.id,
-  sa_token: {
-    name: '',
-    token_name: '',
-    token: '',
-  },
   model_source_type: 'maas',
   capabilities: maasModel.capabilities ?? [],
   externalEndpoint: maasModel.url || undefined,

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Popover } from '@patternfly/react-core';
+import { Content, ContentVariants, Tooltip } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { asEnumMember } from '@odh-dashboard/foundation';
 import {
@@ -8,21 +8,21 @@ import {
   ExistingSecretRef,
   SecretCategory,
 } from '#~/pages/projects/types';
+import { UseExistingSecretsResult } from './useExistingSecrets';
 import EnvDataTypeField from './EnvDataTypeField';
 import GenericKeyValuePairField from './GenericKeyValuePairField';
 import { EMPTY_KEY_VALUE_PAIR } from './const';
 import EnvUploadField from './EnvUploadField';
 import EnvExistingSecretField from './EnvExistingSecretField';
-import { useCanListSecrets } from './useCanListSecrets';
 
 type EnvSecretProps = {
   env?: EnvVariableData;
   onUpdate: (envVariableData: EnvVariableData) => void;
-  namespace: string;
   existingSecretRefs?: ExistingSecretRef[];
   onExistingSecretRefsUpdate?: (refs: ExistingSecretRef[]) => void;
   usedSecretNames?: Set<string>;
   inlineKeyNames?: Set<string>;
+  existingSecretsData: UseExistingSecretsResult;
 };
 
 const DEFAULT_ENV: EnvVariableData = {
@@ -30,17 +30,35 @@ const DEFAULT_ENV: EnvVariableData = {
   data: [],
 };
 
+const EXISTING_SECRET_DISABLED_MESSAGES = {
+  noPermission: "You don't have permission to view secrets.",
+  noSecrets: 'No secrets available to attach.',
+} as const;
+
 const EnvSecret: React.FC<EnvSecretProps> = ({
   env = DEFAULT_ENV,
   onUpdate,
-  namespace,
   existingSecretRefs = [],
   onExistingSecretRefsUpdate,
   usedSecretNames,
   inlineKeyNames,
+  existingSecretsData,
 }) => {
-  const { canList, loaded: rbacLoaded } = useCanListSecrets(namespace);
-  const existingDisabled = rbacLoaded && !canList;
+  const { secrets, loaded, canList, error } = existingSecretsData;
+  const noPermission = loaded && !canList;
+  const loadFailed = loaded && canList && !!error;
+  const noSecrets = loaded && canList && !error && secrets.length === 0;
+  const existingDisabled = !loaded || noPermission || loadFailed || noSecrets;
+
+  const disabledMessage = !loaded
+    ? 'Loading secrets...'
+    : loadFailed
+    ? 'Unable to load secrets. Retry or contact your administrator.'
+    : noPermission
+    ? EXISTING_SECRET_DISABLED_MESSAGES.noPermission
+    : noSecrets
+    ? EXISTING_SECRET_DISABLED_MESSAGES.noSecrets
+    : undefined;
 
   return (
     <EnvDataTypeField
@@ -77,21 +95,20 @@ const EnvSecret: React.FC<EnvSecretProps> = ({
           description:
             'Attach an available secret from this project. Use Existing Secrets to attach secrets managed by your platform team or provisioned through external tools. For reusable credentials like S3 or database connections, use the Connections section.',
           isDisabled: existingDisabled,
-          labelIcon: existingDisabled ? (
-            <Popover
-              headerContent="Access permissions needed"
-              bodyContent="To list existing secrets, ask your administrator to grant 'secrets list' access for this project, or use the Key / value option to create a new secret."
-            >
+          labelIcon: disabledMessage ? (
+            <Tooltip content={disabledMessage}>
               <OutlinedQuestionCircleIcon aria-label="More info" />
-            </Popover>
+            </Tooltip>
           ) : undefined,
-          render: (
+          render: disabledMessage ? (
+            <Content component={ContentVariants.small}>{disabledMessage}</Content>
+          ) : (
             <EnvExistingSecretField
-              namespace={namespace}
               existingSecretRefs={existingSecretRefs}
               onUpdate={(refs) => onExistingSecretRefsUpdate?.(refs)}
               usedSecretNames={usedSecretNames}
               inlineKeyNames={inlineKeyNames}
+              existingSecretsData={existingSecretsData}
             />
           ),
         },

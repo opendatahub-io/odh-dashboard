@@ -348,6 +348,48 @@ func (r *DashboardReconciler) reconcileSidecar(
 	return ctrl.Result{RequeueAfter: requeueAfter}, nil
 }
 
+func (r *DashboardReconciler) deleteSidecarResources(ctx context.Context) error {
+	logger := log.FromContext(ctx)
+	ns := r.ApplicationsNamespace
+	var errs []error
+
+	type namedResource struct {
+		obj  client.Object
+		name string
+	}
+	namespacedResources := []namedResource{
+		{&corev1.ServiceAccount{}, "odh-dashboard-modules"},
+		{&corev1.Secret{}, "odh-dashboard-modules-token"},
+		{&networkingv1.NetworkPolicy{}, "odh-dashboard-allow-ports"},
+		{&corev1.ConfigMap{}, "sidecar-params"},
+	}
+
+	for _, nr := range namespacedResources {
+		nr.obj.SetName(nr.name)
+		nr.obj.SetNamespace(ns)
+		if err := r.Delete(ctx, nr.obj); client.IgnoreNotFound(err) != nil {
+			errs = append(errs, fmt.Errorf("deleting %T %s: %w", nr.obj, nr.name, err))
+		}
+	}
+
+	clusterResources := []client.Object{
+		&rbacv1.ClusterRole{},
+		&rbacv1.ClusterRoleBinding{},
+	}
+	for _, obj := range clusterResources {
+		obj.SetName("odh-dashboard-modules")
+		if err := r.Delete(ctx, obj); client.IgnoreNotFound(err) != nil {
+			errs = append(errs, fmt.Errorf("deleting %T odh-dashboard-modules: %w", obj, err))
+		}
+	}
+
+	if len(errs) == 0 {
+		logger.Info("Cleaned up sidecar-specific resources")
+	}
+
+	return errors.Join(errs...)
+}
+
 func (r *DashboardReconciler) reconcileStandalone(
 	ctx context.Context,
 	dashboard *v1alpha1.Dashboard,
@@ -355,6 +397,15 @@ func (r *DashboardReconciler) reconcileStandalone(
 	cfg OperatorConfig,
 ) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
+
+	// Step 0: Clean up sidecar-specific resources that are not part of the standalone overlay.
+	// This handles the Sidecar → Standalone upgrade path where these resources would be orphaned.
+	if err := r.deleteSidecarResources(ctx); err != nil {
+		cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded),
+			conditions.WithReason("SidecarCleanupFailed"),
+			conditions.WithError(err))
+		return ctrl.Result{}, fmt.Errorf("failed to clean up sidecar resources: %w", err)
+	}
 
 	// Step 1: Deploy core manifests (3-container pod: odh-dashboard, kube-rbac-proxy, core-bff).
 	// Uses the standalone overlay which excludes BFF module sidecar containers.

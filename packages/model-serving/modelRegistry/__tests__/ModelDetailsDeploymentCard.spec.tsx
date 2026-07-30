@@ -103,6 +103,7 @@ describe('ModelDetailsDeploymentCard', () => {
       renderWithContext([deployment], <ModelDetailsDeploymentCard rmId="1" mrName="test-mr" />);
 
       expect(screen.getByTestId('metrics-link-test-deployment')).toBeInTheDocument();
+      expect(screen.getByTestId('deployed-model-name')).toBeInTheDocument();
     });
 
     it('should render metrics link when deployment state is LOADED and stopped', () => {
@@ -123,6 +124,7 @@ describe('ModelDetailsDeploymentCard', () => {
       renderWithContext([deployment], <ModelDetailsDeploymentCard rmId="1" mrName="test-mr" />);
 
       expect(screen.getByTestId('metrics-link-test-deployment')).toBeInTheDocument();
+      expect(screen.getByTestId('deployed-model-name')).toBeInTheDocument();
     });
   });
 });
