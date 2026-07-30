@@ -41,8 +41,9 @@ export const useHardwareProfilesByFeatureVisibility = (
   } = React.useContext(HardwareProfilesContext);
 
   const { currentProject } = React.useContext(CurrentProjectContext);
-  const { projectHardwareProfiles: contextProjectProfiles } =
-    React.useContext(ProjectHardwareProfilesContext);
+  const { projectHardwareProfiles: contextProjectProfiles } = React.useContext(
+    ProjectHardwareProfilesContext,
+  );
 
   // Determine if we should use context project profiles or fetch them
   const shouldUseContextProfiles =
