@@ -2,17 +2,18 @@ import * as React from 'react';
 import { Button, Divider, HelperText, HelperTextItem } from '@patternfly/react-core';
 import { InfoCircleIcon, PlusCircleIcon } from '@patternfly/react-icons';
 import { ConfigMapCategory, EnvVariable, SecretCategory } from '#~/pages/projects/types';
+import { UseExistingSecretsResult } from './useExistingSecrets';
 import EnvTypeSelectField from './EnvTypeSelectField';
 
 type EnvironmentVariablesProps = {
   envVariables: EnvVariable[];
   setEnvVariables: (envVars: EnvVariable[]) => void;
-  namespace: string;
+  existingSecretsData: UseExistingSecretsResult;
 };
 const EnvironmentVariables: React.FC<EnvironmentVariablesProps> = ({
   envVariables,
   setEnvVariables,
-  namespace,
+  existingSecretsData,
 }) => {
   const getUsedSecretNames = (excludeIndex: number): Set<string> => {
     const used = new Set<string>();
@@ -68,9 +69,9 @@ const EnvironmentVariables: React.FC<EnvironmentVariablesProps> = ({
             onRemove={() =>
               setEnvVariables(envVariables.filter((v, filterIndex) => filterIndex !== i))
             }
-            namespace={namespace}
             usedSecretNames={getUsedSecretNames(i)}
             inlineKeyNames={getInlineKeyNames(i)}
+            existingSecretsData={existingSecretsData}
           />
           {i !== envVariables.length - 1 && <Divider />}
         </React.Fragment>

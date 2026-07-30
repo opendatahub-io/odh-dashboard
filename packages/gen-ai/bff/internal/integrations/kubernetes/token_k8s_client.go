@@ -1177,78 +1177,6 @@ func (kc *TokenKubernetesClient) extractDisplayNameFromInferenceService(isvc *ks
 	return displayName
 }
 
-// Helper method to find the service account and secret
-func (kc *TokenKubernetesClient) findServiceAccountAndSecret(ctx context.Context, namespace, serviceName, serviceKind string) (string, string) {
-	// List service accounts in the namespace
-	var saList corev1.ServiceAccountList
-	err := kc.Client.List(ctx, &saList, client.InNamespace(namespace))
-	if err != nil {
-		kc.Logger.Warn("failed to list service accounts", "error", err, "namespace", namespace)
-		return "", ""
-	}
-
-	// Find service account with owner reference to this service
-	for _, sa := range saList.Items {
-		for _, ownerRef := range sa.OwnerReferences {
-			if ownerRef.Kind == serviceKind && ownerRef.Name == serviceName {
-				kc.Logger.Debug("Found service account with owner reference",
-					"serviceAccount", sa.Name,
-					"serviceName", serviceName,
-					"serviceKind", serviceKind)
-
-				// Find the secret associated with this service account
-				secretName := kc.findSecretForServiceAccount(ctx, namespace, sa.Name)
-				return sa.Name, secretName
-			}
-		}
-	}
-
-	// If no service account found with owner reference, use default
-	kc.Logger.Debug("no service account found with owner reference, using default",
-		"serviceName", serviceName,
-		"serviceKind", serviceKind)
-	secretName := kc.findSecretForServiceAccount(ctx, namespace, "default")
-	return "default", secretName
-}
-
-// Helper method to find the actual service account and secret used by InferenceService
-func (kc *TokenKubernetesClient) findServiceAccountAndSecretForInferenceService(ctx context.Context, isvc *kservev1beta1.InferenceService) (string, string) {
-	return kc.findServiceAccountAndSecret(ctx, isvc.Namespace, isvc.Name, "InferenceService")
-}
-
-// Helper method to find the actual service account and secret used by LLMInferenceService
-func (kc *TokenKubernetesClient) findServiceAccountAndSecretForLLMInferenceService(ctx context.Context, llmSvc *kservev1alpha1.LLMInferenceService) (string, string) {
-	return kc.findServiceAccountAndSecret(ctx, llmSvc.Namespace, llmSvc.Name, "LLMInferenceService")
-}
-
-// Helper method to find the secret containing the service account token
-func (kc *TokenKubernetesClient) findSecretForServiceAccount(ctx context.Context, namespace, serviceAccountName string) string {
-	// List secrets in the namespace
-	var secretList corev1.SecretList
-	err := kc.Client.List(ctx, &secretList, client.InNamespace(namespace))
-	if err != nil {
-		kc.Logger.Warn("failed to list secrets", "error", err, "namespace", namespace)
-		return serviceAccountName + "-token"
-	}
-
-	// Find secret with the service account annotation
-	for _, secret := range secretList.Items {
-		if secret.Type == corev1.SecretTypeServiceAccountToken {
-			if saName, exists := secret.Annotations["kubernetes.io/service-account.name"]; exists && saName == serviceAccountName {
-				kc.Logger.Debug("Found service account token secret",
-					"serviceAccount", serviceAccountName,
-					"secretName", secret.Name)
-				return secret.Name
-			}
-		}
-	}
-
-	// If no secret found, return empty string to indicate no secret exists
-	kc.Logger.Debug("no service account token secret found",
-		"serviceAccount", serviceAccountName)
-	return ""
-}
-
 // Helper method to extract description from LLMInferenceService annotations
 func (kc *TokenKubernetesClient) extractDescriptionFromLLMInferenceService(llmSvc *kservev1alpha1.LLMInferenceService) string {
 	if llmSvc == nil || llmSvc.Annotations == nil {
@@ -1413,7 +1341,6 @@ func (kc *TokenKubernetesClient) GetAAModelsFromExternalModels(ctx context.Conte
 			Description:        "",
 			Endpoints:          []string{provider.Config.BaseURL},
 			Status:             models.ModelStatusUnknown,
-			SAToken:            models.SAToken{},
 			ModelSourceType:    models.ModelSourceTypeCustomEndpoint,
 			ModelType:          model.ModelType,
 			EmbeddingDimension: model.Metadata.EmbeddingDimension,
@@ -1509,48 +1436,7 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 		return nil, fmt.Errorf("OGXServer already exists in namespace %s", namespace)
 	}
 
-	// Step 1: Collect existing service account token secrets for each model
-	type modelSecretInfo struct {
-		secretName string
-		tokenKey   string
-		hasToken   bool
-	}
-
-	modelSecrets := make(map[string]modelSecretInfo)
-
-	for _, model := range installModels {
-		var (
-			secretName string
-			foundType  string
-		)
-		// First try to find InferenceService
-		if targetISVC, err := kc.findInferenceServiceByModelName(ctx, namespace, model.ModelName); err == nil {
-			// Find the actual secret name and key used by the InferenceService
-			_, secretName = kc.findServiceAccountAndSecretForInferenceService(ctx, targetISVC)
-			foundType = "InferenceService"
-			// If InferenceService not found, try LLMInferenceService
-		} else if targetLLMSvc, err := kc.findLLMInferenceServiceByModelName(ctx, namespace, model.ModelName); err == nil {
-			// Find the actual secret name and key used by the LLMInferenceService
-			_, secretName = kc.findServiceAccountAndSecretForLLMInferenceService(ctx, targetLLMSvc)
-			foundType = "LLMInferenceService"
-		}
-		if foundType != "" {
-			modelSecrets[model.ModelName] = modelSecretInfo{
-				secretName: secretName,
-				tokenKey:   "token", // Service account token secrets always use "token" as the key
-				hasToken:   secretName != "",
-			}
-			if secretName != "" {
-				kc.Logger.Debug("found existing "+foundType+" service account token secret", "model", model.ModelName, "secretName", secretName, "hasToken", true)
-			} else {
-				kc.Logger.Debug("found "+foundType+" but no service account token secret", "model", model.ModelName, "hasToken", false)
-			}
-		} else {
-			kc.Logger.Debug("could not find InferenceService or LLMInferenceService for model, will use default", "model", model.ModelName)
-		}
-	}
-
-	// Step 2: Set up environment variables (including tokens from secret)
+	// Step 1: Set up environment variables
 	envVars := []corev1.EnvVar{
 		{
 			Name:  "VLLM_TLS_VERIFY",
@@ -1578,11 +1464,8 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 		},
 	}
 
-	// Add per-model token and max_tokens environment variables
+	// Add per-model max_tokens environment variables
 	for i, model := range installModels {
-		envVarName := fmt.Sprintf("VLLM_API_TOKEN_%d", i+1)
-
-		// Per-model max_tokens: use user-specified value or default to 4096
 		maxTokensEnvName := fmt.Sprintf("VLLM_MAX_TOKENS_%d", i+1)
 		maxTokensValue := "4096"
 		if model.MaxTokens != nil {
@@ -1592,45 +1475,9 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 			Name:  maxTokensEnvName,
 			Value: maxTokensValue,
 		})
-
-		if secretInfo, exists := modelSecrets[model.ModelName]; exists && secretInfo.hasToken && secretInfo.secretName != "" {
-			// Only reference the secret if it actually exists and has a valid name
-			// Check if the secret actually exists before referencing it
-			var secret corev1.Secret
-			err := kc.Client.Get(ctx, types.NamespacedName{Name: secretInfo.secretName, Namespace: namespace}, &secret)
-			if err == nil {
-				// Reference the existing service account token secret
-				envVars = append(envVars, corev1.EnvVar{
-					Name: envVarName,
-					ValueFrom: &corev1.EnvVarSource{
-						SecretKeyRef: &corev1.SecretKeySelector{
-							LocalObjectReference: corev1.LocalObjectReference{
-								Name: secretInfo.secretName,
-							},
-							Key: secretInfo.tokenKey,
-						},
-					},
-				})
-				kc.Logger.Debug("Referencing existing service account token secret", "model", model.ModelName, "envVar", envVarName, "secretName", secretInfo.secretName)
-			} else {
-				// Secret doesn't exist, use default token
-				envVars = append(envVars, corev1.EnvVar{
-					Name:  envVarName,
-					Value: "fake",
-				})
-				kc.Logger.Warn("service account token secret not found, using default token", "model", model.ModelName, "envVar", envVarName, "secretName", secretInfo.secretName, "error", err)
-			}
-		} else {
-			// Set default token for models without authentication
-			envVars = append(envVars, corev1.EnvVar{
-				Name:  envVarName,
-				Value: "fake",
-			})
-			kc.Logger.Debug("no token found for model, using default", "model", model.ModelName, "envVar", envVarName)
-		}
 	}
 
-	// Step 4: Validate vector stores and inject credential env vars for providers that need them.
+	// Step 2: Validate vector stores and inject credential env vars for providers that need them.
 	var validatedVectorStores []ValidatedVectorStore
 	if len(vectorStores) > 0 {
 		validatedVectorStores, err = kc.LoadAndValidateVectorStores(ctx, identity, namespace, vectorStores)
@@ -1793,7 +1640,7 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 			"host", pgConn.Host, "port", pgConn.Port, "db", pgConn.DB)
 	}
 
-	// Step 5: Generate ConfigMap content first (before creating OGXServer)
+	// Step 3: Generate ConfigMap content first (before creating OGXServer)
 	configMapName := "llama-stack-config"
 	userAuthToken := ""
 	for _, model := range installModels {
@@ -1811,7 +1658,7 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 		return nil, rollbackPgvector(fmt.Errorf("failed to generate Llama Stack configuration: %w", err))
 	}
 
-	// Step 6: Create ConfigMap BEFORE creating OGXServer (without owner reference yet)
+	// Step 4: Create ConfigMap BEFORE creating OGXServer (without owner reference yet)
 	// This prevents the OGXServer from failing with "ConfigMap not found" during initial reconciliation
 	configMap := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
@@ -1835,7 +1682,7 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 
 	kc.Logger.Info("ConfigMap created successfully (before OGXServer creation)", "namespace", namespace, "configMapName", configMapName)
 
-	// Step 7: Create OGXServer
+	// Step 5: Create OGXServer
 	replicas := int32(1)
 	workloadResources := &corev1.ResourceRequirements{
 		Requests: corev1.ResourceList{
@@ -1900,7 +1747,7 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 
 	kc.Logger.Info("OGXServer created successfully", "namespace", namespace, "lsdName", lsdName, "models", installModels)
 
-	// Step 8: Update ConfigMap to add owner reference to the OGXServer
+	// Step 6: Update ConfigMap to add owner reference to the OGXServer
 	// This ensures the ConfigMap is garbage collected when the OGXServer is deleted
 	configMap.OwnerReferences = []metav1.OwnerReference{
 		{

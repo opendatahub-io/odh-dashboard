@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log/slog"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
@@ -14,13 +13,10 @@ import (
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
-	"github.com/opendatahub-io/gen-ai/internal/config"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
-	"github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes/k8smocks"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack/lsmocks"
-	"github.com/opendatahub-io/gen-ai/internal/repositories"
 	"github.com/opendatahub-io/gen-ai/internal/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -124,19 +120,7 @@ var _ = Describe("LlamaStackListVectorStoresHandler", func() {
 	var app App
 
 	BeforeEach(func() {
-		k8sFactory, err := k8smocks.NewTokenClientFactory(testK8sClient, testCfg, slog.Default())
-		require.NoError(GinkgoT(), err)
-
-		llamaStackClientFactory := lsmocks.NewMockClientFactory()
-		app = App{
-			config: config.EnvConfig{
-				Port: 4000,
-			},
-			llamaStackClientFactory: llamaStackClientFactory,
-			kubernetesClientFactory: k8sFactory,
-			repositories:            repositories.NewRepositories(),
-			logger:                  slog.Default(),
-		}
+		app = NewK8sLSTestApp()
 
 		if realClient := lsmocks.TryCreateTestClient(); realClient != nil {
 			ctx := context.Background()
@@ -355,14 +339,7 @@ var _ = Describe("LlamaStackCreateVectorStoreHandler", func() {
 	var createJSONRequest func(payload interface{}) (*http.Request, error)
 
 	BeforeEach(func() {
-		llamaStackClientFactory := lsmocks.NewMockClientFactory()
-		app = App{
-			config: config.EnvConfig{
-				Port: 4000,
-			},
-			llamaStackClientFactory: llamaStackClientFactory,
-			repositories:            repositories.NewRepositories(),
-		}
+		app = NewLSOnlyTestApp()
 
 		createJSONRequest = func(payload interface{}) (*http.Request, error) {
 			jsonData, err := json.Marshal(payload)
@@ -653,14 +630,7 @@ var _ = Describe("LlamaStackDeleteVectorStoreHandler", func() {
 	var app App
 
 	BeforeEach(func() {
-		llamaStackClientFactory := lsmocks.NewMockClientFactory()
-		app = App{
-			config: config.EnvConfig{
-				Port: 4000,
-			},
-			llamaStackClientFactory: llamaStackClientFactory,
-			repositories:            repositories.NewRepositories(),
-		}
+		app = NewLSOnlyTestApp()
 	})
 
 	It("successful delete vector store", func() {
@@ -733,14 +703,7 @@ var _ = Describe("LlamaStackListVectorStoreFilesHandler", func() {
 	var app App
 
 	BeforeEach(func() {
-		llamaStackClientFactory := lsmocks.NewMockClientFactory()
-		app = App{
-			config: config.EnvConfig{
-				Port: 4000,
-			},
-			llamaStackClientFactory: llamaStackClientFactory,
-			repositories:            repositories.NewRepositories(),
-		}
+		app = NewLSOnlyTestApp()
 	})
 
 	It("successful list vector store files", func() {
@@ -844,14 +807,7 @@ var _ = Describe("LlamaStackDeleteVectorStoreFileHandler", func() {
 	var app App
 
 	BeforeEach(func() {
-		llamaStackClientFactory := lsmocks.NewMockClientFactory()
-		app = App{
-			config: config.EnvConfig{
-				Port: 4000,
-			},
-			llamaStackClientFactory: llamaStackClientFactory,
-			repositories:            repositories.NewRepositories(),
-		}
+		app = NewLSOnlyTestApp()
 	})
 
 	It("delete vector store file for non-member file", func() {
