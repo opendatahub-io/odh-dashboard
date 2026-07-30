@@ -66,6 +66,7 @@ describe('Verify that models and versions can be archived and restored via model
   });
 
   retryableBeforeEach(() => {
+    // TODO: RHOAIENG-65075 - 'Cannot read properties of null (reading postMessage)' error is suppressed globally in e2e.ts
     cy.clearCookies();
     cy.clearLocalStorage();
   });
