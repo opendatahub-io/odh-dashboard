@@ -65,12 +65,16 @@ export const formatTokenLimits = (limits: ModelSubscriptionRef['tokenRateLimits'
 
 export const DEFAULT_RATE_LIMIT: RateLimit = { count: 1000, time: 1, unit: 'hour' };
 export const MAX_VALUE = 999_999_999;
+export const MAX_WINDOW_VALUE = 9_999;
 
 export const exceedsTokenLimit = (n: number): boolean =>
   !Number.isNaN(n) && Math.trunc(Math.abs(n)) > MAX_VALUE;
 
+export const exceedsWindowLimit = (n: number): boolean =>
+  !Number.isNaN(n) && Math.trunc(Math.abs(n)) > MAX_WINDOW_VALUE;
+
 export const rateLimitExceedsMaxDigits = (limit: RateLimit): boolean =>
-  exceedsTokenLimit(limit.count) || exceedsTokenLimit(limit.time);
+  exceedsTokenLimit(limit.count) || exceedsWindowLimit(limit.time);
 
 export const rateLimitSchema = z.object({
   count: z
@@ -110,4 +114,4 @@ export const getCountDigitError = (limit: RateLimit): string | undefined =>
   exceedsTokenLimit(limit.count) ? 'Token count exceeds maximum allowed value' : undefined;
 
 export const getTimeDigitError = (limit: RateLimit): string | undefined =>
-  exceedsTokenLimit(limit.time) ? 'Time value exceeds maximum allowed value' : undefined;
+  exceedsWindowLimit(limit.time) ? 'Time value exceeds maximum allowed value' : undefined;
