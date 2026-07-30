@@ -22,9 +22,9 @@ func buildKeysMap(secret v1.Secret) map[string]string {
 	return result
 }
 
-// extractServiceAccountName extracts the service account name from a Kubernetes username.
-// If the username is a service account (format: system:serviceaccount:namespace:name),
-// it returns just the service account name. Otherwise, it returns the full username.
+// mapNamespacesToInfos converts Kubernetes Namespace objects into NamespaceInfo
+// values, preferring the "openshift.io/display-name" annotation for DisplayName
+// when present.
 func mapNamespacesToInfos(namespaces []v1.Namespace) []NamespaceInfo {
 	infos := make([]NamespaceInfo, 0, len(namespaces))
 	for _, ns := range namespaces {
@@ -40,6 +40,9 @@ func mapNamespacesToInfos(namespaces []v1.Namespace) []NamespaceInfo {
 	return infos
 }
 
+// extractServiceAccountName extracts the service account name from a Kubernetes username.
+// If the username is a service account (format: system:serviceaccount:namespace:name),
+// it returns just the service account name. Otherwise, it returns the full username.
 func extractServiceAccountName(username string) string {
 	const saPrefix = "system:serviceaccount:"
 	if len(username) > len(saPrefix) && username[:len(saPrefix)] == saPrefix {
