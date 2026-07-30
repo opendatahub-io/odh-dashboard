@@ -12,11 +12,6 @@ class MaaSWizardField {
 
 class APIKeysPage {
   visit(): void {
-    cy.visitWithLogin('/maas/tokens');
-    this.wait();
-  }
-
-  visitKeysAndSubs(): void {
     cy.visitWithLogin('/maas/keys-and-subs');
     this.wait();
   }
@@ -37,10 +32,6 @@ class APIKeysPage {
 
   findTitle(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('app-page-title');
-  }
-
-  findDescription(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('app-page-description');
   }
 
   findApiKeysTab(): Cypress.Chainable<JQuery<HTMLElement>> {
