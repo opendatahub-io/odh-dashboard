@@ -16,6 +16,8 @@ export const useWatchComponentsQuery = (
     queryKey: ['components', installed],
     queryFn: () => fetchComponents(installed),
     refetchInterval: POLL_INTERVAL,
+    refetchOnWindowFocus: false,
+    retry: false,
   });
 
   React.useEffect(() => {

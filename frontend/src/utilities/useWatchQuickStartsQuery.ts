@@ -12,6 +12,8 @@ export const useWatchQuickStartsQuery = (): {
     queryKey: ['quickStarts'],
     queryFn: fetchQuickStarts,
     refetchInterval: POLL_INTERVAL,
+    refetchOnWindowFocus: false,
+    retry: false,
   });
 
   return {

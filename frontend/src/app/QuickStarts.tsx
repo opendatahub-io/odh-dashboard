@@ -17,7 +17,14 @@ type QuickStartsProps = {
 const QuickStarts: React.FC<QuickStartsProps> = ({ children }) => {
   const [activeQuickStartID, setActiveQuickStartID] = useLocalStorage('rhodsQuickstartId', '');
   const [allQuickStartStates, setAllQuickStartStates] = useLocalStorage('rhodsQuickstarts', {});
-  const { quickStarts } = useWatchQuickStartsQuery();
+  const { quickStarts, loadError } = useWatchQuickStartsQuery();
+
+  React.useEffect(() => {
+    if (loadError) {
+      // eslint-disable-next-line no-console
+      console.warn('Failed to load QuickStarts:', loadError);
+    }
+  }, [loadError]);
 
   const valuesForQuickStartContext = {
     quickStarts,

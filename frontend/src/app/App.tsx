@@ -185,19 +185,19 @@ const App: React.FC = () => {
                     <ProjectsContextProvider>
                       <HardwareProfilesContextProvider>
                         <ModelRegistriesContextProvider>
-                          <React.Suspense
-                            fallback={
-                              <Bullseye>
-                                <Spinner />
-                              </Bullseye>
-                            }
-                          >
-                            <QuickStarts>
-                              <NotificationWatcherContextProvider pollInterval={POLL_INTERVAL}>
+                          <NotificationWatcherContextProvider pollInterval={POLL_INTERVAL}>
+                            <React.Suspense
+                              fallback={
+                                <Bullseye>
+                                  <Spinner />
+                                </Bullseye>
+                              }
+                            >
+                              <QuickStarts>
                                 <AppRoutes />
-                              </NotificationWatcherContextProvider>
-                            </QuickStarts>
-                          </React.Suspense>
+                              </QuickStarts>
+                            </React.Suspense>
+                          </NotificationWatcherContextProvider>
                         </ModelRegistriesContextProvider>
                       </HardwareProfilesContextProvider>
                     </ProjectsContextProvider>

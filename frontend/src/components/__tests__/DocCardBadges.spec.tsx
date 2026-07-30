@@ -1,6 +1,9 @@
 import * as React from 'react';
 import { render, screen } from '@testing-library/react';
-import { QuickStartsContext } from '#~/concepts/quickStarts/QuickStartsContext';
+import {
+  QuickStartsContext,
+  QuickStartContextValues,
+} from '#~/concepts/quickStarts/QuickStartsContext';
 import { OdhDocument, OdhDocumentType } from '#~/types';
 import { CompletionStatusEnum } from '#~/utilities/quickStartUtils';
 import DocCardBadges from '#~/components/DocCardBadges';
@@ -44,7 +47,7 @@ const renderWithContext = (odhDoc: OdhDocument) => {
   };
 
   return render(
-    <QuickStartsContext.Provider value={contextValue as never}>
+    <QuickStartsContext.Provider value={contextValue as unknown as QuickStartContextValues}>
       <DocCardBadges odhDoc={odhDoc} />
     </QuickStartsContext.Provider>,
   );
