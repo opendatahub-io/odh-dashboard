@@ -345,7 +345,7 @@ describe('AutomlLeaderboard utility functions', () => {
 
       // Very small values should use scientific notation
       const accuracyCell = screen.getByTestId('metric-accuracy-1');
-      expect(accuracyCell.textContent).toMatch(/1\.2300e-5|1\.23e-5/);
+      expect(accuracyCell).toHaveTextContent('1.2300e-5');
     });
   });
 });
