@@ -202,6 +202,7 @@ const ProjectDetailsContextProvider: React.FC = () => {
 
   if (!project || !contextValue || !currentProjectValue) {
     if (projectsEnabled && projects.length === 0) {
+      // No projects, but we do have the projects view -- navigate them so they can go through normal flows
       return <Navigate to="/projects" replace />;
     }
 

@@ -122,28 +122,31 @@ const ProjectsContextProvider: React.FC<ProjectsContextProviderProps> = ({ child
 
   const waitControllerRef = React.useRef<AbortController | null>(null);
   const waitTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const waitRejectRef = React.useRef<((reason: Error) => void) | null>(null);
 
-  React.useEffect(
-    () => () => {
-      waitControllerRef.current?.abort();
-      if (waitTimerRef.current != null) {
-        clearTimeout(waitTimerRef.current);
-      }
-    },
-    [],
-  );
+  const cancelActiveWait = React.useCallback(() => {
+    waitRejectRef.current?.(new DOMException('The operation was aborted.', 'AbortError'));
+    waitRejectRef.current = null;
+    waitControllerRef.current?.abort();
+    waitControllerRef.current = null;
+    if (waitTimerRef.current != null) {
+      clearTimeout(waitTimerRef.current);
+      waitTimerRef.current = null;
+    }
+  }, []);
+
+  React.useEffect(() => () => cancelActiveWait(), [cancelActiveWait]);
 
   const waitForProject = React.useCallback<ProjectsContextType['waitForProject']>(
     (projectName) =>
       new Promise((resolve, reject) => {
-        waitControllerRef.current?.abort();
-        if (waitTimerRef.current != null) {
-          clearTimeout(waitTimerRef.current);
-        }
+        cancelActiveWait();
         const controller = new AbortController();
         waitControllerRef.current = controller;
+        waitRejectRef.current = reject;
 
         const timer = setTimeout(() => {
+          waitRejectRef.current = null;
           controller.abort();
           reject(new Error(`Timed out waiting for project "${projectName}"`));
         }, WAIT_FOR_PROJECT_TIMEOUT_MS);
@@ -161,6 +164,7 @@ const ProjectsContextProvider: React.FC<ProjectsContextProviderProps> = ({ child
             }
             if (fresh.find(byName(projectName))) {
               clearTimeout(timer);
+              waitRejectRef.current = null;
               setProjectData(fresh);
               resolve();
               return;
@@ -175,7 +179,7 @@ const ProjectsContextProvider: React.FC<ProjectsContextProviderProps> = ({ child
         };
         void poll();
       }),
-    [],
+    [cancelActiveWait],
   );
 
   const contextValue = React.useMemo<ProjectsContextType>(
