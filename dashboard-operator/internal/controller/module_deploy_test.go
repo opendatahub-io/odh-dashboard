@@ -175,8 +175,8 @@ func TestBuildFederationConfigMap_NamespaceValues(t *testing.T) {
 	for _, entry := range entries {
 		name, _ := entry["name"].(string)
 
-		switch {
-		case name == "perses":
+		switch name {
+		case "perses":
 			proxyServices, _ := entry["proxyService"].([]interface{})
 			require.NotEmpty(t, proxyServices, "perses must have proxyService entries")
 			ps, _ := proxyServices[0].(map[string]interface{})
@@ -184,7 +184,7 @@ func TestBuildFederationConfigMap_NamespaceValues(t *testing.T) {
 			assert.Equal(t, persesNS, svc["namespace"],
 				"perses must use PersesService.Namespace, not ApplicationsNamespace")
 
-		case name == "coreBff":
+		case "coreBff":
 			proxyServices, _ := entry["proxyService"].([]interface{})
 			require.NotEmpty(t, proxyServices, "coreBff must have proxyService entries")
 			ps, _ := proxyServices[0].(map[string]interface{})
