@@ -43,7 +43,11 @@ func main() {
 	// If not provided via flag, it can be set via BUNDLE_PATHS env var (comma-separated). Defaults to empty.
 	defaultBundlePaths := getEnvAsString("BUNDLE_PATHS", "")
 	flag.Func("bundle-paths", "Comma-separated list of PEM CA bundle file paths to trust for outbound TLS (optional)", newOriginParser(&cfg.BundlePaths, defaultBundlePaths))
-	flag.StringVar(&cfg.AuthMethod, "auth-method", getEnvAsString("AUTH_METHOD", config.AuthMethodUser), "Authentication method (disabled, internal, or user_token)")
+	if err := cfg.AuthMethod.Set(getEnvAsString("AUTH_METHOD", config.AuthMethodUser.String())); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(2)
+	}
+	flag.Var(&cfg.AuthMethod, "auth-method", "Authentication method (disabled, internal, or user_token)")
 	flag.StringVar(&cfg.AuthTokenHeader, "auth-token-header", getEnvAsString("AUTH_TOKEN_HEADER", config.DefaultAuthTokenHeader), "Header used to extract the token (e.g., Authorization)")
 	flag.StringVar(&cfg.AuthTokenPrefix, "auth-token-prefix", getEnvAsString("AUTH_TOKEN_PREFIX", config.DefaultAuthTokenPrefix), "Prefix used in the token header (e.g., 'Bearer ')")
 
@@ -87,12 +91,6 @@ func main() {
 		logger.Warn("** SECURITY WARNING ** DevMode with ALLOW_UNRESOLVED_S3_ENDPOINTS=true is active. " +
 			"DNS resolution validation for S3 endpoints is bypassed, which weakens SSRF protection " +
 			"and introduces TOCTOU risk. This configuration must NEVER be used in production.")
-	}
-
-	//validate auth method
-	if cfg.AuthMethod != config.AuthMethodDisabled && cfg.AuthMethod != config.AuthMethodInternal && cfg.AuthMethod != config.AuthMethodUser {
-		logger.Error("invalid auth method: (must be disabled, internal, or user_token)", "authMethod", cfg.AuthMethod)
-		os.Exit(1)
 	}
 
 	// Prevent mock clients from being enabled in production — MockS3Client in particular

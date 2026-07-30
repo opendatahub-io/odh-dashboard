@@ -7,18 +7,6 @@ import (
 )
 
 const (
-	// AuthMethodDisabled disables authentication, useful for testing and development.
-	AuthMethodDisabled = "disabled"
-
-	// AuthMethodInternal uses the credentials of the running backend.
-	// If running inside the cluster, it uses the pod's service account.
-	// If running locally (e.g. for development), it uses the current user's kubeconfig context.
-	// This uses kubeflow-userid header to carry the user identity.
-	AuthMethodInternal = "internal"
-
-	// AuthMethodUser uses a user-provided Bearer token for authentication.
-	AuthMethodUser = "user_token"
-
 	// DefaultAuthTokenHeader is the standard header for Bearer token auth.
 	DefaultAuthTokenHeader = "Authorization"
 
@@ -26,6 +14,43 @@ const (
 	// note: the space here is intentional, as the prefix is "Bearer " (with a space).
 	DefaultAuthTokenPrefix = "Bearer "
 )
+
+// AuthMethod represents the authentication method enum
+type AuthMethod string
+
+const (
+	// AuthMethodDisabled disables authentication, useful for testing and development.
+	AuthMethodDisabled AuthMethod = "disabled"
+
+	// AuthMethodInternal uses the credentials of the running backend.
+	// If running inside the cluster, it uses the pod's service account.
+	// If running locally (e.g. for development), it uses the current user's kubeconfig context.
+	// This uses kubeflow-userid header to carry the user identity.
+	AuthMethodInternal AuthMethod = "internal"
+
+	// AuthMethodUser uses a user-provided Bearer token for authentication.
+	AuthMethodUser AuthMethod = "user_token"
+)
+
+// String implements the fmt.Stringer interface
+func (a AuthMethod) String() string {
+	return string(a)
+}
+
+// Set implements the flag.Value interface
+func (a *AuthMethod) Set(value string) error {
+	switch strings.ToLower(value) {
+	case "disabled":
+		*a = AuthMethodDisabled
+	case "internal":
+		*a = AuthMethodInternal
+	case "user_token":
+		*a = AuthMethodUser
+	default:
+		return fmt.Errorf("invalid auth method: %s (must be disabled, internal, or user_token)", value)
+	}
+	return nil
+}
 
 // DeploymentMode represents the deployment mode enum
 type DeploymentMode string
@@ -96,7 +121,7 @@ type EnvConfig struct {
 	// ─── AUTH ───────────────────────────────────────────────────
 	// Specifies the authentication method used by the server.
 	// Valid values: "internal" or "user_token"
-	AuthMethod string
+	AuthMethod AuthMethod
 
 	// Header used to extract the authentication token.
 	// Default is "Authorization" and can be overridden via CLI/env for proxy integration scenarios.

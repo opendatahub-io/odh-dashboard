@@ -95,7 +95,7 @@ func TestMiddleware_RequireAccessToService(t *testing.T) {
 
 	tests := []struct {
 		name           string
-		authMethod     string
+		authMethod     config.AuthMethod
 		namespace      string // injected into context; empty means no namespace in context
 		mockAllowed    bool
 		mockErr        error
