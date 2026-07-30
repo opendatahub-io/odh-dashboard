@@ -84,8 +84,20 @@ jobs:
       - name: Run linting and formatting checks
         run: NODE_OPTIONS="--max-old-space-size=8192" npm run lint
 
+  Cancel-On-Quality-Failure:
+    needs: [Lint, Type-Check]
+    if: failure()
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - name: Cancel workflow run
+        run: gh run cancel ${{ github.run_id }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+
   Unit-Tests:
-    needs: [Setup, Lint, Type-Check]
+    needs: [Setup]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
@@ -146,7 +158,7 @@ jobs:
           echo "$TEST_GROUPS" | jq .
 
   Contract-Tests:
-    needs: [Setup, Lint, Type-Check]
+    needs: [Setup]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
@@ -244,7 +256,7 @@ jobs:
           github-token: ${{ github.token }}
 
   Cypress-Mock-Tests:
-    needs: [Setup, Lint, Type-Check, Cypress-Setup, Get-Test-Groups, Get-Cypress-Packages]
+    needs: [Setup, Cypress-Setup, Get-Test-Groups, Get-Cypress-Packages]
     runs-on: ubuntu-latest
     permissions:
       actions: read
