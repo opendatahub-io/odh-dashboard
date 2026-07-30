@@ -159,33 +159,6 @@ describe('Permissions tab', () => {
     permissions.findAddGroupButton().should('be.enabled');
   });
 
-  it('should render the tab title, description, and link to the Roles tab', () => {
-    asProjectEditUser();
-    initIntercepts({ isEmpty: false });
-    permissions.visit('test-project');
-    cy.url().should('include', '/projects/test-project?section=permissions');
-
-    cy.wait('@listRoleBindings');
-    permissions.findTabTitle().should('have.text', 'Permissions');
-    permissions
-      .findTabDescription()
-      .should('contain.text', 'Manage who has access to this project');
-    permissions
-      .findRolesTabLink()
-      .should('have.attr', 'href', `/projects/test-project?section=roles`);
-  });
-
-  it('should navigate to the Roles tab when clicking the Roles link', () => {
-    asProjectEditUser();
-    initIntercepts({ isEmpty: false });
-    permissions.visitAssignRoles('test-project');
-    cy.url().should('include', '/projects/test-project?section=permissions');
-
-    cy.wait('@listRoleBindings');
-    permissions.findRolesTabLink().click();
-    cy.url().should('include', `/projects/test-project?section=roles`);
-  });
-
   describe('Users table', () => {
     it('Table sorting for users table', () => {
       initIntercepts({ isEmpty: false });

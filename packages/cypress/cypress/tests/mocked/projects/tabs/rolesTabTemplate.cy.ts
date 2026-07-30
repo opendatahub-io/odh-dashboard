@@ -56,7 +56,7 @@ describe('Select role template (header button)', () => {
 
     projectRoles.findSelectTemplateModal().should('not.exist');
     projectRoles.findReplaceContentModal().should('exist');
-    projectRoles.findReplaceContentModal().contains('Replace current content?').should('exist');
+    projectRoles.findReplaceContentModal().contains('Discard unsaved changes?').should('exist');
     cy.testA11y();
   });
 

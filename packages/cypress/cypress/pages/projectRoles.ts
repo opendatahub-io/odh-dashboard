@@ -259,7 +259,7 @@ class ProjectRolesTab {
   }
 
   findPermissionRuleActionCells() {
-    return this.findPermissionRulesTable().find('tbody td[data-label="Actions"]');
+    return this.findPermissionRulesTable().find('tbody td[data-label="Operations"]');
   }
 
   findTabTitle() {

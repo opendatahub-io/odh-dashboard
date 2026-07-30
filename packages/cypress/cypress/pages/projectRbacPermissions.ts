@@ -183,6 +183,18 @@ class ProjectRbacPermissionsTab {
     return cy.findByTestId('clear-filters-button');
   }
 
+  findTabTitle() {
+    return cy.findByTestId('permissions-tab-title');
+  }
+
+  findTabDescription() {
+    return cy.findByTestId('permissions-tab-description');
+  }
+
+  findRolesTabLink() {
+    return cy.findByTestId('permissions-tab-roles-link');
+  }
+
   // For PatternFly typeahead, options are rendered in a popper and not in the table DOM subtree.
   // Keep this as a simple global query by role (more consistent than wiring ids into the component).
   findTypeaheadOption(optionLabel: string | RegExp) {
