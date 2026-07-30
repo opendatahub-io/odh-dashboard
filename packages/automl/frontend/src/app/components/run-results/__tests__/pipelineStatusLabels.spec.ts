@@ -88,7 +88,7 @@ describe('pipeline status label fallbacks', () => {
     expect(getPipelineDetailsEmptyContent(unknownStatus)).toEqual({
       title: 'Pipeline details',
       variant: 'idle',
-      secondaryText: 'Click on any node in the pipeline to view its details here.',
+      secondaryText: 'Select a step to view its details.',
     });
   });
 });

@@ -15,6 +15,8 @@ import {
 export type StepDetail = {
   label: string;
   value: string;
+  /** Optional popover help shown next to the label. */
+  help?: { header: string; body: string };
 };
 
 export type StepMetadata = {
@@ -24,26 +26,30 @@ export type StepMetadata = {
 
 const DEFAULT_DETAILS: StepDetail[] = [{ label: 'Duration', value: '—' }];
 
+const BRANCH_MODEL_DESCRIPTION = 'The trained model candidate and its configuration.';
+
 /* eslint-disable camelcase -- keys match backend stage IDs */
 const STAGE_DESCRIPTIONS: Record<string, string> = {
   validate_inputs: 'Validating pipeline inputs and configuration before processing begins.',
   read_and_sample: 'Reading the dataset and sampling a representative subset for training.',
   cleanse: 'Cleaning and transforming raw data to prepare it for modeling.',
-  split: 'Splitting data into training and holdout sets.',
+  prepare_data: 'Validating and preprocessing input data for training.',
+  split: 'Splitting data into training and test sets for model evaluation.',
+  split_and_export: 'Splitting data into training and test sets for model evaluation.',
   write_outputs: 'Writing intermediate outputs from the data preparation phase.',
-  load_data: 'Loading prepared data for model training.',
-  model_selection:
-    'Evaluating candidate model families and selecting the top performers to train in parallel.',
-  refit_full: 'Retraining the best-performing models on the full training dataset.',
+  load_data: 'Loading prepared data into the training workspace.',
+  model_selection: 'Selecting candidate model architectures to train and evaluate.',
+  refit_full: 'Retraining top models using the complete dataset and evaluating final performance.',
   evaluate_models: 'Evaluating model performance on the holdout test set using configured metrics.',
-  build_leaderboard: 'Building the leaderboard and selecting the best model for deployment.',
+  build_leaderboard: 'Ranking models by performance and generating the results leaderboard.',
 };
 
 const STEP_DESCRIPTIONS: Record<string, string> = {
-  feature_engineering: 'Engineering and selecting features for the model training pipeline.',
-  model_training: 'Training base models with default hyperparameters.',
-  stacking: 'Building stacked ensembles from trained base models.',
-  model_evaluation: 'Evaluating model performance for this training path.',
+  feature_engineering: 'Transforming raw data into features for model training.',
+  model_training: 'Training the model using the prepared training data.',
+  stacking: 'Combining predictions from multiple models to improve accuracy.',
+  model_evaluation: 'Evaluating model performance against the test set.',
+  evaluation: 'Evaluating model performance against the test set.',
 };
 /* eslint-enable camelcase */
 
@@ -59,6 +65,31 @@ const extractStageId = (nodeId: string): string | undefined => {
 const extractStepId = (nodeId: string): string | undefined => {
   const match = /^.+__step__(.+)__branch-\d+$/.exec(nodeId);
   return match?.[1];
+};
+
+const getCuratedDescription = (nodeId: string): string | undefined => {
+  const parsed = parseStageMapNodeId(nodeId);
+  if (parsed?.type === 'stage' && Object.hasOwn(STAGE_DESCRIPTIONS, parsed.stageId)) {
+    return STAGE_DESCRIPTIONS[parsed.stageId];
+  }
+  if (parsed?.type === 'branch_step' && Object.hasOwn(STEP_DESCRIPTIONS, parsed.stepId)) {
+    return STEP_DESCRIPTIONS[parsed.stepId];
+  }
+  if (parsed?.type === 'branch_model') {
+    return BRANCH_MODEL_DESCRIPTION;
+  }
+
+  const stepId = extractStepId(nodeId);
+  if (stepId && Object.hasOwn(STEP_DESCRIPTIONS, stepId)) {
+    return STEP_DESCRIPTIONS[stepId];
+  }
+
+  const stageId = extractStageId(nodeId);
+  if (stageId && Object.hasOwn(STAGE_DESCRIPTIONS, stageId)) {
+    return STAGE_DESCRIPTIONS[stageId];
+  }
+
+  return undefined;
 };
 
 /** Find matching KFP task timing for a fallback topology node id. */
@@ -128,10 +159,14 @@ export const getStepMetadata = (
       };
     }
 
+    const curatedDescription = getCuratedDescription(nodeId);
     const mapDetails = getStageMapDetails(parsed, componentStageMap, pipelineRun, label, stepState);
     if (!mapDetails) {
       return {
-        description: getStageDescriptionFromMap(parsed, componentStageMap) ?? metadata.description,
+        description:
+          curatedDescription ??
+          getStageDescriptionFromMap(parsed, componentStageMap) ??
+          metadata.description,
         details: getDetailsFromPipelineRun(parsed.componentId, pipelineRun),
       };
     }
@@ -151,7 +186,7 @@ export const getStepMetadata = (
     }
 
     return {
-      description: mapDescription ?? metadata.description,
+      description: curatedDescription ?? mapDescription ?? metadata.description,
       details,
     };
   };
@@ -172,15 +207,14 @@ export const getStepMetadata = (
   if (stepId) {
     return resolveMetadata({
       description:
-        (Object.hasOwn(STEP_DESCRIPTIONS, stepId) ? STEP_DESCRIPTIONS[stepId] : undefined) ??
-        `Running ${resolveStepLabel(stepId)} for this model path.`,
+        getCuratedDescription(nodeId) ?? `Running ${resolveStepLabel(stepId)} for this model path.`,
       details: DEFAULT_DETAILS,
     });
   }
 
   if (/^.+__model__branch-\d+$/.test(nodeId)) {
     return resolveMetadata({
-      description: `Model training path for ${label}.`,
+      description: getCuratedDescription(nodeId) ?? BRANCH_MODEL_DESCRIPTION,
       details: DEFAULT_DETAILS,
     });
   }
@@ -188,9 +222,7 @@ export const getStepMetadata = (
   const stageId = extractStageId(nodeId);
   if (stageId) {
     return resolveMetadata({
-      description:
-        (Object.hasOwn(STAGE_DESCRIPTIONS, stageId) ? STAGE_DESCRIPTIONS[stageId] : undefined) ??
-        `Pipeline step: ${resolveStageLabel(stageId)}.`,
+      description: getCuratedDescription(nodeId) ?? `Pipeline step: ${resolveStageLabel(stageId)}.`,
       details: DEFAULT_DETAILS,
     });
   }
