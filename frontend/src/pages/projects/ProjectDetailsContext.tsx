@@ -195,9 +195,13 @@ const ProjectDetailsContextProvider: React.FC = () => {
     ],
   );
 
-  if (!project || !contextValue) {
+  const currentProjectValue = React.useMemo(
+    () => (project ? { currentProject: project } : undefined),
+    [project],
+  );
+
+  if (!project || !contextValue || !currentProjectValue) {
     if (projectsEnabled && projects.length === 0) {
-      // No projects, but we do have the projects view -- navigate them so they can go through normal flows
       return <Navigate to="/projects" replace />;
     }
 
@@ -209,11 +213,6 @@ const ProjectDetailsContextProvider: React.FC = () => {
       />
     );
   }
-
-  const currentProjectValue = React.useMemo(
-    () => ({ currentProject: project }),
-    [project],
-  );
 
   return (
     <CurrentProjectContext.Provider value={currentProjectValue}>
