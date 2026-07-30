@@ -67,14 +67,14 @@ func (r *K8sRepository) GetFilteredSecrets(
 		responseType := detectType(secret, secretType)
 		redactedData := kubernetes.RedactSecretData(secret.Data, allowedSecretKeys)
 
-		result = append(result, models.NewSecretListItem(
-			secret.UUID,
-			secret.Name,
-			responseType,
-			redactedData,
-			secret.DisplayName,
-			secret.Description,
-		))
+		result = append(result, models.SecretListItem{
+			UUID:        secret.UUID,
+			Name:        secret.Name,
+			Type:        responseType,
+			Data:        redactedData,
+			DisplayName: secret.DisplayName,
+			Description: secret.Description,
+		})
 	}
 
 	return result, nil

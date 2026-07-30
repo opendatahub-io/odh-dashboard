@@ -10,22 +10,22 @@ type RequestIdentity struct {
 
 // UserInfo contains user identity and authorization information
 type UserInfo struct {
-	UserID       string
-	ClusterAdmin bool
+	UserID       string `json:"userId"`
+	ClusterAdmin bool   `json:"clusterAdmin"`
 }
 
 // NamespaceInfo contains namespace metadata
 type NamespaceInfo struct {
-	Name        string
-	DisplayName string
+	Name        string `json:"name"`
+	DisplayName string `json:"displayName"`
 }
 
 // SecretInfo contains filtered secret data with type detection
 type SecretInfo struct {
-	UUID        string
-	Name        string
-	Type        string
-	Data        map[string]string
-	DisplayName string
-	Description string
+	UUID        string            `json:"uuid"`
+	Name        string            `json:"name"`
+	Type        string            `json:"type,omitempty"`
+	Data        map[string]string `json:"data"`
+	DisplayName string            `json:"displayName,omitempty"`
+	Description string            `json:"description,omitempty"`
 }

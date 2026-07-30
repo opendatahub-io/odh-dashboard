@@ -48,13 +48,8 @@ func (h *K8sHandler) UserHandler(w http.ResponseWriter, r *http.Request, _ httpr
 		}
 	}
 
-	user := &models.User{
-		UserID:       userInfo.UserID,
-		ClusterAdmin: userInfo.ClusterAdmin,
-	}
-
 	userRes := UserEnvelope{
-		Data: user,
+		Data: userInfo,
 	}
 
 	err = writeJSON(w, http.StatusOK, userRes, nil)
@@ -81,17 +76,8 @@ func (h *K8sHandler) GetNamespacesHandler(w http.ResponseWriter, r *http.Request
 		}
 	}
 
-	namespaces := make([]models.NamespaceModel, len(namespaceInfos))
-	for i, info := range namespaceInfos {
-		displayName := info.DisplayName
-		namespaces[i] = models.NamespaceModel{
-			Name:        info.Name,
-			DisplayName: &displayName,
-		}
-	}
-
 	namespacesEnvelope := NamespacesEnvelope{
-		Data: namespaces,
+		Data: namespaceInfos,
 	}
 
 	err = writeJSON(w, http.StatusOK, namespacesEnvelope, nil)

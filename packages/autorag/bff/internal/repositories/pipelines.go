@@ -213,75 +213,30 @@ func (r *PipelinesRepository) isManaged(run pipelines.PipelineRun, discovered ma
 	return false
 }
 
+// toAutoRAGRun converts the autox-core canonical run into the BFF's public contract.
+// PipelineVersionReference, RuntimeConfig, RuntimeStatus, ErrorInfo, RunDetails,
+// TaskDetail, and ChildTask are shared type aliases (see models/pipelines.go), so
+// those fields carry over directly with no field-by-field copying.
 func toAutoRAGRun(run *pipelines.PipelineRun) models.PipelineRun {
-	result := models.PipelineRun{
-		RunID:          run.RunID,
-		DisplayName:    run.DisplayName,
-		Description:    run.Description,
-		ExperimentID:   run.ExperimentID,
-		State:          run.State,
-		StorageState:   run.StorageState,
-		ServiceAccount: run.ServiceAccount,
-		CreatedAt:      run.CreatedAt,
-		ScheduledAt:    run.ScheduledAt,
-		FinishedAt:     run.FinishedAt,
-		PipelineSpec:   run.PipelineSpec,
-		PipelineType:   constants.PipelineTypeAutoRAG,
+	return models.PipelineRun{
+		RunID:                    run.RunID,
+		DisplayName:              run.DisplayName,
+		Description:              run.Description,
+		ExperimentID:             run.ExperimentID,
+		PipelineVersionReference: run.PipelineVersionReference,
+		RuntimeConfig:            run.RuntimeConfig,
+		State:                    run.State,
+		StorageState:             run.StorageState,
+		ServiceAccount:           run.ServiceAccount,
+		CreatedAt:                run.CreatedAt,
+		ScheduledAt:              run.ScheduledAt,
+		FinishedAt:               run.FinishedAt,
+		PipelineSpec:             run.PipelineSpec,
+		StateHistory:             run.StateHistory,
+		Error:                    run.Error,
+		RunDetails:               run.RunDetails,
+		PipelineType:             constants.PipelineTypeAutoRAG,
 	}
-
-	if run.PipelineVersionReference != nil {
-		result.PipelineVersionReference = &models.PipelineVersionReference{
-			PipelineID:        run.PipelineVersionReference.PipelineID,
-			PipelineVersionID: run.PipelineVersionReference.PipelineVersionID,
-		}
-	}
-
-	if run.RuntimeConfig != nil {
-		result.RuntimeConfig = &models.RuntimeConfig{
-			Parameters:   run.RuntimeConfig.Parameters,
-			PipelineRoot: run.RuntimeConfig.PipelineRoot,
-		}
-	}
-
-	if run.Error != nil {
-		result.Error = &models.ErrorInfo{Code: run.Error.Code, Message: run.Error.Message}
-	}
-
-	if run.RunDetails != nil {
-		details := &models.RunDetails{}
-		for _, td := range run.RunDetails.TaskDetails {
-			detail := models.TaskDetail{
-				RunID: td.RunID, TaskID: td.TaskID, DisplayName: td.DisplayName,
-				CreateTime: td.CreateTime, StartTime: td.StartTime, EndTime: td.EndTime,
-				State: td.State,
-			}
-			if td.Error != nil {
-				detail.Error = &models.ErrorInfo{Code: td.Error.Code, Message: td.Error.Message}
-			}
-			for _, ct := range td.ChildTasks {
-				detail.ChildTasks = append(detail.ChildTasks, models.ChildTask{PodName: ct.PodName})
-			}
-			for _, sh := range td.StateHistory {
-				rs := models.RuntimeStatus{UpdateTime: sh.UpdateTime, State: sh.State}
-				if sh.Error != nil {
-					rs.Error = &models.ErrorInfo{Code: sh.Error.Code, Message: sh.Error.Message}
-				}
-				detail.StateHistory = append(detail.StateHistory, rs)
-			}
-			details.TaskDetails = append(details.TaskDetails, detail)
-		}
-		result.RunDetails = details
-	}
-
-	for _, sh := range run.StateHistory {
-		rs := models.RuntimeStatus{UpdateTime: sh.UpdateTime, State: sh.State}
-		if sh.Error != nil {
-			rs.Error = &models.ErrorInfo{Code: sh.Error.Code, Message: sh.Error.Message}
-		}
-		result.StateHistory = append(result.StateHistory, rs)
-	}
-
-	return result
 }
 
 // --- Validation (autorag-specific) ---

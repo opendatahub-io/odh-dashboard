@@ -44,13 +44,8 @@ func (h *K8sHandler) UserHandler(w http.ResponseWriter, r *http.Request, _ httpr
 		}
 	}
 
-	user := &models.User{
-		UserID:       userInfo.UserID,
-		ClusterAdmin: userInfo.ClusterAdmin,
-	}
-
 	userRes := UserEnvelope{
-		Data: user,
+		Data: userInfo,
 	}
 
 	err = writeJSON(w, http.StatusOK, userRes, nil)
@@ -77,17 +72,8 @@ func (h *K8sHandler) GetNamespacesHandler(w http.ResponseWriter, r *http.Request
 		}
 	}
 
-	namespaces := make([]models.NamespaceModel, len(namespaceInfos))
-	for i, info := range namespaceInfos {
-		displayName := info.DisplayName
-		namespaces[i] = models.NamespaceModel{
-			Name:        info.Name,
-			DisplayName: &displayName,
-		}
-	}
-
 	namespacesEnvelope := NamespacesEnvelope{
-		Data: namespaces,
+		Data: namespaceInfos,
 	}
 
 	err = writeJSON(w, http.StatusOK, namespacesEnvelope, nil)
@@ -129,14 +115,7 @@ func (h *K8sHandler) GetSecretsHandler(w http.ResponseWriter, r *http.Request, _
 		return
 	}
 
-	items := make([]models.SecretListItem, 0, len(secrets))
-	for _, s := range secrets {
-		items = append(items, models.NewSecretListItem(
-			s.UUID, s.Name, s.Type, s.Data, s.DisplayName, s.Description,
-		))
-	}
-
-	err = writeJSON(w, http.StatusOK, SecretsEnvelope{Data: items}, nil)
+	err = writeJSON(w, http.StatusOK, SecretsEnvelope{Data: secrets}, nil)
 	if err != nil {
 		serverErrorResponse(h.logger, w, r, err)
 	}
