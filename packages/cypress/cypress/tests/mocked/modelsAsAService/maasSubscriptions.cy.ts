@@ -354,7 +354,9 @@ describe('Subscription Create Page', () => {
     createSubscriptionPage.findAddModelsButton().click();
     addModelsToSubscriptionModal.shouldBeOpen();
     addModelsToSubscriptionModal.findTable().should('exist');
-    addModelsToSubscriptionModal.findToggleModelButton('granite-3-8b-instruct').click();
+    addModelsToSubscriptionModal
+      .findToggleModelButton('granite-3-8b-instruct', 'maas-models')
+      .click();
     addModelsToSubscriptionModal.findConfirmButton().click();
 
     // Verify the model appears in the subscription models table

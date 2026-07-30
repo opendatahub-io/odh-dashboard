@@ -848,8 +848,11 @@ class AddModelsToSubscriptionModal extends Modal {
     return this.find().findByTestId('add-models-table');
   }
 
-  findToggleModelButton(modelName: string): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().findByTestId(`toggle-model-${modelName}`);
+  findToggleModelButton(
+    modelName: string,
+    namespace: string,
+  ): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId(`toggle-model-${modelName}-${namespace}`);
   }
 
   findConfirmButton(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -1021,8 +1024,11 @@ class PolicyPage {
     return cy.findByTestId('add-models-modal');
   }
 
-  findToggleModelInModal(modelName: string): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findAddModelsModal().findByTestId(`toggle-model-${modelName}`);
+  findToggleModelInModal(
+    modelName: string,
+    namespace: string,
+  ): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findAddModelsModal().findByTestId(`toggle-model-${modelName}-${namespace}`);
   }
 
   findConfirmAddModelsButton(): Cypress.Chainable<JQuery<HTMLElement>> {

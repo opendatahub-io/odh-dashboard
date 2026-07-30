@@ -195,6 +195,7 @@ export type ModelOverviewDetails = {
 
 export type ModelOverviewItem = {
   id: string;
+  namespace: string;
   modelDetails: ModelOverviewDetails;
   subscriptions: ModelOverviewSubscription[];
   authPolicies: ModelOverviewPolicy[];
