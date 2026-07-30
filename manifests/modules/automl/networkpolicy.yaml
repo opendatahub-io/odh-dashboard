@@ -17,6 +17,8 @@ spec:
         - namespaceSelector:
             matchLabels:
               network.openshift.io/policy-group: ingress
+  # automl is an API-only BFF — it only needs DNS, K8s API, and
+  # namespace-scoped DSPA (8443). No external HTTP(S) required.
   egress:
     - to:
         - namespaceSelector:

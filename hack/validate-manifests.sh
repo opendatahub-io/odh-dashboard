@@ -22,7 +22,7 @@ for target in "${TARGETS[@]}"; do
     echo "OK"
   else
     echo "FAIL"
-    kustomize build "$target" > /dev/null
+    kustomize build "$target" > /dev/null || true
     FAILED=1
   fi
 done
