@@ -9,11 +9,15 @@ import { useGovernanceResourceAffectedModels } from '~/app/hooks/useGovernanceAf
 import PhaseLabel from '~/app/shared/Phase/PhaseLabel';
 import { PhaseLabelLocation, PhaseResourceType } from '~/app/utilities/phaseLabelUtils';
 import { formatTokenLimits } from '~/app/utilities/rateLimits';
-import { MaaSEvents } from '~/app/types/event-tracking';
 import {
   getAuthPolicyViewUrl,
   getSubscriptionViewUrl,
 } from '~/app/utilities/subscriptionManagementNavigation';
+import {
+  EventTrackingResourceType,
+  EventTrackingSource,
+  MaaSEvents,
+} from '~/app/types/event-tracking';
 import { hasHighlightedGroup } from './utils';
 import GroupChips from './GroupChips';
 import styles from './ExpandedModelContent.module.scss';
@@ -256,6 +260,13 @@ const SubscriptionsSection: React.FC<SubscriptionsSectionProps> = ({
               name={sub.name}
               displayName={sub.displayName}
               linkTo={`${URL_PREFIX}/maas-governance/subscriptions/view/${sub.name}`}
+              onLinkClick={() =>
+                fireMiscTrackingEvent(MaaSEvents.MAAS_RESOURCE_DETAILS_VIEWED, {
+                  resourceType: EventTrackingResourceType.SUBSCRIPTION,
+                  source: EventTrackingSource.OVERVIEW_MODEL,
+                  resourceStatus: sub.phase ?? '',
+                })
+              }
               linkState={OVERVIEW_LINK_STATE}
               returnTo={returnTo}
               phase={sub.phase}
@@ -342,6 +353,13 @@ const PoliciesSection: React.FC<PoliciesSectionProps> = ({
               name={policy.name}
               displayName={policy.displayName}
               linkTo={`${URL_PREFIX}/maas-governance/auth-policies/view/${policy.name}`}
+              onLinkClick={() =>
+                fireMiscTrackingEvent(MaaSEvents.MAAS_RESOURCE_DETAILS_VIEWED, {
+                  resourceType: EventTrackingResourceType.AUTHPOLICY,
+                  source: EventTrackingSource.OVERVIEW_MODEL,
+                  resourceStatus: policy.phase ?? '',
+                })
+              }
               linkState={OVERVIEW_LINK_STATE}
               phase={policy.phase}
               resourceType={PhaseResourceType.AUTHPOLICY}
