@@ -13,7 +13,7 @@ import {
 } from '../../../pages/modelsAsAService';
 import { mockAPIKeys, mockSubscriptionListItems } from '../../../utils/maasUtils';
 
-describe('API keys (mySubscriptions feature flag)', () => {
+describe('API keys - Subscription Tab', () => {
   beforeEach(() => {
     asClusterAdminUser();
     cy.interceptOdh(
@@ -61,7 +61,7 @@ describe('API keys (mySubscriptions feature flag)', () => {
   });
 
   it('should navigate to subscriptions tab', () => {
-    apiKeysPage.visitKeysAndSubs();
+    apiKeysPage.visit();
     cy.wait('@initialSearch');
 
     apiKeysPage.findTitle().should('contain.text', 'API keys');
@@ -81,7 +81,7 @@ describe('API keys (mySubscriptions feature flag)', () => {
   });
 
   it('should display subscription view with search', () => {
-    apiKeysPage.visitKeysAndSubs();
+    apiKeysPage.visit();
     cy.wait('@initialSearch');
 
     apiKeysPage.findSubscriptionsTab().click();
@@ -107,7 +107,7 @@ describe('API keys (mySubscriptions feature flag)', () => {
   });
 
   it('should display model view with search', () => {
-    apiKeysPage.visitKeysAndSubs();
+    apiKeysPage.visit();
     cy.wait('@initialSearch');
 
     apiKeysPage.findSubscriptionsTab().click();
@@ -136,7 +136,7 @@ describe('API keys (mySubscriptions feature flag)', () => {
     const graniteDescription =
       'Granite 3 8B Instruct is a large language model that is used for advanced tasks.';
 
-    apiKeysPage.visitKeysAndSubs();
+    apiKeysPage.visit();
     cy.wait('@initialSearch');
 
     apiKeysPage.findSubscriptionsTab().click();
@@ -186,7 +186,7 @@ describe('API keys (mySubscriptions feature flag)', () => {
       ],
     });
 
-    apiKeysPage.visitKeysAndSubs();
+    apiKeysPage.visit();
     cy.wait('@initialSearch');
 
     apiKeysPage.findSubscriptionsTab().click();
@@ -198,7 +198,7 @@ describe('API keys (mySubscriptions feature flag)', () => {
   it('should show empty state when no subscriptions exist', () => {
     cy.interceptOdh('GET /maas/api/v1/subscriptions', { data: [] }).as('emptySubscriptions');
 
-    apiKeysPage.visitKeysAndSubs();
+    apiKeysPage.visit();
     cy.wait('@initialSearch');
 
     apiKeysPage.findSubscriptionsTab().click();

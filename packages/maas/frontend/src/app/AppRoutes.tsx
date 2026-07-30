@@ -4,7 +4,6 @@ import NotFound from '@odh-dashboard/internal/pages/NotFound';
 import ViewSubscriptionPage from '~/app/pages/subscriptions/ViewSubscriptionPage';
 import EditSubscriptionPage from '~/app/pages/subscriptions/EditSubscriptionPage';
 import CreateSubscriptionPage from '~/app/pages/subscriptions/CreateSubscriptionPage';
-import AllApiKeysPage from '~/app/pages/keys-and-subs/apiKeys/AllApiKeysPage';
 import ApiKeysAndSubscriptionsPage from '~/app/pages/keys-and-subs/ApiKeysAndSubscriptionsPage';
 import { URL_PREFIX } from '~/app/utilities/const';
 import CreateAuthPolicyPage from '~/app/pages/auth-policies/CreateAuthPolicyPage';
@@ -46,7 +45,7 @@ const AppRoutes: React.FC = () => {
 
   return (
     <Routes>
-      <Route path="/" element={<AllApiKeysPage />} />
+      <Route path="/" element={<ApiKeysAndSubscriptionsPage />} />
       <Route path="*" element={<Navigate to={`${URL_PREFIX}/tokens`} replace />} />
     </Routes>
   );

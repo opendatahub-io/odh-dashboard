@@ -58,16 +58,8 @@ describe('API Keys Page', () => {
     cy.interceptOdh('GET /maas/api/v1/all-subscriptions', {
       data: mockSubscriptions(),
     }).as('getAllSubscriptions');
-    apiKeysPage.visitKeysAndSubs();
-    cy.wait('@initialSearch');
-  });
-
-  it('should not show the subscriptions tab when mySubscriptions flag is disabled', () => {
-    // When mySubscriptions is disabled, the /maas/tokens route is used (no tabbed layout).
     apiKeysPage.visit();
-    apiKeysPage.findTitle().should('contain.text', 'API keys');
-    apiKeysPage.findSubscriptionsTab().should('not.exist');
-    apiKeysPage.findApiKeysTab().should('not.exist');
+    cy.wait('@initialSearch');
   });
 
   it('should display the API keys table page with active and expired keys on initial load', () => {
@@ -110,7 +102,6 @@ describe('API Keys Page', () => {
     cy.wait('@apiKeysSearch');
 
     apiKeysPage.findTitle().should('contain.text', 'API keys');
-    apiKeysPage.findDescription().should('exist');
 
     // Table shows no results for the active filter since only revoked keys exist
     apiKeysPage.findTable().should('exist');
@@ -156,7 +147,7 @@ describe('API Keys Page', () => {
     apiKeysPage.findCreateApiKeyButton().should('exist').and('be.enabled');
   });
 
-  it('should display a useful error state when the API keys search fails', () => {
+  it('should display a useful error state when the API keys search fails and still show the tabs', () => {
     cy.intercept('POST', '/maas/api/v1/api-keys/search', {
       statusCode: 500,
       body: {
@@ -170,6 +161,8 @@ describe('API Keys Page', () => {
     apiKeysPage.visit();
     cy.wait('@searchError');
     apiKeysPage.findErrorState().should('exist');
+    apiKeysPage.findSubscriptionsTab().should('exist');
+    apiKeysPage.findApiKeysTab().should('exist');
     apiKeysPage
       .findErrorState()
       .should(

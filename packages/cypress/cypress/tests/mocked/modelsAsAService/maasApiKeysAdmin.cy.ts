@@ -4,7 +4,11 @@ import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import { mockSearchResponse } from './maasApiKeysTestUtils';
 import { asProductAdminUser } from '../../../utils/mockUsers';
 import { adminBulkRevokeAPIKeyModal, apiKeysPage } from '../../../pages/modelsAsAService';
-import { mockAPIKeys, mockSubscriptions } from '../../../utils/maasUtils';
+import {
+  mockAPIKeys,
+  mockSubscriptionListItems,
+  mockSubscriptions,
+} from '../../../utils/maasUtils';
 
 describe('API Keys Page (Admin)', () => {
   beforeEach(() => {
@@ -34,6 +38,9 @@ describe('API Keys Page (Admin)', () => {
     cy.interceptOdh('POST /maas/api/v1/api-keys/search', mockSearchResponse(mockAPIKeys())).as(
       'initialSearch',
     );
+    cy.interceptOdh('GET /maas/api/v1/subscriptions', {
+      data: mockSubscriptionListItems(),
+    }).as('getSubscriptions');
     cy.interceptOdh('GET /maas/api/v1/all-subscriptions', {
       data: mockSubscriptions(),
     }).as('getAllSubscriptions');
