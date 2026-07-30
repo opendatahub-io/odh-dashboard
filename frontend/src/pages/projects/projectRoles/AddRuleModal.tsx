@@ -162,22 +162,7 @@ const AddRuleModal: React.FC<AddRuleModalProps> = ({ existingRule, onSave, onClo
               manually.
             </Alert>
           ) : null}
-          <FormGroup
-            label="API groups"
-            fieldId="rule-api-groups"
-            isRequired
-            labelHelp={
-              <FieldGroupHelpLabelIcon
-                content={
-                  <>
-                    API groups organize Kubernetes resources by functionality. Selecting an API
-                    group filters the <strong>Resource types</strong> list to show only resources in
-                    that group.
-                  </>
-                }
-              />
-            }
-          >
+          <FormGroup label="API groups" fieldId="rule-api-groups" isRequired>
             <Content component="p">Select one or more API groups.</Content>
             <MultiSelection
               ariaLabel="Select or type API groups"
