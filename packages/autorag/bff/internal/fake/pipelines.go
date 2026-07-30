@@ -282,7 +282,7 @@ func (c *PipelinesClient) progressRun(runID string) {
 }
 
 func (c *PipelinesClient) seedRuns() {
-	seed := func(id, name, state, createdAt, finishedAt string) {
+	seed := func(id, name string, state plsvc.RunState, createdAt, finishedAt string) {
 		params := map[string]any{
 			"embedding_models":              []any{"vllm-embedding/ibm-granite/granite-embedding-english-r2"},
 			"generation_models":             []any{"vllm-inference/meta-llama/Llama-3.1-8B-Instruct"},
@@ -302,7 +302,7 @@ func (c *PipelinesClient) seedRuns() {
 			{UpdateTime: createdAt, State: "PENDING"},
 			{UpdateTime: createdAt, State: "RUNNING"},
 		}
-		if state == "SUCCEEDED" || state == "FAILED" {
+		if state == plsvc.RunStateSucceeded || state == plsvc.RunStateFailed {
 			history = append(history, plsvc.RuntimeStatus{UpdateTime: finishedAt, State: state})
 		}
 
@@ -341,7 +341,7 @@ func dagTaskNames() []string {
 	}
 }
 
-func buildSeedRunDetails(runID, state, createdAt, finishedAt string) *plsvc.RunDetails {
+func buildSeedRunDetails(runID string, state plsvc.RunState, createdAt, finishedAt string) *plsvc.RunDetails {
 	tasks := dagTaskNames()
 	details := make([]plsvc.TaskDetail, 0, len(tasks))
 	for _, name := range tasks {

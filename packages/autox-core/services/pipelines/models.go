@@ -5,6 +5,21 @@ import (
 	"time"
 )
 
+// RunState is a KFP v2beta1 pipeline run state.
+type RunState string
+
+// KFP v2beta1 run states.
+const (
+	RunStatePending   RunState = "PENDING"
+	RunStateRunning   RunState = "RUNNING"
+	RunStatePaused    RunState = "PAUSED"
+	RunStateCanceling RunState = "CANCELING"
+	RunStateCanceled  RunState = "CANCELED"
+	RunStateSucceeded RunState = "SUCCEEDED"
+	RunStateFailed    RunState = "FAILED"
+	RunStateSkipped   RunState = "SKIPPED"
+)
+
 // PipelineRun represents a Kubeflow Pipelines v2beta1 run.
 type PipelineRun struct {
 	RunID                    string                    `json:"run_id"`
@@ -13,7 +28,7 @@ type PipelineRun struct {
 	ExperimentID             string                    `json:"experiment_id,omitempty"`
 	PipelineVersionReference *PipelineVersionReference `json:"pipeline_version_reference,omitempty"`
 	RuntimeConfig            *RuntimeConfig            `json:"runtime_config,omitempty"`
-	State                    string                    `json:"state,omitempty"`
+	State                    RunState                  `json:"state,omitempty"`
 	StorageState             string                    `json:"storage_state,omitempty"`
 	ServiceAccount           string                    `json:"service_account,omitempty"`
 	CreatedAt                string                    `json:"created_at,omitempty"`
@@ -40,7 +55,7 @@ type RuntimeConfig struct {
 // RuntimeStatus represents a state transition in a run's history.
 type RuntimeStatus struct {
 	UpdateTime string     `json:"update_time,omitempty"`
-	State      string     `json:"state,omitempty"`
+	State      RunState   `json:"state,omitempty"`
 	Error      *ErrorInfo `json:"error,omitempty"`
 }
 
@@ -63,7 +78,7 @@ type TaskDetail struct {
 	CreateTime   string          `json:"create_time,omitempty"`
 	StartTime    string          `json:"start_time,omitempty"`
 	EndTime      string          `json:"end_time,omitempty"`
-	State        string          `json:"state,omitempty"`
+	State        RunState        `json:"state,omitempty"`
 	ExecutionID  string          `json:"execution_id,omitempty"`
 	StateHistory []RuntimeStatus `json:"state_history,omitempty"`
 	ChildTasks   []ChildTask     `json:"child_tasks,omitempty"`

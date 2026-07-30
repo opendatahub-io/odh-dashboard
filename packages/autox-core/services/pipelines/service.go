@@ -167,7 +167,7 @@ func (s *service) TerminateRun(ctx context.Context, namespace, runID string) err
 		return err
 	}
 
-	state := strings.ToUpper(run.State)
+	state := RunState(strings.ToUpper(string(run.State)))
 	if !terminatableStates[state] {
 		return fmt.Errorf("%w: run %s is in state %s; only PENDING, RUNNING, or PAUSED runs can be terminated", ErrInvalidRunState, runID, state)
 	}
@@ -197,7 +197,7 @@ func (s *service) RetryRun(ctx context.Context, namespace, runID string) error {
 		return err
 	}
 
-	state := strings.ToUpper(run.State)
+	state := RunState(strings.ToUpper(string(run.State)))
 	if !retryableStates[state] {
 		return fmt.Errorf("%w: run %s is in state %s; only FAILED or CANCELED runs can be retried", ErrInvalidRunState, runID, state)
 	}
@@ -227,7 +227,7 @@ func (s *service) DeleteRun(ctx context.Context, namespace, runID string) error 
 		return err
 	}
 
-	state := strings.ToUpper(run.State)
+	state := RunState(strings.ToUpper(string(run.State)))
 	if !deletableStates[state] {
 		return fmt.Errorf("%w: run %s is in state %s; only SUCCEEDED, FAILED, or CANCELED runs can be deleted", ErrInvalidRunState, runID, state)
 	}

@@ -83,7 +83,7 @@ func testCtx() context.Context {
 
 func TestService_TerminateRun_StateValidation(t *testing.T) {
 	for _, tt := range []struct {
-		state   string
+		state   RunState
 		wantErr bool
 	}{
 		{"PENDING", false},
@@ -93,7 +93,7 @@ func TestService_TerminateRun_StateValidation(t *testing.T) {
 		{"FAILED", true},
 		{"CANCELED", true},
 	} {
-		t.Run(tt.state, func(t *testing.T) {
+		t.Run(string(tt.state), func(t *testing.T) {
 			client := &mockPipelineClient{
 				getPipelineRunFn: func(ctx context.Context, baseURL string, runID string) (*PipelineRun, error) {
 					return &PipelineRun{RunID: "r1", State: tt.state}, nil
@@ -131,7 +131,7 @@ func TestService_TerminateRun_StateValidation(t *testing.T) {
 
 func TestService_RetryRun_StateValidation(t *testing.T) {
 	for _, tt := range []struct {
-		state   string
+		state   RunState
 		wantErr bool
 	}{
 		{"FAILED", false},
@@ -139,7 +139,7 @@ func TestService_RetryRun_StateValidation(t *testing.T) {
 		{"RUNNING", true},
 		{"SUCCEEDED", true},
 	} {
-		t.Run(tt.state, func(t *testing.T) {
+		t.Run(string(tt.state), func(t *testing.T) {
 			client := &mockPipelineClient{
 				getPipelineRunFn: func(ctx context.Context, baseURL string, runID string) (*PipelineRun, error) {
 					return &PipelineRun{RunID: "r1", State: tt.state}, nil
@@ -158,7 +158,7 @@ func TestService_RetryRun_StateValidation(t *testing.T) {
 
 func TestService_DeleteRun_StateValidation(t *testing.T) {
 	for _, tt := range []struct {
-		state   string
+		state   RunState
 		wantErr bool
 	}{
 		{"SUCCEEDED", false},
@@ -167,7 +167,7 @@ func TestService_DeleteRun_StateValidation(t *testing.T) {
 		{"RUNNING", true},
 		{"PENDING", true},
 	} {
-		t.Run(tt.state, func(t *testing.T) {
+		t.Run(string(tt.state), func(t *testing.T) {
 			client := &mockPipelineClient{
 				getPipelineRunFn: func(ctx context.Context, baseURL string, runID string) (*PipelineRun, error) {
 					return &PipelineRun{RunID: "r1", State: tt.state}, nil

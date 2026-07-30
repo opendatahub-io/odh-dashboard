@@ -247,7 +247,7 @@ func toAutoMLRun(run *pipelines.PipelineRun, pipelineType string) models.Pipelin
 		ExperimentID:             run.ExperimentID,
 		PipelineVersionReference: run.PipelineVersionReference,
 		RuntimeConfig:            run.RuntimeConfig,
-		State:                    run.State,
+		State:                    string(run.State),
 		StorageState:             run.StorageState,
 		ServiceAccount:           run.ServiceAccount,
 		CreatedAt:                run.CreatedAt,

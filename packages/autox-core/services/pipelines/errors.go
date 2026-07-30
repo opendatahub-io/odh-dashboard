@@ -26,7 +26,7 @@ var (
 
 // KFP v2beta1 run state sets — which states allow which mutations.
 var (
-	terminatableStates = map[string]bool{"PENDING": true, "RUNNING": true, "PAUSED": true}
-	retryableStates    = map[string]bool{"FAILED": true, "CANCELED": true}
-	deletableStates    = map[string]bool{"SUCCEEDED": true, "FAILED": true, "CANCELED": true}
+	terminatableStates = map[RunState]bool{RunStatePending: true, RunStateRunning: true, RunStatePaused: true}
+	retryableStates    = map[RunState]bool{RunStateFailed: true, RunStateCanceled: true}
+	deletableStates    = map[RunState]bool{RunStateSucceeded: true, RunStateFailed: true, RunStateCanceled: true}
 )

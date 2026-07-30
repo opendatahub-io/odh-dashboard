@@ -225,7 +225,7 @@ func toAutoRAGRun(run *pipelines.PipelineRun) models.PipelineRun {
 		ExperimentID:             run.ExperimentID,
 		PipelineVersionReference: run.PipelineVersionReference,
 		RuntimeConfig:            run.RuntimeConfig,
-		State:                    run.State,
+		State:                    string(run.State),
 		StorageState:             run.StorageState,
 		ServiceAccount:           run.ServiceAccount,
 		CreatedAt:                run.CreatedAt,

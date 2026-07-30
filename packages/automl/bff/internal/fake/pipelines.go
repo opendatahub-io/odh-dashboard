@@ -294,7 +294,7 @@ func (c *PipelinesClient) progressRun(runID string) {
 }
 
 func (c *PipelinesClient) seedRuns() {
-	seed := func(id, name, state, pipelineID, pipelineVersionID, taskType, labelCol, preset, metric, createdAt, finishedAt string) {
+	seed := func(id, name string, state plsvc.RunState, pipelineID, pipelineVersionID, taskType, labelCol, preset, metric, createdAt, finishedAt string) {
 		trainDataFileKey := "automl input data/TitanicFullMF.csv"
 		if taskType == "timeseries" {
 			trainDataFileKey = "automl input data/timeseries/m4_hourly_subset_train.csv"
@@ -320,7 +320,7 @@ func (c *PipelinesClient) seedRuns() {
 			{UpdateTime: createdAt, State: "PENDING"},
 			{UpdateTime: createdAt, State: "RUNNING"},
 		}
-		if state == "SUCCEEDED" || state == "FAILED" {
+		if state == plsvc.RunStateSucceeded || state == plsvc.RunStateFailed {
 			history = append(history, plsvc.RuntimeStatus{UpdateTime: finishedAt, State: state})
 		}
 
@@ -391,7 +391,7 @@ func dagTaskNames() []string {
 
 // buildSeedRunDetails creates RunDetails with task entries matching the DAG task IDs
 // in fakePipelineSpec so the topology renderer can correlate status to each node.
-func buildSeedRunDetails(runID, state, createdAt, finishedAt string) *plsvc.RunDetails {
+func buildSeedRunDetails(runID string, state plsvc.RunState, createdAt, finishedAt string) *plsvc.RunDetails {
 	tasks := dagTaskNames()
 	details := make([]plsvc.TaskDetail, 0, len(tasks))
 	for _, name := range tasks {
