@@ -64,7 +64,7 @@
     "@perses-dev/status-history-chart-plugin": "^0.9.0",
     "@perses-dev/table-plugin": "^0.8.0",
     "@perses-dev/tempo-plugin": "^0.53.1",
-    "@perses-dev/timeseries-chart-plugin": "^0.10.1",
+    "@perses-dev/timeseries-chart-plugin": "^0.12.0",
     "@perses-dev/timeseries-table-plugin": "^0.9.0",
     "@perses-dev/trace-table-plugin": "^0.8.1",
     "@perses-dev/tracing-gantt-chart-plugin": "^0.9.2",
