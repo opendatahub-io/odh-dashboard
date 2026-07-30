@@ -36,7 +36,7 @@ jobs:
 
   Type-Check:
     needs: Setup
-    runs-on: ubuntu-latest-4-cores
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
       - name: Setup Node.js ${{ env.NODE_VERSION }}
@@ -61,7 +61,7 @@ jobs:
 
   Lint:
     needs: Setup
-    runs-on: ubuntu-latest-4-cores
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
       - name: Setup Node.js ${{ env.NODE_VERSION }}
@@ -86,7 +86,7 @@ jobs:
 
   Unit-Tests:
     needs: [Setup, Lint, Type-Check]
-    runs-on: ubuntu-latest-4-cores
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
       - name: Setup Node.js ${{ env.NODE_VERSION }}
@@ -147,7 +147,7 @@ jobs:
 
   Contract-Tests:
     needs: [Setup, Lint, Type-Check]
-    runs-on: ubuntu-latest-4-cores
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
       - name: Setup Node.js ${{ env.NODE_VERSION }}
@@ -215,7 +215,7 @@ jobs:
 
   Cypress-Setup:
     needs: [Setup, Get-Cypress-Packages]
-    runs-on: ubuntu-latest-4-cores
+    runs-on: ubuntu-latest
     permissions:
       contents: read
     strategy:
@@ -245,7 +245,7 @@ jobs:
 
   Cypress-Mock-Tests:
     needs: [Setup, Lint, Type-Check, Cypress-Setup, Get-Test-Groups, Get-Cypress-Packages]
-    runs-on: ubuntu-latest-4-cores
+    runs-on: ubuntu-latest
     permissions:
       actions: read
       contents: read
