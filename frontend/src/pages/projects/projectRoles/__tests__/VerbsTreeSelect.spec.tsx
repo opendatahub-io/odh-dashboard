@@ -16,7 +16,8 @@ describe('VerbsTreeSelect', () => {
 
     expect(screen.getByTestId('verbs-tree-select')).toBeInTheDocument();
     expect(screen.getByText('All operations')).toBeInTheDocument();
-    expect(screen.getByText('Create operations:')).toBeInTheDocument();
+    // Create operations currently has 1 verb so it will only show the verb and not the category
+    expect(screen.getByText('Create resources')).toBeInTheDocument();
     expect(screen.getByText('Read operations:')).toBeInTheDocument();
     expect(screen.getByText('Update operations:')).toBeInTheDocument();
     expect(screen.getByText('Delete operations:')).toBeInTheDocument();
