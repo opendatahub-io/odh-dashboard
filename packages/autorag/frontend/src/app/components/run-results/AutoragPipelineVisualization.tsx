@@ -102,14 +102,9 @@ const AutoragPipelineVisualization: React.FC<AutoragPipelineVisualizationProps> 
         className="autorag-pipeline-visualization__header"
         alignItems={{ default: 'alignItemsCenter' }}
         justifyContent={{ default: 'justifyContentSpaceBetween' }}
-        flexWrap={{ default: 'wrap' }}
-        spaceItems={{ default: 'spaceItemsMd' }}
       >
         <FlexItem>
-          <Flex
-            alignItems={{ default: 'alignItemsCenter' }}
-            spaceItems={{ default: 'spaceItemsMd' }}
-          >
+          <Flex>
             <FlexItem>
               <Title headingLevel="h3" size="lg">
                 {runTitle}
@@ -127,13 +122,8 @@ const AutoragPipelineVisualization: React.FC<AutoragPipelineVisualizationProps> 
           </Flex>
         </FlexItem>
 
-        <FlexItem className="autorag-pipeline-visualization__toolbar">
-          <Flex
-            alignItems={{ default: 'alignItemsCenter' }}
-            justifyContent={{ default: 'justifyContentFlexEnd' }}
-            spaceItems={{ default: 'spaceItemsMd' }}
-            flexWrap={{ default: 'wrap' }}
-          >
+        <FlexItem>
+          <Flex>
             <FlexItem>
               <Button
                 variant="tertiary"

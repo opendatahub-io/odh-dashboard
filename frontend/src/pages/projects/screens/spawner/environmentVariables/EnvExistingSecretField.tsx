@@ -6,15 +6,12 @@ import {
   Content,
   ContentVariants,
   FormGroup,
-  FormGroupLabelHelp,
   MenuToggle,
   MenuToggleElement,
-  Popover,
   // eslint-disable-next-line no-restricted-imports -- typeahead multi-select requires Select directly
   Select,
   SelectList,
   SelectOption,
-  Spinner,
   Stack,
   StackItem,
   TextInputGroup,
@@ -23,16 +20,16 @@ import {
 } from '@patternfly/react-core';
 import { TimesIcon } from '@patternfly/react-icons';
 import { ExistingSecretRef, ExistingSecretMetadata } from '#~/pages/projects/types';
-import { useExistingSecrets } from './useExistingSecrets';
+import { UseExistingSecretsResult } from './useExistingSecrets';
 import ExistingSecretKeyPicker from './ExistingSecretKeyPicker';
 import { detectExistingSecretKeyCollisions, getCollidingKeySet } from './existingSecretCollisions';
 
 type EnvExistingSecretFieldProps = {
-  namespace: string;
   existingSecretRefs: ExistingSecretRef[];
   onUpdate: (refs: ExistingSecretRef[]) => void;
   usedSecretNames?: Set<string>;
   inlineKeyNames?: Set<string>;
+  existingSecretsData: UseExistingSecretsResult;
 };
 
 const MAX_KEY_PREVIEW_LENGTH = 60;
@@ -49,13 +46,13 @@ const getKeyPreview = (keys: string[]): string => {
 };
 
 const EnvExistingSecretField: React.FC<EnvExistingSecretFieldProps> = ({
-  namespace,
   existingSecretRefs,
   onUpdate,
   usedSecretNames = new Set(),
   inlineKeyNames = new Set(),
+  existingSecretsData,
 }) => {
-  const { secrets, loaded, canList, error } = useExistingSecrets(namespace);
+  const { secrets } = existingSecretsData;
   const [isOpen, setIsOpen] = React.useState(false);
   const [searchText, setSearchText] = React.useState('');
   const textInputRef = React.useRef<HTMLInputElement>();
@@ -126,51 +123,6 @@ const EnvExistingSecretField: React.FC<EnvExistingSecretFieldProps> = ({
 
   const collidingKeySet = React.useMemo(() => getCollidingKeySet(collisions), [collisions]);
 
-  // RBAC: user cannot list secrets
-  if (loaded && !canList) {
-    return (
-      <FormGroup
-        label="Existing secrets"
-        data-testid="env-existing-secret-field"
-        labelHelp={
-          <Popover
-            headerContent="Access permissions needed"
-            bodyContent="To list existing secrets, ask your administrator to grant 'secrets list' access for this project, or use the Key / value option to create a new secret."
-          >
-            <FormGroupLabelHelp
-              aria-label="More info about access permissions"
-              data-testid="env-existing-secret-rbac-popover"
-            />
-          </Popover>
-        }
-      >
-        <Content component={ContentVariants.small} data-testid="env-existing-secret-rbac-message">
-          You do not have permission to list secrets in this project.
-        </Content>
-      </FormGroup>
-    );
-  }
-
-  // Loading state
-  if (!loaded) {
-    return (
-      <FormGroup label="Existing secrets" data-testid="env-existing-secret-field">
-        <Spinner size="md" data-testid="env-existing-secret-loading" />
-      </FormGroup>
-    );
-  }
-
-  // Error state
-  if (error) {
-    return (
-      <FormGroup label="Existing secrets" data-testid="env-existing-secret-field">
-        <Content component={ContentVariants.small} data-testid="env-existing-secret-error">
-          Unable to load secrets: {error.message}
-        </Content>
-      </FormGroup>
-    );
-  }
-
   const availableSecrets = secrets.filter((s) => !usedSecretNames.has(s.name));
   const hasSecrets = availableSecrets.length > 0;
 
@@ -179,31 +131,6 @@ const EnvExistingSecretField: React.FC<EnvExistingSecretFieldProps> = ({
       <FormGroup label="Existing secrets" data-testid="env-existing-secret-field">
         <Content component={ContentVariants.small} data-testid="env-existing-secret-all-used">
           All secrets in this project are already attached in other variables.
-        </Content>
-      </FormGroup>
-    );
-  }
-
-  // Empty namespace state (but still render if we have refs to show from edit flow)
-  if (!hasSecrets && existingSecretRefs.length === 0) {
-    return (
-      <FormGroup
-        label="Existing secrets"
-        data-testid="env-existing-secret-field"
-        labelHelp={
-          <Popover
-            headerContent="No available secrets in this project"
-            bodyContent="Your project may already have secrets, but they may be managed by Connections or created by other workbenches. New secrets can be added by your platform team using tools like External Secrets Operator, or you can create one using the Key / value option above."
-          >
-            <FormGroupLabelHelp
-              aria-label="More info about existing secrets"
-              data-testid="env-existing-secret-empty-popover"
-            />
-          </Popover>
-        }
-      >
-        <Content component={ContentVariants.small} data-testid="env-existing-secret-empty-message">
-          No third-party secrets available in this project.
         </Content>
       </FormGroup>
     );

@@ -26,6 +26,7 @@ import {
   EventTrackingSource,
   MaaSEvents,
 } from '~/app/types/event-tracking';
+import SubscriptionManagementYamlTab from '~/app/pages/subscription-management/SubscriptionManagementYamlTab';
 import DeleteAuthPolicyModal from './DeleteAuthPolicyModal';
 import PolicyDetailsSection from './viewAuthPolicy/PolicyDetailsSection';
 import PolicyGroupsSection from './viewAuthPolicy/PolicyGroupsSection';
@@ -163,6 +164,17 @@ const ViewAuthPoliciesPage: React.FC = () => {
                 resourceType="authorization policy"
               />
             </PageSection>
+          </Tab>
+          <Tab
+            eventKey="yaml"
+            title={<TabTitleText>YAML</TabTitleText>}
+            aria-label="YAML tab"
+            data-testid="policy-yaml-tab"
+          >
+            <SubscriptionManagementYamlTab
+              resourceName={authPolicyName}
+              resourceType="authorizationpolicy"
+            />
           </Tab>
         </Tabs>
       )}
