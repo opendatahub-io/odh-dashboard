@@ -468,7 +468,7 @@ describe('Workbench page', () => {
     notebookRow.findKebabAction('Edit workbench').click();
 
     hardwareProfileSection.findSelect().should('contain.text', 'Use existing settings');
-    cy.go('back');
+    workbenchPage.visit('test-project');
     workbenchPage.findCreateButton().click();
     verifyRelativeURL('/projects/test-project/spawner');
     hardwareProfileSection.findSelect().click();

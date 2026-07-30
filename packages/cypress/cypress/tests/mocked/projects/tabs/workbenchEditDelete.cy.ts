@@ -482,15 +482,23 @@ describe('Workbench page', () => {
     ).as('deleteSecret2');
 
     // Intercept any DELETE requests for resources that should not be deleted
+    const deleteCustomConfigMapSpy = cy.spy().as('deleteCustomConfigMap');
     cy.interceptK8s(
       'DELETE',
       { model: ConfigMapModel, ns: 'test-project', name: 'custom-configmap' },
-      cy.spy().as('deleteCustomConfigMap'),
+      (req) => {
+        deleteCustomConfigMapSpy();
+        req.reply({ statusCode: 200, body: {} });
+      },
     );
+    const deleteCustomSecretSpy = cy.spy().as('deleteCustomSecret');
     cy.interceptK8s(
       'DELETE',
       { model: SecretModel, ns: 'test-project', name: 'custom-secret' },
-      cy.spy().as('deleteCustomSecret'),
+      (req) => {
+        deleteCustomSecretSpy();
+        req.reply({ statusCode: 200, body: {} });
+      },
     );
 
     cy.interceptK8sList(

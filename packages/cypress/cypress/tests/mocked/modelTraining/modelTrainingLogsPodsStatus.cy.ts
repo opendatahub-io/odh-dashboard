@@ -127,6 +127,9 @@ describe('Model Training', () => {
         {
           model: PodModel,
           ns: projectName,
+          queryParams: {
+            labelSelector: 'jobset.sigs.k8s.io/jobset-name=image-classification-job',
+          },
         },
         mockK8sResourceList(mixedStatusPods),
       );
@@ -457,14 +460,8 @@ describe('Model Training', () => {
       trainingJobStatusModal.shouldBeOpen();
       trainingJobStatusModal.findProgressTab().should('be.visible');
 
-      trainingJobStatusModal.getModal().then(($modal) => {
-        if ($modal.find('[data-testid="initialization-section"]').length > 0) {
-          trainingJobStatusModal.findInitializationSection().should('be.visible');
-        }
-        if ($modal.find('[data-testid="training-section"]').length > 0) {
-          trainingJobStatusModal.findTrainingSection().should('be.visible');
-        }
-      });
+      trainingJobStatusModal.findInitializationSection().should('be.visible');
+      trainingJobStatusModal.findTrainingSection().should('be.visible');
     });
 
     it('should switch between Progress and Events log tabs', () => {
@@ -571,7 +568,7 @@ describe('Model Training', () => {
           creationTimestamp: '2024-01-19T11:00:00Z',
         },
         {
-          name: 'paused-training-job',
+          name: 'paused-status-training-job',
           namespace: projectName,
           status: TrainingJobState.PAUSED,
           numNodes: 2,
@@ -665,7 +662,7 @@ describe('Model Training', () => {
       const statusSpecificStatusMap: Record<string, TrainingJobState> = {
         'queued-training-job': TrainingJobState.QUEUED,
         'pending-training-job': TrainingJobState.PENDING,
-        'paused-training-job': TrainingJobState.PAUSED,
+        'paused-status-training-job': TrainingJobState.PAUSED,
         'preempted-training-job': TrainingJobState.PREEMPTED,
         'inadmissible-training-job': TrainingJobState.INADMISSIBLE,
         'deleting-training-job': TrainingJobState.DELETING,
@@ -1043,9 +1040,9 @@ describe('Model Training', () => {
         modelTrainingGlobal.visit(projectName);
 
         // Navigate to page containing paused job if not on current page
-        navigateToJobPage('paused-training-job');
+        navigateToJobPage('paused-status-training-job');
 
-        const row = trainingJobTable.getTableRow('paused-training-job');
+        const row = trainingJobTable.getTableRow('paused-status-training-job');
         // Verify status in table column
         row.findStatus().should('contain', TrainingJobState.PAUSED);
         row.findStatus().click();

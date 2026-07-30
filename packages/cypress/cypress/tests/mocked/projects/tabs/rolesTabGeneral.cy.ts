@@ -35,6 +35,9 @@ const initRolesTabIntercepts = ({ roleManagement = true }: { roleManagement?: bo
     ProjectModel,
     mockK8sResourceList([mockProjectK8sResource({ k8sName: NAMESPACE })]),
   );
+  cy.interceptK8sList({ model: RoleModel, ns: NAMESPACE }, mockK8sResourceList([]));
+  cy.interceptK8sList(ClusterRoleModel, mockK8sResourceList([]));
+  cy.interceptK8sList({ model: RoleBindingModel, ns: NAMESPACE }, mockK8sResourceList([]));
 };
 
 const initRolesTemplateIntercepts = () => {
@@ -167,6 +170,10 @@ describe('Roles tab feature flag gating', () => {
       initRolesTabIntercepts({ roleManagement: true });
       cy.interceptK8s('POST', SelfSubjectAccessReviewModel, (req) => {
         const { resourceAttributes } = req.body.spec;
+        if (!resourceAttributes) {
+          req.reply(mockSelfSubjectAccessReview({ allowed: true }));
+          return;
+        }
         if (
           resourceAttributes.resource === 'roles' &&
           resourceAttributes.verb === 'create' &&
@@ -201,6 +208,10 @@ describe('Roles tab feature flag gating', () => {
       initRolesTabIntercepts({ roleManagement: true });
       cy.interceptK8s('POST', SelfSubjectAccessReviewModel, (req) => {
         const { resourceAttributes } = req.body.spec;
+        if (!resourceAttributes) {
+          req.reply(mockSelfSubjectAccessReview({ allowed: true }));
+          return;
+        }
         if (
           resourceAttributes.resource === 'roles' &&
           resourceAttributes.group === 'rbac.authorization.k8s.io'

@@ -238,18 +238,20 @@ export const initIntercepts = (): void => {
     { path: { namespace: projectName, serviceName: 'dspa', pipelineId } },
     buildMockPipelineVersions(mockVersions),
   );
-  cy.interceptOdh(
-    'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/:pipelineId/versions/:pipelineVersionId',
-    {
-      path: {
-        namespace: projectName,
-        serviceName: 'dspa',
-        pipelineId,
-        pipelineVersionId,
+  mockVersions.forEach((version) => {
+    cy.interceptOdh(
+      'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/:pipelineId/versions/:pipelineVersionId',
+      {
+        path: {
+          namespace: projectName,
+          serviceName: 'dspa',
+          pipelineId,
+          pipelineVersionId: version.pipeline_version_id,
+        },
       },
-    },
-    buildMockPipelineVersion({ pipeline_id: pipelineId, pipeline_version_id: pipelineVersionId }),
-  );
+      version,
+    );
+  });
   cy.interceptOdh(
     'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/experiments',
     {

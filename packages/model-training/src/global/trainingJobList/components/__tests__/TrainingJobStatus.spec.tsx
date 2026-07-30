@@ -83,6 +83,22 @@ describe('TrainingJobStatus', () => {
   it('should not display progress bar when showProgressBar is false', () => {
     const job = mockTrainJobK8sResource({
       status: TrainingJobState.RUNNING,
+      trainerStatus: {
+        progressPercentage: 64,
+        estimatedRemainingSeconds: 1800,
+        currentStep: 3000,
+        totalSteps: 4690,
+        currentEpoch: 3,
+        totalEpochs: 5,
+        trainMetrics: {
+          loss: 0.2344,
+          accuracy: 0.8993774,
+          total_batches: 854, // eslint-disable-line camelcase
+          total_samples: 4000, // eslint-disable-line camelcase
+        },
+        evalMetrics: null,
+        lastUpdatedTime: '2024-01-15T10:45:00Z',
+      },
     });
 
     render(

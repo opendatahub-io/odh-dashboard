@@ -281,7 +281,9 @@ describe('Pipeline runs - Archived runs and Schedules', () => {
       archivedRunsTable.mockRestoreRun(runToRestore.run_id, projectName);
       archivedRunsTable.getRowByName(runToRestore.display_name).findKebabAction('Restore').click();
 
-      archivedRunsTable.mockGetRuns([runToRestore], [mockArchivedRuns[1]], projectName);
+      const allArchived = [...mockArchivedRuns, ...mockArchivedRunsWithArchivedExperiments];
+      const remainingArchived = allArchived.filter((r) => r.run_id !== runToRestore.run_id);
+      archivedRunsTable.mockGetRuns([runToRestore], remainingArchived, projectName);
       restoreRunWithArchivedExperimentModal.findAlertMessage().should('exist');
       restoreRunWithArchivedExperimentModal.findSubmitButton().click();
       archivedRunsTable.shouldRowNotExist(runToRestore.display_name);

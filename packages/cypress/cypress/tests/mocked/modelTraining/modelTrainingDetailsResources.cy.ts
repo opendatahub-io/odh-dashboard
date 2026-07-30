@@ -232,7 +232,7 @@ describe('Model Training', () => {
       trainingJobDetailsDrawer.shouldBeOpen();
       trainingJobDetailsDrawer.selectTab('Resources');
 
-      trainingJobResourcesTab.findQuotaSourceValue().should('contain', '-');
+      trainingJobResourcesTab.findQuotaSourceValue().should('have.text', '-');
     });
 
     it('should display CPU and Memory consumption', () => {
@@ -321,7 +321,7 @@ describe('Model Training', () => {
       trainingJobDetailsDrawer.shouldBeOpen();
       trainingJobDetailsDrawer.selectTab('Resources');
 
-      trainingJobResourcesTab.findConsumedQuotaValue().should('contain', '-');
+      trainingJobResourcesTab.findConsumedQuotaValue().should('have.text', '-');
     });
 
     it('should update resources tab when switching between jobs', () => {

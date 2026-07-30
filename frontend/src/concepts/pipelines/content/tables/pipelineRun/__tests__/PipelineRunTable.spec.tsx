@@ -208,13 +208,11 @@ describe('PipelineRunTable', () => {
 
       renderTable({ runs: [retriedRun], totalSize: 1 });
 
-      // The retried run should show the retry start time (2024-01-02) instead of created_at (2024-01-01)
-      const timeElements = document.querySelectorAll('time');
-      const startedTimeElement = Array.from(timeElements).find((el) => {
-        const datetime = el.getAttribute('datetime');
-        return datetime && datetime.includes('2024-01-02');
-      });
-      expect(startedTimeElement).toBeTruthy();
+      const row = screen.getByText('Retried run').closest('tr');
+      expect(row).not.toBeNull();
+      const timeElement = row?.querySelector('time');
+      expect(timeElement).not.toBeNull();
+      expect(timeElement?.getAttribute('datetime')).toContain('2024-01-02T10:00:05');
     });
   });
 });

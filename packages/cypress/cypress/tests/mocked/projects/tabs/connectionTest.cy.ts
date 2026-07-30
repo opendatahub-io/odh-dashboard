@@ -194,4 +194,15 @@ describe('Test Connection - Table', () => {
     connectionsPage.getConnectionRow('Connection 1').findKebab().click();
     cy.findByTestId('test-connection-action').should('exist');
   });
+
+  it('should have connection name as a clickable link', () => {
+    initIntercepts();
+    cy.interceptK8sList(
+      { model: SecretModel, ns: 'test-project' },
+      mockK8sResourceList([mockSecretK8sResource({ name: 'conn-1', displayName: 'Connection 1' })]),
+    );
+
+    projectDetails.visitSection('test-project', 'connections');
+    connectionsPage.getConnectionRow('Connection 1').findConnectionNameLink().should('exist');
+  });
 });

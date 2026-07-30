@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import StateActionToggle from '../StateActionToggle';
 
 describe('StateActionToggle', () => {
@@ -33,5 +33,25 @@ describe('StateActionToggle', () => {
     );
 
     expect(screen.getByTestId('state-action-toggle')).toBeDisabled();
+  });
+
+  it('should call onPause when clicked and not paused', () => {
+    const onPause = jest.fn();
+    const onResume = jest.fn();
+    render(<StateActionToggle isPaused={false} onPause={onPause} onResume={onResume} />);
+
+    fireEvent.click(screen.getByTestId('state-action-toggle'));
+    expect(onPause).toHaveBeenCalledTimes(1);
+    expect(onResume).not.toHaveBeenCalled();
+  });
+
+  it('should call onResume when clicked and paused', () => {
+    const onPause = jest.fn();
+    const onResume = jest.fn();
+    render(<StateActionToggle isPaused onPause={onPause} onResume={onResume} />);
+
+    fireEvent.click(screen.getByTestId('state-action-toggle'));
+    expect(onResume).toHaveBeenCalledTimes(1);
+    expect(onPause).not.toHaveBeenCalled();
   });
 });

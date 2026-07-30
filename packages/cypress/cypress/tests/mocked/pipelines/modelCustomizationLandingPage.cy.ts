@@ -15,7 +15,19 @@ const initIntercepts = ({ disableFineTuning = false }: HandlersProps) => {
 };
 
 describe('Model Customization Landing Page', () => {
-  // CONVERTED to Jest: ModelCustomization.spec.tsx
+  describe('Feature flag gating', () => {
+    it('should show NotFound page when fine tuning is disabled', () => {
+      initIntercepts({ disableFineTuning: true });
+      modelCustomizationLandingPage.visit(false);
+      modelCustomizationLandingPage.findNotFoundPage().should('exist');
+    });
+
+    it('should show the page when fine tuning is enabled', () => {
+      initIntercepts({ disableFineTuning: false });
+      modelCustomizationLandingPage.visit();
+      modelCustomizationLandingPage.findPage().should('exist');
+    });
+  });
 
   describe('Project Setup Section', () => {
     beforeEach(() => {

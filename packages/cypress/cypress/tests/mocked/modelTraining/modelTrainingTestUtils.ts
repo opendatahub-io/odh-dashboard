@@ -13,6 +13,7 @@ import { mockProjectK8sResource } from '@odh-dashboard/internal/__mocks__/mockPr
 import { mockLocalQueueK8sResource } from '@odh-dashboard/internal/__mocks__/mockLocalQueueK8sResource';
 import { mockClusterQueueK8sResource } from '@odh-dashboard/internal/__mocks__/mockClusterQueueK8sResource';
 import { mockWorkloadK8sResource } from '@odh-dashboard/internal/__mocks__/mockWorkloadK8sResource';
+import { mockDscStatus } from '@odh-dashboard/internal/__mocks__/mockDscStatus';
 import {
   ClusterQueueModel,
   EventModel,
@@ -23,12 +24,13 @@ import {
 } from '@odh-dashboard/internal/api/models';
 import { ContainerResourceAttributes } from '@odh-dashboard/k8s-core';
 import { WorkloadStatusType } from '@odh-dashboard/internal/concepts/distributedWorkloads/utils';
+import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import { ProjectModel } from '../../../utils/models';
 
 export const projectName = 'test-model-training-project';
 export const projectDisplayName = 'Test Model Training Project';
 
-export const mockTrainJobs = mockTrainJobK8sResourceList([
+const trainJobConfigs = [
   {
     name: 'image-classification-job',
     namespace: projectName,
@@ -139,7 +141,9 @@ export const mockTrainJobs = mockTrainJobK8sResourceList([
     localQueueName: 'overconsumed-queue',
     creationTimestamp: '2024-01-18T10:00:00Z',
   },
-]);
+];
+
+export const mockTrainJobs = mockTrainJobK8sResourceList(trainJobConfigs);
 
 export const mockRayJobs = mockRayJobK8sResourceList([
   {
@@ -263,22 +267,12 @@ export const mockClusterQueues = [
   }),
 ];
 
-// Create mock workloads for each train job
-// Map status from train job configs to workload status
-export const trainJobStatusMap: Record<string, TrainingJobState> = {
-  'image-classification-job': TrainingJobState.RUNNING,
-  'paused-training-job': TrainingJobState.PAUSED,
-  'nlp-model-training': TrainingJobState.SUCCEEDED,
-  'failed-training-job': TrainingJobState.FAILED,
-  'z-last-job': TrainingJobState.SUCCEEDED,
-  'a-first-job': TrainingJobState.FAILED,
-  'middle-job': TrainingJobState.RUNNING,
-  'gpu-training-job': TrainingJobState.RUNNING,
-  'overconsumed-training-job': TrainingJobState.RUNNING,
-};
+export const trainJobStatusMap: Record<string, TrainingJobState> = Object.fromEntries(
+  trainJobConfigs.map((config) => [config.name, config.status]),
+);
 
 export const mockWorkloads = mockTrainJobs.map((job) => {
-  const jobStatus = trainJobStatusMap[job.metadata.name] ?? TrainingJobState.RUNNING;
+  const jobStatus = trainJobStatusMap[job.metadata.name];
   let workloadStatus = WorkloadStatusType.Running;
   let workloadSpec = { active: true };
 
@@ -416,6 +410,16 @@ export const initInterceptsForStatusModal = (
 };
 
 export const initIntercepts = ({ isEmpty = false }: { isEmpty?: boolean } = {}): void => {
+  cy.interceptOdh(
+    'GET /api/dsc/status',
+    mockDscStatus({
+      components: {
+        [DataScienceStackComponent.TRAINER]: { managementState: 'Managed' },
+        [DataScienceStackComponent.RAY]: { managementState: 'Managed' },
+      },
+    }),
+  );
+
   cy.interceptOdh(
     'GET /api/config',
     mockDashboardConfig({

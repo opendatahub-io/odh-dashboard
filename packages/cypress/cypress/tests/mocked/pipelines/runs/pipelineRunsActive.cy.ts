@@ -608,15 +608,15 @@ describe('Pipeline runs - Active runs', () => {
             pipelineRunFilterBar.findStatusSelect().click();
             pipelineRunFilterBar
               .findStatusSelect()
-              .get(`[data-testid="${runtimeStateLabels[RuntimeStateKF.SKIPPED]}"]`)
+              .find(`[data-testid="${runtimeStateLabels[RuntimeStateKF.SKIPPED]}"]`)
               .should('exist');
             pipelineRunFilterBar
               .findStatusSelect()
-              .get(`[data-testid="${runtimeStateLabels[RuntimeStateKF.PAUSED]}"]`)
+              .find(`[data-testid="${runtimeStateLabels[RuntimeStateKF.PAUSED]}"]`)
               .should('not.exist');
             pipelineRunFilterBar
               .findStatusSelect()
-              .get(`[data-testid="${runtimeStateLabels[RuntimeStateKF.CANCELED]}"]`)
+              .find(`[data-testid="${runtimeStateLabels[RuntimeStateKF.CANCELED]}"]`)
               .should('not.exist');
           });
         });
