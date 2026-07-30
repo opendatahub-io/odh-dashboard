@@ -246,6 +246,7 @@ export enum PhaseLabelLocation {
   SUBSCRIPTIONS_TAB = 'subscriptions-tab',
   POLICIES_TAB = 'policies-tab',
   DETAIL_PAGE = 'detail-page',
+  EXTERNAL_MODELS = 'external-models',
 }
 
 export const getStatusSubtext = (

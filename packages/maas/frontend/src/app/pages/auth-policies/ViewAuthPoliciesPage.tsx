@@ -10,7 +10,10 @@ import {
   TabTitleText,
 } from '@patternfly/react-core';
 import SimpleMenuActions from '@odh-dashboard/internal/components/SimpleMenuActions';
-import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import {
+  fireFormTrackingEvent,
+  fireMiscTrackingEvent,
+} from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { useGetPolicyInfo } from '~/app/hooks/useGetPolicyInfo';
 import { MaaSAuthPolicy, MaaSModelRefSummary } from '~/app/types/subscriptions';
 import { PolicyInfoResponse } from '~/app/types/auth-policies';
@@ -25,6 +28,7 @@ import {
   EventTrackingResourceType,
   EventTrackingSource,
   MaaSEvents,
+  EventTrackingContext,
 } from '~/app/types/event-tracking';
 import { modelRefsToSummaries } from '~/app/utilities/authpolicies';
 import SubscriptionManagementYamlTab from '~/app/pages/subscription-management/SubscriptionManagementYamlTab';
@@ -130,9 +134,17 @@ const ViewAuthPoliciesPage: React.FC = () => {
       {loaded && policyInfo && (
         <Tabs
           activeKey={activeTab}
-          onSelect={(_event, key) => setActiveTab(key)}
           aria-label="Policy detail tabs"
           inset={{ default: 'insetNone' }}
+          onSelect={(_event, key) => {
+            setActiveTab(key);
+            if (key === 'yaml') {
+              fireMiscTrackingEvent(MaaSEvents.SUBSCRIPTION_MANAGEMENT_YAML_VIEWED, {
+                resourceType: EventTrackingResourceType.AUTHPOLICY,
+                context: EventTrackingContext.DETAILS,
+              });
+            }
+          }}
         >
           <Tab
             eventKey="details"

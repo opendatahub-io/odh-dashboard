@@ -2,8 +2,14 @@ import * as React from 'react';
 import { Bullseye, EmptyState, EmptyStateBody, PageSection, Spinner } from '@patternfly/react-core';
 import { Language } from '@patternfly/react-code-editor';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import useDarkMode from '~/app/hooks/useDarkMode';
 import { useSubscriptionManagementYaml } from '~/app/hooks/useSubscriptionManagementYaml';
+import {
+  EventTrackingContext,
+  EventTrackingYAMLAction,
+  MaaSEvents,
+} from '~/app/types/event-tracking';
 
 const CodeEditor = React.lazy(() =>
   import('@patternfly/react-code-editor').then((mod) => ({ default: mod.CodeEditor })),
@@ -60,6 +66,18 @@ const SubscriptionManagementYamlTab: React.FC<SubscriptionManagementYamlTabProps
           isLanguageLabelVisible
           downloadFileName={resourceName}
           height="600px"
+          onDownload={(value, fileName) => {
+            fireMiscTrackingEvent(MaaSEvents.SUBSCRIPTION_MANAGEMENT_YAML_EXPORTED, {
+              resourceType,
+              context: EventTrackingContext.DETAILS,
+              action: EventTrackingYAMLAction.DOWNLOAD,
+            });
+
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(new Blob([value], { type: 'text' }));
+            link.download = fileName;
+            link.click();
+          }}
         />
       </React.Suspense>
     </PageSection>
