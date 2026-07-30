@@ -3,7 +3,7 @@ import { act } from '@testing-library/react';
 import { renderHook, testHook } from '@odh-dashboard/jest-config/hooks';
 import * as areasUtils from '@odh-dashboard/plugin-core/areas';
 import { SchedulingType } from '@odh-dashboard/k8s-core';
-import * as currentProjectModule from '@odh-dashboard/ui-core/context/CurrentProjectContext';
+import { CurrentProjectContext } from '@odh-dashboard/ui-core/context/CurrentProjectContext';
 import { mockHardwareProfile } from '@odh-dashboard/hardware-profiles/__mocks__/mockHardwareProfile';
 import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import { mockLocalQueueK8sResource } from '#~/__mocks__/mockLocalQueueK8sResource';
@@ -34,9 +34,6 @@ const mockUseDashboardNamespace = jest.mocked(reduxSelectors.useDashboardNamespa
 
 describe('useHardwareProfileConfig', () => {
   beforeEach(() => {
-    jest
-      .spyOn(currentProjectModule, 'useCurrentProject')
-      .mockReturnValue(mockProjectK8sResource({}));
     mockUseHardwareProfiles.mockReturnValue({
       projectProfiles: [[], true, undefined],
       globalProfiles: [[], true, undefined],
@@ -731,17 +728,20 @@ describe('useHardwareProfileConfig', () => {
 
 const makeKueueProjectWrapper = (localQueues: ProjectDetailsContextType['localQueues']) => {
   const kueueProject = mockProjectK8sResource({ enableKueue: true });
-  jest.spyOn(currentProjectModule, 'useCurrentProject').mockReturnValue(kueueProject);
   const Wrapper: React.FC<{ children: React.ReactNode }> = ({ children }) =>
     React.createElement(
-      ProjectDetailsContext.Provider,
-      {
-        value: {
-          currentProject: kueueProject,
-          localQueues,
-        } as unknown as ProjectDetailsContextType,
-      },
-      children,
+      CurrentProjectContext.Provider,
+      { value: { currentProject: kueueProject } },
+      React.createElement(
+        ProjectDetailsContext.Provider,
+        {
+          value: {
+            currentProject: kueueProject,
+            localQueues,
+          } as unknown as ProjectDetailsContextType,
+        },
+        children,
+      ),
     );
   Wrapper.displayName = 'KueueProjectWrapper';
   return Wrapper;

@@ -11,7 +11,7 @@ import {
 } from '@patternfly/react-core';
 import { CollapsibleSection, ProjectObjectType, SectionType } from '@odh-dashboard/ui-core';
 import OverviewCard from '@odh-dashboard/ui-core/components/detail/OverviewCard';
-import { useCurrentProject } from '@odh-dashboard/ui-core/context/CurrentProjectContext';
+import { CurrentProjectContext } from '@odh-dashboard/ui-core/context/CurrentProjectContext';
 import { ModelServingPlatformSelectErrorAlert } from '@odh-dashboard/model-serving/shared/components';
 import EmptyModelServingPlatformSection from './NoProjectServingEnabledSection';
 import {
@@ -28,7 +28,7 @@ const galleryWidth = {
 };
 
 const ModelPlatformSection: React.FC<{ platforms: ModelServingPlatform[] }> = ({ platforms }) => {
-  const currentProject = useCurrentProject();
+  const { currentProject } = React.useContext(CurrentProjectContext);
 
   const {
     activePlatform,

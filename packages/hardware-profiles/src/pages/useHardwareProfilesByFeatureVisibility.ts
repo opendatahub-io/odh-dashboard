@@ -4,7 +4,7 @@ import {
   HardwareProfileFeatureVisibility,
 } from '@odh-dashboard/k8s-core';
 import { HardwareProfilesContext } from '@odh-dashboard/internal/concepts/hardwareProfiles/HardwareProfilesContext';
-import { useCurrentProject } from '@odh-dashboard/ui-core/context/CurrentProjectContext';
+import { CurrentProjectContext } from '@odh-dashboard/ui-core/context/CurrentProjectContext';
 import { ProjectDetailsContext } from '@odh-dashboard/internal/pages/projects/ProjectDetailsContext';
 import { useWatchHardwareProfiles } from '@odh-dashboard/internal/utilities/useWatchHardwareProfiles';
 import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors';
@@ -40,7 +40,7 @@ export const useHardwareProfilesByFeatureVisibility = (
     globalHardwareProfiles: [globalProfiles, globalProfilesLoaded, globalProfilesError],
   } = React.useContext(HardwareProfilesContext);
 
-  const currentProject = useCurrentProject();
+  const { currentProject } = React.useContext(CurrentProjectContext);
   const { projectHardwareProfiles: contextProjectProfiles } =
     React.useContext(ProjectDetailsContext);
 

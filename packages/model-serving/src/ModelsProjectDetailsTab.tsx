@@ -1,5 +1,5 @@
 import React from 'react';
-import { useCurrentProject } from '@odh-dashboard/ui-core/context/CurrentProjectContext';
+import { CurrentProjectContext } from '@odh-dashboard/ui-core/context/CurrentProjectContext';
 import { LazyCodeRefComponent, useExtensions } from '@odh-dashboard/plugin-core';
 import DetailsSection from '@odh-dashboard/ui-core/components/detail/DetailsSection';
 import { useProjectServingPlatform } from './concepts/useProjectServingPlatform';
@@ -23,7 +23,7 @@ const LoadingSection: React.FC<{ error?: Error }> = ({ error }) => (
 );
 
 const ModelsProjectDetailsTab: React.FC = () => {
-  const currentProject = useCurrentProject();
+  const { currentProject } = React.useContext(CurrentProjectContext);
 
   const { clusterPlatforms, clusterPlatformsLoaded, clusterPlatformsError } =
     useAvailableClusterPlatforms();

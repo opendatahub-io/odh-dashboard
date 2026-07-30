@@ -11,7 +11,7 @@ import useGenericObjectState from '@odh-dashboard/ui-core/utilities/useGenericOb
 import { isCpuLimitLarger, isMemoryLimitLarger } from '@odh-dashboard/ui-core/utilities/valueUnits';
 import { isHardwareProfileEnabled } from '@odh-dashboard/internal/pages/hardwareProfiles/utils';
 import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors';
-import { useCurrentProject } from '@odh-dashboard/ui-core/context/CurrentProjectContext';
+import { CurrentProjectContext } from '@odh-dashboard/ui-core/context/CurrentProjectContext';
 import { ProjectDetailsContext } from '@odh-dashboard/internal/pages/projects/ProjectDetailsContext';
 import { useHardwareProfilesByFeatureVisibility } from '@odh-dashboard/internal/pages/hardwareProfiles/useHardwareProfilesByFeatureVisibility';
 import {
@@ -122,7 +122,7 @@ export const useHardwareProfileConfig = (
   hardwareProfileNamespace?: string | null,
 ): UseHardwareProfileConfigResult => {
   const { dashboardNamespace } = useDashboardNamespace();
-  const currentProject = useCurrentProject();
+  const { currentProject } = React.useContext(CurrentProjectContext);
   const { localQueues } = React.useContext(ProjectDetailsContext);
 
   const {

@@ -1,5 +1,5 @@
 import React from 'react';
-import { useCurrentProject } from '@odh-dashboard/ui-core/context/CurrentProjectContext';
+import { CurrentProjectContext } from '@odh-dashboard/ui-core/context/CurrentProjectContext';
 import ErrorOverviewCard from '@odh-dashboard/ui-core/components/detail/ErrorOverviewCard';
 import { CollapsibleSection, ProjectObjectType, SectionType } from '@odh-dashboard/ui-core';
 import { LazyCodeRefComponent, useExtensions } from '@odh-dashboard/plugin-core';
@@ -66,7 +66,7 @@ const ServeModelsSectionContent: React.FC<{ platforms: ModelServingPlatform[] }>
 };
 
 const ServeModelsSection: React.FC = () => {
-  const currentProject = useCurrentProject();
+  const { currentProject } = React.useContext(CurrentProjectContext);
 
   const { clusterPlatforms, clusterPlatformsLoaded } = useAvailableClusterPlatforms();
   const { activePlatform } = useProjectServingPlatform(currentProject, clusterPlatforms);
