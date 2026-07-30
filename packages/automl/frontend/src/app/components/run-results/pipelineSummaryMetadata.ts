@@ -150,6 +150,10 @@ export function getPipelineSummaryDetails(
     {
       label: 'Winning model',
       value: resolveWinningModelDisplay(models, componentStageMap, parameters) ?? '—',
+      help: {
+        header: 'Winning model',
+        body: 'The model that achieved the highest evaluation score during training.',
+      },
     },
     {
       label: 'Evaluation metric',

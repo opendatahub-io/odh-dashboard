@@ -5,19 +5,22 @@ export const STAGE_DISPLAY_NAMES: Record<string, string> = {
   read_and_sample: 'Read and sample data',
   cleanse: 'Cleanse data',
   split: 'Split data',
+  split_and_export: 'Split data',
   write_outputs: 'Write outputs',
+  prepare_data: 'Prepare data',
   load_data: 'Load data',
-  model_selection: 'Model selection',
-  refit_full: 'Refit models',
+  model_selection: 'Select models',
+  refit_full: 'Refit and evaluate',
   evaluate_models: 'Evaluate models',
   build_leaderboard: 'Build leaderboard',
 };
 
 export const STEP_DISPLAY_NAMES: Record<string, string> = {
-  feature_engineering: 'Feature engineering',
-  model_training: 'Model training',
-  stacking: 'Stacking',
-  model_evaluation: 'Model evaluation',
+  feature_engineering: 'Engineer features',
+  model_training: 'Train model',
+  stacking: 'Stack predictions',
+  model_evaluation: 'Evaluate results',
+  evaluation: 'Evaluate results',
 };
 
 const fallbackStageLabel = (stageId: string): string => {
