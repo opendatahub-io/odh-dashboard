@@ -311,7 +311,11 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
           />
           <ToggleGroupItem
             text={
-              <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+              <Flex
+                alignItems={{ default: 'alignItemsCenter' }}
+                gap={{ default: 'gapSm' }}
+                flexWrap={{ default: 'nowrap' }}
+              >
                 <FlexItem>Knowledge</FlexItem>
                 <FlexItem>
                   <Badge isRead={!isRagEnabled} data-testid="knowledge-status-badge">
@@ -326,7 +330,11 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
           />
           <ToggleGroupItem
             text={
-              <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+              <Flex
+                alignItems={{ default: 'alignItemsCenter' }}
+                gap={{ default: 'gapSm' }}
+                flexWrap={{ default: 'nowrap' }}
+              >
                 <FlexItem>MCP</FlexItem>
                 {selectedMcpServerIds.length > 0 && (
                   <FlexItem>
@@ -360,7 +368,10 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
 
         {/* Keep all tab content mounted to preserve lifecycle state (data fetches, etc.)
            and toggle visibility with PF utility class, matching old Tabs show/hide behaviour */}
-        <div className={activeTabKey !== 0 ? 'pf-v6-u-display-none' : undefined}>
+        <div
+          className={activeTabKey !== 0 ? 'pf-v6-u-display-none' : undefined}
+          data-testid="chatbot-settings-page-tab-content-model"
+        >
           <ModelTabContent
             configId={configId}
             temperature={temperature}
@@ -373,14 +384,20 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
             onSubscriptionChange={handleSubscriptionChange}
           />
         </div>
-        <div className={activeTabKey !== 1 ? 'pf-v6-u-display-none' : undefined}>
+        <div
+          className={activeTabKey !== 1 ? 'pf-v6-u-display-none' : undefined}
+          data-testid="chatbot-settings-page-tab-content-prompt"
+        >
           <PromptTabContent
             configId={configId}
             systemInstruction={systemInstruction}
             onSystemInstructionChange={handleSystemInstructionChange}
           />
         </div>
-        <div className={activeTabKey !== 2 ? 'pf-v6-u-display-none' : undefined}>
+        <div
+          className={activeTabKey !== 2 ? 'pf-v6-u-display-none' : undefined}
+          data-testid="chatbot-settings-page-tab-content-knowledge"
+        >
           <KnowledgeTabContent
             configId={configId}
             sourceManagement={sourceManagement}
@@ -388,7 +405,10 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
             alerts={alerts}
           />
         </div>
-        <div className={activeTabKey !== 3 ? 'pf-v6-u-display-none' : undefined}>
+        <div
+          className={activeTabKey !== 3 ? 'pf-v6-u-display-none' : undefined}
+          data-testid="chatbot-settings-page-tab-content-mcp"
+        >
           <MCPTabContent
             configId={configId}
             mcpServers={mcpServers}
@@ -404,7 +424,10 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
           />
         </div>
         {isGuardrailsFeatureEnabled && (
-          <div className={activeTabKey !== 4 ? 'pf-v6-u-display-none' : undefined}>
+          <div
+            className={activeTabKey !== 4 ? 'pf-v6-u-display-none' : undefined}
+            data-testid="chatbot-settings-page-tab-content-guardrails"
+          >
             <GuardrailsTabContent configId={configId} />
           </div>
         )}
