@@ -189,8 +189,7 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 	const envAllowUnresolvedS3Endpoints = "ALLOW_UNRESOLVED_S3_ENDPOINTS"
 	allowUnresolvedS3 := os.Getenv(envAllowUnresolvedS3Endpoints) == "true"
 	if !cfg.DevMode && allowUnresolvedS3 {
-		logger.Error("ALLOW_UNRESOLVED_S3_ENDPOINTS is set but DevMode is false — this weakens SSRF protection and must not be used in production")
-		os.Exit(1)
+		return nil, fmt.Errorf("ALLOW_UNRESOLVED_S3_ENDPOINTS is set but DevMode is false — this weakens SSRF protection and must not be used in production")
 	}
 	var s3Client s3.Client
 	if cfg.MockS3Client {
