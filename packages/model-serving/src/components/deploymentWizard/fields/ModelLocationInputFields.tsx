@@ -32,7 +32,7 @@ import { CustomTypeSelectField } from './modelLocationFields/CustomTypeSelectFie
 import { useEnabledModelServingConnectionTypes } from './modelLocationFields/useEnabledConnectionTypes';
 import { ociOption, s3Option, uriOption } from './modelLocationFields/modelLocationTypes';
 import usePvcs from '../../../concepts/usePvcs';
-import { ModelLocationData, ModelLocationType } from '../types';
+import { ModelLocationData, ModelLocationType } from '../../../shared/types/form-data';
 import { resolveConnectionType } from '../utils';
 import { UseModelDeploymentWizardState } from '../useDeploymentWizard';
 

@@ -14,7 +14,6 @@ import {
   CPU_UNITS,
   MEMORY_UNITS_FOR_PARSING,
 } from '@odh-dashboard/ui-core/utilities/valueUnits';
-import { QueueSource } from './const';
 import type {
   HardwareProfileResource,
   HardwarePodSpecOptions,
@@ -274,13 +273,12 @@ export const applyHardwareProfileConfig = <T extends K8sResourceCommon>(
   return result;
 };
 
-export const getLocalQueueLabel = (queueSource?: QueueSource): string => {
-  const commonLabel = 'Local queue';
-  if (queueSource === QueueSource.DIRECT) {
-    return `${commonLabel} (applied directly)`;
-  }
-  if (queueSource === QueueSource.HARDWARE_PROFILE) {
-    return `${commonLabel} (via hardware profile)`;
-  }
-  return commonLabel;
-};
+export const isHardwareProfileEnabled = (hardwareProfile: HardwareProfileKind): boolean =>
+  hardwareProfile.metadata.annotations?.['opendatahub.io/disabled'] === 'false' ||
+  hardwareProfile.metadata.annotations?.['opendatahub.io/disabled'] === undefined;
+
+export const getHardwareProfileDisplayName = (hardwareProfile: HardwareProfileKind): string =>
+  hardwareProfile.metadata.annotations?.['opendatahub.io/display-name'] ||
+  hardwareProfile.metadata.name;
+
+export const getLocalQueueLabel = (): string => 'Local queue';

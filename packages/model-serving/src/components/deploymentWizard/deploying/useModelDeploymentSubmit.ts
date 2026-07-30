@@ -1,4 +1,5 @@
 import React from 'react';
+import { useSecretOps } from '@odh-dashboard/plugin-core/host-api';
 import { getServingRuntimeFromTemplate } from '@odh-dashboard/model-serving/shared';
 import { useDeployMethod } from './useDeployMethod';
 import { useWizardFieldPreDeploy } from './useWizardFieldPreDeploy';
@@ -8,7 +9,7 @@ import { useWizardFieldApply } from '../useWizardFieldApply';
 import { deployModel } from '../utils';
 import { Deployment } from '../../../../extension-points';
 import { DeploymentAssemblyResources } from '../../../../extension-points/deployment-wizard';
-import { InitialWizardFormData } from '../types';
+import { InitialWizardFormData } from '../../../shared/types/form-data';
 import { WizardFormState } from '../useDeploymentWizardReducer';
 import { ModelDeploymentWizardViewMode } from '../ModelDeploymentWizard';
 
@@ -34,6 +35,7 @@ export const useModelDeploymentSubmit = (
   submitError: Error | null;
   clearSubmitError: () => void;
 } => {
+  const secretOps = useSecretOps();
   const { deployMethod, deployMethodLoaded } = useDeployMethod(formState, resources);
   const { applyFieldData, applyExtensionsLoaded } = useWizardFieldApply(
     formState,
@@ -90,6 +92,7 @@ export const useModelDeploymentSubmit = (
 
         await deployModel(
           formState,
+          secretOps,
           connectionSecretName,
           deployMethod.properties,
           existingDeployment,
@@ -118,6 +121,7 @@ export const useModelDeploymentSubmit = (
       preDeployExtensionsLoaded,
       postDeployExtensionsLoaded,
       formState,
+      secretOps,
       resources,
       connectionSecretName,
       existingDeployment,

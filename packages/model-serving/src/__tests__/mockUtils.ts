@@ -13,7 +13,7 @@ import type { SimpleSelectOption } from '@odh-dashboard/ui-core/components/Simpl
 import { ServingRuntimeModelType } from '@odh-dashboard/model-serving/shared';
 import { ModelServingPlatform } from '../concepts/useProjectServingPlatform';
 import type { UseModelDeploymentWizardState } from '../components/deploymentWizard/useDeploymentWizard';
-import type { WizardField } from '../components/deploymentWizard/types';
+import type { WizardField } from '../shared/types/form-data';
 import { deploymentStrategyRolling } from '../components/deploymentWizard/fields/DeploymentStrategyField';
 
 export const mockModelServingPlatform = ({

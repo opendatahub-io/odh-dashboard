@@ -12,7 +12,7 @@ import type {
 import { mockPVCK8sResource } from '@odh-dashboard/internal/__mocks__/mockPVCK8sResource';
 import { useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import type { IsAreaAvailableStatus } from '@odh-dashboard/plugin-core/areas';
-import { ModelLocationData, ModelLocationType } from '../../types';
+import { ModelLocationData, ModelLocationType } from '../../../../shared/types/form-data';
 import { isValidModelLocationData, useModelLocationData } from '../ModelLocationInputFields';
 import { ModelLocationSelectField } from '../ModelLocationSelectField';
 import type { UseModelDeploymentWizardState } from '../../useDeploymentWizard';

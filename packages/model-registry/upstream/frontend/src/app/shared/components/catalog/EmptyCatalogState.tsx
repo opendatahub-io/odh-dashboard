@@ -13,7 +13,7 @@ type EmptyCatalogStateProps = {
   className?: string;
   title: string;
   description: React.ReactNode;
-  headerIcon?: React.ComponentType;
+  headerIcon?: React.ComponentType | null;
   children?: React.ReactNode;
   primaryAction?: React.ReactNode;
   secondaryAction?: React.ReactNode;
@@ -33,7 +33,7 @@ const EmptyCatalogState: React.FC<EmptyCatalogStateProps> = ({
 }) => (
   <EmptyState
     className={className}
-    icon={headerIcon ?? PlusCircleIcon}
+    icon={headerIcon === null ? undefined : (headerIcon ?? PlusCircleIcon)}
     titleText={title}
     variant={variant}
     data-testid={testid}

@@ -1,7 +1,6 @@
 import React from 'react';
 import { renderHook } from '@odh-dashboard/jest-config/hooks';
-import { isEnabled } from '@odh-dashboard/internal/concepts/integrations/useIsComponentIntegrationEnabled';
-import { IntegrationAppStatus } from '@odh-dashboard/internal/types';
+import { isEnabled, type IntegrationAppStatus } from '@odh-dashboard/plugin-core/integrations';
 import { NamespaceApplicationCase } from '@odh-dashboard/k8s-core';
 import { useAvailableClusterPlatforms } from '../useAvailableClusterPlatforms';
 import { ModelServingPlatform } from '../useProjectServingPlatform';
@@ -9,7 +8,7 @@ import { mockExtensions, mockModelServingPlatform } from '../../__tests__/mockUt
 
 // Mock the required dependencies
 jest.mock('@odh-dashboard/plugin-core');
-jest.mock('@odh-dashboard/internal/concepts/integrations/useIsComponentIntegrationEnabled');
+jest.mock('@odh-dashboard/plugin-core/integrations');
 
 // Mock React.useContext
 jest.mock('react', () => ({

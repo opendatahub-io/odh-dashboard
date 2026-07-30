@@ -65,7 +65,7 @@ export const mapAuthMechanismToHumanReadable = (authMechanism: AuthMechanism): s
 
 export const getExternalModelResource = (model: ExternalModel): K8sResourceCommon => ({
   apiVersion: 'maas.opendatahub.io/v1alpha1',
-  kind: 'MaaSExternalModel',
+  kind: 'ExternalModel',
   metadata: {
     name: model.name,
     namespace: model.namespace,
@@ -74,7 +74,7 @@ export const getExternalModelResource = (model: ExternalModel): K8sResourceCommo
 
 export const getProviderRefResource = (providerRef: ProviderRef): K8sResourceCommon => ({
   apiVersion: 'maas.opendatahub.io/v1alpha1',
-  kind: 'MaaSExternalProvider',
+  kind: 'ExternalProvider',
   metadata: {
     name: providerRef.providerName,
   },

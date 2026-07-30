@@ -6,6 +6,7 @@ import {
   Breadcrumb,
   BreadcrumbItem,
   Button,
+  Content,
   Flex,
   FlexItem,
   Form,
@@ -17,7 +18,11 @@ import {
 } from '@patternfly/react-core';
 import type { HardwareProfileKind } from '@odh-dashboard/k8s-core';
 import { useIsAreaAvailable, SupportedArea } from '@odh-dashboard/plugin-core/areas';
-import { getDisplayNameFromK8sResource, LimitNameResourceType } from '@odh-dashboard/k8s-core';
+import {
+  getDisplayNameFromK8sResource,
+  LimitNameResourceType,
+  getPvcAccessMode,
+} from '@odh-dashboard/k8s-core';
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
 } from '@odh-dashboard/ui-core/components/K8sNameDescriptionField';
@@ -47,10 +52,9 @@ import {
   doesImageStreamSupportHardwareProfile,
 } from '#~/concepts/hardwareProfiles/utils';
 import { UseAssignHardwareProfileResult } from '#~/concepts/hardwareProfiles/useAssignHardwareProfile';
-import { getPvcAccessMode } from '#~/pages/projects/utils';
 import { useDashboardNamespace } from '#~/redux/selectors';
 import { useNotebookHardwareProfile } from '#~/concepts/notebooks/utils';
-import { WORKBENCH_VISIBILITY } from '#~/concepts/hardwareProfiles/const';
+import { LOCAL_QUEUE_MISSING_BODY, WORKBENCH_VISIBILITY } from '#~/concepts/hardwareProfiles/const';
 import { SpawnerPageSectionID } from './types';
 import {
   K8_NOTEBOOK_RESOURCE_NAME_VALIDATOR,
@@ -60,6 +64,7 @@ import {
 import SpawnerFooter from './SpawnerFooter';
 import ImageSelectorField from './imageSelector/ImageSelectorField';
 import EnvironmentVariables from './environmentVariables/EnvironmentVariables';
+import { useExistingSecrets } from './environmentVariables/useExistingSecrets';
 import { useNotebookEnvVariables } from './environmentVariables/useNotebookEnvVariables';
 import { useDefaultStorageClass } from './storage/useDefaultStorageClass';
 import { ConnectionsFormSection } from './connections/ConnectionsFormSection';
@@ -198,6 +203,8 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
     useNotebookEnvVariables(existingNotebook, [
       ...notebookConnections.map((connection) => connection.metadata.name),
     ]);
+
+  const existingSecretsData = useExistingSecrets(currentProject.metadata.name);
 
   const notebooksUsingPVCsWithSizeChanges = React.useMemo(() => {
     const attachedPVCs = storageData.filter((storage) => storage.existingPvc !== undefined);
@@ -359,6 +366,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
                 podSpecOptionsState={podSpecOptionsState}
                 isHardwareProfileSupported={isHardwareProfileSupported}
                 visibleIn={WORKBENCH_VISIBILITY}
+                isLocalQueueMissing={isLocalQueueMissing}
               />
             </FormSection>
             <FormSection
@@ -375,7 +383,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
               <EnvironmentVariables
                 envVariables={envVariables}
                 setEnvVariables={setEnvVariables}
-                namespace={currentProject.metadata.name}
+                existingSecretsData={existingSecretsData}
               />
             </FormSection>
             <FormSection
@@ -460,7 +468,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
                 data-testid="local-queue-missing-warning"
                 variant="warning"
                 isInline
-                title={`Local queue "${selectedLocalQueueName ?? ''}" not found in this project`}
+                title="Invalid hardware profile"
                 actionClose={
                   <AlertActionCloseButton
                     data-testid="local-queue-missing-warning-close"
@@ -468,9 +476,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
                   />
                 }
               >
-                The selected hardware profile references a local queue that does not exist in this
-                project. You can still {existingNotebook ? 'update' : 'create'} the workbench, but
-                it may not start until the local queue is created.
+                <Content component="p">{LOCAL_QUEUE_MISSING_BODY}</Content>
               </Alert>
             </StackItem>
           )}
@@ -498,6 +504,8 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
                   connections={notebookConnections}
                   canEnablePipelines={canEnablePipelines}
                   selectedFeatureStores={selectedFeatureStores}
+                  existingNotebook={existingNotebook}
+                  existingSecretsData={existingSecretsData}
                 />
               )}
             </CanEnableElyraPipelinesCheck>

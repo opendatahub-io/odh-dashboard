@@ -20,10 +20,10 @@ import type {
   WizardFieldExtractorExtension,
   DeploymentWizardFieldOverrideExtension,
 } from '@odh-dashboard/model-serving/extension-points/deployment-wizard';
-import type { WizardField } from '@odh-dashboard/model-serving/types/form-data';
+import type { WizardField } from '@odh-dashboard/model-serving/shared/types/form-data';
 import type { AreaExtension } from '@odh-dashboard/plugin-core/extension-points';
 import { DataScienceStackComponent, SupportedArea } from '@odh-dashboard/plugin-core/areas';
-import type { DeploymentMethodFieldData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/DeploymentMethodSelectField';
+import type { DeploymentMethodFieldData } from '@odh-dashboard/model-serving/shared/wizard-fields';
 import type { TimeoutFieldValue } from './src/wizardFields/timeout/TimeoutField';
 import type { KServeServingRuntimeFieldType } from './src/wizardFields/servingRuntime/KServeServingRuntimeField';
 import type { KServeDeployment } from './src/deployments';

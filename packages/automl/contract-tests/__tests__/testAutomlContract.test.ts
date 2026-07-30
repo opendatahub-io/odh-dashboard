@@ -485,6 +485,40 @@ describe('AutoML API Contract Tests', () => {
         });
       });
 
+      it('should create a tabular pipeline run with all optional fields', async () => {
+        const result = await apiClient.post(`/api/v1/pipeline-runs?namespace=${NS}`, {
+          display_name: 'contract-test-tabular-full-options',
+          description: 'Tabular run with all optional fields',
+          train_data_secret_name: SECRET,
+          train_data_bucket_name: BUCKET,
+          train_data_file_key: TABULAR_CSV_FILE,
+          label_column: 'target',
+          task_type: 'multiclass',
+          preset: 'speed',
+          eval_metric: 'roc_auc_ovo',
+          top_n: 5,
+        });
+        expect(result).toMatchContract(apiSchema, {
+          ref: '#/components/responses/CreatePipelineRunResponse/content/application~1json/schema',
+          status: 200,
+        });
+      });
+
+      it('should return 400 for non-ASCII label_column', async () => {
+        const result = await apiClient.post(`/api/v1/pipeline-runs?namespace=${NS}`, {
+          display_name: 'contract-test-arabic-label-column',
+          train_data_secret_name: SECRET,
+          train_data_bucket_name: BUCKET,
+          train_data_file_key: TABULAR_CSV_FILE,
+          label_column: 'لديه روح',
+          task_type: 'binary',
+        });
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(400);
+        }
+      });
+
       it('should create a tabular regression pipeline run', async () => {
         const result = await apiClient.post(`/api/v1/pipeline-runs?namespace=${NS}`, {
           display_name: 'contract-test-regression',

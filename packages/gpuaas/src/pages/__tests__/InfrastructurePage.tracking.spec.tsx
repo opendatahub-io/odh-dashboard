@@ -17,7 +17,7 @@ jest.mock('@odh-dashboard/plugin-core/areas', () => ({
   useIsAreaAvailable: jest.fn(),
 }));
 
-jest.mock('@odh-dashboard/internal/pages/ApplicationsPage', () => {
+jest.mock('@odh-dashboard/ui-core', () => {
   const ApplicationsPage: React.FC<{
     children: React.ReactNode;
     headerAction?: React.ReactNode;
@@ -27,7 +27,7 @@ jest.mock('@odh-dashboard/internal/pages/ApplicationsPage', () => {
       {children}
     </div>
   );
-  return { __esModule: true, default: ApplicationsPage };
+  return { ApplicationsPage };
 });
 
 jest.mock('@odh-dashboard/internal/utilities/time', () => ({
@@ -66,7 +66,7 @@ jest.mock('../../components/HardwareUsageSection', () => ({
 
 jest.mock('../../components/BorrowingLendingSection', () => ({
   __esModule: true,
-  default: () => <div data-testid="borrowing-lending" />,
+  default: () => <div data-testid="borrowing" />,
 }));
 
 jest.mock('../../components/ClusterQueueUtilizationSection', () => ({
@@ -138,7 +138,7 @@ describe('InfrastructurePage - Tracking Events', () => {
       const user = userEvent.setup();
       render(<InfrastructurePage />);
 
-      const refreshButton = screen.getByRole('button', { name: 'Refresh page data' });
+      const refreshButton = screen.getByRole('button', { name: 'Refresh' });
       await user.click(refreshButton);
 
       expect(mockFireMisc).toHaveBeenCalledWith(GPUAAS_EVENTS.DATA_REFRESHED, expect.any(Object));
@@ -154,7 +154,7 @@ describe('InfrastructurePage - Tracking Events', () => {
       };
       render(<InfrastructurePage />);
 
-      const refreshButton = screen.getByRole('button', { name: 'Refresh page data' });
+      const refreshButton = screen.getByRole('button', { name: 'Refresh' });
       await user.click(refreshButton);
 
       expect(mockFireMisc).toHaveBeenCalledWith(

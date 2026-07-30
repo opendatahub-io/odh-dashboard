@@ -89,7 +89,7 @@ const NotebookStatusLabel: React.FC<NotebookStateStatusProps> = ({
 
   return (
     <Label
-      variant={onClick ? 'filled' : 'outline'}
+      variant="filled"
       isCompact={isCompact}
       color={labelSettings.color}
       status={labelSettings.status}

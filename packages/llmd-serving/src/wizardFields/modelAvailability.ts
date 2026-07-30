@@ -1,7 +1,7 @@
 import type {
   ModelAvailabilityFieldOverride,
   WizardFormData,
-} from '@odh-dashboard/model-serving/types/form-data';
+} from '@odh-dashboard/model-serving/shared/types/form-data';
 import { type LLMdDeployment, type LLMInferenceServiceKind } from '../types';
 import { isLLMInferenceServiceActive } from '../formUtils';
 

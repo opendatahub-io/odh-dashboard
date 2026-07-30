@@ -206,17 +206,21 @@ export function getMetricDescription(key: string): string {
 }
 
 /**
- * Case-insensitive metric lookup that also resolves acronym → snake_case aliases
- * (e.g. "RMSE" matches "root_mean_squared_error"). One-way: passing
- * "root_mean_squared_error" will not match an "RMSE" key.
+ * Case-insensitive metric lookup that also resolves bi-directional aliases:
+ * - Acronym → snake_case (e.g., "RMSE" matches "root_mean_squared_error" key)
+ * - Snake_case → acronym (e.g., "mean_absolute_scaled_error" matches "MASE" key)
  */
 export function findMetricValue(
   metrics: Record<string, number>,
   key: string,
 ): { key: string; value: number } | undefined {
-  const normalized = normalizeMetricKey(key);
+  const normalized = normalizeMetricKey(key); // acronym → snake_case
+  const reverseAlias = REVERSE_METRIC_ALIASES[key.toLowerCase()]; // snake_case → acronym
   const found = Object.keys(metrics).find(
-    (k) => k.toLowerCase() === key.toLowerCase() || k.toLowerCase() === normalized.toLowerCase(),
+    (k) =>
+      k.toLowerCase() === key.toLowerCase() ||
+      k.toLowerCase() === normalized.toLowerCase() ||
+      (reverseAlias && k.toLowerCase() === reverseAlias.toLowerCase()),
   );
   return found !== undefined ? { key: found, value: metrics[found] } : undefined;
 }

@@ -3,17 +3,17 @@ import * as path from 'path';
 import { LOG_DIR } from './utils/constants';
 import fastifyStatic from '@fastify/static';
 import view from '@fastify/view';
-import fastifyAutoload from '@fastify/autoload';
 import fastifySensible from '@fastify/sensible';
 import fastifyWebsocket from '@fastify/websocket';
 import fastifyAccepts from '@fastify/accepts';
 import type { FastifyInstance, FastifyRegisterOptions } from 'fastify';
 import ejs from 'ejs';
 import { getCacheControlForStaticFile } from './utils/cacheHeaders';
+import { registerPlugins, registerRoutes } from './register-routes';
 
 const publicDir = process.env.ODH_STATIC_DIR
   ? path.resolve(process.env.ODH_STATIC_DIR)
-  : path.join(__dirname, '../../frontend/public');
+  : path.resolve(process.cwd(), '../frontend/public');
 
 export const initializeApp = async (
   fastify: FastifyInstance,
@@ -47,23 +47,8 @@ export const initializeApp = async (
     includeViewExtension: true,
   });
 
-  const shouldIgnoreAutoloadPath = (filePath: string): boolean =>
-    /(^|[\\/])__tests__([\\/]|$)/.test(filePath) ||
-    /\.(spec|test)\.(ts|js|cjs|mjs)$/.test(filePath);
-
-  fastify.register(fastifyAutoload, {
-    dir: path.join(__dirname, 'plugins'),
-    options: Object.assign({}, opts),
-    ignorePattern: /^__tests__$|\.(spec|test)\.(ts|js|cjs|mjs)$/,
-    ignoreFilter: shouldIgnoreAutoloadPath,
-  });
-
-  fastify.register(fastifyAutoload, {
-    dir: path.join(__dirname, 'routes'),
-    options: Object.assign({}, opts),
-    ignorePattern: /^__tests__$|\.(spec|test)\.(ts|js|cjs|mjs)$/,
-    ignoreFilter: shouldIgnoreAutoloadPath,
-  });
+  await registerPlugins(fastify, opts);
+  await registerRoutes(fastify, opts);
 
   fastify.register(fastifyAccepts);
 };

@@ -23,15 +23,14 @@ import {
   isK8sNameDescriptionDataValid,
   LimitNameResourceType,
 } from '@odh-dashboard/k8s-core';
-import type {
-  InferenceServiceKind,
-  ModelDeployPrefillInfo,
-} from '@odh-dashboard/model-serving/shared';
+import type { InferenceServiceKind } from '@odh-dashboard/model-serving/shared';
+import type { ModelDeployPrefillInfo } from '@odh-dashboard/model-registry/shared';
 import { getServingRuntimeFromName } from '@odh-dashboard/model-serving/shared';
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
 } from '@odh-dashboard/ui-core/components/K8sNameDescriptionField';
 import { type FormTrackingEventProperties, TrackingOutcome } from '@odh-dashboard/ui-core';
+import { useAccessReview } from '@odh-dashboard/plugin-core/host-api';
 import {
   getCreateInferenceServiceLabels,
   getSubmitInferenceServiceResourceFn,
@@ -53,7 +52,7 @@ import ProjectSection from '#~/pages/modelServing/screens/projects/InferenceServ
 import { NamespaceApplicationCase } from '#~/pages/projects/types';
 import InferenceServiceFrameworkSection from '#~/pages/modelServing/screens/projects/InferenceServiceModal/InferenceServiceFrameworkSection';
 import AuthServingRuntimeSection from '#~/pages/modelServing/screens/projects/ServingRuntimeModal/AuthServingRuntimeSection';
-import { useAccessReview, useTemplates } from '#~/api';
+import { useTemplates } from '#~/api';
 import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 import { Connection } from '#~/concepts/connectionTypes/types';
 import { ConnectionSection } from '#~/pages/modelServing/screens/projects/InferenceServiceModal/ConnectionSection';

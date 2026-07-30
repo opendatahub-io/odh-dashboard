@@ -276,18 +276,13 @@ const buildOgxConfig = (namespace: string): string => {
       ],
       inference: [
         {
-          provider_id: 'sentence-transformers',
-          provider_type: 'inline::sentence-transformers',
-          config: {},
-        },
-        {
           provider_id: 'vllm-inference-llm',
           provider_type: 'remote::vllm',
           config: {
             base_url: llmUrl,
             max_tokens: '${env.VLLM_MAX_TOKENS:=4096}',
-            api_token: '${env.VLLM_API_TOKEN_1:=fake}',
-            tls_verify: '${env.VLLM_TLS_VERIFY:=false}',
+            tls_verify: false,
+            refresh_models: false,
           },
         },
       ],
@@ -350,8 +345,8 @@ const buildOgxConfig = (namespace: string): string => {
     vector_stores: {
       default_provider_id: 'pgvector',
       default_embedding_model: {
-        provider_id: 'sentence-transformers',
-        model_id: 'all-MiniLM-L6-v2',
+        provider_id: 'vllm-inference-llm',
+        model_id: INLINE_EMBEDDING_MODEL_ID,
       },
     },
     registered_resources: {
@@ -365,7 +360,7 @@ const buildOgxConfig = (namespace: string): string => {
         },
         {
           model_id: INLINE_EMBEDDING_MODEL_ID,
-          provider_id: 'sentence-transformers',
+          provider_id: 'vllm-inference-llm',
           provider_model_id: INLINE_EMBEDDING_MODEL_ID,
           model_type: 'embedding',
           metadata: {

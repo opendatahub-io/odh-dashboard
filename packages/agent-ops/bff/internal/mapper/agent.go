@@ -23,20 +23,20 @@ func AgentSummaryToRuntime(item agents.AgentSummary) models.AgentRuntime {
 	}
 
 	return models.AgentRuntime{
-		Name:         item.Name,
-		Namespace:    item.Namespace,
-		DisplayName:  item.DisplayName,
-		Description:  item.Description,
-		Framework:    item.Framework,
+		Name:          item.Name,
+		Namespace:     item.Namespace,
+		DisplayName:   item.DisplayName,
+		Description:   item.Description,
+		Framework:     item.Framework,
 		Status:        strings.TrimSpace(item.Status),
 		StatusMessage: strings.TrimSpace(item.StatusMessage),
 		Type:          strings.TrimSpace(item.ResourceType),
-		ServiceFQDN:  strings.TrimSpace(item.ServiceFQDN),
-		PodIP:        strings.TrimSpace(item.PodIP),
-		Ports:        ports,
-		EndpointURL:  strings.TrimSpace(item.EndpointURL),
-		WorkloadType: strings.TrimSpace(item.WorkloadType),
-		LastSyncTime: lastSync,
+		ServiceFQDN:   strings.TrimSpace(item.ServiceFQDN),
+		PodIP:         strings.TrimSpace(item.PodIP),
+		Ports:         ports,
+		EndpointURL:   strings.TrimSpace(item.EndpointURL),
+		WorkloadType:  strings.TrimSpace(item.WorkloadType),
+		LastSyncTime:  lastSync,
 	}
 }
 

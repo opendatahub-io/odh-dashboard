@@ -72,7 +72,7 @@ const InfrastructurePage: React.FC = () => {
   const SECTION_COMPONENTS: Record<SectionId, React.ReactElement | null> = {
     cluster: <ClusterSummaryCards metrics={metrics} />,
     'hardware-usage': <HardwareUsageSection metrics={metrics} />,
-    'borrowing-lending': <BorrowingLendingSection />,
+    borrowing: <BorrowingLendingSection />,
     'cluster-queue-utilization': <ClusterQueueUtilizationSection />,
   };
 

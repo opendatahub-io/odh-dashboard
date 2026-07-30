@@ -44,7 +44,7 @@ const TopologyConfigurationRow: React.FC<TopologyConfigurationRowProps> = ({
     <Tr data-testid={`topology-config-row-${configName}`}>
       <Td dataLabel="Name">
         <TableRowTitleDescription
-          title={<strong>{displayName}</strong>}
+          title={displayName}
           resource={config}
           description={description}
           label={
@@ -75,12 +75,12 @@ const TopologyConfigurationRow: React.FC<TopologyConfigurationRowProps> = ({
             isDashboardCreated
               ? [
                   {
-                    title: 'Duplicate',
-                    onClick: () => navigate(duplicatePath, { state: { sourceConfig: config } }),
-                  },
-                  {
                     title: 'Edit',
                     onClick: () => navigate(`edit/${configName}`),
+                  },
+                  {
+                    title: 'Duplicate',
+                    onClick: () => navigate(duplicatePath, { state: { sourceConfig: config } }),
                   },
                   { isSeparator: true },
                   {

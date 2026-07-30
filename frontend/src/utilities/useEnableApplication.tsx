@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { AlertVariant } from '@patternfly/react-core';
+import type { IntegrationAppStatus } from '@odh-dashboard/plugin-core/integrations';
 import { getValidationStatus, postValidateIsv } from '#~/services/validateIsvService';
 import {
   enableIntegrationApp,
@@ -7,7 +8,6 @@ import {
 } from '#~/services/integrationAppService';
 import { addNotification, forceComponentsUpdate } from '#~/redux/actions/actions';
 import { useAppDispatch } from '#~/redux/hooks';
-import { IntegrationAppStatus } from '#~/types';
 import { isInternalRouteIntegrationsApp } from './utils';
 
 export enum EnableApplicationStatus {

@@ -17,14 +17,14 @@ type Client struct {
 	Agents     map[string][]agents.AgentSummary
 	Details    map[string]agents.AgentDetail
 
-	ListNamespacesErr       error
-	ListAgentsErr           error
-	GetAgentErr             error
-	DeployAgentErr          error
-	StopAgentErr            error
-	StartAgentErr           error
-	RestartAgentErr         error
-	DeleteAgentErr          error
+	ListNamespacesErr error
+	ListAgentsErr     error
+	GetAgentErr       error
+	DeployAgentErr    error
+	StopAgentErr      error
+	StartAgentErr     error
+	RestartAgentErr   error
+	DeleteAgentErr    error
 }
 
 // NewClient returns a mock client with no data.
