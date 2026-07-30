@@ -1,9 +1,7 @@
 import * as React from 'react';
 import { Alert, Bullseye, PageSection, Spinner } from '@patternfly/react-core';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { useModelsOverview } from '~/app/hooks/useModelsOverview';
 import { URL_PREFIX } from '~/app/utilities/const';
-import { MaaSEvents } from '~/app/types/event-tracking';
 import OverviewTable from './overview/OverviewTable';
 import OverviewToolbar from './overview/OverviewToolbar';
 import { initialOverviewFilterData, OverviewFilterDataType } from './overview/const';
@@ -19,9 +17,6 @@ const OverviewTab: React.FC = () => {
 
   const onFilterUpdate = React.useCallback(
     (key: string, value?: string | { label: string; value: string }) => {
-      fireMiscTrackingEvent(MaaSEvents.SUBSCRIPTION_MANAGEMENT_OVERVIEW_FILTERED, {
-        filterAttribute: key,
-      });
       setFilterData((prev) => ({ ...prev, [key]: value }));
     },
     [],
