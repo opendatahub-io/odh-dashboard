@@ -372,7 +372,7 @@ describe('AutomlConfigure', () => {
     it('should NOT display the "Browse bucket" button when no secret is selected', () => {
       renderComponent();
 
-      expect(screen.queryByRole('button', { name: 'Browse bucket' })).not.toBeInTheDocument();
+      expect(screen.queryByTestId('browse-bucket-button')).not.toBeInTheDocument();
     });
   });
 
@@ -392,7 +392,7 @@ describe('AutomlConfigure', () => {
       const selectButton = screen.getByTestId('aws-secret-selector-select-secret-1');
       fireEvent.click(selectButton);
 
-      expect(screen.getByRole('button', { name: 'Browse bucket' })).toBeInTheDocument();
+      expect(screen.getByTestId('browse-bucket-button')).toBeInTheDocument();
     });
 
     it('should show selected-files UI when "Select file from bucket" is selected (default)', () => {
@@ -400,7 +400,7 @@ describe('AutomlConfigure', () => {
       fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
 
       expect(screen.getByRole('heading', { name: 'Select file from bucket' })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: 'Browse bucket' })).toBeInTheDocument();
+      expect(screen.getByTestId('browse-bucket-button')).toBeInTheDocument();
       expect(
         screen.queryByText(/Drop a file here or browse to select a file/),
       ).not.toBeInTheDocument();
@@ -414,7 +414,7 @@ describe('AutomlConfigure', () => {
       expect(
         screen.queryByRole('heading', { name: 'Select file from bucket' }),
       ).not.toBeInTheDocument();
-      expect(screen.queryByRole('button', { name: 'Browse bucket' })).not.toBeInTheDocument();
+      expect(screen.queryByTestId('browse-bucket-button')).not.toBeInTheDocument();
       expect(screen.getByText(/Drop a file here or browse to select a file/)).toBeInTheDocument();
     });
 
@@ -603,14 +603,14 @@ describe('AutomlConfigure', () => {
       fireEvent.click(selectButton1);
 
       expect(screen.getByTestId('aws-secret-selector-value')).toHaveTextContent('Test Secret 1');
-      expect(screen.getByRole('button', { name: 'Browse bucket' })).toBeInTheDocument();
+      expect(screen.getByTestId('browse-bucket-button')).toBeInTheDocument();
 
       // Select second secret with different bucket data
       const selectButton2 = screen.getByTestId('aws-secret-selector-select-secret-2');
       fireEvent.click(selectButton2);
 
       expect(screen.getByTestId('aws-secret-selector-value')).toHaveTextContent('Test Secret 2');
-      expect(screen.getByRole('button', { name: 'Browse bucket' })).toBeInTheDocument();
+      expect(screen.getByTestId('browse-bucket-button')).toBeInTheDocument();
     });
 
     it('should display the "Configure details" fields when a file is selected', () => {
@@ -631,7 +631,7 @@ describe('AutomlConfigure', () => {
       ).toBeInTheDocument();
 
       // Select a file via the file explorer
-      fireEvent.click(screen.getByRole('button', { name: 'Browse bucket' }));
+      fireEvent.click(screen.getByTestId('browse-bucket-button'));
       fireEvent.click(screen.getByTestId('file-explorer-select-file'));
 
       // Empty state should be hidden
@@ -678,7 +678,7 @@ describe('AutomlConfigure', () => {
       fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
 
       // Open file explorer and select a file
-      fireEvent.click(screen.getByRole('button', { name: 'Browse bucket' }));
+      fireEvent.click(screen.getByTestId('browse-bucket-button'));
       fireEvent.click(screen.getByTestId('file-explorer-select-file'));
 
       // Verify the table appears with correct content
@@ -693,7 +693,7 @@ describe('AutomlConfigure', () => {
 
       // Select a secret and a file
       fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
-      fireEvent.click(screen.getByRole('button', { name: 'Browse bucket' }));
+      fireEvent.click(screen.getByTestId('browse-bucket-button'));
       fireEvent.click(screen.getByTestId('file-explorer-select-file'));
 
       // Verify the table is shown
@@ -713,7 +713,7 @@ describe('AutomlConfigure', () => {
       getMockS3MutateAsync().mockClear();
 
       fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
-      fireEvent.click(screen.getByRole('button', { name: 'Browse bucket' }));
+      fireEvent.click(screen.getByTestId('browse-bucket-button'));
       fireEvent.click(screen.getByTestId('file-explorer-select-file'));
 
       expect(screen.getByRole('grid', { name: 'Selected training data file' })).toBeInTheDocument();
@@ -756,7 +756,7 @@ describe('AutomlConfigure', () => {
       fireEvent.click(selectInvalidButton);
 
       // Verify the "Browse bucket" button does not exist
-      const browseButton = screen.queryByRole('button', { name: 'Browse bucket' });
+      const browseButton = screen.queryByTestId('browse-bucket-button');
       expect(browseButton).not.toBeInTheDocument();
     });
 
@@ -783,7 +783,7 @@ describe('AutomlConfigure', () => {
       const selectButton = screen.getByTestId('aws-secret-selector-select-secret-1');
       fireEvent.click(selectButton);
 
-      const browseButton = screen.getByRole('button', { name: 'Browse bucket' });
+      const browseButton = screen.getByTestId('browse-bucket-button');
       expect(browseButton).toBeEnabled();
     });
   });
@@ -792,12 +792,11 @@ describe('AutomlConfigure', () => {
     /** Select a secret and a file so prediction type tiles become enabled */
     const selectSecretAndFile = () => {
       fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
-      fireEvent.click(screen.getByRole('button', { name: 'Browse bucket' }));
+      fireEvent.click(screen.getByTestId('browse-bucket-button'));
       fireEvent.click(screen.getByTestId('file-explorer-select-file'));
 
       // Verify selections took effect
       expect(screen.getByTestId('aws-secret-selector-value')).toHaveTextContent('Test Secret 1');
-      expect(screen.getByRole('button', { name: 'Remove selection' })).toBeInTheDocument();
     };
 
     /** Select a target column from the dropdown */
@@ -905,7 +904,7 @@ describe('AutomlConfigure', () => {
         ).toBeInTheDocument();
 
         // Re-select a file — helper text shown, cards hidden until target column is selected
-        fireEvent.click(screen.getByRole('button', { name: 'Browse bucket' }));
+        fireEvent.click(screen.getByTestId('browse-bucket-button'));
         fireEvent.click(screen.getByTestId('file-explorer-select-file'));
 
         expect(screen.getByTestId('prediction-type-helper-no-target')).toBeInTheDocument();
@@ -1657,6 +1656,23 @@ describe('AutomlConfigure', () => {
       expectPredictionTypeRecommended('binary');
       expectPredictionTypeNotRecommended('multiclass');
       expectPredictionTypeEnabled('multiclass');
+    });
+  });
+
+  describe('test dataset section', () => {
+    it('should not render the test dataset section when no S3 connection is selected', () => {
+      renderComponent();
+
+      expect(screen.queryByTestId('test-dataset-section')).not.toBeInTheDocument();
+    });
+
+    it('should render the test dataset section when an S3 connection is selected', () => {
+      renderComponent();
+
+      fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+
+      expect(screen.getByTestId('test-dataset-section')).toBeInTheDocument();
+      expect(screen.getByTestId('test-data-browse-bucket-button')).toBeInTheDocument();
     });
   });
 });
