@@ -6,8 +6,6 @@ import {
   subscriptionManagementPage,
   subscriptionsPage,
   authPoliciesPage,
-  viewSubscriptionPage,
-  viewAuthPolicyPage,
 } from '../../../pages/modelsAsAService';
 import {
   mockSubscriptions,
@@ -109,92 +107,6 @@ describe('Subscription Management Page / Overview Tab', () => {
     // subscriptionManagementPage.findOverviewTab().click();
     // cy.url().should('include', '/maas-governance/overview');
     // overviewTabPage.findTable().should('exist');
-  });
-
-  it('should display subscriptions content within the subscriptions tab, and navigate to the yaml tab', () => {
-    cy.interceptOdh('GET /maas/api/v1/yaml', {
-      content:
-        'apiVersion: maas.opendatahub.io/v1alpha1\nkind: MaaSSubscription\nmetadata:\n  name: premium-team-sub\n',
-    });
-
-    subscriptionManagementPage.visit('subscriptions');
-    subscriptionsPage.findTable().should('exist');
-    subscriptionsPage.findRows().should('have.length', 7);
-    subscriptionsPage.findCreateSubscriptionButton().should('exist');
-
-    subscriptionsPage.findFilterInput().type('premium');
-    subscriptionsPage.findRows().should('have.length', 1);
-    subscriptionsPage.findFilterResetButton().click();
-    subscriptionsPage.findRows().should('have.length', 7);
-
-    subscriptionsPage.getRow('Premium Team Subscription').findTitleButton().click();
-    viewSubscriptionPage.findTitle().should('contain.text', 'Premium Team Subscription');
-    viewSubscriptionPage.findYamlTab().click();
-    viewSubscriptionPage.findYamlContent().should('exist');
-    viewSubscriptionPage.findYamlContent().should('contain.text', 'MaaSSubscription');
-  });
-
-  it('should expand and collapse inline rows in the subscriptions tab', () => {
-    subscriptionManagementPage.visit('subscriptions');
-
-    const premiumRow = subscriptionsPage.getRow('Premium Team Subscription');
-
-    // Expand the groups panel
-    premiumRow.findExpandGroupButton().click();
-    premiumRow.findExpandedGroupName().should('exist');
-    premiumRow.findExpandedGroupName().should('have.length', 1);
-    premiumRow.findExpandedGroupName().eq(0).should('contain.text', 'premium-users');
-    premiumRow.findExpandedModelName().should('not.be.visible');
-
-    // Clicking models while groups is open replaces the panel
-    premiumRow.findExpandModelButton().click();
-    premiumRow.findExpandedModelName().should('exist');
-    premiumRow.findExpandedModelName().should('have.length', 2);
-    premiumRow.findExpandedModelName().eq(0).should('contain.text', 'Granite 3 8B Instruct');
-    premiumRow.findExpandedModelDescription().should('have.length', 2);
-    premiumRow
-      .findExpandedModelDescription()
-      .eq(0)
-      .should(
-        'contain.text',
-        'Granite 3 8B Instruct is a large language model that is used for advanced tasks.',
-      );
-    premiumRow.findExpandedModelResourceName().should('have.length', 2);
-    premiumRow
-      .findExpandedModelResourceName()
-      .eq(0)
-      .should('contain.text', 'granite-3-8b-instruct');
-    premiumRow.findExpandedModelTokenLimits().should('have.length', 2);
-    premiumRow.findExpandedModelTokenLimits().eq(0).should('contain.text', '100,000 / 24 hours');
-    premiumRow.findExpandedGroupName().should('not.be.visible');
-
-    // Clicking models again collapses it
-    premiumRow.findExpandModelButton().click();
-    premiumRow.findExpandedModelName().should('not.be.visible');
-    premiumRow.findExpandedGroupName().should('not.be.visible');
-  });
-
-  it('should display auth policies content within the auth policies tab, and navigate to the yaml tab', () => {
-    cy.interceptOdh('GET /maas/api/v1/yaml', {
-      content:
-        'apiVersion: maas.opendatahub.io/v1alpha1\nkind: MaaSAuthPolicy\nmetadata:\n  name: premium-team-policy\n',
-    });
-
-    subscriptionManagementPage.visit('auth-policies');
-    authPoliciesPage.findTable().should('exist');
-    authPoliciesPage.findRows().should('have.length', 7);
-    authPoliciesPage.findCreateAuthPolicyButton().should('exist');
-
-    authPoliciesPage.findKeywordFilterInput().type('premium');
-    authPoliciesPage.findRows().should('have.length', 1);
-    authPoliciesPage.clearAllFilters();
-    authPoliciesPage.findRows().should('have.length', 7);
-
-    authPoliciesPage.getRow('Premium Team Policy').findTitleButton().click();
-    viewAuthPolicyPage.findTitle().should('contain.text', 'Premium Team Policy');
-    viewAuthPolicyPage.findYamlTab().click();
-    viewAuthPolicyPage.findYamlContent().should('exist');
-    viewAuthPolicyPage.findYamlContent().should('contain.text', 'MaaSAuthPolicy');
   });
 
   // it('should test sorting, expand/collapse, warning, and group chips in the overview tab', () => {

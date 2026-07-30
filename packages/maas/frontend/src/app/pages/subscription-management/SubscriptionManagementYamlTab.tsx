@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { Bullseye, EmptyState, EmptyStateBody, PageSection, Spinner } from '@patternfly/react-core';
 import { Language } from '@patternfly/react-code-editor';
+import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import useDarkMode from '~/app/hooks/useDarkMode';
 import { useSubscriptionManagementYaml } from '~/app/hooks/useSubscriptionManagementYaml';
 
@@ -33,7 +34,7 @@ const SubscriptionManagementYamlTab: React.FC<SubscriptionManagementYamlTabProps
   if (loadError || !yaml) {
     return (
       <PageSection hasBodyWrapper={false}>
-        <EmptyState headingLevel="h3" titleText="Unable to load YAML">
+        <EmptyState icon={ExclamationCircleIcon} headingLevel="h3" titleText="Unable to load YAML">
           <EmptyStateBody>The YAML content could not be retrieved.</EmptyStateBody>
         </EmptyState>
       </PageSection>
@@ -57,6 +58,7 @@ const SubscriptionManagementYamlTab: React.FC<SubscriptionManagementYamlTabProps
           isCopyEnabled
           isDownloadEnabled
           isLanguageLabelVisible
+          downloadFileName={resourceName}
           height="600px"
         />
       </React.Suspense>
