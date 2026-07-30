@@ -5,7 +5,7 @@ import {
   type HardwareProfileKind,
 } from '@odh-dashboard/k8s-core';
 import { HardwareProfilesContext } from '@odh-dashboard/internal/concepts/hardwareProfiles/HardwareProfilesContext';
-import { ProjectDetailsContext } from '@odh-dashboard/internal/pages/projects/ProjectDetailsContext';
+import { ProjectHardwareProfilesContext } from '@odh-dashboard/ui-core/context/ProjectHardwareProfilesContext';
 import { mockHardwareProfile } from '../../__mocks__/mockHardwareProfile';
 import { useHardwareProfilesByFeatureVisibility } from '../useHardwareProfilesByFeatureVisibility';
 
@@ -15,8 +15,8 @@ jest.mock('@odh-dashboard/internal/concepts/hardwareProfiles/HardwareProfilesCon
   },
 }));
 
-jest.mock('@odh-dashboard/internal/pages/projects/ProjectDetailsContext', () => ({
-  ProjectDetailsContext: {
+jest.mock('@odh-dashboard/ui-core/context/ProjectHardwareProfilesContext', () => ({
+  ProjectHardwareProfilesContext: {
     _currentValue: null,
   },
 }));
@@ -33,7 +33,7 @@ const mockContexts = (
   globalProfiles: HardwareProfileKind[],
   globalLoaded = true,
   globalError: Error | undefined = undefined,
-  projectOverrides?: Partial<React.ContextType<typeof ProjectDetailsContext>>,
+  projectOverrides?: Partial<React.ContextType<typeof ProjectHardwareProfilesContext>>,
 ) => {
   jest.spyOn(React, 'useContext').mockImplementation((context: React.Context<unknown>) => {
     if (context === HardwareProfilesContext) {
@@ -41,9 +41,8 @@ const mockContexts = (
         globalHardwareProfiles: [globalProfiles, globalLoaded, globalError],
       };
     }
-    if (context === ProjectDetailsContext) {
+    if (context === ProjectHardwareProfilesContext) {
       return {
-        currentProject: { metadata: { name: 'test-project' } },
         projectHardwareProfiles: [[], true, undefined],
         ...projectOverrides,
       };

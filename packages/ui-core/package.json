@@ -58,6 +58,8 @@
     "./utilities/useGenericObjectState": "./src/utilities/useGenericObjectState.ts",
     "./utilities/useValidation": "./src/utilities/useValidation.ts",
     "./context/CurrentProjectContext": "./src/context/CurrentProjectContext.tsx",
+    "./context/LocalQueuesContext": "./src/context/LocalQueuesContext.tsx",
+    "./context/ProjectHardwareProfilesContext": "./src/context/ProjectHardwareProfilesContext.tsx",
     "./context/ProjectsContext": "./src/context/ProjectsContext.tsx",
     "./contexts/ThemeContext": "./src/contexts/ThemeContext.tsx",
     "./contexts/AnalyticsContext": "./src/contexts/AnalyticsContext.tsx",

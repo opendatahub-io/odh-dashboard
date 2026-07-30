@@ -10,6 +10,8 @@ import type {
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import type { InferenceServiceKind, ServingRuntimeKind } from '@odh-dashboard/model-serving/shared';
 import { CurrentProjectContext } from '@odh-dashboard/ui-core/context/CurrentProjectContext';
+import { LocalQueuesContext } from '@odh-dashboard/ui-core/context/LocalQueuesContext';
+import { ProjectHardwareProfilesContext } from '@odh-dashboard/ui-core/context/ProjectHardwareProfilesContext';
 import { FetchStateObject } from '@odh-dashboard/ui-core/hooks/useFetch';
 import { DEFAULT_LIST_FETCH_STATE } from '@odh-dashboard/ui-core/utilities/fetchState';
 import { GroupKind, LocalQueueKind, RoleBindingKind } from '#~/k8sTypes';
@@ -200,7 +202,14 @@ const ProjectDetailsContextProvider: React.FC = () => {
     [project],
   );
 
-  if (!project || !contextValue || !currentProjectValue) {
+  const localQueuesValue = React.useMemo(() => ({ localQueues }), [localQueues]);
+
+  const projectHardwareProfilesValue = React.useMemo(
+    () => ({ projectHardwareProfiles }),
+    [projectHardwareProfiles],
+  );
+
+  if (!project || !contextValue || !currentProjectValue || !localQueuesValue || !projectHardwareProfilesValue) {
     if (projectsEnabled && projects.length === 0) {
       // No projects, but we do have the projects view -- navigate them so they can go through normal flows
       return <Navigate to="/projects" replace />;
@@ -215,21 +224,23 @@ const ProjectDetailsContextProvider: React.FC = () => {
     );
   }
 
-  // CurrentProjectContext (ui-core) exposes only currentProject so feature packages
-  // can consume it without depending on the full ProjectDetailsContext from internal.
-  // During migration, both providers coexist; this wrapper will shrink as more fields
-  // are extracted into standalone shared contexts.
+  // Shared contexts (ui-core) expose individual fields so feature packages can consume
+  // them without depending on the full ProjectDetailsContext from internal.
   return (
     <CurrentProjectContext.Provider value={currentProjectValue}>
-      <ProjectDetailsContext.Provider value={contextValue}>
-        {pipelinesEnabled ? (
-          <PipelineContextProvider namespace={project.metadata.name}>
-            <Outlet />
-          </PipelineContextProvider>
-        ) : (
-          <Outlet />
-        )}
-      </ProjectDetailsContext.Provider>
+      <LocalQueuesContext.Provider value={localQueuesValue}>
+        <ProjectHardwareProfilesContext.Provider value={projectHardwareProfilesValue}>
+          <ProjectDetailsContext.Provider value={contextValue}>
+            {pipelinesEnabled ? (
+              <PipelineContextProvider namespace={project.metadata.name}>
+                <Outlet />
+              </PipelineContextProvider>
+            ) : (
+              <Outlet />
+            )}
+          </ProjectDetailsContext.Provider>
+        </ProjectHardwareProfilesContext.Provider>
+      </LocalQueuesContext.Provider>
     </CurrentProjectContext.Provider>
   );
 };

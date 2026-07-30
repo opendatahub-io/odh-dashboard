@@ -18,10 +18,8 @@ import { CurrentProjectContext } from '@odh-dashboard/ui-core/context/CurrentPro
 import { mockHardwareProfile } from '@odh-dashboard/hardware-profiles/__mocks__/mockHardwareProfile';
 import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import { mockLocalQueueK8sResource } from '#~/__mocks__/mockLocalQueueK8sResource';
-import {
-  ProjectDetailsContext,
-  ProjectDetailsContextType,
-} from '#~/pages/projects/ProjectDetailsContext';
+import { LocalQueuesContext } from '@odh-dashboard/ui-core/context/LocalQueuesContext';
+import type { LocalQueuesContextType } from '@odh-dashboard/ui-core/context/LocalQueuesContext';
 import { ProjectsContext } from '#~/concepts/projects/ProjectsContext';
 import HardwareProfileSelect from '#~/concepts/hardwareProfiles/HardwareProfileSelect';
 
@@ -97,7 +95,7 @@ const renderComponent = (
   projects: ProjectKind[] = [],
   projectProp?: string,
   allowExistingSettings = false,
-  localQueuesOverride?: ProjectDetailsContextType['localQueues'],
+  localQueuesOverride?: LocalQueuesContextType['localQueues'],
   initialHardwareProfile?: HardwareProfileKind,
 ) => {
   // Mock useKueueConfiguration to return the specified filtering state
@@ -145,14 +143,8 @@ const renderComponent = (
           loadError: undefined,
         }}
       >
-        <ProjectDetailsContext.Provider
-          value={
-            {
-              currentProject,
-              refresh: jest.fn(),
-              localQueues: localQueuesOverride ?? DEFAULT_LIST_FETCH_STATE,
-            } as unknown as ProjectDetailsContextType
-          }
+        <LocalQueuesContext.Provider
+          value={{ localQueues: localQueuesOverride ?? DEFAULT_LIST_FETCH_STATE }}
         >
           <HardwareProfileSelect
             initialHardwareProfile={initialHardwareProfile}
@@ -168,7 +160,7 @@ const renderComponent = (
             onChange={() => null}
             project={projectProp}
           />
-        </ProjectDetailsContext.Provider>
+        </LocalQueuesContext.Provider>
       </ProjectsContext.Provider>
     </CurrentProjectContext.Provider>,
   );
@@ -548,15 +540,7 @@ describe('HardwareProfileSelect - LocalQueue availability filtering', () => {
             waitForProject: () => Promise.resolve(),
           }}
         >
-          <ProjectDetailsContext.Provider
-            value={
-              {
-                currentProject: project,
-                refresh: jest.fn(),
-                localQueues,
-              } as unknown as ProjectDetailsContextType
-            }
-          >
+          <LocalQueuesContext.Provider value={{ localQueues }}>
             <HardwareProfileSelect
               isProjectScoped
               initialHardwareProfile={projectKueueProfile}
@@ -571,7 +555,7 @@ describe('HardwareProfileSelect - LocalQueue availability filtering', () => {
               onChange={() => null}
               project="test-project"
             />
-          </ProjectDetailsContext.Provider>
+          </LocalQueuesContext.Provider>
         </ProjectsContext.Provider>
       </CurrentProjectContext.Provider>,
     );

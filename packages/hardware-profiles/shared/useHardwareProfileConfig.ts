@@ -12,7 +12,7 @@ import { isCpuLimitLarger, isMemoryLimitLarger } from '@odh-dashboard/ui-core/ut
 import { isHardwareProfileEnabled } from '@odh-dashboard/internal/pages/hardwareProfiles/utils';
 import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors';
 import { CurrentProjectContext } from '@odh-dashboard/ui-core/context/CurrentProjectContext';
-import { ProjectDetailsContext } from '@odh-dashboard/internal/pages/projects/ProjectDetailsContext';
+import { LocalQueuesContext } from '@odh-dashboard/ui-core/context/LocalQueuesContext';
 import { useHardwareProfilesByFeatureVisibility } from '@odh-dashboard/internal/pages/hardwareProfiles/useHardwareProfilesByFeatureVisibility';
 import {
   computeLocalQueueNamesResult,
@@ -123,7 +123,7 @@ export const useHardwareProfileConfig = (
 ): UseHardwareProfileConfigResult => {
   const { dashboardNamespace } = useDashboardNamespace();
   const { currentProject } = React.useContext(CurrentProjectContext);
-  const { localQueues } = React.useContext(ProjectDetailsContext);
+  const { localQueues } = React.useContext(LocalQueuesContext);
 
   const {
     globalProfiles: [dashboardProfiles, dashboardProfilesLoaded, dashboardProfilesLoadError],
