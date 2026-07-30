@@ -25,6 +25,25 @@ describe('Module federation visibility', () => {
       navSidebar.findNavItem({ name: 'AutoML', rootSection: 'Develop & train' }).should('exist');
     });
 
+    it('should render AutoML route when feature flag is enabled', () => {
+      cy.interceptOdh(
+        'GET /api/config',
+        mockDashboardConfig({
+          automl: true,
+        }),
+      );
+      cy.interceptOdh(
+        'GET /api/dsc/status',
+        mockDscStatus({
+          components: {
+            [DataScienceStackComponent.DS_PIPELINES]: { managementState: 'Managed' },
+          },
+        }),
+      );
+      cy.visitWithLogin('/develop-train/automl');
+      pageNotfound.findPage().should('not.exist');
+    });
+
     it('should show Gen AI studio section when feature flag is enabled', () => {
       cy.interceptOdh(
         'GET /api/config',
@@ -37,6 +56,17 @@ describe('Module federation visibility', () => {
       navSidebar
         .findNavItem({ name: 'AI asset endpoints', rootSection: 'Gen AI studio' })
         .should('exist');
+    });
+
+    it('should render Gen AI route when feature flag is enabled', () => {
+      cy.interceptOdh(
+        'GET /api/config',
+        mockDashboardConfig({
+          genAiStudio: true,
+        }),
+      );
+      cy.visitWithLogin('/gen-ai-studio');
+      pageNotfound.findPage().should('not.exist');
     });
 
     it('should show Feature store section when feature flag and DSC component are enabled', () => {
@@ -62,6 +92,25 @@ describe('Module federation visibility', () => {
           subSection: 'Feature store',
         })
         .should('exist');
+    });
+
+    it('should render Feature store route when feature flag and DSC component are enabled', () => {
+      cy.interceptOdh(
+        'GET /api/config',
+        mockDashboardConfig({
+          disableFeatureStore: false,
+        }),
+      );
+      cy.interceptOdh(
+        'GET /api/dsc/status',
+        mockDscStatus({
+          components: {
+            [DataScienceStackComponent.FEAST_OPERATOR]: { managementState: 'Managed' },
+          },
+        }),
+      );
+      cy.visitWithLogin('/develop-train/feature-store');
+      pageNotfound.findPage().should('not.exist');
     });
   });
 
@@ -109,6 +158,17 @@ describe('Module federation visibility', () => {
         }),
       );
       cy.visitWithLogin('/gen-ai-studio');
+      pageNotfound.findPage().should('exist');
+    });
+
+    it('should show 404 when navigating to Feature store route with flag disabled', () => {
+      cy.interceptOdh(
+        'GET /api/config',
+        mockDashboardConfig({
+          disableFeatureStore: true,
+        }),
+      );
+      cy.visitWithLogin('/develop-train/feature-store');
       pageNotfound.findPage().should('exist');
     });
 
