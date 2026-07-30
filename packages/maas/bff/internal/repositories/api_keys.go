@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"net/url"
 
 	"github.com/opendatahub-io/maas-library/bff/internal/integrations/maas"
 	"github.com/opendatahub-io/maas-library/bff/internal/models"
@@ -16,17 +15,27 @@ type APIKeysRepository struct {
 	maasClient *maas.MaasClient
 }
 
-// NewAPIKeysRepository creates a new API keys repository
+// NewAPIKeysRepository creates a new API keys repository.
+// An empty maasApiUrl is allowed; the underlying MaasClient can be configured later via SetMaasApiURL.
 func NewAPIKeysRepository(logger *slog.Logger, maasApiUrl string) (*APIKeysRepository, error) {
-	parsedApiUrl, err := url.Parse(maasApiUrl)
+	client, err := maas.NewMaasClient(logger, maasApiUrl)
 	if err != nil {
 		return nil, err
 	}
-
 	return &APIKeysRepository{
 		logger:     logger,
-		maasClient: maas.NewMaasClient(logger, parsedApiUrl),
+		maasClient: client,
 	}, nil
+}
+
+// SetMaasApiURL configures the upstream maas-api base URL on the shared client.
+func (r *APIKeysRepository) SetMaasApiURL(maasApiUrl string) error {
+	return r.maasClient.SetBaseURL(maasApiUrl)
+}
+
+// Ready reports whether the upstream maas-api client has a configured base URL.
+func (r *APIKeysRepository) Ready() bool {
+	return r.maasClient != nil && r.maasClient.Ready()
 }
 
 // CreateAPIKey creates a new API key

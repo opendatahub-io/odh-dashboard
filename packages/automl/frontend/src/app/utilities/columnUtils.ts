@@ -66,3 +66,22 @@ export const getTypeAcronym = (type: string): string => {
       return 'STR';
   }
 };
+
+/** True when the string contains only ASCII code points (U+0000–U+007F). */
+export const isASCIIOnly = (value: string): boolean => {
+  for (let i = 0; i < value.length; i += 1) {
+    if (value.charCodeAt(i) > 0x7f) {
+      return false;
+    }
+  }
+  return true;
+};
+
+export const NON_ASCII_COLUMN_NAME_MESSAGE =
+  'Column names must use only ASCII characters because Kubeflow Pipelines does not support non-ASCII column names';
+
+/** Message when non-ASCII columns are filtered out of the target column picker. */
+export const formatFilteredNonASCIIColumnsMessage = (count: number): string => {
+  const subject = count === 1 ? 'column is' : 'columns are';
+  return `${count} ${subject} hidden because Kubeflow pipelines do not support non-ASCII names.`;
+};

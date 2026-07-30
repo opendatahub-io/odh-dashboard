@@ -224,6 +224,7 @@ describe('DeploymentsTableRow', () => {
       );
 
       expect(screen.getByTestId('metrics-link-test-deployment')).toBeInTheDocument();
+      expect(screen.getByTestId('deployed-model-name')).toBeInTheDocument();
     });
   });
 

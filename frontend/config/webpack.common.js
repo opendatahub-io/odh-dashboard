@@ -2,9 +2,8 @@
 const path = require('path');
 const { execSync } = require('child_process');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
-const CopyPlugin = require('copy-webpack-plugin');
 const MonacoWebpackPlugin = require('monaco-editor-webpack-plugin');
-const webpack = require('webpack');
+const { rspack } = require('@rspack/core');
 const { setupWebpackDotenvFilesForEnv } = require('./dotenv');
 const GenerateExtensionsPlugin = require('./generateExtensionsPlugin');
 const { moduleFederationPlugins, moduleFederationConfig } = require('./moduleFederation');
@@ -72,20 +71,24 @@ module.exports = (env) => ({
         ],
         use: [
           COVERAGE === 'true' && '@jsdevtools/coverage-istanbul-loader',
-          env === 'development'
-            ? { loader: 'swc-loader' }
-            : {
-                loader: 'ts-loader',
-                options: {
-                  transpileOnly: true,
+          {
+            loader: 'builtin:swc-loader',
+            options: {
+              detectSyntax: 'auto',
+              jsc: {
+                transform: {
+                  react: {
+                    runtime: 'classic',
+                    refresh: env === 'development',
+                  },
                 },
               },
-        ],
+            },
+          },
+        ].filter(Boolean),
       },
       {
         test: /\.(svg|ttf|eot|woff|woff2)$/,
-        // only process modules with this loader
-        // if they live under a 'fonts' or 'pficon' directory
         include: [
           path.resolve(RELATIVE_DIRNAME, '../node_modules/patternfly/dist/fonts'),
           path.resolve(
@@ -101,55 +104,41 @@ module.exports = (env) => ({
           path.resolve(RELATIVE_DIRNAME, '../node_modules/monaco-editor'),
           path.resolve(RELATIVE_DIRNAME, '../node_modules/@fontsource'),
         ],
-        use: {
-          loader: 'file-loader',
-          options: {
-            // Limit at 50k. larger files emitted into separate files
-            limit: 5000,
-            outputPath: 'fonts',
-            name: '[name].[ext]',
-          },
+        type: 'asset/resource',
+        generator: {
+          filename: 'fonts/[name][ext]',
         },
       },
       {
         test: /\.svg$/,
         include: (input) => input.indexOf('background-filter.svg') > 1,
-        use: [
-          {
-            loader: 'url-loader',
-            options: {
-              limit: 5000,
-              outputPath: 'svgs',
-              name: '[name].[ext]',
-            },
-          },
-        ],
-      },
-      {
-        test: /\.svg$/,
-        // only process SVG modules with this loader if they live under a 'bgimages' directory
-        // this is primarily useful when applying a CSS background using an SVG
-        include: (input) => input.indexOf(IMAGES_DIRNAME) > -1,
-        use: {
-          loader: 'svg-url-loader',
-          options: {
-            limit: 10000,
-          },
+        type: 'asset',
+        parser: {
+          dataUrlCondition: { maxSize: 5000 },
+        },
+        generator: {
+          filename: 'svgs/[name][ext]',
         },
       },
       {
         test: /\.svg$/,
-        // only process SVG modules with this loader when they don't live under a 'bgimages',
-        // 'fonts', or 'pficon' directory, those are handled with other loaders
+        include: (input) => input.indexOf(IMAGES_DIRNAME) > -1,
+        type: 'asset',
+        parser: {
+          dataUrlCondition: { maxSize: 10000 },
+        },
+        generator: {
+          filename: 'images/[name][ext]',
+        },
+      },
+      {
+        test: /\.svg$/,
         include: (input) =>
           input.indexOf(IMAGES_DIRNAME) === -1 &&
           input.indexOf('fonts') === -1 &&
           input.indexOf('background-filter') === -1 &&
           input.indexOf('pficon') === -1,
-        use: {
-          loader: 'raw-loader',
-          options: {},
-        },
+        type: 'asset/source',
       },
       {
         test: /\.(jpg|jpeg|png|gif)$/i,
@@ -179,35 +168,26 @@ module.exports = (env) => ({
             '../node_modules/@patternfly/react-inline-edit-extension/node_modules/@patternfly/react-styles/css/assets/images',
           ),
         ],
-        use: [
-          {
-            loader: 'url-loader',
-            options: {
-              limit: 5000,
-              outputPath: 'images',
-              name: '[name].[ext]',
-            },
-          },
-        ],
+        type: 'asset',
+        parser: {
+          dataUrlCondition: { maxSize: 5000 },
+        },
+        generator: {
+          filename: 'images/[name][ext]',
+        },
       },
       {
         test: /\.s[ac]ss$/i,
         use: [
-          // Creates `style` nodes from JS strings
-          'style-loader',
-          // Translates CSS into CommonJS
+          env === 'production' ? rspack.CssExtractRspackPlugin.loader : 'style-loader',
           'css-loader',
-          // Compiles Sass to CSS
           'sass-loader',
         ],
       },
       {
         test: /\.css$/i,
-        exclude: /node_modules\/monaco-editor|@patternfly/,
         use: [
-          // Creates `style` nodes from JS strings
-          'style-loader',
-          // Translates CSS into CommonJS
+          env === 'production' ? rspack.CssExtractRspackPlugin.loader : 'style-loader',
           'css-loader',
         ],
       },
@@ -240,9 +220,9 @@ module.exports = (env) => ({
     },
   },
   plugins: [
-    // Generate extensions file before compilation
+    // Virtually override the stub with discovered package extension imports.
     new GenerateExtensionsPlugin({
-      targetFile: path.join(SRC_DIR, 'plugins', 'plugin-extensions.ts'),
+      modulePath: path.join(SRC_DIR, 'plugins', 'plugin-extensions.ts'),
     }),
     ...setupWebpackDotenvFilesForEnv({
       directory: RELATIVE_DIRNAME,
@@ -253,7 +233,7 @@ module.exports = (env) => ({
       title: ODH_PRODUCT_NAME,
       favicon: path.join(SRC_DIR, 'images', ODH_FAVICON),
     }),
-    new CopyPlugin({
+    new rspack.CopyRspackPlugin({
       patterns: [
         {
           from: path.join(SRC_DIR, 'locales'),
@@ -295,11 +275,11 @@ module.exports = (env) => ({
     new MonacoWebpackPlugin({
       languages: ['yaml'],
     }),
-    new webpack.DefinePlugin({
+    new rspack.DefinePlugin({
       __COMMIT_HASH__: JSON.stringify(COMMIT_HASH_DIRECT),
     }),
     env === 'development' || MF_DEV
-      ? new webpack.EnvironmentPlugin({
+      ? new rspack.EnvironmentPlugin({
           MF_REMOTES: JSON.stringify(
             moduleFederationConfig
               .filter((c) => !!c.backend)
