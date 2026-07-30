@@ -49,6 +49,10 @@ const TestWrapper = ({
 };
 
 describe('ConfigureTestDataset', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
   const defaultProps = {
     namespace: 'test-namespace',
     s3SecretName: 'my-secret',

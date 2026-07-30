@@ -797,6 +797,7 @@ describe('AutomlConfigure', () => {
 
       // Verify selections took effect
       expect(screen.getByTestId('aws-secret-selector-value')).toHaveTextContent('Test Secret 1');
+      expect(screen.getByRole('grid', { name: 'Selected training data file' })).toBeInTheDocument();
     };
 
     /** Select a target column from the dropdown */
@@ -1673,6 +1674,49 @@ describe('AutomlConfigure', () => {
 
       expect(screen.getByTestId('test-dataset-section')).toBeInTheDocument();
       expect(screen.getByTestId('test-data-browse-bucket-button')).toBeInTheDocument();
+    });
+
+    it('should clear test data file when S3 connection changes', () => {
+      // Render with a connection and test data file pre-selected
+      renderWithInitialValues(
+        {
+          initialInputDataSecret: {
+            uuid: 'secret-1',
+            name: 'Test Secret 1',
+            data: { AWS_S3_BUCKET: 'test-bucket-1', AWS_DEFAULT_REGION: 'us-east-1' },
+            type: 's3',
+            invalid: false,
+          },
+          train_data_secret_name: 'Test Secret 1',
+          train_data_bucket_name: 'test-bucket-1',
+          train_data_file_key: 'train.csv',
+          task_type: 'binary',
+          label_column: 'approval_status',
+          top_n: 3,
+          test_data_s3_key: 'test.csv',
+        },
+        {
+          train_data_secret_name: 'Test Secret 1',
+          train_data_bucket_name: 'test-bucket-1',
+          train_data_file_key: 'train.csv',
+          task_type: 'binary',
+          label_column: 'approval_status',
+          top_n: 3,
+          test_data_s3_key: 'test.csv',
+        },
+      );
+
+      // Verify test data file is shown
+      expect(screen.getByRole('grid', { name: 'Selected test data file' })).toBeInTheDocument();
+      expect(screen.getByText('test.csv')).toBeInTheDocument();
+
+      // Change the S3 connection (triggers useReconfigureSafeEffect)
+      fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-2'));
+
+      // Test data file should be cleared
+      expect(
+        screen.queryByRole('grid', { name: 'Selected test data file' }),
+      ).not.toBeInTheDocument();
     });
   });
 });

@@ -31,7 +31,7 @@ function ConfigureTestDataset({
     }
     const lastSegment = initialKey.split('/').pop();
     const fileName = lastSegment || initialKey;
-    const ext = fileName.includes('.') ? fileName.split('.').pop()! : '';
+    const ext = fileName.includes('.') ? (fileName.split('.').pop() ?? '') : '';
     return { name: fileName, path: `/${initialKey}`, type: ext };
   });
 

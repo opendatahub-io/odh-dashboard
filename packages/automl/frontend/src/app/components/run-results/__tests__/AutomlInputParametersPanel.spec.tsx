@@ -450,8 +450,13 @@ describe('AutomlInputParametersPanel', () => {
       });
 
       expect(screen.getByTestId('parameter-test_data_s3_uri')).toBeInTheDocument();
+      expect(screen.getByTestId('parameter-test_data_s3_uri')).toHaveTextContent(
+        's3://my-bucket/test.csv',
+      );
       expect(screen.getByTestId('parameter-test_data_s3_bucket')).toBeInTheDocument();
+      expect(screen.getByTestId('parameter-test_data_s3_bucket')).toHaveTextContent('my-bucket');
       expect(screen.getByTestId('parameter-test_data_s3_key')).toBeInTheDocument();
+      expect(screen.getByTestId('parameter-test_data_s3_key')).toHaveTextContent('test.csv');
     });
 
     it('should not display test data fields when absent', () => {
