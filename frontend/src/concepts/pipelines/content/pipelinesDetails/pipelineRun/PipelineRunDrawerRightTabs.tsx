@@ -7,6 +7,7 @@ import './PipelineRunDrawer.scss';
 import { PipelineTask } from '#~/concepts/pipelines/topology';
 import { PipelineRunKF } from '#~/concepts/pipelines/kfTypes';
 import { Execution } from '#~/third_party/mlmd';
+import useIsMlflowPipelinesAvailable from '#~/concepts/mlflow/hooks/useIsMlflowPipelinesAvailable';
 import { getMlflowExperimentId } from '#~/concepts/pipelines/content/tables/pipelineRun/utils';
 import { renderDetailItems } from './utils';
 
@@ -28,6 +29,7 @@ const PipelineRunDrawerRightTabs: React.FC<PipelineRunDrawerRightTabsProps> = ({
   executions,
   run,
 }) => {
+  const { available: isMlflowAvailable } = useIsMlflowPipelinesAvailable();
   const hasNoInputsOutputs = !task.inputs && !task.outputs;
   const [selection, setSelection] = React.useState<string>(
     hasNoInputsOutputs ? PipelineRunNodeTab.DETAILS : PipelineRunNodeTab.INPUT_OUTPUT,
@@ -41,12 +43,11 @@ const PipelineRunDrawerRightTabs: React.FC<PipelineRunDrawerRightTabsProps> = ({
     .get('cached_execution_id')
     ?.getStringValue();
 
-  const mlflowRunId = taskExecution
-    ?.getCustomPropertiesMap()
-    .get('plugins.mlflow.run_id')
-    ?.getStringValue();
+  const mlflowRunId = isMlflowAvailable
+    ? taskExecution?.getCustomPropertiesMap().get('plugins.mlflow.run_id')?.getStringValue()
+    : undefined;
 
-  const mlflowExperimentId = run ? getMlflowExperimentId(run) : undefined;
+  const mlflowExperimentId = isMlflowAvailable && run ? getMlflowExperimentId(run) : undefined;
 
   const tabs: Record<string, { title: string; isDisabled?: boolean; content: React.ReactNode }> = {
     [PipelineRunNodeTab.INPUT_OUTPUT]: {

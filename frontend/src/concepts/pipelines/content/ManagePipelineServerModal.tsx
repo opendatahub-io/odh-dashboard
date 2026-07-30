@@ -69,10 +69,14 @@ const ManagePipelineServerModal: React.FC<ManagePipelineServerModalProps> = ({
   const initMlflow: DSPipelineMlflowKind = React.useMemo(
     () => ({
       integrationMode:
+        // When MLflow is available, the DSPA operator defaults to AUTODETECT if spec.mlflow is absent
         pipelineNamespaceCR?.spec.mlflow?.integrationMode ?? DSPAMlflowIntegrationMode.AUTODETECT,
       injectUserEnvVars: pipelineNamespaceCR?.spec.mlflow?.injectUserEnvVars ?? false,
     }),
-    [pipelineNamespaceCR],
+    [
+      pipelineNamespaceCR?.spec.mlflow?.integrationMode,
+      pipelineNamespaceCR?.spec.mlflow?.injectUserEnvVars,
+    ],
   );
 
   const isManagedPipelinesAvailable =
@@ -90,21 +94,13 @@ const ManagePipelineServerModal: React.FC<ManagePipelineServerModalProps> = ({
     initManagedPipelinesEnabled,
   );
 
-  // State for MLflow tracking
   const [mlflow, setMlflow] = React.useState<DSPipelineMlflowKind>(initMlflow);
 
   React.useEffect(() => {
-    setEnableCaching(pipelineNamespaceCR?.spec.apiServer?.cacheEnabled ?? false);
-    setEnableManagedPipelines(
-      !!pipelineNamespaceCR?.spec.apiServer?.managedPipelines &&
-        !('instructLab' in (pipelineNamespaceCR.spec.apiServer.managedPipelines ?? {})),
-    );
-    setMlflow({
-      integrationMode:
-        pipelineNamespaceCR?.spec.mlflow?.integrationMode ?? DSPAMlflowIntegrationMode.AUTODETECT,
-      injectUserEnvVars: pipelineNamespaceCR?.spec.mlflow?.injectUserEnvVars ?? false,
-    });
-  }, [pipelineNamespaceCR]);
+    setEnableCaching(initCachingEnabled);
+    setEnableManagedPipelines(initManagedPipelinesEnabled);
+    setMlflow(initMlflow);
+  }, [initCachingEnabled, initManagedPipelinesEnabled, initMlflow]);
 
   // Track if changes have been made
   const mlflowChanged =

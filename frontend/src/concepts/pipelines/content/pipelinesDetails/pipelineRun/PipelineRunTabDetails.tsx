@@ -24,6 +24,7 @@ import usePipelineById from '#~/concepts/pipelines/apiHooks/usePipelineById';
 import { RecurringRunTrigger } from '#~/concepts/pipelines/content/tables/renderUtils';
 import { Artifact } from '#~/third_party/mlmd';
 import { getIsArtifactModelRegistered } from '#~/pages/pipelines/global/experiments/artifacts/utils';
+import useIsMlflowPipelinesAvailable from '#~/concepts/mlflow/hooks/useIsMlflowPipelinesAvailable';
 import {
   getMlflowRunId,
   getMlflowExperimentId,
@@ -45,6 +46,7 @@ const PipelineRunTabDetails: React.FC<PipelineRunTabDetailsProps> = ({
   artifacts,
 }) => {
   const { namespace, project } = usePipelinesAPI();
+  const { available: isMlflowAvailable } = useIsMlflowPipelinesAvailable();
   const [version, versionLoaded, versionError] = usePipelineVersionById(
     run?.pipeline_version_reference?.pipeline_id,
     run?.pipeline_version_reference?.pipeline_version_id,
@@ -126,7 +128,7 @@ const PipelineRunTabDetails: React.FC<PipelineRunTabDetailsProps> = ({
         ]
       : []),
     ...((): DetailItem[] => {
-      if (!isPipelineRun(run)) {
+      if (!isMlflowAvailable || !isPipelineRun(run)) {
         return [];
       }
       const mlflowExperimentName = getMlflowExperimentNameFromRun(run);

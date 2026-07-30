@@ -53,6 +53,8 @@ import {
 } from './utils';
 import { MlflowNestedRun } from './types';
 
+const emptyRuns: PipelineRunKF[] = [];
+
 type PipelineRunTableProps = {
   runs: PipelineRunKF[];
   loading?: boolean;
@@ -96,7 +98,10 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
     runArtifactsError,
     runArtifactsLoaded,
   } = useMetricColumns(runWithoutMetrics, contexts, experiment?.experiment_id);
-  const [runExecutions, runExecutionsLoaded] = useGetExecutionsByRuns(runWithoutMetrics, contexts);
+  const [runExecutions, runExecutionsLoaded] = useGetExecutionsByRuns(
+    isMlflowAvailable ? runWithoutMetrics : emptyRuns,
+    contexts,
+  );
   const nestedRunsByRunId = React.useMemo<Partial<Record<string, MlflowNestedRun[]>>>(() => {
     if (!runExecutionsLoaded) {
       return {};
@@ -104,14 +109,16 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
     const result: Partial<Record<string, MlflowNestedRun[]>> = {};
     runExecutions.forEach((executionMap) => {
       Object.entries(executionMap).forEach(([runId, executions]) => {
-        const nested = extractMlflowNestedRuns(executions);
+        const run = runWithoutMetrics.find((r) => r.run_id === runId);
+        const rootMlflowRunId = run ? getMlflowRunId(run) : undefined;
+        const nested = extractMlflowNestedRuns(executions, rootMlflowRunId);
         if (nested.length) {
           result[runId] = nested;
         }
       });
     });
     return result;
-  }, [runExecutions, runExecutionsLoaded]);
+  }, [runExecutions, runExecutionsLoaded, runWithoutMetrics]);
 
   const mlflowFilter = getDataValue(filterToolbarProps.filterData[FilterOptions.MLFLOW_EXPERIMENT]);
   const runs = React.useMemo(
@@ -179,7 +186,7 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
   const createRunHref = createRunRoute(namespace, experiment?.experiment_id);
   const hasSelectedRuns = selectedIds.length > 0;
 
-  const { compareRunsHref, isCompareDisabled } = React.useMemo(() => {
+  const { compareRunsHref, isCompareDisabled, compareTooltip } = React.useMemo(() => {
     const rootRunIds = selectedRuns.map(getMlflowRunId).filter((id): id is string => !!id);
     const validExpIds = selectedRuns.map(getMlflowExperimentId).filter((id): id is string => !!id);
     const allHaveMlflow =
@@ -191,14 +198,19 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
         (run) => nestedRunsByRunId[run.run_id]?.map((n) => n.mlflowRunId) ?? [],
       );
       const allRunIds = [...rootRunIds, ...nestedRunIds];
+      const disabled = allRunIds.length > 10;
       return {
         compareRunsHref: mlflowCompareRunsRoute(namespace, allRunIds, [...new Set(validExpIds)]),
-        isCompareDisabled: selectedIds.length > 10,
+        isCompareDisabled: disabled,
+        compareTooltip: disabled
+          ? `Too many MLflow runs to compare (${allRunIds.length} total, including nested runs). Select fewer runs to stay within the 10-run limit.`
+          : 'Select up to 10 runs to compare.',
       };
     }
     return {
       compareRunsHref: compareRunsRoute(namespace, selectedIds, experiment?.experiment_id),
       isCompareDisabled: !hasSelectedRuns || selectedIds.length > 10,
+      compareTooltip: 'Select up to 10 runs to compare.',
     };
   }, [
     selectedRuns,
@@ -247,7 +259,7 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
 
   const compareRunsAction =
     !isContextExperimentArchived && runType === PipelineRunType.ACTIVE ? (
-      <Tooltip content="Select up to 10 runs to compare.">
+      <Tooltip content={compareTooltip}>
         <Button
           key="compare-runs"
           data-testid="compare-runs-button"

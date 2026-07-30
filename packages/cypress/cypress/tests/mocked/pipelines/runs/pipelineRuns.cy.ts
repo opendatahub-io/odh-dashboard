@@ -605,6 +605,10 @@ describe('Pipeline runs', () => {
         it('navigate to MLflow experiment details from active run row', () => {
           cy.interceptOdh('GET /api/config', mockDashboardConfig({}));
           interceptMlflowStatus();
+          interceptDSPAMlflowIntegration(projectName);
+          cy.intercept('GET', '/_bff/mlflow/api/v1/experiments*', {
+            body: { data: { experiments: [] } },
+          });
           const runWithMlflow = buildMockRunKF({
             display_name: 'Run with mlflow',
             run_id: 'run-with-mlflow',

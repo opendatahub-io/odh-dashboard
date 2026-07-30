@@ -79,12 +79,15 @@ export const getMlflowRunId = (run: PipelineRunKF): string | undefined => {
   return undefined;
 };
 
-export const extractMlflowNestedRuns = (executions: Execution[]): MlflowNestedRun[] =>
+export const extractMlflowNestedRuns = (
+  executions: Execution[],
+  rootMlflowRunId?: string,
+): MlflowNestedRun[] =>
   executions.reduce<MlflowNestedRun[]>((acc, execution) => {
     const props = execution.getCustomPropertiesMap();
     const mlflowRunId = props.get('plugins.mlflow.run_id')?.getStringValue();
     const taskName = props.get('task_name')?.getStringValue();
-    if (mlflowRunId && taskName) {
+    if (mlflowRunId && taskName && mlflowRunId !== rootMlflowRunId) {
       acc.push({ taskName, mlflowRunId });
     }
     return acc;

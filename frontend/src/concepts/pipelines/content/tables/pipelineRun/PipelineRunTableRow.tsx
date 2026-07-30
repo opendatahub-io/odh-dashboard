@@ -193,6 +193,7 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
     refreshAllAPI,
     notification,
     mlflow?.isAvailable,
+    nestedMlflowRuns,
   ]);
 
   return (

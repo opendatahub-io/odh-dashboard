@@ -8,9 +8,10 @@ import { mlflowExperimentRoute } from '#~/routes/pipelines/mlflow';
 import { MlflowTrackingEvents } from '#~/concepts/mlflow/const';
 import { NoRunContent } from '#~/concepts/pipelines/content/tables/renderUtils';
 import { MlflowExperimentData } from '#~/concepts/mlflow/types';
+import { isPipelineRun } from '#~/concepts/pipelines/content/utils';
 import {
+  getMlflowExperimentId,
   getMlflowExperimentNameFromRun,
-  getMlflowPluginOutput,
 } from '#~/concepts/pipelines/content/tables/pipelineRun/utils';
 import { fireLinkTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 
@@ -25,13 +26,18 @@ const PipelineRunTableRowMlflowExperiment: React.FC<PipelineRunTableRowMlflowExp
 }) => {
   const { namespace } = usePipelinesAPI();
 
-  const experimentId = getMlflowPluginOutput(run)?.entries.experiment_id?.value;
+  const experimentIdFromRun = isPipelineRun(run) ? getMlflowExperimentId(run) : undefined;
+  const experimentNameFromRun = getMlflowExperimentNameFromRun(run);
 
-  const liveName =
-    experimentId != null
-      ? mlflow.experiments.find((e) => e.id === String(experimentId))?.name
+  const matchedExperiment =
+    experimentIdFromRun != null
+      ? mlflow.experiments.find((e) => e.id === experimentIdFromRun)
+      : experimentNameFromRun
+      ? mlflow.experiments.find((e) => e.name === experimentNameFromRun)
       : undefined;
-  const experimentName = liveName ?? getMlflowExperimentNameFromRun(run);
+
+  const experimentId = experimentIdFromRun ?? matchedExperiment?.id;
+  const experimentName = matchedExperiment?.name ?? experimentNameFromRun;
 
   const handleExperimentClick = React.useCallback(() => {
     fireLinkTrackingEvent(MlflowTrackingEvents.EMBEDDED_VIEW_OPENED, {
@@ -40,15 +46,15 @@ const PipelineRunTableRowMlflowExperiment: React.FC<PipelineRunTableRowMlflowExp
     });
   }, []);
 
+  if (!mlflow.loaded && (experimentIdFromRun || experimentNameFromRun)) {
+    return <Skeleton data-testid="mlflow-experiment-loading" />;
+  }
+
   if (!experimentName) {
     return <NoRunContent />;
   }
 
-  if (!mlflow.loaded) {
-    return <Skeleton data-testid="mlflow-experiment-loading" />;
-  }
-
-  if (experimentId && typeof experimentId === 'string') {
+  if (experimentId) {
     return (
       <Link
         to={mlflowExperimentRoute(experimentId, namespace)}

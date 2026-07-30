@@ -14,5 +14,5 @@ export type PipelineServerConfigType = {
   storeYamlInKubernetes: boolean;
   enableCaching: boolean;
   enableManagedPipelines: boolean;
-  mlflow: DSPipelineMlflowKind;
+  mlflow?: DSPipelineMlflowKind;
 };

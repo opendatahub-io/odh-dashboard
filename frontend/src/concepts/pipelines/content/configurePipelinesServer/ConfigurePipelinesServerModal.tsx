@@ -154,6 +154,7 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
     const configureConfig: PipelineServerConfigType = {
       ...config,
       objectStorage,
+      ...(!isMlflowAvailable ? { mlflow: undefined } : {}),
     };
 
     configureDSPipelineResourceSpec(configureConfig, effectiveNamespace)
@@ -318,7 +319,7 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
                       enableCaching={config.enableCaching}
                       setEnableCaching={(enableCaching) => setConfig({ ...config, enableCaching })}
                     />
-                    {isMlflowAvailable ? (
+                    {isMlflowAvailable && config.mlflow != null ? (
                       <MlflowTrackingSection
                         mlflow={config.mlflow}
                         setMlflow={(mlflow) => setConfig({ ...config, mlflow })}

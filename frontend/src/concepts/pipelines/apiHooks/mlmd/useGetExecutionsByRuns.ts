@@ -21,7 +21,7 @@ export const useGetExecutionsByRuns = (
         runs.map(async (run) => {
           const context = contexts.find((x) => x.getName() === run.run_id);
           if (!context) {
-            throw new Error(`No context for run: ${run.run_id}`);
+            return { [run.run_id]: [] };
           }
           const request = new GetExecutionsByContextRequest();
           request.setContextId(context.getId());

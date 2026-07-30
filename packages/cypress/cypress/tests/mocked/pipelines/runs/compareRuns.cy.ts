@@ -212,6 +212,9 @@ describe('Compare runs', () => {
       cy.interceptOdh('GET /api/config', mockDashboardConfig({}));
       cy.interceptOdh('GET /api/dsc/status', mockDscStatus({}));
       interceptMlflowStatus();
+      cy.intercept('GET', '/_bff/mlflow/api/v1/experiments*', {
+        body: { data: { experiments: [] } },
+      }).as('getMlflowExperiments');
       cy.interceptOdh(
         'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/runs/:runId',
         {
