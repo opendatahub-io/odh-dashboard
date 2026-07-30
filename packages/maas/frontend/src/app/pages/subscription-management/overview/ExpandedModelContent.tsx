@@ -7,6 +7,7 @@ import { URL_PREFIX } from '~/app/utilities/const';
 import PhaseLabel from '~/app/shared/PhaseLabel';
 import { PhaseLabelLocation, PhaseResourceType } from '~/app/utilities/phaseLabelUtils';
 import { formatTokenLimits } from '~/app/utilities/rateLimits';
+import { hasHighlightedGroup } from './utils';
 import GroupChips from './GroupChips';
 
 const OVERVIEW_LINK_STATE = {
@@ -15,9 +16,16 @@ const OVERVIEW_LINK_STATE = {
 };
 
 const itemBorderStyle = {
-  border: '1px solid var(--pf-t--global--border--color--default)',
+  borderStyle: 'solid',
+  borderWidth: '1px',
+  borderColor: 'var(--pf-t--global--border--color--default)',
   borderRadius: 'var(--pf-t--global--border--radius--medium)',
   marginBottom: 'var(--pf-t--global--spacer--sm)',
+};
+
+const highlightedItemBorderStyle = {
+  borderColor: 'var(--pf-t--global--border--color--brand--default)',
+  borderWidth: '2px',
 };
 
 const toggleExpandedItem = (prev: Set<string>, name: string): Set<string> => {
@@ -44,6 +52,7 @@ type ExpandableItemProps = {
   children: React.ReactNode;
   onLinkClick?: () => void;
   statusMessage?: string;
+  isHighlighted: boolean;
 };
 
 const ExpandableItem: React.FC<ExpandableItemProps> = ({
@@ -60,8 +69,18 @@ const ExpandableItem: React.FC<ExpandableItemProps> = ({
   children,
   onLinkClick,
   statusMessage,
+  isHighlighted,
 }) => (
-  <div style={itemBorderStyle}>
+  <div
+    style={{
+      ...itemBorderStyle,
+      ...(isHighlighted
+        ? {
+            ...highlightedItemBorderStyle,
+          }
+        : {}),
+    }}
+  >
     <Table aria-label={ariaLabel} borders={false} variant="compact">
       <Tbody isExpanded={isExpanded}>
         <Tr>
@@ -157,6 +176,8 @@ type SubscriptionsSectionProps = {
   expandedSubs: Set<string>;
   onToggleSub: (name: string) => void;
   onToggleAll: () => void;
+  highlightedGroup: string | null;
+  setHighlightedGroup: (group: string | null) => void;
 };
 
 const SubscriptionsSection: React.FC<SubscriptionsSectionProps> = ({
@@ -164,6 +185,8 @@ const SubscriptionsSection: React.FC<SubscriptionsSectionProps> = ({
   expandedSubs,
   onToggleSub,
   onToggleAll,
+  highlightedGroup,
+  setHighlightedGroup,
 }) => {
   const allExpanded = subscriptions.length > 0 && expandedSubs.size === subscriptions.length;
 
@@ -193,7 +216,10 @@ const SubscriptionsSection: React.FC<SubscriptionsSectionProps> = ({
             phase={sub.phase}
             resourceType={PhaseResourceType.SUBSCRIPTION}
             rowIndex={index}
-            isExpanded={expandedSubs.has(sub.name)}
+            isExpanded={
+              expandedSubs.has(sub.name) || hasHighlightedGroup(sub.groups ?? [], highlightedGroup)
+            }
+            isHighlighted={hasHighlightedGroup(sub.groups ?? [], highlightedGroup)}
             onToggle={() => onToggleSub(sub.name)}
             statusMessage={sub.statusMessage}
           >
@@ -201,7 +227,11 @@ const SubscriptionsSection: React.FC<SubscriptionsSectionProps> = ({
               <strong className="pf-v6-u-mr-md">Token limits</strong>
               {formatTokenLimits(sub.tokenRateLimits ?? [])}
             </Content>
-            <GroupChips groups={sub.groups ?? []} />
+            <GroupChips
+              groups={sub.groups ?? []}
+              highlightedGroup={highlightedGroup}
+              setHighlightedGroup={setHighlightedGroup}
+            />
           </ExpandableItem>
         ))
       )}
@@ -214,6 +244,8 @@ type PoliciesSectionProps = {
   expandedPolicies: Set<string>;
   onTogglePolicy: (name: string) => void;
   onToggleAll: () => void;
+  highlightedGroup: string | null;
+  setHighlightedGroup: (group: string | null) => void;
 };
 
 const PoliciesSection: React.FC<PoliciesSectionProps> = ({
@@ -221,6 +253,8 @@ const PoliciesSection: React.FC<PoliciesSectionProps> = ({
   expandedPolicies,
   onTogglePolicy,
   onToggleAll,
+  highlightedGroup,
+  setHighlightedGroup,
 }) => {
   const allExpanded = policies.length > 0 && expandedPolicies.size === policies.length;
 
@@ -250,11 +284,19 @@ const PoliciesSection: React.FC<PoliciesSectionProps> = ({
             phase={policy.phase}
             resourceType={PhaseResourceType.AUTHPOLICY}
             rowIndex={index}
-            isExpanded={expandedPolicies.has(policy.name)}
+            isExpanded={
+              expandedPolicies.has(policy.name) ||
+              hasHighlightedGroup(policy.groups ?? [], highlightedGroup)
+            }
+            isHighlighted={hasHighlightedGroup(policy.groups ?? [], highlightedGroup)}
             onToggle={() => onTogglePolicy(policy.name)}
             statusMessage={policy.statusMessage}
           >
-            <GroupChips groups={policy.groups ?? []} />
+            <GroupChips
+              groups={policy.groups ?? []}
+              highlightedGroup={highlightedGroup}
+              setHighlightedGroup={setHighlightedGroup}
+            />
           </ExpandableItem>
         ))
       )}
@@ -270,6 +312,7 @@ type ExpandedModelContentProps = {
 const ExpandedModelContent: React.FC<ExpandedModelContentProps> = ({ subscriptions, policies }) => {
   const [expandedSubs, setExpandedSubs] = React.useState<Set<string>>(new Set());
   const [expandedPolicies, setExpandedPolicies] = React.useState<Set<string>>(new Set());
+  const [highlightedGroup, setHighlightedGroup] = React.useState<string | null>(null);
 
   const toggleSub = React.useCallback(
     (name: string) => setExpandedSubs((prev) => toggleExpandedItem(prev, name)),
@@ -308,6 +351,8 @@ const ExpandedModelContent: React.FC<ExpandedModelContentProps> = ({ subscriptio
           expandedSubs={expandedSubs}
           onToggleSub={toggleSub}
           onToggleAll={toggleAllSubs}
+          highlightedGroup={highlightedGroup}
+          setHighlightedGroup={setHighlightedGroup}
         />
       </GridItem>
       <GridItem span={6}>
@@ -316,6 +361,8 @@ const ExpandedModelContent: React.FC<ExpandedModelContentProps> = ({ subscriptio
           expandedPolicies={expandedPolicies}
           onTogglePolicy={togglePolicy}
           onToggleAll={toggleAllPolicies}
+          highlightedGroup={highlightedGroup}
+          setHighlightedGroup={setHighlightedGroup}
         />
       </GridItem>
     </Grid>
