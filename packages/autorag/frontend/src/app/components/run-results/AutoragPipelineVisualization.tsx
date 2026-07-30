@@ -111,7 +111,11 @@ const AutoragPipelineVisualization: React.FC<AutoragPipelineVisualizationProps> 
               </Title>
             </FlexItem>
             <FlexItem>
-              <Label variant="outline" {...getPipelineStatusLabelProps(statusLabel)}>
+              <Label
+                variant="outline"
+                data-testid="run-status-label"
+                {...getPipelineStatusLabelProps(statusLabel)}
+              >
                 {statusLabel.text}
               </Label>
             </FlexItem>
