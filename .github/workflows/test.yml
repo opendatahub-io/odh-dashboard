@@ -308,6 +308,9 @@ jobs:
           path: ./packages/cypress/coverage
 
   Combine-Results-and-Upload:
+    # Coverage upload only — not on the Tests gate critical path.
+    # Run even when unit/cypress fail so partial coverage still uploads.
+    if: always()
     needs: [Unit-Tests, Cypress-Mock-Tests]
     runs-on: ubuntu-latest
     steps:
@@ -388,7 +391,6 @@ jobs:
       - Unit-Tests
       - Contract-Tests
       - Cypress-Mock-Tests
-      - Combine-Results-and-Upload
     steps:
       - name: Check for failures
         run: |
