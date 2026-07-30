@@ -15,8 +15,6 @@ import type {
   PersistentVolumeClaimKind,
 } from '@odh-dashboard/k8s-core';
 import { z } from 'zod';
-// eslint-disable-next-line @odh-dashboard/no-restricted-imports
-import { ConnectionOciAlert } from '@odh-dashboard/internal/pages/modelServing/screens/projects/InferenceServiceModal/ConnectionOciAlert';
 import {
   getPVCNameFromURI,
   isPVCUri,
@@ -31,6 +29,7 @@ import { PvcSelectField } from './modelLocationFields/PVCSelectField';
 import { CustomTypeSelectField } from './modelLocationFields/CustomTypeSelectField';
 import { useEnabledModelServingConnectionTypes } from './modelLocationFields/useEnabledConnectionTypes';
 import { ociOption, s3Option, uriOption } from './modelLocationFields/modelLocationTypes';
+import { ConnectionOciAlert } from '../../connectionTypes/ConnectionOciAlert';
 import usePvcs from '../../../concepts/usePvcs';
 import { ModelLocationData, ModelLocationType } from '../../../shared/types/form-data';
 import { resolveConnectionType } from '../utils';
