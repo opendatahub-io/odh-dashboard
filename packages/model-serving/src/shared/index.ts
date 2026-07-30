@@ -4,6 +4,7 @@ export {
   ServingRuntimePlatform,
   ServingRuntimeAPIProtocol,
   ServingRuntimeModelType,
+  PerformanceMetricType,
   isInferenceServiceKind,
 } from './types';
 export type {

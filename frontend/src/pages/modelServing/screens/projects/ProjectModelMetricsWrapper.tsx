@@ -5,7 +5,7 @@ import type { InferenceServiceKind } from '@odh-dashboard/model-serving/shared';
 import { MetricsCommonContextProvider } from '#~/concepts/metrics/MetricsCommonContext';
 import { ModelServingMetricsProvider } from '#~/pages/modelServing/screens/metrics/ModelServingMetricsContext';
 import { getModelMetricsQueries } from '#~/pages/modelServing/screens/metrics/utils';
-import { PerformanceMetricType } from '#~/pages/modelServing/screens/types';
+import { PerformanceMetricType } from '@odh-dashboard/model-serving/shared/types';
 import ProjectModelMetricsPathWrapper from './ProjectModelMetricsPathWrapper';
 
 export type ProjectModelMetricsOutletContextProps = {
