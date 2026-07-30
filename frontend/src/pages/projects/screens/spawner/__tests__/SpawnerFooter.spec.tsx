@@ -98,6 +98,7 @@ describe('EmptyProjects', () => {
         canEnablePipelines
         envVariables={mockEnvVariables}
         connections={[mockConnection({})]}
+        existingSecretsData={{ secrets: [], loaded: true, canList: true }}
       />,
     );
     expect(result.getByTestId('submit-button')).toBeEnabled();
@@ -137,6 +138,7 @@ describe('EmptyProjects', () => {
         canEnablePipelines
         envVariables={mockEnvVariables}
         connections={[mockConnection({})]}
+        existingSecretsData={{ secrets: [], loaded: true, canList: true }}
       />,
     );
 

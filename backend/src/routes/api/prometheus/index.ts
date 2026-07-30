@@ -26,7 +26,7 @@ const handleError = (e?: createError.HttpError) => {
  * Acts on the user who made the call -- does not need route security; k8s provides that.
  */
 
-module.exports = async (fastify: KubeFastifyInstance) => {
+export default async (fastify: KubeFastifyInstance): Promise<void> => {
   fastify.post(
     '/query',
     async (
