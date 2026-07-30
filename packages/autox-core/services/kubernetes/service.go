@@ -164,47 +164,11 @@ func (s *service) GetAccessibleNamespaces(ctx context.Context) ([]v1.Namespace, 
 
 // GetAccessibleNamespaceInfos returns namespaces the user can access with display names.
 func (s *service) GetAccessibleNamespaceInfos(ctx context.Context) ([]NamespaceInfo, error) {
-	logger := s.loggerWithIdentity(ctx)
-	logger.Debug("fetching accessible namespace infos")
-
-	isAdmin, err := s.Client.IsClusterAdmin(ctx)
-	if err == nil && isAdmin {
-		logger.Debug("user is cluster admin, returning all namespace infos")
-		namespaces, err := s.Client.GetNamespaces(ctx)
-		if err != nil {
-			s.Logger.Error("failed to get namespaces", "error", err)
-			return nil, TranslateK8sError(err, "namespaces", "list")
-		}
-		return mapNamespacesToInfos(namespaces), nil
-	}
-
-	namespaces, err := s.Client.GetNamespaces(ctx)
+	namespaces, err := s.GetAccessibleNamespaces(ctx)
 	if err != nil {
-		s.Logger.Error("failed to get namespaces", "error", err)
-		return nil, TranslateK8sError(err, "namespaces", "list")
+		return nil, err
 	}
-
-	infos := make([]NamespaceInfo, 0)
-	for _, ns := range namespaces {
-		canAccess, err := s.Client.CanAccessResource(ctx, ns.Name, "get", "", "namespaces", "")
-		if err != nil {
-			s.Logger.Warn("failed to check namespace access", "namespace", ns.Name, "error", err)
-			continue
-		}
-		if canAccess {
-			displayName := ns.Name
-			if dn := ns.Annotations["openshift.io/display-name"]; dn != "" {
-				displayName = dn
-			}
-			infos = append(infos, NamespaceInfo{
-				Name:        ns.Name,
-				DisplayName: displayName,
-			})
-		}
-	}
-
-	logger.Info("filtered namespace infos by permission", "total", len(namespaces), "accessible", len(infos))
-	return infos, nil
+	return mapNamespacesToInfos(namespaces), nil
 }
 
 // --- Pods ---
