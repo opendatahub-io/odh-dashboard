@@ -185,11 +185,3 @@ type SubscriptionInfoResponse struct {
 	ModelRefs    []MaaSModelRefSummary `json:"modelRefs"`
 	AuthPolicies []MaaSAuthPolicy      `json:"authPolicies"`
 }
-
-// SubscriptionFormDataResponse contains data for the subscription and policy creation forms.
-type SubscriptionFormDataResponse struct {
-	Groups        []string              `json:"groups"`
-	ModelRefs     []MaaSModelRefSummary `json:"modelRefs"`
-	Policies      []MaaSAuthPolicy      `json:"policies"`
-	Subscriptions []MaaSSubscription    `json:"subscriptions"`
-}
