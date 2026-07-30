@@ -116,7 +116,7 @@ func (c *PipelinesClient) GetPipelineRun(_ context.Context, _ string, runID stri
 	defer c.mu.Unlock()
 	run, ok := c.runs[runID]
 	if !ok {
-		return nil, fmt.Errorf("run %q not found", runID)
+		return nil, fmt.Errorf("%w: run %q not found", plsvc.ErrPipelineNotFound, runID)
 	}
 	cp := *run
 	return &cp, nil
@@ -148,7 +148,7 @@ func (c *PipelinesClient) TerminateRun(_ context.Context, _ string, runID string
 	defer c.mu.Unlock()
 	run, ok := c.runs[runID]
 	if !ok {
-		return fmt.Errorf("run %q not found", runID)
+		return fmt.Errorf("%w: run %q not found", plsvc.ErrPipelineNotFound, runID)
 	}
 	now := time.Now().UTC().Format(time.RFC3339)
 	run.State = "CANCELING"
@@ -172,7 +172,7 @@ func (c *PipelinesClient) RetryRun(_ context.Context, _ string, runID string) er
 	defer c.mu.Unlock()
 	run, ok := c.runs[runID]
 	if !ok {
-		return fmt.Errorf("run %q not found", runID)
+		return fmt.Errorf("%w: run %q not found", plsvc.ErrPipelineNotFound, runID)
 	}
 	now := time.Now().UTC().Format(time.RFC3339)
 	run.State = "PENDING"
@@ -185,6 +185,9 @@ func (c *PipelinesClient) RetryRun(_ context.Context, _ string, runID string) er
 func (c *PipelinesClient) DeleteRun(_ context.Context, _ string, runID string) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
+	if _, ok := c.runs[runID]; !ok {
+		return fmt.Errorf("%w: run %q not found", plsvc.ErrPipelineNotFound, runID)
+	}
 	delete(c.runs, runID)
 	return nil
 }
