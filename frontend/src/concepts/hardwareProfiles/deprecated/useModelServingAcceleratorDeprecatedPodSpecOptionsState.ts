@@ -1,22 +1,16 @@
 import React from 'react';
 import { InferenceServiceKind, ServingRuntimeKind } from '@odh-dashboard/model-serving/shared';
 import { useDeepCompareMemoize } from '@odh-dashboard/ui-core/hooks';
+import type {
+  ModelServingPodSpecOptionsState,
+  ModelServingPodSpecOptions,
+} from '@odh-dashboard/hardware-profiles/shared';
 import useServingAcceleratorProfileFormState from '#~/pages/modelServing/screens/projects/useServingAcceleratorProfileFormState';
 import { useAppContext } from '#~/app/AppContext';
 import { getModelServingSizes } from '#~/concepts/modelServing/modelServingSizesUtils';
 import { getInferenceServiceSize } from '#~/pages/modelServing/utils';
 import { isGpuDisabled } from '#~/pages/modelServing/screens/projects/utils';
 import useServingHardwareProfileConfig from '#~/concepts/hardwareProfiles/useServingHardwareProfileConfig';
-import { PodSpecOptionsAcceleratorState } from '#~/concepts/hardwareProfiles/types';
-import {
-  ModelServingPodSpecOptions,
-  ModelServingSizeState,
-} from '#~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
-
-export type ModelServingPodSpecOptionsState =
-  PodSpecOptionsAcceleratorState<ModelServingPodSpecOptions> & {
-    modelSize: ModelServingSizeState;
-  };
 
 // HERE: go through and find all the places that use this and replace with the new useServingHardwareProfileConfig
 // todo:  get NIM set up so i can test it.
