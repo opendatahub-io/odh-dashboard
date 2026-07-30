@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Radio, Stack, StackItem } from '@patternfly/react-core';
+import { Flex, FlexItem, Radio, Stack, StackItem } from '@patternfly/react-core';
 
 export type EnvDataTypeOption = {
   label: string;
@@ -31,10 +31,14 @@ const EnvDataTypeField: React.FC<EnvDataTypeFieldProps> = ({
             id={`${uniqueId}-env-data-type-${value}`}
             name={`${uniqueId}-${radioGroupName}`}
             label={
-              <>
-                {option.label}
-                {option.labelIcon}
-              </>
+              <Flex
+                alignItems={{ default: 'alignItemsCenter' }}
+                gap={{ default: 'gapSm' }}
+                direction={{ default: 'row' }}
+              >
+                <FlexItem>{option.label}</FlexItem>
+                <FlexItem>{option.labelIcon}</FlexItem>
+              </Flex>
             }
             description={option.description}
             isChecked={selection === value}
