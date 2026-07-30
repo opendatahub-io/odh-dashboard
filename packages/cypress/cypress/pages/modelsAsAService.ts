@@ -1,6 +1,7 @@
 import { DeleteModal } from './components/DeleteModal';
 import { Modal } from './components/Modal';
 import { TableRow } from './components/table';
+import { DashboardCodeEditor } from './components/DashboardCodeEditor';
 import type { UserAuthConfig } from '../types';
 
 // MaaS Wizard Field helpers for the model deployment wizard
@@ -967,6 +968,18 @@ class ViewSubscriptionPage {
     return cy.findByTestId('subscription-details-tab');
   }
 
+  findYamlTab(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('subscription-yaml-tab');
+  }
+
+  findYamlContent(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('resource-yaml-tab-content');
+  }
+
+  findYAMLCodeEditor() {
+    return new DashboardCodeEditor(() => cy.findByTestId('resource-yaml-tab-content'));
+  }
+
   findActionsToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('subscription-actions-toggle');
   }
@@ -1258,6 +1271,18 @@ class ViewAuthPolicyPage {
 
   findDetailsTab(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('policy-details-tab');
+  }
+
+  findYamlTab(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('policy-yaml-tab');
+  }
+
+  findYamlContent(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('resource-yaml-tab-content');
+  }
+
+  findYAMLCodeEditor() {
+    return new DashboardCodeEditor(() => cy.findByTestId('resource-yaml-tab-content'));
   }
 
   findDetailsSection(): Cypress.Chainable<JQuery<HTMLElement>> {

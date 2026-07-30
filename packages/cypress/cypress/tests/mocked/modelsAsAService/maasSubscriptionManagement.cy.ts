@@ -15,6 +15,8 @@ import {
   mockAuthPolicies,
   mockSubscriptionFormData,
   mockModelsOverview,
+  mockSubscriptionInfo,
+  mockPolicyInfo,
 } from '../../../utils/maasUtils';
 
 const setupCommonIntercepts = () => {
@@ -42,6 +44,16 @@ const setupCommonIntercepts = () => {
   cy.interceptOdh('GET /maas/api/v1/subscription-policy-form-data', {
     data: mockSubscriptionFormData(),
   });
+  cy.interceptOdh(
+    'GET /maas/api/v1/subscription-info/:name',
+    { path: { name: 'premium-team-sub' } },
+    { data: mockSubscriptionInfo('premium-team-sub') },
+  );
+  cy.interceptOdh(
+    'GET /maas/api/v1/view-policy/:name',
+    { path: { name: 'premium-team-policy' } },
+    { data: mockPolicyInfo('premium-team-policy') },
+  );
 };
 
 describe('Subscription Management Page / Overview Tab', () => {
