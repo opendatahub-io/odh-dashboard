@@ -365,7 +365,7 @@ describe('Subscription Create Page', () => {
     createSubscriptionPage.findModelsTable().findByTestId('add-token-limit-0').click();
     editRateLimitsModal.shouldBeOpen();
     editRateLimitsModal.findCountInput(0).clear();
-    editRateLimitsModal.findCountInput(0).type('9999999999'); // 10 digits -> exceeds max value
+    editRateLimitsModal.findCountInput(0).type('1000000001'); // exceeds max value
     editRateLimitsModal.findSaveButton().should('be.disabled');
     editRateLimitsModal
       .findHelperText(0)
