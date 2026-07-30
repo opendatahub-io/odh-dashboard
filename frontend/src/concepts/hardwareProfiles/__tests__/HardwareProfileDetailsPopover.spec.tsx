@@ -3,12 +3,12 @@ import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import userEvent from '@testing-library/user-event';
 import { IdentifierResourceType, SchedulingType } from '@odh-dashboard/k8s-core';
+import { DEFAULT_LIST_FETCH_STATE } from '@odh-dashboard/ui-core/utilities/fetchState';
 import { mockHardwareProfile } from '#~/__mocks__/mockHardwareProfile';
 import {
   ProjectDetailsContext,
   ProjectDetailsContextType,
 } from '#~/pages/projects/ProjectDetailsContext';
-import { DEFAULT_LIST_FETCH_STATE } from '#~/utilities/const';
 import HardwareProfileDetailsPopover from '#~/concepts/hardwareProfiles/HardwareProfileDetailsPopover';
 
 const renderWithContext = (ui: React.ReactElement) =>
