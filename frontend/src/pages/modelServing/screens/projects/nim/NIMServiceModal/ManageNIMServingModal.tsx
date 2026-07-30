@@ -1,14 +1,5 @@
 import * as React from 'react';
-import {
-  Form,
-  getUniqueId,
-  Stack,
-  StackItem,
-  Modal,
-  ModalBody,
-  ModalFooter,
-  ModalHeader,
-} from '@patternfly/react-core';
+import { Form, getUniqueId, Stack, StackItem } from '@patternfly/react-core';
 import type { EitherOrNone } from '@odh-dashboard/foundation';
 import type {
   PersistentVolumeClaimKind,

@@ -44,8 +44,10 @@ export const translateModelServingError = (error: unknown): string => {
     error.statusObject.code === 409 &&
     error.statusObject.reason === 'AlreadyExists'
   ) {
-    const name = error.statusObject.details?.name;
-    const resourceName = getResourceDisplayName(error.statusObject.details?.kind);
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+    const details = error.statusObject.details as { name?: string; kind?: string } | undefined;
+    const name = details?.name;
+    const resourceName = getResourceDisplayName(details?.kind);
     return name
       ? `A ${resourceName} with the name "${name}" already exists. Please choose a different ${resourceName} name.`
       : `A ${resourceName} with this name already exists. Please choose a different ${resourceName} name.`;

@@ -1,4 +1,5 @@
 import type { PersistentVolumeClaimKind } from '@odh-dashboard/k8s-core';
+import { K8sStatusError } from '@odh-dashboard/k8s-core';
 import { ServingRuntimePlatform } from '@odh-dashboard/model-serving/shared';
 import type { ServingRuntimeKind } from '@odh-dashboard/model-serving/shared';
 import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
@@ -17,7 +18,7 @@ import {
   isPVCUri,
   getPVCNameFromURI,
 } from '#~/pages/modelServing/screens/projects/utils';
-import { K8sStatusError, translateModelServingError } from '#~/api/errorUtils';
+import { translateModelServingError } from '#~/api/errorUtils';
 import { ServingPlatformStatuses } from '#~/pages/modelServing/screens/types';
 import { mockInferenceServiceK8sResource } from '#~/__mocks__/mockInferenceServiceK8sResource';
 import { createPvc, createSecret } from '#~/api';
@@ -626,6 +627,7 @@ describe('translateModelServingError', () => {
       reason: 'AlreadyExists',
       code: 409,
     });
+    // @ts-expect-error K8s API returns details with name field not modeled in the type
     error.statusObject.details = { name: 'my-deployment', kind: 'inferenceservices' };
     expect(translateModelServingError(error)).toBe(
       'A model deployment with the name "my-deployment" already exists. Please choose a different model deployment name.',
@@ -641,6 +643,7 @@ describe('translateModelServingError', () => {
       reason: 'AlreadyExists',
       code: 409,
     });
+    // @ts-expect-error K8s API returns details with name field not modeled in the type
     error.statusObject.details = { name: 'test-model', kind: 'servingruntimes' };
     expect(translateModelServingError(error)).toBe(
       'A resource with the name "test-model" already exists. Please choose a different resource name.',

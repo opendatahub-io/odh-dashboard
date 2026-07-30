@@ -1,13 +1,5 @@
 import * as React from 'react';
-import {
-  Form,
-  FormSection,
-  Spinner,
-  Modal,
-  ModalBody,
-  ModalHeader,
-  ModalFooter,
-} from '@patternfly/react-core';
+import { Form, FormSection, Spinner } from '@patternfly/react-core';
 import type { EitherOrNone } from '@odh-dashboard/foundation';
 import type {
   TemplateKind,
