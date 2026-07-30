@@ -1,13 +1,3 @@
-export type PrometheusQueryRangeResultValue = [number, string];
-
-export type PrometheusQueryRangeResponseDataResult = {
-  metric: {
-    request?: string;
-    pod?: string;
-  };
-  values: PrometheusQueryRangeResultValue[];
-};
-
 export enum BiasMetricType {
   SPD = 'SPD',
   DIR = 'DIR',

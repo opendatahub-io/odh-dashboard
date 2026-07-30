@@ -1,6 +1,6 @@
 import * as React from 'react';
 import usePrometheusQuery from '@odh-dashboard/internal/api/prometheus/usePrometheusQuery';
-import { PrometheusQueryResponse } from '@odh-dashboard/internal/types';
+import type { PrometheusQueryResponse } from '@odh-dashboard/k8s-core/prometheus';
 import {
   INFRASTRUCTURE_REFRESH_INTERVAL,
   PROMQL_ACCELERATOR_ALLOCATABLE,

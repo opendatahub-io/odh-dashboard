@@ -1,4 +1,4 @@
-import { PrometheusQueryResponse } from '#~/types';
+import type { PrometheusQueryResponse } from '@odh-dashboard/k8s-core/prometheus';
 
 type MockPrometheusQueryVectorResponseType<TResultExtraProps extends object = object> = {
   result?: PrometheusQueryResponse<TResultExtraProps>['data']['result'];

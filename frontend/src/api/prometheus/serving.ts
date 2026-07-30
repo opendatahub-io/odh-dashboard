@@ -6,7 +6,7 @@ import { RefreshIntervalValue } from '@odh-dashboard/ui-core/utilities/metrics';
 import type {
   PrometheusQueryRangeResponseDataResult,
   PrometheusQueryRangeResultValue,
-} from '@odh-dashboard/k8s-core/trustyai';
+} from '@odh-dashboard/k8s-core/prometheus';
 import { ModelMetricType } from '#~/pages/modelServing/screens/metrics/ModelServingMetricsContext';
 import { PerformanceMetricType } from '#~/pages/modelServing/screens/types';
 import useRefreshInterval from '#~/utilities/useRefreshInterval';

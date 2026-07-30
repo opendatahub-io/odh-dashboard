@@ -37,8 +37,8 @@ describe('@odh-dashboard/k8s-core TrustyAI export surface', () => {
   });
 
   it('declares ./trustyai export in k8s-core package.json', () => {
-    const trustyaiEntryPath = require.resolve('@odh-dashboard/k8s-core/trustyai');
-    const packageRoot = path.resolve(path.dirname(trustyaiEntryPath), '..');
+    const entryPath = require.resolve('@odh-dashboard/k8s-core/trustyai');
+    const packageRoot = path.resolve(path.dirname(entryPath), '..');
     const pkg = JSON.parse(fs.readFileSync(path.join(packageRoot, 'package.json'), 'utf-8'));
     expect(pkg.exports).toMatchObject({
       './trustyai': './src/trustyaiTypes.ts',

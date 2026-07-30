@@ -6,12 +6,12 @@ import useFetchState, {
   NotReadyError,
 } from '@odh-dashboard/ui-core/hooks/useFetchState';
 import type {
+  PrometheusQueryRangeResponse,
+  PrometheusQueryRangeResponseData,
   PrometheusQueryRangeResponseDataResult,
   PrometheusQueryRangeResultValue,
-} from '@odh-dashboard/k8s-core/trustyai';
+} from '@odh-dashboard/k8s-core/prometheus';
 import axios from '#~/utilities/axios';
-
-import { PrometheusQueryRangeResponse, PrometheusQueryRangeResponseData } from '#~/types';
 
 export type ResponsePredicate<T = PrometheusQueryRangeResultValue> = (
   data: PrometheusQueryRangeResponseData,

@@ -11,7 +11,6 @@ import type {
   PodContainer,
   Volume,
 } from '@odh-dashboard/k8s-core';
-import type { PrometheusQueryRangeResponseDataResult } from '@odh-dashboard/k8s-core/trustyai';
 import { FeatureFlag } from '@odh-dashboard/plugin-core/areas';
 import { FetchStateObject } from '@odh-dashboard/ui-core/hooks/useFetch';
 import { HardwarePodSpecOptions } from '#~/concepts/hardwareProfiles/types';
@@ -27,25 +26,6 @@ export type FeatureFlagProps = {
 export type DevFeatureFlags = FeatureFlagProps & {
   setDevFeatureFlagQueryVisible: (visible: boolean) => void;
   isBannerVisible: boolean;
-};
-
-export type PrometheusQueryResponse<TResultExtraProps extends object = object> = {
-  data: {
-    result: ({
-      value: [number, string];
-    } & TResultExtraProps)[];
-    resultType: string;
-  };
-  status: string;
-};
-
-export type PrometheusQueryRangeResponseData = {
-  result?: PrometheusQueryRangeResponseDataResult[];
-  resultType: string;
-};
-export type PrometheusQueryRangeResponse = {
-  data: PrometheusQueryRangeResponseData;
-  status: string;
 };
 
 export type NotebookControllerUserState = {

@@ -1,8 +1,11 @@
 import * as React from 'react';
 import useGenericObjectState from '@odh-dashboard/ui-core/utilities/useGenericObjectState';
 import type { UpdateObjectAtPropAndValue } from '@odh-dashboard/ui-core';
-import type { BiasMetricConfig, BaseMetricRequestInput } from '@odh-dashboard/k8s-core/trustyai';
-import { BiasMetricType } from '@odh-dashboard/k8s-core/trustyai';
+import {
+  BiasMetricType,
+  type BiasMetricConfig,
+  type BaseMetricRequestInput,
+} from '@odh-dashboard/k8s-core/trustyai';
 import { getThresholdDefaultDelta } from '../../../utils';
 
 const useBiasConfigurationObject = (

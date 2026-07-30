@@ -4,7 +4,7 @@ import { useModelServingMetrics } from '@odh-dashboard/internal/api';
 import type {
   PrometheusQueryRangeResponseDataResult,
   PrometheusQueryRangeResultValue,
-} from '@odh-dashboard/k8s-core/trustyai';
+} from '@odh-dashboard/k8s-core/prometheus';
 import { DEFAULT_LIST_FETCH_STATE } from '@odh-dashboard/ui-core/utilities/fetchState';
 import { PerformanceMetricType } from '@odh-dashboard/internal/pages/modelServing/screens/types';
 import { MetricsCommonContext } from '@odh-dashboard/internal/concepts/metrics/MetricsCommonContext';

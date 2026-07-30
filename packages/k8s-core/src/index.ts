@@ -180,10 +180,16 @@ export {
 export type { GetByName } from './projectUtils';
 export { isK8sStatus, K8sStatusError } from './errorUtils';
 
-export { BiasMetricType, TrustyInstallState } from './trustyaiTypes';
 export type {
   PrometheusQueryRangeResultValue,
   PrometheusQueryRangeResponseDataResult,
+  PrometheusQueryRangeResponseData,
+  PrometheusQueryRangeResponse,
+  PrometheusQueryResponse,
+} from './prometheusTypes';
+
+export { BiasMetricType, TrustyInstallState } from './trustyaiTypes';
+export type {
   BaseMetric,
   BaseMetricRequestInput,
   BaseMetricRequest,

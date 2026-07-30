@@ -1,4 +1,4 @@
-import { PrometheusQueryResponse } from '#~/types';
+import type { PrometheusQueryResponse } from '@odh-dashboard/k8s-core/prometheus';
 
 type MockPrometheusQueryResponseType = {
   value?: [number, string];

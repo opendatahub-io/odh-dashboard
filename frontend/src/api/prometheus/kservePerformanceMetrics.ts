@@ -1,7 +1,7 @@
 import React from 'react';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { TimeframeTitle } from '@odh-dashboard/ui-core/types/metrics';
-import type { PrometheusQueryRangeResultValue } from '@odh-dashboard/k8s-core/trustyai';
+import type { PrometheusQueryRangeResultValue } from '@odh-dashboard/k8s-core/prometheus';
 import {
   KserveMetricGraphDefinition,
   NimMetricGraphDefinition,

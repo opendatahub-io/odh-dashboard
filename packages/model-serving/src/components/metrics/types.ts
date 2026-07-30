@@ -1,11 +1,8 @@
 import { DomainTuple, ForAxes } from 'victory-core';
 import { ChartThemeDefinitionInterface } from '@patternfly/react-charts/victory';
 import { FetchStateObject } from '@odh-dashboard/ui-core/hooks/useFetch';
-import type {
-  PrometheusQueryRangeResultValue,
-  BiasMetricConfig,
-} from '@odh-dashboard/k8s-core/trustyai';
-import { BiasMetricType } from '@odh-dashboard/k8s-core/trustyai';
+import type { PrometheusQueryRangeResultValue } from '@odh-dashboard/k8s-core/prometheus';
+import { BiasMetricType, type BiasMetricConfig } from '@odh-dashboard/k8s-core/trustyai';
 import { ModelMetricType } from './ModelServingMetricsContext';
 
 export type TranslatePoint = (line: GraphMetricPoint) => GraphMetricPoint;

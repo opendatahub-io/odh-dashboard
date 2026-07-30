@@ -1,6 +1,6 @@
 import { testHook } from '@odh-dashboard/jest-config/hooks';
 import usePrometheusQuery from '@odh-dashboard/internal/api/prometheus/usePrometheusQuery';
-import { PrometheusQueryResponse } from '@odh-dashboard/internal/types';
+import type { PrometheusQueryResponse } from '@odh-dashboard/k8s-core/prometheus';
 import useInfrastructureMetrics from '../useInfrastructureMetrics';
 import {
   INFRASTRUCTURE_REFRESH_INTERVAL,
