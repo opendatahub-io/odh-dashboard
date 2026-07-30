@@ -5,7 +5,7 @@ import {
   PrometheusQueryRangeResponseDataResult,
   PrometheusQueryRangeResultValue,
 } from '@odh-dashboard/internal/types';
-import { DEFAULT_LIST_FETCH_STATE } from '@odh-dashboard/internal/utilities/const';
+import { DEFAULT_LIST_FETCH_STATE } from '@odh-dashboard/ui-core/utilities/fetchState';
 import { PerformanceMetricType } from '@odh-dashboard/internal/pages/modelServing/screens/types';
 import { MetricsCommonContext } from '@odh-dashboard/internal/concepts/metrics/MetricsCommonContext';
 

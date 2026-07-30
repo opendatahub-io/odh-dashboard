@@ -12,15 +12,17 @@ configMapGenerator:
     env: params.env
 generatorOptions:
   disableNameSuffixHash: true
-vars:
-  - name: maas-ui-image
-    objref:
+replacements:
+  - source:
       kind: ConfigMap
       name: maas-params
-      apiVersion: v1
-    fieldref:
-      fieldpath: data.maas-ui-image
-replacements:
+      fieldPath: data.maas-ui-image
+    targets:
+      - select:
+          kind: Deployment
+          name: maas-ui
+        fieldPaths:
+          - spec.template.spec.containers.[name=maas-ui].image
   - source:
       kind: ConfigMap
       name: maas-params
@@ -31,5 +33,3 @@ replacements:
           name: maas-ui
         fieldPaths:
           - spec.template.spec.containers.[name=maas-ui].env.[name=GATEWAY_DOMAIN].value
-configurations:
-  - params.yaml
