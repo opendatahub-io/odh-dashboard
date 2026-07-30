@@ -67,8 +67,22 @@ describe('getPipelineSummaryDetails', () => {
 
     expect(details).toEqual([
       { label: 'Total run time', value: '2 m 55 s' },
-      { label: 'Patterns evaluated', value: '2' },
-      { label: 'Winning pattern', value: 'Pattern1' },
+      {
+        label: 'Patterns evaluated',
+        value: '2',
+        help: {
+          header: 'Pattern',
+          body: 'A specific combination of chunking, embedding, retrieval, and generation settings being tested.',
+        },
+      },
+      {
+        label: 'Winning pattern',
+        value: 'Pattern1',
+        help: {
+          header: 'Winning pattern',
+          body: 'The configuration that achieved the highest evaluation score during optimization.',
+        },
+      },
       {
         label: 'Evaluation metric',
         value: OPTIMIZATION_METRIC_LABELS[DEFAULT_OPTIMIZATION_METRIC],
@@ -160,8 +174,22 @@ describe('getPipelineSummaryDetails', () => {
 
     expect(details).toEqual([
       { label: 'Total run time', value: '—' },
-      { label: 'Patterns evaluated', value: '—' },
-      { label: 'Winning pattern', value: '—' },
+      {
+        label: 'Patterns evaluated',
+        value: '—',
+        help: {
+          header: 'Pattern',
+          body: 'A specific combination of chunking, embedding, retrieval, and generation settings being tested.',
+        },
+      },
+      {
+        label: 'Winning pattern',
+        value: '—',
+        help: {
+          header: 'Winning pattern',
+          body: 'The configuration that achieved the highest evaluation score during optimization.',
+        },
+      },
       {
         label: 'Evaluation metric',
         value: OPTIMIZATION_METRIC_LABELS[DEFAULT_OPTIMIZATION_METRIC],
