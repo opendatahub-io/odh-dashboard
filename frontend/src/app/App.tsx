@@ -1,4 +1,7 @@
 import React from 'react';
+
+// CI test: deliberate lint error — unused variable to trigger Cancel-On-Quality-Failure
+const unusedCiTestVariable = 'this-triggers-lint-failure';
 import '@patternfly/patternfly/patternfly.min.css';
 import '@patternfly/patternfly/patternfly-addons.css';
 import '@patternfly/patternfly/patternfly-charts.css';
