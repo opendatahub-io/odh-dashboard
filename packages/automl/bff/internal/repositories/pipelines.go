@@ -171,7 +171,8 @@ func (r *PipelinesRepository) CreateRun(ctx context.Context, namespace string, r
 		return nil, err
 	}
 
-	if err := ValidateCreateAutoMLRunRequest(req, pipelineType); err != nil {
+	req, err = ValidateAndNormalizeCreateAutoMLRunRequest(req, pipelineType)
+	if err != nil {
 		return nil, err
 	}
 
@@ -460,7 +461,62 @@ func ValidateCreateAutoMLRunRequest(req models.CreateAutoMLRunRequest, pipelineT
 		return NewValidationError("display_name must be at most 250 characters")
 	}
 
+	if err := ValidateASCIIColumnNames(req, pipelineType); err != nil {
+		return err
+	}
+
 	return nil
+}
+
+// normalizeColumnName strips a leading UTF-8 BOM then surrounding whitespace from CSV-derived names.
+func normalizeColumnName(name string) string {
+	name = strings.TrimPrefix(name, "\ufeff")
+	return strings.TrimSpace(name)
+}
+
+// normalizeCreateAutoMLRunRequest trims whitespace/BOM from user-supplied fields so
+// CSV-derived column names match the training file header. TrainDataFileKey is left
+// unchanged so S3 lookups use the exact object key provided by the client.
+func normalizeCreateAutoMLRunRequest(req models.CreateAutoMLRunRequest) models.CreateAutoMLRunRequest {
+	req.DisplayName = strings.TrimSpace(req.DisplayName)
+	req.Description = strings.TrimSpace(req.Description)
+	req.TrainDataSecretName = strings.TrimSpace(req.TrainDataSecretName)
+	req.TrainDataBucketName = strings.TrimSpace(req.TrainDataBucketName)
+
+	if req.LabelColumn != nil {
+		v := normalizeColumnName(*req.LabelColumn)
+		req.LabelColumn = &v
+	}
+	if req.Target != nil {
+		v := normalizeColumnName(*req.Target)
+		req.Target = &v
+	}
+	if req.IDColumn != nil {
+		v := normalizeColumnName(*req.IDColumn)
+		req.IDColumn = &v
+	}
+	if req.TimestampColumn != nil {
+		v := normalizeColumnName(*req.TimestampColumn)
+		req.TimestampColumn = &v
+	}
+	if req.KnownCovariatesNames != nil {
+		names := make([]string, len(*req.KnownCovariatesNames))
+		for i, name := range *req.KnownCovariatesNames {
+			names[i] = normalizeColumnName(name)
+		}
+		req.KnownCovariatesNames = &names
+	}
+
+	return req
+}
+
+// ValidateAndNormalizeCreateAutoMLRunRequest normalizes and validates a create-run request.
+func ValidateAndNormalizeCreateAutoMLRunRequest(req models.CreateAutoMLRunRequest, pipelineType string) (models.CreateAutoMLRunRequest, error) {
+	req = normalizeCreateAutoMLRunRequest(req)
+	if err := ValidateCreateAutoMLRunRequest(req, pipelineType); err != nil {
+		return models.CreateAutoMLRunRequest{}, err
+	}
+	return req, nil
 }
 
 func BuildPipelineRunInput(req models.CreateAutoMLRunRequest, pipelineID, pipelineVersionID, pipelineType string) *pipelines.CreatePipelineRunInput {

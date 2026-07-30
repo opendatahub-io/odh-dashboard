@@ -35,6 +35,15 @@ type PipelinesHandler struct {
 
 const maxRequestBodyBytes = 10 << 20
 
+// charsetPipelineServerCreateRunErrorMsg is surfaced when the pipeline server rejects a
+// run because its underlying storage doesn't support a submitted value's characters (KFP
+// deployments backed by MySQL without utf8mb4 reject non-ASCII bytes in
+// PipelineRuntimeManifest/WorkflowRuntimeManifest columns). Upfront ASCII validation (see
+// repositories.ValidateASCIIColumnNames) should make this rare/unreachable for
+// AutoML-created runs, but it's kept for parameters we don't validate and for direct
+// Pipelines UI/API creates that bypass AutoML's own request validation.
+const charsetPipelineServerCreateRunErrorMsg = "pipeline server failed to store the run because its database does not support non-ASCII parameter values; ask your administrator to configure Kubeflow Pipelines MySQL with utf8mb4"
+
 type PipelineRunsEnvelope Envelope[*models.PipelineRunsData, None]
 type PipelineRunEnvelope Envelope[*models.PipelineRun, None]
 type CreatePipelineRunEnvelope Envelope[*models.PipelineRun, None]
@@ -195,8 +204,13 @@ func (h *PipelinesHandler) mapPipelineError(w http.ResponseWriter, r *http.Reque
 		badRequestResponse(h.logger, w, r, err.Error())
 		return
 	}
-	if errors.Is(err, pipelines.ErrInvalidInput) || errors.Is(err, pipelines.ErrInvalidRunState) {
+	if errors.Is(err, pipelines.ErrInvalidInput) || errors.Is(err, pipelines.ErrInvalidRunState) ||
+		errors.Is(err, pipelines.ErrPipelineServerBadRequest) {
 		badRequestResponse(h.logger, w, r, err.Error())
+		return
+	}
+	if errors.Is(err, pipelines.ErrPipelineServerCharsetRejected) {
+		serverErrorResponseWithMessage(h.logger, w, r, err, charsetPipelineServerCreateRunErrorMsg)
 		return
 	}
 	if errors.Is(err, pipelines.ErrNoDSPAFound) {

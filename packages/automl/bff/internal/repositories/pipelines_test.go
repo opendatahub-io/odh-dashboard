@@ -401,6 +401,52 @@ func TestValidateCreateAutoMLRunRequest(t *testing.T) {
 			t.Errorf("error should mention invalid eval_metric: %v", err)
 		}
 	})
+
+	t.Run("reject non-ASCII label_column", func(t *testing.T) {
+		req := validTabularRequest()
+		label := "لديه روح"
+		req.LabelColumn = &label
+
+		err := ValidateCreateAutoMLRunRequest(req, constants.PipelineTypeTabular)
+		if err == nil {
+			t.Fatal("expected error")
+		}
+		if !strings.Contains(err.Error(), "ASCII") {
+			t.Errorf("error should mention ASCII: %v", err)
+		}
+	})
+}
+
+func TestNormalizeCreateAutoMLRunRequest(t *testing.T) {
+	t.Run("should strip UTF-8 BOM from ASCII label_column before building the pipeline run input", func(t *testing.T) {
+		req := validTabularRequest()
+		labelWithBOM := "\ufefftarget"
+		req.LabelColumn = &labelWithBOM
+
+		normalized := normalizeCreateAutoMLRunRequest(req)
+		result := BuildPipelineRunInput(normalized, "pid", "vid", constants.PipelineTypeTabular)
+
+		if result.RuntimeConfig.Parameters["label_column"] != "target" {
+			t.Errorf("label_column = %v, want target", result.RuntimeConfig.Parameters["label_column"])
+		}
+	})
+
+	t.Run("should strip UTF-8 BOM before whitespace in column names", func(t *testing.T) {
+		if got := normalizeColumnName("\ufeff target"); got != "target" {
+			t.Errorf("normalizeColumnName = %q, want target", got)
+		}
+	})
+
+	t.Run("should preserve train_data_file_key whitespace during normalization", func(t *testing.T) {
+		req := validTabularRequest()
+		req.TrainDataFileKey = " data/train.csv "
+
+		normalized := normalizeCreateAutoMLRunRequest(req)
+
+		if normalized.TrainDataFileKey != " data/train.csv " {
+			t.Errorf("TrainDataFileKey = %q, want unchanged", normalized.TrainDataFileKey)
+		}
+	})
 }
 
 func TestBuildPipelineRunInput(t *testing.T) {

@@ -422,6 +422,22 @@ func TestCreatePipelineRunHandler(t *testing.T) {
 			wantStatusCode: http.StatusNotFound,
 			wantBodySubstr: "Pipeline Server",
 		},
+		{
+			name:           "pipeline server rejected request as bad request",
+			body:           validBody,
+			repoResult:     nil,
+			repoErr:        fmt.Errorf("failed to create pipeline run: %w", pipelines.ErrPipelineServerBadRequest),
+			wantStatusCode: http.StatusBadRequest,
+			wantBodySubstr: `"code": "400"`,
+		},
+		{
+			name:           "pipeline server rejected request due to charset",
+			body:           validBody,
+			repoResult:     nil,
+			repoErr:        fmt.Errorf("failed to create pipeline run: %w", pipelines.ErrPipelineServerCharsetRejected),
+			wantStatusCode: http.StatusInternalServerError,
+			wantBodySubstr: "utf8mb4",
+		},
 	}
 
 	for _, tt := range tests {

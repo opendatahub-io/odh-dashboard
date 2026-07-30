@@ -455,4 +455,28 @@ func TestReadHTTPError(t *testing.T) {
 			t.Errorf("StatusCode = %d", he.StatusCode)
 		}
 	})
+
+	t.Run("400 maps to ErrPipelineServerBadRequest", func(t *testing.T) {
+		ts, c := newTestServer(func(w http.ResponseWriter, r *http.Request) {
+			http.Error(w, "bad request", http.StatusBadRequest)
+		})
+		defer ts.Close()
+
+		_, err := c.GetPipelineRun(context.Background(), ts.URL, "r1")
+		if !errors.Is(err, ErrPipelineServerBadRequest) {
+			t.Errorf("expected ErrPipelineServerBadRequest, got %v", err)
+		}
+	})
+
+	t.Run("500 with WorkflowRuntimeManifest body maps to ErrPipelineServerCharsetRejected", func(t *testing.T) {
+		ts, c := newTestServer(func(w http.ResponseWriter, r *http.Request) {
+			http.Error(w, "Failed to store run: Error 1366: Incorrect string value for column 'WorkflowRuntimeManifest'", http.StatusInternalServerError)
+		})
+		defer ts.Close()
+
+		_, err := c.GetPipelineRun(context.Background(), ts.URL, "r1")
+		if !errors.Is(err, ErrPipelineServerCharsetRejected) {
+			t.Errorf("expected ErrPipelineServerCharsetRejected, got %v", err)
+		}
+	})
 }

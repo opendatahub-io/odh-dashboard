@@ -11,6 +11,7 @@ import (
 	"mime/multipart"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
 	k8s "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes"
@@ -538,9 +539,22 @@ func readhttpError(resp *http.Response) error {
 		return fmt.Errorf("%w: %s", ErrPipelineNotFound, httpErr)
 	case http.StatusConflict:
 		return fmt.Errorf("%w: %s", k8s.ErrConflict, httpErr)
+	case http.StatusBadRequest:
+		return fmt.Errorf("%w: %s", ErrPipelineServerBadRequest, httpErr)
 	default:
+		if isCharsetRejection(errorMsg) {
+			return fmt.Errorf("%w: %s", ErrPipelineServerCharsetRejected, httpErr)
+		}
 		return httpErr
 	}
+}
+
+// isCharsetRejection reports whether a pipeline-server error body indicates the request
+// was rejected because it contains characters the server's underlying storage doesn't
+// support. "Incorrect string value" is MySQL's phrase for this charset/collation
+// rejection; WorkflowRuntimeManifest is the specific KFP column most commonly affected.
+func isCharsetRejection(message string) bool {
+	return strings.Contains(message, "WorkflowRuntimeManifest") || strings.Contains(message, "Incorrect string value")
 }
 
 // Compile-time interface checks.
