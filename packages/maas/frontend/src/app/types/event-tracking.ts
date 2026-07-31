@@ -80,7 +80,7 @@ export type SubscriptionManagementGroupLabelSelectedProperties = {
 
 export type SubscriptionManagementStatusPopoverViewedProperties = {
   popoverType: EventTrackingPopoverType;
-  status: PhaseStatus;
+  status: PhaseStatus | 'configuration-warning';
   location: PhaseLabelLocation;
 };
 

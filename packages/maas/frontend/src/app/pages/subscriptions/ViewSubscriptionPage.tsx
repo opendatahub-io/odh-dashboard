@@ -193,12 +193,6 @@ const ViewSubscriptionPage: React.FC = () => {
             title={<TabTitleText>YAML</TabTitleText>}
             aria-label="YAML tab"
             data-testid="subscription-yaml-tab"
-            onClick={() => {
-              fireMiscTrackingEvent(MaaSEvents.SUBSCRIPTION_MANAGEMENT_YAML_VIEWED, {
-                resourceType: EventTrackingResourceType.SUBSCRIPTION,
-                context: EventTrackingContext.DETAILS,
-              });
-            }}
           >
             <SubscriptionManagementYamlTab
               resourceName={subscriptionName}
