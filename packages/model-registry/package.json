@@ -54,6 +54,7 @@
   ],
   "exports": {
     "./extensions": "./extensions.ts",
+    "./shared": "./shared/index.ts",
     "./model-catalog-deploy": {
       "types": "./upstream/frontend/src/odh/extension-points/model-catalog-deploy.ts"
     },

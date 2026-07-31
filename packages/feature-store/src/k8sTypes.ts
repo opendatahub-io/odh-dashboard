@@ -43,7 +43,10 @@ export type FeastContainerConfigs = {
   env?: FeastEnvVar[];
   envFrom?: FeastEnvFromSource[];
   imagePullPolicy?: string;
-  resources?: Record<string, unknown>;
+  resources?: {
+    requests?: Record<string, string>;
+    limits?: Record<string, string>;
+  };
   nodeSelector?: Record<string, string>;
 };
 

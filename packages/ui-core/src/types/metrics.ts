@@ -1,3 +1,5 @@
+import type { EitherNotBoth } from '@odh-dashboard/foundation';
+
 export enum TimeframeTitle {
   ONE_HOUR = '1 hour',
   ONE_DAY = '24 hours',
@@ -27,3 +29,7 @@ export enum RefreshIntervalTitle {
 export type RefreshIntervalValueType = {
   [key in RefreshIntervalTitle]: number;
 };
+
+export type BreadcrumbItemType = {
+  label: string;
+} & EitherNotBoth<{ link: string }, { isActive: boolean }>;

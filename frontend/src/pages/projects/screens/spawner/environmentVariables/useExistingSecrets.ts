@@ -39,7 +39,7 @@ export const fetchExistingSecrets = async (
     }));
 };
 
-type UseExistingSecretsResult = {
+export type UseExistingSecretsResult = {
   secrets: ExistingSecretMetadata[];
   loaded: boolean;
   canList: boolean;

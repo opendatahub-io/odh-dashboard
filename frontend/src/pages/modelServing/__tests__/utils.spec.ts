@@ -1,4 +1,5 @@
 import type { ContainerResources } from '@odh-dashboard/k8s-core';
+import type { ModelServingPodSpecOptionsState } from '@odh-dashboard/hardware-profiles/shared';
 import { getModelServingPVCAnnotations } from '@odh-dashboard/model-serving/shared';
 import type {
   ServingRuntimeKind,
@@ -35,7 +36,6 @@ import { mockInferenceServiceK8sResource } from '#~/__mocks__/mockInferenceServi
 import { mockRoleK8sResource } from '#~/__mocks__/mockRoleK8sResource';
 import { ServingRuntimeVersionStatusLabel } from '#~/pages/modelServing/screens/const';
 import { ServingRuntimeEditInfo } from '#~/pages/modelServing/screens/types';
-import { ModelServingPodSpecOptionsState } from '#~/concepts/hardwareProfiles/deprecated/useModelServingAcceleratorDeprecatedPodSpecOptionsState';
 
 jest.mock('#~/api', () => ({
   ...jest.requireActual('#~/api'),

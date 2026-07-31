@@ -80,7 +80,14 @@ describe('getPipelineSummaryDetails', () => {
     expect(details).toEqual([
       { label: 'Total run time', value: '2 m 55 s' },
       { label: 'Models evaluated', value: '3' },
-      { label: 'Winning model', value: 'LightGBM_BAG_L2' },
+      {
+        label: 'Winning model',
+        value: 'LightGBM_BAG_L2',
+        help: {
+          header: 'Winning model',
+          body: 'The model that achieved the highest evaluation score during training.',
+        },
+      },
       { label: 'Evaluation metric', value: 'Accuracy' },
     ]);
   });
@@ -167,7 +174,14 @@ describe('getPipelineSummaryDetails', () => {
     expect(details).toEqual([
       { label: 'Total run time', value: '—' },
       { label: 'Models evaluated', value: '—' },
-      { label: 'Winning model', value: '—' },
+      {
+        label: 'Winning model',
+        value: '—',
+        help: {
+          header: 'Winning model',
+          body: 'The model that achieved the highest evaluation score during training.',
+        },
+      },
       { label: 'Evaluation metric', value: '—' },
     ]);
   });

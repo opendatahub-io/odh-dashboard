@@ -2,12 +2,12 @@ import * as React from 'react';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import userEvent from '@testing-library/user-event';
+import { DEFAULT_LIST_FETCH_STATE } from '@odh-dashboard/ui-core/utilities/fetchState';
 import { mockHardwareProfile } from '#~/__mocks__/mockHardwareProfile';
 import {
   ProjectDetailsContext,
   ProjectDetailsContextType,
 } from '#~/pages/projects/ProjectDetailsContext';
-import { DEFAULT_LIST_FETCH_STATE } from '#~/utilities/const';
 import { NotebookKind } from '#~/k8sTypes';
 import { KUEUE_QUEUE_LABEL } from '#~/concepts/kueue/index';
 import HardwareProfileTableColumn from '#~/concepts/hardwareProfiles/HardwareProfileTableColumn';

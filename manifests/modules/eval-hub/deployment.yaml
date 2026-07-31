@@ -35,7 +35,8 @@ spec:
                 topologyKey: topology.kubernetes.io/zone
       volumes:
         - name: tmp
-          emptyDir: {}
+          emptyDir:
+            sizeLimit: 100Mi
         - name: modules-sa-token
           projected:
             defaultMode: 420
@@ -77,7 +78,7 @@ spec:
                 path: odh-ca-bundle.crt
       containers:
         - name: eval-hub-ui
-          image: $(eval-hub-ui-image)
+          image: eval-hub-ui-image
           imagePullPolicy: Always
           livenessProbe:
             httpGet:
