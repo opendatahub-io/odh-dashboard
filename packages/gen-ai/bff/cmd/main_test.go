@@ -145,6 +145,14 @@ func TestValidateInsecureSkipVerify(t *testing.T) {
 			expectedErrorContains: "requires ALLOW_INSECURE_TLS=true",
 		},
 		{
+			name:                  "InsecureSkipVerify enabled with ALLOW_INSECURE_TLS=1 - should fail (only literal true accepted)",
+			insecureSkipVerify:    true,
+			allowInsecureTLS:      "1",
+			env:                   "",
+			expectedError:         true,
+			expectedErrorContains: "requires ALLOW_INSECURE_TLS=true",
+		},
+		{
 			name:               "InsecureSkipVerify enabled with ALLOW_INSECURE_TLS=true - should pass",
 			insecureSkipVerify: true,
 			allowInsecureTLS:   "true",
