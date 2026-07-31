@@ -9,6 +9,9 @@ import { useUIErrorHandler } from './UIErrorHandler.tsx';
 
 // Types ---------------------------------------------------------------------->
 // Globals -------------------------------------------------------------------->
+
+const UIErrorAlertDismissTimeout = 8 * 1000;
+
 // Private -------------------------------------------------------------------->
 // Components ----------------------------------------------------------------->
 
@@ -22,6 +25,34 @@ const UIErrorAlert: React.FC<UIErrorAlertProps> = ({ id, uiError, uiErrorMapping
   const generatedId = useId();
   const rootId = id ?? generatedId;
 
+  const [detailsViewed, setDetailsViewed] = React.useState(false);
+  const [timedOut, setTimedOut] = React.useState(false);
+  const [mouseOver, setMouseOver] = React.useState(false);
+  const [focusWithin, setFocusWithin] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!detailsViewed) {
+      return undefined;
+    }
+    const handle = setTimeout(() => {
+      setTimedOut(true);
+    }, UIErrorAlertDismissTimeout);
+    return () => {
+      clearTimeout(handle);
+    };
+  }, [detailsViewed]);
+
+  React.useEffect(() => {
+    if (timedOut && !mouseOver && !focusWithin) {
+      closeUIError(uiError);
+    }
+  }, [timedOut, mouseOver, focusWithin, closeUIError, uiError]);
+
+  const handleShowDetails = React.useCallback(() => {
+    setDetailsViewed(true);
+    showDetails(uiError);
+  }, [showDetails, uiError]);
+
   return (
     <Alert
       id={rootId}
@@ -30,9 +61,17 @@ const UIErrorAlert: React.FC<UIErrorAlertProps> = ({ id, uiError, uiErrorMapping
       actionClose={<AlertActionCloseButton onClose={() => closeUIError(uiError)} />}
       actionLinks={
         <>
-          <AlertActionLink onClick={() => showDetails(uiError)}>More details...</AlertActionLink>
+          <AlertActionLink onClick={handleShowDetails}>More details...</AlertActionLink>
         </>
       }
+      onMouseEnter={() => setMouseOver(true)}
+      onMouseLeave={() => setMouseOver(false)}
+      onFocus={() => setFocusWithin(true)}
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) {
+          setFocusWithin(false);
+        }
+      }}
     >
       {uiErrorMapping?.description || uiError.reason || UIErrorDefaults.uiErrorMapping.description}
     </Alert>

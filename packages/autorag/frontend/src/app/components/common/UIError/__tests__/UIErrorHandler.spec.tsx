@@ -1,6 +1,6 @@
 /* eslint-disable camelcase */
 import '@testing-library/jest-dom';
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import React from 'react';
 import type { UIError, UIErrorMappings } from '~/app/components/common/UIError/types';
 import { UIErrorInstance } from '~/app/components/common/UIError/UIErrorInstance';
@@ -243,6 +243,74 @@ describe('UIErrorHandler', () => {
 
       fireEvent.click(screen.getByTestId('UIErrorModal-cancel'));
       expect(screen.queryByText(mockUIError.transactionId)).not.toBeInTheDocument();
+    });
+
+    it('should auto-dismiss the alert after timeout when "More details..." is clicked', () => {
+      jest.useFakeTimers();
+      render(
+        <UIErrorHandler id="test" uiErrorMappings={testMappings}>
+          <ShowErrorButton error={mockUIError} />
+        </UIErrorHandler>,
+      );
+
+      fireEvent.click(screen.getByTestId('show-error'));
+      const alertGroup = screen.getByTestId('UIErrorAlerts-alert-group');
+      expect(within(alertGroup).getByText('Mapped Error Title')).toBeInTheDocument();
+
+      fireEvent.click(screen.getByText('More details...'));
+
+      act(() => {
+        jest.advanceTimersByTime(8000);
+      });
+
+      expect(within(alertGroup).queryByText('Mapped Error Title')).not.toBeInTheDocument();
+      jest.useRealTimers();
+    });
+
+    it('should not auto-dismiss the alert before "More details..." is clicked', () => {
+      jest.useFakeTimers();
+      render(
+        <UIErrorHandler id="test" uiErrorMappings={testMappings}>
+          <ShowErrorButton error={mockUIError} />
+        </UIErrorHandler>,
+      );
+
+      fireEvent.click(screen.getByTestId('show-error'));
+      const alertGroup = screen.getByTestId('UIErrorAlerts-alert-group');
+
+      act(() => {
+        jest.advanceTimersByTime(16000);
+      });
+
+      expect(within(alertGroup).getByText('Mapped Error Title')).toBeInTheDocument();
+      jest.useRealTimers();
+    });
+
+    it('should pause auto-dismiss while hovering the alert', () => {
+      jest.useFakeTimers();
+      render(
+        <UIErrorHandler id="test" uiErrorMappings={testMappings}>
+          <ShowErrorButton error={mockUIError} />
+        </UIErrorHandler>,
+      );
+
+      fireEvent.click(screen.getByTestId('show-error'));
+      const alertGroup = screen.getByTestId('UIErrorAlerts-alert-group');
+      const alert = within(alertGroup).getByText('Mapped Error Title').closest('.pf-v6-c-alert')!;
+
+      fireEvent.click(screen.getByText('More details...'));
+      fireEvent.mouseEnter(alert);
+
+      act(() => {
+        jest.advanceTimersByTime(8000);
+      });
+
+      expect(within(alertGroup).getByText('Mapped Error Title')).toBeInTheDocument();
+
+      fireEvent.mouseLeave(alert);
+
+      expect(within(alertGroup).queryByText('Mapped Error Title')).not.toBeInTheDocument();
+      jest.useRealTimers();
     });
 
     it('should show default title in modal when no mapping matches', () => {
