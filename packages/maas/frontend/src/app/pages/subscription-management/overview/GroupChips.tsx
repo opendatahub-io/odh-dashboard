@@ -4,11 +4,18 @@ import { Button, Content, Flex, FlexItem, Label } from '@patternfly/react-core';
 type GroupChipsProps = {
   groups: string[];
   maxVisible?: number;
+  highlightedGroup: string | null;
+  setHighlightedGroup: (group: string | null) => void;
 };
 
 const DEFAULT_MAX_VISIBLE = 8;
 
-const GroupChips: React.FC<GroupChipsProps> = ({ groups, maxVisible = DEFAULT_MAX_VISIBLE }) => {
+const GroupChips: React.FC<GroupChipsProps> = ({
+  groups,
+  maxVisible = DEFAULT_MAX_VISIBLE,
+  highlightedGroup,
+  setHighlightedGroup,
+}) => {
   const [showAll, setShowAll] = React.useState(false);
 
   const displayedGroups = showAll ? groups : groups.slice(0, maxVisible);
@@ -33,7 +40,14 @@ const GroupChips: React.FC<GroupChipsProps> = ({ groups, maxVisible = DEFAULT_MA
         <>
           {displayedGroups.map((group) => (
             <FlexItem key={group}>
-              <Label isCompact>{group}</Label>
+              <Label
+                isCompact
+                onClick={() => setHighlightedGroup(highlightedGroup === group ? null : group)}
+                color={highlightedGroup === group ? 'blue' : 'grey'}
+                data-testid={`group-chip-${group}`}
+              >
+                {group}
+              </Label>
             </FlexItem>
           ))}
           {overflowCount > 0 && (

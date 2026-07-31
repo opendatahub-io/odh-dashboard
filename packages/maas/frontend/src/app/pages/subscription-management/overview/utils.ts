@@ -93,3 +93,6 @@ export const overviewColumns: SortableData<ModelOverviewItem>[] = [
     sortable: false,
   },
 ];
+
+export const hasHighlightedGroup = (groups: string[], highlightedGroup: string | null): boolean =>
+  !highlightedGroup ? false : groups.some((group) => group === highlightedGroup);
