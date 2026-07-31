@@ -162,7 +162,11 @@ const extensions: (
       }),
     },
     flags: {
-      required: [SupportedArea.MODEL_DEPLOYMENT_SETTINGS, ADMIN_USER],
+      required: [
+        SupportedArea.MODEL_DEPLOYMENT_SETTINGS,
+        SupportedArea.CUSTOM_RUNTIMES,
+        ADMIN_USER,
+      ],
     },
   },
   {
@@ -175,7 +179,11 @@ const extensions: (
       }),
     },
     flags: {
-      required: [SupportedArea.MODEL_DEPLOYMENT_SETTINGS, ADMIN_USER],
+      required: [
+        SupportedArea.MODEL_DEPLOYMENT_SETTINGS,
+        SupportedArea.CUSTOM_RUNTIMES,
+        ADMIN_USER,
+      ],
     },
   },
 ];
