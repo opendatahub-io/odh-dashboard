@@ -24,6 +24,8 @@ import {
   mockedArtifactsResponse,
   mockGetArtifactsResponse,
 } from '@odh-dashboard/internal/__mocks__/mlmd/mockGetArtifacts';
+import { mockGetExecutionsByContext } from '@odh-dashboard/internal/__mocks__/mlmd/mockGetExecutionsByContext';
+import { mockGetContextsByType } from '@odh-dashboard/internal/__mocks__/mlmd/mockGetContextsByType';
 import {
   activeRunsTable,
   pipelineRunsGlobal,
@@ -602,9 +604,66 @@ describe('Pipeline runs', () => {
           );
         });
 
+        it('disables compare button when root + nested MLflow runs exceed 10', () => {
+          cy.interceptOdh('GET /api/config', mockDashboardConfig({}));
+          interceptMlflowStatus();
+          interceptDSPAMlflowIntegration(projectName);
+
+          const nestedRunIds = Array.from({ length: 4 }, (_, i) => `nested-${i}`);
+          const executionsWithNestedRuns = {
+            executions: nestedRunIds.map((runId, i) => ({
+              id: 300 + i,
+              typeId: 13,
+              type: 'system.ContainerExecution',
+              lastKnownState: 5,
+              properties: {},
+              customProperties: {
+                task_name: { stringValue: `task-${i}` },
+                'plugins.mlflow.run_id': { stringValue: runId },
+              },
+            })),
+          };
+
+          const mlflowRunIds = mockActiveRuns.map((r) => r.run_id);
+          const mlflowContexts = mlflowRunIds.map((runId, i) => ({
+            id: 200 + i,
+            name: runId,
+            typeId: 11,
+            type: 'system.PipelineRun',
+            properties: {},
+            customProperties: {},
+          }));
+
+          cy.interceptOdh(
+            'POST /api/service/mlmd/:namespace/:serviceName/ml_metadata.MetadataStoreService/GetContextsByType',
+            { path: { namespace: projectName, serviceName: 'dspa' } },
+            mockGetContextsByType(mlflowContexts),
+          );
+          cy.interceptOdh(
+            'POST /api/service/mlmd/:namespace/:serviceName/ml_metadata.MetadataStoreService/GetExecutionsByContext',
+            { path: { namespace: projectName, serviceName: 'dspa' } },
+            mockGetExecutionsByContext(executionsWithNestedRuns),
+          );
+
+          activeRunsTable.mockGetActiveRuns(mockActiveRuns, projectName);
+          pipelineRunsGlobal.visit(projectName, 'active');
+          cy.wait('@mlflowStatus');
+
+          mockActiveRuns.forEach((run) => {
+            activeRunsTable.getRowByName(run.display_name).findCheckbox().click();
+          });
+
+          pipelineRunsGlobal.findCompareRunsButton().should('have.attr', 'aria-disabled', 'true');
+        });
+
         it('navigate to MLflow experiment details from active run row', () => {
           cy.interceptOdh('GET /api/config', mockDashboardConfig({}));
           interceptMlflowStatus();
+          interceptDSPAMlflowIntegration(projectName);
+          cy.intercept('GET', '/_bff/mlflow/api/v1/experiments*', (req) => {
+            expect(req.query.workspace).to.equal(projectName);
+            req.reply({ data: { experiments: [] } });
+          });
           const runWithMlflow = buildMockRunKF({
             display_name: 'Run with mlflow',
             run_id: 'run-with-mlflow',

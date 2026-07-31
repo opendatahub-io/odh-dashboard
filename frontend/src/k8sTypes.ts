@@ -434,6 +434,7 @@ export enum DSPAMlflowIntegrationMode {
 
 export type DSPipelineMlflowKind = {
   integrationMode?: DSPAMlflowIntegrationMode;
+  injectUserEnvVars?: boolean;
 };
 
 /**
