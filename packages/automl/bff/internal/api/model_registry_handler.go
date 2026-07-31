@@ -117,7 +117,11 @@ func (h *ModelRegistryHandler) RegisterModelHandler(w http.ResponseWriter, r *ht
 		return
 	}
 
-	namespace, _ := ctx.Value(constants.NamespaceHeaderParameterKey).(string)
+	namespace, ok := ctx.Value(constants.NamespaceHeaderParameterKey).(string)
+	if !ok || namespace == "" {
+		badRequestResponse(h.logger, w, r, "missing namespace in context - ensure AttachNamespace middleware is used first")
+		return
+	}
 	registeredModelID, modelArtifact, err := h.repo.RegisterModel(ctx, registryId, req, namespace)
 	if err != nil {
 		if errors.Is(err, repositories.ErrModelRegistryForbidden) {

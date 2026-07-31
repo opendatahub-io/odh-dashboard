@@ -34,7 +34,11 @@ type OGXVectorStoresEnvelope Envelope[*models.OGXVectorStoreProvidersData, None]
 func (h *OGXHandler) OGXModelsHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	ctx := r.Context()
 
-	namespace, _ := ctx.Value(constants.NamespaceHeaderParameterKey).(string)
+	namespace, ok := ctx.Value(constants.NamespaceHeaderParameterKey).(string)
+	if !ok || namespace == "" {
+		badRequestResponse(h.logger, w, r, "missing namespace in context - ensure AttachNamespace middleware is used first")
+		return
+	}
 
 	secretName := r.URL.Query().Get("secretName")
 	if secretName == "" {
@@ -68,7 +72,11 @@ func (h *OGXHandler) OGXModelsHandler(w http.ResponseWriter, r *http.Request, _ 
 func (h *OGXHandler) OGXVectorStoresHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	ctx := r.Context()
 
-	namespace, _ := ctx.Value(constants.NamespaceHeaderParameterKey).(string)
+	namespace, ok := ctx.Value(constants.NamespaceHeaderParameterKey).(string)
+	if !ok || namespace == "" {
+		badRequestResponse(h.logger, w, r, "missing namespace in context - ensure AttachNamespace middleware is used first")
+		return
+	}
 
 	secretName := r.URL.Query().Get("secretName")
 	if secretName == "" {

@@ -333,16 +333,13 @@ func TestRegisterModelHandler(t *testing.T) {
 			wantBodyContains: "server encountered a problem",
 		},
 		{
-			name:       "success without namespace in context",
-			registryId: "registry-uid-1",
-			namespace:  "",
-			body:       validBody,
-			setupMock: func(repo *mockModelRegistryRepo) {
-				repo.On("RegisterModel", mock.Anything, "registry-uid-1", mock.Anything, "").
-					Return("rm-123", testArtifact, nil)
-			},
-			wantStatusCode:   http.StatusCreated,
-			wantBodyContains: "rm-123",
+			name:             "missing namespace in context returns 400",
+			registryId:       "registry-uid-1",
+			namespace:        "",
+			body:             validBody,
+			setupMock:        func(repo *mockModelRegistryRepo) {},
+			wantStatusCode:   http.StatusBadRequest,
+			wantBodyContains: "missing namespace in context",
 		},
 		{
 			name:       "wrapped ErrModelRegistryForbidden returns 403",

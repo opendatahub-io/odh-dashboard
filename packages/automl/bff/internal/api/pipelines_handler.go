@@ -50,7 +50,11 @@ type CreatePipelineRunEnvelope Envelope[*models.PipelineRun, None]
 
 // PipelineRunsHandler handles GET /api/v1/pipeline-runs
 func (h *PipelinesHandler) PipelineRunsHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	namespace, _ := r.Context().Value(constants.NamespaceHeaderParameterKey).(string)
+	namespace, ok := r.Context().Value(constants.NamespaceHeaderParameterKey).(string)
+	if !ok || namespace == "" {
+		badRequestResponse(h.logger, w, r, "missing namespace in context - ensure AttachNamespace middleware is used first")
+		return
+	}
 
 	query := r.URL.Query()
 
@@ -87,7 +91,11 @@ func (h *PipelinesHandler) PipelineRunsHandler(w http.ResponseWriter, r *http.Re
 
 // PipelineRunHandler handles GET /api/v1/pipeline-runs/:runId
 func (h *PipelinesHandler) PipelineRunHandler(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
-	namespace, _ := r.Context().Value(constants.NamespaceHeaderParameterKey).(string)
+	namespace, ok := r.Context().Value(constants.NamespaceHeaderParameterKey).(string)
+	if !ok || namespace == "" {
+		badRequestResponse(h.logger, w, r, "missing namespace in context - ensure AttachNamespace middleware is used first")
+		return
+	}
 	runID := params.ByName("runId")
 	if runID == "" {
 		badRequestResponse(h.logger, w, r, "missing runId parameter")
@@ -107,7 +115,11 @@ func (h *PipelinesHandler) PipelineRunHandler(w http.ResponseWriter, r *http.Req
 
 // CreatePipelineRunHandler handles POST /api/v1/pipeline-runs
 func (h *PipelinesHandler) CreatePipelineRunHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	namespace, _ := r.Context().Value(constants.NamespaceHeaderParameterKey).(string)
+	namespace, ok := r.Context().Value(constants.NamespaceHeaderParameterKey).(string)
+	if !ok || namespace == "" {
+		badRequestResponse(h.logger, w, r, "missing namespace in context - ensure AttachNamespace middleware is used first")
+		return
+	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, maxRequestBodyBytes)
 	var req models.CreateAutoMLRunRequest
@@ -141,7 +153,11 @@ func (h *PipelinesHandler) CreatePipelineRunHandler(w http.ResponseWriter, r *ht
 
 // TerminatePipelineRunHandler handles POST /api/v1/pipeline-runs/:runId/terminate
 func (h *PipelinesHandler) TerminatePipelineRunHandler(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
-	namespace, _ := r.Context().Value(constants.NamespaceHeaderParameterKey).(string)
+	namespace, ok := r.Context().Value(constants.NamespaceHeaderParameterKey).(string)
+	if !ok || namespace == "" {
+		badRequestResponse(h.logger, w, r, "missing namespace in context - ensure AttachNamespace middleware is used first")
+		return
+	}
 	runID := params.ByName("runId")
 	if runID == "" {
 		badRequestResponse(h.logger, w, r, "missing runId parameter")
@@ -158,7 +174,11 @@ func (h *PipelinesHandler) TerminatePipelineRunHandler(w http.ResponseWriter, r 
 
 // DeletePipelineRunHandler handles DELETE /api/v1/pipeline-runs/:runId
 func (h *PipelinesHandler) DeletePipelineRunHandler(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
-	namespace, _ := r.Context().Value(constants.NamespaceHeaderParameterKey).(string)
+	namespace, ok := r.Context().Value(constants.NamespaceHeaderParameterKey).(string)
+	if !ok || namespace == "" {
+		badRequestResponse(h.logger, w, r, "missing namespace in context - ensure AttachNamespace middleware is used first")
+		return
+	}
 	runID := params.ByName("runId")
 	if runID == "" {
 		badRequestResponse(h.logger, w, r, "missing runId parameter")
@@ -175,7 +195,11 @@ func (h *PipelinesHandler) DeletePipelineRunHandler(w http.ResponseWriter, r *ht
 
 // RetryPipelineRunHandler handles POST /api/v1/pipeline-runs/:runId/retry
 func (h *PipelinesHandler) RetryPipelineRunHandler(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
-	namespace, _ := r.Context().Value(constants.NamespaceHeaderParameterKey).(string)
+	namespace, ok := r.Context().Value(constants.NamespaceHeaderParameterKey).(string)
+	if !ok || namespace == "" {
+		badRequestResponse(h.logger, w, r, "missing namespace in context - ensure AttachNamespace middleware is used first")
+		return
+	}
 	runID := params.ByName("runId")
 	if runID == "" {
 		badRequestResponse(h.logger, w, r, "missing runId parameter")
@@ -235,7 +259,11 @@ func (h *PipelinesHandler) mapPipelineError(w http.ResponseWriter, r *http.Reque
 
 // EnableManagedPipelinesHandler handles POST /api/v1/managed-pipelines/enable
 func (h *PipelinesHandler) EnableManagedPipelinesHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	namespace, _ := r.Context().Value(constants.NamespaceHeaderParameterKey).(string)
+	namespace, ok := r.Context().Value(constants.NamespaceHeaderParameterKey).(string)
+	if !ok || namespace == "" {
+		badRequestResponse(h.logger, w, r, "missing namespace in context - ensure AttachNamespace middleware is used first")
+		return
+	}
 
 	result, err := h.repo.EnableManagedPipelines(r.Context(), namespace)
 	if err != nil {
