@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { render, screen } from '@testing-library/react';
 import PhaseLabel from '~/app/shared/PhaseLabel';
-import { PhaseLabelLocation, PhaseResourceType } from '~/app/utilities/phaseLabelUtils';
+import { PhaseResourceType } from '~/app/utilities/phaseLabelUtils';
 
 describe('PhaseLabel', () => {
   it('should render Active phase with correct text', () => {
@@ -9,7 +9,7 @@ describe('PhaseLabel', () => {
       <PhaseLabel
         phase="Active"
         resourceType={PhaseResourceType.SUBSCRIPTION}
-        location={PhaseLabelLocation.OVERVIEW}
+        resourceName="Test Subscription"
       />,
     );
     const label = screen.getByTestId('phase-label');
@@ -22,7 +22,7 @@ describe('PhaseLabel', () => {
       <PhaseLabel
         phase="Ready"
         resourceType={PhaseResourceType.SUBSCRIPTION}
-        location={PhaseLabelLocation.OVERVIEW}
+        resourceName="Test Subscription"
       />,
     );
     const label = screen.getByTestId('phase-label');
@@ -35,7 +35,7 @@ describe('PhaseLabel', () => {
       <PhaseLabel
         phase="Failed"
         resourceType={PhaseResourceType.SUBSCRIPTION}
-        location={PhaseLabelLocation.OVERVIEW}
+        resourceName="Test Subscription"
       />,
     );
     const label = screen.getByTestId('phase-label');
@@ -49,7 +49,7 @@ describe('PhaseLabel', () => {
       <PhaseLabel
         phase="Degraded"
         resourceType={PhaseResourceType.SUBSCRIPTION}
-        location={PhaseLabelLocation.OVERVIEW}
+        resourceName="Test Subscription"
       />,
     );
     const label = screen.getByTestId('phase-label');
@@ -63,7 +63,7 @@ describe('PhaseLabel', () => {
       <PhaseLabel
         phase="Unhealthy"
         resourceType={PhaseResourceType.SUBSCRIPTION}
-        location={PhaseLabelLocation.OVERVIEW}
+        resourceName="Test Subscription"
       />,
     );
     const label = screen.getByTestId('phase-label');
@@ -77,7 +77,7 @@ describe('PhaseLabel', () => {
       <PhaseLabel
         phase="Pending"
         resourceType={PhaseResourceType.SUBSCRIPTION}
-        location={PhaseLabelLocation.OVERVIEW}
+        resourceName="Test Subscription"
       />,
     );
     const label = screen.getByTestId('phase-label');
@@ -90,7 +90,7 @@ describe('PhaseLabel', () => {
       <PhaseLabel
         phase={undefined}
         resourceType={PhaseResourceType.SUBSCRIPTION}
-        location={PhaseLabelLocation.OVERVIEW}
+        resourceName="Test Subscription"
       />,
     );
     const label = screen.getByTestId('phase-label');
@@ -103,7 +103,7 @@ describe('PhaseLabel', () => {
       <PhaseLabel
         phase="SomethingElse"
         resourceType={PhaseResourceType.SUBSCRIPTION}
-        location={PhaseLabelLocation.OVERVIEW}
+        resourceName="Test Subscription"
       />,
     );
     const label = screen.getByTestId('phase-label');
@@ -116,7 +116,7 @@ describe('PhaseLabel', () => {
       <PhaseLabel
         phase="Active"
         resourceType={PhaseResourceType.SUBSCRIPTION}
-        location={PhaseLabelLocation.OVERVIEW}
+        resourceName="Test Subscription"
       />,
     );
     const label = screen.getByTestId('phase-label');
@@ -130,7 +130,7 @@ describe('PhaseLabel', () => {
         phase="Failed"
         resourceType={PhaseResourceType.SUBSCRIPTION}
         statusMessage="Token limit exceeded."
-        location={PhaseLabelLocation.OVERVIEW}
+        resourceName="Test Subscription"
       />,
     );
     const label = screen.getByTestId('phase-label');
@@ -144,7 +144,7 @@ describe('PhaseLabel', () => {
         phase="Active"
         resourceType={PhaseResourceType.SUBSCRIPTION}
         statusMessage="Some message."
-        location={PhaseLabelLocation.OVERVIEW}
+        resourceName="Test Subscription"
       />,
     );
     const label = screen.getByTestId('phase-label');
@@ -158,7 +158,7 @@ describe('PhaseLabel', () => {
         phase="Ready"
         resourceType={PhaseResourceType.SUBSCRIPTION}
         statusMessage="Some message."
-        location={PhaseLabelLocation.OVERVIEW}
+        resourceName="Test Subscription"
       />,
     );
     const label = screen.getByTestId('phase-label');

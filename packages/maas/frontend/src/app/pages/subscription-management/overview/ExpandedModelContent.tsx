@@ -2,11 +2,17 @@ import * as React from 'react';
 import { Button, Content, Flex, FlexItem, Grid, GridItem } from '@patternfly/react-core';
 import { ExpandableRowContent, Table, Tbody, Tr, Td } from '@patternfly/react-table';
 import { Link } from 'react-router-dom';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { ModelOverviewSubscription, ModelOverviewPolicy } from '~/app/types/subscriptions';
 import { URL_PREFIX } from '~/app/utilities/const';
 import PhaseLabel from '~/app/shared/PhaseLabel';
 import { PhaseLabelLocation, PhaseResourceType } from '~/app/utilities/phaseLabelUtils';
 import { formatTokenLimits } from '~/app/utilities/rateLimits';
+import { MaaSEvents } from '~/app/types/event-tracking';
+import {
+  getAuthPolicyViewUrl,
+  getSubscriptionViewUrl,
+} from '~/app/utilities/subscriptionManagementNavigation';
 import { hasHighlightedGroup } from './utils';
 import GroupChips from './GroupChips';
 import styles from './ExpandedModelContent.module.scss';
@@ -47,7 +53,10 @@ type ExpandableItemProps = {
   children: React.ReactNode;
   onLinkClick?: () => void;
   statusMessage?: string;
+  reason?: string;
   isHighlighted: boolean;
+  resourceUrl?: string;
+  returnTo: string;
 };
 
 const ExpandableItem: React.FC<ExpandableItemProps> = ({
@@ -64,7 +73,10 @@ const ExpandableItem: React.FC<ExpandableItemProps> = ({
   children,
   onLinkClick,
   statusMessage,
+  reason,
   isHighlighted,
+  resourceUrl,
+  returnTo,
 }) => (
   <div
     className={`${styles['maas-expandable-item']}${
@@ -92,7 +104,21 @@ const ExpandableItem: React.FC<ExpandableItemProps> = ({
                   phase={phase}
                   resourceType={resourceType}
                   statusMessage={statusMessage}
-                  location={PhaseLabelLocation.OVERVIEW}
+                  reason={reason}
+                  resourceName={displayName ?? name}
+                  resourceUrl={resourceUrl}
+                  returnTo={returnTo}
+                  hideSubtext
+                  onClick={() => {
+                    fireMiscTrackingEvent(
+                      MaaSEvents.SUBSCRIPTION_MANAGEMENT_STATUS_POPOVER_VIEWED,
+                      {
+                        popoverType: 'status',
+                        status: phase,
+                        location: PhaseLabelLocation.OVERVIEW,
+                      },
+                    );
+                  }}
                 />
               </FlexItem>
             </Flex>
@@ -168,6 +194,7 @@ type SubscriptionsSectionProps = {
   onToggleAll: () => void;
   highlightedGroup: string | null;
   setHighlightedGroup: (group: string | null) => void;
+  returnTo: string;
 };
 
 const SubscriptionsSection: React.FC<SubscriptionsSectionProps> = ({
@@ -177,6 +204,7 @@ const SubscriptionsSection: React.FC<SubscriptionsSectionProps> = ({
   onToggleAll,
   highlightedGroup,
   setHighlightedGroup,
+  returnTo,
 }) => {
   const allExpanded =
     subscriptions.length > 0 &&
@@ -209,6 +237,7 @@ const SubscriptionsSection: React.FC<SubscriptionsSectionProps> = ({
               displayName={sub.displayName}
               linkTo={`${URL_PREFIX}/maas-governance/subscriptions/view/${sub.name}`}
               linkState={OVERVIEW_LINK_STATE}
+              returnTo={returnTo}
               phase={sub.phase}
               resourceType={PhaseResourceType.SUBSCRIPTION}
               rowIndex={index}
@@ -221,6 +250,8 @@ const SubscriptionsSection: React.FC<SubscriptionsSectionProps> = ({
               isHighlighted={isHighlighted}
               onToggle={() => onToggleSub(sub.name)}
               statusMessage={sub.statusMessage}
+              reason={sub.reason}
+              resourceUrl={getSubscriptionViewUrl(sub.name)}
             >
               <Content className="pf-v6-u-mb-sm">
                 <strong className="pf-v6-u-mr-md">Token limits</strong>
@@ -246,6 +277,7 @@ type PoliciesSectionProps = {
   onToggleAll: () => void;
   highlightedGroup: string | null;
   setHighlightedGroup: (group: string | null) => void;
+  returnTo: string;
 };
 
 const PoliciesSection: React.FC<PoliciesSectionProps> = ({
@@ -255,6 +287,7 @@ const PoliciesSection: React.FC<PoliciesSectionProps> = ({
   onToggleAll,
   highlightedGroup,
   setHighlightedGroup,
+  returnTo,
 }) => {
   const allExpanded =
     policies.length > 0 &&
@@ -290,6 +323,8 @@ const PoliciesSection: React.FC<PoliciesSectionProps> = ({
               phase={policy.phase}
               resourceType={PhaseResourceType.AUTHPOLICY}
               rowIndex={index}
+              resourceUrl={getAuthPolicyViewUrl(policy.name)}
+              returnTo={returnTo}
               isExpanded={isEffectivelyExpanded(
                 policy.name,
                 policy.groups,
@@ -299,6 +334,7 @@ const PoliciesSection: React.FC<PoliciesSectionProps> = ({
               isHighlighted={isHighlighted}
               onToggle={() => onTogglePolicy(policy.name)}
               statusMessage={policy.statusMessage}
+              reason={policy.reason}
             >
               <GroupChips
                 groups={policy.groups ?? []}
@@ -316,9 +352,14 @@ const PoliciesSection: React.FC<PoliciesSectionProps> = ({
 type ExpandedModelContentProps = {
   subscriptions: ModelOverviewSubscription[];
   policies: ModelOverviewPolicy[];
+  returnTo: string;
 };
 
-const ExpandedModelContent: React.FC<ExpandedModelContentProps> = ({ subscriptions, policies }) => {
+const ExpandedModelContent: React.FC<ExpandedModelContentProps> = ({
+  subscriptions,
+  policies,
+  returnTo,
+}) => {
   const [expandedSubs, setExpandedSubs] = React.useState<Set<string>>(new Set());
   const [expandedPolicies, setExpandedPolicies] = React.useState<Set<string>>(new Set());
   const [highlightedGroup, setHighlightedGroup] = React.useState<string | null>(null);
@@ -376,6 +417,7 @@ const ExpandedModelContent: React.FC<ExpandedModelContentProps> = ({ subscriptio
           onToggleAll={toggleAllSubs}
           highlightedGroup={highlightedGroup}
           setHighlightedGroup={setHighlightedGroup}
+          returnTo={returnTo}
         />
       </GridItem>
       <GridItem span={6}>
@@ -386,6 +428,7 @@ const ExpandedModelContent: React.FC<ExpandedModelContentProps> = ({ subscriptio
           onToggleAll={toggleAllPolicies}
           highlightedGroup={highlightedGroup}
           setHighlightedGroup={setHighlightedGroup}
+          returnTo={returnTo}
         />
       </GridItem>
     </Grid>

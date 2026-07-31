@@ -5,7 +5,7 @@ import { Tbody, Td, Tr } from '@patternfly/react-table';
 import { Button, Flex, FlexItem, Label, Stack, StackItem } from '@patternfly/react-core';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import PhaseLabel from '~/app/shared/PhaseLabel';
-import { PhaseLabelLocation, PhaseResourceType } from '~/app/utilities/phaseLabelUtils';
+import { PhaseResourceType } from '~/app/utilities/phaseLabelUtils';
 import { ExternalModel, ProviderRef } from '~/app/types/external-models';
 import {
   ExternalModelsInfoPopoverLocation,
@@ -197,11 +197,12 @@ const ExternalModelTableRow: React.FC<ExternalModelTableRowProps> = ({
       <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
         <FlexItem>
           <PhaseLabel
-            location={PhaseLabelLocation.EXTERNAL_MODELS}
-            forcePopover
+            forceModal
             phase={externalModel.phase}
             statusMessage={getExternalModelStatusMessage(externalModel)}
+            reason={externalModel.reason}
             resourceType={PhaseResourceType.EXTERNAL_MODEL}
+            resourceName={externalModel.displayName ?? externalModel.name}
             onClick={() => {
               fireMiscTrackingEvent(MaaSEvents.EXTERNAL_MODELS_INFO_POPOVER_VIEWED, {
                 infoTarget: ExternalModelsInfoPopoverTarget.STATUS_LABEL,

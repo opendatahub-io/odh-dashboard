@@ -2,19 +2,28 @@ package repositories
 
 import "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
-// extractReadyConditionMessage returns the message from the "Ready" condition in status.conditions.
-func extractReadyConditionMessage(content map[string]interface{}) string {
+// readyConditionFields holds message and reason from the Ready condition.
+type readyConditionFields struct {
+	Message string
+	Reason  string
+}
+
+// extractReadyCondition returns the message and reason from the "Ready" condition in status.conditions.
+func extractReadyCondition(content map[string]interface{}) readyConditionFields {
 	conditions, _, _ := unstructured.NestedSlice(content, "status", "conditions")
 	for _, c := range conditions {
-		if cMap, ok := c.(map[string]interface{}); ok {
-			if condType, _ := cMap["type"].(string); condType == "Ready" {
-				if msg, _ := cMap["message"].(string); msg != "" {
-					return msg
-				}
-			}
+		cMap, ok := c.(map[string]interface{})
+		if !ok {
+			continue
 		}
+		if condType, _ := cMap["type"].(string); condType != "Ready" {
+			continue
+		}
+		message, _ := cMap["message"].(string)
+		reason, _ := cMap["reason"].(string)
+		return readyConditionFields{Message: message, Reason: reason}
 	}
-	return ""
+	return readyConditionFields{}
 }
 
 // isConditionStatusTrue reports whether status.conditions contains type==conditionType with status=="True".

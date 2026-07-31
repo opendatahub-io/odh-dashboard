@@ -35,9 +35,11 @@ type MaaSModelsResponse struct {
 
 // ModelOverviewDetails combines catalog metadata with the K8s MaaSModelRef phase.
 type ModelOverviewDetails struct {
-	DisplayName string `json:"displayName,omitempty"`
-	Description string `json:"description,omitempty"`
-	Phase       string `json:"phase,omitempty"`
+	DisplayName   string `json:"displayName,omitempty"`
+	Description   string `json:"description,omitempty"`
+	Phase         string `json:"phase,omitempty"`
+	StatusMessage string `json:"statusMessage,omitempty"`
+	Reason        string `json:"reason,omitempty"`
 }
 
 // ModelOverviewSubscription is a subscription entry in the model overview, including groups.
@@ -46,6 +48,7 @@ type ModelOverviewSubscription struct {
 	DisplayName     string           `json:"displayName,omitempty"`
 	Phase           string           `json:"phase,omitempty"`
 	StatusMessage   string           `json:"statusMessage,omitempty"`
+	Reason          string           `json:"reason,omitempty"`
 	Groups          []string         `json:"groups,omitempty"`
 	TokenRateLimits []TokenRateLimit `json:"tokenRateLimits,omitempty"`
 }
@@ -56,6 +59,7 @@ type ModelOverviewPolicy struct {
 	DisplayName   string   `json:"displayName,omitempty"`
 	Phase         string   `json:"phase,omitempty"`
 	StatusMessage string   `json:"statusMessage,omitempty"`
+	Reason        string   `json:"reason,omitempty"`
 	Groups        []string `json:"groups,omitempty"`
 }
 

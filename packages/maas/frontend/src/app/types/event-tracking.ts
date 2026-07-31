@@ -1,5 +1,9 @@
 import { TrackingOutcome } from '@odh-dashboard/ui-core';
-import { PhaseLabelLocation, PhaseStatus } from '~/app/utilities/phaseLabelUtils';
+import {
+  PhaseLabelLocation,
+  PhaseResourceType,
+  PhaseStatus,
+} from '~/app/utilities/phaseLabelUtils';
 import { ExternalModelsFilterOptions } from '~/app/pages/external-models/const';
 
 export const MaaSEvents = {
@@ -88,6 +92,7 @@ export enum EventTrackingPopoverType {
 export enum EventTrackingResourceType {
   SUBSCRIPTION = 'subscription',
   AUTHPOLICY = 'authPolicy',
+  EXTERNAL_MODEL = 'externalModel',
 }
 
 export enum EventTrackingSource {
@@ -176,3 +181,18 @@ const enum ExternalModelProviderType {
   VERTEX = 'vertex',
   OTHER = 'other',
 }
+
+export const convertPhaseResourceTypeToEventTrackingResourceType = (
+  resourceType: string,
+): EventTrackingResourceType => {
+  switch (resourceType) {
+    case PhaseResourceType.SUBSCRIPTION:
+      return EventTrackingResourceType.SUBSCRIPTION;
+    case PhaseResourceType.AUTHPOLICY:
+      return EventTrackingResourceType.AUTHPOLICY;
+    case PhaseResourceType.EXTERNAL_MODEL:
+      return EventTrackingResourceType.EXTERNAL_MODEL;
+    default:
+      return EventTrackingResourceType.SUBSCRIPTION;
+  }
+};

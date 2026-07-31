@@ -221,11 +221,14 @@ paths:
                       displayName: Granite 3 8B Instruct
                       description: IBM Granite 3 8B instruction-tuned language model.
                       phase: Ready
+                      statusMessage: successfully reconciled
+                      reason: Reconciled
                     subscriptions:
                       - name: premium-team-sub
                         displayName: Premium Team Subscription
                         phase: Active
                         statusMessage: Active subscription
+                        reason: Reconciled
                         groups:
                           - premium-users
                         tokenRateLimits:
@@ -236,6 +239,7 @@ paths:
                         displayName: Premium Team Policy
                         phase: Active
                         statusMessage: Active policy
+                        reason: Reconciled
                         groups:
                           - premium-users
                   - id: flan-t5-small
@@ -243,11 +247,14 @@ paths:
                       displayName: Flan T5 Small
                       description: Google Flan T5 small text-to-text transfer transformer model.
                       phase: Ready
+                      statusMessage: successfully reconciled
+                      reason: Reconciled
                     subscriptions:
                       - name: premium-team-sub
                         displayName: Premium Team Subscription
                         phase: Active
                         statusMessage: Active subscription
+                        reason: Reconciled
                         groups:
                           - premium-users
                         tokenRateLimits:
@@ -2303,6 +2310,10 @@ components:
           type: string
           description: Human-readable status message from the Ready condition in status.conditions
           example: 'successfully reconciled'
+        reason:
+          type: string
+          description: Reason from the Ready condition in status.conditions
+          example: Reconciled
         priority:
           type: integer
           format: int32
@@ -2388,6 +2399,10 @@ components:
           type: string
           description: Human-readable status message from the Ready condition in status.conditions
           example: 'successfully reconciled'
+        reason:
+          type: string
+          description: Reason from the Ready condition in status.conditions
+          example: Reconciled
         creationTimestamp:
           type: string
           format: date-time
@@ -2459,6 +2474,10 @@ components:
         statusMessage:
           type: string
           description: Human-readable status message from the Ready condition in status.conditions
+        reason:
+          type: string
+          description: Reason from the Ready condition in status.conditions
+          example: Reconciled
         endpoint:
           type: string
           description: Endpoint URL for the model (from status)
@@ -2780,6 +2799,14 @@ components:
           type: string
           description: Current phase of the K8s MaaSModelRef CR (e.g. Ready, Pending).
           example: Ready
+        statusMessage:
+          type: string
+          description: Human-readable status message from the Ready condition in status.conditions
+          example: 'successfully reconciled'
+        reason:
+          type: string
+          description: Reason from the Ready condition in status.conditions
+          example: Reconciled
 
     ModelOverviewSubscription:
       type: object
@@ -2801,6 +2828,10 @@ components:
           type: string
           description: Subscription status message.
           example: Active subscription
+        reason:
+          type: string
+          description: Reason from the Ready condition in status.conditions
+          example: Reconciled
         groups:
           type: array
           description: Group names that own this subscription.
@@ -2836,6 +2867,10 @@ components:
           type: string
           description: Auth policy status message.
           example: Active policy
+        reason:
+          type: string
+          description: Reason from the Ready condition in status.conditions
+          example: Reconciled
         groups:
           type: array
           description: Group names subject to this policy.
@@ -2946,6 +2981,10 @@ components:
         statusMessage:
           type: string
           description: Human-readable status message from the Ready condition in status.conditions
+        reason:
+          type: string
+          description: Reason from the Ready condition in status.conditions
+          example: Reconciled
 
     ExternalModelMaaSModelRefStatus:
       type: object
@@ -2956,6 +2995,10 @@ components:
         statusMessage:
           type: string
           description: Human-readable status message from the Ready condition in status.conditions
+        reason:
+          type: string
+          description: Reason from the Ready condition in status.conditions
+          example: Reconciled
         endpoint:
           type: string
           description: Published MaaS endpoint URL (status.endpoint)
@@ -2989,5 +3032,9 @@ components:
         statusMessage:
           type: string
           description: Human-readable status message from the Ready condition in status.conditions
+        reason:
+          type: string
+          description: Reason from the Ready condition in status.conditions
+          example: Reconciled
         maaSModelRef:
           $ref: '#/components/schemas/ExternalModelMaaSModelRefStatus'

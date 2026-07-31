@@ -5,6 +5,7 @@ export type MaaSSubscription = {
   namespace: string;
   phase?: string;
   statusMessage?: string;
+  reason?: string;
   priority?: number;
   owner: OwnerSpec;
   modelRefs: ModelSubscriptionRef[];
@@ -114,6 +115,7 @@ export type MaaSAuthPolicy = {
   namespace: string;
   phase?: string;
   statusMessage?: string;
+  reason?: string;
   creationTimestamp?: string;
   modelRefs: ModelRef[];
   subjects: SubjectSpec;
@@ -175,6 +177,7 @@ export type ModelOverviewSubscription = {
   displayName?: string;
   phase?: string;
   statusMessage?: string;
+  reason?: string;
   groups?: string[];
   tokenRateLimits?: TokenRateLimit[];
 };
@@ -184,6 +187,7 @@ export type ModelOverviewPolicy = {
   displayName?: string;
   phase?: string;
   statusMessage?: string;
+  reason?: string;
   groups?: string[];
 };
 
@@ -191,6 +195,8 @@ export type ModelOverviewDetails = {
   displayName?: string;
   description?: string;
   phase?: string;
+  statusMessage?: string;
+  reason?: string;
 };
 
 export type ModelOverviewItem = {
