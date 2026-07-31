@@ -18,7 +18,7 @@ spec:
             matchLabels:
               network.openshift.io/policy-group: ingress
   # autorag is an API-only BFF — it only needs DNS, K8s API, and
-  # namespace-scoped DSPA (8443) + OGX (8321). No external HTTP(S) required.
+  # namespace-scoped DSPA (8443) + OGX (8321) + MinIO (9000). No external HTTP(S) required.
   egress:
     - to:
         - namespaceSelector:
@@ -41,4 +41,6 @@ spec:
         - port: 8443
           protocol: TCP
         - port: 8321
+          protocol: TCP
+        - port: 9000
           protocol: TCP
