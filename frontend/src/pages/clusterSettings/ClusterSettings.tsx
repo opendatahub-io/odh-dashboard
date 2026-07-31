@@ -3,8 +3,9 @@ import * as _ from 'lodash-es';
 import { AlertVariant, Button, Stack, StackItem } from '@patternfly/react-core';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import TitleWithIcon from '@odh-dashboard/ui-core/design/TitleWithIcon';
-import { ApplicationsPage } from '@odh-dashboard/ui-core';
+import { ApplicationsPage, TrackingOutcome } from '@odh-dashboard/ui-core';
 import { useAppContext } from '#~/app/AppContext';
+import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 import { fetchClusterSettings, updateClusterSettings } from '#~/services/clusterSettingsService';
 import { ClusterSettingsType, ModelServingPlatformEnabled } from '#~/types';
 import { addNotification } from '#~/redux/actions/actions';
@@ -133,6 +134,11 @@ const ClusterSettings: React.FC = () => {
       return;
     }
 
+    const globalProjectName = !_.isEqual(
+      clusterSettings.globalMLflowNamespaces,
+      newClusterSettings.globalMLflowNamespaces,
+    );
+
     setSaving(true);
 
     try {
@@ -144,6 +150,12 @@ const ClusterSettings: React.FC = () => {
 
       setClusterSettings(newClusterSettings);
 
+      fireFormTrackingEvent('Cluster Settings Global Project Selected', {
+        outcome: TrackingOutcome.submit,
+        success: true,
+        globalProjectName,
+      });
+
       dispatch(
         addNotification({
           status: AlertVariant.success,
@@ -153,6 +165,13 @@ const ClusterSettings: React.FC = () => {
         }),
       );
     } catch (error) {
+      fireFormTrackingEvent('Cluster Settings Global Project Selected', {
+        outcome: TrackingOutcome.submit,
+        success: false,
+        globalProjectName,
+        error: error instanceof Error ? error.message : 'unknown error',
+      });
+
       dispatch(
         addNotification({
           status: AlertVariant.danger,
