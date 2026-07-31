@@ -76,7 +76,9 @@ const MlflowTrackingSection: React.FC<MlflowTrackingSectionProps> = ({
 
   const injectCheckbox = !isIntegrationEnabled ? (
     <Tooltip content={INJECT_DISABLED_TOOLTIP}>
-      <div>{injectCheckboxElement}</div>
+      <span role="button" tabIndex={0} aria-label="Credential injection (disabled)">
+        {injectCheckboxElement}
+      </span>
     </Tooltip>
   ) : (
     injectCheckboxElement

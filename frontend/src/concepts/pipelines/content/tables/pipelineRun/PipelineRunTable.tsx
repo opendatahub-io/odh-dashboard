@@ -87,7 +87,11 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
   const { experiments: allExperiments } = React.useContext(PipelineRunExperimentsContext);
   const { available: isMlflowAvailable } = useIsMlflowPipelinesAvailable();
   const { namespace, refreshAllAPI } = usePipelinesAPI();
-  const { data: mlflowExperiments, loaded: mlflowExperimentsLoaded } = useMlflowExperiments({
+  const {
+    data: mlflowExperiments,
+    loaded: mlflowExperimentsLoaded,
+    error: mlflowExperimentsError,
+  } = useMlflowExperiments({
     workspace: isMlflowAvailable ? namespace : '',
   });
   const { onClearFilters, ...filterToolbarProps } = usePipelineFilterSearchParams(setFilter);
@@ -139,6 +143,7 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
     () => metricsColumnNames.filter((name) => visibleMetricsNames.has(name)),
     [metricsColumnNames, visibleMetricsNames],
   );
+  const hasMetrics = visibleMetricsColumnNames.length > 0 || visibleMetricsNames.size > 0;
   const {
     selections: selectedIds,
     tableProps: checkboxTableProps,
@@ -342,7 +347,7 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
                   content={
                     !runArtifactsLoaded
                       ? 'Customize metrics columns: Loading metrics...'
-                      : !(visibleMetricsColumnNames.length || visibleMetricsNames.size)
+                      : !hasMetrics
                       ? 'Customize metrics columns: No metrics available'
                       : 'Customize metrics columns'
                   }
@@ -350,10 +355,7 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
                   <Button
                     variant="plain"
                     aria-label="Customize metrics column button"
-                    isAriaDisabled={
-                      !runArtifactsLoaded ||
-                      !(visibleMetricsColumnNames.length || visibleMetricsNames.size)
-                    }
+                    isAriaDisabled={!runArtifactsLoaded || !hasMetrics}
                     onClick={() => setIsCustomColModalOpen(true)}
                     icon={<ColumnsIcon />}
                   />
@@ -380,6 +382,7 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
               isAvailable: isMlflowAvailable,
               experiments: mlflowExperiments,
               loaded: mlflowExperimentsLoaded,
+              error: mlflowExperimentsError,
             }}
             nestedMlflowRuns={nestedRunsByRunId[run.run_id]}
             customCells={visibleMetricsColumnNames.map((metricName: string) => (

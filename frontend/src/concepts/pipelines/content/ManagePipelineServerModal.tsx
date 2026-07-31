@@ -139,7 +139,9 @@ const ManagePipelineServerModal: React.FC<ManagePipelineServerModalProps> = ({
         );
 
         if (mlflowChanged) {
-          refreshState();
+          refreshState().catch((e: unknown) => {
+            console.warn('Failed to refresh pipeline server state after settings update:', e);
+          });
         }
 
         setIsUpdating(false);

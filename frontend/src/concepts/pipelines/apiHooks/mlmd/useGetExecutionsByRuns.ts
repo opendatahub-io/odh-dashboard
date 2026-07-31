@@ -34,6 +34,9 @@ export const useGetExecutionsByRuns = (
       runs.map(async (run) => {
         const context = contexts.find((x) => x.getName() === run.run_id);
         if (!context) {
+          // Intentionally silent: nested MLflow runs are supplementary.
+          // Unlike useGetArtifactsByRuns, a missing context should not
+          // fail the entire batch.
           return { [run.run_id]: [] };
         }
         const request = new GetExecutionsByContextRequest();

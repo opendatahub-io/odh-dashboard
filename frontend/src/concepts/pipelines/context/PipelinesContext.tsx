@@ -220,7 +220,7 @@ type UsePipelinesAPI = PipelineAPIState &
     getRecurringRunInformation: GetRecurringRunInformationType;
     refreshAllAPI: () => void;
     metadataStoreServiceClient: MetadataStoreServicePromiseClient;
-    refreshState: () => void;
+    refreshState: () => Promise<undefined>;
 
     startingStatusModalOpenRef?: React.MutableRefObject<string | null>;
   };
