@@ -1,0 +1,3 @@
+# s390x platform overlay — storage provisioner overrides
+dualAccessProvisioner: "nfs.csi.k8s.io"
+multiAccessProvisioner: "nfs.csi.k8s.io"

@@ -27,54 +27,82 @@ import type {
   ModelAsAServiceTestData,
 } from '../types';
 
+/**
+ * Merge a platform-specific fixture overlay onto base fixture data.
+ *
+ * When CY_PLATFORM is set (e.g., "s390x"), looks for a sibling file named
+ * `<fixture>.<platform>.yaml` and shallow-merges its fields over the base.
+ * If no overlay file exists or CY_PLATFORM is unset, returns base data unchanged.
+ */
+const mergePlatformOverlay = <T extends Record<string, unknown>>(
+  fixturePath: string,
+  baseData: T,
+): Cypress.Chainable<T> => {
+  const platform = Cypress.env('CY_PLATFORM') as string | undefined;
+  if (!platform) {
+    return cy.wrap(baseData, { log: false });
+  }
+
+  const dotIndex = fixturePath.lastIndexOf('.');
+  const overlayPath =
+    dotIndex >= 0
+      ? `${fixturePath.slice(0, dotIndex)}.${platform}${fixturePath.slice(dotIndex)}`
+      : `${fixturePath}.${platform}`;
+
+  return cy
+    .task<Partial<T> | null>('loadYamlOverlay', overlayPath, { log: false })
+    .then((overlayData) => {
+      if (overlayData) {
+        cy.log(`Loaded platform overlay: ${overlayPath}`);
+        return { ...baseData, ...overlayData } as T;
+      }
+      return baseData;
+    });
+};
+
 // Load fixture function that returns DataScienceProjectData
 export const loadDSPFixture = (fixturePath: string): Cypress.Chainable<DataScienceProjectData> =>
   cy.fixture(fixturePath, 'utf8').then((yamlContent: string) => {
     const data = yaml.load(yamlContent) as DataScienceProjectData;
-    return data;
+    return mergePlatformOverlay(fixturePath, data);
   });
 
 // Load fixture function that returns ResourcesData
 export const loadResourcesFixture = (fixturePath: string): Cypress.Chainable<ResourcesData> =>
   cy.fixture(fixturePath, 'utf8').then((yamlContent: string) => {
     const data = yaml.load(yamlContent) as ResourcesData;
-    return data;
+    return mergePlatformOverlay(fixturePath, data);
   });
 
 export const loadPVCFixture = (fixturePath: string): Cypress.Chainable<PVCReplacements> =>
   cy.fixture(fixturePath, 'utf8').then((yamlContent: string) => {
     const data = yaml.load(yamlContent) as PVCReplacements;
-
-    return data;
+    return mergePlatformOverlay(fixturePath, data);
   });
 export const loadPVCEditFixture = (fixturePath: string): Cypress.Chainable<WBEditTestData> =>
   cy.fixture(fixturePath, 'utf8').then((yamlContent: string) => {
     const data = yaml.load(yamlContent) as WBEditTestData;
-
-    return data;
+    return mergePlatformOverlay(fixturePath, data);
   });
 export const loadWBControlSuiteFixture = (
   fixturePath: string,
 ): Cypress.Chainable<WBControlSuiteTestData> =>
   cy.fixture(fixturePath, 'utf8').then((yamlContent: string) => {
     const data = yaml.load(yamlContent) as WBControlSuiteTestData;
-
-    return data;
+    return mergePlatformOverlay(fixturePath, data);
   });
 export const loadWBVariablesFixture = (
   fixturePath: string,
 ): Cypress.Chainable<WBVariablesTestData> =>
   cy.fixture(fixturePath, 'utf8').then((yamlContent: string) => {
     const data = yaml.load(yamlContent) as WBVariablesTestData;
-
-    return data;
+    return mergePlatformOverlay(fixturePath, data);
   });
 
 export const loadWBStatusFixture = (fixturePath: string): Cypress.Chainable<WBStatusTestData> =>
   cy.fixture(fixturePath, 'utf8').then((yamlContent: string) => {
     const data = yaml.load(yamlContent) as WBStatusTestData;
-
-    return data;
+    return mergePlatformOverlay(fixturePath, data);
   });
 
 export const loadWBStorageClassesFixture = (
@@ -82,8 +110,7 @@ export const loadWBStorageClassesFixture = (
 ): Cypress.Chainable<WBStorageClassesTestData> =>
   cy.fixture(fixturePath, 'utf8').then((yamlContent: string) => {
     const data = yaml.load(yamlContent) as WBStorageClassesTestData;
-
-    return data;
+    return mergePlatformOverlay(fixturePath, data);
   });
 
 export const loadClusterStorageAccessModesFixture = (
@@ -91,8 +118,7 @@ export const loadClusterStorageAccessModesFixture = (
 ): Cypress.Chainable<ClusterStorageAccessModesTestData> =>
   cy.fixture(fixturePath, 'utf8').then((yamlContent: string) => {
     const data = yaml.load(yamlContent) as ClusterStorageAccessModesTestData;
-
-    return data;
+    return mergePlatformOverlay(fixturePath, data);
   });
 
 export const loadOOTBConnectionTypesFixture = (
@@ -100,8 +126,7 @@ export const loadOOTBConnectionTypesFixture = (
 ): Cypress.Chainable<OOTBConnectionTypesData> =>
   cy.fixture(fixturePath, 'utf8').then((yamlContent: string) => {
     const data = yaml.load(yamlContent) as OOTBConnectionTypesData;
-
-    return data;
+    return mergePlatformOverlay(fixturePath, data);
   });
 
 export const loadWBTolerationsFixture = (
@@ -109,8 +134,7 @@ export const loadWBTolerationsFixture = (
 ): Cypress.Chainable<WBTolerationsTestData> =>
   cy.fixture(fixturePath, 'utf8').then((yamlContent: string) => {
     const data = yaml.load(yamlContent) as WBTolerationsTestData;
-
-    return data;
+    return mergePlatformOverlay(fixturePath, data);
   });
 
 export const loadModifyHardwareProfileFixture = (
@@ -118,15 +142,13 @@ export const loadModifyHardwareProfileFixture = (
 ): Cypress.Chainable<ModifyHardwareProfileTestData> =>
   cy.fixture(fixturePath, 'utf8').then((yamlContent: string) => {
     const data = yaml.load(yamlContent) as ModifyHardwareProfileTestData;
-
-    return data;
+    return mergePlatformOverlay(fixturePath, data);
   });
 
 export const loadWBImagesFixture = (fixturePath: string): Cypress.Chainable<WBImagesTestData> =>
   cy.fixture(fixturePath, 'utf8').then((yamlContent: string) => {
     const data = yaml.load(yamlContent) as WBImagesTestData;
-
-    return data;
+    return mergePlatformOverlay(fixturePath, data);
   });
 
 export const loadDeployOCIModelFixture = (
@@ -134,8 +156,7 @@ export const loadDeployOCIModelFixture = (
 ): Cypress.Chainable<DeployOCIModelData> =>
   cy.fixture(fixturePath, 'utf8').then((yamlContent: string) => {
     const data = yaml.load(yamlContent) as DeployOCIModelData;
-
-    return data;
+    return mergePlatformOverlay(fixturePath, data);
   });
 
 export const loadModelTolerationsFixture = (
@@ -143,8 +164,7 @@ export const loadModelTolerationsFixture = (
 ): Cypress.Chainable<ModelTolerationsTestData> =>
   cy.fixture(fixturePath, 'utf8').then((yamlContent: string) => {
     const data = yaml.load(yamlContent) as ModelTolerationsTestData;
-
-    return data;
+    return mergePlatformOverlay(fixturePath, data);
   });
 
 export const loadManagePermissionsFixture = (
@@ -152,8 +172,7 @@ export const loadManagePermissionsFixture = (
 ): Cypress.Chainable<ManageRegistryPermissionsTestData> =>
   cy.fixture(fixturePath, 'utf8').then((yamlContent: string) => {
     const data = yaml.load(yamlContent) as ManageRegistryPermissionsTestData;
-
-    return data;
+    return mergePlatformOverlay(fixturePath, data);
   });
 
 export const loadModelRegistryFixture = (
@@ -161,15 +180,13 @@ export const loadModelRegistryFixture = (
 ): Cypress.Chainable<ModelRegistryTestData> =>
   cy.fixture(fixturePath, 'utf8').then((yamlContent: string) => {
     const data = yaml.load(yamlContent) as ModelRegistryTestData;
-
-    return data;
+    return mergePlatformOverlay(fixturePath, data);
   });
 
 export const loadPipelineFixture = (fixturePath: string): Cypress.Chainable<PipelineTestData> =>
   cy.fixture(fixturePath, 'utf8').then((yamlContent: string) => {
     const data = yaml.load(yamlContent) as PipelineTestData;
-
-    return data;
+    return mergePlatformOverlay(fixturePath, data);
   });
 
 export const loadResourcesFiltersFixture = (
@@ -177,8 +194,7 @@ export const loadResourcesFiltersFixture = (
 ): Cypress.Chainable<ResourcesFiltersTestData> =>
   cy.fixture(fixturePath, 'utf8').then((yamlContent: string) => {
     const data = yaml.load(yamlContent) as ResourcesFiltersTestData;
-
-    return data;
+    return mergePlatformOverlay(fixturePath, data);
   });
 
 export const loadWorkloadMetricsFixture = (
@@ -186,8 +202,7 @@ export const loadWorkloadMetricsFixture = (
 ): Cypress.Chainable<WorkloadMetricsTestData> =>
   cy.fixture(fixturePath, 'utf8').then((yamlContent: string) => {
     const data = yaml.load(yamlContent) as WorkloadMetricsTestData;
-
-    return data;
+    return mergePlatformOverlay(fixturePath, data);
   });
 
 export const loadKueueWorkbenchFixture = (
@@ -195,8 +210,7 @@ export const loadKueueWorkbenchFixture = (
 ): Cypress.Chainable<KueueWorkbenchTestData> =>
   cy.fixture(fixturePath, 'utf8').then((yamlContent: string) => {
     const data = yaml.load(yamlContent) as KueueWorkbenchTestData;
-
-    return data;
+    return mergePlatformOverlay(fixturePath, data);
   });
 
 export const loadKueueWorkbenchLifecycleFixture = (
@@ -204,8 +218,7 @@ export const loadKueueWorkbenchLifecycleFixture = (
 ): Cypress.Chainable<KueueWorkbenchLifecycleTestData> =>
   cy.fixture(fixturePath, 'utf8').then((yamlContent: string) => {
     const data = yaml.load(yamlContent) as KueueWorkbenchLifecycleTestData;
-
-    return data;
+    return mergePlatformOverlay(fixturePath, data);
   });
 
 export const loadPromptManagementFixture = (
@@ -213,8 +226,7 @@ export const loadPromptManagementFixture = (
 ): Cypress.Chainable<PromptManagementTestData> =>
   cy.fixture(fixturePath, 'utf8').then((yamlContent: string) => {
     const data = yaml.load(yamlContent) as PromptManagementTestData;
-
-    return data;
+    return mergePlatformOverlay(fixturePath, data);
   });
 
 export const loadMlflowExperimentsFixture = (
@@ -222,13 +234,11 @@ export const loadMlflowExperimentsFixture = (
 ): Cypress.Chainable<MlflowExperimentsTestData> =>
   cy.fixture(fixturePath, 'utf8').then((yamlContent: string) => {
     const data = yaml.load(yamlContent) as MlflowExperimentsTestData;
-
-    return data;
+    return mergePlatformOverlay(fixturePath, data);
   });
 
 export const loadMaaSFixture = (fixturePath: string): Cypress.Chainable<ModelAsAServiceTestData> =>
   cy.fixture(fixturePath, 'utf8').then((yamlContent: string) => {
     const data = yaml.load(yamlContent) as ModelAsAServiceTestData;
-
-    return data;
+    return mergePlatformOverlay(fixturePath, data);
   });

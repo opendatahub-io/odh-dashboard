@@ -55,6 +55,11 @@ describe('Workbench Storage Classes Tests', () => {
   let mountPathB: string;
   let mountPathC: string;
 
+  // Optional platform-specific provisioners (type derived from the helper function signatures)
+  type Provisioner = Parameters<typeof provisionDualAccessStorageClass>[1];
+  let dualAccessProvisioner: Provisioner;
+  let multiAccessProvisioner: Provisioner;
+
   const rwoLabel = AccessMode.RWO;
   const rwxLabel = AccessMode.RWX;
   const roxLabel = AccessMode.ROX;
@@ -81,11 +86,13 @@ describe('Workbench Storage Classes Tests', () => {
         mountPathB = fixtureData.mountPathB;
         mountPathC = fixtureData.mountPathC;
         notebookImage = fixtureData.notebookImage;
+        dualAccessProvisioner = fixtureData.dualAccessProvisioner as Provisioner;
+        multiAccessProvisioner = fixtureData.multiAccessProvisioner as Provisioner;
       })
       .then(() => {
         cy.step('Provisioning storage class');
-        provisionDualAccessStorageClass(storageClassRWO);
-        provisionMultiAccessStorageClass(storageClassMultiAccess);
+        provisionDualAccessStorageClass(storageClassRWO, dualAccessProvisioner);
+        provisionMultiAccessStorageClass(storageClassMultiAccess, multiAccessProvisioner);
         // Only add if not already in the array (prevent duplicates on retry)
         if (!createdStorageClasses.includes(storageClassRWO)) {
           createdStorageClasses.push(storageClassRWO);

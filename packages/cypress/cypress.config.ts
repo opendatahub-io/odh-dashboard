@@ -1,6 +1,7 @@
 import * as path from 'path';
 import * as fs from 'fs';
 
+import YAML from 'yaml';
 // @ts-expect-error: Types are not available for this third-party library
 import registerCypressGrep from '@cypress/grep/src/plugin';
 import { defineConfig } from 'cypress';
@@ -143,6 +144,13 @@ export default defineConfig({
           } catch (error) {
             return Promise.resolve(null);
           }
+        },
+        loadYamlOverlay(fixturePath: string) {
+          const absPath = path.resolve(__dirname, 'cypress/fixtures', fixturePath);
+          if (fs.existsSync(absPath)) {
+            return Promise.resolve(YAML.parse(fs.readFileSync(absPath, 'utf8')));
+          }
+          return Promise.resolve(null);
         },
       });
 
