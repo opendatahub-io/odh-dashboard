@@ -74,9 +74,11 @@ const SubscriptionManagementYamlTab: React.FC<SubscriptionManagementYamlTabProps
             });
 
             const link = document.createElement('a');
-            link.href = URL.createObjectURL(new Blob([value], { type: 'text' }));
+            const objectUrl = URL.createObjectURL(new Blob([value], { type: 'text/yaml' }));
+            link.href = objectUrl;
             link.download = fileName;
             link.click();
+            URL.revokeObjectURL(objectUrl);
           }}
         />
       </React.Suspense>
