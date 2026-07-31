@@ -139,7 +139,8 @@ describe('Model Catalog Security Insights tab (eval-hub extension)', () => {
     cy.wait('@getSecurityArtifacts');
   });
 
-  it('should not show the security insights tab when LM eval is disabled', () => {
+  it('should still show the security insights tab when LM eval is disabled', () => {
+    // Security Insights is gated by MODEL_CATALOG only (decoupled from LM_EVAL / Eval Hub Tech Preview).
     cy.interceptOdh(
       'GET /api/config',
       mockDashboardConfig({
@@ -148,13 +149,11 @@ describe('Model Catalog Security Insights tab (eval-hub extension)', () => {
         disableLMEval: true,
       }),
     );
+    interceptSecurityArtifacts([]);
 
     cy.visitWithLogin(`/ai-hub/models/catalog/${SOURCE_ID}/${ENCODED_MODEL_NAME}/overview`);
-    // With only the Overview tab present, ExtensibleDetailTabs renders content without a tab bar.
     modelDetailsPage.findPageTitle().should('exist');
-    modelDetailsPage.findLongDescription().should('exist');
-    modelDetailsPage.findSecurityInsightsTab().should('not.exist');
-    modelDetailsPage.findSecurityInsightsView().should('not.exist');
+    modelDetailsPage.findSecurityInsightsTab().should('exist');
   });
 
   it('should render security insights table content from the eval-hub API', () => {
