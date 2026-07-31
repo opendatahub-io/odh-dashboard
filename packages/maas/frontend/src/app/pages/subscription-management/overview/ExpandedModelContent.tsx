@@ -9,23 +9,11 @@ import { PhaseLabelLocation, PhaseResourceType } from '~/app/utilities/phaseLabe
 import { formatTokenLimits } from '~/app/utilities/rateLimits';
 import { hasHighlightedGroup } from './utils';
 import GroupChips from './GroupChips';
+import './ExpandedModelContent.scss';
 
 const OVERVIEW_LINK_STATE = {
   returnTo: `${URL_PREFIX}/maas-governance/overview`,
   breadcrumbLabel: 'MaaS governance',
-};
-
-const itemBorderStyle = {
-  borderStyle: 'solid',
-  borderWidth: '1px',
-  borderColor: 'var(--pf-t--global--border--color--default)',
-  borderRadius: 'var(--pf-t--global--border--radius--medium)',
-  marginBottom: 'var(--pf-t--global--spacer--sm)',
-};
-
-const highlightedItemBorderStyle = {
-  borderColor: 'var(--pf-t--global--border--color--brand--default)',
-  borderWidth: '2px',
 };
 
 const toggleExpandedItem = (prev: Set<string>, name: string): Set<string> => {
@@ -71,16 +59,7 @@ const ExpandableItem: React.FC<ExpandableItemProps> = ({
   statusMessage,
   isHighlighted,
 }) => (
-  <div
-    style={{
-      ...itemBorderStyle,
-      ...(isHighlighted
-        ? {
-            ...highlightedItemBorderStyle,
-          }
-        : {}),
-    }}
-  >
+  <div className={`maas-expandable-item${isHighlighted ? ' m-highlighted' : ''}`}>
     <Table aria-label={ariaLabel} borders={false} variant="compact">
       <Tbody isExpanded={isExpanded}>
         <Tr>
