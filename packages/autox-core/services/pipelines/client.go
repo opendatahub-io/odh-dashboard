@@ -61,7 +61,7 @@ func NewDefaultClient(cfg ClientConfig) Client {
 	transport.ResponseHeaderTimeout = 20 * time.Second
 
 	if cfg.InsecureSkipVerify || cfg.RootCAs != nil {
-		tlsCfg := &tls.Config{MinVersion: tls.VersionTLS12} //nolint:gosec
+		tlsCfg := &tls.Config{MinVersion: tls.VersionTLS13} //nolint:gosec
 		if cfg.InsecureSkipVerify {
 			tlsCfg.InsecureSkipVerify = true
 		}

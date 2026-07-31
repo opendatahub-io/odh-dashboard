@@ -69,7 +69,7 @@ func NewModelRegistryClient(httpClient httpClientInterface) *ModelRegistryClient
 func NewDefaultModelRegistryClient(cfg ModelRegistryClientConfig) *ModelRegistryClient {
 	tlsCfg := &tls.Config{
 		InsecureSkipVerify: cfg.InsecureSkipVerify, //nolint:gosec // caller-controlled knob
-		MinVersion:         tls.VersionTLS12,
+		MinVersion:         tls.VersionTLS13,
 	}
 	if cfg.RootCAs != nil {
 		tlsCfg.RootCAs = cfg.RootCAs

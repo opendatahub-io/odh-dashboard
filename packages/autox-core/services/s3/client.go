@@ -323,12 +323,12 @@ func (p *awsClientProvider) buildHTTPClient() *http.Client {
 		// CA bundles rather than the system default.
 		transport.TLSClientConfig = &tls.Config{
 			RootCAs:    p.cfg.RootCAs,
-			MinVersion: tls.VersionTLS12,
+			MinVersion: tls.VersionTLS13,
 		}
 	} else if p.cfg.InsecureSkipVerify {
 		transport.TLSClientConfig = &tls.Config{
 			InsecureSkipVerify: true, //nolint:gosec // caller-controlled knob
-			MinVersion:         tls.VersionTLS12,
+			MinVersion:         tls.VersionTLS13,
 		}
 	}
 
