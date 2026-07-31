@@ -90,18 +90,21 @@ func (e *UIError) WithLogger(logger *slog.Logger) *UIError {
 }
 
 func (e *UIError) WriteTo(w http.ResponseWriter) {
+	safe := *e
+	safe.Details = redactDetails(e.Details)
+
 	if e.logger != nil {
 		e.logger.Debug("UIError response",
-			"messageId", e.MessageID,
-			"status", e.Status,
-			"reason", e.Reason,
-			"details", redactDetails(e.Details),
+			"messageId", safe.MessageID,
+			"status", safe.Status,
+			"reason", safe.Reason,
+			"details", safe.Details,
 		)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(e.Status)
-	if err := json.NewEncoder(w).Encode(e); err != nil && e.logger != nil {
+	if err := json.NewEncoder(w).Encode(safe); err != nil && e.logger != nil {
 		e.logger.Error("failed to write UIError response",
 			"error", err,
 			"messageId", e.MessageID,

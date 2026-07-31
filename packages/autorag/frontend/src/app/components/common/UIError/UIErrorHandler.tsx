@@ -59,10 +59,10 @@ const UIErrorHandler: React.FC<UIErrorHandlerProps> = ({ id, uiErrorMappings, ch
     setIsModalOpen(true);
   }, []);
 
-  const handleCloseModal = () => {
+  const handleCloseModal = React.useCallback(() => {
     setIsModalOpen(false);
     setModalError(undefined);
-  };
+  }, []);
 
   const contextValue = React.useMemo<UIErrorHandlerContextType>(
     () => ({ showUIError, closeUIError, showDetails }),
