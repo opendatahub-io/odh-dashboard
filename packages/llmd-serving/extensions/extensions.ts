@@ -620,7 +620,12 @@ const extensions: (
   {
     type: 'app.route',
     flags: {
-      required: [SupportedArea.MODEL_DEPLOYMENT_SETTINGS, ADMIN_USER],
+      required: [
+        SupportedArea.MODEL_DEPLOYMENT_SETTINGS,
+        LLMD_SERVING_ID,
+        ADMIN_USER,
+        SupportedArea.VLLM_ON_MAAS,
+      ],
     },
     properties: {
       path: '/settings/model-resources-operations/llm-accelerator-configs/*',
@@ -633,7 +638,11 @@ const extensions: (
   {
     type: 'app.route',
     flags: {
-      required: [SupportedArea.MODEL_DEPLOYMENT_SETTINGS, ADMIN_USER],
+      required: [
+        SupportedArea.MODEL_DEPLOYMENT_SETTINGS,
+        SupportedArea.LLMD_TOPOLOGY_CONFIGS,
+        ADMIN_USER,
+      ],
     },
     properties: {
       path: '/settings/model-resources-operations/llmd-topology-configurations/*',
@@ -646,7 +655,11 @@ const extensions: (
   {
     type: 'app.route',
     flags: {
-      required: [SupportedArea.MODEL_DEPLOYMENT_SETTINGS, ADMIN_USER],
+      required: [
+        SupportedArea.MODEL_DEPLOYMENT_SETTINGS,
+        SupportedArea.LLMD_TOPOLOGY_CONFIGS,
+        ADMIN_USER,
+      ],
     },
     properties: {
       path: '/settings/model-resources-operations/llmd-routing-configurations/*',
