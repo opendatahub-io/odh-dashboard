@@ -255,7 +255,7 @@ spec:
 	engine := kustomize.NewEngine()
 	rendered, err := engine.Render(dir, kustomize.WithNamespace(targetNS))
 	require.NoError(t, err)
-	require.NotEmpty(t, rendered, "kustomize must produce at least one resource")
+	require.Len(t, rendered, 4, "kustomize must render every fixture resource")
 
 	for _, res := range rendered {
 		ns := res.GetNamespace()

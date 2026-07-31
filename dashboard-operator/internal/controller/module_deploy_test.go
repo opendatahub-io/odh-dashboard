@@ -196,10 +196,9 @@ func TestBuildFederationConfigMap_NamespaceValues(t *testing.T) {
 
 		default:
 			svc, ok := entry["service"].(map[string]interface{})
-			if ok {
-				assert.Equalf(t, appNS, svc["namespace"],
-					"%s service.namespace must match ApplicationsNamespace", name)
-			}
+			require.Truef(t, ok, "%s must have a service entry", name)
+			assert.Equalf(t, appNS, svc["namespace"],
+				"%s service.namespace must match ApplicationsNamespace", name)
 		}
 	}
 	require.True(t, seen["perses"], "perses entry must be present")

@@ -3,6 +3,11 @@ set -euo pipefail
 
 MANIFEST_DIR="${1:-manifests}"
 
+if [[ ! -d "$MANIFEST_DIR" ]]; then
+  printf 'ERROR: manifest directory %s does not exist\n' "$MANIFEST_DIR" >&2
+  exit 2
+fi
+
 violations=0
 
 while IFS= read -r -d '' file; do
@@ -18,7 +23,7 @@ while IFS= read -r -d '' file; do
   if [[ -n "$matches" ]]; then
     while IFS= read -r line; do
       echo "ERROR: $rel: $line"
-      ((violations++))
+      ((++violations))
     done <<< "$matches"
   fi
 done < <(find "$MANIFEST_DIR" \( -name '*.yaml' -o -name '*.yml' \) \
