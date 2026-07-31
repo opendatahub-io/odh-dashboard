@@ -2,9 +2,9 @@ import {
   mock200Status,
   mockDashboardConfig,
   mockK8sResourceList,
-  mockProjectK8sResource,
   mockSecretK8sResource,
 } from '@odh-dashboard/internal/__mocks__';
+import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import {
   mockConnectionTypeConfigMap,
   mockModelServingFields,

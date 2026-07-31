@@ -6,7 +6,7 @@ import type {
   NamespaceApplicationCase,
   ProjectKind,
 } from '@odh-dashboard/k8s-core';
-import type { ModelServingPodSpecOptionsState } from '@odh-dashboard/internal/concepts/hardwareProfiles/deprecated/useModelServingAcceleratorDeprecatedPodSpecOptionsState';
+import type { ModelServingPodSpecOptionsState } from '@odh-dashboard/hardware-profiles/shared';
 import type { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import type { ComponentCodeRef } from '@odh-dashboard/plugin-core';
 import type { ModelDeploymentState } from '@odh-dashboard/model-serving/shared';

@@ -14,8 +14,8 @@ import {
   KueueFilteringState,
 } from '@odh-dashboard/hardware-profiles/shared/kueueUtils';
 import { DEFAULT_LIST_FETCH_STATE } from '@odh-dashboard/ui-core/utilities/fetchState';
-import { mockHardwareProfile } from '#~/__mocks__/mockHardwareProfile';
-import { mockProjectK8sResource } from '#~/__mocks__/mockProjectK8sResource';
+import { mockHardwareProfile } from '@odh-dashboard/hardware-profiles/__mocks__/mockHardwareProfile';
+import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import { mockLocalQueueK8sResource } from '#~/__mocks__/mockLocalQueueK8sResource';
 import {
   ProjectDetailsContext,

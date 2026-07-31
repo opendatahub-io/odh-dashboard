@@ -1,8 +1,5 @@
-import {
-  mockDscStatus,
-  mockK8sResourceList,
-  mockProjectK8sResource,
-} from '@odh-dashboard/internal/__mocks__';
+import { mockDscStatus, mockK8sResourceList } from '@odh-dashboard/internal/__mocks__';
+import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import { mock200Status } from '@odh-dashboard/internal/__mocks__/mockK8sStatus';
 import { mockRoleBindingK8sResource } from '@odh-dashboard/internal/__mocks__/mockRoleBindingK8sResource';
 import type { RoleBindingSubject } from '@odh-dashboard/k8s-core';

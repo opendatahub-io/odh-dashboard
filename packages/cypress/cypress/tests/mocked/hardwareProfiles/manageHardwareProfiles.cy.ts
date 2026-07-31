@@ -5,7 +5,7 @@ import {
   TolerationOperator,
 } from '@odh-dashboard/k8s-core';
 import { mockK8sResourceList } from '@odh-dashboard/internal/__mocks__/mockK8sResourceList';
-import { mockHardwareProfile } from '@odh-dashboard/internal/__mocks__/mockHardwareProfile';
+import { mockHardwareProfile } from '@odh-dashboard/hardware-profiles/__mocks__/mockHardwareProfile';
 
 import { mockDashboardConfig } from '@odh-dashboard/internal/__mocks__';
 import { mockWorkloadPriorityClassK8sResource as mockWorkloadPriorityClass } from '@odh-dashboard/internal/__mocks__/mockWorkloadPriorityClassK8Resource';

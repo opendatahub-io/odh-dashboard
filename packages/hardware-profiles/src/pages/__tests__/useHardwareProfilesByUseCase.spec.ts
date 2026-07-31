@@ -4,9 +4,9 @@ import {
   HardwareProfileFeatureVisibility,
   type HardwareProfileKind,
 } from '@odh-dashboard/k8s-core';
-import { mockHardwareProfile } from '@odh-dashboard/internal/__mocks__/mockHardwareProfile';
 import { HardwareProfilesContext } from '@odh-dashboard/internal/concepts/hardwareProfiles/HardwareProfilesContext';
 import { ProjectDetailsContext } from '@odh-dashboard/internal/pages/projects/ProjectDetailsContext';
+import { mockHardwareProfile } from '../../__mocks__/mockHardwareProfile';
 import { useHardwareProfilesByFeatureVisibility } from '../useHardwareProfilesByFeatureVisibility';
 
 jest.mock('@odh-dashboard/internal/concepts/hardwareProfiles/HardwareProfilesContext', () => ({

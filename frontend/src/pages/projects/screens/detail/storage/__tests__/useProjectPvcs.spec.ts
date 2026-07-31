@@ -2,7 +2,7 @@ import { k8sListResourceItems } from '@openshift/dynamic-plugin-sdk-utils';
 import { act } from 'react';
 import { standardUseFetchStateObject, testHook } from '@odh-dashboard/jest-config/hooks';
 import type { PersistentVolumeClaimKind } from '@odh-dashboard/k8s-core';
-import { mockPVCK8sResource } from '#~/__mocks__/mockPVCK8sResource';
+import { mockPVCK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockPVCK8sResource';
 import { PVCModel } from '#~/api';
 import { LABEL_SELECTOR_DASHBOARD_RESOURCE } from '#~/const';
 import useProjectPvcs from '#~/pages/projects/screens/detail/storage/useProjectPvcs';

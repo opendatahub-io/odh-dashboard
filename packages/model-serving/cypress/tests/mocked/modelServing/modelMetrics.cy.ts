@@ -2,7 +2,7 @@ import { mockDashboardConfig } from '@odh-dashboard/internal/__mocks__/mockDashb
 import { mockDscStatus } from '@odh-dashboard/internal/__mocks__/mockDscStatus';
 import { mockInferenceServiceK8sResource } from '@odh-dashboard/internal/__mocks__/mockInferenceServiceK8sResource';
 import { mockK8sResourceList } from '@odh-dashboard/internal/__mocks__/mockK8sResourceList';
-import { mockProjectK8sResource } from '@odh-dashboard/internal/__mocks__/mockProjectK8sResource';
+import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import {
   mockCustomSecretK8sResource,
   mockSecretK8sResource,
