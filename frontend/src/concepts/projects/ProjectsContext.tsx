@@ -111,9 +111,9 @@ const ProjectsContextProvider: React.FC<ProjectsProviderProps> = ({ children }) 
     (projectName) =>
       new Promise((resolve) => {
         // Projects take a moment to appear in K8s due to their shell version of Namespaces
-        const startTime = Date.now();
+        const startTime = performance.now();
         const doCheckAgain = () => {
-          const remaining = WAIT_FOR_PROJECT_TIMEOUT_MS - (Date.now() - startTime);
+          const remaining = WAIT_FOR_PROJECT_TIMEOUT_MS - (performance.now() - startTime);
           if (!isMounted.current || remaining <= 0) {
             resolve();
             return;
