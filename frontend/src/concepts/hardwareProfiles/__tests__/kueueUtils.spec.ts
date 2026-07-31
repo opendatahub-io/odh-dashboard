@@ -1,5 +1,5 @@
 import { SchedulingType } from '@odh-dashboard/k8s-core';
-import { mockHardwareProfile } from '#~/__mocks__/mockHardwareProfile';
+import { mockHardwareProfile } from '@odh-dashboard/hardware-profiles/__mocks__/mockHardwareProfile';
 import { mockLocalQueueK8sResource } from '#~/__mocks__/mockLocalQueueK8sResource';
 import {
   computeLocalQueueNamesResult,

@@ -1,3 +1,5 @@
+import { mockK8sNameDescriptionFieldData } from '@odh-dashboard/k8s-core/__mocks__/mockK8sNameDescriptionFieldData';
+import { mockUseAssignHardwareProfileResult } from '@odh-dashboard/hardware-profiles/__mocks__/mockUseAssignHardwareProfileResult';
 import { ImageStreamKind, NotebookKind } from '#~/k8sTypes';
 import {
   ConfigMapCategory,
@@ -8,8 +10,7 @@ import {
   StorageData,
   StorageType,
 } from '#~/pages/projects/types';
-import { mockK8sNameDescriptionFieldData } from '#~/__mocks__/mockK8sNameDescriptionFieldData';
-import { mockUseAssignHardwareProfileResult } from '#~/__mocks__/mockUseAssignHardwareProfileResult';
+import { NOTEBOOK_HARDWARE_PROFILE_PATHS } from '#~/concepts/notebooks/const';
 
 type MockResourceConfigType = {
   volumeName?: string;
@@ -39,6 +40,7 @@ export const mockStartNotebookData = ({
     },
   },
   hardwareProfileOptions: mockUseAssignHardwareProfileResult<NotebookKind>({
+    paths: NOTEBOOK_HARDWARE_PROFILE_PATHS,
     resources: {
       requests: {
         memory: '2Gi',

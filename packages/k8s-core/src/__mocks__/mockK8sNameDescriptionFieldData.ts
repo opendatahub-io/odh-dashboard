@@ -1,6 +1,6 @@
 import * as _ from 'lodash-es';
-import type { K8sNameDescriptionFieldData } from '@odh-dashboard/k8s-core';
 import type { RecursivePartial } from '@odh-dashboard/foundation';
+import type { K8sNameDescriptionFieldData } from '../k8sNameDescriptionFieldTypes';
 
 export const mockK8sNameDescriptionFieldData = (
   overrides: RecursivePartial<K8sNameDescriptionFieldData> = {},

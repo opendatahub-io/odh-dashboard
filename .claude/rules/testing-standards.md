@@ -27,7 +27,7 @@ paths:
 - Location: `__tests__/` directory adjacent to source file
 - Use `describe('<function name>')` grouping and `it('should ...')` naming
 - Use `@odh-dashboard/jest-config` for shared configuration and custom matchers
-- Use `@odh-dashboard/internal/__mocks__` for shared mock data factories
+- Use `@odh-dashboard/internal/__mocks__` for shared mock data factories; some mocks live in type-owning packages (e.g., `@odh-dashboard/k8s-core/__mocks__/`, `@odh-dashboard/hardware-profiles/__mocks__/`)
 - Selector priority: accessibility selectors (`getByRole`, `getByLabelText`) > `data-testid` (last resort) > NEVER DOM structure selectors
 
 ### What Requires Unit Tests

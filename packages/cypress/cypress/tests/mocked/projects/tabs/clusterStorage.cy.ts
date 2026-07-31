@@ -4,13 +4,13 @@ import {
   mockInferenceServiceK8sResource,
   mockK8sResourceList,
   mockNotebookK8sResource,
-  mockProjectK8sResource,
   mockStorageClasses,
   mockStorageClassList,
 } from '@odh-dashboard/internal/__mocks__';
+import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 
 import { mockClusterSettings } from '@odh-dashboard/internal/__mocks__/mockClusterSettings';
-import { mockPVCK8sResource } from '@odh-dashboard/internal/__mocks__/mockPVCK8sResource';
+import { mockPVCK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockPVCK8sResource';
 import { mockPodK8sResource } from '@odh-dashboard/internal/__mocks__/mockPodK8sResource';
 import { mock200Status } from '@odh-dashboard/internal/__mocks__/mockK8sStatus';
 import { mockPrometheusQueryVectorResponse } from '@odh-dashboard/internal/__mocks__/mockPrometheusQueryVectorResponse';
