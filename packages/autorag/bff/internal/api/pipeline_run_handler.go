@@ -60,11 +60,11 @@ func (app *App) CreatePipelineRunHandler(w http.ResponseWriter, r *http.Request,
 
 	// Validate pipelineType — only constants.PipelineTypeAutoRAG is supported
 	if pipelineType != constants.PipelineTypeAutoRAG {
-    errorReason := fmt.Sprintf("unsupported pipelineType %q: only %q is supported", pipelineType, constants.PipelineTypeAutoRAG)
-    NewUIError(http.StatusBadRequest, "unsupported_pipeline_type", errorReason).
-      WithDetail("reason", errorReason).
-      WithTracing(r).
-      WriteTo(w)
+		errorReason := fmt.Sprintf("unsupported pipelineType %q: only %q is supported", pipelineType, constants.PipelineTypeAutoRAG)
+		NewUIError(http.StatusBadRequest, "unsupported_pipeline_type", errorReason).
+			WithDetail("reason", errorReason).
+			WithTracing(r).
+			WriteTo(w)
 		return
 	}
 

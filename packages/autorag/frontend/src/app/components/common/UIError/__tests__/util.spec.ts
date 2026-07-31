@@ -1,13 +1,13 @@
 /* eslint-disable camelcase */
 import { handleRestFailures } from 'mod-arch-core';
-import { UIErrorInstance } from '../UIErrorInstance';
-import type { UIError } from '../types';
+import { UIErrorInstance } from '~/app/components/common/UIError/UIErrorInstance';
+import type { UIError } from '~/app/components/common/UIError/types';
 import {
   isUIError,
   normalizeErrorWithInstance,
   throwUIError,
   handleRestWithUIErrors,
-} from '../util';
+} from '~/app/components/common/UIError/util';
 
 jest.mock('mod-arch-core', () => ({
   handleRestFailures: jest.fn((p: Promise<unknown>) => p),
@@ -156,7 +156,7 @@ describe('handleRestWithUIErrors', () => {
     mockHandleRestFailures.mockImplementation((p) => p);
   });
 
-  it('should call handleRestFailures then throwUIError', async () => {
+  it('should pass non-UIError results through handleRestFailures', async () => {
     const data = { result: 'ok' };
     const result = await handleRestWithUIErrors(Promise.resolve(data));
 
@@ -164,10 +164,11 @@ describe('handleRestWithUIErrors', () => {
     expect(result).toEqual(data);
   });
 
-  it('should throw a UIErrorInstance when the result is a UIError after handleRestFailures', async () => {
+  it('should throw a UIErrorInstance before handleRestFailures sees the response', async () => {
     await expect(handleRestWithUIErrors(Promise.resolve(validUIError))).rejects.toThrow(
       UIErrorInstance,
     );
+    expect(mockHandleRestFailures).not.toHaveBeenCalled();
   });
 
   it('should propagate errors from handleRestFailures', async () => {

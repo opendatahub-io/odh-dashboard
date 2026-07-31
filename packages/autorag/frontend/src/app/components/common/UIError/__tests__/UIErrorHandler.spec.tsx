@@ -2,10 +2,14 @@
 import '@testing-library/jest-dom';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import React from 'react';
-import type { UIError, UIErrorMappings } from '../types';
-import { UIErrorInstance } from '../UIErrorInstance';
-import { UIErrorHandler, useCatchUIError, useUIErrorHandler } from '../UIErrorHandler';
-import { UIErrorDefaults } from '../constants';
+import type { UIError, UIErrorMappings } from '~/app/components/common/UIError/types';
+import { UIErrorInstance } from '~/app/components/common/UIError/UIErrorInstance';
+import {
+  UIErrorHandler,
+  useCatchUIError,
+  useUIErrorHandler,
+} from '~/app/components/common/UIError/UIErrorHandler';
+import { UIErrorDefaults } from '~/app/components/common/UIError/constants';
 
 const mockUIError: UIError = {
   messageId: 'test_error_one',
