@@ -669,7 +669,6 @@ const extensions: (
       }),
     },
   },
-  // Placeholder tabs on the model deployment settings page (replaced by migration stories)
   {
     type: 'app.tab-route/tab',
     flags: {
