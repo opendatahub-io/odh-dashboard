@@ -55,10 +55,12 @@ jest.mock('~/app/Chatbot/components/PromptVersionSelector', () => ({
   ),
 }));
 
-const MockGenAiContext = React.createContext({ namespace: { name: 'test-ns' } });
-jest.mock('~/app/context/GenAiContext', () => ({
-  GenAiContext: MockGenAiContext,
-}));
+jest.mock('~/app/context/GenAiContext', () => {
+  const actualReact = jest.requireActual<typeof import('react')>('react');
+  return {
+    GenAiContext: actualReact.createContext({ namespace: { name: 'test-ns' } }),
+  };
+});
 
 const mockProjectPrompt: MLflowPromptVersion = {
   name: 'project-prompt',

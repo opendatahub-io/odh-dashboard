@@ -201,4 +201,72 @@ describe('PromptVersionSelector', () => {
     const toggle = screen.getByTestId('prompt-version-toggle');
     expect(toggle).toHaveClass('pf-m-small');
   });
+
+  it('renders error state when usePromptVersions returns an error', () => {
+    mockUsePromptVersions.mockReturnValue({
+      versions: [],
+      isLoading: false,
+      error: new Error('Network failure'),
+    });
+    renderSelector();
+
+    fireEvent.click(screen.getByTestId('prompt-version-toggle'));
+
+    expect(screen.getByTestId('prompt-version-error')).toHaveTextContent('Unable to load versions');
+  });
+
+  it('applies danger status to the toggle when there is an error', () => {
+    mockUsePromptVersions.mockReturnValue({
+      versions: [],
+      isLoading: false,
+      error: new Error('API failure'),
+    });
+    renderSelector();
+
+    expect(screen.getByTestId('prompt-version-toggle')).toHaveClass('pf-m-danger');
+  });
+
+  it('filters out malformed versions with missing name or version', () => {
+    mockUsePromptVersions.mockReturnValue({
+      versions: [
+        ...mockVersions,
+        { version: 4, template: 'no name field' } as unknown as MLflowPromptVersion,
+        { name: 'test', template: 'no version field' } as unknown as MLflowPromptVersion,
+      ],
+      isLoading: false,
+      error: null,
+    });
+    renderSelector({ currentVersion: 3 });
+
+    fireEvent.click(screen.getByTestId('prompt-version-toggle'));
+
+    expect(screen.getByTestId('prompt-version-item-3')).toBeInTheDocument();
+    expect(screen.getByTestId('prompt-version-item-2')).toBeInTheDocument();
+    expect(screen.getByTestId('prompt-version-item-1')).toBeInTheDocument();
+    expect(screen.queryByTestId('prompt-version-item-4')).not.toBeInTheDocument();
+  });
+
+  it('filters out versions with null entries in messages array', () => {
+    mockUsePromptVersions.mockReturnValue({
+      versions: [
+        {
+          name: 'test-prompt',
+          version: 5,
+          messages: [null, { role: 'system', content: 'hello' }],
+          tags: {},
+          created_at: '2024-04-01T10:00:00Z',
+          updated_at: '2024-04-01T10:00:00Z',
+        } as unknown as MLflowPromptVersion,
+        ...mockVersions,
+      ],
+      isLoading: false,
+      error: null,
+    });
+    renderSelector({ currentVersion: 3 });
+
+    fireEvent.click(screen.getByTestId('prompt-version-toggle'));
+
+    expect(screen.queryByTestId('prompt-version-item-5')).not.toBeInTheDocument();
+    expect(screen.getByTestId('prompt-version-item-3')).toBeInTheDocument();
+  });
 });
