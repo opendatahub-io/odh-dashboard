@@ -156,6 +156,25 @@ describe('AutoragPatternSchema', () => {
     const result = AutoragPatternSchema.safeParse({ ...v1Pattern, settings });
     expect(result.success).toBe(true);
   });
+
+  it('should parse a V2 pattern with null vector_store_id', () => {
+    // Real pipeline may set vector_store_id to null when no collection is bound.
+    const withNullBinding = {
+      ...v2Pattern,
+      settings: {
+        ...v2Pattern.settings,
+        vector_store_binding: {
+          ...v2Pattern.settings.vector_store_binding,
+          vector_store_id: null,
+        },
+      },
+    };
+    const result = AutoragPatternSchema.safeParse(withNullBinding);
+    expect(result.success).toBe(true);
+    if (result.success && 'settings' in result.data) {
+      expect(result.data.settings.vector_store_binding?.vector_store_id).toBeNull();
+    }
+  });
 });
 
 describe('isV1RawPattern', () => {

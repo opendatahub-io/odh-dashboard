@@ -1,7 +1,7 @@
 import React, { act } from 'react';
 import '@testing-library/jest-dom';
 import { render, within } from '@testing-library/react';
-import { mockProjectK8sResource } from '#~/__mocks__';
+import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import { ConnectionsFormSection } from '#~/pages/projects/screens/spawner/connections/ConnectionsFormSection';
 import { mockConnection } from '#~/__mocks__/mockConnection';
 

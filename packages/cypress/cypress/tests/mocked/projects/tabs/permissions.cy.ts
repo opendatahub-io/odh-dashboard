@@ -2,11 +2,8 @@
  * Tests for the legacy Permissions tab (non-projectRBAC).
  * These tests cover the original permissions functionality before the projectRBAC feature.
  */
-import {
-  mockK8sResourceList,
-  mockProjectK8sResource,
-  mockRoleBindingK8sResource,
-} from '@odh-dashboard/internal/__mocks__';
+import { mockK8sResourceList, mockRoleBindingK8sResource } from '@odh-dashboard/internal/__mocks__';
+import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import { mock200Status } from '@odh-dashboard/internal/__mocks__/mockK8sStatus';
 import type { RoleBindingSubject } from '@odh-dashboard/k8s-core';
 import { permissions, roleBindingPermissionsChangeModal } from '../../../../pages/permissions';

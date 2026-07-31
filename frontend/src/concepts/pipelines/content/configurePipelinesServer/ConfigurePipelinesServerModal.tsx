@@ -5,9 +5,13 @@ import {
   Form,
   Stack,
   StackItem,
+  // eslint-disable-next-line @odh-dashboard/no-restricted-imports
   Modal,
+  // eslint-disable-next-line @odh-dashboard/no-restricted-imports
   ModalBody,
+  // eslint-disable-next-line @odh-dashboard/no-restricted-imports
   ModalHeader,
+  // eslint-disable-next-line @odh-dashboard/no-restricted-imports
   ModalFooter,
   ExpandableSection,
 } from '@patternfly/react-core';
@@ -16,6 +20,7 @@ import {
   NotificationWatcherContext,
 } from '@odh-dashboard/ui-core/contexts/NotificationWatcherContext';
 import { TrackingOutcome } from '@odh-dashboard/ui-core';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import { createPipelinesCR, deleteSecret, listPipelinesCR } from '#~/api';
 import { EMPTY_AWS_PIPELINE_DATA } from '#~/pages/projects/dataConnections/const';
@@ -24,13 +29,14 @@ import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUt
 import usePipelinesConnections from '#~/pages/projects/screens/detail/connections/usePipelinesConnections';
 import { FAST_POLL_INTERVAL } from '#~/utilities/const.ts';
 import { pipelinesBaseRoute } from '#~/routes/pipelines/global.ts';
-import { DSPipelineKind } from '#~/k8sTypes.ts';
+import { DSPAMlflowIntegrationMode, DSPipelineKind } from '#~/k8sTypes.ts';
 import {
   dspaLoaded,
   hasServerTimedOut,
   isDspaAllReady,
 } from '#~/concepts/pipelines/context/usePipelineNamespaceCR';
 import { useAppContext } from '#~/app/AppContext';
+import useIsMlflowCRAvailable from '#~/concepts/mlflow/hooks/useIsMlflowCRAvailable';
 import { PipelinesDatabaseSection } from './PipelinesDatabaseSection';
 import { PipelineCachingSection } from './PipelineCachingSection';
 import { ObjectStorageSection } from './ObjectStorageSection';
@@ -43,6 +49,7 @@ import { configureDSPipelineResourceSpec, objectStorageIsValid } from './utils';
 import { PipelineServerConfigType } from './types';
 import PipelinesDefinitionStorageSection from './PipelinesDefinitionStorageSection';
 import ManagedPipelinesSettingsSection from './ManagedPipelinesSettingsSection';
+import MlflowTrackingSection from './MlflowTrackingSection';
 
 type ConfigurePipelinesServerModalProps = {
   onClose: () => void;
@@ -66,6 +73,10 @@ const FORM_DEFAULTS: PipelineServerConfigType = {
   storeYamlInKubernetes: true,
   enableCaching: true,
   enableManagedPipelines: false,
+  mlflow: {
+    integrationMode: DSPAMlflowIntegrationMode.AUTODETECT,
+    injectUserEnvVars: false,
+  },
 };
 
 const serverConfiguredEvent = 'Pipeline Server Configured';
@@ -99,6 +110,10 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
   const isManagedPipelinesAvailable = standaloneNamespace
     ? true
     : dashboardConfig.spec.dashboardConfig.automl || dashboardConfig.spec.dashboardConfig.autorag;
+
+  const { available: isMlflowCRAvailable } = useIsMlflowCRAvailable();
+  const isMlflowPipelinesAreaAvailable = useIsAreaAvailable(SupportedArea.MLFLOW_PIPELINES).status;
+  const isMlflowAvailable = isMlflowCRAvailable && isMlflowPipelinesAreaAvailable;
 
   const databaseIsValid = config.database.useDefault
     ? true
@@ -139,6 +154,7 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
     const configureConfig: PipelineServerConfigType = {
       ...config,
       objectStorage,
+      ...(!isMlflowAvailable ? { mlflow: undefined } : {}),
     };
 
     configureDSPipelineResourceSpec(configureConfig, effectiveNamespace)
@@ -303,6 +319,12 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
                       enableCaching={config.enableCaching}
                       setEnableCaching={(enableCaching) => setConfig({ ...config, enableCaching })}
                     />
+                    {isMlflowAvailable && config.mlflow != null ? (
+                      <MlflowTrackingSection
+                        mlflow={config.mlflow}
+                        setMlflow={(mlflow) => setConfig({ ...config, mlflow })}
+                      />
+                    ) : null}
                   </div>
                   {isManagedPipelinesAvailable ? (
                     <ManagedPipelinesSettingsSection

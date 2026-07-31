@@ -1,6 +1,6 @@
 import { testHook } from '@odh-dashboard/jest-config/hooks';
+import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import { mockNotebookK8sResource } from '#~/__mocks__/mockNotebookK8sResource';
-import { mockProjectK8sResource } from '#~/__mocks__/mockProjectK8sResource';
 import { mockWorkloadK8sResource } from '#~/__mocks__/mockWorkloadK8sResource';
 import { WorkloadStatusType } from '#~/concepts/distributedWorkloads/utils';
 import {

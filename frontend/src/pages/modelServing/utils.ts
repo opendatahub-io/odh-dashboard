@@ -2,6 +2,7 @@ import * as _ from 'lodash-es';
 import { K8sStatus } from '@openshift/dynamic-plugin-sdk-utils';
 import type { SecretKind, ContainerResources } from '@odh-dashboard/k8s-core';
 import { getDisplayNameFromK8sResource, translateDisplayNameForK8s } from '@odh-dashboard/k8s-core';
+import type { ModelServingPodSpecOptionsState } from '@odh-dashboard/hardware-profiles/shared';
 import type {
   ServingRuntimeKind,
   InferenceServiceKind,
@@ -38,7 +39,6 @@ import {
   ModelServingSize,
   ModelServingState,
 } from '#~/pages/modelServing/screens/types';
-import { ModelServingPodSpecOptionsState } from '#~/concepts/hardwareProfiles/deprecated/useModelServingAcceleratorDeprecatedPodSpecOptionsState';
 import { ServingRuntimeVersionStatusLabel } from './screens/const';
 
 type TokenNames = {

@@ -157,9 +157,9 @@ describe('transformStageMapNodesToTree', () => {
     });
     const topologyNodes = [
       makeMockNode('training__load_data', 'Load data'),
-      makeMockNode('training__model_selection', 'Model selection'),
-      makeMockNode('training__branch-0__step__feature_engineering', 'Feature engineering'),
-      makeMockNode('training__branch-1__step__feature_engineering', 'Feature engineering'),
+      makeMockNode('training__model_selection', 'Select models'),
+      makeMockNode('training__branch-0__step__feature_engineering', 'Engineer features'),
+      makeMockNode('training__branch-1__step__feature_engineering', 'Engineer features'),
       makeMockNode('training__model__branch-0', 'Model 1'),
       makeMockNode('training__model__branch-1', 'Model 2'),
     ];
@@ -198,8 +198,8 @@ describe('transformStageMapNodesToTree', () => {
     const topologyNodes = [
       makeMockNode('training__load_data', 'Load data'),
       makeMockNode('training__step__validation', 'Step validation'),
-      makeMockNode('training__model_selection', 'Model selection'),
-      makeMockNode('training__step__feature_engineering__branch-0', 'Feature engineering'),
+      makeMockNode('training__model_selection', 'Select models'),
+      makeMockNode('training__step__feature_engineering__branch-0', 'Engineer features'),
       makeMockNode('training__model__branch-0', 'Model 1'),
       makeMockNode('training__refit_full', 'Refit full'),
     ];
@@ -227,13 +227,13 @@ describe('transformStageMapNodesToTree', () => {
     });
     const topologyNodes = [
       makeMockNode('training__load_data', 'Load data'),
-      makeMockNode('training__model_selection', 'Model selection'),
-      makeMockNode('training__step__feature_engineering__branch-0', 'Feature engineering'),
+      makeMockNode('training__model_selection', 'Select models'),
+      makeMockNode('training__step__feature_engineering__branch-0', 'Engineer features'),
       makeMockNode('training__model__branch-0', 'Model 1'),
       makeMockNode('training__refit_full', 'Refit full'),
       makeMockNode('training2__load_data', 'Load data'),
-      makeMockNode('training2__model_selection', 'Model selection'),
-      makeMockNode('training2__step__feature_engineering__branch-0', 'Feature engineering'),
+      makeMockNode('training2__model_selection', 'Select models'),
+      makeMockNode('training2__step__feature_engineering__branch-0', 'Engineer features'),
       makeMockNode('training2__model__branch-0', 'Model 2'),
       makeMockNode('training2__refit_full', 'Refit full'),
     ];
@@ -256,8 +256,8 @@ describe('transformStageMapNodesToTree', () => {
     const invalidBranchId = 'training__step__feature_engineering__branch-999999999999999999999';
     const topologyNodes = [
       makeMockNode('training__load_data', 'Load data'),
-      makeMockNode('training__model_selection', 'Model selection'),
-      makeMockNode(invalidBranchId, 'Feature engineering'),
+      makeMockNode('training__model_selection', 'Select models'),
+      makeMockNode(invalidBranchId, 'Engineer features'),
       makeMockNode('training__refit_full', 'Refit full'),
     ];
 

@@ -2,10 +2,8 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { mockLLMInferenceServiceConfigK8sResource } from '@odh-dashboard/internal/__mocks__/mockLLMInferenceServiceConfigK8sResource';
-import {
-  fireRiskAccepted,
-  fireRiskDismissed,
-} from '@odh-dashboard/model-serving/shared/tracking/limitedSupportTracking';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { LimitedSupportEvent } from '@odh-dashboard/model-serving/shared/tracking/limitedSupportTracking';
 import LlmAcceleratorConfigEnabledToggle from '../LlmAcceleratorConfigEnabledToggle';
 import { patchLLMInferenceServiceConfig } from '../../../api/LLMInferenceServiceConfigs';
 import type { LLMInferenceServiceConfigKind } from '../../../types';
@@ -19,17 +17,19 @@ jest.mock('../../../api/LLMInferenceServiceConfigs', () => ({
   patchLLMInferenceServiceConfig: jest.fn(),
 }));
 
+jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
+  fireMiscTrackingEvent: jest.fn(),
+}));
+
 jest.mock('@odh-dashboard/model-serving/shared/tracking/limitedSupportTracking', () => ({
-  fireRiskAccepted: jest.fn(),
-  fireRiskDismissed: jest.fn(),
+  ...jest.requireActual('@odh-dashboard/model-serving/shared/tracking/limitedSupportTracking'),
   getResourceVersions: jest.fn(() => ({
     version: undefined,
     fastVersion: undefined,
   })),
 }));
 
-const mockFireRiskAccepted = jest.mocked(fireRiskAccepted);
-const mockFireRiskDismissed = jest.mocked(fireRiskDismissed);
+const mockFireMiscTrackingEvent = jest.mocked(fireMiscTrackingEvent);
 const mockPatchConfig = jest.mocked(patchLLMInferenceServiceConfig);
 
 const mockNotification =
@@ -167,7 +167,7 @@ describe('LlmAcceleratorConfigEnabledToggle', () => {
     });
 
     await waitFor(() => {
-      expect(mockFireRiskAccepted).toHaveBeenCalledWith({
+      expect(mockFireMiscTrackingEvent).toHaveBeenCalledWith(LimitedSupportEvent.RISK_ACCEPTED, {
         runtimeResourceType: 'llm-accelerator-config',
         resourceId: config.metadata.name,
         resourceName: 'Test vLLM Config',
@@ -194,7 +194,7 @@ describe('LlmAcceleratorConfigEnabledToggle', () => {
       expect(mockNotification.error).toHaveBeenCalled();
     });
 
-    expect(mockFireRiskAccepted).not.toHaveBeenCalled();
+    expect(mockFireMiscTrackingEvent).not.toHaveBeenCalled();
   });
 
   it('should close modal without patching when cancel is clicked and fire tracking event', () => {
@@ -209,7 +209,7 @@ describe('LlmAcceleratorConfigEnabledToggle', () => {
 
     expect(screen.queryByTestId('unsupported-status-acceptance-modal')).not.toBeInTheDocument();
     expect(mockPatchConfig).not.toHaveBeenCalled();
-    expect(mockFireRiskDismissed).toHaveBeenCalledWith({
+    expect(mockFireMiscTrackingEvent).toHaveBeenCalledWith(LimitedSupportEvent.RISK_DISMISSED, {
       runtimeResourceType: 'llm-accelerator-config',
       resourceId: config.metadata.name,
       resourceName: 'Test vLLM Config',
@@ -232,7 +232,7 @@ describe('LlmAcceleratorConfigEnabledToggle', () => {
 
     expect(screen.queryByTestId('unsupported-status-acceptance-modal')).not.toBeInTheDocument();
     expect(mockPatchConfig).not.toHaveBeenCalled();
-    expect(mockFireRiskDismissed).toHaveBeenCalledWith({
+    expect(mockFireMiscTrackingEvent).toHaveBeenCalledWith(LimitedSupportEvent.RISK_DISMISSED, {
       runtimeResourceType: 'llm-accelerator-config',
       resourceId: config.metadata.name,
       resourceName: 'Test vLLM Config',
