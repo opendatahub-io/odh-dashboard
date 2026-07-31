@@ -23,6 +23,9 @@ type ProjectsProviderProps = {
   children: React.ReactNode;
 };
 
+/** Maximum time (ms) to wait for a newly created project to appear in the watch. */
+const WAIT_FOR_PROJECT_TIMEOUT_MS = 15_000;
+
 const ProjectsContextProvider: React.FC<ProjectsProviderProps> = ({ children }) => {
   const [preferredProject, setPreferredProject] =
     React.useState<ProjectsContextType['preferredProject']>(null);
@@ -108,14 +111,20 @@ const ProjectsContextProvider: React.FC<ProjectsProviderProps> = ({ children }) 
     (projectName) =>
       new Promise((resolve) => {
         // Projects take a moment to appear in K8s due to their shell version of Namespaces
+        const startTime = Date.now();
         const doCheckAgain = () => {
           setTimeout(() => {
             if (projectsRef.current.find(byName(projectName))) {
               resolve();
               return;
             }
-            if (isMounted.current) {
+            if (isMounted.current && Date.now() - startTime < WAIT_FOR_PROJECT_TIMEOUT_MS) {
               doCheckAgain();
+            } else {
+              // Timeout reached or component unmounted — resolve gracefully.
+              // The project was created successfully; it will appear when the
+              // WebSocket watch delivers it or on next page refresh.
+              resolve();
             }
           }, 200);
         };
