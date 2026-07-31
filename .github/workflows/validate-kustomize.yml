@@ -19,6 +19,8 @@ jobs:
   kustomize-build:
     name: Build ${{ matrix.target.name }}
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     env:
       # Pin the kustomize version and expose it to steps and cache key
       KUSTOMIZE_VERSION: v5.4.1
@@ -81,6 +83,8 @@ jobs:
   params-env-sync:
     name: Verify params.env sync
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Checkout repository
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
@@ -135,6 +139,8 @@ jobs:
   check-no-hardcoded-namespace:
     name: Check for hardcoded namespace
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Checkout repository
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
