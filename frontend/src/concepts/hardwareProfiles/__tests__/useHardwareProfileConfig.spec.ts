@@ -5,13 +5,13 @@ import * as areasUtils from '@odh-dashboard/plugin-core/areas';
 import { SchedulingType } from '@odh-dashboard/k8s-core';
 import { CurrentProjectContext } from '@odh-dashboard/ui-core/context/CurrentProjectContext';
 import { LocalQueuesContext } from '@odh-dashboard/ui-core/context/LocalQueuesContext';
+import type { LocalQueuesContextType } from '@odh-dashboard/ui-core/context/LocalQueuesContext';
 import { mockHardwareProfile } from '@odh-dashboard/hardware-profiles/__mocks__/mockHardwareProfile';
 import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import { mockLocalQueueK8sResource } from '#~/__mocks__/mockLocalQueueK8sResource';
 import { useHardwareProfileConfig } from '#~/concepts/hardwareProfiles/useHardwareProfileConfig';
 import * as reduxSelectors from '#~/redux/selectors';
 import * as useHardwareProfilesModule from '#~/pages/hardwareProfiles/useHardwareProfilesByFeatureVisibility';
-import type { LocalQueuesContextType } from '@odh-dashboard/ui-core/context/LocalQueuesContext';
 
 jest.mock('@odh-dashboard/plugin-core/areas', () => ({
   ...jest.requireActual('@odh-dashboard/plugin-core/areas'),
@@ -730,11 +730,7 @@ const makeKueueProjectWrapper = (localQueues: LocalQueuesContextType['localQueue
     React.createElement(
       CurrentProjectContext.Provider,
       { value: { currentProject: kueueProject } },
-      React.createElement(
-        LocalQueuesContext.Provider,
-        { value: { localQueues } },
-        children,
-      ),
+      React.createElement(LocalQueuesContext.Provider, { value: { localQueues } }, children),
     );
   Wrapper.displayName = 'KueueProjectWrapper';
   return Wrapper;

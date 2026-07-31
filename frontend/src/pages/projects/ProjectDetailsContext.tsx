@@ -209,7 +209,7 @@ const ProjectDetailsContextProvider: React.FC = () => {
     [projectHardwareProfiles],
   );
 
-  if (!project || !contextValue || !currentProjectValue || !localQueuesValue || !projectHardwareProfilesValue) {
+  if (!project || !contextValue || !currentProjectValue) {
     if (projectsEnabled && projects.length === 0) {
       // No projects, but we do have the projects view -- navigate them so they can go through normal flows
       return <Navigate to="/projects" replace />;
