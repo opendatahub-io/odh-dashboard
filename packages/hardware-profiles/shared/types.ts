@@ -4,10 +4,12 @@ import {
   HardwareProfileFeatureVisibility,
   type HardwareProfileKind,
   type AcceleratorProfileKind,
+  type ModelServingSize,
   ContainerResources,
   Toleration,
   NodeSelector,
 } from '@odh-dashboard/k8s-core';
+import type { PodSpecOptionsAcceleratorState } from '@odh-dashboard/internal/concepts/hardwareProfiles/types';
 import { HardwareProfileBindingState } from './const';
 import type { useHardwareProfileConfig } from './useHardwareProfileConfig';
 
@@ -72,3 +74,18 @@ export type HardwareProfileOptions = {
   visibleIn: HardwareProfileFeatureVisibility[];
   paths?: CrPathConfig;
 };
+
+export type ModelServingPodSpecOptions = PodSpecOptions & {
+  selectedModelSize?: ModelServingSize;
+};
+
+export type ModelServingSizeState = {
+  sizes: ModelServingSize[];
+  selectedSize: ModelServingSize;
+  setSelectedSize: (modelSize: ModelServingSize) => void;
+};
+
+export type ModelServingPodSpecOptionsState =
+  PodSpecOptionsAcceleratorState<ModelServingPodSpecOptions> & {
+    modelSize: ModelServingSizeState;
+  };
