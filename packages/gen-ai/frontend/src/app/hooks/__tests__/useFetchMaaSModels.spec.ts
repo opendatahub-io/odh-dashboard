@@ -85,7 +85,7 @@ describe('useFetchMaaSModels', () => {
         endpoints: ['external:https://external.example.com', 'https://internal.example.com'],
         status: 'Running',
         display_name: 'model-1',
-        sa_token: { name: '', token_name: '', token: '' },
+
         model_source_type: 'maas' as const,
       },
     ];
@@ -142,7 +142,7 @@ describe('useFetchMaaSModels', () => {
         endpoints: ['external: https://external-only.example.com'],
         status: 'Running',
         display_name: 'model-external-only',
-        sa_token: { name: '', token_name: '', token: '' },
+
         model_source_type: 'maas' as const,
       },
       {
@@ -156,7 +156,7 @@ describe('useFetchMaaSModels', () => {
         endpoints: ['internal: https://internal-only.example.com'],
         status: 'Running',
         display_name: 'model-internal-only',
-        sa_token: { name: '', token_name: '', token: '' },
+
         model_source_type: 'maas' as const,
       },
       {
@@ -170,7 +170,7 @@ describe('useFetchMaaSModels', () => {
         endpoints: ['https://bare-url.example.com'],
         status: 'Running',
         display_name: 'model-bare-url',
-        sa_token: { name: '', token_name: '', token: '' },
+
         model_source_type: 'maas' as const,
       },
     ];

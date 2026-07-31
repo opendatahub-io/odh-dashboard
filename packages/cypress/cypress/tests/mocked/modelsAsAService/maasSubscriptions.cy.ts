@@ -20,6 +20,9 @@ import {
   mockCreateSubscriptionResponse,
   mockUpdateSubscriptionResponse,
 } from '../../../utils/maasUtils';
+import type { CapturedDownload } from '../../../utils/downloadUtils';
+import { getDownloadedContent, stubDownload } from '../../../utils/downloadUtils';
+import { getClipboardContent, stubClipboard } from '../../../utils/clipboardUtils';
 
 const setupCommonIntercepts = () => {
   asProductAdminUser();
@@ -298,6 +301,47 @@ describe('View Subscription Page', () => {
     viewSubscriptionPage.visit(subscriptionName);
     viewSubscriptionPage.findPageError().should('exist');
   });
+
+  it('should display subscriptions content within the subscriptions tab, and navigate to the yaml tab', () => {
+    cy.interceptOdh('GET /maas/api/v1/all-subscriptions', { data: mockSubscriptions() });
+    cy.interceptOdh('GET /maas/api/v1/yaml', {
+      content:
+        'apiVersion: maas.opendatahub.io/v1alpha1\nkind: MaaSSubscription\nmetadata:\n  name: premium-team-sub\n',
+    });
+
+    subscriptionManagementPage.visit('subscriptions');
+    subscriptionsPage.findTable().should('exist');
+    subscriptionsPage.findRows().should('have.length', 7);
+    subscriptionsPage.findCreateSubscriptionButton().should('exist');
+
+    subscriptionsPage.findFilterInput().type('premium');
+    subscriptionsPage.findRows().should('have.length', 1);
+    subscriptionsPage.findFilterResetButton().click();
+    subscriptionsPage.findRows().should('have.length', 7);
+
+    subscriptionsPage.getRow('Premium Team Subscription').findTitleButton().click();
+    viewSubscriptionPage.findTitle().should('contain.text', 'Premium Team Subscription');
+    viewSubscriptionPage.findYamlTab().click();
+    viewSubscriptionPage.findYamlContent().should('exist');
+    viewSubscriptionPage.findYamlContent().should('contain.text', 'MaaSSubscription');
+    stubClipboard('copiedYAML');
+    viewSubscriptionPage.findYAMLCodeEditor().copyToClipboard().should('exist').click();
+    getClipboardContent('copiedYAML').then((copied: string[]) => {
+      expect(copied).to.have.length.at.least(1);
+      const yamlContent = copied[0];
+      expect(yamlContent).to.include('apiVersion: maas.opendatahub.io/v1alpha1');
+      expect(yamlContent).to.include('kind: MaaSSubscription');
+    });
+
+    stubDownload('downloadedYAML');
+    viewSubscriptionPage.findYAMLCodeEditor().download().should('exist').click();
+    getDownloadedContent('downloadedYAML').then((downloads: CapturedDownload[]) => {
+      expect(downloads).to.have.length.at.least(1);
+      expect(downloads[0].fileName).to.include('premium-team-sub');
+      expect(downloads[0].content).to.include('apiVersion: maas.opendatahub.io/v1alpha1');
+      expect(downloads[0].content).to.include('kind: MaaSSubscription');
+    });
+  });
 });
 
 describe('Subscription Create Page', () => {
@@ -354,7 +398,9 @@ describe('Subscription Create Page', () => {
     createSubscriptionPage.findAddModelsButton().click();
     addModelsToSubscriptionModal.shouldBeOpen();
     addModelsToSubscriptionModal.findTable().should('exist');
-    addModelsToSubscriptionModal.findToggleModelButton('granite-3-8b-instruct').click();
+    addModelsToSubscriptionModal
+      .findToggleModelButton('granite-3-8b-instruct', 'maas-models')
+      .click();
     addModelsToSubscriptionModal.findConfirmButton().click();
 
     // Verify the model appears in the subscription models table

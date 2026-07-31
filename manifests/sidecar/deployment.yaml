@@ -326,6 +326,9 @@
     env:
       - name: GATEWAY_DOMAIN
         value: ""
+      # Product overlay sets this (ODH vs RHOAI). Avoids DSC list on the shared modules SA.
+      - name: MAAS_API_NAMESPACE
+        value: ""
     securityContext:
       allowPrivilegeEscalation: false
       capabilities:

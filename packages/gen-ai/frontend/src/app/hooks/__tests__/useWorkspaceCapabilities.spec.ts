@@ -14,7 +14,6 @@ const makeModel = (overrides: Partial<AIModel> = {}): AIModel => ({
   endpoints: [],
   status: 'Running',
   display_name: 'Test',
-  sa_token: { name: '', token_name: '', token: '' },
   model_source_type: 'namespace',
   ...overrides,
 });
@@ -30,7 +29,6 @@ const makeMaaSModel = (overrides: Partial<AAModelResponse> = {}): AAModelRespons
   endpoints: [],
   status: 'Running',
   display_name: 'Test MaaS',
-  sa_token: { name: '', token_name: '', token: '' },
   model_source_type: 'maas',
   ...overrides,
 });

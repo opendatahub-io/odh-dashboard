@@ -10,7 +10,12 @@
       "dependsOn": ["^build"]
     },
     "lint": {
-      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/packages/eslint-config/**/*"]
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/packages/eslint-config/**/*",
+        "!$TURBO_ROOT$/packages/eslint-config/.turbo/**",
+        "!$TURBO_ROOT$/packages/eslint-config/node_modules/**"
+      ]
     },
     "lint:fix": {
       "cache": false

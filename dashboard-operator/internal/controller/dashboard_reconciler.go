@@ -274,6 +274,8 @@ func (r *DashboardReconciler) reconcileSidecar(
 		allResources = append(allResources, rendered...)
 	}
 
+	remapRayDashboardGatewayRBAC(allResources)
+
 	deployer := deploy.NewDeployer(
 		deploy.WithFieldOwner("dashboard-operator"),
 		deploy.WithLabel(labels.PlatformPartOf, strings.ToLower(v1alpha1.DashboardKind)),
@@ -346,6 +348,48 @@ func (r *DashboardReconciler) reconcileSidecar(
 	return ctrl.Result{RequeueAfter: requeueAfter}, nil
 }
 
+func (r *DashboardReconciler) deleteSidecarResources(ctx context.Context) error {
+	logger := log.FromContext(ctx)
+	ns := r.ApplicationsNamespace
+	var errs []error
+
+	type namedResource struct {
+		obj  client.Object
+		name string
+	}
+	namespacedResources := []namedResource{
+		{&corev1.ServiceAccount{}, "odh-dashboard-modules"},
+		{&corev1.Secret{}, "odh-dashboard-modules-token"},
+		{&networkingv1.NetworkPolicy{}, "odh-dashboard-allow-ports"},
+		{&corev1.ConfigMap{}, "sidecar-params"},
+	}
+
+	for _, nr := range namespacedResources {
+		nr.obj.SetName(nr.name)
+		nr.obj.SetNamespace(ns)
+		if err := r.Delete(ctx, nr.obj); client.IgnoreNotFound(err) != nil {
+			errs = append(errs, fmt.Errorf("deleting %T %s: %w", nr.obj, nr.name, err))
+		}
+	}
+
+	clusterResources := []client.Object{
+		&rbacv1.ClusterRole{},
+		&rbacv1.ClusterRoleBinding{},
+	}
+	for _, obj := range clusterResources {
+		obj.SetName("odh-dashboard-modules")
+		if err := r.Delete(ctx, obj); client.IgnoreNotFound(err) != nil {
+			errs = append(errs, fmt.Errorf("deleting %T odh-dashboard-modules: %w", obj, err))
+		}
+	}
+
+	if len(errs) == 0 {
+		logger.Info("Cleaned up sidecar-specific resources")
+	}
+
+	return errors.Join(errs...)
+}
+
 func (r *DashboardReconciler) reconcileStandalone(
 	ctx context.Context,
 	dashboard *v1alpha1.Dashboard,
@@ -353,6 +397,15 @@ func (r *DashboardReconciler) reconcileStandalone(
 	cfg OperatorConfig,
 ) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
+
+	// Step 0: Clean up sidecar-specific resources that are not part of the standalone overlay.
+	// This handles the Sidecar → Standalone upgrade path where these resources would be orphaned.
+	if err := r.deleteSidecarResources(ctx); err != nil {
+		cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded),
+			conditions.WithReason("SidecarCleanupFailed"),
+			conditions.WithError(err))
+		return ctrl.Result{}, fmt.Errorf("failed to clean up sidecar resources: %w", err)
+	}
 
 	// Step 1: Deploy core manifests (3-container pod: odh-dashboard, kube-rbac-proxy, core-bff).
 	// Uses the standalone overlay which excludes BFF module sidecar containers.
@@ -377,6 +430,8 @@ func (r *DashboardReconciler) reconcileStandalone(
 		}
 		allResources = append(allResources, rendered...)
 	}
+
+	remapRayDashboardGatewayRBAC(allResources)
 
 	deployer := deploy.NewDeployer(
 		deploy.WithFieldOwner("dashboard-operator"),
@@ -568,12 +623,41 @@ func (r *DashboardReconciler) reconcileDegradedCondition(
 	}
 }
 
+// cleanupRayDashboardGatewayRBAC deletes the Gateway Role/RoleBinding remapped
+// into openshift-ingress. OwnerReference GC does not run across namespaces, so
+// these must be removed explicitly on Dashboard teardown.
+func (r *DashboardReconciler) cleanupRayDashboardGatewayRBAC(ctx context.Context) error {
+	logger := log.FromContext(ctx)
+
+	role := &rbacv1.Role{}
+	role.SetName(rayDataScienceGatewayRBACName)
+	role.SetNamespace(dataScienceGatewayNamespace)
+	logger.Info("Deleting remapped Ray Gateway Role", "name", role.GetName(), "namespace", role.GetNamespace())
+	if err := r.Delete(ctx, role); client.IgnoreNotFound(err) != nil {
+		return fmt.Errorf("deleting Role %s/%s: %w", dataScienceGatewayNamespace, rayDataScienceGatewayRBACName, err)
+	}
+
+	rb := &rbacv1.RoleBinding{}
+	rb.SetName(rayDataScienceGatewayRBACName)
+	rb.SetNamespace(dataScienceGatewayNamespace)
+	logger.Info("Deleting remapped Ray Gateway RoleBinding", "name", rb.GetName(), "namespace", rb.GetNamespace())
+	if err := r.Delete(ctx, rb); client.IgnoreNotFound(err) != nil {
+		return fmt.Errorf("deleting RoleBinding %s/%s: %w", dataScienceGatewayNamespace, rayDataScienceGatewayRBACName, err)
+	}
+
+	return nil
+}
+
 // cleanupCrossNamespaceResources deletes Perses monitoring resources in the
 // observability namespace. OwnerReference GC only works within the same
 // namespace (or for cluster-scoped owners referencing cluster-scoped children),
 // so resources deployed to a different namespace need explicit cleanup.
 func (r *DashboardReconciler) cleanupCrossNamespaceResources(ctx context.Context, dashboard *v1alpha1.Dashboard) error {
 	logger := log.FromContext(ctx)
+
+	if err := r.cleanupRayDashboardGatewayRBAC(ctx); err != nil {
+		return err
+	}
 
 	obsNS := ""
 	if dashboard.Spec.Observability != nil &&
@@ -582,7 +666,7 @@ func (r *DashboardReconciler) cleanupCrossNamespaceResources(ctx context.Context
 	}
 
 	if obsNS == "" || obsNS == r.ApplicationsNamespace {
-		logger.Info("No cross-namespace resources to clean up")
+		logger.Info("No observability cross-namespace resources to clean up")
 		return nil
 	}
 

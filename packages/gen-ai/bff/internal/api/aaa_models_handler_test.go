@@ -27,19 +27,7 @@ var _ = Describe("ModelsAAHandler", func() {
 	var app App
 
 	BeforeEach(func() {
-		k8sFactory, err := k8smocks.NewTokenClientFactory(testK8sClient, testCfg, slog.Default())
-		require.NoError(GinkgoT(), err)
-
-		llamaStackClientFactory := lsmocks.NewMockClientFactory()
-		app = App{
-			config: config.EnvConfig{
-				Port: 4000,
-			},
-			logger:                  slog.Default(),
-			kubernetesClientFactory: k8sFactory,
-			llamaStackClientFactory: llamaStackClientFactory,
-			repositories:            repositories.NewRepositories(),
-		}
+		app = NewK8sLSTestApp()
 	})
 
 	It("should return 200 with AA models data when models are found", func() {

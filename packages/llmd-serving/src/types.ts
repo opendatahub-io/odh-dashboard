@@ -49,7 +49,7 @@ export const TopologyTypeDescriptions: Record<TopologyType, string> = {
   [TopologyType.SINGLE_NODE_DISAGGREGATED]:
     'Each replica runs on a single node, with prefill and decode handled by separate pools. Use when you want to optimize time-to-first-token and throughput independently.',
   [TopologyType.MULTI_NODE_DISAGGREGATED]:
-    'Each replica spans multiple nodes, with prefill and decode handled by separate pools. Use when your model requires both multi-node parallelism and prefill/decode separation.',
+    'Each replica spans multiple nodes, with prefill and decode handled by separate pools. Use when your model requires both multi-node parallelism and prefill/decode optimization.',
 };
 
 export const TopologyTypeLabels: Record<TopologyType, string> = {

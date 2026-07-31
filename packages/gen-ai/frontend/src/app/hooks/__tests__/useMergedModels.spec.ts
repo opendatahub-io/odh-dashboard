@@ -28,7 +28,6 @@ const createAIModel = (overrides: Partial<AIModel>): AIModel => ({
   version: 'v1',
   usecase: 'llm',
   status: 'Running',
-  sa_token: { name: '', token_name: '', token: '' },
   model_source_type: 'namespace',
   ...overrides,
 });
@@ -44,7 +43,6 @@ const createMaaSModel = (overrides: Partial<AAModelResponse> = {}): AAModelRespo
     version: '',
     usecase: 'LLM',
     status: 'Running',
-    sa_token: { name: '', token_name: '', token: '' },
     model_source_type: 'maas' as const,
   };
 

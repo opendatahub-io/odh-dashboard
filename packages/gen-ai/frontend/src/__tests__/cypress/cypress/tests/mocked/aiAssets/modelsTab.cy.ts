@@ -55,7 +55,6 @@ const MAAS_MODELS = [
     serving_runtime: 'MaaS',
     api_protocol: 'OpenAI',
     version: '',
-    sa_token: { name: '', token_name: '', token: '' },
     model_source_type: 'maas',
   }),
 ];

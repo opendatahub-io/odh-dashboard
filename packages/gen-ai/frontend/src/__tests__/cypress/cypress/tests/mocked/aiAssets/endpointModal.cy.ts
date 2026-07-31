@@ -20,7 +20,7 @@ const MAAS_MODEL_WITH_SUBS = {
   serving_runtime: 'MaaS',
   api_protocol: 'OpenAI',
   version: '',
-  sa_token: { name: '', token_name: '', token: '' },
+
   model_source_type: 'maas' as const,
   subscriptions: [
     { name: 'premium-team-sub', displayName: 'Premium Subscription' },
@@ -40,7 +40,7 @@ const MAAS_MODEL_NO_SUBS = {
   serving_runtime: 'MaaS',
   api_protocol: 'OpenAI',
   version: '',
-  sa_token: { name: '', token_name: '', token: '' },
+
   model_source_type: 'maas' as const,
   subscriptions: [],
 };

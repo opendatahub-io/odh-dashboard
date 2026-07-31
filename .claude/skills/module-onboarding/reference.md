@@ -34,7 +34,7 @@ Given a kebab-case module name (e.g., `my-module`):
 |---------|-------|-----------------|
 | Frontend dev server | 9100–9399 | `package.json` → `module-federation.local.port` |
 | BFF proxy port | 4000–4099 | `Makefile` → `PROXY_PORT` |
-| Production service | 8043 (shared) | `package.json` → `module-federation.service.port` |
+| Production service | Module-specific (e.g., 8043, 8143) | `package.json` → `module-federation.service.port` |
 
 **How to find the next available port:**
 
@@ -214,7 +214,7 @@ docker build --file ./packages/<name>/Dockerfile.workspace .
     "tls": false,
     "proxy": [{ "path": "/<kebab>/api", "pathRewrite": "/api" }],
     "local": { "host": "localhost", "port": <frontend-port> },
-    "service": { "name": "odh-dashboard", "port": 8043 }
+    "service": { "name": "odh-dashboard-<slug>-ui", "port": <bff-port> }
   }
 }
 ```
@@ -258,6 +258,8 @@ This checklist maps to skill phases. Items marked with a phase are handled autom
 | 15 | `npm run validate:ports` passes | Phase 5 |
 | 16 | `npm run type-check` passes | Phase 5 |
 | 17 | Container image builds successfully | Phase 5 |
+| 18 | Standalone manifests in `manifests/modules/<name>/` | Post-skill |
+| 19 | Module registered in operator module registry | Post-skill |
 | — | Unit tests in `__tests__/` | Manual (post-skill) |
 | — | E2E tests in `packages/cypress/cypress/tests/e2e/<name>/` | Manual (post-skill) |
 | — | Contract tests in `contract-tests/` (if BFF) | Manual (post-skill) |
@@ -295,3 +297,41 @@ This checklist maps to skill phases. Items marked with a phase are handled autom
 **Symptom**: `go build ./cmd` fails with import errors.
 
 **Fix**: Run `cd packages/<name>/bff && go mod tidy` to resolve dependencies. Ensure `go.mod` has the correct module path.
+
+## Standalone Deployment Manifests
+
+After the module-onboarding skill completes, standalone deployment manifests must be created in `manifests/modules/<name>/`. Each module deploys as its own Kubernetes Deployment (not as a sidecar container in the main dashboard pod).
+
+### Required files
+
+| File | Purpose |
+|------|---------|
+| `deployment.yaml` | Independent Deployment with 2 replicas, TLS config, and a dedicated ServiceAccount |
+| `service.yaml` | Service exposing the module's BFF port (name pattern: `odh-dashboard-<slug>-ui`) |
+| `networkpolicy.yaml` | NetworkPolicy for inter-BFF egress (to the odh-dashboard pod for core-bff communication) |
+| `serviceaccount.yaml` | Dedicated ServiceAccount for SA isolation |
+| `clusterrole.yaml` | Module-specific ClusterRole |
+| `clusterrolebinding.yaml` | ClusterRoleBinding for the module's ServiceAccount |
+| `kustomization.yaml` | Kustomize entry referencing all resources |
+| `params.yaml` | Kustomize parameter defaults (image, namespace) |
+
+### Reference existing modules
+
+Use the following existing module manifests as patterns:
+
+- `manifests/modules/gen-ai/` — Gen AI module (has BFF)
+- `manifests/modules/model-registry/` — Model Registry module (has BFF)
+
+Copy the structure from the closest matching existing module and adapt the names, ports, and RBAC rules for the new module.
+
+### Operator module registry
+
+After creating the manifests, register the module in `dashboard-operator/internal/controller/modules.go` with:
+- Slug (kebab-case module name)
+- Container name
+- Port (matching `service.port` in `package.json`)
+- Image environment variable name
+- DSC component gate (which DataScienceCluster component enables this module)
+- Inter-module dependencies (other modules this one depends on)
+
+See `/konflux-onboarding` Phase 4 for the automated scaffolding workflow.

@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Breadcrumb, Button } from '@patternfly/react-core';
 import { useNavigate, useParams } from 'react-router-dom';
 import { CogIcon } from '@patternfly/react-icons';
-import { BreadcrumbItemType } from '@odh-dashboard/internal/types';
+import { BreadcrumbItemType } from '@odh-dashboard/ui-core/types/metrics';
 import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import { TrustyAIContext } from '@odh-dashboard/internal/concepts/trustyai/context/TrustyAIContext';
 import { TrustyInstallState } from '@odh-dashboard/internal/concepts/trustyai/types';

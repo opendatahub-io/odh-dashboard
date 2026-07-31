@@ -152,7 +152,7 @@ describe('An admin can manage MaaS authorization policies and control model acce
       addModelsToSubscriptionModal.findTable().should('exist');
       addModelsToSubscriptionModal.findFilterInput().type(modelName);
       addModelsToSubscriptionModal.findRows().should('have.length', 1);
-      addModelsToSubscriptionModal.findToggleModelButton(modelName).click();
+      addModelsToSubscriptionModal.findToggleModelButton(modelName, projectName).click();
       addModelsToSubscriptionModal.findConfirmButton().click();
       policyPage.findModelsTable().should('contain.text', modelName);
       policiesModelsCount = 1;
@@ -240,7 +240,7 @@ describe('An admin can manage MaaS authorization policies and control model acce
       createSubscriptionPage.findAddModelsButton().click();
       addModelsToSubscriptionModal.shouldBeOpen();
       addModelsToSubscriptionModal.findTable().should('exist');
-      addModelsToSubscriptionModal.findToggleModelButton(modelName).click();
+      addModelsToSubscriptionModal.findToggleModelButton(modelName, projectName).click();
       addModelsToSubscriptionModal.findConfirmButton().click();
 
       // Edit token rate limits for the added model

@@ -25,7 +25,6 @@ const makeModel = (overrides: Partial<AIModel> = {}): AIModel => ({
   endpoints: [],
   status: 'Running' as const,
   display_name: 'Test',
-  sa_token: { name: '', token_name: '', token: '' },
   model_source_type: 'namespace',
   ...overrides,
 });
@@ -174,7 +173,6 @@ describe('convertMaaSModelToAIModel', () => {
     endpoints: [],
     status: 'Running',
     display_name: 'Test Model',
-    sa_token: { name: '', token_name: '', token: '' },
     model_source_type: 'maas',
     ...overrides,
   });
