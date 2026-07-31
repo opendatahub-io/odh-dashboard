@@ -3,6 +3,10 @@ kind: Kustomization
 commonLabels:
   app: odh-dashboard
   app.kubernetes.io/part-of: odh-dashboard
+  # Legacy label from the old opendatahub-operator's CreateAddLabelsPlugin.
+  # Required for upgrade compatibility: spec.selector.matchLabels is immutable,
+  # so the selector must match what the old operator wrote to existing Deployments.
+  app.opendatahub.io/odh-dashboard: "true"
 resources:
   - ../sidecar
   - ../base/consolelink
