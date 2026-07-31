@@ -35,7 +35,8 @@ spec:
                 topologyKey: topology.kubernetes.io/zone
       volumes:
         - name: tmp
-          emptyDir: {}
+          emptyDir:
+            sizeLimit: 100Mi
         - name: modules-sa-token
           projected:
             defaultMode: 420
@@ -77,7 +78,7 @@ spec:
                 path: odh-ca-bundle.crt
       containers:
         - name: agent-ops-ui
-          image: $(agent-ops-ui-image)
+          image: agent-ops-ui-image
           imagePullPolicy: Always
           livenessProbe:
             httpGet:
@@ -146,7 +147,7 @@ spec:
             - '--bundle-paths=/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem,/var/run/secrets/kubernetes.io/serviceaccount/ca.crt,/var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt,/etc/pki/tls/certs/odh-ca-bundle.crt,/etc/pki/tls/certs/odh-trusted-ca-bundle.crt'
           env:
             - name: GATEWAY_DOMAIN
-              value: $(gateway-domain)
+              value: gateway-domain
             - name: POD_NAMESPACE
               valueFrom:
                 fieldRef:

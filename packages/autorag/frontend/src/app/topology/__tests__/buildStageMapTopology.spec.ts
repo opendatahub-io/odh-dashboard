@@ -256,9 +256,9 @@ describe('buildStageMapTopology', () => {
       const step2 = nodes.find((n) => n.id === 'rag_optimization__step__embedding__branch-0');
       const step3 = nodes.find((n) => n.id === 'rag_optimization__step__retrieval__branch-0');
 
-      expect(step1?.label).toBe('Chunking');
-      expect(step2?.label).toBe('Embedding');
-      expect(step3?.label).toBe('Retrieval');
+      expect(step1?.label).toBe('Chunk documents');
+      expect(step2?.label).toBe('Generate embeddings');
+      expect(step3?.label).toBe('Retrieve documents');
     });
 
     it('should cap branch step expansion to MAX_PATTERN_SELECTION_STEPS', () => {

@@ -1,6 +1,6 @@
 import React from 'react';
+import { TimeframeTitle } from '@odh-dashboard/ui-core/types/metrics';
 import { KserveMetricGraphDefinition } from '#~/concepts/metrics/kserve/types';
-import { TimeframeTitle } from '#~/concepts/metrics/types';
 import { useFetchKserveCpuUsageData } from '#~/api';
 import MetricsChart from '#~/pages/modelServing/screens/metrics/MetricsChart';
 import { toPercentage } from '#~/pages/modelServing/screens/metrics/utils';

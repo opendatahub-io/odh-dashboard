@@ -191,7 +191,7 @@ describe('buildStageMapTopology', () => {
       const nodes = buildStageMapTopology(stageMap);
 
       const refitNode = nodes.find((n) => n.id === 'training__refit_full');
-      expect(refitNode?.label).toBe('Refit models');
+      expect(refitNode?.label).toBe('Refit and evaluate');
 
       const evalNode = nodes.find((n) => n.id === 'training__evaluate_models');
       expect(evalNode?.label).toBe('Evaluate models');
@@ -248,9 +248,9 @@ describe('buildStageMapTopology', () => {
       const step2 = nodes.find((n) => n.id === 'training__step__model_training__branch-0');
       const step3 = nodes.find((n) => n.id === 'training__step__stacking__branch-0');
 
-      expect(step1?.label).toBe('Feature engineering');
-      expect(step2?.label).toBe('Model training');
-      expect(step3?.label).toBe('Stacking');
+      expect(step1?.label).toBe('Engineer features');
+      expect(step2?.label).toBe('Train model');
+      expect(step3?.label).toBe('Stack predictions');
     });
 
     it('should cap branch step expansion to MAX_MODEL_SELECTION_STEPS', () => {

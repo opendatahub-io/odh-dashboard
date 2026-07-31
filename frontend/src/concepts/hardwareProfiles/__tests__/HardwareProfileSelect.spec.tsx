@@ -13,6 +13,7 @@ import {
   useKueueConfiguration,
   KueueFilteringState,
 } from '@odh-dashboard/hardware-profiles/shared/kueueUtils';
+import { DEFAULT_LIST_FETCH_STATE } from '@odh-dashboard/ui-core/utilities/fetchState';
 import { mockHardwareProfile } from '#~/__mocks__/mockHardwareProfile';
 import { mockProjectK8sResource } from '#~/__mocks__/mockProjectK8sResource';
 import { mockLocalQueueK8sResource } from '#~/__mocks__/mockLocalQueueK8sResource';
@@ -20,7 +21,6 @@ import {
   ProjectDetailsContext,
   ProjectDetailsContextType,
 } from '#~/pages/projects/ProjectDetailsContext';
-import { DEFAULT_LIST_FETCH_STATE } from '#~/utilities/const';
 import { ProjectsContext } from '#~/concepts/projects/ProjectsContext';
 import HardwareProfileSelect from '#~/concepts/hardwareProfiles/HardwareProfileSelect';
 
