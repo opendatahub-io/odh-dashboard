@@ -198,6 +198,35 @@ func TestSATokenRoundTripper(t *testing.T) {
 		}
 	})
 
+	t.Run("invokes callback when file read fails", func(t *testing.T) {
+		base := roundTripperFunc(func(req *http.Request) (*http.Response, error) {
+			return &http.Response{StatusCode: 200}, nil
+		})
+
+		var gotTokenFile string
+		var gotErr error
+		rt := &saTokenRoundTripper{
+			base:      base,
+			token:     "static-token",
+			tokenFile: "/nonexistent/path",
+			onTokenFileReadError: func(tokenFile string, err error) {
+				gotTokenFile = tokenFile
+				gotErr = err
+			},
+		}
+		req, _ := http.NewRequestWithContext(context.Background(), "GET", "https://k8s.example.com/api", nil)
+
+		if _, err := rt.RoundTrip(req); err != nil {
+			t.Fatal(err)
+		}
+		if gotTokenFile != "/nonexistent/path" {
+			t.Errorf("onTokenFileReadError tokenFile = %q, want %q", gotTokenFile, "/nonexistent/path")
+		}
+		if gotErr == nil {
+			t.Error("onTokenFileReadError err = nil, want non-nil")
+		}
+	})
+
 	t.Run("empty token errors", func(t *testing.T) {
 		rt := &saTokenRoundTripper{base: roundTripperFunc(func(req *http.Request) (*http.Response, error) {
 			t.Fatal("base should not be called")

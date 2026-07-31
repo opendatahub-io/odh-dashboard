@@ -313,16 +313,23 @@ func (c *internalClient) getNamespacesViaProjectsAPI(ctx context.Context) ([]v1.
 //
 // Returns an error at startup if the Kubernetes config cannot be loaded, so misconfiguration
 // is caught before serving any requests.
-func NewSATokenTransportWrapper() (func(http.RoundTripper) http.RoundTripper, error) {
+//
+// onTokenFileReadError, if non-nil, is invoked whenever the token file fails to read
+// (e.g. transient permission or filesystem issue). This layer has no logger of its own —
+// it only maps failures to a callback — so the composition root (app.go) can decide how to
+// observe it (typically by logging with mw.logger). The round tripper always falls back to
+// the last-known token so a single failed read doesn't fail the outbound request outright.
+func NewSATokenTransportWrapper(onTokenFileReadError func(tokenFile string, err error)) (func(http.RoundTripper) http.RoundTripper, error) {
 	cfg, err := getKubernetesConfig()
 	if err != nil {
 		return nil, fmt.Errorf("failed to load kubernetes config for SA token transport: %w", err)
 	}
 	return func(base http.RoundTripper) http.RoundTripper {
 		return &saTokenRoundTripper{
-			base:      base,
-			token:     cfg.BearerToken,
-			tokenFile: cfg.BearerTokenFile,
+			base:                 base,
+			token:                cfg.BearerToken,
+			tokenFile:            cfg.BearerTokenFile,
+			onTokenFileReadError: onTokenFileReadError,
 		}
 	}, nil
 }
@@ -330,9 +337,10 @@ func NewSATokenTransportWrapper() (func(http.RoundTripper) http.RoundTripper, er
 // saTokenRoundTripper injects the pod's service account token into outbound requests.
 // It re-reads the token file on each request to handle short-lived projected token rotation.
 type saTokenRoundTripper struct {
-	base      http.RoundTripper
-	token     string // static token (local dev / kubeconfig)
-	tokenFile string // projected token file path (in-cluster, rotated by kubelet)
+	base                 http.RoundTripper
+	token                string // static token (local dev / kubeconfig)
+	tokenFile            string // projected token file path (in-cluster, rotated by kubelet)
+	onTokenFileReadError func(tokenFile string, err error)
 }
 
 func (t *saTokenRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
@@ -341,6 +349,10 @@ func (t *saTokenRoundTripper) RoundTrip(req *http.Request) (*http.Response, erro
 		if data, err := os.ReadFile(t.tokenFile); err == nil {
 			if s := strings.TrimSpace(string(data)); s != "" {
 				token = s
+			}
+		} else {
+			if t.onTokenFileReadError != nil {
+				t.onTokenFileReadError(t.tokenFile, err)
 			}
 		}
 	}

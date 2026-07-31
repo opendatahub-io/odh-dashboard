@@ -223,7 +223,10 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		case config.AuthMethodUser:
 			authWrapper = kubernetes.NewBearerTokenRoundTripper
 		case config.AuthMethodInternal:
-			saWrapper, err := kubernetes.NewSATokenTransportWrapper()
+			saWrapper, err := kubernetes.NewSATokenTransportWrapper(func(tokenFile string, err error) {
+				logger.Warn("failed to read service account token file; falling back to last-known token",
+					"tokenFile", tokenFile, "error", err)
+			})
 			if err != nil {
 				return nil, fmt.Errorf("failed to initialize SA token transport for model registry: %w", err)
 			}
