@@ -9,7 +9,7 @@ import { PhaseLabelLocation, PhaseResourceType } from '~/app/utilities/phaseLabe
 import { formatTokenLimits } from '~/app/utilities/rateLimits';
 import { hasHighlightedGroup } from './utils';
 import GroupChips from './GroupChips';
-import './ExpandedModelContent.scss';
+import styles from './ExpandedModelContent.module.scss';
 
 const OVERVIEW_LINK_STATE = {
   returnTo: `${URL_PREFIX}/maas-governance/overview`,
@@ -59,7 +59,11 @@ const ExpandableItem: React.FC<ExpandableItemProps> = ({
   statusMessage,
   isHighlighted,
 }) => (
-  <div className={`maas-expandable-item${isHighlighted ? ' m-highlighted' : ''}`}>
+  <div
+    className={`${styles['maas-expandable-item']}${
+      isHighlighted ? ` ${styles['m-highlighted']}` : ''
+    }`}
+  >
     <Table aria-label={ariaLabel} borders={false} variant="compact">
       <Tbody isExpanded={isExpanded}>
         <Tr>
