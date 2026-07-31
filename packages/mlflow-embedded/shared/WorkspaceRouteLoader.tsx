@@ -6,7 +6,7 @@ import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import { ProjectsContext } from '@odh-dashboard/ui-core/context/ProjectsContext';
 import { byName } from '@odh-dashboard/k8s-core';
 import InvalidProject from '@odh-dashboard/internal/concepts/projects/InvalidProject';
-import { getStoredPreferredProject } from '@odh-dashboard/internal/concepts/projects/getStoredPreferredProject';
+import { getStoredPreferredProject } from '@odh-dashboard/ui-core/context/getStoredPreferredProject';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import PipelineCoreProjectSelector from '@odh-dashboard/internal/pages/pipelines/global/PipelineCoreProjectSelector';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports

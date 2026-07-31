@@ -6,7 +6,7 @@ import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import InvalidProject from '@odh-dashboard/internal/concepts/projects/InvalidProject';
 import ModelServingContextProvider from '@odh-dashboard/internal/pages/modelServing/ModelServingContext';
 import ModelServingNoProjects from '@odh-dashboard/internal/pages/modelServing/screens/global/ModelServingNoProjects';
-import { getStoredPreferredProject } from '@odh-dashboard/internal/concepts/projects/getStoredPreferredProject';
+import { getStoredPreferredProject } from '@odh-dashboard/ui-core/context/getStoredPreferredProject';
 import ModelServingProjectSelection from './ModelServingProjectSelection';
 
 type ApplicationPageProps = React.ComponentProps<typeof ApplicationsPage>;

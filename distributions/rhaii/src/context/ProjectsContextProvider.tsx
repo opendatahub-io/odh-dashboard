@@ -6,9 +6,8 @@ import {
 import type { ProjectKind } from '@odh-dashboard/k8s-core';
 import { byName, isAvailableProject } from '@odh-dashboard/k8s-core';
 import { useBrowserStorage } from '@odh-dashboard/ui-core/hooks/useBrowserStorage';
+import { PREFERRED_NAMESPACE_STORAGE_KEY } from '@odh-dashboard/ui-core/context/getStoredPreferredProject';
 import fetchNamespaces, { FETCH_TIMEOUT_MS } from './fetchNamespaces';
-
-const PREFERRED_NAMESPACE_STORAGE_KEY = 'mod-arch.namespace.lastUsed';
 /** Dashboard install namespace — excluded from the selectable project list. */
 const DASHBOARD_NAMESPACE = 'opendatahub';
 

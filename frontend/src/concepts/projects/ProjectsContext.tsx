@@ -5,10 +5,10 @@ import {
   ProjectsContext,
   type ProjectsContextType,
 } from '@odh-dashboard/ui-core/context/ProjectsContext';
+import { PREFERRED_NAMESPACE_STORAGE_KEY } from '@odh-dashboard/ui-core/context/getStoredPreferredProject';
 import { useProjects } from '#~/api';
 import { useDashboardNamespace } from '#~/redux/selectors';
 import { isAvailableProject } from './utils';
-import { PREFERRED_NAMESPACE_STORAGE_KEY } from './getStoredPreferredProject';
 
 // Re-export shared definitions for backward compatibility
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports -- re-exporting shared context
