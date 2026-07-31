@@ -27,6 +27,7 @@
     "@odh-dashboard/app-config": "*",
     "@odh-dashboard/eslint-config": "*",
     "@odh-dashboard/feature-store": "*",
+    "@odh-dashboard/hardware-profiles": "*",
     "@odh-dashboard/internal": "*",
     "@odh-dashboard/k8s-core": "*",
     "@odh-dashboard/maas": "*",

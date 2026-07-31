@@ -9,7 +9,6 @@ import {
 import { DSPAMlflowIntegrationMode } from '@odh-dashboard/k8s-core';
 import {
   mockK8sResourceList,
-  mockProjectK8sResource,
   mockDashboardConfig,
   buildMockRunKF,
   buildMockPipelineVersions,
@@ -20,6 +19,7 @@ import {
   buildMockRecurringRunKF,
   buildMockExperiments,
 } from '@odh-dashboard/internal/__mocks__';
+import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import {
   mockedArtifactsResponse,
   mockGetArtifactsResponse,

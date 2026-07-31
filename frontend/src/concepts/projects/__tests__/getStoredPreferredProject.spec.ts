@@ -1,4 +1,4 @@
-import { mockProjectK8sResource } from '#~/__mocks__';
+import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import { getStoredPreferredProject } from '#~/concepts/projects/getStoredPreferredProject';
 
 const STORAGE_KEY = 'mod-arch.namespace.lastUsed';

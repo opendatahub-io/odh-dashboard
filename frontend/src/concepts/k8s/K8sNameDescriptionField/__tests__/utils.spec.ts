@@ -8,8 +8,8 @@ import {
   translateDisplayNameForK8s,
 } from '@odh-dashboard/k8s-core';
 import type { K8sNameDescriptionFieldData } from '@odh-dashboard/k8s-core';
-import { mockProjectK8sResource } from '#~/__mocks__';
-import { mockK8sNameDescriptionFieldData } from '#~/__mocks__/mockK8sNameDescriptionFieldData';
+import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
+import { mockK8sNameDescriptionFieldData } from '@odh-dashboard/k8s-core/__mocks__/mockK8sNameDescriptionFieldData';
 
 describe('setupDefaults', () => {
   it('should return a sane default', () => {
