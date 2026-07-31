@@ -1,0 +1,6 @@
+- op: replace
+  path: /metadata/name
+  value: rhods-dashboard
+- op: replace
+  path: /spec/selector/matchLabels/deployment
+  value: rhods-dashboard
