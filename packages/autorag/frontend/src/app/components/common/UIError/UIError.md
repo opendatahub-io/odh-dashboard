@@ -4,8 +4,8 @@ The goal of `UIError` is to provide odh-dashboard UI packages a standard, consis
 
 ## As-Is Error handling
 
-Users today that experience errors coming from the BFF often see a PF Alert with a simple **"Something went wrong"** error in the worst case,
-and in a slightly better case see a useful message: **"The connection could not be found. Verify the connection exists and try again."**
+Users today that experience errors coming from the BFF often see a PatternFly Alert with a simple **"Something went wrong"** error in the worst case,
+and in a slightly better case see a useful message: **"The connection could not be found."**
 
 This current approach works okay for simple cases but leaves a few key error details out of view from the user.
 Things like logs, detailed error info, and a more verbose error message with a remedy are not found.
@@ -41,6 +41,7 @@ export interface UIError {
   details: Record<string, unknown>;
 }
 ```
+
 An example `UIError` could look like:
 ```JSON
 {
@@ -56,14 +57,16 @@ An example `UIError` could look like:
 
 ## Using `UIError` in the BFF
 
-``` go
+While handling errors in the BFF, the `UIError` struct's `NewUIError` function can be used.
+The builder pattern allows various items to be configured in one shot.
+```GO
 func (app *App) CreatePipelineRunHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
   /*...*/
 
-  if pipelineType != constants.PipelineTypeAutoRAG {
-    errorReason := fmt.Sprintf("unsupported pipelineType %q: only %q is supported", pipelineType, constants.PipelineTypeAutoRAG)
-    NewUIError(http.StatusBadRequest, "unsupported_pipeline_type", errorReason).
-      WithDetail("reason", errorReason).
+  if !isAllowed(pipelineName) {
+    errorReason := fmt.Sprintf("pipeline run name %q is not allowed", pipelineName)
+    NewUIError(http.StatusBadRequest, "invalid_pipeline_run_name", errorReason).
+      WithDetail("displayName", pipelineName).
       WithTracing(r).
       WriteTo(w)
     return
@@ -73,15 +76,32 @@ func (app *App) CreatePipelineRunHandler(w http.ResponseWriter, r *http.Request,
 }
 ```
 
+Since the `details` field is a configurable map of data the `WithDetail` function should be called multiple times to add more detail keys
+```GO
+NewUIError(http.StatusBadRequest, "example_error_id", "An error happened...").
+  WithDetail("detail_a", detailA).
+  WithDetail("detail_b", detailB).
+  WithDetail("detail_c", detailC).
+  WithTracing(r).
+  WriteTo(w)
+```
+
+### BFF Transaction IDs
+
+odh-dashboard BFF mod-arch generated packages should come with some level of transaction ID support via the `EnableTelemetry` middleware.
+Added to the context of all requests when this is enabled is a `TraceIdKey` variable that `UIError` will make use of.
+
 ## Using `UIError` on the UI
 
-```tsx
+When rendering your app, make use of the high-level `UIErrorHandler` component.
+```TSX
 <UIErrorHandler id="SomeComponent-UIErrorHandler" uiErrorMappings={myUIErrorMappings}>
   {myApp}
 </UIErrorHandler>
 ```
 
-```tsx
+The `UIErrorHandler` component offers a React hook that enables the easy rendering of `UIError`s we get back from API requests.  
+```TSX
 import { useCatchUIError } from '~/app/components/common/UIError/UIErrorHandler.tsx';
 
 const catchUIError = useCatchUIError();
