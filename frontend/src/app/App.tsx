@@ -50,6 +50,9 @@ import useDevFeatureFlags from './featureFlags/useDevFeatureFlags';
 import WhatsNewModal from './whatsNew/WhatsNewModal';
 import './App.scss';
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const ciTypeTest: number = 'not a number';
+
 const App: React.FC = () => {
   const [notificationsOpen, setNotificationsOpen] = React.useState(false);
   const { username, userError, isAllowed } = useUser();
