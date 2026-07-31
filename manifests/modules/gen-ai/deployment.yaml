@@ -106,6 +106,7 @@ spec:
               memory: 64Mi
               ephemeral-storage: 10Mi
             limits:
+              cpu: 100m
               memory: 192Mi
               ephemeral-storage: 10Mi
           ports:
