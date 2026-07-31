@@ -55,7 +55,6 @@ export const useMetricColumns = (
   metricsColumnNames: string[];
   runArtifactsLoaded: boolean;
   runArtifactsError: Error | undefined;
-  metricsNames: Set<string>;
 } => {
   const [runArtifacts, runArtifactsLoaded, runArtifactsError] = useGetArtifactsByRuns(
     runs,
@@ -90,6 +89,5 @@ export const useMetricColumns = (
     metricsColumnNames,
     runArtifactsLoaded,
     runArtifactsError,
-    metricsNames,
   };
 };

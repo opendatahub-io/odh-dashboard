@@ -271,6 +271,9 @@ describe('MlflowIntegrationSection', () => {
     );
 
     expect(screen.queryByText(/mlflow\.autolog\(\)/)).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('Requires mlflow[kubernetes] in your pipeline image.'),
+    ).not.toBeInTheDocument();
   });
 
   it('should render the autologging code snippet when injectUserEnvVars is true', () => {
@@ -284,5 +287,8 @@ describe('MlflowIntegrationSection', () => {
     );
 
     expect(screen.getByText(/mlflow\.autolog\(\)/)).toBeInTheDocument();
+    expect(
+      screen.getByText('Requires mlflow[kubernetes] in your pipeline image.'),
+    ).toBeInTheDocument();
   });
 });

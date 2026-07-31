@@ -110,6 +110,19 @@ describe('getMlflowExperimentNameFromRun', () => {
     });
     expect(getMlflowExperimentNameFromRun(run)).toBe('KFP-Default');
   });
+
+  it('ignores plugins_output experiment_name when plugin state is FAILED', () => {
+    const run = buildMockRunKF({
+      plugins_input: { mlflow: { experiment_name: 'Input Experiment' } },
+      plugins_output: {
+        mlflow: {
+          entries: { experiment_name: { value: 'Failed Output Experiment' } },
+          state: PluginStateKF.PLUGIN_FAILED,
+        },
+      },
+    });
+    expect(getMlflowExperimentNameFromRun(run)).toBe('Input Experiment');
+  });
 });
 
 describe('getMlflowPluginOutput', () => {
@@ -281,7 +294,7 @@ describe('getMlflowExperimentId', () => {
     expect(getMlflowExperimentId(run)).toBe('7');
   });
 
-  it('returns experiment_id from plugins_output even when plugin state is FAILED (current behavior)', () => {
+  it('ignores plugins_output experiment_id when plugin state is FAILED', () => {
     const run = buildMockRunKF({
       plugins_output: {
         mlflow: {
@@ -290,7 +303,20 @@ describe('getMlflowExperimentId', () => {
         },
       },
     });
-    expect(getMlflowExperimentId(run)).toBe('failed-exp');
+    expect(getMlflowExperimentId(run)).toBeUndefined();
+  });
+
+  it('falls back to plugins_input experiment_id when plugin state is FAILED', () => {
+    const run = buildMockRunKF({
+      plugins_output: {
+        mlflow: {
+          entries: { experiment_id: { value: 'failed-exp' } },
+          state: PluginStateKF.PLUGIN_FAILED,
+        },
+      },
+      plugins_input: { mlflow: { experiment_id: 'input-exp' } },
+    });
+    expect(getMlflowExperimentId(run)).toBe('input-exp');
   });
 
   it('returns experiment_id when plugins_output uses uppercase MLflow key', () => {
@@ -343,7 +369,7 @@ describe('getMlflowRunId', () => {
     expect(getMlflowRunId(run)).toBeUndefined();
   });
 
-  it('returns root_run_id even when plugin state is FAILED (current behavior)', () => {
+  it('returns undefined when plugin state is FAILED even if root_run_id is present', () => {
     const run = buildMockRunKF({
       plugins_output: {
         mlflow: {
@@ -352,7 +378,19 @@ describe('getMlflowRunId', () => {
         },
       },
     });
-    expect(getMlflowRunId(run)).toBe('partial-id');
+    expect(getMlflowRunId(run)).toBeUndefined();
+  });
+
+  it('returns undefined when plugin state is RUNNING even if root_run_id is present', () => {
+    const run = buildMockRunKF({
+      plugins_output: {
+        mlflow: {
+          entries: { root_run_id: { value: 'running-id' } },
+          state: PluginStateKF.PLUGIN_RUNNING,
+        },
+      },
+    });
+    expect(getMlflowRunId(run)).toBeUndefined();
   });
 
   it('returns root_run_id when plugins_output uses uppercase MLflow key', () => {

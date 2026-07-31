@@ -606,8 +606,9 @@ describe('Pipeline runs', () => {
           cy.interceptOdh('GET /api/config', mockDashboardConfig({}));
           interceptMlflowStatus();
           interceptDSPAMlflowIntegration(projectName);
-          cy.intercept('GET', '/_bff/mlflow/api/v1/experiments*', {
-            body: { data: { experiments: [] } },
+          cy.intercept('GET', '/_bff/mlflow/api/v1/experiments*', (req) => {
+            expect(req.query.workspace).to.equal(projectName);
+            req.reply({ data: { experiments: [] } });
           });
           const runWithMlflow = buildMockRunKF({
             display_name: 'Run with mlflow',

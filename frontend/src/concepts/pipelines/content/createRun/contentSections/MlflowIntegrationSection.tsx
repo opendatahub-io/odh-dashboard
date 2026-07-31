@@ -6,7 +6,10 @@ import {
   CodeBlockAction,
   CodeBlockCode,
   FormGroup,
+  FormHelperText,
   FormSection,
+  HelperText,
+  HelperTextItem,
   Radio,
   TextInput,
 } from '@patternfly/react-core';
@@ -24,10 +27,11 @@ import { NAME_CHARACTER_LIMIT } from '#~/concepts/pipelines/content/const';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import MlflowExperimentSelector from '#~/concepts/mlflow/MlflowExperimentSelector';
 
-const MLFLOW_AUTOLOG_SNIPPET = `import mlflow
-mlflow.autolog()
-with mlflow.start_run():
-    # your training code goes here ...`;
+const MLFLOW_AUTOLOG_SNIPPET = `import os, mlflow
+if os.getenv("MLFLOW_RUN_ID"):
+    mlflow.autolog()
+    with mlflow.start_run():
+        # your training code goes here ...`;
 
 type MlflowIntegrationSectionProps = {
   data: MlflowFormData;
@@ -200,32 +204,36 @@ const MlflowIntegrationSection: React.FC<MlflowIntegrationSectionProps> = ({
             <DashboardHelpTooltip content="To enable automatic metric tracking, add this code to your training script or notebook." />
           }
         >
-          <div style={isDisabled ? { opacity: 0.5, pointerEvents: 'none' } : undefined}>
-            <CodeBlock
-              actions={
-                <CodeBlockAction>
-                  <ClipboardCopyButton
-                    id="mlflow-autolog-copy"
-                    aria-label="Copy to clipboard"
-                    disabled={isDisabled}
-                    onClick={() => {
-                      navigator.clipboard
-                        .writeText(MLFLOW_AUTOLOG_SNIPPET)
-                        .then(() => setCopied(true))
-                        .catch(() => undefined);
-                    }}
-                    exitDelay={copied ? 1500 : 600}
-                    variant="plain"
-                    onTooltipHidden={() => setCopied(false)}
-                  >
-                    {copied ? 'Successfully copied to clipboard!' : 'Copy to clipboard'}
-                  </ClipboardCopyButton>
-                </CodeBlockAction>
-              }
-            >
-              <CodeBlockCode id="mlflow-autolog-code">{MLFLOW_AUTOLOG_SNIPPET}</CodeBlockCode>
-            </CodeBlock>
-          </div>
+          <CodeBlock
+            className={isDisabled ? 'pf-v6-u-disabled-color-100' : undefined}
+            actions={
+              <CodeBlockAction>
+                <ClipboardCopyButton
+                  id="mlflow-autolog-copy"
+                  aria-label="Copy to clipboard"
+                  disabled={isDisabled}
+                  onClick={() => {
+                    navigator.clipboard
+                      .writeText(MLFLOW_AUTOLOG_SNIPPET)
+                      .then(() => setCopied(true))
+                      .catch(() => undefined);
+                  }}
+                  exitDelay={copied ? 1500 : 600}
+                  variant="plain"
+                  onTooltipHidden={() => setCopied(false)}
+                >
+                  {copied ? 'Successfully copied to clipboard!' : 'Copy to clipboard'}
+                </ClipboardCopyButton>
+              </CodeBlockAction>
+            }
+          >
+            <CodeBlockCode id="mlflow-autolog-code">{MLFLOW_AUTOLOG_SNIPPET}</CodeBlockCode>
+          </CodeBlock>
+          <FormHelperText>
+            <HelperText>
+              <HelperTextItem>Requires mlflow[kubernetes] in your pipeline image.</HelperTextItem>
+            </HelperText>
+          </FormHelperText>
         </FormGroup>
       )}
     </FormSection>

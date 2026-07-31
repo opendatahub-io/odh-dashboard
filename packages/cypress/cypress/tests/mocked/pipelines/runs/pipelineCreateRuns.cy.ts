@@ -12,6 +12,7 @@ import {
   buildMockRunKF,
   buildMockPipeline,
   buildMockPipelineVersion,
+  buildMockPipelineVersions,
   buildMockRecurringRunKF,
   buildMockExperimentKF,
   mockDashboardConfig,
@@ -959,8 +960,24 @@ describe('Pipeline create runs', () => {
 
       pipelineVersionImportModal.find();
       pipelineVersionImportModal.fillVersionName(newPipelineVersion.display_name);
+
+      cy.interceptOdh(
+        'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/:pipelineId/versions',
+        {
+          path: {
+            namespace: projectName,
+            serviceName: 'dspa',
+            pipelineId: mockPipeline.pipeline_id,
+          },
+          times: 1,
+        },
+        buildMockPipelineVersions([]),
+      ).as('duplicateNameCheck');
+
       pipelineVersionImportModal.fillVersionDescription(newPipelineVersion.description);
       pipelineVersionImportModal.uploadPipelineYaml(mockPipelineYamlPath);
+
+      cy.wait('@duplicateNameCheck');
 
       // Update the versions mock to include the new version so the dropdown
       // refetch after creation returns it

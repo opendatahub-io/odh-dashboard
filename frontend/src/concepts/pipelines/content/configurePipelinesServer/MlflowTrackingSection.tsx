@@ -10,19 +10,13 @@ import {
 import { DSPAMlflowIntegrationMode, DSPipelineMlflowKind } from '#~/k8sTypes';
 import FormSection from '#~/components/pf-overrides/FormSection';
 
-type FormVariantProps = {
-  variant?: 'form';
+type MlflowTrackingSectionBaseProps = {
   mlflow: DSPipelineMlflowKind;
   setMlflow: (mlflow: DSPipelineMlflowKind) => void;
 };
 
-type DescriptionVariantProps = {
-  variant: 'description';
-  mlflow: DSPipelineMlflowKind;
-  setMlflow: (mlflow: DSPipelineMlflowKind) => void;
-};
-
-type MlflowTrackingSectionProps = FormVariantProps | DescriptionVariantProps;
+type MlflowTrackingSectionProps = MlflowTrackingSectionBaseProps &
+  ({ variant?: 'form' } | { variant: 'description' });
 
 const INJECT_DISABLED_TOOLTIP =
   "MLflow integration must be enabled to inject credentials into pipeline tasks. Enable 'Automatically detect and connect to MLflow' first.";
@@ -74,8 +68,7 @@ const MlflowTrackingSection: React.FC<MlflowTrackingSectionProps> = ({
       description={
         <span className={!isIntegrationEnabled ? 'pf-v6-u-disabled-color-100' : undefined}>
           When enabled, pipeline tasks receive MLflow credentials automatically, so calls like
-          mlflow.autolog() log to the correct MLflow run. Requires mlflow[kubernetes] in your
-          pipeline image.
+          mlflow.autolog() log to the correct MLflow run.
         </span>
       }
     />
