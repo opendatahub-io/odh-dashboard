@@ -12,20 +12,24 @@ configMapGenerator:
     env: params.env
 generatorOptions:
   disableNameSuffixHash: true
-vars:
-  - name: autorag-ui-image
-    objref:
+replacements:
+  - source:
       kind: ConfigMap
       name: autorag-params
-      apiVersion: v1
-    fieldref:
-      fieldpath: data.autorag-ui-image
-  - name: autorag-pipeline-runtime-image
-    objref:
+      fieldPath: data.autorag-ui-image
+    targets:
+      - select:
+          kind: Deployment
+          name: autorag-ui
+        fieldPaths:
+          - spec.template.spec.containers.[name=autorag-ui].image
+  - source:
       kind: ConfigMap
       name: autorag-params
-      apiVersion: v1
-    fieldref:
-      fieldpath: data.autorag-pipeline-runtime-image
-configurations:
-  - params.yaml
+      fieldPath: data.autorag-pipeline-runtime-image
+    targets:
+      - select:
+          kind: Deployment
+          name: autorag-ui
+        fieldPaths:
+          - spec.template.spec.containers.[name=autorag-ui].env.[name=RELATED_IMAGE_ODH_AUTORAG_IMAGE].value

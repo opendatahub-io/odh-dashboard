@@ -150,4 +150,9 @@ describe('CreateRolePage', () => {
     expect(screen.queryByTestId('create-role-page')).not.toBeInTheDocument();
     expect(screen.getByTestId('redirected')).toBeInTheDocument();
   });
+
+  it('should render the title and description', () => {
+    renderPage();
+    expect(screen.getByTestId('form-view-title')).toHaveTextContent('Role configuration');
+  });
 });

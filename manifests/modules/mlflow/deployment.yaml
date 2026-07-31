@@ -35,7 +35,8 @@ spec:
                 topologyKey: topology.kubernetes.io/zone
       volumes:
         - name: tmp
-          emptyDir: {}
+          emptyDir:
+            sizeLimit: 100Mi
         - name: modules-sa-token
           projected:
             defaultMode: 420
@@ -77,7 +78,7 @@ spec:
                 path: odh-ca-bundle.crt
       containers:
         - name: mlflow-ui
-          image: $(mlflow-ui-image)
+          image: mlflow-ui-image
           imagePullPolicy: Always
           livenessProbe:
             httpGet:

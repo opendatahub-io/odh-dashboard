@@ -9,6 +9,9 @@ export type {
   HardwareProfileBindingConfig,
   CrPathConfig,
   HardwareProfileOptions,
+  ModelServingPodSpecOptions,
+  ModelServingSizeState,
+  ModelServingPodSpecOptionsState,
 } from './types';
 
 // Constants

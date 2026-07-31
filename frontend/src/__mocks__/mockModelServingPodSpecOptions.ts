@@ -1,4 +1,4 @@
-import { ModelServingPodSpecOptions } from '#~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
+import type { ModelServingPodSpecOptions } from '@odh-dashboard/hardware-profiles/shared';
 
 type MockResourceConfigType = Partial<ModelServingPodSpecOptions>;
 

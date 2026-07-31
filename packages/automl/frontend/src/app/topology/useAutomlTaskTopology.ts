@@ -8,9 +8,9 @@ const TASK_DISPLAY_NAMES: Record<string, string> = {
   'publish-component-stage-map': 'Pipeline preparation',
   'automl-data-loader': 'Input data loader',
   'timeseries-data-loader': 'Input data loader',
-  'models-selection': 'Model selection',
-  'timeseries-models-selection': 'Model selection',
-  'autogluon-timeseries-models-selection': 'Model selection',
+  'models-selection': 'Select models',
+  'timeseries-models-selection': 'Select models',
+  'autogluon-timeseries-models-selection': 'Select models',
   'for-loop-1': 'Model generation', // used in timeseries
   'autogluon-models-training': 'Model generation', // used in tabular
   'autogluon-models-training-2': 'Model generation', // speed preset variant
@@ -30,7 +30,7 @@ const normalizeTaskLookupKey = (s: string): string =>
 
 /**
  * Sentence-case fallback when no TASK_DISPLAY_NAMES entry matches
- * (matches entries like "Model selection", "Input data loader").
+ * (matches entries like "Select models", "Input data loader").
  */
 const fallbackTaskDisplayLabel = (name: string): string => {
   const spaced = name.trim().replace(/[-_]+/g, ' ').replace(/\s+/g, ' ');

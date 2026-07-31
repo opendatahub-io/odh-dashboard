@@ -27,7 +27,7 @@ import {
   createContainer,
 } from '@patternfly/react-charts/victory';
 import { CubesIcon } from '@patternfly/react-icons';
-import { TimeframeTimeRange } from '@odh-dashboard/internal/concepts/metrics/const';
+import { TimeframeTimeRange } from '@odh-dashboard/ui-core/utilities/metrics';
 import { MetricsCommonContext } from '@odh-dashboard/internal/concepts/metrics/MetricsCommonContext';
 import {
   DomainCalculator,
