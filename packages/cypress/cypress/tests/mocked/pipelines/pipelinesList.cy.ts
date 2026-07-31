@@ -7,7 +7,6 @@ import {
   mockSecretK8sResource,
   mockDataSciencePipelineApplicationK8sResource,
   mockK8sResourceList,
-  mock404Error,
   buildMockPipeline,
   buildMockPipelines,
 } from '@odh-dashboard/internal/__mocks__';
@@ -51,24 +50,7 @@ const mockPipelines: PipelineKF[] = [
 ];
 
 describe('PipelinesList', () => {
-  it('should show the configure pipeline server button when the server is not configured', () => {
-    initIntercepts({ isEmptyProject: true });
-    cy.interceptK8s(
-      {
-        model: DataSciencePipelineApplicationModel,
-        ns: projectName,
-        name: 'pipelines-definition',
-      },
-      {
-        statusCode: 404,
-        body: mock404Error({}),
-      },
-    );
-
-    projectDetails.visitSection(projectName, 'pipelines-projects');
-
-    pipelinesSection.findCreatePipelineButton().should('be.enabled');
-  });
+  // CONVERTED to Jest: NoPipelineServer.spec.tsx, PipelineServerActions.spec.tsx
 
   it('should verify that clicking on Configure pipeline server button will open a modal', () => {
     initIntercepts({ isEmptyProject: true });
@@ -138,15 +120,6 @@ describe('PipelinesList', () => {
     });
 
     pipelinesSection.findUploadVersionButton().should('have.attr', 'aria-disabled', 'true');
-  });
-
-  it('should show the ability to delete the pipeline server kebab option', () => {
-    initIntercepts();
-
-    projectDetails.visitSection(projectName, 'pipelines-projects');
-
-    pipelinesSection.findKebabActions().should('be.visible').should('be.enabled');
-    pipelinesSection.findKebabActionItem('Delete pipeline server').should('be.visible');
   });
 
   it('should show the ability to upload new version when clicking the pipeline server kebab option', () => {
