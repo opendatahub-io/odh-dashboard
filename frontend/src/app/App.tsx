@@ -1,5 +1,4 @@
 import React from 'react';
-import { useState } from 'react';
 import '@patternfly/patternfly/patternfly.min.css';
 import '@patternfly/patternfly/patternfly-addons.css';
 import '@patternfly/patternfly/patternfly-charts.css';
@@ -49,9 +48,6 @@ import DevFeatureFlagsBanner from './featureFlags/DevFeatureFlagsBanner';
 import useDevFeatureFlags from './featureFlags/useDevFeatureFlags';
 import WhatsNewModal from './whatsNew/WhatsNewModal';
 import './App.scss';
-
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const ciTypeTest: number = 'not a number';
 
 const App: React.FC = () => {
   const [notificationsOpen, setNotificationsOpen] = React.useState(false);
