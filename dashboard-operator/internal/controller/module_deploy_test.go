@@ -172,8 +172,10 @@ func TestBuildFederationConfigMap_NamespaceValues(t *testing.T) {
 	var entries []map[string]interface{}
 	require.NoError(t, json.Unmarshal([]byte(data), &entries))
 
+	seen := make(map[string]bool)
 	for _, entry := range entries {
 		name, _ := entry["name"].(string)
+		seen[name] = true
 
 		switch name {
 		case "perses":
@@ -200,6 +202,8 @@ func TestBuildFederationConfigMap_NamespaceValues(t *testing.T) {
 			}
 		}
 	}
+	require.True(t, seen["perses"], "perses entry must be present")
+	require.True(t, seen["coreBff"], "coreBff entry must be present")
 }
 
 func TestPatchDeploymentFederationHash_CreatesAnnotation(t *testing.T) {

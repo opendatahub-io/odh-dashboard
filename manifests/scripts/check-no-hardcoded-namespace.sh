@@ -21,11 +21,10 @@ while IFS= read -r -d '' file; do
       ((violations++))
     done <<< "$matches"
   fi
-done < <(find "$MANIFEST_DIR" \( -name '*.yaml' -o -name '*.yml' \) -print | \
-  grep -v '/kustomization\.yaml$' | \
-  grep -v '/crd/' | \
-  sort | \
-  tr '\n' '\0')
+done < <(find "$MANIFEST_DIR" \( -name '*.yaml' -o -name '*.yml' \) \
+  -not -path '*/kustomization.yaml' \
+  -not -path '*/crd/*' \
+  -print0 | sort -z)
 
 if (( violations > 0 )); then
   echo ""
