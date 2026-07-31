@@ -1,7 +1,14 @@
 package api
 
 import (
+	"context"
+	"encoding/json"
+	"log/slog"
+	"net/http"
+	"net/http/httptest"
 	"testing"
+
+	"github.com/opendatahub-io/autorag-library/bff/internal/constants"
 )
 
 func TestRedactDetails(t *testing.T) {
@@ -105,6 +112,155 @@ func TestRedactDetails(t *testing.T) {
 				if gotVal != want {
 					t.Errorf("key %q: got %v, want %v", k, gotVal, want)
 				}
+			}
+		})
+	}
+}
+
+func TestUIError_WriteTo(t *testing.T) {
+	tests := []struct {
+		name           string
+		err            *UIError
+		wantStatus     int
+		wantBodyFields map[string]any
+	}{
+		{
+			name:       "writes status and JSON body",
+			err:        NewUIError(http.StatusNotFound, "rag.not_found", "RAG not found"),
+			wantStatus: http.StatusNotFound,
+			wantBodyFields: map[string]any{
+				"messageId": "rag.not_found",
+				"reason":    "RAG not found",
+				"status":    float64(http.StatusNotFound),
+			},
+		},
+		{
+			name: "includes details and transactionId",
+			err: &UIError{
+				MessageID:     "rag.error",
+				Reason:        "something broke",
+				Status:        http.StatusInternalServerError,
+				TransactionID: "tx-abc-123",
+				Details:       map[string]any{"component": "indexer"},
+			},
+			wantStatus: http.StatusInternalServerError,
+			wantBodyFields: map[string]any{
+				"messageId":     "rag.error",
+				"reason":        "something broke",
+				"status":        float64(http.StatusInternalServerError),
+				"transactionId": "tx-abc-123",
+			},
+		},
+		{
+			name:       "writes with logger attached",
+			err:        NewUIError(http.StatusBadRequest, "bad.input", "invalid request").WithLogger(slog.Default()),
+			wantStatus: http.StatusBadRequest,
+			wantBodyFields: map[string]any{
+				"messageId": "bad.input",
+				"reason":    "invalid request",
+				"status":    float64(http.StatusBadRequest),
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rec := httptest.NewRecorder()
+			tt.err.WriteTo(rec)
+
+			if rec.Code != tt.wantStatus {
+				t.Errorf("status: got %d, want %d", rec.Code, tt.wantStatus)
+			}
+
+			ct := rec.Header().Get("Content-Type")
+			if ct != "application/json" {
+				t.Errorf("Content-Type: got %q, want %q", ct, "application/json")
+			}
+
+			var body map[string]any
+			if err := json.NewDecoder(rec.Body).Decode(&body); err != nil {
+				t.Fatalf("failed to decode response body: %v", err)
+			}
+
+			for key, want := range tt.wantBodyFields {
+				got, ok := body[key]
+				if !ok {
+					t.Errorf("missing key %q in response body", key)
+					continue
+				}
+				if got != want {
+					t.Errorf("body[%q]: got %v, want %v", key, got, want)
+				}
+			}
+		})
+	}
+}
+
+func TestUIError_WithTracing(t *testing.T) {
+	tests := []struct {
+		name            string
+		ctxValues       map[any]any
+		wantTransaction string
+		wantLogger      bool
+	}{
+		{
+			name:            "no tracing in context",
+			ctxValues:       map[any]any{},
+			wantTransaction: "",
+			wantLogger:      false,
+		},
+		{
+			name: "extracts traceId from context",
+			ctxValues: map[any]any{
+				constants.TraceIdKey: "trace-xyz-789",
+			},
+			wantTransaction: "trace-xyz-789",
+			wantLogger:      false,
+		},
+		{
+			name: "extracts logger from context",
+			ctxValues: map[any]any{
+				constants.TraceLoggerKey: slog.Default(),
+			},
+			wantTransaction: "",
+			wantLogger:      true,
+		},
+		{
+			name: "extracts both traceId and logger",
+			ctxValues: map[any]any{
+				constants.TraceIdKey:     "trace-abc-456",
+				constants.TraceLoggerKey: slog.Default(),
+			},
+			wantTransaction: "trace-abc-456",
+			wantLogger:      true,
+		},
+		{
+			name: "ignores non-string traceId",
+			ctxValues: map[any]any{
+				constants.TraceIdKey: 12345,
+			},
+			wantTransaction: "",
+			wantLogger:      false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := context.Background()
+			for k, v := range tt.ctxValues {
+				ctx = context.WithValue(ctx, k, v)
+			}
+			req := httptest.NewRequest(http.MethodGet, "/", nil).WithContext(ctx)
+
+			uiErr := NewUIError(http.StatusBadRequest, "test", "test error").WithTracing(req)
+
+			if uiErr.TransactionID != tt.wantTransaction {
+				t.Errorf("TransactionID: got %q, want %q", uiErr.TransactionID, tt.wantTransaction)
+			}
+
+			hasLogger := uiErr.logger != nil
+			if hasLogger != tt.wantLogger {
+				t.Errorf("logger present: got %v, want %v", hasLogger, tt.wantLogger)
 			}
 		})
 	}
