@@ -61,7 +61,9 @@ const UIErrorAlert: React.FC<UIErrorAlertProps> = ({ id, uiError, uiErrorMapping
       actionClose={<AlertActionCloseButton onClose={() => closeUIError(uiError)} />}
       actionLinks={
         <>
-          <AlertActionLink onClick={handleShowDetails}>More details...</AlertActionLink>
+          <AlertActionLink onClick={handleShowDetails}>
+            {UIErrorDefaults.labels.moreDetails}
+          </AlertActionLink>
         </>
       }
       onMouseEnter={() => setMouseOver(true)}

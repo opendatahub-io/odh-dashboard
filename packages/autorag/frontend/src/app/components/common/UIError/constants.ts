@@ -16,5 +16,7 @@ export const UIErrorDefaults = {
     subtitleTransaction: 'Transaction',
     subtitleID: 'ID',
     subtitleDetails: 'Details',
+
+    moreDetails: 'More details...',
   },
 };
