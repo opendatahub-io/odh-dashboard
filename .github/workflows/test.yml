@@ -92,32 +92,28 @@ jobs:
           key: ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-unit-tests-${{ github.sha }}
           restore-keys: |
             ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-unit-tests-
-      - name: Wait for quality gates
+      - name: Abort if quality gate already failed
         uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
         with:
           script: |
             const { owner, repo } = context.repo;
-            const runId = context.runId;
-            for (let i = 0; i < 60; i++) {
-              const { data } = await github.rest.actions.listJobsForWorkflowRun({
-                owner, repo, run_id: runId,
-              });
-              const gates = data.jobs.filter(j => j.name.startsWith('Quality-Gate'));
-              if (gates.some(j => j.conclusion === 'failure' || j.conclusion === 'cancelled')) {
-                const failed = gates
-                  .filter(j => j.conclusion === 'failure' || j.conclusion === 'cancelled')
-                  .map(j => j.name);
-                core.setFailed(`Quality gate(s) failed: ${failed.join(', ')}. Aborting.`);
-                return;
-              }
-              if (gates.length >= 2 && gates.every(j => j.conclusion === 'success')) {
-                core.info('Quality gates passed.');
-                return;
-              }
-              core.info(`Waiting for quality gates... (${i + 1}/60)`);
-              await new Promise(r => setTimeout(r, 10000));
+            const { data } = await github.rest.actions.listJobsForWorkflowRun({
+              owner, repo, run_id: context.runId,
+            });
+            const gates = data.jobs.filter(j => j.name.startsWith('Quality-Gate'));
+            const failed = gates.filter(j =>
+              j.conclusion === 'failure' || j.conclusion === 'cancelled'
+            );
+            if (failed.length > 0) {
+              core.setFailed(
+                `Quality gate(s) failed: ${failed.map(j => j.name).join(', ')}. Skipping tests.`
+              );
+              return;
             }
-            core.setFailed('Quality gates did not complete within 10 minutes.');
+            const status = gates.map(j =>
+              `${j.name}=${j.conclusion || 'in_progress'}`
+            );
+            core.info(`Quality gates: ${status.join(', ')}`);
       - name: Unit tests with coverage
         run: |
           npm run test-unit-coverage
@@ -185,32 +181,28 @@ jobs:
         uses: ./.github/actions/module-caches
         with:
           node-version: ${{ env.NODE_VERSION }}
-      - name: Wait for quality gates
+      - name: Abort if quality gate already failed
         uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
         with:
           script: |
             const { owner, repo } = context.repo;
-            const runId = context.runId;
-            for (let i = 0; i < 60; i++) {
-              const { data } = await github.rest.actions.listJobsForWorkflowRun({
-                owner, repo, run_id: runId,
-              });
-              const gates = data.jobs.filter(j => j.name.startsWith('Quality-Gate'));
-              if (gates.some(j => j.conclusion === 'failure' || j.conclusion === 'cancelled')) {
-                const failed = gates
-                  .filter(j => j.conclusion === 'failure' || j.conclusion === 'cancelled')
-                  .map(j => j.name);
-                core.setFailed(`Quality gate(s) failed: ${failed.join(', ')}. Aborting.`);
-                return;
-              }
-              if (gates.length >= 2 && gates.every(j => j.conclusion === 'success')) {
-                core.info('Quality gates passed.');
-                return;
-              }
-              core.info(`Waiting for quality gates... (${i + 1}/60)`);
-              await new Promise(r => setTimeout(r, 10000));
+            const { data } = await github.rest.actions.listJobsForWorkflowRun({
+              owner, repo, run_id: context.runId,
+            });
+            const gates = data.jobs.filter(j => j.name.startsWith('Quality-Gate'));
+            const failed = gates.filter(j =>
+              j.conclusion === 'failure' || j.conclusion === 'cancelled'
+            );
+            if (failed.length > 0) {
+              core.setFailed(
+                `Quality gate(s) failed: ${failed.map(j => j.name).join(', ')}. Skipping tests.`
+              );
+              return;
             }
-            core.setFailed('Quality gates did not complete within 10 minutes.');
+            const status = gates.map(j =>
+              `${j.name}=${j.conclusion || 'in_progress'}`
+            );
+            core.info(`Quality gates: ${status.join(', ')}`);
       - name: Run contract tests
         run: |
           export GITHUB_RUN_ID="$GITHUB_RUN_ID"
@@ -314,32 +306,28 @@ jobs:
           mode: restore
           packages: ${{ needs.Get-Cypress-Packages.outputs.packages }}
           github-token: ${{ github.token }}
-      - name: Wait for quality gates
+      - name: Abort if quality gate already failed
         uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
         with:
           script: |
             const { owner, repo } = context.repo;
-            const runId = context.runId;
-            for (let i = 0; i < 60; i++) {
-              const { data } = await github.rest.actions.listJobsForWorkflowRun({
-                owner, repo, run_id: runId,
-              });
-              const gates = data.jobs.filter(j => j.name.startsWith('Quality-Gate'));
-              if (gates.some(j => j.conclusion === 'failure' || j.conclusion === 'cancelled')) {
-                const failed = gates
-                  .filter(j => j.conclusion === 'failure' || j.conclusion === 'cancelled')
-                  .map(j => j.name);
-                core.setFailed(`Quality gate(s) failed: ${failed.join(', ')}. Aborting.`);
-                return;
-              }
-              if (gates.length >= 2 && gates.every(j => j.conclusion === 'success')) {
-                core.info('Quality gates passed.');
-                return;
-              }
-              core.info(`Waiting for quality gates... (${i + 1}/60)`);
-              await new Promise(r => setTimeout(r, 10000));
+            const { data } = await github.rest.actions.listJobsForWorkflowRun({
+              owner, repo, run_id: context.runId,
+            });
+            const gates = data.jobs.filter(j => j.name.startsWith('Quality-Gate'));
+            const failed = gates.filter(j =>
+              j.conclusion === 'failure' || j.conclusion === 'cancelled'
+            );
+            if (failed.length > 0) {
+              core.setFailed(
+                `Quality gate(s) failed: ${failed.map(j => j.name).join(', ')}. Skipping tests.`
+              );
+              return;
             }
-            core.setFailed('Quality gates did not complete within 10 minutes.');
+            const status = gates.map(j =>
+              `${j.name}=${j.conclusion || 'in_progress'}`
+            );
+            core.info(`Quality gates: ${status.join(', ')}`);
       - name: Run Cypress Mock tests
         env:
           CYPRESS_SPEC: ${{ matrix.test-group.spec }}
