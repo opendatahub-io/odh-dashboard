@@ -108,19 +108,38 @@ const ProjectsContextProvider: React.FC<ProjectsProviderProps> = ({ children }) 
   // The ability to wait for a project to be present is still necessary even with web sockets
   // so long as we continue to rely on a single context to own all  project data.
   const waitForProject = React.useCallback<ProjectsContextType['waitForProject']>(
-    (projectName) =>
+    (projectName, signal) =>
       new Promise((resolve) => {
-        // Projects take a moment to appear in K8s due to their shell version of Namespaces
+        if (signal?.aborted) {
+          resolve();
+          return;
+        }
         const startTime = performance.now();
+        let timerId: ReturnType<typeof setTimeout>;
+
+        const onAbort = () => {
+          clearTimeout(timerId);
+          resolve();
+        };
+
+        signal?.addEventListener('abort', onAbort, { once: true });
+
         const doCheckAgain = () => {
           const remaining = WAIT_FOR_PROJECT_TIMEOUT_MS - (performance.now() - startTime);
-          if (!isMounted.current || remaining <= 0) {
+          if (!isMounted.current || remaining <= 0 || signal?.aborted) {
+            signal?.removeEventListener('abort', onAbort);
             resolve();
             return;
           }
 
-          setTimeout(() => {
+          timerId = setTimeout(() => {
+            if (signal?.aborted) {
+              signal.removeEventListener('abort', onAbort);
+              resolve();
+              return;
+            }
             if (projectsRef.current.find(byName(projectName))) {
+              signal?.removeEventListener('abort', onAbort);
               resolve();
               return;
             }

@@ -14,7 +14,7 @@ export type ProjectsContextType = {
    * @see useSyncPreferredProject
    */
   updatePreferredProject: (project: ProjectKind | null) => void;
-  waitForProject: (projectName: string) => Promise<void>;
+  waitForProject: (projectName: string, signal?: AbortSignal) => Promise<void>;
 
   loaded: boolean;
   loadError: Error | undefined;

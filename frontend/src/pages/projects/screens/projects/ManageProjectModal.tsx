@@ -1,4 +1,5 @@
 import * as React from 'react';
+/* eslint-disable @odh-dashboard/no-restricted-imports -- ManageProjectModal needs Form+onSubmit; ContentModal's buttonActions pattern doesn't support this */
 import {
   Alert,
   Button,
@@ -10,6 +11,7 @@ import {
   ModalHeader,
   ModalFooter,
 } from '@patternfly/react-core';
+/* eslint-enable @odh-dashboard/no-restricted-imports */
 import type { ProjectKind } from '@odh-dashboard/k8s-core';
 import { isK8sNameDescriptionDataValid, LimitNameResourceType } from '@odh-dashboard/k8s-core';
 import K8sNameDescriptionField, {
@@ -30,6 +32,7 @@ const ManageProjectModal: React.FC<ManageProjectModalProps> = ({ editProjectData
   const { waitForProject } = React.useContext(ProjectsContext);
   const [fetching, setFetching] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
+  const waitAbortRef = React.useRef<AbortController | null>(null);
   const k8sNameDescriptionData = useK8sNameDescriptionFieldData({
     initialData: editProjectData,
     limitNameResourceType: LimitNameResourceType.PROJECT,
@@ -39,6 +42,8 @@ const ManageProjectModal: React.FC<ManageProjectModalProps> = ({ editProjectData
   const canSubmit = !fetching && isK8sNameDescriptionDataValid(k8sNameDescriptionData.data);
 
   const onBeforeClose = (newProjectName?: string) => {
+    waitAbortRef.current?.abort();
+    waitAbortRef.current = null;
     onClose(newProjectName);
     if (newProjectName) {
       fireFormTrackingEvent(editProjectData ? 'Project Edited' : 'NewProject Created', {
@@ -71,8 +76,16 @@ const ManageProjectModal: React.FC<ManageProjectModalProps> = ({ editProjectData
         .then(() => onBeforeClose())
         .catch(handleError);
     } else {
+      const abortController = new AbortController();
+      waitAbortRef.current = abortController;
       createProject(username, name, description, k8sName)
-        .then((projectName) => waitForProject(projectName).then(() => onBeforeClose(projectName)))
+        .then((projectName) =>
+          waitForProject(projectName, abortController.signal).then(() => {
+            if (!abortController.signal.aborted) {
+              onBeforeClose(projectName);
+            }
+          }),
+        )
         .catch(handleError);
     }
   };
