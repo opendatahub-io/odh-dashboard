@@ -113,20 +113,19 @@ const ProjectsContextProvider: React.FC<ProjectsProviderProps> = ({ children }) 
         // Projects take a moment to appear in K8s due to their shell version of Namespaces
         const startTime = Date.now();
         const doCheckAgain = () => {
+          const remaining = WAIT_FOR_PROJECT_TIMEOUT_MS - (Date.now() - startTime);
+          if (!isMounted.current || remaining <= 0) {
+            resolve();
+            return;
+          }
+
           setTimeout(() => {
             if (projectsRef.current.find(byName(projectName))) {
               resolve();
               return;
             }
-            if (isMounted.current && Date.now() - startTime < WAIT_FOR_PROJECT_TIMEOUT_MS) {
-              doCheckAgain();
-            } else {
-              // Timeout reached or component unmounted — resolve gracefully.
-              // The project was created successfully; it will appear when the
-              // WebSocket watch delivers it or on next page refresh.
-              resolve();
-            }
-          }, 200);
+            doCheckAgain();
+          }, Math.min(200, remaining));
         };
         doCheckAgain();
       }),
