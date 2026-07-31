@@ -5,10 +5,10 @@ import type {
   Toleration,
   NodeSelector,
 } from '@odh-dashboard/k8s-core';
-import { UseAssignHardwareProfileResult } from '#~/concepts/hardwareProfiles/useAssignHardwareProfile';
-import { applyHardwareProfileConfig } from '#~/concepts/hardwareProfiles/utils';
-import { NOTEBOOK_HARDWARE_PROFILE_PATHS } from '#~/concepts/notebooks/const';
-import type { CrPathConfig } from '#~/concepts/hardwareProfiles/types';
+import type { UseAssignHardwareProfileResult } from '../../shared/useAssignHardwareProfile';
+import { applyHardwareProfileConfig } from '../../shared/utils';
+import { INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS } from '../../shared/const';
+import type { CrPathConfig } from '../../shared/types';
 
 type MockHardwareProfileOptionsConfig = {
   selectedHardwareProfile?: HardwareProfileKind;
@@ -32,7 +32,7 @@ export const mockUseAssignHardwareProfileResult = <T extends K8sResourceCommon>(
   },
   tolerations = [],
   nodeSelector = {},
-  paths = NOTEBOOK_HARDWARE_PROFILE_PATHS,
+  paths = INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS,
 }: MockHardwareProfileOptionsConfig = {}): UseAssignHardwareProfileResult<T> => {
   const formData = {
     selectedProfile: selectedHardwareProfile,

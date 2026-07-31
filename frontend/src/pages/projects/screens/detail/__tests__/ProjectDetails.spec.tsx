@@ -3,6 +3,7 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { MemoryRouter } from 'react-router-dom';
 import { useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
+import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import ProjectDetails from '#~/pages/projects/screens/detail/ProjectDetails';
 import {
   ProjectDetailsContext,
@@ -17,7 +18,6 @@ import {
   useProjectPermissionsTabVisible,
   useProjectRolesTabVisible,
 } from '#~/concepts/projects/accessChecks';
-import { mockProjectK8sResource } from '#~/__mocks__/mockProjectK8sResource';
 
 jest.mock('@odh-dashboard/ui-core', () => ({
   ...jest.requireActual('@odh-dashboard/ui-core'),

@@ -1,13 +1,13 @@
-import { mockDefaultHardwareProfile } from '@odh-dashboard/internal/__mocks__/mockHardwareProfile';
+import { mockDefaultHardwareProfile } from '@odh-dashboard/hardware-profiles/__mocks__/mockHardwareProfile';
 import type { MockDashboardConfigType } from '@odh-dashboard/internal/__mocks__';
 import {
   mock200Status,
   mockDashboardConfig,
   mockDscStatus,
   mockK8sResourceList,
-  mockProjectK8sResource,
   mockSecretK8sResource,
 } from '@odh-dashboard/internal/__mocks__';
+import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import {
   mockNimImages,
   mockNimInferenceService,

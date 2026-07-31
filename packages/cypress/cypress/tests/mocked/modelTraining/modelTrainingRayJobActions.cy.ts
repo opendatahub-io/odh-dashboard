@@ -3,7 +3,7 @@ import { mockRayJobK8sResourceList } from '@odh-dashboard/model-training/__mocks
 import { RayJobDeploymentStatus, RayJobStatusValue } from '@odh-dashboard/model-training/types';
 import { mockDashboardConfig } from '@odh-dashboard/internal/__mocks__/mockDashboardConfig';
 import { mockK8sResourceList } from '@odh-dashboard/internal/__mocks__/mockK8sResourceList';
-import { mockProjectK8sResource } from '@odh-dashboard/internal/__mocks__/mockProjectK8sResource';
+import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import { mock404Error } from '@odh-dashboard/internal/__mocks__/mockK8sStatus';
 import {
   GatewayConfigModel,

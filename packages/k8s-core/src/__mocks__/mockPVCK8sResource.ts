@@ -1,6 +1,7 @@
-import { KnownLabels, type PersistentVolumeClaimKind } from '@odh-dashboard/k8s-core';
-import { genUID } from '#~/__mocks__/mockUtils';
-import { AccessMode } from '#~/pages/storageClasses/storageEnums';
+import { genUID } from '@odh-dashboard/foundation';
+import { KnownLabels } from '../k8sTypes';
+import type { PersistentVolumeClaimKind } from '../k8sTypes';
+import { AccessMode } from '../types';
 
 type MockResourceConfigType = {
   name?: string;

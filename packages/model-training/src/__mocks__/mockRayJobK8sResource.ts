@@ -1,5 +1,5 @@
 import * as _ from 'lodash-es';
-import { genUID } from '@odh-dashboard/internal/__mocks__/mockUtils';
+import { genUID } from '@odh-dashboard/foundation';
 import { RayJobKind, RayWorkerGroupSpec } from '@odh-dashboard/model-training/k8sTypes';
 import { RayJobStatusValue, RayJobDeploymentStatus } from '@odh-dashboard/model-training/types';
 

@@ -4,7 +4,7 @@ import { MODELS_AS_A_SERVICE_READY } from '@odh-dashboard/k8s-core';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import { ProjectModel } from '@odh-dashboard/internal/api/models/index';
 import { mockK8sResourceList } from '@odh-dashboard/internal/__mocks__/mockK8sResourceList';
-import { mockProjectK8sResource } from '@odh-dashboard/internal/__mocks__/mockProjectK8sResource';
+import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import { asProductAdminUser } from '../../../utils/mockUsers';
 import {
   externalModelPathModal,

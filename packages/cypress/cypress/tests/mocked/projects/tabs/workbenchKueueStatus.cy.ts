@@ -5,8 +5,8 @@ import {
   mockDscStatus,
   mockK8sResourceList,
   mockNotebookK8sResource,
-  mockProjectK8sResource,
 } from '@odh-dashboard/internal/__mocks__';
+import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import { mockPodK8sResource } from '@odh-dashboard/internal/__mocks__/mockPodK8sResource';
 import { mockWorkloadK8sResource } from '@odh-dashboard/internal/__mocks__/mockWorkloadK8sResource';
 import { WorkloadStatusType } from '@odh-dashboard/internal/concepts/distributedWorkloads/utils';

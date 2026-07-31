@@ -2,7 +2,7 @@ import * as React from 'react';
 import '@testing-library/jest-dom';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { mockUseAssignHardwareProfileResult } from '@odh-dashboard/internal/__mocks__/mockUseAssignHardwareProfileResult';
+import { mockUseAssignHardwareProfileResult } from '@odh-dashboard/hardware-profiles/__mocks__/mockUseAssignHardwareProfileResult';
 import { useAssignHardwareProfile } from '@odh-dashboard/hardware-profiles/shared/useAssignHardwareProfile';
 import { ModelDeploymentState } from '@odh-dashboard/model-serving/shared';
 import { Deployment } from '../../../../extension-points';

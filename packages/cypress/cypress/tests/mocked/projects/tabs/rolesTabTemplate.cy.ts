@@ -3,11 +3,8 @@
  * Import rules from template (toolbar button), discard changes confirmation,
  * search filtering, and form pre-population.
  */
-import {
-  mockDashboardConfig,
-  mockK8sResourceList,
-  mockProjectK8sResource,
-} from '@odh-dashboard/internal/__mocks__';
+import { mockDashboardConfig, mockK8sResourceList } from '@odh-dashboard/internal/__mocks__';
+import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import {
   ClusterRoleModel,
   ProjectModel,

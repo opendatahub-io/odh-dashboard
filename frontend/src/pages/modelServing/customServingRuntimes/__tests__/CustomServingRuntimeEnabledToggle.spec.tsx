@@ -2,10 +2,8 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import type { TemplateKind } from '@odh-dashboard/k8s-core';
-import {
-  fireRiskAccepted,
-  fireRiskDismissed,
-} from '@odh-dashboard/model-serving/shared/tracking/limitedSupportTracking';
+import { LimitedSupportEvent } from '@odh-dashboard/model-serving/shared/tracking/limitedSupportTracking';
+import { fireMiscTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import { mockServingRuntimeTemplateK8sResource } from '@odh-dashboard/internal/__mocks__/mockServingRuntimeTemplateK8sResource';
 import type { CustomWatchK8sResult } from '#~/types';
@@ -29,17 +27,19 @@ jest.mock('#~/services/templateService', () => ({
   patchTemplateAcceptedAnnotationBackend: jest.fn().mockResolvedValue(undefined),
 }));
 
+jest.mock('#~/concepts/analyticsTracking/segmentIOUtils', () => ({
+  fireMiscTrackingEvent: jest.fn(),
+}));
+
 jest.mock('@odh-dashboard/model-serving/shared/tracking/limitedSupportTracking', () => ({
-  fireRiskAccepted: jest.fn(),
-  fireRiskDismissed: jest.fn(),
+  ...jest.requireActual('@odh-dashboard/model-serving/shared/tracking/limitedSupportTracking'),
   getResourceVersions: jest.fn(() => ({
     version: '1.0.0',
     fastVersion: '2',
   })),
 }));
 
-const mockFireRiskAccepted = jest.mocked(fireRiskAccepted);
-const mockFireRiskDismissed = jest.mocked(fireRiskDismissed);
+const mockFireMiscTrackingEvent = jest.mocked(fireMiscTrackingEvent);
 
 const mockContextValue = {
   refreshData: jest.fn(),
@@ -88,7 +88,7 @@ describe('CustomServingRuntimeEnabledToggle', () => {
     fireEvent.click(screen.getByTestId('unsupported-status-accept-button'));
 
     await waitFor(() => {
-      expect(mockFireRiskAccepted).toHaveBeenCalledWith({
+      expect(mockFireMiscTrackingEvent).toHaveBeenCalledWith(LimitedSupportEvent.RISK_ACCEPTED, {
         runtimeResourceType: 'serving-runtime-template',
         resourceId: 'fast-vllm-template',
         resourceName: 'Fast vLLM Runtime',
@@ -117,7 +117,7 @@ describe('CustomServingRuntimeEnabledToggle', () => {
     fireEvent.click(screen.getByTestId('unsupported-status-cancel-button'));
 
     expect(screen.queryByTestId('unsupported-status-acceptance-modal')).not.toBeInTheDocument();
-    expect(mockFireRiskDismissed).toHaveBeenCalledWith({
+    expect(mockFireMiscTrackingEvent).toHaveBeenCalledWith(LimitedSupportEvent.RISK_DISMISSED, {
       runtimeResourceType: 'serving-runtime-template',
       resourceId: 'fast-vllm-template',
       resourceName: 'Fast vLLM Runtime',
@@ -145,7 +145,7 @@ describe('CustomServingRuntimeEnabledToggle', () => {
     fireEvent.click(screen.getByLabelText('Close'));
 
     expect(screen.queryByTestId('unsupported-status-acceptance-modal')).not.toBeInTheDocument();
-    expect(mockFireRiskDismissed).toHaveBeenCalledWith({
+    expect(mockFireMiscTrackingEvent).toHaveBeenCalledWith(LimitedSupportEvent.RISK_DISMISSED, {
       runtimeResourceType: 'serving-runtime-template',
       resourceId: 'fast-vllm-template',
       resourceName: 'Fast vLLM Runtime',

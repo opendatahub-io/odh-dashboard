@@ -1,6 +1,6 @@
 import { testHook } from '@odh-dashboard/jest-config/hooks';
 import { mockLLMInferenceServiceConfigK8sResource } from '@odh-dashboard/internal/__mocks__/mockLLMInferenceServiceConfigK8sResource';
-import { mockHardwareProfile } from '@odh-dashboard/internal/__mocks__/mockHardwareProfile';
+import { mockHardwareProfile } from '@odh-dashboard/hardware-profiles/__mocks__/mockHardwareProfile';
 import { IdentifierResourceType } from '@odh-dashboard/k8s-core';
 import * as projectSelectors from '@odh-dashboard/internal/redux/selectors/project';
 import * as llmConfigsApi from '../../api/LLMInferenceServiceConfigs';
