@@ -1,21 +1,21 @@
 import {
   mockGlobalScopedHardwareProfiles,
   mockProjectScopedHardwareProfiles,
-} from '@odh-dashboard/internal/__mocks__/mockHardwareProfile';
+} from '@odh-dashboard/hardware-profiles/__mocks__/mockHardwareProfile';
 import {
   mockCustomSecretK8sResource,
   mockDashboardConfig,
   mockDscStatus,
   mockK8sResourceList,
   mockNotebookK8sResource,
-  mockProjectK8sResource,
   mockRouteK8sResource,
   mockSecretK8sResource,
   mockStorageClassList,
 } from '@odh-dashboard/internal/__mocks__';
+import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import { mockConfigMap } from '@odh-dashboard/internal/__mocks__/mockConfigMap';
 import { mockImageStreamK8sResource } from '@odh-dashboard/internal/__mocks__/mockImageStreamK8sResource';
-import { mockPVCK8sResource } from '@odh-dashboard/internal/__mocks__/mockPVCK8sResource';
+import { mockPVCK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockPVCK8sResource';
 import { mockPodK8sResource } from '@odh-dashboard/internal/__mocks__/mockPodK8sResource';
 import type { HardwareProfileKind, PodKind } from '@odh-dashboard/k8s-core';
 import type { NotebookKind } from '@odh-dashboard/internal/k8sTypes';

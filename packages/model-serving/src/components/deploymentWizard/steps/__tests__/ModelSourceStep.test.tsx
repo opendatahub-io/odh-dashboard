@@ -2,7 +2,7 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { useWizardContext, useWizardFooter, ValidatedOptions } from '@patternfly/react-core';
 import { z } from 'zod';
-import { mockK8sNameDescriptionFieldData } from '@odh-dashboard/internal/__mocks__/mockK8sNameDescriptionFieldData';
+import { mockK8sNameDescriptionFieldData } from '@odh-dashboard/k8s-core/__mocks__/mockK8sNameDescriptionFieldData';
 import { ServingRuntimeModelType } from '@odh-dashboard/model-serving/shared';
 import { ModelSourceStepContent } from '../ModelSourceStep';
 import { modelTypeSelectFieldSchema } from '../../fields/ModelTypeSelectField';

@@ -1,7 +1,7 @@
 import {
   mockProjectK8sResource,
   mockProjectsK8sList,
-} from '@odh-dashboard/internal/__mocks__/mockProjectK8sResource';
+} from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import { mockK8sResourceList } from '@odh-dashboard/internal/__mocks__/mockK8sResourceList';
 import type { ProjectKind } from '@odh-dashboard/k8s-core';
 import { incrementResourceVersion } from '@odh-dashboard/internal/__mocks__/mockUtils';

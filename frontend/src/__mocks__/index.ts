@@ -3,7 +3,6 @@
 export * from './mockDashboardConfig';
 export * from './mockDataSciencePipelinesApplicationK8sResource';
 export * from './mockK8sResourceList';
-export * from './mockProjectK8sResource';
 export * from './mockRouteK8sResource';
 export * from './mockStatus';
 export * from './mockRunKF';
