@@ -229,3 +229,8 @@ export const resolveConnectionType = (
 export const isWizardStepTitle = (value: string): value is WizardStepTitle => {
   return Object.values(WizardStepTitle).some((title) => title === value);
 };
+
+export const shouldShowPreconfigureStep = (
+  project: unknown,
+  existingData?: Pick<InitialWizardFormData, 'validatedConfigurations'>,
+): boolean => !project || (existingData?.validatedConfigurations?.length ?? 0) > 0;
