@@ -123,7 +123,7 @@ func (h *K8sHandler) GetSecretsHandler(w http.ResponseWriter, r *http.Request, _
 			forbiddenResponse(h.logger, w, r, "insufficient permissions to access secrets in this namespace")
 		case errors.Is(err, kubernetes.ErrUnauthorized):
 			unauthorizedResponse(h.logger, w, r, "access unauthorized")
-		case errors.Is(err, kubernetes.ErrInvalid):
+		case errors.Is(err, kubernetes.ErrInvalid), errors.Is(err, kubernetes.ErrBadRequest):
 			httpError := &integrations.HTTPError{
 				StatusCode: http.StatusBadRequest,
 				ErrorResponse: integrations.ErrorResponse{
