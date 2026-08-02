@@ -1,5 +1,10 @@
 import type { PersistentVolumeClaimKind } from '@odh-dashboard/k8s-core';
-import { ServingRuntimePlatform } from '@odh-dashboard/model-serving/shared';
+import {
+  ServingRuntimePlatform,
+  getModelPathFromUri,
+  isPVCUri,
+  getPVCNameFromURI,
+} from '@odh-dashboard/model-serving/shared';
 import type { ServingRuntimeKind } from '@odh-dashboard/model-serving/shared';
 import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import { mockPVCK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockPVCK8sResource';
@@ -10,12 +15,9 @@ import {
   getCreateInferenceServiceLabels,
   getProjectModelServingPlatform,
   getPVCFromURI,
-  getModelPathFromUri,
   getUrlFromKserveInferenceService,
   isCurrentServingPlatformEnabled,
   isValueFromEnvVar,
-  isPVCUri,
-  getPVCNameFromURI,
 } from '#~/pages/modelServing/screens/projects/utils';
 import { ServingPlatformStatuses } from '#~/pages/modelServing/screens/types';
 import { mockInferenceServiceK8sResource } from '#~/__mocks__/mockInferenceServiceK8sResource';

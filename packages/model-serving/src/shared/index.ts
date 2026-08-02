@@ -21,7 +21,12 @@ export type {
   InferenceServiceKind,
 } from './types';
 
-export { getModelServingPVCAnnotations } from './utils/pvcUtils';
+export {
+  getModelServingPVCAnnotations,
+  getPVCNameFromURI,
+  isPVCUri,
+  getModelPathFromUri,
+} from './utils/pvcUtils';
 
 export {
   getTemplateEnabled,
