@@ -94,8 +94,9 @@ func createIntegrationManifests(t *testing.T, moduleSlugs []string) string {
 
 	base := t.TempDir()
 
-	// Core overlay: basePath/odh/
-	overlay := filepath.Join(base, "odh")
+	// Core overlay: basePath/odh/standalone/
+	// The standalone overlay path must match standaloneOverlaysSourcePaths in support.go.
+	overlay := filepath.Join(base, "odh", "standalone")
 	require.NoError(t, os.MkdirAll(overlay, 0755))
 	require.NoError(t, os.WriteFile(filepath.Join(overlay, "kustomization.yaml"), []byte(`apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
@@ -111,14 +112,10 @@ data:
 `), 0644))
 	require.NoError(t, os.WriteFile(filepath.Join(overlay, "params.env"), []byte(""), 0644))
 
-	// Modular-architecture base
-	modArch := filepath.Join(base, "modular-architecture")
-	require.NoError(t, os.MkdirAll(modArch, 0755))
-	require.NoError(t, os.WriteFile(filepath.Join(modArch, "params.env"), []byte(""), 0644))
-
-	// Per-module manifests
+	// Per-module manifests: basePath/modules/<slug>/
+	// The module path must match deployModuleManifests in module_deploy.go.
 	for _, slug := range moduleSlugs {
-		moduleDir := filepath.Join(modArch, "modules", slug)
+		moduleDir := filepath.Join(base, "modules", slug)
 		require.NoError(t, os.MkdirAll(moduleDir, 0755))
 
 		require.NoError(t, os.WriteFile(filepath.Join(moduleDir, "kustomization.yaml"), []byte(`apiVersion: kustomize.config.k8s.io/v1beta1
