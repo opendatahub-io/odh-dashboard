@@ -102,17 +102,17 @@ The test file provides reusable helpers:
 | Helper | Purpose |
 |--------|---------|
 | `createIntegrationManifests(t, slugs)` | Creates a temp directory with minimal kustomize manifests |
-| `newDashboard(name, namespace, basePath)` | Creates a Dashboard CR with standalone mode |
-| `reconcile(t, basePath, dashboard)` | Runs one reconciliation cycle |
-| `getDashboard(t, name)` | Fetches the current Dashboard CR |
-| `deleteDashboard(t, name)` | Deletes the Dashboard CR with timeout |
-| `cleanupModuleResources(t, namespace)` | Removes all test resources from the namespace |
-| `listDeployments(t, namespace)` | Lists deployments in a namespace |
-| `listServices(t, namespace)` | Lists services in a namespace |
-| `getFederationConfigMap(t, namespace)` | Gets the federation-config ConfigMap |
+| `newDashboard(spec)` | Creates a Dashboard CR with the given spec |
+| `reconcile(t, r)` | Runs one reconciliation cycle with the given reconciler |
+| `getDashboard(t)` | Fetches the current Dashboard CR |
+| `deleteDashboard(t)` | Deletes the Dashboard CR with timeout |
+| `cleanupModuleResources(t)` | Removes all labeled test resources from the integration namespace |
+| `listDeployments(t, componentLabel)` | Lists deployments by component label |
+| `listServices(t, componentLabel)` | Lists services by component label |
+| `getFederationConfigMap(t)` | Gets the federation-config ConfigMap |
 | `parseFederationEntries(t, cm)` | Parses federation entries from the ConfigMap |
 | `findFederationEntry(entries, name)` | Finds a specific entry by module name |
-| `disableAllModulesExcept(dashboard, keep)` | Disables all modules except the specified ones |
+| `disableAllModulesExcept(enabled...)` | Returns a Modules map with all modules disabled except the listed ones |
 
 ### Namespace Isolation
 

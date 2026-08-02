@@ -66,31 +66,43 @@ Do **not** create separate `TestMain` functions. All integration tests in the pa
 Each integration test follows a consistent pattern:
 
 1. **Create manifests** — Use `createIntegrationManifests(t, moduleSlugs)` to build a temp dir with minimal kustomize manifests
-2. **Create the Dashboard CR** — Use `newDashboard(name, namespace, basePath)` for a standalone-mode CR
-3. **Reconcile** — Call `reconcile(t, basePath, dashboard)` to run one cycle
+2. **Create the Dashboard CR** — Use `newDashboard(spec)` with a `DashboardSpec`
+3. **Reconcile** — Call `reconcile(t, r)` with the reconciler to run one cycle
 4. **Assert state** — Check deployments, services, federation config, status
 5. **Clean up** — Delete the Dashboard CR and call `cleanupModuleResources`
 
 ```go
 func TestIntegration_Example(t *testing.T) {
-    basePath := createIntegrationManifests(t, []string{"gen-ai"})
-    dashboard := newDashboard("test-example", integrationNamespace, basePath)
-    
-    // Enable modules
-    dashboard.Spec.Modules = map[string]v1alpha1.ModuleOverride{
-        "genAi": {Enabled: ptr.To(true)},
+    manifests := createIntegrationManifests(t, []string{"gen-ai"})
+
+    r := &ctrlpkg.DashboardReconciler{
+        Client:                k8sClient,
+        Scheme:                k8sClient.Scheme(),
+        ManifestsBasePath:     manifests,
+        Platform:              cluster.OpenDataHub,
+        Namespace:             integrationNamespace,
+        ApplicationsNamespace: integrationNamespace,
     }
-    
+
+    dashboard := newDashboard(v1alpha1.DashboardSpec{
+        DeploymentMode: v1alpha1.DeploymentModeStandalone,
+        Gateway:        &v1alpha1.GatewaySpec{Domain: "test.example.com"},
+        Modules:        disableAllModulesExcept("genAi"),
+    })
+
     require.NoError(t, k8sClient.Create(ctx, dashboard))
-    reconcile(t, basePath, dashboard)
-    
+
+    t.Cleanup(func() {
+        deleteDashboard(t)
+        cleanupModuleResources(t)
+    })
+
+    reconcile(t, r)
+    reconcile(t, r)
+
     // Assert
-    deps := listDeployments(t, integrationNamespace)
+    deps := listDeployments(t, "gen-ai")
     assert.Len(t, deps, 1)
-    
-    // Cleanup
-    deleteDashboard(t, "test-example")
-    cleanupModuleResources(t, integrationNamespace)
 }
 ```
 
@@ -100,16 +112,16 @@ Reuse the existing helpers instead of writing ad-hoc K8s operations:
 
 | Helper | Use For |
 |--------|---------|
-| `createIntegrationManifests` | Building temp kustomize layout with core + module manifests |
-| `newDashboard` | Creating a Dashboard CR configured for standalone mode |
-| `reconcile` | Running one reconciliation cycle (creates reconciler, calls Reconcile) |
-| `getDashboard` | Fetching current Dashboard CR state |
-| `deleteDashboard` | Deleting Dashboard CR with a timeout |
-| `cleanupModuleResources` | Removing all labeled resources from the test namespace |
-| `listDeployments` / `listServices` | Listing resources by namespace |
-| `getFederationConfigMap` | Getting the federation-config ConfigMap |
-| `parseFederationEntries` / `findFederationEntry` | Parsing and querying federation config |
-| `disableAllModulesExcept` | Setting all modules to disabled except specified ones |
+| `createIntegrationManifests(t, slugs)` | Building temp kustomize layout with core + module manifests |
+| `newDashboard(spec)` | Creating a Dashboard CR with the given DashboardSpec |
+| `reconcile(t, r)` | Running one reconciliation cycle with the given reconciler |
+| `getDashboard(t)` | Fetching current Dashboard CR state |
+| `deleteDashboard(t)` | Deleting Dashboard CR with finalizer removal and timeout |
+| `cleanupModuleResources(t)` | Removing all labeled resources from the integration namespace |
+| `listDeployments(t, componentLabel)` / `listServices(t, componentLabel)` | Listing resources by component label |
+| `getFederationConfigMap(t)` | Getting the federation-config ConfigMap |
+| `parseFederationEntries(t, cm)` / `findFederationEntry(entries, name)` | Parsing and querying federation config |
+| `disableAllModulesExcept(enabled...)` | Returns a Modules map with all modules disabled except the listed ones |
 
 ## Common Pitfalls
 
@@ -119,14 +131,14 @@ Every test **must** clean up resources it creates. The tests share a single name
 
 ```go
 t.Cleanup(func() {
-    deleteDashboard(t, dashboardName)
-    cleanupModuleResources(t, integrationNamespace)
+    deleteDashboard(t)
+    cleanupModuleResources(t)
 })
 ```
 
-### Unique CR Names
+### Singleton CR Name
 
-Each test must use a unique Dashboard CR name to avoid collisions when tests run in parallel (they don't currently, but the convention prevents future issues).
+All tests use the singleton `v1alpha1.DashboardInstanceName`. Each test must delete the CR (via `deleteDashboard`) before the next test can create one.
 
 ### Reconcile Returns
 

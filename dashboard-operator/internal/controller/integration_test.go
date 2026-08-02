@@ -314,8 +314,6 @@ type serviceRef struct {
 	Port      int32  `json:"port"`
 }
 
-const dashboardFinalizer = "components.platform.opendatahub.io/cleanup"
-
 func parseFederationEntries(t *testing.T, cm *corev1.ConfigMap) []federationEntry {
 	t.Helper()
 	require.NotNil(t, cm)
