@@ -4,7 +4,7 @@ import type { RouteExtension } from '@odh-dashboard/plugin-core/extension-points
 import { SupportedArea } from '@odh-dashboard/plugin-core/areas';
 
 const createRedirectComponent = (args: { from: string; to: string }) => () =>
-  import('#~/utilities/v2Redirect').then((module) => ({
+  import('@odh-dashboard/plugin-core/routing').then((module) => ({
     default: () => module.buildV2RedirectElement(args),
   }));
 
