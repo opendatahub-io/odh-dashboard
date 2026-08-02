@@ -6,7 +6,7 @@ require (
 	github.com/brianvoe/gofakeit/v7 v7.15.0
 	github.com/google/uuid v1.6.0
 	github.com/julienschmidt/httprouter v1.3.0
-	github.com/kubeflow/hub/pkg/openapi v0.3.9
+	github.com/kubeflow/hub/pkg/openapi v0.3.14
 	github.com/onsi/ginkgo/v2 v2.32.0
 	github.com/onsi/gomega v1.42.1
 	github.com/rs/cors v1.11.1
