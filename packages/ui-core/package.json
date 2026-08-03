@@ -61,6 +61,7 @@
     "./context/LocalQueuesContext": "./src/context/LocalQueuesContext.tsx",
     "./context/ProjectHardwareProfilesContext": "./src/context/ProjectHardwareProfilesContext.tsx",
     "./context/ProjectsContext": "./src/context/ProjectsContext.tsx",
+    "./context/getStoredPreferredProject": "./src/context/getStoredPreferredProject.ts",
     "./contexts/ThemeContext": "./src/contexts/ThemeContext.tsx",
     "./contexts/AnalyticsContext": "./src/contexts/AnalyticsContext.tsx",
     "./contexts/NotificationContext": "./src/contexts/NotificationContext.tsx",
@@ -71,7 +72,11 @@
     "./components/projectSelector/ProjectSelector": "./src/components/projectSelector/ProjectSelector.tsx",
     "./components/projectSelector/ProjectSelectorNavigator": "./src/components/projectSelector/ProjectSelectorNavigator.tsx",
     "./components/projectSelector/ProjectNavigatorLink": "./src/components/projectSelector/ProjectNavigatorLink.tsx",
-    "./components/projectSelector/ProjectIconWithSize": "./src/components/projectSelector/ProjectIconWithSize.tsx"
+    "./components/projectSelector/ProjectIconWithSize": "./src/components/projectSelector/ProjectIconWithSize.tsx",
+    "./components/DashboardModalFooter": "./src/components/DashboardModalFooter.tsx",
+    "./components/DashboardSearchField": "./src/components/DashboardSearchField.tsx",
+    "./components/DashboardExpandableSection": "./src/components/DashboardExpandableSection.tsx",
+    "./components/DashboardExpandableSection.scss": "./src/components/DashboardExpandableSection.scss"
   },
   "scripts": {
     "lint": "eslint .",

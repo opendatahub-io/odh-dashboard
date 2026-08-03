@@ -21,10 +21,10 @@ import {
 } from '@odh-dashboard/ui-core/contexts/NotificationWatcherContext';
 import { TrackingOutcome } from '@odh-dashboard/ui-core';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
+import DashboardModalFooter from '@odh-dashboard/ui-core/components/DashboardModalFooter';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import { createPipelinesCR, deleteSecret, listPipelinesCR } from '#~/api';
 import { EMPTY_AWS_PIPELINE_DATA } from '#~/pages/projects/dataConnections/const';
-import DashboardModalFooter from '#~/concepts/dashboard/DashboardModalFooter';
 import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 import usePipelinesConnections from '#~/pages/projects/screens/detail/connections/usePipelinesConnections';
 import { FAST_POLL_INTERVAL } from '#~/utilities/const.ts';

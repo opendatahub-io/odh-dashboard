@@ -8,8 +8,8 @@ import {
   ModalFooter,
 } from '@patternfly/react-core';
 import SimpleSelect, { SimpleSelectOption } from '@odh-dashboard/ui-core/components/SimpleSelect';
+import DashboardModalFooter from '@odh-dashboard/ui-core/components/DashboardModalFooter';
 import { ConnectionTypeField, ConnectionTypeFieldType } from '#~/concepts/connectionTypes/types';
-import DashboardModalFooter from '#~/concepts/dashboard/DashboardModalFooter';
 
 type Props = {
   row: { field: ConnectionTypeField; index: number };

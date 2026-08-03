@@ -123,6 +123,9 @@ export enum SupportedArea {
 
   /* Connection Test */
   CONNECTION_TEST = 'connection-test',
+
+  /* Model Capabilities */
+  MODEL_CAPABILITIES = 'model-capabilities',
 }
 
 export type SupportedAreaType = SupportedArea | string;
