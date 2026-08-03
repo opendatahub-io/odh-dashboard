@@ -9,7 +9,7 @@ import {
 } from '@patternfly/react-core';
 import SimpleSelect, { SimpleSelectOption } from '@odh-dashboard/ui-core/components/SimpleSelect';
 import { ConnectionTypeField, ConnectionTypeFieldType } from '#~/concepts/connectionTypes/types';
-import DashboardModalFooter from '#~/concepts/dashboard/DashboardModalFooter';
+import DashboardModalFooter from '@odh-dashboard/ui-core/components/DashboardModalFooter';
 
 type Props = {
   row: { field: ConnectionTypeField; index: number };

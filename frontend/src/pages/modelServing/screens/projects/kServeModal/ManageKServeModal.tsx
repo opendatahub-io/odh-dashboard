@@ -41,7 +41,7 @@ import {
 } from '#~/pages/modelServing/screens/projects/utils';
 import { getKServeContainerArgs, getKServeContainerEnvVarStrs } from '#~/pages/modelServing/utils';
 import useCustomServingRuntimesEnabled from '#~/pages/modelServing/customServingRuntimes/useCustomServingRuntimesEnabled';
-import DashboardModalFooter from '#~/concepts/dashboard/DashboardModalFooter';
+import DashboardModalFooter from '@odh-dashboard/ui-core/components/DashboardModalFooter';
 import {
   InferenceServiceStorageType,
   ServingRuntimeEditInfo,

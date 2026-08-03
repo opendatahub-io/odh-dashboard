@@ -25,7 +25,7 @@ import FieldGroupHelpLabelIcon from '@odh-dashboard/ui-core/components/FieldGrou
 import { AccessMode, AccessModeLabelMap } from '#~/pages/storageClasses/storageEnums';
 import { accessModeDescriptions } from '#~/pages/storageClasses/constants';
 import { StorageClassKind } from '#~/k8sTypes';
-import DashboardModalFooter from '#~/concepts/dashboard/DashboardModalFooter';
+import DashboardModalFooter from '@odh-dashboard/ui-core/components/DashboardModalFooter';
 import { updateStorageClassConfig } from '#~/api';
 import { toAccessModeFullName } from '#~/pages/projects/screens/detail/storage/AccessModeFullName.tsx';
 import {

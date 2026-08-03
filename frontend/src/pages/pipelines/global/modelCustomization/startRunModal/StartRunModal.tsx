@@ -18,7 +18,7 @@ import {
 import { Link } from 'react-router-dom';
 import { TrackingOutcome } from '@odh-dashboard/ui-core';
 import ProjectSelector from '#~/concepts/projects/ProjectSelector';
-import DashboardModalFooter from '#~/concepts/dashboard/DashboardModalFooter';
+import DashboardModalFooter from '@odh-dashboard/ui-core/components/DashboardModalFooter';
 import { PipelineContextProvider } from '#~/concepts/pipelines/context';
 import MissingConditionAlert from '#~/pages/pipelines/global/modelCustomization/startRunModal/MissingConditionAlert';
 import { modelCustomizationRootPath } from '#~/routes/pipelines/modelCustomization';

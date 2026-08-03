@@ -19,7 +19,7 @@ import K8sNameDescriptionField, {
 } from '@odh-dashboard/ui-core/components/K8sNameDescriptionField';
 import { BYONImage, BYONImagePackage } from '#~/types';
 import { useAppSelector } from '#~/redux/hooks';
-import DashboardModalFooter from '#~/concepts/dashboard/DashboardModalFooter';
+import DashboardModalFooter from '@odh-dashboard/ui-core/components/DashboardModalFooter';
 import { filterBlankPackages } from '#~/pages/BYONImages/utils';
 import { HardwareProfileIdentifierMultiselect } from '#~/pages/BYONImages/BYONImageModal/HardwareProfileIdentifierMultiselect';
 import { useDashboardNamespace } from '#~/redux/selectors';

@@ -29,7 +29,7 @@ import {
 } from '#~/concepts/pipelines/content/const';
 import useDebounceCallback from '#~/utilities/useDebounceCallback';
 import NameDescriptionField from '#~/concepts/k8s/NameDescriptionField';
-import DashboardModalFooter from '#~/concepts/dashboard/DashboardModalFooter';
+import DashboardModalFooter from '@odh-dashboard/ui-core/components/DashboardModalFooter';
 import PipelineMigrationNoteLinks from '#~/concepts/pipelines/content/PipelineMigrationNoteLinks';
 import { DSPipelineAPIServerStore } from '#~/k8sTypes.ts';
 import usePipelineNamespaceCR from '#~/concepts/pipelines/context/usePipelineNamespaceCR';

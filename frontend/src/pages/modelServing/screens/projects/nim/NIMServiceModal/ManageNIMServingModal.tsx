@@ -36,7 +36,7 @@ import {
 } from '#~/pages/modelServing/screens/projects/utils';
 import { EMPTY_AWS_SECRET_DATA } from '#~/pages/projects/dataConnections/const';
 import useCustomServingRuntimesEnabled from '#~/pages/modelServing/customServingRuntimes/useCustomServingRuntimesEnabled';
-import DashboardModalFooter from '#~/concepts/dashboard/DashboardModalFooter';
+import DashboardModalFooter from '@odh-dashboard/ui-core/components/DashboardModalFooter';
 import {
   InferenceServiceStorageType,
   ServingRuntimeEditInfo,
