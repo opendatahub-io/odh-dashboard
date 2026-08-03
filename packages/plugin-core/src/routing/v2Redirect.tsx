@@ -14,7 +14,7 @@ import { Navigate, Route, useParams, useLocation, Params } from 'react-router-do
  * All references to buildV2RedirectElement and buildV2RedirectRoutes should also be cleaned up at that time.
  */
 
-interface RedirectConfig {
+export interface RedirectConfig {
   from: string;
   to: string;
 }
