@@ -77,7 +77,7 @@
   path: /spec/template/spec/containers/-
   value:
     name: model-registry-ui
-    image: $(model-registry-ui-image)
+    image: model-registry-ui-image
     imagePullPolicy: Always
     livenessProbe:
       httpGet:
@@ -153,7 +153,7 @@
   path: /spec/template/spec/containers/-
   value:
     name: gen-ai-ui
-    image: $(gen-ai-ui-image)
+    image: gen-ai-ui-image
     imagePullPolicy: Always
     livenessProbe:
       httpGet:
@@ -224,7 +224,7 @@
           fieldRef:
             fieldPath: metadata.namespace
       - name: RELATED_IMAGE_POSTGRESQL_16_IMAGE
-        value: $(pgvector-image)
+        value: pgvector-image
       - name: BFF_MAAS_SERVICE_NAME
         value: "odh-dashboard"
       - name: BFF_MAAS_SERVICE_PORT
@@ -259,7 +259,7 @@
   path: /spec/template/spec/containers/-
   value:
     name: maas-ui
-    image: $(maas-ui-image)
+    image: maas-ui-image
     imagePullPolicy: Always
     livenessProbe:
       httpGet:
@@ -339,7 +339,7 @@
   path: /spec/template/spec/containers/-
   value:
     name: mlflow-ui
-    image: $(mlflow-ui-image)
+    image: mlflow-ui-image
     imagePullPolicy: Always
     livenessProbe:
       httpGet:
@@ -413,7 +413,7 @@
   path: /spec/template/spec/containers/-
   value:
     name: eval-hub-ui
-    image: $(eval-hub-ui-image)
+    image: eval-hub-ui-image
     imagePullPolicy: Always
     livenessProbe:
       httpGet:
@@ -504,7 +504,7 @@
   path: /spec/template/spec/containers/-
   value:
     name: automl-ui
-    image: $(automl-ui-image)
+    image: automl-ui-image
     imagePullPolicy: Always
     livenessProbe:
       httpGet:
@@ -570,7 +570,7 @@
       - '--bundle-paths=/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem,/var/run/secrets/kubernetes.io/serviceaccount/ca.crt,/var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt,/etc/pki/tls/certs/odh-ca-bundle.crt,/etc/pki/tls/certs/odh-trusted-ca-bundle.crt'
     env:
       - name: RELATED_IMAGE_ODH_AUTOML_IMAGE
-        value: $(automl-pipeline-runtime-image)
+        value: automl-pipeline-runtime-image
     securityContext:
       allowPrivilegeEscalation: false
       capabilities:
@@ -581,7 +581,7 @@
   path: /spec/template/spec/containers/-
   value:
     name: autorag-ui
-    image: $(autorag-ui-image)
+    image: autorag-ui-image
     imagePullPolicy: Always
     livenessProbe:
       httpGet:
@@ -647,7 +647,7 @@
       - '--bundle-paths=/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem,/var/run/secrets/kubernetes.io/serviceaccount/ca.crt,/var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt,/etc/pki/tls/certs/odh-ca-bundle.crt,/etc/pki/tls/certs/odh-trusted-ca-bundle.crt'
     env:
       - name: RELATED_IMAGE_ODH_AUTORAG_IMAGE
-        value: $(autorag-pipeline-runtime-image)
+        value: autorag-pipeline-runtime-image
     securityContext:
       allowPrivilegeEscalation: false
       capabilities:
@@ -658,7 +658,7 @@
   path: /spec/template/spec/containers/-
   value:
     name: agent-ops-ui
-    image: $(agent-ops-ui-image)
+    image: agent-ops-ui-image
     imagePullPolicy: Always
     livenessProbe:
       httpGet:

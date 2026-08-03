@@ -4,7 +4,7 @@ import {
   TolerationOperator,
   type PodKind,
 } from '@odh-dashboard/k8s-core';
-import { genUID } from '#~/__mocks__/mockUtils';
+import { genUID } from '@odh-dashboard/foundation';
 
 type MockResourceConfigType = {
   user?: string;

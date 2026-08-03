@@ -5,7 +5,11 @@ import {
   isModelServingCompatible,
   ModelServingCompatibleTypes,
 } from '@odh-dashboard/k8s-core';
-import { ServingRuntimeModelType } from '@odh-dashboard/model-serving/shared';
+import {
+  ServingRuntimeModelType,
+  getPVCNameFromURI,
+  isPVCUri,
+} from '@odh-dashboard/model-serving/shared';
 import type { ModelTypeFieldData } from '@odh-dashboard/model-serving/shared/wizard-fields';
 import {
   ModelLocationData,
@@ -14,10 +18,6 @@ import {
   EnvironmentVariablesFieldData,
   RuntimeArgsFieldData,
 } from '@odh-dashboard/model-serving/shared/types/form-data';
-import {
-  getPVCNameFromURI,
-  isPVCUri,
-} from '@odh-dashboard/internal/pages/modelServing/screens/projects/utils';
 import { VLLM_ADDITIONAL_ARGS } from '../const';
 import type { LLMdContainer, LLMInferenceServiceKind, LLMdDeployment } from '../types';
 import {

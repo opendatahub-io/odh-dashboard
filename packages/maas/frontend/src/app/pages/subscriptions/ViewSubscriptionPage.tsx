@@ -24,6 +24,7 @@ import {
   getSubscriptionEditUrl,
 } from '~/app/utilities/subscriptionManagementNavigation';
 import MaasModelsSection from '~/app/shared/MaasModelsSection';
+import SubscriptionManagementYamlTab from '~/app/pages/subscription-management/SubscriptionManagementYamlTab';
 import {
   EventTrackingResourceType,
   EventTrackingSource,
@@ -174,6 +175,17 @@ const ViewSubscriptionPage: React.FC = () => {
                 resourceType="subscription"
               />
             </PageSection>
+          </Tab>
+          <Tab
+            eventKey="yaml"
+            title={<TabTitleText>YAML</TabTitleText>}
+            aria-label="YAML tab"
+            data-testid="subscription-yaml-tab"
+          >
+            <SubscriptionManagementYamlTab
+              resourceName={subscriptionName}
+              resourceType="subscription"
+            />
           </Tab>
         </Tabs>
       )}

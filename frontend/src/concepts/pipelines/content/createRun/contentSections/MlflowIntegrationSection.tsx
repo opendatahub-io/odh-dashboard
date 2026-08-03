@@ -6,7 +6,10 @@ import {
   CodeBlockAction,
   CodeBlockCode,
   FormGroup,
+  FormHelperText,
   FormSection,
+  HelperText,
+  HelperTextItem,
   Radio,
   TextInput,
 } from '@patternfly/react-core';
@@ -21,12 +24,14 @@ import {
 } from '#~/concepts/pipelines/content/createRun/types';
 import { CharLimitHelperText } from '#~/components/CharLimitHelperText';
 import { NAME_CHARACTER_LIMIT } from '#~/concepts/pipelines/content/const';
+import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import MlflowExperimentSelector from '#~/concepts/mlflow/MlflowExperimentSelector';
 
-const MLFLOW_AUTOLOG_SNIPPET = `import mlflow
-mlflow.autolog()
-with mlflow.start_run():
-    # your training code goes here ...`;
+const MLFLOW_AUTOLOG_SNIPPET = `import os, mlflow
+if os.getenv("MLFLOW_RUN_ID"):
+    mlflow.autolog()
+    with mlflow.start_run():
+        # your training code goes here ...`;
 
 type MlflowIntegrationSectionProps = {
   data: MlflowFormData;
@@ -39,6 +44,7 @@ const MlflowIntegrationSection: React.FC<MlflowIntegrationSectionProps> = ({
   onChange,
   workspace,
 }) => {
+  const { mlflowInjectUserEnvVars } = usePipelinesAPI();
   const isDisabled = !data.isExperimentTrackingEnabled;
   const [copied, setCopied] = React.useState(false);
   const lastModeRef = React.useRef(
@@ -190,15 +196,16 @@ const MlflowIntegrationSection: React.FC<MlflowIntegrationSectionProps> = ({
         }
       />
 
-      <FormGroup
-        label="MLflow autologging"
-        fieldId="mlflow-autologging"
-        labelHelp={
-          <DashboardHelpTooltip content="To enable automatic metric tracking, add this code to your training script or notebook." />
-        }
-      >
-        <div style={isDisabled ? { opacity: 0.5, pointerEvents: 'none' } : undefined}>
+      {mlflowInjectUserEnvVars && (
+        <FormGroup
+          label="MLflow autologging"
+          fieldId="mlflow-autologging"
+          labelHelp={
+            <DashboardHelpTooltip content="To enable automatic metric tracking, add this code to your training script or notebook." />
+          }
+        >
           <CodeBlock
+            className={isDisabled ? 'pf-v6-u-disabled-color-100' : undefined}
             actions={
               <CodeBlockAction>
                 <ClipboardCopyButton
@@ -222,8 +229,13 @@ const MlflowIntegrationSection: React.FC<MlflowIntegrationSectionProps> = ({
           >
             <CodeBlockCode id="mlflow-autolog-code">{MLFLOW_AUTOLOG_SNIPPET}</CodeBlockCode>
           </CodeBlock>
-        </div>
-      </FormGroup>
+          <FormHelperText>
+            <HelperText>
+              <HelperTextItem>Requires mlflow[kubernetes] in your pipeline image.</HelperTextItem>
+            </HelperText>
+          </FormHelperText>
+        </FormGroup>
+      )}
     </FormSection>
   );
 };

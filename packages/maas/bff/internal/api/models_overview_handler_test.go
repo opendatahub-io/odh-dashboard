@@ -107,10 +107,10 @@ var _ = Describe("ModelsOverviewHandler", Ordered, func() {
 		Expect(rs.StatusCode).To(Equal(http.StatusCreated))
 	})
 
-	// findModel locates a specific item in the overview response by model ID.
-	findModel := func(items []models.ModelOverviewItem, id string) *models.ModelOverviewItem {
+	// findModel locates a specific item in the overview response by model ID and namespace.
+	findModel := func(items []models.ModelOverviewItem, id, namespace string) *models.ModelOverviewItem {
 		for i := range items {
-			if items[i].ID == id {
+			if items[i].ID == id && items[i].Namespace == namespace {
 				return &items[i]
 			}
 		}
@@ -143,8 +143,9 @@ var _ = Describe("ModelsOverviewHandler", Ordered, func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(rs.StatusCode).To(Equal(http.StatusOK))
 
-		item := findModel(actual.Data, modelName)
+		item := findModel(actual.Data, modelName, "maas-models")
 		Expect(item).NotTo(BeNil())
+		Expect(item.Namespace).To(Equal("maas-models"))
 		Expect(item.ModelDetails.DisplayName).To(Equal("Granite 3 8B Instruct"))
 		Expect(item.ModelDetails.Description).To(Equal("IBM Granite 3 8B instruction-tuned language model."))
 	})
@@ -161,8 +162,9 @@ var _ = Describe("ModelsOverviewHandler", Ordered, func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(rs.StatusCode).To(Equal(http.StatusOK))
 
-		item := findModel(actual.Data, modelName)
+		item := findModel(actual.Data, modelName, "maas-models")
 		Expect(item).NotTo(BeNil())
+		Expect(item.Namespace).To(Equal("maas-models"))
 		Expect(item.Subscriptions).To(HaveLen(1))
 		sub := item.Subscriptions[0]
 		Expect(sub.Name).To(Equal(subName))
@@ -185,8 +187,9 @@ var _ = Describe("ModelsOverviewHandler", Ordered, func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(rs.StatusCode).To(Equal(http.StatusOK))
 
-		item := findModel(actual.Data, modelName)
+		item := findModel(actual.Data, modelName, "maas-models")
 		Expect(item).NotTo(BeNil())
+		Expect(item.Namespace).To(Equal("maas-models"))
 		Expect(item.AuthPolicies).To(HaveLen(1))
 		policy := item.AuthPolicies[0]
 		Expect(policy.Name).To(Equal(policyName))
@@ -228,8 +231,9 @@ var _ = Describe("ModelsOverviewHandler", Ordered, func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(rs.StatusCode).To(Equal(http.StatusOK))
 
-		item := findModel(actual.Data, standaloneModel)
+		item := findModel(actual.Data, standaloneModel, "maas-models")
 		Expect(item).NotTo(BeNil())
+		Expect(item.Namespace).To(Equal("maas-models"))
 		Expect(item.Subscriptions).To(BeEmpty())
 		Expect(item.AuthPolicies).To(BeEmpty())
 	})

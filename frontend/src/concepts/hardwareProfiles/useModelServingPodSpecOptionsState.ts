@@ -1,29 +1,15 @@
 import React from 'react';
 import { InferenceServiceKind, ServingRuntimeKind } from '@odh-dashboard/model-serving/shared';
 import { useDeepCompareMemoize } from '@odh-dashboard/ui-core/hooks';
+import type {
+  ModelServingPodSpecOptions,
+  ModelServingSizeState,
+} from '@odh-dashboard/hardware-profiles/shared';
 import { useAppContext } from '#~/app/AppContext';
 import { getModelServingSizes } from '#~/concepts/modelServing/modelServingSizesUtils';
-import { ModelServingSize } from '#~/pages/modelServing/screens/types';
 import { getInferenceServiceSize } from '#~/pages/modelServing/utils';
 import useServingHardwareProfileConfig from './useServingHardwareProfileConfig';
-import { PodSpecOptions, HardwarePodSpecOptionsState } from './types';
-
-/**
- * most of this file (everything that uses and descends from PodSpecOptions) is deprecated
- * modelmesh: RHOAIENG-34917, RHOAIENG-19185
- *
- * when modelmesh is removed; remove everything that uses and descends from PodSpecOptions
- * (do this last; it should be the last thing removed and be obvious afterwards)
- */
-export type ModelServingPodSpecOptions = PodSpecOptions & {
-  selectedModelSize?: ModelServingSize;
-};
-
-export type ModelServingSizeState = {
-  sizes: ModelServingSize[];
-  selectedSize: ModelServingSize;
-  setSelectedSize: (modelSize: ModelServingSize) => void;
-};
+import { HardwarePodSpecOptionsState } from './types';
 
 export type ModelServingHardwareProfileState =
   HardwarePodSpecOptionsState<ModelServingPodSpecOptions> & {

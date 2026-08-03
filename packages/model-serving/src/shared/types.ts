@@ -235,3 +235,8 @@ export enum ServingRuntimeModelType {
   PREDICTIVE = 'predictive',
   GENERATIVE = 'generative',
 }
+
+export enum PerformanceMetricType {
+  SERVER = 'server',
+  MODEL = 'model',
+}

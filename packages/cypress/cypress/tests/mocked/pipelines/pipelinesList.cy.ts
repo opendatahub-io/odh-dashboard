@@ -2,7 +2,6 @@
 import {
   buildMockPipelineVersion,
   buildMockPipelineVersions,
-  mockProjectK8sResource,
   mockRouteK8sResource,
   mockSecretK8sResource,
   mockDataSciencePipelineApplicationK8sResource,
@@ -11,6 +10,7 @@ import {
   buildMockPipeline,
   buildMockPipelines,
 } from '@odh-dashboard/internal/__mocks__';
+import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import type { PipelineKF } from '@odh-dashboard/internal/concepts/pipelines/kfTypes';
 import {
   pipelinesTable,

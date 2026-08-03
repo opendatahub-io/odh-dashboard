@@ -1,7 +1,8 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { fireDeployMethodSelected } from '../../../../shared/tracking/modelServingTrackingConstants';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { ModelServingTrackingEvent } from '../../../../shared/tracking/modelServingTrackingConstants';
 import {
   DeploymentMethodSelectFieldWizardField,
   resolveDeploymentMethodSuggestion,
@@ -10,11 +11,11 @@ import {
 } from '../DeploymentMethodSelectField';
 import type { DeploymentMethodFieldOverride } from '../../../../shared/types/form-data';
 
-jest.mock('../../../../shared/tracking/modelServingTrackingConstants', () => ({
-  fireDeployMethodSelected: jest.fn(),
+jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
+  fireMiscTrackingEvent: jest.fn(),
 }));
 
-const mockFireDeployMethodSelected = jest.mocked(fireDeployMethodSelected);
+const mockFireMiscTrackingEvent = jest.mocked(fireMiscTrackingEvent);
 
 const DeploymentMethodSelectFieldComponent = DeploymentMethodSelectFieldWizardField.component;
 
@@ -127,7 +128,7 @@ describe('DeploymentMethodSelectField tracking', () => {
       />,
     );
 
-  it('should fire fireDeployMethodSelected with undefined previousDeploymentMethod on first selection', () => {
+  it('should fire deploy method selected tracking with undefined previousDeploymentMethod on first selection', () => {
     renderComponent({
       externalData: {
         data: {
@@ -142,13 +143,16 @@ describe('DeploymentMethodSelectField tracking', () => {
 
     fireEvent.click(screen.getByTestId('deployment-method-kserve'));
 
-    expect(mockFireDeployMethodSelected).toHaveBeenCalledWith({
-      deploymentMethod: 'kserve',
-      previousDeploymentMethod: undefined,
-    });
+    expect(mockFireMiscTrackingEvent).toHaveBeenCalledWith(
+      ModelServingTrackingEvent.DEPLOY_METHOD_SELECTED,
+      {
+        deploymentMethod: 'kserve',
+        previousDeploymentMethod: undefined,
+      },
+    );
   });
 
-  it('should fire fireDeployMethodSelected with previous method when switching', () => {
+  it('should fire deploy method selected tracking with previous method when switching', () => {
     renderComponent({
       value: { method: 'kserve' },
       externalData: {
@@ -164,10 +168,13 @@ describe('DeploymentMethodSelectField tracking', () => {
 
     fireEvent.click(screen.getByTestId('deployment-method-llmd'));
 
-    expect(mockFireDeployMethodSelected).toHaveBeenCalledWith({
-      deploymentMethod: 'llmd',
-      previousDeploymentMethod: 'kserve',
-    });
+    expect(mockFireMiscTrackingEvent).toHaveBeenCalledWith(
+      ModelServingTrackingEvent.DEPLOY_METHOD_SELECTED,
+      {
+        deploymentMethod: 'llmd',
+        previousDeploymentMethod: 'kserve',
+      },
+    );
   });
 
   it('should call onChange with the selected method', () => {

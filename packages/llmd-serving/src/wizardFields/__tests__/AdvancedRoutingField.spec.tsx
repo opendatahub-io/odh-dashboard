@@ -3,7 +3,8 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import userEvent from '@testing-library/user-event';
 import { mockLLMInferenceServiceConfigK8sResource } from '@odh-dashboard/internal/__mocks__/mockLLMInferenceServiceConfigK8sResource';
-import { fireRoutingSelected } from '../../tracking/llmdTrackingConstants';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { LlmdTrackingEvent } from '../../tracking/llmdTrackingConstants';
 import { ConfigType, TopologyType } from '../../types';
 import {
   AdvancedRoutingFieldWizardField,
@@ -11,11 +12,11 @@ import {
   type AdvancedRoutingFieldData,
 } from '../AdvancedRoutingField';
 
-jest.mock('../../tracking/llmdTrackingConstants', () => ({
-  fireRoutingSelected: jest.fn(),
+jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
+  fireMiscTrackingEvent: jest.fn(),
 }));
 
-const mockFireRoutingSelected = jest.mocked(fireRoutingSelected);
+const mockFireMiscTrackingEvent = jest.mocked(fireMiscTrackingEvent);
 
 const { getInitialFieldData, validationSchema } = AdvancedRoutingFieldWizardField.reducerFunctions;
 const AdvancedRoutingFieldComponent = AdvancedRoutingFieldWizardField.component;
@@ -184,7 +185,7 @@ describe('AdvancedRoutingField tracking', () => {
     });
   };
 
-  it('should fire fireRoutingSelected with isDefaultRouting true when default routing is selected', async () => {
+  it('should fire routing selected tracking with isDefaultRouting true when default routing is selected', async () => {
     renderComponent({
       value: { selectedConfig: routerConfig1 },
       externalData: {
@@ -198,13 +199,13 @@ describe('AdvancedRoutingField tracking', () => {
       fireEvent.click(screen.getByText('Default optimized routing'));
     });
 
-    expect(mockFireRoutingSelected).toHaveBeenCalledWith({
+    expect(mockFireMiscTrackingEvent).toHaveBeenCalledWith(LlmdTrackingEvent.ROUTING_SELECTED, {
       routingConfigurationId: '__default-optimized-routing__',
       isDefaultRouting: true,
     });
   });
 
-  it('should fire fireRoutingSelected with isDefaultRouting false when a specific config is selected', async () => {
+  it('should fire routing selected tracking with isDefaultRouting false when a specific config is selected', async () => {
     renderComponent({
       externalData: {
         data: { routerConfigs: [routerConfig1, routerConfig2] },
@@ -217,8 +218,29 @@ describe('AdvancedRoutingField tracking', () => {
       fireEvent.click(screen.getByText('Router Config One'));
     });
 
-    expect(mockFireRoutingSelected).toHaveBeenCalledWith({
+    expect(mockFireMiscTrackingEvent).toHaveBeenCalledWith(LlmdTrackingEvent.ROUTING_SELECTED, {
       routingConfigurationId: 'router-config-1',
+      isDefaultRouting: false,
+    });
+  });
+
+  it('should fire routing selected tracking for a different config selection', async () => {
+    renderComponent({
+      value: { selectedConfig: routerConfig1 },
+      externalData: {
+        data: { routerConfigs: [routerConfig1, routerConfig2] },
+        loaded: true,
+      },
+    });
+
+    await openDropdown();
+
+    await act(async () => {
+      fireEvent.click(screen.getByText('Router Config Two'));
+    });
+
+    expect(mockFireMiscTrackingEvent).toHaveBeenCalledWith(LlmdTrackingEvent.ROUTING_SELECTED, {
+      routingConfigurationId: 'router-config-2',
       isDefaultRouting: false,
     });
   });

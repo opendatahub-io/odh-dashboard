@@ -12,3 +12,4 @@ resources:
   - kube-rbac-proxy-config.yaml
   - service.yaml
   - service-account.yaml
+  - pdb.yaml

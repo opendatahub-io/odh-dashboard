@@ -21,4 +21,5 @@ export type MlflowExperimentData = {
   isAvailable: boolean;
   experiments: MlflowExperiment[];
   loaded: boolean;
+  error?: Error;
 };

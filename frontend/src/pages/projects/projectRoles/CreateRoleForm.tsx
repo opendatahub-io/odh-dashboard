@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Content, Form, FormGroup, TextArea, Title } from '@patternfly/react-core';
+import { Form, FormGroup, TextArea } from '@patternfly/react-core';
 import type { UseK8sNameDescriptionFieldData } from '@odh-dashboard/k8s-core';
 import K8sNameDescriptionField from '@odh-dashboard/ui-core/components/K8sNameDescriptionField';
 import RoleLabelsSection from './RoleLabelsSection';
@@ -38,14 +38,6 @@ const CreateRoleForm: React.FC<CreateRoleFormProps> = ({
 
   return (
     <Form data-testid="create-role-form">
-      <Title headingLevel="h2" size="md">
-        Role configuration
-      </Title>
-      <Content component="p">
-        Define the basic properties for this custom role, including its name, description, and
-        labels.
-      </Content>
-
       <K8sNameDescriptionField
         dataTestId="role"
         data={nameDescriptionData.data}

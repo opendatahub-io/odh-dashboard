@@ -3,7 +3,7 @@ import { mockDataSciencePipelineApplicationK8sResource } from '@odh-dashboard/in
 import { mockDscStatus } from '@odh-dashboard/internal/__mocks__/mockDscStatus';
 import { mockK8sResourceList } from '@odh-dashboard/internal/__mocks__/mockK8sResourceList';
 import { mockNotebookK8sResource } from '@odh-dashboard/internal/__mocks__/mockNotebookK8sResource';
-import { mockProjectK8sResource } from '@odh-dashboard/internal/__mocks__/mockProjectK8sResource';
+import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import { mockRouteK8sResource } from '@odh-dashboard/internal/__mocks__/mockRouteK8sResource';
 import { mockSecretK8sResource } from '@odh-dashboard/internal/__mocks__/mockSecretK8sResource';
 import { buildMockRunKF } from '@odh-dashboard/internal/__mocks__/mockRunKF';

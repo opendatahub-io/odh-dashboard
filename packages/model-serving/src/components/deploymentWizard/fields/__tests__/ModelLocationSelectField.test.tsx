@@ -9,7 +9,7 @@ import type {
   ConnectionTypeConfigMapObj,
   Connection,
 } from '@odh-dashboard/k8s-core';
-import { mockPVCK8sResource } from '@odh-dashboard/internal/__mocks__/mockPVCK8sResource';
+import { mockPVCK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockPVCK8sResource';
 import { useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import type { IsAreaAvailableStatus } from '@odh-dashboard/plugin-core/areas';
 import { ModelLocationData, ModelLocationType } from '../../../../shared/types/form-data';
