@@ -24,6 +24,8 @@ import {
   MIN_CULLER_TIMEOUT,
 } from './const';
 
+const DEFAULT_DISTRIBUTED_INFERENCING = DEFAULT_CONFIG.isDistributedInferencingDefault ?? true;
+
 const ClusterSettings: React.FC = () => {
   const [loaded, setLoaded] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
@@ -33,8 +35,7 @@ const ClusterSettings: React.FC = () => {
   const [userTrackingEnabled, setUserTrackingEnabled] = React.useState(false);
   const [cullerTimeout, setCullerTimeout] = React.useState(DEFAULT_CULLER_TIMEOUT);
   const [isDistributedInferencingDefault, setisDistributedInferencingDefault] = React.useState(
-    clusterSettings.isDistributedInferencingDefault ??
-      DEFAULT_CONFIG.isDistributedInferencingDefault,
+    clusterSettings.isDistributedInferencingDefault ?? DEFAULT_DISTRIBUTED_INFERENCING,
   );
   const [defaultDeploymentStrategy, setDefaultDeploymentStrategy] = React.useState('rolling');
   // "Global project" UI maps to globalMLflowNamespaces in the CR (spec.globalMLflowNamespaces).
@@ -65,7 +66,7 @@ const ClusterSettings: React.FC = () => {
           modelServingPlatformEnabled: fetchedClusterSettings.modelServingPlatformEnabled,
           isDistributedInferencingDefault:
             fetchedClusterSettings.isDistributedInferencingDefault ??
-            DEFAULT_CONFIG.isDistributedInferencingDefault,
+            DEFAULT_DISTRIBUTED_INFERENCING,
           defaultDeploymentStrategy: deploymentStrategy,
           globalMLflowNamespaces: fetchedClusterSettings.globalMLflowNamespaces ?? [],
         };
@@ -75,8 +76,7 @@ const ClusterSettings: React.FC = () => {
         setUserTrackingEnabled(normalizedSettings.userTrackingEnabled);
         setModelServingEnabledPlatforms(normalizedSettings.modelServingPlatformEnabled);
         setisDistributedInferencingDefault(
-          normalizedSettings.isDistributedInferencingDefault ??
-            DEFAULT_CONFIG.isDistributedInferencingDefault,
+          normalizedSettings.isDistributedInferencingDefault ?? DEFAULT_DISTRIBUTED_INFERENCING,
         );
         setDefaultDeploymentStrategy(normalizedSettings.defaultDeploymentStrategy ?? 'rolling');
         setGlobalMLflowNamespace(normalizedSettings.globalMLflowNamespaces?.[0] ?? '');
