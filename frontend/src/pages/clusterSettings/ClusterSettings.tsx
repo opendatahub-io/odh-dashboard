@@ -33,7 +33,7 @@ const ClusterSettings: React.FC = () => {
   const [userTrackingEnabled, setUserTrackingEnabled] = React.useState(false);
   const [cullerTimeout, setCullerTimeout] = React.useState(DEFAULT_CULLER_TIMEOUT);
   const [isDistributedInferencingDefault, setisDistributedInferencingDefault] = React.useState(
-    clusterSettings.isDistributedInferencingDefault,
+    clusterSettings.isDistributedInferencingDefault ?? false,
   );
   const [defaultDeploymentStrategy, setDefaultDeploymentStrategy] = React.useState('rolling');
   // "Global project" UI maps to globalMLflowNamespaces in the CR (spec.globalMLflowNamespaces).
@@ -55,17 +55,27 @@ const ClusterSettings: React.FC = () => {
         const modelServingConfig = dashboardConfig.spec.modelServing || {};
         const deploymentStrategy = modelServingConfig.deploymentStrategy ?? 'rolling';
 
+        // API may omit optional fields (JSON drops undefined). Fill defaults so the
+        // baseline matches form state and Save stays disabled until the user edits.
         const normalizedSettings: ClusterSettingsType = {
-          ...fetchedClusterSettings,
+          pvcSize: fetchedClusterSettings.pvcSize,
+          cullerTimeout: fetchedClusterSettings.cullerTimeout,
+          userTrackingEnabled: fetchedClusterSettings.userTrackingEnabled,
+          modelServingPlatformEnabled: fetchedClusterSettings.modelServingPlatformEnabled,
+          isDistributedInferencingDefault:
+            fetchedClusterSettings.isDistributedInferencingDefault ?? false,
           defaultDeploymentStrategy: deploymentStrategy,
+          globalMLflowNamespaces: fetchedClusterSettings.globalMLflowNamespaces ?? [],
         };
         setClusterSettings(normalizedSettings);
         setPvcSize(normalizedSettings.pvcSize);
         setCullerTimeout(normalizedSettings.cullerTimeout);
         setUserTrackingEnabled(normalizedSettings.userTrackingEnabled);
         setModelServingEnabledPlatforms(normalizedSettings.modelServingPlatformEnabled);
-        setisDistributedInferencingDefault(normalizedSettings.isDistributedInferencingDefault);
-        setDefaultDeploymentStrategy(deploymentStrategy);
+        setisDistributedInferencingDefault(
+          normalizedSettings.isDistributedInferencingDefault ?? false,
+        );
+        setDefaultDeploymentStrategy(normalizedSettings.defaultDeploymentStrategy ?? 'rolling');
         setGlobalMLflowNamespace(normalizedSettings.globalMLflowNamespaces?.[0] ?? '');
         setLoaded(true);
         setLoadError(undefined);
@@ -114,9 +124,7 @@ const ClusterSettings: React.FC = () => {
       globalMLflowNamespaces,
     };
 
-    const clusterSettingsUnchanged = _.isEqual(clusterSettings, newClusterSettings);
-
-    if (clusterSettingsUnchanged) {
+    if (!isSettingsChanged) {
       return;
     }
 
@@ -130,15 +138,7 @@ const ClusterSettings: React.FC = () => {
     setSaving(true);
 
     try {
-      const response = await updateClusterSettings({
-        pvcSize,
-        cullerTimeout,
-        userTrackingEnabled,
-        modelServingPlatformEnabled: modelServingEnabledPlatforms,
-        isDistributedInferencingDefault,
-        defaultDeploymentStrategy,
-        globalMLflowNamespaces,
-      });
+      const response = await updateClusterSettings(newClusterSettings);
 
       if (!response.success) {
         throw new Error(response.error);
@@ -190,7 +190,7 @@ const ClusterSettings: React.FC = () => {
                   initialValue={clusterSettings.modelServingPlatformEnabled}
                   enabledPlatforms={modelServingEnabledPlatforms}
                   setEnabledPlatforms={setModelServingEnabledPlatforms}
-                  isDistributedInferencingDefault={isDistributedInferencingDefault ?? false}
+                  isDistributedInferencingDefault={isDistributedInferencingDefault}
                   setisDistributedInferencingDefault={setisDistributedInferencingDefault}
                 />
               </StackItem>
