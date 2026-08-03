@@ -21,11 +21,15 @@ export const stubDownload = (aliasName: string): void => {
 
     let pendingContent = '';
     const OriginalBlob = win.Blob;
+    const originalAnchorClick = win.HTMLAnchorElement.prototype.click;
+
+    // Capture string content from PatternFly download Blobs (`type: 'text'`).
+    // Monaco worker Blobs use `application/javascript` — leave those alone.
     cy.stub(win, 'Blob').callsFake(function BlobStub(
       blobParts?: BlobPart[],
       options?: BlobPropertyBag,
     ) {
-      if (Array.isArray(blobParts)) {
+      if (options?.type === 'text' && Array.isArray(blobParts)) {
         const [firstPart] = blobParts;
         if (typeof firstPart === 'string') {
           pendingContent = firstPart;
@@ -34,14 +38,15 @@ export const stubDownload = (aliasName: string): void => {
       return new OriginalBlob(blobParts, options);
     });
 
-    cy.stub(win.URL, 'createObjectURL').callsFake(() => 'blob:cypress-mock-download');
-
     cy.stub(win.HTMLAnchorElement.prototype, 'click').callsFake(function anchorClickStub(
       this: HTMLAnchorElement,
     ) {
       if (this.download) {
         downloads.push({ fileName: this.download, content: pendingContent });
+        pendingContent = '';
+        return;
       }
+      return originalAnchorClick.call(this);
     });
   });
 };
