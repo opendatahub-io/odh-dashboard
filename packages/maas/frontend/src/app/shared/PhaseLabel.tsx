@@ -39,7 +39,7 @@ const PhaseLabel: React.FC<PhaseLabelProps> = ({
   const [isModalOpen, setIsModalOpen] = React.useState(false);
   const normalized = normalizePhase(phase);
   const phaseProps = getPhaseProps(normalized);
-  const isClickable = forceModal || (normalized !== PhaseStatus.READY && !!statusMessage);
+  const isClickable = forceModal || normalized !== PhaseStatus.READY;
   const statusSubtext = getStatusSubtext(normalized, resourceType);
   const subtextProps = getSubtextProps(normalized);
 
