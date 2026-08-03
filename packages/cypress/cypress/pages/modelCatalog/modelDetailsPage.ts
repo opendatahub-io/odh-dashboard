@@ -107,11 +107,6 @@ class ModelDetailsPage {
     return cy.findByTestId('security-insights-empty-state');
   }
 
-  clickSecurityInsightsTab() {
-    this.findSecurityInsightsTab().click();
-    return this;
-  }
-
   clickPerformanceInsightsTab() {
     this.findPerformanceInsightsTab().click();
     return this;

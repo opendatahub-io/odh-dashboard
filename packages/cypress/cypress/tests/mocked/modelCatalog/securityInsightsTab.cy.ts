@@ -25,7 +25,7 @@ const catalogModel = {
   customProperties: {},
 };
 
-const setupCommonIntercepts = () => {
+const setupCommonIntercepts = ({ disableLMEval = false }: { disableLMEval?: boolean } = {}) => {
   asProductAdminUser();
 
   cy.interceptOdh(
@@ -33,7 +33,7 @@ const setupCommonIntercepts = () => {
     mockDashboardConfig({
       disableModelCatalog: false,
       disableModelRegistry: false,
-      disableLMEval: false,
+      disableLMEval,
     }),
   );
 
@@ -95,7 +95,7 @@ const setupCommonIntercepts = () => {
     'GET',
     `**/model-registry/api/${API_VERSION}/model_catalog/sources/${SOURCE_ID}/models/**`,
     { body: { data: catalogModel } },
-  ).as('getCatalogModel');
+  );
 
   cy.intercept(
     'GET',
@@ -110,18 +110,15 @@ const setupCommonIntercepts = () => {
         },
       },
     },
-  ).as('getCatalogArtifacts');
+  );
 };
 
-const interceptSecurityArtifacts = (
-  items = mockSecurityArtifacts(),
-  alias = 'getSecurityArtifacts',
-) => {
+const interceptSecurityArtifacts = (items = mockSecurityArtifacts()) => {
   cy.intercept(
     'GET',
     `**/eval-hub/api/${API_VERSION}/catalog/sources/${SOURCE_ID}/security_artifacts/**`,
     { body: mockSecurityArtifactsResponse(items) },
-  ).as(alias);
+  ).as('getSecurityArtifacts');
 };
 
 describe('Model Catalog Security Insights tab (eval-hub extension)', () => {
@@ -134,21 +131,12 @@ describe('Model Catalog Security Insights tab (eval-hub extension)', () => {
     modelDetailsPage.visitSecurityInsights(SOURCE_ID, ENCODED_MODEL_NAME);
 
     modelDetailsPage.findSecurityInsightsTab().should('exist');
-    modelDetailsPage.findSecurityInsightsTabContent().should('exist');
     modelDetailsPage.findSecurityInsightsEmptyState().should('exist');
     cy.wait('@getSecurityArtifacts');
   });
 
   it('should still show the security insights tab when LM eval is disabled', () => {
-    // Security Insights is gated by MODEL_CATALOG only (decoupled from LM_EVAL / Eval Hub Tech Preview).
-    cy.interceptOdh(
-      'GET /api/config',
-      mockDashboardConfig({
-        disableModelCatalog: false,
-        disableModelRegistry: false,
-        disableLMEval: true,
-      }),
-    );
+    setupCommonIntercepts({ disableLMEval: true });
     interceptSecurityArtifacts([]);
 
     cy.visitWithLogin(`/ai-hub/models/catalog/${SOURCE_ID}/${ENCODED_MODEL_NAME}/overview`);
@@ -161,8 +149,6 @@ describe('Model Catalog Security Insights tab (eval-hub extension)', () => {
     modelDetailsPage.visitSecurityInsights(SOURCE_ID, ENCODED_MODEL_NAME);
 
     modelDetailsPage.findSecurityInsightsTab().should('exist');
-    modelDetailsPage.findSecurityInsightsView().should('exist');
-    modelDetailsPage.findSecurityInsightsTable().should('exist');
     modelDetailsPage.findSecurityInsightsTable().should('contain.text', 'Toxicity');
     modelDetailsPage.findSecurityInsightsTable().should('contain.text', 'PII Leakage');
     modelDetailsPage.findSecurityInsightsTable().should('contain.text', '92.0%');
