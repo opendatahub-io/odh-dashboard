@@ -1,4 +1,5 @@
-import { PrometheusQueryRangeResponse, PrometheusQueryRangeResponseDataResult } from '#~/types';
+import type { PrometheusQueryRangeResponseDataResult } from '@odh-dashboard/model-serving/shared/types';
+import { PrometheusQueryRangeResponse } from '#~/types';
 
 type MockPrometheusServingType = {
   result?: PrometheusQueryRangeResponseDataResult[];

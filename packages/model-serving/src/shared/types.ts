@@ -12,6 +12,74 @@ import type {
   ImagePullSecret,
 } from '@odh-dashboard/k8s-core';
 
+export type PrometheusQueryRangeResultValue = [number, string];
+
+export type PrometheusQueryRangeResponseDataResult = {
+  metric: {
+    request?: string;
+    pod?: string;
+  };
+  values: PrometheusQueryRangeResultValue[];
+};
+
+export enum BiasMetricType {
+  SPD = 'SPD',
+  DIR = 'DIR',
+}
+
+export type BaseMetric = {
+  protectedAttribute: string;
+  outcomeName: string;
+  modelId: string;
+  requestName?: string;
+  thresholdDelta?: number;
+  batchSize?: number;
+};
+
+export type BaseMetricRequestInput = {
+  favorableOutcome: string | number | boolean;
+  privilegedAttribute: string | number | boolean;
+  unprivilegedAttribute: string | number | boolean;
+} & BaseMetric;
+
+export type BaseMetricRequest = {
+  favorableOutcome: string | number | boolean;
+  privilegedAttribute: string | number | boolean;
+  unprivilegedAttribute: string | number | boolean;
+} & BaseMetric;
+
+export enum TrustyInstallState {
+  UNINSTALLING = 'uninstalling',
+  INSTALLED = 'installed',
+  INSTALLING = 'installing',
+  /** Unrelated to Trusty error / infra failed, network issue, etc */
+  INFRA_ERROR = 'infra-error',
+  /** Specific error with the CR */
+  CR_ERROR = 'error',
+  UNINSTALLED = 'uninstalled',
+  LOADING_INITIAL_STATE = 'unknown',
+}
+
+export type BiasMetricConfig = {
+  id: string;
+  name: string;
+  metricType: BiasMetricType;
+  protectedAttribute: string;
+  outcomeName: string;
+  favorableOutcome: string;
+  privilegedAttribute: string;
+  unprivilegedAttribute: string;
+  modelId: string;
+  thresholdDelta?: number;
+  batchSize?: number;
+};
+
+/**
+ * Value chosen to match rates used in OpenShift console observability dashboard. This means for rate
+ * queries (e.g. http requests) that the time series will contain values for number of requests per 5m.
+ */
+export const PROMETHEUS_REQUEST_RESOLUTION = '300s';
+
 export type LabeledConnection = {
   connection: Connection;
   isRecommended?: boolean;

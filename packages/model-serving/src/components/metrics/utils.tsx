@@ -5,14 +5,14 @@ import { BreadcrumbItem } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 import { isEnumMember } from '@odh-dashboard/foundation';
 import { TimeframeTitle, BreadcrumbItemType } from '@odh-dashboard/ui-core/types/metrics';
-import { PrometheusQueryRangeResultValue } from '@odh-dashboard/internal/types';
 import {
+  PrometheusQueryRangeResultValue,
   BaseMetricRequest,
   BaseMetricRequestInput,
   BiasMetricType,
-} from '@odh-dashboard/internal/api';
-import { BiasMetricConfig } from '@odh-dashboard/internal/concepts/trustyai/types';
-import { PROMETHEUS_REQUEST_RESOLUTION } from '@odh-dashboard/ui-core/utilities/metrics';
+  BiasMetricConfig,
+  PROMETHEUS_REQUEST_RESOLUTION,
+} from '@odh-dashboard/model-serving/shared/types';
 import type { InferenceServiceKind } from '@odh-dashboard/model-serving/shared';
 import { BIAS_CHART_CONFIGS, BIAS_THRESHOLD_COLOR } from './const';
 import {

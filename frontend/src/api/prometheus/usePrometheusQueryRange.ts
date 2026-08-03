@@ -5,14 +5,12 @@ import useFetchState, {
   FetchStateCallbackPromise,
   NotReadyError,
 } from '@odh-dashboard/ui-core/hooks/useFetchState';
-import axios from '#~/utilities/axios';
-
-import {
-  PrometheusQueryRangeResponse,
-  PrometheusQueryRangeResponseData,
+import type {
   PrometheusQueryRangeResponseDataResult,
   PrometheusQueryRangeResultValue,
-} from '#~/types';
+} from '@odh-dashboard/model-serving/shared/types';
+import axios from '#~/utilities/axios';
+import { PrometheusQueryRangeResponse, PrometheusQueryRangeResponseData } from '#~/types';
 
 export type ResponsePredicate<T = PrometheusQueryRangeResultValue> = (
   data: PrometheusQueryRangeResponseData,

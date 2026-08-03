@@ -1,14 +1,14 @@
 import React from 'react';
 import { useModelBiasData } from '@odh-dashboard/internal/concepts/trustyai/context/useModelBiasData';
 import {
-  BiasMetricConfig,
-  TrustyInstallState,
-} from '@odh-dashboard/internal/concepts/trustyai/types';
-import { BiasMetricType } from '@odh-dashboard/internal/api';
-import {
   MultiSelection,
   SelectionOptions,
 } from '@odh-dashboard/internal/components/MultiSelection';
+import {
+  BiasMetricConfig,
+  TrustyInstallState,
+  BiasMetricType,
+} from '@odh-dashboard/model-serving/shared/types';
 
 type BiasMetricConfigSelectorProps = {
   onChange: (x: BiasMetricConfig[]) => void;

@@ -1,8 +1,7 @@
 import * as React from 'react';
-import { BiasMetricType } from '@odh-dashboard/internal/api';
 import { TrustyAIContext } from '@odh-dashboard/internal/concepts/trustyai/context/TrustyAIContext';
-import { BiasMetricConfig } from '@odh-dashboard/internal/concepts/trustyai/types';
 import { DeleteModal } from '@odh-dashboard/ui-core';
+import { BiasMetricType, BiasMetricConfig } from '@odh-dashboard/model-serving/shared/types';
 
 type DeleteBiasConfigurationModalProps = {
   configurationToDelete: BiasMetricConfig;
