@@ -1,7 +1,7 @@
 import React from 'react';
 import { Modal, ModalBody, ModalHeader, ModalFooter } from '@patternfly/react-core';
 import { type Identifier, IdentifierResourceType } from '@odh-dashboard/k8s-core';
-import DashboardModalFooter from '@odh-dashboard/internal/concepts/dashboard/DashboardModalFooter';
+import DashboardModalFooter from '@odh-dashboard/ui-core/components/DashboardModalFooter';
 import useGenericObjectState from '@odh-dashboard/ui-core/utilities/useGenericObjectState';
 import {
   CPU_UNITS,
