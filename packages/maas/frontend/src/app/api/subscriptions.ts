@@ -225,8 +225,12 @@ export const listAllMaasModels =
     handleRestFailures(
       restGET(hostPath, `${URL_PREFIX}/api/${BFF_API_VERSION}/all-maas-models`, {}, opts),
     ).then((response) => {
-      if (isModArchResponse<unknown>(response) && Array.isArray(response.data)) {
-        return response.data.filter(isMaaSModelRefSummary);
+      if (
+        isModArchResponse<unknown>(response) &&
+        Array.isArray(response.data) &&
+        response.data.every(isMaaSModelRefSummary)
+      ) {
+        return response.data;
       }
       throw new Error('Invalid response format');
     });

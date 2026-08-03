@@ -11,10 +11,17 @@ import type {
   SubscriptionInfoResponse,
   UserSubscription,
   MaaSModelRefSummary,
-  SubscriptionPolicyFormDataResponse,
   CreateSubscriptionResponse,
   MaaSAuthPolicy,
 } from '@odh-dashboard/maas/types/subscriptions';
+
+/** Shared shape for governance fixture data (formerly SubscriptionPolicyFormDataResponse). */
+export type MaasGovernanceFormData = {
+  groups: string[];
+  modelRefs: MaaSModelRefSummary[];
+  subscriptions: MaaSSubscription[];
+  policies: MaaSAuthPolicy[];
+};
 
 export const mockAPIKeys = (): APIKey[] => [
   {
@@ -436,8 +443,8 @@ export const mockModelRefSummaries = (): MaaSModelRefSummary[] => [
 ];
 
 export const mockSubscriptionFormData = (
-  overrides?: Partial<SubscriptionPolicyFormDataResponse>,
-): SubscriptionPolicyFormDataResponse => ({
+  overrides?: Partial<MaasGovernanceFormData>,
+): MaasGovernanceFormData => ({
   groups: [
     'system:authenticated',
     'premium-users',
@@ -461,6 +468,16 @@ export const mockSubscriptionFormData = (
   policies: mockAuthPolicies(),
   ...overrides,
 });
+
+/** Intercept the four governance list endpoints used by MaaSGovernanceContext. */
+export const interceptMaasGovernanceData = (
+  data: MaasGovernanceFormData = mockSubscriptionFormData(),
+): void => {
+  cy.interceptOdh('GET /maas/api/v1/all-subscriptions', { data: data.subscriptions });
+  cy.interceptOdh('GET /maas/api/v1/all-policies', { data: data.policies });
+  cy.interceptOdh('GET /maas/api/v1/all-maas-models', { data: data.modelRefs });
+  cy.interceptOdh('GET /maas/api/v1/all-groups', { data: data.groups });
+};
 
 export const mockModelsOverview = (): ModelOverviewItem[] => [
   {

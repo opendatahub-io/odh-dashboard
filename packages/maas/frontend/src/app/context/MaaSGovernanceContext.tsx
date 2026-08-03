@@ -32,6 +32,8 @@ type MaaSGovernanceContextType = {
   /** Models + subscriptions + policies loaded (overview join). */
   overviewLoaded: boolean;
   error: Error | undefined;
+  /** Overview-only errors (excludes groups — LDAP failures must not block overview). */
+  overviewError: Error | undefined;
   subscriptionsError: Error | undefined;
   policiesError: Error | undefined;
   modelRefsError: Error | undefined;
@@ -91,7 +93,8 @@ export const MaaSGovernanceProvider: React.FC<MaaSGovernanceProviderProps> = ({ 
   const isEmpty =
     overviewLoaded && subscriptions.length === 0 && policies.length === 0 && modelRefs.length === 0;
 
-  const error = subscriptionsError || policiesError || modelRefsError || groupsError || undefined;
+  const overviewError = subscriptionsError || policiesError || modelRefsError || undefined;
+  const error = overviewError || groupsError || undefined;
 
   const refresh = React.useCallback(() => {
     refreshSubscriptions();
@@ -115,6 +118,7 @@ export const MaaSGovernanceProvider: React.FC<MaaSGovernanceProviderProps> = ({ 
       groupsLoaded,
       overviewLoaded,
       error,
+      overviewError,
       subscriptionsError,
       policiesError,
       modelRefsError,
@@ -135,6 +139,7 @@ export const MaaSGovernanceProvider: React.FC<MaaSGovernanceProviderProps> = ({ 
       groupsLoaded,
       overviewLoaded,
       error,
+      overviewError,
       subscriptionsError,
       policiesError,
       modelRefsError,

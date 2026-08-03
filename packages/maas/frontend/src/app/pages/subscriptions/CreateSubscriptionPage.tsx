@@ -11,7 +11,15 @@ import { useMaaSGovernanceContext } from '~/app/context/MaaSGovernanceContext';
 import CreateSubscriptionForm from './createSubscription/CreateSubscriptionForm';
 
 const CreateSubscriptionPage: React.FC = () => {
-  const { groups, modelRefs, subscriptions, policies, loaded, error } = useMaaSGovernanceContext();
+  // Wait for overview fetches only — groups can populate the multi-select as they arrive.
+  const {
+    groups,
+    modelRefs,
+    subscriptions,
+    policies,
+    overviewLoaded: loaded,
+    overviewError: error,
+  } = useMaaSGovernanceContext();
   const { state } = useLocation();
   const backUrl = getBackUrl(state, 'subscriptions');
   const returnTo = backUrl;

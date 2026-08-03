@@ -27,6 +27,7 @@ jest.mock('~/app/context/MaaSGovernanceContext', () => ({
     groupsLoaded: true,
     overviewLoaded: true,
     error: undefined,
+    overviewError: undefined,
     refresh: jest.fn(),
   }),
 }));
