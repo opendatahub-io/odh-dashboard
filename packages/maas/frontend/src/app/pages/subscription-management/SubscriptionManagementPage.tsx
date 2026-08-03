@@ -18,7 +18,7 @@ const SubscriptionManagementPage: React.FC = () => {
   // Page-level empty only when models+subs+policies are all loaded and empty.
   // ApplicationsPage then replaces children (hides tabs) with emptyStatePage.
   // Per-tab empties still apply when some resources exist but one list is empty.
-  const { isEmpty, overviewLoaded } = useMaaSGovernanceContext();
+  const { isEmpty, overviewLoaded, overviewError } = useMaaSGovernanceContext();
 
   const { tab } = useParams<{ tab: string }>();
   const navigate = useNavigate();
@@ -36,8 +36,9 @@ const SubscriptionManagementPage: React.FC = () => {
     <ApplicationsPage
       title="MaaS governance"
       description="Manage subscriptions and authorization policies that control access to models through the Models-as-a-Service (MaaS) gateway."
-      loaded={overviewLoaded}
+      loaded={overviewLoaded || !!overviewError}
       empty={isEmpty}
+      loadError={overviewError}
       emptyStatePage={
         <EmptyStatePage
           returnTo={`${URL_PREFIX}/maas-governance`}
@@ -55,6 +56,8 @@ const SubscriptionManagementPage: React.FC = () => {
         onSelect={onSelectTab}
         aria-label="Subscription management tabs"
         inset={{ default: 'insetNone' }}
+        mountOnEnter
+        unmountOnExit
       >
         <Tab
           eventKey={OVERVIEW_TAB}

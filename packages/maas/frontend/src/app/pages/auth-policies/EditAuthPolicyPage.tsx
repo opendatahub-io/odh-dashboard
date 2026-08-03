@@ -13,13 +13,14 @@ const EditAuthPolicyPage: React.FC = () => {
   const base = getBackUrl(state, 'auth-policies');
   const returnTo = base;
   const [policyInfo, policyLoaded, policyError] = useGetPolicyInfo(authPolicyName);
+  // Wait for overview fetches only — groups can populate the multi-select as they arrive.
   const {
     groups,
     modelRefs,
     subscriptions,
     policies,
-    loaded: formLoaded,
-    error: formError,
+    overviewLoaded: formLoaded,
+    overviewError: formError,
   } = useMaaSGovernanceContext();
 
   const loaded = policyLoaded && formLoaded;
