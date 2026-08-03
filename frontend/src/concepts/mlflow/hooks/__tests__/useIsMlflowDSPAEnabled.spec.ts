@@ -19,6 +19,7 @@ const basePipelinesAPI = {
   refreshState: jest.fn(),
   managedPipelines: undefined,
   mlflowIntegrationMode: undefined,
+  mlflowInjectUserEnvVars: false,
   apiAvailable: false,
   api: {} as never,
   pipelineLoadError: undefined,

@@ -2,6 +2,7 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { k8sGetResource } from '@openshift/dynamic-plugin-sdk-utils';
+import { useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { NotificationWatcherContext } from '@odh-dashboard/ui-core/contexts/NotificationWatcherContext';
 import ManagePipelineServerModal from '#~/concepts/pipelines/content/ManagePipelineServerModal';
 import { mockDataSciencePipelineApplicationK8sResource } from '#~/__mocks__/mockDataSciencePipelinesApplicationK8sResource';
@@ -12,6 +13,8 @@ import { updatePipelineSettings } from '#~/api/pipelines/k8s';
 import { SecretCategory, EnvironmentVariableType } from '#~/pages/projects/types';
 import useNotification from '#~/utilities/useNotification';
 import { useAppContext } from '#~/app/AppContext';
+import useIsMlflowCRAvailable from '#~/concepts/mlflow/hooks/useIsMlflowCRAvailable';
+import { DSPAMlflowIntegrationMode } from '#~/k8sTypes';
 
 // Mock dependencies
 jest.mock('#~/concepts/pipelines/context', () => ({
@@ -41,6 +44,16 @@ jest.mock('#~/app/AppContext', () => ({
   useAppContext: jest.fn(),
 }));
 
+jest.mock('#~/concepts/mlflow/hooks/useIsMlflowCRAvailable', () => ({
+  __esModule: true,
+  default: jest.fn(),
+}));
+
+jest.mock('@odh-dashboard/plugin-core/areas', () => ({
+  ...jest.requireActual('@odh-dashboard/plugin-core/areas'),
+  useIsAreaAvailable: jest.fn(),
+}));
+
 const mockUsePipelinesAPI = usePipelinesAPI as jest.MockedFunction<typeof usePipelinesAPI>;
 const mockUseNamespaceSecret = useNamespaceSecret as jest.MockedFunction<typeof useNamespaceSecret>;
 const mockUpdatePipelineSettings = updatePipelineSettings as jest.MockedFunction<
@@ -49,12 +62,17 @@ const mockUpdatePipelineSettings = updatePipelineSettings as jest.MockedFunction
 const mockUseNotification = useNotification as jest.MockedFunction<typeof useNotification>;
 const mockUseAppContext = useAppContext as jest.MockedFunction<typeof useAppContext>;
 const mockK8sGetResource = k8sGetResource as jest.MockedFunction<typeof k8sGetResource>;
+const mockUseIsMlflowCRAvailable = useIsMlflowCRAvailable as jest.MockedFunction<
+  typeof useIsMlflowCRAvailable
+>;
+const mockUseIsAreaAvailable = useIsAreaAvailable as jest.MockedFunction<typeof useIsAreaAvailable>;
 
 describe('ManagePipelineServerModal', () => {
   const mockOnClose = jest.fn();
   const mockRegisterNotification = jest.fn();
   const mockSuccessNotification = jest.fn();
   const mockErrorNotification = jest.fn();
+  const mockRefreshState = jest.fn().mockResolvedValue(undefined);
 
   // Mock scrollIntoView
   beforeAll(() => {
@@ -86,7 +104,12 @@ describe('ManagePipelineServerModal', () => {
 
     mockUsePipelinesAPI.mockReturnValue({
       namespace: 'test-project',
+      project: {} as never,
       apiAvailable: true,
+      refreshState: mockRefreshState,
+      refreshAllAPI: jest.fn(),
+      getRecurringRunInformation: jest.fn(),
+      metadataStoreServiceClient: {} as never,
       pipelinesServer: {
         initializing: false,
         installed: true,
@@ -96,7 +119,11 @@ describe('ManagePipelineServerModal', () => {
         crStatus: undefined,
         isStarting: false,
       },
-      // Add other required properties with mock values
+      api: {} as never,
+      managedPipelines: undefined,
+      mlflowIntegrationMode: undefined,
+      mlflowInjectUserEnvVars: false,
+      pipelineLoadError: undefined,
     } as ReturnType<typeof usePipelinesAPI>);
 
     mockUseNamespaceSecret.mockReturnValue([
@@ -139,6 +166,22 @@ describe('ManagePipelineServerModal', () => {
     mockUseAppContext.mockReturnValue({
       dashboardConfig: mockDashboardConfig({ automl: true, autorag: true }),
     } as ReturnType<typeof useAppContext>);
+
+    mockUseIsMlflowCRAvailable.mockReturnValue({
+      available: false,
+      loaded: true,
+      error: false,
+    });
+
+    mockUseIsAreaAvailable.mockReturnValue({
+      status: false,
+      featureFlags: {},
+      devFlags: {},
+      reliantAreas: {},
+      requiredComponents: {},
+      requiredCapabilities: {},
+      customCondition: jest.fn(),
+    } as ReturnType<typeof useIsAreaAvailable>);
   });
 
   it('should render the modal with correct title', () => {
@@ -613,5 +656,266 @@ describe('ManagePipelineServerModal', () => {
 
     expect(updatedCachingCheckbox).not.toBeChecked();
     expect(updatedManagedPipelinesCheckbox).toBeChecked();
+  });
+
+  describe('MLflow tracking section', () => {
+    const enableMlflow = () => {
+      mockUseIsMlflowCRAvailable.mockReturnValue({
+        available: true,
+        loaded: true,
+        error: false,
+      });
+      mockUseIsAreaAvailable.mockReturnValue({
+        status: true,
+        featureFlags: {},
+        devFlags: {},
+        reliantAreas: {},
+        requiredComponents: {},
+        requiredCapabilities: {},
+        customCondition: jest.fn(),
+      } as ReturnType<typeof useIsAreaAvailable>);
+    };
+
+    it('should not render MLflow section when MLflow CR is unavailable', () => {
+      mockUseIsMlflowCRAvailable.mockReturnValue({
+        available: false,
+        loaded: true,
+        error: false,
+      });
+      mockUseIsAreaAvailable.mockReturnValue({
+        status: true,
+        featureFlags: {},
+        devFlags: {},
+        reliantAreas: {},
+        requiredComponents: {},
+        requiredCapabilities: {},
+        customCondition: jest.fn(),
+      } as ReturnType<typeof useIsAreaAvailable>);
+
+      renderModal();
+
+      expect(screen.queryByText('MLflow experiment tracking')).not.toBeInTheDocument();
+    });
+
+    it('should not render MLflow section when MLflow CR is still loading', () => {
+      mockUseIsMlflowCRAvailable.mockReturnValue({
+        available: false,
+        loaded: false,
+        error: false,
+      });
+      mockUseIsAreaAvailable.mockReturnValue({
+        status: true,
+        featureFlags: {},
+        devFlags: {},
+        reliantAreas: {},
+        requiredComponents: {},
+        requiredCapabilities: {},
+        customCondition: jest.fn(),
+      } as ReturnType<typeof useIsAreaAvailable>);
+
+      renderModal();
+
+      expect(screen.queryByText('MLflow experiment tracking')).not.toBeInTheDocument();
+    });
+
+    it('should not render MLflow section when MLFLOW_PIPELINES area is unavailable', () => {
+      mockUseIsMlflowCRAvailable.mockReturnValue({
+        available: true,
+        loaded: true,
+        error: false,
+      });
+      mockUseIsAreaAvailable.mockReturnValue({
+        status: false,
+        featureFlags: {},
+        devFlags: {},
+        reliantAreas: {},
+        requiredComponents: {},
+        requiredCapabilities: {},
+        customCondition: jest.fn(),
+      } as ReturnType<typeof useIsAreaAvailable>);
+
+      renderModal();
+
+      expect(screen.queryByText('MLflow experiment tracking')).not.toBeInTheDocument();
+    });
+
+    it('should display MLflow section when both MLflow CR and area are available', () => {
+      enableMlflow();
+
+      renderModal();
+
+      expect(screen.getByText('MLflow experiment tracking')).toBeInTheDocument();
+      expect(screen.getByTestId('mlflow-integration-mode-checkbox')).toBeInTheDocument();
+      expect(screen.getByTestId('mlflow-inject-env-vars-checkbox')).toBeInTheDocument();
+    });
+
+    it('should initialize MLflow checkboxes from DSPA resource', () => {
+      enableMlflow();
+
+      const pipelineWithMlflow = mockDataSciencePipelineApplicationK8sResource({
+        name: 'dspa',
+        namespace: 'test-project',
+        mlflowIntegrationMode: DSPAMlflowIntegrationMode.AUTODETECT,
+        mlflowInjectUserEnvVars: true,
+      });
+
+      renderModal({
+        ...defaultProps,
+        pipelineNamespaceCR: pipelineWithMlflow,
+      });
+
+      expect(screen.getByTestId('mlflow-integration-mode-checkbox')).toBeChecked();
+      expect(screen.getByTestId('mlflow-inject-env-vars-checkbox')).toBeChecked();
+    });
+
+    it('should default MLflow state when CR has no mlflow spec (integrationMode and injectUserEnvVars undefined)', () => {
+      enableMlflow();
+
+      renderModal();
+
+      // integrationMode undefined defaults to AUTODETECT → checked
+      expect(screen.getByTestId('mlflow-integration-mode-checkbox')).toBeChecked();
+      // injectUserEnvVars undefined defaults to false → unchecked but enabled
+      const injectCheckbox = screen.getByTestId('mlflow-inject-env-vars-checkbox');
+      expect(injectCheckbox).not.toBeChecked();
+      expect(injectCheckbox).toBeEnabled();
+    });
+
+    it('should enable save button when MLflow integration mode is toggled', () => {
+      enableMlflow();
+
+      renderModal();
+
+      const saveButton = screen.getByRole('button', { name: 'Save' });
+      expect(saveButton).toBeDisabled();
+
+      fireEvent.click(screen.getByTestId('mlflow-integration-mode-checkbox'));
+      expect(saveButton).toBeEnabled();
+    });
+
+    it('should enable save button when inject toggle is changed', () => {
+      enableMlflow();
+
+      renderModal();
+
+      const saveButton = screen.getByRole('button', { name: 'Save' });
+      expect(saveButton).toBeDisabled();
+
+      fireEvent.click(screen.getByTestId('mlflow-inject-env-vars-checkbox'));
+      expect(saveButton).toBeEnabled();
+    });
+
+    it('should call updatePipelineSettings with mlflow when save is clicked', async () => {
+      enableMlflow();
+
+      renderModal();
+
+      // Toggle integration off
+      fireEvent.click(screen.getByTestId('mlflow-integration-mode-checkbox'));
+
+      const saveButton = screen.getByRole('button', { name: 'Save' });
+      fireEvent.click(saveButton);
+
+      await waitFor(() => {
+        expect(mockUpdatePipelineSettings).toHaveBeenCalledWith(
+          'test-project',
+          {
+            mlflow: {
+              integrationMode: DSPAMlflowIntegrationMode.DISABLED,
+              injectUserEnvVars: false,
+            },
+          },
+          'dspa',
+        );
+      });
+
+      await waitFor(() => {
+        expect(mockRefreshState).toHaveBeenCalledTimes(1);
+      });
+    });
+
+    it('should not include mlflow in settings when unchanged', async () => {
+      enableMlflow();
+
+      renderModal();
+
+      // Only toggle caching
+      fireEvent.click(screen.getByTestId('pipeline-cache-enabling'));
+
+      const saveButton = screen.getByRole('button', { name: 'Save' });
+      fireEvent.click(saveButton);
+
+      await waitFor(() => {
+        expect(mockUpdatePipelineSettings).toHaveBeenCalledWith(
+          'test-project',
+          {
+            cacheEnabled: false,
+          },
+          'dspa',
+        );
+      });
+
+      await waitFor(() => {
+        expect(mockRefreshState).not.toHaveBeenCalled();
+      });
+    });
+
+    it('should call updatePipelineSettings with both caching and mlflow changes', async () => {
+      enableMlflow();
+
+      renderModal();
+
+      // Disable caching and toggle integration off
+      fireEvent.click(screen.getByTestId('pipeline-cache-enabling'));
+      fireEvent.click(screen.getByTestId('mlflow-integration-mode-checkbox'));
+
+      const saveButton = screen.getByRole('button', { name: 'Save' });
+      fireEvent.click(saveButton);
+
+      await waitFor(() => {
+        expect(mockUpdatePipelineSettings).toHaveBeenCalledWith(
+          'test-project',
+          {
+            cacheEnabled: false,
+            mlflow: {
+              integrationMode: DSPAMlflowIntegrationMode.DISABLED,
+              injectUserEnvVars: false,
+            },
+          },
+          'dspa',
+        );
+      });
+
+      await waitFor(() => {
+        expect(mockRefreshState).toHaveBeenCalledTimes(1);
+      });
+    });
+
+    it('should reset MLflow state when pipelineNamespaceCR changes', () => {
+      enableMlflow();
+
+      const { rerender } = renderModal();
+
+      // Toggle integration off
+      fireEvent.click(screen.getByTestId('mlflow-integration-mode-checkbox'));
+      expect(screen.getByTestId('mlflow-integration-mode-checkbox')).not.toBeChecked();
+
+      // Pipeline CR updates
+      const updatedPipeline = mockDataSciencePipelineApplicationK8sResource({
+        name: 'dspa',
+        namespace: 'test-project',
+        mlflowIntegrationMode: DSPAMlflowIntegrationMode.AUTODETECT,
+        mlflowInjectUserEnvVars: true,
+      });
+
+      rerender(
+        <NotificationWatcherContext.Provider value={mockNotificationContext}>
+          <ManagePipelineServerModal {...defaultProps} pipelineNamespaceCR={updatedPipeline} />
+        </NotificationWatcherContext.Provider>,
+      );
+
+      expect(screen.getByTestId('mlflow-integration-mode-checkbox')).toBeChecked();
+      expect(screen.getByTestId('mlflow-inject-env-vars-checkbox')).toBeChecked();
+    });
   });
 });

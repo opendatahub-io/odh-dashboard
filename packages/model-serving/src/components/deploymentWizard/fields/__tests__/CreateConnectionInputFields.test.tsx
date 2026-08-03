@@ -2,7 +2,7 @@ import React, { act } from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { z } from 'zod';
 import { renderHook } from '@odh-dashboard/jest-config/hooks';
-import { mockK8sNameDescriptionFieldData } from '@odh-dashboard/internal/__mocks__/mockK8sNameDescriptionFieldData';
+import { mockK8sNameDescriptionFieldData } from '@odh-dashboard/k8s-core/__mocks__/mockK8sNameDescriptionFieldData';
 
 import {
   createConnectionDataSchema,

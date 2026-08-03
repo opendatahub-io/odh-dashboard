@@ -5,9 +5,9 @@ import {
   PrometheusQueryRangeResponseDataResult,
   PrometheusQueryRangeResultValue,
 } from '@odh-dashboard/internal/types';
-import { DEFAULT_LIST_FETCH_STATE } from '@odh-dashboard/internal/utilities/const';
-import { PerformanceMetricType } from '@odh-dashboard/internal/pages/modelServing/screens/types';
+import { DEFAULT_LIST_FETCH_STATE } from '@odh-dashboard/ui-core/utilities/fetchState';
 import { MetricsCommonContext } from '@odh-dashboard/internal/concepts/metrics/MetricsCommonContext';
+import { PerformanceMetricType } from '@odh-dashboard/model-serving/shared/types';
 
 export enum ModelMetricType {
   REQUEST_COUNT_SUCCESS = 'inference_request-count-successes',

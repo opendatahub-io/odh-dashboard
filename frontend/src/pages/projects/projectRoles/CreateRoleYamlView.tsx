@@ -1,14 +1,5 @@
 import * as React from 'react';
-import {
-  Button,
-  Content,
-  Flex,
-  FlexItem,
-  Stack,
-  StackItem,
-  Title,
-  Tooltip,
-} from '@patternfly/react-core';
+import { Button, Content, Flex, FlexItem, Stack, StackItem, Tooltip } from '@patternfly/react-core';
 import { Language } from '@patternfly/react-code-editor';
 import {
   CompressArrowsAltIcon,
@@ -164,17 +155,6 @@ const CreateRoleYamlView: React.FC<CreateRoleYamlViewProps> = ({
 
   return (
     <Stack hasGutter data-testid="create-role-yaml-view">
-      <StackItem>
-        <Title headingLevel="h2" size="md" data-testid="yaml-view-title">
-          Role configuration YAML
-        </Title>
-      </StackItem>
-      <StackItem>
-        <Content component="p" data-testid="yaml-view-description">
-          View the live, read-only YAML for this role. This preview automatically updates to reflect
-          changes you make in <strong>Form</strong> view.
-        </Content>
-      </StackItem>
       <StackItem isFilled>
         {/* PF gap: no pf-v6-u-background-color-100 equivalent in v6 — remove when added */}
         <div

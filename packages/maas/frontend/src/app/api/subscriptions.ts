@@ -33,6 +33,9 @@ import {
 
 const isRecord = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object';
 
+const isYamlResponse = (v: unknown): v is { content: string } =>
+  isRecord(v) && typeof v.content === 'string';
+
 const isOptionalString = (v: unknown): v is string | undefined =>
   v === undefined || typeof v === 'string';
 
@@ -308,6 +311,23 @@ export const getUserSubscription =
     ).then((response) => {
       if (isModArchResponse<unknown>(response) && isUserSubscription(response.data)) {
         return response.data;
+      }
+      throw new Error('Invalid response format');
+    });
+
+export const getResourceYaml =
+  (name: string, resourceType: string, hostPath = '') =>
+  (opts: APIOptions): Promise<string> =>
+    handleRestFailures(
+      restGET(
+        hostPath,
+        `${URL_PREFIX}/api/${BFF_API_VERSION}/yaml`,
+        { name, type: resourceType },
+        opts,
+      ),
+    ).then((response) => {
+      if (isYamlResponse(response)) {
+        return response.content;
       }
       throw new Error('Invalid response format');
     });

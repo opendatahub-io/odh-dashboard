@@ -13,86 +13,117 @@ configMapGenerator:
     env: params.env
 generatorOptions:
   disableNameSuffixHash: true
-vars:
-  - name: model-registry-ui-image
-    objref:
+replacements:
+  - source:
       kind: ConfigMap
       name: sidecar-params
-      apiVersion: v1
-    fieldref:
-      fieldpath: data.model-registry-ui-image
-  - name: gen-ai-ui-image
-    objref:
+      fieldPath: data.model-registry-ui-image
+    targets:
+      - select:
+          kind: Deployment
+          name: odh-dashboard
+        fieldPaths:
+          - spec.template.spec.containers.[name=model-registry-ui].image
+  - source:
       kind: ConfigMap
       name: sidecar-params
-      apiVersion: v1
-    fieldref:
-      fieldpath: data.gen-ai-ui-image
-  - name: pgvector-image
-    objref:
+      fieldPath: data.gen-ai-ui-image
+    targets:
+      - select:
+          kind: Deployment
+          name: odh-dashboard
+        fieldPaths:
+          - spec.template.spec.containers.[name=gen-ai-ui].image
+  - source:
       kind: ConfigMap
       name: sidecar-params
-      apiVersion: v1
-    fieldref:
-      fieldpath: data.pgvector-image
-  - name: maas-ui-image
-    objref:
+      fieldPath: data.pgvector-image
+    targets:
+      - select:
+          kind: Deployment
+          name: odh-dashboard
+        fieldPaths:
+          - spec.template.spec.containers.[name=gen-ai-ui].env.[name=RELATED_IMAGE_POSTGRESQL_16_IMAGE].value
+  - source:
       kind: ConfigMap
       name: sidecar-params
-      apiVersion: v1
-    fieldref:
-      fieldpath: data.maas-ui-image
-  - name: mlflow-ui-image
-    objref:
+      fieldPath: data.maas-ui-image
+    targets:
+      - select:
+          kind: Deployment
+          name: odh-dashboard
+        fieldPaths:
+          - spec.template.spec.containers.[name=maas-ui].image
+  - source:
       kind: ConfigMap
       name: sidecar-params
-      apiVersion: v1
-    fieldref:
-      fieldpath: data.mlflow-ui-image
-  - name: eval-hub-ui-image
-    objref:
+      fieldPath: data.mlflow-ui-image
+    targets:
+      - select:
+          kind: Deployment
+          name: odh-dashboard
+        fieldPaths:
+          - spec.template.spec.containers.[name=mlflow-ui].image
+  - source:
       kind: ConfigMap
       name: sidecar-params
-      apiVersion: v1
-    fieldref:
-      fieldpath: data.eval-hub-ui-image
-  - name: automl-ui-image
-    objref:
+      fieldPath: data.eval-hub-ui-image
+    targets:
+      - select:
+          kind: Deployment
+          name: odh-dashboard
+        fieldPaths:
+          - spec.template.spec.containers.[name=eval-hub-ui].image
+  - source:
       kind: ConfigMap
       name: sidecar-params
-      apiVersion: v1
-    fieldref:
-      fieldpath: data.automl-ui-image
-  - name: automl-pipeline-runtime-image
-    objref:
+      fieldPath: data.automl-ui-image
+    targets:
+      - select:
+          kind: Deployment
+          name: odh-dashboard
+        fieldPaths:
+          - spec.template.spec.containers.[name=automl-ui].image
+  - source:
       kind: ConfigMap
       name: sidecar-params
-      apiVersion: v1
-    fieldref:
-      fieldpath: data.automl-pipeline-runtime-image
-  - name: autorag-ui-image
-    objref:
+      fieldPath: data.automl-pipeline-runtime-image
+    targets:
+      - select:
+          kind: Deployment
+          name: odh-dashboard
+        fieldPaths:
+          - spec.template.spec.containers.[name=automl-ui].env.[name=RELATED_IMAGE_ODH_AUTOML_IMAGE].value
+  - source:
       kind: ConfigMap
       name: sidecar-params
-      apiVersion: v1
-    fieldref:
-      fieldpath: data.autorag-ui-image
-  - name: autorag-pipeline-runtime-image
-    objref:
+      fieldPath: data.autorag-ui-image
+    targets:
+      - select:
+          kind: Deployment
+          name: odh-dashboard
+        fieldPaths:
+          - spec.template.spec.containers.[name=autorag-ui].image
+  - source:
       kind: ConfigMap
       name: sidecar-params
-      apiVersion: v1
-    fieldref:
-      fieldpath: data.autorag-pipeline-runtime-image
-  - name: agent-ops-ui-image
-    objref:
+      fieldPath: data.autorag-pipeline-runtime-image
+    targets:
+      - select:
+          kind: Deployment
+          name: odh-dashboard
+        fieldPaths:
+          - spec.template.spec.containers.[name=autorag-ui].env.[name=RELATED_IMAGE_ODH_AUTORAG_IMAGE].value
+  - source:
       kind: ConfigMap
       name: sidecar-params
-      apiVersion: v1
-    fieldref:
-      fieldpath: data.agent-ops-ui-image
-configurations:
-  - params.yaml
+      fieldPath: data.agent-ops-ui-image
+    targets:
+      - select:
+          kind: Deployment
+          name: odh-dashboard
+        fieldPaths:
+          - spec.template.spec.containers.[name=agent-ops-ui].image
 patchesJson6902:
   - path: deployment.yaml
     target:

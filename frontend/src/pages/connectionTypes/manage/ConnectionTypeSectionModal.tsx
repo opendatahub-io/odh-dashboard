@@ -13,8 +13,8 @@ import {
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { DashboardPopupIconButton } from '@odh-dashboard/ui-core';
 import useGenericObjectState from '@odh-dashboard/ui-core/utilities/useGenericObjectState';
+import DashboardModalFooter from '@odh-dashboard/ui-core/components/DashboardModalFooter';
 import { SectionField } from '#~/concepts/connectionTypes/types';
-import DashboardModalFooter from '#~/concepts/dashboard/DashboardModalFooter';
 
 type Props = {
   field?: SectionField;

@@ -1,4 +1,4 @@
-import { mockHardwareProfile } from '@odh-dashboard/internal/__mocks__/mockHardwareProfile';
+import { mockHardwareProfile } from '@odh-dashboard/hardware-profiles/__mocks__/mockHardwareProfile';
 import { mockRoleBindingK8sResource } from '@odh-dashboard/internal/__mocks__/mockRoleBindingK8sResource';
 import { mockK8sResourceList, mockNotebookK8sResource } from '@odh-dashboard/internal/__mocks__';
 import type { RoleBindingSubject } from '@odh-dashboard/k8s-core';

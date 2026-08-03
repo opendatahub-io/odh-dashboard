@@ -169,7 +169,26 @@ module.exports = (env) => ({
         ],
       },
       {
+        // css-loader 7 defaults to namedExport for CSS Modules; disable it so
+        // `import styles from '*.module.scss'` returns the class map.
+        test: /\.module\.s[ac]ss$/i,
+        use: [
+          'style-loader',
+          {
+            loader: 'css-loader',
+            options: {
+              modules: {
+                namedExport: false,
+                exportLocalsConvention: 'as-is',
+              },
+            },
+          },
+          'sass-loader',
+        ],
+      },
+      {
         test: /\.s[ac]ss$/i,
+        exclude: /\.module\.s[ac]ss$/i,
         use: [
           // Creates `style` nodes from JS strings
           'style-loader',
