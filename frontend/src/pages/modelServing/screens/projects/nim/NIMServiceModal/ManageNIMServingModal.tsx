@@ -25,6 +25,7 @@ import {
 import type { InferenceServiceKind, ServingRuntimeKind } from '@odh-dashboard/model-serving/shared';
 import { getServingRuntimeFromTemplate } from '@odh-dashboard/model-serving/shared';
 import { useAccessReview } from '@odh-dashboard/plugin-core/host-api';
+import DashboardModalFooter from '@odh-dashboard/ui-core/components/DashboardModalFooter';
 import {
   createNIMPVC,
   createNIMSecret,
@@ -36,7 +37,6 @@ import {
 } from '#~/pages/modelServing/screens/projects/utils';
 import { EMPTY_AWS_SECRET_DATA } from '#~/pages/projects/dataConnections/const';
 import useCustomServingRuntimesEnabled from '#~/pages/modelServing/customServingRuntimes/useCustomServingRuntimesEnabled';
-import DashboardModalFooter from '#~/concepts/dashboard/DashboardModalFooter';
 import {
   InferenceServiceStorageType,
   ServingRuntimeEditInfo,
