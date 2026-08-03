@@ -272,7 +272,11 @@ const mockedExecutionsByContextResponse: GetExecutionsByContextResponse = {
   ],
 };
 
-export const mockGetExecutionsByContext = (): GrpcResponse => {
-  const binary = GetExecutionsByContextResponse.encode(mockedExecutionsByContextResponse).finish();
+export const mockGetExecutionsByContext = (
+  overrideResponse?: GetExecutionsByContextResponse,
+): GrpcResponse => {
+  const binary = GetExecutionsByContextResponse.encode(
+    overrideResponse ?? mockedExecutionsByContextResponse,
+  ).finish();
   return createGrpcResponse(binary);
 };

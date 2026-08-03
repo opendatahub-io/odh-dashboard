@@ -3,16 +3,15 @@ import { act } from '@testing-library/react';
 import { renderHook, testHook } from '@odh-dashboard/jest-config/hooks';
 import * as areasUtils from '@odh-dashboard/plugin-core/areas';
 import { SchedulingType } from '@odh-dashboard/k8s-core';
+import { CurrentProjectContext } from '@odh-dashboard/ui-core/context/CurrentProjectContext';
+import { LocalQueuesContext } from '@odh-dashboard/ui-core/context/LocalQueuesContext';
+import type { LocalQueuesContextType } from '@odh-dashboard/ui-core/context/LocalQueuesContext';
 import { mockHardwareProfile } from '@odh-dashboard/hardware-profiles/__mocks__/mockHardwareProfile';
 import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import { mockLocalQueueK8sResource } from '#~/__mocks__/mockLocalQueueK8sResource';
 import { useHardwareProfileConfig } from '#~/concepts/hardwareProfiles/useHardwareProfileConfig';
 import * as reduxSelectors from '#~/redux/selectors';
 import * as useHardwareProfilesModule from '#~/pages/hardwareProfiles/useHardwareProfilesByFeatureVisibility';
-import {
-  ProjectDetailsContext,
-  type ProjectDetailsContextType,
-} from '#~/pages/projects/ProjectDetailsContext';
 
 jest.mock('@odh-dashboard/plugin-core/areas', () => ({
   ...jest.requireActual('@odh-dashboard/plugin-core/areas'),
@@ -725,18 +724,13 @@ describe('useHardwareProfileConfig', () => {
 // in the current project's namespace.
 // ---------------------------------------------------------------------------
 
-const makeKueueProjectWrapper = (localQueues: ProjectDetailsContextType['localQueues']) => {
+const makeKueueProjectWrapper = (localQueues: LocalQueuesContextType['localQueues']) => {
   const kueueProject = mockProjectK8sResource({ enableKueue: true });
   const Wrapper: React.FC<{ children: React.ReactNode }> = ({ children }) =>
     React.createElement(
-      ProjectDetailsContext.Provider,
-      {
-        value: {
-          currentProject: kueueProject,
-          localQueues,
-        } as unknown as ProjectDetailsContextType,
-      },
-      children,
+      CurrentProjectContext.Provider,
+      { value: { currentProject: kueueProject } },
+      React.createElement(LocalQueuesContext.Provider, { value: { localQueues } }, children),
     );
   Wrapper.displayName = 'KueueProjectWrapper';
   return Wrapper;
