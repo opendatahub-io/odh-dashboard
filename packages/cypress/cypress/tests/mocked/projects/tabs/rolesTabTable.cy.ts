@@ -139,7 +139,7 @@ describe('Roles tab table', () => {
       projectRoles.visit(NAMESPACE);
 
       const adminRow = projectRoles.getRow('Admin');
-      adminRow.findKebabAction('Preview YAML').click();
+      adminRow.findKebabAction('View YAML').click();
 
       projectRoles.findPreviewYAMLModal().should('exist');
       projectRoles.findPreviewYAMLCloseButton().click();
