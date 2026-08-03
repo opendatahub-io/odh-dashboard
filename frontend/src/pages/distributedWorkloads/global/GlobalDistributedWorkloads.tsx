@@ -3,6 +3,7 @@ import { Navigate, useParams } from 'react-router-dom';
 import TitleWithIcon from '@odh-dashboard/ui-core/design/TitleWithIcon';
 import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import { RefreshIntervalTitle } from '@odh-dashboard/ui-core/types/metrics';
+import { getStoredPreferredProject } from '@odh-dashboard/ui-core/context/getStoredPreferredProject';
 import { byName, ProjectsContext } from '#~/concepts/projects/ProjectsContext';
 import InvalidProject from '#~/concepts/projects/InvalidProject';
 import { DistributedWorkloadsContextProvider } from '#~/concepts/distributedWorkloads/DistributedWorkloadsContext';
@@ -12,7 +13,6 @@ import GlobalDistributedWorkloadsTabs from '#~/pages/distributedWorkloads/global
 import { MetricsCommonContextProvider } from '#~/concepts/metrics/MetricsCommonContext';
 import ProjectSelectorNavigator from '#~/concepts/projects/ProjectSelectorNavigator';
 import { ProjectObjectType } from '#~/concepts/design/utils';
-import { getStoredPreferredProject } from '#~/concepts/projects/getStoredPreferredProject';
 
 const title = 'Workload metrics';
 const description = 'Monitor the metrics of your active resources.';
