@@ -114,7 +114,8 @@ const OverviewTableRow: React.FC<OverviewTableRowProps> = ({
             truncateDescriptionLines={2}
           />
         </Td>
-        <Td dataLabel={overviewColumns[2].label}>
+        <Td dataLabel={overviewColumns[2].label}>{row.namespace}</Td>
+        <Td dataLabel={overviewColumns[3].label}>
           <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
             <FlexItem>{row.subscriptions.length}</FlexItem>
             {row.subscriptions.length === 0 && (
@@ -124,7 +125,7 @@ const OverviewTableRow: React.FC<OverviewTableRowProps> = ({
             )}
           </Flex>
         </Td>
-        <Td dataLabel={overviewColumns[3].label}>
+        <Td dataLabel={overviewColumns[4].label}>
           <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
             <FlexItem>{row.authPolicies.length}</FlexItem>
             {row.authPolicies.length === 0 && (
