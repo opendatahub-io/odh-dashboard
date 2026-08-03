@@ -35,6 +35,7 @@ export const devTemporaryFeatureFlags = {
   nimWizard: false,
   agentOpsDeploy: false,
   agentsCatalog: false,
+  modelCapabilities: false,
 } satisfies Partial<DashboardCommonConfig>;
 
 // Group 1: Core Dashboard Features
@@ -293,6 +294,10 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   },
   [SupportedArea.CONNECTION_TEST]: {
     featureFlags: ['connectionTest'],
+  },
+  [SupportedArea.MODEL_CAPABILITIES]: {
+    featureFlags: ['modelCapabilities'],
+    reliantAreas: [SupportedArea.MODEL_SERVING],
   },
 };
 

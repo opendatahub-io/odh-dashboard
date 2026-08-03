@@ -113,6 +113,7 @@ export const blankDashboardCR: DashboardConfig = {
       globalProjectPrompts: false,
       gpuaas: true,
       connectionTest: false,
+      modelCapabilities: false,
       observabilityDashboard: true,
     },
     notebookController: {
