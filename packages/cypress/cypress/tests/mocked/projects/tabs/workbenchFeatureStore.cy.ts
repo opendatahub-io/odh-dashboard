@@ -26,7 +26,11 @@ describe('Workbench page — Feature Store', () => {
   });
 
   describe('Expanded row feature stores (area enabled)', () => {
-    const enableFeatureStoreArea = () => {
+    const enableFeatureStoreArea = (
+      workbenchIntegration:
+        | typeof mockWorkbenchIntegrationResponse
+        | typeof mockEmptyWorkbenchIntegrationResponse = mockEmptyWorkbenchIntegrationResponse,
+    ) => {
       cy.interceptOdh(
         'GET /api/dsc/status',
         mockDscStatus({
@@ -40,12 +44,18 @@ describe('Workbench page — Feature Store', () => {
         'GET /api/config',
         mockDashboardConfig({ disableFeatureStore: false, disableProjectScoped: true }),
       );
+      cy.interceptOdh('GET /api/featurestores/workbench-integration', workbenchIntegration);
+    };
+
+    const visitWorkbenches = () => {
+      workbenchPage.visit('test-project');
+      workbenchPage.findNotebookTable(30000).should('exist');
     };
 
     it('shows "None" when feast-config annotation is absent', () => {
       initIntercepts({});
       enableFeatureStoreArea();
-      workbenchPage.visit('test-project');
+      visitWorkbenches();
       const notebookRow = workbenchPage.getNotebookRow('Test Notebook');
       notebookRow.findExpansionButton().click();
       notebookRow.shouldHaveFeatureStoreTitle();
@@ -70,12 +80,10 @@ describe('Workbench page — Feature Store', () => {
           }),
         ],
       });
-      enableFeatureStoreArea();
-      cy.interceptOdh(
-        'GET /api/featurestores/workbench-integration',
+      enableFeatureStoreArea(
         mockWorkbenchIntegrationForProjects(['project-a', 'project-b', 'project-c']),
       );
-      workbenchPage.visit('test-project');
+      visitWorkbenches();
       const notebookRow = workbenchPage.getNotebookRow('Test Notebook');
       notebookRow.findExpansionButton().click();
       notebookRow.shouldHaveFeatureStoreTitle();
@@ -102,9 +110,7 @@ describe('Workbench page — Feature Store', () => {
           }),
         ],
       });
-      enableFeatureStoreArea();
-      cy.interceptOdh(
-        'GET /api/featurestores/workbench-integration',
+      enableFeatureStoreArea(
         mockWorkbenchIntegrationForProjects([
           'store-1',
           'store-2',
@@ -115,7 +121,7 @@ describe('Workbench page — Feature Store', () => {
           'store-7',
         ]),
       );
-      workbenchPage.visit('test-project');
+      visitWorkbenches();
       const notebookRow = workbenchPage.getNotebookRow('Test Notebook');
       notebookRow.findExpansionButton().click();
       notebookRow.shouldHaveFeatureStoreTitle();
@@ -152,12 +158,8 @@ describe('Workbench page — Feature Store', () => {
           }),
         ],
       });
-      enableFeatureStoreArea();
-      cy.interceptOdh(
-        'GET /api/featurestores/workbench-integration',
-        mockWorkbenchIntegrationResponse,
-      );
-      workbenchPage.visit('test-project');
+      enableFeatureStoreArea(mockWorkbenchIntegrationResponse);
+      visitWorkbenches();
       const notebookRow = workbenchPage.getNotebookRow('Test Notebook');
       notebookRow.findExpansionButton().click();
       notebookRow.shouldHaveFeatureStoreLinks([

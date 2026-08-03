@@ -130,7 +130,7 @@ describe('NotebookFeatureStoreList', () => {
 
     const list = screen.getByTestId('notebook-feature-store-list');
     const items = within(list).getAllByRole('listitem');
-    expect(items).toHaveLength(2);
+    expect(items).toHaveLength(1);
     expect(items[0]).toHaveTextContent('project-b');
     expect(screen.queryByTestId('feature-store-unavailable-project-a')).not.toBeInTheDocument();
     expect(screen.queryByTestId('feature-store-unavailable-icon')).not.toBeInTheDocument();
@@ -159,7 +159,7 @@ describe('NotebookFeatureStoreList', () => {
     expect(screen.getByTestId('feature-store-show-unavailable')).toHaveTextContent('Show less');
     expect(screen.queryByTestId('feature-store-unavailable-help')).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: 'Show less' }));
+    await user.click(screen.getByTestId('feature-store-show-unavailable'));
     expect(screen.queryByTestId('feature-store-unavailable-project-a')).not.toBeInTheDocument();
     expect(screen.getByTestId('feature-store-show-unavailable')).toHaveTextContent(
       'Show unavailable',
@@ -260,7 +260,7 @@ describe('NotebookFeatureStoreList', () => {
     );
 
     const list = screen.getByTestId('notebook-feature-store-list');
-    expect(within(list).getAllByRole('listitem')).toHaveLength(4);
+    expect(within(list).getAllByRole('listitem')).toHaveLength(3);
     expect(within(list).getByText('store-1')).toBeInTheDocument();
     expect(within(list).getByText('store-3')).toBeInTheDocument();
     expect(within(list).getByText('store-5')).toBeInTheDocument();
@@ -291,10 +291,63 @@ describe('NotebookFeatureStoreList', () => {
   it('should show unavailable toggle when all stores are unavailable', () => {
     renderFeatureStoreList('project-a,project-b', new Map());
 
-    const list = screen.getByTestId('notebook-feature-store-list');
-    expect(within(list).getAllByRole('listitem')).toHaveLength(1);
+    expect(screen.queryByTestId('notebook-feature-store-list')).not.toBeInTheDocument();
     expect(screen.getByTestId('feature-store-show-unavailable')).toHaveTextContent(
       'Show unavailable',
+    );
+  });
+
+  it('should render show all before show unavailable when both apply', () => {
+    renderFeatureStoreList(
+      `${SEVEN_STORES},removed-a,removed-b`,
+      new Map([
+        ['store-1', 'ns-1'],
+        ['store-2', 'ns-2'],
+        ['store-3', 'ns-3'],
+        ['store-4', 'ns-4'],
+        ['store-5', 'ns-5'],
+        ['store-6', 'ns-6'],
+        ['store-7', 'ns-7'],
+      ]),
+    );
+
+    const showAll = screen.getByTestId('feature-store-show-all');
+    const showUnavailable = screen.getByTestId('feature-store-show-unavailable');
+
+    expect(showAll.compareDocumentPosition(showUnavailable)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+  });
+
+  it('should keep each show less toggle anchored to its own section when both are expanded', async () => {
+    const user = userEvent.setup();
+    renderFeatureStoreList(
+      `${SEVEN_STORES},removed-a,removed-b`,
+      new Map([
+        ['store-1', 'ns-1'],
+        ['store-2', 'ns-2'],
+        ['store-3', 'ns-3'],
+        ['store-4', 'ns-4'],
+        ['store-5', 'ns-5'],
+        ['store-6', 'ns-6'],
+        ['store-7', 'ns-7'],
+      ]),
+    );
+
+    await user.click(within(screen.getByTestId('feature-store-show-all')).getByRole('button'));
+    await user.click(
+      within(screen.getByTestId('feature-store-show-unavailable')).getByRole('button', {
+        name: 'Show unavailable',
+      }),
+    );
+
+    const showAll = screen.getByTestId('feature-store-show-all');
+    const unavailableList = screen.getByTestId('notebook-feature-store-unavailable-list');
+    const showUnavailable = screen.getByTestId('feature-store-show-unavailable');
+
+    expect(showAll).toHaveTextContent('Show less');
+    expect(showUnavailable).toHaveTextContent('Show less');
+    expect(showAll.compareDocumentPosition(unavailableList)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(unavailableList.compareDocumentPosition(showUnavailable)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
     );
   });
 });
