@@ -219,6 +219,7 @@ type SubscriptionsSectionProps = {
   highlightedGroup: string | null;
   setHighlightedGroup: (group: string | null) => void;
   returnTo: string;
+  onGroupSelect: (group: string) => void;
 };
 
 const SubscriptionsSection: React.FC<SubscriptionsSectionProps> = ({
@@ -229,6 +230,7 @@ const SubscriptionsSection: React.FC<SubscriptionsSectionProps> = ({
   highlightedGroup,
   setHighlightedGroup,
   returnTo,
+  onGroupSelect,
 }) => {
   const allExpanded =
     subscriptions.length > 0 &&
@@ -295,6 +297,7 @@ const SubscriptionsSection: React.FC<SubscriptionsSectionProps> = ({
                 groups={sub.groups ?? []}
                 highlightedGroup={highlightedGroup}
                 setHighlightedGroup={setHighlightedGroup}
+                onGroupSelect={onGroupSelect}
               />
             </ExpandableItem>
           );
@@ -312,6 +315,7 @@ type PoliciesSectionProps = {
   highlightedGroup: string | null;
   setHighlightedGroup: (group: string | null) => void;
   returnTo: string;
+  onGroupSelect: (group: string) => void;
 };
 
 const PoliciesSection: React.FC<PoliciesSectionProps> = ({
@@ -322,6 +326,7 @@ const PoliciesSection: React.FC<PoliciesSectionProps> = ({
   highlightedGroup,
   setHighlightedGroup,
   returnTo,
+  onGroupSelect,
 }) => {
   const allExpanded =
     policies.length > 0 &&
@@ -384,6 +389,7 @@ const PoliciesSection: React.FC<PoliciesSectionProps> = ({
                 groups={policy.groups ?? []}
                 highlightedGroup={highlightedGroup}
                 setHighlightedGroup={setHighlightedGroup}
+                onGroupSelect={onGroupSelect}
               />
             </ExpandableItem>
           );
@@ -415,6 +421,22 @@ const ExpandedModelContent: React.FC<ExpandedModelContentProps> = ({
   const togglePolicy = React.useCallback(
     (name: string) => setExpandedPolicies((prev) => toggleExpandedItem(prev, name)),
     [],
+  );
+
+  const onGroupSelect = React.useCallback(
+    (group: string) => {
+      fireMiscTrackingEvent(MaaSEvents.SUBSCRIPTION_MANAGEMENT_GROUP_LABEL_SELECTED, {
+        subsCountPerModel: subscriptions.length,
+        policyCountPerModel: policies.length,
+        subsCountWithSelectedGroup: subscriptions.filter((sub) =>
+          (sub.groups ?? []).includes(group),
+        ).length,
+        policyCountWithSelectedGroup: policies.filter((policy) =>
+          (policy.groups ?? []).includes(group),
+        ).length,
+      });
+    },
+    [subscriptions, policies],
   );
 
   const toggleAllSubs = React.useCallback(() => {
@@ -462,6 +484,7 @@ const ExpandedModelContent: React.FC<ExpandedModelContentProps> = ({
           highlightedGroup={highlightedGroup}
           setHighlightedGroup={setHighlightedGroup}
           returnTo={returnTo}
+          onGroupSelect={onGroupSelect}
         />
       </GridItem>
       <GridItem span={6}>
@@ -473,6 +496,7 @@ const ExpandedModelContent: React.FC<ExpandedModelContentProps> = ({
           highlightedGroup={highlightedGroup}
           setHighlightedGroup={setHighlightedGroup}
           returnTo={returnTo}
+          onGroupSelect={onGroupSelect}
         />
       </GridItem>
     </Grid>
