@@ -33,7 +33,8 @@ const ClusterSettings: React.FC = () => {
   const [userTrackingEnabled, setUserTrackingEnabled] = React.useState(false);
   const [cullerTimeout, setCullerTimeout] = React.useState(DEFAULT_CULLER_TIMEOUT);
   const [isDistributedInferencingDefault, setisDistributedInferencingDefault] = React.useState(
-    clusterSettings.isDistributedInferencingDefault ?? false,
+    clusterSettings.isDistributedInferencingDefault ??
+      DEFAULT_CONFIG.isDistributedInferencingDefault,
   );
   const [defaultDeploymentStrategy, setDefaultDeploymentStrategy] = React.useState('rolling');
   // "Global project" UI maps to globalMLflowNamespaces in the CR (spec.globalMLflowNamespaces).
@@ -63,7 +64,8 @@ const ClusterSettings: React.FC = () => {
           userTrackingEnabled: fetchedClusterSettings.userTrackingEnabled,
           modelServingPlatformEnabled: fetchedClusterSettings.modelServingPlatformEnabled,
           isDistributedInferencingDefault:
-            fetchedClusterSettings.isDistributedInferencingDefault ?? false,
+            fetchedClusterSettings.isDistributedInferencingDefault ??
+            DEFAULT_CONFIG.isDistributedInferencingDefault,
           defaultDeploymentStrategy: deploymentStrategy,
           globalMLflowNamespaces: fetchedClusterSettings.globalMLflowNamespaces ?? [],
         };
@@ -73,7 +75,8 @@ const ClusterSettings: React.FC = () => {
         setUserTrackingEnabled(normalizedSettings.userTrackingEnabled);
         setModelServingEnabledPlatforms(normalizedSettings.modelServingPlatformEnabled);
         setisDistributedInferencingDefault(
-          normalizedSettings.isDistributedInferencingDefault ?? false,
+          normalizedSettings.isDistributedInferencingDefault ??
+            DEFAULT_CONFIG.isDistributedInferencingDefault,
         );
         setDefaultDeploymentStrategy(normalizedSettings.defaultDeploymentStrategy ?? 'rolling');
         setGlobalMLflowNamespace(normalizedSettings.globalMLflowNamespaces?.[0] ?? '');
