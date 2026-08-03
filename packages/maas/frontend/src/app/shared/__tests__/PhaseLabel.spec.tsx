@@ -165,4 +165,56 @@ describe('PhaseLabel', () => {
     expect(label.className).toContain('pf-m-outline');
     expect(screen.queryByTestId('phase-popover')).toBeNull();
   });
+  it('should render subtext when status is failed', () => {
+    render(
+      <PhaseLabel
+        phase="Failed"
+        resourceType={PhaseResourceType.SUBSCRIPTION}
+        resourceName="Test Subscription"
+      />,
+    );
+    const subtext = screen.getByTestId('phase-label-subtext');
+    expect(subtext).not.toBeNull();
+  });
+  it('should render subtext when status is degraded', () => {
+    render(
+      <PhaseLabel
+        phase="Degraded"
+        resourceType={PhaseResourceType.SUBSCRIPTION}
+        resourceName="Test Subscription"
+      />,
+    );
+    const subtext = screen.getByTestId('phase-label-subtext');
+    expect(subtext).not.toBeNull();
+  });
+  it('should not render subtext when status is pending', () => {
+    render(
+      <PhaseLabel
+        phase="Pending"
+        resourceType={PhaseResourceType.SUBSCRIPTION}
+        resourceName="Test Subscription"
+      />,
+    );
+    expect(screen.queryByTestId('phase-label-subtext')).toBeNull();
+  });
+  it('should not render subtext when status is active', () => {
+    render(
+      <PhaseLabel
+        phase="Active"
+        resourceType={PhaseResourceType.SUBSCRIPTION}
+        resourceName="Test Subscription"
+      />,
+    );
+    expect(screen.queryByTestId('phase-label-subtext')).toBeNull();
+  });
+  it('should not render subtext when status is ready', () => {
+    render(
+      <PhaseLabel
+        phase="Ready"
+        resourceType={PhaseResourceType.SUBSCRIPTION}
+        resourceName="Test Subscription"
+      />,
+    );
+    expect(screen.queryByTestId('phase-label-subtext')).toBeNull();
+  });
 });

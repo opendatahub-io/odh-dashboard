@@ -64,7 +64,7 @@ const PhaseLabel: React.FC<PhaseLabelProps> = ({
         {normalized}
       </Label>
       {statusSubtext && subtextProps && !hideSubtext ? (
-        <Content component="small" {...subtextProps}>
+        <Content component="small" {...subtextProps} data-testid="phase-label-subtext">
           {statusSubtext}
         </Content>
       ) : null}

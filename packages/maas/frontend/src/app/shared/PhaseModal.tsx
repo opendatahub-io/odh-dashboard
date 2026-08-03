@@ -64,21 +64,31 @@ const PhaseModal: React.FC<PhaseModalProps> = ({
   resourceUrl,
   returnTo,
 }) => (
-  <Modal isOpen={isOpen} onClose={onClose} title={`${phase} ${resourceType}`} variant="small">
+  <Modal
+    isOpen={isOpen}
+    onClose={onClose}
+    title={`${phase} ${resourceType}`}
+    variant="small"
+    data-testid="phase-modal"
+  >
     <ModalHeader title={getModalTitle(resourceName, normalizePhase(phase))} />
     <ModalBody>
       <Stack hasGutter>
         <StackItem>{subtitle}</StackItem>
         <StackItem>
-          <Alert {...getModalAlertProps(phase, resourceType, statusMessage, reason)} />
+          <Alert
+            {...getModalAlertProps(phase, resourceType, statusMessage, reason)}
+            data-testid="phase-modal-alert"
+          />
         </StackItem>
       </Stack>
     </ModalBody>
-    {resourceUrl ? (
+    {resourceUrl && returnTo ? (
       <ModalFooter>
         <Link
           to={resourceUrl}
           state={returnTo ? { returnTo } : undefined}
+          data-testid="phase-modal-view-details-link"
           onClick={() =>
             fireMiscTrackingEvent(MaaSEvents.MAAS_RESOURCE_DETAILS_VIEWED, {
               resourceType: convertPhaseResourceTypeToEventTrackingResourceType(resourceType),

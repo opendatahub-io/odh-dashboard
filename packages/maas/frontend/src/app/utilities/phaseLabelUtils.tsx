@@ -285,7 +285,9 @@ export const getModalAlertProps = (
     children:
       hasAlertBody || showApiDetails ? (
         <Stack hasGutter>
-          {hasAlertBody ? <StackItem>{alertContent.children}</StackItem> : null}
+          {hasAlertBody ? (
+            <StackItem data-testid="phase-modal-alert-body">{alertContent.children}</StackItem>
+          ) : null}
           {showApiDetails ? (
             <StackItem>
               <PhaseApiDetails reason={reason} statusMessage={statusMessage} />
@@ -315,14 +317,14 @@ const PhaseApiDetails: React.FC<PhaseApiDetailsProps> = ({ reason, statusMessage
       <Stack hasGutter>
         {reason ? (
           <StackItem>
-            <Content component="small">
+            <Content component="small" data-testid="phase-api-details-reason">
               <strong>Reason:</strong> {reason}
             </Content>
           </StackItem>
         ) : null}
         {statusMessage ? (
           <StackItem>
-            <Content component="small">
+            <Content component="small" data-testid="phase-api-details-message">
               <strong>Message:</strong> {statusMessage}
             </Content>
           </StackItem>
