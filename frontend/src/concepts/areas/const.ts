@@ -17,6 +17,7 @@ export const techPreviewFlags = {
   mcpCatalog: false,
   mcpRegistry: false,
   toolCalling: false,
+  modelCapabilities: false,
   deploymentWizardYAMLViewer: false,
   externalVectorStores: false,
   agentConfigManagement: false,
@@ -35,7 +36,6 @@ export const devTemporaryFeatureFlags = {
   nimWizard: false,
   agentOpsDeploy: false,
   agentsCatalog: false,
-  modelCapabilities: false,
 } satisfies Partial<DashboardCommonConfig>;
 
 // Group 1: Core Dashboard Features
