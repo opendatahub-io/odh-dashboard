@@ -8,15 +8,17 @@ import {
   Icon,
   List,
   ListItem,
+  Popover,
+  Skeleton,
   Stack,
   StackItem,
-  Tooltip,
 } from '@patternfly/react-core';
-import { InfoCircleIcon } from '@patternfly/react-icons';
+import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import text from '@patternfly/react-styles/css/utilities/Text/text';
 
 import { NotebookKind } from '#~/k8sTypes';
 import { FEAST_CONFIG_ANNOTATION } from '#~/pages/projects/screens/spawner/featureStore/const';
+import { FEATURE_STORE_UNAVAILABLE_TOOLTIP } from '#~/pages/projects/screens/spawner/featureStore/utils';
 import ShowAllButton from './ShowAllButton';
 
 type NotebookFeatureStoreListProps = {
@@ -43,7 +45,8 @@ const NotebookFeatureStoreList: React.FC<NotebookFeatureStoreListProps> = ({
   availableStoreMap,
   availabilityLoaded,
 }) => {
-  const [showAll, setShowAll] = React.useState(false);
+  const [showAllAvailable, setShowAllAvailable] = React.useState(false);
+  const [showUnavailable, setShowUnavailable] = React.useState(false);
 
   const feastAnnotation = notebook.metadata.annotations?.[FEAST_CONFIG_ANNOTATION];
   const featureStoreNames = React.useMemo(
@@ -51,9 +54,29 @@ const NotebookFeatureStoreList: React.FC<NotebookFeatureStoreListProps> = ({
     [feastAnnotation],
   );
 
-  const visibleNames = showAll
-    ? featureStoreNames
-    : featureStoreNames.slice(0, DEFAULT_VISIBLE_LENGTH);
+  const { availableNames, unavailableNames } = React.useMemo((): {
+    availableNames: string[];
+    unavailableNames: string[];
+  } => {
+    if (!availabilityLoaded) {
+      return { availableNames: [], unavailableNames: [] };
+    }
+
+    const available: string[] = [];
+    const unavailable: string[] = [];
+    featureStoreNames.forEach((name) => {
+      if (availableStoreMap.has(name)) {
+        available.push(name);
+      } else {
+        unavailable.push(name);
+      }
+    });
+    return { availableNames: available, unavailableNames: unavailable };
+  }, [availabilityLoaded, availableStoreMap, featureStoreNames]);
+
+  const visibleAvailableNames = showAllAvailable
+    ? availableNames
+    : availableNames.slice(0, DEFAULT_VISIBLE_LENGTH);
 
   return (
     <Stack hasGutter>
@@ -65,67 +88,94 @@ const NotebookFeatureStoreList: React.FC<NotebookFeatureStoreListProps> = ({
           <Content data-testid="notebook-feature-store-none" component="small">
             None
           </Content>
+        ) : !availabilityLoaded ? (
+          <Stack hasGutter data-testid="notebook-feature-store-loading">
+            <StackItem>
+              <Skeleton
+                screenreaderText="Loading connected feature stores"
+                height="1.25rem"
+                width="60%"
+              />
+            </StackItem>
+            <StackItem>
+              <Skeleton aria-hidden height="1.25rem" width="40%" />
+            </StackItem>
+          </Stack>
         ) : (
-          <List data-testid="notebook-feature-store-list">
-            {visibleNames.map((name) => {
-              const isUnavailable = availabilityLoaded && !availableStoreMap.has(name);
-
-              if (isUnavailable) {
-                return (
-                  <ListItem key={name}>
-                    <Flex
-                      spaceItems={{ default: 'spaceItemsSm' }}
-                      alignItems={{ default: 'alignItemsCenter' }}
+          <List isPlain data-testid="notebook-feature-store-list">
+            {visibleAvailableNames.map((name) => (
+              <ListItem key={name}>
+                <Link
+                  to={`/develop-train/feature-store/overview/${name}`}
+                  state={{ registryNamespace: availableStoreMap.get(name) }}
+                  data-testid={`feature-store-link-${name}`}
+                >
+                  {name}
+                </Link>
+              </ListItem>
+            ))}
+            {unavailableNames.length > 0 &&
+              (showUnavailable ? (
+                <>
+                  {unavailableNames.map((name) => (
+                    <ListItem key={name} data-testid={`feature-store-unavailable-${name}`}>
+                      <Content className={text.textColorDisabled}>{name}</Content>
+                    </ListItem>
+                  ))}
+                  <ListItem>
+                    <Button
+                      isInline
+                      variant="link"
+                      onClick={() => setShowUnavailable(false)}
+                      data-testid="feature-store-show-unavailable"
                     >
-                      <FlexItem>
-                        <Content className={text.textColorDisabled}>{name}</Content>
-                      </FlexItem>
-                      <FlexItem>
-                        <Tooltip content="This feature store is no longer available. It may have been deleted or access has been revoked.">
-                          <Button
-                            hasNoPadding
-                            variant="plain"
-                            isInline
-                            aria-label="This feature store is no longer available"
-                            data-testid="feature-store-unavailable-icon"
-                          >
-                            <Icon isInline status="info">
-                              <InfoCircleIcon />
-                            </Icon>
-                          </Button>
-                        </Tooltip>
-                      </FlexItem>
-                    </Flex>
+                      Show less
+                    </Button>
                   </ListItem>
-                );
-              }
-
-              if (!availabilityLoaded) {
-                return <ListItem key={name}>{name}</ListItem>;
-              }
-
-              return (
-                <ListItem key={name}>
-                  <Link
-                    to={`/develop-train/feature-store/overview/${name}`}
-                    state={{ registryNamespace: availableStoreMap.get(name) }}
-                    data-testid={`feature-store-link-${name}`}
+                </>
+              ) : (
+                <ListItem data-testid="feature-store-show-unavailable">
+                  <Flex
+                    spaceItems={{ default: 'spaceItemsSm' }}
+                    alignItems={{ default: 'alignItemsCenter' }}
                   >
-                    {name}
-                  </Link>
+                    <FlexItem>
+                      <Button isInline variant="link" onClick={() => setShowUnavailable(true)}>
+                        Show unavailable
+                      </Button>
+                    </FlexItem>
+                    <FlexItem>
+                      <Popover
+                        aria-label="Why feature stores may be unavailable"
+                        bodyContent={FEATURE_STORE_UNAVAILABLE_TOOLTIP}
+                        position="right"
+                      >
+                        <Button
+                          hasNoPadding
+                          variant="plain"
+                          isInline
+                          aria-label="Why feature stores may be unavailable"
+                          data-testid="feature-store-unavailable-help"
+                        >
+                          <Icon isInline aria-hidden>
+                            <OutlinedQuestionCircleIcon />
+                          </Icon>
+                        </Button>
+                      </Popover>
+                    </FlexItem>
+                  </Flex>
                 </ListItem>
-              );
-            })}
+              ))}
           </List>
         )}
       </StackItem>
-      {featureStoreNames.length > DEFAULT_VISIBLE_LENGTH && (
+      {availabilityLoaded && availableNames.length > DEFAULT_VISIBLE_LENGTH && (
         <StackItem>
           <ShowAllButton
-            isExpanded={showAll}
+            isExpanded={showAllAvailable}
             visibleLength={DEFAULT_VISIBLE_LENGTH}
-            onToggle={() => setShowAll(!showAll)}
-            totalSize={featureStoreNames.length}
+            onToggle={() => setShowAllAvailable(!showAllAvailable)}
+            totalSize={availableNames.length}
             data-testid="feature-store-show-all"
           />
         </StackItem>

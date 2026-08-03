@@ -12,6 +12,7 @@ import {
   initFeatureStoreSpawnerIntercepts,
   mockEmptyWorkbenchIntegrationResponse,
   mockNotebookWithFeastConfig,
+  mockWorkbenchIntegrationForProjects,
   mockWorkbenchIntegrationResponse,
 } from '../../../../utils/featureStoreSpawnerMocks';
 
@@ -70,6 +71,10 @@ describe('Workbench page — Feature Store', () => {
         ],
       });
       enableFeatureStoreArea();
+      cy.interceptOdh(
+        'GET /api/featurestores/workbench-integration',
+        mockWorkbenchIntegrationForProjects(['project-a', 'project-b', 'project-c']),
+      );
       workbenchPage.visit('test-project');
       const notebookRow = workbenchPage.getNotebookRow('Test Notebook');
       notebookRow.findExpansionButton().click();
@@ -98,6 +103,18 @@ describe('Workbench page — Feature Store', () => {
         ],
       });
       enableFeatureStoreArea();
+      cy.interceptOdh(
+        'GET /api/featurestores/workbench-integration',
+        mockWorkbenchIntegrationForProjects([
+          'store-1',
+          'store-2',
+          'store-3',
+          'store-4',
+          'store-5',
+          'store-6',
+          'store-7',
+        ]),
+      );
       workbenchPage.visit('test-project');
       const notebookRow = workbenchPage.getNotebookRow('Test Notebook');
       notebookRow.findExpansionButton().click();
