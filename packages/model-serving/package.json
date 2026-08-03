@@ -21,6 +21,7 @@
     "./shared/components": "./src/shared/components/index.ts",
     "./shared/wizard-fields": "./src/shared/wizard-fields.ts",
     "./shared/types/form-data": "./src/shared/types/form-data.ts",
+    "./shared/modelCapabilities": "./src/shared/modelCapabilities.ts",
     "./components/connectionTypes/ConnectionOciAlert": "./src/components/connectionTypes/ConnectionOciAlert.tsx",
     "./components/connectionTypes/ConnectionOciPathField": "./src/components/connectionTypes/ConnectionOciPathField.tsx",
     "./components/connectionTypes/ConnectionS3FolderPathField": "./src/components/connectionTypes/ConnectionS3FolderPathField.tsx",
