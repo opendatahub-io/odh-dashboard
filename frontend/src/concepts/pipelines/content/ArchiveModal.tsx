@@ -11,8 +11,8 @@ import {
   ModalFooter,
 } from '@patternfly/react-core';
 import { TrackingOutcome } from '@odh-dashboard/ui-core';
-import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import DashboardModalFooter from '@odh-dashboard/ui-core/components/DashboardModalFooter';
+import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 
 interface ArchiveModalProps {
