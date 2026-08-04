@@ -1,7 +1,7 @@
 import React from 'react';
 import { render } from '@testing-library/react';
 import { Navigate, Location, useParams, useLocation } from 'react-router-dom';
-import { buildV2RedirectElement, buildV2RedirectRoutes } from '#~/utilities/v2Redirect';
+import { buildV2RedirectElement, buildV2RedirectRoutes } from '../v2Redirect';
 
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),

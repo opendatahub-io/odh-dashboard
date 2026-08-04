@@ -1,8 +1,8 @@
 import * as React from 'react';
 import '@testing-library/jest-dom';
 import { render, screen } from '@testing-library/react';
-import { mockHardwareProfile } from '@odh-dashboard/internal/__mocks__/mockHardwareProfile';
-import { mockUseAssignHardwareProfileResult } from '@odh-dashboard/internal/__mocks__/mockUseAssignHardwareProfileResult';
+import { mockHardwareProfile } from '@odh-dashboard/hardware-profiles/__mocks__/mockHardwareProfile';
+import { mockUseAssignHardwareProfileResult } from '@odh-dashboard/hardware-profiles/__mocks__/mockUseAssignHardwareProfileResult';
 import { mockExtensions } from '../../../__tests__/mockUtils';
 import { DeploymentRowExpandedSection } from '../row/DeploymentsTableRowExpandedSection';
 

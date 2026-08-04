@@ -1,7 +1,7 @@
 import React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { mockProjectK8sResource } from '#~/__mocks__/mockProjectK8sResource';
+import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import { ProjectsContext } from '#~/concepts/projects/ProjectsContext';
 import GlobalProjectSettings from '#~/pages/clusterSettings/GlobalProjectSettings';
 

@@ -4,7 +4,7 @@ import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import { ProjectsContext } from '@odh-dashboard/ui-core/context/ProjectsContext';
 import { byName } from '@odh-dashboard/k8s-core';
 import InvalidProject from '@odh-dashboard/internal/concepts/projects/InvalidProject';
-import { getStoredPreferredProject } from '@odh-dashboard/internal/concepts/projects/getStoredPreferredProject';
+import { getStoredPreferredProject } from '@odh-dashboard/ui-core/context/getStoredPreferredProject';
 import { ModelTrainingContextProvider } from './ModelTrainingContext';
 import ModelTrainingNoProjects from '../components/ModelTrainingNoProjects';
 import ModelTrainingProjectSelector from '../components/ModelTrainingProjectSelector';

@@ -1,4 +1,4 @@
-import { mockProjectK8sResource } from '#~/__mocks__/mockProjectK8sResource';
+import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import { mockSecretK8sResource } from '#~/__mocks__/mockSecretK8sResource';
 import {
   addOwnerReference,

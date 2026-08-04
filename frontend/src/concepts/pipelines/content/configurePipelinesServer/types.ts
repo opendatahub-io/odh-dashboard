@@ -1,4 +1,5 @@
 import { EnvVariableDataEntry } from '#~/pages/projects/types';
+import { DSPipelineMlflowKind } from '#~/k8sTypes';
 
 export type ObjectStorageNew = {
   newValue: EnvVariableDataEntry[];
@@ -13,4 +14,5 @@ export type PipelineServerConfigType = {
   storeYamlInKubernetes: boolean;
   enableCaching: boolean;
   enableManagedPipelines: boolean;
+  mlflow?: DSPipelineMlflowKind;
 };

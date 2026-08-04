@@ -1,8 +1,8 @@
 import { act } from 'react';
 import { testHook } from '@odh-dashboard/jest-config/hooks';
+import { mockPVCK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockPVCK8sResource';
 import useClusterStorageFormState from '#~/pages/projects/screens/detail/storage/useClusterStorageFormState';
 import { mockNotebookK8sResource } from '#~/__mocks__';
-import { mockPVCK8sResource } from '#~/__mocks__/mockPVCK8sResource';
 
 describe('useClusterStorageFormState', () => {
   it('should set notebookData correctly when connectedNotebooks and existingPvc are provided', () => {

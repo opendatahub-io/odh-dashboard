@@ -31,6 +31,7 @@ import K8sNameDescriptionField, {
 } from '@odh-dashboard/ui-core/components/K8sNameDescriptionField';
 import { type FormTrackingEventProperties, TrackingOutcome } from '@odh-dashboard/ui-core';
 import { useAccessReview } from '@odh-dashboard/plugin-core/host-api';
+import DashboardModalFooter from '@odh-dashboard/ui-core/components/DashboardModalFooter';
 import {
   getCreateInferenceServiceLabels,
   getSubmitInferenceServiceResourceFn,
@@ -41,7 +42,6 @@ import {
 } from '#~/pages/modelServing/screens/projects/utils';
 import { getKServeContainerArgs, getKServeContainerEnvVarStrs } from '#~/pages/modelServing/utils';
 import useCustomServingRuntimesEnabled from '#~/pages/modelServing/customServingRuntimes/useCustomServingRuntimesEnabled';
-import DashboardModalFooter from '#~/concepts/dashboard/DashboardModalFooter';
 import {
   InferenceServiceStorageType,
   ServingRuntimeEditInfo,

@@ -1,6 +1,5 @@
 import React from 'react';
-// eslint-disable-next-line @odh-dashboard/no-restricted-imports
-import { ProjectDetailsContext } from '@odh-dashboard/internal/pages/projects/ProjectDetailsContext';
+import { CurrentProjectContext } from '@odh-dashboard/ui-core/context/CurrentProjectContext';
 import { LazyCodeRefComponent, useExtensions } from '@odh-dashboard/plugin-core';
 import DetailsSection from '@odh-dashboard/ui-core/components/detail/DetailsSection';
 import { useProjectServingPlatform } from './concepts/useProjectServingPlatform';
@@ -24,7 +23,7 @@ const LoadingSection: React.FC<{ error?: Error }> = ({ error }) => (
 );
 
 const ModelsProjectDetailsTab: React.FC = () => {
-  const { currentProject } = React.useContext(ProjectDetailsContext);
+  const { currentProject } = React.useContext(CurrentProjectContext);
 
   const { clusterPlatforms, clusterPlatformsLoaded, clusterPlatformsError } =
     useAvailableClusterPlatforms();

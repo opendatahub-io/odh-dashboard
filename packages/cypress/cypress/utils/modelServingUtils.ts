@@ -3,11 +3,11 @@ import {
   mockDashboardConfig,
   mockDscStatus,
   mockK8sResourceList,
-  mockProjectK8sResource,
   mockRoleBindingK8sResource,
   mockRoleK8sResource,
   mockSecretK8sResource,
 } from '@odh-dashboard/internal/__mocks__';
+import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import {
   mockConnectionTypeConfigMap,
   mockModelServingFields,
@@ -15,7 +15,7 @@ import {
 import {
   mockGlobalScopedHardwareProfiles,
   mockProjectScopedHardwareProfiles,
-} from '@odh-dashboard/internal/__mocks__/mockHardwareProfile';
+} from '@odh-dashboard/hardware-profiles/__mocks__/mockHardwareProfile';
 import { mockNimAccount } from '@odh-dashboard/internal/__mocks__/mockNimAccount';
 import {
   mockServingRuntimeTemplateK8sResource,

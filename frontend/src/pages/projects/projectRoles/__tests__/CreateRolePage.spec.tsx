@@ -2,7 +2,8 @@ import * as React from 'react';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { useAccessReview } from '@odh-dashboard/plugin-core/host-api';
-import { mockRoleK8sResource, mockProjectK8sResource } from '#~/__mocks__';
+import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
+import { mockRoleK8sResource } from '#~/__mocks__';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import CreateRolePage from '#~/pages/projects/projectRoles/CreateRolePage';
 

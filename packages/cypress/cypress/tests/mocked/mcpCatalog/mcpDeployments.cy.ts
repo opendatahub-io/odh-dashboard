@@ -2,8 +2,8 @@ import {
   mockDashboardConfig,
   mockDscStatus,
   mockK8sResourceList,
-  mockProjectK8sResource,
 } from '@odh-dashboard/internal/__mocks__';
+import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import { mockDsciStatus } from '@odh-dashboard/internal/__mocks__/mockDsciStatus';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import type { McpDeployment } from '@odh-dashboard/model-registry/types/mcpDeploymentTypes';

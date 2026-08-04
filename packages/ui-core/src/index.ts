@@ -101,3 +101,7 @@ export type { FieldValidationProps } from './hooks/useZodFormValidation';
 
 export { default as useGenericObjectState } from './utilities/useGenericObjectState';
 export type { GenericObjectState } from './utilities/useGenericObjectState';
+
+export { default as DashboardModalFooter } from './components/DashboardModalFooter';
+export { default as DashboardSearchField, SearchType } from './components/DashboardSearchField';
+export { default as DashboardExpandableSection } from './components/DashboardExpandableSection';

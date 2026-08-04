@@ -82,6 +82,12 @@ patchesJson6902:
       name: odh-dashboard
   # NetworkPolicy only exists in manifests/sidecar/ — not present in ../../base.
   # No NetworkPolicy patch needed in standalone mode.
+  - path: pdb.yaml
+    target:
+      group: policy
+      version: v1
+      kind: PodDisruptionBudget
+      name: odh-dashboard
 replacements:
   - source:
       kind: ConfigMap

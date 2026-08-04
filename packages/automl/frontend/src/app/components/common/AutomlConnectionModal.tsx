@@ -1,6 +1,6 @@
 import React from 'react';
 import { Form, Modal, ModalBody, ModalHeader, ModalFooter } from '@patternfly/react-core';
-import DashboardModalFooter from '@odh-dashboard/internal/concepts/dashboard/DashboardModalFooter';
+import DashboardModalFooter from '@odh-dashboard/ui-core/components/DashboardModalFooter';
 import ConnectionTypeForm from '@odh-dashboard/internal/concepts/connectionTypes/ConnectionTypeForm';
 import {
   ConnectionTypeFieldType,
