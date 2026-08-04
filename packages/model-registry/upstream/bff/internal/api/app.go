@@ -113,7 +113,7 @@ const (
 	KubernetesServicesListPath = SettingsPath + "/services"
 
 	// MCPServer deployment endpoints (downstream-only implementations)
-	McpDeploymentName         = "mcp_deployment_name"
+	McpDeploymentName     = "mcp_deployment_name"
 	McpDeploymentListPath = ApiPathPrefix + "/mcp_deployments"
 	McpDeploymentPath     = McpDeploymentListPath + "/:" + McpDeploymentName
 )
