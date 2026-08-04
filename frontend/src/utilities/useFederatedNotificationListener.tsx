@@ -75,7 +75,11 @@ export const useFederatedNotificationListener = (): void => {
                 href={safeLinkUrl}
                 onClick={(e: React.MouseEvent) => {
                   e.preventDefault();
-                  navigate(safeLinkUrl);
+                  if (safeLinkUrl.startsWith('/')) {
+                    navigate(safeLinkUrl);
+                  } else {
+                    window.location.assign(safeLinkUrl);
+                  }
                 }}
               >
                 {linkLabel}
