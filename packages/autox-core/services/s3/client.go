@@ -23,6 +23,14 @@ import (
 // (typically 30s) so the BFF can return a meaningful error instead of a raw 504.
 const s3ConnectTimeout = 10 * time.Second
 
+// s3MetadataTimeout bounds read-only S3 metadata operations (ListObjects, HeadObject
+// for ObjectExists). net/http's connection-level timeouts do not cancel ctx, so an
+// endpoint that accepts the TCP connection but never sends response headers could
+// otherwise hang indefinitely. GetObject, DownloadObject, and UploadObject are
+// intentionally excluded because legitimate large payloads can exceed any static
+// timeout.
+const s3MetadataTimeout = 15 * time.Second
+
 const (
 	defaultTransferConcurrency      = 3
 	defaultTransferPartSizeBytes    = 8 * 1024 * 1024 // 8 MB
@@ -204,6 +212,9 @@ func (c *client) UploadObject(ctx context.Context, opts ConnectionOptions, input
 }
 
 func (c *client) ListObjects(ctx context.Context, opts ConnectionOptions, input ListObjectsInput) (*ListObjectsResponse, error) {
+	ctx, cancel := context.WithTimeout(ctx, s3MetadataTimeout)
+	defer cancel()
+
 	apiClient, err := c.Provider.CreateAPIClient(opts)
 	if err != nil {
 		return nil, err
@@ -231,6 +242,9 @@ func (c *client) ListObjects(ctx context.Context, opts ConnectionOptions, input 
 }
 
 func (c *client) ObjectExists(ctx context.Context, opts ConnectionOptions, input ObjectExistsInput) (bool, error) {
+	ctx, cancel := context.WithTimeout(ctx, s3MetadataTimeout)
+	defer cancel()
+
 	apiClient, err := c.Provider.CreateAPIClient(opts)
 	if err != nil {
 		return false, err
