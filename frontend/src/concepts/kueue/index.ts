@@ -12,6 +12,7 @@ import {
   type KueueStatusInfo,
   type KueueWorkloadStatusWithMessage,
 } from './types';
+import { isInadmissibleQuotaCondition } from './messageUtils';
 
 export const KUEUE_QUEUE_LABEL = 'kueue.x-k8s.io/queue-name';
 
@@ -75,12 +76,7 @@ const extractWorkloadConditions = (conditions: WorkloadCondition[]): ExtractedCo
     Preempted: conditions.find(
       ({ type, status }) => type === CONDITION_TYPE.Preempted && status === CONDITION_STATUS.True,
     ),
-    Inadmissible: conditions.find(
-      ({ type, status, reason }) =>
-        type === CONDITION_TYPE.QuotaReserved &&
-        status === CONDITION_STATUS.False &&
-        reason === 'Inadmissible',
-    ),
+    Inadmissible: conditions.find(isInadmissibleQuotaCondition),
     BlockedOnPreemptionGates: conditions.find(
       ({ type, status }) =>
         type === CONDITION_TYPE.BlockedOnPreemptionGates && status === CONDITION_STATUS.True,
