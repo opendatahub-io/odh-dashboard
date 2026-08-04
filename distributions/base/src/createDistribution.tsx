@@ -34,18 +34,18 @@ const DistributionApp: React.FC<{ config: DistributionConfig }> = ({ config }) =
 
   const { AppWrapper } = config;
 
-  const shell = (
-    <PluginStoreProvider store={store}>
-      <Shell masthead={<ShellHeader />} sidebar={<ShellNav />}>
-        <ShellRoutes />
-      </Shell>
-    </PluginStoreProvider>
+  const shellContent = (
+    <Shell masthead={<ShellHeader />} sidebar={<ShellNav />}>
+      <ShellRoutes />
+    </Shell>
   );
 
   return (
     <ThemeProvider>
       <BrowserStorageContextProvider>
-        {AppWrapper ? <AppWrapper>{shell}</AppWrapper> : shell}
+        <PluginStoreProvider store={store}>
+          {AppWrapper ? <AppWrapper>{shellContent}</AppWrapper> : shellContent}
+        </PluginStoreProvider>
       </BrowserStorageContextProvider>
     </ThemeProvider>
   );
