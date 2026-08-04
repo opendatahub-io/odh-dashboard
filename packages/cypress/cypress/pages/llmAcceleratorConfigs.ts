@@ -65,7 +65,9 @@ class UnsupportedStatusAcceptanceModal {
 
 class LlmAcceleratorConfigs {
   visit(wait = true) {
-    cy.visitWithLogin('/settings/model-resources-operations/llm-accelerator-configs');
+    cy.visitWithLogin(
+      '/settings/model-resources-operations/model-deployment-settings/llm-accelerator-configurations',
+    );
     if (wait) {
       this.wait();
     }
@@ -78,7 +80,7 @@ class LlmAcceleratorConfigs {
 
   findNavItem() {
     return appChrome.findNavItem({
-      name: 'LLM accelerator configurations',
+      name: 'Model deployment settings',
       rootSection: 'Settings',
       subSection: 'Model resources and operations',
     });
