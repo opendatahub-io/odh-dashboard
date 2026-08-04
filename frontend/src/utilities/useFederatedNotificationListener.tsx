@@ -26,14 +26,11 @@ export const isSafeUrl = (url: unknown): boolean => {
   if (typeof url !== 'string' || !url) {
     return false;
   }
-  if (url.startsWith('//')) {
-    return false;
-  }
-  if (url.startsWith('/')) {
-    return true;
-  }
   try {
     const parsed = new URL(url, window.location.origin);
+    if (url.startsWith('/')) {
+      return parsed.origin === window.location.origin;
+    }
     return parsed.protocol === 'http:' || parsed.protocol === 'https:';
   } catch {
     return false;
