@@ -683,7 +683,7 @@ const extensions: (
       pageId: 'model-deployment-settings',
       id: 'llm-accelerator-configurations',
       title: 'LLM accelerator configurations',
-      component: () => import('../src/settings/LlmAcceleratorConfigsTab'),
+      component: () => import('../src/settings/llmAcceleratorConfigs/LlmAcceleratorConfigRoutes'),
       group: '3_accelerator',
     },
   },
