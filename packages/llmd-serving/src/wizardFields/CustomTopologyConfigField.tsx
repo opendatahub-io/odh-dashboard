@@ -19,16 +19,19 @@ import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import { LLMD_DEPLOYMENT_METHOD_KEY } from './deploymentMethodField';
 import {
   useTopologyTypeData,
+  resolveTopologyConfigsDependencies,
   isTopologyTypeFieldData,
   type TopologyTypeFieldData,
   type TopologyTypeExternalData,
+  type TopologyConfigsDependencies,
 } from './TopologyTypeField';
 import { TopologyType, type LLMInferenceServiceConfigKind } from '../types';
 import { isLLMInferenceServiceActive } from '../formUtils';
+import { CUSTOM_TOPOLOGY_CONFIG_FIELD_ID, TOPOLOGY_TYPE_FIELD_ID } from '../const';
 
 // --- Dependencies ---
 
-type CustomTopologyConfigDependencies = {
+type CustomTopologyConfigDependencies = TopologyConfigsDependencies & {
   topologyType?: TopologyTypeFieldData;
 };
 
@@ -238,14 +241,15 @@ const isActive = (wizardState: RecursivePartial<WizardFormData['state']>): boole
 // --- Field definition ---
 
 export const CustomTopologyConfigFieldWizardField: CustomTopologyConfigFieldType = {
-  id: 'llmd-serving/custom-topology-config',
+  id: CUSTOM_TOPOLOGY_CONFIG_FIELD_ID,
   step: 'modelDeployment',
   type: 'addition',
   isActive,
   reducerFunctions: {
-    resolveDependencies: (formData) => {
-      const rawTopologyData = formData['llmd-serving/topology-type'];
+    resolveDependencies: (formData, initialData) => {
+      const rawTopologyData = formData[TOPOLOGY_TYPE_FIELD_ID];
       return {
+        ...resolveTopologyConfigsDependencies(formData, initialData),
         topologyType: isTopologyTypeFieldData(rawTopologyData) ? rawTopologyData : undefined,
       };
     },

@@ -15,7 +15,17 @@ import {
   extractTopologyType,
   extractTopologyConfig,
   extractRoutingConfig,
+  preDeployTopologyConfig,
+  preDeployRouterConfig,
 } from '../topology';
+import { createLLMInferenceServiceConfig } from '../../api/LLMInferenceServiceConfigs';
+
+jest.mock('../../api/LLMInferenceServiceConfigs', () => ({
+  createLLMInferenceServiceConfig: jest.fn(),
+  deleteLLMInferenceServiceConfig: jest.fn(),
+}));
+
+const mockCreateConfig = jest.mocked(createLLMInferenceServiceConfig);
 
 const makeDeployment = (
   overrides?: Partial<{
@@ -294,6 +304,68 @@ describe('extractTopologyConfig', () => {
   it('returns undefined when no annotation exists', () => {
     const deployment = makeDeployment();
     expect(extractTopologyConfig(deployment)).toBeUndefined();
+  });
+});
+
+// ─── preDeploy config copies ───────────────────────────────────────────────────
+
+describe('preDeploy config copies', () => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const wizardState = {} as any;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockCreateConfig.mockResolvedValue(mockLLMInferenceServiceConfigK8sResource({}));
+  });
+
+  it('carries the config type label onto the topology config copy', async () => {
+    const topologyConfig = buildTopologyConfig('topo-1', TopologyType.SINGLE_NODE);
+    expect(topologyConfig.metadata.labels?.['opendatahub.io/config-type']).toBe(
+      TopologyType.SINGLE_NODE,
+    );
+
+    let deployment = makeDeployment();
+    deployment = applyTopologyConfig(deployment, { selectedConfig: topologyConfig });
+    await preDeployTopologyConfig({ selectedConfig: topologyConfig }, wizardState, deployment);
+
+    expect(mockCreateConfig).toHaveBeenCalledTimes(1);
+    const created = mockCreateConfig.mock.calls[0][0];
+    expect(created.metadata.labels?.['opendatahub.io/config-type']).toBe(TopologyType.SINGLE_NODE);
+  });
+
+  it('carries the config type label onto the router config copy', async () => {
+    const routerConfig = buildRouterConfig('router-1');
+    const deployment = makeDeployment();
+
+    await preDeployRouterConfig({ selectedConfig: routerConfig }, wizardState, deployment);
+
+    expect(mockCreateConfig).toHaveBeenCalledTimes(1);
+    const created = mockCreateConfig.mock.calls[0][0];
+    expect(created.metadata.labels?.['opendatahub.io/config-type']).toBe('router');
+  });
+
+  it('does not carry the dashboard label onto the copy', async () => {
+    const topologyConfig = buildTopologyConfig('topo-1', TopologyType.SINGLE_NODE);
+
+    let deployment = makeDeployment();
+    deployment = applyTopologyConfig(deployment, { selectedConfig: topologyConfig });
+    await preDeployTopologyConfig({ selectedConfig: topologyConfig }, wizardState, deployment);
+
+    const created = mockCreateConfig.mock.calls[0][0];
+    expect(created.metadata.labels?.['opendatahub.io/dashboard']).toBeUndefined();
+  });
+
+  it('marks the copy as a local copy in its display name', async () => {
+    const topologyConfig = buildTopologyConfig('topo-1', TopologyType.SINGLE_NODE);
+
+    let deployment = makeDeployment();
+    deployment = applyTopologyConfig(deployment, { selectedConfig: topologyConfig });
+    await preDeployTopologyConfig({ selectedConfig: topologyConfig }, wizardState, deployment);
+
+    const created = mockCreateConfig.mock.calls[0][0];
+    expect(created.metadata.annotations?.['openshift.io/display-name']).toBe(
+      'Topology topo-1 (Local Copy)',
+    );
   });
 });
 

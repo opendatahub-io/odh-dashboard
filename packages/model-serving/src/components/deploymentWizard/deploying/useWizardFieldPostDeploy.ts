@@ -5,6 +5,12 @@ import { type Deployment } from '../../../../extension-points';
 import { isWizardFieldDeploymentFunctionsExtension } from '../../../../extension-points/deployment-wizard';
 import { useActiveFields } from '../dynamicFormUtils';
 
+export type RunPostDeployFns = (
+  deployedModel: Deployment,
+  existingDeployment?: Deployment,
+  dryRun?: boolean,
+) => Promise<void>;
+
 /**
  * Hook that returns an async function to run all active post-deploy extensions after
  * a deployment is saved. Each extension receives the field's current data, the newly
@@ -19,10 +25,7 @@ import { useActiveFields } from '../dynamicFormUtils';
 export const useWizardFieldPostDeploy = (
   wizardState: WizardFormData['state'],
 ): {
-  runPostDeploy: (
-    deployedModel: Deployment['model'],
-    existingDeployment?: Deployment,
-  ) => Promise<void>;
+  runPostDeploy: RunPostDeployFns;
   postDeployExtensionsLoaded: boolean;
   postDeployExtensionErrors: Error[];
 } => {
@@ -39,13 +42,19 @@ export const useWizardFieldPostDeploy = (
     [postDeployExtensions, activeFields],
   );
 
-  const runPostDeploy = React.useCallback(
-    async (deployedModel: Deployment['model'], existingDeployment?: Deployment): Promise<void> => {
+  const runPostDeploy = React.useCallback<RunPostDeployFns>(
+    async (
+      deployedModel: Deployment,
+      existingDeployment?: Deployment,
+      dryRun?: boolean,
+    ): Promise<void> => {
       for (const ext of activePostDeployExtensions) {
         const { fieldId } = ext.properties;
         const fieldData: unknown = wizardState[fieldId];
         try {
-          await ext.properties.postDeploy(fieldData, deployedModel, existingDeployment);
+          if (typeof ext.properties.postDeploy === 'function') {
+            await ext.properties.postDeploy(fieldData, deployedModel, existingDeployment, dryRun);
+          }
         } catch (error) {
           postDeployExtensionErrors.push(error instanceof Error ? error : new Error(String(error)));
         }
