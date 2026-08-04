@@ -7,6 +7,16 @@ const BASE_SRC_DIR = path.resolve(BASE_DIR, 'src');
 const REPO_ROOT = path.resolve(BASE_DIR, '../..');
 const INTERNAL_DIR = path.resolve(REPO_ROOT, 'frontend/src');
 
+const IMAGES_SEGMENT = `${path.sep}images${path.sep}`;
+const PACKAGES_DIR = path.join(REPO_ROOT, 'packages');
+// SVGs from @odh-dashboard/internal (frontend/src/images/) need svg-url-loader too.
+// Remove once those images move to their own packages.
+const FRONTEND_IMAGES_DIR = path.join(REPO_ROOT, 'frontend', 'src', 'images');
+
+const isImagesDirSvg = (input) =>
+  input.indexOf(IMAGES_SEGMENT) > -1 &&
+  (input.startsWith(PACKAGES_DIR) || input.startsWith(FRONTEND_IMAGES_DIR));
+
 /**
  * Shared webpack configuration factory for all distributions.
  *
@@ -70,15 +80,7 @@ module.exports = ({
           // URL (data URI), not raw markup. bgimages/ also needs data URIs.
           // Base shell logos (distributions/base/src/images/) intentionally use
           // raw-loader so ShellHeader can encodeURIComponent the markup itself.
-          include: (input) => {
-            if (input.indexOf('bgimages') > -1) {
-              return true;
-            }
-            const packagesDir = path.join(REPO_ROOT, 'packages');
-            return (
-              input.startsWith(packagesDir) && input.indexOf(`${path.sep}images${path.sep}`) > -1
-            );
-          },
+          include: (input) => input.indexOf('bgimages') > -1 || isImagesDirSvg(input),
           use: {
             loader: 'svg-url-loader',
             options: { limit: 10000 },
@@ -94,14 +96,7 @@ module.exports = ({
             ) {
               return false;
             }
-            const packagesDir = path.join(REPO_ROOT, 'packages');
-            if (
-              input.startsWith(packagesDir) &&
-              input.indexOf(`${path.sep}images${path.sep}`) > -1
-            ) {
-              return false;
-            }
-            return true;
+            return !isImagesDirSvg(input);
           },
           use: { loader: 'raw-loader' },
         },
