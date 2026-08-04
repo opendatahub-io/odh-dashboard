@@ -3,6 +3,7 @@ package mlflow
 import (
 	"context"
 
+	"github.com/opendatahub-io/mlflow-go/mlflow/mcpregistry"
 	"github.com/opendatahub-io/mlflow-go/mlflow/promptregistry"
 	"github.com/opendatahub-io/mlflow-go/mlflow/tracking"
 	"github.com/stretchr/testify/mock"
@@ -68,6 +69,67 @@ func (m *MockClient) DeletePrompt(ctx context.Context, name string) error {
 
 func (m *MockClient) DeletePromptVersion(ctx context.Context, name string, version int) error {
 	args := m.Called(ctx, name, version)
+	return args.Error(0)
+}
+
+func (m *MockClient) SearchMCPServers(ctx context.Context, opts ...mcpregistry.SearchMCPServersOption) (*mcpregistry.MCPServerList, error) {
+	args := m.Called(ctx, opts)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*mcpregistry.MCPServerList), args.Error(1)
+}
+
+func (m *MockClient) CreateMCPServer(ctx context.Context, name string, opts ...mcpregistry.CreateMCPServerOption) (*mcpregistry.MCPServer, error) {
+	args := m.Called(ctx, name, opts)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*mcpregistry.MCPServer), args.Error(1)
+}
+
+func (m *MockClient) GetMCPServer(ctx context.Context, name string) (*mcpregistry.MCPServer, error) {
+	args := m.Called(ctx, name)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*mcpregistry.MCPServer), args.Error(1)
+}
+
+func (m *MockClient) SearchMCPServerVersions(ctx context.Context, name string, opts ...mcpregistry.SearchMCPServerVersionsOption) (*mcpregistry.MCPServerVersionList, error) {
+	args := m.Called(ctx, name, opts)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*mcpregistry.MCPServerVersionList), args.Error(1)
+}
+
+func (m *MockClient) CreateMCPServerVersion(ctx context.Context, name string, serverJSON map[string]any, opts ...mcpregistry.CreateMCPServerVersionOption) (*mcpregistry.MCPServerVersion, error) {
+	args := m.Called(ctx, name, serverJSON, opts)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*mcpregistry.MCPServerVersion), args.Error(1)
+}
+
+func (m *MockClient) CreateMCPAccessEndpoint(ctx context.Context, serverName, endpointURL string, opts ...mcpregistry.CreateMCPAccessEndpointOption) (*mcpregistry.MCPAccessEndpoint, error) {
+	args := m.Called(ctx, serverName, endpointURL, opts)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*mcpregistry.MCPAccessEndpoint), args.Error(1)
+}
+
+func (m *MockClient) SearchMCPAccessEndpoints(ctx context.Context, opts ...mcpregistry.SearchMCPAccessEndpointsOption) (*mcpregistry.MCPAccessEndpointList, error) {
+	args := m.Called(ctx, opts)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*mcpregistry.MCPAccessEndpointList), args.Error(1)
+}
+
+func (m *MockClient) DeleteMCPAccessEndpoint(ctx context.Context, serverName, endpointID string) error {
+	args := m.Called(ctx, serverName, endpointID)
 	return args.Error(0)
 }
 

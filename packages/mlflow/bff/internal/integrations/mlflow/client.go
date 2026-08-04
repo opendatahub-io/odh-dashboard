@@ -4,6 +4,7 @@ import (
 	"context"
 
 	sdkmlflow "github.com/opendatahub-io/mlflow-go/mlflow"
+	"github.com/opendatahub-io/mlflow-go/mlflow/mcpregistry"
 	"github.com/opendatahub-io/mlflow-go/mlflow/promptregistry"
 	"github.com/opendatahub-io/mlflow-go/mlflow/tracking"
 )
@@ -21,6 +22,16 @@ type ClientInterface interface {
 	ListPromptVersions(ctx context.Context, name string, opts ...promptregistry.ListVersionsOption) (*promptregistry.PromptVersionList, error)
 	DeletePrompt(ctx context.Context, name string) error
 	DeletePromptVersion(ctx context.Context, name string, version int) error
+
+	// MCP Registry
+	SearchMCPServers(ctx context.Context, opts ...mcpregistry.SearchMCPServersOption) (*mcpregistry.MCPServerList, error)
+	CreateMCPServer(ctx context.Context, name string, opts ...mcpregistry.CreateMCPServerOption) (*mcpregistry.MCPServer, error)
+	GetMCPServer(ctx context.Context, name string) (*mcpregistry.MCPServer, error)
+	SearchMCPServerVersions(ctx context.Context, name string, opts ...mcpregistry.SearchMCPServerVersionsOption) (*mcpregistry.MCPServerVersionList, error)
+	CreateMCPServerVersion(ctx context.Context, name string, serverJSON map[string]any, opts ...mcpregistry.CreateMCPServerVersionOption) (*mcpregistry.MCPServerVersion, error)
+	CreateMCPAccessEndpoint(ctx context.Context, serverName, endpointURL string, opts ...mcpregistry.CreateMCPAccessEndpointOption) (*mcpregistry.MCPAccessEndpoint, error)
+	SearchMCPAccessEndpoints(ctx context.Context, opts ...mcpregistry.SearchMCPAccessEndpointsOption) (*mcpregistry.MCPAccessEndpointList, error)
+	DeleteMCPAccessEndpoint(ctx context.Context, serverName, endpointID string) error
 }
 
 // Client wraps the mlflow-go SDK client.
@@ -76,4 +87,44 @@ func (c *Client) DeletePrompt(ctx context.Context, name string) error {
 // DeletePromptVersion removes a specific version of a prompt.
 func (c *Client) DeletePromptVersion(ctx context.Context, name string, version int) error {
 	return c.sdk.PromptRegistry().DeletePromptVersion(ctx, name, version)
+}
+
+// SearchMCPServers returns a paginated list of MCP servers matching the given options.
+func (c *Client) SearchMCPServers(ctx context.Context, opts ...mcpregistry.SearchMCPServersOption) (*mcpregistry.MCPServerList, error) {
+	return c.sdk.MCPRegistry().SearchMCPServers(ctx, opts...)
+}
+
+// CreateMCPServer registers a new MCP server entry.
+func (c *Client) CreateMCPServer(ctx context.Context, name string, opts ...mcpregistry.CreateMCPServerOption) (*mcpregistry.MCPServer, error) {
+	return c.sdk.MCPRegistry().CreateMCPServer(ctx, name, opts...)
+}
+
+// GetMCPServer retrieves a single MCP server by name.
+func (c *Client) GetMCPServer(ctx context.Context, name string) (*mcpregistry.MCPServer, error) {
+	return c.sdk.MCPRegistry().GetMCPServer(ctx, name)
+}
+
+// SearchMCPServerVersions returns a paginated list of versions for a named MCP server.
+func (c *Client) SearchMCPServerVersions(ctx context.Context, name string, opts ...mcpregistry.SearchMCPServerVersionsOption) (*mcpregistry.MCPServerVersionList, error) {
+	return c.sdk.MCPRegistry().SearchMCPServerVersions(ctx, name, opts...)
+}
+
+// CreateMCPServerVersion creates a new version of an MCP server from its server.json document.
+func (c *Client) CreateMCPServerVersion(ctx context.Context, name string, serverJSON map[string]any, opts ...mcpregistry.CreateMCPServerVersionOption) (*mcpregistry.MCPServerVersion, error) {
+	return c.sdk.MCPRegistry().CreateMCPServerVersion(ctx, name, serverJSON, opts...)
+}
+
+// CreateMCPAccessEndpoint creates a new access endpoint for an MCP server.
+func (c *Client) CreateMCPAccessEndpoint(ctx context.Context, serverName, endpointURL string, opts ...mcpregistry.CreateMCPAccessEndpointOption) (*mcpregistry.MCPAccessEndpoint, error) {
+	return c.sdk.MCPRegistry().CreateMCPAccessEndpoint(ctx, serverName, endpointURL, opts...)
+}
+
+// SearchMCPAccessEndpoints returns a paginated list of access endpoints matching the given options.
+func (c *Client) SearchMCPAccessEndpoints(ctx context.Context, opts ...mcpregistry.SearchMCPAccessEndpointsOption) (*mcpregistry.MCPAccessEndpointList, error) {
+	return c.sdk.MCPRegistry().SearchMCPAccessEndpoints(ctx, opts...)
+}
+
+// DeleteMCPAccessEndpoint removes an access endpoint from an MCP server.
+func (c *Client) DeleteMCPAccessEndpoint(ctx context.Context, serverName, endpointID string) error {
+	return c.sdk.MCPRegistry().DeleteMCPAccessEndpoint(ctx, serverName, endpointID)
 }

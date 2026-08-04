@@ -83,7 +83,7 @@ describe('MLflow API Contract Tests', () => {
       });
       expect(result.success).toBe(true);
 
-      const envelope = result.response.data as {
+      const envelope = result.response?.data as {
         data?: { prompts?: Array<{ scope?: { type: string } }> };
       };
       const prompts = envelope.data?.prompts ?? [];
@@ -215,6 +215,166 @@ describe('MLflow API Contract Tests', () => {
 
     it('should return 400 when loading a prompt with non-positive version', async () => {
       const result = await apiClient.get(`${promptUrl(promptName)}&version=0`);
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.status).toBe(400);
+        expect({
+          status: result.error.status,
+          data: result.error.data,
+        }).toMatchContract(apiSchema, {
+          ref: '#/components/responses/BadRequest/content/application~1json/schema',
+          status: 400,
+        });
+      }
+    });
+  });
+
+  // --- MCP Registry Endpoints ---
+
+  describe('MCP Registry', () => {
+    const workspace = 'default';
+    const mcpBase = '/api/v1/mcp-registry/servers';
+    const serverUrl = (name?: string, suffix?: string) =>
+      `${mcpBase}${name ? `/${name}` : ''}${suffix ?? ''}?workspace=${workspace}`;
+
+    // MCP server names must be "<namespace>/<slug>" (exactly one "/"), per
+    // upstream MLflow's validate_mcp_server_name.
+    const serverName = `ct.example/mcp-server-${Date.now()}`;
+    const serverVersion = '1.0.0';
+    let endpointId: string;
+
+    it('should search MCP servers', async () => {
+      const result = await apiClient.get(serverUrl());
+      expect(result).toMatchContract(apiSchema, {
+        ref: '#/components/responses/MCPServersResponse/content/application/json/schema',
+        status: 200,
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it('should create an MCP server', async () => {
+      const result = await apiClient.post(serverUrl(), {
+        name: serverName,
+        description: 'Contract test server',
+      });
+      expect(result).toMatchContract(apiSchema, {
+        ref: '#/components/responses/MCPServerResponse/content/application/json/schema',
+        status: 201,
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it('should get an MCP server by name', async () => {
+      const result = await apiClient.get(serverUrl(serverName));
+      expect(result).toMatchContract(apiSchema, {
+        ref: '#/components/responses/MCPServerResponse/content/application/json/schema',
+        status: 200,
+      });
+    });
+
+    it('should list versions of an MCP server', async () => {
+      const result = await apiClient.get(serverUrl(serverName, '/versions'));
+      expect(result).toMatchContract(apiSchema, {
+        ref: '#/components/responses/MCPServerVersionsResponse/content/application/json/schema',
+        status: 200,
+      });
+    });
+
+    it('should create a new version of an MCP server', async () => {
+      const result = await apiClient.post(serverUrl(serverName, '/versions'), {
+        // eslint-disable-next-line camelcase
+        server_json: { name: serverName, version: serverVersion },
+        // eslint-disable-next-line camelcase
+        display_name: 'Contract Test Version',
+      });
+      expect(result).toMatchContract(apiSchema, {
+        ref: '#/components/responses/MCPServerVersionResponse/content/application/json/schema',
+        status: 201,
+      });
+    });
+
+    it('should create an access endpoint for an MCP server', async () => {
+      const result = await apiClient.post(serverUrl(serverName, '/endpoints'), {
+        // eslint-disable-next-line camelcase
+        endpoint_url: 'https://mcp.example.com/contract-test',
+        // eslint-disable-next-line camelcase
+        transport_type: 'streamable-http',
+        // eslint-disable-next-line camelcase
+        server_version: serverVersion,
+      });
+      expect(result).toMatchContract(apiSchema, {
+        ref: '#/components/responses/MCPAccessEndpointResponse/content/application/json/schema',
+        status: 201,
+      });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        const envelope = result.response.data as { data?: { id?: string } };
+        endpointId = envelope.data?.id ?? '';
+        expect(endpointId).not.toBe('');
+      }
+    });
+
+    it('should search access endpoints for an MCP server', async () => {
+      const result = await apiClient.get(serverUrl(serverName, '/endpoints'));
+      expect(result).toMatchContract(apiSchema, {
+        ref: '#/components/responses/MCPAccessEndpointsResponse/content/application/json/schema',
+        status: 200,
+      });
+    });
+
+    it('should delete an access endpoint from an MCP server', async () => {
+      const result = await apiClient.delete(serverUrl(serverName, `/endpoints/${endpointId}`));
+      expect(result).toMatchContract(apiSchema, {
+        ref: '#/components/responses/NoContent',
+        status: 204,
+      });
+    });
+
+    it('should return 400 when creating an MCP server with an invalid name', async () => {
+      const result = await apiClient.post(serverUrl(), {
+        name: '/invalid/name',
+        description: 'invalid',
+      });
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.status).toBe(400);
+        expect({
+          status: result.error.status,
+          data: result.error.data,
+        }).toMatchContract(apiSchema, {
+          ref: '#/components/responses/BadRequest/content/application~1json/schema',
+          status: 400,
+        });
+      }
+    });
+
+    it('should return 400 when creating a server version without server_json', async () => {
+      const result = await apiClient.post(serverUrl(serverName, '/versions'), {
+        // eslint-disable-next-line camelcase
+        display_name: 'Missing server_json',
+      });
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.status).toBe(400);
+        expect({
+          status: result.error.status,
+          data: result.error.data,
+        }).toMatchContract(apiSchema, {
+          ref: '#/components/responses/BadRequest/content/application~1json/schema',
+          status: 400,
+        });
+      }
+    });
+
+    it('should return 400 when creating an access endpoint with both server_version and server_alias', async () => {
+      const result = await apiClient.post(serverUrl(serverName, '/endpoints'), {
+        // eslint-disable-next-line camelcase
+        endpoint_url: 'https://mcp.example.com/contract-test',
+        // eslint-disable-next-line camelcase
+        server_version: '1.0.0',
+        // eslint-disable-next-line camelcase
+        server_alias: 'latest',
+      });
       expect(result.success).toBe(false);
       if (!result.success) {
         expect(result.error.status).toBe(400);

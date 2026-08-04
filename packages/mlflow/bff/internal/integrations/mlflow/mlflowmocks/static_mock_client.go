@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/opendatahub-io/mlflow-go/mlflow/mcpregistry"
 	"github.com/opendatahub-io/mlflow-go/mlflow/promptregistry"
 	"github.com/opendatahub-io/mlflow-go/mlflow/tracking"
 	"github.com/opendatahub-io/mlflow/bff/internal/integrations/mlflow"
@@ -85,6 +86,86 @@ func staticPromptVersion(name string) *promptregistry.PromptVersion {
 	}
 }
 
+// staticMCPServers returns canned MCP Registry servers.
+func staticMCPServers() []mcpregistry.MCPServer {
+	now := time.Now()
+	return []mcpregistry.MCPServer{
+		{
+			Name:                 "io.github.example/weather-server",
+			DisplayName:          "Weather Server",
+			Description:          "Provides current weather and forecast tools.",
+			Status:               "active",
+			LatestVersion:        "1.0.0",
+			Tags:                 map[string]string{"category": "weather"},
+			CreatedBy:            "static-mock",
+			LastUpdatedBy:        "static-mock",
+			CreationTimestamp:    now.Add(-7 * 24 * time.Hour),
+			LastUpdatedTimestamp: now.Add(-1 * time.Hour),
+		},
+		{
+			Name:                 "io.github.example/github-server",
+			DisplayName:          "GitHub Server",
+			Description:          "Exposes GitHub issue and PR management tools.",
+			Status:               "active",
+			LatestVersion:        "2.1.0",
+			Tags:                 map[string]string{"category": "devtools"},
+			CreatedBy:            "static-mock",
+			LastUpdatedBy:        "static-mock",
+			CreationTimestamp:    now.Add(-14 * 24 * time.Hour),
+			LastUpdatedTimestamp: now.Add(-3 * time.Hour),
+		},
+	}
+}
+
+func staticMCPServer(name string) *mcpregistry.MCPServer {
+	for _, s := range staticMCPServers() {
+		if s.Name == name {
+			return &s
+		}
+	}
+	now := time.Now()
+	return &mcpregistry.MCPServer{
+		Name:                 name,
+		Status:               "active",
+		CreatedBy:            "static-mock",
+		LastUpdatedBy:        "static-mock",
+		CreationTimestamp:    now,
+		LastUpdatedTimestamp: now,
+	}
+}
+
+func staticMCPServerVersion(name string) *mcpregistry.MCPServerVersion {
+	now := time.Now()
+	return &mcpregistry.MCPServerVersion{
+		Name:    name,
+		Version: "1.0.0",
+		ServerJSON: map[string]any{
+			"name":        name,
+			"description": "Static mock server.json",
+			"version":     "1.0.0",
+		},
+		Status:               mcpregistry.MCPServerVersionStatusActive,
+		CreatedBy:            "static-mock",
+		LastUpdatedBy:        "static-mock",
+		CreationTimestamp:    now.Add(-24 * time.Hour),
+		LastUpdatedTimestamp: now.Add(-24 * time.Hour),
+	}
+}
+
+func staticMCPAccessEndpoint(serverName string) mcpregistry.MCPAccessEndpoint {
+	now := time.Now()
+	return mcpregistry.MCPAccessEndpoint{
+		ID:                   "static-endpoint-1",
+		ServerName:           serverName,
+		EndpointURL:          fmt.Sprintf("https://mcp.example.com/%s", serverName),
+		TransportType:        mcpregistry.MCPTransportStreamableHTTP,
+		CreatedBy:            "static-mock",
+		LastUpdatedBy:        "static-mock",
+		CreationTimestamp:    now.Add(-24 * time.Hour),
+		LastUpdatedTimestamp: now.Add(-24 * time.Hour),
+	}
+}
+
 // StaticMockClient implements ClientInterface with hardcoded data.
 // Used for contract tests and fully-mocked dev mode so no real MLflow server
 // (and therefore no uv/Python) is required.
@@ -130,6 +211,64 @@ func (c *StaticMockClient) ListPromptVersions(_ context.Context, _ string, _ ...
 func (c *StaticMockClient) DeletePrompt(_ context.Context, _ string) error { return nil }
 
 func (c *StaticMockClient) DeletePromptVersion(_ context.Context, _ string, _ int) error { return nil }
+
+func (c *StaticMockClient) SearchMCPServers(_ context.Context, _ ...mcpregistry.SearchMCPServersOption) (*mcpregistry.MCPServerList, error) {
+	return &mcpregistry.MCPServerList{Servers: staticMCPServers()}, nil
+}
+
+func (c *StaticMockClient) CreateMCPServer(_ context.Context, name string, _ ...mcpregistry.CreateMCPServerOption) (*mcpregistry.MCPServer, error) {
+	now := time.Now()
+	return &mcpregistry.MCPServer{
+		Name:                 name,
+		Status:               "active",
+		CreatedBy:            "static-mock",
+		LastUpdatedBy:        "static-mock",
+		CreationTimestamp:    now,
+		LastUpdatedTimestamp: now,
+	}, nil
+}
+
+func (c *StaticMockClient) GetMCPServer(_ context.Context, name string) (*mcpregistry.MCPServer, error) {
+	return staticMCPServer(name), nil
+}
+
+func (c *StaticMockClient) SearchMCPServerVersions(_ context.Context, name string, _ ...mcpregistry.SearchMCPServerVersionsOption) (*mcpregistry.MCPServerVersionList, error) {
+	return &mcpregistry.MCPServerVersionList{Versions: []mcpregistry.MCPServerVersion{*staticMCPServerVersion(name)}}, nil
+}
+
+func (c *StaticMockClient) CreateMCPServerVersion(_ context.Context, name string, serverJSON map[string]any, _ ...mcpregistry.CreateMCPServerVersionOption) (*mcpregistry.MCPServerVersion, error) {
+	now := time.Now()
+	return &mcpregistry.MCPServerVersion{
+		Name:                 name,
+		Version:              "1.0.0",
+		ServerJSON:           serverJSON,
+		Status:               mcpregistry.MCPServerVersionStatusDraft,
+		CreatedBy:            "static-mock",
+		LastUpdatedBy:        "static-mock",
+		CreationTimestamp:    now,
+		LastUpdatedTimestamp: now,
+	}, nil
+}
+
+func (c *StaticMockClient) CreateMCPAccessEndpoint(_ context.Context, serverName, endpointURL string, _ ...mcpregistry.CreateMCPAccessEndpointOption) (*mcpregistry.MCPAccessEndpoint, error) {
+	now := time.Now()
+	return &mcpregistry.MCPAccessEndpoint{
+		ID:                   "static-endpoint-1",
+		ServerName:           serverName,
+		EndpointURL:          endpointURL,
+		TransportType:        mcpregistry.MCPTransportStreamableHTTP,
+		CreatedBy:            "static-mock",
+		LastUpdatedBy:        "static-mock",
+		CreationTimestamp:    now,
+		LastUpdatedTimestamp: now,
+	}, nil
+}
+
+func (c *StaticMockClient) SearchMCPAccessEndpoints(_ context.Context, _ ...mcpregistry.SearchMCPAccessEndpointsOption) (*mcpregistry.MCPAccessEndpointList, error) {
+	return &mcpregistry.MCPAccessEndpointList{Endpoints: []mcpregistry.MCPAccessEndpoint{staticMCPAccessEndpoint("io.github.example/weather-server")}}, nil
+}
+
+func (c *StaticMockClient) DeleteMCPAccessEndpoint(_ context.Context, _, _ string) error { return nil }
 
 // StaticMockClientFactory returns a StaticMockClient for every request.
 // Token and namespace are ignored since there is no real server.

@@ -175,13 +175,34 @@ cd frontend && npm run test:cypress-ci -- --spec "**/testfile.cy.ts"
 
 ### Current Endpoints
 
-| Method | Path                                 | Description                                    |
-| ------ | ------------------------------------ | ---------------------------------------------- |
-| GET    | `/healthcheck`                       | Liveness probe                                 |
-| GET    | `/api/v1/status`                     | MLflow availability status                     |
-| GET    | `/api/v1/user`                       | Returns authenticated user info                |
-| GET    | `/api/v1/namespaces`                 | List namespaces (dev/mock mode only)           |
-| GET    | `/api/v1/experiments?workspace=<ns>` | List MLflow experiments                        |
+| Method | Path                                                        | Description                                          |
+| ------ | ------------------------------------------------------------ | ----------------------------------------------------- |
+| GET    | `/healthcheck`                                                | Liveness probe                                         |
+| GET    | `/api/v1/status`                                              | MLflow availability status                             |
+| GET    | `/api/v1/user`                                                | Returns authenticated user info                        |
+| GET    | `/api/v1/namespaces`                                          | List namespaces (dev/mock mode only)                   |
+| GET    | `/api/v1/experiments?workspace=<ns>`                          | List MLflow experiments                                |
+| GET    | `/api/v1/prompts?workspace=<ns>`                              | List Prompt Registry prompts (project + global scopes) |
+| POST   | `/api/v1/prompts?workspace=<ns>`                              | Register a new prompt / prompt version                 |
+| GET    | `/api/v1/prompts/:name?workspace=<ns>`                        | Load a prompt (optionally by version)                  |
+| DELETE | `/api/v1/prompts/:name?workspace=<ns>`                        | Delete an entire prompt                                |
+| GET    | `/api/v1/prompts/:name/versions?workspace=<ns>`               | List versions of a prompt                              |
+| DELETE | `/api/v1/prompts/:name/versions/:version?workspace=<ns>`      | Delete a specific prompt version                        |
+| GET    | `/api/v1/mcp-registry/servers?workspace=<ns>`                 | Search MCP Registry servers (optional tag filter)       |
+| POST   | `/api/v1/mcp-registry/servers?workspace=<ns>`                 | Register a new MCP server                               |
+| GET    | `/api/v1/mcp-registry/servers/:name?workspace=<ns>`           | Get an MCP server by name                                |
+| GET    | `/api/v1/mcp-registry/servers/:name/versions?workspace=<ns>`  | List versions of an MCP server                          |
+| POST   | `/api/v1/mcp-registry/servers/:name/versions?workspace=<ns>`  | Create a new MCP server version from a server.json      |
+| GET    | `/api/v1/mcp-registry/servers/:name/endpoints?workspace=<ns>` | Search access endpoints for an MCP server                |
+| POST   | `/api/v1/mcp-registry/servers/:name/endpoints?workspace=<ns>` | Create an access endpoint for an MCP server              |
+| DELETE | `/api/v1/mcp-registry/servers/:name/endpoints/:endpointId?workspace=<ns>` | Delete an access endpoint from an MCP server |
+
+**MCP Registry notes:**
+
+- MCP server names must follow the upstream `<namespace>/<slug>` reverse-DNS convention (e.g. `com.example/my-server`), exactly one `/`, with each segment starting and ending with an alphanumeric character. This mirrors `mlflow/entities/mcp_server.py`'s `validate_mcp_server_name` so that any name accepted by this BFF also passes validation on the real MLflow server it proxies to. Enforced by `validateMCPServerName` (`internal/api/mcp_registry_handler.go`).
+- Because names contain `/`, the `:name`-based sub-routes (`/versions`, `/endpoints`, `/endpoints/:endpointId`) are served by a single httprouter catch-all (`MCPServerCatchAllPath = /mcp-registry/servers/*rest`). `parseMCPServerPath` splits the catch-all capture back into the server name (always the first two `/`-separated segments) and the trailing sub-resource path, then the three `MLflowMCPServerCatchAll{Get,Post,Delete}Handler` entry points dispatch to the per-operation handlers.
+- `server.json` is only accepted on the create-version endpoint (`POST .../servers/:name/versions`), not on server creation; creating a server just reserves the name/metadata.
+- In `--mock-http-client` mode, tracking, prompt, and MCP Registry calls all go to the real local MLflow server started via `SetupMLflow` (`internal/integrations/mlflow/mlflowmocks/mlflow_process.go`), pinned to `defaultMLflowVersion` (currently `3.15.1`, the first stock PyPI release with a native MCP Registry REST API). Only the fully in-memory fallback, `StaticMockClient` (used when no real server can run at all, e.g. `uv`/network unavailable), serves MCP Registry data from static fixtures.
 
 ---
 

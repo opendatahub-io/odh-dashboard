@@ -194,6 +194,10 @@ func (c *simpleMockClient) CanWritePromptsInNamespace(ctx context.Context, names
 	return c.canWrite, nil
 }
 
+func (c *simpleMockClient) CanWriteMCPServersInNamespace(ctx context.Context, namespace string, verb string) (bool, error) {
+	return c.CanWritePromptsInNamespace(ctx, namespace, verb)
+}
+
 // SimpleMockFactoryWithError creates a mock factory that returns permission check errors.
 type SimpleMockFactoryWithError struct{}
 
@@ -229,5 +233,9 @@ func (c *simpleMockClientWithError) GetUser(identity *k8s.RequestIdentity) (stri
 }
 
 func (c *simpleMockClientWithError) CanWritePromptsInNamespace(ctx context.Context, namespace string, verb string) (bool, error) {
+	return false, fmt.Errorf("k8s api error")
+}
+
+func (c *simpleMockClientWithError) CanWriteMCPServersInNamespace(ctx context.Context, namespace string, verb string) (bool, error) {
 	return false, fmt.Errorf("k8s api error")
 }

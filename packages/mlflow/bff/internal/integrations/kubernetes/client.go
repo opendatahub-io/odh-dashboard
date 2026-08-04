@@ -24,4 +24,5 @@ type KubernetesClientInterface interface {
 	IsClusterAdmin(identity *RequestIdentity) (bool, error)
 	GetUser(identity *RequestIdentity) (string, error)
 	CanWritePromptsInNamespace(ctx context.Context, namespace string, verb string) (bool, error)
+	CanWriteMCPServersInNamespace(ctx context.Context, namespace string, verb string) (bool, error)
 }
