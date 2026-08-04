@@ -94,6 +94,100 @@ describe('Subscription Management Page / Overview Tab', () => {
     overviewTabPage.findModelRows().should('have.length', 5);
   });
 
+  it('should display the overview page and table with correct content', () => {
+    subscriptionManagementPage.visit('overview');
+
+    subscriptionManagementPage.findTitle().should('contain.text', 'MaaS governance');
+    subscriptionManagementPage
+      .findDescription()
+      .should(
+        'contain.text',
+        'Manage subscriptions and authorization policies that control access to models through the Models-as-a-Service (MaaS) gateway.',
+      );
+
+    overviewTabPage.findTable().should('exist');
+    overviewTabPage.findModelRows().should('have.length', 5);
+    overviewTabPage.findCreateSubscriptionButton().should('exist');
+    overviewTabPage.findCreateAuthorizationPolicyButton().should('exist');
+
+    overviewTabPage
+      .findModelRows()
+      .eq(0)
+      .find('[data-label="Model name"]')
+      .should('contain.text', 'Granite 3 8B Instruct')
+      .and('contain.text', 'granite-3-8b-instruct')
+      .and('contain.text', 'A large language model for instruction following');
+    overviewTabPage
+      .findModelRows()
+      .eq(0)
+      .find('[data-label="Project"]')
+      .should('contain.text', 'maas-models');
+    overviewTabPage
+      .findModelRows()
+      .eq(0)
+      .find('[data-label="Subscriptions"]')
+      .should('contain.text', '3');
+    overviewTabPage
+      .findModelRows()
+      .eq(0)
+      .find('[data-label="Authorization policies"]')
+      .should('contain.text', '4');
+
+    overviewTabPage
+      .findModelRows()
+      .eq(4)
+      .find('[data-label="Project"]')
+      .should('contain.text', 'team-sandbox');
+    overviewTabPage
+      .findModelRows()
+      .eq(4)
+      .find('[data-label="Subscriptions"]')
+      .should('contain.text', '1');
+    overviewTabPage
+      .findModelRows()
+      .eq(4)
+      .find('[data-label="Authorization policies"]')
+      .should('contain.text', '1');
+
+    overviewTabPage
+      .findModelRows()
+      .eq(2)
+      .find('[data-label="Project"]')
+      .should('contain.text', 'maas-models');
+    overviewTabPage
+      .findModelRows()
+      .eq(2)
+      .find('[data-label="Subscriptions"]')
+      .should('contain.text', '1');
+    overviewTabPage
+      .findModelRows()
+      .eq(2)
+      .find('[data-label="Authorization policies"]')
+      .should('contain.text', '0');
+    overviewTabPage.findModelRows().eq(2).findByTestId('no-policies-warning').should('exist');
+
+    overviewTabPage
+      .findModelRows()
+      .eq(3)
+      .find('[data-label="Project"]')
+      .should('contain.text', 'maas-models');
+    overviewTabPage
+      .findModelRows()
+      .eq(3)
+      .find('[data-label="Subscriptions"]')
+      .should('contain.text', '0');
+    overviewTabPage
+      .findModelRows()
+      .eq(3)
+      .find('[data-label="Authorization policies"]')
+      .should('contain.text', '1');
+    overviewTabPage.findModelRows().eq(3).findByTestId('no-subscriptions-warning').should('exist');
+
+    overviewTabPage.findKebabToggleInRow(0).click();
+    overviewTabPage.findKebabAction('Create subscription').should('be.visible');
+    overviewTabPage.findKebabAction('Create authorization policy').should('be.visible');
+  });
+
   it('should navigate between tabs and update the URL', () => {
     subscriptionManagementPage.visit();
     subscriptionManagementPage.findTitle().should('contain.text', 'MaaS governance');
@@ -120,6 +214,11 @@ describe('Subscription Management Page / Overview Tab', () => {
     overviewTabPage.findColumnSortButton('Model name').click();
     overviewTabPage.findModelRows().eq(0).should('contain.text', 'Flan T5 Small');
     overviewTabPage.findModelRows().eq(4).should('contain.text', 'Llama 3 70B Instruct');
+
+    // Sort by project
+    overviewTabPage.findColumnSortButton('Project').click();
+    overviewTabPage.findModelRows().eq(0).should('contain.text', 'maas-models');
+    overviewTabPage.findModelRows().eq(1).should('contain.text', 'team-sandbox');
 
     // Sort by subscriptions
     overviewTabPage.findColumnSortButton('Subscriptions').click();
@@ -208,7 +307,7 @@ describe('Subscription Management Page / Overview Tab', () => {
     cy.url().should('include', '/maas-governance/overview');
   });
 
-  it('should filter by model name, model ID, description, group name, subscription name, and authorization policy name', () => {
+  it('should filter by model name, model ID, description, project, group name, subscription name, and authorization policy name', () => {
     subscriptionManagementPage.visit('overview');
     // Display name
     overviewTabPage.findFilterInput('model').type('Llama');
@@ -223,6 +322,14 @@ describe('Subscription Management Page / Overview Tab', () => {
     // Description
     overviewTabPage.findFilterInput('model').type('instruction');
     overviewTabPage.findModelRows().should('have.length', 2);
+
+    // Filter by project
+    overviewTabPage.findFilterDropdownButton().click();
+    overviewTabPage.findFilterDropdownItem('project').click();
+    overviewTabPage.findFilterInput('project').type('team-sandbox');
+    overviewTabPage.findModelRows().should('have.length', 1);
+    overviewTabPage.findModelRows().eq(0).should('contain.text', 'Granite 3 8B Instruct (sandbox)');
+    overviewTabPage.findModelRows().eq(0).should('contain.text', 'team-sandbox');
 
     // Group name
     overviewTabPage.clearAllFilters();
