@@ -12,16 +12,6 @@ import type {
   ImagePullSecret,
 } from '@odh-dashboard/k8s-core';
 
-export type PrometheusQueryRangeResultValue = [number, string];
-
-export type PrometheusQueryRangeResponseDataResult = {
-  metric: {
-    request?: string;
-    pod?: string;
-  };
-  values: PrometheusQueryRangeResultValue[];
-};
-
 export enum BiasMetricType {
   SPD = 'SPD',
   DIR = 'DIR',
@@ -73,12 +63,6 @@ export type BiasMetricConfig = {
   thresholdDelta?: number;
   batchSize?: number;
 };
-
-/**
- * Value chosen to match rates used in OpenShift console observability dashboard. This means for rate
- * queries (e.g. http requests) that the time series will contain values for number of requests per 5m.
- */
-export const PROMETHEUS_REQUEST_RESOLUTION = '300s';
 
 export type LabeledConnection = {
   connection: Connection;

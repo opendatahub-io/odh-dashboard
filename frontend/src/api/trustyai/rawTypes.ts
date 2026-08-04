@@ -1,5 +1,4 @@
-import type { BaseMetric } from '@odh-dashboard/model-serving/shared/types';
-import { BiasMetricType } from '@odh-dashboard/model-serving/shared/types';
+import { type BaseMetric, BiasMetricType } from '@odh-dashboard/model-serving/shared/types';
 
 export enum DataTypes {
   BOOL = 'BOOL',

@@ -2,10 +2,10 @@ import * as React from 'react';
 import usePrometheusQueryRange from '@odh-dashboard/internal/api/prometheus/usePrometheusQueryRange';
 import { ClusterQueueKind } from '@odh-dashboard/k8s-core';
 import type {
+  PrometheusQueryRangeResponseData,
   PrometheusQueryRangeResponseDataResult,
   PrometheusQueryRangeResultValue,
-} from '@odh-dashboard/model-serving/shared/types';
-import type { PrometheusQueryRangeResponseData } from '@odh-dashboard/internal/types';
+} from '@odh-dashboard/foundation';
 import {
   ACCELERATOR_RESOURCE_PREFIXES,
   ACCELERATOR_RESOURCE_REGEX,

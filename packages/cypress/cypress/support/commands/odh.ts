@@ -71,11 +71,11 @@ import type {
   ImageInfo,
   OdhApplication,
   OdhDocument,
-  PrometheusQueryRangeResponse,
   PrometheusQueryResponse,
   ResponseStatus,
   SubscriptionStatusData,
 } from '@odh-dashboard/internal/types';
+import type { PrometheusQueryRangeResponse } from '@odh-dashboard/foundation';
 import type { IntegrationAppStatus } from '@odh-dashboard/plugin-core/integrations';
 import type {
   ArgoWorkflowPipelineVersion,

@@ -3,15 +3,14 @@ import { ReactElement } from 'react';
 import * as _ from 'lodash-es';
 import { BreadcrumbItem } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
-import { isEnumMember } from '@odh-dashboard/foundation';
+import { isEnumMember, type PrometheusQueryRangeResultValue } from '@odh-dashboard/foundation';
 import { TimeframeTitle, BreadcrumbItemType } from '@odh-dashboard/ui-core/types/metrics';
+import { PROMETHEUS_REQUEST_RESOLUTION } from '@odh-dashboard/ui-core/utilities/metrics';
 import {
-  PrometheusQueryRangeResultValue,
   BaseMetricRequest,
   BaseMetricRequestInput,
   BiasMetricType,
   BiasMetricConfig,
-  PROMETHEUS_REQUEST_RESOLUTION,
 } from '@odh-dashboard/model-serving/shared/types';
 import type { InferenceServiceKind } from '@odh-dashboard/model-serving/shared';
 import { BIAS_CHART_CONFIGS, BIAS_THRESHOLD_COLOR } from './const';

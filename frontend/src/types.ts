@@ -12,7 +12,6 @@ import type {
   PodContainer,
   Volume,
 } from '@odh-dashboard/k8s-core';
-import type { PrometheusQueryRangeResponseDataResult } from '@odh-dashboard/model-serving/shared/types';
 import { FeatureFlag } from '@odh-dashboard/plugin-core/areas';
 import { FetchStateObject } from '@odh-dashboard/ui-core/hooks/useFetch';
 import { HardwarePodSpecOptions } from '#~/concepts/hardwareProfiles/types';
@@ -37,15 +36,6 @@ export type PrometheusQueryResponse<TResultExtraProps extends object = object> =
     } & TResultExtraProps)[];
     resultType: string;
   };
-  status: string;
-};
-
-export type PrometheusQueryRangeResponseData = {
-  result?: PrometheusQueryRangeResponseDataResult[];
-  resultType: string;
-};
-export type PrometheusQueryRangeResponse = {
-  data: PrometheusQueryRangeResponseData;
   status: string;
 };
 
