@@ -87,9 +87,34 @@ class ModelDetailsPage {
     return cy.findByTestId('overview-tab');
   }
 
+  findSecurityInsightsTab() {
+    return cy.findByTestId('security-insights-tab');
+  }
+
+  findSecurityInsightsTabContent() {
+    return cy.findByTestId('security-insights-tab-content');
+  }
+
+  findSecurityInsightsView() {
+    return cy.findByTestId('security-insights-view');
+  }
+
+  findSecurityInsightsTable() {
+    return cy.findByTestId('security-insights-table');
+  }
+
+  findSecurityInsightsEmptyState() {
+    return cy.findByTestId('security-insights-empty-state');
+  }
+
   clickPerformanceInsightsTab() {
     this.findPerformanceInsightsTab().click();
     return this;
+  }
+
+  visitSecurityInsights(sourceId = 'sample-source', modelName = 'repo1%2Fmodel1') {
+    cy.visitWithLogin(`/ai-hub/models/catalog/${sourceId}/${modelName}/security-insights`);
+    this.wait();
   }
 
   findHardwareConfigurationTable() {
