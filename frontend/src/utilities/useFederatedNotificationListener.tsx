@@ -22,6 +22,21 @@ import { addNotification } from '#~/redux/actions/actions';
 // Must match the event name in the federated module's useNotificationListener
 const NOTIFICATION_BRIDGE_EVENT = 'odh-notification-bridge';
 
+export const isSafeUrl = (url: string): boolean => {
+  if (!url) {
+    return false;
+  }
+  if (url.startsWith('/')) {
+    return true;
+  }
+  try {
+    const parsed = new URL(url, window.location.origin);
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+  } catch {
+    return false;
+  }
+};
+
 export const useFederatedNotificationListener = (): void => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
@@ -50,16 +65,17 @@ export const useFederatedNotificationListener = (): void => {
         } = detail;
 
         const timestampDate = timestamp ? new Date(timestamp) : new Date();
+        const safeLinkUrl = linkUrl && isSafeUrl(linkUrl) ? linkUrl : undefined;
 
         const notificationMessage =
-          linkUrl && linkLabel && message ? (
+          safeLinkUrl && linkLabel && message ? (
             <p>
               {message}
               <a
-                href={linkUrl}
+                href={safeLinkUrl}
                 onClick={(e: React.MouseEvent) => {
                   e.preventDefault();
-                  navigate(linkUrl);
+                  navigate(safeLinkUrl);
                 }}
               >
                 {linkLabel}
