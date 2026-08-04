@@ -35,7 +35,7 @@ const ClusterSettings: React.FC = () => {
   const [userTrackingEnabled, setUserTrackingEnabled] = React.useState(false);
   const [cullerTimeout, setCullerTimeout] = React.useState(DEFAULT_CULLER_TIMEOUT);
   const [isDistributedInferencingDefault, setisDistributedInferencingDefault] = React.useState(
-    clusterSettings.isDistributedInferencingDefault ?? DEFAULT_DISTRIBUTED_INFERENCING,
+    DEFAULT_DISTRIBUTED_INFERENCING,
   );
   const [defaultDeploymentStrategy, setDefaultDeploymentStrategy] = React.useState('rolling');
   // "Global project" UI maps to globalMLflowNamespaces in the CR (spec.globalMLflowNamespaces).
@@ -59,14 +59,11 @@ const ClusterSettings: React.FC = () => {
 
         // API may omit optional fields (JSON drops undefined). Fill defaults so the
         // baseline matches form state and Save stays disabled until the user edits.
+        const distributedInferencingDefault =
+          fetchedClusterSettings.isDistributedInferencingDefault ?? DEFAULT_DISTRIBUTED_INFERENCING;
         const normalizedSettings: ClusterSettingsType = {
-          pvcSize: fetchedClusterSettings.pvcSize,
-          cullerTimeout: fetchedClusterSettings.cullerTimeout,
-          userTrackingEnabled: fetchedClusterSettings.userTrackingEnabled,
-          modelServingPlatformEnabled: fetchedClusterSettings.modelServingPlatformEnabled,
-          isDistributedInferencingDefault:
-            fetchedClusterSettings.isDistributedInferencingDefault ??
-            DEFAULT_DISTRIBUTED_INFERENCING,
+          ...fetchedClusterSettings,
+          isDistributedInferencingDefault: distributedInferencingDefault,
           defaultDeploymentStrategy: deploymentStrategy,
           globalMLflowNamespaces: fetchedClusterSettings.globalMLflowNamespaces ?? [],
         };
@@ -75,10 +72,8 @@ const ClusterSettings: React.FC = () => {
         setCullerTimeout(normalizedSettings.cullerTimeout);
         setUserTrackingEnabled(normalizedSettings.userTrackingEnabled);
         setModelServingEnabledPlatforms(normalizedSettings.modelServingPlatformEnabled);
-        setisDistributedInferencingDefault(
-          normalizedSettings.isDistributedInferencingDefault ?? DEFAULT_DISTRIBUTED_INFERENCING,
-        );
-        setDefaultDeploymentStrategy(normalizedSettings.defaultDeploymentStrategy ?? 'rolling');
+        setisDistributedInferencingDefault(distributedInferencingDefault);
+        setDefaultDeploymentStrategy(deploymentStrategy);
         setGlobalMLflowNamespace(normalizedSettings.globalMLflowNamespaces?.[0] ?? '');
         setLoaded(true);
         setLoadError(undefined);
