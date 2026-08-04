@@ -25,6 +25,14 @@ const hasStatusObject = (error: unknown): error is { statusObject?: { code?: num
 const isNotFoundError = (error: unknown): boolean =>
   hasStatusObject(error) && error.statusObject?.code === 404;
 
+// 403 is expected when the first candidate namespace is outside the apps Role scope
+// (e.g. /api/status reports opendatahub while HTTPRoutes live in redhat-ods-applications).
+const isForbiddenError = (error: unknown): boolean =>
+  hasStatusObject(error) && error.statusObject?.code === 403;
+
+const isMissingHttpRouteError = (error: unknown): boolean =>
+  isNotFoundError(error) || isForbiddenError(error);
+
 const getHttpRouteNamespaces = (dashboardNamespace: string): string[] => [
   ...new Set([dashboardNamespace, ...RAY_HTTP_ROUTE_FALLBACK_NAMESPACES]),
 ];
@@ -55,7 +63,7 @@ const getHTTPRouteForRayCluster = async (
     try {
       return await getHTTPRoute(routeName, routeNamespace);
     } catch (error) {
-      if (!isNotFoundError(error)) {
+      if (!isMissingHttpRouteError(error)) {
         throw error;
       }
     }

@@ -1,11 +1,11 @@
 import React from 'react';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
+import { TimeframeTitle } from '@odh-dashboard/ui-core/types/metrics';
 import {
   KserveMetricGraphDefinition,
   NimMetricGraphDefinition,
 } from '#~/concepts/metrics/kserve/types';
 import { defaultResponsePredicate } from '#~/api/prometheus/usePrometheusQueryRange';
-import { TimeframeTitle } from '#~/concepts/metrics/types';
 import useQueryRangeResourceData from '#~/api/prometheus/useQueryRangeResourceData';
 import { PendingContextResourceData, PrometheusQueryRangeResultValue } from '#~/types';
 import { DEFAULT_PENDING_CONTEXT_RESOURCE } from '#~/api/prometheus/const';

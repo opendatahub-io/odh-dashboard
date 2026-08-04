@@ -1,8 +1,8 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { ProjectsContext } from '@odh-dashboard/internal/concepts/projects/ProjectsContext';
-import { mockProjectK8sResource } from '@odh-dashboard/internal/__mocks__/mockProjectK8sResource';
+import { ProjectsContext } from '@odh-dashboard/ui-core/context/ProjectsContext';
+import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import ProjectSelectorField from '../ProjectSelectorField';
 
 jest.mock('@odh-dashboard/internal/concepts/projects/ProjectSelector', () => {

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Bullseye, EmptyState, EmptyStateBody, Spinner } from '@patternfly/react-core';
 import { CubesIcon, ExclamationCircleIcon } from '@patternfly/react-icons';
+import UnauthorizedError from '@odh-dashboard/ui-core/components/UnauthorizedError';
 import PipelineRunTable from '#~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTable';
 import { usePipelineActiveRunsTable } from '#~/concepts/pipelines/content/tables/pipelineRun/usePipelineRunTable';
 import { createRunRoute } from '#~/routes/pipelines/runs';
@@ -11,7 +12,6 @@ import {
 import { EmptyRunsState } from '#~/concepts/pipelines/content/tables/pipelineRun/EmptyRunsState';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import { getGenericErrorCode } from '#~/api/errorUtils';
-import UnauthorizedError from '#~/pages/UnauthorizedError';
 import { PipelineRunTabTitle, PipelineRunType } from './types';
 
 export const ActiveRuns: React.FC = () => {

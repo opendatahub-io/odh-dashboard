@@ -2,13 +2,12 @@ import { mockDashboardConfig } from '@odh-dashboard/internal/__mocks__/mockDashb
 import { mockDscStatus } from '@odh-dashboard/internal/__mocks__/mockDscStatus';
 import { mockInferenceServiceK8sResource } from '@odh-dashboard/internal/__mocks__/mockInferenceServiceK8sResource';
 import { mockK8sResourceList } from '@odh-dashboard/internal/__mocks__/mockK8sResourceList';
-import { mockProjectK8sResource } from '@odh-dashboard/internal/__mocks__/mockProjectK8sResource';
+import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import {
   mockCustomSecretK8sResource,
   mockSecretK8sResource,
 } from '@odh-dashboard/internal/__mocks__/mockSecretK8sResource';
-import type { SecretKind } from '@odh-dashboard/k8s-core';
-import type { TrustyAIKind } from '@odh-dashboard/internal/k8sTypes';
+import type { SecretKind, TrustyAIKind } from '@odh-dashboard/k8s-core';
 import {
   type InferenceServiceKind,
   type ServingRuntimeKind,

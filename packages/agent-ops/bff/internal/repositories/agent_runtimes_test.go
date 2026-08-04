@@ -44,7 +44,6 @@ func (nilAgentDetailClient) ListNamespaces(context.Context, bool) ([]string, err
 	return nil, nil
 }
 
-
 func (nilAgentDetailClient) ListAgents(context.Context, string) (*agents.AgentList, error) {
 	return nil, nil
 }
@@ -120,8 +119,8 @@ func (nilAgentDetailClient) DeployAgent(context.Context, *agents.DeployAgentPara
 }
 
 func (nilAgentDetailClient) DeleteAgent(context.Context, string, string) error  { return nil }
-func (nilAgentDetailClient) StopAgent(context.Context, string, string) error   { return nil }
-func (nilAgentDetailClient) StartAgent(context.Context, string, string) error  { return nil }
+func (nilAgentDetailClient) StopAgent(context.Context, string, string) error    { return nil }
+func (nilAgentDetailClient) StartAgent(context.Context, string, string) error   { return nil }
 func (nilAgentDetailClient) RestartAgent(context.Context, string, string) error { return nil }
 
 func TestPaginateAgentRuntimes(t *testing.T) {

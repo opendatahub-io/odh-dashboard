@@ -1,7 +1,7 @@
 import {
   mockDefaultHardwareProfile,
   mockHardwareProfile,
-} from '@odh-dashboard/internal/__mocks__/mockHardwareProfile';
+} from '@odh-dashboard/hardware-profiles/__mocks__/mockHardwareProfile';
 import {
   mock200Status,
   mockDashboardConfig,

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import ApiKeysAndSubscriptionsPage from '~/app/pages/keys-and-subs/ApiKeysAndSubscriptionsPage';
 
@@ -10,39 +10,6 @@ jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
   useNavigate: () => mockNavigate,
   useParams: () => ({ tab: mockTab }),
-}));
-
-jest.mock('~/app/hooks/useApiKeysPageLoad', () => ({
-  useApiKeysPageLoad: () => ({
-    loadError: undefined,
-    loaded: true,
-    hasAnyApiKeys: true,
-    existenceLoaded: true,
-    isMaasAdmin: false,
-    isMaasAdminLoaded: true,
-    // eslint-disable-next-line camelcase
-    response: { data: [], has_more: false, object: 'list' },
-    refreshAll: jest.fn(),
-    filterData: { username: '', statuses: [] },
-    localUsername: '',
-    setLocalUsername: jest.fn(),
-    page: 1,
-    perPage: 50,
-    sortField: 'created_at',
-    sortDirection: 'desc',
-    isFetching: false,
-    onUsernameChange: jest.fn(),
-    onStatusToggle: jest.fn(),
-    onStatusClear: jest.fn(),
-    onSort: jest.fn(),
-    onSetPage: jest.fn(),
-    onPerPageSelect: jest.fn(),
-    onClearFilters: jest.fn(),
-  }),
-}));
-
-jest.mock('~/app/hooks/useUserSubscriptions', () => ({
-  useUserSubscriptions: () => [[], true, undefined],
 }));
 
 jest.mock('~/app/pages/keys-and-subs/apiKeys/ApiKeysTab', () => {
@@ -88,7 +55,7 @@ describe('ApiKeysAndSubscriptionsPage', () => {
     mockTab = undefined;
   });
 
-  it('should show title', () => {
+  it('should show the API keys page title', () => {
     render(<ApiKeysAndSubscriptionsPage />);
 
     expect(screen.getByTestId('app-page-title')).toHaveTextContent('API keys');
@@ -119,5 +86,41 @@ describe('ApiKeysAndSubscriptionsPage', () => {
     render(<ApiKeysAndSubscriptionsPage />);
 
     expect(screen.getByTestId('api-keys-tab')).toHaveAttribute('aria-selected', 'true');
+  });
+
+  it('should navigate when switching to the subscriptions tab', () => {
+    render(<ApiKeysAndSubscriptionsPage />);
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Subscriptions tab' }));
+
+    expect(mockNavigate).toHaveBeenCalledWith(
+      expect.stringContaining('/keys-and-subs/subscriptions'),
+    );
+  });
+
+  it('should navigate when switching to the API keys tab', () => {
+    mockTab = 'subscriptions';
+    render(<ApiKeysAndSubscriptionsPage />);
+
+    fireEvent.click(screen.getByRole('tab', { name: 'API keys tab' }));
+
+    expect(mockNavigate).toHaveBeenCalledWith(expect.stringContaining('/keys-and-subs/tokens'));
+  });
+
+  it('should not navigate when clicking the already active tab', () => {
+    render(<ApiKeysAndSubscriptionsPage />);
+
+    fireEvent.click(screen.getByRole('tab', { name: 'API keys tab' }));
+
+    expect(mockNavigate).not.toHaveBeenCalled();
+  });
+
+  it('should not navigate when clicking the already active subscriptions tab', () => {
+    mockTab = 'subscriptions';
+    render(<ApiKeysAndSubscriptionsPage />);
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Subscriptions tab' }));
+
+    expect(mockNavigate).not.toHaveBeenCalled();
   });
 });

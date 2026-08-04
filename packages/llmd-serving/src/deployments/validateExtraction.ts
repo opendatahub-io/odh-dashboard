@@ -1,5 +1,5 @@
 import { MetadataAnnotation } from '@odh-dashboard/k8s-core';
-import { isPVCUri } from '@odh-dashboard/internal/pages/modelServing/screens/projects/utils';
+import { isPVCUri } from '@odh-dashboard/model-serving/shared';
 import type { LLMdDeployment } from '../types';
 
 /**

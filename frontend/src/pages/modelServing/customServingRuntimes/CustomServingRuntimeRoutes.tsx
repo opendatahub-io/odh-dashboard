@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Navigate, Routes, Route } from 'react-router-dom';
-import { buildV2RedirectRoutes } from '#~/utilities/v2Redirect';
+import { buildV2RedirectRoutes } from '@odh-dashboard/plugin-core/routing';
 import CustomServingRuntimeView from './CustomServingRuntimeView';
 import CustomServingRuntimeContextProvider from './CustomServingRuntimeContext';
 import CustomServingRuntimeAddTemplate from './CustomServingRuntimeAddTemplate';

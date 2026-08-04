@@ -24,6 +24,8 @@ import {
 } from '@odh-dashboard/k8s-core';
 import type { InferenceServiceKind, ServingRuntimeKind } from '@odh-dashboard/model-serving/shared';
 import { getServingRuntimeFromTemplate } from '@odh-dashboard/model-serving/shared';
+import { useAccessReview } from '@odh-dashboard/plugin-core/host-api';
+import DashboardModalFooter from '@odh-dashboard/ui-core/components/DashboardModalFooter';
 import {
   createNIMPVC,
   createNIMSecret,
@@ -35,7 +37,6 @@ import {
 } from '#~/pages/modelServing/screens/projects/utils';
 import { EMPTY_AWS_SECRET_DATA } from '#~/pages/projects/dataConnections/const';
 import useCustomServingRuntimesEnabled from '#~/pages/modelServing/customServingRuntimes/useCustomServingRuntimesEnabled';
-import DashboardModalFooter from '#~/concepts/dashboard/DashboardModalFooter';
 import {
   InferenceServiceStorageType,
   ServingRuntimeEditInfo,
@@ -45,7 +46,7 @@ import NIMModelListSection from '#~/pages/modelServing/screens/projects/nim/NIMS
 import NIMModelDeploymentNameSection from '#~/pages/modelServing/screens/projects/nim/NIMServiceModal/NIMModelDeploymentNameSection';
 import ProjectSection from '#~/pages/modelServing/screens/projects/InferenceServiceModal/ProjectSection';
 import { NamespaceApplicationCase } from '#~/pages/projects/types';
-import { getSecret, updatePvc, useAccessReview, patchInferenceServiceStoppedStatus } from '#~/api';
+import { getSecret, updatePvc, patchInferenceServiceStoppedStatus } from '#~/api';
 import KServeAutoscalerReplicaSection from '#~/pages/modelServing/screens/projects/kServeModal/KServeAutoscalerReplicaSection';
 import NIMPVCSizeSection, {
   PVCMode,

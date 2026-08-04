@@ -4,6 +4,7 @@ export {
   ServingRuntimePlatform,
   ServingRuntimeAPIProtocol,
   ServingRuntimeModelType,
+  PerformanceMetricType,
   isInferenceServiceKind,
 } from './types';
 export type {
@@ -13,7 +14,6 @@ export type {
   ServingRuntimeToken,
   CreatingModelServingObjectCommon,
   CreatingServingRuntimeObject,
-  ModelDeployPrefillInfo,
   ServingRuntimeAnnotations,
   ServingContainer,
   ServingRuntimeKind,
@@ -22,7 +22,12 @@ export type {
   InferenceServiceKind,
 } from './types';
 
-export { getModelServingPVCAnnotations } from './utils/pvcUtils';
+export {
+  getModelServingPVCAnnotations,
+  getPVCNameFromURI,
+  isPVCUri,
+  getModelPathFromUri,
+} from './utils/pvcUtils';
 
 export {
   getTemplateEnabled,
@@ -58,3 +63,13 @@ export { default as useTemplateOrder } from './hooks/useTemplateOrder';
 export { default as useTemplateDisablement } from './hooks/useTemplateDisablement';
 
 export { getServingRuntimeVersion } from '../concepts/versions';
+
+export {
+  ModelServingToolbarFilterOptions,
+  modelServingFilterOptions,
+  initialModelServingFilterData,
+} from './const';
+export type { ModelServingFilterDataType } from './const';
+
+export { MODEL_CAPABILITIES_ANNOTATION, WELL_KNOWN_MODEL_CAPABILITIES } from './modelCapabilities';
+export type { WellKnownModelCapability, ModelCapability } from './modelCapabilities';

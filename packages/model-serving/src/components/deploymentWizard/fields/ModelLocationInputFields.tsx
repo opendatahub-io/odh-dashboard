@@ -17,10 +17,6 @@ import type {
 import { z } from 'zod';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import { ConnectionOciAlert } from '@odh-dashboard/internal/pages/modelServing/screens/projects/InferenceServiceModal/ConnectionOciAlert';
-import {
-  getPVCNameFromURI,
-  isPVCUri,
-} from '@odh-dashboard/internal/pages/modelServing/screens/projects/utils';
 import { useWatchConnectionTypes } from '@odh-dashboard/internal/utilities/useWatchConnectionTypes';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import useServingConnections from '@odh-dashboard/internal/pages/projects/screens/detail/connections/useServingConnections';
@@ -31,6 +27,7 @@ import { PvcSelectField } from './modelLocationFields/PVCSelectField';
 import { CustomTypeSelectField } from './modelLocationFields/CustomTypeSelectField';
 import { useEnabledModelServingConnectionTypes } from './modelLocationFields/useEnabledConnectionTypes';
 import { ociOption, s3Option, uriOption } from './modelLocationFields/modelLocationTypes';
+import { getPVCNameFromURI, isPVCUri } from '../../../shared/utils/pvcUtils';
 import usePvcs from '../../../concepts/usePvcs';
 import { ModelLocationData, ModelLocationType } from '../../../shared/types/form-data';
 import { resolveConnectionType } from '../utils';

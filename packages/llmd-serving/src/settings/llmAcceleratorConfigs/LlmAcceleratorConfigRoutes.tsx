@@ -4,7 +4,7 @@ import { Bullseye, Spinner } from '@patternfly/react-core';
 import { useAccessAllowed } from '@odh-dashboard/internal/concepts/userSSAR/useAccessAllowed';
 import { verbModelAccess } from '@odh-dashboard/internal/concepts/userSSAR/utils';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports -- standard not-found page
-import NotFound from '@odh-dashboard/internal/pages/NotFound';
+import NotFound from '@odh-dashboard/ui-core/components/NotFound';
 import LlmAcceleratorConfigContextProvider from './LlmAcceleratorConfigContext';
 import LlmAcceleratorConfigView from './LlmAcceleratorConfigView';
 import LlmAcceleratorConfigAddForm, {

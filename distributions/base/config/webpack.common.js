@@ -1,4 +1,5 @@
 const path = require('path');
+const webpack = require('webpack');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 
 const BASE_DIR = path.resolve(__dirname, '..');
@@ -65,7 +66,19 @@ module.exports = ({
         },
         {
           test: /\.svg$/,
-          include: (input) => input.indexOf('bgimages') > -1,
+          // SVGs under packages/*/images/ are used as <img src> — they need a
+          // URL (data URI), not raw markup. bgimages/ also needs data URIs.
+          // Base shell logos (distributions/base/src/images/) intentionally use
+          // raw-loader so ShellHeader can encodeURIComponent the markup itself.
+          include: (input) => {
+            if (input.indexOf('bgimages') > -1) {
+              return true;
+            }
+            const packagesDir = path.join(REPO_ROOT, 'packages');
+            return (
+              input.startsWith(packagesDir) && input.indexOf(`${path.sep}images${path.sep}`) > -1
+            );
+          },
           use: {
             loader: 'svg-url-loader',
             options: { limit: 10000 },
@@ -73,10 +86,23 @@ module.exports = ({
         },
         {
           test: /\.svg$/,
-          include: (input) =>
-            input.indexOf('bgimages') === -1 &&
-            input.indexOf('fonts') === -1 &&
-            input.indexOf('pficon') === -1,
+          include: (input) => {
+            if (
+              input.indexOf('bgimages') > -1 ||
+              input.indexOf('fonts') > -1 ||
+              input.indexOf('pficon') > -1
+            ) {
+              return false;
+            }
+            const packagesDir = path.join(REPO_ROOT, 'packages');
+            if (
+              input.startsWith(packagesDir) &&
+              input.indexOf(`${path.sep}images${path.sep}`) > -1
+            ) {
+              return false;
+            }
+            return true;
+          },
           use: { loader: 'raw-loader' },
         },
         {
@@ -112,6 +138,9 @@ module.exports = ({
       new HtmlWebpackPlugin({
         template: path.join(normalizedDistDir, 'index.html'),
         title,
+      }),
+      new webpack.DefinePlugin({
+        'process.env': '({})',
       }),
     ],
     resolve: {

@@ -83,7 +83,9 @@ After the installer completes, verify the following files exist and are correct.
 - `module-federation.name` is the correct `<camelCase>`
 - `module-federation.local.port` matches the allocated frontend port from Phase 1
 - `module-federation.proxy[0].path` is `/<name>/api`
-- `module-federation.service.port` is `8043`
+- `module-federation.service.name` is `odh-dashboard-<slug>-ui` (the standalone service name for this module)
+- `module-federation.service.port` matches the module's BFF port (e.g., 8043 for model-registry, 8143 for gen-ai — allocate a unique port in the 8000-8199 range)
+- Note: The `service` config is used by the operator when generating the federation-config ConfigMap
 - If BFF included, add `bffConfig` section:
 
   ```json
@@ -262,3 +264,6 @@ Summarize the completed onboarding:
    - Add contract tests in `packages/<name>/contract-tests/` (if BFF)
    - Start the dev server: `cd packages/<name> && make dev-start-federated`
    - Enable the feature locally: set `<camelCase>: true` in the dashboard config
+   - Create standalone deployment manifests in `manifests/modules/<name>/` (reference `/konflux-onboarding` Phase 4 or existing modules like `gen-ai/`, `model-registry/`)
+   - Register the module in the operator's module registry (`dashboard-operator/internal/controller/modules.go`) with: slug, container name, port, image env var, DSC component gate, and inter-module dependencies
+   - Run `/konflux-onboarding` for CI/CD pipeline setup (Dockerfiles, Konflux component registration, OpenShift CI)

@@ -3,4 +3,4 @@ kind: ConfigMap
 metadata:
   name: model-registry-ui-config
 data:
-  images-jobs-async-upload: $(images-jobs-async-upload)
+  images-jobs-async-upload: images-jobs-async-upload

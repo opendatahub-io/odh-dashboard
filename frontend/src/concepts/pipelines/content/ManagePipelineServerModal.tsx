@@ -19,19 +19,27 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import PasswordHiddenText from '#~/components/PasswordHiddenText';
 import { dataEntryToRecord } from '#~/utilities/dataEntryToRecord';
 import useNamespaceSecret from '#~/concepts/projects/apiHooks/useNamespaceSecret';
 import { ExternalDatabaseSecret } from '#~/concepts/pipelines/content/configurePipelinesServer/const';
-import { DSPipelineAPIServerStore, DSPipelineKind } from '#~/k8sTypes';
+import {
+  DSPAMlflowIntegrationMode,
+  DSPipelineAPIServerStore,
+  DSPipelineKind,
+  DSPipelineMlflowKind,
+} from '#~/k8sTypes';
 import { updatePipelineSettings } from '#~/api/pipelines/k8s';
 import useNotification from '#~/utilities/useNotification';
 import { useAppContext } from '#~/app/AppContext';
+import useIsMlflowCRAvailable from '#~/concepts/mlflow/hooks/useIsMlflowCRAvailable';
 import PipelineKubernetesStoreCheckbox from './PipelineKubernetesStoreCheckbox';
 import { MANAGE_PIPELINE_SERVER_TITLE } from './const';
 import { PipelineCachingSection } from './configurePipelinesServer/PipelineCachingSection';
 import ManagedPipelinesSettingsSection from './configurePipelinesServer/ManagedPipelinesSettingsSection';
+import MlflowTrackingSection from './configurePipelinesServer/MlflowTrackingSection';
 
 type ManagePipelineServerModalProps = {
   onClose: () => void;
@@ -42,7 +50,7 @@ const ManagePipelineServerModal: React.FC<ManagePipelineServerModalProps> = ({
   onClose,
   pipelineNamespaceCR,
 }) => {
-  const { namespace } = usePipelinesAPI();
+  const { namespace, refreshState } = usePipelinesAPI();
   const { dashboardConfig } = useAppContext();
   const notification = useNotification();
   const [pipelineResult] = useNamespaceSecret(
@@ -58,8 +66,25 @@ const ManagePipelineServerModal: React.FC<ManagePipelineServerModalProps> = ({
     !!pipelineNamespaceCR?.spec.apiServer?.managedPipelines &&
     !('instructLab' in pipelineNamespaceCR.spec.apiServer.managedPipelines);
 
+  const initMlflow: DSPipelineMlflowKind = React.useMemo(
+    () => ({
+      integrationMode:
+        // When MLflow is available, the DSPA operator defaults to AUTODETECT if spec.mlflow is absent
+        pipelineNamespaceCR?.spec.mlflow?.integrationMode ?? DSPAMlflowIntegrationMode.AUTODETECT,
+      injectUserEnvVars: pipelineNamespaceCR?.spec.mlflow?.injectUserEnvVars ?? false,
+    }),
+    [
+      pipelineNamespaceCR?.spec.mlflow?.integrationMode,
+      pipelineNamespaceCR?.spec.mlflow?.injectUserEnvVars,
+    ],
+  );
+
   const isManagedPipelinesAvailable =
     dashboardConfig.spec.dashboardConfig.automl || dashboardConfig.spec.dashboardConfig.autorag;
+
+  const { available: isMlflowCRAvailable } = useIsMlflowCRAvailable();
+  const isMlflowPipelinesAreaAvailable = useIsAreaAvailable(SupportedArea.MLFLOW_PIPELINES).status;
+  const isMlflowAvailable = isMlflowCRAvailable && isMlflowPipelinesAreaAvailable;
 
   // State for caching configuration
   const [enableCaching, setEnableCaching] = React.useState<boolean>(initCachingEnabled);
@@ -69,18 +94,23 @@ const ManagePipelineServerModal: React.FC<ManagePipelineServerModalProps> = ({
     initManagedPipelinesEnabled,
   );
 
+  const [mlflow, setMlflow] = React.useState<DSPipelineMlflowKind>(initMlflow);
+
   React.useEffect(() => {
-    setEnableCaching(pipelineNamespaceCR?.spec.apiServer?.cacheEnabled ?? false);
-    setEnableManagedPipelines(
-      !!pipelineNamespaceCR?.spec.apiServer?.managedPipelines &&
-        !('instructLab' in (pipelineNamespaceCR.spec.apiServer.managedPipelines ?? {})),
-    );
-  }, [pipelineNamespaceCR]);
+    setEnableCaching(initCachingEnabled);
+    setEnableManagedPipelines(initManagedPipelinesEnabled);
+    setMlflow(initMlflow);
+  }, [initCachingEnabled, initManagedPipelinesEnabled, initMlflow]);
 
   // Track if changes have been made
+  const mlflowChanged =
+    isMlflowAvailable &&
+    (mlflow.integrationMode !== initMlflow.integrationMode ||
+      mlflow.injectUserEnvVars !== initMlflow.injectUserEnvVars);
   const hasChanges =
     enableCaching !== initCachingEnabled ||
-    (isManagedPipelinesAvailable && enableManagedPipelines !== initManagedPipelinesEnabled);
+    (isManagedPipelinesAvailable && enableManagedPipelines !== initManagedPipelinesEnabled) ||
+    mlflowChanged;
 
   const [isUpdating, setIsUpdating] = React.useState(false);
 
@@ -97,12 +127,22 @@ const ManagePipelineServerModal: React.FC<ManagePipelineServerModalProps> = ({
       settings.managedPipelines = enableManagedPipelines ? {} : undefined;
     }
 
+    if (mlflowChanged) {
+      settings.mlflow = mlflow;
+    }
+
     updatePipelineSettings(namespace, settings, pipelineNamespaceCR?.metadata.name ?? 'dspa')
       .then(() => {
         notification.success(
           'Pipeline server settings updated',
           'Settings have been updated successfully.',
         );
+
+        if (mlflowChanged) {
+          refreshState().catch((e: unknown) => {
+            console.warn('Failed to refresh pipeline server state after settings update:', e);
+          });
+        }
 
         setIsUpdating(false);
         onClose();
@@ -236,6 +276,13 @@ const ManagePipelineServerModal: React.FC<ManagePipelineServerModalProps> = ({
                   setEnableCaching={setEnableCaching}
                   variant="description"
                 />
+                {isMlflowAvailable && (
+                  <MlflowTrackingSection
+                    mlflow={mlflow}
+                    setMlflow={setMlflow}
+                    variant="description"
+                  />
+                )}
                 {isManagedPipelinesAvailable && (
                   <ManagedPipelinesSettingsSection
                     enableManagedPipelines={enableManagedPipelines}

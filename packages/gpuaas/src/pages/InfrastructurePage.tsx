@@ -10,14 +10,19 @@ import {
   Content,
   Flex,
   FlexItem,
+  PageSection,
   Stack,
   StackItem,
+  Tab,
+  Tabs,
+  TabTitleIcon,
+  TabTitleText,
   Tooltip,
   Title,
 } from '@patternfly/react-core';
-import { SyncAltIcon } from '@patternfly/react-icons';
+import { ClusterIcon, MicrochipIcon, SyncAltIcon } from '@patternfly/react-icons';
 import { relativeTime } from '@odh-dashboard/internal/utilities/time';
-import { INFRASTRUCTURE_SECTIONS } from '../const';
+import { INFRASTRUCTURE_SECTIONS, INFRASTRUCTURE_TABS } from '../const';
 import { GPUAAS_EVENTS, type PageViewedProperties } from '../tracking/gpuaasTrackingConstants';
 import ClusterSummaryCards from '../components/ClusterSummaryCards';
 import HardwareUsageSection from '../components/HardwareUsageSection';
@@ -26,11 +31,18 @@ import ClusterQueueUtilizationSection from '../components/ClusterQueueUtilizatio
 import useInfrastructureMetrics from '../hooks/useInfrastructureMetrics';
 
 type SectionId = (typeof INFRASTRUCTURE_SECTIONS)[number]['id'];
+type TabId = (typeof INFRASTRUCTURE_TABS)[number]['id'];
+
+const TAB_ICONS: Record<TabId, React.ComponentType> = {
+  utilization: MicrochipIcon,
+  'cluster-queue-utilization': ClusterIcon,
+};
 
 const InfrastructurePage: React.FC = () => {
   const metrics = useInfrastructureMetrics();
   const isKueueAvailable = useIsAreaAvailable(SupportedArea.KUEUE).status;
   const hasTrackedPageView = React.useRef(false);
+  const [activeTabKey, setActiveTabKey] = React.useState<string>(INFRASTRUCTURE_TABS[0].id);
 
   React.useEffect(() => {
     if (metrics.loaded && !hasTrackedPageView.current) {
@@ -76,8 +88,9 @@ const InfrastructurePage: React.FC = () => {
     'cluster-queue-utilization': <ClusterQueueUtilizationSection />,
   };
 
-  const headerAction = metrics.lastRefreshed ? (
+  const lastUpdatedBadge = metrics.lastRefreshed ? (
     <Flex
+      justifyContent={{ default: 'justifyContentFlexEnd' }}
       alignItems={{ default: 'alignItemsCenter' }}
       spaceItems={{ default: 'spaceItemsSm' }}
       data-testid="infrastructure-refresh-badge"
@@ -104,29 +117,69 @@ const InfrastructurePage: React.FC = () => {
       loaded
       empty={false}
       provideChildrenPadding
-      headerAction={headerAction}
     >
-      <Stack hasGutter>
-        {INFRASTRUCTURE_SECTIONS.map(({ id, title, description, isPlain }) => (
-          <StackItem key={id}>
-            <Stack hasGutter>
-              <StackItem>
-                <Title headingLevel="h2" data-testid={`infrastructure-${id}-title`}>
-                  {title}
-                </Title>
-                <Content component="p" data-testid={`infrastructure-${id}-description`}>
-                  {description}
-                </Content>
-              </StackItem>
-              <StackItem>
-                <Card isPlain={isPlain} data-testid={`infrastructure-${id}-section`}>
-                  {isPlain ? SECTION_COMPONENTS[id] : <CardBody>{SECTION_COMPONENTS[id]}</CardBody>}
-                </Card>
-              </StackItem>
-            </Stack>
-          </StackItem>
-        ))}
-      </Stack>
+      <Tabs
+        activeKey={activeTabKey}
+        onSelect={(_event, eventKey) => setActiveTabKey(String(eventKey))}
+        aria-label="Infrastructure page tabs"
+        data-testid="infrastructure-tabs"
+      >
+        {INFRASTRUCTURE_TABS.map((tabInfo) => {
+          const TabIcon = TAB_ICONS[tabInfo.id];
+          return (
+            <Tab
+              key={tabInfo.id}
+              eventKey={tabInfo.id}
+              title={
+                <>
+                  <TabTitleIcon>
+                    <TabIcon />
+                  </TabTitleIcon>
+                  <TabTitleText>{tabInfo.title}</TabTitleText>
+                </>
+              }
+              data-testid={`infrastructure-tab-${tabInfo.id}`}
+            >
+              <PageSection
+                hasBodyWrapper={false}
+                isFilled
+                className={tabInfo.id === 'utilization' ? 'pf-v6-u-pt-0' : undefined}
+              >
+                <Stack hasGutter>
+                  {tabInfo.id === 'utilization' && lastUpdatedBadge && (
+                    <StackItem>{lastUpdatedBadge}</StackItem>
+                  )}
+                  {INFRASTRUCTURE_SECTIONS.filter((section) => section.tab === tabInfo.id).map(
+                    ({ id, title, description, isPlain }) => (
+                      <StackItem key={id}>
+                        <Stack hasGutter>
+                          <StackItem>
+                            <Title headingLevel="h2" data-testid={`infrastructure-${id}-title`}>
+                              {title}
+                            </Title>
+                            <Content component="p" data-testid={`infrastructure-${id}-description`}>
+                              {description}
+                            </Content>
+                          </StackItem>
+                          <StackItem>
+                            <Card isPlain={isPlain} data-testid={`infrastructure-${id}-section`}>
+                              {isPlain ? (
+                                SECTION_COMPONENTS[id]
+                              ) : (
+                                <CardBody>{SECTION_COMPONENTS[id]}</CardBody>
+                              )}
+                            </Card>
+                          </StackItem>
+                        </Stack>
+                      </StackItem>
+                    ),
+                  )}
+                </Stack>
+              </PageSection>
+            </Tab>
+          );
+        })}
+      </Tabs>
     </ApplicationsPage>
   );
 };

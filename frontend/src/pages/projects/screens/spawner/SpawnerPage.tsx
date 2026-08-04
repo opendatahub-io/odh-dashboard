@@ -18,7 +18,11 @@ import {
 } from '@patternfly/react-core';
 import type { HardwareProfileKind } from '@odh-dashboard/k8s-core';
 import { useIsAreaAvailable, SupportedArea } from '@odh-dashboard/plugin-core/areas';
-import { getDisplayNameFromK8sResource, LimitNameResourceType } from '@odh-dashboard/k8s-core';
+import {
+  getDisplayNameFromK8sResource,
+  LimitNameResourceType,
+  getPvcAccessMode,
+} from '@odh-dashboard/k8s-core';
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
 } from '@odh-dashboard/ui-core/components/K8sNameDescriptionField';
@@ -48,7 +52,6 @@ import {
   doesImageStreamSupportHardwareProfile,
 } from '#~/concepts/hardwareProfiles/utils';
 import { UseAssignHardwareProfileResult } from '#~/concepts/hardwareProfiles/useAssignHardwareProfile';
-import { getPvcAccessMode } from '#~/pages/projects/utils';
 import { useDashboardNamespace } from '#~/redux/selectors';
 import { useNotebookHardwareProfile } from '#~/concepts/notebooks/utils';
 import { LOCAL_QUEUE_MISSING_BODY, WORKBENCH_VISIBILITY } from '#~/concepts/hardwareProfiles/const';
@@ -61,6 +64,7 @@ import {
 import SpawnerFooter from './SpawnerFooter';
 import ImageSelectorField from './imageSelector/ImageSelectorField';
 import EnvironmentVariables from './environmentVariables/EnvironmentVariables';
+import { useExistingSecrets } from './environmentVariables/useExistingSecrets';
 import { useNotebookEnvVariables } from './environmentVariables/useNotebookEnvVariables';
 import { useDefaultStorageClass } from './storage/useDefaultStorageClass';
 import { ConnectionsFormSection } from './connections/ConnectionsFormSection';
@@ -199,6 +203,8 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
     useNotebookEnvVariables(existingNotebook, [
       ...notebookConnections.map((connection) => connection.metadata.name),
     ]);
+
+  const existingSecretsData = useExistingSecrets(currentProject.metadata.name);
 
   const notebooksUsingPVCsWithSizeChanges = React.useMemo(() => {
     const attachedPVCs = storageData.filter((storage) => storage.existingPvc !== undefined);
@@ -377,7 +383,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
               <EnvironmentVariables
                 envVariables={envVariables}
                 setEnvVariables={setEnvVariables}
-                namespace={currentProject.metadata.name}
+                existingSecretsData={existingSecretsData}
               />
             </FormSection>
             <FormSection
@@ -499,6 +505,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
                   canEnablePipelines={canEnablePipelines}
                   selectedFeatureStores={selectedFeatureStores}
                   existingNotebook={existingNotebook}
+                  existingSecretsData={existingSecretsData}
                 />
               )}
             </CanEnableElyraPipelinesCheck>

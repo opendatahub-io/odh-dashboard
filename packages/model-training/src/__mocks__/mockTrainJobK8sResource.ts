@@ -1,6 +1,6 @@
 /* eslint-disable camelcase */
 import * as _ from 'lodash-es';
-import { genUID } from '@odh-dashboard/internal/__mocks__/mockUtils';
+import { genUID } from '@odh-dashboard/foundation';
 import { TrainJobKind, TrainerStatus } from '@odh-dashboard/model-training/k8sTypes';
 import { TrainingJobState } from '@odh-dashboard/model-training/types';
 import { TRAINER_STATUS_ANNOTATION } from '../const';

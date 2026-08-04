@@ -11,12 +11,12 @@ import {
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import { ApplicationsPage, TrackingOutcome } from '@odh-dashboard/ui-core';
+import { useAccessReview } from '@odh-dashboard/plugin-core/host-api';
 import {
   PermissionsContextProvider,
   usePermissionsContext,
 } from '#~/concepts/permissions/PermissionsContext';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
-import { useAccessReview } from '#~/api/useAccessReview.ts';
 import { RBAC_SUBJECT_KIND_USER, RBAC_SUBJECT_KIND_GROUP } from '#~/concepts/permissions/const';
 import type { SupportedSubjectKind } from '#~/concepts/permissions/types';
 import { RoleLabelType } from '#~/concepts/permissions/types';
