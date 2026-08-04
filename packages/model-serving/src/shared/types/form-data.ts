@@ -12,10 +12,6 @@ import type {
   SupportedModelFormats,
 } from '@odh-dashboard/k8s-core';
 import type { SimpleSelectOption } from '@odh-dashboard/ui-core/components/SimpleSelect';
-import type {
-  ValidatedConfiguration,
-  ValidatedConfigurationOption,
-} from '@odh-dashboard/model-registry/shared';
 import type { LabeledConnection } from '@odh-dashboard/model-serving/shared';
 import type {
   ModelServerOption,
@@ -42,7 +38,18 @@ import { getStateKey } from '../../components/deploymentWizard/dynamicFormUtils'
 import type { DeploymentMethodFieldData } from '../../components/deploymentWizard/fields/DeploymentMethodSelectField';
 import type { ModelServingClusterSettings } from '../../concepts/useModelServingClusterSettings';
 
-export type { ValidatedConfiguration, ValidatedConfigurationOption };
+export type ValidatedConfigurationOption = {
+  title: string;
+  description: string;
+  value: string;
+};
+
+export type ValidatedConfiguration = {
+  forField: string;
+  title: string;
+  description: string;
+  options: ValidatedConfigurationOption[];
+};
 
 export enum ConnectionTypeRefs {
   S3 = 's3',
@@ -149,6 +156,7 @@ export type InitialWizardFormData = {
   // deploying — serializable metadata merged onto the deployment during assembly
   navSourceMetadata?: K8sResourceCommon['metadata'];
   validatedConfigurations?: ValidatedConfiguration[];
+  selectedValidatedConfigurations?: Record<string, string[]>;
 } & Record<string, unknown>;
 
 export type WizardFormData = {

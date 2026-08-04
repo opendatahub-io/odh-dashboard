@@ -1,16 +1,3 @@
-export type ValidatedConfigurationOption = {
-  title: string;
-  description: string;
-  value: string;
-};
-
-export type ValidatedConfiguration = {
-  forField: string;
-  title: string;
-  description: string;
-  options: ValidatedConfigurationOption[];
-};
-
 export type DeployPrefillData = {
   modelName: string;
   modelUri?: string;
@@ -19,7 +6,12 @@ export type DeployPrefillData = {
   wizardStartIndex?: number;
   modelType?: 'predictive' | 'generative';
   prefillAlertText?: string;
-  validatedConfigurations?: ValidatedConfiguration[];
+  validatedConfigurations?: {
+    forField: string;
+    title: string;
+    description: string;
+    options: { title: string; description: string; value: string }[];
+  }[];
 };
 
 export type ModelDeployPrefillInfo = {
