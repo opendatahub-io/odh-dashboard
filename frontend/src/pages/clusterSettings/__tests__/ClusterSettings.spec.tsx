@@ -32,14 +32,19 @@ jest.mock('#~/concepts/analyticsTracking/segmentIOUtils', () => ({
   fireFormTrackingEvent: jest.fn(),
 }));
 
-// Simplify GlobalProjectSettings to a single button that selects a new namespace,
-// avoiding the need to stand up ProjectsContext/ProjectSelector for these tests.
+// Simplify GlobalProjectSettings to two buttons that either select a new namespace
+// or clear the current one, avoiding the need to stand up ProjectsContext/ProjectSelector.
 jest.mock('#~/pages/clusterSettings/GlobalProjectSettings', () => ({
   __esModule: true,
   default: ({ setSelectedNamespace }: { setSelectedNamespace: (ns: string) => void }) => (
-    <button type="button" onClick={() => setSelectedNamespace('new-project')}>
-      Select global project
-    </button>
+    <>
+      <button type="button" onClick={() => setSelectedNamespace('new-project')}>
+        Select global project
+      </button>
+      <button type="button" onClick={() => setSelectedNamespace('')}>
+        Clear global project
+      </button>
+    </>
   ),
 }));
 
@@ -84,22 +89,24 @@ describe('ClusterSettings', () => {
     mockFetchClusterSettings.mockResolvedValue(DEFAULT_CONFIG);
   });
 
-  const renderAndSelectGlobalProject = async () => {
+  const renderAndWaitForLoad = async () => {
     render(<ClusterSettings />);
-
     await screen.findByTestId('submit-cluster-settings');
+  };
 
-    fireEvent.click(screen.getByText('Select global project'));
+  const clickAndWaitForEnabled = async (buttonText: string) => {
+    fireEvent.click(screen.getByText(buttonText));
 
     await waitFor(() => {
       expect(screen.getByTestId('submit-cluster-settings')).toBeEnabled();
     });
   };
 
-  it('should fire a success tracking event with globalProjectName true on successful save', async () => {
+  it('should fire an Added tracking event when a global project is selected from empty on successful save', async () => {
     mockUpdateClusterSettings.mockResolvedValue({ success: true, error: '' });
 
-    await renderAndSelectGlobalProject();
+    await renderAndWaitForLoad();
+    await clickAndWaitForEnabled('Select global project');
 
     fireEvent.click(screen.getByTestId('submit-cluster-settings'));
 
@@ -109,17 +116,91 @@ describe('ClusterSettings', () => {
         {
           outcome: 'submit',
           success: true,
-          globalProjectName: true,
+          globalProjectName: 'Added',
         },
       );
     });
+  });
+
+  it('should fire a Changed tracking event when an existing global project is replaced on successful save', async () => {
+    mockFetchClusterSettings.mockResolvedValue({
+      ...DEFAULT_CONFIG,
+      globalMLflowNamespaces: ['existing-ns'],
+    });
+    mockUpdateClusterSettings.mockResolvedValue({ success: true, error: '' });
+
+    await renderAndWaitForLoad();
+    await clickAndWaitForEnabled('Select global project');
+
+    fireEvent.click(screen.getByTestId('submit-cluster-settings'));
+
+    await waitFor(() => {
+      expect(mockFireFormTrackingEvent).toHaveBeenCalledWith(
+        'Cluster Settings Global Project Selected',
+        {
+          outcome: 'submit',
+          success: true,
+          globalProjectName: 'Changed',
+        },
+      );
+    });
+  });
+
+  it('should fire a Removed tracking event when an existing global project is cleared on successful save', async () => {
+    mockFetchClusterSettings.mockResolvedValue({
+      ...DEFAULT_CONFIG,
+      globalMLflowNamespaces: ['existing-ns'],
+    });
+    mockUpdateClusterSettings.mockResolvedValue({ success: true, error: '' });
+
+    await renderAndWaitForLoad();
+    await clickAndWaitForEnabled('Clear global project');
+
+    fireEvent.click(screen.getByTestId('submit-cluster-settings'));
+
+    await waitFor(() => {
+      expect(mockFireFormTrackingEvent).toHaveBeenCalledWith(
+        'Cluster Settings Global Project Selected',
+        {
+          outcome: 'submit',
+          success: true,
+          globalProjectName: 'Removed',
+        },
+      );
+    });
+  });
+
+  it('should not fire a global project tracking event when the global project is unchanged, even if other settings changed', async () => {
+    mockFetchClusterSettings.mockResolvedValue({
+      ...DEFAULT_CONFIG,
+      globalMLflowNamespaces: ['existing-ns'],
+    });
+    mockUpdateClusterSettings.mockResolvedValue({ success: true, error: '' });
+
+    await renderAndWaitForLoad();
+
+    // Change an unrelated setting so the form is dirty, but leave the global project untouched.
+    fireEvent.change(screen.getByTestId('pvc-size-input'), { target: { value: '25' } });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('submit-cluster-settings')).toBeEnabled();
+    });
+
+    fireEvent.click(screen.getByTestId('submit-cluster-settings'));
+
+    await waitFor(() => {
+      expect(mockUpdateClusterSettings).toHaveBeenCalled();
+    });
+
+    expect(mockFireFormTrackingEvent).not.toHaveBeenCalled();
   });
 
   it('should fire a failure tracking event with the error message when the update API rejects', async () => {
     const error = new Error('Update failed');
     mockUpdateClusterSettings.mockRejectedValue(error);
 
-    await renderAndSelectGlobalProject();
+    await renderAndWaitForLoad();
+    await clickAndWaitForEnabled('Select global project');
 
     fireEvent.click(screen.getByTestId('submit-cluster-settings'));
 
@@ -129,7 +210,7 @@ describe('ClusterSettings', () => {
         {
           outcome: 'submit',
           success: false,
-          globalProjectName: true,
+          globalProjectName: 'Added',
           error: error.message,
         },
       );
@@ -139,7 +220,8 @@ describe('ClusterSettings', () => {
   it('should fire a failure tracking event when the update API resolves unsuccessfully', async () => {
     mockUpdateClusterSettings.mockResolvedValue({ success: false, error: 'Rejected by server' });
 
-    await renderAndSelectGlobalProject();
+    await renderAndWaitForLoad();
+    await clickAndWaitForEnabled('Select global project');
 
     fireEvent.click(screen.getByTestId('submit-cluster-settings'));
 
@@ -149,7 +231,7 @@ describe('ClusterSettings', () => {
         {
           outcome: 'submit',
           success: false,
-          globalProjectName: true,
+          globalProjectName: 'Added',
           error: 'Rejected by server',
         },
       );
