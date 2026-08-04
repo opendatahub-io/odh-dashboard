@@ -233,7 +233,7 @@ describe('AutoragExperiments', () => {
     mockUsePipelineRuns.mockReturnValue({
       ...defaultRunsState,
       error: new Error(
-        'required managed pipelines not found in namespace - enable AutoML and AutoRAG pipelines on the pipeline server',
+        'required managed pipelines not found in namespace - enable AutoRAG pipelines on the pipeline server',
       ),
     });
 

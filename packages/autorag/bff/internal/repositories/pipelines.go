@@ -18,7 +18,7 @@ import (
 //
 // NOTE: The frontend matches this message via regex in
 // packages/autorag/frontend/src/app/utilities/pipelineServerEmptyState.ts — update both if changing.
-const ManagedPipelinesNotFoundMessage = "required managed pipelines not found in namespace - enable AutoML and AutoRAG pipelines on the pipeline server"
+const ManagedPipelinesNotFoundMessage = "required managed pipelines not found in namespace - enable AutoRAG pipelines on the pipeline server"
 
 var (
 	ErrPipelineRunNotFound      = errors.New("pipeline run not found")
