@@ -25,13 +25,13 @@ import { getDashboardMainContainer } from '@odh-dashboard/internal/utilities/uti
 import { useUser } from '@odh-dashboard/internal/redux/selectors/user';
 import ProjectSelectorNavigator from '@odh-dashboard/ui-core/components/projectSelector/ProjectSelectorNavigator';
 import TitleWithIcon from '@odh-dashboard/ui-core/design/TitleWithIcon';
-import { ApplicationsPage, ProjectObjectType, TrackingOutcome } from '@odh-dashboard/ui-core';
+import { ApplicationsPage, ProjectObjectType } from '@odh-dashboard/ui-core';
 import {
   promptManagementPath,
   mlflowPromptManagementBaseRoute,
   WORKSPACE_QUERY_PARAM,
 } from '@odh-dashboard/internal/routes/pipelines/mlflow';
-import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import MLflowUnavailable from '../shared/MLflowUnavailable';
 import MLflowNotConfigured from '../shared/MLflowNotConfigured';
 import MlflowBreadcrumbs, { type BreadcrumbEntry } from '../shared/MlflowBreadcrumbs';
@@ -65,9 +65,7 @@ const MlflowPromptManagementPage: React.FC = () => {
 
   const handleProjectSelectChange = React.useCallback(
     (projectName: string) => {
-      fireFormTrackingEvent('Prompts global project changed', {
-        outcome: TrackingOutcome.submit,
-        success: true,
+      fireMiscTrackingEvent('Prompts global project changed', {
         isGlobalProject: projectName === globalNamespace,
         selectedProject: projectName,
       });
