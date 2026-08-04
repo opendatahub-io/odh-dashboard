@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { FormHelperText, HelperText, HelperTextItem, Icon } from '@patternfly/react-core';
 import { InfoCircleIcon } from '@patternfly/react-icons';
+import type { FieldMode } from '@odh-dashboard/k8s-core';
 import type { ConnectionTypeDataField } from '#~/concepts/connectionTypes/types';
-import type { FieldMode } from '#~/concepts/connectionTypes/fields/types';
 
 const getHelperText = (field: ConnectionTypeDataField, mode?: FieldMode): string | null => {
   if (mode === 'default') {
