@@ -4,7 +4,9 @@
 // which would eliminate this filter entirely.
 import type { Extension } from '@openshift/dynamic-plugin-sdk';
 
-const NAV_EXTENSIONS_TO_REMOVE = new Set([
+const NAV_TYPES = new Set(['app.navigation/section', 'app.navigation/href']);
+
+const NAV_IDS_TO_REMOVE = new Set([
   // Gen-ai nav section and items (replaced by flat nav in extensions.ts)
   'gen-ai-studio',
   'chat-playground',
@@ -18,11 +20,11 @@ export const applyExtensionOverrides = (
     Object.entries(extensions).map(([name, exts]) => [
       name,
       exts.filter((e) => {
-        const { id } = e.properties;
-        if (typeof id === 'string' && NAV_EXTENSIONS_TO_REMOVE.has(id)) {
-          return false;
+        if (!NAV_TYPES.has(e.type)) {
+          return true;
         }
-        return true;
+        const { id } = e.properties;
+        return !(typeof id === 'string' && NAV_IDS_TO_REMOVE.has(id));
       }),
     ]),
   );
