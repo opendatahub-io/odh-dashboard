@@ -61,6 +61,19 @@ describe('isSafeUrl', () => {
   it('should reject empty strings', () => {
     expect(isSafeUrl('')).toBe(false);
   });
+
+  it('should reject protocol-relative URLs', () => {
+    expect(isSafeUrl('//evil.com')).toBe(false);
+    expect(isSafeUrl('//evil.com/path')).toBe(false);
+  });
+
+  it('should reject non-string values', () => {
+    expect(isSafeUrl(undefined)).toBe(false);
+    expect(isSafeUrl(null)).toBe(false);
+    expect(isSafeUrl({})).toBe(false);
+    expect(isSafeUrl(123)).toBe(false);
+    expect(isSafeUrl(true)).toBe(false);
+  });
 });
 
 const TestComponent: React.FC = () => {
