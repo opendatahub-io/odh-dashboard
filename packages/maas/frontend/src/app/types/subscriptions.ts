@@ -5,6 +5,9 @@ export type MaaSSubscription = {
   namespace: string;
   phase?: string;
   statusMessage?: string;
+  status?: string;
+  type?: string;
+  lastTransitionTime?: string;
   reason?: string;
   priority?: number;
   owner: OwnerSpec;
@@ -71,6 +74,9 @@ export type MaaSModelRefSummary = {
   modelRef: ModelReference;
   phase?: string;
   endpoint?: string;
+  status?: string;
+  type?: string;
+  lastTransitionTime?: string;
 };
 
 export type SubjectSpec = {
@@ -116,6 +122,9 @@ export type MaaSAuthPolicy = {
   phase?: string;
   statusMessage?: string;
   reason?: string;
+  status?: string;
+  type?: string;
+  lastTransitionTime?: string;
   creationTimestamp?: string;
   modelRefs: ModelRef[];
   subjects: SubjectSpec;
@@ -178,6 +187,9 @@ export type ModelOverviewSubscription = {
   phase?: string;
   statusMessage?: string;
   reason?: string;
+  status?: string;
+  type?: string;
+  lastTransitionTime?: string;
   groups?: string[];
   tokenRateLimits?: TokenRateLimit[];
 };
@@ -188,6 +200,9 @@ export type ModelOverviewPolicy = {
   phase?: string;
   statusMessage?: string;
   reason?: string;
+  status?: string;
+  type?: string;
+  lastTransitionTime?: string;
   groups?: string[];
 };
 
@@ -197,6 +212,9 @@ export type ModelOverviewDetails = {
   phase?: string;
   statusMessage?: string;
   reason?: string;
+  status?: string;
+  type?: string;
+  lastTransitionTime?: string;
 };
 
 export type ModelOverviewItem = {

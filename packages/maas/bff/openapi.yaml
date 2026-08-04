@@ -223,12 +223,18 @@ paths:
                       phase: Ready
                       statusMessage: successfully reconciled
                       reason: Reconciled
+                      status: 'True'
+                      type: Ready
+                      lastTransitionTime: '2026-01-01T00:00:00Z'
                     subscriptions:
                       - name: premium-team-sub
                         displayName: Premium Team Subscription
                         phase: Active
                         statusMessage: Active subscription
                         reason: Reconciled
+                        status: 'True'
+                        type: Ready
+                        lastTransitionTime: '2026-01-01T00:00:00Z'
                         groups:
                           - premium-users
                         tokenRateLimits:
@@ -240,6 +246,9 @@ paths:
                         phase: Active
                         statusMessage: Active policy
                         reason: Reconciled
+                        status: 'True'
+                        type: Ready
+                        lastTransitionTime: '2026-01-01T00:00:00Z'
                         groups:
                           - premium-users
                   - id: flan-t5-small
@@ -249,12 +258,18 @@ paths:
                       phase: Ready
                       statusMessage: successfully reconciled
                       reason: Reconciled
+                      status: 'True'
+                      type: Ready
+                      lastTransitionTime: '2026-01-01T00:00:00Z'
                     subscriptions:
                       - name: premium-team-sub
                         displayName: Premium Team Subscription
                         phase: Active
                         statusMessage: Active subscription
                         reason: Reconciled
+                        status: 'True'
+                        type: Ready
+                        lastTransitionTime: '2026-01-01T00:00:00Z'
                         groups:
                           - premium-users
                         tokenRateLimits:
@@ -2314,6 +2329,19 @@ components:
           type: string
           description: Reason from the Ready condition in status.conditions
           example: Reconciled
+        status:
+          type: string
+          description: Status from the Ready condition in status.conditions (e.g. True, False, Unknown)
+          example: 'True'
+        type:
+          type: string
+          description: Condition type from the Ready condition in status.conditions
+          example: Ready
+        lastTransitionTime:
+          type: string
+          format: date-time
+          description: lastTransitionTime from the Ready condition in status.conditions
+          example: '2026-01-01T00:00:00Z'
         priority:
           type: integer
           format: int32
@@ -2403,6 +2431,19 @@ components:
           type: string
           description: Reason from the Ready condition in status.conditions
           example: Reconciled
+        status:
+          type: string
+          description: Status from the Ready condition in status.conditions (e.g. True, False, Unknown)
+          example: 'True'
+        type:
+          type: string
+          description: Condition type from the Ready condition in status.conditions
+          example: Ready
+        lastTransitionTime:
+          type: string
+          format: date-time
+          description: lastTransitionTime from the Ready condition in status.conditions
+          example: '2026-01-01T00:00:00Z'
         creationTimestamp:
           type: string
           format: date-time
@@ -2478,6 +2519,19 @@ components:
           type: string
           description: Reason from the Ready condition in status.conditions
           example: Reconciled
+        status:
+          type: string
+          description: Status from the Ready condition in status.conditions (e.g. True, False, Unknown)
+          example: 'True'
+        type:
+          type: string
+          description: Condition type from the Ready condition in status.conditions
+          example: Ready
+        lastTransitionTime:
+          type: string
+          format: date-time
+          description: lastTransitionTime from the Ready condition in status.conditions
+          example: '2026-01-01T00:00:00Z'
         endpoint:
           type: string
           description: Endpoint URL for the model (from status)
@@ -2807,6 +2861,19 @@ components:
           type: string
           description: Reason from the Ready condition in status.conditions
           example: Reconciled
+        status:
+          type: string
+          description: Status from the Ready condition in status.conditions (e.g. True, False, Unknown)
+          example: 'True'
+        type:
+          type: string
+          description: Condition type from the Ready condition in status.conditions
+          example: Ready
+        lastTransitionTime:
+          type: string
+          format: date-time
+          description: lastTransitionTime from the Ready condition in status.conditions
+          example: '2026-01-01T00:00:00Z'
 
     ModelOverviewSubscription:
       type: object
@@ -2832,6 +2899,19 @@ components:
           type: string
           description: Reason from the Ready condition in status.conditions
           example: Reconciled
+        status:
+          type: string
+          description: Status from the Ready condition in status.conditions (e.g. True, False, Unknown)
+          example: 'True'
+        type:
+          type: string
+          description: Condition type from the Ready condition in status.conditions
+          example: Ready
+        lastTransitionTime:
+          type: string
+          format: date-time
+          description: lastTransitionTime from the Ready condition in status.conditions
+          example: '2026-01-01T00:00:00Z'
         groups:
           type: array
           description: Group names that own this subscription.
@@ -2871,6 +2951,19 @@ components:
           type: string
           description: Reason from the Ready condition in status.conditions
           example: Reconciled
+        status:
+          type: string
+          description: Status from the Ready condition in status.conditions (e.g. True, False, Unknown)
+          example: 'True'
+        type:
+          type: string
+          description: Condition type from the Ready condition in status.conditions
+          example: Ready
+        lastTransitionTime:
+          type: string
+          format: date-time
+          description: lastTransitionTime from the Ready condition in status.conditions
+          example: '2026-01-01T00:00:00Z'
         groups:
           type: array
           description: Group names subject to this policy.

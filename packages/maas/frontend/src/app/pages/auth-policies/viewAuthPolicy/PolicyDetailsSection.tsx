@@ -41,6 +41,9 @@ const PolicyDetailsSection: React.FC<PolicyDetailsSectionProps> = ({ policy }) =
               phase={policy.phase}
               statusMessage={policy.statusMessage}
               reason={policy.reason}
+              status={policy.status}
+              type={policy.type}
+              lastTransitionTime={policy.lastTransitionTime}
               resourceType={PhaseResourceType.AUTHPOLICY}
               resourceName={policy.displayName ?? policy.name}
               onClick={() => {

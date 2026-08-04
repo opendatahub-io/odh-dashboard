@@ -10,6 +10,7 @@ import {
   Label,
   FlexItem,
   ModalFooter,
+  Content,
 } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
@@ -36,19 +37,31 @@ type PhaseModalProps = {
   resourceName: string;
   resourceUrl: string;
   returnTo?: string;
+  status?: string;
+  type?: string;
+  lastTransitionTime?: string;
 };
 
-const getModalTitle = (resourceName: string, phase: string) => {
+const getModalTitle = (resourceName: string, phase: string, subtitle: string) => {
   const phaseProps = getPhaseProps(phase);
   return (
-    <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
-      <FlexItem>{resourceName}</FlexItem>
-      <FlexItem>
-        <Label status={phaseProps.status} color={phaseProps.color} icon={phaseProps.icon}>
-          {phase}
-        </Label>
-      </FlexItem>
-    </Flex>
+    <Stack>
+      <StackItem>
+        <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+          <FlexItem>{resourceName}</FlexItem>
+          <FlexItem>
+            <Label status={phaseProps.status} color={phaseProps.color} icon={phaseProps.icon}>
+              {phase}
+            </Label>
+          </FlexItem>
+        </Flex>
+      </StackItem>
+      <StackItem>
+        <Content component="small" data-testid="phase-modal-subtitle">
+          {subtitle}
+        </Content>
+      </StackItem>
+    </Stack>
   );
 };
 
@@ -63,25 +76,31 @@ const PhaseModal: React.FC<PhaseModalProps> = ({
   resourceName,
   resourceUrl,
   returnTo,
+  status,
+  type,
+  lastTransitionTime,
 }) => (
   <Modal
     isOpen={isOpen}
     onClose={onClose}
     title={`${phase} ${resourceType}`}
-    variant="small"
+    variant="medium"
     data-testid="phase-modal"
   >
-    <ModalHeader title={getModalTitle(resourceName, normalizePhase(phase))} />
+    <ModalHeader title={getModalTitle(resourceName, normalizePhase(phase), subtitle)} />
     <ModalBody>
-      <Stack hasGutter>
-        <StackItem>{subtitle}</StackItem>
-        <StackItem>
-          <Alert
-            {...getModalAlertProps(phase, resourceType, statusMessage, reason)}
-            data-testid="phase-modal-alert"
-          />
-        </StackItem>
-      </Stack>
+      <Alert
+        {...getModalAlertProps(
+          phase,
+          resourceType,
+          statusMessage,
+          reason,
+          status,
+          type,
+          lastTransitionTime,
+        )}
+        data-testid="phase-modal-alert"
+      />
     </ModalBody>
     {resourceUrl && returnTo ? (
       <ModalFooter>

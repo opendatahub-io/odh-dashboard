@@ -57,6 +57,9 @@ type ExpandableItemProps = {
   isHighlighted: boolean;
   resourceUrl?: string;
   returnTo: string;
+  status?: string;
+  type?: string;
+  lastTransitionTime?: string;
 };
 
 const ExpandableItem: React.FC<ExpandableItemProps> = ({
@@ -77,6 +80,9 @@ const ExpandableItem: React.FC<ExpandableItemProps> = ({
   isHighlighted,
   resourceUrl,
   returnTo,
+  status,
+  type,
+  lastTransitionTime,
 }) => (
   <div
     className={`${styles['maas-expandable-item']}${
@@ -104,6 +110,9 @@ const ExpandableItem: React.FC<ExpandableItemProps> = ({
                   phase={phase}
                   resourceType={resourceType}
                   statusMessage={statusMessage}
+                  status={status}
+                  type={type}
+                  lastTransitionTime={lastTransitionTime}
                   reason={reason}
                   resourceName={displayName ?? name}
                   resourceUrl={resourceUrl}
@@ -251,6 +260,9 @@ const SubscriptionsSection: React.FC<SubscriptionsSectionProps> = ({
               onToggle={() => onToggleSub(sub.name)}
               statusMessage={sub.statusMessage}
               reason={sub.reason}
+              status={sub.status}
+              type={sub.type}
+              lastTransitionTime={sub.lastTransitionTime}
               resourceUrl={getSubscriptionViewUrl(sub.name)}
             >
               <Content className="pf-v6-u-mb-sm">
@@ -335,6 +347,9 @@ const PoliciesSection: React.FC<PoliciesSectionProps> = ({
               onToggle={() => onTogglePolicy(policy.name)}
               statusMessage={policy.statusMessage}
               reason={policy.reason}
+              status={policy.status}
+              type={policy.type}
+              lastTransitionTime={policy.lastTransitionTime}
             >
               <GroupChips
                 groups={policy.groups ?? []}

@@ -13,9 +13,11 @@ func TestExtractReadyCondition(t *testing.T) {
 					"reason":  "ignored",
 				},
 				map[string]interface{}{
-					"type":    "Ready",
-					"message": "All networking resources created successfully",
-					"reason":  "Reconciled",
+					"type":               "Ready",
+					"message":            "All networking resources created successfully",
+					"reason":             "Reconciled",
+					"status":             "True",
+					"lastTransitionTime": "2026-01-01T00:00:00Z",
 				},
 			},
 		},
@@ -27,6 +29,15 @@ func TestExtractReadyCondition(t *testing.T) {
 	}
 	if got.Reason != "Reconciled" {
 		t.Fatalf("extractReadyCondition().Reason = %q", got.Reason)
+	}
+	if got.Status != "True" {
+		t.Fatalf("extractReadyCondition().Status = %q", got.Status)
+	}
+	if got.Type != "Ready" {
+		t.Fatalf("extractReadyCondition().Type = %q", got.Type)
+	}
+	if got.LastTransitionTime != "2026-01-01T00:00:00Z" {
+		t.Fatalf("extractReadyCondition().LastTransitionTime = %q", got.LastTransitionTime)
 	}
 }
 

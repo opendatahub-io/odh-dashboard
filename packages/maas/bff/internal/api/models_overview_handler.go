@@ -46,13 +46,16 @@ func ListModelsOverviewHandler(app *App, w http.ResponseWriter, r *http.Request,
 			copy(rateLimits, ref.TokenRateLimits)
 			key := modelKey(ref.Namespace, ref.Name)
 			subsByModel[key] = append(subsByModel[key], models.ModelOverviewSubscription{
-				Name:            sub.Name,
-				DisplayName:     sub.DisplayName,
-				Phase:           sub.Phase,
-				StatusMessage:   sub.StatusMessage,
-				Reason:          sub.Reason,
-				Groups:          groups,
-				TokenRateLimits: rateLimits,
+				Name:               sub.Name,
+				DisplayName:        sub.DisplayName,
+				Phase:              sub.Phase,
+				StatusMessage:      sub.StatusMessage,
+				Status:             sub.Status,
+				Type:               sub.Type,
+				LastTransitionTime: sub.LastTransitionTime,
+				Reason:             sub.Reason,
+				Groups:             groups,
+				TokenRateLimits:    rateLimits,
 			})
 		}
 	}
@@ -64,12 +67,15 @@ func ListModelsOverviewHandler(app *App, w http.ResponseWriter, r *http.Request,
 		for _, ref := range policy.ModelRefs {
 			key := modelKey(ref.Namespace, ref.Name)
 			policiesByModel[key] = append(policiesByModel[key], models.ModelOverviewPolicy{
-				Name:          policy.Name,
-				DisplayName:   policy.DisplayName,
-				Phase:         policy.Phase,
-				StatusMessage: policy.StatusMessage,
-				Reason:        policy.Reason,
-				Groups:        groups,
+				Name:               policy.Name,
+				DisplayName:        policy.DisplayName,
+				Phase:              policy.Phase,
+				StatusMessage:      policy.StatusMessage,
+				Status:             policy.Status,
+				Type:               policy.Type,
+				LastTransitionTime: policy.LastTransitionTime,
+				Reason:             policy.Reason,
+				Groups:             groups,
 			})
 		}
 	}
@@ -91,11 +97,14 @@ func ListModelsOverviewHandler(app *App, w http.ResponseWriter, r *http.Request,
 			ID:        ref.Name,
 			Namespace: ref.Namespace,
 			ModelDetails: models.ModelOverviewDetails{
-				DisplayName:   ref.DisplayName,
-				Description:   ref.Description,
-				Phase:         ref.Phase,
-				StatusMessage: ref.StatusMessage,
-				Reason:        ref.Reason,
+				DisplayName:        ref.DisplayName,
+				Description:        ref.Description,
+				Phase:              ref.Phase,
+				StatusMessage:      ref.StatusMessage,
+				Status:             ref.Status,
+				Type:               ref.Type,
+				LastTransitionTime: ref.LastTransitionTime,
+				Reason:             ref.Reason,
 			},
 			Subscriptions: subs,
 			AuthPolicies:  policies,

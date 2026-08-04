@@ -22,6 +22,9 @@ type PhaseLabelProps = {
   resourceUrl?: string;
   returnTo?: string;
   hideSubtext?: boolean;
+  status?: string;
+  type?: string;
+  lastTransitionTime?: string;
 };
 
 const PhaseLabel: React.FC<PhaseLabelProps> = ({
@@ -35,6 +38,9 @@ const PhaseLabel: React.FC<PhaseLabelProps> = ({
   resourceUrl,
   returnTo,
   hideSubtext = false,
+  status,
+  type,
+  lastTransitionTime,
 }) => {
   const [isModalOpen, setIsModalOpen] = React.useState(false);
   const normalized = normalizePhase(phase);
@@ -82,6 +88,9 @@ const PhaseLabel: React.FC<PhaseLabelProps> = ({
           resourceName={resourceName}
           resourceUrl={resourceUrl ?? ''}
           returnTo={returnTo}
+          status={status}
+          type={type}
+          lastTransitionTime={lastTransitionTime}
         />
       ) : null}
     </>

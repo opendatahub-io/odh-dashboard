@@ -136,6 +136,9 @@ const OverviewTableRow: React.FC<OverviewTableRowProps> = ({
           <PhaseLabel
             phase={row.modelDetails.phase}
             statusMessage={row.modelDetails.statusMessage}
+            status={row.modelDetails.status}
+            type={row.modelDetails.type}
+            lastTransitionTime={row.modelDetails.lastTransitionTime}
             reason={row.modelDetails.reason}
             resourceType={PhaseResourceType.MODEL}
             resourceName={row.modelDetails.displayName ?? row.id}

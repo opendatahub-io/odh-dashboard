@@ -124,8 +124,7 @@ describe('Subscriptions Page', () => {
     phaseModal.findAlert().should('exist');
     phaseModal.findAlertBody().should('exist');
     phaseModal.findApiDetailsButton().should('exist').click();
-    phaseModal.findAlertReason().should('exist');
-    phaseModal.findAlertMessage().should('exist');
+    phaseModal.findAlertDetailsCodeBlock().should('exist');
     phaseModal.findViewDetailsLink().should('exist');
     phaseModal.findCloseButton().click();
     phaseModal.shouldBeOpen(false);

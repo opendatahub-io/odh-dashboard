@@ -43,6 +43,9 @@ const SubscriptionDetailsSection: React.FC<SubscriptionDetailsSectionProps> = ({
               phase={subscription.phase}
               statusMessage={subscription.statusMessage}
               reason={subscription.reason}
+              status={subscription.status}
+              type={subscription.type}
+              lastTransitionTime={subscription.lastTransitionTime}
               resourceType={PhaseResourceType.SUBSCRIPTION}
               resourceName={subscription.displayName ?? subscription.name}
               onClick={() => {

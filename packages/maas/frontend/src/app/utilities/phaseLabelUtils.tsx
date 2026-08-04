@@ -1,8 +1,11 @@
 import * as React from 'react';
 import {
   AlertProps,
-  Content,
+  ClipboardCopyButton,
+  CodeBlockAction,
+  CodeBlockCode,
   ContentProps,
+  CodeBlock,
   ExpandableSection,
   Icon,
   LabelProps,
@@ -256,7 +259,7 @@ export const getModalSubtitle = (resourceType: PhaseResourceType): string | unde
     case PhaseResourceType.SUBSCRIPTION:
       return 'Subscription status';
     case PhaseResourceType.AUTHPOLICY:
-      return 'Authorization Policy status';
+      return 'Authorization policy status';
     case PhaseResourceType.MODEL:
       return 'Model status';
     default:
@@ -269,6 +272,9 @@ export const getModalAlertProps = (
   resourceType: PhaseResourceType,
   statusMessage?: React.ReactNode,
   reason?: string,
+  status?: string,
+  type?: string,
+  lastTransitionTime?: string,
 ): AlertProps => {
   const phaseProps = getPhaseProps(phase);
   const alertContent = getModalTitleAndChildren(phase, resourceType);
@@ -290,7 +296,13 @@ export const getModalAlertProps = (
           ) : null}
           {showApiDetails ? (
             <StackItem>
-              <PhaseApiDetails reason={reason} statusMessage={statusMessage} />
+              <PhaseApiDetails
+                reason={reason}
+                statusMessage={statusMessage}
+                status={status}
+                type={type}
+                lastTransitionTime={lastTransitionTime}
+              />
             </StackItem>
           ) : null}
         </Stack>
@@ -302,37 +314,69 @@ export const getModalAlertProps = (
 type PhaseApiDetailsProps = {
   reason?: string;
   statusMessage?: React.ReactNode;
+  status?: string;
+  type?: string;
+  lastTransitionTime?: string;
 };
 
-const PhaseApiDetails: React.FC<PhaseApiDetailsProps> = ({ reason, statusMessage }) => {
+const PhaseApiDetails: React.FC<PhaseApiDetailsProps> = ({
+  reason,
+  statusMessage,
+  status,
+  type,
+  lastTransitionTime,
+}) => {
   const [isExpanded, setIsExpanded] = React.useState(false);
+  const [copied, setCopied] = React.useState(false);
+  const clipboardCopyFunc = (text: string) => {
+    navigator.clipboard.writeText(text.toString());
+  };
+
+  const onClick = (text: string) => {
+    clipboardCopyFunc(text);
+    setCopied(true);
+  };
+
+  const json = convertStatusDetailsToJson(reason, statusMessage, status, type, lastTransitionTime);
+
+  const detailsActions = (
+    <CodeBlockAction>
+      <ClipboardCopyButton
+        id="status-details-copy-button"
+        aria-label="Copy to clipboard status details"
+        onClick={() => onClick(json)}
+        exitDelay={copied ? 1500 : 600}
+        maxWidth="110px"
+        variant="plain"
+        onTooltipHidden={() => setCopied(false)}
+      >
+        {copied ? 'Successfully copied to clipboard!' : 'Copy to clipboard'}
+      </ClipboardCopyButton>
+    </CodeBlockAction>
+  );
 
   return (
     <ExpandableSection
-      toggleText="API details"
+      toggleText={isExpanded ? 'Hide API details' : 'API details'}
       isExpanded={isExpanded}
       onToggle={(_event, expanded) => setIsExpanded(expanded)}
       data-testid="phase-api-details"
     >
-      <Stack hasGutter>
-        {reason ? (
-          <StackItem>
-            <Content component="small" data-testid="phase-api-details-reason">
-              <strong>Reason:</strong> {reason}
-            </Content>
-          </StackItem>
-        ) : null}
-        {statusMessage ? (
-          <StackItem>
-            <Content component="small" data-testid="phase-api-details-message">
-              <strong>Message:</strong> {statusMessage}
-            </Content>
-          </StackItem>
-        ) : null}
-      </Stack>
+      <CodeBlock actions={detailsActions}>
+        <CodeBlockCode data-testid="phase-api-details-code-block">{json}</CodeBlockCode>
+      </CodeBlock>
     </ExpandableSection>
   );
 };
+
+const convertStatusDetailsToJson = (
+  reason?: string,
+  statusMessage?: React.ReactNode,
+  status?: string,
+  type?: string,
+  lastTransitionTime?: string,
+): string =>
+  JSON.stringify({ type, status, reason, message: statusMessage, lastTransitionTime }, null, 2);
 
 const getModalTitleAndChildren = (
   phase: string,

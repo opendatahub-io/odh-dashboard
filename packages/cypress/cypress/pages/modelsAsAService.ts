@@ -679,12 +679,8 @@ class PhaseModal extends Modal {
     return this.find().findByTestId('phase-api-details').findByRole('button');
   }
 
-  findAlertReason(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findAlert().findByTestId('phase-api-details-reason');
-  }
-
-  findAlertMessage(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findAlert().findByTestId('phase-api-details-message');
+  findAlertDetailsCodeBlock(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findAlert().findByTestId('phase-api-details-code-block');
   }
 
   findViewDetailsLink(): Cypress.Chainable<JQuery<HTMLElement>> {

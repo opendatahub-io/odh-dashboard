@@ -64,13 +64,11 @@ describe('PhaseModal', () => {
 
         const apiDetails = screen.getByTestId('phase-api-details');
         expect(apiDetails).toBeInTheDocument();
-        expect(screen.getByTestId('phase-api-details-reason')).not.toBeVisible();
-        expect(screen.getByTestId('phase-api-details-message')).not.toBeVisible();
+        expect(screen.getByTestId('phase-api-details-code-block')).not.toBeVisible();
 
         await user.click(within(apiDetails).getByRole('button'));
 
-        expect(screen.getByTestId('phase-api-details-reason')).toBeVisible();
-        expect(screen.getByTestId('phase-api-details-message')).toBeVisible();
+        expect(screen.getByTestId('phase-api-details-code-block')).toBeVisible();
       },
     );
 
@@ -82,8 +80,7 @@ describe('PhaseModal', () => {
       });
 
       expect(screen.queryByTestId('phase-api-details')).not.toBeInTheDocument();
-      expect(screen.queryByTestId('phase-api-details-reason')).not.toBeInTheDocument();
-      expect(screen.queryByTestId('phase-api-details-message')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('phase-api-details-code-block')).not.toBeInTheDocument();
     });
   });
 

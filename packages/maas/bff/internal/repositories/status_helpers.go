@@ -4,8 +4,11 @@ import "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 // readyConditionFields holds message and reason from the Ready condition.
 type readyConditionFields struct {
-	Message string
-	Reason  string
+	Message            string
+	Reason             string
+	Type               string
+	Status             string
+	LastTransitionTime string
 }
 
 // extractReadyCondition returns the message and reason from the "Ready" condition in status.conditions.
@@ -19,9 +22,12 @@ func extractReadyCondition(content map[string]interface{}) readyConditionFields 
 		if condType, _ := cMap["type"].(string); condType != "Ready" {
 			continue
 		}
+		condType, _ := cMap["type"].(string)
 		message, _ := cMap["message"].(string)
 		reason, _ := cMap["reason"].(string)
-		return readyConditionFields{Message: message, Reason: reason}
+		status, _ := cMap["status"].(string)
+		lastTransitionTime, _ := cMap["lastTransitionTime"].(string)
+		return readyConditionFields{Message: message, Reason: reason, Type: condType, Status: status, LastTransitionTime: lastTransitionTime}
 	}
 	return readyConditionFields{}
 }
