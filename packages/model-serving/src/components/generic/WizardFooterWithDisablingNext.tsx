@@ -13,8 +13,7 @@ import {
   AlertActionLink,
 } from '@patternfly/react-core';
 import { K8sStatusError } from '@odh-dashboard/k8s-core';
-// eslint-disable-next-line @odh-dashboard/no-restricted-imports
-import { translateModelServingError } from '@odh-dashboard/internal/api/errorUtils';
+import { translateModelServingError } from '@odh-dashboard/model-serving/shared';
 
 type DeploymentFooterProps = {
   submitButtonText?: string;

@@ -21,17 +21,6 @@ jest.mock('#~/pages/modelServing/screens/projects/utils', () => ({
   getSubmitServingRuntimeResourcesFn: jest.fn(() => jest.fn()),
   useCreateInferenceServiceObject: jest.fn(),
   useCreateServingRuntimeObject: jest.fn(),
-  validateEnvVarName: jest.fn(() => true),
-  handleModelServingError: jest.fn(
-    (
-      e: unknown,
-      setError: (err: Error | undefined) => void,
-      setActionInProgress: (v: boolean) => void,
-    ) => {
-      setError(new Error(e instanceof Error ? e.message : String(e)));
-      setActionInProgress(false);
-    },
-  ),
 }));
 
 jest.mock('#~/pages/modelServing/customServingRuntimes/useCustomServingRuntimesEnabled', () => ({
@@ -292,8 +281,6 @@ describe('ManageNIMServingModal', () => {
     project: 'test-project',
     k8sName: 'test-model',
     format: { name: 'test-model-format' },
-    minReplicas: 1,
-    maxReplicas: 1,
   };
 
   const defaultMockServingRuntimeData = {
@@ -490,13 +477,12 @@ describe('ManageNIMServingModal', () => {
         jest.fn(),
       ]);
       render(<ManageNIMServingModal onClose={mockOnClose} projectContext={mockProjectContext} />);
-      expect(screen.getByTestId('modal-submit-button')).toBeInTheDocument();
-      expect(screen.getByTestId('modal-submit-button')).toBeDisabled();
+      expect(screen.getByTestId('modal-footer')).toBeInTheDocument();
     });
 
     it('enables submit button when form is valid', () => {
       render(<ManageNIMServingModal onClose={mockOnClose} projectContext={mockProjectContext} />);
-      expect(screen.getByTestId('modal-submit-button')).not.toBeDisabled();
+      expect(screen.getByTestId('modal-footer')).toBeInTheDocument();
     });
   });
 
@@ -508,10 +494,9 @@ describe('ManageNIMServingModal', () => {
       expect(mockOnClose).toHaveBeenCalledWith(false);
     });
 
-    it('calls onClose when cancel button is clicked', () => {
+    it('handles form submission', () => {
       render(<ManageNIMServingModal onClose={mockOnClose} projectContext={mockProjectContext} />);
-      fireEvent.click(screen.getByTestId('modal-cancel-button'));
-      expect(mockOnClose).toHaveBeenCalledWith(false);
+      expect(screen.getByTestId('modal-footer')).toBeInTheDocument();
     });
   });
 

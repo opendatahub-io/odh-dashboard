@@ -1,5 +1,4 @@
 import type { PersistentVolumeClaimKind } from '@odh-dashboard/k8s-core';
-import { K8sStatusError } from '@odh-dashboard/k8s-core';
 import { ServingRuntimePlatform } from '@odh-dashboard/model-serving/shared';
 import type { ServingRuntimeKind } from '@odh-dashboard/model-serving/shared';
 import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
@@ -11,14 +10,10 @@ import {
   getCreateInferenceServiceLabels,
   getProjectModelServingPlatform,
   getPVCFromURI,
-  getModelPathFromUri,
   getUrlFromKserveInferenceService,
   isCurrentServingPlatformEnabled,
   isValueFromEnvVar,
-  isPVCUri,
-  getPVCNameFromURI,
 } from '#~/pages/modelServing/screens/projects/utils';
-import { translateModelServingError } from '#~/api/errorUtils';
 import { ServingPlatformStatuses } from '#~/pages/modelServing/screens/types';
 import { mockInferenceServiceK8sResource } from '#~/__mocks__/mockInferenceServiceK8sResource';
 import { createPvc, createSecret } from '#~/api';
@@ -577,131 +572,5 @@ describe('getPVCFromURI', () => {
       mockPVCK8sResource({ name: 'pvc-2', uid: 'pvc-2-uid' }),
     ];
     expect(getPVCFromURI(uri, pvcs)).toBeUndefined();
-  });
-});
-
-describe('getModelPathFromUri', () => {
-  it('should return the model path', () => {
-    const uri = 'pvc://pvc-1/model-path';
-    expect(getModelPathFromUri(uri)).toEqual('model-path');
-  });
-  it('should return an empty string if the URI is not a valid URI', () => {
-    const uri = 'not a uri';
-    expect(getModelPathFromUri(uri)).toEqual('');
-  });
-});
-
-describe('isPVCUri', () => {
-  it('should return true if the URI is a PVC URI', () => {
-    const uri = 'pvc://pvc-1/model-path';
-    expect(isPVCUri(uri)).toEqual(true);
-  });
-  it('should return false if the URI is not a PVC URI', () => {
-    const uri = 'not a uri';
-    expect(isPVCUri(uri)).toEqual(false);
-  });
-});
-
-describe('getPVCNameFromURI', () => {
-  it('should return the PVC name from the URI', () => {
-    const uri = 'pvc://pvc-1/model-path';
-    expect(getPVCNameFromURI(uri)).toEqual('pvc-1');
-  });
-  it('should return an empty string if the URI is not a valid URI', () => {
-    const uri = 'not a uri';
-    expect(getPVCNameFromURI(uri)).toEqual('');
-  });
-  it('should return an empty string if the URI is not a PVC URI', () => {
-    const uri = 'http://pvc-1/model-path';
-    expect(getPVCNameFromURI(uri)).toEqual('');
-  });
-});
-
-describe('translateModelServingError', () => {
-  it('should return a friendly message for inferenceservices 409 duplicate name errors', () => {
-    const error = new K8sStatusError({
-      kind: 'Status',
-      apiVersion: 'v1',
-      status: 'Failure',
-      message: 'inferenceservices.serving.kserve.io "my-deployment" already exists',
-      reason: 'AlreadyExists',
-      code: 409,
-    });
-    // @ts-expect-error K8s API returns details with name field not modeled in the type
-    error.statusObject.details = { name: 'my-deployment', kind: 'inferenceservices' };
-    expect(translateModelServingError(error)).toBe(
-      'A model deployment with the name "my-deployment" already exists. Please choose a different model deployment name.',
-    );
-  });
-
-  it('should return a generic resource message for servingruntimes 409 duplicate name errors', () => {
-    const error = new K8sStatusError({
-      kind: 'Status',
-      apiVersion: 'v1',
-      status: 'Failure',
-      message: 'servingruntimes.serving.kserve.io "test-model" already exists',
-      reason: 'AlreadyExists',
-      code: 409,
-    });
-    // @ts-expect-error K8s API returns details with name field not modeled in the type
-    error.statusObject.details = { name: 'test-model', kind: 'servingruntimes' };
-    expect(translateModelServingError(error)).toBe(
-      'A resource with the name "test-model" already exists. Please choose a different resource name.',
-    );
-  });
-
-  it('should return a friendly message for 409 without details', () => {
-    const error = new K8sStatusError({
-      kind: 'Status',
-      apiVersion: 'v1',
-      status: 'Failure',
-      message: 'resource already exists',
-      reason: 'AlreadyExists',
-      code: 409,
-    });
-    expect(translateModelServingError(error)).toBe(
-      'A resource with this name already exists. Please choose a different resource name.',
-    );
-  });
-
-  it('should pass through 409 Conflict (optimistic locking) errors unchanged', () => {
-    const error = new K8sStatusError({
-      kind: 'Status',
-      apiVersion: 'v1',
-      status: 'Failure',
-      message: 'the object has been modified; please apply your changes to the latest version',
-      reason: 'Conflict',
-      code: 409,
-    });
-    expect(translateModelServingError(error)).toBe(
-      'the object has been modified; please apply your changes to the latest version',
-    );
-  });
-
-  it('should replace K8s resource group references in non-duplicate errors', () => {
-    const k8sError = new Error(
-      'servingruntimes.serving.kserve.io is forbidden: User cannot create',
-    );
-    expect(translateModelServingError(k8sError)).toBe(
-      'serving runtime is forbidden: User cannot create',
-    );
-  });
-
-  it('should replace inferenceservices resource group references in non-duplicate errors', () => {
-    const k8sError = new Error(
-      'inferenceservices.serving.kserve.io is forbidden: User cannot update',
-    );
-    expect(translateModelServingError(k8sError)).toBe(
-      'model deployment is forbidden: User cannot update',
-    );
-  });
-
-  it('should pass through unrelated error messages unchanged', () => {
-    const genericError = new Error('Network error: connection refused');
-    expect(translateModelServingError(genericError)).toBe('Network error: connection refused');
-  });
-
-  it('should handle string errors as fallback', () => {
-    expect(translateModelServingError('something went wrong')).toBe('something went wrong');
   });
 });
