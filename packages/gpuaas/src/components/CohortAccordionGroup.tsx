@@ -11,10 +11,13 @@ import {
   Grid,
   GridItem,
   Label,
+  Popover,
   Stack,
   StackItem,
   Title,
 } from '@patternfly/react-core';
+import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
+import { DashboardPopupIconButton } from '@odh-dashboard/ui-core';
 import ClusterQueueCard from './ClusterQueueCard';
 import { CQDcgmResult, UnifiedCohort } from '../types';
 import { ModelGpuCount } from '../utils/hardwareModels';
@@ -94,8 +97,22 @@ const CohortAccordionGroup: React.FC<CohortAccordionGroupProps> = ({
                       {cohort.name && (
                         <FlexItem>
                           <Title headingLevel="h3" style={{ fontWeight: 'normal' }}>
-                            Cohort
+                            cohort
                           </Title>
+                        </FlexItem>
+                      )}
+                      {!cohort.name && (
+                        <FlexItem>
+                          <Popover
+                            bodyContent="Cluster queues not assigned to a cohort."
+                            aria-label="cluster queues not assigned to a cohort info"
+                          >
+                            <DashboardPopupIconButton
+                              icon={<OutlinedQuestionCircleIcon />}
+                              aria-label="More info"
+                              size="sm"
+                            />
+                          </Popover>
                         </FlexItem>
                       )}
                       <FlexItem>
@@ -129,13 +146,6 @@ const CohortAccordionGroup: React.FC<CohortAccordionGroupProps> = ({
                       )}
                     </Flex>
                   </StackItem>
-                  {cohort.state === 'standalone' && (
-                    <StackItem>
-                      <Content component={ContentVariants.small}>
-                        Cluster queues not assigned to a cohort.
-                      </Content>
-                    </StackItem>
-                  )}
                 </Stack>
               </CardHeader>
 
