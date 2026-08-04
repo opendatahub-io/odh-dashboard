@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, act } from '@testing-library/react';
+import { render, act, fireEvent } from '@testing-library/react';
 import { AlertVariant } from '@patternfly/react-core';
 import {
   isSafeUrl,
@@ -76,8 +76,22 @@ const dispatchBridgeEvent = (detail: Record<string, unknown>) => {
 };
 
 describe('useFederatedNotificationListener', () => {
+  const mockAssign = jest.fn();
+  const originalLocation = window.location;
+
   beforeEach(() => {
     jest.clearAllMocks();
+    Object.defineProperty(window, 'location', {
+      value: { ...originalLocation, assign: mockAssign },
+      writable: true,
+    });
+  });
+
+  afterEach(() => {
+    Object.defineProperty(window, 'location', {
+      value: originalLocation,
+      writable: true,
+    });
   });
 
   it('should dispatch notification for events with safe linkUrl', () => {
@@ -139,6 +153,48 @@ describe('useFederatedNotificationListener', () => {
     expect(mockDispatch).toHaveBeenCalledTimes(1);
     const action = mockDispatch.mock.calls[0][0];
     expect(action.payload.message).not.toBe('A message');
+  });
+
+  it('should use navigate for relative path links on click', () => {
+    render(<TestComponent />);
+
+    dispatchBridgeEvent({
+      title: 'Relative',
+      message: 'A message',
+      linkUrl: '/projects/details',
+      linkLabel: 'View project',
+    });
+
+    const action = mockDispatch.mock.calls[0][0];
+    const { container } = render(action.payload.message);
+    const link = container.querySelector('a');
+    expect(link).toBeInTheDocument();
+    expect(link).toHaveAttribute('href', '/projects/details');
+
+    fireEvent.click(link as HTMLElement);
+    expect(mockNavigate).toHaveBeenCalledWith('/projects/details');
+    expect(mockAssign).not.toHaveBeenCalled();
+  });
+
+  it('should use window.location.assign for external URL links on click', () => {
+    render(<TestComponent />);
+
+    dispatchBridgeEvent({
+      title: 'External',
+      message: 'A message',
+      linkUrl: 'https://example.com/docs',
+      linkLabel: 'Open docs',
+    });
+
+    const action = mockDispatch.mock.calls[0][0];
+    const { container } = render(action.payload.message);
+    const link = container.querySelector('a');
+    expect(link).toBeInTheDocument();
+    expect(link).toHaveAttribute('href', 'https://example.com/docs');
+
+    fireEvent.click(link as HTMLElement);
+    expect(mockAssign).toHaveBeenCalledWith('https://example.com/docs');
+    expect(mockNavigate).not.toHaveBeenCalled();
   });
 
   it('should handle events without linkUrl', () => {
