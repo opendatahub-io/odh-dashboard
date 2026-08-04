@@ -11,9 +11,9 @@ import {
 } from '@patternfly/react-core';
 import { LockIcon } from '@patternfly/react-icons';
 import { Link } from 'react-router-dom';
-import { ODH_PRODUCT_NAME } from '#~/utilities/const';
+import { ODH_PRODUCT_NAME } from '../utilities/const';
 
-type UnauthorizedErrorProps = {
+export type UnauthorizedErrorProps = {
   variant?: PageSectionVariants;
   accessDomain?: React.ReactNode;
 };

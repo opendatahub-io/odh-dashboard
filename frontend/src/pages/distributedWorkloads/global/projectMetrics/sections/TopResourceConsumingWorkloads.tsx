@@ -7,6 +7,7 @@ import {
   ChartThemeColor,
   ChartTooltip,
 } from '@patternfly/react-charts/victory';
+import EmptyStateErrorMessage from '@odh-dashboard/ui-core/components/EmptyStateErrorMessage';
 import { DistributedWorkloadsContext } from '#~/concepts/distributedWorkloads/DistributedWorkloadsContext';
 import {
   TopWorkloadUsageType,
@@ -14,7 +15,6 @@ import {
   getStatusInfo,
   getWorkloadName,
 } from '#~/concepts/distributedWorkloads/utils';
-import EmptyStateErrorMessage from '#~/components/EmptyStateErrorMessage';
 import { LoadingState } from '#~/pages/distributedWorkloads/components/LoadingState';
 import { NoWorkloadState } from '#~/pages/distributedWorkloads/components/NoWorkloadState';
 import { truncateString } from '#~/utilities/string';

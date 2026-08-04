@@ -2,7 +2,7 @@ import * as React from 'react';
 import { useParams } from 'react-router-dom';
 import { Bullseye, Spinner } from '@patternfly/react-core';
 import { ModelServingContext } from '@odh-dashboard/internal/pages/modelServing/ModelServingContext';
-import NotFound from '@odh-dashboard/internal/pages/NotFound';
+import NotFound from '@odh-dashboard/ui-core/components/NotFound';
 import type { InferenceServiceKind } from '@odh-dashboard/model-serving/shared';
 
 type ModelMetricsPathWrapperProps = {

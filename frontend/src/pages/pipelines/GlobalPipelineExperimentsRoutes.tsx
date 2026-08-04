@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Navigate, Route, useParams } from 'react-router-dom';
-import ProjectsRoutes from '#~/concepts/projects/ProjectsRoutes';
+import ProjectsRoutes from '@odh-dashboard/ui-core/components/ProjectsRoutes';
 import { pipelineRunsBaseRoute } from '#~/routes/pipelines/runs';
 
 const GlobalPipelineExperimentsRedirect: React.FC = () => {

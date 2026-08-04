@@ -76,7 +76,13 @@
     "./components/DashboardModalFooter": "./src/components/DashboardModalFooter.tsx",
     "./components/DashboardSearchField": "./src/components/DashboardSearchField.tsx",
     "./components/DashboardExpandableSection": "./src/components/DashboardExpandableSection.tsx",
-    "./components/DashboardExpandableSection.scss": "./src/components/DashboardExpandableSection.scss"
+    "./components/DashboardExpandableSection.scss": "./src/components/DashboardExpandableSection.scss",
+    "./components/EmptyStateErrorMessage": "./src/components/EmptyStateErrorMessage.tsx",
+    "./components/NotFound": "./src/components/NotFound.tsx",
+    "./components/UnauthorizedError": "./src/components/UnauthorizedError.tsx",
+    "./components/UnknownError": "./src/components/UnknownError.tsx",
+    "./components/InvalidProject": "./src/components/InvalidProject.tsx",
+    "./components/ProjectsRoutes": "./src/components/ProjectsRoutes.tsx"
   },
   "scripts": {
     "lint": "eslint .",
