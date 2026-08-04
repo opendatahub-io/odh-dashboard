@@ -10,7 +10,7 @@ describe('GPUaaS Infrastructure Page', () => {
 
   it(
     'Verify Infrastructure page is accessible for admin users and displays expected sections',
-    { tags: ['@Dashboard', '@GPUaaS'] },
+    { tags: ['@Dashboard', '@GPUaaS', '@GpuaasCI'] },
     () => {
       cy.step('Log in as admin user');
       cy.visitWithLogin('/', LDAP_ADMIN_USER);
@@ -43,7 +43,7 @@ describe('GPUaaS Infrastructure Page', () => {
 
   it(
     'Verify Infrastructure page is not accessible for non-admin users',
-    { tags: ['@Dashboard', '@GPUaaS'] },
+    { tags: ['@Dashboard', '@GPUaaS', '@GpuaasCI'] },
     () => {
       cy.step('Log in as non-admin user');
       cy.visitWithLogin('/', LDAP_CONTRIBUTOR_USER);

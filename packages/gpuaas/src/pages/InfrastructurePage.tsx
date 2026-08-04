@@ -88,8 +88,9 @@ const InfrastructurePage: React.FC = () => {
     'cluster-queue-utilization': <ClusterQueueUtilizationSection />,
   };
 
-  const headerAction = metrics.lastRefreshed ? (
+  const lastUpdatedBadge = metrics.lastRefreshed ? (
     <Flex
+      justifyContent={{ default: 'justifyContentFlexEnd' }}
       alignItems={{ default: 'alignItemsCenter' }}
       spaceItems={{ default: 'spaceItemsSm' }}
       data-testid="infrastructure-refresh-badge"
@@ -116,7 +117,6 @@ const InfrastructurePage: React.FC = () => {
       loaded
       empty={false}
       provideChildrenPadding
-      headerAction={headerAction}
     >
       <Tabs
         activeKey={activeTabKey}
@@ -140,8 +140,15 @@ const InfrastructurePage: React.FC = () => {
               }
               data-testid={`infrastructure-tab-${tabInfo.id}`}
             >
-              <PageSection hasBodyWrapper={false} isFilled>
+              <PageSection
+                hasBodyWrapper={false}
+                isFilled
+                className={tabInfo.id === 'utilization' ? 'pf-v6-u-pt-0' : undefined}
+              >
                 <Stack hasGutter>
+                  {tabInfo.id === 'utilization' && lastUpdatedBadge && (
+                    <StackItem>{lastUpdatedBadge}</StackItem>
+                  )}
                   {INFRASTRUCTURE_SECTIONS.filter((section) => section.tab === tabInfo.id).map(
                     ({ id, title, description, isPlain }) => (
                       <StackItem key={id}>
