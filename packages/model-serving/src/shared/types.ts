@@ -12,6 +12,16 @@ import type {
   ImagePullSecret,
 } from '@odh-dashboard/k8s-core';
 
+export type PrometheusQueryRangeResultValue = [number, string];
+
+export type PrometheusQueryRangeResponseDataResult = {
+  metric: {
+    request?: string;
+    pod?: string;
+  };
+  values: PrometheusQueryRangeResultValue[];
+};
+
 export enum BiasMetricType {
   SPD = 'SPD',
   DIR = 'DIR',
@@ -62,6 +72,16 @@ export type BiasMetricConfig = {
   modelId: string;
   thresholdDelta?: number;
   batchSize?: number;
+};
+
+export type PrometheusQueryRangeResponseData = {
+  result?: PrometheusQueryRangeResponseDataResult[];
+  resultType: string;
+};
+
+export type PrometheusQueryRangeResponse = {
+  data: PrometheusQueryRangeResponseData;
+  status: string;
 };
 
 export type LabeledConnection = {

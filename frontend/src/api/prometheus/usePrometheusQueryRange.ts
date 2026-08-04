@@ -10,7 +10,7 @@ import type {
   PrometheusQueryRangeResponseData,
   PrometheusQueryRangeResponseDataResult,
   PrometheusQueryRangeResultValue,
-} from '@odh-dashboard/foundation';
+} from '@odh-dashboard/model-serving/shared/types';
 import axios from '#~/utilities/axios';
 
 export type ResponsePredicate<T = PrometheusQueryRangeResultValue> = (

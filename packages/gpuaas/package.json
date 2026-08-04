@@ -14,9 +14,9 @@
     "./extensions": "./extensions.ts"
   },
   "dependencies": {
-    "@odh-dashboard/foundation": "*",
     "@odh-dashboard/internal": "*",
     "@odh-dashboard/k8s-core": "*",
+    "@odh-dashboard/model-serving": "*",
     "@odh-dashboard/plugin-core": "*",
     "@odh-dashboard/ui-core": "*"
   },

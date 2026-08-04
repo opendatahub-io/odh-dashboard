@@ -1,7 +1,7 @@
 import type {
   PrometheusQueryRangeResponse,
   PrometheusQueryRangeResponseDataResult,
-} from '@odh-dashboard/foundation';
+} from '@odh-dashboard/model-serving/shared/types';
 
 type MockPrometheusServingType = {
   result?: PrometheusQueryRangeResponseDataResult[];

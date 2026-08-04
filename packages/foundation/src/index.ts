@@ -10,10 +10,4 @@ export type {
   RecursivePartial,
   ValueOf,
 } from './typeHelpers';
-export type {
-  PrometheusQueryRangeResultValue,
-  PrometheusQueryRangeResponseDataResult,
-  PrometheusQueryRangeResponseData,
-  PrometheusQueryRangeResponse,
-} from './prometheus';
 export { genRandomChars, genUID } from './utils';

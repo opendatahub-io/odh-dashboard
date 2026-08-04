@@ -75,7 +75,7 @@ import type {
   ResponseStatus,
   SubscriptionStatusData,
 } from '@odh-dashboard/internal/types';
-import type { PrometheusQueryRangeResponse } from '@odh-dashboard/foundation';
+import type { PrometheusQueryRangeResponse } from '@odh-dashboard/model-serving/shared/types';
 import type { IntegrationAppStatus } from '@odh-dashboard/plugin-core/integrations';
 import type {
   ArgoWorkflowPipelineVersion,

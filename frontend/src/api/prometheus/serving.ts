@@ -1,13 +1,13 @@
 import * as React from 'react';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
-import type {
-  PrometheusQueryRangeResponseDataResult,
-  PrometheusQueryRangeResultValue,
-} from '@odh-dashboard/foundation';
 import { FetchStateObject } from '@odh-dashboard/ui-core/hooks/useFetch';
 import { RefreshIntervalTitle, TimeframeTitle } from '@odh-dashboard/ui-core/types/metrics';
 import { RefreshIntervalValue } from '@odh-dashboard/ui-core/utilities/metrics';
-import { PerformanceMetricType } from '@odh-dashboard/model-serving/shared/types';
+import {
+  PerformanceMetricType,
+  PrometheusQueryRangeResponseDataResult,
+  PrometheusQueryRangeResultValue,
+} from '@odh-dashboard/model-serving/shared/types';
 import { ModelMetricType } from '#~/pages/modelServing/screens/metrics/ModelServingMetricsContext';
 import useRefreshInterval from '#~/utilities/useRefreshInterval';
 import { PROMETHEUS_BIAS_PATH } from '#~/api/prometheus/const';
