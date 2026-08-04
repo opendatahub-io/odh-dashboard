@@ -92,7 +92,7 @@ describe('getRunStartTime', () => {
 });
 
 describe('getRunDuration', () => {
-  it('should compute duration from last RUNNING entry to finished_at', () => {
+  it('should compute duration from RUNNING entry to next state transition', () => {
     const run = buildMockRunKF({
       finished_at: '2024-01-01T00:10:00Z',
       state_history: [
@@ -102,6 +102,36 @@ describe('getRunDuration', () => {
       ],
     });
     // 10:00 - 00:05 = 9 minutes 55 seconds = 595000ms
+    expect(getRunDuration(run)).toBe(595000);
+  });
+
+  it('should accumulate duration across multiple RUNNING segments for retried runs', () => {
+    const run = buildMockRunKF({
+      finished_at: '2024-01-01T02:10:00Z',
+      state_history: [
+        { update_time: '2024-01-01T00:00:01Z', state: RuntimeStateKF.PENDING },
+        { update_time: '2024-01-01T00:00:05Z', state: RuntimeStateKF.RUNNING },
+        { update_time: '2024-01-01T00:30:00Z', state: RuntimeStateKF.FAILED },
+        { update_time: '2024-01-01T02:00:00Z', state: RuntimeStateKF.PENDING },
+        { update_time: '2024-01-01T02:00:05Z', state: RuntimeStateKF.RUNNING },
+        { update_time: '2024-01-01T02:10:00Z', state: RuntimeStateKF.SUCCEEDED },
+      ],
+    });
+    // Segment 1: 00:30:00 - 00:00:05 = 29m 55s = 1795000ms
+    // Segment 2: 02:10:00 - 02:00:05 = 9m 55s = 595000ms
+    // Total: 2390000ms
+    expect(getRunDuration(run)).toBe(2390000);
+  });
+
+  it('should use finished_at as end time when last state is RUNNING', () => {
+    const run = buildMockRunKF({
+      finished_at: '2024-01-01T00:10:00Z',
+      state_history: [
+        { update_time: '2024-01-01T00:00:01Z', state: RuntimeStateKF.PENDING },
+        { update_time: '2024-01-01T00:00:05Z', state: RuntimeStateKF.RUNNING },
+      ],
+    });
+    // 10:00 - 00:05 = 9m 55s = 595000ms
     expect(getRunDuration(run)).toBe(595000);
   });
 
