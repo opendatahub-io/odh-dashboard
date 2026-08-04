@@ -9,7 +9,7 @@ metadata:
     pipelinesascode.tekton.dev/cancel-in-progress: "false"
     pipelinesascode.tekton.dev/max-keep-runs: "3"
     pipelinesascode.tekton.dev/on-cel-expression: event == "pull_request" && target_branch
-      == "main"
+      == "eg-build"
   creationTimestamp: null
   labels:
     appstudio.openshift.io/application: opendatahub-builds
@@ -24,7 +24,7 @@ spec:
   - name: revision
     value: '{{revision}}'
   - name: output-image
-    value: quay.io/opendatahub/odh-dashboard:odh-pr
+    value: quay.io/rhoai/odh-dashboard-rhel9:odh-pr
   - name: dockerfile
     value: Dockerfile
   - name: path-context
@@ -41,9 +41,9 @@ spec:
     resolver: git
     params:
     - name: url
-      value: https://github.com/opendatahub-io/odh-konflux-central.git
+      value: https://github.com/red-hat-data-services/konflux-central.git
     - name: revision
-      value: main
+      value: 'rhoai-3.5'
     - name: pathInRepo
       value: pipeline/multi-arch-container-build.yaml
   taskRunTemplate:
