@@ -40,8 +40,8 @@ export const getRunDuration = (run: PipelineRunKF): number => {
   let totalDuration = 0;
   let runningStart: number | null = null;
 
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- guard against partial API responses
-  for (const entry of run.state_history ?? []) {
+  const history = Array.isArray(run.state_history) ? run.state_history : [];
+  for (const entry of history) {
     if (!isValidHistoryEntry(entry)) {
       continue;
     }
@@ -68,7 +68,8 @@ export const getRunDuration = (run: PipelineRunKF): number => {
     return totalDuration;
   }
 
-  return finishedDate.getTime() - new Date(run.created_at).getTime();
+  const fallback = finishedDate.getTime() - new Date(run.created_at).getTime();
+  return Number.isFinite(fallback) && fallback > 0 ? fallback : 0;
 };
 
 export const getPipelineRecurringRunStartTime = (

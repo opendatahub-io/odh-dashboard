@@ -201,6 +201,38 @@ describe('getRunDuration', () => {
     expect(getRunDuration(run)).toBe(240000);
   });
 
+  it('should treat non-array state_history as empty and fall back to created_at', () => {
+    const run = buildMockRunKF({
+      created_at: '2024-01-01T00:00:00Z',
+      finished_at: '2024-01-01T00:05:00Z',
+    });
+    // Simulate a malformed API response where state_history is an object, not an array
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (run as any).state_history = {};
+    // Falls back to finished_at - created_at = 5 minutes = 300000ms
+    expect(getRunDuration(run)).toBe(300000);
+  });
+
+  it('should return 0 when fallback timestamps produce NaN (malformed created_at)', () => {
+    const run = buildMockRunKF({
+      created_at: 'not-a-date',
+      finished_at: '2024-01-01T00:05:00Z',
+      state_history: [],
+    });
+    // finished_at - created_at = NaN, so fallback returns 0
+    expect(getRunDuration(run)).toBe(0);
+  });
+
+  it('should return 0 when finished_at precedes created_at in fallback path', () => {
+    const run = buildMockRunKF({
+      created_at: '2024-01-01T01:00:00Z',
+      finished_at: '2024-01-01T00:30:00Z',
+      state_history: [],
+    });
+    // finished_at - created_at is negative, so fallback returns 0
+    expect(getRunDuration(run)).toBe(0);
+  });
+
   it('should skip negative final open interval when finished_at is before the last RUNNING entry', () => {
     const run = buildMockRunKF({
       created_at: '2024-01-01T00:00:00Z',
