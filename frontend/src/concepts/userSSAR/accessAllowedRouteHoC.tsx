@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { Bullseye, Spinner } from '@patternfly/react-core';
 import type { AccessReviewResourceAttributes } from '@odh-dashboard/k8s-core';
+import NotFound from '@odh-dashboard/ui-core/components/NotFound';
 import { useAccessAllowed } from '#~/concepts/userSSAR/useAccessAllowed';
-import NotFound from '#~/pages/NotFound';
 
 /**
  * Uses useAccessAllowed to help handle Route pages easier.

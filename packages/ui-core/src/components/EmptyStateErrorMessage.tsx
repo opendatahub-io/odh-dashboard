@@ -8,7 +8,7 @@ import {
 } from '@patternfly/react-core';
 import { PathMissingIcon } from '@patternfly/react-icons';
 
-type EmptyStateErrorMessageProps = {
+export type EmptyStateErrorMessageProps = {
   children?: React.ReactNode;
   title: string;
   bodyText: string;

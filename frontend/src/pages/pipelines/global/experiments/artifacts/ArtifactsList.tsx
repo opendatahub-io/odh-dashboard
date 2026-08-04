@@ -9,10 +9,10 @@ import {
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon, PlusCircleIcon } from '@patternfly/react-icons';
 
+import UnauthorizedError from '@odh-dashboard/ui-core/components/UnauthorizedError';
 import { useMlmdListContext } from '#~/concepts/pipelines/context';
 import { useGetArtifactsList } from '#~/concepts/pipelines/apiHooks/mlmd/useGetArtifactsList';
 import { getGenericErrorCode } from '#~/api/errorUtils';
-import UnauthorizedError from '#~/pages/UnauthorizedError';
 import { ArtifactsTable } from './ArtifactsTable';
 
 export const ArtifactsList: React.FC = () => {

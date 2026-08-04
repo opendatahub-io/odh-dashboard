@@ -3,7 +3,7 @@ import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { Tab, TabAction, Tabs, TabTitleText } from '@patternfly/react-core';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { useModelBiasData } from '@odh-dashboard/internal/concepts/trustyai/context/useModelBiasData';
-import NotFound from '@odh-dashboard/internal/pages/NotFound';
+import NotFound from '@odh-dashboard/ui-core/components/NotFound';
 import useDoesTrustyAICRExist from '@odh-dashboard/internal/concepts/trustyai/context/useDoesTrustyAICRExist';
 import { TrustyInstallState } from '@odh-dashboard/internal/concepts/trustyai/types';
 import './MetricsPageTabs.scss';

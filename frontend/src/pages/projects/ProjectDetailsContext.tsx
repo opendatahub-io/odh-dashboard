@@ -14,6 +14,7 @@ import { LocalQueuesContext } from '@odh-dashboard/ui-core/context/LocalQueuesCo
 import { ProjectHardwareProfilesContext } from '@odh-dashboard/ui-core/context/ProjectHardwareProfilesContext';
 import { FetchStateObject } from '@odh-dashboard/ui-core/hooks/useFetch';
 import { DEFAULT_LIST_FETCH_STATE } from '@odh-dashboard/ui-core/utilities/fetchState';
+import InvalidProject from '@odh-dashboard/ui-core/components/InvalidProject';
 import { GroupKind, LocalQueueKind, RoleBindingKind } from '#~/k8sTypes';
 import type { KueueWorkloadStatusWithMessage } from '#~/concepts/kueue/types';
 import {
@@ -27,7 +28,6 @@ import useInferenceServices from '#~/pages/modelServing/useInferenceServices';
 import { CustomWatchK8sResult, ListWithNonDashboardPresence } from '#~/types';
 import useServingRuntimeSecrets from '#~/pages/modelServing/screens/projects/useServingRuntimeSecrets';
 import { byName, ProjectsContext } from '#~/concepts/projects/ProjectsContext';
-import InvalidProject from '#~/concepts/projects/InvalidProject';
 import useSyncPreferredProject from '#~/concepts/projects/useSyncPreferredProject';
 import useTemplateOrder from '#~/pages/modelServing/customServingRuntimes/useTemplateOrder';
 import useTemplateDisablement from '#~/pages/modelServing/customServingRuntimes/useTemplateDisablement';
