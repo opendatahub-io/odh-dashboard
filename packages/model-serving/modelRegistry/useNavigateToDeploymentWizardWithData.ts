@@ -69,6 +69,7 @@ export const useNavigateToDeploymentWizardWithData = (
           },
         },
       },
+      validatedConfigurations: deployPrefillData.validatedConfigurations,
     }),
     [deployPrefillData, connectionTypeObject, resourceName, maxLength],
   );

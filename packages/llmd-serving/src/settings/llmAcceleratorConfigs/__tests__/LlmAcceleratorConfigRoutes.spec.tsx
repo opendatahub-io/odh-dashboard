@@ -8,7 +8,7 @@ jest.mock('@odh-dashboard/internal/concepts/userSSAR/useAccessAllowed', () => ({
   useAccessAllowed: jest.fn(),
 }));
 
-jest.mock('@odh-dashboard/internal/pages/NotFound', () => ({
+jest.mock('@odh-dashboard/ui-core/components/NotFound', () => ({
   __esModule: true,
   default: () => <div data-testid="not-found">Not Found</div>,
 }));

@@ -53,6 +53,7 @@ aliases:
     - Gkrumbach07
     - DaoDaoNoCode
     - srtanish1992
+    - nananosirova
   hardware-profiles-reviewers:
     - srtanish1992
     - Gkrumbach07
@@ -136,10 +137,12 @@ aliases:
   workbenches-approvers:
     - Gkrumbach07
     - srtanish1992
+    - nananosirova
   workbenches-reviewers:
     - srtanish1992
     - Gkrumbach07
     - DaltheCow
+    - nananosirova
 
   # Gen AI
   gen-ai-approvers:
