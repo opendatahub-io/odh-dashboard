@@ -200,4 +200,21 @@ describe('getRunDuration', () => {
     // Total: 60000 + 180000 = 240000ms
     expect(getRunDuration(run)).toBe(240000);
   });
+
+  it('should skip negative final open interval when finished_at is before the last RUNNING entry', () => {
+    const run = buildMockRunKF({
+      created_at: '2024-01-01T00:00:00Z',
+      finished_at: '2024-01-01T00:12:00Z',
+      state_history: [
+        { update_time: '2024-01-01T00:00:01Z', state: RuntimeStateKF.PENDING },
+        { update_time: '2024-01-01T00:00:05Z', state: RuntimeStateKF.RUNNING },
+        { update_time: '2024-01-01T00:10:00Z', state: RuntimeStateKF.FAILED },
+        { update_time: '2024-01-01T00:15:00Z', state: RuntimeStateKF.RUNNING },
+      ],
+    });
+    // Closed interval: 00:10:00 - 00:00:05 = 9m 55s = 595000ms
+    // Open interval: finished_at 00:12:00 - 00:15:00 = -3m (negative, skipped)
+    // Total: 595000ms
+    expect(getRunDuration(run)).toBe(595000);
+  });
 });

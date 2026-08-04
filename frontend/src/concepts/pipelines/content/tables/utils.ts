@@ -58,7 +58,10 @@ export const getRunDuration = (run: PipelineRunKF): number => {
   }
 
   if (runningStart !== null) {
-    totalDuration += finishedDate.getTime() - runningStart;
+    const intervalDuration = finishedDate.getTime() - runningStart;
+    if (Number.isFinite(intervalDuration) && intervalDuration > 0) {
+      totalDuration += intervalDuration;
+    }
   }
 
   if (totalDuration > 0) {
