@@ -156,7 +156,6 @@ export type InitialWizardFormData = {
   // deploying — serializable metadata merged onto the deployment during assembly
   navSourceMetadata?: K8sResourceCommon['metadata'];
   validatedConfigurations?: ValidatedConfiguration[];
-  selectedValidatedConfigurations?: Record<string, string[]>;
 } & Record<string, unknown>;
 
 export type WizardFormData = {
@@ -179,6 +178,7 @@ export type WizardFormData = {
     createConnectionData: ReturnType<typeof useCreateConnectionData>;
     deploymentStrategy: ReturnType<typeof useDeploymentStrategyField>;
     canCreateRoleBindings: boolean;
+    selectedValidatedConfigurations?: Record<string, string[]>;
     devFeatureFlags?: {
       vLLMDeploymentOnMaaS: boolean;
     };
