@@ -65,6 +65,7 @@ describe('isSafeUrl', () => {
   it('should reject protocol-relative URLs', () => {
     expect(isSafeUrl('//evil.com')).toBe(false);
     expect(isSafeUrl('//evil.com/path')).toBe(false);
+    expect(isSafeUrl('/\\evil.com')).toBe(false);
   });
 
   it('should reject non-string values', () => {
