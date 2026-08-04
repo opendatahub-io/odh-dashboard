@@ -40,14 +40,18 @@ export const getRunDuration = (run: PipelineRunKF): number => {
   let totalDuration = 0;
   let runningStart: number | null = null;
 
-  for (const entry of run.state_history) {
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- guard against partial API responses
+  for (const entry of run.state_history ?? []) {
     if (!isValidHistoryEntry(entry)) {
       continue;
     }
     const time = new Date(String(entry.update_time)).getTime();
+    if (!Number.isFinite(time)) {
+      continue;
+    }
     if (String(entry.state) === RuntimeStateKF.RUNNING) {
       runningStart = time;
-    } else if (runningStart !== null) {
+    } else if (runningStart !== null && time > runningStart) {
       totalDuration += time - runningStart;
       runningStart = null;
     }
