@@ -639,4 +639,169 @@ describe('isAreaAvailable', () => {
       expect(isAvailable.featureFlags).toEqual({ disableFeatureStore: 'on' });
     });
   });
+
+  describe('Plugin module areas', () => {
+    const PLUGIN_AUTOML = 'plugin-automl';
+    const PLUGIN_GEN_AI = 'plugin-gen-ai';
+    const PLUGIN_FEATURE_STORE = 'plugin-feature-store';
+
+    describe('AutoML', () => {
+      const stateMap = {
+        [PLUGIN_AUTOML]: {
+          featureFlags: ['automl' as const],
+          requiredComponents: [DataScienceStackComponent.DS_PIPELINES],
+        },
+      };
+
+      it('should enable when automl flag is true and DS_PIPELINES is Managed', () => {
+        const result = isAreaAvailable(
+          PLUGIN_AUTOML,
+          mockDashboardConfig({ automl: true }).spec,
+          mockDscStatus({
+            components: {
+              [DataScienceStackComponent.DS_PIPELINES]: { managementState: 'Managed' },
+            },
+          }),
+          null,
+          { internalStateMap: stateMap, flagState: { automl: true } },
+        );
+
+        expect(result.status).toBe(true);
+        expect(result.featureFlags).toEqual({ automl: 'on' });
+        expect(result.requiredComponents).toEqual({
+          [DataScienceStackComponent.DS_PIPELINES]: true,
+        });
+      });
+
+      it('should disable when automl flag is false', () => {
+        const result = isAreaAvailable(
+          PLUGIN_AUTOML,
+          mockDashboardConfig({ automl: false }).spec,
+          mockDscStatus({
+            components: {
+              [DataScienceStackComponent.DS_PIPELINES]: { managementState: 'Managed' },
+            },
+          }),
+          null,
+          { internalStateMap: stateMap, flagState: { automl: false } },
+        );
+
+        expect(result.status).toBe(false);
+        expect(result.featureFlags).toEqual({ automl: 'off' });
+      });
+
+      it('should disable when automl flag is true but DS_PIPELINES is Removed', () => {
+        const result = isAreaAvailable(
+          PLUGIN_AUTOML,
+          mockDashboardConfig({ automl: true }).spec,
+          mockDscStatus({
+            components: {
+              [DataScienceStackComponent.DS_PIPELINES]: { managementState: 'Removed' },
+            },
+          }),
+          null,
+          { internalStateMap: stateMap, flagState: { automl: true } },
+        );
+
+        expect(result.status).toBe(false);
+        expect(result.featureFlags).toEqual({ automl: 'on' });
+        expect(result.requiredComponents).toEqual({
+          [DataScienceStackComponent.DS_PIPELINES]: false,
+        });
+      });
+    });
+
+    describe('Gen AI', () => {
+      const stateMap = {
+        [PLUGIN_GEN_AI]: {
+          featureFlags: ['genAiStudio' as const],
+        },
+      };
+
+      it('should enable when genAiStudio flag is true', () => {
+        const result = isAreaAvailable(
+          PLUGIN_GEN_AI,
+          mockDashboardConfig({ genAiStudio: true }).spec,
+          null,
+          null,
+          { internalStateMap: stateMap, flagState: { genAiStudio: true } },
+        );
+
+        expect(result.status).toBe(true);
+        expect(result.featureFlags).toEqual({ genAiStudio: 'on' });
+      });
+
+      it('should disable when genAiStudio flag is false', () => {
+        const result = isAreaAvailable(
+          PLUGIN_GEN_AI,
+          mockDashboardConfig({ genAiStudio: false }).spec,
+          null,
+          null,
+          { internalStateMap: stateMap, flagState: { genAiStudio: false } },
+        );
+
+        expect(result.status).toBe(false);
+        expect(result.featureFlags).toEqual({ genAiStudio: 'off' });
+      });
+    });
+
+    describe('Feature Store', () => {
+      const stateMap = {
+        ...SupportedAreasStateMap,
+        [PLUGIN_FEATURE_STORE]: {
+          featureFlags: ['disableFeatureStore' as const],
+          reliantAreas: [SupportedArea.FEATURE_STORE],
+        },
+      };
+
+      it('should enable when disableFeatureStore is false and FEATURE_STORE area is available', () => {
+        const result = isAreaAvailable(
+          PLUGIN_FEATURE_STORE,
+          mockDashboardConfig({ disableFeatureStore: false }).spec,
+          mockDscStatus({
+            components: {
+              [DataScienceStackComponent.FEAST_OPERATOR]: { managementState: 'Managed' },
+            },
+          }),
+          null,
+          { internalStateMap: stateMap, flagState: { disableFeatureStore: false } },
+        );
+
+        expect(result.status).toBe(true);
+        expect(result.featureFlags).toEqual({ disableFeatureStore: 'on' });
+        expect(result.reliantAreas).toEqual({ [SupportedArea.FEATURE_STORE]: true });
+      });
+
+      it('should disable when disableFeatureStore is true', () => {
+        const result = isAreaAvailable(
+          PLUGIN_FEATURE_STORE,
+          mockDashboardConfig({ disableFeatureStore: true }).spec,
+          null,
+          null,
+          { internalStateMap: stateMap, flagState: { disableFeatureStore: true } },
+        );
+
+        expect(result.status).toBe(false);
+        expect(result.featureFlags).toEqual({ disableFeatureStore: 'off' });
+      });
+
+      it('should disable when flag is on but FEAST_OPERATOR is Removed', () => {
+        const result = isAreaAvailable(
+          PLUGIN_FEATURE_STORE,
+          mockDashboardConfig({ disableFeatureStore: false }).spec,
+          mockDscStatus({
+            components: {
+              [DataScienceStackComponent.FEAST_OPERATOR]: { managementState: 'Removed' },
+            },
+          }),
+          null,
+          { internalStateMap: stateMap, flagState: { disableFeatureStore: false } },
+        );
+
+        expect(result.status).toBe(false);
+        expect(result.featureFlags).toEqual({ disableFeatureStore: 'on' });
+        expect(result.reliantAreas).toEqual({ [SupportedArea.FEATURE_STORE]: false });
+      });
+    });
+  });
 });
