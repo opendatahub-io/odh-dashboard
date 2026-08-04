@@ -65,6 +65,8 @@ export const useNavigateToDeploymentWizardWithData = (
             invalidCharacters: false,
             invalidLength: false,
             maxLength,
+            // Namespace is chosen later in the wizard; route validation runs then.
+            routeNameTooLong: false,
             touched: false,
           },
         },
