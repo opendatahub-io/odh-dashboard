@@ -34,10 +34,7 @@ func sanitizeDeploymentProbes(ctx context.Context, cli client.Client, resources 
 			return fmt.Errorf("getting live deployment %s: %w", key, err)
 		}
 
-		patch, err := buildProbeCleanupPatch(live, res)
-		if err != nil {
-			return fmt.Errorf("building probe cleanup patch for %s: %w", key, err)
-		}
+		patch := buildProbeCleanupPatch(live, res)
 		if patch == nil {
 			continue
 		}
@@ -57,7 +54,7 @@ func sanitizeDeploymentProbes(ctx context.Context, cli client.Client, resources 
 	return nil
 }
 
-func buildProbeCleanupPatch(live, desired *unstructured.Unstructured) (map[string]interface{}, error) {
+func buildProbeCleanupPatch(live, desired *unstructured.Unstructured) map[string]interface{} {
 	liveContainers, _, _ := unstructured.NestedSlice(live.Object, "spec", "template", "spec", "containers")
 	desiredContainers, _, _ := unstructured.NestedSlice(desired.Object, "spec", "template", "spec", "containers")
 
@@ -107,7 +104,7 @@ func buildProbeCleanupPatch(live, desired *unstructured.Unstructured) (map[strin
 	}
 
 	if len(patchContainers) == 0 {
-		return nil, nil
+		return nil
 	}
 
 	return map[string]interface{}{
@@ -118,7 +115,7 @@ func buildProbeCleanupPatch(live, desired *unstructured.Unstructured) (map[strin
 				},
 			},
 		},
-	}, nil
+	}
 }
 
 func conflictingHandlerFields(liveContainer, desiredContainer map[string]interface{}, probeField string) []string {
