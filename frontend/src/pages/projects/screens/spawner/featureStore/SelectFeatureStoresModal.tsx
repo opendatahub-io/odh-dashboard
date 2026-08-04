@@ -1,6 +1,7 @@
 import * as React from 'react';
 /* eslint-disable @odh-dashboard/no-restricted-imports */
 import {
+  Alert,
   Button,
   Modal,
   ModalBody,
@@ -25,6 +26,7 @@ import {
   SELECT_FEATURE_STORES_MODAL_TITLE,
   selectFeatureStoresColumns,
 } from './selectFeatureStoresModalConst';
+import { FEATURE_STORE_UNAVAILABLE_TOOLTIP } from './utils';
 
 export type SelectFeatureStoresModalProps = {
   featureStores: WorkbenchFeatureStoreConfig[];
@@ -111,6 +113,8 @@ export const SelectFeatureStoresModal: React.FC<SelectFeatureStoresModalProps> =
     setFilterText('');
   }, []);
 
+  const hasUnavailableFeatureStores = allFeatureStores.some((fs) => fs.isUnavailable);
+
   return (
     <Modal
       isOpen
@@ -125,6 +129,15 @@ export const SelectFeatureStoresModal: React.FC<SelectFeatureStoresModalProps> =
         description={SELECT_FEATURE_STORES_MODAL_DESCRIPTION}
       />
       <ModalBody>
+        {hasUnavailableFeatureStores && (
+          <Alert
+            className="pf-v6-u-mb-md"
+            data-testid="feature-store-unavailable-alert"
+            variant="info"
+            isInline
+            title={FEATURE_STORE_UNAVAILABLE_TOOLTIP}
+          />
+        )}
         <TableBase
           {...tableProps}
           data-testid="select-feature-stores-table"

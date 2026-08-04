@@ -191,6 +191,12 @@ describe('FeatureStoreFormSection', () => {
       </MemoryRouter>,
     );
 
+    expect(result.getByTestId('feature-store-unavailable-alert')).toBeInTheDocument();
+    expect(result.getByTestId('feature-store-unavailable-name')).toHaveTextContent(
+      'deleted_project',
+    );
+    expect(result.queryByTestId('feature-store-unavailable-icon')).not.toBeInTheDocument();
+
     await act(async () => {
       result.getByRole('button', { name: 'Select feature stores' }).click();
     });
