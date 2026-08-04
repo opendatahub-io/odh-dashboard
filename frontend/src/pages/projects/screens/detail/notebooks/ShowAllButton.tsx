@@ -6,6 +6,10 @@ type ShowAllButtonProps = {
   isExpanded: boolean;
   totalSize: number;
   onToggle: () => void;
+  toggleAriaLabel?: {
+    expanded: string;
+    collapsed: string;
+  };
   'data-testid'?: string;
 };
 
@@ -14,6 +18,7 @@ const ShowAllButton: React.FC<ShowAllButtonProps> = ({
   totalSize,
   onToggle,
   isExpanded,
+  toggleAriaLabel,
   'data-testid': testId,
 }) => {
   if (visibleLength >= totalSize) {
@@ -23,7 +28,18 @@ const ShowAllButton: React.FC<ShowAllButtonProps> = ({
   return (
     <Flex spaceItems={{ default: 'spaceItemsSm' }} data-testid={testId}>
       <FlexItem>
-        <Button isInline variant="link" onClick={onToggle}>
+        <Button
+          isInline
+          variant="link"
+          onClick={onToggle}
+          aria-label={
+            toggleAriaLabel
+              ? isExpanded
+                ? toggleAriaLabel.expanded
+                : toggleAriaLabel.collapsed
+              : undefined
+          }
+        >
           {isExpanded ? 'Show less' : 'Show all'}
         </Button>
       </FlexItem>

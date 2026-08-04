@@ -18,7 +18,7 @@ import text from '@patternfly/react-styles/css/utilities/Text/text';
 
 import { NotebookKind } from '#~/k8sTypes';
 import { FEAST_CONFIG_ANNOTATION } from '#~/pages/projects/screens/spawner/featureStore/const';
-import { FEATURE_STORE_UNAVAILABLE_TOOLTIP } from '#~/pages/projects/screens/spawner/featureStore/utils';
+import { FEATURE_STORE_UNAVAILABLE_LIST_TOOLTIP } from '#~/pages/projects/screens/spawner/featureStore/utils';
 import ShowAllButton from './ShowAllButton';
 
 type NotebookFeatureStoreListProps = {
@@ -128,6 +128,10 @@ const NotebookFeatureStoreList: React.FC<NotebookFeatureStoreListProps> = ({
                         visibleLength={DEFAULT_VISIBLE_LENGTH}
                         onToggle={() => setShowAllAvailable(!showAllAvailable)}
                         totalSize={availableNames.length}
+                        toggleAriaLabel={{
+                          expanded: 'Show less connected feature stores',
+                          collapsed: 'Show all connected feature stores',
+                        }}
                         data-testid="feature-store-show-all"
                       />
                     </StackItem>
@@ -155,6 +159,7 @@ const NotebookFeatureStoreList: React.FC<NotebookFeatureStoreListProps> = ({
                         isInline
                         variant="link"
                         onClick={() => setShowUnavailable(false)}
+                        aria-label="Show less unavailable feature stores"
                         data-testid="feature-store-show-unavailable"
                       >
                         Show less
@@ -166,14 +171,19 @@ const NotebookFeatureStoreList: React.FC<NotebookFeatureStoreListProps> = ({
                         data-testid="feature-store-show-unavailable"
                       >
                         <FlexItem>
-                          <Button isInline variant="link" onClick={() => setShowUnavailable(true)}>
+                          <Button
+                            isInline
+                            variant="link"
+                            onClick={() => setShowUnavailable(true)}
+                            aria-label="Show unavailable feature stores"
+                          >
                             Show unavailable
                           </Button>
                         </FlexItem>
                         <FlexItem>
                           <Popover
                             aria-label="Why feature stores may be unavailable"
-                            bodyContent={FEATURE_STORE_UNAVAILABLE_TOOLTIP}
+                            bodyContent={FEATURE_STORE_UNAVAILABLE_LIST_TOOLTIP}
                             position="right"
                           >
                             <Button

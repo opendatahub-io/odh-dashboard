@@ -137,6 +137,9 @@ describe('NotebookFeatureStoreList', () => {
 
     const showUnavailable = screen.getByTestId('feature-store-show-unavailable');
     expect(showUnavailable).toHaveTextContent('Show unavailable');
+    expect(
+      within(showUnavailable).getByRole('button', { name: 'Show unavailable feature stores' }),
+    ).toBeInTheDocument();
     expect(screen.getByTestId('feature-store-unavailable-help')).toBeInTheDocument();
   });
 
@@ -146,7 +149,7 @@ describe('NotebookFeatureStoreList', () => {
 
     await user.click(
       within(screen.getByTestId('feature-store-show-unavailable')).getByRole('button', {
-        name: 'Show unavailable',
+        name: 'Show unavailable feature stores',
       }),
     );
 
@@ -268,7 +271,7 @@ describe('NotebookFeatureStoreList', () => {
 
     await user.click(
       within(screen.getByTestId('feature-store-show-unavailable')).getByRole('button', {
-        name: 'Show unavailable',
+        name: 'Show unavailable feature stores',
       }),
     );
 
@@ -335,7 +338,7 @@ describe('NotebookFeatureStoreList', () => {
     await user.click(within(screen.getByTestId('feature-store-show-all')).getByRole('button'));
     await user.click(
       within(screen.getByTestId('feature-store-show-unavailable')).getByRole('button', {
-        name: 'Show unavailable',
+        name: 'Show unavailable feature stores',
       }),
     );
 
@@ -345,6 +348,10 @@ describe('NotebookFeatureStoreList', () => {
 
     expect(showAll).toHaveTextContent('Show less');
     expect(showUnavailable).toHaveTextContent('Show less');
+    expect(
+      within(showAll).getByRole('button', { name: 'Show less connected feature stores' }),
+    ).toBeInTheDocument();
+    expect(showUnavailable).toHaveAttribute('aria-label', 'Show less unavailable feature stores');
     expect(showAll.compareDocumentPosition(unavailableList)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
     expect(unavailableList.compareDocumentPosition(showUnavailable)).toBe(
       Node.DOCUMENT_POSITION_FOLLOWING,
