@@ -22,8 +22,11 @@ import { addNotification } from '#~/redux/actions/actions';
 // Must match the event name in the federated module's useNotificationListener
 const NOTIFICATION_BRIDGE_EVENT = 'odh-notification-bridge';
 
-export const isSafeUrl = (url: string): boolean => {
-  if (!url) {
+export const isSafeUrl = (url: unknown): boolean => {
+  if (typeof url !== 'string' || !url) {
+    return false;
+  }
+  if (url.startsWith('//')) {
     return false;
   }
   if (url.startsWith('/')) {
