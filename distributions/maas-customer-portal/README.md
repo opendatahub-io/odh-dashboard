@@ -1,6 +1,6 @@
 # MaaS Consumer Portal Distribution
 
-Consumer-facing portal for MaaS API key management, AI asset endpoints, and MaaS governance. Bundles the `maas` and `gen-ai` packages.
+Consumer-facing portal for MaaS API key management, AI asset endpoints, and MaaS governance (admin-only, gated by `clusterAdmin` from the MAAS BFF `/user` response). Bundles the `maas` and `gen-ai` packages.
 
 ## Running locally
 
@@ -29,7 +29,7 @@ cd distributions/maas-customer-portal
 MOCK_USER=user@example.com MAAS_BFF_TARGET=http://localhost:8081 npm run dev
 ```
 
-Use `MOCK_USER=user@example.com` for admin permissions in mock mode.
+Use `MOCK_USER=user@example.com` for admin permissions in mock mode (grants `clusterAdmin`, which enables the MaaS governance nav item). Other usernames lack admin RBAC bindings.
 
 ### Mode B: Real cluster data
 
@@ -55,6 +55,14 @@ MAAS_BFF_TARGET=https://localhost:8243 GENAI_BFF_TARGET=https://localhost:8143 n
 ```
 
 BFF targets use `https://` because on-cluster BFFs serve over TLS.
+
+**Alternative: cluster auto-discovery mode.** Instead of explicit BFF targets, set `OC_PROJECT` to auto-discover the dashboard route:
+
+```bash
+OC_PROJECT=redhat-ods-applications npm run dev
+```
+
+Optional overrides: `ODH_APP` (default `odh-dashboard`), `ODH_DASHBOARD_HOST` (skips route discovery).
 
 ## Key files
 

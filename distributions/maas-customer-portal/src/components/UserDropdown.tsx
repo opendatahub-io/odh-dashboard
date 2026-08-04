@@ -25,7 +25,7 @@ const UserDropdown: React.FC = () => {
       )}
     >
       <DropdownList>
-        <DropdownItem key="logout" onClick={() => logout().then(() => window.location.reload())}>
+        <DropdownItem key="logout" onClick={() => logout().finally(() => window.location.reload())}>
           Log out
         </DropdownItem>
       </DropdownList>
