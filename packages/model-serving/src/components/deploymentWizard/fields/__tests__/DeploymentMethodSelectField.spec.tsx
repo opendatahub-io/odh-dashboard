@@ -144,13 +144,10 @@ describe('DeploymentMethodSelectField tracking', () => {
 
     fireEvent.click(screen.getByTestId('deployment-method-kserve'));
 
-    expect(mockTrackEvent).toHaveBeenCalledWith(
-      ModelServingTrackingEvent.DEPLOY_METHOD_SELECTED,
-      {
-        deploymentMethod: 'kserve',
-        previousDeploymentMethod: undefined,
-      },
-    );
+    expect(mockTrackEvent).toHaveBeenCalledWith(ModelServingTrackingEvent.DEPLOY_METHOD_SELECTED, {
+      deploymentMethod: 'kserve',
+      previousDeploymentMethod: undefined,
+    });
   });
 
   it('should fire deploy method selected tracking with previous method when switching', () => {
@@ -169,13 +166,10 @@ describe('DeploymentMethodSelectField tracking', () => {
 
     fireEvent.click(screen.getByTestId('deployment-method-llmd'));
 
-    expect(mockTrackEvent).toHaveBeenCalledWith(
-      ModelServingTrackingEvent.DEPLOY_METHOD_SELECTED,
-      {
-        deploymentMethod: 'llmd',
-        previousDeploymentMethod: 'kserve',
-      },
-    );
+    expect(mockTrackEvent).toHaveBeenCalledWith(ModelServingTrackingEvent.DEPLOY_METHOD_SELECTED, {
+      deploymentMethod: 'llmd',
+      previousDeploymentMethod: 'kserve',
+    });
   });
 
   it('should call onChange with the selected method', () => {
