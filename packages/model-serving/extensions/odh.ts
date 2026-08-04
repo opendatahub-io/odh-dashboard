@@ -7,8 +7,13 @@ import type {
   TabRouteTabExtension,
 } from '@odh-dashboard/plugin-core/extension-points';
 import { SupportedArea } from '@odh-dashboard/plugin-core/areas';
-import type { WizardFieldExtension } from '@odh-dashboard/model-serving/extension-points/deployment-wizard';
+import type {
+  WizardFieldExtension,
+  WizardFieldApplyExtension,
+  WizardFieldExtractorExtension,
+} from '@odh-dashboard/model-serving/extension-points/deployment-wizard';
 import type { DeploymentMethodSelectFieldType } from '../src/components/deploymentWizard/fields/DeploymentMethodSelectField';
+import type { ModelCapabilitiesFieldType } from '../src/components/deploymentWizard/fields/modelCapabilities/ModelCapabilitiesField';
 
 const ADMIN_USER = 'ADMIN_USER';
 
@@ -16,6 +21,79 @@ const createRedirectComponent = (args: { from: string; to: string }) => () =>
   import('@odh-dashboard/plugin-core/routing').then((module) => ({
     default: () => module.buildV2RedirectElement(args),
   }));
+
+const modelCapabilitiesFieldExtension: WizardFieldExtension<ModelCapabilitiesFieldType> = {
+  type: 'model-serving.deployment/wizard-field',
+  properties: {
+    field: () =>
+      import(
+        '../src/components/deploymentWizard/fields/modelCapabilities/ModelCapabilitiesField'
+      ).then((m) => m.ModelCapabilitiesFieldWizardField),
+  },
+  flags: {
+    required: [SupportedArea.MODEL_CAPABILITIES],
+  },
+};
+
+const modelCapabilitiesApplyKServe: WizardFieldApplyExtension<string[]> = {
+  type: 'model-serving.deployment/wizard-field-apply',
+  properties: {
+    fieldId: 'modelCapabilities',
+    platform: 'kserve',
+    apply: () =>
+      import(
+        '../src/components/deploymentWizard/fields/modelCapabilities/modelCapabilitiesApplyExtract'
+      ).then((m) => m.applyModelCapabilities),
+  },
+  flags: {
+    required: [SupportedArea.MODEL_CAPABILITIES],
+  },
+};
+
+const modelCapabilitiesApplyLlmd: WizardFieldApplyExtension<string[]> = {
+  type: 'model-serving.deployment/wizard-field-apply',
+  properties: {
+    fieldId: 'modelCapabilities',
+    platform: 'llmd-serving',
+    apply: () =>
+      import(
+        '../src/components/deploymentWizard/fields/modelCapabilities/modelCapabilitiesApplyExtract'
+      ).then((m) => m.applyModelCapabilities),
+  },
+  flags: {
+    required: [SupportedArea.MODEL_CAPABILITIES],
+  },
+};
+
+const modelCapabilitiesExtractKServe: WizardFieldExtractorExtension<string[]> = {
+  type: 'model-serving.deployment/wizard-field-extractor',
+  properties: {
+    fieldId: 'modelCapabilities',
+    platform: 'kserve',
+    extract: () =>
+      import(
+        '../src/components/deploymentWizard/fields/modelCapabilities/modelCapabilitiesApplyExtract'
+      ).then((m) => m.extractModelCapabilities),
+  },
+  flags: {
+    required: [SupportedArea.MODEL_CAPABILITIES],
+  },
+};
+
+const modelCapabilitiesExtractLlmd: WizardFieldExtractorExtension<string[]> = {
+  type: 'model-serving.deployment/wizard-field-extractor',
+  properties: {
+    fieldId: 'modelCapabilities',
+    platform: 'llmd-serving',
+    extract: () =>
+      import(
+        '../src/components/deploymentWizard/fields/modelCapabilities/modelCapabilitiesApplyExtract'
+      ).then((m) => m.extractModelCapabilities),
+  },
+  flags: {
+    required: [SupportedArea.MODEL_CAPABILITIES],
+  },
+};
 
 const deploymentMethodFieldExtension: WizardFieldExtension<DeploymentMethodSelectFieldType> = {
   type: 'model-serving.deployment/wizard-field',
@@ -38,6 +116,9 @@ const extensions: (
   | TabRoutePageExtension
   | TabRouteTabExtension
   | WizardFieldExtension<DeploymentMethodSelectFieldType>
+  | WizardFieldExtension<ModelCapabilitiesFieldType>
+  | WizardFieldApplyExtension<string[]>
+  | WizardFieldExtractorExtension<string[]>
 )[] = [
   {
     type: 'app.area',
@@ -122,6 +203,11 @@ const extensions: (
     },
   },
   deploymentMethodFieldExtension,
+  modelCapabilitiesFieldExtension,
+  modelCapabilitiesApplyKServe,
+  modelCapabilitiesApplyLlmd,
+  modelCapabilitiesExtractKServe,
+  modelCapabilitiesExtractLlmd,
   // Model deployment settings tabbed page
   {
     type: 'app.tab-route/page',

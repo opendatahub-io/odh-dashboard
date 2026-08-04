@@ -14,3 +14,18 @@ export type WellKnownModelCapability = (typeof WELL_KNOWN_MODEL_CAPABILITIES)[nu
 
 /** Any capability string, including well-known and custom values. */
 export type ModelCapability = string;
+
+export type ModelCapabilityLabelColor = 'blue' | 'orange' | 'grey';
+
+const WELL_KNOWN_CAPABILITY_COLORS: Record<WellKnownModelCapability, ModelCapabilityLabelColor> = {
+  Vision: 'blue',
+  Transcription: 'orange',
+};
+
+export const getModelCapabilityLabelColor = (capability: string): ModelCapabilityLabelColor => {
+  const wellKnown = WELL_KNOWN_MODEL_CAPABILITIES.find((c) => c === capability);
+  if (wellKnown) {
+    return WELL_KNOWN_CAPABILITY_COLORS[wellKnown];
+  }
+  return 'grey';
+};
