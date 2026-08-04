@@ -190,7 +190,7 @@ func (s *service) ResolveNonCollidingKey(ctx context.Context, opts ConnectionOpt
 		nextIndex++
 	}
 
-	return "", ErrMaxCollisionsExceeded
+	return "", fmt.Errorf("%w: %d attempts", ErrMaxCollisionsExceeded, input.MaxAttempts)
 }
 
 func splitS3ObjectPath(key string) (dir, name string) {

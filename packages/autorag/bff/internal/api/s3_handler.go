@@ -328,8 +328,7 @@ func (h *S3Handler) PostS3FileHandler(w http.ResponseWriter, r *http.Request, ps
 		}
 		if errors.Is(err, s3.ErrMaxCollisionsExceeded) {
 			conflictResponse(h.logger, w, r,
-				fmt.Sprintf("unable to find unique filename after %d attempts; try a different base name",
-					h.effectivePostS3CollisionAttempts()))
+				fmt.Sprintf("unable to find unique filename (%s); try a different base name", err))
 			return
 		}
 		h.handleS3RepoError(w, r, err, key)
