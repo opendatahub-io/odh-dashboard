@@ -27,6 +27,13 @@ import {
 
 const DEFAULT_DISTRIBUTED_INFERENCING = DEFAULT_CONFIG.isDistributedInferencingDefault ?? true;
 
+enum GlobalProjectState {
+  added = 'Added',
+  changed = 'Changed',
+  unchanged = 'Unchanged',
+  removed = 'Removed',
+}
+
 const ClusterSettings: React.FC = () => {
   const [loaded, setLoaded] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
@@ -134,12 +141,14 @@ const ClusterSettings: React.FC = () => {
       return;
     }
 
-    const globalProjectName = !_.isEqual(
-      clusterSettings.globalMLflowNamespaces,
-      newClusterSettings.globalMLflowNamespaces,
-    );
-
-    setSaving(true);
+    const currentGlobalNamespace = clusterSettings.globalMLflowNamespaces?.[0];
+    const newGlobalNamespace = newClusterSettings.globalMLflowNamespaces?.[0];
+    let globalProjectName: GlobalProjectState;
+    if (currentGlobalNamespace === newGlobalNamespace)
+      globalProjectName = GlobalProjectState.unchanged;
+    else if (!currentGlobalNamespace) globalProjectName = GlobalProjectState.added;
+    else if (!newGlobalNamespace) globalProjectName = GlobalProjectState.removed;
+    else globalProjectName = GlobalProjectState.changed;
 
     try {
       const response = await updateClusterSettings(newClusterSettings);
@@ -150,11 +159,12 @@ const ClusterSettings: React.FC = () => {
 
       setClusterSettings(newClusterSettings);
 
-      fireFormTrackingEvent('Cluster Settings Global Project Selected', {
-        outcome: TrackingOutcome.submit,
-        success: true,
-        globalProjectName,
-      });
+      if (globalProjectName !== GlobalProjectState.unchanged)
+        fireFormTrackingEvent('Cluster Settings Global Project Selected', {
+          outcome: TrackingOutcome.submit,
+          success: true,
+          globalProjectName,
+        });
 
       dispatch(
         addNotification({
