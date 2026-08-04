@@ -775,6 +775,27 @@ describe('getTrainingJobStatus', () => {
     expect(result.isLoading).toBe(false);
   });
 
+  it('should return INADMISSIBLE when request exceeds ClusterQueue maximum capacity', async () => {
+    const job = mockTrainJobK8sResource({
+      name: TEST_JOB_NAME,
+    });
+    const workload = createMockWorkload([
+      {
+        type: WorkloadConditionType.QuotaReserved,
+        status: ConditionStatus.False,
+        reason: 'Pending',
+        message:
+          "couldn't assign flavors to pod set main: insufficient quota for cpu in flavor pdhote-repro-flavor, previously considered podsets requests (0) + current podset request (6100m) > maximum capacity (5)",
+        lastTransitionTime: TEST_TIMESTAMP,
+      },
+    ]);
+    mockGetWorkloadForJob.mockResolvedValue(workload);
+
+    const result = await getTrainingJobStatus(job);
+    expect(result.status).toBe(TrainingJobState.INADMISSIBLE);
+    expect(result.isLoading).toBe(false);
+  });
+
   it('should return FAILED from Workload Finished condition', async () => {
     const job = mockTrainJobK8sResource({
       name: TEST_JOB_NAME,

@@ -8,7 +8,57 @@ import {
   getKueueAnalyticsSubState,
   toOrdinal,
   formatQueuePosition,
+  isInadmissibleQuotaCondition,
 } from '#~/concepts/kueue/messageUtils';
+
+describe('isInadmissibleQuotaCondition', () => {
+  it('returns true for reason Inadmissible', () => {
+    expect(
+      isInadmissibleQuotaCondition({
+        type: 'QuotaReserved',
+        status: 'False',
+        reason: 'Inadmissible',
+        message: 'ClusterQueue is inactive',
+      }),
+    ).toBe(true);
+  });
+
+  it('returns true when message indicates request exceeds maximum capacity', () => {
+    expect(
+      isInadmissibleQuotaCondition({
+        type: 'QuotaReserved',
+        status: 'False',
+        reason: 'Pending',
+        message:
+          "couldn't assign flavors to pod set main: insufficient quota for cpu in flavor pdhote-repro-flavor, previously considered podsets requests (0) + current podset request (6100m) > maximum capacity (5)",
+      }),
+    ).toBe(true);
+  });
+
+  it('returns true when resource is unavailable in ClusterQueue', () => {
+    expect(
+      isInadmissibleQuotaCondition({
+        type: 'QuotaReserved',
+        status: 'False',
+        reason: 'Pending',
+        message:
+          "couldn't assign flavors to pod set main: resource ephemeral-storage unavailable in ClusterQueue",
+      }),
+    ).toBe(true);
+  });
+
+  it('returns false for temporary insufficient unused quota', () => {
+    expect(
+      isInadmissibleQuotaCondition({
+        type: 'QuotaReserved',
+        status: 'False',
+        reason: 'Pending',
+        message:
+          "couldn't assign flavors to pod set: insufficient unused quota for cpu in flavor default-flavor",
+      }),
+    ).toBe(false);
+  });
+});
 
 describe('getHumanReadableKueueMessage', () => {
   describe('Queued status', () => {
