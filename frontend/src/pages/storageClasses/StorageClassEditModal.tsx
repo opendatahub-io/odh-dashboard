@@ -21,11 +21,11 @@ import {
 } from '@patternfly/react-core';
 
 import React from 'react';
+import FieldGroupHelpLabelIcon from '@odh-dashboard/ui-core/components/FieldGroupHelpLabelIcon';
+import DashboardModalFooter from '@odh-dashboard/ui-core/components/DashboardModalFooter';
 import { AccessMode, AccessModeLabelMap } from '#~/pages/storageClasses/storageEnums';
-import FieldGroupHelpLabelIcon from '#~/components/FieldGroupHelpLabelIcon';
 import { accessModeDescriptions } from '#~/pages/storageClasses/constants';
 import { StorageClassKind } from '#~/k8sTypes';
-import DashboardModalFooter from '#~/concepts/dashboard/DashboardModalFooter';
 import { updateStorageClassConfig } from '#~/api';
 import { toAccessModeFullName } from '#~/pages/projects/screens/detail/storage/AccessModeFullName.tsx';
 import {

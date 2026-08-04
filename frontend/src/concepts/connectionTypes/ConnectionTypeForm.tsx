@@ -5,8 +5,11 @@ import {
   FormGroup,
   FormSection,
   MenuToggleStatus,
+  Popover,
   Truncate,
 } from '@patternfly/react-core';
+import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
+import { DashboardPopupIconButton } from '@odh-dashboard/ui-core';
 import {
   getDescriptionFromK8sResource,
   getDisplayNameFromK8sResource,
@@ -16,13 +19,15 @@ import type {
   K8sNameDescriptionFieldData,
   K8sNameDescriptionFieldUpdateFunction,
 } from '@odh-dashboard/k8s-core';
+import TypeaheadSelect, {
+  TypeaheadSelectOption,
+} from '@odh-dashboard/ui-core/components/TypeaheadSelect';
+import K8sNameDescriptionField from '@odh-dashboard/ui-core/components/K8sNameDescriptionField';
 import ConnectionTypeFormFields from '#~/concepts/connectionTypes/fields/ConnectionTypeFormFields';
 import {
   ConnectionTypeConfigMapObj,
   ConnectionTypeValueType,
 } from '#~/concepts/connectionTypes/types';
-import TypeaheadSelect, { TypeaheadSelectOption } from '#~/components/TypeaheadSelect';
-import K8sNameDescriptionField from '#~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
 import { ConnectionTypeDetailsHelperText } from './ConnectionTypeDetailsHelperText';
 
 const createSelectOption = (
@@ -148,6 +153,14 @@ const ConnectionTypeForm: React.FC<Props> = ({
         fieldId="connection-type"
         data-testid="connection-type-dropdown"
         isRequired
+        labelHelp={
+          <Popover bodyContent="The category of external resource you're connecting to. Connection types determine which credentials and settings are required.">
+            <DashboardPopupIconButton
+              icon={<OutlinedQuestionCircleIcon />}
+              aria-label="More info for Connection type"
+            />
+          </Popover>
+        }
       >
         <Flex direction={{ default: 'row' }} spaceItems={{ default: 'spaceItemsSm' }}>
           <FlexItem grow={{ default: 'grow' }}>

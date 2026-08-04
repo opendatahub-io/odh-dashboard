@@ -11,7 +11,7 @@ import {
 import { mockDashboardConfig } from '@odh-dashboard/internal/__mocks__/mockDashboardConfig';
 import { mockDscStatus } from '@odh-dashboard/internal/__mocks__/mockDscStatus';
 import { mockK8sResourceList } from '@odh-dashboard/internal/__mocks__/mockK8sResourceList';
-import { mockProjectK8sResource } from '@odh-dashboard/internal/__mocks__/mockProjectK8sResource';
+import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import { featureStoreGlobal } from '../../../pages/featureStore/featureStoreGlobal';
 import { featureEntitiesTable } from '../../../pages/featureStore/featureEntities';
@@ -528,11 +528,7 @@ describe('Global Search in Feature Entities', () => {
     featureStoreGlobal.findGlobalSearchInput().should('be.visible');
     featureStoreGlobal
       .findGlobalSearchInput()
-      .should(
-        'have.attr',
-        'placeholder',
-        'Search by name, description, or tag (Example: team=platform)',
-      );
+      .should('have.attr', 'placeholder', 'Search by name, description, or tag (key=value)');
   });
 
   it('should perform global search and display results', () => {
@@ -718,7 +714,7 @@ describe('Global Search in Feature Entities', () => {
       featureStoreGlobal
         .findGlobalSearchTooltip()
         .should('be.visible')
-        .should('contain.text', 'Search by name, description, or tag (Example: team=platform)');
+        .should('contain.text', 'Search by name, description, or tag (key=value)');
     });
 
     it('should display tooltip on click when search input is empty', () => {
@@ -729,7 +725,7 @@ describe('Global Search in Feature Entities', () => {
       featureStoreGlobal
         .findGlobalSearchTooltip()
         .should('be.visible')
-        .should('contain.text', 'Search by name, description, or tag (Example: team=platform)');
+        .should('contain.text', 'Search by name, description, or tag (key=value)');
     });
 
     it('should hide tooltip when user starts typing', () => {

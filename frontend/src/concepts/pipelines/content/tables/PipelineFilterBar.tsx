@@ -1,7 +1,10 @@
 import * as React from 'react';
 
+import {
+  default as FilterToolbar,
+  ToolbarFilterProps,
+} from '@odh-dashboard/ui-core/components/FilterToolbar';
 import { FilterOptions } from '#~/concepts/pipelines/content/tables/usePipelineFilter';
-import { default as FilterToolbar, ToolbarFilterProps } from '#~/components/FilterToolbar';
 
 const PipelineFilterBar = <Options extends FilterOptions>(
   props: ToolbarFilterProps<Options>,

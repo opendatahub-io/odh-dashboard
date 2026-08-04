@@ -71,13 +71,16 @@ func TestMapAgentCardDetailNilWhenUnavailable(t *testing.T) {
 	assert.Nil(t, MapAgentCardDetail(&agents.AgentDetail{}, nil))
 }
 
-func TestAgentDetailToRuntimeDetailIncludesAgentCard(t *testing.T) {
+func TestAgentDetailToRuntimeDetailOmitsAgentCard(t *testing.T) {
 	detail := &agents.AgentDetail{
 		Metadata: agents.AgentMetadata{
 			Name:      "sample-support-agent",
 			Namespace: "agent-ops-demo",
 			Labels: map[string]string{
 				agents.LabelAgentType: "agent",
+			},
+			Annotations: map[string]string{
+				agents.AnnotationDescription: "From annotations",
 			},
 			CreationTimestamp: "2026-05-12T16:00:03.214610Z",
 		},
@@ -98,9 +101,8 @@ func TestAgentDetailToRuntimeDetailIncludesAgentCard(t *testing.T) {
 	}
 
 	result := AgentDetailToRuntimeDetail(detail)
-	require.NotNil(t, result.AgentCard)
-	assert.Equal(t, "From card", result.Description)
-	assert.Equal(t, "Sample Support Agent", result.AgentCard.Name)
+	require.NotNil(t, result)
+	assert.Equal(t, "From annotations", result.Description)
 }
 
 func TestDiscoverAuthenticationMethods(t *testing.T) {

@@ -1,0 +1,46 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: autorag-allow-ports
+spec:
+  podSelector:
+    matchLabels:
+      deployment: autorag-ui
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - ports:
+        - port: 8743
+          protocol: TCP
+      from:
+        - namespaceSelector:
+            matchLabels:
+              network.openshift.io/policy-group: ingress
+  # autorag is an API-only BFF — it only needs DNS, K8s API, and
+  # namespace-scoped DSPA (8443) + OGX (8321) + MinIO (9000). No external HTTP(S) required.
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: openshift-dns
+      ports:
+        - port: 5353
+          protocol: UDP
+        - port: 5353
+          protocol: TCP
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+      ports:
+        - port: 6443
+          protocol: TCP
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - port: 8443
+          protocol: TCP
+        - port: 8321
+          protocol: TCP
+        - port: 9000
+          protocol: TCP

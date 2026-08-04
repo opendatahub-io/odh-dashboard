@@ -3,15 +3,16 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { BrowserRouter } from 'react-router-dom';
 import { useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
+import { NotificationWatcherContext } from '@odh-dashboard/ui-core/contexts/NotificationWatcherContext';
 import { ConfigurePipelinesServerModal } from '#~/concepts/pipelines/content/configurePipelinesServer/ConfigurePipelinesServerModal';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import usePipelinesConnections from '#~/pages/projects/screens/detail/connections/usePipelinesConnections';
-import { NotificationWatcherContext } from '#~/concepts/notificationWatcher/NotificationWatcherContext';
 import { createPipelinesCR, deleteSecret } from '#~/api';
 import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 import { configureDSPipelineResourceSpec } from '#~/concepts/pipelines/content/configurePipelinesServer/utils';
 import { useAppContext } from '#~/app/AppContext';
 import { mockDashboardConfig } from '#~/__mocks__/mockDashboardConfig';
+import useIsMlflowCRAvailable from '#~/concepts/mlflow/hooks/useIsMlflowCRAvailable';
 
 // Mock dependencies
 jest.mock('#~/concepts/pipelines/context', () => ({
@@ -47,6 +48,11 @@ jest.mock('#~/app/AppContext', () => ({
   useAppContext: jest.fn(),
 }));
 
+jest.mock('#~/concepts/mlflow/hooks/useIsMlflowCRAvailable', () => ({
+  __esModule: true,
+  default: jest.fn(),
+}));
+
 // Mock child components
 jest.mock('#~/concepts/pipelines/content/configurePipelinesServer/ObjectStorageSection', () => ({
   ObjectStorageSection: () => <div>Object storage connection</div>,
@@ -73,6 +79,9 @@ const mockConfigureDSPipelineResourceSpec = configureDSPipelineResourceSpec as j
   typeof configureDSPipelineResourceSpec
 >;
 const mockUseAppContext = useAppContext as jest.MockedFunction<typeof useAppContext>;
+const mockUseIsMlflowCRAvailable = useIsMlflowCRAvailable as jest.MockedFunction<
+  typeof useIsMlflowCRAvailable
+>;
 
 describe('ConfigurePipelinesServerModal', () => {
   const mockOnClose = jest.fn();
@@ -131,6 +140,12 @@ describe('ConfigurePipelinesServerModal', () => {
       dashboardConfig: mockDashboardConfig({ automl: false, autorag: false }),
       storageClasses: [],
       isRHOAI: false,
+    });
+
+    mockUseIsMlflowCRAvailable.mockReturnValue({
+      available: false,
+      loaded: true,
+      error: false,
     });
 
     mockConfigureDSPipelineResourceSpec.mockResolvedValue(
@@ -289,7 +304,7 @@ describe('ConfigurePipelinesServerModal', () => {
       expect(mockFireFormTrackingEvent).toHaveBeenCalledWith('Pipeline Server Configured', {
         outcome: 'submit',
         success: false,
-        error,
+        error: error.message,
       });
     });
 
@@ -339,6 +354,155 @@ describe('ConfigurePipelinesServerModal', () => {
         callbackDelay: expect.any(Number),
         callback: expect.any(Function),
       });
+    });
+  });
+
+  describe('standalone mode (standaloneNamespace)', () => {
+    it('should use standaloneNamespace for API calls instead of context namespace', async () => {
+      const {
+        objectStorageIsValid,
+      } = require('#~/concepts/pipelines/content/configurePipelinesServer/utils');
+      objectStorageIsValid.mockReturnValue(true);
+
+      renderModal({
+        onClose: mockOnClose,
+        standaloneNamespace: 'standalone-ns',
+      });
+
+      const submitButton = screen.getByRole('button', { name: 'Configure pipeline server' });
+      fireEvent.click(submitButton);
+
+      await waitFor(() => {
+        expect(mockConfigureDSPipelineResourceSpec).toHaveBeenCalledWith(
+          expect.any(Object),
+          'standalone-ns',
+        );
+        expect(mockCreatePipelinesCR).toHaveBeenCalledWith('standalone-ns', expect.any(Object));
+      });
+    });
+
+    it('should call onSuccess instead of registerNotification when provided', async () => {
+      const {
+        objectStorageIsValid,
+      } = require('#~/concepts/pipelines/content/configurePipelinesServer/utils');
+      objectStorageIsValid.mockReturnValue(true);
+
+      const mockOnSuccess = jest.fn();
+
+      renderModal({
+        onClose: mockOnClose,
+        standaloneNamespace: 'standalone-ns',
+        onSuccess: mockOnSuccess,
+      });
+
+      const submitButton = screen.getByRole('button', { name: 'Configure pipeline server' });
+      fireEvent.click(submitButton);
+
+      await waitFor(() => {
+        expect(mockOnSuccess).toHaveBeenCalled();
+      });
+
+      expect(mockRegisterNotification).not.toHaveBeenCalled();
+      expect(mockOnClose).toHaveBeenCalled();
+    });
+
+    it('should use standaloneNamespace for deleteSecret on submission error', async () => {
+      const {
+        objectStorageIsValid,
+      } = require('#~/concepts/pipelines/content/configurePipelinesServer/utils');
+      objectStorageIsValid.mockReturnValue(true);
+
+      mockCreatePipelinesCR.mockRejectedValue(new Error('Create failed'));
+
+      renderModal({
+        onClose: mockOnClose,
+        standaloneNamespace: 'standalone-ns',
+      });
+
+      const submitButton = screen.getByRole('button', { name: 'Configure pipeline server' });
+      fireEvent.click(submitButton);
+
+      await waitFor(() => {
+        expect(mockDeleteSecret).toHaveBeenCalledWith('standalone-ns', expect.any(String));
+      });
+    });
+
+    it('should show managed pipelines section in standalone mode', () => {
+      renderModal({
+        onClose: mockOnClose,
+        standaloneNamespace: 'standalone-ns',
+      });
+
+      // Expand advanced settings to see managed pipelines
+      fireEvent.click(screen.getByText('Advanced settings'));
+
+      expect(screen.getByText('Managed pipelines')).toBeInTheDocument();
+    });
+  });
+
+  describe('defaultConfig', () => {
+    it('should pre-check managed pipelines when defaultConfig sets enableManagedPipelines', () => {
+      renderModal({
+        onClose: mockOnClose,
+        standaloneNamespace: 'standalone-ns',
+        defaultConfig: { enableManagedPipelines: true },
+      });
+
+      fireEvent.click(screen.getByText('Advanced settings'));
+
+      const checkbox = screen.getByTestId('managed-pipelines-checkbox');
+      expect(checkbox).toBeChecked();
+    });
+  });
+
+  describe('MLflow tracking section', () => {
+    it('should not render MLflow section when MLflow is unavailable', () => {
+      renderModal();
+      expect(screen.queryByText('MLflow experiment tracking')).not.toBeInTheDocument();
+    });
+
+    it('should not render MLflow section when MLflow CR is still loading', () => {
+      mockUseIsMlflowCRAvailable.mockReturnValue({
+        available: false,
+        loaded: false,
+        error: false,
+      });
+      mockUseIsAreaAvailable.mockReturnValue({
+        status: true,
+        featureFlags: {},
+        devFlags: {},
+        reliantAreas: {},
+        requiredComponents: {},
+        requiredCapabilities: {},
+        customCondition: jest.fn(),
+      } as ReturnType<typeof useIsAreaAvailable>);
+
+      renderModal();
+
+      expect(screen.queryByText('MLflow experiment tracking')).not.toBeInTheDocument();
+    });
+
+    it('should render MLflow section when MLflow CR and area are both available', () => {
+      mockUseIsMlflowCRAvailable.mockReturnValue({
+        available: true,
+        loaded: true,
+        error: false,
+      });
+      mockUseIsAreaAvailable.mockReturnValue({
+        status: true,
+        featureFlags: {},
+        devFlags: {},
+        reliantAreas: {},
+        requiredComponents: {},
+        requiredCapabilities: {},
+        customCondition: jest.fn(),
+      } as ReturnType<typeof useIsAreaAvailable>);
+
+      renderModal();
+
+      expect(screen.getByText('MLflow experiment tracking')).toBeInTheDocument();
+      expect(screen.getByTestId('mlflow-integration-mode-checkbox')).toBeInTheDocument();
+      expect(screen.getByTestId('mlflow-inject-env-vars-checkbox')).toBeInTheDocument();
     });
   });
 });

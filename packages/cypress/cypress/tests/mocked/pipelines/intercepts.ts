@@ -2,17 +2,19 @@ import {
   mockDashboardConfig,
   mockDataSciencePipelineApplicationK8sResource,
   mockK8sResourceList,
-  mockProjectK8sResource,
   mockRouteK8sResource,
 } from '@odh-dashboard/internal/__mocks__';
+import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import {
   DataSciencePipelineApplicationModel,
   ProjectModel,
   RouteModel,
 } from '../../../utils/models';
+import { interceptMlflowStatus } from '../../../utils/mlflowUtils';
 
 export const configIntercept = (): void => {
   cy.interceptOdh('GET /api/config', mockDashboardConfig({}));
+  interceptMlflowStatus(false);
 };
 
 export const projectsIntercept = (

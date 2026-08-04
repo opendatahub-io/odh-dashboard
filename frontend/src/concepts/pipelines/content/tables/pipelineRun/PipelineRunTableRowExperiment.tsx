@@ -1,6 +1,6 @@
 import React from 'react';
 import { Label, Skeleton, Split, SplitItem } from '@patternfly/react-core';
-import TruncatedText from '#~/components/TruncatedText';
+import TruncatedText from '@odh-dashboard/ui-core/components/TruncatedText';
 import { ExperimentKF } from '#~/concepts/pipelines/kfTypes';
 import { NoRunContent } from '#~/concepts/pipelines/content/tables/renderUtils';
 

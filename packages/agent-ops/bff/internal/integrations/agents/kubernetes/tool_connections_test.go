@@ -32,26 +32,26 @@ func TestMCPRegistrationLabelFallsBackToName(t *testing.T) {
 	assert.Equal(t, "slack-tool-servers", mcpRegistrationLabel(obj))
 }
 
-func TestListMCPToolConnectionsMergesGroups(t *testing.T) {
+func TestListMCPToolConnectionsReturnsKuadrantRegistrations(t *testing.T) {
 	namespace := "agent-ops-demo"
-	kuadrant := &unstructured.Unstructured{Object: map[string]any{
+	weather := &unstructured.Unstructured{Object: map[string]any{
 		"apiVersion": "mcp.kuadrant.io/v1alpha1",
 		"kind":       "MCPServerRegistration",
 		"metadata":   map[string]any{"name": "weather-tool-servers", "namespace": namespace},
 		"spec":       map[string]any{"toolPrefix": "weather_"},
 	}}
-	kagenti := &unstructured.Unstructured{Object: map[string]any{
-		"apiVersion": "mcp.kagenti.com/v1alpha1",
+	slack := &unstructured.Unstructured{Object: map[string]any{
+		"apiVersion": "mcp.kuadrant.io/v1alpha1",
 		"kind":       "MCPServerRegistration",
 		"metadata":   map[string]any{"name": "slack-tool-servers", "namespace": namespace},
 	}}
 
 	gvrToListKind := map[schema.GroupVersionResource]string{
-		mcpServerRegistrationGVRs[0]: "MCPServerRegistrationList",
-		mcpServerRegistrationGVRs[1]: "MCPServerRegistrationList",
+		mcpServerRegistrationGVR:       "MCPServerRegistrationList",
+		legacyMCPServerRegistrationGVR: "MCPServerRegistrationList",
 	}
-	dynamicClient := fakedynamic.NewSimpleDynamicClientWithCustomListKinds(runtime.NewScheme(), gvrToListKind, kuadrant, kagenti)
+	dynamicClient := fakedynamic.NewSimpleDynamicClientWithCustomListKinds(runtime.NewScheme(), gvrToListKind, weather, slack)
 
-	connections := listMCPToolConnections(context.Background(), dynamicClient, namespace)
+	connections := listMCPToolConnections(context.Background(), dynamicClient, nil, namespace)
 	assert.Equal(t, []string{"slack-tool-servers", "weather_"}, connections)
 }

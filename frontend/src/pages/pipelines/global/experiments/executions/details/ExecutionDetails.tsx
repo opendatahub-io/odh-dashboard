@@ -14,11 +14,11 @@ import {
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import React from 'react';
 import { useNavigate, useParams } from 'react-router';
+import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import { useGetArtifactTypes } from '#~/concepts/pipelines/apiHooks/mlmd/useGetArtifactTypes';
 import { useGetEventsByExecutionId } from '#~/concepts/pipelines/apiHooks/mlmd/useGetEventsByExecutionId';
 import { useGetExecutionById } from '#~/concepts/pipelines/apiHooks/mlmd/useGetExecutionById';
 import { PipelineCoreDetailsPageComponent } from '#~/concepts/pipelines/content/types';
-import ApplicationsPage from '#~/pages/ApplicationsPage';
 import { inputOutputSectionTitle } from '#~/pages/pipelines/global/experiments/executions/const';
 import ExecutionDetailsCustomPropertiesSection from '#~/pages/pipelines/global/experiments/executions/details/ExecutionDetailsCustomPropertiesSection';
 import ExecutionDetailsIDSection from '#~/pages/pipelines/global/experiments/executions/details/ExecutionDetailsIDSection';

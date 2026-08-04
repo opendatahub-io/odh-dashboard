@@ -1,6 +1,6 @@
 import React from 'react';
 import { DashboardResource } from '@perses-dev/core';
-import useFetch, { type FetchStateObject } from '@odh-dashboard/internal/utilities/useFetch';
+import useFetch, { type FetchStateObject } from '@odh-dashboard/ui-core/hooks/useFetch';
 import { fetchPersesDashboard } from '../perses-client';
 
 type UsePersesDashboardResult = Omit<FetchStateObject<DashboardResource | undefined>, 'data'> & {

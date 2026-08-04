@@ -13,8 +13,7 @@ import {
 import { PathMissingIcon, SearchIcon } from '@patternfly/react-icons';
 import { t_global_spacer_xs as ExtraSmallSpacerSize } from '@patternfly/react-tokens';
 import { Link, useParams } from 'react-router-dom';
-// eslint-disable-next-line @odh-dashboard/no-restricted-imports
-import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
+import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import FeatureDetailsTabs from './FeatureDetailsTab';
 import useFeatureByName from '../../../apiHooks/useFeatureByName';
 import { useFeatureStoreProject } from '../../../FeatureStoreContext';

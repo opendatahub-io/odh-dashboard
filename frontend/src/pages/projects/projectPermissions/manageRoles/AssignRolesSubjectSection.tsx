@@ -13,8 +13,8 @@ import {
   Icon,
   Radio,
 } from '@patternfly/react-core';
+import TypedObjectIcon from '@odh-dashboard/ui-core/design/TypedObjectIcon';
 import { ProjectObjectType, typedBackgroundColor } from '#~/concepts/design/utils.ts';
-import TypedObjectIcon from '#~/concepts/design/TypedObjectIcon.tsx';
 import SubjectNameTypeaheadSelect from '#~/pages/projects/projectPermissions/components/SubjectNameTypeaheadSelect';
 import type { SubjectKindSelection } from '#~/pages/projects/projectPermissions/types';
 

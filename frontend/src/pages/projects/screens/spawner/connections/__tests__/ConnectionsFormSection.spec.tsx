@@ -1,7 +1,7 @@
 import React, { act } from 'react';
 import '@testing-library/jest-dom';
 import { render, within } from '@testing-library/react';
-import { mockProjectK8sResource } from '#~/__mocks__';
+import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import { ConnectionsFormSection } from '#~/pages/projects/screens/spawner/connections/ConnectionsFormSection';
 import { mockConnection } from '#~/__mocks__/mockConnection';
 
@@ -121,9 +121,11 @@ describe('ConnectionsFormSection', () => {
     expect(attachModal).toBeTruthy();
     expect(within(attachModal).getByRole('button', { name: 'Attach' })).toBeDisabled();
     expect(within(attachModal).getByRole('button', { name: 'Cancel' })).toBeEnabled();
-    expect(within(attachModal).getByRole('combobox', { name: 'Type to filter' })).toHaveValue('');
+    expect(within(attachModal).getByRole('combobox', { name: 'Connections' })).toHaveValue('');
 
-    await act(async () => result.getByRole('button', { name: 'Connections' }).click());
+    await act(async () =>
+      within(attachModal).getByRole('combobox', { name: 'Connections' }).click(),
+    );
     expect(result.queryByRole('option', { name: 's3 connection 1' })).toBeFalsy(); // don't show attached connections
     expect(result.getByRole('option', { name: 's3 connection 2' })).toBeTruthy();
     expect(result.getByRole('option', { name: 's3 connection 3' })).toBeTruthy();

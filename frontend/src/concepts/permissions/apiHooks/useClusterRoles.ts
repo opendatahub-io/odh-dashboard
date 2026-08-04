@@ -1,7 +1,7 @@
 import * as React from 'react';
+import useFetch, { FetchOptions, FetchStateObject } from '@odh-dashboard/ui-core/hooks/useFetch';
 import { listClusterRoles } from '#~/api';
 import { ClusterRoleKind } from '#~/k8sTypes';
-import useFetch, { FetchOptions, FetchStateObject } from '#~/utilities/useFetch';
 
 export const useClusterRoles = (
   fetchOptions?: Partial<FetchOptions>,

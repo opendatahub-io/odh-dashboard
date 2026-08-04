@@ -1,7 +1,7 @@
 import * as React from 'react';
-import useGenericObjectState from '#~/utilities/useGenericObjectState';
+import useGenericObjectState from '@odh-dashboard/ui-core/utilities/useGenericObjectState';
+import type { UpdateObjectAtPropAndValue } from '@odh-dashboard/ui-core';
 import { TrustyDBData } from '#~/concepts/trustyai/types';
-import { UpdateObjectAtPropAndValue } from '#~/pages/projects/types';
 import { getSecret } from '#~/api';
 
 export enum TrustyInstallModalFormType {

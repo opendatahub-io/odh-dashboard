@@ -1,7 +1,7 @@
 import React from 'react';
 import { Label, LabelGroup } from '@patternfly/react-core';
+import { asEnumMember } from '@odh-dashboard/foundation';
 import { SectionType, sectionTypeLabelColor } from '#~/concepts/design/utils';
-import { asEnumMember } from '#~/utilities/utils';
 import type { ResolvedTaskGroup } from './types';
 
 type PillGroup = Pick<ResolvedTaskGroup, 'id' | 'label' | 'type' | 'icon'>;

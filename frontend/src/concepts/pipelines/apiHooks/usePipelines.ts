@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { FetchState, NotReadyError } from '#~/utilities/useFetchState';
+import { FetchState, NotReadyError } from '@odh-dashboard/ui-core/hooks/useFetchState';
 import { PipelineKF } from '#~/concepts/pipelines/kfTypes';
 import usePipelineQuery from '#~/concepts/pipelines/apiHooks/usePipelineQuery';
 import {

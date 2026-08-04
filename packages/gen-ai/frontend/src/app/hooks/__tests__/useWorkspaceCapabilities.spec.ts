@@ -14,7 +14,6 @@ const makeModel = (overrides: Partial<AIModel> = {}): AIModel => ({
   endpoints: [],
   status: 'Running',
   display_name: 'Test',
-  sa_token: { name: '', token_name: '', token: '' },
   model_source_type: 'namespace',
   ...overrides,
 });
@@ -119,7 +118,7 @@ describe('useWorkspaceCapabilities', () => {
       expect(result.current.hasASRModel).toBe(true);
     });
 
-    it('should exclude custom_endpoint models with audio-transcription', () => {
+    it('should detect custom_endpoint models with audio-transcription', () => {
       const models = [
         makeModel({
           model_id: 'whisper-ext',
@@ -128,7 +127,7 @@ describe('useWorkspaceCapabilities', () => {
         }),
       ];
       const { result } = renderHook(() => useWorkspaceCapabilities(models, true, true, undefined));
-      expect(result.current.hasASRModel).toBe(false);
+      expect(result.current.hasASRModel).toBe(true);
     });
 
     it('should exclude maas models with audio-transcription', () => {
@@ -196,6 +195,74 @@ describe('useWorkspaceCapabilities', () => {
       const { result } = renderHook(() => useWorkspaceCapabilities(models, true, false, undefined));
       expect(result.current.capabilitiesReady).toBe(false);
       expect(result.current.hasVisionModel).toBe(true);
+    });
+  });
+
+  describe('MaaS model capabilities', () => {
+    it('detects vision from MaaS models', () => {
+      const maasModels = [
+        {
+          id: 'gemini',
+          object: 'model',
+          created: 0,
+          owned_by: 'ns',
+          ready: true,
+          capabilities: ['vision', 'text-generation'],
+        },
+      ];
+      const { result } = renderHook(() =>
+        useWorkspaceCapabilities([], true, true, undefined, maasModels),
+      );
+      expect(result.current.hasVisionModel).toBe(true);
+      expect(result.current.hasASRModel).toBe(false);
+    });
+
+    it('detects ASR from MaaS models', () => {
+      const maasModels = [
+        {
+          id: 'whisper',
+          object: 'model',
+          created: 0,
+          owned_by: 'ns',
+          ready: true,
+          capabilities: ['audio-transcription'],
+        },
+      ];
+      const { result } = renderHook(() =>
+        useWorkspaceCapabilities([], true, true, undefined, maasModels),
+      );
+      expect(result.current.hasVisionModel).toBe(false);
+      expect(result.current.hasASRModel).toBe(true);
+    });
+
+    it('combines namespace AI models and MaaS models', () => {
+      const aiModels = [makeModel({ model_id: 'ns-vision', capabilities: ['vision'] })];
+      const maasModels = [
+        {
+          id: 'whisper-maas',
+          object: 'model',
+          created: 0,
+          owned_by: 'ns',
+          ready: true,
+          capabilities: ['audio-transcription'],
+        },
+      ];
+      const { result } = renderHook(() =>
+        useWorkspaceCapabilities(aiModels, true, true, undefined, maasModels),
+      );
+      expect(result.current.hasVisionModel).toBe(true);
+      expect(result.current.hasASRModel).toBe(true);
+    });
+
+    it('handles MaaS models with no capabilities', () => {
+      const maasModels = [
+        { id: 'llama', object: 'model', created: 0, owned_by: 'ns', ready: true },
+      ];
+      const { result } = renderHook(() =>
+        useWorkspaceCapabilities([], true, true, undefined, maasModels),
+      );
+      expect(result.current.hasVisionModel).toBe(false);
+      expect(result.current.hasASRModel).toBe(false);
     });
   });
 });

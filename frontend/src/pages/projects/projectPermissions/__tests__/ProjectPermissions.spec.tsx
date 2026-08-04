@@ -23,7 +23,7 @@ jest.mock('#~/pages/projects/projectPermissions/SubjectRolesTableSection', () =>
   ),
 }));
 
-jest.mock('#~/components/SimpleSelect', () => ({
+jest.mock('@odh-dashboard/ui-core/components/SimpleSelect', () => ({
   __esModule: true,
   default: ({
     options,
@@ -46,7 +46,7 @@ jest.mock('#~/components/SimpleSelect', () => ({
   ),
 }));
 
-jest.mock('#~/components/FilterToolbar', () => ({
+jest.mock('@odh-dashboard/ui-core/components/FilterToolbar', () => ({
   __esModule: true,
   default: () => <div data-testid="mock-filter-toolbar" />,
 }));

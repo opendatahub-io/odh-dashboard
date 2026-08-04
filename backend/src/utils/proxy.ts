@@ -5,7 +5,7 @@ import { isK8sStatus, passThroughResource } from './pass-through';
 import { DEV_MODE } from './constants';
 import { createCustomError } from './requestUtils';
 import { getAccessToken, getDirectCallOptions } from './directCallUtils';
-import { EitherNotBoth } from '../typeHelpers';
+import type { EitherNotBoth } from '@odh-dashboard/foundation';
 import { IncomingHttpHeaders } from 'http';
 import { V1Service } from '@kubernetes/client-node';
 

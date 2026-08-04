@@ -2,10 +2,13 @@
 import { buildMockRunKF } from '#~/__mocks__/mockRunKF';
 import { buildMockRecurringRunKF } from '#~/__mocks__/mockRecurringRunKF';
 import { PluginStateKF } from '#~/concepts/pipelines/kfTypes';
+import { Execution, Value } from '#~/third_party/mlmd';
 import {
+  extractMlflowNestedRuns,
   filterByMlflowExperiment,
   getMlflowExperimentId,
   getMlflowExperimentNameFromRun,
+  getMlflowPluginOutput,
   getMlflowRunId,
 } from '#~/concepts/pipelines/content/tables/pipelineRun/utils';
 
@@ -96,6 +99,85 @@ describe('getMlflowExperimentNameFromRun', () => {
       plugins_input: { mlflow: { experiment_name: '' } },
     });
     expect(getMlflowExperimentNameFromRun(run)).toBeUndefined();
+  });
+
+  it('should return experiment name when plugins_output uses uppercase MLflow key', () => {
+    const run = buildMockRunKF({
+      plugins_output: {
+        MLflow: {
+          entries: { experiment_name: { value: 'KFP-Default' } },
+          state: PluginStateKF.PLUGIN_SUCCEEDED,
+        },
+      },
+    });
+    expect(getMlflowExperimentNameFromRun(run)).toBe('KFP-Default');
+  });
+
+  it('ignores plugins_output experiment_name when plugin state is FAILED', () => {
+    const run = buildMockRunKF({
+      plugins_input: { mlflow: { experiment_name: 'Input Experiment' } },
+      plugins_output: {
+        mlflow: {
+          entries: { experiment_name: { value: 'Failed Output Experiment' } },
+          state: PluginStateKF.PLUGIN_FAILED,
+        },
+      },
+    });
+    expect(getMlflowExperimentNameFromRun(run)).toBe('Input Experiment');
+  });
+});
+
+describe('getMlflowPluginOutput', () => {
+  it('should return output when key is lowercase mlflow', () => {
+    const run = buildMockRunKF({
+      plugins_output: {
+        mlflow: {
+          entries: { experiment_name: { value: 'test' } },
+          state: PluginStateKF.PLUGIN_SUCCEEDED,
+        },
+      },
+    });
+    expect(getMlflowPluginOutput(run)?.entries.experiment_name?.value).toBe('test');
+  });
+
+  it('should return output when key is uppercase MLflow (KFP API casing)', () => {
+    const run = buildMockRunKF({
+      plugins_output: {
+        MLflow: {
+          entries: { experiment_name: { value: 'test' } },
+          state: PluginStateKF.PLUGIN_SUCCEEDED,
+        },
+      },
+    });
+    expect(getMlflowPluginOutput(run)?.entries.experiment_name?.value).toBe('test');
+  });
+
+  it('should prefer lowercase mlflow over uppercase MLflow', () => {
+    const run = buildMockRunKF({
+      plugins_output: {
+        mlflow: {
+          entries: { experiment_name: { value: 'lowercase' } },
+          state: PluginStateKF.PLUGIN_SUCCEEDED,
+        },
+        MLflow: {
+          entries: { experiment_name: { value: 'uppercase' } },
+          state: PluginStateKF.PLUGIN_SUCCEEDED,
+        },
+      },
+    });
+    expect(getMlflowPluginOutput(run)?.entries.experiment_name?.value).toBe('lowercase');
+  });
+
+  it('should return undefined for recurring runs', () => {
+    const run = buildMockRecurringRunKF({
+      plugins_input: { mlflow: { experiment_name: 'test' } },
+    });
+    expect(getMlflowPluginOutput(run)).toBeUndefined();
+  });
+
+  it('should return undefined when no plugins_output', () => {
+    const run = buildMockRunKF({});
+    expect(getMlflowPluginOutput(run)).toBeUndefined();
   });
 });
 
@@ -214,7 +296,7 @@ describe('getMlflowExperimentId', () => {
     expect(getMlflowExperimentId(run)).toBe('7');
   });
 
-  it('returns experiment_id from plugins_output even when plugin state is FAILED (current behavior)', () => {
+  it('ignores plugins_output experiment_id when plugin state is FAILED', () => {
     const run = buildMockRunKF({
       plugins_output: {
         mlflow: {
@@ -223,7 +305,32 @@ describe('getMlflowExperimentId', () => {
         },
       },
     });
-    expect(getMlflowExperimentId(run)).toBe('failed-exp');
+    expect(getMlflowExperimentId(run)).toBeUndefined();
+  });
+
+  it('falls back to plugins_input experiment_id when plugin state is FAILED', () => {
+    const run = buildMockRunKF({
+      plugins_output: {
+        mlflow: {
+          entries: { experiment_id: { value: 'failed-exp' } },
+          state: PluginStateKF.PLUGIN_FAILED,
+        },
+      },
+      plugins_input: { mlflow: { experiment_id: 'input-exp' } },
+    });
+    expect(getMlflowExperimentId(run)).toBe('input-exp');
+  });
+
+  it('returns experiment_id when plugins_output uses uppercase MLflow key', () => {
+    const run = buildMockRunKF({
+      plugins_output: {
+        MLflow: {
+          entries: { experiment_id: { value: '99' } },
+          state: PluginStateKF.PLUGIN_SUCCEEDED,
+        },
+      },
+    });
+    expect(getMlflowExperimentId(run)).toBe('99');
   });
 });
 
@@ -264,7 +371,7 @@ describe('getMlflowRunId', () => {
     expect(getMlflowRunId(run)).toBeUndefined();
   });
 
-  it('returns root_run_id even when plugin state is FAILED (current behavior)', () => {
+  it('returns undefined when plugin state is FAILED even if root_run_id is present', () => {
     const run = buildMockRunKF({
       plugins_output: {
         mlflow: {
@@ -273,6 +380,105 @@ describe('getMlflowRunId', () => {
         },
       },
     });
-    expect(getMlflowRunId(run)).toBe('partial-id');
+    expect(getMlflowRunId(run)).toBeUndefined();
+  });
+
+  it('returns undefined when plugin state is RUNNING even if root_run_id is present', () => {
+    const run = buildMockRunKF({
+      plugins_output: {
+        mlflow: {
+          entries: { root_run_id: { value: 'running-id' } },
+          state: PluginStateKF.PLUGIN_RUNNING,
+        },
+      },
+    });
+    expect(getMlflowRunId(run)).toBeUndefined();
+  });
+
+  it('returns root_run_id when plugins_output uses uppercase MLflow key', () => {
+    const run = buildMockRunKF({
+      plugins_output: {
+        MLflow: {
+          entries: { root_run_id: { value: 'uppercase-id' } },
+          state: PluginStateKF.PLUGIN_SUCCEEDED,
+        },
+      },
+    });
+    expect(getMlflowRunId(run)).toBe('uppercase-id');
+  });
+});
+
+const createMockExecution = (taskName: string, mlflowRunId?: string): Execution => {
+  const exec = new Execution();
+  const nameVal = new Value();
+  exec.getCustomPropertiesMap().set('task_name', nameVal.setStringValue(taskName));
+  if (mlflowRunId) {
+    const runIdVal = new Value();
+    exec
+      .getCustomPropertiesMap()
+      .set('plugins.mlflow.run_id', runIdVal.setStringValue(mlflowRunId));
+  }
+  return exec;
+};
+
+describe('extractMlflowNestedRuns', () => {
+  it('should extract nested runs from executions', () => {
+    const executions = [
+      createMockExecution('train-step', 'nested-1'),
+      createMockExecution('eval-step', 'nested-2'),
+    ];
+    const result = extractMlflowNestedRuns(executions);
+    expect(result).toEqual([
+      { taskName: 'train-step', mlflowRunId: 'nested-1' },
+      { taskName: 'eval-step', mlflowRunId: 'nested-2' },
+    ]);
+  });
+
+  it('should exclude the root run ID', () => {
+    const executions = [
+      createMockExecution('root-step', 'root-id'),
+      createMockExecution('train-step', 'nested-1'),
+    ];
+    const result = extractMlflowNestedRuns(executions, 'root-id');
+    expect(result).toEqual([{ taskName: 'train-step', mlflowRunId: 'nested-1' }]);
+  });
+
+  it('should skip executions without mlflow run ID', () => {
+    const executions = [
+      createMockExecution('no-mlflow-step'),
+      createMockExecution('train-step', 'nested-1'),
+    ];
+    const result = extractMlflowNestedRuns(executions);
+    expect(result).toEqual([{ taskName: 'train-step', mlflowRunId: 'nested-1' }]);
+  });
+
+  it('should skip executions without task name', () => {
+    const exec = new Execution();
+    const runIdVal = new Value();
+    exec
+      .getCustomPropertiesMap()
+      .set('plugins.mlflow.run_id', runIdVal.setStringValue('orphan-id'));
+    const result = extractMlflowNestedRuns([exec]);
+    expect(result).toEqual([]);
+  });
+
+  it('should return empty array for empty executions', () => {
+    expect(extractMlflowNestedRuns([])).toEqual([]);
+  });
+
+  it('should return empty array when all executions match root run ID', () => {
+    const executions = [createMockExecution('root-step', 'root-id')];
+    const result = extractMlflowNestedRuns(executions, 'root-id');
+    expect(result).toEqual([]);
+  });
+
+  it('should include all nested runs when no root run ID is provided', () => {
+    const executions = [
+      createMockExecution('step-1', 'run-1'),
+      createMockExecution('step-2', 'run-2'),
+      createMockExecution('step-3', 'run-3'),
+    ];
+    const result = extractMlflowNestedRuns(executions);
+    expect(result).toHaveLength(3);
   });
 });

@@ -1,4 +1,4 @@
-import { genUID } from '#~/__mocks__/mockUtils';
+import { genUID } from '@odh-dashboard/foundation';
 import { WorkloadStatusType } from '#~/concepts/distributedWorkloads/utils';
 import { WorkloadCondition, WorkloadKind, WorkloadOwnerType, WorkloadPodSet } from '#~/k8sTypes';
 
@@ -6,7 +6,8 @@ const mockWorkloadStatusConditions: Record<WorkloadStatusType, WorkloadCondition
   Pending: [
     {
       lastTransitionTime: '2024-03-18T19:15:28Z',
-      message: 'Waiting for resources',
+      message:
+        "couldn't assign flavors to pod set main: insufficient unused quota for resource cpu in flavor default-flavor, 0 more needed",
       reason: '',
       status: 'False',
       type: 'QuotaReserved',

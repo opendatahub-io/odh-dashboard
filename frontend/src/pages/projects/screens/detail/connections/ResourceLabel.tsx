@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Label } from '@patternfly/react-core';
+import TypedObjectIcon from '@odh-dashboard/ui-core/design/TypedObjectIcon';
 import { ProjectObjectType } from '#~/concepts/design/utils';
-import TypedObjectIcon from '#~/concepts/design/TypedObjectIcon';
 
 type Props = {
   title: string;

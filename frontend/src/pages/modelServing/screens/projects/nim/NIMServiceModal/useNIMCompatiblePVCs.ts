@@ -1,5 +1,5 @@
 import React from 'react';
-import { ServingRuntimeKind } from '#~/k8sTypes';
+import type { ServingRuntimeKind } from '@odh-dashboard/model-serving/shared';
 import { listServingRuntimes } from '#~/api';
 
 export type NIMPVCInfo = {

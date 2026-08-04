@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { FetchState } from '@odh-dashboard/ui-core/hooks/useFetchState';
 import { PipelineCoreResourceKF } from '#~/concepts/pipelines/kfTypes';
 import {
   PipelineListPaged,
@@ -6,7 +7,6 @@ import {
   PipelineRunOptions,
   PipelinesFilter,
 } from '#~/concepts/pipelines/types';
-import { FetchState } from '#~/utilities/useFetchState';
 
 export type TableSortProps = {
   sortField?: string;

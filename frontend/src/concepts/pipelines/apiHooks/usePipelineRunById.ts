@@ -3,7 +3,7 @@ import useFetchState, {
   FetchState,
   FetchStateCallbackPromise,
   NotReadyError,
-} from '#~/utilities/useFetchState';
+} from '@odh-dashboard/ui-core/hooks/useFetchState';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import { PipelineRunKF, RuntimeStateKF, runtimeStateLabels } from '#~/concepts/pipelines/kfTypes';
 import { FAST_POLL_INTERVAL } from '#~/utilities/const';

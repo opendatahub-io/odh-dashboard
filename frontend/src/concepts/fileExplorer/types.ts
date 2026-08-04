@@ -28,6 +28,7 @@ export interface ExplorerFile {
   details?: Record<string, RenderableDetailValue>;
   hidden?: boolean;
   selectable?: boolean;
+  disabled?: boolean;
   forceShowAsSelected?: boolean;
 }
 

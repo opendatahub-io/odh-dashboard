@@ -1,5 +1,9 @@
 import { applyOpenShiftYaml } from './baseCommands';
-import type { DataConnectionReplacements, CommandLineResult } from '../../types';
+import type {
+  DataConnectionReplacements,
+  CommandLineResult,
+  DataConnectionUriReplacements,
+} from '../../types';
 import { replacePlaceholdersInYaml } from '../yaml_files';
 
 /**
@@ -22,5 +26,17 @@ export const createDataConnection = (
 ): Cypress.Chainable<CommandLineResult> =>
   cy.fixture(yamlFilePath).then((yamlContent) => {
     const modifiedYamlContent = replacePlaceholdersInYaml(yamlContent, dataConnectionReplacements);
+    return applyOpenShiftYaml(modifiedYamlContent);
+  });
+
+export const createDataConnectionUri = (
+  dataConnectionUriReplacements: DataConnectionUriReplacements,
+  yamlFilePath = 'resources/yaml/data_connections_uri_connection_type.yaml',
+): Cypress.Chainable<CommandLineResult> =>
+  cy.fixture(yamlFilePath).then((yamlContent) => {
+    const modifiedYamlContent = replacePlaceholdersInYaml(
+      yamlContent,
+      dataConnectionUriReplacements,
+    );
     return applyOpenShiftYaml(modifiedYamlContent);
   });

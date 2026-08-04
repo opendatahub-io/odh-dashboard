@@ -75,7 +75,7 @@ const ConfigureFormGroup: React.FC<ConfigureFormGroupProps> = (props: ConfigureF
       </Flex>
       {props.description && (
         <FlexItem>
-          <Content component="small" data-testid={`configure-form-group-description-${testIdBase}`}>
+          <Content component="p" data-testid={`configure-form-group-description-${testIdBase}`}>
             {props.description}
           </Content>
         </FlexItem>

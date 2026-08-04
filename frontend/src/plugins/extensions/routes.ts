@@ -4,7 +4,7 @@ import type { RouteExtension } from '@odh-dashboard/plugin-core/extension-points
 import { SupportedArea } from '@odh-dashboard/plugin-core/areas';
 
 const createRedirectComponent = (args: { from: string; to: string }) => () =>
-  import('#~/utilities/v2Redirect').then((module) => ({
+  import('@odh-dashboard/plugin-core/routing').then((module) => ({
     default: () => module.buildV2RedirectElement(args),
   }));
 
@@ -315,6 +315,7 @@ const extensions: RouteExtension[] = [
     type: 'app.route',
     flags: {
       required: [ADMIN_USER],
+      disallowed: [SupportedArea.MODEL_DEPLOYMENT_SETTINGS],
     },
     properties: {
       path: '/settings/model-resources-operations/serving-runtimes/*',
@@ -326,6 +327,7 @@ const extensions: RouteExtension[] = [
     type: 'app.route',
     flags: {
       required: [ADMIN_USER],
+      disallowed: [SupportedArea.MODEL_DEPLOYMENT_SETTINGS],
     },
     properties: {
       path: '/servingRuntimes/*',
@@ -424,23 +426,6 @@ const extensions: RouteExtension[] = [
       component: createRedirectComponent({
         from: '/groupSettings',
         to: '/settings/user-management',
-      }),
-    },
-  },
-  {
-    type: 'app.route',
-    properties: {
-      path: '/settings/environment-setup/hardware-profiles/*',
-      component: () => import('#~/pages/hardwareProfiles/HardwareProfilesRoutes'),
-    },
-  },
-  {
-    type: 'app.route',
-    properties: {
-      path: '/hardwareProfiles/*',
-      component: createRedirectComponent({
-        from: '/hardwareProfiles/*',
-        to: '/settings/environment-setup/hardware-profiles/*',
       }),
     },
   },

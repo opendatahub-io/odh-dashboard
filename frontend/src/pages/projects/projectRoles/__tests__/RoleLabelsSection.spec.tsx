@@ -129,4 +129,138 @@ describe('RoleLabelsSection', () => {
       ]);
     });
   });
+
+  describe('inline validation', () => {
+    it('should show key error immediately for pre-populated empty labels', () => {
+      const labels = [{ id: 'l-1', key: '', value: '' }];
+      render(<RoleLabelsSection labels={labels} onLabelsChange={mockOnLabelsChange} />);
+
+      expect(screen.getByTestId('role-label-key-error-0')).toHaveTextContent('Required');
+      expect(screen.queryByTestId('role-label-value-error-0')).not.toBeInTheDocument();
+    });
+
+    it('should show error for empty key after blur', () => {
+      const labels = [{ id: 'l-1', key: '', value: 'platform' }];
+      render(<RoleLabelsSection labels={labels} onLabelsChange={mockOnLabelsChange} />);
+
+      fireEvent.blur(screen.getByTestId('role-label-key-0'));
+
+      expect(screen.getByTestId('role-label-key-error-0')).toHaveTextContent('Required');
+    });
+
+    it('should not show error for empty value after blur (K8s allows empty values)', () => {
+      const labels = [{ id: 'l-1', key: 'team', value: '' }];
+      render(<RoleLabelsSection labels={labels} onLabelsChange={mockOnLabelsChange} />);
+
+      fireEvent.blur(screen.getByTestId('role-label-value-0'));
+
+      expect(screen.queryByTestId('role-label-value-error-0')).not.toBeInTheDocument();
+    });
+
+    it('should show error for key containing a slash after blur', () => {
+      const labels = [{ id: 'l-1', key: 'prefix/name', value: 'val' }];
+      render(<RoleLabelsSection labels={labels} onLabelsChange={mockOnLabelsChange} />);
+
+      fireEvent.blur(screen.getByTestId('role-label-key-0'));
+
+      expect(screen.getByTestId('role-label-key-error-0')).toHaveTextContent(
+        'Do not include slashes',
+      );
+    });
+
+    it('should show error for invalid key start/end after blur', () => {
+      const labels = [{ id: 'l-1', key: '-bad', value: 'val' }];
+      render(<RoleLabelsSection labels={labels} onLabelsChange={mockOnLabelsChange} />);
+
+      fireEvent.blur(screen.getByTestId('role-label-key-0'));
+
+      expect(screen.getByTestId('role-label-key-error-0')).toHaveTextContent(
+        'Must start and end with a letter or number',
+      );
+    });
+
+    it('should show error for invalid value start/end after blur', () => {
+      const labels = [{ id: 'l-1', key: 'team', value: '-bad' }];
+      render(<RoleLabelsSection labels={labels} onLabelsChange={mockOnLabelsChange} />);
+
+      fireEvent.blur(screen.getByTestId('role-label-value-0'));
+
+      expect(screen.getByTestId('role-label-value-error-0')).toHaveTextContent(
+        'Must start and end with a letter or number',
+      );
+    });
+
+    it('should show duplicate error on all matching rows after blur', () => {
+      const labels = [
+        { id: 'l-1', key: 'team', value: 'a' },
+        { id: 'l-2', key: 'team', value: 'b' },
+      ];
+      render(<RoleLabelsSection labels={labels} onLabelsChange={mockOnLabelsChange} />);
+
+      fireEvent.blur(screen.getByTestId('role-label-key-0'));
+      fireEvent.blur(screen.getByTestId('role-label-key-1'));
+
+      expect(screen.getByTestId('role-label-key-error-0')).toHaveTextContent(
+        'team is already in use',
+      );
+      expect(screen.getByTestId('role-label-key-error-1')).toHaveTextContent(
+        'team is already in use',
+      );
+    });
+
+    it('should not show errors for valid labels after blur', () => {
+      const labels = [
+        { id: 'l-1', key: 'team', value: 'platform' },
+        { id: 'l-2', key: 'env', value: 'production' },
+      ];
+      render(<RoleLabelsSection labels={labels} onLabelsChange={mockOnLabelsChange} />);
+
+      fireEvent.blur(screen.getByTestId('role-label-key-0'));
+      fireEvent.blur(screen.getByTestId('role-label-value-0'));
+
+      expect(screen.queryByTestId('role-label-key-error-0')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('role-label-value-error-0')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('role-label-key-error-1')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('role-label-value-error-1')).not.toBeInTheDocument();
+    });
+
+    it('should not show errors when no label rows exist', () => {
+      render(<RoleLabelsSection labels={[]} onLabelsChange={mockOnLabelsChange} />);
+
+      expect(screen.queryByTestId('role-label-key-error-0')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('role-label-value-error-0')).not.toBeInTheDocument();
+    });
+
+    it('should show key error but no value error for empty row after blur', () => {
+      const labels = [{ id: 'l-1', key: '', value: '' }];
+      render(<RoleLabelsSection labels={labels} onLabelsChange={mockOnLabelsChange} />);
+
+      fireEvent.blur(screen.getByTestId('role-label-key-0'));
+      fireEvent.blur(screen.getByTestId('role-label-value-0'));
+
+      expect(screen.getByTestId('role-label-key-error-0')).toHaveTextContent('Required');
+      expect(screen.queryByTestId('role-label-value-error-0')).not.toBeInTheDocument();
+    });
+
+    it('should show both key and value errors on the same row after blur', () => {
+      const labels = [{ id: 'l-1', key: '', value: '-bad' }];
+      render(<RoleLabelsSection labels={labels} onLabelsChange={mockOnLabelsChange} />);
+
+      fireEvent.blur(screen.getByTestId('role-label-key-0'));
+      fireEvent.blur(screen.getByTestId('role-label-value-0'));
+
+      expect(screen.getByTestId('role-label-key-error-0')).toHaveTextContent('Required');
+      expect(screen.getByTestId('role-label-value-error-0')).toHaveTextContent(
+        'Must start and end with a letter or number',
+      );
+    });
+
+    it('should show key error on pre-populated empty labels without needing interaction', () => {
+      const labels = [{ id: 'l-1', key: '', value: '' }];
+      render(<RoleLabelsSection labels={labels} onLabelsChange={mockOnLabelsChange} />);
+
+      expect(screen.getByTestId('role-label-key-error-0')).toHaveTextContent('Required');
+      expect(screen.queryByTestId('role-label-value-error-0')).not.toBeInTheDocument();
+    });
+  });
 });

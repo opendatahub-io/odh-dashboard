@@ -1,7 +1,7 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-  - ../../modular-architecture
+  - ../../sidecar
 patchesJson6902:
   - path: service-account.yaml
     target:
@@ -73,5 +73,11 @@ patchesJson6902:
       version: v1
       kind: ClusterRoleBinding
       name: odh-dashboard-modules
+  - path: pdb.yaml
+    target:
+      group: policy
+      version: v1
+      kind: PodDisruptionBudget
+      name: odh-dashboard
 patchesStrategicMerge:
   - federation-configmap.yaml

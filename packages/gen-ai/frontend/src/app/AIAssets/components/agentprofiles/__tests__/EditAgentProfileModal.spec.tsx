@@ -51,7 +51,7 @@ describe('EditAgentProfileModal', () => {
     renderModal();
 
     expect(screen.getByTestId('edit-agent-profile-modal')).toBeInTheDocument();
-    expect(screen.getByText('Edit agent configuration')).toBeInTheDocument();
+    expect(screen.getByText('Edit agent')).toBeInTheDocument();
     expect(screen.getByTestId('edit-agent-profile-name')).toHaveValue('My Agent');
     expect(screen.getByTestId('edit-agent-profile-description')).toHaveValue('My description');
   });

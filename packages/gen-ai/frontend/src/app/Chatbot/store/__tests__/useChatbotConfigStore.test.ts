@@ -1369,6 +1369,79 @@ describe('useChatbotConfigStore', () => {
       expect(newConfig?.selectedAsrModel).toBe('whisper-large-v3');
       expect(newConfig?.isAsrModelEnabled).toBe(true);
     });
+
+    it('should sync selectedAsrModel across all configs in compare mode', () => {
+      act(() => {
+        useChatbotConfigStore.getState().duplicateConfiguration(DEFAULT_CONFIG_ID);
+      });
+
+      const secondConfigId = useChatbotConfigStore.getState().configIds[1];
+
+      act(() => {
+        useChatbotConfigStore
+          .getState()
+          .updateSelectedAsrModel(DEFAULT_CONFIG_ID, 'whisper-large-v3');
+      });
+
+      const state = useChatbotConfigStore.getState();
+      expect(state.configurations[DEFAULT_CONFIG_ID]?.selectedAsrModel).toBe('whisper-large-v3');
+      expect(state.configurations[secondConfigId]?.selectedAsrModel).toBe('whisper-large-v3');
+    });
+
+    it('should sync isAsrModelEnabled across all configs in compare mode', () => {
+      act(() => {
+        useChatbotConfigStore.getState().duplicateConfiguration(DEFAULT_CONFIG_ID);
+      });
+
+      const secondConfigId = useChatbotConfigStore.getState().configIds[1];
+
+      act(() => {
+        useChatbotConfigStore.getState().updateAsrModelEnabled(secondConfigId, true);
+      });
+
+      const state = useChatbotConfigStore.getState();
+      expect(state.configurations[DEFAULT_CONFIG_ID]?.isAsrModelEnabled).toBe(true);
+      expect(state.configurations[secondConfigId]?.isAsrModelEnabled).toBe(true);
+    });
+
+    it('should sync selectedAsrSubscription across all configs in compare mode', () => {
+      act(() => {
+        useChatbotConfigStore.getState().duplicateConfiguration(DEFAULT_CONFIG_ID);
+      });
+
+      const secondConfigId = useChatbotConfigStore.getState().configIds[1];
+
+      act(() => {
+        useChatbotConfigStore
+          .getState()
+          .updateSelectedAsrSubscription(DEFAULT_CONFIG_ID, 'sub-whisper');
+      });
+
+      const state = useChatbotConfigStore.getState();
+      expect(state.configurations[DEFAULT_CONFIG_ID]?.selectedAsrSubscription).toBe('sub-whisper');
+      expect(state.configurations[secondConfigId]?.selectedAsrSubscription).toBe('sub-whisper');
+    });
+
+    it('should clear subscription on all configs when ASR model changes', () => {
+      act(() => {
+        useChatbotConfigStore
+          .getState()
+          .updateSelectedAsrSubscription(DEFAULT_CONFIG_ID, 'sub-old');
+        useChatbotConfigStore.getState().duplicateConfiguration(DEFAULT_CONFIG_ID);
+      });
+
+      const secondConfigId = useChatbotConfigStore.getState().configIds[1];
+
+      act(() => {
+        useChatbotConfigStore.getState().updateSelectedAsrModel(secondConfigId, 'whisper-new');
+      });
+
+      const state = useChatbotConfigStore.getState();
+      expect(state.configurations[DEFAULT_CONFIG_ID]?.selectedAsrModel).toBe('whisper-new');
+      expect(state.configurations[DEFAULT_CONFIG_ID]?.selectedAsrSubscription).toBe('');
+      expect(state.configurations[secondConfigId]?.selectedAsrModel).toBe('whisper-new');
+      expect(state.configurations[secondConfigId]?.selectedAsrSubscription).toBe('');
+    });
   });
 
   describe('setLoadedProfileSpec', () => {
@@ -1418,20 +1491,19 @@ describe('useChatbotConfigStore', () => {
 
   describe('setLoadedProfileWarnings', () => {
     it('should store warnings', () => {
+      const warning = { message: 'Model "x" is no longer available.', tab: 'model' as const };
       act(() => {
-        useChatbotConfigStore
-          .getState()
-          .setLoadedProfileWarnings(['Model "x" is no longer available.']);
+        useChatbotConfigStore.getState().setLoadedProfileWarnings([warning]);
       });
 
-      expect(useChatbotConfigStore.getState().loadedProfileWarnings).toEqual([
-        'Model "x" is no longer available.',
-      ]);
+      expect(useChatbotConfigStore.getState().loadedProfileWarnings).toEqual([warning]);
     });
 
     it('should clear warnings when called with null', () => {
       act(() => {
-        useChatbotConfigStore.getState().setLoadedProfileWarnings(['some warning']);
+        useChatbotConfigStore
+          .getState()
+          .setLoadedProfileWarnings([{ message: 'some warning', tab: 'model' as const }]);
         useChatbotConfigStore.getState().setLoadedProfileWarnings(null);
       });
 
@@ -1440,7 +1512,9 @@ describe('useChatbotConfigStore', () => {
 
     it('should be cleared by resetConfiguration', () => {
       act(() => {
-        useChatbotConfigStore.getState().setLoadedProfileWarnings(['some warning']);
+        useChatbotConfigStore
+          .getState()
+          .setLoadedProfileWarnings([{ message: 'some warning', tab: 'model' as const }]);
         useChatbotConfigStore.getState().resetConfiguration();
       });
 

@@ -20,6 +20,8 @@ const EXPECTED_LABELS: Record<EvaluationJobState, ExpectedLabelConfigWithVariant
   cancelled: { text: 'Canceled', color: 'grey' },
   stopping: { text: 'Canceling', color: 'grey' },
   stopped: { text: 'Stopped', color: 'grey' },
+  // eslint-disable-next-line camelcase
+  partially_failed: { text: 'Failed', status: 'danger', isFilled: true },
 };
 
 describe('EvaluationStatusLabel', () => {

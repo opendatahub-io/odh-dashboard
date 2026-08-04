@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { Alert, Button, Split, SplitItem, Stack, StackItem } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
+import { type FormTrackingEventProperties, TrackingOutcome } from '@odh-dashboard/ui-core';
 import { RunFormData, RunTypeOption } from '#~/concepts/pipelines/content/createRun/types';
 import { isFilledRunFormData } from '#~/concepts/pipelines/content/createRun/utils';
 import { handleSubmit } from '#~/concepts/pipelines/content/createRun/submitUtils';
@@ -8,10 +9,6 @@ import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import { isRunSchedule } from '#~/concepts/pipelines/utils';
 import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 import useIsMlflowPipelinesAvailable from '#~/concepts/mlflow/hooks/useIsMlflowPipelinesAvailable';
-import {
-  FormTrackingEventProperties,
-  TrackingOutcome,
-} from '#~/concepts/analyticsTracking/trackingProperties';
 
 type RunPageFooterProps = {
   data: RunFormData;
@@ -60,11 +57,15 @@ const RunPageFooter: React.FC<RunPageFooterProps> = ({ data, contextPath }) => {
 
                 handleSubmit(data, api, isMlflowAvailable)
                   .then((resource) => {
-                    fireFormTrackingEvent(eventName, properties);
                     const detailsPath = isRunSchedule(resource)
                       ? resource.recurring_run_id
                       : resource.run_id;
 
+                    if (!detailsPath) {
+                      throw new Error('Run was created but no identifier was returned.');
+                    }
+
+                    fireFormTrackingEvent(eventName, properties);
                     navigate(`${contextPath}/${detailsPath}`);
                   })
                   .catch((e) => {

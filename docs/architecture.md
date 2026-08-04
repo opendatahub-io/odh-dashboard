@@ -169,6 +169,20 @@ The Dashboard Module Controller (`dashboard-operator/`) is a standalone Kubernet
 - **Reconciliation**: Kustomize rendering -> SSA deploy -> URL extraction -> module dependency resolution -> status update
 - **Module System**: Static module registry with two-pass dependency resolution; per-module status reported via `status.moduleStatuses`
 
+### Module Deployment Modes
+
+The controller supports two deployment modes for BFF modules:
+
+- **Standalone (primary)**: Each BFF module runs as its own independent Kubernetes Deployment with its own Service, ServiceAccount, NetworkPolicy, ClusterRole, and ClusterRoleBinding. Manifests live in `manifests/modules/<slug>/`. This is the primary and recommended deployment mode.
+- **Sidecar (legacy)**: All BFF modules run as additional containers within the main dashboard pod. This mode is deprecated in favor of standalone deployment.
+
+In standalone mode, the operator:
+
+1. Evaluates which modules are enabled based on DSC component gates, explicit CR overrides, and inter-module dependencies.
+2. Renders and deploys each enabled module's manifests from `manifests/modules/<slug>/`.
+3. Dynamically generates the `federation-config` ConfigMap, pointing each module entry to the module's standalone Kubernetes Service (e.g., `odh-dashboard-gen-ai-ui`).
+4. Triggers rolling restarts of the main dashboard Deployment when the federation config changes (via a content hash annotation), ensuring the Fastify backend picks up updated proxy routes.
+
 The controller is **not** part of the npm workspace or Turbo pipeline. It has its own `go.mod`, `Makefile`, and CI workflow. See [Dashboard Operator Architecture](dashboard-operator.md) for full details.
 
 ## Client Structure

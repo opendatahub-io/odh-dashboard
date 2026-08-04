@@ -1,4 +1,5 @@
 import { mockDashboardConfig, mockDscStatus } from '@odh-dashboard/internal/__mocks__';
+import { MODELS_AS_A_SERVICE_READY } from '@odh-dashboard/k8s-core';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import type { APIKey, SubscriptionDetail } from '@odh-dashboard/maas/types/api-key';
 import { formatApiKeyHiddenPreview } from '@odh-dashboard/maas/utils/api-keys';
@@ -12,6 +13,7 @@ import {
   apiKeysPage,
   bulkRevokeAPIKeyModal,
   inactiveStatusPopover,
+  modelInfoPopover,
   revokeAPIKeyModal,
   copyApiKeyModal,
   createApiKeyModal,
@@ -53,7 +55,6 @@ describe('API Keys Page', () => {
       'GET /api/config',
       mockDashboardConfig({
         modelAsService: true,
-        mySubscriptions: true,
       }),
     );
 
@@ -69,7 +70,7 @@ describe('API Keys Page', () => {
         components: {
           [DataScienceStackComponent.OGX_OPERATOR]: { managementState: 'Managed' },
         },
-        conditions: [{ type: 'ModelsAsServiceReady', status: 'True', reason: 'Ready' }],
+        conditions: [{ type: MODELS_AS_A_SERVICE_READY, status: 'True', reason: 'Ready' }],
       }),
     );
     cy.interceptOdh(
@@ -85,16 +86,8 @@ describe('API Keys Page', () => {
     cy.interceptOdh('GET /maas/api/v1/all-subscriptions', {
       data: mockSubscriptions(),
     }).as('getAllSubscriptions');
-    apiKeysPage.visitKeysAndSubs();
-    cy.wait('@initialSearch');
-  });
-
-  it('should not show the subscriptions tab when mySubscriptions flag is disabled', () => {
-    // When mySubscriptions is disabled, the /maas/tokens route is used (no tabbed layout).
     apiKeysPage.visit();
-    apiKeysPage.findTitle().should('contain.text', 'API keys');
-    apiKeysPage.findSubscriptionsTab().should('not.exist');
-    apiKeysPage.findApiKeysTab().should('not.exist');
+    cy.wait('@initialSearch');
   });
 
   it('should display the API keys table page with active and expired keys on initial load', () => {
@@ -137,7 +130,6 @@ describe('API Keys Page', () => {
     cy.wait('@apiKeysSearch');
 
     apiKeysPage.findTitle().should('contain.text', 'API keys');
-    apiKeysPage.findDescription().should('exist');
 
     // Table shows no results for the active filter since only revoked keys exist
     apiKeysPage.findTable().should('exist');
@@ -183,7 +175,7 @@ describe('API Keys Page', () => {
     apiKeysPage.findCreateApiKeyButton().should('exist').and('be.enabled');
   });
 
-  it('should display a useful error state when the API keys search fails', () => {
+  it('should display a useful error state when the API keys search fails and still show the tabs', () => {
     cy.intercept('POST', '/maas/api/v1/api-keys/search', {
       statusCode: 500,
       body: {
@@ -197,6 +189,8 @@ describe('API Keys Page', () => {
     apiKeysPage.visit();
     cy.wait('@searchError');
     apiKeysPage.findErrorState().should('exist');
+    apiKeysPage.findSubscriptionsTab().should('exist');
+    apiKeysPage.findApiKeysTab().should('exist');
     apiKeysPage
       .findErrorState()
       .should(
@@ -822,12 +816,15 @@ describe('API Keys Page (Admin)', () => {
         components: {
           [DataScienceStackComponent.OGX_OPERATOR]: { managementState: 'Managed' },
         },
-        conditions: [{ type: 'ModelsAsServiceReady', status: 'True', reason: 'Ready' }],
+        conditions: [{ type: MODELS_AS_A_SERVICE_READY, status: 'True', reason: 'Ready' }],
       }),
     );
     cy.interceptOdh('POST /maas/api/v1/api-keys/search', mockSearchResponse(mockAPIKeys())).as(
       'initialSearch',
     );
+    cy.interceptOdh('GET /maas/api/v1/subscriptions', {
+      data: mockSubscriptionListItems(),
+    }).as('getSubscriptions');
     cy.interceptOdh('GET /maas/api/v1/all-subscriptions', {
       data: mockSubscriptions(),
     }).as('getAllSubscriptions');
@@ -900,14 +897,13 @@ describe('API Keys Page (Admin)', () => {
   });
 });
 
-describe('API keys (mySubscriptions feature flag)', () => {
+describe('API keys - Subscription Tab', () => {
   beforeEach(() => {
     asClusterAdminUser();
     cy.interceptOdh(
       'GET /api/config',
       mockDashboardConfig({
         modelAsService: true,
-        mySubscriptions: true,
       }),
     );
 
@@ -923,7 +919,7 @@ describe('API keys (mySubscriptions feature flag)', () => {
         components: {
           [DataScienceStackComponent.OGX_OPERATOR]: { managementState: 'Managed' },
         },
-        conditions: [{ type: 'ModelsAsServiceReady', status: 'True', reason: 'Ready' }],
+        conditions: [{ type: MODELS_AS_A_SERVICE_READY, status: 'True', reason: 'Ready' }],
       }),
     );
 
@@ -949,7 +945,7 @@ describe('API keys (mySubscriptions feature flag)', () => {
   });
 
   it('should navigate to subscriptions tab', () => {
-    apiKeysPage.visitKeysAndSubs();
+    apiKeysPage.visit();
     cy.wait('@initialSearch');
 
     apiKeysPage.findTitle().should('contain.text', 'API keys');
@@ -969,7 +965,7 @@ describe('API keys (mySubscriptions feature flag)', () => {
   });
 
   it('should display subscription view with search', () => {
-    apiKeysPage.visitKeysAndSubs();
+    apiKeysPage.visit();
     cy.wait('@initialSearch');
 
     apiKeysPage.findSubscriptionsTab().click();
@@ -995,7 +991,7 @@ describe('API keys (mySubscriptions feature flag)', () => {
   });
 
   it('should display model view with search', () => {
-    apiKeysPage.visitKeysAndSubs();
+    apiKeysPage.visit();
     cy.wait('@initialSearch');
 
     apiKeysPage.findSubscriptionsTab().click();
@@ -1017,6 +1013,44 @@ describe('API keys (mySubscriptions feature flag)', () => {
     subscriptionsTab.findModelsTable().should('contain.text', 'Basic Team');
   });
 
+  it('should show model info popover on the subscriptions tab', () => {
+    const premiumSubscriptionId = 'premium-team-sub';
+    const graniteDisplayName = 'Granite 3 8B Instruct';
+    const graniteModelId = 'granite-3-8b-instruct';
+    const graniteDescription =
+      'Granite 3 8B Instruct is a large language model that is used for advanced tasks.';
+
+    apiKeysPage.visit();
+    cy.wait('@initialSearch');
+
+    apiKeysPage.findSubscriptionsTab().click();
+    cy.wait('@getSubscriptions');
+
+    cy.step('Subscription view shows model info popover on expanded row');
+    subscriptionsTab.expandSubscriptionRow(0);
+    subscriptionsTab
+      .findSubscriptionModelsTable(premiumSubscriptionId)
+      .should('contain.text', graniteDisplayName);
+    subscriptionsTab
+      .findModelInfoButtonInSubscriptionTable(premiumSubscriptionId, graniteModelId)
+      .click();
+    modelInfoPopover.findBody().should('be.visible');
+    modelInfoPopover.findBody().should('contain.text', 'Model ID');
+    modelInfoPopover.findModelIdCopy().should('have.value', graniteModelId);
+    modelInfoPopover.findBody().should('contain.text', 'Description');
+    modelInfoPopover.findBody().should('contain.text', graniteDescription);
+
+    cy.step('Model view shows model info popover on model group row');
+    cy.get('body').type('{esc}');
+    subscriptionsTab.findSortByModelButton().click();
+    subscriptionsTab.findModelInfoButtonInModelsTable(graniteModelId).click();
+    modelInfoPopover.findBody().should('be.visible');
+    modelInfoPopover.findBody().should('contain.text', 'Model ID');
+    modelInfoPopover.findModelIdCopy().should('have.value', graniteModelId);
+    modelInfoPopover.findBody().should('contain.text', 'Description');
+    modelInfoPopover.findBody().should('contain.text', graniteDescription);
+  });
+
   it('should show a key count badge when key_count is 0 or absent', () => {
     cy.interceptOdh('GET /maas/api/v1/subscriptions', {
       data: [
@@ -1036,7 +1070,7 @@ describe('API keys (mySubscriptions feature flag)', () => {
       ],
     });
 
-    apiKeysPage.visitKeysAndSubs();
+    apiKeysPage.visit();
     cy.wait('@initialSearch');
 
     apiKeysPage.findSubscriptionsTab().click();
@@ -1048,7 +1082,7 @@ describe('API keys (mySubscriptions feature flag)', () => {
   it('should show empty state when no subscriptions exist', () => {
     cy.interceptOdh('GET /maas/api/v1/subscriptions', { data: [] }).as('emptySubscriptions');
 
-    apiKeysPage.visitKeysAndSubs();
+    apiKeysPage.visit();
     cy.wait('@initialSearch');
 
     apiKeysPage.findSubscriptionsTab().click();

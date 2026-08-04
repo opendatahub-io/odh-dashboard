@@ -3,7 +3,7 @@ import useFetchState, {
   FetchState,
   FetchStateCallbackPromise,
   NotReadyError,
-} from '#~/utilities/useFetchState';
+} from '@odh-dashboard/ui-core/hooks/useFetchState';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import { PipelineKF } from '#~/concepts/pipelines/kfTypes';
 

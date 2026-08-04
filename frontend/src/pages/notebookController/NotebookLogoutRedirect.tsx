@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import { getNotebook } from '#~/services/notebookService';
-import ApplicationsPage from '#~/pages/ApplicationsPage';
 import useNotification from '#~/utilities/useNotification';
 import { useGetNotebookRoute } from '#~/utilities/useGetNotebookRoute';
 import useNamespaces from './useNamespaces';

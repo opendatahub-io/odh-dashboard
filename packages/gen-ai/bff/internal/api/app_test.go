@@ -333,11 +333,11 @@ func TestGetCurrentUserHandler(t *testing.T) {
 			assert.NoError(t, err)
 			defer rr.Result().Body.Close()
 
-			var userResponse models.UserModel
-			err = json.Unmarshal(body, &userResponse)
+			var envelope UserEnvelope
+			err = json.Unmarshal(body, &envelope)
 			assert.NoError(t, err)
 
-			assert.Equal(t, tt.expectedUser, userResponse.UserID)
+			assert.Equal(t, tt.expectedUser, envelope.Data.UserID)
 		})
 	}
 }

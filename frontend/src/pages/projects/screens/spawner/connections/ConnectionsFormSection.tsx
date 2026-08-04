@@ -1,5 +1,7 @@
 import React from 'react';
 import {
+  Alert,
+  AlertActionCloseButton,
   Bullseye,
   EmptyState,
   EmptyStateBody,
@@ -11,6 +13,7 @@ import { PlusCircleIcon } from '@patternfly/react-icons';
 import type { ProjectKind } from '@odh-dashboard/k8s-core';
 import { SortableData, Table } from '@odh-dashboard/ui-core';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
+import DashboardHelpTooltip from '@odh-dashboard/ui-core/components/DashboardHelpTooltip';
 import ExtendedButton from '#~/components/ExtendedButton';
 import { createSecret, replaceSecret } from '#~/api';
 import { NotebookKind } from '#~/k8sTypes';
@@ -106,6 +109,7 @@ export const ConnectionsFormSection: React.FC<Props> = ({
     [projectConnections, selectedConnections],
   );
 
+  const [isSecretInfoDismissed, setIsSecretInfoDismissed] = React.useState(false);
   const [showAttachConnectionsModal, setShowAttachConnectionsModal] = React.useState(false);
   const [detachConnectionModal, setDetachConnectionModal] = React.useState<Connection>();
   const [manageConnectionModal, setManageConnectionModal] = React.useState<{
@@ -122,7 +126,12 @@ export const ConnectionsFormSection: React.FC<Props> = ({
     <FormSection
       title={
         <Flex gap={{ default: 'gapSm' }}>
-          <FlexItem>{SpawnerPageSectionTitles[SpawnerPageSectionID.CONNECTIONS]}</FlexItem>
+          <FlexItem>
+            {SpawnerPageSectionTitles[SpawnerPageSectionID.CONNECTIONS]}
+            {selectedConnections.length > 0 && (
+              <DashboardHelpTooltip content="Connections store credentials for external data sources, like S3 buckets or databases. Attach connections to give your workbench access to these resources." />
+            )}
+          </FlexItem>
           <FlexItem>
             <ExtendedButton
               data-testid="attach-existing-connection-button"
@@ -162,6 +171,15 @@ export const ConnectionsFormSection: React.FC<Props> = ({
       id={SpawnerPageSectionID.CONNECTIONS}
       aria-label={SpawnerPageSectionTitles[SpawnerPageSectionID.CONNECTIONS]}
     >
+      {!isSecretInfoDismissed && (
+        <Alert
+          variant="info"
+          isInline
+          title="Connection secrets are stored as environment variables. Any code running in your workbench can access these values."
+          actionClose={<AlertActionCloseButton onClose={() => setIsSecretInfoDismissed(true)} />}
+          data-testid="connection-secrets-info-alert"
+        />
+      )}
       {envVarConflicts.length > 0 && <DuplicateEnvVarWarning envVarConflicts={envVarConflicts} />}
       {selectedConnections.length > 0 ? (
         <Table

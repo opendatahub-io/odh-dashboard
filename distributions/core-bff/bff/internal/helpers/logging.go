@@ -27,11 +27,11 @@ func GetContextLogger(ctx context.Context) *slog.Logger {
 }
 
 var sensitiveHeaders = []string{
-	"Authorization",
-	"Cookie",
-	"Set-Cookie",
-	"Proxy-Authorization",
-	"X-Forwarded-Access-Token",
+	constants.HeaderAuthorization,
+	constants.HeaderCookie,
+	constants.HeaderSetCookie,
+	constants.HeaderProxyAuthorization,
+	constants.HeaderForwardedToken,
 }
 
 func isSensitiveHeader(h string) bool {

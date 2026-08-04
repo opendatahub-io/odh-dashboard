@@ -1,12 +1,14 @@
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { agentOpsDeploymentsRoute, sanitizeAgentOpsReturnRoute } from '~/app/utilities/routes';
+import { agentOpsDeploymentsRoute } from '~/app/utilities/routes';
 
 type UseExitDeployAgentWizardOptions = {
+  /** Current project/namespace selected in the wizard form. */
   namespace: string;
+  /** Namespace from the route when the wizard was opened. */
+  entryNamespace?: string;
   returnRoute?: string;
   isDirty?: boolean;
-  isDeployFormValid?: boolean;
 };
 
 type UseExitDeployAgentWizardReturn = {
@@ -15,19 +17,35 @@ type UseExitDeployAgentWizardReturn = {
   closeExitModal: () => void;
   handleExitConfirm: () => void;
   exitWizard: () => void;
-  exitWizardOnSubmit: () => void;
+};
+
+/** Prefer returnRoute only when the user has not changed project away from the entry namespace. */
+export const resolveDeployWizardCancelRoute = ({
+  namespace,
+  entryNamespace,
+  returnRoute,
+}: Pick<
+  UseExitDeployAgentWizardOptions,
+  'namespace' | 'entryNamespace' | 'returnRoute'
+>): string => {
+  const projectUnchanged = !entryNamespace || namespace === entryNamespace;
+  if (returnRoute && projectUnchanged) {
+    return returnRoute;
+  }
+  return agentOpsDeploymentsRoute(namespace);
 };
 
 export const useExitDeployAgentWizard = (
   options: UseExitDeployAgentWizardOptions,
 ): UseExitDeployAgentWizardReturn => {
-  const { namespace, returnRoute, isDirty = false, isDeployFormValid = false } = options;
+  const { namespace, entryNamespace, returnRoute, isDirty = false } = options;
   const navigate = useNavigate();
   const [isExitModalOpen, setIsExitModalOpen] = React.useState(false);
 
-  const deploymentsRoute = agentOpsDeploymentsRoute(namespace);
-  const cancelRoute = deploymentsRoute;
-  const successRoute = sanitizeAgentOpsReturnRoute(returnRoute, namespace);
+  const cancelRoute = React.useMemo(
+    () => resolveDeployWizardCancelRoute({ namespace, entryNamespace, returnRoute }),
+    [entryNamespace, namespace, returnRoute],
+  );
 
   const navigateToCancelRoute = React.useCallback(() => {
     navigate(cancelRoute);
@@ -54,22 +72,11 @@ export const useExitDeployAgentWizard = (
     navigateToCancelRoute();
   }, [isDirty, openExitModal, navigateToCancelRoute]);
 
-  const exitWizardOnSubmit = React.useCallback(() => {
-    if (!isDeployFormValid) {
-      // eslint-disable-next-line no-console -- surfaces unexpected submit attempts during development
-      console.error('useExitDeployAgentWizard: exitWizardOnSubmit called with invalid form');
-      return;
-    }
-    // Stub: deploy logic will be implemented in a follow-up.
-    navigate(successRoute);
-  }, [isDeployFormValid, navigate, successRoute]);
-
   return {
     isExitModalOpen,
     openExitModal,
     closeExitModal,
     handleExitConfirm,
     exitWizard,
-    exitWizardOnSubmit,
   };
 };

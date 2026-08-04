@@ -44,10 +44,12 @@ func ListModelsOverviewHandler(app *App, w http.ResponseWriter, r *http.Request,
 		for _, ref := range sub.ModelRefs {
 			rateLimits := make([]models.TokenRateLimit, len(ref.TokenRateLimits))
 			copy(rateLimits, ref.TokenRateLimits)
-			subsByModel[ref.Name] = append(subsByModel[ref.Name], models.ModelOverviewSubscription{
+			key := modelKey(ref.Namespace, ref.Name)
+			subsByModel[key] = append(subsByModel[key], models.ModelOverviewSubscription{
 				Name:            sub.Name,
 				DisplayName:     sub.DisplayName,
 				Phase:           sub.Phase,
+				StatusMessage:   sub.StatusMessage,
 				Groups:          groups,
 				TokenRateLimits: rateLimits,
 			})
@@ -59,11 +61,13 @@ func ListModelsOverviewHandler(app *App, w http.ResponseWriter, r *http.Request,
 	for _, policy := range policies {
 		groups := groupNames(policy.Subjects.Groups)
 		for _, ref := range policy.ModelRefs {
-			policiesByModel[ref.Name] = append(policiesByModel[ref.Name], models.ModelOverviewPolicy{
-				Name:        policy.Name,
-				DisplayName: policy.DisplayName,
-				Phase:       policy.Phase,
-				Groups:      groups,
+			key := modelKey(ref.Namespace, ref.Name)
+			policiesByModel[key] = append(policiesByModel[key], models.ModelOverviewPolicy{
+				Name:          policy.Name,
+				DisplayName:   policy.DisplayName,
+				Phase:         policy.Phase,
+				StatusMessage: policy.StatusMessage,
+				Groups:        groups,
 			})
 		}
 	}
@@ -71,17 +75,19 @@ func ListModelsOverviewHandler(app *App, w http.ResponseWriter, r *http.Request,
 	// Assemble one overview item per MaaSModelRef CR.
 	items := make([]models.ModelOverviewItem, 0, len(modelRefs))
 	for _, ref := range modelRefs {
-		subs := subsByModel[ref.Name]
+		key := modelKey(ref.Namespace, ref.Name)
+		subs := subsByModel[key]
 		if subs == nil {
 			subs = []models.ModelOverviewSubscription{}
 		}
-		policies := policiesByModel[ref.Name]
+		policies := policiesByModel[key]
 		if policies == nil {
 			policies = []models.ModelOverviewPolicy{}
 		}
 
 		items = append(items, models.ModelOverviewItem{
-			ID: ref.Name,
+			ID:        ref.Name,
+			Namespace: ref.Namespace,
 			ModelDetails: models.ModelOverviewDetails{
 				DisplayName: ref.DisplayName,
 				Description: ref.Description,
@@ -113,4 +119,8 @@ func groupNames(refs []models.GroupReference) []string {
 		names[i] = g.Name
 	}
 	return names
+}
+
+func modelKey(namespace, name string) string {
+	return namespace + "/" + name
 }

@@ -18,6 +18,7 @@ import { getHardwareProfileDisplayName } from '#~/pages/hardwareProfiles/utils';
 type BYONImageHardwareProfilesProps = {
   image: BYONImage;
   hardwareProfiles: ReturnType<typeof useHardwareProfilesByFeatureVisibility>['globalProfiles'];
+  isReadOnly?: boolean;
 };
 
 // the recommendAcceleratorIdentifiers are part of the hardware profiles; see the comment at the head of
@@ -25,6 +26,7 @@ type BYONImageHardwareProfilesProps = {
 const BYONImageHardwareProfiles: React.FC<BYONImageHardwareProfilesProps> = ({
   image,
   hardwareProfiles,
+  isReadOnly = false,
 }) => {
   const [data, loaded, loadError] = hardwareProfiles;
 
@@ -60,47 +62,49 @@ const BYONImageHardwareProfiles: React.FC<BYONImageHardwareProfilesProps> = ({
           </LabelGroup>
         </StackItem>
       )}
-      <StackItem>
-        {image.recommendedAcceleratorIdentifiers.length > 0 ? (
-          <Tooltip
-            content={`This image is compatible with hardware profiles with the identifier ${image.recommendedAcceleratorIdentifiers.join(
-              ', ',
-            )}.`}
-          >
-            <Label
-              color="blue"
-              render={({ className, content }) => (
-                <Link
-                  to={`/settings/environment-setup/workbench-images/hardware-profile/create?${new URLSearchParams(
-                    {
-                      identifiers: image.recommendedAcceleratorIdentifiers.join(','),
-                    },
-                  ).toString()}`}
-                  className={className}
-                >
-                  {content}
-                </Link>
-              )}
-              isCompact
-              icon={<PlusIcon />}
+      {!isReadOnly && (
+        <StackItem>
+          {image.recommendedAcceleratorIdentifiers.length > 0 ? (
+            <Tooltip
+              content={`This image is compatible with hardware profiles with the identifier ${image.recommendedAcceleratorIdentifiers.join(
+                ', ',
+              )}.`}
             >
-              Create profile
-            </Label>
-          </Tooltip>
-        ) : (
-          <Tooltip content="To create a hardware profile for this image, edit it to include a hardware profile identifier.">
-            <Button
-              isAriaDisabled
-              variant="link"
-              className="pf-v6-u-font-size-xs"
-              isInline
-              icon={<PlusIcon />}
-            >
-              Create profile
-            </Button>
-          </Tooltip>
-        )}
-      </StackItem>
+              <Label
+                color="blue"
+                render={({ className, content }) => (
+                  <Link
+                    to={`/settings/environment-setup/workbench-images/hardware-profile/create?${new URLSearchParams(
+                      {
+                        identifiers: image.recommendedAcceleratorIdentifiers.join(','),
+                      },
+                    ).toString()}`}
+                    className={className}
+                  >
+                    {content}
+                  </Link>
+                )}
+                isCompact
+                icon={<PlusIcon />}
+              >
+                Create profile
+              </Label>
+            </Tooltip>
+          ) : (
+            <Tooltip content="To create a hardware profile for this image, edit it to include a hardware profile identifier.">
+              <Button
+                isAriaDisabled
+                variant="link"
+                className="pf-v6-u-font-size-xs"
+                isInline
+                icon={<PlusIcon />}
+              >
+                Create profile
+              </Button>
+            </Tooltip>
+          )}
+        </StackItem>
+      )}
     </Stack>
   );
 };

@@ -11,7 +11,7 @@ import {
 import { mockDashboardConfig } from '@odh-dashboard/internal/__mocks__/mockDashboardConfig';
 import { mockDscStatus } from '@odh-dashboard/internal/__mocks__/mockDscStatus';
 import { mockK8sResourceList } from '@odh-dashboard/internal/__mocks__/mockK8sResourceList';
-import { mockProjectK8sResource } from '@odh-dashboard/internal/__mocks__/mockProjectK8sResource';
+import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import { featureStoreGlobal } from '../../../pages/featureStore/featureStoreGlobal';
 import { ProjectModel, ServiceModel } from '../../../utils/models';
@@ -194,9 +194,9 @@ describe('Connected Workbenches modal', () => {
     featureStoreGlobal.findConnectedWorkbenchNone().should('be.visible');
     featureStoreGlobal.findConnectedWorkbenchNone().trigger('mouseenter');
     cy.findByText(
-      'Go to the Authorized project page, edit a workbench or create a new one to connect with desired feature stores.',
+      'Create or edit a workbench in this project to connect it to this feature store.',
     ).should('be.visible');
-    cy.findByRole('link', { name: k8sNamespace }).should('be.visible');
+    cy.findByRole('button', { name: `View project ${k8sNamespace}` }).should('be.visible');
     cy.findByText('read').should('be.visible');
   });
 
@@ -229,12 +229,10 @@ describe('Connected Workbenches modal', () => {
     openConnectedWorkbenchesModalAndWait();
 
     featureStoreGlobal.findConnectedWorkbenchesTable().should('be.visible');
-    cy.findByRole('link', { name: workbenchName }).should(
-      'have.attr',
-      'href',
-      `/notebook/${authorizedProject}/${workbenchName}`,
+    cy.findByRole('button', { name: `Open workbench ${workbenchName} in new tab` }).should(
+      'be.visible',
     );
-    cy.findByRole('link', { name: authorizedProject }).should('be.visible');
+    cy.findByRole('button', { name: `View project ${authorizedProject}` }).should('be.visible');
     cy.findByText('read').should('be.visible');
     cy.findByText('write').should('be.visible');
   });
@@ -268,7 +266,7 @@ describe('Connected Workbenches modal', () => {
       .should('have.attr', 'aria-disabled', 'true')
       .trigger('mouseenter');
     cy.findByText(
-      'To create and connect workbenches, you must first have a project with access permission. Update project permissions.',
+      'To connect a workbench, you need a project that can access this feature store. Update project permissions in OpenShift.',
     ).should('be.visible');
   });
 

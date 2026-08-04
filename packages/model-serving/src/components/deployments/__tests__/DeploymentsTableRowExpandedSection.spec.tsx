@@ -1,8 +1,8 @@
 import * as React from 'react';
 import '@testing-library/jest-dom';
 import { render, screen } from '@testing-library/react';
-import { mockHardwareProfile } from '@odh-dashboard/internal/__mocks__/mockHardwareProfile';
-import { mockUseAssignHardwareProfileResult } from '@odh-dashboard/internal/__mocks__/mockUseAssignHardwareProfileResult';
+import { mockHardwareProfile } from '@odh-dashboard/hardware-profiles/__mocks__/mockHardwareProfile';
+import { mockUseAssignHardwareProfileResult } from '@odh-dashboard/hardware-profiles/__mocks__/mockUseAssignHardwareProfileResult';
 import { mockExtensions } from '../../../__tests__/mockUtils';
 import { DeploymentRowExpandedSection } from '../row/DeploymentsTableRowExpandedSection';
 
@@ -42,9 +42,13 @@ jest.mock('@odh-dashboard/internal/redux/hooks', () => ({
 }));
 
 const mockUseAssignHardwareProfile = jest.fn();
-jest.mock('@odh-dashboard/internal/concepts/hardwareProfiles/useAssignHardwareProfile', () => ({
-  useAssignHardwareProfile: (...args: unknown[]) => mockUseAssignHardwareProfile(...args),
-}));
+jest.mock('@odh-dashboard/hardware-profiles/shared', () => {
+  const { HardwareProfileFeatureVisibility } = jest.requireActual('@odh-dashboard/k8s-core');
+  return {
+    MODEL_SERVING_VISIBILITY: [HardwareProfileFeatureVisibility.MODEL_SERVING],
+    useAssignHardwareProfile: (...args: unknown[]) => mockUseAssignHardwareProfile(...args),
+  };
+});
 
 const mockUseWizardFieldExtractors = jest.fn();
 jest.mock('../../deploymentWizard/useWizardFieldExtractors', () => ({

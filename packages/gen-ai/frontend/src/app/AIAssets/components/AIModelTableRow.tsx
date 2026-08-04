@@ -24,6 +24,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { TableRowTitleDescription, TruncatedText } from 'mod-arch-shared';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import CapabilityBadges from '~/app/components/CapabilityBadges';
 import {
   AIModel,
   ExternalVectorStoreSummary,
@@ -117,6 +118,9 @@ const AIModelTableRow: React.FC<AIModelTableRowProps> = ({
         <Td dataLabel="Use case">
           <TruncatedText maxLines={2} content={model.usecase} />
         </Td>
+        <Td dataLabel="Capabilities">
+          <CapabilityBadges capabilities={model.capabilities} />
+        </Td>
         <Td dataLabel="Status">
           {(() => {
             switch (model.status) {
@@ -148,7 +152,7 @@ const AIModelTableRow: React.FC<AIModelTableRowProps> = ({
               variant={ButtonVariant.link}
               onClick={() => {
                 fireMiscTrackingEvent('Available Endpoints Endpoint Viewed', {
-                  modelType: model.model_type === 'embedding' ? 'embedding' : 'inference',
+                  modelType: model.model_type || 'inference',
                   endpointSource: model.model_source_type,
                 });
                 setIsEndpointModalOpen(true);
@@ -207,10 +211,11 @@ const AIModelTableRow: React.FC<AIModelTableRowProps> = ({
                         },
                       });
                     }}
-                    // Embedding models cannot be tried in the chat playground (vector output is not supported)
+                    // Embedding/transcription models cannot be tried in the chat playground directly
                     // Custom endpoint models are always available if they're in the list
                     isDisabled={
                       model.model_type === 'embedding' ||
+                      model.model_type === 'transcription' ||
                       (model.model_source_type !== 'custom_endpoint' && model.status !== 'Running')
                     }
                   >

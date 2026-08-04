@@ -1,6 +1,6 @@
 import React from 'react';
+import { TimeframeTitle } from '@odh-dashboard/ui-core/types/metrics';
 import { NimMetricGraphDefinition } from '#~/concepts/metrics/kserve/types';
-import { TimeframeTitle } from '#~/concepts/metrics/types';
 import { useFetchNimKVCacheUsageData } from '#~/api';
 import MetricsChart from '#~/pages/modelServing/screens/metrics/MetricsChart';
 import { MetricsChartTypes } from '#~/pages/modelServing/screens/metrics/types';

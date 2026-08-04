@@ -80,9 +80,11 @@ export const PRESET_LABELS: Record<string, string> = {
   [PRESET_BETTER_QUALITY]: 'Better quality',
 };
 
-/* eslint-disable camelcase */
-// Timeseries metrics use uppercase API names (e.g. MASE) while model result data
-// uses snake_case keys (e.g. mean_absolute_scaled_error). This map bridges the two.
+// Timeseries metric alias mapping. The backend accepts eval_metric in either format
+// but outputs different formats in different contexts:
+// - Backtesting results (per_window_metrics, holdout_metrics): ACRONYM keys (MASE, RMSE)
+// - Model metrics.json files: snake_case keys (mean_absolute_scaled_error)
+// This map bridges acronym ↔ snake_case for bidirectional lookups.
 export const METRIC_ALIASES: Readonly<Record<string, string>> = {
   MAE: 'mean_absolute_error',
   MSE: 'mean_squared_error',
@@ -96,7 +98,6 @@ export const METRIC_ALIASES: Readonly<Record<string, string>> = {
   WQL: 'weighted_quantile_loss',
   SQL: 'scaled_quantile_loss',
 };
-/* eslint-enable camelcase */
 
 // Eval metric enums per task type
 export const EVAL_METRICS_BINARY = [

@@ -33,7 +33,7 @@ type CatalogCategorySectionProps<T> = {
   loadError: Error | undefined;
   pageSize: number;
   onShowMore: (label: string) => void;
-  renderCard: (item: T) => React.ReactNode;
+  renderCard: (item: T, index: number) => React.ReactNode;
   getItemKey: (item: T) => string;
   gridSpans?: CatalogGridSpans;
   showAllThreshold?: number;
@@ -128,9 +128,9 @@ function CatalogCategorySection<T>({
         />
       ) : (
         <Grid hasGutter>
-          {itemsToDisplay.map((item) => (
+          {itemsToDisplay.map((item, index) => (
             <GridItem key={getItemKey(item)} {...gridSpans}>
-              {renderCard(item)}
+              {renderCard(item, index)}
             </GridItem>
           ))}
         </Grid>

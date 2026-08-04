@@ -1,8 +1,8 @@
 import React from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
+import { buildV2RedirectRoutes } from '@odh-dashboard/plugin-core/routing';
 import BYONImages from '#~/pages/BYONImages/BYONImages';
 import ManageHardwareProfile from '#~/pages/hardwareProfiles/manage/ManageHardwareProfile';
-import { buildV2RedirectRoutes } from '#~/utilities/v2Redirect';
 import { v2RedirectMap } from './v2Redirects';
 
 const BYONImageRoutes: React.FC = () => (

@@ -1,7 +1,7 @@
 import { Button } from '@patternfly/react-core';
 import React from 'react';
 import { Link } from 'react-router-dom';
-import ApplicationsPage from '#~/pages/ApplicationsPage';
+import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import RedirectErrorState from '#~/pages/external/RedirectErrorState';
 
 const ExternalRedirectNotFound: React.FC = () => {

@@ -1,7 +1,7 @@
 import React from 'react';
 import { K8sCondition, PodKind } from '@odh-dashboard/k8s-core';
-import useFetch, { FetchStateObject } from '@odh-dashboard/internal/utilities/useFetch';
-import { NotReadyError } from '@odh-dashboard/internal/utilities/useFetchState';
+import useFetch, { FetchStateObject } from '@odh-dashboard/ui-core/hooks/useFetch';
+import { NotReadyError } from '@odh-dashboard/ui-core/hooks/useFetchState';
 import { FAST_POLL_INTERVAL } from '@odh-dashboard/internal/utilities/const';
 import { getPodContainerLogText } from '@odh-dashboard/internal/api/k8s/pods';
 import { FeatureStoreKind } from '../k8sTypes';

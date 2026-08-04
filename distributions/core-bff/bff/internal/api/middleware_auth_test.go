@@ -399,6 +399,27 @@ func TestSecureAdminRoute_GetUserFailureReturns401(t *testing.T) {
 	assert.Equal(t, http.StatusUnauthorized, rr.Code)
 }
 
+func TestSecureAdminRoute_AdminCheckErrorReturns500(t *testing.T) {
+	app := newTestApp(func(a *App) {
+		a.kubernetesClientFactory = &failingAdminCheckFactory{username: "valid-user"}
+	})
+
+	handle, called := trackingHandle()
+	handler := app.secureAdminRoute(handle)
+
+	rr := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPatch, "/api/config", nil)
+	req = reqWithIdentity(req, &k8s.RequestIdentity{
+		UserID: "valid-user",
+		Token:  k8s.NewBearerToken("valid-token"),
+	})
+
+	handler(rr, req, nil)
+
+	assert.False(t, *called, "handler must not be invoked when admin check fails")
+	assert.Equal(t, http.StatusInternalServerError, rr.Code)
+}
+
 // ─── Dev-mode identity fallback tests ───────────────────────────────────────
 
 func TestDevModeFallback_ActivatesWhenDevModeEnabled(t *testing.T) {

@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useVariableDefinitionAndState } from '@perses-dev/dashboards';
-import { NAMESPACE_URL_PARAM } from '../utils/transformDashboardVariables';
+import { NAMESPACE_URL_PARAM } from '../utils/dashboardUtils';
 
 /**
  * NamespaceUrlSync syncs the Perses namespace variable value to URL query parameters.

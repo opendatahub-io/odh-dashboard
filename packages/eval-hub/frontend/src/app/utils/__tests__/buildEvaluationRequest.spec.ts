@@ -254,6 +254,7 @@ describe('buildEvaluationRequest', () => {
             provider_id: 'lm_harness',
             primary_score: { metric: 'accuracy', lower_is_better: false },
             pass_criteria: { threshold: 0.7 },
+            parameters: { num_few_shot: 5 },
           },
           {
             id: 'hellaswag',
@@ -286,6 +287,35 @@ describe('buildEvaluationRequest', () => {
 
       expect(result.collection).toEqual({ id: 'col-1', benchmarks: undefined });
       expect(result).not.toHaveProperty('benchmarks');
+    });
+
+    it('should merge benchmark parameters from additionalArgs into each collection benchmark', () => {
+      const col = makeCollection();
+      const result = buildEvaluationRequest({
+        ...baseParams,
+        collection: col,
+        additionalArgs: { tokenizer: 'TinyLlama/TinyLlama-1.1B-Chat-v1.0' },
+      });
+
+      expect(result.collection!.benchmarks![0].parameters).toEqual({
+        num_few_shot: 5,
+        tokenizer: 'TinyLlama/TinyLlama-1.1B-Chat-v1.0',
+      });
+      expect(result.collection!.benchmarks![1].parameters).toEqual({
+        tokenizer: 'TinyLlama/TinyLlama-1.1B-Chat-v1.0',
+      });
+    });
+
+    it('should not add parameters to collection benchmarks when additionalArgs has only top-level keys', () => {
+      const col = makeCollection();
+      const result = buildEvaluationRequest({
+        ...baseParams,
+        collection: col,
+        additionalArgs: { experiment: { name: 'test' } },
+      });
+
+      expect(result.collection!.benchmarks![0].parameters).toEqual({ num_few_shot: 5 });
+      expect(result.collection!.benchmarks![1]).not.toHaveProperty('parameters');
     });
   });
 
@@ -348,6 +378,7 @@ describe('buildEvaluationRequest', () => {
       expect(result).not.toHaveProperty('benchmarks');
       expect(result.collection?.id).toBe('col-1');
       expect(result).toHaveProperty('experiment', experiment);
+      expect(result.collection!.benchmarks![0].parameters).toEqual({ num_few_shot: 5, limit: 5 });
     });
 
     it('should not add parameters when additionalArgs is empty', () => {

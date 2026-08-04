@@ -26,8 +26,8 @@ func TestGetCatalogModelSecurityArtifactsHandler(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, http.StatusOK, response.StatusCode)
 	require.NotNil(t, result.Data)
-	assert.Equal(t, int32(1), result.Data.Size)
-	assert.Len(t, result.Data.Items, 1)
+	assert.Equal(t, int32(3), result.Data.Size)
+	assert.Len(t, result.Data.Items, 3)
 	assert.Equal(t, "metrics-artifact", result.Data.Items[0].ArtifactType)
 	assert.NotNil(t, result.Data.Items[0].MetricsType)
 	assert.Equal(t, "security-metrics", *result.Data.Items[0].MetricsType)
@@ -45,7 +45,7 @@ func TestGetCatalogModelSecurityArtifactsHandlerWithEncodedModelName(t *testing.
 	require.NoError(t, err)
 	assert.Equal(t, http.StatusOK, response.StatusCode)
 	require.NotNil(t, result.Data)
-	assert.Len(t, result.Data.Items, 1)
+	assert.Len(t, result.Data.Items, 3)
 }
 
 func TestGetCatalogModelSecurityArtifactsHandlerMissingNamespace(t *testing.T) {

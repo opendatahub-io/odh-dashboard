@@ -400,11 +400,19 @@ describe('ChatbotSettingsPanel', () => {
     const expectedBackgroundColor = 'var(--pf-t--global--background--color--primary--default)';
 
     // DrawerPanelContent should have background color applied via style prop
-    expect(mockDrawerPanelStyle).toEqual({ backgroundColor: expectedBackgroundColor });
+    expect(mockDrawerPanelStyle).toEqual({
+      backgroundColor: expectedBackgroundColor,
+      overflow: 'hidden',
+    });
 
     // DrawerHead and DrawerPanelBody should not have styles
     expect(mockDrawerHeadStyle).toBeUndefined();
-    expect(mockDrawerBodyStyle).toBeUndefined();
+    expect(mockDrawerBodyStyle).toEqual({
+      flexGrow: 1,
+      overflow: 'hidden',
+      display: 'flex',
+      flexDirection: 'column',
+    });
   });
 
   it('should not apply background color when isOverlay is false', () => {
@@ -415,7 +423,12 @@ describe('ChatbotSettingsPanel', () => {
 
     // DrawerHead and DrawerPanelBody should not have styles
     expect(mockDrawerHeadStyle).toBeUndefined();
-    expect(mockDrawerBodyStyle).toBeUndefined();
+    expect(mockDrawerBodyStyle).toEqual({
+      flexGrow: 1,
+      overflow: 'hidden',
+      display: 'flex',
+      flexDirection: 'column',
+    });
   });
 
   it('should not apply background color when isOverlay is not provided', () => {
@@ -426,7 +439,12 @@ describe('ChatbotSettingsPanel', () => {
 
     // DrawerHead and DrawerPanelBody should not have styles
     expect(mockDrawerHeadStyle).toBeUndefined();
-    expect(mockDrawerBodyStyle).toBeUndefined();
+    expect(mockDrawerBodyStyle).toEqual({
+      flexGrow: 1,
+      overflow: 'hidden',
+      display: 'flex',
+      flexDirection: 'column',
+    });
   });
 
   it('should use default width of 550px even when isOverlay is true', () => {
@@ -437,7 +455,10 @@ describe('ChatbotSettingsPanel', () => {
 
     // And should have the overlay background color on DrawerPanelContent
     const expectedBackgroundColor = 'var(--pf-t--global--background--color--primary--default)';
-    expect(mockDrawerPanelStyle).toEqual({ backgroundColor: expectedBackgroundColor });
+    expect(mockDrawerPanelStyle).toEqual({
+      backgroundColor: expectedBackgroundColor,
+      overflow: 'hidden',
+    });
   });
 
   it('should preserve stored width and apply overlay background when both are active', () => {
@@ -451,7 +472,10 @@ describe('ChatbotSettingsPanel', () => {
 
     // And should have overlay background on DrawerPanelContent
     const expectedBackgroundColor = 'var(--pf-t--global--background--color--primary--default)';
-    expect(mockDrawerPanelStyle).toEqual({ backgroundColor: expectedBackgroundColor });
+    expect(mockDrawerPanelStyle).toEqual({
+      backgroundColor: expectedBackgroundColor,
+      overflow: 'hidden',
+    });
   });
 
   describe('Panel structure consistency between single and compare modes', () => {
@@ -531,11 +555,12 @@ describe('ChatbotSettingsPanel', () => {
       const singleModeStyle = mockDrawerPanelStyle;
       expect(singleModeStyle).toBeUndefined();
 
-      // Compare mode: only backgroundColor in style
+      // Compare mode: backgroundColor + overflow in style
       rerender(<ChatbotSettingsPanel {...defaultProps} isOverlay />);
       const compareModeStyle = mockDrawerPanelStyle;
       expect(compareModeStyle).toEqual({
         backgroundColor: 'var(--pf-t--global--background--color--primary--default)',
+        overflow: 'hidden',
       });
 
       // No positioning or layout styles that could affect structure
@@ -559,6 +584,7 @@ describe('ChatbotSettingsPanel', () => {
       rerender(<ChatbotSettingsPanel {...defaultProps} isOverlay />);
       expect(mockDrawerPanelStyle).toEqual({
         backgroundColor: 'var(--pf-t--global--background--color--primary--default)',
+        overflow: 'hidden',
       });
     });
 
@@ -605,6 +631,7 @@ describe('ChatbotSettingsPanel', () => {
 
       expect(mockDrawerPanelStyle).toEqual({
         backgroundColor: 'var(--pf-t--global--background--color--primary--default)',
+        overflow: 'hidden',
       });
     });
 
@@ -613,15 +640,20 @@ describe('ChatbotSettingsPanel', () => {
 
       // Background is only on DrawerPanelContent, not on children
       expect(mockDrawerHeadStyle).toBeUndefined();
-      expect(mockDrawerBodyStyle).toBeUndefined();
+      expect(mockDrawerBodyStyle).toEqual({
+        flexGrow: 1,
+        overflow: 'hidden',
+        display: 'flex',
+        flexDirection: 'column',
+      });
     });
 
     it('should only apply backgroundColor style without positioning styles', () => {
       render(<ChatbotSettingsPanel {...defaultProps} isOverlay />);
 
-      // Only backgroundColor should be in the style, no positioning
       expect(mockDrawerPanelStyle).toEqual({
         backgroundColor: 'var(--pf-t--global--background--color--primary--default)',
+        overflow: 'hidden',
       });
       expect(mockDrawerPanelStyle).not.toHaveProperty('position');
       expect(mockDrawerPanelStyle).not.toHaveProperty('inset');
@@ -640,6 +672,7 @@ describe('ChatbotSettingsPanel', () => {
 
       expect(mockDrawerPanelStyle).toEqual({
         backgroundColor: 'var(--pf-t--global--background--color--primary--default)',
+        overflow: 'hidden',
       });
     });
 

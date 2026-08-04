@@ -1,8 +1,5 @@
-import {
-  ModelLocationSelectOption,
-  ModelTypeLabel,
-} from '@odh-dashboard/model-serving/types/form-data';
 import { projectListPage, projectDetails } from '../../../../pages/projects';
+import { ModelLocationSelectOption, ModelTypeLabel } from '../../../../utils/modelServingConstants';
 import {
   modelServingGlobal,
   inferenceServiceActions,

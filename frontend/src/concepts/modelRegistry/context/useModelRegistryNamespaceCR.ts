@@ -1,13 +1,13 @@
 import React from 'react';
-import { getModelRegistryCR } from '#~/api';
-import { ModelRegistryKind } from '#~/k8sTypes';
-import useModelRegistryEnabled from '#~/concepts/modelRegistry/useModelRegistryEnabled';
-import { FAST_POLL_INTERVAL } from '#~/utilities/const';
 import useFetchState, {
   FetchState,
   FetchStateCallbackPromise,
   NotReadyError,
-} from '#~/utilities/useFetchState';
+} from '@odh-dashboard/ui-core/hooks/useFetchState';
+import { getModelRegistryCR } from '#~/api';
+import { ModelRegistryKind } from '#~/k8sTypes';
+import useModelRegistryEnabled from '#~/concepts/modelRegistry/useModelRegistryEnabled';
+import { FAST_POLL_INTERVAL } from '#~/utilities/const';
 
 type State = ModelRegistryKind | null;
 

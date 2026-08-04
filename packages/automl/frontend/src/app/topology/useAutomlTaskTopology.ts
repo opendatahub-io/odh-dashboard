@@ -2,15 +2,15 @@ import * as React from 'react';
 import { PipelineSpecVariable, RunDetailsKF, TaskKF } from '~/app/types/pipeline';
 import { PipelineNodeModelExpanded } from '~/app/types/topology';
 import { createNode } from './utils';
-import { parseRuntimeInfoFromRunDetails, translateStatusForNode } from './parseUtils';
+import { buildTaskRuntimeById, resolveTaskTopologyRunStatuses } from './parseUtils';
 
 const TASK_DISPLAY_NAMES: Record<string, string> = {
   'publish-component-stage-map': 'Pipeline preparation',
   'automl-data-loader': 'Input data loader',
   'timeseries-data-loader': 'Input data loader',
-  'models-selection': 'Model selection',
-  'timeseries-models-selection': 'Model selection',
-  'autogluon-timeseries-models-selection': 'Model selection',
+  'models-selection': 'Select models',
+  'timeseries-models-selection': 'Select models',
+  'autogluon-timeseries-models-selection': 'Select models',
   'for-loop-1': 'Model generation', // used in timeseries
   'autogluon-models-training': 'Model generation', // used in tabular
   'autogluon-models-training-2': 'Model generation', // speed preset variant
@@ -30,7 +30,7 @@ const normalizeTaskLookupKey = (s: string): string =>
 
 /**
  * Sentence-case fallback when no TASK_DISPLAY_NAMES entry matches
- * (matches entries like "Model selection", "Input data loader").
+ * (matches entries like "Select models", "Input data loader").
  */
 const fallbackTaskDisplayLabel = (name: string): string => {
   const spaced = name.trim().replace(/[-_]+/g, ' ').replace(/\s+/g, ' ');
@@ -58,21 +58,39 @@ const resolveTaskLabel = (taskId: string, task: TaskKF): string => {
   return fallbackTaskDisplayLabel(rawName);
 };
 
+const isTaskRecord = (value: unknown): value is TaskKF => {
+  if (typeof value !== 'object' || value === null || !('taskInfo' in value)) {
+    return false;
+  }
+  const { taskInfo } = value;
+  return typeof taskInfo === 'object' && taskInfo !== null;
+};
+
+/** Keep only own, well-formed task IDs so inherited/malformed keys cannot become DAG deps. */
+const getValidatedDependencies = (tasks: Record<string, TaskKF>, taskId: string): string[] => {
+  if (!Object.hasOwn(tasks, taskId) || !isTaskRecord(tasks[taskId])) {
+    return [];
+  }
+  const { dependentTasks } = tasks[taskId];
+  if (!Array.isArray(dependentTasks)) {
+    return [];
+  }
+  return dependentTasks.filter(
+    (dep): dep is string =>
+      typeof dep === 'string' && Object.hasOwn(tasks, dep) && isTaskRecord(tasks[dep]),
+  );
+};
+
 const topoSort = (tasks: Record<string, TaskKF>): string[] => {
   const visited = new Set<string>();
   const result: string[] = [];
 
   const visit = (id: string) => {
-    if (visited.has(id)) {
+    if (visited.has(id) || !Object.hasOwn(tasks, id) || !isTaskRecord(tasks[id])) {
       return;
     }
     visited.add(id);
-    const deps = tasks[id].dependentTasks ?? [];
-    deps.forEach((dep) => {
-      if (dep in tasks) {
-        visit(dep);
-      }
-    });
+    getValidatedDependencies(tasks, id).forEach(visit);
     result.push(id);
   };
 
@@ -86,6 +104,7 @@ const topoSort = (tasks: Record<string, TaskKF>): string[] => {
 export const useAutomlTaskTopology = (
   spec?: PipelineSpecVariable,
   runDetails?: RunDetailsKF,
+  runState?: string,
 ): PipelineNodeModelExpanded[] =>
   React.useMemo(() => {
     if (!spec) {
@@ -93,32 +112,46 @@ export const useAutomlTaskTopology = (
     }
 
     const pipelineSpec = spec.pipeline_spec ?? spec;
-    const tasks = pipelineSpec.root?.dag.tasks;
+    // Runtime pipeline_spec may omit intermediate dag even though PipelineSpec types it as required.
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- defensive for incomplete specs
+    const tasks = pipelineSpec.root?.dag?.tasks;
     if (!tasks) {
       return [];
     }
 
     const ordered = topoSort(tasks);
+    const runtimeByTaskId = buildTaskRuntimeById(ordered, runDetails);
+    const depsByTaskId = new Map(
+      ordered.map((taskId) => [taskId, getValidatedDependencies(tasks, taskId)]),
+    );
+    const taskStatuses = resolveTaskTopologyRunStatuses(
+      ordered,
+      runtimeByTaskId,
+      runState,
+      depsByTaskId,
+    );
 
-    const labels = ordered.map((taskId) => resolveTaskLabel(taskId, tasks[taskId]));
+    return ordered.flatMap((taskId) => {
+      const task = tasks[taskId];
+      if (!isTaskRecord(task)) {
+        return [];
+      }
+      const label = resolveTaskLabel(taskId, task);
+      const runStatus = taskStatuses.get(taskId);
+      const runAfterTasks = getValidatedDependencies(tasks, taskId);
 
-    return ordered.map((taskId, idx) => {
-      const label = labels[idx];
-
-      const status = parseRuntimeInfoFromRunDetails(taskId, runDetails);
-      const runStatus = translateStatusForNode(status?.state);
-      const runAfter = idx > 0 ? [ordered[idx - 1]] : [];
-
-      return createNode(
-        taskId,
-        label,
-        {
-          type: 'task',
-          name: label,
-          status,
-        },
-        runAfter,
-        runStatus,
-      );
+      return [
+        createNode({
+          id: taskId,
+          label,
+          pipelineTask: {
+            type: 'task',
+            name: label,
+            status: runtimeByTaskId.get(taskId),
+          },
+          runAfterTasks,
+          runStatus,
+        }),
+      ];
     });
-  }, [spec, runDetails]);
+  }, [spec, runDetails, runState]);

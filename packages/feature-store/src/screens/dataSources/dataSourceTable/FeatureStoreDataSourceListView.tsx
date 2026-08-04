@@ -1,10 +1,15 @@
 import React from 'react';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import FeatureStoreDataSourcesTable from './FeatureStoreDataSourceTable';
 import { FeatureStoreToolbar } from '../../../components/FeatureStoreToolbar';
 import { useFeatureStoreProject } from '../../../FeatureStoreContext';
 import { DataSourceList } from '../../../types/dataSources';
 import { applyDataSourceFilters, getDataSourceConnectorType } from '../utils';
 import { dataSourceTableFilterOptions } from '../const';
+import {
+  FEATURE_STORE_EVENTS,
+  FilterRemovedProperties,
+} from '../../../tracking/featureStoreTrackingConstants';
 
 const FeatureStoreDataSourceListView = ({
   dataSources,
@@ -49,6 +54,10 @@ const FeatureStoreDataSourceListView = ({
   );
 
   const onClearFilters = React.useCallback(() => {
+    fireMiscTrackingEvent(FEATURE_STORE_EVENTS.FILTER_REMOVED, {
+      action: 'clearAll',
+      resourceType: 'dataSource',
+    } satisfies FilterRemovedProperties);
     setFilterData({});
   }, []);
 
@@ -69,6 +78,7 @@ const FeatureStoreDataSourceListView = ({
           filterOptions={dynamicFilterOptions}
           filterData={filterData}
           onFilterUpdate={onFilterUpdate}
+          trackingResourceType="dataSource"
         />
       }
     />

@@ -173,7 +173,12 @@ func (f *MockedTokenClientFactory) GetClient(ctx context.Context) (k8s.Kubernete
 		return nil, fmt.Errorf("failed to create impersonated client: %w", err)
 	}
 
-	client := newMockedTokenKubernetesClientFromClientset(clientset, f.logger)
+	dynamicClient, err := dynamic.NewForConfig(impersonatedCfg)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create impersonated dynamic client: %w", err)
+	}
+
+	client := newMockedTokenKubernetesClientFromClientset(clientset, dynamicClient, f.logger)
 	f.clients[identity.Token] = client
 	return client, nil
 }

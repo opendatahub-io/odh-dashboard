@@ -22,7 +22,7 @@ const SubscriptionCell: React.FC<SubscriptionCellProps> = ({
   // If subscriptionDetail is undefined the subscription may have been deleted, so show
   // plain text to avoid navigating to a page that no longer exists.
   if (!subscriptionDetail) {
-    return <>{displayLabel}</>;
+    return <span data-testid="api-key-subscription">{displayLabel}</span>;
   }
 
   return (
@@ -30,7 +30,7 @@ const SubscriptionCell: React.FC<SubscriptionCellProps> = ({
       to={`${URL_PREFIX}/keys-and-subs/subscriptions/${encodeURIComponent(subscriptionName)}`}
       data-testid="subscription-detail-link"
     >
-      {displayLabel}
+      <span data-testid="api-key-subscription">{displayLabel}</span>
     </Link>
   );
 };

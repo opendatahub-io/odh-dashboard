@@ -255,6 +255,39 @@ describe('isAreaAvailable', () => {
         expect(isAvailable.featureFlags).toEqual({ mcpCatalog: 'on' });
         expect(isAvailable.reliantAreas).toBe(null);
       });
+
+      it('should enable Agents Catalog when flag is on and Model Registry component is available', () => {
+        const isAvailable = isAreaAvailable(
+          SupportedArea.AGENTS_CATALOG,
+          mockDashboardConfig({ agentsCatalog: true }).spec,
+          mockDscStatus({
+            components: {
+              [DataScienceStackComponent.MODEL_REGISTRY]: { managementState: 'Managed' },
+            },
+          }),
+          mockDsciStatus({}),
+        );
+
+        expect(isAvailable.status).toBe(true);
+        expect(isAvailable.featureFlags).toEqual({ agentsCatalog: 'on' });
+        expect(isAvailable.reliantAreas).toBe(null);
+      });
+
+      it('should disable Agents Catalog when flag is off', () => {
+        const isAvailable = isAreaAvailable(
+          SupportedArea.AGENTS_CATALOG,
+          mockDashboardConfig({ agentsCatalog: false }).spec,
+          mockDscStatus({
+            components: {
+              [DataScienceStackComponent.MODEL_REGISTRY]: { managementState: 'Managed' },
+            },
+          }),
+          mockDsciStatus({}),
+        );
+
+        expect(isAvailable.status).toBe(false);
+        expect(isAvailable.featureFlags).toEqual({ agentsCatalog: 'off' });
+      });
     });
 
     describe('devFlags', () => {
@@ -347,6 +380,153 @@ describe('isAreaAvailable', () => {
     });
   });
 
+  describe('MODEL_DEPLOYMENT_SETTINGS area', () => {
+    it('should be available when modelDeploymentSettings flag is true and MODEL_SERVING is available', () => {
+      const isAvailable = isAreaAvailable(
+        SupportedArea.MODEL_DEPLOYMENT_SETTINGS,
+        mockDashboardConfig({ modelDeploymentSettings: true, disableModelServing: false }).spec,
+        null,
+        null,
+      );
+
+      expect(isAvailable.status).toBe(true);
+      expect(isAvailable.featureFlags).toEqual({ modelDeploymentSettings: 'on' });
+      expect(isAvailable.reliantAreas).toEqual({ [SupportedArea.MODEL_SERVING]: true });
+    });
+
+    it('should not be available when modelDeploymentSettings flag is false', () => {
+      const isAvailable = isAreaAvailable(
+        SupportedArea.MODEL_DEPLOYMENT_SETTINGS,
+        mockDashboardConfig({ modelDeploymentSettings: false }).spec,
+        null,
+        null,
+      );
+
+      expect(isAvailable.status).toBe(false);
+      expect(isAvailable.featureFlags).toEqual({ modelDeploymentSettings: 'off' });
+    });
+
+    it('should not be available when MODEL_SERVING is disabled', () => {
+      const isAvailable = isAreaAvailable(
+        SupportedArea.MODEL_DEPLOYMENT_SETTINGS,
+        mockDashboardConfig({ modelDeploymentSettings: true, disableModelServing: true }).spec,
+        null,
+        null,
+      );
+
+      expect(isAvailable.status).toBe(false);
+      expect(isAvailable.reliantAreas).toEqual({ [SupportedArea.MODEL_SERVING]: false });
+    });
+  });
+
+  describe('LLM admin page areas with MODEL_DEPLOYMENT_SETTINGS enabled', () => {
+    it('should make LLMD_TOPOLOGY_CONFIGS available when llmdTemplates is true', () => {
+      const isAvailable = isAreaAvailable(
+        SupportedArea.LLMD_TOPOLOGY_CONFIGS,
+        mockDashboardConfig({
+          modelDeploymentSettings: true,
+          llmdTemplates: true,
+          disableLLMd: false,
+          disableModelServing: false,
+          disableKServe: false,
+        }).spec,
+        mockDscStatus({
+          components: {
+            [DataScienceStackComponent.K_SERVE]: { managementState: 'Managed' },
+          },
+        }),
+        mockDsciStatus({}),
+      );
+
+      expect(isAvailable.status).toBe(true);
+      expect(isAvailable.featureFlags).toEqual({ llmdTemplates: 'on' });
+      expect(isAvailable.reliantAreas).toEqual({ [SupportedArea.LLMD_SERVING]: true });
+    });
+
+    it('should hide LLMD_TOPOLOGY_CONFIGS when llmdTemplates is false', () => {
+      const isAvailable = isAreaAvailable(
+        SupportedArea.LLMD_TOPOLOGY_CONFIGS,
+        mockDashboardConfig({
+          modelDeploymentSettings: true,
+          llmdTemplates: false,
+          disableLLMd: false,
+          disableModelServing: false,
+          disableKServe: false,
+        }).spec,
+        mockDscStatus({
+          components: {
+            [DataScienceStackComponent.K_SERVE]: { managementState: 'Managed' },
+          },
+        }),
+        mockDsciStatus({}),
+      );
+
+      expect(isAvailable.status).toBe(false);
+      expect(isAvailable.featureFlags).toEqual({ llmdTemplates: 'off' });
+    });
+
+    it('should make VLLM_ON_MAAS available when vLLMDeploymentOnMaaS is true and LLMD_SERVING is available', () => {
+      const isAvailable = isAreaAvailable(
+        SupportedArea.VLLM_ON_MAAS,
+        mockDashboardConfig({
+          modelDeploymentSettings: true,
+          vLLMDeploymentOnMaaS: true,
+          disableLLMd: false,
+          disableModelServing: false,
+          disableKServe: false,
+        }).spec,
+        mockDscStatus({
+          components: {
+            [DataScienceStackComponent.K_SERVE]: { managementState: 'Managed' },
+          },
+        }),
+        mockDsciStatus({}),
+      );
+
+      expect(isAvailable.status).toBe(true);
+      expect(isAvailable.featureFlags).toEqual({ vLLMDeploymentOnMaaS: 'on' });
+      expect(isAvailable.reliantAreas).toEqual({ [SupportedArea.LLMD_SERVING]: true });
+    });
+
+    it('should hide VLLM_ON_MAAS when vLLMDeploymentOnMaaS is false', () => {
+      const isAvailable = isAreaAvailable(
+        SupportedArea.VLLM_ON_MAAS,
+        mockDashboardConfig({
+          modelDeploymentSettings: true,
+          vLLMDeploymentOnMaaS: false,
+          disableLLMd: false,
+          disableModelServing: false,
+          disableKServe: false,
+        }).spec,
+        mockDscStatus({
+          components: {
+            [DataScienceStackComponent.K_SERVE]: { managementState: 'Managed' },
+          },
+        }),
+        mockDsciStatus({}),
+      );
+
+      expect(isAvailable.status).toBe(false);
+      expect(isAvailable.featureFlags).toEqual({ vLLMDeploymentOnMaaS: 'off' });
+    });
+
+    it('should hide LLMD_TOPOLOGY_CONFIGS when LLMD_SERVING is disabled', () => {
+      const isAvailable = isAreaAvailable(
+        SupportedArea.LLMD_TOPOLOGY_CONFIGS,
+        mockDashboardConfig({
+          modelDeploymentSettings: true,
+          llmdTemplates: true,
+          disableLLMd: true,
+        }).spec,
+        null,
+        null,
+      );
+
+      expect(isAvailable.status).toBe(false);
+      expect(isAvailable.reliantAreas).toEqual({ [SupportedArea.LLMD_SERVING]: false });
+    });
+  });
+
   describe('ROLE_MANAGEMENT area', () => {
     it('should be available when roleManagement flag is true', () => {
       const isAvailable = isAreaAvailable(
@@ -372,7 +552,7 @@ describe('isAreaAvailable', () => {
       expect(isAvailable.featureFlags).toEqual({ roleManagement: 'off' });
     });
 
-    it('should not be available by default (flag defaults to false)', () => {
+    it('should be available by default (flag defaults to true for GA)', () => {
       const isAvailable = isAreaAvailable(
         SupportedArea.ROLE_MANAGEMENT,
         mockDashboardConfig({}).spec,
@@ -380,8 +560,83 @@ describe('isAreaAvailable', () => {
         null,
       );
 
+      expect(isAvailable.status).toBe(true);
+      expect(isAvailable.featureFlags).toEqual({ roleManagement: 'on' });
+    });
+  });
+
+  describe('FEATURE_STORE_ADMIN area', () => {
+    it('should be available when featureStoreAdmin is true and FEATURE_STORE area is available', () => {
+      const isAvailable = isAreaAvailable(
+        SupportedArea.FEATURE_STORE_ADMIN,
+        mockDashboardConfig({ disableFeatureStore: false, featureStoreAdmin: true }).spec,
+        mockDscStatus({
+          components: {
+            [DataScienceStackComponent.FEAST_OPERATOR]: { managementState: 'Managed' },
+          },
+        }),
+        null,
+      );
+
+      expect(isAvailable.status).toBe(true);
+      expect(isAvailable.featureFlags).toEqual({ featureStoreAdmin: 'on' });
+      expect(isAvailable.reliantAreas).toEqual({ [SupportedArea.FEATURE_STORE]: true });
+    });
+
+    it('should not be available when featureStoreAdmin is false', () => {
+      const isAvailable = isAreaAvailable(
+        SupportedArea.FEATURE_STORE_ADMIN,
+        mockDashboardConfig({ disableFeatureStore: false, featureStoreAdmin: false }).spec,
+        mockDscStatus({
+          components: {
+            [DataScienceStackComponent.FEAST_OPERATOR]: { managementState: 'Managed' },
+          },
+        }),
+        null,
+      );
+
       expect(isAvailable.status).toBe(false);
-      expect(isAvailable.featureFlags).toEqual({ roleManagement: 'off' });
+      expect(isAvailable.featureFlags).toEqual({ featureStoreAdmin: 'off' });
+    });
+
+    it('should not be available by default (flag defaults to false)', () => {
+      const isAvailable = isAreaAvailable(
+        SupportedArea.FEATURE_STORE_ADMIN,
+        mockDashboardConfig({}).spec,
+        null,
+        null,
+      );
+
+      expect(isAvailable.status).toBe(false);
+      expect(isAvailable.featureFlags).toEqual({ featureStoreAdmin: 'off' });
+    });
+
+    it('should not be available when FEATURE_STORE area is disabled even if admin flag is true', () => {
+      const isAvailable = isAreaAvailable(
+        SupportedArea.FEATURE_STORE_ADMIN,
+        mockDashboardConfig({ disableFeatureStore: true, featureStoreAdmin: true }).spec,
+        null,
+        null,
+      );
+
+      expect(isAvailable.status).toBe(false);
+      expect(isAvailable.reliantAreas).toEqual({ [SupportedArea.FEATURE_STORE]: false });
+    });
+
+    it('should not affect FEATURE_STORE browse area when admin flag is false', () => {
+      const isAvailable = isAreaAvailable(
+        SupportedArea.FEATURE_STORE,
+        mockDashboardConfig({ disableFeatureStore: false, featureStoreAdmin: false }).spec,
+        mockDscStatus({
+          components: {
+            [DataScienceStackComponent.FEAST_OPERATOR]: { managementState: 'Managed' },
+          },
+        }),
+        null,
+      );
+
+      expect(isAvailable.status).toBe(true);
+      expect(isAvailable.featureFlags).toEqual({ disableFeatureStore: 'on' });
     });
   });
 });

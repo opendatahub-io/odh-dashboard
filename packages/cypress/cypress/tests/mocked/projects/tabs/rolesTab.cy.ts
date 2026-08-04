@@ -1,13 +1,10 @@
 /**
  * Tests for the Roles tab feature flag gating.
- * Verifies that the Roles tab is visible only when the roleManagement feature flag is enabled
+ * Verifies that the Roles tab is visible when the roleManagement feature flag is enabled (GA default)
  * and the user has SSAR access to list roles.
  */
-import {
-  mockDashboardConfig,
-  mockK8sResourceList,
-  mockProjectK8sResource,
-} from '@odh-dashboard/internal/__mocks__';
+import { mockDashboardConfig, mockK8sResourceList } from '@odh-dashboard/internal/__mocks__';
+import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import { mockSelfSubjectAccessReview } from '@odh-dashboard/internal/__mocks__/mockSelfSubjectAccessReview';
 import { ProjectModel, SelfSubjectAccessReviewModel } from '../../../../utils/models';
 import { asProjectAdminUser, asProjectEditUser } from '../../../../utils/mockUsers';
@@ -15,7 +12,7 @@ import { projectRoles } from '../../../../pages/projectRoles';
 
 const NAMESPACE = 'test-project';
 
-const initIntercepts = ({ roleManagement = false }: { roleManagement?: boolean } = {}) => {
+const initIntercepts = ({ roleManagement = true }: { roleManagement?: boolean } = {}) => {
   cy.interceptOdh(
     'GET /api/config',
     mockDashboardConfig({
@@ -31,7 +28,7 @@ const initIntercepts = ({ roleManagement = false }: { roleManagement?: boolean }
 };
 
 describe('Roles tab feature flag gating', () => {
-  describe('with roleManagement flag disabled (default)', () => {
+  describe('with roleManagement flag disabled', () => {
     beforeEach(() => {
       asProjectAdminUser();
       initIntercepts({ roleManagement: false });
@@ -65,11 +62,6 @@ describe('Roles tab feature flag gating', () => {
       projectRoles.findCreateRoleButton().should('exist');
     });
 
-    it('should render the Create role page when user has permission', () => {
-      projectRoles.visitCreateRole(NAMESPACE);
-      projectRoles.findCreateRolePage().should('exist');
-    });
-
     it('should render the create role form with all fields and placeholder states', () => {
       projectRoles.visitCreateRole(NAMESPACE);
       projectRoles.findCreateRoleForm().should('exist');
@@ -86,29 +78,24 @@ describe('Roles tab feature flag gating', () => {
       projectRoles.findImportTemplateButton().should('not.be.disabled');
     });
 
-    it('should have the submit button disabled when name is empty', () => {
-      projectRoles.visitCreateRole(NAMESPACE);
-      projectRoles.findSubmitButton().should('be.disabled');
-    });
-
     it('should enable the submit button when name is filled', () => {
       projectRoles.visitCreateRole(NAMESPACE);
       projectRoles.findRoleNameInput().type('my-test-role');
       projectRoles.findSubmitButton().should('be.enabled');
     });
 
-    it('should disable submit when a label row has empty key or value', () => {
+    it('should disable submit when a label row has a touched empty key', () => {
       projectRoles.visitCreateRole(NAMESPACE);
       projectRoles.findRoleNameInput().type('my-test-role');
       projectRoles.findSubmitButton().should('be.enabled');
 
       projectRoles.findAddLabelButton().click();
+      projectRoles.findSubmitButton().should('be.enabled');
+
+      projectRoles.findLabelKeyInput(0).focus().blur();
       projectRoles.findSubmitButton().should('be.disabled');
 
       projectRoles.findLabelKeyInput(0).type('team');
-      projectRoles.findSubmitButton().should('be.disabled');
-
-      projectRoles.findLabelValueInput(0).type('platform');
       projectRoles.findSubmitButton().should('be.enabled');
     });
 
@@ -183,13 +170,6 @@ describe('Roles tab feature flag gating', () => {
     it('should show the Roles tab when user has list access to roles', () => {
       projectRoles.visit(NAMESPACE);
       projectRoles.findRolesTab().should('exist');
-    });
-
-    it('should redirect from /roles/create when user lacks create permission', () => {
-      cy.visitWithLogin(`/projects/${NAMESPACE}/roles/create`);
-      cy.url().should('not.include', '/roles/create');
-      cy.url().should('include', `/projects/${NAMESPACE}`);
-      cy.url().should('include', 'section=roles');
     });
   });
 

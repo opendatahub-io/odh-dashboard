@@ -29,7 +29,6 @@ const extensions: (AreaExtension | HrefNavItemExtension | RouteExtension)[] = [
       path: '/observe-and-monitor/dashboard/*',
       group: '1_top',
       section: 'observe-and-monitor',
-      label: 'Tech Preview',
     },
   },
   {

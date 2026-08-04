@@ -39,16 +39,13 @@ updates:
       semver-patch-days: 14
 
     ignore:
+      - dependency-name: "@patternfly/*"
       - dependency-name: "react"
         update-types: ["version-update:semver-major"]
       - dependency-name: "react-dom"
         update-types: ["version-update:semver-major"]
 
     groups:
-      patternfly:
-        applies-to: version-updates
-        patterns:
-          - "@patternfly/*"
       react:
         applies-to: version-updates
         patterns:

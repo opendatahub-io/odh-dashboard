@@ -22,11 +22,15 @@ type AgentRuntimeCondition struct {
 type AgentRuntimeDetail struct {
 	Name             string                  `json:"name"`
 	Namespace        string                  `json:"namespace"`
+	DisplayName      string                  `json:"displayName"`
 	Description      string                  `json:"description"`
+	Framework        string                  `json:"framework,omitempty"`
+	ServiceFQDN      string                  `json:"serviceFqdn,omitempty"`
+	ContainerImage   string                  `json:"containerImage,omitempty"`
+	Labels           map[string]string       `json:"labels,omitempty"`
+	Annotations      map[string]string       `json:"annotations,omitempty"`
 	Runtime          AgentRuntime            `json:"runtime"`
 	WorkloadStatus   string                  `json:"workloadStatus"`
 	ServiceEndpoints []AgentServiceEndpoint  `json:"serviceEndpoints"`
-	PodCount         int                     `json:"podCount"`
 	Conditions       []AgentRuntimeCondition `json:"conditions"`
-	AgentCard        *AgentCardDetail        `json:"agentCard"`
 }

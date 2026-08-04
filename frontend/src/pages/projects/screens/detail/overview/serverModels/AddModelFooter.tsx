@@ -1,13 +1,13 @@
 import * as React from 'react';
 import { CardFooter } from '@patternfly/react-core';
-import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
-import ModelServingPlatformButtonAction from '#~/pages/modelServing/screens/projects/ModelServingPlatformButtonAction';
-import { ServingRuntimePlatform } from '#~/types';
 import {
+  ServingRuntimePlatform,
   getSortedTemplates,
   getTemplateEnabled,
   getTemplateEnabledForPlatform,
-} from '#~/pages/modelServing/customServingRuntimes/utils';
+} from '@odh-dashboard/model-serving/shared';
+import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
+import ModelServingPlatformButtonAction from '#~/pages/modelServing/screens/projects/ModelServingPlatformButtonAction';
 import ManageKServeModal from '#~/pages/modelServing/screens/projects/kServeModal/ManageKServeModal';
 import ManageNIMServingModal from '#~/pages/modelServing/screens/projects/nim/NIMServiceModal/ManageNIMServingModal';
 

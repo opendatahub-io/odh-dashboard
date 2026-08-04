@@ -1,6 +1,6 @@
 import React from 'react';
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
-import { LastDeployed } from '@odh-dashboard/internal/components/LastDeployed';
+import { LastDeployed } from '@odh-dashboard/ui-core';
 import { Deployment, ModelResourceType } from '../../../extension-points';
 
 type ModelWithStatus = ModelResourceType & {

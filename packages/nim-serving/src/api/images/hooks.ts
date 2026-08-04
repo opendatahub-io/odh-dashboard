@@ -2,8 +2,8 @@ import React from 'react';
 import useFetch, {
   NotReadyError,
   type FetchStateCallbackPromise,
-} from '@odh-dashboard/internal/utilities/useFetch';
-import { NIMAccountKind } from '@odh-dashboard/internal/k8sTypes';
+} from '@odh-dashboard/ui-core/hooks/useFetch';
+import { NIMAccountKind } from '@odh-dashboard/k8s-core';
 import type { NIMImage } from './types';
 import { fetchNIMImages } from './api';
 

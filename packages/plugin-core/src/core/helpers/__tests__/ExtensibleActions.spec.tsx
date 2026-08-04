@@ -11,17 +11,16 @@ describe('ExtensibleActions', () => {
     expect(container.innerHTML).toBe('');
   });
 
-  it('should wrap each action in a DropdownItem', async () => {
+  it('should render each action component directly', async () => {
     const actions = [createMockActionExtension('deploy', 'Deploy')];
 
     render(<ExtensibleActions actions={actions} />);
 
-    const element = await screen.findByTestId('action-deploy');
+    const element = await screen.findByTestId('mock-action');
     expect(element).toBeInTheDocument();
-    expect(element).toHaveClass('pf-v6-c-menu__list-item');
   });
 
-  it('should render multiple actions as DropdownItems', async () => {
+  it('should render multiple action components', async () => {
     const actions = [
       createMockActionExtension('deploy', 'Deploy'),
       createMockActionExtension('archive', 'Archive'),
@@ -29,33 +28,48 @@ describe('ExtensibleActions', () => {
 
     render(<ExtensibleActions actions={actions} />);
 
-    expect(await screen.findByTestId('action-deploy')).toBeInTheDocument();
-    expect(screen.getByTestId('action-archive')).toBeInTheDocument();
+    const elements = await screen.findAllByTestId('mock-action');
+    expect(elements).toHaveLength(2);
   });
 
-  it('should sort actions by group', () => {
+  it('should sort actions by group', async () => {
+    const MockFirst: React.FC = () => React.createElement('span', { 'data-testid': 'first' });
+    const MockSecond: React.FC = () => React.createElement('span', { 'data-testid': 'second' });
+    const MockThird: React.FC = () => React.createElement('span', { 'data-testid': 'third' });
+
     const actions = [
-      createMockActionExtension('third', 'Third', { group: '3_late' }),
-      createMockActionExtension('first', 'First', { group: '1_early' }),
-      createMockActionExtension('second', 'Second', { group: '2_middle' }),
+      createMockActionExtension('third', 'Third', {
+        group: '3_late',
+        component: () => Promise.resolve({ default: MockThird }),
+      }),
+      createMockActionExtension('first', 'First', {
+        group: '1_early',
+        component: () => Promise.resolve({ default: MockFirst }),
+      }),
+      createMockActionExtension('second', 'Second', {
+        group: '2_middle',
+        component: () => Promise.resolve({ default: MockSecond }),
+      }),
     ];
 
     const { container } = render(<ExtensibleActions actions={actions} />);
 
-    const items = container.querySelectorAll('[data-testid^="action-"]');
-    expect(items).toHaveLength(3);
-    expect(items[0]).toHaveAttribute('data-testid', 'action-first');
-    expect(items[1]).toHaveAttribute('data-testid', 'action-second');
-    expect(items[2]).toHaveAttribute('data-testid', 'action-third');
+    await screen.findByTestId('first');
+    const testIds = Array.from(container.querySelectorAll('[data-testid]')).map((el) =>
+      el.getAttribute('data-testid'),
+    );
+    expect(testIds).toEqual(['first', 'second', 'third']);
   });
 
-  it('should render lazy component content inside DropdownItem', async () => {
-    const actions = [createMockActionExtension('deploy', 'Deploy')];
+  it('should filter actions by group when group prop is set', async () => {
+    const actions = [
+      createMockActionExtension('deploy', 'Deploy', { group: 'page-a' }),
+      createMockActionExtension('archive', 'Archive', { group: 'page-b' }),
+    ];
 
-    render(<ExtensibleActions actions={actions} />);
+    render(<ExtensibleActions actions={actions} group="page-a" />);
 
-    const actionContent = await screen.findByTestId('mock-action');
-    expect(actionContent).toBeInTheDocument();
-    expect(actionContent.closest('[data-testid="action-deploy"]')).toBeInTheDocument();
+    const elements = await screen.findAllByTestId('mock-action');
+    expect(elements).toHaveLength(1);
   });
 });

@@ -1,15 +1,18 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Skeleton } from '@patternfly/react-core';
+import TruncatedText from '@odh-dashboard/ui-core/components/TruncatedText';
 import { PipelineRecurringRunKF, PipelineRunKF } from '#~/concepts/pipelines/kfTypes';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import { mlflowExperimentRoute } from '#~/routes/pipelines/mlflow';
 import { MlflowTrackingEvents } from '#~/concepts/mlflow/const';
 import { NoRunContent } from '#~/concepts/pipelines/content/tables/renderUtils';
-import TruncatedText from '#~/components/TruncatedText';
 import { MlflowExperimentData } from '#~/concepts/mlflow/types';
-import { getMlflowExperimentNameFromRun } from '#~/concepts/pipelines/content/tables/pipelineRun/utils';
 import { isPipelineRun } from '#~/concepts/pipelines/content/utils';
+import {
+  getMlflowExperimentId,
+  getMlflowExperimentNameFromRun,
+} from '#~/concepts/pipelines/content/tables/pipelineRun/utils';
 import { fireLinkTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 
 type PipelineRunTableRowMlflowExperimentProps = {
@@ -23,13 +26,18 @@ const PipelineRunTableRowMlflowExperiment: React.FC<PipelineRunTableRowMlflowExp
 }) => {
   const { namespace } = usePipelinesAPI();
 
-  const experimentName = getMlflowExperimentNameFromRun(run);
-  const experimentIdFromOutput = isPipelineRun(run)
-    ? run.plugins_output?.mlflow?.entries.experiment_id?.value
-    : undefined;
-  const experimentId =
-    experimentIdFromOutput ??
-    (experimentName ? mlflow.experiments.find((e) => e.name === experimentName)?.id : undefined);
+  const experimentIdFromRun = isPipelineRun(run) ? getMlflowExperimentId(run) : undefined;
+  const experimentNameFromRun = getMlflowExperimentNameFromRun(run);
+
+  const matchedExperiment =
+    experimentIdFromRun != null
+      ? mlflow.experiments.find((e) => e.id === experimentIdFromRun)
+      : experimentNameFromRun
+      ? mlflow.experiments.find((e) => e.name === experimentNameFromRun)
+      : undefined;
+
+  const experimentId = experimentIdFromRun ?? matchedExperiment?.id;
+  const experimentName = matchedExperiment?.name ?? experimentNameFromRun;
 
   const handleExperimentClick = React.useCallback(() => {
     fireLinkTrackingEvent(MlflowTrackingEvents.EMBEDDED_VIEW_OPENED, {
@@ -38,15 +46,15 @@ const PipelineRunTableRowMlflowExperiment: React.FC<PipelineRunTableRowMlflowExp
     });
   }, []);
 
+  if (!mlflow.loaded && !mlflow.error && (experimentIdFromRun || experimentNameFromRun)) {
+    return <Skeleton data-testid="mlflow-experiment-loading" />;
+  }
+
   if (!experimentName) {
     return <NoRunContent />;
   }
 
-  if (!experimentIdFromOutput && !mlflow.loaded) {
-    return <Skeleton data-testid="mlflow-experiment-loading" />;
-  }
-
-  if (experimentId && typeof experimentId === 'string') {
+  if (experimentId) {
     return (
       <Link
         to={mlflowExperimentRoute(experimentId, namespace)}

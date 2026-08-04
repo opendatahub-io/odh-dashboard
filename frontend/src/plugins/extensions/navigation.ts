@@ -54,7 +54,7 @@ const extensions: (NavExtension | TabRoutePageExtension)[] = [
       title: 'Models',
       href: '/ai-hub/models',
       path: '/ai-hub/models/*',
-      group: '1_models',
+      group: '2_models',
       section: 'ai-hub',
       objectType: 'registered-models',
     },
@@ -66,7 +66,7 @@ const extensions: (NavExtension | TabRoutePageExtension)[] = [
       title: 'MCP servers',
       href: '/ai-hub/mcp-servers',
       path: '/ai-hub/mcp-servers/*',
-      group: '2_mcp_servers',
+      group: '3_mcp_servers',
       section: 'ai-hub',
       objectType: 'mcp-catalog',
     },
@@ -78,10 +78,10 @@ const extensions: (NavExtension | TabRoutePageExtension)[] = [
       title: 'Agents',
       href: '/ai-hub/agents',
       path: '/ai-hub/agents/*',
-      group: '3_agents',
+      group: '1_agents',
       section: 'ai-hub',
       objectType: 'agent-ops',
-      alwaysShowTabBar: true,
+      label: 'Dev Preview',
     },
   },
   {
@@ -298,22 +298,6 @@ const extensions: (NavExtension | TabRoutePageExtension)[] = [
   },
   {
     type: 'app.navigation/href',
-    properties: {
-      id: 'settings-hardware-profiles',
-      title: 'Hardware profiles',
-      href: '/settings/environment-setup/hardware-profiles',
-      section: 'settings-environment-setup',
-      path: '/settings/environment-setup/hardware-profiles/*',
-      statusProviderId: 'hardware-profiles.status',
-      accessReview: {
-        group: 'infrastructure.opendatahub.io',
-        resource: 'hardwareprofiles',
-        verb: 'create',
-      },
-    },
-  },
-  {
-    type: 'app.navigation/href',
     flags: {
       required: [SupportedArea.ADMIN_CONNECTION_TYPES, ADMIN_USER],
     },
@@ -335,9 +319,19 @@ const extensions: (NavExtension | TabRoutePageExtension)[] = [
     },
   },
   {
+    type: 'app.navigation/section',
+    properties: {
+      id: 'settings-mcp-resources',
+      title: 'MCP resources',
+      group: '4_mcp_resources',
+      section: 'settings',
+    },
+  },
+  {
     type: 'app.navigation/href',
     flags: {
       required: [SupportedArea.CUSTOM_RUNTIMES, ADMIN_USER],
+      disallowed: [SupportedArea.MODEL_DEPLOYMENT_SETTINGS],
     },
     properties: {
       id: 'settings-custom-serving-runtimes',

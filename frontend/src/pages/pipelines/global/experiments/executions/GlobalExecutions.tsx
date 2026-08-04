@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { PageSection } from '@patternfly/react-core';
+import TitleWithIcon from '@odh-dashboard/ui-core/design/TitleWithIcon';
 import { MlmdListContextProvider, usePipelinesAPI } from '#~/concepts/pipelines/context';
 import PipelineServerActions from '#~/concepts/pipelines/content/PipelineServerActions';
 import PipelineCoreApplicationPage from '#~/pages/pipelines/global/PipelineCoreApplicationPage';
@@ -11,7 +12,6 @@ import {
   executionsPageTitle,
 } from '#~/pages/pipelines/global/experiments/executions/const';
 import ExecutionsList from '#~/pages/pipelines/global/experiments/executions/ExecutionsList';
-import TitleWithIcon from '#~/concepts/design/TitleWithIcon';
 import { ProjectObjectType } from '#~/concepts/design/utils';
 
 const GlobalExecutions: React.FC = () => {

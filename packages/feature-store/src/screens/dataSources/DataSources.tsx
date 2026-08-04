@@ -1,8 +1,6 @@
 import * as React from 'react';
-import { EmptyStateBody, EmptyStateVariant, EmptyState, Flex } from '@patternfly/react-core';
-import { SearchIcon } from '@patternfly/react-icons';
-// eslint-disable-next-line @odh-dashboard/no-restricted-imports
-import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
+import { Flex } from '@patternfly/react-core';
+import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import FeatureStoreDataSourceListView from './dataSourceTable/FeatureStoreDataSourceListView';
 import FeatureStoreProjectSelectorNavigator from '../components/FeatureStoreProjectSelectorNavigator';
 import { featureStoreRoute } from '../../routes';
@@ -12,6 +10,7 @@ import FeatureStorePageTitle from '../../components/FeatureStorePageTitle';
 import FeatureStoreObjectIcon from '../../components/FeatureStoreObjectIcon';
 import FeatureStoreAccessDenied from '../../components/FeatureStoreAccessDenied';
 import ConnectedWorkbenchesLink from '../../components/ConnectedWorkbenchesLink';
+import { FeatureStoreEmptyState } from '../components/EmptyStateFeatureStore';
 
 const title = 'Data sources';
 const description =
@@ -25,17 +24,7 @@ const DataSources: React.FC = () => {
     error: dataSourcesLoadError,
   } = useFeatureStoreDataSources(currentProject);
   const emptyState = (
-    <EmptyState
-      headingLevel="h6"
-      icon={SearchIcon}
-      titleText="No data sources"
-      variant={EmptyStateVariant.lg}
-      data-testid="empty-state-title"
-    >
-      <EmptyStateBody data-testid="empty-state-body">
-        Select a different feature store or create a data source in a workbench.
-      </EmptyStateBody>
-    </EmptyState>
+    <FeatureStoreEmptyState resourceTypeSingular="data source" resourceTypePlural="data sources" />
   );
 
   return (

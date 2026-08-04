@@ -4,6 +4,7 @@ import type {
   CreateAPIKeyRequest,
 } from '@odh-dashboard/maas/types/api-key';
 import type { PolicyInfoResponse } from '@odh-dashboard/maas/types/auth-policies';
+import type { ExternalModel } from '@odh-dashboard/maas/types/external-models';
 import type {
   MaaSSubscription,
   ModelOverviewItem,
@@ -418,9 +419,20 @@ export const mockModelRefSummaries = (): MaaSModelRefSummary[] => [
     phase: 'Ready',
     endpoint: 'https://gemma-7b-it.maas-models.svc.cluster.local',
   },
+  {
+    name: 'granite-3-8b-instruct',
+    namespace: 'team-sandbox',
+    displayName: 'Granite 3 8B Instruct (sandbox)',
+    description: 'Same model ID in a different namespace for cross-namespace regression coverage',
+    modelRef: { kind: 'InferenceService', name: 'granite-3-8b-instruct' },
+    phase: 'Ready',
+    endpoint: 'https://granite-3-8b-instruct.team-sandbox.svc.cluster.local',
+  },
 ];
 
-export const mockSubscriptionFormData = (): SubscriptionPolicyFormDataResponse => ({
+export const mockSubscriptionFormData = (
+  overrides?: Partial<SubscriptionPolicyFormDataResponse>,
+): SubscriptionPolicyFormDataResponse => ({
   groups: [
     'system:authenticated',
     'premium-users',
@@ -442,11 +454,13 @@ export const mockSubscriptionFormData = (): SubscriptionPolicyFormDataResponse =
   modelRefs: mockModelRefSummaries(),
   subscriptions: mockSubscriptions(),
   policies: mockAuthPolicies(),
+  ...overrides,
 });
 
 export const mockModelsOverview = (): ModelOverviewItem[] => [
   {
     id: 'granite-3-8b-instruct',
+    namespace: 'maas-models',
     modelDetails: {
       displayName: 'Granite 3 8B Instruct',
       description: 'A large language model for instruction following',
@@ -491,6 +505,7 @@ export const mockModelsOverview = (): ModelOverviewItem[] => [
   },
   {
     id: 'flan-t5-small',
+    namespace: 'maas-models',
     modelDetails: {
       displayName: 'Flan T5 Small',
       description: 'A compact text-to-text model',
@@ -531,6 +546,7 @@ export const mockModelsOverview = (): ModelOverviewItem[] => [
   },
   {
     id: 'llama-3-70b-instruct',
+    namespace: 'maas-models',
     modelDetails: {
       displayName: 'Llama 3 70B Instruct',
       description: 'A large open-weight model for complex reasoning and multi-turn dialogue',
@@ -566,6 +582,7 @@ export const mockModelsOverview = (): ModelOverviewItem[] => [
   },
   {
     id: 'gemma-7b-it',
+    namespace: 'maas-models',
     modelDetails: {
       displayName: 'Gemma 7B IT',
       description: 'Google Gemma 7B instruction-tuned model for general-purpose tasks',
@@ -591,6 +608,32 @@ export const mockModelsOverview = (): ModelOverviewItem[] => [
           'backend-devs',
           'interns',
         ],
+      },
+    ],
+  },
+  {
+    id: 'granite-3-8b-instruct',
+    namespace: 'team-sandbox',
+    modelDetails: {
+      displayName: 'Granite 3 8B Instruct (sandbox)',
+      description: 'Same model ID in a different namespace for cross-namespace regression coverage',
+      phase: 'Ready',
+    },
+    subscriptions: [
+      {
+        name: 'sandbox-granite-sub',
+        displayName: 'Sandbox Granite Subscription',
+        phase: 'Active',
+        groups: ['sandbox-users'],
+        tokenRateLimits: [{ limit: 1000, window: '1h' }],
+      },
+    ],
+    authPolicies: [
+      {
+        name: 'sandbox-granite-policy',
+        displayName: 'Sandbox Granite Policy',
+        phase: 'Active',
+        groups: ['sandbox-users'],
       },
     ],
   },
@@ -805,3 +848,113 @@ export const mockPolicyInfoMissingModelSummaries = (): PolicyInfoResponse => {
     modelRefs: [],
   };
 };
+
+export const mockMaasNamespaces = (
+  names: string[] = ['test-project'],
+): { name: string; displayName?: string }[] => names.map((name) => ({ name }));
+
+export const mockExternalModel = (options: Partial<ExternalModel> = {}): ExternalModel => ({
+  name: 'gpt-4o-external',
+  namespace: 'test-project',
+  displayName: 'GPT-4o External',
+  description: 'External GPT-4o model routed through OpenAI provider.',
+  modelName: 'gpt-4o',
+  providerRefs: [
+    {
+      providerName: 'openai-prod',
+      weight: 100,
+      apiFormat: 'openai-chat',
+      path: '/v1/chat/completions',
+      targetModel: 'gpt-4o',
+      provider: {
+        displayName: 'OpenAI Production',
+        endpointUrl: 'api.openai.com',
+        authMechanism: 'apikey',
+        credentialSecretRef: 'openai-api-key',
+        provider: 'openai',
+        phase: 'Ready',
+        statusMessage: 'External provider is ready',
+      },
+    },
+  ],
+  phase: 'Ready',
+  statusMessage: 'External model is ready',
+  maaSModelRef: {
+    phase: 'Ready',
+    endpoint: 'https://gpt-4o-external.maas.example.com',
+    statusMessage: 'Published external GPT-4o model',
+  },
+  ...options,
+});
+
+export const mockExternalModels = (): ExternalModel[] => [
+  mockExternalModel(),
+  mockExternalModel({
+    name: 'claude-split',
+    displayName: 'Claude A/B Split',
+    description: 'Weighted routing across Anthropic and Bedrock providers.',
+    modelName: 'claude-sonnet',
+    providerRefs: [
+      {
+        providerName: 'anthropic-dev',
+        weight: 60,
+        apiFormat: 'anthropic',
+        path: '/v1/messages',
+        targetModel: 'claude-sonnet-4-5-20241022',
+        provider: {
+          displayName: 'Anthropic Development',
+          endpointUrl: 'api.anthropic.com',
+          authMechanism: 'apikey',
+          credentialSecretRef: 'anthropic-api-key',
+          provider: 'anthropic',
+          phase: 'Ready',
+          statusMessage: 'External provider is ready',
+        },
+      },
+      {
+        providerName: 'bedrock-us-east',
+        weight: 40,
+        apiFormat: 'anthropic',
+        path: '/v1/messages',
+        targetModel: 'anthropic.claude-3-sonnet',
+        provider: {
+          displayName: 'AWS Bedrock US East',
+          endpointUrl: 'bedrock.us-east-1.amazonaws.com',
+          authMechanism: 'sigv4',
+          credentialSecretRef: 'bedrock-credentials-us-east',
+          provider: 'aws-bedrock',
+          phase: 'Ready',
+          statusMessage: 'External provider is ready',
+        },
+      },
+    ],
+    phase: 'Ready',
+    statusMessage: 'External model is ready',
+    maaSModelRef: {
+      phase: 'Ready',
+      endpoint: 'https://claude-split.maas.example.com',
+      statusMessage: 'Published Claude split model',
+    },
+  }),
+  mockExternalModel({
+    name: 'awaiting-pairing-model',
+    displayName: 'Awaiting Pairing Model',
+    description: 'Model waiting for subscription and auth pairing.',
+    modelName: 'awaiting-model',
+    phase: 'Pending',
+    statusMessage: 'External model is pending',
+    maaSModelRef: {
+      phase: 'Pending',
+      statusMessage: 'Awaiting governance pairing',
+    },
+  }),
+  mockExternalModel({
+    name: 'missing-ref-model',
+    displayName: 'Missing Ref Model',
+    description: 'External model without a MaaS model reference.',
+    modelName: 'missing-ref',
+    phase: 'Ready',
+    statusMessage: 'External model is ready',
+    maaSModelRef: undefined,
+  }),
+];

@@ -1,6 +1,41 @@
 import { useQuery, type UseQueryResult } from '@tanstack/react-query';
 import { fetchS3File } from '~/app/hooks/queries';
-import type { AutoRAGEvaluationResult } from '~/app/types/autoragPattern';
+import type {
+  AutoRAGEvaluationResult,
+  AutoRAGEvaluationMetricResult,
+} from '~/app/types/autoragPattern';
+
+export type RawEvaluationResult = {
+  question: string;
+  correct_answers: string[]; // eslint-disable-line camelcase
+  question_id?: string; // eslint-disable-line camelcase
+  answer: string;
+  answer_contexts: { text: string; document_id: string }[]; // eslint-disable-line camelcase
+} & ({ metrics: AutoRAGEvaluationMetricResult[] } | { scores: Record<string, number> });
+
+export function normalizeEvaluationResult(raw: RawEvaluationResult): AutoRAGEvaluationResult {
+  const metrics: AutoRAGEvaluationMetricResult[] =
+    'metrics' in raw && Array.isArray(raw.metrics)
+      ? raw.metrics
+      : 'scores' in raw && typeof raw.scores === 'object'
+        ? Object.entries(raw.scores).map(([name, score]) => ({
+            name,
+            evaluator: 'unitxt',
+            score: typeof score === 'number' ? score : NaN,
+          }))
+        : [];
+
+  return {
+    question: raw.question,
+    correct_answers: raw.correct_answers, // eslint-disable-line camelcase
+    // V1 results include question_id; V2 may omit it.
+    // When absent, comparison matching falls back to array index.
+    question_id: raw.question_id, // eslint-disable-line camelcase
+    answer: raw.answer,
+    answer_contexts: raw.answer_contexts, // eslint-disable-line camelcase
+    metrics,
+  };
+}
 
 /**
  * Lazily fetches evaluation_results.json for a single pattern from S3.
@@ -40,7 +75,7 @@ export function usePatternEvaluationResults(
       }
 
       // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-      return parsed as AutoRAGEvaluationResult[];
+      return (parsed as RawEvaluationResult[]).map(normalizeEvaluationResult);
     },
     enabled: enabled && Boolean(namespace && key),
     retry: false,

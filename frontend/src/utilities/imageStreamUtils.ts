@@ -12,6 +12,7 @@ import {
 } from '#~/types';
 import { ImageStreamKind, ImageStreamSpecTagType, ImageStreamStatusTag } from '#~/k8sTypes';
 import { ImageStreamModel } from '#~/api';
+import { OOTB_IMAGE_PROVIDER } from './const';
 
 export const buildLabelSelector = (labels: Record<string, string> | string): string =>
   typeof labels === 'string'
@@ -78,12 +79,44 @@ export const packagesToString = (packages: BYONImagePackage[]): string => {
   return '[]';
 };
 
+const getPreferredTag = (
+  image: ImageStreamKind,
+  isOOTBImage: boolean,
+): ImageStreamSpecTagType | undefined => {
+  const tags = image.spec.tags || [];
+  if (!isOOTBImage) {
+    return tags[0];
+  }
+
+  return (
+    tags.find((t) => t.annotations?.[ImageStreamSpecTagAnnotation.RECOMMENDED] === 'true') ||
+    tags.find((t) => t.annotations?.[ImageStreamSpecTagAnnotation.DEFAULT] === 'true') ||
+    tags[0]
+  );
+};
+
 export const mapImageStreamToBYONImage = (image: ImageStreamKind): BYONImage => {
-  const { metadata, spec } = image;
+  const { metadata } = image;
   const annotations = metadata.annotations ?? {};
   const labels = metadata.labels ?? {};
-  const tag = spec.tags?.[0];
+  const isOOTBImage = !isBYONImage(image);
+  const tag = getPreferredTag(image, isOOTBImage);
   const tagAnnotations = tag?.annotations ?? {};
+
+  const getProvider = (): string => {
+    const creator = annotations[ImageStreamAnnotation.CREATOR];
+    if (creator) {
+      return creator;
+    }
+    return isOOTBImage ? OOTB_IMAGE_PROVIDER : '';
+  };
+
+  const getVisible = (): boolean => {
+    if (isOOTBImage) {
+      return annotations[ImageStreamAnnotation.HIDDEN] !== 'true';
+    }
+    return labels[ImageStreamLabel.NOTEBOOK] === 'true';
+  };
 
   return {
     id: metadata.uid || '',
@@ -95,8 +128,8 @@ export const mapImageStreamToBYONImage = (image: ImageStreamKind): BYONImage => 
       metadata.name,
     description:
       annotations[ImageStreamAnnotation.DESC] || annotations[DisplayNameAnnotation.DESC] || '',
-    visible: labels[ImageStreamLabel.NOTEBOOK] === 'true',
-    error: getBYONImageErrorMessage(image) ?? '',
+    visible: getVisible(),
+    error: isOOTBImage ? '' : getBYONImageErrorMessage(image) ?? '',
     packages: safeJSONParse<BYONImagePackage>(
       tagAnnotations[ImageStreamSpecTagAnnotation.DEPENDENCIES] || '',
     ),
@@ -106,10 +139,11 @@ export const mapImageStreamToBYONImage = (image: ImageStreamKind): BYONImage => 
     // eslint-disable-next-line camelcase
     imported_time: metadata.creationTimestamp || '',
     url: annotations[ImageStreamAnnotation.URL] || '',
-    provider: annotations[ImageStreamAnnotation.CREATOR],
+    provider: getProvider(),
     recommendedAcceleratorIdentifiers: safeJSONParse<string>(
       annotations[ImageStreamAnnotation.RECOMMENDED_ACCELERATORS],
     ),
+    isOOTB: isOOTBImage,
   };
 };
 

@@ -27,19 +27,7 @@ var _ = Describe("ModelsAAHandler", func() {
 	var app App
 
 	BeforeEach(func() {
-		k8sFactory, err := k8smocks.NewTokenClientFactory(testK8sClient, testCfg, slog.Default())
-		require.NoError(GinkgoT(), err)
-
-		llamaStackClientFactory := lsmocks.NewMockClientFactory()
-		app = App{
-			config: config.EnvConfig{
-				Port: 4000,
-			},
-			logger:                  slog.Default(),
-			kubernetesClientFactory: k8sFactory,
-			llamaStackClientFactory: llamaStackClientFactory,
-			repositories:            repositories.NewRepositories(),
-		}
+		app = NewK8sLSTestApp()
 	})
 
 	It("should return 200 with AA models data when models are found", func() {
@@ -431,6 +419,58 @@ var _ = Describe("fetchMaaSModels", func() {
 		assert.Equal(t, "Test Description", model.Description)
 		assert.Equal(t, "Test Use Case", model.Usecase)
 		assert.Equal(t, models.ModelTypeLLM, model.ModelType)
+		assert.Equal(t, []string{"text-generation"}, model.Capabilities,
+			"MaaS models without explicit capabilities must default to text-generation")
+	})
+
+	It("should map MaaS modelCapabilities to normalized AAModel capabilities", func() {
+		t := GinkgoT()
+
+		mockMaaSClient := bffmocks.NewMockBFFClient(bffclient.BFFTargetMaaS)
+		mockMaaSClient.CallHandler = func(ctx context.Context, method, path string, body interface{}, response interface{}) error {
+			maasResp := models.MaaSBFFModelsResponse{
+				Data: models.MaaSBFFModelsData{
+					Object: "list",
+					Data: []models.MaaSBFFModel{
+						{
+							ID:    "whisper-large-v3-turbo-maas",
+							Ready: true,
+							URL:   "https://maas.example.com/v1",
+							ModelDetails: &models.MaaSBFFModelDetails{
+								DisplayName:       "Whisper Large V3 Turbo",
+								ModelCapabilities: []string{"audio-transcription"},
+							},
+						},
+						{
+							ID:    "gemini-vision-model",
+							Ready: true,
+							URL:   "https://maas.example.com/v1",
+							ModelDetails: &models.MaaSBFFModelDetails{
+								DisplayName:       "Gemini Vision",
+								ModelCapabilities: []string{"vision"},
+							},
+						},
+					},
+				},
+			}
+			respBytes, _ := json.Marshal(maasResp)
+			return json.Unmarshal(respBytes, response)
+		}
+
+		ctx := context.WithValue(context.Background(), constants.BFFClientKey(constants.BFFTarget(bffclient.BFFTargetMaaS)), mockMaaSClient)
+		aaModels, err := app.fetchMaaSModels(ctx, "test-namespace")
+
+		assert.NoError(t, err)
+		assert.Len(t, aaModels, 2)
+
+		assert.Equal(t, "whisper-large-v3-turbo-maas", aaModels[0].ModelID)
+		assert.Contains(t, aaModels[0].Capabilities, "audio-transcription")
+		assert.NotContains(t, aaModels[0].Capabilities, "text-generation",
+			"ASR-only models should not have text-generation injected")
+
+		assert.Equal(t, "gemini-vision-model", aaModels[1].ModelID)
+		assert.Contains(t, aaModels[1].Capabilities, "vision")
+		assert.Contains(t, aaModels[1].Capabilities, "text-generation")
 	})
 })
 

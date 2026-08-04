@@ -1,5 +1,17 @@
-type Never<Type> = {
-  [K in keyof Type]?: never;
-};
+export type UpdateObjectAtPropAndValue<T> = <K extends keyof T>(
+  propKey: K,
+  propValue: T[K],
+) => void;
 
-export type EitherNotBoth<TypeA, TypeB> = (TypeA & Never<TypeB>) | (TypeB & Never<TypeA>);
+export enum IconSize {
+  SM = 'sm',
+  MD = 'md',
+  LG = 'lg',
+  XL = 'xl',
+  XXL = 'xxl',
+}
+
+export type Namespace = {
+  name: string;
+  displayName?: string;
+};

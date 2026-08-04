@@ -174,7 +174,7 @@ describe('ExtensibleDetailTabs', () => {
     expect(screen.getByRole('region', { name: 'Model details tabs' })).toBeInTheDocument();
   });
 
-  it('should render Badge when extension has a label', () => {
+  it('should render Label when extension has a label', () => {
     const extensionTabs = [createMockTabExtension('metrics', 'Metrics', { label: '3' })];
 
     render(
@@ -194,10 +194,10 @@ describe('ExtensibleDetailTabs', () => {
     );
 
     expect(screen.getByText('3')).toBeInTheDocument();
-    expect(screen.getByText('3').closest('.pf-v6-c-badge')).toBeInTheDocument();
+    expect(screen.getByText('3').closest('.pf-v6-c-label')).toBeInTheDocument();
   });
 
-  it('should not render Badge when extension label is undefined', () => {
+  it('should not render Label when extension label is undefined', () => {
     const extensionTabs = [createMockTabExtension('metrics', 'Metrics')];
 
     render(
@@ -217,6 +217,6 @@ describe('ExtensibleDetailTabs', () => {
     );
 
     expect(screen.getByTestId('metrics-tab')).toBeInTheDocument();
-    expect(document.querySelector('.pf-v6-c-badge')).toBeNull();
+    expect(document.querySelector('.pf-v6-c-label')).toBeNull();
   });
 });

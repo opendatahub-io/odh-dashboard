@@ -12,55 +12,101 @@ import (
 
 // ModuleDefinition describes a module's static properties.
 type ModuleDefinition struct {
-	Name          string
-	ContainerName string
-	Port          int32
-	ImageEnvVar   string
+	Name                    string
+	ContainerName           string
+	Port                    int32
+	ImageEnvVar             string
+	RequiredDSCComponents   []string
+	InterModuleDependencies []string
+	ManifestSlug            string
 }
 
 var moduleRegistry = map[string]ModuleDefinition{
 	"modelRegistry": {
 		Name: "modelRegistry", ContainerName: "model-registry-ui", Port: 8043,
-		ImageEnvVar: "RELATED_IMAGE_ODH_MOD_ARCH_MODEL_REGISTRY_IMAGE",
+		ImageEnvVar:           "RELATED_IMAGE_ODH_MOD_ARCH_MODEL_REGISTRY_IMAGE",
+		RequiredDSCComponents: []string{"modelregistry"},
+		ManifestSlug:          "model-registry",
 	},
 	"genAi": {
 		Name: "genAi", ContainerName: "gen-ai-ui", Port: 8143,
-		ImageEnvVar: "RELATED_IMAGE_ODH_MOD_ARCH_GEN_AI_IMAGE",
+		ImageEnvVar:  "RELATED_IMAGE_ODH_MOD_ARCH_GEN_AI_IMAGE",
+		ManifestSlug: "gen-ai",
 	},
 	"mlflow": {
 		Name: "mlflow", ContainerName: "mlflow-ui", Port: 8343,
-		ImageEnvVar: "RELATED_IMAGE_ODH_MOD_ARCH_MLFLOW_IMAGE",
+		ImageEnvVar:           "RELATED_IMAGE_ODH_MOD_ARCH_MLFLOW_IMAGE",
+		RequiredDSCComponents: []string{"mlflowoperator"},
+		ManifestSlug:          "mlflow",
 	},
 	"maas": {
 		Name: "maas", ContainerName: "maas-ui", Port: 8243,
-		ImageEnvVar: "RELATED_IMAGE_ODH_MOD_ARCH_MAAS_IMAGE",
+		ImageEnvVar:  "RELATED_IMAGE_ODH_MOD_ARCH_MAAS_IMAGE",
+		ManifestSlug: "maas",
 	},
 	"evalHub": {
-		Name: "evalHub", ContainerName: "eval-hub-ui", Port: 8443,
-		ImageEnvVar: "RELATED_IMAGE_ODH_MOD_ARCH_EVAL_HUB_IMAGE",
+		Name: "evalHub", ContainerName: "eval-hub-ui", Port: 8543,
+		ImageEnvVar:           "RELATED_IMAGE_ODH_MOD_ARCH_EVAL_HUB_IMAGE",
+		RequiredDSCComponents: []string{"trustyai"},
+		ManifestSlug:          "eval-hub",
 	},
 	"automl": {
-		Name: "automl", ContainerName: "automl-ui", Port: 8543,
-		ImageEnvVar: "RELATED_IMAGE_ODH_MOD_ARCH_AUTOML_IMAGE",
+		Name: "automl", ContainerName: "automl-ui", Port: 8643,
+		ImageEnvVar:           "RELATED_IMAGE_ODH_MOD_ARCH_AUTOML_IMAGE",
+		RequiredDSCComponents: []string{"aipipelines"},
+		ManifestSlug:          "automl",
 	},
 	"autorag": {
-		Name: "autorag", ContainerName: "autorag-ui", Port: 8643,
-		ImageEnvVar: "RELATED_IMAGE_ODH_MOD_ARCH_AUTORAG_IMAGE",
+		Name: "autorag", ContainerName: "autorag-ui", Port: 8743,
+		ImageEnvVar:             "RELATED_IMAGE_ODH_MOD_ARCH_AUTORAG_IMAGE",
+		RequiredDSCComponents:   []string{"aipipelines"},
+		InterModuleDependencies: []string{"genAi"},
+		ManifestSlug:            "autorag",
 	},
 	"agentOps": {
 		Name: "agentOps", ContainerName: "agent-ops-ui", Port: 8843,
-		ImageEnvVar: "RELATED_IMAGE_ODH_MOD_ARCH_AGENT_OPS_IMAGE",
+		ImageEnvVar:  "RELATED_IMAGE_ODH_MOD_ARCH_AGENT_OPS_IMAGE",
+		ManifestSlug: "agent-ops",
 	},
 }
 
 // resolveModuleStatuses determines the status of each module based on
-// spec overrides. All registered modules are deployed by default unless
-// explicitly disabled.
+// DSC component availability, spec overrides, and inter-module dependencies.
+// It uses a three-pass algorithm:
+//
+//	Pass 1: DSC component gate + explicit CR overrides
+//	Pass 2: Inter-module dependency resolution (transitive propagation)
+//	Pass 3: Unknown module detection
 func resolveModuleStatuses(spec *v1alpha1.DashboardSpec) map[string]v1alpha1.ModuleStatus {
 	now := metav1.Now()
 	result := make(map[string]v1alpha1.ModuleStatus, len(moduleRegistry))
 
-	for name := range moduleRegistry {
+	// Pass 1: DSC component gate + explicit CR overrides
+	for name, mod := range moduleRegistry {
+		// Check DSC component dependencies (only when Components map is non-nil)
+		if len(mod.RequiredDSCComponents) > 0 && spec.Components != nil {
+			disabled := false
+			for _, comp := range mod.RequiredDSCComponents {
+				ca, exists := spec.Components[comp]
+				if !exists || (ca.ManagementState != "Managed" && ca.ManagementState != "Unmanaged") {
+					result[name] = v1alpha1.ModuleStatus{
+						Phase:              v1alpha1.ModulePhaseDisabled,
+						Reason:             "ComponentNotAvailable",
+						Message:            fmt.Sprintf("Required DSC component %q is not available", comp),
+						LastTransitionTime: now,
+					}
+					disabled = true
+
+					break
+				}
+			}
+
+			if disabled {
+				continue
+			}
+		}
+
+		// Check explicit CR override
 		if override, ok := spec.Modules[name]; ok && override.State == v1alpha1.ModuleDisabled {
 			result[name] = v1alpha1.ModuleStatus{
 				Phase:              v1alpha1.ModulePhaseDisabled,
@@ -72,6 +118,7 @@ func resolveModuleStatuses(spec *v1alpha1.DashboardSpec) map[string]v1alpha1.Mod
 			continue
 		}
 
+		// Tentatively enabled
 		result[name] = v1alpha1.ModuleStatus{
 			Phase:              v1alpha1.ModulePhaseDeployed,
 			Reason:             "Deployed",
@@ -80,6 +127,35 @@ func resolveModuleStatuses(spec *v1alpha1.DashboardSpec) map[string]v1alpha1.Mod
 		}
 	}
 
+	// Pass 2: Inter-module dependency resolution (propagate transitively)
+	changed := true
+	for changed {
+		changed = false
+
+		for name, mod := range moduleRegistry {
+			s := result[name]
+			if s.Phase != v1alpha1.ModulePhaseDeployed {
+				continue
+			}
+
+			for _, dep := range mod.InterModuleDependencies {
+				depStatus, ok := result[dep]
+				if !ok || depStatus.Phase == v1alpha1.ModulePhaseDisabled || depStatus.Phase == v1alpha1.ModulePhaseNotDeployed {
+					result[name] = v1alpha1.ModuleStatus{
+						Phase:              v1alpha1.ModulePhaseDisabled,
+						Reason:             "DependencyNotMet",
+						Message:            fmt.Sprintf("Required module %q is not available", dep),
+						LastTransitionTime: now,
+					}
+					changed = true
+
+					break
+				}
+			}
+		}
+	}
+
+	// Pass 3: Unknown module detection
 	for name := range spec.Modules {
 		if _, known := moduleRegistry[name]; !known {
 			result[name] = v1alpha1.ModuleStatus{

@@ -1,11 +1,10 @@
 import React from 'react';
+import type { ModelDeployPrefillInfo } from '@odh-dashboard/model-registry/shared';
 import { ModelVersion } from '~/app/types';
 import { ModelRegistryContext } from '~/odh/api';
 import { ModelRegistrySelectorContext } from '~/app/context/ModelRegistrySelectorContext';
 import { bumpBothTimestamps } from '~/app/api/updateTimestamps';
-import useRegisteredModelDeployPrefillInfo, {
-  ModelDeployPrefillInfo,
-} from '~/odh/hooks/useRegisteredModelDeployPrefillInfo';
+import useRegisteredModelDeployPrefillInfo from '~/odh/hooks/useRegisteredModelDeployPrefillInfo';
 
 const MRDeployFormDataLoader = ({
   mv,
@@ -37,13 +36,7 @@ const MRDeployFormDataLoader = ({
     }
   }, [apiState.api, mv, registeredModel]);
 
-  const modelDeployPrefill: {
-    data: ModelDeployPrefillInfo;
-    loaded: boolean;
-    error: Error | undefined;
-  } | null = loaded && !error ? { data: modelDeployPrefillInfo, loaded, error } : null;
-
-  return modelDeployPrefill ? renderData(modelDeployPrefill, onSubmit) : null;
+  return renderData({ data: modelDeployPrefillInfo, loaded, error }, onSubmit);
 };
 
 export default MRDeployFormDataLoader;

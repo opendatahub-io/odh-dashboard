@@ -6,6 +6,11 @@ import McpCatalogCard from '~/app/pages/mcpCatalog/components/McpCatalogCard';
 import type { McpServer } from '~/app/mcpServerCatalogTypes';
 import { mcpServerDetailsUrl } from '~/app/routes/mcpCatalog/mcpCatalog';
 
+jest.mock('@odh-dashboard/plugin-core', () => ({
+  useExtensions: () => [],
+  LazyCodeRefComponent: () => null,
+}));
+
 const wrapper = ({ children }: { children: React.ReactNode }) => (
   <MemoryRouter>{children}</MemoryRouter>
 );

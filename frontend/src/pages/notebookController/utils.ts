@@ -1,18 +1,19 @@
 import { stopNotebook } from '#~/services/notebookService';
-import { Notebook, TypedPromiseRejectedResult } from '#~/types';
+import { TypedPromiseRejectedResult } from '#~/types';
+import { NotebookKind } from '#~/k8sTypes';
 import { allSettledPromises } from '#~/utilities/allSettledPromises';
 
 export const stopWorkbenches = (
-  notebooksToStop: Notebook[],
+  notebooksToStop: NotebookKind[],
   isAdmin: boolean,
 ): Promise<
   [
-    PromiseFulfilledResult<Notebook | void>[],
+    PromiseFulfilledResult<NotebookKind | void>[],
     TypedPromiseRejectedResult<undefined>[],
-    PromiseSettledResult<Notebook | void>[],
+    PromiseSettledResult<NotebookKind | void>[],
   ]
 > =>
-  allSettledPromises<Notebook | void>(
+  allSettledPromises<NotebookKind | void>(
     notebooksToStop.map((notebook) => {
       const notebookName = notebook.metadata.name || '';
       if (!notebookName) {

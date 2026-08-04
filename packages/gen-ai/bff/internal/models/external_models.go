@@ -40,8 +40,9 @@ const (
 type ModelTypeEnum string
 
 const (
-	ModelTypeEmbedding ModelTypeEnum = "embedding"
-	ModelTypeLLM       ModelTypeEnum = "llm"
+	ModelTypeEmbedding     ModelTypeEnum = "embedding"
+	ModelTypeLLM           ModelTypeEnum = "llm"
+	ModelTypeTranscription ModelTypeEnum = "transcription"
 )
 
 // ExternalModelsConfig represents the structure of the gen-ai-aa-custom-model-endpoints ConfigMap

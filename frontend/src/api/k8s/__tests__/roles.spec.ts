@@ -1,21 +1,31 @@
-import { k8sCreateResource, k8sGetResource } from '@openshift/dynamic-plugin-sdk-utils';
+import {
+  k8sCreateResource,
+  k8sGetResource,
+  k8sUpdateResource,
+} from '@openshift/dynamic-plugin-sdk-utils';
 import { KnownLabels } from '@odh-dashboard/k8s-core';
 import { mockRoleK8sResource } from '#~/__mocks__/mockRoleK8sResource';
 import { RoleKind } from '#~/k8sTypes';
-import { createRole, generateRoleInferenceService, getRole } from '#~/api/k8s/roles';
+import { createRole, generateRoleInferenceService, getRole, updateRole } from '#~/api/k8s/roles';
 import { RoleModel } from '#~/api/models/k8s';
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
   k8sGetResource: jest.fn(),
   k8sCreateResource: jest.fn(),
   k8sDeleteResource: jest.fn(),
+  k8sUpdateResource: jest.fn(),
 }));
 
 const k8sGetResourceMock = jest.mocked(k8sGetResource);
 const k8sCreateResourceMock = jest.mocked(k8sCreateResource);
+const k8sUpdateResourceMock = jest.mocked(k8sUpdateResource<RoleKind>);
 
 const namespace = 'namespace';
 const roleMock = mockRoleK8sResource({ name: 'roleName', namespace });
+
+beforeEach(() => {
+  jest.clearAllMocks();
+});
 
 describe('generateRoleInferenceService', () => {
   it('should generate role for inference service', () => {
@@ -84,6 +94,33 @@ describe('createRole', () => {
     await expect(createRole(roleMock)).rejects.toThrow('error1');
     expect(k8sCreateResourceMock).toHaveBeenCalledTimes(1);
     expect(k8sCreateResourceMock).toHaveBeenCalledWith({
+      fetchOptions: { requestInit: {} },
+      model: RoleModel,
+      queryOptions: { queryParams: {} },
+      resource: roleMock,
+    });
+  });
+});
+
+describe('updateRole', () => {
+  it('should update role', async () => {
+    k8sUpdateResourceMock.mockResolvedValue(roleMock);
+    const result = await updateRole(roleMock);
+    expect(k8sUpdateResourceMock).toHaveBeenCalledWith({
+      fetchOptions: { requestInit: {} },
+      model: RoleModel,
+      queryOptions: { queryParams: {} },
+      resource: roleMock,
+    });
+    expect(k8sUpdateResourceMock).toHaveBeenCalledTimes(1);
+    expect(result).toStrictEqual(roleMock);
+  });
+
+  it('should handle errors and rethrow', async () => {
+    k8sUpdateResourceMock.mockRejectedValue(new Error('error1'));
+    await expect(updateRole(roleMock)).rejects.toThrow('error1');
+    expect(k8sUpdateResourceMock).toHaveBeenCalledTimes(1);
+    expect(k8sUpdateResourceMock).toHaveBeenCalledWith({
       fetchOptions: { requestInit: {} },
       model: RoleModel,
       queryOptions: { queryParams: {} },

@@ -1,7 +1,10 @@
 import React from 'react';
+import useFetchState, {
+  FetchState,
+  FetchStateCallbackPromise,
+} from '@odh-dashboard/ui-core/hooks/useFetchState';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import { ExperimentKF, PipelinesFilterOp } from '#~/concepts/pipelines/kfTypes';
-import useFetchState, { FetchState, FetchStateCallbackPromise } from '#~/utilities/useFetchState';
 
 /**
  * Fetch the first created experiment and check it's name to make sure it's default experiment

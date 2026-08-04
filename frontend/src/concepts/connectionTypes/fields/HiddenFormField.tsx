@@ -1,12 +1,12 @@
 import * as React from 'react';
 import { EyeIcon } from '@patternfly/react-icons';
 import { Button, Flex, FlexItem, Popover } from '@patternfly/react-core';
+import { trimInputOnBlur, trimInputOnPaste } from '@odh-dashboard/ui-core/utilities';
 import { HiddenField } from '#~/concepts/connectionTypes/types';
 import PasswordInput from '#~/components/PasswordInput';
 import { FieldProps } from '#~/concepts/connectionTypes/fields/types';
 import FormGroupText from '#~/components/FormGroupText';
 import UnspecifiedValue from '#~/concepts/connectionTypes/fields/UnspecifiedValue';
-import { trimInputOnBlur, trimInputOnPaste } from '#~/utilities/trimInput';
 import { SensitiveFieldHelperText } from './SensitiveFieldHelperText';
 
 const HiddenFormField: React.FC<FieldProps<HiddenField>> = ({

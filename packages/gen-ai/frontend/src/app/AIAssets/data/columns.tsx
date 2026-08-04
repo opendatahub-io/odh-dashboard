@@ -33,6 +33,12 @@ export const aiModelColumns: SortableData<AIModel>[] = [
     width: 15,
   },
   {
+    field: 'capabilities',
+    label: 'Capabilities',
+    sortable: false,
+    width: 15,
+  },
+  {
     field: 'status',
     label: 'Status',
     sortable: false,

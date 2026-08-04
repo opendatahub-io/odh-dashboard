@@ -1,8 +1,8 @@
 import React from 'react';
 import { FormGroup, HelperText, Form, FormHelperText } from '@patternfly/react-core';
+import ContentModal from '@odh-dashboard/ui-core/components/ContentModal';
 import ProjectSelector from '#~/concepts/projects/ProjectSelector';
 import { Connection } from '#~/concepts/connectionTypes/types';
-import ContentModal from '#~/components/modals/ContentModal';
 import { ModelLocationType } from '#~/concepts/modelRegistry/types';
 import { ConnectionDropdown } from './ConnectionDropdown';
 

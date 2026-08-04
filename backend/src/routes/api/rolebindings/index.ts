@@ -3,7 +3,7 @@ import { FastifyReply, FastifyRequest } from 'fastify';
 import { V1RoleBinding } from '@kubernetes/client-node';
 import { secureRoute } from '../../../utils/route-security';
 
-module.exports = async (fastify: KubeFastifyInstance) => {
+export default async (fastify: KubeFastifyInstance): Promise<void> => {
   fastify.get(
     '/:namespace/:name',
     secureRoute(fastify)(

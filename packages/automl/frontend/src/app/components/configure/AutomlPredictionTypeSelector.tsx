@@ -5,6 +5,7 @@ import {
   AccordionContent,
   AccordionItem,
   AccordionToggle,
+  Button,
   Card,
   CardBody,
   CardHeader,
@@ -13,6 +14,7 @@ import {
   Flex,
   FlexItem,
   Label,
+  Popover,
   Stack,
   StackItem,
 } from '@patternfly/react-core';
@@ -57,9 +59,6 @@ const PredictionTypeCard: React.FC<PredictionTypeCardProps> = ({
     return null;
   }
 
-  const reasonText = assessment.isRecommended
-    ? assessment.recommendationReason
-    : assessment.notRecommendedReason;
   const titleId = `task-type-label-${assessment.value}`;
 
   return (
@@ -94,45 +93,36 @@ const PredictionTypeCard: React.FC<PredictionTypeCardProps> = ({
             <CardTitle id={titleId}>{option.label}</CardTitle>
           </FlexItem>
           <FlexItem shrink={{ default: 'shrink' }}>
-            {assessment.isRecommended ? (
-              <Label
-                color="blue"
-                isCompact
-                data-testid={`task-type-badge-recommended-${assessment.value}`}
-              >
-                Recommended
-              </Label>
-            ) : (
-              <Label
-                color="yellow"
-                icon={<WarningTriangleIcon />}
-                isCompact
-                data-testid={`task-type-badge-not-recommended-${assessment.value}`}
-              >
-                Not recommended
-              </Label>
-            )}
+            <Popover bodyContent={option.popoverText} position="top" enableFlip={false}>
+              {assessment.isRecommended ? (
+                <Button
+                  variant="plain"
+                  aria-label={`${option.label} recommendation info`}
+                  isInline
+                  data-testid={`task-type-badge-recommended-${assessment.value}`}
+                >
+                  <Label color="blue" isCompact>
+                    Recommended
+                  </Label>
+                </Button>
+              ) : (
+                <Button
+                  variant="plain"
+                  aria-label={`${option.label} not recommended info`}
+                  isInline
+                  data-testid={`task-type-badge-not-recommended-${assessment.value}`}
+                >
+                  <Label color="yellow" icon={<WarningTriangleIcon />} isCompact>
+                    Not recommended
+                  </Label>
+                </Button>
+              )}
+            </Popover>
           </FlexItem>
         </Flex>
       </CardHeader>
       <CardBody>
-        <Stack>
-          <StackItem>
-            <Content component="small">{option.description}</Content>
-          </StackItem>
-          {reasonText && (
-            <StackItem>
-              <Content
-                component="small"
-                className={classNames({
-                  'automl-prediction-type__reason--not-recommended': !assessment.isRecommended,
-                })}
-              >
-                <em>{reasonText}</em>
-              </Content>
-            </StackItem>
-          )}
-        </Stack>
+        <Content component="small">{option.description}</Content>
       </CardBody>
     </Card>
   );

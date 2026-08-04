@@ -2,8 +2,7 @@ import * as React from 'react';
 import '@testing-library/jest-dom';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-// eslint-disable-next-line @odh-dashboard/no-restricted-imports
-import { ModelDeploymentState } from '@odh-dashboard/internal/pages/modelServing/screens/types';
+import { ModelDeploymentState } from '@odh-dashboard/model-serving/shared';
 import { Deployment } from '../../extension-points';
 import { mockExtensions } from '../../src/__tests__/mockUtils';
 import ModelDetailsDeploymentCard from '../ModelDetailsDeploymentCard';
@@ -11,7 +10,7 @@ import { ModelDeploymentsContext } from '../../src/concepts/ModelDeploymentsCont
 
 jest.mock('@odh-dashboard/plugin-core');
 
-jest.mock('@odh-dashboard/internal/concepts/projects/ProjectsContext', () => {
+jest.mock('@odh-dashboard/ui-core/context/ProjectsContext', () => {
   const { createContext } = require('react');
   return { ProjectsContext: createContext({ projects: [] }) };
 });
@@ -104,6 +103,7 @@ describe('ModelDetailsDeploymentCard', () => {
       renderWithContext([deployment], <ModelDetailsDeploymentCard rmId="1" mrName="test-mr" />);
 
       expect(screen.getByTestId('metrics-link-test-deployment')).toBeInTheDocument();
+      expect(screen.getByTestId('deployed-model-name')).toBeInTheDocument();
     });
 
     it('should render metrics link when deployment state is LOADED and stopped', () => {
@@ -124,6 +124,7 @@ describe('ModelDetailsDeploymentCard', () => {
       renderWithContext([deployment], <ModelDetailsDeploymentCard rmId="1" mrName="test-mr" />);
 
       expect(screen.getByTestId('metrics-link-test-deployment')).toBeInTheDocument();
+      expect(screen.getByTestId('deployed-model-name')).toBeInTheDocument();
     });
   });
 });

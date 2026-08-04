@@ -4,19 +4,13 @@
   "description": "Configuration and utilities for application",
   "version": "0.0.0",
   "bin": {
-    "package-subtree": "./scripts/package-subtree.sh"
+    "package-subtree": "./scripts/package-subtree.sh",
+    "package-subtree-local": "./scripts/package-subtree-local.sh"
   },
   "exports": {
-    ".": {
-      "development": "./src/index.ts",
-      "types": "./dist/index.d.ts",
-      "import": "./src/index.ts",
-      "require": "./dist/index.js",
-      "default": "./src/index.ts"
-    }
+    ".": "./src/index.ts"
   },
   "scripts": {
-    "build": "rimraf dist && tsc -p tsconfig.prod.json",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "test-unit": "jest --silent",

@@ -19,10 +19,12 @@ const useSecurityArtifacts = (
   sourceId: string,
   modelName: string,
   namespace: string,
+  pageSize?: number,
 ): UseSecurityArtifactsResult => {
   const callback = React.useCallback<FetchStateCallbackPromise<CatalogSecurityArtifactList>>(
-    (opts: APIOptions) => getCatalogSecurityArtifacts('', sourceId, modelName, namespace)(opts),
-    [sourceId, modelName, namespace],
+    (opts: APIOptions) =>
+      getCatalogSecurityArtifacts('', sourceId, modelName, namespace, pageSize)(opts),
+    [sourceId, modelName, namespace, pageSize],
   );
 
   const [data, loaded, loadError] = useFetchState<CatalogSecurityArtifactList>(

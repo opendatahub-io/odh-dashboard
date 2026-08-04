@@ -1,5 +1,5 @@
 import { mockSelfSubjectAccessReview } from '@odh-dashboard/internal/__mocks__/mockSelfSubjectAccessReview';
-import { mockProjectsK8sList } from '@odh-dashboard/internal/__mocks__';
+import { mockProjectsK8sList } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import { createProjectModal, projectDetails, projectListPage } from '../../../pages/projects';
 import { ProjectModel, SelfSubjectAccessReviewModel } from '../../../utils/models';
 import { homePage } from '../../../pages/home/home';
