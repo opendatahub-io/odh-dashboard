@@ -42,6 +42,14 @@ const validateProjectBasics = (
   if (!data.namespace.trim()) {
     return { valid: false, message: 'Namespace is required.' };
   }
+  if (data.projectDirType === ProjectDirType.GIT) {
+    if (!data.feastProjectDir?.git?.url.trim()) {
+      return { valid: false, message: 'Git repository URL is required.' };
+    }
+    if (data.feastProjectDir.git.featureRepoPath?.startsWith('/')) {
+      return { valid: false, message: 'Feature repo path must not start with a slash.' };
+    }
+  }
   return { valid: true };
 };
 
@@ -61,7 +69,7 @@ const validateRegistry = (data: FeatureStoreFormData): ValidationResult => {
       if (!store?.type) {
         return { valid: false, message: 'Registry DB store type is required.' };
       }
-      if (!store.secretRef.name.trim()) {
+      if (!store.secretRef?.name.trim()) {
         return { valid: false, message: 'Registry DB store secret reference is required.' };
       }
     }
@@ -119,12 +127,6 @@ const validateAdvanced = (data: FeatureStoreFormData): ValidationResult => {
   if (data.authzType === AuthzType.OIDC) {
     if (!data.authz?.oidc?.secretRef?.name.trim()) {
       return { valid: false, message: 'OIDC secret reference is required.' };
-    }
-  }
-
-  if (data.projectDirType === ProjectDirType.GIT) {
-    if (!data.feastProjectDir?.git?.url.trim()) {
-      return { valid: false, message: 'Git repository URL is required.' };
     }
   }
 

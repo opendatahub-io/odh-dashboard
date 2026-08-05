@@ -105,6 +105,56 @@ describe('validateFeatureStoreForm', () => {
       expect(result.projectBasics.valid).toBe(false);
       expect(result.projectBasics.message).toBe('Namespace is required.');
     });
+
+    it('should fail when Git is selected but URL is empty', () => {
+      const data = makeFormData({
+        feastProject: 'test',
+        namespace: 'ns',
+        projectDirType: ProjectDirType.GIT,
+        feastProjectDir: { git: { url: '', ref: '' } },
+      });
+      const result = validateFeatureStoreForm(data, []);
+      expect(result.projectBasics.valid).toBe(false);
+      expect(result.projectBasics.message).toBe('Git repository URL is required.');
+    });
+
+    it('should pass when Git is selected with valid URL', () => {
+      const data = makeFormData({
+        feastProject: 'test',
+        namespace: 'ns',
+        projectDirType: ProjectDirType.GIT,
+        feastProjectDir: { git: { url: 'https://github.com/example/repo.git', ref: 'main' } },
+      });
+      const result = validateFeatureStoreForm(data, []);
+      expect(result.projectBasics.valid).toBe(true);
+    });
+
+    it('should fail when Git feature repo path starts with a slash', () => {
+      const data = makeFormData({
+        feastProject: 'test',
+        namespace: 'ns',
+        projectDirType: ProjectDirType.GIT,
+        feastProjectDir: {
+          git: { url: 'https://github.com/example/repo.git', featureRepoPath: '/feature_repo' },
+        },
+      });
+      const result = validateFeatureStoreForm(data, []);
+      expect(result.projectBasics.valid).toBe(false);
+      expect(result.projectBasics.message).toBe('Feature repo path must not start with a slash.');
+    });
+
+    it('should pass when Git feature repo path is a valid relative path', () => {
+      const data = makeFormData({
+        feastProject: 'test',
+        namespace: 'ns',
+        projectDirType: ProjectDirType.GIT,
+        feastProjectDir: {
+          git: { url: 'https://github.com/example/repo.git', featureRepoPath: 'feature_repo' },
+        },
+      });
+      const result = validateFeatureStoreForm(data, []);
+      expect(result.projectBasics.valid).toBe(true);
+    });
   });
 
   describe('registry', () => {
@@ -413,24 +463,14 @@ describe('validateFeatureStoreForm', () => {
       expect(result.advanced.valid).toBe(true);
     });
 
-    it('should fail when Git is selected but URL is empty', () => {
+    it('should pass when Git is selected with valid URL (advanced still valid)', () => {
       const data = makeFormData({
         feastProject: 'test',
         namespace: 'ns',
         projectDirType: ProjectDirType.GIT,
-        feastProjectDir: { git: { url: '', ref: '' } },
-      });
-      const result = validateFeatureStoreForm(data, []);
-      expect(result.advanced.valid).toBe(false);
-      expect(result.advanced.message).toBe('Git repository URL is required.');
-    });
-
-    it('should pass when Git is selected with valid URL', () => {
-      const data = makeFormData({
-        feastProject: 'test',
-        namespace: 'ns',
-        projectDirType: ProjectDirType.GIT,
-        feastProjectDir: { git: { url: 'https://github.com/example/repo.git', ref: 'main' } },
+        feastProjectDir: {
+          git: { url: 'https://github.com/example/repo.git', featureRepoPath: 'feature_repo' },
+        },
       });
       const result = validateFeatureStoreForm(data, []);
       expect(result.advanced.valid).toBe(true);
