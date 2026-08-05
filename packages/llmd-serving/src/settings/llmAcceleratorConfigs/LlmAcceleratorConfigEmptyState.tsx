@@ -11,11 +11,6 @@ import {
 import { PlusCircleIcon } from '@patternfly/react-icons';
 import { Link } from 'react-router-dom';
 
-type AddConfigLinkProps = Omit<React.ComponentProps<typeof Link>, 'to'>;
-
-// Defined at module scope so the Button's element type stays referentially stable.
-const AddConfigLink: React.FC<AddConfigLinkProps> = (props) => <Link {...props} to="add" />;
-
 /**
  * Empty state for the accelerator configurations list. Carries its own add action
  * so administrators can create the first configuration — the list toolbar that
@@ -39,7 +34,7 @@ const LlmAcceleratorConfigEmptyState: React.FC = () => (
           <Button
             variant="primary"
             data-testid="add-accelerator-config-button"
-            component={AddConfigLink}
+            component={(props) => <Link {...props} to="add" />}
           >
             Add LLM accelerator configuration
           </Button>
