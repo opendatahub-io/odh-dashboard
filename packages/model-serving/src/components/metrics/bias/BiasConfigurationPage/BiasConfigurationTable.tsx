@@ -3,7 +3,7 @@ import { Button, ButtonVariant, ToolbarItem } from '@patternfly/react-core';
 import { DashboardEmptyTableView, Table } from '@odh-dashboard/ui-core';
 import DashboardSearchField, {
   SearchType,
-} from '@odh-dashboard/internal/concepts/dashboard/DashboardSearchField';
+} from '@odh-dashboard/ui-core/components/DashboardSearchField';
 import { BiasMetricConfig } from '@odh-dashboard/internal/concepts/trustyai/types';
 import { useModelBiasData } from '@odh-dashboard/internal/concepts/trustyai/context/useModelBiasData';
 import type { InferenceServiceKind } from '@odh-dashboard/model-serving/shared';

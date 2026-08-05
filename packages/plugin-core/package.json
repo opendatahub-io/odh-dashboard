@@ -17,6 +17,7 @@
     "./areas": "./src/areas/index.ts",
     "./host-api": "./src/host-api/index.ts",
     "./integrations": "./src/integrations/index.ts",
+    "./routing": "./src/routing/index.ts",
     "./testing": "./src/testing/utils.ts"
   },
   "dependencies": {

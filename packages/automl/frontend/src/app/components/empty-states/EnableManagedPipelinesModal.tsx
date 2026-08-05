@@ -1,6 +1,6 @@
 import React from 'react';
 import { Modal, ModalBody, ModalHeader, ModalFooter } from '@patternfly/react-core';
-import DashboardModalFooter from '@odh-dashboard/internal/concepts/dashboard/DashboardModalFooter';
+import DashboardModalFooter from '@odh-dashboard/ui-core/components/DashboardModalFooter';
 import ManagedPipelinesSettingsSection from '@odh-dashboard/internal/concepts/pipelines/content/configurePipelinesServer/ManagedPipelinesSettingsSection';
 
 type EnableManagedPipelinesModalProps = {

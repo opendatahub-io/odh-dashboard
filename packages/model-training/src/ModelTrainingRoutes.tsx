@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Navigate, Route } from 'react-router-dom';
-import ProjectsRoutes from '@odh-dashboard/internal/concepts/projects/ProjectsRoutes';
+import ProjectsRoutes from '@odh-dashboard/ui-core/components/ProjectsRoutes';
 import ModelTraining from './global/ModelTraining';
 import ModelTrainingCoreLoader from './global/ModelTrainingCoreLoader';
 

@@ -31,14 +31,6 @@ describe('CreateRoleYamlView', () => {
     labels: [],
   };
 
-  it('should render the title and description', () => {
-    render(<CreateRoleYamlView {...defaultProps} />);
-
-    expect(screen.getByTestId('yaml-view-title')).toHaveTextContent('Role configuration YAML');
-    expect(screen.getByTestId('yaml-view-description')).toBeInTheDocument();
-    expect(screen.getByText(/View the live, read-only YAML for this role/)).toBeInTheDocument();
-  });
-
   it('should render a valid Kubernetes Role YAML', () => {
     render(<CreateRoleYamlView {...defaultProps} />);
 

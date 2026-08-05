@@ -2854,6 +2854,10 @@ components:
           type: string
           description: Model identifier (matches the maas-api model ID and K8s MaaSModelRef name).
           example: granite-3-8b-instruct
+        namespace:
+          type: string
+          description: Namespace of the model.
+          example: maas-models
         modelDetails:
           $ref: '#/components/schemas/ModelOverviewDetails'
         subscriptions:
@@ -2868,6 +2872,7 @@ components:
             $ref: '#/components/schemas/ModelOverviewPolicy'
       required:
         - id
+        - namespace
         - subscriptions
         - authPolicies
 

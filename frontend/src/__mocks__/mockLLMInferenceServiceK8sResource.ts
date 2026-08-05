@@ -1,6 +1,6 @@
 import { type LLMInferenceServiceKind } from '@odh-dashboard/llmd-serving/types';
 import { ServingRuntimeModelType } from '@odh-dashboard/model-serving/shared';
-import { genUID } from '@odh-dashboard/internal/__mocks__/mockUtils';
+import { genUID } from '@odh-dashboard/foundation';
 import { ModelAnnotation } from '#~/pages/projects/screens/spawner/storage/types.ts';
 
 type MockLLMInferenceServiceConfigType = {
@@ -110,14 +110,15 @@ export const mockLLMInferenceServiceK8sResource = ({
             timeoutSeconds: 30,
           },
           name: 'main',
+          // `small-profile` HW profile
           resources: {
             limits: {
               cpu: '2',
-              memory: '8Gi',
+              memory: '4Gi',
             },
             requests: {
               cpu: '1',
-              memory: '4Gi',
+              memory: '2Gi',
             },
           },
         },

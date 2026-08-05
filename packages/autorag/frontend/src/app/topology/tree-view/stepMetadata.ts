@@ -15,6 +15,8 @@ import {
 export type StepDetail = {
   label: string;
   value: string;
+  /** Optional popover help shown next to the label. */
+  help?: { header: string; body: string };
 };
 
 export type StepMetadata = {
@@ -35,18 +37,19 @@ const STAGE_DESCRIPTIONS: Record<string, string> = {
     'Listing the available documents and sampling a subset to build the evaluation set.',
   write_descriptor: 'Writing the document descriptor used to track downstream processing.',
   load_descriptor: 'Loading the document descriptor to resume processing.',
-  extract_documents: 'Extracting and parsing document content for indexing and evaluation.',
-  prepare_search_space:
-    'Preparing the search space of chunking, embedding, retrieval, and generation options to explore.',
+  load_benchmark: 'Loading the benchmark and metrics configuration.',
+  discover_documents: 'Scanning knowledge sources for documents.',
+  extract_documents: 'Extracting and normalizing document content.',
+  prepare_search_space: 'Chunking documents and indexing embeddings in the vector store.',
   write_report: 'Writing the evaluation report summarizing pipeline results.',
   optimize_templates:
-    'Evaluating candidate RAG pattern configurations and selecting the top performers to run in parallel.',
+    'Testing prompt templates across parallel branches. Branch steps will show as pending until all branches complete.',
   run_optimization:
     'Running each candidate pattern through the RAG pipeline and scoring its responses.',
   write_patterns: 'Writing the evaluated pattern configurations and their scores.',
   build_requests: 'Building the request payloads used to query the RAG pipeline for each pattern.',
   write_artifacts: 'Writing pattern artifacts such as notebooks and configuration files.',
-  build_leaderboard: 'Building the leaderboard and ranking patterns by their optimized metric.',
+  build_leaderboard: 'Selecting the best-performing pattern for deployment.',
 };
 
 const STEP_DESCRIPTIONS: Record<string, string> = {
@@ -54,9 +57,31 @@ const STEP_DESCRIPTIONS: Record<string, string> = {
   embedding: 'Generating vector embeddings for each chunk.',
   retrieval: 'Retrieving the most relevant chunks for a given query.',
   generation: 'Generating an answer from the retrieved context.',
-  evaluation: 'Evaluating the generated answer against the evaluation dataset.',
+  evaluation: 'Comprehensive evaluation of the final pattern using holdout test data.',
 };
 /* eslint-enable camelcase */
+
+const getCuratedDescription = (nodeId: string): string | undefined => {
+  const parsed = parseStageMapNodeId(nodeId);
+  if (parsed?.type === 'stage' && Object.hasOwn(STAGE_DESCRIPTIONS, parsed.stageId)) {
+    return STAGE_DESCRIPTIONS[parsed.stageId];
+  }
+  if (parsed?.type === 'branch_step' && Object.hasOwn(STEP_DESCRIPTIONS, parsed.stepId)) {
+    return STEP_DESCRIPTIONS[parsed.stepId];
+  }
+
+  const stepId = extractStepId(nodeId);
+  if (stepId && Object.hasOwn(STEP_DESCRIPTIONS, stepId)) {
+    return STEP_DESCRIPTIONS[stepId];
+  }
+
+  const stageId = extractStageId(nodeId);
+  if (stageId && Object.hasOwn(STAGE_DESCRIPTIONS, stageId)) {
+    return STAGE_DESCRIPTIONS[stageId];
+  }
+
+  return undefined;
+};
 
 const extractStageId = (nodeId: string): string | undefined => {
   const parts = nodeId.split('__');
@@ -140,9 +165,13 @@ export const getStepMetadata = (
     }
 
     const mapDetails = getStageMapDetails(parsed, componentStageMap, pipelineRun, label, stepState);
+    const curatedDescription = getCuratedDescription(nodeId);
     if (!mapDetails) {
       return {
-        description: getStageDescriptionFromMap(parsed, componentStageMap) ?? metadata.description,
+        description:
+          curatedDescription ??
+          getStageDescriptionFromMap(parsed, componentStageMap) ??
+          metadata.description,
         details: getDetailsFromPipelineRun(parsed.componentId, pipelineRun),
       };
     }
@@ -162,7 +191,7 @@ export const getStepMetadata = (
     }
 
     return {
-      description: mapDescription ?? metadata.description,
+      description: curatedDescription ?? mapDescription ?? metadata.description,
       details,
     };
   };
@@ -183,7 +212,7 @@ export const getStepMetadata = (
   if (stepId) {
     return resolveMetadata({
       description:
-        (Object.hasOwn(STEP_DESCRIPTIONS, stepId) ? STEP_DESCRIPTIONS[stepId] : undefined) ??
+        getCuratedDescription(nodeId) ??
         `Running ${resolveStepLabel(stepId)} for this pattern path.`,
       details: DEFAULT_DETAILS,
     });
@@ -199,9 +228,7 @@ export const getStepMetadata = (
   const stageId = extractStageId(nodeId);
   if (stageId) {
     return resolveMetadata({
-      description:
-        (Object.hasOwn(STAGE_DESCRIPTIONS, stageId) ? STAGE_DESCRIPTIONS[stageId] : undefined) ??
-        `Pipeline step: ${resolveStageLabel(stageId)}.`,
+      description: getCuratedDescription(nodeId) ?? `Pipeline step: ${resolveStageLabel(stageId)}.`,
       details: DEFAULT_DETAILS,
     });
   }

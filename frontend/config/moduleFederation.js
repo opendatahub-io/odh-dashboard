@@ -1,5 +1,5 @@
 const { execSync } = require('child_process');
-const { ModuleFederationPlugin } = require('@module-federation/enhanced/webpack');
+const { ModuleFederationPlugin } = require('@module-federation/enhanced/rspack');
 const { getRuntimeOdhPackages } = require('./getRuntimeOdhPackages');
 const deps = require('../package.json').dependencies;
 

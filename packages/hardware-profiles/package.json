@@ -55,7 +55,9 @@
     "./pages/toleration/const": "./src/pages/toleration/const.ts",
     "./pages/useHardwareProfile": "./src/pages/useHardwareProfile.ts",
     "./pages/useHardwareProfilesByFeatureVisibility": "./src/pages/useHardwareProfilesByFeatureVisibility.ts",
-    "./pages/utils": "./src/pages/utils.ts"
+    "./pages/utils": "./src/pages/utils.ts",
+    "./__mocks__/mockHardwareProfile": "./src/__mocks__/mockHardwareProfile.ts",
+    "./__mocks__/mockUseAssignHardwareProfileResult": "./src/__mocks__/mockUseAssignHardwareProfileResult.ts"
   },
   "scripts": {
     "lint": "eslint .",

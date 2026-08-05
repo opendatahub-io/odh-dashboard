@@ -8,7 +8,12 @@ import {
   getModelServingConnectionTypeName,
   ModelServingCompatibleTypes,
 } from '@odh-dashboard/k8s-core';
-import type { SecretKind, Connection, ConnectionTypeConfigMapObj } from '@odh-dashboard/k8s-core';
+import type {
+  SecretKind,
+  Connection,
+  ConnectionTypeConfigMapObj,
+  ProjectKind,
+} from '@odh-dashboard/k8s-core';
 import type { SecretOps } from '@odh-dashboard/plugin-core/host-api';
 import { type TokenAuthenticationFieldData } from './fields/TokenAuthenticationField';
 import { DeployExtension } from './deploying/useDeployMethod';
@@ -229,3 +234,10 @@ export const resolveConnectionType = (
 export const isWizardStepTitle = (value: string): value is WizardStepTitle => {
   return Object.values(WizardStepTitle).some((title) => title === value);
 };
+
+export const shouldShowPreconfigureStep = (
+  project: ProjectKind | null | undefined,
+  existingData?: Pick<InitialWizardFormData, 'validatedConfigurations' | 'isEditing'>,
+): boolean =>
+  !project ||
+  (!existingData?.isEditing && (existingData?.validatedConfigurations?.length ?? 0) > 0);

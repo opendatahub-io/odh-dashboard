@@ -13,6 +13,7 @@ import { DashboardPopupIconButton } from '@odh-dashboard/ui-core';
 import PipelineRunDrawerRightTabs from '#~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunDrawerRightTabs';
 import './PipelineRunDrawer.scss';
 import { PipelineTask } from '#~/concepts/pipelines/topology';
+import { PipelineRunKF } from '#~/concepts/pipelines/kfTypes';
 import { Execution } from '#~/third_party/mlmd';
 import InlineTruncatedClipboardCopy from '#~/components/InlineTruncatedClipboardCopy';
 import { ArtifactNodeDrawerContent } from './artifacts';
@@ -20,6 +21,7 @@ import { ArtifactNodeDrawerContent } from './artifacts';
 type PipelineRunDrawerRightContentProps = {
   task?: PipelineTask;
   executions: Execution[];
+  run?: PipelineRunKF | null;
   upstreamTaskName?: string;
   onClose: () => void;
 };
@@ -27,6 +29,7 @@ type PipelineRunDrawerRightContentProps = {
 const PipelineRunDrawerRightContent: React.FC<PipelineRunDrawerRightContentProps> = ({
   task,
   executions,
+  run,
   upstreamTaskName,
   onClose,
 }) => {
@@ -76,7 +79,7 @@ const PipelineRunDrawerRightContent: React.FC<PipelineRunDrawerRightContentProps
             className="pipeline-run__drawer-panel-body pf-v6-u-p-sm"
             data-testid="pipeline-run-drawer-right-content"
           >
-            <PipelineRunDrawerRightTabs task={task} executions={executions} />
+            <PipelineRunDrawerRightTabs task={task} executions={executions} run={run} />
           </DrawerPanelBody>
         </>
       )}

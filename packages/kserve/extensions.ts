@@ -21,7 +21,10 @@ import type {
   DeploymentWizardFieldOverrideExtension,
 } from '@odh-dashboard/model-serving/extension-points/deployment-wizard';
 import type { WizardField } from '@odh-dashboard/model-serving/shared/types/form-data';
-import type { AreaExtension } from '@odh-dashboard/plugin-core/extension-points';
+import type {
+  AreaExtension,
+  TabRouteTabExtension,
+} from '@odh-dashboard/plugin-core/extension-points';
 import { DataScienceStackComponent, SupportedArea } from '@odh-dashboard/plugin-core/areas';
 import type { DeploymentMethodFieldData } from '@odh-dashboard/model-serving/shared/wizard-fields';
 import type { TimeoutFieldValue } from './src/wizardFields/timeout/TimeoutField';
@@ -29,6 +32,7 @@ import type { KServeServingRuntimeFieldType } from './src/wizardFields/servingRu
 import type { KServeDeployment } from './src/deployments';
 
 export const KSERVE_ID = 'kserve';
+const ADMIN_USER = 'ADMIN_USER';
 
 const kserveServingRuntimeFieldExtension: WizardFieldExtension<
   KServeServingRuntimeFieldType,
@@ -113,6 +117,7 @@ const extensions: (
   | WizardFieldExtractorExtension<TimeoutFieldValue, KServeDeployment>
   | WizardFieldExtractorExtension<DeploymentMethodFieldData, KServeDeployment>
   | DeploymentWizardFieldOverrideExtension<KServeDeployment>
+  | TabRouteTabExtension
 )[] = [
   {
     type: 'app.area',
@@ -304,6 +309,23 @@ const extensions: (
     },
     flags: {
       required: [SupportedArea.K_SERVE],
+    },
+  },
+  {
+    type: 'app.tab-route/tab',
+    flags: {
+      required: [
+        SupportedArea.MODEL_DEPLOYMENT_SETTINGS,
+        SupportedArea.CUSTOM_RUNTIMES,
+        ADMIN_USER,
+      ],
+    },
+    properties: {
+      pageId: 'model-deployment-settings',
+      id: 'serving-runtime-templates',
+      title: 'Serving runtime templates',
+      component: () => import('./src/settings/ServingRuntimeTemplatesTab'),
+      group: '2_serving-runtimes',
     },
   },
 ];

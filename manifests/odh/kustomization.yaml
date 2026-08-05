@@ -16,59 +16,77 @@ configMapGenerator:
     env: params.env
 generatorOptions:
   disableNameSuffixHash: true
-vars:
-  - name: odh-dashboard-image
-    objref:
-      kind: ConfigMap
-      name: odh-dashboard-params
-      apiVersion: v1
-    fieldref:
-      fieldpath: data.odh-dashboard-image
-  - name: kube-rbac-proxy
-    objref:
-      kind: ConfigMap
-      name: odh-dashboard-params
-      apiVersion: v1
-    fieldref:
-      fieldpath: data.kube-rbac-proxy
-  - name: core-bff-image
-    objref:
-      kind: ConfigMap
-      name: odh-dashboard-params
-      apiVersion: v1
-    fieldref:
-      fieldpath: data.core-bff-image
-  - name: section-title
-    objref:
-      kind: ConfigMap
-      name: odh-dashboard-params
-      apiVersion: v1
-    fieldref:
-      fieldpath: data.section-title
-  - name: dashboard-url
-    objref:
-      kind: ConfigMap
-      name: odh-dashboard-params
-      apiVersion: v1
-    fieldref:
-      fieldpath: data.dashboard-url
-  - name: gateway-name
-    objref:
-      kind: ConfigMap
-      name: odh-dashboard-params
-      apiVersion: v1
-    fieldref:
-      fieldpath: data.gateway-name
-  - name: images-jobs-async-upload
-    objref:
-      kind: ConfigMap
-      name: odh-dashboard-params
-      apiVersion: v1
-    fieldref:
-      fieldpath: data.images-jobs-async-upload
-configurations:
-  - params.yaml
 replacements:
+  - source:
+      kind: ConfigMap
+      name: odh-dashboard-params
+      fieldPath: data.odh-dashboard-image
+    targets:
+      - select:
+          kind: Deployment
+          name: odh-dashboard
+        fieldPaths:
+          - spec.template.spec.containers.[name=odh-dashboard].image
+  - source:
+      kind: ConfigMap
+      name: odh-dashboard-params
+      fieldPath: data.kube-rbac-proxy
+    targets:
+      - select:
+          kind: Deployment
+          name: odh-dashboard
+        fieldPaths:
+          - spec.template.spec.containers.[name=kube-rbac-proxy].image
+  - source:
+      kind: ConfigMap
+      name: odh-dashboard-params
+      fieldPath: data.core-bff-image
+    targets:
+      - select:
+          kind: Deployment
+          name: odh-dashboard
+        fieldPaths:
+          - spec.template.spec.containers.[name=core-bff].image
+  - source:
+      kind: ConfigMap
+      name: odh-dashboard-params
+      fieldPath: data.section-title
+    targets:
+      - select:
+          kind: ConsoleLink
+          name: odhlink
+        fieldPaths:
+          - spec.applicationMenu.section
+  - source:
+      kind: ConfigMap
+      name: odh-dashboard-params
+      fieldPath: data.dashboard-url
+    targets:
+      - select:
+          kind: ConsoleLink
+          name: odhlink
+        fieldPaths:
+          - spec.href
+  - source:
+      kind: ConfigMap
+      name: odh-dashboard-params
+      fieldPath: data.gateway-name
+    targets:
+      - select:
+          kind: HTTPRoute
+          name: odh-dashboard
+        fieldPaths:
+          - spec.parentRefs.0.name
+  - source:
+      kind: ConfigMap
+      name: odh-dashboard-params
+      fieldPath: data.images-jobs-async-upload
+    targets:
+      - select:
+          kind: ConfigMap
+          name: model-registry-ui-config
+        fieldPaths:
+          - data.images-jobs-async-upload
   - source:
       kind: ConfigMap
       name: odh-dashboard-params

@@ -13,6 +13,7 @@ import {
   DSPipelineKind,
   DSPipelineManagedPipelinesInstructLabKind,
   DSPipelineManagedPipelinesKind,
+  DSPipelineMlflowKind,
   K8sAPIOptions,
   RouteKind,
 } from '#~/k8sTypes';
@@ -139,6 +140,7 @@ export const updatePipelineSettings = async (
   settings: {
     cacheEnabled?: boolean;
     managedPipelines?: DSPipelineManagedPipelinesKind;
+    mlflow?: DSPipelineMlflowKind;
   },
   name = 'dspa',
 ): Promise<DSPipelineKind> => {
@@ -148,7 +150,7 @@ export const updatePipelineSettings = async (
     | { op: 'remove'; path: string }
   > = [];
 
-  // Read current resource to check for existing managedPipelines field
+  // Read current resource to check for existing fields
   const currentResource = await k8sGetResource<DSPipelineKind>({
     model: DataSciencePipelineApplicationModel,
     queryOptions: { name, ns: namespace },
@@ -188,6 +190,23 @@ export const updatePipelineSettings = async (
       patches.push({
         op: 'remove' as const,
         path: '/spec/apiServer/managedPipelines',
+      });
+    }
+  }
+
+  if (settings.mlflow !== undefined) {
+    const existingMlflow = currentResource.spec.mlflow;
+    if (existingMlflow) {
+      patches.push({
+        op: 'replace' as const,
+        path: '/spec/mlflow',
+        value: settings.mlflow,
+      });
+    } else {
+      patches.push({
+        op: 'add' as const,
+        path: '/spec/mlflow',
+        value: settings.mlflow,
       });
     }
   }

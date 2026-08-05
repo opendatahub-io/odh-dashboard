@@ -44,6 +44,7 @@ type GetRecurringRunInformationType = ReturnType<
 type PipelineServerSettings = {
   managedPipelines: DSPipelineManagedPipelinesKind | undefined;
   mlflowIntegrationMode: DSPAMlflowIntegrationMode | undefined;
+  mlflowInjectUserEnvVars: boolean;
 };
 
 type PipelineContext = PipelineServerSettings & {
@@ -88,6 +89,7 @@ const PipelinesContext = React.createContext<PipelineContext>({
   metadataStoreServiceClient: null as unknown as MetadataStoreServicePromiseClient,
   managedPipelines: undefined,
   mlflowIntegrationMode: undefined,
+  mlflowInjectUserEnvVars: false,
   isStarting: false,
   startingStatusModalOpenRef: { current: null },
   pipelineLoadError: undefined,
@@ -176,6 +178,7 @@ export const PipelineContextProvider = conditionalArea<PipelineContextProviderPr
         metadataStoreServiceClient,
         managedPipelines: pipelineNamespaceCR?.spec.apiServer?.managedPipelines,
         mlflowIntegrationMode: pipelineNamespaceCR?.spec.mlflow?.integrationMode,
+        mlflowInjectUserEnvVars: pipelineNamespaceCR?.spec.mlflow?.injectUserEnvVars === true,
         isStarting,
         startingStatusModalOpenRef,
         pipelineLoadError,
@@ -217,7 +220,7 @@ type UsePipelinesAPI = PipelineAPIState &
     getRecurringRunInformation: GetRecurringRunInformationType;
     refreshAllAPI: () => void;
     metadataStoreServiceClient: MetadataStoreServicePromiseClient;
-    refreshState: () => void;
+    refreshState: () => Promise<undefined>;
 
     startingStatusModalOpenRef?: React.MutableRefObject<string | null>;
   };
@@ -237,6 +240,7 @@ export const usePipelinesAPI = (): UsePipelinesAPI => {
     metadataStoreServiceClient,
     managedPipelines,
     mlflowIntegrationMode,
+    mlflowInjectUserEnvVars,
     refreshState,
     crStatus,
     isStarting,
@@ -263,6 +267,7 @@ export const usePipelinesAPI = (): UsePipelinesAPI => {
     metadataStoreServiceClient,
     managedPipelines,
     mlflowIntegrationMode,
+    mlflowInjectUserEnvVars,
     refreshState,
     startingStatusModalOpenRef,
     pipelineLoadError,

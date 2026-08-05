@@ -1,9 +1,11 @@
 /* eslint-disable camelcase -- ColumnSchema.task_type matches BFF API response field name */
 import {
   findTimestampColumn,
+  formatFilteredNonASCIIColumnsMessage,
   formatTargetColumnUniqueValuesMessage,
   getTargetColumnUniqueValueCount,
   getTypeAcronym,
+  isASCIIOnly,
 } from '~/app/utilities/columnUtils';
 
 describe('findTimestampColumn', () => {
@@ -149,6 +151,32 @@ describe('formatTargetColumnUniqueValuesMessage', () => {
   it('should use singular value for a count of 1', () => {
     expect(formatTargetColumnUniqueValuesMessage('flag', 1)).toBe(
       '1 unique value detected in "flag"',
+    );
+  });
+});
+
+describe('isASCIIOnly', () => {
+  it('returns true for ASCII strings', () => {
+    expect(isASCIIOnly('target_column')).toBe(true);
+    expect(isASCIIOnly('')).toBe(true);
+  });
+
+  it('returns false for non-ASCII strings', () => {
+    expect(isASCIIOnly('لديه روح')).toBe(false);
+    expect(isASCIIOnly('café')).toBe(false);
+  });
+});
+
+describe('formatFilteredNonASCIIColumnsMessage', () => {
+  it('formats a singular message', () => {
+    expect(formatFilteredNonASCIIColumnsMessage(1)).toBe(
+      '1 column is hidden because Kubeflow pipelines do not support non-ASCII names.',
+    );
+  });
+
+  it('formats a plural message', () => {
+    expect(formatFilteredNonASCIIColumnsMessage(3)).toBe(
+      '3 columns are hidden because Kubeflow pipelines do not support non-ASCII names.',
     );
   });
 });

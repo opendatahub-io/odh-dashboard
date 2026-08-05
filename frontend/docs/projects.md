@@ -25,7 +25,8 @@
 - Index route is project detail: **horizontal tab host** (`GenericHorizontalBar`); visible tabs from `SupportedArea` and SSAR results.
 - Tab changes only update the query string; provider and polls keep running—avoids refetch storms when switching tabs.
 - `ProjectsContext` at app root: full project list, preferred project, helpers (e.g. waiting after create).
-- **Project detail** is centralized on `/:namespace`: `ProjectDetailsContext` aggregates notebooks, PVCs, connections, serving resources, secrets, role bindings, hardware/Kueue data, etc.
+- `CurrentProjectContext` in `@odh-dashboard/ui-core`: the resolved `ProjectKind` for the current namespace. Feature packages that only need the project (e.g. model-serving) consume this instead of the full `ProjectDetailsContext`.
+- **Project detail** is centralized on `/:namespace`: `ProjectDetailsContext` aggregates notebooks, PVCs, connections, serving resources, secrets, role bindings, hardware/Kueue data, etc. It wraps children in both `CurrentProjectContext.Provider` and `ProjectDetailsContext.Provider`.
 - Tab components read that context instead of duplicate fetches for resources the provider already loads.
 - Spawner and permissions flows live under `pages/projects/` alongside detail screens and follow the same routing boundaries.
 
@@ -48,6 +49,7 @@
 | Dependency | Type | Details |
 |-----------|------|---------|
 | `ProjectsContext` | Frontend | Project list and preferred project; namespace resolution for detail |
+| `CurrentProjectContext` | Frontend (ui-core) | Resolved `ProjectKind` for current namespace; consumed by feature packages via `React.useContext` |
 | `concepts/pipelines/context` | Frontend | `PipelineContextProvider` on detail route when `DS_PIPELINES` enabled; Pipelines tab consumes it |
 | Workbenches / notebook controller | Frontend | Spawner and notebook hooks in `projects/`; image/hardware data from model-serving and notebook-controller concepts |
 | `pages/modelServing` / kserve | Frontend | Serving runtimes, inference services, secrets; deployments tab via project detail hooks |

@@ -52,6 +52,8 @@ aliases:
   hardware-profiles-approvers:
     - Gkrumbach07
     - DaoDaoNoCode
+    - srtanish1992
+    - nananosirova
   hardware-profiles-reviewers:
     - srtanish1992
     - Gkrumbach07
@@ -95,6 +97,7 @@ aliases:
   pipelines-approvers:
     - Gkrumbach07
     - DaoDaoNoCode
+    - srtanish1992
   pipelines-reviewers:
     - srtanish1992
     - Gkrumbach07
@@ -133,10 +136,13 @@ aliases:
   # Workbenches (formerly Notebooks)
   workbenches-approvers:
     - Gkrumbach07
+    - srtanish1992
+    - nananosirova
   workbenches-reviewers:
     - srtanish1992
     - Gkrumbach07
     - DaltheCow
+    - nananosirova
 
   # Gen AI
   gen-ai-approvers:
