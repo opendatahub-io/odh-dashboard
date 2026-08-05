@@ -9,12 +9,9 @@ import {
   TextInput,
   ValidatedOptions,
 } from '@patternfly/react-core';
-import ConnectionValidationButton from '~/app/components/ConnectionValidationButton';
-import type { ConnectionValidationState } from '~/app/types';
+import LabelHelpPopover from '~/app/components/LabelHelpPopover';
 
 type SourcePrerecordedFieldsProps = {
-  sourceName: string;
-  onSourceNameChange: (val: string) => void;
   datasetUrl: string;
   onDatasetUrlChange: (val: string) => void;
   accessToken: string;
@@ -23,14 +20,9 @@ type SourcePrerecordedFieldsProps = {
   accessTokenError: string | undefined;
   touched: Record<string, boolean>;
   markTouched: (field: string) => void;
-  connectionValidation: ConnectionValidationState;
-  canVerifyConnection: boolean;
-  onVerifyConnection: () => void;
 };
 
 const SourcePrerecordedFields: React.FC<SourcePrerecordedFieldsProps> = ({
-  sourceName,
-  onSourceNameChange,
   datasetUrl,
   onDatasetUrlChange,
   accessToken,
@@ -39,9 +31,6 @@ const SourcePrerecordedFields: React.FC<SourcePrerecordedFieldsProps> = ({
   accessTokenError,
   touched,
   markTouched,
-  connectionValidation,
-  canVerifyConnection,
-  onVerifyConnection,
 }) => {
   const datasetUrlValidated =
     touched.datasetUrl && datasetUrlError ? ValidatedOptions.error : ValidatedOptions.default;
@@ -50,18 +39,6 @@ const SourcePrerecordedFields: React.FC<SourcePrerecordedFieldsProps> = ({
 
   return (
     <Stack hasGutter>
-      <StackItem>
-        <FormGroup label="Source name" isRequired fieldId="source-name">
-          <TextInput
-            id="source-name"
-            data-testid="source-name-input"
-            value={sourceName}
-            onChange={(_e, val) => onSourceNameChange(val)}
-            onBlur={() => markTouched('sourceName')}
-            isRequired
-          />
-        </FormGroup>
-      </StackItem>
       <StackItem>
         <FormGroup label="Dataset URL" isRequired fieldId="dataset-url">
           <TextInput
@@ -84,7 +61,39 @@ const SourcePrerecordedFields: React.FC<SourcePrerecordedFieldsProps> = ({
         </FormGroup>
       </StackItem>
       <StackItem>
-        <FormGroup label="Access token" isRequired fieldId="access-token">
+        <FormGroup
+          label="S3 connection"
+          isRequired
+          fieldId="access-token"
+          labelHelp={
+            <LabelHelpPopover
+              ariaLabel="More info for S3 connection"
+              title="S3 connection"
+              content={
+                <>
+                  Enter the <strong>name</strong> of the Kubernetes Secret that stores the S3
+                  credentials (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_DEFAULT_REGION,
+                  AWS_S3_ENDPOINT).
+                  <br />
+                  <br />
+                  If it hasn&apos;t been created yet, run:
+                  <pre
+                    style={{
+                      background: 'var(--pf-t--global--background--color--secondary--default)',
+                      padding: 'var(--pf-t--global--spacer--sm)',
+                      borderRadius: 'var(--pf-t--global--border--radius--small)',
+                      marginTop: 'var(--pf-t--global--spacer--sm)',
+                      whiteSpace: 'pre',
+                      overflowX: 'auto',
+                    }}
+                  >
+                    {`oc create secret generic my-s3-secret\n  --from-literal=AWS_ACCESS_KEY_ID=<key-id>\n  --from-literal=AWS_SECRET_ACCESS_KEY=<secret>\n  --from-literal=AWS_DEFAULT_REGION=<region>\n  --from-literal=AWS_S3_ENDPOINT=<endpoint>\n  -n your-namespace`}
+                  </pre>
+                </>
+              }
+            />
+          }
+        >
           <TextInput
             id="access-token"
             data-testid="access-token-input"
@@ -102,14 +111,6 @@ const SourcePrerecordedFields: React.FC<SourcePrerecordedFieldsProps> = ({
             </FormHelperText>
           ) : null}
         </FormGroup>
-      </StackItem>
-      <StackItem>
-        <ConnectionValidationButton
-          connectionValidation={connectionValidation}
-          canVerify={canVerifyConnection}
-          onVerify={onVerifyConnection}
-          isValidating={connectionValidation.status === 'validating'}
-        />
       </StackItem>
     </Stack>
   );

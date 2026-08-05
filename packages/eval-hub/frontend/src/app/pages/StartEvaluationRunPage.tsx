@@ -455,8 +455,6 @@ const StartEvaluationRunPage: React.FC = () => {
           {/* ── Pre-recorded responses fields ──────────────────── */}
           {form.sourceMode === 'prerecorded' && (
             <SourcePrerecordedFields
-              sourceName={form.sourceName}
-              onSourceNameChange={form.setSourceName}
               datasetUrl={form.datasetUrl}
               onDatasetUrlChange={form.setDatasetUrl}
               accessToken={form.accessToken}
@@ -465,9 +463,6 @@ const StartEvaluationRunPage: React.FC = () => {
               accessTokenError={form.accessTokenError}
               touched={form.touched}
               markTouched={form.markTouched}
-              connectionValidation={form.connectionValidation}
-              canVerifyConnection={form.canVerifyConnection}
-              onVerifyConnection={form.handleVerifyConnection}
             />
           )}
 

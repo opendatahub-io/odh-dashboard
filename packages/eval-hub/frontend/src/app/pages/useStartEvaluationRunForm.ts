@@ -148,7 +148,6 @@ export function useStartEvaluationRunForm({
   const [agentName, setAgentName] = React.useState('');
   const [endpointUrl, setEndpointUrl] = React.useState('');
   const [apiKeySecretRef, setApiKeySecretRef] = React.useState('');
-  const [sourceName, setSourceName] = React.useState('');
   const [datasetUrl, setDatasetUrl] = React.useState('');
   const [accessToken, setAccessToken] = React.useState('');
 
@@ -301,7 +300,7 @@ export function useStartEvaluationRunForm({
       return undefined;
     }
     if (accessToken.trim() === '') {
-      return 'Access token is required.';
+      return 'S3 connection is required.';
     }
     return undefined;
   }, [sourceMode, accessToken]);
@@ -324,7 +323,7 @@ export function useStartEvaluationRunForm({
       return agentName.trim() !== '' && !endpointUrlError;
     }
 
-    return sourceName.trim() !== '' && !datasetUrlError && !accessTokenError;
+    return !datasetUrlError && !accessTokenError;
   }, [
     evaluationName,
     hasBenchmarks,
@@ -337,7 +336,6 @@ export function useStartEvaluationRunForm({
     endpointUrlError,
     datasetUrlError,
     accessTokenError,
-    sourceName,
   ]);
 
   const canVerifyConnection = React.useMemo(() => {
@@ -485,7 +483,7 @@ export function useStartEvaluationRunForm({
       if (sourceMode === 'agent') {
         return agentName.trim();
       }
-      return sourceName.trim();
+      return '';
     })();
 
     const resolvedEndpointUrl = (() => {
@@ -556,7 +554,6 @@ export function useStartEvaluationRunForm({
       })(),
       hasAPIKey:
         sourceMode === 'model' || sourceMode === 'agent' ? apiKeySecretRef.trim() !== '' : false,
-      sourceName: sourceMode === 'prerecorded' ? sourceName.trim() : undefined,
       hasDatasetURL: sourceMode === 'prerecorded' ? datasetUrl.trim() !== '' : false,
       hasAccessToken: sourceMode === 'prerecorded' ? accessToken.trim() !== '' : false,
       hasAdditionalArguments: showAdditionalArgs && additionalArgs.trim() !== '',
@@ -611,8 +608,6 @@ export function useStartEvaluationRunForm({
     setEndpointUrl,
     apiKeySecretRef,
     setApiKeySecretRef,
-    sourceName,
-    setSourceName,
     datasetUrl,
     setDatasetUrl,
     accessToken,
