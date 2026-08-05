@@ -1,6 +1,6 @@
 import React from 'react';
-import { BiasMetricConfig } from '@odh-dashboard/trustyai/types';
-import {
+import type { BiasMetricConfig } from '@odh-dashboard/trustyai/types';
+import type {
   PrometheusQueryRangeResponseDataResult,
   PrometheusQueryRangeResultValue,
 } from '@odh-dashboard/model-serving/shared/types';

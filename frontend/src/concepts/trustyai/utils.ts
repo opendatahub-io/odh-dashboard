@@ -1,6 +1,6 @@
 import { getConditionForType } from '@odh-dashboard/k8s-core';
 import { FetchState } from '@odh-dashboard/ui-core/hooks/useFetchState';
-import { BiasMetricConfig, TrustyInstallState } from '@odh-dashboard/trustyai/types';
+import { type BiasMetricConfig, TrustyInstallState } from '@odh-dashboard/trustyai/types';
 import { BaseMetricListResponse } from '#~/api';
 import { TrustyStatusStates } from '#~/concepts/trustyai/types';
 import { TrustyAIKind } from '#~/k8sTypes';

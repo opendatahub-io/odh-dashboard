@@ -7,12 +7,12 @@ import { isEnumMember } from '@odh-dashboard/foundation';
 import { TimeframeTitle, BreadcrumbItemType } from '@odh-dashboard/ui-core/types/metrics';
 import { PROMETHEUS_REQUEST_RESOLUTION } from '@odh-dashboard/ui-core/utilities/metrics';
 import {
-  BaseMetricRequest,
-  BaseMetricRequestInput,
+  type BaseMetricRequest,
+  type BaseMetricRequestInput,
   BiasMetricType,
-  BiasMetricConfig,
+  type BiasMetricConfig,
 } from '@odh-dashboard/trustyai/types';
-import { PrometheusQueryRangeResultValue } from '@odh-dashboard/model-serving/shared/types';
+import type { PrometheusQueryRangeResultValue } from '@odh-dashboard/model-serving/shared/types';
 import type { InferenceServiceKind } from '@odh-dashboard/model-serving/shared';
 import { BIAS_CHART_CONFIGS, BIAS_THRESHOLD_COLOR } from './const';
 import {

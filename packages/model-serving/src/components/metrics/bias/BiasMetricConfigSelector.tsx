@@ -5,7 +5,7 @@ import {
   SelectionOptions,
 } from '@odh-dashboard/internal/components/MultiSelection';
 import {
-  BiasMetricConfig,
+  type BiasMetricConfig,
   TrustyInstallState,
   BiasMetricType,
 } from '@odh-dashboard/trustyai/types';

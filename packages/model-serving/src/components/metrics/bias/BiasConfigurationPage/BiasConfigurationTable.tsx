@@ -5,7 +5,7 @@ import DashboardSearchField, {
   SearchType,
 } from '@odh-dashboard/ui-core/components/DashboardSearchField';
 import { useModelBiasData } from '@odh-dashboard/internal/concepts/trustyai/context/useModelBiasData';
-import { BiasMetricConfig } from '@odh-dashboard/trustyai/types';
+import type { BiasMetricConfig } from '@odh-dashboard/trustyai/types';
 import type { InferenceServiceKind } from '@odh-dashboard/model-serving/shared';
 import DeleteBiasConfigurationModal from './BiasConfigurationModal/DeleteBiasConfigurationModal';
 import ManageBiasConfigurationModal from './BiasConfigurationModal/ManageBiasConfigurationModal';

@@ -1,4 +1,4 @@
-import { type BaseMetric, BiasMetricType } from '@odh-dashboard/trustyai/types';
+import { type BaseMetric, type BiasMetricType } from '@odh-dashboard/trustyai/types';
 
 export enum DataTypes {
   BOOL = 'BOOL',
