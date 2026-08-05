@@ -20,6 +20,7 @@ type SourcePrerecordedFieldsProps = {
   accessToken: string;
   onAccessTokenChange: (val: string) => void;
   datasetUrlError: string | undefined;
+  accessTokenError: string | undefined;
   touched: Record<string, boolean>;
   markTouched: (field: string) => void;
   connectionValidation: ConnectionValidationState;
@@ -35,6 +36,7 @@ const SourcePrerecordedFields: React.FC<SourcePrerecordedFieldsProps> = ({
   accessToken,
   onAccessTokenChange,
   datasetUrlError,
+  accessTokenError,
   touched,
   markTouched,
   connectionValidation,
@@ -43,6 +45,8 @@ const SourcePrerecordedFields: React.FC<SourcePrerecordedFieldsProps> = ({
 }) => {
   const datasetUrlValidated =
     touched.datasetUrl && datasetUrlError ? ValidatedOptions.error : ValidatedOptions.default;
+  const accessTokenValidated =
+    touched.accessToken && accessTokenError ? ValidatedOptions.error : ValidatedOptions.default;
 
   return (
     <Stack hasGutter>
@@ -80,13 +84,23 @@ const SourcePrerecordedFields: React.FC<SourcePrerecordedFieldsProps> = ({
         </FormGroup>
       </StackItem>
       <StackItem>
-        <FormGroup label="Access token" fieldId="access-token">
+        <FormGroup label="Access token" isRequired fieldId="access-token">
           <TextInput
             id="access-token"
             data-testid="access-token-input"
             value={accessToken}
             onChange={(_e, val) => onAccessTokenChange(val)}
+            onBlur={() => markTouched('accessToken')}
+            isRequired
+            validated={accessTokenValidated}
           />
+          {touched.accessToken && accessTokenError ? (
+            <FormHelperText>
+              <HelperText>
+                <HelperTextItem variant="error">{accessTokenError}</HelperTextItem>
+              </HelperText>
+            </FormHelperText>
+          ) : null}
         </FormGroup>
       </StackItem>
       <StackItem>
