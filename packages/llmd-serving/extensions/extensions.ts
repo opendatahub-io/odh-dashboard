@@ -46,6 +46,8 @@ const ADMIN_USER = 'ADMIN_USER';
 
 // Keep in sync with ../src/settings/llmAcceleratorConfigs/paths.ts (value imports are
 // disallowed in extensions.ts). Pinned by __tests__/extensions.spec.ts.
+// The standalone constant and the extensions using it are removed by RHOAIENG-80077.
+// https://issues.redhat.com/browse/RHOAIENG-80077
 const LLM_ACCELERATOR_CONFIGS_STANDALONE_PATH =
   '/settings/model-resources-operations/llm-accelerator-configs';
 const LLM_ACCELERATOR_CONFIGS_TAB_PATH =

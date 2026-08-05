@@ -43,8 +43,12 @@ type LlmAcceleratorConfigAddFormProps = {
   /**
    * Absolute path of the configurations list this form returns to. Passed
    * explicitly because the form is mounted both as a child of the standalone
-   * list route and as a top-level breakout route beside the tabbed page, so a
-   * relative path would not resolve the same way in both places.
+   * list route and as a top-level breakout route beside the tabbed page, and the
+   * default route-relative `..` resolves differently in the two.
+   *
+   * After RHOAIENG-80077 removes the standalone page the breakout route is the
+   * only mount, so this could collapse to LLM_ACCELERATOR_CONFIGS_TAB_PATH.
+   * https://issues.redhat.com/browse/RHOAIENG-80077
    */
   listPath: string;
 };

@@ -13,6 +13,9 @@ import LlmInferenceServiceConfigAccessGate from '../LlmInferenceServiceConfigAcc
  * `modelDeploymentSettings` feature flag is off. When the flag is on this page is
  * replaced by the tab (see LlmAcceleratorConfigTabRoutes) and the form breakout
  * routes (see LlmAcceleratorConfigFormRoutes).
+ *
+ * Temporary — this whole file is deleted by RHOAIENG-80077 along with the flag.
+ * https://issues.redhat.com/browse/RHOAIENG-80077
  */
 const LlmAcceleratorConfigRoutes: React.FC = () => (
   <LlmInferenceServiceConfigAccessGate>
