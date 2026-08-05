@@ -211,8 +211,10 @@ const mockConnectionTypes: ConnectionTypeConfigMapObj[] = [
     },
   },
 ];
-jest.mock('@odh-dashboard/internal/utilities/useWatchConnectionTypes', () => ({
+jest.mock('@odh-dashboard/plugin-core/host-api', () => ({
   useWatchConnectionTypes: () => [mockConnectionTypes, true],
+  useServingConnections: jest.fn(() => [mockConnections, true]),
+  useHostApi: jest.fn(() => ({ trackEvent: jest.fn() })),
 }));
 
 jest.mock('@odh-dashboard/plugin-core/areas', () => ({
@@ -237,14 +239,6 @@ jest.mock('@odh-dashboard/internal/pages/modelServing/usePvcs', () => ({
   __esModule: true,
   default: jest.fn(() => ({ data: mockPvcs, loaded: true, error: undefined })),
 }));
-
-jest.mock(
-  '@odh-dashboard/internal/pages/projects/screens/detail/connections/useServingConnections',
-  () => ({
-    __esModule: true,
-    default: jest.fn(() => [mockConnections, true]),
-  }),
-);
 
 describe('ModelLocationSelectField', () => {
   const mockWizardContext = {
