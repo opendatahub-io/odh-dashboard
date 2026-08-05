@@ -1,5 +1,13 @@
 import * as React from 'react';
-import { Form, FormSection, Spinner } from '@patternfly/react-core';
+import {
+  Form,
+  FormSection,
+  Spinner,
+  Modal,
+  ModalBody,
+  ModalHeader,
+  ModalFooter,
+} from '@patternfly/react-core';
 import type { EitherOrNone } from '@odh-dashboard/foundation';
 import type {
   TemplateKind,
@@ -23,7 +31,7 @@ import K8sNameDescriptionField, {
 } from '@odh-dashboard/ui-core/components/K8sNameDescriptionField';
 import { type FormTrackingEventProperties, TrackingOutcome } from '@odh-dashboard/ui-core';
 import { useAccessReview } from '@odh-dashboard/plugin-core/host-api';
-import ContentModal from '@odh-dashboard/ui-core/components/ContentModal';
+import DashboardModalFooter from '@odh-dashboard/ui-core/components/DashboardModalFooter';
 import {
   getCreateInferenceServiceLabels,
   getSubmitInferenceServiceResourceFn,
@@ -31,7 +39,6 @@ import {
   useCreateInferenceServiceObject,
   useCreateServingRuntimeObject,
   validateEnvVarName,
-  handleModelServingError,
 } from '#~/pages/modelServing/screens/projects/utils';
 import { getKServeContainerArgs, getKServeContainerEnvVarStrs } from '#~/pages/modelServing/utils';
 import useCustomServingRuntimesEnabled from '#~/pages/modelServing/customServingRuntimes/useCustomServingRuntimesEnabled';
@@ -251,7 +258,10 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
     onClose(submitted);
   };
 
-  const setErrorModal = (e: unknown) => handleModelServingError(e, setError, setActionInProgress);
+  const setErrorModal = (e: Error) => {
+    setError(e);
+    setActionInProgress(false);
+  };
 
   const onSuccess = (tProps: FormTrackingEventProperties) => {
     setActionInProgress(false);
@@ -331,30 +341,12 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
   };
 
   return (
-    <ContentModal
-      title={editInfo ? 'Edit model' : 'Deploy model'}
-      description="Configure properties for deploying your model"
-      onClose={() => onBeforeClose(false)}
-      variant="medium"
-      error={error}
-      alertTitle="Error creating model server"
-      buttonActions={[
-        {
-          label: editInfo ? 'Redeploy' : 'Deploy',
-          onClick: submit,
-          variant: 'primary',
-          isDisabled:
-            isDisabledServingRuntime || isDisabledInferenceService || hasReplicaValidationErrors,
-          dataTestId: 'modal-submit-button',
-        },
-        {
-          label: 'Cancel',
-          onClick: () => onBeforeClose(false),
-          variant: 'link',
-          dataTestId: 'modal-cancel-button',
-        },
-      ]}
-      contents={
+    <Modal variant="medium" isOpen onClose={() => onBeforeClose(false)}>
+      <ModalHeader
+        title={editInfo ? 'Edit model' : 'Deploy model'}
+        description="Configure properties for deploying your model"
+      />
+      <ModalBody>
         <Form
           onSubmit={(e) => {
             e.preventDefault();
@@ -476,8 +468,20 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
             </FormSection>
           )}
         </Form>
-      }
-    />
+      </ModalBody>
+      <ModalFooter>
+        <DashboardModalFooter
+          submitLabel={editInfo ? 'Redeploy' : 'Deploy'}
+          onSubmit={submit}
+          onCancel={() => onBeforeClose(false)}
+          isSubmitDisabled={
+            isDisabledServingRuntime || isDisabledInferenceService || hasReplicaValidationErrors
+          }
+          error={error}
+          alertTitle="Error creating model server"
+        />
+      </ModalFooter>
+    </Modal>
   );
 };
 
