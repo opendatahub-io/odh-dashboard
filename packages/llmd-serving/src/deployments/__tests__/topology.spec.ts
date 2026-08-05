@@ -42,6 +42,11 @@ const makeDeployment = (
   return { modelServingPlatformId: 'llmd-serving', model };
 };
 
+const DEPLOYMENT_NAME = 'test-llm-inference-service';
+
+/** Topology configs are copied into the deployment's namespace under a deployment-prefixed name. */
+const localConfigName = (configName: string) => `${DEPLOYMENT_NAME}-${configName}`;
+
 const buildTopologyConfig = (name: string, topologyType: TopologyType) =>
   mockLLMInferenceServiceConfigK8sResource({
     name,
@@ -97,13 +102,15 @@ describe('applyTopologyType', () => {
 // ─── applyTopologyConfig ────────────────────────────────────────────────────────
 
 describe('applyTopologyConfig', () => {
-  it('adds config name to baseRefs and stores annotation', () => {
+  it('adds the local config copy name to baseRefs and stores annotation', () => {
     const deployment = makeDeployment();
     const config = buildTopologyConfig('topo-1', TopologyType.MULTI_NODE);
     const result = applyTopologyConfig(deployment, { selectedConfig: config });
 
-    expect(result.model.spec.baseRefs).toContainEqual({ name: 'topo-1' });
-    expect(result.model.metadata.annotations?.[TOPOLOGY_CONFIG_REF_ANNOTATION]).toBe('topo-1');
+    expect(result.model.spec.baseRefs).toContainEqual({ name: localConfigName('topo-1') });
+    expect(result.model.metadata.annotations?.[TOPOLOGY_CONFIG_REF_ANNOTATION]).toBe(
+      localConfigName('topo-1'),
+    );
   });
 
   it('replaces a previous topology config baseRef', () => {
@@ -114,9 +121,11 @@ describe('applyTopologyConfig', () => {
     const config = buildTopologyConfig('new-topo', TopologyType.SINGLE_NODE_DISAGGREGATED);
     const result = applyTopologyConfig(deployment, { selectedConfig: config });
 
-    expect(result.model.spec.baseRefs).toContainEqual({ name: 'new-topo' });
+    expect(result.model.spec.baseRefs).toContainEqual({ name: localConfigName('new-topo') });
     expect(result.model.spec.baseRefs).not.toContainEqual({ name: 'old-topo' });
-    expect(result.model.metadata.annotations?.[TOPOLOGY_CONFIG_REF_ANNOTATION]).toBe('new-topo');
+    expect(result.model.metadata.annotations?.[TOPOLOGY_CONFIG_REF_ANNOTATION]).toBe(
+      localConfigName('new-topo'),
+    );
   });
 
   it('removes the topology baseRef when no config is selected', () => {
@@ -139,19 +148,32 @@ describe('applyTopologyConfig', () => {
 
     expect(result.model.spec.baseRefs).toContainEqual({ name: 'my-deployment' });
     expect(result.model.spec.baseRefs).toContainEqual({ name: 'some-other-ref' });
-    expect(result.model.spec.baseRefs).toContainEqual({ name: 'topo-1' });
+    expect(result.model.spec.baseRefs).toContainEqual({ name: localConfigName('topo-1') });
   });
 
   it('does not duplicate an existing baseRef', () => {
     const deployment = makeDeployment({
-      baseRefs: [{ name: 'topo-1' }],
-      annotations: { [TOPOLOGY_CONFIG_REF_ANNOTATION]: 'topo-1' },
+      baseRefs: [{ name: localConfigName('topo-1') }],
+      annotations: { [TOPOLOGY_CONFIG_REF_ANNOTATION]: localConfigName('topo-1') },
     });
     const config = buildTopologyConfig('topo-1', TopologyType.MULTI_NODE);
     const result = applyTopologyConfig(deployment, { selectedConfig: config });
 
-    const matching = result.model.spec.baseRefs?.filter((r) => r.name === 'topo-1');
+    const matching = result.model.spec.baseRefs?.filter(
+      (r) => r.name === localConfigName('topo-1'),
+    );
     expect(matching).toHaveLength(1);
+  });
+
+  it('does not re-prefix a config that is already a local copy', () => {
+    const deployment = makeDeployment();
+    const config = buildTopologyConfig(localConfigName('topo-1'), TopologyType.MULTI_NODE);
+    const result = applyTopologyConfig(deployment, { selectedConfig: config });
+
+    expect(result.model.spec.baseRefs).toEqual([{ name: localConfigName('topo-1') }]);
+    expect(result.model.metadata.annotations?.[TOPOLOGY_CONFIG_REF_ANNOTATION]).toBe(
+      localConfigName('topo-1'),
+    );
   });
 
   it('does not mutate the original deployment', () => {
@@ -246,7 +268,7 @@ describe('baseRefs ordering', () => {
     deployment = applyRoutingConfig(deployment, { selectedConfig: routerConfig });
 
     const names = deployment.model.spec.baseRefs?.map((r) => r.name) ?? [];
-    expect(names.indexOf('topo-1')).toBeLessThan(names.indexOf('router-1'));
+    expect(names.indexOf(localConfigName('topo-1'))).toBeLessThan(names.indexOf('router-1'));
   });
 
   it('coexists with existing accelerator config baseRef', () => {
@@ -259,7 +281,7 @@ describe('baseRefs ordering', () => {
 
     expect(deployment.model.spec.baseRefs).toEqual([
       { name: 'my-deployment' },
-      { name: 'topo-1' },
+      { name: localConfigName('topo-1') },
       { name: 'router-1' },
     ]);
   });

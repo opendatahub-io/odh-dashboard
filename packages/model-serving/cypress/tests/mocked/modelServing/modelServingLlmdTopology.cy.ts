@@ -38,6 +38,7 @@ import {
   modelServingWizard,
   modelServingWizardEdit,
 } from '@odh-dashboard/cypress/cypress/pages/modelServing';
+import { deleteModal } from '@odh-dashboard/cypress/cypress/pages/components/DeleteModal';
 
 const buildTopologyConfig = (
   name: string,
@@ -793,6 +794,56 @@ describe('Model Serving LLMD Topology & Routing', () => {
         expect(interceptions).to.have.length(2); // 1 dry-run request and 1 actual request
       });
       cy.get('@createLLMInferenceServiceConfig.all').should('have.length', 0);
+    });
+  });
+
+  // The branch matrix (no config ref, accelerator config, 404 handling) is covered by the unit
+  // tests in llmd-serving/src/api/__tests__/LLMdDeployment.spec.ts. This covers the wiring: the
+  // deployment reaching the delete handler still carries the annotation naming its local copy.
+  describe('Delete deployment', () => {
+    it('should delete the local topology config copy referenced by the deployment', () => {
+      const deploymentName = 'test-llm-inference-service';
+      const localConfigName = `${deploymentName}-multi-node-config`;
+
+      initIntercepts();
+      cy.interceptK8sList(
+        { model: LLMInferenceServiceModel, ns: 'test-project' },
+        mockK8sResourceList([
+          mockLLMInferenceServiceK8sResource({
+            additionalAnnotations: {
+              [TOPOLOGY_TYPE_ANNOTATION]: TopologyType.MULTI_NODE,
+              [TOPOLOGY_CONFIG_REF_ANNOTATION]: localConfigName,
+            },
+            baseRefs: [{ name: localConfigName }],
+          }),
+        ]),
+      );
+      cy.intercept('DELETE', '**/llminferenceserviceconfigs/**', mock200Status({})).as(
+        'deleteLLMInferenceServiceConfig',
+      );
+      cy.interceptK8s(
+        'DELETE',
+        { model: LLMInferenceServiceModel, ns: 'test-project', name: deploymentName },
+        mock200Status({}),
+      ).as('deleteLLMInferenceService');
+
+      modelServingGlobal.visit('test-project');
+      modelServingGlobal
+        .getModelRow('Test LLM Inference Service')
+        .findKebabAction(/^Delete/)
+        .click();
+
+      deleteModal.shouldBeOpen();
+      deleteModal.findInput().type('Test LLM Inference Service');
+      deleteModal.findSubmitButton().should('be.enabled').click();
+
+      cy.wait('@deleteLLMInferenceServiceConfig').then((interception) => {
+        expect(interception.request.url).to.include(
+          `/namespaces/test-project/llminferenceserviceconfigs/${localConfigName}`,
+        );
+      });
+      cy.wait('@deleteLLMInferenceService');
+      cy.get('@deleteLLMInferenceServiceConfig.all').should('have.length', 1);
     });
   });
 });
