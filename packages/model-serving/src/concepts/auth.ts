@@ -63,11 +63,13 @@ export const getTokenNames = (
 
 const is404 = (error: unknown): boolean => getGenericErrorCode(error) === 404;
 
+export type TokenAuthResourceType = 'inferenceservices' | 'llminferenceservices';
+
 export const generateRole = (
   roleName: string,
   resourceName: string,
   namespace: string,
-  resourceType: string,
+  resourceType: TokenAuthResourceType,
 ): RoleKind => ({
   apiVersion: 'rbac.authorization.k8s.io/v1',
   kind: 'Role',
@@ -137,13 +139,16 @@ export const createTokenSecrets = async (
   existingSecrets?: SecretKind[],
   opts?: K8sAPIOptions,
 ): Promise<void> => {
+  if (tokenAuth === undefined) {
+    return;
+  }
+
   const { serviceAccountName } = getTokenNames(deployedModelName, namespace);
   const deletedSecrets =
     existingSecrets
       ?.map((secret) => secret.metadata.name)
-      .filter((token: string) => !tokenAuth?.some((tokenEdit) => tokenEdit.k8sName === token)) ||
-    [];
-  const tokensToProcess = tokenAuth || [];
+      .filter((token: string) => !tokenAuth.some((tokenEdit) => tokenEdit.k8sName === token)) || [];
+  const tokensToProcess = tokenAuth;
 
   await Promise.all<K8sStatus | SecretKind>([
     ...tokensToProcess.map((token) => {
@@ -166,7 +171,7 @@ export const setUpTokenAuth = async (
   namespace: string,
   createTokenAuthResources: boolean,
   owner: K8sResourceCommon,
-  resourceType: string,
+  resourceType: TokenAuthResourceType,
   existingSecrets?: SecretKind[],
   opts?: K8sAPIOptions,
 ): Promise<void> => {
