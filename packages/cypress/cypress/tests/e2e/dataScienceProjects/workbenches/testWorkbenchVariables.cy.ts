@@ -7,7 +7,11 @@ import {
 import type { WBVariablesTestData } from '../../../../types';
 import { NotebookStatusLabel } from '../../../../types';
 import { projectDetails, projectListPage } from '../../../../pages/projects';
-import { workbenchPage, createSpawnerPage } from '../../../../pages/workbench';
+import {
+  workbenchPage,
+  createSpawnerPage,
+  notebookConfirmModal,
+} from '../../../../pages/workbench';
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '../../../../utils/e2eUsers';
 import { loadWBVariablesFixture } from '../../../../utils/dataLoader';
 import { createCleanProject } from '../../../../utils/projectChecker';
@@ -25,7 +29,10 @@ type NotebookRow = ReturnType<typeof workbenchPage.getNotebookRow>;
 
 /**
  * Wait for a workbench to become Ready. If it lands on Failed (common under
- * transient cluster resource pressure), start it once more and wait again.
+ * transient cluster resource pressure), stop it cleanly then start again.
+ *
+ * Failed startups still have isStarting=true (no stop annotation, pods not ready),
+ * so the state toggle invokes Stop — not Start. We must stop → Stopped → Start.
  */
 const waitForNotebookReady = (row: NotebookRow, workbenchName: string, maxRetries = 1): void => {
   row
@@ -39,7 +46,9 @@ const waitForNotebookReady = (row: NotebookRow, workbenchName: string, maxRetrie
     .then(($el) => {
       if ($el.text() === NotebookStatusLabel.Failed && maxRetries > 0) {
         cy.log(`Notebook ${workbenchName} failed to start; retrying start (${maxRetries} left)`);
-        // Failed notebooks are not running — the toggle starts them again
+        row.findNotebookStopToggle().click();
+        notebookConfirmModal.findStopWorkbenchButton().click();
+        row.expectStatusLabelToBe(NotebookStatusLabel.Stopped, 120000);
         row.findNotebookStopToggle().click();
         waitForNotebookReady(row, workbenchName, maxRetries - 1);
       } else {
