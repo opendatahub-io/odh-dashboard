@@ -1,4 +1,9 @@
-import { validateFeatureStoreForm, isFormValid, StepValidation } from '../validationUtils';
+import {
+  validateFeatureStoreForm,
+  isFormValid,
+  needsMultiReplicaWarning,
+  StepValidation,
+} from '../validationUtils';
 import {
   FeatureStoreFormData,
   RegistryType,
@@ -340,7 +345,7 @@ describe('validateFeatureStoreForm', () => {
       });
       const result = validateFeatureStoreForm(data, []);
       expect(result.registry.valid).toBe(false);
-      expect(result.registry.message).toContain('FeatureStore reference name is required');
+      expect(result.registry.message).toContain('Feature store reference name is required');
     });
   });
 
@@ -619,6 +624,22 @@ describe('validateFeatureStoreForm', () => {
         expect(result.advanced.valid).toBe(true);
       });
 
+      it('should pass when HPA with max replicas = 1 and file-based persistence', () => {
+        const data = makeFormData({
+          feastProject: 'test',
+          namespace: 'ns',
+          scalingEnabled: true,
+          scalingMode: ScalingMode.HPA,
+          hpaMinReplicas: 1,
+          hpaMaxReplicas: 1,
+          onlinePersistenceType: PersistenceType.FILE,
+          registryType: RegistryType.LOCAL,
+          registryPersistenceType: PersistenceType.FILE,
+        });
+        const result = validateFeatureStoreForm(data, []);
+        expect(result.advanced.valid).toBe(true);
+      });
+
       it('should fail when static scaling > 1 replica with file-based offline store', () => {
         const data = makeFormData({
           feastProject: 'test',
@@ -648,6 +669,176 @@ describe('validateFeatureStoreForm', () => {
         expect(result.advanced.message).toContain('DB-backed persistence for the offline store');
       });
     });
+  });
+});
+
+describe('needsMultiReplicaWarning', () => {
+  it.each([
+    ['static with 1 replica', { scalingMode: ScalingMode.STATIC, replicas: 1 }],
+    [
+      'HPA with max replicas = 1',
+      { scalingMode: ScalingMode.HPA, hpaMinReplicas: 1, hpaMaxReplicas: 1 },
+    ],
+  ] as [string, Partial<FeatureStoreFormData>][])(
+    'returns false when %s (not multi-replica)',
+    (_, overrides) => {
+      expect(
+        needsMultiReplicaWarning(
+          makeFormData({ ...overrides, onlinePersistenceType: PersistenceType.FILE }),
+        ),
+      ).toBe(false);
+    },
+  );
+
+  it.each([
+    ['static with replicas > 1', { scalingMode: ScalingMode.STATIC, replicas: 3 }],
+    [
+      'HPA with max replicas > 1',
+      { scalingMode: ScalingMode.HPA, hpaMinReplicas: 1, hpaMaxReplicas: 3 },
+    ],
+  ] as [string, Partial<FeatureStoreFormData>][])(
+    'returns true when %s with file-based online store',
+    (_, overrides) => {
+      expect(
+        needsMultiReplicaWarning(
+          makeFormData({ ...overrides, onlinePersistenceType: PersistenceType.FILE }),
+        ),
+      ).toBe(true);
+    },
+  );
+
+  it('returns true when offline store enabled with file persistence', () => {
+    expect(
+      needsMultiReplicaWarning(
+        makeFormData({
+          scalingMode: ScalingMode.STATIC,
+          replicas: 2,
+          onlinePersistenceType: PersistenceType.DB,
+          offlineStoreEnabled: true,
+          offlinePersistenceType: PersistenceType.FILE,
+        }),
+      ),
+    ).toBe(true);
+  });
+
+  it('returns false when offline store is disabled even with file persistence type', () => {
+    expect(
+      needsMultiReplicaWarning(
+        makeFormData({
+          scalingMode: ScalingMode.STATIC,
+          replicas: 2,
+          onlinePersistenceType: PersistenceType.DB,
+          offlineStoreEnabled: false,
+          offlinePersistenceType: PersistenceType.FILE,
+          registryType: RegistryType.REMOTE,
+        }),
+      ),
+    ).toBe(false);
+  });
+
+  it('returns true when local registry uses file persistence without object store path', () => {
+    expect(
+      needsMultiReplicaWarning(
+        makeFormData({
+          scalingMode: ScalingMode.HPA,
+          onlinePersistenceType: PersistenceType.DB,
+          registryType: RegistryType.LOCAL,
+          registryPersistenceType: PersistenceType.FILE,
+          services: {
+            registry: {
+              local: {
+                server: { restAPI: true, grpc: true },
+                persistence: { file: { path: '/data/registry.db' } },
+              },
+            },
+          },
+        }),
+      ),
+    ).toBe(true);
+  });
+
+  it('returns false when local registry uses s3:// object store path', () => {
+    expect(
+      needsMultiReplicaWarning(
+        makeFormData({
+          scalingMode: ScalingMode.HPA,
+          onlinePersistenceType: PersistenceType.DB,
+          registryType: RegistryType.LOCAL,
+          registryPersistenceType: PersistenceType.FILE,
+          services: {
+            registry: {
+              local: {
+                server: { restAPI: true, grpc: true },
+                persistence: { file: { path: 's3://bucket/registry.db' } },
+              },
+            },
+          },
+        }),
+      ),
+    ).toBe(false);
+  });
+
+  it('returns false when local registry uses gs:// object store path', () => {
+    expect(
+      needsMultiReplicaWarning(
+        makeFormData({
+          scalingMode: ScalingMode.HPA,
+          onlinePersistenceType: PersistenceType.DB,
+          registryType: RegistryType.LOCAL,
+          registryPersistenceType: PersistenceType.FILE,
+          services: {
+            registry: {
+              local: {
+                server: { restAPI: true, grpc: true },
+                persistence: { file: { path: 'gs://bucket/registry.db' } },
+              },
+            },
+          },
+        }),
+      ),
+    ).toBe(false);
+  });
+
+  it('returns false when local registry uses DB persistence', () => {
+    expect(
+      needsMultiReplicaWarning(
+        makeFormData({
+          scalingMode: ScalingMode.STATIC,
+          replicas: 2,
+          onlinePersistenceType: PersistenceType.DB,
+          registryType: RegistryType.LOCAL,
+          registryPersistenceType: PersistenceType.DB,
+        }),
+      ),
+    ).toBe(false);
+  });
+
+  it('returns false when registry is remote', () => {
+    expect(
+      needsMultiReplicaWarning(
+        makeFormData({
+          scalingMode: ScalingMode.STATIC,
+          replicas: 2,
+          onlinePersistenceType: PersistenceType.DB,
+          registryType: RegistryType.REMOTE,
+        }),
+      ),
+    ).toBe(false);
+  });
+
+  it('returns false when all persistence is DB-backed', () => {
+    expect(
+      needsMultiReplicaWarning(
+        makeFormData({
+          scalingMode: ScalingMode.HPA,
+          onlinePersistenceType: PersistenceType.DB,
+          offlineStoreEnabled: true,
+          offlinePersistenceType: PersistenceType.DB,
+          registryType: RegistryType.LOCAL,
+          registryPersistenceType: PersistenceType.DB,
+        }),
+      ),
+    ).toBe(false);
   });
 });
 
