@@ -1,5 +1,28 @@
 import * as React from 'react';
-import type { SecretKind } from '@odh-dashboard/k8s-core';
+import { K8sStatus } from '@openshift/dynamic-plugin-sdk-utils';
+import type { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
+import type { SecretKind, K8sAPIOptions, RoleKind, RoleBindingKind } from '@odh-dashboard/k8s-core';
+import { KnownLabels } from '@odh-dashboard/k8s-core';
+import {
+  assembleSecretSA,
+  createSecret,
+  deleteSecret,
+  replaceSecret,
+} from '@odh-dashboard/internal/api/k8s/secrets';
+import {
+  assembleServiceAccount,
+  createServiceAccount,
+  getServiceAccount,
+} from '@odh-dashboard/internal/api/k8s/serviceAccounts';
+import { getRole, createRole } from '@odh-dashboard/internal/api/k8s/roles';
+import {
+  generateRoleBindingServiceAccount,
+  getRoleBinding,
+  createRoleBinding,
+} from '@odh-dashboard/internal/api/k8s/roleBindings';
+import { addOwnerReference } from '@odh-dashboard/internal/api/k8sUtils';
+import { getGenericErrorCode } from '@odh-dashboard/internal/api/errorUtils';
+import type { ServiceAccountKind } from '@odh-dashboard/internal/k8sTypes';
 import useFetch, {
   NotReadyError,
   type FetchOptions,
@@ -8,6 +31,13 @@ import useFetch, {
 import { LABEL_SELECTOR_DASHBOARD_RESOURCE } from '@odh-dashboard/ui-core/utilities';
 import { useHostApiInfra } from '@odh-dashboard/plugin-core/host-api';
 import type { Deployment } from '../../extension-points';
+
+export type TokenAuthEntry = {
+  displayName: string;
+  k8sName?: string;
+  uuid: string;
+  error?: string;
+};
 
 const getModelServingRuntimeName = (namespace: string): string => `model-server-${namespace}`;
 const getModelServiceAccountName = (name: string): string => `${name}-sa`;
@@ -29,6 +59,157 @@ export const getTokenNames = (
   const roleBindingName = getModelRoleBinding(name);
 
   return { serviceAccountName, roleName, roleBindingName };
+};
+
+const is404 = (error: unknown): boolean => getGenericErrorCode(error) === 404;
+
+export const generateRole = (
+  roleName: string,
+  resourceName: string,
+  namespace: string,
+  resourceType: string,
+): RoleKind => ({
+  apiVersion: 'rbac.authorization.k8s.io/v1',
+  kind: 'Role',
+  metadata: {
+    name: roleName,
+    namespace,
+    labels: {
+      [KnownLabels.DASHBOARD_RESOURCE]: 'true',
+    },
+  },
+  rules: [
+    {
+      verbs: ['get'],
+      apiGroups: ['serving.kserve.io'],
+      resources: [resourceType],
+      resourceNames: [resourceName],
+    },
+  ],
+});
+
+export const createServiceAccountIfMissing = async (
+  serviceAccount: ServiceAccountKind,
+  namespace: string,
+  opts?: K8sAPIOptions,
+): Promise<ServiceAccountKind> =>
+  getServiceAccount(serviceAccount.metadata.name, namespace).catch((e: unknown) => {
+    if (is404(e)) {
+      return createServiceAccount(serviceAccount, opts);
+    }
+    return Promise.reject(e);
+  });
+
+export const createRoleIfMissing = async (
+  role: RoleKind,
+  namespace: string,
+  opts?: K8sAPIOptions,
+): Promise<RoleKind> =>
+  getRole(namespace, role.metadata.name).catch((e: unknown) => {
+    if (is404(e)) {
+      return createRole(role, opts);
+    }
+    return Promise.reject(e);
+  });
+
+export const createRoleBindingIfMissing = async (
+  rolebinding: RoleBindingKind,
+  namespace: string,
+  opts?: K8sAPIOptions,
+): Promise<RoleBindingKind> =>
+  getRoleBinding(namespace, rolebinding.metadata.name).catch((e: unknown) => {
+    if (is404(e)) {
+      return createRoleBinding(rolebinding, opts).catch((error: unknown) => {
+        if (is404(error) && opts?.dryRun) {
+          return Promise.resolve(rolebinding);
+        }
+        return Promise.reject(error);
+      });
+    }
+    return Promise.reject(e);
+  });
+
+export const createTokenSecrets = async (
+  tokenAuth: TokenAuthEntry[] | undefined,
+  deployedModelName: string,
+  namespace: string,
+  owner: K8sResourceCommon,
+  existingSecrets?: SecretKind[],
+  opts?: K8sAPIOptions,
+): Promise<void> => {
+  const { serviceAccountName } = getTokenNames(deployedModelName, namespace);
+  const deletedSecrets =
+    existingSecrets
+      ?.map((secret) => secret.metadata.name)
+      .filter((token: string) => !tokenAuth?.some((tokenEdit) => tokenEdit.k8sName === token)) ||
+    [];
+  const tokensToProcess = tokenAuth || [];
+
+  await Promise.all<K8sStatus | SecretKind>([
+    ...tokensToProcess.map((token) => {
+      const secretToken = addOwnerReference(
+        assembleSecretSA(token.displayName, serviceAccountName, namespace, token.k8sName),
+        owner,
+      );
+      if (token.k8sName) {
+        return replaceSecret(secretToken, opts);
+      }
+      return createSecret(secretToken, opts);
+    }),
+    ...deletedSecrets.map((secret) => deleteSecret(namespace, secret, opts)),
+  ]);
+};
+
+export const setUpTokenAuth = async (
+  tokenAuth: TokenAuthEntry[] | undefined,
+  deployedModelName: string,
+  namespace: string,
+  createTokenAuthResources: boolean,
+  owner: K8sResourceCommon,
+  resourceType: string,
+  existingSecrets?: SecretKind[],
+  opts?: K8sAPIOptions,
+): Promise<void> => {
+  const { serviceAccountName, roleName, roleBindingName } = getTokenNames(
+    deployedModelName,
+    namespace,
+  );
+
+  const serviceAccount = addOwnerReference(
+    assembleServiceAccount(serviceAccountName, namespace),
+    owner,
+  );
+
+  const role = addOwnerReference(
+    generateRole(roleName, deployedModelName, namespace, resourceType),
+    owner,
+  );
+
+  const roleBinding = addOwnerReference(
+    generateRoleBindingServiceAccount(
+      roleBindingName,
+      serviceAccountName,
+      {
+        kind: 'Role',
+        name: roleName,
+      },
+      namespace,
+    ),
+    owner,
+  );
+
+  return (
+    createTokenAuthResources
+      ? Promise.all([
+          createServiceAccountIfMissing(serviceAccount, namespace, opts),
+          createRoleIfMissing(role, namespace, opts),
+        ]).then(() => createRoleBindingIfMissing(roleBinding, namespace, opts))
+      : Promise.resolve()
+  )
+    .then(() =>
+      createTokenSecrets(tokenAuth, deployedModelName, namespace, owner, existingSecrets, opts),
+    )
+    .catch((error) => Promise.reject(error));
 };
 
 export const isDeploymentAuthEnabled = (
