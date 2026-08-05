@@ -119,7 +119,7 @@ class ClusterStorageModal extends Modal {
 
   findWorkbenchSelectValueField(row: number) {
     return this.findWorkbenchName(row).findByRole('combobox', {
-      name: 'Type to filter',
+      name: 'Workbench',
     });
   }
 

@@ -1,0 +1,4 @@
+// innerRef anchor without adding a layout box (keeps parent flex/grid intact).
+.odh-value-unit-field__toggle-anchor {
+  display: contents;
+}

@@ -118,9 +118,13 @@ const AddExistingStorageField: React.FC<AddExistingStorageFieldProps> = ({
         }}
         placeholder={placeholderText}
         noOptionsFoundMessage={(filter) => `No persistent storage was found for "${filter}"`}
-        popperProps={{ direction: selectDirection, appendTo: menuAppendTo }}
+        ariaLabel="Persistent storage"
+        popperProps={{
+          direction: selectDirection,
+          ...(menuAppendTo !== undefined ? { appendTo: menuAppendTo } : {}),
+        }}
         isDisabled={!loaded}
-        data-testid="persistent-storage-typeahead"
+        dataTestId="persistent-storage-typeahead"
         isScrollable
       />
       <FormHelperText>

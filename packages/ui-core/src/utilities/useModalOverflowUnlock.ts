@@ -8,20 +8,20 @@ const originalOverflowByDialog = new WeakMap<HTMLElement, string>();
 const unlockCountByDialog = new WeakMap<HTMLElement, number>();
 
 /** Resolve popper mount target: portal into the nearest modal dialog for VoiceOver + aria-modal. */
-export const resolveSelectPopperAppendTo = (
-  anchor: HTMLElement | null | undefined,
-): HTMLElement => {
+export const resolveSelectPopperAppendTo = (anchor: Element | null | undefined): HTMLElement => {
   const dialog = anchor?.closest<HTMLElement>(MODAL_DIALOG_SELECTOR);
   if (dialog) {
     return dialog;
   }
-  return anchor?.parentElement ?? document.body;
+  // Outside modals, portal to body so menus are not clipped by overflow parents
+  // (e.g. SearchSelector after dropping the old default appendTo: 'inline').
+  return document.body;
 };
 
 /** Unlock modal overflow while a portaled select menu is open; ref-counts when multiple instances share a dialog. */
 export const useModalOverflowUnlock = (
   isOpen: boolean,
-  anchorRef: React.RefObject<HTMLElement | null>,
+  anchorRef: React.RefObject<Element | null>,
 ): void => {
   React.useLayoutEffect(() => {
     if (!isOpen) {

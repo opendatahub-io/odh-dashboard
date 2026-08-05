@@ -1,9 +1,10 @@
 import * as React from 'react';
 import '@testing-library/jest-dom';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import { act } from 'react';
 import { DropdownField } from '#~/concepts/connectionTypes/types';
 import DropdownFormField from '#~/concepts/connectionTypes/fields/DropdownFormField';
+import { MODAL_OVERFLOW_UNLOCK_COUNT_ATTR } from '#~/utilities/useModalOverflowUnlock';
 
 describe('DropdownFormField', () => {
   describe('single variant', () => {
@@ -239,5 +240,46 @@ describe('DropdownFormField', () => {
       expect(screen.queryByRole('button')).not.toBeInTheDocument();
       expect(screen.queryByText('Two (Value: 2), Three (Value: 3)')).toBeInTheDocument();
     });
+  });
+
+  it('should portal options into the modal dialog for keyboard and screen reader access', async () => {
+    const dialogRef = React.createRef<HTMLDivElement>();
+    const onChange = jest.fn();
+    const field: DropdownField = {
+      type: 'dropdown',
+      name: 'Access type',
+      envVar: 'ACCESS_TYPE',
+      properties: {
+        variant: 'multi',
+        items: [
+          { value: 'Push', label: 'Push secret' },
+          { value: 'Pull', label: 'Pull secret' },
+        ],
+      },
+    };
+
+    render(
+      <div ref={dialogRef} role="dialog" style={{ overflow: 'auto' }}>
+        <DropdownFormField id="access-type" field={field} value={[]} onChange={onChange} />
+      </div>,
+    );
+
+    const dialog = dialogRef.current as HTMLDivElement;
+    const toggle = screen.getByRole('button');
+    const fieldAnchor = toggle.closest('.odh-dropdown-form-field__toggle-anchor');
+
+    act(() => {
+      toggle.click();
+    });
+
+    expect(dialog.style.overflow).toBe('visible');
+    expect(dialog.getAttribute(MODAL_OVERFLOW_UNLOCK_COUNT_ATTR)).toBe('1');
+
+    // Multi SelectOption with checkbox: menu must portal into the dialog, not stay
+    // under the field toggle (inline render would also satisfy within(dialog)).
+    // Accessible name is "Push secret Value: Push" (label + description).
+    const pushOption = within(dialog).getByRole('checkbox', { name: /Push secret/ });
+    expect(dialog.contains(pushOption)).toBe(true);
+    expect(fieldAnchor?.contains(pushOption)).toBe(false);
   });
 });

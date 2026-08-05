@@ -1,0 +1,4 @@
+// innerRef anchor without adding a layout box (keeps parent flex/grid intact).
+.odh-connection-dropdown__toggle-anchor {
+  display: contents;
+}
