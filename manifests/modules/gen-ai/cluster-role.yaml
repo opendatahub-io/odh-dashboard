@@ -102,3 +102,13 @@ rules:
       - list
     resources:
       - storageclasses
+  # TLS trust: read the ingress CA from the router-ca secret to populate
+  # the OGX CA trust bundle when the CA injection label has not yet propagated.
+  - apiGroups:
+      - ""
+    verbs:
+      - get
+    resources:
+      - secrets
+    resourceNames:
+      - router-ca
