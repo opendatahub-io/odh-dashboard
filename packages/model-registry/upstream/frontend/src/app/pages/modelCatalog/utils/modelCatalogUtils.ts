@@ -844,15 +844,8 @@ export const servingConfigToValidatedConfigurations = (
     return undefined;
   }
 
-  const toolCalling = model.servingConfig?.toolCalling;
-  if (!toolCalling) {
-    return undefined;
-  }
-
+  const toolCalling = model.servingConfig!.toolCalling!;
   const argsValue = getToolCallingArgs(toolCalling);
-  if (!argsValue) {
-    return undefined;
-  }
 
   return [
     {
@@ -861,7 +854,7 @@ export const servingConfigToValidatedConfigurations = (
       description: 'Validated tool calling configuration for this model',
       options: [
         {
-          title: toolCalling.toolCallParser ?? 'Tool calling',
+          title: toolCalling.toolCallParser!,
           description: 'Enable tool calling with validated configuration',
           value: argsValue,
         },

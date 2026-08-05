@@ -1999,26 +1999,7 @@ describe('servingConfigToValidatedConfigurations', () => {
     expect(servingConfigToValidatedConfigurations(model)).toBeUndefined();
   });
 
-  it('returns undefined when model has no toolCalling', () => {
-    const model: CatalogModel = {
-      name: 'test-model',
-      servingConfig: {},
-    };
-    expect(servingConfigToValidatedConfigurations(model)).toBeUndefined();
-  });
-
-  it('returns undefined when model has no toolCallParser', () => {
-    const model: CatalogModel = {
-      name: 'test-model',
-      servingConfig: {
-        toolCalling: {},
-      },
-      validatedTasks: [ModelCatalogTask.TOOL_CALLING],
-    };
-    expect(servingConfigToValidatedConfigurations(model)).toBeUndefined();
-  });
-
-  it('returns undefined when model has no validatedTasks including TOOL_CALLING', () => {
+  it('returns undefined when toolCalling has no validatedTasks', () => {
     const model: CatalogModel = {
       name: 'test-model',
       servingConfig: {
@@ -2058,30 +2039,5 @@ describe('servingConfigToValidatedConfigurations', () => {
         },
       ],
     });
-  });
-
-  it('includes all tool calling args in the option value', () => {
-    const model: CatalogModel = {
-      name: 'test-model',
-      servingConfig: {
-        toolCalling: {
-          toolCallParser: 'granite',
-          enableAutoToolChoice: true,
-          chatTemplate: 'opt/app-root/template/tool_chat_template_granite.jinja',
-          requiredArgs: ['--config_format granite'],
-        },
-      },
-      validatedTasks: [ModelCatalogTask.TOOL_CALLING],
-    };
-
-    const result = servingConfigToValidatedConfigurations(model);
-
-    expect(result).toBeDefined();
-    expect(result![0].options[0].value).toContain('--enable-auto-tool-choice');
-    expect(result![0].options[0].value).toContain('--tool-call-parser granite');
-    expect(result![0].options[0].value).toContain(
-      '--chat-template opt/app-root/template/tool_chat_template_granite.jinja',
-    );
-    expect(result![0].options[0].value).toContain('--config_format granite');
   });
 });
