@@ -5,6 +5,7 @@ import type { ProjectKind } from '@odh-dashboard/k8s-core';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { ExternalDataLoader, type ExternalDataMap } from './ExternalDataLoader';
 import { useModelDeploymentWizard } from './useDeploymentWizard';
+import { useWizardFieldExtractors } from './useWizardFieldExtractors';
 import { useModelDeploymentWizardValidation } from './useDeploymentWizardValidation';
 import { PreconfigureDeploymentStepContent } from './steps/PreconfigureDeploymentStep';
 import { ModelSourceStepContent } from './steps/ModelSourceStep';
@@ -61,8 +62,16 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
   // External data state - loaded by ExternalDataLoader component
   const [externalData, setExternalData] = React.useState<ExternalDataMap>({});
 
+  // Extract dynamic field data from the deployment, so that it still receives initial values
+  const { extractedFieldData } = useWizardFieldExtractors(existingDeployment);
+  const mergedExistingData = React.useMemo(
+    (): InitialWizardFormData | undefined =>
+      existingData ? { ...extractedFieldData, ...existingData } : existingData,
+    [existingData, extractedFieldData],
+  );
+
   const wizardFormData = useModelDeploymentWizard(
-    existingData,
+    mergedExistingData,
     project?.metadata.name,
     externalData,
   );

@@ -167,7 +167,7 @@ const initIntercepts = ({
       statusCode: 200,
       body: mockServingRuntimeK8sResource({}),
     },
-  ).as('createServingRuntime');
+  );
 
   cy.interceptK8s(
     'POST',
@@ -251,6 +251,37 @@ const setupDeploymentLists = () => {
   );
 };
 
+const setupEditDeployment = (capabilities: string[]) => {
+  const inferenceService = mockInferenceServiceK8sResource({
+    modelType: ServingRuntimeModelType.GENERATIVE,
+    hasExternalRoute: true,
+    secretName: 'test-uri-secret',
+    hardwareProfileName: 'small-profile',
+    hardwareProfileNamespace: 'opendatahub',
+    description: 'test-description',
+  });
+  inferenceService.metadata.annotations = {
+    ...inferenceService.metadata.annotations,
+    [MODEL_CAPABILITIES_ANNOTATION]: JSON.stringify(capabilities),
+  };
+
+  cy.interceptK8sList(
+    { model: InferenceServiceModel, ns: 'test-project' },
+    mockK8sResourceList([inferenceService]),
+  );
+  cy.interceptK8sList(
+    { model: ServingRuntimeModel, ns: 'test-project' },
+    mockK8sResourceList([
+      mockServingRuntimeK8sResource({
+        scope: 'global',
+        templateDisplayName: 'vLLM NVIDIA',
+      }),
+    ]),
+  );
+
+  return inferenceService;
+};
+
 describe('Model capabilities in deployment wizard', () => {
   it('should hide the model capabilities field when the feature flag is disabled', () => {
     initIntercepts({ modelCapabilitiesEnabled: false });
@@ -284,32 +315,7 @@ describe('Model capabilities in deployment wizard', () => {
 
   it('should show existing model capabilities when editing a deployment', () => {
     initIntercepts({ modelCapabilitiesEnabled: true });
-    const inferenceService = mockInferenceServiceK8sResource({
-      modelType: ServingRuntimeModelType.GENERATIVE,
-      hasExternalRoute: true,
-      secretName: 'test-uri-secret',
-      hardwareProfileName: 'small-profile',
-      hardwareProfileNamespace: 'opendatahub',
-      description: 'test-description',
-    });
-    inferenceService.metadata.annotations = {
-      ...inferenceService.metadata.annotations,
-      [MODEL_CAPABILITIES_ANNOTATION]: JSON.stringify(['Vision', 'Existing Custom']),
-    };
-
-    cy.interceptK8sList(
-      { model: InferenceServiceModel, ns: 'test-project' },
-      mockK8sResourceList([inferenceService]),
-    );
-    cy.interceptK8sList(
-      { model: ServingRuntimeModel, ns: 'test-project' },
-      mockK8sResourceList([
-        mockServingRuntimeK8sResource({
-          scope: 'global',
-          templateDisplayName: 'vLLM NVIDIA',
-        }),
-      ]),
-    );
+    setupEditDeployment(['Vision', 'Existing Custom']);
 
     modelServingGlobal.visit('test-project');
     modelServingGlobal.getModelRow('Test Inference Service').findKebabAction('Edit').click();
@@ -322,34 +328,50 @@ describe('Model capabilities in deployment wizard', () => {
     modelServingWizardEdit.findCapabilityLabel('Existing Custom').should('exist');
   });
 
+  it('should add a custom capability and submit', () => {
+    initIntercepts({ modelCapabilitiesEnabled: true });
+    setupDeploymentLists();
+
+    modelServingGlobal.visit('test-project');
+    modelServingGlobal.findDeployModelButton().click();
+    modelServingWizard.navigateGenerativeLegacyToAdvancedOptions();
+    modelServingWizard.addCustomCapability('MyCustomCap');
+    modelServingWizard.findCapabilityLabel('MyCustomCap').should('exist');
+    modelServingWizard.findNextButton().click();
+    modelServingWizard.findSubmitButton().click();
+
+    cy.wait('@createInferenceService').then((interception) => {
+      expect(
+        interception.request.body.metadata.annotations?.[MODEL_CAPABILITIES_ANNOTATION],
+      ).to.equal(JSON.stringify(['MyCustomCap']));
+    });
+  });
+
+  it('should remove a capability', () => {
+    initIntercepts({ modelCapabilitiesEnabled: true });
+    setupDeploymentLists();
+
+    modelServingGlobal.visit('test-project');
+    modelServingGlobal.findDeployModelButton().click();
+    modelServingWizard.navigateGenerativeLegacyToAdvancedOptions();
+    modelServingWizard.selectWellKnownCapability('Vision');
+    modelServingWizard.addCustomCapability('ToRemove');
+    modelServingWizard.findCapabilityLabel('ToRemove').should('exist');
+    modelServingWizard.removeCapability('ToRemove');
+    modelServingWizard.findCapabilityLabel('ToRemove').should('not.exist');
+    modelServingWizard.findNextButton().click();
+    modelServingWizard.findSubmitButton().click();
+
+    cy.wait('@createInferenceService').then((interception) => {
+      expect(
+        interception.request.body.metadata.annotations?.[MODEL_CAPABILITIES_ANNOTATION],
+      ).to.equal(JSON.stringify(['Vision']));
+    });
+  });
+
   it('should persist changed model capabilities on edit submit', () => {
     initIntercepts({ modelCapabilitiesEnabled: true });
-    const inferenceService = mockInferenceServiceK8sResource({
-      modelType: ServingRuntimeModelType.GENERATIVE,
-      hasExternalRoute: true,
-      secretName: 'test-uri-secret',
-      hardwareProfileName: 'small-profile',
-      hardwareProfileNamespace: 'opendatahub',
-      description: 'test-description',
-    });
-    inferenceService.metadata.annotations = {
-      ...inferenceService.metadata.annotations,
-      [MODEL_CAPABILITIES_ANNOTATION]: JSON.stringify(['Vision']),
-    };
-
-    cy.interceptK8sList(
-      { model: InferenceServiceModel, ns: 'test-project' },
-      mockK8sResourceList([inferenceService]),
-    );
-    cy.interceptK8sList(
-      { model: ServingRuntimeModel, ns: 'test-project' },
-      mockK8sResourceList([
-        mockServingRuntimeK8sResource({
-          scope: 'global',
-          templateDisplayName: 'vLLM NVIDIA',
-        }),
-      ]),
-    );
+    const inferenceService = setupEditDeployment(['Vision']);
     cy.interceptK8s(
       'PUT',
       { model: InferenceServiceModel, ns: 'test-project', name: 'test-inference-service' },
