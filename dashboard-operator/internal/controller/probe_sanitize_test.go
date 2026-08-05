@@ -177,10 +177,16 @@ func TestSanitizeDeploymentProbes_TcpSocketToExec(t *testing.T) {
 	if _, ok := lp["tcpSocket"]; ok {
 		t.Error("tcpSocket should have been removed from livenessProbe")
 	}
+	if _, ok := lp["exec"]; !ok {
+		t.Error("exec should have been added to livenessProbe")
+	}
 
 	rp, _ := c["readinessProbe"].(map[string]interface{})
 	if _, ok := rp["httpGet"]; ok {
 		t.Error("httpGet should have been removed from readinessProbe")
+	}
+	if _, ok := rp["exec"]; !ok {
+		t.Error("exec should have been added to readinessProbe")
 	}
 }
 
@@ -258,6 +264,9 @@ func TestSanitizeDeploymentProbes_MultipleContainers(t *testing.T) {
 		case "rhods-dashboard":
 			if _, ok := lp["tcpSocket"]; ok {
 				t.Error("rhods-dashboard: tcpSocket should have been removed")
+			}
+			if _, ok := lp["exec"]; !ok {
+				t.Error("rhods-dashboard: exec should have been added")
 			}
 		case "kube-rbac-proxy":
 			if _, ok := lp["httpGet"]; !ok {
