@@ -2,12 +2,20 @@ import {
   CustomObjectsApi,
   V1ClusterRoleBinding,
   V1ClusterRoleBindingList,
+  V1ResourceAttributes,
+  V1SelfSubjectAccessReview,
 } from '@kubernetes/client-node';
-import { KubeFastifyInstance, ResourceAccessReviewResponse } from '../types';
+import {
+  K8sStatus,
+  KubeFastifyInstance,
+  OauthFastifyRequest,
+  ResourceAccessReviewResponse,
+} from '../types';
 import { getAllGroupsByUser, getGroup } from './groupsUtils';
 import { flatten, uniq } from 'lodash';
 import { getNamespaces } from '../utils/notebookUtils';
 import { getAuth } from './resourceUtils';
+import { isK8sStatus, passThroughResource } from '../routes/api/k8s/pass-through';
 
 const SYSTEM_AUTHENTICATED = 'system:authenticated';
 /** Usernames with invalid characters can start with `b64:` to keep their unwanted characters */
@@ -85,12 +93,48 @@ export const getGroupsConfig = async (
   }
 };
 
+const SingletonAuthResource: V1ResourceAttributes = {
+  group: 'services.platform.opendatahub.io',
+  resource: 'auths',
+  name: 'default-auth',
+};
+
+const createSelfSubjectAccessReview = (
+  fastify: KubeFastifyInstance,
+  request: OauthFastifyRequest,
+  resourceAttributes: V1ResourceAttributes,
+): Promise<V1SelfSubjectAccessReview | K8sStatus> => {
+  const kc = fastify.kube.config;
+  const cluster = kc.getCurrentCluster();
+  const selfSubjectAccessReviewObject: V1SelfSubjectAccessReview = {
+    apiVersion: 'authorization.k8s.io/v1',
+    kind: 'SelfSubjectAccessReview',
+    spec: { resourceAttributes },
+  };
+  return passThroughResource<V1SelfSubjectAccessReview>(fastify, request, {
+    url: `${cluster.server}/apis/authorization.k8s.io/v1/selfsubjectaccessreviews`,
+    method: 'POST',
+    requestData: JSON.stringify(selfSubjectAccessReviewObject),
+  });
+};
+
+const isUserAdminSSAR = async (
+  fastify: KubeFastifyInstance,
+  request: OauthFastifyRequest,
+): Promise<boolean> =>
+  createSelfSubjectAccessReview(fastify, request, {
+    ...SingletonAuthResource,
+    verb: 'patch',
+  })
+    .then((v) => (isK8sStatus(v) ? false : v.status.allowed))
+    .catch(() => false);
+
 export const isUserAdmin = async (
   fastify: KubeFastifyInstance,
+  request: OauthFastifyRequest,
   username: string,
-  namespace: string,
 ): Promise<boolean> => {
-  const isAdmin: boolean = await isUserClusterRole(fastify, username, namespace);
+  const isAdmin = await isUserAdminSSAR(fastify, request);
   return isAdmin || (await getGroupsConfig(fastify, fastify.kube.customObjectsApi, username));
 };
 
