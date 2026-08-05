@@ -755,7 +755,7 @@ Returned when:
 {
   "error": {
     "code": "404",
-    "message": "required managed pipelines not found in namespace - enable AutoRAG pipelines on the pipeline server"
+    "message": "required managed pipelines not found in namespace - enable AutoML and AutoRAG pipelines on the pipeline server"
   }
 }
 ```
@@ -985,7 +985,7 @@ If the error message is "no Pipeline Server (DSPipelineApplication) found in nam
 
 **Scenario 3: Required managed pipelines unavailable**
 
-If the error message is "required managed pipelines not found in namespace - enable AutoRAG pipelines on the pipeline server":
+If the error message is "required managed pipelines not found in namespace - enable AutoML and AutoRAG pipelines on the pipeline server":
 1. Verify the pipeline server has managed pipelines enabled (AutoML and AutoRAG)
 2. Confirm a pipeline with the expected display name exists on the pipeline server
    (default: `documents-rag-optimization-pipeline`, or the value configured in
