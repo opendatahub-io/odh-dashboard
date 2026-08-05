@@ -7,6 +7,7 @@ import {
   JobPrimaryScore,
   SourceMode,
 } from '~/app/types';
+import { parseS3Url } from '~/app/utils/common';
 
 type BuildEvaluationRequestParams = {
   evaluationName: string;
@@ -26,11 +27,6 @@ type BuildEvaluationRequestParams = {
 };
 
 const TOP_LEVEL_KEYS = new Set(['experiment', 'tags', 'custom', 'exports', 'pass_criteria']);
-
-const parseS3Url = (url: string): { bucket: string; key: string } => {
-  const match = url.match(/^s3:\/\/([^/]+)\/(.+)$/);
-  return match ? { bucket: match[1], key: match[2] } : { bucket: '', key: url };
-};
 
 const buildEvaluationRequest = ({
   evaluationName,
