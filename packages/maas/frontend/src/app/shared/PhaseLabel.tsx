@@ -14,7 +14,7 @@ import PhaseModal from './PhaseModal';
 type PhaseLabelProps = {
   phase: string | undefined;
   resourceType: PhaseResourceType;
-  statusMessage?: React.ReactNode;
+  statusMessage?: string;
   reason?: string;
   forceModal?: boolean;
   onClick?: () => void;
@@ -43,6 +43,7 @@ const PhaseLabel: React.FC<PhaseLabelProps> = ({
   lastTransitionTime,
 }) => {
   const [isModalOpen, setIsModalOpen] = React.useState(false);
+  const [hasOpenedModal, setHasOpenedModal] = React.useState(false);
   const normalized = normalizePhase(phase);
   const phaseProps = getPhaseProps(normalized);
   const isClickable = forceModal || normalized !== PhaseStatus.READY;
@@ -53,6 +54,7 @@ const PhaseLabel: React.FC<PhaseLabelProps> = ({
     if (!isClickable) {
       return;
     }
+    setHasOpenedModal(true);
     setIsModalOpen(true);
     onClick?.();
   };
@@ -74,7 +76,7 @@ const PhaseLabel: React.FC<PhaseLabelProps> = ({
           {statusSubtext}
         </Content>
       ) : null}
-      {isClickable ? (
+      {isClickable && hasOpenedModal ? (
         <PhaseModal
           phase={normalized}
           resourceType={resourceType}

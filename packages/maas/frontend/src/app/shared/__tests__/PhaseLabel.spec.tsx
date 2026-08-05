@@ -1,5 +1,7 @@
 import * as React from 'react';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router-dom';
 import PhaseLabel from '~/app/shared/PhaseLabel';
 import { PhaseResourceType } from '~/app/utilities/phaseLabelUtils';
 
@@ -216,5 +218,56 @@ describe('PhaseLabel', () => {
       />,
     );
     expect(screen.queryByTestId('phase-label-subtext')).toBeNull();
+  });
+
+  it('should not mount the modal until the label is clicked', () => {
+    render(
+      <PhaseLabel
+        phase="Failed"
+        resourceType={PhaseResourceType.SUBSCRIPTION}
+        resourceName="Test Subscription"
+      />,
+    );
+
+    expect(screen.queryByTestId('phase-modal')).toBeNull();
+  });
+
+  it('should mount and open the modal after the label is clicked', async () => {
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <PhaseLabel
+          phase="Failed"
+          resourceType={PhaseResourceType.SUBSCRIPTION}
+          resourceName="Test Subscription"
+        />
+      </MemoryRouter>,
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Failed' }));
+
+    expect(screen.getByTestId('phase-modal')).not.toBeNull();
+  });
+
+  it('should reopen the modal after it is closed without remounting from scratch', async () => {
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <PhaseLabel
+          phase="Failed"
+          resourceType={PhaseResourceType.SUBSCRIPTION}
+          resourceName="Test Subscription"
+        />
+      </MemoryRouter>,
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Failed' }));
+    expect(screen.getByTestId('phase-modal')).not.toBeNull();
+
+    await user.click(screen.getByRole('button', { name: 'Close' }));
+    expect(screen.queryByRole('dialog')).toBeNull();
+
+    await user.click(screen.getByRole('button', { name: 'Failed' }));
+    expect(screen.getByTestId('phase-modal')).not.toBeNull();
   });
 });

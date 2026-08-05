@@ -75,6 +75,8 @@ export type MaaSModelRefSummary = {
   phase?: string;
   endpoint?: string;
   status?: string;
+  reason?: string;
+  statusMessage?: string;
   type?: string;
   lastTransitionTime?: string;
 };

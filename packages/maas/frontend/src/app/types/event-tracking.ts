@@ -90,6 +90,7 @@ export enum EventTrackingPopoverType {
 }
 
 export enum EventTrackingResourceType {
+  MODEL = 'model',
   SUBSCRIPTION = 'subscription',
   AUTHPOLICY = 'authPolicy',
   EXTERNAL_MODEL = 'externalModel',
@@ -192,6 +193,8 @@ export const convertPhaseResourceTypeToEventTrackingResourceType = (
       return EventTrackingResourceType.AUTHPOLICY;
     case PhaseResourceType.EXTERNAL_MODEL:
       return EventTrackingResourceType.EXTERNAL_MODEL;
+    case PhaseResourceType.MODEL:
+      return EventTrackingResourceType.MODEL;
     default:
       return EventTrackingResourceType.SUBSCRIPTION;
   }

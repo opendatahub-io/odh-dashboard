@@ -29,7 +29,7 @@ import {
 type PhaseModalProps = {
   phase: string;
   resourceType: PhaseResourceType;
-  statusMessage?: React.ReactNode;
+  statusMessage?: string;
   reason?: string;
   isOpen: boolean;
   onClose: () => void;

@@ -19,10 +19,10 @@ func extractReadyCondition(content map[string]interface{}) readyConditionFields 
 		if !ok {
 			continue
 		}
-		if condType, _ := cMap["type"].(string); condType != "Ready" {
+		condType, _ := cMap["type"].(string)
+		if condType != "Ready" {
 			continue
 		}
-		condType, _ := cMap["type"].(string)
 		message, _ := cMap["message"].(string)
 		reason, _ := cMap["reason"].(string)
 		status, _ := cMap["status"].(string)
