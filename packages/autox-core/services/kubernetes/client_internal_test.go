@@ -23,7 +23,7 @@ import (
 func newInternalClientWithFakes(objects ...runtime.Object) (*internalClient, *fake.Clientset, *dynamicfake.FakeDynamicClient) {
 	cs := fake.NewSimpleClientset(objects...)
 	dc := dynamicfake.NewSimpleDynamicClientWithCustomListKinds(runtime.NewScheme(), testListKinds)
-	return &internalClient{Clientset: cs, DynamicClient: dc}, cs, dc
+	return &internalClient{baseClient{Clientset: cs, DynamicClient: dc}}, cs, dc
 }
 
 // --- impersonationRoundTripper tests ---
