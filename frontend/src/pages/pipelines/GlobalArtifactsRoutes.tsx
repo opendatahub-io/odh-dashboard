@@ -2,7 +2,7 @@ import React from 'react';
 import { Navigate, Route } from 'react-router-dom';
 
 import TitleWithIcon from '@odh-dashboard/ui-core/design/TitleWithIcon';
-import ProjectsRoutes from '#~/concepts/projects/ProjectsRoutes';
+import ProjectsRoutes from '@odh-dashboard/ui-core/components/ProjectsRoutes';
 import GlobalPipelineCoreLoader from '#~/pages/pipelines/global/GlobalPipelineCoreLoader';
 import { artifactsBaseRoute } from '#~/routes/pipelines/artifacts';
 import { ProjectObjectType } from '#~/concepts/design/utils';

@@ -144,7 +144,10 @@ export const waitForAutoragRunCompletion = (timeoutMs = 2700000): void => {
 
   cy.step('Wait for run to complete');
   autoragResultsPage.findRunInProgressMessage(timeoutMs).should('not.exist');
-  autoragResultsPage.findRunStatusLabel().should('not.exist');
+  autoragResultsPage
+    .findRunStatusLabel()
+    .invoke('text')
+    .should('not.match', /CANCEL|FAIL/i);
   autoragResultsPage.findLeaderboardTable().should('be.visible');
   autoragResultsPage.findTopRankLabel().should('exist');
 };

@@ -2907,9 +2907,16 @@ components:
           additionalProperties:
             type: string
           description: Optional model-provider binding configuration (externalProviderRefs[].config)
+        authMechanism:
+          type: string
+          enum: [apikey, sigv4, oauth2]
+          description: Auth type override from the ExternalModel providerRef (overrides ExternalProvider auth)
+        credentialSecretRef:
+          type: string
+          description: Secret name override from the ExternalModel providerRef (overrides ExternalProvider auth.secretRef)
         provider:
           $ref: '#/components/schemas/ExternalProviderDetails'
-          description: Enriched from the referenced ExternalProvider (list response only)
+          description: Enriched from the referenced ExternalProvider (list response only). Auth fields reflect model-level overrides when present.
 
     ExternalProviderDetails:
       type: object

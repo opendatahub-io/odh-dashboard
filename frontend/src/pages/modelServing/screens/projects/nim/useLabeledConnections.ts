@@ -1,8 +1,8 @@
 import React from 'react';
 import type { LabeledConnection } from '@odh-dashboard/model-serving/shared';
+import { ModelLocation, uriToModelLocation } from '@odh-dashboard/k8s-core';
 import { Connection } from '#~/concepts/connectionTypes/types';
 import { convertObjectStorageSecretData } from '#~/concepts/connectionTypes/utils';
-import { ModelLocation, uriToModelLocation } from '#~/concepts/modelRegistry/utils';
 import { AwsKeys, AccessTypes } from '#~/pages/projects/dataConnections/const';
 
 const useLabeledConnections = (

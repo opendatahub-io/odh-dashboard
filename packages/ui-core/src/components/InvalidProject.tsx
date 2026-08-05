@@ -1,8 +1,8 @@
 import * as React from 'react';
-import EmptyStateErrorMessage from '#~/components/EmptyStateErrorMessage';
-import ProjectSelectorNavigator from '#~/concepts/projects/ProjectSelectorNavigator';
+import EmptyStateErrorMessage from './EmptyStateErrorMessage';
+import ProjectSelectorNavigator from './projectSelector/ProjectSelectorNavigator';
 
-type InvalidProjectProps = {
+export type InvalidProjectProps = {
   title?: string;
   namespace?: string;
   getRedirectPath: (namespace: string) => string;

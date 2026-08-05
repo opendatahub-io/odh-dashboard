@@ -6,6 +6,11 @@ import MlflowIntegrationSection from '#~/concepts/pipelines/content/createRun/co
 import { getDefaultMlflowFormData } from '#~/concepts/pipelines/content/createRun/utils';
 import { MlflowExperimentMode } from '#~/concepts/pipelines/content/createRun/types';
 
+const mockUsePipelinesAPI = jest.fn();
+jest.mock('#~/concepts/pipelines/context', () => ({
+  usePipelinesAPI: () => mockUsePipelinesAPI(),
+}));
+
 jest.mock('#~/concepts/mlflow/MlflowExperimentSelector', () => {
   const MockMlflowExperimentSelector = () => <div data-testid="mlflow-experiment-selector" />;
   MockMlflowExperimentSelector.displayName = 'MockMlflowExperimentSelector';
@@ -19,6 +24,10 @@ jest.mock('@odh-dashboard/ui-core/components/DashboardHelpTooltip', () => {
 });
 
 describe('MlflowIntegrationSection', () => {
+  beforeEach(() => {
+    mockUsePipelinesAPI.mockReturnValue({ mlflowInjectUserEnvVars: false });
+  });
+
   it('should render MLflow tracking as enabled by default', () => {
     render(
       <MlflowIntegrationSection
@@ -252,7 +261,23 @@ describe('MlflowIntegrationSection', () => {
     });
   });
 
-  it('should render the autologging code snippet', () => {
+  it('should not render the autologging code snippet when injectUserEnvVars is false', () => {
+    render(
+      <MlflowIntegrationSection
+        data={getDefaultMlflowFormData()}
+        onChange={jest.fn()}
+        workspace="test-workspace"
+      />,
+    );
+
+    expect(screen.queryByText(/mlflow\.autolog\(\)/)).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('Requires mlflow[kubernetes] in your pipeline image.'),
+    ).not.toBeInTheDocument();
+  });
+
+  it('should render the autologging code snippet when injectUserEnvVars is true', () => {
+    mockUsePipelinesAPI.mockReturnValue({ mlflowInjectUserEnvVars: true });
     render(
       <MlflowIntegrationSection
         data={getDefaultMlflowFormData()}
@@ -262,17 +287,8 @@ describe('MlflowIntegrationSection', () => {
     );
 
     expect(screen.getByText(/mlflow\.autolog\(\)/)).toBeInTheDocument();
-  });
-
-  it('should render the copy to clipboard button', () => {
-    render(
-      <MlflowIntegrationSection
-        data={getDefaultMlflowFormData()}
-        onChange={jest.fn()}
-        workspace="test-workspace"
-      />,
-    );
-
-    expect(screen.getByLabelText('Copy to clipboard')).toBeInTheDocument();
+    expect(
+      screen.getByText('Requires mlflow[kubernetes] in your pipeline image.'),
+    ).toBeInTheDocument();
   });
 });

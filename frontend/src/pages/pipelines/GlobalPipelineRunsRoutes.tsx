@@ -1,8 +1,9 @@
 import * as React from 'react';
 import { Navigate, Route } from 'react-router-dom';
 import TitleWithIcon from '@odh-dashboard/ui-core/design/TitleWithIcon';
+import { buildV2RedirectRoutes } from '@odh-dashboard/plugin-core/routing';
+import ProjectsRoutes from '@odh-dashboard/ui-core/components/ProjectsRoutes';
 import { ProjectObjectType } from '#~/concepts/design/utils';
-import ProjectsRoutes from '#~/concepts/projects/ProjectsRoutes';
 import GlobalPipelineCoreLoader from '#~/pages/pipelines/global/GlobalPipelineCoreLoader';
 import { PipelineRunCoreDetails } from '#~/pages/pipelines/global/GlobalPipelineCoreDetails';
 import { globNamespaceAll } from '#~/routes/pipelines/global';
@@ -28,7 +29,6 @@ import {
 } from '#~/pages/pipelines/global/runs/GlobalPipelineCreateRunPage';
 import GlobalPipelineDuplicateRunPage from '#~/pages/pipelines/global/runs/GlobalPipelineDuplicateRunPage';
 import GlobalPipelineDuplicateRecurringRunPage from '#~/pages/pipelines/global/runs/GlobalPipelineDuplicateRecurringRunPage';
-import { buildV2RedirectRoutes } from '#~/utilities/v2Redirect';
 import { pipelineRunsV2RedirectMap } from './v2Redirects';
 
 const GlobalPipelineRunsRoutes: React.FC = () => (

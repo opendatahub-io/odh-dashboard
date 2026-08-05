@@ -14,13 +14,12 @@ import {
   KueueFilteringState,
 } from '@odh-dashboard/hardware-profiles/shared/kueueUtils';
 import { DEFAULT_LIST_FETCH_STATE } from '@odh-dashboard/ui-core/utilities/fetchState';
+import { CurrentProjectContext } from '@odh-dashboard/ui-core/context/CurrentProjectContext';
+import { LocalQueuesContext } from '@odh-dashboard/ui-core/context/LocalQueuesContext';
+import type { LocalQueuesContextType } from '@odh-dashboard/ui-core/context/LocalQueuesContext';
 import { mockHardwareProfile } from '@odh-dashboard/hardware-profiles/__mocks__/mockHardwareProfile';
 import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import { mockLocalQueueK8sResource } from '#~/__mocks__/mockLocalQueueK8sResource';
-import {
-  ProjectDetailsContext,
-  ProjectDetailsContextType,
-} from '#~/pages/projects/ProjectDetailsContext';
 import { ProjectsContext } from '#~/concepts/projects/ProjectsContext';
 import HardwareProfileSelect from '#~/concepts/hardwareProfiles/HardwareProfileSelect';
 
@@ -96,7 +95,7 @@ const renderComponent = (
   projects: ProjectKind[] = [],
   projectProp?: string,
   allowExistingSettings = false,
-  localQueuesOverride?: ProjectDetailsContextType['localQueues'],
+  localQueuesOverride?: LocalQueuesContextType['localQueues'],
   initialHardwareProfile?: HardwareProfileKind,
 ) => {
   // Mock useKueueConfiguration to return the specified filtering state
@@ -135,39 +134,35 @@ const renderComponent = (
   };
 
   return render(
-    <ProjectsContext.Provider
-      value={{
-        ...defaultProjectsContextValue,
-        projects,
-        loaded: true,
-        loadError: undefined,
-      }}
-    >
-      <ProjectDetailsContext.Provider
-        value={
-          {
-            currentProject,
-            refresh: jest.fn(),
-            localQueues: localQueuesOverride ?? DEFAULT_LIST_FETCH_STATE,
-          } as unknown as ProjectDetailsContextType
-        }
+    <CurrentProjectContext.Provider value={{ currentProject }}>
+      <ProjectsContext.Provider
+        value={{
+          ...defaultProjectsContextValue,
+          projects,
+          loaded: true,
+          loadError: undefined,
+        }}
       >
-        <HardwareProfileSelect
-          initialHardwareProfile={initialHardwareProfile}
-          previewDescription={false}
-          hardwareProfiles={hardwareProfiles}
-          isProjectScoped={false}
-          hardwareProfilesLoaded
-          hardwareProfilesError={undefined}
-          projectScopedHardwareProfiles={[[], true, undefined]}
-          allowExistingSettings={allowExistingSettings}
-          hardwareProfileConfig={hardwareProfileConfig}
-          isHardwareProfileSupported={() => true}
-          onChange={() => null}
-          project={projectProp}
-        />
-      </ProjectDetailsContext.Provider>
-    </ProjectsContext.Provider>,
+        <LocalQueuesContext.Provider
+          value={{ localQueues: localQueuesOverride ?? DEFAULT_LIST_FETCH_STATE }}
+        >
+          <HardwareProfileSelect
+            initialHardwareProfile={initialHardwareProfile}
+            previewDescription={false}
+            hardwareProfiles={hardwareProfiles}
+            isProjectScoped={false}
+            hardwareProfilesLoaded
+            hardwareProfilesError={undefined}
+            projectScopedHardwareProfiles={[[], true, undefined]}
+            allowExistingSettings={allowExistingSettings}
+            hardwareProfileConfig={hardwareProfileConfig}
+            isHardwareProfileSupported={() => true}
+            onChange={() => null}
+            project={projectProp}
+          />
+        </LocalQueuesContext.Provider>
+      </ProjectsContext.Provider>
+    </CurrentProjectContext.Provider>,
   );
 };
 
@@ -532,43 +527,37 @@ describe('HardwareProfileSelect - LocalQueue availability filtering', () => {
     useHardwareProfileConfigMock.mockReturnValue(hardwareProfileConfig);
 
     render(
-      <ProjectsContext.Provider
-        value={{
-          projects: [project],
-          modelServingProjects: [],
-          nonActiveProjects: [],
-          preferredProject: null,
-          updatePreferredProject: () => undefined,
-          loaded: true,
-          loadError: undefined,
-          waitForProject: () => Promise.resolve(),
-        }}
-      >
-        <ProjectDetailsContext.Provider
-          value={
-            {
-              currentProject: project,
-              refresh: jest.fn(),
-              localQueues,
-            } as unknown as ProjectDetailsContextType
-          }
+      <CurrentProjectContext.Provider value={{ currentProject: project }}>
+        <ProjectsContext.Provider
+          value={{
+            projects: [project],
+            modelServingProjects: [],
+            nonActiveProjects: [],
+            preferredProject: null,
+            updatePreferredProject: () => undefined,
+            loaded: true,
+            loadError: undefined,
+            waitForProject: () => Promise.resolve(),
+          }}
         >
-          <HardwareProfileSelect
-            isProjectScoped
-            initialHardwareProfile={projectKueueProfile}
-            previewDescription={false}
-            hardwareProfiles={[globalKueueProfile]}
-            hardwareProfilesLoaded
-            hardwareProfilesError={undefined}
-            projectScopedHardwareProfiles={[[projectKueueProfile], true, undefined]}
-            allowExistingSettings={false}
-            hardwareProfileConfig={hardwareProfileConfig}
-            isHardwareProfileSupported={() => true}
-            onChange={() => null}
-            project="test-project"
-          />
-        </ProjectDetailsContext.Provider>
-      </ProjectsContext.Provider>,
+          <LocalQueuesContext.Provider value={{ localQueues }}>
+            <HardwareProfileSelect
+              isProjectScoped
+              initialHardwareProfile={projectKueueProfile}
+              previewDescription={false}
+              hardwareProfiles={[globalKueueProfile]}
+              hardwareProfilesLoaded
+              hardwareProfilesError={undefined}
+              projectScopedHardwareProfiles={[[projectKueueProfile], true, undefined]}
+              allowExistingSettings={false}
+              hardwareProfileConfig={hardwareProfileConfig}
+              isHardwareProfileSupported={() => true}
+              onChange={() => null}
+              project="test-project"
+            />
+          </LocalQueuesContext.Provider>
+        </ProjectsContext.Provider>
+      </CurrentProjectContext.Provider>,
     );
 
     await userEvent.click(screen.getByTestId('hardware-profile-selection-toggle'));

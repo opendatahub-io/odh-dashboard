@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { Alert, Bullseye, Spinner, Button, Flex, FlexItem, Title } from '@patternfly/react-core';
+import UnauthorizedError from '@odh-dashboard/ui-core/components/UnauthorizedError';
 import { getGenericErrorCode } from '#~/api';
 import {
   usePipelinesAPI,
@@ -7,7 +8,6 @@ import {
   DeleteServerModal,
 } from '#~/concepts/pipelines/context';
 import StartingStatusModal from '#~/concepts/pipelines/content/StartingStatusModal';
-import UnauthorizedError from '#~/pages/UnauthorizedError';
 import { getPipelineServerName } from './context/PipelinesContext';
 
 type EnsureAPIAvailabilityProps = {

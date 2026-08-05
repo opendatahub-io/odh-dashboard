@@ -10,8 +10,8 @@ import {
   ModalFooter,
 } from '@patternfly/react-core';
 import { TrackingOutcome } from '@odh-dashboard/ui-core';
+import DashboardModalFooter from '@odh-dashboard/ui-core/components/DashboardModalFooter';
 import { ModelRegistryKind } from '#~/k8sTypes';
-import DashboardModalFooter from '#~/concepts/dashboard/DashboardModalFooter';
 import { deleteModelRegistryBackend } from '#~/services/modelRegistrySettingsService';
 import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 

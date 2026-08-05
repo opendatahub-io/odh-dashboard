@@ -1,8 +1,8 @@
 import React from 'react';
 import { Bullseye, PageSectionVariants, Spinner } from '@patternfly/react-core';
 import { AxiosError } from 'axios';
-import UnauthorizedError from '@odh-dashboard/internal/pages/UnauthorizedError';
-import UnknownError from '@odh-dashboard/internal/pages/UnknownError';
+import UnauthorizedError from '@odh-dashboard/ui-core/components/UnauthorizedError';
+import UnknownError from '@odh-dashboard/ui-core/components/UnknownError';
 import { ModelMetricType, ModelServingMetricsContext } from './ModelServingMetricsContext';
 
 const DEFAULT_ACCESS_DOMAIN = 'metrics';

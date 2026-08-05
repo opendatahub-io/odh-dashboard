@@ -2,13 +2,15 @@ package models
 
 // ProviderRef references an ExternalProvider with routing configuration.
 type ProviderRef struct {
-	ProviderName string                   `json:"providerName"`
-	Weight       int                      `json:"weight"`
-	APIFormat    string                   `json:"apiFormat"`
-	Path         string                   `json:"path"`
-	TargetModel  string                   `json:"targetModel"`
-	Config       map[string]string        `json:"config,omitempty"`
-	Provider     *ExternalProviderDetails `json:"provider,omitempty"`
+	ProviderName        string                   `json:"providerName"`
+	Weight              int                      `json:"weight"`
+	APIFormat           string                   `json:"apiFormat"`
+	Path                string                   `json:"path"`
+	TargetModel         string                   `json:"targetModel"`
+	Config              map[string]string        `json:"config,omitempty"`
+	AuthMechanism       *AuthMechanism           `json:"authMechanism,omitempty"`
+	CredentialSecretRef string                   `json:"credentialSecretRef,omitempty"`
+	Provider            *ExternalProviderDetails `json:"provider,omitempty"`
 }
 
 // ExternalModelMaaSModelRefStatus contains published endpoint details from the companion MaaSModelRef.

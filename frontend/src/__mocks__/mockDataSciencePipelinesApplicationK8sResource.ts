@@ -16,6 +16,7 @@ type MockResourceConfigType = {
   pipelineStore?: DSPipelineAPIServerStore;
   cacheEnabled?: boolean;
   mlflowIntegrationMode?: DSPAMlflowIntegrationMode;
+  mlflowInjectUserEnvVars?: boolean;
   managedPipelines?: DSPipelineManagedPipelinesKind;
 };
 
@@ -29,6 +30,7 @@ export const mockDataSciencePipelineApplicationK8sResource = ({
   pipelineStore,
   cacheEnabled = true,
   mlflowIntegrationMode,
+  mlflowInjectUserEnvVars,
   managedPipelines,
 }: MockResourceConfigType): DSPipelineKind => ({
   apiVersion: 'datasciencepipelinesapplications.opendatahub.io/v1',
@@ -53,8 +55,13 @@ export const mockDataSciencePipelineApplicationK8sResource = ({
         username: 'mlpipeline',
       },
     },
-    ...(mlflowIntegrationMode !== undefined && {
-      mlflow: { integrationMode: mlflowIntegrationMode },
+    ...((mlflowIntegrationMode !== undefined || mlflowInjectUserEnvVars !== undefined) && {
+      mlflow: {
+        ...(mlflowIntegrationMode !== undefined && { integrationMode: mlflowIntegrationMode }),
+        ...(mlflowInjectUserEnvVars !== undefined && {
+          injectUserEnvVars: mlflowInjectUserEnvVars,
+        }),
+      },
     }),
     objectStorage: {
       externalStorage: {

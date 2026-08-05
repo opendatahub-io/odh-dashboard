@@ -1,8 +1,8 @@
 import * as React from 'react';
 import '@testing-library/jest-dom';
 import { render } from '@testing-library/react';
-import DefaultValueTextRenderer from '#~/concepts/connectionTypes/fields/DefaultValueTextRenderer';
-import { TextField } from '#~/concepts/connectionTypes/types';
+import type { TextField } from '@odh-dashboard/k8s-core';
+import DefaultValueTextRenderer from '../DefaultValueTextRenderer';
 
 describe('DefaultValueTextRenderer', () => {
   it('should render default text', () => {

@@ -4,25 +4,15 @@ import '@testing-library/jest-dom';
 import userEvent from '@testing-library/user-event';
 import { IdentifierResourceType, SchedulingType } from '@odh-dashboard/k8s-core';
 import { DEFAULT_LIST_FETCH_STATE } from '@odh-dashboard/ui-core/utilities/fetchState';
+import { LocalQueuesContext } from '@odh-dashboard/ui-core/context/LocalQueuesContext';
 import { mockHardwareProfile } from '@odh-dashboard/hardware-profiles/__mocks__/mockHardwareProfile';
-import {
-  ProjectDetailsContext,
-  ProjectDetailsContextType,
-} from '#~/pages/projects/ProjectDetailsContext';
 import HardwareProfileDetailsPopover from '#~/concepts/hardwareProfiles/HardwareProfileDetailsPopover';
 
 const renderWithContext = (ui: React.ReactElement) =>
   render(
-    <ProjectDetailsContext.Provider
-      value={
-        {
-          currentProject: { metadata: { name: 'test-project' } },
-          localQueues: DEFAULT_LIST_FETCH_STATE,
-        } as unknown as ProjectDetailsContextType
-      }
-    >
+    <LocalQueuesContext.Provider value={{ localQueues: DEFAULT_LIST_FETCH_STATE }}>
       {ui}
-    </ProjectDetailsContext.Provider>,
+    </LocalQueuesContext.Provider>,
   );
 
 describe('HardwareProfileDetailsPopover', () => {

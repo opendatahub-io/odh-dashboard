@@ -15,7 +15,7 @@ const NotFound: React.FC = () => (
     <EmptyState
       headingLevel="h2"
       icon={PathMissingIcon}
-      titleText="We can‘t find that page"
+      titleText="We can't find that page"
       variant={EmptyStateVariant.full}
       data-testid="not-found-page"
     >

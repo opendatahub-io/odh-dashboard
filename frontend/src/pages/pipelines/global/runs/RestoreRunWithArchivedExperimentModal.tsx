@@ -12,11 +12,11 @@ import {
   ModalHeader,
   ModalFooter,
 } from '@patternfly/react-core';
+import DashboardModalFooter from '@odh-dashboard/ui-core/components/DashboardModalFooter';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import useRestoreStatuses from '#~/concepts/pipelines/content/useRestoreStatuses';
 import { ExperimentKF, PipelineRunKF } from '#~/concepts/pipelines/kfTypes';
 import { allSettledPromises } from '#~/utilities/allSettledPromises';
-import DashboardModalFooter from '#~/concepts/dashboard/DashboardModalFooter';
 import RunsWithArchivedExperimentTable from './RunsWithArchivedExperimentTable';
 import { PipelineRunTabTitle } from './types';
 
