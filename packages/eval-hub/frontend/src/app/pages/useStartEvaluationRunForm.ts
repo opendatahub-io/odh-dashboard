@@ -502,7 +502,6 @@ export function useStartEvaluationRunForm({
       modelName: resolvedModelName,
       endpointUrl: resolvedEndpointUrl,
       apiKeySecretRef: resolvedAuth,
-      sourceName: sourceName.trim(),
       datasetUrl: datasetUrl.trim(),
       accessToken: accessToken.trim(),
       additionalArgs: parsedArgs,

@@ -1,5 +1,6 @@
 import {
   Collection,
+  CollectionBenchmark,
   CreateEvaluationJobRequest,
   FlatBenchmark,
   JobPassCriteria,
@@ -15,7 +16,6 @@ type BuildEvaluationRequestParams = {
   modelName: string;
   endpointUrl: string;
   apiKeySecretRef: string;
-  sourceName: string;
   datasetUrl: string;
   accessToken: string;
   additionalArgs: Record<string, unknown>;
@@ -27,6 +27,11 @@ type BuildEvaluationRequestParams = {
 
 const TOP_LEVEL_KEYS = new Set(['experiment', 'tags', 'custom', 'exports', 'pass_criteria']);
 
+const parseS3Url = (url: string): { bucket: string; key: string } => {
+  const match = url.match(/^s3:\/\/([^/]+)\/(.+)$/);
+  return match ? { bucket: match[1], key: match[2] } : { bucket: '', key: url };
+};
+
 const buildEvaluationRequest = ({
   evaluationName,
   sourceMode,
@@ -35,7 +40,6 @@ const buildEvaluationRequest = ({
   modelName,
   endpointUrl,
   apiKeySecretRef,
-  sourceName,
   datasetUrl,
   accessToken,
   additionalArgs,
@@ -59,39 +63,62 @@ const buildEvaluationRequest = ({
 
   const trimmedDatasetUrl = datasetUrl.trim();
   const trimmedAccessToken = accessToken.trim();
+  const isPrerecorded = sourceMode === 'prerecorded';
+
   const prerecordedDataRef =
-    sourceMode === 'prerecorded' && trimmedDatasetUrl
+    isPrerecorded && trimmedDatasetUrl
       ? {
           // eslint-disable-next-line camelcase
           test_data_ref: {
+            type: 'pre_recorded_data' as const,
             s3: {
-              key: trimmedDatasetUrl,
+              ...parseS3Url(trimmedDatasetUrl),
               // eslint-disable-next-line camelcase
-              ...(trimmedAccessToken ? { secret_ref: trimmedAccessToken } : {}),
+              secret_ref: trimmedAccessToken,
             },
           },
         }
       : {};
 
+  const buildBenchmarkEntry = (
+    b: {
+      id: string;
+      provider_id?: string;
+      primary_score?: JobPrimaryScore;
+      pass_criteria?: JobPassCriteria;
+      parameters?: Record<string, unknown>;
+    },
+    overrides?: { primaryScore?: JobPrimaryScore; passCriteria?: JobPassCriteria },
+  ) => ({
+    id: b.id,
+    // eslint-disable-next-line camelcase
+    provider_id: b.provider_id,
+    // eslint-disable-next-line camelcase
+    primary_score: overrides?.primaryScore ?? b.primary_score,
+    // eslint-disable-next-line camelcase
+    pass_criteria: overrides?.passCriteria ?? b.pass_criteria,
+    ...(hasParams || b.parameters ? { parameters: { ...b.parameters, ...benchmarkParams } } : {}),
+    ...prerecordedDataRef,
+  });
+
   const benchmarkEntries: NonNullable<CreateEvaluationJobRequest['benchmarks']> = [];
 
   if (benchmark) {
-    benchmarkEntries.push({
-      id: benchmark.id,
-      // eslint-disable-next-line camelcase
-      provider_id: benchmark.providerId,
-      // eslint-disable-next-line camelcase
-      primary_score: primaryScoreOverride ?? benchmark.primary_score,
-      // eslint-disable-next-line camelcase
-      pass_criteria: passCriteriaOverride ?? benchmark.pass_criteria,
-      ...(hasParams ? { parameters: benchmarkParams } : {}),
-      ...prerecordedDataRef,
-    });
+    benchmarkEntries.push(
+      buildBenchmarkEntry(
+        {
+          id: benchmark.id,
+          // eslint-disable-next-line camelcase
+          provider_id: benchmark.providerId,
+          // eslint-disable-next-line camelcase
+          primary_score: benchmark.primary_score,
+          // eslint-disable-next-line camelcase
+          pass_criteria: benchmark.pass_criteria,
+        },
+        { primaryScore: primaryScoreOverride, passCriteria: passCriteriaOverride },
+      ),
+    );
   }
-
-  const resolvedModelName = (sourceMode === 'prerecorded' ? sourceName : modelName).trim();
-  const resolvedUrl = (sourceMode === 'prerecorded' ? '' : endpointUrl).trim();
-  const resolvedAuth = (sourceMode === 'prerecorded' ? '' : apiKeySecretRef).trim();
 
   const rawExperiment = topLevelOverrides.experiment;
   const experimentOverride: Record<string, unknown> | undefined =
@@ -113,37 +140,36 @@ const buildEvaluationRequest = ({
 
   const isCollectionFlow = !!collection;
 
-  return {
+  const base = {
     name: evaluationName.trim(),
-    model: {
-      url: resolvedUrl,
-      name: resolvedModelName,
-      // eslint-disable-next-line camelcase
-      ...(resolvedAuth ? { auth: { secret_ref: resolvedAuth } } : {}),
-    },
     // eslint-disable-next-line camelcase
     ...(passCriteriaOverride && isCollectionFlow ? { pass_criteria: passCriteriaOverride } : {}),
     ...(isCollectionFlow
       ? {
           collection: {
             id: collection.resource.id,
-            benchmarks: collection.benchmarks?.map((b) => ({
-              id: b.id,
-              // eslint-disable-next-line camelcase
-              provider_id: b.provider_id,
-              // eslint-disable-next-line camelcase
-              primary_score: b.primary_score,
-              // eslint-disable-next-line camelcase
-              pass_criteria: b.pass_criteria,
-              ...(hasParams || b.parameters
-                ? { parameters: { ...b.parameters, ...benchmarkParams } }
-                : {}),
-            })),
+            benchmarks: collection.benchmarks?.map((b: CollectionBenchmark) =>
+              buildBenchmarkEntry(b, { passCriteria: passCriteriaOverride }),
+            ),
           },
         }
       : { benchmarks: benchmarkEntries }),
     ...restOverrides,
     ...(experiment ? { experiment } : {}),
+  };
+
+  if (isPrerecorded) {
+    return base;
+  }
+
+  return {
+    ...base,
+    model: {
+      url: endpointUrl.trim(),
+      name: modelName.trim(),
+      // eslint-disable-next-line camelcase
+      ...(apiKeySecretRef.trim() ? { auth: { secret_ref: apiKeySecretRef.trim() } } : {}),
+    },
   };
 };
 
