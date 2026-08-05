@@ -114,9 +114,9 @@ const BorrowingLendingChart: React.FC<BorrowingLendingChartProps> = ({
       {loaded && !error && !hasSomeData && (
         <EmptyState
           icon={ChartLineIcon}
-          titleText="No borrowing/lending activity detected"
+          titleText="No borrowing activity detected"
           headingLevel="h4"
-          data-testid="borrowing-lending-empty-state"
+          data-testid="borrowing-empty-state"
         >
           <EmptyStateBody>
             No accelerator usage data is available for the selected cluster queues over the past 7
@@ -127,7 +127,7 @@ const BorrowingLendingChart: React.FC<BorrowingLendingChartProps> = ({
       {showChart && (
         // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
         <div
-          data-testid="borrowing-lending-chart-has-data"
+          data-testid="borrowing-chart-has-data"
           onClick={(e) => {
             if (e.target instanceof SVGTextElement) {
               return;
@@ -138,7 +138,7 @@ const BorrowingLendingChart: React.FC<BorrowingLendingChartProps> = ({
           }}
         >
           <Chart
-            ariaTitle="Borrowing and lending trends"
+            ariaTitle="Borrowing trends"
             containerComponent={
               <CursorVoronoiContainer
                 cursorDimension="x"
@@ -183,13 +183,6 @@ const BorrowingLendingChart: React.FC<BorrowingLendingChartProps> = ({
               text="Borrowed"
               x={4}
               y={CHART_PADDING.top - 12}
-              style={AXIS_DIRECTION_LABEL_STYLE}
-              textAnchor="start"
-            />
-            <ChartLabel
-              text="Lent"
-              x={4}
-              y={CHART_HEIGHT - CHART_PADDING.bottom - 12}
               style={AXIS_DIRECTION_LABEL_STYLE}
               textAnchor="start"
             />

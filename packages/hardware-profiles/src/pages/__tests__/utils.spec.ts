@@ -3,7 +3,6 @@ import {
   IdentifierResourceType,
   type Identifier,
 } from '@odh-dashboard/k8s-core';
-import { mockHardwareProfile } from '@odh-dashboard/internal/__mocks__/mockHardwareProfile';
 import { mockLocalQueueK8sResource } from '@odh-dashboard/internal/__mocks__/mockLocalQueueK8sResource';
 import { HardwareProfileWarningType } from '@odh-dashboard/internal/concepts/hardwareProfiles/types';
 import {
@@ -11,6 +10,7 @@ import {
   MEMORY_UNITS_FOR_SELECTION,
   OTHER,
 } from '@odh-dashboard/ui-core/utilities/valueUnits';
+import { mockHardwareProfile } from '../../__mocks__/mockHardwareProfile';
 import {
   determineIdentifierUnit,
   filterRecognizedVisibility,

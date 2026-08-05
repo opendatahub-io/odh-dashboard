@@ -8,9 +8,9 @@ import {
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { trimInputOnBlur, trimInputOnPaste } from '@odh-dashboard/ui-core/utilities';
+import DefaultValueTextRenderer from '@odh-dashboard/ui-core/components/connectionTypes/DefaultValueTextRenderer';
 import { UriField } from '#~/concepts/connectionTypes/types';
 import { FieldProps } from '#~/concepts/connectionTypes/fields/types';
-import DefaultValueTextRenderer from '#~/concepts/connectionTypes/fields/DefaultValueTextRenderer';
 
 const validateUrl = (url?: string) => {
   if (!url) {

@@ -4,7 +4,6 @@ import {
   ExclamationTriangleIcon,
   InProgressIcon,
   OutlinedClockIcon,
-  RebootingIcon,
 } from '@patternfly/react-icons';
 import type { WorkloadCondition, WorkloadKind } from '#~/k8sTypes';
 
@@ -251,8 +250,8 @@ export const getKueueStatusInfo = (status: KueueWorkloadStatus): KueueStatusInfo
     case KueueWorkloadStatus.Requeued:
       return {
         label: 'Requeued',
-        color: 'blue',
-        IconComponent: RebootingIcon,
+        color: 'grey',
+        IconComponent: OutlinedClockIcon,
       };
     case KueueWorkloadStatus.Inadmissible:
       return {

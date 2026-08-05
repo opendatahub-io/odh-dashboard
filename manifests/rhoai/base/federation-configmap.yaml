@@ -178,6 +178,22 @@ data:
         }
       },
       {
+        "name": "coreBff",
+        "proxyService": [
+          {
+            "authorize": true,
+            "path": "/core-bff/api",
+            "pathRewrite": "/api",
+            "tls": true,
+            "service": {
+              "name": "rhods-dashboard",
+              "namespace": "redhat-ods-applications",
+              "port": 8943
+            }
+          }
+        ]
+      },
+      {
         "name": "perses",
         "proxyService": [
           {

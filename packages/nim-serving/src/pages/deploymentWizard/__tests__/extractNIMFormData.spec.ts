@@ -1,4 +1,4 @@
-import { ModelLocationType } from '@odh-dashboard/model-serving/components/deploymentWizard/types';
+import { ModelLocationType } from '@odh-dashboard/model-serving/shared/types/form-data';
 import type { NIMDeployment } from '../../../api/nimservices/types';
 import { NIM_ID, NIM_MODEL_TYPE } from '../../../../extensions';
 import {

@@ -9,6 +9,9 @@ export type {
   HardwareProfileBindingConfig,
   CrPathConfig,
   HardwareProfileOptions,
+  ModelServingPodSpecOptions,
+  ModelServingSizeState,
+  ModelServingPodSpecOptionsState,
 } from './types';
 
 // Constants
@@ -18,7 +21,6 @@ export {
   HARDWARE_PROFILE_BINDING_CONFIG,
   MODEL_SERVING_VISIBILITY,
   INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS,
-  QueueSource,
 } from './const';
 
 // Kueue

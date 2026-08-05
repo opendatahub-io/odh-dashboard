@@ -1,9 +1,6 @@
 /* eslint-disable @typescript-eslint/restrict-template-expressions */
-const path = require('path');
 const { merge } = require('webpack-merge');
-const MiniCssExtractPlugin = require('mini-css-extract-plugin');
-const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
-const TerserJSPlugin = require('terser-webpack-plugin');
+const { rspack } = require('@rspack/core');
 const { rimrafSync } = require('rimraf');
 const { setupWebpackDotenvFilesForEnv, setupDotenvFilesForEnv } = require('./dotenv');
 
@@ -12,8 +9,6 @@ const webpackCommon = require('./webpack.common.js');
 
 const RELATIVE_DIRNAME = process.env._ODH_RELATIVE_DIRNAME;
 const IS_PROJECT_ROOT_DIR = process.env._ODH_IS_PROJECT_ROOT_DIR;
-const SRC_DIR = process.env._ODH_SRC_DIR;
-const COMMON_DIR = process.env._ODH_COMMON_DIR;
 const DIST_DIR = process.env._ODH_DIST_DIR;
 const OUTPUT_ONLY = process.env._ODH_OUTPUT_ONLY;
 
@@ -37,32 +32,37 @@ module.exports = merge(
   {
     mode: 'production',
     devtool: 'source-map',
+    // Rspack 2 defaults omit assets/modules from stats JSON; enable them for
+    // `build:bundle-profile` / webpack-bundle-analyzer (`_ODH_OUTPUT_ONLY=true`).
+    ...(OUTPUT_ONLY === 'true'
+      ? {
+          stats: {
+            all: false,
+            ids: true,
+            assets: true,
+            chunks: true,
+            modules: true,
+            entrypoints: true,
+            chunkGroups: true,
+            reasons: true,
+          },
+        }
+      : {}),
     output: {
       filename: '[name].[contenthash].js',
     },
     optimization: {
       minimize: true,
-      minimizer: [new TerserJSPlugin(), new CssMinimizerPlugin()],
+      minimizer: [
+        new rspack.SwcJsMinimizerRspackPlugin(),
+        new rspack.LightningCssMinimizerRspackPlugin(),
+      ],
     },
     plugins: [
-      new MiniCssExtractPlugin({
+      new rspack.CssExtractRspackPlugin({
         filename: '[name].[contenthash].css',
         ignoreOrder: true,
       }),
     ],
-    module: {
-      rules: [
-        {
-          test: /\.css$/,
-          include: [
-            SRC_DIR,
-            COMMON_DIR,
-            path.resolve(RELATIVE_DIRNAME, '../node_modules/@patternfly'),
-            path.resolve(RELATIVE_DIRNAME, '../node_modules/monaco-editor'),
-          ],
-          use: [MiniCssExtractPlugin.loader, 'css-loader'],
-        },
-      ],
-    },
   },
 );

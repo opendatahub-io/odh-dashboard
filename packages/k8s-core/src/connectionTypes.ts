@@ -183,3 +183,5 @@ export enum AccessTypes {
 }
 
 export type AWSDataEntry = { key: AwsKeys; value: string }[];
+
+export type FieldMode = 'preview' | 'default' | 'instance';

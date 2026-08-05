@@ -406,7 +406,7 @@ See [unit-tests rules](./unit-tests.md) for full details.
 | File location | `__tests__/*.spec.ts(x)` adjacent to source |
 | Selectors | `data-testid` (preferred), then a11y selectors |
 | Naming | `it('should ...')` inside `describe('<FunctionOrComponent>')` |
-| Mocks | `jest.mocked()`, shared mocks from `@odh-dashboard/internal/__mocks__` |
+| Mocks | `jest.mocked()`, shared mocks from `@odh-dashboard/internal/__mocks__` or type-owning packages (e.g., `@odh-dashboard/k8s-core/__mocks__/`) |
 | Hook testing | `testHook(hook)(args)` from `@odh-dashboard/jest-config/hooks` |
 | Isolation | `beforeEach(() => jest.clearAllMocks())`, fresh data per test |
 

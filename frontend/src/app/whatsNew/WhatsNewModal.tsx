@@ -48,6 +48,7 @@ type TourStep = {
   navSelector: string;
   docUrl?: string;
   sectionAvailable: boolean;
+  sectionFlagName?: string;
   newFeatures: NewIn35Feature[];
 };
 
@@ -74,6 +75,8 @@ const useTourSteps = (isAdmin: boolean): TourStep[] => {
   const connectionTestAvailable = config.connectionTest ?? false;
   const mcpRegistryAvailable = config.mcpRegistry ?? false;
   const externalModelsAvailable = config.externalModels ?? false;
+  const llmdTemplatesAvailable = config.llmdTemplates ?? false;
+  const vllmDeploymentOnMaaSAvailable = config.vLLMDeploymentOnMaaS ?? false;
   const modelCatalogAvailable = !config.disableModelCatalog;
   const modelRegistryAvailable = !config.disableModelRegistry;
   const modelServingAvailable = !config.disableModelServing;
@@ -82,7 +85,8 @@ const useTourSteps = (isAdmin: boolean): TourStep[] => {
     modelRegistryAvailable ||
     modelServingAvailable ||
     mcpCatalogAvailable ||
-    agentsCatalogAvailable;
+    agentsCatalogAvailable ||
+    agentOpsAvailable;
 
   return React.useMemo<TourStep[]>(
     () => [
@@ -92,21 +96,76 @@ const useTourSteps = (isAdmin: boolean): TourStep[] => {
         description:
           'Organize workbenches, pipelines, model servers, and storage so your team can collaborate in one place.',
         navSelector: 'a[href="/projects"]',
-        docUrl: DEFAULT_DOC_URL,
+        docUrl:
+          'https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed/3.5/html/getting_started_with_red_hat_openshift_ai_self-managed/index',
         sectionAvailable: true,
         newFeatures: [
           {
-            title: 'Granular role creation',
+            title: 'Roles',
             description:
               'Define what users can do within a project by creating and assigning roles.',
             flagName: 'roleManagement',
             available: roleManagementAvailable,
           },
           {
-            title: 'Connection testing',
+            title: 'Connection test',
             description: 'Test S3, URI, and OCI connections before saving.',
             flagName: 'connectionTest',
             available: connectionTestAvailable,
+          },
+        ],
+      },
+      {
+        id: 'ai-hub',
+        title: 'AI hub',
+        description:
+          'Discover, register, and deploy models. Browse agent templates to build agents, and connect to MCP servers.',
+        navSelector: 'button[id="ai-hub"]',
+        docUrl:
+          'https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed/3.5/html/working_with_the_model_catalog/index',
+        sectionAvailable: aiHubAvailable,
+        newFeatures: [
+          {
+            title: 'Tool calling',
+            description: 'Enable tool-calling capability when deploying supported models.',
+            flagName: 'toolCalling',
+            available: toolCallingAvailable,
+          },
+          {
+            title: 'MCP servers',
+            description: 'Find and deploy MCP servers for your organization.',
+            flagName: 'mcpCatalog',
+            available: mcpCatalogAvailable,
+          },
+          {
+            title: 'Agents catalog',
+            description: 'Browse agent templates for your projects.',
+            flagName: 'agentsCatalog',
+            available: agentsCatalogAvailable,
+          },
+          {
+            title: 'Deploy agents',
+            description: 'Deploy agents for your projects from the OpenShift Console.',
+            flagName: 'agentOps',
+            available: agentOpsAvailable,
+          },
+          {
+            title: 'External models',
+            description: 'View models from external providers alongside your deployed models.',
+            flagName: 'externalModels',
+            available: externalModelsAvailable,
+          },
+          {
+            title: 'Safety and security insights',
+            description: 'Review safety and security scan results before deploying catalog models.',
+            flagName: 'disableLMEval',
+            available: lmEvalAvailable,
+          },
+          {
+            title: 'MCP registry',
+            description: 'Register and manage MCP servers from a centralized registry.',
+            flagName: 'mcpRegistry',
+            available: mcpRegistryAvailable,
           },
         ],
       },
@@ -117,8 +176,9 @@ const useTourSteps = (isAdmin: boolean): TourStep[] => {
           'Test models and prompts, experiment with RAG, and prepare configurations before building them into applications.',
         navSelector: 'button[id="gen-ai-studio"]',
         docUrl:
-          'https://www.redhat.com/en/blog/introducing-ai-hub-and-genai-studio-new-command-center-enterprise-generative-ai-red-hat-openshift-ai',
+          'https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed/3.5/html/experimenting_with_models_in_the_gen_ai_playground/index',
         sectionAvailable: genAiAvailable,
+        sectionFlagName: 'genAiStudio',
         newFeatures: [
           {
             title: 'AutoRAG',
@@ -146,11 +206,16 @@ const useTourSteps = (isAdmin: boolean): TourStep[] => {
             available: genAiTracingAvailable,
           },
           {
-            title: 'Prompt management',
-            description:
-              'Create, version, and manage reusable prompts powered by MLflow within Gen AI studio.',
+            title: 'Load prompts',
+            description: 'Use versioned prompt templates when testing models.',
             flagName: 'promptManagement',
             available: promptManagementAvailable,
+          },
+          {
+            title: 'Global project prompts',
+            description: 'Load starter prompts from the shared registry in the Playground.',
+            flagName: 'globalProjectPrompts',
+            available: globalProjectPromptsAvailable,
           },
         ],
       },
@@ -160,6 +225,7 @@ const useTourSteps = (isAdmin: boolean): TourStep[] => {
         description:
           'Build pipelines, run training jobs, track experiments, and evaluate model performance.',
         navSelector: 'button[id="develop-and-train"]',
+        docUrl: 'https://docs.redhat.com/en/documentation/red_hat_ai/3#Develop',
         sectionAvailable: true,
         newFeatures: [
           {
@@ -172,67 +238,25 @@ const useTourSteps = (isAdmin: boolean): TourStep[] => {
         ],
       },
       {
-        id: 'ai-hub',
-        title: 'AI hub',
-        description:
-          'Discover, register, and deploy models. Browse agent templates to build agents, and connect to MCP servers.',
-        navSelector: 'button[id="ai-hub"]',
-        docUrl:
-          'https://www.redhat.com/en/blog/introducing-ai-hub-and-genai-studio-new-command-center-enterprise-generative-ai-red-hat-openshift-ai',
-        sectionAvailable: aiHubAvailable,
-        newFeatures: [
-          {
-            title: 'Tool calling',
-            description:
-              'Define and attach tools that models can invoke during inference, enabling agentic workflows with function-calling capabilities.',
-            flagName: 'toolCalling',
-            available: toolCallingAvailable,
-          },
-          {
-            title: 'MCP catalog',
-            description: 'Find and deploy MCP servers for your organization.',
-            flagName: 'mcpCatalog',
-            available: mcpCatalogAvailable,
-          },
-          {
-            title: 'Agents',
-            description: 'Browse agent templates and deploy agents for your projects.',
-            flagName: 'agentsCatalog',
-            available: agentsCatalogAvailable && agentOpsAvailable,
-          },
-          {
-            title: 'External models',
-            description: 'View models from external providers alongside your deployed models.',
-            flagName: 'externalModels',
-            available: externalModelsAvailable,
-          },
-          {
-            title: 'Safety and security insights',
-            description:
-              'View safety and security evaluation results for models in the model catalog.',
-            flagName: 'disableLMEval',
-            available: lmEvalAvailable,
-          },
-          {
-            title: 'MCP registry',
-            description: 'Register and manage MCP server definitions from a centralized registry.',
-            flagName: 'mcpRegistry',
-            available: mcpRegistryAvailable,
-          },
-        ],
-      },
-      {
         id: 'observe-and-monitor',
         title: 'Observe & monitor',
         description: 'Check resource usage and workload health across your projects.',
         navSelector: 'button[id="observe-and-monitor"]',
+        docUrl:
+          'https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed/3.5/#Monitor',
         sectionAvailable: true,
         newFeatures: [
           {
-            title: 'Observability dashboard',
+            title: 'Dashboard',
             description: 'View model serving metrics, costs, and workload status.',
             flagName: 'observabilityDashboard',
             available: observabilityAvailable,
+          },
+          {
+            title: 'GPUaaS',
+            description: 'View GPU capacity, utilization, and usage by cohort.',
+            flagName: 'gpuaas',
+            available: gpuaasAvailable,
           },
         ],
       },
@@ -244,51 +268,45 @@ const useTourSteps = (isAdmin: boolean): TourStep[] => {
               description:
                 'Manage user access, environment setup, and model serving resources for your organization.',
               navSelector: 'button[id="settings"]',
+              docUrl: 'https://docs.redhat.com/en/documentation/red_hat_ai/3#Administer',
               sectionAvailable: true,
               newFeatures: [
                 {
-                  title: 'GPUaaS',
-                  description: 'View GPU capacity, utilization, and usage by cohort.',
-                  flagName: 'gpuaas',
-                  available: gpuaasAvailable,
-                },
-                {
-                  title: 'MaaS settings redesign',
-                  description:
-                    'Redesigned Model-as-a-Service settings page with improved information architecture.',
-                  flagName: 'maasSettingsIaRedesign',
+                  title: 'MaaS settings',
+                  description: 'Manage model access policies and token subscriptions in one place.',
+                  flagName: 'maasSettingsIARedesign',
                   available: true,
                 },
                 {
-                  title: 'MCP catalog settings',
-                  description:
-                    'Configure and manage MCP catalog sources and server settings from the Settings page.',
+                  title: 'MCP catalog sources',
+                  description: 'Add and manage sources for MCP servers in your organization.',
                   flagName: 'mcpCatalog',
                   available: mcpCatalogAvailable,
                 },
                 {
-                  title: 'Global project prompts',
-                  description: 'Use versioned prompt templates when testing models.',
-                  flagName: 'globalProjectPrompts',
-                  available: globalProjectPromptsAvailable,
-                },
-                {
-                  title: 'LLM-D routing configurations',
+                  title: 'llm-d routing configurations',
                   description: 'Control how requests are routed to llm-d deployments.',
-                  flagName: '',
-                  available: true,
+                  flagName: 'llmdTemplates',
+                  available: llmdTemplatesAvailable,
                 },
                 {
-                  title: 'LLM-D topology configurations',
+                  title: 'llm-d topology configurations',
                   description: 'Configure how llm-d services are arranged and scaled.',
-                  flagName: '',
-                  available: true,
+                  flagName: 'llmdTemplates',
+                  available: llmdTemplatesAvailable,
                 },
                 {
                   title: 'LLM accelerator configurations',
                   description: 'Set default accelerators for LLM serving.',
-                  flagName: '',
-                  available: true,
+                  flagName: 'vLLMDeploymentOnMaaS',
+                  available: vllmDeploymentOnMaaSAvailable,
+                },
+                {
+                  title: 'Global project prompts',
+                  description:
+                    'Configure an organization-wide prompt registry so teams can load starter prompts in Gen AI studio.',
+                  flagName: 'globalProjectPrompts',
+                  available: globalProjectPromptsAvailable,
                 },
               ],
             },
@@ -315,6 +333,8 @@ const useTourSteps = (isAdmin: boolean): TourStep[] => {
       connectionTestAvailable,
       mcpRegistryAvailable,
       externalModelsAvailable,
+      llmdTemplatesAvailable,
+      vllmDeploymentOnMaaSAvailable,
       aiHubAvailable,
       isAdmin,
     ],
@@ -341,6 +361,26 @@ const findNavElement = (step: TourStep): HTMLElement | null => {
     return el;
   }
   return findNavSectionButton(step.title);
+};
+
+const getNavToggle = (): HTMLElement | null => document.getElementById('page-nav-toggle');
+
+/** Opens the managed sidebar when collapsed so tour popovers can anchor to nav items. */
+const ensureNavSidebarOpen = (): boolean => {
+  const toggle = getNavToggle();
+  if (toggle?.getAttribute('aria-expanded') === 'false') {
+    toggle.click();
+    return true;
+  }
+  return false;
+};
+
+/** Closes the managed sidebar when expanded (used to restore pre-tour collapsed state). */
+const ensureNavSidebarClosed = (): void => {
+  const toggle = getNavToggle();
+  if (toggle?.getAttribute('aria-expanded') === 'true') {
+    toggle.click();
+  }
 };
 
 const WhatsNewModal: React.FC = () => {
@@ -371,6 +411,8 @@ const WhatsNewModal: React.FC = () => {
   }, [tourPath, tourSteps]);
 
   const autoLaunchTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** True when this tour session expanded a previously collapsed sidebar. */
+  const tourOpenedSidebarRef = React.useRef(false);
 
   const cancelAutoLaunch = React.useCallback(() => {
     if (autoLaunchTimerRef.current !== null) {
@@ -384,6 +426,7 @@ const WhatsNewModal: React.FC = () => {
       // Manual opens (masthead / task assistant) must cancel a pending auto-launch
       // so we don't reset the session and emit a duplicate Started event.
       cancelAutoLaunch();
+      tourOpenedSidebarRef.current = false;
       beginSession(entryPoint, isReturningUser);
       setShowWelcome(true);
       setStepIndex(0);
@@ -420,6 +463,10 @@ const WhatsNewModal: React.FC = () => {
   );
 
   const closeUi = React.useCallback(() => {
+    if (tourOpenedSidebarRef.current) {
+      ensureNavSidebarClosed();
+      tourOpenedSidebarRef.current = false;
+    }
     setIsOpen(false);
     setSeen(true);
     setShowWelcome(true);
@@ -493,16 +540,27 @@ const WhatsNewModal: React.FC = () => {
 
     setTargetReady(false);
 
-    const timer = setTimeout(() => {
-      const el = findNavElement(currentStep);
-      if (el) {
-        el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-        setTargetEl(el);
-      } else {
-        setTargetEl(null);
-      }
-      setTargetReady(true);
-    }, 150);
+    // Collapsed nav still keeps anchors in the DOM, so the popover can mount off-screen
+    // with only the backdrop visible. Open the sidebar first when a step needs a nav target.
+    const openedSidebar = ensureNavSidebarOpen();
+    if (openedSidebar) {
+      tourOpenedSidebarRef.current = true;
+    }
+
+    const timer = setTimeout(
+      () => {
+        const el = findNavElement(currentStep);
+        if (el) {
+          el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+          setTargetEl(el);
+        } else {
+          setTargetEl(null);
+        }
+        setTargetReady(true);
+      },
+      // Give the sidebar expand animation a moment before measuring the anchor.
+      openedSidebar ? 300 : 150,
+    );
 
     return () => clearTimeout(timer);
   }, [isOpen, showWelcome, stepIndex, currentStep]);
@@ -633,7 +691,14 @@ const WhatsNewModal: React.FC = () => {
         {sectionUnavailable && (
           <Flex gap={{ default: 'gapSm' }} className="pf-v6-u-mb-sm">
             <FlexItem>
-              <Label color="orange" isCompact icon={<ExclamationTriangleIcon />}>
+              <Label
+                variant="outline"
+                color="orange"
+                isCompact
+                icon={
+                  <ExclamationTriangleIcon color="var(--pf-t--global--color--nonstatus--orange--default)" />
+                }
+              >
                 Unavailable in the cluster
               </Label>
             </FlexItem>
@@ -663,37 +728,68 @@ const WhatsNewModal: React.FC = () => {
               <strong>New in 3.5</strong>
             </Content>
             {currentStep.newFeatures.map((feature) => (
-              <Content key={feature.title} component={ContentVariants.p}>
-                <strong>{feature.title}</strong>
-                <br />
-                {feature.description}
-              </Content>
+              <div key={feature.title} className="pf-v6-u-mb-md">
+                <Flex
+                  alignItems={{ default: 'alignItemsCenter' }}
+                  gap={{ default: 'gapSm' }}
+                  display={{ default: 'inlineFlex' }}
+                >
+                  <FlexItem>
+                    <strong>{feature.title}</strong>
+                  </FlexItem>
+                  {!feature.available && (
+                    <FlexItem>
+                      <Label
+                        variant="outline"
+                        color="orange"
+                        isCompact
+                        icon={
+                          <ExclamationTriangleIcon color="var(--pf-t--global--color--nonstatus--orange--default)" />
+                        }
+                      >
+                        Unavailable in the cluster
+                      </Label>
+                    </FlexItem>
+                  )}
+                </Flex>
+                <Content component={ContentVariants.p}>{feature.description}</Content>
+              </div>
             ))}
-            {unavailableFeatures.length > 0 && (
-              <Content component={ContentVariants.small}>
+            {(unavailableFeatures.length > 0 ||
+              (!currentStep.sectionAvailable && currentStep.sectionFlagName)) && (
+              <div>
                 <ExclamationTriangleIcon color="var(--pf-t--global--color--nonstatus--orange--default)" />{' '}
                 {isAdmin ? (
-                  <>
+                  <strong>
                     To enable unavailable features in your cluster, enable the following feature
-                    flags in <code>OdhDashboardConfig</code>:
-                    <List>
-                      {unavailableFeatures.map((f) => (
-                        <ListItem key={f.flagName}>
-                          {f.flagName.startsWith('disable') ? (
-                            <>
-                              Set <code>{f.flagName}</code> to <code>false</code>
-                            </>
-                          ) : (
-                            <code>{f.flagName}</code>
-                          )}
-                        </ListItem>
-                      ))}
-                    </List>
-                  </>
+                    flags in OdhDashboardConfig:
+                  </strong>
                 ) : (
-                  <>Contact your administrator to request access to unavailable features.</>
+                  <strong>
+                    Contact your administrator to request access to unavailable features.
+                  </strong>
                 )}
-              </Content>
+                {isAdmin && (
+                  <List>
+                    {!currentStep.sectionAvailable && currentStep.sectionFlagName && (
+                      <ListItem key={currentStep.sectionFlagName}>
+                        <code>{currentStep.sectionFlagName}</code> (section)
+                      </ListItem>
+                    )}
+                    {[...new Set(unavailableFeatures.map((f) => f.flagName))].map((flagName) => (
+                      <ListItem key={flagName}>
+                        {flagName.startsWith('disable') ? (
+                          <>
+                            Set <code>{flagName}</code> to <code>false</code>
+                          </>
+                        ) : (
+                          <code>{flagName}</code>
+                        )}
+                      </ListItem>
+                    ))}
+                  </List>
+                )}
+              </div>
             )}
           </FlexItem>
         </>
@@ -715,19 +811,15 @@ const WhatsNewModal: React.FC = () => {
           <Button
             data-testid="tour-step-back"
             variant="secondary"
-            onClick={() => setStepIndex((i) => i - 1)}
-            isDisabled={stepIndex === 0}
+            onClick={() => {
+              if (stepIndex === 0) {
+                setShowWelcome(true);
+              } else {
+                setStepIndex((i) => i - 1);
+              }
+            }}
           >
             Back
-          </Button>
-        </FlexItem>
-        <FlexItem>
-          <Button
-            data-testid="tour-step-skip"
-            variant="link"
-            onClick={() => handleDismiss('skip_button')}
-          >
-            Skip tour
           </Button>
         </FlexItem>
         <FlexItem>
@@ -753,7 +845,8 @@ const WhatsNewModal: React.FC = () => {
           data-testid="nav-tour-popover"
           isVisible
           shouldClose={() => handleDismiss('popover_close')}
-          position="right"
+          position="right-start"
+          flipBehavior={['right-start', 'right-end', 'right']}
           triggerRef={() => targetEl}
           headerContent={currentStep.title}
           bodyContent={

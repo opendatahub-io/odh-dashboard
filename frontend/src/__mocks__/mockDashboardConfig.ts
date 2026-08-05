@@ -38,6 +38,7 @@ export type MockDashboardConfigType = {
   disableLMEval?: boolean;
   disableKueue?: boolean;
   disableFeatureStore?: boolean;
+  featureStoreAdmin?: boolean;
   genAiStudio?: boolean;
   genAiTracing?: boolean;
   automl?: boolean;
@@ -51,12 +52,12 @@ export type MockDashboardConfigType = {
   observabilityDashboard?: boolean;
   hardwareProfileOrder?: string[];
   pvcSize?: string;
-  mlflowPipelines?: boolean;
   mcpCatalog?: boolean;
   mcpRegistry?: boolean;
   toolCalling?: boolean;
   projectRBAC?: boolean;
   disableLLMd?: boolean;
+  llmdTemplates?: boolean;
   deploymentWizardYAMLViewer?: boolean;
   vLLMDeploymentOnMaaS?: boolean;
   llmGatewayField?: boolean;
@@ -69,6 +70,8 @@ export type MockDashboardConfigType = {
   roleManagement?: boolean;
   gpuaas?: boolean;
   connectionTest?: boolean;
+  modelCapabilities?: boolean;
+  modelDeploymentSettings?: boolean;
   globalMLflowNamespaces?: string[];
   genAiStudioConfig?: {
     aiAssetCustomEndpoints?: {
@@ -79,7 +82,6 @@ export type MockDashboardConfigType = {
 };
 
 export const mockDashboardConfig = ({
-  mlflowPipelines = true,
   projectRBAC = false,
   disableInfo = false,
   disableSupport = false,
@@ -122,9 +124,11 @@ export const mockDashboardConfig = ({
   disableLMEval = true,
   disableKueue = true,
   disableFeatureStore = true,
+  featureStoreAdmin = false,
   trainingJobs = true,
   observabilityDashboard = true,
   disableLLMd = false,
+  llmdTemplates = false,
   deploymentWizardYAMLViewer = false,
   externalVectorStores = false,
   agentConfigManagement = false,
@@ -136,9 +140,11 @@ export const mockDashboardConfig = ({
   agentOps = false,
   agentOpsDeploy = false,
   agentsCatalog = false,
-  roleManagement = false,
+  roleManagement = true,
   gpuaas = true,
   connectionTest = false,
+  modelCapabilities = false,
+  modelDeploymentSettings = false,
   hardwareProfileOrder = ['test-hardware-profile'],
   globalMLflowNamespaces = [],
   genAiStudioConfig = {
@@ -269,7 +275,6 @@ export const mockDashboardConfig = ({
   },
   spec: {
     dashboardConfig: {
-      mlflowPipelines,
       projectRBAC,
       enablement: true,
       disableInfo,
@@ -315,9 +320,11 @@ export const mockDashboardConfig = ({
       disableLMEval,
       disableKueue,
       disableFeatureStore,
+      featureStoreAdmin,
       trainingJobs,
       observabilityDashboard,
       disableLLMd,
+      llmdTemplates,
       deploymentWizardYAMLViewer,
       externalVectorStores,
       agentConfigManagement,
@@ -332,6 +339,8 @@ export const mockDashboardConfig = ({
       roleManagement,
       gpuaas,
       connectionTest,
+      modelCapabilities,
+      modelDeploymentSettings,
     },
     notebookController: {
       enabled: !disableNotebookController,

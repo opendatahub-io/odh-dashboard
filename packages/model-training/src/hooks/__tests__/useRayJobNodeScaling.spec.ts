@@ -1,6 +1,6 @@
 import { renderHook, waitFor } from '@testing-library/react';
 import { act } from 'react';
-import { useAccessReview } from '@odh-dashboard/internal/api/useAccessReview';
+import { useAccessReview } from '@odh-dashboard/plugin-core/host-api';
 import { useRayJobNodeScaling } from '../useRayJobNodeScaling';
 import { updateRayJobNumNodes } from '../../api';
 import { mockRayJobK8sResource } from '../../__mocks__/mockRayJobK8sResource';
@@ -8,7 +8,7 @@ import { RayJobDeploymentStatus, RayJobStatusValue, TrainingJobState } from '../
 
 jest.mock('../../api');
 jest.mock('@odh-dashboard/internal/utilities/useNotification');
-jest.mock('@odh-dashboard/internal/api/useAccessReview');
+jest.mock('@odh-dashboard/plugin-core/host-api');
 
 const mockUpdateRayJobNumNodes = jest.mocked(updateRayJobNumNodes);
 const mockUseAccessReview = jest.mocked(useAccessReview);

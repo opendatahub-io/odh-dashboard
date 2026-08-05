@@ -3,7 +3,7 @@ import { render, screen } from '@testing-library/react';
 import { AdvancedSettingsStepContent } from '../AdvancedOptionsStep';
 import type { ExternalDataMap } from '../../ExternalDataLoader';
 import { mockDeploymentWizardState } from '../../../../__tests__/mockUtils';
-import type { WizardField } from '../../types';
+import type { WizardField } from '../../../../shared/types/form-data';
 
 const externalData: ExternalDataMap = {};
 

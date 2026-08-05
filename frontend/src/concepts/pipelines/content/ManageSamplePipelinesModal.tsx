@@ -1,12 +1,12 @@
 import React from 'react';
 import { Alert, Stack, StackItem, Checkbox } from '@patternfly/react-core';
 import ContentModal, { ButtonAction } from '@odh-dashboard/ui-core/components/ContentModal';
-import { getPipelinesCR, toggleInstructLabState } from '#~/api';
 import {
   NotificationResponseStatus,
   NotificationWatcherContext,
-  NotificationWatcherResponse,
-} from '#~/concepts/notificationWatcher/NotificationWatcherContext';
+  type NotificationWatcherResponse,
+} from '@odh-dashboard/ui-core/contexts/NotificationWatcherContext';
+import { getPipelinesCR, toggleInstructLabState } from '#~/api';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import { DSPipelineManagedPipelinesInstructLabKind } from '#~/k8sTypes';
 import { ILAB_PIPELINE_NAME } from '#~/pages/pipelines/global/modelCustomization/const';

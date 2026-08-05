@@ -7,7 +7,7 @@ import {
   mock403ErrorWithDetails,
   mock404Error,
 } from '@odh-dashboard/internal/__mocks__/mockK8sStatus';
-import { mockProjectK8sResource } from '@odh-dashboard/internal/__mocks__/mockProjectK8sResource';
+import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import { mockSecretK8sResource } from '@odh-dashboard/internal/__mocks__/mockSecretK8sResource';
 import { mockServingRuntimeK8sResource } from '@odh-dashboard/internal/__mocks__/mockServingRuntimeK8sResource';
 import {
@@ -29,7 +29,7 @@ import {
   mockGlobalScopedHardwareProfiles,
   mockProjectScopedHardwareProfiles,
   mockHardwareProfile,
-} from '@odh-dashboard/internal/__mocks__/mockHardwareProfile';
+} from '@odh-dashboard/hardware-profiles/__mocks__/mockHardwareProfile';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import { deleteModal } from '@odh-dashboard/cypress/cypress/pages/components/DeleteModal';
 import {

@@ -8,12 +8,13 @@ import {
 } from '@openshift/dynamic-plugin-sdk-utils';
 import { type ProjectKind, KnownLabels } from '@odh-dashboard/k8s-core';
 import { DeploymentMode, InferenceServiceKind } from '@odh-dashboard/model-serving/shared';
+import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
+import { mockHardwareProfile } from '@odh-dashboard/hardware-profiles/__mocks__/mockHardwareProfile';
 import { mockInferenceServiceK8sResource } from '#~/__mocks__/mockInferenceServiceK8sResource';
 import { mockInferenceServiceModalData } from '#~/__mocks__/mockInferenceServiceModalData';
 import { mockK8sResourceList } from '#~/__mocks__/mockK8sResourceList';
 import { mock200Status, mock404Error } from '#~/__mocks__/mockK8sStatus';
 import { mockModelServingPodSpecOptions } from '#~/__mocks__/mockModelServingPodSpecOptions';
-import { mockProjectK8sResource } from '#~/__mocks__/mockProjectK8sResource';
 import { applyK8sAPIOptions } from '#~/api/apiMergeUtils';
 import {
   assembleInferenceService,
@@ -28,7 +29,6 @@ import {
 import { InferenceServiceModel, ProjectModel } from '#~/api/models';
 import { HardwarePodSpecOptions } from '#~/concepts/hardwareProfiles/types';
 import { ModelServingSize } from '#~/pages/modelServing/screens/types';
-import { mockHardwareProfile } from '#~/__mocks__/mockHardwareProfile.ts';
 import { applyHardwareProfileConfig } from '#~/concepts/hardwareProfiles/utils';
 import { INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS } from '#~/concepts/hardwareProfiles/const';
 

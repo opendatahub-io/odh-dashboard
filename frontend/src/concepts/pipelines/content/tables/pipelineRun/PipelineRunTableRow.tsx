@@ -35,6 +35,7 @@ import usePipelineRunExperimentInfo from '#~/concepts/pipelines/content/tables/u
 import RestoreRunWithArchivedExperimentModal from '#~/pages/pipelines/global/runs/RestoreRunWithArchivedExperimentModal';
 import { useFetchRunArtifact } from '#~/concepts/pipelines/content/pipelinesDetails/pipelineRun/useFetchRunArtifact';
 import { MlflowExperimentData } from '#~/concepts/mlflow/types';
+import { MlflowNestedRun } from '#~/concepts/pipelines/content/tables/pipelineRun/types';
 import {
   FilterOptions,
   LEGACY_EXPERIMENT_FILTER_PARAM,
@@ -46,6 +47,7 @@ type PipelineRunTableRowProps = {
   onDelete?: () => void;
   run: PipelineRunKF;
   mlflow?: MlflowExperimentData;
+  nestedMlflowRuns?: MlflowNestedRun[];
   customCells?: React.ReactNode;
   hasRowActions?: boolean;
   runType?: PipelineRunType;
@@ -57,6 +59,7 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
   checkboxProps,
   customCells,
   mlflow,
+  nestedMlflowRuns,
   onDelete,
   onRunGroupClick,
   run,
@@ -154,7 +157,8 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
           const mlflowRunId = getMlflowRunId(run);
           const mlflowExpId = getMlflowExperimentId(run);
           if (mlflow?.isAvailable && mlflowRunId && mlflowExpId) {
-            navigate(mlflowCompareRunsRoute(namespace, [mlflowRunId], [mlflowExpId]));
+            const nestedIds = nestedMlflowRuns?.map((n) => n.mlflowRunId) ?? [];
+            navigate(mlflowCompareRunsRoute(namespace, [mlflowRunId, ...nestedIds], [mlflowExpId]));
           } else {
             navigate(compareRunsRoute(namespace, [run.run_id], contextExperiment?.experiment_id));
           }
@@ -189,6 +193,7 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
     refreshAllAPI,
     notification,
     mlflow?.isAvailable,
+    nestedMlflowRuns,
   ]);
 
   return (

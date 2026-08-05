@@ -1,6 +1,6 @@
 import { k8sPatchResource } from '@openshift/dynamic-plugin-sdk-utils';
 import { applyK8sAPIOptions } from '@odh-dashboard/internal/api/apiMergeUtils';
-import { K8sAPIOptions, WorkloadKind } from '@odh-dashboard/internal/k8sTypes';
+import { K8sAPIOptions, WorkloadKind } from '@odh-dashboard/k8s-core';
 import { listWorkloads } from '@odh-dashboard/internal/api/k8s/workloads';
 import { WorkloadModel } from '@odh-dashboard/internal/api/models/kueue';
 import { UnifiedJobKind } from '../types';

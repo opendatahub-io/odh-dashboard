@@ -2,7 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Breadcrumb, BreadcrumbItem, Form, FormSection, PageSection } from '@patternfly/react-core';
 import { HardwareProfileKind, SchedulingType } from '@odh-dashboard/k8s-core';
-import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
+import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import useGenericObjectState from '@odh-dashboard/ui-core/utilities/useGenericObjectState';
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,

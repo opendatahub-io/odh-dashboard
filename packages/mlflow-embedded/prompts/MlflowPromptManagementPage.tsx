@@ -13,8 +13,7 @@ import { InfoCircleIcon } from '@patternfly/react-icons';
 import { useSearchParams } from 'react-router-dom';
 import { loadRemote } from '@module-federation/runtime';
 import { LazyCodeRefComponent } from '@odh-dashboard/plugin-core';
-// eslint-disable-next-line @odh-dashboard/no-restricted-imports
-import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
+
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import useIsMlflowCRAvailable from '@odh-dashboard/internal/concepts/mlflow/hooks/useIsMlflowCRAvailable';
 import { ProjectIconWithSize } from '@odh-dashboard/internal/concepts/projects/ProjectIconWithSize';
@@ -24,9 +23,9 @@ import { useAppContext } from '@odh-dashboard/internal/app/AppContext';
 import { getDashboardMainContainer } from '@odh-dashboard/internal/utilities/utils';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import { useUser } from '@odh-dashboard/internal/redux/selectors/user';
-import ProjectSelectorNavigator from '@odh-dashboard/internal/concepts/projects/ProjectSelectorNavigator';
+import ProjectSelectorNavigator from '@odh-dashboard/ui-core/components/projectSelector/ProjectSelectorNavigator';
 import TitleWithIcon from '@odh-dashboard/ui-core/design/TitleWithIcon';
-import { ProjectObjectType } from '@odh-dashboard/ui-core';
+import { ApplicationsPage, ProjectObjectType } from '@odh-dashboard/ui-core';
 import {
   promptManagementPath,
   mlflowPromptManagementBaseRoute,

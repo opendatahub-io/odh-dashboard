@@ -15,11 +15,11 @@ import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/ar
 import {
   getDescriptionFromK8sResource,
   getDisplayNameFromK8sResource,
+  getPvcAccessMode,
 } from '@odh-dashboard/k8s-core';
 import StorageSizeBar from '#~/pages/projects/components/StorageSizeBars';
 import { TableRowTitleDescription } from '#~/components/table';
 import { getStorageClassConfig } from '#~/pages/storageClasses/utils';
-import { getPvcAccessMode } from '#~/pages/projects/utils.ts';
 import AccessModeFullName from '#~/pages/projects/screens/detail/storage/AccessModeFullName';
 import ConnectedResources from '#~/pages/projects/screens/detail/connections/ConnectedResources';
 import useIsRootVolume from './useIsRootVolume';

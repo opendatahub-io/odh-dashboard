@@ -5,25 +5,26 @@ import {
   EnvVariableData,
   ExistingSecretRef,
 } from '#~/pages/projects/types';
+import { UseExistingSecretsResult } from './useExistingSecrets';
 import EnvConfigMap from './EnvConfigMap';
 import EnvSecret from './EnvSecret';
 
 type EnvTypeSwitchProps = {
   env: EnvVariable;
   onUpdate: (envVariableData: EnvVariableData) => void;
-  namespace: string;
   onExistingSecretRefsUpdate: (refs: ExistingSecretRef[]) => void;
   usedSecretNames?: Set<string>;
   inlineKeyNames?: Set<string>;
+  existingSecretsData: UseExistingSecretsResult;
 };
 
 const EnvTypeSwitch: React.FC<EnvTypeSwitchProps> = ({
   env,
   onUpdate,
-  namespace,
   onExistingSecretRefsUpdate,
   usedSecretNames,
   inlineKeyNames,
+  existingSecretsData,
 }) => {
   switch (env.type) {
     case EnvironmentVariableType.CONFIG_MAP:
@@ -33,11 +34,11 @@ const EnvTypeSwitch: React.FC<EnvTypeSwitchProps> = ({
         <EnvSecret
           env={env.values}
           onUpdate={onUpdate}
-          namespace={namespace}
           existingSecretRefs={env.existingSecretRefs}
           onExistingSecretRefsUpdate={onExistingSecretRefsUpdate}
           usedSecretNames={usedSecretNames}
           inlineKeyNames={inlineKeyNames}
+          existingSecretsData={existingSecretsData}
         />
       );
     default:

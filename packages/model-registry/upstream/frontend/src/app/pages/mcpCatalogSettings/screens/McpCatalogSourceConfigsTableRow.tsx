@@ -4,11 +4,13 @@ import { Button, Label, Switch } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
 import { McpCatalogSourceConfig } from '~/app/mcpServerCatalogTypes';
 import { mcpManageSourceUrl } from '~/app/routes/mcpCatalogSettings/mcpCatalogSettings';
-import { ModelVisibilityBadgeColor } from '~/concepts/modelCatalogSettings/const';
+import {
+  McpServerVisibilityBadgeColor,
+  MCP_SOURCE_TYPE_LABELS,
+} from '~/app/pages/mcpCatalogSettings/const';
 import DeleteModal from '~/app/shared/components/DeleteModal';
 import { useNotification } from '~/app/hooks/useNotification';
 import McpCatalogSourceStatus from '~/app/pages/mcpCatalogSettings/components/McpCatalogSourceStatus';
-import { MCP_SOURCE_TYPE_LABELS } from '~/app/pages/mcpCatalogSettings/const';
 import { useUserInteraction, TrackingOutcome } from '~/concepts/userInteraction';
 import {
   MCP_CATALOG_SOURCES_EVENTS,
@@ -125,14 +127,14 @@ const McpCatalogSourceConfigsTableRow: React.FC<McpCatalogSourceConfigsTableRowP
         <Td dataLabel="Server visibility" style={{ verticalAlign: 'middle' }}>
           {hasFilters ? (
             <Label
-              color={ModelVisibilityBadgeColor.FILTERED}
+              color={McpServerVisibilityBadgeColor.FILTERED}
               data-testid={`mcp-server-visibility-filtered-${mcpCatalogSourceConfig.id}`}
             >
               Filtered
             </Label>
           ) : (
             <Label
-              color={ModelVisibilityBadgeColor.UNFILTERED}
+              color={McpServerVisibilityBadgeColor.UNFILTERED}
               data-testid={`mcp-server-visibility-unfiltered-${mcpCatalogSourceConfig.id}`}
               variant="outline"
             >

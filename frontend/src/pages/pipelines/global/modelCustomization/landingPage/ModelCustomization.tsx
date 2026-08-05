@@ -11,8 +11,8 @@ import {
   Title,
 } from '@patternfly/react-core';
 import TitleWithIcon from '@odh-dashboard/ui-core/design/TitleWithIcon';
+import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import { ProjectObjectType } from '#~/concepts/design/utils';
-import ApplicationsPage from '#~/pages/ApplicationsPage';
 import { LabMethodDescriptionSection } from '#~/pages/pipelines/global/modelCustomization/landingPage/LabMethodDescriptionSection';
 import ModelCustomizationDrawerContent, {
   ModelCustomizationDrawerContentArgs,

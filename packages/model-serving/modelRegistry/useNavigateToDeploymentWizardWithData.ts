@@ -1,17 +1,17 @@
 import React from 'react';
-import type { DeployPrefillData } from '@odh-dashboard/model-registry/model-catalog-deploy';
 import {
   translateDisplayNameForK8s,
   LimitNameResourceType,
   resourceTypeLimits,
 } from '@odh-dashboard/k8s-core';
 import { useWatchConnectionTypes } from '@odh-dashboard/internal/utilities/useWatchConnectionTypes';
+import type { DeployPrefillData } from '@odh-dashboard/model-registry/shared';
 import { ServingRuntimeModelType } from '@odh-dashboard/model-serving/shared';
 import {
   ConnectionTypeRefs,
   InitialWizardFormData,
   ModelLocationType,
-} from '../src/components/deploymentWizard/types';
+} from '../src/shared/types/form-data';
 import { useNavigateToDeploymentWizard } from '../src/components/deploymentWizard/useNavigateToDeploymentWizard';
 
 export const useNavigateToDeploymentWizardWithData = (
@@ -69,6 +69,7 @@ export const useNavigateToDeploymentWizardWithData = (
           },
         },
       },
+      validatedConfigurations: deployPrefillData.validatedConfigurations,
     }),
     [deployPrefillData, connectionTypeObject, resourceName, maxLength],
   );

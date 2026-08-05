@@ -4,7 +4,7 @@ openapi: '3.0.3'
 info:
   title: 'Core BFF REST API'
   version: '1.0.0'
-  description: 'REST API for the Core Backend for Frontend (BFF). Replaces Fastify across sidecar and standalone deployments.'
+  description: 'REST API for the Core Backend for Frontend (BFF).'
   license:
     name: 'Apache 2.0'
     url: 'https://www.apache.org/licenses/LICENSE-2.0'
@@ -12,7 +12,13 @@ servers:
   - url: 'http://localhost:4000'
     description: 'Local development server'
 
+security:
+  - Bearer: []
+
 paths:
+  # =============================================================================
+  # HEALTH CHECK ENDPOINTS
+  # =============================================================================
   /healthcheck:
     summary: BFF service health check (infrastructure)
     description: >-
@@ -42,11 +48,17 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/HealthCheckResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
         '500':
           $ref: '#/components/responses/InternalServerError'
       operationId: apiHealthcheck
       summary: BFF Health Check (API)
       description: Returns BFF service status and version information. Used by the frontend.
+
+  # =============================================================================
+  # USER & NAMESPACE ENDPOINTS
+  # =============================================================================
 
   /api/v1/user:
     summary: Current user identity
@@ -87,6 +99,10 @@ paths:
           $ref: '#/components/responses/InternalServerError'
       operationId: getNamespaces
       summary: List accessible namespaces
+
+  # =============================================================================
+  # KUBERNETES API PROXY
+  # =============================================================================
 
   /api/k8s/{path}:
     summary: Kubernetes API proxy
@@ -210,6 +226,10 @@ paths:
         '502':
           $ref: '#/components/responses/BadGateway'
 
+  # =============================================================================
+  # CONFIGURATION ENDPOINTS
+  # =============================================================================
+
   /api/config:
     get:
       tags:
@@ -254,6 +274,10 @@ paths:
                 $ref: '#/components/schemas/DashboardConfig'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/BFFForbidden'
+        '404':
+          $ref: '#/components/responses/BFFNotFound'
         '500':
           $ref: '#/components/responses/InternalServerError'
 
@@ -298,10 +322,15 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/MutationResponse'
+              example:
+                success: true
+                error: ''
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/BFFForbidden'
         '500':
           $ref: '#/components/responses/InternalServerError'
 
@@ -326,10 +355,16 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/AllowedUser'
+              example:
+                - username: 'user@example.com'
+                  privilege: 'User'
+                  lastActivity: '2024-06-15T10:30:00Z'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
-          $ref: '#/components/responses/Forbidden'
+          $ref: '#/components/responses/BFFForbidden'
+        '404':
+          $ref: '#/components/responses/BFFNotFound'
         '500':
           $ref: '#/components/responses/InternalServerError'
 
@@ -377,9 +412,9 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
-          $ref: '#/components/responses/Forbidden'
+          $ref: '#/components/responses/BFFForbidden'
         '404':
-          $ref: '#/components/responses/NotFound'
+          $ref: '#/components/responses/BFFNotFound'
         '500':
           $ref: '#/components/responses/InternalServerError'
     patch:
@@ -413,9 +448,9 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
-          $ref: '#/components/responses/Forbidden'
+          $ref: '#/components/responses/BFFForbidden'
         '404':
-          $ref: '#/components/responses/NotFound'
+          $ref: '#/components/responses/BFFNotFound'
         '500':
           $ref: '#/components/responses/InternalServerError'
 
@@ -434,6 +469,8 @@ paths:
                 $ref: '#/components/schemas/ClusterSettings'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/BFFForbidden'
         '500':
           $ref: '#/components/responses/InternalServerError'
     put:
@@ -453,12 +490,21 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/MutationResponse'
+              example:
+                success: true
+                error: ''
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/BFFForbidden'
         '500':
           $ref: '#/components/responses/InternalServerError'
+
+  # =============================================================================
+  # CONNECTION TYPE ENDPOINTS
+  # =============================================================================
 
   /api/v1/connections/test:
     summary: Test a connection
@@ -559,6 +605,8 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/BFFForbidden'
         '500':
           $ref: '#/components/responses/InternalServerError'
 
@@ -581,10 +629,10 @@ paths:
             application/json:
               schema:
                 type: object
-        '404':
-          $ref: '#/components/responses/NotFound'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/BFFNotFound'
         '500':
           $ref: '#/components/responses/InternalServerError'
     put:
@@ -608,6 +656,8 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/BFFForbidden'
         '500':
           $ref: '#/components/responses/InternalServerError'
     patch:
@@ -642,6 +692,8 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/BFFForbidden'
         '500':
           $ref: '#/components/responses/InternalServerError'
     delete:
@@ -660,8 +712,14 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/BFFForbidden'
         '500':
           $ref: '#/components/responses/InternalServerError'
+
+  # =============================================================================
+  # MODEL SERVING ENDPOINTS
+  # =============================================================================
 
   /api/servingRuntimes:
     post:
@@ -712,10 +770,12 @@ paths:
         - NIM Serving
       operationId: getNIMServingResource
       summary: Get a NIM-related K8s resource by cross-resource lookup (OpenShift-only)
+      security: []
       description: >-
         OpenShift-only. Returns 404 on non-OpenShift platforms.
         Fetches the NIM Account CR, resolves the resource name from it using the
         nimResource parameter, then fetches and returns the Secret or ConfigMap.
+        This is a public route -- no authentication required.
       parameters:
         - name: nimResource
           in: path
@@ -735,6 +795,10 @@ paths:
           $ref: '#/components/responses/BFFNotFound'
         '500':
           $ref: '#/components/responses/InternalServerError'
+
+  # =============================================================================
+  # MODEL SERVING PROXY
+  # =============================================================================
 
   /api/service/model-serving/{path}:
     summary: Model serving service proxy
@@ -851,6 +915,10 @@ paths:
         '502':
           $ref: '#/components/responses/BadGateway'
 
+  # =============================================================================
+  # PROMETHEUS ENDPOINTS (OpenShift-only)
+  # =============================================================================
+
   /api/prometheus/{queryType}:
     post:
       tags:
@@ -886,6 +954,8 @@ paths:
                 $ref: '#/components/schemas/PrometheusQueryResponse'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/BFFNotFound'
         '400':
           description: Empty or invalid query
           content:
@@ -992,16 +1062,22 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
 
+  # =============================================================================
+  # NIM INTEGRATION ENDPOINTS (OpenShift-only)
+  # =============================================================================
+
   /api/integrations/nim:
     get:
       tags:
         - NIM Integration
       operationId: getNIMIntegrationStatus
       summary: Get NIM integration status (OpenShift-only)
+      security: []
       description: >-
         OpenShift-only. Returns 404 on non-OpenShift platforms.
         Returns the NIM integration status derived from the Account CR conditions.
         Reports installation state, enablement, API key validation, and errors.
+        This is a public route -- no authentication required.
       responses:
         '200':
           description: NIM integration status
@@ -1009,6 +1085,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/NIMIntegrationStatus'
+        '404':
+          $ref: '#/components/responses/BFFNotFound'
         '500':
           $ref: '#/components/responses/InternalServerError'
     post:
@@ -1044,6 +1122,8 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/BFFForbidden'
+        '404':
+          $ref: '#/components/responses/BFFNotFound'
         '500':
           $ref: '#/components/responses/InternalServerError'
     delete:
@@ -1065,10 +1145,110 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/BFFForbidden'
+        '404':
+          $ref: '#/components/responses/BFFNotFound'
         '500':
           $ref: '#/components/responses/InternalServerError'
 
+  # =============================================================================
+  # NON-HTTP SURFACES
+  # =============================================================================
+
+  /wss/k8s/{path}:
+    summary: Kubernetes API WebSocket proxy
+    description: >-
+      Proxies WebSocket connections to the Kubernetes API server for watch
+      operations. Strips the /wss/k8s prefix and forwards the remaining path
+      to the upstream K8s API via a WebSocket relay. Authentication is required
+      via bearer token in the x-forwarded-access-token header (same as API routes).
+      OpenAPI 3.0.3 has no native WebSocket support; this path entry documents
+      the endpoint's existence and auth model. The actual protocol is a WebSocket
+      upgrade handshake, not a standard HTTP request/response cycle. Standard HTTP
+      clients cannot call this endpoint - a WebSocket client is required.
+      OpenAPI 3.0 cannot represent multi-segment path parameters; the actual
+      route is a wildcard prefix match (/wss/k8s/*), not a single-segment capture.
+    x-websocket: true
+    parameters:
+      - name: path
+        in: path
+        required: true
+        schema:
+          type: string
+        description: >-
+          Multi-segment Kubernetes API path forwarded to the upstream API server
+          (e.g., api/v1/namespaces). Query parameters such as watch=true are
+          forwarded separately via the request query string, not as part of
+          this path parameter.
+    get:
+      tags:
+        - WebSocket Proxy
+      operationId: k8sWebSocketProxy
+      summary: WebSocket proxy to Kubernetes API
+      description: >-
+        Initiates a WebSocket upgrade to the Kubernetes API server. Used by the
+        frontend for real-time resource watch events. The connection is authenticated
+        and the user's bearer token is forwarded to the upstream K8s API.
+      responses:
+        '101':
+          description: >-
+            Switching Protocols - WebSocket upgrade successful. Subsequent
+            communication uses the WebSocket framing protocol, not HTTP.
+        '400':
+          description: >-
+            WebSocket upgrade required. Returned when a plain HTTP request
+            is sent to this endpoint without the WebSocket upgrade headers.
+          content:
+            text/plain:
+              schema:
+                type: string
+              example: 'WebSocket upgrade required'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /:
+    summary: SPA static asset server
+    description: >-
+      Serves the single-page application (SPA) frontend. Static assets are
+      served from the configured static assets directory. Any path not matched
+      by an API route or a static file falls back to index.html, enabling
+      client-side routing. This endpoint does not require authentication.
+    get:
+      tags:
+        - SPA
+      operationId: serveSPA
+      summary: Serve frontend application
+      description: >-
+        Returns static assets or falls back to index.html for client-side routing.
+        No authentication required - this is the public entry point for the dashboard UI.
+      security: []
+      responses:
+        '200':
+          description: >-
+            Static asset or index.html fallback. The actual Content-Type varies
+            based on the requested file (text/html, application/javascript,
+            text/css, etc.); only the text/html fallback is formally modeled here.
+          content:
+            text/html:
+              schema:
+                type: string
+
 components:
+  securitySchemes:
+    Bearer:
+      type: apiKey
+      in: header
+      name: x-forwarded-access-token
+      description: >-
+        Token-based authentication. By default the BFF reads a raw bearer token
+        from the x-forwarded-access-token header (the header used by the RHOAI
+        OAuth proxy to forward the user's access token to sidecar BFFs). The
+        header name is configurable via the -auth-token-header flag; when set to
+        Authorization with -auth-token-prefix "Bearer ", the BFF accepts
+        standard Authorization: Bearer <token> instead.
+        Endpoints marked with security: [] do not require authentication.
+
   schemas:
     HealthCheckResponse:
       type: object
@@ -1134,25 +1314,33 @@ components:
           items:
             $ref: '#/components/schemas/Namespace'
 
+    Error:
+      type: object
+      description: Inner error object used inside ErrorResponse envelope.
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          description: 'Error code identifier'
+          example: 'INTERNAL_SERVER_ERROR'
+        message:
+          type: string
+          description: 'Human-readable error description'
+          example: 'An unexpected error occurred'
+
     ErrorResponse:
       type: object
+      description: >-
+        Standard BFF error envelope. All BFF-originated errors use this shape.
+        Passthrough proxies (K8s, Prometheus, model-serving) return upstream
+        response shapes instead - see the Error Contract section in info.description.
       required:
         - error
       properties:
         error:
-          type: object
-          required:
-            - code
-            - message
-          properties:
-            code:
-              type: string
-              description: 'Error code identifier'
-              example: 'INTERNAL_SERVER_ERROR'
-            message:
-              type: string
-              description: 'Human-readable error description'
-              example: 'An unexpected error occurred'
+          $ref: '#/components/schemas/Error'
 
     DashboardConfig:
       type: object
@@ -1269,7 +1457,31 @@ components:
       properties:
         body:
           type: object
-          description: The resolved Secret or ConfigMap object
+          additionalProperties: true
+          description: >-
+            Full Kubernetes Secret or ConfigMap resource resolved from the NIM
+            Account CR. The shape follows the standard K8s resource structure
+            (apiVersion, kind, metadata, data/stringData). Consumers typically
+            read metadata.name and the data map. This matches the legacy backend
+            response contract.
+          properties:
+            apiVersion:
+              type: string
+              example: 'v1'
+            kind:
+              type: string
+              example: 'Secret'
+            metadata:
+              type: object
+              properties:
+                name:
+                  type: string
+                namespace:
+                  type: string
+            data:
+              type: object
+              additionalProperties:
+                type: string
 
     NIMIntegrationStatus:
       type: object
@@ -1447,6 +1659,17 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/StatusEnvelope'
+          example:
+            kube:
+              currentContext: 'default'
+              namespace: 'opendatahub'
+              userName: 'user@example.com'
+              clusterID: 'cluster-abc123'
+              clusterBranding: 'ocp'
+              isAdmin: false
+              isAllowed: true
+              serverURL: 'https://api.cluster.example.com:6443'
+              isImpersonating: false
 
     ComponentsResponse:
       description: List of OdhApplication components
@@ -1456,6 +1679,14 @@ components:
             type: array
             items:
               type: object
+          example:
+            - metadata:
+                name: 'jupyter'
+              spec:
+                displayName: 'Jupyter'
+                provider: 'Open Data Hub'
+                description: 'JupyterHub notebook environment'
+                category: 'Notebook environments'
 
     ConnectionTestResponse:
       description: Connection test result
@@ -1476,6 +1707,14 @@ components:
             type: array
             items:
               type: object
+          example:
+            - metadata:
+                name: 's3-compatible-storage'
+                labels:
+                  opendatahub.io/connection-type: ''
+              data:
+                category: 'Object storage'
+                displayName: 'S3-compatible storage'
 
     NamespaceMutationResponse:
       description: Namespace mutation result
@@ -1483,6 +1722,8 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/NamespaceMutationResponse'
+          example:
+            applied: true
 
     BadRequest:
       description: Bad request
@@ -1550,7 +1791,10 @@ components:
           example: 'Bad Gateway'
 
     BFFForbidden:
-      description: Access forbidden (authenticated but not admin)
+      description: >-
+        Access forbidden. Returned when the authenticated user lacks the required
+        permissions -- admin-only routes, disallowed namespace access, or failed
+        authorization checks (e.g., SSAR).
       content:
         application/json:
           schema:
@@ -1558,7 +1802,7 @@ components:
           example:
             error:
               code: 'FORBIDDEN'
-              message: 'admin access required'
+              message: 'insufficient permissions to make this request'
 
     BFFNotFound:
       description: Resource not found (BFF JSON envelope)

@@ -5,8 +5,9 @@ import useFetchState, {
   FetchStateCallbackPromise,
   NotReadyError,
 } from '@odh-dashboard/ui-core/hooks/useFetchState';
+import { useAccessReview } from '@odh-dashboard/plugin-core/host-api';
 import { ServiceKind } from '#~/k8sTypes';
-import { ServiceModel, useAccessReview, useRulesReview, listServices } from '#~/api';
+import { ServiceModel, useRulesReview, listServices } from '#~/api';
 
 const accessReviewResource: AccessReviewResourceAttributes = {
   group: 'user.openshift.io',

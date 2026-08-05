@@ -202,7 +202,7 @@ jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', (
   fireFormTrackingEvent: jest.fn(),
 }));
 
-jest.mock('@odh-dashboard/internal/concepts/dashboard/DashboardModalFooter', () => {
+jest.mock('@odh-dashboard/ui-core/components/DashboardModalFooter', () => {
   const React = require('react');
   return {
     __esModule: true,

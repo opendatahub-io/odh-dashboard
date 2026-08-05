@@ -1,13 +1,17 @@
 import React from 'react';
 import { z } from 'zod';
-import type { WizardField, WizardFormData } from '@odh-dashboard/model-serving/types/form-data';
-import ModelServerTemplateSelectField, {
+import type {
+  WizardField,
+  WizardFormData,
+} from '@odh-dashboard/model-serving/shared/types/form-data';
+import {
+  ModelServerTemplateSelectField,
   type ModelServerOption,
   type ModelServerSelectFieldData,
   modelServerSelectFieldSchema,
   getAcceleratorIdentifierFromHardwareProfile,
-} from '@odh-dashboard/model-serving/components/deploymentWizard/fields/ModelServerTemplateSelectField';
-import type { ModelTypeFieldData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/ModelTypeSelectField';
+  type ModelTypeFieldData,
+} from '@odh-dashboard/model-serving/shared/wizard-fields';
 import type { RecursivePartial } from '@odh-dashboard/foundation';
 import type {
   HardwareProfileKind,
@@ -161,7 +165,7 @@ const KServeServingRuntimeField: KServeServingRuntimeFieldType['component'] = ({
 
   return (
     <ModelServerTemplateSelectField
-      label="Deployment resource"
+      label="Serving runtime template"
       modelServerState={{
         data: value?.data,
         setData: (data: ModelServerSelectFieldData) => onChange({ data }),

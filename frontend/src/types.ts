@@ -14,7 +14,6 @@ import type {
 } from '@odh-dashboard/k8s-core';
 import { FeatureFlag } from '@odh-dashboard/plugin-core/areas';
 import { FetchStateObject } from '@odh-dashboard/ui-core/hooks/useFetch';
-import type { EitherNotBoth } from '@odh-dashboard/foundation';
 import { HardwarePodSpecOptions } from '#~/concepts/hardwareProfiles/types';
 import { ImageStreamKind, ImageStreamSpecTagType, NotebookKind } from './k8sTypes';
 
@@ -617,10 +616,6 @@ export type ListWithNonDashboardPresence<T> = {
   hasNonDashboardItems: boolean;
 };
 
-export type BreadcrumbItemType = {
-  label: string;
-} & EitherNotBoth<{ link: string }, { isActive: boolean }>;
-
 export type DetectedAccelerators = {
   configured: boolean;
   available: { [key: string]: number };
@@ -631,21 +626,6 @@ export type DetectedAccelerators = {
 export type KeyValuePair = {
   key: string;
   value: string;
-};
-
-export enum VariablesValidationStatus {
-  UNKNOWN = 'Unknown',
-  FAILED = 'False',
-  SUCCESS = 'True',
-}
-
-export type IntegrationAppStatus = {
-  isInstalled: boolean;
-  isEnabled: boolean;
-  canInstall: boolean;
-  variablesValidationStatus?: VariablesValidationStatus;
-  variablesValidationTimestamp?: string;
-  error: string;
 };
 
 export enum OdhPlatformType {

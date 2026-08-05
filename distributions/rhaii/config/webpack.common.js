@@ -10,6 +10,7 @@ const TITLE = 'RHAII';
 
 const additionalIncludes = [];
 if (process.env.ENABLE_MODEL_SERVING === 'true') {
+  additionalIncludes.push(path.resolve(REPO_ROOT, 'packages/connection-types'));
   additionalIncludes.push(path.resolve(REPO_ROOT, 'packages/model-serving'));
   additionalIncludes.push(path.resolve(REPO_ROOT, 'packages/k8s-core'));
   additionalIncludes.push(path.resolve(REPO_ROOT, 'packages/model-registry'));
@@ -28,14 +29,9 @@ module.exports = (overrides = {}) =>
     }),
     {
       plugins: [
-        // RHAII-specific process.env overrides. Cross-distribution vars
-        // should move to the base app-shell webpack config once
-        // frontend/src/utilities/const.ts is decoupled from process.env
-        // (see docs/process-env-const-coupling.md).
         new webpack.DefinePlugin({
           'process.env.ODH_PRODUCT_NAME': JSON.stringify('RHAII'),
           'process.env.BACKEND_PORT': JSON.stringify('4000'),
-          'process.env': '({})',
         }),
         new GenerateDistributionExtensionsPlugin({
           configPath: path.resolve(__dirname, '../distribution.yaml'),

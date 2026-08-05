@@ -50,6 +50,7 @@ export enum SupportedArea {
 
   /* Model Serving areas */
   MODEL_SERVING = 'model-serving-shell',
+  MODEL_DEPLOYMENT_SETTINGS = 'model-deployment-settings',
   CUSTOM_RUNTIMES = 'custom-serving-runtimes',
   K_SERVE = 'kserve',
   K_SERVE_AUTH = 'kserve-auth',
@@ -92,6 +93,7 @@ export enum SupportedArea {
 
   /* Feature store */
   FEATURE_STORE = 'feature-store',
+  FEATURE_STORE_ADMIN = 'feature-store-admin',
 
   /* Model Training */
   MODEL_TRAINING = 'model-training',
@@ -122,6 +124,9 @@ export enum SupportedArea {
 
   /* Connection Test */
   CONNECTION_TEST = 'connection-test',
+
+  /* Model Capabilities */
+  MODEL_CAPABILITIES = 'model-capabilities',
 }
 
 export type SupportedAreaType = SupportedArea | string;

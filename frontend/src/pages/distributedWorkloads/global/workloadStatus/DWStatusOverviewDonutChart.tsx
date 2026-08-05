@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { ChartDonut, ChartLegend, ChartContainer } from '@patternfly/react-charts/victory';
-import EmptyStateErrorMessage from '#~/components/EmptyStateErrorMessage';
+import EmptyStateErrorMessage from '@odh-dashboard/ui-core/components/EmptyStateErrorMessage';
 import { DistributedWorkloadsContext } from '#~/concepts/distributedWorkloads/DistributedWorkloadsContext';
 import {
   WorkloadStatusColorAndIcon,

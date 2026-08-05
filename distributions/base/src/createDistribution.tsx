@@ -4,6 +4,7 @@ import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import type { Extension } from '@openshift/dynamic-plugin-sdk';
 import { PluginStoreProvider } from '@openshift/dynamic-plugin-sdk';
 import { PluginStore } from '@odh-dashboard/plugin-core';
+import { BrowserStorageContextProvider } from '@odh-dashboard/ui-core/hooks/useBrowserStorage';
 import Shell from './Shell';
 import ShellHeader from './ShellHeader';
 import ShellNav from './ShellNav';
@@ -15,6 +16,11 @@ export interface DistributionConfig {
   extensions: Record<string, Extension[]>;
   featureFlags?: Record<string, boolean>;
   rootElementId?: string;
+  /**
+   * Optional host wrapper around the shell (e.g. ProjectsContextProvider).
+   * Distributions use this to mount host-only providers without forking the shell.
+   */
+  AppWrapper?: React.ComponentType<{ children: React.ReactNode }>;
 }
 
 const DistributionApp: React.FC<{ config: DistributionConfig }> = ({ config }) => {
@@ -26,13 +32,21 @@ const DistributionApp: React.FC<{ config: DistributionConfig }> = ({ config }) =
     return s;
   }, [config]);
 
+  const { AppWrapper } = config;
+
+  const shell = (
+    <PluginStoreProvider store={store}>
+      <Shell masthead={<ShellHeader />} sidebar={<ShellNav />}>
+        <ShellRoutes />
+      </Shell>
+    </PluginStoreProvider>
+  );
+
   return (
     <ThemeProvider>
-      <PluginStoreProvider store={store}>
-        <Shell masthead={<ShellHeader />} sidebar={<ShellNav />}>
-          <ShellRoutes />
-        </Shell>
-      </PluginStoreProvider>
+      <BrowserStorageContextProvider>
+        {AppWrapper ? <AppWrapper>{shell}</AppWrapper> : shell}
+      </BrowserStorageContextProvider>
     </ThemeProvider>
   );
 };

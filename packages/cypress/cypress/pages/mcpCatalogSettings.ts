@@ -24,7 +24,7 @@ class McpCatalogSettings {
 
   private findHeading() {
     cy.findByTestId('app-page-title').should('exist');
-    cy.findByTestId('app-page-title').contains('MCP catalog settings');
+    cy.findByTestId('app-page-title').contains('MCP catalog sources');
   }
 
   findNavItem() {

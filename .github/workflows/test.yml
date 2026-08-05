@@ -181,7 +181,7 @@ jobs:
         if: always()
         run: |
           # Find and upload the most recent contract test results
-          LATEST_DIR=$(find packages/*/contract-tests/contract-test-results -name "ci-*" -type d 2>/dev/null | head -1)
+          LATEST_DIR=$(find packages/*/contract-tests/contract-test-results distributions/*/contract-tests/contract-test-results -name "ci-*" -type d 2>/dev/null | head -1)
           if [ -n "$LATEST_DIR" ] && [ -d "$LATEST_DIR" ]; then
             echo "Uploading from: $LATEST_DIR" && echo "results-dir=$LATEST_DIR" >> $GITHUB_OUTPUT
           else

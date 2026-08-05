@@ -5,7 +5,7 @@ import { DashboardConfig, KnownLabels, NotebookSize } from '../types';
 export const PORT = Number(process.env.PORT) || Number(process.env.BACKEND_PORT) || 8080;
 export const IP = process.env.IP || '0.0.0.0';
 export const LOG_LEVEL = process.env.FASTIFY_LOG_LEVEL || process.env.LOG_LEVEL || 'info';
-export const LOG_DIR = path.join(__dirname, '../../../logs');
+export const LOG_DIR = path.resolve(process.cwd(), '../logs');
 export const DEV_MODE = process.env.APP_ENV === 'development';
 /** Allows a username to be impersonated in place of the logged in user for testing purposes -- impacts only some API */
 export const DEV_IMPERSONATE_USER = DEV_MODE ? process.env.DEV_IMPERSONATE_USER : undefined;
@@ -82,6 +82,7 @@ export const blankDashboardCR: DashboardConfig = {
       disableNIMModelServing: false,
       disableAdminConnectionTypes: false,
       disableFeatureStore: false,
+      featureStoreAdmin: false,
       genAiStudio: false,
       genAiTracing: false,
       guardrails: false,
@@ -102,7 +103,7 @@ export const blankDashboardCR: DashboardConfig = {
       trainingJobs: true,
       disableLLMd: false,
       projectRBAC: true,
-      roleManagement: false,
+      roleManagement: true,
       deploymentWizardYAMLViewer: false,
       externalVectorStores: false,
       agentConfigManagement: false,
@@ -112,6 +113,7 @@ export const blankDashboardCR: DashboardConfig = {
       globalProjectPrompts: false,
       gpuaas: true,
       connectionTest: false,
+      modelCapabilities: false,
       observabilityDashboard: true,
     },
     notebookController: {

@@ -5,10 +5,13 @@ import {
   ProjectsContext,
   type ProjectsContextType,
 } from '@odh-dashboard/ui-core/context/ProjectsContext';
+import {
+  getStoredPreferredProject,
+  PREFERRED_NAMESPACE_STORAGE_KEY,
+} from '@odh-dashboard/ui-core/context/getStoredPreferredProject';
 import { useProjects } from '#~/api';
 import { useDashboardNamespace } from '#~/redux/selectors';
 import { isAvailableProject } from './utils';
-import { PREFERRED_NAMESPACE_STORAGE_KEY } from './getStoredPreferredProject';
 
 // Re-export shared definitions for backward compatibility
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports -- re-exporting shared context
@@ -70,25 +73,9 @@ const ProjectsContextProvider: React.FC<ProjectsProviderProps> = ({ children }) 
       return;
     }
     initializedFromStorage.current = true;
-    const raw = localStorage.getItem(PREFERRED_NAMESPACE_STORAGE_KEY);
-    if (raw) {
-      let stored: string | null = null;
-      try {
-        const parsed = JSON.parse(raw);
-        if (typeof parsed === 'string') {
-          stored = parsed;
-        }
-      } catch {
-        if (typeof raw === 'string' && raw.length > 0) {
-          stored = raw;
-        }
-      }
-      if (stored) {
-        const match = projects.find(byName(stored));
-        if (match) {
-          setPreferredProject(match);
-        }
-      }
+    const match = getStoredPreferredProject(projects);
+    if (match) {
+      setPreferredProject(match);
     }
   }, [loaded, projects]);
 

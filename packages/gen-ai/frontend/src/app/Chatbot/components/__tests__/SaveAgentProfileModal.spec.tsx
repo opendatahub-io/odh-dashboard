@@ -114,7 +114,7 @@ describe('SaveAgentProfileModal', () => {
   describe('Save As mode', () => {
     it('should render with empty name field', () => {
       renderModal('save-as');
-      expect(screen.getByText('Save as agent')).toBeInTheDocument();
+      expect(screen.getByText('Save as new agent')).toBeInTheDocument();
       expect(screen.getByTestId('save-agent-profile-name-input')).toHaveValue('');
     });
 

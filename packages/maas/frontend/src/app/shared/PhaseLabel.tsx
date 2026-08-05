@@ -17,6 +17,7 @@ type PhaseLabelProps = {
   statusMessage?: React.ReactNode;
   forcePopover?: boolean;
   location: PhaseLabelLocation;
+  onClick?: () => void;
 };
 
 const PhaseLabel: React.FC<PhaseLabelProps> = ({
@@ -25,6 +26,7 @@ const PhaseLabel: React.FC<PhaseLabelProps> = ({
   statusMessage,
   forcePopover = false,
   location,
+  onClick,
 }) => {
   const normalized = normalizePhase(phase);
   const phaseProps = getPhaseProps(normalized);
@@ -38,6 +40,7 @@ const PhaseLabel: React.FC<PhaseLabelProps> = ({
       isClickable={hasPopover}
       data-testid="phase-label"
       {...phaseProps}
+      onClick={onClick}
     >
       {normalized}
     </Label>

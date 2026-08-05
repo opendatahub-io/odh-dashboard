@@ -326,11 +326,7 @@ export const ManageConnectionModal: React.FC<Props> = ({
             'Create connection'
           )
         }
-        description={
-          isConnectionTestEnabled
-            ? 'Define a connection type and name to create your asset. Testing the connection to verify your credentials and registry host settings is completely optional and will not block you from saving.'
-            : undefined
-        }
+        description="Configure your connection to an external resource"
       />
       <ModalBody>
         <Stack hasGutter>
@@ -405,12 +401,12 @@ export const ManageConnectionModal: React.FC<Props> = ({
                 data-testid="connection-test-failure-alert"
                 variant="danger"
                 isInline
-                title="Connection failed"
+                title="Verification failed"
               >
                 {testResult.message.length > 120 ? (
                   <>
                     {testResult.message.slice(0, 120)}...
-                    <ExpandableSection toggleText="Show additional information">
+                    <ExpandableSection toggleText="Show API details">
                       {testResult.message}
                     </ExpandableSection>
                   </>
@@ -452,7 +448,7 @@ export const ManageConnectionModal: React.FC<Props> = ({
                       isDisabled={isTesting || !connectionTypeName}
                       data-testid="test-connection-button"
                     >
-                      {isTesting ? 'Testing...' : 'Test connection'}
+                      {isTesting ? 'Verifying...' : 'Verify connection'}
                     </Button>
                   </ActionListItem>
                 ) : null}

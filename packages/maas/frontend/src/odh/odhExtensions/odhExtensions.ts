@@ -20,7 +20,7 @@ export type ODHExtensions =
   | TaskItemExtension
   | DetailTabExtension;
 const ADMIN_USER = 'ADMIN_USER';
-const MODELS_AS_SERVICE_READY = 'ModelsAsServiceReady';
+const MODELS_AS_A_SERVICE_READY = 'ModelsAsAServiceReady';
 
 const ODH_EXTENSIONS: ODHExtensions[] = [
   {
@@ -30,7 +30,7 @@ const ODH_EXTENSIONS: ODHExtensions[] = [
       featureFlags: ['modelAsService'],
       customCondition: ({ dscStatus }) =>
         !!dscStatus?.conditions.some(
-          (c) => c.type === MODELS_AS_SERVICE_READY && c.status === 'True',
+          (c) => c.type === MODELS_AS_A_SERVICE_READY && c.status === 'True',
         ),
     },
   },
@@ -84,26 +84,6 @@ const ODH_EXTENSIONS: ODHExtensions[] = [
       href: '/maas/keys-and-subs',
       section: 'gen-ai-studio',
       path: '/maas/keys-and-subs/*',
-    },
-  },
-  {
-    type: 'app.route',
-    flags: {
-      required: [MODEL_AS_SERVICE_ID, ADMIN_USER],
-    },
-    properties: {
-      path: '/maas/subscriptions/*',
-      component: () => import('./MaaSWrapper'),
-    },
-  },
-  {
-    type: 'app.route',
-    flags: {
-      required: [MODEL_AS_SERVICE_ID, ADMIN_USER],
-    },
-    properties: {
-      path: '/maas/auth-policies/*',
-      component: () => import('./MaaSWrapper'),
     },
   },
   {

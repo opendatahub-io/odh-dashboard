@@ -12,8 +12,8 @@ import type { ProjectKind, SecretKind, TemplateKind } from '@odh-dashboard/k8s-c
 import { SupportedArea } from '@odh-dashboard/plugin-core/areas';
 import type { InferenceServiceKind, ServingRuntimeKind } from '@odh-dashboard/model-serving/shared';
 import { FetchStateObject } from '@odh-dashboard/ui-core/hooks/useFetch';
+import { DEFAULT_LIST_FETCH_STATE } from '@odh-dashboard/ui-core/utilities/fetchState';
 import {
-  DEFAULT_LIST_FETCH_STATE,
   DEFAULT_LIST_WATCH_RESULT,
   DEFAULT_LIST_WITH_NON_DASHBOARD_PRESENCE_FETCH_STATE,
   POLL_INTERVAL,

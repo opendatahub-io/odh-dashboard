@@ -23,11 +23,11 @@ describe('modelAsService area extension', () => {
     expect(area.properties.customCondition).toBeDefined();
   });
 
-  it('should return true when ModelsAsServiceReady is True', () => {
+  it('should return true when ModelsAsAServiceReady is True', () => {
     const area = findMaaSArea();
     const dscStatus = makeDscStatus([
       {
-        type: 'ModelsAsServiceReady',
+        type: 'ModelsAsAServiceReady',
         status: 'True',
         lastTransitionTime: '',
         reason: 'Ready',
@@ -44,11 +44,11 @@ describe('modelAsService area extension', () => {
     expect(result).toBe(true);
   });
 
-  it('should return false when ModelsAsServiceReady is False', () => {
+  it('should return false when ModelsAsAServiceReady is False', () => {
     const area = findMaaSArea();
     const dscStatus = makeDscStatus([
       {
-        type: 'ModelsAsServiceReady',
+        type: 'ModelsAsAServiceReady',
         status: 'False',
         lastTransitionTime: '',
         reason: 'NotReady',
@@ -65,7 +65,7 @@ describe('modelAsService area extension', () => {
     expect(result).toBe(false);
   });
 
-  it('should return false when ModelsAsServiceReady condition is absent', () => {
+  it('should return false when ModelsAsAServiceReady condition is absent', () => {
     const area = findMaaSArea();
     const dscStatus = makeDscStatus([
       {

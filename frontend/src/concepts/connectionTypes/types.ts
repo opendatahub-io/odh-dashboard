@@ -27,6 +27,7 @@ export type {
   Connection,
   ConnectionTypeFormData,
   AWSDataEntry,
+  FieldMode,
 } from '@odh-dashboard/k8s-core';
 
 // Connection test status lifecycle

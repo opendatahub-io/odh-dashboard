@@ -635,6 +635,7 @@ components:
             - cancelled
             - stopping
             - stopped
+            - partially_failed
           example: 'completed'
           description: Current state of the evaluation job
         message:
