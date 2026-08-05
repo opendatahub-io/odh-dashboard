@@ -82,7 +82,11 @@
     "./components/UnauthorizedError": "./src/components/UnauthorizedError.tsx",
     "./components/UnknownError": "./src/components/UnknownError.tsx",
     "./components/InvalidProject": "./src/components/InvalidProject.tsx",
-    "./components/ProjectsRoutes": "./src/components/ProjectsRoutes.tsx"
+    "./components/ProjectsRoutes": "./src/components/ProjectsRoutes.tsx",
+    "./components/connectionTypes/ConnectionDetailsHelperText": "./src/components/connectionTypes/ConnectionDetailsHelperText.tsx",
+    "./components/connectionTypes/DefaultValueTextRenderer": "./src/components/connectionTypes/DefaultValueTextRenderer.tsx",
+    "./components/connectionTypes/FormGroupText": "./src/components/connectionTypes/FormGroupText.tsx",
+    "./components/connectionTypes/UnspecifiedValue": "./src/components/connectionTypes/UnspecifiedValue.tsx"
   },
   "scripts": {
     "lint": "eslint .",

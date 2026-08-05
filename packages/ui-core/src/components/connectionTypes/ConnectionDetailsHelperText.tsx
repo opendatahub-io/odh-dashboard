@@ -13,9 +13,10 @@ import { InfoCircleIcon } from '@patternfly/react-icons';
 import {
   getDescriptionFromK8sResource,
   getDisplayNameFromK8sResource,
+  getConnectionTypeDisplayName,
+  parseConnectionSecretValues,
 } from '@odh-dashboard/k8s-core';
-import { Connection, ConnectionTypeConfigMapObj } from './types';
-import { getConnectionTypeDisplayName, parseConnectionSecretValues } from './utils';
+import type { Connection, ConnectionTypeConfigMapObj } from '@odh-dashboard/k8s-core';
 
 type Props = {
   connection?: Connection;

@@ -121,3 +121,6 @@ export { default as InvalidProject } from './components/InvalidProject';
 export type { InvalidProjectProps } from './components/InvalidProject';
 
 export { default as ProjectsRoutes } from './components/ProjectsRoutes';
+
+export { ConnectionDetailsHelperText } from './components/connectionTypes/ConnectionDetailsHelperText';
+export { default as DefaultValueTextRenderer } from './components/connectionTypes/DefaultValueTextRenderer';
