@@ -385,7 +385,11 @@ func (c *client) GetPipelineVersion(ctx context.Context, baseURL string, pipelin
 	return &version, nil
 }
 
-// ListPipelineVersions retrieves all versions for a pipeline
+// ListPipelineVersions retrieves all versions for a pipeline, sorted by creation time
+// descending so the most recently created version is first. Callers that fall back to
+// "any available version" (e.g. discovery without an exact version match) rely on this
+// ordering to deterministically select the latest version rather than an arbitrary one.
+// Capped at maxPaginationPages to prevent unbounded iteration from a malicious server.
 func (c *client) ListPipelineVersions(ctx context.Context, baseURL string, pipelineID string) (*PipelineVersionsResponse, error) {
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
@@ -394,28 +398,54 @@ func (c *client) ListPipelineVersions(ctx context.Context, baseURL string, pipel
 		return nil, fmt.Errorf("%w: pipelineID is required", ErrInvalidInput)
 	}
 
-	apiURL := fmt.Sprintf("%s/apis/v2beta1/pipelines/%s/versions", baseURL, url.PathEscape(pipelineID))
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, apiURL, nil)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %w", err)
+	var allVersions []PipelineVersion
+	var totalSize int32
+	pageToken := ""
+
+	for range maxPaginationPages {
+		queryParams := url.Values{}
+		queryParams.Set("sort_by", "created_at desc")
+		if pageToken != "" {
+			queryParams.Set("page_token", pageToken)
+		}
+
+		apiURL := fmt.Sprintf("%s/apis/v2beta1/pipelines/%s/versions?%s", baseURL, url.PathEscape(pipelineID), queryParams.Encode())
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, apiURL, nil)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create request: %w", err)
+		}
+
+		resp, err := c.HTTPClient.Do(req)
+		if err != nil {
+			return nil, fmt.Errorf("failed to execute request: %w", err)
+		}
+
+		if resp.StatusCode != http.StatusOK {
+			err := readhttpError(resp)
+			resp.Body.Close()
+			return nil, err
+		}
+
+		var page PipelineVersionsResponse
+		err = json.NewDecoder(io.LimitReader(resp.Body, maxSuccessBodySize)).Decode(&page)
+		resp.Body.Close()
+		if err != nil {
+			return nil, fmt.Errorf("failed to decode response: %w", err)
+		}
+
+		allVersions = append(allVersions, page.PipelineVersions...)
+		totalSize = page.TotalSize
+
+		if page.NextPageToken == "" {
+			return &PipelineVersionsResponse{
+				PipelineVersions: allVersions,
+				TotalSize:        totalSize,
+			}, nil
+		}
+		pageToken = page.NextPageToken
 	}
 
-	resp, err := c.HTTPClient.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("failed to execute request: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, readhttpError(resp)
-	}
-
-	var response PipelineVersionsResponse
-	if err := json.NewDecoder(io.LimitReader(resp.Body, maxSuccessBodySize)).Decode(&response); err != nil {
-		return nil, fmt.Errorf("failed to decode response: %w", err)
-	}
-
-	return &response, nil
+	return nil, fmt.Errorf("pipeline version listing exceeded maximum pagination pages (%d)", maxPaginationPages)
 }
 
 // CreatePipeline creates a new pipeline
