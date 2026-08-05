@@ -218,6 +218,7 @@ export const getStatusSubtext = (
 const getStatusSubtextForModel = (phase: string): React.ReactNode | undefined => {
   switch (phase) {
     case PhaseStatus.DEGRADED:
+    case PhaseStatus.UNAVAILABLE:
       return 'Inference not serving';
     case PhaseStatus.FAILED:
       return 'Gateway not found';
@@ -278,6 +279,7 @@ export const getModalAlertProps = (
   const showApiDetails =
     (phase === PhaseStatus.FAILED ||
       phase === PhaseStatus.INVALID ||
+      phase === PhaseStatus.UNAVAILABLE ||
       phase === PhaseStatus.DEGRADED) &&
     (!!reason || !!statusMessage);
 
@@ -337,6 +339,7 @@ const getAlertContentForModelRef = (
 ): { title: string; children: string } | undefined => {
   switch (phase) {
     case PhaseStatus.DEGRADED:
+    case PhaseStatus.UNAVAILABLE:
       return {
         title: 'Model unavailable',
         children:
@@ -451,6 +454,7 @@ export const getSubtextProps = (phase: string): ContentProps | undefined => {
   const sharedStyle: React.CSSProperties = { textDecoration: 'underline dotted' };
   switch (phase) {
     case PhaseStatus.DEGRADED:
+    case PhaseStatus.UNAVAILABLE:
       return {
         className: 'pf-v6-u-text-color-status-warning',
         style: sharedStyle,
