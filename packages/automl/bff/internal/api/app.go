@@ -273,6 +273,7 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 			repo: repositories.NewPipelinesRepository(logger, pipelinesService, repositories.PipelinesRepositoryConfig{
 				TimeSeriesPipelineName: cfg.AutoMLTimeSeriesPipelineNamePrefix,
 				TabularPipelineName:    cfg.AutoMLTabularPipelineNamePrefix,
+				DefaultPipelineVersion: cfg.PipelineVersionSuffix,
 			}),
 		},
 		modelRegistry: &ModelRegistryHandler{

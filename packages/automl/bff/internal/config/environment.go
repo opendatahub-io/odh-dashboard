@@ -145,6 +145,12 @@ type EnvConfig struct {
 	// Default: "autogluon-tabular-training-pipeline"
 	AutoMLTabularPipelineNamePrefix string
 
+	// PipelineVersionSuffix is the release version suffix appended to pipeline version
+	// names during discovery (e.g. "<prefix>-<suffix>"). Override via PIPELINE_VERSION_SUFFIX
+	// env var when the deployed pipeline version differs from the built-in default.
+	// Default: constants.DefaultPipelineVersionSuffix
+	PipelineVersionSuffix string
+
 	// ─── TLS ────────────────────────────────────────────────────
 	// TLS verification settings for HTTP client connections to the Client
 	// InsecureSkipVerify when true, skips TLS certificate verification (useful for development/local setups)

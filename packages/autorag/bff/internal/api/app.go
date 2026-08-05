@@ -248,7 +248,8 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		pipelines: &PipelinesHandler{
 			logger: logger,
 			repo: repositories.NewPipelinesRepository(logger, pipelinesService, repositories.PipelinesRepositoryConfig{
-				AutoRAGPipelineName: cfg.AutoRAGPipelineNamePrefix,
+				AutoRAGPipelineName:    cfg.AutoRAGPipelineNamePrefix,
+				DefaultPipelineVersion: cfg.PipelineVersionSuffix,
 			}),
 		},
 		ogx: &OGXHandler{
