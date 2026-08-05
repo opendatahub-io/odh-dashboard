@@ -3,7 +3,6 @@ import {
   ActionList,
   ActionListGroup,
   ActionListItem,
-  Breadcrumb,
   BreadcrumbItem,
   Button,
   Content,
@@ -14,11 +13,12 @@ import {
 } from '@patternfly/react-core';
 import classNames from 'classnames';
 import { ApplicationsPage } from 'mod-arch-shared';
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { FieldPath, FormProvider, useForm, useWatch } from 'react-hook-form';
-import { Link, useLocation, useNavigate, useParams } from 'react-router';
+import { useNavigate, useParams } from 'react-router';
 import AutoragConfigure from '~/app/components/configure/AutoragConfigure';
 import AutoragHeader from '~/app/components/common/AutoragHeader/AutoragHeader';
+import ExperimentContextBreadcrumb from '~/app/components/common/ExperimentContextBreadcrumb';
 import AutoragCreate from '~/app/components/create/AutoragCreate';
 import InvalidProject from '~/app/components/empty-states/InvalidProject';
 import { useNamespaceSelectorWithPersistence } from '~/app/hooks/useNamespaceSelectorWithPersistence';
@@ -53,13 +53,7 @@ function AutoragConfigurePage({
   sourceRunName,
 }: AutoragConfigurePageProps): React.JSX.Element {
   const navigate = useNavigate();
-  const location = useLocation();
   const notification = useNotification();
-  const fromResultsPage =
-    location.state != null &&
-    typeof location.state === 'object' &&
-    'from' in location.state &&
-    location.state.from === 'results';
 
   const { namespace } = useParams();
   const { namespaces, namespacesLoaded, namespacesLoadError } =
@@ -70,6 +64,10 @@ function AutoragConfigurePage({
     namespacesLoaded && !!namespace && !namespaces.map((ns) => ns.name).includes(namespace);
 
   const getRedirectPath = (ns: string) => `${autoragExperimentsPathname}/${ns}`;
+  const projectDisplayName = useMemo(
+    () => namespaces.find((ns) => ns.name === namespace)?.displayName ?? namespace ?? '',
+    [namespaces, namespace],
+  );
 
   const pipelineRunsMutation = useCreatePipelineRunMutation(namespace ?? '');
 
@@ -196,22 +194,18 @@ function AutoragConfigurePage({
         )
       }
       breadcrumb={
-        (step === 'configure' || sourceRunId) && (
-          <Breadcrumb>
-            <BreadcrumbItem>
-              <Link to={getRedirectPath(namespace!)}>AutoRAG: {namespace}</Link>
-            </BreadcrumbItem>
-            {fromResultsPage && sourceRunId && sourceRunName && (
-              <BreadcrumbItem data-testid="configure-breadcrumb-source-run">
-                <Link to={`${autoragResultsPathname}/${namespace}/${sourceRunId}`}>
-                  <Truncate content={sourceRunName} />
-                </Link>
-              </BreadcrumbItem>
-            )}
+        (step === 'configure' || sourceRunId) &&
+        namespace && (
+          <ExperimentContextBreadcrumb
+            pageName="AutoRAG"
+            namespace={namespace}
+            projectDisplayName={projectDisplayName}
+            homePath={getRedirectPath(namespace)}
+          >
             <BreadcrumbItem isActive data-testid="configure-breadcrumb-name">
-              {sourceRunId ? 'Reconfigure' : <Truncate content={displayName || ''} />}
+              Experiment configurations
             </BreadcrumbItem>
-          </Breadcrumb>
+          </ExperimentContextBreadcrumb>
         )
       }
       empty={noNamespaces || invalidNamespace}
