@@ -142,7 +142,12 @@ const NotebookFeatureStoreList: React.FC<NotebookFeatureStoreListProps> = ({
             )}
             {availableNames.length > DEFAULT_VISIBLE_LENGTH && unavailableNames.length > 0 && (
               <StackItem>
-                <Divider data-testid="notebook-feature-store-section-divider" />
+                <Flex>
+                  <FlexItem flex={{ default: 'flex_4' }}>
+                    <Divider data-testid="notebook-feature-store-section-divider" />
+                  </FlexItem>
+                  <FlexItem flex={{ default: 'flex_1' }} />
+                </Flex>
               </StackItem>
             )}
             {unavailableNames.length > 0 && (

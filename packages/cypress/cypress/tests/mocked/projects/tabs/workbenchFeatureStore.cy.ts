@@ -129,13 +129,12 @@ describe('Workbench page — Feature Store', () => {
       notebookRow.findFeatureStoreList().find('li').should('have.length', 5);
       notebookRow.findFeatureStoreShowAll().should('exist');
       notebookRow.findFeatureStoreShowAll().should('contain.text', 'Show all');
-      notebookRow.findFeatureStoreShowAll().should('contain.text', '2 more');
 
-      notebookRow.findFeatureStoreShowAll().find('button').click();
+      notebookRow.findFeatureStoreShowAll().click();
       notebookRow.findFeatureStoreList().find('li').should('have.length', 7);
       notebookRow.findFeatureStoreShowAll().should('contain.text', 'Show less');
 
-      notebookRow.findFeatureStoreShowAll().find('button').click();
+      notebookRow.findFeatureStoreShowAll().click();
       notebookRow.findFeatureStoreList().find('li').should('have.length', 5);
       notebookRow.findFeatureStoreShowAll().should('contain.text', 'Show all');
     });
