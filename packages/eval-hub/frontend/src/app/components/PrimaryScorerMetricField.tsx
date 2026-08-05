@@ -53,7 +53,7 @@ const PrimaryScorerMetricField: React.FC<PrimaryScorerMetricFieldProps> = ({
       labelHelp={
         <LabelHelpPopover
           ariaLabel="More info for primary scorer metric"
-          content="Choose the primary metric used to calculate the evaluation score for this benchmark."
+          content="Choose the primary metric used to calculate the result for this benchmark."
         />
       }
     >

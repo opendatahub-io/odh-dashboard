@@ -39,6 +39,8 @@ import {
   initialBenchmarkFilterData,
 } from './const';
 
+const PAGE_SIZES = [12, 24, 36];
+
 const ChooseStandardisedBenchmarksPage: React.FC = () => {
   const { namespace } = useParams<{ namespace: string }>();
   const navigate = useNavigate();
@@ -80,7 +82,7 @@ const ChooseStandardisedBenchmarksPage: React.FC = () => {
   );
 
   const [page, setPage] = React.useState(1);
-  const [perPage, setPerPage] = React.useState(10);
+  const [perPage, setPerPage] = React.useState(PAGE_SIZES[1]); // Default to 24 per page
 
   const [selectedBenchmark, setSelectedBenchmark] = React.useState<FlatBenchmark | undefined>(
     undefined,
@@ -153,7 +155,7 @@ const ChooseStandardisedBenchmarksPage: React.FC = () => {
         <DrawerContentBody>
           <ApplicationsPage
             title="Select benchmark"
-            description="Select a benchmark to run on your model, agent or pre-recorded responses."
+            description="Select a benchmark to run on your model, agent, or dataset."
             breadcrumb={
               <Breadcrumb>
                 <BreadcrumbItem
@@ -228,11 +230,10 @@ const ChooseStandardisedBenchmarksPage: React.FC = () => {
                                 setPerPage(pp);
                                 setPage(1);
                               }}
-                              perPageOptions={[
-                                { title: '10', value: 10 },
-                                { title: '20', value: 20 },
-                                { title: '30', value: 30 },
-                              ]}
+                              perPageOptions={PAGE_SIZES.map((size) => ({
+                                title: String(size),
+                                value: size,
+                              }))}
                               variant="top"
                               widgetId="benchmarks-pagination"
                               menuAppendTo="inline"
@@ -291,6 +292,28 @@ const ChooseStandardisedBenchmarksPage: React.FC = () => {
                       </Gallery>
                     )}
                   </StackItem>
+                  {paginatedBenchmarks.length > 0 && (
+                    <StackItem>
+                      <Pagination
+                        itemCount={filteredBenchmarks.length}
+                        page={page}
+                        perPage={perPage}
+                        onSetPage={(_evt, p) => setPage(p)}
+                        onPerPageSelect={(_evt, pp) => {
+                          setPerPage(pp);
+                          setPage(1);
+                        }}
+                        perPageOptions={PAGE_SIZES.map((size) => ({
+                          title: String(size),
+                          value: size,
+                        }))}
+                        variant="bottom"
+                        widgetId="benchmarks-pagination-bottom"
+                        menuAppendTo="inline"
+                        titles={{ paginationAriaLabel: 'bottom pagination' }}
+                      />
+                    </StackItem>
+                  )}
                 </Stack>
               )}
             </PageSection>

@@ -33,7 +33,8 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { useCollections } from '~/app/hooks/useCollections';
-import { Collection } from '~/app/types';
+import { useProviders } from '~/app/hooks/useProviders';
+import { Collection, ProviderBenchmark } from '~/app/types';
 import { evaluationCreateRoute, evaluationStartRoute, evaluationsBaseRoute } from '~/app/routes';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import CollectionDrawerPanel from '~/app/components/CollectionDrawerPanel';
@@ -63,6 +64,18 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
     setCategoryFilter,
     availableCategories,
   } = useCollections(namespace ?? '');
+
+  const { providers } = useProviders(namespace ?? '');
+
+  const benchmarkDetailsMap = React.useMemo(() => {
+    const map = new Map<string, ProviderBenchmark>();
+    providers.forEach((provider) => {
+      (provider.benchmarks ?? []).forEach((b) => {
+        map.set(`${provider.resource.id}:${b.id}`, b);
+      });
+    });
+    return map;
+  }, [providers]);
 
   const handleRunCollection = React.useCallback(
     (c: Collection) => {
@@ -108,6 +121,7 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
         panelContent={
           <CollectionDrawerPanel
             collection={selectedCollection}
+            benchmarkDetailsMap={benchmarkDetailsMap}
             onClose={() => setSelectedCollection(undefined)}
             onRunCollection={handleRunCollection}
           />
@@ -116,7 +130,7 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
         <DrawerContentBody>
           <ApplicationsPage
             title="Select benchmark suite"
-            description="Select a benchmark suite to evaluate your model, agent, or pre-recorded responses."
+            description="Select a benchmark suite to evaluate your model, agent, or dataset."
             breadcrumb={
               <Breadcrumb>
                 <BreadcrumbItem
@@ -245,17 +259,29 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
                           >
                             {collection.name}
                           </Button>
-                        </CardTitle>
-                        <CardBody>
                           {benchmarkCount > 0 && (
-                            <Content component="small">
-                              <strong>
-                                {benchmarkCount} benchmark{benchmarkCount !== 1 ? 's' : ''}
-                              </strong>
+                            <Content
+                              component="small"
+                              style={{
+                                marginTop: 'var(--pf-t--global--spacer--xs)',
+                                fontWeight: 'var(--pf-t--global--font--weight--body--bold)',
+                              }}
+                            >
+                              {benchmarkCount} benchmark{benchmarkCount !== 1 ? 's' : ''}
                             </Content>
                           )}
+                        </CardTitle>
+                        <CardBody>
                           {collection.description && (
-                            <Content component="p">{collection.description}</Content>
+                            <Content
+                              component="p"
+                              style={{
+                                fontSize: 'var(--pf-t--global--font--size--sm)',
+                                color: 'var(--pf-t--global--text--color--subtle)',
+                              }}
+                            >
+                              {collection.description}
+                            </Content>
                           )}
                         </CardBody>
                         <CardFooter>

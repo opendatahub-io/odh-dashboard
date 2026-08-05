@@ -279,7 +279,8 @@ const StartEvaluationRunPage: React.FC = () => {
           </FormGroup>
 
           {/* ── Source dropdown ─────────────────────────────────── */}
-          <FormGroup label="Source" isRequired fieldId="source-mode">
+          <FormGroup label="Evaluating" isRequired fieldId="source-mode">
+            <Content component="p">Select the model, agent, or dataset to evaluate.</Content>
             <Select
               id="source-mode"
               data-testid="source-mode-select"
@@ -323,10 +324,14 @@ const StartEvaluationRunPage: React.FC = () => {
               labelHelp={
                 <LabelHelpPopover
                   ariaLabel="More info for model selection"
-                  content="Select a deployed model from your namespace, or choose 'Other (External endpoint)' to enter an external model URL."
+                  content="The list contains models that have been published as AI asset endpoints in this project."
                 />
               }
             >
+              <Content component="p">
+                Select a model from your project&apos;s AI asset endpoints, or specify an external
+                endpoint.
+              </Content>
               <Select
                 id="model-picker"
                 data-testid="model-picker-select"

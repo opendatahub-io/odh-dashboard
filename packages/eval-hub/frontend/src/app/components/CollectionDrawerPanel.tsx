@@ -4,6 +4,10 @@ import {
   Card,
   CardBody,
   Content,
+  DescriptionList,
+  DescriptionListDescription,
+  DescriptionListGroup,
+  DescriptionListTerm,
   DrawerActions,
   DrawerCloseButton,
   DrawerHead,
@@ -18,23 +22,27 @@ import {
 } from '@patternfly/react-core';
 import { ExternalLinkAltIcon } from '@patternfly/react-icons';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import { Collection } from '~/app/types';
+import { Collection, ProviderBenchmark } from '~/app/types';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
-import { capitalizeFirst, getCategoryColor, toSafeExternalUrl } from './benchmarkUtils';
+import { getBenchmarkPaperUrl } from '~/app/utilities/benchmarkPaperUrls';
+import { capitalizeFirst, getCategoryColor } from './benchmarkUtils';
 
 type CollectionDrawerPanelProps = {
   collection: Collection | undefined;
+  benchmarkDetailsMap: Map<string, ProviderBenchmark>;
   onClose: () => void;
   onRunCollection: (c: Collection) => void;
 };
 
 const CollectionDrawerPanel: React.FC<CollectionDrawerPanelProps> = ({
   collection,
+  benchmarkDetailsMap,
   onClose,
   onRunCollection,
 }) => {
   if (!collection) {
-    return null;
+    // DrawerPanelContent must remain in the DOM for PF's slide-in/out CSS transition to work
+    return <DrawerPanelContent isResizable minSize="380px" />;
   }
 
   const color = getCategoryColor(collection.category);
@@ -80,32 +88,55 @@ const CollectionDrawerPanel: React.FC<CollectionDrawerPanelProps> = ({
                   </Title>
                 </StackItem>
                 {collection.benchmarks.map((b) => {
-                  const safeUrl = toSafeExternalUrl(b.url);
+                  const key = `${b.provider_id ?? ''}:${b.id}`;
+                  const details = benchmarkDetailsMap.get(key);
+                  const paperUrl = getBenchmarkPaperUrl(b.id);
+                  const benchmarkName = details?.name ?? b.id;
+                  const benchmarkDescription = details?.description;
                   return (
                     <StackItem key={`${b.provider_id ?? 'unknown'}-${b.id}`}>
                       <Card isCompact>
                         <CardBody>
-                          <Stack hasGutter>
-                            <StackItem>
+                          <Flex
+                            direction={{ default: 'column' }}
+                            spaceItems={{ default: 'spaceItemsSm' }}
+                          >
+                            <FlexItem>
                               <Content
                                 component="p"
                                 style={{
-                                  fontWeight: 'var(--pf-t--global--font--weight--body--bold)',
+                                  fontWeight: 'var(--pf-t--global--font--weight--heading--default)',
+                                  margin: 0,
                                 }}
                               >
-                                {safeUrl ? (
+                                {benchmarkName}
+                              </Content>
+                            </FlexItem>
+                            <FlexItem>
+                              <Content
+                                component="p"
+                                style={{
+                                  fontSize: 'var(--pf-t--global--font--size--sm)',
+                                  color: 'var(--pf-t--global--text--color--subtle)',
+                                  margin: 0,
+                                }}
+                              >
+                                {paperUrl ? (
                                   <Button
                                     variant="link"
                                     isInline
                                     component="a"
-                                    href={safeUrl}
+                                    href={paperUrl}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     icon={<ExternalLinkAltIcon />}
                                     iconPosition="end"
+                                    style={{
+                                      fontSize: 'var(--pf-t--global--font--size--sm)',
+                                    }}
                                     onClick={() =>
                                       fireMiscTrackingEvent(EVAL_HUB_EVENTS.EXTERNAL_LINK_CLICKED, {
-                                        url: safeUrl,
+                                        url: paperUrl,
                                         benchmarkId: b.id,
                                         surface: 'collection_drawer',
                                       })
@@ -117,23 +148,44 @@ const CollectionDrawerPanel: React.FC<CollectionDrawerPanelProps> = ({
                                   b.id
                                 )}
                               </Content>
-                            </StackItem>
-                            {b.provider_id && (
-                              <Stack>
-                                <StackItem>
-                                  <Content
-                                    component="p"
-                                    style={{
-                                      fontWeight: 'var(--pf-t--global--font--weight--body--bold)',
-                                    }}
-                                  >
-                                    Evaluation framework
-                                  </Content>
-                                </StackItem>
-                                <StackItem>{b.provider_id}</StackItem>
-                              </Stack>
+                            </FlexItem>
+                            {benchmarkDescription && (
+                              <FlexItem>
+                                <Content
+                                  component="p"
+                                  style={{
+                                    fontSize: 'var(--pf-t--global--font--size--sm)',
+                                    color: 'var(--pf-t--global--text--color--subtle)',
+                                    margin: 0,
+                                  }}
+                                >
+                                  {benchmarkDescription}
+                                </Content>
+                              </FlexItem>
                             )}
-                          </Stack>
+                            {b.provider_id && (
+                              <FlexItem>
+                                <DescriptionList isCompact isAutoFit>
+                                  <DescriptionListGroup>
+                                    <DescriptionListTerm
+                                      style={{
+                                        fontSize: 'var(--pf-t--global--font--size--sm)',
+                                      }}
+                                    >
+                                      Evaluation framework
+                                    </DescriptionListTerm>
+                                    <DescriptionListDescription
+                                      style={{
+                                        fontSize: 'var(--pf-t--global--font--size--sm)',
+                                      }}
+                                    >
+                                      {b.provider_id}
+                                    </DescriptionListDescription>
+                                  </DescriptionListGroup>
+                                </DescriptionList>
+                              </FlexItem>
+                            )}
+                          </Flex>
                         </CardBody>
                       </Card>
                     </StackItem>

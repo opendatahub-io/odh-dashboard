@@ -2,6 +2,10 @@ import * as React from 'react';
 import {
   Button,
   Content,
+  DescriptionList,
+  DescriptionListDescription,
+  DescriptionListGroup,
+  DescriptionListTerm,
   DrawerActions,
   DrawerCloseButton,
   DrawerHead,
@@ -33,7 +37,8 @@ const BenchmarkDrawerPanel: React.FC<BenchmarkDrawerPanelProps> = ({
   onRunBenchmark,
 }) => {
   if (!benchmark) {
-    return null;
+    // DrawerPanelContent must remain in the DOM for PF's slide-in/out CSS transition to work
+    return <DrawerPanelContent isResizable minSize="400px" />;
   }
 
   const color = getCategoryColor(benchmark.category);
@@ -124,65 +129,30 @@ const BenchmarkDrawerPanel: React.FC<BenchmarkDrawerPanelProps> = ({
             </StackItem>
           )}
 
-          {benchmark.metrics && benchmark.metrics.length > 0 && (
-            <StackItem>
-              <Stack hasGutter>
-                <StackItem>
-                  <Content
-                    component="p"
-                    style={{ fontWeight: 'var(--pf-t--global--font--weight--body--bold)' }}
-                  >
-                    Metrics evaluated
-                  </Content>
-                </StackItem>
-                <StackItem>
-                  <LabelGroup numLabels={benchmark.metrics.length} isCompact>
-                    {benchmark.metrics.map((metric) => (
-                      <Label key={metric} isCompact variant="outline">
-                        {metric}
-                      </Label>
-                    ))}
-                  </LabelGroup>
-                </StackItem>
-              </Stack>
-            </StackItem>
-          )}
-
-          {benchmark.primary_score && (
-            <StackItem>
-              <Content
-                component="p"
-                style={{ fontWeight: 'var(--pf-t--global--font--weight--body--bold)' }}
-              >
-                Primary scorer metric
-              </Content>
-              <Content component="p">{benchmark.primary_score.metric}</Content>
-            </StackItem>
-          )}
-
-          {benchmark.pass_criteria && (
-            <StackItem>
-              <Content
-                component="p"
-                style={{ fontWeight: 'var(--pf-t--global--font--weight--body--bold)' }}
-              >
-                Benchmark threshold
-              </Content>
-              <Content component="p">{benchmark.pass_criteria.threshold}</Content>
-            </StackItem>
-          )}
-
-          {benchmark.providerName && (
-            <StackItem>
-              <Content
-                component="p"
-                style={{ fontWeight: 'var(--pf-t--global--font--weight--body--bold)' }}
-              >
-                Evaluation framework
-              </Content>
-              <Content component="p">{benchmark.providerName}</Content>
-            </StackItem>
-          )}
+          <StackItem>
+            <DescriptionList>
+              {benchmark.metrics && benchmark.metrics.length > 0 && (
+                <DescriptionListGroup>
+                  <DescriptionListTerm>Metrics evaluated</DescriptionListTerm>
+                  <DescriptionListDescription>
+                    <LabelGroup numLabels={benchmark.metrics.length} isCompact>
+                      {benchmark.metrics.map((metric) => (
+                        <Label key={metric} isCompact variant="outline">
+                          {metric}
+                        </Label>
+                      ))}
+                    </LabelGroup>
+                  </DescriptionListDescription>
+                </DescriptionListGroup>
+              )}
+              {benchmark.providerName && (
+                <DescriptionListGroup>
+                  <DescriptionListTerm>Evaluation framework</DescriptionListTerm>
+                  <DescriptionListDescription>{benchmark.providerName}</DescriptionListDescription>
+                </DescriptionListGroup>
+              )}
+            </DescriptionList>
+          </StackItem>
         </Stack>
       </DrawerPanelBody>
 
