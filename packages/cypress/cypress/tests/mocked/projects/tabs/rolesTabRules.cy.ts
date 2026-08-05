@@ -181,16 +181,34 @@ describe('Rules toolbar', () => {
     cy.findByRole('option', { name: 'API groups' }).click();
 
     projectRoles.findRulesSearchInput().type('kubeflow.org');
-    projectRoles.findPermissionRulesTable().find('tbody tr').should('have.length.lessThan', 5);
+    projectRoles
+      .findPermissionRulesTable()
+      .find('tbody tr')
+      .should('have.length.lessThan', 5)
+      .and('have.length.greaterThan', 0);
   });
 
   it('should filter rules by resource types', () => {
+    projectRoles.findRulesFilterToggle().click();
+    cy.findByRole('option', { name: 'Resource types' }).click();
+
     projectRoles.findRulesSearchInput().type('notebooks');
     projectRoles
       .findPermissionRulesTable()
       .find('tbody tr')
       .should('have.length.lessThan', 5)
       .and('have.length.greaterThan', 0);
+  });
+
+  it('should filter rules by actions', () => {
+    projectRoles.findRulesFilterToggle().click();
+    cy.findByRole('option', { name: 'Actions' }).click();
+
+    projectRoles.findRulesSearchInput().type('get');
+    projectRoles.findPermissionRulesTable().find('tbody tr').should('have.length', 5);
+
+    projectRoles.findRulesSearchInput().clear().type('create');
+    projectRoles.findPermissionRulesTable().find('tbody tr').should('have.length', 0);
   });
 
   it('should reset search text when filter column changes', () => {

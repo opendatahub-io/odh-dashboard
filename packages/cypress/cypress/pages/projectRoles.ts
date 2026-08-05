@@ -288,10 +288,6 @@ class ProjectRolesTab {
     return cy.findByTestId('modal-cancel-button');
   }
 
-  findPreviewYamlEditor() {
-    return cy.findByTestId('preview-yaml-editor');
-  }
-
   getRow(name: string) {
     return new RolesTableRow(() =>
       this.findRolesTable().findAllByTestId('role-name-link').contains(name).parents('tr'),
