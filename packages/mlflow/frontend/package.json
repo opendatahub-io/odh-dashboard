@@ -11,11 +11,18 @@
   },
   "packageManager": "npm@11.8.0",
   "overrides": {
+    "@types/react": "^18.3.31",
+    "@types/tar": "^6.1.13",
+    "@types/ws": "^8.18.1",
+    "axios": "^1.17.0",
+    "csstype": "^3.2.3",
+    "form-data": "^4.0.5",
     "js-yaml": "^4.1.1",
-    "csstype": "3.2.3",
-    "axios": "^1.15.0",
+    "jsonpath-plus": "^10.4.0",
+    "redux": "^4.2.1",
     "shell-quote": ">=1.8.4",
-    "@types/react": "18.3.31"
+    "tough-cookie": "^4.1.4",
+    "ws": "^8.21.0"
   },
   "scripts": {
     "build": "run-s build:prod",
