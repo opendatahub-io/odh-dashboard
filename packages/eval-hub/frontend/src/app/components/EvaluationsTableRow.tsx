@@ -225,7 +225,7 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
           </Tooltip>
         </Td>
         <Td dataLabel="Evaluated" data-testid="evaluation-type">
-          {job.model.name}
+          {job.model ? job.model.name : '-'}
         </Td>
         <Td dataLabel="Run date" data-testid="evaluation-run-date">
           {formatDate(job.resource.created_at)}

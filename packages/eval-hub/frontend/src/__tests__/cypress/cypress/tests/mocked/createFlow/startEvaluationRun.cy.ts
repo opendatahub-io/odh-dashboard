@@ -188,8 +188,8 @@ describe('Start Evaluation Run - Benchmark Mode', () => {
     startEvaluationRunPage.findModelPickerToggle().should('not.exist');
 
     selectSourceMode('Pre-recorded responses');
-    startEvaluationRunPage.findSourceNameInput().should('exist');
     startEvaluationRunPage.findDatasetUrlInput().should('exist');
+    startEvaluationRunPage.findAccessTokenInput().should('exist');
     startEvaluationRunPage.findAgentNameInput().should('not.exist');
   });
 
@@ -554,15 +554,16 @@ describe('Start Evaluation Run - Pre-recorded Mode', () => {
     navigateToBenchmarkStart();
 
     selectSourceMode('Pre-recorded responses');
-    startEvaluationRunPage.findSourceNameInput().type('gpt-4-responses');
     startEvaluationRunPage.findDatasetUrlInput().type('s3://bucket/dataset.jsonl');
-    startEvaluationRunPage.findValidateConnectionButton().click();
-    cy.wait('@verifyConnection');
+    startEvaluationRunPage.findAccessTokenInput().type('my-s3-secret');
     startEvaluationRunPage.findSubmitButton().should('be.enabled');
     startEvaluationRunPage.findSubmitButton().click();
 
     cy.wait('@createPrerecordedJob').then((interception) => {
-      expect(interception.request.body.model).to.have.property('name', 'gpt-4-responses');
+      expect(interception.request.body).to.not.have.property('model');
+      expect(interception.request.body.benchmarks[0].test_data_ref).to.deep.include({
+        type: 'pre_recorded_data',
+      });
     });
   });
 });

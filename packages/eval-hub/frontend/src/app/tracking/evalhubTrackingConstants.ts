@@ -36,7 +36,6 @@ export type EvaluationRunStartedProperties = {
   modelName?: string;
   endpointOrigin?: string;
   hasAPIKey?: boolean;
-  sourceName?: string;
   hasDatasetURL?: boolean;
   hasAccessToken?: boolean;
   hasAdditionalArguments?: boolean;

@@ -161,7 +161,7 @@ const EvaluationResultsPage: React.FC = () => {
             className="pf-v6-u-mr-xs"
             style={{ width: '1em', height: '1em', verticalAlign: '-0.125em' }}
           />
-          {job.model.name}
+          {job.model ? job.model.name : '-'}
         </Content>
       </FlexItem>
       <FlexItem>

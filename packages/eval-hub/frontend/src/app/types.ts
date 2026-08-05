@@ -233,7 +233,7 @@ export type EvaluationJob = {
   name?: string;
   description?: string;
   tags?: string[];
-  model: JobModel;
+  model?: JobModel;
   pass_criteria?: JobPassCriteria;
   benchmarks?: JobBenchmark[] | null;
   collection?: JobCollection;

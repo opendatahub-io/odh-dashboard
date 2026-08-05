@@ -740,7 +740,6 @@ components:
         - resource
         - status
         - results
-        - model
         - benchmarks
       properties:
         resource:
@@ -961,7 +960,6 @@ components:
       type: object
       required:
         - name
-        - model
         - benchmarks
       properties:
         name:
