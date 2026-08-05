@@ -1,4 +1,4 @@
-import { Badge, Button, Flex, FlexItem } from '@patternfly/react-core';
+import { Button } from '@patternfly/react-core';
 import React from 'react';
 
 type ShowAllButtonProps = {
@@ -26,27 +26,21 @@ const ShowAllButton: React.FC<ShowAllButtonProps> = ({
   }
 
   return (
-    <Flex spaceItems={{ default: 'spaceItemsSm' }} data-testid={testId}>
-      <FlexItem>
-        <Button
-          isInline
-          variant="link"
-          onClick={onToggle}
-          aria-label={
-            toggleAriaLabel
-              ? isExpanded
-                ? toggleAriaLabel.expanded
-                : toggleAriaLabel.collapsed
-              : undefined
-          }
-        >
-          {isExpanded ? 'Show less' : 'Show all'}
-        </Button>
-      </FlexItem>
-      <FlexItem>
-        {!isExpanded && <Badge isRead>{`${totalSize - visibleLength} more`}</Badge>}
-      </FlexItem>
-    </Flex>
+    <Button
+      isInline
+      variant="link"
+      onClick={onToggle}
+      data-testid={testId}
+      aria-label={
+        toggleAriaLabel
+          ? isExpanded
+            ? toggleAriaLabel.expanded
+            : toggleAriaLabel.collapsed
+          : undefined
+      }
+    >
+      {isExpanded ? 'Show less' : 'Show all'}
+    </Button>
   );
 };
 

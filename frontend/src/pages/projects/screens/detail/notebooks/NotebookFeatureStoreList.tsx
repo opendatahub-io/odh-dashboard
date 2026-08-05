@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import {
   Button,
   Content,
+  Divider,
   Flex,
   FlexItem,
   Icon,
@@ -137,6 +138,11 @@ const NotebookFeatureStoreList: React.FC<NotebookFeatureStoreListProps> = ({
                     </StackItem>
                   )}
                 </Stack>
+              </StackItem>
+            )}
+            {availableNames.length > DEFAULT_VISIBLE_LENGTH && unavailableNames.length > 0 && (
+              <StackItem>
+                <Divider data-testid="notebook-feature-store-section-divider" />
               </StackItem>
             )}
             {unavailableNames.length > 0 && (
