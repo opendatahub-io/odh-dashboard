@@ -7,6 +7,7 @@ resources:
   - deployment.yaml
   - service.yaml
   - networkpolicy.yaml
+  - httproute.yaml
 configMapGenerator:
   - name: gen-ai-params
     env: params.env
@@ -43,3 +44,13 @@ replacements:
           name: gen-ai-ui
         fieldPaths:
           - spec.template.spec.containers.[name=gen-ai-ui].env.[name=GATEWAY_DOMAIN].value
+  - source:
+      kind: ConfigMap
+      name: gen-ai-params
+      fieldPath: data.gateway-name
+    targets:
+      - select:
+          kind: HTTPRoute
+          name: odh-dashboard-gen-ai-proxy
+        fieldPaths:
+          - spec.parentRefs.0.name
