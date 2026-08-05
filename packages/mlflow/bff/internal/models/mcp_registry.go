@@ -41,17 +41,18 @@ type MCPConnectOptionSettings struct {
 // MCPAccessEndpointSummary is a lightweight view of an access endpoint as
 // returned embedded within an MCPServer.
 type MCPAccessEndpointSummary struct {
-	ID                   string           `json:"id"`
-	ServerName           string           `json:"server_name"`
-	EndpointURL          string           `json:"endpoint_url"`
-	TransportType        MCPTransportType `json:"transport_type"`
-	Workspace            string           `json:"workspace,omitempty"`
-	ServerVersion        string           `json:"server_version,omitempty"`
-	ServerAlias          string           `json:"server_alias,omitempty"`
-	CreatedBy            string           `json:"created_by,omitempty"`
-	LastUpdatedBy        string           `json:"last_updated_by,omitempty"`
-	CreationTimestamp    time.Time        `json:"creation_timestamp"`
-	LastUpdatedTimestamp time.Time        `json:"last_updated_timestamp"`
+	ID                   string            `json:"id"`
+	ServerName           string            `json:"server_name"`
+	EndpointURL          string            `json:"endpoint_url"`
+	TransportType        MCPTransportType  `json:"transport_type"`
+	Workspace            string            `json:"workspace,omitempty"`
+	ServerVersion        string            `json:"server_version,omitempty"`
+	ServerAlias          string            `json:"server_alias,omitempty"`
+	ResolvedVersion      *MCPServerVersion `json:"resolved_version,omitempty"`
+	CreatedBy            string            `json:"created_by,omitempty"`
+	LastUpdatedBy        string            `json:"last_updated_by,omitempty"`
+	CreationTimestamp    time.Time         `json:"creation_timestamp"`
+	LastUpdatedTimestamp time.Time         `json:"last_updated_timestamp"`
 }
 
 // MCPServer represents an MLflow MCP Registry server entry.
@@ -92,7 +93,6 @@ type MCPServerVersion struct {
 	Name                 string                              `json:"name"`
 	Version              string                              `json:"version"`
 	ServerJSON           map[string]any                      `json:"server_json"`
-	DisplayName          string                              `json:"display_name,omitempty"`
 	Status               MCPServerVersionStatus              `json:"status,omitempty"`
 	Workspace            string                              `json:"workspace,omitempty"`
 	Tools                []MCPTool                           `json:"tools,omitempty"`
@@ -114,10 +114,10 @@ type MCPServerVersionsResponse struct {
 
 // CreateMCPServerVersionRequest is the request body for creating a new MCP
 // server version. ServerJSON is the raw MCP server.json manifest describing
-// how to run the server (packages, remotes, etc.) and is required.
+// how to run the server (packages, remotes, etc.) and is required. There is
+// deliberately no DisplayName field; see the note on MCPServerVersion.
 type CreateMCPServerVersionRequest struct {
 	ServerJSON     map[string]any                      `json:"server_json"`
-	DisplayName    string                              `json:"display_name,omitempty"`
 	Status         MCPServerVersionStatus              `json:"status,omitempty"`
 	Source         string                              `json:"source,omitempty"`
 	Tools          []MCPTool                           `json:"tools,omitempty"`
@@ -127,18 +127,19 @@ type CreateMCPServerVersionRequest struct {
 // MCPAccessEndpoint represents a concrete, reachable URL bound to an MCP
 // server (optionally pinned to a version or alias).
 type MCPAccessEndpoint struct {
-	ID                   string           `json:"id"`
-	ServerName           string           `json:"server_name"`
-	EndpointURL          string           `json:"endpoint_url"`
-	TransportType        MCPTransportType `json:"transport_type"`
-	Workspace            string           `json:"workspace,omitempty"`
-	Tools                []MCPTool        `json:"tools,omitempty"`
-	ServerVersion        string           `json:"server_version,omitempty"`
-	ServerAlias          string           `json:"server_alias,omitempty"`
-	CreatedBy            string           `json:"created_by,omitempty"`
-	LastUpdatedBy        string           `json:"last_updated_by,omitempty"`
-	CreationTimestamp    time.Time        `json:"creation_timestamp"`
-	LastUpdatedTimestamp time.Time        `json:"last_updated_timestamp"`
+	ID                   string            `json:"id"`
+	ServerName           string            `json:"server_name"`
+	EndpointURL          string            `json:"endpoint_url"`
+	TransportType        MCPTransportType  `json:"transport_type"`
+	Workspace            string            `json:"workspace,omitempty"`
+	Tools                []MCPTool         `json:"tools,omitempty"`
+	ServerVersion        string            `json:"server_version,omitempty"`
+	ServerAlias          string            `json:"server_alias,omitempty"`
+	ResolvedVersion      *MCPServerVersion `json:"resolved_version,omitempty"`
+	CreatedBy            string            `json:"created_by,omitempty"`
+	LastUpdatedBy        string            `json:"last_updated_by,omitempty"`
+	CreationTimestamp    time.Time         `json:"creation_timestamp"`
+	LastUpdatedTimestamp time.Time         `json:"last_updated_timestamp"`
 }
 
 // MCPAccessEndpointsResponse is the response for searching/listing MCP access endpoints.
@@ -154,4 +155,52 @@ type CreateMCPAccessEndpointRequest struct {
 	TransportType MCPTransportType `json:"transport_type,omitempty"`
 	ServerVersion string           `json:"server_version,omitempty"`
 	ServerAlias   string           `json:"server_alias,omitempty"`
+}
+
+// UpdateMCPServerRequest is a partial-update (PATCH) request body for an
+// MCP server. Pointer fields distinguish "not provided" (nil, left
+// unchanged) from "provided" (updated to the given value, even if
+// zero/empty), mirroring the SDK's UpdateMCPServerOption semantics.
+type UpdateMCPServerRequest struct {
+	DisplayName *string           `json:"display_name,omitempty"`
+	Description *string           `json:"description,omitempty"`
+	Icons       *[]map[string]any `json:"icons,omitempty"`
+}
+
+// UpdateMCPServerVersionRequest is a partial-update (PATCH) request body
+// for an MCP server version. Pointer fields distinguish "not provided"
+// (nil, left unchanged) from "provided" (updated to the given value, even
+// if zero/empty), mirroring the SDK's UpdateMCPServerVersionOption
+// semantics.
+type UpdateMCPServerVersionRequest struct {
+	Status         *MCPServerVersionStatus              `json:"status,omitempty"`
+	Tools          *[]MCPTool                           `json:"tools,omitempty"`
+	ConnectOptions *map[string]MCPConnectOptionSettings `json:"connect_options,omitempty"`
+}
+
+// UpdateMCPAccessEndpointRequest is a partial-update (PATCH) request body
+// for an MCP access endpoint. Pointer fields distinguish "not provided"
+// (nil, left unchanged) from "provided" (updated to the given value, even
+// if zero/empty), mirroring the SDK's UpdateMCPAccessEndpointOption
+// semantics. ServerVersion and ServerAlias are mutually exclusive when
+// both are provided as non-empty values.
+type UpdateMCPAccessEndpointRequest struct {
+	EndpointURL   *string           `json:"endpoint_url,omitempty"`
+	TransportType *MCPTransportType `json:"transport_type,omitempty"`
+	ServerVersion *string           `json:"server_version,omitempty"`
+	ServerAlias   *string           `json:"server_alias,omitempty"`
+}
+
+// SetMCPTagRequest is the request body for setting a tag on an MCP server
+// or a specific MCP server version.
+type SetMCPTagRequest struct {
+	Key   string `json:"key"`
+	Value string `json:"value,omitempty"`
+}
+
+// SetMCPAliasRequest is the request body for pointing an alias at a
+// specific version of an MCP server.
+type SetMCPAliasRequest struct {
+	Alias   string `json:"alias"`
+	Version string `json:"version"`
 }

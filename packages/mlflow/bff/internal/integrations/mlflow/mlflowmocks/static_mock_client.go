@@ -232,6 +232,35 @@ func (c *StaticMockClient) GetMCPServer(_ context.Context, name string) (*mcpreg
 	return staticMCPServer(name), nil
 }
 
+// UpdateMCPServer returns the static server for name with the last-updated
+// timestamp bumped. The SDK's UpdateMCPServerOption values can't be
+// introspected here since their backing struct is unexported to this
+// package (by design, so callers can't bypass the functional-options API),
+// so this mock can't reflect specific field changes back in the response
+// the way a real server-side PATCH would.
+func (c *StaticMockClient) UpdateMCPServer(_ context.Context, name string, _ ...mcpregistry.UpdateMCPServerOption) (*mcpregistry.MCPServer, error) {
+	updated := staticMCPServer(name)
+	updated.LastUpdatedBy = "static-mock"
+	updated.LastUpdatedTimestamp = time.Now()
+	return updated, nil
+}
+
+func (c *StaticMockClient) DeleteMCPServer(_ context.Context, _ string) error { return nil }
+
+func (c *StaticMockClient) SetMCPServerTag(_ context.Context, _, _, _ string) error { return nil }
+
+func (c *StaticMockClient) DeleteMCPServerTag(_ context.Context, _, _ string) error { return nil }
+
+func (c *StaticMockClient) SetMCPServerAlias(_ context.Context, _, _, _ string) error { return nil }
+
+func (c *StaticMockClient) GetMCPServerVersionByAlias(_ context.Context, name, alias string) (*mcpregistry.MCPServerVersion, error) {
+	version := staticMCPServerVersion(name)
+	version.Aliases = []string{alias}
+	return version, nil
+}
+
+func (c *StaticMockClient) DeleteMCPServerAlias(_ context.Context, _, _ string) error { return nil }
+
 func (c *StaticMockClient) SearchMCPServerVersions(_ context.Context, name string, _ ...mcpregistry.SearchMCPServerVersionsOption) (*mcpregistry.MCPServerVersionList, error) {
 	return &mcpregistry.MCPServerVersionList{Versions: []mcpregistry.MCPServerVersion{*staticMCPServerVersion(name)}}, nil
 }
@@ -250,6 +279,33 @@ func (c *StaticMockClient) CreateMCPServerVersion(_ context.Context, name string
 	}, nil
 }
 
+func (c *StaticMockClient) GetMCPServerVersion(_ context.Context, name, version string) (*mcpregistry.MCPServerVersion, error) {
+	v := staticMCPServerVersion(name)
+	v.Version = version
+	return v, nil
+}
+
+// UpdateMCPServerVersion returns the static version for name/version with
+// the last-updated timestamp bumped. See UpdateMCPServer for why the
+// supplied options aren't reflected in the response.
+func (c *StaticMockClient) UpdateMCPServerVersion(_ context.Context, name, version string, _ ...mcpregistry.UpdateMCPServerVersionOption) (*mcpregistry.MCPServerVersion, error) {
+	v := staticMCPServerVersion(name)
+	v.Version = version
+	v.LastUpdatedBy = "static-mock"
+	v.LastUpdatedTimestamp = time.Now()
+	return v, nil
+}
+
+func (c *StaticMockClient) DeleteMCPServerVersion(_ context.Context, _, _ string) error { return nil }
+
+func (c *StaticMockClient) SetMCPServerVersionTag(_ context.Context, _, _, _, _ string) error {
+	return nil
+}
+
+func (c *StaticMockClient) DeleteMCPServerVersionTag(_ context.Context, _, _, _ string) error {
+	return nil
+}
+
 func (c *StaticMockClient) CreateMCPAccessEndpoint(_ context.Context, serverName, endpointURL string, _ ...mcpregistry.CreateMCPAccessEndpointOption) (*mcpregistry.MCPAccessEndpoint, error) {
 	now := time.Now()
 	return &mcpregistry.MCPAccessEndpoint{
@@ -262,6 +318,23 @@ func (c *StaticMockClient) CreateMCPAccessEndpoint(_ context.Context, serverName
 		CreationTimestamp:    now,
 		LastUpdatedTimestamp: now,
 	}, nil
+}
+
+func (c *StaticMockClient) GetMCPAccessEndpoint(_ context.Context, serverName, endpointID string) (*mcpregistry.MCPAccessEndpoint, error) {
+	endpoint := staticMCPAccessEndpoint(serverName)
+	endpoint.ID = endpointID
+	return &endpoint, nil
+}
+
+// UpdateMCPAccessEndpoint returns the static endpoint for serverName/
+// endpointID with the last-updated timestamp bumped. See UpdateMCPServer
+// for why the supplied options aren't reflected in the response.
+func (c *StaticMockClient) UpdateMCPAccessEndpoint(_ context.Context, serverName, endpointID string, _ ...mcpregistry.UpdateMCPAccessEndpointOption) (*mcpregistry.MCPAccessEndpoint, error) {
+	endpoint := staticMCPAccessEndpoint(serverName)
+	endpoint.ID = endpointID
+	endpoint.LastUpdatedBy = "static-mock"
+	endpoint.LastUpdatedTimestamp = time.Now()
+	return &endpoint, nil
 }
 
 func (c *StaticMockClient) SearchMCPAccessEndpoints(_ context.Context, _ ...mcpregistry.SearchMCPAccessEndpointsOption) (*mcpregistry.MCPAccessEndpointList, error) {

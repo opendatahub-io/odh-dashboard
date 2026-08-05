@@ -438,7 +438,7 @@ paths:
       description: Registers a new MCP server entry.
 
   /api/v1/mcp-registry/servers/{name}:
-    summary: Get a specific MCP Registry server.
+    summary: Get, update, or delete a specific MCP Registry server.
     get:
       tags:
         - MCPRegistryOperation
@@ -465,6 +465,241 @@ paths:
       operationId: getMCPServer
       summary: Get MCP Server
       description: Retrieves a single MCP server by name.
+    patch:
+      tags:
+        - MCPRegistryOperation
+      parameters:
+        - $ref: "#/components/parameters/mcpServerName"
+        - $ref: "#/components/parameters/workspace"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateMCPServerRequest"
+      responses:
+        "200":
+          $ref: "#/components/responses/MCPServerResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+        "502":
+          $ref: "#/components/responses/BadGateway"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+      operationId: updateMCPServer
+      summary: Update MCP Server
+      description: >-
+        Partially updates an MCP server's metadata. Only the fields present
+        in the request body are changed.
+    delete:
+      tags:
+        - MCPRegistryOperation
+      parameters:
+        - $ref: "#/components/parameters/mcpServerName"
+        - $ref: "#/components/parameters/workspace"
+      responses:
+        "204":
+          $ref: "#/components/responses/NoContent"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+        "502":
+          $ref: "#/components/responses/BadGateway"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+      operationId: deleteMCPServer
+      summary: Delete MCP Server
+      description: Deletes an MCP server and all of its versions, tags, aliases, and access endpoints.
+
+  /api/v1/mcp-registry/servers/{name}/tags:
+    summary: Set a tag on an MCP Registry server.
+    post:
+      tags:
+        - MCPRegistryOperation
+      parameters:
+        - $ref: "#/components/parameters/mcpServerName"
+        - $ref: "#/components/parameters/workspace"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SetMCPTagRequest"
+      responses:
+        "204":
+          $ref: "#/components/responses/NoContent"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+        "502":
+          $ref: "#/components/responses/BadGateway"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+      operationId: setMCPServerTag
+      summary: Set MCP Server Tag
+      description: Sets (creates or overwrites) a tag on an MCP server.
+
+  /api/v1/mcp-registry/servers/{name}/tags/{key}:
+    summary: Delete a tag from an MCP Registry server.
+    delete:
+      tags:
+        - MCPRegistryOperation
+      parameters:
+        - $ref: "#/components/parameters/mcpServerName"
+        - name: key
+          in: path
+          description: Tag key to delete.
+          required: true
+          schema:
+            type: string
+            example: category
+        - $ref: "#/components/parameters/workspace"
+      responses:
+        "204":
+          $ref: "#/components/responses/NoContent"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+        "502":
+          $ref: "#/components/responses/BadGateway"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+      operationId: deleteMCPServerTag
+      summary: Delete MCP Server Tag
+      description: Removes a tag from an MCP server.
+
+  /api/v1/mcp-registry/servers/{name}/aliases:
+    summary: Set an alias on an MCP Registry server.
+    post:
+      tags:
+        - MCPRegistryOperation
+      parameters:
+        - $ref: "#/components/parameters/mcpServerName"
+        - $ref: "#/components/parameters/workspace"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SetMCPAliasRequest"
+      responses:
+        "204":
+          $ref: "#/components/responses/NoContent"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+        "502":
+          $ref: "#/components/responses/BadGateway"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+      operationId: setMCPServerAlias
+      summary: Set MCP Server Alias
+      description: Points an alias at a specific version of an MCP server.
+
+  /api/v1/mcp-registry/servers/{name}/aliases/{alias}:
+    summary: Resolve or delete an alias on an MCP Registry server.
+    get:
+      tags:
+        - MCPRegistryOperation
+      parameters:
+        - $ref: "#/components/parameters/mcpServerName"
+        - name: alias
+          in: path
+          description: Alias to resolve to a server version.
+          required: true
+          schema:
+            type: string
+            example: latest
+        - $ref: "#/components/parameters/workspace"
+      responses:
+        "200":
+          $ref: "#/components/responses/MCPServerVersionResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+        "502":
+          $ref: "#/components/responses/BadGateway"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+      operationId: getMCPServerVersionByAlias
+      summary: Get MCP Server Version By Alias
+      description: Resolves an alias to the MCP server version it currently points at.
+    delete:
+      tags:
+        - MCPRegistryOperation
+      parameters:
+        - $ref: "#/components/parameters/mcpServerName"
+        - name: alias
+          in: path
+          description: Alias to delete.
+          required: true
+          schema:
+            type: string
+            example: latest
+        - $ref: "#/components/parameters/workspace"
+      responses:
+        "204":
+          $ref: "#/components/responses/NoContent"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+        "502":
+          $ref: "#/components/responses/BadGateway"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+      operationId: deleteMCPServerAlias
+      summary: Delete MCP Server Alias
+      description: Removes an alias from an MCP server.
 
   /api/v1/mcp-registry/servers/{name}/versions:
     summary: List or create versions of an MCP Registry server.
@@ -543,6 +778,201 @@ paths:
       description: >-
         Creates a new version of an MCP server from its server.json manifest,
         which describes how to run the server (packages, remotes, etc.).
+
+  /api/v1/mcp-registry/servers/{name}/versions/{version}:
+    summary: Get, update, or delete a specific version of an MCP Registry server.
+    get:
+      tags:
+        - MCPRegistryOperation
+      parameters:
+        - $ref: "#/components/parameters/mcpServerName"
+        - name: version
+          in: path
+          description: Server version identifier.
+          required: true
+          schema:
+            type: string
+            example: "1.0.0"
+        - $ref: "#/components/parameters/workspace"
+      responses:
+        "200":
+          $ref: "#/components/responses/MCPServerVersionResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+        "502":
+          $ref: "#/components/responses/BadGateway"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+      operationId: getMCPServerVersion
+      summary: Get MCP Server Version
+      description: Retrieves a single version of an MCP server.
+    patch:
+      tags:
+        - MCPRegistryOperation
+      parameters:
+        - $ref: "#/components/parameters/mcpServerName"
+        - name: version
+          in: path
+          description: Server version identifier.
+          required: true
+          schema:
+            type: string
+            example: "1.0.0"
+        - $ref: "#/components/parameters/workspace"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateMCPServerVersionRequest"
+      responses:
+        "200":
+          $ref: "#/components/responses/MCPServerVersionResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+        "502":
+          $ref: "#/components/responses/BadGateway"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+      operationId: updateMCPServerVersion
+      summary: Update MCP Server Version
+      description: >-
+        Partially updates an MCP server version. Only the fields present in
+        the request body are changed.
+    delete:
+      tags:
+        - MCPRegistryOperation
+      parameters:
+        - $ref: "#/components/parameters/mcpServerName"
+        - name: version
+          in: path
+          description: Server version identifier.
+          required: true
+          schema:
+            type: string
+            example: "1.0.0"
+        - $ref: "#/components/parameters/workspace"
+      responses:
+        "204":
+          $ref: "#/components/responses/NoContent"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+        "502":
+          $ref: "#/components/responses/BadGateway"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+      operationId: deleteMCPServerVersion
+      summary: Delete MCP Server Version
+      description: Deletes a specific version of an MCP server.
+
+  /api/v1/mcp-registry/servers/{name}/versions/{version}/tags:
+    summary: Set a tag on a specific version of an MCP Registry server.
+    post:
+      tags:
+        - MCPRegistryOperation
+      parameters:
+        - $ref: "#/components/parameters/mcpServerName"
+        - name: version
+          in: path
+          description: Server version identifier.
+          required: true
+          schema:
+            type: string
+            example: "1.0.0"
+        - $ref: "#/components/parameters/workspace"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SetMCPTagRequest"
+      responses:
+        "204":
+          $ref: "#/components/responses/NoContent"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+        "502":
+          $ref: "#/components/responses/BadGateway"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+      operationId: setMCPServerVersionTag
+      summary: Set MCP Server Version Tag
+      description: Sets (creates or overwrites) a tag on a specific version of an MCP server.
+
+  /api/v1/mcp-registry/servers/{name}/versions/{version}/tags/{key}:
+    summary: Delete a tag from a specific version of an MCP Registry server.
+    delete:
+      tags:
+        - MCPRegistryOperation
+      parameters:
+        - $ref: "#/components/parameters/mcpServerName"
+        - name: version
+          in: path
+          description: Server version identifier.
+          required: true
+          schema:
+            type: string
+            example: "1.0.0"
+        - name: key
+          in: path
+          description: Tag key to delete.
+          required: true
+          schema:
+            type: string
+            example: category
+        - $ref: "#/components/parameters/workspace"
+      responses:
+        "204":
+          $ref: "#/components/responses/NoContent"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+        "502":
+          $ref: "#/components/responses/BadGateway"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+      operationId: deleteMCPServerVersionTag
+      summary: Delete MCP Server Version Tag
+      description: Removes a tag from a specific version of an MCP server.
 
   /api/v1/mcp-registry/servers/{name}/endpoints:
     summary: Search or create access endpoints for an MCP Registry server.
@@ -623,7 +1053,82 @@ paths:
         server_alias are mutually exclusive.
 
   /api/v1/mcp-registry/servers/{name}/endpoints/{endpointId}:
-    summary: Delete an access endpoint from an MCP Registry server.
+    summary: Get, update, or delete an access endpoint of an MCP Registry server.
+    get:
+      tags:
+        - MCPRegistryOperation
+      parameters:
+        - $ref: "#/components/parameters/mcpServerName"
+        - name: endpointId
+          in: path
+          description: Access endpoint identifier.
+          required: true
+          schema:
+            type: string
+            example: static-endpoint-1
+        - $ref: "#/components/parameters/workspace"
+      responses:
+        "200":
+          $ref: "#/components/responses/MCPAccessEndpointResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+        "502":
+          $ref: "#/components/responses/BadGateway"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+      operationId: getMCPAccessEndpoint
+      summary: Get MCP Access Endpoint
+      description: Retrieves a single access endpoint of an MCP server.
+    patch:
+      tags:
+        - MCPRegistryOperation
+      parameters:
+        - $ref: "#/components/parameters/mcpServerName"
+        - name: endpointId
+          in: path
+          description: Access endpoint identifier.
+          required: true
+          schema:
+            type: string
+            example: static-endpoint-1
+        - $ref: "#/components/parameters/workspace"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateMCPAccessEndpointRequest"
+      responses:
+        "200":
+          $ref: "#/components/responses/MCPAccessEndpointResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+        "502":
+          $ref: "#/components/responses/BadGateway"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+      operationId: updateMCPAccessEndpoint
+      summary: Update MCP Access Endpoint
+      description: >-
+        Partially updates an MCP access endpoint. Only the fields present in
+        the request body are changed. server_version and server_alias remain
+        mutually exclusive.
     delete:
       tags:
         - MCPRegistryOperation
@@ -1048,6 +1553,12 @@ components:
           type: string
         server_alias:
           type: string
+        resolved_version:
+          allOf:
+            - $ref: "#/components/schemas/MCPServerVersion"
+          description: >-
+            The version currently resolved by server_version/server_alias,
+            if the MLflow server included it in the response.
         created_by:
           type: string
         last_updated_by:
@@ -1163,8 +1674,6 @@ components:
         server_json:
           type: object
           description: The MCP server.json manifest describing how to run the server.
-        display_name:
-          type: string
         status:
           type: string
           enum:
@@ -1227,8 +1736,6 @@ components:
         server_json:
           type: object
           description: The MCP server.json manifest describing how to run the server.
-        display_name:
-          type: string
         status:
           type: string
           enum:
@@ -1282,6 +1789,12 @@ components:
           type: string
         server_alias:
           type: string
+        resolved_version:
+          allOf:
+            - $ref: "#/components/schemas/MCPServerVersion"
+          description: >-
+            The version currently resolved by server_version/server_alias,
+            if the MLflow server included it in the response.
         created_by:
           type: string
         last_updated_by:
@@ -1312,6 +1825,10 @@ components:
       type: object
       required:
         - endpoint_url
+      not:
+        required:
+          - server_version
+          - server_alias
       properties:
         endpoint_url:
           type: string
@@ -1328,6 +1845,92 @@ components:
         server_alias:
           type: string
           example: latest
+    UpdateMCPServerRequest:
+      description: >-
+        Partial-update request body for an MCP server. Only fields present
+        in the request are changed; omitted fields are left untouched.
+      type: object
+      properties:
+        display_name:
+          type: string
+          example: Weather Server
+        description:
+          type: string
+          example: Provides current weather and forecast tools.
+        icons:
+          type: array
+          items:
+            type: object
+    UpdateMCPServerVersionRequest:
+      description: >-
+        Partial-update request body for an MCP server version. Only fields
+        present in the request are changed; omitted fields are left
+        untouched.
+      type: object
+      properties:
+        status:
+          type: string
+          enum:
+            - draft
+            - active
+            - deprecated
+            - deleted
+        tools:
+          type: array
+          items:
+            $ref: "#/components/schemas/MCPTool"
+        connect_options:
+          type: object
+          additionalProperties:
+            $ref: "#/components/schemas/MCPConnectOptionSettings"
+    UpdateMCPAccessEndpointRequest:
+      description: >-
+        Partial-update request body for an MCP access endpoint. Only fields
+        present in the request are changed; omitted fields are left
+        untouched. server_version and server_alias remain mutually
+        exclusive.
+      type: object
+      properties:
+        endpoint_url:
+          type: string
+          example: https://mcp.example.com/weather-server
+        transport_type:
+          type: string
+          enum:
+            - streamable-http
+            - sse
+          example: streamable-http
+        server_version:
+          type: string
+          example: "1.0.0"
+        server_alias:
+          type: string
+          example: latest
+    SetMCPTagRequest:
+      description: Request body for setting a tag on an MCP server or server version.
+      type: object
+      required:
+        - key
+      properties:
+        key:
+          type: string
+          example: category
+        value:
+          type: string
+          example: weather
+    SetMCPAliasRequest:
+      description: Request body for pointing an alias at a specific version of an MCP server.
+      type: object
+      required:
+        - alias
+        - version
+      properties:
+        alias:
+          type: string
+          example: stable
+        version:
+          type: string
+          example: "1.0.0"
     Error:
       type: object
       required:
@@ -1691,10 +2294,14 @@ components:
       description: >-
         MCP server name, in "<namespace>/<slug>" format (exactly one "/",
         each segment starting and ending with an alphanumeric character).
+        Namespace may contain dots and hyphens; slug may also contain
+        underscores. The slugs "versions", "endpoints", "tags", and
+        "aliases" are reserved and will be rejected.
       in: path
       required: true
       schema:
         type: string
+        pattern: "^[a-zA-Z0-9][a-zA-Z0-9.\\-]*[a-zA-Z0-9]/[a-zA-Z0-9][a-zA-Z0-9._\\-]*[a-zA-Z0-9]$"
         example: io.github.example/weather-server
 
   securitySchemes:

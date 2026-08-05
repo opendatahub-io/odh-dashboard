@@ -34,29 +34,45 @@ func NewMCPRegistryRepository() *MCPRegistryRepository {
 // buildTagFilter converts a "key=value" tag query param into an MLflow
 // SQL-like filter fragment, e.g. tags.`key` = 'value'. Returns "" if tag is
 // empty, malformed, or the key contains disallowed characters.
-func buildTagFilter(tag string) string {
+func buildTagFilter(tag string) (string, error) {
 	if tag == "" {
-		return ""
+		return "", nil
 	}
 	key, value, ok := strings.Cut(tag, "=")
 	if !ok || key == "" || !validTagKey.MatchString(key) {
-		return ""
+		return "", fmt.Errorf("%w: malformed or disallowed tag %q", ErrInvalidFilter, tag)
 	}
 	// Escape backslashes before quotes so a value ending in a lone
 	// backslash can't leave the string literal open.
 	escapedValue := strings.ReplaceAll(value, `\`, `\\`)
 	escapedValue = strings.ReplaceAll(escapedValue, "'", "\\'")
 	escapedKey := strings.ReplaceAll(key, "`", "``")
-	return fmt.Sprintf("tags.`%s` = '%s'", escapedKey, escapedValue)
+	return fmt.Sprintf("tags.`%s` = '%s'", escapedKey, escapedValue), nil
 }
 
 // hasBalancedParens reports whether every ")" in s is matched by a
 // preceding "(", which combineFilters requires before wrapping a fragment
-// in parens to preserve its precedence.
+// in parens to preserve its precedence. Parens inside a quoted string
+// literal (single or double quotes, as produced by buildTagFilter or
+// supplied in the free-form "?filter=" param) don't count, so a tag value
+// like "see(details" doesn't trigger a false-positive rejection.
 func hasBalancedParens(s string) bool {
 	depth := 0
-	for _, r := range s {
-		switch r {
+	var quote byte
+	for i := 0; i < len(s); i++ {
+		b := s[i]
+		if quote != 0 {
+			switch b {
+			case '\\':
+				i++
+			case quote:
+				quote = 0
+			}
+			continue
+		}
+		switch b {
+		case '\'', '"':
+			quote = b
 		case '(':
 			depth++
 		case ')':
@@ -74,7 +90,7 @@ func hasBalancedParens(s string) bool {
 // precedence relative to the other. Returns ErrInvalidFilter if a fragment
 // has unbalanced parentheses.
 func combineFilters(fragments ...string) (string, error) {
-	var nonEmpty []string
+	nonEmpty := make([]string, 0, len(fragments))
 	for _, f := range fragments {
 		if f == "" {
 			continue
@@ -110,7 +126,11 @@ func (r *MCPRegistryRepository) SearchServers(ctx context.Context, filter, tag, 
 	}
 
 	var opts []mcpregistry.SearchMCPServersOption
-	combined, err := combineFilters(filter, buildTagFilter(tag))
+	tagFilter, err := buildTagFilter(tag)
+	if err != nil {
+		return nil, err
+	}
+	combined, err := combineFilters(filter, tagFilter)
 	if err != nil {
 		return nil, err
 	}
@@ -127,6 +147,9 @@ func (r *MCPRegistryRepository) SearchServers(ctx context.Context, filter, tag, 
 	result, err := client.SearchMCPServers(ctx, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("searching MCP servers: %w", err)
+	}
+	if result == nil {
+		return nil, fmt.Errorf("SearchMCPServers returned nil result")
 	}
 
 	servers := make([]models.MCPServer, len(result.Servers))
@@ -159,6 +182,9 @@ func (r *MCPRegistryRepository) CreateServer(ctx context.Context, req models.Cre
 	if err != nil {
 		return nil, fmt.Errorf("creating MCP server %q: %w", req.Name, err)
 	}
+	if server == nil {
+		return nil, fmt.Errorf("CreateMCPServer returned nil for %q", req.Name)
+	}
 
 	result := toMCPServer(server)
 	return &result, nil
@@ -175,12 +201,121 @@ func (r *MCPRegistryRepository) GetServer(ctx context.Context, name string) (*mo
 	if err != nil {
 		return nil, fmt.Errorf("getting MCP server %q: %w", name, err)
 	}
+	if server == nil {
+		return nil, fmt.Errorf("GetMCPServer returned nil for %q", name)
+	}
 
 	result := toMCPServer(server)
 	return &result, nil
 }
 
-// ListServerVersions returns a paginated list of versions for a named MCP server.
+// UpdateServer applies a partial update to an MCP server. Only fields set
+// (non-nil) on req are modified; omitted fields are left unchanged
+// server-side.
+func (r *MCPRegistryRepository) UpdateServer(ctx context.Context, name string, req models.UpdateMCPServerRequest) (*models.MCPServer, error) {
+	client, err := helper.GetContextMLflowClient(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	var opts []mcpregistry.UpdateMCPServerOption
+	if req.DisplayName != nil {
+		opts = append(opts, mcpregistry.WithUpdatedServerDisplayName(*req.DisplayName))
+	}
+	if req.Description != nil {
+		opts = append(opts, mcpregistry.WithUpdatedServerDescription(*req.Description))
+	}
+	if req.Icons != nil {
+		opts = append(opts, mcpregistry.WithUpdatedServerIcons(*req.Icons))
+	}
+
+	server, err := client.UpdateMCPServer(ctx, name, opts...)
+	if err != nil {
+		return nil, fmt.Errorf("updating MCP server %q: %w", name, err)
+	}
+	if server == nil {
+		return nil, fmt.Errorf("UpdateMCPServer returned nil for %q", name)
+	}
+
+	result := toMCPServer(server)
+	return &result, nil
+}
+
+// DeleteServer removes an MCP server and all of its versions, access
+// endpoints, aliases, and tags.
+func (r *MCPRegistryRepository) DeleteServer(ctx context.Context, name string) error {
+	client, err := helper.GetContextMLflowClient(ctx)
+	if err != nil {
+		return err
+	}
+	if err := client.DeleteMCPServer(ctx, name); err != nil {
+		return fmt.Errorf("deleting MCP server %q: %w", name, err)
+	}
+	return nil
+}
+
+func (r *MCPRegistryRepository) SetServerTag(ctx context.Context, name string, req models.SetMCPTagRequest) error {
+	client, err := helper.GetContextMLflowClient(ctx)
+	if err != nil {
+		return err
+	}
+	if err := client.SetMCPServerTag(ctx, name, req.Key, req.Value); err != nil {
+		return fmt.Errorf("setting tag %q on MCP server %q: %w", req.Key, name, err)
+	}
+	return nil
+}
+
+func (r *MCPRegistryRepository) DeleteServerTag(ctx context.Context, name, key string) error {
+	client, err := helper.GetContextMLflowClient(ctx)
+	if err != nil {
+		return err
+	}
+	if err := client.DeleteMCPServerTag(ctx, name, key); err != nil {
+		return fmt.Errorf("deleting tag %q from MCP server %q: %w", key, name, err)
+	}
+	return nil
+}
+
+func (r *MCPRegistryRepository) SetServerAlias(ctx context.Context, name string, req models.SetMCPAliasRequest) error {
+	client, err := helper.GetContextMLflowClient(ctx)
+	if err != nil {
+		return err
+	}
+	if err := client.SetMCPServerAlias(ctx, name, req.Alias, req.Version); err != nil {
+		return fmt.Errorf("setting alias %q on MCP server %q: %w", req.Alias, name, err)
+	}
+	return nil
+}
+
+func (r *MCPRegistryRepository) GetServerVersionByAlias(ctx context.Context, name, alias string) (*models.MCPServerVersion, error) {
+	client, err := helper.GetContextMLflowClient(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	version, err := client.GetMCPServerVersionByAlias(ctx, name, alias)
+	if err != nil {
+		return nil, fmt.Errorf("getting version by alias %q for MCP server %q: %w", alias, name, err)
+	}
+	if version == nil {
+		return nil, fmt.Errorf("GetMCPServerVersionByAlias returned nil for %q", alias)
+	}
+
+	result := toMCPServerVersion(version)
+	return &result, nil
+}
+
+func (r *MCPRegistryRepository) DeleteServerAlias(ctx context.Context, name, alias string) error {
+	client, err := helper.GetContextMLflowClient(ctx)
+	if err != nil {
+		return err
+	}
+	if err := client.DeleteMCPServerAlias(ctx, name, alias); err != nil {
+		return fmt.Errorf("deleting alias %q from MCP server %q: %w", alias, name, err)
+	}
+	return nil
+}
+
 func (r *MCPRegistryRepository) ListServerVersions(ctx context.Context, name, pageToken, maxResults string) (*models.MCPServerVersionsResponse, error) {
 	client, err := helper.GetContextMLflowClient(ctx)
 	if err != nil {
@@ -199,6 +334,9 @@ func (r *MCPRegistryRepository) ListServerVersions(ctx context.Context, name, pa
 	if err != nil {
 		return nil, fmt.Errorf("listing versions for MCP server %q: %w", name, err)
 	}
+	if result == nil {
+		return nil, fmt.Errorf("SearchMCPServerVersions returned nil result")
+	}
 
 	versions := make([]models.MCPServerVersion, len(result.Versions))
 	for i, v := range result.Versions {
@@ -211,7 +349,6 @@ func (r *MCPRegistryRepository) ListServerVersions(ctx context.Context, name, pa
 	}, nil
 }
 
-// CreateServerVersion creates a new version of an MCP server from a server.json document.
 func (r *MCPRegistryRepository) CreateServerVersion(ctx context.Context, name string, req models.CreateMCPServerVersionRequest) (*models.MCPServerVersion, error) {
 	client, err := helper.GetContextMLflowClient(ctx)
 	if err != nil {
@@ -219,9 +356,6 @@ func (r *MCPRegistryRepository) CreateServerVersion(ctx context.Context, name st
 	}
 
 	var opts []mcpregistry.CreateMCPServerVersionOption
-	if req.DisplayName != "" {
-		opts = append(opts, mcpregistry.WithVersionDisplayName(req.DisplayName))
-	}
 	if req.Status != "" {
 		opts = append(opts, mcpregistry.WithVersionStatus(mcpregistry.MCPServerVersionStatus(req.Status)))
 	}
@@ -239,12 +373,97 @@ func (r *MCPRegistryRepository) CreateServerVersion(ctx context.Context, name st
 	if err != nil {
 		return nil, fmt.Errorf("creating version for MCP server %q: %w", name, err)
 	}
+	if version == nil {
+		return nil, fmt.Errorf("CreateMCPServerVersion returned nil for %q", name)
+	}
 
 	result := toMCPServerVersion(version)
 	return &result, nil
 }
 
-// CreateAccessEndpoint creates a new access endpoint for an MCP server.
+func (r *MCPRegistryRepository) GetServerVersion(ctx context.Context, name, version string) (*models.MCPServerVersion, error) {
+	client, err := helper.GetContextMLflowClient(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	v, err := client.GetMCPServerVersion(ctx, name, version)
+	if err != nil {
+		return nil, fmt.Errorf("getting version %q for MCP server %q: %w", version, name, err)
+	}
+	if v == nil {
+		return nil, fmt.Errorf("GetMCPServerVersion returned nil for %q", version)
+	}
+
+	result := toMCPServerVersion(v)
+	return &result, nil
+}
+
+// UpdateServerVersion applies a partial update to a specific version of an
+// MCP server. Only fields set (non-nil) on req are modified; omitted
+// fields are left unchanged server-side.
+func (r *MCPRegistryRepository) UpdateServerVersion(ctx context.Context, name, version string, req models.UpdateMCPServerVersionRequest) (*models.MCPServerVersion, error) {
+	client, err := helper.GetContextMLflowClient(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	var opts []mcpregistry.UpdateMCPServerVersionOption
+	if req.Status != nil {
+		opts = append(opts, mcpregistry.WithUpdatedVersionStatus(mcpregistry.MCPServerVersionStatus(*req.Status)))
+	}
+	if req.Tools != nil {
+		opts = append(opts, mcpregistry.WithUpdatedVersionTools(fromMCPTools(*req.Tools)))
+	}
+	if req.ConnectOptions != nil {
+		opts = append(opts, mcpregistry.WithUpdatedVersionConnectOptions(fromConnectOptions(*req.ConnectOptions)))
+	}
+
+	v, err := client.UpdateMCPServerVersion(ctx, name, version, opts...)
+	if err != nil {
+		return nil, fmt.Errorf("updating version %q for MCP server %q: %w", version, name, err)
+	}
+	if v == nil {
+		return nil, fmt.Errorf("UpdateMCPServerVersion returned nil for version %q of %q", version, name)
+	}
+
+	result := toMCPServerVersion(v)
+	return &result, nil
+}
+
+func (r *MCPRegistryRepository) DeleteServerVersion(ctx context.Context, name, version string) error {
+	client, err := helper.GetContextMLflowClient(ctx)
+	if err != nil {
+		return err
+	}
+	if err := client.DeleteMCPServerVersion(ctx, name, version); err != nil {
+		return fmt.Errorf("deleting version %q for MCP server %q: %w", version, name, err)
+	}
+	return nil
+}
+
+func (r *MCPRegistryRepository) SetServerVersionTag(ctx context.Context, name, version string, req models.SetMCPTagRequest) error {
+	client, err := helper.GetContextMLflowClient(ctx)
+	if err != nil {
+		return err
+	}
+	if err := client.SetMCPServerVersionTag(ctx, name, version, req.Key, req.Value); err != nil {
+		return fmt.Errorf("setting tag %q on version %q of MCP server %q: %w", req.Key, version, name, err)
+	}
+	return nil
+}
+
+func (r *MCPRegistryRepository) DeleteServerVersionTag(ctx context.Context, name, version, key string) error {
+	client, err := helper.GetContextMLflowClient(ctx)
+	if err != nil {
+		return err
+	}
+	if err := client.DeleteMCPServerVersionTag(ctx, name, version, key); err != nil {
+		return fmt.Errorf("deleting tag %q from version %q of MCP server %q: %w", key, version, name, err)
+	}
+	return nil
+}
+
 func (r *MCPRegistryRepository) CreateAccessEndpoint(ctx context.Context, serverName string, req models.CreateMCPAccessEndpointRequest) (*models.MCPAccessEndpoint, error) {
 	client, err := helper.GetContextMLflowClient(ctx)
 	if err != nil {
@@ -266,12 +485,14 @@ func (r *MCPRegistryRepository) CreateAccessEndpoint(ctx context.Context, server
 	if err != nil {
 		return nil, fmt.Errorf("creating access endpoint for MCP server %q: %w", serverName, err)
 	}
+	if endpoint == nil {
+		return nil, fmt.Errorf("CreateMCPAccessEndpoint returned nil for %q", serverName)
+	}
 
 	result := toMCPAccessEndpoint(endpoint)
 	return &result, nil
 }
 
-// SearchAccessEndpoints returns a paginated list of access endpoints for a named MCP server.
 func (r *MCPRegistryRepository) SearchAccessEndpoints(ctx context.Context, serverName, pageToken, maxResults string) (*models.MCPAccessEndpointsResponse, error) {
 	client, err := helper.GetContextMLflowClient(ctx)
 	if err != nil {
@@ -292,6 +513,9 @@ func (r *MCPRegistryRepository) SearchAccessEndpoints(ctx context.Context, serve
 	if err != nil {
 		return nil, fmt.Errorf("searching access endpoints for MCP server %q: %w", serverName, err)
 	}
+	if result == nil {
+		return nil, fmt.Errorf("SearchMCPAccessEndpoints returned nil result")
+	}
 
 	endpoints := make([]models.MCPAccessEndpoint, len(result.Endpoints))
 	for i, e := range result.Endpoints {
@@ -304,7 +528,59 @@ func (r *MCPRegistryRepository) SearchAccessEndpoints(ctx context.Context, serve
 	}, nil
 }
 
-// DeleteAccessEndpoint removes an access endpoint from an MCP server.
+func (r *MCPRegistryRepository) GetAccessEndpoint(ctx context.Context, serverName, endpointID string) (*models.MCPAccessEndpoint, error) {
+	client, err := helper.GetContextMLflowClient(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	endpoint, err := client.GetMCPAccessEndpoint(ctx, serverName, endpointID)
+	if err != nil {
+		return nil, fmt.Errorf("getting access endpoint %q for MCP server %q: %w", endpointID, serverName, err)
+	}
+	if endpoint == nil {
+		return nil, fmt.Errorf("GetMCPAccessEndpoint returned nil for %q", endpointID)
+	}
+
+	result := toMCPAccessEndpoint(endpoint)
+	return &result, nil
+}
+
+// UpdateAccessEndpoint applies a partial update to an access endpoint. Only
+// fields set (non-nil) on req are modified; omitted fields are left
+// unchanged server-side.
+func (r *MCPRegistryRepository) UpdateAccessEndpoint(ctx context.Context, serverName, endpointID string, req models.UpdateMCPAccessEndpointRequest) (*models.MCPAccessEndpoint, error) {
+	client, err := helper.GetContextMLflowClient(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	var opts []mcpregistry.UpdateMCPAccessEndpointOption
+	if req.EndpointURL != nil {
+		opts = append(opts, mcpregistry.WithUpdatedEndpointURL(*req.EndpointURL))
+	}
+	if req.TransportType != nil {
+		opts = append(opts, mcpregistry.WithUpdatedEndpointTransportType(mcpregistry.MCPTransportType(*req.TransportType)))
+	}
+	if req.ServerVersion != nil {
+		opts = append(opts, mcpregistry.WithUpdatedEndpointServerVersion(*req.ServerVersion))
+	}
+	if req.ServerAlias != nil {
+		opts = append(opts, mcpregistry.WithUpdatedEndpointServerAlias(*req.ServerAlias))
+	}
+
+	endpoint, err := client.UpdateMCPAccessEndpoint(ctx, serverName, endpointID, opts...)
+	if err != nil {
+		return nil, fmt.Errorf("updating access endpoint %q for MCP server %q: %w", endpointID, serverName, err)
+	}
+	if endpoint == nil {
+		return nil, fmt.Errorf("UpdateMCPAccessEndpoint returned nil for %q", endpointID)
+	}
+
+	result := toMCPAccessEndpoint(endpoint)
+	return &result, nil
+}
+
 func (r *MCPRegistryRepository) DeleteAccessEndpoint(ctx context.Context, serverName, endpointID string) error {
 	client, err := helper.GetContextMLflowClient(ctx)
 	if err != nil {
@@ -316,24 +592,29 @@ func (r *MCPRegistryRepository) DeleteAccessEndpoint(ctx context.Context, server
 	return nil
 }
 
+func toMCPAccessEndpointSummary(e *mcpregistry.MCPAccessEndpointSummary) models.MCPAccessEndpointSummary {
+	return models.MCPAccessEndpointSummary{
+		ID:                   e.ID,
+		ServerName:           e.ServerName,
+		EndpointURL:          e.EndpointURL,
+		TransportType:        models.MCPTransportType(e.TransportType),
+		Workspace:            e.Workspace,
+		ServerVersion:        e.ServerVersion,
+		ServerAlias:          e.ServerAlias,
+		ResolvedVersion:      toMCPServerVersionPtr(e.ResolvedVersion),
+		CreatedBy:            e.CreatedBy,
+		LastUpdatedBy:        e.LastUpdatedBy,
+		CreationTimestamp:    e.CreationTimestamp,
+		LastUpdatedTimestamp: e.LastUpdatedTimestamp,
+	}
+}
+
 func toMCPServer(s *mcpregistry.MCPServer) models.MCPServer {
 	var endpoints []models.MCPAccessEndpointSummary
 	if len(s.AccessEndpoints) > 0 {
 		endpoints = make([]models.MCPAccessEndpointSummary, len(s.AccessEndpoints))
-		for i, e := range s.AccessEndpoints {
-			endpoints[i] = models.MCPAccessEndpointSummary{
-				ID:                   e.ID,
-				ServerName:           e.ServerName,
-				EndpointURL:          e.EndpointURL,
-				TransportType:        models.MCPTransportType(e.TransportType),
-				Workspace:            e.Workspace,
-				ServerVersion:        e.ServerVersion,
-				ServerAlias:          e.ServerAlias,
-				CreatedBy:            e.CreatedBy,
-				LastUpdatedBy:        e.LastUpdatedBy,
-				CreationTimestamp:    e.CreationTimestamp,
-				LastUpdatedTimestamp: e.LastUpdatedTimestamp,
-			}
+		for i := range s.AccessEndpoints {
+			endpoints[i] = toMCPAccessEndpointSummary(&s.AccessEndpoints[i])
 		}
 	}
 
@@ -360,7 +641,6 @@ func toMCPServerVersion(v *mcpregistry.MCPServerVersion) models.MCPServerVersion
 		Name:                 v.Name,
 		Version:              v.Version,
 		ServerJSON:           v.ServerJSON,
-		DisplayName:          v.DisplayName,
 		Status:               models.MCPServerVersionStatus(v.Status),
 		Workspace:            v.Workspace,
 		Tools:                toMCPTools(v.Tools),
@@ -385,11 +665,20 @@ func toMCPAccessEndpoint(e *mcpregistry.MCPAccessEndpoint) models.MCPAccessEndpo
 		Tools:                toMCPTools(e.Tools),
 		ServerVersion:        e.ServerVersion,
 		ServerAlias:          e.ServerAlias,
+		ResolvedVersion:      toMCPServerVersionPtr(e.ResolvedVersion),
 		CreatedBy:            e.CreatedBy,
 		LastUpdatedBy:        e.LastUpdatedBy,
 		CreationTimestamp:    e.CreationTimestamp,
 		LastUpdatedTimestamp: e.LastUpdatedTimestamp,
 	}
+}
+
+func toMCPServerVersionPtr(v *mcpregistry.MCPServerVersion) *models.MCPServerVersion {
+	if v == nil {
+		return nil
+	}
+	result := toMCPServerVersion(v)
+	return &result
 }
 
 func toMCPTools(tools []mcpregistry.MCPTool) []models.MCPTool {

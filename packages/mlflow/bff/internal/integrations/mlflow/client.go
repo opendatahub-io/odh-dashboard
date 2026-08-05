@@ -27,9 +27,23 @@ type ClientInterface interface {
 	SearchMCPServers(ctx context.Context, opts ...mcpregistry.SearchMCPServersOption) (*mcpregistry.MCPServerList, error)
 	CreateMCPServer(ctx context.Context, name string, opts ...mcpregistry.CreateMCPServerOption) (*mcpregistry.MCPServer, error)
 	GetMCPServer(ctx context.Context, name string) (*mcpregistry.MCPServer, error)
+	UpdateMCPServer(ctx context.Context, name string, opts ...mcpregistry.UpdateMCPServerOption) (*mcpregistry.MCPServer, error)
+	DeleteMCPServer(ctx context.Context, name string) error
+	SetMCPServerTag(ctx context.Context, name, key, value string) error
+	DeleteMCPServerTag(ctx context.Context, name, key string) error
+	SetMCPServerAlias(ctx context.Context, name, alias, version string) error
+	GetMCPServerVersionByAlias(ctx context.Context, name, alias string) (*mcpregistry.MCPServerVersion, error)
+	DeleteMCPServerAlias(ctx context.Context, name, alias string) error
 	SearchMCPServerVersions(ctx context.Context, name string, opts ...mcpregistry.SearchMCPServerVersionsOption) (*mcpregistry.MCPServerVersionList, error)
 	CreateMCPServerVersion(ctx context.Context, name string, serverJSON map[string]any, opts ...mcpregistry.CreateMCPServerVersionOption) (*mcpregistry.MCPServerVersion, error)
+	GetMCPServerVersion(ctx context.Context, name, version string) (*mcpregistry.MCPServerVersion, error)
+	UpdateMCPServerVersion(ctx context.Context, name, version string, opts ...mcpregistry.UpdateMCPServerVersionOption) (*mcpregistry.MCPServerVersion, error)
+	DeleteMCPServerVersion(ctx context.Context, name, version string) error
+	SetMCPServerVersionTag(ctx context.Context, name, version, key, value string) error
+	DeleteMCPServerVersionTag(ctx context.Context, name, version, key string) error
 	CreateMCPAccessEndpoint(ctx context.Context, serverName, endpointURL string, opts ...mcpregistry.CreateMCPAccessEndpointOption) (*mcpregistry.MCPAccessEndpoint, error)
+	GetMCPAccessEndpoint(ctx context.Context, serverName, endpointID string) (*mcpregistry.MCPAccessEndpoint, error)
+	UpdateMCPAccessEndpoint(ctx context.Context, serverName, endpointID string, opts ...mcpregistry.UpdateMCPAccessEndpointOption) (*mcpregistry.MCPAccessEndpoint, error)
 	SearchMCPAccessEndpoints(ctx context.Context, opts ...mcpregistry.SearchMCPAccessEndpointsOption) (*mcpregistry.MCPAccessEndpointList, error)
 	DeleteMCPAccessEndpoint(ctx context.Context, serverName, endpointID string) error
 }
@@ -104,6 +118,41 @@ func (c *Client) GetMCPServer(ctx context.Context, name string) (*mcpregistry.MC
 	return c.sdk.MCPRegistry().GetMCPServer(ctx, name)
 }
 
+// UpdateMCPServer updates mutable fields on an existing MCP server.
+func (c *Client) UpdateMCPServer(ctx context.Context, name string, opts ...mcpregistry.UpdateMCPServerOption) (*mcpregistry.MCPServer, error) {
+	return c.sdk.MCPRegistry().UpdateMCPServer(ctx, name, opts...)
+}
+
+// DeleteMCPServer removes an MCP server and all of its versions, access endpoints, aliases, and tags.
+func (c *Client) DeleteMCPServer(ctx context.Context, name string) error {
+	return c.sdk.MCPRegistry().DeleteMCPServer(ctx, name)
+}
+
+// SetMCPServerTag sets a tag on an MCP server.
+func (c *Client) SetMCPServerTag(ctx context.Context, name, key, value string) error {
+	return c.sdk.MCPRegistry().SetMCPServerTag(ctx, name, key, value)
+}
+
+// DeleteMCPServerTag removes a tag from an MCP server.
+func (c *Client) DeleteMCPServerTag(ctx context.Context, name, key string) error {
+	return c.sdk.MCPRegistry().DeleteMCPServerTag(ctx, name, key)
+}
+
+// SetMCPServerAlias points an alias at a specific version of an MCP server.
+func (c *Client) SetMCPServerAlias(ctx context.Context, name, alias, version string) error {
+	return c.sdk.MCPRegistry().SetMCPServerAlias(ctx, name, alias, version)
+}
+
+// GetMCPServerVersionByAlias resolves an alias to the MCP server version it currently points to.
+func (c *Client) GetMCPServerVersionByAlias(ctx context.Context, name, alias string) (*mcpregistry.MCPServerVersion, error) {
+	return c.sdk.MCPRegistry().GetMCPServerVersionByAlias(ctx, name, alias)
+}
+
+// DeleteMCPServerAlias removes an alias from an MCP server.
+func (c *Client) DeleteMCPServerAlias(ctx context.Context, name, alias string) error {
+	return c.sdk.MCPRegistry().DeleteMCPServerAlias(ctx, name, alias)
+}
+
 // SearchMCPServerVersions returns a paginated list of versions for a named MCP server.
 func (c *Client) SearchMCPServerVersions(ctx context.Context, name string, opts ...mcpregistry.SearchMCPServerVersionsOption) (*mcpregistry.MCPServerVersionList, error) {
 	return c.sdk.MCPRegistry().SearchMCPServerVersions(ctx, name, opts...)
@@ -114,9 +163,44 @@ func (c *Client) CreateMCPServerVersion(ctx context.Context, name string, server
 	return c.sdk.MCPRegistry().CreateMCPServerVersion(ctx, name, serverJSON, opts...)
 }
 
+// GetMCPServerVersion retrieves a specific version of an MCP server.
+func (c *Client) GetMCPServerVersion(ctx context.Context, name, version string) (*mcpregistry.MCPServerVersion, error) {
+	return c.sdk.MCPRegistry().GetMCPServerVersion(ctx, name, version)
+}
+
+// UpdateMCPServerVersion updates mutable fields on an existing MCP server version.
+func (c *Client) UpdateMCPServerVersion(ctx context.Context, name, version string, opts ...mcpregistry.UpdateMCPServerVersionOption) (*mcpregistry.MCPServerVersion, error) {
+	return c.sdk.MCPRegistry().UpdateMCPServerVersion(ctx, name, version, opts...)
+}
+
+// DeleteMCPServerVersion removes a specific version of an MCP server.
+func (c *Client) DeleteMCPServerVersion(ctx context.Context, name, version string) error {
+	return c.sdk.MCPRegistry().DeleteMCPServerVersion(ctx, name, version)
+}
+
+// SetMCPServerVersionTag sets a tag on a specific version of an MCP server.
+func (c *Client) SetMCPServerVersionTag(ctx context.Context, name, version, key, value string) error {
+	return c.sdk.MCPRegistry().SetMCPServerVersionTag(ctx, name, version, key, value)
+}
+
+// DeleteMCPServerVersionTag removes a tag from a specific version of an MCP server.
+func (c *Client) DeleteMCPServerVersionTag(ctx context.Context, name, version, key string) error {
+	return c.sdk.MCPRegistry().DeleteMCPServerVersionTag(ctx, name, version, key)
+}
+
 // CreateMCPAccessEndpoint creates a new access endpoint for an MCP server.
 func (c *Client) CreateMCPAccessEndpoint(ctx context.Context, serverName, endpointURL string, opts ...mcpregistry.CreateMCPAccessEndpointOption) (*mcpregistry.MCPAccessEndpoint, error) {
 	return c.sdk.MCPRegistry().CreateMCPAccessEndpoint(ctx, serverName, endpointURL, opts...)
+}
+
+// GetMCPAccessEndpoint retrieves a single access endpoint by ID.
+func (c *Client) GetMCPAccessEndpoint(ctx context.Context, serverName, endpointID string) (*mcpregistry.MCPAccessEndpoint, error) {
+	return c.sdk.MCPRegistry().GetMCPAccessEndpoint(ctx, serverName, endpointID)
+}
+
+// UpdateMCPAccessEndpoint updates mutable fields on an existing access endpoint.
+func (c *Client) UpdateMCPAccessEndpoint(ctx context.Context, serverName, endpointID string, opts ...mcpregistry.UpdateMCPAccessEndpointOption) (*mcpregistry.MCPAccessEndpoint, error) {
+	return c.sdk.MCPRegistry().UpdateMCPAccessEndpoint(ctx, serverName, endpointID, opts...)
 }
 
 // SearchMCPAccessEndpoints returns a paginated list of access endpoints matching the given options.

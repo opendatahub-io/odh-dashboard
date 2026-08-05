@@ -15,7 +15,7 @@ type InvalidVerbError struct {
 }
 
 func (e *InvalidVerbError) Error() string {
-	return fmt.Sprintf("invalid verb %q: must be 'create' or 'delete'", e.Verb)
+	return fmt.Sprintf("invalid verb %q: must be 'create', 'update', or 'delete'", e.Verb)
 }
 
 // KubernetesClientInterface exposes only the minimal surface needed by the starter project.

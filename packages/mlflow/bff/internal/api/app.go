@@ -48,7 +48,8 @@ const (
 	// segments cannot capture. parseMCPServerPath (mcp_registry_handler.go)
 	// splits the catch-all capture back into the server name (always the
 	// first two "/"-separated segments) and any trailing sub-resource path
-	// ("/versions", "/endpoints", "/endpoints/:endpointId").
+	// ("/versions", "/versions/:version", "/versions/:version/tags[/:key]",
+	// "/tags[/:key]", "/aliases[/:alias]", "/endpoints[/:endpointId]").
 	MCPServerCatchAllPath = APIPathPrefix + "/mcp-registry/servers/*rest"
 )
 
@@ -267,6 +268,7 @@ func (app *App) Routes() http.Handler {
 	apiRouter.POST(MCPServersPath, app.AttachWorkspace(app.RequireValidIdentity(app.AttachMLflowClient(app.MLflowCreateMCPServerHandler))))
 	apiRouter.GET(MCPServerCatchAllPath, app.AttachWorkspace(app.RequireValidIdentity(app.AttachMLflowClient(app.MLflowMCPServerCatchAllGetHandler))))
 	apiRouter.POST(MCPServerCatchAllPath, app.AttachWorkspace(app.RequireValidIdentity(app.AttachMLflowClient(app.MLflowMCPServerCatchAllPostHandler))))
+	apiRouter.PATCH(MCPServerCatchAllPath, app.AttachWorkspace(app.RequireValidIdentity(app.AttachMLflowClient(app.MLflowMCPServerCatchAllPatchHandler))))
 	apiRouter.DELETE(MCPServerCatchAllPath, app.AttachWorkspace(app.RequireValidIdentity(app.AttachMLflowClient(app.MLflowMCPServerCatchAllDeleteHandler))))
 
 	// App Router

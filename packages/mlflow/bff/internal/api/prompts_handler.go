@@ -229,7 +229,7 @@ func (app *App) enforceWritePermission(
 	workspace string,
 	verb string,
 ) bool {
-	return app.enforceResourceWritePermission(ctx, w, r, workspace, verb,
+	return app.enforceResourceWritePermission(ctx, w, r, workspace, verb, "registeredmodels",
 		"insufficient permissions to write prompts",
 		func(k8sClient k8s.KubernetesClientInterface) resourceWriteChecker {
 			return k8sClient.CanWritePromptsInNamespace

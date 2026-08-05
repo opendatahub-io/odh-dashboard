@@ -30,6 +30,7 @@ func (app *App) enforceResourceWritePermission(
 	r *http.Request,
 	workspace string,
 	verb string,
+	resource string,
 	deniedMessage string,
 	check func(k8sClient k8s.KubernetesClientInterface) resourceWriteChecker,
 ) bool {
@@ -69,6 +70,7 @@ func (app *App) enforceResourceWritePermission(
 		app.logger.Warn("Permission denied",
 			slog.String("workspace", workspace),
 			slog.String("verb", verb),
+			slog.String("resource", resource),
 			slog.String("required_role", "mlflow-edit"))
 		app.forbiddenResponse(w, r, errors.New(deniedMessage))
 		return false

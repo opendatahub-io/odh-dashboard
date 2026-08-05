@@ -18,25 +18,36 @@ import (
 // --- buildTagFilter / combineFilters ---
 
 func TestBuildTagFilter(t *testing.T) {
-	assert.Equal(t, "", buildTagFilter(""))
-	assert.Equal(t, "", buildTagFilter("nokey"))
-	assert.Equal(t, "tags.`category` = 'weather'", buildTagFilter("category=weather"))
-	assert.Equal(t, "tags.`category` = 'weather=cold'", buildTagFilter("category=weather=cold"))
-	assert.Equal(t, "tags.`category` = 'it\\'s cold'", buildTagFilter("category=it's cold"))
+	mustBuild := func(tag string) string {
+		t.Helper()
+		result, err := buildTagFilter(tag)
+		assert.NoError(t, err)
+		return result
+	}
+
+	assert.Equal(t, "", mustBuild(""))
+	assert.Equal(t, "tags.`category` = 'weather'", mustBuild("category=weather"))
+	assert.Equal(t, "tags.`category` = 'weather=cold'", mustBuild("category=weather=cold"))
+	assert.Equal(t, "tags.`category` = 'it\\'s cold'", mustBuild("category=it's cold"))
 	// MLflow's own tag-name validation (validate_param_and_metric_name)
 	// allows slashes, colons, and spaces, so validTagKey must too, or valid
 	// tags silently stop filtering instead of erroring.
-	assert.Equal(t, "tags.`team/category` = 'weather'", buildTagFilter("team/category=weather"))
-	assert.Equal(t, "tags.`mlflow:parent` = 'run-1'", buildTagFilter("mlflow:parent=run-1"))
-	assert.Equal(t, "tags.`my key` = 'v'", buildTagFilter("my key=v"))
-	// A backtick in the key is rejected outright (not in validTagKey's
-	// allowlist, and MLflow's own validation disallows it too).
-	assert.Equal(t, "", buildTagFilter("a`b=weather"))
+	assert.Equal(t, "tags.`team/category` = 'weather'", mustBuild("team/category=weather"))
+	assert.Equal(t, "tags.`mlflow:parent` = 'run-1'", mustBuild("mlflow:parent=run-1"))
+	assert.Equal(t, "tags.`my key` = 'v'", mustBuild("my key=v"))
 	// A value ending in a lone backslash must not turn the closing quote
 	// into an escaped (and thus non-terminating) literal quote: the
 	// backslash itself must be escaped first, so the output ends in an
 	// escaped backslash followed by a real closing quote.
-	assert.Equal(t, "tags.`k` = 'x\\\\'", buildTagFilter(`k=x\`))
+	assert.Equal(t, "tags.`k` = 'x\\\\'", mustBuild(`k=x\`))
+
+	// Malformed or disallowed tags return ErrInvalidFilter instead of
+	// silently dropping the filter (fail-closed).
+	_, err := buildTagFilter("nokey")
+	assert.ErrorIs(t, err, ErrInvalidFilter)
+
+	_, err = buildTagFilter("a`b=weather")
+	assert.ErrorIs(t, err, ErrInvalidFilter)
 }
 
 func TestCombineFilters(t *testing.T) {
@@ -81,6 +92,64 @@ func TestHasBalancedParens(t *testing.T) {
 	assert.False(t, hasBalancedParens("(1=1"))
 	assert.False(t, hasBalancedParens("1=1)"))
 	assert.False(t, hasBalancedParens("1=1) OR (1=1"))
+	// An unmatched paren inside a quoted string literal is part of the
+	// value, not filter syntax, so it must not count toward the balance
+	// check (e.g. buildTagFilter("note=see(details") produces this).
+	assert.True(t, hasBalancedParens("tags.`note` = 'see(details'"))
+	assert.True(t, hasBalancedParens(`tags."note" = "see)details"`))
+	// A backslash-escaped quote inside a quoted string literal (as
+	// buildTagFilter produces for a value containing an apostrophe, e.g.
+	// "it's") must not be mistaken for the closing quote: doing so would
+	// treat a real "(" later in the value as outside the string and
+	// falsely flag it as unbalanced. Matches how MLflow's own filter
+	// parser (sqlparse) tokenizes backslash-escaped quotes in string
+	// literals.
+	assert.True(t, hasBalancedParens(`tags.`+"`"+`note`+"`"+` = 'it\'s(here'`))
+	assert.True(t, hasBalancedParens(`tags.`+"`"+`note`+"`"+` = "it\"s(here"`))
+	// A trailing backslash right before the closing quote must not cause
+	// an out-of-bounds skip past the end of the string.
+	assert.True(t, hasBalancedParens(`'x\\'`))
+}
+
+func TestSearchServersWithTagContainingUnbalancedParenIsNotRejected(t *testing.T) {
+	mockClient := &mlflowpkg.MockClient{}
+
+	mockClient.On("SearchMCPServers", tmock.Anything, tmock.MatchedBy(func(opts []mcpregistry.SearchMCPServersOption) bool {
+		return len(opts) == 1
+	})).Return(&mcpregistry.MCPServerList{}, nil)
+
+	repo := NewMCPRegistryRepository()
+	ctx := contextWithMockClient(mockClient)
+
+	// The tag value contains a lone "(" that, unescaped, would look like
+	// an unbalanced paren to combineFilters -- but it's safely inside the
+	// quoted string literal buildTagFilter produces, so it must not be
+	// rejected as ErrInvalidFilter.
+	_, err := repo.SearchServers(ctx, "", "note=see(details", "", "")
+
+	require.NoError(t, err)
+	mockClient.AssertExpectations(t)
+}
+
+func TestSearchServersWithTagContainingApostropheAndParenIsNotRejected(t *testing.T) {
+	mockClient := &mlflowpkg.MockClient{}
+
+	mockClient.On("SearchMCPServers", tmock.Anything, tmock.MatchedBy(func(opts []mcpregistry.SearchMCPServersOption) bool {
+		return len(opts) == 1
+	})).Return(&mcpregistry.MCPServerList{}, nil)
+
+	repo := NewMCPRegistryRepository()
+	ctx := contextWithMockClient(mockClient)
+
+	// The tag value contains both an apostrophe (which buildTagFilter
+	// backslash-escapes) and a "(" after it. The escaped quote must not
+	// be mistaken for the closing quote by the paren-balance check, or
+	// the trailing "(" would look unbalanced and this would be wrongly
+	// rejected as ErrInvalidFilter.
+	_, err := repo.SearchServers(ctx, "", "note=it's(here", "", "")
+
+	require.NoError(t, err)
+	mockClient.AssertExpectations(t)
 }
 
 // --- SearchServers ---
@@ -259,6 +328,33 @@ func TestGetServerSuccess(t *testing.T) {
 	mockClient.AssertExpectations(t)
 }
 
+func TestGetServerEmbeddedAccessEndpointResolvedVersion(t *testing.T) {
+	mockClient := &mlflowpkg.MockClient{}
+	now := time.Now()
+
+	mockClient.On("GetMCPServer", tmock.Anything, "my-server").
+		Return(&mcpregistry.MCPServer{
+			Name: "my-server", CreationTimestamp: now, LastUpdatedTimestamp: now,
+			AccessEndpoints: []mcpregistry.MCPAccessEndpointSummary{
+				{
+					ID: "ep-1", ServerName: "my-server", ServerAlias: "production",
+					ResolvedVersion: &mcpregistry.MCPServerVersion{Name: "my-server", Version: "2.0.0"},
+				},
+			},
+		}, nil)
+
+	repo := NewMCPRegistryRepository()
+	ctx := contextWithMockClient(mockClient)
+
+	result, err := repo.GetServer(ctx, "my-server")
+
+	require.NoError(t, err)
+	require.Len(t, result.AccessEndpoints, 1)
+	require.NotNil(t, result.AccessEndpoints[0].ResolvedVersion)
+	assert.Equal(t, "2.0.0", result.AccessEndpoints[0].ResolvedVersion.Version)
+	mockClient.AssertExpectations(t)
+}
+
 func TestGetServerNotFound(t *testing.T) {
 	mockClient := &mlflowpkg.MockClient{}
 
@@ -271,6 +367,266 @@ func TestGetServerNotFound(t *testing.T) {
 	result, err := repo.GetServer(ctx, "missing")
 
 	assert.Nil(t, result)
+	assert.Error(t, err)
+	mockClient.AssertExpectations(t)
+}
+
+// --- UpdateServer ---
+
+func TestUpdateServerSuccess(t *testing.T) {
+	mockClient := &mlflowpkg.MockClient{}
+	now := time.Now()
+	displayName := "New Name"
+
+	mockClient.On("UpdateMCPServer", tmock.Anything, "my-server", tmock.MatchedBy(func(opts []mcpregistry.UpdateMCPServerOption) bool {
+		return len(opts) == 1 // display name only
+	})).Return(&mcpregistry.MCPServer{Name: "my-server", DisplayName: displayName, CreationTimestamp: now, LastUpdatedTimestamp: now}, nil)
+
+	repo := NewMCPRegistryRepository()
+	ctx := contextWithMockClient(mockClient)
+
+	result, err := repo.UpdateServer(ctx, "my-server", models.UpdateMCPServerRequest{DisplayName: &displayName})
+
+	require.NoError(t, err)
+	assert.Equal(t, displayName, result.DisplayName)
+	mockClient.AssertExpectations(t)
+}
+
+func TestUpdateServerAllFields(t *testing.T) {
+	mockClient := &mlflowpkg.MockClient{}
+	displayName := "New Name"
+	description := "New description"
+	icons := []map[string]any{{"src": "icon.png"}}
+
+	mockClient.On("UpdateMCPServer", tmock.Anything, "my-server", tmock.MatchedBy(func(opts []mcpregistry.UpdateMCPServerOption) bool {
+		return len(opts) == 3
+	})).Return(&mcpregistry.MCPServer{Name: "my-server"}, nil)
+
+	repo := NewMCPRegistryRepository()
+	ctx := contextWithMockClient(mockClient)
+
+	_, err := repo.UpdateServer(ctx, "my-server", models.UpdateMCPServerRequest{
+		DisplayName: &displayName,
+		Description: &description,
+		Icons:       &icons,
+	})
+
+	require.NoError(t, err)
+	mockClient.AssertExpectations(t)
+}
+
+func TestUpdateServerNoFieldsSet(t *testing.T) {
+	mockClient := &mlflowpkg.MockClient{}
+
+	mockClient.On("UpdateMCPServer", tmock.Anything, "my-server", tmock.MatchedBy(func(opts []mcpregistry.UpdateMCPServerOption) bool {
+		return len(opts) == 0
+	})).Return(&mcpregistry.MCPServer{Name: "my-server"}, nil)
+
+	repo := NewMCPRegistryRepository()
+	ctx := contextWithMockClient(mockClient)
+
+	_, err := repo.UpdateServer(ctx, "my-server", models.UpdateMCPServerRequest{})
+
+	require.NoError(t, err)
+	mockClient.AssertExpectations(t)
+}
+
+func TestUpdateServerClientError(t *testing.T) {
+	mockClient := &mlflowpkg.MockClient{}
+
+	mockClient.On("UpdateMCPServer", tmock.Anything, "my-server", tmock.Anything).
+		Return(nil, fmt.Errorf("not found"))
+
+	repo := NewMCPRegistryRepository()
+	ctx := contextWithMockClient(mockClient)
+
+	result, err := repo.UpdateServer(ctx, "my-server", models.UpdateMCPServerRequest{})
+
+	assert.Nil(t, result)
+	assert.Error(t, err)
+	mockClient.AssertExpectations(t)
+}
+
+// --- DeleteServer ---
+
+func TestDeleteServerSuccess(t *testing.T) {
+	mockClient := &mlflowpkg.MockClient{}
+
+	mockClient.On("DeleteMCPServer", tmock.Anything, "my-server").Return(nil)
+
+	repo := NewMCPRegistryRepository()
+	ctx := contextWithMockClient(mockClient)
+
+	err := repo.DeleteServer(ctx, "my-server")
+
+	require.NoError(t, err)
+	mockClient.AssertExpectations(t)
+}
+
+func TestDeleteServerClientError(t *testing.T) {
+	mockClient := &mlflowpkg.MockClient{}
+
+	mockClient.On("DeleteMCPServer", tmock.Anything, "my-server").
+		Return(fmt.Errorf("not found"))
+
+	repo := NewMCPRegistryRepository()
+	ctx := contextWithMockClient(mockClient)
+
+	err := repo.DeleteServer(ctx, "my-server")
+
+	assert.Error(t, err)
+	mockClient.AssertExpectations(t)
+}
+
+// --- SetServerTag / DeleteServerTag ---
+
+func TestSetServerTagSuccess(t *testing.T) {
+	mockClient := &mlflowpkg.MockClient{}
+
+	mockClient.On("SetMCPServerTag", tmock.Anything, "my-server", "category", "weather").Return(nil)
+
+	repo := NewMCPRegistryRepository()
+	ctx := contextWithMockClient(mockClient)
+
+	err := repo.SetServerTag(ctx, "my-server", models.SetMCPTagRequest{Key: "category", Value: "weather"})
+
+	require.NoError(t, err)
+	mockClient.AssertExpectations(t)
+}
+
+func TestSetServerTagClientError(t *testing.T) {
+	mockClient := &mlflowpkg.MockClient{}
+
+	mockClient.On("SetMCPServerTag", tmock.Anything, "my-server", "category", "weather").
+		Return(fmt.Errorf("invalid key"))
+
+	repo := NewMCPRegistryRepository()
+	ctx := contextWithMockClient(mockClient)
+
+	err := repo.SetServerTag(ctx, "my-server", models.SetMCPTagRequest{Key: "category", Value: "weather"})
+
+	assert.Error(t, err)
+	mockClient.AssertExpectations(t)
+}
+
+func TestDeleteServerTagSuccess(t *testing.T) {
+	mockClient := &mlflowpkg.MockClient{}
+
+	mockClient.On("DeleteMCPServerTag", tmock.Anything, "my-server", "category").Return(nil)
+
+	repo := NewMCPRegistryRepository()
+	ctx := contextWithMockClient(mockClient)
+
+	err := repo.DeleteServerTag(ctx, "my-server", "category")
+
+	require.NoError(t, err)
+	mockClient.AssertExpectations(t)
+}
+
+func TestDeleteServerTagClientError(t *testing.T) {
+	mockClient := &mlflowpkg.MockClient{}
+
+	mockClient.On("DeleteMCPServerTag", tmock.Anything, "my-server", "category").
+		Return(fmt.Errorf("not found"))
+
+	repo := NewMCPRegistryRepository()
+	ctx := contextWithMockClient(mockClient)
+
+	err := repo.DeleteServerTag(ctx, "my-server", "category")
+
+	assert.Error(t, err)
+	mockClient.AssertExpectations(t)
+}
+
+// --- SetServerAlias / GetServerVersionByAlias / DeleteServerAlias ---
+
+func TestSetServerAliasSuccess(t *testing.T) {
+	mockClient := &mlflowpkg.MockClient{}
+
+	mockClient.On("SetMCPServerAlias", tmock.Anything, "my-server", "production", "1.0.0").Return(nil)
+
+	repo := NewMCPRegistryRepository()
+	ctx := contextWithMockClient(mockClient)
+
+	err := repo.SetServerAlias(ctx, "my-server", models.SetMCPAliasRequest{Alias: "production", Version: "1.0.0"})
+
+	require.NoError(t, err)
+	mockClient.AssertExpectations(t)
+}
+
+func TestSetServerAliasClientError(t *testing.T) {
+	mockClient := &mlflowpkg.MockClient{}
+
+	mockClient.On("SetMCPServerAlias", tmock.Anything, "my-server", "production", "1.0.0").
+		Return(fmt.Errorf("version not found"))
+
+	repo := NewMCPRegistryRepository()
+	ctx := contextWithMockClient(mockClient)
+
+	err := repo.SetServerAlias(ctx, "my-server", models.SetMCPAliasRequest{Alias: "production", Version: "1.0.0"})
+
+	assert.Error(t, err)
+	mockClient.AssertExpectations(t)
+}
+
+func TestGetServerVersionByAliasSuccess(t *testing.T) {
+	mockClient := &mlflowpkg.MockClient{}
+	now := time.Now()
+
+	mockClient.On("GetMCPServerVersionByAlias", tmock.Anything, "my-server", "production").
+		Return(&mcpregistry.MCPServerVersion{Name: "my-server", Version: "1.0.0", CreationTimestamp: now, LastUpdatedTimestamp: now}, nil)
+
+	repo := NewMCPRegistryRepository()
+	ctx := contextWithMockClient(mockClient)
+
+	result, err := repo.GetServerVersionByAlias(ctx, "my-server", "production")
+
+	require.NoError(t, err)
+	assert.Equal(t, "1.0.0", result.Version)
+	mockClient.AssertExpectations(t)
+}
+
+func TestGetServerVersionByAliasNotFound(t *testing.T) {
+	mockClient := &mlflowpkg.MockClient{}
+
+	mockClient.On("GetMCPServerVersionByAlias", tmock.Anything, "my-server", "missing").
+		Return(nil, fmt.Errorf("not found"))
+
+	repo := NewMCPRegistryRepository()
+	ctx := contextWithMockClient(mockClient)
+
+	result, err := repo.GetServerVersionByAlias(ctx, "my-server", "missing")
+
+	assert.Nil(t, result)
+	assert.Error(t, err)
+	mockClient.AssertExpectations(t)
+}
+
+func TestDeleteServerAliasSuccess(t *testing.T) {
+	mockClient := &mlflowpkg.MockClient{}
+
+	mockClient.On("DeleteMCPServerAlias", tmock.Anything, "my-server", "production").Return(nil)
+
+	repo := NewMCPRegistryRepository()
+	ctx := contextWithMockClient(mockClient)
+
+	err := repo.DeleteServerAlias(ctx, "my-server", "production")
+
+	require.NoError(t, err)
+	mockClient.AssertExpectations(t)
+}
+
+func TestDeleteServerAliasClientError(t *testing.T) {
+	mockClient := &mlflowpkg.MockClient{}
+
+	mockClient.On("DeleteMCPServerAlias", tmock.Anything, "my-server", "production").
+		Return(fmt.Errorf("not found"))
+
+	repo := NewMCPRegistryRepository()
+	ctx := contextWithMockClient(mockClient)
+
+	err := repo.DeleteServerAlias(ctx, "my-server", "production")
+
 	assert.Error(t, err)
 	mockClient.AssertExpectations(t)
 }
@@ -340,7 +696,7 @@ func TestCreateServerVersionSuccess(t *testing.T) {
 	serverJSON := map[string]any{"name": "my-server"}
 
 	mockClient.On("CreateMCPServerVersion", tmock.Anything, "my-server", serverJSON, tmock.MatchedBy(func(opts []mcpregistry.CreateMCPServerVersionOption) bool {
-		return len(opts) == 2 // display_name + status
+		return len(opts) == 1 // status only; there is no version-level display_name
 	})).Return(&mcpregistry.MCPServerVersion{
 		Name: "my-server", Version: "1.0.0", ServerJSON: serverJSON,
 		CreationTimestamp: now, LastUpdatedTimestamp: now,
@@ -350,9 +706,8 @@ func TestCreateServerVersionSuccess(t *testing.T) {
 	ctx := contextWithMockClient(mockClient)
 
 	result, err := repo.CreateServerVersion(ctx, "my-server", models.CreateMCPServerVersionRequest{
-		ServerJSON:  serverJSON,
-		DisplayName: "v1",
-		Status:      models.MCPServerVersionStatusDraft,
+		ServerJSON: serverJSON,
+		Status:     models.MCPServerVersionStatusDraft,
 	})
 
 	require.NoError(t, err)
@@ -373,6 +728,195 @@ func TestCreateServerVersionClientError(t *testing.T) {
 	result, err := repo.CreateServerVersion(ctx, "my-server", models.CreateMCPServerVersionRequest{ServerJSON: serverJSON})
 
 	assert.Nil(t, result)
+	assert.Error(t, err)
+	mockClient.AssertExpectations(t)
+}
+
+// --- GetServerVersion ---
+
+func TestGetServerVersionSuccess(t *testing.T) {
+	mockClient := &mlflowpkg.MockClient{}
+	now := time.Now()
+
+	mockClient.On("GetMCPServerVersion", tmock.Anything, "my-server", "1.0.0").
+		Return(&mcpregistry.MCPServerVersion{Name: "my-server", Version: "1.0.0", CreationTimestamp: now, LastUpdatedTimestamp: now}, nil)
+
+	repo := NewMCPRegistryRepository()
+	ctx := contextWithMockClient(mockClient)
+
+	result, err := repo.GetServerVersion(ctx, "my-server", "1.0.0")
+
+	require.NoError(t, err)
+	assert.Equal(t, "1.0.0", result.Version)
+	mockClient.AssertExpectations(t)
+}
+
+func TestGetServerVersionNotFound(t *testing.T) {
+	mockClient := &mlflowpkg.MockClient{}
+
+	mockClient.On("GetMCPServerVersion", tmock.Anything, "my-server", "9.9.9").
+		Return(nil, fmt.Errorf("not found"))
+
+	repo := NewMCPRegistryRepository()
+	ctx := contextWithMockClient(mockClient)
+
+	result, err := repo.GetServerVersion(ctx, "my-server", "9.9.9")
+
+	assert.Nil(t, result)
+	assert.Error(t, err)
+	mockClient.AssertExpectations(t)
+}
+
+// --- UpdateServerVersion ---
+
+func TestUpdateServerVersionSuccess(t *testing.T) {
+	mockClient := &mlflowpkg.MockClient{}
+	now := time.Now()
+	status := models.MCPServerVersionStatusActive
+
+	mockClient.On("UpdateMCPServerVersion", tmock.Anything, "my-server", "1.0.0", tmock.MatchedBy(func(opts []mcpregistry.UpdateMCPServerVersionOption) bool {
+		return len(opts) == 1 // status only
+	})).Return(&mcpregistry.MCPServerVersion{
+		Name: "my-server", Version: "1.0.0", Status: mcpregistry.MCPServerVersionStatusActive,
+		CreationTimestamp: now, LastUpdatedTimestamp: now,
+	}, nil)
+
+	repo := NewMCPRegistryRepository()
+	ctx := contextWithMockClient(mockClient)
+
+	result, err := repo.UpdateServerVersion(ctx, "my-server", "1.0.0", models.UpdateMCPServerVersionRequest{Status: &status})
+
+	require.NoError(t, err)
+	assert.Equal(t, models.MCPServerVersionStatusActive, result.Status)
+	mockClient.AssertExpectations(t)
+}
+
+func TestUpdateServerVersionAllFields(t *testing.T) {
+	mockClient := &mlflowpkg.MockClient{}
+	status := models.MCPServerVersionStatusDeprecated
+	tools := []models.MCPTool{{Name: "tool1"}}
+	connectOptions := map[string]models.MCPConnectOptionSettings{"npm": {Hidden: true}}
+
+	mockClient.On("UpdateMCPServerVersion", tmock.Anything, "my-server", "1.0.0", tmock.MatchedBy(func(opts []mcpregistry.UpdateMCPServerVersionOption) bool {
+		return len(opts) == 3
+	})).Return(&mcpregistry.MCPServerVersion{Name: "my-server", Version: "1.0.0"}, nil)
+
+	repo := NewMCPRegistryRepository()
+	ctx := contextWithMockClient(mockClient)
+
+	_, err := repo.UpdateServerVersion(ctx, "my-server", "1.0.0", models.UpdateMCPServerVersionRequest{
+		Status:         &status,
+		Tools:          &tools,
+		ConnectOptions: &connectOptions,
+	})
+
+	require.NoError(t, err)
+	mockClient.AssertExpectations(t)
+}
+
+func TestUpdateServerVersionClientError(t *testing.T) {
+	mockClient := &mlflowpkg.MockClient{}
+
+	mockClient.On("UpdateMCPServerVersion", tmock.Anything, "my-server", "1.0.0", tmock.Anything).
+		Return(nil, fmt.Errorf("not found"))
+
+	repo := NewMCPRegistryRepository()
+	ctx := contextWithMockClient(mockClient)
+
+	result, err := repo.UpdateServerVersion(ctx, "my-server", "1.0.0", models.UpdateMCPServerVersionRequest{})
+
+	assert.Nil(t, result)
+	assert.Error(t, err)
+	mockClient.AssertExpectations(t)
+}
+
+// --- DeleteServerVersion ---
+
+func TestDeleteServerVersionSuccess(t *testing.T) {
+	mockClient := &mlflowpkg.MockClient{}
+
+	mockClient.On("DeleteMCPServerVersion", tmock.Anything, "my-server", "1.0.0").Return(nil)
+
+	repo := NewMCPRegistryRepository()
+	ctx := contextWithMockClient(mockClient)
+
+	err := repo.DeleteServerVersion(ctx, "my-server", "1.0.0")
+
+	require.NoError(t, err)
+	mockClient.AssertExpectations(t)
+}
+
+func TestDeleteServerVersionClientError(t *testing.T) {
+	mockClient := &mlflowpkg.MockClient{}
+
+	mockClient.On("DeleteMCPServerVersion", tmock.Anything, "my-server", "1.0.0").
+		Return(fmt.Errorf("not found"))
+
+	repo := NewMCPRegistryRepository()
+	ctx := contextWithMockClient(mockClient)
+
+	err := repo.DeleteServerVersion(ctx, "my-server", "1.0.0")
+
+	assert.Error(t, err)
+	mockClient.AssertExpectations(t)
+}
+
+// --- SetServerVersionTag / DeleteServerVersionTag ---
+
+func TestSetServerVersionTagSuccess(t *testing.T) {
+	mockClient := &mlflowpkg.MockClient{}
+
+	mockClient.On("SetMCPServerVersionTag", tmock.Anything, "my-server", "1.0.0", "stability", "beta").Return(nil)
+
+	repo := NewMCPRegistryRepository()
+	ctx := contextWithMockClient(mockClient)
+
+	err := repo.SetServerVersionTag(ctx, "my-server", "1.0.0", models.SetMCPTagRequest{Key: "stability", Value: "beta"})
+
+	require.NoError(t, err)
+	mockClient.AssertExpectations(t)
+}
+
+func TestSetServerVersionTagClientError(t *testing.T) {
+	mockClient := &mlflowpkg.MockClient{}
+
+	mockClient.On("SetMCPServerVersionTag", tmock.Anything, "my-server", "1.0.0", "stability", "beta").
+		Return(fmt.Errorf("invalid key"))
+
+	repo := NewMCPRegistryRepository()
+	ctx := contextWithMockClient(mockClient)
+
+	err := repo.SetServerVersionTag(ctx, "my-server", "1.0.0", models.SetMCPTagRequest{Key: "stability", Value: "beta"})
+
+	assert.Error(t, err)
+	mockClient.AssertExpectations(t)
+}
+
+func TestDeleteServerVersionTagSuccess(t *testing.T) {
+	mockClient := &mlflowpkg.MockClient{}
+
+	mockClient.On("DeleteMCPServerVersionTag", tmock.Anything, "my-server", "1.0.0", "stability").Return(nil)
+
+	repo := NewMCPRegistryRepository()
+	ctx := contextWithMockClient(mockClient)
+
+	err := repo.DeleteServerVersionTag(ctx, "my-server", "1.0.0", "stability")
+
+	require.NoError(t, err)
+	mockClient.AssertExpectations(t)
+}
+
+func TestDeleteServerVersionTagClientError(t *testing.T) {
+	mockClient := &mlflowpkg.MockClient{}
+
+	mockClient.On("DeleteMCPServerVersionTag", tmock.Anything, "my-server", "1.0.0", "stability").
+		Return(fmt.Errorf("not found"))
+
+	repo := NewMCPRegistryRepository()
+	ctx := contextWithMockClient(mockClient)
+
+	err := repo.DeleteServerVersionTag(ctx, "my-server", "1.0.0", "stability")
+
 	assert.Error(t, err)
 	mockClient.AssertExpectations(t)
 }
@@ -470,6 +1014,149 @@ func TestSearchAccessEndpointsClientError(t *testing.T) {
 	ctx := contextWithMockClient(mockClient)
 
 	result, err := repo.SearchAccessEndpoints(ctx, "my-server", "", "")
+
+	assert.Nil(t, result)
+	assert.Error(t, err)
+	mockClient.AssertExpectations(t)
+}
+
+// --- GetAccessEndpoint ---
+
+func TestGetAccessEndpointSuccess(t *testing.T) {
+	mockClient := &mlflowpkg.MockClient{}
+	now := time.Now()
+
+	mockClient.On("GetMCPAccessEndpoint", tmock.Anything, "my-server", "ep-1").
+		Return(&mcpregistry.MCPAccessEndpoint{ID: "ep-1", ServerName: "my-server", CreationTimestamp: now, LastUpdatedTimestamp: now}, nil)
+
+	repo := NewMCPRegistryRepository()
+	ctx := contextWithMockClient(mockClient)
+
+	result, err := repo.GetAccessEndpoint(ctx, "my-server", "ep-1")
+
+	require.NoError(t, err)
+	assert.Equal(t, "ep-1", result.ID)
+	mockClient.AssertExpectations(t)
+}
+
+func TestGetAccessEndpointResolvedVersion(t *testing.T) {
+	mockClient := &mlflowpkg.MockClient{}
+	now := time.Now()
+
+	mockClient.On("GetMCPAccessEndpoint", tmock.Anything, "my-server", "ep-1").
+		Return(&mcpregistry.MCPAccessEndpoint{
+			ID: "ep-1", ServerName: "my-server", ServerAlias: "production",
+			CreationTimestamp: now, LastUpdatedTimestamp: now,
+			ResolvedVersion: &mcpregistry.MCPServerVersion{
+				Name: "my-server", Version: "2.0.0",
+				Status: mcpregistry.MCPServerVersionStatusActive,
+			},
+		}, nil)
+
+	repo := NewMCPRegistryRepository()
+	ctx := contextWithMockClient(mockClient)
+
+	result, err := repo.GetAccessEndpoint(ctx, "my-server", "ep-1")
+
+	require.NoError(t, err)
+	require.NotNil(t, result.ResolvedVersion)
+	assert.Equal(t, "2.0.0", result.ResolvedVersion.Version)
+	assert.Equal(t, models.MCPServerVersionStatusActive, result.ResolvedVersion.Status)
+	mockClient.AssertExpectations(t)
+}
+
+func TestGetAccessEndpointNoResolvedVersion(t *testing.T) {
+	mockClient := &mlflowpkg.MockClient{}
+	now := time.Now()
+
+	mockClient.On("GetMCPAccessEndpoint", tmock.Anything, "my-server", "ep-1").
+		Return(&mcpregistry.MCPAccessEndpoint{ID: "ep-1", ServerName: "my-server", CreationTimestamp: now, LastUpdatedTimestamp: now}, nil)
+
+	repo := NewMCPRegistryRepository()
+	ctx := contextWithMockClient(mockClient)
+
+	result, err := repo.GetAccessEndpoint(ctx, "my-server", "ep-1")
+
+	require.NoError(t, err)
+	assert.Nil(t, result.ResolvedVersion)
+	mockClient.AssertExpectations(t)
+}
+
+func TestGetAccessEndpointNotFound(t *testing.T) {
+	mockClient := &mlflowpkg.MockClient{}
+
+	mockClient.On("GetMCPAccessEndpoint", tmock.Anything, "my-server", "missing").
+		Return(nil, fmt.Errorf("not found"))
+
+	repo := NewMCPRegistryRepository()
+	ctx := contextWithMockClient(mockClient)
+
+	result, err := repo.GetAccessEndpoint(ctx, "my-server", "missing")
+
+	assert.Nil(t, result)
+	assert.Error(t, err)
+	mockClient.AssertExpectations(t)
+}
+
+// --- UpdateAccessEndpoint ---
+
+func TestUpdateAccessEndpointSuccess(t *testing.T) {
+	mockClient := &mlflowpkg.MockClient{}
+	now := time.Now()
+	url := "https://mcp.example.com/new"
+
+	mockClient.On("UpdateMCPAccessEndpoint", tmock.Anything, "my-server", "ep-1", tmock.MatchedBy(func(opts []mcpregistry.UpdateMCPAccessEndpointOption) bool {
+		return len(opts) == 1 // URL only
+	})).Return(&mcpregistry.MCPAccessEndpoint{
+		ID: "ep-1", ServerName: "my-server", EndpointURL: url,
+		CreationTimestamp: now, LastUpdatedTimestamp: now,
+	}, nil)
+
+	repo := NewMCPRegistryRepository()
+	ctx := contextWithMockClient(mockClient)
+
+	result, err := repo.UpdateAccessEndpoint(ctx, "my-server", "ep-1", models.UpdateMCPAccessEndpointRequest{EndpointURL: &url})
+
+	require.NoError(t, err)
+	assert.Equal(t, url, result.EndpointURL)
+	mockClient.AssertExpectations(t)
+}
+
+func TestUpdateAccessEndpointAllFields(t *testing.T) {
+	mockClient := &mlflowpkg.MockClient{}
+	url := "https://mcp.example.com/new"
+	transportType := models.MCPTransportSSE
+	version := "2.0.0"
+	alias := ""
+
+	mockClient.On("UpdateMCPAccessEndpoint", tmock.Anything, "my-server", "ep-1", tmock.MatchedBy(func(opts []mcpregistry.UpdateMCPAccessEndpointOption) bool {
+		return len(opts) == 4
+	})).Return(&mcpregistry.MCPAccessEndpoint{ID: "ep-1", ServerName: "my-server"}, nil)
+
+	repo := NewMCPRegistryRepository()
+	ctx := contextWithMockClient(mockClient)
+
+	_, err := repo.UpdateAccessEndpoint(ctx, "my-server", "ep-1", models.UpdateMCPAccessEndpointRequest{
+		EndpointURL:   &url,
+		TransportType: &transportType,
+		ServerVersion: &version,
+		ServerAlias:   &alias,
+	})
+
+	require.NoError(t, err)
+	mockClient.AssertExpectations(t)
+}
+
+func TestUpdateAccessEndpointClientError(t *testing.T) {
+	mockClient := &mlflowpkg.MockClient{}
+
+	mockClient.On("UpdateMCPAccessEndpoint", tmock.Anything, "my-server", "ep-1", tmock.Anything).
+		Return(nil, fmt.Errorf("not found"))
+
+	repo := NewMCPRegistryRepository()
+	ctx := contextWithMockClient(mockClient)
+
+	result, err := repo.UpdateAccessEndpoint(ctx, "my-server", "ep-1", models.UpdateMCPAccessEndpointRequest{})
 
 	assert.Nil(t, result)
 	assert.Error(t, err)
