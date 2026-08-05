@@ -81,3 +81,14 @@ export const isConfigEnabled = (config: LLMInferenceServiceConfigKind): boolean 
 
 export const isConfigEffectivelyEnabled = (config: LLMInferenceServiceConfigKind): boolean =>
   isUnsupportedUnaccepted(config) ? false : isConfigEnabled(config);
+
+export const isDeletionBlockedByFinalizer = (result: unknown): boolean =>
+  typeof result === 'object' &&
+  result !== null &&
+  'kind' in result &&
+  result.kind !== 'Status' &&
+  'metadata' in result &&
+  typeof result.metadata === 'object' &&
+  result.metadata !== null &&
+  'deletionTimestamp' in result.metadata &&
+  !!result.metadata.deletionTimestamp;
