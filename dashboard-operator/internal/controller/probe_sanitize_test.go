@@ -2,6 +2,7 @@ package controller
 
 import (
 	"context"
+	"reflect"
 	"testing"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -177,10 +178,26 @@ func TestSanitizeDeploymentProbes_TcpSocketToExec(t *testing.T) {
 	if _, ok := lp["tcpSocket"]; ok {
 		t.Error("tcpSocket should have been removed from livenessProbe")
 	}
+	lpExec, ok := lp["exec"].(map[string]interface{})
+	if !ok {
+		t.Fatal("exec should have been added to livenessProbe")
+	}
+	wantLivenessCmd := []interface{}{"/bin/sh", "-c", "curl -s http://localhost:8080/"}
+	if !reflect.DeepEqual(lpExec["command"], wantLivenessCmd) {
+		t.Errorf("livenessProbe exec command = %v, want %v", lpExec["command"], wantLivenessCmd)
+	}
 
 	rp, _ := c["readinessProbe"].(map[string]interface{})
 	if _, ok := rp["httpGet"]; ok {
 		t.Error("httpGet should have been removed from readinessProbe")
+	}
+	rpExec, ok := rp["exec"].(map[string]interface{})
+	if !ok {
+		t.Fatal("exec should have been added to readinessProbe")
+	}
+	wantReadinessCmd := []interface{}{"/bin/sh", "-c", "curl -s http://localhost:8080/api/health"}
+	if !reflect.DeepEqual(rpExec["command"], wantReadinessCmd) {
+		t.Errorf("readinessProbe exec command = %v, want %v", rpExec["command"], wantReadinessCmd)
 	}
 }
 
@@ -258,6 +275,14 @@ func TestSanitizeDeploymentProbes_MultipleContainers(t *testing.T) {
 		case "rhods-dashboard":
 			if _, ok := lp["tcpSocket"]; ok {
 				t.Error("rhods-dashboard: tcpSocket should have been removed")
+			}
+			execHandler, ok := lp["exec"].(map[string]interface{})
+			if !ok {
+				t.Fatal("rhods-dashboard: exec should have been added")
+			}
+			wantCmd := []interface{}{"/bin/sh", "-c", "curl localhost:8080/"}
+			if !reflect.DeepEqual(execHandler["command"], wantCmd) {
+				t.Errorf("rhods-dashboard: exec command = %v, want %v", execHandler["command"], wantCmd)
 			}
 		case "kube-rbac-proxy":
 			if _, ok := lp["httpGet"]; !ok {
