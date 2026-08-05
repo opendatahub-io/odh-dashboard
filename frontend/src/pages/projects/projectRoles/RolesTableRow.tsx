@@ -11,6 +11,9 @@ type RolesTableRowProps = {
   onViewYAML: () => void;
   onEdit: () => void;
   onDuplicate: () => void;
+  onDelete: () => void;
+  allowDelete: boolean;
+  allowDeleteLoaded: boolean;
 };
 
 const RolesTableRow: React.FC<RolesTableRowProps> = ({
@@ -19,6 +22,9 @@ const RolesTableRow: React.FC<RolesTableRowProps> = ({
   onViewYAML,
   onEdit,
   onDuplicate,
+  onDelete,
+  allowDelete,
+  allowDeleteLoaded,
 }) => {
   const { roleRef, role, userLabels } = row;
   const isClusterRole = roleRef.kind === 'ClusterRole';
@@ -30,6 +36,19 @@ const RolesTableRow: React.FC<RolesTableRowProps> = ({
     'Cluster roles can be edited only in OpenShift. For help, contact your cluster administrator. ';
   const clusterRoleDuplicateTooltip =
     'Cluster roles can be managed only in OpenShift. For help, contact your cluster administrator.';
+  const clusterRoleDeleteTooltip = 'Cluster roles cannot be deleted from a project page';
+  const noPermissionTooltip = 'You do not have permissions to perform this action';
+
+  const isDeleteDisabled = isClusterRole || !allowDelete || !allowDeleteLoaded;
+  const getDeleteTooltip = (): string | undefined => {
+    if (isClusterRole) {
+      return clusterRoleDeleteTooltip;
+    }
+    if (!allowDelete && allowDeleteLoaded) {
+      return noPermissionTooltip;
+    }
+    return undefined;
+  };
 
   const actionItems = [
     {
@@ -51,6 +70,15 @@ const RolesTableRow: React.FC<RolesTableRowProps> = ({
     {
       title: 'View YAML',
       onClick: onViewYAML,
+    },
+    { isSeparator: true },
+    {
+      title: 'Delete role',
+      onClick: onDelete,
+      isAriaDisabled: isDeleteDisabled,
+      ...(getDeleteTooltip() && {
+        tooltipProps: { content: getDeleteTooltip() },
+      }),
     },
   ];
 
