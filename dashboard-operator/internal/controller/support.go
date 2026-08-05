@@ -48,6 +48,7 @@ var imagesMap = map[string]string{
 	"autorag-ui-image":               "RELATED_IMAGE_ODH_MOD_ARCH_AUTORAG_IMAGE",
 	"autorag-pipeline-runtime-image": "RELATED_IMAGE_ODH_AUTORAG_IMAGE",
 	"agent-ops-ui-image":             "RELATED_IMAGE_ODH_MOD_ARCH_AGENT_OPS_IMAGE",
+	"notebooks-ui-image":             "RELATED_IMAGE_ODH_MOD_ARCH_NOTEBOOKS_IMAGE",
 	"core-bff-image":                 "RELATED_IMAGE_ODH_CORE_BFF_IMAGE",
 }
 

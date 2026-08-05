@@ -9,6 +9,7 @@ spec:
   dashboardConfig:
     # Overrides only -- see blankDashboardCR
     disableTracking: false
+    notebooksV2: true
   notebookController:
     enabled: true
     pvcSize: "20Gi"

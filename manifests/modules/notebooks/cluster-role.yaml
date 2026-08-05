@@ -1,0 +1,45 @@
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: odh-dashboard-notebooks
+rules:
+  - apiGroups:
+      - ""
+    verbs:
+      - get
+      - list
+      - watch
+    resources:
+      - namespaces
+      - configmaps
+  - apiGroups:
+      - ""
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - patch
+      - delete
+    resources:
+      - secrets
+  - apiGroups:
+      - kubeflow.org
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - patch
+      - delete
+    resources:
+      - workspaces
+      - workspacekinds
+  - apiGroups:
+      - authorization.k8s.io
+    verbs:
+      - create
+    resources:
+      - subjectaccessreviews
