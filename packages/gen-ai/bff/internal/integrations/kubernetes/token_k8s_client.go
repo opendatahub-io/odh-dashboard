@@ -1688,6 +1688,31 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 	if err != nil || caBundleConfigMap.Data["ca-bundle.crt"] == "" {
 		// DSCI bundle not available or empty — create our own with CA injection label
 		caBundleConfigMapName = "ogx-trusted-ca-bundle"
+
+		// Fallback: attempt to extract the ingress CA directly from the router-ca secret.
+		// This provides immediate CA content without waiting for the async injection.
+		// If we lack RBAC to read the secret, the CA injection label will still work
+		// (just with a short delay while OpenShift populates the ConfigMap).
+		var ingressCAData string
+		if kc.SAClient != nil {
+			var routerCASecret corev1.Secret
+			secretKey := types.NamespacedName{Name: "router-ca", Namespace: "openshift-ingress-operator"}
+			if getErr := kc.SAClient.Get(ctx, secretKey, &routerCASecret); getErr == nil {
+				if crt, ok := routerCASecret.Data["tls.crt"]; ok {
+					ingressCAData = string(crt)
+					kc.Logger.Info("Extracted ingress CA from router-ca secret", "namespace", "openshift-ingress-operator")
+				}
+			} else {
+				kc.Logger.Info("Could not read router-ca secret (RBAC not granted), relying on CA injection label",
+					"error", getErr)
+			}
+		}
+
+		configMapData := map[string]string{}
+		if ingressCAData != "" {
+			configMapData["ca-bundle.crt"] = ingressCAData
+		}
+
 		newCaBundleConfigMap := &corev1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      caBundleConfigMapName,
@@ -1697,7 +1722,7 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 					"ogx.io/watch": "true",
 				},
 			},
-			Data: map[string]string{},
+			Data: configMapData,
 		}
 
 		if createErr := kc.Client.Create(ctx, newCaBundleConfigMap); createErr != nil {
@@ -1707,7 +1732,8 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 			}
 			kc.Logger.Info("CA trust ConfigMap already exists, reusing", "namespace", namespace, "configMapName", caBundleConfigMapName)
 		} else {
-			kc.Logger.Info("CA trust ConfigMap created for OGX TLS verification", "namespace", namespace, "configMapName", caBundleConfigMapName)
+			kc.Logger.Info("CA trust ConfigMap created for OGX TLS verification", "namespace", namespace,
+				"configMapName", caBundleConfigMapName, "hasIngressCA", ingressCAData != "")
 		}
 	} else {
 		// DSCI bundle exists with CA content — ensure it has the ogx.io/watch label
