@@ -2,9 +2,9 @@ import * as React from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
+import { TrustyInstallState } from '@odh-dashboard/trustyai/types';
 import { useTrustySettingsAccessAllowed } from '#~/concepts/trustyai/content/useTrustySettingsAccessAllowed';
 import useManageTrustyAICR from '#~/concepts/trustyai/useManageTrustyAICR';
-import { TrustyInstallState } from '#~/concepts/trustyai/types';
 import ModelBiasSettingsCard from '#~/pages/projects/projectSettings/ModelBiasSettingsCard';
 
 jest.mock('#~/concepts/trustyai/content/useTrustySettingsAccessAllowed');
