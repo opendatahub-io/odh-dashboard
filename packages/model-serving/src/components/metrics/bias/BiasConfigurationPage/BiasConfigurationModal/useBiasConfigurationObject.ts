@@ -5,7 +5,7 @@ import {
   BiasMetricConfig,
   BaseMetricRequestInput,
   BiasMetricType,
-} from '@odh-dashboard/model-serving/shared/types';
+} from '@odh-dashboard/trustyai/types';
 import { getThresholdDefaultDelta } from '../../../utils';
 
 const useBiasConfigurationObject = (

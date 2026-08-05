@@ -1,6 +1,6 @@
 import React from 'react';
 import { useDeepCompareMemoize } from '@odh-dashboard/ui-core/hooks';
-import { TrustyInstallState } from '@odh-dashboard/model-serving/shared/types';
+import { TrustyInstallState } from '@odh-dashboard/trustyai/types';
 import useTrustyAINamespaceCR from '#~/concepts/trustyai/useTrustyAINamespaceCR';
 import useTrustyAIAPIState, { TrustyAPIState } from '#~/concepts/trustyai/useTrustyAIAPIState';
 import { TrustyAIContextData } from '#~/concepts/trustyai/context/types';

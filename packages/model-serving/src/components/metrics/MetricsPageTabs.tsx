@@ -9,7 +9,7 @@ import useServingPlatformStatuses from '@odh-dashboard/internal/pages/modelServi
 import { isProjectNIMSupported } from '@odh-dashboard/internal/pages/modelServing/screens/projects/nim/nimUtils';
 import { byName } from '@odh-dashboard/k8s-core';
 import { ProjectsContext } from '@odh-dashboard/ui-core/context/ProjectsContext';
-import { TrustyInstallState } from '@odh-dashboard/model-serving/shared/types';
+import { TrustyInstallState } from '@odh-dashboard/trustyai/types';
 import type { InferenceServiceKind } from '@odh-dashboard/model-serving/shared';
 import './MetricsPageTabs.scss';
 import { MetricsTabKeys } from './types';

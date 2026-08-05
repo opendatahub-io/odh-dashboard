@@ -71,6 +71,7 @@
     "@odh-dashboard/hardware-profiles": "*",
     "@odh-dashboard/internal": "*",
     "@odh-dashboard/model-serving": "*",
+    "@odh-dashboard/trustyai": "*",
     "@openshift/dynamic-plugin-sdk": "^5.0.1",
     "@openshift/dynamic-plugin-sdk-extensions": "^1.4.1",
     "@openshift/dynamic-plugin-sdk-utils": "^5.0.1",

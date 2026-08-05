@@ -1,6 +1,6 @@
 import React from 'react';
 import { useParams } from 'react-router-dom';
-import type { BiasMetricConfig } from '@odh-dashboard/model-serving/shared/types';
+import type { BiasMetricConfig } from '@odh-dashboard/trustyai/types';
 import { TrustyStatusStates } from '#~/concepts/trustyai/types';
 import { TrustyAIContext } from '#~/concepts/trustyai/context/TrustyAIContext';
 

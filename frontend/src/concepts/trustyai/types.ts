@@ -1,4 +1,4 @@
-import { BaseMetricRequest, TrustyInstallState } from '@odh-dashboard/model-serving/shared/types';
+import { BaseMetricRequest, TrustyInstallState } from '@odh-dashboard/trustyai/types';
 import { BaseMetricCreationResponse, BaseMetricListResponse } from '#~/api';
 import { K8sAPIOptions } from '#~/k8sTypes';
 

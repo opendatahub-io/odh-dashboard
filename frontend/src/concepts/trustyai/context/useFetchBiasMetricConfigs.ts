@@ -5,7 +5,7 @@ import useFetchState, {
   FetchStateCallbackPromise,
   NotReadyError,
 } from '@odh-dashboard/ui-core/hooks/useFetchState';
-import type { BiasMetricConfig } from '@odh-dashboard/model-serving/shared/types';
+import type { BiasMetricConfig } from '@odh-dashboard/trustyai/types';
 import { TrustyAPIState } from '#~/concepts/trustyai/useTrustyAIAPIState';
 import { formatListResponse } from '#~/concepts/trustyai/utils';
 

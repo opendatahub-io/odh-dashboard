@@ -1,4 +1,4 @@
-import type { BaseMetricRequest } from '@odh-dashboard/model-serving/shared/types';
+import type { BaseMetricRequest } from '@odh-dashboard/trustyai/types';
 import { proxyCREATE, proxyDELETE, proxyGET } from '#~/api/proxyUtils';
 import { K8sAPIOptions } from '#~/k8sTypes';
 import { BaseMetricCreationResponse, BaseMetricListResponse } from '#~/api';

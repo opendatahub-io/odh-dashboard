@@ -8,7 +8,7 @@ import {
   SplitItem,
 } from '@patternfly/react-core';
 import type { ProjectKind } from '@odh-dashboard/k8s-core';
-import { TrustyInstallState } from '@odh-dashboard/model-serving/shared/types';
+import { TrustyInstallState } from '@odh-dashboard/trustyai/types';
 import useManageTrustyAICR from '#~/concepts/trustyai/useManageTrustyAICR';
 import { useTrustySettingsAccessAllowed } from '#~/concepts/trustyai/content/useTrustySettingsAccessAllowed';
 import TrustyAIInstalledState from '#~/concepts/trustyai/content/statusStates/TrustyAIInstalledState';

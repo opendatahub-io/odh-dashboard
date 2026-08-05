@@ -8,7 +8,7 @@ import {
   BiasMetricConfig,
   TrustyInstallState,
   BiasMetricType,
-} from '@odh-dashboard/model-serving/shared/types';
+} from '@odh-dashboard/trustyai/types';
 
 type BiasMetricConfigSelectorProps = {
   onChange: (x: BiasMetricConfig[]) => void;
