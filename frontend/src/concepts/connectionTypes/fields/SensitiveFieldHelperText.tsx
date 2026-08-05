@@ -12,7 +12,7 @@ const getHelperText = (field: ConnectionTypeDataField, mode?: FieldMode): string
     return field.properties.helperText;
   }
   if (field.properties.deferInput) {
-    return 'Be cautious when sharing sensitive information. Secret details are visible to users with access to the project.';
+    return 'Secret details are visible to users with access to this project.';
   }
   return null;
 };
