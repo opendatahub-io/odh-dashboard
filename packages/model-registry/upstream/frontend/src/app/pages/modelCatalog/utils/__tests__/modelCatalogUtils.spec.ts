@@ -44,9 +44,9 @@ import {
   getActiveSourceLabels,
   hasValidatedToolCalling,
   getToolCallingArgs,
+  getValidatedConfigurationsForModel,
   getSortParams,
   getEffectiveSortBy,
-  servingConfigToValidatedConfigurations,
 } from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
 import { mockCatalogModelArtifact } from '~/__mocks__/mockCatalogModelArtifactList';
 import { ModelRegistryMetadataType } from '~/app/types';
@@ -1920,6 +1920,40 @@ describe('getToolCallingArgs', () => {
   });
 });
 
+describe('getValidatedConfigurationsForModel', () => {
+  const validatedToolCallingModel = {
+    name: 'test-model',
+    validatedTasks: [ModelCatalogTask.TOOL_CALLING],
+    servingConfig: { toolCalling: { toolCallParser: 'granite' } },
+  };
+
+  it('should return empty object when the toolCalling flag is disabled', () => {
+    expect(getValidatedConfigurationsForModel(validatedToolCallingModel, false)).toEqual({});
+  });
+
+  it('should return empty object when the model has no validated tool calling', () => {
+    expect(getValidatedConfigurationsForModel({ name: 'test-model' }, true)).toEqual({});
+  });
+
+  it('should return validatedConfigurations and selectedValidatedConfigurations when enabled and validated', () => {
+    const result = getValidatedConfigurationsForModel(validatedToolCallingModel, true);
+
+    expect(result.validatedConfigurations).toHaveLength(1);
+    expect(result.validatedConfigurations?.[0]).toMatchObject({
+      forField: 'args',
+      title: 'Validated arguments',
+    });
+    expect(result.validatedConfigurations?.[0].options).toHaveLength(1);
+    expect(result.validatedConfigurations?.[0].options[0]).toMatchObject({
+      title: 'Tool calling',
+      value: '--tool-call-parser granite',
+    });
+    expect(result.selectedValidatedConfigurations).toEqual({
+      args: ['--tool-call-parser granite'],
+    });
+  });
+});
+
 describe('getEffectiveSortBy', () => {
   it('returns the provided sortBy when not null', () => {
     expect(getEffectiveSortBy(ModelCatalogSortOption.LOWEST_LATENCY, false)).toBe(
@@ -1991,53 +2025,3 @@ describe('getSortParams', () => {
   });
 });
 
-describe('servingConfigToValidatedConfigurations', () => {
-  it('returns undefined when model has no servingConfig', () => {
-    const model: CatalogModel = {
-      name: 'test-model',
-    };
-    expect(servingConfigToValidatedConfigurations(model)).toBeUndefined();
-  });
-
-  it('returns undefined when toolCalling has no validatedTasks', () => {
-    const model: CatalogModel = {
-      name: 'test-model',
-      servingConfig: {
-        toolCalling: {
-          toolCallParser: 'hermes',
-        },
-      },
-      validatedTasks: [],
-    };
-    expect(servingConfigToValidatedConfigurations(model)).toBeUndefined();
-  });
-
-  it('returns a ValidatedConfiguration array when model has valid tool calling config', () => {
-    const model: CatalogModel = {
-      name: 'test-model',
-      servingConfig: {
-        toolCalling: {
-          toolCallParser: 'hermes',
-        },
-      },
-      validatedTasks: [ModelCatalogTask.TOOL_CALLING],
-    };
-
-    const result = servingConfigToValidatedConfigurations(model);
-
-    expect(result).toBeDefined();
-    expect(result).toHaveLength(1);
-    expect(result![0]).toEqual({
-      forField: 'runtimeArgs',
-      title: 'Tool calling',
-      description: 'Validated tool calling configuration for this model',
-      options: [
-        {
-          title: 'hermes',
-          description: 'Enable tool calling with validated configuration',
-          value: '--tool-call-parser hermes',
-        },
-      ],
-    });
-  });
-});

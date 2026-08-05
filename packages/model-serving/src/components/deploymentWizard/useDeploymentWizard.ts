@@ -22,6 +22,7 @@ import { useModelAvailabilityFields } from './fields/ModelAvailabilityFields';
 import { useCreateConnectionData } from './fields/CreateConnectionInputFields';
 import { useProjectSection } from './fields/ProjectSection';
 import { useDeploymentStrategyField } from './fields/DeploymentStrategyField';
+import { useValidatedConfigurationsField } from './fields/validatedConfigurations/useValidatedConfigurationsField';
 import {
   useDeploymentWizardReducer,
   wizardFormReducer,
@@ -150,6 +151,9 @@ export const useModelDeploymentWizard = (
     formState.modelServer,
     formState.deploymentMethod,
   );
+  const validatedConfigurationSelection = useValidatedConfigurationsField(
+    initialData?.selectedValidatedConfigurations,
+  );
 
   // Step 4: Summary
 
@@ -173,6 +177,7 @@ export const useModelDeploymentWizard = (
       modelAvailability,
       deploymentStrategy,
       canCreateRoleBindings,
+      validatedConfigurationSelection,
       ...formState,
     }),
     [
@@ -191,6 +196,7 @@ export const useModelDeploymentWizard = (
       modelAvailability,
       deploymentStrategy,
       canCreateRoleBindings,
+      validatedConfigurationSelection,
       formState,
     ],
   );
