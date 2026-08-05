@@ -30,8 +30,8 @@ it('LLM accelerator configurations tab should not be available when vLLMDeployme
   llmAcceleratorConfigs.visit(false);
   // The parent tabbed page still renders (other tabs are visible), but the accelerator
   // tab is hidden. TabRoutePage redirects to the first available tab.
-  cy.findByTestId('app-tab-page-title').should('contain.text', 'Model deployment settings');
-  cy.findByRole('tab', { name: 'LLM accelerator configurations' }).should('not.exist');
+  llmAcceleratorConfigs.findTabPageTitle().should('contain.text', 'Model deployment settings');
+  llmAcceleratorConfigs.findTab().should('not.exist');
 });
 
 describe('LLM accelerator configurations', () => {

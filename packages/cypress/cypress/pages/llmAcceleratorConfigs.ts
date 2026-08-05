@@ -90,6 +90,19 @@ class LlmAcceleratorConfigs {
     return cy.findByTestId('app-page-title');
   }
 
+  /** Title of the tabbed "Model deployment settings" page that hosts the tab. */
+  findTabPageTitle() {
+    return cy.findByTestId('app-tab-page-title');
+  }
+
+  findTab() {
+    return cy.findByRole('tab', { name: 'LLM accelerator configurations' });
+  }
+
+  findEmptyState() {
+    return cy.findByTestId('llm-accelerator-configs-empty-state');
+  }
+
   findAddButton() {
     return cy.findByTestId('add-accelerator-config-button');
   }
