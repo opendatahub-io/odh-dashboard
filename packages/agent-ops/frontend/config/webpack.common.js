@@ -34,7 +34,7 @@ module.exports = (env) => ({
     rules: [
       {
         test: /\.(tsx|ts|jsx|js)?$/,
-        exclude: [/node_modules\/(?!@odh-dashboard)/, /__tests__/, /__mocks__/],
+        exclude: [/node_modules\/(?!@odh-dashboard|openshell-dashboard)/, /__tests__/, /__mocks__/],
         use: [
           COVERAGE === 'true' && '@jsdevtools/coverage-istanbul-loader',
           env === 'development'
@@ -162,6 +162,10 @@ module.exports = (env) => ({
         ],
       },
       {
+        test: /\.css$/,
+        use: ['style-loader', 'css-loader'],
+      },
+      {
         test: /\.s[ac]ss$/i,
         use: [
           // Creates `style` nodes from JS strings
@@ -245,7 +249,18 @@ module.exports = (env) => ({
     alias: {
       '~': path.resolve(SRC_DIR),
       '@odh-dashboard/internal': path.resolve(RELATIVE_DIRNAME, '../../../frontend/src'),
+      'openshell-dashboard/pages': path.resolve(ROOT_NODE_MODULES, 'openshell-dashboard/src/pages/index.ts'),
+      'openshell-dashboard/components': path.resolve(ROOT_NODE_MODULES, 'openshell-dashboard/src/components/index.ts'),
+      'openshell-dashboard/api': path.resolve(ROOT_NODE_MODULES, 'openshell-dashboard/src/api/index.ts'),
+      'openshell-dashboard/types': path.resolve(ROOT_NODE_MODULES, 'openshell-dashboard/src/types/index.ts'),
+      'openshell-dashboard/slots': path.resolve(ROOT_NODE_MODULES, 'openshell-dashboard/src/slots/index.ts'),
     },
+    modules: [
+      path.resolve(SRC_DIR),
+      path.resolve(RELATIVE_DIRNAME, 'node_modules'),
+      ROOT_NODE_MODULES,
+      'node_modules',
+    ],
     symlinks: false,
     cacheWithContext: false,
   },

@@ -16,6 +16,10 @@
       {
         "path": "/agent-ops/healthcheck",
         "pathRewrite": "/healthcheck"
+      },
+      {
+        "path": "/openshell/api",
+        "pathRewrite": "/api"
       }
     ],
     "local": {
@@ -50,7 +54,8 @@
     "@odh-dashboard/internal": "*",
     "@odh-dashboard/k8s-core": "*",
     "@odh-dashboard/plugin-core": "*",
-    "@odh-dashboard/ui-core": "*"
+    "@odh-dashboard/ui-core": "*",
+    "openshell-dashboard": "file:/Users/gkrumbac/Documents/brain/openshell-dashboard/openshell-dashboard/frontend"
   },
   "devDependencies": {
     "@odh-dashboard/contract-tests": "*",

@@ -4,10 +4,6 @@ import type {
   TabRouteTabExtension,
 } from '@odh-dashboard/plugin-core/extension-points';
 
-// Keep in sync with ~/app/utilities/routes.ts (value imports are disallowed in extensions.ts).
-const agentDeploymentsPath = '/ai-hub/agents/deployments';
-const agentDeployWizardPath = `${agentDeploymentsPath}/deploy`;
-
 const AGENT_OPS = 'agent-ops';
 const AGENTS_TAB_PAGE = 'agents-tab-page';
 
@@ -26,6 +22,7 @@ const extensions: (AreaExtension | TabRouteTabExtension | RouteExtension)[] = [
       featureFlags: ['agentOpsDeploy'],
     },
   },
+  // --- Existing agent-ops tabs/routes ---
   {
     type: 'app.tab-route/tab',
     flags: {
@@ -39,15 +36,13 @@ const extensions: (AreaExtension | TabRouteTabExtension | RouteExtension)[] = [
       group: '1_deployments',
     },
   },
-  // Full-page breakout routes share one wrapper and internal router. Keep separate
-  // app.route entries so /ai-hub/agents/deployments (tab list) is not captured.
   {
     type: 'app.route',
     flags: {
       required: [AGENT_OPS, 'agent-ops-deploy'],
     },
     properties: {
-      path: `${agentDeploymentsPath}/:namespace/:agentId/*`,
+      path: '/ai-hub/agents/deployments/:namespace/:agentId/*',
       component: () => import('./AgentDeploymentDetailRoutes.tsx'),
     },
   },
@@ -57,8 +52,65 @@ const extensions: (AreaExtension | TabRouteTabExtension | RouteExtension)[] = [
       required: [AGENT_OPS, 'agent-ops-deploy'],
     },
     properties: {
-      path: agentDeployWizardPath,
+      path: '/ai-hub/agents/deployments/deploy',
       component: () => import('./AgentDeployWizardRoutes.tsx'),
+    },
+  },
+  // --- OpenShell Dashboard tabs/routes ---
+  {
+    type: 'app.tab-route/tab',
+    flags: {
+      required: [AGENT_OPS],
+    },
+    properties: {
+      pageId: AGENTS_TAB_PAGE,
+      id: 'sandboxes',
+      title: 'Sandboxes',
+      component: () => import('./openshell/SandboxesWrapper'),
+      group: '2_sandboxes',
+    },
+  },
+  {
+    type: 'app.tab-route/tab',
+    flags: {
+      required: [AGENT_OPS],
+    },
+    properties: {
+      pageId: AGENTS_TAB_PAGE,
+      id: 'workspaces',
+      title: 'Workspaces',
+      component: () => import('./openshell/WorkspacesWrapper'),
+      group: '3_workspaces',
+    },
+  },
+  {
+    type: 'app.route',
+    flags: {
+      required: [AGENT_OPS],
+    },
+    properties: {
+      path: '/ai-hub/agents/workspaces/:workspace',
+      component: () => import('./openshell/WorkspaceDetailWrapper'),
+    },
+  },
+  {
+    type: 'app.route',
+    flags: {
+      required: [AGENT_OPS],
+    },
+    properties: {
+      path: '/ai-hub/agents/workspaces/:workspace/sandboxes/:sandbox',
+      component: () => import('./openshell/SandboxDetailWrapper'),
+    },
+  },
+  {
+    type: 'app.route',
+    flags: {
+      required: [AGENT_OPS],
+    },
+    properties: {
+      path: '/ai-hub/agents/workspaces/:workspace/providers/:provider',
+      component: () => import('./openshell/ProviderDetailWrapper'),
     },
   },
 ];
