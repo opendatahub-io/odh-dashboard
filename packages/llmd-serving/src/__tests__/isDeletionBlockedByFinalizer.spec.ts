@@ -70,4 +70,48 @@ describe('isDeletionBlockedByFinalizer', () => {
     };
     expect(isDeletionBlockedByFinalizer(result)).toBe(false);
   });
+
+  it('should return false when deletionTimestamp is set but finalizers are missing', () => {
+    const result = {
+      kind: 'LLMInferenceServiceConfig',
+      apiVersion: 'serving.kserve.io/v1alpha2',
+      metadata: {
+        name: 'test-config',
+        namespace: 'opendatahub',
+        deletionTimestamp: '2026-08-05T12:00:00Z',
+      },
+      spec: {},
+    };
+    expect(isDeletionBlockedByFinalizer(result)).toBe(false);
+  });
+
+  it('should return false when deletionTimestamp is set but finalizer is unrelated', () => {
+    const result = {
+      kind: 'LLMInferenceServiceConfig',
+      apiVersion: 'serving.kserve.io/v1alpha2',
+      metadata: {
+        name: 'test-config',
+        namespace: 'opendatahub',
+        deletionTimestamp: '2026-08-05T12:00:00Z',
+        finalizers: ['example.com/other-finalizer'],
+      },
+      spec: {},
+    };
+    expect(isDeletionBlockedByFinalizer(result)).toBe(false);
+  });
+
+  it('should return false when deletionTimestamp is set but finalizers array is empty', () => {
+    const result = {
+      kind: 'LLMInferenceServiceConfig',
+      apiVersion: 'serving.kserve.io/v1alpha2',
+      metadata: {
+        name: 'test-config',
+        namespace: 'opendatahub',
+        deletionTimestamp: '2026-08-05T12:00:00Z',
+        finalizers: [],
+      },
+      spec: {},
+    };
+    expect(isDeletionBlockedByFinalizer(result)).toBe(false);
+  });
 });

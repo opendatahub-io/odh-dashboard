@@ -82,6 +82,8 @@ export const isConfigEnabled = (config: LLMInferenceServiceConfigKind): boolean 
 export const isConfigEffectivelyEnabled = (config: LLMInferenceServiceConfigKind): boolean =>
   isUnsupportedUnaccepted(config) ? false : isConfigEnabled(config);
 
+const KSERVE_CONFIG_FINALIZER = 'serving.kserve.io/llmisvcconfig-finalizer';
+
 export const isDeletionBlockedByFinalizer = (result: unknown): boolean =>
   typeof result === 'object' &&
   result !== null &&
@@ -91,4 +93,7 @@ export const isDeletionBlockedByFinalizer = (result: unknown): boolean =>
   typeof result.metadata === 'object' &&
   result.metadata !== null &&
   'deletionTimestamp' in result.metadata &&
-  !!result.metadata.deletionTimestamp;
+  !!result.metadata.deletionTimestamp &&
+  'finalizers' in result.metadata &&
+  Array.isArray(result.metadata.finalizers) &&
+  result.metadata.finalizers.includes(KSERVE_CONFIG_FINALIZER);

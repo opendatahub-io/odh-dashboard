@@ -137,6 +137,8 @@ describe('TopologyConfigurationsTable', () => {
         'This configuration is currently in use by a deployment and cannot be deleted until the deployment is removed.',
       );
     });
+
+    expect(screen.getByTestId('delete-modal')).toBeInTheDocument();
   });
 
   it('should show error notification when delete request fails', async () => {
