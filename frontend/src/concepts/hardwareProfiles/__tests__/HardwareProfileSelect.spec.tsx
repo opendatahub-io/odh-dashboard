@@ -676,42 +676,36 @@ describe('HardwareProfileSelect - Project-scoped preview description', () => {
     });
 
     return render(
-      <ProjectsContext.Provider
-        value={{
-          projects: [project],
-          modelServingProjects: [],
-          nonActiveProjects: [],
-          preferredProject: null,
-          updatePreferredProject: () => undefined,
-          loaded: true,
-          loadError: undefined,
-          waitForProject: () => Promise.resolve(),
-        }}
-      >
-        <ProjectDetailsContext.Provider
-          value={
-            {
-              currentProject: project,
-              refresh: jest.fn(),
-              localQueues: DEFAULT_LIST_FETCH_STATE,
-            } as unknown as ProjectDetailsContextType
-          }
+      <CurrentProjectContext.Provider value={{ currentProject: project }}>
+        <ProjectsContext.Provider
+          value={{
+            projects: [project],
+            modelServingProjects: [],
+            nonActiveProjects: [],
+            preferredProject: null,
+            updatePreferredProject: () => undefined,
+            loaded: true,
+            loadError: undefined,
+            waitForProject: () => Promise.resolve(),
+          }}
         >
-          <HardwareProfileSelect
-            isProjectScoped
-            previewDescription={previewDescription}
-            hardwareProfiles={[nodeHardwareProfile]}
-            hardwareProfilesLoaded
-            hardwareProfilesError={undefined}
-            projectScopedHardwareProfiles={[[selectedProfile], true, undefined]}
-            allowExistingSettings={false}
-            hardwareProfileConfig={hardwareProfileConfig}
-            isHardwareProfileSupported={() => true}
-            onChange={() => null}
-            project="test-project"
-          />
-        </ProjectDetailsContext.Provider>
-      </ProjectsContext.Provider>,
+          <LocalQueuesContext.Provider value={{ localQueues: DEFAULT_LIST_FETCH_STATE }}>
+            <HardwareProfileSelect
+              isProjectScoped
+              previewDescription={previewDescription}
+              hardwareProfiles={[nodeHardwareProfile]}
+              hardwareProfilesLoaded
+              hardwareProfilesError={undefined}
+              projectScopedHardwareProfiles={[[selectedProfile], true, undefined]}
+              allowExistingSettings={false}
+              hardwareProfileConfig={hardwareProfileConfig}
+              isHardwareProfileSupported={() => true}
+              onChange={() => null}
+              project="test-project"
+            />
+          </LocalQueuesContext.Provider>
+        </ProjectsContext.Provider>
+      </CurrentProjectContext.Provider>,
     );
   };
 
