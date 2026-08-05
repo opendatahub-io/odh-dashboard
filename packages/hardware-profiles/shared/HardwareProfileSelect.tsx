@@ -455,33 +455,17 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
                   <FormHelperText>
                     <HelperText>
                       <HelperTextItem>
-                        <TruncatedText
-                          maxLines={2}
-                          tooltipMaxLines={TOOLTIP_MAX_LINES}
-                          content={
-                            <Stack>
-                              {description && (
-                                <StackItem>
-                                  <TruncatedText
-                                    maxLines={1}
-                                    tooltipMaxLines={TOOLTIP_MAX_LINES}
-                                    content={description}
-                                  />
-                                </StackItem>
-                              )}
-                              {identifiersText && (
-                                <StackItem>
-                                  <Truncate content={identifiersText} />
-                                </StackItem>
-                              )}
-                              {kueueText && (
-                                <StackItem>
-                                  <Truncate content={kueueText} />
-                                </StackItem>
-                              )}
-                            </Stack>
-                          }
-                        />
+                        {description && (
+                          <TruncatedText
+                            maxLines={1}
+                            tooltipMaxLines={TOOLTIP_MAX_LINES}
+                            content={description}
+                          />
+                        )}
+                        {description && (identifiersText || kueueText) && <br />}
+                        {identifiersText && <Truncate content={identifiersText} />}
+                        {identifiersText && kueueText && <br />}
+                        {kueueText && <Truncate content={kueueText} />}
                       </HelperTextItem>
                     </HelperText>
                   </FormHelperText>
