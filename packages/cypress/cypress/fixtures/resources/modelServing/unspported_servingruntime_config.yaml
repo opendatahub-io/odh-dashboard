@@ -6,7 +6,6 @@ metadata:
     opendatahub.io/apiProtocol: REST
     opendatahub.io/runtime-version: v0.0.1
     opendatahub.io/support-status: unsupported
-    opendatahub.io/unsupported-status-accepted: 'false'
   labels:
     opendatahub.io/dashboard: 'true'
   name: cypress-custom-servingruntime

@@ -15,5 +15,5 @@ servingRuntimeResourceName: 'cypress-custom-servingruntime'
 servingRuntimeDisplayName: 'Cypress Custom ServingRuntime for KServe'
 servingRuntimeYamlFixturePath: 'resources/modelServing/unspported_servingruntime_config.yaml'
 apiProtocol: 'REST'
-replaceSourceString: 'opendatahub.io/unsupported-status-accepted: "false"'
-replaceTargetString: 'opendatahub.io/unsupported-status-accepted: "true"'
+replaceSourceString: "opendatahub.io/unsupported-status-accepted: 'false'"
+replaceTargetString: "opendatahub.io/unsupported-status-accepted: 'true'"
