@@ -5,6 +5,7 @@ import {
   createServiceAccountIfMissing,
   createRoleIfMissing,
   createRoleBindingIfMissing,
+  createTokenSecrets,
   getTokenNames,
   type TokenAuthEntry,
 } from '../auth';
@@ -62,6 +63,8 @@ const serviceAccountsMock = require('@odh-dashboard/internal/api/k8s/serviceAcco
 const rolesMock = require('@odh-dashboard/internal/api/k8s/roles');
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const roleBindingsMock = require('@odh-dashboard/internal/api/k8s/roleBindings');
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const k8sUtilsMock = require('@odh-dashboard/internal/api/k8sUtils');
 
 const make404 = () => ({ statusObject: { code: 404, status: 'Failure', message: 'not found' } });
 
@@ -312,5 +315,54 @@ describe('setUpTokenAuth', () => {
     expect(secretsMock.deleteSecret).not.toHaveBeenCalled();
     expect(secretsMock.createSecret).not.toHaveBeenCalled();
     expect(secretsMock.replaceSecret).not.toHaveBeenCalled();
+  });
+
+  it('should apply the owner reference to every created resource', async () => {
+    const tokens: TokenAuthEntry[] = [{ displayName: 'token-1', uuid: 'uuid-1' }];
+
+    await setUpTokenAuth(tokens, 'test-model', 'test-ns', true, mockOwner, 'inferenceservices');
+
+    expect(k8sUtilsMock.addOwnerReference).toHaveBeenCalledTimes(4);
+    k8sUtilsMock.addOwnerReference.mock.calls.forEach((call: unknown[]) => {
+      expect(call[1]).toBe(mockOwner);
+    });
+  });
+});
+
+describe('createTokenSecrets', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('should not delete obsolete secrets when a token write fails', async () => {
+    const tokens: TokenAuthEntry[] = [
+      { displayName: 'token-b', k8sName: 'renamed-secret', uuid: 'uuid-b' },
+    ];
+    const existingSecrets = [{ metadata: { name: 'old-secret' } }] as never[];
+    const failure = new Error('conflict');
+    secretsMock.replaceSecret.mockRejectedValue(failure);
+
+    await expect(
+      createTokenSecrets(tokens, 'test-model', 'test-ns', mockOwner, existingSecrets),
+    ).rejects.toBe(failure);
+
+    expect(secretsMock.deleteSecret).not.toHaveBeenCalled();
+  });
+
+  it('should not touch secrets when RBAC creation fails', async () => {
+    const tokens: TokenAuthEntry[] = [{ displayName: 'token-1', uuid: 'uuid-1' }];
+    const failure = new Error('forbidden');
+    rolesMock.getRole.mockRejectedValue(failure);
+    serviceAccountsMock.getServiceAccount.mockRejectedValue(make404());
+    serviceAccountsMock.createServiceAccount.mockImplementation((sa: unknown) =>
+      Promise.resolve(sa),
+    );
+
+    await expect(
+      setUpTokenAuth(tokens, 'test-model', 'test-ns', true, mockOwner, 'inferenceservices'),
+    ).rejects.toBe(failure);
+
+    expect(secretsMock.createSecret).not.toHaveBeenCalled();
+    expect(secretsMock.deleteSecret).not.toHaveBeenCalled();
   });
 });

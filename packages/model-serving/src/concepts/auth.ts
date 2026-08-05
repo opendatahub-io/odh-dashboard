@@ -148,21 +148,20 @@ export const createTokenSecrets = async (
     existingSecrets
       ?.map((secret) => secret.metadata.name)
       .filter((token: string) => !tokenAuth.some((tokenEdit) => tokenEdit.k8sName === token)) || [];
-  const tokensToProcess = tokenAuth;
 
-  await Promise.all<K8sStatus | SecretKind>([
-    ...tokensToProcess.map((token) => {
+  await Promise.all<SecretKind>(
+    tokenAuth.map((token) => {
       const secretToken = addOwnerReference(
         assembleSecretSA(token.displayName, serviceAccountName, namespace, token.k8sName),
         owner,
       );
-      if (token.k8sName) {
-        return replaceSecret(secretToken, opts);
-      }
-      return createSecret(secretToken, opts);
+      return token.k8sName ? replaceSecret(secretToken, opts) : createSecret(secretToken, opts);
     }),
-    ...deletedSecrets.map((secret) => deleteSecret(namespace, secret, opts)),
-  ]);
+  );
+
+  await Promise.all<K8sStatus>(
+    deletedSecrets.map((secret) => deleteSecret(namespace, secret, opts)),
+  );
 };
 
 export const setUpTokenAuth = async (
