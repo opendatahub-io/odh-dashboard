@@ -18,9 +18,8 @@ if (!applicationNamespace) {
 export const cleanupLLMInferenceServiceConfig = (
   configName: string,
 ): Cypress.Chainable<CommandLineResult> => {
-  const sanitizedName = configName.replace(/[^a-zA-Z0-9_-]/g, '');
-  cy.log(`Deleting LLMInferenceServiceConfig (exact match): ${sanitizedName}`);
-  const deleteCommand = `oc delete llminferenceserviceconfig ${sanitizedName} -n ${applicationNamespace} --ignore-not-found`;
+  cy.log(`Deleting LLMInferenceServiceConfig: ${configName}`);
+  const deleteCommand = `oc delete llminferenceserviceconfig ${configName} -n ${applicationNamespace} --ignore-not-found`;
   return cy.exec(deleteCommand, { failOnNonZeroExit: false });
 };
 
