@@ -2,10 +2,10 @@ import * as React from 'react';
 import { render } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import type { ProjectKind } from '@odh-dashboard/k8s-core';
+import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import { mockInferenceServiceK8sResource } from '#~/__mocks__/mockInferenceServiceK8sResource';
 import InferenceServiceProject from '#~/pages/modelServing/screens/global/InferenceServiceProject';
 import { ProjectsContext } from '#~/concepts/projects/ProjectsContext';
-import { mockProjectK8sResource } from '#~/__mocks__/mockProjectK8sResource';
 
 describe('InferenceServiceProject', () => {
   it('should render error if loading fails', () => {

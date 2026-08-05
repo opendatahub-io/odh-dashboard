@@ -25,8 +25,25 @@ const withWorkspace = (basePath: string, namespace?: string): string => {
 export const mlflowExperimentsBaseRoute = (namespace?: string): string =>
   withWorkspace(mlflowExperimentsPath, namespace);
 
-export const mlflowExperimentRoute = (experimentId: string, namespace?: string): string =>
-  withWorkspace(`${mlflowExperimentsPath}/${encodeURIComponent(experimentId)}`, namespace);
+export const SEARCH_FILTER_QUERY_PARAM = 'searchFilter';
+
+export const mlflowExperimentRoute = (experimentId: string, namespace?: string): string => {
+  const basePath = `${mlflowExperimentsPath}/${encodeURIComponent(experimentId)}/runs`;
+  const params = new URLSearchParams();
+  if (namespace) {
+    params.set(WORKSPACE_QUERY_PARAM, namespace);
+  }
+  params.set(SEARCH_FILTER_QUERY_PARAM, '');
+  return `${basePath}?${params.toString()}`;
+};
+
+export const mlflowRunRoute = (experimentId: string, runId: string, namespace?: string): string =>
+  withWorkspace(
+    `${mlflowExperimentsPath}/${encodeURIComponent(experimentId)}/runs/${encodeURIComponent(
+      runId,
+    )}`,
+    namespace,
+  );
 
 export const promptManagementPath = '/gen-ai-studio/prompts';
 export const globPromptManagementAll = `${promptManagementPath}/*`;

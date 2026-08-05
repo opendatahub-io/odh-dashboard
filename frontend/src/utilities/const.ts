@@ -57,12 +57,6 @@ export const DEFAULT_LIST_WATCH_RESULT: CustomWatchK8sResult<never | never[]> = 
   undefined,
 ];
 
-export const DEFAULT_LIST_FETCH_STATE: FetchStateObject<never[]> = {
-  data: [],
-  loaded: false,
-  refresh: () => Promise.resolve(undefined),
-};
-
 export const DEFAULT_VALUE_FETCH_STATE: FetchStateObject<never | undefined> = {
   data: undefined,
   loaded: false,

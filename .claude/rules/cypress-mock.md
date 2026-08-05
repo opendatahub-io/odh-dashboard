@@ -177,11 +177,12 @@ Each module may have specific setup requirements. Always check:
 
 ### Test Data Management
 
-**MANDATORY: Use mocks from `@odh-dashboard/internal/__mocks__`**:
-- All mock data MUST come from the `@odh-dashboard/internal/__mocks__` package (source: `frontend/src/__mocks__/`)
+**MANDATORY: Use shared mock factories**:
+- Most mock data comes from `@odh-dashboard/internal/__mocks__` (source: `frontend/src/__mocks__/`)
+- Some mocks live in their type-owning packages via subpath exports (e.g., `@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource`, `@odh-dashboard/hardware-profiles/__mocks__/mockHardwareProfile`)
 - NEVER create inline mock data in test files
 - Import and use existing mock functions (e.g., `mockDashboardConfig`, `mockK8sResourceList`)
-- If a mock doesn't exist, create it in `frontend/src/__mocks__` and make it reusable
+- If a mock doesn't exist, create it in the type-owning package's `__mocks__/` directory (or `frontend/src/__mocks__` for frontend-only types) and make it reusable
 - Mock functions should accept partial data and merge with defaults
 
 **Example mock usage**:
@@ -677,7 +678,7 @@ cy.interceptOdh('POST /api/connection-types', {
 
 ```typescript
 import { mockK8sResourceList } from '@odh-dashboard/internal/__mocks__';
-import { mockProjectK8sResource } from '@odh-dashboard/internal/__mocks__/mockProjectK8sResource';
+import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import { ProjectModel } from '../../../utils/models';
 
 // List resources
@@ -821,7 +822,7 @@ it('should display error message on API failure', () => {
 - Complex data structure used in multiple tests
 - Default test data needs to be consistent across tests
 
-**Mock function pattern** (in `frontend/src/__mocks__` folder, exposed as `@odh-dashboard/internal/__mocks__`):
+**Mock function pattern** (in `frontend/src/__mocks__` or in a type-owning package's `__mocks__/` directory):
 
 ```typescript
 // mockFeature.ts

@@ -5,7 +5,7 @@ import {
   ServingRuntimeModelType,
   ServingRuntimePlatform,
 } from '@odh-dashboard/model-serving/shared/types';
-import { mockProjectK8sResource } from '@odh-dashboard/internal/__mocks__';
+import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import { ProjectModel, TemplateModel } from '../../../utils/models';
 
 const mockUnsupportedAccepted = mockServingRuntimeTemplateK8sResource({

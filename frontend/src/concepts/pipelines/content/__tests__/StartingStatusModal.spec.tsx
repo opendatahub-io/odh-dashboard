@@ -108,6 +108,7 @@ describe('StartingStatusModal', () => {
     refreshState: jest.fn(),
     managedPipelines: undefined,
     mlflowIntegrationMode: undefined,
+    mlflowInjectUserEnvVars: false,
     apiAvailable: true,
     api: {} as PipelineAPIs,
     startingStatusModalOpenRef: { current: 'test-namespace' },

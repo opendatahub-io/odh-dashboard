@@ -1,7 +1,10 @@
 import { KubeFastifyInstance } from '../../../types';
+import featureStores from './featureStores';
+import fsworkbenchIntegration from './fsworkbenchIntegration';
+import connectedWorkbenches from './connectedWorkbenches';
 
 export default async (fastify: KubeFastifyInstance): Promise<void> => {
-  await fastify.register(require('./featureStores'));
-  await fastify.register(require('./fsworkbenchIntegration'));
-  await fastify.register(require('./connectedWorkbenches'));
+  await fastify.register(featureStores);
+  await fastify.register(fsworkbenchIntegration);
+  await fastify.register(connectedWorkbenches);
 };

@@ -145,7 +145,7 @@ const OverviewTableRow: React.FC<OverviewTableRowProps> = ({
                     state: {
                       returnTo: RETURN_TO,
                       breadcrumbLabel: 'MaaS governance',
-                      preSelectedModel: { name: row.id },
+                      preSelectedModel: { name: row.id, namespace: row.namespace },
                     },
                   }),
               },
@@ -156,7 +156,7 @@ const OverviewTableRow: React.FC<OverviewTableRowProps> = ({
                     state: {
                       returnTo: RETURN_TO,
                       breadcrumbLabel: 'MaaS governance',
-                      preSelectedModel: { name: row.id },
+                      preSelectedModel: { name: row.id, namespace: row.namespace },
                     },
                   }),
               },

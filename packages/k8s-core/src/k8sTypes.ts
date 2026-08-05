@@ -297,7 +297,6 @@ export type DashboardCommonConfig = {
   modelAsService?: boolean;
   externalModels?: boolean;
   aiAssetCustomEndpoints?: boolean;
-  mlflowPipelines?: boolean;
   mcpCatalog?: boolean;
   mcpRegistry?: boolean;
   toolCalling?: boolean;
@@ -320,6 +319,8 @@ export type DashboardCommonConfig = {
   roleManagement?: boolean;
   gpuaas?: boolean;
   connectionTest?: boolean;
+  modelCapabilities?: boolean;
+  modelDeploymentSettings?: boolean;
 };
 
 export type DashboardConfigKind = K8sResourceCommon & {

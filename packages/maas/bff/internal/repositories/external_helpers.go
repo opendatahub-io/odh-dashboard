@@ -141,7 +141,14 @@ func enrichExternalModelSummaries(
 		for j := range summary.ProviderRefs {
 			providerKey := summary.Namespace + "/" + summary.ProviderRefs[j].ProviderName
 			if provider, ok := providers[providerKey]; ok {
-				summary.ProviderRefs[j].Provider = externalProviderDetailsFromSummary(provider)
+				details := externalProviderDetailsFromSummary(provider)
+				if summary.ProviderRefs[j].AuthMechanism != nil {
+					details.AuthMechanism = *summary.ProviderRefs[j].AuthMechanism
+				}
+				if summary.ProviderRefs[j].CredentialSecretRef != "" {
+					details.CredentialSecretRef = summary.ProviderRefs[j].CredentialSecretRef
+				}
+				summary.ProviderRefs[j].Provider = details
 			}
 		}
 	}
@@ -195,6 +202,17 @@ func convertUnstructuredToExternalModelSummary(obj *unstructured.Unstructured) *
 		}
 		if config, ok := refMap["config"].(map[string]interface{}); ok {
 			providerRef.Config = stringMapFromUnstructured(config)
+		}
+		if authMap, ok := refMap["auth"].(map[string]interface{}); ok {
+			if authType, ok := authMap["type"].(string); ok && authType != "" {
+				mech := authMechanismFromCRD(authType)
+				providerRef.AuthMechanism = &mech
+			}
+			if secretRefMap, ok := authMap["secretRef"].(map[string]interface{}); ok {
+				if name, ok := secretRefMap["name"].(string); ok {
+					providerRef.CredentialSecretRef = name
+				}
+			}
 		}
 		summary.ProviderRefs = append(summary.ProviderRefs, providerRef)
 	}

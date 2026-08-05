@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Route } from 'react-router-dom';
-import ProjectsRoutes from '@odh-dashboard/internal/concepts/projects/ProjectsRoutes';
+import ProjectsRoutes from '@odh-dashboard/ui-core/components/ProjectsRoutes';
 import TitleWithIcon from '@odh-dashboard/ui-core/design/TitleWithIcon';
 import { ProjectObjectType } from '@odh-dashboard/ui-core';
 import { mlflowPromptManagementBaseRoute } from '@odh-dashboard/internal/routes/pipelines/mlflow';

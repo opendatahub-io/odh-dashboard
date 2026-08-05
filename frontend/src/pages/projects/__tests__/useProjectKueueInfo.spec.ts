@@ -1,5 +1,5 @@
 import { testHook } from '@odh-dashboard/jest-config/hooks';
-import { mockProjectK8sResource } from '#~/__mocks__/mockProjectK8sResource';
+import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import { mockLocalQueueK8sResource } from '#~/__mocks__/mockLocalQueueK8sResource';
 import useProjectKueueInfo from '#~/pages/projects/useProjectKueueInfo';
 import {

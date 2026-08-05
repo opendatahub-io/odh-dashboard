@@ -1,6 +1,7 @@
 import { DeleteModal } from './components/DeleteModal';
 import { Modal } from './components/Modal';
 import { TableRow } from './components/table';
+import { DashboardCodeEditor } from './components/DashboardCodeEditor';
 import type { UserAuthConfig } from '../types';
 
 // MaaS Wizard Field helpers for the model deployment wizard
@@ -12,11 +13,6 @@ class MaaSWizardField {
 
 class APIKeysPage {
   visit(): void {
-    cy.visitWithLogin('/maas/tokens');
-    this.wait();
-  }
-
-  visitKeysAndSubs(): void {
     cy.visitWithLogin('/maas/keys-and-subs');
     this.wait();
   }
@@ -37,10 +33,6 @@ class APIKeysPage {
 
   findTitle(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('app-page-title');
-  }
-
-  findDescription(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('app-page-description');
   }
 
   findApiKeysTab(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -848,8 +840,11 @@ class AddModelsToSubscriptionModal extends Modal {
     return this.find().findByTestId('add-models-table');
   }
 
-  findToggleModelButton(modelName: string): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().findByTestId(`toggle-model-${modelName}`);
+  findToggleModelButton(
+    modelName: string,
+    namespace: string,
+  ): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId(`toggle-model-${modelName}-${namespace}`);
   }
 
   findConfirmButton(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -964,6 +959,18 @@ class ViewSubscriptionPage {
     return cy.findByTestId('subscription-details-tab');
   }
 
+  findYamlTab(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('subscription-yaml-tab');
+  }
+
+  findYamlContent(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('resource-yaml-tab-content');
+  }
+
+  findYAMLCodeEditor() {
+    return new DashboardCodeEditor(() => cy.findByTestId('resource-yaml-tab-content'));
+  }
+
   findActionsToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('subscription-actions-toggle');
   }
@@ -1021,8 +1028,11 @@ class PolicyPage {
     return cy.findByTestId('add-models-modal');
   }
 
-  findToggleModelInModal(modelName: string): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findAddModelsModal().findByTestId(`toggle-model-${modelName}`);
+  findToggleModelInModal(
+    modelName: string,
+    namespace: string,
+  ): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findAddModelsModal().findByTestId(`toggle-model-${modelName}-${namespace}`);
   }
 
   findConfirmAddModelsButton(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -1254,6 +1264,18 @@ class ViewAuthPolicyPage {
     return cy.findByTestId('policy-details-tab');
   }
 
+  findYamlTab(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('policy-yaml-tab');
+  }
+
+  findYamlContent(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('resource-yaml-tab-content');
+  }
+
+  findYAMLCodeEditor() {
+    return new DashboardCodeEditor(() => cy.findByTestId('resource-yaml-tab-content'));
+  }
+
   findDetailsSection(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('policy-details-section');
   }
@@ -1395,6 +1417,39 @@ class OverviewTabPage {
 
   expandModelRow(index: number): void {
     this.findModelRows().eq(index).findByTestId('expand-model').find('button').click();
+  }
+
+  findGroupChip(group: string, index: number): Cypress.Chainable<JQuery<HTMLElement>> {
+    // Chips for the same group exist on every matching sub/policy in the DOM;
+    // only query chips inside expanded nested items (not collapsed ones).
+    return this.findModelRows()
+      .eq(index)
+      .find('tbody.pf-m-expanded')
+      .find(`[data-testid="group-chip-${group}"]`)
+      .first();
+  }
+
+  findGroupChips(group: string, index: number): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findModelRows()
+      .eq(index)
+      .find('tbody.pf-m-expanded')
+      .find(`[data-testid="group-chip-${group}"]`);
+  }
+
+  findExpandableItemInRow(
+    rowIndex: number,
+    name: string,
+  ): Cypress.Chainable<JQuery<HTMLTableSectionElement>> {
+    return this.findModelRows().eq(rowIndex).contains(name).closest('tbody');
+  }
+
+  expandExpandableItemInRow(rowIndex: number, name: string): void {
+    this.findModelRows()
+      .eq(rowIndex)
+      .contains(name)
+      .closest('tr')
+      .find('button[aria-label="Details"]')
+      .click();
   }
 
   findExpandAllSubscriptionsInRow(index: number): Cypress.Chainable<JQuery<HTMLElement>> {
