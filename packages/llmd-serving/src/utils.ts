@@ -104,3 +104,14 @@ export const cleanlyDuplicateConfig = (
     },
   };
 };
+
+export const isDeletionBlockedByFinalizer = (result: unknown): boolean =>
+  typeof result === 'object' &&
+  result !== null &&
+  'kind' in result &&
+  result.kind !== 'Status' &&
+  'metadata' in result &&
+  typeof result.metadata === 'object' &&
+  result.metadata !== null &&
+  'deletionTimestamp' in result.metadata &&
+  !!result.metadata.deletionTimestamp;
