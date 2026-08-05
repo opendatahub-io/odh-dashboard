@@ -4,7 +4,11 @@ import * as _ from 'lodash-es';
 import { BreadcrumbItem } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 import { isEnumMember } from '@odh-dashboard/foundation';
-import { TimeframeTitle, BreadcrumbItemType } from '@odh-dashboard/ui-core/types/metrics';
+import {
+  TimeframeTitle,
+  BreadcrumbItemType,
+  type PrometheusQueryRangeResultValue,
+} from '@odh-dashboard/ui-core/types/metrics';
 import { PROMETHEUS_REQUEST_RESOLUTION } from '@odh-dashboard/ui-core/utilities/metrics';
 import {
   type BaseMetricRequest,
@@ -12,7 +16,6 @@ import {
   BiasMetricType,
   type BiasMetricConfig,
 } from '@odh-dashboard/trustyai/types';
-import type { PrometheusQueryRangeResultValue } from '@odh-dashboard/model-serving/shared/types';
 import type { InferenceServiceKind } from '@odh-dashboard/model-serving/shared';
 import { BIAS_CHART_CONFIGS, BIAS_THRESHOLD_COLOR } from './const';
 import {

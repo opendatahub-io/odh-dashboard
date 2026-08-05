@@ -3,7 +3,7 @@ import type { BiasMetricConfig } from '@odh-dashboard/trustyai/types';
 import type {
   PrometheusQueryRangeResponseDataResult,
   PrometheusQueryRangeResultValue,
-} from '@odh-dashboard/model-serving/shared/types';
+} from '@odh-dashboard/ui-core/types/metrics';
 import MetricsChart from '../MetricsChart';
 import { ModelServingMetricsContext } from '../ModelServingMetricsContext';
 import { createChartThresholds } from '../utils';

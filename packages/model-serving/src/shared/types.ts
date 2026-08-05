@@ -12,26 +12,6 @@ import type {
   ImagePullSecret,
 } from '@odh-dashboard/k8s-core';
 
-export type PrometheusQueryRangeResultValue = [number, string];
-
-export type PrometheusQueryRangeResponseDataResult = {
-  metric: {
-    request?: string;
-    pod?: string;
-  };
-  values: PrometheusQueryRangeResultValue[];
-};
-
-export type PrometheusQueryRangeResponseData = {
-  result?: PrometheusQueryRangeResponseDataResult[];
-  resultType: string;
-};
-
-export type PrometheusQueryRangeResponse = {
-  data: PrometheusQueryRangeResponseData;
-  status: string;
-};
-
 export type LabeledConnection = {
   connection: Connection;
   isRecommended?: boolean;
