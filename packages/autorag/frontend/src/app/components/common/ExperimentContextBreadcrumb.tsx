@@ -11,7 +11,7 @@ import { ProjectIconWithSize } from '@odh-dashboard/ui-core/components/projectSe
 import { IconSize } from '@odh-dashboard/ui-core/types';
 import React from 'react';
 import { Link } from 'react-router-dom';
-import './ExperimentContextBreadcrumb.scss';
+import styles from './ExperimentContextBreadcrumb.module.scss';
 
 type ExperimentContextBreadcrumbProps = {
   pageName: string;
@@ -33,7 +33,7 @@ const ExperimentContextBreadcrumb: React.FC<ExperimentContextBreadcrumbProps> = 
   <Flex alignItems={{ default: 'alignItemsCenter' }}>
     <Breadcrumb data-testid={dataTestId}>
       <BreadcrumbItem data-testid="experiment-breadcrumb-home">
-        <Link to={homePath} className="autorag-breadcrumb-link-with-icon">
+        <Link to={homePath} className={styles['autorag-breadcrumb-link-with-icon']}>
           <Flex
             alignItems={{ default: 'alignItemsCenter' }}
             spaceItems={{ default: 'spaceItemsXs' }}
@@ -50,7 +50,10 @@ const ExperimentContextBreadcrumb: React.FC<ExperimentContextBreadcrumbProps> = 
       <Divider orientation={{ default: 'vertical' }} />
       <FlexItem data-testid="project-navigator-link-in-breadcrumb">
         <Content component={ContentVariants.small}>
-          <Link to={`/projects/${namespace}`} className="autorag-breadcrumb-link-with-icon">
+          <Link
+            to={`/projects/${namespace}`}
+            className={styles['autorag-breadcrumb-link-with-icon']}
+          >
             <Flex
               alignItems={{ default: 'alignItemsCenter' }}
               spaceItems={{ default: 'spaceItemsXs' }}
