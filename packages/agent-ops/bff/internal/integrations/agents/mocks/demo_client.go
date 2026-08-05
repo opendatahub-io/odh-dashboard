@@ -1,4 +1,4 @@
-package mock
+package mocks
 
 import (
 	"github.com/opendatahub-io/mod-arch-library/bff/internal/integrations/agents"
