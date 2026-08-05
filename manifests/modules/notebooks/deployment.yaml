@@ -1,0 +1,115 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: notebooks-ui
+  labels:
+    app.kubernetes.io/name: notebooks
+    app.kubernetes.io/part-of: odh-dashboard
+    components.platform.opendatahub.io/managed-by: opendatahub-operator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      deployment: notebooks-ui
+  template:
+    metadata:
+      labels:
+        deployment: notebooks-ui
+        app.kubernetes.io/name: notebooks
+        app.kubernetes.io/part-of: odh-dashboard
+        components.platform.opendatahub.io/managed-by: opendatahub-operator
+    spec:
+      automountServiceAccountToken: false
+      serviceAccountName: odh-dashboard-notebooks
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    deployment: notebooks-ui
+                topologyKey: topology.kubernetes.io/zone
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: 100Mi
+        - name: modules-sa-token
+          projected:
+            defaultMode: 420
+            sources:
+              - serviceAccountToken:
+                  expirationSeconds: 3607
+                  path: token
+              - configMap:
+                  name: kube-root-ca.crt
+                  items:
+                    - key: ca.crt
+                      path: ca.crt
+              - downwardAPI:
+                  items:
+                    - path: namespace
+                      fieldRef:
+                        fieldPath: metadata.namespace
+              - configMap:
+                  name: openshift-service-ca.crt
+                  items:
+                    - key: service-ca.crt
+                      path: service-ca.crt
+      containers:
+        - name: notebooks-ui
+          image: notebooks-ui-image
+          imagePullPolicy: Always
+          livenessProbe:
+            httpGet:
+              path: /api/v1/healthcheck
+              port: 8943
+              scheme: HTTP
+            initialDelaySeconds: 30
+            timeoutSeconds: 15
+            periodSeconds: 30
+            successThreshold: 1
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /api/v1/healthcheck
+              port: 8943
+              scheme: HTTP
+            initialDelaySeconds: 15
+            timeoutSeconds: 15
+            periodSeconds: 30
+            successThreshold: 1
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 10m
+              memory: 64Mi
+              ephemeral-storage: 10Mi
+            limits:
+              cpu: 100m
+              memory: 192Mi
+              ephemeral-storage: 10Mi
+          ports:
+            - containerPort: 8943
+              name: notebooks-ui
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: modules-sa-token
+              mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+              readOnly: true
+          env:
+            - name: PORT
+              value: "8943"
+            - name: DISABLE_AUTH
+              value: "true"
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
