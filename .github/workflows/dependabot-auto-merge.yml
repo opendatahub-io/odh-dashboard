@@ -79,7 +79,7 @@ jobs:
           elif [ "$ECOSYSTEM" = "go_modules" ]; then
             for dep in $(echo "$DEP_NAMES" | tr ',' '\n' | sed 's/^ *//;s/ *$//'); do
               for gosum in $(find . -name go.sum -not -path '*/upstream/*'); do
-                ver=$(grep "^${dep} v" "$gosum" 2>/dev/null | head -1 | grep -o 'v[0-9][^ ]*' || true)
+                ver=$(awk -v dep="$dep" '$1 == dep { print $2; exit }' "$gosum")
                 if [ -n "$ver" ] && echo "$ver" | grep -q '^v0\.'; then
                   echo "Pre-1.0 Go module detected in group: $dep ($ver) in $gosum"
                   has_pre1=true
