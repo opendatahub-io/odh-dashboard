@@ -42,7 +42,15 @@ spec:
   - name: build-source-image
     value: "true"
   - name: hermetic
-    value: "false"
+    value: "true"
+  - name: prefetch-input
+    value: |
+      [
+        {
+          "type": "npm",
+          "path": "."
+        }
+      ]
   pipelineRef:
     resolver: git
     params:
