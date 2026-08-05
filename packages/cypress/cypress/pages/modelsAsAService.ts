@@ -833,7 +833,7 @@ class AddModelsToSubscriptionModal extends Modal {
   }
 
   findRows(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findTable().find('tbody tr');
+    return this.findTable().find('[data-testid^="add-models-row-"]');
   }
 
   findTable(): Cypress.Chainable<JQuery<HTMLElement>> {

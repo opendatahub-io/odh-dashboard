@@ -254,7 +254,7 @@ const AddModelsModal: React.FC<AddModelsModalProps> = ({
                   const policies = policiesByModel.get(key) ?? [];
 
                   return (
-                    <Tr key={key}>
+                    <Tr key={key} data-testid={`add-models-row-${ref.name}-${ref.namespace}`}>
                       <Td dataLabel="Model name">
                         <strong>{ref.displayName ?? ref.name}</strong>
                         <br />
