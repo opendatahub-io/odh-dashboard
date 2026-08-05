@@ -11,6 +11,7 @@ import {
 import { mockDashboardConfig } from '@odh-dashboard/internal/__mocks__/mockDashboardConfig';
 import { mockDscStatus } from '@odh-dashboard/internal/__mocks__/mockDscStatus';
 import { mockK8sResourceList } from '@odh-dashboard/internal/__mocks__/mockK8sResourceList';
+import { mock200Status } from '@odh-dashboard/internal/__mocks__/mockK8sStatus';
 import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import { mockGlobalScopedHardwareProfiles } from '@odh-dashboard/hardware-profiles/__mocks__/mockHardwareProfile';
 import { mockStandardModelServingTemplateK8sResources } from '@odh-dashboard/internal/__mocks__/mockServingRuntimeTemplateK8sResource';
@@ -217,67 +218,38 @@ describe('Model Serving LLMD Topology & Routing', () => {
   });
 
   describe('hardware profile visibility', () => {
-    it('should show hardware profile for single node topology', () => {
+    it('hardware profile visibility', () => {
       initIntercepts();
       modelServingGlobal.visit('test-project');
       modelServingGlobal.findDeployModelButton().click();
       navigateToModelDeploymentStep();
 
+      cy.step('should show hardware profile for single node topology');
       modelServingWizard.selectDeploymentMethodByKey('llm-inference-service-llmd');
       cy.findByTestId('hardware-profile-select').should('exist');
-    });
 
-    it('should hide hardware profile for multi-node topology', () => {
-      initIntercepts();
-      modelServingGlobal.visit('test-project');
-      modelServingGlobal.findDeployModelButton().click();
-      navigateToModelDeploymentStep();
-
+      cy.step('should hide hardware profile for multi-node topology');
       modelServingWizard.selectDeploymentMethodByKey('llm-inference-service-llmd');
       cy.findByTestId('topology-type-select').click();
       cy.findByTestId(`topology-type-${TopologyType.MULTI_NODE}`).click();
 
       cy.findByTestId('hardware-profile-select').should('not.exist');
-    });
 
-    it('should hide hardware profile for single node disaggregated topology', () => {
-      initIntercepts();
-      modelServingGlobal.visit('test-project');
-      modelServingGlobal.findDeployModelButton().click();
-      navigateToModelDeploymentStep();
-
+      cy.step('should hide hardware profile for single node disaggregated topology');
       modelServingWizard.selectDeploymentMethodByKey('llm-inference-service-llmd');
       cy.findByTestId('topology-type-select').click();
       cy.findByTestId(`topology-type-${TopologyType.SINGLE_NODE_DISAGGREGATED}`).click();
 
       cy.findByTestId('hardware-profile-select').should('not.exist');
-    });
 
-    it('should hide hardware profile for multi-node disaggregated topology', () => {
-      initIntercepts();
-      modelServingGlobal.visit('test-project');
-      modelServingGlobal.findDeployModelButton().click();
-      navigateToModelDeploymentStep();
-
+      cy.step('should hide hardware profile for multi-node disaggregated topology');
       modelServingWizard.selectDeploymentMethodByKey('llm-inference-service-llmd');
       cy.findByTestId('topology-type-select').click();
       cy.findByTestId(`topology-type-${TopologyType.MULTI_NODE_DISAGGREGATED}`).click();
 
       cy.findByTestId('hardware-profile-select').should('not.exist');
-    });
 
-    it('should show hardware profile when switching back to single node', () => {
-      initIntercepts();
-      modelServingGlobal.visit('test-project');
-      modelServingGlobal.findDeployModelButton().click();
-      navigateToModelDeploymentStep();
-
-      modelServingWizard.selectDeploymentMethodByKey('llm-inference-service-llmd');
-
-      cy.findByTestId('topology-type-select').click();
-      cy.findByTestId(`topology-type-${TopologyType.MULTI_NODE}`).click();
-      cy.findByTestId('hardware-profile-select').should('not.exist');
-
+      cy.step('should hide hardware profile for multi-node disaggregated topology');
       cy.findByTestId('topology-type-select').click();
       cy.findByTestId(`topology-type-${TopologyType.SINGLE_NODE}`).click();
       cy.findByTestId('hardware-profile-select').should('exist');
@@ -574,6 +546,253 @@ describe('Model Serving LLMD Topology & Routing', () => {
         'Single node (default)',
       );
       modelServingWizardEdit.findNextButton().should('be.enabled');
+    });
+  });
+
+  describe('Deploy configs', () => {
+    const initDeployIntercepts = (deploymentName: string) => {
+      cy.interceptK8s(
+        'POST',
+        { model: LLMInferenceServiceConfigModel, ns: 'test-project' },
+        (req) => {
+          req.reply({ statusCode: 200, body: req.body });
+        },
+      ).as('createLLMInferenceServiceConfig');
+      cy.interceptK8s(
+        'POST',
+        { model: LLMInferenceServiceModel, ns: 'test-project' },
+        {
+          statusCode: 200,
+          body: mockLLMInferenceServiceK8sResource({ name: deploymentName }),
+        },
+      ).as('createLLMInferenceService');
+    };
+
+    // Step 3 (advanced options) — disable token auth to avoid needing auth resource intercepts
+    const completeWizard = () => {
+      modelServingWizard.findTokenAuthenticationCheckbox().click();
+      modelServingWizard.findNextButton().should('be.enabled').click();
+      modelServingWizard.findSubmitButton().should('be.enabled').click();
+    };
+
+    it('should not create new resources when using "Single node (default) selection', () => {
+      const deploymentName = 'test-single-node-default';
+      initIntercepts();
+      initDeployIntercepts(deploymentName);
+
+      modelServingGlobal.visit('test-project');
+      modelServingGlobal.findDeployModelButton().click();
+      navigateToModelDeploymentStep();
+
+      modelServingWizard.selectDeploymentMethodByKey('llm-inference-service-llmd');
+      modelServingWizard.findModelDeploymentNameInput().type(deploymentName);
+
+      // Defaults: Single node topology with the pre-installed "Single node (default)" config
+      cy.findByTestId('topology-type-select').should('contain.text', 'Single node');
+      cy.findByTestId('custom-topology-config-select').should(
+        'contain.text',
+        'Single node (default)',
+      );
+      modelServingWizard.findNextButton().should('be.enabled').click();
+
+      completeWizard();
+
+      // Dry run — no topology config ref is recorded on the deployment
+      cy.wait('@createLLMInferenceService').then((interception) => {
+        expect(interception.request.url).to.include('?dryRun=All');
+        expect(interception.request.body.metadata.annotations).to.have.property(
+          TOPOLOGY_TYPE_ANNOTATION,
+          TopologyType.SINGLE_NODE,
+        );
+        expect(interception.request.body.metadata.annotations).to.not.have.property(
+          TOPOLOGY_CONFIG_REF_ANNOTATION,
+        );
+        expect(interception.request.body.spec.baseRefs ?? []).to.have.length(0);
+      });
+
+      // Actual request
+      cy.wait('@createLLMInferenceService').then((interception) => {
+        expect(interception.request.url).not.to.include('?dryRun=All');
+        expect(interception.request.body.metadata.annotations).to.not.have.property(
+          TOPOLOGY_CONFIG_REF_ANNOTATION,
+        );
+        expect(interception.request.body.spec.baseRefs ?? []).to.have.length(0);
+      });
+
+      cy.get('@createLLMInferenceService.all').then((interceptions) => {
+        expect(interceptions).to.have.length(2); // 1 dry-run request and 1 actual request
+      });
+      // No local config copy is created for the default single node configuration
+      cy.get('@createLLMInferenceServiceConfig.all').should('have.length', 0);
+    });
+
+    it('should create new resources when selecting custom topology', () => {
+      const deploymentName = 'test-custom-topology';
+      const localConfigName = `${deploymentName}-multi-node-config`;
+      initIntercepts();
+      initDeployIntercepts(deploymentName);
+
+      modelServingGlobal.visit('test-project');
+      modelServingGlobal.findDeployModelButton().click();
+      navigateToModelDeploymentStep();
+
+      modelServingWizard.selectDeploymentMethodByKey('llm-inference-service-llmd');
+      modelServingWizard.findModelDeploymentNameInput().type(deploymentName);
+
+      cy.findByTestId('topology-type-select').click();
+      cy.findByTestId(`topology-type-${TopologyType.MULTI_NODE}`).click();
+      cy.findByTestId('custom-topology-config-select').click();
+      cy.findByTestId('topology-config-option-multi-node-config').click();
+      modelServingWizard.findNextButton().should('be.enabled').click();
+
+      completeWizard();
+
+      // Dry run — a local copy of the selected config is created in the project namespace first
+      cy.wait('@createLLMInferenceServiceConfig').then((interception) => {
+        expect(interception.request.url).to.include('?dryRun=All');
+        expect(interception.request.body.metadata.name).to.equal(localConfigName);
+        expect(interception.request.body.metadata.namespace).to.equal('test-project');
+        expect(interception.request.body.metadata.annotations).to.include({
+          'openshift.io/display-name': 'Multi-node Data Parallel (Local Copy)',
+        });
+        expect(interception.request.body.metadata.labels).to.include({
+          'opendatahub.io/config-type': TopologyType.MULTI_NODE,
+        });
+        expect(interception.request.body.metadata.labels).to.not.have.property(
+          'opendatahub.io/dashboard',
+        );
+      });
+      cy.wait('@createLLMInferenceService').then((interception) => {
+        expect(interception.request.url).to.include('?dryRun=All');
+        expect(interception.request.body.metadata.annotations).to.include({
+          [TOPOLOGY_TYPE_ANNOTATION]: TopologyType.MULTI_NODE,
+          [TOPOLOGY_CONFIG_REF_ANNOTATION]: localConfigName,
+        });
+        expect(interception.request.body.spec.baseRefs).to.deep.include({ name: localConfigName });
+      });
+
+      // Actual requests
+      cy.wait('@createLLMInferenceServiceConfig').then((interception) => {
+        expect(interception.request.url).not.to.include('?dryRun=All');
+        expect(interception.request.body.metadata.name).to.equal(localConfigName);
+      });
+      cy.wait('@createLLMInferenceService').then((interception) => {
+        expect(interception.request.url).not.to.include('?dryRun=All');
+        expect(interception.request.body.metadata.annotations).to.include({
+          [TOPOLOGY_CONFIG_REF_ANNOTATION]: localConfigName,
+        });
+        expect(interception.request.body.spec.baseRefs).to.deep.include({ name: localConfigName });
+      });
+
+      cy.get('@createLLMInferenceServiceConfig.all').then((interceptions) => {
+        expect(interceptions).to.have.length(2); // 1 dry-run request and 1 actual request
+      });
+      cy.get('@createLLMInferenceService.all').then((interceptions) => {
+        expect(interceptions).to.have.length(2); // 1 dry-run request and 1 actual request
+      });
+    });
+
+    it('should create clean old resource when changing to "Single node (default)" ', () => {
+      initIntercepts();
+      cy.interceptK8sList(
+        { model: SecretModel, ns: 'test-project' },
+        mockK8sResourceList([mockURISecretK8sResource({ namespace: 'test-project' })]),
+      );
+      cy.interceptK8sList(
+        { model: LLMInferenceServiceModel, ns: 'test-project' },
+        mockK8sResourceList([
+          mockLLMInferenceServiceK8sResource({
+            additionalAnnotations: {
+              'opendatahub.io/connections': 'test-uri-secret',
+              // Auth is off so the update doesn't need auth resource intercepts
+              'security.opendatahub.io/enable-auth': 'false',
+              [TOPOLOGY_TYPE_ANNOTATION]: TopologyType.MULTI_NODE,
+              [TOPOLOGY_CONFIG_REF_ANNOTATION]: 'multi-node-config',
+            },
+            baseRefs: [{ name: 'multi-node-config' }],
+          }),
+        ]),
+      );
+      cy.intercept('PUT', '**/llminferenceservices/**', (req) => {
+        req.reply({ statusCode: 200, body: req.body });
+      }).as('updateLLMInferenceService');
+      cy.interceptK8s(
+        'POST',
+        { model: LLMInferenceServiceConfigModel, ns: 'test-project' },
+        (req) => {
+          req.reply({ statusCode: 200, body: req.body });
+        },
+      ).as('createLLMInferenceServiceConfig');
+      cy.interceptK8s(
+        'DELETE',
+        { model: LLMInferenceServiceConfigModel, ns: 'test-project', name: 'multi-node-config' },
+        mock200Status({}),
+      ).as('deleteLLMInferenceServiceConfig');
+
+      modelServingGlobal.visit('test-project');
+      modelServingGlobal.getModelRow('Test LLM Inference Service').findKebabAction('Edit').click();
+
+      // Step 1: Model source
+      modelServingWizardEdit.findNextButton().should('be.enabled').click();
+
+      // Step 2: Model deployment — switch back to the default single node configuration
+      cy.findByTestId('custom-topology-config-select').should(
+        'contain.text',
+        'Multi-node Data Parallel',
+      );
+      cy.findByTestId('topology-type-select').click();
+      cy.findByTestId(`topology-type-${TopologyType.SINGLE_NODE}`).click();
+      // The existing config stays selected until it is explicitly swapped for the default
+      cy.findByTestId('custom-topology-config-select').click();
+      cy.findByTestId('topology-config-option-single-node-default').click();
+      cy.findByTestId('custom-topology-config-select').should(
+        'contain.text',
+        'Single node (default)',
+      );
+      modelServingWizardEdit.findNextButton().should('be.enabled').click();
+
+      // Step 3: Advanced options
+      modelServingWizardEdit.findNextButton().should('be.enabled').click();
+
+      // Step 4: Summary
+      modelServingWizardEdit.findSubmitButton().should('be.enabled').click();
+
+      // Dry run — the previously referenced config is deleted, no new copy is created
+      cy.wait('@deleteLLMInferenceServiceConfig').then((interception) => {
+        expect(interception.request.url).to.include('?dryRun=All');
+      });
+      cy.wait('@updateLLMInferenceService').then((interception) => {
+        expect(interception.request.url).to.include('?dryRun=All');
+        expect(interception.request.body.metadata.annotations).to.have.property(
+          TOPOLOGY_TYPE_ANNOTATION,
+          TopologyType.SINGLE_NODE,
+        );
+        expect(interception.request.body.metadata.annotations).to.not.have.property(
+          TOPOLOGY_CONFIG_REF_ANNOTATION,
+        );
+        expect(interception.request.body.spec.baseRefs ?? []).to.not.deep.include({
+          name: 'multi-node-config',
+        });
+      });
+
+      // Actual requests
+      cy.wait('@deleteLLMInferenceServiceConfig').then((interception) => {
+        expect(interception.request.url).not.to.include('?dryRun=All');
+      });
+      cy.wait('@updateLLMInferenceService').then((interception) => {
+        expect(interception.request.url).not.to.include('?dryRun=All');
+        expect(interception.request.body.metadata.annotations).to.not.have.property(
+          TOPOLOGY_CONFIG_REF_ANNOTATION,
+        );
+        expect(interception.request.body.spec.baseRefs ?? []).to.not.deep.include({
+          name: 'multi-node-config',
+        });
+      });
+
+      cy.get('@deleteLLMInferenceServiceConfig.all').then((interceptions) => {
+        expect(interceptions).to.have.length(2); // 1 dry-run request and 1 actual request
+      });
+      cy.get('@createLLMInferenceServiceConfig.all').should('have.length', 0);
     });
   });
 });

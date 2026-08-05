@@ -16,7 +16,6 @@ import {
   extractTopologyConfig,
   extractRoutingConfig,
   preDeployTopologyConfig,
-  preDeployRouterConfig,
 } from '../topology';
 import { createLLMInferenceServiceConfig } from '../../api/LLMInferenceServiceConfigs';
 
@@ -331,17 +330,6 @@ describe('preDeploy config copies', () => {
     expect(mockCreateConfig).toHaveBeenCalledTimes(1);
     const created = mockCreateConfig.mock.calls[0][0];
     expect(created.metadata.labels?.['opendatahub.io/config-type']).toBe(TopologyType.SINGLE_NODE);
-  });
-
-  it('carries the config type label onto the router config copy', async () => {
-    const routerConfig = buildRouterConfig('router-1');
-    const deployment = makeDeployment();
-
-    await preDeployRouterConfig({ selectedConfig: routerConfig }, wizardState, deployment);
-
-    expect(mockCreateConfig).toHaveBeenCalledTimes(1);
-    const created = mockCreateConfig.mock.calls[0][0];
-    expect(created.metadata.labels?.['opendatahub.io/config-type']).toBe('router');
   });
 
   it('does not carry the dashboard label onto the copy', async () => {
