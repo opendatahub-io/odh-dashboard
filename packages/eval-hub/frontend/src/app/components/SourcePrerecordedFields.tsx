@@ -1,5 +1,7 @@
 import * as React from 'react';
 import {
+  CodeBlock,
+  CodeBlockCode,
   FormGroup,
   FormHelperText,
   HelperText,
@@ -62,13 +64,13 @@ const SourcePrerecordedFields: React.FC<SourcePrerecordedFieldsProps> = ({
       </StackItem>
       <StackItem>
         <FormGroup
-          label="S3 connection"
+          label="S3 secret name"
           isRequired
           fieldId="access-token"
           labelHelp={
             <LabelHelpPopover
-              ariaLabel="More info for S3 connection"
-              title="S3 connection"
+              ariaLabel="More info for S3 secret name"
+              title="S3 secret name"
               content={
                 <>
                   Enter the <strong>name</strong> of the Kubernetes Secret that stores the S3
@@ -77,18 +79,11 @@ const SourcePrerecordedFields: React.FC<SourcePrerecordedFieldsProps> = ({
                   <br />
                   <br />
                   If it hasn&apos;t been created yet, run:
-                  <pre
-                    style={{
-                      background: 'var(--pf-t--global--background--color--secondary--default)',
-                      padding: 'var(--pf-t--global--spacer--sm)',
-                      borderRadius: 'var(--pf-t--global--border--radius--small)',
-                      marginTop: 'var(--pf-t--global--spacer--sm)',
-                      whiteSpace: 'pre',
-                      overflowX: 'auto',
-                    }}
-                  >
-                    {`oc create secret generic my-s3-secret\n  --from-literal=AWS_ACCESS_KEY_ID=<key-id>\n  --from-literal=AWS_SECRET_ACCESS_KEY=<secret>\n  --from-literal=AWS_DEFAULT_REGION=<region>\n  --from-literal=AWS_S3_ENDPOINT=<endpoint>\n  -n your-namespace`}
-                  </pre>
+                  <CodeBlock className="pf-v6-u-mt-sm">
+                    <CodeBlockCode>
+                      {`oc create secret generic my-s3-secret\n  --from-literal=AWS_ACCESS_KEY_ID=<key-id>\n  --from-literal=AWS_SECRET_ACCESS_KEY=<secret>\n  --from-literal=AWS_DEFAULT_REGION=<region>\n  --from-literal=AWS_S3_ENDPOINT=<endpoint>\n  -n your-namespace`}
+                    </CodeBlockCode>
+                  </CodeBlock>
                 </>
               }
             />

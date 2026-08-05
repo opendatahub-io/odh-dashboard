@@ -300,7 +300,7 @@ export function useStartEvaluationRunForm({
       return undefined;
     }
     if (accessToken.trim() === '') {
-      return 'S3 connection is required.';
+      return 'S3 secret name is required.';
     }
     return undefined;
   }, [sourceMode, accessToken]);
