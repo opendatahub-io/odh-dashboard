@@ -312,6 +312,7 @@ export type DashboardCommonConfig = {
   promptManagement?: boolean;
   globalProjectPrompts?: boolean;
   nimWizard?: boolean;
+  nimServiceOperator?: boolean;
   mySubscriptions?: boolean;
   agentOps?: boolean;
   agentOpsDeploy?: boolean;
