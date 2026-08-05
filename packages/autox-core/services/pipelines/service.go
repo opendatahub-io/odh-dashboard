@@ -35,6 +35,9 @@ type Service interface {
 	// Discovery
 	DiscoverPipelineByName(ctx context.Context, namespace, pipelineName, versionName string) (*DiscoveredPipeline, error)
 	DiscoverNamedPipelines(ctx context.Context, namespace, defaultVersion string, definitions map[string]string) (map[string]*DiscoveredPipeline, error)
+	// EnsurePipeline is deprecated: pipeline auto-creation predates managed pipelines
+	// (see EnableManagedPipelines) and is superseded by that flow. Retained for existing
+	// callers; new pipeline provisioning should go through managed pipelines instead.
 	EnsurePipeline(ctx context.Context, namespace string, def PipelineDefinition) (*DiscoveredPipeline, error)
 
 	// Aggregation
@@ -473,6 +476,10 @@ func (s *service) DiscoverNamedPipelines(ctx context.Context, namespace, default
 // Unlike DiscoverNamedPipelines, this requires the exact version — if missing it creates
 // the version rather than falling back to an older one.
 // Concurrent callers for the same pipeline are serialized to prevent duplicate creation.
+//
+// Deprecated: this predates managed pipelines (see EnableManagedPipelines) and is
+// superseded by that flow. Retained for existing callers; new pipeline provisioning
+// should go through managed pipelines instead.
 func (s *service) EnsurePipeline(ctx context.Context, namespace string, def PipelineDefinition) (*DiscoveredPipeline, error) {
 	logger := s.loggerWithIdentity(ctx)
 
