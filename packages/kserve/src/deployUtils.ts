@@ -11,7 +11,10 @@ import {
   type InferenceServiceKind,
   ServingRuntimeModelType,
 } from '@odh-dashboard/model-serving/shared';
-import { setUpTokenAuth as setUpTokenAuthShared } from '@odh-dashboard/model-serving/concepts/auth';
+import {
+  setUpTokenAuth as setUpTokenAuthShared,
+  type TokenAuthResourceType,
+} from '@odh-dashboard/model-serving/concepts/auth';
 import { ModelLocationData } from '@odh-dashboard/model-serving/shared/types/form-data';
 import {
   type ModelTypeFieldData,
@@ -42,7 +45,7 @@ export enum KServeDeploymentMode {
   Standard = 'Standard',
 }
 
-export const KSERVE_RESOURCE_TYPE = 'inferenceservices';
+export const KSERVE_RESOURCE_TYPE: TokenAuthResourceType = 'inferenceservices';
 
 export const setUpTokenAuth = async (
   fillData: CreatingInferenceServiceObject,

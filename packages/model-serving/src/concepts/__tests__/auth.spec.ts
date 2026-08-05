@@ -165,6 +165,15 @@ describe('createRoleIfMissing', () => {
     const result = await createRoleIfMissing(role, 'test-ns');
     expect(result).toBe(created);
   });
+
+  it('should reject on non-404 errors', async () => {
+    const error = new Error('forbidden');
+    rolesMock.getRole.mockRejectedValue(error);
+    const role = { metadata: { name: 'test-role' } } as never;
+
+    await expect(createRoleIfMissing(role, 'test-ns')).rejects.toBe(error);
+    expect(rolesMock.createRole).not.toHaveBeenCalled();
+  });
 });
 
 describe('createRoleBindingIfMissing', () => {
@@ -198,6 +207,23 @@ describe('createRoleBindingIfMissing', () => {
 
     const result = await createRoleBindingIfMissing(rb, 'test-ns', { dryRun: true });
     expect(result).toBe(rb);
+  });
+
+  it('should reject on non-404 errors', async () => {
+    const error = new Error('forbidden');
+    roleBindingsMock.getRoleBinding.mockRejectedValue(error);
+    const rb = { metadata: { name: 'test-rb' } } as never;
+
+    await expect(createRoleBindingIfMissing(rb, 'test-ns')).rejects.toBe(error);
+    expect(roleBindingsMock.createRoleBinding).not.toHaveBeenCalled();
+  });
+
+  it('should reject on 404 during non-dryRun create', async () => {
+    roleBindingsMock.getRoleBinding.mockRejectedValue(make404());
+    roleBindingsMock.createRoleBinding.mockRejectedValue(make404());
+    const rb = { metadata: { name: 'test-rb' } } as never;
+
+    await expect(createRoleBindingIfMissing(rb, 'test-ns')).rejects.toEqual(make404());
   });
 });
 
@@ -268,5 +294,23 @@ describe('setUpTokenAuth', () => {
     );
 
     expect(secretsMock.deleteSecret).toHaveBeenCalledWith('test-ns', 'old-secret', undefined);
+  });
+
+  it('should not delete secrets when tokenAuth is undefined', async () => {
+    const existingSecrets = [{ metadata: { name: 'old-secret' } }] as never[];
+
+    await setUpTokenAuth(
+      undefined,
+      'test-model',
+      'test-ns',
+      false,
+      mockOwner,
+      'inferenceservices',
+      existingSecrets,
+    );
+
+    expect(secretsMock.deleteSecret).not.toHaveBeenCalled();
+    expect(secretsMock.createSecret).not.toHaveBeenCalled();
+    expect(secretsMock.replaceSecret).not.toHaveBeenCalled();
   });
 });
