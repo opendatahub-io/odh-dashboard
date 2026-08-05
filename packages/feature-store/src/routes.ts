@@ -45,3 +45,6 @@ export const featureDataSourceRoute = (
 
 export const featureDataSetRoute = (dataSetName: string, featureStoreProject: string): string =>
   `${featureStoreRootRoute()}/datasets/${featureStoreProject}/${dataSetName}`;
+
+export const featureStoreDeployRoute = (namespace: string, name: string): string =>
+  `${featureStoreRootRoute()}/create/deploy/${namespace}/${name}`;

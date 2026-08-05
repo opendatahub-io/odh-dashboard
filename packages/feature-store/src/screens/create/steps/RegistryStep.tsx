@@ -32,6 +32,13 @@ import {
 
 type UpdateObjectAtPropAndValue<T> = <K extends keyof T>(propKey: K, propValue: T[K]) => void;
 
+const selectToggleStyle: React.CSSProperties = {
+  whiteSpace: 'nowrap',
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
+  backgroundColor: 'var(--pf-t--global--background--color--primary--default)',
+};
+
 type RegistryStepProps = {
   data: FeatureStoreFormData;
   setData: UpdateObjectAtPropAndValue<FeatureStoreFormData>;
@@ -58,6 +65,26 @@ const RegistryStep: React.FC<RegistryStepProps> = ({
   const configMapOptions = namespaceConfigMaps.map((cm) => ({ key: cm, label: cm }));
 
   const hostnameHasTls = !!data.services?.registry?.remote?.tls;
+  const lockedToPrimary = hasUILabeledStore && !!primaryStore;
+
+  const primaryName = primaryStore?.metadata.name;
+  const primaryNamespace = primaryStore?.metadata.namespace;
+  const primaryRegistryHost = primaryStore?.status?.serviceHostnames?.registry;
+
+  React.useEffect(() => {
+    if (!lockedToPrimary) {
+      return;
+    }
+    const remote =
+      data.remoteRegistryType === RemoteRegistryType.FEAST_REF
+        ? { feastRef: { name: primaryName ?? '', namespace: primaryNamespace ?? '' } }
+        : { hostname: primaryRegistryHost ?? '' };
+
+    setData('services', {
+      ...data.services,
+      registry: { ...data.services?.registry, remote },
+    });
+  }, [lockedToPrimary, primaryName, primaryNamespace, primaryRegistryHost]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const updateRemote = (updates: Partial<FeastRemoteRegistryConfig>) => {
     setData('services', {
@@ -119,14 +146,13 @@ const RegistryStep: React.FC<RegistryStepProps> = ({
   };
 
   return (
-    <Form>
+    <Form maxWidth="750px">
       <FormSection title="Registry type">
         {hasUILabeledStore && primaryStore && (
           <Alert variant="info" isInline title="Shared registry required">
-            A feature store with UI enabled already exists (&quot;
-            {primaryStore.spec.feastProject}&quot; in namespace &quot;
-            {primaryStore.metadata.namespace}&quot;). New feature stores must use a remote registry
-            pointing to the existing registry to share feature data.
+            A feature store with UI enabled already exists ({primaryStore.spec.feastProject} in
+            project {primaryStore.metadata.namespace}). The remote registry is locked to point to
+            that store.
           </Alert>
         )}
         <FormGroup fieldId="feast-registry-type">
@@ -137,8 +163,8 @@ const RegistryStep: React.FC<RegistryStepProps> = ({
               label="Local registry"
               description={
                 hasUILabeledStore
-                  ? 'Not available — a shared registry already exists'
-                  : 'Deploy a registry server as part of this FeatureStore'
+                  ? 'Not available — a shared registry already exists.'
+                  : 'Deploy a registry server as part of this feature store.'
               }
               isChecked={data.registryType === RegistryType.LOCAL}
               onChange={() => updateRegistryType(RegistryType.LOCAL)}
@@ -148,7 +174,7 @@ const RegistryStep: React.FC<RegistryStepProps> = ({
               id="registry-remote"
               name="registry-type"
               label="Remote registry"
-              description="Use a registry from another FeatureStore or external hostname"
+              description="Use a registry from another feature store or external hostname."
               isChecked={data.registryType === RegistryType.REMOTE}
               onChange={() => updateRegistryType(RegistryType.REMOTE)}
             />
@@ -175,8 +201,7 @@ const RegistryStep: React.FC<RegistryStepProps> = ({
               <FormHelperText>
                 <HelperText>
                   <HelperTextItem>
-                    REST API must be enabled for the Feature Store UI to function. Recommended:
-                    true.
+                    Must be enabled for the feature store UI to function.
                   </HelperTextItem>
                 </HelperText>
               </FormHelperText>
@@ -198,7 +223,7 @@ const RegistryStep: React.FC<RegistryStepProps> = ({
               <FormHelperText>
                 <HelperText>
                   <HelperTextItem>
-                    Required for gRPC-based Feature Store clients and SDKs. Recommended: true.
+                    Required for gRPC-based feature store clients and SDKs.
                   </HelperTextItem>
                 </HelperText>
               </FormHelperText>
@@ -226,7 +251,7 @@ const RegistryStep: React.FC<RegistryStepProps> = ({
                 <Radio
                   id="registry-persistence-db"
                   name="registry-persistence-type"
-                  label="Database store"
+                  label="Database"
                   isChecked={data.registryPersistenceType === PersistenceType.DB}
                   onChange={() => {
                     setData('registrySecretName', '');
@@ -300,6 +325,7 @@ const RegistryStep: React.FC<RegistryStepProps> = ({
                         onChange={(key) => setData('registrySecretName', key)}
                         isScrollable
                         isFullWidth
+                        toggleProps={{ style: selectToggleStyle }}
                       />
                       <FormHelperText>
                         <HelperText>
@@ -348,7 +374,7 @@ const RegistryStep: React.FC<RegistryStepProps> = ({
                         <FormHelperText>
                           <HelperText>
                             <HelperTextItem>
-                              Comma-separated key=value pairs for S3 additional kwargs (e.g.
+                              Comma-separated key=value pairs for S3 additional parameters (e.g.
                               ServerSideEncryption, ACL, CacheControl).
                             </HelperTextItem>
                           </HelperText>
@@ -401,6 +427,7 @@ const RegistryStep: React.FC<RegistryStepProps> = ({
                     }
                     isScrollable
                     isFullWidth
+                    toggleProps={{ style: selectToggleStyle }}
                   />
                   <FormHelperText>
                     <HelperText>
@@ -421,7 +448,7 @@ const RegistryStep: React.FC<RegistryStepProps> = ({
                     dataTestId="feast-registry-db-type"
                     options={registryDbOptions}
                     value={local?.persistence?.store?.type ?? ''}
-                    placeholder="Select type"
+                    placeholder="Select database type"
                     onChange={(key) =>
                       updateLocalRegistry({
                         ...local,
@@ -437,6 +464,7 @@ const RegistryStep: React.FC<RegistryStepProps> = ({
                     }
                     isScrollable
                     isFullWidth
+                    toggleProps={{ style: selectToggleStyle }}
                   />
                 </FormGroup>
                 <FormGroup label="Secret name" isRequired fieldId="feast-registry-db-secret">
@@ -460,6 +488,7 @@ const RegistryStep: React.FC<RegistryStepProps> = ({
                     }
                     isScrollable
                     isFullWidth
+                    toggleProps={{ style: selectToggleStyle }}
                   />
                 </FormGroup>
                 <FormGroup label="Secret key name" fieldId="feast-registry-db-secret-key">
@@ -504,8 +533,9 @@ const RegistryStep: React.FC<RegistryStepProps> = ({
               <Radio
                 id="remote-feast-ref"
                 name="remote-registry-type"
-                label="FeatureStore reference"
-                description="Reference another FeatureStore CR in the cluster"
+                label="Feature store reference"
+                description="Reference another feature store in the cluster."
+                isDisabled={lockedToPrimary}
                 isChecked={data.remoteRegistryType === RemoteRegistryType.FEAST_REF}
                 onChange={() => {
                   setData('remoteRegistryType', RemoteRegistryType.FEAST_REF);
@@ -514,7 +544,6 @@ const RegistryStep: React.FC<RegistryStepProps> = ({
                     registry: {
                       ...data.services?.registry,
                       remote: {
-                        ...data.services?.registry?.remote,
                         feastRef: data.services?.registry?.remote?.feastRef ?? {
                           name: primaryStore?.metadata.name ?? '',
                           namespace: primaryStore?.metadata.namespace ?? '',
@@ -528,7 +557,8 @@ const RegistryStep: React.FC<RegistryStepProps> = ({
                 id="remote-hostname"
                 name="remote-registry-type"
                 label="External hostname"
-                description="Connect to a registry by hostname:port"
+                description="Connect to a registry by hostname:port."
+                isDisabled={lockedToPrimary}
                 isChecked={data.remoteRegistryType === RemoteRegistryType.HOSTNAME}
                 onChange={() => {
                   setData('remoteRegistryType', RemoteRegistryType.HOSTNAME);
@@ -538,7 +568,6 @@ const RegistryStep: React.FC<RegistryStepProps> = ({
                     registry: {
                       ...data.services?.registry,
                       remote: {
-                        ...data.services?.registry?.remote,
                         hostname: data.services?.registry?.remote?.hostname ?? registryHost,
                       },
                     },
@@ -554,6 +583,7 @@ const RegistryStep: React.FC<RegistryStepProps> = ({
                 <TextInput
                   id="feast-ref-name"
                   data-testid="feast-ref-name"
+                  isDisabled={lockedToPrimary}
                   value={data.services?.registry?.remote?.feastRef?.name ?? ''}
                   onChange={(_e, val) =>
                     updateRemote({
@@ -568,6 +598,7 @@ const RegistryStep: React.FC<RegistryStepProps> = ({
               <FormGroup label="Feature store project" fieldId="feast-ref-namespace">
                 <TextInput
                   id="feast-ref-namespace"
+                  isDisabled={lockedToPrimary}
                   value={data.services?.registry?.remote?.feastRef?.namespace ?? ''}
                   onChange={(_e, val) =>
                     updateRemote({
@@ -589,6 +620,7 @@ const RegistryStep: React.FC<RegistryStepProps> = ({
                 <TextInput
                   id="feast-remote-hostname"
                   data-testid="feast-remote-hostname"
+                  isDisabled={lockedToPrimary}
                   value={data.services?.registry?.remote?.hostname ?? ''}
                   onChange={(_e, val) => updateRemote({ hostname: val })}
                   placeholder="registry.namespace.svc.cluster.local:80"
@@ -640,6 +672,7 @@ const RegistryStep: React.FC<RegistryStepProps> = ({
                       }
                       isScrollable
                       isFullWidth
+                      toggleProps={{ style: selectToggleStyle }}
                     />
                     <FormHelperText>
                       <HelperText>
