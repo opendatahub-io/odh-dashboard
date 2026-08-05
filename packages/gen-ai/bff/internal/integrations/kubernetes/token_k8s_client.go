@@ -1389,10 +1389,10 @@ func ogxCommand(enableTracing bool) []string {
 	if enableTracing {
 		return []string{"/bin/sh", "-c", strings.Join([]string{
 			"cp /opt/app-root/lib/python*/site-packages/opentelemetry/instrumentation/auto_instrumentation/sitecustomize.py /opt/app-root/lib/python*/site-packages/ 2>/dev/null || true",
-			"opentelemetry-instrument --traces_exporter=otlp_proto_http --metrics_exporter=none --logs_exporter=none ogx run /etc/ogx/config.yaml --insecure",
+			"opentelemetry-instrument --traces_exporter=otlp_proto_http --metrics_exporter=none --logs_exporter=none ogx run /etc/ogx/config.yaml",
 		}, " && ")}
 	}
-	return []string{"/bin/sh", "-c", "ogx run /etc/ogx/config.yaml --insecure"}
+	return []string{"/bin/sh", "-c", "ogx run /etc/ogx/config.yaml"}
 }
 
 // ogxEnvVars returns the environment variables for the OGXServer pod.
@@ -1438,10 +1438,6 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 
 	// Step 1: Set up environment variables
 	envVars := []corev1.EnvVar{
-		{
-			Name:  "VLLM_TLS_VERIFY",
-			Value: "false",
-		},
 		{
 			Name:  "FAISS_STORE_DIR",
 			Value: "~/.llama/faiss",
@@ -1682,6 +1678,51 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 
 	kc.Logger.Info("ConfigMap created successfully (before OGXServer creation)", "namespace", namespace, "configMapName", configMapName)
 
+	// Step 4b: Ensure a CA trust ConfigMap exists for OGX TLS verification.
+	// First check if the DSCI-managed odh-trusted-ca-bundle already exists with CA content.
+	// If it does, use it directly. Otherwise, create ogx-trusted-ca-bundle with the
+	// OpenShift CA injection label so the ingress CA gets populated automatically.
+	caBundleConfigMapName := "odh-trusted-ca-bundle"
+	var caBundleConfigMap corev1.ConfigMap
+	err = kc.Client.Get(ctx, types.NamespacedName{Name: caBundleConfigMapName, Namespace: namespace}, &caBundleConfigMap)
+	if err != nil || caBundleConfigMap.Data["ca-bundle.crt"] == "" {
+		// DSCI bundle not available or empty — create our own with CA injection label
+		caBundleConfigMapName = "ogx-trusted-ca-bundle"
+		newCaBundleConfigMap := &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      caBundleConfigMapName,
+				Namespace: namespace,
+				Labels: map[string]string{
+					"config.openshift.io/inject-trusted-cabundle": "true",
+					"ogx.io/watch": "true",
+				},
+			},
+			Data: map[string]string{},
+		}
+
+		if createErr := kc.Client.Create(ctx, newCaBundleConfigMap); createErr != nil {
+			if !apierrors.IsAlreadyExists(createErr) {
+				kc.Logger.Error("failed to create CA trust ConfigMap", "error", createErr, "namespace", namespace)
+				return nil, rollbackPgvector(fmt.Errorf("failed to create CA trust ConfigMap: %w", createErr))
+			}
+			kc.Logger.Info("CA trust ConfigMap already exists, reusing", "namespace", namespace, "configMapName", caBundleConfigMapName)
+		} else {
+			kc.Logger.Info("CA trust ConfigMap created for OGX TLS verification", "namespace", namespace, "configMapName", caBundleConfigMapName)
+		}
+	} else {
+		// DSCI bundle exists with CA content — ensure it has the ogx.io/watch label
+		if caBundleConfigMap.Labels == nil {
+			caBundleConfigMap.Labels = make(map[string]string)
+		}
+		if caBundleConfigMap.Labels["ogx.io/watch"] != "true" {
+			caBundleConfigMap.Labels["ogx.io/watch"] = "true"
+			if updateErr := kc.Client.Update(ctx, &caBundleConfigMap); updateErr != nil {
+				kc.Logger.Warn("failed to add ogx.io/watch label to DSCI CA bundle", "error", updateErr)
+			}
+		}
+		kc.Logger.Info("Using existing DSCI-managed CA trust bundle", "namespace", namespace, "configMapName", caBundleConfigMapName)
+	}
+
 	// Step 5: Create OGXServer
 	replicas := int32(1)
 	workloadResources := &corev1.ResourceRequirements{
@@ -1728,6 +1769,13 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 			Network: &ogxapi.NetworkSpec{
 				Port: 8321,
 			},
+			TLS: &ogxapi.TLSClientConfig{
+				Trust: &ogxapi.TrustConfig{
+					CACertificates: []ogxapi.ConfigMapKeyRef{
+						{Name: caBundleConfigMapName, Key: "ca-bundle.crt"},
+					},
+				},
+			},
 		},
 	}
 
@@ -1767,6 +1815,29 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 		// Continue without failing - the OGXServer is created successfully
 	} else {
 		kc.Logger.Info("ConfigMap updated with owner reference", "namespace", namespace, "configMapName", configMapName, "owner", lsdName)
+	}
+
+	// Step 6b: Update CA trust ConfigMap with owner reference for GC
+	// Only set owner ref if we created it (ogx-trusted-ca-bundle), not on the DSCI-managed one.
+	if caBundleConfigMapName == "ogx-trusted-ca-bundle" {
+		var caConfigMapForOwner corev1.ConfigMap
+		if err := kc.Client.Get(ctx, types.NamespacedName{Name: caBundleConfigMapName, Namespace: namespace}, &caConfigMapForOwner); err == nil {
+			caConfigMapForOwner.OwnerReferences = []metav1.OwnerReference{
+				{
+					APIVersion:         "ogx.io/v1beta1",
+					Kind:               "OGXServer",
+					Name:               lsdName,
+					UID:                ogxServer.UID,
+					Controller:         &[]bool{true}[0],
+					BlockOwnerDeletion: &[]bool{false}[0],
+				},
+			}
+			if err := kc.Client.Update(ctx, &caConfigMapForOwner); err != nil {
+				kc.Logger.Warn("failed to set owner reference on CA trust ConfigMap", "error", err)
+			} else {
+				kc.Logger.Info("CA trust ConfigMap updated with owner reference", "namespace", namespace, "owner", lsdName)
+			}
+		}
 	}
 
 	// Set owner references on auto-provisioned pgvector resources so
