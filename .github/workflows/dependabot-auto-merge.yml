@@ -67,7 +67,7 @@ jobs:
             for dep in $(echo "$DEP_NAMES" | tr ',' '\n' | sed 's/^ *//;s/ *$//'); do
               for lockfile in $(find . -name package-lock.json -not -path '*/node_modules/*' -not -path '*/upstream/*'); do
                 ver=$(jq -r --arg d "$dep" \
-                  '.packages["node_modules/"+$d].version // .dependencies[$d].version // empty' \
+                  'first(.packages | to_entries[] | select((.key | endswith("node_modules/" + $d)) and (.value.version != null)) | .value.version) // empty' \
                   "$lockfile" 2>/dev/null || true)
                 if [ -n "$ver" ] && echo "$ver" | grep -q '^0\.'; then
                   echo "Pre-1.0 package detected in group: $dep ($ver) in $lockfile"
