@@ -11,14 +11,6 @@ const TITLE = 'MaaS Consumer Portal';
 
 const DIST_DIR = path.resolve(__dirname, '..');
 
-const additionalIncludes = [
-  path.resolve(REPO_ROOT, 'packages/maas'),
-  path.resolve(REPO_ROOT, 'packages/gen-ai'),
-  path.resolve(REPO_ROOT, 'packages/ui-core'),
-  path.resolve(REPO_ROOT, 'packages/k8s-core'),
-  path.resolve(REPO_ROOT, 'packages/foundation'),
-];
-
 // ~/ imports are webpack aliases that resolve to a single directory per build.
 // When multiple packages compile in one build, ~/ becomes ambiguous. Each
 // entry tells ContextualTildeResolverPlugin to resolve ~/ to the correct src/
@@ -41,7 +33,6 @@ module.exports = (overrides = {}) =>
     createWebpackCommon({
       distributionSrcDir: SRC_DIR,
       title: TITLE,
-      additionalIncludes,
       ...overrides,
     }),
     {
