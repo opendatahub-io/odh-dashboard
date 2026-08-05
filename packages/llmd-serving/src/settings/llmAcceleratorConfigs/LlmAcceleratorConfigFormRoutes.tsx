@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Navigate, Routes, Route } from 'react-router-dom';
+import { useMatch } from 'react-router-dom';
 import LlmAcceleratorConfigContextProvider from './LlmAcceleratorConfigContext';
 import LlmAcceleratorConfigAddForm, {
   LlmAcceleratorConfigFormByName,
@@ -11,47 +11,35 @@ import LlmInferenceServiceConfigAccessGate from '../LlmInferenceServiceConfigAcc
  * Full-page breakout routes for the accelerator configuration forms when the
  * tabbed Model deployment settings page is enabled.
  *
- * These are registered as their own `app.route` extensions rather than as tab
- * content so the forms render with their own breadcrumb and title instead of
- * inside the tab panel, beneath the page title and tab bar. The route paths are
- * absolute here because each form path is registered as a separate top-level
- * route, matching the pattern used by the agent-ops tabbed page.
+ * Registered as their own `app.route` extensions rather than as tab content, so
+ * the forms render with their own breadcrumb and title instead of inside the tab
+ * panel beneath the page title and tab bar.
+ *
+ * There is deliberately no nested `<Routes>` here. Each extension registers an
+ * exact path, so by the time this renders the parent route has already consumed
+ * the whole pathname and a descendant router would be handed an empty remaining
+ * path to match against — matching nothing and rendering blank. The mode is
+ * therefore resolved from the location directly.
  */
-const LlmAcceleratorConfigFormRoutes: React.FC = () => (
-  <LlmInferenceServiceConfigAccessGate>
-    <Routes>
-      <Route
-        path={LLM_ACCELERATOR_CONFIGS_TAB_PATH}
-        element={<LlmAcceleratorConfigContextProvider />}
-      >
-        <Route
-          path="add"
-          element={
-            <LlmAcceleratorConfigAddForm mode="add" listPath={LLM_ACCELERATOR_CONFIGS_TAB_PATH} />
-          }
-        />
-        <Route
-          path="edit/:configName"
-          element={
-            <LlmAcceleratorConfigFormByName
-              mode="edit"
-              listPath={LLM_ACCELERATOR_CONFIGS_TAB_PATH}
-            />
-          }
-        />
-        <Route
-          path="duplicate/:configName"
-          element={
-            <LlmAcceleratorConfigFormByName
-              mode="duplicate"
-              listPath={LLM_ACCELERATOR_CONFIGS_TAB_PATH}
-            />
-          }
-        />
-        <Route path="*" element={<Navigate to={LLM_ACCELERATOR_CONFIGS_TAB_PATH} replace />} />
-      </Route>
-    </Routes>
-  </LlmInferenceServiceConfigAccessGate>
-);
+const LlmAcceleratorConfigFormRoutes: React.FC = () => {
+  const isEdit = useMatch(`${LLM_ACCELERATOR_CONFIGS_TAB_PATH}/edit/:configName`) !== null;
+  const isDuplicate =
+    useMatch(`${LLM_ACCELERATOR_CONFIGS_TAB_PATH}/duplicate/:configName`) !== null;
+
+  return (
+    <LlmInferenceServiceConfigAccessGate>
+      <LlmAcceleratorConfigContextProvider>
+        {isEdit || isDuplicate ? (
+          <LlmAcceleratorConfigFormByName
+            mode={isEdit ? 'edit' : 'duplicate'}
+            listPath={LLM_ACCELERATOR_CONFIGS_TAB_PATH}
+          />
+        ) : (
+          <LlmAcceleratorConfigAddForm mode="add" listPath={LLM_ACCELERATOR_CONFIGS_TAB_PATH} />
+        )}
+      </LlmAcceleratorConfigContextProvider>
+    </LlmInferenceServiceConfigAccessGate>
+  );
+};
 
 export default LlmAcceleratorConfigFormRoutes;
