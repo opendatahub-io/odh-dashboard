@@ -54,6 +54,54 @@ func TestConvertUnstructuredToExternalProviderSummary(t *testing.T) {
 	}
 }
 
+func TestConvertUnstructuredToExternalModelSummary_AuthOverride(t *testing.T) {
+	obj := &unstructured.Unstructured{Object: map[string]interface{}{
+		"apiVersion": "inference.opendatahub.io/v1alpha1",
+		"kind":       "ExternalModel",
+		"metadata": map[string]interface{}{
+			"name":      "bedrock-model",
+			"namespace": "maas-models",
+		},
+		"spec": map[string]interface{}{
+			"modelName": "anthropic.claude-3",
+			"externalProviderRefs": []interface{}{
+				map[string]interface{}{
+					"ref":    map[string]interface{}{"name": "aws-provider"},
+					"weight": int64(100),
+					"auth": map[string]interface{}{
+						"type": "sigv4",
+						"secretRef": map[string]interface{}{
+							"name": "aws-bedrock-secret",
+						},
+					},
+				},
+				map[string]interface{}{
+					"ref":    map[string]interface{}{"name": "openai-provider"},
+					"weight": int64(0),
+				},
+			},
+		},
+	}}
+
+	summary := convertUnstructuredToExternalModelSummary(obj)
+
+	if summary.ProviderRefs[0].AuthMechanism == nil {
+		t.Fatal("expected auth override on first providerRef")
+	}
+	if *summary.ProviderRefs[0].AuthMechanism != models.AuthMechanismSigV4 {
+		t.Fatalf("authMechanism = %q, want sigv4", *summary.ProviderRefs[0].AuthMechanism)
+	}
+	if summary.ProviderRefs[0].CredentialSecretRef != "aws-bedrock-secret" {
+		t.Fatalf("credentialSecretRef = %q", summary.ProviderRefs[0].CredentialSecretRef)
+	}
+	if summary.ProviderRefs[1].AuthMechanism != nil {
+		t.Fatal("expected no auth override on second providerRef")
+	}
+	if summary.ProviderRefs[1].CredentialSecretRef != "" {
+		t.Fatalf("expected empty credentialSecretRef, got %q", summary.ProviderRefs[1].CredentialSecretRef)
+	}
+}
+
 func TestEnrichExternalModelSummaries(t *testing.T) {
 	summaries := []models.ExternalModelSummary{
 		{
@@ -122,5 +170,58 @@ func TestEnrichExternalModelSummaries(t *testing.T) {
 	}
 	if enriched[1].MaaSModelRef != nil {
 		t.Fatal("expected no maaSModelRef enrichment for claude-split")
+	}
+}
+
+func TestEnrichExternalModelSummaries_AuthOverride(t *testing.T) {
+	sigv4 := models.AuthMechanismSigV4
+	summaries := []models.ExternalModelSummary{
+		{
+			Name:      "bedrock-model",
+			Namespace: "maas-models",
+			ProviderRefs: []models.ProviderRef{
+				{
+					ProviderName:        "aws-provider",
+					Weight:              100,
+					AuthMechanism:       &sigv4,
+					CredentialSecretRef: "aws-bedrock-secret",
+				},
+			},
+		},
+		{
+			Name:      "plain-model",
+			Namespace: "maas-models",
+			ProviderRefs: []models.ProviderRef{
+				{ProviderName: "aws-provider", Weight: 100},
+			},
+		},
+	}
+
+	providers := map[string]models.ExternalProviderSummary{
+		"maas-models/aws-provider": {
+			Name:                "aws-provider",
+			Namespace:           "maas-models",
+			EndpointUrl:         "bedrock.us-east-1.amazonaws.com",
+			AuthMechanism:       models.AuthMechanismAPIKey,
+			CredentialSecretRef: "provider-api-key",
+			Provider:            "aws",
+			Phase:               "Ready",
+		},
+	}
+
+	enriched := enrichExternalModelSummaries(summaries, providers, nil)
+
+	if enriched[0].ProviderRefs[0].Provider.AuthMechanism != models.AuthMechanismSigV4 {
+		t.Fatalf("expected overridden authMechanism sigv4, got %q", enriched[0].ProviderRefs[0].Provider.AuthMechanism)
+	}
+	if enriched[0].ProviderRefs[0].Provider.CredentialSecretRef != "aws-bedrock-secret" {
+		t.Fatalf("expected overridden credentialSecretRef, got %q", enriched[0].ProviderRefs[0].Provider.CredentialSecretRef)
+	}
+
+	if enriched[1].ProviderRefs[0].Provider.AuthMechanism != models.AuthMechanismAPIKey {
+		t.Fatalf("expected provider authMechanism apikey, got %q", enriched[1].ProviderRefs[0].Provider.AuthMechanism)
+	}
+	if enriched[1].ProviderRefs[0].Provider.CredentialSecretRef != "provider-api-key" {
+		t.Fatalf("expected provider credentialSecretRef, got %q", enriched[1].ProviderRefs[0].Provider.CredentialSecretRef)
 	}
 }

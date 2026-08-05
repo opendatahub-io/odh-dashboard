@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Modal, ModalVariant, ModalBody, ModalFooter, ModalHeader } from '@patternfly/react-core';
-import DashboardModalFooter from '@odh-dashboard/internal/concepts/dashboard/DashboardModalFooter';
+import DashboardModalFooter from '@odh-dashboard/ui-core/components/DashboardModalFooter';
 
 type StopAgentModalProps = {
   agentName: string;

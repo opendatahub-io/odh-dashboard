@@ -6,6 +6,12 @@ export type DeployPrefillData = {
   wizardStartIndex?: number;
   modelType?: 'predictive' | 'generative';
   prefillAlertText?: string;
+  validatedConfigurations?: {
+    forField: string;
+    title: string;
+    description: string;
+    options: { title: string; description: string; value: string }[];
+  }[];
 };
 
 export type ModelDeployPrefillInfo = {

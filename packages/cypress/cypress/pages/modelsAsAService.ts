@@ -1419,6 +1419,39 @@ class OverviewTabPage {
     this.findModelRows().eq(index).findByTestId('expand-model').find('button').click();
   }
 
+  findGroupChip(group: string, index: number): Cypress.Chainable<JQuery<HTMLElement>> {
+    // Chips for the same group exist on every matching sub/policy in the DOM;
+    // only query chips inside expanded nested items (not collapsed ones).
+    return this.findModelRows()
+      .eq(index)
+      .find('tbody.pf-m-expanded')
+      .find(`[data-testid="group-chip-${group}"]`)
+      .first();
+  }
+
+  findGroupChips(group: string, index: number): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findModelRows()
+      .eq(index)
+      .find('tbody.pf-m-expanded')
+      .find(`[data-testid="group-chip-${group}"]`);
+  }
+
+  findExpandableItemInRow(
+    rowIndex: number,
+    name: string,
+  ): Cypress.Chainable<JQuery<HTMLTableSectionElement>> {
+    return this.findModelRows().eq(rowIndex).contains(name).closest('tbody');
+  }
+
+  expandExpandableItemInRow(rowIndex: number, name: string): void {
+    this.findModelRows()
+      .eq(rowIndex)
+      .contains(name)
+      .closest('tr')
+      .find('button[aria-label="Details"]')
+      .click();
+  }
+
   findExpandAllSubscriptionsInRow(index: number): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.findModelRows().eq(index).findByTestId('expand-all-subscriptions');
   }

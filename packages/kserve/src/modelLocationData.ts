@@ -1,7 +1,4 @@
-import {
-  getPVCNameFromURI,
-  isPVCUri,
-} from '@odh-dashboard/internal/pages/modelServing/screens/projects/utils';
+import { getPVCNameFromURI, isPVCUri } from '@odh-dashboard/model-serving/shared';
 import { MetadataAnnotation, ModelServingCompatibleTypes } from '@odh-dashboard/k8s-core';
 import type { InferenceServiceKind } from '@odh-dashboard/model-serving/shared';
 import {

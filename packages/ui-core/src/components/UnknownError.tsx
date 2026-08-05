@@ -8,13 +8,13 @@ import {
 } from '@patternfly/react-core';
 import { ErrorCircleOIcon } from '@patternfly/react-icons';
 
-type UnauthorizedErrorProps = {
+export type UnknownErrorProps = {
   variant?: PageSectionVariants;
   titleText: string;
   error: Error;
   testId?: string;
 };
-const UnknownError: React.FC<UnauthorizedErrorProps> = ({
+const UnknownError: React.FC<UnknownErrorProps> = ({
   variant = PageSectionVariants.default,
   titleText,
   error,

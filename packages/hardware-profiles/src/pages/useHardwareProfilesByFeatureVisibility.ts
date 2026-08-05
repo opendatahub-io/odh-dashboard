@@ -4,7 +4,8 @@ import {
   HardwareProfileFeatureVisibility,
 } from '@odh-dashboard/k8s-core';
 import { HardwareProfilesContext } from '@odh-dashboard/internal/concepts/hardwareProfiles/HardwareProfilesContext';
-import { ProjectDetailsContext } from '@odh-dashboard/internal/pages/projects/ProjectDetailsContext';
+import { CurrentProjectContext } from '@odh-dashboard/ui-core/context/CurrentProjectContext';
+import { ProjectHardwareProfilesContext } from '@odh-dashboard/ui-core/context/ProjectHardwareProfilesContext';
 import { useWatchHardwareProfiles } from '@odh-dashboard/internal/utilities/useWatchHardwareProfiles';
 import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors';
 import { filterRecognizedVisibility, isHardwareProfileValid } from './utils';
@@ -15,7 +16,7 @@ import { filterRecognizedVisibility, isHardwareProfileValid } from './utils';
  * Simple logic:
  * 1. Global profiles - always from HardwareProfilesContext (dashboard namespace)
  * 2. Project profiles:
- *    - If in ProjectDetailsContext and namespace matches (or no namespace) → use context
+ *    - If in ProjectHardwareProfilesContext and namespace matches (or no namespace) → use context
  *    - Otherwise, fetch for the specific namespace
  *
  * Note: This may create duplicate watches in some cases (e.g., global deployments table),
@@ -39,9 +40,10 @@ export const useHardwareProfilesByFeatureVisibility = (
     globalHardwareProfiles: [globalProfiles, globalProfilesLoaded, globalProfilesError],
   } = React.useContext(HardwareProfilesContext);
 
-  // Try to get project profiles from ProjectDetailsContext
-  const { currentProject, projectHardwareProfiles: contextProjectProfiles } =
-    React.useContext(ProjectDetailsContext);
+  const { currentProject } = React.useContext(CurrentProjectContext);
+  const { projectHardwareProfiles: contextProjectProfiles } = React.useContext(
+    ProjectHardwareProfilesContext,
+  );
 
   // Determine if we should use context project profiles or fetch them
   const shouldUseContextProfiles =

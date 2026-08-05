@@ -6,7 +6,7 @@ import { mockFeatureView } from '@odh-dashboard/feature-store/mocks/mockFeatureV
 import { mockDashboardConfig } from '@odh-dashboard/internal/__mocks__/mockDashboardConfig';
 import { mockDscStatus } from '@odh-dashboard/internal/__mocks__/mockDscStatus';
 import { mockK8sResourceList } from '@odh-dashboard/internal/__mocks__/mockK8sResourceList';
-import { mockProjectK8sResource } from '@odh-dashboard/internal/__mocks__/mockProjectK8sResource';
+import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import { ProjectModel, ServiceModel } from '../../../utils/models';
 import { asClusterAdminUser } from '../../../utils/mockUsers';

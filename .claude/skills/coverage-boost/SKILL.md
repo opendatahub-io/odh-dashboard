@@ -120,7 +120,7 @@ describe('FunctionOrComponent', () => {
 
 **Mocking**:
 - Use `jest.mocked()` for type-safe mocks
-- Check `@odh-dashboard/internal/__mocks__` for shared mock data
+- Check `@odh-dashboard/internal/__mocks__` and type-owning packages (e.g., `@odh-dashboard/k8s-core/__mocks__/`) for shared mock data
 - Mock external dependencies at the module level with `jest.mock()`
 - For k8s resources, use mock factories from `__mocks__/mockResourceData.ts`
 

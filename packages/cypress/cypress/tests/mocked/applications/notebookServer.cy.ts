@@ -12,7 +12,7 @@ import { mockStartNotebookData } from '@odh-dashboard/internal/__mocks__/mockSta
 import {
   mockGlobalScopedHardwareProfiles,
   mockProjectScopedHardwareProfiles,
-} from '@odh-dashboard/internal/__mocks__/mockHardwareProfile';
+} from '@odh-dashboard/hardware-profiles/__mocks__/mockHardwareProfile';
 import type { NotebookData } from '@odh-dashboard/internal/types';
 import { mockConfigMap } from '@odh-dashboard/internal/__mocks__/mockConfigMap';
 import { mockImageStreamK8sResourceList } from '@odh-dashboard/internal/__mocks__/mockImageStreamK8sResource';

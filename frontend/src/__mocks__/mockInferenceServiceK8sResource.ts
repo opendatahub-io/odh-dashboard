@@ -5,7 +5,7 @@ import {
   InferenceServiceKind,
   ServingRuntimeModelType,
 } from '@odh-dashboard/model-serving/shared';
-import { genUID } from '#~/__mocks__/mockUtils';
+import { genUID } from '@odh-dashboard/foundation';
 
 type MockResourceConfigType = {
   name?: string;

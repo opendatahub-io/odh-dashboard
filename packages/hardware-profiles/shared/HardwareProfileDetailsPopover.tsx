@@ -18,8 +18,7 @@ import {
   getHardwareProfileDescription,
   getHardwareProfileDisplayName,
 } from '@odh-dashboard/internal/pages/hardwareProfiles/utils';
-// eslint-disable-next-line @odh-dashboard/no-restricted-imports
-import { ProjectDetailsContext } from '@odh-dashboard/internal/pages/projects/ProjectDetailsContext';
+import { LocalQueuesContext } from '@odh-dashboard/ui-core/context/LocalQueuesContext';
 import {
   formatToleration,
   formatNodeSelector,
@@ -47,7 +46,7 @@ const HardwareProfileDetailsPopover: React.FC<HardwareProfileDetailsPopoverProps
   tableView = false,
   onExpandRow,
 }) => {
-  const { localQueues } = React.useContext(ProjectDetailsContext);
+  const { localQueues } = React.useContext(LocalQueuesContext);
   const triggerRef = React.useRef<HTMLButtonElement>(null);
   const [isPopoverVisible, setIsPopoverVisible] = React.useState(false);
   const clusterQueueName = React.useMemo(

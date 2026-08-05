@@ -262,4 +262,67 @@ describe('Subscription Management Page / Overview Tab', () => {
     policyPage.findCancelButton().click();
     cy.url().should('include', '/maas-governance/overview');
   });
+
+  it('should highlight matching subscriptions and policies when a group chip is clicked', () => {
+    subscriptionManagementPage.visit('overview');
+    overviewTabPage.findFilterInput('model').type('Granite 3 8B Instruct');
+    overviewTabPage.findModelRows().should('have.length', 2);
+
+    const graniteRow = 0;
+    overviewTabPage.expandModelRow(graniteRow);
+    overviewTabPage.findModelRows().eq(graniteRow).should('have.class', 'pf-m-expanded');
+
+    // Manually expand one subscription so its group chips are visible
+    overviewTabPage.expandExpandableItemInRow(graniteRow, 'Premium Team Subscription');
+    overviewTabPage.findGroupChip('premium-users', graniteRow).should('be.visible');
+
+    // Select the group —> matching subs/policies expand and chips turn blue
+    overviewTabPage.findGroupChip('premium-users', graniteRow).click();
+    overviewTabPage
+      .findGroupChips('premium-users', graniteRow)
+      .should('have.length', 5)
+      .each(($chip) => {
+        cy.wrap($chip).should('have.class', 'pf-m-blue');
+      });
+
+    [
+      'Premium Team Subscription',
+      'deleting-sub',
+      'test-subscription-policy',
+      'Premium Team Policy',
+      'deleting-policy',
+    ].forEach((name) => {
+      overviewTabPage
+        .findExpandableItemInRow(graniteRow, name)
+        .should('have.class', 'pf-m-expanded');
+    });
+
+    // Items with non-matching groups stay collapsed
+    ['failed-sub', 'failed-policy'].forEach((name) => {
+      overviewTabPage
+        .findExpandableItemInRow(graniteRow, name)
+        .should('not.have.class', 'pf-m-expanded');
+    });
+
+    // Unselect the group —> chips return to grey and the expanded items close
+    overviewTabPage.findGroupChip('premium-users', graniteRow).click();
+    overviewTabPage
+      .findGroupChips('premium-users', graniteRow)
+      .should('have.length', 1)
+      .and('have.class', 'pf-m-clickable'); // clickable meaning it's grey and can be selected, there's no explicitly grey color on this element
+
+    ['deleting-sub', 'test-subscription-policy', 'Premium Team Policy', 'deleting-policy'].forEach(
+      (name) => {
+        overviewTabPage
+          .findExpandableItemInRow(graniteRow, name)
+          .should('not.have.class', 'pf-m-expanded');
+      },
+    );
+
+    // Manually expanded subscription and model row should have stayed open after we unselect the group
+    overviewTabPage
+      .findExpandableItemInRow(graniteRow, 'Premium Team Subscription')
+      .should('have.class', 'pf-m-expanded');
+    overviewTabPage.findModelRows().eq(graniteRow).should('have.class', 'pf-m-expanded');
+  });
 });

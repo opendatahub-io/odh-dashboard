@@ -5,7 +5,7 @@ import {
   mockDashboardConfig,
   mockK8sResourceList,
 } from '@odh-dashboard/internal/__mocks__';
-import { mockHardwareProfile } from '@odh-dashboard/internal/__mocks__/mockHardwareProfile';
+import { mockHardwareProfile } from '@odh-dashboard/hardware-profiles/__mocks__/mockHardwareProfile';
 import { HardwareProfileFeatureVisibility, IdentifierResourceType } from '@odh-dashboard/k8s-core';
 import {
   ImageStreamAnnotation,

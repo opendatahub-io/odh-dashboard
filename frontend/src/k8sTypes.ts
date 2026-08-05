@@ -342,6 +342,7 @@ export enum DSPipelineAPIServerStore {
 
 export type DSPipelineMlflowKind = {
   integrationMode?: DSPAMlflowIntegrationMode;
+  injectUserEnvVars?: boolean;
 };
 
 /**

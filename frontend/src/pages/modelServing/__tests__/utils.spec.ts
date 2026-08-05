@@ -5,6 +5,7 @@ import type {
   ServingRuntimeKind,
   CreatingServingRuntimeObject,
 } from '@odh-dashboard/model-serving/shared';
+import { mockPVCK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockPVCK8sResource';
 import {
   getInferenceServiceSizeOrReturnEmpty,
   getServingRuntimeOrReturnEmpty,
@@ -19,7 +20,6 @@ import {
   isModelServerEditInfoChanged,
 } from '#~/pages/modelServing/utils';
 import { mockServingRuntimeK8sResource } from '#~/__mocks__/mockServingRuntimeK8sResource';
-import { mockPVCK8sResource } from '#~/__mocks__/mockPVCK8sResource';
 import { mockServiceAccountK8sResource } from '#~/__mocks__/mockServiceAccountK8sResource';
 import { mockRoleBindingK8sResource } from '#~/__mocks__/mockRoleBindingK8sResource';
 import {
