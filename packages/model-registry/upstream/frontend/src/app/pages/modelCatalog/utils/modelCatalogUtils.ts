@@ -1,4 +1,5 @@
 import { capitalize } from '@patternfly/react-core';
+import type { DeployPrefillData } from '@odh-dashboard/model-registry/shared';
 import {
   CatalogArtifacts,
   CatalogArtifactType,
@@ -830,4 +831,41 @@ export const getMinimumVramFromCustomProperties = (
     return `${doubleVal.toFixed(2)} GB`;
   }
   return getCustomPropString(customProperties, CatalogModelCustomPropertyKey.MINIMUM_VRAM);
+};
+
+/**
+ * Converts a CatalogModel's serving config into generic ValidatedConfiguration entries
+ * for the deployment wizard's preconfigure step.
+ */
+export const servingConfigToValidatedConfigurations = (
+  model: CatalogModel,
+): DeployPrefillData['validatedConfigurations'] => {
+  if (!hasValidatedToolCalling(model)) {
+    return undefined;
+  }
+
+  const toolCalling = model.servingConfig?.toolCalling;
+  if (!toolCalling) {
+    return undefined;
+  }
+
+  const argsValue = getToolCallingArgs(toolCalling);
+  if (!argsValue) {
+    return undefined;
+  }
+
+  return [
+    {
+      forField: 'runtimeArgs',
+      title: 'Tool calling',
+      description: 'Validated tool calling configuration for this model',
+      options: [
+        {
+          title: toolCalling.toolCallParser ?? 'Tool calling',
+          description: 'Enable tool calling with validated configuration',
+          value: argsValue,
+        },
+      ],
+    },
+  ];
 };

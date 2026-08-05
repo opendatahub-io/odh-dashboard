@@ -10,6 +10,7 @@ import {
   CatalogArtifactType,
   CatalogArtifacts,
   MetricsType,
+  CatalogModel,
 } from '~/app/modelCatalogTypes';
 import {
   AllLanguageCode,
@@ -45,6 +46,7 @@ import {
   getToolCallingArgs,
   getSortParams,
   getEffectiveSortBy,
+  servingConfigToValidatedConfigurations,
 } from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
 import { mockCatalogModelArtifact } from '~/__mocks__/mockCatalogModelArtifactList';
 import { ModelRegistryMetadataType } from '~/app/types';
@@ -1986,5 +1988,100 @@ describe('getSortParams', () => {
       orderBy: latencyField,
       sortOrder: SortOrder.ASC,
     });
+  });
+});
+
+describe('servingConfigToValidatedConfigurations', () => {
+  it('returns undefined when model has no servingConfig', () => {
+    const model: CatalogModel = {
+      name: 'test-model',
+    };
+    expect(servingConfigToValidatedConfigurations(model)).toBeUndefined();
+  });
+
+  it('returns undefined when model has no toolCalling', () => {
+    const model: CatalogModel = {
+      name: 'test-model',
+      servingConfig: {},
+    };
+    expect(servingConfigToValidatedConfigurations(model)).toBeUndefined();
+  });
+
+  it('returns undefined when model has no toolCallParser', () => {
+    const model: CatalogModel = {
+      name: 'test-model',
+      servingConfig: {
+        toolCalling: {},
+      },
+      validatedTasks: [ModelCatalogTask.TOOL_CALLING],
+    };
+    expect(servingConfigToValidatedConfigurations(model)).toBeUndefined();
+  });
+
+  it('returns undefined when model has no validatedTasks including TOOL_CALLING', () => {
+    const model: CatalogModel = {
+      name: 'test-model',
+      servingConfig: {
+        toolCalling: {
+          toolCallParser: 'hermes',
+        },
+      },
+      validatedTasks: [],
+    };
+    expect(servingConfigToValidatedConfigurations(model)).toBeUndefined();
+  });
+
+  it('returns a ValidatedConfiguration array when model has valid tool calling config', () => {
+    const model: CatalogModel = {
+      name: 'test-model',
+      servingConfig: {
+        toolCalling: {
+          toolCallParser: 'hermes',
+        },
+      },
+      validatedTasks: [ModelCatalogTask.TOOL_CALLING],
+    };
+
+    const result = servingConfigToValidatedConfigurations(model);
+
+    expect(result).toBeDefined();
+    expect(result).toHaveLength(1);
+    expect(result![0]).toEqual({
+      forField: 'runtimeArgs',
+      title: 'Tool calling',
+      description: 'Validated tool calling configuration for this model',
+      options: [
+        {
+          title: 'hermes',
+          description: 'Enable tool calling with validated configuration',
+          value: '--tool-call-parser hermes',
+        },
+      ],
+    });
+  });
+
+  it('includes all tool calling args in the option value', () => {
+    const model: CatalogModel = {
+      name: 'test-model',
+      servingConfig: {
+        toolCalling: {
+          toolCallParser: 'granite',
+          enableAutoToolChoice: true,
+          chatTemplate: 'opt/app-root/template/tool_chat_template_granite.jinja',
+          requiredArgs: ['--config_format granite'],
+        },
+      },
+      validatedTasks: [ModelCatalogTask.TOOL_CALLING],
+    };
+
+    const result = servingConfigToValidatedConfigurations(model);
+
+    expect(result).toBeDefined();
+    expect(result![0].options[0].value).toContain('--enable-auto-tool-choice');
+    expect(result![0].options[0].value).toContain('--tool-call-parser granite');
+    expect(result![0].options[0].value).toContain(
+      '--chat-template opt/app-root/template/tool_chat_template_granite.jinja',
+    );
+    expect(result![0].options[0].value).toContain('--config_format granite');
   });
 });
