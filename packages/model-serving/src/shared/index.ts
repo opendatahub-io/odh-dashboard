@@ -74,4 +74,4 @@ export type { ModelServingFilterDataType } from './const';
 export { MODEL_CAPABILITIES_ANNOTATION, WELL_KNOWN_MODEL_CAPABILITIES } from './modelCapabilities';
 export type { WellKnownModelCapability, ModelCapability } from './modelCapabilities';
 
-export { translateModelServingError, createModelServingError } from './utils/errorUtils';
+export { translateModelServingError } from './utils/errorUtils';

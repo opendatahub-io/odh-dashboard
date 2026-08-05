@@ -38,6 +38,3 @@ export const translateModelServingError = (error: unknown): string => {
   }
   return message;
 };
-
-export const createModelServingError = (error: unknown): Error =>
-  new Error(translateModelServingError(error));

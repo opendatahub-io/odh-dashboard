@@ -1,5 +1,5 @@
 import { K8sStatusError } from '@odh-dashboard/k8s-core';
-import { translateModelServingError, createModelServingError } from '../errorUtils';
+import { translateModelServingError } from '../errorUtils';
 
 describe('translateModelServingError', () => {
   describe('409 AlreadyExists errors', () => {
@@ -90,14 +90,5 @@ describe('translateModelServingError', () => {
 
   it('handles string errors as fallback', () => {
     expect(translateModelServingError('something went wrong')).toBe('something went wrong');
-  });
-});
-
-describe('createModelServingError', () => {
-  it('wraps a translated error message in an Error object', () => {
-    const error = new Error('inferenceservices.serving.kserve.io is forbidden');
-    const result = createModelServingError(error);
-    expect(result).toBeInstanceOf(Error);
-    expect(result.message).toBe('model deployment is forbidden');
   });
 });
