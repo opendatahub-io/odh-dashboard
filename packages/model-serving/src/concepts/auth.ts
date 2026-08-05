@@ -51,6 +51,7 @@ export const getTokenNames = (
   serviceAccountName: string;
   roleName: string;
   roleBindingName: string;
+  resolvedName: string;
 } => {
   const name = resourceName !== '' ? resourceName : getModelServingRuntimeName(namespace);
 
@@ -58,7 +59,7 @@ export const getTokenNames = (
   const roleName = getModelRole(name);
   const roleBindingName = getModelRoleBinding(name);
 
-  return { serviceAccountName, roleName, roleBindingName };
+  return { serviceAccountName, roleName, roleBindingName, resolvedName: name };
 };
 
 const is404 = (error: unknown): boolean => getGenericErrorCode(error) === 404;
@@ -174,7 +175,7 @@ export const setUpTokenAuth = async (
   existingSecrets?: SecretKind[],
   opts?: K8sAPIOptions,
 ): Promise<void> => {
-  const { serviceAccountName, roleName, roleBindingName } = getTokenNames(
+  const { serviceAccountName, roleName, roleBindingName, resolvedName } = getTokenNames(
     deployedModelName,
     namespace,
   );
@@ -185,7 +186,7 @@ export const setUpTokenAuth = async (
   );
 
   const role = addOwnerReference(
-    generateRole(roleName, deployedModelName, namespace, resourceType),
+    generateRole(roleName, resolvedName, namespace, resourceType),
     owner,
   );
 
@@ -209,11 +210,9 @@ export const setUpTokenAuth = async (
           createRoleIfMissing(role, namespace, opts),
         ]).then(() => createRoleBindingIfMissing(roleBinding, namespace, opts))
       : Promise.resolve()
-  )
-    .then(() =>
-      createTokenSecrets(tokenAuth, deployedModelName, namespace, owner, existingSecrets, opts),
-    )
-    .catch((error) => Promise.reject(error));
+  ).then(() =>
+    createTokenSecrets(tokenAuth, deployedModelName, namespace, owner, existingSecrets, opts),
+  );
 };
 
 export const isDeploymentAuthEnabled = (

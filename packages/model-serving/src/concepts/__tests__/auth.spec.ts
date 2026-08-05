@@ -81,6 +81,7 @@ describe('getTokenNames', () => {
       serviceAccountName: 'my-model-sa',
       roleName: 'my-model-view-role',
       roleBindingName: 'my-model-view',
+      resolvedName: 'my-model',
     });
   });
 
@@ -90,6 +91,7 @@ describe('getTokenNames', () => {
       serviceAccountName: 'model-server-test-ns-sa',
       roleName: 'model-server-test-ns-view-role',
       roleBindingName: 'model-server-test-ns-view',
+      resolvedName: 'model-server-test-ns',
     });
   });
 });
@@ -327,6 +329,26 @@ describe('setUpTokenAuth', () => {
       expect(call[1]).toBe(mockOwner);
     });
   });
+
+  it('should not touch secrets when RBAC creation fails', async () => {
+    const tokens: TokenAuthEntry[] = [{ displayName: 'token-1', uuid: 'uuid-1' }];
+    const failure = new Error('forbidden');
+    rolesMock.getRole.mockRejectedValue(failure);
+
+    await expect(
+      setUpTokenAuth(tokens, 'test-model', 'test-ns', true, mockOwner, 'inferenceservices'),
+    ).rejects.toBe(failure);
+
+    expect(secretsMock.createSecret).not.toHaveBeenCalled();
+    expect(secretsMock.deleteSecret).not.toHaveBeenCalled();
+  });
+
+  it('should use resolved name for Role resourceNames when deployedModelName is empty', async () => {
+    await setUpTokenAuth([], '', 'test-ns', true, mockOwner, 'inferenceservices');
+
+    const roleArg = rolesMock.createRole.mock.calls[0][0];
+    expect(roleArg.rules[0].resourceNames).toEqual(['model-server-test-ns']);
+  });
 });
 
 describe('createTokenSecrets', () => {
@@ -346,23 +368,6 @@ describe('createTokenSecrets', () => {
       createTokenSecrets(tokens, 'test-model', 'test-ns', mockOwner, existingSecrets),
     ).rejects.toBe(failure);
 
-    expect(secretsMock.deleteSecret).not.toHaveBeenCalled();
-  });
-
-  it('should not touch secrets when RBAC creation fails', async () => {
-    const tokens: TokenAuthEntry[] = [{ displayName: 'token-1', uuid: 'uuid-1' }];
-    const failure = new Error('forbidden');
-    rolesMock.getRole.mockRejectedValue(failure);
-    serviceAccountsMock.getServiceAccount.mockRejectedValue(make404());
-    serviceAccountsMock.createServiceAccount.mockImplementation((sa: unknown) =>
-      Promise.resolve(sa),
-    );
-
-    await expect(
-      setUpTokenAuth(tokens, 'test-model', 'test-ns', true, mockOwner, 'inferenceservices'),
-    ).rejects.toBe(failure);
-
-    expect(secretsMock.createSecret).not.toHaveBeenCalled();
     expect(secretsMock.deleteSecret).not.toHaveBeenCalled();
   });
 });
