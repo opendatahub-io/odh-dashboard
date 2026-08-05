@@ -107,7 +107,7 @@ import { useCatchUIError } from '~/app/components/common/UIError/UIErrorHandler.
 const catchUIError = useCatchUIError();
 
 try {
-  const result = someApi.callEndpoint();
+  const result = await someApi.callEndpoint();
 } catch (error) {
   catchUIError(error, () => {
     catchAnErrorThatIsNotAUIError(error);

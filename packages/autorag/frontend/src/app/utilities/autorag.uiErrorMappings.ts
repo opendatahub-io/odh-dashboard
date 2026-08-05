@@ -5,6 +5,6 @@ import type { UIErrorMappings } from '~/app/components/common/UIError/types.ts';
 export const autoragUIErrorMappings: UIErrorMappings = {
   unsupported_pipeline_type: {
     title: 'Unsupported pipeline type',
-    description: 'An unsupported pipeline type provided, try again with a supported pipeline.',
+    description: 'An unsupported pipeline type was provided, try again with a supported pipeline.',
   },
 };

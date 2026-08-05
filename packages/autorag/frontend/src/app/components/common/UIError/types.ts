@@ -14,7 +14,7 @@ export interface UIError {
   transactionId: string;
 
   /** Additional details that will be rendered for the user. (Useful for attaching additional information that may be required for easier customer support.) */
-  details: Record<string, unknown>;
+  details: Record<string, unknown> | null;
 }
 
 export type UIErrorMappings = Record<string, UIErrorMapping>;

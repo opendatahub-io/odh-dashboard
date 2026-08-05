@@ -35,15 +35,15 @@ function id(): string {
 // Classes -------------------------------------------------------------------->
 
 export class UIErrorInstance extends Error implements UIError {
-  messageId: string;
+  messageId: UIError['messageId'];
 
-  reason: string;
+  reason: UIError['reason'];
 
-  status: number;
+  status: UIError['status'];
 
-  transactionId: string;
+  transactionId: UIError['transactionId'];
 
-  details: Record<string, unknown>;
+  details: UIError['details'];
 
   readonly id: string;
 
