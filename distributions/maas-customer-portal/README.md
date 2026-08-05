@@ -56,14 +56,6 @@ MAAS_BFF_TARGET=https://localhost:8243 GENAI_BFF_TARGET=https://localhost:8143 n
 
 BFF targets use `https://` because on-cluster BFFs serve over TLS.
 
-**Alternative: cluster auto-discovery mode.** Instead of explicit BFF targets, set `OC_PROJECT` to auto-discover the dashboard route:
-
-```bash
-OC_PROJECT=redhat-ods-applications npm run dev
-```
-
-Optional overrides: `ODH_APP` (default `odh-dashboard`), `ODH_DASHBOARD_HOST` (skips route discovery).
-
 ## Key files
 
 | File | Purpose |
