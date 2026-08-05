@@ -15,14 +15,14 @@ configMapGenerator:
 generatorOptions:
   disableNameSuffixHash: true
 
-vars:
-  - name: rhaii-dashboard-image
-    objref:
+replacements:
+  - source:
       kind: ConfigMap
       name: core-bff-params
-      apiVersion: v1
-    fieldref:
-      fieldpath: data.rhaii-dashboard-image
-
-configurations:
-  - params.yaml
+      fieldPath: data.rhaii-dashboard-image
+    targets:
+      - select:
+          kind: Deployment
+          name: rhaii-dashboard
+        fieldPaths:
+          - spec.template.spec.containers.[name=rhaii-dashboard].image

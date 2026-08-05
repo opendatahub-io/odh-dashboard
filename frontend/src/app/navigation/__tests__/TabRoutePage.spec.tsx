@@ -22,7 +22,7 @@ jest.mock('@odh-dashboard/plugin-core', () => ({
 }));
 
 jest.mock(
-  '#~/pages/NotFound',
+  '@odh-dashboard/ui-core/components/NotFound',
   () =>
     function MockNotFound() {
       return <div data-testid="not-found">Not Found</div>;

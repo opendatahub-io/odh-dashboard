@@ -19,6 +19,7 @@ import type {
   AreaExtension,
   HrefNavItemExtension,
   RouteExtension,
+  TabRouteTabExtension,
 } from '@odh-dashboard/plugin-core/extension-points';
 import type { FetchStateObject } from '@odh-dashboard/ui-core/hooks/useFetch';
 import type { LLMdDeployment, LLMInferenceServiceConfigKind } from '../src/types';
@@ -42,6 +43,11 @@ import type {
 
 export const LLMD_SERVING_ID = 'llmd-serving';
 const ADMIN_USER = 'ADMIN_USER';
+
+const createRedirectComponent = (args: { from: string; to: string }) => () =>
+  import('@odh-dashboard/plugin-core/routing').then((module) => ({
+    default: () => module.buildV2RedirectElement(args),
+  }));
 
 // When vLLMOnMaaS enabled + llmdTemplates disabled: show accelerator config for all llm-d (single-node fallback)
 const llmConfigOptionsFieldExtensionNoTemplates: WizardFieldExtension<
@@ -323,6 +329,7 @@ const extensions: (
   | WizardFieldExtractorExtension<{ method: string }, LLMdDeployment>
   | HrefNavItemExtension
   | RouteExtension
+  | TabRouteTabExtension
 )[] = [
   {
     type: 'app.area',
@@ -535,6 +542,7 @@ const extensions: (
     type: 'app.navigation/href',
     flags: {
       required: [LLMD_SERVING_ID, ADMIN_USER, SupportedArea.VLLM_ON_MAAS],
+      disallowed: [SupportedArea.MODEL_DEPLOYMENT_SETTINGS],
     },
     properties: {
       id: 'settings-llm-accelerator-configs',
@@ -549,6 +557,7 @@ const extensions: (
     type: 'app.route',
     flags: {
       required: [LLMD_SERVING_ID, ADMIN_USER, SupportedArea.VLLM_ON_MAAS],
+      disallowed: [SupportedArea.MODEL_DEPLOYMENT_SETTINGS],
     },
     properties: {
       path: '/settings/model-resources-operations/llm-accelerator-configs/*',
@@ -559,6 +568,7 @@ const extensions: (
     type: 'app.navigation/href',
     flags: {
       required: [SupportedArea.LLMD_TOPOLOGY_CONFIGS, ADMIN_USER],
+      disallowed: [SupportedArea.MODEL_DEPLOYMENT_SETTINGS],
     },
     properties: {
       id: 'settings-llmd-topology-configurations',
@@ -573,6 +583,7 @@ const extensions: (
     type: 'app.route',
     flags: {
       required: [SupportedArea.LLMD_TOPOLOGY_CONFIGS, ADMIN_USER],
+      disallowed: [SupportedArea.MODEL_DEPLOYMENT_SETTINGS],
     },
     properties: {
       path: '/settings/model-resources-operations/llmd-topology-configurations/*',
@@ -583,6 +594,7 @@ const extensions: (
     type: 'app.navigation/href',
     flags: {
       required: [SupportedArea.LLMD_TOPOLOGY_CONFIGS, ADMIN_USER],
+      disallowed: [SupportedArea.MODEL_DEPLOYMENT_SETTINGS],
     },
     properties: {
       id: 'settings-llmd-routing-configurations',
@@ -597,10 +609,116 @@ const extensions: (
     type: 'app.route',
     flags: {
       required: [SupportedArea.LLMD_TOPOLOGY_CONFIGS, ADMIN_USER],
+      disallowed: [SupportedArea.MODEL_DEPLOYMENT_SETTINGS],
     },
     properties: {
       path: '/settings/model-resources-operations/llmd-routing-configurations/*',
       component: () => import('../src/settings/RoutingConfigurationsRoutes'),
+    },
+  },
+  // Redirects from old standalone URLs to tabs on the model deployment settings page
+  {
+    type: 'app.route',
+    flags: {
+      required: [
+        SupportedArea.MODEL_DEPLOYMENT_SETTINGS,
+        LLMD_SERVING_ID,
+        ADMIN_USER,
+        SupportedArea.VLLM_ON_MAAS,
+      ],
+    },
+    properties: {
+      path: '/settings/model-resources-operations/llm-accelerator-configs/*',
+      component: createRedirectComponent({
+        from: '/settings/model-resources-operations/llm-accelerator-configs/*',
+        to: '/settings/model-resources-operations/model-deployment-settings/llm-accelerator-configurations/*',
+      }),
+    },
+  },
+  {
+    type: 'app.route',
+    flags: {
+      required: [
+        SupportedArea.MODEL_DEPLOYMENT_SETTINGS,
+        SupportedArea.LLMD_TOPOLOGY_CONFIGS,
+        ADMIN_USER,
+      ],
+    },
+    properties: {
+      path: '/settings/model-resources-operations/llmd-topology-configurations/*',
+      component: createRedirectComponent({
+        from: '/settings/model-resources-operations/llmd-topology-configurations/*',
+        to: '/settings/model-resources-operations/model-deployment-settings/topology-configurations/*',
+      }),
+    },
+  },
+  {
+    type: 'app.route',
+    flags: {
+      required: [
+        SupportedArea.MODEL_DEPLOYMENT_SETTINGS,
+        SupportedArea.LLMD_TOPOLOGY_CONFIGS,
+        ADMIN_USER,
+      ],
+    },
+    properties: {
+      path: '/settings/model-resources-operations/llmd-routing-configurations/*',
+      component: createRedirectComponent({
+        from: '/settings/model-resources-operations/llmd-routing-configurations/*',
+        to: '/settings/model-resources-operations/model-deployment-settings/routing-configurations/*',
+      }),
+    },
+  },
+  {
+    type: 'app.tab-route/tab',
+    flags: {
+      required: [
+        SupportedArea.MODEL_DEPLOYMENT_SETTINGS,
+        LLMD_SERVING_ID,
+        ADMIN_USER,
+        SupportedArea.VLLM_ON_MAAS,
+      ],
+    },
+    properties: {
+      pageId: 'model-deployment-settings',
+      id: 'llm-accelerator-configurations',
+      title: 'LLM accelerator configurations',
+      component: () => import('../src/settings/LlmAcceleratorConfigsTab'),
+      group: '3_accelerator',
+    },
+  },
+  {
+    type: 'app.tab-route/tab',
+    flags: {
+      required: [
+        SupportedArea.MODEL_DEPLOYMENT_SETTINGS,
+        SupportedArea.LLMD_TOPOLOGY_CONFIGS,
+        ADMIN_USER,
+      ],
+    },
+    properties: {
+      pageId: 'model-deployment-settings',
+      id: 'topology-configurations',
+      title: 'llm-d topology configurations',
+      component: () => import('../src/settings/TopologyConfigsTab'),
+      group: '4_topology',
+    },
+  },
+  {
+    type: 'app.tab-route/tab',
+    flags: {
+      required: [
+        SupportedArea.MODEL_DEPLOYMENT_SETTINGS,
+        SupportedArea.LLMD_TOPOLOGY_CONFIGS,
+        ADMIN_USER,
+      ],
+    },
+    properties: {
+      pageId: 'model-deployment-settings',
+      id: 'routing-configurations',
+      title: 'llm-d routing configurations',
+      component: () => import('../src/settings/RoutingConfigsTab'),
+      group: '5_routing',
     },
   },
 ];

@@ -78,7 +78,8 @@ export type AutoragPatternV1 = {
 export type AutoragVectorStoreBinding = {
   provider_id: string;
   provider_type: string;
-  vector_store_id: string;
+  /** Possibly null when the pipeline did not bind a collection */
+  vector_store_id: string | null;
 };
 
 export type AutoragEvaluationMetric = {

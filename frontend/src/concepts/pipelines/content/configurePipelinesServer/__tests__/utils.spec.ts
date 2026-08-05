@@ -5,7 +5,7 @@ import { DSPA_SECRET_NAME } from '#~/concepts/pipelines/content/configurePipelin
 import { PipelineServerConfigType } from '#~/concepts/pipelines/content/configurePipelinesServer/types';
 import { createDSPipelineResourceSpec } from '#~/concepts/pipelines/content/configurePipelinesServer/utils';
 import { deleteServer, isGeneratedDSPAExternalStorageSecret } from '#~/concepts/pipelines/utils';
-import { DSPipelineAPIServerStore } from '#~/k8sTypes.ts';
+import { DSPAMlflowIntegrationMode, DSPipelineAPIServerStore } from '#~/k8sTypes.ts';
 import { AwsKeys } from '#~/pages/projects/dataConnections/const';
 
 jest.mock('#~/api', () => ({
@@ -23,7 +23,7 @@ describe('configure pipeline server utils', () => {
       ({
         database: {
           useDefault: true,
-          value: [],
+          value: [] as PipelineServerConfigType['database']['value'],
         },
         objectStorage: {
           newValue: [{ key: 'AWS_S3_ENDPOINT', value: '' }],
@@ -31,7 +31,11 @@ describe('configure pipeline server utils', () => {
         storeYamlInKubernetes: false,
         enableCaching,
         enableManagedPipelines,
-      } as PipelineServerConfigType);
+        mlflow: {
+          integrationMode: DSPAMlflowIntegrationMode.AUTODETECT,
+          injectUserEnvVars: false,
+        },
+      } satisfies PipelineServerConfigType);
 
     type SecretsResponse = Parameters<typeof createDSPipelineResourceSpec>[1];
 
@@ -67,6 +71,10 @@ describe('configure pipeline server utils', () => {
           managedPipelines: undefined,
           pipelineStore: DSPipelineAPIServerStore.DATABASE,
         },
+        mlflow: {
+          integrationMode: DSPAMlflowIntegrationMode.AUTODETECT,
+          injectUserEnvVars: false,
+        },
       });
     });
 
@@ -97,6 +105,10 @@ describe('configure pipeline server utils', () => {
           managedPipelines: undefined,
           pipelineStore: DSPipelineAPIServerStore.DATABASE,
         },
+        mlflow: {
+          integrationMode: DSPAMlflowIntegrationMode.AUTODETECT,
+          injectUserEnvVars: false,
+        },
       });
     });
 
@@ -126,6 +138,10 @@ describe('configure pipeline server utils', () => {
           cacheEnabled: true,
           managedPipelines: {},
           pipelineStore: DSPipelineAPIServerStore.DATABASE,
+        },
+        mlflow: {
+          integrationMode: DSPAMlflowIntegrationMode.AUTODETECT,
+          injectUserEnvVars: false,
         },
       });
     });
@@ -230,6 +246,10 @@ describe('configure pipeline server utils', () => {
           cacheEnabled: true,
           managedPipelines: undefined,
           pipelineStore: DSPipelineAPIServerStore.DATABASE,
+        },
+        mlflow: {
+          integrationMode: DSPAMlflowIntegrationMode.AUTODETECT,
+          injectUserEnvVars: false,
         },
       });
     });

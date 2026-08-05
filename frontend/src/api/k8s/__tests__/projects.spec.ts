@@ -5,8 +5,8 @@ import {
   k8sDeleteResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
 import type { ProjectKind } from '@odh-dashboard/k8s-core';
+import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import axios from '#~/utilities/axios';
-import { mockProjectK8sResource } from '#~/__mocks__/mockProjectK8sResource';
 import { mockK8sResourceList } from '#~/__mocks__/mockK8sResourceList';
 import { mockAxiosError } from '#~/__mocks__/mockAxiosError';
 import {

@@ -2,19 +2,19 @@ import {
   mockGlobalScopedHardwareProfiles,
   mockHardwareProfile,
   mockProjectScopedHardwareProfiles,
-} from '@odh-dashboard/internal/__mocks__/mockHardwareProfile';
+} from '@odh-dashboard/hardware-profiles/__mocks__/mockHardwareProfile';
 import { mockDashboardConfig } from '@odh-dashboard/internal/__mocks__/mockDashboardConfig';
 import {
   mock403ErrorWithDetails,
   mockK8sResourceList,
   mockNotebookK8sResource,
-  mockProjectK8sResource,
   mockRouteK8sResource,
   mockSecretK8sResource,
   mockStorageClassList,
 } from '@odh-dashboard/internal/__mocks__';
+import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import { mockLocalQueueK8sResource } from '@odh-dashboard/internal/__mocks__/mockLocalQueueK8sResource';
-import { mockPVCK8sResource } from '@odh-dashboard/internal/__mocks__/mockPVCK8sResource';
+import { mockPVCK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockPVCK8sResource';
 import { mockPodK8sResource } from '@odh-dashboard/internal/__mocks__/mockPodK8sResource';
 import { mockImageStreamK8sResource } from '@odh-dashboard/internal/__mocks__/mockImageStreamK8sResource';
 import { mockDscStatus } from '@odh-dashboard/internal/__mocks__/mockDscStatus';

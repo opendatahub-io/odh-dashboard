@@ -30,6 +30,15 @@ const tryExpect = (expectFn: () => void) => {
   };
 };
 
+// Mocks for event tracking
+jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
+  __esModule: true,
+  fireFormTrackingEvent: jest.fn(),
+  fireLinkTrackingEvent: jest.fn(),
+  fireMiscTrackingEvent: jest.fn(),
+  fireSimpleTrackingEvent: jest.fn(),
+}));
+
 expect.extend({
   // custom asymmetric matchers
 

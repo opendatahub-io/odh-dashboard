@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Route, Routes } from 'react-router-dom';
-import NotFound from '@odh-dashboard/internal/pages/NotFound';
+import NotFound from '@odh-dashboard/ui-core/components/NotFound';
 import { NavDataItem } from '~/app/standalone/types';
 import { evalHubEvaluationsRoute, evalHubRootPath } from './utilities/routes';
 import EvalHubCoreLoader from './components/EvalHubCoreLoader';

@@ -8,13 +8,13 @@ import {
 } from '@openshift/dynamic-plugin-sdk-utils';
 import type { ProjectKind } from '@odh-dashboard/k8s-core';
 import { ServingRuntimeKind } from '@odh-dashboard/model-serving/shared';
+import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
+import { mockHardwareProfile } from '@odh-dashboard/hardware-profiles/__mocks__/mockHardwareProfile';
 import { mockK8sResourceList } from '#~/__mocks__/mockK8sResourceList';
 import { mock200Status, mock404Error } from '#~/__mocks__/mockK8sStatus';
-import { mockProjectK8sResource } from '#~/__mocks__/mockProjectK8sResource';
 import { mockServingRuntimeK8sResource } from '#~/__mocks__/mockServingRuntimeK8sResource';
 import { mockServingRuntimeModalData } from '#~/__mocks__/mockServingRuntimeModalData';
 import { mockServingRuntimeTemplateK8sResource } from '#~/__mocks__/mockServingRuntimeTemplateK8sResource';
-import { mockHardwareProfile } from '#~/__mocks__/mockHardwareProfile';
 import {
   assembleServingRuntime,
   createServingRuntime,

@@ -12,6 +12,7 @@ import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUt
 import { configureDSPipelineResourceSpec } from '#~/concepts/pipelines/content/configurePipelinesServer/utils';
 import { useAppContext } from '#~/app/AppContext';
 import { mockDashboardConfig } from '#~/__mocks__/mockDashboardConfig';
+import useIsMlflowCRAvailable from '#~/concepts/mlflow/hooks/useIsMlflowCRAvailable';
 
 // Mock dependencies
 jest.mock('#~/concepts/pipelines/context', () => ({
@@ -47,6 +48,11 @@ jest.mock('#~/app/AppContext', () => ({
   useAppContext: jest.fn(),
 }));
 
+jest.mock('#~/concepts/mlflow/hooks/useIsMlflowCRAvailable', () => ({
+  __esModule: true,
+  default: jest.fn(),
+}));
+
 // Mock child components
 jest.mock('#~/concepts/pipelines/content/configurePipelinesServer/ObjectStorageSection', () => ({
   ObjectStorageSection: () => <div>Object storage connection</div>,
@@ -73,6 +79,9 @@ const mockConfigureDSPipelineResourceSpec = configureDSPipelineResourceSpec as j
   typeof configureDSPipelineResourceSpec
 >;
 const mockUseAppContext = useAppContext as jest.MockedFunction<typeof useAppContext>;
+const mockUseIsMlflowCRAvailable = useIsMlflowCRAvailable as jest.MockedFunction<
+  typeof useIsMlflowCRAvailable
+>;
 
 describe('ConfigurePipelinesServerModal', () => {
   const mockOnClose = jest.fn();
@@ -131,6 +140,12 @@ describe('ConfigurePipelinesServerModal', () => {
       dashboardConfig: mockDashboardConfig({ automl: false, autorag: false }),
       storageClasses: [],
       isRHOAI: false,
+    });
+
+    mockUseIsMlflowCRAvailable.mockReturnValue({
+      available: false,
+      loaded: true,
+      error: false,
     });
 
     mockConfigureDSPipelineResourceSpec.mockResolvedValue(
@@ -437,6 +452,57 @@ describe('ConfigurePipelinesServerModal', () => {
 
       const checkbox = screen.getByTestId('managed-pipelines-checkbox');
       expect(checkbox).toBeChecked();
+    });
+  });
+
+  describe('MLflow tracking section', () => {
+    it('should not render MLflow section when MLflow is unavailable', () => {
+      renderModal();
+      expect(screen.queryByText('MLflow experiment tracking')).not.toBeInTheDocument();
+    });
+
+    it('should not render MLflow section when MLflow CR is still loading', () => {
+      mockUseIsMlflowCRAvailable.mockReturnValue({
+        available: false,
+        loaded: false,
+        error: false,
+      });
+      mockUseIsAreaAvailable.mockReturnValue({
+        status: true,
+        featureFlags: {},
+        devFlags: {},
+        reliantAreas: {},
+        requiredComponents: {},
+        requiredCapabilities: {},
+        customCondition: jest.fn(),
+      } as ReturnType<typeof useIsAreaAvailable>);
+
+      renderModal();
+
+      expect(screen.queryByText('MLflow experiment tracking')).not.toBeInTheDocument();
+    });
+
+    it('should render MLflow section when MLflow CR and area are both available', () => {
+      mockUseIsMlflowCRAvailable.mockReturnValue({
+        available: true,
+        loaded: true,
+        error: false,
+      });
+      mockUseIsAreaAvailable.mockReturnValue({
+        status: true,
+        featureFlags: {},
+        devFlags: {},
+        reliantAreas: {},
+        requiredComponents: {},
+        requiredCapabilities: {},
+        customCondition: jest.fn(),
+      } as ReturnType<typeof useIsAreaAvailable>);
+
+      renderModal();
+
+      expect(screen.getByText('MLflow experiment tracking')).toBeInTheDocument();
+      expect(screen.getByTestId('mlflow-integration-mode-checkbox')).toBeInTheDocument();
+      expect(screen.getByTestId('mlflow-inject-env-vars-checkbox')).toBeInTheDocument();
     });
   });
 });

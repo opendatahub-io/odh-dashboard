@@ -11,6 +11,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
+	policyv1 "k8s.io/api/policy/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -276,6 +277,14 @@ func (r *DashboardReconciler) reconcileSidecar(
 
 	remapRayDashboardGatewayRBAC(allResources)
 
+	if err := sanitizeDeploymentProbes(ctx, r.Client, allResources); err != nil {
+		cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded),
+			conditions.WithReason("ProbeSanitizeFailed"),
+			conditions.WithError(err))
+
+		return ctrl.Result{}, fmt.Errorf("failed to sanitize deployment probes: %w", err)
+	}
+
 	deployer := deploy.NewDeployer(
 		deploy.WithFieldOwner("dashboard-operator"),
 		deploy.WithLabel(labels.PlatformPartOf, strings.ToLower(v1alpha1.DashboardKind)),
@@ -432,6 +441,13 @@ func (r *DashboardReconciler) reconcileStandalone(
 	}
 
 	remapRayDashboardGatewayRBAC(allResources)
+
+	if err := sanitizeDeploymentProbes(ctx, r.Client, allResources); err != nil {
+		cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded),
+			conditions.WithReason("ProbeSanitizeFailed"),
+			conditions.WithError(err))
+		return ctrl.Result{}, fmt.Errorf("failed to sanitize deployment probes: %w", err)
+	}
 
 	deployer := deploy.NewDeployer(
 		deploy.WithFieldOwner("dashboard-operator"),
@@ -942,5 +958,6 @@ func SetupWithManager(mgr ctrl.Manager, opts Options) error {
 		Owns(&appsv1.Deployment{}).
 		Owns(&corev1.Service{}).
 		Owns(&corev1.ConfigMap{}).
+		Owns(&policyv1.PodDisruptionBudget{}).
 		Complete(r)
 }

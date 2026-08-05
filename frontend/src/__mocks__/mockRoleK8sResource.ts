@@ -1,5 +1,5 @@
 import { KnownLabels } from '@odh-dashboard/k8s-core';
-import { genUID } from '#~/__mocks__/mockUtils';
+import { genUID } from '@odh-dashboard/foundation';
 import { ResourceRule, RoleKind } from '#~/k8sTypes';
 
 type MockResourceConfigType = {

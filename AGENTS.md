@@ -12,7 +12,7 @@ ODH Dashboard is a **monorepo** containing the main dashboard application and mu
 odh-dashboard/
 ├── frontend/                    # Main dashboard frontend application
 │   └── src/
-│       └── __mocks__/          # Shared mock data (@odh-dashboard/internal/__mocks__)
+│       └── __mocks__/          # Shared mock data (@odh-dashboard/internal/__mocks__); some mocks live in type-owning packages
 ├── backend/                     # Main dashboard backend (Node.js/Express)
 │   └── src/
 ├── dashboard-operator/          # Dashboard Module Controller (Go, controller-runtime)

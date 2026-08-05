@@ -1,6 +1,6 @@
 import { mockLLMInferenceServiceConfigK8sResource } from '@odh-dashboard/internal/__mocks__/mockLLMInferenceServiceConfigK8sResource';
 // eslint-disable-next-line import/no-extraneous-dependencies
-import { ConfigType, RoutingType } from '@odh-dashboard/llmd-serving/types';
+import { ConfigType, RoutingType, TopologyType } from '@odh-dashboard/llmd-serving/types';
 import { mockDashboardConfig } from '@odh-dashboard/internal/__mocks__/mockDashboardConfig';
 import { mockDscStatus } from '@odh-dashboard/internal/__mocks__/mockDscStatus';
 import { mockK8sResourceList } from '@odh-dashboard/internal/__mocks__/mockK8sResourceList';
@@ -17,6 +17,7 @@ const mockPreInstalledScheduler = mockLLMInferenceServiceConfigK8sResource({
   displayName: 'Managed scheduler',
   configType: ConfigType.ROUTER,
   routingType: RoutingType.SCHEDULER,
+  supportedTopologies: [TopologyType.SINGLE_NODE],
   preInstalled: true,
 });
 
@@ -34,6 +35,7 @@ const mockPreInstalledCombo = mockLLMInferenceServiceConfigK8sResource({
   displayName: 'Managed scheduler with HTTPRoute',
   configType: ConfigType.ROUTER,
   routingType: RoutingType.SCHEDULER_AND_HTTP_ROUTE,
+  supportedTopologies: [TopologyType.SINGLE_NODE, TopologyType.MULTI_NODE],
   preInstalled: true,
 });
 
@@ -142,19 +144,20 @@ describe('LLMD Routing Admin Settings', () => {
       llmdRoutingSettingsPage.getRow('lab-routing-profile').shouldHavePreInstalledLabel(false);
     });
 
-    it('should show routing type labels', () => {
+    it('should show topology type labels', () => {
       llmdRoutingSettingsPage
         .getRow('managed-scheduler-httproute')
-        .findRoutingTypeLabel()
-        .should('contain.text', 'Scheduler + HTTPRoute');
+        .findTopologyTypeCell()
+        .should('have.text', 'Single node, Multi-node');
       llmdRoutingSettingsPage
         .getRow('managed-scheduler')
-        .findRoutingTypeLabel()
-        .should('contain.text', 'Scheduler');
+        .findTopologyTypeCell()
+        .should('have.text', 'Single node');
+      // No supported topologies annotation means the config applies to all topologies
       llmdRoutingSettingsPage
         .getRow('managed-httproute')
-        .findRoutingTypeLabel()
-        .should('contain.text', 'HTTPRoute');
+        .findTopologyTypeCell()
+        .should('have.text', 'All');
     });
 
     it('should toggle enabled state via switch', () => {

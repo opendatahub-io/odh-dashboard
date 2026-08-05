@@ -29,14 +29,9 @@ module.exports = (overrides = {}) =>
     }),
     {
       plugins: [
-        // RHAII-specific process.env overrides. Cross-distribution vars
-        // should move to the base app-shell webpack config once
-        // frontend/src/utilities/const.ts is decoupled from process.env
-        // (see docs/process-env-const-coupling.md).
         new webpack.DefinePlugin({
           'process.env.ODH_PRODUCT_NAME': JSON.stringify('RHAII'),
           'process.env.BACKEND_PORT': JSON.stringify('4000'),
-          'process.env': '({})',
         }),
         new GenerateDistributionExtensionsPlugin({
           configPath: path.resolve(__dirname, '../distribution.yaml'),

@@ -4,10 +4,10 @@ import {
   mockDashboardConfig,
   mockDscStatus,
   mockK8sResourceList,
-  mockProjectK8sResource,
   mockSecretK8sResource,
 } from '@odh-dashboard/internal/__mocks__';
-import { mockGlobalScopedHardwareProfiles } from '@odh-dashboard/internal/__mocks__/mockHardwareProfile';
+import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
+import { mockGlobalScopedHardwareProfiles } from '@odh-dashboard/hardware-profiles/__mocks__/mockHardwareProfile';
 import { mockStandardModelServingTemplateK8sResources } from '@odh-dashboard/internal/__mocks__/mockServingRuntimeTemplateK8sResource';
 import { mockConnectionTypeConfigMap } from '@odh-dashboard/internal/__mocks__/mockConnectionType';
 import { MODELS_AS_A_SERVICE_READY } from '@odh-dashboard/k8s-core';

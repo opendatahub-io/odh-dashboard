@@ -10,7 +10,7 @@ describe('GPUaaS Infrastructure Page', () => {
 
   it(
     'Verify Infrastructure page is accessible for admin users and displays expected sections',
-    { tags: ['@Dashboard', '@GPUaaS'] },
+    { tags: ['@Dashboard', '@GPUaaS', '@GpuaasCI'] },
     () => {
       cy.step('Log in as admin user');
       cy.visitWithLogin('/', LDAP_ADMIN_USER);
@@ -35,14 +35,15 @@ describe('GPUaaS Infrastructure Page', () => {
       cy.step('Verify Borrowing section is present');
       infrastructurePage.findBorrowingSection().should('exist');
 
-      cy.step('Verify Cluster queue utilization section is present');
-      infrastructurePage.findClusterQueueUtilizationSection().should('exist');
+      cy.step('Click Compute profile utilization tab and verify section is present');
+      infrastructurePage.switchToClusterQueueUtilizationTab();
+      infrastructurePage.findClusterQueueUtilizationSection().should('be.visible');
     },
   );
 
   it(
     'Verify Infrastructure page is not accessible for non-admin users',
-    { tags: ['@Dashboard', '@GPUaaS'] },
+    { tags: ['@Dashboard', '@GPUaaS', '@GpuaasCI'] },
     () => {
       cy.step('Log in as non-admin user');
       cy.visitWithLogin('/', LDAP_CONTRIBUTOR_USER);
