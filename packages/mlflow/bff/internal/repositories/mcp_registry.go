@@ -14,10 +14,10 @@ import (
 	"github.com/opendatahub-io/mlflow/bff/internal/models"
 )
 
-// ErrInvalidFilter is returned by combineFilters (and thus SearchServers)
-// when a filter fragment has unbalanced parentheses. Callers should map it
-// to a 400 Bad Request rather than treating it as an upstream MLflow error.
-var ErrInvalidFilter = errors.New("filter contains unbalanced parentheses")
+// ErrInvalidFilter is returned by buildTagFilter (malformed/disallowed tag)
+// and combineFilters (unbalanced parentheses). Callers should map it to a
+// 400 Bad Request rather than treating it as an upstream MLflow error.
+var ErrInvalidFilter = errors.New("invalid search filter")
 
 // validTagKey allowlists characters MLflow's own tag-name validation
 // accepts, preventing identifier injection into the generated search filter.
@@ -51,11 +51,9 @@ func buildTagFilter(tag string) (string, error) {
 }
 
 // hasBalancedParens reports whether every ")" in s is matched by a
-// preceding "(", which combineFilters requires before wrapping a fragment
-// in parens to preserve its precedence. Parens inside a quoted string
-// literal (single or double quotes, as produced by buildTagFilter or
-// supplied in the free-form "?filter=" param) don't count, so a tag value
-// like "see(details" doesn't trigger a false-positive rejection.
+// preceding "(". Parens inside a quoted string literal (single or double
+// quotes) don't count, so a tag value like "see(details" isn't falsely
+// rejected.
 func hasBalancedParens(s string) bool {
 	depth := 0
 	var quote byte
@@ -96,7 +94,7 @@ func combineFilters(fragments ...string) (string, error) {
 			continue
 		}
 		if !hasBalancedParens(f) {
-			return "", ErrInvalidFilter
+			return "", fmt.Errorf("%w: unbalanced parentheses in filter fragment %q", ErrInvalidFilter, f)
 		}
 		nonEmpty = append(nonEmpty, "("+f+")")
 	}

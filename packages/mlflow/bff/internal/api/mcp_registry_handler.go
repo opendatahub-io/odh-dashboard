@@ -1062,7 +1062,7 @@ func (app *App) mlflowCreateMCPAccessEndpoint(w http.ResponseWriter, r *http.Req
 	app.logger.Debug("creating MCP access endpoint",
 		slog.String("workspace", workspace),
 		slog.String("name", name),
-		slog.String("endpoint_url", req.EndpointURL))
+		slog.String("endpoint_url", sanitizeURL(req.EndpointURL)))
 
 	result, err := app.repositories.MCPRegistry.CreateAccessEndpoint(ctx, name, req)
 	if err != nil {

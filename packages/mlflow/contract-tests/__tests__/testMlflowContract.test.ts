@@ -556,6 +556,7 @@ describe('MLflow API Contract Tests', () => {
     });
 
     it('should return 400 when updating an access endpoint with both server_version and server_alias', async () => {
+      expect(endpointId).not.toBe('');
       const result = await apiClient.patch(serverUrl(serverName, `/endpoints/${endpointId}`), {
         // eslint-disable-next-line camelcase
         server_version: '1.0.0',
@@ -594,7 +595,25 @@ describe('MLflow API Contract Tests', () => {
 
     it('should return 400 when setting an alias without a version', async () => {
       const result = await apiClient.post(serverUrl(serverName, '/aliases'), {
+        alias: 'some-alias',
+      });
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.status).toBe(400);
+        expect({
+          status: result.error.status,
+          data: result.error.data,
+        }).toMatchContract(apiSchema, {
+          ref: '#/components/responses/BadRequest/content/application~1json/schema',
+          status: 400,
+        });
+      }
+    });
+
+    it('should return 400 when setting the reserved alias "latest"', async () => {
+      const result = await apiClient.post(serverUrl(serverName, '/aliases'), {
         alias: 'latest',
+        version: serverVersion,
       });
       expect(result.success).toBe(false);
       if (!result.success) {
