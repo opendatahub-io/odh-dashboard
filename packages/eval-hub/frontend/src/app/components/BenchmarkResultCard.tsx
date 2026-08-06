@@ -12,6 +12,7 @@ import {
 import { CheckCircleIcon, TimesCircleIcon } from '@patternfly/react-icons';
 import { EvaluationJob } from '~/app/types';
 import { getBenchmarkDisplayName } from '~/app/utilities/evaluationUtils';
+import './BenchmarkResultCard.scss';
 
 type BenchmarkResultCardProps = {
   benchmarkId: string;
@@ -41,8 +42,8 @@ const BenchmarkResultCard: React.FC<BenchmarkResultCardProps> = ({
       isSelectable={!!onClick}
       isSelected={isSelected}
       isCompact
+      className="evalhub-benchmark-card"
       data-testid={`benchmark-result-card-${cardKey}`}
-      style={{ minWidth: 200 }}
     >
       <CardHeader
         selectableActions={
@@ -61,15 +62,12 @@ const BenchmarkResultCard: React.FC<BenchmarkResultCardProps> = ({
         <CardTitle id={`benchmark-label-${cardKey}`}>
           <Flex direction={{ default: 'column' }} gap={{ default: 'gapXs' }}>
             <FlexItem>
-              <Content
-                component="p"
-                style={{ fontWeight: 'var(--pf-t--global--font--weight--body--bold)' }}
-              >
+              <Content component="p" className="evalhub-benchmark-card__name">
                 {getBenchmarkDisplayName(benchmarkId)}
               </Content>
             </FlexItem>
             <FlexItem>
-              <Content component="p" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
+              <Content component="p" className="evalhub-benchmark-card__id">
                 {benchmarkId}
               </Content>
             </FlexItem>
