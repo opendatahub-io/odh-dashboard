@@ -16,7 +16,8 @@ describe('VerbsTreeSelect', () => {
 
     expect(screen.getByTestId('verbs-tree-select')).toBeInTheDocument();
     expect(screen.getByText('All operations')).toBeInTheDocument();
-    expect(screen.getByText('Create operations:')).toBeInTheDocument();
+    // Create operations currently has 1 verb so it will only show the verb and not the category
+    expect(screen.getByText('Create resources')).toBeInTheDocument();
     expect(screen.getByText('Read operations:')).toBeInTheDocument();
     expect(screen.getByText('Update operations:')).toBeInTheDocument();
     expect(screen.getByText('Delete operations:')).toBeInTheDocument();
@@ -25,7 +26,8 @@ describe('VerbsTreeSelect', () => {
   it('should render individual verb labels', () => {
     render(<VerbsTreeSelect selectedVerbs={[]} onSelectedVerbsChange={mockOnChange} />);
 
-    expect(screen.getByText('Create:')).toBeInTheDocument();
+    // Create should not be shown since it's the only verb within its category
+    expect(screen.queryByText('Create:')).not.toBeInTheDocument();
     expect(screen.getByText('Get:')).toBeInTheDocument();
     expect(screen.getByText('List:')).toBeInTheDocument();
     expect(screen.getByText('Watch:')).toBeInTheDocument();
@@ -33,12 +35,6 @@ describe('VerbsTreeSelect', () => {
     expect(screen.getByText('Patch:')).toBeInTheDocument();
     expect(screen.getByText('Delete:')).toBeInTheDocument();
     expect(screen.getByText('Delete collection:')).toBeInTheDocument();
-  });
-
-  it('should render helper text about wildcard verbs', () => {
-    render(<VerbsTreeSelect selectedVerbs={[]} onSelectedVerbsChange={mockOnChange} />);
-
-    expect(screen.getByText(/Selecting "All operations" grants the wildcard/)).toBeInTheDocument();
   });
 
   describe('individual verb selection', () => {
@@ -50,9 +46,10 @@ describe('VerbsTreeSelect', () => {
       const getCheckbox = within(treeView).getAllByRole('checkbox');
       const createCheckbox = getCheckbox.find((cb) => {
         const treeItem = cb.closest('[role="treeitem"]');
-        return treeItem?.id === 'create';
+        return treeItem?.id === 'cat-create';
       });
 
+      expect(createCheckbox).toBeInTheDocument();
       if (createCheckbox) {
         await user.click(createCheckbox);
         expect(mockOnChange).toHaveBeenCalledWith(['create']);

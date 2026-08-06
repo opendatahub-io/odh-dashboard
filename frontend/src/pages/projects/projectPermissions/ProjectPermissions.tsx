@@ -4,12 +4,16 @@ import {
   Alert,
   Bullseye,
   Button,
+  Content,
+  ContentVariants,
   Divider,
+  Flex,
   PageSection,
   SearchInput,
   Spinner,
   Stack,
   StackItem,
+  Title,
   Toolbar,
   ToolbarContent,
   ToolbarItem,
@@ -52,6 +56,24 @@ const ProjectPermissions: React.FC = () => {
       id={ProjectSectionID.PERMISSIONS}
     >
       <Stack hasGutter>
+        <StackItem>
+          <Flex direction={{ default: 'column' }}>
+            <Title headingLevel="h3" data-testid="permissions-tab-title">
+              Permissions
+            </Title>
+            <Content component={ContentVariants.p} data-testid="permissions-tab-description">
+              Manage who has access to this project by assigning roles to users and groups. To
+              create or edit roles, go to the{' '}
+              <Link
+                data-testid="permissions-tab-roles-link"
+                to={`/projects/${currentProject.metadata.name}?section=roles`}
+              >
+                <strong>Roles</strong> tab
+              </Link>
+              .
+            </Content>
+          </Flex>
+        </StackItem>
         {!loaded ? (
           <StackItem>
             <Bullseye style={{ minHeight: 150 }}>
