@@ -48,10 +48,14 @@ updates:
       - dependency-name: "react-dom"
         update-types: ["version-update:semver-major"]
 
+    # Version updates: one PR per directory with all minor+patch bundled.
+    # Security updates: one PR per directory with all CVE fixes bundled.
+    # Dependabot hard limits (cannot work around in config):
+    # - No single PR across all directories for unrelated deps
+    # - group-by: dependency-name is version-updates only (not security/CVEs)
     groups:
       npm-updates:
         applies-to: version-updates
-        group-by: dependency-name
         patterns:
           - '*'
         update-types:
@@ -90,7 +94,6 @@ updates:
     groups:
       go-updates:
         applies-to: version-updates
-        group-by: dependency-name
         patterns:
           - '*'
         update-types:
