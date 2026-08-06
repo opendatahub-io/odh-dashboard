@@ -115,8 +115,8 @@ func (app *App) InjectRequestIdentity(next http.Handler) http.Handler {
 		if err != nil {
 			// The genai-proxy path allows unauthenticated access for OGX background
 			// model polling (refresh_models). If extraction fails on this path, proceed
-			// without identity — the handler uses the SA client as fallback.
-			if strings.Contains(r.URL.Path, "/genai-proxy/") {
+			// without identity — the handler returns an empty list as fallback.
+			if strings.HasPrefix(r.URL.Path, constants.PathPrefix+app.config.APIPathPrefix+"/genai-proxy/") {
 				next.ServeHTTP(w, r)
 				return
 			}
