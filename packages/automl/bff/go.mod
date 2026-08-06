@@ -11,7 +11,7 @@ require (
 	github.com/julienschmidt/httprouter v1.3.0
 	github.com/kubeflow/model-registry/pkg/openapi v0.3.2
 	github.com/rs/cors v1.11.1
-	github.com/stretchr/testify v1.11.0
+	github.com/stretchr/testify v1.11.1
 	golang.org/x/sync v0.16.0
 	k8s.io/api v0.34.3
 	k8s.io/apimachinery v0.34.3
