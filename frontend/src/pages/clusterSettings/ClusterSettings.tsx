@@ -151,6 +151,7 @@ const ClusterSettings: React.FC = () => {
     else globalProjectName = GlobalProjectState.changed;
 
     try {
+      setSaving(true);
       const response = await updateClusterSettings(newClusterSettings);
 
       if (!response.success) {
@@ -175,12 +176,14 @@ const ClusterSettings: React.FC = () => {
         }),
       );
     } catch (error) {
-      fireFormTrackingEvent('Cluster Settings Global Project Selected', {
-        outcome: TrackingOutcome.submit,
-        success: false,
-        globalProjectName,
-        error: error instanceof Error ? error.message : 'unknown error',
-      });
+      if (globalProjectName !== GlobalProjectState.unchanged) {
+        fireFormTrackingEvent('Cluster Settings Global Project Selected', {
+          outcome: TrackingOutcome.submit,
+          success: false,
+          globalProjectName,
+          error: error instanceof Error ? error.message : 'unknown error',
+        });
+      }
 
       dispatch(
         addNotification({
