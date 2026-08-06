@@ -7,7 +7,6 @@ import { DataScienceStackComponentMap } from '#~/concepts/areas/const';
 import { useUser, useClusterInfo } from '#~/redux/selectors';
 import { useAppContext } from '#~/app/AppContext';
 import useFetchDscStatus from '#~/concepts/areas/useFetchDscStatus';
-import useFetchDsciStatus from '#~/concepts/areas/useFetchDsciStatus';
 import { useWatchOperatorSubscriptionStatus } from '#~/utilities/useWatchOperatorSubscriptionStatus';
 import ExternalLink from '#~/components/ExternalLink';
 import { useThemeContext } from './ThemeContext';
@@ -33,11 +32,9 @@ const AboutDialog: React.FC<AboutDialogProps> = ({ onClose }) => {
   const { theme } = useThemeContext();
   const { serverURL } = useClusterInfo();
   const [dscStatus, loadedDsc, errorDsc] = useFetchDscStatus();
-  const [dsciStatus, loadedDsci, errorDsci] = useFetchDsciStatus();
   const [subStatus, loadedSubStatus, errorSubStatus] = useWatchOperatorSubscriptionStatus();
-  const error = errorDsci || errorSubStatus;
-  const loading =
-    (!errorDsci && !loadedDsci && !loadedDsc) || (!errorSubStatus && !loadedSubStatus && !errorDsc);
+  const error = errorDsc || errorSubStatus;
+  const loading = (!errorDsc && !loadedDsc) || (!errorSubStatus && !loadedSubStatus);
 
   // Group components by display name while merging releases
   const groupedComponents = useMemo(() => {
@@ -107,12 +104,12 @@ const AboutDialog: React.FC<AboutDialogProps> = ({ onClose }) => {
           ) : null}
           <Content component="dl" style={{ visibility: loading ? 'hidden' : 'visible' }}>
             <Content component="dt" data-testid="about-product-name">
-              {dsciStatus?.release?.name ||
+              {dscStatus?.release?.name ||
                 (isRHOAI ? RhoaiDefaultReleaseName : OdhDefaultReleaseName)}{' '}
               version
             </Content>
             <Content component="dd" data-testid="about-version">
-              {dsciStatus?.release?.version || 'Unknown'}
+              {dscStatus?.release?.version || 'Unknown'}
             </Content>
             <Content component="dt">Channel</Content>
             <Content component="dd" data-testid="about-channel">

@@ -2,17 +2,12 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 
-import type {
-  DashboardConfigKind,
-  DataScienceClusterInitializationKindStatus,
-  DataScienceClusterKindStatus,
-} from '@odh-dashboard/k8s-core';
+import type { DashboardConfigKind, DataScienceClusterKindStatus } from '@odh-dashboard/k8s-core';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import { FetchState } from '@odh-dashboard/ui-core/hooks/useFetchState';
 import { ClusterState, UserState } from '#~/redux/selectors/types';
 import { useUser, useClusterInfo } from '#~/redux/selectors';
 import { useAppContext } from '#~/app/AppContext';
-import useFetchDsciStatus from '#~/concepts/areas/useFetchDsciStatus';
 import useFetchDscStatus from '#~/concepts/areas/useFetchDscStatus';
 import { mockDashboardConfig } from '#~/__mocks__';
 import { BuildStatus, SubscriptionStatusData } from '#~/types';
@@ -31,11 +26,6 @@ jest.mock('#~/redux/selectors', () => ({
   useClusterInfo: jest.fn(),
 }));
 
-jest.mock('#~/concepts/areas/useFetchDsciStatus', () => ({
-  __esModule: true,
-  default: jest.fn(),
-}));
-
 jest.mock('#~/concepts/areas/useFetchDscStatus', () => ({
   __esModule: true,
   default: jest.fn(),
@@ -49,7 +39,6 @@ jest.mock('#~/utilities/useWatchOperatorSubscriptionStatus', () => ({
 const useUserMock = jest.mocked(useUser);
 const useAppContextMock = jest.mocked(useAppContext);
 const useClusterInfoMock = jest.mocked(useClusterInfo);
-const useFetchDsciStatusMock = jest.mocked(useFetchDsciStatus);
 const useFetchDscStatusMock = jest.mocked(useFetchDscStatus);
 const useWatchOperatorSubscriptionStatusMock = jest.mocked(useWatchOperatorSubscriptionStatus);
 
@@ -65,8 +54,6 @@ describe('AboutDialog', () => {
   };
   let userInfo: UserState;
   const clusterInfo: ClusterState = { serverURL: 'https://test-server.com' };
-  let dsciStatus: DataScienceClusterInitializationKindStatus;
-  let dsciFetchStatus: FetchState<DataScienceClusterInitializationKindStatus>;
   let dscStatus: DataScienceClusterKindStatus;
   let dscFetchStatus: FetchState<DataScienceClusterKindStatus>;
   let operatorSubscriptionStatus: SubscriptionStatusData;
@@ -84,14 +71,6 @@ describe('AboutDialog', () => {
       isRHOAI: false,
       refreshDashboardConfig: jest.fn(),
     };
-    dsciStatus = {
-      conditions: [],
-      release: {
-        // eslint-disable-next-line no-restricted-syntax
-        name: 'Open Data Hub Operator',
-        version: '1.0.1',
-      },
-    };
     dscStatus = {
       components: {
         [DataScienceStackComponent.K_SERVE]: {
@@ -105,8 +84,12 @@ describe('AboutDialog', () => {
         },
       },
       conditions: [],
+      release: {
+        // eslint-disable-next-line no-restricted-syntax
+        name: 'Open Data Hub Operator',
+        version: '1.0.1',
+      },
     };
-    dsciFetchStatus = [dsciStatus, true, undefined, () => Promise.resolve(dsciStatus)];
     dscFetchStatus = [dscStatus, true, undefined, () => Promise.resolve(dscStatus)];
     userInfo = {
       username: 'test-user',
@@ -132,7 +115,6 @@ describe('AboutDialog', () => {
     useAppContextMock.mockReturnValue(appContext);
     useUserMock.mockReturnValue(userInfo);
     useClusterInfoMock.mockReturnValue(clusterInfo);
-    useFetchDsciStatusMock.mockReturnValue(dsciFetchStatus);
     useFetchDscStatusMock.mockReturnValue(dscFetchStatus);
     useWatchOperatorSubscriptionStatusMock.mockReturnValue(operatorSubscriptionFetchStatus);
 
@@ -174,13 +156,12 @@ describe('AboutDialog', () => {
     }
     appContext.isRHOAI = true;
     userInfo.isAdmin = true;
-    if (dsciStatus.release) {
-      dsciStatus.release.name = 'OpenShift AI Self-Managed version';
+    if (dscStatus.release) {
+      dscStatus.release.name = 'OpenShift AI Self-Managed version';
     }
     useAppContextMock.mockReturnValue(appContext);
     useUserMock.mockReturnValue(userInfo);
     useClusterInfoMock.mockReturnValue(clusterInfo);
-    useFetchDsciStatusMock.mockReturnValue(dsciFetchStatus);
     useFetchDscStatusMock.mockReturnValue(dscFetchStatus);
     useWatchOperatorSubscriptionStatusMock.mockReturnValue(operatorSubscriptionFetchStatus);
 
