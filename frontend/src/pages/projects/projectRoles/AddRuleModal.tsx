@@ -138,6 +138,7 @@ const AddRuleModal: React.FC<AddRuleModalProps> = ({ existingRule, onSave, onClo
       title={isEdit ? 'Edit rule' : 'Add rule'}
       onClose={onClose}
       dataTestId="add-rule-modal"
+      description="Define what resources this rule applies to and what operations are permitted."
       buttonActions={[
         {
           label: 'Save',
@@ -161,13 +162,18 @@ const AddRuleModal: React.FC<AddRuleModalProps> = ({ existingRule, onSave, onClo
               manually.
             </Alert>
           ) : null}
-          <FormGroup label="API groups" fieldId="rule-api-groups" isRequired>
-            <Content component="p">
-              Enter one or more API groups for this rule. Use * to apply to all API groups.
-            </Content>
+          <FormGroup
+            label="API groups"
+            fieldId="rule-api-groups"
+            isRequired
+            labelHelp={
+              <FieldGroupHelpLabelIcon content="API groups organize Kubernetes resources by functionality. Selecting an API group filters the Resource types list to show only resources in that group." />
+            }
+          >
+            <Content component="p">Select one or more API groups.</Content>
             <MultiSelection
-              ariaLabel="Enter or select API groups"
-              placeholder="Enter or select API groups"
+              ariaLabel="Select or type API groups"
+              placeholder="Select or type API groups"
               id="rule-api-groups"
               toggleTestId="rule-api-groups-toggle"
               value={apiGroupOptions}
@@ -190,11 +196,11 @@ const AddRuleModal: React.FC<AddRuleModalProps> = ({ existingRule, onSave, onClo
             }
           >
             <Content component="p">
-              Enter one or more resource types for this rule. Use * to apply to all resource types.
+              Select one or more resource types that this rule applies to.
             </Content>
             <MultiSelection
-              ariaLabel="Enter or select resource types"
-              placeholder="Enter or select resource types"
+              ariaLabel="Select or type resource types"
+              placeholder="Select or type resource types"
               id="rule-resource-types"
               toggleTestId="rule-resource-types-toggle"
               value={resourceOptions}
@@ -208,7 +214,7 @@ const AddRuleModal: React.FC<AddRuleModalProps> = ({ existingRule, onSave, onClo
               isDisabled={!apiResourcesLoaded && !apiResourcesError}
             />
           </FormGroup>
-          <FormGroup label="Verbs" fieldId="rule-verbs" isRequired>
+          <FormGroup label="Permitted operations" fieldId="rule-verbs" isRequired>
             <VerbsTreeSelect
               selectedVerbs={selectedVerbs}
               onSelectedVerbsChange={setSelectedVerbs}
