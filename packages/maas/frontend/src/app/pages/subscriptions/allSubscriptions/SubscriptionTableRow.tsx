@@ -115,8 +115,21 @@ const SubscriptionTableRow: React.FC<SubscriptionTableRowProps> = ({
       <PhaseLabel
         phase={subscription.phase}
         statusMessage={subscription.statusMessage}
+        reason={subscription.reason}
+        status={subscription.status}
+        conditionType={subscription.conditionType}
+        lastTransitionTime={subscription.lastTransitionTime}
         resourceType={PhaseResourceType.SUBSCRIPTION}
-        location={PhaseLabelLocation.SUBSCRIPTIONS_TAB}
+        resourceName={subscription.displayName ?? subscription.name}
+        resourceUrl={getSubscriptionViewUrl(subscription.name)}
+        returnTo={returnTo}
+        onClick={() => {
+          fireMiscTrackingEvent(MaaSEvents.SUBSCRIPTION_MANAGEMENT_STATUS_POPOVER_VIEWED, {
+            popoverType: 'status',
+            status: subscription.phase,
+            location: PhaseLabelLocation.SUBSCRIPTIONS_TAB,
+          });
+        }}
       />
     </Td>
   );

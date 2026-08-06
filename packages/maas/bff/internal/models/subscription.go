@@ -77,18 +77,22 @@ type TokenMetadata struct {
 
 // MaaSSubscription is the BFF representation of a MaaSSubscription CR.
 type MaaSSubscription struct {
-	Name              string                 `json:"name"`
-	DisplayName       string                 `json:"displayName,omitempty"`
-	Description       string                 `json:"description,omitempty"`
-	Namespace         string                 `json:"namespace"`
-	Phase             string                 `json:"phase,omitempty"`
-	StatusMessage     string                 `json:"statusMessage,omitempty"`
-	Priority          int32                  `json:"priority"`
-	Owner             OwnerSpec              `json:"owner"`
-	ModelRefs         []ModelSubscriptionRef `json:"modelRefs"`
-	TokenMetadata     *TokenMetadata         `json:"tokenMetadata,omitempty"`
-	CreationTimestamp *time.Time             `json:"creationTimestamp,omitempty"`
-	DeletionTimestamp *time.Time             `json:"deletionTimestamp,omitempty"`
+	Name               string                 `json:"name"`
+	DisplayName        string                 `json:"displayName,omitempty"`
+	Description        string                 `json:"description,omitempty"`
+	Namespace          string                 `json:"namespace"`
+	Phase              string                 `json:"phase,omitempty"`
+	StatusMessage      string                 `json:"statusMessage,omitempty"`
+	Status             string                 `json:"status,omitempty"`
+	ConditionType      string                 `json:"conditionType,omitempty"`
+	LastTransitionTime string                 `json:"lastTransitionTime,omitempty"`
+	Reason             string                 `json:"reason,omitempty"`
+	Priority           int32                  `json:"priority"`
+	Owner              OwnerSpec              `json:"owner"`
+	ModelRefs          []ModelSubscriptionRef `json:"modelRefs"`
+	TokenMetadata      *TokenMetadata         `json:"tokenMetadata,omitempty"`
+	CreationTimestamp  *time.Time             `json:"creationTimestamp,omitempty"`
+	DeletionTimestamp  *time.Time             `json:"deletionTimestamp,omitempty"`
 }
 
 // SubjectSpec defines subjects (groups) that have access.
@@ -106,17 +110,21 @@ type ModelRef struct {
 
 // MaaSAuthPolicy is the BFF representation of a MaaSAuthPolicy CR.
 type MaaSAuthPolicy struct {
-	Name              string         `json:"name"`
-	Namespace         string         `json:"namespace"`
-	DisplayName       string         `json:"displayName,omitempty"`
-	Description       string         `json:"description,omitempty"`
-	Phase             string         `json:"phase,omitempty"`
-	StatusMessage     string         `json:"statusMessage,omitempty"`
-	CreationTimestamp *time.Time     `json:"creationTimestamp,omitempty"`
-	ModelRefs         []ModelRef     `json:"modelRefs"`
-	Subjects          SubjectSpec    `json:"subjects"`
-	MeteringMetadata  *TokenMetadata `json:"meteringMetadata,omitempty"`
-	DeletionTimestamp *time.Time     `json:"deletionTimestamp,omitempty"`
+	Name               string         `json:"name"`
+	Namespace          string         `json:"namespace"`
+	DisplayName        string         `json:"displayName,omitempty"`
+	Description        string         `json:"description,omitempty"`
+	Phase              string         `json:"phase,omitempty"`
+	StatusMessage      string         `json:"statusMessage,omitempty"`
+	Status             string         `json:"status,omitempty"`
+	ConditionType      string         `json:"conditionType,omitempty"`
+	LastTransitionTime string         `json:"lastTransitionTime,omitempty"`
+	Reason             string         `json:"reason,omitempty"`
+	CreationTimestamp  *time.Time     `json:"creationTimestamp,omitempty"`
+	ModelRefs          []ModelRef     `json:"modelRefs"`
+	Subjects           SubjectSpec    `json:"subjects"`
+	MeteringMetadata   *TokenMetadata `json:"meteringMetadata,omitempty"`
+	DeletionTimestamp  *time.Time     `json:"deletionTimestamp,omitempty"`
 }
 
 // ModelReference references a model endpoint.
@@ -134,6 +142,10 @@ type MaaSModelRefSummary struct {
 	ModelRef           ModelReference `json:"modelRef"`
 	Phase              string         `json:"phase,omitempty"`
 	StatusMessage      string         `json:"statusMessage,omitempty"`
+	Status             string         `json:"status,omitempty"`
+	ConditionType      string         `json:"conditionType,omitempty"`
+	LastTransitionTime string         `json:"lastTransitionTime,omitempty"`
+	Reason             string         `json:"reason,omitempty"`
 	Endpoint           string         `json:"endpoint,omitempty"`
 	ModelCapabilities  []string       `json:"modelCapabilities,omitempty"`
 	GovernanceAttached bool           `json:"governanceAttached,omitempty"`
