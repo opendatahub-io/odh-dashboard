@@ -5,19 +5,15 @@ import { Link } from 'react-router-dom';
 import { ModelOverviewSubscription, ModelOverviewPolicy } from '~/app/types/subscriptions';
 import { URL_PREFIX } from '~/app/utilities/const';
 import PhaseLabel from '~/app/shared/PhaseLabel';
-import { PhaseResourceType } from '~/app/utilities/phaseLabelUtils';
+import { PhaseLabelLocation, PhaseResourceType } from '~/app/utilities/phaseLabelUtils';
 import { formatTokenLimits } from '~/app/utilities/rateLimits';
+import { hasHighlightedGroup } from './utils';
 import GroupChips from './GroupChips';
+import styles from './ExpandedModelContent.module.scss';
 
 const OVERVIEW_LINK_STATE = {
-  returnTo: `${URL_PREFIX}/subscription-management/overview`,
-  breadcrumbLabel: 'Subscription management',
-};
-
-const itemBorderStyle = {
-  border: '1px solid var(--pf-t--global--border--color--default)',
-  borderRadius: 'var(--pf-t--global--border--radius--medium)',
-  marginBottom: 'var(--pf-t--global--spacer--sm)',
+  returnTo: `${URL_PREFIX}/maas-governance/overview`,
+  breadcrumbLabel: 'MaaS governance',
 };
 
 const toggleExpandedItem = (prev: Set<string>, name: string): Set<string> => {
@@ -29,6 +25,13 @@ const toggleExpandedItem = (prev: Set<string>, name: string): Set<string> => {
   }
   return next;
 };
+
+const isEffectivelyExpanded = (
+  name: string,
+  groups: string[] | undefined,
+  expanded: Set<string>,
+  highlightedGroup: string | null,
+): boolean => expanded.has(name) || hasHighlightedGroup(groups ?? [], highlightedGroup);
 
 type ExpandableItemProps = {
   ariaLabel: string;
@@ -42,6 +45,9 @@ type ExpandableItemProps = {
   isExpanded: boolean;
   onToggle: () => void;
   children: React.ReactNode;
+  onLinkClick?: () => void;
+  statusMessage?: string;
+  isHighlighted: boolean;
 };
 
 const ExpandableItem: React.FC<ExpandableItemProps> = ({
@@ -56,8 +62,15 @@ const ExpandableItem: React.FC<ExpandableItemProps> = ({
   isExpanded,
   onToggle,
   children,
+  onLinkClick,
+  statusMessage,
+  isHighlighted,
 }) => (
-  <div style={itemBorderStyle}>
+  <div
+    className={`${styles['maas-expandable-item']}${
+      isHighlighted ? ` ${styles['m-highlighted']}` : ''
+    }`}
+  >
     <Table aria-label={ariaLabel} borders={false} variant="compact">
       <Tbody isExpanded={isExpanded}>
         <Tr>
@@ -69,12 +82,18 @@ const ExpandableItem: React.FC<ExpandableItemProps> = ({
                   to={linkTo}
                   state={linkState}
                   className="pf-v6-u-font-weight-bold pf-v6-u-font-size-md"
+                  onClick={onLinkClick}
                 >
                   {displayName ?? name}
                 </Link>
               </FlexItem>
               <FlexItem>
-                <PhaseLabel phase={phase} resourceType={resourceType} />
+                <PhaseLabel
+                  phase={phase}
+                  resourceType={resourceType}
+                  statusMessage={statusMessage}
+                  location={PhaseLabelLocation.OVERVIEW}
+                />
               </FlexItem>
             </Flex>
           </Td>
@@ -147,6 +166,8 @@ type SubscriptionsSectionProps = {
   expandedSubs: Set<string>;
   onToggleSub: (name: string) => void;
   onToggleAll: () => void;
+  highlightedGroup: string | null;
+  setHighlightedGroup: (group: string | null) => void;
 };
 
 const SubscriptionsSection: React.FC<SubscriptionsSectionProps> = ({
@@ -154,8 +175,14 @@ const SubscriptionsSection: React.FC<SubscriptionsSectionProps> = ({
   expandedSubs,
   onToggleSub,
   onToggleAll,
+  highlightedGroup,
+  setHighlightedGroup,
 }) => {
-  const allExpanded = subscriptions.length > 0 && expandedSubs.size === subscriptions.length;
+  const allExpanded =
+    subscriptions.length > 0 &&
+    subscriptions.every((sub) =>
+      isEffectivelyExpanded(sub.name, sub.groups, expandedSubs, highlightedGroup),
+    );
 
   return (
     <>
@@ -172,27 +199,41 @@ const SubscriptionsSection: React.FC<SubscriptionsSectionProps> = ({
           subtitle="No rate limits configured for this model."
         />
       ) : (
-        subscriptions.map((sub, index) => (
-          <ExpandableItem
-            key={sub.name}
-            ariaLabel={`Subscription ${sub.displayName ?? sub.name}`}
-            name={sub.name}
-            displayName={sub.displayName}
-            linkTo={`${URL_PREFIX}/subscription-management/subscriptions/view/${sub.name}`}
-            linkState={OVERVIEW_LINK_STATE}
-            phase={sub.phase}
-            resourceType={PhaseResourceType.SUBSCRIPTION}
-            rowIndex={index}
-            isExpanded={expandedSubs.has(sub.name)}
-            onToggle={() => onToggleSub(sub.name)}
-          >
-            <Content className="pf-v6-u-mb-sm">
-              <strong className="pf-v6-u-mr-md">Token limits</strong>
-              {formatTokenLimits(sub.tokenRateLimits ?? [])}
-            </Content>
-            <GroupChips groups={sub.groups ?? []} />
-          </ExpandableItem>
-        ))
+        subscriptions.map((sub, index) => {
+          const isHighlighted = hasHighlightedGroup(sub.groups ?? [], highlightedGroup);
+          return (
+            <ExpandableItem
+              key={sub.name}
+              ariaLabel={`Subscription ${sub.displayName ?? sub.name}`}
+              name={sub.name}
+              displayName={sub.displayName}
+              linkTo={`${URL_PREFIX}/maas-governance/subscriptions/view/${sub.name}`}
+              linkState={OVERVIEW_LINK_STATE}
+              phase={sub.phase}
+              resourceType={PhaseResourceType.SUBSCRIPTION}
+              rowIndex={index}
+              isExpanded={isEffectivelyExpanded(
+                sub.name,
+                sub.groups,
+                expandedSubs,
+                highlightedGroup,
+              )}
+              isHighlighted={isHighlighted}
+              onToggle={() => onToggleSub(sub.name)}
+              statusMessage={sub.statusMessage}
+            >
+              <Content className="pf-v6-u-mb-sm">
+                <strong className="pf-v6-u-mr-md">Token limits</strong>
+                {formatTokenLimits(sub.tokenRateLimits ?? [])}
+              </Content>
+              <GroupChips
+                groups={sub.groups ?? []}
+                highlightedGroup={highlightedGroup}
+                setHighlightedGroup={setHighlightedGroup}
+              />
+            </ExpandableItem>
+          );
+        })
       )}
     </>
   );
@@ -203,6 +244,8 @@ type PoliciesSectionProps = {
   expandedPolicies: Set<string>;
   onTogglePolicy: (name: string) => void;
   onToggleAll: () => void;
+  highlightedGroup: string | null;
+  setHighlightedGroup: (group: string | null) => void;
 };
 
 const PoliciesSection: React.FC<PoliciesSectionProps> = ({
@@ -210,8 +253,14 @@ const PoliciesSection: React.FC<PoliciesSectionProps> = ({
   expandedPolicies,
   onTogglePolicy,
   onToggleAll,
+  highlightedGroup,
+  setHighlightedGroup,
 }) => {
-  const allExpanded = policies.length > 0 && expandedPolicies.size === policies.length;
+  const allExpanded =
+    policies.length > 0 &&
+    policies.every((policy) =>
+      isEffectivelyExpanded(policy.name, policy.groups, expandedPolicies, highlightedGroup),
+    );
 
   return (
     <>
@@ -228,23 +277,37 @@ const PoliciesSection: React.FC<PoliciesSectionProps> = ({
           subtitle="Access is denied by default."
         />
       ) : (
-        policies.map((policy, index) => (
-          <ExpandableItem
-            key={policy.name}
-            ariaLabel={`Policy ${policy.displayName ?? policy.name}`}
-            name={policy.name}
-            displayName={policy.displayName}
-            linkTo={`${URL_PREFIX}/subscription-management/auth-policies/view/${policy.name}`}
-            linkState={OVERVIEW_LINK_STATE}
-            phase={policy.phase}
-            resourceType={PhaseResourceType.AUTHPOLICY}
-            rowIndex={index}
-            isExpanded={expandedPolicies.has(policy.name)}
-            onToggle={() => onTogglePolicy(policy.name)}
-          >
-            <GroupChips groups={policy.groups ?? []} />
-          </ExpandableItem>
-        ))
+        policies.map((policy, index) => {
+          const isHighlighted = hasHighlightedGroup(policy.groups ?? [], highlightedGroup);
+          return (
+            <ExpandableItem
+              key={policy.name}
+              ariaLabel={`Policy ${policy.displayName ?? policy.name}`}
+              name={policy.name}
+              displayName={policy.displayName}
+              linkTo={`${URL_PREFIX}/maas-governance/auth-policies/view/${policy.name}`}
+              linkState={OVERVIEW_LINK_STATE}
+              phase={policy.phase}
+              resourceType={PhaseResourceType.AUTHPOLICY}
+              rowIndex={index}
+              isExpanded={isEffectivelyExpanded(
+                policy.name,
+                policy.groups,
+                expandedPolicies,
+                highlightedGroup,
+              )}
+              isHighlighted={isHighlighted}
+              onToggle={() => onTogglePolicy(policy.name)}
+              statusMessage={policy.statusMessage}
+            >
+              <GroupChips
+                groups={policy.groups ?? []}
+                highlightedGroup={highlightedGroup}
+                setHighlightedGroup={setHighlightedGroup}
+              />
+            </ExpandableItem>
+          );
+        })
       )}
     </>
   );
@@ -258,6 +321,7 @@ type ExpandedModelContentProps = {
 const ExpandedModelContent: React.FC<ExpandedModelContentProps> = ({ subscriptions, policies }) => {
   const [expandedSubs, setExpandedSubs] = React.useState<Set<string>>(new Set());
   const [expandedPolicies, setExpandedPolicies] = React.useState<Set<string>>(new Set());
+  const [highlightedGroup, setHighlightedGroup] = React.useState<string | null>(null);
 
   const toggleSub = React.useCallback(
     (name: string) => setExpandedSubs((prev) => toggleExpandedItem(prev, name)),
@@ -269,18 +333,32 @@ const ExpandedModelContent: React.FC<ExpandedModelContentProps> = ({ subscriptio
   );
 
   const toggleAllSubs = React.useCallback(() => {
-    setExpandedSubs((prev) => {
-      const allExpanded = subscriptions.length > 0 && prev.size === subscriptions.length;
-      return allExpanded ? new Set() : new Set(subscriptions.map((s) => s.name));
-    });
-  }, [subscriptions]);
+    const allExpanded =
+      subscriptions.length > 0 &&
+      subscriptions.every((sub) =>
+        isEffectivelyExpanded(sub.name, sub.groups, expandedSubs, highlightedGroup),
+      );
+    if (allExpanded) {
+      setExpandedSubs(new Set());
+      setHighlightedGroup(null);
+    } else {
+      setExpandedSubs(new Set(subscriptions.map((s) => s.name)));
+    }
+  }, [subscriptions, expandedSubs, highlightedGroup]);
 
   const toggleAllPolicies = React.useCallback(() => {
-    setExpandedPolicies((prev) => {
-      const allExpanded = policies.length > 0 && prev.size === policies.length;
-      return allExpanded ? new Set() : new Set(policies.map((p) => p.name));
-    });
-  }, [policies]);
+    const allExpanded =
+      policies.length > 0 &&
+      policies.every((policy) =>
+        isEffectivelyExpanded(policy.name, policy.groups, expandedPolicies, highlightedGroup),
+      );
+    if (allExpanded) {
+      setExpandedPolicies(new Set());
+      setHighlightedGroup(null);
+    } else {
+      setExpandedPolicies(new Set(policies.map((p) => p.name)));
+    }
+  }, [policies, expandedPolicies, highlightedGroup]);
 
   return (
     <Grid hasGutter>
@@ -296,6 +374,8 @@ const ExpandedModelContent: React.FC<ExpandedModelContentProps> = ({ subscriptio
           expandedSubs={expandedSubs}
           onToggleSub={toggleSub}
           onToggleAll={toggleAllSubs}
+          highlightedGroup={highlightedGroup}
+          setHighlightedGroup={setHighlightedGroup}
         />
       </GridItem>
       <GridItem span={6}>
@@ -304,6 +384,8 @@ const ExpandedModelContent: React.FC<ExpandedModelContentProps> = ({ subscriptio
           expandedPolicies={expandedPolicies}
           onTogglePolicy={togglePolicy}
           onToggleAll={toggleAllPolicies}
+          highlightedGroup={highlightedGroup}
+          setHighlightedGroup={setHighlightedGroup}
         />
       </GridItem>
     </Grid>

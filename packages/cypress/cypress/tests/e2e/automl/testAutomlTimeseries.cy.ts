@@ -1,14 +1,19 @@
 import yaml from 'js-yaml';
 import { deleteOpenShiftProject } from '../../../utils/oc_commands/project';
 import { deleteS3TestFiles } from '../../../utils/oc_commands/s3Cleanup';
-import { provisionProjectForAutoX, waitForManagedPipelines } from '../../../utils/autoXPipelines';
-import { waitForDspaReady } from '../../../utils/oc_commands/dspa';
+import { provisionProjectForAutoX } from '../../../utils/autoXPipelines';
 import { retryableBefore } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
 import type { AutomlTestData } from '../../../types';
-import { automlConfigurePage, automlResultsPage } from '../../../pages/automl';
+import { automlConfigurePage } from '../../../pages/automl/configurePage';
 import { isAutomlEnabled, setAutomlEnabled } from '../../../utils/oc_commands/autoX';
-import { verifyAndChangeOptimizationMetric } from '../../../utils/automlTestFlows';
+import {
+  configureAutomlRun,
+  submitAutomlRun,
+  waitForAutomlRunCompletion,
+  verifyAutomlResultsInteraction,
+  verifyAndChangeOptimizationMetric,
+} from '../../../utils/automlTestFlows';
 
 const uuid = generateTestUUID();
 
@@ -50,11 +55,7 @@ describe('AutoML Time Series Forecasting E2E', { testIsolation: false }, () => {
       retries: { runMode: 0, openMode: 0 },
     },
     () => {
-      cy.step('Wait for pipeline server and managed pipelines');
-      waitForDspaReady(projectName);
-      waitForManagedPipelines(projectName);
-
-      automlConfigurePage.submitRunSetup(testData, projectName, uuid);
+      configureAutomlRun(testData, projectName, uuid);
 
       cy.step('Select target column');
       automlConfigurePage.findTargetColumnSelect().should('not.be.disabled').click();
@@ -75,7 +76,7 @@ describe('AutoML Time Series Forecasting E2E', { testIsolation: false }, () => {
       automlConfigurePage.findPresetRadio('speed').should('be.checked');
 
       cy.step('Set top N models to minimize run time');
-      automlConfigurePage.setTopN(testData.topN as number);
+      automlConfigurePage.findTopNInputField().type(`{selectall}${testData.topN as number}`);
 
       verifyAndChangeOptimizationMetric(
         testData.defaultMetricLabel as string,
@@ -83,10 +84,10 @@ describe('AutoML Time Series Forecasting E2E', { testIsolation: false }, () => {
         testData.changedMetricLabel as string,
       );
 
-      automlConfigurePage.submitRun();
+      submitAutomlRun();
 
       cy.step('Wait for run to complete and verify leaderboard');
-      automlResultsPage.waitForRunCompletion();
+      waitForAutomlRunCompletion();
     },
   );
 
@@ -94,7 +95,7 @@ describe('AutoML Time Series Forecasting E2E', { testIsolation: false }, () => {
     'Can interact with results page (leaderboard, model details, download)',
     { tags: ['@AutoML', '@AutoMLRegression', '@Featureflagged'] },
     () => {
-      automlResultsPage.verifyResultsInteraction('timeseries');
+      verifyAutomlResultsInteraction('timeseries');
     },
   );
 });

@@ -1,4 +1,4 @@
-export type FieldMode = 'preview' | 'default' | 'instance';
+import type { ConnectionTypeDataField, FieldMode } from '@odh-dashboard/k8s-core';
 
 export type FieldProps<T extends ConnectionTypeDataField> = {
   id: string;

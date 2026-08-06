@@ -1,0 +1,12 @@
+.maas-expandable-item {
+  border-style: solid;
+  border-width: 1px;
+  border-color: var(--pf-t--global--border--color--default);
+  border-radius: var(--pf-t--global--border--radius--medium);
+  margin-bottom: var(--pf-t--global--spacer--sm);
+
+  &.m-highlighted {
+    border-color: var(--pf-t--global--border--color--brand--default);
+    border-width: 2px;
+  }
+}

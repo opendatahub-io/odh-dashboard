@@ -37,7 +37,9 @@
     "prepare:e2e": "cd bff && go mod download",
     "cypress:server:e2e": "STATIC_ASSETS_DIR=../frontend/public-cypress make dev-bff-e2e-cluster E2E_BFF_PORT=9104",
     "lint": "cd frontend && npm run lint",
-    "lint:fix": "cd frontend && npm run lint:fix"
+    "lint:fix": "cd frontend && npm run lint:fix",
+    "test-unit": "cd frontend && npm run test:unit",
+    "type-check": "cd frontend && npm run test:type-check"
   },
   "exports": {
     "./utils/api-keys": "./frontend/src/app/pages/keys-and-subs/utils.ts",

@@ -1122,7 +1122,7 @@ components:
               description: Key-value map of pipeline parameters
               additionalProperties: true
               example:
-                optimization_metric: "faithfulness"
+                optimization_metric: "overall_score"
                 test_data_secret_name: "minio-secret"
                 test_data_bucket_name: "autorag"
             pipeline_root:
@@ -1335,11 +1335,11 @@ components:
         optimization_metric:
           type: string
           enum:
+            - overall_score
             - faithfulness
             - answer_correctness
             - context_correctness
-            - overall_score
-          description: Metric to optimize (defaults to faithfulness)
+          description: Metric to optimize (defaults to overall_score)
         vector_io_provider_id:
           type: string
           description: Pipeline vector store provider ID from the selected Open GenAI Stack provider (e.g. milvus)
@@ -1911,7 +1911,7 @@ components:
                 pipeline_version_id: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
               runtime_config:
                 parameters:
-                  optimization_metric: "faithfulness"
+                  optimization_metric: "overall_score"
                   test_data_secret_name: "minio-secret"
                   test_data_bucket_name: "autorag"
                   test_data_key: "test_data.json"

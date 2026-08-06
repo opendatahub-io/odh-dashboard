@@ -3,6 +3,10 @@
   min-width: var(--gpuaas-cohort-select-min-width);
 }
 
+.gpuaas-search-toolbar-item {
+  align-self: flex-end;
+}
+
 .gpuaas-cluster-spinner {
   min-height: var(--pf-t--global--spacer--3xl);
 }

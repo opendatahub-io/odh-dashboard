@@ -3,27 +3,16 @@ import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import userEvent from '@testing-library/user-event';
 import { IdentifierResourceType, SchedulingType } from '@odh-dashboard/k8s-core';
-import { QueueSource } from '#~/concepts/hardwareProfiles/const';
-import { mockHardwareProfile } from '#~/__mocks__/mockHardwareProfile';
-import {
-  ProjectDetailsContext,
-  ProjectDetailsContextType,
-} from '#~/pages/projects/ProjectDetailsContext';
-import { DEFAULT_LIST_FETCH_STATE } from '#~/utilities/const';
+import { DEFAULT_LIST_FETCH_STATE } from '@odh-dashboard/ui-core/utilities/fetchState';
+import { LocalQueuesContext } from '@odh-dashboard/ui-core/context/LocalQueuesContext';
+import { mockHardwareProfile } from '@odh-dashboard/hardware-profiles/__mocks__/mockHardwareProfile';
 import HardwareProfileDetailsPopover from '#~/concepts/hardwareProfiles/HardwareProfileDetailsPopover';
 
 const renderWithContext = (ui: React.ReactElement) =>
   render(
-    <ProjectDetailsContext.Provider
-      value={
-        {
-          currentProject: { metadata: { name: 'test-project' } },
-          localQueues: DEFAULT_LIST_FETCH_STATE,
-        } as unknown as ProjectDetailsContextType
-      }
-    >
+    <LocalQueuesContext.Provider value={{ localQueues: DEFAULT_LIST_FETCH_STATE }}>
       {ui}
-    </ProjectDetailsContext.Provider>,
+    </LocalQueuesContext.Provider>,
   );
 
 describe('HardwareProfileDetailsPopover', () => {
@@ -85,8 +74,8 @@ describe('HardwareProfileDetailsPopover', () => {
     });
   });
 
-  describe('Custom scenario (no hardware profile)', () => {
-    it('should display "View details" trigger and fallback message with no resource details', async () => {
+  describe('no hardware profile', () => {
+    it('should display "View details" trigger and fallback message in non-tableView mode', async () => {
       renderWithContext(<HardwareProfileDetailsPopover />);
 
       expect(screen.getByTestId('hardware-profile-details-popover')).toHaveTextContent(
@@ -95,11 +84,38 @@ describe('HardwareProfileDetailsPopover', () => {
 
       await userEvent.click(screen.getByTestId('hardware-profile-details-popover'));
 
+      expect(screen.getByText('Existing settings')).toBeInTheDocument();
       const details = screen.getByTestId('hardware-profile-details');
       expect(details).toHaveTextContent(
         'No matching hardware profile found, using existing settings. Default, min, and max values are not available.',
       );
       expect(details.querySelectorAll('dl')).toHaveLength(0);
+    });
+
+    it('should display "No hardware profile" trigger and updated header/body in tableView mode', async () => {
+      renderWithContext(<HardwareProfileDetailsPopover tableView />);
+
+      expect(screen.getByTestId('hardware-profile-details-popover')).toHaveTextContent(
+        'No hardware profile',
+      );
+
+      await userEvent.click(screen.getByTestId('hardware-profile-details-popover'));
+
+      expect(screen.getByText('No hardware profile defined')).toBeInTheDocument();
+      const details = screen.getByTestId('hardware-profile-details');
+      expect(details).toHaveTextContent('No hardware profile is defined for this workbench');
+      expect(details.querySelectorAll('dl')).toHaveLength(0);
+      expect(screen.queryByRole('button', { name: 'Expand row' })).not.toBeInTheDocument();
+    });
+
+    it('should call onExpandRow when "Expand row" footer button is clicked', async () => {
+      const onExpandRow = jest.fn();
+      renderWithContext(<HardwareProfileDetailsPopover tableView onExpandRow={onExpandRow} />);
+
+      await userEvent.click(screen.getByTestId('hardware-profile-details-popover'));
+      await userEvent.click(screen.getByRole('button', { name: 'Expand row' }));
+
+      expect(onExpandRow).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -129,23 +145,15 @@ describe('HardwareProfileDetailsPopover', () => {
       expect(details).toHaveTextContent('high-priority');
     });
 
-    it.each([
-      [QueueSource.HARDWARE_PROFILE, 'test-queue', 'Local queue (via hardware profile)'],
-      [QueueSource.DIRECT, 'gitops-queue', 'Local queue (applied directly)'],
-    ])(
-      'should show correct label for queueSource "%s"',
-      async (queueSource, queueName, expectedLabel) => {
-        renderWithContext(
-          <HardwareProfileDetailsPopover localQueueName={queueName} queueSource={queueSource} />,
-        );
+    it('should show "Local queue" label', async () => {
+      renderWithContext(<HardwareProfileDetailsPopover localQueueName="test-queue" />);
 
-        await userEvent.click(screen.getByTestId('hardware-profile-details-popover'));
+      await userEvent.click(screen.getByTestId('hardware-profile-details-popover'));
 
-        const details = screen.getByTestId('hardware-profile-details');
-        expect(details).toHaveTextContent(expectedLabel);
-        expect(details).toHaveTextContent(queueName);
-        expect(details).not.toHaveTextContent('No matching hardware profile found');
-      },
-    );
+      const details = screen.getByTestId('hardware-profile-details');
+      expect(details).toHaveTextContent('Local queue');
+      expect(details).toHaveTextContent('test-queue');
+      expect(details).not.toHaveTextContent('No matching hardware profile found');
+    });
   });
 });

@@ -86,6 +86,10 @@ const AutoragPipelineVisualization: React.FC<AutoragPipelineVisualizationProps> 
     [selectedIds, showDetails],
   );
 
+  const handleCloseDetails = React.useCallback(() => {
+    setShowDetails(false);
+  }, []);
+
   React.useEffect(() => {
     if (showTreeLoadingState) {
       setSelectedIds([]);
@@ -98,59 +102,39 @@ const AutoragPipelineVisualization: React.FC<AutoragPipelineVisualizationProps> 
         className="autorag-pipeline-visualization__header"
         alignItems={{ default: 'alignItemsCenter' }}
         justifyContent={{ default: 'justifyContentSpaceBetween' }}
-        flexWrap={{ default: 'wrap' }}
-        spaceItems={{ default: 'spaceItemsMd' }}
       >
         <FlexItem>
-          <Flex
-            alignItems={{ default: 'alignItemsCenter' }}
-            spaceItems={{ default: 'spaceItemsMd' }}
-          >
+          <Flex>
             <FlexItem>
               <Title headingLevel="h3" size="lg">
                 {runTitle}
               </Title>
             </FlexItem>
             <FlexItem>
-              <Label variant="outline" {...getPipelineStatusLabelProps(statusLabel)}>
+              <Label
+                variant="outline"
+                data-testid="run-status-label"
+                {...getPipelineStatusLabelProps(statusLabel)}
+              >
                 {statusLabel.text}
               </Label>
             </FlexItem>
           </Flex>
         </FlexItem>
 
-        <FlexItem className="autorag-pipeline-visualization__toolbar">
-          <Flex
-            alignItems={{ default: 'alignItemsCenter' }}
-            justifyContent={{ default: 'justifyContentFlexEnd' }}
-            spaceItems={{ default: 'spaceItemsMd' }}
-            flexWrap={{ default: 'wrap' }}
-          >
-            {showDetails ? (
-              <FlexItem>
-                <Button
-                  variant="tertiary"
-                  isInline
-                  aria-expanded
-                  onClick={() => setShowDetails(false)}
-                  data-testid="hide-details"
-                >
-                  Hide details
-                </Button>
-              </FlexItem>
-            ) : (
-              <FlexItem>
-                <Button
-                  variant="tertiary"
-                  isInline
-                  aria-expanded={false}
-                  onClick={() => setShowDetails(true)}
-                  data-testid="show-details"
-                >
-                  Show details
-                </Button>
-              </FlexItem>
-            )}
+        <FlexItem>
+          <Flex>
+            <FlexItem>
+              <Button
+                variant="tertiary"
+                isInline
+                aria-expanded={showDetails}
+                onClick={() => setShowDetails((prev) => !prev)}
+                data-testid={showDetails ? 'hide-details' : 'show-details'}
+              >
+                {showDetails ? 'Hide details' : 'Show details'}
+              </Button>
+            </FlexItem>
           </Flex>
         </FlexItem>
       </Flex>
@@ -174,7 +158,7 @@ const AutoragPipelineVisualization: React.FC<AutoragPipelineVisualizationProps> 
                   treeLoadingMode={treeLoadingMode}
                   componentStageMap={componentStageMap}
                   pipelineRun={pipelineRun}
-                  onClose={() => setShowDetails(false)}
+                  onClose={handleCloseDetails}
                 />
               </DrawerPanelContent>
             }

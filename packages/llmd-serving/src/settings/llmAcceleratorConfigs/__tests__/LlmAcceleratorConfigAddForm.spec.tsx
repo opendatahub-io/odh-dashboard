@@ -109,6 +109,7 @@ describe('LlmAcceleratorConfigAddForm', () => {
       const callArg = mockCreateLLMInferenceServiceConfig.mock.calls[0][0];
       expect(callArg.metadata.annotations?.['openshift.io/display-name']).toBe('New Config');
       expect(callArg.metadata.labels?.['opendatahub.io/dashboard']).toBe('true');
+      expect(callArg.metadata.labels?.['opendatahub.io/config-type']).toBe('accelerator');
     });
 
     it('should navigate back on successful create', async () => {
@@ -177,6 +178,20 @@ describe('LlmAcceleratorConfigAddForm', () => {
 
       const callArg = mockCreateLLMInferenceServiceConfig.mock.calls[0][0];
       expect(callArg.metadata.labels?.['opendatahub.io/dashboard']).toBe('true');
+    });
+
+    it('should auto-update resource name when display name changes', () => {
+      const sourceConfig = mockLLMInferenceServiceConfigK8sResource({
+        name: 'source-config',
+        displayName: 'Source Config',
+      });
+
+      render(<LlmAcceleratorConfigAddForm mode="duplicate" sourceConfig={sourceConfig} />);
+
+      const nameInput = screen.getByTestId('llm-accelerator-config-name');
+      fireEvent.change(nameInput, { target: { value: 'My Custom Name' } });
+
+      expect(screen.getByText('my-custom-name', { exact: false })).toBeInTheDocument();
     });
   });
 

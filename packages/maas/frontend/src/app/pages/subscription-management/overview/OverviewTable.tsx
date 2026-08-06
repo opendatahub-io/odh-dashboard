@@ -22,12 +22,13 @@ const OverviewTable: React.FC<OverviewTableProps> = ({ data, toolbarContent, onC
   const maxPage = Math.max(1, Math.ceil(data.length / pageSize));
   const safePage = Math.min(page, maxPage);
   const pageData = sorted.slice(pageSize * (safePage - 1), pageSize * safePage);
+  const rowKey = (row: ModelOverviewItem) => `${row.namespace}/${row.id}`;
 
-  const allExpanded = pageData.length > 0 && pageData.every((r) => expandedModels.has(r.id));
+  const allExpanded = pageData.length > 0 && pageData.every((r) => expandedModels.has(rowKey(r)));
 
   const toggleAll = () =>
     setExpandedModels((prev) => {
-      const keys = pageData.map((r) => r.id);
+      const keys = pageData.map((r) => rowKey(r));
       return keys.every((k) => prev.has(k))
         ? new Set([...prev].filter((k) => !keys.includes(k)))
         : new Set([...prev, ...keys]);
@@ -36,10 +37,10 @@ const OverviewTable: React.FC<OverviewTableProps> = ({ data, toolbarContent, onC
   const toggleModel = (row: ModelOverviewItem) => {
     setExpandedModels((prev) => {
       const next = new Set(prev);
-      if (next.has(row.id)) {
-        next.delete(row.id);
+      if (next.has(rowKey(row))) {
+        next.delete(rowKey(row));
       } else {
-        next.add(row.id);
+        next.add(rowKey(row));
       }
       return next;
     });
@@ -92,10 +93,10 @@ const OverviewTable: React.FC<OverviewTableProps> = ({ data, toolbarContent, onC
         ) : (
           pageData.map((row, rowIndex) => (
             <OverviewTableRow
-              key={row.id}
+              key={rowKey(row)}
               row={row}
               rowIndex={rowIndex}
-              isExpanded={expandedModels.has(row.id)}
+              isExpanded={expandedModels.has(rowKey(row))}
               onToggleExpand={() => toggleModel(row)}
             />
           ))

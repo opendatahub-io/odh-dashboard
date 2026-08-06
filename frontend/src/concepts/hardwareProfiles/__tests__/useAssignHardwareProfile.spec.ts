@@ -9,7 +9,7 @@ import {
 } from '@odh-dashboard/k8s-core';
 import * as areasUtils from '@odh-dashboard/plugin-core/areas';
 import * as useHardwareProfileConfigModule from '@odh-dashboard/hardware-profiles/shared/useHardwareProfileConfig';
-import { mockHardwareProfile } from '#~/__mocks__/mockHardwareProfile';
+import { mockHardwareProfile } from '@odh-dashboard/hardware-profiles/__mocks__/mockHardwareProfile';
 import {
   mockDashboardConfig,
   mockNotebookK8sResource,

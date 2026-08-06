@@ -35,6 +35,7 @@ jest.mock('~/app/hooks/useUser', () => ({
 jest.mock('@odh-dashboard/ui-core', () => ({
   ...jest.requireActual('@odh-dashboard/ui-core'),
   WhosMyAdministrator: () => <div data-testid="whos-my-administrator" />,
+  ...require('~/__tests__/unit/testUtils/mocks').mockApplicationsPageModule(),
 }));
 
 jest.mock('mod-arch-core', () => ({
@@ -60,10 +61,6 @@ jest.mock('~/app/context/CollectionsContext', () => ({
   }),
 }));
 
-jest.mock('@odh-dashboard/internal/pages/ApplicationsPage', () =>
-  require('~/__tests__/unit/testUtils/mocks').mockApplicationsPageModule(),
-);
-
 jest.mock('@odh-dashboard/internal/concepts/projects/ProjectIconWithSize', () =>
   require('~/__tests__/unit/testUtils/mocks').mockProjectIconWithSizeModule(),
 );
@@ -72,7 +69,7 @@ jest.mock('@odh-dashboard/internal/types', () =>
   require('~/__tests__/unit/testUtils/mocks').mockIconSizeModule(),
 );
 
-jest.mock('@odh-dashboard/internal/concepts/projects/ProjectSelector', () =>
+jest.mock('@odh-dashboard/ui-core/components/projectSelector/ProjectSelector', () =>
   require('~/__tests__/unit/testUtils/mocks').mockProjectSelectorModule(),
 );
 

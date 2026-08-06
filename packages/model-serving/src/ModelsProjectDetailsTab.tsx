@@ -1,19 +1,18 @@
 import React from 'react';
-import { ProjectDetailsContext } from '@odh-dashboard/internal/pages/projects/ProjectDetailsContext';
+import { CurrentProjectContext } from '@odh-dashboard/ui-core/context/CurrentProjectContext';
 import { LazyCodeRefComponent, useExtensions } from '@odh-dashboard/plugin-core';
-// eslint-disable-next-line @odh-dashboard/no-restricted-imports
-import DetailsSection from '@odh-dashboard/internal/pages/projects/screens/detail/DetailsSection';
-import { ProjectSectionID } from '@odh-dashboard/internal/pages/projects/screens/detail/types';
+import DetailsSection from '@odh-dashboard/ui-core/components/detail/DetailsSection';
 import { useProjectServingPlatform } from './concepts/useProjectServingPlatform';
 import { resolvePlatformOverride } from './concepts/resolvePlatformOverride';
 import { ModelDeploymentsProvider } from './concepts/ModelDeploymentsContext';
 import ModelsProjectDetailsView from './components/projectDetails/ModelsProjectDetailsView';
 import { useAvailableClusterPlatforms } from './concepts/useAvailableClusterPlatforms';
+import { MODEL_SERVER_SECTION_ID } from './components/global/const';
 import { isModelServingPlatformProjectDetailsTab } from '../extension-points';
 
 const LoadingSection: React.FC<{ error?: Error }> = ({ error }) => (
   <DetailsSection
-    id={ProjectSectionID.MODEL_SERVER}
+    id={MODEL_SERVER_SECTION_ID}
     isLoading
     isEmpty={false}
     emptyState={null}
@@ -24,7 +23,7 @@ const LoadingSection: React.FC<{ error?: Error }> = ({ error }) => (
 );
 
 const ModelsProjectDetailsTab: React.FC = () => {
-  const { currentProject } = React.useContext(ProjectDetailsContext);
+  const { currentProject } = React.useContext(CurrentProjectContext);
 
   const { clusterPlatforms, clusterPlatformsLoaded, clusterPlatformsError } =
     useAvailableClusterPlatforms();

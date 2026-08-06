@@ -3,7 +3,8 @@ import type { AccessReviewResourceAttributes } from '@odh-dashboard/k8s-core';
 import { isClusterDetailsVariable } from './variables';
 
 export const BASE_PATH = '/observe-and-monitor/dashboard';
-export const DASHBOARD_QUERY_PARAM = 'dashboard';
+export const DASHBOARD_URL_PARAM = 'dashboard';
+export const NAMESPACE_URL_PARAM = 'var-namespace';
 
 const PERSES_DASHBOARD_PREFIX = 'dashboard-';
 const PERSES_DASHBOARD_ADMIN_SUFFIX = '-admin';
@@ -70,7 +71,7 @@ export function filterDashboards(
  */
 export const buildDashboardUrl = (dashboardName: string, currentSearch?: string): string => {
   const params = new URLSearchParams(currentSearch);
-  params.set(DASHBOARD_QUERY_PARAM, dashboardName);
+  params.set(DASHBOARD_URL_PARAM, dashboardName);
   return `${BASE_PATH}?${params.toString()}`;
 };
 
@@ -86,4 +87,12 @@ export const getDashboardDisplayName = (dashboard: DashboardResource): string =>
 export const hasClusterDetailsVariables = (dashboard: DashboardResource): boolean => {
   const { variables = [] } = dashboard.spec;
   return variables.some((variable) => isClusterDetailsVariable(variable.spec.name));
+};
+
+/**
+ * Check if a dashboard has a `namespace` variable (project-scoped / tenancy metrics).
+ */
+export const hasNamespaceVariable = (dashboard: DashboardResource): boolean => {
+  const { variables = [] } = dashboard.spec;
+  return variables.some((variable) => variable.spec.name === 'namespace');
 };

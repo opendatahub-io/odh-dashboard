@@ -1,0 +1,35 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - service-account.yaml
+  - cluster-role.yaml
+  - cluster-role-binding.yaml
+  - deployment.yaml
+  - service.yaml
+  - networkpolicy.yaml
+configMapGenerator:
+  - name: autorag-params
+    env: params.env
+generatorOptions:
+  disableNameSuffixHash: true
+replacements:
+  - source:
+      kind: ConfigMap
+      name: autorag-params
+      fieldPath: data.autorag-ui-image
+    targets:
+      - select:
+          kind: Deployment
+          name: autorag-ui
+        fieldPaths:
+          - spec.template.spec.containers.[name=autorag-ui].image
+  - source:
+      kind: ConfigMap
+      name: autorag-params
+      fieldPath: data.autorag-pipeline-runtime-image
+    targets:
+      - select:
+          kind: Deployment
+          name: autorag-ui
+        fieldPaths:
+          - spec.template.spec.containers.[name=autorag-ui].env.[name=RELATED_IMAGE_ODH_AUTORAG_IMAGE].value

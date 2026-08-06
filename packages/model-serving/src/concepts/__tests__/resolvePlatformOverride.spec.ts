@@ -1,4 +1,4 @@
-import { mockProjectK8sResource } from '@odh-dashboard/internal/__mocks__/mockProjectK8sResource';
+import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import { mockModelServingPlatform, mockProjectWithPlatform } from '../../__tests__/mockUtils';
 import {
   resolvePlatformOverride,

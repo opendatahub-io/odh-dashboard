@@ -1,6 +1,11 @@
 import * as React from 'react';
 import { TableVariant } from '@patternfly/react-table';
-import { DashboardEmptyTableView, getTableColumnSort, TableBase } from '@odh-dashboard/ui-core';
+import {
+  DashboardEmptyTableView,
+  getTableColumnSort,
+  TableBase,
+  TrackingOutcome,
+} from '@odh-dashboard/ui-core';
 import { PipelineRecurringRunKF } from '#~/concepts/pipelines/kfTypes';
 import { useCheckboxTable } from '#~/components/table';
 import DeletePipelineRunsModal from '#~/concepts/pipelines/content/DeletePipelineRunsModal';
@@ -16,7 +21,6 @@ import SimpleMenuActions from '#~/components/SimpleMenuActions';
 import { pipelineRecurringRunColumns } from '#~/concepts/pipelines/content/tables/columns';
 import { ExperimentContext } from '#~/pages/pipelines/global/experiments/ExperimentContext';
 import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
-import { TrackingOutcome } from '#~/concepts/analyticsTracking/trackingProperties';
 import { filterByMlflowExperiment } from '#~/concepts/pipelines/content/tables/pipelineRun/utils';
 import useIsMlflowPipelinesAvailable from '#~/concepts/mlflow/hooks/useIsMlflowPipelinesAvailable';
 import useMlflowExperiments from '#~/concepts/mlflow/hooks/useMlflowExperiments';
@@ -54,7 +58,11 @@ const PipelineRecurringRunTable: React.FC<PipelineRecurringRunTableProps> = ({
   const { namespace, refreshAllAPI } = usePipelinesAPI();
   const { experiment } = React.useContext(ExperimentContext);
   const { available: isMlflowAvailable } = useIsMlflowPipelinesAvailable();
-  const { data: mlflowExperiments, loaded: mlflowExperimentsLoaded } = useMlflowExperiments({
+  const {
+    data: mlflowExperiments,
+    loaded: mlflowExperimentsLoaded,
+    error: mlflowExperimentsError,
+  } = useMlflowExperiments({
     workspace: isMlflowAvailable ? namespace : '',
   });
   const { onClearFilters, ...filterToolbarProps } = usePipelineFilterSearchParams(setFilter);
@@ -140,6 +148,7 @@ const PipelineRecurringRunTable: React.FC<PipelineRecurringRunTableProps> = ({
               isAvailable: isMlflowAvailable,
               experiments: mlflowExperiments,
               loaded: mlflowExperimentsLoaded,
+              error: mlflowExperimentsError,
             }}
           />
         )}

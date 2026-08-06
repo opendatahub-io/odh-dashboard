@@ -1,5 +1,5 @@
+import { genUID } from '@odh-dashboard/foundation';
 import { CohortKind } from '#~/k8sTypes';
-import { genUID } from '#~/__mocks__/mockUtils';
 
 type MockCohortConfigType = {
   name?: string;

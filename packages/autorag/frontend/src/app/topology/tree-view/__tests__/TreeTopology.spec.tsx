@@ -51,7 +51,12 @@ jest.mock('@patternfly/react-topology', () => ({
     return instance;
   }),
   VisualizationProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-  VisualizationSurface: () => <div data-testid="tree-topology-surface" />,
+  VisualizationSurface: ({ state }: { state?: { selectedIds?: string[] } }) => (
+    <div
+      data-testid="tree-topology-surface"
+      data-selected-ids={(state?.selectedIds ?? []).join(',')}
+    />
+  ),
 }));
 
 jest.mock('~/app/components/run-results/PipelinePreparingState', () => ({
@@ -205,5 +210,14 @@ describe('TreeTopology', () => {
       expect(visualizationInstances[0].fromModel).toHaveBeenCalled();
     });
     expect(onSelectionChange).not.toHaveBeenCalled();
+  });
+
+  it('should pass normalized selected ids to the visualization surface', async () => {
+    render(<TreeTopology topology={topology} selectedIds={['tree-graph', 'node-a']} />);
+
+    expect(await screen.findByTestId('tree-topology-surface')).toHaveAttribute(
+      'data-selected-ids',
+      'node-a',
+    );
   });
 });

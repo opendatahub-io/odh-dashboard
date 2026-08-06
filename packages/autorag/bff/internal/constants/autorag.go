@@ -1,13 +1,13 @@
 package constants
 
 const (
-	DefaultOptimizationMetric = "faithfulness"
-	DefaultPreset             = "speed"
-
 	MetricFaithfulness       = "faithfulness"
 	MetricAnswerCorrectness  = "answer_correctness"
 	MetricContextCorrectness = "context_correctness"
 	MetricOverallScore       = "overall_score"
+
+	DefaultOptimizationMetric = MetricOverallScore
+	DefaultPreset             = "speed"
 
 	MinRagPatterns = 4
 	MaxRagPatterns = 20

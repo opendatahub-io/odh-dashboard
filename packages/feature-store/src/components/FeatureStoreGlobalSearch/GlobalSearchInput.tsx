@@ -18,6 +18,7 @@ import {
   Tooltip,
 } from '@patternfly/react-core';
 import text from '@patternfly/react-styles/css/utilities/Text/text';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { useSearchState } from './hooks/useSearchState';
 import { useSearchHandlers, type ISearchItem } from './hooks/useSearchHandlers';
 import { useResponsiveSearch } from './hooks/useResponsiveSearch';
@@ -25,6 +26,10 @@ import LoadMoreFooter from './LoadMoreFooter';
 import { groupResultsByCategory } from './utils/searchUtils';
 import useFeatureStoreProjects from '../../apiHooks/useFeatureStoreProjects';
 import FeatureStoreLabels from '../FeatureStoreLabels';
+import {
+  FEATURE_STORE_EVENTS,
+  SearchPerformedProperties,
+} from '../../tracking/featureStoreTrackingConstants';
 
 const highlightText = (textContent: string, searchTerm: string): React.ReactNode => {
   if (!searchTerm.trim()) return textContent;
@@ -110,10 +115,23 @@ const GlobalSearchInput: React.FC<ISearchInputProps> = ({
     onSearchChange,
     onClear,
     onSelect,
+    pageType: isDetailsPage ? 'detail' : 'list',
   });
   const searchInputContainerRef = React.useRef<HTMLDivElement>(null);
   const tooltipTriggerRef = React.useRef<HTMLDivElement>(null);
   const [isTooltipVisible, setIsTooltipVisible] = React.useState(false);
+
+  const prevLoadingRef = React.useRef(isLoading);
+  React.useEffect(() => {
+    const query = searchState.searchValue.trim();
+    if (prevLoadingRef.current && !isLoading && query) {
+      fireMiscTrackingEvent(FEATURE_STORE_EVENTS.SEARCH_PERFORMED, {
+        resultCount: totalCount || searchResults.length,
+        pageType: isDetailsPage ? 'detail' : 'list',
+      } satisfies SearchPerformedProperties);
+    }
+    prevLoadingRef.current = isLoading;
+  }, [isLoading, totalCount, searchResults.length, isDetailsPage, searchState.searchValue]);
   const { searchInputStyle, searchMenuStyle } = useResponsiveSearch(
     searchState.isSmallScreen,
     searchInputContainerRef,

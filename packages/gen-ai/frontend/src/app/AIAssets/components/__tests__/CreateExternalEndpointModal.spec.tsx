@@ -44,11 +44,6 @@ describe('CreateExternalEndpointModal', () => {
       version: 'v1',
       usecase: 'llm',
       status: 'Running',
-      sa_token: {
-        name: '',
-        token_name: '',
-        token: '',
-      },
       model_source_type: 'custom_endpoint',
     });
 

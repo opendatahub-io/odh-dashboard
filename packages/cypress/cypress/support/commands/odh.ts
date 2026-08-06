@@ -40,23 +40,23 @@ import type {
   RegisteredModelList,
 } from '@odh-dashboard/internal/concepts/modelRegistry/types';
 import type {
+  ConfigMapKind,
   ConnectionTypeConfigMap,
   DashboardConfigKind,
   DataScienceClusterInitializationKindStatus,
   DataScienceClusterKindStatus,
+  NotebookKind,
+  RoleBindingKind,
   SecretKind,
   TemplateKind,
 } from '@odh-dashboard/k8s-core';
 import type { FeatureStoreKind } from '@odh-dashboard/feature-store/k8sTypes';
 import type {
-  ConfigMapKind,
   ConsoleLinkKind,
   ListConfigSecretsResponse,
   ModelRegistry,
   ModelRegistryKind,
-  NotebookKind,
   OdhQuickStart,
-  RoleBindingKind,
 } from '@odh-dashboard/internal/k8sTypes';
 import type { ServingRuntimeKind } from '@odh-dashboard/model-serving/shared';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
@@ -69,14 +69,14 @@ import type {
   ClusterSettingsType,
   DetectedAccelerators,
   ImageInfo,
-  IntegrationAppStatus,
   OdhApplication,
   OdhDocument,
-  PrometheusQueryRangeResponse,
   PrometheusQueryResponse,
   ResponseStatus,
   SubscriptionStatusData,
 } from '@odh-dashboard/internal/types';
+import type { PrometheusQueryRangeResponse } from '@odh-dashboard/ui-core/types/metrics';
+import type { IntegrationAppStatus } from '@odh-dashboard/plugin-core/integrations';
 import type {
   ArgoWorkflowPipelineVersion,
   ExperimentKF,
@@ -1226,6 +1226,10 @@ declare global {
         ((
           type: 'POST /maas/api/v1/new-policy',
           response: OdhResponse<{ data: MaaSAuthPolicy }>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /maas/api/v1/yaml',
+          response: OdhResponse<{ content: string }>,
         ) => Cypress.Chainable<null>) &
         ((
           type: 'GET /maas/api/v1/view-policy/:name',

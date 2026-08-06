@@ -1,6 +1,6 @@
 import { k8sGetResource } from '@openshift/dynamic-plugin-sdk-utils';
 import { applyK8sAPIOptions } from '@odh-dashboard/internal/api/apiMergeUtils';
-import { K8sAPIOptions } from '@odh-dashboard/internal/k8sTypes';
+import { K8sAPIOptions } from '@odh-dashboard/k8s-core';
 import { ClusterTrainingRuntimeModel } from '@odh-dashboard/internal/api/models/kubeflow';
 import { ClusterTrainingRuntimeKind } from '../k8sTypes';
 

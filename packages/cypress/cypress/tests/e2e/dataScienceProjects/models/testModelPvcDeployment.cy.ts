@@ -14,7 +14,8 @@ import {
   provisionProjectForModelServing,
   verifyS3CopyCompleted,
 } from '../../../../utils/oc_commands/modelServing';
-import { addUserToProject, deleteOpenShiftProject } from '../../../../utils/oc_commands/project';
+import { addUserToProject } from '../../../../utils/oc_commands/project';
+import { cleanupTestProject } from '../../../../utils/projectChecker';
 import { loadDSPFixture } from '../../../../utils/dataLoader';
 import { HTPASSWD_CLUSTER_ADMIN_USER, LDAP_CONTRIBUTOR_USER } from '../../../../utils/e2eUsers';
 import { retryableBefore } from '../../../../utils/retryableHooks';
@@ -23,10 +24,7 @@ import { generateTestUUID } from '../../../../utils/uuidGenerator';
 import type { DataScienceProjectData, PVCLoaderPodReplacements } from '../../../../types';
 import { clusterStorage, addClusterStorageModal } from '../../../../pages/clusterStorage';
 import { createS3LoaderPod } from '../../../../utils/oc_commands/pvcLoaderPod';
-import {
-  waitForPodCompletion,
-  ensureAdminOcSession,
-} from '../../../../utils/oc_commands/baseCommands';
+import { waitForPodCompletion } from '../../../../utils/oc_commands/baseCommands';
 import { skipSuiteIfBYOIDC, isBYOIDCCluster } from '../../../../utils/skipUtils';
 import { stubClipboard, verifyClipboardContent } from '../../../../utils/clipboardUtils';
 
@@ -81,10 +79,7 @@ describe('Verify a contributor can deploy a model from a PVC', () => {
       cy.log('Skipping cleanup - tests were skipped on BYOIDC cluster');
       return;
     }
-    // The test switches the oc session to a contributor user via visitWithLogin.
-    // Restore admin before cleanup so oc delete project has the required permissions.
-    ensureAdminOcSession();
-    deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
+    cleanupTestProject(projectName);
   });
   it(
     'Admin creates PVC with model, Contributor deploys from PVC and verifies deployment',

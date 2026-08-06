@@ -1,0 +1,16 @@
+# Kueue workbench lifecycle test data
+# Uses zero quota to force Queued state, then updates quota to allow admission
+projectName: "kueue-lifecycle-project"
+flavorName: "lifecycle-flavor"
+clusterQueueName: "lifecycle-cluster-queue"
+localQueueName: "lifecycle-queue"
+hardwareProfileName: "kueue-lifecycle-hp"
+hardwareProfileDisplayName: "Kueue Lifecycle Profile"
+cpuQuota: 0
+memoryQuota: 0
+updatedCpuQuota: 4
+updatedMemoryQuota: 8
+sectionTab: "workbenches"
+notebookImage: "code-server-notebook"
+waitingForQuotaMessage: "Waiting for quota"
+queuePositionMarker: "(position"

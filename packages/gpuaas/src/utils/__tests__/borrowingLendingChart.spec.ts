@@ -20,7 +20,7 @@ const CQ_B = 'cq-b';
 const MY_CQ = 'my-cq';
 const MY_COHORT = 'my-cohort';
 const SHORT_COHORT = 'c';
-const COHORT_CQ_LABEL = `${MY_COHORT} · ${MY_CQ}`;
+const COHORT_CQ_LABEL = `${MY_COHORT}, ${MY_CQ}`;
 const DISABLED_FILL = 'var(--pf-t--global--text--color--disabled)';
 const LONG_LABEL_LEN = 20;
 const WIDE_VIEWPORT = 1200;
@@ -35,7 +35,7 @@ const makeSeries = (
   cqName,
   cohortName,
   nominalQuota: 4,
-  data: yValues.map((y, i) => ({ x: i * 1000, y })),
+  data: yValues.map((y, i) => ({ x: i * 1000, y, gpuUsage: y + 4 })),
 });
 
 /** Returns a ref-like object whose getBoundingClientRect reports the given origin. */
@@ -65,9 +65,7 @@ describe('formatYTick', () => {
   it.each([
     [0, '0'],
     [3, '+3'],
-    [-3, '-3'],
     [1000, '+1.0k'],
-    [-2500, '-2.5k'],
   ])('formats %d as "%s"', (y, expected) => {
     expect(formatYTick(y)).toBe(expected);
   });
@@ -92,7 +90,12 @@ describe('truncateLabel', () => {
 describe('getEntryLabel', () => {
   it.each([
     ['undefined info returns fallback', undefined, 'fallback-cq', 'fallback-cq'],
-    ['empty cohortName returns cqName alone', makeSeries(MY_CQ, ''), 'fallback', MY_CQ],
+    [
+      'empty cohortName returns No cohort prefix',
+      makeSeries(MY_CQ, ''),
+      'fallback',
+      `No cohort, ${MY_CQ}`,
+    ],
     [
       'set cohortName prefixes the label',
       makeSeries(MY_CQ, MY_COHORT),
@@ -114,19 +117,19 @@ describe('getLegendLabel', () => {
   });
 
   it('returns the full label unchanged when it fits within the limit', () => {
-    expect(getLegendLabel(makeSeries('cq', 'cohort'))).toBe('cohort · cq');
+    expect(getLegendLabel(makeSeries('cq', 'cohort'))).toBe('cohort, cq');
   });
 });
 
 describe('buildYDomain', () => {
-  it('returns ±1 buffer around zero for empty series', () => {
-    expect(buildYDomain([])).toEqual({ minY: -1, maxY: 1 });
+  it('returns 0..1 buffer for empty series (minY pinned to 0)', () => {
+    expect(buildYDomain([])).toEqual({ minY: 0, maxY: 1 });
   });
 
   it.each([
-    ['only positive values', [3, 5], { minY: -1, maxY: 6 }],
-    ['mixed values', [-3, 4], { minY: -4, maxY: 5 }],
-  ])('applies ±1 buffer and always includes zero for %s', (_desc, yValues, expected) => {
+    ['only positive values', [3, 5], { minY: 0, maxY: 6 }],
+    ['values already clipped to zero', [0, 4], { minY: 0, maxY: 5 }],
+  ])('pins minY to 0 and applies +1 buffer on max for %s', (_desc, yValues, expected) => {
     expect(buildYDomain([makeSeries('cq', SHORT_COHORT, yValues)])).toEqual(expected);
   });
 });

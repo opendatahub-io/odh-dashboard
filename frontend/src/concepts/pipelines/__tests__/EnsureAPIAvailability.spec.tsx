@@ -2,10 +2,9 @@ import * as React from 'react';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { MemoryRouter } from 'react-router-dom';
-import type { ProjectKind } from '@odh-dashboard/k8s-core';
+import { K8sStatusError, type ProjectKind } from '@odh-dashboard/k8s-core';
 import EnsureAPIAvailability from '#~/concepts/pipelines/EnsureAPIAvailability';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
-import { K8sStatusError } from '#~/api/errorUtils';
 // Mock the usePipelinesAPI hook
 jest.mock('#~/concepts/pipelines/context', () => ({
   usePipelinesAPI: jest.fn(),
@@ -55,6 +54,7 @@ describe('EnsureAPIAvailability', () => {
       refreshState: jest.fn(),
       managedPipelines: undefined,
       mlflowIntegrationMode: undefined,
+      mlflowInjectUserEnvVars: false,
       apiAvailable: false,
       api: {} as never,
       pipelineLoadError: forbiddenError,
@@ -96,6 +96,7 @@ describe('EnsureAPIAvailability', () => {
       refreshState: jest.fn(),
       managedPipelines: undefined,
       mlflowIntegrationMode: undefined,
+      mlflowInjectUserEnvVars: false,
       apiAvailable: false,
       api: {} as never,
       pipelineLoadError: genericError,
@@ -133,6 +134,7 @@ describe('EnsureAPIAvailability', () => {
       refreshState: jest.fn(),
       managedPipelines: undefined,
       mlflowIntegrationMode: undefined,
+      mlflowInjectUserEnvVars: false,
       apiAvailable: true,
       api: {} as never,
       pipelineLoadError: undefined,

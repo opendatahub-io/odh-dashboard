@@ -1,5 +1,5 @@
+import { TrackingOutcome } from '@odh-dashboard/ui-core';
 import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
-import { TrackingOutcome } from '#~/concepts/analyticsTracking/trackingProperties';
 import { ConnectionTestStatus, ConnectionTestResult } from '#~/concepts/connectionTypes/types';
 
 type ErrorType = 'authentication' | 'timeout' | 'network_unreachable' | 'unknown';

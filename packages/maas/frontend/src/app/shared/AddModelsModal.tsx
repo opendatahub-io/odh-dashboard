@@ -291,7 +291,7 @@ const AddModelsModal: React.FC<AddModelsModalProps> = ({
                           size={selected ? 'sm' : 'default'}
                           isDanger={selected}
                           onClick={() => handleToggleModel(ref)}
-                          data-testid={`toggle-model-${ref.name}`}
+                          data-testid={`toggle-model-${ref.name}-${ref.namespace}`}
                         >
                           {selected ? 'Remove model' : 'Add model'}
                         </Button>

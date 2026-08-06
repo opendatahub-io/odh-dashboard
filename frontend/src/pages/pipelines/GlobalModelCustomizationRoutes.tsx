@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Navigate, Route } from 'react-router-dom';
-import ProjectsRoutes from '#~/concepts/projects/ProjectsRoutes';
+import ProjectsRoutes from '@odh-dashboard/ui-core/components/ProjectsRoutes';
 import { getModelCustomizationPath } from '#~/routes/pipelines/modelCustomization';
 import ModelCustomization from '#~/pages/pipelines/global/modelCustomization/landingPage/ModelCustomization';
 import ModelCustomizationForm from './global/modelCustomization/ModelCustomizationForm';

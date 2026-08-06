@@ -1,0 +1,13 @@
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: oci-v1
+  labels:
+    opendatahub.io/connection-type: 'true'
+    opendatahub.io/dashboard: 'true'
+  annotations:
+    openshift.io/description: 'Connect to an OCI-compliant container registry, enabling integration with containerized applications and services. Use this connection type to pull and manage container images and artifacts that adhere to the Open Container Initiative (OCI) standards, ensuring compatibility with OCI-compliant tools and workflows.'
+    openshift.io/display-name: OCI compliant registry - v1
+data:
+  category: '["Container registry"]'
+  fields: '[{"type":"dropdown","name":"Access type","description":"How this connection authenticates with the external resource. Options depend on the connection type you selected.","envVar":"ACCESS_TYPE","properties":{"variant":"multi","items":[{"label":"Push secret","value":"Push"},{"label":"Pull secret","value":"Pull"}]}},{"type":"file","name":"Secret details","description":"The secret file used to authenticate with your container registry. This file is stored as the .dockerconfigjson environment variable.","envVar":".dockerconfigjson","properties":{"deferInput":true,"extensions":[".dockerconfigjson",".json"],"helperText":"Secret details are visible to users with access to this project."}},{"type":"short-text","name":"Registry host","description":"The URL of the registry endpoint. This is where the system will send requests to verify and use your connection.","envVar":"OCI_HOST","properties":{}}]'

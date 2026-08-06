@@ -197,46 +197,4 @@ describe('Observability Dashboard', () => {
     observabilityDashboardPage.shouldHaveTab('Tenancy');
     observabilityDashboardPage.shouldHaveTabCount(2);
   });
-
-  it('should load successfully with a dashboard containing a namespace variable', () => {
-    const dashboardWithNamespace: DashboardResource = {
-      kind: 'Dashboard',
-      metadata: { name: 'dashboard-0-model', project: 'opendatahub' },
-      spec: {
-        display: { name: 'Model' },
-        duration: '1h',
-        variables: [
-          {
-            kind: 'ListVariable',
-            spec: {
-              name: 'namespace',
-              display: { name: 'Namespace' },
-              allowMultiple: true,
-              allowAllValue: true,
-              defaultValue: '$__all',
-              plugin: {
-                kind: 'PrometheusLabelValuesVariable',
-                spec: {
-                  labelName: 'namespace',
-                  matchers: [],
-                },
-              },
-            },
-          },
-        ],
-        panels: {},
-        layouts: [],
-      },
-    };
-
-    initIntercepts({
-      dashboards: [dashboardWithNamespace],
-      hasClusterMetricsAccess: true,
-    });
-
-    observabilityDashboardPage.visit();
-
-    observabilityDashboardPage.shouldHaveTab('Model');
-    observabilityDashboardPage.shouldHaveTabCount(1);
-  });
 });

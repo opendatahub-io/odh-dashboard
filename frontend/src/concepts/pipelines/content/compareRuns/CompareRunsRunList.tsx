@@ -26,7 +26,11 @@ const CompareRunsRunList: React.FC = () => {
   const { experiment } = React.useContext(ExperimentContext);
   const { available: isMlflowAvailable } = useIsMlflowPipelinesAvailable();
   const { runs, loaded } = useCompareRuns();
-  const { data: mlflowExperiments, loaded: mlflowExperimentsLoaded } = useMlflowExperiments({
+  const {
+    data: mlflowExperiments,
+    loaded: mlflowExperimentsLoaded,
+    error: mlflowExperimentsError,
+  } = useMlflowExperiments({
     workspace: isMlflowAvailable ? namespace : '',
   });
   const [isExpanded, setExpanded] = React.useState(true);
@@ -135,6 +139,7 @@ const CompareRunsRunList: React.FC = () => {
               isAvailable: isMlflowAvailable,
               experiments: mlflowExperiments,
               loaded: mlflowExperimentsLoaded,
+              error: mlflowExperimentsError,
             }}
             hasRowActions={false}
             onRunGroupClick={handleRunGroupClick}

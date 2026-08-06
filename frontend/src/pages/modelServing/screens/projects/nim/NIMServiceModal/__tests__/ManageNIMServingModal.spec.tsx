@@ -36,6 +36,9 @@ jest.mock('@odh-dashboard/plugin-core/areas', () => ({
 jest.mock('#~/api', () => ({
   getSecret: jest.fn(),
   updatePvc: jest.fn(),
+}));
+
+jest.mock('@odh-dashboard/plugin-core/host-api', () => ({
   useAccessReview: jest.fn(() => [true]),
 }));
 
@@ -148,7 +151,7 @@ jest.mock('../../../ServingRuntimeModal/AuthServingRuntimeSection', () => ({
   default: jest.fn(() => <div data-testid="auth-serving-runtime-section">Auth Section</div>),
 }));
 
-jest.mock('#~/concepts/dashboard/DashboardModalFooter', () => ({
+jest.mock('@odh-dashboard/ui-core/components/DashboardModalFooter', () => ({
   __esModule: true,
   default: jest.fn(() => <div data-testid="modal-footer">Modal Footer</div>),
 }));

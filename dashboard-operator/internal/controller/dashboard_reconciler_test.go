@@ -10,7 +10,11 @@ import (
 	routev1 "github.com/openshift/api/route/v1"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	networkingv1 "k8s.io/api/networking/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -64,9 +68,9 @@ data:
 	require.NoError(t, os.WriteFile(filepath.Join(overlay, "configmap.yaml"), []byte(configmap), 0644))
 	require.NoError(t, os.WriteFile(filepath.Join(overlay, "params.env"), []byte(""), 0644))
 
-	modArch := filepath.Join(base, "modular-architecture")
-	require.NoError(t, os.MkdirAll(modArch, 0755))
-	require.NoError(t, os.WriteFile(filepath.Join(modArch, "params.env"), []byte(""), 0644))
+	sidecar := filepath.Join(base, "sidecar")
+	require.NoError(t, os.MkdirAll(sidecar, 0755))
+	require.NoError(t, os.WriteFile(filepath.Join(sidecar, "params.env"), []byte(""), 0644))
 
 	return base
 }
@@ -441,6 +445,65 @@ func TestReconcile_Deletion_WithCrossNamespaceResources(t *testing.T) {
 	assert.Empty(t, cms.Items, "cross-namespace configmaps should be deleted")
 }
 
+func TestReconcile_Deletion_CleansRayGatewayRBAC(t *testing.T) {
+	s := testScheme(t)
+
+	const gatewayNS = "openshift-ingress"
+	const gatewayRBACName = "fetch-ray-data-science-gateway"
+
+	dashboard := &v1alpha1.Dashboard{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:       v1alpha1.DashboardInstanceName,
+			Finalizers: []string{"components.platform.opendatahub.io/cleanup"},
+			DeletionTimestamp: &metav1.Time{
+				Time: time.Now(),
+			},
+		},
+		Spec: v1alpha1.DashboardSpec{},
+	}
+
+	gatewayRole := &rbacv1.Role{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      gatewayRBACName,
+			Namespace: gatewayNS,
+		},
+	}
+	gatewayRoleBinding := &rbacv1.RoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      gatewayRBACName,
+			Namespace: gatewayNS,
+		},
+	}
+
+	cli := fake.NewClientBuilder().
+		WithScheme(s).
+		WithObjects(dashboard, gatewayRole, gatewayRoleBinding).
+		WithStatusSubresource(dashboard).
+		Build()
+
+	r := &ctrlpkg.DashboardReconciler{
+		Client:                cli,
+		Scheme:                s,
+		ManifestsBasePath:     t.TempDir(),
+		Platform:              cluster.OpenDataHub,
+		Namespace:             testNamespace,
+		ApplicationsNamespace: testNamespace,
+	}
+
+	result, err := r.Reconcile(context.Background(), ctrl.Request{
+		NamespacedName: types.NamespacedName{Name: v1alpha1.DashboardInstanceName},
+	})
+
+	require.NoError(t, err)
+	assert.Equal(t, ctrl.Result{}, result)
+
+	err = cli.Get(context.Background(), types.NamespacedName{Name: gatewayRBACName, Namespace: gatewayNS}, &rbacv1.Role{})
+	assert.True(t, k8serrors.IsNotFound(err), "gateway Role should be deleted")
+
+	err = cli.Get(context.Background(), types.NamespacedName{Name: gatewayRBACName, Namespace: gatewayNS}, &rbacv1.RoleBinding{})
+	assert.True(t, k8serrors.IsNotFound(err), "gateway RoleBinding should be deleted")
+}
+
 func TestReconcile_Deletion_SameNamespaceObservability(t *testing.T) {
 	s := testScheme(t)
 
@@ -746,9 +809,9 @@ data:
 	require.NoError(t, os.WriteFile(filepath.Join(overlay, "configmap.yaml"), []byte(configmap), 0644))
 	require.NoError(t, os.WriteFile(filepath.Join(overlay, "params.env"), []byte(""), 0644))
 
-	modArch := filepath.Join(base, "modular-architecture")
-	require.NoError(t, os.MkdirAll(modArch, 0755))
-	require.NoError(t, os.WriteFile(filepath.Join(modArch, "params.env"), []byte(""), 0644))
+	sidecar := filepath.Join(base, "sidecar")
+	require.NoError(t, os.MkdirAll(sidecar, 0755))
+	require.NoError(t, os.WriteFile(filepath.Join(sidecar, "params.env"), []byte(""), 0644))
 
 	r := &ctrlpkg.DashboardReconciler{
 		Client:                cli,
@@ -866,6 +929,263 @@ func TestReconcile_PlatformVersionHandshake(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestReconcile_Removed_PreservesOperatorResources(t *testing.T) {
+	tests := []struct {
+		name        string
+		deployName  string
+		operatorDep string
+		operatorSA  string
+		operatorCR  string
+		operatorCRB string
+		deletedDep  string
+		deletedSA   string
+		deletedCR   string
+		deletedCRB  string
+	}{
+		{
+			name:        "default (kustomize)",
+			deployName:  "dashboard-operator",
+			operatorDep: "dashboard-operator", operatorSA: "dashboard-operator",
+			operatorCR: "dashboard-operator-role", operatorCRB: "dashboard-operator-rolebinding",
+			deletedDep: "odh-dashboard", deletedSA: "odh-dashboard-sa",
+			deletedCR: "odh-dashboard-role", deletedCRB: "odh-dashboard-rolebinding",
+		},
+		{
+			name:        "helm prefix (production)",
+			deployName:  "odh-dashboard-operator",
+			operatorDep: "odh-dashboard-operator", operatorSA: "odh-dashboard-operator",
+			operatorCR: "odh-dashboard-operator-role", operatorCRB: "odh-dashboard-operator-rolebinding",
+			deletedDep: "odh-dashboard", deletedSA: "odh-dashboard-sa",
+			deletedCR: "odh-dashboard-role", deletedCRB: "odh-dashboard-rolebinding",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			restore := ctrlpkg.SetOperatorDeploymentName(tt.deployName)
+			t.Cleanup(restore)
+
+			runPreservesOperatorResourcesTest(t, tt.operatorDep, tt.operatorSA, tt.operatorCR, tt.operatorCRB,
+				tt.deletedDep, tt.deletedSA, tt.deletedCR, tt.deletedCRB)
+		})
+	}
+}
+
+func runPreservesOperatorResourcesTest(t *testing.T, opDep, opSA, opCR, opCRB, delDep, delSA, delCR, delCRB string) {
+	t.Helper()
+	s := testScheme(t)
+
+	dashboard := &v1alpha1.Dashboard{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:       v1alpha1.DashboardInstanceName,
+			Finalizers: []string{"components.platform.opendatahub.io/cleanup"},
+		},
+		Spec: v1alpha1.DashboardSpec{},
+	}
+	dashboard.Spec.ManagementState = "Removed"
+
+	dashboardLabel := map[string]string{labels.PlatformPartOf: "dashboard"}
+
+	operatorDep := &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      opDep,
+			Namespace: testNamespace,
+			Labels:    dashboardLabel,
+		},
+	}
+
+	dashboardDep := &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      delDep,
+			Namespace: testNamespace,
+			Labels:    dashboardLabel,
+		},
+	}
+
+	operatorSA := &corev1.ServiceAccount{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      opSA,
+			Namespace: testNamespace,
+			Labels:    dashboardLabel,
+		},
+	}
+
+	dashboardSA := &corev1.ServiceAccount{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      delSA,
+			Namespace: testNamespace,
+			Labels:    dashboardLabel,
+		},
+	}
+
+	operatorCR := &rbacv1.ClusterRole{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:   opCR,
+			Labels: dashboardLabel,
+		},
+	}
+
+	dashboardCR := &rbacv1.ClusterRole{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:   delCR,
+			Labels: dashboardLabel,
+		},
+	}
+
+	operatorCRB := &rbacv1.ClusterRoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:   opCRB,
+			Labels: dashboardLabel,
+		},
+	}
+
+	dashboardCRB := &rbacv1.ClusterRoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:   delCRB,
+			Labels: dashboardLabel,
+		},
+	}
+
+	cli := fake.NewClientBuilder().
+		WithScheme(s).
+		WithObjects(dashboard, operatorDep, dashboardDep, operatorSA, dashboardSA, operatorCR, dashboardCR, operatorCRB, dashboardCRB).
+		WithStatusSubresource(dashboard).
+		Build()
+
+	r := &ctrlpkg.DashboardReconciler{
+		Client:                cli,
+		Scheme:                s,
+		ManifestsBasePath:     t.TempDir(),
+		Platform:              cluster.OpenDataHub,
+		Namespace:             testNamespace,
+		ApplicationsNamespace: testNamespace,
+	}
+
+	result, err := r.Reconcile(context.Background(), ctrl.Request{
+		NamespacedName: types.NamespacedName{Name: v1alpha1.DashboardInstanceName},
+	})
+
+	require.NoError(t, err)
+	assert.Equal(t, ctrl.Result{}, result)
+
+	ctx := context.Background()
+
+	var deps appsv1.DeploymentList
+	require.NoError(t, cli.List(ctx, &deps, client.InNamespace(testNamespace)))
+	var depNames []string
+	for i := range deps.Items {
+		depNames = append(depNames, deps.Items[i].Name)
+	}
+	assert.Contains(t, depNames, opDep, "operator deployment must survive teardown")
+	assert.NotContains(t, depNames, delDep, "non-operator deployments must be deleted")
+
+	var sas corev1.ServiceAccountList
+	require.NoError(t, cli.List(ctx, &sas, client.InNamespace(testNamespace)))
+	var saNames []string
+	for i := range sas.Items {
+		saNames = append(saNames, sas.Items[i].Name)
+	}
+	assert.Contains(t, saNames, opSA, "operator SA must survive teardown")
+	assert.NotContains(t, saNames, delSA, "non-operator SAs must be deleted")
+
+	var crs rbacv1.ClusterRoleList
+	require.NoError(t, cli.List(ctx, &crs))
+	var crNames []string
+	for i := range crs.Items {
+		crNames = append(crNames, crs.Items[i].Name)
+	}
+	assert.Contains(t, crNames, opCR, "operator ClusterRole must survive teardown")
+	assert.NotContains(t, crNames, delCR, "non-operator ClusterRoles must be deleted")
+
+	var crbs rbacv1.ClusterRoleBindingList
+	require.NoError(t, cli.List(ctx, &crbs))
+	var crbNames []string
+	for i := range crbs.Items {
+		crbNames = append(crbNames, crbs.Items[i].Name)
+	}
+	assert.Contains(t, crbNames, opCRB, "operator ClusterRoleBinding must survive teardown")
+	assert.NotContains(t, crbNames, delCRB, "non-operator ClusterRoleBindings must be deleted")
+}
+
+func TestDeleteSidecarResources(t *testing.T) {
+	t.Run("deletes all sidecar-specific resources", func(t *testing.T) {
+		s := testScheme(t)
+		ctx := context.Background()
+
+		sidecarSA := &corev1.ServiceAccount{
+			ObjectMeta: metav1.ObjectMeta{Name: "odh-dashboard-modules", Namespace: testNamespace},
+		}
+		sidecarSecret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: "odh-dashboard-modules-token", Namespace: testNamespace},
+		}
+		sidecarNetpol := &networkingv1.NetworkPolicy{
+			ObjectMeta: metav1.ObjectMeta{Name: "odh-dashboard-allow-ports", Namespace: testNamespace},
+		}
+		sidecarCM := &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{Name: "sidecar-params", Namespace: testNamespace},
+		}
+		sidecarCR := &rbacv1.ClusterRole{
+			ObjectMeta: metav1.ObjectMeta{Name: "odh-dashboard-modules"},
+		}
+		sidecarCRB := &rbacv1.ClusterRoleBinding{
+			ObjectMeta: metav1.ObjectMeta{Name: "odh-dashboard-modules"},
+		}
+
+		unrelatedCM := &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{Name: "unrelated-config", Namespace: testNamespace},
+		}
+
+		cli := fake.NewClientBuilder().
+			WithScheme(s).
+			WithObjects(sidecarSA, sidecarSecret, sidecarNetpol, sidecarCM, sidecarCR, sidecarCRB, unrelatedCM).
+			Build()
+
+		r := &ctrlpkg.DashboardReconciler{
+			Client:                cli,
+			Scheme:                s,
+			ApplicationsNamespace: testNamespace,
+		}
+
+		err := r.DeleteSidecarResources(ctx)
+		require.NoError(t, err)
+
+		assert.True(t, k8sNotFound(t, cli, ctx, &corev1.ServiceAccount{}, testNamespace, "odh-dashboard-modules"))
+		assert.True(t, k8sNotFound(t, cli, ctx, &corev1.Secret{}, testNamespace, "odh-dashboard-modules-token"))
+		assert.True(t, k8sNotFound(t, cli, ctx, &networkingv1.NetworkPolicy{}, testNamespace, "odh-dashboard-allow-ports"))
+		assert.True(t, k8sNotFound(t, cli, ctx, &corev1.ConfigMap{}, testNamespace, "sidecar-params"))
+		assert.True(t, k8sNotFound(t, cli, ctx, &rbacv1.ClusterRole{}, "", "odh-dashboard-modules"))
+		assert.True(t, k8sNotFound(t, cli, ctx, &rbacv1.ClusterRoleBinding{}, "", "odh-dashboard-modules"))
+
+		assert.False(t, k8sNotFound(t, cli, ctx, &corev1.ConfigMap{}, testNamespace, "unrelated-config"),
+			"unrelated resources must not be deleted")
+	})
+
+	t.Run("succeeds when resources already absent", func(t *testing.T) {
+		s := testScheme(t)
+		cli := fake.NewClientBuilder().WithScheme(s).Build()
+
+		r := &ctrlpkg.DashboardReconciler{
+			Client:                cli,
+			Scheme:                s,
+			ApplicationsNamespace: testNamespace,
+		}
+
+		err := r.DeleteSidecarResources(context.Background())
+		require.NoError(t, err)
+	})
+}
+
+func k8sNotFound(t *testing.T, cli client.Client, ctx context.Context, obj client.Object, ns, name string) bool {
+	t.Helper()
+	key := types.NamespacedName{Namespace: ns, Name: name}
+	err := cli.Get(ctx, key, obj)
+	if err == nil {
+		return false
+	}
+	require.True(t, k8serrors.IsNotFound(err), "unexpected error fetching %s/%s: %v", ns, name, err)
+	return true
 }
 
 func boolPtr(b bool) *bool {

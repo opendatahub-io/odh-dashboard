@@ -15,8 +15,8 @@ import {
   getDescriptionFromK8sResource,
   getDisplayNameFromK8sResource,
 } from '@odh-dashboard/k8s-core';
+import UnspecifiedValue from '@odh-dashboard/ui-core/components/connectionTypes/UnspecifiedValue';
 import { ConnectionTypeConfigMapObj } from './types';
-import UnspecifiedValue from './fields/UnspecifiedValue';
 import CategoryLabel from './CategoryLabel';
 
 type Props = {

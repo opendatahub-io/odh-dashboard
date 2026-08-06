@@ -7,7 +7,7 @@ import {
   INFERENCE_SERVICE_NAME_REGEX,
   LimitNameResourceType,
 } from '@odh-dashboard/k8s-core';
-import { useAccessReview } from '@odh-dashboard/internal/api/index';
+import { useAccessReview } from '@odh-dashboard/plugin-core/host-api';
 import { useIsAreaAvailable, SupportedArea } from '@odh-dashboard/plugin-core/areas';
 import { accessReviewResource } from './steps/AdvancedOptionsStep';
 import { useModelFormatField } from './fields/ModelFormatField';
@@ -19,7 +19,6 @@ import { useNumReplicasField } from './fields/NumReplicasField';
 import { useRuntimeArgsField } from './fields/RuntimeArgsField';
 import { useEnvironmentVariablesField } from './fields/EnvironmentVariablesField';
 import { useModelAvailabilityFields } from './fields/ModelAvailabilityFields';
-import { type InitialWizardFormData, type WizardField, type WizardFormData } from './types';
 import { useCreateConnectionData } from './fields/CreateConnectionInputFields';
 import { useProjectSection } from './fields/ProjectSection';
 import { useDeploymentStrategyField } from './fields/DeploymentStrategyField';
@@ -30,6 +29,11 @@ import {
   type WizardFormAction,
 } from './useDeploymentWizardReducer';
 import type { ExternalDataMap } from './ExternalDataLoader';
+import {
+  type InitialWizardFormData,
+  type WizardField,
+  type WizardFormData,
+} from '../../shared/types/form-data';
 
 export type UseModelDeploymentWizardState = WizardFormData & {
   loaded: {

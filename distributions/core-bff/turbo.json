@@ -1,0 +1,22 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "extends": ["//"],
+  "tasks": {
+    "test:contract": {
+      "inputs": ["contract-tests/**", "bff/**"],
+      "outputs": ["contract-tests/contract-test-results/**"]
+    },
+    "cypress:server": {
+      "extends": false
+    },
+    "cypress:server:build": {
+      "extends": false
+    },
+    "cypress:server:build:coverage": {
+      "extends": false
+    },
+    "cypress:server:wait": {
+      "extends": false
+    }
+  }
+}

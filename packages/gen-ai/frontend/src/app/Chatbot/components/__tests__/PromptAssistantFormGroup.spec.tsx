@@ -48,6 +48,20 @@ jest.mock('~/app/components/SafeNavigationBlocker', () => ({
   default: () => null,
 }));
 
+jest.mock('~/app/Chatbot/components/PromptVersionSelector', () => ({
+  __esModule: true,
+  default: ({ currentVersion }: { currentVersion: number }) => (
+    <div data-testid="prompt-version-toggle">{`Version ${currentVersion}`}</div>
+  ),
+}));
+
+jest.mock('~/app/context/GenAiContext', () => {
+  const actualReact = jest.requireActual<typeof import('react')>('react');
+  return {
+    GenAiContext: actualReact.createContext({ namespace: { name: 'test-ns' } }),
+  };
+});
+
 const mockProjectPrompt: MLflowPromptVersion = {
   name: 'project-prompt',
   version: 1,
@@ -233,7 +247,7 @@ describe('PromptAssistantFormGroup', () => {
     });
 
     describe('Label positioning', () => {
-      it('should appear between prompt name and version label', () => {
+      it('should appear between prompt name and version selector', () => {
         const selectActivePrompt = jest.mocked(chatbotStore.selectActivePrompt);
         const selectDirtyPrompt = jest.mocked(chatbotStore.selectDirtyPrompt);
         selectActivePrompt.mockReturnValue(() => mockProjectPrompt);
@@ -243,14 +257,14 @@ describe('PromptAssistantFormGroup', () => {
 
         const promptName = screen.getByTestId('prompt-name-title');
         const scopeLabel = screen.getByTestId('prompt-scope-label');
-        const versionLabel = screen.getByTestId('prompt-version-label');
+        const versionToggle = screen.getByTestId('prompt-version-toggle');
 
         const flexContainer = promptName.parentElement;
         const children = Array.from(flexContainer?.children || []);
 
         const nameIndex = children.indexOf(promptName);
         const scopeIndex = children.indexOf(scopeLabel);
-        const versionIndex = children.indexOf(versionLabel);
+        const versionIndex = children.indexOf(versionToggle);
 
         expect(scopeIndex).toBeGreaterThan(nameIndex);
         expect(scopeIndex).toBeLessThan(versionIndex);

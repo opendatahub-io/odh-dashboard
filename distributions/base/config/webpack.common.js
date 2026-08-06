@@ -1,10 +1,10 @@
 const path = require('path');
+const webpack = require('webpack');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 
 const BASE_DIR = path.resolve(__dirname, '..');
 const BASE_SRC_DIR = path.resolve(BASE_DIR, 'src');
 const REPO_ROOT = path.resolve(BASE_DIR, '../..');
-const PLUGIN_CORE_DIR = path.resolve(REPO_ROOT, 'packages/plugin-core/src');
 const INTERNAL_DIR = path.resolve(REPO_ROOT, 'frontend/src');
 
 /**
@@ -43,8 +43,9 @@ module.exports = ({
           include: [
             normalizedDistDir,
             BASE_SRC_DIR,
-            PLUGIN_CORE_DIR,
             INTERNAL_DIR,
+            // Monorepo packages ship TS source with no precompile step — swc must transpile them when imported.
+            path.resolve(REPO_ROOT, 'packages'),
             ...normalizedIncludes,
           ],
           use: [{ loader: 'swc-loader' }],
@@ -65,7 +66,19 @@ module.exports = ({
         },
         {
           test: /\.svg$/,
-          include: (input) => input.indexOf('bgimages') > -1,
+          // SVGs under packages/*/images/ are used as <img src> — they need a
+          // URL (data URI), not raw markup. bgimages/ also needs data URIs.
+          // Base shell logos (distributions/base/src/images/) intentionally use
+          // raw-loader so ShellHeader can encodeURIComponent the markup itself.
+          include: (input) => {
+            if (input.indexOf('bgimages') > -1) {
+              return true;
+            }
+            const packagesDir = path.join(REPO_ROOT, 'packages');
+            return (
+              input.startsWith(packagesDir) && input.indexOf(`${path.sep}images${path.sep}`) > -1
+            );
+          },
           use: {
             loader: 'svg-url-loader',
             options: { limit: 10000 },
@@ -73,10 +86,23 @@ module.exports = ({
         },
         {
           test: /\.svg$/,
-          include: (input) =>
-            input.indexOf('bgimages') === -1 &&
-            input.indexOf('fonts') === -1 &&
-            input.indexOf('pficon') === -1,
+          include: (input) => {
+            if (
+              input.indexOf('bgimages') > -1 ||
+              input.indexOf('fonts') > -1 ||
+              input.indexOf('pficon') > -1
+            ) {
+              return false;
+            }
+            const packagesDir = path.join(REPO_ROOT, 'packages');
+            if (
+              input.startsWith(packagesDir) &&
+              input.indexOf(`${path.sep}images${path.sep}`) > -1
+            ) {
+              return false;
+            }
+            return true;
+          },
           use: { loader: 'raw-loader' },
         },
         {
@@ -112,6 +138,9 @@ module.exports = ({
       new HtmlWebpackPlugin({
         template: path.join(normalizedDistDir, 'index.html'),
         title,
+      }),
+      new webpack.DefinePlugin({
+        'process.env': '({})',
       }),
     ],
     resolve: {

@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Form, Radio, Modal, ModalBody, ModalHeader, ModalFooter } from '@patternfly/react-core';
 import FieldGroupHelpLabelIcon from '@odh-dashboard/ui-core/components/FieldGroupHelpLabelIcon';
-import DashboardModalFooter from '#~/concepts/dashboard/DashboardModalFooter';
+import DashboardModalFooter from '@odh-dashboard/ui-core/components/DashboardModalFooter';
 import TrustyDBSecretFields from '#~/concepts/trustyai/content/TrustyDBSecretFields';
 import useTrustyInstallModalData, {
   TrustyInstallModalFormType,
