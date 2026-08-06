@@ -187,6 +187,7 @@ const BenchmarkDrawerPanel: React.FC<BenchmarkDrawerPanelProps> = ({
               benchmark.providerAgent.recommended_when.length > 0 ? (
                 <InlineTooltip
                   text={benchmark.providerName}
+                  data-testid="benchmark-provider-tooltip"
                   tooltip={
                     <div className="evalhub-inline-tooltip__content">
                       <div className="evalhub-inline-tooltip__header">
@@ -208,10 +209,7 @@ const BenchmarkDrawerPanel: React.FC<BenchmarkDrawerPanelProps> = ({
 
           {benchmark.providerAgent?.target_type && (
             <StackItem>
-              <Content
-                component="p"
-                style={{ fontWeight: 'var(--pf-t--global--font--weight--body--bold)' }}
-              >
+              <Content component="p" className="pf-v6-u-font-weight-bold">
                 Target type
               </Content>
               <Content component="p">

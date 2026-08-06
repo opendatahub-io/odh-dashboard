@@ -90,6 +90,7 @@ const BenchmarkResultDetails: React.FC<BenchmarkResultDetailsProps> = ({
             benchmarkId={benchmarkId}
             benchmarkIndex={benchmarkIndex}
             job={job}
+            provider={provider}
           />
         </FlexItem>
       </Flex>

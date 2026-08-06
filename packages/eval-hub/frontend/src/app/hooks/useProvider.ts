@@ -5,13 +5,14 @@ import { useProviders } from '~/app/hooks/useProviders';
 type UseProviderResult = {
   provider: Provider | undefined;
   loaded: boolean;
+  loadError: Error | undefined;
 };
 
 export const useProvider = (providerId?: string): UseProviderResult => {
   const { namespace } = useParams<{ namespace: string }>();
-  const { providers, loaded } = useProviders(namespace ?? '');
+  const { providers, loaded, loadError } = useProviders(namespace ?? '');
 
   const provider = providerId ? providers.find((p) => p.resource.id === providerId) : undefined;
 
-  return { provider, loaded };
+  return { provider, loaded, loadError };
 };

@@ -4,13 +4,6 @@ import { MemoryRouter } from 'react-router-dom';
 import { mockEvaluationJob } from '~/__tests__/unit/testUtils/mockEvaluationData';
 import AboutBenchmarkResultPopover from '~/app/components/AboutBenchmarkResultPopover';
 import { Provider } from '~/app/types';
-import { useProvider } from '~/app/hooks/useProvider';
-
-jest.mock('~/app/hooks/useProvider', () => ({
-  useProvider: jest.fn(),
-}));
-
-const mockUseProvider = jest.mocked(useProvider);
 
 const mockProvider: Provider = {
   resource: { id: 'lm_evaluation_harness' },
@@ -32,10 +25,7 @@ const mockProvider: Provider = {
 };
 
 const renderPopover = (jobOverrides = {}, providerOverride?: Provider | null) => {
-  mockUseProvider.mockReturnValue({
-    provider: providerOverride === undefined ? mockProvider : (providerOverride ?? undefined),
-    loaded: true,
-  });
+  const provider = providerOverride === undefined ? mockProvider : (providerOverride ?? undefined);
 
   const job = mockEvaluationJob({
     score: 0.6,
@@ -58,7 +48,12 @@ const renderPopover = (jobOverrides = {}, providerOverride?: Provider | null) =>
 
   return render(
     <MemoryRouter initialEntries={['/evaluations/test-ns/jobs/eval-job-001/results']}>
-      <AboutBenchmarkResultPopover benchmarkId="default-benchmark" benchmarkIndex={0} job={job} />
+      <AboutBenchmarkResultPopover
+        benchmarkId="default-benchmark"
+        benchmarkIndex={0}
+        job={job}
+        provider={provider}
+      />
     </MemoryRouter>,
   );
 };
@@ -122,7 +117,6 @@ describe('AboutBenchmarkResultPopover', () => {
   });
 
   it('should display "Lower is better" for lower_is_better metrics', () => {
-    mockUseProvider.mockReturnValue({ provider: undefined, loaded: true });
     /* eslint-disable camelcase */
     const job = mockEvaluationJob({
       score: 0.3,
@@ -151,7 +145,6 @@ describe('AboutBenchmarkResultPopover', () => {
   });
 
   it('should render nothing when no primary metric is available', () => {
-    mockUseProvider.mockReturnValue({ provider: undefined, loaded: true });
     const job = mockEvaluationJob({ benchmarkId: 'no-metric-benchmark' });
     job.benchmarks = [{ id: 'no-metric-benchmark' }];
 
@@ -168,7 +161,6 @@ describe('AboutBenchmarkResultPopover', () => {
   });
 
   it('should format threshold > 1 without multiplying by 100', () => {
-    mockUseProvider.mockReturnValue({ provider: undefined, loaded: true });
     /* eslint-disable camelcase */
     const job = mockEvaluationJob({
       score: 0.8,
@@ -195,7 +187,6 @@ describe('AboutBenchmarkResultPopover', () => {
   });
 
   it('should not render score line when threshold is missing', () => {
-    mockUseProvider.mockReturnValue({ provider: undefined, loaded: true });
     /* eslint-disable camelcase */
     const job = mockEvaluationJob({
       score: 0.7,

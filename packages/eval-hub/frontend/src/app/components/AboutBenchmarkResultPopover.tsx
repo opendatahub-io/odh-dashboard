@@ -1,8 +1,7 @@
 import * as React from 'react';
 import { Button, Content, Popover } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
-import { EvaluationJob } from '~/app/types';
-import { useProvider } from '~/app/hooks/useProvider';
+import { EvaluationJob, Provider } from '~/app/types';
 import {
   formatBenchmarkScore,
   getBenchmarkDisplayName,
@@ -13,6 +12,7 @@ type AboutBenchmarkResultPopoverProps = {
   benchmarkId: string;
   benchmarkIndex: number;
   job: EvaluationJob;
+  provider?: Provider;
 };
 
 const formatThreshold = (threshold: number): string => {
@@ -24,6 +24,7 @@ const AboutBenchmarkResultPopover: React.FC<AboutBenchmarkResultPopoverProps> = 
   benchmarkId,
   benchmarkIndex,
   job,
+  provider,
 }) => {
   const result = job.results.benchmarks?.find(
     (b) => b.id === benchmarkId && (b.benchmark_index ?? 0) === benchmarkIndex,
@@ -31,9 +32,6 @@ const AboutBenchmarkResultPopover: React.FC<AboutBenchmarkResultPopoverProps> = 
   const benchmarkConfig = getJobBenchmarks(job).find(
     (b) => b.id === benchmarkId && (b.benchmark_index ?? 0) === benchmarkIndex,
   );
-
-  const providerId = benchmarkConfig?.provider_id ?? result?.provider_id;
-  const { provider } = useProvider(providerId);
 
   const metricKeys = result?.metrics ? Object.keys(result.metrics).toSorted() : [];
   const primaryMetricName =

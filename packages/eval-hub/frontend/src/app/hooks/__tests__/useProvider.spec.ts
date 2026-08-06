@@ -28,7 +28,11 @@ describe('useProvider', () => {
   it('should return undefined provider when providerId is not provided', () => {
     const renderResult = testHook(useProvider)(undefined);
 
-    expect(renderResult).hookToStrictEqual({ provider: undefined, loaded: true });
+    expect(renderResult).hookToStrictEqual({
+      provider: undefined,
+      loaded: true,
+      loadError: undefined,
+    });
     expect(renderResult).hookToHaveUpdateCount(1);
   });
 
@@ -38,7 +42,11 @@ describe('useProvider', () => {
 
     const renderResult = testHook(useProvider)('non-existent');
 
-    expect(renderResult).hookToStrictEqual({ provider: undefined, loaded: true });
+    expect(renderResult).hookToStrictEqual({
+      provider: undefined,
+      loaded: true,
+      loadError: undefined,
+    });
   });
 
   it('should return matching provider when providerId exists', () => {
@@ -51,7 +59,7 @@ describe('useProvider', () => {
 
     const renderResult = testHook(useProvider)('prov-1');
 
-    expect(renderResult).hookToStrictEqual({ provider, loaded: true });
+    expect(renderResult).hookToStrictEqual({ provider, loaded: true, loadError: undefined });
   });
 
   it('should pass namespace from URL params to useProviders', () => {
@@ -75,6 +83,23 @@ describe('useProvider', () => {
 
     const renderResult = testHook(useProvider)('prov-1');
 
-    expect(renderResult).hookToStrictEqual({ provider: undefined, loaded: false });
+    expect(renderResult).hookToStrictEqual({
+      provider: undefined,
+      loaded: false,
+      loadError: undefined,
+    });
+  });
+
+  it('should forward loadError from useProviders', () => {
+    const error = new Error('fetch failed');
+    mockUseProviders.mockReturnValue({ providers: [], loaded: false, loadError: error });
+
+    const renderResult = testHook(useProvider)('prov-1');
+
+    expect(renderResult).hookToStrictEqual({
+      provider: undefined,
+      loaded: false,
+      loadError: error,
+    });
   });
 });
