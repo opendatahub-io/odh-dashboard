@@ -12,6 +12,7 @@ import { PlusCircleIcon } from '@patternfly/react-icons';
 import { Link, useNavigate } from 'react-router-dom';
 import { Table, DashboardEmptyTableView } from '@odh-dashboard/ui-core';
 import { useAccessReview } from '@odh-dashboard/plugin-core/host-api';
+import { RoleModel } from '#~/api/models';
 import type { RoleRef } from '#~/concepts/permissions/types';
 import { usePermissionsContext } from '#~/concepts/permissions/PermissionsContext';
 import { fireLinkTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
@@ -45,8 +46,8 @@ const RolesTable: React.FC<RolesTableProps> = ({
   const [deleteRow, setDeleteRow] = React.useState<RoleListRow>();
 
   const [allowDelete, allowDeleteLoaded] = useAccessReview({
-    group: 'rbac.authorization.k8s.io',
-    resource: 'roles',
+    group: RoleModel.apiGroup,
+    resource: RoleModel.plural,
     namespace,
     verb: 'delete',
   });

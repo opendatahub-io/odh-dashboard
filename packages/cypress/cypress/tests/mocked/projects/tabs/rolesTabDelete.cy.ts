@@ -144,6 +144,9 @@ describe('Roles tab delete action', () => {
     cy.interceptK8s('DELETE', { model: RoleModel, name: ROLE_NAME, ns: NAMESPACE }, {}).as(
       'deleteRole',
     );
+    cy.interceptK8sList({ model: RoleModel, ns: NAMESPACE }, mockK8sResourceList([])).as(
+      'refreshRoles',
+    );
 
     projectRoles.getRow(ROLE_NAME).findKebabAction('Delete role').click();
     cy.findByTestId('delete-modal-input').type(ROLE_NAME);
@@ -151,6 +154,8 @@ describe('Roles tab delete action', () => {
 
     cy.wait('@deleteRole');
     cy.findByTestId('delete-role-modal').should('not.exist');
+    cy.wait('@refreshRoles');
+    projectRoles.getRow(ROLE_NAME).should('not.exist');
   });
 
   it('should close the modal when cancel is clicked', () => {
