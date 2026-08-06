@@ -66,11 +66,14 @@ jobs:
           if [ "$ECOSYSTEM" = "npm_and_yarn" ]; then
             for dep in $(echo "$DEP_NAMES" | tr ',' '\n' | sed 's/^ *//;s/ *$//'); do
               for lockfile in $(find . -name package-lock.json -not -path '*/node_modules/*' -not -path '*/upstream/*'); do
-                ver=$(jq -r --arg d "$dep" \
-                  'first(.packages | to_entries[] | select((.key | endswith("node_modules/" + $d)) and (.value.version != null)) | .value.version) // empty' \
-                  "$lockfile" 2>/dev/null || true)
-                if [ -n "$ver" ] && echo "$ver" | grep -q '^0\.'; then
-                  echo "Pre-1.0 package detected in group: $dep ($ver) in $lockfile"
+                is_pre1=$(jq --arg d "$dep" '
+                  [.packages | to_entries[]
+                   | select((.key | endswith("node_modules/" + $d)) and (.value.version != null))
+                   | .value.version]
+                  | any(startswith("0."))
+                ' "$lockfile" 2>/dev/null || echo "false")
+                if [ "$is_pre1" = "true" ]; then
+                  echo "Pre-1.0 package detected in group: $dep in $lockfile"
                   has_pre1=true
                   break 2
                 fi
