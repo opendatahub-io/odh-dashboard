@@ -2767,6 +2767,7 @@ components:
         - description
         - latest_version
         - creation_timestamp
+        - model_config
         - scope
       properties:
         name:
@@ -2852,6 +2853,7 @@ components:
       required:
         - name
         - version
+        - model_config
         - created_at
         - updated_at
       properties:

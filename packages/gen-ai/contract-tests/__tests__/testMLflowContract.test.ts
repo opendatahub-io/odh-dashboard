@@ -85,24 +85,28 @@ describe('MLflow Prompt Registry Contract Tests', () => {
   });
 
   describe('Model Config in Prompt Responses', () => {
-    it('should include model_config field in list prompts response', async () => {
-      const result = await apiClient.get('/gen-ai/api/v1/mlflow/prompts?namespace=default');
-      expect(result.success).toBe(true);
-
-      const prompts = result.response?.data?.data?.prompts ?? [];
-      expect(prompts.length).toBeGreaterThan(0);
-
-      for (const prompt of prompts) {
-        expect(prompt).toHaveProperty('model_config');
-      }
-    });
-
-    it('should include model_config field in load prompt response', async () => {
+    it('should validate null model_config against contract when no config tag is set', async () => {
       const result = await apiClient.get(
         `/gen-ai/api/v1/mlflow/prompts/${promptName}?namespace=default`,
       );
-      expect(result.success).toBe(true);
-      expect(result.response?.data?.data).toHaveProperty('model_config');
+      expect(result).toMatchContract(apiSchema, {
+        ref: '#/paths/~1gen-ai~1api~1v1~1mlflow~1prompts~1{name}/get/responses/200/content/application~1json/schema',
+        status: 200,
+      });
+      expect(result.response?.data?.data?.model_config).toBeNull();
+    });
+
+    it('should validate list prompts schema includes model_config field', async () => {
+      const result = await apiClient.get('/gen-ai/api/v1/mlflow/prompts?namespace=default');
+      expect(result).toMatchContract(apiSchema, {
+        ref: '#/paths/~1gen-ai~1api~1v1~1mlflow~1prompts/get/responses/200/content/application~1json/schema',
+        status: 200,
+      });
+      const prompts = result.response?.data?.data?.prompts ?? [];
+      expect(prompts.length).toBeGreaterThan(0);
+      for (const prompt of prompts) {
+        expect(prompt).toHaveProperty('model_config');
+      }
     });
   });
 
