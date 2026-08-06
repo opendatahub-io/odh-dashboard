@@ -4,14 +4,13 @@ import { MemoryRouter } from 'react-router-dom';
 import { mockEvaluationJob } from '~/__tests__/unit/testUtils/mockEvaluationData';
 import AboutBenchmarkResultPopover from '~/app/components/AboutBenchmarkResultPopover';
 import { Provider } from '~/app/types';
+import { useProvider } from '~/app/hooks/useProvider';
 
 jest.mock('~/app/hooks/useProvider', () => ({
   useProvider: jest.fn(),
 }));
 
-const { useProvider } = jest.requireMock<{
-  useProvider: jest.Mock;
-}>('~/app/hooks/useProvider');
+const mockUseProvider = jest.mocked(useProvider);
 
 const mockProvider: Provider = {
   resource: { id: 'lm_evaluation_harness' },
@@ -33,7 +32,7 @@ const mockProvider: Provider = {
 };
 
 const renderPopover = (jobOverrides = {}, providerOverride?: Provider | null) => {
-  useProvider.mockReturnValue({
+  mockUseProvider.mockReturnValue({
     provider: providerOverride === undefined ? mockProvider : (providerOverride ?? undefined),
     loaded: true,
   });
@@ -123,7 +122,7 @@ describe('AboutBenchmarkResultPopover', () => {
   });
 
   it('should display "Lower is better" for lower_is_better metrics', () => {
-    useProvider.mockReturnValue({ provider: undefined, loaded: true });
+    mockUseProvider.mockReturnValue({ provider: undefined, loaded: true });
     /* eslint-disable camelcase */
     const job = mockEvaluationJob({
       score: 0.3,
@@ -152,7 +151,7 @@ describe('AboutBenchmarkResultPopover', () => {
   });
 
   it('should render nothing when no primary metric is available', () => {
-    useProvider.mockReturnValue({ provider: undefined, loaded: true });
+    mockUseProvider.mockReturnValue({ provider: undefined, loaded: true });
     const job = mockEvaluationJob({ benchmarkId: 'no-metric-benchmark' });
     job.benchmarks = [{ id: 'no-metric-benchmark' }];
 
@@ -169,7 +168,7 @@ describe('AboutBenchmarkResultPopover', () => {
   });
 
   it('should format threshold > 1 without multiplying by 100', () => {
-    useProvider.mockReturnValue({ provider: undefined, loaded: true });
+    mockUseProvider.mockReturnValue({ provider: undefined, loaded: true });
     /* eslint-disable camelcase */
     const job = mockEvaluationJob({
       score: 0.8,
@@ -196,7 +195,7 @@ describe('AboutBenchmarkResultPopover', () => {
   });
 
   it('should not render score line when threshold is missing', () => {
-    useProvider.mockReturnValue({ provider: undefined, loaded: true });
+    mockUseProvider.mockReturnValue({ provider: undefined, loaded: true });
     /* eslint-disable camelcase */
     const job = mockEvaluationJob({
       score: 0.7,

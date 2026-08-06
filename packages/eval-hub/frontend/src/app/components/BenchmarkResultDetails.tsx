@@ -14,7 +14,6 @@ import { CheckCircleIcon, TimesCircleIcon } from '@patternfly/react-icons';
 import { EvaluationJob } from '~/app/types';
 import { useProvider } from '~/app/hooks/useProvider';
 import { getBenchmarkDisplayName, getJobBenchmarks } from '~/app/utilities/evaluationUtils';
-import { capitalizeFirst } from '~/app/components/benchmarkUtils';
 import AboutBenchmarkResultPopover from '~/app/components/AboutBenchmarkResultPopover';
 
 type BenchmarkResultDetailsProps = {
@@ -124,7 +123,7 @@ const BenchmarkResultDetails: React.FC<BenchmarkResultDetailsProps> = ({
           <DescriptionListGroup>
             <DescriptionListTerm>Related evaluations</DescriptionListTerm>
             <DescriptionListDescription data-testid="complementary-frameworks">
-              {complements.map((c) => capitalizeFirst(c)).join(', ')}
+              {complements.map((c) => getBenchmarkDisplayName(c)).join(', ')}
             </DescriptionListDescription>
           </DescriptionListGroup>
         ) : null}

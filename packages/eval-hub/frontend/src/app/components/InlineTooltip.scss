@@ -4,6 +4,12 @@
   color: inherit;
   text-decoration: underline dotted;
   cursor: default;
+
+  &:focus-visible {
+    outline: 2px solid var(--pf-t--global--border--color--clicked);
+    outline-offset: 1px;
+    border-radius: var(--pf-t--global--border--radius--tiny);
+  }
 }
 
 .evalhub-inline-tooltip__content {
