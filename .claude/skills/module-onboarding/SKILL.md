@@ -363,7 +363,6 @@ RELATED_IMAGE_ODH_MOD_ARCH_<UPPER_SNAKE>_IMAGE: ""
 ```
 
 Place it alphabetically among the existing `RELATED_IMAGE_ODH_MOD_ARCH_*` entries. The value is empty because the ODH Operator overrides it with digest-pinned references at install time; only non-empty values are injected as pod env vars by the Helm chart template.
-
 ## Phase 8: Report
 
 Summarize the completed onboarding:
