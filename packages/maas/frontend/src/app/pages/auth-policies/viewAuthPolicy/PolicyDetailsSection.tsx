@@ -42,7 +42,7 @@ const PolicyDetailsSection: React.FC<PolicyDetailsSectionProps> = ({ policy }) =
               statusMessage={policy.statusMessage}
               reason={policy.reason}
               status={policy.status}
-              type={policy.type}
+              conditionType={policy.conditionType}
               lastTransitionTime={policy.lastTransitionTime}
               resourceType={PhaseResourceType.AUTHPOLICY}
               resourceName={policy.displayName ?? policy.name}

@@ -33,8 +33,8 @@ func TestExtractReadyCondition(t *testing.T) {
 	if got.Status != "True" {
 		t.Fatalf("extractReadyCondition().Status = %q", got.Status)
 	}
-	if got.Type != "Ready" {
-		t.Fatalf("extractReadyCondition().Type = %q", got.Type)
+	if got.ConditionType != "Ready" {
+		t.Fatalf("extractReadyCondition().ConditionType = %q", got.ConditionType)
 	}
 	if got.LastTransitionTime != "2026-01-01T00:00:00Z" {
 		t.Fatalf("extractReadyCondition().LastTransitionTime = %q", got.LastTransitionTime)

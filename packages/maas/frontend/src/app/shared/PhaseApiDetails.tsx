@@ -12,7 +12,7 @@ type PhaseApiDetailsProps = {
   reason?: string;
   statusMessage?: string;
   status?: string;
-  type?: string;
+  conditionType?: string;
   lastTransitionTime?: string;
 };
 
@@ -20,7 +20,7 @@ const PhaseApiDetails: React.FC<PhaseApiDetailsProps> = ({
   reason,
   statusMessage,
   status,
-  type,
+  conditionType,
   lastTransitionTime,
 }) => {
   const [isExpanded, setIsExpanded] = React.useState(false);
@@ -34,7 +34,13 @@ const PhaseApiDetails: React.FC<PhaseApiDetailsProps> = ({
     setCopied(true);
   };
 
-  const json = convertStatusDetailsToJson(reason, statusMessage, status, type, lastTransitionTime);
+  const json = convertStatusDetailsToJson(
+    reason,
+    statusMessage,
+    status,
+    conditionType,
+    lastTransitionTime,
+  );
 
   const detailsActions = (
     <CodeBlockAction>

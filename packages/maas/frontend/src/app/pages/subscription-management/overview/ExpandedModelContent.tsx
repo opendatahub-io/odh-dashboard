@@ -58,7 +58,7 @@ type ExpandableItemProps = {
   resourceUrl?: string;
   returnTo: string;
   status?: string;
-  type?: string;
+  conditionType?: string;
   lastTransitionTime?: string;
 };
 
@@ -81,7 +81,7 @@ const ExpandableItem: React.FC<ExpandableItemProps> = ({
   resourceUrl,
   returnTo,
   status,
-  type,
+  conditionType,
   lastTransitionTime,
 }) => (
   <div
@@ -111,7 +111,7 @@ const ExpandableItem: React.FC<ExpandableItemProps> = ({
                   resourceType={resourceType}
                   statusMessage={statusMessage}
                   status={status}
-                  type={type}
+                  conditionType={conditionType}
                   lastTransitionTime={lastTransitionTime}
                   reason={reason}
                   resourceName={displayName ?? name}
@@ -261,7 +261,7 @@ const SubscriptionsSection: React.FC<SubscriptionsSectionProps> = ({
               statusMessage={sub.statusMessage}
               reason={sub.reason}
               status={sub.status}
-              type={sub.type}
+              conditionType={sub.conditionType}
               lastTransitionTime={sub.lastTransitionTime}
               resourceUrl={getSubscriptionViewUrl(sub.name)}
             >
@@ -348,7 +348,7 @@ const PoliciesSection: React.FC<PoliciesSectionProps> = ({
               statusMessage={policy.statusMessage}
               reason={policy.reason}
               status={policy.status}
-              type={policy.type}
+              conditionType={policy.conditionType}
               lastTransitionTime={policy.lastTransitionTime}
             >
               <GroupChips

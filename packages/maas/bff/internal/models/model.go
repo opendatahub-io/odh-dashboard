@@ -40,7 +40,7 @@ type ModelOverviewDetails struct {
 	Phase              string `json:"phase,omitempty"`
 	StatusMessage      string `json:"statusMessage,omitempty"`
 	Status             string `json:"status,omitempty"`
-	Type               string `json:"type,omitempty"`
+	ConditionType      string `json:"conditionType,omitempty"`
 	LastTransitionTime string `json:"lastTransitionTime,omitempty"`
 	Reason             string `json:"reason,omitempty"`
 }
@@ -52,7 +52,7 @@ type ModelOverviewSubscription struct {
 	Phase              string           `json:"phase,omitempty"`
 	StatusMessage      string           `json:"statusMessage,omitempty"`
 	Status             string           `json:"status,omitempty"`
-	Type               string           `json:"type,omitempty"`
+	ConditionType      string           `json:"conditionType,omitempty"`
 	LastTransitionTime string           `json:"lastTransitionTime,omitempty"`
 	Reason             string           `json:"reason,omitempty"`
 	Groups             []string         `json:"groups,omitempty"`
@@ -66,7 +66,7 @@ type ModelOverviewPolicy struct {
 	Phase              string   `json:"phase,omitempty"`
 	StatusMessage      string   `json:"statusMessage,omitempty"`
 	Status             string   `json:"status,omitempty"`
-	Type               string   `json:"type,omitempty"`
+	ConditionType      string   `json:"conditionType,omitempty"`
 	LastTransitionTime string   `json:"lastTransitionTime,omitempty"`
 	Reason             string   `json:"reason,omitempty"`
 	Groups             []string `json:"groups,omitempty"`

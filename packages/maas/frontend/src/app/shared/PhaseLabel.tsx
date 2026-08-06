@@ -23,7 +23,7 @@ type PhaseLabelProps = {
   returnTo?: string;
   hideSubtext?: boolean;
   status?: string;
-  type?: string;
+  conditionType?: string;
   lastTransitionTime?: string;
 };
 
@@ -39,7 +39,7 @@ const PhaseLabel: React.FC<PhaseLabelProps> = ({
   returnTo,
   hideSubtext = false,
   status,
-  type,
+  conditionType,
   lastTransitionTime,
 }) => {
   const [isModalOpen, setIsModalOpen] = React.useState(false);
@@ -91,7 +91,7 @@ const PhaseLabel: React.FC<PhaseLabelProps> = ({
           resourceUrl={resourceUrl ?? ''}
           returnTo={returnTo}
           status={status}
-          type={type}
+          conditionType={conditionType}
           lastTransitionTime={lastTransitionTime}
         />
       ) : null}

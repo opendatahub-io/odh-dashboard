@@ -38,7 +38,7 @@ type PhaseModalProps = {
   resourceUrl: string;
   returnTo?: string;
   status?: string;
-  type?: string;
+  conditionType?: string;
   lastTransitionTime?: string;
 };
 
@@ -77,7 +77,7 @@ const PhaseModal: React.FC<PhaseModalProps> = ({
   resourceUrl,
   returnTo,
   status,
-  type,
+  conditionType,
   lastTransitionTime,
 }) => (
   <Modal
@@ -96,7 +96,7 @@ const PhaseModal: React.FC<PhaseModalProps> = ({
           statusMessage,
           reason,
           status,
-          type,
+          conditionType,
           lastTransitionTime,
         )}
         data-testid="phase-modal-alert"

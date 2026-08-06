@@ -270,7 +270,7 @@ export const getModalAlertProps = (
   statusMessage?: string,
   reason?: string,
   status?: string,
-  type?: string,
+  conditionType?: string,
   lastTransitionTime?: string,
 ): AlertProps => {
   const phaseProps = getPhaseProps(phase);
@@ -298,7 +298,7 @@ export const getModalAlertProps = (
                 reason={reason}
                 statusMessage={statusMessage}
                 status={status}
-                type={type}
+                conditionType={conditionType}
                 lastTransitionTime={lastTransitionTime}
               />
             </StackItem>
@@ -313,10 +313,14 @@ export const convertStatusDetailsToJson = (
   reason?: string,
   statusMessage?: string,
   status?: string,
-  type?: string,
+  conditionType?: string,
   lastTransitionTime?: string,
 ): string =>
-  JSON.stringify({ type, status, reason, message: statusMessage, lastTransitionTime }, null, 2);
+  JSON.stringify(
+    { conditionType, status, reason, message: statusMessage, lastTransitionTime },
+    null,
+    2,
+  );
 
 const getModalTitleAndChildren = (
   phase: string,

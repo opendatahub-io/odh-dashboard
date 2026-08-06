@@ -6,7 +6,7 @@ import "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 type readyConditionFields struct {
 	Message            string
 	Reason             string
-	Type               string
+	ConditionType      string
 	Status             string
 	LastTransitionTime string
 }
@@ -27,7 +27,7 @@ func extractReadyCondition(content map[string]interface{}) readyConditionFields 
 		reason, _ := cMap["reason"].(string)
 		status, _ := cMap["status"].(string)
 		lastTransitionTime, _ := cMap["lastTransitionTime"].(string)
-		return readyConditionFields{Message: message, Reason: reason, Type: condType, Status: status, LastTransitionTime: lastTransitionTime}
+		return readyConditionFields{Message: message, Reason: reason, ConditionType: condType, Status: status, LastTransitionTime: lastTransitionTime}
 	}
 	return readyConditionFields{}
 }

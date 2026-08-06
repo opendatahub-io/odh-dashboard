@@ -84,7 +84,7 @@ type MaaSSubscription struct {
 	Phase              string                 `json:"phase,omitempty"`
 	StatusMessage      string                 `json:"statusMessage,omitempty"`
 	Status             string                 `json:"status,omitempty"`
-	Type               string                 `json:"type,omitempty"`
+	ConditionType      string                 `json:"conditionType,omitempty"`
 	LastTransitionTime string                 `json:"lastTransitionTime,omitempty"`
 	Reason             string                 `json:"reason,omitempty"`
 	Priority           int32                  `json:"priority"`
@@ -117,7 +117,7 @@ type MaaSAuthPolicy struct {
 	Phase              string         `json:"phase,omitempty"`
 	StatusMessage      string         `json:"statusMessage,omitempty"`
 	Status             string         `json:"status,omitempty"`
-	Type               string         `json:"type,omitempty"`
+	ConditionType      string         `json:"conditionType,omitempty"`
 	LastTransitionTime string         `json:"lastTransitionTime,omitempty"`
 	Reason             string         `json:"reason,omitempty"`
 	CreationTimestamp  *time.Time     `json:"creationTimestamp,omitempty"`
@@ -143,7 +143,7 @@ type MaaSModelRefSummary struct {
 	Phase              string         `json:"phase,omitempty"`
 	StatusMessage      string         `json:"statusMessage,omitempty"`
 	Status             string         `json:"status,omitempty"`
-	Type               string         `json:"type,omitempty"`
+	ConditionType      string         `json:"conditionType,omitempty"`
 	LastTransitionTime string         `json:"lastTransitionTime,omitempty"`
 	Reason             string         `json:"reason,omitempty"`
 	Endpoint           string         `json:"endpoint,omitempty"`

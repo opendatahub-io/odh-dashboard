@@ -6,7 +6,7 @@ export type MaaSSubscription = {
   phase?: string;
   statusMessage?: string;
   status?: string;
-  type?: string;
+  conditionType?: string;
   lastTransitionTime?: string;
   reason?: string;
   priority?: number;
@@ -77,7 +77,7 @@ export type MaaSModelRefSummary = {
   status?: string;
   reason?: string;
   statusMessage?: string;
-  type?: string;
+  conditionType?: string;
   lastTransitionTime?: string;
 };
 
@@ -125,7 +125,7 @@ export type MaaSAuthPolicy = {
   statusMessage?: string;
   reason?: string;
   status?: string;
-  type?: string;
+  conditionType?: string;
   lastTransitionTime?: string;
   creationTimestamp?: string;
   modelRefs: ModelRef[];
@@ -190,7 +190,7 @@ export type ModelOverviewSubscription = {
   statusMessage?: string;
   reason?: string;
   status?: string;
-  type?: string;
+  conditionType?: string;
   lastTransitionTime?: string;
   groups?: string[];
   tokenRateLimits?: TokenRateLimit[];
@@ -203,7 +203,7 @@ export type ModelOverviewPolicy = {
   statusMessage?: string;
   reason?: string;
   status?: string;
-  type?: string;
+  conditionType?: string;
   lastTransitionTime?: string;
   groups?: string[];
 };
@@ -215,7 +215,7 @@ export type ModelOverviewDetails = {
   statusMessage?: string;
   reason?: string;
   status?: string;
-  type?: string;
+  conditionType?: string;
   lastTransitionTime?: string;
 };
 

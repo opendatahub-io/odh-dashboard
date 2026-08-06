@@ -2333,7 +2333,7 @@ components:
           type: string
           description: Status from the Ready condition in status.conditions (e.g. True, False, Unknown)
           example: 'True'
-        type:
+        conditionType:
           type: string
           description: Condition type from the Ready condition in status.conditions
           example: Ready
@@ -2435,7 +2435,7 @@ components:
           type: string
           description: Status from the Ready condition in status.conditions (e.g. True, False, Unknown)
           example: 'True'
-        type:
+        conditionType:
           type: string
           description: Condition type from the Ready condition in status.conditions
           example: Ready
@@ -2523,7 +2523,7 @@ components:
           type: string
           description: Status from the Ready condition in status.conditions (e.g. True, False, Unknown)
           example: 'True'
-        type:
+        conditionType:
           type: string
           description: Condition type from the Ready condition in status.conditions
           example: Ready
