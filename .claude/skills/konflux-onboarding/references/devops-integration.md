@@ -29,7 +29,7 @@ The DevOps skill handles these items (roughly mapping to RHOAIENG-37060 subtasks
 |------|-------------|-----------------|
 | ODH upstream Dockerfile | `Dockerfile.workspace` or `<name>/Dockerfile` | RHOAIENG-37063 |
 | RHOAI downstream Dockerfile | `Dockerfile.konflux.<name>` with FIPS/labels | RHOAIENG-37063, 37068 |
-| Manifest overlays | `manifests/modules/<name>/` (Type A only) | RHOAIENG-37066 |
+| Standalone manifests | `manifests/modules/<name>/` (Type A only) | RHOAIENG-37066 |
 | OpenShift CI config | `openshift/release` repo configuration | RHOAIENG-37065 |
 | Operator integration | Dashboard-operator module registry + opendatahub-operator RELATED_IMAGE | RHOAIENG-37067 |
 
