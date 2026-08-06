@@ -1,18 +1,16 @@
-import {
-  mockDashboardConfig,
-  mockK8sResourceList,
-  mockStorageClassList,
-} from '@odh-dashboard/internal/__mocks__';
+import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
+import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
+import { mockStorageClassList } from '@odh-dashboard/internal/__mocks__';
 import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import { mockNotebookK8sResource } from '@odh-dashboard/internal/__mocks__/mockNotebookK8sResource';
 import { mockPVCK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockPVCK8sResource';
-import { mockPodK8sResource } from '@odh-dashboard/internal/__mocks__/mockPodK8sResource';
+import { mockPodK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockPodK8sResource';
 import { mockImageStreamK8sResource } from '@odh-dashboard/internal/__mocks__/mockImageStreamK8sResource';
-import { mockCustomSecretK8sResource } from '@odh-dashboard/internal/__mocks__/mockSecretK8sResource';
-import { mockConfigMap } from '@odh-dashboard/internal/__mocks__/mockConfigMap';
-import { mockRouteK8sResource } from '@odh-dashboard/internal/__mocks__/mockRouteK8sResource';
+import { mockCustomSecretK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockSecretK8sResource';
+import { mockConfigMap } from '@odh-dashboard/k8s-core/__mocks__/mockConfigMap';
+import { mockRouteK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockRouteK8sResource';
 import { mockGlobalScopedHardwareProfiles } from '@odh-dashboard/hardware-profiles/__mocks__/mockHardwareProfile';
-import { mockDscStatus } from '@odh-dashboard/internal/__mocks__/mockDscStatus';
+import { mockDscStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDscStatus';
 import {
   ConfigMapModel,
   ImageStreamModel,

@@ -1,8 +1,8 @@
 import {
   mockNimInferenceService,
   mockNimServingRuntime,
-} from '@odh-dashboard/internal/__mocks__/mockLegacyNimResource';
-import { mockK8sResourceList } from '@odh-dashboard/internal/__mocks__';
+} from '@odh-dashboard/model-serving/__mocks__/mockLegacyNimResource';
+import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
 import { initInterceptsToEnableNim } from '@odh-dashboard/cypress/cypress/utils/legacyNimUtils';
 import {
   InferenceServiceModel,

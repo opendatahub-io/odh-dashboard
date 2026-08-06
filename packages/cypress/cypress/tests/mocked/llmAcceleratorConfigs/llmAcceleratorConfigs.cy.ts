@@ -1,4 +1,4 @@
-import { mockDashboardConfig } from '@odh-dashboard/internal/__mocks__';
+import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
 import {
   llmAcceleratorConfigsIntercept,
   interceptLlmAcceleratorConfigPatch,
