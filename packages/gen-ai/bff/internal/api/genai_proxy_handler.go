@@ -9,6 +9,7 @@ import (
 	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
+	"github.com/opendatahub-io/gen-ai/internal/models"
 )
 
 // openAIModelItem is a single entry in the OpenAI GET /v1/models response.
@@ -87,7 +88,7 @@ func (app *App) GenAIProxyNSModelsHandler(w http.ResponseWriter, r *http.Request
 	// Convert to OpenAI format, filtering out stopped models
 	items := make([]openAIModelItem, 0, len(aaModels))
 	for _, m := range aaModels {
-		if m.Status == "Stop" {
+		if m.Status == models.ModelStatusStop {
 			continue
 		}
 
