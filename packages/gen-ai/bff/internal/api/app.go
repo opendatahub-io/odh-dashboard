@@ -528,6 +528,11 @@ func (app *App) Routes() http.Handler {
 	apiRouter.PUT(constants.AgentProfileIDPath, app.AttachNamespace(app.RequireAccessToService(app.UpdateAgentProfileHandler)))
 	apiRouter.DELETE(constants.AgentProfileIDPath, app.AttachNamespace(app.RequireAccessToService(app.DeleteAgentProfileHandler)))
 
+	// GenAI Proxy — OpenAI-compatible endpoints for OGX passthrough provider.
+	// No AttachNamespace/RequireAccessToService: namespace is in path, auth is optional
+	// (OGX background polling carries no auth header).
+	apiRouter.GET(constants.GenAIProxyNSModelsPath, app.AttachBFFMaaSClient(app.GenAIProxyNSModelsHandler))
+
 	// App Router
 	appMux := http.NewServeMux()
 
