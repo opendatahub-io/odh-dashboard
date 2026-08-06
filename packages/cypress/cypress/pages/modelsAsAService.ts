@@ -1427,7 +1427,47 @@ class SubscriptionsTab {
   }
 }
 
+class OverviewTableRow extends TableRow {
+  findModelName(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().find('[data-label="Model name"]').findByTestId('table-row-title');
+  }
+
+  findModelId(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().find('[data-label="Model name"]');
+  }
+
+  findModelDescription(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('table-row-title-description');
+  }
+
+  findModelProject(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().find('[data-label="Project"]');
+  }
+
+  findModelPhase(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().find('[data-label="Status"]');
+  }
+
+  findModelSubscriptions(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().find('[data-label="Subscriptions"]');
+  }
+
+  findModelAuthorizationPolicies(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().find('[data-label="Authorization policies"]');
+  }
+}
+
 class OverviewTabPage {
+  getRow(modelName: string, namespace: string): OverviewTableRow {
+    return new OverviewTableRow(() =>
+      this.findModelRows()
+        .filter(`:has([data-label="Project"]:contains("${namespace}"))`)
+        .contains('td[data-label="Model name"]', modelName)
+        .parents('tr')
+        .first(),
+    );
+  }
+
   findTable(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('overview-table');
   }

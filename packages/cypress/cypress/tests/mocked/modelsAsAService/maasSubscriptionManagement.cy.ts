@@ -95,6 +95,19 @@ describe('Subscription Management Page / Overview Tab', () => {
     overviewTabPage.findModelRows().should('have.length', 6);
   });
 
+  it('should display the overview table with correct page content', () => {
+    subscriptionManagementPage.visit('overview');
+    overviewTabPage.findTable().should('exist');
+    const overviewRow = overviewTabPage.getRow('Flan T5 Small', 'maas-models');
+    overviewRow.findModelName().should('contain.text', 'Flan T5 Small');
+    overviewRow.findModelId().should('contain.text', 'flan-t5-small');
+    overviewRow.findModelDescription().should('contain.text', 'A compact text-to-text model');
+    overviewRow.findModelProject().should('contain.text', 'maas-models');
+    overviewRow.findModelSubscriptions().should('contain.text', '4');
+    overviewRow.findModelPhase().should('contain.text', 'Ready');
+    overviewRow.findModelAuthorizationPolicies().should('contain.text', '2');
+  });
+
   it('should navigate between tabs and update the URL', () => {
     subscriptionManagementPage.visit();
     subscriptionManagementPage.findTitle().should('contain.text', 'MaaS governance');
