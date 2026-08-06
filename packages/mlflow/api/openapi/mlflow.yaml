@@ -1293,6 +1293,51 @@ components:
           type: string
           description: The Kubernetes namespace where the prompt resides.
           example: my-project
+    PromptModelConfig:
+      description: Model configuration associated with a prompt version via the _mlflow_prompt_model_config tag.
+      type: object
+      properties:
+        provider:
+          type: string
+          description: Model provider identifier.
+          example: openai
+        model_name:
+          type: string
+          description: Model name within the provider.
+          example: gpt-4
+        temperature:
+          type: number
+          nullable: true
+          description: Sampling temperature.
+        max_tokens:
+          type: integer
+          nullable: true
+          description: Maximum number of tokens to generate.
+        top_p:
+          type: number
+          nullable: true
+          description: Nucleus sampling parameter.
+        top_k:
+          type: integer
+          nullable: true
+          description: Top-k sampling parameter.
+        frequency_penalty:
+          type: number
+          nullable: true
+          description: Frequency penalty for token repetition.
+        presence_penalty:
+          type: number
+          nullable: true
+          description: Presence penalty for topic repetition.
+        stop_sequences:
+          type: array
+          items:
+            type: string
+          description: Sequences that stop generation.
+        extra_params:
+          type: object
+          additionalProperties: true
+          description: Additional provider-specific parameters.
     MLflowPrompt:
       description: A prompt from the MLflow Prompt Registry.
       type: object
@@ -1326,6 +1371,11 @@ components:
           type: string
           format: date-time
           description: When the prompt was first created.
+        model_config:
+          description: Model configuration from the _mlflow_prompt_model_config tag, or null if not set.
+          oneOf:
+            - $ref: "#/components/schemas/PromptModelConfig"
+            - type: "null"
         scope:
           $ref: "#/components/schemas/PromptScope"
     MLflowPromptsResponse:
@@ -1427,6 +1477,11 @@ components:
           additionalProperties:
             type: string
           description: Metadata tags.
+        model_config:
+          description: Model configuration from the _mlflow_prompt_model_config tag, or null if not set.
+          oneOf:
+            - $ref: "#/components/schemas/PromptModelConfig"
+            - type: "null"
         created_at:
           type: string
           format: date-time
