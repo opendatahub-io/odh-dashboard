@@ -11,7 +11,12 @@ import {
   LabelGroup,
 } from '@patternfly/react-core';
 import { FlatBenchmark } from '~/app/types';
-import { capitalizeFirst, getCategoryColor, VISIBLE_METRICS_COUNT } from './benchmarkUtils';
+import {
+  formatCategory,
+  getCategoryColor,
+  getMetricDisplayName,
+  VISIBLE_METRICS_COUNT,
+} from './benchmarkUtils';
 import './BenchmarkCard.scss';
 
 type BenchmarkCardProps = {
@@ -37,7 +42,7 @@ const BenchmarkCard: React.FC<BenchmarkCardProps> = ({
       {benchmark.category && (
         <CardHeader>
           <Label color={color} isCompact>
-            {capitalizeFirst(benchmark.category)}
+            {formatCategory(benchmark.category)}
           </Label>
         </CardHeader>
       )}
@@ -78,7 +83,7 @@ const BenchmarkCard: React.FC<BenchmarkCardProps> = ({
           <LabelGroup numLabels={VISIBLE_METRICS_COUNT} isCompact>
             {benchmark.metrics.map((metric) => (
               <Label key={metric} isCompact variant="outline">
-                {metric}
+                {getMetricDisplayName(metric)}
               </Label>
             ))}
           </LabelGroup>

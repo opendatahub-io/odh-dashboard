@@ -96,7 +96,6 @@ describe('Choose Benchmark Page', () => {
     chooseBenchmarkPage.visit(NAMESPACE);
     chooseBenchmarkPage.findBenchmarksFilterToolbar().should('exist');
 
-    chooseBenchmarkPage.selectFilterOption('Name');
     chooseBenchmarkPage.findNameFilterInput().type('Alpha');
 
     chooseBenchmarkPage.findBenchmarkCard('test-provider', 'bench-alpha').should('exist');
@@ -107,7 +106,6 @@ describe('Choose Benchmark Page', () => {
   it('should show empty state when filters match nothing', () => {
     chooseBenchmarkPage.visit(NAMESPACE);
 
-    chooseBenchmarkPage.selectFilterOption('Name');
     chooseBenchmarkPage.findNameFilterInput().type('nonexistent');
 
     chooseBenchmarkPage.findBenchmarksEmptyState().should('exist');

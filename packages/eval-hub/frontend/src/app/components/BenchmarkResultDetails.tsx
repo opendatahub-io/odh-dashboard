@@ -17,6 +17,7 @@ import {
   getBenchmarkDisplayName,
   getJobBenchmarks,
 } from '~/app/utilities/evaluationUtils';
+import { getMetricDisplayName } from './benchmarkUtils';
 
 type BenchmarkResultDetailsProps = {
   benchmarkId: string;
@@ -101,7 +102,9 @@ const BenchmarkResultDetails: React.FC<BenchmarkResultDetailsProps> = ({
       >
         <DescriptionListGroup>
           <DescriptionListTerm>Primary metric</DescriptionListTerm>
-          <DescriptionListDescription>{primaryMetricName}</DescriptionListDescription>
+          <DescriptionListDescription>
+            {primaryMetricName !== '-' ? getMetricDisplayName(primaryMetricName) : '-'}
+          </DescriptionListDescription>
         </DescriptionListGroup>
         {threshold != null && (
           <DescriptionListGroup>

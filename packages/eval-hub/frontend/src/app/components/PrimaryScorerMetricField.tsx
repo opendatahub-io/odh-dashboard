@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { FormGroup, MenuToggle, Select, SelectList, SelectOption } from '@patternfly/react-core';
 import FormGroupLabel from '~/app/components/FormGroupLabel';
+import { getMetricDisplayName } from './benchmarkUtils';
 
 type PrimaryScorerMetricFieldProps = {
   metrics: string[];
@@ -36,7 +37,7 @@ const PrimaryScorerMetricField: React.FC<PrimaryScorerMetricFieldProps> = ({
         isFullWidth
         data-testid={`${fieldId}-toggle`}
       >
-        {selected ?? 'Select a metric'}
+        {selected ? getMetricDisplayName(selected) : 'Select a metric'}
       </MenuToggle>
     ),
     [isOpen, selected, fieldId],
@@ -69,7 +70,7 @@ const PrimaryScorerMetricField: React.FC<PrimaryScorerMetricFieldProps> = ({
         <SelectList>
           {metrics.map((metric) => (
             <SelectOption key={metric} value={metric} isSelected={metric === selected}>
-              {metric}
+              {getMetricDisplayName(metric)}
             </SelectOption>
           ))}
         </SelectList>

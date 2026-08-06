@@ -11,15 +11,19 @@ import {
   CardHeader,
   CardTitle,
   Content,
+  Divider,
   Drawer,
   DrawerContent,
   DrawerContentBody,
   Gallery,
   Label,
+  MenuSearch,
+  MenuSearchInput,
   MenuToggle,
   MenuToggleElement,
   PageSection,
   Pagination,
+  SearchInput,
   Select,
   SelectList,
   SelectOption,
@@ -27,7 +31,6 @@ import {
   Toolbar,
   ToolbarContent,
   ToolbarItem,
-  SearchInput,
 } from '@patternfly/react-core';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ApplicationsPage } from '@odh-dashboard/ui-core';
@@ -38,7 +41,7 @@ import { Collection, ProviderBenchmark } from '~/app/types';
 import { evaluationCreateRoute, evaluationStartRoute, evaluationsBaseRoute } from '~/app/routes';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import CollectionDrawerPanel from '~/app/components/CollectionDrawerPanel';
-import { capitalizeFirst, getCategoryColor } from '~/app/components/benchmarkUtils';
+import { formatCategory, getCategoryColor } from '~/app/components/benchmarkUtils';
 
 const ChooseBenchmarkCollectionPage: React.FC = () => {
   const { namespace } = useParams<{ namespace: string }>();
@@ -47,6 +50,7 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
     undefined,
   );
   const [isCategoryOpen, setIsCategoryOpen] = React.useState(false);
+  const [categorySearch, setCategorySearch] = React.useState('');
 
   const {
     collections,
@@ -111,7 +115,7 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
       onClick={() => setIsCategoryOpen((prev) => !prev)}
       isExpanded={isCategoryOpen}
     >
-      {categoryFilter || 'Category'}
+      {categoryFilter ? formatCategory(categoryFilter) : 'Category'}
     </MenuToggle>
   );
 
@@ -178,17 +182,47 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
                       isOpen={isCategoryOpen}
                       selected={categoryFilter || undefined}
                       onSelect={handleCategorySelect}
-                      onOpenChange={setIsCategoryOpen}
+                      onOpenChange={(open) => {
+                        setIsCategoryOpen(open);
+                        if (!open) {
+                          setCategorySearch('');
+                        }
+                      }}
                       toggle={categoryToggle}
                       data-testid="collections-category-select"
                     >
+                      <MenuSearch>
+                        <MenuSearchInput>
+                          <SearchInput
+                            aria-label="Search categories"
+                            placeholder="Search categories"
+                            value={categorySearch}
+                            onChange={(_event, value) => setCategorySearch(value)}
+                            onClear={() => setCategorySearch('')}
+                          />
+                        </MenuSearchInput>
+                      </MenuSearch>
+                      <Divider />
                       <SelectList>
                         {categoryFilter && <SelectOption value="">All categories</SelectOption>}
-                        {availableCategories.map((cat) => (
-                          <SelectOption key={cat} value={cat}>
-                            {cat}
-                          </SelectOption>
-                        ))}
+                        {(() => {
+                          const filtered = availableCategories.filter((cat) => {
+                            const search = categorySearch.toLowerCase();
+                            return (
+                              cat.toLowerCase().includes(search) ||
+                              formatCategory(cat).toLowerCase().includes(search)
+                            );
+                          });
+                          return filtered.length > 0 ? (
+                            filtered.map((cat) => (
+                              <SelectOption key={cat} value={cat}>
+                                {formatCategory(cat)}
+                              </SelectOption>
+                            ))
+                          ) : (
+                            <SelectOption isDisabled>No results found</SelectOption>
+                          );
+                        })()}
                       </SelectList>
                     </Select>
                   </ToolbarItem>
@@ -240,7 +274,7 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
                         {collection.category && (
                           <CardHeader>
                             <Label color={getCategoryColor(collection.category)} isCompact>
-                              {capitalizeFirst(collection.category)}
+                              {formatCategory(collection.category)}
                             </Label>
                           </CardHeader>
                         )}

@@ -29,8 +29,16 @@ class ChooseBenchmarkPage {
     return cy.findByTestId('benchmarks-filter-toolbar');
   }
 
-  findFilterDropdownToggle() {
-    return cy.findByTestId('filter-toolbar-dropdown');
+  findCategoryFilter() {
+    return cy.findByTestId('benchmarks-category-filter');
+  }
+
+  findMetricsFilter() {
+    return cy.findByTestId('benchmarks-metrics-filter');
+  }
+
+  findNameFilterInput() {
+    return cy.findByTestId('benchmarks-name-filter');
   }
 
   findBenchmarksEmptyState() {
@@ -39,15 +47,6 @@ class ChooseBenchmarkPage {
 
   findClearFiltersButton() {
     return cy.findByTestId('benchmarks-clear-filters');
-  }
-
-  selectFilterOption(optionTestId: string) {
-    this.findFilterDropdownToggle().click();
-    cy.findByTestId(`filter-toolbar-option-${optionTestId}`).click();
-  }
-
-  findNameFilterInput() {
-    return cy.findByTestId('benchmarks-name-filter');
   }
 
   findNextPageButton() {

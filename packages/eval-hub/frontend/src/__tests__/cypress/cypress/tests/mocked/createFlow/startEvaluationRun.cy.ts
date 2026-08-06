@@ -257,15 +257,15 @@ describe('Start Evaluation Run - Benchmark Threshold & Primary Metric', () => {
     navigateToBenchmarkStart();
 
     startEvaluationRunPage.findPrimaryScorerMetricToggle().should('exist');
-    startEvaluationRunPage.findPrimaryScorerMetricToggle().should('contain.text', 'accuracy');
+    startEvaluationRunPage.findPrimaryScorerMetricToggle().should('contain.text', 'Accuracy');
   });
 
   it('should allow changing the primary scorer metric', () => {
     navigateToBenchmarkStart();
 
     startEvaluationRunPage.findPrimaryScorerMetricToggle().click();
-    cy.findByRole('option', { name: 'f1' }).click();
-    startEvaluationRunPage.findPrimaryScorerMetricToggle().should('contain.text', 'f1');
+    cy.findByRole('option', { name: 'F1' }).click();
+    startEvaluationRunPage.findPrimaryScorerMetricToggle().should('contain.text', 'F1');
   });
 
   it('should include pass_criteria in submission when threshold is set from metadata', () => {

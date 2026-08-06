@@ -15,7 +15,7 @@ import { ExternalLinkAltIcon } from '@patternfly/react-icons';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import { getBenchmarkDatasetUrl } from '~/app/utilities/benchmarkDatasetUrls';
-import { toSafeExternalUrl } from './benchmarkUtils';
+import { getMetricDisplayName, toSafeExternalUrl } from './benchmarkUtils';
 
 type BenchmarkDrawerTileContentProps = {
   name: string;
@@ -132,7 +132,7 @@ const BenchmarkDrawerTileContent: React.FC<BenchmarkDrawerTileContentProps> = ({
                   <LabelGroup numLabels={metrics.length} isCompact>
                     {metrics.map((metric) => (
                       <Label key={metric} isCompact variant="outline">
-                        {metric}
+                        {getMetricDisplayName(metric)}
                       </Label>
                     ))}
                   </LabelGroup>
