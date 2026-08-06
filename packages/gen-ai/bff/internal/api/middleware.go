@@ -116,7 +116,10 @@ func (app *App) InjectRequestIdentity(next http.Handler) http.Handler {
 			// The genai-proxy path allows unauthenticated access for OGX background
 			// model polling (refresh_models). If extraction fails on this path, proceed
 			// without identity — the handler returns an empty list as fallback.
-			if strings.HasPrefix(r.URL.Path, constants.PathPrefix+app.config.APIPathPrefix+"/genai-proxy/") {
+			// Match both path forms: with PathPrefix (/gen-ai/api/v1/...) and without (/api/v1/...).
+			proxyPath := app.config.APIPathPrefix + "/genai-proxy/"
+			if strings.HasPrefix(r.URL.Path, proxyPath) ||
+				strings.HasPrefix(r.URL.Path, constants.PathPrefix+proxyPath) {
 				next.ServeHTTP(w, r)
 				return
 			}
