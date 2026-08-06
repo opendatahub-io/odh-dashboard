@@ -230,8 +230,8 @@ const EvaluationResultsPage: React.FC = () => {
               </FlexItem>
               <FlexItem>
                 <LabelHelpPopover
-                  ariaLabel="About evaluation score"
-                  title="Evaluation score"
+                  ariaLabel="About result"
+                  title="Result"
                   content={
                     job.collection
                       ? 'Weighted average based on the primary metric score of the benchmark runs and the benchmark weights.'

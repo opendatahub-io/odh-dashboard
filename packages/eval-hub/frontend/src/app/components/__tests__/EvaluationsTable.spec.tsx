@@ -156,6 +156,9 @@ describe('EvaluationsTable', () => {
     fireEvent.click(screen.getByLabelText('Select Alpha Evaluation'));
     expect(compareButton).toHaveAttribute('aria-disabled', 'true');
 
+    fireEvent.click(compareButton);
+    expect(mockNavigate).not.toHaveBeenCalled();
+
     fireEvent.click(screen.getByLabelText('Select Gamma Evaluation'));
     expect(compareButton).not.toHaveAttribute('aria-disabled');
   });

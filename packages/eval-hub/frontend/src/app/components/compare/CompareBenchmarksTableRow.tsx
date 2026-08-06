@@ -106,7 +106,7 @@ const CompareBenchmarksTableRow: React.FC<CompareBenchmarksTableRowProps> = ({
             data-testid={`compare-run-checkbox-${job.resource.id}`}
           />
         </Td>
-        <Td dataLabel="Evaluation run">{evaluationRunLabel}</Td>
+        <Td dataLabel="Evaluation name">{evaluationRunLabel}</Td>
         <Td dataLabel="Evaluation">{evaluationLabel}</Td>
         <Td modifier="nowrap" dataLabel="Type">
           {getCompareRunType(job)}
@@ -143,7 +143,7 @@ const CompareBenchmarksTableRow: React.FC<CompareBenchmarksTableRowProps> = ({
                     data-testid={`compare-benchmark-checkbox-${selectionKey}`}
                   />
                 </Td>
-                <Td modifier="nowrap" dataLabel="Evaluation run">
+                <Td modifier="nowrap" dataLabel="Evaluation name">
                   {/* We do not want to display the evaluation run label for child rows */}
                   {/* <span className="pf-v6-u-pl-lg">{benchmarkLabel}</span> */}
                 </Td>

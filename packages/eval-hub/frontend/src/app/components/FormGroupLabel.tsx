@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Button, Content, Popover } from '@patternfly/react-core';
+import { Content, Popover } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 
 type FormGroupLabelProps = {
@@ -16,6 +16,8 @@ type FormGroupLabelProps = {
 // content, so when a block-level description is part of the label, the asterisk and
 // help icon drop below the description. This component places them inline before the
 // description, bypassing those FormGroup props.
+// The trigger uses a <span role="button"> instead of <Button> to avoid nesting a
+// labelable element inside the FormGroup's native <label>.
 const FormGroupLabel: React.FC<FormGroupLabelProps> = ({
   label,
   description,
@@ -33,14 +35,22 @@ const FormGroupLabel: React.FC<FormGroupLabelProps> = ({
       <>
         {' '}
         <Popover bodyContent={helpPopover.content}>
-          <Button
-            variant="plain"
-            isInline
+          <span
+            role="button"
+            tabIndex={0}
             aria-label={helpPopover.ariaLabel}
-            style={{ padding: 0, display: 'inline-flex', verticalAlign: 'middle' }}
+            style={{
+              paddingBottom: 0,
+              paddingTop: 0,
+              paddingLeft: 4,
+              paddingRight: 4,
+              display: 'inline-flex',
+              verticalAlign: 'middle',
+              cursor: 'pointer',
+            }}
           >
             <OutlinedQuestionCircleIcon />
-          </Button>
+          </span>
         </Popover>
       </>
     )}

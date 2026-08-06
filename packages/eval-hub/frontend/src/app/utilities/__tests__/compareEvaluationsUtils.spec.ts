@@ -194,6 +194,25 @@ describe('getCompareParentResultScore', () => {
   });
   /* eslint-enable camelcase */
 
+  /* eslint-disable camelcase */
+  it('should return dash for a suite without an aggregate test score', () => {
+    const job = mockEvaluationJob({ collectionId: 'my-suite' });
+    job.collection = {
+      id: 'my-suite',
+      benchmarks: [
+        { id: 'bench-a', provider_id: 'lm', benchmark_index: 0 },
+        { id: 'bench-b', provider_id: 'lm', benchmark_index: 1 },
+      ],
+    };
+    job.results.benchmarks = [
+      { id: 'bench-a', benchmark_index: 0, test: { primary_score: 0.8 } },
+      { id: 'bench-b', benchmark_index: 1, test: { primary_score: 0.6 } },
+    ];
+    job.results.test = undefined;
+    expect(getCompareParentResultScore(job)).toBe('-');
+  });
+  /* eslint-enable camelcase */
+
   it('should return dash when no score is available', () => {
     const job = mockEvaluationJob();
     job.results = {};
