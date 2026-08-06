@@ -173,7 +173,7 @@ describe('RoleDetailsModal', () => {
       switchToAssigneesTab();
 
       const table = screen.getByTestId('role-assignees-table');
-      expect(within(table).getByRole('columnheader', { name: /^Subject$/i })).toBeInTheDocument();
+      expect(within(table).getByRole('columnheader', { name: /^Name/i })).toBeInTheDocument();
       expect(
         within(table).getByRole('columnheader', { name: /Subject kind/i }),
       ).toBeInTheDocument();
@@ -294,8 +294,8 @@ describe('RoleDetailsModal', () => {
       switchToAssigneesTab();
 
       const table = screen.getByTestId('role-assignees-table');
-      const subjectHeader = within(table).getByRole('columnheader', { name: /^Subject$/i });
-      fireEvent.click(within(subjectHeader).getByRole('button', { name: /^Subject$/i }));
+      const subjectHeader = within(table).getByRole('columnheader', { name: /^Name/i });
+      fireEvent.click(within(subjectHeader).getByRole('button', { name: /^Name/i }));
 
       expect(
         within(getTableBodyRows('role-assignees-table')[0]).getByText('alice'),

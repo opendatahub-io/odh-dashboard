@@ -17,6 +17,7 @@ export const techPreviewFlags = {
   mcpCatalog: false,
   mcpRegistry: false,
   toolCalling: false,
+  modelCapabilities: false,
   deploymentWizardYAMLViewer: false,
   externalVectorStores: false,
   agentConfigManagement: false,
@@ -30,9 +31,11 @@ export const techPreviewFlags = {
 } satisfies Partial<DashboardCommonConfig>;
 
 export const devTemporaryFeatureFlags = {
+  modelDeploymentSettings: false,
   disableKueue: true,
   disableProjectScoped: true,
   nimWizard: false,
+  nimServiceOperator: false,
   agentOpsDeploy: false,
   agentsCatalog: false,
 } satisfies Partial<DashboardCommonConfig>;
@@ -154,6 +157,10 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   },
   [SupportedArea.MODEL_SERVING]: {
     featureFlags: ['disableModelServing'],
+  },
+  [SupportedArea.MODEL_DEPLOYMENT_SETTINGS]: {
+    featureFlags: ['modelDeploymentSettings'],
+    reliantAreas: [SupportedArea.MODEL_SERVING],
   },
   [SupportedArea.USER_MANAGEMENT]: {
     featureFlags: ['disableUserManagement'],
@@ -293,6 +300,10 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   },
   [SupportedArea.CONNECTION_TEST]: {
     featureFlags: ['connectionTest'],
+  },
+  [SupportedArea.MODEL_CAPABILITIES]: {
+    featureFlags: ['modelCapabilities'],
+    reliantAreas: [SupportedArea.MODEL_SERVING],
   },
 };
 

@@ -1,0 +1,25 @@
+{
+  "name": "WeightedEnsemble_FULL",
+  "location": {
+    "model_directory": "WeightedEnsemble_FULL",
+    "predictor": "WeightedEnsemble_FULL/predictor",
+    "notebook": "WeightedEnsemble_FULL/notebooks/automl_predictor_notebook.ipynb",
+    "metrics": "WeightedEnsemble_FULL/metrics",
+    "back_testing": "WeightedEnsemble_FULL/metrics/back_testing.json"
+  },
+  "metrics": {
+    "test_data": {
+      "mean_absolute_scaled_error": -0.2727960688373333,
+      "mean_absolute_percentage_error": -0.10607744047107102,
+      "symmetric_mean_absolute_percentage_error": -0.10834688329226404,
+      "root_mean_squared_error": -307.1854470871432,
+      "root_mean_squared_logarithmic_error": -0.3478260039041166,
+      "root_mean_squared_scaled_error": -0.3392692799179268,
+      "weighted_absolute_percentage_error": -0.005972669697069702,
+      "scaled_quantile_loss": -0.2346306221754247,
+      "weighted_quantile_loss": -0.00493934155470881,
+      "mean_squared_error": -94362.89890212804,
+      "mean_absolute_error": -96.50693450552498
+    }
+  }
+}

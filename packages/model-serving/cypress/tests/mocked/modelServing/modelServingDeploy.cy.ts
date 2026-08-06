@@ -399,7 +399,7 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findModelServerAutoSelectRadio().should('not.be.checked');
     modelServingWizard
       .findServingRuntimeTemplateSearchSelector()
-      .should('contain.text', 'Select one');
+      .should('contain.text', 'Select a serving runtime template');
     modelServingWizard.findNextButton().should('be.disabled');
     modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
 
@@ -1494,7 +1494,6 @@ describe('Model Serving Deploy Wizard', () => {
       .should('contain.text', 'test-description');
     modelServingWizardEdit
       .findDeploymentMethodRadio('legacy')
-      .find('input')
       .should('be.disabled')
       .should('be.checked');
     modelServingWizardEdit.findModelDeploymentStep().should('be.enabled');
@@ -2163,7 +2162,7 @@ describe('Model Serving Deploy Wizard', () => {
       modelServingWizard.selectDeploymentMethodByKey('legacy');
       modelServingWizard
         .findServingRuntimeTemplateSearchSelector()
-        .should('contain.text', 'Select one');
+        .should('contain.text', 'Select a serving runtime template');
 
       // Step 7: Select NVIDIA GPU hardware profile - vLLM NVIDIA should be autoselected
       hardwareProfileSection.findSelect().click();
@@ -2905,12 +2904,14 @@ describe('Model Serving Deploy Wizard', () => {
       );
 
       modelServingGlobal.visit('test-project');
-      modelServingSection.findDeployModelButton().click();
+      modelServingGlobal.findDeployModelButton().click();
 
-      // Navigate to deployment step
-      modelServingWizard.findModelTypeSelect().click();
+      // Step 1: Model source
       modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.PREDICTIVE).click();
-      modelServingWizard.findNextButton().click();
+      modelServingWizard.findModelLocationSelectOption(ModelLocationSelectOption.EXISTING).click();
+      modelServingWizard.findExistingConnectionSelect().click();
+      modelServingWizard.findExistingConnectionSelectOption('Test URI Secret').click();
+      modelServingWizard.findNextButton().should('be.enabled').click();
 
       // Open manual selection
       modelServingWizard.findModelServerManualSelectRadio().click();

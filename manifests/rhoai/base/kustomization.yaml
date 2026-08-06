@@ -73,5 +73,11 @@ patchesJson6902:
       version: v1
       kind: ClusterRoleBinding
       name: odh-dashboard-modules
+  - path: pdb.yaml
+    target:
+      group: policy
+      version: v1
+      kind: PodDisruptionBudget
+      name: odh-dashboard
 patchesStrategicMerge:
   - federation-configmap.yaml

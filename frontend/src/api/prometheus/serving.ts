@@ -1,11 +1,15 @@
 import * as React from 'react';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { FetchStateObject } from '@odh-dashboard/ui-core/hooks/useFetch';
-import { RefreshIntervalTitle, TimeframeTitle } from '@odh-dashboard/ui-core/types/metrics';
+import {
+  RefreshIntervalTitle,
+  TimeframeTitle,
+  type PrometheusQueryRangeResponseDataResult,
+  type PrometheusQueryRangeResultValue,
+} from '@odh-dashboard/ui-core/types/metrics';
 import { RefreshIntervalValue } from '@odh-dashboard/ui-core/utilities/metrics';
-import { PrometheusQueryRangeResponseDataResult, PrometheusQueryRangeResultValue } from '#~/types';
+import { PerformanceMetricType } from '@odh-dashboard/model-serving/shared/types';
 import { ModelMetricType } from '#~/pages/modelServing/screens/metrics/ModelServingMetricsContext';
-import { PerformanceMetricType } from '#~/pages/modelServing/screens/types';
 import useRefreshInterval from '#~/utilities/useRefreshInterval';
 import { PROMETHEUS_BIAS_PATH } from '#~/api/prometheus/const';
 import useQueryRangeResourceData from './useQueryRangeResourceData';

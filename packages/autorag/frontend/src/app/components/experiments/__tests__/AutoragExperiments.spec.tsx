@@ -27,7 +27,7 @@ jest.mock('~/app/hooks/usePipelineRuns', () => ({
   usePipelineRuns: jest.fn(),
 }));
 
-jest.mock('@odh-dashboard/internal/pages/UnauthorizedError', () => ({
+jest.mock('@odh-dashboard/ui-core/components/UnauthorizedError', () => ({
   __esModule: true,
   default: () => <div data-testid="unauthorized-error">Unauthorized</div>,
 }));

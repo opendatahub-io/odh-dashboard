@@ -12,6 +12,19 @@ class InfrastructurePage {
     return appChrome.findNavItem({ name: 'Infrastructure', rootSection: 'Observe & monitor' });
   }
 
+  findUtilizationTab() {
+    return cy.findByTestId('infrastructure-tab-utilization');
+  }
+
+  findClusterQueueUtilizationTab() {
+    return cy.findByTestId('infrastructure-tab-cluster-queue-utilization');
+  }
+
+  switchToClusterQueueUtilizationTab() {
+    this.findClusterQueueUtilizationTab().click();
+    return this;
+  }
+
   shouldNotFoundPage() {
     return cy.findByTestId('not-found-page').should('exist');
   }

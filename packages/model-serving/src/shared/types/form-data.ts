@@ -38,6 +38,19 @@ import { getStateKey } from '../../components/deploymentWizard/dynamicFormUtils'
 import type { DeploymentMethodFieldData } from '../../components/deploymentWizard/fields/DeploymentMethodSelectField';
 import type { ModelServingClusterSettings } from '../../concepts/useModelServingClusterSettings';
 
+export type ValidatedConfigurationOption = {
+  title: string;
+  description: string;
+  value: string;
+};
+
+export type ValidatedConfiguration = {
+  forField: string;
+  title: string;
+  description: string;
+  options: ValidatedConfigurationOption[];
+};
+
 export enum ConnectionTypeRefs {
   S3 = 's3',
   URI = 'uri-v1',
@@ -142,6 +155,7 @@ export type InitialWizardFormData = {
   deploymentStrategy?: DeploymentStrategyFieldData;
   // deploying — serializable metadata merged onto the deployment during assembly
   navSourceMetadata?: K8sResourceCommon['metadata'];
+  validatedConfigurations?: ValidatedConfiguration[];
 } & Record<string, unknown>;
 
 export type WizardFormData = {
@@ -164,6 +178,7 @@ export type WizardFormData = {
     createConnectionData: ReturnType<typeof useCreateConnectionData>;
     deploymentStrategy: ReturnType<typeof useDeploymentStrategyField>;
     canCreateRoleBindings: boolean;
+    selectedValidatedConfigurations?: Record<string, string[]>;
     devFeatureFlags?: {
       vLLMDeploymentOnMaaS: boolean;
     };

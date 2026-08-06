@@ -78,7 +78,9 @@ const mockedContext: Context[] = [
   },
 ];
 
-export const mockGetContextsByType = (): GrpcResponse => {
-  const binary = GetContextsByTypeResponse.encode({ contexts: mockedContext }).finish();
+export const mockGetContextsByType = (overrideContexts?: Context[]): GrpcResponse => {
+  const binary = GetContextsByTypeResponse.encode({
+    contexts: overrideContexts ?? mockedContext,
+  }).finish();
   return createGrpcResponse(binary);
 };

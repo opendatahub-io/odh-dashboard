@@ -113,10 +113,9 @@ const (
 	KubernetesServicesListPath = SettingsPath + "/services"
 
 	// MCPServer deployment endpoints (downstream-only implementations)
-	McpDeploymentName         = "mcp_deployment_name"
-	McpDeploymentListPath     = ApiPathPrefix + "/mcp_deployments"
-	McpDeploymentPath         = McpDeploymentListPath + "/:" + McpDeploymentName
-	McpServerAvailabilityPath = McpServerCatalogPathPrefix + "/mcp_server_available"
+	McpDeploymentName     = "mcp_deployment_name"
+	McpDeploymentListPath = ApiPathPrefix + "/mcp_deployments"
+	McpDeploymentPath     = McpDeploymentListPath + "/:" + McpDeploymentName
 )
 
 const (
@@ -136,7 +135,6 @@ const (
 	handlerMcpDeploymentCreateID   HandlerID = "mcpDeployment:create"
 	handlerMcpDeploymentUpdateID   HandlerID = "mcpDeployment:update"
 	handlerMcpDeploymentDeleteID   HandlerID = "mcpDeployment:delete"
-	handlerMcpServerAvailabilityID HandlerID = "mcpServer:availability"
 	handlerMCPServerConverterGetID HandlerID = "mcpServer:converter:get"
 )
 
@@ -413,12 +411,6 @@ func (app *App) Routes() http.Handler {
 			McpDeploymentPath,
 			app.handlerWithOverride(handlerMcpDeploymentDeleteID, func() httprouter.Handle {
 				return app.AttachNamespace(app.EndpointNotImplementedHandler("MCP deployment delete"))
-			}),
-		)
-		apiRouter.GET(
-			McpServerAvailabilityPath,
-			app.handlerWithOverride(handlerMcpServerAvailabilityID, func() httprouter.Handle {
-				return app.EndpointNotImplementedHandler("MCP server availability")
 			}),
 		)
 		apiRouter.GET(

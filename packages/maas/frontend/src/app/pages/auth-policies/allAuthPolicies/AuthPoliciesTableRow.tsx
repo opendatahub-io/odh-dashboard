@@ -111,8 +111,21 @@ const AuthPoliciesTableRow: React.FC<AuthPoliciesTableRowProps> = ({
       <PhaseLabel
         phase={authPolicy.phase}
         statusMessage={authPolicy.statusMessage}
+        reason={authPolicy.reason}
+        status={authPolicy.status}
+        conditionType={authPolicy.conditionType}
+        lastTransitionTime={authPolicy.lastTransitionTime}
         resourceType={PhaseResourceType.AUTHPOLICY}
-        location={PhaseLabelLocation.POLICIES_TAB}
+        resourceName={authPolicy.displayName ?? authPolicy.name}
+        resourceUrl={getAuthPolicyViewUrl(authPolicy.name)}
+        returnTo={returnTo}
+        onClick={() => {
+          fireMiscTrackingEvent(MaaSEvents.SUBSCRIPTION_MANAGEMENT_STATUS_POPOVER_VIEWED, {
+            popoverType: 'status',
+            status: authPolicy.phase,
+            location: PhaseLabelLocation.POLICIES_TAB,
+          });
+        }}
       />
     </Td>
   );

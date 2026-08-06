@@ -4,8 +4,7 @@ import TableRowTitleDescription from '@odh-dashboard/internal/components/table/T
 import { Tbody, Td, Tr } from '@patternfly/react-table';
 import { Button, Flex, FlexItem, Label, Stack, StackItem } from '@patternfly/react-core';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import PhaseLabel from '~/app/shared/PhaseLabel';
-import { PhaseLabelLocation, PhaseResourceType } from '~/app/utilities/phaseLabelUtils';
+import { PhaseResourceType } from '~/app/utilities/phaseLabelUtils';
 import { ExternalModel, ProviderRef } from '~/app/types/external-models';
 import {
   ExternalModelsInfoPopoverLocation,
@@ -23,6 +22,7 @@ import {
 import PathModal from './modals/ExternalModelsPathModal';
 import ProviderURLModal from './modals/ExternalModelsProviderModal';
 import ExternalModelsExpandedTableRow from './expanded/ExternalModelsExpandedTableRow';
+import ExternalModelsStatusLabel from './ExternalModelsStatusLabel';
 
 const VISIBLE_LABEL_ROWS = 2;
 const enum ToggleLocation {
@@ -196,8 +196,7 @@ const ExternalModelTableRow: React.FC<ExternalModelTableRowProps> = ({
     <Td dataLabel={externalModelsColumns[3].label}>
       <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
         <FlexItem>
-          <PhaseLabel
-            location={PhaseLabelLocation.EXTERNAL_MODELS}
+          <ExternalModelsStatusLabel
             forcePopover
             phase={externalModel.phase}
             statusMessage={getExternalModelStatusMessage(externalModel)}

@@ -1,0 +1,206 @@
+{
+  "schema_version": 1,
+  "model_name": "RecursiveTabular_FULL",
+  "prediction_length": 1,
+  "num_val_windows": 3,
+  "eval_metric": "mean_absolute_scaled_error",
+  "target": "target",
+  "id_column": "item_id",
+  "timestamp_column": "timestamp",
+  "per_window_metrics": [
+    {
+      "window_id": 0,
+      "cutoff": -3,
+      "test_start": "1750-01-24",
+      "test_end": "1750-02-01",
+      "metrics": {
+        "MASE": 0.23996628415676788,
+        "MAPE": 0.07165998049138073,
+        "SMAPE": 0.0785243521629474,
+        "RMSE": 142.16258035637318,
+        "RMSLE": -0.3175171639798009,
+        "RMSSE": 0.26349777301321237,
+        "WAPE": 0.0049783408415520975,
+        "SQL": 0.23806259603405425,
+        "WQL": 0.0047047863814677895,
+        "MSE": 20210.199253582265,
+        "MAE": 65.62167621076428
+      }
+    },
+    {
+      "window_id": 1,
+      "cutoff": -2,
+      "test_start": "1750-01-24",
+      "test_end": "1750-02-01",
+      "metrics": {
+        "MASE": 0.25960724358947834,
+        "MAPE": 0.06668049081631904,
+        "SMAPE": 0.058997644284051166,
+        "RMSE": 345.61852677860276,
+        "RMSLE": -0.13403261714262105,
+        "RMSSE": 0.2690156743193616,
+        "WAPE": 0.009499998152777613,
+        "SQL": 0.2509765278430745,
+        "WQL": 0.00845206807507083,
+        "MSE": 119452.16605261176,
+        "MAE": 117.90443907413035
+      }
+    },
+    {
+      "window_id": 2,
+      "cutoff": -1,
+      "test_start": "1750-01-24",
+      "test_end": "1750-02-01",
+      "metrics": {
+        "MASE": 0.2729546763020596,
+        "MAPE": 0.07348980975315712,
+        "SMAPE": 0.05852679660979005,
+        "RMSE": 673.385504336408,
+        "RMSLE": -0.1663664643131597,
+        "RMSSE": 0.2952250233373066,
+        "WAPE": 0.014512905536667372,
+        "SQL": 0.2566207408511375,
+        "WQL": 0.013373983473846988,
+        "MSE": 453448.0374503985,
+        "MAE": 171.67128017197135
+      }
+    }
+  ],
+  "series_analysis": {
+    "num_series_evaluated": 200,
+    "best_performer": {
+      "item_id": "H196",
+      "avg_metrics": {
+        "mean_absolute_percentage_error": 0.03544484085249552,
+        "mean_absolute_error": 0.005728799492761875,
+        "root_mean_squared_error": 0.005728799492761875
+      },
+      "windows": [
+        {
+          "window_id": 0,
+          "metrics": {
+            "mean_absolute_percentage_error": 0.055241781916342256,
+            "root_mean_squared_error": 0.009114894016196473,
+            "mean_absolute_error": 0.009114894016196473
+          },
+          "forecast_data": [
+            {
+              "timestamp": "1750-02-01T21:00:00Z",
+              "predicted": 16.509114894016196,
+              "actual": 16.5,
+              "lower_bound": 16.505265531960024,
+              "lower_quantile": 0.1,
+              "upper_bound": 16.51296425607237,
+              "upper_quantile": 0.9
+            }
+          ]
+        },
+        {
+          "window_id": 1,
+          "metrics": {
+            "mean_absolute_percentage_error": 0.025259230517660214,
+            "root_mean_squared_error": 0.004041476882825634,
+            "mean_absolute_error": 0.004041476882825634
+          },
+          "forecast_data": [
+            {
+              "timestamp": "1750-02-01T22:00:00Z",
+              "predicted": 16.004041476882826,
+              "actual": 16.0,
+              "lower_bound": 16.000192114826653,
+              "lower_quantile": 0.1,
+              "upper_bound": 16.007890838938998,
+              "upper_quantile": 0.9
+            }
+          ]
+        },
+        {
+          "window_id": 2,
+          "metrics": {
+            "mean_absolute_percentage_error": 0.025833510123484088,
+            "root_mean_squared_error": 0.004030027579263518,
+            "mean_absolute_error": 0.004030027579263518
+          },
+          "forecast_data": [
+            {
+              "timestamp": "1750-02-01T23:00:00Z",
+              "predicted": 15.595969972420736,
+              "actual": 15.6,
+              "lower_bound": 15.592120610364564,
+              "lower_quantile": 0.1,
+              "upper_bound": 15.599819334476908,
+              "upper_quantile": 0.9
+            }
+          ]
+        }
+      ]
+    },
+    "worst_performer": {
+      "item_id": "H130",
+      "avg_metrics": {
+        "mean_absolute_percentage_error": 159.92578587223258,
+        "mean_absolute_error": 170.10064901532314,
+        "root_mean_squared_error": 170.10064901532314
+      },
+      "windows": [
+        {
+          "window_id": 0,
+          "metrics": {
+            "mean_absolute_percentage_error": 5.492445357865989,
+            "root_mean_squared_error": 2.7462226789329947,
+            "mean_absolute_error": 2.7462226789329947
+          },
+          "forecast_data": [
+            {
+              "timestamp": "1750-01-24T05:00:00Z",
+              "predicted": 47.253777321067005,
+              "actual": 50.0,
+              "lower_bound": -1443.7280646763215,
+              "lower_quantile": 0.1,
+              "upper_bound": 1538.2356193184555,
+              "upper_quantile": 0.9
+            }
+          ]
+        },
+        {
+          "window_id": 1,
+          "metrics": {
+            "mean_absolute_percentage_error": 134.65949978934248,
+            "root_mean_squared_error": 59.250179907310695,
+            "mean_absolute_error": 59.250179907310695
+          },
+          "forecast_data": [
+            {
+              "timestamp": "1750-01-24T06:00:00Z",
+              "predicted": 103.2501799073107,
+              "actual": 44.0,
+              "lower_bound": -1387.7316620900779,
+              "lower_quantile": 0.1,
+              "upper_bound": 1594.2320219046992,
+              "upper_quantile": 0.9
+            }
+          ]
+        },
+        {
+          "window_id": 2,
+          "metrics": {
+            "mean_absolute_percentage_error": 339.6254124694892,
+            "root_mean_squared_error": 448.30554445972575,
+            "mean_absolute_error": 448.30554445972575
+          },
+          "forecast_data": [
+            {
+              "timestamp": "1750-01-24T07:00:00Z",
+              "predicted": 580.3055444597258,
+              "actual": 132.0,
+              "lower_bound": -910.6762975376628,
+              "lower_quantile": 0.1,
+              "upper_bound": 2071.2873864571143,
+              "upper_quantile": 0.9
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

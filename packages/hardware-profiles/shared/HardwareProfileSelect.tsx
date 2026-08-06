@@ -34,7 +34,8 @@ import {
   isHardwareProfileEnabled,
   orderHardwareProfiles,
 } from '@odh-dashboard/internal/pages/hardwareProfiles/utils';
-import { ProjectDetailsContext } from '@odh-dashboard/internal/pages/projects/ProjectDetailsContext';
+import { CurrentProjectContext } from '@odh-dashboard/ui-core/context/CurrentProjectContext';
+import { LocalQueuesContext } from '@odh-dashboard/ui-core/context/LocalQueuesContext';
 import { ProjectsContext } from '@odh-dashboard/ui-core/context/ProjectsContext';
 import { useApplicationSettings } from '@odh-dashboard/internal/app/useApplicationSettings';
 import {
@@ -92,7 +93,8 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
     currentProjectHardwareProfilesError,
   ] = projectScopedHardwareProfiles;
 
-  const { currentProject, localQueues } = React.useContext(ProjectDetailsContext);
+  const { currentProject } = React.useContext(CurrentProjectContext);
+  const { localQueues } = React.useContext(LocalQueuesContext);
   const { projects } = React.useContext(ProjectsContext);
   const { dashboardConfig } = useApplicationSettings();
   const hardwareProfileOrder = React.useMemo(

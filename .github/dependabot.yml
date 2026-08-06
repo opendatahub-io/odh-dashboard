@@ -27,7 +27,6 @@ updates:
     open-pull-requests-limit: 10
     target-branch: "main"
     labels:
-      # Keep in sync with exempt-pr-labels in .github/workflows/stale.yml
       - "dependencies"
 
     versioning-strategy: lockfile-only
@@ -40,27 +39,64 @@ updates:
 
     ignore:
       - dependency-name: "@patternfly/*"
+        update-types:
+          - "version-update:semver-patch"
+          - "version-update:semver-minor"
+          - "version-update:semver-major"
       - dependency-name: "react"
         update-types: ["version-update:semver-major"]
       - dependency-name: "react-dom"
         update-types: ["version-update:semver-major"]
 
     groups:
-      react:
+      npm-updates:
         applies-to: version-updates
-        patterns:
-          - 'react'
-          - 'react-dom'
-          - 'react-router'
-          - 'react-router-dom'
-      fastify:
-        applies-to: version-updates
-        patterns:
-          - '@fastify/*'
-          - 'fastify*'
-      patch-updates:
-        applies-to: version-updates
+        group-by: dependency-name
         patterns:
           - '*'
         update-types:
+          - "minor"
           - "patch"
+      npm-security:
+        applies-to: security-updates
+        patterns:
+          - '*'
+
+  - package-ecosystem: gomod
+    directories:
+      - /dashboard-operator
+      - /distributions/core-bff/bff
+      - /packages/agent-ops/bff
+      - /packages/automl/bff
+      - /packages/autorag/bff
+      - /packages/eval-hub/bff
+      - /packages/gen-ai/bff
+      - /packages/maas/bff
+      - /packages/mlflow/bff
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 10
+    target-branch: "main"
+    labels:
+      - "dependencies"
+
+    cooldown:
+      default-days: 7
+      semver-major-days: 14
+      semver-minor-days: 7
+      semver-patch-days: 3
+
+    groups:
+      go-updates:
+        applies-to: version-updates
+        group-by: dependency-name
+        patterns:
+          - '*'
+        update-types:
+          - "minor"
+          - "patch"
+      go-security:
+        applies-to: security-updates
+        patterns:
+          - '*'

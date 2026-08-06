@@ -9,9 +9,11 @@ import {
   Timestamp,
   Title,
 } from '@patternfly/react-core';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { MaaSAuthPolicy } from '~/app/types/subscriptions';
 import PhaseLabel from '~/app/shared/PhaseLabel';
 import { PhaseLabelLocation, PhaseResourceType } from '~/app/utilities/phaseLabelUtils';
+import { MaaSEvents } from '~/app/types/event-tracking';
 
 type PolicyDetailsSectionProps = {
   policy: MaaSAuthPolicy;
@@ -38,8 +40,19 @@ const PolicyDetailsSection: React.FC<PolicyDetailsSectionProps> = ({ policy }) =
             <PhaseLabel
               phase={policy.phase}
               statusMessage={policy.statusMessage}
+              reason={policy.reason}
+              status={policy.status}
+              conditionType={policy.conditionType}
+              lastTransitionTime={policy.lastTransitionTime}
               resourceType={PhaseResourceType.AUTHPOLICY}
-              location={PhaseLabelLocation.DETAIL_PAGE}
+              resourceName={policy.displayName ?? policy.name}
+              onClick={() => {
+                fireMiscTrackingEvent(MaaSEvents.SUBSCRIPTION_MANAGEMENT_STATUS_POPOVER_VIEWED, {
+                  popoverType: 'status',
+                  status: policy.phase,
+                  location: PhaseLabelLocation.DETAIL_PAGE,
+                });
+              }}
             />
           </DescriptionListDescription>
         </DescriptionListGroup>

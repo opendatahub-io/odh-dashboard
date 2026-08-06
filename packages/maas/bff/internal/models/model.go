@@ -35,28 +35,41 @@ type MaaSModelsResponse struct {
 
 // ModelOverviewDetails combines catalog metadata with the K8s MaaSModelRef phase.
 type ModelOverviewDetails struct {
-	DisplayName string `json:"displayName,omitempty"`
-	Description string `json:"description,omitempty"`
-	Phase       string `json:"phase,omitempty"`
+	DisplayName        string `json:"displayName,omitempty"`
+	Description        string `json:"description,omitempty"`
+	Phase              string `json:"phase,omitempty"`
+	StatusMessage      string `json:"statusMessage,omitempty"`
+	Status             string `json:"status,omitempty"`
+	ConditionType      string `json:"conditionType,omitempty"`
+	LastTransitionTime string `json:"lastTransitionTime,omitempty"`
+	Reason             string `json:"reason,omitempty"`
 }
 
 // ModelOverviewSubscription is a subscription entry in the model overview, including groups.
 type ModelOverviewSubscription struct {
-	Name            string           `json:"name"`
-	DisplayName     string           `json:"displayName,omitempty"`
-	Phase           string           `json:"phase,omitempty"`
-	StatusMessage   string           `json:"statusMessage,omitempty"`
-	Groups          []string         `json:"groups,omitempty"`
-	TokenRateLimits []TokenRateLimit `json:"tokenRateLimits,omitempty"`
+	Name               string           `json:"name"`
+	DisplayName        string           `json:"displayName,omitempty"`
+	Phase              string           `json:"phase,omitempty"`
+	StatusMessage      string           `json:"statusMessage,omitempty"`
+	Status             string           `json:"status,omitempty"`
+	ConditionType      string           `json:"conditionType,omitempty"`
+	LastTransitionTime string           `json:"lastTransitionTime,omitempty"`
+	Reason             string           `json:"reason,omitempty"`
+	Groups             []string         `json:"groups,omitempty"`
+	TokenRateLimits    []TokenRateLimit `json:"tokenRateLimits,omitempty"`
 }
 
 // ModelOverviewPolicy is an auth policy entry in the model overview, including groups.
 type ModelOverviewPolicy struct {
-	Name          string   `json:"name"`
-	DisplayName   string   `json:"displayName,omitempty"`
-	Phase         string   `json:"phase,omitempty"`
-	StatusMessage string   `json:"statusMessage,omitempty"`
-	Groups        []string `json:"groups,omitempty"`
+	Name               string   `json:"name"`
+	DisplayName        string   `json:"displayName,omitempty"`
+	Phase              string   `json:"phase,omitempty"`
+	StatusMessage      string   `json:"statusMessage,omitempty"`
+	Status             string   `json:"status,omitempty"`
+	ConditionType      string   `json:"conditionType,omitempty"`
+	LastTransitionTime string   `json:"lastTransitionTime,omitempty"`
+	Reason             string   `json:"reason,omitempty"`
+	Groups             []string `json:"groups,omitempty"`
 }
 
 // ModelOverviewItem represents a model with its associated subscriptions and auth policies.
