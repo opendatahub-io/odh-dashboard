@@ -123,8 +123,8 @@ describe('Subscription Management Page / Overview Tab', () => {
 
     // Sort by project
     overviewTabPage.findColumnSortButton('Project').click();
-    overviewTabPage.findModelRows().eq(0).should('contain.text', 'maas-models');
-    overviewTabPage.findModelRows().eq(1).should('contain.text', 'team-sandbox');
+    overviewTabPage.findModelRows().eq(0).should('contain.text', 'Flan T5 Small');
+    overviewTabPage.findModelRows().eq(4).should('contain.text', 'Granite 3 8B Instruct (sandbox)');
 
     // Sort by subscriptions
     overviewTabPage.findColumnSortButton('Subscriptions').click();
@@ -228,6 +228,7 @@ describe('Subscription Management Page / Overview Tab', () => {
     // Description
     overviewTabPage.findFilterInput('model').type('instruction');
     overviewTabPage.findModelRows().should('have.length', 2);
+    overviewTabPage.clearAllFilters();
 
     // Filter by project
     overviewTabPage.findFilterDropdownButton().click();
