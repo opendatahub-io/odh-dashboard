@@ -17,7 +17,11 @@ export const LlmAcceleratorConfigContext = React.createContext<LlmAcceleratorCon
   configs: [],
 });
 
-const LlmAcceleratorConfigContextProvider: React.FC = () => {
+/**
+ * Supplies the accelerator configs to its subtree. Renders `children` when given
+ * them, and falls back to `<Outlet />` so it can also be used as a layout route.
+ */
+const LlmAcceleratorConfigContextProvider: React.FC<React.PropsWithChildren> = ({ children }) => {
   const { dashboardNamespace } = useDashboardNamespace();
   const [configs, loaded, error] = useWatchLLMInferenceServiceConfigs(
     dashboardNamespace,
@@ -51,7 +55,7 @@ const LlmAcceleratorConfigContextProvider: React.FC = () => {
 
   return (
     <LlmAcceleratorConfigContext.Provider value={contextValue}>
-      <Outlet />
+      {children ?? <Outlet />}
     </LlmAcceleratorConfigContext.Provider>
   );
 };
