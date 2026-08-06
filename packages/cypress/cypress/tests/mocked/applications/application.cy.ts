@@ -120,13 +120,10 @@ describe('Application', () => {
       channel: 'fast',
       lastUpdated: '2024-06-25T05:36:37Z',
     });
-    cy.interceptOdh('GET /api/dsci/status', {
-      conditions: [],
-      release: {
-        name: 'test application',
-        version: '1.0.1',
-      },
-    });
+    cy.interceptOdh(
+      'GET /api/dsc/status',
+      mockDscStatus({ release: { name: 'test application', version: '1.0.1' } }),
+    );
 
     appChrome.visit();
     aboutDialog.show();
@@ -163,13 +160,10 @@ describe('Application', () => {
       channel: 'fast',
       lastUpdated: '2024-06-25T05:36:37Z',
     });
-    // Handle no release name returned
-    cy.interceptOdh('GET /api/dsci/status', {
-      conditions: [],
-      release: {
-        version: '1.0.1',
-      },
-    });
+    cy.interceptOdh(
+      'GET /api/dsc/status',
+      mockDscStatus({ release: { name: '', version: '1.0.1' } }),
+    );
     appChrome.visit();
     aboutDialog.show();
 
@@ -186,12 +180,6 @@ describe('Application', () => {
     cy.interceptOdh('GET /api/operator-subscription-status', {
       channel: 'fast',
       lastUpdated: '2024-06-25T05:36:37Z',
-    });
-    cy.interceptOdh('GET /api/dsci/status', {
-      conditions: [],
-      release: {
-        version: '1.0.1',
-      },
     });
     cy.interceptOdh(
       'GET /api/dsc/status',

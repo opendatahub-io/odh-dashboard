@@ -315,6 +315,7 @@ const extensions: RouteExtension[] = [
     type: 'app.route',
     flags: {
       required: [ADMIN_USER],
+      disallowed: [SupportedArea.MODEL_DEPLOYMENT_SETTINGS],
     },
     properties: {
       path: '/settings/model-resources-operations/serving-runtimes/*',
@@ -326,6 +327,7 @@ const extensions: RouteExtension[] = [
     type: 'app.route',
     flags: {
       required: [ADMIN_USER],
+      disallowed: [SupportedArea.MODEL_DEPLOYMENT_SETTINGS],
     },
     properties: {
       path: '/servingRuntimes/*',

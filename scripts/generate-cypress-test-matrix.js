@@ -213,8 +213,15 @@ function generatePackageTestGroups() {
         continue;
       }
 
-      const pkgName = pkg.name.split('/').pop();
-      const testPath = path.join('packages', pkgName);
+      // Use the workspace location field (relative to repo root) instead of
+      // deriving from the package name, which breaks for nested paths like
+      // packages/model-serving/cypress
+      const pkgRelPath = pkg.location?.replace(/^packages\//, '');
+      if (!pkgRelPath) {
+        continue;
+      }
+
+      const testPath = path.join('packages', pkgRelPath);
 
       // Verify tests actually exist
       if (!fs.existsSync(testPath)) {
@@ -226,8 +233,8 @@ function generatePackageTestGroups() {
 
       if (hasTests.length > 0) {
         groups.push({
-          name: `pkg-${pkgName}`,
-          spec: `${pkgName}/${pkg.cypress.mocked}`,
+          name: `pkg-${pkgRelPath.replace(/\//g, '-')}`,
+          spec: `${pkgRelPath}/${pkg.cypress.mocked}`,
           strategy: 'package',
         });
       }

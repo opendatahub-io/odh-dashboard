@@ -1,0 +1,108 @@
+{
+  "name": "Pattern6",
+  "max_combinations": 45,
+  "scores": {
+    "answer_correctness": {
+      "mean": 0.3777,
+      "ci_low": 0.3032,
+      "ci_high": 0.4582
+    },
+    "faithfulness": {
+      "mean": 0.2232,
+      "ci_low": 0.1739,
+      "ci_high": 0.2963
+    },
+    "context_correctness": {
+      "mean": 1.0,
+      "ci_low": null,
+      "ci_high": null
+    }
+  },
+  "duration_seconds": 4,
+  "final_score": 0.2232,
+  "settings": {
+    "vector_store_binding": {
+      "provider_id": "milvus",
+      "vector_store_id": "vs_cba0846f-0678-488c-975d-ce6a95ba24ad",
+      "provider_type": "remote::milvus"
+    },
+    "chunking": {
+      "method": "recursive",
+      "chunk_size": 128,
+      "chunk_overlap": 32
+    },
+    "embedding": {
+      "model_id": "vllm-embedding/ibm-granite/granite-embedding-english-r2",
+      "embedding_params": {
+        "embedding_dimension": 768,
+        "context_length": 8129
+      }
+    },
+    "retrieval": {
+      "method": "simple",
+      "number_of_chunks": 5,
+      "search_mode": "hybrid",
+      "ranker_strategy": "weighted",
+      "ranker_alpha": 0.5
+    },
+    "generation": {
+      "model_id": "vllm-inference/meta-llama/Llama-3.1-8B-Instruct",
+      "temperature": 0.2,
+      "max_completion_tokens": 2048,
+      "context_template_text": "Document {doc_number}:\n{document}\n",
+      "user_message_text": "Answer ONLY using information from the documents below. Do not use outside knowledge. If the documents do not contain the answer, say you do not have enough information.\nYou MUST cite sources using [1], [2], etc. matching the document numbers for every factual claim.\n\nDocuments:\n{reference_documents}\n\nQuestion: {question}\n\nAnswer (max 150 words, with citations):\nYou MUST respond in English.\n",
+      "system_message_text": "You are a retrieval-augmented assistant. Answer using ONLY the provided documents. You are a helpful, respectful and honest assistant. Always answer as helpfully as possible, while being safe. Your answers should not include any harmful, unethical, racist, sexist, toxic, dangerous, or illegal content. Please ensure that your responses are socially unbiased and positive in nature.\nIf a question does not make any sense, or is not factually coherent, explain why instead of answering something not correct. If you don't know the answer to a question, please don't share false information.\n",
+      "language": {
+        "code": "en",
+        "name": "English"
+      }
+    },
+    "responses_template": {
+      "model": "vllm-inference/meta-llama/Llama-3.1-8B-Instruct",
+      "stream": false,
+      "store": false,
+      "input": [
+        {
+          "content": [
+            {
+              "text": "You are a retrieval-augmented assistant. You are a helpful, respectful and honest assistant. Always answer as helpfully as possible, while being safe. Your answers should not include any harmful, unethical, racist, sexist, toxic, dangerous, or illegal content. Please ensure that your responses are socially unbiased and positive in nature.\nIf a question does not make any sense, or is not factually coherent, explain why instead of answering something not correct. If you don't know the answer to a question, please don't share false information.\n\nAnswer (max 150 words):\nYou MUST respond in English.",
+              "type": "input_text"
+            }
+          ],
+          "role": "system"
+        },
+        {
+          "content": [
+            {
+              "text": "<user_query_placeholder>",
+              "type": "input_text"
+            }
+          ],
+          "role": "user"
+        }
+      ],
+      "tool_choice": {
+        "type": "file_search"
+      },
+      "tools": [
+        {
+          "type": "file_search",
+          "vector_store_ids": [
+            "vs_cba0846f-0678-488c-975d-ce6a95ba24ad"
+          ],
+          "max_num_results": 5,
+          "ranking_options": {
+            "ranker": "weighted",
+            "alpha": 0.5
+          }
+        }
+      ],
+      "include": [
+        "file_search_call.results"
+      ],
+      "temperature": 0.2,
+      "max_output_tokens": 2048
+    }
+  },
+  "iteration": 5
+}

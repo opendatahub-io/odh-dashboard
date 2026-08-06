@@ -1,10 +1,10 @@
 import * as React from 'react';
 import { Navigate, Route } from 'react-router-dom';
 import { buildV2RedirectRoutes } from '@odh-dashboard/plugin-core/routing';
-import ProjectsRoutes from '#~/concepts/projects/ProjectsRoutes';
+import ProjectsRoutes from '@odh-dashboard/ui-core/components/ProjectsRoutes';
+import NotFound from '@odh-dashboard/ui-core/components/NotFound';
 import { useDistributedWorkloadsTabs } from '#~/pages/distributedWorkloads/global/useDistributedWorkloadsTabs';
 import GlobalDistributedWorkloads from '#~/pages/distributedWorkloads/global/GlobalDistributedWorkloads';
-import NotFound from '#~/pages/NotFound';
 import { v2RedirectMap } from './v2Redirects';
 
 const GlobalDistributedWorkloadsRoutes: React.FC = () => {

@@ -66,8 +66,13 @@ describe('MCP Server Deploy from Catalog', () => {
       cy.step(`Open the details page for MCP server with ID ${mcpServerId}`);
       mcpCatalogPage.findCardDetailsLink(mcpServerId).should('be.visible').click();
 
-      cy.step('Wait for the Deploy button to appear and click it');
-      mcpServerDetailsPage.findDeployButton().should('be.visible');
+      cy.step(
+        'Wait for the Deploy button to be enabled (DSC mcplifecycleoperator Managed/Unmanaged)',
+      );
+      mcpServerDetailsPage
+        .findDeployButton()
+        .should('be.visible')
+        .and('not.have.attr', 'aria-disabled', 'true');
       mcpServerDetailsPage.clickDeployButtonWithRetry();
 
       cy.step('Verify deploy modal is open');
