@@ -124,16 +124,17 @@ describe('McpRegistryDeployAction', () => {
     mockResolvedExtension();
   });
 
-  it('should disable the Deploy button when no version is selected', () => {
+  it('should disable the Deploy button and explain why when no version is selected', async () => {
     render(<McpRegistryDeployAction server={mockServer} namespace="test-project" />);
 
-    expect(screen.getByTestId('mcp-registry-deploy-action-button')).toHaveAttribute(
-      'aria-disabled',
-      'true',
-    );
+    const button = screen.getByTestId('mcp-registry-deploy-action-button');
+    expect(button).toHaveAttribute('aria-disabled', 'true');
+
+    await userEvent.hover(button);
+    expect(await screen.findByText('Select a server version to deploy')).toBeInTheDocument();
   });
 
-  it('should disable the Deploy button while the deploy modal extension has not resolved', () => {
+  it('should disable the Deploy button and explain why while the deploy modal extension has not resolved', async () => {
     mockUseResolvedExtensions.mockReturnValue([[], false, []]);
     render(
       <McpRegistryDeployAction
@@ -143,19 +144,42 @@ describe('McpRegistryDeployAction', () => {
       />,
     );
 
-    expect(screen.getByTestId('mcp-registry-deploy-action-button')).toHaveAttribute(
-      'aria-disabled',
-      'true',
-    );
+    const button = screen.getByTestId('mcp-registry-deploy-action-button');
+    expect(button).toHaveAttribute('aria-disabled', 'true');
+
+    await userEvent.hover(button);
+    expect(await screen.findByText('Checking deploy availability...')).toBeInTheDocument();
   });
 
-  it('should disable the Deploy button when there is no current project', () => {
+  it('should disable the Deploy button and explain why the deploy modal extension is unavailable', async () => {
+    mockUseResolvedExtensions.mockReturnValue([[], true, []]);
+    render(
+      <McpRegistryDeployAction
+        server={mockServer}
+        version={mockVersion}
+        namespace="test-project"
+      />,
+    );
+
+    const button = screen.getByTestId('mcp-registry-deploy-action-button');
+    expect(button).toHaveAttribute('aria-disabled', 'true');
+
+    await userEvent.hover(button);
+    expect(
+      await screen.findByText(
+        'Deploying is unavailable. Ensure Model Registry is enabled on this cluster.',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('should disable the Deploy button and explain why when there is no current project', async () => {
     render(<McpRegistryDeployAction server={mockServer} version={mockVersion} namespace="" />);
 
-    expect(screen.getByTestId('mcp-registry-deploy-action-button')).toHaveAttribute(
-      'aria-disabled',
-      'true',
-    );
+    const button = screen.getByTestId('mcp-registry-deploy-action-button');
+    expect(button).toHaveAttribute('aria-disabled', 'true');
+
+    await userEvent.hover(button);
+    expect(await screen.findByText('Select a project to deploy to')).toBeInTheDocument();
   });
 
   it('should enable the Deploy button once a version is selected and the extension is available', () => {
