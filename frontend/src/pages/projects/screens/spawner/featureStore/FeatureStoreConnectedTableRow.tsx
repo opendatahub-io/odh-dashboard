@@ -2,7 +2,6 @@ import * as React from 'react';
 import { Link } from 'react-router-dom';
 import { ActionList, ActionListItem, Button, Content, Truncate } from '@patternfly/react-core';
 import { MinusCircleIcon } from '@patternfly/react-icons';
-import text from '@patternfly/react-styles/css/utilities/Text/text';
 import { Td, Tr } from '@patternfly/react-table';
 import type { SelectedFeatureStoreConfig } from './useWorkbenchFeatureStores';
 import { FeatureStorePermissionLabels } from './FeatureStorePermissionLabels';
@@ -25,7 +24,10 @@ export const FeatureStoreConnectedTableRow: React.FC<FeatureStoreConnectedTableR
     <Tr data-testid={`feature-store-connected-row-${projectId}`}>
       <Td dataLabel="Name">
         {featureStore.isUnavailable ? (
-          <Content className={text.textColorDisabled} data-testid="feature-store-unavailable-name">
+          <Content
+            className="pf-v6-u-disabled-color-100"
+            data-testid="feature-store-unavailable-name"
+          >
             <Truncate content={featureStore.projectName} />
           </Content>
         ) : availabilityLoaded ? (
