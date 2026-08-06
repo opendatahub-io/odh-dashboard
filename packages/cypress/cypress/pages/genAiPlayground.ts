@@ -99,7 +99,7 @@ class GenAiPlayground {
 
   waitForStreamingComplete(options?: { timeout?: number }) {
     const timeout = options?.timeout ?? 60000;
-    cy.get('.pf-chatbot__button--stop', { timeout }).should('not.exist');
+    cy.findByTestId('chatbot-stop-button', { timeout }).should('not.exist');
   }
 
   ensureModelCheckboxIsChecked(modelName: string) {
@@ -274,7 +274,7 @@ class GenAiPlayground {
   }
 
   findSourceUploadSuccessAlert(options?: { timeout?: number }) {
-    return cy.contains('[class*="pf-v6-c-alert"]', 'Source uploaded', options);
+    return cy.findByTestId('source-upload-success-alert', options);
   }
 
   findFileSearchResults(options?: { timeout?: number }) {
