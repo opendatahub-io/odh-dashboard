@@ -25,7 +25,7 @@ export const FeatureStoreConnectedTableRow: React.FC<FeatureStoreConnectedTableR
       <Td dataLabel="Name">
         {featureStore.isUnavailable ? (
           <Content
-            className="pf-v6-u-disabled-color-100"
+            className="pf-v6-u-text-color-disabled"
             data-testid="feature-store-unavailable-name"
           >
             <Truncate content={featureStore.projectName} />
