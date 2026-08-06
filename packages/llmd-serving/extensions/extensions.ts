@@ -44,6 +44,15 @@ import type {
 export const LLMD_SERVING_ID = 'llmd-serving';
 const ADMIN_USER = 'ADMIN_USER';
 
+// Keep in sync with ../src/settings/llmAcceleratorConfigs/paths.ts (value imports are
+// disallowed in extensions.ts). Pinned by __tests__/extensions.spec.ts.
+// The standalone constant and the extensions using it are removed by RHOAIENG-80077.
+// https://issues.redhat.com/browse/RHOAIENG-80077
+const LLM_ACCELERATOR_CONFIGS_STANDALONE_PATH =
+  '/settings/model-resources-operations/llm-accelerator-configs';
+const LLM_ACCELERATOR_CONFIGS_TAB_PATH =
+  '/settings/model-resources-operations/model-deployment-settings/llm-accelerator-configurations';
+
 const createRedirectComponent = (args: { from: string; to: string }) => () =>
   import('@odh-dashboard/plugin-core/routing').then((module) => ({
     default: () => module.buildV2RedirectElement(args),
@@ -547,9 +556,9 @@ const extensions: (
     properties: {
       id: 'settings-llm-accelerator-configs',
       title: 'LLM accelerator configurations',
-      href: '/settings/model-resources-operations/llm-accelerator-configs',
+      href: LLM_ACCELERATOR_CONFIGS_STANDALONE_PATH,
       section: 'settings-model-resources-and-operations',
-      path: '/settings/model-resources-operations/llm-accelerator-configs/*',
+      path: `${LLM_ACCELERATOR_CONFIGS_STANDALONE_PATH}/*`,
       group: '1_model-resources',
     },
   },
@@ -560,7 +569,7 @@ const extensions: (
       disallowed: [SupportedArea.MODEL_DEPLOYMENT_SETTINGS],
     },
     properties: {
-      path: '/settings/model-resources-operations/llm-accelerator-configs/*',
+      path: `${LLM_ACCELERATOR_CONFIGS_STANDALONE_PATH}/*`,
       component: () => import('../src/settings/llmAcceleratorConfigs/LlmAcceleratorConfigRoutes'),
     },
   },
@@ -628,10 +637,10 @@ const extensions: (
       ],
     },
     properties: {
-      path: '/settings/model-resources-operations/llm-accelerator-configs/*',
+      path: `${LLM_ACCELERATOR_CONFIGS_STANDALONE_PATH}/*`,
       component: createRedirectComponent({
-        from: '/settings/model-resources-operations/llm-accelerator-configs/*',
-        to: '/settings/model-resources-operations/model-deployment-settings/llm-accelerator-configurations/*',
+        from: `${LLM_ACCELERATOR_CONFIGS_STANDALONE_PATH}/*`,
+        to: `${LLM_ACCELERATOR_CONFIGS_TAB_PATH}/*`,
       }),
     },
   },
@@ -683,10 +692,38 @@ const extensions: (
       pageId: 'model-deployment-settings',
       id: 'llm-accelerator-configurations',
       title: 'LLM accelerator configurations',
-      component: () => import('../src/settings/LlmAcceleratorConfigsTab'),
+      component: () =>
+        import('../src/settings/llmAcceleratorConfigs/LlmAcceleratorConfigTabRoutes'),
       group: '3_accelerator',
     },
   },
+  // Full-page breakout routes for the accelerator configuration forms. Registered
+  // separately from the tab so the forms render without the tabbed page chrome.
+  // Each form path is listed explicitly so the tab list route is not captured.
+  ...(
+    [
+      `${LLM_ACCELERATOR_CONFIGS_TAB_PATH}/add`,
+      `${LLM_ACCELERATOR_CONFIGS_TAB_PATH}/edit/:configName`,
+      `${LLM_ACCELERATOR_CONFIGS_TAB_PATH}/duplicate/:configName`,
+    ] as const
+  ).map(
+    (path): RouteExtension => ({
+      type: 'app.route',
+      flags: {
+        required: [
+          SupportedArea.MODEL_DEPLOYMENT_SETTINGS,
+          LLMD_SERVING_ID,
+          ADMIN_USER,
+          SupportedArea.VLLM_ON_MAAS,
+        ],
+      },
+      properties: {
+        path,
+        component: () =>
+          import('../src/settings/llmAcceleratorConfigs/LlmAcceleratorConfigFormRoutes'),
+      },
+    }),
+  ),
   {
     type: 'app.tab-route/tab',
     flags: {
