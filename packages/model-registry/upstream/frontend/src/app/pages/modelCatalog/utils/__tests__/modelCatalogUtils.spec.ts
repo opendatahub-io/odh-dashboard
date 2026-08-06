@@ -10,7 +10,6 @@ import {
   CatalogArtifactType,
   CatalogArtifacts,
   MetricsType,
-  CatalogModel,
 } from '~/app/modelCatalogTypes';
 import {
   AllLanguageCode,
@@ -2024,4 +2023,3 @@ describe('getSortParams', () => {
     });
   });
 });
-
