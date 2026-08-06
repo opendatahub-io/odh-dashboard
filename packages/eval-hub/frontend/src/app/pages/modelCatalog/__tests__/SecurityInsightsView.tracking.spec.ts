@@ -155,7 +155,7 @@ describe('SecurityInsightsView - Tracking Events', () => {
       await renderView();
       mockFireMisc.mockClear();
 
-      await selectFilterOption('Evaluation name');
+      await selectFilterOption('Evaluation Name');
 
       const filterChangeCalls = mockFireMisc.mock.calls.filter(
         ([event]) => event === EVAL_HUB_EVENTS.SECURITY_INSIGHTS_FILTER_TYPE_CHANGED,

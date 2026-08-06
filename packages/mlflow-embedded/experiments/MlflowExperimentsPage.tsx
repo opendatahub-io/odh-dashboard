@@ -10,8 +10,7 @@ import { Bullseye, Flex, FlexItem, PageSection, Spinner } from '@patternfly/reac
 import { useSearchParams } from 'react-router-dom';
 import { loadRemote } from '@module-federation/runtime';
 import { LazyCodeRefComponent } from '@odh-dashboard/plugin-core';
-// eslint-disable-next-line @odh-dashboard/no-restricted-imports
-import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
+
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import PipelineCoreProjectSelector from '@odh-dashboard/internal/pages/pipelines/global/PipelineCoreProjectSelector';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
@@ -21,7 +20,7 @@ import { MlflowTrackingEvents } from '@odh-dashboard/internal/concepts/mlflow/co
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import useIsMlflowCRAvailable from '@odh-dashboard/internal/concepts/mlflow/hooks/useIsMlflowCRAvailable';
 import TitleWithIcon from '@odh-dashboard/ui-core/design/TitleWithIcon';
-import { ProjectObjectType } from '@odh-dashboard/ui-core';
+import { ApplicationsPage, ProjectObjectType } from '@odh-dashboard/ui-core';
 import {
   mlflowExperimentsBaseRoute,
   mlflowExperimentsPath,

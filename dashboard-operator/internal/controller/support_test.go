@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"maps"
 	"os"
 	"path/filepath"
 	"testing"
@@ -9,6 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/cluster"
+	"github.com/opendatahub-io/odh-platform-utilities/pkg/render/kustomize"
 
 	v1alpha1 "github.com/opendatahub-io/odh-dashboard/dashboard-operator/api/v1alpha1"
 )
@@ -168,4 +170,98 @@ func TestWriteParamsEnv(t *testing.T) {
 
 	expected := "alpha=a\nmid=m\nzebra=z\n"
 	assert.Equal(t, expected, string(data), "params must be sorted alphabetically")
+}
+
+func TestParamsPreservation(t *testing.T) {
+	dir := t.TempDir()
+
+	existing := "module-specific-key=module-value\nshared-key=original\n"
+	require.NoError(t, os.WriteFile(filepath.Join(dir, "params.env"), []byte(existing), 0644))
+
+	params := readExistingParams(filepath.Join(dir, "params.env"))
+	computed := map[string]string{
+		"computed-key": "computed-value",
+		"shared-key":   "overwritten-by-computed",
+	}
+	maps.Copy(params, computed)
+	require.NoError(t, writeParamsEnv(dir, params))
+
+	result := readExistingParams(filepath.Join(dir, "params.env"))
+	assert.Equal(t, "module-value", result["module-specific-key"], "existing module-specific params must be preserved")
+	assert.Equal(t, "computed-value", result["computed-key"], "computed params must be added")
+	assert.Equal(t, "overwritten-by-computed", result["shared-key"], "computed params must take precedence over existing")
+}
+
+func TestNamespaceInjection(t *testing.T) {
+	dir := t.TempDir()
+
+	kustomizationYAML := `apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - configmap.yaml
+  - serviceaccount.yaml
+  - deployment.yaml
+  - networkpolicy.yaml
+`
+	configmapYAML := `apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: test-config
+data:
+  key: value
+`
+	saYAML := `apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: test-sa
+`
+	deployYAML := `apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: test-deploy
+spec:
+  selector:
+    matchLabels:
+      app: test
+  template:
+    metadata:
+      labels:
+        app: test
+    spec:
+      containers:
+        - name: main
+          image: busybox:latest
+`
+	npYAML := `apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: test-np
+spec:
+  podSelector: {}
+`
+
+	for name, content := range map[string]string{
+		"kustomization.yaml":  kustomizationYAML,
+		"configmap.yaml":      configmapYAML,
+		"serviceaccount.yaml": saYAML,
+		"deployment.yaml":     deployYAML,
+		"networkpolicy.yaml":  npYAML,
+	} {
+		require.NoError(t, os.WriteFile(filepath.Join(dir, name), []byte(content), 0644))
+	}
+
+	const targetNS = "test-target-ns"
+
+	engine := kustomize.NewEngine()
+	rendered, err := engine.Render(dir, kustomize.WithNamespace(targetNS))
+	require.NoError(t, err)
+	require.Len(t, rendered, 4, "kustomize must render every fixture resource")
+
+	for _, res := range rendered {
+		ns := res.GetNamespace()
+		kind := res.GetKind()
+		name := res.GetName()
+		assert.Equalf(t, targetNS, ns,
+			"%s/%s must have namespace %q after WithNamespace injection", kind, name, targetNS)
+	}
 }

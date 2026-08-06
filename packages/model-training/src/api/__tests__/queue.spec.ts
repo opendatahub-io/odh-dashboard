@@ -1,6 +1,6 @@
 import { k8sGetResource } from '@openshift/dynamic-plugin-sdk-utils';
 import { LocalQueueModel, ClusterQueueModel } from '@odh-dashboard/internal/api/models/kueue';
-import { LocalQueueKind, ClusterQueueKind } from '@odh-dashboard/internal/k8sTypes';
+import { LocalQueueKind, ClusterQueueKind } from '@odh-dashboard/k8s-core';
 import { getLocalQueue, getClusterQueue } from '../queue';
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils');

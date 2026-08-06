@@ -1,22 +1,42 @@
 import * as React from 'react';
 import { Button, EmptyState, EmptyStateBody, ToolbarItem } from '@patternfly/react-core';
 import { CubesIcon } from '@patternfly/react-icons';
-import ContentModal from '@odh-dashboard/ui-core/components/ContentModal';
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports -- standard delete confirmation wrapper
+import DeleteModal from '@odh-dashboard/internal/pages/projects/components/DeleteModal';
 import { Table, SortableData } from '@odh-dashboard/ui-core';
 import { useNavigate } from 'react-router';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import { k8sDeleteResource, K8sStatus } from '@openshift/dynamic-plugin-sdk-utils';
 import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
 import useNotification from '@odh-dashboard/internal/utilities/useNotification';
-import RoutingConfigurationRow from './RoutingConfigurationRow';
+import RoutingConfigurationRow, { getSupportedTopologiesLabel } from './RoutingConfigurationRow';
 import { type LLMInferenceServiceConfigKind, LLMInferenceServiceConfigModel } from '../types';
-import { isConfigEnabled } from '../utils';
+import { isConfigEnabled, isConfigEffectivelyEnabled } from '../utils';
 import { patchLLMInferenceServiceConfig } from '../api/LLMInferenceServiceConfigs';
 
-const columns: SortableData<LLMInferenceServiceConfigKind>[] = [
-  { label: 'Name', field: 'name', sortable: false },
-  { label: 'Enabled', field: 'enabled', sortable: false },
-  { label: 'Routing type', field: 'routingType', sortable: false },
+export const columns: SortableData<LLMInferenceServiceConfigKind>[] = [
+  {
+    label: 'Name',
+    field: 'name',
+    sortable: (a, b) =>
+      getDisplayNameFromK8sResource(a).localeCompare(getDisplayNameFromK8sResource(b)),
+  },
+  {
+    label: 'Enabled',
+    field: 'enabled',
+    sortable: (a, b) =>
+      Number(isConfigEffectivelyEnabled(b)) - Number(isConfigEffectivelyEnabled(a)),
+    info: {
+      popover: 'When enabled, this configuration is available in the deployment wizard.',
+      popoverProps: { showClose: true },
+    },
+  },
+  {
+    label: 'Topology type',
+    field: 'topologyType',
+    sortable: (a, b) =>
+      getSupportedTopologiesLabel(a).localeCompare(getSupportedTopologiesLabel(b)),
+  },
   { label: '', field: 'kebab', sortable: false },
 ];
 
@@ -130,35 +150,19 @@ const RoutingConfigurationsTable: React.FC<RoutingConfigurationsTableProps> = ({
         )}
       />
       {deleteConfig && (
-        <ContentModal
+        <DeleteModal
           title="Delete llm-d routing configuration?"
-          onClose={() => setDeleteConfig(undefined)}
-          variant="small"
-          dataTestId="delete-routing-config-modal"
-          contents={
-            <>
-              Delete <strong>{getDisplayNameFromK8sResource(deleteConfig)}</strong>? This cannot be
-              undone. Out-of-the-box configurations cannot be deleted from the cluster from this UI
-              (disable them instead).
-            </>
-          }
-          buttonActions={[
-            {
-              label: 'Delete',
-              variant: 'danger',
-              onClick: handleDelete,
-              isLoading: isDeleting,
-              isDisabled: isDeleting,
-              dataTestId: 'delete-routing-config-confirm',
-            },
-            {
-              label: 'Cancel',
-              variant: 'link',
-              onClick: () => setDeleteConfig(undefined),
-              isDisabled: isDeleting,
-            },
-          ]}
-        />
+          onClose={() => {
+            setDeleteConfig(undefined);
+            setIsDeleting(false);
+          }}
+          submitButtonLabel="Delete routing configuration"
+          onDelete={handleDelete}
+          deleting={isDeleting}
+          deleteName={getDisplayNameFromK8sResource(deleteConfig)}
+        >
+          This action cannot be undone.
+        </DeleteModal>
       )}
     </>
   );

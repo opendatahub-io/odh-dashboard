@@ -36,7 +36,9 @@ import {
   t_global_text_color_regular as RegularColor,
   t_global_text_color_disabled as DisabledColor,
   t_global_text_color_status_danger_default as DangerColor,
-  t_global_text_color_status_warning_default as WarningColor,
+  t_global_color_status_warning_300 as WarningColor,
+  t_global_color_nonstatus_purple_400 as PurpleColor,
+  t_global_font_weight_body_bold as BoldWeight,
 } from '@patternfly/react-tokens';
 import {
   CheckCircleIcon,
@@ -47,6 +49,7 @@ import {
   OutlinedClockIcon,
 } from '@patternfly/react-icons';
 import type { PodContainerStatus } from '@odh-dashboard/k8s-core';
+import { TrackingOutcome } from '@odh-dashboard/ui-core';
 import { EventStatus, NotebookStatus } from '#~/types';
 import { EventKind, NotebookKind } from '#~/k8sTypes';
 import { useNotebookProgress, getNotebookDisplayName } from '#~/utilities/notebookControllerUtils';
@@ -61,9 +64,20 @@ import {
   KUEUE_STATUSES_OVERRIDE_WORKBENCH,
   type KueueWorkloadStatusWithMessage,
 } from '#~/concepts/kueue/types';
-import { getHumanReadableKueueMessage, getRequeuedMessage } from '#~/concepts/kueue/messageUtils';
-import { KUEUE_QUEUE_LABEL } from '#~/concepts/kueue/index';
+import {
+  getHumanReadableKueueMessage,
+  getRequeuedMessage,
+  formatQueuePosition,
+} from '#~/concepts/kueue/messageUtils';
+import { KUEUE_QUEUE_LABEL, getKueueStatusInfo } from '#~/concepts/kueue/index';
 import EventLog from '#~/concepts/k8s/EventLog/EventLog';
+import { fireMiscTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
+import {
+  fireWorkbenchProgressStepExpanded,
+  fireWorkbenchStatusModalAction,
+  getWorkbenchKueueTrackingProperties,
+  WorkbenchTrackingEvent,
+} from '#~/concepts/kueue/workbenchTracking';
 import NotebookStatusLabel from './NotebookStatusLabel';
 import './StartNotebookModal.scss';
 
@@ -98,6 +112,10 @@ const stepIcons: Record<EventStatus, React.ReactNode> = {
   [EventStatus.PENDING]: <OutlinedClockIcon />,
 };
 
+type StartNotebookModalButtonsContext = {
+  activeTab: string;
+};
+
 type StartNotebookModalProps = {
   notebook?: NotebookKind;
   isStarting: boolean;
@@ -108,7 +126,9 @@ type StartNotebookModalProps = {
   kueueStatus?: KueueWorkloadStatusWithMessage | null;
   containerStatuses?: PodContainerStatus[];
   onClose?: () => void;
-  buttons: React.ReactNode;
+  buttons: React.ReactNode | ((ctx: StartNotebookModalButtonsContext) => React.ReactNode);
+  /** When true, fire Workbench Status Modal Action Clicked for close. */
+  trackStatusModalActions?: boolean;
 };
 
 type SpawnStatus = {
@@ -128,6 +148,7 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
   containerStatuses,
   onClose,
   buttons,
+  trackStatusModalActions = false,
 }) => {
   const [spawnStatus, setSpawnStatus] = React.useState<SpawnStatus | null>(null);
   const isError = notebookStatus?.currentStatus === EventStatus.ERROR;
@@ -174,6 +195,28 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
   const { isProjectKueueEnabled, isKueueFeatureEnabled } = useKueueConfiguration(project);
   const showResourcesTab = Boolean(isKueueFeatureEnabled && isProjectKueueEnabled);
   const [activeTab, setActiveTab] = React.useState<string>(PROGRESS_TAB);
+
+  const kueueTrackingInput = React.useMemo(
+    () => ({
+      kueueStatus: kueueStatus ?? null,
+      isStarting,
+      isRunning,
+      isStopping,
+    }),
+    [kueueStatus, isStarting, isRunning, isStopping],
+  );
+
+  const handleClose = React.useCallback(() => {
+    if (trackStatusModalActions) {
+      fireWorkbenchStatusModalAction(
+        'close',
+        TrackingOutcome.cancel,
+        activeTab,
+        kueueTrackingInput,
+      );
+    }
+    onClose?.();
+  }, [trackStatusModalActions, activeTab, kueueTrackingInput, onClose]);
 
   React.useEffect(() => {
     if (!showResourcesTab && activeTab === RESOURCES_TAB) {
@@ -236,18 +279,27 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
       return null;
     }
 
-    let color: string;
-    switch (spawnStatus?.status) {
-      case AlertVariant.danger:
-        color = DangerColor.var;
-        break;
-      case AlertVariant.warning:
-        color = WarningColor.var;
-        break;
-      default:
-        color = RegularColor.var;
-    }
+    const effectiveKueueStatus = showKueueMessage ? kueueStatus.status : undefined;
+    const kueueInfo =
+      effectiveKueueStatus != null ? getKueueStatusInfo(effectiveKueueStatus) : null;
 
+    let color: string;
+    if (kueueInfo?.status === 'danger') {
+      color = DangerColor.var;
+    } else if (showKueueMessage) {
+      color = RegularColor.var;
+    } else {
+      switch (spawnStatus?.status) {
+        case AlertVariant.danger:
+          color = DangerColor.var;
+          break;
+        case AlertVariant.warning:
+          color = WarningColor.var;
+          break;
+        default:
+          color = RegularColor.var;
+      }
+    }
     let kueueTitle: string | null = null;
     if (showKueueMessage) {
       const message =
@@ -258,12 +310,19 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
               kueueStatus.message,
               kueueStatus.queueName,
             );
-      kueueTitle =
+      if (
         kueueStatus.queuePosition != null &&
+        kueueStatus.queueName &&
         (kueueStatus.status === KueueWorkloadStatus.Queued ||
           kueueStatus.status === KueueWorkloadStatus.Inadmissible)
-          ? `${message} (position ${kueueStatus.queuePosition})`
-          : message;
+      ) {
+        kueueTitle = `${message} (${formatQueuePosition(
+          kueueStatus.queuePosition,
+          kueueStatus.queueName,
+        )})`;
+      } else {
+        kueueTitle = message;
+      }
     }
     const workbenchTitle =
       notebookStatus?.currentEvent ||
@@ -276,18 +335,32 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
 
     return (
       <StackItem>
-        <Flex gap={{ default: 'gapSm' }}>
-          {(!spawnStatus || spawnStatus.status === AlertVariant.info) && inProgress ? (
-            <FlexItem>
+        <Content component="p" style={{ color }} data-testid="notebook-latest-status">
+          {kueueInfo != null ? (
+            kueueInfo.status ? (
+              <Icon isInline status={kueueInfo.status}>
+                <kueueInfo.IconComponent className={kueueInfo.iconClassName} />
+              </Icon>
+            ) : (
+              <Icon isInline>
+                <kueueInfo.IconComponent className={kueueInfo.iconClassName} />
+              </Icon>
+            )
+          ) : (!spawnStatus || spawnStatus.status === AlertVariant.info) && inProgress ? (
+            <Icon isInline>
               <InProgressIcon style={{ color: BrandIconColor.var }} className="ai-u-spin" />
-            </FlexItem>
-          ) : null}
-          <FlexItem>
-            <Content style={{ color }} data-testid="notebook-latest-status">
-              {title}
-            </Content>
-          </FlexItem>
-        </Flex>
+            </Icon>
+          ) : spawnStatus?.status === AlertVariant.danger ? (
+            <Icon isInline status="danger">
+              <ExclamationCircleIcon />
+            </Icon>
+          ) : spawnStatus?.status === AlertVariant.warning ? (
+            <Icon isInline status="warning">
+              <ExclamationTriangleIcon />
+            </Icon>
+          ) : null}{' '}
+          {title}
+        </Content>
       </StackItem>
     );
   };
@@ -427,61 +500,76 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
     );
   };
 
-  const treeData: TreeViewDataItem[] = React.useMemo(
-    () =>
-      notebookProgress.map((step) => {
-        const nodeId = `${step.stepKind}-${step.containerName ?? ''}`;
-        return {
-          id: nodeId,
+  const treeData: TreeViewDataItem[] = React.useMemo(() => {
+    const kueueInfoStatus = kueueStatus ? getKueueStatusInfo(kueueStatus.status).status : undefined;
+    const kueueLabelColor = kueueInfoStatus === 'danger' ? DangerColor.var : undefined;
+
+    return notebookProgress.map((step) => {
+      const nodeId = `${step.stepKind}-${step.containerName ?? ''}`;
+      return {
+        id: nodeId,
+        name: (
+          <Flex
+            component="span"
+            gap={{ default: 'gapSm' }}
+            alignItems={{ default: 'alignItemsFlexStart' }}
+            flexWrap={{ default: 'nowrap' }}
+            data-testid={`step-status-${step.status}`}
+          >
+            <FlexItem component="span" style={{ flexShrink: 0 }}>
+              {stepIcons[step.status]}
+            </FlexItem>
+            <FlexItem component="span">
+              {step.label}
+              {step.description && <Content component="small">{step.description}</Content>}
+            </FlexItem>
+          </Flex>
+        ),
+        children: step.subSteps?.map((sub) => ({
+          id: `${sub.stepKind}-${sub.containerName ?? ''}`,
           name: (
             <Flex
               component="span"
               gap={{ default: 'gapSm' }}
               alignItems={{ default: 'alignItemsFlexStart' }}
               flexWrap={{ default: 'nowrap' }}
-              data-testid={`step-status-${step.status}`}
+              data-testid={`step-status-${sub.status}`}
             >
               <FlexItem component="span" style={{ flexShrink: 0 }}>
-                {stepIcons[step.status]}
+                {stepIcons[sub.status]}
               </FlexItem>
               <FlexItem component="span">
-                {step.label}
-                {step.description && <Content component="small">{step.description}</Content>}
+                <span
+                  style={
+                    sub.stepKind === 'kueue' &&
+                    kueueLabelColor &&
+                    sub.status !== EventStatus.SUCCESS
+                      ? { color: kueueLabelColor }
+                      : undefined
+                  }
+                >
+                  {sub.label}
+                </span>
+                {sub.description && <Content component="small">{sub.description}</Content>}
               </FlexItem>
             </Flex>
           ),
-          children: step.subSteps?.map((sub) => ({
-            id: `${sub.stepKind}-${sub.containerName ?? ''}`,
-            name: (
-              <Flex
-                component="span"
-                gap={{ default: 'gapSm' }}
-                alignItems={{ default: 'alignItemsFlexStart' }}
-                flexWrap={{ default: 'nowrap' }}
-                data-testid={`step-status-${sub.status}`}
-              >
-                <FlexItem component="span" style={{ flexShrink: 0 }}>
-                  {stepIcons[sub.status]}
-                </FlexItem>
-                <FlexItem component="span">
-                  {sub.label}
-                  {sub.description && <Content component="small">{sub.description}</Content>}
-                </FlexItem>
-              </Flex>
-            ),
-          })),
-          defaultExpanded: expandedNodeIds.has(nodeId),
-          isExpanded: expandedNodeIds.has(nodeId),
-        };
-      }),
-    [notebookProgress, expandedNodeIds],
-  );
+        })),
+        defaultExpanded: expandedNodeIds.has(nodeId),
+        isExpanded: expandedNodeIds.has(nodeId),
+      };
+    });
+  }, [notebookProgress, expandedNodeIds, kueueStatus]);
 
   const renderProgress = () => (
     <Flex direction={{ default: 'column' }} gap={{ default: 'gapMd' }} style={{ height: '100%' }}>
       <FlexItem>
         <HelperText>
-          <HelperTextItem variant="indeterminate" icon={<InfoCircleIcon />}>
+          <HelperTextItem
+            variant="indeterminate"
+            icon={<InfoCircleIcon style={{ color: PurpleColor.var }} />}
+            style={{ fontWeight: BoldWeight.var }}
+          >
             Steps may repeat or occur in any order, depending on the workbench&apos;s priority in
             the queue and current resource availability.
           </HelperTextItem>
@@ -505,6 +593,14 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
                 next.delete(id);
                 return next;
               });
+              const parentStep = notebookProgress.find(
+                (step) => `${step.stepKind}-${step.containerName ?? ''}` === id,
+              );
+              const subStep = notebookProgress
+                .flatMap((step) => step.subSteps ?? [])
+                .find((sub) => `${sub.stepKind}-${sub.containerName ?? ''}` === id);
+              const stepName = parentStep?.label ?? subStep?.label ?? id;
+              fireWorkbenchProgressStepExpanded(stepName, kueueStatus);
             }
           }}
           onCollapse={(_, item) => {
@@ -541,7 +637,7 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
       appendTo={document.body}
       variant={ModalVariant.small}
       isOpen
-      onClose={onClose}
+      onClose={handleClose}
       data-testid="notebook-status-modal"
     >
       <ModalHeader
@@ -570,7 +666,21 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
           <StackItem>
             <Tabs
               activeKey={activeTab}
-              onSelect={(_ev, tabIndex) => setActiveTab(`${tabIndex}`)}
+              onSelect={(_ev, tabIndex) => {
+                const nextTab = `${tabIndex}`;
+                if (nextTab !== activeTab) {
+                  const { primaryWorkbenchStatus, kueueSubState } =
+                    getWorkbenchKueueTrackingProperties(kueueTrackingInput);
+                  fireMiscTrackingEvent(WorkbenchTrackingEvent.StatusModalTabSwitched, {
+                    progressTab: nextTab === PROGRESS_TAB,
+                    eventlogTab: nextTab === EVENT_LOG_TAB,
+                    resourcesTab: nextTab === RESOURCES_TAB,
+                    primaryWorkbenchStatus,
+                    kueueSubState,
+                  });
+                }
+                setActiveTab(nextTab);
+              }}
               aria-label="status details"
             >
               <Tab
@@ -600,7 +710,7 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
           </StackItem>
         </Stack>
       </ModalBody>
-      <ModalFooter>{buttons}</ModalFooter>
+      <ModalFooter>{typeof buttons === 'function' ? buttons({ activeTab }) : buttons}</ModalFooter>
     </Modal>
   );
 };

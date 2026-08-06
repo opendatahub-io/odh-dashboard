@@ -4,7 +4,7 @@ import { normalizePhase } from '~/app/utilities/phaseLabelUtils';
 
 export const subscriptionsColumns: SortableData<MaaSSubscription>[] = [
   {
-    label: 'Name',
+    label: 'Subscription',
     field: 'name',
     sortable: (a: MaaSSubscription, b: MaaSSubscription): number =>
       (a.displayName ?? a.name).localeCompare(b.displayName ?? b.name),

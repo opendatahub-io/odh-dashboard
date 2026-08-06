@@ -9,6 +9,18 @@ class NotebookRow extends TableRow {
   findDisplayedSoftware() {
     return this.find().findByTestId('displayed-software');
   }
+
+  findEnableSwitch() {
+    return this.find().find('[data-label=Enable]').find('[role=switch]');
+  }
+
+  clickEnableSwitch() {
+    return this.findEnableSwitch().click({ force: true });
+  }
+
+  findEnableSwitchInput() {
+    return this.find().find('[data-label=Enable]').find('[role=switch]');
+  }
 }
 class NotebookImageSettingsTableToolbar extends Contextual<HTMLElement> {
   findToggleButton(id: string) {
@@ -99,6 +111,20 @@ class TabRow extends TableRow {
 class NotebookImageDeleteModal extends DeleteModal {
   findAlertMessage() {
     return this.find().findByTestId('delete-model-error-message-alert');
+  }
+}
+
+class DisableLastImageModal extends Modal {
+  constructor() {
+    super('Disable last enabled image?');
+  }
+
+  findDisableButton() {
+    return this.find().findByTestId('confirm-disable-button');
+  }
+
+  findCancelButton() {
+    return this.find().findByTestId('cancel-disable-button');
   }
 }
 
@@ -241,3 +267,4 @@ export const notebookImageSettings = new NotebookImageSettings();
 export const importNotebookImageModal = new ImportUpdateNotebookImageModal();
 export const updateNotebookImageModal = new ImportUpdateNotebookImageModal(true);
 export const notebookImageDeleteModal = new NotebookImageDeleteModal();
+export const disableLastImageModal = new DisableLastImageModal();

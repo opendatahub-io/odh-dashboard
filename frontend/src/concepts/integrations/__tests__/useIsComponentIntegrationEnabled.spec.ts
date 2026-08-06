@@ -1,11 +1,11 @@
 import React, { act } from 'react';
 import { renderHook } from '@testing-library/react';
-import { IntegrationAppStatus } from '#~/types';
 import {
-  useIsComponentIntegrationEnabled,
+  type IntegrationsStatusContextType,
+  IntegrationAppStatus,
   isEnabled,
-} from '#~/concepts/integrations/useIsComponentIntegrationEnabled';
-import { IntegrationsStatusContextType } from '#~/concepts/integrations/IntegrationsStatusContext';
+} from '@odh-dashboard/plugin-core/integrations';
+import { useIsComponentIntegrationEnabled } from '#~/concepts/integrations/useIsComponentIntegrationEnabled';
 
 // Mock React.useContext directly
 jest.mock('react', () => ({

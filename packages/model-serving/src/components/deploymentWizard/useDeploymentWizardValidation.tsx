@@ -4,7 +4,6 @@ import { useZodFormValidation } from '@odh-dashboard/ui-core/hooks/useZodFormVal
 import { isK8sNameDescriptionDataValid } from '@odh-dashboard/k8s-core';
 import { useValidation } from '@odh-dashboard/ui-core/utilities/useValidation';
 import { hardwareProfileValidationSchema } from '@odh-dashboard/hardware-profiles/shared';
-import { resolveFieldValue, type WizardField, type WizardFormData } from './types';
 import {
   modelSourceStepBaseSchema,
   modelSourceStepRefinement,
@@ -19,6 +18,11 @@ import { modelFormatFieldSchema } from './fields/ModelFormatField';
 import { isValidProjectName } from './fields/ProjectSection';
 import { getStateKey } from './dynamicFormUtils';
 import { isNonSingleNodeTopologyActive } from './topologyUtils';
+import {
+  resolveFieldValue,
+  type WizardField,
+  type WizardFormData,
+} from '../../shared/types/form-data';
 
 export type ModelDeploymentWizardValidation = {
   modelSource: ReturnType<typeof useZodFormValidation<ModelSourceStepData>>;

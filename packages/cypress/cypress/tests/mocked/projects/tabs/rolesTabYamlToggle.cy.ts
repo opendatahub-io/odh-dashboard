@@ -2,11 +2,8 @@
  * Tests for the Form/YAML toggle on the Create Role page: toggle visibility,
  * switching between views, YAML content verification, and data preservation.
  */
-import {
-  mockDashboardConfig,
-  mockK8sResourceList,
-  mockProjectK8sResource,
-} from '@odh-dashboard/internal/__mocks__';
+import { mockDashboardConfig, mockK8sResourceList } from '@odh-dashboard/internal/__mocks__';
+import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import {
   ClusterRoleModel,
   ProjectModel,
@@ -52,7 +49,7 @@ describe('Create Role - Form/YAML toggle', () => {
     projectRoles.findYamlViewToggle().click();
 
     projectRoles.findYamlView().should('exist');
-    projectRoles.findCreateRoleForm().should('not.be.visible');
+    projectRoles.findCreateRoleForm().should('not.exist');
     cy.testA11y();
   });
 

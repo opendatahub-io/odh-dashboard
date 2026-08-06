@@ -33,7 +33,7 @@ type InlineGuardrailConfig struct {
 type InlineGuardrailModel struct {
 	Type       string                 `json:"type"`                 // always "main"
 	Engine     string                 `json:"engine,omitempty"`     // "openai" for OpenAI-compatible endpoints
-	Parameters map[string]interface{} `json:"parameters,omitempty"` // openai_api_base, model_name, api_key
+	Parameters map[string]interface{} `json:"parameters,omitempty"` // base_url, model_name, api_key
 }
 
 // InlineGuardrailRails specifies which rails to activate.

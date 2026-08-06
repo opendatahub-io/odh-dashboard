@@ -2,6 +2,7 @@
 # model serving
 projectResourceName: 'test-apikeys-deployment'
 singleModelName: 'test-apikeys-model'
+singleModelDescription: 'Model for testing MaaS'
 connectionNameSuffix: '-connection'
 modelLocationURI: 'hf://facebook/opt-125m'
 # Subscriptions

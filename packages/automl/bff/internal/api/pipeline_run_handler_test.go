@@ -42,6 +42,7 @@ func newMinimalTestApp() *App {
 	return &App{
 		config: config.EnvConfig{
 			AuthMethod:                         config.AuthMethodInternal,
+			MockPipelineServerClient:           true,
 			AutoMLTimeSeriesPipelineNamePrefix: "autogluon-timeseries-training-pipeline",
 			AutoMLTabularPipelineNamePrefix:    "autogluon-tabular-training-pipeline",
 		},
@@ -400,6 +401,31 @@ func TestCreatePipelineRunHandler_ResponseContract(t *testing.T) {
 		assert.Equal(t, "data/train.csv", params["train_data_file_key"])
 		assert.Equal(t, "target", params["label_column"])
 		assert.Equal(t, "binary", params["task_type"])
+	})
+
+	t.Run("should reject non-ASCII label_column", func(t *testing.T) {
+		arabicLabel := "لديه روح"
+		body := map[string]string{
+			"display_name":           "test-run",
+			"train_data_secret_name": "minio-secret",
+			"train_data_bucket_name": "automl-bucket",
+			"train_data_file_key":    "data/train.csv",
+			"label_column":           arabicLabel,
+			"task_type":              "binary",
+		}
+		b, err := json.Marshal(body)
+		assert.NoError(t, err)
+
+		url := "/api/v1/pipeline-runs?namespace=test-namespace&pipelineServerId=dspa"
+		req, err := http.NewRequest(http.MethodPost, url, bytes.NewReader(b))
+		assert.NoError(t, err)
+		req.Header.Set("Content-Type", "application/json; charset=utf-8")
+
+		rr := httptest.NewRecorder()
+		app.CreatePipelineRunHandler(rr, withPipelineClient(req, mockClient), nil)
+
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+		assert.Contains(t, rr.Body.String(), "ASCII")
 	})
 
 	t.Run("should include runtime_config with submitted timeseries parameters", func(t *testing.T) {

@@ -12,7 +12,19 @@ jest.mock('react-router-dom', () => ({
   useParams: () => ({ tab: mockTab }),
 }));
 
-jest.mock('@odh-dashboard/internal/pages/ApplicationsPage', () => {
+jest.mock('~/app/hooks/useSubscriptionPolicyFormData', () => ({
+  useSubscriptionPolicyFormData: () => [
+    {
+      groups: [],
+      modelRefs: [{ name: 'model-1' }],
+      subscriptions: [{ name: 'sub-1' }],
+      policies: [{ name: 'policy-1' }],
+    },
+    true,
+  ],
+}));
+
+jest.mock('@odh-dashboard/ui-core', () => {
   const MockApplicationsPage = (
     props: React.PropsWithChildren<{ title: string; description: React.ReactNode }>,
   ) => (
@@ -23,7 +35,10 @@ jest.mock('@odh-dashboard/internal/pages/ApplicationsPage', () => {
     </div>
   );
   MockApplicationsPage.displayName = 'MockApplicationsPage';
-  return { __esModule: true, default: MockApplicationsPage };
+  return {
+    ...jest.requireActual('@odh-dashboard/ui-core'),
+    ApplicationsPage: MockApplicationsPage,
+  };
 });
 
 jest.mock('~/app/pages/subscription-management/OverviewTab', () => {
@@ -55,16 +70,16 @@ describe('SubscriptionManagementPage', () => {
   it('should show title and description', () => {
     render(<SubscriptionManagementPage />);
 
-    expect(screen.getByTestId('app-page-title')).toHaveTextContent('Subscription management');
+    expect(screen.getByTestId('app-page-title')).toHaveTextContent('MaaS governance');
     expect(screen.getByTestId('app-page-description')).toHaveTextContent(
       'Manage subscriptions and authorization policies',
     );
   });
 
-  it('should render all three tabs', () => {
+  it('should render subscriptions, authorization policies, and overview tabs', () => {
     render(<SubscriptionManagementPage />);
 
-    expect(screen.getByTestId('overview-tab')).toBeInTheDocument();
+    expect(screen.queryByTestId('overview-tab')).toBeInTheDocument();
     expect(screen.getByTestId('subscriptions-tab')).toBeInTheDocument();
     expect(screen.getByTestId('auth-policies-tab')).toBeInTheDocument();
   });
@@ -101,9 +116,9 @@ describe('SubscriptionManagementPage', () => {
     render(<SubscriptionManagementPage />);
 
     fireEvent.click(screen.getByTestId('subscriptions-tab'));
-    expect(mockNavigate).toHaveBeenCalledWith('/maas/subscription-management/subscriptions');
+    expect(mockNavigate).toHaveBeenCalledWith('/maas/maas-governance/subscriptions');
 
     fireEvent.click(screen.getByTestId('auth-policies-tab'));
-    expect(mockNavigate).toHaveBeenCalledWith('/maas/subscription-management/auth-policies');
+    expect(mockNavigate).toHaveBeenCalledWith('/maas/maas-governance/auth-policies');
   });
 });

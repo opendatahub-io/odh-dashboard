@@ -160,8 +160,8 @@ describe('transformStageMapNodesToTree', () => {
     const topologyNodes = [
       makeMockNode('rag_optimization__validate_inputs', 'Validate inputs'),
       makeMockNode('rag_optimization__optimize_templates', 'Optimize templates'),
-      makeMockNode('rag_optimization__branch-0__step__chunking', 'Chunking'),
-      makeMockNode('rag_optimization__branch-1__step__chunking', 'Chunking'),
+      makeMockNode('rag_optimization__branch-0__step__chunking', 'Chunk documents'),
+      makeMockNode('rag_optimization__branch-1__step__chunking', 'Chunk documents'),
       makeMockNode('rag_optimization__pattern__branch-0', 'Pattern 1'),
       makeMockNode('rag_optimization__pattern__branch-1', 'Pattern 2'),
     ];
@@ -203,7 +203,7 @@ describe('transformStageMapNodesToTree', () => {
       makeMockNode('rag_optimization__validate_inputs', 'Validate inputs'),
       makeMockNode('rag_optimization__step__validation', 'Step validation'),
       makeMockNode('rag_optimization__optimize_templates', 'Optimize templates'),
-      makeMockNode('rag_optimization__step__chunking__branch-0', 'Chunking'),
+      makeMockNode('rag_optimization__step__chunking__branch-0', 'Chunk documents'),
       makeMockNode('rag_optimization__pattern__branch-0', 'Pattern 1'),
       makeMockNode('rag_optimization__run_optimization', 'Run optimization'),
     ];
@@ -232,12 +232,12 @@ describe('transformStageMapNodesToTree', () => {
     const topologyNodes = [
       makeMockNode('rag_optimization__validate_inputs', 'Validate inputs'),
       makeMockNode('rag_optimization__optimize_templates', 'Optimize templates'),
-      makeMockNode('rag_optimization__step__chunking__branch-0', 'Chunking'),
+      makeMockNode('rag_optimization__step__chunking__branch-0', 'Chunk documents'),
       makeMockNode('rag_optimization__pattern__branch-0', 'Pattern 1'),
       makeMockNode('rag_optimization__run_optimization', 'Run optimization'),
       makeMockNode('rag_optimization2__validate_inputs', 'Validate inputs'),
       makeMockNode('rag_optimization2__optimize_templates', 'Optimize templates'),
-      makeMockNode('rag_optimization2__step__chunking__branch-0', 'Chunking'),
+      makeMockNode('rag_optimization2__step__chunking__branch-0', 'Chunk documents'),
       makeMockNode('rag_optimization2__pattern__branch-0', 'Pattern 2'),
       makeMockNode('rag_optimization2__run_optimization', 'Run optimization'),
     ];
@@ -261,7 +261,7 @@ describe('transformStageMapNodesToTree', () => {
     const topologyNodes = [
       makeMockNode('rag_optimization__validate_inputs', 'Validate inputs'),
       makeMockNode('rag_optimization__optimize_templates', 'Optimize templates'),
-      makeMockNode(invalidBranchId, 'Chunking'),
+      makeMockNode(invalidBranchId, 'Chunk documents'),
       makeMockNode('rag_optimization__run_optimization', 'Run optimization'),
     ];
 

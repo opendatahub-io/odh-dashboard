@@ -108,6 +108,8 @@ func listInferenceServices(ctx context.Context, client dynamic.Interface, namesp
 		name := obj.GetName()
 		var url string
 		var ready bool
+		var modelFormatName string
+		var apiProtocol string
 
 		if status, ok := obj.Object["status"].(map[string]interface{}); ok {
 			// Prefer status.address.url (includes the real container port for
@@ -137,10 +139,28 @@ func listInferenceServices(ctx context.Context, client dynamic.Interface, namesp
 			}
 		}
 
+		// Extract model format and protocol from spec.predictor.model
+		if spec, ok := obj.Object["spec"].(map[string]interface{}); ok {
+			if predictor, ok := spec["predictor"].(map[string]interface{}); ok {
+				if model, ok := predictor["model"].(map[string]interface{}); ok {
+					if mf, ok := model["modelFormat"].(map[string]interface{}); ok {
+						if n, ok := mf["name"].(string); ok {
+							modelFormatName = n
+						}
+					}
+					if pv, ok := model["protocolVersion"].(string); ok {
+						apiProtocol = pv
+					}
+				}
+			}
+		}
+
 		items = append(items, models.InferenceServiceItem{
-			Name:  name,
-			URL:   url,
-			Ready: ready,
+			Name:            name,
+			URL:             url,
+			Ready:           ready,
+			ModelFormatName: modelFormatName,
+			APIProtocol:     apiProtocol,
 		})
 	}
 

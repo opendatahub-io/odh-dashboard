@@ -6,10 +6,10 @@ import {
   mockDashboardConfig,
   mockGroupRoleBindingSubject,
   mockK8sResourceList,
-  mockProjectK8sResource,
   mockRoleK8sResource,
   mockUserRoleBindingSubject,
 } from '@odh-dashboard/internal/__mocks__';
+import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import { mockRoleBindingK8sResource } from '@odh-dashboard/internal/__mocks__/mockRoleBindingK8sResource';
 import {
   ClusterRoleModel,

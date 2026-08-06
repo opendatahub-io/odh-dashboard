@@ -50,6 +50,7 @@ export enum SupportedArea {
 
   /* Model Serving areas */
   MODEL_SERVING = 'model-serving-shell',
+  MODEL_DEPLOYMENT_SETTINGS = 'model-deployment-settings',
   CUSTOM_RUNTIMES = 'custom-serving-runtimes',
   K_SERVE = 'kserve',
   K_SERVE_AUTH = 'kserve-auth',
@@ -69,7 +70,6 @@ export enum SupportedArea {
   LLMD_GATEWAY_FIELD = 'llmd-gateway-field',
   MY_SUBSCRIPTIONS = 'my-subscriptions',
   EXTERNAL_MODELS = 'external-models',
-  MAAS_SETTINGS_IA_REDESIGN = 'maas-settings-ia-redesign',
 
   /* Distributed Workloads areas */
   DISTRIBUTED_WORKLOADS = 'distributed-workloads',
@@ -93,6 +93,7 @@ export enum SupportedArea {
 
   /* Feature store */
   FEATURE_STORE = 'feature-store',
+  FEATURE_STORE_ADMIN = 'feature-store-admin',
 
   /* Model Training */
   MODEL_TRAINING = 'model-training',
@@ -123,6 +124,9 @@ export enum SupportedArea {
 
   /* Connection Test */
   CONNECTION_TEST = 'connection-test',
+
+  /* Model Capabilities */
+  MODEL_CAPABILITIES = 'model-capabilities',
 }
 
 export type SupportedAreaType = SupportedArea | string;

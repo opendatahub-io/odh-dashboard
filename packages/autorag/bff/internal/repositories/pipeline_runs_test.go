@@ -267,7 +267,7 @@ func TestBuildKFPRunRequest(t *testing.T) {
 		assert.Equal(t, "balanced", result.RuntimeConfig.Parameters["preset"])
 	})
 
-	t.Run("should default optimization_metric to faithfulness", func(t *testing.T) {
+	t.Run("should default optimization_metric to the configured default", func(t *testing.T) {
 		req := newValidCreateRequest()
 		result := BuildKFPRunRequest(req, testPipelineID, testPipelineVersionID)
 

@@ -1,7 +1,6 @@
 import * as React from 'react';
 import { Flex } from '@patternfly/react-core';
-// eslint-disable-next-line @odh-dashboard/no-restricted-imports
-import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
+import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import FeatureStoreDataSourceListView from './dataSourceTable/FeatureStoreDataSourceListView';
 import FeatureStoreProjectSelectorNavigator from '../components/FeatureStoreProjectSelectorNavigator';
 import { featureStoreRoute } from '../../routes';

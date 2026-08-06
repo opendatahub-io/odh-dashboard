@@ -112,6 +112,12 @@ const OPTIMIZATION_METRICS: {
   description: string;
 }[] = [
   {
+    value: RAG_METRIC_OVERALL_SCORE,
+    label: OPTIMIZATION_METRIC_LABELS[RAG_METRIC_OVERALL_SCORE],
+    description:
+      'An equal-weight mean of all other selectable metrics, representing overall pattern performance.',
+  },
+  {
     value: RAG_METRIC_FAITHFULNESS,
     label: OPTIMIZATION_METRIC_LABELS[RAG_METRIC_FAITHFULNESS],
     description: 'How factually grounded the answer is in the retrieved context.',
@@ -120,12 +126,6 @@ const OPTIMIZATION_METRICS: {
     value: RAG_METRIC_ANSWER_CORRECTNESS,
     label: OPTIMIZATION_METRIC_LABELS[RAG_METRIC_ANSWER_CORRECTNESS],
     description: 'How correct the generated answer is compared to the ground truth.',
-  },
-  {
-    value: RAG_METRIC_OVERALL_SCORE,
-    label: OPTIMIZATION_METRIC_LABELS[RAG_METRIC_OVERALL_SCORE],
-    description:
-      'An equal-weight mean of all other selectable metrics, representing overall pattern performance.',
   },
 ];
 

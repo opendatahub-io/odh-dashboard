@@ -1,4 +1,4 @@
-import type { RefreshIntervalTitle } from '@odh-dashboard/internal/concepts/metrics/types';
+import type { RefreshIntervalTitle } from '@odh-dashboard/ui-core/types/metrics';
 import { appChrome } from './appChrome';
 import { SearchSelector } from './components/subComponents/SearchSelector';
 

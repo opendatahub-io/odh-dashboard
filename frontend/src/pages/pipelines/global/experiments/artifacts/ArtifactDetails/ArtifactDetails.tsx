@@ -16,8 +16,8 @@ import {
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
+import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import { PipelineCoreDetailsPageComponent } from '#~/concepts/pipelines/content/types';
-import ApplicationsPage from '#~/pages/ApplicationsPage';
 import {
   getArtifactName,
   getIsArtifactModelRegistered,

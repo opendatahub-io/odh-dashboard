@@ -3,14 +3,17 @@ import type {
   OverviewSectionExtension,
   ProjectDetailsTab,
   RouteExtension,
+  TabRoutePageExtension,
   TabRouteTabExtension,
 } from '@odh-dashboard/plugin-core/extension-points';
 import { SupportedArea } from '@odh-dashboard/plugin-core/areas';
 import type { WizardFieldExtension } from '@odh-dashboard/model-serving/extension-points/deployment-wizard';
 import type { DeploymentMethodSelectFieldType } from '../src/components/deploymentWizard/fields/DeploymentMethodSelectField';
 
+const ADMIN_USER = 'ADMIN_USER';
+
 const createRedirectComponent = (args: { from: string; to: string }) => () =>
-  import('@odh-dashboard/internal/utilities/v2Redirect').then((module) => ({
+  import('@odh-dashboard/plugin-core/routing').then((module) => ({
     default: () => module.buildV2RedirectElement(args),
   }));
 
@@ -32,6 +35,7 @@ const extensions: (
   | ProjectDetailsTab
   | RouteExtension
   | OverviewSectionExtension
+  | TabRoutePageExtension
   | TabRouteTabExtension
   | WizardFieldExtension<DeploymentMethodSelectFieldType>
 )[] = [
@@ -83,7 +87,7 @@ const extensions: (
   {
     type: 'app.route',
     properties: {
-      path: '/ai-hub/models/deployments/deploy',
+      path: '/ai-hub/models/deployments/deploy/*',
       component: () => import('../src/ModelDeploymentWizardRoutes'),
     },
     flags: {
@@ -118,6 +122,70 @@ const extensions: (
     },
   },
   deploymentMethodFieldExtension,
+  // Model deployment settings tabbed page
+  {
+    type: 'app.tab-route/page',
+    flags: {
+      required: [SupportedArea.MODEL_DEPLOYMENT_SETTINGS, ADMIN_USER],
+    },
+    properties: {
+      id: 'model-deployment-settings',
+      title: 'Model deployment settings',
+      href: '/settings/model-resources-operations/model-deployment-settings',
+      path: '/settings/model-resources-operations/model-deployment-settings/*',
+      section: 'settings-model-resources-and-operations',
+      group: '1_model-resources',
+    },
+  },
+  // General settings tab in the Model deployment settings page
+  {
+    type: 'app.tab-route/tab',
+    flags: {
+      required: [SupportedArea.MODEL_DEPLOYMENT_SETTINGS, ADMIN_USER],
+    },
+    properties: {
+      pageId: 'model-deployment-settings',
+      id: 'general-settings',
+      title: 'General settings',
+      component: () => import('../src/components/settings/GeneralSettingsTab'),
+      group: '1_general',
+    },
+  },
+  // Redirect old serving runtimes URL to the new model deployment settings page
+  {
+    type: 'app.route',
+    properties: {
+      path: '/settings/model-resources-operations/serving-runtimes/*',
+      component: createRedirectComponent({
+        from: '/settings/model-resources-operations/serving-runtimes/*',
+        to: '/settings/model-resources-operations/model-deployment-settings/serving-runtime-templates/*',
+      }),
+    },
+    flags: {
+      required: [
+        SupportedArea.MODEL_DEPLOYMENT_SETTINGS,
+        SupportedArea.CUSTOM_RUNTIMES,
+        ADMIN_USER,
+      ],
+    },
+  },
+  {
+    type: 'app.route',
+    properties: {
+      path: '/servingRuntimes/*',
+      component: createRedirectComponent({
+        from: '/servingRuntimes/*',
+        to: '/settings/model-resources-operations/model-deployment-settings/serving-runtime-templates/*',
+      }),
+    },
+    flags: {
+      required: [
+        SupportedArea.MODEL_DEPLOYMENT_SETTINGS,
+        SupportedArea.CUSTOM_RUNTIMES,
+        ADMIN_USER,
+      ],
+    },
+  },
 ];
 
 export default extensions;

@@ -3,6 +3,9 @@
   "version": "2.0.0",
   "license": "Apache-2.0",
   "private": true,
+  "bin": {
+    "unit-test-coverage-aggregator": "scripts/unit-test-coverage-aggregator.js"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/opendatahub-io/odh-dashboard.git"
@@ -21,12 +24,13 @@
     "frontend/src",
     "packages/*",
     "distributions/base",
+    "distributions/core-bff",
     "distributions/rhaii",
     "packages/model-serving/cypress"
   ],
   "scripts": {
     "build": "run-p -l build:*",
-    "build:backend": "npm run build --prefix packages/app-config && npm run build --prefix backend",
+    "build:backend": "npm run build --prefix backend",
     "build:frontend": "npm run build --prefix frontend",
     "dev": "run-p -l dev:*",
     "dev:backend": "cd ./backend && npm run start:dev",
@@ -105,7 +109,7 @@
     "webpack": "5.104.1"
   },
   "lint-staged": {
-    "**/*.{js,ts,jsx,tsx,md}": [
+    "{,+([^.])*/**/}*.{js,ts,jsx,tsx,md}": [
       "npx eslint --max-warnings 0"
     ]
   },
@@ -138,6 +142,16 @@
     "form-data": "^4.0.5",
     "axios": "^1.17.0",
     "shell-quote": ">=1.8.4",
-    "webpack": "5.104.1"
+    "webpack": "5.104.1",
+    "serialize-javascript": ">=7.0.5",
+    "fast-uri": ">=3.1.4 <4.0.0",
+    "koa": ">=3.1.2",
+    "adm-zip": ">=0.6.0",
+    "@cypress/code-coverage": {
+      "js-yaml": ">=4.3.0"
+    },
+    "xmlbuilder2": {
+      "js-yaml": "^3.14.2"
+    }
   }
 }

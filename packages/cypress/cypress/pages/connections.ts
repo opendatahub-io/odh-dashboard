@@ -48,7 +48,9 @@ class ConnectionModal extends Modal {
   }
 
   findConnectionTypeDropdown() {
-    return this.find().findByTestId('connection-type-dropdown');
+    return this.find()
+      .findByTestId('connection-type-dropdown')
+      .findByTestId('typeahead-menu-toggle');
   }
 
   findConnectionTypeOption(name: string | RegExp) {

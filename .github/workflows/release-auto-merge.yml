@@ -89,15 +89,16 @@ jobs:
             KEEP_OURS_PATTERNS=(
               "frontend/.env"
               ".tekton/"
-              "manifests/modular-architecture/params.env"
+              "manifests/sidecar/params.env"
               "manifests/odh/params.env"
-              "manifests/modular-architecture/modules/model-registry/params.env"
-              "manifests/modular-architecture/modules/gen-ai/params.env"
-              "manifests/modular-architecture/modules/maas/params.env"
-              "manifests/modular-architecture/modules/mlflow/params.env"
-              "manifests/modular-architecture/modules/eval-hub/params.env"
-              "manifests/modular-architecture/modules/automl/params.env"
-              "manifests/modular-architecture/modules/autorag/params.env"
+              "manifests/modules/model-registry/params.env"
+              "manifests/modules/gen-ai/params.env"
+              "manifests/modules/maas/params.env"
+              "manifests/modules/mlflow/params.env"
+              "manifests/modules/eval-hub/params.env"
+              "manifests/modules/automl/params.env"
+              "manifests/modules/autorag/params.env"
+              "manifests/modules/agent-ops/params.env"
             )
             
             # Get list of conflicted files
@@ -181,28 +182,33 @@ jobs:
           sed -i "s|odh-dashboard-image=quay.io/opendatahub/odh-dashboard:.*|odh-dashboard-image=quay.io/opendatahub/odh-dashboard:${NEW_VERSION}-odh|" manifests/odh/params.env
           echo "Updated manifests/odh/params.env"
           
-          # Update manifests/modular-architecture/params.env (model-registry-ui-image, gen-ai-ui-image, maas-ui-image)
-          sed -i "s|model-registry-ui-image=quay.io/opendatahub/odh-mod-arch-modular-architecture:.*|model-registry-ui-image=quay.io/opendatahub/odh-mod-arch-modular-architecture:${NEW_VERSION}-odh|" manifests/modular-architecture/params.env
-          sed -i "s|gen-ai-ui-image=quay.io/opendatahub/odh-mod-arch-gen-ai:.*|gen-ai-ui-image=quay.io/opendatahub/odh-mod-arch-gen-ai:${NEW_VERSION}-odh|" manifests/modular-architecture/params.env
-          sed -i "s|maas-ui-image=quay.io/opendatahub/mod-arch-maas:.*|maas-ui-image=quay.io/opendatahub/mod-arch-maas:${NEW_VERSION}-odh|" manifests/modular-architecture/params.env
-          echo "Updated manifests/modular-architecture/params.env"
+          # Update manifests/sidecar/params.env (model-registry-ui-image, gen-ai-ui-image, maas-ui-image)
+          sed -i "s|model-registry-ui-image=quay.io/opendatahub/odh-mod-arch-modular-architecture:.*|model-registry-ui-image=quay.io/opendatahub/odh-mod-arch-modular-architecture:${NEW_VERSION}-odh|" manifests/sidecar/params.env
+          sed -i "s|gen-ai-ui-image=quay.io/opendatahub/odh-mod-arch-gen-ai:.*|gen-ai-ui-image=quay.io/opendatahub/odh-mod-arch-gen-ai:${NEW_VERSION}-odh|" manifests/sidecar/params.env
+          sed -i "s|maas-ui-image=quay.io/opendatahub/mod-arch-maas:.*|maas-ui-image=quay.io/opendatahub/mod-arch-maas:${NEW_VERSION}-odh|" manifests/sidecar/params.env
+          echo "Updated manifests/sidecar/params.env"
 
           # Keep per-module params.env in sync (kustomize load restrictions require local copies)
-          PARENT=manifests/modular-architecture/params.env
-          for params_file in manifests/modular-architecture/modules/*/params.env; do
+          PARENT=manifests/sidecar/params.env
+          for params_file in manifests/modules/*/params.env; do
             [[ -f "$params_file" ]] || continue
             while IFS= read -r line || [[ -n "$line" ]]; do
               [[ "$line" =~ ^# || -z "$line" ]] && continue
               key="${line%%=*}"
               parent_line=$(grep "^${key}=" "$PARENT" || true)
               [[ -n "$parent_line" ]] || continue
-              sed -i "s|^${key}=.*|${parent_line}|" "$params_file"
+              tmp_file="$(mktemp "${params_file}.XXXXXX")"
+              KEY="$key" REPLACEMENT="$parent_line" \
+                awk 'BEGIN { key = ENVIRON["KEY"]; replacement = ENVIRON["REPLACEMENT"] }
+                     index($0, key "=") == 1 { print replacement; next }
+                     { print }' "$params_file" > "$tmp_file"
+              mv "$tmp_file" "$params_file"
             done < "$params_file"
             echo "Synced $params_file"
           done
           
           # Commit version bump
-          git add frontend/.env manifests/odh/params.env manifests/modular-architecture/params.env manifests/modular-architecture/modules/*/params.env
+          git add frontend/.env manifests/odh/params.env manifests/sidecar/params.env manifests/modules/*/params.env
           git commit -m "Bump version to ${NEW_VERSION}"
           echo "Version bump committed"
 
@@ -229,8 +235,8 @@ jobs:
           ## Files updated
           - \`frontend/.env\`
           - \`manifests/odh/params.env\`
-          - \`manifests/modular-architecture/params.env\`
-          - \`manifests/modular-architecture/modules/*/params.env\`
+          - \`manifests/sidecar/params.env\`
+          - \`manifests/modules/*/params.env\`
 
           ---
           *This PR was automatically created by the release-auto-merge workflow.*"

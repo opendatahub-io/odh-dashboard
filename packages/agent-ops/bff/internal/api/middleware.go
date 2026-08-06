@@ -214,4 +214,3 @@ func (app *App) RequireAccessToService(next func(http.ResponseWriter, *http.Requ
 		next(w, r, ps)
 	}
 }
-

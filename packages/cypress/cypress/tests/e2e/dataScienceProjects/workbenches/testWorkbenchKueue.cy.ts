@@ -85,6 +85,9 @@ describe('Workbench Kueue Integration Tests', () => {
       cy.step('Submit the workbench creation');
       createSpawnerPage.findSubmitButton().click();
 
+      cy.step('Wait for notebook table to appear');
+      workbenchPage.findNotebookTable(30000).should('exist');
+
       cy.step('Wait for workbench to reach Running status');
       const notebookRow = workbenchPage.getNotebookRow(workbenchName);
       notebookRow.expectStatusLabelToBe(NotebookStatusLabel.Ready, 300000);
@@ -109,6 +112,9 @@ describe('Workbench Kueue Integration Tests', () => {
       projectListPage.filterProjectByName(projectName);
       projectListPage.findProjectLink(projectName).click();
       projectDetails.findSectionTab(sectionTab).click();
+
+      cy.step('Wait for notebook table to appear');
+      workbenchPage.findNotebookTable(30000).should('exist');
 
       cy.step('Click on workbench status to open modal');
       const notebookRow = workbenchPage.getNotebookRow(workbenchName);

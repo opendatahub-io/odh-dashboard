@@ -295,6 +295,10 @@ class NotebookRow extends TableRow {
     return this.find().findByTestId('notebook-status-text', { timeout });
   }
 
+  findNotebookStatusSubtitle(timeout = 10000) {
+    return this.find().findByTestId('notebook-status-subtitle', { timeout });
+  }
+
   expectStatusLabelToBe(statusValue: string, timeout?: number) {
     this.findHaveNotebookStatusText(timeout).should('have.text', statusValue);
   }

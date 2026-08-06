@@ -14,6 +14,7 @@ export type FeatureStoreFilterToolbarProps<T extends string> = React.ComponentPr
   currentFilterType?: T;
   onFilterTypeChange?: (filterType: T) => void;
   multipleLabels?: MultipleLabels<T>;
+  trackingResourceType?: import('../tracking/featureStoreTrackingConstants').FeatureStoreResourceType;
 };
 
 // Common types for toolbar functionality

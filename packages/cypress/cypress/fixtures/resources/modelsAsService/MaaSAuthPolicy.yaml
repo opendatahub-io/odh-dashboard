@@ -4,6 +4,7 @@ metadata:
   name: "{{POLICY_NAME}}"
   annotations:
     openshift.io/display-name: "{{POLICY_NAME}}"
+    openshift.io/description: "Model for testing MaaS"
   namespace: models-as-a-service
 spec:
   modelRefs:

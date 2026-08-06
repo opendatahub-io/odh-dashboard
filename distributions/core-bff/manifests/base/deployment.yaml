@@ -23,10 +23,11 @@ spec:
           type: RuntimeDefault
       volumes:
         - name: tmp
-          emptyDir: {}
+          emptyDir:
+            sizeLimit: 100Mi
       containers:
         - name: rhaii-dashboard
-          image: $(rhaii-dashboard-image)
+          image: rhaii-dashboard-image
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 4000
