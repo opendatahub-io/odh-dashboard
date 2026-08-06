@@ -455,7 +455,6 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
                             content={description}
                           />
                         )}
-                        {description && (identifiersText || kueueText) && <br />}
                         {identifiersText && <Truncate content={identifiersText} />}
                         {identifiersText && kueueText && <br />}
                         {kueueText && <Truncate content={kueueText} />}
