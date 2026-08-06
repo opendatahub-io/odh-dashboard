@@ -9,6 +9,7 @@ import (
 	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/bffclient"
 	"github.com/opendatahub-io/gen-ai/internal/models"
 )
 
@@ -76,7 +77,13 @@ func (app *App) GenAIProxyNSModelsHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	// Fetch MaaS models (best-effort — don't fail if MaaS BFF is unavailable)
+	// Fetch MaaS models (best-effort — don't fail if MaaS BFF is unavailable).
+	// Inject MaaS client into context inline (we don't use AttachBFFMaaSClient middleware
+	// because it returns 503 when bffClientFactory is nil, blocking the whole endpoint).
+	if app.bffClientFactory != nil && app.bffClientFactory.IsTargetConfigured(bffclient.BFFTargetMaaS) {
+		maasClient := app.bffClientFactory.CreateClient(bffclient.BFFTargetMaaS, identity.Token)
+		ctx = context.WithValue(ctx, constants.BFFClientKey(constants.BFFTarget(bffclient.BFFTargetMaaS)), maasClient)
+	}
 	maasModels, maasErr := app.fetchMaaSModels(ctx, namespace)
 	if maasErr != nil {
 		app.logger.Warn("GenAI proxy: failed to fetch MaaS models, continuing with namespace models only",
