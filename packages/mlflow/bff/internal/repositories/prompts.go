@@ -3,6 +3,7 @@ package repositories
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"strconv"
 	"strings"
 
@@ -11,6 +12,8 @@ import (
 	mlflow "github.com/opendatahub-io/mlflow/bff/internal/integrations/mlflow"
 	"github.com/opendatahub-io/mlflow/bff/internal/models"
 )
+
+const tagModelConfig = "_mlflow_prompt_model_config"
 
 // PromptsRepository handles MLflow prompt-related operations and data transformations.
 type PromptsRepository struct{}
@@ -55,6 +58,7 @@ func (r *PromptsRepository) ListPromptsWithClient(ctx context.Context, client ml
 
 	prompts := make([]models.Prompt, len(promptList.Prompts))
 	for i, p := range promptList.Prompts {
+		warnMalformedModelConfig(p.Name, p.Tags, p.ModelConfig)
 		prompts[i] = models.Prompt{
 			Name:              p.Name,
 			Description:       p.Description,
@@ -208,6 +212,8 @@ func toPromptVersion(pv *promptregistry.PromptVersion) *models.PromptVersion {
 		}
 	}
 
+	warnMalformedModelConfig(pv.Name, pv.Tags, pv.ModelConfig)
+
 	return &models.PromptVersion{
 		Name:          pv.Name,
 		Version:       pv.Version,
@@ -219,6 +225,13 @@ func toPromptVersion(pv *promptregistry.PromptVersion) *models.PromptVersion {
 		ModelConfig:   toModelConfig(pv.ModelConfig),
 		CreatedAt:     pv.CreatedAt,
 		UpdatedAt:     pv.UpdatedAt,
+	}
+}
+
+func warnMalformedModelConfig(promptName string, tags map[string]string, cfg *promptregistry.PromptModelConfig) {
+	if _, hasTag := tags[tagModelConfig]; hasTag && cfg == nil {
+		slog.Warn("prompt has malformed model config tag, returning null",
+			slog.String("prompt", promptName))
 	}
 }
 
