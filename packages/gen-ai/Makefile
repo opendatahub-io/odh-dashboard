@@ -68,10 +68,19 @@ dev-bff-mock-debug: ## Run BFF with all mocks and Delve debugger on port 2345
 	cd bff && make debug LOG_LEVEL=debug MOCK_LS_CLIENT=true MOCK_K8S_CLIENT=true MOCK_MCP_CLIENT=true MOCK_MLFLOW_CLIENT=true MOCK_BFF_CLIENTS=true AUTH_METHOD=disabled LLAMA_STACK_URL="" MAAS_URL="" DISTRIBUTION_NAME="mock-dev"
 
 MLFLOW_BFF_MOCK_PORT ?= 4020
+ifeq ($(MLFLOW_BFF_MOCK_PORT),)
+$(error MLFLOW_BFF_MOCK_PORT must be in range 1-65535)
+endif
 # Validate port is numeric (pure Make, no shell invocation)
 _MLFLOW_PORT_NONDIGIT := $(subst 0,,$(subst 1,,$(subst 2,,$(subst 3,,$(subst 4,,$(subst 5,,$(subst 6,,$(subst 7,,$(subst 8,,$(subst 9,,$(MLFLOW_BFF_MOCK_PORT)))))))))))
 ifneq ($(_MLFLOW_PORT_NONDIGIT),)
 $(error MLFLOW_BFF_MOCK_PORT must be numeric)
+endif
+ifeq ($(MLFLOW_BFF_MOCK_PORT),0)
+$(error MLFLOW_BFF_MOCK_PORT must be in range 1-65535)
+endif
+ifeq ($(shell test $(MLFLOW_BFF_MOCK_PORT) -gt 65535 && echo 1),1)
+$(error MLFLOW_BFF_MOCK_PORT must be in range 1-65535)
 endif
 
 .PHONY: dev-mlflow-bff-mock
