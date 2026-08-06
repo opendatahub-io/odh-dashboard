@@ -1,7 +1,9 @@
 import * as React from 'react';
+import { Link } from 'react-router-dom';
+import { Button, Popover, PopoverPosition } from '@patternfly/react-core';
 import { WhosMyAdministrator, KubeflowDocs } from 'mod-arch-shared';
 import { useThemeContext } from 'mod-arch-kubeflow';
-import { PopoverPosition } from '@patternfly/react-core';
+import { useAdminStatus } from '~/odh/context/AdminStatusContext';
 
 type AdminHelpActionProps = {
   buttonLabel?: string;
@@ -21,10 +23,35 @@ const AdminHelpAction: React.FC<AdminHelpActionProps> = ({
   popoverPosition = PopoverPosition.left,
 }) => {
   const { isMUITheme } = useThemeContext();
+  const { isAdmin, loaded, settingsUrl, settingsTitle } = useAdminStatus();
 
   if (isMUITheme) {
     return <KubeflowDocs buttonLabel={buttonLabel} linkTestId={linkTestId} />;
   }
+
+  if (loaded && isAdmin) {
+    return (
+      <Popover
+        headerContent={headerContent}
+        bodyContent={
+          <div data-testid={contentTestId}>
+            <p>
+              To create a new model registry, go to the <b>{settingsTitle}</b> page.
+            </p>
+            <Link to={settingsUrl}>
+              Go to <b>{settingsTitle}</b>
+            </Link>
+          </div>
+        }
+        position={popoverPosition}
+      >
+        <Button variant="link" data-testid={linkTestId}>
+          {buttonLabel}
+        </Button>
+      </Popover>
+    );
+  }
+
   return (
     <WhosMyAdministrator
       buttonLabel={buttonLabel}
