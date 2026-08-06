@@ -1,4 +1,7 @@
-import { PrometheusQueryRangeResponse, PrometheusQueryRangeResponseDataResult } from '#~/types';
+import type {
+  PrometheusQueryRangeResponse,
+  PrometheusQueryRangeResponseDataResult,
+} from '@odh-dashboard/ui-core/types/metrics';
 
 type MockPrometheusServingType = {
   result?: PrometheusQueryRangeResponseDataResult[];

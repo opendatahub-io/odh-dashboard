@@ -148,6 +148,16 @@ describe('buildWorkloadMapForNotebooks', () => {
     expect(result[TEST_NOTEBOOK_NAME]).toBe(wl);
   });
 
+  it('does not match a pod ownerRef when the owner name only shares a same-length prefix', () => {
+    const notebooks = [notebook('preempt-winner'), notebook('preempt-victim')];
+    const wl = workloadWithOwnerRefs('wl-collision', [{ kind: 'Pod', name: 'preempt-winner-0' }]);
+
+    const result = buildWorkloadMapForNotebooks([wl], notebooks);
+
+    expect(result['preempt-winner']).toBe(wl);
+    expect(result['preempt-victim']).toBeNull();
+  });
+
   it('compares ownerRef kind case-insensitively', () => {
     const wl = workloadWithOwnerRefs('wl-lower', [
       { kind: 'pod', name: `${TEST_NOTEBOOK_NAME}-0` },
