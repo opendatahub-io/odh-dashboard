@@ -37,11 +37,13 @@ var mcpServerGVR = schema.GroupVersionResource{
 }
 
 const (
-	mcpServerAPIVersion        = "mcp.x-k8s.io/v1alpha1"
-	mcpServerKind              = "MCPServer"
-	mcpDisplayNameAnnotation   = "mcp.opendatahub.io/display-name"
-	mcpCatalogServerAnnotation = "mcp.opendatahub.io/catalog-server"
-	defaultMcpPort             = int32(8080)
+	mcpServerAPIVersion          = "mcp.x-k8s.io/v1alpha1"
+	mcpServerKind                = "MCPServer"
+	mcpDisplayNameAnnotation     = "mcp.opendatahub.io/display-name"
+	mcpCatalogServerAnnotation   = "mcp.opendatahub.io/catalog-server"
+	mcpRegistryServerAnnotation  = "mcp.opendatahub.io/registry-server"
+	mcpRegistryVersionAnnotation = "mcp.opendatahub.io/registry-version"
+	defaultMcpPort               = int32(8080)
 )
 
 type McpDeploymentRepository struct {
@@ -274,13 +276,19 @@ func buildMcpServerFromCreateRequest(namespace string, req models.McpDeploymentC
 		},
 	}
 
-	if req.DisplayName != "" || req.ServerName != "" {
+	if req.DisplayName != "" || req.ServerName != "" || req.RegistryServer != "" || req.RegistryVersion != "" {
 		server.Metadata.Annotations = map[string]string{}
 		if req.DisplayName != "" {
 			server.Metadata.Annotations[mcpDisplayNameAnnotation] = req.DisplayName
 		}
 		if req.ServerName != "" {
 			server.Metadata.Annotations[mcpCatalogServerAnnotation] = req.ServerName
+		}
+		if req.RegistryServer != "" {
+			server.Metadata.Annotations[mcpRegistryServerAnnotation] = req.RegistryServer
+		}
+		if req.RegistryVersion != "" {
+			server.Metadata.Annotations[mcpRegistryVersionAnnotation] = req.RegistryVersion
 		}
 	}
 
@@ -331,11 +339,15 @@ func convertUnstructuredToMcpDeployment(obj unstructured.Unstructured) (models.M
 		Namespace:         server.Metadata.Namespace,
 		UID:               string(obj.GetUID()),
 		CreationTimestamp: obj.GetCreationTimestamp().UTC().Format("2006-01-02T15:04:05Z"),
+		Port:              server.Spec.Config.Port,
+		Path:              server.Spec.Config.Path,
 	}
 
 	if server.Metadata.Annotations != nil {
 		deployment.DisplayName = server.Metadata.Annotations[mcpDisplayNameAnnotation]
 		deployment.ServerName = server.Metadata.Annotations[mcpCatalogServerAnnotation]
+		deployment.RegistryServer = server.Metadata.Annotations[mcpRegistryServerAnnotation]
+		deployment.RegistryVersion = server.Metadata.Annotations[mcpRegistryVersionAnnotation]
 	}
 
 	if server.Spec.Source.ContainerImage != nil {
@@ -357,13 +369,19 @@ func convertUnstructuredToMcpDeployment(obj unstructured.Unstructured) (models.M
 func buildMcpDeploymentPatch(req models.McpDeploymentUpdateRequest) (map[string]interface{}, error) {
 	patch := map[string]interface{}{}
 
-	if req.DisplayName != nil || req.ServerName != nil {
+	if req.DisplayName != nil || req.ServerName != nil || req.RegistryServer != nil || req.RegistryVersion != nil {
 		annotations := map[string]interface{}{}
 		if req.DisplayName != nil {
 			annotations[mcpDisplayNameAnnotation] = *req.DisplayName
 		}
 		if req.ServerName != nil {
 			annotations[mcpCatalogServerAnnotation] = *req.ServerName
+		}
+		if req.RegistryServer != nil {
+			annotations[mcpRegistryServerAnnotation] = *req.RegistryServer
+		}
+		if req.RegistryVersion != nil {
+			annotations[mcpRegistryVersionAnnotation] = *req.RegistryVersion
 		}
 		patch["metadata"] = map[string]interface{}{
 			"annotations": annotations,

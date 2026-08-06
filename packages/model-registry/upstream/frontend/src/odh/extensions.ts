@@ -6,6 +6,7 @@ import type {
   AreaExtension,
   TabRouteTabExtension,
 } from '@odh-dashboard/plugin-core/extension-points';
+import type { McpCatalogDeployModalExtension } from '~/odh/extension-points';
 import {
   CATALOG_SETTINGS_PAGE_TITLE,
   catalogSettingsUrl,
@@ -27,6 +28,7 @@ const extensions: (
   | RouteExtension
   | AreaExtension
   | TabRouteTabExtension
+  | McpCatalogDeployModalExtension
   | Extension
 )[] = [
   {
@@ -309,6 +311,16 @@ const extensions: (
       label: 'Deploy model',
       group: 'model-catalog.deploy',
       component: () => import('./components/CatalogDeployAction'),
+    },
+  },
+  {
+    type: 'mcp-catalog.server/deploy-modal',
+    // Gate on MODEL_REGISTRY, not MCP_CATALOG, so other callers can resolve this even when MCP_CATALOG is disabled.
+    flags: {
+      required: [SupportedArea.MODEL_REGISTRY],
+    },
+    properties: {
+      modalComponent: () => import('./components/McpDeployModal').then((m) => m.default),
     },
   },
 ];
