@@ -35,6 +35,10 @@ const existingRole = (() => {
     ],
   });
   role.metadata.resourceVersion = '12345';
+  role.metadata.annotations = {
+    'openshift.io/display-name': 'My Custom Role',
+    'openshift.io/description': 'A role for testing',
+  };
   return role;
 })();
 
@@ -55,6 +59,15 @@ describe('Edit Role', () => {
   beforeEach(() => {
     asProjectAdminUser();
     initIntercepts();
+  });
+
+  it('should pre-populate form with existing role data', () => {
+    projectRoles.visitEditRole(NAMESPACE, ROLE_NAME);
+
+    projectRoles.findRoleNameInput().should('have.value', 'My Custom Role');
+    projectRoles.findDescriptionTextarea().should('have.value', 'A role for testing');
+    projectRoles.findPermissionRulesTable().should('exist');
+    projectRoles.findPermissionRulesTable().find('tbody tr').should('have.length', 1);
   });
 
   it('should submit via PUT when saving changes', () => {
@@ -117,7 +130,7 @@ describe('Edit Role', () => {
   it('should navigate to edit page from table kebab action', () => {
     projectRoles.visit(NAMESPACE);
 
-    const row = projectRoles.getRow(ROLE_NAME);
+    const row = projectRoles.getRow('My Custom Role');
     row.findKebabAction('Edit role').click();
 
     cy.url().should('include', `/roles/${ROLE_NAME}/edit`);

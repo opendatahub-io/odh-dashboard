@@ -3,8 +3,9 @@ import * as _ from 'lodash-es';
 import { AlertVariant, Button, Stack, StackItem } from '@patternfly/react-core';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import TitleWithIcon from '@odh-dashboard/ui-core/design/TitleWithIcon';
-import { ApplicationsPage } from '@odh-dashboard/ui-core';
+import { ApplicationsPage, TrackingOutcome } from '@odh-dashboard/ui-core';
 import { useAppContext } from '#~/app/AppContext';
+import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 import { fetchClusterSettings, updateClusterSettings } from '#~/services/clusterSettingsService';
 import { ClusterSettingsType, ModelServingPlatformEnabled } from '#~/types';
 import { addNotification } from '#~/redux/actions/actions';
@@ -25,6 +26,13 @@ import {
 } from './const';
 
 const DEFAULT_DISTRIBUTED_INFERENCING = DEFAULT_CONFIG.isDistributedInferencingDefault ?? true;
+
+enum GlobalProjectState {
+  added = 'Added',
+  changed = 'Changed',
+  unchanged = 'Unchanged',
+  removed = 'Removed',
+}
 
 const ClusterSettings: React.FC = () => {
   const [loaded, setLoaded] = React.useState(false);
@@ -133,9 +141,17 @@ const ClusterSettings: React.FC = () => {
       return;
     }
 
-    setSaving(true);
+    const currentGlobalNamespace = clusterSettings.globalMLflowNamespaces?.[0];
+    const newGlobalNamespace = newClusterSettings.globalMLflowNamespaces?.[0];
+    let globalProjectName: GlobalProjectState;
+    if (currentGlobalNamespace === newGlobalNamespace)
+      globalProjectName = GlobalProjectState.unchanged;
+    else if (!currentGlobalNamespace) globalProjectName = GlobalProjectState.added;
+    else if (!newGlobalNamespace) globalProjectName = GlobalProjectState.removed;
+    else globalProjectName = GlobalProjectState.changed;
 
     try {
+      setSaving(true);
       const response = await updateClusterSettings(newClusterSettings);
 
       if (!response.success) {
@@ -143,6 +159,13 @@ const ClusterSettings: React.FC = () => {
       }
 
       setClusterSettings(newClusterSettings);
+
+      if (globalProjectName !== GlobalProjectState.unchanged)
+        fireFormTrackingEvent('Cluster Settings Global Project Selected', {
+          outcome: TrackingOutcome.submit,
+          success: true,
+          globalProjectName,
+        });
 
       dispatch(
         addNotification({
@@ -153,6 +176,15 @@ const ClusterSettings: React.FC = () => {
         }),
       );
     } catch (error) {
+      if (globalProjectName !== GlobalProjectState.unchanged) {
+        fireFormTrackingEvent('Cluster Settings Global Project Selected', {
+          outcome: TrackingOutcome.submit,
+          success: false,
+          globalProjectName,
+          error: error instanceof Error ? error.message : 'unknown error',
+        });
+      }
+
       dispatch(
         addNotification({
           status: AlertVariant.danger,

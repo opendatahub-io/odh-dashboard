@@ -9,6 +9,7 @@ import {
   overviewTabPage,
   createSubscriptionPage,
   policyPage,
+  phaseModal,
 } from '../../../pages/modelsAsAService';
 import {
   mockSubscriptions,
@@ -91,7 +92,7 @@ describe('Subscription Management Page / Overview Tab', () => {
     overviewTabPage.findFilterInput('model').type('nonexistent-model-xyz');
     overviewTabPage.findEmptyTableState().should('exist');
     overviewTabPage.findClearFiltersButton().click();
-    overviewTabPage.findModelRows().should('have.length', 5);
+    overviewTabPage.findModelRows().should('have.length', 6);
   });
 
   it('should navigate between tabs and update the URL', () => {
@@ -118,12 +119,16 @@ describe('Subscription Management Page / Overview Tab', () => {
 
     // Sort by model name
     overviewTabPage.findColumnSortButton('Model name').click();
-    overviewTabPage.findModelRows().eq(0).should('contain.text', 'Flan T5 Small');
-    overviewTabPage.findModelRows().eq(4).should('contain.text', 'Llama 3 70B Instruct');
+    overviewTabPage.findModelRows().eq(1).should('contain.text', 'Flan T5 Small');
+    overviewTabPage.findModelRows().eq(5).should('contain.text', 'Llama 3 70B Instruct');
 
     // Sort by subscriptions
     overviewTabPage.findColumnSortButton('Subscriptions').click();
     overviewTabPage.findModelRows().eq(0).should('contain.text', 'Gemma 7B IT');
+
+    // Sort by phase
+    overviewTabPage.findColumnSortButton('Status').click();
+    overviewTabPage.findModelRows().eq(0).should('contain.text', 'Failed');
 
     // Sort by authorization policies
     overviewTabPage.findColumnSortButton('Authorization policies').click();
@@ -138,6 +143,16 @@ describe('Subscription Management Page / Overview Tab', () => {
     overviewTabPage.findModelRows().eq(1).findByTestId('no-subscriptions-warning').should('exist');
     overviewTabPage.findModelRows().eq(1).findByTestId('no-subscriptions-warning').click();
     cy.contains('Configuration warning').should('be.visible');
+
+    // Check the phase modal contains the correct information
+    overviewTabPage.findPhaseLabelInRow(1).click();
+    phaseModal.find().should('exist');
+    phaseModal.findAlert().should('exist');
+    phaseModal.findAlertBody().should('exist');
+    phaseModal.findApiDetailsButton().should('exist').click();
+    phaseModal.findAlertDetailsCodeBlock().should('exist');
+    phaseModal.findCloseButton().click();
+    phaseModal.shouldBeOpen(false);
 
     // Expand the Llama row
     overviewTabPage.expandModelRow(0);
@@ -164,20 +179,20 @@ describe('Subscription Management Page / Overview Tab', () => {
     overviewTabPage.findColumnSortButton('Model name').click();
 
     // Expand primary Granite row (maas-models) without expanding the sandbox duplicate
-    overviewTabPage.expandModelRow(2);
-    overviewTabPage.findModelRows().eq(2).should('contain.text', 'Granite 3 8B Instruct');
-    overviewTabPage.findModelRows().eq(3).should('not.have.class', 'pf-m-expanded');
-    overviewTabPage.findExpandAllPoliciesInRow(2).should('contain.text', 'Expand all');
-    overviewTabPage.findExpandAllPoliciesInRow(2).click();
-    overviewTabPage.findExpandAllPoliciesInRow(2).should('contain.text', 'Collapse all');
-    overviewTabPage.findExpandAllPoliciesInRow(2).click();
-    overviewTabPage.findExpandAllPoliciesInRow(2).should('contain.text', 'Expand all');
+    overviewTabPage.expandModelRow(3);
+    overviewTabPage.findModelRows().eq(3).should('contain.text', 'Granite 3 8B Instruct');
+    overviewTabPage.findModelRows().eq(4).should('not.have.class', 'pf-m-expanded');
+    overviewTabPage.findExpandAllPoliciesInRow(3).should('contain.text', 'Expand all');
+    overviewTabPage.findExpandAllPoliciesInRow(3).click();
+    overviewTabPage.findExpandAllPoliciesInRow(3).should('contain.text', 'Collapse all');
+    overviewTabPage.findExpandAllPoliciesInRow(3).click();
+    overviewTabPage.findExpandAllPoliciesInRow(3).should('contain.text', 'Expand all');
 
     // Same model ID in different namespaces expand independently
-    overviewTabPage.expandModelRow(3);
-    overviewTabPage.findModelRows().eq(2).should('have.class', 'pf-m-expanded');
+    overviewTabPage.expandModelRow(4);
     overviewTabPage.findModelRows().eq(3).should('have.class', 'pf-m-expanded');
-    overviewTabPage.findModelRows().eq(3).should('contain.text', 'Sandbox Granite Subscription');
+    overviewTabPage.findModelRows().eq(4).should('have.class', 'pf-m-expanded');
+    overviewTabPage.findModelRows().eq(4).should('contain.text', 'Sandbox Granite Subscription');
     overviewTabPage.findFilterInput('model').type('Granite');
     overviewTabPage.findModelRows().should('have.length', 2);
 
@@ -231,7 +246,7 @@ describe('Subscription Management Page / Overview Tab', () => {
     overviewTabPage.findFilterInput('group').type('interns');
     overviewTabPage.findModelRows().should('have.length', 2);
     overviewTabPage.clearAllFilters();
-    overviewTabPage.findModelRows().should('have.length', 5);
+    overviewTabPage.findModelRows().should('have.length', 6);
 
     // Subscription name
     overviewTabPage.findFilterDropdownButton().click();
@@ -239,7 +254,7 @@ describe('Subscription Management Page / Overview Tab', () => {
     overviewTabPage.findFilterInput('subscription').type('Team');
     overviewTabPage.findModelRows().should('have.length', 2);
     overviewTabPage.clearAllFilters();
-    overviewTabPage.findModelRows().should('have.length', 5);
+    overviewTabPage.findModelRows().should('have.length', 6);
 
     // Authorization policy name
     overviewTabPage.findFilterDropdownButton().click();
@@ -247,7 +262,7 @@ describe('Subscription Management Page / Overview Tab', () => {
     overviewTabPage.findFilterInput('policy').type('Team');
     overviewTabPage.findModelRows().should('have.length', 2);
     overviewTabPage.clearAllFilters();
-    overviewTabPage.findModelRows().should('have.length', 5);
+    overviewTabPage.findModelRows().should('have.length', 6);
   });
 
   it('should navigate to the correct form when creating a subscription or authorization policy via the overview toolbar', () => {

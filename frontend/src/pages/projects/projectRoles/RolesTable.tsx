@@ -129,7 +129,7 @@ const RolesTable: React.FC<RolesTableProps> = ({
             key={row.key}
             row={row}
             onViewDetails={() => setDetailsRoleRef(row.roleRef)}
-            onPreviewYAML={() => setPreviewRow(row)}
+            onViewYAML={() => setPreviewRow(row)}
             onEdit={() => navigate(`/projects/${namespace}/roles/${row.roleRef.name}/edit`)}
             onDuplicate={() =>
               navigate(`/projects/${namespace}/roles/${row.roleRef.name}/duplicate`)
