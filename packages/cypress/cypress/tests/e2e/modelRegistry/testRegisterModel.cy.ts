@@ -341,15 +341,21 @@ describe('Verify models can be registered in a model registry', () => {
       registerModelPage.findSubmitButton().should('be.enabled');
 
       cy.step('Submit the register and store form');
+      cy.intercept('POST', '**/model_transfer_jobs*').as('createTransferJob');
       registerModelPage.findSubmitButton().click();
 
+      cy.step('Wait for transfer job create API to succeed');
+      cy.wait('@createTransferJob', { timeout: 60000 })
+        .its('response.statusCode')
+        .should('be.oneOf', [200, 201]);
+
       cy.step('Verify transfer job started notification appears');
-      cy.contains(testData.ociTransferJobStartedNotification, { timeout: 15000 }).should(
-        'be.visible',
-      );
+      toastNotifications
+        .findToastNotificationList()
+        .should('contain.text', testData.ociTransferJobStartedNotification);
 
       cy.step('Verify navigation away from the registration form');
-      cy.url().should('include', '/registered-models/');
+      cy.url({ timeout: 30000 }).should('include', '/registered-models/');
 
       // Terminal state of the transfer job (success/failure) is environment-dependent
       // and not validated here. A dedicated test with a controlled backend is more appropriate.
@@ -441,7 +447,13 @@ describe('Verify models can be registered in a model registry', () => {
       registerModelPage.findSubmitButton().should('be.enabled');
 
       cy.step('Submit the register and store form');
+      cy.intercept('POST', '**/model_transfer_jobs*').as('createTransferJobUri');
       registerModelPage.findSubmitButton().click();
+
+      cy.step('Wait for transfer job create API to succeed');
+      cy.wait('@createTransferJobUri', { timeout: 60000 })
+        .its('response.statusCode')
+        .should('be.oneOf', [200, 201]);
 
       cy.step('Verify transfer job started notification appears');
       toastNotifications
@@ -452,7 +464,7 @@ describe('Verify models can be registered in a model registry', () => {
       checkModelTransferJobPodStarted(testData.ociUriJobName, projectName).should('be.true');
 
       cy.step('Verify navigation away from the registration form');
-      cy.url().should('include', '/registered-models/');
+      cy.url({ timeout: 30000 }).should('include', '/registered-models/');
     },
   );
 
