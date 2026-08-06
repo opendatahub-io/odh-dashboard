@@ -578,6 +578,9 @@ const extensions: (
       component: () => import('../src/settings/llmAcceleratorConfigs/LlmAcceleratorConfigRoutes'),
     },
   },
+  // Standalone llm-d topology configurations page — nav item + route. Hidden when
+  // modelDeploymentSettings is on (disallowed flag); removed entirely by
+  // RHOAIENG-80077. https://issues.redhat.com/browse/RHOAIENG-80077
   {
     type: 'app.navigation/href',
     flags: {
