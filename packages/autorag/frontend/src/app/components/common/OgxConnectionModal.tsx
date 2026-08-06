@@ -45,6 +45,21 @@ const OgxConnectionModal: React.FC<Props> = ({ namespace, onClose, onSubmit }) =
 
   const baseUrlValid = React.useMemo(() => isValidUrl(baseUrl), [baseUrl]);
   const showBaseUrlError = baseUrlTouched && baseUrl.trim() !== '' && !baseUrlValid;
+  const showHttpWarning = React.useMemo(() => {
+    if (!baseUrlValid || !baseUrlTouched) {
+      return false;
+    }
+    try {
+      const parsed = new URL(baseUrl.trim());
+      return (
+        parsed.protocol === 'http:' &&
+        parsed.hostname !== 'localhost' &&
+        parsed.hostname !== '127.0.0.1'
+      );
+    } catch {
+      return false;
+    }
+  }, [baseUrl, baseUrlValid, baseUrlTouched]);
   const isFormValid = isK8sNameDescriptionDataValid(nameDescData) && baseUrlValid;
 
   const handleSubmit = async () => {
@@ -118,11 +133,19 @@ const OgxConnectionModal: React.FC<Props> = ({ namespace, onClose, onSubmit }) =
             />
             <FormHelperText>
               <HelperText>
-                <HelperTextItem variant={showBaseUrlError ? 'error' : 'default'}>
-                  {showBaseUrlError
-                    ? 'Enter a valid URL (e.g. https://example.com).'
-                    : 'The base URL of the Open GenAI Stack connection.'}
-                </HelperTextItem>
+                {showBaseUrlError ? (
+                  <HelperTextItem variant="error">
+                    Enter a valid URL (e.g. https://example.com).
+                  </HelperTextItem>
+                ) : showHttpWarning ? (
+                  <HelperTextItem variant="warning" data-testid="ogx-connection-http-warning">
+                    Using HTTPS is recommended for secure communication with Open GenAI Stack.
+                  </HelperTextItem>
+                ) : (
+                  <HelperTextItem>
+                    The base URL of the Open GenAI Stack connection (https:// recommended).
+                  </HelperTextItem>
+                )}
               </HelperText>
             </FormHelperText>
           </FormGroup>

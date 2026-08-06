@@ -110,7 +110,7 @@ var _ = Describe("AttachOGXClient", func() {
 		})(rr, req, nil)
 
 		assert.Equal(t, http.StatusOK, rr.Code)
-		assert.Equal(t, "http://mock-lsd.test-namespace.svc.cluster.local:8321", mockFactory.CapturedURL)
+		assert.Equal(t, "https://mock-lsd.test-namespace.svc.cluster.local:8321", mockFactory.CapturedURL)
 	})
 
 	It("should return error when namespace is missing from context", func() {
