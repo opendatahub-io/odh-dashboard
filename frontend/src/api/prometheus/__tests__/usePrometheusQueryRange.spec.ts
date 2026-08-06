@@ -1,9 +1,9 @@
 import { act } from 'react';
 import { testHook } from '@odh-dashboard/jest-config/hooks';
+import type { PrometheusQueryRangeResponseData } from '@odh-dashboard/ui-core/types/metrics';
 import axios from '#~/utilities/axios';
 import { mockPrometheusServing } from '#~/__mocks__/mockPrometheusServing';
 import usePrometheusQueryRange from '#~/api/prometheus/usePrometheusQueryRange';
-import { PrometheusQueryRangeResponseData } from '#~/types';
 
 jest.mock('#~/utilities/axios', () => ({
   post: jest.fn(),

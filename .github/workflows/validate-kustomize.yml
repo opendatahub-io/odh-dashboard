@@ -19,6 +19,8 @@ jobs:
   kustomize-build:
     name: Build ${{ matrix.target.name }}
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     env:
       # Pin the kustomize version and expose it to steps and cache key
       KUSTOMIZE_VERSION: v5.4.1
@@ -40,6 +42,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
+          persist-credentials: false
           sparse-checkout: |
             manifests
             distributions
@@ -80,10 +83,13 @@ jobs:
   params-env-sync:
     name: Verify params.env sync
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Checkout repository
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
+          persist-credentials: false
           sparse-checkout: |
             manifests
 
@@ -129,3 +135,30 @@ jobs:
           fi
 
           echo "All per-module params.env files are in sync with $PARENT"
+
+  check-no-hardcoded-namespace:
+    name: Check for hardcoded namespace
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
+          sparse-checkout: |
+            manifests
+
+      - name: Install yq
+        shell: bash
+        run: |
+          set -euo pipefail
+          YQ_VERSION="v4.44.1"
+          YQ_SHA256="6dc2d0cd4e0caca5aeffd0d784a48263591080e4a0895abe69f3a76eb50d1ba3"
+          curl -fsSL "https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/yq_linux_amd64" -o /tmp/yq
+          echo "${YQ_SHA256}  /tmp/yq" | sha256sum -c --strict
+          install -m 0755 /tmp/yq /usr/local/bin/yq
+
+      - name: Check for hardcoded metadata.namespace
+        run: manifests/scripts/check-no-hardcoded-namespace.sh
+        shell: bash

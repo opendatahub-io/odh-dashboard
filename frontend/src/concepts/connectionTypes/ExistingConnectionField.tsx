@@ -9,9 +9,9 @@ import TypeaheadSelect, {
   TypeaheadSelectOption,
 } from '@odh-dashboard/ui-core/components/TypeaheadSelect';
 import type { LabeledConnection } from '@odh-dashboard/model-serving/shared';
-import { ConnectionDetailsHelperText } from './ConnectionDetailsHelperText';
-import { getConnectionTypeDisplayName, getConnectionTypeRef } from './utils';
+import { ConnectionDetailsHelperText } from '@odh-dashboard/ui-core/components/connectionTypes/ConnectionDetailsHelperText';
 import { Connection, ConnectionTypeConfigMapObj } from './types';
+import { getConnectionTypeDisplayName, getConnectionTypeRef } from './utils';
 
 type ExistingConnectionFieldProps = {
   children: React.ReactNode;

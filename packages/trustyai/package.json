@@ -1,0 +1,18 @@
+{
+  "private": true,
+  "name": "@odh-dashboard/trustyai",
+  "description": "TrustyAI/explainability shared types — bias metrics, metric configs, and install state",
+  "version": "0.0.0",
+  "exports": {
+    "./types": "./src/types.ts"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "type-check": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@odh-dashboard/eslint-config": "*",
+    "@odh-dashboard/tsconfig": "*"
+  }
+}

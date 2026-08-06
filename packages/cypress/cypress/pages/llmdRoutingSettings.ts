@@ -14,8 +14,8 @@ class RoutingConfigRow extends TableRow {
     return this;
   }
 
-  findRoutingTypeLabel() {
-    return this.find().findByTestId('routing-type-label');
+  findTopologyTypeCell() {
+    return this.find().find('[data-label="Topology type"]');
   }
 }
 

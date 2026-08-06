@@ -1,9 +1,8 @@
 import * as React from 'react';
-import FormGroupText from '#~/components/FormGroupText';
-import { FieldMode } from '#~/concepts/connectionTypes/fields/types';
-import UnspecifiedValue from '#~/concepts/connectionTypes/fields/UnspecifiedValue';
-import { ConnectionTypeDataField } from '#~/concepts/connectionTypes/types';
-import { defaultValueToString } from '#~/concepts/connectionTypes/utils';
+import type { ConnectionTypeDataField, FieldMode } from '@odh-dashboard/k8s-core';
+import { defaultValueToString } from '@odh-dashboard/k8s-core';
+import FormGroupText from './FormGroupText';
+import UnspecifiedValue from './UnspecifiedValue';
 
 type Props = {
   id: string;
