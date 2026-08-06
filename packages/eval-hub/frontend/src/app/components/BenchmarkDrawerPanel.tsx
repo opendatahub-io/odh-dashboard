@@ -11,6 +11,8 @@ import {
   FlexItem,
   Label,
   LabelGroup,
+  List,
+  ListItem,
   Stack,
   StackItem,
   Title,
@@ -183,6 +185,37 @@ const BenchmarkDrawerPanel: React.FC<BenchmarkDrawerPanelProps> = ({
               <Content component="p">{benchmark.providerName}</Content>
             </StackItem>
           )}
+
+          {benchmark.providerAgent?.target_type && (
+            <StackItem>
+              <Content
+                component="p"
+                style={{ fontWeight: 'var(--pf-t--global--font--weight--body--bold)' }}
+              >
+                Target type
+              </Content>
+              <Content component="p">
+                {capitalizeFirst(benchmark.providerAgent.target_type)}
+              </Content>
+            </StackItem>
+          )}
+
+          {benchmark.providerAgent?.recommended_when &&
+            benchmark.providerAgent.recommended_when.length > 0 && (
+              <StackItem>
+                <Content
+                  component="p"
+                  style={{ fontWeight: 'var(--pf-t--global--font--weight--body--bold)' }}
+                >
+                  Recommended when
+                </Content>
+                <List isPlain>
+                  {benchmark.providerAgent.recommended_when.map((item) => (
+                    <ListItem key={item}>{item}</ListItem>
+                  ))}
+                </List>
+              </StackItem>
+            )}
         </Stack>
       </DrawerPanelBody>
 

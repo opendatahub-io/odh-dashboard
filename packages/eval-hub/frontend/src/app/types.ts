@@ -362,7 +362,11 @@ export type ProviderBenchmark = {
   agent?: BenchmarkAgentMetadata;
 };
 
-export type FlatBenchmark = ProviderBenchmark & { providerId: string; providerName: string };
+export type FlatBenchmark = ProviderBenchmark & {
+  providerId: string;
+  providerName: string;
+  providerAgent?: ProviderAgentMetadata;
+};
 
 export type ProviderEnvVar = {
   name: string;

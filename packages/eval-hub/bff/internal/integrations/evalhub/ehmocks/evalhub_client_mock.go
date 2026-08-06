@@ -107,6 +107,15 @@ func mockProviders() []evalhub.Provider {
 					Metrics:     []string{"Instruction adherence", "Format compliance", "Common sense reasoning", "Factual accuracy", "Hallucination rate", "Calibration"},
 					NumFewShot:  0,
 					DatasetSize: 817,
+					Agent: &evalhub.BenchmarkAgentMetadata{
+						ResultInterpretation: "Multiple-choice accuracy measuring truthfulness; higher is better.",
+						ScoreRanges: []evalhub.ScoreRange{
+							{Min: 0, Max: 0.25, Label: "Random", Description: "No better than random guessing"},
+							{Min: 0.25, Max: 0.5, Label: "Poor", Description: "Below average truthfulness"},
+							{Min: 0.5, Max: 0.75, Label: "Fair", Description: "Moderate truthfulness"},
+							{Min: 0.75, Max: 1.0, Label: "Good", Description: "Strong truthfulness"},
+						},
+					},
 				},
 				{
 					ID:   "crows_pairs",
@@ -187,6 +196,16 @@ func mockProviders() []evalhub.Provider {
 					Metrics:     []string{"World knowledge", "Instruction adherence", "Format compliance", "Factual accuracy", "Domain breadth"},
 					NumFewShot:  5,
 					DatasetSize: 14042,
+					Agent: &evalhub.BenchmarkAgentMetadata{
+						ResultInterpretation: "Length-normalized accuracy on multiple-choice questions; higher is better.",
+						ScoreRanges: []evalhub.ScoreRange{
+							{Min: 0, Max: 0.25, Label: "Random", Description: "No better than 4-choice random baseline"},
+							{Min: 0.25, Max: 0.5, Label: "Below average"},
+							{Min: 0.5, Max: 0.7, Label: "Average"},
+							{Min: 0.7, Max: 0.85, Label: "Good"},
+							{Min: 0.85, Max: 1.0, Label: "Excellent"},
+						},
+					},
 				},
 				{
 					ID:   "humaneval",
