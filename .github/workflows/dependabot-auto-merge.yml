@@ -38,6 +38,62 @@ jobs:
             echo "touches_upstream=false" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Checkout base branch for version checks
+        if: >
+          steps.upstream.outputs.touches_upstream != 'true' &&
+          steps.metadata.outputs.update-type == 'version-update:semver-minor' &&
+          steps.metadata.outputs.previous-version == ''
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          sparse-checkout: |
+            **/package-lock.json
+            **/go.sum
+          sparse-checkout-cone-mode: false
+
+      - name: Check for pre-1.0 packages in grouped PRs
+        id: pre1
+        if: >
+          steps.upstream.outputs.touches_upstream != 'true' &&
+          steps.metadata.outputs.update-type == 'version-update:semver-minor' &&
+          steps.metadata.outputs.previous-version == ''
+        env:
+          ECOSYSTEM: ${{ steps.metadata.outputs.package-ecosystem }}
+          DEP_NAMES: ${{ steps.metadata.outputs.dependency-names }}
+        run: |
+          has_pre1=false
+
+          if [ "$ECOSYSTEM" = "npm_and_yarn" ]; then
+            for dep in $(echo "$DEP_NAMES" | tr ',' '\n' | sed 's/^ *//;s/ *$//'); do
+              for lockfile in $(find . -name package-lock.json -not -path '*/node_modules/*' -not -path '*/upstream/*'); do
+                is_pre1=$(jq --arg d "$dep" '
+                  [.packages | to_entries[]
+                   | select((.key | endswith("node_modules/" + $d)) and (.value.version != null))
+                   | .value.version]
+                  | any(startswith("0."))
+                ' "$lockfile" 2>/dev/null || echo "false")
+                if [ "$is_pre1" = "true" ]; then
+                  echo "Pre-1.0 package detected in group: $dep in $lockfile"
+                  has_pre1=true
+                  break 2
+                fi
+              done
+            done
+          elif [ "$ECOSYSTEM" = "go_modules" ]; then
+            for dep in $(echo "$DEP_NAMES" | tr ',' '\n' | sed 's/^ *//;s/ *$//'); do
+              for gosum in $(find . -name go.sum -not -path '*/upstream/*'); do
+                ver=$(awk -v dep="$dep" '$1 == dep { print $2; exit }' "$gosum")
+                if [ -n "$ver" ] && echo "$ver" | grep -q '^v0\.'; then
+                  echo "Pre-1.0 Go module detected in group: $dep ($ver) in $gosum"
+                  has_pre1=true
+                  break 2
+                fi
+              done
+            done
+          fi
+
+          echo "has_pre1=$has_pre1" >> "$GITHUB_OUTPUT"
+
       - name: Check eligibility
         id: check
         env:
@@ -45,23 +101,23 @@ jobs:
           UPDATE_TYPE: ${{ steps.metadata.outputs.update-type }}
           PREV_VERSION: ${{ steps.metadata.outputs.previous-version }}
           TOUCHES_UPSTREAM: ${{ steps.upstream.outputs.touches_upstream }}
+          HAS_PRE1_IN_GROUP: ${{ steps.pre1.outputs.has_pre1 }}
         run: |
           if [ "$TOUCHES_UPSTREAM" = "true" ]; then
             echo "Not eligible: PR modifies upstream files"
             echo "eligible=false" >> "$GITHUB_OUTPUT"
-          elif [ "$ECOSYSTEM" != "npm_and_yarn" ]; then
+          elif [ "$ECOSYSTEM" != "npm_and_yarn" ] && [ "$ECOSYSTEM" != "go_modules" ]; then
             echo "Not eligible: ecosystem=$ECOSYSTEM"
             echo "eligible=false" >> "$GITHUB_OUTPUT"
           elif [ "$UPDATE_TYPE" = "version-update:semver-patch" ]; then
             echo "Eligible: patch update"
             echo "eligible=true" >> "$GITHUB_OUTPUT"
           elif [ "$UPDATE_TYPE" = "version-update:semver-minor" ]; then
-            # Block auto-merge for pre-1.0 packages (0.x minor bumps can be breaking).
-            # This relies on previous-version which is only set for individual PRs.
-            # Grouped PRs (patternfly, react, fastify) are assumed >= 1.0.
-            # If a 0.x package is added to a named group, this check will NOT catch it.
             if [ -n "$PREV_VERSION" ] && echo "$PREV_VERSION" | grep -q '^0\.'; then
               echo "Not eligible: minor update on pre-1.0 package ($PREV_VERSION)"
+              echo "eligible=false" >> "$GITHUB_OUTPUT"
+            elif [ "$HAS_PRE1_IN_GROUP" = "true" ]; then
+              echo "Not eligible: grouped PR contains pre-1.0 package(s)"
               echo "eligible=false" >> "$GITHUB_OUTPUT"
             else
               echo "Eligible: minor update (stable package)"
