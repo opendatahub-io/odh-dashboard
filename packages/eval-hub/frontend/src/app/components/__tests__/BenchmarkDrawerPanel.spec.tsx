@@ -1,5 +1,6 @@
 import * as React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { Drawer, DrawerContent } from '@patternfly/react-core';
 import { mockFlatBenchmark } from '~/__mocks__/mockBenchmark';
 import BenchmarkDrawerPanel from '~/app/components/BenchmarkDrawerPanel';
@@ -72,16 +73,22 @@ describe('BenchmarkDrawerPanel', () => {
     expect(screen.queryByTestId('benchmark-provider-tooltip')).not.toBeInTheDocument();
   });
 
-  it('should show provider name with tooltip when recommended_when is present', () => {
+  it('should show provider name with tooltip content when recommended_when is present', async () => {
+    const user = userEvent.setup();
     renderPanel({
       providerName: 'LM Evaluation Harness',
       providerAgent: {
         recommended_when: ['User wants to measure model accuracy'],
       },
     });
-    expect(screen.getByTestId('benchmark-provider-tooltip')).toHaveTextContent(
-      'LM Evaluation Harness',
-    );
+    const trigger = screen.getByTestId('benchmark-provider-tooltip');
+    expect(trigger).toHaveTextContent('LM Evaluation Harness');
+
+    await user.hover(trigger);
+    await waitFor(() => {
+      expect(screen.getByText('Recommended when:')).toBeInTheDocument();
+      expect(screen.getByText('User wants to measure model accuracy')).toBeInTheDocument();
+    });
   });
 
   it('should display target type when providerAgent has target_type', () => {

@@ -55,7 +55,8 @@ const BenchmarkResultDetails: React.FC<BenchmarkResultDetailsProps> = ({
     job.pass_criteria?.threshold ??
     result.test?.threshold;
 
-  const complements = provider?.agent?.complements;
+  const rawComplements = provider?.agent?.complements;
+  const complements = Array.isArray(rawComplements) ? rawComplements : undefined;
 
   return (
     <div data-testid={`benchmark-details-${benchmarkId}-${benchmarkIndex}`}>
