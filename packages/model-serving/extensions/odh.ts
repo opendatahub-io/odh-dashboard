@@ -35,11 +35,11 @@ const modelCapabilitiesFieldExtension: WizardFieldExtension<ModelCapabilitiesFie
   },
 };
 
-const modelCapabilitiesApplyKServe: WizardFieldApplyExtension<string[]> = {
+const modelCapabilitiesApply: WizardFieldApplyExtension<string[]> = {
   type: 'model-serving.deployment/wizard-field-apply',
   properties: {
     fieldId: 'modelCapabilities',
-    platform: 'kserve',
+    platform: 'all',
     apply: () =>
       import(
         '../src/components/deploymentWizard/fields/modelCapabilities/modelCapabilitiesApplyExtract'
@@ -50,41 +50,11 @@ const modelCapabilitiesApplyKServe: WizardFieldApplyExtension<string[]> = {
   },
 };
 
-const modelCapabilitiesApplyLlmd: WizardFieldApplyExtension<string[]> = {
-  type: 'model-serving.deployment/wizard-field-apply',
-  properties: {
-    fieldId: 'modelCapabilities',
-    platform: 'llmd-serving',
-    apply: () =>
-      import(
-        '../src/components/deploymentWizard/fields/modelCapabilities/modelCapabilitiesApplyExtract'
-      ).then((m) => m.applyModelCapabilities),
-  },
-  flags: {
-    required: [SupportedArea.MODEL_CAPABILITIES],
-  },
-};
-
-const modelCapabilitiesExtractKServe: WizardFieldExtractorExtension<string[]> = {
+const modelCapabilitiesExtract: WizardFieldExtractorExtension<string[]> = {
   type: 'model-serving.deployment/wizard-field-extractor',
   properties: {
     fieldId: 'modelCapabilities',
-    platform: 'kserve',
-    extract: () =>
-      import(
-        '../src/components/deploymentWizard/fields/modelCapabilities/modelCapabilitiesApplyExtract'
-      ).then((m) => m.extractModelCapabilities),
-  },
-  flags: {
-    required: [SupportedArea.MODEL_CAPABILITIES],
-  },
-};
-
-const modelCapabilitiesExtractLlmd: WizardFieldExtractorExtension<string[]> = {
-  type: 'model-serving.deployment/wizard-field-extractor',
-  properties: {
-    fieldId: 'modelCapabilities',
-    platform: 'llmd-serving',
+    platform: 'all',
     extract: () =>
       import(
         '../src/components/deploymentWizard/fields/modelCapabilities/modelCapabilitiesApplyExtract'
@@ -204,10 +174,8 @@ const extensions: (
   },
   deploymentMethodFieldExtension,
   modelCapabilitiesFieldExtension,
-  modelCapabilitiesApplyKServe,
-  modelCapabilitiesApplyLlmd,
-  modelCapabilitiesExtractKServe,
-  modelCapabilitiesExtractLlmd,
+  modelCapabilitiesApply,
+  modelCapabilitiesExtract,
   // Model deployment settings tabbed page
   {
     type: 'app.tab-route/page',
