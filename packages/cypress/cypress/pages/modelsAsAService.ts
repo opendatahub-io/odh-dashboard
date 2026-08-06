@@ -1468,6 +1468,10 @@ class OverviewTabPage {
     );
   }
 
+  getRowByIndex(index: number): OverviewTableRow {
+    return new OverviewTableRow(() => this.findModelRows().eq(index).find('tr').first());
+  }
+
   findTable(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('overview-table');
   }
