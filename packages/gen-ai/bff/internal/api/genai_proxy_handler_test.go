@@ -23,13 +23,13 @@ var _ = Describe("GenAIProxyNSModelsHandler", func() {
 
 	It("should return OpenAI-compatible model list with models from namespace", func() {
 		t := GinkgoT()
-		req := httptest.NewRequest(http.MethodGet, "/gen-ai/api/v1/genai-proxy/ns/default/v1/models", nil)
+		req := httptest.NewRequest(http.MethodGet, "/gen-ai/api/v1/genai-proxy/ns/mock-test-namespace-1/v1/models", nil)
 
 		identity := &integrations.RequestIdentity{Token: "test-token"}
 		ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, identity)
 		req = req.WithContext(ctx)
 
-		params := httprouter.Params{{Key: "namespace", Value: "default"}}
+		params := httprouter.Params{{Key: "namespace", Value: "mock-test-namespace-1"}}
 		rr := httptest.NewRecorder()
 		app.GenAIProxyNSModelsHandler(rr, req, params)
 
@@ -52,13 +52,13 @@ var _ = Describe("GenAIProxyNSModelsHandler", func() {
 
 	It("should return empty list when no models available", func() {
 		t := GinkgoT()
-		req := httptest.NewRequest(http.MethodGet, "/gen-ai/api/v1/genai-proxy/ns/empty-namespace/v1/models", nil)
+		req := httptest.NewRequest(http.MethodGet, "/gen-ai/api/v1/genai-proxy/ns/empty-test-namespace/v1/models", nil)
 
 		identity := &integrations.RequestIdentity{Token: "test-token"}
 		ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, identity)
 		req = req.WithContext(ctx)
 
-		params := httprouter.Params{{Key: "namespace", Value: "empty-namespace"}}
+		params := httprouter.Params{{Key: "namespace", Value: "empty-test-namespace"}}
 		rr := httptest.NewRecorder()
 		app.GenAIProxyNSModelsHandler(rr, req, params)
 
@@ -75,13 +75,13 @@ var _ = Describe("GenAIProxyNSModelsHandler", func() {
 
 	It("should filter out stopped models", func() {
 		t := GinkgoT()
-		req := httptest.NewRequest(http.MethodGet, "/gen-ai/api/v1/genai-proxy/ns/default/v1/models", nil)
+		req := httptest.NewRequest(http.MethodGet, "/gen-ai/api/v1/genai-proxy/ns/mock-test-namespace-1/v1/models", nil)
 
 		identity := &integrations.RequestIdentity{Token: "test-token"}
 		ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, identity)
 		req = req.WithContext(ctx)
 
-		params := httprouter.Params{{Key: "namespace", Value: "default"}}
+		params := httprouter.Params{{Key: "namespace", Value: "mock-test-namespace-1"}}
 		rr := httptest.NewRecorder()
 		app.GenAIProxyNSModelsHandler(rr, req, params)
 
@@ -101,10 +101,10 @@ var _ = Describe("GenAIProxyNSModelsHandler", func() {
 
 	It("should work without auth identity (unauthenticated polling)", func() {
 		t := GinkgoT()
-		req := httptest.NewRequest(http.MethodGet, "/gen-ai/api/v1/genai-proxy/ns/default/v1/models", nil)
+		req := httptest.NewRequest(http.MethodGet, "/gen-ai/api/v1/genai-proxy/ns/mock-test-namespace-1/v1/models", nil)
 
 		// No identity in context — simulates OGX background polling
-		params := httprouter.Params{{Key: "namespace", Value: "default"}}
+		params := httprouter.Params{{Key: "namespace", Value: "mock-test-namespace-1"}}
 		rr := httptest.NewRecorder()
 		app.GenAIProxyNSModelsHandler(rr, req, params)
 
@@ -119,13 +119,13 @@ var _ = Describe("GenAIProxyNSModelsHandler", func() {
 
 	It("should include custom_metadata with model_type for embedding models", func() {
 		t := GinkgoT()
-		req := httptest.NewRequest(http.MethodGet, "/gen-ai/api/v1/genai-proxy/ns/default/v1/models", nil)
+		req := httptest.NewRequest(http.MethodGet, "/gen-ai/api/v1/genai-proxy/ns/mock-test-namespace-2/v1/models", nil)
 
 		identity := &integrations.RequestIdentity{Token: "test-token"}
 		ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, identity)
 		req = req.WithContext(ctx)
 
-		params := httprouter.Params{{Key: "namespace", Value: "default"}}
+		params := httprouter.Params{{Key: "namespace", Value: "mock-test-namespace-2"}}
 		rr := httptest.NewRecorder()
 		app.GenAIProxyNSModelsHandler(rr, req, params)
 

@@ -531,7 +531,9 @@ func (app *App) Routes() http.Handler {
 	// GenAI Proxy — OpenAI-compatible endpoints for OGX passthrough provider.
 	// No AttachNamespace/RequireAccessToService: namespace is in path, auth is optional
 	// (OGX background polling carries no auth header).
-	apiRouter.GET(constants.GenAIProxyNSModelsPath, app.AttachBFFMaaSClient(app.GenAIProxyNSModelsHandler))
+	// No AttachBFFMaaSClient: MaaS fetch is best-effort inside the handler and must not
+	// block the endpoint with a 503 when the MaaS BFF is not configured.
+	apiRouter.GET(constants.GenAIProxyNSModelsPath, app.GenAIProxyNSModelsHandler)
 
 	// App Router
 	appMux := http.NewServeMux()
