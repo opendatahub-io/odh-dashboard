@@ -3,7 +3,7 @@ module github.com/opendatahub-io/odh-dashboard/dashboard-operator
 go 1.26
 
 require (
-	github.com/opendatahub-io/odh-platform-utilities v0.0.0-20260506180717-e15e712db78d
+	github.com/opendatahub-io/odh-platform-utilities v0.2.0
 	github.com/openshift/api v3.9.0+incompatible
 	github.com/stretchr/testify v1.11.1
 	k8s.io/api v0.35.2
@@ -68,8 +68,8 @@ require (
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/prometheus/client_golang v1.23.2 // indirect
 	github.com/prometheus/client_model v0.6.2 // indirect
-	github.com/prometheus/common v0.66.1 // indirect
-	github.com/prometheus/procfs v0.17.0 // indirect
+	github.com/prometheus/common v0.67.5 // indirect
+	github.com/prometheus/procfs v0.19.2 // indirect
 	github.com/santhosh-tekuri/jsonschema/v6 v6.0.2 // indirect
 	github.com/shopspring/decimal v1.4.0 // indirect
 	github.com/spf13/cast v1.10.0 // indirect
