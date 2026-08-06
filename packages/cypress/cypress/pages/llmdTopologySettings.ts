@@ -20,7 +20,9 @@ class TopologyConfigRow extends TableRow {
 
 class LlmdTopologySettingsPage {
   visit(wait = true) {
-    cy.visitWithLogin('/settings/model-resources-operations/llmd-topology-configurations');
+    cy.visitWithLogin(
+      '/settings/model-resources-operations/model-deployment-settings/topology-configurations',
+    );
     if (wait) {
       this.wait();
     }
@@ -37,14 +39,24 @@ class LlmdTopologySettingsPage {
 
   findNavItem() {
     return appChrome.findNavItem({
-      name: 'llm-d topology configurations',
+      name: 'Model deployment settings',
       rootSection: 'Settings',
       subSection: 'Model resources and operations',
     });
   }
 
+  /** Title rendered by a breakout form page (add/edit/duplicate), not the tab. */
   findAppTitle() {
     return cy.findByTestId('app-page-title');
+  }
+
+  /** Title of the tabbed "Model deployment settings" page that hosts the tab. */
+  findTabPageTitle() {
+    return cy.findByTestId('app-tab-page-title');
+  }
+
+  findTab() {
+    return cy.findByRole('tab', { name: 'llm-d topology configurations' });
   }
 
   findTable() {
