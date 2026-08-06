@@ -262,6 +262,32 @@ class ProjectRolesTab {
     return this.findPermissionRulesTable().find('tbody td[data-label="Actions"]');
   }
 
+  findRulesFilterToggle() {
+    return cy.findByTestId('rules-filter-toggle');
+  }
+
+  findRulesSearchInput() {
+    return cy.findByTestId('rules-search-input').find('input');
+  }
+
+  findRuleEditButton(index: number) {
+    return this.findPermissionRulesTable()
+      .find('tbody tr')
+      .eq(index)
+      .find('[data-testid^="edit-rule-"]');
+  }
+
+  findRuleRemoveButton(index: number) {
+    return this.findPermissionRulesTable()
+      .find('tbody tr')
+      .eq(index)
+      .find('[data-testid^="remove-rule-"]');
+  }
+
+  findRuleCancelButton() {
+    return cy.findByTestId('modal-cancel-button');
+  }
+
   getRow(name: string) {
     return new RolesTableRow(() =>
       this.findRolesTable().findAllByTestId('role-name-link').contains(name).parents('tr'),

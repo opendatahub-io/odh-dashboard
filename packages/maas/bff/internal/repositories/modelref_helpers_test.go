@@ -46,6 +46,7 @@ func newModelRefObj(name, namespace, displayName, description, phase, endpoint s
 					map[string]interface{}{
 						"type":    "Ready",
 						"message": "Model endpoint is ready",
+						"reason":  "Reconciled",
 					},
 				},
 			},
@@ -113,6 +114,7 @@ func TestConvertUnstructuredToModelRefSummary_Full(t *testing.T) {
 		"Phase":         {"Ready", summary.Phase},
 		"Endpoint":      {"http://ep:8080", summary.Endpoint},
 		"StatusMessage": {"Model endpoint is ready", summary.StatusMessage},
+		"Reason":        {"Reconciled", summary.Reason},
 		"ModelRef.Kind": {"LLMInferenceService", summary.ModelRef.Kind},
 		"ModelRef.Name": {"my-model", summary.ModelRef.Name},
 	} {

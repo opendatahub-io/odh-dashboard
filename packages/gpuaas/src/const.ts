@@ -2,21 +2,29 @@ export const INFRASTRUCTURE_REFRESH_INTERVAL = 30_000;
 
 export const TREND_REFRESH_INTERVAL = 5 * 60 * 1000;
 
+export const INFRASTRUCTURE_TABS = [
+  { id: 'utilization', title: 'Utilization' },
+  { id: 'cluster-queue-utilization', title: 'Compute profile utilization' },
+] as const;
+
 export const INFRASTRUCTURE_SECTIONS = [
   {
     id: 'cluster',
+    tab: 'utilization',
     title: 'Summary',
     description: 'Cluster-wide accelerator allocation and average compute and memory consumption.',
     isPlain: true,
   },
   {
     id: 'hardware-usage',
+    tab: 'utilization',
     title: 'Hardware usage',
     description: 'Accelerator counts by hardware type.',
     isPlain: false,
   },
   {
     id: 'borrowing',
+    tab: 'utilization',
     title: 'Borrowing trends',
     description:
       '7-day borrowing trends by cluster queue. When a cluster queue uses its full quota, it can borrow accelerators from other queues.',
@@ -24,8 +32,9 @@ export const INFRASTRUCTURE_SECTIONS = [
   },
   {
     id: 'cluster-queue-utilization',
-    title: 'Cluster queue consumption',
-    description: 'Cluster queue accelerator consumption grouped by cohort.',
+    tab: 'cluster-queue-utilization',
+    title: 'Compute profile utilization',
+    description: 'Compute profile accelerator utilization grouped by Kueue cohort.',
     isPlain: true,
   },
 ] as const;

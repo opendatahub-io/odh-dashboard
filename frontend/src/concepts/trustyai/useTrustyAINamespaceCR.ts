@@ -5,11 +5,11 @@ import useFetchState, {
   FetchStateCallbackPromise,
   NotReadyError,
 } from '@odh-dashboard/ui-core/hooks/useFetchState';
+import { TrustyInstallState } from '@odh-dashboard/trustyai/types';
 import { TrustyAIKind } from '#~/k8sTypes';
 import { getTrustyAICR } from '#~/api';
 import { FAST_POLL_INTERVAL } from '#~/utilities/const';
 import { getTrustyStatusState } from '#~/concepts/trustyai/utils';
-import { TrustyInstallState } from '#~/concepts/trustyai/types';
 
 type State = TrustyAIKind | null;
 

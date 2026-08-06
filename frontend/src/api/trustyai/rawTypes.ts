@@ -1,3 +1,5 @@
+import { type BaseMetric, type BiasMetricType } from '@odh-dashboard/trustyai/types';
+
 export enum DataTypes {
   BOOL = 'BOOL',
   FLOAT = 'FLOAT',
@@ -7,38 +9,10 @@ export enum DataTypes {
   STRING = 'STRING',
 }
 
-export enum BiasMetricType {
-  SPD = 'SPD',
-  DIR = 'DIR',
-}
-
 export type TypedValue = {
   type: DataTypes;
   value: string;
 };
-
-export type BaseMetric = {
-  protectedAttribute: string;
-  outcomeName: string;
-  modelId: string;
-  requestName?: string;
-  thresholdDelta?: number;
-  batchSize?: number;
-};
-
-// Request type only for user input
-export type BaseMetricRequestInput = {
-  favorableOutcome: string | number | boolean;
-  privilegedAttribute: string | number | boolean;
-  unprivilegedAttribute: string | number | boolean;
-} & BaseMetric;
-
-// Request type for creating
-export type BaseMetricRequest = {
-  favorableOutcome: string | number | boolean;
-  privilegedAttribute: string | number | boolean;
-  unprivilegedAttribute: string | number | boolean;
-} & BaseMetric;
 
 export type BaseMetricResponse = {
   id: string;

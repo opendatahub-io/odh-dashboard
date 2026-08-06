@@ -113,7 +113,7 @@ export type FeastRegistryFilePersistence = {
 
 export type FeastRegistryDBStorePersistence = {
   type: string;
-  secretRef: { name: string };
+  secretRef?: { name: string };
   secretKeyName?: string;
 };
 

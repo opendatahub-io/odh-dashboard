@@ -110,14 +110,15 @@ export const mockLLMInferenceServiceK8sResource = ({
             timeoutSeconds: 30,
           },
           name: 'main',
+          // `small-profile` HW profile
           resources: {
             limits: {
               cpu: '2',
-              memory: '8Gi',
+              memory: '4Gi',
             },
             requests: {
               cpu: '1',
-              memory: '4Gi',
+              memory: '2Gi',
             },
           },
         },

@@ -204,11 +204,11 @@ describe('Model Serving LLMD', () => {
       row
         .findDescriptionListItem('Model server size')
         .next('dd')
-        .should('contain.text', '1 CPUs, 4GiB Memory requested');
+        .should('contain.text', '1 CPUs, 2GiB Memory requested');
       row
         .findDescriptionListItem('Model server size')
         .next('dd')
-        .should('contain.text', '2 CPUs, 8GiB Memory limit');
+        .should('contain.text', '2 CPUs, 4GiB Memory limit');
       row
         .findDescriptionListItem('Hardware profile')
         .next('dd')
@@ -301,10 +301,10 @@ describe('Model Serving LLMD', () => {
 
       cy.step('Verify LLMD deployment method option is not displayed');
       modelServingWizard
-        .findDeploymentMethodRadio('legacy')
-        .find('input')
-        .should('be.disabled')
-        .should('be.checked');
+        .findDeploymentMethodRadio('llm-inference-service-llmd')
+        .should('not.exist');
+      // Legacy is the only remaining option, so it is auto-selected
+      modelServingWizard.findDeploymentMethodRadio('legacy').should('be.checked');
       modelServingWizard.findCancelButton().click();
       modelServingWizard.findDiscardButton().click();
 
@@ -559,7 +559,6 @@ describe('Model Serving LLMD', () => {
       );
       modelServingWizardEdit
         .findDeploymentMethodRadio('llm-inference-service-llmd')
-        .find('input')
         .should('be.disabled')
         .should('be.checked');
 
@@ -857,8 +856,6 @@ describe('Model Serving LLMD', () => {
       );
 
       // Override hardware profiles to include a GPU profile that matches vllm-gpu-config.
-      // The small-profile is also given wider memory bounds to accommodate the test
-      // deployment's actual resource values (8Gi memory limit > default max of 4Gi).
       const gpuProfile = mockHardwareProfile({
         name: 'gpu-profile',
         displayName: 'GPU Profile',
@@ -889,31 +886,9 @@ describe('Model Serving LLMD', () => {
           },
         ],
       });
-      const wideSmallProfile = mockHardwareProfile({
-        name: 'small-profile',
-        displayName: 'Small Profile',
-        identifiers: [
-          {
-            displayName: 'CPU',
-            identifier: 'cpu',
-            minCount: '1',
-            maxCount: '4',
-            defaultCount: '1',
-            resourceType: IdentifierResourceType.CPU,
-          },
-          {
-            displayName: 'Memory',
-            identifier: 'memory',
-            minCount: '2Gi',
-            maxCount: '16Gi',
-            defaultCount: '4Gi',
-            resourceType: IdentifierResourceType.MEMORY,
-          },
-        ],
-      });
       cy.interceptK8sList(
         { model: HardwareProfileModel, ns: 'opendatahub' },
-        mockK8sResourceList([wideSmallProfile, mockGlobalScopedHardwareProfiles[1], gpuProfile]),
+        mockK8sResourceList([...mockGlobalScopedHardwareProfiles, gpuProfile]),
       );
 
       // Override secrets to empty — simplifies token auth handling in edit scenarios
@@ -954,7 +929,7 @@ describe('Model Serving LLMD', () => {
       // GET by name for the hardware profile referenced in the existing deployment.
       cy.interceptK8s(
         { model: HardwareProfileModel, ns: 'opendatahub', name: 'small-profile' },
-        wideSmallProfile,
+        mockGlobalScopedHardwareProfiles[0],
       );
 
       cy.intercept('PUT', '**/llminferenceservices/test-vllm-gpu*', (req) => {
@@ -1042,7 +1017,6 @@ describe('Model Serving LLMD', () => {
       // Select the vLLM deployment method to activate the model server field
       modelServingWizard
         .findDeploymentMethodRadio('llm-inference-service-simple-vllm')
-        .find('input')
         .should('not.be.disabled');
       modelServingWizard.selectDeploymentMethodByKey('llm-inference-service-simple-vllm');
 
@@ -1141,7 +1115,6 @@ describe('Model Serving LLMD', () => {
       modelServingWizard.findModelDeploymentNameInput().type('test-disabled-config');
       modelServingWizard
         .findDeploymentMethodRadio('llm-inference-service-simple-vllm')
-        .find('input')
         .should('not.be.disabled');
       modelServingWizard.selectDeploymentMethodByKey('llm-inference-service-simple-vllm');
       modelServingWizard.findModelServerManualSelectRadio().click();
@@ -1190,7 +1163,6 @@ describe('Model Serving LLMD', () => {
       modelServingWizard.findModelDeploymentNameInput().type('test-unsupported-config');
       modelServingWizard
         .findDeploymentMethodRadio('llm-inference-service-simple-vllm')
-        .find('input')
         .should('not.be.disabled');
       modelServingWizard.selectDeploymentMethodByKey('llm-inference-service-simple-vllm');
       modelServingWizard.findModelServerManualSelectRadio().click();

@@ -1,9 +1,9 @@
 import React from 'react';
-import { BiasMetricConfig } from '@odh-dashboard/internal/concepts/trustyai/types';
-import {
+import type { BiasMetricConfig } from '@odh-dashboard/trustyai/types';
+import type {
   PrometheusQueryRangeResponseDataResult,
   PrometheusQueryRangeResultValue,
-} from '@odh-dashboard/internal/types';
+} from '@odh-dashboard/ui-core/types/metrics';
 import MetricsChart from '../MetricsChart';
 import { ModelServingMetricsContext } from '../ModelServingMetricsContext';
 import { createChartThresholds } from '../utils';

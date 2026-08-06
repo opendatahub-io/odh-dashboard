@@ -10,6 +10,7 @@ export type ExternalProviderDetails = {
   config?: Record<string, string>;
   phase?: string;
   statusMessage?: string;
+  reason?: string;
 };
 
 export type ProviderRef = {
@@ -19,6 +20,8 @@ export type ProviderRef = {
   path: string;
   targetModel: string;
   config?: Record<string, string>;
+  authMechanism?: AuthMechanism;
+  credentialSecretRef?: string;
   provider?: ExternalProviderDetails;
 };
 
@@ -26,6 +29,7 @@ export type ExternalModelMaaSModelRefStatus = {
   phase?: string;
   endpoint?: string;
   statusMessage?: string;
+  reason?: string;
   governanceAttached?: boolean;
 };
 
@@ -38,5 +42,6 @@ export type ExternalModel = {
   providerRefs: ProviderRef[];
   phase?: string;
   statusMessage?: string;
+  reason?: string;
   maaSModelRef?: ExternalModelMaaSModelRefStatus;
 };
