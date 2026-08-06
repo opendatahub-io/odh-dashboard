@@ -51,6 +51,7 @@ updates:
     groups:
       npm-updates:
         applies-to: version-updates
+        group-by: dependency-name
         patterns:
           - '*'
         update-types:
@@ -89,6 +90,7 @@ updates:
     groups:
       go-updates:
         applies-to: version-updates
+        group-by: dependency-name
         patterns:
           - '*'
         update-types:
