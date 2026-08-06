@@ -207,8 +207,14 @@ describe('Verify Custom Endpoints in Playground - Full Lifecycle', () => {
       genAiPlayground.findSourceSettingsModal().should('be.visible');
       genAiPlayground.findSourceSettingsUploadButton().should('be.enabled').click();
 
-      cy.step('Verify source upload success alert appears');
-      genAiPlayground.findSourceUploadSuccessAlert({ timeout: 120000 }).should('be.visible');
+      cy.step('Navigate to Knowledge tab and enable RAG');
+      genAiPlayground.findKnowledgeTab().should('be.visible').click();
+      genAiPlayground.findRagToggle().should('be.visible').click();
+
+      cy.step('Verify uploaded file appears in Knowledge tab');
+      genAiPlayground
+        .findUploadedFileName(testData.rag.fileName, { timeout: 120000 })
+        .should('be.visible');
 
       // --- Use the prompt in the playground ---
 

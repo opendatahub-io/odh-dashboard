@@ -277,6 +277,18 @@ class GenAiPlayground {
     return cy.findByTestId('source-upload-success-alert', options);
   }
 
+  findRagToggle() {
+    return cy.findByTestId('rag-toggle-switch');
+  }
+
+  findUploadedFilesCard(options?: { timeout?: number }) {
+    return cy.findByTestId('uploaded-files-card', options);
+  }
+
+  findUploadedFileName(fileName: string, options?: { timeout?: number }) {
+    return cy.findByTestId(`uploaded-file-name-${fileName}`, options);
+  }
+
   findFileSearchResults(options?: { timeout?: number }) {
     return cy.findByTestId('file-search-results', options);
   }
