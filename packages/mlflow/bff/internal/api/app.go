@@ -39,6 +39,18 @@ const (
 	PromptPath         = APIPathPrefix + "/prompts/:name"
 	PromptVersionsPath = APIPathPrefix + "/prompts/:name/versions"
 	PromptVersionPath  = APIPathPrefix + "/prompts/:name/versions/:version"
+	MCPServersPath     = APIPathPrefix + "/mcp-registry/servers"
+	// MCPServerCatchAllPath matches every request under /mcp-registry/servers/
+	// with a single httprouter catch-all param ("rest") instead of a plain
+	// ":name" segment. MCP server names follow the upstream
+	// "<namespace>/<slug>" convention (e.g. "com.example/my-server") and
+	// therefore legitimately contain "/", which httprouter's dynamic ":name"
+	// segments cannot capture. parseMCPServerPath (mcp_registry_handler.go)
+	// splits the catch-all capture back into the server name (always the
+	// first two "/"-separated segments) and any trailing sub-resource path
+	// ("/versions", "/versions/:version", "/versions/:version/tags[/:key]",
+	// "/tags[/:key]", "/aliases[/:alias]", "/endpoints[/:endpointId]").
+	MCPServerCatchAllPath = APIPathPrefix + "/mcp-registry/servers/*rest"
 )
 
 var hashPattern = regexp.MustCompile(`[.\-][0-9a-f]{8,}`)
@@ -252,6 +264,12 @@ func (app *App) Routes() http.Handler {
 	apiRouter.DELETE(PromptPath, app.AttachWorkspace(app.RequireValidIdentity(app.AttachMLflowClient(app.MLflowDeletePromptHandler))))
 	apiRouter.GET(PromptVersionsPath, app.AttachWorkspace(app.RequireValidIdentity(app.AttachMLflowClient(app.MLflowListPromptVersionsHandler))))
 	apiRouter.DELETE(PromptVersionPath, app.AttachWorkspace(app.RequireValidIdentity(app.AttachMLflowClient(app.MLflowDeletePromptVersionHandler))))
+	apiRouter.GET(MCPServersPath, app.AttachWorkspace(app.RequireValidIdentity(app.AttachMLflowClient(app.MLflowSearchMCPServersHandler))))
+	apiRouter.POST(MCPServersPath, app.AttachWorkspace(app.RequireValidIdentity(app.AttachMLflowClient(app.MLflowCreateMCPServerHandler))))
+	apiRouter.GET(MCPServerCatchAllPath, app.AttachWorkspace(app.RequireValidIdentity(app.AttachMLflowClient(app.MLflowMCPServerCatchAllGetHandler))))
+	apiRouter.POST(MCPServerCatchAllPath, app.AttachWorkspace(app.RequireValidIdentity(app.AttachMLflowClient(app.MLflowMCPServerCatchAllPostHandler))))
+	apiRouter.PATCH(MCPServerCatchAllPath, app.AttachWorkspace(app.RequireValidIdentity(app.AttachMLflowClient(app.MLflowMCPServerCatchAllPatchHandler))))
+	apiRouter.DELETE(MCPServerCatchAllPath, app.AttachWorkspace(app.RequireValidIdentity(app.AttachMLflowClient(app.MLflowMCPServerCatchAllDeleteHandler))))
 
 	// App Router
 	appMux := http.NewServeMux()

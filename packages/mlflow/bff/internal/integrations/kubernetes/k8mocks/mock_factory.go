@@ -137,14 +137,28 @@ func findTestUserByToken(token string) *TestUser {
 // for fast unit tests that only need permission checks without a real K8s API.
 type SimpleMockFactory struct {
 	canWrite          bool
+	canWriteMCP       bool
 	expectedVerb      string
 	expectedNamespace string
 }
 
-// NewSimpleMockFactory creates a mock factory with specified permission behavior.
+// NewSimpleMockFactory creates a mock factory with specified permission
+// behavior. canWrite applies to both CanWritePromptsInNamespace and
+// CanWriteMCPServersInNamespace; use NewSimpleMockFactoryWithSeparatePermissions
+// if a test needs the two to diverge (e.g. to verify the MCP Registry RBAC
+// check is scoped to its own pseudo-resource and doesn't just inherit the
+// prompt registry's answer).
 func NewSimpleMockFactory(canWrite bool, expectedVerb, expectedNamespace string) k8s.KubernetesClientFactory {
+	return NewSimpleMockFactoryWithSeparatePermissions(canWrite, canWrite, expectedVerb, expectedNamespace)
+}
+
+// NewSimpleMockFactoryWithSeparatePermissions creates a mock factory where
+// prompt-registry (canWritePrompts) and MCP-registry (canWriteMCP) write
+// permissions are configured independently.
+func NewSimpleMockFactoryWithSeparatePermissions(canWritePrompts, canWriteMCP bool, expectedVerb, expectedNamespace string) k8s.KubernetesClientFactory {
 	return &SimpleMockFactory{
-		canWrite:          canWrite,
+		canWrite:          canWritePrompts,
+		canWriteMCP:       canWriteMCP,
 		expectedVerb:      expectedVerb,
 		expectedNamespace: expectedNamespace,
 	}
@@ -161,6 +175,7 @@ func (f *SimpleMockFactory) ValidateRequestIdentity(identity *k8s.RequestIdentit
 func (f *SimpleMockFactory) GetClient(ctx context.Context) (k8s.KubernetesClientInterface, error) {
 	return &simpleMockClient{
 		canWrite:          f.canWrite,
+		canWriteMCP:       f.canWriteMCP,
 		expectedVerb:      f.expectedVerb,
 		expectedNamespace: f.expectedNamespace,
 	}, nil
@@ -168,6 +183,7 @@ func (f *SimpleMockFactory) GetClient(ctx context.Context) (k8s.KubernetesClient
 
 type simpleMockClient struct {
 	canWrite          bool
+	canWriteMCP       bool
 	expectedVerb      string
 	expectedNamespace string
 }
@@ -184,14 +200,27 @@ func (c *simpleMockClient) GetUser(identity *k8s.RequestIdentity) (string, error
 	return "test-user", nil
 }
 
-func (c *simpleMockClient) CanWritePromptsInNamespace(ctx context.Context, namespace string, verb string) (bool, error) {
+// checkWrite applies the shared namespace/verb expectation checks before
+// returning canWrite, factoring out the logic common to
+// CanWritePromptsInNamespace and CanWriteMCPServersInNamespace so the two
+// can still return independently configured answers (canWrite vs
+// canWriteMCP) without duplicating the validation.
+func (c *simpleMockClient) checkWrite(canWrite bool, namespace, verb string) (bool, error) {
 	if c.expectedNamespace != "" && namespace != c.expectedNamespace {
 		return false, fmt.Errorf("unexpected namespace: got %q, expected %q", namespace, c.expectedNamespace)
 	}
 	if c.expectedVerb != "" && verb != c.expectedVerb {
 		return false, &k8s.InvalidVerbError{Verb: verb}
 	}
-	return c.canWrite, nil
+	return canWrite, nil
+}
+
+func (c *simpleMockClient) CanWritePromptsInNamespace(ctx context.Context, namespace string, verb string) (bool, error) {
+	return c.checkWrite(c.canWrite, namespace, verb)
+}
+
+func (c *simpleMockClient) CanWriteMCPServersInNamespace(ctx context.Context, namespace string, verb string) (bool, error) {
+	return c.checkWrite(c.canWriteMCP, namespace, verb)
 }
 
 // SimpleMockFactoryWithError creates a mock factory that returns permission check errors.
@@ -229,5 +258,9 @@ func (c *simpleMockClientWithError) GetUser(identity *k8s.RequestIdentity) (stri
 }
 
 func (c *simpleMockClientWithError) CanWritePromptsInNamespace(ctx context.Context, namespace string, verb string) (bool, error) {
+	return false, fmt.Errorf("k8s api error")
+}
+
+func (c *simpleMockClientWithError) CanWriteMCPServersInNamespace(ctx context.Context, namespace string, verb string) (bool, error) {
 	return false, fmt.Errorf("k8s api error")
 }

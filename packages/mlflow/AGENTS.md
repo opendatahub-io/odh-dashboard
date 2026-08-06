@@ -175,13 +175,52 @@ cd frontend && npm run test:cypress-ci -- --spec "**/testfile.cy.ts"
 
 ### Current Endpoints
 
-| Method | Path                                 | Description                                    |
-| ------ | ------------------------------------ | ---------------------------------------------- |
-| GET    | `/healthcheck`                       | Liveness probe                                 |
-| GET    | `/api/v1/status`                     | MLflow availability status                     |
-| GET    | `/api/v1/user`                       | Returns authenticated user info                |
-| GET    | `/api/v1/namespaces`                 | List namespaces (dev/mock mode only)           |
-| GET    | `/api/v1/experiments?workspace=<ns>` | List MLflow experiments                        |
+| Method | Path                                                        | Description                                          |
+| ------ | ------------------------------------------------------------ | ----------------------------------------------------- |
+| GET    | `/healthcheck`                                                | Liveness probe                                         |
+| GET    | `/api/v1/status`                                              | MLflow availability status                             |
+| GET    | `/api/v1/user`                                                | Returns authenticated user info                        |
+| GET    | `/api/v1/namespaces`                                          | List namespaces (dev/mock mode only)                   |
+| GET    | `/api/v1/experiments?workspace=<ns>`                          | List MLflow experiments                                |
+| GET    | `/api/v1/prompts?workspace=<ns>`                              | List Prompt Registry prompts (project + global scopes) |
+| POST   | `/api/v1/prompts?workspace=<ns>`                              | Register a new prompt / prompt version                 |
+| GET    | `/api/v1/prompts/:name?workspace=<ns>`                        | Load a prompt (optionally by version)                  |
+| DELETE | `/api/v1/prompts/:name?workspace=<ns>`                        | Delete an entire prompt                                |
+| GET    | `/api/v1/prompts/:name/versions?workspace=<ns>`               | List versions of a prompt                              |
+| DELETE | `/api/v1/prompts/:name/versions/:version?workspace=<ns>`      | Delete a specific prompt version                        |
+| GET    | `/api/v1/mcp-registry/servers?workspace=<ns>`                 | Search MCP Registry servers (optional tag filter)       |
+| POST   | `/api/v1/mcp-registry/servers?workspace=<ns>`                 | Register a new MCP server                               |
+| GET    | `/api/v1/mcp-registry/servers/:name?workspace=<ns>`           | Get an MCP server by name                                |
+| PATCH  | `/api/v1/mcp-registry/servers/:name?workspace=<ns>`           | Partially update an MCP server                           |
+| DELETE | `/api/v1/mcp-registry/servers/:name?workspace=<ns>`           | Delete an MCP server (and its versions/tags/aliases/endpoints) |
+| POST   | `/api/v1/mcp-registry/servers/:name/tags?workspace=<ns>`      | Set a tag on an MCP server                               |
+| DELETE | `/api/v1/mcp-registry/servers/:name/tags/:key?workspace=<ns>` | Delete a tag from an MCP server                          |
+| POST   | `/api/v1/mcp-registry/servers/:name/aliases?workspace=<ns>`   | Set an alias on an MCP server                            |
+| GET    | `/api/v1/mcp-registry/servers/:name/aliases/:alias?workspace=<ns>` | Resolve an alias to the MCP server version it points at |
+| DELETE | `/api/v1/mcp-registry/servers/:name/aliases/:alias?workspace=<ns>` | Delete an alias from an MCP server                  |
+| GET    | `/api/v1/mcp-registry/servers/:name/versions?workspace=<ns>`  | List versions of an MCP server                          |
+| POST   | `/api/v1/mcp-registry/servers/:name/versions?workspace=<ns>`  | Create a new MCP server version from a server.json      |
+| GET    | `/api/v1/mcp-registry/servers/:name/versions/:version?workspace=<ns>` | Get a specific version of an MCP server          |
+| PATCH  | `/api/v1/mcp-registry/servers/:name/versions/:version?workspace=<ns>` | Partially update a specific MCP server version   |
+| DELETE | `/api/v1/mcp-registry/servers/:name/versions/:version?workspace=<ns>` | Delete a specific MCP server version             |
+| POST   | `/api/v1/mcp-registry/servers/:name/versions/:version/tags?workspace=<ns>` | Set a tag on a specific MCP server version  |
+| DELETE | `/api/v1/mcp-registry/servers/:name/versions/:version/tags/:key?workspace=<ns>` | Delete a tag from a specific MCP server version |
+| GET    | `/api/v1/mcp-registry/servers/:name/endpoints?workspace=<ns>` | Search access endpoints for an MCP server                |
+| POST   | `/api/v1/mcp-registry/servers/:name/endpoints?workspace=<ns>` | Create an access endpoint for an MCP server              |
+| GET    | `/api/v1/mcp-registry/servers/:name/endpoints/:endpointId?workspace=<ns>` | Get an access endpoint by ID                 |
+| PATCH  | `/api/v1/mcp-registry/servers/:name/endpoints/:endpointId?workspace=<ns>` | Partially update an access endpoint          |
+| DELETE | `/api/v1/mcp-registry/servers/:name/endpoints/:endpointId?workspace=<ns>` | Delete an access endpoint from an MCP server |
+
+**MCP Registry notes:**
+
+- MCP server names must follow the upstream `<namespace>/<slug>` reverse-DNS convention (e.g. `com.example/my-server`), exactly one `/`, with each segment starting and ending with an alphanumeric character. This mirrors `mlflow/entities/mcp_server.py`'s `validate_mcp_server_name` so that any name accepted by this BFF also passes validation on the real MLflow server it proxies to. Enforced by `validateMCPServerName` (`internal/api/mcp_registry_handler.go`).
+- Because names contain `/`, the `:name`-based sub-routes (`/versions`, `/tags`, `/aliases`, `/endpoints`, and their nested `:version`/`:key`/`:alias`/`:endpointId` segments) are served by a single httprouter catch-all (`MCPServerCatchAllPath = /mcp-registry/servers/*rest`). `parseMCPServerPath` splits the catch-all capture back into the server name (always the first two `/`-separated segments) and the trailing sub-resource path, then the four `MLflowMCPServerCatchAll{Get,Post,Patch,Delete}Handler` entry points dispatch to the per-operation handlers. `:version`/`:key`/`:alias`/`:endpointId` path segments are validated by `validateMCPPathSegment` to reject empty, `.`, `..`, or embedded `/` values before they reach the SDK's own URL building.
+- `server.json` is only accepted on the create-version endpoint (`POST .../servers/:name/versions`), not on server creation; creating a server just reserves the name/metadata.
+- PATCH request bodies for `UpdateMCPServer`/`UpdateMCPServerVersion`/`UpdateMCPAccessEndpoint` use pointer fields (`internal/models/mcp_registry.go`): an omitted field is left unchanged server-side, while an explicit field (even empty/zero) overwrites the existing value. This mirrors the SDK's `Update*Option` functional options.
+- Mutating operations (`PATCH`, `SetMCPServerTag`, `SetMCPServerAlias`, `SetMCPServerVersionTag`) check the `"update"` RBAC verb via `enforceMCPWritePermission`; `POST` (create) and `DELETE` check `"create"`/`"delete"` respectively — all three verbs map to the same `mlflow-edit` ClusterRole permissions on the `mlflow.kubeflow.org/mcpservers` pseudo-resource.
+- The real MLflow server only allows `draft -> {active, deleted}`, `active -> {draft, deprecated}`, and `deprecated -> {active, deleted}` status transitions on a server version (see `mlflow/entities/mcp_server.py`'s `VALID_STATUS_TRANSITIONS`); attempting to delete an `active` version directly (or delete a server with an `active` version) fails with a 400 from the real server. The alias name `"latest"` is also reserved server-side for automatic resolution to the newest version and cannot be set via `SetMCPServerAlias`.
+- `MCPAccessEndpoint`/`MCPAccessEndpointSummary` include an optional `resolved_version` field (the concrete `MCPServerVersion` that the endpoint's `server_version`/`server_alias` currently resolves to), populated by the SDK straight from the MLflow response body — no extra client option or follow-up call is needed to get it. `toMCPServerVersionPtr` (`internal/repositories/mcp_registry.go`) does the nil-safe mapping.
+- In `--mock-http-client` mode, tracking, prompt, and MCP Registry calls all go to the real local MLflow server started via `SetupMLflow` (`internal/integrations/mlflow/mlflowmocks/mlflow_process.go`), pinned to `defaultMLflowVersion` (currently `3.15.1`; MLflow >= `3.15.0` introduced the native MCP Registry REST API; `3.15.1` is a patch release). Only the fully in-memory fallback, `StaticMockClient` (used when no real server can run at all, e.g. `uv`/network unavailable), serves MCP Registry data from static fixtures.
 
 ---
 
