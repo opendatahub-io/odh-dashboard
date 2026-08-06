@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { Navigate, Route, Routes } from 'react-router';
+import { TOPOLOGY_CONFIGS_STANDALONE_PATH } from './paths';
 
 const TopologyConfigurationsView = React.lazy(() => import('./TopologyConfigurationsView'));
 const TopologyConfigurationCreateEdit = React.lazy(
@@ -10,8 +11,14 @@ const TopologyConfigurationsRoutes: React.FC = () => (
   <React.Suspense fallback={null}>
     <Routes>
       <Route index element={<TopologyConfigurationsView />} />
-      <Route path="add/:topologyType" element={<TopologyConfigurationCreateEdit />} />
-      <Route path="edit/:configName" element={<TopologyConfigurationCreateEdit />} />
+      <Route
+        path="add/:topologyType"
+        element={<TopologyConfigurationCreateEdit listPath={TOPOLOGY_CONFIGS_STANDALONE_PATH} />}
+      />
+      <Route
+        path="edit/:configName"
+        element={<TopologyConfigurationCreateEdit listPath={TOPOLOGY_CONFIGS_STANDALONE_PATH} />}
+      />
       <Route path="*" element={<Navigate to="." />} />
     </Routes>
   </React.Suspense>

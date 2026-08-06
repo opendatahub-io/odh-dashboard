@@ -1,21 +1,11 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { useNavigate, useParams, useLocation } from 'react-router';
+import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { mockLLMInferenceServiceConfigK8sResource } from '@odh-dashboard/llmd-serving/__mocks__/mockLLMInferenceServiceConfigK8sResource';
-import { TopologyType } from '../../../types';
-import { useWatchTopologyConfigs } from '../../../api/LLMInferenceServiceConfigs';
+import { type LLMInferenceServiceConfigKind, TopologyType } from '../../../types';
+import { TopologyConfigContext } from '../TopologyConfigContext';
 import TopologyConfigurationCreateEdit from '../TopologyConfigurationCreateEdit';
-
-jest.mock('react-router', () => ({
-  Link: ({ children, to }: { children: React.ReactNode; to: string }) => (
-    <a href={to}>{children}</a>
-  ),
-  Navigate: ({ to }: { to: string }) => <div data-testid="navigate" data-to={to} />,
-  useNavigate: jest.fn(),
-  useParams: jest.fn(),
-  useLocation: jest.fn(),
-}));
 
 jest.mock('@odh-dashboard/internal/redux/selectors/project', () => ({
   useDashboardNamespace: jest.fn(() => ({ dashboardNamespace: 'opendatahub' })),
@@ -48,29 +38,28 @@ jest.mock('../../ConfigYAMLEditor', () =>
 jest.mock('../../../api/LLMInferenceServiceConfigs', () => ({
   createLLMInferenceServiceConfig: jest.fn(),
   patchLLMInferenceServiceConfig: jest.fn(),
-  useWatchTopologyConfigs: jest.fn(),
 }));
 
-const mockUseNavigate = jest.mocked(useNavigate);
-const mockUseParams = jest.mocked(useParams);
-const mockUseLocation = jest.mocked(useLocation);
-const mockUseWatchTopologyConfigs = jest.mocked(useWatchTopologyConfigs);
+const renderAtDuplicate = (config: LLMInferenceServiceConfigKind) =>
+  render(
+    <MemoryRouter initialEntries={[`/list/duplicate/${config.metadata.name}`]}>
+      <TopologyConfigContext.Provider value={{ configs: [config] }}>
+        <Routes>
+          <Route
+            path="/list/duplicate/:configName"
+            element={<TopologyConfigurationCreateEdit listPath="/list" isDuplicate />}
+          />
+        </Routes>
+      </TopologyConfigContext.Provider>
+    </MemoryRouter>,
+  );
 
 describe('TopologyConfigurationCreateEdit', () => {
-  const navigateMock = jest.fn();
-
   beforeEach(() => {
     jest.clearAllMocks();
-    mockUseNavigate.mockReturnValue(navigateMock);
-    mockUseLocation.mockReturnValue({ state: null, key: '', pathname: '', search: '', hash: '' });
   });
 
   describe('duplicate mode', () => {
-    beforeEach(() => {
-      mockUseParams.mockReturnValue({});
-      mockUseWatchTopologyConfigs.mockReturnValue([[], true, undefined]);
-    });
-
     it('should auto-update resource name when display name changes', () => {
       const sourceConfig = mockLLMInferenceServiceConfigK8sResource({
         name: 'source-topology',
@@ -78,15 +67,7 @@ describe('TopologyConfigurationCreateEdit', () => {
         topologyType: TopologyType.SINGLE_NODE,
       });
 
-      mockUseLocation.mockReturnValue({
-        state: { sourceConfig },
-        key: '',
-        pathname: '',
-        search: '',
-        hash: '',
-      });
-
-      render(<TopologyConfigurationCreateEdit />);
+      renderAtDuplicate(sourceConfig);
 
       const nameInput = screen.getByTestId('topology-config-name');
       fireEvent.change(nameInput, { target: { value: 'My Custom Topology' } });
