@@ -456,7 +456,7 @@ describe('MCP Deploy from Catalog', () => {
 
       cy.findByRole('tooltip').should(
         'contain.text',
-        'MCP Lifecycle operator is not available in this cluster.',
+        'MCP Lifecycle is not available in this cluster.',
       );
     });
 
