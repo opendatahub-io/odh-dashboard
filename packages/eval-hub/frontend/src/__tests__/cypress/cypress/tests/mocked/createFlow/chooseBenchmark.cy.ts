@@ -149,6 +149,158 @@ describe('Choose Benchmark Page', () => {
   });
 });
 
+describe('Choose Benchmark Page - Sort', () => {
+  beforeEach(() => {
+    initIntercepts({ providers: [testProvider, secondProvider] });
+  });
+
+  it('should sort benchmarks alphabetically by name', () => {
+    chooseBenchmarkPage.visit(NAMESPACE);
+    chooseBenchmarkPage.selectSortOption('Alphabetical');
+
+    chooseBenchmarkPage
+      .findBenchmarksGallery()
+      .findAllByTestId(/^benchmark-card-/)
+      .first()
+      .should('contain.text', 'Alpha Bench');
+
+    chooseBenchmarkPage
+      .findBenchmarksGallery()
+      .findAllByTestId(/^benchmark-card-/)
+      .last()
+      .should('contain.text', 'Gamma Bench');
+  });
+
+  it('should sort benchmarks by category', () => {
+    chooseBenchmarkPage.visit(NAMESPACE);
+    chooseBenchmarkPage.selectSortOption('Category');
+
+    chooseBenchmarkPage
+      .findBenchmarksGallery()
+      .findAllByTestId(/^benchmark-card-/)
+      .first()
+      .should('contain.text', 'Alpha Bench');
+
+    chooseBenchmarkPage
+      .findBenchmarksGallery()
+      .findAllByTestId(/^benchmark-card-/)
+      .last()
+      .should('contain.text', 'Beta Bench');
+  });
+});
+
+describe('Choose Benchmark Page - Category Filter', () => {
+  beforeEach(() => {
+    initIntercepts({ providers: [testProvider, secondProvider] });
+  });
+
+  it('should filter benchmarks by category', () => {
+    chooseBenchmarkPage.visit(NAMESPACE);
+    chooseBenchmarkPage.selectCategoryOption('Safety');
+
+    chooseBenchmarkPage.findBenchmarkCard('test-provider', 'bench-beta').should('exist');
+    chooseBenchmarkPage.findBenchmarkCard('test-provider', 'bench-alpha').should('not.exist');
+    chooseBenchmarkPage.findBenchmarkCard('second-provider', 'bench-gamma').should('not.exist');
+  });
+
+  it('should allow selecting multiple categories', () => {
+    chooseBenchmarkPage.visit(NAMESPACE);
+
+    chooseBenchmarkPage.findCategoryFilter().click();
+    cy.findByTestId('benchmarks-category-select').findByText('Reasoning').click();
+    cy.findByTestId('benchmarks-category-select').findByText('Safety').click();
+    chooseBenchmarkPage.findCategoryFilter().click();
+
+    chooseBenchmarkPage.findBenchmarkCard('test-provider', 'bench-alpha').should('exist');
+    chooseBenchmarkPage.findBenchmarkCard('test-provider', 'bench-beta').should('exist');
+    chooseBenchmarkPage.findBenchmarkCard('second-provider', 'bench-gamma').should('exist');
+  });
+
+  it('should search within category dropdown', () => {
+    chooseBenchmarkPage.visit(NAMESPACE);
+    chooseBenchmarkPage.findCategoryFilter().click();
+
+    chooseBenchmarkPage.findCategorySearchInput().type('Reas');
+
+    cy.findByTestId('benchmarks-category-select').findByText('Reasoning').should('exist');
+    cy.findByTestId('benchmarks-category-select').findByText('Safety').should('not.exist');
+  });
+
+  it('should show badge count on category filter toggle', () => {
+    chooseBenchmarkPage.visit(NAMESPACE);
+    chooseBenchmarkPage.selectCategoryOption('Reasoning');
+
+    chooseBenchmarkPage.findCategoryFilter().find('.pf-v6-c-badge').should('have.text', '1');
+  });
+});
+
+describe('Choose Benchmark Page - Metrics Filter', () => {
+  beforeEach(() => {
+    initIntercepts({ providers: [testProvider, secondProvider] });
+  });
+
+  it('should filter benchmarks by metric', () => {
+    chooseBenchmarkPage.visit(NAMESPACE);
+    chooseBenchmarkPage.selectMetricsOption('Toxicity');
+
+    chooseBenchmarkPage.findBenchmarkCard('test-provider', 'bench-beta').should('exist');
+    chooseBenchmarkPage.findBenchmarkCard('test-provider', 'bench-alpha').should('not.exist');
+    chooseBenchmarkPage.findBenchmarkCard('second-provider', 'bench-gamma').should('not.exist');
+  });
+
+  it('should search within metrics dropdown', () => {
+    chooseBenchmarkPage.visit(NAMESPACE);
+    chooseBenchmarkPage.findMetricsFilter().click();
+
+    chooseBenchmarkPage.findMetricsSearchInput().type('Accur');
+
+    cy.findByTestId('benchmarks-metrics-select').findByText('Accuracy').should('exist');
+    cy.findByTestId('benchmarks-metrics-select').findByText('Toxicity').should('not.exist');
+  });
+
+  it('should show badge count on metrics filter toggle', () => {
+    chooseBenchmarkPage.visit(NAMESPACE);
+    chooseBenchmarkPage.selectMetricsOption('Accuracy');
+
+    chooseBenchmarkPage.findMetricsFilter().find('.pf-v6-c-badge').should('have.text', '1');
+  });
+});
+
+describe('Choose Benchmark Page - Combined Filters', () => {
+  beforeEach(() => {
+    initIntercepts({ providers: [testProvider, secondProvider] });
+  });
+
+  it('should combine name and category filters', () => {
+    chooseBenchmarkPage.visit(NAMESPACE);
+
+    chooseBenchmarkPage.selectCategoryOption('Reasoning');
+
+    chooseBenchmarkPage.findBenchmarkCard('test-provider', 'bench-alpha').should('exist');
+    chooseBenchmarkPage.findBenchmarkCard('second-provider', 'bench-gamma').should('exist');
+
+    chooseBenchmarkPage.findNameFilterInput().type('Alpha');
+
+    chooseBenchmarkPage.findBenchmarkCard('test-provider', 'bench-alpha').should('exist');
+    chooseBenchmarkPage.findBenchmarkCard('second-provider', 'bench-gamma').should('not.exist');
+  });
+
+  it('should clear all filters at once', () => {
+    chooseBenchmarkPage.visit(NAMESPACE);
+
+    chooseBenchmarkPage.selectCategoryOption('Safety');
+    chooseBenchmarkPage.findNameFilterInput().type('nonexistent');
+
+    chooseBenchmarkPage.findBenchmarksEmptyState().should('exist');
+    chooseBenchmarkPage.findClearFiltersButton().click();
+
+    chooseBenchmarkPage.findBenchmarksGallery().should('exist');
+    chooseBenchmarkPage.findBenchmarkCard('test-provider', 'bench-alpha').should('exist');
+    chooseBenchmarkPage.findBenchmarkCard('test-provider', 'bench-beta').should('exist');
+    chooseBenchmarkPage.findBenchmarkCard('second-provider', 'bench-gamma').should('exist');
+  });
+});
+
 describe('Choose Benchmark Page - Pagination', () => {
   it('should paginate when benchmarks exceed per-page limit', () => {
     const manyBenchmarks = Array.from({ length: 15 }, (_, i) =>

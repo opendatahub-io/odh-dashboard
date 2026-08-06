@@ -1,6 +1,7 @@
 import * as React from 'react';
 import {
   Alert,
+  Badge,
   Breadcrumb,
   BreadcrumbItem,
   Bullseye,
@@ -20,7 +21,6 @@ import {
   MenuSearch,
   MenuSearchInput,
   MenuToggle,
-  MenuToggleElement,
   PageSection,
   Pagination,
   SearchInput,
@@ -114,21 +114,14 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
 
   const handleCategorySelect = React.useCallback(
     (_: React.MouseEvent | undefined, value: string | number | undefined) => {
-      setCategoryFilter(value === categoryFilter ? '' : String(value ?? ''));
-      setIsCategoryOpen(false);
+      const val = String(value);
+      setCategoryFilter(
+        categoryFilter.includes(val)
+          ? categoryFilter.filter((c) => c !== val)
+          : [...categoryFilter, val],
+      );
     },
     [categoryFilter, setCategoryFilter],
-  );
-
-  const categoryToggle = (toggleRef: React.Ref<MenuToggleElement>) => (
-    <MenuToggle
-      ref={toggleRef}
-      data-testid="collections-category-toggle"
-      onClick={() => setIsCategoryOpen((prev) => !prev)}
-      isExpanded={isCategoryOpen}
-    >
-      {categoryFilter ? formatCategory(categoryFilter) : 'Category'}
-    </MenuToggle>
   );
 
   return (
@@ -180,7 +173,7 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
               <Toolbar
                 clearAllFilters={() => {
                   setNameFilter('');
-                  setCategoryFilter('');
+                  setCategoryFilter([]);
                 }}
               >
                 <ToolbarContent>
@@ -234,22 +227,20 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
                         />
                       </ToolbarFilter>
                       <ToolbarFilter
-                        labels={
-                          categoryFilter
-                            ? [
-                                {
-                                  key: categoryFilter,
-                                  node: formatCategory(categoryFilter),
-                                },
-                              ]
-                            : []
-                        }
-                        deleteLabel={() => setCategoryFilter('')}
+                        labels={categoryFilter.map((c) => ({
+                          key: c,
+                          node: formatCategory(c),
+                        }))}
+                        deleteLabel={(_category, label) => {
+                          const val = typeof label === 'string' ? label : label.key;
+                          setCategoryFilter(categoryFilter.filter((c) => c !== val));
+                        }}
+                        deleteLabelGroup={() => setCategoryFilter([])}
                         categoryName="Category"
                       >
                         <Select
+                          role="menu"
                           isOpen={isCategoryOpen}
-                          selected={categoryFilter || undefined}
                           onSelect={handleCategorySelect}
                           onOpenChange={(open) => {
                             setIsCategoryOpen(open);
@@ -257,7 +248,21 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
                               setCategorySearch('');
                             }
                           }}
-                          toggle={categoryToggle}
+                          toggle={(toggleRef) => (
+                            <MenuToggle
+                              ref={toggleRef}
+                              data-testid="collections-category-toggle"
+                              onClick={() => setIsCategoryOpen((prev) => !prev)}
+                              isExpanded={isCategoryOpen}
+                              badge={
+                                categoryFilter.length > 0 ? (
+                                  <Badge isRead>{categoryFilter.length}</Badge>
+                                ) : undefined
+                              }
+                            >
+                              Category
+                            </MenuToggle>
+                          )}
                           data-testid="collections-category-select"
                         >
                           <MenuSearch>
@@ -273,7 +278,6 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
                           </MenuSearch>
                           <Divider />
                           <SelectList>
-                            {categoryFilter && <SelectOption value="">All categories</SelectOption>}
                             {(() => {
                               const filtered = availableCategories.filter((cat) => {
                                 const search = categorySearch.toLowerCase();
@@ -284,7 +288,12 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
                               });
                               return filtered.length > 0 ? (
                                 filtered.map((cat) => (
-                                  <SelectOption key={cat} value={cat}>
+                                  <SelectOption
+                                    key={cat}
+                                    value={cat}
+                                    hasCheckbox
+                                    isSelected={categoryFilter.includes(cat)}
+                                  >
                                     {formatCategory(cat)}
                                   </SelectOption>
                                 ))
@@ -322,7 +331,7 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
               ) : collections.length === 0 ? (
                 <Bullseye data-testid="collections-empty-state">
                   <Content component="p">
-                    {nameFilter || categoryFilter
+                    {nameFilter || categoryFilter.length > 0
                       ? 'No collections match the current filters.'
                       : 'No collections available.'}
                   </Content>

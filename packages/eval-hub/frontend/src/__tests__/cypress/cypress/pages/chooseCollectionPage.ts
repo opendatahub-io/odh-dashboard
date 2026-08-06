@@ -60,6 +60,21 @@ class ChooseCollectionPage {
   findSortSelect() {
     return cy.findByTestId('collections-sort-select');
   }
+
+  selectSortOption(label: string) {
+    this.findSortToggle().click();
+    this.findSortSelect().findByText(label).click();
+  }
+
+  selectCategoryOption(category: string) {
+    this.findCategoryToggle().click();
+    this.findCategoryOption(category).click();
+    this.findCategoryToggle().click();
+  }
+
+  findCategorySearchInput() {
+    return cy.findByTestId('collections-category-select').findByLabelText('Search categories');
+  }
 }
 
 export const chooseCollectionPage = new ChooseCollectionPage();

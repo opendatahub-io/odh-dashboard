@@ -18,8 +18,8 @@ export type UseCollectionsResult = {
   setPageSize: (pageSize: number) => void;
   nameFilter: string;
   setNameFilter: (name: string) => void;
-  categoryFilter: string;
-  setCategoryFilter: (category: string) => void;
+  categoryFilter: string[];
+  setCategoryFilter: (category: string[]) => void;
   sortOption: BenchmarkSortOption;
   setSortOption: (sort: BenchmarkSortOption) => void;
   availableCategories: string[];
@@ -32,7 +32,7 @@ export const useCollections = (namespace: string): UseCollectionsResult => {
   const [page, setPageState] = React.useState(1);
   const [pageSize, setPageSizeState] = React.useState(DEFAULT_PAGE_SIZE);
   const [nameFilter, setNameFilterState] = React.useState('');
-  const [categoryFilter, setCategoryFilterState] = React.useState('');
+  const [categoryFilter, setCategoryFilterState] = React.useState<string[]>([]);
   const [sortOption, setSortOptionState] = React.useState(BenchmarkSortOption.DEFAULT);
 
   // True when the API returned more items than our fetch limit, meaning some
@@ -57,8 +57,8 @@ export const useCollections = (namespace: string): UseCollectionsResult => {
     if (nameFilter) {
       result = result.filter((c) => c.name.toLowerCase().includes(nameFilter.toLowerCase()));
     }
-    if (categoryFilter) {
-      result = result.filter((c) => c.category === categoryFilter);
+    if (categoryFilter.length > 0) {
+      result = result.filter((c) => categoryFilter.includes(c.category ?? ''));
     }
     return result;
   }, [response.items, nameFilter, categoryFilter]);
@@ -99,7 +99,7 @@ export const useCollections = (namespace: string): UseCollectionsResult => {
   const setNameFilter = React.useCallback((name: string) => setNameFilterState(name), []);
 
   const setCategoryFilter = React.useCallback(
-    (category: string) => setCategoryFilterState(category),
+    (category: string[]) => setCategoryFilterState(category),
     [],
   );
 

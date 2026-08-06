@@ -60,6 +60,35 @@ class ChooseBenchmarkPage {
   findSortSelect() {
     return cy.findByTestId('benchmarks-sort-select');
   }
+
+  selectSortOption(label: string) {
+    this.findSortToggle().click();
+    this.findSortSelect().findByText(label).click();
+  }
+
+  selectCategoryOption(category: string) {
+    this.findCategoryFilter().click();
+    cy.findByTestId('benchmarks-category-select').findByText(category).click();
+    this.findCategoryFilter().click();
+  }
+
+  selectMetricsOption(metric: string) {
+    this.findMetricsFilter().click();
+    cy.findByTestId('benchmarks-metrics-select').findByText(metric).click();
+    this.findMetricsFilter().click();
+  }
+
+  findCategorySearchInput() {
+    return cy.findByTestId('benchmarks-category-select').findByLabelText('Search categories');
+  }
+
+  findMetricsSearchInput() {
+    return cy.findByTestId('benchmarks-metrics-select').findByLabelText('Search metrics');
+  }
+
+  findFilterLabelChips(groupName: string) {
+    return cy.findByText(groupName).parent().find('.pf-v6-c-label__content');
+  }
 }
 
 export const chooseBenchmarkPage = new ChooseBenchmarkPage();
