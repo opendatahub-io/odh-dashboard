@@ -13,6 +13,7 @@ import {
 import { CheckCircleIcon, TimesCircleIcon } from '@patternfly/react-icons';
 import { EvaluationJob } from '~/app/types';
 import { getBenchmarkDisplayName, getJobBenchmarks } from '~/app/utilities/evaluationUtils';
+import AboutBenchmarkResultPopover from '~/app/components/AboutBenchmarkResultPopover';
 
 type BenchmarkResultDetailsProps = {
   benchmarkId: string;
@@ -78,6 +79,13 @@ const BenchmarkResultDetails: React.FC<BenchmarkResultDetailsProps> = ({
             </Label>
           </FlexItem>
         )}
+        <FlexItem>
+          <AboutBenchmarkResultPopover
+            benchmarkId={benchmarkId}
+            benchmarkIndex={benchmarkIndex}
+            job={job}
+          />
+        </FlexItem>
       </Flex>
       <Content
         component="p"
