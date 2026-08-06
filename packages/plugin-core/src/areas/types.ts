@@ -87,6 +87,7 @@ export enum SupportedArea {
   /* Plugins */
   PLUGIN_MODEL_SERVING = 'plugin-model-serving',
   PLUGIN_GEN_AI = 'plugin-gen-ai',
+  PLUGIN_NOTEBOOKS = 'plugin-notebooks',
 
   /* LM Eval */
   LM_EVAL = 'lm-eval',

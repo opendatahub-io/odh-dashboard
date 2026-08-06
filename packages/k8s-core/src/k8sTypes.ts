@@ -321,6 +321,7 @@ export type DashboardCommonConfig = {
   connectionTest?: boolean;
   modelCapabilities?: boolean;
   modelDeploymentSettings?: boolean;
+  notebooksV2?: boolean;
 };
 
 export type DashboardConfigKind = K8sResourceCommon & {
