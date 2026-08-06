@@ -68,6 +68,11 @@ var moduleRegistry = map[string]ModuleDefinition{
 		ImageEnvVar:  "RELATED_IMAGE_ODH_MOD_ARCH_AGENT_OPS_IMAGE",
 		ManifestSlug: "agent-ops",
 	},
+	"notebooks": {
+		Name: "notebooks", ContainerName: "notebooks-ui", Port: 8943,
+		ImageEnvVar:  "RELATED_IMAGE_ODH_MOD_ARCH_NOTEBOOKS_IMAGE",
+		ManifestSlug: "notebooks",
+	},
 }
 
 // resolveModuleStatuses determines the status of each module based on

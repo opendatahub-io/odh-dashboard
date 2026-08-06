@@ -22,7 +22,7 @@ func TestResolveModuleStatuses(t *testing.T) {
 	}{
 		{
 			name:    "default spec — all modules deployed",
-			wantLen: 8,
+			wantLen: 9,
 			spec:    v1alpha1.DashboardSpec{},
 			wantPhases: map[string]v1alpha1.ModulePhase{
 				"modelRegistry": v1alpha1.ModulePhaseDeployed,
@@ -33,11 +33,12 @@ func TestResolveModuleStatuses(t *testing.T) {
 				"automl":        v1alpha1.ModulePhaseDeployed,
 				"autorag":       v1alpha1.ModulePhaseDeployed,
 				"agentOps":      v1alpha1.ModulePhaseDeployed,
+				"notebooks":     v1alpha1.ModulePhaseDeployed,
 			},
 		},
 		{
 			name:    "explicit disable override",
-			wantLen: 8,
+			wantLen: 9,
 			spec: v1alpha1.DashboardSpec{
 				Modules: map[string]v1alpha1.ModuleOverride{
 					"genAi": {State: v1alpha1.ModuleDisabled},
@@ -55,7 +56,7 @@ func TestResolveModuleStatuses(t *testing.T) {
 		},
 		{
 			name:    "explicit enable is treated as deployed",
-			wantLen: 8,
+			wantLen: 9,
 			spec: v1alpha1.DashboardSpec{
 				Modules: map[string]v1alpha1.ModuleOverride{
 					"modelRegistry": {State: v1alpha1.ModuleEnabled},
@@ -67,7 +68,7 @@ func TestResolveModuleStatuses(t *testing.T) {
 		},
 		{
 			name:    "all modules disabled via overrides",
-			wantLen: 8,
+			wantLen: 9,
 			spec: v1alpha1.DashboardSpec{
 				Modules: map[string]v1alpha1.ModuleOverride{
 					"modelRegistry": {State: v1alpha1.ModuleDisabled},
@@ -78,6 +79,7 @@ func TestResolveModuleStatuses(t *testing.T) {
 					"automl":        {State: v1alpha1.ModuleDisabled},
 					"autorag":       {State: v1alpha1.ModuleDisabled},
 					"agentOps":      {State: v1alpha1.ModuleDisabled},
+					"notebooks":     {State: v1alpha1.ModuleDisabled},
 				},
 			},
 			wantPhases: map[string]v1alpha1.ModulePhase{
@@ -89,11 +91,12 @@ func TestResolveModuleStatuses(t *testing.T) {
 				"automl":        v1alpha1.ModulePhaseDisabled,
 				"autorag":       v1alpha1.ModulePhaseDisabled,
 				"agentOps":      v1alpha1.ModulePhaseDisabled,
+				"notebooks":     v1alpha1.ModulePhaseDisabled,
 			},
 		},
 		{
 			name:    "unknown module override key produces UnknownModule status",
-			wantLen: 9,
+			wantLen: 10,
 			spec: v1alpha1.DashboardSpec{
 				Modules: map[string]v1alpha1.ModuleOverride{
 					"modelregistry": {State: v1alpha1.ModuleEnabled},
@@ -108,7 +111,7 @@ func TestResolveModuleStatuses(t *testing.T) {
 		},
 		{
 			name:    "DSC component removed disables module",
-			wantLen: 8,
+			wantLen: 9,
 			spec: v1alpha1.DashboardSpec{
 				Components: map[string]v1alpha1.ComponentAvailability{
 					"modelregistry": {ManagementState: "Removed"},
@@ -124,7 +127,7 @@ func TestResolveModuleStatuses(t *testing.T) {
 		},
 		{
 			name:    "DSC component Managed enables module",
-			wantLen: 8,
+			wantLen: 9,
 			spec: v1alpha1.DashboardSpec{
 				Components: map[string]v1alpha1.ComponentAvailability{
 					"modelregistry": {ManagementState: "Managed"},
@@ -136,7 +139,7 @@ func TestResolveModuleStatuses(t *testing.T) {
 		},
 		{
 			name:    "DSC component absent from non-nil map disables module",
-			wantLen: 8,
+			wantLen: 9,
 			spec: v1alpha1.DashboardSpec{
 				Components: map[string]v1alpha1.ComponentAvailability{
 					"someother": {ManagementState: "Managed"},
@@ -154,7 +157,7 @@ func TestResolveModuleStatuses(t *testing.T) {
 		},
 		{
 			name:    "inter-module dependency cascade: genAi disabled disables autorag",
-			wantLen: 8,
+			wantLen: 9,
 			spec: v1alpha1.DashboardSpec{
 				Modules: map[string]v1alpha1.ModuleOverride{
 					"genAi": {State: v1alpha1.ModuleDisabled},
@@ -173,7 +176,7 @@ func TestResolveModuleStatuses(t *testing.T) {
 		},
 		{
 			name:    "aipipelines removed disables automl and autorag",
-			wantLen: 8,
+			wantLen: 9,
 			spec: v1alpha1.DashboardSpec{
 				Components: map[string]v1alpha1.ComponentAvailability{
 					"aipipelines": {ManagementState: "Removed"},
@@ -403,7 +406,7 @@ func TestOverlayContainerReadiness(t *testing.T) {
 }
 
 func TestModuleRegistry(t *testing.T) {
-	assert.Len(t, moduleRegistry, 8, "expected 8 modules in registry")
+	assert.Len(t, moduleRegistry, 9, "expected 9 modules in registry")
 
 	for name, mod := range moduleRegistry {
 		t.Run(name, func(t *testing.T) {
@@ -420,6 +423,6 @@ func TestModuleNames(t *testing.T) {
 	names := ModuleNames()
 	assert.Equal(t, []string{
 		"agentOps", "automl", "autorag", "evalHub",
-		"genAi", "maas", "mlflow", "modelRegistry",
+		"genAi", "maas", "mlflow", "modelRegistry", "notebooks",
 	}, names)
 }
