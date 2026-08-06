@@ -1354,7 +1354,7 @@ class ModelServingWizard extends Wizard {
   }
 
   removeCapability(capability: string) {
-    this.findCapabilityLabel(capability).findByLabelText('Close').click();
+    this.findCapabilityLabel(capability).findByLabelText(`Close ${capability}`).click();
     return this;
   }
 
