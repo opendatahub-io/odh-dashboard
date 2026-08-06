@@ -319,10 +319,10 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		logger.Info("Using real BFF client factory",
 			"maasServiceName", bffConfig.GetServiceConfig(bffclient.BFFTargetMaaS).ServiceName,
 			"maasServicePort", bffConfig.GetServiceConfig(bffclient.BFFTargetMaaS).Port,
-			"maasDevURL", bffConfig.GetServiceConfig(bffclient.BFFTargetMaaS).DevOverrideURL,
+			"maasDevURL", sanitizeURLForLog(bffConfig.GetServiceConfig(bffclient.BFFTargetMaaS).DevOverrideURL),
 			"mlflowServiceName", bffConfig.GetServiceConfig(bffclient.BFFTargetMLflow).ServiceName,
 			"mlflowServicePort", bffConfig.GetServiceConfig(bffclient.BFFTargetMLflow).Port,
-			"mlflowDevURL", bffConfig.GetServiceConfig(bffclient.BFFTargetMLflow).DevOverrideURL)
+			"mlflowDevURL", sanitizeURLForLog(bffConfig.GetServiceConfig(bffclient.BFFTargetMLflow).DevOverrideURL))
 		bffFactory = bffclient.NewRealClientFactory(bffConfig, rootCAs, cfg.InsecureSkipVerify, logger)
 	}
 
