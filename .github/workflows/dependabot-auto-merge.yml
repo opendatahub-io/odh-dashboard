@@ -38,6 +38,19 @@ jobs:
             echo "touches_upstream=false" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Checkout base branch for version checks
+        if: >
+          steps.upstream.outputs.touches_upstream != 'true' &&
+          steps.metadata.outputs.update-type == 'version-update:semver-minor' &&
+          steps.metadata.outputs.previous-version == ''
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          sparse-checkout: |
+            **/package-lock.json
+            **/go.sum
+          sparse-checkout-cone-mode: false
+
       - name: Check for pre-1.0 packages in grouped PRs
         id: pre1
         if: >
@@ -45,31 +58,35 @@ jobs:
           steps.metadata.outputs.update-type == 'version-update:semver-minor' &&
           steps.metadata.outputs.previous-version == ''
         env:
-          UPDATED_DEPS_JSON: ${{ steps.metadata.outputs.updated-dependencies-json }}
           ECOSYSTEM: ${{ steps.metadata.outputs.package-ecosystem }}
+          DEP_NAMES: ${{ steps.metadata.outputs.dependency-names }}
         run: |
           has_pre1=false
 
-          pre1_from_json=$(echo "$UPDATED_DEPS_JSON" | jq -r '
-            [.[] | select(.prevVersion != "" and .prevVersion != null)
-                 | select(.prevVersion | startswith("0."))]
-            | length > 0
-          ' 2>/dev/null || echo "false")
-
-          if [ "$pre1_from_json" = "true" ]; then
-            echo "Pre-1.0 package detected via updated-dependencies-json metadata"
-            echo "$UPDATED_DEPS_JSON" | jq -r '.[] | select(.prevVersion | startswith("0.")) | "  \(.dependencyName): \(.prevVersion) → \(.newVersion)"'
-            has_pre1=true
-          else
-            all_have_versions=$(echo "$UPDATED_DEPS_JSON" | jq -r '
-              all(.[]; .prevVersion != "" and .prevVersion != null)
-            ' 2>/dev/null || echo "false")
-
-            if [ "$all_have_versions" != "true" ]; then
-              echo "Some deps lack version metadata; cannot determine pre-1.0 status from metadata alone"
-              echo "Skipping auto-merge for safety on this grouped PR"
-              has_pre1=true
-            fi
+          if [ "$ECOSYSTEM" = "npm_and_yarn" ]; then
+            for dep in $(echo "$DEP_NAMES" | tr ',' '\n' | sed 's/^ *//;s/ *$//'); do
+              for lockfile in $(find . -name package-lock.json -not -path '*/node_modules/*' -not -path '*/upstream/*'); do
+                ver=$(jq -r --arg d "$dep" \
+                  'first(.packages | to_entries[] | select((.key | endswith("node_modules/" + $d)) and (.value.version != null)) | .value.version) // empty' \
+                  "$lockfile" 2>/dev/null || true)
+                if [ -n "$ver" ] && echo "$ver" | grep -q '^0\.'; then
+                  echo "Pre-1.0 package detected in group: $dep ($ver) in $lockfile"
+                  has_pre1=true
+                  break 2
+                fi
+              done
+            done
+          elif [ "$ECOSYSTEM" = "go_modules" ]; then
+            for dep in $(echo "$DEP_NAMES" | tr ',' '\n' | sed 's/^ *//;s/ *$//'); do
+              for gosum in $(find . -name go.sum -not -path '*/upstream/*'); do
+                ver=$(awk -v dep="$dep" '$1 == dep { print $2; exit }' "$gosum")
+                if [ -n "$ver" ] && echo "$ver" | grep -q '^v0\.'; then
+                  echo "Pre-1.0 Go module detected in group: $dep ($ver) in $gosum"
+                  has_pre1=true
+                  break 2
+                fi
+              done
+            done
           fi
 
           echo "has_pre1=$has_pre1" >> "$GITHUB_OUTPUT"
