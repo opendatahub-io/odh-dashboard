@@ -85,6 +85,18 @@ func mockProviders() []evalhub.Provider {
 			Description: "EleutherAI's LM Evaluation Harness – a unified framework for testing " +
 				"generative language models on a large number of different evaluation tasks.",
 			Tags: []string{"Open Source", "Standard"},
+			Agent: &evalhub.AgentMetadata{
+				Evaluates:       []string{"accuracy", "reasoning", "knowledge", "math", "safety", "code"},
+				RecommendedWhen: []string{"User wants to measure model accuracy or reasoning ability", "User asks about MMLU, HellaSwag, ARC, or standard benchmarks"},
+				TargetType:      "model",
+				Summary:         "Evaluate LLM accuracy across standard benchmarks (reasoning, knowledge, math, safety)",
+				Complements:     []string{"safety_eval_suite"},
+				Hints:           []string{"The model name must be a valid HuggingFace model ID or served endpoint URL"},
+				ResultInterpretation: []string{
+					"Most benchmarks use accuracy (acc or acc_norm), higher is better",
+					"0.25 is random baseline for 4-choice MCQ benchmarks",
+				},
+			},
 			Benchmarks: []evalhub.ProviderBenchmark{
 				{
 					ID:   "truthfulqa_mc1",
@@ -215,6 +227,18 @@ func mockProviders() []evalhub.Provider {
 			Description: "Comprehensive safety evaluation suite for identifying harmful, biased, " +
 				"and unreliable model behaviours in production environments.",
 			Tags: []string{"Safety", "Red Teaming"},
+			Agent: &evalhub.AgentMetadata{
+				Evaluates:       []string{"safety", "security", "red_teaming", "toxicity", "bias"},
+				RecommendedWhen: []string{"User wants to evaluate model safety or robustness", "User asks about toxicity, bias, or jailbreak resistance"},
+				TargetType:      "model",
+				Summary:         "Comprehensive safety evaluation for identifying harmful, biased, and unreliable model behaviours",
+				Complements:     []string{"lm_evaluation_harness"},
+				Hints:           []string{"Run after initial quality benchmarks to ensure safety compliance"},
+				ResultInterpretation: []string{
+					"Safety scores measure resistance to harmful outputs, higher is better",
+					"Bias scores measure fairness across demographic groups",
+				},
+			},
 			Benchmarks: []evalhub.ProviderBenchmark{
 				{
 					ID:   "toxigen",
