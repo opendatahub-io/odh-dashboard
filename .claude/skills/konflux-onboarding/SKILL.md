@@ -148,7 +148,7 @@ Create the following subtasks under the new epic.
 | 4 | `<name>: Track & Verify ODH Konflux Onboarding` | Major | Track ODH Konflux component onboarding (Quay repo, build pipeline, release config). Automated by DevOps CI. |
 | 5 | `<name>: Set up module for OpenShift CI builds` | Major | Configure OpenShift CI in `openshift/release` repo (ci-operator config + prowgen jobs). Partially automated by `/konflux-onboarding` Phase 5. |
 | 6 | `<name>: Create Standalone Module Manifests` | Major | Create standalone deployment manifests in `manifests/modules/<name>/`. Partially automated by `/konflux-onboarding` Phase 4 (Type A only). |
-| 7 | `<name>: Onboard Module in Operator` | Major | Two operator changes needed: (1) **dashboard-operator** (this repo) — register the module in `dashboard-operator/internal/controller/modules.go` (slug, container name, port, image env var, DSC component gate, inter-module dependencies), add proxy paths in `module_deploy.go`, add image mapping in `support.go`, update test assertions in `modules_test.go`. Automated by `/module-onboarding` Phase 7. (2) **opendatahub-operator** (separate repo: `opendatahub-io/opendatahub-operator`) — add `RELATED_IMAGE_ODH_MOD_ARCH_<NAME>_IMAGE` to `internal/controller/modules/dashboard/support.go`. Requires Platform team coordination. |
+| 7 | `<name>: Onboard Module in Operator` | Major | Two operator changes needed: (1) **dashboard-operator** (this repo) — register the module in `dashboard-operator/internal/controller/modules.go` (slug, container name, port, image env var, DSC component gate, inter-module dependencies), add proxy paths in `module_deploy.go`, add image mapping in `support.go`, update test assertions in `modules_test.go`. Automated by `/module-onboarding` Phase 7. (2) **opendatahub-operator** (separate repo: `opendatahub-io/opendatahub-operator`) — add `RELATED_IMAGE_ODH_MOD_ARCH_<UPPER_SNAKE>_IMAGE` to `internal/controller/modules/dashboard/support.go`. Requires Platform team coordination. |
 | 8 | `<name>: Track & Verify RHOAI Konflux Onboarding` | Major | Track RHOAI Konflux component onboarding (downstream Quay, release pipeline, Renovate). Automated by DevOps CI. |
 
 For each subtask:
@@ -586,6 +586,6 @@ Print a final report:
 5. Review and merge Dockerfile.konflux.<name> PR in the downstream repo
 6. Review and merge OpenShift CI PR in openshift/release
 7. Verify opendatahub+openshift_ci robot account has push on Quay repo
-8. Coordinate opendatahub-operator integration with Platform team — add `RELATED_IMAGE_ODH_MOD_ARCH_<NAME>_IMAGE` to `opendatahub-io/opendatahub-operator` at `internal/controller/modules/dashboard/support.go` (dashboard-operator registration is handled by `/module-onboarding` Phase 7)
+8. Coordinate opendatahub-operator integration with Platform team — add `RELATED_IMAGE_ODH_MOD_ARCH_<UPPER_SNAKE>_IMAGE` to `opendatahub-io/opendatahub-operator` at `internal/controller/modules/dashboard/support.go` (dashboard-operator registration is handled by `/module-onboarding` Phase 7)
 9. Verify first build succeeds end-to-end (both ODH and RHOAI)
 ```
