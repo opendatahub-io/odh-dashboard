@@ -30,6 +30,7 @@ import type { CreatePolicyRequest, UpdatePolicyRequest } from '~/app/types/auth-
 import { MaaSAuthPolicy, MaaSModelRefSummary, MaaSSubscription } from '~/app/types/subscriptions';
 import { modelRefsToSummaries } from '~/app/utilities/authpolicies';
 import { getSectionUrl } from '~/app/utilities/subscriptionManagementNavigation';
+import { useMaaSGovernanceContext } from '~/app/context/MaaSGovernanceContext';
 
 const policyFormSchema = z.object({
   groups: z.array(z.string()).min(1, 'One or more groups must be selected'),
@@ -56,6 +57,7 @@ const PolicyForm: React.FC<PolicyFormProps> = ({
   preSelectedModel,
 }) => {
   const navigate = useNavigate();
+  const { refresh } = useMaaSGovernanceContext();
   const { data: nameDescData, onDataChange: onNameDescChange } = useK8sNameDescriptionFieldData(
     initialPolicy
       ? {
@@ -153,6 +155,7 @@ const PolicyForm: React.FC<PolicyFormProps> = ({
         const request: UpdatePolicyRequest = sharedFields;
         await updateAuthPolicy(initialPolicy.name)(apiOpts, request);
       }
+      refresh();
       navigate(returnTo ?? getSectionUrl('auth-policies'));
     } catch (e) {
       setSubmitError(e instanceof Error ? e.message : 'Failed to save policy');

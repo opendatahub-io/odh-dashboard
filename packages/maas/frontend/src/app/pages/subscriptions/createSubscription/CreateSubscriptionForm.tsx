@@ -28,6 +28,7 @@ import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { z } from 'zod';
 import { getSectionUrl } from '~/app/utilities/subscriptionManagementNavigation';
 import { createSubscription, updateSubscription } from '~/app/api/subscriptions';
+import { useMaaSGovernanceContext } from '~/app/context/MaaSGovernanceContext';
 import { useSubscriptionModels } from '~/app/hooks/useSubscriptionModels';
 import {
   MaaSAuthPolicy,
@@ -91,6 +92,7 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
   preSelectedModel,
 }) => {
   const navigate = useNavigate();
+  const { refresh } = useMaaSGovernanceContext();
   const isEditing = !!subscriptionInfo;
   const subscription = subscriptionInfo?.subscription;
 
@@ -272,6 +274,7 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
         };
         await createSubscription()(apiOpts, request);
       }
+      refresh();
       navigate(returnTo ?? getSectionUrl('subscriptions'));
     } catch (e) {
       setSubmitError(
