@@ -263,6 +263,7 @@ This checklist maps to skill phases. Items marked with a phase are handled autom
 | 17 | Container image builds successfully | Phase 5 |
 | 18 | Standalone manifests in `manifests/modules/<name>/` | Phase 6 |
 | 19 | Module registered in operator module registry | Phase 7 |
+| 20 | RELATED_IMAGE entry in Helm chart `values.yaml` | Phase 7 |
 | — | Unit tests in `__tests__/` | Manual (post-skill) |
 | — | E2E tests in `packages/cypress/cypress/tests/e2e/<name>/` | Manual (post-skill) |
 | — | Contract tests in `contract-tests/` (if BFF) | Manual (post-skill) |
@@ -341,6 +342,7 @@ The module-onboarding skill registers the module in the dashboard-operator durin
 | `dashboard-operator/internal/controller/module_deploy.go` | Add entry to `moduleProxyPaths` map (and optionally `interBFFDependencies`) |
 | `dashboard-operator/internal/controller/support.go` | Add entry to `imagesMap` |
 | `dashboard-operator/internal/controller/modules_test.go` | Update module count and name list assertions |
+| `dashboard-operator/charts/dashboard/values.yaml` | Add `RELATED_IMAGE_ODH_MOD_ARCH_<UPPER_SNAKE>_IMAGE: ""` to `relatedImages:` section |
 
 ### Naming conventions
 

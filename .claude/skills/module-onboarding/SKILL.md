@@ -354,13 +354,23 @@ Read the file and update:
 2. `TestModuleNames` — add `"<camelCase>"` to the expected sorted name list in the correct alphabetical position
 3. `TestResolveModuleStatuses` — update `wantLen` values: increment the standard case by 1 and the unknown-module case by 1
 
+### Step 5: Helm chart related images — `dashboard-operator/charts/dashboard/values.yaml`
+
+Read the file and find the `relatedImages:` section. Add an entry for the new module's image env var:
+
+```yaml
+RELATED_IMAGE_ODH_MOD_ARCH_<UPPER_SNAKE>_IMAGE: ""
+```
+
+Place it alphabetically among the existing `RELATED_IMAGE_ODH_MOD_ARCH_*` entries. The value is empty because the ODH Operator overrides it with digest-pinned references at install time; only non-empty values are injected as pod env vars by the Helm chart template.
+
 ## Phase 8: Report
 
 Summarize the completed onboarding:
 
 1. **Files created** — list all new files under `packages/<name>/`
 2. **Standalone manifests created** — list files under `manifests/modules/<name>/`
-3. **Operator registration** — `modules.go`, `module_deploy.go`, `support.go`, `modules_test.go`
+3. **Operator registration** — `modules.go`, `module_deploy.go`, `support.go`, `modules_test.go`, `values.yaml`
 4. **Host files modified** — `k8sTypes.ts`, `types.ts`, `const.ts`
 5. **Port assignments** — frontend port, BFF port (if applicable), production service port
 6. **Build results** — pass/fail for each verification step
