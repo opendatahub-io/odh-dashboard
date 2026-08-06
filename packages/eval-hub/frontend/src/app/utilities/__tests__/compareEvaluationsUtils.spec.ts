@@ -218,6 +218,18 @@ describe('getCompareParentResultScore', () => {
     job.results = {};
     expect(getCompareParentResultScore(job)).toBe('-');
   });
+
+  it('should return dash when score is NaN', () => {
+    const job = mockEvaluationJob({ score: 0.5 });
+    job.results.test = { score: NaN };
+    expect(getCompareParentResultScore(job)).toBe('-');
+  });
+
+  it('should return dash when score is Infinity', () => {
+    const job = mockEvaluationJob({ score: 0.5 });
+    job.results.test = { score: Infinity };
+    expect(getCompareParentResultScore(job)).toBe('-');
+  });
 });
 
 describe('buildMlflowCompareSearchParams', () => {

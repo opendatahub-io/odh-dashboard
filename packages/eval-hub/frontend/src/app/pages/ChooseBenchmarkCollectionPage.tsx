@@ -30,8 +30,12 @@ import {
   Spinner,
   Toolbar,
   ToolbarContent,
+  ToolbarFilter,
+  ToolbarGroup,
   ToolbarItem,
+  ToolbarToggleGroup,
 } from '@patternfly/react-core';
+import { FilterIcon, SortAmountDownIcon } from '@patternfly/react-icons';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
@@ -42,6 +46,11 @@ import { evaluationCreateRoute, evaluationStartRoute, evaluationsBaseRoute } fro
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import CollectionDrawerPanel from '~/app/components/CollectionDrawerPanel';
 import { formatCategory, getCategoryColor } from '~/app/components/benchmarkUtils';
+import { BenchmarkSortOption, benchmarkSortLabels } from '~/app/pages/const';
+
+const COLLECTION_SORT_VALUES: readonly string[] = Object.values(BenchmarkSortOption);
+const isCollectionSortOption = (value: unknown): value is BenchmarkSortOption =>
+  typeof value === 'string' && COLLECTION_SORT_VALUES.includes(value);
 
 const ChooseBenchmarkCollectionPage: React.FC = () => {
   const { namespace } = useParams<{ namespace: string }>();
@@ -49,6 +58,7 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
   const [selectedCollection, setSelectedCollection] = React.useState<Collection | undefined>(
     undefined,
   );
+  const [isSortOpen, setIsSortOpen] = React.useState(false);
   const [isCategoryOpen, setIsCategoryOpen] = React.useState(false);
   const [categorySearch, setCategorySearch] = React.useState('');
 
@@ -66,6 +76,8 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
     setNameFilter,
     categoryFilter,
     setCategoryFilter,
+    sortOption,
+    setSortOption,
     availableCategories,
   } = useCollections(namespace ?? '');
 
@@ -165,67 +177,126 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
                   administrator or use the API directly to access the full list.
                 </Alert>
               )}
-              <Toolbar>
+              <Toolbar
+                clearAllFilters={() => {
+                  setNameFilter('');
+                  setCategoryFilter('');
+                }}
+              >
                 <ToolbarContent>
                   <ToolbarItem>
-                    <SearchInput
-                      placeholder="Filter by name"
-                      value={nameFilter}
-                      onChange={(_, value) => setNameFilter(value)}
-                      onClear={() => setNameFilter('')}
-                      style={{ width: '220px' }}
-                      data-testid="collections-name-filter"
-                    />
-                  </ToolbarItem>
-                  <ToolbarItem>
                     <Select
-                      isOpen={isCategoryOpen}
-                      selected={categoryFilter || undefined}
-                      onSelect={handleCategorySelect}
-                      onOpenChange={(open) => {
-                        setIsCategoryOpen(open);
-                        if (!open) {
-                          setCategorySearch('');
+                      isOpen={isSortOpen}
+                      selected={sortOption}
+                      onSelect={(_event, value) => {
+                        if (isCollectionSortOption(value)) {
+                          setSortOption(value);
                         }
+                        setIsSortOpen(false);
                       }}
-                      toggle={categoryToggle}
-                      data-testid="collections-category-select"
+                      onOpenChange={setIsSortOpen}
+                      toggle={(toggleRef) => (
+                        <MenuToggle
+                          ref={toggleRef}
+                          onClick={() => setIsSortOpen((prev) => !prev)}
+                          isExpanded={isSortOpen}
+                          icon={<SortAmountDownIcon />}
+                          data-testid="collections-sort-toggle"
+                        >
+                          {benchmarkSortLabels[sortOption]}
+                        </MenuToggle>
+                      )}
+                      data-testid="collections-sort-select"
                     >
-                      <MenuSearch>
-                        <MenuSearchInput>
-                          <SearchInput
-                            aria-label="Search categories"
-                            placeholder="Search categories"
-                            value={categorySearch}
-                            onChange={(_event, value) => setCategorySearch(value)}
-                            onClear={() => setCategorySearch('')}
-                          />
-                        </MenuSearchInput>
-                      </MenuSearch>
-                      <Divider />
                       <SelectList>
-                        {categoryFilter && <SelectOption value="">All categories</SelectOption>}
-                        {(() => {
-                          const filtered = availableCategories.filter((cat) => {
-                            const search = categorySearch.toLowerCase();
-                            return (
-                              cat.toLowerCase().includes(search) ||
-                              formatCategory(cat).toLowerCase().includes(search)
-                            );
-                          });
-                          return filtered.length > 0 ? (
-                            filtered.map((cat) => (
-                              <SelectOption key={cat} value={cat}>
-                                {formatCategory(cat)}
-                              </SelectOption>
-                            ))
-                          ) : (
-                            <SelectOption isDisabled>No results found</SelectOption>
-                          );
-                        })()}
+                        {Object.values(BenchmarkSortOption).map((opt) => (
+                          <SelectOption key={opt} value={opt} isSelected={sortOption === opt}>
+                            {benchmarkSortLabels[opt]}
+                          </SelectOption>
+                        ))}
                       </SelectList>
                     </Select>
                   </ToolbarItem>
+                  <ToolbarToggleGroup breakpoint="md" toggleIcon={<FilterIcon />}>
+                    <ToolbarGroup variant="filter-group">
+                      <ToolbarFilter
+                        labels={nameFilter ? [nameFilter] : []}
+                        deleteLabel={() => setNameFilter('')}
+                        categoryName="Name"
+                      >
+                        <SearchInput
+                          placeholder="Filter by name"
+                          value={nameFilter}
+                          onChange={(_, value) => setNameFilter(value)}
+                          onClear={() => setNameFilter('')}
+                          style={{ width: '220px' }}
+                          data-testid="collections-name-filter"
+                        />
+                      </ToolbarFilter>
+                      <ToolbarFilter
+                        labels={
+                          categoryFilter
+                            ? [
+                                {
+                                  key: categoryFilter,
+                                  node: formatCategory(categoryFilter),
+                                },
+                              ]
+                            : []
+                        }
+                        deleteLabel={() => setCategoryFilter('')}
+                        categoryName="Category"
+                      >
+                        <Select
+                          isOpen={isCategoryOpen}
+                          selected={categoryFilter || undefined}
+                          onSelect={handleCategorySelect}
+                          onOpenChange={(open) => {
+                            setIsCategoryOpen(open);
+                            if (!open) {
+                              setCategorySearch('');
+                            }
+                          }}
+                          toggle={categoryToggle}
+                          data-testid="collections-category-select"
+                        >
+                          <MenuSearch>
+                            <MenuSearchInput>
+                              <SearchInput
+                                aria-label="Search categories"
+                                placeholder="Search categories"
+                                value={categorySearch}
+                                onChange={(_event, value) => setCategorySearch(value)}
+                                onClear={() => setCategorySearch('')}
+                              />
+                            </MenuSearchInput>
+                          </MenuSearch>
+                          <Divider />
+                          <SelectList>
+                            {categoryFilter && <SelectOption value="">All categories</SelectOption>}
+                            {(() => {
+                              const filtered = availableCategories.filter((cat) => {
+                                const search = categorySearch.toLowerCase();
+                                return (
+                                  cat.toLowerCase().includes(search) ||
+                                  formatCategory(cat).toLowerCase().includes(search)
+                                );
+                              });
+                              return filtered.length > 0 ? (
+                                filtered.map((cat) => (
+                                  <SelectOption key={cat} value={cat}>
+                                    {formatCategory(cat)}
+                                  </SelectOption>
+                                ))
+                              ) : (
+                                <SelectOption isDisabled>No results found</SelectOption>
+                              );
+                            })()}
+                          </SelectList>
+                        </Select>
+                      </ToolbarFilter>
+                    </ToolbarGroup>
+                  </ToolbarToggleGroup>
                   <ToolbarItem align={{ default: 'alignEnd' }}>
                     <Pagination
                       itemCount={totalCount}

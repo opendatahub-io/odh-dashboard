@@ -52,6 +52,14 @@ class ChooseCollectionPage {
   findNextPageButton() {
     return cy.findAllByLabelText('Go to next page').first();
   }
+
+  findSortToggle() {
+    return cy.findByTestId('collections-sort-toggle');
+  }
+
+  findSortSelect() {
+    return cy.findByTestId('collections-sort-select');
+  }
 }
 
 export const chooseCollectionPage = new ChooseCollectionPage();

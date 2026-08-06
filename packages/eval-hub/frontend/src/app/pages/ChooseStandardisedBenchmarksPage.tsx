@@ -33,7 +33,7 @@ import {
   ToolbarItem,
   ToolbarToggleGroup,
 } from '@patternfly/react-core';
-import { FilterIcon } from '@patternfly/react-icons';
+import { FilterIcon, SortAmountDownIcon } from '@patternfly/react-icons';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
@@ -47,10 +47,16 @@ import { formatCategory, getMetricDisplayName } from '~/app/components/benchmark
 import {
   BenchmarkFilterOptions,
   BenchmarkFilterDataType,
+  BenchmarkSortOption,
+  benchmarkSortLabels,
   initialBenchmarkFilterData,
 } from './const';
 
 const PAGE_SIZES = [12, 24, 36];
+
+const BENCHMARK_SORT_VALUES: readonly string[] = Object.values(BenchmarkSortOption);
+const isBenchmarkSortOption = (value: unknown): value is BenchmarkSortOption =>
+  typeof value === 'string' && BENCHMARK_SORT_VALUES.includes(value);
 
 const ChooseStandardisedBenchmarksPage: React.FC = () => {
   const { namespace } = useParams<{ namespace: string }>();
@@ -99,6 +105,9 @@ const ChooseStandardisedBenchmarksPage: React.FC = () => {
     undefined,
   );
 
+  const [sortOption, setSortOption] = React.useState(BenchmarkSortOption.DEFAULT);
+  const [isSortOpen, setIsSortOpen] = React.useState(false);
+
   const [isCategoryOpen, setIsCategoryOpen] = React.useState(false);
   const [categorySearch, setCategorySearch] = React.useState('');
   const [isMetricsOpen, setIsMetricsOpen] = React.useState(false);
@@ -141,14 +150,28 @@ const ChooseStandardisedBenchmarksPage: React.FC = () => {
     });
   }, [allBenchmarks, filterData]);
 
+  const sortedBenchmarks = React.useMemo<FlatBenchmark[]>(() => {
+    switch (sortOption) {
+      case BenchmarkSortOption.NAME:
+        return filteredBenchmarks.toSorted((a, b) => a.name.localeCompare(b.name));
+      case BenchmarkSortOption.CATEGORY:
+        return filteredBenchmarks.toSorted((a, b) => {
+          const catCmp = (a.category ?? '').localeCompare(b.category ?? '');
+          return catCmp !== 0 ? catCmp : a.name.localeCompare(b.name);
+        });
+      default:
+        return filteredBenchmarks;
+    }
+  }, [filteredBenchmarks, sortOption]);
+
   React.useEffect(() => {
     setPage(1);
-  }, [filterData]);
+  }, [filterData, sortOption]);
 
   const paginatedBenchmarks = React.useMemo<FlatBenchmark[]>(() => {
     const start = (page - 1) * perPage;
-    return filteredBenchmarks.slice(start, start + perPage);
-  }, [filteredBenchmarks, page, perPage]);
+    return sortedBenchmarks.slice(start, start + perPage);
+  }, [sortedBenchmarks, page, perPage]);
 
   const handleSelectBenchmark = (benchmark: FlatBenchmark) => {
     setSelectedBenchmark((prev) =>
@@ -202,6 +225,39 @@ const ChooseStandardisedBenchmarksPage: React.FC = () => {
                   <StackItem>
                     <Toolbar clearAllFilters={onClearFilters}>
                       <ToolbarContent>
+                        <ToolbarItem>
+                          <Select
+                            isOpen={isSortOpen}
+                            selected={sortOption}
+                            onSelect={(_event, value) => {
+                              if (isBenchmarkSortOption(value)) {
+                                setSortOption(value);
+                              }
+                              setIsSortOpen(false);
+                            }}
+                            onOpenChange={setIsSortOpen}
+                            toggle={(toggleRef) => (
+                              <MenuToggle
+                                ref={toggleRef}
+                                onClick={() => setIsSortOpen((prev) => !prev)}
+                                isExpanded={isSortOpen}
+                                icon={<SortAmountDownIcon />}
+                                data-testid="benchmarks-sort-toggle"
+                              >
+                                {benchmarkSortLabels[sortOption]}
+                              </MenuToggle>
+                            )}
+                            data-testid="benchmarks-sort-select"
+                          >
+                            <SelectList>
+                              {Object.values(BenchmarkSortOption).map((opt) => (
+                                <SelectOption key={opt} value={opt} isSelected={sortOption === opt}>
+                                  {benchmarkSortLabels[opt]}
+                                </SelectOption>
+                              ))}
+                            </SelectList>
+                          </Select>
+                        </ToolbarItem>
                         <ToolbarToggleGroup breakpoint="md" toggleIcon={<FilterIcon />}>
                           <ToolbarGroup
                             variant="filter-group"
@@ -456,7 +512,7 @@ const ChooseStandardisedBenchmarksPage: React.FC = () => {
                           className="pf-v6-u-pr-lg"
                         >
                           <Pagination
-                            itemCount={filteredBenchmarks.length}
+                            itemCount={sortedBenchmarks.length}
                             page={page}
                             perPage={perPage}
                             onSetPage={(_evt, p) => setPage(p)}
@@ -528,7 +584,7 @@ const ChooseStandardisedBenchmarksPage: React.FC = () => {
                   {paginatedBenchmarks.length > 0 && (
                     <StackItem>
                       <Pagination
-                        itemCount={filteredBenchmarks.length}
+                        itemCount={sortedBenchmarks.length}
                         page={page}
                         perPage={perPage}
                         onSetPage={(_evt, p) => setPage(p)}

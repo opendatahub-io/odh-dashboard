@@ -146,9 +146,9 @@ describe('BenchmarkDrawerTileContent', () => {
       />,
     );
     expect(screen.getByText('Metrics evaluated')).toBeInTheDocument();
-    expect(screen.getByText('accuracy')).toBeInTheDocument();
-    expect(screen.getByText('f1_score')).toBeInTheDocument();
-    expect(screen.getByText('precision')).toBeInTheDocument();
+    expect(screen.getByText('Accuracy')).toBeInTheDocument();
+    expect(screen.getByText('F1 score')).toBeInTheDocument();
+    expect(screen.getByText('Precision')).toBeInTheDocument();
   });
 
   it('should not render metrics section when metrics is empty', () => {
@@ -200,7 +200,7 @@ describe('BenchmarkDrawerTileContent', () => {
     expect(screen.getByText('Description')).toBeInTheDocument();
     expect(screen.getByText('Complete test')).toBeInTheDocument();
     expect(screen.getByText('Metrics evaluated')).toBeInTheDocument();
-    expect(screen.getByText('accuracy')).toBeInTheDocument();
+    expect(screen.getByText('Accuracy')).toBeInTheDocument();
     expect(screen.getByText('Evaluation framework')).toBeInTheDocument();
     expect(screen.getByText('LM Eval')).toBeInTheDocument();
   });

@@ -15,3 +15,15 @@ export const initialBenchmarkFilterData: BenchmarkFilterDataType = {
   [BenchmarkFilterOptions.name]: '',
   [BenchmarkFilterOptions.metrics]: [],
 };
+
+export enum BenchmarkSortOption {
+  DEFAULT = 'default',
+  NAME = 'name',
+  CATEGORY = 'category',
+}
+
+export const benchmarkSortLabels: Record<BenchmarkSortOption, string> = {
+  [BenchmarkSortOption.DEFAULT]: 'Default',
+  [BenchmarkSortOption.NAME]: 'Alphabetical',
+  [BenchmarkSortOption.CATEGORY]: 'Category',
+};

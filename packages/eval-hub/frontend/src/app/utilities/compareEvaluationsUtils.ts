@@ -139,8 +139,9 @@ export const getCompareParentEvaluationRunLabel = (job: EvaluationJob): string =
   getEvaluationName(job);
 
 export const getCompareParentResultScore = (job: EvaluationJob): string => {
-  if (job.results.test?.score != null) {
-    return formatAsPercentage(job.results.test.score);
+  const score = job.results.test?.score;
+  if (score != null && Number.isFinite(score)) {
+    return formatAsPercentage(score);
   }
   return '-';
 };

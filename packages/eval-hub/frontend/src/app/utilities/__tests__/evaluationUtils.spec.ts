@@ -333,6 +333,18 @@ describe('getResultScore', () => {
     const job = mockEvaluationJob({ score: 1.0 });
     expect(getResultScore(job)).toBe('100%');
   });
+
+  it('should return dash when score is NaN', () => {
+    const job = mockEvaluationJob();
+    job.results = { test: { score: NaN } };
+    expect(getResultScore(job)).toBe('-');
+  });
+
+  it('should return dash when score is Infinity', () => {
+    const job = mockEvaluationJob();
+    job.results = { test: { score: Infinity } };
+    expect(getResultScore(job)).toBe('-');
+  });
 });
 
 describe('getBenchmarkResultScore', () => {

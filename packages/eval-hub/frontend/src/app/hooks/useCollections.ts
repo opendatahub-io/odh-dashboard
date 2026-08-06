@@ -2,6 +2,7 @@ import React from 'react';
 import { Collection } from '~/app/types';
 import { COLLECTION_FETCH_LIMIT } from '~/app/utilities/const';
 import { useCollectionsContext } from '~/app/context/CollectionsContext';
+import { BenchmarkSortOption } from '~/app/pages/const';
 
 const DEFAULT_PAGE_SIZE = 6;
 
@@ -19,6 +20,8 @@ export type UseCollectionsResult = {
   setNameFilter: (name: string) => void;
   categoryFilter: string;
   setCategoryFilter: (category: string) => void;
+  sortOption: BenchmarkSortOption;
+  setSortOption: (sort: BenchmarkSortOption) => void;
   availableCategories: string[];
   refresh: () => void;
 };
@@ -30,6 +33,7 @@ export const useCollections = (namespace: string): UseCollectionsResult => {
   const [pageSize, setPageSizeState] = React.useState(DEFAULT_PAGE_SIZE);
   const [nameFilter, setNameFilterState] = React.useState('');
   const [categoryFilter, setCategoryFilterState] = React.useState('');
+  const [sortOption, setSortOptionState] = React.useState(BenchmarkSortOption.DEFAULT);
 
   // True when the API returned more items than our fetch limit, meaning some
   // collections are not visible. The user should be informed so they can
@@ -59,16 +63,31 @@ export const useCollections = (namespace: string): UseCollectionsResult => {
     return result;
   }, [response.items, nameFilter, categoryFilter]);
 
+  // Client-side sorting.
+  const sortedCollections = React.useMemo(() => {
+    switch (sortOption) {
+      case BenchmarkSortOption.NAME:
+        return filteredCollections.toSorted((a, b) => a.name.localeCompare(b.name));
+      case BenchmarkSortOption.CATEGORY:
+        return filteredCollections.toSorted((a, b) => {
+          const catCmp = (a.category ?? '').localeCompare(b.category ?? '');
+          return catCmp !== 0 ? catCmp : a.name.localeCompare(b.name);
+        });
+      default:
+        return filteredCollections;
+    }
+  }, [filteredCollections, sortOption]);
+
   // Client-side pagination.
   const paginatedCollections = React.useMemo(
-    () => filteredCollections.slice((page - 1) * pageSize, page * pageSize),
-    [filteredCollections, page, pageSize],
+    () => sortedCollections.slice((page - 1) * pageSize, page * pageSize),
+    [sortedCollections, page, pageSize],
   );
 
-  // Reset to page 1 when filters or namespace change.
+  // Reset to page 1 when filters, sort, or namespace change.
   React.useEffect(() => {
     setPageState(1);
-  }, [nameFilter, categoryFilter, namespace]);
+  }, [nameFilter, categoryFilter, sortOption, namespace]);
 
   const setPage = React.useCallback((newPage: number) => setPageState(newPage), []);
 
@@ -84,9 +103,14 @@ export const useCollections = (namespace: string): UseCollectionsResult => {
     [],
   );
 
+  const setSortOption = React.useCallback(
+    (sort: BenchmarkSortOption) => setSortOptionState(sort),
+    [],
+  );
+
   return {
     collections: paginatedCollections,
-    totalCount: filteredCollections.length,
+    totalCount: sortedCollections.length,
     loaded,
     loadError,
     isTruncated,
@@ -98,6 +122,8 @@ export const useCollections = (namespace: string): UseCollectionsResult => {
     setNameFilter,
     categoryFilter,
     setCategoryFilter,
+    sortOption,
+    setSortOption,
     availableCategories,
     refresh,
   };

@@ -76,12 +76,13 @@ export const formatAsPercentage = (value: number): string => `${Math.round(value
 const formatBenchmarkScore = (
   benchmark: NonNullable<EvaluationJob['results']['benchmarks']>[number],
 ): string | null => {
-  if (benchmark.test?.primary_score != null) {
-    return formatAsPercentage(benchmark.test.primary_score);
+  const primaryScore = benchmark.test?.primary_score;
+  if (primaryScore != null && Number.isFinite(primaryScore)) {
+    return formatAsPercentage(primaryScore);
   }
   if (benchmark.metrics) {
     const preferred = benchmark.metrics.acc_norm ?? benchmark.metrics.acc;
-    if (typeof preferred === 'number') {
+    if (typeof preferred === 'number' && Number.isFinite(preferred)) {
       return formatAsPercentage(preferred);
     }
   }
@@ -89,8 +90,9 @@ const formatBenchmarkScore = (
 };
 
 export const getResultScore = (job: EvaluationJob): string => {
-  if (job.results.test?.score != null) {
-    return formatAsPercentage(job.results.test.score);
+  const score = job.results.test?.score;
+  if (score != null && Number.isFinite(score)) {
+    return formatAsPercentage(score);
   }
   if (job.results.benchmarks?.length) {
     return formatBenchmarkScore(job.results.benchmarks[0]) ?? '-';

@@ -2,6 +2,8 @@ import * as React from 'react';
 import { Content, Popover } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 
+import './FormGroupLabel.scss';
+
 type FormGroupLabelProps = {
   label: React.ReactNode;
   description: React.ReactNode;
@@ -39,15 +41,13 @@ const FormGroupLabel: React.FC<FormGroupLabelProps> = ({
             role="button"
             tabIndex={0}
             aria-label={helpPopover.ariaLabel}
-            style={{
-              paddingBottom: 0,
-              paddingTop: 0,
-              paddingLeft: 4,
-              paddingRight: 4,
-              display: 'inline-flex',
-              verticalAlign: 'middle',
-              cursor: 'pointer',
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                e.currentTarget.click();
+              }
             }}
+            className="eval-hub-form-group-label__help-trigger"
           >
             <OutlinedQuestionCircleIcon />
           </span>

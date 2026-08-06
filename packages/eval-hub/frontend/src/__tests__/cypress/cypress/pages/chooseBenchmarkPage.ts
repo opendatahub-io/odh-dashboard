@@ -52,6 +52,14 @@ class ChooseBenchmarkPage {
   findNextPageButton() {
     return cy.findByLabelText('Go to next page');
   }
+
+  findSortToggle() {
+    return cy.findByTestId('benchmarks-sort-toggle');
+  }
+
+  findSortSelect() {
+    return cy.findByTestId('benchmarks-sort-select');
+  }
 }
 
 export const chooseBenchmarkPage = new ChooseBenchmarkPage();
