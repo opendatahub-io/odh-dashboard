@@ -362,7 +362,7 @@ describe('createTokenSecrets', () => {
     ];
     const existingSecrets = [{ metadata: { name: 'old-secret' } }] as never[];
     const failure = new Error('conflict');
-    secretsMock.replaceSecret.mockRejectedValue(failure);
+    secretsMock.replaceSecret.mockRejectedValueOnce(failure);
 
     await expect(
       createTokenSecrets(tokens, 'test-model', 'test-ns', mockOwner, existingSecrets),
