@@ -50,6 +50,8 @@ const RolesTableRow: React.FC<RolesTableRowProps> = ({
     return undefined;
   };
 
+  const deleteTooltip = getDeleteTooltip();
+
   const actionItems = [
     {
       title: 'Edit role',
@@ -76,8 +78,8 @@ const RolesTableRow: React.FC<RolesTableRowProps> = ({
       title: 'Delete role',
       onClick: onDelete,
       isAriaDisabled: isDeleteDisabled,
-      ...(getDeleteTooltip() && {
-        tooltipProps: { content: getDeleteTooltip() },
+      ...(deleteTooltip && {
+        tooltipProps: { content: deleteTooltip },
       }),
     },
   ];
