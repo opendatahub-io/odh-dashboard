@@ -2,10 +2,10 @@ import * as React from 'react';
 import { Navigate, Outlet, useParams } from 'react-router-dom';
 import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import { getStoredPreferredProject } from '@odh-dashboard/ui-core/context/getStoredPreferredProject';
+import InvalidProject from '@odh-dashboard/ui-core/components/InvalidProject';
 import { byName, ProjectsContext } from '#~/concepts/projects/ProjectsContext';
 import PipelineCoreNoProjects from '#~/pages/pipelines/global/PipelineCoreNoProjects';
 import { PipelineContextProvider } from '#~/concepts/pipelines/context';
-import InvalidProject from '#~/concepts/projects/InvalidProject';
 import { ProjectObjectType } from '#~/concepts/design/utils';
 import PipelineCoreProjectSelector from './PipelineCoreProjectSelector';
 

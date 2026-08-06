@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
-import NotFound from '#~/pages/NotFound';
+import NotFound from '@odh-dashboard/ui-core/components/NotFound';
 
 type AreaComponentProps = {
   /** What area do you need to be active to show the `children` */

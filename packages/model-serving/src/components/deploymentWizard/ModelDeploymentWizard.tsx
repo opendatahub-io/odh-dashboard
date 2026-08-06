@@ -19,6 +19,7 @@ import { DeploymentWizardViewModeToggle } from './yaml/DeploymentWizardViewModeT
 import { useFormYamlResources } from './yaml/useYamlResourcesResult';
 import { useFormToResourcesTransformer } from './yaml/useFormToResourcesTransformer';
 import { useModelDeploymentSubmit } from './deploying/useModelDeploymentSubmit';
+import { shouldShowPreconfigureStep as calcShouldShowPreconfigureStep } from './utils';
 import { InitialWizardFormData, WizardStepTitle } from '../../shared/types/form-data';
 import { Deployment } from '../../../extension-points';
 import {
@@ -66,9 +67,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
     project?.metadata.name,
     externalData,
   );
-  // Whether to show the "Preconfigure deployment" step.
-  // Currently shown when no project was pre-selected.
-  const shouldShowPreconfigureStep = !project;
+  const shouldShowPreconfigureStep = calcShouldShowPreconfigureStep(project, existingData);
 
   const validation = useModelDeploymentWizardValidation(
     wizardFormData.state,

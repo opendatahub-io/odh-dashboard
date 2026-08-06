@@ -19,6 +19,8 @@ export type ProviderRef = {
   path: string;
   targetModel: string;
   config?: Record<string, string>;
+  authMechanism?: AuthMechanism;
+  credentialSecretRef?: string;
   provider?: ExternalProviderDetails;
 };
 

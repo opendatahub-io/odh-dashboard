@@ -5,7 +5,7 @@ import { CogIcon } from '@patternfly/react-icons';
 import { BreadcrumbItemType } from '@odh-dashboard/ui-core/types/metrics';
 import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import { TrustyAIContext } from '@odh-dashboard/internal/concepts/trustyai/context/TrustyAIContext';
-import { TrustyInstallState } from '@odh-dashboard/internal/concepts/trustyai/types';
+import { TrustyInstallState } from '@odh-dashboard/trustyai/types';
 import type { InferenceServiceKind } from '@odh-dashboard/model-serving/shared';
 import { MetricsTabKeys } from './types';
 import MetricsPageTabs from './MetricsPageTabs';
