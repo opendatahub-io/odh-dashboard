@@ -376,8 +376,8 @@ describe('Project Metrics tab', () => {
         .findByText('test-workload-finished')
         .closest('tr')
         .within(() => {
-          cy.get('td[data-label="CPU usage (cores)"]').should('contain.text', '-');
-          cy.get('td[data-label="Memory usage (GiB)"]').should('contain.text', '-');
+          cy.findByTestId('workload-cpu-usage-cell').should('contain.text', '-');
+          cy.findByTestId('workload-memory-usage-cell').should('contain.text', '-');
         });
     });
 
@@ -390,8 +390,8 @@ describe('Project Metrics tab', () => {
         .findByText('test-workload-running')
         .closest('tr')
         .within(() => {
-          cy.get('td[data-label="CPU usage (cores)"]').should('not.contain.text', '-');
-          cy.get('td[data-label="Memory usage (GiB)"]').should('not.contain.text', '-');
+          cy.findByTestId('workload-cpu-usage-cell').should('not.contain.text', '-');
+          cy.findByTestId('workload-memory-usage-cell').should('not.contain.text', '-');
         });
     });
 
@@ -404,8 +404,8 @@ describe('Project Metrics tab', () => {
         .findByText('test-workload-notebook')
         .closest('tr')
         .within(() => {
-          cy.get('td[data-label="CPU usage (cores)"]').should('not.contain.text', '-');
-          cy.get('td[data-label="Memory usage (GiB)"]').should('not.contain.text', '-');
+          cy.findByTestId('workload-cpu-usage-cell').should('not.contain.text', '-');
+          cy.findByTestId('workload-memory-usage-cell').should('not.contain.text', '-');
         });
     });
 
@@ -418,8 +418,8 @@ describe('Project Metrics tab', () => {
         .findByText('test-workload-replicaset')
         .closest('tr')
         .within(() => {
-          cy.get('td[data-label="CPU usage (cores)"]').should('contain.text', '0.5');
-          cy.get('td[data-label="Memory usage (GiB)"]').should('contain.text', '0.3');
+          cy.findByTestId('workload-cpu-usage-cell').should('contain.text', '0.5');
+          cy.findByTestId('workload-memory-usage-cell').should('contain.text', '0.3');
         });
     });
 
@@ -432,8 +432,8 @@ describe('Project Metrics tab', () => {
         .findByText('test-workload-lws')
         .closest('tr')
         .within(() => {
-          cy.get('td[data-label="CPU usage (cores)"]').should('contain.text', '3.4');
-          cy.get('td[data-label="Memory usage (GiB)"]').should('contain.text', '2.5');
+          cy.findByTestId('workload-cpu-usage-cell').should('contain.text', '3.4');
+          cy.findByTestId('workload-memory-usage-cell').should('contain.text', '2.5');
         });
     });
 
@@ -446,8 +446,8 @@ describe('Project Metrics tab', () => {
         .findByText('test-workload-spinning-down-both')
         .closest('tr')
         .within(() => {
-          cy.get('td[data-label="CPU usage (cores)"]').should('not.contain.text', '-');
-          cy.get('td[data-label="Memory usage (GiB)"]').should('not.contain.text', '-');
+          cy.findByTestId('workload-cpu-usage-cell').should('not.contain.text', '-');
+          cy.findByTestId('workload-memory-usage-cell').should('not.contain.text', '-');
         });
     });
 
@@ -460,8 +460,8 @@ describe('Project Metrics tab', () => {
         .findByText('test-workload-spinning-down-cpu-only')
         .closest('tr')
         .within(() => {
-          cy.get('td[data-label="CPU usage (cores)"]').should('not.contain.text', '-');
-          cy.get('td[data-label="Memory usage (GiB)"]').should('contain.text', '-');
+          cy.findByTestId('workload-cpu-usage-cell').should('not.contain.text', '-');
+          cy.findByTestId('workload-memory-usage-cell').should('contain.text', '-');
         });
     });
   });
