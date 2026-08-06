@@ -49,23 +49,12 @@ updates:
         update-types: ["version-update:semver-major"]
 
     groups:
-      react:
-        applies-to: version-updates
-        patterns:
-          - 'react'
-          - 'react-dom'
-          - 'react-router'
-          - 'react-router-dom'
-      fastify:
-        applies-to: version-updates
-        patterns:
-          - '@fastify/*'
-          - 'fastify*'
-      patch-updates:
+      npm-updates:
         applies-to: version-updates
         patterns:
           - '*'
         update-types:
+          - "minor"
           - "patch"
       npm-security:
         applies-to: security-updates
@@ -98,11 +87,12 @@ updates:
       semver-patch-days: 3
 
     groups:
-      go-patch-updates:
+      go-updates:
         applies-to: version-updates
         patterns:
           - '*'
         update-types:
+          - "minor"
           - "patch"
       go-security:
         applies-to: security-updates
