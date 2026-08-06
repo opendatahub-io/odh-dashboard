@@ -3,6 +3,7 @@ on:
   push:
     paths:
       - "packages/automl/**"
+      - "packages/autox-core/**"
       - "!LICENSE*"
       - "!DOCKERFILE*"
       - "!**.gitignore"
@@ -11,6 +12,7 @@ on:
   pull_request:
     paths:
       - "packages/automl/**"
+      - "packages/autox-core/**"
       - ".github/workflows/automl-bff-tests.yml"
       - "!LICENSE*"
       - "!DOCKERFILE*"
