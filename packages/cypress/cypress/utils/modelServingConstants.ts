@@ -33,6 +33,6 @@ export const YAMLViewerToggleOption = {
 } as const;
 
 export const ModelDeploymentType = {
-  TYPE1: 'LLM inference service deployment with llm-d',
+  TYPE1: 'LLM inference service with llm-d',
   TYPE2: 'Legacy deployment',
 };
