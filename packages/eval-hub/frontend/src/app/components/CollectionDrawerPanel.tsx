@@ -4,10 +4,6 @@ import {
   Card,
   CardBody,
   Content,
-  DescriptionList,
-  DescriptionListDescription,
-  DescriptionListGroup,
-  DescriptionListTerm,
   DrawerActions,
   DrawerCloseButton,
   DrawerHead,
@@ -20,11 +16,8 @@ import {
   StackItem,
   Title,
 } from '@patternfly/react-core';
-import { ExternalLinkAltIcon } from '@patternfly/react-icons';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { Collection, ProviderBenchmark } from '~/app/types';
-import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
-import { getBenchmarkDatasetUrl } from '~/app/utilities/benchmarkDatasetUrls';
+import BenchmarkDrawerTileContent from './BenchmarkDrawerTileContent';
 import { capitalizeFirst, getCategoryColor } from './benchmarkUtils';
 
 type CollectionDrawerPanelProps = {
@@ -90,102 +83,20 @@ const CollectionDrawerPanel: React.FC<CollectionDrawerPanelProps> = ({
                 {collection.benchmarks.map((b) => {
                   const key = `${b.provider_id ?? ''}:${b.id}`;
                   const details = benchmarkDetailsMap.get(key);
-                  const datasetUrl = getBenchmarkDatasetUrl(b.id);
-                  const benchmarkName = details?.name ?? b.id;
-                  const benchmarkDescription = details?.description;
                   return (
                     <StackItem key={`${b.provider_id ?? 'unknown'}-${b.id}`}>
                       <Card isCompact>
                         <CardBody>
-                          <Flex
-                            direction={{ default: 'column' }}
-                            spaceItems={{ default: 'spaceItemsSm' }}
-                          >
-                            <FlexItem>
-                              <Content
-                                component="p"
-                                style={{
-                                  fontWeight: 'var(--pf-t--global--font--weight--heading--default)',
-                                  margin: 0,
-                                }}
-                              >
-                                {benchmarkName}
-                              </Content>
-                            </FlexItem>
-                            <FlexItem>
-                              <Content
-                                component="p"
-                                style={{
-                                  fontSize: 'var(--pf-t--global--font--size--sm)',
-                                  color: 'var(--pf-t--global--text--color--subtle)',
-                                  margin: 0,
-                                }}
-                              >
-                                {datasetUrl ? (
-                                  <Button
-                                    variant="link"
-                                    isInline
-                                    component="a"
-                                    href={datasetUrl}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    icon={<ExternalLinkAltIcon />}
-                                    iconPosition="end"
-                                    style={{
-                                      fontSize: 'var(--pf-t--global--font--size--sm)',
-                                    }}
-                                    onClick={() =>
-                                      fireMiscTrackingEvent(EVAL_HUB_EVENTS.EXTERNAL_LINK_CLICKED, {
-                                        url: datasetUrl,
-                                        benchmarkId: b.id,
-                                        surface: 'collection_drawer',
-                                      })
-                                    }
-                                  >
-                                    {b.id}
-                                  </Button>
-                                ) : (
-                                  b.id
-                                )}
-                              </Content>
-                            </FlexItem>
-                            {benchmarkDescription && (
-                              <FlexItem>
-                                <Content
-                                  component="p"
-                                  style={{
-                                    fontSize: 'var(--pf-t--global--font--size--sm)',
-                                    color: 'var(--pf-t--global--text--color--subtle)',
-                                    margin: 0,
-                                  }}
-                                >
-                                  {benchmarkDescription}
-                                </Content>
-                              </FlexItem>
-                            )}
-                            {b.provider_id && (
-                              <FlexItem>
-                                <DescriptionList isCompact isAutoFit>
-                                  <DescriptionListGroup>
-                                    <DescriptionListTerm
-                                      style={{
-                                        fontSize: 'var(--pf-t--global--font--size--sm)',
-                                      }}
-                                    >
-                                      Evaluation framework
-                                    </DescriptionListTerm>
-                                    <DescriptionListDescription
-                                      style={{
-                                        fontSize: 'var(--pf-t--global--font--size--sm)',
-                                      }}
-                                    >
-                                      {b.provider_id}
-                                    </DescriptionListDescription>
-                                  </DescriptionListGroup>
-                                </DescriptionList>
-                              </FlexItem>
-                            )}
-                          </Flex>
+                          <BenchmarkDrawerTileContent
+                            name={details?.name ?? b.id}
+                            id={b.id}
+                            description={details?.description}
+                            metrics={details?.metrics}
+                            providerName={b.provider_id}
+                            url={details?.url ?? b.url}
+                            trackingSurface="collection_drawer"
+                            isCompact
+                          />
                         </CardBody>
                       </Card>
                     </StackItem>

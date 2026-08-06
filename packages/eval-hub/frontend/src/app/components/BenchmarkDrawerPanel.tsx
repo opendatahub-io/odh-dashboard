@@ -2,10 +2,6 @@ import * as React from 'react';
 import {
   Button,
   Content,
-  DescriptionList,
-  DescriptionListDescription,
-  DescriptionListGroup,
-  DescriptionListTerm,
   DrawerActions,
   DrawerCloseButton,
   DrawerHead,
@@ -14,16 +10,13 @@ import {
   Flex,
   FlexItem,
   Label,
-  LabelGroup,
   Stack,
   StackItem,
   Title,
 } from '@patternfly/react-core';
-import { ExternalLinkAltIcon } from '@patternfly/react-icons';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { FlatBenchmark } from '~/app/types';
-import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
-import { capitalizeFirst, getCategoryColor, toSafeExternalUrl } from './benchmarkUtils';
+import BenchmarkDrawerTileContent from './BenchmarkDrawerTileContent';
+import { capitalizeFirst, getCategoryColor } from './benchmarkUtils';
 
 type BenchmarkDrawerPanelProps = {
   benchmark: FlatBenchmark | undefined;
@@ -42,10 +35,8 @@ const BenchmarkDrawerPanel: React.FC<BenchmarkDrawerPanelProps> = ({
   }
 
   const color = getCategoryColor(benchmark.category);
-  const safeBenchmarkUrl = toSafeExternalUrl(benchmark.url);
 
   const drawerHeadStyle: React.CSSProperties = {
-    // Tighten space before the scrollable body (PF default is --pf-t--global--spacer--sm)
     // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- PF drawer CSS vars are not in CSSProperties
     ...({
       '--pf-v6-c-drawer__head--PaddingBlockEnd': 'var(--pf-t--global--spacer--xs)',
@@ -55,7 +46,6 @@ const BenchmarkDrawerPanel: React.FC<BenchmarkDrawerPanelProps> = ({
   const drawerScrollBodyStyle: React.CSSProperties = {
     flex: 1,
     overflowY: 'auto',
-    // Default panel body block-start padding is md; pull description up under the id line
     // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- PF drawer CSS vars are not in CSSProperties
     ...({
       '--pf-v6-c-drawer__panel__body--PaddingBlockStart': 'var(--pf-t--global--spacer--xs)',
@@ -82,33 +72,11 @@ const BenchmarkDrawerPanel: React.FC<BenchmarkDrawerPanelProps> = ({
                   style={{
                     marginBlock: 0,
                     color: 'var(--pf-t--global--text--color--subtle)',
-                    fontWeight: 'var(--pf-t--global--font--weight--heading--default)',
                   }}
                 >
-                  {safeBenchmarkUrl ? (
-                    <Button
-                      variant="link"
-                      isInline
-                      component="a"
-                      href={safeBenchmarkUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      icon={<ExternalLinkAltIcon />}
-                      iconPosition="end"
-                      style={{ fontWeight: 'var(--pf-t--global--font--weight--heading--default)' }}
-                      onClick={() =>
-                        fireMiscTrackingEvent(EVAL_HUB_EVENTS.EXTERNAL_LINK_CLICKED, {
-                          url: safeBenchmarkUrl,
-                          benchmarkId: benchmark.id,
-                          surface: 'benchmark_drawer',
-                        })
-                      }
-                    >
-                      {benchmark.id}
-                    </Button>
-                  ) : (
-                    benchmark.id
-                  )}
+                  {benchmark.providerName
+                    ? `${benchmark.id} · ${benchmark.providerName}`
+                    : benchmark.id}
                 </Content>
               </FlexItem>
             </Flex>
@@ -120,40 +88,16 @@ const BenchmarkDrawerPanel: React.FC<BenchmarkDrawerPanelProps> = ({
       </DrawerHead>
 
       <DrawerPanelBody style={drawerScrollBodyStyle}>
-        <Stack hasGutter>
-          {benchmark.description && (
-            <StackItem>
-              <Content component="p" style={{ marginBlockStart: 0 }}>
-                {benchmark.description}
-              </Content>
-            </StackItem>
-          )}
-
-          <StackItem>
-            <DescriptionList>
-              {benchmark.metrics && benchmark.metrics.length > 0 && (
-                <DescriptionListGroup>
-                  <DescriptionListTerm>Metrics evaluated</DescriptionListTerm>
-                  <DescriptionListDescription>
-                    <LabelGroup numLabels={benchmark.metrics.length} isCompact>
-                      {benchmark.metrics.map((metric) => (
-                        <Label key={metric} isCompact variant="outline">
-                          {metric}
-                        </Label>
-                      ))}
-                    </LabelGroup>
-                  </DescriptionListDescription>
-                </DescriptionListGroup>
-              )}
-              {benchmark.providerName && (
-                <DescriptionListGroup>
-                  <DescriptionListTerm>Evaluation framework</DescriptionListTerm>
-                  <DescriptionListDescription>{benchmark.providerName}</DescriptionListDescription>
-                </DescriptionListGroup>
-              )}
-            </DescriptionList>
-          </StackItem>
-        </Stack>
+        <BenchmarkDrawerTileContent
+          name={benchmark.name}
+          id={benchmark.id}
+          description={benchmark.description}
+          metrics={benchmark.metrics}
+          providerName={benchmark.providerName}
+          url={benchmark.url}
+          trackingSurface="benchmark_drawer"
+          showHeader={false}
+        />
       </DrawerPanelBody>
 
       <DrawerPanelBody style={{ flex: '0 0 auto' }} className="pf-v6-u-mt-md">
