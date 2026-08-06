@@ -1,9 +1,8 @@
 import * as React from 'react';
 import { Button, Content, Popover } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
-import { useParams } from 'react-router-dom';
 import { EvaluationJob } from '~/app/types';
-import { useProviders } from '~/app/hooks/useProviders';
+import { useProvider } from '~/app/hooks/useProvider';
 import {
   formatBenchmarkScore,
   getBenchmarkDisplayName,
@@ -26,15 +25,15 @@ const AboutBenchmarkResultPopover: React.FC<AboutBenchmarkResultPopoverProps> = 
   benchmarkIndex,
   job,
 }) => {
-  const { namespace } = useParams<{ namespace: string }>();
-  const { providers } = useProviders(namespace ?? '');
-
   const result = job.results.benchmarks?.find(
     (b) => b.id === benchmarkId && (b.benchmark_index ?? 0) === benchmarkIndex,
   );
   const benchmarkConfig = getJobBenchmarks(job).find(
     (b) => b.id === benchmarkId && (b.benchmark_index ?? 0) === benchmarkIndex,
   );
+
+  const providerId = benchmarkConfig?.provider_id ?? result?.provider_id;
+  const { provider } = useProvider(providerId);
 
   const metricKeys = result?.metrics ? Object.keys(result.metrics).toSorted() : [];
   const primaryMetricName =
@@ -47,8 +46,6 @@ const AboutBenchmarkResultPopover: React.FC<AboutBenchmarkResultPopoverProps> = 
   const lowerIsBetter = benchmarkConfig?.primary_score?.lower_is_better ?? false;
   const directionLabel = lowerIsBetter ? 'Lower is better' : 'Higher is better';
 
-  const providerId = benchmarkConfig?.provider_id ?? result?.provider_id;
-  const provider = providerId ? providers.find((p) => p.resource.id === providerId) : undefined;
   const providerBenchmark = provider?.benchmarks?.find((b) => b.id === benchmarkId);
   const benchmarkInterpretation = providerBenchmark?.agent?.result_interpretation;
   const providerInterpretation = provider?.agent?.result_interpretation;

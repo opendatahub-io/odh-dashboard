@@ -12,7 +12,9 @@ import {
 } from '@patternfly/react-core';
 import { CheckCircleIcon, TimesCircleIcon } from '@patternfly/react-icons';
 import { EvaluationJob } from '~/app/types';
+import { useProvider } from '~/app/hooks/useProvider';
 import { getBenchmarkDisplayName, getJobBenchmarks } from '~/app/utilities/evaluationUtils';
+import { capitalizeFirst } from '~/app/components/benchmarkUtils';
 import AboutBenchmarkResultPopover from '~/app/components/AboutBenchmarkResultPopover';
 
 type BenchmarkResultDetailsProps = {
@@ -33,6 +35,9 @@ const BenchmarkResultDetails: React.FC<BenchmarkResultDetailsProps> = ({
     (b) => b.id === benchmarkId && (b.benchmark_index ?? 0) === benchmarkIndex,
   );
 
+  const providerId = benchmarkConfig?.provider_id ?? result?.provider_id;
+  const { provider } = useProvider(providerId);
+
   if (!result) {
     return null;
   }
@@ -50,6 +55,8 @@ const BenchmarkResultDetails: React.FC<BenchmarkResultDetailsProps> = ({
     benchmarkConfig?.pass_criteria?.threshold ??
     job.pass_criteria?.threshold ??
     result.test?.threshold;
+
+  const complements = provider?.agent?.complements;
 
   return (
     <div data-testid={`benchmark-details-${benchmarkId}-${benchmarkIndex}`}>
@@ -113,6 +120,14 @@ const BenchmarkResultDetails: React.FC<BenchmarkResultDetailsProps> = ({
             <DescriptionListDescription>{threshold}</DescriptionListDescription>
           </DescriptionListGroup>
         )}
+        {complements?.length ? (
+          <DescriptionListGroup>
+            <DescriptionListTerm>Related evaluations</DescriptionListTerm>
+            <DescriptionListDescription data-testid="complementary-frameworks">
+              {complements.map((c) => capitalizeFirst(c)).join(', ')}
+            </DescriptionListDescription>
+          </DescriptionListGroup>
+        ) : null}
       </DescriptionList>
     </div>
   );

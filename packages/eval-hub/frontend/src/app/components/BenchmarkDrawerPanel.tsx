@@ -20,6 +20,7 @@ import {
 import { ExternalLinkAltIcon } from '@patternfly/react-icons';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { FlatBenchmark } from '~/app/types';
+import InlineTooltip from '~/app/components/InlineTooltip';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import { capitalizeFirst, getCategoryColor, toSafeExternalUrl } from './benchmarkUtils';
 
@@ -182,7 +183,26 @@ const BenchmarkDrawerPanel: React.FC<BenchmarkDrawerPanelProps> = ({
               >
                 Evaluation framework
               </Content>
-              <Content component="p">{benchmark.providerName}</Content>
+              {benchmark.providerAgent?.recommended_when &&
+              benchmark.providerAgent.recommended_when.length > 0 ? (
+                <InlineTooltip
+                  text={benchmark.providerName}
+                  tooltip={
+                    <div className="evalhub-inline-tooltip__content">
+                      <div className="evalhub-inline-tooltip__header">
+                        <strong>Recommended when:</strong>
+                      </div>
+                      <List>
+                        {benchmark.providerAgent.recommended_when.map((item) => (
+                          <ListItem key={item}>{item}</ListItem>
+                        ))}
+                      </List>
+                    </div>
+                  }
+                />
+              ) : (
+                <Content component="p">{benchmark.providerName}</Content>
+              )}
             </StackItem>
           )}
 
@@ -199,23 +219,6 @@ const BenchmarkDrawerPanel: React.FC<BenchmarkDrawerPanelProps> = ({
               </Content>
             </StackItem>
           )}
-
-          {benchmark.providerAgent?.recommended_when &&
-            benchmark.providerAgent.recommended_when.length > 0 && (
-              <StackItem>
-                <Content
-                  component="p"
-                  style={{ fontWeight: 'var(--pf-t--global--font--weight--body--bold)' }}
-                >
-                  Recommended when
-                </Content>
-                <List isPlain>
-                  {benchmark.providerAgent.recommended_when.map((item) => (
-                    <ListItem key={item}>{item}</ListItem>
-                  ))}
-                </List>
-              </StackItem>
-            )}
         </Stack>
       </DrawerPanelBody>
 
