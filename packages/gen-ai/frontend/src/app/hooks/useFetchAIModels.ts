@@ -7,16 +7,27 @@ import {
   NotReadyError,
 } from 'mod-arch-core';
 import { AAModelResponse, AIModel } from '~/app/types';
-import { parseEndpointByPrefix, isClusterLocalURL } from '~/app/utilities/utils';
+import {
+  parseEndpointByPrefix,
+  isClusterLocalURL,
+  convertMaaSModelToAIModel,
+} from '~/app/utilities/utils';
 import { useGenAiAPI } from './useGenAiAPI';
 import useGenAiDashboardConfig from './useGenAiDashboardConfig';
+import useAiAssetModelAsServiceEnabled from './useAiAssetModelAsServiceEnabled';
 
 const useFetchAIModels = (): FetchStateObject<AIModel[]> => {
   const { api, apiAvailable } = useGenAiAPI();
+  const maaSEnabled = useAiAssetModelAsServiceEnabled();
   const genAiConfig = useGenAiDashboardConfig();
   const clusterDomains = React.useMemo(
     () => genAiConfig?.aiAssetCustomEndpoints?.clusterDomains ?? [],
     [genAiConfig],
+  );
+
+  const queryParams = React.useMemo(
+    () => (maaSEnabled ? { sources: 'namespace,custom_endpoint,maas' } : {}),
+    [maaSEnabled],
   );
 
   const fetchAIModels = React.useCallback<FetchStateCallbackPromise<AIModel[]>>(
@@ -25,10 +36,14 @@ const useFetchAIModels = (): FetchStateObject<AIModel[]> => {
         return Promise.reject(new NotReadyError('API not yet available'));
       }
 
-      const rawData = await api.getAAModels(opts);
+      const rawData = await api.getAAModels(queryParams, opts);
       const models = Array.isArray(rawData) ? rawData : [];
 
       return models.map((item: AAModelResponse) => {
+        if (item.model_source_type === 'maas') {
+          return convertMaaSModelToAIModel(item);
+        }
+
         // For custom_endpoint models, compute internal/external based on URL
         if (item.model_source_type === 'custom_endpoint' && item.endpoints.length > 0) {
           const url = item.endpoints[0];
@@ -48,7 +63,7 @@ const useFetchAIModels = (): FetchStateObject<AIModel[]> => {
         };
       });
     },
-    [api, apiAvailable, clusterDomains],
+    [api, apiAvailable, clusterDomains, queryParams],
   );
 
   const [data, loaded, error, refresh] = useFetchState(fetchAIModels, [], {

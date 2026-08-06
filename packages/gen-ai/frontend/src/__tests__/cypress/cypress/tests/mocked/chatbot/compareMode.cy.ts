@@ -80,7 +80,6 @@ describe('Chatbot - Compare Mode (Mocked)', () => {
     // Wait for APIs
     cy.wait('@bffConfig');
     cy.wait('@aaModels');
-    cy.wait('@maasModels');
   });
 
   afterEach(() => {
