@@ -91,11 +91,9 @@ var _ = Describe("GenAIProxyNSModelsHandler", func() {
 		err := json.Unmarshal(rr.Body.Bytes(), &response)
 		require.NoError(t, err)
 
-		// No model should have Status "Stop" in the response
+		// Verify no model with a stopped ID appears in results
 		for _, model := range response.Data {
-			// The OpenAI format doesn't expose status, but stopped models
-			// should not appear in the list at all
-			assert.NotEmpty(t, model.ID)
+			assert.NotEqual(t, "stopped-model", model.ID, "stopped model should be filtered out")
 		}
 	})
 
@@ -115,6 +113,8 @@ var _ = Describe("GenAIProxyNSModelsHandler", func() {
 		err := json.Unmarshal(rr.Body.Bytes(), &response)
 		require.NoError(t, err)
 		assert.Equal(t, "list", response.Object)
+		// Without auth, handler returns empty list (no K8s calls made)
+		assert.Empty(t, response.Data, "unauthenticated requests must return empty model list")
 	})
 
 	It("should include custom_metadata with model_type for embedding models", func() {
@@ -134,14 +134,18 @@ var _ = Describe("GenAIProxyNSModelsHandler", func() {
 		var response openAIModelList
 		err := json.Unmarshal(rr.Body.Bytes(), &response)
 		require.NoError(t, err)
+		require.NotEmpty(t, response.Data, "mock-test-namespace-2 should have models")
 
-		// Check that models with model_type include it in custom_metadata
+		// Find the known embedding model and verify its metadata
+		var foundEmbedding bool
 		for _, model := range response.Data {
-			if model.CustomMetadata != nil {
-				if modelType, ok := model.CustomMetadata["model_type"]; ok {
-					assert.NotEmpty(t, modelType)
-				}
+			if model.ID == "custom-embedding-model" {
+				foundEmbedding = true
+				require.NotNil(t, model.CustomMetadata, "embedding model must have custom_metadata")
+				assert.Equal(t, "embedding", model.CustomMetadata["model_type"])
+				assert.Equal(t, float64(768), model.CustomMetadata["embedding_dimension"])
 			}
 		}
+		assert.True(t, foundEmbedding, "expected custom-embedding-model in response")
 	})
 })
