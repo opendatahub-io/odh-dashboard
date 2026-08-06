@@ -8,7 +8,7 @@ import {
   Spinner,
   Title,
 } from '@patternfly/react-core';
-import { Link } from 'react-router';
+import { Link } from 'react-router-dom';
 import { usePermissionsContext } from '#~/concepts/permissions/PermissionsContext';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import useRoleListData from './useRoleListData';

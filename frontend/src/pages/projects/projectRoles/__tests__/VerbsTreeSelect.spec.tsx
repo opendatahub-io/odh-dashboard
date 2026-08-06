@@ -46,9 +46,10 @@ describe('VerbsTreeSelect', () => {
       const getCheckbox = within(treeView).getAllByRole('checkbox');
       const createCheckbox = getCheckbox.find((cb) => {
         const treeItem = cb.closest('[role="treeitem"]');
-        return treeItem?.id === 'create';
+        return treeItem?.id === 'cat-create';
       });
 
+      expect(createCheckbox).toBeInTheDocument();
       if (createCheckbox) {
         await user.click(createCheckbox);
         expect(mockOnChange).toHaveBeenCalledWith(['create']);

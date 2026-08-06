@@ -86,7 +86,7 @@ const VerbsTreeSelect: React.FC<VerbsTreeSelectProps> = ({
             checked: allCategorySelected || (someCategorySelected ? null : false),
             'data-testid': `verb-category-${category.id}`,
           },
-          // categories with less than one node should not show verbs
+          // categories with only one node should not show verbs
           children: category.verbs.length === 1 ? undefined : verbNodes,
         },
       ];
