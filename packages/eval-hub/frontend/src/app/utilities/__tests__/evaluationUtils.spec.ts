@@ -3,9 +3,11 @@ import {
   getEvaluationName,
   getBenchmarkName,
   getAllBenchmarkNames,
+  getBenchmarkDisplayName,
   getBenchmarkResultScore,
   getJobBenchmarks,
   getResultScore,
+  formatAsPercentage,
   formatDate,
 } from '~/app/utilities/evaluationUtils';
 
@@ -225,6 +227,50 @@ describe('getJobBenchmarks', () => {
     const job = mockEvaluationJob({ collectionId: 'my-collection' });
     job.results.benchmarks = [];
     expect(getJobBenchmarks(job)).toEqual([]);
+  });
+});
+
+describe('getBenchmarkDisplayName', () => {
+  it('should replace underscores with spaces and capitalize each word', () => {
+    expect(getBenchmarkDisplayName('arc_easy')).toBe('Arc Easy');
+  });
+
+  it('should capitalize a single word', () => {
+    expect(getBenchmarkDisplayName('mmlu')).toBe('Mmlu');
+  });
+
+  it('should handle an already formatted string', () => {
+    expect(getBenchmarkDisplayName('TinyTruthfulQA')).toBe('TinyTruthfulQA');
+  });
+
+  it('should handle an empty string', () => {
+    expect(getBenchmarkDisplayName('')).toBe('');
+  });
+});
+
+describe('formatAsPercentage', () => {
+  it('should format a decimal as a percentage', () => {
+    expect(formatAsPercentage(0.85)).toBe('85%');
+  });
+
+  it('should round to the nearest integer', () => {
+    expect(formatAsPercentage(0.466)).toBe('47%');
+  });
+
+  it('should handle 0', () => {
+    expect(formatAsPercentage(0)).toBe('0%');
+  });
+
+  it('should handle 1', () => {
+    expect(formatAsPercentage(1)).toBe('100%');
+  });
+
+  it('should handle values greater than 1', () => {
+    expect(formatAsPercentage(1.5)).toBe('150%');
+  });
+
+  it('should handle negative values', () => {
+    expect(formatAsPercentage(-0.1)).toBe('-10%');
   });
 });
 
