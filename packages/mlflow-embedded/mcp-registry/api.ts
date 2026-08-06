@@ -2,9 +2,18 @@ import { APIOptions, handleRestFailures, isModArchResponse, restCREATE } from 'm
 import { MLFLOW_BFF_PATH } from './const';
 import { CreateMcpAccessEndpointRequest, McpAccessEndpoint } from './deployTypes';
 
-// Escape "/" per segment; literal "/" in middle survives encoding
-const mcpServerNamePathSegment = (name: string): string =>
-  name.split('/').map(encodeURIComponent).join('/');
+const INVALID_PATH_SEGMENTS = new Set(['', '.', '..']);
+
+// Escape "/" per segment; literal "/" in middle survives encoding. Reject
+// empty/"."/".." segments so a crafted name (e.g. "../servers/other") can't
+// traverse to a different server's BFF route (CWE-22).
+const mcpServerNamePathSegment = (name: string): string => {
+  const segments = name.split('/');
+  if (segments.some((segment) => INVALID_PATH_SEGMENTS.has(segment))) {
+    throw new Error(`Invalid MCP registry server name: ${name}`);
+  }
+  return segments.map(encodeURIComponent).join('/');
+};
 
 export const createMcpAccessEndpoint =
   (registryServerName: string, workspace: string) =>

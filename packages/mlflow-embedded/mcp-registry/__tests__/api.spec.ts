@@ -68,6 +68,17 @@ describe('createMcpAccessEndpoint', () => {
     expect(result).toEqual(endpoint);
   });
 
+  it.each(['../servers/other', '..', '.', 'weather-server/../other', 'weather-server/'])(
+    'rejects a registry server name with a path-traversal segment (%s)',
+    (registryServerName) => {
+      // Throws synchronously while building the request URL, before any network call is made.
+      expect(() =>
+        createMcpAccessEndpoint(registryServerName, 'my-project')({}, { endpoint_url: 'x' }),
+      ).toThrow('Invalid MCP registry server name');
+      expect(mockRestCREATE).not.toHaveBeenCalled();
+    },
+  );
+
   it('throws when the response is not mod-arch wrapped', async () => {
     mockRestCREATE.mockResolvedValue({
       id: 'endpoint-1',

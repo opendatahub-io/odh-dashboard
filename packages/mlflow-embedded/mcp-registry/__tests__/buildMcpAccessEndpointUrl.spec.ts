@@ -23,4 +23,22 @@ describe('buildMcpAccessEndpointUrl', () => {
       'http://weather-server.my-project.svc.cluster.local:9090/api/mcp',
     );
   });
+
+  it('rejects a path that smuggles userinfo into the authority (e.g. "@host/")', () => {
+    expect(() =>
+      buildMcpAccessEndpointUrl('weather-server', 'my-project', 8080, '@169.254.169.254/'),
+    ).toThrow('MCP endpoint path must remain on the deployed service');
+  });
+
+  it('rejects a protocol-relative path that redirects to a different host (e.g. "//host/")', () => {
+    expect(() =>
+      buildMcpAccessEndpointUrl('weather-server', 'my-project', 8080, '//169.254.169.254/'),
+    ).toThrow('MCP endpoint path must remain on the deployed service');
+  });
+
+  it('rejects a path that is not rooted at the service (relative path)', () => {
+    expect(() => buildMcpAccessEndpointUrl('weather-server', 'my-project', 8080, 'mcp')).toThrow(
+      'MCP endpoint path must remain on the deployed service',
+    );
+  });
 });

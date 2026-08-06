@@ -220,6 +220,29 @@ describe('McpRegistryDeployAction', () => {
     expect(screen.queryByTestId('mcp-registry-deploy-modal-stub')).not.toBeInTheDocument();
   });
 
+  it('should not open the deploy modal when clicked with no current project (empty namespace)', async () => {
+    render(<McpRegistryDeployAction server={mockServer} version={mockVersion} namespace="" />);
+
+    await userEvent.click(screen.getByTestId('mcp-registry-deploy-action-button'));
+
+    expect(screen.queryByTestId('mcp-registry-deploy-modal-stub')).not.toBeInTheDocument();
+  });
+
+  it('should not open the deploy modal when clicked while the deploy modal extension has not resolved', async () => {
+    mockUseResolvedExtensions.mockReturnValue([[], false, []]);
+    render(
+      <McpRegistryDeployAction
+        server={mockServer}
+        version={mockVersion}
+        namespace="test-project"
+      />,
+    );
+
+    await userEvent.click(screen.getByTestId('mcp-registry-deploy-action-button'));
+
+    expect(screen.queryByTestId('mcp-registry-deploy-modal-stub')).not.toBeInTheDocument();
+  });
+
   it('should register an MCPAccessEndpoint with the deployed CR config and show success toast', async () => {
     const mockCreateEndpointCall = jest.fn().mockResolvedValue({
       id: 'endpoint-1',

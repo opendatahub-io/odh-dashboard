@@ -32,6 +32,7 @@ const McpRegistryDeployAction: React.FC<McpRegistryDeployActionProps> = ({
   );
 
   const isAvailable = extensionsLoaded && extensions.length > 0;
+  const canDeploy = Boolean(version) && isAvailable && Boolean(namespace);
 
   const handleDeployed = React.useCallback(
     async (deployment: McpDeployment) => {
@@ -71,8 +72,14 @@ const McpRegistryDeployAction: React.FC<McpRegistryDeployActionProps> = ({
   const button = (
     <Button
       variant="primary"
-      onClick={() => setIsModalOpen(true)}
-      isAriaDisabled={!version || !isAvailable || !namespace}
+      // isAriaDisabled keeps the button focusable (for the tooltip) but does not
+      // block clicks/keyboard activation, so guard the handler with the same condition.
+      onClick={() => {
+        if (canDeploy) {
+          setIsModalOpen(true);
+        }
+      }}
+      isAriaDisabled={!canDeploy}
       data-testid="mcp-registry-deploy-action-button"
     >
       Deploy
