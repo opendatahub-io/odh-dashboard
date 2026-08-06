@@ -113,6 +113,13 @@ func (app *App) InjectRequestIdentity(next http.Handler) http.Handler {
 
 		identity, err := app.kubernetesClientFactory.ExtractRequestIdentity(r.Header)
 		if err != nil {
+			// The genai-proxy path allows unauthenticated access for OGX background
+			// model polling (refresh_models). If extraction fails on this path, proceed
+			// without identity — the handler uses the SA client as fallback.
+			if strings.Contains(r.URL.Path, "/genai-proxy/") {
+				next.ServeHTTP(w, r)
+				return
+			}
 			app.unauthorizedResponse(w, r, err)
 			return
 		}
