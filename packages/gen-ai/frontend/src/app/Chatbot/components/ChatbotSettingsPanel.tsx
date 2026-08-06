@@ -367,9 +367,12 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
         </ToggleGroup>
 
         {/* Keep all tab content mounted to preserve lifecycle state (data fetches, etc.)
-           and toggle visibility with PF utility class, matching old Tabs show/hide behaviour */}
+           and toggle visibility with PF utility class, matching old Tabs show/hide behaviour.
+           height/overflow match the height:100%/overflow:auto the old TabContent applied,
+           so content isn't clipped by the DrawerPanelBody's overflow:hidden. */}
         <div
           className={activeTabKey !== 0 ? 'pf-v6-u-display-none' : undefined}
+          style={{ height: '100%', overflow: 'auto' }}
           data-testid="chatbot-settings-page-tab-content-model"
         >
           <ModelTabContent
@@ -386,6 +389,7 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
         </div>
         <div
           className={activeTabKey !== 1 ? 'pf-v6-u-display-none' : undefined}
+          style={{ height: '100%', overflow: 'auto' }}
           data-testid="chatbot-settings-page-tab-content-prompt"
         >
           <PromptTabContent
@@ -396,6 +400,7 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
         </div>
         <div
           className={activeTabKey !== 2 ? 'pf-v6-u-display-none' : undefined}
+          style={{ height: '100%', overflow: 'auto' }}
           data-testid="chatbot-settings-page-tab-content-knowledge"
         >
           <KnowledgeTabContent
@@ -407,6 +412,7 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
         </div>
         <div
           className={activeTabKey !== 3 ? 'pf-v6-u-display-none' : undefined}
+          style={{ height: '100%', overflow: 'auto' }}
           data-testid="chatbot-settings-page-tab-content-mcp"
         >
           <MCPTabContent
@@ -426,6 +432,7 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
         {isGuardrailsFeatureEnabled && (
           <div
             className={activeTabKey !== 4 ? 'pf-v6-u-display-none' : undefined}
+            style={{ height: '100%', overflow: 'auto' }}
             data-testid="chatbot-settings-page-tab-content-guardrails"
           >
             <GuardrailsTabContent configId={configId} />
