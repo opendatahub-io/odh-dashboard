@@ -195,6 +195,21 @@ describe('Verify Custom Endpoints in Playground - Full Lifecycle', () => {
         .should('be.visible')
         .and('contain', testData.prompt.name);
 
+      // --- Upload RAG document ---
+
+      cy.step('Navigate to Knowledge tab in settings panel');
+      genAiPlayground.findKnowledgeTab().should('be.visible').click();
+
+      cy.step('Upload RAG document via the message bar attachment');
+      genAiPlayground.uploadDocumentViaAttachMenu(`cypress/fixtures/${testData.rag.fixturePath}`);
+
+      cy.step('Confirm upload in source settings modal');
+      genAiPlayground.findSourceSettingsModal().should('be.visible');
+      genAiPlayground.findSourceSettingsUploadButton().should('be.enabled').click();
+
+      cy.step('Verify source upload success alert appears');
+      genAiPlayground.findSourceUploadSuccessAlert({ timeout: 120000 }).should('be.visible');
+
       // --- Use the prompt in the playground ---
 
       cy.step('Verify message input is ready');
@@ -211,6 +226,34 @@ describe('Verify Custom Endpoints in Playground - Full Lifecycle', () => {
 
       cy.step('Verify assistant response is received');
       genAiPlayground.findAssistantMessage({ timeout: 60000 }).should('exist').and('not.be.empty');
+
+      // --- Send RAG-aware question and verify retrieval ---
+
+      cy.step('Wait for streaming to complete before sending RAG question');
+      genAiPlayground.waitForStreamingComplete({ timeout: 60000 });
+
+      cy.step('Send a question about the uploaded RAG document');
+      genAiPlayground.sendMessage(testData.rag.testQuestion);
+
+      cy.step('Verify RAG question appears in chat');
+      genAiPlayground
+        .findAllUserMessages()
+        .last()
+        .should('exist')
+        .and('contain', testData.rag.testQuestion);
+
+      cy.step('Wait for RAG response streaming to complete');
+      genAiPlayground.waitForStreamingComplete({ timeout: 120000 });
+
+      cy.step('Verify assistant response references uploaded document content');
+      genAiPlayground
+        .findAllAssistantMessages({ timeout: 10000 })
+        .last()
+        .should('exist')
+        .and('contain.text', testData.rag.expectedContentFragment);
+
+      cy.step('Verify file search results (RAG citations) are displayed');
+      genAiPlayground.findFileSearchResults({ timeout: 10000 }).should('exist');
 
       // --- Cleanup: delete the endpoint ---
 

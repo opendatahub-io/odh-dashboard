@@ -79,14 +79,27 @@ class GenAiPlayground {
     return cy.findByTestId('chatbot-message-user');
   }
 
+  findAllUserMessages() {
+    return cy.findAllByTestId('chatbot-message-user');
+  }
+
   findAssistantMessage(options?: { timeout?: number }) {
     return cy.findByTestId('chatbot-message-bot', options);
+  }
+
+  findAllAssistantMessages(options?: { timeout?: number }) {
+    return cy.findAllByTestId('chatbot-message-bot', options);
   }
 
   sendMessage(message: string) {
     this.findMessageInput().should('be.visible').and('be.enabled').clear().type(message);
     this.findMessageInput().type('{enter}');
     this.findMessageInput().should('have.value', '');
+  }
+
+  waitForStreamingComplete(options?: { timeout?: number }) {
+    const timeout = options?.timeout ?? 60000;
+    cy.get('.pf-chatbot__button--stop', { timeout }).should('not.exist');
   }
 
   ensureModelCheckboxIsChecked(modelName: string) {
@@ -237,6 +250,39 @@ class GenAiPlayground {
 
   findPromptNameTitle() {
     return cy.findByTestId('prompt-name-title');
+  }
+
+  // RAG / Knowledge upload methods
+  findKnowledgeTab() {
+    return cy.findByTestId('chatbot-settings-page-tab-knowledge');
+  }
+
+  findDocumentFileInput() {
+    return cy.get('[data-testid="document-file-input"]');
+  }
+
+  uploadDocumentViaAttachMenu(fixturePath: string) {
+    this.findDocumentFileInput().selectFile(fixturePath, { force: true });
+  }
+
+  findSourceSettingsModal() {
+    return cy.findByTestId('source-settings-modal');
+  }
+
+  findSourceSettingsUploadButton() {
+    return this.findSourceSettingsModal().findByRole('button', { name: /upload/i });
+  }
+
+  findSourceUploadSuccessAlert(options?: { timeout?: number }) {
+    return cy.contains('[class*="pf-v6-c-alert"]', 'Source uploaded', options);
+  }
+
+  findFileSearchResults(options?: { timeout?: number }) {
+    return cy.findByTestId('file-search-results', options);
+  }
+
+  findFileSearchResultsToggle() {
+    return cy.findByTestId('file-search-results-toggle');
   }
 }
 
