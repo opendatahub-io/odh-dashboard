@@ -1,18 +1,46 @@
 /**
+ * Gets the OpenShift Bearer token from the current oc session.
+ * Required for Feast REST API calls when Kubernetes auth is enabled.
+ *
+ * @returns {Cypress.Chainable<string>} The Bearer token
+ */
+export const getOCToken = (): Cypress.Chainable<string> => {
+  return cy.exec('oc whoami -t', { failOnNonZeroExit: false }).then((result) => {
+    if (result.code !== 0 || !result.stdout.trim()) {
+      throw new Error(`Failed to get OC token: ${result.stderr}`);
+    }
+    return cy.wrap(result.stdout.trim());
+  });
+};
+
+/**
+ * Builds the authorization headers for Feast REST API requests.
+ */
+const authHeaders = (token: string): Record<string, string> => ({
+  accept: 'application/json',
+  Authorization: `Bearer ${token}`,
+});
+
+/**
  * Gets entity count and returns it
  *
  * @param {string} routeUrl - The Feature Store route URL
  * @param {string} project - The project name
+ * @param {string} token - The Bearer token for authentication
  * @returns {Cypress.Chainable<number>} The entity count
  */
-export const getEntityCount = (routeUrl: string, project: string): Cypress.Chainable<number> => {
+export const getEntityCount = (
+  routeUrl: string,
+  project: string,
+  token: string,
+): Cypress.Chainable<number> => {
   const apiUrl = `${routeUrl}/api/v1/entities?project=${project}&allow_cache=true&include_relationships=false`;
 
   return cy
     .request({
       method: 'GET',
       url: apiUrl,
-      headers: { accept: 'application/json' },
+      headers: authHeaders(token),
       failOnStatusCode: false,
     })
     .then((response) => {
@@ -21,7 +49,7 @@ export const getEntityCount = (routeUrl: string, project: string): Cypress.Chain
       }
       const count = response.body.entities.length;
       cy.log(`Entity count: ${count}`);
-      return cy.wrap<number>(count); // Wrap the return value with proper typing
+      return cy.wrap<number>(count);
     });
 };
 
@@ -30,16 +58,21 @@ export const getEntityCount = (routeUrl: string, project: string): Cypress.Chain
  *
  * @param {string} routeUrl - The Feature Store route URL
  * @param {string} project - The project name
+ * @param {string} token - The Bearer token for authentication
  * @returns {Cypress.Chainable<number>} The feature count
  */
-export const getFeatureCount = (routeUrl: string, project: string): Cypress.Chainable<number> => {
+export const getFeatureCount = (
+  routeUrl: string,
+  project: string,
+  token: string,
+): Cypress.Chainable<number> => {
   const apiUrl = `${routeUrl}/api/v1/features?project=${project}&include_relationships=false&allow_cache=true`;
 
   return cy
     .request({
       method: 'GET',
       url: apiUrl,
-      headers: { accept: 'application/json' },
+      headers: authHeaders(token),
       failOnStatusCode: false,
     })
     .then((response) => {
@@ -48,7 +81,7 @@ export const getFeatureCount = (routeUrl: string, project: string): Cypress.Chai
       }
       const count = response.body.features.length;
       cy.log(`Feature count: ${count}`);
-      return cy.wrap<number>(count); // Wrap the return value with proper typing
+      return cy.wrap<number>(count);
     });
 };
 
@@ -57,11 +90,13 @@ export const getFeatureCount = (routeUrl: string, project: string): Cypress.Chai
  *
  * @param {string} routeUrl - The Feature Store route URL
  * @param {string} project - The project name
+ * @param {string} token - The Bearer token for authentication
  * @returns {Cypress.Chainable<number>} The feature view count
  */
 export const getFeatureViewCount = (
   routeUrl: string,
   project: string,
+  token: string,
 ): Cypress.Chainable<number> => {
   const apiUrl = `${routeUrl}/api/v1/feature_views?project=${project}&allow_cache=true&include_relationships=false`;
 
@@ -69,7 +104,7 @@ export const getFeatureViewCount = (
     .request({
       method: 'GET',
       url: apiUrl,
-      headers: { accept: 'application/json' },
+      headers: authHeaders(token),
       failOnStatusCode: false,
     })
     .then((response) => {
@@ -87,11 +122,13 @@ export const getFeatureViewCount = (
  *
  * @param {string} routeUrl - The Feature Store route URL
  * @param {string} project - The project name
+ * @param {string} token - The Bearer token for authentication
  * @returns {Cypress.Chainable<number>} The feature service count
  */
 export const getFeatureServicesCount = (
   routeUrl: string,
   project: string,
+  token: string,
 ): Cypress.Chainable<number> => {
   const apiUrl = `${routeUrl}/api/v1/feature_services?project=${project}&include_relationships=false&allow_cache=true`;
 
@@ -99,7 +136,7 @@ export const getFeatureServicesCount = (
     .request({
       method: 'GET',
       url: apiUrl,
-      headers: { accept: 'application/json' },
+      headers: authHeaders(token),
       failOnStatusCode: false,
     })
     .then((response) => {
@@ -117,11 +154,13 @@ export const getFeatureServicesCount = (
  *
  * @param {string} routeUrl - The Feature Store route URL
  * @param {string} project - The project name
+ * @param {string} token - The Bearer token for authentication
  * @returns {Cypress.Chainable<number>} The data source count
  */
 export const getDataSourceCount = (
   routeUrl: string,
   project: string,
+  token: string,
 ): Cypress.Chainable<number> => {
   const apiUrl = `${routeUrl}/api/v1/data_sources?project=${project}&include_relationships=false&allow_cache=true`;
 
@@ -129,7 +168,7 @@ export const getDataSourceCount = (
     .request({
       method: 'GET',
       url: apiUrl,
-      headers: { accept: 'application/json' },
+      headers: authHeaders(token),
       failOnStatusCode: false,
     })
     .then((response) => {
@@ -147,16 +186,21 @@ export const getDataSourceCount = (
  *
  * @param {string} routeUrl - The Feature Store route URL
  * @param {string} project - The project name
+ * @param {string} token - The Bearer token for authentication
  * @returns {Cypress.Chainable<number>} The saved dataset count
  */
-export const getDatasetsCount = (routeUrl: string, project: string): Cypress.Chainable<number> => {
+export const getDatasetsCount = (
+  routeUrl: string,
+  project: string,
+  token: string,
+): Cypress.Chainable<number> => {
   const apiUrl = `${routeUrl}/api/v1/saved_datasets?project=${project}&allow_cache=true&include_relationships=false`;
 
   return cy
     .request({
       method: 'GET',
       url: apiUrl,
-      headers: { accept: 'application/json' },
+      headers: authHeaders(token),
       failOnStatusCode: false,
     })
     .then((response) => {
@@ -186,23 +230,27 @@ export const getAllFeatureStoreCounts = (
   featureViewCount: number;
   featureServiceCount: number;
 }> => {
-  return getFeatureCount(routeUrl, project).then((featuresCount) => {
-    return getEntityCount(routeUrl, project).then((entitiesCount) => {
-      return getDatasetsCount(routeUrl, project).then((datasetsCount) => {
-        return getDataSourceCount(routeUrl, project).then((dataSourcesCount) => {
-          return getFeatureViewCount(routeUrl, project).then((featureViewsCount) => {
-            return getFeatureServicesCount(routeUrl, project).then((featureServicesCount) => {
-              const allCounts = {
-                featureCount: featuresCount,
-                entityCount: entitiesCount,
-                datasetCount: datasetsCount,
-                dataSourceCount: dataSourcesCount,
-                featureViewCount: featureViewsCount,
-                featureServiceCount: featureServicesCount,
-              };
+  return getOCToken().then((token) => {
+    return getFeatureCount(routeUrl, project, token).then((featuresCount) => {
+      return getEntityCount(routeUrl, project, token).then((entitiesCount) => {
+        return getDatasetsCount(routeUrl, project, token).then((datasetsCount) => {
+          return getDataSourceCount(routeUrl, project, token).then((dataSourcesCount) => {
+            return getFeatureViewCount(routeUrl, project, token).then((featureViewsCount) => {
+              return getFeatureServicesCount(routeUrl, project, token).then(
+                (featureServicesCount) => {
+                  const allCounts = {
+                    featureCount: featuresCount,
+                    entityCount: entitiesCount,
+                    datasetCount: datasetsCount,
+                    dataSourceCount: dataSourcesCount,
+                    featureViewCount: featureViewsCount,
+                    featureServiceCount: featureServicesCount,
+                  };
 
-              cy.log('All Feature Store counts fetched:', allCounts);
-              return cy.wrap(allCounts);
+                  cy.log('All Feature Store counts fetched:', allCounts);
+                  return cy.wrap(allCounts);
+                },
+              );
             });
           });
         });
