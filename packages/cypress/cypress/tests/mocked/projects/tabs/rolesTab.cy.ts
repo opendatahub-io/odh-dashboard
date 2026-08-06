@@ -3,7 +3,8 @@
  * Verifies that the Roles tab is visible when the roleManagement feature flag is enabled (GA default)
  * and the user has SSAR access to list roles.
  */
-import { mockDashboardConfig, mockK8sResourceList } from '@odh-dashboard/internal/__mocks__';
+import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
+import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
 import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import { mockSelfSubjectAccessReview } from '@odh-dashboard/internal/__mocks__/mockSelfSubjectAccessReview';
 import { ProjectModel, SelfSubjectAccessReviewModel } from '../../../../utils/models';

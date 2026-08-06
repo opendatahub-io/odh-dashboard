@@ -1,11 +1,7 @@
 import { K8sStatus } from '@openshift/dynamic-plugin-sdk-utils';
 import { ContainerResources, KnownLabels, NodeSelector, Toleration } from '@odh-dashboard/k8s-core';
-import {
-  DeploymentMode,
-  InferenceServiceKind,
-  ServingRuntimeModelType,
-} from '@odh-dashboard/model-serving/shared';
 import { genUID } from '@odh-dashboard/foundation';
+import { DeploymentMode, InferenceServiceKind, ServingRuntimeModelType } from '../shared';
 
 type MockResourceConfigType = {
   name?: string;

@@ -2,12 +2,9 @@
  * Tests for the Roles tab table: search filtering, kebab actions,
  * sorting, and the Preview YAML modal.
  */
-import {
-  mockClusterRoleK8sResource,
-  mockDashboardConfig,
-  mockK8sResourceList,
-  mockRoleK8sResource,
-} from '@odh-dashboard/internal/__mocks__';
+import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
+import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
+import { mockClusterRoleK8sResource, mockRoleK8sResource } from '@odh-dashboard/internal/__mocks__';
 import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import {
   ClusterRoleModel,

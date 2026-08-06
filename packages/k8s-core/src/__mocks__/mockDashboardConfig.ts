@@ -1,5 +1,5 @@
-import { type DashboardConfigKind, KnownLabels, NotebookSize } from '@odh-dashboard/k8s-core';
-import { ModelServingSize } from '#~/pages/modelServing/screens/types';
+import { type DashboardConfigKind, KnownLabels } from '../k8sTypes';
+import type { NotebookSize, ModelServingSize } from '../types';
 
 export type MockDashboardConfigType = {
   disableInfo?: boolean;

@@ -1,8 +1,6 @@
-import {
-  mockDashboardConfig,
-  mockDscStatus,
-  mockNotebookK8sResource,
-} from '@odh-dashboard/internal/__mocks__';
+import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
+import { mockDscStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDscStatus';
+import { mockNotebookK8sResource } from '@odh-dashboard/internal/__mocks__';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import { initIntercepts } from './workbenchTestUtils';
 import { NotebookModel } from '../../../../utils/models';
