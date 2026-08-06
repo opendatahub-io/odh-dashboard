@@ -169,6 +169,33 @@ describe('AboutBenchmarkResultPopover', () => {
     expect(container).toBeEmptyDOMElement();
   });
 
+  it('should format threshold > 1 without multiplying by 100', () => {
+    useProviders.mockReturnValue({ providers: [], loaded: true, loadError: undefined });
+    /* eslint-disable camelcase */
+    const job = mockEvaluationJob({
+      score: 0.8,
+      benchmarkId: 'default-benchmark',
+    });
+    job.benchmarks = [
+      {
+        id: 'default-benchmark',
+        primary_score: { metric: 'acc', lower_is_better: false },
+        pass_criteria: { threshold: 90 },
+      },
+    ];
+    /* eslint-enable camelcase */
+
+    render(
+      <MemoryRouter>
+        <AboutBenchmarkResultPopover benchmarkId="default-benchmark" benchmarkIndex={0} job={job} />
+      </MemoryRouter>,
+    );
+    fireEvent.click(screen.getByTestId('about-result-default-benchmark-0'));
+    expect(
+      screen.getByText('This benchmark scored 80% against a threshold of 90%.'),
+    ).toBeInTheDocument();
+  });
+
   it('should not render score line when threshold is missing', () => {
     useProviders.mockReturnValue({ providers: [], loaded: true, loadError: undefined });
     /* eslint-disable camelcase */
