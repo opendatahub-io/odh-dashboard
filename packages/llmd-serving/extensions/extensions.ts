@@ -592,7 +592,7 @@ const extensions: (
     },
     properties: {
       path: '/settings/model-resources-operations/llmd-topology-configurations/*',
-      component: () => import('../src/settings/TopologyConfigurationsRoutes'),
+      component: () => import('../src/settings/topologyConfigs/TopologyConfigurationsRoutes'),
     },
   },
   {

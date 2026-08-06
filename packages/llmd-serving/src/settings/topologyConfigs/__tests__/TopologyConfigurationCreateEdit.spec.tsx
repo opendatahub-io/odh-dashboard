@@ -3,8 +3,8 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { useNavigate, useParams, useLocation } from 'react-router';
 import { mockLLMInferenceServiceConfigK8sResource } from '@odh-dashboard/llmd-serving/__mocks__/mockLLMInferenceServiceConfigK8sResource';
-import { TopologyType } from '../../types';
-import { useWatchTopologyConfigs } from '../../api/LLMInferenceServiceConfigs';
+import { TopologyType } from '../../../types';
+import { useWatchTopologyConfigs } from '../../../api/LLMInferenceServiceConfigs';
 import TopologyConfigurationCreateEdit from '../TopologyConfigurationCreateEdit';
 
 jest.mock('react-router', () => ({
@@ -35,7 +35,7 @@ jest.mock('@odh-dashboard/internal/utilities/useNotification', () => ({
   default: () => ({ error: jest.fn(), success: jest.fn() }),
 }));
 
-jest.mock('../ConfigYAMLEditor', () =>
+jest.mock('../../ConfigYAMLEditor', () =>
   jest.fn(({ code, onCodeChange }) => (
     <textarea
       data-testid="yaml-editor-mock"
@@ -45,7 +45,7 @@ jest.mock('../ConfigYAMLEditor', () =>
   )),
 );
 
-jest.mock('../../api/LLMInferenceServiceConfigs', () => ({
+jest.mock('../../../api/LLMInferenceServiceConfigs', () => ({
   createLLMInferenceServiceConfig: jest.fn(),
   patchLLMInferenceServiceConfig: jest.fn(),
   useWatchTopologyConfigs: jest.fn(),

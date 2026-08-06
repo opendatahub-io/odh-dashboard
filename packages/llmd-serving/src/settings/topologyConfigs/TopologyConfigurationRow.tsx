@@ -13,8 +13,8 @@ import {
   TopologyTypeLabels,
   DASHBOARD_RESOURCE_LABEL,
   getConfigTopologyType,
-} from '../types';
-import { isConfigPreInstalled, isConfigEnabled } from '../utils';
+} from '../../types';
+import { isConfigPreInstalled, isConfigEnabled } from '../../utils';
 
 type TopologyConfigurationRowProps = {
   config: LLMInferenceServiceConfigKind;

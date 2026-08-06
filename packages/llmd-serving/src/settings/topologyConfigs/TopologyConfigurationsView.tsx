@@ -4,7 +4,7 @@ import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
 import TopologyConfigurationsTable from './TopologyConfigurationsTable';
 import EmptyTopologyConfigurations from './EmptyTopologyConfigurations';
-import { useWatchTopologyConfigs } from '../api/LLMInferenceServiceConfigs';
+import { useWatchTopologyConfigs } from '../../api/LLMInferenceServiceConfigs';
 
 const TopologyConfigurationsView: React.FC = () => {
   const { dashboardNamespace } = useDashboardNamespace();

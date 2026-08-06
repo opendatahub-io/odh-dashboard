@@ -27,25 +27,25 @@ import K8sNameDescriptionField, {
 } from '@odh-dashboard/ui-core/components/K8sNameDescriptionField';
 import useNotification from '@odh-dashboard/internal/utilities/useNotification';
 import SimpleSelect, { SimpleSelectOption } from '@odh-dashboard/ui-core/components/SimpleSelect';
-import ConfigYAMLEditor from './ConfigYAMLEditor';
-import { overrideLlmConfigFields } from './configYamlUtils';
+import ConfigYAMLEditor from '../ConfigYAMLEditor';
+import { overrideLlmConfigFields } from '../configYamlUtils';
 import {
   type LLMInferenceServiceConfigKind,
   TopologyType,
   TopologyTypeLabels,
   CONFIG_TYPE_LABEL,
-} from '../types';
+} from '../../types';
 import {
   isConfigObject,
   cleanResourceForYAMLViewer,
   stripDuplicatingAnnotations,
   stripDuplicatingLabels,
-} from '../utils';
+} from '../../utils';
 import {
   createLLMInferenceServiceConfig,
   patchLLMInferenceServiceConfig,
   useWatchTopologyConfigs,
-} from '../api/LLMInferenceServiceConfigs';
+} from '../../api/LLMInferenceServiceConfigs';
 
 const TopologyConfigurationCreateEditInner: React.FC<{
   existingConfig?: LLMInferenceServiceConfigKind;
