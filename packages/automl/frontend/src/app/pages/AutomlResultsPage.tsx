@@ -49,8 +49,10 @@ function AutomlResultsPage(): React.JSX.Element {
     namespacesLoaded && !!namespace && !namespaces.map((ns) => ns.name).includes(namespace);
 
   const getRedirectPath = (ns: string) => `${automlExperimentsPathname}/${ns}`;
-  const projectDisplayName =
-    namespaces.find((ns) => ns.name === namespace)?.displayName ?? namespace ?? '';
+  const projectDisplayName = React.useMemo(
+    () => namespaces.find((ns) => ns.name === namespace)?.displayName ?? namespace ?? '',
+    [namespaces, namespace],
+  );
 
   const notification = useNotification();
 
@@ -141,11 +143,7 @@ function AutomlResultsPage(): React.JSX.Element {
 
   const ReconfigureLink = React.useCallback(
     (props: React.ComponentProps<typeof Link>) => (
-      <Link
-        {...props}
-        to={`${automlReconfigurePathname}/${namespace}/${runId}`}
-        state={{ from: 'results' }}
-      />
+      <Link {...props} to={`${automlReconfigurePathname}/${namespace}/${runId}`} />
     ),
     [namespace, runId],
   );
@@ -272,10 +270,7 @@ function AutomlResultsPage(): React.JSX.Element {
                     homePath={getRedirectPath(namespace)}
                   >
                     <BreadcrumbItem data-testid="results-breadcrumb-experiment-configurations">
-                      <Link
-                        to={`${automlReconfigurePathname}/${namespace}/${runId}`}
-                        state={{ from: 'results' }}
-                      >
+                      <Link to={`${automlReconfigurePathname}/${namespace}/${runId}`}>
                         Experiment configurations
                       </Link>
                     </BreadcrumbItem>

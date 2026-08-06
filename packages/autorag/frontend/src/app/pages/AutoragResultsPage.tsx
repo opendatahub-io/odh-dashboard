@@ -70,8 +70,10 @@ function AutoragResultsPage(): React.JSX.Element {
     namespacesLoaded && !!namespace && !namespaces.map((ns) => ns.name).includes(namespace);
 
   const getRedirectPath = (ns: string) => `${autoragExperimentsPathname}/${ns}`;
-  const projectDisplayName =
-    namespaces.find((ns) => ns.name === namespace)?.displayName ?? namespace ?? '';
+  const projectDisplayName = React.useMemo(
+    () => namespaces.find((ns) => ns.name === namespace)?.displayName ?? namespace ?? '',
+    [namespaces, namespace],
+  );
 
   const notification = useNotification();
 
@@ -165,11 +167,7 @@ function AutoragResultsPage(): React.JSX.Element {
 
   const ReconfigureLink = React.useCallback(
     (props: React.ComponentProps<typeof Link>) => (
-      <Link
-        {...props}
-        to={`${autoragReconfigurePathname}/${namespace}/${runId}`}
-        state={{ from: 'results' }}
-      />
+      <Link {...props} to={`${autoragReconfigurePathname}/${namespace}/${runId}`} />
     ),
     [namespace, runId],
   );
@@ -392,10 +390,7 @@ function AutoragResultsPage(): React.JSX.Element {
                     homePath={getRedirectPath(namespace)}
                   >
                     <BreadcrumbItem data-testid="results-breadcrumb-experiment-configurations">
-                      <Link
-                        to={`${autoragReconfigurePathname}/${namespace}/${runId}`}
-                        state={{ from: 'results' }}
-                      >
+                      <Link to={`${autoragReconfigurePathname}/${namespace}/${runId}`}>
                         Experiment configurations
                       </Link>
                     </BreadcrumbItem>
