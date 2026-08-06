@@ -19,6 +19,7 @@ func GetMockExternalProviderSummaries() []models.ExternalProviderSummary {
 			Provider:            "openai",
 			Phase:               "Ready",
 			StatusMessage:       "External provider is ready",
+			Reason:              "Reconciled",
 		},
 		{
 			Name:                "anthropic-dev",
@@ -31,6 +32,7 @@ func GetMockExternalProviderSummaries() []models.ExternalProviderSummary {
 			Provider:            "anthropic",
 			Phase:               "Ready",
 			StatusMessage:       "External provider is ready",
+			Reason:              "Reconciled",
 		},
 		{
 			Name:                "bedrock-us-east",
@@ -46,6 +48,7 @@ func GetMockExternalProviderSummaries() []models.ExternalProviderSummary {
 			},
 			Phase:         "Ready",
 			StatusMessage: "External provider is ready",
+			Reason:        "Reconciled",
 		},
 		{
 			Name:                "bedrock-us-west",
@@ -61,6 +64,7 @@ func GetMockExternalProviderSummaries() []models.ExternalProviderSummary {
 			},
 			Phase:         "Ready",
 			StatusMessage: "External provider is ready",
+			Reason:        "Reconciled",
 		},
 		{
 			Name:                "bedrock-eu-west",
@@ -76,6 +80,7 @@ func GetMockExternalProviderSummaries() []models.ExternalProviderSummary {
 			},
 			Phase:         "Ready",
 			StatusMessage: "External provider is ready",
+			Reason:        "Reconciled",
 		},
 		{
 			Name:                "bedrock-ap-southeast",
@@ -91,6 +96,7 @@ func GetMockExternalProviderSummaries() []models.ExternalProviderSummary {
 			},
 			Phase:         "Ready",
 			StatusMessage: "External provider is ready",
+			Reason:        "Reconciled",
 		},
 		{
 			Name:                "bedrock-ap-northeast",
@@ -106,6 +112,7 @@ func GetMockExternalProviderSummaries() []models.ExternalProviderSummary {
 			},
 			Phase:         "Ready",
 			StatusMessage: "External provider is ready",
+			Reason:        "Reconciled",
 		},
 		{
 			Name:                "bedrock-sa-east",
@@ -121,6 +128,7 @@ func GetMockExternalProviderSummaries() []models.ExternalProviderSummary {
 			},
 			Phase:         "Pending",
 			StatusMessage: "Waiting for credential Secret",
+			Reason:        "Pending",
 		},
 	}
 }
@@ -145,6 +153,7 @@ func GetMockExternalModelSummaries() []models.ExternalModelSummary {
 			},
 			Phase:         "Ready",
 			StatusMessage: "External model is ready",
+			Reason:        "Reconciled",
 		},
 		{
 			Name:        "gpt-4o-external-2",
@@ -163,9 +172,11 @@ func GetMockExternalModelSummaries() []models.ExternalModelSummary {
 			},
 			Phase:         "Failed",
 			StatusMessage: "External model is failed",
+			Reason:        "Failed",
 			MaaSModelRef: &models.ExternalModelMaaSModelRefStatus{
 				Phase:              "Pending",
 				StatusMessage:      "Awaiting governance pairing",
+				Reason:             "Pending",
 				GovernanceAttached: false,
 			},
 		},
@@ -186,9 +197,11 @@ func GetMockExternalModelSummaries() []models.ExternalModelSummary {
 			},
 			Phase:         "Pending",
 			StatusMessage: "External model is pending",
+			Reason:        "Pending",
 			MaaSModelRef: &models.ExternalModelMaaSModelRefStatus{
 				Phase:              "Pending",
 				StatusMessage:      "Awaiting governance pairing",
+				Reason:             "Pending",
 				GovernanceAttached: false,
 			},
 		},
@@ -269,6 +282,7 @@ func GetMockExternalModelSummaries() []models.ExternalModelSummary {
 			},
 			Phase:         "Ready",
 			StatusMessage: "External model is ready",
+			Reason:        "Reconciled",
 		},
 	}
 }

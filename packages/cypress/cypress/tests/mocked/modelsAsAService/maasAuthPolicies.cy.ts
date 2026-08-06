@@ -5,6 +5,7 @@ import { asProductAdminUser } from '../../../utils/mockUsers';
 import {
   authPoliciesPage,
   deleteAuthPolicyModal,
+  phaseModal,
   policyPage,
   subscriptionManagementPage,
   viewAuthPolicyPage,
@@ -126,7 +127,14 @@ describe('MaaS Auth Policies', () => {
     const failedRow = authPoliciesPage.getRow('failed-policy');
     failedRow.findPhase().should('contain.text', 'Failed');
     failedRow.findPhaseLabel().click();
-    failedRow.findPhasePopover().should('contain.text', 'Policy failed');
+    phaseModal.find().should('exist');
+    phaseModal.findAlert().should('exist');
+    phaseModal.findAlertBody().should('exist');
+    phaseModal.findApiDetailsButton().should('exist').click();
+    phaseModal.findAlertDetailsCodeBlock().should('exist');
+    phaseModal.findViewDetailsLink().should('exist');
+    phaseModal.findCloseButton().click();
+    phaseModal.shouldBeOpen(false);
 
     const pendingRow = authPoliciesPage.getRow('pending-policy');
     pendingRow.findPhase().should('contain.text', 'Pending');

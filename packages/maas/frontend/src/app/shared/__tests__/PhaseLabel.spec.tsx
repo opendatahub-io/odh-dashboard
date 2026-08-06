@@ -1,7 +1,9 @@
 import * as React from 'react';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router-dom';
 import PhaseLabel from '~/app/shared/PhaseLabel';
-import { PhaseLabelLocation, PhaseResourceType } from '~/app/utilities/phaseLabelUtils';
+import { PhaseResourceType } from '~/app/utilities/phaseLabelUtils';
 
 describe('PhaseLabel', () => {
   it('should render Active phase with correct text', () => {
@@ -9,7 +11,7 @@ describe('PhaseLabel', () => {
       <PhaseLabel
         phase="Active"
         resourceType={PhaseResourceType.SUBSCRIPTION}
-        location={PhaseLabelLocation.OVERVIEW}
+        resourceName="Test Subscription"
       />,
     );
     const label = screen.getByTestId('phase-label');
@@ -22,7 +24,7 @@ describe('PhaseLabel', () => {
       <PhaseLabel
         phase="Ready"
         resourceType={PhaseResourceType.SUBSCRIPTION}
-        location={PhaseLabelLocation.OVERVIEW}
+        resourceName="Test Subscription"
       />,
     );
     const label = screen.getByTestId('phase-label');
@@ -35,7 +37,7 @@ describe('PhaseLabel', () => {
       <PhaseLabel
         phase="Failed"
         resourceType={PhaseResourceType.SUBSCRIPTION}
-        location={PhaseLabelLocation.OVERVIEW}
+        resourceName="Test Subscription"
       />,
     );
     const label = screen.getByTestId('phase-label');
@@ -49,7 +51,7 @@ describe('PhaseLabel', () => {
       <PhaseLabel
         phase="Degraded"
         resourceType={PhaseResourceType.SUBSCRIPTION}
-        location={PhaseLabelLocation.OVERVIEW}
+        resourceName="Test Subscription"
       />,
     );
     const label = screen.getByTestId('phase-label');
@@ -63,7 +65,7 @@ describe('PhaseLabel', () => {
       <PhaseLabel
         phase="Unhealthy"
         resourceType={PhaseResourceType.SUBSCRIPTION}
-        location={PhaseLabelLocation.OVERVIEW}
+        resourceName="Test Subscription"
       />,
     );
     const label = screen.getByTestId('phase-label');
@@ -77,7 +79,7 @@ describe('PhaseLabel', () => {
       <PhaseLabel
         phase="Pending"
         resourceType={PhaseResourceType.SUBSCRIPTION}
-        location={PhaseLabelLocation.OVERVIEW}
+        resourceName="Test Subscription"
       />,
     );
     const label = screen.getByTestId('phase-label');
@@ -90,7 +92,7 @@ describe('PhaseLabel', () => {
       <PhaseLabel
         phase={undefined}
         resourceType={PhaseResourceType.SUBSCRIPTION}
-        location={PhaseLabelLocation.OVERVIEW}
+        resourceName="Test Subscription"
       />,
     );
     const label = screen.getByTestId('phase-label');
@@ -103,7 +105,7 @@ describe('PhaseLabel', () => {
       <PhaseLabel
         phase="SomethingElse"
         resourceType={PhaseResourceType.SUBSCRIPTION}
-        location={PhaseLabelLocation.OVERVIEW}
+        resourceName="Test Subscription"
       />,
     );
     const label = screen.getByTestId('phase-label');
@@ -116,7 +118,7 @@ describe('PhaseLabel', () => {
       <PhaseLabel
         phase="Active"
         resourceType={PhaseResourceType.SUBSCRIPTION}
-        location={PhaseLabelLocation.OVERVIEW}
+        resourceName="Test Subscription"
       />,
     );
     const label = screen.getByTestId('phase-label');
@@ -130,7 +132,7 @@ describe('PhaseLabel', () => {
         phase="Failed"
         resourceType={PhaseResourceType.SUBSCRIPTION}
         statusMessage="Token limit exceeded."
-        location={PhaseLabelLocation.OVERVIEW}
+        resourceName="Test Subscription"
       />,
     );
     const label = screen.getByTestId('phase-label');
@@ -144,7 +146,7 @@ describe('PhaseLabel', () => {
         phase="Active"
         resourceType={PhaseResourceType.SUBSCRIPTION}
         statusMessage="Some message."
-        location={PhaseLabelLocation.OVERVIEW}
+        resourceName="Test Subscription"
       />,
     );
     const label = screen.getByTestId('phase-label');
@@ -158,11 +160,114 @@ describe('PhaseLabel', () => {
         phase="Ready"
         resourceType={PhaseResourceType.SUBSCRIPTION}
         statusMessage="Some message."
-        location={PhaseLabelLocation.OVERVIEW}
+        resourceName="Test Subscription"
       />,
     );
     const label = screen.getByTestId('phase-label');
     expect(label.className).toContain('pf-m-outline');
     expect(screen.queryByTestId('phase-popover')).toBeNull();
+  });
+  it('should render subtext when status is failed', () => {
+    render(
+      <PhaseLabel
+        phase="Failed"
+        resourceType={PhaseResourceType.SUBSCRIPTION}
+        resourceName="Test Subscription"
+      />,
+    );
+    const subtext = screen.getByTestId('phase-label-subtext');
+    expect(subtext).not.toBeNull();
+  });
+  it('should render subtext when status is degraded', () => {
+    render(
+      <PhaseLabel
+        phase="Degraded"
+        resourceType={PhaseResourceType.SUBSCRIPTION}
+        resourceName="Test Subscription"
+      />,
+    );
+    const subtext = screen.getByTestId('phase-label-subtext');
+    expect(subtext).not.toBeNull();
+  });
+  it('should not render subtext when status is pending', () => {
+    render(
+      <PhaseLabel
+        phase="Pending"
+        resourceType={PhaseResourceType.SUBSCRIPTION}
+        resourceName="Test Subscription"
+      />,
+    );
+    expect(screen.queryByTestId('phase-label-subtext')).toBeNull();
+  });
+  it('should not render subtext when status is active', () => {
+    render(
+      <PhaseLabel
+        phase="Active"
+        resourceType={PhaseResourceType.SUBSCRIPTION}
+        resourceName="Test Subscription"
+      />,
+    );
+    expect(screen.queryByTestId('phase-label-subtext')).toBeNull();
+  });
+  it('should not render subtext when status is ready', () => {
+    render(
+      <PhaseLabel
+        phase="Ready"
+        resourceType={PhaseResourceType.SUBSCRIPTION}
+        resourceName="Test Subscription"
+      />,
+    );
+    expect(screen.queryByTestId('phase-label-subtext')).toBeNull();
+  });
+
+  it('should not mount the modal until the label is clicked', () => {
+    render(
+      <PhaseLabel
+        phase="Failed"
+        resourceType={PhaseResourceType.SUBSCRIPTION}
+        resourceName="Test Subscription"
+      />,
+    );
+
+    expect(screen.queryByTestId('phase-modal')).toBeNull();
+  });
+
+  it('should mount and open the modal after the label is clicked', async () => {
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <PhaseLabel
+          phase="Failed"
+          resourceType={PhaseResourceType.SUBSCRIPTION}
+          resourceName="Test Subscription"
+        />
+      </MemoryRouter>,
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Failed' }));
+
+    expect(screen.getByTestId('phase-modal')).not.toBeNull();
+  });
+
+  it('should reopen the modal after it is closed without remounting from scratch', async () => {
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <PhaseLabel
+          phase="Failed"
+          resourceType={PhaseResourceType.SUBSCRIPTION}
+          resourceName="Test Subscription"
+        />
+      </MemoryRouter>,
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Failed' }));
+    expect(screen.getByTestId('phase-modal')).not.toBeNull();
+
+    await user.click(screen.getByRole('button', { name: 'Close' }));
+    expect(screen.queryByRole('dialog')).toBeNull();
+
+    await user.click(screen.getByRole('button', { name: 'Failed' }));
+    expect(screen.getByTestId('phase-modal')).not.toBeNull();
   });
 });
