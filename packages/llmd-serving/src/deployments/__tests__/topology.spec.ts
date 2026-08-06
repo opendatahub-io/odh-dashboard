@@ -1,5 +1,6 @@
 import { mockLLMInferenceServiceK8sResource } from '@odh-dashboard/internal/__mocks__/mockLLMInferenceServiceK8sResource';
 import { mockLLMInferenceServiceConfigK8sResource } from '@odh-dashboard/internal/__mocks__/mockLLMInferenceServiceConfigK8sResource';
+import { K8sStatusError } from '@odh-dashboard/k8s-core';
 import {
   TOPOLOGY_TYPE_ANNOTATION,
   TOPOLOGY_CONFIG_REF_ANNOTATION,
@@ -174,6 +175,31 @@ describe('applyTopologyConfig', () => {
     expect(result.model.metadata.annotations?.[TOPOLOGY_CONFIG_REF_ANNOTATION]).toBe(
       localConfigName('topo-1'),
     );
+  });
+
+  it('truncates the local copy name to the k8s name length limit', () => {
+    const deployment = makeDeployment();
+    const config = buildTopologyConfig('a'.repeat(250), TopologyType.MULTI_NODE);
+    const result = applyTopologyConfig(deployment, { selectedConfig: config });
+
+    const name = result.model.metadata.annotations?.[TOPOLOGY_CONFIG_REF_ANNOTATION];
+    expect(name).toHaveLength(253);
+    expect(name).toEqual(expect.stringMatching(new RegExp(`^${DEPLOYMENT_NAME}-a+$`)));
+    expect(result.model.spec.baseRefs).toContainEqual({ name });
+  });
+
+  it('does not leave a trailing hyphen when truncating the local copy name', () => {
+    const deployment = makeDeployment();
+    // Positions the cut directly after a hyphen: prefix (27) + 225 chars + '-' === 253
+    const config = buildTopologyConfig(
+      `${'a'.repeat(225)}-${'b'.repeat(30)}`,
+      TopologyType.MULTI_NODE,
+    );
+    const result = applyTopologyConfig(deployment, { selectedConfig: config });
+
+    const name = result.model.metadata.annotations?.[TOPOLOGY_CONFIG_REF_ANNOTATION];
+    expect(name).toBe(`${DEPLOYMENT_NAME}-${'a'.repeat(225)}`);
+    expect(name).not.toMatch(/-$/);
   });
 
   it('does not mutate the original deployment', () => {
@@ -376,6 +402,48 @@ describe('preDeploy config copies', () => {
     expect(created.metadata.annotations?.['openshift.io/display-name']).toBe(
       'Topology topo-1 (Local Copy)',
     );
+  });
+
+  it('recreates the copy when editing without changing the selected config', async () => {
+    const topologyConfig = buildTopologyConfig('topo-1', TopologyType.SINGLE_NODE);
+    const configRef = localConfigName('topo-1');
+
+    const existingDeployment = makeDeployment({
+      annotations: { [TOPOLOGY_CONFIG_REF_ANNOTATION]: configRef },
+    });
+    let deployment = makeDeployment();
+    deployment = applyTopologyConfig(deployment, { selectedConfig: topologyConfig });
+
+    await preDeployTopologyConfig(
+      { selectedConfig: topologyConfig },
+      wizardState,
+      deployment,
+      existingDeployment,
+    );
+
+    expect(mockCreateConfig).toHaveBeenCalledTimes(1);
+    expect(mockCreateConfig.mock.calls[0][0].metadata.name).toBe(configRef);
+  });
+
+  it('tolerates a 409 when the local copy already exists', async () => {
+    const topologyConfig = buildTopologyConfig('topo-1', TopologyType.SINGLE_NODE);
+    mockCreateConfig.mockRejectedValue(
+      new K8sStatusError({
+        apiVersion: 'v1',
+        kind: 'Status',
+        status: 'Failure',
+        code: 409,
+        message: 'already exists',
+        reason: 'AlreadyExists',
+      }),
+    );
+
+    let deployment = makeDeployment();
+    deployment = applyTopologyConfig(deployment, { selectedConfig: topologyConfig });
+
+    await expect(
+      preDeployTopologyConfig({ selectedConfig: topologyConfig }, wizardState, deployment),
+    ).resolves.toBe(deployment);
   });
 });
 

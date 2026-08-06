@@ -27,14 +27,20 @@ import { cleanlyDuplicateConfig } from '../utils';
 
 const topologyTypeValues: string[] = Object.values(TopologyType);
 
+/** K8s DNS subdomain limit for resource names */
+const MAX_K8S_NAME_LENGTH = 253;
+
 const createLocalConfigName = (
   deployment: LLMdDeployment,
   config: LLMInferenceServiceConfigKind,
 ) => {
   const prefix = `${deployment.model.metadata.name}-`;
-  return config.metadata.name.startsWith(prefix)
-    ? config.metadata.name
-    : `${prefix}${config.metadata.name}`;
+  if (config.metadata.name.startsWith(prefix)) {
+    return config.metadata.name;
+  }
+  // Truncate the config portion so the prefixed name stays creatable; a trailing hyphen left
+  // behind by the cut is not a valid k8s name, so strip it
+  return `${prefix}${config.metadata.name}`.slice(0, MAX_K8S_NAME_LENGTH).replace(/-+$/, '');
 };
 
 const createLocalConfigMetadata = (
@@ -138,8 +144,7 @@ export const preDeployTopologyConfig = async (
   if (
     fieldData.selectedConfig &&
     newTopologyConfigName &&
-    fieldData.selectedConfig !== TOPOLOGY_CONFIG_DEFAULT &&
-    prevTopologyConfigName !== newTopologyConfigName
+    fieldData.selectedConfig !== TOPOLOGY_CONFIG_DEFAULT
   ) {
     const config = cleanlyDuplicateConfig(fieldData.selectedConfig, {
       name: newTopologyConfigName,

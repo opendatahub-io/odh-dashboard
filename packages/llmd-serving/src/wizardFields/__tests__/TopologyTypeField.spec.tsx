@@ -406,8 +406,21 @@ describe('useTopologyTypeData', () => {
     expect(renderResult.result.current.loaded).toBe(false);
   });
 
-  it('should load without a load error when the referenced config cannot be read', () => {
-    setReferencedConfig(null, { loaded: false, error: new Error('Forbidden') });
+  it('should surface a load error when the referenced config cannot be read', () => {
+    const referencedError = new Error('Forbidden');
+    setReferencedConfig(null, { loaded: false, error: referencedError });
+
+    const renderResult = testHook(useTopologyTypeData)({
+      configRef: 'my-model-multi-node-config-1',
+      project: mockProject,
+    });
+
+    expect(renderResult.result.current.loaded).toBe(true);
+    expect(renderResult.result.current.loadError).toBe(referencedError);
+  });
+
+  it('should load without a load error when the referenced config no longer exists', () => {
+    setReferencedConfig(null);
 
     const renderResult = testHook(useTopologyTypeData)({
       configRef: 'my-model-multi-node-config-1',

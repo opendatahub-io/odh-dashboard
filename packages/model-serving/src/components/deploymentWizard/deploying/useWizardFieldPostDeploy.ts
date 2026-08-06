@@ -17,9 +17,10 @@ export type RunPostDeployFns = (
  * saved model resource (which now has a uid), and the original deployment (if editing).
  *
  * Post-deploy extensions are only executed if their associated WizardField2 is active.
- * Errors thrown by individual extensions are caught; subsequent extensions
- * still run and the returned promise always resolves so errors don't block submission
- * and closing of the wizard
+ * On a real (non-dry) run, errors thrown by individual extensions are caught; subsequent
+ * extensions still run and the returned promise resolves so errors don't block submission
+ * and closing of the wizard. On a dry run, errors are rethrown so the caller can abort
+ * before any cluster state is changed.
  * @param wizardState - The current wizard form state at the point of submission
  */
 export const useWizardFieldPostDeploy = (
@@ -56,6 +57,11 @@ export const useWizardFieldPostDeploy = (
             await ext.properties.postDeploy(fieldData, deployedModel, existingDeployment, dryRun);
           }
         } catch (error) {
+          if (dryRun) {
+            // Dry runs validate before any cluster writes happen -- let the failure propagate
+            // so the deployment is aborted instead of partially applied.
+            throw error;
+          }
           postDeployExtensionErrors.push(error instanceof Error ? error : new Error(String(error)));
         }
       }

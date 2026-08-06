@@ -184,7 +184,7 @@ const CustomTopologyConfigFieldComponent: CustomTopologyConfigFieldType['compone
             placeholder="Select configuration"
             value={selectedValue}
             dataTestId="custom-topology-config-select"
-            isDisabled={!isLoaded || hasLoadError || noConfigsAvailable}
+            isDisabled={!isLoaded || noConfigsAvailable}
             autoSelectOnlyOption={false}
           />
           {hasLoadError ? (

@@ -117,12 +117,12 @@ export const deployModel = async (
       wizardState.modelLocationData.selectedConnection,
     ),
   );
-  if (runPreDeploy && modelResource) {
+  if (runPreDeploy && dryRunModelResource) {
     dryRuns.push(
       runPreDeploy(
         {
           modelServingPlatformId: deployMethod.platform,
-          model: modelResource,
+          model: dryRunModelResource,
           server: serverResource,
         },
         existingDeployment,
@@ -130,27 +130,30 @@ export const deployModel = async (
       ),
     );
   }
-  dryRuns.push(
-    deployMethod.deploy(
-      wizardState,
-      projectName,
-      existingDeployment,
-      dryRunModelResource,
-      serverResource,
-      serverResourceTemplateName,
-      true,
-      undefined,
-      undefined,
-      initialWizardData,
-      applyFieldData,
-    ),
-  );
-  if (runPostDeploy && modelResource) {
+
+  if (!overwrite) {
+    dryRuns.push(
+      deployMethod.deploy(
+        wizardState,
+        projectName,
+        existingDeployment,
+        dryRunModelResource,
+        serverResource,
+        serverResourceTemplateName,
+        true,
+        undefined,
+        undefined,
+        initialWizardData,
+        applyFieldData,
+      ),
+    );
+  }
+  if (runPostDeploy && dryRunModelResource) {
     dryRuns.push(
       runPostDeploy(
         {
           modelServingPlatformId: deployMethod.platform,
-          model: modelResource,
+          model: dryRunModelResource,
           server: serverResource,
         },
         existingDeployment,
@@ -158,9 +161,7 @@ export const deployModel = async (
       ),
     );
   }
-  if (!overwrite) {
-    await Promise.all(dryRuns);
-  }
+  await Promise.all(dryRuns);
 
   // ----- Real Runs -----
 

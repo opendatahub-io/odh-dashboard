@@ -250,7 +250,7 @@ describe('Model Serving LLMD Topology & Routing', () => {
 
       cy.findByTestId('hardware-profile-select').should('not.exist');
 
-      cy.step('should hide hardware profile for multi-node disaggregated topology');
+      cy.step('should show hardware profile again when switching back to single node topology');
       cy.findByTestId('topology-type-select').click();
       cy.findByTestId(`topology-type-${TopologyType.SINGLE_NODE}`).click();
       cy.findByTestId('hardware-profile-select').should('exist');
@@ -693,11 +693,21 @@ describe('Model Serving LLMD Topology & Routing', () => {
       });
     });
 
-    it('should create clean old resource when changing to "Single node (default)" ', () => {
+    it('should clean old resource when changing to "Single node (default)" ', () => {
       initIntercepts();
       cy.interceptK8sList(
         { model: SecretModel, ns: 'test-project' },
         mockK8sResourceList([mockURISecretK8sResource({ namespace: 'test-project' })]),
+      );
+      cy.interceptK8s(
+        'GET',
+        { model: LLMInferenceServiceConfigModel, ns: 'test-project' },
+        mockLLMInferenceServiceConfigK8sResource({
+          name: 'test-llm-inference-service-multi-node-config',
+          displayName: 'Multi-node Data Parallel (Local Copy)',
+          namespace: 'test-project',
+          configType: TopologyType.MULTI_NODE,
+        }),
       );
       cy.interceptK8sList(
         { model: LLMInferenceServiceModel, ns: 'test-project' },
@@ -708,9 +718,9 @@ describe('Model Serving LLMD Topology & Routing', () => {
               // Auth is off so the update doesn't need auth resource intercepts
               'security.opendatahub.io/enable-auth': 'false',
               [TOPOLOGY_TYPE_ANNOTATION]: TopologyType.MULTI_NODE,
-              [TOPOLOGY_CONFIG_REF_ANNOTATION]: 'multi-node-config',
+              [TOPOLOGY_CONFIG_REF_ANNOTATION]: 'test-llm-inference-service-multi-node-config',
             },
-            baseRefs: [{ name: 'multi-node-config' }],
+            baseRefs: [{ name: 'test-llm-inference-service-multi-node-config' }],
           }),
         ]),
       );
@@ -726,7 +736,11 @@ describe('Model Serving LLMD Topology & Routing', () => {
       ).as('createLLMInferenceServiceConfig');
       cy.interceptK8s(
         'DELETE',
-        { model: LLMInferenceServiceConfigModel, ns: 'test-project', name: 'multi-node-config' },
+        {
+          model: LLMInferenceServiceConfigModel,
+          ns: 'test-project',
+          name: 'test-llm-inference-service-multi-node-config',
+        },
         mock200Status({}),
       ).as('deleteLLMInferenceServiceConfig');
 
@@ -739,7 +753,7 @@ describe('Model Serving LLMD Topology & Routing', () => {
       // Step 2: Model deployment — switch back to the default single node configuration
       cy.findByTestId('custom-topology-config-select').should(
         'contain.text',
-        'Multi-node Data Parallel',
+        'Multi-node Data Parallel (Local Copy)',
       );
       cy.findByTestId('topology-type-select').click();
       cy.findByTestId(`topology-type-${TopologyType.SINGLE_NODE}`).click();
@@ -772,7 +786,7 @@ describe('Model Serving LLMD Topology & Routing', () => {
           TOPOLOGY_CONFIG_REF_ANNOTATION,
         );
         expect(interception.request.body.spec.baseRefs ?? []).to.not.deep.include({
-          name: 'multi-node-config',
+          name: 'test-llm-inference-service-multi-node-config',
         });
       });
 
@@ -786,7 +800,7 @@ describe('Model Serving LLMD Topology & Routing', () => {
           TOPOLOGY_CONFIG_REF_ANNOTATION,
         );
         expect(interception.request.body.spec.baseRefs ?? []).to.not.deep.include({
-          name: 'multi-node-config',
+          name: 'test-llm-inference-service-multi-node-config',
         });
       });
 

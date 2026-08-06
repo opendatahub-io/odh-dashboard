@@ -132,7 +132,7 @@ export const useTopologyTypeData = (
     () => ({
       data: { configsByTopology },
       loaded: loaded && (!configRef || !projectName || referencedLoaded || !!referencedError),
-      loadError: error,
+      loadError: error ?? referencedError,
     }),
     [configsByTopology, loaded, error, configRef, projectName, referencedLoaded, referencedError],
   );
