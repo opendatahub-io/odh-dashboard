@@ -8,15 +8,8 @@
   }
 }
 
-.autorag-tree-node__spinner {
+.autorag-tree-node__status-spinner {
   animation: autorag-tree-node-spin 1.5s linear infinite;
-  transform-origin: center;
-  transform-box: fill-box;
-}
-
-.autorag-tree-node__pulse-ring {
-  transform: scale(calc(1 + var(--autorag-pulse-progress) * 0.8));
-  opacity: calc(0.75 * (1 - var(--autorag-pulse-progress)));
   transform-origin: center;
   transform-box: fill-box;
 }
@@ -35,12 +28,48 @@
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .autorag-tree-node__pulse-ring {
-    transform: scale(1);
-    opacity: 0.75;
+/*
+ * Topology sets --pf-topology__node--Color to regular (black). Icons use
+ * fill: currentColor, so completed/failed/active must override that token.
+ */
+.autorag-tree-node {
+  &.pf-m-success {
+    --pf-topology__node--Color: var(--pf-t--global--icon--color--status--success--default);
+
+    .pf-topology__node__background {
+      stroke: var(--pf-t--global--border--color--status--success--default);
+    }
   }
-  .autorag-tree-node__spinner {
+
+  &.pf-m-danger {
+    --pf-topology__node--Color: var(--pf-t--global--icon--color--status--danger--default);
+
+    .pf-topology__node__background {
+      stroke: var(--pf-t--global--border--color--status--danger--default);
+    }
+  }
+
+  &.pf-m-info {
+    --pf-topology__node--Color: var(--pf-t--global--icon--color--brand--default);
+
+    .pf-topology__node__background {
+      stroke: var(--pf-t--global--border--color--nonstatus--blue--default);
+    }
+  }
+}
+
+.autorag-tree-node__task-icon {
+  color: inherit;
+  fill: currentColor;
+
+  svg {
+    color: inherit;
+    fill: currentColor;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .autorag-tree-node__status-spinner {
     animation: none;
   }
 }

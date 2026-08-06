@@ -1,6 +1,16 @@
 /* eslint-disable camelcase */
 jest.mock('@patternfly/react-topology', () => ({
   DEFAULT_SPACER_NODE_TYPE: 'DEFAULT_SPACER_NODE',
+  NodeShape: {
+    circle: 'circle',
+  },
+  NodeStatus: {
+    default: 'default',
+    info: 'info',
+    success: 'success',
+    warning: 'warning',
+    danger: 'danger',
+  },
   RunStatus: {
     Succeeded: 'Succeeded',
     Failed: 'Failed',
@@ -121,9 +131,13 @@ describe('transformStageMapNodesToTree', () => {
       (node) => node.id === 'rag_optimization__optimize_templates',
     );
     expect(optimizeTemplates?.data.stepState).toBe('active');
+    expect(optimizeTemplates?.shape).toBe('circle');
+    expect(optimizeTemplates?.status).toBe('info');
+    expect(optimizeTemplates?.width).toBe(48);
 
     const validateInputs = nodes.find((node) => node.id === 'rag_optimization__validate_inputs');
     expect(validateInputs?.data.stepState).toBe('completed');
+    expect(validateInputs?.status).toBe('success');
   });
 
   it('includes data-loader linear stages when present in the stage map', () => {

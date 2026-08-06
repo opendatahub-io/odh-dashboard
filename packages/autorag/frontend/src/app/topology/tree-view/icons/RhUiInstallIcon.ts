@@ -1,0 +1,17 @@
+import { createIcon } from '@patternfly/react-icons/dist/esm/createIcon';
+
+/**
+ * Red Hat UI "install" icon (rh-ui-icon-install) from @rhds/icons.
+ * Arrow pointing down into a tray — used for Load benchmark / Prepare data.
+ */
+const RhUiInstallIcon = createIcon({
+  name: 'RhUiInstallIcon',
+  width: 32,
+  height: 32,
+  svgPath:
+    'M29.5 16h-27c-.827 0-1.5.673-1.5 1.5v11c0 .827.673 1.5 1.5 1.5h27c.827 0 1.5-.673 1.5-1.5v-11c0-.827-.673-1.5-1.5-1.5ZM29 28H3V18h26v10ZM7 23a1 1 0 0 1 1-1h5a1 1 0 0 1 0 2H8a1 1 0 0 1-1-1Zm4.293-14.293a.999.999 0 1 1 1.414-1.414L15 9.586V2a1 1 0 0 1 2 0v7.586l2.293-2.293a.999.999 0 1 1 1.414 1.414l-3.646 3.646c-.292.292-.676.438-1.061.438s-.768-.146-1.061-.438l-3.646-3.646ZM21.38 23.015a1.626 1.626 0 1 1 3.251.001 1.626 1.626 0 0 1-3.251-.001Z',
+  xOffset: 0,
+  yOffset: 0,
+});
+
+export default RhUiInstallIcon;

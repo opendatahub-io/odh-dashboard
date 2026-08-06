@@ -1,16 +1,16 @@
-import { DEFAULT_SPACER_NODE_TYPE, type EdgeModel } from '@patternfly/react-topology';
+import { DEFAULT_SPACER_NODE_TYPE, NodeShape, type EdgeModel } from '@patternfly/react-topology';
 import type { PipelineNodeModelExpanded } from '~/app/types/topology';
 import { parseBranchIndexFromSuffix } from '~/app/topology/stageMapConstants';
 import type { TreeNodeModel, TreeTopologyData } from './types';
 import { TREE_EDGE_TYPE, TREE_NODE_TYPE } from './treeFactories';
-import { runStatusToTreeStepState } from './treeStepState';
+import { runStatusToTreeStepState, treeStepStateToNodeStatus } from './treeStepState';
 
-/** Fixed SVG coordinates for the pipeline tree (NoopLayout skips auto-layout). */
-const STANDARD_NODE_SIZE = 9;
+/** Circle diameter for PatternFly DefaultNode custom nodes (dense pipeline layout). */
+const STANDARD_NODE_SIZE = 48;
 const X_START = 40;
-const X_GAP = 95;
+const X_GAP = 120;
 const Y_CENTER = 200;
-const Y_PIPELINE_GAP = 90;
+const Y_PIPELINE_GAP = 110;
 
 /** Safe digit-only branch token check (no overlapping quantifiers). */
 const isBranchToken = (value: string): boolean => /^branch-\d+$/.test(value);
@@ -132,20 +132,27 @@ const createTreeNode = (
   topologyNode: PipelineNodeModelExpanded,
   x: number,
   y: number,
-): TreeNodeModel => ({
-  id: topologyNode.id,
-  type: TREE_NODE_TYPE,
-  label: topologyNode.label,
-  x,
-  y,
-  width: STANDARD_NODE_SIZE,
-  height: STANDARD_NODE_SIZE,
-  data: {
+): TreeNodeModel => {
+  const stepState = runStatusToTreeStepState(topologyNode.data?.runStatus);
+  return {
+    id: topologyNode.id,
+    type: TREE_NODE_TYPE,
     label: topologyNode.label,
-    stepState: runStatusToTreeStepState(topologyNode.data?.runStatus),
-    activeIconVariant: topologyNode.data?.activeIconVariant,
-  },
-});
+    x,
+    y,
+    width: STANDARD_NODE_SIZE,
+    height: STANDARD_NODE_SIZE,
+    // Circle + NodeStatus for stroke color. Labels are custom (showLabel=false) so
+    // PF status does not draw green label boxes.
+    shape: NodeShape.circle,
+    status: treeStepStateToNodeStatus(stepState),
+    data: {
+      label: topologyNode.label,
+      stepState,
+      activeIconVariant: topologyNode.data?.activeIconVariant,
+    },
+  };
+};
 
 const createEdge = (id: string, source: string, target: string): EdgeModel => ({
   id,
