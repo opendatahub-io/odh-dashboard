@@ -2,10 +2,10 @@ import type { InferenceServiceKind } from '@odh-dashboard/model-serving/shared';
 import type { Deployment } from '@odh-dashboard/model-serving/extension-points';
 import type { CrPathConfig } from '@odh-dashboard/hardware-profiles/shared';
 import { NIMServiceModel, type NIMDeployment } from './types';
-import { NIM_ID } from '../../../extensions';
+import { NIM_SERVICE_ID } from '../../constants';
 
 export const isNIMDeployment = (deployment: Deployment): deployment is NIMDeployment =>
-  deployment.modelServingPlatformId === NIM_ID;
+  deployment.modelServingPlatformId === NIM_SERVICE_ID;
 
 export const isNIMServiceRef = (ref: { kind: string; apiVersion: string }): boolean =>
   ref.kind === NIMServiceModel.kind &&
