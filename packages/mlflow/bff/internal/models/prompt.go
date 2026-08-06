@@ -16,14 +16,29 @@ type PromptScope struct {
 	Namespace string          `json:"namespace"`
 }
 
+// PromptModelConfig represents the model configuration associated with a prompt.
+type PromptModelConfig struct {
+	Provider         string         `json:"provider,omitempty"`
+	ModelName        string         `json:"model_name,omitempty"`
+	Temperature      *float64       `json:"temperature,omitempty"`
+	MaxTokens        *int           `json:"max_tokens,omitempty"`
+	TopP             *float64       `json:"top_p,omitempty"`
+	TopK             *int           `json:"top_k,omitempty"`
+	FrequencyPenalty *float64       `json:"frequency_penalty,omitempty"`
+	PresencePenalty  *float64       `json:"presence_penalty,omitempty"`
+	StopSequences    []string       `json:"stop_sequences,omitempty"`
+	ExtraParams      map[string]any `json:"extra_params,omitempty"`
+}
+
 // Prompt represents a prompt from the MLflow Prompt Registry.
 type Prompt struct {
-	Name              string            `json:"name"`
-	Description       string            `json:"description"`
-	LatestVersion     int               `json:"latest_version"`
-	Tags              map[string]string `json:"tags,omitempty"`
-	CreationTimestamp time.Time         `json:"creation_timestamp"`
-	Scope             PromptScope       `json:"scope"`
+	Name              string             `json:"name"`
+	Description       string             `json:"description"`
+	LatestVersion     int                `json:"latest_version"`
+	Tags              map[string]string  `json:"tags,omitempty"`
+	CreationTimestamp time.Time          `json:"creation_timestamp"`
+	ModelConfig       *PromptModelConfig `json:"model_config,omitempty"`
+	Scope             PromptScope        `json:"scope"`
 }
 
 // PromptsResponse is the response for listing prompts.
@@ -52,15 +67,16 @@ type RegisterPromptRequest struct {
 
 // PromptVersion represents a full prompt version with content.
 type PromptVersion struct {
-	Name          string            `json:"name"`
-	Version       int               `json:"version"`
-	Template      string            `json:"template,omitempty"`
-	Messages      []Message         `json:"messages,omitempty"`
-	CommitMessage string            `json:"commit_message,omitempty"`
-	Aliases       []string          `json:"aliases,omitempty"`
-	Tags          map[string]string `json:"tags,omitempty"`
-	CreatedAt     time.Time         `json:"created_at"`
-	UpdatedAt     time.Time         `json:"updated_at"`
+	Name          string             `json:"name"`
+	Version       int                `json:"version"`
+	Template      string             `json:"template,omitempty"`
+	Messages      []Message          `json:"messages,omitempty"`
+	CommitMessage string             `json:"commit_message,omitempty"`
+	Aliases       []string           `json:"aliases,omitempty"`
+	Tags          map[string]string  `json:"tags,omitempty"`
+	ModelConfig   *PromptModelConfig `json:"model_config,omitempty"`
+	CreatedAt     time.Time          `json:"created_at"`
+	UpdatedAt     time.Time          `json:"updated_at"`
 }
 
 // PromptVersionMeta represents version metadata without full content.

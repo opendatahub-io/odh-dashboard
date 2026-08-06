@@ -17,14 +17,29 @@ type MLflowPromptScope struct {
 	ReadOnly  bool                  `json:"read_only"`
 }
 
+// MLflowPromptModelConfig represents the model configuration associated with a prompt.
+type MLflowPromptModelConfig struct {
+	Provider         string         `json:"provider,omitempty"`
+	ModelName        string         `json:"model_name,omitempty"`
+	Temperature      *float64       `json:"temperature,omitempty"`
+	MaxTokens        *int           `json:"max_tokens,omitempty"`
+	TopP             *float64       `json:"top_p,omitempty"`
+	TopK             *int           `json:"top_k,omitempty"`
+	FrequencyPenalty *float64       `json:"frequency_penalty,omitempty"`
+	PresencePenalty  *float64       `json:"presence_penalty,omitempty"`
+	StopSequences    []string       `json:"stop_sequences,omitempty"`
+	ExtraParams      map[string]any `json:"extra_params,omitempty"`
+}
+
 // MLflowPrompt represents a prompt from MLflow in BFF response format.
 type MLflowPrompt struct {
-	Name              string            `json:"name"`
-	Description       string            `json:"description"`
-	LatestVersion     int               `json:"latest_version"`
-	Tags              map[string]string `json:"tags,omitempty"`
-	CreationTimestamp time.Time         `json:"creation_timestamp"`
-	Scope             MLflowPromptScope `json:"scope"`
+	Name              string                   `json:"name"`
+	Description       string                   `json:"description"`
+	LatestVersion     int                      `json:"latest_version"`
+	Tags              map[string]string        `json:"tags,omitempty"`
+	CreationTimestamp time.Time                `json:"creation_timestamp"`
+	ModelConfig       *MLflowPromptModelConfig `json:"model_config,omitempty"`
+	Scope             MLflowPromptScope        `json:"scope"`
 }
 
 // MLflowPromptsResponse is the response for listing MLflow prompts.
@@ -55,16 +70,17 @@ type MLflowRegisterPromptRequest struct {
 
 // MLflowPromptVersion represents a full prompt version with content.
 type MLflowPromptVersion struct {
-	Name          string             `json:"name"`
-	Version       int                `json:"version"`
-	Template      string             `json:"template,omitempty"`
-	Messages      []MLflowMessage    `json:"messages,omitempty"`
-	CommitMessage string             `json:"commit_message,omitempty"`
-	Aliases       []string           `json:"aliases,omitempty"`
-	Tags          map[string]string  `json:"tags,omitempty"`
-	CreatedAt     time.Time          `json:"created_at"`
-	UpdatedAt     time.Time          `json:"updated_at"`
-	Scope         *MLflowPromptScope `json:"scope,omitempty"`
+	Name          string                   `json:"name"`
+	Version       int                      `json:"version"`
+	Template      string                   `json:"template,omitempty"`
+	Messages      []MLflowMessage          `json:"messages,omitempty"`
+	CommitMessage string                   `json:"commit_message,omitempty"`
+	Aliases       []string                 `json:"aliases,omitempty"`
+	Tags          map[string]string        `json:"tags,omitempty"`
+	ModelConfig   *MLflowPromptModelConfig `json:"model_config,omitempty"`
+	CreatedAt     time.Time                `json:"created_at"`
+	UpdatedAt     time.Time                `json:"updated_at"`
+	Scope         *MLflowPromptScope       `json:"scope,omitempty"`
 }
 
 // MLflowPromptVersionMeta represents version metadata without full content.
