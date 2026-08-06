@@ -646,10 +646,17 @@ describe('HardwareProfileSelect - Project-scoped preview description', () => {
     priorityClass: 'high-priority',
   });
 
-  const renderProjectScopedPreview = (
-    selectedProfile: HardwareProfileKind,
+  const renderProjectScopedPreview = ({
+    selectedProfile,
     previewDescription = true,
-  ) => {
+    useExistingSettings = false,
+    allowExistingSettings = false,
+  }: {
+    selectedProfile?: HardwareProfileKind;
+    previewDescription?: boolean;
+    useExistingSettings?: boolean;
+    allowExistingSettings?: boolean;
+  }) => {
     const project = mockProjectK8sResource({ k8sName: 'test-project' });
 
     useKueueConfigurationMock.mockReturnValue({
@@ -661,7 +668,7 @@ describe('HardwareProfileSelect - Project-scoped preview description', () => {
 
     const hardwareProfileConfig = {
       selectedProfile,
-      useExistingSettings: false,
+      useExistingSettings,
       resources: undefined,
     };
 
@@ -674,6 +681,8 @@ describe('HardwareProfileSelect - Project-scoped preview description', () => {
       profilesLoadError: undefined,
       initialHardwareProfile: undefined,
     });
+
+    const projectProfiles = selectedProfile ? [selectedProfile] : [profileWithDescriptionAndKueue];
 
     return render(
       <CurrentProjectContext.Provider value={{ currentProject: project }}>
@@ -696,8 +705,8 @@ describe('HardwareProfileSelect - Project-scoped preview description', () => {
               hardwareProfiles={[nodeHardwareProfile]}
               hardwareProfilesLoaded
               hardwareProfilesError={undefined}
-              projectScopedHardwareProfiles={[[selectedProfile], true, undefined]}
-              allowExistingSettings={false}
+              projectScopedHardwareProfiles={[projectProfiles, true, undefined]}
+              allowExistingSettings={allowExistingSettings}
               hardwareProfileConfig={hardwareProfileConfig}
               isHardwareProfileSupported={() => true}
               onChange={() => null}
@@ -710,7 +719,7 @@ describe('HardwareProfileSelect - Project-scoped preview description', () => {
   };
 
   it('should show description, identifiers, and kueue info in project-scoped preview', () => {
-    renderProjectScopedPreview(profileWithDescriptionAndKueue);
+    renderProjectScopedPreview({ selectedProfile: profileWithDescriptionAndKueue });
 
     expect(screen.getByText('A profile with all details')).toBeInTheDocument();
     expect(screen.getByText(/Memory:.*Default.*Max/)).toBeInTheDocument();
@@ -720,7 +729,7 @@ describe('HardwareProfileSelect - Project-scoped preview description', () => {
   });
 
   it('should show identifiers and kueue info when description is empty in project-scoped preview', () => {
-    renderProjectScopedPreview(profileWithIdentifiersAndKueue);
+    renderProjectScopedPreview({ selectedProfile: profileWithIdentifiersAndKueue });
 
     expect(screen.getByText(/Memory:.*Default.*Max/)).toBeInTheDocument();
     expect(screen.getByText(/CPU:.*Default.*Max/)).toBeInTheDocument();
@@ -729,7 +738,7 @@ describe('HardwareProfileSelect - Project-scoped preview description', () => {
   });
 
   it('should show only kueue info when no description or identifiers in project-scoped preview', () => {
-    renderProjectScopedPreview(profileWithKueueOnly);
+    renderProjectScopedPreview({ selectedProfile: profileWithKueueOnly });
 
     const kueuePreview = 'Local queue: my-queue; Priority: high-priority';
     expect(screen.getByText(kueuePreview)).toBeInTheDocument();
@@ -738,10 +747,25 @@ describe('HardwareProfileSelect - Project-scoped preview description', () => {
   });
 
   it('should not show preview when previewDescription is false', () => {
-    renderProjectScopedPreview(profileWithDescriptionAndKueue, false);
+    renderProjectScopedPreview({
+      selectedProfile: profileWithDescriptionAndKueue,
+      previewDescription: false,
+    });
 
     expect(screen.queryByText('A profile with all details')).not.toBeInTheDocument();
     expect(screen.queryByText(/Local queue:/)).not.toBeInTheDocument();
     expect(screen.queryByText(/Memory:.*Default.*Max/)).not.toBeInTheDocument();
+  });
+
+  it('should show use-existing helper text when previewDescription is false and useExistingSettings is true', () => {
+    renderProjectScopedPreview({
+      previewDescription: false,
+      useExistingSettings: true,
+      allowExistingSettings: true,
+    });
+
+    expect(
+      screen.getByText('Use existing resource requests/limits, tolerations, and node selectors.'),
+    ).toBeInTheDocument();
   });
 });

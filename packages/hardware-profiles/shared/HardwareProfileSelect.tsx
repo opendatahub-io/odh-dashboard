@@ -439,16 +439,9 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
                 );
                 const kueueText = getKueueText(hardwareProfileConfig.selectedProfile);
 
+                // No preview content. useExistingSettings cannot apply while a profile is selected.
                 if (!description && !identifiersText && !kueueText) {
-                  return hardwareProfileConfig.useExistingSettings ? (
-                    <FormHelperText>
-                      <HelperText>
-                        <HelperTextItem>
-                          Use existing resource requests/limits, tolerations, and node selectors.
-                        </HelperTextItem>
-                      </HelperText>
-                    </FormHelperText>
-                  ) : null;
+                  return null;
                 }
 
                 return (
