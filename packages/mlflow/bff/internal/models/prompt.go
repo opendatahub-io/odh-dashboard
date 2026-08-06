@@ -37,7 +37,7 @@ type Prompt struct {
 	LatestVersion     int                `json:"latest_version"`
 	Tags              map[string]string  `json:"tags,omitempty"`
 	CreationTimestamp time.Time          `json:"creation_timestamp"`
-	ModelConfig       *PromptModelConfig `json:"model_config,omitempty"`
+	ModelConfig       *PromptModelConfig `json:"model_config"`
 	Scope             PromptScope        `json:"scope"`
 }
 
@@ -74,7 +74,7 @@ type PromptVersion struct {
 	CommitMessage string             `json:"commit_message,omitempty"`
 	Aliases       []string           `json:"aliases,omitempty"`
 	Tags          map[string]string  `json:"tags,omitempty"`
-	ModelConfig   *PromptModelConfig `json:"model_config,omitempty"`
+	ModelConfig   *PromptModelConfig `json:"model_config"`
 	CreatedAt     time.Time          `json:"created_at"`
 	UpdatedAt     time.Time          `json:"updated_at"`
 }

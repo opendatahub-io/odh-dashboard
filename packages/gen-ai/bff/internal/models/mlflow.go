@@ -38,7 +38,7 @@ type MLflowPrompt struct {
 	LatestVersion     int                      `json:"latest_version"`
 	Tags              map[string]string        `json:"tags,omitempty"`
 	CreationTimestamp time.Time                `json:"creation_timestamp"`
-	ModelConfig       *MLflowPromptModelConfig `json:"model_config,omitempty"`
+	ModelConfig       *MLflowPromptModelConfig `json:"model_config"`
 	Scope             MLflowPromptScope        `json:"scope"`
 }
 
@@ -77,7 +77,7 @@ type MLflowPromptVersion struct {
 	CommitMessage string                   `json:"commit_message,omitempty"`
 	Aliases       []string                 `json:"aliases,omitempty"`
 	Tags          map[string]string        `json:"tags,omitempty"`
-	ModelConfig   *MLflowPromptModelConfig `json:"model_config,omitempty"`
+	ModelConfig   *MLflowPromptModelConfig `json:"model_config"`
 	CreatedAt     time.Time                `json:"created_at"`
 	UpdatedAt     time.Time                `json:"updated_at"`
 	Scope         *MLflowPromptScope       `json:"scope,omitempty"`
