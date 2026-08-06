@@ -71,16 +71,18 @@ export const getAllBenchmarkNames = (job: EvaluationJob): string[] =>
 export const getBenchmarkDisplayName = (id: string): string =>
   id.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 
+export const formatAsPercentage = (value: number): string => `${Math.round(value * 100)}%`;
+
 const formatBenchmarkScore = (
   benchmark: NonNullable<EvaluationJob['results']['benchmarks']>[number],
 ): string | null => {
   if (benchmark.test?.primary_score != null) {
-    return `${Math.round(benchmark.test.primary_score * 100)}%`;
+    return formatAsPercentage(benchmark.test.primary_score);
   }
   if (benchmark.metrics) {
     const preferred = benchmark.metrics.acc_norm ?? benchmark.metrics.acc;
     if (typeof preferred === 'number') {
-      return `${Math.round(preferred * 100)}%`;
+      return formatAsPercentage(preferred);
     }
   }
   return null;
@@ -88,7 +90,7 @@ const formatBenchmarkScore = (
 
 export const getResultScore = (job: EvaluationJob): string => {
   if (job.results.test?.score != null) {
-    return `${Math.round(job.results.test.score * 100)}%`;
+    return formatAsPercentage(job.results.test.score);
   }
   if (job.results.benchmarks?.length) {
     return formatBenchmarkScore(job.results.benchmarks[0]) ?? '-';

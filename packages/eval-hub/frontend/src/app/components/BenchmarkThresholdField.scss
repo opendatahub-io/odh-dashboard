@@ -1,11 +1,13 @@
 .eval-hub-form-group--with-description {
-  gap: 0 !important;
-
   .pf-v6-c-form__group-label {
-    padding-block-end: 0 !important;
+    margin-bottom: -1.5rem;
   }
 
-  .pf-v6-c-content--p {
-    margin: 0 !important;
+  .pf-v6-c-form__label-text > .pf-v6-c-content--small {
+    color: var(--pf-t--global--text--color--subtle);
+    font-weight: 400;
+    margin-block-start: var(--pf-t--global--spacer--xs);
+    margin-block-end: var(--pf-t--global--spacer--sm);
+    display: block;
   }
 }

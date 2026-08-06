@@ -129,7 +129,7 @@ export type CompareRunType = 'Single benchmark' | 'Benchmark suite';
 
 export const COMPARE_RUNS_PAGE_TITLE = 'Compare runs';
 
-export const COMPARE_CHILD_RUN_TYPE = 'Benchmark run';
+export const COMPARE_CHILD_RUN_TYPE = 'Benchmark';
 
 export const getCompareRunType = (job: EvaluationJob): CompareRunType =>
   isBenchmarkSuiteRun(job) ? 'Benchmark suite' : 'Single benchmark';
@@ -138,8 +138,7 @@ export const getCompareRunType = (job: EvaluationJob): CompareRunType =>
 export const getCompareParentEvaluationRunLabel = (job: EvaluationJob): string =>
   getEvaluationName(job);
 
-export const getCompareParentResultScore = (job: EvaluationJob): string =>
-  isBenchmarkSuiteRun(job) ? '-' : getResultScore(job);
+export const getCompareParentResultScore = (job: EvaluationJob): string => getResultScore(job);
 
 export const getCompareBenchmarkResultScore = (
   job: EvaluationJob,

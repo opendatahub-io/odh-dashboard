@@ -24,7 +24,7 @@ import { ExternalLinkAltIcon } from '@patternfly/react-icons';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { Collection, ProviderBenchmark } from '~/app/types';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
-import { getBenchmarkPaperUrl } from '~/app/utilities/benchmarkPaperUrls';
+import { getBenchmarkDatasetUrl } from '~/app/utilities/benchmarkDatasetUrls';
 import { capitalizeFirst, getCategoryColor } from './benchmarkUtils';
 
 type CollectionDrawerPanelProps = {
@@ -90,7 +90,7 @@ const CollectionDrawerPanel: React.FC<CollectionDrawerPanelProps> = ({
                 {collection.benchmarks.map((b) => {
                   const key = `${b.provider_id ?? ''}:${b.id}`;
                   const details = benchmarkDetailsMap.get(key);
-                  const paperUrl = getBenchmarkPaperUrl(b.id);
+                  const datasetUrl = getBenchmarkDatasetUrl(b.id);
                   const benchmarkName = details?.name ?? b.id;
                   const benchmarkDescription = details?.description;
                   return (
@@ -121,12 +121,12 @@ const CollectionDrawerPanel: React.FC<CollectionDrawerPanelProps> = ({
                                   margin: 0,
                                 }}
                               >
-                                {paperUrl ? (
+                                {datasetUrl ? (
                                   <Button
                                     variant="link"
                                     isInline
                                     component="a"
-                                    href={paperUrl}
+                                    href={datasetUrl}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     icon={<ExternalLinkAltIcon />}
@@ -136,7 +136,7 @@ const CollectionDrawerPanel: React.FC<CollectionDrawerPanelProps> = ({
                                     }}
                                     onClick={() =>
                                       fireMiscTrackingEvent(EVAL_HUB_EVENTS.EXTERNAL_LINK_CLICKED, {
-                                        url: paperUrl,
+                                        url: datasetUrl,
                                         benchmarkId: b.id,
                                         surface: 'collection_drawer',
                                       })

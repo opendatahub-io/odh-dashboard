@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { FormGroup, MenuToggle, Select, SelectList, SelectOption } from '@patternfly/react-core';
-import LabelHelpPopover from '~/app/components/LabelHelpPopover';
+import FormGroupLabel from '~/app/components/FormGroupLabel';
 
 type PrimaryScorerMetricFieldProps = {
   metrics: string[];
@@ -48,14 +48,14 @@ const PrimaryScorerMetricField: React.FC<PrimaryScorerMetricFieldProps> = ({
 
   return (
     <FormGroup
-      label="Primary scorer metric"
-      fieldId={fieldId}
-      labelHelp={
-        <LabelHelpPopover
-          ariaLabel="More info for primary scorer metric"
-          content="Choose the primary metric used to calculate the result for this benchmark."
+      className="eval-hub-form-group--with-description"
+      label={
+        <FormGroupLabel
+          label="Primary scorer metric"
+          description="Choose the primary metric used to calculate the result for this benchmark."
         />
       }
+      fieldId={fieldId}
     >
       <Select
         id={fieldId}

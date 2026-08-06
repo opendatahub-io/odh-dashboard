@@ -137,13 +137,13 @@ const EvaluationResultsPage: React.FC = () => {
 
   const metadataRow = job ? (
     <Flex
-      gap={{ default: 'gapLg' }}
+      gap={{ default: 'gapMd' }}
       alignItems={{ default: 'alignItemsCenter' }}
       data-testid="evaluation-metadata"
     >
       {job.resource.created_at && (
         <FlexItem>
-          <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
+          <Content component="p" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
             <CalendarAltIcon
               className="pf-v6-u-mr-xs"
               style={{ color: 'var(--pf-t--global--icon--color--subtle)' }}
@@ -153,7 +153,7 @@ const EvaluationResultsPage: React.FC = () => {
         </FlexItem>
       )}
       <FlexItem>
-        <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
+        <Content component="p" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
           <img
             src={isDarkMode ? aiModelIconDark : aiModelIconLight}
             alt=""
@@ -165,7 +165,7 @@ const EvaluationResultsPage: React.FC = () => {
         </Content>
       </FlexItem>
       <FlexItem>
-        <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
+        <Content component="p" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
           <img
             src={isDarkMode ? paperStackIconDark : paperStackIconLight}
             alt=""
@@ -178,7 +178,7 @@ const EvaluationResultsPage: React.FC = () => {
       </FlexItem>
       {duration && (
         <FlexItem>
-          <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
+          <Content component="p" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
             <OutlinedClockIcon
               className="pf-v6-u-mr-xs"
               style={{ color: 'var(--pf-t--global--icon--color--subtle)' }}
@@ -226,7 +226,7 @@ const EvaluationResultsPage: React.FC = () => {
           <div className="pf-v6-u-mb-lg" data-testid="evaluation-score-section">
             <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
               <FlexItem>
-                <Content component="h3">Evaluation score</Content>
+                <Content component="h3">Result</Content>
               </FlexItem>
               <FlexItem>
                 <LabelHelpPopover

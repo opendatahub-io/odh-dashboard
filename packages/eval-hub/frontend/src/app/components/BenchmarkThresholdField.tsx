@@ -1,6 +1,6 @@
 import * as React from 'react';
-import { Content, FormGroup, Slider, type SliderOnChangeEvent } from '@patternfly/react-core';
-import LabelHelpPopover from '~/app/components/LabelHelpPopover';
+import { FormGroup, Slider, type SliderOnChangeEvent } from '@patternfly/react-core';
+import FormGroupLabel from '~/app/components/FormGroupLabel';
 import './BenchmarkThresholdField.scss';
 
 type BenchmarkThresholdFieldProps = {
@@ -59,13 +59,19 @@ const BenchmarkThresholdField: React.FC<BenchmarkThresholdFieldProps> = ({
   return (
     <FormGroup
       className="eval-hub-form-group--with-description"
-      label={label}
-      fieldId={fieldId}
-      labelHelp={
-        <LabelHelpPopover ariaLabel={`More info for ${label.toLowerCase()}`} content={helpText} />
+      label={
+        <FormGroupLabel
+          label={label}
+          description={description}
+          helpPopover={
+            helpText
+              ? { ariaLabel: `More info for ${label.toLowerCase()}`, content: helpText }
+              : undefined
+          }
+        />
       }
+      fieldId={fieldId}
     >
-      <Content component="p">{description}</Content>
       <Slider
         data-testid={fieldId}
         min={0}
