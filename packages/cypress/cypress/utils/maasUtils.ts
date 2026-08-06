@@ -85,6 +85,7 @@ export const mockFailedSubscription = (): MaaSSubscription => ({
   name: 'failed-sub',
   namespace: 'maas-system',
   phase: 'Failed',
+  reason: 'ReconcileFailed',
   statusMessage:
     'failed to reconcile TokenRateLimitPolicies: token rate limit exceeds maximum allowed value',
   priority: 99,
@@ -148,6 +149,7 @@ export const mockSubscriptions = (): MaaSSubscription[] => [
     namespace: 'maas-system',
     phase: 'Active',
     statusMessage: 'successfully reconciled',
+    reason: 'model running',
     priority: 10,
     owner: {
       groups: [{ name: 'premium-users' }],
@@ -182,6 +184,7 @@ export const mockSubscriptions = (): MaaSSubscription[] => [
     namespace: 'maas-system',
     phase: 'Active',
     statusMessage: 'successfully reconciled',
+    reason: 'model running',
     owner: {
       groups: [{ name: 'system:authenticated' }],
     },
@@ -202,6 +205,7 @@ export const mockSubscriptions = (): MaaSSubscription[] => [
     namespace: 'maas-system',
     phase: 'Active',
     statusMessage: 'successfully reconciled',
+    reason: 'model running',
     priority: -10000,
     owner: {
       groups: [{ name: 'system:authenticated' }],
@@ -224,6 +228,7 @@ export const mockSubscriptions = (): MaaSSubscription[] => [
     namespace: 'maas-system',
     phase: 'Active',
     statusMessage: 'successfully reconciled',
+    reason: 'model running',
     priority: 5,
     owner: {
       groups: [
@@ -637,6 +642,20 @@ export const mockModelsOverview = (): ModelOverviewItem[] => [
       },
     ],
   },
+  {
+    id: 'failed-model',
+    namespace: 'maas-models',
+    modelDetails: {
+      displayName: 'Failed Model',
+      description: 'A failed model',
+      phase: 'Failed',
+      reason: 'ReconcileFailed',
+      statusMessage:
+        'failed to reconcile TokenRateLimitPolicies: token rate limit exceeds maximum allowed value',
+    },
+    subscriptions: [],
+    authPolicies: [],
+  },
 ];
 
 export const mockCreateSubscriptionResponse = (): CreateSubscriptionResponse => ({
@@ -690,6 +709,7 @@ export const mockFailedAuthPolicy = (): MaaSAuthPolicy => ({
   name: 'failed-policy',
   namespace: 'maas-system',
   phase: 'Failed',
+  reason: 'ReconcileFailed',
   statusMessage: 'all 2 model references are invalid or missing',
   modelRefs: [
     {

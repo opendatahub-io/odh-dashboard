@@ -72,8 +72,15 @@ export const overviewColumns: SortableData<ModelOverviewItem>[] = [
   {
     label: 'Model name',
     field: 'name',
+    width: 30,
     sortable: (a, b) =>
       (a.modelDetails.displayName ?? a.id).localeCompare(b.modelDetails.displayName ?? b.id),
+  },
+  {
+    label: 'Status',
+    field: 'phase',
+    width: 15,
+    sortable: (a, b) => (a.modelDetails.phase ?? '').localeCompare(b.modelDetails.phase ?? ''),
   },
   {
     label: 'Subscriptions',

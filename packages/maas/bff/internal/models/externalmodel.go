@@ -18,6 +18,7 @@ type ExternalModelMaaSModelRefStatus struct {
 	Phase              string `json:"phase,omitempty"`
 	Endpoint           string `json:"endpoint,omitempty"`
 	StatusMessage      string `json:"statusMessage,omitempty"`
+	Reason             string `json:"reason,omitempty"`
 	GovernanceAttached bool   `json:"governanceAttached"`
 }
 
@@ -31,5 +32,6 @@ type ExternalModelSummary struct {
 	ProviderRefs  []ProviderRef                    `json:"providerRefs"`
 	Phase         string                           `json:"phase,omitempty"`
 	StatusMessage string                           `json:"statusMessage,omitempty"`
+	Reason        string                           `json:"reason,omitempty"`
 	MaaSModelRef  *ExternalModelMaaSModelRefStatus `json:"maaSModelRef,omitempty"`
 }
