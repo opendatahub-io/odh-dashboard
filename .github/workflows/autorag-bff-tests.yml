@@ -3,6 +3,7 @@ on:
   push:
     paths:
       - "packages/autorag/**"
+      - "packages/autox-core/**"
       - "!LICENSE*"
       - "!DOCKERFILE*"
       - "!**.gitignore"
@@ -11,6 +12,7 @@ on:
   pull_request:
     paths:
       - "packages/autorag/**"
+      - "packages/autox-core/**"
       - ".github/workflows/autorag-bff-tests.yml"
       - "!LICENSE*"
       - "!DOCKERFILE*"
