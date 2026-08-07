@@ -16,9 +16,10 @@ import type {
 } from './k8sNameDescriptionFieldTypes';
 
 /**
- * Those used in OpenShift Routes need to be less than 63 between namespace & resource name.
+ * Per-field max length for route-based resources.
  * 30 because UX feels this is an easier number to understand than 31 or 32.
- * Arguably we could dynamically figure this out, but as of right now splitting equally is the UX.
+ * The combined route name ({name}-{namespace}) is validated separately at runtime
+ * via isRouteNameTooLong using the actual namespace length.
  */
 const ROUTE_BASED_NAME_LENGTH = 30;
 /**
@@ -42,6 +43,35 @@ const MAX_RESOURCE_NAME_LENGTH = 253;
 const MAX_PVC_NAME_LENGTH = 63;
 const MAX_MODEL_REGISTRY_NAME_LENGTH = 40;
 
+/**
+ * When a Route has no explicit `spec.host`, the OpenShift Router auto-generates
+ * the hostname as `{route.metadata.name}-{route.metadata.namespace}.{baseDomain}`
+ * (indicated by the `openshift.io/host.generated: "true"` annotation).
+ * The first DNS label of that hostname must not exceed 63 characters per
+ * RFC 1035 §2.3.4.
+ *
+ * Both the Notebook controller (`kubeflow.org/v1 Notebook`) and KServe's
+ * InferenceService reconciler (`serving.kserve.io/v1beta1`) create Route
+ * resources whose `metadata.name` equals the parent resource name by default,
+ * producing the hostname label `{k8sName}-{namespace}`.
+ *
+ * Note: KServe's `domainTemplate` (in the `inferenceservice-config` ConfigMap)
+ * is configurable, so the `{Name}-{Namespace}` pattern is the documented
+ * default, not a universal guarantee. This validation assumes the default
+ * configuration; custom `domainTemplate` settings are out of scope.
+ */
+const MAX_ROUTE_NAME_LENGTH = 63;
+
+/** Error message shown when the combined resource name and namespace exceed the route name limit */
+export const ROUTE_NAME_TOO_LONG_MESSAGE =
+  'Resource name and project name combined cannot exceed 63 characters';
+
+/** Resource types that generate OpenShift routes */
+export const ROUTE_BASED_RESOURCE_TYPES = new Set([
+  LimitNameResourceType.WORKBENCH,
+  LimitNameResourceType.MODEL_DEPLOYMENT,
+]);
+
 /** KServe InferenceService names must start with a lowercase letter */
 export const INFERENCE_SERVICE_NAME_REGEX = /^[a-z]([-a-z0-9]*[a-z0-9])?$/;
 export const INFERENCE_SERVICE_NAME_INVALID_CHARS_MESSAGE =
@@ -53,6 +83,22 @@ export const resourceTypeLimits: Record<LimitNameResourceType, number> = {
   [LimitNameResourceType.MODEL_DEPLOYMENT]: ROUTE_BASED_NAME_LENGTH,
   [LimitNameResourceType.PVC]: MAX_PVC_NAME_LENGTH,
   [LimitNameResourceType.MODEL_REGISTRY]: MAX_MODEL_REGISTRY_NAME_LENGTH,
+};
+
+/**
+ * Returns true when the auto-generated route hostname label
+ * `{k8sName}-{namespace}` would exceed the 63-character DNS label limit.
+ * This assumes the default hostname template (`{Name}-{Namespace}`) used by
+ * both the Notebook controller and KServe; see {@link MAX_ROUTE_NAME_LENGTH}
+ * for scope and caveats.
+ */
+export const isRouteNameTooLong = (k8sName: string, namespace?: string): boolean => {
+  if (!namespace || k8sName.length === 0) {
+    return false;
+  }
+  // Route name format: {k8sName}-{namespace}
+  const routeNameLength = k8sName.length + 1 + namespace.length;
+  return routeNameLength > MAX_ROUTE_NAME_LENGTH;
 };
 
 export const isK8sNameDescriptionType = (
@@ -67,6 +113,7 @@ export const setupDefaults = ({
   regexp,
   invalidCharsMessage,
   editableK8sName,
+  namespace,
 }: UseK8sNameDescriptionDataConfiguration): K8sNameDescriptionFieldData => {
   let initialName = '';
   let initialDescription = '';
@@ -87,6 +134,10 @@ export const setupDefaults = ({
     configuredMaxLength = resourceTypeLimits[limitNameResourceType];
   }
 
+  const isRouteBased =
+    limitNameResourceType != null && ROUTE_BASED_RESOURCE_TYPES.has(limitNameResourceType);
+  const effectiveNamespace = isRouteBased ? namespace : undefined;
+
   return handleUpdateLogic({
     name: initialName,
     description: initialDescription,
@@ -97,6 +148,8 @@ export const setupDefaults = ({
         invalidCharacters: false,
         invalidLength: false,
         maxLength: configuredMaxLength,
+        routeNameTooLong: isRouteNameTooLong(initialK8sNameValue, effectiveNamespace),
+        namespace: effectiveNamespace,
         safePrefix,
         staticPrefix,
         regexp,
@@ -111,9 +164,15 @@ export const setupDefaults = ({
 };
 
 export const handleUpdateLogic =
-  (existingData: K8sNameDescriptionFieldData): K8sNameDescriptionFieldUpdateFunctionInternal =>
+  (
+    existingData: K8sNameDescriptionFieldData,
+    /** When set, use this namespace for route checks instead of stale state (prop may resolve async). */
+    options?: { namespace?: string },
+  ): K8sNameDescriptionFieldUpdateFunctionInternal =>
   (key, value) => {
     const changedData: RecursivePartial<K8sNameDescriptionFieldData> = {};
+    const namespace =
+      options !== undefined ? options.namespace : existingData.k8sName.state.namespace;
 
     // Handle special cases
     switch (key) {
@@ -135,6 +194,8 @@ export const handleUpdateLogic =
             state: {
               invalidCharacters: k8sValue.length > 0 ? !isValidK8sName(k8sValue, regexp) : false,
               invalidLength: k8sValue.length > maxLength,
+              routeNameTooLong: isRouteNameTooLong(k8sValue, namespace),
+              ...(options !== undefined ? { namespace } : {}),
             },
           };
         }
@@ -146,6 +207,8 @@ export const handleUpdateLogic =
             invalidCharacters:
               value.length > 0 ? !isValidK8sName(value, existingData.k8sName.state.regexp) : false,
             invalidLength: value.length > existingData.k8sName.state.maxLength,
+            routeNameTooLong: isRouteNameTooLong(value, namespace),
+            ...(options !== undefined ? { namespace } : {}),
             touched: true,
           },
           value,
@@ -163,10 +226,14 @@ export const isK8sNameDescriptionDataValid = ({
   name,
   k8sName: {
     value,
-    state: { invalidCharacters, invalidLength, regexp },
+    state: { invalidCharacters, invalidLength, routeNameTooLong, immutable, regexp },
   },
 }: K8sNameDescriptionFieldData): boolean =>
-  name.trim().length > 0 && isValidK8sName(value, regexp) && !invalidLength && !invalidCharacters;
+  name.trim().length > 0 &&
+  isValidK8sName(value, regexp) &&
+  !invalidLength &&
+  !invalidCharacters &&
+  !(routeNameTooLong && !immutable);
 
 export const extractK8sNameDescriptionFieldData = (
   k8sNameDesc?: K8sNameDescriptionFieldData,
