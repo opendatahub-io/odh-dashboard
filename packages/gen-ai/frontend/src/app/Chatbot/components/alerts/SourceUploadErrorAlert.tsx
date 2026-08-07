@@ -30,6 +30,7 @@ const SourceUploadErrorAlert: React.FunctionComponent<SourceUploadErrorAlertProp
       timeout={ALERT_TIMEOUT_MS}
       actionClose={<AlertActionCloseButton onClose={onClose} />}
       onTimeout={onClose}
+      data-testid="source-upload-error-alert"
     >
       <p>{errorMessage}</p>
     </Alert>
