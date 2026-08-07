@@ -6,7 +6,9 @@
   "scripts": {
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "test-unit": "jest --silent --passWithNoTests",
+    "test-unit-coverage": "jest --silent --coverage --passWithNoTests"
   },
   "module-federation": {
     "name": "mlflowEmbedded",
@@ -46,15 +48,19 @@
   "dependencies": {
     "@odh-dashboard/internal": "*",
     "@odh-dashboard/k8s-core": "*",
+    "@odh-dashboard/model-registry": "*",
     "@odh-dashboard/plugin-core": "*",
-    "@odh-dashboard/ui-core": "*"
+    "@odh-dashboard/ui-core": "*",
+    "mod-arch-core": "^1.15.4"
   },
   "devDependencies": {
     "@odh-dashboard/eslint-config": "*",
+    "@odh-dashboard/jest-config": "*",
     "@odh-dashboard/tsconfig": "*"
   },
   "peerDependencies": {
     "@module-federation/runtime": ">=0.15.0",
+    "@openshift/dynamic-plugin-sdk": "^5",
     "@patternfly/react-core": "^6",
     "@patternfly/react-icons": "^6",
     "react": "^18",
