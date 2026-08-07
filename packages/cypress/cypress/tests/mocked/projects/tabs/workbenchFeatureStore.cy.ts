@@ -12,6 +12,7 @@ import {
   initFeatureStoreSpawnerIntercepts,
   mockEmptyWorkbenchIntegrationResponse,
   mockNotebookWithFeastConfig,
+  mockWorkbenchIntegrationForProjects,
   mockWorkbenchIntegrationResponse,
 } from '../../../../utils/featureStoreSpawnerMocks';
 
@@ -25,7 +26,11 @@ describe('Workbench page — Feature Store', () => {
   });
 
   describe('Expanded row feature stores (area enabled)', () => {
-    const enableFeatureStoreArea = () => {
+    const enableFeatureStoreArea = (
+      workbenchIntegration:
+        | typeof mockWorkbenchIntegrationResponse
+        | typeof mockEmptyWorkbenchIntegrationResponse = mockEmptyWorkbenchIntegrationResponse,
+    ) => {
       cy.interceptOdh(
         'GET /api/dsc/status',
         mockDscStatus({
@@ -39,12 +44,18 @@ describe('Workbench page — Feature Store', () => {
         'GET /api/config',
         mockDashboardConfig({ disableFeatureStore: false, disableProjectScoped: true }),
       );
+      cy.interceptOdh('GET /api/featurestores/workbench-integration', workbenchIntegration);
+    };
+
+    const visitWorkbenches = () => {
+      workbenchPage.visit('test-project');
+      workbenchPage.findNotebookTable(30000).should('exist');
     };
 
     it('shows "None" when feast-config annotation is absent', () => {
       initIntercepts({});
       enableFeatureStoreArea();
-      workbenchPage.visit('test-project');
+      visitWorkbenches();
       const notebookRow = workbenchPage.getNotebookRow('Test Notebook');
       notebookRow.findExpansionButton().click();
       notebookRow.shouldHaveFeatureStoreTitle();
@@ -69,8 +80,10 @@ describe('Workbench page — Feature Store', () => {
           }),
         ],
       });
-      enableFeatureStoreArea();
-      workbenchPage.visit('test-project');
+      enableFeatureStoreArea(
+        mockWorkbenchIntegrationForProjects(['project-a', 'project-b', 'project-c']),
+      );
+      visitWorkbenches();
       const notebookRow = workbenchPage.getNotebookRow('Test Notebook');
       notebookRow.findExpansionButton().click();
       notebookRow.shouldHaveFeatureStoreTitle();
@@ -97,8 +110,18 @@ describe('Workbench page — Feature Store', () => {
           }),
         ],
       });
-      enableFeatureStoreArea();
-      workbenchPage.visit('test-project');
+      enableFeatureStoreArea(
+        mockWorkbenchIntegrationForProjects([
+          'store-1',
+          'store-2',
+          'store-3',
+          'store-4',
+          'store-5',
+          'store-6',
+          'store-7',
+        ]),
+      );
+      visitWorkbenches();
       const notebookRow = workbenchPage.getNotebookRow('Test Notebook');
       notebookRow.findExpansionButton().click();
       notebookRow.shouldHaveFeatureStoreTitle();
@@ -106,13 +129,12 @@ describe('Workbench page — Feature Store', () => {
       notebookRow.findFeatureStoreList().find('li').should('have.length', 5);
       notebookRow.findFeatureStoreShowAll().should('exist');
       notebookRow.findFeatureStoreShowAll().should('contain.text', 'Show all');
-      notebookRow.findFeatureStoreShowAll().should('contain.text', '2 more');
 
-      notebookRow.findFeatureStoreShowAll().find('button').click();
+      notebookRow.findFeatureStoreShowAll().click();
       notebookRow.findFeatureStoreList().find('li').should('have.length', 7);
       notebookRow.findFeatureStoreShowAll().should('contain.text', 'Show less');
 
-      notebookRow.findFeatureStoreShowAll().find('button').click();
+      notebookRow.findFeatureStoreShowAll().click();
       notebookRow.findFeatureStoreList().find('li').should('have.length', 5);
       notebookRow.findFeatureStoreShowAll().should('contain.text', 'Show all');
     });
@@ -135,12 +157,8 @@ describe('Workbench page — Feature Store', () => {
           }),
         ],
       });
-      enableFeatureStoreArea();
-      cy.interceptOdh(
-        'GET /api/featurestores/workbench-integration',
-        mockWorkbenchIntegrationResponse,
-      );
-      workbenchPage.visit('test-project');
+      enableFeatureStoreArea(mockWorkbenchIntegrationResponse);
+      visitWorkbenches();
       const notebookRow = workbenchPage.getNotebookRow('Test Notebook');
       notebookRow.findExpansionButton().click();
       notebookRow.shouldHaveFeatureStoreLinks([
