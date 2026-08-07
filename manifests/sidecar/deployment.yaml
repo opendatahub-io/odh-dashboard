@@ -737,7 +737,7 @@
     livenessProbe:
       httpGet:
         path: /api/v1/healthcheck
-        port: 8943
+        port: 9043
         scheme: HTTP
       initialDelaySeconds: 30
       timeoutSeconds: 15
@@ -747,7 +747,7 @@
     readinessProbe:
       httpGet:
         path: /api/v1/healthcheck
-        port: 8943
+        port: 9043
         scheme: HTTP
       initialDelaySeconds: 15
       timeoutSeconds: 15
@@ -762,7 +762,7 @@
       limits:
         memory: 256Mi
     ports:
-      - containerPort: 8943
+      - containerPort: 9043
         name: notebooks-ui
     volumeMounts:
       - name: modules-sa-token
@@ -770,7 +770,7 @@
         readOnly: true
     env:
       - name: PORT
-        value: "8943"
+        value: "9043"
       - name: DISABLE_AUTH
         value: "true"
     securityContext:

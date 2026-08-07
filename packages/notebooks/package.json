@@ -36,8 +36,8 @@
       "port": 9105
     },
     "service": {
-      "name": "odh-dashboard",
-      "port": 8343
+      "name": "odh-dashboard-notebooks-ui",
+      "port": 9043
     }
   },
   "devDependencies": {

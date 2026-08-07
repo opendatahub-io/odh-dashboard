@@ -195,7 +195,7 @@ data:
           "service": {
             "name": "odh-dashboard",
             "namespace": "opendatahub",
-            "port": 8943
+            "port": 9043
         }
       },
       {

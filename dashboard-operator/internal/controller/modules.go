@@ -69,7 +69,7 @@ var moduleRegistry = map[string]ModuleDefinition{
 		ManifestSlug: "agent-ops",
 	},
 	"notebooks": {
-		Name: "notebooks", ContainerName: "notebooks-ui", Port: 8943,
+		Name: "notebooks", ContainerName: "notebooks-ui", Port: 9043,
 		ImageEnvVar:  "RELATED_IMAGE_ODH_MOD_ARCH_NOTEBOOKS_IMAGE",
 		ManifestSlug: "notebooks",
 	},

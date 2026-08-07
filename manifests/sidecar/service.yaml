@@ -59,5 +59,5 @@
   value:
     name: notebooks-ui
     protocol: TCP
-    port: 8943
-    targetPort: 8943
+    port: 9043
+    targetPort: 9043
