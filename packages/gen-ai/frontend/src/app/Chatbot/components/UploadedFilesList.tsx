@@ -139,7 +139,7 @@ const UploadedFilesList: React.FC<UploadedFilesListProps> = ({
                 <div className="pf-u-min-width-0">
                   <div
                     className="pf-u-font-weight-bold pf-u-word-break-word pf-u-font-size-md"
-                    data-testid={`uploaded-file-name-${file.filename}`}
+                    data-testid={`uploaded-file-name-${file.id}`}
                     title={file.filename}
                   >
                     {file.filename}
@@ -169,7 +169,7 @@ const UploadedFilesList: React.FC<UploadedFilesListProps> = ({
                     onClick={() => handleDeleteClick(file)}
                     isDisabled={isDeleting || isDisabled}
                     aria-label={`Delete ${file.filename}`}
-                    data-testid={`uploaded-file-delete-${file.filename}`}
+                    data-testid={`uploaded-file-delete-${file.id}`}
                     isDanger
                   />
                 </Tooltip>

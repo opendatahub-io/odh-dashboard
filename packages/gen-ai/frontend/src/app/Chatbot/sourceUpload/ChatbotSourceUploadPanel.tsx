@@ -94,7 +94,7 @@ const ChatbotSourceUploadPanel: React.FC<ChatbotSourceUploadPanelProps> = ({
             ? 'pf-v6-u-border-color-primary pf-v6-u-background-color-primary-50'
             : ''
         } ${isUploadDisabled ? 'pf-v6-u-opacity-50' : ''}`}
-        data-testid="source-upload-panel"
+        data-testid="chatbot-source-upload-panel"
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
@@ -147,6 +147,7 @@ const ChatbotSourceUploadPanel: React.FC<ChatbotSourceUploadPanelProps> = ({
         return (
           <UploadedFileItem
             key={fileWithSettings.id}
+            id={fileWithSettings.id}
             file={fileWithSettings.file}
             progress={progress}
             status={fileWithSettings.status}
