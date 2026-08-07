@@ -233,6 +233,18 @@ type Provider struct {
 	Tags        []string            `json:"tags,omitempty"`
 	Runtime     *ProviderRuntime    `json:"runtime,omitempty"`
 	Benchmarks  []ProviderBenchmark `json:"benchmarks,omitempty"`
+	Agent       *AgentMetadata      `json:"agent,omitempty"`
+}
+
+// AgentMetadata holds provider-level agent discoverability metadata.
+type AgentMetadata struct {
+	Evaluates            []string `json:"evaluates,omitempty"`
+	RecommendedWhen      []string `json:"recommended_when,omitempty"`
+	TargetType           string   `json:"target_type,omitempty"`
+	Summary              string   `json:"summary,omitempty"`
+	Complements          []string `json:"complements,omitempty"`
+	Hints                []string `json:"hints,omitempty"`
+	ResultInterpretation []string `json:"result_interpretation,omitempty"`
 }
 
 // ProviderResource holds the resource metadata for a provider.
@@ -259,6 +271,21 @@ type ProviderBenchmark struct {
 	DatasetSize  int                            `json:"dataset_size,omitempty"`
 	PrimaryScore *ProviderBenchmarkScore        `json:"primary_score,omitempty"`
 	PassCriteria *ProviderBenchmarkPassCriteria `json:"pass_criteria,omitempty"`
+	Agent        *BenchmarkAgentMetadata        `json:"agent,omitempty"`
+}
+
+// BenchmarkAgentMetadata holds benchmark-level agent metadata.
+type BenchmarkAgentMetadata struct {
+	ResultInterpretation string       `json:"result_interpretation,omitempty"`
+	ScoreRanges          []ScoreRange `json:"score_ranges,omitempty"`
+}
+
+// ScoreRange defines a labelled range within a benchmark's score spectrum.
+type ScoreRange struct {
+	Min         float64 `json:"min"`
+	Max         float64 `json:"max"`
+	Label       string  `json:"label"`
+	Description string  `json:"description,omitempty"`
 }
 
 // ProviderBenchmarkScore defines the primary scoring metric for a provider benchmark.
