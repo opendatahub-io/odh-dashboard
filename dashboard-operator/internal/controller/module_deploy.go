@@ -80,7 +80,7 @@ var moduleProxyPaths = map[string][]proxyRoute{
 		{Path: "/agent-ops/api", PathRewrite: "/api"},
 		{Path: "/agent-ops/healthcheck", PathRewrite: "/healthcheck"},
 	},
-	"notebooks": {{Path: "/workspaces/api", PathRewrite: "/api"}},
+	"notebooks": {{Path: "/notebooks/api", PathRewrite: "/api"}},
 }
 
 // --- Service discovery env vars (inter-BFF injection) ---

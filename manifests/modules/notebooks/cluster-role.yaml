@@ -11,6 +11,7 @@ rules:
       - watch
     resources:
       - namespaces
+      - configmaps
   - apiGroups:
       - ""
     verbs:
