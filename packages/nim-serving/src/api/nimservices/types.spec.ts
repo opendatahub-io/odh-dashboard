@@ -1,6 +1,7 @@
 import { mockInferenceServiceK8sResource } from '@odh-dashboard/internal/__mocks__/mockInferenceServiceK8sResource';
 import type { Deployment } from '@odh-dashboard/model-serving/extension-points';
 import { isNIMDeployment, isNIMOwned } from './utils';
+import { NIM_SERVICE_ID } from '../../constants';
 
 const mockModel = {
   apiVersion: 'apps.nvidia.com/v1alpha1',
@@ -11,7 +12,7 @@ const mockModel = {
 describe('isNIMDeployment', () => {
   it('should return true for a NIM deployment', () => {
     const deployment: Deployment = {
-      modelServingPlatformId: 'nvidia-nim',
+      modelServingPlatformId: NIM_SERVICE_ID,
       model: mockModel,
     };
     expect(isNIMDeployment(deployment)).toBe(true);

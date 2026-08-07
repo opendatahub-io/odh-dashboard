@@ -4,7 +4,7 @@ import type {
   WizardFormData,
 } from '@odh-dashboard/model-serving/shared/types/form-data';
 import { NIMModelLocationKey } from '@odh-dashboard/model-serving/shared/wizard-fields';
-import { NIM_MODEL_TYPE } from '../../../extensions';
+import { NIM_MODEL_TYPE } from '../../constants';
 
 const isNIMModelTypeActive = (wizardFormData: RecursivePartial<WizardFormData['state']>): boolean =>
   wizardFormData.modelLocationData?.data?.type === NIMModelLocationKey;

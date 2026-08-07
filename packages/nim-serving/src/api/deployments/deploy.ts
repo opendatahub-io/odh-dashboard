@@ -9,7 +9,7 @@ import {
   patchNIMService,
 } from '../nimservices/k8s';
 import { getNIMAccount } from '../accounts/k8s';
-import { NIM_ID } from '../../../extensions';
+import { NIM_SERVICE_ID } from '../../constants';
 
 export const isNIMDeployActive = (wizardData: WizardFormData['state']): boolean =>
   wizardData.modelLocationData.data?.type === NIMModelLocationKey;
@@ -40,7 +40,7 @@ export const assembleNIMDeployment = (
   );
 
   let result: NIMDeployment = {
-    modelServingPlatformId: NIM_ID,
+    modelServingPlatformId: NIM_SERVICE_ID,
     model: nimService,
   };
   result = applyFieldData?.(result) ?? result;
@@ -96,7 +96,7 @@ export const deployNIMDeployment = async (
   );
 
   return {
-    modelServingPlatformId: NIM_ID,
+    modelServingPlatformId: NIM_SERVICE_ID,
     model: nimService,
   };
 };
