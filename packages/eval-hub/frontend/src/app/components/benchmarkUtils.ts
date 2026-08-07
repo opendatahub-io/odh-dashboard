@@ -46,7 +46,7 @@ const METRIC_DISPLAY_NAMES: Record<string, string> = {
   acc: 'Accuracy',
   acc_norm: 'Accuracy (normalized)',
   accuracy_ambig: 'Accuracy (ambiguous)',
-  accuracy_disambig: 'Accuracy (disambiguous)',
+  accuracy_disambig: 'Accuracy (disambiguated)',
   attack_success_rate: 'Attack success rate',
   auc: 'AUC',
   bias_score: 'Bias score',
@@ -74,7 +74,9 @@ const METRIC_DISPLAY_NAMES: Record<string, string> = {
 /* eslint-enable camelcase */
 
 export const getMetricDisplayName = (metric: string): string =>
-  METRIC_DISPLAY_NAMES[metric] ?? formatCategory(metric);
+  Object.hasOwn(METRIC_DISPLAY_NAMES, metric)
+    ? METRIC_DISPLAY_NAMES[metric]
+    : formatCategory(metric);
 
 export const VISIBLE_METRICS_COUNT = 3;
 

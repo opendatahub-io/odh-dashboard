@@ -130,9 +130,19 @@ describe('Choose Collection Page', () => {
   });
 });
 
+const zetaSuite = mockCollection({
+  id: 'col-zeta',
+  name: 'Zeta Suite',
+  category: 'Accuracy',
+  description: 'Zeta evaluation collection.',
+  benchmarkIds: ['truthfulqa_mc2'],
+});
+
 describe('Choose Collection Page - Sort', () => {
   beforeEach(() => {
-    initIntercepts({ collections: [safetySuite, reasoningSuite, accuracySuite] });
+    initIntercepts({
+      collections: [safetySuite, reasoningSuite, accuracySuite, zetaSuite],
+    });
   });
 
   it('should sort collections alphabetically by name', () => {
@@ -149,7 +159,7 @@ describe('Choose Collection Page - Sort', () => {
       .findCollectionsGallery()
       .findAllByTestId(/^collection-card-/)
       .last()
-      .should('contain.text', 'Safety Suite');
+      .should('contain.text', 'Zeta Suite');
   });
 
   it('should sort collections by category', () => {
@@ -203,7 +213,7 @@ describe('Choose Collection Page - Category Filter', () => {
     chooseCollectionPage.visit(NAMESPACE);
     chooseCollectionPage.selectCategoryOption('Reasoning');
 
-    chooseCollectionPage.findCategoryToggle().find('.pf-v6-c-badge').should('have.text', '1');
+    chooseCollectionPage.findCategoryFilterBadge().should('have.text', '1');
   });
 });
 

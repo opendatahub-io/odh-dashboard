@@ -105,6 +105,13 @@ describe('getMetricDisplayName', () => {
     expect(getMetricDisplayName('custom_metric')).toBe('Custom metric');
     expect(getMetricDisplayName('f1')).toBe('F1');
   });
+
+  it('should not resolve Object.prototype members', () => {
+    expect(getMetricDisplayName('constructor')).toBe('Constructor');
+    expect(getMetricDisplayName('toString')).toBe('ToString');
+    expect(getMetricDisplayName('valueOf')).toBe('ValueOf');
+    expect(typeof getMetricDisplayName('__proto__')).toBe('string');
+  });
 });
 
 describe('toSafeExternalUrl', () => {

@@ -230,7 +230,7 @@ describe('Choose Benchmark Page - Category Filter', () => {
     chooseBenchmarkPage.visit(NAMESPACE);
     chooseBenchmarkPage.selectCategoryOption('Reasoning');
 
-    chooseBenchmarkPage.findCategoryFilter().find('.pf-v6-c-badge').should('have.text', '1');
+    chooseBenchmarkPage.findCategoryFilterBadge().should('have.text', '1');
   });
 });
 
@@ -262,7 +262,7 @@ describe('Choose Benchmark Page - Metrics Filter', () => {
     chooseBenchmarkPage.visit(NAMESPACE);
     chooseBenchmarkPage.selectMetricsOption('Accuracy');
 
-    chooseBenchmarkPage.findMetricsFilter().find('.pf-v6-c-badge').should('have.text', '1');
+    chooseBenchmarkPage.findMetricsFilterBadge().should('have.text', '1');
   });
 });
 

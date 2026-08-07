@@ -34,7 +34,7 @@ class ChooseCollectionPage {
   }
 
   findCategoryToggle() {
-    return cy.findByTestId('collections-category-toggle');
+    return cy.findByTestId('collections-category-filter');
   }
 
   findCollectionsEmptyState() {
@@ -74,6 +74,10 @@ class ChooseCollectionPage {
 
   findCategorySearchInput() {
     return cy.findByTestId('collections-category-select').findByLabelText('Search categories');
+  }
+
+  findCategoryFilterBadge() {
+    return cy.findByTestId('collections-category-filter-badge');
   }
 }
 

@@ -50,7 +50,7 @@ class ChooseBenchmarkPage {
   }
 
   findNextPageButton() {
-    return cy.findByLabelText('Go to next page');
+    return cy.findAllByLabelText('Go to next page').first();
   }
 
   findSortToggle() {
@@ -86,8 +86,12 @@ class ChooseBenchmarkPage {
     return cy.findByTestId('benchmarks-metrics-select').findByLabelText('Search metrics');
   }
 
-  findFilterLabelChips(groupName: string) {
-    return cy.findByText(groupName).parent().find('.pf-v6-c-label__content');
+  findCategoryFilterBadge() {
+    return cy.findByTestId('benchmarks-category-filter-badge');
+  }
+
+  findMetricsFilterBadge() {
+    return cy.findByTestId('benchmarks-metrics-filter-badge');
   }
 }
 

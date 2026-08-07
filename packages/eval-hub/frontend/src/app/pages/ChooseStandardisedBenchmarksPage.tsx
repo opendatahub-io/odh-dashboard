@@ -1,11 +1,9 @@
 import * as React from 'react';
 import {
-  Badge,
   Breadcrumb,
   BreadcrumbItem,
   Bullseye,
   Button,
-  Divider,
   Drawer,
   DrawerContent,
   DrawerContentBody,
@@ -13,8 +11,6 @@ import {
   EmptyStateBody,
   EmptyStateVariant,
   Gallery,
-  MenuSearch,
-  MenuSearchInput,
   MenuToggle,
   Pagination,
   PageSection,
@@ -44,6 +40,7 @@ import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import BenchmarkDrawerPanel from '~/app/components/BenchmarkDrawerPanel';
 import BenchmarkCard from '~/app/components/BenchmarkCard';
 import { formatCategory, getMetricDisplayName } from '~/app/components/benchmarkUtils';
+import SearchableMultiSelectFilter from '~/app/components/SearchableMultiSelectFilter';
 import {
   BenchmarkFilterOptions,
   BenchmarkFilterDataType,
@@ -108,15 +105,10 @@ const ChooseStandardisedBenchmarksPage: React.FC = () => {
   const [sortOption, setSortOption] = React.useState(BenchmarkSortOption.DEFAULT);
   const [isSortOpen, setIsSortOpen] = React.useState(false);
 
-  const [isCategoryOpen, setIsCategoryOpen] = React.useState(false);
-  const [categorySearch, setCategorySearch] = React.useState('');
-  const [isMetricsOpen, setIsMetricsOpen] = React.useState(false);
-  const [metricsSearch, setMetricsSearch] = React.useState('');
-
   const availableCategories = React.useMemo<string[]>(
     () =>
       [
-        ...new Set(allBenchmarks.map((b) => b.category).filter((c): c is string => c != null)),
+        ...new Set(allBenchmarks.map((b) => b.category).filter((c): c is string => Boolean(c))),
       ].toSorted(),
     [allBenchmarks],
   );
@@ -296,214 +288,56 @@ const ChooseStandardisedBenchmarksPage: React.FC = () => {
                                 data-testid="benchmarks-name-filter"
                               />
                             </ToolbarFilter>
-                            <ToolbarFilter
-                              labels={filterData[BenchmarkFilterOptions.category].map((c) => ({
-                                key: c,
-                                node: formatCategory(c),
-                              }))}
-                              deleteLabel={(_category, label) => {
-                                const val = typeof label === 'string' ? label : label.key;
+                            <SearchableMultiSelectFilter
+                              categoryName="Category"
+                              options={availableCategories}
+                              selected={filterData[BenchmarkFilterOptions.category]}
+                              formatLabel={formatCategory}
+                              onToggleOption={(value) =>
                                 setFilterData((prev) => ({
                                   ...prev,
                                   [BenchmarkFilterOptions.category]: prev[
                                     BenchmarkFilterOptions.category
-                                  ].filter((c) => c !== val),
-                                }));
-                              }}
-                              deleteLabelGroup={() =>
+                                  ].includes(value)
+                                    ? prev[BenchmarkFilterOptions.category].filter(
+                                        (c) => c !== value,
+                                      )
+                                    : [...prev[BenchmarkFilterOptions.category], value],
+                                }))
+                              }
+                              onClearAll={() =>
                                 setFilterData((prev) => ({
                                   ...prev,
                                   [BenchmarkFilterOptions.category]: [],
                                 }))
                               }
-                              categoryName="Category"
-                            >
-                              <Select
-                                role="menu"
-                                isOpen={isCategoryOpen}
-                                onSelect={(_event, value) => {
-                                  const val = String(value);
-                                  setFilterData((prev) => ({
-                                    ...prev,
-                                    [BenchmarkFilterOptions.category]: prev[
-                                      BenchmarkFilterOptions.category
-                                    ].includes(val)
-                                      ? prev[BenchmarkFilterOptions.category].filter(
-                                          (c) => c !== val,
-                                        )
-                                      : [...prev[BenchmarkFilterOptions.category], val],
-                                  }));
-                                }}
-                                onOpenChange={(open) => {
-                                  setIsCategoryOpen(open);
-                                  if (!open) {
-                                    setCategorySearch('');
-                                  }
-                                }}
-                                toggle={(toggleRef) => (
-                                  <MenuToggle
-                                    ref={toggleRef}
-                                    onClick={() => setIsCategoryOpen((prev) => !prev)}
-                                    isExpanded={isCategoryOpen}
-                                    data-testid="benchmarks-category-filter"
-                                    badge={
-                                      filterData[BenchmarkFilterOptions.category].length > 0 ? (
-                                        <Badge isRead>
-                                          {filterData[BenchmarkFilterOptions.category].length}
-                                        </Badge>
-                                      ) : undefined
-                                    }
-                                  >
-                                    Category
-                                  </MenuToggle>
-                                )}
-                                data-testid="benchmarks-category-select"
-                              >
-                                <MenuSearch>
-                                  <MenuSearchInput>
-                                    <SearchInput
-                                      aria-label="Search categories"
-                                      placeholder="Search categories"
-                                      value={categorySearch}
-                                      onChange={(_event, value) => setCategorySearch(value)}
-                                      onClear={() => setCategorySearch('')}
-                                    />
-                                  </MenuSearchInput>
-                                </MenuSearch>
-                                <Divider />
-                                <SelectList>
-                                  {(() => {
-                                    const filtered = availableCategories.filter((cat) => {
-                                      const search = categorySearch.toLowerCase();
-                                      return (
-                                        cat.toLowerCase().includes(search) ||
-                                        formatCategory(cat).toLowerCase().includes(search)
-                                      );
-                                    });
-                                    return filtered.length > 0 ? (
-                                      filtered.map((cat) => (
-                                        <SelectOption
-                                          key={cat}
-                                          value={cat}
-                                          hasCheckbox
-                                          isSelected={filterData[
-                                            BenchmarkFilterOptions.category
-                                          ].includes(cat)}
-                                        >
-                                          {formatCategory(cat)}
-                                        </SelectOption>
-                                      ))
-                                    ) : (
-                                      <SelectOption isDisabled>No results found</SelectOption>
-                                    );
-                                  })()}
-                                </SelectList>
-                              </Select>
-                            </ToolbarFilter>
-                            <ToolbarFilter
-                              labels={filterData[BenchmarkFilterOptions.metrics].map((m) => ({
-                                key: m,
-                                node: getMetricDisplayName(m),
-                              }))}
-                              deleteLabel={(_category, label) => {
-                                const val = typeof label === 'string' ? label : label.key;
+                              testIdPrefix="benchmarks-category"
+                            />
+                            <SearchableMultiSelectFilter
+                              categoryName="Metrics"
+                              options={availableMetrics}
+                              selected={filterData[BenchmarkFilterOptions.metrics]}
+                              formatLabel={getMetricDisplayName}
+                              onToggleOption={(value) =>
                                 setFilterData((prev) => ({
                                   ...prev,
                                   [BenchmarkFilterOptions.metrics]: prev[
                                     BenchmarkFilterOptions.metrics
-                                  ].filter((m) => m !== val),
-                                }));
-                              }}
-                              deleteLabelGroup={() =>
+                                  ].includes(value)
+                                    ? prev[BenchmarkFilterOptions.metrics].filter(
+                                        (m) => m !== value,
+                                      )
+                                    : [...prev[BenchmarkFilterOptions.metrics], value],
+                                }))
+                              }
+                              onClearAll={() =>
                                 setFilterData((prev) => ({
                                   ...prev,
                                   [BenchmarkFilterOptions.metrics]: [],
                                 }))
                               }
-                              categoryName="Metrics"
-                            >
-                              <Select
-                                role="menu"
-                                isOpen={isMetricsOpen}
-                                onSelect={(_event, value) => {
-                                  const val = String(value);
-                                  setFilterData((prev) => ({
-                                    ...prev,
-                                    [BenchmarkFilterOptions.metrics]: prev[
-                                      BenchmarkFilterOptions.metrics
-                                    ].includes(val)
-                                      ? prev[BenchmarkFilterOptions.metrics].filter(
-                                          (m) => m !== val,
-                                        )
-                                      : [...prev[BenchmarkFilterOptions.metrics], val],
-                                  }));
-                                }}
-                                onOpenChange={(open) => {
-                                  setIsMetricsOpen(open);
-                                  if (!open) {
-                                    setMetricsSearch('');
-                                  }
-                                }}
-                                toggle={(toggleRef) => (
-                                  <MenuToggle
-                                    ref={toggleRef}
-                                    onClick={() => setIsMetricsOpen((prev) => !prev)}
-                                    isExpanded={isMetricsOpen}
-                                    data-testid="benchmarks-metrics-filter"
-                                    badge={
-                                      filterData[BenchmarkFilterOptions.metrics].length > 0 ? (
-                                        <Badge isRead>
-                                          {filterData[BenchmarkFilterOptions.metrics].length}
-                                        </Badge>
-                                      ) : undefined
-                                    }
-                                  >
-                                    Metrics
-                                  </MenuToggle>
-                                )}
-                                data-testid="benchmarks-metrics-select"
-                              >
-                                <MenuSearch>
-                                  <MenuSearchInput>
-                                    <SearchInput
-                                      aria-label="Search metrics"
-                                      placeholder="Search metrics"
-                                      value={metricsSearch}
-                                      onChange={(_event, value) => setMetricsSearch(value)}
-                                      onClear={() => setMetricsSearch('')}
-                                    />
-                                  </MenuSearchInput>
-                                </MenuSearch>
-                                <Divider />
-                                <SelectList>
-                                  {(() => {
-                                    const filtered = availableMetrics.filter((metric) => {
-                                      const search = metricsSearch.toLowerCase();
-                                      return (
-                                        metric.toLowerCase().includes(search) ||
-                                        getMetricDisplayName(metric).toLowerCase().includes(search)
-                                      );
-                                    });
-                                    return filtered.length > 0 ? (
-                                      filtered.map((metric) => (
-                                        <SelectOption
-                                          key={metric}
-                                          value={metric}
-                                          hasCheckbox
-                                          isSelected={filterData[
-                                            BenchmarkFilterOptions.metrics
-                                          ].includes(metric)}
-                                        >
-                                          {getMetricDisplayName(metric)}
-                                        </SelectOption>
-                                      ))
-                                    ) : (
-                                      <SelectOption isDisabled>No results found</SelectOption>
-                                    );
-                                  })()}
-                                </SelectList>
-                              </Select>
-                            </ToolbarFilter>
+                              testIdPrefix="benchmarks-metrics"
+                            />
                           </ToolbarGroup>
                         </ToolbarToggleGroup>
                         <ToolbarItem

@@ -69,7 +69,12 @@ const PrimaryScorerMetricField: React.FC<PrimaryScorerMetricFieldProps> = ({
       >
         <SelectList>
           {metrics.map((metric) => (
-            <SelectOption key={metric} value={metric} isSelected={metric === selected}>
+            <SelectOption
+              key={metric}
+              value={metric}
+              isSelected={metric === selected}
+              data-testid={`${fieldId}-option-${metric}`}
+            >
               {getMetricDisplayName(metric)}
             </SelectOption>
           ))}

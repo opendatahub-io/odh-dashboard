@@ -57,9 +57,14 @@ describe('PrimaryScorerMetricField', () => {
     expect(screen.queryByRole('option', { name: 'F1' })).not.toBeInTheDocument();
   });
 
-  it('should render the label and help popover', () => {
+  it('should render the label and description', () => {
     render(<PrimaryScorerMetricField metrics={metrics} selected="accuracy" onChange={jest.fn()} />);
 
     expect(screen.getByText('Primary scorer metric')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Choose the primary metric used to calculate the result for this benchmark.',
+      ),
+    ).toBeInTheDocument();
   });
 });

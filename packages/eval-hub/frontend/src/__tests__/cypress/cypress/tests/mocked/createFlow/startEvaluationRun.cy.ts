@@ -264,7 +264,7 @@ describe('Start Evaluation Run - Benchmark Threshold & Primary Metric', () => {
     navigateToBenchmarkStart();
 
     startEvaluationRunPage.findPrimaryScorerMetricToggle().click();
-    cy.findByRole('option', { name: 'F1' }).click();
+    startEvaluationRunPage.findPrimaryScorerMetricOption('f1').click();
     startEvaluationRunPage.findPrimaryScorerMetricToggle().should('contain.text', 'F1');
   });
 
@@ -341,7 +341,7 @@ describe('Start Evaluation Run - Benchmark Threshold & Primary Metric', () => {
     navigateToBenchmarkStart();
 
     startEvaluationRunPage.findPrimaryScorerMetricToggle().click();
-    cy.findByRole('option', { name: 'f1' }).click();
+    startEvaluationRunPage.findPrimaryScorerMetricOption('f1').click();
 
     fillExternalModelFields('my-model', 'https://api.example.com/v1');
     startEvaluationRunPage.findSubmitButton().click();

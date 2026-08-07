@@ -1,7 +1,6 @@
 import * as React from 'react';
 import {
   Alert,
-  Badge,
   Breadcrumb,
   BreadcrumbItem,
   Bullseye,
@@ -12,14 +11,11 @@ import {
   CardHeader,
   CardTitle,
   Content,
-  Divider,
   Drawer,
   DrawerContent,
   DrawerContentBody,
   Gallery,
   Label,
-  MenuSearch,
-  MenuSearchInput,
   MenuToggle,
   PageSection,
   Pagination,
@@ -46,6 +42,7 @@ import { evaluationCreateRoute, evaluationStartRoute, evaluationsBaseRoute } fro
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import CollectionDrawerPanel from '~/app/components/CollectionDrawerPanel';
 import { formatCategory, getCategoryColor } from '~/app/components/benchmarkUtils';
+import SearchableMultiSelectFilter from '~/app/components/SearchableMultiSelectFilter';
 import { BenchmarkSortOption, benchmarkSortLabels } from '~/app/pages/const';
 
 const COLLECTION_SORT_VALUES: readonly string[] = Object.values(BenchmarkSortOption);
@@ -59,8 +56,6 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
     undefined,
   );
   const [isSortOpen, setIsSortOpen] = React.useState(false);
-  const [isCategoryOpen, setIsCategoryOpen] = React.useState(false);
-  const [categorySearch, setCategorySearch] = React.useState('');
 
   const {
     collections,
@@ -110,18 +105,6 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
       });
     },
     [navigate, namespace],
-  );
-
-  const handleCategorySelect = React.useCallback(
-    (_: React.MouseEvent | undefined, value: string | number | undefined) => {
-      const val = String(value);
-      setCategoryFilter(
-        categoryFilter.includes(val)
-          ? categoryFilter.filter((c) => c !== val)
-          : [...categoryFilter, val],
-      );
-    },
-    [categoryFilter, setCategoryFilter],
   );
 
   return (
@@ -218,6 +201,7 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
                         categoryName="Name"
                       >
                         <SearchInput
+                          aria-label="Filter by name"
                           placeholder="Filter by name"
                           value={nameFilter}
                           onChange={(_, value) => setNameFilter(value)}
@@ -226,84 +210,21 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
                           data-testid="collections-name-filter"
                         />
                       </ToolbarFilter>
-                      <ToolbarFilter
-                        labels={categoryFilter.map((c) => ({
-                          key: c,
-                          node: formatCategory(c),
-                        }))}
-                        deleteLabel={(_category, label) => {
-                          const val = typeof label === 'string' ? label : label.key;
-                          setCategoryFilter(categoryFilter.filter((c) => c !== val));
-                        }}
-                        deleteLabelGroup={() => setCategoryFilter([])}
+                      <SearchableMultiSelectFilter
                         categoryName="Category"
-                      >
-                        <Select
-                          role="menu"
-                          isOpen={isCategoryOpen}
-                          onSelect={handleCategorySelect}
-                          onOpenChange={(open) => {
-                            setIsCategoryOpen(open);
-                            if (!open) {
-                              setCategorySearch('');
-                            }
-                          }}
-                          toggle={(toggleRef) => (
-                            <MenuToggle
-                              ref={toggleRef}
-                              data-testid="collections-category-toggle"
-                              onClick={() => setIsCategoryOpen((prev) => !prev)}
-                              isExpanded={isCategoryOpen}
-                              badge={
-                                categoryFilter.length > 0 ? (
-                                  <Badge isRead>{categoryFilter.length}</Badge>
-                                ) : undefined
-                              }
-                            >
-                              Category
-                            </MenuToggle>
-                          )}
-                          data-testid="collections-category-select"
-                        >
-                          <MenuSearch>
-                            <MenuSearchInput>
-                              <SearchInput
-                                aria-label="Search categories"
-                                placeholder="Search categories"
-                                value={categorySearch}
-                                onChange={(_event, value) => setCategorySearch(value)}
-                                onClear={() => setCategorySearch('')}
-                              />
-                            </MenuSearchInput>
-                          </MenuSearch>
-                          <Divider />
-                          <SelectList>
-                            {(() => {
-                              const filtered = availableCategories.filter((cat) => {
-                                const search = categorySearch.toLowerCase();
-                                return (
-                                  cat.toLowerCase().includes(search) ||
-                                  formatCategory(cat).toLowerCase().includes(search)
-                                );
-                              });
-                              return filtered.length > 0 ? (
-                                filtered.map((cat) => (
-                                  <SelectOption
-                                    key={cat}
-                                    value={cat}
-                                    hasCheckbox
-                                    isSelected={categoryFilter.includes(cat)}
-                                  >
-                                    {formatCategory(cat)}
-                                  </SelectOption>
-                                ))
-                              ) : (
-                                <SelectOption isDisabled>No results found</SelectOption>
-                              );
-                            })()}
-                          </SelectList>
-                        </Select>
-                      </ToolbarFilter>
+                        options={availableCategories}
+                        selected={categoryFilter}
+                        formatLabel={formatCategory}
+                        onToggleOption={(value) =>
+                          setCategoryFilter(
+                            categoryFilter.includes(value)
+                              ? categoryFilter.filter((c) => c !== value)
+                              : [...categoryFilter, value],
+                          )
+                        }
+                        onClearAll={() => setCategoryFilter([])}
+                        testIdPrefix="collections-category"
+                      />
                     </ToolbarGroup>
                   </ToolbarToggleGroup>
                   <ToolbarItem align={{ default: 'alignEnd' }}>
