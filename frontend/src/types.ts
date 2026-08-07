@@ -39,24 +39,6 @@ export type PrometheusQueryResponse<TResultExtraProps extends object = object> =
   status: string;
 };
 
-export type PrometheusQueryRangeResponseDataResult = {
-  metric: {
-    request?: string;
-    pod?: string;
-  };
-  values: PrometheusQueryRangeResultValue[];
-};
-export type PrometheusQueryRangeResponseData = {
-  result?: PrometheusQueryRangeResponseDataResult[];
-  resultType: string;
-};
-export type PrometheusQueryRangeResponse = {
-  data: PrometheusQueryRangeResponseData;
-  status: string;
-};
-
-export type PrometheusQueryRangeResultValue = [number, string];
-
 export type NotebookControllerUserState = {
   user: string;
   lastSelectedImage: string;

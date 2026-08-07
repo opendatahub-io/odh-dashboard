@@ -21,18 +21,24 @@ import { projectRoles } from '../../../../pages/projectRoles';
 const NAMESPACE = 'test-project';
 const SOURCE_ROLE_NAME = 'my-custom-role';
 
-const sourceRole = mockRoleK8sResource({
-  name: SOURCE_ROLE_NAME,
-  namespace: NAMESPACE,
-  labels: { 'opendatahub.io/dashboard': 'true' },
-  rules: [
-    {
-      verbs: ['get', 'list'],
-      apiGroups: ['apps'],
-      resources: ['deployments'],
-    },
-  ],
-});
+const sourceRole = (() => {
+  const role = mockRoleK8sResource({
+    name: SOURCE_ROLE_NAME,
+    namespace: NAMESPACE,
+    labels: { 'opendatahub.io/dashboard': 'true' },
+    rules: [
+      {
+        verbs: ['get', 'list'],
+        apiGroups: ['apps'],
+        resources: ['deployments'],
+      },
+    ],
+  });
+  role.metadata.annotations = {
+    'openshift.io/display-name': 'My Custom Role',
+  };
+  return role;
+})();
 
 const initIntercepts = () => {
   cy.interceptOdh('GET /api/config', mockDashboardConfig({ roleManagement: true }));
@@ -51,6 +57,14 @@ describe('Duplicate Role', () => {
   beforeEach(() => {
     asProjectAdminUser();
     initIntercepts();
+  });
+
+  it('should pre-populate form with "Copy of" name and existing rules', () => {
+    projectRoles.visitDuplicateRole(NAMESPACE, SOURCE_ROLE_NAME);
+
+    projectRoles.findRoleNameInput().should('have.value', 'Copy of My Custom Role');
+    projectRoles.findPermissionRulesTable().should('exist');
+    projectRoles.findPermissionRulesTable().find('tbody tr').should('have.length', 1);
   });
 
   it('should have k8s resource name field editable (not immutable)', () => {
@@ -113,7 +127,7 @@ describe('Duplicate Role', () => {
   it('should navigate to duplicate page from table kebab action', () => {
     projectRoles.visit(NAMESPACE);
 
-    const row = projectRoles.getRow(SOURCE_ROLE_NAME);
+    const row = projectRoles.getRow('My Custom Role');
     row.findKebabAction('Duplicate role').click();
 
     cy.url().should('include', `/roles/${SOURCE_ROLE_NAME}/duplicate`);

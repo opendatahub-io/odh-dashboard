@@ -75,7 +75,9 @@ func convertUnstructuredToExternalProviderSummary(obj *unstructured.Unstructured
 
 	phase, _, _ := unstructured.NestedString(content, "status", "phase")
 	summary.Phase = phase
-	summary.StatusMessage = extractReadyConditionMessage(content)
+	ready := extractReadyCondition(content)
+	summary.StatusMessage = ready.Message
+	summary.Reason = ready.Reason
 
 	return summary
 }
@@ -99,6 +101,7 @@ func externalProviderDetailsFromSummary(summary models.ExternalProviderSummary) 
 		Config:              summary.Config,
 		Phase:               summary.Phase,
 		StatusMessage:       summary.StatusMessage,
+		Reason:              summary.Reason,
 	}
 }
 
@@ -134,6 +137,7 @@ func enrichExternalModelSummaries(
 				Phase:              modelRef.Phase,
 				Endpoint:           modelRef.Endpoint,
 				StatusMessage:      modelRef.StatusMessage,
+				Reason:             modelRef.Reason,
 				GovernanceAttached: modelRef.GovernanceAttached,
 			}
 		}
@@ -219,7 +223,9 @@ func convertUnstructuredToExternalModelSummary(obj *unstructured.Unstructured) *
 
 	phase, _, _ := unstructured.NestedString(content, "status", "phase")
 	summary.Phase = phase
-	summary.StatusMessage = extractReadyConditionMessage(content)
+	ready := extractReadyCondition(content)
+	summary.StatusMessage = ready.Message
+	summary.Reason = ready.Reason
 
 	return summary
 }
