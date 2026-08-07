@@ -8,9 +8,10 @@ on:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-  # Do not cancel on labeled/unlabeled — auto-merge adding lgtm/approved was
+  # Cancel on synchronize (new push) so stale scans don't waste runners.
+  # Keep running on labeled/unlabeled — auto-merge adding lgtm/approved was
   # cancelling in-flight audit runs before they finished.
-  cancel-in-progress: false
+  cancel-in-progress: ${{ github.event.action == 'synchronize' }}
 
 jobs:
   detect-dirs:
