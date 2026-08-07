@@ -128,8 +128,6 @@ export const setupBaseMCPServerMocks = (
     cy.interceptGenAi('GET /api/v1/lsd/models', { query: { namespace } }, mockEmptyList());
   }
 
-  cy.interceptGenAi('GET /api/v1/maas/models', { query: { namespace } }, mockEmptyList());
-
   // Mock user endpoint to prevent k8s client errors in test environment
   cy.interceptGenAi('GET /api/v1/user', { data: { username: 'test-user' } });
 };

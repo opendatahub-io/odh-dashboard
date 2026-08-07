@@ -1,10 +1,9 @@
 /* eslint-disable camelcase */
-import type { AAModelResponse, MaaSModel } from '~/app/types';
+import type { AAModelResponse } from '~/app/types';
 import {
   mockNamespace,
   mockNamespaces,
   mockAAModels,
-  mockMaaSModels,
   mockEmptyList,
   mockStatus,
 } from '~/__tests__/cypress/cypress/__mocks__';
@@ -24,8 +23,7 @@ declare global {
 export interface ModelsTabTestOptions {
   namespace?: string;
   aiModels?: Partial<AAModelResponse>[];
-  maasModels?: Partial<MaaSModel>[];
-  maasError?: boolean;
+  maasModels?: Partial<AAModelResponse>[];
   lsdStatus?: 'Ready' | 'NotReady';
 }
 
@@ -38,19 +36,9 @@ export const setupModelsTabIntercepts = (options: ModelsTabTestOptions = {}): vo
   ];
   cy.interceptGenAi('GET /api/v1/namespaces', { data: namespacesData });
 
-  cy.interceptGenAi('GET /api/v1/aaa/models', mockAAModels(options.aiModels)).as('aaModels');
-
-  if (options.maasError) {
-    cy.interceptGenAi('GET /api/v1/maas/models', {
-      statusCode: 500,
-      body: { error: 'MaaS service unavailable' },
-    }).as('maasModels');
-  } else {
-    cy.interceptGenAi(
-      'GET /api/v1/maas/models',
-      options.maasModels ? mockMaaSModels(options.maasModels) : mockEmptyList(),
-    ).as('maasModels');
-  }
+  // Unified models intercept - useFetchAIModels fetches all sources in a single request
+  const allModels = [...(options.aiModels || []), ...(options.maasModels || [])];
+  cy.interceptGenAi('GET /api/v1/aaa/models', mockAAModels(allModels)).as('aaModels');
 
   cy.interceptGenAi('GET /api/v1/lsd/status', mockStatus(options.lsdStatus ?? 'Ready'));
 
