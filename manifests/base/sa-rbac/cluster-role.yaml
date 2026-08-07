@@ -206,6 +206,13 @@ rules:
     resources:
       - featurestores
   - apiGroups:
+      - ''
+    resources:
+      - configmaps
+    verbs:
+      - get
+      - list
+  - apiGroups:
       - mlflow.opendatahub.io
     verbs:
       - get
