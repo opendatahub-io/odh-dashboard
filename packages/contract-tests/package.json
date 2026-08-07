@@ -17,8 +17,7 @@
     "axios": "^1.17.0",
     "jest": "^29.7.0",
     "jest-html-reporters": "^3.1.7",
-    "js-yaml": "^4.2.0",
-    "ts-jest": "^29.4.11"
+    "js-yaml": "^4.2.0"
   },
   "devDependencies": {
     "@odh-dashboard/eslint-config": "*",
@@ -28,5 +27,8 @@
   },
   "exports": {
     ".": "./src/index.ts"
+  },
+  "optionalDependencies": {
+    "ts-jest": "^29.4.12"
   }
 }
