@@ -35,8 +35,9 @@ const McpRegistryDeployAction: React.FC<McpRegistryDeployActionProps> = ({
   const canDeploy = Boolean(version) && isAvailable && Boolean(namespace);
 
   // Surface *why* Deploy is disabled instead of leaving the button greyed out with no
-  // explanation — extensionsLoaded && extensions.length === 0 usually means the
-  // mcp-catalog.server/deploy-modal extension's flag requirement (Model Registry) isn't met.
+  // explanation. The Registry tab that hosts this button already requires MCP_CATALOG to be
+  // enabled (mcp-catalog.server/deploy-modal's own gate), so extensions.length === 0 here means
+  // the model-registry remote failed to load, not a disabled feature — reloading should fix it.
   const disabledReason = !version
     ? 'Select a server version to deploy'
     : !namespace
@@ -44,7 +45,7 @@ const McpRegistryDeployAction: React.FC<McpRegistryDeployActionProps> = ({
     : !extensionsLoaded
     ? 'Checking deploy availability...'
     : extensions.length === 0
-    ? 'Deploying is unavailable. Ensure Model Registry is enabled on this cluster.'
+    ? 'Deploying is temporarily unavailable. Try reloading the page.'
     : undefined;
 
   const handleDeployed = React.useCallback(

@@ -166,9 +166,7 @@ describe('McpRegistryDeployAction', () => {
 
     await userEvent.hover(button);
     expect(
-      await screen.findByText(
-        'Deploying is unavailable. Ensure Model Registry is enabled on this cluster.',
-      ),
+      await screen.findByText('Deploying is temporarily unavailable. Try reloading the page.'),
     ).toBeInTheDocument();
   });
 
