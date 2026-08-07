@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"log/slog"
 	"strconv"
 
 	"github.com/opendatahub-io/gen-ai/internal/constants"
@@ -9,6 +10,8 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/models"
 	"github.com/opendatahub-io/mlflow-go/mlflow/promptregistry"
 )
+
+const tagModelConfig = "_mlflow_prompt_model_config"
 
 // MLflowPromptsRepository handles MLflow prompt-related operations and data transformations.
 type MLflowPromptsRepository struct {
@@ -58,12 +61,14 @@ func (r *MLflowPromptsRepository) ListPrompts(ctx context.Context, pageToken str
 
 	prompts := make([]models.MLflowPrompt, len(promptList.Prompts))
 	for i, p := range promptList.Prompts {
+		warnMalformedModelConfig(p.Name, p.Tags, p.ModelConfig)
 		prompts[i] = models.MLflowPrompt{
 			Name:              p.Name,
 			Description:       p.Description,
 			LatestVersion:     p.LatestVersion,
 			Tags:              p.Tags,
 			CreationTimestamp: p.CreationTimestamp,
+			ModelConfig:       toMLflowModelConfig(p.ModelConfig),
 			Scope:             *projectScope(namespace),
 		}
 	}
@@ -241,6 +246,8 @@ func toMLflowPromptVersion(pv *promptregistry.PromptVersion, namespace string) *
 		}
 	}
 
+	warnMalformedModelConfig(pv.Name, pv.Tags, pv.ModelConfig)
+
 	return &models.MLflowPromptVersion{
 		Name:          pv.Name,
 		Version:       pv.Version,
@@ -249,9 +256,35 @@ func toMLflowPromptVersion(pv *promptregistry.PromptVersion, namespace string) *
 		CommitMessage: pv.CommitMessage,
 		Aliases:       pv.Aliases,
 		Tags:          pv.Tags,
+		ModelConfig:   toMLflowModelConfig(pv.ModelConfig),
 		CreatedAt:     pv.CreatedAt,
 		UpdatedAt:     pv.UpdatedAt,
 		Scope:         projectScope(namespace),
+	}
+}
+
+func warnMalformedModelConfig(promptName string, tags map[string]string, cfg *promptregistry.PromptModelConfig) {
+	if _, hasTag := tags[tagModelConfig]; hasTag && cfg == nil {
+		slog.Warn("prompt has malformed model config tag, returning null",
+			slog.String("prompt", promptName))
+	}
+}
+
+func toMLflowModelConfig(cfg *promptregistry.PromptModelConfig) *models.MLflowPromptModelConfig {
+	if cfg == nil {
+		return nil
+	}
+	return &models.MLflowPromptModelConfig{
+		Provider:         cfg.Provider,
+		ModelName:        cfg.ModelName,
+		Temperature:      cfg.Temperature,
+		MaxTokens:        cfg.MaxTokens,
+		TopP:             cfg.TopP,
+		TopK:             cfg.TopK,
+		FrequencyPenalty: cfg.FrequencyPenalty,
+		PresencePenalty:  cfg.PresencePenalty,
+		StopSequences:    cfg.StopSequences,
+		ExtraParams:      cfg.ExtraParams,
 	}
 }
 

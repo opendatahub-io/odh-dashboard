@@ -84,6 +84,28 @@ describe('MLflow Prompt Registry Contract Tests', () => {
     });
   });
 
+  describe('Model Config in Prompt Responses', () => {
+    it('should include model_config field in list prompts response', async () => {
+      const result = await apiClient.get('/gen-ai/api/v1/mlflow/prompts?namespace=default');
+      expect(result.success).toBe(true);
+
+      const prompts = result.response?.data?.data?.prompts ?? [];
+      expect(prompts.length).toBeGreaterThan(0);
+
+      for (const prompt of prompts) {
+        expect(prompt).toHaveProperty('model_config');
+      }
+    });
+
+    it('should include model_config field in load prompt response', async () => {
+      const result = await apiClient.get(
+        `/gen-ai/api/v1/mlflow/prompts/${promptName}?namespace=default`,
+      );
+      expect(result.success).toBe(true);
+      expect(result.response?.data?.data).toHaveProperty('model_config');
+    });
+  });
+
   describe('List Prompt Versions Endpoint', () => {
     it('should list versions of a prompt', async () => {
       const result = await apiClient.get(

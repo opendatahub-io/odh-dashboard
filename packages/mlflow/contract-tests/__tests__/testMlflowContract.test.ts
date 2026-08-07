@@ -118,6 +118,31 @@ describe('MLflow API Contract Tests', () => {
       });
     });
 
+    it('should include model_config field in list prompts response', async () => {
+      const result = await apiClient.get(promptUrl());
+      expect(result.success).toBe(true);
+
+      const envelope = result.response?.data as {
+        data?: { prompts?: Array<{ model_config: unknown }> };
+      };
+      const prompts = envelope.data?.prompts ?? [];
+      expect(prompts.length).toBeGreaterThan(0);
+
+      for (const prompt of prompts) {
+        expect(prompt).toHaveProperty('model_config');
+      }
+    });
+
+    it('should include model_config field in load prompt response', async () => {
+      const result = await apiClient.get(promptUrl(promptName));
+      expect(result.success).toBe(true);
+
+      const envelope = result.response?.data as {
+        data?: { model_config: unknown };
+      };
+      expect(envelope.data).toHaveProperty('model_config');
+    });
+
     it('should list versions of a prompt', async () => {
       const result = await apiClient.get(promptUrl(promptName, '/versions'));
       expect(result).toMatchContract(apiSchema, {

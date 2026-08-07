@@ -3,6 +3,7 @@ package repositories
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"strconv"
 	"strings"
 
@@ -11,6 +12,8 @@ import (
 	mlflow "github.com/opendatahub-io/mlflow/bff/internal/integrations/mlflow"
 	"github.com/opendatahub-io/mlflow/bff/internal/models"
 )
+
+const tagModelConfig = "_mlflow_prompt_model_config"
 
 // PromptsRepository handles MLflow prompt-related operations and data transformations.
 type PromptsRepository struct{}
@@ -55,12 +58,14 @@ func (r *PromptsRepository) ListPromptsWithClient(ctx context.Context, client ml
 
 	prompts := make([]models.Prompt, len(promptList.Prompts))
 	for i, p := range promptList.Prompts {
+		warnMalformedModelConfig(p.Name, p.Tags, p.ModelConfig)
 		prompts[i] = models.Prompt{
 			Name:              p.Name,
 			Description:       p.Description,
 			LatestVersion:     p.LatestVersion,
 			Tags:              p.Tags,
 			CreationTimestamp: p.CreationTimestamp,
+			ModelConfig:       toModelConfig(p.ModelConfig),
 		}
 	}
 
@@ -207,6 +212,8 @@ func toPromptVersion(pv *promptregistry.PromptVersion) *models.PromptVersion {
 		}
 	}
 
+	warnMalformedModelConfig(pv.Name, pv.Tags, pv.ModelConfig)
+
 	return &models.PromptVersion{
 		Name:          pv.Name,
 		Version:       pv.Version,
@@ -215,7 +222,33 @@ func toPromptVersion(pv *promptregistry.PromptVersion) *models.PromptVersion {
 		CommitMessage: pv.CommitMessage,
 		Aliases:       pv.Aliases,
 		Tags:          pv.Tags,
+		ModelConfig:   toModelConfig(pv.ModelConfig),
 		CreatedAt:     pv.CreatedAt,
 		UpdatedAt:     pv.UpdatedAt,
+	}
+}
+
+func warnMalformedModelConfig(promptName string, tags map[string]string, cfg *promptregistry.PromptModelConfig) {
+	if _, hasTag := tags[tagModelConfig]; hasTag && cfg == nil {
+		slog.Warn("prompt has malformed model config tag, returning null",
+			slog.String("prompt", promptName))
+	}
+}
+
+func toModelConfig(cfg *promptregistry.PromptModelConfig) *models.PromptModelConfig {
+	if cfg == nil {
+		return nil
+	}
+	return &models.PromptModelConfig{
+		Provider:         cfg.Provider,
+		ModelName:        cfg.ModelName,
+		Temperature:      cfg.Temperature,
+		MaxTokens:        cfg.MaxTokens,
+		TopP:             cfg.TopP,
+		TopK:             cfg.TopK,
+		FrequencyPenalty: cfg.FrequencyPenalty,
+		PresencePenalty:  cfg.PresencePenalty,
+		StopSequences:    cfg.StopSequences,
+		ExtraParams:      cfg.ExtraParams,
 	}
 }
