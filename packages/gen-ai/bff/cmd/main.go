@@ -109,7 +109,6 @@ func main() {
 	// failure and never reaches normal operation.
 	if err := validateInsecureSkipVerify(
 		cfg.InsecureSkipVerify,
-		os.Getenv("ALLOW_INSECURE_TLS"),
 		os.Getenv("ENV"),
 		os.Getenv("CI"),
 		certFile,
@@ -219,7 +218,7 @@ func parseBoolTruthy(s string) bool {
 // validateInsecureSkipVerify validates the InsecureSkipVerify configuration at startup.
 // Returns an error if the configuration is invalid or poses a security risk.
 // Accepts env var values as parameters to enable hermetic testing.
-func validateInsecureSkipVerify(insecureSkipVerify bool, allowInsecureTLSRaw, env, ci, certFile string) error {
+func validateInsecureSkipVerify(insecureSkipVerify bool, env, ci, certFile string) error {
 	if !insecureSkipVerify {
 		return nil
 	}
@@ -237,7 +236,6 @@ func validateInsecureSkipVerify(insecureSkipVerify bool, allowInsecureTLSRaw, en
 	normalizedEnv := strings.ToLower(strings.TrimSpace(env))
 	isCI := parseBoolTruthy(ci)
 
-	// Check production/staging/CI environments - reject regardless of ALLOW_INSECURE_TLS
 	if normalizedEnv == "prod" || normalizedEnv == "production" || normalizedEnv == "staging" || isCI {
 		envType := normalizedEnv
 		if isCI {
@@ -256,22 +254,8 @@ func validateInsecureSkipVerify(insecureSkipVerify bool, allowInsecureTLSRaw, en
 		return fmt.Errorf("InsecureSkipVerify cannot be used in %s environment", envType)
 	}
 
-	// For non-production environments, require explicit opt-in
-	if !parseBoolTruthy(allowInsecureTLSRaw) {
-		slog.Error("SECURITY: InsecureSkipVerify requires explicit ALLOW_INSECURE_TLS=true",
-			"insecure_skip_verify", insecureSkipVerify,
-			"allow_insecure_tls", allowInsecureTLSRaw,
-			"env", env,
-			"warning", "InsecureSkipVerify disables TLS certificate verification and MUST NOT be used in production",
-			"fix", "For local development only, set ALLOW_INSECURE_TLS=true",
-			"important", "NEVER set ALLOW_INSECURE_TLS=true in production deployments",
-		)
-		return errors.New("InsecureSkipVerify requires ALLOW_INSECURE_TLS=true")
-	}
-
 	slog.Warn("SECURITY WARNING: TLS certificate verification is DISABLED (InsecureSkipVerify=true)",
 		"env", env,
-		"allow_insecure_tls", allowInsecureTLSRaw,
 		"use_case", "local development only - NEVER use in production",
 	)
 	return nil

@@ -137,7 +137,6 @@ func TestValidateInsecureSkipVerify(t *testing.T) {
 	testCases := []struct {
 		name                  string
 		insecureSkipVerify    bool
-		allowInsecureTLS      string
 		env                   string
 		ci                    string
 		certFile              string
@@ -147,79 +146,30 @@ func TestValidateInsecureSkipVerify(t *testing.T) {
 		{
 			name:               "InsecureSkipVerify disabled - should pass",
 			insecureSkipVerify: false,
-			allowInsecureTLS:   "",
 			env:                "",
 			expectedError:      false,
 		},
 		{
-			name:               "InsecureSkipVerify disabled with ALLOW_INSECURE_TLS - should pass",
-			insecureSkipVerify: false,
-			allowInsecureTLS:   "true",
-			env:                "",
-			expectedError:      false,
-		},
-		{
-			name:                  "InsecureSkipVerify enabled without ALLOW_INSECURE_TLS - should fail",
-			insecureSkipVerify:    true,
-			allowInsecureTLS:      "",
-			env:                   "",
-			expectedError:         true,
-			expectedErrorContains: "requires ALLOW_INSECURE_TLS=true",
-		},
-		{
-			name:                  "InsecureSkipVerify enabled with ALLOW_INSECURE_TLS=false - should fail",
-			insecureSkipVerify:    true,
-			allowInsecureTLS:      "false",
-			env:                   "",
-			expectedError:         true,
-			expectedErrorContains: "requires ALLOW_INSECURE_TLS=true",
-		},
-		{
-			name:               "InsecureSkipVerify enabled with ALLOW_INSECURE_TLS=1 - should pass",
+			name:               "InsecureSkipVerify enabled - should pass in local dev",
 			insecureSkipVerify: true,
-			allowInsecureTLS:   "1",
 			env:                "",
 			expectedError:      false,
 		},
 		{
-			name:               "InsecureSkipVerify enabled with ALLOW_INSECURE_TLS=yes - should pass",
+			name:               "InsecureSkipVerify enabled with ENV=dev - should pass",
 			insecureSkipVerify: true,
-			allowInsecureTLS:   "yes",
-			env:                "",
-			expectedError:      false,
-		},
-		{
-			name:               "InsecureSkipVerify enabled with ALLOW_INSECURE_TLS=on - should pass",
-			insecureSkipVerify: true,
-			allowInsecureTLS:   "on",
-			env:                "",
-			expectedError:      false,
-		},
-		{
-			name:               "InsecureSkipVerify enabled with ALLOW_INSECURE_TLS=true - should pass",
-			insecureSkipVerify: true,
-			allowInsecureTLS:   "true",
-			env:                "",
-			expectedError:      false,
-		},
-		{
-			name:               "InsecureSkipVerify enabled with ALLOW_INSECURE_TLS=true and ENV=dev - should pass",
-			insecureSkipVerify: true,
-			allowInsecureTLS:   "true",
 			env:                "dev",
 			expectedError:      false,
 		},
 		{
-			name:               "InsecureSkipVerify enabled with ALLOW_INSECURE_TLS=true and ENV=development - should pass",
+			name:               "InsecureSkipVerify enabled with ENV=development - should pass",
 			insecureSkipVerify: true,
-			allowInsecureTLS:   "true",
 			env:                "development",
 			expectedError:      false,
 		},
 		{
 			name:                  "InsecureSkipVerify enabled with ENV=prod - should fail",
 			insecureSkipVerify:    true,
-			allowInsecureTLS:      "true",
 			env:                   "prod",
 			expectedError:         true,
 			expectedErrorContains: "cannot be used in prod environment",
@@ -227,15 +177,6 @@ func TestValidateInsecureSkipVerify(t *testing.T) {
 		{
 			name:                  "InsecureSkipVerify enabled with ENV=production - should fail",
 			insecureSkipVerify:    true,
-			allowInsecureTLS:      "true",
-			env:                   "production",
-			expectedError:         true,
-			expectedErrorContains: "cannot be used in production environment",
-		},
-		{
-			name:                  "InsecureSkipVerify enabled with ENV=production without ALLOW_INSECURE_TLS - should fail with production error",
-			insecureSkipVerify:    true,
-			allowInsecureTLS:      "",
 			env:                   "production",
 			expectedError:         true,
 			expectedErrorContains: "cannot be used in production environment",
@@ -243,7 +184,6 @@ func TestValidateInsecureSkipVerify(t *testing.T) {
 		{
 			name:                  "InsecureSkipVerify enabled with ENV=staging - should fail",
 			insecureSkipVerify:    true,
-			allowInsecureTLS:      "true",
 			env:                   "staging",
 			expectedError:         true,
 			expectedErrorContains: "cannot be used in staging environment",
@@ -251,7 +191,6 @@ func TestValidateInsecureSkipVerify(t *testing.T) {
 		{
 			name:                  "InsecureSkipVerify enabled with ENV=PRODUCTION (uppercase) - should fail",
 			insecureSkipVerify:    true,
-			allowInsecureTLS:      "true",
 			env:                   "PRODUCTION",
 			expectedError:         true,
 			expectedErrorContains: "cannot be used in production environment",
@@ -259,15 +198,14 @@ func TestValidateInsecureSkipVerify(t *testing.T) {
 		{
 			name:                  "InsecureSkipVerify enabled with ENV=' production ' (whitespace) - should fail",
 			insecureSkipVerify:    true,
-			allowInsecureTLS:      "true",
 			env:                   " production ",
 			expectedError:         true,
 			expectedErrorContains: "cannot be used in production environment",
 		},
+		// CI detection
 		{
 			name:                  "InsecureSkipVerify enabled with CI=true and ENV=dev - should fail",
 			insecureSkipVerify:    true,
-			allowInsecureTLS:      "true",
 			env:                   "dev",
 			ci:                    "true",
 			expectedError:         true,
@@ -276,7 +214,6 @@ func TestValidateInsecureSkipVerify(t *testing.T) {
 		{
 			name:                  "InsecureSkipVerify enabled with CI=true and empty ENV - should fail",
 			insecureSkipVerify:    true,
-			allowInsecureTLS:      "true",
 			env:                   "",
 			ci:                    "true",
 			expectedError:         true,
@@ -285,7 +222,6 @@ func TestValidateInsecureSkipVerify(t *testing.T) {
 		{
 			name:                  "InsecureSkipVerify enabled with CI=1 - should fail",
 			insecureSkipVerify:    true,
-			allowInsecureTLS:      "true",
 			env:                   "",
 			ci:                    "1",
 			expectedError:         true,
@@ -294,7 +230,6 @@ func TestValidateInsecureSkipVerify(t *testing.T) {
 		{
 			name:                  "InsecureSkipVerify enabled with CI=yes - should fail",
 			insecureSkipVerify:    true,
-			allowInsecureTLS:      "true",
 			env:                   "",
 			ci:                    "yes",
 			expectedError:         true,
@@ -303,7 +238,6 @@ func TestValidateInsecureSkipVerify(t *testing.T) {
 		{
 			name:                  "InsecureSkipVerify enabled with CI=true and ENV=production - should fail with production (CI)",
 			insecureSkipVerify:    true,
-			allowInsecureTLS:      "true",
 			env:                   "production",
 			ci:                    "true",
 			expectedError:         true,
@@ -312,7 +246,6 @@ func TestValidateInsecureSkipVerify(t *testing.T) {
 		{
 			name:                  "InsecureSkipVerify enabled with CI=on - should fail",
 			insecureSkipVerify:    true,
-			allowInsecureTLS:      "true",
 			env:                   "",
 			ci:                    "on",
 			expectedError:         true,
@@ -321,7 +254,6 @@ func TestValidateInsecureSkipVerify(t *testing.T) {
 		{
 			name:                  "InsecureSkipVerify enabled with CI=' true ' (whitespace) - should fail",
 			insecureSkipVerify:    true,
-			allowInsecureTLS:      "true",
 			env:                   "",
 			ci:                    " true ",
 			expectedError:         true,
@@ -330,31 +262,14 @@ func TestValidateInsecureSkipVerify(t *testing.T) {
 		{
 			name:               "InsecureSkipVerify enabled with CI=false - should pass",
 			insecureSkipVerify: true,
-			allowInsecureTLS:   "true",
 			env:                "",
 			ci:                 "false",
-			expectedError:      false,
-		},
-		{
-			name:               "InsecureSkipVerify enabled with ALLOW_INSECURE_TLS=True (case variant) - should pass",
-			insecureSkipVerify: true,
-			allowInsecureTLS:   "True",
-			env:                "",
-			expectedError:      false,
-		},
-		{
-			name:               "InsecureSkipVerify enabled with ALLOW_INSECURE_TLS=TRUE (uppercase) - should pass",
-			insecureSkipVerify: true,
-			allowInsecureTLS:   "TRUE",
-			env:                "",
 			expectedError:      false,
 		},
 		// cert-file detection: TLS certs mounted indicates a deployed environment
 		{
 			name:                  "InsecureSkipVerify enabled with cert-file set - should fail",
 			insecureSkipVerify:    true,
-			allowInsecureTLS:      "true",
-			env:                   "",
 			certFile:              "/etc/tls/tls.crt",
 			expectedError:         true,
 			expectedErrorContains: "TLS certificates are mounted",
@@ -362,7 +277,6 @@ func TestValidateInsecureSkipVerify(t *testing.T) {
 		{
 			name:                  "InsecureSkipVerify enabled with cert-file set and ENV=dev - should fail",
 			insecureSkipVerify:    true,
-			allowInsecureTLS:      "true",
 			env:                   "dev",
 			certFile:              "/etc/tls/tls.crt",
 			expectedError:         true,
@@ -371,7 +285,6 @@ func TestValidateInsecureSkipVerify(t *testing.T) {
 		{
 			name:               "InsecureSkipVerify disabled with cert-file set - should pass",
 			insecureSkipVerify: false,
-			allowInsecureTLS:   "",
 			certFile:           "/etc/tls/tls.crt",
 			expectedError:      false,
 		},
@@ -381,7 +294,6 @@ func TestValidateInsecureSkipVerify(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			err := validateInsecureSkipVerify(
 				tc.insecureSkipVerify,
-				tc.allowInsecureTLS,
 				tc.env,
 				tc.ci,
 				tc.certFile,
