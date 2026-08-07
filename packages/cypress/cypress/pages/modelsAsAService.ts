@@ -1458,13 +1458,9 @@ class OverviewTableRow extends TableRow {
 }
 
 class OverviewTabPage {
-  getRow(modelName: string, namespace: string): OverviewTableRow {
+  getRow(modelId: string, namespace: string): OverviewTableRow {
     return new OverviewTableRow(() =>
-      this.findModelRows()
-        .filter(`:has([data-label="Project"]:contains("${namespace}"))`)
-        .contains('td[data-label="Model name"]', modelName)
-        .parents('tr')
-        .first(),
+      cy.findByTestId(`overview-model-row-${modelId}-${namespace}`).find('tr').first(),
     );
   }
 
@@ -1477,7 +1473,7 @@ class OverviewTabPage {
   }
 
   findModelRows(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findTable().findAllByTestId('overview-model-row');
+    return this.findTable().find('[data-testid^="overview-model-row-"]');
   }
 
   findColumnSortButton(label: string): Cypress.Chainable<JQuery<HTMLElement>> {

@@ -110,7 +110,7 @@ const OverviewTableRow: React.FC<OverviewTableRowProps> = ({
   const navigate = useNavigate();
 
   return (
-    <Tbody isExpanded={isExpanded} data-testid="overview-model-row">
+    <Tbody isExpanded={isExpanded} data-testid={`overview-model-row-${row.id}-${row.namespace}`}>
       <Tr style={isExpanded ? { borderBottom: 'none' } : undefined}>
         <Td
           data-testid="expand-model"

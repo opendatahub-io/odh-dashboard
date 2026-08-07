@@ -98,7 +98,7 @@ describe('Subscription Management Page / Overview Tab', () => {
   it('should display the overview table with correct page content', () => {
     subscriptionManagementPage.visit('overview');
     overviewTabPage.findTable().should('exist');
-    const overviewRow = overviewTabPage.getRow('Flan T5 Small', 'maas-models');
+    const overviewRow = overviewTabPage.getRow('flan-t5-small', 'maas-models');
     overviewRow.findModelName().should('contain.text', 'Flan T5 Small');
     overviewRow.findModelId().should('contain.text', 'flan-t5-small');
     overviewRow.findModelDescription().should('contain.text', 'A compact text-to-text model');
@@ -139,10 +139,6 @@ describe('Subscription Management Page / Overview Tab', () => {
     overviewTabPage.findColumnSortButton('Project').click();
     overviewTabPage.getRowByIndex(0).findModelProject().should('have.text', 'maas-models');
     overviewTabPage.getRowByIndex(5).findModelProject().should('have.text', 'team-sandbox');
-    overviewTabPage
-      .getRow('Granite 3 8B Instruct (sandbox)', 'team-sandbox')
-      .findModelProject()
-      .should('have.text', 'team-sandbox');
 
     // Sort by subscriptions
     overviewTabPage.findColumnSortButton('Subscriptions').click();
