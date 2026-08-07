@@ -53,7 +53,6 @@ const CreateRoleForm: React.FC<CreateRoleFormProps> = ({
           data-testid="role-description"
           value={description}
           onChange={handleDescriptionChange}
-          placeholder="Describe what this role is for and who should use it"
           resizeOrientation="vertical"
         />
       </FormGroup>

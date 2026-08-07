@@ -61,6 +61,7 @@ export enum SupportedArea {
   TRUSTY_AI = 'trusty-ai',
   NIM_MODEL = 'nim-model',
   NIM_WIZARD = 'nim-wizard',
+  NIM_SERVICE_OPERATOR = 'nim-service-operator',
   SERVING_RUNTIME_PARAMS = 'serving-runtime-params',
   MODEL_AS_SERVICE = 'model-as-service',
   LLMD_SERVING = 'llmd-serving',

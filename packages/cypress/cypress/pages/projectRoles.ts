@@ -259,7 +259,45 @@ class ProjectRolesTab {
   }
 
   findPermissionRuleActionCells() {
-    return this.findPermissionRulesTable().find('tbody td[data-label="Actions"]');
+    return this.findPermissionRulesTable().find('tbody td[data-label="Operations"]');
+  }
+
+  findTabTitle() {
+    return cy.findByTestId('roles-tab-title');
+  }
+
+  findTabDescription() {
+    return cy.findByTestId('roles-tab-description');
+  }
+
+  findPermissionsTabLink() {
+    return cy.findByTestId('roles-tab-permissions-link');
+  }
+
+  findRulesFilterToggle() {
+    return cy.findByTestId('rules-filter-toggle');
+  }
+
+  findRulesSearchInput() {
+    return cy.findByTestId('rules-search-input').find('input');
+  }
+
+  findRuleEditButton(index: number) {
+    return this.findPermissionRulesTable()
+      .find('tbody tr')
+      .eq(index)
+      .find('[data-testid^="edit-rule-"]');
+  }
+
+  findRuleRemoveButton(index: number) {
+    return this.findPermissionRulesTable()
+      .find('tbody tr')
+      .eq(index)
+      .find('[data-testid^="remove-rule-"]');
+  }
+
+  findRuleCancelButton() {
+    return cy.findByTestId('modal-cancel-button');
   }
 
   getRow(name: string) {
