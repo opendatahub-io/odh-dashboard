@@ -86,6 +86,7 @@ const SearchableMultiSelectFilter: React.FC<SearchableMultiSelectFilterProps> = 
           </MenuToggle>
         )}
         data-testid={`${testIdPrefix}-select`}
+        maxMenuHeight="400px"
       >
         <MenuSearch>
           <MenuSearchInput>
