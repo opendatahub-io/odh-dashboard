@@ -13,7 +13,6 @@ import {
 } from '@patternfly/react-icons';
 import { AlertVariant, LabelProps } from '@patternfly/react-core';
 import { getDisplayNameFromK8sResource, WorkloadCondition } from '@odh-dashboard/k8s-core';
-import { isInadmissibleQuotaCondition } from '@odh-dashboard/internal/concepts/kueue/messageUtils';
 import type { JobsFilterDataType } from './const';
 import { TrainJobKind, RayJobKind, RayClusterKind, RayClusterSpec } from '../../k8sTypes';
 import {
@@ -188,7 +187,12 @@ const extractWorkloadConditions = (
       ({ type, status }) =>
         type === WorkloadConditionType.Preempted && status === ConditionStatus.True,
     ),
-    Inadmissible: conditions.find(isInadmissibleQuotaCondition),
+    Inadmissible: conditions.find(
+      ({ type, status, reason }) =>
+        type === WorkloadConditionType.QuotaReserved &&
+        status === ConditionStatus.False &&
+        reason === 'Inadmissible',
+    ),
     Pending: conditions.find(
       ({ type, status }) =>
         type === WorkloadConditionType.QuotaReserved && status === ConditionStatus.False,
