@@ -68,22 +68,22 @@ class ChooseBenchmarkPage {
 
   selectCategoryOption(category: string) {
     this.findCategoryFilter().click();
-    cy.findByTestId('benchmarks-category-select').findByText(category).click();
+    cy.findByTestId(`benchmarks-category-option-${category}`).click();
     this.findCategoryFilter().click();
   }
 
   selectMetricsOption(metric: string) {
     this.findMetricsFilter().click();
-    cy.findByTestId('benchmarks-metrics-select').findByText(metric).click();
+    cy.findByTestId(`benchmarks-metrics-option-${metric}`).click();
     this.findMetricsFilter().click();
   }
 
   findCategorySearchInput() {
-    return cy.findByTestId('benchmarks-category-select').findByLabelText('Search categories');
+    return cy.findByTestId('benchmarks-category-search-input');
   }
 
   findMetricsSearchInput() {
-    return cy.findByTestId('benchmarks-metrics-select').findByLabelText('Search metrics');
+    return cy.findByTestId('benchmarks-metrics-search-input');
   }
 
   findCategoryFilterBadge() {

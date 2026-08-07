@@ -96,6 +96,7 @@ const SearchableMultiSelectFilter: React.FC<SearchableMultiSelectFilterProps> = 
               value={search}
               onChange={(_event, value) => setSearch(value)}
               onClear={() => setSearch('')}
+              data-testid={`${testIdPrefix}-search-input`}
             />
           </MenuSearchInput>
         </MenuSearch>
@@ -103,7 +104,13 @@ const SearchableMultiSelectFilter: React.FC<SearchableMultiSelectFilterProps> = 
         <SelectList>
           {filtered.length > 0 ? (
             filtered.map((opt) => (
-              <SelectOption key={opt} value={opt} hasCheckbox isSelected={selected.includes(opt)}>
+              <SelectOption
+                key={opt}
+                value={opt}
+                hasCheckbox
+                isSelected={selected.includes(opt)}
+                data-testid={`${testIdPrefix}-option-${opt}`}
+              >
                 {formatLabel(opt)}
               </SelectOption>
             ))

@@ -46,7 +46,7 @@ class ChooseCollectionPage {
   }
 
   findCategoryOption(name: string) {
-    return cy.findByRole('option', { name });
+    return cy.findByTestId(`collections-category-option-${name}`);
   }
 
   findNextPageButton() {
@@ -73,7 +73,7 @@ class ChooseCollectionPage {
   }
 
   findCategorySearchInput() {
-    return cy.findByTestId('collections-category-select').findByLabelText('Search categories');
+    return cy.findByTestId('collections-category-search-input');
   }
 
   findCategoryFilterBadge() {
