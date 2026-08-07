@@ -64,6 +64,7 @@ func (r *MLflowPromptsRepository) ListPrompts(ctx context.Context, pageToken str
 			LatestVersion:     p.LatestVersion,
 			Tags:              p.Tags,
 			CreationTimestamp: p.CreationTimestamp,
+			ModelConfig:       toMLflowModelConfig(p.ModelConfig),
 			Scope:             *projectScope(namespace),
 		}
 	}
@@ -249,9 +250,28 @@ func toMLflowPromptVersion(pv *promptregistry.PromptVersion, namespace string) *
 		CommitMessage: pv.CommitMessage,
 		Aliases:       pv.Aliases,
 		Tags:          pv.Tags,
+		ModelConfig:   toMLflowModelConfig(pv.ModelConfig),
 		CreatedAt:     pv.CreatedAt,
 		UpdatedAt:     pv.UpdatedAt,
 		Scope:         projectScope(namespace),
+	}
+}
+
+func toMLflowModelConfig(cfg *promptregistry.PromptModelConfig) *models.MLflowPromptModelConfig {
+	if cfg == nil {
+		return nil
+	}
+	return &models.MLflowPromptModelConfig{
+		Provider:         cfg.Provider,
+		ModelName:        cfg.ModelName,
+		Temperature:      cfg.Temperature,
+		MaxTokens:        cfg.MaxTokens,
+		TopP:             cfg.TopP,
+		TopK:             cfg.TopK,
+		FrequencyPenalty: cfg.FrequencyPenalty,
+		PresencePenalty:  cfg.PresencePenalty,
+		StopSequences:    cfg.StopSequences,
+		ExtraParams:      cfg.ExtraParams,
 	}
 }
 

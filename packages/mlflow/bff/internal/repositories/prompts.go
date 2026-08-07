@@ -61,6 +61,7 @@ func (r *PromptsRepository) ListPromptsWithClient(ctx context.Context, client ml
 			LatestVersion:     p.LatestVersion,
 			Tags:              p.Tags,
 			CreationTimestamp: p.CreationTimestamp,
+			ModelConfig:       toModelConfig(p.ModelConfig),
 		}
 	}
 
@@ -215,7 +216,26 @@ func toPromptVersion(pv *promptregistry.PromptVersion) *models.PromptVersion {
 		CommitMessage: pv.CommitMessage,
 		Aliases:       pv.Aliases,
 		Tags:          pv.Tags,
+		ModelConfig:   toModelConfig(pv.ModelConfig),
 		CreatedAt:     pv.CreatedAt,
 		UpdatedAt:     pv.UpdatedAt,
+	}
+}
+
+func toModelConfig(cfg *promptregistry.PromptModelConfig) *models.PromptModelConfig {
+	if cfg == nil {
+		return nil
+	}
+	return &models.PromptModelConfig{
+		Provider:         cfg.Provider,
+		ModelName:        cfg.ModelName,
+		Temperature:      cfg.Temperature,
+		MaxTokens:        cfg.MaxTokens,
+		TopP:             cfg.TopP,
+		TopK:             cfg.TopK,
+		FrequencyPenalty: cfg.FrequencyPenalty,
+		PresencePenalty:  cfg.PresencePenalty,
+		StopSequences:    cfg.StopSequences,
+		ExtraParams:      cfg.ExtraParams,
 	}
 }
