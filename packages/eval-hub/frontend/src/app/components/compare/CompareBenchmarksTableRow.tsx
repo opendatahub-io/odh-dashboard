@@ -106,11 +106,11 @@ const CompareBenchmarksTableRow: React.FC<CompareBenchmarksTableRowProps> = ({
             data-testid={`compare-run-checkbox-${job.resource.id}`}
           />
         </Td>
-        <Td dataLabel="Evaluation run">{evaluationRunLabel}</Td>
+        <Td dataLabel="Evaluation name">{evaluationRunLabel}</Td>
+        <Td dataLabel="Evaluation">{evaluationLabel}</Td>
         <Td modifier="nowrap" dataLabel="Type">
           {getCompareRunType(job)}
         </Td>
-        <Td dataLabel="Evaluation">{evaluationLabel}</Td>
         <Td dataLabel="Evaluated">{job.model.name}</Td>
         <Td modifier="nowrap" dataLabel="Date">
           {formatCompareTableDate(job.resource.created_at)}
@@ -143,20 +143,23 @@ const CompareBenchmarksTableRow: React.FC<CompareBenchmarksTableRowProps> = ({
                     data-testid={`compare-benchmark-checkbox-${selectionKey}`}
                   />
                 </Td>
-                <Td modifier="nowrap" dataLabel="Evaluation run">
-                  <span className="pf-v6-u-pl-lg">{benchmarkLabel}</span>
-                </Td>
-                <Td modifier="nowrap" dataLabel="Type">
-                  {COMPARE_CHILD_RUN_TYPE}
+                <Td modifier="nowrap" dataLabel="Evaluation name">
+                  {/* We do not want to display the evaluation run label for child rows */}
+                  {/* <span className="pf-v6-u-pl-lg">{benchmarkLabel}</span> */}
                 </Td>
                 <Td modifier="nowrap" dataLabel="Evaluation">
                   {getBenchmarkDisplayName(run.benchmarkId)}
                 </Td>
+                <Td modifier="nowrap" dataLabel="Type">
+                  {COMPARE_CHILD_RUN_TYPE}
+                </Td>
                 <Td modifier="nowrap" dataLabel="Evaluated">
-                  {job.model.name}
+                  {/* We do not want to display the evaluation for child rows */}
+                  {/* {job.model.name} */}
                 </Td>
                 <Td modifier="nowrap" dataLabel="Date">
-                  {formatCompareTableDate(job.resource.created_at)}
+                  {/* We do not want to display the date for child rows */}
+                  {/* {formatCompareTableDate(job.resource.created_at)} */}
                 </Td>
                 <Td modifier="nowrap" dataLabel="Result">
                   {getCompareBenchmarkResultScore(job, run.benchmarkId, run.benchmarkIndex)}

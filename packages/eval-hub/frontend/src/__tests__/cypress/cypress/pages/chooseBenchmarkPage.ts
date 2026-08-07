@@ -29,8 +29,16 @@ class ChooseBenchmarkPage {
     return cy.findByTestId('benchmarks-filter-toolbar');
   }
 
-  findFilterDropdownToggle() {
-    return cy.findByTestId('filter-toolbar-dropdown');
+  findCategoryFilter() {
+    return cy.findByTestId('benchmarks-category-filter');
+  }
+
+  findMetricsFilter() {
+    return cy.findByTestId('benchmarks-metrics-filter');
+  }
+
+  findNameFilterInput() {
+    return cy.findByTestId('benchmarks-name-filter');
   }
 
   findBenchmarksEmptyState() {
@@ -41,17 +49,49 @@ class ChooseBenchmarkPage {
     return cy.findByTestId('benchmarks-clear-filters');
   }
 
-  selectFilterOption(optionTestId: string) {
-    this.findFilterDropdownToggle().click();
-    cy.findByTestId(`filter-toolbar-option-${optionTestId}`).click();
-  }
-
-  findNameFilterInput() {
-    return cy.findByTestId('benchmarks-name-filter');
-  }
-
   findNextPageButton() {
-    return cy.findByLabelText('Go to next page');
+    return cy.findAllByLabelText('Go to next page').first();
+  }
+
+  findSortToggle() {
+    return cy.findByTestId('benchmarks-sort-toggle');
+  }
+
+  findSortSelect() {
+    return cy.findByTestId('benchmarks-sort-select');
+  }
+
+  selectSortOption(label: string) {
+    this.findSortToggle().click();
+    this.findSortSelect().findByText(label).click();
+  }
+
+  selectCategoryOption(category: string) {
+    this.findCategoryFilter().click();
+    cy.findByTestId(`benchmarks-category-option-${category}`).click();
+    this.findCategoryFilter().click();
+  }
+
+  selectMetricsOption(metric: string) {
+    this.findMetricsFilter().click();
+    cy.findByTestId(`benchmarks-metrics-option-${metric}`).click();
+    this.findMetricsFilter().click();
+  }
+
+  findCategorySearchInput() {
+    return cy.findByTestId('benchmarks-category-search-input');
+  }
+
+  findMetricsSearchInput() {
+    return cy.findByTestId('benchmarks-metrics-search-input');
+  }
+
+  findCategoryFilterBadge() {
+    return cy.findByTestId('benchmarks-category-filter-badge');
+  }
+
+  findMetricsFilterBadge() {
+    return cy.findByTestId('benchmarks-metrics-filter-badge');
   }
 }
 

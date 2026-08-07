@@ -45,6 +45,7 @@ import {
 } from '~/app/routes';
 import { useEvaluationSelection } from '~/app/hooks/useEvaluationSelection';
 import { useInferenceServices } from '~/app/hooks/useInferenceServices';
+import FormGroupLabel from '~/app/components/FormGroupLabel';
 import LabelHelpPopover from '~/app/components/LabelHelpPopover';
 import BenchmarkThresholdField from '~/app/components/BenchmarkThresholdField';
 import PrimaryScorerMetricField from '~/app/components/PrimaryScorerMetricField';
@@ -279,7 +280,17 @@ const StartEvaluationRunPage: React.FC = () => {
           </FormGroup>
 
           {/* ── Source dropdown ─────────────────────────────────── */}
-          <FormGroup label="Source" isRequired fieldId="source-mode">
+          <FormGroup
+            className="eval-hub-form-group--with-description"
+            label={
+              <FormGroupLabel
+                label="Evaluating"
+                description="Select the model, agent, or dataset to evaluate."
+                isRequired
+              />
+            }
+            fieldId="source-mode"
+          >
             <Select
               id="source-mode"
               data-testid="source-mode-select"
@@ -317,15 +328,20 @@ const StartEvaluationRunPage: React.FC = () => {
           {/* ── Model mode: model picker ───────────────────────── */}
           {form.sourceMode === 'model' && (
             <FormGroup
-              label="Model"
-              isRequired
-              fieldId="model-picker"
-              labelHelp={
-                <LabelHelpPopover
-                  ariaLabel="More info for model selection"
-                  content="Select a deployed model from your namespace, or choose 'Other (External endpoint)' to enter an external model URL."
+              className="eval-hub-form-group--with-description"
+              label={
+                <FormGroupLabel
+                  label="Model"
+                  description="Select a model from your project's AI asset endpoints, or specify an external endpoint."
+                  isRequired
+                  helpPopover={{
+                    ariaLabel: 'More info for model selection',
+                    content:
+                      'The list contains models that have been published as AI asset endpoints in this project.',
+                  }}
                 />
               }
+              fieldId="model-picker"
             >
               <Select
                 id="model-picker"

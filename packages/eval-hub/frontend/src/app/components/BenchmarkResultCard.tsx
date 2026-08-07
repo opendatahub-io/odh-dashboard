@@ -11,7 +11,8 @@ import {
 } from '@patternfly/react-core';
 import { CheckCircleIcon, TimesCircleIcon } from '@patternfly/react-icons';
 import { EvaluationJob } from '~/app/types';
-import { getBenchmarkDisplayName } from '~/app/utilities/evaluationUtils';
+import { getBenchmarkDisplayName, getBenchmarkResultScore } from '~/app/utilities/evaluationUtils';
+import './BenchmarkResultCard.scss';
 
 type BenchmarkResultCardProps = {
   benchmarkId: string;
@@ -33,16 +34,17 @@ const BenchmarkResultCard: React.FC<BenchmarkResultCardProps> = ({
       b.id === benchmarkId &&
       (benchmarkIndex === undefined || b.benchmark_index === benchmarkIndex),
   );
+  const score = getBenchmarkResultScore(job, benchmarkId, benchmarkIndex);
   const passStatus = result?.test?.pass;
   const cardKey = benchmarkIndex !== undefined ? `${benchmarkId}-${benchmarkIndex}` : benchmarkId;
 
   return (
     <Card
+      className="evalhub-benchmark-result-card"
       isSelectable={!!onClick}
       isSelected={isSelected}
       isCompact
       data-testid={`benchmark-result-card-${cardKey}`}
-      style={{ minWidth: 200 }}
     >
       <CardHeader
         selectableActions={
@@ -61,15 +63,12 @@ const BenchmarkResultCard: React.FC<BenchmarkResultCardProps> = ({
         <CardTitle id={`benchmark-label-${cardKey}`}>
           <Flex direction={{ default: 'column' }} gap={{ default: 'gapXs' }}>
             <FlexItem>
-              <Content
-                component="p"
-                style={{ fontWeight: 'var(--pf-t--global--font--weight--body--bold)' }}
-              >
+              <Content component="p" className="pf-v6-u-font-weight-bold">
                 {getBenchmarkDisplayName(benchmarkId)}
               </Content>
             </FlexItem>
             <FlexItem>
-              <Content component="p" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
+              <Content component="p" className="pf-v6-u-color-300">
                 {benchmarkId}
               </Content>
             </FlexItem>
@@ -77,22 +76,37 @@ const BenchmarkResultCard: React.FC<BenchmarkResultCardProps> = ({
         </CardTitle>
       </CardHeader>
       <CardBody>
-        {passStatus != null && (
-          <Label
-            variant="outline"
-            color={passStatus ? 'green' : 'red'}
-            icon={
-              passStatus ? (
-                <CheckCircleIcon color="var(--pf-t--global--color--status--success--default)" />
-              ) : (
-                <TimesCircleIcon color="var(--pf-t--global--color--status--danger--default)" />
-              )
-            }
-            data-testid={`benchmark-pass-label-${benchmarkId}`}
-          >
-            {passStatus ? 'Pass' : 'Fail'}
-          </Label>
-        )}
+        <Flex direction={{ default: 'column' }} gap={{ default: 'gapSm' }}>
+          {score !== '-' && (
+            <FlexItem>
+              <Content
+                component="p"
+                className="pf-v6-u-font-size-xl pf-v6-u-font-weight-bold"
+                data-testid={`benchmark-score-${cardKey}`}
+              >
+                {score}
+              </Content>
+            </FlexItem>
+          )}
+          {passStatus != null && (
+            <FlexItem>
+              <Label
+                variant="outline"
+                color={passStatus ? 'green' : 'red'}
+                icon={
+                  passStatus ? (
+                    <CheckCircleIcon color="var(--pf-t--global--color--status--success--default)" />
+                  ) : (
+                    <TimesCircleIcon color="var(--pf-t--global--color--status--danger--default)" />
+                  )
+                }
+                data-testid={`benchmark-pass-label-${benchmarkId}`}
+              >
+                {passStatus ? 'Pass' : 'Fail'}
+              </Label>
+            </FlexItem>
+          )}
+        </Flex>
       </CardBody>
     </Card>
   );

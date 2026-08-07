@@ -12,7 +12,12 @@ import {
 } from '@patternfly/react-core';
 import { CheckCircleIcon, TimesCircleIcon } from '@patternfly/react-icons';
 import { EvaluationJob } from '~/app/types';
-import { getBenchmarkDisplayName, getJobBenchmarks } from '~/app/utilities/evaluationUtils';
+import {
+  formatAsPercentage,
+  getBenchmarkDisplayName,
+  getJobBenchmarks,
+} from '~/app/utilities/evaluationUtils';
+import { getMetricDisplayName } from './benchmarkUtils';
 
 type BenchmarkResultDetailsProps = {
   benchmarkId: string;
@@ -97,12 +102,14 @@ const BenchmarkResultDetails: React.FC<BenchmarkResultDetailsProps> = ({
       >
         <DescriptionListGroup>
           <DescriptionListTerm>Primary metric</DescriptionListTerm>
-          <DescriptionListDescription>{primaryMetricName}</DescriptionListDescription>
+          <DescriptionListDescription>
+            {primaryMetricName !== '-' ? getMetricDisplayName(primaryMetricName) : '-'}
+          </DescriptionListDescription>
         </DescriptionListGroup>
         {threshold != null && (
           <DescriptionListGroup>
             <DescriptionListTerm>Benchmark threshold</DescriptionListTerm>
-            <DescriptionListDescription>{threshold}</DescriptionListDescription>
+            <DescriptionListDescription>{formatAsPercentage(threshold)}</DescriptionListDescription>
           </DescriptionListGroup>
         )}
       </DescriptionList>
