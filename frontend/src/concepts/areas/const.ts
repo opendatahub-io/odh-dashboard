@@ -35,6 +35,7 @@ export const devTemporaryFeatureFlags = {
   disableKueue: true,
   disableProjectScoped: true,
   nimWizard: false,
+  nimServiceOperator: false,
   agentOpsDeploy: false,
   agentsCatalog: false,
 } satisfies Partial<DashboardCommonConfig>;
