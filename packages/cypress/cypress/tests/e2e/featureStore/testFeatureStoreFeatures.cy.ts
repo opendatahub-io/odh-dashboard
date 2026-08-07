@@ -17,6 +17,7 @@ import {
 } from '../../../utils/api/featureStoreRest';
 import { featureMetricsOverview } from '../../../pages/featureStore/featureMetrics';
 import { getCustomResource } from '../../../utils/oc_commands/customResources';
+import { deleteFeastRegistryFiles } from '../../../utils/oc_commands/s3Cleanup';
 
 describe('Feature Store Page Validation', () => {
   let testData: FeatureStoreTestData;
@@ -109,6 +110,9 @@ describe('Feature Store Page Validation', () => {
       cy.log('Skipping cleanup: Tests were skipped');
       return;
     }
+
+    cy.log(`Removing S3 registry files for: ${projectName}`);
+    deleteFeastRegistryFiles(projectName);
 
     cy.log(`Deleting Namespace: ${projectName}`);
     deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
