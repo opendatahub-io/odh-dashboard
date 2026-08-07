@@ -14,20 +14,16 @@ export const StreamingThinkingSection: React.FC<{
   }, [isComplete]);
 
   return React.createElement(
-    'div',
-    { 'data-testid': 'streaming-thinking-section' },
+    ExpandableSection,
+    {
+      toggleContent: 'Show thinking',
+      isExpanded,
+      onToggle: (_e: React.MouseEvent, expanded: boolean) => setIsExpanded(expanded),
+    },
     React.createElement(
-      ExpandableSection,
-      {
-        toggleContent: 'Show thinking',
-        isExpanded,
-        onToggle: (_e: React.MouseEvent, expanded: boolean) => setIsExpanded(expanded),
-      },
-      React.createElement(
-        'div',
-        { style: { fontSize: 'var(--pf-t--global--font--size--sm)', whiteSpace: 'pre-wrap' } },
-        reasoningText,
-      ),
+      'div',
+      { style: { fontSize: 'var(--pf-t--global--font--size--sm)', whiteSpace: 'pre-wrap' } },
+      reasoningText,
     ),
   );
 };
