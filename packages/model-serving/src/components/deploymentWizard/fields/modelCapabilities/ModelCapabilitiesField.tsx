@@ -9,19 +9,28 @@ import {
   Flex,
   FlexItem,
   FormGroup,
+  HelperText,
+  HelperTextItem,
   Label,
+  MenuFooter,
   StackItem,
   TextInput,
+  ValidatedOptions,
 } from '@patternfly/react-core';
 import { PlusCircleIcon } from '@patternfly/react-icons';
 import { z } from 'zod';
+import type { RecursivePartial } from '@odh-dashboard/foundation';
+import { ServingRuntimeModelType } from '@odh-dashboard/model-serving/shared';
 import type {
   WizardField,
+  WizardFormData,
   WizardReviewSection,
 } from '@odh-dashboard/model-serving/shared/types/form-data';
 import {
   WELL_KNOWN_MODEL_CAPABILITIES,
   getModelCapabilityLabelColor,
+  includesModelCapability,
+  normalizeModelCapability,
   type ModelCapability,
 } from '../../../../shared/modelCapabilities';
 
@@ -52,10 +61,11 @@ const ModelCapabilitiesFieldComponent: React.FC<ModelCapabilitiesFieldComponentP
 }) => {
   const [isOpen, setIsOpen] = React.useState(false);
   const [customInput, setCustomInput] = React.useState('');
+  const [customInputError, setCustomInputError] = React.useState('');
   const toggleRef = React.useRef<HTMLButtonElement>(null);
 
   const availableWellKnown = WELL_KNOWN_MODEL_CAPABILITIES.filter(
-    (cap) => !selectedCapabilities.includes(cap),
+    (cap) => !includesModelCapability(selectedCapabilities, cap),
   );
 
   const handleAddWellKnown = (capability: string) => {
@@ -64,10 +74,17 @@ const ModelCapabilitiesFieldComponent: React.FC<ModelCapabilitiesFieldComponentP
 
   const handleAddCustom = () => {
     const trimmed = customInput.trim();
-    if (trimmed && !selectedCapabilities.includes(trimmed)) {
-      onChange([...selectedCapabilities, trimmed]);
-      setCustomInput('');
+    if (!trimmed) {
+      return;
     }
+    const capability = normalizeModelCapability(trimmed);
+    if (includesModelCapability(selectedCapabilities, capability)) {
+      setCustomInputError('This capability has already been added.');
+      return;
+    }
+    setCustomInputError('');
+    onChange([...selectedCapabilities, capability]);
+    setCustomInput('');
   };
 
   const handleRemove = (capability: string) => {
@@ -114,7 +131,13 @@ const ModelCapabilitiesFieldComponent: React.FC<ModelCapabilitiesFieldComponentP
                 }
                 setIsOpen(false);
               }}
-              onOpenChange={(open) => setIsOpen(open)}
+              onOpenChange={(open) => {
+                setIsOpen(open);
+                if (!open) {
+                  setCustomInputError('');
+                }
+              }}
+              onOpenChangeKeys={['Escape']}
               popperProps={{ appendTo: () => document.body }}
               toggle={{
                 toggleNode: (
@@ -132,9 +155,9 @@ const ModelCapabilitiesFieldComponent: React.FC<ModelCapabilitiesFieldComponentP
                 toggleRef,
               }}
             >
-              <DropdownList>
-                {availableWellKnown.length > 0 && (
-                  <>
+              {availableWellKnown.length > 0 && (
+                <>
+                  <DropdownList>
                     <DropdownGroup label="Common capabilities">
                       {availableWellKnown.map((cap) => (
                         <DropdownItem
@@ -148,22 +171,34 @@ const ModelCapabilitiesFieldComponent: React.FC<ModelCapabilitiesFieldComponentP
                         </DropdownItem>
                       ))}
                     </DropdownGroup>
-                    <Divider component="li" />
-                  </>
-                )}
-                <DropdownItem
-                  key="custom-input"
-                  isAriaDisabled
-                  onClick={(e) => e.stopPropagation()}
-                  data-testid="custom-capability-row"
+                  </DropdownList>
+                  <Divider />
+                </>
+              )}
+              <MenuFooter data-testid="custom-capability-row">
+                <Flex
+                  direction={{ default: 'column' }}
+                  gap={{ default: 'gapSm' }}
+                  style={{ minWidth: '240px' }}
                 >
                   <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
                     <FlexItem grow={{ default: 'grow' }}>
                       <TextInput
                         aria-label="Custom capability"
+                        aria-describedby={
+                          customInputError ? 'custom-capability-input-error' : undefined
+                        }
                         placeholder="Custom capability..."
                         value={customInput}
-                        onChange={(_event, val) => setCustomInput(val)}
+                        validated={
+                          customInputError ? ValidatedOptions.error : ValidatedOptions.default
+                        }
+                        onChange={(_event, val) => {
+                          setCustomInput(val);
+                          if (customInputError) {
+                            setCustomInputError('');
+                          }
+                        }}
                         onKeyDown={handleCustomKeyDown}
                         onClick={(e) => e.stopPropagation()}
                         data-testid="custom-capability-input"
@@ -183,8 +218,19 @@ const ModelCapabilitiesFieldComponent: React.FC<ModelCapabilitiesFieldComponentP
                       </Button>
                     </FlexItem>
                   </Flex>
-                </DropdownItem>
-              </DropdownList>
+                  {customInputError && (
+                    <HelperText>
+                      <HelperTextItem
+                        id="custom-capability-input-error"
+                        variant="error"
+                        data-testid="custom-capability-error"
+                      >
+                        {customInputError}
+                      </HelperTextItem>
+                    </HelperText>
+                  )}
+                </Flex>
+              </MenuFooter>
             </Dropdown>
           </FlexItem>
         </Flex>
@@ -194,6 +240,10 @@ const ModelCapabilitiesFieldComponent: React.FC<ModelCapabilitiesFieldComponentP
 };
 
 export type ModelCapabilitiesFieldType = WizardField<ModelCapabilitiesFieldData, undefined>;
+
+export const isModelCapabilitiesFieldActive = (
+  wizardState: RecursivePartial<WizardFormData['state']>,
+): boolean => wizardState.modelType?.data?.type === ServingRuntimeModelType.GENERATIVE;
 
 const getReviewSections = (value: ModelCapabilitiesFieldData): WizardReviewSection[] => {
   if (value.length === 0) {
@@ -217,7 +267,7 @@ export const ModelCapabilitiesFieldWizardField: ModelCapabilitiesFieldType = {
   id: MODEL_CAPABILITIES_FIELD_ID,
   step: 'advancedOptions',
   type: 'addition',
-  isActive: () => true,
+  isActive: isModelCapabilitiesFieldActive,
   reducerFunctions: {
     setFieldData,
     getInitialFieldData,

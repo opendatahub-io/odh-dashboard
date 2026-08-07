@@ -29,3 +29,17 @@ export const getModelCapabilityLabelColor = (capability: string): ModelCapabilit
   }
   return 'grey';
 };
+
+export const resolveWellKnownModelCapability = (capability: string): string | undefined =>
+  WELL_KNOWN_MODEL_CAPABILITIES.find(
+    (wellKnown) => wellKnown.toLowerCase() === capability.toLowerCase(),
+  );
+
+export const isSameModelCapability = (a: string, b: string): boolean =>
+  a.toLowerCase() === b.toLowerCase();
+
+export const includesModelCapability = (capabilities: string[], capability: string): boolean =>
+  capabilities.some((existing) => isSameModelCapability(existing, capability));
+
+export const normalizeModelCapability = (capability: string): string =>
+  resolveWellKnownModelCapability(capability) ?? capability;
