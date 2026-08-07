@@ -180,6 +180,9 @@ export {
 export type { GetByName } from './projectUtils';
 export { isK8sStatus, K8sStatusError } from './errorUtils';
 
+export { uriToModelLocation } from './modelLocationUtils';
+export type { ObjectStorageFields, ModelLocation } from './modelLocationUtils';
+
 export {
   isSecretKind,
   isConnectionTypeDataFieldType,

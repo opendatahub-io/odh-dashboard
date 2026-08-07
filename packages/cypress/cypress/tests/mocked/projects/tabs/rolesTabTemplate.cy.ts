@@ -3,11 +3,8 @@
  * Import rules from template (toolbar button), discard changes confirmation,
  * search filtering, and form pre-population.
  */
-import {
-  mockDashboardConfig,
-  mockK8sResourceList,
-  mockProjectK8sResource,
-} from '@odh-dashboard/internal/__mocks__';
+import { mockDashboardConfig, mockK8sResourceList } from '@odh-dashboard/internal/__mocks__';
+import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import {
   ClusterRoleModel,
   ProjectModel,
@@ -56,7 +53,7 @@ describe('Select role template (header button)', () => {
 
     projectRoles.findSelectTemplateModal().should('not.exist');
     projectRoles.findReplaceContentModal().should('exist');
-    projectRoles.findReplaceContentModal().contains('Replace current content?').should('exist');
+    projectRoles.findReplaceContentModal().contains('Discard unsaved changes?').should('exist');
     cy.testA11y();
   });
 
@@ -164,7 +161,7 @@ describe('Select role template (header button)', () => {
   });
 });
 
-describe('Import rules from template (toolbar button)', () => {
+describe('Add rules from template (toolbar button)', () => {
   beforeEach(() => {
     asProjectAdminUser();
     initIntercepts();

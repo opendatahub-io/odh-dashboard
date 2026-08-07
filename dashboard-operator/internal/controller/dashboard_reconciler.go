@@ -11,6 +11,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
+	policyv1 "k8s.io/api/policy/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -276,6 +277,14 @@ func (r *DashboardReconciler) reconcileSidecar(
 
 	remapRayDashboardGatewayRBAC(allResources)
 
+	if err := sanitizeDeploymentProbes(ctx, r.Client, allResources); err != nil {
+		cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded),
+			conditions.WithReason("ProbeSanitizeFailed"),
+			conditions.WithError(err))
+
+		return ctrl.Result{}, fmt.Errorf("failed to sanitize deployment probes: %w", err)
+	}
+
 	deployer := deploy.NewDeployer(
 		deploy.WithFieldOwner("dashboard-operator"),
 		deploy.WithLabel(labels.PlatformPartOf, strings.ToLower(v1alpha1.DashboardKind)),
@@ -348,6 +357,48 @@ func (r *DashboardReconciler) reconcileSidecar(
 	return ctrl.Result{RequeueAfter: requeueAfter}, nil
 }
 
+func (r *DashboardReconciler) deleteSidecarResources(ctx context.Context) error {
+	logger := log.FromContext(ctx)
+	ns := r.ApplicationsNamespace
+	var errs []error
+
+	type namedResource struct {
+		obj  client.Object
+		name string
+	}
+	namespacedResources := []namedResource{
+		{&corev1.ServiceAccount{}, "odh-dashboard-modules"},
+		{&corev1.Secret{}, "odh-dashboard-modules-token"},
+		{&networkingv1.NetworkPolicy{}, "odh-dashboard-allow-ports"},
+		{&corev1.ConfigMap{}, "sidecar-params"},
+	}
+
+	for _, nr := range namespacedResources {
+		nr.obj.SetName(nr.name)
+		nr.obj.SetNamespace(ns)
+		if err := r.Delete(ctx, nr.obj); client.IgnoreNotFound(err) != nil {
+			errs = append(errs, fmt.Errorf("deleting %T %s: %w", nr.obj, nr.name, err))
+		}
+	}
+
+	clusterResources := []client.Object{
+		&rbacv1.ClusterRole{},
+		&rbacv1.ClusterRoleBinding{},
+	}
+	for _, obj := range clusterResources {
+		obj.SetName("odh-dashboard-modules")
+		if err := r.Delete(ctx, obj); client.IgnoreNotFound(err) != nil {
+			errs = append(errs, fmt.Errorf("deleting %T odh-dashboard-modules: %w", obj, err))
+		}
+	}
+
+	if len(errs) == 0 {
+		logger.Info("Cleaned up sidecar-specific resources")
+	}
+
+	return errors.Join(errs...)
+}
+
 func (r *DashboardReconciler) reconcileStandalone(
 	ctx context.Context,
 	dashboard *v1alpha1.Dashboard,
@@ -355,6 +406,15 @@ func (r *DashboardReconciler) reconcileStandalone(
 	cfg OperatorConfig,
 ) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
+
+	// Step 0: Clean up sidecar-specific resources that are not part of the standalone overlay.
+	// This handles the Sidecar → Standalone upgrade path where these resources would be orphaned.
+	if err := r.deleteSidecarResources(ctx); err != nil {
+		cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded),
+			conditions.WithReason("SidecarCleanupFailed"),
+			conditions.WithError(err))
+		return ctrl.Result{}, fmt.Errorf("failed to clean up sidecar resources: %w", err)
+	}
 
 	// Step 1: Deploy core manifests (3-container pod: odh-dashboard, kube-rbac-proxy, core-bff).
 	// Uses the standalone overlay which excludes BFF module sidecar containers.
@@ -381,6 +441,13 @@ func (r *DashboardReconciler) reconcileStandalone(
 	}
 
 	remapRayDashboardGatewayRBAC(allResources)
+
+	if err := sanitizeDeploymentProbes(ctx, r.Client, allResources); err != nil {
+		cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded),
+			conditions.WithReason("ProbeSanitizeFailed"),
+			conditions.WithError(err))
+		return ctrl.Result{}, fmt.Errorf("failed to sanitize deployment probes: %w", err)
+	}
 
 	deployer := deploy.NewDeployer(
 		deploy.WithFieldOwner("dashboard-operator"),
@@ -891,5 +958,6 @@ func SetupWithManager(mgr ctrl.Manager, opts Options) error {
 		Owns(&appsv1.Deployment{}).
 		Owns(&corev1.Service{}).
 		Owns(&corev1.ConfigMap{}).
+		Owns(&policyv1.PodDisruptionBudget{}).
 		Complete(r)
 }

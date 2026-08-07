@@ -1,9 +1,10 @@
 import * as React from 'react';
 import { Bullseye, Spinner } from '@patternfly/react-core';
 import { DashboardEmptyTableView } from '@odh-dashboard/ui-core';
+import EmptyStateErrorMessage from '@odh-dashboard/ui-core/components/EmptyStateErrorMessage';
+import UnauthorizedError from '@odh-dashboard/ui-core/components/UnauthorizedError';
 import GlobalNoPipelines from '#~/pages/pipelines/global/pipelines/GlobalNoPipelines';
 import PipelinesTable from '#~/concepts/pipelines/content/tables/pipeline/PipelinesTable';
-import EmptyStateErrorMessage from '#~/components/EmptyStateErrorMessage';
 import usePipelinesTable from '#~/concepts/pipelines/content/tables/pipeline/usePipelinesTable';
 import GlobalPipelinesTableToolbar from '#~/pages/pipelines/global/pipelines/GlobalPipelinesTableToolbar';
 import usePipelineFilter from '#~/concepts/pipelines/content/tables/usePipelineFilter';
@@ -12,7 +13,6 @@ import {
   getTableSortProps,
 } from '#~/concepts/pipelines/content/tables/usePipelineTable';
 import { getGenericErrorCode } from '#~/api/errorUtils';
-import UnauthorizedError from '#~/pages/UnauthorizedError';
 
 const PipelinesView: React.FC = () => {
   const [

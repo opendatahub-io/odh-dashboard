@@ -7,9 +7,9 @@ import {
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import NumberInputWrapper from '@odh-dashboard/ui-core/components/NumberInputWrapper';
+import DefaultValueTextRenderer from '@odh-dashboard/ui-core/components/connectionTypes/DefaultValueTextRenderer';
 import { NumericField } from '#~/concepts/connectionTypes/types';
 import { FieldProps } from '#~/concepts/connectionTypes/fields/types';
-import DefaultValueTextRenderer from '#~/concepts/connectionTypes/fields/DefaultValueTextRenderer';
 
 const rangeString = (min?: number, max?: number) => {
   if (min !== undefined && max !== undefined) {

@@ -9,8 +9,8 @@ import {
   ModalFooter,
 } from '@patternfly/react-core';
 import type { PersistentVolumeClaimKind } from '@odh-dashboard/k8s-core';
+import DashboardModalFooter from '@odh-dashboard/ui-core/components/DashboardModalFooter';
 import CreateNewStorageSection from '#~/pages/projects/screens/spawner/storage/CreateNewStorageSection';
-import DashboardModalFooter from '#~/concepts/dashboard/DashboardModalFooter';
 import { useDefaultStorageClass } from '#~/pages/projects/screens/spawner/storage/useDefaultStorageClass';
 import { useCreateStorageObject } from '#~/pages/projects/screens/spawner/storage/utils';
 import { StorageData } from '#~/pages/projects/types';

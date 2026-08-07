@@ -5,6 +5,7 @@ import { asProductAdminUser } from '../../../utils/mockUsers';
 import {
   authPoliciesPage,
   deleteAuthPolicyModal,
+  phaseModal,
   policyPage,
   subscriptionManagementPage,
   viewAuthPolicyPage,
@@ -16,6 +17,9 @@ import {
   mockSubscriptionFormData,
   mockPolicyInfoMissingModelSummaries,
 } from '../../../utils/maasUtils';
+import { getClipboardContent, stubClipboard } from '../../../utils/clipboardUtils';
+import type { CapturedDownload } from '../../../utils/downloadUtils';
+import { stubDownload, getDownloadedContent } from '../../../utils/downloadUtils';
 
 const setupAuthPoliciesCommon = () => {
   asProductAdminUser();
@@ -123,7 +127,14 @@ describe('MaaS Auth Policies', () => {
     const failedRow = authPoliciesPage.getRow('failed-policy');
     failedRow.findPhase().should('contain.text', 'Failed');
     failedRow.findPhaseLabel().click();
-    failedRow.findPhasePopover().should('contain.text', 'Policy failed');
+    phaseModal.find().should('exist');
+    phaseModal.findAlert().should('exist');
+    phaseModal.findAlertBody().should('exist');
+    phaseModal.findApiDetailsButton().should('exist').click();
+    phaseModal.findAlertDetailsCodeBlock().should('exist');
+    phaseModal.findViewDetailsLink().should('exist');
+    phaseModal.findCloseButton().click();
+    phaseModal.shouldBeOpen(false);
 
     const pendingRow = authPoliciesPage.getRow('pending-policy');
     pendingRow.findPhase().should('contain.text', 'Pending');
@@ -232,7 +243,7 @@ describe('Auth policy create and edit pages', () => {
       policyPage.selectGroup('premium-users');
       policyPage.findAddModelsButton().click();
       policyPage.findAddModelsModal().should('exist');
-      policyPage.findToggleModelInModal('granite-3-8b-instruct').click();
+      policyPage.findToggleModelInModal('granite-3-8b-instruct', 'maas-models').click();
       policyPage.findConfirmAddModelsButton().click();
       policyPage.findModelsTable().should('contain.text', 'Granite 3 8B Instruct');
 
@@ -344,5 +355,46 @@ describe('View Auth Policy Page', () => {
     } as never);
     viewAuthPolicyPage.visit(policyName);
     viewAuthPolicyPage.findPageError().should('exist');
+  });
+
+  it('should display auth policies content within the auth policies tab, and navigate to the yaml tab', () => {
+    cy.interceptOdh('GET /maas/api/v1/all-policies', { data: mockAuthPolicies() });
+    cy.interceptOdh('GET /maas/api/v1/yaml', {
+      content:
+        'apiVersion: maas.opendatahub.io/v1alpha1\nkind: MaaSAuthPolicy\nmetadata:\n  name: premium-team-policy\n',
+    });
+
+    subscriptionManagementPage.visit('auth-policies');
+    authPoliciesPage.findTable().should('exist');
+    authPoliciesPage.findRows().should('have.length', 7);
+    authPoliciesPage.findCreateAuthPolicyButton().should('exist');
+
+    authPoliciesPage.findKeywordFilterInput().type('premium');
+    authPoliciesPage.findRows().should('have.length', 1);
+    authPoliciesPage.clearAllFilters();
+    authPoliciesPage.findRows().should('have.length', 7);
+
+    authPoliciesPage.getRow('Premium Team Policy').findTitleButton().click();
+    viewAuthPolicyPage.findTitle().should('contain.text', 'Premium Team Policy');
+    viewAuthPolicyPage.findYamlTab().click();
+    viewAuthPolicyPage.findYamlContent().should('exist');
+    viewAuthPolicyPage.findYamlContent().should('contain.text', 'MaaSAuthPolicy');
+    stubClipboard('copiedYAML');
+    viewAuthPolicyPage.findYAMLCodeEditor().copyToClipboard().should('exist').click();
+    getClipboardContent('copiedYAML').then((copied: string[]) => {
+      expect(copied).to.have.length.at.least(1);
+      const yamlContent = copied[0];
+      expect(yamlContent).to.include('apiVersion: maas.opendatahub.io/v1alpha1');
+      expect(yamlContent).to.include('kind: MaaSAuthPolicy');
+    });
+
+    stubDownload('downloadedYAML');
+    viewAuthPolicyPage.findYAMLCodeEditor().download().should('exist').click();
+    getDownloadedContent('downloadedYAML').then((downloads: CapturedDownload[]) => {
+      expect(downloads).to.have.length.at.least(1);
+      expect(downloads[0].fileName).to.include('premium-team-policy');
+      expect(downloads[0].content).to.include('apiVersion: maas.opendatahub.io/v1alpha1');
+      expect(downloads[0].content).to.include('kind: MaaSAuthPolicy');
+    });
   });
 });

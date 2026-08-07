@@ -40,11 +40,23 @@ type FormMode = 'add' | 'edit' | 'duplicate';
 type LlmAcceleratorConfigAddFormProps = {
   mode: FormMode;
   sourceConfig?: LLMInferenceServiceConfigKind;
+  /**
+   * Absolute path of the configurations list this form returns to. Passed
+   * explicitly because the form is mounted both as a child of the standalone
+   * list route and as a top-level breakout route beside the tabbed page, and the
+   * default route-relative `..` resolves differently in the two.
+   *
+   * After RHOAIENG-80077 removes the standalone page the breakout route is the
+   * only mount, so this could collapse to LLM_ACCELERATOR_CONFIGS_TAB_PATH.
+   * https://issues.redhat.com/browse/RHOAIENG-80077
+   */
+  listPath: string;
 };
 
 const LlmAcceleratorConfigAddForm: React.FC<LlmAcceleratorConfigAddFormProps> = ({
   mode,
   sourceConfig,
+  listPath,
 }) => {
   const navigate = useNavigate();
   const { dashboardNamespace } = useDashboardNamespace();
@@ -150,7 +162,7 @@ const LlmAcceleratorConfigAddForm: React.FC<LlmAcceleratorConfigAddFormProps> = 
       : createLLMInferenceServiceConfig(config);
     submitFn
       .then(() => {
-        navigate('..');
+        navigate(listPath);
       })
       .catch((err: unknown) => {
         setError(err instanceof Error ? err : new Error(String(err)));
@@ -166,6 +178,7 @@ const LlmAcceleratorConfigAddForm: React.FC<LlmAcceleratorConfigAddFormProps> = 
     version,
     dashboardNamespace,
     navigate,
+    listPath,
   ]);
 
   return (
@@ -174,7 +187,9 @@ const LlmAcceleratorConfigAddForm: React.FC<LlmAcceleratorConfigAddFormProps> = 
       description={description}
       breadcrumb={
         <Breadcrumb>
-          <BreadcrumbItem render={() => <Link to="..">LLM accelerator configurations</Link>} />
+          <BreadcrumbItem
+            render={() => <Link to={listPath}>LLM accelerator configurations</Link>}
+          />
           {isEdit && sourceConfig && (
             <BreadcrumbItem>{getDisplayNameFromK8sResource(sourceConfig)}</BreadcrumbItem>
           )}
@@ -234,7 +249,7 @@ const LlmAcceleratorConfigAddForm: React.FC<LlmAcceleratorConfigAddFormProps> = 
             isDisabled={loading}
             variant="link"
             data-testid="cancel-button"
-            onClick={() => navigate('..')}
+            onClick={() => navigate(listPath)}
           >
             Cancel
           </Button>
@@ -244,18 +259,19 @@ const LlmAcceleratorConfigAddForm: React.FC<LlmAcceleratorConfigAddFormProps> = 
   );
 };
 
-export const LlmAcceleratorConfigFormByName: React.FC<{ mode: 'edit' | 'duplicate' }> = ({
-  mode,
-}) => {
+export const LlmAcceleratorConfigFormByName: React.FC<{
+  mode: 'edit' | 'duplicate';
+  listPath: string;
+}> = ({ mode, listPath }) => {
   const { configName } = useParams<{ configName: string }>();
   const { configs } = React.useContext(LlmAcceleratorConfigContext);
   const config = configs.find((c) => c.metadata.name === configName);
 
   if (!config) {
-    return <Navigate to=".." replace />;
+    return <Navigate to={listPath} replace />;
   }
 
-  return <LlmAcceleratorConfigAddForm mode={mode} sourceConfig={config} />;
+  return <LlmAcceleratorConfigAddForm mode={mode} sourceConfig={config} listPath={listPath} />;
 };
 
 export default LlmAcceleratorConfigAddForm;

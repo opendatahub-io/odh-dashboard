@@ -1,0 +1,16 @@
+{
+  "name": "RandomForestEntr_BAG_L2_FULL",
+  "location": {
+    "model_directory": "RandomForestEntr_BAG_L2_FULL",
+    "predictor": "RandomForestEntr_BAG_L2_FULL/predictor",
+    "notebook": "RandomForestEntr_BAG_L2_FULL/notebooks/automl_predictor_notebook.ipynb",
+    "metrics": "RandomForestEntr_BAG_L2_FULL/metrics"
+  },
+  "metrics": {
+    "test_data": {
+      "accuracy": 0.9441340782122905,
+      "balanced_accuracy": 0.9293500688849526,
+      "mcc": 0.9056724270010208
+    }
+  }
+}

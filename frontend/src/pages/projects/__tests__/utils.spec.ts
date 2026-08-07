@@ -1,4 +1,4 @@
-import { mockPVCK8sResource } from '#~/__mocks__/mockPVCK8sResource';
+import { mockPVCK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockPVCK8sResource';
 import { getEffectiveCapacityGiB, getPvcPercentageUsed } from '#~/pages/projects/utils';
 import { getFullStatusFromPercentage } from '#~/pages/projects/screens/detail/storage/utils';
 

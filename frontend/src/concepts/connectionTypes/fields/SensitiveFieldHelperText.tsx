@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { FormHelperText, HelperText, HelperTextItem, Icon } from '@patternfly/react-core';
 import { InfoCircleIcon } from '@patternfly/react-icons';
+import type { FieldMode } from '@odh-dashboard/k8s-core';
 import type { ConnectionTypeDataField } from '#~/concepts/connectionTypes/types';
-import type { FieldMode } from '#~/concepts/connectionTypes/fields/types';
 
 const getHelperText = (field: ConnectionTypeDataField, mode?: FieldMode): string | null => {
   if (mode === 'default') {
@@ -12,7 +12,7 @@ const getHelperText = (field: ConnectionTypeDataField, mode?: FieldMode): string
     return field.properties.helperText;
   }
   if (field.properties.deferInput) {
-    return 'Be cautious when sharing sensitive information. Secret details are visible to users with access to the project.';
+    return 'Secret details are visible to users with access to this project.';
   }
   return null;
 };

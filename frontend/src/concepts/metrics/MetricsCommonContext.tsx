@@ -1,7 +1,7 @@
 import * as React from 'react';
+import { RefreshIntervalTitle, TimeframeTitle } from '@odh-dashboard/ui-core/types/metrics';
 import useCurrentTimeframeBrowserStorage from '#~/concepts/metrics/useCurrentTimeframeBrowserStorage';
 import useRefreshIntervalBrowserStorage from '#~/concepts/metrics/useRefreshIntervalBrowserStorage';
-import { RefreshIntervalTitle, TimeframeTitle } from '#~/concepts/metrics/types';
 
 export type MetricsCommonContextType = {
   currentTimeframe: TimeframeTitle;

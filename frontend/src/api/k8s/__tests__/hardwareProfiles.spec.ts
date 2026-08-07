@@ -15,6 +15,7 @@ import {
   TolerationOperator,
   type HardwareProfileKind,
 } from '@odh-dashboard/k8s-core';
+import { mockHardwareProfile } from '@odh-dashboard/hardware-profiles/__mocks__/mockHardwareProfile';
 import { mockK8sResourceList } from '#~/__mocks__/mockK8sResourceList';
 import { HardwareProfileModel } from '#~/api/models';
 import {
@@ -24,7 +25,6 @@ import {
   listHardwareProfiles,
   updateHardwareProfile,
 } from '#~/api/k8s/hardwareProfiles';
-import { mockHardwareProfile } from '#~/__mocks__/mockHardwareProfile';
 import { DisplayNameAnnotation } from '#~/types';
 import { mock200Status, mock404Error } from '#~/__mocks__';
 

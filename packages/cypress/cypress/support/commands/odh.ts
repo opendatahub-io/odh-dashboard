@@ -71,11 +71,11 @@ import type {
   ImageInfo,
   OdhApplication,
   OdhDocument,
-  PrometheusQueryRangeResponse,
   PrometheusQueryResponse,
   ResponseStatus,
   SubscriptionStatusData,
 } from '@odh-dashboard/internal/types';
+import type { PrometheusQueryRangeResponse } from '@odh-dashboard/ui-core/types/metrics';
 import type { IntegrationAppStatus } from '@odh-dashboard/plugin-core/integrations';
 import type {
   ArgoWorkflowPipelineVersion,
@@ -1226,6 +1226,10 @@ declare global {
         ((
           type: 'POST /maas/api/v1/new-policy',
           response: OdhResponse<{ data: MaaSAuthPolicy }>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /maas/api/v1/yaml',
+          response: OdhResponse<{ content: string }>,
         ) => Cypress.Chainable<null>) &
         ((
           type: 'GET /maas/api/v1/view-policy/:name',

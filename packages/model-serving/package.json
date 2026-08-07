@@ -3,7 +3,9 @@
   "name": "@odh-dashboard/model-serving",
   "description": "Plugin to display model deployments. Used in combination with specific model serving platform extensions.",
   "version": "0.0.0",
-  "e2eCiTags": ["@ModelServingCI"],
+  "e2eCiTags": [
+    "@ModelServingCI"
+  ],
   "scripts": {
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
@@ -21,6 +23,7 @@
     "./shared/components": "./src/shared/components/index.ts",
     "./shared/wizard-fields": "./src/shared/wizard-fields.ts",
     "./shared/types/form-data": "./src/shared/types/form-data.ts",
+    "./shared/modelCapabilities": "./src/shared/modelCapabilities.ts",
     "./components/connectionTypes/ConnectionOciAlert": "./src/components/connectionTypes/ConnectionOciAlert.tsx",
     "./components/connectionTypes/ConnectionOciPathField": "./src/components/connectionTypes/ConnectionOciPathField.tsx",
     "./components/connectionTypes/ConnectionS3FolderPathField": "./src/components/connectionTypes/ConnectionS3FolderPathField.tsx",
@@ -74,6 +77,7 @@
     "@odh-dashboard/k8s-core": "*",
     "@odh-dashboard/model-registry": "*",
     "@odh-dashboard/plugin-core": "*",
+    "@odh-dashboard/trustyai": "*",
     "@odh-dashboard/ui-core": "*",
     "lodash-es": "^4.18.1",
     "yaml": "^2.9.0",
@@ -93,7 +97,7 @@
     "@patternfly/react-table": "^6",
     "react": "^18",
     "react-dom": "^18",
-    "react-router": "^7",
-    "react-router-dom": "^7"
+    "react-router": "^7.18.1",
+    "react-router-dom": "^7.18.1"
   }
 }

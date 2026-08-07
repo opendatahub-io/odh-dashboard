@@ -51,7 +51,7 @@ export const resourceRulesColumns: SortableData<ResourceRule>[] = [
 export const assigneesColumns: SortableData<RoleAssignment>[] = [
   {
     field: 'subjectName',
-    label: 'Subject',
+    label: 'Name',
     sortable: (a, b) => a.subject.name.localeCompare(b.subject.name),
     width: 25,
   },

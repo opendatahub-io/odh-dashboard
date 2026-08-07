@@ -64,12 +64,15 @@ export type MockDashboardConfigType = {
   promptManagement?: boolean;
   globalProjectPrompts?: boolean;
   nimWizard?: boolean;
+  nimServiceOperator?: boolean;
   agentOps?: boolean;
   agentOpsDeploy?: boolean;
   agentsCatalog?: boolean;
   roleManagement?: boolean;
   gpuaas?: boolean;
   connectionTest?: boolean;
+  modelCapabilities?: boolean;
+  modelDeploymentSettings?: boolean;
   globalMLflowNamespaces?: string[];
   genAiStudioConfig?: {
     aiAssetCustomEndpoints?: {
@@ -135,12 +138,15 @@ export const mockDashboardConfig = ({
   promptManagement = false,
   globalProjectPrompts = false,
   nimWizard = false,
+  nimServiceOperator = false,
   agentOps = false,
   agentOpsDeploy = false,
   agentsCatalog = false,
   roleManagement = true,
   gpuaas = true,
   connectionTest = false,
+  modelCapabilities = false,
+  modelDeploymentSettings = false,
   hardwareProfileOrder = ['test-hardware-profile'],
   globalMLflowNamespaces = [],
   genAiStudioConfig = {
@@ -329,12 +335,15 @@ export const mockDashboardConfig = ({
       promptManagement,
       globalProjectPrompts,
       nimWizard,
+      nimServiceOperator,
       agentOps,
       agentOpsDeploy,
       agentsCatalog,
       roleManagement,
       gpuaas,
       connectionTest,
+      modelCapabilities,
+      modelDeploymentSettings,
     },
     notebookController: {
       enabled: !disableNotebookController,

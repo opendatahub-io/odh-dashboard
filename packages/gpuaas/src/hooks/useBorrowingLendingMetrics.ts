@@ -5,7 +5,7 @@ import type {
   PrometheusQueryRangeResponseData,
   PrometheusQueryRangeResponseDataResult,
   PrometheusQueryRangeResultValue,
-} from '@odh-dashboard/internal/types';
+} from '@odh-dashboard/ui-core/types/metrics';
 import {
   ACCELERATOR_RESOURCE_PREFIXES,
   ACCELERATOR_RESOURCE_REGEX,

@@ -26,6 +26,7 @@ const TranscriptionSuccessAlert: React.FunctionComponent<TranscriptionSuccessAle
       timeout={ALERT_TIMEOUT_MS}
       actionClose={<AlertActionCloseButton onClose={onClose} />}
       onTimeout={onClose}
+      data-testid="transcription-success-alert"
     />
   );
 };

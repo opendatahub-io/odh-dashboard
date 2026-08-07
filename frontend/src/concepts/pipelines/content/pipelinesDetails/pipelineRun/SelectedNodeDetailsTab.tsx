@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { Flex, FlexItem } from '@patternfly/react-core';
+import { Link } from 'react-router-dom';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import {
   asTimestamp,
@@ -9,6 +10,8 @@ import {
 import { relativeDuration } from '#~/utilities/time';
 import { RuntimeStateKF, runtimeStateLabels } from '#~/concepts/pipelines/kfTypes';
 import { PipelineTask } from '#~/concepts/pipelines/topology';
+import { usePipelinesAPI } from '#~/concepts/pipelines/context';
+import { mlflowRunRoute } from '#~/routes/pipelines/mlflow';
 
 const getStateLabel = (state: string): string =>
   Object.entries(runtimeStateLabels).find(([key]) => key === state)?.[1] ?? state;
@@ -19,9 +22,16 @@ import PipelineRunRegisteredModelDetails from './PipelineRunRegisteredModelDetai
 
 type SelectedNodeDetailsTabProps = {
   task: PipelineTask;
+  mlflowRunId?: string;
+  mlflowExperimentId?: string;
 };
 
-const SelectedNodeDetailsTab: React.FC<SelectedNodeDetailsTabProps> = ({ task }) => {
+const SelectedNodeDetailsTab: React.FC<SelectedNodeDetailsTabProps> = ({
+  task,
+  mlflowRunId,
+  mlflowExperimentId,
+}) => {
+  const { namespace } = usePipelinesAPI();
   let details: DetailItem[];
 
   const taskName = {
@@ -52,8 +62,26 @@ const SelectedNodeDetailsTab: React.FC<SelectedNodeDetailsTabProps> = ({ task })
     const { startTime, completeTime, state } = task.status;
     const skipped = state === RuntimeStateKF.SKIPPED;
 
+    const mlflowRunDetail: DetailItem | undefined =
+      mlflowRunId && mlflowExperimentId
+        ? {
+            key: 'MLflow run',
+            value: (
+              <Link
+                to={mlflowRunRoute(mlflowExperimentId, mlflowRunId, namespace)}
+                data-testid="mlflow-run-link"
+              >
+                {mlflowRunId}
+              </Link>
+            ),
+          }
+        : undefined;
+
     if (skipped) {
       details = [taskName, { key: 'Status', value: 'Skipped' }];
+      if (mlflowRunDetail) {
+        details.push(mlflowRunDetail);
+      }
     } else {
       const startDate = startTime && new Date(startTime);
       const endDate = completeTime && new Date(completeTime);
@@ -65,6 +93,7 @@ const SelectedNodeDetailsTab: React.FC<SelectedNodeDetailsTabProps> = ({ task })
           key: 'Status',
           value: state ? getStateLabel(state) : '-',
         },
+        ...(mlflowRunDetail ? [mlflowRunDetail] : []),
         {
           key: 'Started',
           value: startDate ? asTimestamp(startDate) : '-',

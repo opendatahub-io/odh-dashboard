@@ -31,13 +31,15 @@ const extensions: ConnectionTypeExtension[] = [
   {
     type: 'app.connection-types/details-helper',
     properties: {
-      component: () => import('#~/concepts/connectionTypes/ConnectionDetailsHelperText'),
+      component: () =>
+        import('@odh-dashboard/ui-core/components/connectionTypes/ConnectionDetailsHelperText'),
     },
   },
   {
     type: 'app.connection-types/default-value-renderer',
     properties: {
-      component: () => import('#~/concepts/connectionTypes/fields/DefaultValueTextRenderer'),
+      component: () =>
+        import('@odh-dashboard/ui-core/components/connectionTypes/DefaultValueTextRenderer'),
     },
   },
   {

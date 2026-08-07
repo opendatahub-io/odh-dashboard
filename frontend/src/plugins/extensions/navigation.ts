@@ -331,6 +331,7 @@ const extensions: (NavExtension | TabRoutePageExtension)[] = [
     type: 'app.navigation/href',
     flags: {
       required: [SupportedArea.CUSTOM_RUNTIMES, ADMIN_USER],
+      disallowed: [SupportedArea.MODEL_DEPLOYMENT_SETTINGS],
     },
     properties: {
       id: 'settings-custom-serving-runtimes',

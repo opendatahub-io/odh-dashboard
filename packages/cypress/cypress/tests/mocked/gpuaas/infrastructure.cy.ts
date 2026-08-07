@@ -393,6 +393,7 @@ describe('GPUaaS Infrastructure Page', () => {
       // Stage 1: no cluster queues at all
       initIntercepts({ clusterQueues: [], cohortNames: [], resourceFlavors: [] });
       infrastructurePage.visit();
+      infrastructurePage.switchToClusterQueueUtilizationTab();
       infrastructurePage
         .findCQUtilizationEmptyState()
         .should('exist')
@@ -412,6 +413,7 @@ describe('GPUaaS Infrastructure Page', () => {
         resourceFlavors: [],
       });
       infrastructurePage.visit();
+      infrastructurePage.switchToClusterQueueUtilizationTab();
       infrastructurePage.findCQUtilizationEmptyState().should('exist');
     });
 
@@ -432,9 +434,10 @@ describe('GPUaaS Infrastructure Page', () => {
         resourceFlavors: [{ name: 'a100-flavor', gpuProduct: 'NVIDIA A100' }],
       });
       infrastructurePage.visit();
+      infrastructurePage.switchToClusterQueueUtilizationTab();
       infrastructurePage
         .findCQUtilizationSubtitle()
-        .should('contain.text', 'Cluster queue accelerator consumption grouped by cohort.');
+        .should('contain.text', 'Compute profile accelerator utilization grouped by Kueue cohort.');
       infrastructurePage.findCohortAccordion('cohort-1').should('exist');
       infrastructurePage.findCQCard('cq-gpu').should('exist');
       infrastructurePage.findHardwareModelBadge('NVIDIA A100').should('exist');
@@ -471,6 +474,7 @@ describe('GPUaaS Infrastructure Page', () => {
         dcgmModelName: 'AMD MI300X',
       });
       infrastructurePage.visit();
+      infrastructurePage.switchToClusterQueueUtilizationTab();
       infrastructurePage.scrollToCQUtilizationSection();
       infrastructurePage.findCohortAccordion('research-sandbox').should('exist');
       infrastructurePage.findCQCard('notebook-queues').should('exist');
@@ -517,6 +521,7 @@ describe('GPUaaS Infrastructure Page', () => {
           dcgmModelName: 'NVIDIA A100',
         });
         infrastructurePage.visit();
+        infrastructurePage.switchToClusterQueueUtilizationTab();
         infrastructurePage.scrollToCQUtilizationSection();
       });
 
@@ -595,6 +600,7 @@ describe('GPUaaS Infrastructure Page', () => {
             dcgmModelName: 'NVIDIA H100',
           });
           infrastructurePage.visit();
+          infrastructurePage.switchToClusterQueueUtilizationTab();
         });
 
         it('renders the CQ card with all 3 chart columns and a fully-filled borrowed donut', () => {

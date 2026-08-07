@@ -85,6 +85,7 @@ export const mockFailedSubscription = (): MaaSSubscription => ({
   name: 'failed-sub',
   namespace: 'maas-system',
   phase: 'Failed',
+  reason: 'ReconcileFailed',
   statusMessage:
     'failed to reconcile TokenRateLimitPolicies: token rate limit exceeds maximum allowed value',
   priority: 99,
@@ -148,6 +149,7 @@ export const mockSubscriptions = (): MaaSSubscription[] => [
     namespace: 'maas-system',
     phase: 'Active',
     statusMessage: 'successfully reconciled',
+    reason: 'model running',
     priority: 10,
     owner: {
       groups: [{ name: 'premium-users' }],
@@ -182,6 +184,7 @@ export const mockSubscriptions = (): MaaSSubscription[] => [
     namespace: 'maas-system',
     phase: 'Active',
     statusMessage: 'successfully reconciled',
+    reason: 'model running',
     owner: {
       groups: [{ name: 'system:authenticated' }],
     },
@@ -202,6 +205,7 @@ export const mockSubscriptions = (): MaaSSubscription[] => [
     namespace: 'maas-system',
     phase: 'Active',
     statusMessage: 'successfully reconciled',
+    reason: 'model running',
     priority: -10000,
     owner: {
       groups: [{ name: 'system:authenticated' }],
@@ -224,6 +228,7 @@ export const mockSubscriptions = (): MaaSSubscription[] => [
     namespace: 'maas-system',
     phase: 'Active',
     statusMessage: 'successfully reconciled',
+    reason: 'model running',
     priority: 5,
     owner: {
       groups: [
@@ -419,6 +424,15 @@ export const mockModelRefSummaries = (): MaaSModelRefSummary[] => [
     phase: 'Ready',
     endpoint: 'https://gemma-7b-it.maas-models.svc.cluster.local',
   },
+  {
+    name: 'granite-3-8b-instruct',
+    namespace: 'team-sandbox',
+    displayName: 'Granite 3 8B Instruct (sandbox)',
+    description: 'Same model ID in a different namespace for cross-namespace regression coverage',
+    modelRef: { kind: 'InferenceService', name: 'granite-3-8b-instruct' },
+    phase: 'Ready',
+    endpoint: 'https://granite-3-8b-instruct.team-sandbox.svc.cluster.local',
+  },
 ];
 
 export const mockSubscriptionFormData = (
@@ -451,6 +465,7 @@ export const mockSubscriptionFormData = (
 export const mockModelsOverview = (): ModelOverviewItem[] => [
   {
     id: 'granite-3-8b-instruct',
+    namespace: 'maas-models',
     modelDetails: {
       displayName: 'Granite 3 8B Instruct',
       description: 'A large language model for instruction following',
@@ -495,6 +510,7 @@ export const mockModelsOverview = (): ModelOverviewItem[] => [
   },
   {
     id: 'flan-t5-small',
+    namespace: 'maas-models',
     modelDetails: {
       displayName: 'Flan T5 Small',
       description: 'A compact text-to-text model',
@@ -535,6 +551,7 @@ export const mockModelsOverview = (): ModelOverviewItem[] => [
   },
   {
     id: 'llama-3-70b-instruct',
+    namespace: 'maas-models',
     modelDetails: {
       displayName: 'Llama 3 70B Instruct',
       description: 'A large open-weight model for complex reasoning and multi-turn dialogue',
@@ -570,6 +587,7 @@ export const mockModelsOverview = (): ModelOverviewItem[] => [
   },
   {
     id: 'gemma-7b-it',
+    namespace: 'maas-models',
     modelDetails: {
       displayName: 'Gemma 7B IT',
       description: 'Google Gemma 7B instruction-tuned model for general-purpose tasks',
@@ -597,6 +615,46 @@ export const mockModelsOverview = (): ModelOverviewItem[] => [
         ],
       },
     ],
+  },
+  {
+    id: 'granite-3-8b-instruct',
+    namespace: 'team-sandbox',
+    modelDetails: {
+      displayName: 'Granite 3 8B Instruct (sandbox)',
+      description: 'Same model ID in a different namespace for cross-namespace regression coverage',
+      phase: 'Ready',
+    },
+    subscriptions: [
+      {
+        name: 'sandbox-granite-sub',
+        displayName: 'Sandbox Granite Subscription',
+        phase: 'Active',
+        groups: ['sandbox-users'],
+        tokenRateLimits: [{ limit: 1000, window: '1h' }],
+      },
+    ],
+    authPolicies: [
+      {
+        name: 'sandbox-granite-policy',
+        displayName: 'Sandbox Granite Policy',
+        phase: 'Active',
+        groups: ['sandbox-users'],
+      },
+    ],
+  },
+  {
+    id: 'failed-model',
+    namespace: 'maas-models',
+    modelDetails: {
+      displayName: 'Failed Model',
+      description: 'A failed model',
+      phase: 'Failed',
+      reason: 'ReconcileFailed',
+      statusMessage:
+        'failed to reconcile TokenRateLimitPolicies: token rate limit exceeds maximum allowed value',
+    },
+    subscriptions: [],
+    authPolicies: [],
   },
 ];
 
@@ -651,6 +709,7 @@ export const mockFailedAuthPolicy = (): MaaSAuthPolicy => ({
   name: 'failed-policy',
   namespace: 'maas-system',
   phase: 'Failed',
+  reason: 'ReconcileFailed',
   statusMessage: 'all 2 model references are invalid or missing',
   modelRefs: [
     {

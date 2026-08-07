@@ -2,7 +2,7 @@ import { mockDashboardConfig } from '@odh-dashboard/internal/__mocks__/mockDashb
 import { mockDscStatus } from '@odh-dashboard/internal/__mocks__/mockDscStatus';
 import { mockComponents } from '@odh-dashboard/internal/__mocks__/mockComponents';
 import { mockK8sResourceList } from '@odh-dashboard/internal/__mocks__/mockK8sResourceList';
-import { mockProjectK8sResource } from '@odh-dashboard/internal/__mocks__/mockProjectK8sResource';
+import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import { mockDWUsageByOwnerPrometheusResponse } from '@odh-dashboard/internal/__mocks__/mockDWUsageByOwnerPrometheusResponse';
 import { mockWorkloadK8sResource } from '@odh-dashboard/internal/__mocks__/mockWorkloadK8sResource';
 import type {
@@ -16,7 +16,7 @@ import { WorkloadOwnerType } from '@odh-dashboard/k8s-core';
 import { WorkloadStatusType } from '@odh-dashboard/internal/concepts/distributedWorkloads/utils';
 import { mockClusterQueueK8sResource } from '@odh-dashboard/internal/__mocks__/mockClusterQueueK8sResource';
 import { mockLocalQueueK8sResource } from '@odh-dashboard/internal/__mocks__/mockLocalQueueK8sResource';
-import { RefreshIntervalTitle } from '@odh-dashboard/internal/concepts/metrics/types';
+import { RefreshIntervalTitle } from '@odh-dashboard/ui-core/types/metrics';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import {
   ClusterQueueModel,

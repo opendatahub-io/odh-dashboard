@@ -1,5 +1,5 @@
 import { isEnumMember } from '@odh-dashboard/foundation';
-import { TimeframeTitle, RefreshIntervalTitle } from '#~/concepts/metrics/types';
+import { TimeframeTitle, RefreshIntervalTitle } from '@odh-dashboard/ui-core/types/metrics';
 
 export const isTimeframeTitle = (timeframe?: string | null): timeframe is TimeframeTitle =>
   isEnumMember(timeframe, TimeframeTitle);
