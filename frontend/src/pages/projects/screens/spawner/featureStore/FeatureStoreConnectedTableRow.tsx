@@ -1,21 +1,11 @@
 import * as React from 'react';
 import { Link } from 'react-router-dom';
-import {
-  ActionList,
-  ActionListItem,
-  Button,
-  Flex,
-  FlexItem,
-  Icon,
-  Tooltip,
-  Truncate,
-} from '@patternfly/react-core';
-import { InfoCircleIcon, MinusCircleIcon } from '@patternfly/react-icons';
+import { ActionList, ActionListItem, Button, Content, Truncate } from '@patternfly/react-core';
+import { MinusCircleIcon } from '@patternfly/react-icons';
 import { Td, Tr } from '@patternfly/react-table';
 import type { SelectedFeatureStoreConfig } from './useWorkbenchFeatureStores';
 import { FeatureStorePermissionLabels } from './FeatureStorePermissionLabels';
 import { getFeatureStoreProjectId } from './selectFeatureStoresModalConst';
-import { FEATURE_STORE_UNAVAILABLE_TOOLTIP } from './utils';
 
 export type FeatureStoreConnectedTableRowProps = {
   featureStore: SelectedFeatureStoreConfig;
@@ -34,21 +24,12 @@ export const FeatureStoreConnectedTableRow: React.FC<FeatureStoreConnectedTableR
     <Tr data-testid={`feature-store-connected-row-${projectId}`}>
       <Td dataLabel="Name">
         {featureStore.isUnavailable ? (
-          <Flex
-            spaceItems={{ default: 'spaceItemsSm' }}
-            alignItems={{ default: 'alignItemsCenter' }}
+          <Content
+            className="pf-v6-u-text-color-disabled"
+            data-testid="feature-store-unavailable-name"
           >
-            <FlexItem>
-              <Truncate content={featureStore.projectName} />
-            </FlexItem>
-            <FlexItem>
-              <Tooltip content={FEATURE_STORE_UNAVAILABLE_TOOLTIP}>
-                <Icon isInline status="info" data-testid="feature-store-unavailable-icon">
-                  <InfoCircleIcon />
-                </Icon>
-              </Tooltip>
-            </FlexItem>
-          </Flex>
+            <Truncate content={featureStore.projectName} />
+          </Content>
         ) : availabilityLoaded ? (
           <Link
             to={`/develop-train/feature-store/overview/${featureStore.projectName}`}

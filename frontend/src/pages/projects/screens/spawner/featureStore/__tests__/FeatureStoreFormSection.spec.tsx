@@ -8,6 +8,7 @@ import type {
   WorkbenchFeatureStoreConfig,
   SelectedFeatureStoreConfig,
 } from '#~/pages/projects/screens/spawner/featureStore/useWorkbenchFeatureStores';
+import { FEATURE_STORE_UNAVAILABLE_TOOLTIP } from '#~/pages/projects/screens/spawner/featureStore/utils';
 
 jest.mock('@odh-dashboard/plugin-core/areas', () => ({
   SupportedArea: { FEATURE_STORE: 'feature-store' },
@@ -190,6 +191,14 @@ describe('FeatureStoreFormSection', () => {
         />
       </MemoryRouter>,
     );
+
+    expect(result.getByTestId('feature-store-unavailable-alert')).toHaveTextContent(
+      FEATURE_STORE_UNAVAILABLE_TOOLTIP,
+    );
+    expect(result.getByTestId('feature-store-unavailable-name')).toHaveTextContent(
+      'deleted_project',
+    );
+    expect(result.queryByTestId('feature-store-unavailable-icon')).not.toBeInTheDocument();
 
     await act(async () => {
       result.getByRole('button', { name: 'Select feature stores' }).click();
