@@ -92,6 +92,16 @@ updates:
       semver-patch-days: 3
 
     groups:
+      k8s-ecosystem:
+        applies-to: version-updates
+        patterns:
+          - "k8s.io/*"
+          - "sigs.k8s.io/*"
+      aws-sdk:
+        applies-to: version-updates
+        patterns:
+          - "github.com/aws/*"
+          - "github.com/aws/smithy-go"
       go-updates:
         applies-to: version-updates
         group-by: dependency-name

@@ -42,6 +42,10 @@ jobs:
           DIRS="[]"
           while IFS= read -r -d '' file; do
             dir=$(dirname "$file")
+            # Exclude upstream-synced packages
+            case "$dir" in
+              */upstream/*) continue ;;
+            esac
             DIRS=$(echo "$DIRS" | jq -c --arg d "$dir" 'if (. | index($d)) then . else . + [$d] end')
           done < /tmp/changed-locks
 
