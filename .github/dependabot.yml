@@ -48,7 +48,44 @@ updates:
       - dependency-name: "react-dom"
         update-types: ["version-update:semver-major"]
 
+    # Named groups bundle version-coupled families into 1 PR (matched
+    # before the catch-all). Catch-all uses group-by: dependency-name
+    # for remaining deps (1 PR per dep across dirs). Security catch-all
+    # bundles all CVEs. PatternFly version updates are fully ignored but
+    # security updates still need grouping.
     groups:
+      react:
+        applies-to: version-updates
+        patterns:
+          - "react"
+          - "react-dom"
+          - "react-router"
+          - "react-router-dom"
+        update-types:
+          - "minor"
+          - "patch"
+      material-ui:
+        applies-to: version-updates
+        patterns:
+          - "@mui/*"
+          - "@emotion/*"
+        update-types:
+          - "minor"
+          - "patch"
+      webpack-ecosystem:
+        applies-to: version-updates
+        patterns:
+          - "webpack*"
+        update-types:
+          - "minor"
+          - "patch"
+      testing-library:
+        applies-to: version-updates
+        patterns:
+          - "@testing-library/*"
+        update-types:
+          - "minor"
+          - "patch"
       npm-updates:
         applies-to: version-updates
         group-by: dependency-name
@@ -57,6 +94,10 @@ updates:
         update-types:
           - "minor"
           - "patch"
+      patternfly-security:
+        applies-to: security-updates
+        patterns:
+          - "@patternfly/*"
       npm-security:
         applies-to: security-updates
         patterns:
@@ -88,6 +129,16 @@ updates:
       semver-patch-days: 3
 
     groups:
+      k8s-ecosystem:
+        applies-to: version-updates
+        patterns:
+          - "k8s.io/*"
+          - "sigs.k8s.io/*"
+      aws-sdk:
+        applies-to: version-updates
+        patterns:
+          - "github.com/aws/*"
+          - "github.com/aws/smithy-go"
       go-updates:
         applies-to: version-updates
         group-by: dependency-name
