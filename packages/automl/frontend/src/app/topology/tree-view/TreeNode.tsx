@@ -174,12 +174,7 @@ const TreeNodeInner: React.FC<{
           {statusOnly ? (
             <StatusOnlyCenterIcon stepState={stepState} size={iconSize} />
           ) : (
-            <TaskIcon
-              style={{ color: iconColor }}
-              color={iconColor}
-              width={iconSize}
-              height={iconSize}
-            />
+            <TaskIcon width={iconSize} height={iconSize} />
           )}
         </g>
         {label ? (

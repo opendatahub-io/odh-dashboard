@@ -1,13 +1,4 @@
-/**
- * AutoRAG pipeline task icons per Figma (AutoRAG-UI nodes).
- * Prefer official RH UI paths (`rh-ui-icon-*` from @rhds/icons); PatternFly
- * icons are stand-ins only where RH UI is not yet vendored.
- *
- * Node chrome uses PatternFly topology custom nodes (DefaultNode).
- *
- * @see https://www.figma.com/design/dOqC6KNoBFmpnEINhWL7LL/AutoRAG-UI?node-id=3701-2835
- * @see https://www.patternfly.org/topology/custom-nodes/
- */
+// AutoRAG stage/step task icons (RH UI preferred; PF stand-ins where needed).
 import type { ComponentType } from 'react';
 import {
   CommentsIcon,

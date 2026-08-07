@@ -1,11 +1,4 @@
-/**
- * AutoML pipeline task icons per Figma (AutoRAG-UI / AutoML nodes).
- * Prefer official RH UI paths (`rh-ui-icon-*` from @rhds/icons); PatternFly
- * icons are stand-ins only where RH UI is not yet vendored.
- *
- * @see https://www.figma.com/design/dOqC6KNoBFmpnEINhWL7LL/AutoRAG-UI?node-id=3701-2835
- * @see https://www.patternfly.org/topology/custom-nodes/
- */
+// AutoML stage/step task icons (RH UI preferred; PF stand-ins where needed).
 import type { ComponentType } from 'react';
 import {
   ChartBarIcon,
@@ -46,11 +39,7 @@ export const STAGE_TASK_ICONS: Record<string, TaskIconComponent> = {
   build_leaderboard: StarIcon, // rh-ui-icon-star-fill
 };
 
-/**
- * Branch steps. Figma marks engineer/train/stack as "decorator status only"
- * for status chrome; task glyphs below are interim stand-ins (unused while
- * TreeNode renders branch steps as status-only).
- */
+// Branch step glyphs (unused while TreeNode renders branches as status-only).
 export const STEP_TASK_ICONS: Record<string, TaskIconComponent> = {
   feature_engineering: ChartBarIcon,
   model_training: EqualizerIcon,
