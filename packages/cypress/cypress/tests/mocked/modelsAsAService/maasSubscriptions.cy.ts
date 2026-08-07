@@ -11,6 +11,7 @@ import {
   subscriptionsPage,
   viewSubscriptionPage,
   subscriptionManagementPage,
+  phaseModal,
 } from '../../../pages/modelsAsAService';
 import {
   mockSubscriptions,
@@ -117,8 +118,16 @@ describe('Subscriptions Page', () => {
 
     const failedRow = subscriptionsPage.getRow('failed-sub');
     failedRow.findPhase().should('contain.text', 'Failed');
+    failedRow.findPhaseLabelSubtext().should('exist');
     failedRow.findPhaseLabel().click();
-    failedRow.findPhasePopover().should('contain.text', 'Subscription failed');
+    phaseModal.find().should('exist');
+    phaseModal.findAlert().should('exist');
+    phaseModal.findAlertBody().should('exist');
+    phaseModal.findApiDetailsButton().should('exist').click();
+    phaseModal.findAlertDetailsCodeBlock().should('exist');
+    phaseModal.findViewDetailsLink().should('exist');
+    phaseModal.findCloseButton().click();
+    phaseModal.shouldBeOpen(false);
 
     const pendingRow = subscriptionsPage.getRow('pending-sub');
     pendingRow.findPhase().should('contain.text', 'Pending');

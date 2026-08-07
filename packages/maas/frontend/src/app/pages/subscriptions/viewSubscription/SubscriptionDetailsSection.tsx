@@ -9,9 +9,11 @@ import {
   Timestamp,
   Title,
 } from '@patternfly/react-core';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { MaaSSubscription } from '~/app/types/subscriptions';
 import PhaseLabel from '~/app/shared/PhaseLabel';
 import { PhaseLabelLocation, PhaseResourceType } from '~/app/utilities/phaseLabelUtils';
+import { MaaSEvents } from '~/app/types/event-tracking';
 
 type SubscriptionDetailsSectionProps = {
   subscription: MaaSSubscription;
@@ -40,8 +42,19 @@ const SubscriptionDetailsSection: React.FC<SubscriptionDetailsSectionProps> = ({
             <PhaseLabel
               phase={subscription.phase}
               statusMessage={subscription.statusMessage}
+              reason={subscription.reason}
+              status={subscription.status}
+              conditionType={subscription.conditionType}
+              lastTransitionTime={subscription.lastTransitionTime}
               resourceType={PhaseResourceType.SUBSCRIPTION}
-              location={PhaseLabelLocation.DETAIL_PAGE}
+              resourceName={subscription.displayName ?? subscription.name}
+              onClick={() => {
+                fireMiscTrackingEvent(MaaSEvents.SUBSCRIPTION_MANAGEMENT_STATUS_POPOVER_VIEWED, {
+                  popoverType: 'status',
+                  status: subscription.phase,
+                  location: PhaseLabelLocation.DETAIL_PAGE,
+                });
+              }}
             />
           </DescriptionListDescription>
         </DescriptionListGroup>
