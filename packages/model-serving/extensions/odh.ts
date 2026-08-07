@@ -87,7 +87,7 @@ const extensions: (
   {
     type: 'app.route',
     properties: {
-      path: '/ai-hub/models/deployments/deploy',
+      path: '/ai-hub/models/deployments/deploy/*',
       component: () => import('../src/ModelDeploymentWizardRoutes'),
     },
     flags: {

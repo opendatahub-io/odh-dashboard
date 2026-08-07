@@ -1,0 +1,50 @@
+{
+  "pipeline_id": "autogluon-timeseries-training-pipeline",
+  "description": "Time series AutoGluon pipeline: load and split panel data, train and refit models, build leaderboard.",
+  "components": [
+    {
+      "id": "timeseries_data_loader",
+      "description": "Load time series data from S3, cleanse, and write per-series train/test splits.",
+      "stages": [
+        {
+          "id": "prepare_data",
+          "description": "Validate inputs, read panel data from S3, parse timestamps, and deduplicate series keys."
+        },
+        {
+          "id": "split_and_export",
+          "description": "Apply per-series temporal splits and write train/validation/test CSVs."
+        }
+      ]
+    },
+    {
+      "id": "autogluon_timeseries_models_training",
+      "description": "Train AutoGluon time series models, refit top N, evaluate on holdout, and render leaderboard.",
+      "stages": [
+        {
+          "id": "load_data",
+          "description": "Load train/test CSVs and build TimeSeriesDataFrames."
+        },
+        {
+          "id": "model_selection",
+          "description": "Run TimeSeriesPredictor fit on selection train and rank on test.",
+          "steps": [
+            "feature_engineering",
+            "model_training",
+            "stacking",
+            "evaluation"
+          ]
+        },
+        {
+          "id": "refit_and_evaluate",
+          "description": "Refit top models, evaluate on holdout, and write metrics, back_testing.json, and notebooks."
+        },
+        {
+          "id": "build_leaderboard",
+          "description": "Aggregate model metrics, rank models, and render leaderboard HTML."
+        }
+      ]
+    }
+  ],
+  "kfp_run_id": "ba44c73f-307c-4529-84e9-27a0698ae2ae",
+  "published_at": "2026-07-16T19:39:36.093322Z"
+}

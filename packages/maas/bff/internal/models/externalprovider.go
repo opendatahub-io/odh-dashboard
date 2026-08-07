@@ -30,6 +30,7 @@ type ExternalProviderDetails struct {
 	Config              map[string]string `json:"config,omitempty"`
 	Phase               string            `json:"phase,omitempty"`
 	StatusMessage       string            `json:"statusMessage,omitempty"`
+	Reason              string            `json:"reason,omitempty"`
 }
 
 // ExternalProviderSummary is the BFF representation of an ExternalProvider CR.
@@ -45,4 +46,5 @@ type ExternalProviderSummary struct {
 	Config              map[string]string `json:"config,omitempty"`
 	Phase               string            `json:"phase,omitempty"`
 	StatusMessage       string            `json:"statusMessage,omitempty"`
+	Reason              string            `json:"reason,omitempty"`
 }

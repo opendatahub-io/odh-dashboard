@@ -442,6 +442,12 @@ const ChatbotMessageInput: React.FC<ChatbotMessageInputProps> = ({
                 'aria-disabled': isAudioActive,
               } as React.ComponentProps<'button'>,
             },
+            stop: {
+              // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+              props: {
+                'data-testid': 'chatbot-stop-button',
+              } as React.ComponentProps<'button'>,
+            },
             send: {
               // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
               props: {

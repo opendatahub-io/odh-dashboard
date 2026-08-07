@@ -312,6 +312,7 @@ export type DashboardCommonConfig = {
   promptManagement?: boolean;
   globalProjectPrompts?: boolean;
   nimWizard?: boolean;
+  nimServiceOperator?: boolean;
   mySubscriptions?: boolean;
   agentOps?: boolean;
   agentOpsDeploy?: boolean;
@@ -369,6 +370,7 @@ export enum DataScienceStackComponent {
   OGX_OPERATOR = 'ogx',
   TRAINER = 'trainer',
   MLFLOW = 'mlflowoperator',
+  MCP_LIFECYCLE_OPERATOR = 'mcplifecycleoperator',
 }
 
 /** Represents the status of a component in the DataScienceCluster. */

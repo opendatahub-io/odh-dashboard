@@ -106,13 +106,13 @@ aliases:
   # General Dashboard infrastructure
   platform-approvers:
     - christianvogt
+    - liday-rh
     - lucferbux
   platform-reviewers:
     - christianvogt
     - jenny-s51
     - liday-rh
     - lucferbux
-    - rsun19
 
   # Quality / E2E testing
   quality-e2e-testing-approvers:

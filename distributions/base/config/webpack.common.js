@@ -5,7 +5,6 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 const BASE_DIR = path.resolve(__dirname, '..');
 const BASE_SRC_DIR = path.resolve(BASE_DIR, 'src');
 const REPO_ROOT = path.resolve(BASE_DIR, '../..');
-const PLUGIN_CORE_DIR = path.resolve(REPO_ROOT, 'packages/plugin-core/src');
 const INTERNAL_DIR = path.resolve(REPO_ROOT, 'frontend/src');
 
 /**
@@ -44,8 +43,9 @@ module.exports = ({
           include: [
             normalizedDistDir,
             BASE_SRC_DIR,
-            PLUGIN_CORE_DIR,
             INTERNAL_DIR,
+            // Monorepo packages ship TS source with no precompile step — swc must transpile them when imported.
+            path.resolve(REPO_ROOT, 'packages'),
             ...normalizedIncludes,
           ],
           use: [{ loader: 'swc-loader' }],

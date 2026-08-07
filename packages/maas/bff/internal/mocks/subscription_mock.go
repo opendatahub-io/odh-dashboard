@@ -20,6 +20,7 @@ func GetMockMaaSSubscriptions() []models.MaaSSubscription {
 			Description:   "High-priority subscription for the premium team with extended token limits.",
 			Phase:         "Active",
 			StatusMessage: "successfully reconciled",
+			Reason:        "Reconciled",
 			Priority:      10,
 			Owner: models.OwnerSpec{
 				Groups: []models.GroupReference{
@@ -68,6 +69,7 @@ func GetMockMaaSSubscriptions() []models.MaaSSubscription {
 			Description:   "Standard subscription for general team access.",
 			Phase:         "Active",
 			StatusMessage: "successfully reconciled",
+			Reason:        "Reconciled",
 			Priority:      0,
 			Owner: models.OwnerSpec{
 				Groups: []models.GroupReference{
@@ -94,6 +96,7 @@ func GetMockMaaSSubscriptions() []models.MaaSSubscription {
 			Description:   "Broad access to Llama 3 70B for multiple teams across the organization.",
 			Phase:         "Active",
 			StatusMessage: "successfully reconciled",
+			Reason:        "Reconciled",
 			Priority:      5,
 			Owner: models.OwnerSpec{
 				Groups: []models.GroupReference{
@@ -131,6 +134,7 @@ func GetMockMaaSSubscriptions() []models.MaaSSubscription {
 			Description:   "Negative priority subscription for testing.",
 			Phase:         "Active",
 			StatusMessage: "successfully reconciled",
+			Reason:        "Reconciled",
 			Priority:      -10,
 			Owner: models.OwnerSpec{
 				Groups: []models.GroupReference{
@@ -164,6 +168,7 @@ func GetMockMaaSAuthPolicies() []models.MaaSAuthPolicy {
 			Description:       "High-priority access policy for the premium team with extended model access.",
 			Phase:             "Active",
 			StatusMessage:     "successfully reconciled",
+			Reason:            "Reconciled",
 			CreationTimestamp: timePtr(time.Date(2025, 3, 1, 10, 0, 0, 0, time.UTC)),
 			ModelRefs: []models.ModelRef{
 				{Name: "granite-3-8b-instruct", Namespace: "maas-models", DisplayName: "Granite 3 8B Instruct", Description: "IBM Granite 3 8B instruction-tuned language model."},
@@ -187,6 +192,7 @@ func GetMockMaaSAuthPolicies() []models.MaaSAuthPolicy {
 			Description:       "Standard access policy for general team usage.",
 			Phase:             "Active",
 			StatusMessage:     "successfully reconciled",
+			Reason:            "Reconciled",
 			CreationTimestamp: timePtr(time.Date(2025, 2, 15, 8, 0, 0, 0, time.UTC)),
 			ModelRefs: []models.ModelRef{
 				{Name: "flan-t5-small", Namespace: "maas-models", DisplayName: "Flan T5 Small", Description: "Google Flan T5 small text-to-text transfer transformer model."},
@@ -204,6 +210,7 @@ func GetMockMaaSAuthPolicies() []models.MaaSAuthPolicy {
 			Description:       "Broad research access policy for Gemma across multiple teams.",
 			Phase:             "Active",
 			StatusMessage:     "successfully reconciled",
+			Reason:            "Reconciled",
 			CreationTimestamp: timePtr(time.Date(2025, 4, 10, 9, 0, 0, 0, time.UTC)),
 			ModelRefs: []models.ModelRef{
 				{Name: "gemma-7b-it", Namespace: "maas-models"},
@@ -231,6 +238,7 @@ func GetMockMaaSAuthPolicies() []models.MaaSAuthPolicy {
 			Phase:             "Active",
 			DeletionTimestamp: timePtr(time.Date(2025, 4, 1, 12, 0, 0, 0, time.UTC)),
 			StatusMessage:     "successfully reconciled",
+			Reason:            "Reconciled",
 			ModelRefs: []models.ModelRef{
 				{Name: "flan-t5-small", Namespace: "maas-models", DisplayName: "Flan T5 Small", Description: "Google Flan T5 small text-to-text transfer transformer model."},
 				{Name: "granite-3-8b-instruct", Namespace: "maas-models", DisplayName: "Granite 3 8B Instruct", Description: "IBM Granite 3 8B instruction-tuned language model."},
@@ -256,8 +264,10 @@ func GetMockMaaSModelRefSummaries() []models.MaaSModelRefSummary {
 				Kind: "LLMInferenceService",
 				Name: "granite-3-8b-instruct",
 			},
-			Phase:    "Ready",
-			Endpoint: "https://granite-3-8b-instruct.example.com",
+			Phase:         "Ready",
+			StatusMessage: "successfully reconciled",
+			Reason:        "Reconciled",
+			Endpoint:      "https://granite-3-8b-instruct.example.com",
 		},
 		{
 			Name:        "flan-t5-small",
@@ -268,8 +278,10 @@ func GetMockMaaSModelRefSummaries() []models.MaaSModelRefSummary {
 				Kind: "LLMInferenceService",
 				Name: "flan-t5-small",
 			},
-			Phase:    "Ready",
-			Endpoint: "https://flan-t5-small.example.com",
+			Phase:         "Ready",
+			StatusMessage: "successfully reconciled",
+			Reason:        "Reconciled",
+			Endpoint:      "https://flan-t5-small.example.com",
 		},
 		{
 			Name:        "llama-3-70b-instruct",
@@ -280,8 +292,10 @@ func GetMockMaaSModelRefSummaries() []models.MaaSModelRefSummary {
 				Kind: "LLMInferenceService",
 				Name: "llama-3-70b-instruct",
 			},
-			Phase:    "Ready",
-			Endpoint: "https://llama-3-70b-instruct.example.com",
+			Phase:         "Ready",
+			StatusMessage: "successfully reconciled",
+			Reason:        "Reconciled",
+			Endpoint:      "https://llama-3-70b-instruct.example.com",
 		},
 		{
 			Name:        "gemma-7b-it",
@@ -292,8 +306,10 @@ func GetMockMaaSModelRefSummaries() []models.MaaSModelRefSummary {
 				Kind: "LLMInferenceService",
 				Name: "gemma-7b-it",
 			},
-			Phase:    "Ready",
-			Endpoint: "https://gemma-7b-it.example.com",
+			Phase:         "Ready",
+			StatusMessage: "successfully reconciled",
+			Reason:        "Reconciled",
+			Endpoint:      "https://gemma-7b-it.example.com",
 		},
 		{
 			Name:        "gpt-4o-external",
@@ -307,6 +323,7 @@ func GetMockMaaSModelRefSummaries() []models.MaaSModelRefSummary {
 			Phase:              "Ready",
 			Endpoint:           "https://gpt-4o-external.maas.example.com",
 			StatusMessage:      "Published external GPT-4o model",
+			Reason:             "Reconciled",
 			GovernanceAttached: true,
 		},
 	}
