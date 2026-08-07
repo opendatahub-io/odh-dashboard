@@ -334,6 +334,29 @@ describe('SubscriptionDropdown', () => {
     expect(onSubscriptionChange).toHaveBeenCalledWith('valid-sub');
   });
 
+  it('rejects subscriptions with object-valued displayName', () => {
+    const onSubscriptionChange = jest.fn();
+    const modelWithBadDisplay = {
+      ...createMaaSModel({ model_id: 'test-model' }),
+      subscriptions: [
+        { name: 'bad-sub', displayName: { nested: true } },
+        { name: 'good-sub', displayName: 'Good Subscription' },
+      ],
+    } as unknown as AAModelResponse;
+
+    render(
+      <TestWrapper contextValue={createContextValue([], [modelWithBadDisplay])}>
+        <SubscriptionDropdown
+          selectedModel="maas-provider/test-model"
+          selectedSubscription=""
+          onSubscriptionChange={onSubscriptionChange}
+        />
+      </TestWrapper>,
+    );
+
+    expect(onSubscriptionChange).toHaveBeenCalledWith('good-sub');
+  });
+
   it('fires onSubscriptionChange when a different subscription is selected', async () => {
     const user = userEvent.setup();
     const onSubscriptionChange = jest.fn();

@@ -21,7 +21,13 @@ interface SubscriptionDropdownProps {
 }
 
 const isValidSubscription = (s: unknown): s is SubscriptionInfo =>
-  s != null && typeof s === 'object' && 'name' in s && typeof s.name === 'string' && s.name !== '';
+  s != null &&
+  typeof s === 'object' &&
+  'name' in s &&
+  typeof s.name === 'string' &&
+  s.name.trim() !== '' &&
+  (!('displayName' in s) || s.displayName == null || typeof s.displayName === 'string') &&
+  (!('description' in s) || s.description == null || typeof s.description === 'string');
 
 const DEFAULT_HELP_TEXT =
   'Select the subscription to use for this model. Subscriptions control access and rate limits for model endpoints.';

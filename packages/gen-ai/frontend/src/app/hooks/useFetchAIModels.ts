@@ -16,13 +16,32 @@ import { useGenAiAPI } from './useGenAiAPI';
 import useGenAiDashboardConfig from './useGenAiDashboardConfig';
 import useAiAssetModelAsServiceEnabled from './useAiAssetModelAsServiceEnabled';
 
-const isValidAAModel = (item: unknown): item is AAModelResponse =>
+const hasStr = (obj: object, key: string): boolean =>
+  key in obj && typeof Reflect.get(obj, key) === 'string';
+
+const REQUIRED_STRING_FIELDS = [
+  'model_name',
+  'model_id',
+  'serving_runtime',
+  'api_protocol',
+  'version',
+  'usecase',
+  'description',
+  'status',
+  'display_name',
+  'model_source_type',
+];
+
+const VALID_SOURCE_TYPES: ReadonlySet<string> = new Set(['namespace', 'custom_endpoint', 'maas']);
+
+export const isValidAAModel = (item: unknown): item is AAModelResponse =>
   item != null &&
   typeof item === 'object' &&
-  'model_source_type' in item &&
-  typeof item.model_source_type === 'string' &&
+  REQUIRED_STRING_FIELDS.every((f) => hasStr(item, f)) &&
+  VALID_SOURCE_TYPES.has(Reflect.get(item, 'model_source_type')) &&
   'endpoints' in item &&
-  Array.isArray(item.endpoints);
+  Array.isArray(item.endpoints) &&
+  item.endpoints.every((e: unknown) => typeof e === 'string');
 
 const useFetchAIModels = (): FetchStateObject<AIModel[]> => {
   const { api, apiAvailable } = useGenAiAPI();
