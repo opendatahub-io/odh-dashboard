@@ -118,7 +118,11 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
         selected: existingGroupNames.has(group),
       }));
     }
-    return [];
+    return groups.map((group) => ({
+      id: group,
+      name: group,
+      selected: false,
+    }));
   });
   const [groupsTouched, setGroupsTouched] = React.useState(false);
   const [modelsTouched, setModelsTouched] = React.useState(false);
@@ -158,18 +162,6 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
     handleSaveRateLimits,
     handleCloseRateLimitsModal,
   } = useSubscriptionModels(initialModels);
-
-  React.useEffect(() => {
-    if (!isEditing && groups.length > 0 && selectedGroups.length === 0) {
-      setSelectedGroups(
-        groups.map((group) => ({
-          id: group,
-          name: group,
-          selected: false,
-        })),
-      );
-    }
-  }, [groups, selectedGroups.length, isEditing]);
 
   const isNameValid = isK8sNameDescriptionDataValid(nameDescData);
 
