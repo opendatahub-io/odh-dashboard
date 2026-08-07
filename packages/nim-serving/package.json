@@ -14,7 +14,7 @@
     "type-check": "tsc --noEmit"
   },
   "exports": {
-    "./extensions": "./extensions.ts",
+    "./extensions": "./extensions/index.ts",
     "./types": "./src/api/nimservices/types.ts"
   },
   "dependencies": {

@@ -50,40 +50,46 @@ const VerbsTreeSelect: React.FC<VerbsTreeSelectProps> = ({
   );
 
   const treeData = React.useMemo((): TreeViewDataItem[] => {
-    const categoryNodes: TreeViewDataItem[] = VERB_CATEGORIES.map((category) => {
+    const categoryNodes: TreeViewDataItem[] = VERB_CATEGORIES.flatMap((category) => {
       const categoryVerbs = category.verbs.map((v) => v.verb);
       const allCategorySelected =
         isAllSelected || categoryVerbs.every((v) => selectedVerbs.includes(v));
       const someCategorySelected =
         !allCategorySelected && categoryVerbs.some((v) => selectedVerbs.includes(v));
 
-      return {
-        id: category.id,
+      const verbNodes: TreeViewDataItem[] = category.verbs.map((verbInfo) => ({
+        id: verbInfo.verb,
         name: (
           <>
-            <strong>{category.label}:</strong> {category.description}
+            <strong>{verbInfo.label}:</strong> {verbInfo.description}
           </>
         ),
         hasCheckbox: true,
-        defaultExpanded: true,
         checkProps: {
-          checked: allCategorySelected || (someCategorySelected ? null : false),
-          'data-testid': `verb-category-${category.id}`,
+          checked: isAllSelected || selectedVerbs.includes(verbInfo.verb),
+          'data-testid': `verb-checkbox-${verbInfo.verb}`,
         },
-        children: category.verbs.map((verbInfo) => ({
-          id: verbInfo.verb,
+      }));
+
+      return [
+        {
+          id: category.id,
           name: (
             <>
-              <strong>{verbInfo.label}:</strong> {verbInfo.description}
+              {category.verbs.length !== 1 && <strong>{category.label}:</strong>}{' '}
+              {category.description}
             </>
           ),
           hasCheckbox: true,
+          defaultExpanded: true,
           checkProps: {
-            checked: isAllSelected || selectedVerbs.includes(verbInfo.verb),
-            'data-testid': `verb-checkbox-${verbInfo.verb}`,
+            checked: allCategorySelected || (someCategorySelected ? null : false),
+            'data-testid': `verb-category-${category.id}`,
           },
-        })),
-      };
+          // categories with only one node should not show verbs
+          children: category.verbs.length === 1 ? undefined : verbNodes,
+        },
+      ];
     });
 
     const allSelected =
@@ -108,9 +114,7 @@ const VerbsTreeSelect: React.FC<VerbsTreeSelectProps> = ({
   return (
     <div data-testid="verbs-tree-select">
       <Content component="p">
-        Select the actions this rule allows on the chosen resources. Selecting &quot;All
-        operations&quot; grants the wildcard (*) verb, which includes all current and future
-        Kubernetes verbs beyond those listed here.
+        Select one or more actions that users will be able to perform on the specified resources.
       </Content>
       <TreeView data={treeData} hasCheckboxes onCheck={handleCheck} aria-label="Permission verbs" />
     </div>

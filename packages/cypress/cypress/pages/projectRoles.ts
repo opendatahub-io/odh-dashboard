@@ -218,8 +218,18 @@ class ProjectRolesTab {
     return cy.findByTestId('rule-resource-types-toggle');
   }
 
+  /**
+   * Selects a verb checkbox in the Add Rule modal.
+   * Single-verb categories (e.g. create) only render the category checkbox —
+   * see VerbsTreeSelect (`children` omitted when category.verbs.length === 1).
+   */
   findVerbCheckbox(verb: string) {
-    return cy.findByTestId('add-rule-modal').findByTestId(`verb-checkbox-${verb}`);
+    const singleVerbCategoryIds: Record<string, string> = {
+      create: 'cat-create',
+    };
+    const categoryId = singleVerbCategoryIds[verb];
+    const testId = categoryId ? `verb-category-${categoryId}` : `verb-checkbox-${verb}`;
+    return cy.findByTestId('add-rule-modal').findByTestId(testId);
   }
 
   findRuleSaveButton() {
@@ -259,7 +269,19 @@ class ProjectRolesTab {
   }
 
   findPermissionRuleActionCells() {
-    return this.findPermissionRulesTable().find('tbody td[data-label="Actions"]');
+    return this.findPermissionRulesTable().find('tbody td[data-label="Operations"]');
+  }
+
+  findTabTitle() {
+    return cy.findByTestId('roles-tab-title');
+  }
+
+  findTabDescription() {
+    return cy.findByTestId('roles-tab-description');
+  }
+
+  findPermissionsTabLink() {
+    return cy.findByTestId('roles-tab-permissions-link');
   }
 
   findRulesFilterToggle() {
