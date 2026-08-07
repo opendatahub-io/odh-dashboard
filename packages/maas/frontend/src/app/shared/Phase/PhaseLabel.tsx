@@ -9,6 +9,12 @@ import {
   getModalSubtitle,
   getSubtextProps,
 } from '~/app/utilities/phaseLabelUtils';
+import type { AffectedModel } from './AffectedModelsTable';
+import {
+  AFFECTED_MODELS_FETCH_ERROR,
+  loadAffectedModels,
+  shouldFetchAffectedModels,
+} from './loadAffectedModels';
 import PhaseModal from './PhaseModal';
 
 type PhaseLabelProps = {
@@ -25,6 +31,9 @@ type PhaseLabelProps = {
   status?: string;
   conditionType?: string;
   lastTransitionTime?: string;
+  affectedModels?: AffectedModel[];
+  /** K8s resource name — used to fetch affected models on list/overview when not precomputed. */
+  resourceId?: string;
 };
 
 const PhaseLabel: React.FC<PhaseLabelProps> = ({
@@ -41,9 +50,15 @@ const PhaseLabel: React.FC<PhaseLabelProps> = ({
   status,
   conditionType,
   lastTransitionTime,
+  affectedModels: affectedModelsProp,
+  resourceId,
 }) => {
   const [isModalOpen, setIsModalOpen] = React.useState(false);
   const [hasOpenedModal, setHasOpenedModal] = React.useState(false);
+  const [fetchedModels, setFetchedModels] = React.useState<AffectedModel[] | undefined>(undefined);
+  const [isLoadingAffected, setIsLoadingAffected] = React.useState(false);
+  const [affectedLoadError, setAffectedLoadError] = React.useState<string | undefined>(undefined);
+
   const normalized = normalizePhase(phase);
   const phaseProps = getPhaseProps(normalized);
   const isClickable = forceModal || normalized !== PhaseStatus.READY;
@@ -54,10 +69,32 @@ const PhaseLabel: React.FC<PhaseLabelProps> = ({
     if (!isClickable) {
       return;
     }
+
     setHasOpenedModal(true);
     setIsModalOpen(true);
     onClick?.();
+
+    if (!shouldFetchAffectedModels(normalized, resourceType, affectedModelsProp, resourceId)) {
+      return;
+    }
+
+    setIsLoadingAffected(true);
+    setAffectedLoadError(undefined);
+
+    loadAffectedModels(resourceType, resourceId)
+      .then((models) => {
+        setFetchedModels(models);
+      })
+      .catch(() => {
+        setFetchedModels(undefined);
+        setAffectedLoadError(AFFECTED_MODELS_FETCH_ERROR);
+      })
+      .finally(() => {
+        setIsLoadingAffected(false);
+      });
   };
+
+  const affectedModels = affectedModelsProp ?? fetchedModels;
 
   return (
     <>
@@ -93,6 +130,9 @@ const PhaseLabel: React.FC<PhaseLabelProps> = ({
           status={status}
           conditionType={conditionType}
           lastTransitionTime={lastTransitionTime}
+          affectedModels={affectedModels}
+          isLoadingAffected={isLoadingAffected}
+          affectedLoadError={affectedLoadError}
         />
       ) : null}
     </>
