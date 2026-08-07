@@ -21,8 +21,10 @@ export const listWorkloads = async (
 
 const isStatefulSetPodName = (ownerName: string, notebookName: string): boolean => {
   if (ownerName === notebookName) return true;
-  const suffix = ownerName.slice(notebookName.length);
-  return suffix.length > 1 && suffix[0] === '-' && /^\d+$/.test(suffix.slice(1));
+  const prefix = `${notebookName}-`;
+  if (!ownerName.startsWith(prefix)) return false;
+  const suffix = ownerName.slice(prefix.length);
+  return suffix.length > 0 && /^\d+$/.test(suffix);
 };
 
 const workloadMatchesNotebook = (wl: WorkloadKind, notebookName: string): boolean => {

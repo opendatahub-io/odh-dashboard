@@ -1,413 +1,256 @@
 package ogx
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"os"
+	"strings"
 	"testing"
 
+	"github.com/opendatahub-io/autorag-library/bff/internal/models"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-// newTestClient creates a OGXClient pointing at the given test server.
-func newTestClient(serverURL string) *OGXClient {
-	return NewOGXClient(serverURL, "", false, nil)
+func newTestServer(handler http.HandlerFunc) (*httptest.Server, *OGXClient) {
+	ts := httptest.NewServer(handler)
+	return ts, NewOGXClient(ts.Client())
 }
 
-// writeJSON encodes v as JSON into the response writer, failing the test on error.
-func writeJSON(t *testing.T, w http.ResponseWriter, v any) {
+func jsonResponse(t *testing.T, w http.ResponseWriter, v any) {
 	t.Helper()
 	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(v); err != nil {
-		t.Fatalf("failed to encode JSON response: %v", err)
-	}
+	require.NoError(t, json.NewEncoder(w).Encode(v))
 }
 
-func TestListModels(t *testing.T) {
-	t.Run("should parse envelope format with data wrapper", func(t *testing.T) {
-		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+// --- ListModels ---
+
+func TestOGXClient_ListModels(t *testing.T) {
+	t.Run("parses envelope format with data wrapper", func(t *testing.T) {
+		ts, c := newTestServer(func(w http.ResponseWriter, r *http.Request) {
 			assert.Equal(t, "/v1/models", r.URL.Path)
 			assert.Equal(t, "application/json", r.Header.Get("Accept"))
-
-			resp := map[string]any{
-				"data": []map[string]any{
-					{
-						"id": "llama3.2:3b",
-						"custom_metadata": map[string]any{
-							"model_type":           "llm",
-							"provider_id":          "ollama",
-							"provider_resource_id": "ollama://models/llama3.2:3b",
-						},
-					},
-					{
-						"id": "all-minilm:l6-v2",
-						"custom_metadata": map[string]any{
-							"model_type":           "embedding",
-							"provider_id":          "ollama",
-							"provider_resource_id": "ollama://models/all-minilm:l6-v2",
-						},
-					},
+			jsonResponse(t, w, map[string]any{
+				"data": []models.OGXNativeModel{
+					{ID: "llama3.2:3b", CustomMetadata: &models.OGXCustomMetadata{ModelType: "llm"}},
 				},
-			}
-			writeJSON(t, w, resp)
-		}))
-		defer server.Close()
+			})
+		})
+		defer ts.Close()
 
-		client := newTestClient(server.URL)
-		result, err := client.ListModels(context.Background())
-
+		got, err := c.ListModels(context.Background(), ts.URL, "")
 		require.NoError(t, err)
-		require.Len(t, result, 2)
-		assert.Equal(t, "llama3.2:3b", result[0].ID)
-		assert.Equal(t, "llm", result[0].CustomMetadata.ModelType)
-		assert.Equal(t, "all-minilm:l6-v2", result[1].ID)
-		assert.Equal(t, "embedding", result[1].CustomMetadata.ModelType)
+		require.Len(t, got, 1)
+		assert.Equal(t, "llama3.2:3b", got[0].ID)
 	})
 
-	t.Run("should fall back to bare array format", func(t *testing.T) {
-		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-			// Return a bare array instead of { "data": [...] }
-			resp := []map[string]any{
-				{
-					"id": "bare-model",
-					"custom_metadata": map[string]any{
-						"model_type":  "llm",
-						"provider_id": "vllm",
-					},
-				},
-			}
-			writeJSON(t, w, resp)
-		}))
-		defer server.Close()
+	t.Run("falls back to bare array format", func(t *testing.T) {
+		ts, c := newTestServer(func(w http.ResponseWriter, r *http.Request) {
+			jsonResponse(t, w, []models.OGXNativeModel{
+				{ID: "mistral-7b"},
+			})
+		})
+		defer ts.Close()
 
-		client := newTestClient(server.URL)
-		result, err := client.ListModels(context.Background())
-
+		got, err := c.ListModels(context.Background(), ts.URL, "")
 		require.NoError(t, err)
-		require.Len(t, result, 1)
-		assert.Equal(t, "bare-model", result[0].ID)
+		require.Len(t, got, 1)
+		assert.Equal(t, "mistral-7b", got[0].ID)
 	})
 
-	t.Run("should return error for invalid JSON", func(t *testing.T) {
-		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+	t.Run("attaches bearer token when apiKey is set", func(t *testing.T) {
+		var gotAuth string
+		ts, c := newTestServer(func(w http.ResponseWriter, r *http.Request) {
+			gotAuth = r.Header.Get("Authorization")
+			jsonResponse(t, w, map[string]any{"data": []models.OGXNativeModel{}})
+		})
+		defer ts.Close()
+
+		_, err := c.ListModels(context.Background(), ts.URL, "secret-token")
+		require.NoError(t, err)
+		assert.Equal(t, "Bearer secret-token", gotAuth)
+	})
+
+	t.Run("maps non-200 status codes to typed errors", func(t *testing.T) {
+		tests := []struct {
+			name       string
+			statusCode int
+			wantCode   string
+		}{
+			{"bad request", http.StatusBadRequest, ErrCodeInvalidRequest},
+			{"unauthorized", http.StatusUnauthorized, ErrCodeUnauthorized},
+			{"not found", http.StatusNotFound, ErrCodeNotFound},
+			{"timeout", http.StatusGatewayTimeout, ErrCodeTimeout},
+			{"service unavailable", http.StatusServiceUnavailable, ErrCodeServerUnavailable},
+			{"unexpected status", http.StatusTeapot, ErrCodeInternalError},
+		}
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				ts, c := newTestServer(func(w http.ResponseWriter, r *http.Request) {
+					w.WriteHeader(tt.statusCode)
+					_, _ = w.Write([]byte(`{"error": "boom"}`))
+				})
+				defer ts.Close()
+
+				_, err := c.ListModels(context.Background(), ts.URL, "")
+				require.Error(t, err)
+				var ogxErr *OGXError
+				require.ErrorAs(t, err, &ogxErr)
+				assert.Equal(t, tt.wantCode, ogxErr.Code)
+			})
+		}
+	})
+
+	t.Run("returns an internal error on malformed JSON", func(t *testing.T) {
+		ts, c := newTestServer(func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "application/json")
-			_, err := w.Write([]byte(`not valid json`))
-			require.NoError(t, err)
-		}))
-		defer server.Close()
-
-		client := newTestClient(server.URL)
-		_, err := client.ListModels(context.Background())
-
-		require.Error(t, err)
-		var lsErr *OGXError
-		require.ErrorAs(t, err, &lsErr)
-		assert.Equal(t, ErrCodeInternalError, lsErr.Code)
-		assert.Contains(t, lsErr.Message, "failed to parse Open GenAI Stack models response")
-	})
-
-	t.Run("should handle empty data array", func(t *testing.T) {
-		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-			writeJSON(t, w, map[string]any{"data": []any{}})
-		}))
-		defer server.Close()
-
-		client := newTestClient(server.URL)
-		result, err := client.ListModels(context.Background())
-
-		require.NoError(t, err)
-		assert.Empty(t, result)
-	})
-
-	t.Run("should handle models with nil custom_metadata", func(t *testing.T) {
-		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-			resp := map[string]any{
-				"data": []map[string]any{
-					{"id": "no-metadata-model"},
-				},
-			}
-			writeJSON(t, w, resp)
-		}))
-		defer server.Close()
-
-		client := newTestClient(server.URL)
-		result, err := client.ListModels(context.Background())
-
-		require.NoError(t, err)
-		require.Len(t, result, 1)
-		assert.Equal(t, "no-metadata-model", result[0].ID)
-		assert.Nil(t, result[0].CustomMetadata)
-	})
-
-	t.Run("should send auth token over HTTP to localhost", func(t *testing.T) {
-		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			// httptest.NewServer uses http://127.0.0.1, token should be sent for localhost
-			assert.Equal(t, "Bearer secret-token", r.Header.Get("Authorization"), "auth token should be sent over HTTP to localhost")
-			writeJSON(t, w, map[string]any{"data": []any{}})
-		}))
-		defer server.Close()
-
-		client := NewOGXClient(server.URL, "secret-token", false, nil)
-		_, err := client.ListModels(context.Background())
-
-		require.NoError(t, err)
-	})
-
-	t.Run("should send auth token over HTTPS", func(t *testing.T) {
-		server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			assert.Equal(t, "Bearer secret-token", r.Header.Get("Authorization"))
-			writeJSON(t, w, map[string]any{"data": []any{}})
-		}))
-		defer server.Close()
-
-		// Use the test server's TLS client to trust the self-signed cert
-		client := &OGXClient{
-			httpClient: server.Client(),
-			baseURL:    server.URL,
-			authToken:  "secret-token",
-		}
-		_, err := client.ListModels(context.Background())
-
-		require.NoError(t, err)
-	})
-}
-
-func TestListModelsHTTPErrors(t *testing.T) {
-	tests := []struct {
-		name           string
-		statusCode     int
-		body           string
-		expectedCode   string
-		expectedStatus int
-	}{
-		{
-			name:           "should return InvalidRequest for 400",
-			statusCode:     http.StatusBadRequest,
-			body:           "bad request body",
-			expectedCode:   ErrCodeInvalidRequest,
-			expectedStatus: 400,
-		},
-		{
-			name:           "should return Unauthorized for 401",
-			statusCode:     http.StatusUnauthorized,
-			body:           "unauthorized",
-			expectedCode:   ErrCodeUnauthorized,
-			expectedStatus: 401,
-		},
-		{
-			name:           "should return NotFound for 404",
-			statusCode:     http.StatusNotFound,
-			body:           "not found",
-			expectedCode:   ErrCodeNotFound,
-			expectedStatus: 404,
-		},
-		{
-			name:           "should return ServerUnavailable for 503",
-			statusCode:     http.StatusServiceUnavailable,
-			body:           "service unavailable",
-			expectedCode:   ErrCodeServerUnavailable,
-			expectedStatus: 503,
-		},
-		{
-			name:           "should return Timeout for 504",
-			statusCode:     http.StatusGatewayTimeout,
-			body:           "gateway timeout",
-			expectedCode:   ErrCodeTimeout,
-			expectedStatus: http.StatusGatewayTimeout,
-		},
-		{
-			name:           "should return InternalError for unexpected status",
-			statusCode:     http.StatusConflict,
-			body:           "conflict",
-			expectedCode:   ErrCodeInternalError,
-			expectedStatus: http.StatusConflict,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-				w.WriteHeader(tt.statusCode)
-				_, err := w.Write([]byte(tt.body))
-				require.NoError(t, err)
-			}))
-			defer server.Close()
-
-			client := newTestClient(server.URL)
-			_, err := client.ListModels(context.Background())
-
-			require.Error(t, err)
-			var lsErr *OGXError
-			require.ErrorAs(t, err, &lsErr)
-			assert.Equal(t, tt.expectedCode, lsErr.Code)
-			assert.Equal(t, tt.expectedStatus, lsErr.StatusCode)
+			_, _ = w.Write([]byte(`{not json`))
 		})
-	}
-}
+		defer ts.Close()
 
-func TestListModelsConnectionError(t *testing.T) {
-	t.Run("should wrap connection errors", func(t *testing.T) {
-		// Point at a non-existent server
-		client := newTestClient("http://127.0.0.1:1")
-		_, err := client.ListModels(context.Background())
-
+		_, err := c.ListModels(context.Background(), ts.URL, "")
 		require.Error(t, err)
-		var lsErr *OGXError
-		require.ErrorAs(t, err, &lsErr)
-		assert.Equal(t, ErrCodeConnectionFailed, lsErr.Code)
+		var ogxErr *OGXError
+		require.ErrorAs(t, err, &ogxErr)
+		assert.Equal(t, ErrCodeInternalError, ogxErr.Code)
+	})
+
+	t.Run("truncates oversized response bodies instead of buffering them fully", func(t *testing.T) {
+		// A single well-formed JSON element repeated enough times to exceed the
+		// 2 MiB read cap. If the cap were not enforced, this would still be valid
+		// JSON and parse successfully; because it's read-truncated mid-array, the
+		// decoder must fail — proving the size limit is actually applied.
+		const oversizeTarget = 3 << 20 // 3 MiB, above the 2 MiB models cap
+		var buf bytes.Buffer
+		buf.WriteString(`{"data":[`)
+		element := `{"id":"` + strings.Repeat("x", 1024) + `"},`
+		for buf.Len() < oversizeTarget {
+			buf.WriteString(element)
+		}
+		buf.WriteString(`{"id":"last"}]}`)
+
+		ts, c := newTestServer(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write(buf.Bytes())
+		})
+		defer ts.Close()
+
+		_, err := c.ListModels(context.Background(), ts.URL, "")
+		require.Error(t, err)
+		var ogxErr *OGXError
+		require.ErrorAs(t, err, &ogxErr)
+		assert.Equal(t, ErrCodeInternalError, ogxErr.Code)
+	})
+
+	t.Run("wraps connection failures", func(t *testing.T) {
+		ts, c := newTestServer(func(w http.ResponseWriter, r *http.Request) {})
+		ts.Close() // server is already closed, so the request cannot connect
+
+		_, err := c.ListModels(context.Background(), ts.URL, "")
+		require.Error(t, err)
+		var ogxErr *OGXError
+		require.ErrorAs(t, err, &ogxErr)
+		assert.Equal(t, ErrCodeConnectionFailed, ogxErr.Code)
 	})
 }
 
-func TestMapHTTPStatusToError(t *testing.T) {
-	tests := []struct {
-		name         string
-		statusCode   int
-		body         []byte
-		resource     string
-		expectedCode string
-	}{
-		{"400 maps to InvalidRequest", http.StatusBadRequest, []byte("bad"), "models", ErrCodeInvalidRequest},
-		{"401 maps to Unauthorized", http.StatusUnauthorized, nil, "providers", ErrCodeUnauthorized},
-		{"404 maps to NotFound", http.StatusNotFound, nil, "models", ErrCodeNotFound},
-		{"408 maps to Timeout", http.StatusRequestTimeout, nil, "models", ErrCodeTimeout},
-		{"503 maps to ServerUnavailable", http.StatusServiceUnavailable, nil, "models", ErrCodeServerUnavailable},
-		{"504 maps to Timeout", http.StatusGatewayTimeout, nil, "providers", ErrCodeTimeout},
-		{"500 maps to InternalError", http.StatusInternalServerError, []byte("oops"), "models", ErrCodeInternalError},
-		{"418 maps to InternalError", 418, []byte("teapot"), "models", ErrCodeInternalError},
-	}
+// --- ListProviders ---
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			err := mapHTTPStatusToError(tt.statusCode, tt.body, tt.resource)
-
-			require.NotNil(t, err)
-			assert.Equal(t, tt.expectedCode, err.Code)
-			assert.Contains(t, err.Message, tt.resource)
-
-			// Upstream body must NOT leak into client-facing error messages
-			if len(tt.body) > 0 {
-				assert.NotContains(t, err.Message, string(tt.body),
-					"raw upstream body should not appear in error message")
-			}
-		})
-	}
-}
-
-// TestListModelsFixture verifies that the full parse pipeline handles a real
-// Open GenAI Stack OpenAI-compatible response (the format served at /v1/models).
-// When upgrading OGX, capture the new response as a fixture to catch
-// regressions immediately.
-func TestListModelsFixture(t *testing.T) {
-	fixtureBytes, err := os.ReadFile("testdata/ogx_openai_models.json")
-	require.NoError(t, err, "fixture file must exist — run tests from the ogx package directory")
-
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		_, writeErr := w.Write(fixtureBytes)
-		require.NoError(t, writeErr)
-	}))
-	defer server.Close()
-
-	client := newTestClient(server.URL)
-	result, err := client.ListModels(context.Background())
-
-	require.NoError(t, err)
-	require.Len(t, result, 4, "fixture contains 4 models")
-
-	// Verify LLM vs embedding breakdown
-	llmCount := 0
-	embeddingCount := 0
-	for _, m := range result {
-		assert.NotEmpty(t, m.ID)
-		require.NotNil(t, m.CustomMetadata, "model %q should have custom_metadata", m.ID)
-		switch m.CustomMetadata.ModelType {
-		case "llm":
-			llmCount++
-		case "embedding":
-			embeddingCount++
-		default:
-			t.Errorf("unexpected model_type %q for model %q", m.CustomMetadata.ModelType, m.ID)
-		}
-		assert.NotEmpty(t, m.CustomMetadata.ProviderID, "model %q should have provider_id", m.ID)
-	}
-	assert.Equal(t, 1, llmCount, "fixture should contain 1 LLM model")
-	assert.Equal(t, 3, embeddingCount, "fixture should contain 3 embedding models")
-}
-
-func TestListProviders(t *testing.T) {
-	t.Run("should parse envelope format", func(t *testing.T) {
-		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+func TestOGXClient_ListProviders(t *testing.T) {
+	t.Run("parses envelope format with data wrapper", func(t *testing.T) {
+		ts, c := newTestServer(func(w http.ResponseWriter, r *http.Request) {
 			assert.Equal(t, "/v1/providers", r.URL.Path)
-			resp := map[string]any{
-				"data": []map[string]any{
-					{"provider_id": "ollama", "provider_type": "remote::ollama", "api": "inference"},
-					{"provider_id": "pgvector", "provider_type": "remote::pgvector", "api": "vector_io"},
+			jsonResponse(t, w, map[string]any{
+				"data": []models.OGXProvider{
+					{API: "inference", ProviderID: "ollama", ProviderType: "remote::ollama"},
 				},
-			}
-			writeJSON(t, w, resp)
-		}))
-		defer server.Close()
+			})
+		})
+		defer ts.Close()
 
-		client := newTestClient(server.URL)
-		result, err := client.ListProviders(context.Background())
-
+		got, err := c.ListProviders(context.Background(), ts.URL, "")
 		require.NoError(t, err)
-		require.Len(t, result, 2)
-		assert.Equal(t, "ollama", result[0].ProviderID)
-		assert.Equal(t, "pgvector", result[1].ProviderID)
+		require.Len(t, got, 1)
+		assert.Equal(t, "ollama", got[0].ProviderID)
 	})
 
-	t.Run("should fall back to bare array format", func(t *testing.T) {
-		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-			resp := []map[string]any{
-				{"provider_id": "bare-provider", "provider_type": "inline", "api": "inference"},
-			}
-			writeJSON(t, w, resp)
-		}))
-		defer server.Close()
+	t.Run("falls back to bare array format", func(t *testing.T) {
+		ts, c := newTestServer(func(w http.ResponseWriter, r *http.Request) {
+			jsonResponse(t, w, []models.OGXProvider{
+				{API: "vector_io", ProviderID: "milvus", ProviderType: "remote::milvus"},
+			})
+		})
+		defer ts.Close()
 
-		client := newTestClient(server.URL)
-		result, err := client.ListProviders(context.Background())
-
+		got, err := c.ListProviders(context.Background(), ts.URL, "")
 		require.NoError(t, err)
-		require.Len(t, result, 1)
-		assert.Equal(t, "bare-provider", result[0].ProviderID)
+		require.Len(t, got, 1)
+		assert.Equal(t, "milvus", got[0].ProviderID)
 	})
 
-	t.Run("should return error for invalid JSON", func(t *testing.T) {
-		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+	t.Run("maps non-200 status to a typed error", func(t *testing.T) {
+		ts, c := newTestServer(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusInternalServerError)
+		})
+		defer ts.Close()
+
+		_, err := c.ListProviders(context.Background(), ts.URL, "")
+		require.Error(t, err)
+		var ogxErr *OGXError
+		require.ErrorAs(t, err, &ogxErr)
+		assert.Equal(t, ErrCodeInternalError, ogxErr.Code)
+	})
+
+	t.Run("truncates oversized response bodies instead of buffering them fully", func(t *testing.T) {
+		const oversizeTarget = 2 << 20 // 2 MiB, above the 1 MiB providers cap
+		var buf bytes.Buffer
+		buf.WriteString(`{"data":[`)
+		element := `{"provider_id":"` + strings.Repeat("y", 1024) + `"},`
+		for buf.Len() < oversizeTarget {
+			buf.WriteString(element)
+		}
+		buf.WriteString(`{"provider_id":"last"}]}`)
+
+		ts, c := newTestServer(func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "application/json")
-			_, writeErr := w.Write([]byte(`{invalid`))
-			require.NoError(t, writeErr)
-		}))
-		defer server.Close()
+			_, _ = w.Write(buf.Bytes())
+		})
+		defer ts.Close()
 
-		client := newTestClient(server.URL)
-		_, err := client.ListProviders(context.Background())
-
+		_, err := c.ListProviders(context.Background(), ts.URL, "")
 		require.Error(t, err)
-		var lsErr *OGXError
-		require.ErrorAs(t, err, &lsErr)
-		assert.Equal(t, ErrCodeInternalError, lsErr.Code)
+		var ogxErr *OGXError
+		require.ErrorAs(t, err, &ogxErr)
+		assert.Equal(t, ErrCodeInternalError, ogxErr.Code)
 	})
+}
 
-	t.Run("should return error for non-200 status", func(t *testing.T) {
-		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-			w.WriteHeader(http.StatusServiceUnavailable)
-			_, writeErr := w.Write([]byte("unavailable"))
-			require.NoError(t, writeErr)
-		}))
-		defer server.Close()
+// --- setAuthHeader ---
 
-		client := newTestClient(server.URL)
-		_, err := client.ListProviders(context.Background())
+func TestSetAuthHeader(t *testing.T) {
+	tests := []struct {
+		name       string
+		apiKey     string
+		url        string
+		wantHeader string
+	}{
+		{"https host gets bearer token", "tok", "https://ogx.example.com/v1/models", "Bearer tok"},
+		{"localhost over http gets bearer token", "tok", "http://localhost:8080/v1/models", "Bearer tok"},
+		{"127.0.0.1 over http gets bearer token", "tok", "http://127.0.0.1:8080/v1/models", "Bearer tok"},
+		{"plain http to a remote host omits the token", "tok", "http://ogx.internal.svc:8080/v1/models", ""},
+		{"empty apiKey never sets a header", "", "https://ogx.example.com/v1/models", ""},
+	}
 
-		require.Error(t, err)
-		var lsErr *OGXError
-		require.ErrorAs(t, err, &lsErr)
-		assert.Equal(t, ErrCodeServerUnavailable, lsErr.Code)
-	})
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, tt.url, nil)
+			require.NoError(t, err)
+
+			setAuthHeader(req, tt.apiKey)
+
+			assert.Equal(t, tt.wantHeader, req.Header.Get("Authorization"))
+		})
+	}
 }

@@ -83,7 +83,7 @@ class UnsupportedStatusAcceptanceModal {
 class LlmAcceleratorConfigs {
   visit(wait = true) {
     cy.visitWithLogin(
-      '/settings/model-resources-operations/llm-accelerator-configs?devFeatureFlags=vLLMDeploymentOnMaaS=true',
+      '/settings/model-resources-operations/model-deployment-settings/llm-accelerator-configurations',
     );
     if (wait) {
       this.wait();
@@ -97,7 +97,7 @@ class LlmAcceleratorConfigs {
 
   findNavItem() {
     return appChrome.findNavItem({
-      name: 'LLM accelerator configurations',
+      name: 'Model deployment settings',
       rootSection: 'Settings',
       subSection: 'Model resources and operations',
     });
@@ -105,6 +105,19 @@ class LlmAcceleratorConfigs {
 
   findAppTitle() {
     return cy.findByTestId('app-page-title');
+  }
+
+  /** Title of the tabbed "Model deployment settings" page that hosts the tab. */
+  findTabPageTitle() {
+    return cy.findByTestId('app-tab-page-title');
+  }
+
+  findTab() {
+    return cy.findByRole('tab', { name: 'LLM accelerator configurations' });
+  }
+
+  findEmptyState() {
+    return cy.findByTestId('llm-accelerator-configs-empty-state');
   }
 
   findAddButton() {

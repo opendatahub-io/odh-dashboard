@@ -5,13 +5,13 @@ import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/ar
 import { useModelBiasData } from '@odh-dashboard/internal/concepts/trustyai/context/useModelBiasData';
 import NotFound from '@odh-dashboard/ui-core/components/NotFound';
 import useDoesTrustyAICRExist from '@odh-dashboard/internal/concepts/trustyai/context/useDoesTrustyAICRExist';
-import { TrustyInstallState } from '@odh-dashboard/internal/concepts/trustyai/types';
-import './MetricsPageTabs.scss';
 import useServingPlatformStatuses from '@odh-dashboard/internal/pages/modelServing/useServingPlatformStatuses';
-import { ProjectsContext } from '@odh-dashboard/ui-core/context/ProjectsContext';
-import { byName } from '@odh-dashboard/k8s-core';
 import { isProjectNIMSupported } from '@odh-dashboard/internal/pages/modelServing/screens/projects/nim/nimUtils';
+import { byName } from '@odh-dashboard/k8s-core';
+import { ProjectsContext } from '@odh-dashboard/ui-core/context/ProjectsContext';
+import { TrustyInstallState } from '@odh-dashboard/trustyai/types';
 import type { InferenceServiceKind } from '@odh-dashboard/model-serving/shared';
+import './MetricsPageTabs.scss';
 import { MetricsTabKeys } from './types';
 import useMetricsPageEnabledTabs from './useMetricsPageEnabledTabs';
 import BiasConfigurationAlertPopover from './bias/BiasConfigurationPage/BiasConfigurationAlertPopover';

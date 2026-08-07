@@ -18,7 +18,10 @@ import {
   mockConnectionTypeConfigMap,
   mockModelServingFields,
 } from '@odh-dashboard/internal/__mocks__/mockConnectionType';
-import { mockSecretK8sResource } from '@odh-dashboard/internal/__mocks__/mockSecretK8sResource';
+import {
+  mockSecretK8sResource,
+  mockURISecretK8sResource,
+} from '@odh-dashboard/internal/__mocks__/mockSecretK8sResource';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import { ModelTypeLabel } from '@odh-dashboard/cypress/cypress/utils/modelServingConstants';
 import {
@@ -414,8 +417,23 @@ describe('Model Serving LLMD Topology & Routing', () => {
     }) => {
       initIntercepts({ topologyConfigs, routerConfigs });
       cy.interceptK8sList(
+        { model: SecretModel, ns: 'test-project' },
+        mockK8sResourceList([mockURISecretK8sResource({ namespace: 'test-project' })]),
+      );
+      cy.interceptK8sList(
         { model: LLMInferenceServiceModel, ns: 'test-project' },
-        mockK8sResourceList([existingDeployment]),
+        mockK8sResourceList([
+          {
+            ...existingDeployment,
+            metadata: {
+              ...existingDeployment.metadata,
+              annotations: {
+                ...existingDeployment.metadata.annotations,
+                'opendatahub.io/connections': 'test-uri-secret',
+              },
+            },
+          },
+        ]),
       );
       cy.intercept('PUT', '**/llminferenceservices/**', (req) => {
         req.reply({ statusCode: 200, body: req.body });
@@ -442,7 +460,7 @@ describe('Model Serving LLMD Topology & Routing', () => {
 
       openEditWizardModelDeploymentStep('Test LLM Inference Service');
 
-      cy.findByTestId('topology-type-select').should('contain.text', 'Multi-node data parallel');
+      cy.findByTestId('topology-type-select').should('contain.text', 'Multi-node');
       cy.findByTestId('custom-topology-config-select').should(
         'contain.text',
         'Multi-node Data Parallel',
@@ -527,7 +545,7 @@ describe('Model Serving LLMD Topology & Routing', () => {
 
       openEditWizardModelDeploymentStep('Test LLM Inference Service');
 
-      cy.findByTestId('topology-type-select').should('contain.text', 'Multi-node data parallel');
+      cy.findByTestId('topology-type-select').should('contain.text', 'Multi-node');
       cy.findByTestId('custom-topology-config-select').should(
         'contain.text',
         'Multi-node Data Parallel',
@@ -549,7 +567,7 @@ describe('Model Serving LLMD Topology & Routing', () => {
       openEditWizardModelDeploymentStep('Test LLM Inference Service');
 
       cy.findByTestId('topology-type-select').click();
-      cy.findByTestId('topology-type-option-workload-single-node').click();
+      cy.findByTestId('topology-type-workload-single-node').click();
       cy.findByTestId('topology-type-select').should('contain.text', 'Single node');
       cy.findByTestId('custom-topology-config-select').should(
         'contain.text',

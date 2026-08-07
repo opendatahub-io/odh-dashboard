@@ -26,6 +26,7 @@ const SourceDeleteSuccessAlert: React.FunctionComponent<SourceDeleteSuccessAlert
       timeout={ALERT_TIMEOUT_MS}
       actionClose={<AlertActionCloseButton onClose={onClose} />}
       onTimeout={onClose}
+      data-testid="source-delete-success-alert"
     >
       <p>The source has been successfully deleted from your vector store.</p>
     </Alert>

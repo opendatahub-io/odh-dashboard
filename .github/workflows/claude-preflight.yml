@@ -6,6 +6,9 @@ name: ODH Dashboard Agent
 #   pull_request_target — auto-runs on PR open/reopen (forks + internal)
 #   issue_comment       — @odh-dashboard-agent preflight (org members only)
 #
+# Dependabot PRs are skipped on pull_request_target (not useful for
+# dependency bumps; avoids noisy failures). Manual comment trigger still works.
+#
 # Fork PRs are gated by GitHub's "Require approval for all external
 # contributors" setting — a maintainer must approve the workflow run.
 #
@@ -48,10 +51,17 @@ jobs:
         env:
           REPO: ${{ github.repository }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           HEAD_REF: ${{ github.event.pull_request.head.ref }}
           HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
         run: |
+          if [[ "$PR_AUTHOR" == "dependabot[bot]" ]]; then
+            echo "Skipping: Dependabot PR — preflight not useful for dependency bumps"
+            echo "matrix=[]" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
           echo "→ Preflight for PR #$PR_NUMBER (pull_request_target)"
           MATRIX=$(jq -nc --arg n "$PR_NUMBER" --arg s "$HEAD_SHA" --arg r "$HEAD_REF" --arg h "$HEAD_REPO" \
             '[{"pr_number":$n,"head_sha":$s,"head_ref":$r,"head_repo":$h}]')

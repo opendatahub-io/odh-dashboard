@@ -20,16 +20,20 @@ describe('LLM accelerator configurations CRUD operations', () => {
       llmAcceleratorConfigs.findAddButton().click();
       cy.url().should(
         'include',
-        '/settings/model-resources-operations/llm-accelerator-configs/add',
+        '/settings/model-resources-operations/model-deployment-settings/llm-accelerator-configurations/add',
       );
       llmAcceleratorConfigs.findAppTitle().should('have.text', 'Add LLM accelerator configuration');
+      // The form is a full-page breakout route, not tab content: it must not render
+      // beneath the tabbed page title and tab bar, which would give it two headings.
+      llmAcceleratorConfigs.findTabPageTitle().should('not.exist');
+      llmAcceleratorConfigs.findTab().should('not.exist');
     });
 
     it('should navigate to edit form when clicking Edit action', () => {
       llmAcceleratorConfigs.getRowByName('vllm-cuda').find().findKebabAction('Edit').click();
       cy.url().should(
         'include',
-        '/settings/model-resources-operations/llm-accelerator-configs/edit/vllm-cuda',
+        '/settings/model-resources-operations/model-deployment-settings/llm-accelerator-configurations/edit/vllm-cuda',
       );
       llmAcceleratorConfigs.findAppTitle().should('have.text', 'Edit vLLM CUDA Accelerator');
     });
@@ -38,7 +42,7 @@ describe('LLM accelerator configurations CRUD operations', () => {
       llmAcceleratorConfigs.getRowByName('vllm-cuda').find().findKebabAction('Duplicate').click();
       cy.url().should(
         'include',
-        '/settings/model-resources-operations/llm-accelerator-configs/duplicate/vllm-cuda',
+        '/settings/model-resources-operations/model-deployment-settings/llm-accelerator-configurations/duplicate/vllm-cuda',
       );
       llmAcceleratorConfigs
         .findAppTitle()
