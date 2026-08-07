@@ -3,7 +3,6 @@ import {
   ActionList,
   ActionListGroup,
   ActionListItem,
-  Breadcrumb,
   BreadcrumbItem,
   Button,
   Content,
@@ -14,10 +13,11 @@ import {
 } from '@patternfly/react-core';
 import classNames from 'classnames';
 import { ApplicationsPage } from 'mod-arch-shared';
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { FieldPath, FormProvider, useForm, useWatch } from 'react-hook-form';
-import { Link, useLocation, useNavigate, useParams } from 'react-router';
+import { useNavigate, useParams } from 'react-router';
 import AutomlHeader from '~/app/components/common/AutomlHeader/AutomlHeader';
+import ExperimentContextBreadcrumb from '~/app/components/common/ExperimentContextBreadcrumb';
 import AutomlConfigure from '~/app/components/configure/AutomlConfigure';
 import AutomlCreate from '~/app/components/create/AutomlCreate';
 import InvalidProject from '~/app/components/empty-states/InvalidProject';
@@ -50,13 +50,7 @@ function AutomlConfigurePage({
   sourceRunName,
 }: AutomlConfigurePageProps): React.JSX.Element {
   const navigate = useNavigate();
-  const location = useLocation();
   const notification = useNotification();
-  const fromResultsPage =
-    location.state != null &&
-    typeof location.state === 'object' &&
-    'from' in location.state &&
-    location.state.from === 'results';
 
   const { namespace } = useParams();
   const { namespaces, namespacesLoaded, namespacesLoadError } =
@@ -67,6 +61,10 @@ function AutomlConfigurePage({
     namespacesLoaded && !!namespace && !namespaces.map((ns) => ns.name).includes(namespace);
 
   const getRedirectPath = (ns: string) => `${automlExperimentsPathname}/${ns}`;
+  const projectDisplayName = useMemo(
+    () => namespaces.find((ns) => ns.name === namespace)?.displayName ?? namespace ?? '',
+    [namespaces, namespace],
+  );
 
   const pipelineRunsMutation = useCreatePipelineRunMutation(namespace ?? '');
 
@@ -185,22 +183,18 @@ function AutomlConfigurePage({
         )
       }
       breadcrumb={
-        (step === 'configure' || sourceRunId) && (
-          <Breadcrumb>
-            <BreadcrumbItem>
-              <Link to={getRedirectPath(namespace!)}>AutoML: {namespace}</Link>
-            </BreadcrumbItem>
-            {fromResultsPage && sourceRunId && sourceRunName && (
-              <BreadcrumbItem data-testid="configure-breadcrumb-source-run">
-                <Link to={`${automlResultsPathname}/${namespace}/${sourceRunId}`}>
-                  <Truncate content={sourceRunName} />
-                </Link>
-              </BreadcrumbItem>
-            )}
+        (step === 'configure' || sourceRunId) &&
+        namespace && (
+          <ExperimentContextBreadcrumb
+            pageName="AutoML"
+            namespace={namespace}
+            projectDisplayName={projectDisplayName}
+            homePath={getRedirectPath(namespace)}
+          >
             <BreadcrumbItem isActive data-testid="configure-breadcrumb-name">
-              {sourceRunId ? 'Reconfigure' : <Truncate content={displayName || ''} />}
+              Experiment configurations
             </BreadcrumbItem>
-          </Breadcrumb>
+          </ExperimentContextBreadcrumb>
         )
       }
       empty={noNamespaces || invalidNamespace}

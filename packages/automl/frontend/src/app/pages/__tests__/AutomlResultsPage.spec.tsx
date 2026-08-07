@@ -709,7 +709,7 @@ describe('AutomlResultsPage', () => {
   });
 
   describe('breadcrumb', () => {
-    it('should display pipeline run display_name in breadcrumb', () => {
+    it('should display experiment context breadcrumb with Run results', () => {
       const { useNamespaceSelector } = jest.requireMock('mod-arch-core');
       useNamespaceSelector.mockReturnValue({
         namespaces: [{ name: 'test-ns' }],
@@ -730,11 +730,23 @@ describe('AutomlResultsPage', () => {
         error: null,
       });
 
-      const { container } = renderPage();
+      renderPage();
 
-      // The breadcrumb should show the display name
-      // It's rendered as part of ApplicationsPage which we mocked, so check the raw render
-      expect(container.textContent).toContain('My Custom Run Name');
+      expect(screen.getByTestId('experiment-breadcrumb-home')).toHaveTextContent(/AutoML in/);
+      expect(screen.getByTestId('experiment-breadcrumb-home')).toHaveTextContent('test-ns');
+      expect(screen.getByTestId('project-navigator-link-in-breadcrumb')).toHaveTextContent(/Go to/);
+      const experimentConfigLink = screen.getByTestId(
+        'results-breadcrumb-experiment-configurations',
+      );
+      expect(experimentConfigLink).toHaveTextContent('Experiment configurations');
+      expect(experimentConfigLink.querySelector('a')).toHaveAttribute(
+        'href',
+        '/develop-train/automl/reconfigure/test-ns/run-123',
+      );
+      expect(screen.getByText('Run results')).toBeInTheDocument();
+      expect(
+        screen.getByTestId('project-navigator-link-in-breadcrumb').querySelector('a'),
+      ).toHaveAttribute('href', '/projects/test-ns');
     });
   });
 
