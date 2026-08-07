@@ -26,10 +26,14 @@ jobs:
           REPO: ${{ github.repository }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
-          upstream_files=$(gh api "repos/$REPO/pulls/$PR_NUMBER/files" \
-            --paginate -q '.[].filename | select(contains("/upstream/"))' || true)
+          all_files=$(gh api "repos/$REPO/pulls/$PR_NUMBER/files" \
+            --paginate -q '.[].filename')
+          upstream_files=$(echo "$all_files" | grep '/upstream/' || true)
 
-          if [ -n "$upstream_files" ]; then
+          if [ -z "$all_files" ]; then
+            echo "::error::Failed to fetch PR files — treating as unsafe"
+            echo "touches_upstream=true" >> "$GITHUB_OUTPUT"
+          elif [ -n "$upstream_files" ]; then
             echo "PR modifies upstream files:"
             echo "$upstream_files"
             echo "touches_upstream=true" >> "$GITHUB_OUTPUT"
