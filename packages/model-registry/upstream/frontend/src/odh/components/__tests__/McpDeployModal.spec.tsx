@@ -276,6 +276,60 @@ describe('McpDeployModal', () => {
     );
   });
 
+  it('should sync the YAML field when data arrives after the modal has already mounted', () => {
+    const onClose = jest.fn();
+    const { rerender } = render(
+      <MemoryRouter>
+        <McpDeployModal data={undefined} onClose={onClose} isLoading />
+      </MemoryRouter>,
+    );
+
+    rerender(
+      <MemoryRouter>
+        <McpDeployModal
+          data={{
+            image: 'quay.io/mcp/weather:1.2.0',
+            yaml: 'config:\n  port: 8080\n',
+            serverName: 'weather',
+          }}
+          onClose={onClose}
+          isLoading={false}
+        />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByTestId('mcp-deploy-yaml-editor')).toHaveValue('config:\n  port: 8080\n');
+  });
+
+  it('should sync the image and yaml fields when they transition to an empty value', () => {
+    const onClose = jest.fn();
+    const { rerender } = render(
+      <MemoryRouter>
+        <McpDeployModal
+          data={{
+            image: 'quay.io/mcp/weather:1.2.0',
+            yaml: 'config:\n  port: 8080\n',
+            serverName: 'weather',
+          }}
+          onClose={onClose}
+        />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByTestId('mcp-deploy-oci-image-input')).toHaveValue(
+      'quay.io/mcp/weather:1.2.0',
+    );
+
+    rerender(
+      <MemoryRouter>
+        <McpDeployModal data={{ image: '', yaml: '', serverName: 'weather' }} onClose={onClose} />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByTestId('mcp-deploy-oci-image-input')).toHaveValue('');
+    expect(screen.getByTestId('mcp-deploy-yaml-editor')).toHaveValue('');
+  });
+
   it('should prefill empty image and yaml fields when missing from data', () => {
     renderModal({
       image: '',

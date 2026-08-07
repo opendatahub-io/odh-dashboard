@@ -104,12 +104,20 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({
 
   // `data` can arrive after this modal has already mounted (e.g. the catalog flow opens the
   // modal immediately on click, before its CR-to-YAML converter resolves). useState's initial
-  // value only applies once, so without this the image field would stay stuck empty forever.
+  // value only applies once, so without these the image/YAML fields would stay stuck at their
+  // initial (possibly empty) values forever. `!== undefined` (rather than truthiness) so a
+  // field that resolves to an empty value still overwrites a stale non-empty one.
   React.useEffect(() => {
-    if (data?.image) {
+    if (data?.image !== undefined) {
       setOciImageValue(data.image);
     }
   }, [data?.image]);
+
+  React.useEffect(() => {
+    if (data?.yaml !== undefined) {
+      setYamlContent(data.yaml);
+    }
+  }, [data?.yaml]);
 
   React.useEffect(
     () => () => {
