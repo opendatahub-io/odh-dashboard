@@ -76,6 +76,9 @@ _MLFLOW_PORT_NONDIGIT := $(subst 0,,$(subst 1,,$(subst 2,,$(subst 3,,$(subst 4,,
 ifneq ($(_MLFLOW_PORT_NONDIGIT),)
 $(error MLFLOW_BFF_MOCK_PORT must be numeric)
 endif
+ifeq ($(shell test $$(printf '%s' '$(MLFLOW_BFF_MOCK_PORT)' | wc -c) -gt 5 && echo 1),1)
+$(error MLFLOW_BFF_MOCK_PORT must be in range 1-65535)
+endif
 ifeq ($(shell test "$(MLFLOW_BFF_MOCK_PORT)" -lt 1 -o "$(MLFLOW_BFF_MOCK_PORT)" -gt 65535 && echo 1),1)
 $(error MLFLOW_BFF_MOCK_PORT must be in range 1-65535)
 endif
