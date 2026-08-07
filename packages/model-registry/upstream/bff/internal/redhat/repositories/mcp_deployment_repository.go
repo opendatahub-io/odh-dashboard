@@ -263,7 +263,9 @@ func buildMcpServerFromCreateRequest(namespace string, req models.McpDeploymentC
 		APIVersion: mcpServerAPIVersion,
 		Kind:       mcpServerKind,
 		Metadata: models.MCPMetadata{
-			Name:      name,
+			Name: name,
+			// Always the URL path parameter, never read from req/YAML, so the caller can't
+			// target a different namespace than the one it was authorized against.
 			Namespace: namespace,
 		},
 		Spec: models.MCPServerSpec{

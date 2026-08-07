@@ -105,22 +105,28 @@ const McpRegistryDeployAction: React.FC<McpRegistryDeployActionProps> = ({
     </Button>
   );
 
-  const modals =
-    isModalOpen && version && deployData
-      ? extensions.map((extension) => (
-          <extension.properties.modalComponent
-            key={extension.uid}
-            data={deployData}
-            onClose={() => setIsModalOpen(false)}
-            onDeployed={handleDeployed}
-          />
-        ))
-      : null;
+  // Render only the first resolved extension (matches NamespaceSelectorFieldWrapper's
+  // convention) so a second registered provider can't fire a duplicate deploy from one click.
+  const modal = (() => {
+    if (!isModalOpen || !version || !deployData || extensions.length === 0) {
+      return null;
+    }
+    const extension = extensions[0];
+    const ModalComponent = extension.properties.modalComponent;
+    return (
+      <ModalComponent
+        key={extension.uid}
+        data={deployData}
+        onClose={() => setIsModalOpen(false)}
+        onDeployed={handleDeployed}
+      />
+    );
+  })();
 
   return (
     <>
       {disabledReason ? <Tooltip content={disabledReason}>{button}</Tooltip> : button}
-      {modals}
+      {modal}
     </>
   );
 };

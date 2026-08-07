@@ -219,6 +219,44 @@ describe('McpRegistryDeployAction', () => {
     );
   });
 
+  it('should render only the first resolved extension if more than one provider registers the deploy modal', async () => {
+    const secondModalComponent = jest.fn(() => (
+      <div data-testid="mcp-registry-deploy-modal-stub-second" />
+    ));
+    mockUseResolvedExtensions.mockReturnValue([
+      [
+        {
+          type: 'mcp-catalog.server/deploy-modal',
+          uid: 'test-ext',
+          pluginName: 'test',
+          properties: { modalComponent: mockModalComponent },
+          flags: {},
+        },
+        {
+          type: 'mcp-catalog.server/deploy-modal',
+          uid: 'test-ext-2',
+          pluginName: 'test-2',
+          properties: { modalComponent: secondModalComponent },
+          flags: {},
+        },
+      ] as never,
+      true,
+      [],
+    ]);
+
+    render(
+      <McpRegistryDeployAction
+        server={mockServer}
+        version={mockVersion}
+        namespace="test-project"
+      />,
+    );
+    await userEvent.click(screen.getByTestId('mcp-registry-deploy-action-button'));
+
+    expect(screen.getByTestId('mcp-registry-deploy-modal-stub')).toBeInTheDocument();
+    expect(screen.queryByTestId('mcp-registry-deploy-modal-stub-second')).not.toBeInTheDocument();
+  });
+
   it('should close the deploy modal when onClose is called', async () => {
     render(
       <McpRegistryDeployAction

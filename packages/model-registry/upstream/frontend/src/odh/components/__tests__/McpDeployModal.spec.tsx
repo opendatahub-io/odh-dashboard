@@ -186,6 +186,32 @@ describe('McpDeployModal', () => {
     expect(mockNavigate).toHaveBeenCalledWith('/ai-hub/mcp-servers/deployments/test-project');
   });
 
+  it('should still treat the deploy as successful if onDeployed rejects', async () => {
+    const created = mockDeployment();
+    mockCreateMcpDeployment.mockReturnValue(jest.fn().mockResolvedValue(created));
+    const onDeployed = jest.fn().mockRejectedValue(new Error('registration failed'));
+    const onClose = jest.fn();
+
+    renderModal(
+      {
+        image: 'quay.io/mcp/weather:1.2.0',
+        displayName: 'Weather MCP',
+        registryServer: 'io.github.example/weather-server',
+        registryVersion: '1.2.0',
+        namespace: 'test-project',
+      },
+      onDeployed,
+      onClose,
+    );
+
+    await userEvent.click(screen.getByTestId('modal-submit-button'));
+
+    await waitFor(() => expect(onDeployed).toHaveBeenCalledWith(created));
+    expect(onClose).toHaveBeenCalledWith(true);
+    expect(mockNavigate).toHaveBeenCalledWith('/ai-hub/mcp-servers/deployments/test-project');
+    expect(screen.queryByText('registration failed')).not.toBeInTheDocument();
+  });
+
   it('should navigate to deployments page after a successful catalog deploy', async () => {
     mockCreateMcpDeployment.mockReturnValue(jest.fn().mockResolvedValue(mockDeployment()));
 
@@ -224,6 +250,29 @@ describe('McpDeployModal', () => {
         registryServer: undefined,
         registryVersion: undefined,
       }),
+    );
+  });
+
+  it('should sync the OCI image field when data arrives after the modal has already mounted', () => {
+    const onClose = jest.fn();
+    const { rerender } = render(
+      <MemoryRouter>
+        <McpDeployModal data={undefined} onClose={onClose} isLoading />
+      </MemoryRouter>,
+    );
+
+    rerender(
+      <MemoryRouter>
+        <McpDeployModal
+          data={{ image: 'quay.io/mcp/weather:1.2.0', serverName: 'weather' }}
+          onClose={onClose}
+          isLoading={false}
+        />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByTestId('mcp-deploy-oci-image-input')).toHaveValue(
+      'quay.io/mcp/weather:1.2.0',
     );
   });
 

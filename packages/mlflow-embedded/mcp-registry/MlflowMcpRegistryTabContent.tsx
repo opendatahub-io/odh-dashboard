@@ -23,6 +23,8 @@ import { MCPServer, MCPServerVersion } from './types';
 import MLflowUnavailable from '../shared/MLflowUnavailable';
 
 const MCP_REGISTRY_BASENAME = '/ai-hub/mcp-servers/registry';
+// Stable reference so LazyCodeRefComponent's spread props don't change identity every render.
+const NOOP = () => undefined;
 
 const mcpRegistryBaseRoute = (namespace?: string): string => {
   if (!namespace) {
@@ -77,7 +79,7 @@ const MlflowMcpRegistryTabContent: React.FC = () => {
                 alignItems={{ default: 'alignItemsCenter' }}
               >
                 <FlexItem>
-                  <Bullseye>Project</Bullseye>
+                  <span>Project</span>
                 </FlexItem>
                 <FlexItem>
                   <ProjectSelectorNavigator
@@ -95,7 +97,7 @@ const MlflowMcpRegistryTabContent: React.FC = () => {
         component={loadWrapper}
         props={{
           basename: MCP_REGISTRY_BASENAME,
-          onBreadcrumbChange: () => undefined,
+          onBreadcrumbChange: NOOP,
           renderDetailActions,
         }}
         fallback={

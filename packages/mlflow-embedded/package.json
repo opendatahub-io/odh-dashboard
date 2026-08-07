@@ -15,7 +15,7 @@
     "backend": {
       "remoteEntry": "/mlflow/static-files/federated/remoteEntry.js",
       "authorize": true,
-      "tls": false,
+      "tls": true,
       "service": {
         "name": "mlflow",
         "port": 8443

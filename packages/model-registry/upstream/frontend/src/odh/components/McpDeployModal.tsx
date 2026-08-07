@@ -32,7 +32,10 @@ type McpDeployModalProps = {
   data?: McpDeployModalData;
   isLoading?: boolean;
   loadError?: Error;
-  /** Called after the CR is created, before `onClose`, for caller-specific follow-up. */
+  /**
+   * Called after the CR is created, before `onClose`, for caller-specific follow-up.
+   * Should catch and report its own errors — a rejection here doesn't fail the deploy itself.
+   */
   onDeployed?: (deployment: McpDeployment) => void | Promise<void>;
 };
 
@@ -99,6 +102,15 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({
   const [submitError, setSubmitError] = React.useState<Error>();
   const abortControllerRef = React.useRef<AbortController>();
 
+  // `data` can arrive after this modal has already mounted (e.g. the catalog flow opens the
+  // modal immediately on click, before its CR-to-YAML converter resolves). useState's initial
+  // value only applies once, so without this the image field would stay stuck empty forever.
+  React.useEffect(() => {
+    if (data?.image) {
+      setOciImageValue(data.image);
+    }
+  }, [data?.image]);
+
   React.useEffect(
     () => () => {
       abortControllerRef.current?.abort();
@@ -148,7 +160,14 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({
           image: ociImageValue,
           yaml: yamlContent,
         });
-        await onDeployed?.(created);
+        // The CR is already created at this point. `onDeployed`'s contract requires
+        // implementations to handle their own errors, but don't let a caller that breaks that
+        // contract report a deploy failure when the deployment actually succeeded.
+        try {
+          await onDeployed?.(created);
+        } catch {
+          // Intentionally swallowed — see comment above.
+        }
         onClose(true);
         navigate(mcpDeploymentsUrl(selectedNamespace));
       }
