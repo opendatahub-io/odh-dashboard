@@ -244,6 +244,19 @@ describe('McpDeployModal', () => {
     expect(yamlEditor.value).toBe('');
   });
 
+  it('should show the project as a fixed, disabled field when editing an existing deployment', () => {
+    renderModal({
+      name: 'my-server',
+      displayName: 'Weather MCP',
+      image: 'quay.io/mcp/weather:1.2.0',
+      namespace: 'test-project',
+    });
+
+    const nsButton = screen.getByTestId('mcp-deploy-namespace-select');
+    expect(nsButton).toBeDisabled();
+    expect(nsButton).toHaveTextContent('test-project');
+  });
+
   it('should call updateMcpDeployment and close without navigating when saving an existing deployment', async () => {
     mockUpdateMcpDeployment.mockReturnValue(jest.fn().mockResolvedValue(mockDeployment()));
     const onClose = jest.fn();
