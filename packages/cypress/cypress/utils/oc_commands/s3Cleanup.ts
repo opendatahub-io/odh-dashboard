@@ -59,6 +59,12 @@ export const deleteS3TestFiles = (
  * @param namespace  The test namespace (also used as the S3 path segment)
  */
 export const deleteFeastRegistryFiles = (namespace: string): void => {
+  if (!/^[a-z0-9][a-z0-9-]*[a-z0-9]$/.test(namespace)) {
+    throw new Error(
+      `Invalid namespace: ${namespace}. Must be a valid DNS label (lowercase alphanumeric and hyphens).`,
+    );
+  }
+
   const bucketConfig = AWS_BUCKETS.BUCKET_1;
   const podName = `feast-s3-cleanup-${Date.now()}`;
   const s3Path = `s3://${bucketConfig.NAME}/feast-test/${namespace}/`;

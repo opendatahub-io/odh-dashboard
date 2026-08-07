@@ -5,11 +5,11 @@
  * @returns {Cypress.Chainable} The Bearer token
  */
 export const getOCToken = (): Cypress.Chainable => {
-  return cy.exec('oc whoami -t', { failOnNonZeroExit: false }).then((result) => {
+  return cy.exec('oc whoami -t', { failOnNonZeroExit: false, log: false }).then((result) => {
     if (!result.stdout.trim()) {
       throw new Error(`Failed to get OC token: ${result.stderr}`);
     }
-    return cy.wrap(result.stdout.trim());
+    return cy.wrap(result.stdout.trim(), { log: false });
   });
 };
 
