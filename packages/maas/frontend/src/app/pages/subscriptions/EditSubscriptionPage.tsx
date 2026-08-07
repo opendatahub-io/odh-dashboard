@@ -16,14 +16,13 @@ const EditSubscriptionPage: React.FC = () => {
   const base = getBackUrl(state, 'subscriptions');
   const returnTo = base;
   const [subscriptionInfo, infoLoaded, infoError] = useGetSubscriptionInfo(subscriptionName);
-  // Wait for overview fetches only — groups can populate the multi-select as they arrive.
   const {
     groups,
     modelRefs,
     subscriptions,
     policies,
-    overviewLoaded: formLoaded,
-    overviewError: formError,
+    loaded: formLoaded,
+    error: formError,
   } = useMaaSGovernanceContext();
 
   const loaded = infoLoaded && formLoaded;

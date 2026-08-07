@@ -11,14 +11,13 @@ import {
 import PolicyForm from './policyForm/PolicyForm';
 
 const CreateAuthPolicyPage: React.FC = () => {
-  // Wait for overview fetches only — groups can populate the multi-select as they arrive.
   const {
     groups,
     modelRefs,
     subscriptions,
     policies,
-    overviewLoaded: loaded,
-    overviewError: loadError,
+    loaded,
+    error: loadError,
   } = useMaaSGovernanceContext();
   const { state } = useLocation();
   const backUrl = getBackUrl(state, 'auth-policies');
