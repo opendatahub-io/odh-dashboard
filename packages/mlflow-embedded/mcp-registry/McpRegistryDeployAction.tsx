@@ -37,21 +37,15 @@ const McpRegistryDeployAction: React.FC<McpRegistryDeployActionProps> = ({
   // Surface *why* Deploy is disabled instead of leaving the button greyed out with no
   // explanation — extensionsLoaded && extensions.length === 0 usually means the
   // mcp-catalog.server/deploy-modal extension's flag requirement (Model Registry) isn't met.
-  const disabledReason = (() => {
-    if (!version) {
-      return 'Select a server version to deploy';
-    }
-    if (!namespace) {
-      return 'Select a project to deploy to';
-    }
-    if (!extensionsLoaded) {
-      return 'Checking deploy availability...';
-    }
-    if (extensions.length === 0) {
-      return 'Deploying is unavailable. Ensure Model Registry is enabled on this cluster.';
-    }
-    return undefined;
-  })();
+  const disabledReason = !version
+    ? 'Select a server version to deploy'
+    : !namespace
+    ? 'Select a project to deploy to'
+    : !extensionsLoaded
+    ? 'Checking deploy availability...'
+    : extensions.length === 0
+    ? 'Deploying is unavailable. Ensure Model Registry is enabled on this cluster.'
+    : undefined;
 
   const handleDeployed = React.useCallback(
     async (deployment: McpDeployment) => {
@@ -107,13 +101,11 @@ const McpRegistryDeployAction: React.FC<McpRegistryDeployActionProps> = ({
 
   // Render only the first resolved extension (matches NamespaceSelectorFieldWrapper's
   // convention) so a second registered provider can't fire a duplicate deploy from one click.
-  const modal = (() => {
-    if (!isModalOpen || !version || !deployData || extensions.length === 0) {
-      return null;
-    }
+  let modal: React.ReactNode = null;
+  if (isModalOpen && version && deployData && extensions.length > 0) {
     const extension = extensions[0];
     const ModalComponent = extension.properties.modalComponent;
-    return (
+    modal = (
       <ModalComponent
         key={extension.uid}
         data={deployData}
@@ -121,7 +113,7 @@ const McpRegistryDeployAction: React.FC<McpRegistryDeployActionProps> = ({
         onDeployed={handleDeployed}
       />
     );
-  })();
+  }
 
   return (
     <>
