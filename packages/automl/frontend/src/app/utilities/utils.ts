@@ -301,7 +301,8 @@ export function formatMetricValue(value: number | string): string {
   }
   // If the value would round to all zeros but is actually non-zero, use scientific notation
   const fixed = value.toFixed(METRIC_DISPLAY_DECIMAL_PLACES);
-  if ((fixed === '0.0000' || fixed === '-0.0000') && value !== 0) {
+  const roundedZero = (0).toFixed(METRIC_DISPLAY_DECIMAL_PLACES);
+  if ((fixed === roundedZero || fixed === `-${roundedZero}`) && value !== 0) {
     return value.toExponential(METRIC_DISPLAY_DECIMAL_PLACES);
   }
   return fixed;

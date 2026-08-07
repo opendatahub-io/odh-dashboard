@@ -251,10 +251,14 @@ describe('formatMetricValue', () => {
     expect(formatMetricValue(0.00001)).toBe('1.0000e-5');
     expect(formatMetricValue(0.00001234)).toBe('1.2340e-5');
     expect(formatMetricValue(0.0000001)).toBe('1.0000e-7');
+    // Just below the 4-decimal rounding cutoff (toFixed(4) → 0.0000)
+    expect(formatMetricValue(0.000049)).toBe('4.9000e-5');
   });
 
   it('should display values that remain non-zero at 4 decimals without scientific notation', () => {
     expect(formatMetricValue(0.0001)).toBe('0.0001');
+    // Just above the 4-decimal rounding cutoff (toFixed(4) → 0.0001)
+    expect(formatMetricValue(0.00005)).toBe('0.0001');
   });
 
   it('should display zero as 0.0000 (not scientific notation)', () => {
@@ -264,11 +268,13 @@ describe('formatMetricValue', () => {
   it('should use scientific notation for negative non-zero values that round to -0.0000', () => {
     expect(formatMetricValue(-0.00001)).toBe('-1.0000e-5');
     expect(formatMetricValue(-0.00001234)).toBe('-1.2340e-5');
+    expect(formatMetricValue(-0.000049)).toBe('-4.9000e-5');
   });
 
   it('should format negative values normally if they do not round to -0.0000', () => {
     expect(formatMetricValue(-0.123)).toBe('-0.1230');
     expect(formatMetricValue(-1.5678)).toBe('-1.5678');
+    expect(formatMetricValue(-0.00005)).toBe('-0.0001');
   });
 
   it('should return string values as-is', () => {
