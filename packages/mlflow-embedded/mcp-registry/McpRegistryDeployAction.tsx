@@ -22,9 +22,25 @@ const McpRegistryDeployAction: React.FC<McpRegistryDeployActionProps> = ({
   version,
   namespace,
 }) => {
-  const [extensions, extensionsLoaded] = useResolvedExtensions(isMcpCatalogDeployModalExtension);
+  const [extensions, extensionsLoaded, extensionErrors] = useResolvedExtensions(
+    isMcpCatalogDeployModalExtension,
+  );
   const [isModalOpen, setIsModalOpen] = React.useState(false);
   const notification = useNotification();
+
+  // extensionsLoaded && extensions.length === 0 can mean either the extension's flag
+  // requirement isn't met, or (silently, upstream) that resolving one of its CodeRef properties
+  // (e.g. the dynamic import of the modal component) threw — log the latter so it's diagnosable
+  // instead of only showing a generic "temporarily unavailable" tooltip.
+  React.useEffect(() => {
+    if (extensionsLoaded && extensions.length === 0 && extensionErrors.length > 0) {
+      // eslint-disable-next-line no-console
+      console.error(
+        'McpRegistryDeployAction: mcp-catalog.server/deploy-modal failed to resolve',
+        extensionErrors,
+      );
+    }
+  }, [extensionsLoaded, extensions.length, extensionErrors]);
 
   const deployData = React.useMemo(
     () => (version ? { ...registryVersionToDeployData(server, version), namespace } : undefined),

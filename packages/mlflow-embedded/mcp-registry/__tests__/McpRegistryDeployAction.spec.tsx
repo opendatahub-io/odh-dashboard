@@ -2,7 +2,7 @@
 /* eslint-disable camelcase */
 import * as React from 'react';
 import '@testing-library/jest-dom';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useResolvedExtensions } from '@odh-dashboard/plugin-core';
 import { useNotification } from '@odh-dashboard/ui-core/contexts/NotificationContext';
@@ -168,6 +168,29 @@ describe('McpRegistryDeployAction', () => {
     expect(
       await screen.findByText('Deploying is temporarily unavailable. Try reloading the page.'),
     ).toBeInTheDocument();
+  });
+
+  it('should log the resolution errors when the extension fails to resolve rather than just being flag-gated', async () => {
+    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+    const resolutionError = new Error('Failed to load chunk');
+    mockUseResolvedExtensions.mockReturnValue([[], true, [resolutionError]]);
+
+    render(
+      <McpRegistryDeployAction
+        server={mockServer}
+        version={mockVersion}
+        namespace="test-project"
+      />,
+    );
+
+    await waitFor(() =>
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        'McpRegistryDeployAction: mcp-catalog.server/deploy-modal failed to resolve',
+        [resolutionError],
+      ),
+    );
+
+    consoleErrorSpy.mockRestore();
   });
 
   it('should disable the Deploy button and explain why when there is no current project', async () => {
