@@ -314,6 +314,26 @@ describe('SubscriptionDropdown', () => {
     expect(onSubscriptionChange).not.toHaveBeenCalled();
   });
 
+  it('handles subscriptions array containing null entries without throwing', () => {
+    const onSubscriptionChange = jest.fn();
+    const modelWithNullEntries = {
+      ...createMaaSModel({ model_id: 'test-model' }),
+      subscriptions: [null, { name: 'valid-sub', displayName: 'Valid' }, undefined],
+    } as unknown as AAModelResponse;
+
+    render(
+      <TestWrapper contextValue={createContextValue([], [modelWithNullEntries])}>
+        <SubscriptionDropdown
+          selectedModel="maas-provider/test-model"
+          selectedSubscription=""
+          onSubscriptionChange={onSubscriptionChange}
+        />
+      </TestWrapper>,
+    );
+
+    expect(onSubscriptionChange).toHaveBeenCalledWith('valid-sub');
+  });
+
   it('fires onSubscriptionChange when a different subscription is selected', async () => {
     const user = userEvent.setup();
     const onSubscriptionChange = jest.fn();

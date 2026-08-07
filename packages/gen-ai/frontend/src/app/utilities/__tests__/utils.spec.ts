@@ -272,6 +272,16 @@ describe('convertMaaSModelToAIModel', () => {
     expect(result.capabilities).toEqual(['vision', 'audio-transcription']);
   });
 
+  it('should pass through subscriptions field', () => {
+    const subscriptions = [
+      { name: 'premium', displayName: 'Premium Tier', description: 'High priority access' },
+      { name: 'basic', displayName: 'Basic Tier' },
+    ];
+    const aaModel = makeAAModelResponse({ subscriptions });
+    const result = convertMaaSModelToAIModel(aaModel);
+    expect(result.subscriptions).toEqual(subscriptions);
+  });
+
   it('should handle undefined endpoints gracefully', () => {
     const aaModel = {
       ...makeAAModelResponse(),

@@ -16,6 +16,14 @@ import { useGenAiAPI } from './useGenAiAPI';
 import useGenAiDashboardConfig from './useGenAiDashboardConfig';
 import useAiAssetModelAsServiceEnabled from './useAiAssetModelAsServiceEnabled';
 
+const isValidAAModel = (item: unknown): item is AAModelResponse =>
+  item != null &&
+  typeof item === 'object' &&
+  'model_source_type' in item &&
+  typeof item.model_source_type === 'string' &&
+  'endpoints' in item &&
+  Array.isArray(item.endpoints);
+
 const useFetchAIModels = (): FetchStateObject<AIModel[]> => {
   const { api, apiAvailable } = useGenAiAPI();
   const maaSEnabled = useAiAssetModelAsServiceEnabled();
@@ -37,9 +45,9 @@ const useFetchAIModels = (): FetchStateObject<AIModel[]> => {
       }
 
       const rawData = await api.getAAModels(queryParams, opts);
-      const models = Array.isArray(rawData) ? rawData : [];
+      const models = (Array.isArray(rawData) ? rawData : []).filter(isValidAAModel);
 
-      return models.map((item: AAModelResponse) => {
+      return models.map((item) => {
         if (item.model_source_type === 'maas') {
           return convertMaaSModelToAIModel(item);
         }
