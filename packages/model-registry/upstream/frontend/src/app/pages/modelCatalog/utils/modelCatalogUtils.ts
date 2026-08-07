@@ -198,19 +198,27 @@ export const hasValidatedToolCalling = (model: CatalogModel): boolean =>
   model.validatedTasks?.includes(ModelCatalogTask.TOOL_CALLING) === true &&
   !!model.servingConfig?.toolCalling?.toolCallParser;
 
+const quoteCliArgValue = (value: string): string => {
+  const trimmed = value.trim();
+  if (!trimmed || !/\s/.test(trimmed)) {
+    return trimmed;
+  }
+  return `"${trimmed.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
+};
+
 export const getToolCallingArgs = (config?: ToolCallingConfig): string => {
   const parts: string[] = [];
   if (config?.enableAutoToolChoice) {
     parts.push('--enable-auto-tool-choice');
   }
   if (config?.toolCallParser) {
-    parts.push(`--tool-call-parser ${config.toolCallParser}`);
+    parts.push(`--tool-call-parser ${quoteCliArgValue(config.toolCallParser)}`);
   }
   if (config?.chatTemplate) {
-    parts.push(`--chat-template ${config.chatTemplate}`);
+    parts.push(`--chat-template ${quoteCliArgValue(config.chatTemplate)}`);
   }
   if (config?.requiredArgs) {
-    parts.push(...config.requiredArgs);
+    parts.push(...config.requiredArgs.map((arg) => arg.trim()).filter(Boolean));
   }
   return parts.join(' \\\n');
 };

@@ -968,9 +968,10 @@ class ModelServingWizard extends Wizard {
   }
 
   visitWithValidatedConfigurations(initialData: Record<string, unknown>) {
-    cy.visit('/ai-hub/models/deployments/deploy', {
+    const url = '/ai-hub/models/deployments/deploy';
+    cy.visit(url, {
       onBeforeLoad(win) {
-        win.history.pushState({ initialData }, '', '/ai-hub/models/deployments/deploy');
+        win.history.pushState({ usr: { initialData } }, '', url);
       },
     });
     cy.findByTestId('app-page-title').contains('Deploy a model');

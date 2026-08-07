@@ -34,8 +34,8 @@ export const ValidatedConfigurationOptionCard: React.FC<ValidatedConfigurationOp
       isClickable
       isSelectable
       isSelected={isSelected}
+      isFullHeight
       data-testid={`validated-configuration-option-${optionSlug}`}
-      className="pf-v6-u-h-100"
     >
       <CardHeader
         selectableActions={{

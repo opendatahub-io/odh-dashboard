@@ -21,10 +21,6 @@ export const ValidatedArgumentsSection: React.FC<ValidatedArgumentsSectionProps>
   configurations,
   selection,
 }) => {
-  if (configurations.length === 0) {
-    return null;
-  }
-
   return (
     <>
       {configurations.map((configuration) => (
@@ -45,7 +41,8 @@ export const ValidatedArgumentsSection: React.FC<ValidatedArgumentsSectionProps>
               <StackItem>
                 <Gallery
                   hasGutter
-                  minWidths={{ default: '100%', md: '300px' }}
+                  minWidths={{ default: '100%', md: '330px' }}
+                  maxWidths={{ default: '100%', md: '330px' }}
                   data-testid={`validated-configuration-options-${configuration.forField}`}
                 >
                   {configuration.options.map((option) => (

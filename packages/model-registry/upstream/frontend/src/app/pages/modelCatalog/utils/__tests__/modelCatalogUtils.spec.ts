@@ -1917,6 +1917,23 @@ describe('getToolCallingArgs', () => {
     });
     expect(result).toBe('--tool-call-parser mistral');
   });
+
+  it('should quote values containing whitespace', () => {
+    const result = getToolCallingArgs({
+      toolCallParser: 'parser with spaces',
+      chatTemplate: '/path with spaces/template.jinja',
+    });
+    expect(result).toContain('--tool-call-parser "parser with spaces"');
+    expect(result).toContain('--chat-template "/path with spaces/template.jinja"');
+  });
+
+  it('should trim and omit empty requiredArgs entries', () => {
+    const result = getToolCallingArgs({
+      toolCallParser: 'granite',
+      requiredArgs: ['  --config_format granite  ', '   '],
+    });
+    expect(result).toBe('--tool-call-parser granite \\\n--config_format granite');
+  });
 });
 
 describe('getValidatedConfigurationsForModel', () => {
