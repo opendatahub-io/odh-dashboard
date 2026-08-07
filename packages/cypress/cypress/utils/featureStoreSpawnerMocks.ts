@@ -70,6 +70,23 @@ export const mockEmptyWorkbenchIntegrationResponse = {
   namespaces: [],
 };
 
+export const mockWorkbenchIntegrationForProjects = (
+  projectNames: string[],
+  namespace = 'test-feast-namespace',
+): typeof mockWorkbenchIntegrationResponse => ({
+  namespaces: [
+    {
+      namespace,
+      clientConfigs: projectNames.map((projectName) => ({
+        configName: projectName,
+        projectName,
+        hasAccessToFeatureStore: true,
+        permissionLevel: ['Read'],
+      })),
+    },
+  ],
+});
+
 type InitFeatureStoreSpawnerInterceptsOptions = {
   workbenchIntegration?:
     | typeof mockWorkbenchIntegrationResponse

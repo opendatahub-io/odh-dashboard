@@ -49,7 +49,7 @@ spec:
 
     - Through features like chunking, [connectors](https://www.elastic.co/guide/en/enterprise-search/current/connectors.html), and web crawlers, Elastic ensures a seamless process for ingesting diverse datasets into the search 'layer'.
 
-    - Semantic search with ELSER - Elastic Learned Sparse EncodeR, the built-in machine learning model, and use the [E5 embedding model](https://www.elastic.co/search-labs/blog/articles/multilingual-vector-search-e5-embedding-model) for multilingual vector search.  These models, and others, address the need to ground LLMs, help prompt large language models like OpenAI, and pave the way for generative AI experiences.
+    - Semantic search with ELSER - Elastic Learned Sparse EncodeR, the built-in machine learning model, and use the [E5 embedding model](https://www.elastic.co/search-labs/blog/multilingual-vector-search-e5-embedding-model) for multilingual vector search.  These models, and others, address the need to ground LLMs, help prompt large language models like OpenAI, and pave the way for generative AI experiences.
 
     - Elastic's API-first approach is enhanced by the Elastic Open Inference API, which streamlines code and manages inference for developers, providing flexibility to change models. Whether you use the built-in ELSER model or integrate with embedding models from the ecosystem via Red Hat Openshift AI, Hugging Face, Cohere, OpenAI, or others for RAG workloads, a single, straightforward API call ensures clean code for managing hybrid inference deployment.
 

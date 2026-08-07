@@ -80,7 +80,7 @@ const UploadedFilesList: React.FC<UploadedFilesListProps> = ({
   };
   if (isLoading) {
     return (
-      <Card>
+      <Card data-testid="uploaded-files-loading">
         <CardTitle>
           <Flex>
             <FlexItem>Uploaded files</FlexItem>
@@ -97,7 +97,7 @@ const UploadedFilesList: React.FC<UploadedFilesListProps> = ({
 
   if (error) {
     return (
-      <Card>
+      <Card data-testid="uploaded-files-error">
         <CardTitle>
           <Flex>
             <FlexItem>Uploaded files</FlexItem>
@@ -122,7 +122,7 @@ const UploadedFilesList: React.FC<UploadedFilesListProps> = ({
   }
 
   return (
-    <Card isPlain>
+    <Card isPlain data-testid="uploaded-files-card">
       <CardTitle style={{ paddingLeft: '0' }}>
         <Flex>
           <FlexItem>Uploaded files</FlexItem>
@@ -139,6 +139,7 @@ const UploadedFilesList: React.FC<UploadedFilesListProps> = ({
                 <div className="pf-u-min-width-0">
                   <div
                     className="pf-u-font-weight-bold pf-u-word-break-word pf-u-font-size-md"
+                    data-testid={`uploaded-file-name-${file.id}`}
                     title={file.filename}
                   >
                     {file.filename}
@@ -168,6 +169,7 @@ const UploadedFilesList: React.FC<UploadedFilesListProps> = ({
                     onClick={() => handleDeleteClick(file)}
                     isDisabled={isDeleting || isDisabled}
                     aria-label={`Delete ${file.filename}`}
+                    data-testid={`uploaded-file-delete-${file.id}`}
                     isDanger
                   />
                 </Tooltip>
