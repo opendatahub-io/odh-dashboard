@@ -24,8 +24,8 @@
   },
   "peerDependencies": {
     "@module-federation/enhanced": "^0.24.1",
-    "@rspack/core": "^2.1.6",
-    "webpack": "^5.0.0"
+    "@rspack/core": "^2.1.8",
+    "webpack": "^5.104.1"
   },
   "peerDependenciesMeta": {
     "@module-federation/enhanced": { "optional": true },
@@ -37,7 +37,8 @@
     "@odh-dashboard/eslint-config": "*",
     "@odh-dashboard/jest-config": "*",
     "@odh-dashboard/tsconfig": "*",
+    "@rspack/core": "^2.1.8",
     "@types/node": "^22.0.0",
-    "webpack": "^5.0.0"
+    "webpack": "^5.104.1"
   }
 }
