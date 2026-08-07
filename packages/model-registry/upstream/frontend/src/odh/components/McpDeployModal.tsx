@@ -48,6 +48,11 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({
   onDeployed,
 }) => {
   const isEdit = !!data?.name;
+  // Sole discriminator between the "registry" prefill flow (image editable, project fixed)
+  // and the "catalog" flow (image read-only, project selectable) -- see the doc comment on
+  // McpDeployModalData.registryServer. Centralized here so the three usages below can't drift
+  // from each other or from this convention.
+  const isRegistryPrefill = !!data?.registryServer;
   const navigate = useNavigate();
   const { theme } = useThemeContext();
 
@@ -255,7 +260,7 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({
               labelHelp={
                 <FieldGroupHelpLabelIcon
                   content={
-                    data?.registryServer
+                    isRegistryPrefill
                       ? "Prefilled from the selected MCP server when available. If it's missing, enter the container image to deploy."
                       : 'This is the container image associated with the MCP server that you selected from the catalog. This cannot be edited.'
                   }
@@ -265,7 +270,7 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({
               <TextInput
                 id="mcp-deploy-oci-image"
                 value={ociImageValue}
-                isDisabled={!data?.registryServer}
+                isDisabled={!isRegistryPrefill}
                 onChange={(_event, value) => setOciImageValue(value)}
                 placeholder="e.g. quay.io/mcp/weather:1.2.0"
                 data-testid="mcp-deploy-oci-image-input"
@@ -283,7 +288,7 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({
               <NamespaceSelectorFieldWrapper
                 selectedNamespace={selectedNamespace}
                 onSelect={handleNamespaceSelect}
-                isDisabled={isEdit || !!data?.registryServer}
+                isDisabled={isEdit || isRegistryPrefill}
                 selectorOnly
                 isFullWidth
               />

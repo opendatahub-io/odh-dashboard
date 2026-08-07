@@ -144,4 +144,60 @@ describe('registryVersionToDeployData', () => {
       MCPTransportType.SSE,
     );
   });
+
+  it('derives transportType from remotes for a remotes-only server (no packages)', () => {
+    // Per the MCP registry server.json spec, a remote server can declare its endpoint solely
+    // via `remotes`, with no `packages` entry at all.
+    const version = mockVersion({
+      server_json: {
+        name: 'io.github.example/weather-server',
+        version: '1.2.0',
+        remotes: [{ type: MCPTransportType.SSE, url: 'https://weather.example.com/sse' }],
+      },
+    });
+
+    expect(registryVersionToDeployData(mockServer(), version).transportType).toBe(
+      MCPTransportType.SSE,
+    );
+  });
+
+  it('prefers remotes over packages when both are present', () => {
+    // A hybrid server.json can declare packages using stdio (for local install) alongside a
+    // remotes entry for the actual network endpoint -- remotes should win.
+    const version = mockVersion({
+      server_json: {
+        name: 'io.github.example/weather-server',
+        version: '1.2.0',
+        packages: [
+          {
+            registryType: 'npm',
+            identifier: '@example/weather-server',
+            transport: { type: MCPTransportType.STDIO },
+          },
+        ],
+        remotes: [{ type: MCPTransportType.SSE, url: 'https://weather.example.com/sse' }],
+      },
+    });
+
+    expect(registryVersionToDeployData(mockServer(), version).transportType).toBe(
+      MCPTransportType.SSE,
+    );
+  });
+
+  it('prefers a streamable-http remote over an sse remote when both are advertised', () => {
+    const version = mockVersion({
+      server_json: {
+        name: 'io.github.example/weather-server',
+        version: '1.2.0',
+        remotes: [
+          { type: MCPTransportType.SSE, url: 'https://weather.example.com/sse' },
+          { type: MCPTransportType.STREAMABLE_HTTP, url: 'https://weather.example.com/mcp' },
+        ],
+      },
+    });
+
+    expect(registryVersionToDeployData(mockServer(), version).transportType).toBe(
+      MCPTransportType.STREAMABLE_HTTP,
+    );
+  });
 });

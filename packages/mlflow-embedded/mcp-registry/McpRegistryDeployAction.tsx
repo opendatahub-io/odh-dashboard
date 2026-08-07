@@ -2,6 +2,7 @@ import React from 'react';
 import { Button, Tooltip } from '@patternfly/react-core';
 import { useResolvedExtensions } from '@odh-dashboard/plugin-core';
 import { useNotification } from '@odh-dashboard/ui-core/contexts/NotificationContext';
+import type { APIOptions } from 'mod-arch-core';
 import type { McpDeployment } from '@odh-dashboard/model-registry/types/mcpDeploymentTypes';
 import { isMcpCatalogDeployModalExtension } from './extension-points';
 import { createMcpAccessEndpoint } from './api';
@@ -22,25 +23,20 @@ const McpRegistryDeployAction: React.FC<McpRegistryDeployActionProps> = ({
   version,
   namespace,
 }) => {
-  const [extensions, extensionsLoaded, extensionErrors] = useResolvedExtensions(
-    isMcpCatalogDeployModalExtension,
-  );
+  const [extensions, extensionsLoaded] = useResolvedExtensions(isMcpCatalogDeployModalExtension);
   const [isModalOpen, setIsModalOpen] = React.useState(false);
   const notification = useNotification();
+  const abortControllerRef = React.useRef<AbortController>();
 
-  // extensionsLoaded && extensions.length === 0 can mean either the extension's flag
-  // requirement isn't met, or (silently, upstream) that resolving one of its CodeRef properties
-  // (e.g. the dynamic import of the modal component) threw — log the latter so it's diagnosable
-  // instead of only showing a generic "temporarily unavailable" tooltip.
-  React.useEffect(() => {
-    if (extensionsLoaded && extensions.length === 0 && extensionErrors.length > 0) {
-      // eslint-disable-next-line no-console
-      console.error(
-        'McpRegistryDeployAction: mcp-catalog.server/deploy-modal failed to resolve',
-        extensionErrors,
-      );
-    }
-  }, [extensionsLoaded, extensions.length, extensionErrors]);
+  // Mirrors McpDeployModal's own cleanup: abort any in-flight endpoint registration if this
+  // component unmounts (e.g. the user navigates away) so it doesn't keep running in the
+  // background with nothing left to receive its result.
+  React.useEffect(
+    () => () => {
+      abortControllerRef.current?.abort();
+    },
+    [],
+  );
 
   const deployData = React.useMemo(
     () => (version ? { ...registryVersionToDeployData(server, version), namespace } : undefined),
@@ -69,23 +65,26 @@ const McpRegistryDeployAction: React.FC<McpRegistryDeployActionProps> = ({
       if (!deployData) {
         return;
       }
+
+      abortControllerRef.current?.abort();
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
+      const opts: APIOptions = { signal: controller.signal };
+
       try {
         /* eslint-disable camelcase */
-        await createMcpAccessEndpoint(deployData.registryServer, deployment.namespace)(
-          {},
-          {
-            // Use deployment's actual applied config, not registry metadata
-            endpoint_url: buildMcpAccessEndpointUrl(
-              deployment.name,
-              deployment.namespace,
-              deployment.port,
-              deployment.path || DEFAULT_MCP_PATH,
-            ),
-            transport_type: deployData.transportType,
-            // server_alias is mutually exclusive with server_version in mlflow BFF
-            server_version: deployData.registryVersion,
-          },
-        );
+        await createMcpAccessEndpoint(deployData.registryServer, deployment.namespace)(opts, {
+          // Use deployment's actual applied config, not registry metadata
+          endpoint_url: buildMcpAccessEndpointUrl(
+            deployment.name,
+            deployment.namespace,
+            deployment.port,
+            deployment.path || DEFAULT_MCP_PATH,
+          ),
+          transport_type: deployData.transportType,
+          // server_alias is mutually exclusive with server_version in mlflow BFF
+          server_version: deployData.registryVersion,
+        });
         /* eslint-enable camelcase */
         notification.success('Deployed and registered');
       } catch (endpointError) {

@@ -236,6 +236,9 @@ func TestBuildMcpServerFromCreateRequest_InvalidYAML(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for invalid YAML")
 	}
+	if !errors.Is(err, ErrMcpDeploymentValidation) {
+		t.Fatalf("expected ErrMcpDeploymentValidation so the handler returns 400, got %v", err)
+	}
 }
 
 func TestBuildMcpServerFromCreateRequest_YAMLPortTakesPrecedence(t *testing.T) {
@@ -1126,6 +1129,41 @@ func TestBuildMcpDeploymentPatch_InvalidYAMLReturnsError(t *testing.T) {
 	_, err := buildMcpDeploymentPatch(req)
 	if err == nil {
 		t.Fatal("expected error for invalid YAML in patch")
+	}
+	if !errors.Is(err, ErrMcpDeploymentValidation) {
+		t.Fatalf("expected ErrMcpDeploymentValidation so the handler returns 400, got %v", err)
+	}
+}
+
+func TestBuildMcpDeploymentPatch_PartialYAMLWithoutPortDefaultsInsteadOfZeroing(t *testing.T) {
+	// A caller updating only path/env via YAML, without repeating port, must not
+	// silently zero out the CR's listening port via the JSON merge patch.
+	yamlStr := `config:
+  path: /new-path`
+	req := models.McpDeploymentUpdateRequest{
+		YAML: &yamlStr,
+	}
+
+	patch, err := buildMcpDeploymentPatch(req)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	specPatch, ok := patch["spec"].(map[string]interface{})
+	if !ok {
+		t.Fatal("expected spec in patch")
+	}
+	configPatch, ok := specPatch["config"].(map[string]interface{})
+	if !ok {
+		t.Fatal("expected config in spec patch")
+	}
+	// This branch goes through runtime.DefaultUnstructuredConverter.ToUnstructured, which
+	// (like the assertions in TestBuildMcpDeploymentPatch_YAMLOnly) yields int64, not int32.
+	if configPatch["port"] != int64(defaultMcpPort) {
+		t.Fatalf("expected port to default to %d instead of being zeroed out, got %v", defaultMcpPort, configPatch["port"])
+	}
+	if configPatch["path"] != "/new-path" {
+		t.Fatalf("expected path '/new-path', got %v", configPatch["path"])
 	}
 }
 

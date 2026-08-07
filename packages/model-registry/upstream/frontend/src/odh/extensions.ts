@@ -315,11 +315,6 @@ const extensions: (
   },
   {
     type: 'mcp-catalog.server/deploy-modal',
-    // Gate on MCP_CATALOG, not MODEL_REGISTRY: this extension's only consumer today is the
-    // mlflow-embedded "Registry" tab, whose own tab-route already requires MCP_CATALOG (and
-    // MCP_CATALOG's requiredComponents already covers the Model Registry component). Gating on
-    // MODEL_REGISTRY instead would additionally depend on the unrelated `disableModelRegistry`
-    // admin toggle, which can be off even when MCP Catalog/Registry are fully enabled.
     flags: {
       required: [SupportedArea.MCP_CATALOG],
     },

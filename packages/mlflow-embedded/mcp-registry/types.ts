@@ -33,6 +33,17 @@ export interface MCPServerJSONPackage {
   version?: string;
 }
 
+/**
+ * A remote (network-reachable) endpoint the registry advertises for this server version.
+ * Per the MCP registry server.json spec, `remotes` is the field that actually declares a
+ * server is remotely reachable; `packages` commonly use `stdio` for locally-launched
+ * processes and can coexist with a separate `remotes` array for the same version.
+ */
+export interface MCPServerJSONRemote {
+  type: MCPTransportType;
+  url?: string;
+}
+
 /** Metadata set by the MCP catalog's publish flow; either field may be missing. */
 export interface MCPServerJSONMeta {
   image?: string;
@@ -45,5 +56,6 @@ export interface MCPServerJSONPayload {
   title?: string;
   description?: string;
   packages?: MCPServerJSONPackage[];
+  remotes?: MCPServerJSONRemote[];
   _meta?: MCPServerJSONMeta;
 }

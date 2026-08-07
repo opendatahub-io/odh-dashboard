@@ -297,7 +297,7 @@ func buildMcpServerFromCreateRequest(namespace string, req models.McpDeploymentC
 	if req.YAML != "" {
 		spec, err := parseSpecYAML(req.YAML)
 		if err != nil {
-			return models.MCPServer{}, fmt.Errorf("invalid configuration YAML: %w", err)
+			return models.MCPServer{}, fmt.Errorf("%w: invalid configuration YAML: %v", ErrMcpDeploymentValidation, err)
 		}
 		if spec.Config != nil {
 			server.Spec.Config = *spec.Config
@@ -415,10 +415,17 @@ func buildMcpDeploymentPatch(req models.McpDeploymentUpdateRequest) (map[string]
 		} else {
 			spec, err := parseSpecYAML(*req.YAML)
 			if err != nil {
-				return nil, fmt.Errorf("invalid configuration YAML: %w", err)
+				return nil, fmt.Errorf("%w: invalid configuration YAML: %v", ErrMcpDeploymentValidation, err)
 			}
 
 			if spec.Config != nil {
+				// A partial config YAML that omits port would otherwise serialize as
+				// "port": 0 (Port has no `omitempty`) and, via JSON merge patch semantics,
+				// overwrite the CR's real listening port with 0. Default it the same way
+				// buildMcpServerFromCreateRequest does, instead of silently zeroing it out.
+				if spec.Config.Port == 0 {
+					spec.Config.Port = defaultMcpPort
+				}
 				configMap, err := runtime.DefaultUnstructuredConverter.ToUnstructured(spec.Config)
 				if err != nil {
 					return nil, fmt.Errorf("failed to convert config to patch: %w", err)

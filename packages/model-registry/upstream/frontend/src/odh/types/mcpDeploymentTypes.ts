@@ -142,7 +142,15 @@ export type McpDeployModalData = {
   displayName?: string;
   namespace?: string;
   serverName?: string;
-  /** Distinct from `serverName`, which traces catalog (not registry) deployments. */
+  /**
+   * Distinct from `serverName`, which traces catalog (not registry) deployments.
+   *
+   * McpDeployModal also uses this field's presence as its sole signal for whether it's
+   * prefilling from an external MCP Registry ("registry" flow, image editable, project
+   * fixed) vs. from the internal catalog ("catalog" flow, image read-only, project
+   * selectable). If you add a new caller/flow, set (or deliberately omit) `registryServer`
+   * to match the UI behavior you want -- see `isRegistryPrefill` in McpDeployModal.
+   */
   registryServer?: string;
   registryVersion?: string;
   image: string;

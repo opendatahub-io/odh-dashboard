@@ -2,7 +2,7 @@
 /* eslint-disable camelcase */
 import * as React from 'react';
 import '@testing-library/jest-dom';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useResolvedExtensions } from '@odh-dashboard/plugin-core';
 import { useNotification } from '@odh-dashboard/ui-core/contexts/NotificationContext';
@@ -170,29 +170,6 @@ describe('McpRegistryDeployAction', () => {
     ).toBeInTheDocument();
   });
 
-  it('should log the resolution errors when the extension fails to resolve rather than just being flag-gated', async () => {
-    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
-    const resolutionError = new Error('Failed to load chunk');
-    mockUseResolvedExtensions.mockReturnValue([[], true, [resolutionError]]);
-
-    render(
-      <McpRegistryDeployAction
-        server={mockServer}
-        version={mockVersion}
-        namespace="test-project"
-      />,
-    );
-
-    await waitFor(() =>
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
-        'McpRegistryDeployAction: mcp-catalog.server/deploy-modal failed to resolve',
-        [resolutionError],
-      ),
-    );
-
-    consoleErrorSpy.mockRestore();
-  });
-
   it('should disable the Deploy button and explain why when there is no current project', async () => {
     render(<McpRegistryDeployAction server={mockServer} version={mockVersion} namespace="" />);
 
@@ -348,7 +325,7 @@ describe('McpRegistryDeployAction', () => {
     // workspace comes from deployed CR namespace, port/path from applied config
     expect(mockCreateMcpAccessEndpoint).toHaveBeenCalledWith('kubernetes-mcp', 'test-project');
     expect(mockCreateEndpointCall).toHaveBeenCalledWith(
-      {},
+      { signal: expect.any(AbortSignal) },
       {
         endpoint_url: 'http://kubernetes-mcp.test-project.svc.cluster.local:8080/mcp',
         transport_type: 'streamable-http',
@@ -357,6 +334,31 @@ describe('McpRegistryDeployAction', () => {
     );
     expect(mockNotification.success).toHaveBeenCalledWith('Deployed and registered');
     expect(mockNotification.warning).not.toHaveBeenCalled();
+  });
+
+  it('should abort the in-flight endpoint registration request when the component unmounts', async () => {
+    const mockCreateEndpointCall = jest.fn().mockReturnValue(
+      // eslint-disable-next-line @typescript-eslint/no-empty-function
+      new Promise<never>(() => {}),
+    );
+    mockCreateMcpAccessEndpoint.mockReturnValue(mockCreateEndpointCall);
+
+    const { unmount } = render(
+      <McpRegistryDeployAction
+        server={mockServer}
+        version={mockVersion}
+        namespace="test-project"
+      />,
+    );
+    await userEvent.click(screen.getByTestId('mcp-registry-deploy-action-button'));
+    await userEvent.click(screen.getByTestId('mcp-registry-deploy-modal-stub-deployed'));
+
+    const [opts] = mockCreateEndpointCall.mock.calls[0] as [{ signal: AbortSignal }];
+    expect(opts.signal.aborted).toBe(false);
+
+    unmount();
+
+    expect(opts.signal.aborted).toBe(true);
   });
 
   it('should fall back to the default path when the deployment reports no path', async () => {
@@ -379,7 +381,7 @@ describe('McpRegistryDeployAction', () => {
     await userEvent.click(screen.getByTestId('mcp-registry-deploy-modal-stub-deployed-no-path'));
 
     expect(mockCreateEndpointCall).toHaveBeenCalledWith(
-      {},
+      { signal: expect.any(AbortSignal) },
       expect.objectContaining({
         endpoint_url: 'http://kubernetes-mcp.test-project.svc.cluster.local:8080/mcp',
       }),

@@ -330,7 +330,7 @@ describe('McpDeployModal', () => {
     expect(screen.getByTestId('mcp-deploy-yaml-editor')).toHaveValue('');
   });
 
-  it('should prefill empty image and yaml fields when missing from data', () => {
+  it('should prefill empty image and yaml fields when missing from data, and leave the image field editable', () => {
     renderModal({
       image: '',
       yaml: '',
@@ -345,6 +345,11 @@ describe('McpDeployModal', () => {
 
     expect(imageInput.value).toBe('');
     expect(yamlEditor.value).toBe('');
+    // The PR's stated contract is "left empty AND user-editable" -- assert both halves
+    // together so a regression that re-disables the field when it's empty (e.g. an
+    // `isDisabled={!ociImageValue}` mistake) would be caught here, not just by the
+    // separately-prefilled-value editability test above.
+    expect(imageInput).not.toBeDisabled();
   });
 
   it('should show the project as a fixed, disabled field when editing an existing deployment', () => {
