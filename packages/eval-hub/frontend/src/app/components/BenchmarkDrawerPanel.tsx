@@ -131,10 +131,7 @@ const BenchmarkDrawerPanel: React.FC<BenchmarkDrawerPanelProps> = ({
             <StackItem>
               <Stack hasGutter>
                 <StackItem>
-                  <Content
-                    component="p"
-                    style={{ fontWeight: 'var(--pf-t--global--font--weight--body--bold)' }}
-                  >
+                  <Content component="p" className="pf-v6-u-font-weight-bold">
                     Metrics evaluated
                   </Content>
                 </StackItem>
@@ -153,10 +150,7 @@ const BenchmarkDrawerPanel: React.FC<BenchmarkDrawerPanelProps> = ({
 
           {benchmark.primary_score && (
             <StackItem>
-              <Content
-                component="p"
-                style={{ fontWeight: 'var(--pf-t--global--font--weight--body--bold)' }}
-              >
+              <Content component="p" className="pf-v6-u-font-weight-bold">
                 Primary scorer metric
               </Content>
               <Content component="p">{benchmark.primary_score.metric}</Content>
@@ -165,10 +159,7 @@ const BenchmarkDrawerPanel: React.FC<BenchmarkDrawerPanelProps> = ({
 
           {benchmark.pass_criteria && (
             <StackItem>
-              <Content
-                component="p"
-                style={{ fontWeight: 'var(--pf-t--global--font--weight--body--bold)' }}
-              >
+              <Content component="p" className="pf-v6-u-font-weight-bold">
                 Benchmark threshold
               </Content>
               <Content component="p">{benchmark.pass_criteria.threshold}</Content>
@@ -177,13 +168,10 @@ const BenchmarkDrawerPanel: React.FC<BenchmarkDrawerPanelProps> = ({
 
           {benchmark.providerName && (
             <StackItem>
-              <Content
-                component="p"
-                style={{ fontWeight: 'var(--pf-t--global--font--weight--body--bold)' }}
-              >
+              <Content component="p" className="pf-v6-u-font-weight-bold">
                 Evaluation framework
               </Content>
-              {benchmark.providerAgent?.recommended_when &&
+              {Array.isArray(benchmark.providerAgent?.recommended_when) &&
               benchmark.providerAgent.recommended_when.length > 0 ? (
                 <InlineTooltip
                   text={benchmark.providerName}
