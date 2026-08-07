@@ -46,6 +46,7 @@ export const ToolResponseCardTitle: React.FC<ToolResponseCardTitleProps> = ({ to
     <Flex
       alignItems={{ default: 'alignItemsCenter' }}
       justifyContent={{ default: 'justifyContentSpaceBetween' }}
+      data-testid={`tool-response-title-${toolName}`}
     >
       <FlexItem>
         <Flex direction={{ default: 'column' }} gap={{ default: 'gapXs' }}>
@@ -65,6 +66,7 @@ export const ToolResponseCardTitle: React.FC<ToolResponseCardTitleProps> = ({ to
           aria-label="Copy tool name to clipboard"
           icon={<CopyIcon style={{ color: 'var(--pf-t--global--icon--color--subtle)' }} />}
           onClick={handleCopyToolName}
+          data-testid={`tool-response-copy-${toolName}`}
         />
       </FlexItem>
     </Flex>
@@ -85,7 +87,11 @@ export const ToolResponseCardBody: React.FC<ToolResponseCardBodyProps> = ({
 
   return (
     <>
-      <DescriptionList style={descriptionListStyle} aria-label="Tool response">
+      <DescriptionList
+        style={descriptionListStyle}
+        aria-label="Tool response"
+        data-testid="tool-response-body"
+      >
         <DescriptionListGroup style={descriptionListGroupStyle}>
           <DescriptionListTerm>Arguments</DescriptionListTerm>
           <DescriptionListDescription>

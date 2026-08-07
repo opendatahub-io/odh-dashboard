@@ -94,6 +94,7 @@ const ChatbotSourceUploadPanel: React.FC<ChatbotSourceUploadPanelProps> = ({
             ? 'pf-v6-u-border-color-primary pf-v6-u-background-color-primary-50'
             : ''
         } ${isUploadDisabled ? 'pf-v6-u-opacity-50' : ''}`}
+        data-testid="source-upload-panel"
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
@@ -106,7 +107,12 @@ const ChatbotSourceUploadPanel: React.FC<ChatbotSourceUploadPanelProps> = ({
             <div className="pf-v6-c-multiple-file-upload__title-text">Add files</div>
           </div>
           <div className="pf-v6-c-multiple-file-upload__upload">
-            <Button variant="secondary" onClick={handleUploadClick} isDisabled={isUploadDisabled}>
+            <Button
+              variant="secondary"
+              onClick={handleUploadClick}
+              isDisabled={isUploadDisabled}
+              data-testid="source-upload-button"
+            >
               Upload
             </Button>
           </div>
@@ -122,6 +128,7 @@ const ChatbotSourceUploadPanel: React.FC<ChatbotSourceUploadPanelProps> = ({
             onChange={handleFileSelect}
             disabled={isUploadDisabled}
             hidden
+            data-testid="source-file-input"
             aria-label="File upload input"
           />
         </div>

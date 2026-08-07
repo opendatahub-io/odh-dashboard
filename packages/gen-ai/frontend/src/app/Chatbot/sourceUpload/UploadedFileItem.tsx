@@ -51,7 +51,7 @@ export const UploadedFileItem: React.FC<UploadedFileItemProps> = ({
   }
 
   return (
-    <div>
+    <div data-testid={`uploaded-file-item-${file.name}`}>
       <div className="pf-v6-u-p-sm pf-v6-u-pt-md pf-v6-u-pb-md">
         <Grid hasGutter={false}>
           {/* First column: File icon */}

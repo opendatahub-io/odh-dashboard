@@ -19,6 +19,7 @@ export const StreamingThinkingSection: React.FC<{
       toggleContent: 'Show thinking',
       isExpanded,
       onToggle: (_e: React.MouseEvent, expanded: boolean) => setIsExpanded(expanded),
+      'data-testid': 'streaming-thinking-section',
     },
     React.createElement(
       'div',
