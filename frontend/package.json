@@ -218,7 +218,7 @@
     "nyc": "^15.1.0",
     "serve": "^14.2.6",
     "soft-assert": "^0.2.7",
-    "ts-jest": "^29.4.11"
+    "ts-jest": "^29.4.12"
   },
   "overrides": {
     "@openshift/dynamic-plugin-sdk-utils": {

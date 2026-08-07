@@ -49,5 +49,8 @@
   },
   "devDependencies": {
     "@odh-dashboard/eslint-config": "*"
+  },
+  "optionalDependencies": {
+    "ts-jest": "^29.4.12"
   }
 }
