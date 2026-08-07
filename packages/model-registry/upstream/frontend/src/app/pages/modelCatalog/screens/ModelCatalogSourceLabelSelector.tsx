@@ -24,6 +24,7 @@ import { getActiveSourceLabels, RESET_ALL_FILTERS_LABEL } from '~/app/shared/com
 import { hasFiltersApplied } from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
 import ModelCatalogSortDropdown from '~/app/pages/modelCatalog/components/ModelCatalogSortDropdown';
 import ModelCatalogSourceLabelBlocks from './ModelCatalogSourceLabelBlocks';
+import '~/app/shared/components/catalog/catalogToolbar.css';
 
 type ModelCatalogSourceLabelSelectorProps = {
   searchTerm?: string;

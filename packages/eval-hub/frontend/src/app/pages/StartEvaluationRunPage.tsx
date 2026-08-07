@@ -446,7 +446,6 @@ const StartEvaluationRunPage: React.FC = () => {
               connectionValidation={form.connectionValidation}
               canVerifyConnection={form.canVerifyConnection}
               onVerifyConnection={form.handleVerifyConnection}
-              namespace={namespace}
             />
           )}
 
