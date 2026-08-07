@@ -33,6 +33,9 @@ BFF_MAAS_DEV_URL ?= ""
 BFF_MAAS_AUTH_METHOD ?= "user_token"
 BFF_MAAS_AUTH_TOKEN_HEADER ?= "x-forwarded-access-token"
 BFF_MAAS_AUTH_TOKEN_PREFIX ?= ""
+# MLflow BFF dev override URL (local development)
+# Exported via Make environment to avoid shell interpolation injection (CWE-78)
+export BFF_MLFLOW_DEV_URL ?= ""
 
 # MLflow configuration
 MLFLOW_VERSION ?= 3.12.0
