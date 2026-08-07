@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"crypto/tls"
 	"flag"
 	"fmt"
 	"os"
@@ -22,6 +21,7 @@ import (
 
 	v1alpha1 "github.com/opendatahub-io/odh-dashboard/dashboard-operator/api/v1alpha1"
 	"github.com/opendatahub-io/odh-dashboard/dashboard-operator/internal/controller"
+	pkgtls "github.com/opendatahub-io/odh-dashboard/dashboard-operator/internal/tls"
 	"github.com/opendatahub-io/odh-dashboard/dashboard-operator/internal/webhook"
 )
 
@@ -75,16 +75,20 @@ func main() {
 		applicationsNamespace = operatorNamespace
 	}
 
+	restCfg := ctrl.GetConfigOrDie()
+
+	tlsResult, err := pkgtls.Resolve(context.Background(), restCfg)
+	if err != nil {
+		setupLog.Error(err, "unable to resolve TLS configuration")
+		os.Exit(1)
+	}
+	tlsOpts := tlsResult.TLSOpts
+
 	metricsOpts := metricsserver.Options{BindAddress: metricsAddr}
 	if secureMetrics {
 		metricsOpts.SecureServing = true
 		metricsOpts.CertDir = "/tmp/k8s-metrics-server/serving-certs"
-		metricsOpts.TLSOpts = []func(*tls.Config){
-			func(c *tls.Config) {
-				c.MinVersion = tls.VersionTLS12
-				c.NextProtos = []string{"http/1.1"}
-			},
-		}
+		metricsOpts.TLSOpts = tlsOpts
 	}
 
 	mgrOpts := ctrl.Options{
@@ -95,10 +99,13 @@ func main() {
 		LeaderElectionID:       "dashboard.components.platform.opendatahub.io",
 	}
 	if enableWebhook {
-		mgrOpts.WebhookServer = ctrlwebhook.NewServer(ctrlwebhook.Options{Port: webhookPort})
+		mgrOpts.WebhookServer = ctrlwebhook.NewServer(ctrlwebhook.Options{
+			Port:    webhookPort,
+			TLSOpts: tlsOpts,
+		})
 	}
 
-	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), mgrOpts)
+	mgr, err := ctrl.NewManager(restCfg, mgrOpts)
 	if err != nil {
 		setupLog.Error(err, "unable to create manager")
 		os.Exit(1)
@@ -136,9 +143,29 @@ func main() {
 		os.Exit(1)
 	}
 
+	ctx, cancel := context.WithCancel(ctrl.SetupSignalHandler())
+
+	if tlsResult.ProfileFetched {
+		watcher := &pkgtls.ProfileWatcher{
+			Client:         mgr.GetClient(),
+			InitialProfile: tlsResult.Profile,
+			OnProfileChange: func(_ context.Context) {
+				setupLog.Info("TLS profile changed, initiating shutdown to reload")
+				cancel()
+			},
+		}
+		if err := watcher.SetupWithManager(mgr); err != nil {
+			cancel()
+			setupLog.Error(err, "unable to set up TLS profile watcher")
+			os.Exit(1)
+		}
+	}
+
 	setupLog.Info("Starting manager")
-	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
+	if err := mgr.Start(ctx); err != nil {
+		cancel()
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)
 	}
+	cancel()
 }
