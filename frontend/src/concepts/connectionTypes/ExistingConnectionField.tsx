@@ -88,6 +88,7 @@ export const ExistingConnectionField: React.FC<ExistingConnectionFieldProps> = (
       <Flex direction={{ default: 'row' }} spaceItems={{ default: 'spaceItemsSm' }}>
         <FlexItem grow={{ default: 'grow' }}>
           <TypeaheadSelect
+            ariaLabel="Connection"
             selectOptions={options}
             onSelect={(_, value) => {
               const newConnection = projectConnections.find(
@@ -97,7 +98,6 @@ export const ExistingConnectionField: React.FC<ExistingConnectionFieldProps> = (
                 onSelect(newConnection.connection);
               }
             }}
-            popperProps={{ appendTo: 'inline' }}
             previewDescription={false}
           />
         </FlexItem>

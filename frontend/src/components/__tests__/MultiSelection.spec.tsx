@@ -25,12 +25,13 @@ describe('MultiSelection', () => {
     );
 
     const combobox = screen.getByRole('combobox', { name: 'Connections' });
-    expect(combobox).toHaveAttribute('aria-controls', 'test-select-listbox');
+    expect(combobox).not.toHaveAttribute('aria-controls');
 
     await act(async () => {
       fireEvent.keyDown(combobox, { key: 'ArrowDown' });
     });
 
+    expect(combobox).toHaveAttribute('aria-controls', 'test-select-listbox');
     expect(combobox).toHaveAttribute('aria-activedescendant', 'test-select-option-connection-1');
     expect(document.getElementById('test-select-option-connection-1')).toBeInTheDocument();
 
