@@ -25,6 +25,7 @@ import {
 } from '~/app/utilities/subscriptionManagementNavigation';
 import MaasModelsSection from '~/app/shared/MaasModelsSection';
 import SubscriptionManagementYamlTab from '~/app/pages/subscription-management/SubscriptionManagementYamlTab';
+import { modelRefsToSummaries } from '~/app/utilities/authpolicies';
 import {
   EventTrackingResourceType,
   EventTrackingSource,
@@ -93,25 +94,11 @@ const SubscriptionActions: React.FC<SubscriptionActionsProps> = ({ subscription,
   );
 };
 
-const viewModelRefSummaries = (info: SubscriptionInfoResponse): MaaSModelRefSummary[] => {
-  const subscriptionRefs = Array.isArray(info.subscription.modelRefs)
-    ? info.subscription.modelRefs
-    : [];
-  const modelRefSummaries = Array.isArray(info.modelRefs) ? info.modelRefs : [];
-
-  return subscriptionRefs.map((ref) => {
-    const summary = modelRefSummaries.find(
-      (s) => s.name === ref.name && s.namespace === ref.namespace,
-    );
-    return (
-      summary ?? {
-        name: ref.name,
-        namespace: ref.namespace,
-        modelRef: { kind: '', name: '' },
-      }
-    );
-  });
-};
+const viewModelRefSummaries = (info: SubscriptionInfoResponse): MaaSModelRefSummary[] =>
+  modelRefsToSummaries(
+    Array.isArray(info.subscription.modelRefs) ? info.subscription.modelRefs : [],
+    Array.isArray(info.modelRefs) ? info.modelRefs : [],
+  );
 
 const ViewSubscriptionPage: React.FC = () => {
   const { subscriptionName = '' } = useParams<{ subscriptionName: string }>();
@@ -163,7 +150,10 @@ const ViewSubscriptionPage: React.FC = () => {
             data-testid="subscription-details-tab"
           >
             <PageSection hasBodyWrapper={false} className="pf-v6-u-pb-xl">
-              <SubscriptionDetailsSection subscription={subscriptionInfo.subscription} />
+              <SubscriptionDetailsSection
+                subscription={subscriptionInfo.subscription}
+                modelRefs={viewModelRefSummaries(subscriptionInfo)}
+              />
             </PageSection>
             <PageSection hasBodyWrapper={false} className="pf-v6-u-pb-xl">
               <SubscriptionGroupsSection groups={subscriptionInfo.subscription.owner.groups} />

@@ -12,7 +12,7 @@ import {
   getSubscriptionViewUrl,
 } from '~/app/utilities/subscriptionManagementNavigation';
 import { convertSubscriptionToK8sResource } from '~/app/utilities/subscriptions';
-import PhaseLabel from '~/app/shared/PhaseLabel';
+import PhaseLabel from '~/app/shared/Phase/PhaseLabel';
 import { PhaseLabelLocation, PhaseResourceType } from '~/app/utilities/phaseLabelUtils';
 import ExpandedGroupsPanel from '~/app/shared/ExpandedGroupsPanel';
 import CompoundExpandCountCell from '~/app/shared/CompoundExpandCountCell';
@@ -121,6 +121,7 @@ const SubscriptionTableRow: React.FC<SubscriptionTableRowProps> = ({
         lastTransitionTime={subscription.lastTransitionTime}
         resourceType={PhaseResourceType.SUBSCRIPTION}
         resourceName={subscription.displayName ?? subscription.name}
+        resourceId={subscription.name}
         resourceUrl={getSubscriptionViewUrl(subscription.name)}
         returnTo={returnTo}
         onClick={() => {

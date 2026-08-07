@@ -11,7 +11,7 @@ import {
   getAuthPolicyViewUrl,
 } from '~/app/utilities/subscriptionManagementNavigation';
 import { convertAuthPolicyToK8sResource } from '~/app/utilities/authpolicies';
-import PhaseLabel from '~/app/shared/PhaseLabel';
+import PhaseLabel from '~/app/shared/Phase/PhaseLabel';
 import { PhaseLabelLocation, PhaseResourceType } from '~/app/utilities/phaseLabelUtils';
 import ExpandedGroupsPanel from '~/app/shared/ExpandedGroupsPanel';
 import CompoundExpandCountCell from '~/app/shared/CompoundExpandCountCell';
@@ -117,6 +117,7 @@ const AuthPoliciesTableRow: React.FC<AuthPoliciesTableRowProps> = ({
         lastTransitionTime={authPolicy.lastTransitionTime}
         resourceType={PhaseResourceType.AUTHPOLICY}
         resourceName={authPolicy.displayName ?? authPolicy.name}
+        resourceId={authPolicy.name}
         resourceUrl={getAuthPolicyViewUrl(authPolicy.name)}
         returnTo={returnTo}
         onClick={() => {
