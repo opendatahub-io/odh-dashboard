@@ -79,6 +79,17 @@ describe('createMcpAccessEndpoint', () => {
     },
   );
 
+  it('throws when the mod-arch-wrapped response data is missing required endpoint fields', async () => {
+    mockRestCREATE.mockResolvedValue({ data: null });
+
+    await expect(
+      createMcpAccessEndpoint('io.github.example/weather-server', 'my-project')(
+        {},
+        { endpoint_url: 'http://weather-server.my-project.svc.cluster.local:8080/mcp' },
+      ),
+    ).rejects.toThrow('Invalid response format');
+  });
+
   it('throws when the response is not mod-arch wrapped', async () => {
     mockRestCREATE.mockResolvedValue({
       id: 'endpoint-1',
