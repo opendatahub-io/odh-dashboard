@@ -118,6 +118,76 @@ describe('MLflow API Contract Tests', () => {
       });
     });
 
+    it('should validate null model_config when no config tag is set', async () => {
+      const result = await apiClient.get(promptUrl(promptName));
+      expect(result).toMatchContract(apiSchema, {
+        ref: '#/components/responses/PromptVersionResponse/content/application~1json/schema',
+        status: 200,
+      });
+      const envelope = result.response?.data as { data?: { model_config: unknown } };
+      expect(envelope.data?.model_config).toBeNull();
+    });
+
+    it('should validate full model_config when all config fields are set', async () => {
+      const fullConfigName = `ct-mcfg-full-${Date.now()}`;
+      /* eslint-disable camelcase */
+      const setup = await apiClient.post(promptUrl(), {
+        name: fullConfigName,
+        messages: [{ role: 'user', content: 'test' }],
+        commit_message: 'test with full model config',
+        tags: {
+          _mlflow_prompt_model_config: JSON.stringify({
+            model_name: 'gpt-4',
+            provider: 'openai',
+            temperature: 0.7,
+            max_tokens: 1000,
+          }),
+        },
+      });
+      /* eslint-enable camelcase */
+      expect(setup.success).toBe(true);
+
+      const result = await apiClient.get(promptUrl(fullConfigName));
+      expect(result).toMatchContract(apiSchema, {
+        ref: '#/components/responses/PromptVersionResponse/content/application~1json/schema',
+        status: 200,
+      });
+      const data = result.response?.data as {
+        data?: { model_config: Record<string, unknown> | null };
+      };
+      expect(data.data?.model_config).not.toBeNull();
+      expect(data.data?.model_config?.model_name).toBe('gpt-4');
+      expect(data.data?.model_config?.provider).toBe('openai');
+      await apiClient.delete(promptUrl(fullConfigName)).catch(() => undefined);
+    });
+
+    it('should validate partial model_config when subset of fields is set', async () => {
+      const partialConfigName = `ct-mcfg-partial-${Date.now()}`;
+      /* eslint-disable camelcase */
+      const setup = await apiClient.post(promptUrl(), {
+        name: partialConfigName,
+        messages: [{ role: 'user', content: 'test' }],
+        commit_message: 'test with partial model config',
+        tags: {
+          _mlflow_prompt_model_config: JSON.stringify({ model_name: 'llama-3' }),
+        },
+      });
+      /* eslint-enable camelcase */
+      expect(setup.success).toBe(true);
+
+      const result = await apiClient.get(promptUrl(partialConfigName));
+      expect(result).toMatchContract(apiSchema, {
+        ref: '#/components/responses/PromptVersionResponse/content/application~1json/schema',
+        status: 200,
+      });
+      const data = result.response?.data as {
+        data?: { model_config: Record<string, unknown> | null };
+      };
+      expect(data.data?.model_config).not.toBeNull();
+      expect(data.data?.model_config?.model_name).toBe('llama-3');
+      await apiClient.delete(promptUrl(partialConfigName)).catch(() => undefined);
+    });
+
     it('should list versions of a prompt', async () => {
       const result = await apiClient.get(promptUrl(promptName, '/versions'));
       expect(result).toMatchContract(apiSchema, {
