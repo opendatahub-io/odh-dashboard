@@ -112,6 +112,7 @@ func main() {
 		os.Getenv("ALLOW_INSECURE_TLS"),
 		os.Getenv("ENV"),
 		os.Getenv("CI"),
+		certFile,
 	); err != nil {
 		os.Exit(1)
 	}
@@ -208,21 +209,35 @@ func main() {
 
 }
 
+// parseBoolTruthy returns true for common truthy string values: "true", "1", "yes", "on"
+// (case-insensitive, trimmed). Used for consistent boolean env var parsing.
+func parseBoolTruthy(s string) bool {
+	v := strings.ToLower(strings.TrimSpace(s))
+	return v == "true" || v == "1" || v == "yes" || v == "on"
+}
+
 // validateInsecureSkipVerify validates the InsecureSkipVerify configuration at startup.
 // Returns an error if the configuration is invalid or poses a security risk.
 // Accepts env var values as parameters to enable hermetic testing.
-func validateInsecureSkipVerify(insecureSkipVerify bool, allowInsecureTLSRaw, env, ci string) error {
+func validateInsecureSkipVerify(insecureSkipVerify bool, allowInsecureTLSRaw, env, ci, certFile string) error {
 	if !insecureSkipVerify {
 		return nil
 	}
 
+	// TLS certs mounted means we're in a deployed environment
+	if certFile != "" {
+		slog.Error("SECURITY: InsecureSkipVerify cannot be used when TLS certificates are mounted",
+			"cert_file", certFile,
+			"insecure_skip_verify", insecureSkipVerify,
+			"fix", "Remove --insecure-skip-verify flag and INSECURE_SKIP_VERIFY env var",
+		)
+		return errors.New("InsecureSkipVerify cannot be used when TLS certificates are mounted (deployed environment detected)")
+	}
+
 	normalizedEnv := strings.ToLower(strings.TrimSpace(env))
+	isCI := parseBoolTruthy(ci)
 
-	// Check for CI environment (normalize to handle "true", "1", "yes", case variants, whitespace)
-	ciValue := strings.ToLower(strings.TrimSpace(ci))
-	isCI := ciValue == "true" || ciValue == "1" || ciValue == "yes" || ciValue == "on"
-
-	// Check production/staging/CI environments FIRST - reject regardless of ALLOW_INSECURE_TLS
+	// Check production/staging/CI environments - reject regardless of ALLOW_INSECURE_TLS
 	if normalizedEnv == "prod" || normalizedEnv == "production" || normalizedEnv == "staging" || isCI {
 		envType := normalizedEnv
 		if isCI {
@@ -242,8 +257,7 @@ func validateInsecureSkipVerify(insecureSkipVerify bool, allowInsecureTLSRaw, en
 	}
 
 	// For non-production environments, require explicit opt-in
-	allowInsecure := strings.EqualFold(strings.TrimSpace(allowInsecureTLSRaw), "true")
-	if !allowInsecure {
+	if !parseBoolTruthy(allowInsecureTLSRaw) {
 		slog.Error("SECURITY: InsecureSkipVerify requires explicit ALLOW_INSECURE_TLS=true",
 			"insecure_skip_verify", insecureSkipVerify,
 			"allow_insecure_tls", allowInsecureTLSRaw,

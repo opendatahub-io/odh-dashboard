@@ -104,6 +104,35 @@ func TestGeneralBffConfiguration(t *testing.T) {
 	}
 }
 
+func TestParseBoolTruthy(t *testing.T) {
+	testCases := []struct {
+		input    string
+		expected bool
+	}{
+		{"true", true},
+		{"True", true},
+		{"TRUE", true},
+		{"1", true},
+		{"yes", true},
+		{"YES", true},
+		{"on", true},
+		{"ON", true},
+		{" true ", true},
+		{"false", false},
+		{"0", false},
+		{"no", false},
+		{"off", false},
+		{"", false},
+		{"random", false},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.input, func(t *testing.T) {
+			assert.Equal(t, tc.expected, parseBoolTruthy(tc.input))
+		})
+	}
+}
+
 func TestValidateInsecureSkipVerify(t *testing.T) {
 	testCases := []struct {
 		name                  string
@@ -111,6 +140,7 @@ func TestValidateInsecureSkipVerify(t *testing.T) {
 		allowInsecureTLS      string
 		env                   string
 		ci                    string
+		certFile              string
 		expectedError         bool
 		expectedErrorContains string
 	}{
@@ -145,12 +175,25 @@ func TestValidateInsecureSkipVerify(t *testing.T) {
 			expectedErrorContains: "requires ALLOW_INSECURE_TLS=true",
 		},
 		{
-			name:                  "InsecureSkipVerify enabled with ALLOW_INSECURE_TLS=1 - should fail (only literal true accepted)",
-			insecureSkipVerify:    true,
-			allowInsecureTLS:      "1",
-			env:                   "",
-			expectedError:         true,
-			expectedErrorContains: "requires ALLOW_INSECURE_TLS=true",
+			name:               "InsecureSkipVerify enabled with ALLOW_INSECURE_TLS=1 - should pass",
+			insecureSkipVerify: true,
+			allowInsecureTLS:   "1",
+			env:                "",
+			expectedError:      false,
+		},
+		{
+			name:               "InsecureSkipVerify enabled with ALLOW_INSECURE_TLS=yes - should pass",
+			insecureSkipVerify: true,
+			allowInsecureTLS:   "yes",
+			env:                "",
+			expectedError:      false,
+		},
+		{
+			name:               "InsecureSkipVerify enabled with ALLOW_INSECURE_TLS=on - should pass",
+			insecureSkipVerify: true,
+			allowInsecureTLS:   "on",
+			env:                "",
+			expectedError:      false,
 		},
 		{
 			name:               "InsecureSkipVerify enabled with ALLOW_INSECURE_TLS=true - should pass",
@@ -306,6 +349,32 @@ func TestValidateInsecureSkipVerify(t *testing.T) {
 			env:                "",
 			expectedError:      false,
 		},
+		// cert-file detection: TLS certs mounted indicates a deployed environment
+		{
+			name:                  "InsecureSkipVerify enabled with cert-file set - should fail",
+			insecureSkipVerify:    true,
+			allowInsecureTLS:      "true",
+			env:                   "",
+			certFile:              "/etc/tls/tls.crt",
+			expectedError:         true,
+			expectedErrorContains: "TLS certificates are mounted",
+		},
+		{
+			name:                  "InsecureSkipVerify enabled with cert-file set and ENV=dev - should fail",
+			insecureSkipVerify:    true,
+			allowInsecureTLS:      "true",
+			env:                   "dev",
+			certFile:              "/etc/tls/tls.crt",
+			expectedError:         true,
+			expectedErrorContains: "TLS certificates are mounted",
+		},
+		{
+			name:               "InsecureSkipVerify disabled with cert-file set - should pass",
+			insecureSkipVerify: false,
+			allowInsecureTLS:   "",
+			certFile:           "/etc/tls/tls.crt",
+			expectedError:      false,
+		},
 	}
 
 	for _, tc := range testCases {
@@ -315,6 +384,7 @@ func TestValidateInsecureSkipVerify(t *testing.T) {
 				tc.allowInsecureTLS,
 				tc.env,
 				tc.ci,
+				tc.certFile,
 			)
 
 			if tc.expectedError {
