@@ -64,6 +64,9 @@
     "lint:fix": "eslint . --fix",
     "type-check": "tsc --noEmit"
   },
+  "e2eCiTags": [
+    "@HardwareProfilesCI"
+  ],
   "dependencies": {
     "@odh-dashboard/foundation": "*",
     "@odh-dashboard/internal": "*",
