@@ -43,7 +43,7 @@ export const createFeatureStoreCR = (namespace: string, feastInstanceName: strin
     pollUntilSuccess(
       `oc get namespace ${namespace} -o json | jq -e '.metadata.labels["opendatahub.io/feast"] == "true"'`,
       `namespace ${namespace} to have opendatahub.io/feast=true label`,
-      { maxAttempts: 60, pollIntervalMs: 5000 },
+      { maxAttempts: 30, pollIntervalMs: 5000 },
     );
   });
 };
