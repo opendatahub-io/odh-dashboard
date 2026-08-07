@@ -104,41 +104,10 @@ func TestGeneralBffConfiguration(t *testing.T) {
 	}
 }
 
-func TestParseBoolTruthy(t *testing.T) {
-	testCases := []struct {
-		input    string
-		expected bool
-	}{
-		{"true", true},
-		{"True", true},
-		{"TRUE", true},
-		{"1", true},
-		{"yes", true},
-		{"YES", true},
-		{"on", true},
-		{"ON", true},
-		{" true ", true},
-		{"false", false},
-		{"0", false},
-		{"no", false},
-		{"off", false},
-		{"", false},
-		{"random", false},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.input, func(t *testing.T) {
-			assert.Equal(t, tc.expected, parseBoolTruthy(tc.input))
-		})
-	}
-}
-
 func TestValidateInsecureSkipVerify(t *testing.T) {
 	testCases := []struct {
 		name                  string
 		insecureSkipVerify    bool
-		env                   string
-		ci                    string
 		certFile              string
 		expectedError         bool
 		expectedErrorContains string
@@ -146,144 +115,22 @@ func TestValidateInsecureSkipVerify(t *testing.T) {
 		{
 			name:               "InsecureSkipVerify disabled - should pass",
 			insecureSkipVerify: false,
-			env:                "",
 			expectedError:      false,
 		},
 		{
-			name:               "InsecureSkipVerify enabled - should pass in local dev",
+			name:               "InsecureSkipVerify enabled without cert-file - should pass with warning",
 			insecureSkipVerify: true,
-			env:                "",
 			expectedError:      false,
 		},
 		{
-			name:               "InsecureSkipVerify enabled with ENV=dev - should pass",
-			insecureSkipVerify: true,
-			env:                "dev",
-			expectedError:      false,
-		},
-		{
-			name:               "InsecureSkipVerify enabled with ENV=development - should pass",
-			insecureSkipVerify: true,
-			env:                "development",
-			expectedError:      false,
-		},
-		{
-			name:                  "InsecureSkipVerify enabled with ENV=prod - should fail",
-			insecureSkipVerify:    true,
-			env:                   "prod",
-			expectedError:         true,
-			expectedErrorContains: "cannot be used in prod environment",
-		},
-		{
-			name:                  "InsecureSkipVerify enabled with ENV=production - should fail",
-			insecureSkipVerify:    true,
-			env:                   "production",
-			expectedError:         true,
-			expectedErrorContains: "cannot be used in production environment",
-		},
-		{
-			name:                  "InsecureSkipVerify enabled with ENV=staging - should fail",
-			insecureSkipVerify:    true,
-			env:                   "staging",
-			expectedError:         true,
-			expectedErrorContains: "cannot be used in staging environment",
-		},
-		{
-			name:                  "InsecureSkipVerify enabled with ENV=PRODUCTION (uppercase) - should fail",
-			insecureSkipVerify:    true,
-			env:                   "PRODUCTION",
-			expectedError:         true,
-			expectedErrorContains: "cannot be used in production environment",
-		},
-		{
-			name:                  "InsecureSkipVerify enabled with ENV=' production ' (whitespace) - should fail",
-			insecureSkipVerify:    true,
-			env:                   " production ",
-			expectedError:         true,
-			expectedErrorContains: "cannot be used in production environment",
-		},
-		// CI detection
-		{
-			name:                  "InsecureSkipVerify enabled with CI=true and ENV=dev - should fail",
-			insecureSkipVerify:    true,
-			env:                   "dev",
-			ci:                    "true",
-			expectedError:         true,
-			expectedErrorContains: "cannot be used in dev (CI) environment",
-		},
-		{
-			name:                  "InsecureSkipVerify enabled with CI=true and empty ENV - should fail",
-			insecureSkipVerify:    true,
-			env:                   "",
-			ci:                    "true",
-			expectedError:         true,
-			expectedErrorContains: "cannot be used in CI environment",
-		},
-		{
-			name:                  "InsecureSkipVerify enabled with CI=1 - should fail",
-			insecureSkipVerify:    true,
-			env:                   "",
-			ci:                    "1",
-			expectedError:         true,
-			expectedErrorContains: "cannot be used in CI environment",
-		},
-		{
-			name:                  "InsecureSkipVerify enabled with CI=yes - should fail",
-			insecureSkipVerify:    true,
-			env:                   "",
-			ci:                    "yes",
-			expectedError:         true,
-			expectedErrorContains: "cannot be used in CI environment",
-		},
-		{
-			name:                  "InsecureSkipVerify enabled with CI=true and ENV=production - should fail with production (CI)",
-			insecureSkipVerify:    true,
-			env:                   "production",
-			ci:                    "true",
-			expectedError:         true,
-			expectedErrorContains: "cannot be used in production (CI) environment",
-		},
-		{
-			name:                  "InsecureSkipVerify enabled with CI=on - should fail",
-			insecureSkipVerify:    true,
-			env:                   "",
-			ci:                    "on",
-			expectedError:         true,
-			expectedErrorContains: "cannot be used in CI environment",
-		},
-		{
-			name:                  "InsecureSkipVerify enabled with CI=' true ' (whitespace) - should fail",
-			insecureSkipVerify:    true,
-			env:                   "",
-			ci:                    " true ",
-			expectedError:         true,
-			expectedErrorContains: "cannot be used in CI environment",
-		},
-		{
-			name:               "InsecureSkipVerify enabled with CI=false - should pass",
-			insecureSkipVerify: true,
-			env:                "",
-			ci:                 "false",
-			expectedError:      false,
-		},
-		// cert-file detection: TLS certs mounted indicates a deployed environment
-		{
-			name:                  "InsecureSkipVerify enabled with cert-file set - should fail",
+			name:                  "InsecureSkipVerify enabled with cert-file - should fail",
 			insecureSkipVerify:    true,
 			certFile:              "/etc/tls/tls.crt",
 			expectedError:         true,
 			expectedErrorContains: "TLS certificates are mounted",
 		},
 		{
-			name:                  "InsecureSkipVerify enabled with cert-file set and ENV=dev - should fail",
-			insecureSkipVerify:    true,
-			env:                   "dev",
-			certFile:              "/etc/tls/tls.crt",
-			expectedError:         true,
-			expectedErrorContains: "TLS certificates are mounted",
-		},
-		{
-			name:               "InsecureSkipVerify disabled with cert-file set - should pass",
+			name:               "InsecureSkipVerify disabled with cert-file - should pass",
 			insecureSkipVerify: false,
 			certFile:           "/etc/tls/tls.crt",
 			expectedError:      false,
@@ -294,8 +141,6 @@ func TestValidateInsecureSkipVerify(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			err := validateInsecureSkipVerify(
 				tc.insecureSkipVerify,
-				tc.env,
-				tc.ci,
 				tc.certFile,
 			)
 
