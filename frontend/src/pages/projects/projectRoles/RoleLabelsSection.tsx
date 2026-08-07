@@ -128,11 +128,6 @@ const RoleLabelsSection: React.FC<RoleLabelsSectionProps> = ({
               Value
             </Content>
           </FlexItem>
-          <FlexItem className="pf-v6-u-visibility-hidden">
-            <Button variant="plain" aria-hidden tabIndex={-1}>
-              <MinusCircleIcon />
-            </Button>
-          </FlexItem>
         </Flex>
       )}
       {labels.length > 0 && (
