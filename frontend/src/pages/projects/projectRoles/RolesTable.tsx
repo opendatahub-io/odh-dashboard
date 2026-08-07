@@ -11,7 +11,10 @@ import {
 import { PlusCircleIcon } from '@patternfly/react-icons';
 import { Link, useNavigate } from 'react-router-dom';
 import { Table, DashboardEmptyTableView } from '@odh-dashboard/ui-core';
+import { useAccessReview } from '@odh-dashboard/plugin-core/host-api';
+import { RoleModel } from '#~/api/models';
 import type { RoleRef } from '#~/concepts/permissions/types';
+import { usePermissionsContext } from '#~/concepts/permissions/PermissionsContext';
 import { fireLinkTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 import RoleDetailsModal from '#~/pages/projects/projectPermissions/roleDetails/RoleDetailsModal';
 import { CUSTOM_ROLE_TRACKING_EVENTS } from './trackingUtils';
@@ -20,6 +23,7 @@ import type { RoleListRow } from './types';
 import { columns } from './columns';
 import RolesTableRow from './RolesTableRow';
 import PreviewYAMLModal from './PreviewYAMLModal';
+import DeleteRoleModal from './DeleteRoleModal';
 import './RolesTable.scss';
 
 type RolesTableProps = {
@@ -36,8 +40,17 @@ const RolesTable: React.FC<RolesTableProps> = ({
   onSearchChange,
 }) => {
   const navigate = useNavigate();
+  const { roles } = usePermissionsContext();
   const [detailsRoleRef, setDetailsRoleRef] = React.useState<RoleRef>();
   const [previewRow, setPreviewRow] = React.useState<RoleListRow>();
+  const [deleteRow, setDeleteRow] = React.useState<RoleListRow>();
+
+  const [allowDelete, allowDeleteLoaded] = useAccessReview({
+    group: RoleModel.apiGroup,
+    resource: RoleModel.plural,
+    namespace,
+    verb: 'delete',
+  });
 
   const hasFilters = searchFilter.trim().length > 0;
 
@@ -134,6 +147,9 @@ const RolesTable: React.FC<RolesTableProps> = ({
             onDuplicate={() =>
               navigate(`/projects/${namespace}/roles/${row.roleRef.name}/duplicate`)
             }
+            onDelete={() => setDeleteRow(row)}
+            allowDelete={allowDelete}
+            allowDeleteLoaded={allowDeleteLoaded}
           />
         )}
       />
@@ -145,6 +161,18 @@ const RolesTable: React.FC<RolesTableProps> = ({
           roleRef={previewRow.roleRef}
           role={previewRow.role}
           onClose={() => setPreviewRow(undefined)}
+        />
+      )}
+      {deleteRow && (
+        <DeleteRoleModal
+          row={deleteRow}
+          namespace={namespace}
+          onClose={(deleted) => {
+            setDeleteRow(undefined);
+            if (deleted) {
+              roles.refresh();
+            }
+          }}
         />
       )}
     </>

@@ -310,6 +310,14 @@ class ProjectRolesTab {
     return cy.findByTestId('modal-cancel-button');
   }
 
+  findDeleteRoleModal() {
+    return cy.findByTestId('delete-role-modal');
+  }
+
+  findDeleteRoleModalInput() {
+    return cy.findByTestId('delete-modal-input');
+  }
+
   getRow(name: string) {
     return new RolesTableRow(() =>
       this.findRolesTable().findAllByTestId('role-name-link').contains(name).parents('tr'),
