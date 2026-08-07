@@ -46,3 +46,31 @@ export const deleteS3TestFiles = (
     { failOnNonZeroExit: false, log: false, timeout: 120000 },
   );
 };
+
+/**
+ * Delete the Feast registry files for a given test namespace from S3.
+ *
+ * Removes `feast-test/<namespace>/` recursively from BUCKET_1. Uses an
+ * ephemeral pod so that no `aws` CLI is required on the runner.
+ *
+ * Must be called **before** `deleteOpenShiftProject` because the pod
+ * runs inside that namespace.
+ *
+ * @param namespace  The test namespace (also used as the S3 path segment)
+ */
+export const deleteFeastRegistryFiles = (namespace: string): void => {
+  const bucketConfig = AWS_BUCKETS.BUCKET_1;
+  const podName = `feast-s3-cleanup-${Date.now()}`;
+  const s3Path = `s3://${bucketConfig.NAME}/feast-test/${namespace}/`;
+
+  cy.exec(
+    `oc run ${podName} -n ${namespace} ` +
+      `--image=amazon/aws-cli:latest ` +
+      `--restart=Never --rm --attach ` +
+      `--env=AWS_ACCESS_KEY_ID=${shQuote(AWS_BUCKETS.AWS_ACCESS_KEY_ID)} ` +
+      `--env=AWS_SECRET_ACCESS_KEY=${shQuote(AWS_BUCKETS.AWS_SECRET_ACCESS_KEY)} ` +
+      `--env=AWS_DEFAULT_REGION=${shQuote(bucketConfig.REGION)} ` +
+      `-- s3 rm ${shQuote(s3Path)} --recursive`,
+    { failOnNonZeroExit: false, log: false, timeout: 120000 },
+  );
+};
