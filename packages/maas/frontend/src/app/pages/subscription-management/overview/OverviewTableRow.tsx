@@ -9,7 +9,7 @@ import { ModelOverviewItem } from '~/app/types/subscriptions';
 import { URL_PREFIX } from '~/app/utilities/const';
 import { PhaseLabelLocation, PhaseResourceType } from '~/app/utilities/phaseLabelUtils';
 import PhaseLabel from '~/app/shared/PhaseLabel';
-import { MaaSEvents } from '~/app/types/event-tracking';
+import { EventTrackingPopoverType, MaaSEvents } from '~/app/types/event-tracking';
 import { overviewColumns } from './utils';
 import ExpandedModelContent from './ExpandedModelContent';
 
@@ -24,6 +24,13 @@ const RETURN_TO = `${URL_PREFIX}/maas-governance/overview`;
 
 const NoSubscriptionsWarning: React.FC = () => (
   <Popover
+    onShow={() => {
+      fireMiscTrackingEvent(MaaSEvents.SUBSCRIPTION_MANAGEMENT_STATUS_POPOVER_VIEWED, {
+        popoverType: EventTrackingPopoverType.WARNING,
+        status: 'configuration-warning',
+        location: PhaseLabelLocation.OVERVIEW,
+      });
+    }}
     headerContent="Configuration warning"
     bodyContent={
       <div>
@@ -62,6 +69,13 @@ const NoSubscriptionsWarning: React.FC = () => (
 
 const NoPoliciesWarning: React.FC = () => (
   <Popover
+    onShow={() => {
+      fireMiscTrackingEvent(MaaSEvents.SUBSCRIPTION_MANAGEMENT_STATUS_POPOVER_VIEWED, {
+        popoverType: EventTrackingPopoverType.WARNING,
+        status: 'configuration-warning',
+        location: PhaseLabelLocation.OVERVIEW,
+      });
+    }}
     headerContent="Configuration warning"
     bodyContent={
       <div>
