@@ -103,7 +103,6 @@
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
     "@hookform/resolvers": "^5.2.2",
-    "@odh-dashboard/plugin-core": "*",
     "@openshift/dynamic-plugin-sdk": "^5.0.1",
     "@patternfly/patternfly": "^6.3.1",
     "@patternfly/react-component-groups": "^6.4.0",
