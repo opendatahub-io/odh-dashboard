@@ -167,8 +167,12 @@ describe('EvaluationFileCreator', () => {
     evaluationFileCreator.findSubmitButton().click();
 
     cy.wait('@uploadFile').then((interception) => {
-      const uploadedKey = interception.response?.body.key as string;
-      expect(uploadedKey).to.match(/\.json$/);
+      expect(interception.response?.statusCode, 'upload status').to.be.oneOf([200, 201]);
+      const uploadedKeyValue: unknown = interception.response?.body?.key;
+      expect(uploadedKeyValue, 'uploaded key')
+        .to.be.a('string')
+        .and.to.match(/\.json$/);
+      const uploadedKey = uploadedKeyValue as string;
 
       evaluationFileCreator.find().should('not.exist');
       evaluationFileSelector.findFileInput().should('have.value', uploadedKey);
