@@ -1,6 +1,16 @@
 /* eslint-disable camelcase */
 jest.mock('@patternfly/react-topology', () => ({
   DEFAULT_SPACER_NODE_TYPE: 'DEFAULT_SPACER_NODE',
+  NodeShape: {
+    circle: 'circle',
+  },
+  NodeStatus: {
+    default: 'default',
+    info: 'info',
+    success: 'success',
+    warning: 'warning',
+    danger: 'danger',
+  },
   RunStatus: {
     Succeeded: 'Succeeded',
     Failed: 'Failed',
@@ -119,9 +129,13 @@ describe('transformStageMapNodesToTree', () => {
 
     const modelSelection = nodes.find((node) => node.id === 'training__model_selection');
     expect(modelSelection?.data.stepState).toBe('active');
+    expect(modelSelection?.shape).toBe('circle');
+    expect(modelSelection?.status).toBe('info');
+    expect(modelSelection?.width).toBe(48);
 
     const loadData = nodes.find((node) => node.id === 'training__load_data');
     expect(loadData?.data.stepState).toBe('completed');
+    expect(loadData?.status).toBe('success');
   });
 
   it('includes data-loader linear stages when present in the stage map', () => {

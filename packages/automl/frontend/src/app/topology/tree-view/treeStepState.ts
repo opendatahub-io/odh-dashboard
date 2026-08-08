@@ -1,7 +1,23 @@
-import { RunStatus } from '@patternfly/react-topology';
+import { NodeStatus, RunStatus } from '@patternfly/react-topology';
 import type { TreeNodeData } from './TreeNode';
 
 export type TreeStepState = TreeNodeData['stepState'];
+
+/** Maps pipeline step state to PatternFly topology NodeStatus (custom-nodes status decorator). */
+export const treeStepStateToNodeStatus = (stepState: TreeStepState): NodeStatus => {
+  switch (stepState) {
+    case 'completed':
+      return NodeStatus.success;
+    case 'failed':
+      return NodeStatus.danger;
+    case 'active':
+      return NodeStatus.info;
+    case 'unreached':
+    case 'pending':
+    default:
+      return NodeStatus.default;
+  }
+};
 
 const TREE_STEP_STATES: readonly TreeStepState[] = [
   'completed',

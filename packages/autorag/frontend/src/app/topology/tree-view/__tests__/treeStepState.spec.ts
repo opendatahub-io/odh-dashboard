@@ -7,13 +7,21 @@ jest.mock('@patternfly/react-topology', () => ({
     Cancelled: 'Cancelled',
     Skipped: 'Skipped',
   },
+  NodeStatus: {
+    default: 'default',
+    info: 'info',
+    success: 'success',
+    warning: 'warning',
+    danger: 'danger',
+  },
 }));
 
-import { RunStatus } from '@patternfly/react-topology';
+import { NodeStatus, RunStatus } from '@patternfly/react-topology';
 import {
   isTreeNodeData,
   isTreeStepState,
   runStatusToTreeStepState,
+  treeStepStateToNodeStatus,
 } from '~/app/topology/tree-view/treeStepState';
 
 describe('isTreeStepState', () => {
@@ -56,5 +64,17 @@ describe('runStatusToTreeStepState', () => {
     expect(runStatusToTreeStepState(RunStatus.Skipped)).toBe('unreached');
     expect(runStatusToTreeStepState(RunStatus.Pending)).toBe('pending');
     expect(runStatusToTreeStepState(undefined)).toBe('pending');
+  });
+});
+
+describe('treeStepStateToNodeStatus', () => {
+  it.each([
+    ['completed', NodeStatus.success],
+    ['failed', NodeStatus.danger],
+    ['active', NodeStatus.info],
+    ['pending', NodeStatus.default],
+    ['unreached', NodeStatus.default],
+  ] as const)('maps %s to %s', (stepState, nodeStatus) => {
+    expect(treeStepStateToNodeStatus(stepState)).toBe(nodeStatus);
   });
 });

@@ -1,0 +1,17 @@
+import { createIcon } from '@patternfly/react-icons/dist/esm/createIcon';
+
+/**
+ * Red Hat UI "distribute" icon (rh-ui-icon-distribute) from @rhds/icons.
+ * Vertical rule + dots + right arrow — Optimize templates.
+ */
+const RhUiDistributeIcon = createIcon({
+  name: 'RhUiDistributeIcon',
+  width: 32,
+  height: 32,
+  svgPath:
+    'M17 3v26a1 1 0 1 1-2 0V3a1 1 0 1 1 2 0Zm13.354 11.939-3.646-3.646a.999.999 0 1 0-1.414 1.414L27.587 15h-6.586a1 1 0 1 0 0 2h6.586l-2.293 2.293a.999.999 0 1 0 1.414 1.414l3.646-3.646c.283-.283.439-.66.439-1.061s-.156-.777-.439-1.061ZM3.005 2.378a1.626 1.626 0 1 0 .001 3.251 1.626 1.626 0 0 0-.001-3.251Zm0 8.001a1.626 1.626 0 1 0 .001 3.251 1.626 1.626 0 0 0-.001-3.251Zm0 7.999a1.626 1.626 0 1 0 .001 3.251 1.626 1.626 0 0 0-.001-3.251Zm0 8a1.626 1.626 0 1 0 .001 3.251 1.626 1.626 0 0 0-.001-3.251ZM10 6.385a1.626 1.626 0 1 0 .001 3.251A1.626 1.626 0 0 0 10 6.385Zm0 7.989a1.626 1.626 0 1 0 .001 3.251A1.626 1.626 0 0 0 10 14.374Zm0 8.014a1.626 1.626 0 1 0 .001 3.251A1.626 1.626 0 0 0 10 22.388Z',
+  xOffset: 0,
+  yOffset: 0,
+});
+
+export default RhUiDistributeIcon;
