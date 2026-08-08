@@ -937,6 +937,159 @@ describe('ModelLocationSelectField', () => {
       });
       expect(screen.queryByRole('option', { name: 'NVIDIA NIM' })).not.toBeInTheDocument();
     });
+    it('should restore prefilled S3 field values when switching back to S3 from another option', async () => {
+      const prefilledS3Data: ModelLocationData = {
+        type: ModelLocationType.NEW,
+        fieldValues: {
+          AWS_S3_BUCKET: 'prefilled-bucket',
+          AWS_S3_ENDPOINT: 'prefilled-endpoint',
+          AWS_DEFAULT_REGION: 'us-east-1',
+          AWS_ACCESS_KEY_ID: 'prefilled-key',
+          AWS_SECRET_ACCESS_KEY: 'prefilled-secret',
+        },
+        additionalFields: { modelPath: 'models/my-model' },
+        connectionTypeObject: mockConnectionTypes[1],
+      };
+
+      const mockResetModelLocationData = jest.fn();
+      const mockExistingConnection: Connection = {
+        apiVersion: 'v1',
+        kind: 'Secret',
+        metadata: {
+          name: 'test-connection',
+          namespace: 'test-project',
+          labels: {
+            [KnownLabels.DASHBOARD_RESOURCE]: 'true',
+          },
+          annotations: {
+            'opendatahub.io/connection-type': 'uri',
+            'openshift.io/display-name': 'test-connection',
+          },
+        },
+        data: {},
+      } as Connection;
+
+      render(
+        <ModelLocationSelectField
+          wizardState={mockWizardState}
+          modelLocation={ModelLocationType.NEW}
+          setModelLocationData={mockSetModelLocationData}
+          resetModelLocationData={mockResetModelLocationData}
+          connections={[mockExistingConnection]}
+          setSelectedConnection={jest.fn()}
+          selectedConnection={undefined}
+          modelLocationData={prefilledS3Data}
+          pvcs={mockPvcs}
+        />,
+      );
+
+      // Verify the S3 fields are initially rendered with prefilled values
+      expect(screen.getByTestId('field AWS_S3_BUCKET')).toHaveValue('prefilled-bucket');
+
+      // Switch to "Existing connection"
+      const button = screen.getByTestId('model-location-select');
+      await act(async () => {
+        fireEvent.click(button);
+      });
+      const existingOption = screen.getByRole('option', { name: 'Existing connection' });
+      await act(async () => {
+        fireEvent.click(existingOption);
+      });
+
+      // Switch back to "S3 object storage"
+      await act(async () => {
+        fireEvent.click(button);
+      });
+      const s3Option = screen.getByRole('option', { name: 'S3 object storage' });
+      await act(async () => {
+        fireEvent.click(s3Option);
+      });
+
+      // Verify the last call to setModelLocationData restored the prefilled values
+      const lastCall =
+        mockSetModelLocationData.mock.calls[mockSetModelLocationData.mock.calls.length - 1][0];
+      expect(lastCall.fieldValues).toEqual(prefilledS3Data.fieldValues);
+      expect(lastCall.additionalFields).toEqual(prefilledS3Data.additionalFields);
+      expect(lastCall.connectionTypeObject).toEqual(prefilledS3Data.connectionTypeObject);
+    });
+    it('should restore connection-backed prefill when switching back to S3 without connectionTypeObject', async () => {
+      const mockS3Connection: Connection = {
+        apiVersion: 'v1',
+        kind: 'Secret',
+        metadata: {
+          name: 's3-prefilled-connection',
+          namespace: 'test-project',
+          labels: {
+            [KnownLabels.DASHBOARD_RESOURCE]: 'true',
+            'opendatahub.io/managed': 'true',
+          },
+          annotations: {
+            'opendatahub.io/connection-type': 's3',
+            'openshift.io/display-name': 's3-prefilled-connection',
+          },
+        },
+        data: {
+          AWS_ACCESS_KEY_ID: btoa('key'),
+          AWS_SECRET_ACCESS_KEY: btoa('secret'),
+          AWS_S3_ENDPOINT: btoa('endpoint'),
+          AWS_S3_BUCKET: btoa('bucket'),
+        },
+      } as Connection;
+
+      const prefilledConnectionData: ModelLocationData = {
+        type: ModelLocationType.NEW,
+        connection: 's3-prefilled-connection',
+        fieldValues: {
+          AWS_S3_BUCKET: 'prefilled-bucket',
+          AWS_S3_ENDPOINT: 'prefilled-endpoint',
+          AWS_ACCESS_KEY_ID: 'prefilled-key',
+          AWS_SECRET_ACCESS_KEY: 'prefilled-secret',
+        },
+        additionalFields: { modelPath: 'models/my-model' },
+      };
+
+      const mockResetModelLocationData = jest.fn();
+
+      render(
+        <ModelLocationSelectField
+          wizardState={mockWizardState}
+          modelLocation={ModelLocationType.NEW}
+          setModelLocationData={mockSetModelLocationData}
+          resetModelLocationData={mockResetModelLocationData}
+          connections={[mockS3Connection]}
+          setSelectedConnection={jest.fn()}
+          selectedConnection={undefined}
+          modelLocationData={prefilledConnectionData}
+          pvcs={mockPvcs}
+        />,
+      );
+
+      // Switch to "Existing connection"
+      const button = screen.getByTestId('model-location-select');
+      await act(async () => {
+        fireEvent.click(button);
+      });
+      const existingOption = screen.getByRole('option', { name: 'Existing connection' });
+      await act(async () => {
+        fireEvent.click(existingOption);
+      });
+
+      // Switch back to "S3 object storage"
+      await act(async () => {
+        fireEvent.click(button);
+      });
+      const s3OptionEl = screen.getByRole('option', { name: 'S3 object storage' });
+      await act(async () => {
+        fireEvent.click(s3OptionEl);
+      });
+
+      // Verify the last call to setModelLocationData restored the prefilled values
+      const lastCall =
+        mockSetModelLocationData.mock.calls[mockSetModelLocationData.mock.calls.length - 1][0];
+      expect(lastCall.fieldValues).toEqual(prefilledConnectionData.fieldValues);
+      expect(lastCall.additionalFields).toEqual(prefilledConnectionData.additionalFields);
+      expect(lastCall.connection).toEqual(prefilledConnectionData.connection);
+    });
     it('should call setModelLocationData with NIM type when NVIDIA NIM is selected', async () => {
       mockUseIsAreaAvailable.mockReturnValue(mockAreaStatus(true));
       render(
