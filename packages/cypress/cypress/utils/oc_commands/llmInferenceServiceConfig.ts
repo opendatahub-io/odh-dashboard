@@ -10,30 +10,17 @@ if (!applicationNamespace) {
 }
 
 /**
- * Searches for an LLMInferenceServiceConfig in the applications namespace whose name
- * contains the provided substring. If found, deletes it.
+ * Deletes an LLMInferenceServiceConfig in the applications namespace by exact name.
  *
- * @param configName - The `metadata.name` substring to search for.
+ * @param configName - The exact `metadata.name` of the config to delete.
  * @returns A Cypress.Chainable that resolves to the CommandLineResult.
  */
 export const cleanupLLMInferenceServiceConfig = (
   configName: string,
 ): Cypress.Chainable<CommandLineResult> => {
-  const sanitizedName = configName.replace(/[^a-zA-Z0-9_-]/g, '');
-  const ocCommand = `oc get llminferenceserviceconfig -ojson -n ${applicationNamespace} | jq '.items[] | select(.metadata.name | contains("${sanitizedName}")) | .metadata.name' | tr -d '"'`;
-  cy.log(`Executing delete LLMInferenceServiceConfig command: ${ocCommand}`);
-
-  return cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result) => {
-    const name = result.stdout.trim();
-
-    if (name) {
-      cy.log(`LLMInferenceServiceConfig found: ${name}. Proceeding to delete.`);
-      const deleteCommand = `oc delete llminferenceserviceconfig ${name} -n ${applicationNamespace}`;
-      return cy.exec(deleteCommand, { failOnNonZeroExit: false });
-    }
-    cy.log('No matching LLMInferenceServiceConfig found, proceeding with the test.');
-    return cy.wrap(result);
-  });
+  cy.log(`Deleting LLMInferenceServiceConfig: ${configName}`);
+  const deleteCommand = `oc delete llminferenceserviceconfig ${configName} -n ${applicationNamespace} --ignore-not-found`;
+  return cy.exec(deleteCommand, { failOnNonZeroExit: false });
 };
 
 /**

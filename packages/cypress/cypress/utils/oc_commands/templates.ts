@@ -1,6 +1,30 @@
+import { pollUntilSuccess } from './baseCommands';
 import type { CommandLineResult } from '../../types';
 
 const applicationNamespace = Cypress.env('APPLICATIONS_NAMESPACE');
+
+export type WaitForTemplateOptions = {
+  maxAttempts?: number;
+  pollIntervalMs?: number;
+};
+
+/**
+ * Waits until a template exists in the cluster whose nested ServingRuntime object has
+ * `openshift.io/display-name` containing the provided displayName.
+ *
+ * This is useful for verifying that the backend successfully created the Template after submitting
+ * the Serving Runtime form.
+ */
+export const waitForTemplateByDisplayName = (
+  displayName: string,
+  { maxAttempts = 30, pollIntervalMs = 2000 }: WaitForTemplateOptions = {},
+): Cypress.Chainable<Cypress.Exec> => {
+  const cmd = `oc get templates -ojson -n ${applicationNamespace} | jq -e --arg name "${displayName}" '.items[] | select(.objects[]? | select(.kind == "ServingRuntime") | .metadata?.annotations?."openshift.io/display-name"? // "" | contains($name)) | .metadata.name' >/dev/null`;
+  return pollUntilSuccess(cmd, `template containing display-name "${displayName}"`, {
+    maxAttempts,
+    pollIntervalMs,
+  });
+};
 
 /**
  * Cleans up OpenShift templates by searching for a template with a specific display name.
