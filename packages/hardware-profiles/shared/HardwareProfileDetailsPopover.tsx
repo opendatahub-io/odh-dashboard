@@ -10,7 +10,6 @@ import {
   StackItem,
   Truncate,
 } from '@patternfly/react-core';
-import { QuestionCircleIcon } from '@patternfly/react-icons';
 import type { Toleration, NodeSelector, HardwareProfileKind } from '@odh-dashboard/k8s-core';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import {
@@ -184,7 +183,6 @@ const HardwareProfileDetailsPopover: React.FC<HardwareProfileDetailsPopoverProps
         ref={triggerRef}
         isInline
         variant="link"
-        icon={tableView ? undefined : <QuestionCircleIcon />}
         style={tableView ? { textDecoration: 'none' } : undefined}
         data-testid="hardware-profile-details-popover"
       >
