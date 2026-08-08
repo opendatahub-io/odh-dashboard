@@ -21,6 +21,7 @@ func (app *App) handleLlamaStackClientError(w http.ResponseWriter, r *http.Reque
 		}
 
 		frontendErr := app.mapLlamaStackClientErrorToFrontendError(llamastackErr, statusCode)
+		frontendErr.TraceID = otelTraceID(r.Context())
 
 		// Send frontend-compatible error response
 		if writeErr := app.WriteJSON(w, frontendErr.StatusCode, frontendErr, nil); writeErr != nil {
