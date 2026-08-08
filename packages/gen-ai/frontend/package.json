@@ -100,7 +100,7 @@
     "@emotion/styled": "^11.14.0",
     "@patternfly/chatbot": "^6.5.0-prerelease.22",
     "@patternfly/react-code-editor": "^6.3.1",
-    "@patternfly/react-core": "^6.3.1",
+    "@patternfly/react-core": "^6.5.0",
     "@patternfly/react-icons": "^6.3.1",
     "@patternfly/react-styles": "^6.3.1",
     "@patternfly/react-templates": "^6.3.1",
