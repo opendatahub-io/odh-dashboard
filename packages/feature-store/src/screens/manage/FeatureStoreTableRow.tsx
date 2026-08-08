@@ -133,7 +133,7 @@ const FeatureStoreTableRow: React.FC<FeatureStoreTableRowProps> = ({
 
   return (
     <>
-      <Tr>
+      <Tr data-testid={`feature-store-row-${fs.metadata.namespace}-${fs.metadata.name}`}>
         <Td
           expand={{
             rowIndex,
@@ -144,7 +144,10 @@ const FeatureStoreTableRow: React.FC<FeatureStoreTableRowProps> = ({
         />
         <Td dataLabel="Name">
           {fs.status?.phase === 'Ready' ? (
-            <Link to={`/develop-train/feature-store/overview/${fs.spec.feastProject}`}>
+            <Link
+              to={`/develop-train/feature-store/overview/${fs.spec.feastProject}`}
+              data-testid={`feature-store-link-${fs.metadata.namespace}-${fs.metadata.name}`}
+            >
               {fs.metadata.name}
             </Link>
           ) : (

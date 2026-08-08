@@ -92,7 +92,7 @@ const validateRegistry = (data: FeatureStoreFormData): ValidationResult => {
     if (!feastRef?.name.trim()) {
       return {
         valid: false,
-        message: 'FeatureStore reference name is required for remote registry.',
+        message: 'Feature store reference name is required for remote registry.',
       };
     }
   }
@@ -123,6 +123,22 @@ const validateStoreConfig = (data: FeatureStoreFormData): ValidationResult => {
   return { valid: true };
 };
 
+const isMultiReplica = (data: FeatureStoreFormData): boolean =>
+  (data.scalingMode === ScalingMode.STATIC && data.replicas > 1) ||
+  (data.scalingMode === ScalingMode.HPA && data.hpaMaxReplicas > 1);
+
+const hasScalableRegistry = (data: FeatureStoreFormData): boolean => {
+  if (data.registryType !== RegistryType.LOCAL) {
+    return true;
+  }
+  const path = data.services?.registry?.local?.persistence?.file?.path;
+  return (
+    data.registryPersistenceType === PersistenceType.DB ||
+    !!path?.startsWith('s3://') ||
+    !!path?.startsWith('gs://')
+  );
+};
+
 const validateAdvanced = (data: FeatureStoreFormData): ValidationResult => {
   if (data.authzType === AuthzType.OIDC) {
     if (!data.authz?.oidc?.secretRef?.name.trim()) {
@@ -135,10 +151,6 @@ const validateAdvanced = (data: FeatureStoreFormData): ValidationResult => {
   }
 
   if (data.scalingEnabled) {
-    const needsMultiReplicaValidation =
-      (data.scalingMode === ScalingMode.STATIC && data.replicas > 1) ||
-      data.scalingMode === ScalingMode.HPA;
-
     if (data.scalingMode === ScalingMode.HPA) {
       if (data.hpaMaxReplicas < data.hpaMinReplicas) {
         return {
@@ -148,7 +160,7 @@ const validateAdvanced = (data: FeatureStoreFormData): ValidationResult => {
       }
     }
 
-    if (needsMultiReplicaValidation) {
+    if (isMultiReplica(data)) {
       if (data.onlinePersistenceType !== PersistenceType.DB) {
         return {
           valid: false,
@@ -161,23 +173,29 @@ const validateAdvanced = (data: FeatureStoreFormData): ValidationResult => {
           message: 'Scaling requires DB-backed persistence for the offline store.',
         };
       }
-      if (data.registryType === RegistryType.LOCAL) {
-        const registryPersistence = data.services?.registry?.local?.persistence;
-        const hasDBRegistry = data.registryPersistenceType === PersistenceType.DB;
-        const hasS3OrGSRegistry =
-          registryPersistence?.file?.path?.startsWith('s3://') ||
-          registryPersistence?.file?.path?.startsWith('gs://');
-        if (!hasDBRegistry && !hasS3OrGSRegistry) {
-          return {
-            valid: false,
-            message: 'Scaling requires DB-backed or remote registry, or S3/GCS registry file path.',
-          };
-        }
+      if (!hasScalableRegistry(data)) {
+        return {
+          valid: false,
+          message: 'Scaling requires DB-backed or remote registry, or S3/GCS registry file path.',
+        };
       }
     }
   }
 
   return { valid: true };
+};
+
+export const needsMultiReplicaWarning = (data: FeatureStoreFormData): boolean => {
+  if (!isMultiReplica(data)) {
+    return false;
+  }
+  if (data.onlinePersistenceType !== PersistenceType.DB) {
+    return true;
+  }
+  if (data.offlineStoreEnabled && data.offlinePersistenceType !== PersistenceType.DB) {
+    return true;
+  }
+  return !hasScalableRegistry(data);
 };
 
 export const validateFeatureStoreForm = (
