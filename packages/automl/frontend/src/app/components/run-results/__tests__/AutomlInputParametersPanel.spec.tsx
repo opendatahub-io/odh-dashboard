@@ -437,4 +437,36 @@ describe('AutomlInputParametersPanel', () => {
       expect(screen.getByText('Input parameters')).toBeInTheDocument();
     });
   });
+
+  describe('test data parameters', () => {
+    it('should display test data fields when present', () => {
+      renderPanel({
+        parameters: {
+          ...defaultParameters,
+          test_data_s3_uri: 's3://my-bucket/test.csv',
+          test_data_s3_bucket: 'my-bucket',
+          test_data_s3_key: 'test.csv',
+        } as Partial<ConfigureSchema>,
+      });
+
+      expect(screen.getByTestId('parameter-test_data_s3_uri')).toBeInTheDocument();
+      expect(screen.getByTestId('parameter-test_data_s3_uri')).toHaveTextContent(
+        's3://my-bucket/test.csv',
+      );
+      expect(screen.getByTestId('parameter-test_data_s3_bucket')).toBeInTheDocument();
+      expect(screen.getByTestId('parameter-test_data_s3_bucket')).toHaveTextContent('my-bucket');
+      expect(screen.getByTestId('parameter-test_data_s3_key')).toBeInTheDocument();
+      expect(screen.getByTestId('parameter-test_data_s3_key')).toHaveTextContent('test.csv');
+    });
+
+    it('should not display test data fields when absent', () => {
+      renderPanel({
+        parameters: defaultParameters,
+      });
+
+      expect(screen.queryByTestId('parameter-test_data_s3_uri')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('parameter-test_data_s3_bucket')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('parameter-test_data_s3_key')).not.toBeInTheDocument();
+    });
+  });
 });

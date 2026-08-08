@@ -792,5 +792,68 @@ describe('createConfigureSchema', () => {
         expect(balancedResult.data.preset).toBe('balanced');
       }
     });
+
+    describe('test data transformer', () => {
+      it('should strip test data fields when test_data_s3_key is empty', () => {
+        const input = {
+          ...schema.defaults,
+          display_name: 'Test Run',
+          train_data_secret_name: 'my-secret',
+          train_data_bucket_name: 'my-bucket',
+          train_data_file_key: 'data.csv',
+          task_type: TASK_TYPE_BINARY,
+          target_column: 'label',
+          test_data_s3_key: '',
+          test_data_s3_bucket: '',
+          test_data_s3_uri: '',
+        };
+        const result = schema.full.parse(input);
+        expect(result).not.toHaveProperty('test_data_s3_key');
+        expect(result).not.toHaveProperty('test_data_s3_bucket');
+        expect(result).not.toHaveProperty('test_data_s3_uri');
+      });
+
+      it('should construct test_data_s3_uri when test_data_s3_key is provided', () => {
+        const input = {
+          ...schema.defaults,
+          display_name: 'Test Run',
+          train_data_secret_name: 'my-secret',
+          train_data_bucket_name: 'my-bucket',
+          train_data_file_key: 'train.csv',
+          task_type: TASK_TYPE_BINARY,
+          target_column: 'label',
+          test_data_s3_key: 'test.csv',
+        };
+        const result = schema.full.parse(input);
+        expect(result.test_data_s3_key).toBe('test.csv');
+        expect(result.test_data_s3_bucket).toBe('my-bucket');
+        expect(result.test_data_s3_uri).toBe('s3://my-bucket/test.csv');
+      });
+
+      it('should strip test data fields when test_data_s3_key is only whitespace', () => {
+        const input = {
+          ...schema.defaults,
+          display_name: 'Test Run',
+          train_data_secret_name: 'my-secret',
+          train_data_bucket_name: 'my-bucket',
+          train_data_file_key: 'data.csv',
+          task_type: TASK_TYPE_BINARY,
+          target_column: 'label',
+          test_data_s3_key: '   ',
+        };
+        const result = schema.full.parse(input);
+        expect(result).not.toHaveProperty('test_data_s3_key');
+        expect(result).not.toHaveProperty('test_data_s3_bucket');
+        expect(result).not.toHaveProperty('test_data_s3_uri');
+      });
+    });
+  });
+
+  describe('test data defaults', () => {
+    it('should include empty string defaults for test data fields', () => {
+      expect(schema.defaults).toHaveProperty('test_data_s3_uri', '');
+      expect(schema.defaults).toHaveProperty('test_data_s3_bucket', '');
+      expect(schema.defaults).toHaveProperty('test_data_s3_key', '');
+    });
   });
 });

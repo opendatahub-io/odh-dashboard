@@ -97,6 +97,7 @@ import { findEquivalentMetric, formatMetricName } from '~/app/utilities/utils';
 import LoadingFormField from './LoadingFormField';
 import AutomlPredictionTypeHelperText from './AutomlPredictionTypeHelperText';
 import AutomlPredictionTypeSelector from './AutomlPredictionTypeSelector';
+import ConfigureTestDataset from './ConfigureTestDataset';
 import ConfigureTimeseriesForm from './ConfigureTimeseriesForm';
 import OptimizationMetricModal from './OptimizationMetricModal';
 import './AutomlConfigure.scss';
@@ -308,6 +309,7 @@ function AutomlConfigure({
     trainingDataUploadSeqRef.current += 1;
     setIsTrainingDataFileUploading(false);
     setValue('train_data_file_key', '', { shouldValidate: true });
+    setValue('test_data_s3_key', '', { shouldValidate: true });
     setSelectedTrainingDataFile(undefined);
   }, [trainDataSecretName, trainDataBucketName, setValue]);
 
@@ -791,6 +793,16 @@ function AutomlConfigure({
                           </StackItem>
                         </>
                       )}
+                      <StackItem>
+                        <Divider />
+                      </StackItem>
+                      <StackItem>
+                        <ConfigureTestDataset
+                          namespace={namespace}
+                          s3SecretName={trainDataSecretName}
+                          isDisabled={formIsSubmitting}
+                        />
+                      </StackItem>
                     </>
                   )}
                 </Stack>

@@ -62,6 +62,11 @@ function createConfigureSchema() {
       timestamp_column: z.string().default('').optional(),
       prediction_length: z.int().min(1).max(MAX_PREDICTION_LENGTH).default(1).optional(),
       known_covariates_names: z.array(z.string()).default([]).optional(),
+
+      // Test dataset fields (optional, for user-provided test data)
+      test_data_s3_uri: z.string().default('').optional(),
+      test_data_s3_bucket: z.string().default('').optional(),
+      test_data_s3_key: z.string().default('').optional(),
     }),
     validators: [
       // Validate target_column is required for all task types
@@ -210,6 +215,18 @@ function createConfigureSchema() {
           delete data.known_covariates_names;
         }
         delete data.target_column;
+        return data;
+      },
+      // Build test_data_s3_uri from bucket + key, or strip empty test data fields
+      (data) => {
+        if (data.test_data_s3_key && data.test_data_s3_key.trim() !== '') {
+          data.test_data_s3_bucket = data.train_data_bucket_name;
+          data.test_data_s3_uri = `s3://${data.test_data_s3_bucket}/${data.test_data_s3_key}`;
+        } else {
+          delete data.test_data_s3_uri;
+          delete data.test_data_s3_bucket;
+          delete data.test_data_s3_key;
+        }
         return data;
       },
     ],
