@@ -6,6 +6,8 @@ import (
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/openai/openai-go/v2"
+	"github.com/opendatahub-io/gen-ai/internal/constants"
+	"github.com/opendatahub-io/gen-ai/internal/integrations"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack"
 )
 
@@ -15,7 +17,17 @@ type ModelsResponse = llamastack.APIResponse
 func (app *App) LlamaStackModelsHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	ctx := r.Context()
 
-	models, err := app.repositories.Models.ListModels(ctx)
+	// SPIKE(RHOAIENG-78871): always forward the user's token as passthrough_api_key and
+	// vllm_api_token so OGX routes through the genai-bff-proxy passthrough provider.
+	var providerData map[string]any
+	if identity, ok := ctx.Value(constants.RequestIdentityKey).(*integrations.RequestIdentity); ok && identity != nil && identity.Token != "" {
+		providerData = map[string]any{
+			"passthrough_api_key": identity.Token,
+			"vllm_api_token":      identity.Token,
+		}
+	}
+
+	models, err := app.repositories.Models.ListModelsWithProviderData(ctx, providerData)
 	if err != nil {
 		app.handleLlamaStackClientError(w, r, err)
 		return

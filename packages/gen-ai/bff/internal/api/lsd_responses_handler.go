@@ -522,6 +522,18 @@ func (app *App) LlamaStackCreateResponseHandler(w http.ResponseWriter, r *http.R
 		return
 	}
 
+	// SPIKE(RHOAIENG-78871): always forward the user's token as passthrough_api_key and
+	// vllm_api_token so OGX routes through the genai-bff-proxy passthrough provider.
+	if identity, ok := ctx.Value(constants.RequestIdentityKey).(*integrations.RequestIdentity); ok && identity != nil && identity.Token != "" {
+		if providerData == nil {
+			providerData = make(map[string]interface{})
+		}
+		providerData["passthrough_api_key"] = identity.Token
+		if _, exists := providerData["vllm_api_token"]; !exists {
+			providerData["vllm_api_token"] = identity.Token
+		}
+	}
+
 	// Build inline guardrail options when the request includes a guardrail config.
 	// The BFF resolves the model endpoint URL and API key so the frontend never handles credentials.
 	var guardrailOpts nemo.GuardrailsOptions

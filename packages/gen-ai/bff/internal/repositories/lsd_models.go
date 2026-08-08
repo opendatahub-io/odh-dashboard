@@ -5,6 +5,7 @@ import (
 
 	"github.com/openai/openai-go/v2"
 	helper "github.com/opendatahub-io/gen-ai/internal/helpers"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack"
 )
 
 // ModelsRepository handles model-related operations and data transformations.
@@ -20,13 +21,19 @@ func NewModelsRepository() *ModelsRepository {
 // ListModels retrieves all available models and transforms them for BFF use.
 // The LlamaStack client is expected to be in the context (created by AttachOGXClient middleware).
 func (r *ModelsRepository) ListModels(ctx context.Context) ([]openai.Model, error) {
-	// Get ready-to-use LlamaStack client from context using helper
+	return r.ListModelsWithProviderData(ctx, nil)
+}
+
+// ListModelsWithProviderData retrieves models forwarding provider data as X-OGX-Provider-Data.
+func (r *ModelsRepository) ListModelsWithProviderData(ctx context.Context, providerData map[string]any) ([]openai.Model, error) {
 	client, err := helper.GetContextLlamaStackClient(ctx)
 	if err != nil {
 		return nil, err
 	}
-
-	// Repository layer can add transformation logic here if needed
-	// For now, direct passthrough from client to handler
-	return client.ListModels(ctx)
+	lsClient, ok := client.(*llamastack.LlamaStackClient)
+	if !ok {
+		// Mock or other client — fall back to standard ListModels
+		return client.ListModels(ctx)
+	}
+	return lsClient.ListModelsWithProviderData(ctx, providerData)
 }

@@ -521,6 +521,13 @@ func (app *App) Routes() http.Handler {
 	// Guardrails API route
 	apiRouter.GET(constants.GuardrailsStatusPath, app.AttachNamespace(app.RequireGuardrailAccess(app.GuardrailsStatusHandler)))
 
+	// GenAI proxy — OpenAI-compatible surface for OGX's remote::passthrough provider (RHOAIENG-78871).
+	// OGX base_url must be set to http://<bff-svc>/api/v1/genai-proxy/ns/<namespace>;
+	// OGX appends /v1 automatically, producing .../ns/<namespace>/v1/models etc.
+	apiRouter.GET(constants.GenAIProxyNSModelsPath, app.AttachBFFMaaSClient(app.GenAIProxyNSModelsHandler))
+	apiRouter.POST(constants.GenAIProxyNSChatPath, app.GenAIProxyNSChatCompletionsHandler)
+	apiRouter.POST(constants.GenAIProxyNSEmbeddingsPath, app.GenAIProxyNSEmbeddingsHandler)
+
 	// Agent Profiles API routes
 	apiRouter.GET(constants.AgentProfilesPath, app.AttachNamespace(app.RequireAccessToService(app.ListAgentProfilesHandler)))
 	apiRouter.POST(constants.AgentProfilesPath, app.AttachNamespace(app.RequireAccessToService(app.CreateAgentProfileHandler)))
