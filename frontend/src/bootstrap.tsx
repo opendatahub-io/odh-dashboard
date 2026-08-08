@@ -2,12 +2,14 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import { Provider } from 'react-redux';
+import { QueryClientProvider } from '@tanstack/react-query';
 import { BrowserStorageContextProvider } from '@odh-dashboard/ui-core/hooks';
 import { sdkStore, store } from './redux/store/store';
 import App from './app/App';
 import { ThemeProvider } from './app/ThemeContext';
 import { AnalyticsProvider } from './concepts/analyticsTracking/AnalyticsProvider';
 import { NotificationProvider } from './utilities/NotificationProvider';
+import { queryClient } from './utilities/queryClient';
 import SDKInitialize from './SDKInitialize';
 import ErrorBoundary from './components/error/ErrorBoundary';
 import RouteErrorElement from './components/error/RouteErrorElement';
@@ -44,11 +46,13 @@ const root = createRoot(document.getElementById('root')!);
 root.render(
   <React.StrictMode>
     <ErrorBoundary>
-      <Provider store={sdkStore}>
-        <Provider store={store} context={ReduxContext}>
-          <RouterProvider router={router} />
+      <QueryClientProvider client={queryClient}>
+        <Provider store={sdkStore}>
+          <Provider store={store} context={ReduxContext}>
+            <RouterProvider router={router} />
+          </Provider>
         </Provider>
-      </Provider>
+      </QueryClientProvider>
     </ErrorBoundary>
   </React.StrictMode>,
 );

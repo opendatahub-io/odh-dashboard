@@ -5,7 +5,7 @@ import useFetchState, {
   FetchStateCallbackPromise,
   NotReadyError,
 } from '@odh-dashboard/ui-core/hooks/useFetchState';
-import { useAccessReview } from '@odh-dashboard/plugin-core/host-api';
+import { useAccessAllowed } from '#~/concepts/userSSAR';
 import { ServiceKind } from '#~/k8sTypes';
 import { ServiceModel, useRulesReview, listServices } from '#~/api';
 
@@ -68,7 +68,7 @@ export type ModelRegistryServicesResult = {
 export const useModelRegistryServices = (
   namespace: string | undefined,
 ): ModelRegistryServicesResult => {
-  const [allowList, accessReviewLoaded] = useAccessReview(
+  const [allowList, accessReviewLoaded] = useAccessAllowed(
     { ...accessReviewResource, namespace: namespace || '' },
     !!namespace,
   );

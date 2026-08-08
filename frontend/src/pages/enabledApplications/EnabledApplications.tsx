@@ -3,7 +3,7 @@ import * as _ from 'lodash-es';
 import { Gallery, PageSection } from '@patternfly/react-core';
 import TitleWithIcon from '@odh-dashboard/ui-core/design/TitleWithIcon';
 import { ApplicationsPage } from '@odh-dashboard/ui-core';
-import { useWatchComponents } from '#~/utilities/useWatchComponents';
+import { useWatchComponentsQuery } from '#~/utilities/useWatchComponentsQuery';
 import { OdhApplication } from '#~/types';
 import OdhAppCard from '#~/components/OdhAppCard';
 import { fireMiscTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
@@ -55,7 +55,7 @@ export const EnabledApplicationsInner: React.FC<EnabledApplicationsInnerProps> =
 EnabledApplicationsInner.displayName = 'EnabledApplicationsInner';
 
 const EnabledApplications: React.FC = () => {
-  const { components, loaded, loadError } = useWatchComponents(true);
+  const { components, loaded, loadError } = useWatchComponentsQuery(true);
 
   const sortedComponents = React.useMemo(
     () =>

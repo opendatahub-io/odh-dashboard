@@ -205,6 +205,13 @@ module.exports = (env) => ({
   optimization: {
     splitChunks: {
       cacheGroups: {
+        quickstartsVendor: {
+          test: /[\\/]node_modules[\\/]@patternfly[\\/]quickstarts[\\/]/,
+          name: 'quickstartsVendor',
+          chunks: 'async',
+          enforce: true,
+          priority: 20,
+        },
         pluginChunks: {
           test(module) {
             return pluginPackageDetails.some(

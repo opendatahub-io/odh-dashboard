@@ -1,4 +1,4 @@
-import { QuickStart } from '@patternfly/quickstarts';
+import type { QuickStart } from '#~/concepts/quickStarts/types';
 import axios from '#~/utilities/axios';
 
 export const fetchQuickStarts = (): Promise<QuickStart[]> => {

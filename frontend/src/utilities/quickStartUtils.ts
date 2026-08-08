@@ -1,8 +1,5 @@
-import {
-  QuickStartContextValues,
-  QuickStartStatus,
-  QuickStartTaskStatus,
-} from '@patternfly/quickstarts';
+import type { QuickStartContextValues } from '#~/concepts/quickStarts/QuickStartsContext';
+import { QuickStartStatus, QuickStartTaskStatus } from '#~/concepts/quickStarts/types';
 
 export enum LaunchStatusEnum {
   Open = 'Open',
