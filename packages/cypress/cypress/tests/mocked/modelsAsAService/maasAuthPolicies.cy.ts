@@ -14,7 +14,7 @@ import {
   mockAuthPolicies,
   mockCreatePolicyResponse,
   mockPolicyInfo,
-  mockSubscriptionFormData,
+  interceptMaasGovernanceData,
   mockPolicyInfoMissingModelSummaries,
 } from '../../../utils/maasUtils';
 import { getClipboardContent, stubClipboard } from '../../../utils/clipboardUtils';
@@ -37,16 +37,11 @@ const setupAuthPoliciesCommon = () => {
       conditions: [{ type: MODELS_AS_A_SERVICE_READY, status: 'True', reason: 'Ready' }],
     }),
   );
-  cy.interceptOdh('GET /maas/api/v1/subscription-policy-form-data', {
-    data: mockSubscriptionFormData(),
-  });
+  interceptMaasGovernanceData();
 };
 
 const setupAuthPolicyEditorSharedIntercepts = () => {
   setupAuthPoliciesCommon();
-  cy.interceptOdh('GET /maas/api/v1/subscription-policy-form-data', {
-    data: mockSubscriptionFormData(),
-  });
   cy.interceptOdh('GET /maas/api/v1/all-policies', { data: mockAuthPolicies() });
 };
 

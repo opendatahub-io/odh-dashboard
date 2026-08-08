@@ -7,7 +7,7 @@ import {
   getSubscriptionViewUrl,
 } from '~/app/utilities/subscriptionManagementNavigation';
 import { useGetSubscriptionInfo } from '~/app/hooks/useGetSubscriptionInfo';
-import { useSubscriptionPolicyFormData } from '~/app/hooks/useSubscriptionPolicyFormData';
+import { useMaaSGovernanceContext } from '~/app/context/MaaSGovernanceContext';
 import CreateSubscriptionForm from './createSubscription/CreateSubscriptionForm';
 
 const EditSubscriptionPage: React.FC = () => {
@@ -16,7 +16,14 @@ const EditSubscriptionPage: React.FC = () => {
   const base = getBackUrl(state, 'subscriptions');
   const returnTo = base;
   const [subscriptionInfo, infoLoaded, infoError] = useGetSubscriptionInfo(subscriptionName);
-  const [formData, formLoaded, formError] = useSubscriptionPolicyFormData();
+  const {
+    groups,
+    modelRefs,
+    subscriptions,
+    policies,
+    loaded: formLoaded,
+    error: formError,
+  } = useMaaSGovernanceContext();
 
   const loaded = infoLoaded && formLoaded;
   const error = infoError || formError;
@@ -56,7 +63,10 @@ const EditSubscriptionPage: React.FC = () => {
     >
       {subscriptionInfo && (
         <CreateSubscriptionForm
-          formData={formData}
+          groups={groups}
+          modelRefs={modelRefs}
+          subscriptions={subscriptions}
+          policies={policies}
           subscriptionInfo={subscriptionInfo}
           returnTo={returnTo}
         />

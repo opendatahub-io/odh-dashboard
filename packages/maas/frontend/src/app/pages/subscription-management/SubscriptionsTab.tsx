@@ -10,7 +10,7 @@ import {
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '@odh-dashboard/ui-core';
-import { useListSubscriptions } from '~/app/hooks/useListSubscriptions';
+import { useMaaSGovernanceContext } from '~/app/context/MaaSGovernanceContext';
 import { MaaSSubscription } from '~/app/types/subscriptions';
 import { SubscriptionsTable } from '~/app/pages/subscriptions/allSubscriptions/SubscriptionsTable';
 import SubscriptionsToolbar from '~/app/pages/subscriptions/allSubscriptions/SubscriptionsToolbar';
@@ -32,7 +32,12 @@ type SubscriptionsTabProps = {
 };
 
 const SubscriptionsTab: React.FC<SubscriptionsTabProps> = ({ returnTo }) => {
-  const [subscriptions, loaded, error, refresh] = useListSubscriptions();
+  const {
+    subscriptions,
+    subscriptionsLoaded: loaded,
+    subscriptionsError: error,
+    refresh,
+  } = useMaaSGovernanceContext();
   const [filterData, setFilterData] = React.useState<SubscriptionsFilterDataType>(
     initialSubscriptionsFilterData,
   );
