@@ -92,7 +92,7 @@ describe('getRunStartTime', () => {
 });
 
 describe('getRunDuration', () => {
-  it('should compute duration from last RUNNING entry to finished_at', () => {
+  it('should compute duration from RUNNING entry to next state transition', () => {
     const run = buildMockRunKF({
       finished_at: '2024-01-01T00:10:00Z',
       state_history: [
@@ -102,6 +102,36 @@ describe('getRunDuration', () => {
       ],
     });
     // 10:00 - 00:05 = 9 minutes 55 seconds = 595000ms
+    expect(getRunDuration(run)).toBe(595000);
+  });
+
+  it('should accumulate duration across multiple RUNNING segments for retried runs', () => {
+    const run = buildMockRunKF({
+      finished_at: '2024-01-01T02:10:00Z',
+      state_history: [
+        { update_time: '2024-01-01T00:00:01Z', state: RuntimeStateKF.PENDING },
+        { update_time: '2024-01-01T00:00:05Z', state: RuntimeStateKF.RUNNING },
+        { update_time: '2024-01-01T00:30:00Z', state: RuntimeStateKF.FAILED },
+        { update_time: '2024-01-01T02:00:00Z', state: RuntimeStateKF.PENDING },
+        { update_time: '2024-01-01T02:00:05Z', state: RuntimeStateKF.RUNNING },
+        { update_time: '2024-01-01T02:10:00Z', state: RuntimeStateKF.SUCCEEDED },
+      ],
+    });
+    // Segment 1: 00:30:00 - 00:00:05 = 29m 55s = 1795000ms
+    // Segment 2: 02:10:00 - 02:00:05 = 9m 55s = 595000ms
+    // Total: 2390000ms
+    expect(getRunDuration(run)).toBe(2390000);
+  });
+
+  it('should use finished_at as end time when last state is RUNNING', () => {
+    const run = buildMockRunKF({
+      finished_at: '2024-01-01T00:10:00Z',
+      state_history: [
+        { update_time: '2024-01-01T00:00:01Z', state: RuntimeStateKF.PENDING },
+        { update_time: '2024-01-01T00:00:05Z', state: RuntimeStateKF.RUNNING },
+      ],
+    });
+    // 10:00 - 00:05 = 9m 55s = 595000ms
     expect(getRunDuration(run)).toBe(595000);
   });
 
@@ -120,5 +150,103 @@ describe('getRunDuration', () => {
       state_history: [],
     });
     expect(getRunDuration(run)).toBe(300000);
+  });
+
+  it('should handle undefined state_history gracefully and fall back to created_at', () => {
+    const run = buildMockRunKF({
+      created_at: '2024-01-01T00:00:00Z',
+      finished_at: '2024-01-01T00:05:00Z',
+    });
+    // Simulate a partial API response where state_history is missing at runtime
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (run as any).state_history = undefined;
+    // Falls back to finished_at - created_at = 5 minutes = 300000ms
+    expect(getRunDuration(run)).toBe(300000);
+  });
+
+  it('should skip entries with invalid/NaN update_time', () => {
+    const run = buildMockRunKF({
+      created_at: '2024-01-01T00:00:00Z',
+      finished_at: '2024-01-01T00:10:00Z',
+      state_history: [
+        { update_time: '2024-01-01T00:00:01Z', state: RuntimeStateKF.PENDING },
+        { update_time: '2024-01-01T00:00:05Z', state: RuntimeStateKF.RUNNING },
+        { update_time: 'not-a-date', state: RuntimeStateKF.SUCCEEDED },
+      ],
+    });
+    // The invalid update_time entry is skipped, so RUNNING segment stays open
+    // and closes at finished_at: 00:10:00 - 00:00:05 = 9m 55s = 595000ms
+    expect(getRunDuration(run)).toBe(595000);
+  });
+
+  it('should skip negative duration intervals caused by out-of-order timestamps', () => {
+    const run = buildMockRunKF({
+      created_at: '2024-01-01T00:00:00Z',
+      finished_at: '2024-01-01T00:10:00Z',
+      state_history: [
+        { update_time: '2024-01-01T00:00:01Z', state: RuntimeStateKF.PENDING },
+        { update_time: '2024-01-01T00:05:00Z', state: RuntimeStateKF.RUNNING },
+        // Timestamp before the RUNNING entry — would produce negative interval
+        { update_time: '2024-01-01T00:03:00Z', state: RuntimeStateKF.FAILED },
+        { update_time: '2024-01-01T00:06:00Z', state: RuntimeStateKF.PENDING },
+        { update_time: '2024-01-01T00:07:00Z', state: RuntimeStateKF.RUNNING },
+        { update_time: '2024-01-01T00:10:00Z', state: RuntimeStateKF.SUCCEEDED },
+      ],
+    });
+    // First RUNNING at 00:05:00, next non-RUNNING at 00:03:00 is skipped (negative)
+    // The RUNNING segment stays open until finished_at: 00:10:00 - 00:05:00 = 5m = 300000ms
+    // But then PENDING at 00:06:00 > 00:05:00, so that closes the segment: 00:06:00 - 00:05:00 = 1m = 60000ms
+    // Second RUNNING at 00:07:00, SUCCEEDED at 00:10:00: 00:10:00 - 00:07:00 = 3m = 180000ms
+    // Total: 60000 + 180000 = 240000ms
+    expect(getRunDuration(run)).toBe(240000);
+  });
+
+  it('should treat non-array state_history as empty and fall back to created_at', () => {
+    const run = buildMockRunKF({
+      created_at: '2024-01-01T00:00:00Z',
+      finished_at: '2024-01-01T00:05:00Z',
+    });
+    // Simulate a malformed API response where state_history is an object, not an array
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (run as any).state_history = {};
+    // Falls back to finished_at - created_at = 5 minutes = 300000ms
+    expect(getRunDuration(run)).toBe(300000);
+  });
+
+  it('should return 0 when fallback timestamps produce NaN (malformed created_at)', () => {
+    const run = buildMockRunKF({
+      created_at: 'not-a-date',
+      finished_at: '2024-01-01T00:05:00Z',
+      state_history: [],
+    });
+    // finished_at - created_at = NaN, so fallback returns 0
+    expect(getRunDuration(run)).toBe(0);
+  });
+
+  it('should return 0 when finished_at precedes created_at in fallback path', () => {
+    const run = buildMockRunKF({
+      created_at: '2024-01-01T01:00:00Z',
+      finished_at: '2024-01-01T00:30:00Z',
+      state_history: [],
+    });
+    // finished_at - created_at is negative, so fallback returns 0
+    expect(getRunDuration(run)).toBe(0);
+  });
+
+  it('should skip negative final open interval when finished_at is before the last RUNNING entry', () => {
+    const run = buildMockRunKF({
+      created_at: '2024-01-01T00:00:00Z',
+      finished_at: '2024-01-01T00:12:00Z',
+      state_history: [
+        { update_time: '2024-01-01T00:00:01Z', state: RuntimeStateKF.PENDING },
+        { update_time: '2024-01-01T00:00:05Z', state: RuntimeStateKF.RUNNING },
+        { update_time: '2024-01-01T00:10:00Z', state: RuntimeStateKF.FAILED },
+        { update_time: '2024-01-01T00:15:00Z', state: RuntimeStateKF.RUNNING },
+      ],
+    });
+    // Closed interval: 00:10:00 - 00:00:05 = 9m 55s = 595000ms
+    // Open interval: finished_at 00:12:00 - 00:15:00 = -3m (negative, skipped)
+    // Total: 595000ms
+    expect(getRunDuration(run)).toBe(595000);
   });
 });

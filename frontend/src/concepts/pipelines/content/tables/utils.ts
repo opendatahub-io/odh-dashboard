@@ -34,11 +34,42 @@ export const getRunStartTime = (run: RunWithStateHistory): Date => {
 export const getRunDuration = (run: PipelineRunKF): number => {
   const finishedDate = new Date(run.finished_at);
   if (finishedDate.getFullYear() <= 1970) {
-    // Kubeflow initial timestamp -- epoch, not an actual value
     return 0;
   }
 
-  return finishedDate.getTime() - getRunStartTime(run).getTime();
+  let totalDuration = 0;
+  let runningStart: number | null = null;
+
+  const history = Array.isArray(run.state_history) ? run.state_history : [];
+  for (const entry of history) {
+    if (!isValidHistoryEntry(entry)) {
+      continue;
+    }
+    const time = new Date(String(entry.update_time)).getTime();
+    if (!Number.isFinite(time)) {
+      continue;
+    }
+    if (String(entry.state) === RuntimeStateKF.RUNNING) {
+      runningStart = time;
+    } else if (runningStart !== null && time > runningStart) {
+      totalDuration += time - runningStart;
+      runningStart = null;
+    }
+  }
+
+  if (runningStart !== null) {
+    const intervalDuration = finishedDate.getTime() - runningStart;
+    if (Number.isFinite(intervalDuration) && intervalDuration > 0) {
+      totalDuration += intervalDuration;
+    }
+  }
+
+  if (totalDuration > 0) {
+    return totalDuration;
+  }
+
+  const fallback = finishedDate.getTime() - new Date(run.created_at).getTime();
+  return Number.isFinite(fallback) && fallback > 0 ? fallback : 0;
 };
 
 export const getPipelineRecurringRunStartTime = (
