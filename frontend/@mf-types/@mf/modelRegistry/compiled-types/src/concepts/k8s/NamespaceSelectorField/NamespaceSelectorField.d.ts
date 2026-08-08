@@ -8,6 +8,7 @@ export type NamespaceSelectorFieldProps = {
     cannotCheck?: boolean;
     registryName?: string;
     selectorOnly?: boolean;
+    helperText?: React.ReactNode;
 };
 declare const NamespaceSelectorField: React.FC<NamespaceSelectorFieldProps>;
 export default NamespaceSelectorField;

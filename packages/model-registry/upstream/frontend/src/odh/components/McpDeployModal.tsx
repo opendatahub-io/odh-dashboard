@@ -254,15 +254,16 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({
                 This YAML has been prefilled from the selected server&apos;s metadata in the
                 catalog. Edit as needed.
               </Content>
-              <CodeEditor
-                code={yamlContent}
-                onCodeChange={setYamlContent}
-                language={Language.yaml}
-                isDarkTheme={theme === 'dark'}
-                height="300px"
-                isLanguageLabelVisible
-                data-testid="mcp-deploy-yaml-editor"
-              />
+              <div data-testid="mcp-deploy-yaml-editor">
+                <CodeEditor
+                  code={yamlContent}
+                  onCodeChange={setYamlContent}
+                  language={Language.yaml}
+                  isDarkTheme={theme === 'dark'}
+                  height="300px"
+                  isLanguageLabelVisible
+                />
+              </div>
             </FormGroup>
           </Form>
         )}

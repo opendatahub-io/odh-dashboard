@@ -46,6 +46,7 @@ export type NamespaceSelectorFieldProps = {
   cannotCheck?: boolean;
   registryName?: string;
   selectorOnly?: boolean;
+  helperText?: React.ReactNode;
 };
 
 const NamespaceSelectorField: React.FC<NamespaceSelectorFieldProps> = ({
@@ -57,6 +58,7 @@ const NamespaceSelectorField: React.FC<NamespaceSelectorFieldProps> = ({
   cannotCheck,
   registryName,
   selectorOnly,
+  helperText,
 }) => {
   const labelHelpRef = useRef<HTMLSpanElement>(null);
   const [namespaces, namespacesLoaded, namespacesLoadError] = useNamespaces();
@@ -153,6 +155,11 @@ const NamespaceSelectorField: React.FC<NamespaceSelectorFieldProps> = ({
 
   const helperTextNode = (
     <>
+      {helperText && (
+        <HelperText>
+          <HelperTextItem>{helperText}</HelperTextItem>
+        </HelperText>
+      )}
       {!namespacesLoaded && !namespacesLoadError && (
         <HelperText>
           <HelperTextItem>Loading namespaces...</HelperTextItem>

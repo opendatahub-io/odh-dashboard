@@ -31,9 +31,11 @@ import {
   getMcpCardIconConfig,
 } from '~/app/pages/mcpCatalog/components/McpCatalogCardIcons';
 import { isMcpRemoteDeploymentMode } from '~/app/pages/mcpCatalog/utils/mcpCatalogUtils';
+import useMcpServerConverter from '~/odh/hooks/useMcpServerConverter';
 import McpServerDetailsView from './McpServerDetailsView';
 
 const MCP_DEPLOY_ACTION_GROUP = 'mcp-catalog.server-deploy';
+const MCP_REGISTER_ACTION_GROUP = 'mcp-catalog.server-register';
 
 const McpServerDetailsPage: React.FC = () => {
   const { serverId = '' } = useParams<{ serverId: string }>();
@@ -42,6 +44,14 @@ const McpServerDetailsPage: React.FC = () => {
   const actionExtensions = useExtensions(isActionExtension);
 
   const isNotFound = !server && (serverLoaded || !!serverLoadError);
+  const hasDeployableArtifact = !!server?.artifacts?.some((a) => a.uri);
+  const hasRegisterAction = actionExtensions.some(
+    (a) => a.properties.group === MCP_REGISTER_ACTION_GROUP,
+  );
+  const [crData, crLoaded, crError] = useMcpServerConverter(
+    serverId,
+    hasRegisterAction || hasDeployableArtifact,
+  );
 
   return (
     <>
@@ -122,8 +132,23 @@ const McpServerDetailsPage: React.FC = () => {
           ) : undefined
         }
         headerAction={
-          server?.artifacts?.some((a) => a.uri) ? (
-            <ExtensibleActions actions={actionExtensions} group={MCP_DEPLOY_ACTION_GROUP} />
+          hasRegisterAction || hasDeployableArtifact ? (
+            <Flex spaceItems={{ default: 'spaceItemsSm' }} flexWrap={{ default: 'nowrap' }}>
+              {hasRegisterAction && (
+                <ExtensibleActions
+                  actions={actionExtensions}
+                  group={MCP_REGISTER_ACTION_GROUP}
+                  componentProps={{ server, serverLoaded, serverLoadError, crData }}
+                />
+              )}
+              {hasDeployableArtifact && (
+                <ExtensibleActions
+                  actions={actionExtensions}
+                  group={MCP_DEPLOY_ACTION_GROUP}
+                  componentProps={{ crData, crLoaded, crError }}
+                />
+              )}
+            </Flex>
           ) : undefined
         }
         loadError={isNotFound ? undefined : serverLoadError}

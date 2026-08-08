@@ -51,6 +51,7 @@ const ProjectSelectorField: React.FC<NamespaceSelectorFieldProps> = ({
   cannotCheck,
   registryName,
   selectorOnly,
+  helperText,
 }) => {
   const { projects, loaded: projectsLoaded } = React.useContext(ProjectsContext);
   const noProjects = projectsLoaded && projects.length === 0;
@@ -61,6 +62,11 @@ const ProjectSelectorField: React.FC<NamespaceSelectorFieldProps> = ({
 
   const helperTextNode = (
     <>
+      {helperText && (
+        <HelperText>
+          <HelperTextItem>{helperText}</HelperTextItem>
+        </HelperText>
+      )}
       {!projectsLoaded && (
         <HelperText>
           <HelperTextItem>Loading projects...</HelperTextItem>

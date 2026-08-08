@@ -99,7 +99,6 @@ class McpDeploymentsPage {
     return this.findTable().findByRole('button', { name: /^Created$/i });
   }
 
-  // mod-arch-shared's ApplicationsPage uses data-id — we can't change the third-party component
   findLoadingState(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.get('[data-id="loading-empty-state"]');
   }
@@ -205,6 +204,10 @@ class McpDeployModal {
 class McpServerDetailsPage {
   findDeployButton(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('mcp-deploy-button');
+  }
+
+  findRegisterButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('mcp-register-button');
   }
 
   findBreadcrumbServerName(): Cypress.Chainable<JQuery<HTMLElement>> {
