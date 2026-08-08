@@ -39,6 +39,8 @@ const ChunkingSchema = z
     method: z.string(),
     chunk_size: z.number(),
     chunk_overlap: z.number(),
+    // TODO: make required once backend fix is confirmed
+    include_metadata: z.boolean().optional(),
   })
   .passthrough();
 

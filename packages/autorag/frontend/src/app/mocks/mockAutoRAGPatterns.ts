@@ -14,7 +14,7 @@ const basePatternV1 = {
       provider_type: 'remote::milvus',
       vector_store_id: 'vs_collection0',
     },
-    chunking: { method: 'recursive', chunk_size: 256, chunk_overlap: 128 },
+    chunking: { method: 'recursive', chunk_size: 256, chunk_overlap: 128, include_metadata: true },
     embedding: {
       model_id: 'mock-embed-a',
       distance_metric: 'cosine',
@@ -91,7 +91,7 @@ const basePattern = {
       provider_type: 'milvus',
       vector_store_id: 'collection0',
     },
-    chunking: { method: 'recursive', chunk_size: 256, chunk_overlap: 128 },
+    chunking: { method: 'hybrid', chunk_size: 256, chunk_overlap: 128, include_metadata: true },
     embedding: {
       model_id: 'mock-embed-a',
       embedding_params: {

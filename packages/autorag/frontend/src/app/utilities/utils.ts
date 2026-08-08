@@ -245,6 +245,8 @@ export function formatMetricName(metricKey: string): string {
 const HUMANIZE_OVERRIDES: Record<string, string> = {
   // eslint-disable-next-line camelcase
   duration_seconds: 'Duration (seconds)',
+  // eslint-disable-next-line camelcase
+  include_metadata: 'Chunk metadata',
 };
 
 export const humanize = (key: string): string =>
