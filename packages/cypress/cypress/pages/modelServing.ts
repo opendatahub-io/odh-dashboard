@@ -947,6 +947,36 @@ class ModelServingWizard extends Wizard {
     return cy.findByTestId('project-selector-menuList').findByRole('menuitem', { name });
   }
 
+  findValidatedConfigurationSection(forField: string) {
+    return cy.findByTestId(`validated-configuration-section-${forField}`);
+  }
+
+  findValidatedConfigurationOption(optionSlug: string) {
+    return cy.findByTestId(`validated-configuration-option-${optionSlug}`);
+  }
+
+  findValidatedConfigurationOptionCheckbox(optionSlug: string) {
+    return cy.findByTestId(`validated-configuration-option-checkbox-${optionSlug}`);
+  }
+
+  findValidatedConfigurationViewArguments(optionSlug: string) {
+    return cy.findByTestId(`validated-configuration-view-arguments-${optionSlug}`);
+  }
+
+  findValidatedConfigurationArgumentsPopoverContent(optionSlug: string) {
+    return cy.findByTestId(`validated-configuration-arguments-popover-content-${optionSlug}`);
+  }
+
+  visitWithValidatedConfigurations(initialData: Record<string, unknown>) {
+    const url = '/ai-hub/models/deployments/deploy';
+    cy.visit(url, {
+      onBeforeLoad(win) {
+        win.history.pushState({ usr: { initialData } }, '', url);
+      },
+    });
+    cy.findByTestId('app-page-title').contains('Deploy a model');
+  }
+
   findModelSourceStep() {
     return this.findStep('source-model-step');
   }
