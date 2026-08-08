@@ -57,6 +57,10 @@ class PipelineImportModal extends Modal {
     return this.find().findByTestId('pipeline-url-input');
   }
 
+  findPipelineUrlError() {
+    return this.find().findByTestId('pipeline-url-error');
+  }
+
   findCodeSourceInput() {
     return this.find().findByTestId('code-source-input');
   }

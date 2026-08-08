@@ -21,6 +21,22 @@ export const extractKindFromPipelineYAML = (yamlFile: string): string | undefine
   }
 };
 
+/**
+ * Validates that a string is a well-formed URL with http or https protocol.
+ * Returns true for valid URLs, false for empty/invalid ones.
+ */
+export const isValidPipelineUrl = (url: string): boolean => {
+  if (!url) {
+    return false;
+  }
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+  } catch {
+    return false;
+  }
+};
+
 export const isYAMLPipelineV1 = (yamlFile: string): boolean => {
   try {
     const parsedYaml = YAML.parse(yamlFile);
