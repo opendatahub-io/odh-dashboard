@@ -26,6 +26,7 @@
     "distributions/base",
     "distributions/core-bff",
     "distributions/rhaii",
+    "distributions/maas-customer-portal",
     "packages/model-serving/cypress"
   ],
   "scripts": {
