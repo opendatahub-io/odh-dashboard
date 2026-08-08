@@ -18,6 +18,16 @@ export const deleteDeployment = async (deployment: LLMdDeployment): Promise<void
     const deleteConfig = k8sDeleteResource<typeof LLMInferenceServiceConfigModel, K8sStatus>({
       model: LLMInferenceServiceConfigModel,
       queryOptions: { name, ns: namespace },
+    }).catch((e: unknown) => {
+      if (
+        e != null &&
+        typeof e === 'object' &&
+        'statusObject' in e &&
+        (e as { statusObject?: { code?: number } }).statusObject?.code === 404
+      ) {
+        return undefined;
+      }
+      throw e;
     });
     await Promise.all([deleteService, deleteConfig]);
   } else {
