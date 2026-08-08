@@ -198,6 +198,7 @@ type TokenAuthenticationFieldProps = {
   shouldAutoCheck: boolean;
   isExternalRouteVisible: boolean;
   externalRouteData?: boolean;
+  isMaaSDisabled?: boolean;
 };
 
 export const TokenAuthenticationField: React.FC<TokenAuthenticationFieldProps> = ({
@@ -207,8 +208,9 @@ export const TokenAuthenticationField: React.FC<TokenAuthenticationFieldProps> =
   shouldAutoCheck,
   isExternalRouteVisible,
   externalRouteData,
+  isMaaSDisabled,
 }) => {
-  const isDisabled = !allowCreate;
+  const isDisabled = !allowCreate || !!isMaaSDisabled;
   const createNewToken = React.useCallback(() => {
     const displayName = 'default-name';
     const duplicated = tokens.filter((token) => token.displayName === displayName);
@@ -241,7 +243,7 @@ export const TokenAuthenticationField: React.FC<TokenAuthenticationFieldProps> =
           data-testid="token-authentication-checkbox"
           name="alt-form-checkbox-auth"
           isDisabled={isDisabled}
-          isChecked={tokens.length > 0}
+          isChecked={!isMaaSDisabled && tokens.length > 0}
           onChange={(e, check) => {
             if (check && tokens.length === 0) {
               createNewToken();
@@ -250,8 +252,18 @@ export const TokenAuthenticationField: React.FC<TokenAuthenticationFieldProps> =
             }
           }}
         />
+        {isMaaSDisabled && (
+          <FormHelperText>
+            <HelperText>
+              <HelperTextItem data-testid="maas-token-auth-helper-text">
+                Deployment token authentication does not apply for MaaS. API keys are used instead.
+                Manage API keys in Gen AI Studio → API keys.
+              </HelperTextItem>
+            </HelperText>
+          </FormHelperText>
+        )}
       </StackItem>
-      {tokens.length > 0 && (
+      {!isMaaSDisabled && tokens.length > 0 && (
         <StackItem>
           <div style={{ marginLeft: 'var(--pf-t--global--spacer--lg)' }}>
             <Stack hasGutter>

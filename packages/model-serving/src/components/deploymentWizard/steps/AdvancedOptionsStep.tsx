@@ -184,6 +184,7 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
                   shouldAutoCheck={shouldAutoCheckTokens}
                   isExternalRouteVisible={isExternalRouteVisible}
                   externalRouteData={externalRouteData}
+                  isMaaSDisabled={wizardState.state.tokenAuthentication.isDisabled}
                 />
               </FormGroup>
             </StackItem>

@@ -1,13 +1,17 @@
 import React from 'react';
 import {
+  Button,
   Content,
   FormGroup,
   FormHelperText,
   HelperText,
   HelperTextItem,
+  Popover,
   Stack,
   StackItem,
+  Tooltip,
 } from '@patternfly/react-core';
+import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import {
   WizardField,
   WizardReviewSection,
@@ -92,8 +96,47 @@ const GatewaySelectFieldComponent: GatewaySelectFieldType['component'] = ({
     return Array.from(uniqueGateways.values());
   }, [externalData, initialMissingKey, hiddenOptions]);
 
+  const selectComponent = (
+    <SimpleSelect
+      isFullWidth
+      options={options}
+      onChange={(key) => {
+        if (!key || key === selectedGatewayKey) {
+          onChange({ selection: undefined });
+          return;
+        }
+        const gateway =
+          externalData?.data?.find((g) => key === getGatewayKey(g)) ??
+          (key === initialMissingKey ? initialValue?.selection : undefined);
+        onChange({ selection: gateway });
+      }}
+      placeholder="Select a gateway"
+      value={selectedGatewayKey ?? undefined}
+      toggleProps={{
+        ...(!isDisabled && externalData?.loadError && { status: 'warning' }),
+      }}
+      dataTestId="gateway-select"
+      isDisabled={isDisabled}
+      autoSelectOnlyOption={false}
+    />
+  );
+
   return (
-    <FormGroup fieldId="gateway-select" label="Gateway">
+    <FormGroup
+      fieldId="gateway-select"
+      label="Gateway"
+      labelHelp={
+        <Popover bodyContent="Models published as MaaS use the MaaS gateway for routing, API key management, and subscription access. When Publish as MaaS is selected, the gateway is automatically set to the MaaS gateway and cannot be changed.">
+          <Button
+            variant="plain"
+            aria-label="More info about gateway selection"
+            data-testid="gateway-help-popover-icon"
+          >
+            <OutlinedQuestionCircleIcon />
+          </Button>
+        </Popover>
+      }
+    >
       <Stack hasGutter>
         <StackItem>
           <Content component="p">
@@ -101,28 +144,19 @@ const GatewaySelectFieldComponent: GatewaySelectFieldType['component'] = ({
           </Content>
         </StackItem>
         <StackItem>
-          <SimpleSelect
-            isFullWidth
-            options={options}
-            onChange={(key) => {
-              if (!key || key === selectedGatewayKey) {
-                onChange({ selection: undefined });
-                return;
-              }
-              const gateway =
-                externalData?.data?.find((g) => key === getGatewayKey(g)) ??
-                (key === initialMissingKey ? initialValue?.selection : undefined);
-              onChange({ selection: gateway });
-            }}
-            placeholder="Select a gateway"
-            value={selectedGatewayKey ?? undefined}
-            toggleProps={{
-              ...(!isDisabled && externalData?.loadError && { status: 'warning' }),
-            }}
-            dataTestId="gateway-select"
-            isDisabled={isDisabled}
-            autoSelectOnlyOption={false}
-          />
+          {isDisabled ? (
+            <Tooltip
+              content="Routing, API keys, and subscription access go through the MaaS gateway. A different gateway cannot be selected while Publish as MaaS is on."
+              data-testid="gateway-disabled-tooltip"
+            >
+              {/* eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- focusable wrapper lets keyboard users reach the disabled-control tooltip */}
+              <span tabIndex={0} data-testid="gateway-disabled-tooltip-wrapper">
+                {selectComponent}
+              </span>
+            </Tooltip>
+          ) : (
+            selectComponent
+          )}
           {!isDisabled && externalData?.loadError && (
             <FormHelperText>
               <HelperText>

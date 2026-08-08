@@ -1,5 +1,6 @@
 import React, { act } from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
 import { GatewayOption } from '../../../api/services/gatewayDiscovery';
 import { GatewaySelectField, GatewaySelectFieldData } from '../GatewaySelectField';
@@ -388,6 +389,97 @@ describe('GatewaySelectFieldComponent', () => {
       });
 
       expect(mockOnChange).toHaveBeenCalledWith({ selection: missingGateway });
+    });
+  });
+
+  describe('help popover', () => {
+    it('should render a help popover icon on the Gateway label', () => {
+      renderComponent({
+        externalData: { data: [makeGateway('gw-alpha', 'ns-1')], loaded: true },
+      });
+
+      expect(screen.getByTestId('gateway-help-popover-icon')).toBeInTheDocument();
+    });
+
+    it('should show MaaS gateway guidance when the popover is opened via click', async () => {
+      const user = userEvent.setup();
+      renderComponent({
+        externalData: { data: [makeGateway('gw-alpha', 'ns-1')], loaded: true },
+      });
+
+      await user.click(screen.getByTestId('gateway-help-popover-icon'));
+
+      await waitFor(() => {
+        expect(
+          screen.getByText(
+            /Models published as MaaS use the MaaS gateway for routing, API key management, and subscription access/,
+          ),
+        ).toBeInTheDocument();
+      });
+    });
+
+    it('should open the popover when the help button is activated via keyboard', async () => {
+      const user = userEvent.setup();
+      renderComponent({
+        externalData: { data: [makeGateway('gw-alpha', 'ns-1')], loaded: true },
+      });
+
+      const helpButton = screen.getByTestId('gateway-help-popover-icon');
+      helpButton.focus();
+      await user.keyboard('{Enter}');
+
+      await waitFor(() => {
+        expect(
+          screen.getByText(
+            /Models published as MaaS use the MaaS gateway for routing, API key management, and subscription access/,
+          ),
+        ).toBeInTheDocument();
+      });
+    });
+  });
+
+  describe('disabled tooltip', () => {
+    it('should wrap the select in a tooltip when disabled', () => {
+      renderComponent({
+        value: { selection: makeGateway('maas-default-gateway', 'openshift-ingress') },
+        externalData: {
+          data: [makeGateway('maas-default-gateway', 'openshift-ingress')],
+          loaded: true,
+        },
+        isDisabled: true,
+      });
+
+      expect(screen.getByTestId('gateway-select')).toBeDisabled();
+      expect(screen.getByTestId('gateway-disabled-tooltip-wrapper')).toBeInTheDocument();
+    });
+
+    it('should show tooltip content when the disabled wrapper receives focus', async () => {
+      const user = userEvent.setup();
+      renderComponent({
+        value: { selection: makeGateway('maas-default-gateway', 'openshift-ingress') },
+        externalData: {
+          data: [makeGateway('maas-default-gateway', 'openshift-ingress')],
+          loaded: true,
+        },
+        isDisabled: true,
+      });
+
+      await user.hover(screen.getByTestId('gateway-disabled-tooltip-wrapper'));
+
+      expect(
+        await screen.findByText(
+          /Routing, API keys, and subscription access go through the MaaS gateway/,
+        ),
+      ).toBeInTheDocument();
+    });
+
+    it('should not wrap the select in a tooltip when not disabled', () => {
+      renderComponent({
+        externalData: { data: [makeGateway('gw-alpha', 'ns-1')], loaded: true },
+      });
+
+      expect(screen.getByTestId('gateway-select')).not.toBeDisabled();
+      expect(screen.queryByTestId('gateway-disabled-tooltip-wrapper')).not.toBeInTheDocument();
     });
   });
 });
