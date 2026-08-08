@@ -143,7 +143,7 @@ type BenchmarkArtifact struct {
 }
 
 type JobModel struct {
-	URL        string         `json:"url,omitempty"`
+	URL        string         `json:"url"`
 	Name       string         `json:"name"`
 	Parameters map[string]any `json:"parameters,omitempty"`
 	Auth       *ModelAuth     `json:"auth,omitempty"`
