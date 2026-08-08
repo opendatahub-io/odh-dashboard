@@ -62,13 +62,13 @@ func TestEvalHubClient_ListEvaluationJobs(t *testing.T) {
 			{
 				Resource:   JobResource{ID: "job-1", CreatedAt: "2026-02-20T10:00:00Z"},
 				Status:     JobStatus{State: "completed"},
-				Model:      JobModel{Name: "test-model"},
+				Model:      &JobModel{Name: "test-model"},
 				Benchmarks: []JobBenchmark{{ID: "arc_easy", ProviderID: "lm_evaluation_harness"}},
 			},
 			{
 				Resource:   JobResource{ID: "job-2", CreatedAt: "2026-02-24T08:00:00Z"},
 				Status:     JobStatus{State: "running"},
-				Model:      JobModel{Name: "test-model-2"},
+				Model:      &JobModel{Name: "test-model-2"},
 				Benchmarks: []JobBenchmark{{ID: "hellaswag", ProviderID: "lm_evaluation_harness"}},
 			},
 		},
@@ -111,7 +111,7 @@ func TestEvalHubClient_ListEvaluationJobs_WithParams(t *testing.T) {
 			{
 				Resource: JobResource{ID: "job-1", CreatedAt: "2026-02-20T10:00:00Z"},
 				Status:   JobStatus{State: "completed"},
-				Model:    JobModel{Name: "test-model"},
+				Model:    &JobModel{Name: "test-model"},
 			},
 		},
 	}

@@ -170,13 +170,16 @@ export type JobPassCriteria = {
 };
 
 type S3DataRef = {
-  bucket?: string;
-  key?: string;
-  secret_ref?: string;
+  bucket: string;
+  key: string;
+  secret_ref: string;
 };
 
+export type TestDataRefType = 'data_set' | 'pre_recorded_data';
+
 type TestDataRef = {
-  s3?: S3DataRef;
+  s3: S3DataRef;
+  type?: TestDataRefType;
 };
 
 type JobBenchmark = {
@@ -230,7 +233,7 @@ export type EvaluationJob = {
   name?: string;
   description?: string;
   tags?: string[];
-  model: JobModel;
+  model?: JobModel;
   pass_criteria?: JobPassCriteria;
   benchmarks?: JobBenchmark[] | null;
   collection?: JobCollection;
@@ -402,18 +405,10 @@ export type ProvidersResponse = {
 // Create Evaluation Job request / response
 // ---------------------------------------------------------------------------
 
-export type CreateEvaluationJobRequest = {
+type EvaluationJobRequestBase = {
   name: string;
   description?: string;
   tags?: string[];
-  model: {
-    url: string;
-    name: string;
-    parameters?: Record<string, unknown>;
-    auth?: {
-      secret_ref?: string;
-    };
-  };
   pass_criteria?: JobPassCriteria;
   benchmarks?: JobBenchmark[];
   collection?: JobCollection;
@@ -421,6 +416,25 @@ export type CreateEvaluationJobRequest = {
   custom?: Record<string, unknown>;
   exports?: JobExports;
 };
+
+type EvaluationModel = {
+  url: string;
+  name: string;
+  parameters?: Record<string, unknown>;
+  auth?: {
+    secret_ref?: string;
+  };
+};
+
+type InferenceJobRequest = EvaluationJobRequestBase & {
+  model: EvaluationModel;
+};
+
+type PrerecordedJobRequest = EvaluationJobRequestBase & {
+  model?: never;
+};
+
+export type CreateEvaluationJobRequest = InferenceJobRequest | PrerecordedJobRequest;
 
 export type CreateEvaluationJobResponse = EvaluationJob;
 

@@ -746,6 +746,15 @@ components:
       properties:
         s3:
           $ref: '#/components/schemas/S3DataRef'
+        type:
+          type: string
+          enum:
+            - data_set
+            - pre_recorded_data
+          default: data_set
+          description: >
+            The type of test data being referenced. If pre_recorded_data is set
+            for all benchmarks then model will not be required.
 
     JobPrimaryScore:
       type: object
@@ -802,7 +811,6 @@ components:
         - resource
         - status
         - results
-        - model
         - benchmarks
       properties:
         resource:
@@ -1125,7 +1133,6 @@ components:
       type: object
       required:
         - name
-        - model
         - benchmarks
       properties:
         name:

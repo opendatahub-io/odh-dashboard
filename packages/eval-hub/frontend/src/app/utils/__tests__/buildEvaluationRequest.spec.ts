@@ -1,5 +1,5 @@
 /* eslint-disable camelcase */
-import type { FlatBenchmark, Collection } from '~/app/types';
+import { FlatBenchmark, Collection } from '~/app/types';
 import buildEvaluationRequest from '~/app/utils/buildEvaluationRequest';
 
 const baseParams = {
@@ -11,7 +11,6 @@ const baseParams = {
   modelName: 'llama-7b',
   endpointUrl: 'http://localhost:8080/v1',
   apiKeySecretRef: '',
-  sourceName: '',
   datasetUrl: '',
   accessToken: '',
   additionalArgs: {} as Record<string, unknown>,
@@ -76,7 +75,7 @@ describe('buildEvaluationRequest', () => {
         apiKeySecretRef: 'my-model-credentials',
         benchmark: makeBenchmark(),
       });
-      expect(result.model.auth).toEqual({ secret_ref: 'my-model-credentials' });
+      expect(result.model).toHaveProperty('auth', { secret_ref: 'my-model-credentials' });
     });
 
     it('should omit auth when apiKeySecretRef is empty', () => {
@@ -110,8 +109,8 @@ describe('buildEvaluationRequest', () => {
         ...agentBase,
         benchmark: makeBenchmark(),
       });
-      expect(result.model.name).toBe('my-agent');
-      expect(result.model.url).toBe('https://agent.example.com/v1');
+      expect(result.model).toHaveProperty('name', 'my-agent');
+      expect(result.model).toHaveProperty('url', 'https://agent.example.com/v1');
     });
 
     it('should include auth when apiKeySecretRef is provided', () => {
@@ -119,7 +118,7 @@ describe('buildEvaluationRequest', () => {
         ...agentBase,
         benchmark: makeBenchmark(),
       });
-      expect(result.model.auth).toEqual({ secret_ref: 'agent-key' });
+      expect(result.model).toHaveProperty('auth', { secret_ref: 'agent-key' });
     });
 
     it('should not include test_data_ref on benchmarks', () => {
@@ -135,50 +134,42 @@ describe('buildEvaluationRequest', () => {
     const prerecordedBase = {
       ...baseParams,
       sourceMode: 'prerecorded' as const,
-      sourceName: 'gpt-4o',
       datasetUrl: 's3://bucket/data.jsonl',
       accessToken: 'tok-123',
     };
 
-    it('should use sourceName as model.name and set url to empty', () => {
+    it('should not include model', () => {
       const result = buildEvaluationRequest({
         ...prerecordedBase,
         benchmark: makeBenchmark(),
       });
-      expect(result.model.name).toBe('gpt-4o');
-      expect(result.model.url).toBe('');
+      expect(result).not.toHaveProperty('model');
     });
 
-    it('should not include model.auth even if apiKeySecretRef is set', () => {
-      const result = buildEvaluationRequest({
-        ...prerecordedBase,
-        apiKeySecretRef: 'should-be-ignored',
-        benchmark: makeBenchmark(),
-      });
-      expect(result.model).not.toHaveProperty('auth');
-    });
-
-    it('should add test_data_ref with s3 key and secret_ref to benchmarks', () => {
+    it('should parse s3 URL into bucket and key with secret_ref and type on benchmarks', () => {
       const result = buildEvaluationRequest({
         ...prerecordedBase,
         benchmark: makeBenchmark(),
       });
       expect(result.benchmarks![0].test_data_ref).toEqual({
+        type: 'pre_recorded_data',
         s3: {
-          key: 's3://bucket/data.jsonl',
+          bucket: 'bucket',
+          key: 'data.jsonl',
           secret_ref: 'tok-123',
         },
       });
     });
 
-    it('should omit secret_ref when accessToken is empty', () => {
+    it('should include empty secret_ref when accessToken is empty', () => {
       const result = buildEvaluationRequest({
         ...prerecordedBase,
         accessToken: '',
         benchmark: makeBenchmark(),
       });
       expect(result.benchmarks![0].test_data_ref).toEqual({
-        s3: { key: 's3://bucket/data.jsonl' },
+        type: 'pre_recorded_data',
+        s3: { bucket: 'bucket', key: 'data.jsonl', secret_ref: '' },
       });
     });
 
@@ -199,22 +190,76 @@ describe('buildEvaluationRequest', () => {
         benchmark: makeBenchmark(),
       });
       expect(result.benchmarks![0].test_data_ref).toEqual({
+        type: 'pre_recorded_data',
         s3: {
-          key: 's3://bucket/data.jsonl',
+          bucket: 'bucket',
+          key: 'data.jsonl',
           secret_ref: 'tok-123',
         },
       });
     });
 
-    it('should omit secret_ref when accessToken is only whitespace', () => {
+    it('should include empty secret_ref when accessToken is only whitespace', () => {
       const result = buildEvaluationRequest({
         ...prerecordedBase,
         accessToken: '   ',
         benchmark: makeBenchmark(),
       });
       expect(result.benchmarks![0].test_data_ref).toEqual({
-        s3: { key: 's3://bucket/data.jsonl' },
+        type: 'pre_recorded_data',
+        s3: { bucket: 'bucket', key: 'data.jsonl', secret_ref: '' },
       });
+    });
+
+    it('should handle nested s3 paths', () => {
+      const result = buildEvaluationRequest({
+        ...prerecordedBase,
+        datasetUrl: 's3://my-bucket/path/to/data.jsonl',
+        benchmark: makeBenchmark(),
+      });
+      expect(result.benchmarks![0].test_data_ref).toEqual({
+        type: 'pre_recorded_data',
+        s3: {
+          bucket: 'my-bucket',
+          key: 'path/to/data.jsonl',
+          secret_ref: 'tok-123',
+        },
+      });
+    });
+
+    it('should fall back to empty bucket when URL is not s3 format', () => {
+      const result = buildEvaluationRequest({
+        ...prerecordedBase,
+        datasetUrl: 'https://example.com/data.jsonl',
+        benchmark: makeBenchmark(),
+      });
+      expect(result.benchmarks![0].test_data_ref).toEqual({
+        type: 'pre_recorded_data',
+        s3: {
+          bucket: '',
+          key: 'https://example.com/data.jsonl',
+          secret_ref: 'tok-123',
+        },
+      });
+    });
+
+    it('should add test_data_ref to all collection benchmarks', () => {
+      const col = makeCollection();
+      const result = buildEvaluationRequest({
+        ...prerecordedBase,
+        collection: col,
+      });
+
+      const expectedTestDataRef = {
+        type: 'pre_recorded_data',
+        s3: {
+          bucket: 'bucket',
+          key: 'data.jsonl',
+          secret_ref: 'tok-123',
+        },
+      };
+      expect(result.collection!.benchmarks![0].test_data_ref).toEqual(expectedTestDataRef);
+      expect(result.collection!.benchmarks![1].test_data_ref).toEqual(expectedTestDataRef);
     });
   });
 

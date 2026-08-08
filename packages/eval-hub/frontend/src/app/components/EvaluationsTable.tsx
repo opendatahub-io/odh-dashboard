@@ -104,7 +104,7 @@ const getFilterValue = (
     case 'evaluation':
       return getBenchmarkName(job, collectionNames).toLowerCase();
     case 'evaluated':
-      return job.model.name.toLowerCase();
+      return job.model ? job.model.name.toLowerCase() : '';
     default:
       return '';
   }

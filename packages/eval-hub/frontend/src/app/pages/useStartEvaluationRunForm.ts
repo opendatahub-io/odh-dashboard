@@ -148,7 +148,6 @@ export function useStartEvaluationRunForm({
   const [agentName, setAgentName] = React.useState('');
   const [endpointUrl, setEndpointUrl] = React.useState('');
   const [apiKeySecretRef, setApiKeySecretRef] = React.useState('');
-  const [sourceName, setSourceName] = React.useState('');
   const [datasetUrl, setDatasetUrl] = React.useState('');
   const [accessToken, setAccessToken] = React.useState('');
 
@@ -296,6 +295,16 @@ export function useStartEvaluationRunForm({
     return undefined;
   }, [sourceMode, datasetUrl]);
 
+  const accessTokenError = React.useMemo((): string | undefined => {
+    if (sourceMode !== 'prerecorded') {
+      return undefined;
+    }
+    if (accessToken.trim() === '') {
+      return 'S3 secret name is required.';
+    }
+    return undefined;
+  }, [sourceMode, accessToken]);
+
   // ── Overall form validity ───────────────────────────────────────────
 
   const isValid = React.useMemo(() => {
@@ -314,7 +323,7 @@ export function useStartEvaluationRunForm({
       return agentName.trim() !== '' && !endpointUrlError;
     }
 
-    return sourceName.trim() !== '' && !datasetUrlError;
+    return !datasetUrlError && !accessTokenError;
   }, [
     evaluationName,
     hasBenchmarks,
@@ -326,7 +335,7 @@ export function useStartEvaluationRunForm({
     agentName,
     endpointUrlError,
     datasetUrlError,
-    sourceName,
+    accessTokenError,
   ]);
 
   const canVerifyConnection = React.useMemo(() => {
@@ -474,7 +483,7 @@ export function useStartEvaluationRunForm({
       if (sourceMode === 'agent') {
         return agentName.trim();
       }
-      return sourceName.trim();
+      return '';
     })();
 
     const resolvedEndpointUrl = (() => {
@@ -502,7 +511,6 @@ export function useStartEvaluationRunForm({
       modelName: resolvedModelName,
       endpointUrl: resolvedEndpointUrl,
       apiKeySecretRef: resolvedAuth,
-      sourceName: sourceName.trim(),
       datasetUrl: datasetUrl.trim(),
       accessToken: accessToken.trim(),
       additionalArgs: parsedArgs,
@@ -546,7 +554,6 @@ export function useStartEvaluationRunForm({
       })(),
       hasAPIKey:
         sourceMode === 'model' || sourceMode === 'agent' ? apiKeySecretRef.trim() !== '' : false,
-      sourceName: sourceMode === 'prerecorded' ? sourceName.trim() : undefined,
       hasDatasetURL: sourceMode === 'prerecorded' ? datasetUrl.trim() !== '' : false,
       hasAccessToken: sourceMode === 'prerecorded' ? accessToken.trim() !== '' : false,
       hasAdditionalArguments: showAdditionalArgs && additionalArgs.trim() !== '',
@@ -601,8 +608,6 @@ export function useStartEvaluationRunForm({
     setEndpointUrl,
     apiKeySecretRef,
     setApiKeySecretRef,
-    sourceName,
-    setSourceName,
     datasetUrl,
     setDatasetUrl,
     accessToken,
@@ -636,6 +641,7 @@ export function useStartEvaluationRunForm({
     markTouched,
     endpointUrlError,
     datasetUrlError,
+    accessTokenError,
     connectionValidation,
     handleVerifyConnection,
     canVerifyConnection,

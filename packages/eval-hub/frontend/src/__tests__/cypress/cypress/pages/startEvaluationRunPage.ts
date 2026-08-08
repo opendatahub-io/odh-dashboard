@@ -69,10 +69,6 @@ class StartEvaluationRunPage {
     return cy.findByTestId('api-key-input');
   }
 
-  findSourceNameInput() {
-    return cy.findByTestId('source-name-input');
-  }
-
   findDatasetUrlInput() {
     return cy.findByTestId('dataset-url-input');
   }

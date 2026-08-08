@@ -65,7 +65,7 @@ type EvaluationJob struct {
 	Name         string           `json:"name,omitempty"`
 	Description  string           `json:"description,omitempty"`
 	Tags         []string         `json:"tags,omitempty"`
-	Model        JobModel         `json:"model"`
+	Model        *JobModel        `json:"model,omitempty"`
 	PassCriteria *JobPassCriteria `json:"pass_criteria,omitempty"`
 	Benchmarks   []JobBenchmark   `json:"benchmarks,omitempty"`
 	Collection   *JobCollectionID `json:"collection,omitempty"`
@@ -169,7 +169,8 @@ type S3DataRef struct {
 }
 
 type TestDataRef struct {
-	S3 *S3DataRef `json:"s3,omitempty"`
+	S3   *S3DataRef `json:"s3,omitempty"`
+	Type string     `json:"type,omitempty"`
 }
 
 type JobBenchmark struct {
@@ -321,7 +322,7 @@ type CreateEvaluationJobRequest struct {
 	Name         string           `json:"name"`
 	Description  string           `json:"description,omitempty"`
 	Tags         []string         `json:"tags,omitempty"`
-	Model        JobModel         `json:"model"`
+	Model        *JobModel        `json:"model,omitempty"`
 	PassCriteria *JobPassCriteria `json:"pass_criteria,omitempty"`
 	Benchmarks   []JobBenchmark   `json:"benchmarks,omitempty"`
 	Collection   *JobCollectionID `json:"collection,omitempty"`

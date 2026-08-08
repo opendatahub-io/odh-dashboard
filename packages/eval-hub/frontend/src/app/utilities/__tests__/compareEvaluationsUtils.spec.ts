@@ -100,7 +100,7 @@ describe('filterJobsForCompareBenchmarkSearch', () => {
   });
 
   it('should not match model or evaluation column values', () => {
-    expect(jobMatchesCompareBenchmarkSearch(benchmarkJob, benchmarkJob.model.name)).toBe(false);
+    expect(jobMatchesCompareBenchmarkSearch(benchmarkJob, benchmarkJob.model!.name)).toBe(false);
     expect(jobMatchesCompareBenchmarkSearch(collectionJob, 'Safety')).toBe(false);
   });
 });

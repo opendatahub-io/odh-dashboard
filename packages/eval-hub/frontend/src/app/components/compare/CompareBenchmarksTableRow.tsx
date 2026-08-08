@@ -111,7 +111,7 @@ const CompareBenchmarksTableRow: React.FC<CompareBenchmarksTableRowProps> = ({
           {getCompareRunType(job)}
         </Td>
         <Td dataLabel="Evaluation">{evaluationLabel}</Td>
-        <Td dataLabel="Evaluated">{job.model.name}</Td>
+        <Td dataLabel="Evaluated">{job.model ? job.model.name : '-'}</Td>
         <Td modifier="nowrap" dataLabel="Date">
           {formatCompareTableDate(job.resource.created_at)}
         </Td>
@@ -153,7 +153,7 @@ const CompareBenchmarksTableRow: React.FC<CompareBenchmarksTableRowProps> = ({
                   {getBenchmarkDisplayName(run.benchmarkId)}
                 </Td>
                 <Td modifier="nowrap" dataLabel="Evaluated">
-                  {job.model.name}
+                  {job.model ? job.model.name : '-'}
                 </Td>
                 <Td modifier="nowrap" dataLabel="Date">
                   {formatCompareTableDate(job.resource.created_at)}
