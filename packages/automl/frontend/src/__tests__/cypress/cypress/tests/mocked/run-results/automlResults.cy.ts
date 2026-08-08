@@ -1,181 +1,28 @@
-/* eslint-disable camelcase -- BFF API uses snake_case field names (run_id, pipeline_run, etc.) */
-import { mockModArchResponse } from 'mod-arch-core';
-import {
-  mockTabularContext,
-  mockTabularFeatureImportances,
-  mockTabularConfusionMatrices,
-} from '~/app/mocks/mockAutomlResultsContext';
-import { mockS3ListObjectsResponse } from '~/__mocks__/mockS3ListObjectsResponse';
 import { automlResultsPage } from '~/__tests__/cypress/cypress/pages/automlResults';
 
-const RUN_ID = mockTabularContext.pipelineRun.run_id;
-const NAMESPACE = 'kubeflow';
-const TASK_ID = '22ab3456-7890-cdef-1234-567890abcdef';
+// Real seeded binary-classification run served by the BFF's fake pipelines client
+// (packages/automl/bff/internal/fake/pipelines.go — binarySeedID). The mocked
+// cypress setup runs the actual BFF with --mock-* flags rather than intercepting
+// network requests, so these values must match real fake/seed data.
+const RUN_ID = '9ec21d90-baa0-4a6b-bb2a-40d9d4b43c54';
+// my-project is the only fake namespace with a DSPA (packages/automl/bff/internal/fake/k8s.go)
+const NAMESPACE = 'my-project';
 
-const MODEL_NAMES = Object.keys(mockTabularContext.models);
+// Model names from the seeded run's S3 artifacts, in leaderboard rank order
+// (packages/automl/bff/internal/fake/s3-bucket/autogluon-tabular-training-pipeline/<RUN_ID>).
+// Ranked by "accuracy" (the run's optimized metric): XGBoost wins outright; the
+// LightGBMLarge/WeightedEnsemble tie keeps the alphabetical S3-listing order.
+const MODEL_NAMES = [
+  'XGBoost_BAG_L1_FULL',
+  'LightGBMLarge_BAG_L1_FULL',
+  'WeightedEnsemble_L2_FULL',
+];
 
-// Mock pipeline spec for topology visualization
-const mockPipelineSpec = {
-  root: {
-    dag: {
-      tasks: {
-        'automl-data-loader': {
-          taskInfo: { name: 'automl-data-loader' },
-          componentRef: { name: 'comp-automl-data-loader' },
-        },
-        'autogluon-models-training': {
-          taskInfo: { name: 'autogluon-models-training' },
-          componentRef: { name: 'comp-autogluon-models-training' },
-        },
-        'leaderboard-evaluation': {
-          taskInfo: { name: 'leaderboard-evaluation' },
-          componentRef: { name: 'comp-leaderboard-evaluation' },
-          dependentTasks: ['autogluon-models-training'],
-        },
-      },
-    },
-  },
-};
-
-const mockPipelineRunWithSpec = {
-  ...mockTabularContext.pipelineRun,
-  pipeline_spec: mockPipelineSpec,
-};
-
-const initResultsIntercepts = () => {
-  // Pipeline run endpoint — returns a SUCCEEDED run with pipeline spec
-  cy.intercept(
-    {
-      method: 'GET',
-      pathname: `/automl/api/v1/pipeline-runs/${RUN_ID}`,
-    },
-    mockModArchResponse(mockPipelineRunWithSpec),
-  );
-
-  // S3 files listing — Stage 0: discover training task directory under the run
-  cy.intercept(
-    {
-      method: 'GET',
-      pathname: '/automl/api/v1/s3/files',
-      query: {
-        path: `autogluon-tabular-training-pipeline/${RUN_ID}`,
-      },
-    },
-    mockModArchResponse(
-      mockS3ListObjectsResponse({
-        common_prefixes: [
-          {
-            prefix: `autogluon-tabular-training-pipeline/${RUN_ID}/autogluon-models-training/`,
-          },
-        ],
-        contents: [],
-        key_count: 1,
-      }),
-    ),
-  );
-
-  // S3 files listing — Stage 1: list task directories
-  cy.intercept(
-    {
-      method: 'GET',
-      pathname: '/automl/api/v1/s3/files',
-      query: {
-        path: `autogluon-tabular-training-pipeline/${RUN_ID}/autogluon-models-training`,
-      },
-    },
-    mockModArchResponse(
-      mockS3ListObjectsResponse({
-        common_prefixes: [
-          {
-            prefix: `autogluon-tabular-training-pipeline/${RUN_ID}/autogluon-models-training/${TASK_ID}/`,
-          },
-        ],
-        contents: [],
-        key_count: 1,
-      }),
-    ),
-  );
-
-  // S3 files listing — Stage 2: list model artifact directories
-  cy.intercept(
-    {
-      method: 'GET',
-      pathname: '/automl/api/v1/s3/files',
-      query: {
-        path: `autogluon-tabular-training-pipeline/${RUN_ID}/autogluon-models-training/${TASK_ID}/models_artifact`,
-      },
-    },
-    mockModArchResponse(
-      mockS3ListObjectsResponse({
-        common_prefixes: MODEL_NAMES.map((name) => ({
-          prefix: `autogluon-tabular-training-pipeline/${RUN_ID}/autogluon-models-training/${TASK_ID}/models_artifact/${name}/`,
-        })),
-        contents: [],
-        key_count: MODEL_NAMES.length,
-      }),
-    ),
-  );
-
-  // S3 file download — Stage 3: model.json for each model
-  MODEL_NAMES.forEach((modelName) => {
-    const model = mockTabularContext.models[modelName];
-    const baseDir = `autogluon-tabular-training-pipeline/${RUN_ID}/autogluon-models-training/${TASK_ID}/models_artifact/${modelName}`;
-
-    cy.intercept(
-      {
-        method: 'GET',
-        pathname: `/automl/api/v1/s3/files/${encodeURIComponent(`${baseDir}/model.json`)}`,
-      },
-      {
-        body: model,
-        headers: { 'content-type': 'application/json' },
-      },
-    );
-
-    // Feature importance
-    cy.intercept(
-      {
-        method: 'GET',
-        pathname: `/automl/api/v1/s3/files/${encodeURIComponent(`${baseDir}/metrics/feature_importance.json`)}`,
-      },
-      {
-        body: mockTabularFeatureImportances[modelName],
-        headers: { 'content-type': 'application/json' },
-      },
-    );
-
-    // Confusion matrix
-    cy.intercept(
-      {
-        method: 'GET',
-        pathname: `/automl/api/v1/s3/files/${encodeURIComponent(`${baseDir}/metrics/confusion_matrix.json`)}`,
-      },
-      {
-        body: mockTabularConfusionMatrices[modelName],
-        headers: { 'content-type': 'application/json' },
-      },
-    );
-  });
-
-  // Pipeline runs list (for experiments page navigation)
-  cy.intercept(
-    {
-      method: 'GET',
-      pathname: '/automl/api/v1/pipeline-runs',
-    },
-    mockModArchResponse({
-      runs: [mockTabularContext.pipelineRun],
-      total_size: 1,
-      next_page_token: '',
-    }),
-  );
-};
+// Top features by importance for this run (shared across all three models) — see
+// each model's metrics/feature_importance.json in the seed data above.
+const TOP_FEATURES = ['Name', 'Pclass', 'Sex'];
 
 describe('AutoML Results Page', () => {
-  beforeEach(() => {
-    initResultsIntercepts();
-  });
-
   describe('Leaderboard', () => {
     it('should display leaderboard with model rows', () => {
       automlResultsPage.visit(NAMESPACE, RUN_ID);
@@ -257,9 +104,9 @@ describe('AutoML Results Page', () => {
 
       automlResultsPage.findTab('feature-summary').click();
 
-      automlResultsPage.findFeatureImportanceBar('color').should('exist');
-      automlResultsPage.findFeatureImportanceBar('hair_length').should('exist');
-      automlResultsPage.findFeatureImportanceBar('has_soul').should('exist');
+      TOP_FEATURES.forEach((feature) => {
+        automlResultsPage.findFeatureImportanceBar(feature).should('exist');
+      });
     });
 
     it('should search features in feature summary tab', () => {
@@ -269,13 +116,13 @@ describe('AutoML Results Page', () => {
       automlResultsPage.findTab('feature-summary').click();
 
       // Search for a specific feature
-      automlResultsPage.findFeatureSearchInput().type('color');
-      automlResultsPage.findFeatureImportanceBar('color').should('exist');
-      automlResultsPage.findFeatureImportanceBar('hair_length').should('not.exist');
+      automlResultsPage.findFeatureSearchInput().type('Sex');
+      automlResultsPage.findFeatureImportanceBar('Sex').should('exist');
+      automlResultsPage.findFeatureImportanceBar('Pclass').should('not.exist');
 
       // Clear search and verify all features return
       automlResultsPage.findFeatureSearchInput().clear();
-      automlResultsPage.findFeatureImportanceBar('hair_length').should('exist');
+      automlResultsPage.findFeatureImportanceBar('Pclass').should('exist');
     });
 
     it('should display confusion matrix in confusion matrix tab', () => {

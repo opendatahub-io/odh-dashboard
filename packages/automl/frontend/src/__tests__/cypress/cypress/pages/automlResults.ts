@@ -1,6 +1,6 @@
 class AutomlResultsPage {
   visit(namespace: string, runId: string) {
-    cy.visit(`/results/${namespace}/${runId}`);
+    cy.visit(`/develop-train/automl/results/${namespace}/${runId}`);
     this.wait();
   }
 
@@ -61,7 +61,7 @@ class AutomlResultsPage {
   }
 
   findModelSelectorOption(name: string) {
-    return cy.findByRole('menuitem', { name: new RegExp(name) });
+    return cy.findByRole('menuitem', { name: new RegExp(name), hidden: true });
   }
 
   findTab(tabName: string) {
