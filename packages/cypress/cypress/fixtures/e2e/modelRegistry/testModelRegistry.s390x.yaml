@@ -1,0 +1,3 @@
+# s390x platform overlay — only fields that differ from base fixture
+servingRuntime: "vLLM ServingRuntime for KServe"
+modelOpenVinoPath: "kserve-vllm-test/vllm-example-model"

@@ -404,3 +404,21 @@ export const waitForNamespace = (
     maxAttempts,
     pollIntervalMs,
   });
+
+/**
+ * Detect the cluster CPU architecture by querying node info.
+ * Returns 's390x', 'ppc64le', 'aarch64', or 'x86_64'.
+ */
+export const getClusterArchitecture = (): Cypress.Chainable<string> =>
+  cy
+    .exec("oc get nodes -o jsonpath='{.items[*].status.nodeInfo.architecture}'", {
+      failOnNonZeroExit: false,
+    })
+    .then((result) => {
+      const archOutput = result.stdout.trim().replace(/^'|'$/g, '');
+      const architectures = archOutput.split(/\s+/);
+      const arch =
+        architectures.find((a) => a === 's390x' || a === 'ppc64le' || a === 'aarch64') || 'x86_64';
+      cy.log(`Detected cluster architecture: ${arch}`);
+      return cy.wrap(arch);
+    });
