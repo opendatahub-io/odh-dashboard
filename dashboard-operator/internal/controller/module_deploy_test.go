@@ -362,3 +362,56 @@ func TestPatchDeploymentFederationHash_DeploymentNotFound(t *testing.T) {
 	err := r.PatchDeploymentFederationHash(context.Background(), `[{"name":"genAi"}]`)
 	require.NoError(t, err, "NotFound should be a no-op, not an error")
 }
+
+func TestBuildFederationConfigMap_IncludesPersesWhenObsEnabled(t *testing.T) {
+	s := testScheme(t)
+	cli := fake.NewClientBuilder().WithScheme(s).Build()
+
+	r := &ctrlpkg.DashboardReconciler{
+		Client:                cli,
+		Scheme:                s,
+		Platform:              cluster.SelfManagedRhoai,
+		Namespace:             testNamespace,
+		ApplicationsNamespace: testNamespace,
+	}
+
+	statuses := allDeployedStatuses()
+	dashboard := &v1alpha1.Dashboard{
+		Spec: v1alpha1.DashboardSpec{
+			Observability: &v1alpha1.ObservabilitySpec{
+				Enabled: true,
+				PersesService: &v1alpha1.ServiceTarget{
+					Name:      "data-science-perses",
+					Namespace: "redhat-ods-monitoring",
+					Port:      8080,
+				},
+			},
+		},
+	}
+
+	cm, err := ctrlpkg.BuildFederationConfigMap(r, statuses, dashboard)
+	require.NoError(t, err)
+
+	data := cm.Data["module-federation-config.json"]
+	var entries []map[string]interface{}
+	require.NoError(t, json.Unmarshal([]byte(data), &entries))
+
+	var persesEntry map[string]interface{}
+	for _, entry := range entries {
+		if name, ok := entry["name"].(string); ok && name == "perses" {
+			persesEntry = entry
+		}
+	}
+
+	require.NotNil(t, persesEntry, "perses entry must be present when observability is enabled")
+
+	proxyServices, ok := persesEntry["proxyService"].([]interface{})
+	require.True(t, ok)
+	require.Len(t, proxyServices, 1)
+
+	ps := proxyServices[0].(map[string]interface{})
+	assert.Equal(t, "/perses/api", ps["path"])
+	svc := ps["service"].(map[string]interface{})
+	assert.Equal(t, "data-science-perses", svc["name"])
+	assert.Equal(t, "redhat-ods-monitoring", svc["namespace"])
+}
