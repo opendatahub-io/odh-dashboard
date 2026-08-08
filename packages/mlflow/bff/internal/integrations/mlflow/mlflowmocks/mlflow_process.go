@@ -17,7 +17,7 @@ import (
 
 const (
 	defaultMLflowPort    = 5001
-	defaultMLflowVersion = "3.15.1"
+	defaultMLflowVersion = "3.14.0"
 	healthTimeout        = 30 * time.Second
 	healthPoll           = 2 * time.Second
 	shutdownWait         = 5 * time.Second
@@ -40,7 +40,7 @@ func mlflowVersion() string {
 }
 
 // MLflowState tracks the MLflow child process, enabling targeted cleanup
-// when the BFF shuts down — preventing orphaned MLflow servers.
+// when the BFF shuts down.
 type MLflowState struct {
 	Cmd         *exec.Cmd
 	Port        int
@@ -68,7 +68,7 @@ func SetupMLflow(logger *slog.Logger) (*MLflowState, error) {
 	// Reuse existing instance if MLflow is already running (e.g. from make mlflow-up),
 	// but still seed data so tests have expected state.
 	if isMLflowHealthy(port) {
-		logger.Warn("MLflow already running on port — reusing existing instance. "+
+		logger.Warn("MLflow already running on port. Reusing existing instance. "+
 			"Its database may contain stale data from previous dev sessions, which can cause test failures. "+
 			fmt.Sprintf("Stop the external MLflow process (lsof -t -i :%d | xargs kill) and re-run for a clean state.", port),
 			slog.Int("port", port))

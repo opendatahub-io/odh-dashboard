@@ -1,16 +1,23 @@
 import React from 'react';
-import { useParams } from 'react-router';
 import { Button, ButtonVariant, FlexItem, Tooltip } from '@patternfly/react-core';
 import useMcpServerDeployAvailable from '~/odh/hooks/useMcpServerDeployAvailable';
-import useMcpServerConverter from '~/odh/hooks/useMcpServerConverter';
 import { mcpServerCRToYaml } from '~/odh/utils/mcpServerYaml';
-import { McpDeployModalData } from '~/odh/types/mcpDeploymentTypes';
+import { resolveActionButtonState } from '~/odh/utils/registerUtils';
+import { McpDeployModalData, MCPServerCR } from '~/odh/types/mcpDeploymentTypes';
 import McpDeployModal from '~/odh/components/McpDeployModal';
 
-const McpServerDeployAction: React.FC = () => {
-  const { serverId = '' } = useParams<{ serverId: string }>();
+type McpServerDeployActionProps = {
+  crData: MCPServerCR | null;
+  crLoaded: boolean;
+  crError?: Error;
+};
+
+const McpServerDeployAction: React.FC<McpServerDeployActionProps> = ({
+  crData,
+  crLoaded,
+  crError,
+}) => {
   const { available, loaded } = useMcpServerDeployAvailable();
-  const [crData, crLoaded, crError] = useMcpServerConverter(serverId);
   const [openModal, setOpenModal] = React.useState(false);
 
   const prefillData: McpDeployModalData | undefined = React.useMemo(
@@ -25,19 +32,18 @@ const McpServerDeployAction: React.FC = () => {
     [crData],
   );
 
-  const buttonState = React.useMemo(() => {
-    if (!loaded) {
-      return { enabled: false, loading: true, tooltip: 'Checking MCP server availability...' };
-    }
-    if (!available) {
-      return {
-        enabled: false,
-        loading: false,
-        tooltip: 'MCP Lifecycle is not available in this cluster.',
-      };
-    }
-    return { enabled: true, loading: false };
-  }, [available, loaded]);
+  const buttonState = React.useMemo(
+    () =>
+      resolveActionButtonState([
+        { when: !loaded, loading: true, tooltip: 'Checking MCP server availability...' },
+        {
+          when: !available,
+          loading: false,
+          tooltip: 'MCP Lifecycle is not available in this cluster.',
+        },
+      ]),
+    [available, loaded],
+  );
 
   const deployButton = (
     <Button

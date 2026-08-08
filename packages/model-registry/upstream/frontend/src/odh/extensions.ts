@@ -302,6 +302,18 @@ const extensions: (
   {
     type: 'core.action',
     flags: {
+      required: [SupportedArea.MCP_CATALOG, SupportedArea.MCP_REGISTRY],
+    },
+    properties: {
+      id: 'register-mcp-server',
+      label: 'Register MCP server',
+      group: 'mcp-catalog.server-register',
+      component: () => import('./components/McpServerRegisterAction'),
+    },
+  },
+  {
+    type: 'core.action',
+    flags: {
       required: [SupportedArea.MODEL_CATALOG],
     },
     properties: {

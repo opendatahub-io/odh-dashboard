@@ -11,18 +11,20 @@ import { MCPServerCR } from '~/odh/types/mcpDeploymentTypes';
 
 const useMcpServerConverter = (
   serverId: string,
+  /** Skips the request when false, e.g. while no mounted consumer needs this data yet. */
+  enabled = true,
 ): [data: MCPServerCR | null, loaded: boolean, error: Error | undefined] => {
   // The model registries namespace is required by the BFF for catalog API calls
   const queryParams = useQueryParamNamespaces();
 
   const callback = React.useCallback<FetchStateCallbackPromise<MCPServerCR>>(
     (opts: APIOptions) => {
-      if (!serverId) {
+      if (!enabled || !serverId) {
         return Promise.reject(new NotReadyError('No server id'));
       }
       return getMcpServerConverter('', queryParams)(opts, serverId);
     },
-    [serverId, queryParams],
+    [enabled, serverId, queryParams],
   );
 
   const [data, loaded, error] = useFetchState<MCPServerCR | null>(callback, null, {
