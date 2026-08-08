@@ -5,7 +5,7 @@ import { Link } from 'react-router-dom';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { ModelOverviewSubscription, ModelOverviewPolicy } from '~/app/types/subscriptions';
 import { URL_PREFIX } from '~/app/utilities/const';
-import PhaseLabel from '~/app/shared/PhaseLabel';
+import PhaseLabel from '~/app/shared/Phase/PhaseLabel';
 import { PhaseLabelLocation, PhaseResourceType } from '~/app/utilities/phaseLabelUtils';
 import { formatTokenLimits } from '~/app/utilities/rateLimits';
 import { MaaSEvents } from '~/app/types/event-tracking';
@@ -60,6 +60,7 @@ type ExpandableItemProps = {
   status?: string;
   conditionType?: string;
   lastTransitionTime?: string;
+  resourceId?: string;
 };
 
 const ExpandableItem: React.FC<ExpandableItemProps> = ({
@@ -83,6 +84,7 @@ const ExpandableItem: React.FC<ExpandableItemProps> = ({
   status,
   conditionType,
   lastTransitionTime,
+  resourceId,
 }) => (
   <div
     className={`${styles['maas-expandable-item']}${
@@ -115,6 +117,7 @@ const ExpandableItem: React.FC<ExpandableItemProps> = ({
                   lastTransitionTime={lastTransitionTime}
                   reason={reason}
                   resourceName={displayName ?? name}
+                  resourceId={resourceId}
                   resourceUrl={resourceUrl}
                   returnTo={returnTo}
                   hideSubtext
@@ -249,6 +252,7 @@ const SubscriptionsSection: React.FC<SubscriptionsSectionProps> = ({
               returnTo={returnTo}
               phase={sub.phase}
               resourceType={PhaseResourceType.SUBSCRIPTION}
+              resourceId={sub.name}
               rowIndex={index}
               isExpanded={isEffectivelyExpanded(
                 sub.name,
@@ -334,6 +338,7 @@ const PoliciesSection: React.FC<PoliciesSectionProps> = ({
               linkState={OVERVIEW_LINK_STATE}
               phase={policy.phase}
               resourceType={PhaseResourceType.AUTHPOLICY}
+              resourceId={policy.name}
               rowIndex={index}
               resourceUrl={getAuthPolicyViewUrl(policy.name)}
               returnTo={returnTo}

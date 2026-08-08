@@ -14,7 +14,7 @@ export const DEFAULT_MODEL_KIND = 'LLMInferenceService' as const;
  * using the live catalog, falling back to a synthetic entry for deleted models.
  */
 export const modelRefsToSummaries = (
-  refs: { name: string; namespace: string }[],
+  refs: { name: string; namespace: string; displayName?: string }[],
   catalog: MaaSModelRefSummary[],
 ): MaaSModelRefSummary[] =>
   refs.map((ref) => {
@@ -27,6 +27,7 @@ export const modelRefsToSummaries = (
     return {
       name: ref.name,
       namespace: ref.namespace,
+      displayName: ref.displayName,
       modelRef: { kind: DEFAULT_MODEL_KIND, name: ref.name },
     };
   });
