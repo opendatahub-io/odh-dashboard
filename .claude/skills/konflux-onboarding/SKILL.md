@@ -1,6 +1,6 @@
 ---
 name: konflux-onboarding
-description: "Guides Konflux CI/CD pipeline onboarding for new components — Jira tracking epic, upstream ODH Dockerfile, downstream RHOAI Dockerfile, DevOps coordination, manifest overlays, and OpenShift CI."
+description: "Guides Konflux CI/CD pipeline onboarding for new components — Jira tracking epic, upstream ODH Dockerfile, downstream RHOAI Dockerfile, DevOps coordination, standalone deployment manifests, and OpenShift CI. This is the recommended method for CI/CD onboarding."
 argument-hint: "<component-name> [--jira <EPIC-KEY>] [--skip-jira] [--skip-odh] [--skip-downstream] [--skip-openshift-ci]"
 ---
 
@@ -57,15 +57,53 @@ Parse from `$ARGUMENTS`:
    [ -f "${COMPONENT_NAME}/Dockerfile" ] && echo "exists"
    ```
 
-4. Report classification and state to user:
+4. **Module readiness pre-check** (Type A only):
+
+   For Type A components, verify that module onboarding prerequisites are met before proceeding with CI/CD setup:
+
+   ```bash
+   echo "=== Module Readiness Pre-Check ==="
+
+   # Check 1: Package exists
+   [ -d "packages/${COMPONENT_NAME}" ] && echo "  Package: OK" || echo "  Package: MISSING"
+
+   # Check 2: Feature flag registered
+   CAMEL_CASE=$(echo "$COMPONENT_NAME" | sed -E 's/-([a-z])/\U\1/g')
+   grep -q "${CAMEL_CASE}" frontend/src/k8sTypes.ts 2>/dev/null && echo "  Feature flag: OK" || echo "  Feature flag: MISSING"
+
+   # Check 3: SupportedArea registered
+   UPPER_SNAKE=$(echo "$COMPONENT_NAME" | tr '[:lower:]-' '[:upper:]_')
+   grep -q "PLUGIN_${UPPER_SNAKE}" frontend/src/concepts/areas/types.ts 2>/dev/null && echo "  SupportedArea: OK" || echo "  SupportedArea: MISSING"
+
+   # Check 4: Standalone manifests exist
+   [ -d "manifests/modules/${COMPONENT_NAME}" ] && echo "  Standalone manifests: OK" || echo "  Standalone manifests: MISSING"
+
+   # Check 5: Operator registration
+   grep -q "\"${CAMEL_CASE}\"" dashboard-operator/internal/controller/modules.go 2>/dev/null && echo "  Operator registry: OK" || echo "  Operator registry: MISSING"
+   ```
+
+   If any checks fail, print a warning:
+
+   ```text
+   WARNING: Module readiness checks found gaps. Consider running /module-onboarding first.
+   Missing: [list of missing items]
+
+   You may proceed — these gaps can be addressed separately — but the module
+   will not be fully functional until all items are resolved.
+   ```
+
+   This check is **advisory** (not blocking) — the user may have valid reasons to proceed with partial onboarding (e.g., parallel work across teams).
+
+5. Report classification and state to user:
 
    ```text
    Component: <name>
    Type: A (modular-arch package) / B (standalone Go component)
    ODH Dockerfile: ✅ exists / ❌ missing
+   Module readiness: ✅ OK / ⚠️ WARNINGS (see details above)
    ```
 
-5. Ask the user which image name should be used (with default suggestion):
+6. Ask the user which image name should be used (with default suggestion):
    - Type A: `odh-mod-arch-<name>` (e.g., `odh-mod-arch-gen-ai`)
    - Type B: `odh-<name>` (e.g., `odh-dashboard-operator`)
 
@@ -110,7 +148,7 @@ Create the following subtasks under the new epic.
 | 4 | `<name>: Track & Verify ODH Konflux Onboarding` | Major | Track ODH Konflux component onboarding (Quay repo, build pipeline, release config). Automated by DevOps CI. |
 | 5 | `<name>: Set up module for OpenShift CI builds` | Major | Configure OpenShift CI in `openshift/release` repo (ci-operator config + prowgen jobs). Partially automated by `/konflux-onboarding` Phase 5. |
 | 6 | `<name>: Create Standalone Module Manifests` | Major | Create standalone deployment manifests in `manifests/modules/<name>/`. Partially automated by `/konflux-onboarding` Phase 4 (Type A only). |
-| 7 | `<name>: Onboard Module in Operator` | Major | Operator integration — register the module in the operator's module registry (`dashboard-operator/internal/controller/modules.go`) with: slug, container name, port, image env var, DSC component gate, and inter-module dependencies. Also includes OLM bundle updates and test integration. Coordinated with Platform team. |
+| 7 | `<name>: Onboard Module in Operator` | Major | Two operator changes needed: (1) **dashboard-operator** (this repo) — register the module in `dashboard-operator/internal/controller/modules.go` (slug, container name, port, image env var, DSC component gate, inter-module dependencies), add proxy paths in `module_deploy.go`, add image mapping in `support.go`, update test assertions in `modules_test.go`. Automated by `/module-onboarding` Phase 7. (2) **opendatahub-operator** (separate repo: `opendatahub-io/opendatahub-operator`) — add `RELATED_IMAGE_ODH_MOD_ARCH_<UPPER_SNAKE>_IMAGE` to `internal/controller/modules/dashboard/support.go`. Requires Platform team coordination. |
 | 8 | `<name>: Track & Verify RHOAI Konflux Onboarding` | Major | Track RHOAI Konflux component onboarding (downstream Quay, release pipeline, Renovate). Automated by DevOps CI. |
 
 For each subtask:
@@ -144,6 +182,17 @@ jira_create_issue_link(
 ### Step 1d: Report
 
 Print the epic key and all subtask keys to the user. These will be updated as subsequent phases complete.
+
+### Fallback: Manual Clone
+
+If Jira API access is not available (missing credentials, MCP not configured, or connection errors), ask the user to:
+
+1. Open [RHOAIENG-37060](https://issues.redhat.com/browse/RHOAIENG-37060) in Jira
+2. Clone the epic manually (Actions → Clone)
+3. Rename the cloned epic to "Konflux Onboarding: `<name>`"
+4. Provide the new epic key via `--jira <EPIC-KEY>` and re-run the skill
+
+This avoids token-heavy retry loops when MCP is misconfigured.
 
 ## Phase 2: ODH Upstream Dockerfile
 
@@ -271,9 +320,11 @@ The downstream Dockerfile **must** be committed to the downstream repo (e.g. `re
 
 ## Phase 4: Standalone Module Manifests (Type A only)
 
-**Goal**: Scaffold standalone deployment manifests for a modular-arch package.
+**Goal**: Scaffold standalone deployment manifests for a modular-arch package. Standalone mode is the **primary deployment topology** — each module gets its own Kubernetes Deployment managed by the dashboard-operator.
 
 Skip if: Type B, or manifests already exist in `manifests/modules/<name>/`.
+
+> **Note**: If you ran `/module-onboarding` first, the standalone manifests and operator registration were already created in Phases 6-7. This phase will detect them and skip.
 
 For Type A packages, check if `manifests/modules/<name>/` exists. If not, scaffold the following files:
 
@@ -283,7 +334,7 @@ For Type A packages, check if `manifests/modules/<name>/` exists. If not, scaffo
 - `service-account.yaml` — Dedicated ServiceAccount for SA isolation
 - `cluster-role.yaml` + `cluster-role-binding.yaml` — Module-specific RBAC
 - `kustomization.yaml` — Kustomize entry referencing all resources
-- `params.yaml` — Kustomize parameter defaults (image, namespace)
+- `params.env` — Kustomize parameter defaults (image reference)
 
 Reference existing modules in `manifests/modules/` (e.g., `gen-ai/`, `model-registry/`) for the exact patterns and field values.
 
@@ -535,6 +586,6 @@ Print a final report:
 5. Review and merge Dockerfile.konflux.<name> PR in the downstream repo
 6. Review and merge OpenShift CI PR in openshift/release
 7. Verify opendatahub+openshift_ci robot account has push on Quay repo
-8. Coordinate operator integration with Platform team (subtask 7) — update operator component references, OLM bundle, and test integration
+8. Coordinate opendatahub-operator integration with Platform team — add `RELATED_IMAGE_ODH_MOD_ARCH_<UPPER_SNAKE>_IMAGE` to `opendatahub-io/opendatahub-operator` at `internal/controller/modules/dashboard/support.go` (dashboard-operator registration is handled by `/module-onboarding` Phase 7)
 9. Verify first build succeeds end-to-end (both ODH and RHOAI)
 ```
