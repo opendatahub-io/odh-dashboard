@@ -12,18 +12,26 @@ import { pageNotfound } from '../../../pages/pageNotFound';
 
 it('LLM accelerator configurations should not be available for non product admins', () => {
   asProjectAdminUser();
-  cy.interceptOdh('GET /api/config', mockDashboardConfig({ vLLMDeploymentOnMaaS: true }));
+  cy.interceptOdh(
+    'GET /api/config',
+    mockDashboardConfig({ vLLMDeploymentOnMaaS: true, modelDeploymentSettings: true }),
+  );
   llmAcceleratorConfigs.visit(false);
   pageNotfound.findPage().should('exist');
   llmAcceleratorConfigs.findNavItem().should('not.exist');
 });
 
-it('LLM accelerator configurations should not be available when vLLMDeploymentOnMaaS is disabled', () => {
+it('LLM accelerator configurations tab should not be available when vLLMDeploymentOnMaaS is disabled', () => {
   asProductAdminUser();
-  cy.interceptOdh('GET /api/config', mockDashboardConfig({ vLLMDeploymentOnMaaS: false }));
+  cy.interceptOdh(
+    'GET /api/config',
+    mockDashboardConfig({ vLLMDeploymentOnMaaS: false, modelDeploymentSettings: true }),
+  );
   llmAcceleratorConfigs.visit(false);
-  pageNotfound.findPage().should('exist');
-  llmAcceleratorConfigs.findNavItem().should('not.exist');
+  // The parent tabbed page still renders (other tabs are visible), but the accelerator
+  // tab is hidden. TabRoutePage redirects to the first available tab.
+  llmAcceleratorConfigs.findTabPageTitle().should('contain.text', 'Model deployment settings');
+  llmAcceleratorConfigs.findTab().should('not.exist');
 });
 
 describe('LLM accelerator configurations', () => {

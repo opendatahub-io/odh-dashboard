@@ -26,6 +26,9 @@ export const FEATURE_STORE_EMPTY_STATE_BODY =
 export const FEATURE_STORE_UNAVAILABLE_TOOLTIP =
   'This feature store is no longer available. It may have been deleted or access has been revoked.';
 
+export const FEATURE_STORE_UNAVAILABLE_LIST_TOOLTIP =
+  'These feature stores are no longer available. They may have been deleted or access has been revoked.';
+
 export const removeFeatureStoreProjectById = (
   configs: SelectedFeatureStoreConfig[],
   projectId: string,

@@ -68,7 +68,7 @@ describe('NIM InferenceService Exclusion from KServe', () => {
       mockDashboardConfig({
         disableKServe: false,
         disableNIMModelServing: false,
-        nimWizard: true,
+        nimServiceOperator: true,
       }),
     );
     cy.interceptK8sList(

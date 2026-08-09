@@ -26,10 +26,14 @@ jobs:
           REPO: ${{ github.repository }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
-          upstream_files=$(gh api "repos/$REPO/pulls/$PR_NUMBER/files" \
-            --paginate -q '.[].filename | select(contains("/upstream/"))' || true)
+          all_files=$(gh api "repos/$REPO/pulls/$PR_NUMBER/files" \
+            --paginate -q '.[].filename')
+          upstream_files=$(echo "$all_files" | grep '/upstream/' || true)
 
-          if [ -n "$upstream_files" ]; then
+          if [ -z "$all_files" ]; then
+            echo "::error::Failed to fetch PR files — treating as unsafe"
+            echo "touches_upstream=true" >> "$GITHUB_OUTPUT"
+          elif [ -n "$upstream_files" ]; then
             echo "PR modifies upstream files:"
             echo "$upstream_files"
             echo "touches_upstream=true" >> "$GITHUB_OUTPUT"
@@ -37,6 +41,23 @@ jobs:
             echo "No upstream files modified"
             echo "touches_upstream=false" >> "$GITHUB_OUTPUT"
           fi
+
+      - name: Close upstream PRs
+        if: steps.upstream.outputs.touches_upstream == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+        run: |
+          echo "Closing PR that modifies upstream-synced files"
+          gh pr close "$PR_URL" --comment "$(cat <<'EOF'
+          Closing: this PR modifies files under `/upstream/` which are managed by
+          [upstream-sync](https://github.com/opendatahub-io/odh-dashboard/tree/main/.claude/skills/upstream-sync).
+          Security fixes for these dependencies should be addressed in the upstream
+          repository and synced back. The security alert remains visible in the
+          Security tab for tracking.
+          EOF
+          )"
+          echo "::notice::Upstream PR closed"
 
       - name: Checkout base branch for version checks
         if: >
@@ -151,7 +172,7 @@ jobs:
           if [ "$ELIGIBLE" = "true" ]; then
             echo "### ✅ Auto-merge labels applied" | tee -a "$GITHUB_STEP_SUMMARY"
           elif [ "$TOUCHES_UPSTREAM" = "true" ]; then
-            echo "### ⏭️ Skipped — PR modifies upstream (subtree) files" | tee -a "$GITHUB_STEP_SUMMARY"
+            echo "### 🚫 Closed — PR modifies upstream (subtree) files" | tee -a "$GITHUB_STEP_SUMMARY"
           else
             echo "### ⏭️ Skipped — not eligible for auto-merge" | tee -a "$GITHUB_STEP_SUMMARY"
           fi

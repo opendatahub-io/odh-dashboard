@@ -9,7 +9,7 @@ import SubscriptionsTab from './SubscriptionsTab';
 import AuthPoliciesTab from './AuthPoliciesTab';
 import OverviewTab from './OverviewTab';
 
-const OVERVIEW_TAB = 'overview';
+export const OVERVIEW_TAB = 'overview';
 const SUBSCRIPTIONS_TAB = 'subscriptions';
 const AUTH_POLICIES_TAB = 'auth-policies';
 const VALID_TABS = [OVERVIEW_TAB, SUBSCRIPTIONS_TAB, AUTH_POLICIES_TAB];
