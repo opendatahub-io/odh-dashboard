@@ -22,6 +22,10 @@ class McpCatalogPage {
   findPageTitle() {
     return cy.findByTestId('app-tab-page-title');
   }
+
+  findSearchInput() {
+    return cy.findByTestId('mcp-catalog-search-input');
+  }
 }
 
 class McpServerDetailsPage {
