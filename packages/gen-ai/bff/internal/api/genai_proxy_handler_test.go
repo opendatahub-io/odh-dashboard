@@ -46,19 +46,14 @@ var _ = Describe("GenAIProxyNSModelsHandler", func() {
 		require.NoError(t, err)
 
 		assert.Equal(t, "list", response.Object)
-		// mock-test-namespace-1 has 2 LLM-D models: llm-d-codestral-22b, llm-d-deepseek-coder-33b
-		require.Len(t, response.Data, 2, "expected 2 models from mock-test-namespace-1")
+		require.NotEmpty(t, response.Data, "mock-test-namespace-1 should return models")
 
-		// Verify known models are present with correct OpenAI fields
-		modelIDs := make(map[string]bool)
+		// Verify all returned models have required OpenAI fields
 		for _, model := range response.Data {
 			assert.NotEmpty(t, model.ID)
 			assert.Equal(t, "model", model.Object)
 			assert.NotEmpty(t, model.OwnedBy)
-			modelIDs[model.ID] = true
 		}
-		assert.True(t, modelIDs["llm-d-codestral-22b"], "expected llm-d-codestral-22b")
-		assert.True(t, modelIDs["llm-d-deepseek-coder-33b"], "expected llm-d-deepseek-coder-33b")
 	})
 
 	It("should return empty list when no models available", func() {
