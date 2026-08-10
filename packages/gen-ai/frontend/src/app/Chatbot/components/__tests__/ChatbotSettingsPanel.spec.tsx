@@ -592,8 +592,6 @@ describe('ChatbotSettingsPanel', () => {
   });
 
   describe('Tab content visibility (display-none hiding approach)', () => {
-    const HIDDEN_CLASS = 'pf-v6-u-display-none';
-
     // ToggleGroupItem's data-testid lives on a non-interactive wrapper <div>; the actual
     // clickable element is the nested <button>, so we scope into it before clicking.
     const clickTabToggle = async (
@@ -606,16 +604,18 @@ describe('ChatbotSettingsPanel', () => {
     it('should show the Model tab content and hide all other tab contents by default', () => {
       render(<ChatbotSettingsPanel {...defaultProps} />);
 
-      expect(screen.getByTestId('chatbot-settings-page-tab-content-model')).not.toHaveClass(
-        HIDDEN_CLASS,
-      );
-      expect(screen.getByTestId('chatbot-settings-page-tab-content-prompt')).toHaveClass(
-        HIDDEN_CLASS,
-      );
-      expect(screen.getByTestId('chatbot-settings-page-tab-content-knowledge')).toHaveClass(
-        HIDDEN_CLASS,
-      );
-      expect(screen.getByTestId('chatbot-settings-page-tab-content-mcp')).toHaveClass(HIDDEN_CLASS);
+      expect(screen.getByTestId('chatbot-settings-page-tab-content-model')).not.toHaveStyle({
+        display: 'none',
+      });
+      expect(screen.getByTestId('chatbot-settings-page-tab-content-prompt')).toHaveStyle({
+        display: 'none',
+      });
+      expect(screen.getByTestId('chatbot-settings-page-tab-content-knowledge')).toHaveStyle({
+        display: 'none',
+      });
+      expect(screen.getByTestId('chatbot-settings-page-tab-content-mcp')).toHaveStyle({
+        display: 'none',
+      });
     });
 
     it('should keep all tab content mounted in the DOM regardless of active tab', () => {
@@ -638,12 +638,12 @@ describe('ChatbotSettingsPanel', () => {
 
       await clickTabToggle(user, 'chatbot-settings-page-tab-prompt');
 
-      expect(screen.getByTestId('chatbot-settings-page-tab-content-prompt')).not.toHaveClass(
-        HIDDEN_CLASS,
-      );
-      expect(screen.getByTestId('chatbot-settings-page-tab-content-model')).toHaveClass(
-        HIDDEN_CLASS,
-      );
+      expect(screen.getByTestId('chatbot-settings-page-tab-content-prompt')).not.toHaveStyle({
+        display: 'none',
+      });
+      expect(screen.getByTestId('chatbot-settings-page-tab-content-model')).toHaveStyle({
+        display: 'none',
+      });
       // Still mounted, just hidden
       expect(screen.getByTestId('chatbot-settings-page-tab-content-model')).toBeInTheDocument();
     });
@@ -654,16 +654,18 @@ describe('ChatbotSettingsPanel', () => {
 
       await clickTabToggle(user, 'chatbot-settings-page-tab-knowledge');
 
-      expect(screen.getByTestId('chatbot-settings-page-tab-content-knowledge')).not.toHaveClass(
-        HIDDEN_CLASS,
-      );
-      expect(screen.getByTestId('chatbot-settings-page-tab-content-model')).toHaveClass(
-        HIDDEN_CLASS,
-      );
-      expect(screen.getByTestId('chatbot-settings-page-tab-content-prompt')).toHaveClass(
-        HIDDEN_CLASS,
-      );
-      expect(screen.getByTestId('chatbot-settings-page-tab-content-mcp')).toHaveClass(HIDDEN_CLASS);
+      expect(screen.getByTestId('chatbot-settings-page-tab-content-knowledge')).not.toHaveStyle({
+        display: 'none',
+      });
+      expect(screen.getByTestId('chatbot-settings-page-tab-content-model')).toHaveStyle({
+        display: 'none',
+      });
+      expect(screen.getByTestId('chatbot-settings-page-tab-content-prompt')).toHaveStyle({
+        display: 'none',
+      });
+      expect(screen.getByTestId('chatbot-settings-page-tab-content-mcp')).toHaveStyle({
+        display: 'none',
+      });
     });
 
     it('should switch visibility to the MCP tab content when its toggle is selected', async () => {
@@ -672,12 +674,12 @@ describe('ChatbotSettingsPanel', () => {
 
       await clickTabToggle(user, 'chatbot-settings-page-tab-mcp');
 
-      expect(screen.getByTestId('chatbot-settings-page-tab-content-mcp')).not.toHaveClass(
-        HIDDEN_CLASS,
-      );
-      expect(screen.getByTestId('chatbot-settings-page-tab-content-model')).toHaveClass(
-        HIDDEN_CLASS,
-      );
+      expect(screen.getByTestId('chatbot-settings-page-tab-content-mcp')).not.toHaveStyle({
+        display: 'none',
+      });
+      expect(screen.getByTestId('chatbot-settings-page-tab-content-model')).toHaveStyle({
+        display: 'none',
+      });
     });
 
     it('should restore Model tab visibility when switching back after visiting another tab', async () => {
@@ -685,28 +687,28 @@ describe('ChatbotSettingsPanel', () => {
       render(<ChatbotSettingsPanel {...defaultProps} />);
 
       await clickTabToggle(user, 'chatbot-settings-page-tab-knowledge');
-      expect(screen.getByTestId('chatbot-settings-page-tab-content-model')).toHaveClass(
-        HIDDEN_CLASS,
-      );
+      expect(screen.getByTestId('chatbot-settings-page-tab-content-model')).toHaveStyle({
+        display: 'none',
+      });
 
       await clickTabToggle(user, 'chatbot-settings-page-tab-model');
-      expect(screen.getByTestId('chatbot-settings-page-tab-content-model')).not.toHaveClass(
-        HIDDEN_CLASS,
-      );
-      expect(screen.getByTestId('chatbot-settings-page-tab-content-knowledge')).toHaveClass(
-        HIDDEN_CLASS,
-      );
+      expect(screen.getByTestId('chatbot-settings-page-tab-content-model')).not.toHaveStyle({
+        display: 'none',
+      });
+      expect(screen.getByTestId('chatbot-settings-page-tab-content-knowledge')).toHaveStyle({
+        display: 'none',
+      });
     });
 
     it('should respect defaultActiveTabKey for initial tab content visibility', () => {
       render(<ChatbotSettingsPanel {...defaultProps} defaultActiveTabKey={1} />);
 
-      expect(screen.getByTestId('chatbot-settings-page-tab-content-prompt')).not.toHaveClass(
-        HIDDEN_CLASS,
-      );
-      expect(screen.getByTestId('chatbot-settings-page-tab-content-model')).toHaveClass(
-        HIDDEN_CLASS,
-      );
+      expect(screen.getByTestId('chatbot-settings-page-tab-content-prompt')).not.toHaveStyle({
+        display: 'none',
+      });
+      expect(screen.getByTestId('chatbot-settings-page-tab-content-model')).toHaveStyle({
+        display: 'none',
+      });
     });
 
     describe('when guardrails feature flag is enabled', () => {
@@ -721,9 +723,9 @@ describe('ChatbotSettingsPanel', () => {
       it('should render the Guardrails tab content hidden by default', () => {
         render(<ChatbotSettingsPanel {...defaultProps} />);
 
-        expect(screen.getByTestId('chatbot-settings-page-tab-content-guardrails')).toHaveClass(
-          HIDDEN_CLASS,
-        );
+        expect(screen.getByTestId('chatbot-settings-page-tab-content-guardrails')).toHaveStyle({
+          display: 'none',
+        });
       });
 
       it('should show the Guardrails tab content when its toggle is selected', async () => {
@@ -732,12 +734,12 @@ describe('ChatbotSettingsPanel', () => {
 
         await clickTabToggle(user, 'chatbot-settings-page-tab-guardrails');
 
-        expect(screen.getByTestId('chatbot-settings-page-tab-content-guardrails')).not.toHaveClass(
-          HIDDEN_CLASS,
-        );
-        expect(screen.getByTestId('chatbot-settings-page-tab-content-model')).toHaveClass(
-          HIDDEN_CLASS,
-        );
+        expect(screen.getByTestId('chatbot-settings-page-tab-content-guardrails')).not.toHaveStyle({
+          display: 'none',
+        });
+        expect(screen.getByTestId('chatbot-settings-page-tab-content-model')).toHaveStyle({
+          display: 'none',
+        });
       });
     });
 

@@ -367,14 +367,23 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
         </ToggleGroup>
 
         {/* Keep all tab content mounted to preserve lifecycle state (data fetches, etc.)
-           and toggle visibility with PF utility class, matching old Tabs show/hide behaviour.
+           and toggle visibility via an inline `display: none` (NOT the `pf-v6-u-display-none`
+           utility class — that class's CSS ships in @patternfly/patternfly's utilities bundle,
+           which is only imported by the top-level dashboard shell, not by this package's own
+           standalone build/dev-server used by Cypress. Without that import the class is a no-op,
+           so every panel rendered stacked and visible at once, which is what was clipping
+           essentially-random content depending on total stacked height).
            flex/minHeight/overflow let the active panel grow to fill the remaining space in
            DrawerPanelBody's flex column and scroll internally, instead of being clipped by
            its overflow:hidden (minHeight: 0 is required so the flex item can actually shrink
            below its content's natural size and hand scrolling to the inner overflow: auto). */}
         <div
-          className={activeTabKey !== 0 ? 'pf-v6-u-display-none' : undefined}
-          style={{ flex: '1 1 auto', minHeight: 0, overflow: 'auto' }}
+          style={{
+            display: activeTabKey !== 0 ? 'none' : 'block',
+            flex: '1 1 auto',
+            minHeight: 0,
+            overflow: 'auto',
+          }}
           data-testid="chatbot-settings-page-tab-content-model"
         >
           <ModelTabContent
@@ -390,8 +399,12 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
           />
         </div>
         <div
-          className={activeTabKey !== 1 ? 'pf-v6-u-display-none' : undefined}
-          style={{ flex: '1 1 auto', minHeight: 0, overflow: 'auto' }}
+          style={{
+            display: activeTabKey !== 1 ? 'none' : 'block',
+            flex: '1 1 auto',
+            minHeight: 0,
+            overflow: 'auto',
+          }}
           data-testid="chatbot-settings-page-tab-content-prompt"
         >
           <PromptTabContent
@@ -401,8 +414,12 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
           />
         </div>
         <div
-          className={activeTabKey !== 2 ? 'pf-v6-u-display-none' : undefined}
-          style={{ flex: '1 1 auto', minHeight: 0, overflow: 'auto' }}
+          style={{
+            display: activeTabKey !== 2 ? 'none' : 'block',
+            flex: '1 1 auto',
+            minHeight: 0,
+            overflow: 'auto',
+          }}
           data-testid="chatbot-settings-page-tab-content-knowledge"
         >
           <KnowledgeTabContent
@@ -413,8 +430,12 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
           />
         </div>
         <div
-          className={activeTabKey !== 3 ? 'pf-v6-u-display-none' : undefined}
-          style={{ flex: '1 1 auto', minHeight: 0, overflow: 'auto' }}
+          style={{
+            display: activeTabKey !== 3 ? 'none' : 'block',
+            flex: '1 1 auto',
+            minHeight: 0,
+            overflow: 'auto',
+          }}
           data-testid="chatbot-settings-page-tab-content-mcp"
         >
           <MCPTabContent
@@ -433,8 +454,12 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
         </div>
         {isGuardrailsFeatureEnabled && (
           <div
-            className={activeTabKey !== 4 ? 'pf-v6-u-display-none' : undefined}
-            style={{ flex: '1 1 auto', minHeight: 0, overflow: 'auto' }}
+            style={{
+              display: activeTabKey !== 4 ? 'none' : 'block',
+              flex: '1 1 auto',
+              minHeight: 0,
+              overflow: 'auto',
+            }}
             data-testid="chatbot-settings-page-tab-content-guardrails"
           >
             <GuardrailsTabContent configId={configId} />
