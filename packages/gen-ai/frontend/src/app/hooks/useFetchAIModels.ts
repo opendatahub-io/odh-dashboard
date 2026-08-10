@@ -45,7 +45,7 @@ export const isValidAAModel = (item: unknown): item is AAModelResponse =>
 
 const useFetchAIModels = (): FetchStateObject<AIModel[]> => {
   const { api, apiAvailable } = useGenAiAPI();
-  const maaSEnabled = useAiAssetModelAsServiceEnabled();
+  const maaSEnabled = !!useAiAssetModelAsServiceEnabled();
   const genAiConfig = useGenAiDashboardConfig();
   const clusterDomains = React.useMemo(
     () => genAiConfig?.aiAssetCustomEndpoints?.clusterDomains ?? [],
