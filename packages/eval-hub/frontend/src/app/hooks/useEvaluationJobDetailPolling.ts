@@ -1,5 +1,5 @@
 import React from 'react';
-import { useQueries } from '@tanstack/react-query';
+import { useQueries, type QueryStatus } from '@tanstack/react-query';
 import { getEvaluationJob } from '~/app/api/k8s';
 import { EvaluationJob } from '~/app/types';
 import { isTerminalState } from '~/app/utilities/evaluationUtils';
@@ -56,7 +56,7 @@ const useEvaluationJobDetailPolling = (
         return exp + jitter;
       },
       // Poll every 10s; resume at a slow cadence after errors so polling recovers when the server comes back
-      refetchInterval: (query: { state: { status: string; data?: EvaluationJob } }) => {
+      refetchInterval: (query: { state: { status: QueryStatus; data?: EvaluationJob } }) => {
         if (query.state.status === 'error') {
           return DETAIL_POLL_INTERVAL_MS * 6; // 60s recovery cadence
         }

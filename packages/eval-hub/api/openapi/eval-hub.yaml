@@ -617,6 +617,7 @@ components:
         message_origin:
           type: string
           description: Origin of the error (server, runtime, adapter, sdk)
+          enum: [server, runtime, adapter, sdk]
 
     JobResource:
       type: object

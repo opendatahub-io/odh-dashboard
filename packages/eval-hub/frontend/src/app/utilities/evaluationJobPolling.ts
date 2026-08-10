@@ -37,7 +37,15 @@ export const createRequestPool = (maxConcurrent = MAX_CONCURRENT_DETAIL_REQUESTS
           reject(new DOMException('Aborted', 'AbortError'));
           return;
         }
-        queue.push({ run: () => fn().then(resolve, reject), signal });
+        const rejectAbort = () => reject(new DOMException('Aborted', 'AbortError'));
+        signal?.addEventListener('abort', rejectAbort, { once: true });
+        queue.push({
+          run: () => {
+            signal?.removeEventListener('abort', rejectAbort);
+            return fn().then(resolve, reject);
+          },
+          signal,
+        });
         dispatch();
       }),
   };

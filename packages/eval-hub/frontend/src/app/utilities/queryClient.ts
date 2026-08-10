@@ -8,8 +8,5 @@ export const createEvalHubQueryClient = (): QueryClient =>
         retry: 1,
         staleTime: 30000,
       },
-      mutations: {
-        gcTime: Infinity,
-      },
     },
   });
