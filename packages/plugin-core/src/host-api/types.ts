@@ -33,7 +33,7 @@ export type HostApiFetchStateObject<T> = {
   data: T;
   loaded: boolean;
   error?: Error;
-  refresh: () => Promise<T>;
+  refresh: () => Promise<T | undefined>;
 };
 
 export type ServingPlatformStatuses = {
