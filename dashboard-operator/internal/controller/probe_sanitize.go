@@ -89,9 +89,16 @@ func buildProbeCleanupPatch(live, desired *unstructured.Unstructured) map[string
 		for _, probeField := range []string{"livenessProbe", "readinessProbe", "startupProbe"} {
 			nullFields := conflictingHandlerFields(liveC, desiredC, probeField)
 			if len(nullFields) > 0 {
-				probePatch := make(map[string]interface{}, len(nullFields))
+				probePatch := make(map[string]interface{}, len(nullFields)+1)
 				for _, f := range nullFields {
 					probePatch[f] = nil
+				}
+				desiredProbe, _ := desiredC[probeField].(map[string]interface{})
+				for _, h := range probeHandlerTypes {
+					if val, ok := desiredProbe[h]; ok {
+						probePatch[h] = val
+						break
+					}
 				}
 				containerPatch[probeField] = probePatch
 				hasConflict = true
