@@ -97,24 +97,15 @@ var _ = Describe("GenAIProxyNSModelsHandler", func() {
 		}
 	})
 
-	It("should work without auth identity (unauthenticated polling)", func() {
-		t := GinkgoT()
+	It("should return 401 without auth identity", func() {
 		req := httptest.NewRequest(http.MethodGet, "/gen-ai/api/v1/genai-proxy/ns/mock-test-namespace-1/v1/models", nil)
 
-		// No identity in context — simulates OGX background polling
+		// No identity in context — OGX always forwards JWT via forward_headers
 		params := httprouter.Params{{Key: "namespace", Value: "mock-test-namespace-1"}}
 		rr := httptest.NewRecorder()
 		app.GenAIProxyNSModelsHandler(rr, req, params)
 
-		// Should not fail with 401 — endpoint is unauthenticated
-		assert.Equal(t, http.StatusOK, rr.Code)
-
-		var response openAIModelList
-		err := json.Unmarshal(rr.Body.Bytes(), &response)
-		require.NoError(t, err)
-		assert.Equal(t, "list", response.Object)
-		// Without auth, handler returns empty list (no K8s calls made)
-		assert.Empty(t, response.Data, "unauthenticated requests must return empty model list")
+		assert.Equal(GinkgoT(), http.StatusUnauthorized, rr.Code)
 	})
 
 	It("should include custom_metadata with model_type for embedding models", func() {

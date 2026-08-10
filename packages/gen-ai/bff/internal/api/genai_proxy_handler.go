@@ -31,12 +31,12 @@ type openAIModelList struct {
 // GenAIProxyNSModelsHandler handles GET /api/v1/genai-proxy/ns/:namespace/v1/models.
 //
 // Aggregates models from namespace ISVCs, custom endpoints, and MaaS and returns them
-// in OpenAI list format. Consumed by OGX's remote::passthrough provider with
-// refresh_models: true so OGX discovers new models without a pod restart.
+// in OpenAI list format. Consumed by OGX's remote::passthrough provider so OGX
+// discovers new models without a pod restart.
 //
-// Auth is optional: when called with a user token (via forward_headers from OGX
-// per-request calls), uses the user's identity. When called without auth (OGX
-// background polling), falls back to the service account client.
+// Auth is required: OGX forwards the user's JWT via X-OGX-Provider-Data →
+// forward_headers → x-forwarded-access-token header. The middleware extracts
+// the identity before this handler runs.
 func (app *App) GenAIProxyNSModelsHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	ctx := r.Context()
 
@@ -49,18 +49,11 @@ func (app *App) GenAIProxyNSModelsHandler(w http.ResponseWriter, r *http.Request
 	ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, namespace)
 	r = r.WithContext(ctx)
 
-	// Identity is optional for this endpoint (OGX background polling has no auth).
-	// When present (per-request via forward_headers), use user's token for full model list.
-	// When absent (background polling), return empty list. Full SA-backed discovery
-	// for unauthenticated callers requires a separate auth middleware change.
-	identity, _ := ctx.Value(constants.RequestIdentityKey).(*integrations.RequestIdentity)
-	if identity == nil || identity.Token == "" {
-		app.logger.Info("GenAI proxy: no auth identity, returning empty model list (background polling fallback)",
-			"namespace", namespace)
-		emptyList := openAIModelList{Object: "list", Data: []openAIModelItem{}}
-		if err := app.WriteJSON(w, http.StatusOK, emptyList, nil); err != nil {
-			app.serverErrorResponse(w, r, err)
-		}
+	// Auth is required: OGX forwards the user's JWT via X-OGX-Provider-Data → forward_headers
+	// → x-forwarded-access-token. The middleware extracts the identity before this handler runs.
+	identity, ok := ctx.Value(constants.RequestIdentityKey).(*integrations.RequestIdentity)
+	if !ok || identity == nil || identity.Token == "" {
+		app.unauthorizedResponse(w, r, errors.New("missing authentication identity"))
 		return
 	}
 
