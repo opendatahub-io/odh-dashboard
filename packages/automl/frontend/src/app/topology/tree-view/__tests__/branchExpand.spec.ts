@@ -58,6 +58,26 @@ describe('branchExpand', () => {
     ).toBe(true);
   });
 
+  it('should match topology labels to longer leaderboard keys/names', () => {
+    const node = makeNode('training__model__branch-2', 'ExtraTreesMSE_BAG_L1');
+    expect(
+      matchesWinnerModel(node, {
+        winnerModelLabel: 'ExtraTreesMSE_B AG_L1_FULL',
+        winnerModelKey: 'ExtraTreesMSE_BAG_L1_FULL',
+      }),
+    ).toBe(true);
+  });
+
+  it('should not match a short shared prefix across different models', () => {
+    const node = makeNode('training__model__branch-1', 'LightGBMXT_BAG_L2');
+    expect(
+      matchesWinnerModel(node, {
+        winnerModelLabel: 'LightGBM',
+        winnerModelKey: 'LightGBM',
+      }),
+    ).toBe(false);
+  });
+
   it('should resolve the winner branch and collapse to that spine', () => {
     const branches = new Map<number, PipelineNodeModelExpanded[]>([
       [0, [makeNode('training__model__branch-0', 'xgboost')]],

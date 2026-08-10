@@ -327,7 +327,24 @@ describe('transformStageMapNodesToTree', () => {
     const patternNodes = nodes.filter((node) => node.id.includes('__pattern__'));
     expect(patternNodes).toHaveLength(1);
     expect(patternNodes[0].data.label).toBe('Pattern winner');
+    expect(patternNodes[0].data.labelSubtitle).toBeUndefined();
     expect(patternNodes[0].data.showWinnerStar).toBe(false);
+  });
+
+  it('uses winnerPatternLabel on the collapsed spine when the run has succeeded', () => {
+    const topologyNodes = buildStageMapTopology(makeStageMap([ragOptimization]));
+    const { nodes } = transformStageMapNodesToTree(topologyNodes, {
+      patternsExpanded: false,
+      winnerResolved: true,
+      winnerPatternLabel: 'Best Pattern Display Name',
+      winnerPatternKey: 'PatternGraphRAG',
+    });
+
+    const patternNodes = nodes.filter((node) => node.id.includes('__pattern__'));
+    expect(patternNodes).toHaveLength(1);
+    expect(patternNodes[0].data.label).toBe('Best Pattern Display Name');
+    expect(patternNodes[0].data.labelSubtitle).toBe('winner');
+    expect(patternNodes[0].data.showWinnerStar).toBe(true);
   });
 
   it('expands all pattern branches when patternsExpanded is true', () => {

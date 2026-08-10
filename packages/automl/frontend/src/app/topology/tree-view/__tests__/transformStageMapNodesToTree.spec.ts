@@ -319,7 +319,24 @@ describe('transformStageMapNodesToTree', () => {
     const modelNodes = nodes.filter((node) => node.id.includes('__model__'));
     expect(modelNodes).toHaveLength(1);
     expect(modelNodes[0].data.label).toBe('Model winner');
+    expect(modelNodes[0].data.labelSubtitle).toBeUndefined();
     expect(modelNodes[0].data.showWinnerStar).toBe(false);
+  });
+
+  it('uses winnerModelLabel on the collapsed spine when the run has succeeded', () => {
+    const topologyNodes = buildStageMapTopology(makeStageMap([training]));
+    const { nodes } = transformStageMapNodesToTree(topologyNodes, {
+      modelsExpanded: false,
+      winnerResolved: true,
+      winnerModelLabel: 'Best Model Display Name',
+      winnerModelKey: 'xgboost',
+    });
+
+    const modelNodes = nodes.filter((node) => node.id.includes('__model__'));
+    expect(modelNodes).toHaveLength(1);
+    expect(modelNodes[0].data.label).toBe('Best Model Display Name');
+    expect(modelNodes[0].data.labelSubtitle).toBe('Winner');
+    expect(modelNodes[0].data.showWinnerStar).toBe(true);
   });
 
   it('expands all model branches when modelsExpanded is true', () => {
@@ -335,5 +352,31 @@ describe('transformStageMapNodesToTree', () => {
     const winner = modelNodes.find((node) => node.data.label === 'lightgbm');
     expect(winner?.data.labelSubtitle).toBe('Winner');
     expect(winner?.data.showWinnerStar).toBe(true);
+  });
+
+  it('keeps the winner star when expanded even if the leaderboard key has a suffix', () => {
+    const longNameTraining = makeComponent('training', [
+      makeStage('load_data', { status: 'completed' }),
+      makeStage('model_selection', {
+        status: 'started',
+        selected_models: ['ExtraTreesMSE_BAG_L1', 'LightGBMXT_BAG_L2'],
+        steps: ['feature_engineering', 'model_training', 'stacking', 'model_evaluation'],
+      }),
+      makeStage('refit_full'),
+    ]);
+    const topologyNodes = buildStageMapTopology(makeStageMap([longNameTraining]));
+    const { nodes } = transformStageMapNodesToTree(topologyNodes, {
+      modelsExpanded: true,
+      winnerResolved: true,
+      winnerModelLabel: 'ExtraTreesMSE_B AG_L1_FULL',
+      winnerModelKey: 'ExtraTreesMSE_BAG_L1_FULL',
+    });
+
+    const modelNodes = nodes.filter((node) => node.id.includes('__model__'));
+    expect(modelNodes).toHaveLength(2);
+    const winner = modelNodes.find((node) => node.data.showWinnerStar === true);
+    expect(winner?.data.label).toBe('ExtraTreesMSE_B AG_L1_FULL');
+    expect(winner?.data.labelSubtitle).toBe('Winner');
+    expect(modelNodes.filter((node) => node.data.showWinnerStar).length).toBe(1);
   });
 });

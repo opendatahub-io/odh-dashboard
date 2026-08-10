@@ -58,6 +58,16 @@ describe('branchExpand', () => {
     ).toBe(true);
   });
 
+  it('should match topology labels to longer winner display names', () => {
+    const node = makeNode('rag__pattern__branch-1', 'PatternGraphRAG');
+    expect(
+      matchesWinnerPattern(node, {
+        winnerPatternLabel: 'PatternGraphRAG_v2',
+        winnerPatternKey: 'PatternGraphRAG_v2',
+      }),
+    ).toBe(true);
+  });
+
   it('should resolve the winner branch and collapse to that spine', () => {
     const branches = new Map<number, PipelineNodeModelExpanded[]>([
       [0, [makeNode('rag__pattern__branch-0', 'Pattern A')]],

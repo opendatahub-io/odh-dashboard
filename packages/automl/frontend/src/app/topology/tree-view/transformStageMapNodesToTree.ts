@@ -180,15 +180,18 @@ const modelTerminusExtras = (
   }
 
   const isWinner = matchesWinnerModel(topologyNode, options);
-  if (options.winnerResolved && isWinner) {
+
+  // Succeeded + known best model: model name + "Winner" subtitle + star.
+  // Collapsed spine is the winner path even if label matching is imperfect.
+  if (options.winnerResolved && (isWinner || isCollapsedSpine)) {
     return {
-      label: topologyNode.label,
+      label: options.winnerModelLabel ?? topologyNode.label,
       labelSubtitle: 'Winner',
       showWinnerStar: true,
     };
   }
 
-  // Collapsed shared spine without a resolved winner: generic terminus label.
+  // In progress / unknown (collapsed): generic label, no subtitle or star.
   if (isCollapsedSpine) {
     return {
       label: 'Model winner',

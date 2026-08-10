@@ -180,15 +180,18 @@ const patternTerminusExtras = (
   }
 
   const isWinner = matchesWinnerPattern(topologyNode, options);
-  if (options.winnerResolved && isWinner) {
+
+  // Succeeded + known best pattern: pattern name + "winner" subtitle + star.
+  // Collapsed spine is the winner path even if label matching is imperfect.
+  if (options.winnerResolved && (isWinner || isCollapsedSpine)) {
     return {
-      label: topologyNode.label,
+      label: options.winnerPatternLabel ?? topologyNode.label,
       labelSubtitle: 'winner',
       showWinnerStar: true,
     };
   }
 
-  // Collapsed shared spine without a resolved winner: generic terminus label.
+  // In progress / unknown (collapsed): generic label, no subtitle or star.
   if (isCollapsedSpine) {
     return {
       label: 'Pattern winner',

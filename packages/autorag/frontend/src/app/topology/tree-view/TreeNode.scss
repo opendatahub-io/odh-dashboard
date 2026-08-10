@@ -70,14 +70,20 @@
   }
 }
 
+/* Design: saturated brand-blue star + ring on white (not pale nonstatus blue). */
 .autorag-tree-node__winner-star {
+  --pf-topology__node__decorator__bg--Fill: var(--pf-t--global--background--color--primary--default);
+  --pf-topology__node__decorator__bg--Stroke: var(--pf-t--global--border--color--brand--default);
+  --pf-topology__node_decorator--Color: var(--pf-t--global--icon--color--brand--default);
+
   .pf-topology__node__decorator__bg {
-    fill: var(--pf-t--global--color--nonstatus--blue--default);
+    fill: var(--pf-topology__node__decorator__bg--Fill);
+    stroke: var(--pf-topology__node__decorator__bg--Stroke);
   }
 }
 
 .autorag-tree-node__winner-star-icon {
-  color: var(--pf-t--global--icon--color--inverse);
+  color: var(--pf-t--global--icon--color--brand--default);
   fill: currentColor;
 }
 

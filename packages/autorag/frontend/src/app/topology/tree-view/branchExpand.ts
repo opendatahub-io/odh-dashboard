@@ -19,6 +19,24 @@ const BRANCH_STARTED_STATUSES = new Set(['InProgress', 'Succeeded', 'Failed', 'C
 
 const normalizeMatchKey = (value: string): string => value.replace(/\s+/g, '').toLowerCase();
 
+/** Avoid short prefix false-positives (e.g. "pattern" vs "patternhyde"). */
+const MIN_PREFIX_MATCH_LEN = 12;
+
+/**
+ * Exact match, or longer name starts with shorter (leaderboard / display names
+ * often add suffixes that topology branch labels omit).
+ */
+const valuesLooselyMatch = (left: string, right: string): boolean => {
+  if (left === right) {
+    return true;
+  }
+  const [shorter, longer] = left.length <= right.length ? [left, right] : [right, left];
+  if (shorter.length < MIN_PREFIX_MATCH_LEN) {
+    return false;
+  }
+  return longer.startsWith(shorter);
+};
+
 const isPatternTerminusId = (nodeId: string): boolean => /__pattern__branch-\d+$/.test(nodeId);
 
 const isAnyBranchNodeId = (nodeId: string): boolean =>
@@ -58,15 +76,21 @@ export const matchesWinnerPattern = (
   patternNode: PipelineNodeModelExpanded,
   options: Pick<BranchExpandOptions, 'winnerPatternLabel' | 'winnerPatternKey'>,
 ): boolean => {
-  const label = patternNode.label ?? '';
+  const nodeValues = [patternNode.label, patternNode.id].filter(
+    (value): value is string => typeof value === 'string' && value.length > 0,
+  );
   const candidates = [options.winnerPatternLabel, options.winnerPatternKey].filter(
     (value): value is string => typeof value === 'string' && value.length > 0,
   );
-  if (candidates.length === 0) {
+  if (nodeValues.length === 0 || candidates.length === 0) {
     return false;
   }
-  const normalizedLabel = normalizeMatchKey(label);
-  return candidates.some((candidate) => normalizeMatchKey(candidate) === normalizedLabel);
+  return candidates.some((candidate) => {
+    const normalizedCandidate = normalizeMatchKey(candidate);
+    return nodeValues.some((value) =>
+      valuesLooselyMatch(normalizeMatchKey(value), normalizedCandidate),
+    );
+  });
 };
 
 export const resolveWinnerBranchIndex = (
