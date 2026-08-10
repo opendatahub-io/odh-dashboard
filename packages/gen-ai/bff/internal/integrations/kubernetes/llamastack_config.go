@@ -432,7 +432,8 @@ func NewPassthroughProvider(providerID, baseURL string) Provider {
 // model installs can skip OGXServer CR updates (zero-restart path).
 func (c *LlamaStackConfig) HasPassthroughProvider() bool {
 	for _, p := range c.Providers.Inference {
-		if p.ProviderType == "remote::passthrough" {
+		if p.ProviderType == constants.PassthroughProviderType &&
+			p.ProviderID == constants.PassthroughProviderID {
 			return true
 		}
 	}

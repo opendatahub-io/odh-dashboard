@@ -346,6 +346,7 @@ func TestGenerateLlamaStackConfig_PassthroughProvider(t *testing.T) {
 			Logger: slog.Default(),
 			EnvConfig: config.EnvConfig{
 				GatewayDomain: "apps.cluster.example.com",
+				APIPathPrefix: "/api/v1",
 			},
 		}
 
@@ -366,7 +367,7 @@ func TestGenerateLlamaStackConfig_PassthroughProvider(t *testing.T) {
 		// Find the passthrough provider and verify its config
 		var passthrough *Provider
 		for i := range cfg.Providers.Inference {
-			if cfg.Providers.Inference[i].ProviderType == "remote::passthrough" {
+			if cfg.Providers.Inference[i].ProviderID == constants.PassthroughProviderID {
 				passthrough = &cfg.Providers.Inference[i]
 				break
 			}
