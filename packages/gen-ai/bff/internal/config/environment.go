@@ -172,4 +172,11 @@ type EnvConfig struct {
 	// PgvectorImage is the container image for auto-provisioned pgvector.
 	// Injected by the operator via RELATED_IMAGE_POSTGRESQL_16_IMAGE.
 	PgvectorImage string
+
+	// ─── GATEWAY ───────────────────────────────────────────────
+	// GatewayDomain is the external domain of the OpenShift Gateway/Route used to
+	// reach the BFF from user namespaces. Used to construct the base_url for the
+	// remote::passthrough provider in OGX configurations.
+	// Injected by the operator via GATEWAY_DOMAIN env var.
+	GatewayDomain string
 }
