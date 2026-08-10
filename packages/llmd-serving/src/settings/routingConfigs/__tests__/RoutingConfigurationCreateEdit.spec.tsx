@@ -1,21 +1,12 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
+import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import '@testing-library/jest-dom';
-import { useNavigate, useParams, useLocation } from 'react-router';
 import { mockLLMInferenceServiceConfigK8sResource } from '@odh-dashboard/llmd-serving/__mocks__/mockLLMInferenceServiceConfigK8sResource';
 import { TopologyType } from '../../../types';
-import { useWatchRouterConfigs } from '../../../api/LLMInferenceServiceConfigs';
+import type { LLMInferenceServiceConfigKind } from '../../../types';
+import { RoutingConfigContext } from '../RoutingConfigContext';
 import RoutingConfigurationCreateEdit from '../RoutingConfigurationCreateEdit';
-
-jest.mock('react-router', () => ({
-  Link: ({ children, to }: { children: React.ReactNode; to: string }) => (
-    <a href={to}>{children}</a>
-  ),
-  Navigate: ({ to }: { to: string }) => <div data-testid="navigate" data-to={to} />,
-  useNavigate: jest.fn(),
-  useParams: jest.fn(),
-  useLocation: jest.fn(),
-}));
 
 jest.mock('@odh-dashboard/internal/redux/selectors/project', () => ({
   useDashboardNamespace: jest.fn(() => ({ dashboardNamespace: 'opendatahub' })),
@@ -48,31 +39,48 @@ jest.mock('../../ConfigYAMLEditor', () =>
 jest.mock('../../../api/LLMInferenceServiceConfigs', () => ({
   createLLMInferenceServiceConfig: jest.fn(),
   patchLLMInferenceServiceConfig: jest.fn(),
-  useWatchRouterConfigs: jest.fn(),
 }));
 
-const mockUseNavigate = jest.mocked(useNavigate);
-const mockUseParams = jest.mocked(useParams);
-const mockUseLocation = jest.mocked(useLocation);
-const mockUseWatchRouterConfigs = jest.mocked(useWatchRouterConfigs);
+const renderAtRoute = (
+  configs: LLMInferenceServiceConfigKind[],
+  registeredPath: string,
+  url: string,
+  props: { listPath: string; isDuplicate?: boolean },
+) =>
+  render(
+    <MemoryRouter initialEntries={[url]}>
+      <RoutingConfigContext.Provider value={{ configs }}>
+        <Routes>
+          <Route
+            path={registeredPath}
+            element={
+              <RoutingConfigurationCreateEdit
+                listPath={props.listPath}
+                isDuplicate={props.isDuplicate}
+              />
+            }
+          />
+        </Routes>
+      </RoutingConfigContext.Provider>
+    </MemoryRouter>,
+  );
 
 describe('RoutingConfigurationCreateEdit', () => {
-  const navigateMock = jest.fn();
-
   beforeEach(() => {
     jest.clearAllMocks();
-    mockUseNavigate.mockReturnValue(navigateMock);
-    mockUseLocation.mockReturnValue({ state: null, key: '', pathname: '', search: '', hash: '' });
+    global.fetch = jest.fn(() => Promise.resolve({ ok: false } as Response)) as jest.Mock;
+  });
+
+  afterEach(() => {
+    // @ts-expect-error — remove the stub so it can't leak into other suites
+    delete global.fetch;
   });
 
   describe('create mode', () => {
-    beforeEach(() => {
-      mockUseParams.mockReturnValue({});
-      mockUseWatchRouterConfigs.mockReturnValue([[], true, undefined]);
-    });
-
     it('should not disable the topology type select', () => {
-      render(<RoutingConfigurationCreateEdit />);
+      renderAtRoute([], '/routing-configs/add', '/routing-configs/add', {
+        listPath: '/routing-configs',
+      });
 
       const topologySelect = screen.getByTestId('topology-type-select');
       expect(topologySelect).not.toBeDisabled();
@@ -80,11 +88,6 @@ describe('RoutingConfigurationCreateEdit', () => {
   });
 
   describe('duplicate mode', () => {
-    beforeEach(() => {
-      mockUseParams.mockReturnValue({});
-      mockUseWatchRouterConfigs.mockReturnValue([[], true, undefined]);
-    });
-
     it('should auto-update resource name when display name changes', () => {
       const sourceConfig = mockLLMInferenceServiceConfigK8sResource({
         name: 'source-router',
@@ -93,15 +96,12 @@ describe('RoutingConfigurationCreateEdit', () => {
         supportedTopologies: [TopologyType.SINGLE_NODE],
       });
 
-      mockUseLocation.mockReturnValue({
-        state: { sourceConfig },
-        key: '',
-        pathname: '',
-        search: '',
-        hash: '',
-      });
-
-      render(<RoutingConfigurationCreateEdit />);
+      renderAtRoute(
+        [sourceConfig],
+        '/routing-configs/duplicate/:configName',
+        '/routing-configs/duplicate/source-router',
+        { listPath: '/routing-configs', isDuplicate: true },
+      );
 
       const nameInput = screen.getByTestId('routing-config-name');
       fireEvent.change(nameInput, { target: { value: 'My Custom Router' } });
@@ -118,13 +118,13 @@ describe('RoutingConfigurationCreateEdit', () => {
       supportedTopologies: [TopologyType.SINGLE_NODE],
     });
 
-    beforeEach(() => {
-      mockUseParams.mockReturnValue({ configName: 'test-router' });
-      mockUseWatchRouterConfigs.mockReturnValue([[existingConfig], true, undefined]);
-    });
-
     it('should not disable the topology type select', () => {
-      render(<RoutingConfigurationCreateEdit />);
+      renderAtRoute(
+        [existingConfig],
+        '/routing-configs/edit/:configName',
+        '/routing-configs/edit/test-router',
+        { listPath: '/routing-configs' },
+      );
 
       const topologySelect = screen.getByTestId('topology-type-select');
       expect(topologySelect).not.toBeDisabled();

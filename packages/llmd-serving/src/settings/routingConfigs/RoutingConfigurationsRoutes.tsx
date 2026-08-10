@@ -8,8 +8,8 @@ const RoutingConfigurationsRoutes: React.FC = () => (
   <React.Suspense fallback={null}>
     <Routes>
       <Route index element={<RoutingConfigurationsView />} />
-      <Route path="add" element={<RoutingConfigurationCreateEdit />} />
-      <Route path="edit/:configName" element={<RoutingConfigurationCreateEdit />} />
+      <Route path="add" element={<RoutingConfigurationCreateEdit listPath=".." />} />
+      <Route path="edit/:configName" element={<RoutingConfigurationCreateEdit listPath=".." />} />
       <Route path="*" element={<Navigate to="." />} />
     </Routes>
   </React.Suspense>

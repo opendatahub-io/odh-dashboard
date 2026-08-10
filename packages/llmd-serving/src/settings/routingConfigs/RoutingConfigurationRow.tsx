@@ -82,7 +82,7 @@ const RoutingConfigurationRow: React.FC<RoutingConfigurationRowProps> = ({
                   },
                   {
                     title: 'Duplicate',
-                    onClick: () => navigate('add', { state: { sourceConfig: config } }),
+                    onClick: () => navigate(`duplicate/${configName}`),
                   },
                   { isSeparator: true },
                   {
@@ -94,7 +94,7 @@ const RoutingConfigurationRow: React.FC<RoutingConfigurationRowProps> = ({
               : [
                   {
                     title: 'Duplicate',
-                    onClick: () => navigate('add', { state: { sourceConfig: config } }),
+                    onClick: () => navigate(`duplicate/${configName}`),
                   },
                 ]
           }

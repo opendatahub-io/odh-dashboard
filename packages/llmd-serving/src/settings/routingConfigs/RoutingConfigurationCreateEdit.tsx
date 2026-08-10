@@ -12,7 +12,7 @@ import {
   HelperText,
   HelperTextItem,
 } from '@patternfly/react-core';
-import { Link, Navigate, useLocation, useNavigate, useParams } from 'react-router';
+import { Link, Navigate, useNavigate, useParams } from 'react-router';
 import YAML from 'yaml';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports -- standard page shell wrapper
 import { ApplicationsPage } from '@odh-dashboard/ui-core';
@@ -27,6 +27,7 @@ import K8sNameDescriptionField, {
 } from '@odh-dashboard/ui-core/components/K8sNameDescriptionField';
 import useNotification from '@odh-dashboard/internal/utilities/useNotification';
 import SimpleSelect, { SimpleSelectOption } from '@odh-dashboard/ui-core/components/SimpleSelect';
+import { RoutingConfigContext } from './RoutingConfigContext';
 import ConfigYAMLEditor from '../ConfigYAMLEditor';
 import { overrideLlmConfigFields } from '../configYamlUtils';
 import {
@@ -46,7 +47,6 @@ import {
 import {
   createLLMInferenceServiceConfig,
   patchLLMInferenceServiceConfig,
-  useWatchRouterConfigs,
 } from '../../api/LLMInferenceServiceConfigs';
 
 const SAMPLE_DISPLAY_NAME_ANNOTATION = 'openshift.io/display-name';
@@ -74,20 +74,22 @@ const buildRouterSamplesUrl = (topology: TopologyType): string =>
   `/api/service/model-serving/api/v1/samples/llm-d?type=router&topology=${topology}`;
 
 const RoutingConfigurationCreateEditInner: React.FC<{
-  existingConfig?: LLMInferenceServiceConfigKind;
-}> = ({ existingConfig }) => {
+  sourceConfig?: LLMInferenceServiceConfigKind;
+  listPath: string;
+  isDuplicate: boolean;
+}> = ({ sourceConfig, listPath, isDuplicate }) => {
   const navigate = useNavigate();
-  const { state }: { state?: { sourceConfig: LLMInferenceServiceConfigKind } } = useLocation();
   const { configName } = useParams<{ configName?: string }>();
   const { dashboardNamespace } = useDashboardNamespace();
   const notification = useNotification();
 
-  const isDuplicateMode = !!state?.sourceConfig;
-  const isEditMode = !!configName && !isDuplicateMode;
+  const existingConfig = !isDuplicate ? sourceConfig : undefined;
+  const duplicateSource = isDuplicate ? sourceConfig : undefined;
+  const isEditMode = !!configName && !isDuplicate;
 
   // --- Topology type state ---
   const [selectedTopology, setSelectedTopology] = React.useState<TopologyType | ''>(() => {
-    const source = existingConfig ?? state?.sourceConfig;
+    const source = existingConfig ?? duplicateSource;
     if (source) {
       return resolveTopologyFromConfig(source) ?? '';
     }
@@ -103,7 +105,7 @@ const RoutingConfigurationCreateEditInner: React.FC<{
 
   // Probe API on topology change to check if a sample exists
   React.useEffect(() => {
-    if (!selectedTopology || isEditMode || isDuplicateMode) {
+    if (!selectedTopology || isEditMode || isDuplicate) {
       return undefined;
     }
     setTemplateError(false);
@@ -126,7 +128,7 @@ const RoutingConfigurationCreateEditInner: React.FC<{
 
     return () => controller.abort();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedTopology, isEditMode, isDuplicateMode]);
+  }, [selectedTopology, isEditMode, isDuplicate]);
 
   const handleConfigSourceChange = (key: string) => {
     if (key === 'template') {
@@ -183,11 +185,11 @@ const RoutingConfigurationCreateEditInner: React.FC<{
     if (existingConfig) {
       return existingConfig;
     }
-    if (state?.sourceConfig) {
-      const cleanMeta = cleanResourceForYAMLViewer(state.sourceConfig.metadata);
-      const duplicateDisplayName = `Copy of ${getDisplayNameFromK8sResource(state.sourceConfig)}`;
+    if (duplicateSource) {
+      const cleanMeta = cleanResourceForYAMLViewer(duplicateSource.metadata);
+      const duplicateDisplayName = `Copy of ${getDisplayNameFromK8sResource(duplicateSource)}`;
       return {
-        ...state.sourceConfig,
+        ...duplicateSource,
         metadata: {
           ...cleanMeta,
           name: translateDisplayNameForK8s(duplicateDisplayName),
@@ -199,25 +201,25 @@ const RoutingConfigurationCreateEditInner: React.FC<{
       };
     }
     return undefined;
-  }, [existingConfig, state?.sourceConfig]);
+  }, [existingConfig, duplicateSource]);
 
   const k8sNameDesc = useK8sNameDescriptionFieldData({
     initialData: initialResource,
-    editableK8sName: isDuplicateMode,
+    editableK8sName: isDuplicate,
   });
 
   const [yamlCode, setYamlCode] = React.useState(() => {
     if (existingConfig) {
       return YAML.stringify(existingConfig);
     }
-    if (isDuplicateMode) {
-      const cleanMeta = cleanResourceForYAMLViewer(state.sourceConfig.metadata);
+    if (duplicateSource) {
+      const cleanMeta = cleanResourceForYAMLViewer(duplicateSource.metadata);
       const cleanAnnotations = stripDuplicatingAnnotations(cleanMeta.annotations);
       const cleanLabels = stripDuplicatingLabels(cleanMeta.labels);
-      const duplicateDisplayName = `Copy of ${getDisplayNameFromK8sResource(state.sourceConfig)}`;
+      const duplicateDisplayName = `Copy of ${getDisplayNameFromK8sResource(duplicateSource)}`;
       return YAML.stringify({
-        apiVersion: state.sourceConfig.apiVersion,
-        kind: state.sourceConfig.kind,
+        apiVersion: duplicateSource.apiVersion,
+        kind: duplicateSource.kind,
         metadata: {
           ...cleanMeta,
           name: translateDisplayNameForK8s(duplicateDisplayName),
@@ -227,7 +229,7 @@ const RoutingConfigurationCreateEditInner: React.FC<{
           },
           labels: cleanLabels,
         },
-        spec: state.sourceConfig.spec,
+        spec: duplicateSource.spec,
       });
     }
     return '';
@@ -236,17 +238,15 @@ const RoutingConfigurationCreateEditInner: React.FC<{
   const [error, setError] = React.useState<Error | undefined>();
 
   // --- Page chrome ---
-  const sourceDisplayName = state?.sourceConfig
-    ? getDisplayNameFromK8sResource(state.sourceConfig)
-    : '';
+  const sourceDisplayName = duplicateSource ? getDisplayNameFromK8sResource(duplicateSource) : '';
 
-  const pageTitle = isDuplicateMode
+  const pageTitle = isDuplicate
     ? 'Duplicate llm-d routing configuration'
     : isEditMode
     ? `Edit ${k8sNameDesc.data.name || configName}`
     : 'Add llm-d routing configuration';
 
-  const pageDescription = isDuplicateMode
+  const pageDescription = isDuplicate
     ? `Create a copy based on ${sourceDisplayName}. Update the configuration before saving.`
     : !isEditMode
     ? 'Add a new routing configuration that will be available for users on this cluster.'
@@ -254,7 +254,7 @@ const RoutingConfigurationCreateEditInner: React.FC<{
 
   const showEditor =
     isEditMode ||
-    isDuplicateMode ||
+    isDuplicate ||
     configSource === 'editor' ||
     (configSource === 'template' && yamlCode !== '');
 
@@ -315,7 +315,7 @@ const RoutingConfigurationCreateEditInner: React.FC<{
       } else {
         await createLLMInferenceServiceConfig(newConfig);
       }
-      navigate('..');
+      navigate(listPath);
     } catch (e) {
       const err = e instanceof Error ? e : new Error('Unknown error');
       setError(err);
@@ -334,7 +334,7 @@ const RoutingConfigurationCreateEditInner: React.FC<{
       description={pageDescription}
       breadcrumb={
         <Breadcrumb>
-          <BreadcrumbItem render={() => <Link to="..">llm-d routing configurations</Link>} />
+          <BreadcrumbItem render={() => <Link to={listPath}>llm-d routing configurations</Link>} />
           <BreadcrumbItem isActive>{pageTitle}</BreadcrumbItem>
         </Breadcrumb>
       }
@@ -363,7 +363,7 @@ const RoutingConfigurationCreateEditInner: React.FC<{
             }}
           />
         </FormGroup>
-        {!isEditMode && !isDuplicateMode && (
+        {!isEditMode && !isDuplicate && (
           <FormGroup label="Configuration source" isRequired fieldId="config-source">
             <FormHelperText>
               <HelperText>
@@ -425,7 +425,7 @@ const RoutingConfigurationCreateEditInner: React.FC<{
             variant="link"
             data-testid="cancel-routing-config-button"
             isDisabled={loading}
-            onClick={() => navigate('..')}
+            onClick={() => navigate(listPath)}
           >
             Cancel
           </Button>
@@ -435,37 +435,47 @@ const RoutingConfigurationCreateEditInner: React.FC<{
   );
 };
 
-const RoutingConfigurationCreateEdit: React.FC = () => {
+type RoutingConfigurationCreateEditProps = {
+  /**
+   * Absolute path of the configurations list this form returns to. Passed
+   * explicitly because the form is mounted both under the standalone list route
+   * and as a top-level breakout route, and route-relative `..` resolves
+   * differently in the two.
+   *
+   * After RHOAIENG-80077 removes the standalone page the breakout route is the
+   * only mount, so this could collapse to ROUTING_CONFIGS_TAB_PATH.
+   * https://issues.redhat.com/browse/RHOAIENG-80077
+   */
+  listPath: string;
+  /** True when mounted at the duplicate route. */
+  isDuplicate?: boolean;
+};
+
+const RoutingConfigurationCreateEdit: React.FC<RoutingConfigurationCreateEditProps> = ({
+  listPath,
+  isDuplicate = false,
+}) => {
   const { configName } = useParams<{ configName?: string }>();
-  const { state }: { state?: { sourceConfig: LLMInferenceServiceConfigKind } } = useLocation();
-  const { dashboardNamespace } = useDashboardNamespace();
-  const [configs, loaded] = useWatchRouterConfigs(dashboardNamespace);
+  const { configs } = React.useContext(RoutingConfigContext);
 
-  const isDuplicateMode = !!state?.sourceConfig;
-  const isEditMode = !!configName && !isDuplicateMode;
-
-  const existingConfig = React.useMemo(
+  const sourceConfig = React.useMemo(
     () => (configName ? configs.find((c) => c.metadata.name === configName) : undefined),
     [configs, configName],
   );
 
-  if (isEditMode && !loaded) {
-    return (
-      <ApplicationsPage title="Edit routing configuration" loaded={false} empty={false}>
-        {null}
-      </ApplicationsPage>
-    );
+  // Edit/duplicate need the named config; context is already loaded (provider
+  // gates on that). Missing ⇒ redirect to the list.
+  if (configName && !sourceConfig) {
+    return <Navigate to={listPath} replace />;
   }
 
-  if (isEditMode && loaded && !existingConfig) {
-    return (
-      <ApplicationsPage title="Routing configuration not found" loaded empty={false}>
-        <Navigate to=".." />
-      </ApplicationsPage>
-    );
-  }
-
-  return <RoutingConfigurationCreateEditInner existingConfig={existingConfig} />;
+  return (
+    <RoutingConfigurationCreateEditInner
+      listPath={listPath}
+      isDuplicate={isDuplicate}
+      sourceConfig={sourceConfig}
+    />
+  );
 };
 
 export default RoutingConfigurationCreateEdit;
