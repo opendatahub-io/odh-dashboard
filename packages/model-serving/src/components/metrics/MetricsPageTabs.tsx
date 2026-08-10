@@ -2,11 +2,13 @@ import React from 'react';
 import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { Tab, TabAction, Tabs, TabTitleText } from '@patternfly/react-core';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
+import {
+  useIsProjectNIMSupported,
+  useServingPlatformStatuses,
+} from '@odh-dashboard/plugin-core/host-api';
 import { useModelBiasData } from '@odh-dashboard/internal/concepts/trustyai/context/useModelBiasData';
 import NotFound from '@odh-dashboard/ui-core/components/NotFound';
 import useDoesTrustyAICRExist from '@odh-dashboard/internal/concepts/trustyai/context/useDoesTrustyAICRExist';
-import useServingPlatformStatuses from '@odh-dashboard/internal/pages/modelServing/useServingPlatformStatuses';
-import { isProjectNIMSupported } from '@odh-dashboard/internal/pages/modelServing/screens/projects/nim/nimUtils';
 import { byName } from '@odh-dashboard/k8s-core';
 import { ProjectsContext } from '@odh-dashboard/ui-core/context/ProjectsContext';
 import { TrustyInstallState } from '@odh-dashboard/trustyai/types';
@@ -25,11 +27,12 @@ type MetricsPageTabsProps = {
 
 const MetricsPageTabs: React.FC<MetricsPageTabsProps> = ({ model }) => {
   const servingPlatformStatuses = useServingPlatformStatuses();
+  const isProjectNIMSupportedFn = useIsProjectNIMSupported();
   const isNIMAvailable = servingPlatformStatuses.kServeNIM.enabled;
   const { projects } = React.useContext(ProjectsContext);
   const project = projects.find(byName(model.metadata.namespace));
   const enabledTabs = useMetricsPageEnabledTabs();
-  const isKServeNIMEnabled = project ? isProjectNIMSupported(project) : false;
+  const isKServeNIMEnabled = project ? isProjectNIMSupportedFn(project) : false;
   const isNimEnabled = isNIMAvailable && isKServeNIMEnabled;
   const { biasMetricConfigs, statusState } = useModelBiasData();
   const [biasMetricsInstalled] = useDoesTrustyAICRExist();

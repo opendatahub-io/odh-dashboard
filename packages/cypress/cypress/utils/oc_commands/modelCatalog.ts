@@ -5,58 +5,47 @@ import type { CommandLineResult } from '../../types';
 import { maskSensitiveInfo } from '../maskSensitiveInfo';
 
 /**
- * Helper to parse YAML using either yq or jq (with Python fallback).
+ * Helper to parse YAML using awk — no yq, jq, or Python required.
  * Returns a command that reads YAML from stdin and extracts the enabled field for a given catalog ID.
- *
- * This uses a fallback mechanism to work in environments where yq may not be available:
- * 1. First tries `yq` (YAML processor) - if available
- * 2. Falls back to `python3 + jq` - converts YAML to JSON, then uses jq to parse
- *
- * Note: The Python fallback requires PyYAML module to be installed in the environment.
- * This is typically available in CI environments (e.g., Fedora containers with python3-pyyaml).
  *
  * @param sourceId The catalog source ID to query
  * @returns A command string that can be piped to
  */
 const getYamlParseCommand = (sourceId: string): string => {
-  // First try yq (YAML processor), then fall back to Python + jq
-  return `
-    if command -v yq >/dev/null 2>&1; then
-      yq '.catalogs[] | select(.id == "${sourceId}") | .enabled'
-    else
-      python3 -c 'import sys, yaml, json; json.dump(yaml.safe_load(sys.stdin), sys.stdout)' 2>/dev/null | jq -r '.catalogs[] | select(.id == "${sourceId}") | .enabled // empty'
-    fi
-  `.trim();
+  // Use awk to extract the enabled field — no yq, jq, or Python required.
+  // Handles both field orderings within a catalog entry:
+  //   - enabled: true/false     (UI-written order)
+  //     id: <sourceId>
+  // and:
+  //   - id: <sourceId>          (default configmap order)
+  //     enabled: true/false
+  // Scans each entry block, collects both id and enabled, prints when both are known.
+  return `awk '
+/^[[:space:]]*-[[:space:]]/{in_entry=1; enabled_val=""; id_val=""}
+in_entry && /id:/{sub(/.*id:[[:space:]]*/,""); id_val=$0}
+in_entry && /enabled:/{sub(/.*enabled:[[:space:]]*/,""); enabled_val=$0}
+in_entry && id_val=="${sourceId}" && enabled_val!=""{print enabled_val; exit}
+'`;
 };
 
 /**
- * Helper to update YAML using either yq or Python.
- * Returns a command that reads YAML from stdin, updates a field, and outputs modified YAML.
- *
- * This uses a fallback mechanism to work in environments where yq may not be available:
- * 1. First tries `yq` (YAML processor) - if available
- * 2. Falls back to `python3` - parses YAML, modifies it, and outputs YAML
- *
- * Note: The Python fallback requires PyYAML module to be installed in the environment.
+ * Helper to update YAML using awk — no yq, jq, or Python required.
+ * Returns a command that reads YAML from stdin, sets enabled=true for the given source, and outputs the modified YAML.
  *
  * @param sourceId The catalog source ID to update
  * @returns A command string that can be used in a pipeline
  */
 const getYamlUpdateCommand = (sourceId: string): string => {
-  return `
-    if command -v yq >/dev/null 2>&1; then
-      yq '(.catalogs[] | select(.id == "${sourceId}")).enabled = true'
-    else
-      python3 -c "
-import sys, yaml, json
-data = yaml.safe_load(sys.stdin)
-for catalog in data.get('catalogs', []):
-    if catalog.get('id') == '${sourceId}':
-        catalog['enabled'] = True
-print(yaml.dump(data, default_flow_style=False), end='')
-"
-    fi
-  `.trim();
+  // Use awk to set enabled=true for the matching source — no yq or Python required.
+  // Buffers each catalog entry, identifies it by id, then patches the enabled field
+  // before flushing. Handles both field orderings (enabled before or after id).
+  return `awk -v target="${sourceId}" '
+/^[[:space:]]*-[[:space:]]/{flush_buf();buflen=0;delete buf;in_entry=1;entry_id=""}
+in_entry{buflen++;buf[buflen]=$0;if(/id:/){tmp=$0;sub(/.*id:[[:space:]]*/,"",tmp);entry_id=tmp}next}
+{flush_buf();print}
+END{flush_buf()}
+function flush_buf(  i,line){for(i=1;i<=buflen;i++){line=buf[i];if(entry_id==target&&line~/enabled:/){sub(/enabled:[[:space:]]*[^[:space:]]*/,"enabled: true",line)};print line};buflen=0;delete buf;entry_id=""}
+'`;
 };
 
 /**
@@ -482,7 +471,7 @@ export const hasOtherEnabledCatalogSources = (
   };
 
   const userCmd = `oc get configmap model-catalog-sources -n ${namespace} -o jsonpath='{.data.sources\\.yaml}'`;
-  const defaultCmd = `oc get configmap model-catalog-default-sources -n ${namespace} -o jsonpath='{.data.sources\\.yaml}'`;
+  const defaultCmd = `oc get configmap default-catalog-sources -n ${namespace} -o jsonpath='{.data.sources\\.yaml}'`;
 
   return execWithOutput(userCmd, 30).then((userResult: CommandLineResult) => {
     if (userResult.exitCode === 0 && userResult.stdout.trim()) {

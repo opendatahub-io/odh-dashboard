@@ -528,6 +528,14 @@ func (app *App) Routes() http.Handler {
 	apiRouter.PUT(constants.AgentProfileIDPath, app.AttachNamespace(app.RequireAccessToService(app.UpdateAgentProfileHandler)))
 	apiRouter.DELETE(constants.AgentProfileIDPath, app.AttachNamespace(app.RequireAccessToService(app.DeleteAgentProfileHandler)))
 
+	// GenAI Proxy — OpenAI-compatible endpoints for OGX passthrough provider.
+	// Auth is handled by InjectRequestIdentity middleware (JWT forwarded by OGX via
+	// X-OGX-Provider-Data → forward_headers → x-forwarded-access-token).
+	// No AttachNamespace/RequireAccessToService: namespace is in the URL path.
+	// No AttachBFFMaaSClient: MaaS fetch is best-effort inside the handler and must not
+	// block the endpoint with a 503 when the MaaS BFF is not configured.
+	apiRouter.GET(constants.GenAIProxyNSModelsPath, app.GenAIProxyNSModelsHandler)
+
 	// App Router
 	appMux := http.NewServeMux()
 

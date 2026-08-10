@@ -1427,13 +1427,53 @@ class SubscriptionsTab {
   }
 }
 
+class OverviewTableRow extends TableRow {
+  findModelName(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().find('[data-label="Model name"]').findByTestId('table-row-title');
+  }
+
+  findModelId(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().find('[data-label="Model name"]');
+  }
+
+  findModelDescription(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('table-row-title-description');
+  }
+
+  findModelProject(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().find('[data-label="Project"]');
+  }
+
+  findModelPhase(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().find('[data-label="Status"]');
+  }
+
+  findModelSubscriptions(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().find('[data-label="Subscriptions"]');
+  }
+
+  findModelAuthorizationPolicies(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().find('[data-label="Authorization policies"]');
+  }
+}
+
 class OverviewTabPage {
+  getRow(modelId: string, namespace: string): OverviewTableRow {
+    return new OverviewTableRow(() =>
+      cy.findByTestId(`overview-model-row-${modelId}-${namespace}`).find('tr').first(),
+    );
+  }
+
+  getRowByIndex(index: number): OverviewTableRow {
+    return new OverviewTableRow(() => this.findModelRows().eq(index).find('tr').first());
+  }
+
   findTable(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('overview-table');
   }
 
   findModelRows(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findTable().findAllByTestId('overview-model-row');
+    return this.findTable().find('[data-testid^="overview-model-row-"]');
   }
 
   findColumnSortButton(label: string): Cypress.Chainable<JQuery<HTMLElement>> {

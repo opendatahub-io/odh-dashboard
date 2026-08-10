@@ -51,7 +51,7 @@ Extend the Agent Ops BFF detail endpoint so the frontend can populate the agent 
 - `agent.go` — prefers card description over annotation; attaches `agentCard` to detail response.
 - In-cluster `agentCardUrl` = `{primaryServiceUrl}/.well-known/agent-card.json`.
 
-### Mock data (`bff/internal/integrations/agents/mock/demo_client.go`)
+### Mock data (`bff/internal/integrations/agents/mocks/demo_client.go`)
 
 - Demo agent includes full sample `AgentCard` for local dev/tests.
 
@@ -221,7 +221,7 @@ packages/agent-ops/bff/internal/integrations/agents/kubernetes/agent_runtime.go
 packages/agent-ops/bff/internal/mapper/agent.go
 packages/agent-ops/bff/internal/mapper/agent_card.go
 packages/agent-ops/bff/internal/models/agent_card.go
-packages/agent-ops/bff/internal/integrations/agents/mock/demo_client.go
+packages/agent-ops/bff/internal/integrations/agents/mocks/demo_client.go
 ```
 
 ---

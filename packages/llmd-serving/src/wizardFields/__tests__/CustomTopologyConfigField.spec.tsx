@@ -1,13 +1,14 @@
 import React from 'react';
-import { render, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import '@testing-library/jest-dom';
 import { mockLLMInferenceServiceConfigK8sResource } from '@odh-dashboard/internal/__mocks__/mockLLMInferenceServiceConfigK8sResource';
-import { TopologyType } from '../../types';
+import { TopologyType, type LLMInferenceServiceConfigKind } from '../../types';
 import {
   CustomTopologyConfigFieldWizardField,
   TOPOLOGY_CONFIG_DEFAULT,
 } from '../CustomTopologyConfigField';
-import type { TopologyTypeExternalData } from '../TopologyTypeField';
 import type { CustomTopologyConfigFieldData } from '../CustomTopologyConfigField';
+import type { TopologyTypeExternalData } from '../TopologyTypeField';
 
 const { getInitialFieldData } = CustomTopologyConfigFieldWizardField.reducerFunctions;
 const CustomTopologyConfigFieldComponent = CustomTopologyConfigFieldWizardField.component;
@@ -29,6 +30,22 @@ const mockSingleNodePdConfig = mockLLMInferenceServiceConfigK8sResource({
   displayName: 'Single Node P/D Config',
   topologyType: TopologyType.SINGLE_NODE_DISAGGREGATED,
 });
+
+const mockLocalConfig: LLMInferenceServiceConfigKind = (() => {
+  const base = mockLLMInferenceServiceConfigK8sResource({
+    name: 'my-model-multi-node-config-1',
+    namespace: 'my-project',
+    displayName: 'Multi-node Config 1 (Local Copy)',
+    topologyType: TopologyType.MULTI_NODE,
+  });
+  return {
+    ...base,
+    metadata: {
+      ...base.metadata,
+      labels: { 'opendatahub.io/config-type': TopologyType.MULTI_NODE },
+    },
+  };
+})();
 
 const emptyConfigsByTopology: Record<
   TopologyType,
@@ -148,12 +165,9 @@ describe('CustomTopologyConfigField component — edit flow configRef resolution
         value={{ configRef: 'multi-node-config-1' }}
         onChange={onChange}
         externalData={{
-          data: {
-            configsByTopology: {
-              ...emptyConfigsByTopology,
-              [TopologyType.MULTI_NODE]: [mockMultiNodeConfig, mockMultiNodeConfig2],
-            },
-          },
+          data: buildExternalData({
+            [TopologyType.MULTI_NODE]: [mockMultiNodeConfig, mockMultiNodeConfig2],
+          }),
           loaded: true,
         }}
         dependencies={{ topologyType: { topologyType: TopologyType.MULTI_NODE } }}
@@ -168,12 +182,7 @@ describe('CustomTopologyConfigField component — edit flow configRef resolution
   it('should clear configRef and auto-select when it references a deleted config', async () => {
     const onChange = jest.fn();
     const externalData = {
-      data: {
-        configsByTopology: {
-          ...emptyConfigsByTopology,
-          [TopologyType.MULTI_NODE]: [mockMultiNodeConfig],
-        },
-      },
+      data: buildExternalData({ [TopologyType.MULTI_NODE]: [mockMultiNodeConfig] }),
       loaded: true,
     };
     const deps = { topologyType: { topologyType: TopologyType.MULTI_NODE } };
@@ -219,7 +228,7 @@ describe('CustomTopologyConfigField component — edit flow configRef resolution
         value={{ configRef: 'deleted-config' }}
         onChange={onChange}
         externalData={{
-          data: { configsByTopology: emptyConfigsByTopology },
+          data: buildExternalData(),
           loaded: true,
         }}
         dependencies={{ topologyType: { topologyType: TopologyType.SINGLE_NODE } }}
@@ -229,5 +238,90 @@ describe('CustomTopologyConfigField component — edit flow configRef resolution
     await waitFor(() => {
       expect(onChange).toHaveBeenCalledWith({ selectedConfig: TOPOLOGY_CONFIG_DEFAULT });
     });
+  });
+
+  it('should resolve a configRef that points at the project namespace copy of a config', async () => {
+    const onChange = jest.fn();
+
+    render(
+      <CustomTopologyConfigFieldComponent
+        id={fieldId}
+        value={{ configRef: 'my-model-multi-node-config-1' }}
+        onChange={onChange}
+        externalData={{
+          data: buildExternalData({
+            [TopologyType.MULTI_NODE]: [mockMultiNodeConfig, mockLocalConfig],
+          }),
+          loaded: true,
+        }}
+        dependencies={{ topologyType: { topologyType: TopologyType.MULTI_NODE } }}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(onChange).toHaveBeenCalledWith({ selectedConfig: mockLocalConfig });
+    });
+    expect(onChange).not.toHaveBeenCalledWith({ configRef: undefined });
+  });
+
+  it('should show the project namespace copy of a config as an option', async () => {
+    render(
+      <CustomTopologyConfigFieldComponent
+        id={fieldId}
+        value={{ selectedConfig: mockLocalConfig }}
+        onChange={jest.fn()}
+        externalData={{
+          data: buildExternalData({
+            [TopologyType.MULTI_NODE]: [mockMultiNodeConfig, mockLocalConfig],
+          }),
+          loaded: true,
+        }}
+        dependencies={{ topologyType: { topologyType: TopologyType.MULTI_NODE } }}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId('custom-topology-config-select'));
+
+    expect(
+      await screen.findByTestId('topology-config-option-my-model-multi-node-config-1'),
+    ).toBeInTheDocument();
+  });
+});
+
+describe('CustomTopologyConfigField resolveDependencies', () => {
+  const { resolveDependencies } = CustomTopologyConfigFieldWizardField.reducerFunctions;
+
+  it('should expose the configRef from the initial data so only that config is fetched', () => {
+    const result = resolveDependencies?.(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      {} as any,
+      {
+        'llmd-serving/custom-topology-config': { configRef: 'my-model-multi-node-config-1' },
+      },
+    );
+
+    expect(result?.configRef).toBe('my-model-multi-node-config-1');
+  });
+
+  it('should not expose a configRef when the initial data has no ref', () => {
+    const result = resolveDependencies?.(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      {} as any,
+      { 'llmd-serving/custom-topology-config': { selectedConfig: mockMultiNodeConfig } },
+    );
+
+    expect(result?.configRef).toBeUndefined();
+  });
+
+  it('should expose the current topology type from the form state', () => {
+    const result = resolveDependencies?.(
+      {
+        'llmd-serving/topology-type': { topologyType: TopologyType.MULTI_NODE },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any,
+      undefined,
+    );
+
+    expect(result?.topologyType).toEqual({ topologyType: TopologyType.MULTI_NODE });
   });
 });

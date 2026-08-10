@@ -1,5 +1,6 @@
 import { mockLLMInferenceServiceK8sResource } from '@odh-dashboard/internal/__mocks__/mockLLMInferenceServiceK8sResource';
 import { mockLLMInferenceServiceConfigK8sResource } from '@odh-dashboard/internal/__mocks__/mockLLMInferenceServiceConfigK8sResource';
+import { K8sStatusError } from '@odh-dashboard/k8s-core';
 import {
   TOPOLOGY_TYPE_ANNOTATION,
   TOPOLOGY_CONFIG_REF_ANNOTATION,
@@ -15,7 +16,16 @@ import {
   extractTopologyType,
   extractTopologyConfig,
   extractRoutingConfig,
+  preDeployTopologyConfig,
 } from '../topology';
+import { createLLMInferenceServiceConfig } from '../../api/LLMInferenceServiceConfigs';
+
+jest.mock('../../api/LLMInferenceServiceConfigs', () => ({
+  createLLMInferenceServiceConfig: jest.fn(),
+  deleteLLMInferenceServiceConfig: jest.fn(),
+}));
+
+const mockCreateConfig = jest.mocked(createLLMInferenceServiceConfig);
 
 const makeDeployment = (
   overrides?: Partial<{
@@ -32,6 +42,11 @@ const makeDeployment = (
   }
   return { modelServingPlatformId: 'llmd-serving', model };
 };
+
+const DEPLOYMENT_NAME = 'test-llm-inference-service';
+
+/** Topology configs are copied into the deployment's namespace under a deployment-prefixed name. */
+const localConfigName = (configName: string) => `${DEPLOYMENT_NAME}-${configName}`;
 
 const buildTopologyConfig = (name: string, topologyType: TopologyType) =>
   mockLLMInferenceServiceConfigK8sResource({
@@ -88,13 +103,15 @@ describe('applyTopologyType', () => {
 // ─── applyTopologyConfig ────────────────────────────────────────────────────────
 
 describe('applyTopologyConfig', () => {
-  it('adds config name to baseRefs and stores annotation', () => {
+  it('adds the local config copy name to baseRefs and stores annotation', () => {
     const deployment = makeDeployment();
     const config = buildTopologyConfig('topo-1', TopologyType.MULTI_NODE);
     const result = applyTopologyConfig(deployment, { selectedConfig: config });
 
-    expect(result.model.spec.baseRefs).toContainEqual({ name: 'topo-1' });
-    expect(result.model.metadata.annotations?.[TOPOLOGY_CONFIG_REF_ANNOTATION]).toBe('topo-1');
+    expect(result.model.spec.baseRefs).toContainEqual({ name: localConfigName('topo-1') });
+    expect(result.model.metadata.annotations?.[TOPOLOGY_CONFIG_REF_ANNOTATION]).toBe(
+      localConfigName('topo-1'),
+    );
   });
 
   it('replaces a previous topology config baseRef', () => {
@@ -105,9 +122,11 @@ describe('applyTopologyConfig', () => {
     const config = buildTopologyConfig('new-topo', TopologyType.SINGLE_NODE_DISAGGREGATED);
     const result = applyTopologyConfig(deployment, { selectedConfig: config });
 
-    expect(result.model.spec.baseRefs).toContainEqual({ name: 'new-topo' });
+    expect(result.model.spec.baseRefs).toContainEqual({ name: localConfigName('new-topo') });
     expect(result.model.spec.baseRefs).not.toContainEqual({ name: 'old-topo' });
-    expect(result.model.metadata.annotations?.[TOPOLOGY_CONFIG_REF_ANNOTATION]).toBe('new-topo');
+    expect(result.model.metadata.annotations?.[TOPOLOGY_CONFIG_REF_ANNOTATION]).toBe(
+      localConfigName('new-topo'),
+    );
   });
 
   it('removes the topology baseRef when no config is selected', () => {
@@ -130,19 +149,57 @@ describe('applyTopologyConfig', () => {
 
     expect(result.model.spec.baseRefs).toContainEqual({ name: 'my-deployment' });
     expect(result.model.spec.baseRefs).toContainEqual({ name: 'some-other-ref' });
-    expect(result.model.spec.baseRefs).toContainEqual({ name: 'topo-1' });
+    expect(result.model.spec.baseRefs).toContainEqual({ name: localConfigName('topo-1') });
   });
 
   it('does not duplicate an existing baseRef', () => {
     const deployment = makeDeployment({
-      baseRefs: [{ name: 'topo-1' }],
-      annotations: { [TOPOLOGY_CONFIG_REF_ANNOTATION]: 'topo-1' },
+      baseRefs: [{ name: localConfigName('topo-1') }],
+      annotations: { [TOPOLOGY_CONFIG_REF_ANNOTATION]: localConfigName('topo-1') },
     });
     const config = buildTopologyConfig('topo-1', TopologyType.MULTI_NODE);
     const result = applyTopologyConfig(deployment, { selectedConfig: config });
 
-    const matching = result.model.spec.baseRefs?.filter((r) => r.name === 'topo-1');
+    const matching = result.model.spec.baseRefs?.filter(
+      (r) => r.name === localConfigName('topo-1'),
+    );
     expect(matching).toHaveLength(1);
+  });
+
+  it('does not re-prefix a config that is already a local copy', () => {
+    const deployment = makeDeployment();
+    const config = buildTopologyConfig(localConfigName('topo-1'), TopologyType.MULTI_NODE);
+    const result = applyTopologyConfig(deployment, { selectedConfig: config });
+
+    expect(result.model.spec.baseRefs).toEqual([{ name: localConfigName('topo-1') }]);
+    expect(result.model.metadata.annotations?.[TOPOLOGY_CONFIG_REF_ANNOTATION]).toBe(
+      localConfigName('topo-1'),
+    );
+  });
+
+  it('truncates the local copy name to the k8s name length limit', () => {
+    const deployment = makeDeployment();
+    const config = buildTopologyConfig('a'.repeat(250), TopologyType.MULTI_NODE);
+    const result = applyTopologyConfig(deployment, { selectedConfig: config });
+
+    const name = result.model.metadata.annotations?.[TOPOLOGY_CONFIG_REF_ANNOTATION];
+    expect(name).toHaveLength(253);
+    expect(name).toEqual(expect.stringMatching(new RegExp(`^${DEPLOYMENT_NAME}-a+$`)));
+    expect(result.model.spec.baseRefs).toContainEqual({ name });
+  });
+
+  it('does not leave a trailing hyphen when truncating the local copy name', () => {
+    const deployment = makeDeployment();
+    // Positions the cut directly after a hyphen: prefix (27) + 225 chars + '-' === 253
+    const config = buildTopologyConfig(
+      `${'a'.repeat(225)}-${'b'.repeat(30)}`,
+      TopologyType.MULTI_NODE,
+    );
+    const result = applyTopologyConfig(deployment, { selectedConfig: config });
+
+    const name = result.model.metadata.annotations?.[TOPOLOGY_CONFIG_REF_ANNOTATION];
+    expect(name).toBe(`${DEPLOYMENT_NAME}-${'a'.repeat(225)}`);
+    expect(name).not.toMatch(/-$/);
   });
 
   it('does not mutate the original deployment', () => {
@@ -237,7 +294,7 @@ describe('baseRefs ordering', () => {
     deployment = applyRoutingConfig(deployment, { selectedConfig: routerConfig });
 
     const names = deployment.model.spec.baseRefs?.map((r) => r.name) ?? [];
-    expect(names.indexOf('topo-1')).toBeLessThan(names.indexOf('router-1'));
+    expect(names.indexOf(localConfigName('topo-1'))).toBeLessThan(names.indexOf('router-1'));
   });
 
   it('coexists with existing accelerator config baseRef', () => {
@@ -250,7 +307,7 @@ describe('baseRefs ordering', () => {
 
     expect(deployment.model.spec.baseRefs).toEqual([
       { name: 'my-deployment' },
-      { name: 'topo-1' },
+      { name: localConfigName('topo-1') },
       { name: 'router-1' },
     ]);
   });
@@ -294,6 +351,99 @@ describe('extractTopologyConfig', () => {
   it('returns undefined when no annotation exists', () => {
     const deployment = makeDeployment();
     expect(extractTopologyConfig(deployment)).toBeUndefined();
+  });
+});
+
+// ─── preDeploy config copies ───────────────────────────────────────────────────
+
+describe('preDeploy config copies', () => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const wizardState = {} as any;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockCreateConfig.mockResolvedValue(mockLLMInferenceServiceConfigK8sResource({}));
+  });
+
+  it('carries the config type label onto the topology config copy', async () => {
+    const topologyConfig = buildTopologyConfig('topo-1', TopologyType.SINGLE_NODE);
+    expect(topologyConfig.metadata.labels?.['opendatahub.io/config-type']).toBe(
+      TopologyType.SINGLE_NODE,
+    );
+
+    let deployment = makeDeployment();
+    deployment = applyTopologyConfig(deployment, { selectedConfig: topologyConfig });
+    await preDeployTopologyConfig({ selectedConfig: topologyConfig }, wizardState, deployment);
+
+    expect(mockCreateConfig).toHaveBeenCalledTimes(1);
+    const created = mockCreateConfig.mock.calls[0][0];
+    expect(created.metadata.labels?.['opendatahub.io/config-type']).toBe(TopologyType.SINGLE_NODE);
+  });
+
+  it('does not carry the dashboard label onto the copy', async () => {
+    const topologyConfig = buildTopologyConfig('topo-1', TopologyType.SINGLE_NODE);
+
+    let deployment = makeDeployment();
+    deployment = applyTopologyConfig(deployment, { selectedConfig: topologyConfig });
+    await preDeployTopologyConfig({ selectedConfig: topologyConfig }, wizardState, deployment);
+
+    const created = mockCreateConfig.mock.calls[0][0];
+    expect(created.metadata.labels?.['opendatahub.io/dashboard']).toBeUndefined();
+  });
+
+  it('marks the copy as a local copy in its display name', async () => {
+    const topologyConfig = buildTopologyConfig('topo-1', TopologyType.SINGLE_NODE);
+
+    let deployment = makeDeployment();
+    deployment = applyTopologyConfig(deployment, { selectedConfig: topologyConfig });
+    await preDeployTopologyConfig({ selectedConfig: topologyConfig }, wizardState, deployment);
+
+    const created = mockCreateConfig.mock.calls[0][0];
+    expect(created.metadata.annotations?.['openshift.io/display-name']).toBe(
+      'Topology topo-1 (Local Copy)',
+    );
+  });
+
+  it('recreates the copy when editing without changing the selected config', async () => {
+    const topologyConfig = buildTopologyConfig('topo-1', TopologyType.SINGLE_NODE);
+    const configRef = localConfigName('topo-1');
+
+    const existingDeployment = makeDeployment({
+      annotations: { [TOPOLOGY_CONFIG_REF_ANNOTATION]: configRef },
+    });
+    let deployment = makeDeployment();
+    deployment = applyTopologyConfig(deployment, { selectedConfig: topologyConfig });
+
+    await preDeployTopologyConfig(
+      { selectedConfig: topologyConfig },
+      wizardState,
+      deployment,
+      existingDeployment,
+    );
+
+    expect(mockCreateConfig).toHaveBeenCalledTimes(1);
+    expect(mockCreateConfig.mock.calls[0][0].metadata.name).toBe(configRef);
+  });
+
+  it('tolerates a 409 when the local copy already exists', async () => {
+    const topologyConfig = buildTopologyConfig('topo-1', TopologyType.SINGLE_NODE);
+    mockCreateConfig.mockRejectedValue(
+      new K8sStatusError({
+        apiVersion: 'v1',
+        kind: 'Status',
+        status: 'Failure',
+        code: 409,
+        message: 'already exists',
+        reason: 'AlreadyExists',
+      }),
+    );
+
+    let deployment = makeDeployment();
+    deployment = applyTopologyConfig(deployment, { selectedConfig: topologyConfig });
+
+    await expect(
+      preDeployTopologyConfig({ selectedConfig: topologyConfig }, wizardState, deployment),
+    ).resolves.toBe(deployment);
   });
 });
 

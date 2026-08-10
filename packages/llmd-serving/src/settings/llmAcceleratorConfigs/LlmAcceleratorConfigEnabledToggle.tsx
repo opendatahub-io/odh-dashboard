@@ -10,6 +10,7 @@ import {
   UnsupportedStatusAcceptanceModal,
   type UnsupportedStatusDismissAction,
 } from '@odh-dashboard/model-serving/shared/components';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import {
   fireRiskAccepted,
   fireRiskDismissed,
@@ -82,7 +83,7 @@ const LlmAcceleratorConfigEnabledToggle: React.FC<LlmAcceleratorConfigEnabledTog
       [DISABLED_ANNOTATION]: 'false',
     });
     if (success) {
-      fireRiskAccepted({
+      fireRiskAccepted(fireMiscTrackingEvent, {
         runtimeResourceType: 'llm-accelerator-config',
         resourceId: config.metadata.name,
         resourceName: getDisplayNameFromK8sResource(config),
@@ -109,7 +110,7 @@ const LlmAcceleratorConfigEnabledToggle: React.FC<LlmAcceleratorConfigEnabledTog
           onAccept={handleAccept}
           onClose={(dismissAction: UnsupportedStatusDismissAction) => {
             setShowAcceptanceModal(false);
-            fireRiskDismissed({
+            fireRiskDismissed(fireMiscTrackingEvent, {
               runtimeResourceType: 'llm-accelerator-config',
               resourceId: config.metadata.name,
               resourceName: getDisplayNameFromK8sResource(config),
