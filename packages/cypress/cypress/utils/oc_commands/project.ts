@@ -99,6 +99,51 @@ export const addUserToProject = (
   });
 };
 
+export const deleteInferenceService = (
+  projectName: string,
+  options: {
+    ignoreNotFound?: boolean;
+  } = {},
+): Cypress.Chainable<CommandLineResult> => {
+  const { ignoreNotFound = true } = options;
+
+  const ignoreFlag = ignoreNotFound ? '--ignore-not-found' : '';
+
+  return cy
+    .exec(`oc delete isvc --all -n ${projectName} --wait=false ${ignoreFlag}`, {
+      failOnNonZeroExit: false,
+    })
+    .then((result) => {
+      if (result.exitCode !== 0) {
+        throw new Error(result.stderr);
+      }
+
+      return {
+        exitCode: result.exitCode,
+        stdout: result.stdout,
+        stderr: result.stderr,
+      };
+    });
+};
+
+export const waitForInferenceServiceDeletion = (
+  projectName: string,
+  timeout = 180000,
+): Cypress.Chainable<CommandLineResult> => {
+  return cy
+    .exec(
+      `oc wait --for=delete isvc --all -n ${projectName} --timeout=${Math.floor(timeout / 1000)}s`,
+      {
+        failOnNonZeroExit: false,
+        timeout,
+      },
+    )
+    .then((result) => ({
+      exitCode: result.exitCode,
+      stdout: result.stdout,
+      stderr: result.stderr,
+    }));
+};
 /**
  * Wait until a user can actually see a project after being granted access.
  *
@@ -121,6 +166,27 @@ export const waitForUserProjectAccess = (
       pollIntervalMs: interval,
     },
   );
+
+export const patchInferenceServiceFinalizers = (
+  projectName: string,
+): Cypress.Chainable<CommandLineResult> => {
+  return cy
+    .exec(
+      `for isvc in $(oc get isvc -n ${projectName} -o name); do
+         oc patch $isvc -n ${projectName} --type=merge \
+         -p '{"metadata":{"finalizers":[]}}' || true;
+       done`,
+      {
+        failOnNonZeroExit: false,
+        timeout: 60000,
+      },
+    )
+    .then((result) => ({
+      exitCode: result.exitCode,
+      stdout: result.stdout,
+      stderr: result.stderr,
+    }));
+};
 
 /**
  * Get OpenShift Project
