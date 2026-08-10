@@ -153,7 +153,14 @@ export const postDeployMaaSModelRef = async (
   if (dryRun || !deployedModel.model) {
     return;
   }
+
   // Deploy succeeded while this field was active; record before any early return so
+  const { name, namespace, uid } = deployedModel.model.metadata;
+  if (typeof fieldData.isChecked !== 'boolean' || !name || !namespace) {
+    return;
+  }
+
+  // Deploy succeeded while this field was active; record before side effects so
   // wizard exit cleanup does not emit cancel.
   fireMaaSPublishTrackingEvent(
     TrackingOutcome.submit,
@@ -161,10 +168,6 @@ export const postDeployMaaSModelRef = async (
     trackingOverrides(fieldData, existingDeployment),
   );
 
-  const { name, namespace, uid } = deployedModel.model.metadata;
-  if (typeof fieldData.isChecked !== 'boolean' || !name || !namespace) {
-    return;
-  }
   const { isChecked } = fieldData;
   const modelRef = { kind: LLMINFERENCESERVICE_KIND, name };
   const displayName =

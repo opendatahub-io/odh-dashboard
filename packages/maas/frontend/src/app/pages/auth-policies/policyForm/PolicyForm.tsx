@@ -175,11 +175,28 @@ const PolicyForm: React.FC<PolicyFormProps> = ({
       refresh();
       navigate(returnTo ?? getSectionUrl('auth-policies'));
     } catch (e) {
+      const errMsg =
+        e instanceof Error
+          ? e.message
+          : `Failed to ${initialPolicy ? 'update' : 'create'} authorization policy`;
       fireFormTrackingEvent(
         initialPolicy ? MaaSEvents.AUTH_POLICY_UPDATED : MaaSEvents.AUTH_POLICY_CREATED,
-        initialPolicy ? errorUpdateTrackingEventProperties : errorCreateTrackingEventProperties,
+        initialPolicy
+          ? {
+              ...errorUpdateTrackingEventProperties,
+              outcome: TrackingOutcome.submit,
+              success: false,
+              error: errMsg,
+              editSource,
+            }
+          : {
+              ...errorCreateTrackingEventProperties,
+              outcome: TrackingOutcome.submit,
+              success: false,
+              error: errMsg,
+            },
       );
-      setSubmitError(e instanceof Error ? e.message : 'Failed to save policy');
+      setSubmitError(errMsg);
     } finally {
       setIsSubmitting(false);
     }

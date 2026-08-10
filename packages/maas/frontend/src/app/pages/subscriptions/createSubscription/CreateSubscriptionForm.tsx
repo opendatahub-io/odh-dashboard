@@ -268,8 +268,8 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
           modelRefs: modelRefsPayload,
           priority,
         };
-        fireFormTrackingEvent(MaaSEvents.SUBSCRIPTION_UPDATED, submitEditTrackingEventProperties);
         await updateSubscription()(apiOpts, subscription.name, request);
+        fireFormTrackingEvent(MaaSEvents.SUBSCRIPTION_UPDATED, submitEditTrackingEventProperties);
       } else {
         const request: CreateSubscriptionRequest = {
           name: nameDescData.k8sName.value,
@@ -280,21 +280,33 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
           priority,
           createAuthPolicy,
         };
-        fireFormTrackingEvent(MaaSEvents.SUBSCRIPTION_CREATED, submitCreateTrackingEventProperties);
         await createSubscription()(apiOpts, request);
+        fireFormTrackingEvent(MaaSEvents.SUBSCRIPTION_CREATED, submitCreateTrackingEventProperties);
       }
       refresh();
       navigate(returnTo ?? getSectionUrl('subscriptions'));
     } catch (e) {
-      fireFormTrackingEvent(
-        isEditing ? MaaSEvents.SUBSCRIPTION_UPDATED : MaaSEvents.SUBSCRIPTION_CREATED,
-        isEditing ? errorEditTrackingEventProperties : errorCreateTrackingEventProperties,
-      );
-      setSubmitError(
+      const errMsg =
         e instanceof Error
           ? e.message
-          : `Failed to ${isEditing ? 'update' : 'create'} subscription`,
+          : `Failed to ${isEditing ? 'update' : 'create'} subscription`;
+      fireFormTrackingEvent(
+        isEditing ? MaaSEvents.SUBSCRIPTION_UPDATED : MaaSEvents.SUBSCRIPTION_CREATED,
+        isEditing
+          ? {
+              ...errorEditTrackingEventProperties,
+              outcome: TrackingOutcome.submit,
+              success: false,
+              error: errMsg,
+            }
+          : {
+              ...errorCreateTrackingEventProperties,
+              outcome: TrackingOutcome.submit,
+              success: false,
+              error: errMsg,
+            },
       );
+      setSubmitError(errMsg);
       setIsSubmitting(false);
     }
   };
@@ -321,6 +333,7 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
     hasDescription: nameDescData.description.trim() !== '',
     hasMatchingPolicy: formData.policies.some((p) => p.name === subscription?.name),
     priority: priority ?? 0,
+    editSource,
   };
 
   const prefillSource = preSelectedModel
@@ -332,7 +345,7 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
     groupCount: selectedGroupNames.length,
     modelCount: models.length,
     hasDescription: nameDescData.description.trim() !== '',
-    modelCountAvailable: modelRefsPayload.length,
+    modelCountAvailable: formData.modelRefs.length,
     hasMatchingPolicy: formData.policies.some((p) => p.name === subscription?.name),
     priority: priority ?? 0,
     prefillSource,
