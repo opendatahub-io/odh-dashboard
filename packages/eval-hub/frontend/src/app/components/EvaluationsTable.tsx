@@ -1,5 +1,6 @@
 import * as React from 'react';
 import {
+  Alert,
   Button,
   Checkbox,
   EmptyStateVariant,
@@ -31,6 +32,7 @@ import {
   getEvaluationName,
   getBenchmarkName,
   isEvaluationJobComparable,
+  isTerminalState,
 } from '~/app/utilities/evaluationUtils';
 import { CollectionNameMap } from '~/app/hooks/useCollectionNameMap';
 import {
@@ -43,6 +45,7 @@ import {
   TABLE_PER_PAGE_OPTIONS,
 } from '~/app/utilities/tablePaginationConstants';
 import { evaluationCompareBenchmarksRoute, evaluationCompareRoute } from '~/app/routes';
+import useEvaluationJobDetailPolling from '~/app/hooks/useEvaluationJobDetailPolling';
 import EvaluationsTableRow from './EvaluationsTableRow';
 
 type FilterOption = 'name' | 'evaluation' | 'evaluated' | 'status';
@@ -178,6 +181,20 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
   const paginatedEvaluations = React.useMemo(
     () => sortedEvaluations.slice(perPage * (page - 1), perPage * page),
     [sortedEvaluations, page, perPage],
+  );
+
+  const inProgressJobIds = React.useMemo(
+    () =>
+      paginatedEvaluations
+        .filter((job) => !isTerminalState(job.status.state))
+        .map((job) => job.resource.id),
+    [paginatedEvaluations],
+  );
+
+  const { polledJobDataMap, isWarning } = useEvaluationJobDetailPolling(
+    inProgressJobIds,
+    namespace,
+    loaded,
   );
 
   const comparableEvaluationsInView = React.useMemo(
@@ -458,6 +475,15 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
         </ToolbarContent>
       </Toolbar>
 
+      {isWarning && (
+        <Alert
+          variant="warning"
+          isInline
+          title="Status updates are temporarily unavailable"
+          data-testid="detail-polling-warning"
+        />
+      )}
+
       {isEmpty ? (
         <DashboardEmptyTableView
           onClearFilters={handleClearFilters}
@@ -535,6 +561,7 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
                 rowIndex={rowIndex}
                 namespace={namespace ?? ''}
                 collectionNameMap={collectionNameMap}
+                polledJobData={polledJobDataMap.get(job.resource.id)}
                 onActionComplete={onRefresh}
                 onShowStatus={onShowStatus}
                 isSelected={selectedEvaluationIds.has(job.resource.id)}

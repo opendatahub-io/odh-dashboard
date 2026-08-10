@@ -8,7 +8,7 @@ import {
   RETRY_DELAY_MS,
   MAX_RETRY_ATTEMPTS,
   createRequestPool,
-} from '~/app/utilities/detailPolling';
+} from '~/app/utilities/evaluationJobPolling';
 
 const parseErrorStatus = (error: Error): number | undefined => {
   const match = error.message.match(/\b(\d{3})\b/);
@@ -16,7 +16,7 @@ const parseErrorStatus = (error: Error): number | undefined => {
 };
 
 type DetailPollingResult = {
-  detailDataMap: Map<string, EvaluationJob>;
+  polledJobDataMap: Map<string, EvaluationJob>;
   isWarning: boolean;
 };
 
@@ -30,10 +30,13 @@ const useEvaluationJobDetailPolling = (
   const queries = useQueries({
     queries: jobIds.map((jobId) => ({
       queryKey: ['evalJobDetail', namespace, jobId],
+      // Route each fetch through the request pool so at most 5 run concurrently
       queryFn: ({ signal }: { signal: AbortSignal }) =>
         poolRef.current.enqueue(() => getEvaluationJob('', namespace ?? '', jobId)({ signal })),
       enabled: enabled && !!namespace,
+      // Keep showing the last successful data while a refetch or retry is in progress
       placeholderData: (previousData: EvaluationJob | undefined) => previousData,
+      // Skip retry for 4xx (client errors won't self-resolve); retry 5xx/network up to 5 times
       retry: (failureCount: number, error: Error) => {
         const status = parseErrorStatus(error);
         if (status && status >= 400 && status < 500) {
@@ -41,11 +44,13 @@ const useEvaluationJobDetailPolling = (
         }
         return failureCount < MAX_RETRY_ATTEMPTS;
       },
+      // Exponential backoff (5s, 10s, 20s, 40s, 80s) with random jitter to spread retries
       retryDelay: (attempt: number) => {
         const exp = RETRY_DELAY_MS * Math.pow(2, attempt);
         const jitter = Math.floor(Math.random() * RETRY_DELAY_MS);
         return exp + jitter;
       },
+      // Poll every 10s; stop polling if the query errored (let retry handle it) or job finished
       refetchInterval: (query: { state: { status: string; data?: EvaluationJob } }) => {
         if (query.state.status === 'error') {
           return false;
@@ -59,7 +64,7 @@ const useEvaluationJobDetailPolling = (
     })),
   });
 
-  const detailDataMap = React.useMemo(() => {
+  const polledJobDataMap = React.useMemo(() => {
     const map = new Map<string, EvaluationJob>();
     queries.forEach((query, index) => {
       if (query.data) {
@@ -71,7 +76,7 @@ const useEvaluationJobDetailPolling = (
 
   const isWarning = queries.some((query) => query.status === 'error');
 
-  return { detailDataMap, isWarning };
+  return { polledJobDataMap, isWarning };
 };
 
 export default useEvaluationJobDetailPolling;

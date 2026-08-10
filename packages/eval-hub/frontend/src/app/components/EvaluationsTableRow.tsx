@@ -21,6 +21,7 @@ import {
   getEvaluationName,
   getResultScore,
   isEvaluationJobComparable,
+  isTerminalState,
 } from '~/app/utilities/evaluationUtils';
 import { CollectionNameMap } from '~/app/hooks/useCollectionNameMap';
 import { cancelEvaluationJob, deleteEvaluationJob } from '~/app/api/k8s';
@@ -31,6 +32,7 @@ type EvaluationsTableRowProps = {
   rowIndex: number;
   namespace: string;
   collectionNameMap: CollectionNameMap;
+  polledJobData?: EvaluationJob;
   onActionComplete: () => void;
   onShowStatus: (job: EvaluationJob) => void;
   isSelected: boolean;
@@ -46,6 +48,7 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
   rowIndex,
   namespace,
   collectionNameMap,
+  polledJobData,
   onActionComplete,
   onShowStatus,
   isSelected,
@@ -212,6 +215,17 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
         </Td>
         <Td dataLabel="Status" data-testid="evaluation-status">
           <EvaluationStatusLabel state={displayState} onClick={() => onShowStatus(job)} />
+          {polledJobData && !isTerminalState(job.status.state) && (
+            <>
+              {polledJobData.status.benchmarks && polledJobData.status.benchmarks.length > 0 && (
+                <div data-testid="benchmark-progress">
+                  Benchmarks:{' '}
+                  {polledJobData.status.benchmarks.filter((b) => b.status === 'completed').length}/
+                  {polledJobData.status.benchmarks.length} complete
+                </div>
+              )}
+            </>
+          )}
         </Td>
         <Td dataLabel="Evaluation" data-testid="evaluation-benchmark">
           <Tooltip
