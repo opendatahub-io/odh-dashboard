@@ -41,11 +41,10 @@ describe('DeleteRoleModal', () => {
   it('should render with correct title and body when no bindings reference the role', () => {
     render(<DeleteRoleModal row={row} namespace="test-ns" onClose={jest.fn()} />);
     expect(screen.getByText('Delete role?')).toBeInTheDocument();
-    expect(screen.getByText(/will be permanently deleted/)).toBeInTheDocument();
-    expect(screen.queryByTestId('delete-role-bindings-warning')).not.toBeInTheDocument();
+    expect(screen.getByText(/will be deleted\./)).toBeInTheDocument();
   });
 
-  it('should show affected subjects warning when role has bindings', () => {
+  it('should show unassignment text when role has bindings with multiple subjects', () => {
     mockRoleBindingsData.mockReturnValue([
       mockRoleBindingK8sResource({
         name: 'binding-1',
@@ -60,10 +59,8 @@ describe('DeleteRoleModal', () => {
     ]);
 
     render(<DeleteRoleModal row={row} namespace="test-ns" onClose={jest.fn()} />);
-    const warning = screen.getByTestId('delete-role-bindings-warning');
-    expect(warning).toBeInTheDocument();
-    expect(warning).toHaveTextContent(/currently assigned to/);
-    expect(warning).toHaveTextContent(/2 users\/groups/);
+    expect(screen.getByText(/will be deleted and unassigned from/)).toBeInTheDocument();
+    expect(screen.getByText(/2 users or groups/)).toBeInTheDocument();
   });
 
   it('should show singular text for one affected subject', () => {
@@ -78,8 +75,8 @@ describe('DeleteRoleModal', () => {
     ]);
 
     render(<DeleteRoleModal row={row} namespace="test-ns" onClose={jest.fn()} />);
-    const warning = screen.getByTestId('delete-role-bindings-warning');
-    expect(warning).toHaveTextContent(/1 user\/group/);
+    expect(screen.getByText(/will be deleted and unassigned from/)).toBeInTheDocument();
+    expect(screen.getByText(/1 user or group/)).toBeInTheDocument();
   });
 
   it('should not count bindings referencing a different role', () => {
@@ -94,7 +91,8 @@ describe('DeleteRoleModal', () => {
     ]);
 
     render(<DeleteRoleModal row={row} namespace="test-ns" onClose={jest.fn()} />);
-    expect(screen.queryByTestId('delete-role-bindings-warning')).not.toBeInTheDocument();
+    expect(screen.getByText(/will be deleted\./)).toBeInTheDocument();
+    expect(screen.queryByText(/unassigned from/)).not.toBeInTheDocument();
   });
 
   it('should require typing the role name to enable the delete button', () => {

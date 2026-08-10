@@ -36,7 +36,8 @@ const RolesTableRow: React.FC<RolesTableRowProps> = ({
     'Cluster roles can be edited only in OpenShift. For help, contact your cluster administrator. ';
   const clusterRoleDuplicateTooltip =
     'Cluster roles can be managed only in OpenShift. For help, contact your cluster administrator.';
-  const clusterRoleDeleteTooltip = 'Cluster roles cannot be deleted from a project page';
+  const clusterRoleDeleteTooltip =
+    'Cluster roles can be managed only in OpenShift. For help, contact your cluster administrator.';
   const noPermissionTooltip = 'You do not have permissions to perform this action';
 
   const isDeleteDisabled = isClusterRole || !allowDelete || !allowDeleteLoaded;

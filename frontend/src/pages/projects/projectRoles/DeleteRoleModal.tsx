@@ -1,5 +1,4 @@
 import * as React from 'react';
-import { Alert, Stack, StackItem } from '@patternfly/react-core';
 import { getRoleDisplayName } from '#~/concepts/permissions/utils';
 import { usePermissionsContext } from '#~/concepts/permissions/PermissionsContext';
 import { deleteRole } from '#~/api/k8s/roles';
@@ -54,28 +53,20 @@ const DeleteRoleModal: React.FC<DeleteRoleModalProps> = ({ row, namespace, onClo
       error={error}
       testId="delete-role-modal"
     >
-      <Stack hasGutter>
-        <StackItem>
-          The <strong>{displayName}</strong> role will be permanently deleted. This action cannot be
-          undone.
-        </StackItem>
-        {affectedSubjectCount > 0 && (
-          <StackItem>
-            <Alert
-              variant="warning"
-              isInline
-              title="Active role assignments"
-              data-testid="delete-role-bindings-warning"
-            >
-              This role is currently assigned to{' '}
-              <strong>
-                {affectedSubjectCount} {affectedSubjectCount === 1 ? 'user/group' : 'users/groups'}
-              </strong>
-              . Deleting it will remove their associated permissions.
-            </Alert>
-          </StackItem>
-        )}
-      </Stack>
+      {affectedSubjectCount > 0 ? (
+        <>
+          The <strong>{displayName}</strong> role will be deleted and unassigned from{' '}
+          <strong>
+            {affectedSubjectCount}{' '}
+            {affectedSubjectCount === 1 ? 'user or group' : 'users or groups'}
+          </strong>
+          .
+        </>
+      ) : (
+        <>
+          The <strong>{displayName}</strong> role will be deleted.
+        </>
+      )}
     </DeleteModal>
   );
 };

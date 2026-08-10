@@ -87,17 +87,17 @@ describe('Roles tab delete action', () => {
     cy.findByTestId('delete-role-modal').contains('Delete role?');
   });
 
-  it('should show warning text without affected subjects when no bindings exist', () => {
+  it('should show deletion text without unassignment when no bindings exist', () => {
     initIntercepts();
     projectRoles.visit(NAMESPACE);
 
     projectRoles.getRow(ROLE_NAME).findKebabAction('Delete role').click();
 
-    cy.findByTestId('delete-role-modal').contains('will be permanently deleted');
-    cy.findByTestId('delete-role-bindings-warning').should('not.exist');
+    cy.findByTestId('delete-role-modal').contains('will be deleted.');
+    cy.findByTestId('delete-role-modal').contains('unassigned from').should('not.exist');
   });
 
-  it('should show affected subjects warning when role has bindings', () => {
+  it('should show unassignment text when role has bindings', () => {
     initIntercepts({
       roleBindings: [
         mockRoleBindingK8sResource({
@@ -116,8 +116,9 @@ describe('Roles tab delete action', () => {
 
     projectRoles.getRow(ROLE_NAME).findKebabAction('Delete role').click();
 
-    cy.findByTestId('delete-role-bindings-warning').should('exist');
-    cy.findByTestId('delete-role-bindings-warning').contains('2 users/groups');
+    cy.findByTestId('delete-role-modal').contains(
+      'will be deleted and unassigned from 2 users or groups',
+    );
   });
 
   it('should require typing the role name to confirm deletion', () => {
