@@ -101,6 +101,8 @@ describe('LLMD Topology Admin Settings', () => {
         'include',
         '/settings/model-resources-operations/model-deployment-settings/topology-configurations/add/workload-single-node',
       );
+      // The form actually mounted (URL + missing tab chrome alone don't prove it).
+      llmdTopologySettingsPage.findAppTitle().should('have.text', 'Add Single node configuration');
       // The form is a full-page breakout route, not tab content: it must not render
       // beneath the tabbed page title and tab bar, which would give it two headings.
       llmdTopologySettingsPage.findTabPageTitle().should('not.exist');
@@ -188,6 +190,8 @@ describe('LLMD Topology Admin Settings', () => {
         'include',
         '/settings/model-resources-operations/model-deployment-settings/topology-configurations/edit/user-multi-node',
       );
+      // The form actually mounted (URL + missing tab chrome alone don't prove it).
+      llmdTopologySettingsPage.findAppTitle().should('have.text', 'Edit User Multi-node Config');
       // The form is a full-page breakout route, not tab content: it must not render
       // beneath the tabbed page title and tab bar, which would give it two headings.
       llmdTopologySettingsPage.findTabPageTitle().should('not.exist');
@@ -200,6 +204,10 @@ describe('LLMD Topology Admin Settings', () => {
         'include',
         '/settings/model-resources-operations/model-deployment-settings/topology-configurations/duplicate/user-multi-node',
       );
+      // The form actually mounted (URL + missing tab chrome alone don't prove it).
+      llmdTopologySettingsPage
+        .findAppTitle()
+        .should('have.text', 'Duplicate llm-d topology configuration');
       // The form is a full-page breakout route, not tab content: it must not render
       // beneath the tabbed page title and tab bar, which would give it two headings.
       llmdTopologySettingsPage.findTabPageTitle().should('not.exist');

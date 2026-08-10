@@ -380,7 +380,10 @@ const TopologyConfigurationCreateEdit: React.FC<TopologyConfigurationCreateEditP
   listPath,
   isDuplicate = false,
 }) => {
-  const { configName } = useParams<{ configName?: string }>();
+  const { configName, topologyType } = useParams<{
+    configName?: string;
+    topologyType?: string;
+  }>();
   const { configs } = React.useContext(TopologyConfigContext);
 
   const sourceConfig = React.useMemo(
@@ -388,9 +391,15 @@ const TopologyConfigurationCreateEdit: React.FC<TopologyConfigurationCreateEditP
     [configs, configName],
   );
 
+  // On the add route the topology type comes from the URL; reject an unsupported
+  // value (e.g. /add/not-a-topology) rather than rendering an unusable form.
+  // Edit/duplicate routes have no topologyType param, so this is a no-op there.
+  const hasValidTopologyType =
+    !topologyType || Object.values(TopologyType).some((t) => t === topologyType);
+
   // For edit and duplicate, the named config must exist (context is already
   // loaded — the provider gates on that). Missing ⇒ redirect to the list.
-  if (configName && !sourceConfig) {
+  if ((configName && !sourceConfig) || !hasValidTopologyType) {
     return <Navigate to={listPath} replace />;
   }
 
