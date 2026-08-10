@@ -4,6 +4,7 @@ import { isNIMDeployActive, deployNIMDeployment } from '../deploy';
 import { createNIMService, updateNIMService, patchNIMService } from '../../nimservices/k8s';
 import { getNIMAccount } from '../../accounts/k8s';
 import type { NIMServiceKind } from '../../nimservices/types';
+import { NIM_SERVICE_ID } from '../../../constants';
 
 jest.mock('../../nimservices/k8s', () => ({
   ...jest.requireActual('../../nimservices/k8s'),
@@ -100,7 +101,7 @@ describe('deployNIMDeployment', () => {
       }),
       { dryRun: undefined },
     );
-    expect(result.modelServingPlatformId).toBe('nvidia-nim');
+    expect(result.modelServingPlatformId).toBe(NIM_SERVICE_ID);
     expect(result.model).toBe(mockNIMServiceResource);
   });
 

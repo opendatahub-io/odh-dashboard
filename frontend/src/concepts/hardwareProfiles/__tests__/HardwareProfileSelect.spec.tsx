@@ -609,3 +609,163 @@ describe('HardwareProfileSelect - LocalQueue availability filtering', () => {
     expect(screen.getByTestId('queue-missing-icon')).toBeInTheDocument();
   });
 });
+
+describe('HardwareProfileSelect - Project-scoped preview description', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  const profileWithDescriptionAndKueue = mockHardwareProfile({
+    name: 'desc-kueue-profile',
+    displayName: 'Full Profile',
+    namespace: 'test-project',
+    description: 'A profile with all details',
+    schedulingType: SchedulingType.QUEUE,
+    localQueueName: 'my-queue',
+    priorityClass: 'high-priority',
+  });
+
+  const profileWithIdentifiersAndKueue = mockHardwareProfile({
+    name: 'id-kueue-profile',
+    displayName: 'Identifiers and Kueue Profile',
+    namespace: 'test-project',
+    description: '',
+    schedulingType: SchedulingType.QUEUE,
+    localQueueName: 'my-queue',
+    priorityClass: 'high-priority',
+  });
+
+  const profileWithKueueOnly = mockHardwareProfile({
+    name: 'kueue-only-profile',
+    displayName: 'Kueue Only Profile',
+    namespace: 'test-project',
+    description: '',
+    identifiers: [],
+    schedulingType: SchedulingType.QUEUE,
+    localQueueName: 'my-queue',
+    priorityClass: 'high-priority',
+  });
+
+  const renderProjectScopedPreview = ({
+    selectedProfile,
+    previewDescription = true,
+    useExistingSettings = false,
+    allowExistingSettings = false,
+  }: {
+    selectedProfile?: HardwareProfileKind;
+    previewDescription?: boolean;
+    useExistingSettings?: boolean;
+    allowExistingSettings?: boolean;
+  }) => {
+    const project = mockProjectK8sResource({ k8sName: 'test-project' });
+
+    useKueueConfigurationMock.mockReturnValue({
+      isKueueDisabled: false,
+      isKueueFeatureEnabled: true,
+      isProjectKueueEnabled: true,
+      kueueFilteringState: KueueFilteringState.ONLY_KUEUE_PROFILES,
+    });
+
+    const hardwareProfileConfig = {
+      selectedProfile,
+      useExistingSettings,
+      resources: undefined,
+    };
+
+    useHardwareProfileConfigMock.mockReturnValue({
+      formData: hardwareProfileConfig,
+      setFormData: () => null,
+      resetFormData: () => null,
+      isFormDataValid: true,
+      profilesLoaded: true,
+      profilesLoadError: undefined,
+      initialHardwareProfile: undefined,
+    });
+
+    const projectProfiles = selectedProfile ? [selectedProfile] : [profileWithDescriptionAndKueue];
+
+    return render(
+      <CurrentProjectContext.Provider value={{ currentProject: project }}>
+        <ProjectsContext.Provider
+          value={{
+            projects: [project],
+            modelServingProjects: [],
+            nonActiveProjects: [],
+            preferredProject: null,
+            updatePreferredProject: () => undefined,
+            loaded: true,
+            loadError: undefined,
+            waitForProject: () => Promise.resolve(),
+          }}
+        >
+          <LocalQueuesContext.Provider value={{ localQueues: DEFAULT_LIST_FETCH_STATE }}>
+            <HardwareProfileSelect
+              isProjectScoped
+              previewDescription={previewDescription}
+              hardwareProfiles={[nodeHardwareProfile]}
+              hardwareProfilesLoaded
+              hardwareProfilesError={undefined}
+              projectScopedHardwareProfiles={[projectProfiles, true, undefined]}
+              allowExistingSettings={allowExistingSettings}
+              hardwareProfileConfig={hardwareProfileConfig}
+              isHardwareProfileSupported={() => true}
+              onChange={() => null}
+              project="test-project"
+            />
+          </LocalQueuesContext.Provider>
+        </ProjectsContext.Provider>
+      </CurrentProjectContext.Provider>,
+    );
+  };
+
+  it('should show description, identifiers, and kueue info in project-scoped preview', () => {
+    renderProjectScopedPreview({ selectedProfile: profileWithDescriptionAndKueue });
+
+    expect(screen.getByText('A profile with all details')).toBeInTheDocument();
+    expect(screen.getByText(/Memory:.*Default.*Max/)).toBeInTheDocument();
+    expect(screen.getByText(/CPU:.*Default.*Max/)).toBeInTheDocument();
+    const kueuePreview = 'Local queue: my-queue; Priority: high-priority';
+    expect(screen.getByText(kueuePreview)).toBeInTheDocument();
+  });
+
+  it('should show identifiers and kueue info when description is empty in project-scoped preview', () => {
+    renderProjectScopedPreview({ selectedProfile: profileWithIdentifiersAndKueue });
+
+    expect(screen.getByText(/Memory:.*Default.*Max/)).toBeInTheDocument();
+    expect(screen.getByText(/CPU:.*Default.*Max/)).toBeInTheDocument();
+    const kueuePreview = 'Local queue: my-queue; Priority: high-priority';
+    expect(screen.getByText(kueuePreview)).toBeInTheDocument();
+  });
+
+  it('should show only kueue info when no description or identifiers in project-scoped preview', () => {
+    renderProjectScopedPreview({ selectedProfile: profileWithKueueOnly });
+
+    const kueuePreview = 'Local queue: my-queue; Priority: high-priority';
+    expect(screen.getByText(kueuePreview)).toBeInTheDocument();
+    expect(screen.queryByText(/Memory:/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/CPU:/)).not.toBeInTheDocument();
+  });
+
+  it('should not show preview when previewDescription is false', () => {
+    renderProjectScopedPreview({
+      selectedProfile: profileWithDescriptionAndKueue,
+      previewDescription: false,
+    });
+
+    expect(screen.queryByText('A profile with all details')).not.toBeInTheDocument();
+    expect(screen.queryByText(/Local queue:/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Memory:.*Default.*Max/)).not.toBeInTheDocument();
+  });
+
+  it('should show use-existing helper text when previewDescription is false and useExistingSettings is true', () => {
+    renderProjectScopedPreview({
+      previewDescription: false,
+      useExistingSettings: true,
+      allowExistingSettings: true,
+    });
+
+    expect(
+      screen.getByText('Use existing resource requests/limits, tolerations, and node selectors.'),
+    ).toBeInTheDocument();
+  });
+});

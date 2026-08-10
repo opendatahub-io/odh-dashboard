@@ -1,0 +1,48 @@
+{
+  "component_id": "autogluon_models_training",
+  "started_at": "2026-07-16T19:40:40.265279Z",
+  "completed_at": "2026-07-16T19:45:54.939298Z",
+  "stages": [
+    {
+      "id": "load_data",
+      "status": "completed",
+      "timestamp": "2026-07-16T19:40:40.274852Z",
+      "train_rows": 171,
+      "test_rows": 143
+    },
+    {
+      "id": "model_selection",
+      "status": "completed",
+      "timestamp": "2026-07-16T19:45:43.505824Z",
+      "top_n": 3,
+      "selected_models": [
+        "NeuralNetTorch_BAG_L2",
+        "NeuralNetTorch_BAG_L1",
+        "ExtraTreesMSE_BAG_L2"
+      ],
+      "steps": [
+        "feature_engineering",
+        "model_training",
+        "stacking",
+        "evaluation"
+      ]
+    },
+    {
+      "id": "refit_and_evaluate",
+      "status": "completed",
+      "timestamp": "2026-07-16T19:45:54.935370Z",
+      "model_count": 3,
+      "eval_metric": "r2"
+    },
+    {
+      "id": "build_leaderboard",
+      "status": "completed",
+      "timestamp": "2026-07-16T19:45:54.939149Z",
+      "best_model": "NeuralNetTorch_BAG_L1_FULL",
+      "model_count": 3
+    }
+  ],
+  "metadata": {
+    "display_name": "Models Training Status"
+  }
+}

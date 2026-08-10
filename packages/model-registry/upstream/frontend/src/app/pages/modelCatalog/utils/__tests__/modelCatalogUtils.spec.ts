@@ -10,6 +10,7 @@ import {
   CatalogArtifactType,
   CatalogArtifacts,
   MetricsType,
+  CatalogModel,
 } from '~/app/modelCatalogTypes';
 import {
   AllLanguageCode,
@@ -45,6 +46,7 @@ import {
   getToolCallingArgs,
   getSortParams,
   getEffectiveSortBy,
+  servingConfigToValidatedConfigurations,
 } from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
 import { mockCatalogModelArtifact } from '~/__mocks__/mockCatalogModelArtifactList';
 import { ModelRegistryMetadataType } from '~/app/types';
@@ -1985,6 +1987,57 @@ describe('getSortParams', () => {
     expect(result).toEqual({
       orderBy: latencyField,
       sortOrder: SortOrder.ASC,
+    });
+  });
+});
+
+describe('servingConfigToValidatedConfigurations', () => {
+  it('returns undefined when model has no servingConfig', () => {
+    const model: CatalogModel = {
+      name: 'test-model',
+    };
+    expect(servingConfigToValidatedConfigurations(model)).toBeUndefined();
+  });
+
+  it('returns undefined when toolCalling has no validatedTasks', () => {
+    const model: CatalogModel = {
+      name: 'test-model',
+      servingConfig: {
+        toolCalling: {
+          toolCallParser: 'hermes',
+        },
+      },
+      validatedTasks: [],
+    };
+    expect(servingConfigToValidatedConfigurations(model)).toBeUndefined();
+  });
+
+  it('returns a ValidatedConfiguration array when model has valid tool calling config', () => {
+    const model: CatalogModel = {
+      name: 'test-model',
+      servingConfig: {
+        toolCalling: {
+          toolCallParser: 'hermes',
+        },
+      },
+      validatedTasks: [ModelCatalogTask.TOOL_CALLING],
+    };
+
+    const result = servingConfigToValidatedConfigurations(model);
+
+    expect(result).toBeDefined();
+    expect(result).toHaveLength(1);
+    expect(result![0]).toEqual({
+      forField: 'runtimeArgs',
+      title: 'Tool calling',
+      description: 'Validated tool calling configuration for this model',
+      options: [
+        {
+          title: 'hermes',
+          description: 'Enable tool calling with validated configuration',
+          value: '--tool-call-parser hermes',
+        },
+      ],
     });
   });
 });

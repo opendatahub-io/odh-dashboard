@@ -1,26 +1,23 @@
 import React from 'react';
-import { useFetchState, APIOptions, FetchStateCallbackPromise } from 'mod-arch-core';
-import {
-  getMcpServerAvailability,
-  McpServerAvailabilityResponse,
-} from '~/odh/api/mcpCatalogDeployment/service';
+import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
+import useFetchDscStatus from '@odh-dashboard/internal/concepts/areas/useFetchDscStatus';
 
+/**
+ * Gates MCP server deploy on the MCP lifecycle operator in the DSC.
+ * Enabled when managementState is Managed or Unmanaged (same as requiredComponents).
+ */
 const useMcpServerDeployAvailable = (): { available: boolean; loaded: boolean } => {
-  const callback = React.useCallback<FetchStateCallbackPromise<McpServerAvailabilityResponse>>(
-    (opts: APIOptions) => getMcpServerAvailability('')(opts),
-    [],
-  );
+  const [dscStatus, loaded] = useFetchDscStatus();
 
-  const [data, loaded, error] = useFetchState<McpServerAvailabilityResponse>(callback, {
-    available: false,
-  });
+  const managementState =
+    dscStatus?.components?.[DataScienceStackComponent.MCP_LIFECYCLE_OPERATOR]?.managementState;
 
   return React.useMemo(
     () => ({
-      available: !error && data.available,
+      available: managementState === 'Managed' || managementState === 'Unmanaged',
       loaded,
     }),
-    [data.available, loaded, error],
+    [managementState, loaded],
   );
 };
 

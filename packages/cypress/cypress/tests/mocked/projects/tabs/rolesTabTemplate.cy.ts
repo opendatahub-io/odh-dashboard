@@ -53,7 +53,7 @@ describe('Select role template (header button)', () => {
 
     projectRoles.findSelectTemplateModal().should('not.exist');
     projectRoles.findReplaceContentModal().should('exist');
-    projectRoles.findReplaceContentModal().contains('Replace current content?').should('exist');
+    projectRoles.findReplaceContentModal().contains('Discard unsaved changes?').should('exist');
     cy.testA11y();
   });
 
@@ -161,7 +161,7 @@ describe('Select role template (header button)', () => {
   });
 });
 
-describe('Import rules from template (toolbar button)', () => {
+describe('Add rules from template (toolbar button)', () => {
   beforeEach(() => {
     asProjectAdminUser();
     initIntercepts();

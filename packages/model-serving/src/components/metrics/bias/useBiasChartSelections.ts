@@ -1,7 +1,7 @@
 import { useParams } from 'react-router-dom';
 import React from 'react';
 import { useBrowserStorage } from '@odh-dashboard/ui-core/utilities';
-import { BiasMetricConfig } from '@odh-dashboard/internal/concepts/trustyai/types';
+import type { BiasMetricConfig } from '@odh-dashboard/trustyai/types';
 import { byId } from '../utils';
 
 const SELECTED_CHARTS_STORAGE_KEY_PREFIX = 'odh.dashboard.xai.selected_bias_charts';

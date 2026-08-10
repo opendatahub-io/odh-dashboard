@@ -69,7 +69,7 @@ class ModelCatalog {
   }
 
   clickDeployModelButtonWithRetry() {
-    const maxRetries = 3;
+    const maxRetries = 6;
     let attempt = 0;
     const tryClick = () => {
       attempt++;
@@ -79,6 +79,8 @@ class ModelCatalog {
       cy.location('pathname').then((path) => {
         if (!path.includes('/ai-hub/models/deployments/deploy') && attempt < maxRetries) {
           cy.log('Wizard did not open, retrying...');
+          // eslint-disable-next-line cypress/no-unnecessary-waiting
+          cy.wait(2000);
           tryClick();
         }
       });

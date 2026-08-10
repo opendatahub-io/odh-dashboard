@@ -99,9 +99,9 @@ describe('CreateRolePage', () => {
     mockUseAccessReview.mockReturnValue([true, true]);
   });
 
-  it('should render "Create custom role" as page title in create mode', () => {
+  it('should render "Create a role" as page title in create mode', () => {
     renderPage();
-    expect(screen.getByTestId('app-page-title')).toHaveTextContent('Create custom role');
+    expect(screen.getByTestId('app-page-title')).toHaveTextContent('Create a role');
   });
 
   it('should render "Edit custom role" as page title in edit mode', () => {

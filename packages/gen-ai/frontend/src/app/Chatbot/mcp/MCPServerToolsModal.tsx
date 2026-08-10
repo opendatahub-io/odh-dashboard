@@ -276,10 +276,20 @@ const MCPServerToolsModal: React.FC<MCPServerToolsModalProps> = ({
       </ModalBody>
       {toolsLoaded && !isLoading && !toolsLoadError && tools.length > 0 && (
         <ModalFooter>
-          <Button key="save" variant="primary" onClick={handleSave}>
+          <Button
+            key="save"
+            variant="primary"
+            onClick={handleSave}
+            data-testid="mcp-tools-save-button"
+          >
             Save
           </Button>
-          <Button key="cancel" variant="link" onClick={handleCancel}>
+          <Button
+            key="cancel"
+            variant="link"
+            onClick={handleCancel}
+            data-testid="mcp-tools-cancel-button"
+          >
             Cancel
           </Button>
         </ModalFooter>
