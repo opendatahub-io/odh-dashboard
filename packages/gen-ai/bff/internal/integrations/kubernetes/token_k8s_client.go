@@ -1476,8 +1476,7 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 		existing := &existingList.Items[0]
 		if kc.existingServerHasPassthrough(ctx, existing, namespace) {
 			if len(vectorStores) > 0 {
-				kc.Logger.Warn("Zero-restart path: vectorStores in request are not applied (OGXServer already configured); vector stores must be managed separately",
-					"namespace", namespace, "vectorStoreCount", len(vectorStores))
+				return nil, fmt.Errorf("cannot install vector stores through the zero-restart path; manage vector stores separately via the vector stores API")
 			}
 			kc.Logger.Info("OGXServer exists with passthrough provider; new models discoverable via /v1/models polling (zero-restart)",
 				"namespace", namespace, "server", existing.Name)
@@ -2198,7 +2197,7 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 	// arrives at the BFF without it (the HTTPRoute matches /api/v1/genai-proxy).
 	if kc.EnvConfig.GatewayDomain != "" {
 		passthroughURL := fmt.Sprintf("https://%s%s/genai-proxy/ns/%s",
-			kc.EnvConfig.GatewayDomain, constants.ApiPathPrefix, namespace)
+			kc.EnvConfig.GatewayDomain, kc.EnvConfig.APIPathPrefix, namespace)
 		passthroughProvider := NewPassthroughProvider(constants.PassthroughProviderID, passthroughURL)
 		config.AddInferenceProvider(passthroughProvider)
 		kc.Logger.Info("Added remote::passthrough provider for zero-restart model discovery",

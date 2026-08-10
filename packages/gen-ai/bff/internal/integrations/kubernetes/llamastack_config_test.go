@@ -1586,13 +1586,14 @@ func TestHasPassthroughProvider(t *testing.T) {
 		assert.False(t, config.HasPassthroughProvider())
 	})
 
-	t.Run("returns true regardless of passthrough provider ID", func(t *testing.T) {
+	t.Run("returns false for passthrough with different provider ID", func(t *testing.T) {
 		config := NewDefaultLlamaStackConfig()
 		config.AddInferenceProvider(Provider{
 			ProviderID:   "custom-name",
 			ProviderType: "remote::passthrough",
 			Config:       map[string]interface{}{"base_url": "https://other.com"},
 		})
-		assert.True(t, config.HasPassthroughProvider())
+		assert.False(t, config.HasPassthroughProvider(),
+			"custom endpoint passthrough must not be confused with BFF passthrough")
 	})
 }
