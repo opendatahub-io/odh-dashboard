@@ -20,6 +20,7 @@ import { ExclamationCircleIcon, MinusCircleIcon, PlusCircleIcon } from '@pattern
 import { LABELS_FORM_DESCRIPTION } from './const';
 import { validateLabelKey, validateLabelValue } from './labelUtils';
 import type { LabelEntry } from './types';
+import './RoleLabelsSection.scss';
 
 type RoleLabelsSectionProps = {
   labels: LabelEntry[];
@@ -128,11 +129,7 @@ const RoleLabelsSection: React.FC<RoleLabelsSectionProps> = ({
               Value
             </Content>
           </FlexItem>
-          <FlexItem>
-            <Button variant="plain" style={{ visibility: 'hidden' }} tabIndex={-1} aria-hidden>
-              <MinusCircleIcon />
-            </Button>
-          </FlexItem>
+          <FlexItem className="odh-role-labels__header-spacer" />
         </Flex>
       )}
       {labels.length > 0 && (

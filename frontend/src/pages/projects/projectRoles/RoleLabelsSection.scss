@@ -1,0 +1,6 @@
+.odh-role-labels__header-spacer {
+  width: calc(
+    var(--pf-t--global--font--size--body--default) +
+      2 * var(--pf-t--global--spacer--action--horizontal--plain--default)
+  );
+}
