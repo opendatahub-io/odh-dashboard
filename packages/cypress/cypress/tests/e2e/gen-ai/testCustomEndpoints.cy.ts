@@ -57,7 +57,7 @@ describe('Verify Custom Endpoints in Playground - Full Lifecycle', () => {
   it(
     'Verify custom endpoint full lifecycle: create, verify, playground, delete',
     {
-      tags: ['@GenAI', '@GenAICI', '@FeatureFlagged', '@NonConcurrent', '@Playground'],
+      tags: ['@GenAI', '@GenAICI', '@FeatureFlagged', '@Playground'],
     },
     () => {
       cy.step('Log into the application with custom endpoints enabled');
