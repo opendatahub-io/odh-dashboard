@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/opendatahub-io/gen-ai/internal/config"
+	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes/pgvector"
 	"github.com/opendatahub-io/gen-ai/internal/models"
 	"github.com/opendatahub-io/gen-ai/internal/types"
@@ -413,12 +415,12 @@ func EmptyConfig() map[string]interface{} {
 func NewPassthroughProvider(providerID, baseURL string) Provider {
 	return Provider{
 		ProviderID:   providerID,
-		ProviderType: "remote::passthrough",
+		ProviderType: constants.PassthroughProviderType,
 		Config: map[string]interface{}{
 			"base_url": baseURL,
 			"api_key":  "",
 			"forward_headers": map[string]interface{}{
-				"vllm_api_token": "x-forwarded-access-token",
+				constants.PassthroughForwardHeaderKey: config.DefaultAuthTokenHeader,
 			},
 			"refresh_models": true,
 		},
