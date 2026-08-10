@@ -1551,3 +1551,45 @@ func TestSetDefaultPgvectorProvider(t *testing.T) {
 			"default embedding model unchanged")
 	})
 }
+
+func TestNewPassthroughProvider(t *testing.T) {
+	provider := NewPassthroughProvider("bff-passthrough", "https://apps.cluster.example.com/gen-ai/api/v1/genai-proxy/ns/my-ns")
+
+	assert.Equal(t, "bff-passthrough", provider.ProviderID)
+	assert.Equal(t, "remote::passthrough", provider.ProviderType)
+	assert.Equal(t, "https://apps.cluster.example.com/gen-ai/api/v1/genai-proxy/ns/my-ns", provider.Config["base_url"])
+	assert.Equal(t, true, provider.Config["refresh_models"])
+
+	headers, ok := provider.Config["forward_headers"].([]string)
+	require.True(t, ok, "forward_headers should be []string")
+	assert.Equal(t, []string{"x-forwarded-access-token"}, headers)
+}
+
+func TestHasPassthroughProvider(t *testing.T) {
+	t.Run("returns false for default config", func(t *testing.T) {
+		config := NewDefaultLlamaStackConfig()
+		assert.False(t, config.HasPassthroughProvider())
+	})
+
+	t.Run("returns true when passthrough provider exists", func(t *testing.T) {
+		config := NewDefaultLlamaStackConfig()
+		config.AddInferenceProvider(NewPassthroughProvider("bff-passthrough", "https://example.com"))
+		assert.True(t, config.HasPassthroughProvider())
+	})
+
+	t.Run("returns false when only vllm providers exist", func(t *testing.T) {
+		config := NewDefaultLlamaStackConfig()
+		config.AddInferenceProvider(NewVLLMProvider("vllm-1", "http://svc:8000/v1"))
+		assert.False(t, config.HasPassthroughProvider())
+	})
+
+	t.Run("returns true regardless of passthrough provider ID", func(t *testing.T) {
+		config := NewDefaultLlamaStackConfig()
+		config.AddInferenceProvider(Provider{
+			ProviderID:   "custom-name",
+			ProviderType: "remote::passthrough",
+			Config:       map[string]interface{}{"base_url": "https://other.com"},
+		})
+		assert.True(t, config.HasPassthroughProvider())
+	})
+}
