@@ -72,10 +72,14 @@ describe('isUIError', () => {
     expect(isUIError({ ...validUIError, status: '400' })).toBe(false);
   });
 
-  it('should return false when transactionId is missing', () => {
+  it('should return true when transactionId is missing', () => {
     const { transactionId, ...rest } = validUIError;
     expect(transactionId).toBeDefined();
-    expect(isUIError(rest)).toBe(false);
+    expect(isUIError(rest)).toBe(true);
+  });
+
+  it('should return false when transactionId is not a string', () => {
+    expect(isUIError({ ...validUIError, transactionId: 123 })).toBe(false);
   });
 
   it('should return false when details is a non-object', () => {

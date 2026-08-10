@@ -57,6 +57,8 @@ const UIErrorModal: React.FC<UIErrorModalProps> = ({
     });
   }, []);
 
+  const transactionId = uiError?.transactionId;
+  const hasTransactionId = !!transactionId;
   const hasDetails = Object.keys(uiError?.details ?? {}).length > 0;
   let serializedDetails = '';
   if (uiError && hasDetails) {
@@ -89,12 +91,16 @@ const UIErrorModal: React.FC<UIErrorModalProps> = ({
         <Flex direction={{ default: 'column' }}>
           <FlexItem>
             <Content component={ContentVariants.dl}>
-              <Content component={ContentVariants.dt}>
-                {UIErrorDefaults.labels.subtitleTransaction}
-              </Content>
-              <Content component={ContentVariants.dd} className="pf-v6-u-font-family-monospace">
-                {uiError?.transactionId}
-              </Content>
+              {hasTransactionId && (
+                <>
+                  <Content component={ContentVariants.dt}>
+                    {UIErrorDefaults.labels.subtitleTransaction}
+                  </Content>
+                  <Content component={ContentVariants.dd} className="pf-v6-u-font-family-monospace">
+                    {transactionId}
+                  </Content>
+                </>
+              )}
               <Content component={ContentVariants.dt}>{UIErrorDefaults.labels.subtitleID}</Content>
               <Content component={ContentVariants.dd} className="pf-v6-u-font-family-monospace">
                 {uiError?.messageId}

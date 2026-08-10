@@ -27,6 +27,21 @@ const mockUIErrorNoDetails: UIError = {
   details: {},
 };
 
+const mockUIErrorNoTransactionId: UIError = {
+  messageId: 'test_error_no_txn',
+  reason: 'Error without transaction ID',
+  status: 502,
+  details: null,
+};
+
+const mockUIErrorEmptyTransactionId: UIError = {
+  messageId: 'test_error_empty_txn',
+  reason: 'Error with empty transaction ID',
+  status: 503,
+  transactionId: '',
+  details: null,
+};
+
 const testMappings: UIErrorMappings = {
   test_error_one: {
     title: 'Mapped Error Title',
@@ -198,7 +213,7 @@ describe('UIErrorHandler', () => {
       fireEvent.click(screen.getByText('More details...'));
 
       const modal = screen.getByRole('dialog');
-      expect(within(modal).getByText(mockUIError.transactionId)).toBeInTheDocument();
+      expect(within(modal).getByText(mockUIError.transactionId!)).toBeInTheDocument();
       expect(within(modal).getByText(mockUIError.messageId)).toBeInTheDocument();
       expect(within(modal).getByText('Mapped Error Title')).toBeInTheDocument();
     });
@@ -230,6 +245,40 @@ describe('UIErrorHandler', () => {
       expect(screen.queryByText(UIErrorDefaults.labels.subtitleDetails)).not.toBeInTheDocument();
     });
 
+    it('should not display transaction ID section when transactionId is missing', () => {
+      render(
+        <UIErrorHandler id="test">
+          <ShowErrorButton error={mockUIErrorNoTransactionId} />
+        </UIErrorHandler>,
+      );
+
+      fireEvent.click(screen.getByTestId('show-error'));
+      fireEvent.click(screen.getByText('More details...'));
+
+      const modal = screen.getByRole('dialog');
+      expect(
+        within(modal).queryByText(UIErrorDefaults.labels.subtitleTransaction),
+      ).not.toBeInTheDocument();
+      expect(within(modal).getByText(mockUIErrorNoTransactionId.messageId)).toBeInTheDocument();
+    });
+
+    it('should not display transaction ID section when transactionId is empty string', () => {
+      render(
+        <UIErrorHandler id="test">
+          <ShowErrorButton error={mockUIErrorEmptyTransactionId} />
+        </UIErrorHandler>,
+      );
+
+      fireEvent.click(screen.getByTestId('show-error'));
+      fireEvent.click(screen.getByText('More details...'));
+
+      const modal = screen.getByRole('dialog');
+      expect(
+        within(modal).queryByText(UIErrorDefaults.labels.subtitleTransaction),
+      ).not.toBeInTheDocument();
+      expect(within(modal).getByText(mockUIErrorEmptyTransactionId.messageId)).toBeInTheDocument();
+    });
+
     it('should close the modal when cancel button is clicked', () => {
       render(
         <UIErrorHandler id="test">
@@ -239,10 +288,10 @@ describe('UIErrorHandler', () => {
 
       fireEvent.click(screen.getByTestId('show-error'));
       fireEvent.click(screen.getByText('More details...'));
-      expect(screen.getByText(mockUIError.transactionId)).toBeInTheDocument();
+      expect(screen.getByText(mockUIError.transactionId!)).toBeInTheDocument();
 
       fireEvent.click(screen.getByTestId('UIErrorModal-cancel'));
-      expect(screen.queryByText(mockUIError.transactionId)).not.toBeInTheDocument();
+      expect(screen.queryByText(mockUIError.transactionId!)).not.toBeInTheDocument();
     });
 
     it('should auto-dismiss the alert after timeout when "More details..." is clicked', () => {

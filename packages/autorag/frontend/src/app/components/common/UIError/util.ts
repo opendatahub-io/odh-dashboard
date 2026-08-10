@@ -13,8 +13,7 @@ export function isUIError(value: unknown): value is UIError {
     typeof value.reason === 'string' &&
     'status' in value &&
     typeof value.status === 'number' &&
-    'transactionId' in value &&
-    typeof value.transactionId === 'string' &&
+    (!('transactionId' in value) || typeof value.transactionId === 'string') &&
     'details' in value &&
     (value.details === null || typeof value.details === 'object')
   );

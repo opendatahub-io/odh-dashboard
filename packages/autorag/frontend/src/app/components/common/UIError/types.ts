@@ -11,7 +11,7 @@ export interface UIError {
   status: number;
 
   /** A transaction ID provided for the given API call. (Depends on transactionId support in go backend) */
-  transactionId: string;
+  transactionId?: string;
 
   /** Additional details that will be rendered for the user. (Useful for attaching additional information that may be required for easier customer support.) */
   details: Record<string, unknown> | null;
