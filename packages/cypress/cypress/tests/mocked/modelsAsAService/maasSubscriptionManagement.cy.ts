@@ -95,6 +95,19 @@ describe('Subscription Management Page / Overview Tab', () => {
     overviewTabPage.findModelRows().should('have.length', 6);
   });
 
+  it('should display the overview table with correct page content', () => {
+    subscriptionManagementPage.visit('overview');
+    overviewTabPage.findTable().should('exist');
+    const overviewRow = overviewTabPage.getRow('flan-t5-small', 'maas-models');
+    overviewRow.findModelName().should('contain.text', 'Flan T5 Small');
+    overviewRow.findModelId().should('contain.text', 'flan-t5-small');
+    overviewRow.findModelDescription().should('contain.text', 'A compact text-to-text model');
+    overviewRow.findModelProject().should('contain.text', 'maas-models');
+    overviewRow.findModelSubscriptions().should('contain.text', '4');
+    overviewRow.findModelPhase().should('contain.text', 'Ready');
+    overviewRow.findModelAuthorizationPolicies().should('contain.text', '2');
+  });
+
   it('should navigate between tabs and update the URL', () => {
     subscriptionManagementPage.visit();
     subscriptionManagementPage.findTitle().should('contain.text', 'MaaS governance');
@@ -121,6 +134,11 @@ describe('Subscription Management Page / Overview Tab', () => {
     overviewTabPage.findColumnSortButton('Model name').click();
     overviewTabPage.findModelRows().eq(1).should('contain.text', 'Flan T5 Small');
     overviewTabPage.findModelRows().eq(5).should('contain.text', 'Llama 3 70B Instruct');
+
+    // Sort by project
+    overviewTabPage.findColumnSortButton('Project').click();
+    overviewTabPage.getRowByIndex(0).findModelProject().should('have.text', 'maas-models');
+    overviewTabPage.getRowByIndex(5).findModelProject().should('have.text', 'team-sandbox');
 
     // Sort by subscriptions
     overviewTabPage.findColumnSortButton('Subscriptions').click();
@@ -223,7 +241,7 @@ describe('Subscription Management Page / Overview Tab', () => {
     cy.url().should('include', '/maas-governance/overview');
   });
 
-  it('should filter by model name, model ID, description, group name, subscription name, and authorization policy name', () => {
+  it('should filter by model name, model ID, description, project, group name, subscription name, and authorization policy name', () => {
     subscriptionManagementPage.visit('overview');
     // Display name
     overviewTabPage.findFilterInput('model').type('Llama');
@@ -238,6 +256,15 @@ describe('Subscription Management Page / Overview Tab', () => {
     // Description
     overviewTabPage.findFilterInput('model').type('instruction');
     overviewTabPage.findModelRows().should('have.length', 2);
+    overviewTabPage.clearAllFilters();
+
+    // Filter by project
+    overviewTabPage.findFilterDropdownButton().click();
+    overviewTabPage.findFilterDropdownItem('project').click();
+    overviewTabPage.findFilterInput('project').type('team-sandbox');
+    overviewTabPage.findModelRows().should('have.length', 1);
+    overviewTabPage.findModelRows().eq(0).should('contain.text', 'Granite 3 8B Instruct (sandbox)');
+    overviewTabPage.findModelRows().eq(0).should('contain.text', 'team-sandbox');
 
     // Group name
     overviewTabPage.clearAllFilters();
