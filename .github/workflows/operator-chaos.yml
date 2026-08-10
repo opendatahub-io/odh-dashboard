@@ -15,6 +15,7 @@ permissions:
 
 env:
   OPERATOR_CHAOS_VERSION: "v0.0.0-20260521100204-4dab974d613c"
+  KNOWLEDGE_FILE: "chaos/knowledge/dashboard.yaml"
 
 jobs:
   validate:
@@ -30,6 +31,7 @@ jobs:
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
         with:
           go-version-file: dashboard-operator/go.mod
+          cache: true
 
       - name: Install operator-chaos
         shell: bash
@@ -43,13 +45,13 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          operator-chaos validate --knowledge chaos/knowledge/dashboard.yaml
+          operator-chaos validate --knowledge "${KNOWLEDGE_FILE}"
 
       - name: Local preflight
         shell: bash
         run: |
           set -euo pipefail
-          operator-chaos preflight --knowledge chaos/knowledge/dashboard.yaml --local
+          operator-chaos preflight --knowledge "${KNOWLEDGE_FILE}" --local
 
       - name: Validate all experiments
         shell: bash
@@ -90,11 +92,8 @@ jobs:
             --source base-branch/chaos/knowledge \
             --target chaos/knowledge \
             --breaking \
-            --format json > "${knowledge_diff_json}"
-          operator-chaos diff \
-            --source base-branch/chaos/knowledge \
-            --target chaos/knowledge \
-            --breaking
+            --format json \
+            | tee "${knowledge_diff_json}"
 
           knowledge_breaking=$(jq -r '.summary.breakingChanges // 0' "${knowledge_diff_json}")
           if (( knowledge_breaking > 0 )); then
