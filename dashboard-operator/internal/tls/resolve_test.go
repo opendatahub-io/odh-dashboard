@@ -88,12 +88,36 @@ func TestResolve_TransientError(t *testing.T) {
 	}
 }
 
-func TestResolve_FatalError(t *testing.T) {
+func TestResolve_Forbidden(t *testing.T) {
 	gr := schema.GroupResource{Group: "config.openshift.io", Resource: "apiservers"}
 	fc := &errorClient{err: apierrors.NewForbidden(gr, "cluster", nil)}
-	_, err := resolve(context.Background(), fc)
-	if err == nil {
-		t.Fatal("expected error on Forbidden")
+	result, err := resolve(context.Background(), fc)
+	if err != nil {
+		t.Fatalf("resolve() error = %v, expected fallback on Forbidden", err)
+	}
+	if !result.APIAvailable {
+		t.Error("expected APIAvailable = true on Forbidden (watcher should register)")
+	}
+	cfg := &tls.Config{}
+	result.TLSOpts[0](cfg)
+	if cfg.MinVersion != tls.VersionTLS12 {
+		t.Errorf("expected TLS 1.2 fallback, got %d", cfg.MinVersion)
+	}
+}
+
+func TestResolve_Unauthorized(t *testing.T) {
+	fc := &errorClient{err: apierrors.NewUnauthorized("not authorized")}
+	result, err := resolve(context.Background(), fc)
+	if err != nil {
+		t.Fatalf("resolve() error = %v, expected fallback on Unauthorized", err)
+	}
+	if !result.APIAvailable {
+		t.Error("expected APIAvailable = true on Unauthorized (watcher should register)")
+	}
+	cfg := &tls.Config{}
+	result.TLSOpts[0](cfg)
+	if cfg.MinVersion != tls.VersionTLS12 {
+		t.Errorf("expected TLS 1.2 fallback, got %d", cfg.MinVersion)
 	}
 }
 

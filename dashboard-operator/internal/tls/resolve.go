@@ -112,6 +112,10 @@ func resolve(ctx context.Context, k8sClient client.Reader) (Result, error) {
 			log.Info("Transient error reading APIServer TLS profile, using hardened defaults", "error", err)
 			result.APIAvailable = true
 			result.Profile = map[string]interface{}{"type": "Intermediate"}
+		case apierrors.IsForbidden(err), apierrors.IsUnauthorized(err):
+			log.Info("Forbidden/Unauthorized reading APIServer TLS profile, using hardened defaults (watcher will retry once RBAC is fixed)", "error", err)
+			result.APIAvailable = true
+			result.Profile = map[string]interface{}{"type": "Intermediate"}
 		default:
 			return result, fmt.Errorf("failed to read APIServer TLS profile: %w", err)
 		}

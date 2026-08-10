@@ -219,6 +219,9 @@ func serverTLSConfigFromREST(ctx context.Context, restCfg *rest.Config, logger *
 			stderrors.Is(err, context.Canceled):
 			logger.Info("Transient API error reading TLS profile, using Intermediate TLS defaults",
 				"error", err)
+		case errors.IsForbidden(err), errors.IsUnauthorized(err):
+			logger.Info("Forbidden/Unauthorized reading TLS profile, using Intermediate TLS defaults (check RBAC)",
+				"error", err)
 		default:
 			return nil, fmt.Errorf("failed to get APIServer 'cluster': %w", err)
 		}
