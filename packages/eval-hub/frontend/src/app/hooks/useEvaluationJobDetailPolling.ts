@@ -34,6 +34,8 @@ const useEvaluationJobDetailPolling = (
       queryFn: ({ signal }: { signal: AbortSignal }) =>
         poolRef.current.enqueue(() => getEvaluationJob('', namespace ?? '', jobId)({ signal })),
       enabled: enabled && !!namespace,
+      // Each poll returns a new object so elapsed time recomputes even if job data is unchanged
+      structuralSharing: false,
       // Keep showing the last successful data while a refetch or retry is in progress
       placeholderData: (previousData: EvaluationJob | undefined) => previousData,
       // Skip retry for 4xx (client errors won't self-resolve); retry 5xx/network up to 5 times

@@ -50,22 +50,22 @@ export const getEarliestStartTime = (job: EvaluationJob): string | undefined => 
   return job.resource.created_at;
 };
 
-// Formats the duration from startTime to now as a human-readable string (e.g. "4m 12s").
+// Formats the duration from startTime to now as a human-readable string (e.g. "1h 4m").
+// Omits seconds since elapsed time only updates on each 10s polling cycle.
 export const formatElapsedTime = (startTime: string): string => {
   const ms = Date.now() - new Date(startTime).getTime();
   if (ms <= 0 || !Number.isFinite(ms)) {
-    return '< 1s';
+    return '< 1m';
   }
-  const totalSeconds = Math.floor(ms / 1000);
-  const hours = Math.floor(totalSeconds / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  const seconds = totalSeconds % 60;
+  const totalMinutes = Math.floor(ms / 60_000);
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
 
   if (hours > 0) {
     return `${hours}h ${minutes}m`;
   }
   if (minutes > 0) {
-    return `${minutes}m ${seconds}s`;
+    return `${minutes}m`;
   }
-  return `${seconds}s`;
+  return '< 1m';
 };

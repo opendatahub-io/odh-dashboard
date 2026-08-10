@@ -66,6 +66,15 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
   const isComparable = isEvaluationJobComparable(job);
   const displayState = isStopping ? 'stopping' : job.status.state;
 
+  // Recompute only when polledJobData changes (new reference per poll due to structuralSharing: false)
+  const elapsedTimeDisplay = React.useMemo(() => {
+    if (!polledJobData || isTerminalState(job.status.state)) {
+      return null;
+    }
+    const startTime = getEarliestStartTime(polledJobData);
+    return startTime ? formatElapsedTime(startTime) : null;
+  }, [polledJobData, job.status.state]);
+
   React.useEffect(() => {
     if (!isInProgress) {
       setIsStopping(false);
@@ -225,12 +234,9 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
                   {polledJobData.status.benchmarks.length} complete
                 </div>
               )}
-              {(() => {
-                const startTime = getEarliestStartTime(polledJobData);
-                return startTime ? (
-                  <div data-testid="elapsed-time">Elapsed: {formatElapsedTime(startTime)}</div>
-                ) : null;
-              })()}
+              {elapsedTimeDisplay && (
+                <div data-testid="elapsed-time">Elapsed time: {elapsedTimeDisplay}</div>
+              )}
             </>
           )}
         </Td>
