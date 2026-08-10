@@ -338,6 +338,69 @@ func TestGenerateLlamaStackConfig_RBACFlag(t *testing.T) {
 	})
 }
 
+func TestGenerateLlamaStackConfig_PassthroughProvider(t *testing.T) {
+	t.Run("should add passthrough provider when GatewayDomain is set", func(t *testing.T) {
+		mockBFFClient := bffmocks.NewMockBFFClient(bffclient.BFFTargetMaaS)
+
+		client := &TokenKubernetesClient{
+			Logger: slog.Default(),
+			EnvConfig: config.EnvConfig{
+				GatewayDomain: "apps.cluster.example.com",
+			},
+		}
+
+		testModels := []models.InstallModel{
+			{ModelName: "llama-2-7b-chat", ModelSourceType: models.ModelSourceTypeMaaS},
+		}
+
+		ctx := context.Background()
+		result, err := client.generateLlamaStackConfig(ctx, "my-namespace", testModels, nil, mockBFFClient, "test-token", nil)
+		require.NoError(t, err)
+
+		var cfg LlamaStackConfig
+		err = cfg.FromYAML(result)
+		require.NoError(t, err)
+
+		assert.True(t, cfg.HasPassthroughProvider(), "config should include passthrough provider")
+
+		// Find the passthrough provider and verify its config
+		var passthrough *Provider
+		for i := range cfg.Providers.Inference {
+			if cfg.Providers.Inference[i].ProviderType == "remote::passthrough" {
+				passthrough = &cfg.Providers.Inference[i]
+				break
+			}
+		}
+		require.NotNil(t, passthrough, "passthrough provider must be present")
+		assert.Equal(t, constants.PassthroughProviderID, passthrough.ProviderID)
+		assert.Equal(t, "https://apps.cluster.example.com/api/v1/genai-proxy/ns/my-namespace", passthrough.Config["base_url"])
+		assert.Equal(t, true, passthrough.Config["refresh_models"])
+	})
+
+	t.Run("should NOT add passthrough provider when GatewayDomain is empty", func(t *testing.T) {
+		mockBFFClient := bffmocks.NewMockBFFClient(bffclient.BFFTargetMaaS)
+
+		client := &TokenKubernetesClient{
+			Logger:    slog.Default(),
+			EnvConfig: config.EnvConfig{GatewayDomain: ""},
+		}
+
+		testModels := []models.InstallModel{
+			{ModelName: "llama-2-7b-chat", ModelSourceType: models.ModelSourceTypeMaaS},
+		}
+
+		ctx := context.Background()
+		result, err := client.generateLlamaStackConfig(ctx, "my-namespace", testModels, nil, mockBFFClient, "test-token", nil)
+		require.NoError(t, err)
+
+		var cfg LlamaStackConfig
+		err = cfg.FromYAML(result)
+		require.NoError(t, err)
+
+		assert.False(t, cfg.HasPassthroughProvider(), "config should NOT include passthrough when GatewayDomain is empty")
+	})
+}
+
 // TestExtractEndpointFromLLMInferenceService tests that extractEndpointFromLLMInferenceService
 // reads the internal URL from status.addresses instead of constructing it manually.
 func TestExtractEndpointFromLLMInferenceService(t *testing.T) {
