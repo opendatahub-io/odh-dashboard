@@ -1,0 +1,35 @@
+apiVersion: chaos.operatorchaos.io/v1alpha1
+kind: ChaosExperiment
+metadata:
+  name: dashboard-network-partition
+spec:
+  tier: 2
+  target:
+    operator: dashboard
+    component: odh-dashboard
+    resource: Deployment/odh-dashboard
+  steadyState:
+    checks:
+      - type: conditionTrue
+        apiVersion: apps/v1
+        kind: Deployment
+        name: odh-dashboard
+        namespace: opendatahub
+        conditionType: Available
+    timeout: "30s"
+  injection:
+    type: NetworkPartition
+    parameters:
+      labelSelector: app=odh-dashboard
+    ttl: "300s"
+  hypothesis:
+    description: >-
+      When odh-dashboard pods are network-partitioned from the API server,
+      the dashboard UI should become unavailable as the kube-rbac-proxy
+      sidecar cannot verify authentication. Once the partition is removed,
+      the dashboard should resume serving without manual intervention.
+    recoveryTimeout: 180s
+  blastRadius:
+    maxPodsAffected: 2
+    allowedNamespaces:
+      - opendatahub

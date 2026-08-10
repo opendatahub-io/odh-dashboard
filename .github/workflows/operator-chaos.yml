@@ -1,0 +1,117 @@
+name: Chaos Validation
+
+on:
+  pull_request:
+    paths:
+      - 'chaos/**'
+      - 'dashboard-operator/internal/**'
+      - 'dashboard-operator/api/**'
+      - 'dashboard-operator/config/**'
+      - 'dashboard-operator/cmd/**'
+      - '.github/workflows/operator-chaos.yml'
+
+permissions:
+  contents: read
+
+env:
+  OPERATOR_CHAOS_VERSION: "v0.0.0-20260521100204-4dab974d613c"
+
+jobs:
+  validate:
+    name: Operator Chaos
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup Go
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: dashboard-operator/go.mod
+
+      - name: Install operator-chaos
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "${RUNNER_TEMP}/bin"
+          GOBIN="${RUNNER_TEMP}/bin" go install "github.com/opendatahub-io/operator-chaos/cmd/operator-chaos@${OPERATOR_CHAOS_VERSION}"
+          echo "${RUNNER_TEMP}/bin" >> "${GITHUB_PATH}"
+
+      - name: Validate knowledge model
+        shell: bash
+        run: |
+          set -euo pipefail
+          operator-chaos validate --knowledge chaos/knowledge/dashboard.yaml
+
+      - name: Local preflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          operator-chaos preflight --knowledge chaos/knowledge/dashboard.yaml --local
+
+      - name: Validate all experiments
+        shell: bash
+        run: |
+          set -euo pipefail
+          status=0
+          for f in chaos/experiments/*.yaml; do
+            echo "--- $f ---"
+            if ! operator-chaos validate "$f"; then
+              status=1
+            fi
+          done
+          exit "$status"
+
+      - name: Checkout base branch assets
+        uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: base-branch
+          persist-credentials: false
+          sparse-checkout: chaos/knowledge
+          sparse-checkout-cone-mode: false
+
+      - name: Detect breaking changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ ! -d "base-branch/chaos/knowledge" ]; then
+            echo "No base knowledge model found — skipping diff (first-time integration)"
+            exit 0
+          fi
+
+          output_dir="${RUNNER_TEMP}/operator-chaos"
+          mkdir -p "${output_dir}"
+          knowledge_diff_json="${output_dir}/knowledge-diff.json"
+
+          operator-chaos diff \
+            --source base-branch/chaos/knowledge \
+            --target chaos/knowledge \
+            --breaking \
+            --format json > "${knowledge_diff_json}"
+          operator-chaos diff \
+            --source base-branch/chaos/knowledge \
+            --target chaos/knowledge \
+            --breaking
+
+          knowledge_breaking=$(jq -r '.summary.breakingChanges // 0' "${knowledge_diff_json}")
+          if (( knowledge_breaking > 0 )); then
+            echo "operator-chaos detected ${knowledge_breaking} breaking knowledge change(s)."
+            exit 1
+          fi
+
+      - name: Simulate upgrade
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ ! -d "base-branch/chaos/knowledge" ]; then
+            echo "No base knowledge model found — skipping simulate-upgrade (first-time integration)"
+            exit 0
+          fi
+
+          operator-chaos simulate-upgrade \
+            --source base-branch/chaos/knowledge \
+            --target chaos/knowledge \
+            --dry-run
