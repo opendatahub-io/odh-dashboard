@@ -2139,6 +2139,20 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 	// Ensure storage field is present before serialization (defensive check)
 	config.EnsureStorageField()
 
+	// Add remote::passthrough provider for zero-restart model discovery.
+	// When GatewayDomain is configured, OGX polls the BFF's /v1/models endpoint
+	// to discover new models without requiring a pod restart.
+	if kc.EnvConfig.GatewayDomain != "" {
+		passthroughURL := fmt.Sprintf("https://%s%s%s/genai-proxy/ns/%s",
+			kc.EnvConfig.GatewayDomain, constants.PathPrefix, constants.ApiPathPrefix, namespace)
+		passthroughProvider := NewPassthroughProvider(constants.PassthroughProviderID, passthroughURL)
+		config.AddInferenceProvider(passthroughProvider)
+		kc.Logger.Info("Added remote::passthrough provider for zero-restart model discovery",
+			"providerID", constants.PassthroughProviderID, "baseURL", passthroughURL)
+	} else {
+		kc.Logger.Debug("Skipping remote::passthrough provider (GATEWAY_DOMAIN not configured)")
+	}
+
 	// Optionally enable RBAC authentication using Kubernetes auth provider.
 	// Gated behind ENABLE_LLAMASTACK_RBAC env var / --enable-llamastack-rbac flag
 	// to avoid breaking existing deployments that may not have the expected
