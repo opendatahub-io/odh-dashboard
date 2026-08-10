@@ -11,9 +11,9 @@ connectionNameSuffix: '-connection'
 deploymentMethod: 'legacy'
 
 # Serving runtime template (uploaded in Settings -> Serving runtimes)
-servingRuntimeResourceName: 'cypress-custom-servingruntime'
+servingRuntimeId: 'cypress-custom-servingruntime'
 servingRuntimeDisplayName: 'Cypress Custom ServingRuntime for KServe'
-servingRuntimeYamlFixturePath: 'resources/modelServing/unspported_servingruntime_config.yaml'
+unsupportedServingRuntimeYamlFixturePath: 'resources/modelServing/unsupported_servingruntime_config.yaml'
 apiProtocol: 'REST'
-replaceSourceString: "opendatahub.io/unsupported-status-accepted: 'false'"
-replaceTargetString: "opendatahub.io/unsupported-status-accepted: 'true'"
+replaceSourceString: "opendatahub.io/support-status: unsupported"
+replaceTargetString: "opendatahub.io/support-status: supported"

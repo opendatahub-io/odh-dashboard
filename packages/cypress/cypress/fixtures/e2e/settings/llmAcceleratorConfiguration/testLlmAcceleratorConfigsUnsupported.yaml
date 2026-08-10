@@ -11,7 +11,7 @@ modelLocationURI: 'hf://facebook/opt-125m'
 
 # Accelerator configs
 unsupportedAcceleratorConfigFixturePath : 'resources/modelServing/unsupported-accelerator-config.yaml'
+replaceSourceString: "opendatahub.io/support-status: unsupported"
+replaceTargetString: "opendatahub.io/support-status: supported"
 acceleratorConfigName: 'e2e-accelerator-config'
 version: 'v1.10.2'
-replaceSourceString: "opendatahub.io/unsupported-status-accepted: 'false'"
-replaceTargetString: "opendatahub.io/unsupported-status-accepted: 'true'"

@@ -9,4 +9,3 @@ metadata:
     openshift.io/display-name: e2e-accelerator-config
     opendatahub.io/runtime-version: v1.10.2
     opendatahub.io/support-status: unsupported
-    opendatahub.io/unsupported-status-accepted: 'false'

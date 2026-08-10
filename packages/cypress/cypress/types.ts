@@ -350,9 +350,9 @@ export type AcceleratorTestData = DataScienceProjectData & {
 };
 
 export type ServingRuntimeSettingsTestData = DataScienceProjectData & {
-  servingRuntimeResourceName: string;
+  servingRuntimeId: string;
   servingRuntimeDisplayName: string;
-  servingRuntimeYamlFixturePath: string;
+  unsupportedServingRuntimeYamlFixturePath: string;
   apiProtocol: string;
   replaceSourceString: string;
   replaceTargetString: string;

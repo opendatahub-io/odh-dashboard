@@ -83,7 +83,7 @@ class UnsupportedStatusAcceptanceModal {
 class LlmAcceleratorConfigs {
   visit(wait = true) {
     cy.visitWithLogin(
-      '/settings/model-resources-operations/model-deployment-settings/llm-accelerator-configurations/?devFeatureFlags=vLLMDeploymentOnMaaS=true',
+      'settings/model-resources-operations/llm-accelerator-configs/?devFeatureFlags=vLLMDeploymentOnMaaS=true',
     );
     if (wait) {
       this.wait();
