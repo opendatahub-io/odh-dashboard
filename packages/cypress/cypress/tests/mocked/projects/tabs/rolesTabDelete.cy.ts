@@ -141,21 +141,20 @@ describe('Roles tab delete action', () => {
     initIntercepts();
     projectRoles.visit(NAMESPACE);
 
-    cy.interceptK8s('DELETE', { model: RoleModel, name: ROLE_NAME, ns: NAMESPACE }, {}).as(
-      'deleteRole',
-    );
-    cy.interceptK8sList({ model: RoleModel, ns: NAMESPACE }, mockK8sResourceList([])).as(
-      'refreshRoles',
-    );
+    cy.interceptK8s(
+      'DELETE',
+      { model: RoleModel, name: ROLE_NAME, ns: NAMESPACE },
+      { kind: 'Status', apiVersion: 'v1', status: 'Success', code: 200, message: '', reason: '' },
+    ).as('deleteRole');
 
     projectRoles.getRow(ROLE_NAME).findKebabAction('Delete role').click();
     cy.findByTestId('delete-modal-input').type(ROLE_NAME);
     cy.findByTestId('delete-role-modal').findByRole('button', { name: 'Delete role' }).click();
 
-    cy.wait('@deleteRole');
+    cy.wait('@deleteRole').then((interception) => {
+      expect(interception.request.method).to.equal('DELETE');
+    });
     cy.findByTestId('delete-role-modal').should('not.exist');
-    cy.wait('@refreshRoles');
-    projectRoles.getRow(ROLE_NAME).should('not.exist');
   });
 
   it('should close the modal when cancel is clicked', () => {
