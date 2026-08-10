@@ -181,4 +181,14 @@ describe('ProjectSelectorField', () => {
     renderComponent({ selectorOnly: true });
     expect(screen.getByTestId('project-selector')).toHaveAttribute('data-full-width', 'false');
   });
+
+  it('should preserve an explicit false isFullWidth value', () => {
+    renderComponent({ isFullWidth: false, selectorOnly: false });
+    expect(screen.getByTestId('project-selector')).toHaveAttribute('data-full-width', 'false');
+  });
+
+  it('should default isFullWidth to true when selectorOnly is false', () => {
+    renderComponent({ selectorOnly: false });
+    expect(screen.getByTestId('project-selector')).toHaveAttribute('data-full-width', 'true');
+  });
 });

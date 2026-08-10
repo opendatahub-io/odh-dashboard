@@ -345,6 +345,14 @@ func convertUnstructuredToMcpDeployment(obj unstructured.Unstructured) (models.M
 		Path:              server.Spec.Config.Path,
 	}
 
+	// A pre-existing CR created without spec.config.port (e.g. via kubectl, or an earlier
+	// version of this tool) would otherwise report Port: 0 here, which buildMcpAccessEndpointUrl
+	// expands to an unroutable ":0" address. Mirrors the same default applied on the create/patch
+	// paths (buildMcpServerFromCreateRequest, buildMcpDeploymentPatch).
+	if deployment.Port == 0 {
+		deployment.Port = defaultMcpPort
+	}
+
 	if server.Metadata.Annotations != nil {
 		deployment.DisplayName = server.Metadata.Annotations[mcpDisplayNameAnnotation]
 		deployment.ServerName = server.Metadata.Annotations[mcpCatalogServerAnnotation]

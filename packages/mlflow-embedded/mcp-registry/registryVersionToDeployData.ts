@@ -20,7 +20,8 @@ const pickRemoteCapablePackage = (
   ) ?? packages?.[0];
 
 const pickRemoteEntry = (remotes?: MCPServerJSONRemote[]): MCPServerJSONRemote | undefined =>
-  remotes?.find((remote) => remote.type === MCPTransportType.STREAMABLE_HTTP) ?? remotes?.[0];
+  remotes?.find((remote) => remote.type === MCPTransportType.STREAMABLE_HTTP) ??
+  remotes?.find((remote) => remote.type === MCPTransportType.SSE);
 
 // `remotes` is the field that actually declares a network-reachable transport (see
 // MCPServerJSONRemote); `packages` frequently use `stdio` for locally-launched processes.

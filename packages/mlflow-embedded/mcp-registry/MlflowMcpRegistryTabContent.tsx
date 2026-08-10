@@ -79,7 +79,7 @@ const MlflowMcpRegistryTabContent: React.FC = () => {
                 alignItems={{ default: 'alignItemsCenter' }}
               >
                 <FlexItem>
-                  <span>Project</span>
+                  <Content>Project</Content>
                 </FlexItem>
                 <FlexItem>
                   <ProjectSelectorNavigator

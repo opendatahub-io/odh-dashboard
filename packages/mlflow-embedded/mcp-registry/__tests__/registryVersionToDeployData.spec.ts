@@ -224,6 +224,26 @@ describe('registryVersionToDeployData', () => {
     );
   });
 
+  it('selects an sse remote over a leading stdio remote (does not blindly use remotes[0])', () => {
+    // `stdio` isn't a network-reachable transport and should never be selected from `remotes`,
+    // even when it appears first in the array -- a valid `sse`/`streamable-http` entry elsewhere
+    // in the list must win instead of falling back to remotes[0].
+    const version = mockVersion({
+      server_json: {
+        name: 'io.github.example/weather-server',
+        version: '1.2.0',
+        remotes: [
+          { type: MCPTransportType.STDIO },
+          { type: MCPTransportType.SSE, url: 'https://weather.example.com/sse' },
+        ],
+      },
+    });
+
+    expect(registryVersionToDeployData(mockServer(), version).transportType).toBe(
+      MCPTransportType.SSE,
+    );
+  });
+
   it('prefers a streamable-http remote over an sse remote when both are advertised', () => {
     const version = mockVersion({
       server_json: {

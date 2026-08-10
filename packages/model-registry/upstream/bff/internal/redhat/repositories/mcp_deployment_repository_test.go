@@ -477,6 +477,45 @@ func TestConvertUnstructuredToMcpDeployment_EmptyPathWhenUnset(t *testing.T) {
 	}
 }
 
+func TestConvertUnstructuredToMcpDeployment_DefaultsPortWhenZero(t *testing.T) {
+	// A pre-existing CR created without spec.config.port (e.g. via kubectl, or an earlier
+	// version of this tool) must not report Port: 0, since callers build access-endpoint URLs
+	// directly from it (an unroutable ":0" address). Mirrors the same default applied on the
+	// create/patch paths.
+	obj := unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": mcpServerAPIVersion,
+			"kind":       mcpServerKind,
+			"metadata": map[string]interface{}{
+				"name":              "k8s-mcp",
+				"namespace":         "test-ns",
+				"uid":               "test-uid-zeroport",
+				"creationTimestamp": "2026-03-30T10:00:00Z",
+			},
+			"spec": map[string]interface{}{
+				"source": map[string]interface{}{
+					"type": "ContainerImage",
+					"containerImage": map[string]interface{}{
+						"ref": "quay.io/mcp/k8s:1.0",
+					},
+				},
+				"config": map[string]interface{}{
+					"port": int64(0),
+				},
+			},
+		},
+	}
+
+	deployment, err := convertUnstructuredToMcpDeployment(obj)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if deployment.Port != defaultMcpPort {
+		t.Fatalf("expected port to default to %d instead of being zeroed out, got %d", defaultMcpPort, deployment.Port)
+	}
+}
+
 func TestConvertUnstructuredToMcpDeployment_WithRegistryAnnotations(t *testing.T) {
 	obj := unstructured.Unstructured{
 		Object: map[string]interface{}{
