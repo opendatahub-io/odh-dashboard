@@ -23,10 +23,15 @@ const (
 // Passthrough Provider — enables OGX zero-restart model discovery via BFF proxy.
 const (
 	// PassthroughProviderID is the provider_id used for the remote::passthrough entry.
-	PassthroughProviderID = "bff-passthrough"
+	// Must match the provider_id prefix that OGX uses in model IDs (e.g. "genai-bff-proxy/model-name").
+	PassthroughProviderID = "genai-bff-proxy"
 
 	// PassthroughProviderType is the OGX/LlamaStack provider type for passthrough.
 	PassthroughProviderType = "remote::passthrough"
+
+	// PassthroughForwardHeaderKey is the key in X-OGX-Provider-Data JSON that carries the user JWT.
+	// OGX maps this to the outbound header specified in forward_headers config.
+	PassthroughForwardHeaderKey = "vllm_api_token"
 )
 
 type EmbeddingModelConfig struct {
