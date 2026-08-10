@@ -145,7 +145,7 @@ func main() {
 
 	ctx, cancel := context.WithCancel(ctrl.SetupSignalHandler())
 
-	if tlsResult.ProfileFetched {
+	if tlsResult.APIAvailable {
 		watcher := &pkgtls.ProfileWatcher{
 			Client:         mgr.GetClient(),
 			InitialProfile: tlsResult.Profile,

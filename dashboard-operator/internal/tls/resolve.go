@@ -69,7 +69,7 @@ var tlsVersionMap = map[string]uint16{
 // Result holds the resolved TLS configuration.
 type Result struct {
 	TLSOpts        []func(*tls.Config)
-	ProfileFetched bool
+	APIAvailable bool
 	Profile        map[string]interface{}
 }
 
@@ -110,7 +110,7 @@ func resolve(ctx context.Context, k8sClient client.Reader) (Result, error) {
 			apierrors.IsTooManyRequests(err),
 			errors.Is(err, context.DeadlineExceeded):
 			log.Info("Transient error reading APIServer TLS profile, using hardened defaults", "error", err)
-			result.ProfileFetched = true
+			result.APIAvailable = true
 			result.Profile = map[string]interface{}{"type": "Intermediate"}
 		default:
 			return result, fmt.Errorf("failed to read APIServer TLS profile: %w", err)
@@ -119,7 +119,7 @@ func resolve(ctx context.Context, k8sClient client.Reader) (Result, error) {
 		return result, nil
 	}
 
-	result.ProfileFetched = true
+	result.APIAvailable = true
 	result.Profile, _, _ = unstructured.NestedMap(apiServer.Object, "spec", "tlsSecurityProfile")
 
 	minVersion, ciphers := parseProfile(apiServer)

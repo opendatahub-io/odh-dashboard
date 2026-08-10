@@ -49,8 +49,8 @@ func TestResolve_Success(t *testing.T) {
 	if err != nil {
 		t.Fatalf("resolve() error = %v", err)
 	}
-	if !result.ProfileFetched {
-		t.Error("expected ProfileFetched = true")
+	if !result.APIAvailable {
+		t.Error("expected APIAvailable = true")
 	}
 	cfg := &tls.Config{}
 	for _, fn := range result.TLSOpts {
@@ -67,8 +67,8 @@ func TestResolve_NotFound(t *testing.T) {
 	if err != nil {
 		t.Fatalf("resolve() error = %v, expected fallback", err)
 	}
-	if result.ProfileFetched {
-		t.Error("expected ProfileFetched = false")
+	if result.APIAvailable {
+		t.Error("expected APIAvailable = false")
 	}
 	cfg := &tls.Config{}
 	result.TLSOpts[0](cfg)
@@ -83,8 +83,8 @@ func TestResolve_TransientError(t *testing.T) {
 	if err != nil {
 		t.Fatalf("resolve() error = %v", err)
 	}
-	if !result.ProfileFetched {
-		t.Error("expected ProfileFetched = true on transient error")
+	if !result.APIAvailable {
+		t.Error("expected APIAvailable = true on transient error")
 	}
 }
 
