@@ -10,7 +10,7 @@ import {
 interface StorageClassFilterToolbarProps {
   filterData: StorageClassFilterData;
   onFilterUpdate: (
-    key: string,
+    key: StorageClassFilterOption,
     value: string | { label: string; value: string } | undefined,
   ) => void;
 }

@@ -7,7 +7,7 @@ import { ConnectionTypesOptions, options } from '#~/pages/connectionTypes/const'
 type Props = {
   filterData: Record<ConnectionTypesOptions, string | undefined>;
   onFilterUpdate: (
-    key: string,
+    key: ConnectionTypesOptions,
     value: string | { label: string; value: string } | undefined,
   ) => void;
 };

@@ -13,7 +13,7 @@ import { useMlmdListContext } from '#~/concepts/pipelines/context';
 type ExecutionsTableToolbarProps = {
   filterData: Record<FilterOptions, string | undefined>;
   onFilterUpdate: (
-    key: string,
+    key: FilterOptions,
     value: string | { label: string; value: string } | undefined,
   ) => void;
 };
