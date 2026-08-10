@@ -1,0 +1,33 @@
+import * as React from 'react';
+
+export type FilterValue = string | { label: string; value: string } | undefined;
+
+/**
+ * Shared filter-state hook used by table toolbars.
+ * Manages `filterData` state plus stable `onFilterUpdate` / `onClearFilters` callbacks.
+ */
+const useFilters = <T extends Record<string, FilterValue>>(
+  initialFilterData: T,
+): {
+  filterData: T;
+  setFilterData: React.Dispatch<React.SetStateAction<T>>;
+  onFilterUpdate: (key: string, value: FilterValue) => void;
+  onClearFilters: () => void;
+} => {
+  const [filterData, setFilterData] = React.useState<T>(initialFilterData);
+
+  const onFilterUpdate = React.useCallback(
+    (key: string, value: FilterValue) =>
+      setFilterData((prevValues) => ({ ...prevValues, [key]: value })),
+    [setFilterData],
+  );
+
+  const onClearFilters = React.useCallback(
+    () => setFilterData(initialFilterData),
+    [setFilterData, initialFilterData],
+  );
+
+  return { filterData, setFilterData, onFilterUpdate, onClearFilters };
+};
+
+export default useFilters;
