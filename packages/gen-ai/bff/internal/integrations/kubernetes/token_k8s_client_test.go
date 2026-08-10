@@ -2394,3 +2394,111 @@ func TestPgvectorConnectionFromConfig(t *testing.T) {
 		assert.Nil(t, conn.PasswordSecret, "key alone without name should not create a SecretRef")
 	})
 }
+
+func TestExistingServerHasPassthrough(t *testing.T) {
+	scheme := runtime.NewScheme()
+	require.NoError(t, corev1.AddToScheme(scheme))
+
+	configWithPassthrough := `
+version: "2"
+distro_name: rh
+apis: [inference]
+providers:
+  inference:
+    - provider_id: genai-bff-proxy
+      provider_type: remote::passthrough
+      config:
+        base_url: https://apps.example.com/api/v1/genai-proxy/ns/test-ns
+        forward_headers:
+          vllm_api_token: x-forwarded-access-token
+        refresh_models: true
+    - provider_id: sentence-transformers
+      provider_type: inline::sentence-transformers
+      config:
+        trust_remote_code: false
+metadata_store:
+  type: sqlite
+  db_path: /tmp/test.db
+registered_resources:
+  models: []
+  vector_stores: []
+server:
+  port: 8321
+`
+
+	configWithoutPassthrough := `
+version: "2"
+distro_name: rh
+apis: [inference]
+providers:
+  inference:
+    - provider_id: vllm-inference-1
+      provider_type: remote::vllm
+      config:
+        base_url: http://model-svc:8000/v1
+metadata_store:
+  type: sqlite
+  db_path: /tmp/test.db
+registered_resources:
+  models: []
+  vector_stores: []
+server:
+  port: 8321
+`
+
+	t.Run("returns true when ConfigMap has passthrough provider", func(t *testing.T) {
+		cm := &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{Name: "llama-stack-config", Namespace: "test-ns"},
+			Data:       map[string]string{"config.yaml": configWithPassthrough},
+		}
+		fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(cm).Build()
+		kc := &TokenKubernetesClient{Client: fakeClient, Logger: slog.Default()}
+
+		result := kc.existingServerHasPassthroughFromConfigMap(context.Background(), "llama-stack-config", "config.yaml", "test-ns")
+		assert.True(t, result)
+	})
+
+	t.Run("returns false when ConfigMap has no passthrough provider", func(t *testing.T) {
+		cm := &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{Name: "llama-stack-config", Namespace: "test-ns"},
+			Data:       map[string]string{"config.yaml": configWithoutPassthrough},
+		}
+		fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(cm).Build()
+		kc := &TokenKubernetesClient{Client: fakeClient, Logger: slog.Default()}
+
+		result := kc.existingServerHasPassthroughFromConfigMap(context.Background(), "llama-stack-config", "config.yaml", "test-ns")
+		assert.False(t, result)
+	})
+
+	t.Run("returns false when ConfigMap does not exist", func(t *testing.T) {
+		fakeClient := fake.NewClientBuilder().WithScheme(scheme).Build()
+		kc := &TokenKubernetesClient{Client: fakeClient, Logger: slog.Default()}
+
+		result := kc.existingServerHasPassthroughFromConfigMap(context.Background(), "missing-cm", "config.yaml", "test-ns")
+		assert.False(t, result)
+	})
+
+	t.Run("returns false when config key is missing from ConfigMap", func(t *testing.T) {
+		cm := &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{Name: "llama-stack-config", Namespace: "test-ns"},
+			Data:       map[string]string{"other-key.yaml": configWithPassthrough},
+		}
+		fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(cm).Build()
+		kc := &TokenKubernetesClient{Client: fakeClient, Logger: slog.Default()}
+
+		result := kc.existingServerHasPassthroughFromConfigMap(context.Background(), "llama-stack-config", "config.yaml", "test-ns")
+		assert.False(t, result)
+	})
+
+	t.Run("returns false when YAML is malformed", func(t *testing.T) {
+		cm := &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{Name: "llama-stack-config", Namespace: "test-ns"},
+			Data:       map[string]string{"config.yaml": "{{invalid yaml"},
+		}
+		fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(cm).Build()
+		kc := &TokenKubernetesClient{Client: fakeClient, Logger: slog.Default()}
+
+		result := kc.existingServerHasPassthroughFromConfigMap(context.Background(), "llama-stack-config", "config.yaml", "test-ns")
+		assert.False(t, result)
+	})
+}
