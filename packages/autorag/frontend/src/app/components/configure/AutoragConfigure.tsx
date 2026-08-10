@@ -81,9 +81,6 @@ import {
   RAG_METRIC_ANSWER_CORRECTNESS,
   RAG_METRIC_FAITHFULNESS,
   RAG_METRIC_OVERALL_SCORE,
-  RAG_SUPPORTED_INPUT_FORMAT_EXTENSIONS,
-  RAG_SUPPORTED_INPUT_FORMAT_HINT,
-  RAG_SUPPORTED_INPUT_FORMAT_NAMES_STRING_SIMPLE,
   METRIC_DESCRIPTIONS,
   REQUIRED_CONNECTION_SECRET_KEYS,
 } from '~/app/utilities/const';
@@ -102,6 +99,9 @@ import {
   INPUT_DATA_FILE_ACCEPT,
   INPUT_DATA_UPLOAD_NATIVE_ACCEPT,
   isAllowedInputDataUploadFile,
+  SUPPORTED_FORMAT_EXTENSIONS,
+  SUPPORTED_FORMAT_HINT,
+  SUPPORTED_FORMAT_NAMES_STRING_SIMPLE,
 } from '~/app/utilities/autoragInputDataFile';
 import AutoragEvaluationSelect from './AutoragEvaluationSelect';
 import AutoragExperimentSettings from './AutoragExperimentSettings';
@@ -335,7 +335,7 @@ function AutoragConfigure({
       if (!isAllowedInputDataUploadFile(file)) {
         notification.error(
           'Invalid file type',
-          `File type must be one of the accepted types (${RAG_SUPPORTED_INPUT_FORMAT_NAMES_STRING_SIMPLE}).`,
+          `File type must be one of the accepted types (${SUPPORTED_FORMAT_NAMES_STRING_SIMPLE}).`,
         );
         return;
       }
@@ -622,7 +622,7 @@ function AutoragConfigure({
                                   titleIcon={<UploadIcon />}
                                   titleText="Drag and drop files here"
                                   titleTextSeparator="or"
-                                  infoText={`Accepted file types: ${RAG_SUPPORTED_INPUT_FORMAT_NAMES_STRING_SIMPLE}. Maximum file size: ${AUTORAG_UPLOAD_MAX_SIZE_MIB} MiB`}
+                                  infoText={`Accepted file types: ${SUPPORTED_FORMAT_NAMES_STRING_SIMPLE}. Maximum file size: ${AUTORAG_UPLOAD_MAX_SIZE_MIB} MiB`}
                                   browseButtonText="Upload"
                                 />
                               </MultipleFileUpload>
@@ -1138,8 +1138,8 @@ function AutoragConfigure({
             }
           }
         }}
-        selectableExtensions={RAG_SUPPORTED_INPUT_FORMAT_EXTENSIONS}
-        unselectableReason={RAG_SUPPORTED_INPUT_FORMAT_HINT}
+        selectableExtensions={SUPPORTED_FORMAT_EXTENSIONS}
+        unselectableReason={SUPPORTED_FORMAT_HINT}
         disabledPaths={[
           '/autogluon-tabular-training-pipeline',
           '/autogluon-timeseries-training-pipeline',
