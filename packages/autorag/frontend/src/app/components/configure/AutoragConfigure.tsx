@@ -83,6 +83,7 @@ import {
   RAG_METRIC_OVERALL_SCORE,
   RAG_SUPPORTED_INPUT_FORMAT_EXTENSIONS,
   RAG_SUPPORTED_INPUT_FORMAT_HINT,
+  RAG_SUPPORTED_INPUT_FORMAT_NAMES_STRING_SIMPLE,
   METRIC_DESCRIPTIONS,
   REQUIRED_CONNECTION_SECRET_KEYS,
 } from '~/app/utilities/const';
@@ -334,7 +335,7 @@ function AutoragConfigure({
       if (!isAllowedInputDataUploadFile(file)) {
         notification.error(
           'Invalid file type',
-          'File type must be one of the accepted types (PDF, DOCX, PPTX, Markdown, HTML, Plain text).',
+          `File type must be one of the accepted types (${RAG_SUPPORTED_INPUT_FORMAT_NAMES_STRING_SIMPLE}).`,
         );
         return;
       }
@@ -621,7 +622,7 @@ function AutoragConfigure({
                                   titleIcon={<UploadIcon />}
                                   titleText="Drag and drop files here"
                                   titleTextSeparator="or"
-                                  infoText={`Accepted file types: PDF, DOCX, PPTX, Markdown, HTML, Plain text. Maximum file size: ${AUTORAG_UPLOAD_MAX_SIZE_MIB} MiB`}
+                                  infoText={`Accepted file types: ${RAG_SUPPORTED_INPUT_FORMAT_NAMES_STRING_SIMPLE}. Maximum file size: ${AUTORAG_UPLOAD_MAX_SIZE_MIB} MiB`}
                                   browseButtonText="Upload"
                                 />
                               </MultipleFileUpload>

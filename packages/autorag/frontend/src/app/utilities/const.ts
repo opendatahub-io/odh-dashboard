@@ -40,9 +40,73 @@ export const MIN_RAG_PATTERNS = 4;
 export const MAX_RAG_PATTERNS = 20;
 
 // Input
-export const RAG_SUPPORTED_INPUT_FORMAT_EXTENSIONS = ['pdf', 'docx', 'pptx', 'md', 'html', 'txt'];
-export const RAG_SUPPORTED_INPUT_FORMAT_HINT =
-  'You can only select PDF, DOCX, PPTX, Markdown, HTML, or Plain text files';
+export const RAG_SUPPORTED_INPUT_FORMAT = {
+  pdf: {
+    extension: 'pdf',
+    mimeType: 'application/pdf',
+    name: 'PDF',
+  },
+  docx: {
+    extension: 'docx',
+    mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    name: 'DOCX',
+  },
+  pptx: {
+    extension: 'pptx',
+    mimeType: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    name: 'PPTX',
+  },
+  md: {
+    extension: 'md',
+    mimeType: 'text/markdown',
+    name: 'Markdown',
+  },
+  markdown: {
+    extension: 'markdown',
+    mimeType: 'text/markdown',
+    name: 'Markdown',
+  },
+  html: {
+    extension: 'html',
+    mimeType: 'text/html',
+    name: 'HTML',
+  },
+  htm: {
+    extension: 'htm',
+    mimeType: 'text/html',
+    name: 'HTML',
+  },
+  txt: {
+    extension: 'txt',
+    mimeType: 'text/plain',
+    name: 'Plain text',
+  },
+};
+export const RAG_SUPPORTED_INPUT_FORMAT_EXTENSIONS = Object.values(RAG_SUPPORTED_INPUT_FORMAT).map(
+  (f) => f.extension,
+);
+export const RAG_SUPPORTED_INPUT_FORMAT_NAMES = [
+  ...new Set(Object.values(RAG_SUPPORTED_INPUT_FORMAT).map((f) => f.name)),
+];
+export const RAG_SUPPORTED_INPUT_FORMAT_NAMES_STRING_SIMPLE =
+  RAG_SUPPORTED_INPUT_FORMAT_NAMES.join(', ');
+export const RAG_SUPPORTED_INPUT_FORMAT_NAMES_STRING_OR =
+  RAG_SUPPORTED_INPUT_FORMAT_NAMES.length > 1
+    ? `${RAG_SUPPORTED_INPUT_FORMAT_NAMES.slice(0, -1).join(', ')}, or ${RAG_SUPPORTED_INPUT_FORMAT_NAMES.at(-1)}`
+    : RAG_SUPPORTED_INPUT_FORMAT_NAMES.join('');
+export const RAG_SUPPORTED_INPUT_FORMATS_MIME_TYPE_TO_EXTENSION: Record<string, string[]> =
+  Object.fromEntries(
+    Object.values(RAG_SUPPORTED_INPUT_FORMAT).reduce<Map<string, string[]>>(
+      (map, { mimeType, extension }) => {
+        const exts = map.get(mimeType) ?? [];
+        exts.push(`.${extension}`);
+        map.set(mimeType, exts);
+        return map;
+      },
+      new Map(),
+    ),
+  );
+export const RAG_SUPPORTED_INPUT_FORMAT_HINT = `You can only select ${RAG_SUPPORTED_INPUT_FORMAT_NAMES_STRING_OR} files`;
 
 // Presets
 export const PRESET_FASTER = 'speed';

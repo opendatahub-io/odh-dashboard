@@ -5,23 +5,20 @@ import {
   AUTORAG_UPLOAD_TOO_MANY_FILES_DETAIL,
   getDropzoneFileRejectedNotification,
 } from '~/app/utilities/dropzoneFileUpload';
+import {
+  RAG_SUPPORTED_INPUT_FORMATS_MIME_TYPE_TO_EXTENSION,
+  RAG_SUPPORTED_INPUT_FORMAT_NAMES_STRING_SIMPLE,
+} from '~/app/utilities/const';
 
 /** MIME types and extensions for the knowledge document upload dropzone (react-dropzone `accept` format). */
-export const INPUT_DATA_FILE_ACCEPT: Record<string, string[]> = {
-  'application/pdf': ['.pdf'],
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
-  'application/vnd.openxmlformats-officedocument.presentationml.presentation': ['.pptx'],
-  'text/markdown': ['.md', '.markdown'],
-  'text/html': ['.html', '.htm'],
-  'text/plain': ['.txt'],
-};
+export const INPUT_DATA_FILE_ACCEPT: Record<string, string[]> =
+  RAG_SUPPORTED_INPUT_FORMATS_MIME_TYPE_TO_EXTENSION;
 
 export const INPUT_DATA_UPLOAD_NATIVE_ACCEPT = [
   ...new Set(Object.values(INPUT_DATA_FILE_ACCEPT).flat()),
 ].join(',');
 
-export const INPUT_DATA_INVALID_FILE_TYPE_DESCRIPTION =
-  'File type must be one of the accepted types (PDF, DOCX, PPTX, Markdown, HTML, Plain text).';
+export const INPUT_DATA_INVALID_FILE_TYPE_DESCRIPTION = `File type must be one of the accepted types (${RAG_SUPPORTED_INPUT_FORMAT_NAMES_STRING_SIMPLE}).`;
 
 /**
  * Client-side hint for UX only; file extensions and browser-reported MIME types can be spoofed.
