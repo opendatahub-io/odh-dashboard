@@ -14,6 +14,8 @@ import { runStatusToTreeStepState, treeStepStateToNodeStatus } from './treeStepS
 
 /** Circle diameter for PatternFly DefaultNode custom nodes (dense pipeline layout). */
 const STANDARD_NODE_SIZE = 48;
+/** Branch steps match status-badge scale (design: smaller than stage nodes). */
+const BRANCH_STEP_NODE_SIZE = 28;
 const X_START = 40;
 const X_GAP = 120;
 const Y_CENTER = 200;
@@ -143,14 +145,18 @@ const createTreeNode = (
 ): TreeNodeModel => {
   const stepState = runStatusToTreeStepState(topologyNode.data?.runStatus);
   const label = dataExtras?.label ?? topologyNode.label;
+  const isBranchStep = topologyNode.id.includes('__step__') && topologyNode.id.includes('branch-');
+  const nodeSize = isBranchStep ? BRANCH_STEP_NODE_SIZE : STANDARD_NODE_SIZE;
+  // Keep node centers aligned with standard-sized neighbors on the spine.
+  const originOffset = (STANDARD_NODE_SIZE - nodeSize) / 2;
   return {
     id: topologyNode.id,
     type: TREE_NODE_TYPE,
     label,
-    x,
-    y,
-    width: STANDARD_NODE_SIZE,
-    height: STANDARD_NODE_SIZE,
+    x: x + originOffset,
+    y: y + originOffset,
+    width: nodeSize,
+    height: nodeSize,
     // Circle + NodeStatus for stroke color. Labels are custom (showLabel=false) so
     // PF status does not draw green label boxes.
     shape: NodeShape.circle,

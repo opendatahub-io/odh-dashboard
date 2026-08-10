@@ -77,7 +77,7 @@
 }
 
 .automl-tree-node__winner-star-icon {
-  color: var(--pf-t--global--icon--color--on-color--100);
+  color: var(--pf-t--global--icon--color--inverse);
   fill: currentColor;
 }
 
@@ -109,6 +109,20 @@
       stroke: var(--pf-t--global--border--color--nonstatus--blue--default);
     }
   }
+
+  /*
+   * Status-only badge draws its own ring. Must beat &.pf-m-success|danger|info
+   * (.automl-tree-node.pf-m-* is more specific than &--status-only alone).
+   */
+  &--status-only.pf-m-success,
+  &--status-only.pf-m-danger,
+  &--status-only.pf-m-info,
+  &--status-only {
+    .pf-topology__node__background {
+      fill: transparent;
+      stroke: transparent;
+    }
+  }
 }
 
 .automl-tree-node__task-icon {
@@ -120,6 +134,7 @@
     fill: currentColor;
   }
 }
+
 
 @media (prefers-reduced-motion: reduce) {
   .automl-tree-node__status-spinner {

@@ -6,8 +6,13 @@ import {
   t_global_icon_color_status_danger_default as iconColorStatusDanger,
   t_global_icon_color_brand_default as iconColorBrand,
   t_global_icon_color_subtle as iconColorSubtle,
+  t_global_color_status_success_default as colorStatusSuccess,
+  t_global_border_color_status_success_default as borderColorStatusSuccess,
+  t_global_background_color_primary_default as backgroundColorPrimary,
+  t_global_icon_color_status_on_success_default as iconColorOnSuccess,
 } from '@patternfly/react-tokens';
 import {
+  CheckIcon,
   CheckCircleIcon,
   ExclamationCircleIcon,
   HourglassHalfIcon,
@@ -61,6 +66,48 @@ const TASK_ICON_COLORS: Record<TreeNodeData['stepState'], string> = {
 const isStatusOnlyNode = (nodeId: string): boolean =>
   parseStageMapNodeId(nodeId)?.type === 'branch_step';
 
+/**
+ * Completed branch-step badge (design): green outer ring, opaque white gap
+ * (covers the edge line), filled green disk, white check.
+ * Inline styles beat topology `fill: currentColor` inheritance.
+ */
+const StatusOnlyCompletedBadge: React.FC<{ size: number }> = React.memo(({ size }) => {
+  const center = size / 2;
+  // Design ratios (~22px icon): thin ring (~1.5), wide white gap (~3), inner disk (~60%).
+  const strokeWidth = Math.max(1.5, size * 0.065);
+  const outerR = center - strokeWidth / 2;
+  const whiteGap = Math.max(2.75, size * 0.155);
+  const innerR = Math.max(outerR - strokeWidth / 2 - whiteGap, size * 0.3);
+  const checkSize = innerR * 1.2;
+  const white = backgroundColorPrimary.var;
+  const green = colorStatusSuccess.var;
+  const ring = borderColorStatusSuccess.var;
+  return (
+    <g className="autorag-tree-node__status-badge">
+      {/* Opaque white disk so the pipeline edge does not show through the gap. */}
+      <circle cx={center} cy={center} r={center - 0.25} style={{ fill: white }} />
+      <circle
+        cx={center}
+        cy={center}
+        r={outerR}
+        fill="none"
+        style={{ stroke: ring, strokeWidth }}
+      />
+      <circle cx={center} cy={center} r={innerR} style={{ fill: green }} />
+      <g transform={`translate(${(size - checkSize) / 2}, ${(size - checkSize) / 2})`}>
+        <CheckIcon
+          width={checkSize}
+          height={checkSize}
+          color={iconColorOnSuccess.var}
+          style={{ color: iconColorOnSuccess.var, fill: iconColorOnSuccess.var }}
+        />
+      </g>
+    </g>
+  );
+});
+StatusOnlyCompletedBadge.displayName = 'StatusOnlyCompletedBadge';
+
+/** Branch-step status glyph (no task glyph) — completed uses the ring badge above. */
 const StatusOnlyCenterIcon: React.FC<{
   stepState: TreeNodeData['stepState'];
   size: number;
@@ -68,9 +115,7 @@ const StatusOnlyCenterIcon: React.FC<{
   const common = { width: size, height: size } as const;
   switch (stepState) {
     case 'completed':
-      return (
-        <CheckCircleIcon className="pf-m-success" color={iconColorStatusSuccess.var} {...common} />
-      );
+      return <StatusOnlyCompletedBadge size={size} />;
     case 'failed':
       return (
         <ExclamationCircleIcon
@@ -168,12 +213,13 @@ const TreeNodeInner: React.FC<{
   const statusOnly = isStatusOnlyNode(node.getId());
   const TaskIcon = resolveTaskIconForNodeId(node.getId());
   const { width, height } = node.getDimensions();
-  const iconSize = Math.min(width, height) * (statusOnly ? 0.55 : 0.4);
+  const iconSize = Math.min(width, height) * (statusOnly ? 0.92 : 0.4);
   const iconColor = TASK_ICON_COLORS[stepState];
   const showPatternsToggle =
     data?.showPatternsToggle === true && patternsExpand?.showToggle === true;
   const labelWidth = showPatternsToggle ? 140 : 96;
-  const labelY = height + 4;
+  // Status-only nodes are smaller; pad label so it lines up with stage-node labels.
+  const labelY = height + 4 + (statusOnly ? (48 - height) / 2 : 0);
   const captionHeight = showPatternsToggle ? 80 : labelSubtitle ? 40 : 36;
 
   const attachments = React.useMemo(() => {
@@ -190,10 +236,10 @@ const TreeNodeInner: React.FC<{
 
   return (
     <DefaultNode
-      className="autorag-tree-node"
+      className={cx('autorag-tree-node', statusOnly && 'autorag-tree-node--status-only')}
       element={node}
-      // Status colors the circle stroke only; labels are custom (no PF label boxes).
-      nodeStatus={nodeStatus}
+      // Status-only badges own their chrome; skip pf-m-success stroke on DefaultNode.
+      nodeStatus={statusOnly ? undefined : nodeStatus}
       showLabel={false}
       showStatusDecorator={false}
       onSelect={onSelect}
@@ -208,8 +254,8 @@ const TreeNodeInner: React.FC<{
         data-winner-star={showWinnerStar ? 'true' : 'false'}
       >
         <g
-          className="autorag-tree-node__task-icon"
-          style={{ color: iconColor }}
+          className={statusOnly ? undefined : 'autorag-tree-node__task-icon'}
+          style={statusOnly ? undefined : { color: iconColor }}
           transform={`translate(${(width - iconSize) / 2}, ${(height - iconSize) / 2})`}
         >
           {statusOnly ? (
