@@ -368,11 +368,13 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
 
         {/* Keep all tab content mounted to preserve lifecycle state (data fetches, etc.)
            and toggle visibility with PF utility class, matching old Tabs show/hide behaviour.
-           height/overflow match the height:100%/overflow:auto the old TabContent applied,
-           so content isn't clipped by the DrawerPanelBody's overflow:hidden. */}
+           flex/minHeight/overflow let the active panel grow to fill the remaining space in
+           DrawerPanelBody's flex column and scroll internally, instead of being clipped by
+           its overflow:hidden (minHeight: 0 is required so the flex item can actually shrink
+           below its content's natural size and hand scrolling to the inner overflow: auto). */}
         <div
           className={activeTabKey !== 0 ? 'pf-v6-u-display-none' : undefined}
-          style={{ height: '100%', overflow: 'auto' }}
+          style={{ flex: '1 1 auto', minHeight: 0, overflow: 'auto' }}
           data-testid="chatbot-settings-page-tab-content-model"
         >
           <ModelTabContent
@@ -389,7 +391,7 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
         </div>
         <div
           className={activeTabKey !== 1 ? 'pf-v6-u-display-none' : undefined}
-          style={{ height: '100%', overflow: 'auto' }}
+          style={{ flex: '1 1 auto', minHeight: 0, overflow: 'auto' }}
           data-testid="chatbot-settings-page-tab-content-prompt"
         >
           <PromptTabContent
@@ -400,7 +402,7 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
         </div>
         <div
           className={activeTabKey !== 2 ? 'pf-v6-u-display-none' : undefined}
-          style={{ height: '100%', overflow: 'auto' }}
+          style={{ flex: '1 1 auto', minHeight: 0, overflow: 'auto' }}
           data-testid="chatbot-settings-page-tab-content-knowledge"
         >
           <KnowledgeTabContent
@@ -412,7 +414,7 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
         </div>
         <div
           className={activeTabKey !== 3 ? 'pf-v6-u-display-none' : undefined}
-          style={{ height: '100%', overflow: 'auto' }}
+          style={{ flex: '1 1 auto', minHeight: 0, overflow: 'auto' }}
           data-testid="chatbot-settings-page-tab-content-mcp"
         >
           <MCPTabContent
@@ -432,7 +434,7 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
         {isGuardrailsFeatureEnabled && (
           <div
             className={activeTabKey !== 4 ? 'pf-v6-u-display-none' : undefined}
-            style={{ height: '100%', overflow: 'auto' }}
+            style={{ flex: '1 1 auto', minHeight: 0, overflow: 'auto' }}
             data-testid="chatbot-settings-page-tab-content-guardrails"
           >
             <GuardrailsTabContent configId={configId} />
