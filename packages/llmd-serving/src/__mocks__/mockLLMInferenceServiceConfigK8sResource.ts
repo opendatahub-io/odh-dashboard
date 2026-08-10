@@ -1,8 +1,4 @@
-import type {
-  LLMInferenceServiceConfigKind,
-  TopologyType,
-  RoutingType,
-} from '@odh-dashboard/llmd-serving/types';
+import type { LLMInferenceServiceConfigKind, TopologyType, RoutingType } from '../types';
 
 enum ConfigType {
   ACCELERATOR = 'accelerator',

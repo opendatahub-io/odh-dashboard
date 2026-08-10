@@ -46,6 +46,7 @@ import type {
   DataScienceClusterInitializationKindStatus,
   DataScienceClusterKindStatus,
   NotebookKind,
+  OdhApplication,
   RoleBindingKind,
   SecretKind,
   TemplateKind,
@@ -69,7 +70,6 @@ import type {
   ClusterSettingsType,
   DetectedAccelerators,
   ImageInfo,
-  OdhApplication,
   OdhDocument,
   PrometheusQueryResponse,
   ResponseStatus,
@@ -91,7 +91,7 @@ import type {
   PipelineVersionKF,
 } from '@odh-dashboard/internal/concepts/pipelines/kfTypes';
 import type { GrpcResponse } from '@odh-dashboard/internal/__mocks__/mlmd/utils';
-import type { NimServingResponse } from '@odh-dashboard/internal/__mocks__/mockLegacyNimResource';
+import type { NimServingResponse } from '@odh-dashboard/model-serving/shared';
 import type { BuildMockPipelinveVersionsType } from '@odh-dashboard/internal/__mocks__';
 import type { ArtifactStorage } from '@odh-dashboard/internal/concepts/pipelines/types';
 import type {

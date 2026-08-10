@@ -1,5 +1,5 @@
-import { KnownLabels, type SecretKind } from '@odh-dashboard/k8s-core';
 import { genUID } from '@odh-dashboard/foundation';
+import { KnownLabels, type SecretKind } from '../k8sTypes';
 
 type MockCustomSecretData = {
   name: string;

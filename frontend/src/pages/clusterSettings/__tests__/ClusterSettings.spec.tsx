@@ -7,7 +7,7 @@ import { useAppContext } from '#~/app/AppContext';
 import { useAppDispatch } from '#~/redux/hooks';
 import { fetchClusterSettings, updateClusterSettings } from '#~/services/clusterSettingsService';
 import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
-import { mockDashboardConfig } from '#~/__mocks__/mockDashboardConfig';
+import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
 import { DEFAULT_CONFIG } from '#~/pages/clusterSettings/const';
 
 jest.mock('#~/app/AppContext', () => ({

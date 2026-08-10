@@ -5,9 +5,10 @@
   "version": "0.0.0",
   "exports": {
     ".": "./src/index.ts",
-    "./__mocks__/mockK8sNameDescriptionFieldData": "./src/__mocks__/mockK8sNameDescriptionFieldData.ts",
-    "./__mocks__/mockProjectK8sResource": "./src/__mocks__/mockProjectK8sResource.ts",
-    "./__mocks__/mockPVCK8sResource": "./src/__mocks__/mockPVCK8sResource.ts"
+    "./__mocks__/*": [
+      "./src/__mocks__/*",
+      "./src/__mocks__/*.ts"
+    ]
   },
   "scripts": {
     "lint": "eslint .",
