@@ -20,7 +20,6 @@ import { ExclamationCircleIcon, MinusCircleIcon, PlusCircleIcon } from '@pattern
 import { LABELS_FORM_DESCRIPTION } from './const';
 import { validateLabelKey, validateLabelValue } from './labelUtils';
 import type { LabelEntry } from './types';
-import './RoleLabelsSection.scss';
 
 type RoleLabelsSectionProps = {
   labels: LabelEntry[];
@@ -129,7 +128,12 @@ const RoleLabelsSection: React.FC<RoleLabelsSectionProps> = ({
               Value
             </Content>
           </FlexItem>
-          <FlexItem className="odh-role-labels__header-spacer" />
+          {/* Reserves space to align headers with the per-row remove button column */}
+          <FlexItem style={{ visibility: 'hidden' }}>
+            <Button variant="plain" aria-hidden tabIndex={-1}>
+              <MinusCircleIcon />
+            </Button>
+          </FlexItem>
         </Flex>
       )}
       {labels.length > 0 && (
