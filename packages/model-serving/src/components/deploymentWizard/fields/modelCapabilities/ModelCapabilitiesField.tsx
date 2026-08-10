@@ -30,6 +30,7 @@ import {
   WELL_KNOWN_MODEL_CAPABILITIES,
   getModelCapabilityLabelColor,
   includesModelCapability,
+  isSameModelCapability,
   normalizeModelCapability,
   type ModelCapability,
 } from '../../../../shared/modelCapabilities';
@@ -88,7 +89,7 @@ const ModelCapabilitiesFieldComponent: React.FC<ModelCapabilitiesFieldComponentP
   };
 
   const handleRemove = (capability: string) => {
-    onChange(selectedCapabilities.filter((c) => c !== capability));
+    onChange(selectedCapabilities.filter((c) => !isSameModelCapability(c, capability)));
   };
 
   const handleCustomKeyDown = (event: React.KeyboardEvent) => {

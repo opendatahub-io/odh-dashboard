@@ -22,18 +22,20 @@ const WELL_KNOWN_CAPABILITY_COLORS: Record<WellKnownModelCapability, ModelCapabi
   Transcription: 'orange',
 };
 
+export const resolveWellKnownModelCapability = (
+  capability: string,
+): WellKnownModelCapability | undefined =>
+  WELL_KNOWN_MODEL_CAPABILITIES.find(
+    (wellKnown) => wellKnown.toLowerCase() === capability.toLowerCase(),
+  );
+
 export const getModelCapabilityLabelColor = (capability: string): ModelCapabilityLabelColor => {
-  const wellKnown = WELL_KNOWN_MODEL_CAPABILITIES.find((c) => c === capability);
+  const wellKnown = resolveWellKnownModelCapability(capability);
   if (wellKnown) {
     return WELL_KNOWN_CAPABILITY_COLORS[wellKnown];
   }
   return 'grey';
 };
-
-export const resolveWellKnownModelCapability = (capability: string): string | undefined =>
-  WELL_KNOWN_MODEL_CAPABILITIES.find(
-    (wellKnown) => wellKnown.toLowerCase() === capability.toLowerCase(),
-  );
 
 export const isSameModelCapability = (a: string, b: string): boolean =>
   a.toLowerCase() === b.toLowerCase();
