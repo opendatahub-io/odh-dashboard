@@ -64,6 +64,7 @@ export type MockDashboardConfigType = {
   promptManagement?: boolean;
   globalProjectPrompts?: boolean;
   nimWizard?: boolean;
+  nimServiceOperator?: boolean;
   agentOps?: boolean;
   agentOpsDeploy?: boolean;
   agentsCatalog?: boolean;
@@ -137,6 +138,7 @@ export const mockDashboardConfig = ({
   promptManagement = false,
   globalProjectPrompts = false,
   nimWizard = false,
+  nimServiceOperator = false,
   agentOps = false,
   agentOpsDeploy = false,
   agentsCatalog = false,
@@ -333,6 +335,7 @@ export const mockDashboardConfig = ({
       promptManagement,
       globalProjectPrompts,
       nimWizard,
+      nimServiceOperator,
       agentOps,
       agentOpsDeploy,
       agentsCatalog,

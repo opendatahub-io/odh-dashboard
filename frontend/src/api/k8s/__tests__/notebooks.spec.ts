@@ -128,6 +128,7 @@ describe('assembleNotebook', () => {
             invalidCharacters: false,
             invalidLength: false,
             maxLength: 253,
+            routeNameTooLong: false,
             touched: false,
           },
         },

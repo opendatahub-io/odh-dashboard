@@ -348,7 +348,12 @@ func convertUnstructuredToSubscription(obj *unstructured.Unstructured) (*models.
 	phase, _, _ := unstructured.NestedString(content, "status", "phase")
 	sub.Phase = phase
 
-	sub.StatusMessage = extractReadyConditionMessage(content)
+	ready := extractReadyCondition(content)
+	sub.StatusMessage = ready.Message
+	sub.Reason = ready.Reason
+	sub.Status = ready.Status
+	sub.ConditionType = ready.ConditionType
+	sub.LastTransitionTime = ready.LastTransitionTime
 
 	priority, _, _ := unstructured.NestedFieldNoCopy(content, "spec", "priority")
 	if priority != nil {
@@ -457,7 +462,12 @@ func convertUnstructuredToAuthPolicy(obj *unstructured.Unstructured) (*models.Ma
 	phase, _, _ := unstructured.NestedString(content, "status", "phase")
 	policy.Phase = phase
 
-	policy.StatusMessage = extractReadyConditionMessage(content)
+	ready := extractReadyCondition(content)
+	policy.Status = ready.Status
+	policy.Reason = ready.Reason
+	policy.StatusMessage = ready.Message
+	policy.ConditionType = ready.ConditionType
+	policy.LastTransitionTime = ready.LastTransitionTime
 
 	policy.ModelRefs = []models.ModelRef{}
 	modelRefs, _, _ := unstructured.NestedSlice(content, "spec", "modelRefs")

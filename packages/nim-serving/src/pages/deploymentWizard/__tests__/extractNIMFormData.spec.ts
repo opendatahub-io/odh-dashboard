@@ -1,6 +1,6 @@
 import { ModelLocationType } from '@odh-dashboard/model-serving/shared/types/form-data';
 import type { NIMDeployment } from '../../../api/nimservices/types';
-import { NIM_ID, NIM_MODEL_TYPE } from '../../../../extensions';
+import { NIM_SERVICE_ID, NIM_MODEL_TYPE } from '../../../constants';
 import {
   extractNIMHardwareProfileConfig,
   extractNIMReplicas,
@@ -30,7 +30,7 @@ const makeDeployment = (
   specOverrides?: Partial<NIMDeployment['model']['spec']>,
   metadataOverrides?: Partial<NIMDeployment['model']['metadata']>,
 ): NIMDeployment => ({
-  modelServingPlatformId: NIM_ID,
+  modelServingPlatformId: NIM_SERVICE_ID,
   model: {
     apiVersion: 'apps.nvidia.com/v1alpha1',
     kind: 'NIMService',

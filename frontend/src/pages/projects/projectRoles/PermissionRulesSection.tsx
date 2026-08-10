@@ -4,6 +4,8 @@ import {
   Content,
   Flex,
   FlexItem,
+  FormGroupLabelHelp,
+  Popover,
   SearchInput,
   Title,
   ToolbarItem,
@@ -118,12 +120,20 @@ const PermissionRulesSection: React.FC<PermissionRulesSectionProps> = ({
 
   return (
     <>
-      <Title headingLevel="h2" size="md">
-        Rules
-      </Title>
+      <Flex gap={{ default: 'gapSm' }}>
+        <Title headingLevel="h2" size="md">
+          Rules
+        </Title>
+        <Popover bodyContent="Rules define permissions for this role. In Kubernetes, rules specify which operations (verbs) users can perform on which resources.">
+          <FormGroupLabelHelp
+            aria-label="More info about adding rules"
+            data-testid="create-project-role-rule-help-popover"
+          />
+        </Popover>
+      </Flex>
       <Content component="p">
-        Define which actions (verbs) this role can perform on specific API groups and resource
-        types.
+        Rules define what this role allows. Each rule specifies resource types and permitted
+        operations.
       </Content>
 
       {hasRules ? (
@@ -176,7 +186,7 @@ const PermissionRulesSection: React.FC<PermissionRulesSectionProps> = ({
                   data-testid="role-import-template"
                   onClick={onImportTemplate}
                 >
-                  Import rules from template
+                  Add rules from template
                 </Button>
               </ToolbarItem>
             </>
@@ -193,7 +203,7 @@ const PermissionRulesSection: React.FC<PermissionRulesSectionProps> = ({
       ) : (
         <>
           <Content component="p" data-testid="permissions-empty-state">
-            No rules set for this role.
+            No rules added
           </Content>
           <Flex>
             <FlexItem>
@@ -213,7 +223,7 @@ const PermissionRulesSection: React.FC<PermissionRulesSectionProps> = ({
                 data-testid="role-import-template"
                 onClick={onImportTemplate}
               >
-                Import rules from template
+                Add rules from template
               </Button>
             </FlexItem>
           </Flex>
