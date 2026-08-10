@@ -44,7 +44,6 @@ func (app *App) badRequestResponse(w http.ResponseWriter, r *http.Request, err e
 }
 
 func (app *App) forbiddenResponse(w http.ResponseWriter, r *http.Request, message string) {
-	// Log the detailed error message as a warning
 	app.logger.Warn("Access forbidden", "message", message, "method", r.Method, "uri", r.URL.RequestURI())
 
 	httpError := &httpclient.HTTPError{
@@ -119,11 +118,16 @@ func (app *App) notFoundResponse(w http.ResponseWriter, r *http.Request) {
 func (app *App) conflictResponse(w http.ResponseWriter, r *http.Request, message string) {
 	app.logger.Warn("Conflict detected", "message", message, "method", r.Method, "uri", r.URL.RequestURI())
 
+	displayMessage := message
+	if displayMessage == "" {
+		displayMessage = "the resource was modified by another request, please retry"
+	}
+
 	httpError := &httpclient.HTTPError{
 		StatusCode: http.StatusConflict,
 		ErrorResponse: httpclient.ErrorResponse{
 			Code:    strconv.Itoa(http.StatusConflict),
-			Message: "the resource was modified by another request, please retry",
+			Message: displayMessage,
 		},
 	}
 	app.errorResponse(w, r, httpError)

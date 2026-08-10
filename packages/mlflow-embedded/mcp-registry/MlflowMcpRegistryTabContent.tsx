@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import {
   Bullseye,
   Content,
@@ -18,9 +18,13 @@ import { ProjectIconWithSize } from '@odh-dashboard/internal/concepts/projects/P
 import { IconSize } from '@odh-dashboard/internal/types';
 import ProjectSelectorNavigator from '@odh-dashboard/ui-core/components/projectSelector/ProjectSelectorNavigator';
 import { WORKSPACE_QUERY_PARAM } from '@odh-dashboard/internal/routes/pipelines/mlflow';
+import McpRegistryDeployAction from './McpRegistryDeployAction';
+import { MCPServer, MCPServerVersion } from './types';
 import MLflowUnavailable from '../shared/MLflowUnavailable';
 
 const MCP_REGISTRY_BASENAME = '/ai-hub/mcp-servers/registry';
+// Stable reference so LazyCodeRefComponent's spread props don't change identity every render.
+const NOOP = () => undefined;
 
 const mcpRegistryBaseRoute = (namespace?: string): string => {
   if (!namespace) {
@@ -41,6 +45,13 @@ const MlflowMcpRegistryTabContent: React.FC = () => {
         .then((mod) => mod ?? { default: MLflowUnavailable })
         .catch(() => ({ default: MLflowUnavailable })),
     [],
+  );
+
+  const renderDetailActions = useCallback(
+    (server: MCPServer, version?: MCPServerVersion) => (
+      <McpRegistryDeployAction server={server} version={version} namespace={workspace} />
+    ),
+    [workspace],
   );
 
   if (!workspace && projects.length > 0) {
@@ -68,7 +79,7 @@ const MlflowMcpRegistryTabContent: React.FC = () => {
                 alignItems={{ default: 'alignItemsCenter' }}
               >
                 <FlexItem>
-                  <Bullseye>Project</Bullseye>
+                  <span>Project</span>
                 </FlexItem>
                 <FlexItem>
                   <ProjectSelectorNavigator
@@ -84,7 +95,11 @@ const MlflowMcpRegistryTabContent: React.FC = () => {
       <LazyCodeRefComponent
         key={workspace}
         component={loadWrapper}
-        props={{ basename: MCP_REGISTRY_BASENAME, onBreadcrumbChange: () => undefined }}
+        props={{
+          basename: MCP_REGISTRY_BASENAME,
+          onBreadcrumbChange: NOOP,
+          renderDetailActions,
+        }}
         fallback={
           <PageSection hasBodyWrapper={false}>
             <Bullseye>
