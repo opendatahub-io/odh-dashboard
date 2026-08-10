@@ -1382,6 +1382,34 @@ func (kc *TokenKubernetesClient) resolveCollectorEndpoint() string {
 //  2. The image entrypoint (/opt/app-root/entrypoint.sh) uses --traces_exporter=otlp
 //     which defaults to gRPC (port 4317). The platform collector exposes OTLP/HTTP
 //     on port 4318, so we must use otlp_proto_http explicitly.
+// existingServerHasPassthrough reads the OGXServer's linked ConfigMap and checks
+// whether it already contains a remote::passthrough inference provider. Returns
+// false (conservatively) on any read/parse error so the caller falls through to
+// the legacy "already exists" error path.
+func (kc *TokenKubernetesClient) existingServerHasPassthrough(ctx context.Context, server *ogxapi.OGXServer, namespace string) bool {
+	if server.Spec.OverrideConfig == nil {
+		return false
+	}
+	var cm corev1.ConfigMap
+	if err := kc.Client.Get(ctx, types.NamespacedName{
+		Name:      server.Spec.OverrideConfig.Name,
+		Namespace: namespace,
+	}, &cm); err != nil {
+		kc.Logger.Debug("could not read OGXServer ConfigMap for passthrough detection", "error", err)
+		return false
+	}
+	configYAML, ok := cm.Data[server.Spec.OverrideConfig.Key]
+	if !ok {
+		return false
+	}
+	var config LlamaStackConfig
+	if err := config.FromYAML(configYAML); err != nil {
+		kc.Logger.Debug("could not parse OGXServer config for passthrough detection", "error", err)
+		return false
+	}
+	return config.HasPassthroughProvider()
+}
+
 //
 // We can later use the simpler entrypoint command if the OGX image fixes the
 // sitecustomize.py loading issue and the entrypoint supports OTLP/HTTP export:
@@ -1435,6 +1463,15 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 	}
 
 	if len(existingList.Items) > 0 {
+		// Zero-restart path: if the existing OGXServer already has a passthrough
+		// provider, new models are discoverable via the BFF's /v1/models endpoint
+		// without any CR or ConfigMap update. Return the existing server as success.
+		existing := &existingList.Items[0]
+		if kc.existingServerHasPassthrough(ctx, existing, namespace) {
+			kc.Logger.Info("OGXServer exists with passthrough provider; new models discoverable via /v1/models polling (zero-restart)",
+				"namespace", namespace, "server", existing.Name)
+			return existing, nil
+		}
 		return nil, fmt.Errorf("OGXServer already exists in namespace %s", namespace)
 	}
 
