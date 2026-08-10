@@ -81,6 +81,8 @@ import {
   RAG_METRIC_ANSWER_CORRECTNESS,
   RAG_METRIC_FAITHFULNESS,
   RAG_METRIC_OVERALL_SCORE,
+  RAG_SUPPORTED_INPUT_FORMAT_EXTENSIONS,
+  RAG_SUPPORTED_INPUT_FORMAT_HINT,
   METRIC_DESCRIPTIONS,
   REQUIRED_CONNECTION_SECRET_KEYS,
 } from '~/app/utilities/const';
@@ -1135,8 +1137,8 @@ function AutoragConfigure({
             }
           }
         }}
-        selectableExtensions={['pdf', 'docx', 'pptx', 'md', 'html', 'txt']}
-        unselectableReason="You can only select PDF, DOCX, PPTX, Markdown, HTML, or Plain text files"
+        selectableExtensions={RAG_SUPPORTED_INPUT_FORMAT_EXTENSIONS}
+        unselectableReason={RAG_SUPPORTED_INPUT_FORMAT_HINT}
         disabledPaths={[
           '/autogluon-tabular-training-pipeline',
           '/autogluon-timeseries-training-pipeline',

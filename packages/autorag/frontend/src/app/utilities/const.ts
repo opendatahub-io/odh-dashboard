@@ -39,6 +39,11 @@ export const MAX_DESCRIPTION_LENGTH = 255;
 export const MIN_RAG_PATTERNS = 4;
 export const MAX_RAG_PATTERNS = 20;
 
+// Input
+export const RAG_SUPPORTED_INPUT_FORMAT_EXTENSIONS = ['pdf', 'docx', 'pptx', 'md', 'html', 'txt'];
+export const RAG_SUPPORTED_INPUT_FORMAT_HINT =
+  'You can only select PDF, DOCX, PPTX, Markdown, HTML, or Plain text files';
+
 // Presets
 export const PRESET_FASTER = 'speed';
 export const PRESET_BETTER_QUALITY = 'balanced';
