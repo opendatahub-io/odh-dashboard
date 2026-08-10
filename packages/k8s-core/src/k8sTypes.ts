@@ -322,6 +322,7 @@ export type DashboardCommonConfig = {
   connectionTest?: boolean;
   modelCapabilities?: boolean;
   modelDeploymentSettings?: boolean;
+  dataRegistry?: boolean;
 };
 
 export type DashboardConfigKind = K8sResourceCommon & {

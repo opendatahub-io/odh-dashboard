@@ -128,6 +128,9 @@ export enum SupportedArea {
 
   /* Model Capabilities */
   MODEL_CAPABILITIES = 'model-capabilities',
+
+  /* Data Registry */
+  PLUGIN_DATA_REGISTRY = 'plugin-data-registry',
 }
 
 export type SupportedAreaType = SupportedArea | string;
