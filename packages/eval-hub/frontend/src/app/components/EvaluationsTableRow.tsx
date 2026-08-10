@@ -25,6 +25,7 @@ import {
 } from '~/app/utilities/evaluationUtils';
 import { CollectionNameMap } from '~/app/hooks/useCollectionNameMap';
 import { cancelEvaluationJob, deleteEvaluationJob } from '~/app/api/k8s';
+import { getEarliestStartTime, formatElapsedTime } from '~/app/utilities/evaluationJobPolling';
 import EvaluationStatusLabel from './EvaluationStatusLabel';
 
 type EvaluationsTableRowProps = {
@@ -224,6 +225,12 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
                   {polledJobData.status.benchmarks.length} complete
                 </div>
               )}
+              {(() => {
+                const startTime = getEarliestStartTime(polledJobData);
+                return startTime ? (
+                  <div data-testid="elapsed-time">Elapsed: {formatElapsedTime(startTime)}</div>
+                ) : null;
+              })()}
             </>
           )}
         </Td>
