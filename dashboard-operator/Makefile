@@ -98,21 +98,21 @@ docker-push: ## Push container image.
 
 ##@ Chaos
 
-OPERATOR_CHAOS ?= $(LOCALBIN)/operator-chaos
 OPERATOR_CHAOS_VERSION ?= v0.0.0-20260521100204-4dab974d613c
+OPERATOR_CHAOS ?= $(LOCALBIN)/operator-chaos-$(OPERATOR_CHAOS_VERSION)
 
 .PHONY: operator-chaos
 operator-chaos: $(OPERATOR_CHAOS) ## Download operator-chaos locally if necessary.
 $(OPERATOR_CHAOS): $(LOCALBIN)
-	test -s $(LOCALBIN)/operator-chaos || GOBIN=$(LOCALBIN) go install github.com/opendatahub-io/operator-chaos/cmd/operator-chaos@$(OPERATOR_CHAOS_VERSION)
+	$(call go-install-tool,$(OPERATOR_CHAOS),github.com/opendatahub-io/operator-chaos/cmd/operator-chaos,$(OPERATOR_CHAOS_VERSION))
 
 .PHONY: chaos-validate
 chaos-validate: operator-chaos ## Validate chaos knowledge model and experiments.
-	$(OPERATOR_CHAOS) validate --knowledge ../chaos/knowledge/dashboard.yaml
+	"$(OPERATOR_CHAOS)" validate --knowledge ../chaos/knowledge/dashboard.yaml
 	@status=0; \
 	for f in ../chaos/experiments/*.yaml; do \
 		echo "--- $$f ---"; \
-		if ! $(OPERATOR_CHAOS) validate "$$f"; then \
+		if ! "$(OPERATOR_CHAOS)" validate "$$f"; then \
 			status=1; \
 		fi; \
 	done; \
