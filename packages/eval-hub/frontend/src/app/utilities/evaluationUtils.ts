@@ -1,4 +1,4 @@
-import { EvaluationJob } from '~/app/types';
+import { EvaluationJob, EvaluationJobState } from '~/app/types';
 import { CollectionNameMap } from '~/app/hooks/useCollectionNameMap';
 
 export const getEvaluationName = (job: EvaluationJob): string =>
@@ -201,6 +201,16 @@ export const formatDate = (dateStr?: string): string => {
     return dateStr;
   }
 };
+
+const TERMINAL_STATES: ReadonlySet<EvaluationJobState> = new Set([
+  'completed',
+  'failed',
+  'cancelled',
+  'stopped',
+  'partially_failed',
+]);
+
+export const isTerminalState = (state: EvaluationJobState): boolean => TERMINAL_STATES.has(state);
 
 /** Only completed runs can be selected for compare. */
 export const isEvaluationJobComparable = (job: EvaluationJob): boolean =>
