@@ -1475,6 +1475,10 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 		// without any CR or ConfigMap update. Return the existing server as success.
 		existing := &existingList.Items[0]
 		if kc.existingServerHasPassthrough(ctx, existing, namespace) {
+			if len(vectorStores) > 0 {
+				kc.Logger.Warn("Zero-restart path: vectorStores in request are not applied (OGXServer already configured); vector stores must be managed separately",
+					"namespace", namespace, "vectorStoreCount", len(vectorStores))
+			}
 			kc.Logger.Info("OGXServer exists with passthrough provider; new models discoverable via /v1/models polling (zero-restart)",
 				"namespace", namespace, "server", existing.Name)
 			return existing, nil
