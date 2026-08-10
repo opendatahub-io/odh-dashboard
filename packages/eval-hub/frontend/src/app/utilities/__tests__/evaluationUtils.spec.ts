@@ -10,6 +10,7 @@ import {
   formatAsPercentage,
   formatDate,
   formatDurationCompact,
+  isTerminalState,
 } from '~/app/utilities/evaluationUtils';
 
 describe('getEvaluationName', () => {
@@ -459,6 +460,22 @@ describe('formatDurationCompact', () => {
       '< 1s',
     );
   });
+});
+
+describe('isTerminalState', () => {
+  it.each(['completed', 'failed', 'cancelled', 'stopped', 'partially_failed'] as const)(
+    'should return true for terminal state "%s"',
+    (state) => {
+      expect(isTerminalState(state)).toBe(true);
+    },
+  );
+
+  it.each(['pending', 'running', 'stopping'] as const)(
+    'should return false for non-terminal state "%s"',
+    (state) => {
+      expect(isTerminalState(state)).toBe(false);
+    },
+  );
 });
 
 describe('formatDate', () => {
