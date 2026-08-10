@@ -38,6 +38,7 @@ export const devTemporaryFeatureFlags = {
   nimServiceOperator: false,
   agentOpsDeploy: false,
   agentsCatalog: false,
+  notebooksV2: false,
 } satisfies Partial<DashboardCommonConfig>;
 
 // Group 1: Core Dashboard Features
@@ -304,6 +305,9 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   [SupportedArea.MODEL_CAPABILITIES]: {
     featureFlags: ['modelCapabilities'],
     reliantAreas: [SupportedArea.MODEL_SERVING],
+  },
+  [SupportedArea.PLUGIN_NOTEBOOKS]: {
+    featureFlags: ['notebooksV2'],
   },
 };
 
