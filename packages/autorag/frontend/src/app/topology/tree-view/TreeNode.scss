@@ -14,6 +14,15 @@
   transform-box: fill-box;
 }
 
+.autorag-tree-node__caption {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--pf-t--global--spacer--sm);
+  width: 100%;
+  pointer-events: none;
+}
+
 .autorag-tree-node__label {
   width: 100%;
   text-align: center;
@@ -26,6 +35,50 @@
   &--selected {
     font-weight: 600;
   }
+}
+
+.autorag-tree-node__label-subtitle {
+  color: var(--pf-t--global--text--color--subtle);
+  font-size: var(--pf-t--global--font--size--body--sm);
+}
+
+.autorag-tree-node__patterns-toggle {
+  display: flex;
+  justify-content: center;
+  pointer-events: auto;
+
+  /* Neutral pill — override PF secondary brand tokens to match design gray. */
+  .pf-v6-c-button.pf-m-secondary {
+    --pf-v6-c-button--FontSize: var(--pf-t--global--font--size--body--sm);
+    --pf-v6-c-button--PaddingBlockStart: var(--pf-t--global--spacer--xs);
+    --pf-v6-c-button--PaddingBlockEnd: var(--pf-t--global--spacer--xs);
+    --pf-v6-c-button--PaddingInlineStart: var(--pf-t--global--spacer--sm);
+    --pf-v6-c-button--PaddingInlineEnd: var(--pf-t--global--spacer--sm);
+    --pf-v6-c-button--Color: var(--pf-t--global--text--color--regular);
+    --pf-v6-c-button--BorderColor: var(--pf-t--global--border--color--default);
+    --pf-v6-c-button--hover--Color: var(--pf-t--global--text--color--regular);
+    --pf-v6-c-button--hover--BorderColor: var(--pf-t--global--border--color--hover);
+    --pf-v6-c-button--m-clicked--Color: var(--pf-t--global--text--color--regular);
+    --pf-v6-c-button--m-clicked--BorderColor: var(--pf-t--global--border--color--clicked);
+    --pf-v6-c-button--m-secondary--Color: var(--pf-t--global--text--color--regular);
+    --pf-v6-c-button--m-secondary--BorderColor: var(--pf-t--global--border--color--default);
+    --pf-v6-c-button--m-secondary--hover--Color: var(--pf-t--global--text--color--regular);
+    --pf-v6-c-button--m-secondary--hover--BorderColor: var(--pf-t--global--border--color--hover);
+    --pf-v6-c-button--m-secondary--m-clicked--Color: var(--pf-t--global--text--color--regular);
+    --pf-v6-c-button--m-secondary--m-clicked--BorderColor: var(--pf-t--global--border--color--clicked);
+    white-space: nowrap;
+  }
+}
+
+.autorag-tree-node__winner-star {
+  .pf-topology__node__decorator__bg {
+    fill: var(--pf-t--global--color--nonstatus--blue--default);
+  }
+}
+
+.autorag-tree-node__winner-star-icon {
+  color: var(--pf-t--global--icon--color--on-color--100);
+  fill: currentColor;
 }
 
 /*

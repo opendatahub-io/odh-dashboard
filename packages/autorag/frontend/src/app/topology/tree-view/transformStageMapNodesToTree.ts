@@ -1,8 +1,15 @@
 import { DEFAULT_SPACER_NODE_TYPE, NodeShape, type EdgeModel } from '@patternfly/react-topology';
 import type { PipelineNodeModelExpanded } from '~/app/types/topology';
 import { parseBranchIndexFromSuffix } from '~/app/topology/stageMapConstants';
+import {
+  type BranchExpandOptions,
+  isBranchingStageNodeId,
+  matchesWinnerPattern,
+  resolveVisibleBranchIndices,
+} from './branchExpand';
 import type { TreeNodeModel, TreeTopologyData } from './types';
 import { TREE_EDGE_TYPE, TREE_NODE_TYPE } from './treeFactories';
+import type { TreeNodeData } from './TreeNode';
 import { runStatusToTreeStepState, treeStepStateToNodeStatus } from './treeStepState';
 
 /** Circle diameter for PatternFly DefaultNode custom nodes (dense pipeline layout). */
@@ -132,12 +139,14 @@ const createTreeNode = (
   topologyNode: PipelineNodeModelExpanded,
   x: number,
   y: number,
+  dataExtras?: Partial<TreeNodeData>,
 ): TreeNodeModel => {
   const stepState = runStatusToTreeStepState(topologyNode.data?.runStatus);
+  const label = dataExtras?.label ?? topologyNode.label;
   return {
     id: topologyNode.id,
     type: TREE_NODE_TYPE,
-    label: topologyNode.label,
+    label,
     x,
     y,
     width: STANDARD_NODE_SIZE,
@@ -147,11 +156,42 @@ const createTreeNode = (
     shape: NodeShape.circle,
     status: treeStepStateToNodeStatus(stepState),
     data: {
-      label: topologyNode.label,
+      label,
       stepState,
       activeIconVariant: topologyNode.data?.activeIconVariant,
+      ...dataExtras,
     },
   };
+};
+
+const patternTerminusExtras = (
+  topologyNode: PipelineNodeModelExpanded,
+  options: BranchExpandOptions | undefined,
+  isCollapsedSpine: boolean,
+): Partial<TreeNodeData> | undefined => {
+  if (!options || !topologyNode.id.includes('__pattern__')) {
+    return undefined;
+  }
+
+  const isWinner = matchesWinnerPattern(topologyNode, options);
+  if (options.winnerResolved && isWinner) {
+    return {
+      label: topologyNode.label,
+      labelSubtitle: 'winner',
+      showWinnerStar: true,
+    };
+  }
+
+  // Collapsed shared spine without a resolved winner: generic terminus label.
+  if (isCollapsedSpine) {
+    return {
+      label: 'Pattern winner',
+      labelSubtitle: undefined,
+      showWinnerStar: false,
+    };
+  }
+
+  return undefined;
 };
 
 const createEdge = (id: string, source: string, target: string): EdgeModel => ({
@@ -166,19 +206,34 @@ const createEdge = (id: string, source: string, target: string): EdgeModel => ({
  */
 export const transformStageMapNodesToTree = (
   topologyNodes: PipelineNodeModelExpanded[],
+  options?: BranchExpandOptions,
 ): TreeTopologyData => {
   const nodes: TreeNodeModel[] = [];
   const edges: EdgeModel[] = [];
 
   const { linearPre, branches, branchIndices, postBranch } =
     parseStageMapTopologyNodes(topologyNodes);
+  const expandOptions: BranchExpandOptions = options ?? {
+    patternsExpanded: true,
+    winnerResolved: false,
+  };
+  const visibleBranchIndices = resolveVisibleBranchIndices(branchIndices, branches, expandOptions);
+  const isCollapsedSpine = !expandOptions.patternsExpanded && branchIndices.length > 1;
+  const showPatternsToggle = isBranchingStageNodeId;
 
   let currentX: number = X_START;
   const linearPreIds: string[] = [];
 
   linearPre.forEach((topologyNode, index) => {
     linearPreIds.push(topologyNode.id);
-    nodes.push(createTreeNode(topologyNode, currentX, Y_CENTER));
+    nodes.push(
+      createTreeNode(
+        topologyNode,
+        currentX,
+        Y_CENTER,
+        showPatternsToggle(topologyNode.id) ? { showPatternsToggle: true } : undefined,
+      ),
+    );
     currentX += X_GAP;
     if (index > 0) {
       edges.push(createEdge(`e-linear-${index}`, linearPreIds[index - 1], topologyNode.id));
@@ -188,16 +243,23 @@ export const transformStageMapNodesToTree = (
   const branchSourceId = linearPreIds[linearPreIds.length - 1];
   const branchTailIds: string[] = [];
   const pipelineStartX = currentX + X_GAP * 0.2;
-  const displayYPositions = calculatePipelineYPositions(branchIndices.length);
+  const displayYPositions = calculatePipelineYPositions(visibleBranchIndices.length);
 
-  branchIndices.forEach((branchIndex, positionIndex) => {
+  visibleBranchIndices.forEach((branchIndex, positionIndex) => {
     const branchNodes = branches.get(branchIndex) ?? [];
     const pipelineY = displayYPositions[positionIndex] ?? Y_CENTER;
     let stepX = pipelineStartX;
     const branchNodeIds: string[] = [];
 
     branchNodes.forEach((topologyNode, stepIndex) => {
-      nodes.push(createTreeNode(topologyNode, stepX, pipelineY));
+      nodes.push(
+        createTreeNode(
+          topologyNode,
+          stepX,
+          pipelineY,
+          patternTerminusExtras(topologyNode, expandOptions, isCollapsedSpine),
+        ),
+      );
       branchNodeIds.push(topologyNode.id);
       stepX += X_GAP;
       if (stepIndex > 0) {

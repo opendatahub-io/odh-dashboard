@@ -34,6 +34,7 @@ describe('useTreeViewData', () => {
     const { result } = renderHook(() => useTreeViewData(patterns, [], 'pattern_b'));
 
     expect(result.current.selectedPattern).toBe('pattern_b');
+    expect(result.current.winnerPatternLabel).toBe('Pattern B');
     expect(result.current.stageMapNodes).toEqual([]);
   });
 

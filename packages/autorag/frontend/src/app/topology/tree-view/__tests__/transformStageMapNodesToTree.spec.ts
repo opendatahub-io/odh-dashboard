@@ -297,4 +297,51 @@ describe('transformStageMapNodesToTree', () => {
       }),
     );
   });
+
+  it('collapses to the winner spine and marks the pattern terminus', () => {
+    const topologyNodes = buildStageMapTopology(makeStageMap([ragOptimization]));
+    const { nodes } = transformStageMapNodesToTree(topologyNodes, {
+      patternsExpanded: false,
+      winnerResolved: true,
+      winnerPatternLabel: 'PatternGraphRAG',
+    });
+
+    const patternNodes = nodes.filter((node) => node.id.includes('__pattern__'));
+    expect(patternNodes).toHaveLength(1);
+    expect(patternNodes[0].data.label).toBe('PatternGraphRAG');
+    expect(patternNodes[0].data.labelSubtitle).toBe('winner');
+    expect(patternNodes[0].data.showWinnerStar).toBe(true);
+    expect(
+      nodes.find((node) => node.id === 'rag_optimization__optimize_templates')?.data
+        .showPatternsToggle,
+    ).toBe(true);
+  });
+
+  it('labels the collapsed terminus as Pattern winner when the winner is unresolved', () => {
+    const topologyNodes = buildStageMapTopology(makeStageMap([ragOptimization]));
+    const { nodes } = transformStageMapNodesToTree(topologyNodes, {
+      patternsExpanded: false,
+      winnerResolved: false,
+    });
+
+    const patternNodes = nodes.filter((node) => node.id.includes('__pattern__'));
+    expect(patternNodes).toHaveLength(1);
+    expect(patternNodes[0].data.label).toBe('Pattern winner');
+    expect(patternNodes[0].data.showWinnerStar).toBe(false);
+  });
+
+  it('expands all pattern branches when patternsExpanded is true', () => {
+    const topologyNodes = buildStageMapTopology(makeStageMap([ragOptimization]));
+    const { nodes } = transformStageMapNodesToTree(topologyNodes, {
+      patternsExpanded: true,
+      winnerResolved: true,
+      winnerPatternLabel: 'PatternHyDE',
+    });
+
+    const patternNodes = nodes.filter((node) => node.id.includes('__pattern__'));
+    expect(patternNodes).toHaveLength(2);
+    const winner = patternNodes.find((node) => node.data.label === 'PatternHyDE');
+    expect(winner?.data.labelSubtitle).toBe('winner');
+    expect(winner?.data.showWinnerStar).toBe(true);
+  });
 });
