@@ -630,7 +630,7 @@ const extensions: (
     },
     properties: {
       path: '/settings/model-resources-operations/llmd-routing-configurations/*',
-      component: () => import('../src/settings/RoutingConfigurationsRoutes'),
+      component: () => import('../src/settings/routingConfigs/RoutingConfigurationsRoutes'),
     },
   },
   // Redirects from old standalone URLs to tabs on the model deployment settings page

@@ -4,7 +4,7 @@ import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
 import RoutingConfigurationsTable from './RoutingConfigurationsTable';
 import EmptyRoutingConfigurations from './EmptyRoutingConfigurations';
-import { useWatchRouterConfigs } from '../api/LLMInferenceServiceConfigs';
+import { useWatchRouterConfigs } from '../../api/LLMInferenceServiceConfigs';
 
 const RoutingConfigurationsView: React.FC = () => {
   const { dashboardNamespace } = useDashboardNamespace();

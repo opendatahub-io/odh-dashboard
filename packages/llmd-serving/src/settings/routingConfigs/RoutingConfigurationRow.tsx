@@ -12,8 +12,8 @@ import {
   TopologyTypeLabels,
   DASHBOARD_RESOURCE_LABEL,
   getConfigSupportedTopologies,
-} from '../types';
-import { isConfigPreInstalled, isConfigEnabled } from '../utils';
+} from '../../types';
+import { isConfigPreInstalled, isConfigEnabled } from '../../utils';
 
 export const getSupportedTopologiesLabel = (config: LLMInferenceServiceConfigKind): string => {
   const topologies = getConfigSupportedTopologies(config);

@@ -27,8 +27,8 @@ import K8sNameDescriptionField, {
 } from '@odh-dashboard/ui-core/components/K8sNameDescriptionField';
 import useNotification from '@odh-dashboard/internal/utilities/useNotification';
 import SimpleSelect, { SimpleSelectOption } from '@odh-dashboard/ui-core/components/SimpleSelect';
-import ConfigYAMLEditor from './ConfigYAMLEditor';
-import { overrideLlmConfigFields } from './configYamlUtils';
+import ConfigYAMLEditor from '../ConfigYAMLEditor';
+import { overrideLlmConfigFields } from '../configYamlUtils';
 import {
   type LLMInferenceServiceConfigKind,
   ConfigType,
@@ -36,18 +36,18 @@ import {
   TopologyTypeLabels,
   CONFIG_TYPE_LABEL,
   SUPPORTED_TOPOLOGIES_ANNOTATION,
-} from '../types';
+} from '../../types';
 import {
   isConfigObject,
   cleanResourceForYAMLViewer,
   stripDuplicatingAnnotations,
   stripDuplicatingLabels,
-} from '../utils';
+} from '../../utils';
 import {
   createLLMInferenceServiceConfig,
   patchLLMInferenceServiceConfig,
   useWatchRouterConfigs,
-} from '../api/LLMInferenceServiceConfigs';
+} from '../../api/LLMInferenceServiceConfigs';
 
 const SAMPLE_DISPLAY_NAME_ANNOTATION = 'openshift.io/display-name';
 const SAMPLE_DESCRIPTION_ANNOTATION = 'description';
