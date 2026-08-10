@@ -34,6 +34,13 @@ type ListCollectionsParams struct {
 	Scope     string
 }
 
+// GetJobLogsParams holds optional query parameters for the log endpoints.
+type GetJobLogsParams struct {
+	TailLines    string
+	Timestamps   string
+	SinceSeconds string
+}
+
 // EvalHubClientInterface defines the operations available against the EvalHub API.
 type EvalHubClientInterface interface {
 	HealthCheck(ctx context.Context, namespace string) (*HealthResponse, error)
@@ -43,6 +50,8 @@ type EvalHubClientInterface interface {
 	CancelEvaluationJob(ctx context.Context, id string, namespace string, hardDelete bool) error
 	ListCollections(ctx context.Context, params ListCollectionsParams) (CollectionsResponse, error)
 	ListProviders(ctx context.Context, namespace string, limit, offset int) (ProvidersResponse, error)
+	GetEvaluationJobLogs(ctx context.Context, id string, namespace string, params GetJobLogsParams) (string, error)
+	GetEvaluationJobBenchmarkLogs(ctx context.Context, id string, benchmarkIndex int, namespace string, params GetJobLogsParams) (string, error)
 }
 
 // HealthResponse represents the eval-hub health check response.
@@ -564,6 +573,59 @@ func (c *EvalHubClient) ListProviders(ctx context.Context, namespace string, lim
 	return *resp, nil
 }
 
+// GetEvaluationJobLogs retrieves execution logs for an evaluation job as plain text.
+// The namespace is sent as the X-Tenant header.
+func (c *EvalHubClient) GetEvaluationJobLogs(ctx context.Context, id string, namespace string, params GetJobLogsParams) (string, error) {
+	path := fmt.Sprintf("/evaluations/jobs/%s/logs", url.PathEscape(id))
+	path = appendLogParams(path, params)
+
+	headers, err := tenantHeaders(namespace)
+	if err != nil {
+		return "", err
+	}
+
+	resp, err := getRaw(c, ctx, path, headers)
+	if err != nil {
+		return "", wrapClientError(err, "GetEvaluationJobLogs")
+	}
+	return resp, nil
+}
+
+// GetEvaluationJobBenchmarkLogs retrieves execution logs for a specific benchmark as plain text.
+// The namespace is sent as the X-Tenant header.
+func (c *EvalHubClient) GetEvaluationJobBenchmarkLogs(ctx context.Context, id string, benchmarkIndex int, namespace string, params GetJobLogsParams) (string, error) {
+	path := fmt.Sprintf("/evaluations/jobs/%s/benchmarks/%d/logs", url.PathEscape(id), benchmarkIndex)
+	path = appendLogParams(path, params)
+
+	headers, err := tenantHeaders(namespace)
+	if err != nil {
+		return "", err
+	}
+
+	resp, err := getRaw(c, ctx, path, headers)
+	if err != nil {
+		return "", wrapClientError(err, "GetEvaluationJobBenchmarkLogs")
+	}
+	return resp, nil
+}
+
+func appendLogParams(path string, params GetJobLogsParams) string {
+	qp := url.Values{}
+	if params.TailLines != "" {
+		qp.Set("tail_lines", params.TailLines)
+	}
+	if params.Timestamps != "" {
+		qp.Set("timestamps", params.Timestamps)
+	}
+	if params.SinceSeconds != "" {
+		qp.Set("since_seconds", params.SinceSeconds)
+	}
+	if encoded := qp.Encode(); encoded != "" {
+		return fmt.Sprintf("%s?%s", path, encoded)
+	}
+	return path
+}
+
 // tenantHeaders builds the X-Tenant header map required for tenant-scoped upstream
 // calls. It returns an error when namespace is empty so that callers fail closed
 // instead of silently promoting a scoped BFF request into an unscoped service-
@@ -695,4 +757,39 @@ func doRequest(c *EvalHubClient, ctx context.Context, method, path string, extra
 		}
 	}
 	return nil
+}
+
+// getRaw performs a GET request that returns the response body as a plain string
+// (no JSON unmarshalling). Used for endpoints that return text/plain content.
+func getRaw(c *EvalHubClient, ctx context.Context, path string, extraHeaders map[string]string) (string, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+path, nil)
+	if err != nil {
+		return "", err
+	}
+	req.Header.Set("Accept", "text/plain")
+	if c.authToken != "" {
+		req.Header.Set("Authorization", "Bearer "+c.authToken)
+	}
+	for k, v := range extraHeaders {
+		req.Header.Set(k, v)
+	}
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
+	}
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return "", &httpError{
+			StatusCode: resp.StatusCode,
+			Body:       string(body),
+		}
+	}
+	return string(body), nil
 }

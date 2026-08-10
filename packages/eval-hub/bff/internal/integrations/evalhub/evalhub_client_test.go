@@ -285,3 +285,117 @@ func TestEvalHubClient_UnauthorizedError(t *testing.T) {
 	require.ErrorAs(t, err, &ehErr)
 	assert.Equal(t, ErrCodeUnauthorized, ehErr.Code)
 }
+
+func TestEvalHubClient_GetEvaluationJobLogs(t *testing.T) {
+	logContent := "=== Job Logs ===\n[2026-03-01] Starting evaluation...\n[2026-03-01] Done.\n"
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "/api/v1/evaluations/jobs/job-1/logs", r.URL.Path)
+		assert.Equal(t, "Bearer test-token", r.Header.Get("Authorization"))
+		assert.Equal(t, "my-ns", r.Header.Get("X-Tenant"))
+		assert.Equal(t, "text/plain", r.Header.Get("Accept"))
+		w.Header().Set("Content-Type", "text/plain")
+		_, _ = w.Write([]byte(logContent))
+	}))
+	defer server.Close()
+
+	client := NewEvalHubClient(server.URL, "test-token", false, nil, "/api/v1")
+	result, err := client.GetEvaluationJobLogs(context.Background(), "job-1", "my-ns", GetJobLogsParams{})
+
+	require.NoError(t, err)
+	assert.Equal(t, logContent, result)
+}
+
+func TestEvalHubClient_GetEvaluationJobLogs_WithParams(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "/api/v1/evaluations/jobs/job-1/logs", r.URL.Path)
+		assert.Equal(t, "50", r.URL.Query().Get("tail_lines"))
+		assert.Equal(t, "true", r.URL.Query().Get("timestamps"))
+		assert.Equal(t, "300", r.URL.Query().Get("since_seconds"))
+		w.Header().Set("Content-Type", "text/plain")
+		_, _ = w.Write([]byte("logs"))
+	}))
+	defer server.Close()
+
+	client := NewEvalHubClient(server.URL, "test-token", false, nil, "/api/v1")
+	result, err := client.GetEvaluationJobLogs(context.Background(), "job-1", "my-ns", GetJobLogsParams{
+		TailLines:    "50",
+		Timestamps:   "true",
+		SinceSeconds: "300",
+	})
+
+	require.NoError(t, err)
+	assert.Equal(t, "logs", result)
+}
+
+func TestEvalHubClient_GetEvaluationJobLogs_EmptyNamespace(t *testing.T) {
+	client := NewEvalHubClient("http://localhost:1", "", false, nil, "/api/v1")
+	_, err := client.GetEvaluationJobLogs(context.Background(), "job-1", "", GetJobLogsParams{})
+
+	require.Error(t, err)
+	var ehErr *EvalHubError
+	require.ErrorAs(t, err, &ehErr)
+	assert.Equal(t, ErrCodeInvalidRequest, ehErr.Code)
+}
+
+func TestEvalHubClient_GetEvaluationJobLogs_ServerError(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+		_, _ = w.Write([]byte("internal error"))
+	}))
+	defer server.Close()
+
+	client := NewEvalHubClient(server.URL, "", false, nil, "/api/v1")
+	_, err := client.GetEvaluationJobLogs(context.Background(), "job-1", "my-ns", GetJobLogsParams{})
+
+	require.Error(t, err)
+	var ehErr *EvalHubError
+	require.ErrorAs(t, err, &ehErr)
+	assert.Equal(t, ErrCodeInternalError, ehErr.Code)
+}
+
+func TestEvalHubClient_GetEvaluationJobLogs_NotFound(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+		_, _ = w.Write([]byte("not found"))
+	}))
+	defer server.Close()
+
+	client := NewEvalHubClient(server.URL, "", false, nil, "/api/v1")
+	_, err := client.GetEvaluationJobLogs(context.Background(), "nonexistent", "my-ns", GetJobLogsParams{})
+
+	require.Error(t, err)
+	var ehErr *EvalHubError
+	require.ErrorAs(t, err, &ehErr)
+	assert.Equal(t, ErrCodeNotFound, ehErr.Code)
+}
+
+func TestEvalHubClient_GetEvaluationJobBenchmarkLogs(t *testing.T) {
+	logContent := "=== Benchmark 0 Logs ===\nRunning benchmark...\nDone.\n"
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "/api/v1/evaluations/jobs/job-1/benchmarks/0/logs", r.URL.Path)
+		assert.Equal(t, "Bearer test-token", r.Header.Get("Authorization"))
+		assert.Equal(t, "my-ns", r.Header.Get("X-Tenant"))
+		assert.Equal(t, "text/plain", r.Header.Get("Accept"))
+		w.Header().Set("Content-Type", "text/plain")
+		_, _ = w.Write([]byte(logContent))
+	}))
+	defer server.Close()
+
+	client := NewEvalHubClient(server.URL, "test-token", false, nil, "/api/v1")
+	result, err := client.GetEvaluationJobBenchmarkLogs(context.Background(), "job-1", 0, "my-ns", GetJobLogsParams{})
+
+	require.NoError(t, err)
+	assert.Equal(t, logContent, result)
+}
+
+func TestEvalHubClient_GetEvaluationJobBenchmarkLogs_EmptyNamespace(t *testing.T) {
+	client := NewEvalHubClient("http://localhost:1", "", false, nil, "/api/v1")
+	_, err := client.GetEvaluationJobBenchmarkLogs(context.Background(), "job-1", 0, "", GetJobLogsParams{})
+
+	require.Error(t, err)
+	var ehErr *EvalHubError
+	require.ErrorAs(t, err, &ehErr)
+	assert.Equal(t, ErrCodeInvalidRequest, ehErr.Code)
+}

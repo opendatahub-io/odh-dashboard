@@ -327,6 +327,90 @@ paths:
         Cancels a running evaluation job (soft cancel) or permanently
         deletes it (hard delete) depending on the hard_delete parameter.
 
+  /eval-hub/api/v1/evaluations/jobs/{id}/logs:
+    summary: Get evaluation job logs
+    description: >-
+      Retrieves execution logs for an evaluation job as plain text from the
+      EvalHub Server. Supports server-side truncation via tail_lines and
+      time-based filtering via since_seconds.
+    get:
+      tags:
+        - Evaluations
+      security:
+        - Bearer: []
+      parameters:
+        - $ref: '#/components/parameters/evaluationJobId'
+        - $ref: '#/components/parameters/namespace'
+        - $ref: '#/components/parameters/tailLines'
+        - $ref: '#/components/parameters/timestamps'
+        - $ref: '#/components/parameters/sinceSeconds'
+      responses:
+        '200':
+          description: Plain text execution logs
+          content:
+            text/plain:
+              schema:
+                type: string
+              example: |
+                === Logs for job eval-job-001 ===
+                [2026-03-01T09:00:00Z] Starting evaluation...
+                [2026-03-01T09:05:00Z] Benchmark truthfulqa_mc1 completed.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: getEvaluationJobLogs
+      summary: Get Evaluation Job Logs
+      description: >-
+        Retrieves execution logs for an evaluation job. Returns plain text
+        with optional per-benchmark section headers.
+
+  /eval-hub/api/v1/evaluations/jobs/{id}/benchmarks/{benchmark_index}/logs:
+    summary: Get evaluation job benchmark logs
+    description: >-
+      Retrieves execution logs for a specific benchmark within an evaluation
+      job as plain text from the EvalHub Server.
+    get:
+      tags:
+        - Evaluations
+      security:
+        - Bearer: []
+      parameters:
+        - $ref: '#/components/parameters/evaluationJobId'
+        - $ref: '#/components/parameters/benchmarkIndex'
+        - $ref: '#/components/parameters/namespace'
+        - $ref: '#/components/parameters/tailLines'
+        - $ref: '#/components/parameters/timestamps'
+        - $ref: '#/components/parameters/sinceSeconds'
+      responses:
+        '200':
+          description: Plain text execution logs for the specified benchmark
+          content:
+            text/plain:
+              schema:
+                type: string
+              example: |
+                === Benchmark 0 Logs ===
+                [2026-03-01T09:01:00Z] Running benchmark...
+                [2026-03-01T09:05:00Z] Benchmark completed.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: getEvaluationJobBenchmarkLogs
+      summary: Get Evaluation Job Benchmark Logs
+      description: >-
+        Retrieves execution logs for a specific benchmark within an
+        evaluation job. Returns plain text log output.
+
   # =============================================================================
   # INTER-BFF: MODEL CATALOG SECURITY ARTIFACTS
   # =============================================================================
@@ -1854,6 +1938,40 @@ components:
       required: true
       description: Unique identifier for the evaluation job
       example: 'eval-job-001'
+    benchmarkIndex:
+      in: path
+      name: benchmark_index
+      schema:
+        type: integer
+        minimum: 0
+      required: true
+      description: Zero-based index of the benchmark within the evaluation job
+      example: 0
+    tailLines:
+      in: query
+      name: tail_lines
+      schema:
+        type: integer
+        minimum: 0
+      required: false
+      description: Number of lines from the end of the log to return
+      example: 500
+    timestamps:
+      in: query
+      name: timestamps
+      schema:
+        type: boolean
+      required: false
+      description: Whether to include timestamps in log lines
+    sinceSeconds:
+      in: query
+      name: since_seconds
+      schema:
+        type: integer
+        minimum: 0
+      required: false
+      description: Only return log lines newer than this many seconds
+      example: 3600
     hardDelete:
       in: query
       name: hard_delete
