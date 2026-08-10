@@ -1,4 +1,0 @@
-export const DETAIL_POLL_INTERVAL_MS = 10_000;
-export const RETRY_DELAY_MS = 5_000;
-export const MAX_RETRY_ATTEMPTS = 5;
-export const MAX_CONCURRENT_DETAIL_REQUESTS = 5;
