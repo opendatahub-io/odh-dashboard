@@ -46,14 +46,19 @@ var _ = Describe("GenAIProxyNSModelsHandler", func() {
 		require.NoError(t, err)
 
 		assert.Equal(t, "list", response.Object)
-		assert.NotNil(t, response.Data)
+		// mock-test-namespace-1 has 2 LLM-D models: llm-d-codestral-22b, llm-d-deepseek-coder-33b
+		require.Len(t, response.Data, 2, "expected 2 models from mock-test-namespace-1")
 
-		// Verify each model has required OpenAI fields
+		// Verify known models are present with correct OpenAI fields
+		modelIDs := make(map[string]bool)
 		for _, model := range response.Data {
 			assert.NotEmpty(t, model.ID)
 			assert.Equal(t, "model", model.Object)
 			assert.NotEmpty(t, model.OwnedBy)
+			modelIDs[model.ID] = true
 		}
+		assert.True(t, modelIDs["llm-d-codestral-22b"], "expected llm-d-codestral-22b")
+		assert.True(t, modelIDs["llm-d-deepseek-coder-33b"], "expected llm-d-deepseek-coder-33b")
 	})
 
 	It("should return empty list when no models available", func() {
@@ -182,14 +187,18 @@ var _ = Describe("GenAIProxyNSModelsHandler", func() {
 		err = json.Unmarshal(rr.Body.Bytes(), &response)
 		require.NoError(t, err)
 
-		// Should have namespace models (from mock-test-namespace-1) + MaaS models
-		// mock-test-namespace-1 has 2 LLM-D models; MaaS mock should add more
-		assert.GreaterOrEqual(t, len(response.Data), 2, "should have at least namespace models")
+		// Should have namespace models (from mock-test-namespace-1: 2 LLM-D models)
+		// plus any MaaS models from the mock BFF client
+		require.GreaterOrEqual(t, len(response.Data), 2, "should have at least namespace models")
 
-		// Verify all models have required OpenAI fields
+		// Verify known namespace models are present
+		modelIDs := make(map[string]bool)
 		for _, model := range response.Data {
 			assert.NotEmpty(t, model.ID)
 			assert.Equal(t, "model", model.Object)
+			modelIDs[model.ID] = true
 		}
+		assert.True(t, modelIDs["llm-d-codestral-22b"], "expected namespace model llm-d-codestral-22b")
+		assert.True(t, modelIDs["llm-d-deepseek-coder-33b"], "expected namespace model llm-d-deepseek-coder-33b")
 	})
 })
