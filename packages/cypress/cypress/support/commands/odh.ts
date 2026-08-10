@@ -59,7 +59,7 @@ import type {
   ModelRegistryKind,
   OdhQuickStart,
 } from '@odh-dashboard/internal/k8sTypes';
-import type { ServingRuntimeKind } from '@odh-dashboard/model-serving/shared';
+import type { NimServingResponse, ServingRuntimeKind } from '@odh-dashboard/model-serving/shared';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import type { StartNotebookData } from '@odh-dashboard/internal/pages/projects/types';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
@@ -91,7 +91,6 @@ import type {
   PipelineVersionKF,
 } from '@odh-dashboard/internal/concepts/pipelines/kfTypes';
 import type { GrpcResponse } from '@odh-dashboard/internal/__mocks__/mlmd/utils';
-import type { NimServingResponse } from '@odh-dashboard/model-serving/shared';
 import type { BuildMockPipelinveVersionsType } from '@odh-dashboard/internal/__mocks__';
 import type { ArtifactStorage } from '@odh-dashboard/internal/concepts/pipelines/types';
 import type {
