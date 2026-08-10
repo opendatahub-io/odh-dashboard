@@ -83,10 +83,10 @@ describe('Verify Gen AI Namespace - Creation and Connection', () => {
         '@Sanity',
         '@SanitySet1',
         '@GenAI',
+        '@GenAICI',
         '@ModelServing',
         '@Deployment',
         '@Playground',
-        '@NonConcurrent',
       ],
     },
     () => {
