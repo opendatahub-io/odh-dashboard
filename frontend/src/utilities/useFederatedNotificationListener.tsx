@@ -27,10 +27,11 @@ export const isSafeUrl = (url: unknown): boolean => {
     return false;
   }
   try {
-    const parsed = new URL(url, window.location.origin);
     if (url.startsWith('/')) {
+      const parsed = new URL(url, window.location.origin);
       return parsed.origin === window.location.origin;
     }
+    const parsed = new URL(url);
     return parsed.protocol === 'http:' || parsed.protocol === 'https:';
   } catch {
     return false;

@@ -68,6 +68,13 @@ describe('isSafeUrl', () => {
     expect(isSafeUrl('/\\evil.com')).toBe(false);
   });
 
+  it('should reject relative URLs that do not start with /', () => {
+    expect(isSafeUrl('projects')).toBe(false);
+    expect(isSafeUrl('../projects')).toBe(false);
+    expect(isSafeUrl('?tab=1')).toBe(false);
+    expect(isSafeUrl(' ')).toBe(false);
+  });
+
   it('should reject non-string values', () => {
     expect(isSafeUrl(undefined)).toBe(false);
     expect(isSafeUrl(null)).toBe(false);
