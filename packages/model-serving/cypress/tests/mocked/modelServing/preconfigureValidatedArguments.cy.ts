@@ -50,12 +50,13 @@ describe('Preconfigure deployment validated arguments', () => {
 
     modelServingWizard.findValidatedConfigurationOptionCheckbox('tool-calling').click();
     modelServingWizard
-      .findValidatedConfigurationOption('tool-calling')
-      .should('have.attr', 'aria-selected', 'true');
+      .findValidatedConfigurationOptionCheckbox('tool-calling')
+      .should('be.checked');
+
     modelServingWizard.findValidatedConfigurationOptionCheckbox('tool-calling').click();
     modelServingWizard
-      .findValidatedConfigurationOption('tool-calling')
-      .should('have.attr', 'aria-selected', 'false');
+      .findValidatedConfigurationOptionCheckbox('tool-calling')
+      .should('not.be.checked');
   });
 
   it('should display formatted CLI args in the view arguments popover', () => {

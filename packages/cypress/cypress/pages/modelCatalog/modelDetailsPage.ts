@@ -146,7 +146,7 @@ class ModelDetailsPage {
   }
 
   findToolCallingToggle() {
-    return cy.get('#tool-calling-toggle');
+    return this.findToolCallingCard().findByRole('button', { name: 'Tool Calling' });
   }
 
   findValidatedDeploymentResourceLabels() {
