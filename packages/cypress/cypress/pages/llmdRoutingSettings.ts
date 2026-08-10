@@ -21,6 +21,20 @@ class RoutingConfigRow extends TableRow {
 
 class LlmdRoutingSettingsPage {
   visit(wait = true) {
+    cy.visitWithLogin(
+      '/settings/model-resources-operations/model-deployment-settings/routing-configurations',
+    );
+    if (wait) {
+      this.wait();
+    }
+  }
+
+  /**
+   * Visits the standalone (flag-off) llm-d routing configurations page.
+   * Temporary — removed along with the standalone page by RHOAIENG-80077.
+   * https://issues.redhat.com/browse/RHOAIENG-80077
+   */
+  visitStandalone(wait = true) {
     cy.visitWithLogin('/settings/model-resources-operations/llmd-routing-configurations');
     if (wait) {
       this.wait();
@@ -38,7 +52,7 @@ class LlmdRoutingSettingsPage {
 
   findNavItem() {
     return appChrome.findNavItem({
-      name: 'llm-d routing configurations',
+      name: 'Model deployment settings',
       rootSection: 'Settings',
       subSection: 'Model resources and operations',
     });
@@ -46,6 +60,15 @@ class LlmdRoutingSettingsPage {
 
   findAppTitle() {
     return cy.findByTestId('app-page-title');
+  }
+
+  /** Title of the tabbed "Model deployment settings" page that hosts the tab. */
+  findTabPageTitle() {
+    return cy.findByTestId('app-tab-page-title');
+  }
+
+  findTab() {
+    return cy.findByRole('tab', { name: 'llm-d routing configurations' });
   }
 
   findTable() {
