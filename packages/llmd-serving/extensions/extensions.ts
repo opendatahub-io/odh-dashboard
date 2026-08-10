@@ -63,6 +63,15 @@ const TOPOLOGY_CONFIGS_STANDALONE_PATH =
 const TOPOLOGY_CONFIGS_TAB_PATH =
   '/settings/model-resources-operations/model-deployment-settings/topology-configurations';
 
+// Keep in sync with ../src/settings/routingConfigs/paths.ts (value imports are
+// disallowed in extensions.ts). Pinned by __tests__/extensions.spec.ts.
+// The standalone constant and the extensions using it are removed by RHOAIENG-80077.
+// https://issues.redhat.com/browse/RHOAIENG-80077
+const ROUTING_CONFIGS_STANDALONE_PATH =
+  '/settings/model-resources-operations/llmd-routing-configurations';
+const ROUTING_CONFIGS_TAB_PATH =
+  '/settings/model-resources-operations/model-deployment-settings/routing-configurations';
+
 const createRedirectComponent = (args: { from: string; to: string }) => () =>
   import('@odh-dashboard/plugin-core/routing').then((module) => ({
     default: () => module.buildV2RedirectElement(args),
@@ -616,9 +625,9 @@ const extensions: (
     properties: {
       id: 'settings-llmd-routing-configurations',
       title: 'llm-d routing configurations',
-      href: '/settings/model-resources-operations/llmd-routing-configurations',
+      href: ROUTING_CONFIGS_STANDALONE_PATH,
       section: 'settings-model-resources-and-operations',
-      path: '/settings/model-resources-operations/llmd-routing-configurations/*',
+      path: `${ROUTING_CONFIGS_STANDALONE_PATH}/*`,
       group: '2_model-resources',
     },
   },
@@ -629,7 +638,7 @@ const extensions: (
       disallowed: [SupportedArea.MODEL_DEPLOYMENT_SETTINGS],
     },
     properties: {
-      path: '/settings/model-resources-operations/llmd-routing-configurations/*',
+      path: `${ROUTING_CONFIGS_STANDALONE_PATH}/*`,
       component: () => import('../src/settings/routingConfigs/RoutingConfigurationsRoutes'),
     },
   },
@@ -679,10 +688,10 @@ const extensions: (
       ],
     },
     properties: {
-      path: '/settings/model-resources-operations/llmd-routing-configurations/*',
+      path: `${ROUTING_CONFIGS_STANDALONE_PATH}/*`,
       component: createRedirectComponent({
-        from: '/settings/model-resources-operations/llmd-routing-configurations/*',
-        to: '/settings/model-resources-operations/model-deployment-settings/routing-configurations/*',
+        from: `${ROUTING_CONFIGS_STANDALONE_PATH}/*`,
+        to: `${ROUTING_CONFIGS_TAB_PATH}/*`,
       }),
     },
   },
@@ -787,10 +796,35 @@ const extensions: (
       pageId: 'model-deployment-settings',
       id: 'routing-configurations',
       title: 'llm-d routing configurations',
-      component: () => import('../src/settings/RoutingConfigsTab'),
+      component: () => import('../src/settings/routingConfigs/RoutingConfigTabRoutes'),
       group: '5_routing',
     },
   },
+  // Full-page breakout routes for the routing configuration forms. Registered
+  // separately from the tab so the forms render without the tabbed page chrome.
+  // Each form path is listed explicitly so the tab list route is not captured.
+  ...(
+    [
+      `${ROUTING_CONFIGS_TAB_PATH}/add`,
+      `${ROUTING_CONFIGS_TAB_PATH}/edit/:configName`,
+      `${ROUTING_CONFIGS_TAB_PATH}/duplicate/:configName`,
+    ] as const
+  ).map(
+    (path): RouteExtension => ({
+      type: 'app.route',
+      flags: {
+        required: [
+          SupportedArea.MODEL_DEPLOYMENT_SETTINGS,
+          SupportedArea.LLMD_TOPOLOGY_CONFIGS,
+          ADMIN_USER,
+        ],
+      },
+      properties: {
+        path,
+        component: () => import('../src/settings/routingConfigs/RoutingConfigFormRoutes'),
+      },
+    }),
+  ),
 ];
 
 export default extensions;
