@@ -36,9 +36,17 @@ export const setupModelsTabIntercepts = (options: ModelsTabTestOptions = {}): vo
   ];
   cy.interceptGenAi('GET /api/v1/namespaces', { data: namespacesData });
 
-  // Unified models intercept - useFetchAIModels fetches all sources in a single request
-  const allModels = [...(options.aiModels || []), ...(options.maasModels || [])];
-  cy.interceptGenAi('GET /api/v1/aaa/models', mockAAModels(allModels)).as('aaModels');
+  // Route handler that filters models by `sources` query param, matching real BFF behavior.
+  // When sources includes 'maas', return all models; otherwise return only non-MaaS models.
+  const aiModels = options.aiModels || [];
+  const maasModels = options.maasModels || [];
+  const allModels = [...aiModels, ...maasModels];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  cy.interceptGenAi('GET /api/v1/aaa/models', (req: any) => {
+    const url = new URL(req.url, 'http://localhost');
+    const sources = url.searchParams.get('sources') ?? '';
+    req.reply(sources.includes('maas') ? mockAAModels(allModels) : mockAAModels(aiModels));
+  }).as('aaModels');
 
   cy.interceptGenAi('GET /api/v1/lsd/status', mockStatus(options.lsdStatus ?? 'Ready'));
 
