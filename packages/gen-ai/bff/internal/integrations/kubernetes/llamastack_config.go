@@ -399,16 +399,28 @@ func EmptyConfig() map[string]interface{} {
 
 // NewPassthroughProvider creates a remote::passthrough provider entry that enables
 // OGX to dynamically discover models by polling the BFF's /v1/models endpoint.
-// The forward_headers config ensures the user's JWT is forwarded so the BFF can
-// resolve models scoped to the caller's permissions.
+//
+// forward_headers is a map from X-OGX-Provider-Data JSON keys to outbound HTTP
+// headers. When a user request carries X-OGX-Provider-Data: {"vllm_api_token": "<jwt>"},
+// OGX reads vllm_api_token and sends it as the x-forwarded-access-token header to the BFF.
+// This is how per-user credentials flow through OGX without OGX knowing about K8s auth.
+//
+// refresh_models: true causes OGX to periodically poll GET /v1/models so new models
+// appear in the routing table for /v1/chat/completions. Note: during background polling
+// no user request is in flight, so forward_headers is empty and the BFF returns an
+// empty model list (unauthenticated fallback). Per-request model resolution via
+// /v1/responses still works regardless.
 func NewPassthroughProvider(providerID, baseURL string) Provider {
 	return Provider{
 		ProviderID:   providerID,
 		ProviderType: "remote::passthrough",
 		Config: map[string]interface{}{
-			"base_url":        baseURL,
-			"forward_headers": []string{"x-forwarded-access-token"},
-			"refresh_models":  true,
+			"base_url": baseURL,
+			"api_key":  "",
+			"forward_headers": map[string]interface{}{
+				"vllm_api_token": "x-forwarded-access-token",
+			},
+			"refresh_models": true,
 		},
 	}
 }

@@ -2179,9 +2179,15 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 	// Add remote::passthrough provider for zero-restart model discovery.
 	// When GatewayDomain is configured, OGX polls the BFF's /v1/models endpoint
 	// to discover new models without requiring a pod restart.
+	//
+	// URL format: https://<gateway-domain>/api/v1/genai-proxy/ns/<namespace>
+	// Note: remote::passthrough appends /v1 to base_url automatically, so
+	// OGX calls .../genai-proxy/ns/<ns>/v1/models, /v1/chat/completions, etc.
+	// The path does NOT include /gen-ai prefix — external traffic via HTTPRoute
+	// arrives at the BFF without it (the HTTPRoute matches /api/v1/genai-proxy).
 	if kc.EnvConfig.GatewayDomain != "" {
-		passthroughURL := fmt.Sprintf("https://%s%s%s/genai-proxy/ns/%s",
-			kc.EnvConfig.GatewayDomain, constants.PathPrefix, constants.ApiPathPrefix, namespace)
+		passthroughURL := fmt.Sprintf("https://%s%s/genai-proxy/ns/%s",
+			kc.EnvConfig.GatewayDomain, constants.ApiPathPrefix, namespace)
 		passthroughProvider := NewPassthroughProvider(constants.PassthroughProviderID, passthroughURL)
 		config.AddInferenceProvider(passthroughProvider)
 		kc.Logger.Info("Added remote::passthrough provider for zero-restart model discovery",
