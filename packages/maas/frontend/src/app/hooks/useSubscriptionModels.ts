@@ -1,9 +1,12 @@
 import React from 'react';
+import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { TrackingOutcome } from '@odh-dashboard/ui-core';
 import {
   MaaSModelRefSummary,
   SubscriptionModelEntry,
   TokenRateLimit,
 } from '~/app/types/subscriptions';
+import { MaaSEvents } from '~/app/types/event-tracking';
 
 /** Returns the corrected edit-modal row index after deletions, or null if that row was removed. */
 export const reindexAfterRemove = (
@@ -86,6 +89,10 @@ export const useSubscriptionModels = (
 
   const handleSaveRateLimits = React.useCallback(
     (rateLimits: TokenRateLimit[]) => {
+      fireFormTrackingEvent(MaaSEvents.SUBSCRIPTION_TOKEN_LIMITS_CONFIGURED, {
+        outcome: TrackingOutcome.submit,
+        limitCount: rateLimits.length,
+      });
       if (editLimitsTarget == null) {
         return;
       }
@@ -100,6 +107,9 @@ export const useSubscriptionModels = (
 
   const handleCloseRateLimitsModal = React.useCallback(() => {
     setEditLimitsTarget(null);
+    fireFormTrackingEvent(MaaSEvents.SUBSCRIPTION_TOKEN_LIMITS_CONFIGURED, {
+      outcome: TrackingOutcome.cancel,
+    });
   }, []);
 
   return {

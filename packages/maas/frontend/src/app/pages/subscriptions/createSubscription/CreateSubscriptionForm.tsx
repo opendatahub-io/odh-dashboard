@@ -26,6 +26,8 @@ import { useZodFormValidation } from '@odh-dashboard/ui-core/hooks/useZodFormVal
 import { APIOptions } from 'mod-arch-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { z } from 'zod';
+import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { TrackingOutcome } from '@odh-dashboard/ui-core';
 import { getSectionUrl } from '~/app/utilities/subscriptionManagementNavigation';
 import { createSubscription, updateSubscription } from '~/app/api/subscriptions';
 import { useMaaSGovernanceContext } from '~/app/context/MaaSGovernanceContext';
@@ -41,6 +43,17 @@ import {
 } from '~/app/types/subscriptions';
 import AddModelsModal from '~/app/shared/AddModelsModal';
 import MaasModelsSection from '~/app/shared/MaasModelsSection';
+import {
+  EventTrackingEditSource,
+  EventTrackingPrefillSource,
+  MaaSEvents,
+  SubscriptionCreatedCancelProperties,
+  SubscriptionCreatedErrorProperties,
+  SubscriptionCreatedSuccessProperties,
+  SubscriptionUpdatedCancelProperties,
+  SubscriptionUpdatedErrorProperties,
+  SubscriptionUpdatedSuccessProperties,
+} from '~/app/types/event-tracking';
 import EditRateLimitsModal from './EditRateLimitsModal';
 
 type CreateSubscriptionFormProps = {
@@ -51,6 +64,7 @@ type CreateSubscriptionFormProps = {
   subscriptionInfo?: SubscriptionInfoResponse;
   returnTo?: string;
   preSelectedModel?: { name: string; namespace?: string };
+  editSource?: EventTrackingEditSource;
 };
 const MAX_PRIORITY = 1000000;
 const MIN_PRIORITY = -1000000;
@@ -90,6 +104,7 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
   subscriptionInfo,
   returnTo,
   preSelectedModel,
+  editSource,
 }) => {
   const navigate = useNavigate();
   const { refresh } = useMaaSGovernanceContext();
@@ -226,6 +241,12 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
     isPriorityValid &&
     !isSubmitting;
 
+  const modelRefsPayload = models.map((m) => ({
+    name: m.modelRefSummary.name,
+    namespace: m.modelRefSummary.namespace,
+    tokenRateLimits: m.tokenRateLimits,
+  }));
+
   const handleSubmit = async () => {
     if (priority == null || Number.isNaN(priority)) {
       return;
@@ -233,12 +254,6 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
 
     setIsSubmitting(true);
     setSubmitError(null);
-
-    const modelRefsPayload = models.map((m) => ({
-      name: m.modelRefSummary.name,
-      namespace: m.modelRefSummary.namespace,
-      tokenRateLimits: m.tokenRateLimits,
-    }));
 
     try {
       const apiOpts: APIOptions = {};
@@ -253,6 +268,7 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
           modelRefs: modelRefsPayload,
           priority,
         };
+        fireFormTrackingEvent(MaaSEvents.SUBSCRIPTION_UPDATED, submitEditTrackingEventProperties);
         await updateSubscription()(apiOpts, subscription.name, request);
       } else {
         const request: CreateSubscriptionRequest = {
@@ -264,11 +280,16 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
           priority,
           createAuthPolicy,
         };
+        fireFormTrackingEvent(MaaSEvents.SUBSCRIPTION_CREATED, submitCreateTrackingEventProperties);
         await createSubscription()(apiOpts, request);
       }
       refresh();
       navigate(returnTo ?? getSectionUrl('subscriptions'));
     } catch (e) {
+      fireFormTrackingEvent(
+        isEditing ? MaaSEvents.SUBSCRIPTION_UPDATED : MaaSEvents.SUBSCRIPTION_CREATED,
+        isEditing ? errorEditTrackingEventProperties : errorCreateTrackingEventProperties,
+      );
       setSubmitError(
         e instanceof Error
           ? e.message
@@ -280,6 +301,55 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
 
   const showNoModelsWarning = !isEditing && modelRefs.length === 0 && models.length === 0;
   const canAddModels = modelRefs.length > 0;
+
+  const cancelEditTrackingEventProperties: SubscriptionUpdatedCancelProperties = {
+    outcome: TrackingOutcome.cancel,
+    editSource,
+  };
+
+  const cancelCreateTrackingEventProperties: SubscriptionCreatedCancelProperties = {
+    outcome: TrackingOutcome.cancel,
+    modelCount: models.length,
+    modelCountWoLimit: modelRefsPayload.filter((m) => m.tokenRateLimits.length === 0).length,
+  };
+
+  const submitEditTrackingEventProperties: SubscriptionUpdatedSuccessProperties = {
+    outcome: TrackingOutcome.submit,
+    success: true,
+    groupCount: selectedGroupNames.length,
+    modelCount: models.length,
+    hasDescription: nameDescData.description.trim() !== '',
+    hasMatchingPolicy: formData.policies.some((p) => p.name === subscription?.name),
+    priority: priority ?? 0,
+  };
+
+  const prefillSource = preSelectedModel
+    ? EventTrackingPrefillSource.MODEL
+    : EventTrackingPrefillSource.NONE;
+  const submitCreateTrackingEventProperties: SubscriptionCreatedSuccessProperties = {
+    outcome: TrackingOutcome.submit,
+    success: true,
+    groupCount: selectedGroupNames.length,
+    modelCount: models.length,
+    hasDescription: nameDescData.description.trim() !== '',
+    modelCountAvailable: modelRefsPayload.length,
+    hasMatchingPolicy: formData.policies.some((p) => p.name === subscription?.name),
+    priority: priority ?? 0,
+    prefillSource,
+  };
+
+  const errorCreateTrackingEventProperties: SubscriptionCreatedErrorProperties = {
+    outcome: TrackingOutcome.submit,
+    success: false,
+    error: submitError ?? 'Failed to create subscription',
+  };
+
+  const errorEditTrackingEventProperties: SubscriptionUpdatedErrorProperties = {
+    outcome: TrackingOutcome.submit,
+    success: false,
+    error: submitError ?? 'Failed to update subscription',
+    editSource,
+  };
 
   return (
     <PageSection hasBodyWrapper={false}>
@@ -525,7 +595,13 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
           </Button>
           <Button
             variant="link"
-            onClick={() => navigate(returnTo ?? getSectionUrl('subscriptions'))}
+            onClick={() => {
+              navigate(returnTo ?? getSectionUrl('subscriptions'));
+              fireFormTrackingEvent(
+                isEditing ? MaaSEvents.SUBSCRIPTION_UPDATED : MaaSEvents.SUBSCRIPTION_CREATED,
+                isEditing ? cancelEditTrackingEventProperties : cancelCreateTrackingEventProperties,
+              );
+            }}
             isDisabled={isSubmitting}
             data-testid="cancel-subscription-button"
           >

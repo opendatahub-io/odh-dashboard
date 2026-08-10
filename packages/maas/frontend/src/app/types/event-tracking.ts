@@ -54,20 +54,20 @@ export type AuthPolicyUpdatedSuccessProperties = {
   groupCount: number;
   modelCount: number;
   hasDescription: boolean;
-  hasMatchingSubscription: boolean;
-  editSource: EventTrackingEditSource;
+  hasMatchingSubscription?: boolean;
+  editSource?: EventTrackingEditSource;
 };
 
 export type AuthPolicyUpdatedErrorProperties = {
   outcome: TrackingOutcome;
   success: boolean;
   error: string;
-  editSource: EventTrackingEditSource;
+  editSource?: EventTrackingEditSource;
 };
 
 export type AuthPolicyUpdatedCancelProperties = {
   outcome: TrackingOutcome;
-  editSource: EventTrackingEditSource;
+  editSource?: EventTrackingEditSource;
 };
 
 export type AuthPolicyCreatedSuccessProperties = {
@@ -77,7 +77,7 @@ export type AuthPolicyCreatedSuccessProperties = {
   modelCount: number;
   modelCountAvailable: number;
   hasDescription: boolean;
-  hasMatchingSubscription: boolean;
+  hasMatchingSubscription?: boolean;
   prefillSource: EventTrackingPrefillSource;
 };
 
@@ -100,7 +100,7 @@ export type SubscriptionCreatedSuccessProperties = {
   hasDescription: boolean;
   hasMatchingPolicy: boolean;
   priority: number;
-  prefillSource: EventTrackingPrefillSource;
+  prefillSource?: EventTrackingPrefillSource;
 };
 
 export type SubscriptionCreatedErrorProperties = {
@@ -120,21 +120,25 @@ export type SubscriptionUpdatedSuccessProperties = {
   groupCount: number;
   modelCount: number;
   hasDescription: boolean;
-  hasMatchingPolicy: boolean;
+  hasMatchingPolicy?: boolean;
   priority: number;
-  editSource: EventTrackingEditSource;
+  editSource?: EventTrackingEditSource;
 };
 
 export type SubscriptionUpdatedErrorProperties = {
   outcome: TrackingOutcome;
   success: boolean;
   error: string;
-  editSource: EventTrackingEditSource;
+  editSource?: EventTrackingEditSource;
 };
 
 export type SubscriptionUpdatedCancelProperties = {
   outcome: TrackingOutcome;
-  editSource: EventTrackingEditSource;
+  editSource?: EventTrackingEditSource;
+};
+
+export type SubscriptionTokenLimitsConfiguredCancelProperties = {
+  outcome: TrackingOutcome;
 };
 
 export type SubscriptionTokenLimitsConfiguredSuccessProperties = {
