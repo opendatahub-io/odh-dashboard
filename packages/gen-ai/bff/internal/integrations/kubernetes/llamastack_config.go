@@ -397,6 +397,34 @@ func EmptyConfig() map[string]interface{} {
 	return map[string]interface{}{}
 }
 
+// NewPassthroughProvider creates a remote::passthrough provider entry that enables
+// OGX to dynamically discover models by polling the BFF's /v1/models endpoint.
+// The forward_headers config ensures the user's JWT is forwarded so the BFF can
+// resolve models scoped to the caller's permissions.
+func NewPassthroughProvider(providerID, baseURL string) Provider {
+	return Provider{
+		ProviderID:   providerID,
+		ProviderType: "remote::passthrough",
+		Config: map[string]interface{}{
+			"base_url":        baseURL,
+			"forward_headers": []string{"x-forwarded-access-token"},
+			"refresh_models":  true,
+		},
+	}
+}
+
+// HasPassthroughProvider returns true if the config already contains a
+// remote::passthrough inference provider. Used to detect whether subsequent
+// model installs can skip OGXServer CR updates (zero-restart path).
+func (c *LlamaStackConfig) HasPassthroughProvider() bool {
+	for _, p := range c.Providers.Inference {
+		if p.ProviderType == "remote::passthrough" {
+			return true
+		}
+	}
+	return false
+}
+
 // NewSentenceTransformerProvider creates a new sentence transformer provider
 func NewSentenceTransformerProvider() Provider {
 	return Provider{
