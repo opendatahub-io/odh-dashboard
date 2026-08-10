@@ -97,7 +97,7 @@ class LlmAcceleratorConfigs {
 
   findNavItem() {
     return appChrome.findNavItem({
-      name: 'LLM accelerator configurations',
+      name: 'Model deployment settings',
       rootSection: 'Settings',
       subSection: 'Model resources and operations',
     });
