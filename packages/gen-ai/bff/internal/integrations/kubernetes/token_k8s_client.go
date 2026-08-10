@@ -1382,6 +1382,7 @@ func (kc *TokenKubernetesClient) resolveCollectorEndpoint() string {
 //  2. The image entrypoint (/opt/app-root/entrypoint.sh) uses --traces_exporter=otlp
 //     which defaults to gRPC (port 4317). The platform collector exposes OTLP/HTTP
 //     on port 4318, so we must use otlp_proto_http explicitly.
+
 // existingServerHasPassthrough reads the OGXServer's linked ConfigMap and checks
 // whether it already contains a remote::passthrough inference provider. Returns
 // false (conservatively) on any read/parse error so the caller falls through to
@@ -1390,15 +1391,22 @@ func (kc *TokenKubernetesClient) existingServerHasPassthrough(ctx context.Contex
 	if server.Spec.OverrideConfig == nil {
 		return false
 	}
+	return kc.existingServerHasPassthroughFromConfigMap(ctx, server.Spec.OverrideConfig.Name, server.Spec.OverrideConfig.Key, namespace)
+}
+
+// existingServerHasPassthroughFromConfigMap reads the named ConfigMap and checks
+// whether it contains a remote::passthrough inference provider in its config YAML.
+// Extracted for testability (avoids OGXServer CRD dependency in unit tests).
+func (kc *TokenKubernetesClient) existingServerHasPassthroughFromConfigMap(ctx context.Context, cmName, cmKey, namespace string) bool {
 	var cm corev1.ConfigMap
 	if err := kc.Client.Get(ctx, types.NamespacedName{
-		Name:      server.Spec.OverrideConfig.Name,
+		Name:      cmName,
 		Namespace: namespace,
 	}, &cm); err != nil {
 		kc.Logger.Debug("could not read OGXServer ConfigMap for passthrough detection", "error", err)
 		return false
 	}
-	configYAML, ok := cm.Data[server.Spec.OverrideConfig.Key]
+	configYAML, ok := cm.Data[cmKey]
 	if !ok {
 		return false
 	}
@@ -1410,7 +1418,6 @@ func (kc *TokenKubernetesClient) existingServerHasPassthrough(ctx context.Contex
 	return config.HasPassthroughProvider()
 }
 
-//
 // We can later use the simpler entrypoint command if the OGX image fixes the
 // sitecustomize.py loading issue and the entrypoint supports OTLP/HTTP export:
 //
