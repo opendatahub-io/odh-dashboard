@@ -46,6 +46,7 @@ import {
 } from '~/app/utilities/tablePaginationConstants';
 import { evaluationCompareBenchmarksRoute, evaluationCompareRoute } from '~/app/routes';
 import useEvaluationJobDetailPolling from '~/app/hooks/useEvaluationJobDetailPolling';
+import usePageVisibility from '~/app/hooks/usePageVisibility';
 import EvaluationsTableRow from './EvaluationsTableRow';
 
 type FilterOption = 'name' | 'evaluation' | 'evaluated' | 'status';
@@ -134,6 +135,8 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
   onShowStatus,
 }) => {
   const navigate = useNavigate();
+  // Pause polling when the browser tab is backgrounded to reduce server load
+  const isPollingEnabled = usePageVisibility();
   const [activeFilter, setActiveFilter] = React.useState<FilterOption>('name');
   const [filterValue, setFilterValue] = React.useState('');
   const [selectedStatus, setSelectedStatus] = React.useState<EvaluationJobState | ''>('');
@@ -194,7 +197,7 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
   const { polledJobDataMap, isWarning } = useEvaluationJobDetailPolling(
     inProgressJobIds,
     namespace,
-    loaded,
+    loaded && isPollingEnabled,
   );
 
   const comparableEvaluationsInView = React.useMemo(
