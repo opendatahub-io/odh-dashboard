@@ -1000,6 +1000,10 @@ class ViewSubscriptionPage {
     return new DashboardCodeEditor(() => cy.findByTestId('resource-yaml-tab-content'));
   }
 
+  findOpenFullscreenButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('open-fullscreen-button');
+  }
+
   findActionsToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('subscription-actions-toggle');
   }
@@ -1010,6 +1014,20 @@ class ViewSubscriptionPage {
 
   findEditActionButton(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByRole('menuitem', { name: 'Edit' });
+  }
+}
+
+class YamlFullscreenModal extends Modal {
+  constructor() {
+    super('YAML - read-only preview');
+  }
+
+  find(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('yaml-fullscreen-modal');
+  }
+
+  findYAMLCodeEditor() {
+    return new DashboardCodeEditor(() => this.find());
   }
 }
 
@@ -1303,6 +1321,10 @@ class ViewAuthPolicyPage {
 
   findYAMLCodeEditor() {
     return new DashboardCodeEditor(() => cy.findByTestId('resource-yaml-tab-content'));
+  }
+
+  findOpenFullscreenButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('open-fullscreen-button');
   }
 
   findDetailsSection(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -1903,3 +1925,4 @@ export const externalModelPathModal = new ExternalModelPathModal();
 export const externalModelProviderUrlModal = new ExternalModelProviderUrlModal();
 export const modelInfoPopover = new ModelInfoPopover();
 export const phaseModal = new PhaseModal();
+export const yamlFullscreenModal = new YamlFullscreenModal();

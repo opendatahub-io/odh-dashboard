@@ -9,6 +9,7 @@ import {
   policyPage,
   subscriptionManagementPage,
   viewAuthPolicyPage,
+  yamlFullscreenModal,
 } from '../../../pages/modelsAsAService';
 import {
   mockAuthPolicies,
@@ -396,5 +397,10 @@ describe('View Auth Policy Page', () => {
       expect(downloads[0].content).to.include('apiVersion: maas.opendatahub.io/v1alpha1');
       expect(downloads[0].content).to.include('kind: MaaSAuthPolicy');
     });
+    viewAuthPolicyPage.findOpenFullscreenButton().click();
+    yamlFullscreenModal.shouldBeOpen();
+    yamlFullscreenModal.findYAMLCodeEditor().containsText('kind: MaaSAuthPolicy').should('exist');
+    yamlFullscreenModal.findCloseButton().click();
+    yamlFullscreenModal.shouldBeOpen(false);
   });
 });

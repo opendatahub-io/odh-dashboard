@@ -12,6 +12,7 @@ import {
   viewSubscriptionPage,
   subscriptionManagementPage,
   phaseModal,
+  yamlFullscreenModal,
 } from '../../../pages/modelsAsAService';
 import {
   mockSubscriptions,
@@ -350,6 +351,12 @@ describe('View Subscription Page', () => {
       expect(downloads[0].content).to.include('apiVersion: maas.opendatahub.io/v1alpha1');
       expect(downloads[0].content).to.include('kind: MaaSSubscription');
     });
+
+    viewSubscriptionPage.findOpenFullscreenButton().click();
+    yamlFullscreenModal.shouldBeOpen();
+    yamlFullscreenModal.findYAMLCodeEditor().containsText('kind: MaaSSubscription').should('exist');
+    yamlFullscreenModal.findCloseButton().click();
+    yamlFullscreenModal.shouldBeOpen(false);
   });
 });
 

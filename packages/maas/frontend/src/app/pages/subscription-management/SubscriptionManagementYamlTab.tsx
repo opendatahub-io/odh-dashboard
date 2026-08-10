@@ -1,7 +1,19 @@
 import * as React from 'react';
-import { Bullseye, EmptyState, EmptyStateBody, PageSection, Spinner } from '@patternfly/react-core';
+import {
+  Bullseye,
+  Button,
+  EmptyState,
+  EmptyStateBody,
+  Modal,
+  ModalBody,
+  ModalHeader,
+  ModalVariant,
+  PageSection,
+  Spinner,
+  Tooltip,
+} from '@patternfly/react-core';
 import { Language } from '@patternfly/react-code-editor';
-import { ExclamationCircleIcon } from '@patternfly/react-icons';
+import { ExclamationCircleIcon, ExpandArrowsAltIcon } from '@patternfly/react-icons';
 import useDarkMode from '~/app/hooks/useDarkMode';
 import { useSubscriptionManagementYaml } from '~/app/hooks/useSubscriptionManagementYaml';
 
@@ -18,8 +30,26 @@ const SubscriptionManagementYamlTab: React.FC<SubscriptionManagementYamlTabProps
   resourceName,
   resourceType,
 }) => {
+  const titleContent = 'YAML - read-only preview';
   const isDarkMode = useDarkMode();
   const [yaml, loaded, loadError] = useSubscriptionManagementYaml(resourceName, resourceType);
+  const [isModalOpen, setIsModalOpen] = React.useState(false);
+
+  const handleModalToggle = () => {
+    setIsModalOpen((open) => !open);
+  };
+
+  const customToolbarControl = (
+    <Tooltip content="Open fullscreen">
+      <Button
+        variant="plain"
+        aria-label="Open fullscreen editor"
+        onClick={handleModalToggle}
+        icon={<ExpandArrowsAltIcon />}
+        data-testid="open-fullscreen-button"
+      />
+    </Tooltip>
+  );
 
   if (!loaded) {
     return (
@@ -60,7 +90,32 @@ const SubscriptionManagementYamlTab: React.FC<SubscriptionManagementYamlTabProps
           isLanguageLabelVisible
           downloadFileName={resourceName}
           height="600px"
+          headerMainContent={titleContent}
+          customControls={customToolbarControl}
         />
+        <Modal
+          variant={ModalVariant.large}
+          isOpen={isModalOpen}
+          onClose={handleModalToggle}
+          aria-label={titleContent}
+          data-testid="yaml-fullscreen-modal"
+        >
+          <ModalHeader title={titleContent} />
+          <ModalBody>
+            <CodeEditor
+              code={yaml}
+              language={Language.yaml}
+              isDarkTheme={isDarkMode}
+              isReadOnly
+              isCopyEnabled
+              isDownloadEnabled
+              isLanguageLabelVisible
+              downloadFileName={resourceName}
+              height="70vh"
+              headerMainContent={titleContent}
+            />
+          </ModalBody>
+        </Modal>
       </React.Suspense>
     </PageSection>
   );
