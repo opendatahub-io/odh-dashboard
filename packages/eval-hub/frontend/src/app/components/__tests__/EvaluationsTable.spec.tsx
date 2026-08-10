@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import { EvaluationJob } from '~/app/types';
 import { mockEvaluationJob } from '~/__tests__/unit/testUtils/mockEvaluationData';
@@ -25,6 +26,10 @@ jest.mock('@odh-dashboard/ui-core', () => ({
   ),
 }));
 
+const queryClient = new QueryClient({
+  defaultOptions: { queries: { retry: false } },
+});
+
 const renderTable = (props: {
   evaluations: EvaluationJob[];
   loaded: boolean;
@@ -32,15 +37,17 @@ const renderTable = (props: {
   collectionsLoaded?: boolean;
 }) =>
   render(
-    <MemoryRouter>
-      <EvaluationsTable
-        {...props}
-        collectionNameMap={props.collectionNameMap ?? {}}
-        collectionsLoaded={props.collectionsLoaded ?? true}
-        onRefresh={mockOnRefresh}
-        onShowStatus={mockOnShowStatus}
-      />
-    </MemoryRouter>,
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter>
+        <EvaluationsTable
+          {...props}
+          collectionNameMap={props.collectionNameMap ?? {}}
+          collectionsLoaded={props.collectionsLoaded ?? true}
+          onRefresh={mockOnRefresh}
+          onShowStatus={mockOnShowStatus}
+        />
+      </MemoryRouter>
+    </QueryClientProvider>,
   );
 
 const mockJobs: EvaluationJob[] = [

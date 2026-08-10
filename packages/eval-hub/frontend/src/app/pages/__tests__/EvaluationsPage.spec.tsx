@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter, Route, Routes, useNavigate } from 'react-router-dom';
 import { EvaluationJob } from '~/app/types';
 import { mockEvaluationJob } from '~/__tests__/unit/testUtils/mockEvaluationData';
@@ -80,14 +81,20 @@ jest.mock('@odh-dashboard/ui-core/components/projectSelector/ProjectSelector', (
   require('~/__tests__/unit/testUtils/mocks').mockProjectSelectorModule(),
 );
 
+const queryClient = new QueryClient({
+  defaultOptions: { queries: { retry: false } },
+});
+
 describe('EvaluationsPage', () => {
   const renderPage = (namespace: string) =>
     render(
-      <MemoryRouter initialEntries={[`/${namespace}`]}>
-        <Routes>
-          <Route path="/:namespace" element={<EvaluationsPage />} />
-        </Routes>
-      </MemoryRouter>,
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter initialEntries={[`/${namespace}`]}>
+          <Routes>
+            <Route path="/:namespace" element={<EvaluationsPage />} />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
     );
 
   beforeEach(() => {
