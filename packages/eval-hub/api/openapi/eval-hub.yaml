@@ -610,6 +610,9 @@ components:
           type: string
         message_code:
           type: string
+        message_origin:
+          type: string
+          description: Origin of the error (server, runtime, adapter, sdk)
 
     JobResource:
       type: object

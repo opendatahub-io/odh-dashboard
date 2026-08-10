@@ -33,6 +33,7 @@ type EvaluationsTableRowProps = {
   namespace: string;
   collectionNameMap: CollectionNameMap;
   onActionComplete: () => void;
+  onShowStatus: (job: EvaluationJob) => void;
   isSelected: boolean;
   onSelectionChange: (checked: boolean) => void;
 };
@@ -47,6 +48,7 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
   namespace,
   collectionNameMap,
   onActionComplete,
+  onShowStatus,
   isSelected,
   onSelectionChange,
 }) => {
@@ -205,7 +207,7 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
           )}
         </Td>
         <Td dataLabel="Status" data-testid="evaluation-status">
-          <EvaluationStatusLabel state={displayState} message={job.status.message?.message} />
+          <EvaluationStatusLabel state={displayState} onClick={() => onShowStatus(job)} />
         </Td>
         <Td dataLabel="Evaluation" data-testid="evaluation-benchmark">
           <Tooltip

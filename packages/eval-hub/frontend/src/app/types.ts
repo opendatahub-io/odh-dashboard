@@ -90,6 +90,7 @@ export type EvaluationJobState =
 type JobMessage = {
   message?: string;
   message_code?: string;
+  message_origin?: string;
 };
 
 type JobResource = {

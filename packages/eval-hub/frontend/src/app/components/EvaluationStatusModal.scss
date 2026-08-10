@@ -1,0 +1,132 @@
+.evalhub-status-modal {
+  height: 80vh;
+}
+
+.evalhub-status-modal__header {
+  position: sticky;
+  top: 0;
+  background-color: var(--pf-t--global--background--color--primary--default);
+  z-index: 1;
+}
+
+.evalhub-status-modal__tabs {
+  padding-top: var(--pf-t--global--spacer--md);
+}
+
+.evalhub-status-modal__truncated-message {
+  white-space: pre-wrap;
+}
+
+// Log viewer
+.evalhub-log-viewer {
+  max-height: 46vh;
+  overflow: auto;
+  font-family: var(--pf-t--global--font--family--mono);
+  font-size: var(--pf-t--global--font--size--sm);
+}
+
+.evalhub-log-viewer__row {
+  display: flex;
+  gap: var(--pf-t--global--spacer--sm);
+  padding: var(--pf-t--global--spacer--xs) 0;
+  border-bottom: 1px solid var(--pf-t--global--border--color--default);
+  position: relative;
+
+  &:hover {
+    background-color: var(--pf-t--global--background--color--primary--hover);
+  }
+
+  &--header {
+    font-weight: var(--pf-t--global--font--weight--heading--default);
+    color: var(--pf-t--global--text--color--subtle);
+    font-size: var(--pf-t--global--font--size--xs);
+
+  }
+
+  &--section {
+    font-weight: var(--pf-t--global--font--weight--heading--default);
+  }
+}
+
+%evalhub-log-cell {
+  flex-shrink: 0;
+  color: var(--pf-t--global--text--color--subtle);
+}
+
+%evalhub-log-cell-level {
+  @extend %evalhub-log-cell;
+
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+%evalhub-log-cell-truncated {
+  @extend %evalhub-log-cell;
+
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.evalhub-log-viewer__cell--level {
+  @extend %evalhub-log-cell-level;
+
+  width: 6em;
+}
+
+.evalhub-log-viewer__cell--level-header {
+  @extend %evalhub-log-cell-level;
+
+  width: 7em;
+}
+
+.evalhub-log-viewer__cell--timestamp {
+  @extend %evalhub-log-cell;
+
+  width: 10em;
+  white-space: nowrap;
+}
+
+.evalhub-log-viewer__cell--timestamp-header {
+  @extend %evalhub-log-cell;
+
+  width: 11.5em;
+  white-space: nowrap;
+}
+
+.evalhub-log-viewer__cell--thread {
+  @extend %evalhub-log-cell-truncated;
+
+  width: 8em;
+}
+
+.evalhub-log-viewer__cell--thread-header {
+  @extend %evalhub-log-cell-truncated;
+
+  width: 9.5em;
+}
+
+.evalhub-log-viewer__cell--message {
+  flex: 1;
+  min-width: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: var(--pf-t--global--text--color--regular);
+}
+
+.evalhub-log-viewer__copy {
+  position: absolute;
+  right: var(--pf-t--global--spacer--sm);
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.evalhub-log-viewer .pf-v6-c-alert {
+  margin-top: var(--pf-t--global--spacer--md);
+}
+
+.evalhub-log-viewer__icon-spacer {
+  width: 1em;
+  flex-shrink: 0;
+}

@@ -95,8 +95,9 @@ type JobResource struct {
 }
 
 type JobMessage struct {
-	Message     string `json:"message,omitempty"`
-	MessageCode string `json:"message_code,omitempty"`
+	Message       string `json:"message,omitempty"`
+	MessageCode   string `json:"message_code,omitempty"`
+	MessageOrigin string `json:"message_origin,omitempty"`
 }
 
 type JobStatus struct {
