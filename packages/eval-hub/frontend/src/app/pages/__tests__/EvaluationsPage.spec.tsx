@@ -99,6 +99,7 @@ describe('EvaluationsPage', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    queryClient.clear();
     mockUseEvalHubHealth.mockReturnValue({ isHealthy: true, loaded: true, error: undefined });
     mockUseEvaluationJobs.mockReturnValue([[], true, undefined, mockRefresh]);
     mockUseUser.mockReturnValue({ clusterAdmin: true });

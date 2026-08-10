@@ -1,6 +1,7 @@
 import { mockEvaluationJob } from '~/__tests__/unit/testUtils/mockEvaluationData';
 import {
   createRequestPool,
+  getEarliestBenchmarkStartTime,
   getEarliestStartTime,
   formatElapsedTime,
 } from '~/app/utilities/evaluationJobPolling';
@@ -69,6 +70,44 @@ describe('createRequestPool', () => {
 
     await Promise.all(Array.from({ length: 10 }, () => pool.enqueue(task)));
     expect(maxConcurrent).toBe(5);
+  });
+});
+
+describe('getEarliestBenchmarkStartTime', () => {
+  it('should return the earliest benchmark started_at', () => {
+    const job = mockEvaluationJob();
+    job.status.benchmarks = [
+      // eslint-disable-next-line camelcase
+      { id: 'b1', status: 'completed', started_at: '2026-01-01T10:05:00Z' },
+      // eslint-disable-next-line camelcase
+      { id: 'b2', status: 'running', started_at: '2026-01-01T10:00:00Z' },
+    ];
+    expect(getEarliestBenchmarkStartTime(job)).toBe('2026-01-01T10:00:00.000Z');
+  });
+
+  it('should return undefined when no benchmarks have started_at', () => {
+    const job = mockEvaluationJob({ createdAt: '2026-01-01T09:00:00Z' });
+    job.status.benchmarks = [{ id: 'b1', status: 'pending' }];
+    expect(getEarliestBenchmarkStartTime(job)).toBeUndefined();
+  });
+
+  it('should return undefined when benchmarks array is empty', () => {
+    const job = mockEvaluationJob({ createdAt: '2026-01-01T09:00:00Z' });
+    job.status.benchmarks = [];
+    expect(getEarliestBenchmarkStartTime(job)).toBeUndefined();
+  });
+
+  it('should return undefined when benchmarks is undefined', () => {
+    const job = mockEvaluationJob({ createdAt: '2026-01-01T09:00:00Z' });
+    job.status.benchmarks = undefined;
+    expect(getEarliestBenchmarkStartTime(job)).toBeUndefined();
+  });
+
+  it('should return undefined when all started_at values are invalid', () => {
+    const job = mockEvaluationJob({ createdAt: '2026-01-01T09:00:00Z' });
+    // eslint-disable-next-line camelcase
+    job.status.benchmarks = [{ id: 'b1', status: 'running', started_at: 'not-a-date' }];
+    expect(getEarliestBenchmarkStartTime(job)).toBeUndefined();
   });
 });
 

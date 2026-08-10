@@ -6,19 +6,24 @@ export const MAX_RETRY_ATTEMPTS = 5;
 export const MAX_CONCURRENT_DETAIL_REQUESTS = 5;
 
 type RequestPool = {
-  enqueue: <T>(fn: () => Promise<T>) => Promise<T>;
+  enqueue: <T>(fn: () => Promise<T>, signal?: AbortSignal) => Promise<T>;
 };
 
 // FIFO queue that limits concurrent requests. Tasks wait until a slot opens, keeping at most `maxConcurrent` in flight.
+// Queued tasks that have been aborted via signal are skipped when their slot opens.
 export const createRequestPool = (maxConcurrent = MAX_CONCURRENT_DETAIL_REQUESTS): RequestPool => {
-  const queue: (() => Promise<void>)[] = [];
+  const queue: Array<{ run: () => Promise<void>; signal?: AbortSignal }> = [];
   let activeCount = 0;
 
   const dispatch = (): void => {
     while (activeCount < maxConcurrent && queue.length > 0) {
-      const run = queue.shift()!;
+      const entry = queue.shift()!;
+      if (entry.signal?.aborted) {
+        dispatch();
+        continue;
+      }
       activeCount++;
-      run().finally(() => {
+      entry.run().finally(() => {
         activeCount--;
         dispatch();
       });
@@ -26,16 +31,21 @@ export const createRequestPool = (maxConcurrent = MAX_CONCURRENT_DETAIL_REQUESTS
   };
 
   return {
-    enqueue: <T>(fn: () => Promise<T>): Promise<T> =>
+    enqueue: <T>(fn: () => Promise<T>, signal?: AbortSignal): Promise<T> =>
       new Promise<T>((resolve, reject) => {
-        queue.push(() => fn().then(resolve, reject));
+        if (signal?.aborted) {
+          reject(new DOMException('Aborted', 'AbortError'));
+          return;
+        }
+        queue.push({ run: () => fn().then(resolve, reject), signal });
         dispatch();
       }),
   };
 };
 
-// Returns the earliest benchmark started_at timestamp, or falls back to job created_at.
-export const getEarliestStartTime = (job: EvaluationJob): string | undefined => {
+// Returns the earliest timestamp any benchmark actually started, or undefined if none have started yet.
+// Use this to detect pre-start failures — unlike getEarliestStartTime it does NOT fall back to created_at.
+export const getEarliestBenchmarkStartTime = (job: EvaluationJob): string | undefined => {
   const { benchmarks } = job.status;
   if (benchmarks?.length) {
     const startTimes = benchmarks
@@ -47,8 +57,13 @@ export const getEarliestStartTime = (job: EvaluationJob): string | undefined => 
       return new Date(Math.min(...startTimes)).toISOString();
     }
   }
-  return job.resource.created_at;
+  return undefined;
 };
+
+// Returns the earliest benchmark started_at timestamp, or falls back to job created_at.
+// Use this as the elapsed-time anchor — created_at approximates when the job began when benchmarks haven't reported yet.
+export const getEarliestStartTime = (job: EvaluationJob): string | undefined =>
+  getEarliestBenchmarkStartTime(job) ?? job.resource.created_at;
 
 // Formats the duration from startTime to now as a human-readable string (e.g. "1h 4m").
 // Omits seconds since elapsed time only updates on each 10s polling cycle.

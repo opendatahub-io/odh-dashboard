@@ -95,4 +95,82 @@ describe('EvaluationStatusLabel', () => {
 
     expect(onClick).toHaveBeenCalledTimes(1);
   });
+
+  describe('isPreStartFailure', () => {
+    it('should show "Failed (not started)" label when isPreStartFailure is true', () => {
+      render(<EvaluationStatusLabel state="failed" isPreStartFailure />);
+      expect(screen.getByTestId('status-label-failed')).toHaveTextContent('Failed (not started)');
+    });
+
+    it('should show "Failed (not started)" label for partially_failed with isPreStartFailure', () => {
+      render(<EvaluationStatusLabel state="partially_failed" isPreStartFailure />);
+      expect(screen.getByTestId('status-label-partially_failed')).toHaveTextContent(
+        'Failed (not started)',
+      );
+    });
+
+    it('should show regular "Failed" label when isPreStartFailure is false', () => {
+      render(<EvaluationStatusLabel state="failed" isPreStartFailure={false} />);
+      expect(screen.getByTestId('status-label-failed')).toHaveTextContent('Failed');
+      expect(screen.getByTestId('status-label-failed')).not.toHaveTextContent('not started');
+    });
+
+    it('should show "Evaluation failed to start" as popover header when isPreStartFailure is true', () => {
+      render(<EvaluationStatusLabel state="failed" message="Pod evicted" isPreStartFailure />);
+      fireEvent.click(screen.getByTestId('status-label-failed'));
+      expect(screen.getByText('Evaluation failed to start')).toBeInTheDocument();
+    });
+
+    it('should show "Evaluation failed" as popover header when isPreStartFailure is false', () => {
+      render(
+        <EvaluationStatusLabel state="failed" message="Out of memory" isPreStartFailure={false} />,
+      );
+      fireEvent.click(screen.getByTestId('status-label-failed'));
+      expect(screen.getByText('Evaluation failed')).toBeInTheDocument();
+    });
+
+    it('should not affect non-failed states', () => {
+      render(<EvaluationStatusLabel state="running" isPreStartFailure />);
+      expect(screen.getByTestId('status-label-running')).toHaveTextContent('Running');
+    });
+  });
+
+  describe('messageOrigin', () => {
+    it('should show "Origin:" line in popover when messageOrigin is provided', () => {
+      render(
+        <EvaluationStatusLabel state="failed" message="Model not found" messageOrigin="runtime" />,
+      );
+      fireEvent.click(screen.getByTestId('status-label-failed'));
+      expect(screen.getByText('runtime')).toBeInTheDocument();
+    });
+
+    it('should not show "Origin:" line when messageOrigin is not provided', () => {
+      render(<EvaluationStatusLabel state="failed" message="Model not found" />);
+      fireEvent.click(screen.getByTestId('status-label-failed'));
+      expect(screen.queryByText(/Origin:/)).not.toBeInTheDocument();
+    });
+
+    it('should show both origin and message lines in the popover', () => {
+      render(
+        <EvaluationStatusLabel state="failed" message="Benchmark failed" messageOrigin="adapter" />,
+      );
+      fireEvent.click(screen.getByTestId('status-label-failed'));
+      expect(screen.getByText('adapter')).toBeInTheDocument();
+      expect(screen.getByText('Benchmark failed')).toBeInTheDocument();
+    });
+
+    it('should show origin with changed header when both isPreStartFailure and messageOrigin are set', () => {
+      render(
+        <EvaluationStatusLabel
+          state="failed"
+          message="Pod evicted"
+          messageOrigin="server"
+          isPreStartFailure
+        />,
+      );
+      fireEvent.click(screen.getByTestId('status-label-failed'));
+      expect(screen.getByText('Evaluation failed to start')).toBeInTheDocument();
+      expect(screen.getByText('server')).toBeInTheDocument();
+    });
+  });
 });

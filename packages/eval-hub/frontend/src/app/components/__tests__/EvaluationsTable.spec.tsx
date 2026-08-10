@@ -30,6 +30,10 @@ const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: false } },
 });
 
+beforeEach(() => {
+  queryClient.clear();
+});
+
 const renderTable = (props: {
   evaluations: EvaluationJob[];
   loaded: boolean;
