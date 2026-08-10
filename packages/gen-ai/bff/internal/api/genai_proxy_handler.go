@@ -73,8 +73,12 @@ func (app *App) GenAIProxyNSModelsHandler(w http.ResponseWriter, r *http.Request
 	// Fetch MaaS models (best-effort — don't fail if MaaS BFF is unavailable).
 	// Inject MaaS client into context inline (we don't use AttachBFFMaaSClient middleware
 	// because it returns 503 when bffClientFactory is nil, blocking the whole endpoint).
+	// Forward X-MaaS-Return-All-Models header to get enriched model details.
 	if app.bffClientFactory != nil && app.bffClientFactory.IsTargetConfigured(bffclient.BFFTargetMaaS) {
-		maasClient := app.bffClientFactory.CreateClient(bffclient.BFFTargetMaaS, identity.Token)
+		maasHeaders := map[string]string{
+			constants.MaaSReturnAllModelsHeader: "true",
+		}
+		maasClient := app.bffClientFactory.CreateClientWithHeaders(bffclient.BFFTargetMaaS, identity.Token, maasHeaders)
 		ctx = context.WithValue(ctx, constants.BFFClientKey(constants.BFFTarget(bffclient.BFFTargetMaaS)), maasClient)
 	}
 	maasModels, maasErr := app.fetchMaaSModels(ctx, namespace)
