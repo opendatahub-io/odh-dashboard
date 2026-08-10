@@ -1,6 +1,7 @@
 import * as React from 'react';
 import {
   Alert,
+  AlertActionCloseButton,
   Button,
   Content,
   Tooltip,
@@ -30,6 +31,7 @@ import {
 import {
   CheckCircleIcon,
   CopyIcon,
+  DownloadIcon,
   ExclamationCircleIcon,
   ExclamationTriangleIcon,
   InfoCircleIcon,
@@ -38,8 +40,9 @@ import {
   TimesCircleIcon,
 } from '@patternfly/react-icons';
 import { EvaluationJob } from '~/app/types';
-import { formatDuration } from '~/app/utilities/evaluationUtils';
+import { formatDuration, getEvaluationName } from '~/app/utilities/evaluationUtils';
 import { useEvaluationJobLogs } from '~/app/hooks/useEvaluationJobLogs';
+import { getEvaluationJobLogs, getEvaluationJobBenchmarkLogs } from '~/app/api/k8s';
 import EvaluationStatusLabel from './EvaluationStatusLabel';
 import './EvaluationStatusModal.scss';
 
@@ -51,6 +54,18 @@ type EvaluationStatusModalProps = {
 
 const ALL_BENCHMARKS = 'all';
 const MESSAGE_LINE_LIMIT = 3;
+
+const downloadString = (filename: string, data: string): void => {
+  const blob = new Blob([data], { type: 'text/plain' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+};
 
 const TruncatedMessage: React.FC<{ text: string }> = ({ text }) => {
   const [isExpanded, setIsExpanded] = React.useState(false);
@@ -144,12 +159,13 @@ const LOG_LEVEL_MAP: Record<string, LogLevel> = {
 };
 
 const parseLogEntries = (raw: string): LogEntry[] => {
-  const lines = raw.split('\n');
+  const lines = raw.replace(/\r\n?/g, '\n').split('\n');
   const entries: LogEntry[] = [];
 
   for (const line of lines) {
     const isNewEntry = TIMESTAMP_RE.test(line) || line.startsWith('===');
-    if (isNewEntry || entries.length === 0) {
+    const isContinuation = /^\s/.test(line);
+    if (isNewEntry || entries.length === 0 || !isContinuation) {
       if (line.startsWith('===')) {
         entries.push({ raw: line, message: line, isSectionHeader: true });
       } else {
@@ -167,7 +183,7 @@ const parseLogEntries = (raw: string): LogEntry[] => {
           entries.push({ raw: line, message: line, isSectionHeader: false });
         }
       }
-    } else if (entries.length > 0) {
+    } else {
       const current = entries[entries.length - 1];
       current.raw += `\n${line}`;
       current.continuation = current.continuation ? `${current.continuation}\n${line}` : line;
@@ -231,7 +247,10 @@ const LogHeader: React.FC = () => (
   </div>
 );
 
-const LogEntryRow: React.FC<{ entry: LogEntry }> = ({ entry }) => {
+const LogEntryRow: React.FC<{ entry: LogEntry; hideBorder?: boolean }> = ({
+  entry,
+  hideBorder,
+}) => {
   const [isHovered, setIsHovered] = React.useState(false);
   const [copied, setCopied] = React.useState(false);
 
@@ -245,6 +264,7 @@ const LogEntryRow: React.FC<{ entry: LogEntry }> = ({ entry }) => {
   const rowClass = [
     'evalhub-log-viewer__row',
     entry.isSectionHeader ? 'evalhub-log-viewer__row--section' : '',
+    hideBorder ? 'evalhub-log-viewer__row--no-border' : '',
   ]
     .filter(Boolean)
     .join(' ');
@@ -356,6 +376,9 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
     [job?.status.benchmarks],
   );
 
+  const [downloading, setDownloading] = React.useState(false);
+  const [downloadError, setDownloadError] = React.useState<Error | undefined>();
+
   React.useEffect(() => {
     if (job) {
       const jobFailed = job.status.state === 'failed' || job.status.state === 'partially_failed';
@@ -363,6 +386,30 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
       setSelectedBenchmark(ALL_BENCHMARKS);
     }
   }, [job]);
+
+  const evaluationName = job ? getEvaluationName(job) : '';
+
+  const handleDownload = React.useCallback(async () => {
+    if (!namespace || !job?.resource.id) {
+      return;
+    }
+    setDownloading(true);
+    setDownloadError(undefined);
+    try {
+      const fetcher =
+        benchmarkIndex != null
+          ? getEvaluationJobBenchmarkLogs('', namespace, job.resource.id, benchmarkIndex)
+          : getEvaluationJobLogs('', namespace, job.resource.id);
+      const fullLogs = await fetcher();
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const bmSuffix = benchmarkIndex != null ? `-benchmark-${benchmarkIndex}` : '';
+      downloadString(`${evaluationName}${bmSuffix}-logs-${timestamp}.log`, fullLogs);
+    } catch (err) {
+      setDownloadError(err instanceof Error ? err : new Error(String(err)));
+    } finally {
+      setDownloading(false);
+    }
+  }, [namespace, job?.resource.id, evaluationName, benchmarkIndex]);
 
   if (!job) {
     return null;
@@ -584,17 +631,47 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
                     </Select>
                   </FlexItem>
                   <FlexItem>
-                    <Button
-                      variant="plain"
-                      aria-label="Refresh logs"
-                      onClick={refresh}
-                      data-testid="refresh-logs-button"
-                    >
-                      <SyncAltIcon />
-                    </Button>
+                    <Tooltip content="Refresh logs">
+                      <Button
+                        variant="plain"
+                        aria-label="Refresh logs"
+                        onClick={refresh}
+                        data-testid="refresh-logs-button"
+                      >
+                        <SyncAltIcon />
+                      </Button>
+                    </Tooltip>
+                  </FlexItem>
+                  <FlexItem>
+                    <Tooltip content="Download full logs">
+                      <Button
+                        variant="plain"
+                        aria-label="Download logs"
+                        onClick={handleDownload}
+                        isDisabled={!logsLoaded || !hasLogContent || downloading}
+                        isLoading={downloading}
+                        data-testid="download-logs-button"
+                        icon={<DownloadIcon />}
+                      />
+                    </Tooltip>
                   </FlexItem>
                 </Flex>
               </StackItem>
+              {downloadError ? (
+                <StackItem>
+                  <Alert
+                    variant="warning"
+                    isInline
+                    title="Failed to download logs"
+                    data-testid="download-error-alert"
+                    actionClose={
+                      <AlertActionCloseButton onClose={() => setDownloadError(undefined)} />
+                    }
+                  >
+                    {downloadError.message}
+                  </Alert>
+                </StackItem>
+              ) : null}
               <StackItem>
                 <LogHeader />
                 <div className="evalhub-log-viewer" data-testid="log-content">
@@ -624,7 +701,11 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
                       Logs may have expired after pod cleanup.
                     </Alert>
                   ) : (
-                    parseLogEntries(logs).map((entry, i) => <LogEntryRow key={i} entry={entry} />)
+                    parseLogEntries(logs).map((entry, i, arr) => {
+                      const hideBorder =
+                        i + 1 < arr.length && !arr[i + 1].timestamp && !arr[i + 1].isSectionHeader;
+                      return <LogEntryRow key={i} entry={entry} hideBorder={hideBorder} />;
+                    })
                   )}
                 </div>
               </StackItem>

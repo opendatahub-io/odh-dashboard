@@ -28,7 +28,7 @@
 .evalhub-log-viewer__row {
   display: flex;
   gap: var(--pf-t--global--spacer--sm);
-  padding: var(--pf-t--global--spacer--xs) 0;
+  padding: var(--pf-t--global--spacer--xs) var(--pf-t--global--spacer--xl) var(--pf-t--global--spacer--xs) 0;
   border-bottom: 1px solid var(--pf-t--global--border--color--default);
   position: relative;
 
@@ -45,6 +45,10 @@
 
   &--section {
     font-weight: var(--pf-t--global--font--weight--heading--default);
+  }
+
+  &--no-border {
+    border-bottom-color: transparent;
   }
 }
 
@@ -117,9 +121,12 @@
 
 .evalhub-log-viewer__copy {
   position: absolute;
-  right: var(--pf-t--global--spacer--sm);
-  top: 50%;
-  transform: translateY(-50%);
+  right: 0;
+  top: 0;
+  height: 100%;
+  max-height: calc(1lh + 2 * var(--pf-t--global--spacer--xs));
+  display: flex;
+  align-items: center;
 }
 
 .evalhub-log-viewer .pf-v6-c-alert {
