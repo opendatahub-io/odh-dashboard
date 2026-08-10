@@ -290,4 +290,50 @@ describe('transformStageMapNodesToTree', () => {
       }),
     );
   });
+
+  it('collapses to the winner spine and marks the model terminus', () => {
+    const topologyNodes = buildStageMapTopology(makeStageMap([training]));
+    const { nodes } = transformStageMapNodesToTree(topologyNodes, {
+      modelsExpanded: false,
+      winnerResolved: true,
+      winnerModelLabel: 'xgboost',
+    });
+
+    const modelNodes = nodes.filter((node) => node.id.includes('__model__'));
+    expect(modelNodes).toHaveLength(1);
+    expect(modelNodes[0].data.label).toBe('xgboost');
+    expect(modelNodes[0].data.labelSubtitle).toBe('Winner');
+    expect(modelNodes[0].data.showWinnerStar).toBe(true);
+    expect(
+      nodes.find((node) => node.id === 'training__model_selection')?.data.showModelsToggle,
+    ).toBe(true);
+  });
+
+  it('labels the collapsed terminus as Model winner when the winner is unresolved', () => {
+    const topologyNodes = buildStageMapTopology(makeStageMap([training]));
+    const { nodes } = transformStageMapNodesToTree(topologyNodes, {
+      modelsExpanded: false,
+      winnerResolved: false,
+    });
+
+    const modelNodes = nodes.filter((node) => node.id.includes('__model__'));
+    expect(modelNodes).toHaveLength(1);
+    expect(modelNodes[0].data.label).toBe('Model winner');
+    expect(modelNodes[0].data.showWinnerStar).toBe(false);
+  });
+
+  it('expands all model branches when modelsExpanded is true', () => {
+    const topologyNodes = buildStageMapTopology(makeStageMap([training]));
+    const { nodes } = transformStageMapNodesToTree(topologyNodes, {
+      modelsExpanded: true,
+      winnerResolved: true,
+      winnerModelLabel: 'lightgbm',
+    });
+
+    const modelNodes = nodes.filter((node) => node.id.includes('__model__'));
+    expect(modelNodes).toHaveLength(2);
+    const winner = modelNodes.find((node) => node.data.label === 'lightgbm');
+    expect(winner?.data.labelSubtitle).toBe('Winner');
+    expect(winner?.data.showWinnerStar).toBe(true);
+  });
 });

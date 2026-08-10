@@ -1,0 +1,99 @@
+import type { PipelineNodeModelExpanded } from '~/app/types/topology';
+
+/** Mirrors stageMapStatus.BRANCHING_STAGE_ID without importing PF topology. */
+const BRANCHING_STAGE_ID = 'model_selection';
+
+export type BranchExpandOptions = {
+  /** When false (default), show shared spine + winner branch only. */
+  modelsExpanded: boolean;
+  /**
+   * Succeeded run with a known best model — show model name + "Winner" subtitle + star.
+   * Otherwise model terminus uses "Model winner" (no subtitle / star).
+   */
+  winnerResolved: boolean;
+  winnerModelLabel?: string;
+  winnerModelKey?: string;
+};
+
+const BRANCH_STARTED_STATUSES = new Set(['InProgress', 'Succeeded', 'Failed', 'Cancelled']);
+
+const normalizeMatchKey = (value: string): string => value.replace(/\s+/g, '').toLowerCase();
+
+const isModelTerminusId = (nodeId: string): boolean => /__model__branch-\d+$/.test(nodeId);
+
+const isAnyBranchNodeId = (nodeId: string): boolean =>
+  /__step__.+__branch-\d+$/.test(nodeId) ||
+  /__branch-\d+__step__/.test(nodeId) ||
+  isModelTerminusId(nodeId);
+
+const getModelTerminus = (
+  branchNodes: PipelineNodeModelExpanded[],
+): PipelineNodeModelExpanded | undefined => branchNodes.find((node) => isModelTerminusId(node.id));
+
+/** True when the topology has multiple branches and the branch phase has started. */
+export const canShowModelsExpandToggle = (
+  topologyNodes: PipelineNodeModelExpanded[] | undefined,
+): boolean => {
+  if (!topologyNodes?.length) {
+    return false;
+  }
+  const modelTermini = topologyNodes.filter((node) => isModelTerminusId(node.id));
+  if (modelTermini.length < 2) {
+    return false;
+  }
+  return topologyNodes.some((node) => {
+    if (!isAnyBranchNodeId(node.id)) {
+      return false;
+    }
+    const status = node.data?.runStatus;
+    return typeof status === 'string' && BRANCH_STARTED_STATUSES.has(status);
+  });
+};
+
+export const isBranchingStageNodeId = (nodeId: string): boolean =>
+  nodeId.endsWith(`__${BRANCHING_STAGE_ID}`);
+
+export const matchesWinnerModel = (
+  modelNode: PipelineNodeModelExpanded,
+  options: Pick<BranchExpandOptions, 'winnerModelLabel' | 'winnerModelKey'>,
+): boolean => {
+  const label = modelNode.label ?? '';
+  const candidates = [options.winnerModelLabel, options.winnerModelKey].filter(
+    (value): value is string => typeof value === 'string' && value.length > 0,
+  );
+  if (candidates.length === 0) {
+    return false;
+  }
+  const normalizedLabel = normalizeMatchKey(label);
+  return candidates.some((candidate) => normalizeMatchKey(candidate) === normalizedLabel);
+};
+
+export const resolveWinnerBranchIndex = (
+  branches: Map<number, PipelineNodeModelExpanded[]>,
+  branchIndices: number[],
+  options: Pick<BranchExpandOptions, 'winnerModelLabel' | 'winnerModelKey'>,
+): number | undefined => {
+  for (const index of branchIndices) {
+    const modelNode = getModelTerminus(branches.get(index) ?? []);
+    if (modelNode && matchesWinnerModel(modelNode, options)) {
+      return index;
+    }
+  }
+  return undefined;
+};
+
+/** Branch indices to lay out: all when expanded, else winner (or first) spine. */
+export const resolveVisibleBranchIndices = (
+  branchIndices: number[],
+  branches: Map<number, PipelineNodeModelExpanded[]>,
+  options: BranchExpandOptions,
+): number[] => {
+  if (options.modelsExpanded || branchIndices.length <= 1) {
+    return branchIndices;
+  }
+  const winnerIndex = resolveWinnerBranchIndex(branches, branchIndices, options);
+  if (winnerIndex !== undefined) {
+    return [winnerIndex];
+  }
+  return branchIndices.slice(0, 1);
+};

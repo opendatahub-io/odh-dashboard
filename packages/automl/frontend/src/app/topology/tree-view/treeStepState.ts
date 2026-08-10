@@ -51,6 +51,30 @@ export const isTreeNodeData = (data: unknown): data is TreeNodeData => {
     return false;
   }
 
+  if (
+    'labelSubtitle' in data &&
+    data.labelSubtitle !== undefined &&
+    typeof data.labelSubtitle !== 'string'
+  ) {
+    return false;
+  }
+
+  if (
+    'showWinnerStar' in data &&
+    data.showWinnerStar !== undefined &&
+    typeof data.showWinnerStar !== 'boolean'
+  ) {
+    return false;
+  }
+
+  if (
+    'showModelsToggle' in data &&
+    data.showModelsToggle !== undefined &&
+    typeof data.showModelsToggle !== 'boolean'
+  ) {
+    return false;
+  }
+
   if ('activeIconVariant' in data && !isActiveIconVariant(data.activeIconVariant)) {
     return false;
   }

@@ -1,5 +1,6 @@
 import * as React from 'react';
 import cx from 'classnames';
+import { Button } from '@patternfly/react-core';
 import {
   t_global_icon_color_status_success_default as iconColorStatusSuccess,
   t_global_icon_color_status_danger_default as iconColorStatusDanger,
@@ -10,6 +11,7 @@ import {
   CheckCircleIcon,
   ExclamationCircleIcon,
   HourglassHalfIcon,
+  StarIcon,
   SyncAltIcon,
 } from '@patternfly/react-icons';
 import {
@@ -25,14 +27,21 @@ import {
   WithSelectionProps,
 } from '@patternfly/react-topology';
 import { parseStageMapNodeId } from './stageMapStepMetadata';
+import { useModelsExpand } from './ModelsExpandContext';
 import { isTreeNodeData, treeStepStateToNodeStatus } from './treeStepState';
 import { resolveTaskIconForNodeId } from './stageTaskIcons';
 import './TreeNode.scss';
 
 export type TreeNodeData = {
   label?: string;
+  /** Secondary line under the label (e.g. "Winner"). */
+  labelSubtitle?: string;
   stepState: 'completed' | 'active' | 'pending' | 'failed' | 'unreached';
   activeIconVariant?: 'sync' | 'pulse';
+  /** Blue star decorator (upper-right) for the winning model terminus. */
+  showWinnerStar?: boolean;
+  /** Pill toggle under Select models (Show all / Hide all models). */
+  showModelsToggle?: boolean;
 };
 
 type TreeNodeProps = {
@@ -123,30 +132,60 @@ const StatusBadgeDecorator: React.FC<{
 });
 StatusBadgeDecorator.displayName = 'StatusBadgeDecorator';
 
+const WinnerStarDecorator: React.FC<{ element: Node }> = React.memo(({ element }) => {
+  const { x, y } = getDefaultShapeDecoratorCenter(TopologyQuadrant.upperRight, element);
+  return (
+    <Decorator
+      x={x}
+      y={y}
+      radius={DEFAULT_DECORATOR_RADIUS}
+      showBackground
+      className="automl-tree-node__winner-star"
+      icon={
+        <g className="automl-tree-node__winner-star-icon">
+          <StarIcon />
+        </g>
+      }
+      ariaLabel="Model winner"
+    />
+  );
+});
+WinnerStarDecorator.displayName = 'WinnerStarDecorator';
+
 const TreeNodeInner: React.FC<{
   node: Node;
   onSelect?: (e: React.MouseEvent) => void;
   selected?: boolean;
 }> = observer(({ node, onSelect, selected }) => {
+  const modelsExpand = useModelsExpand();
   const rawData = node.getData();
   const data = isTreeNodeData(rawData) ? rawData : undefined;
   const stepState = data?.stepState ?? 'pending';
   const label = data?.label ?? node.getLabel();
+  const labelSubtitle = data?.labelSubtitle;
+  const showWinnerStar = data?.showWinnerStar === true;
   const nodeStatus = treeStepStateToNodeStatus(stepState);
   const statusOnly = isStatusOnlyNode(node.getId());
   const TaskIcon = resolveTaskIconForNodeId(node.getId());
   const { width, height } = node.getDimensions();
   const iconSize = Math.min(width, height) * (statusOnly ? 0.55 : 0.4);
   const iconColor = TASK_ICON_COLORS[stepState];
-  const labelWidth = 96;
+  const showModelsToggle = data?.showModelsToggle === true && modelsExpand?.showToggle === true;
+  const labelWidth = showModelsToggle ? 140 : 96;
   const labelY = height + 4;
+  const captionHeight = showModelsToggle ? 80 : labelSubtitle ? 40 : 36;
 
   const attachments = React.useMemo(() => {
     if (statusOnly) {
       return undefined;
     }
-    return <StatusBadgeDecorator element={node} stepState={stepState} />;
-  }, [node, statusOnly, stepState]);
+    return (
+      <>
+        <StatusBadgeDecorator element={node} stepState={stepState} />
+        {showWinnerStar ? <WinnerStarDecorator element={node} /> : null}
+      </>
+    );
+  }, [node, statusOnly, stepState, showWinnerStar]);
 
   return (
     <DefaultNode
@@ -165,6 +204,7 @@ const TreeNodeInner: React.FC<{
         data-testid={`tree-node-${node.getId()}`}
         data-step-state={stepState}
         data-status-only={statusOnly ? 'true' : 'false'}
+        data-winner-star={showWinnerStar ? 'true' : 'false'}
       >
         <g
           className="automl-tree-node__task-icon"
@@ -177,21 +217,42 @@ const TreeNodeInner: React.FC<{
             <TaskIcon width={iconSize} height={iconSize} />
           )}
         </g>
-        {label ? (
+        {label || showModelsToggle ? (
           <foreignObject
             x={(width - labelWidth) / 2}
             y={labelY}
             width={labelWidth}
-            height={56}
-            style={{ pointerEvents: 'none', overflow: 'visible' }}
+            height={captionHeight}
+            style={{ overflow: 'visible' }}
           >
-            <div
-              className={cx(
-                'automl-tree-node__label',
-                selected && 'automl-tree-node__label--selected',
-              )}
-            >
-              {label}
+            <div className="automl-tree-node__caption">
+              {label ? (
+                <div
+                  className={cx(
+                    'automl-tree-node__label',
+                    selected && 'automl-tree-node__label--selected',
+                  )}
+                >
+                  <div>{label}</div>
+                  {labelSubtitle ? (
+                    <div className="automl-tree-node__label-subtitle">{labelSubtitle}</div>
+                  ) : null}
+                </div>
+              ) : null}
+              {showModelsToggle ? (
+                <div className="automl-tree-node__models-toggle">
+                  <Button
+                    variant="secondary"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      modelsExpand.onToggle();
+                    }}
+                    data-testid="models-expand-toggle"
+                  >
+                    {modelsExpand.modelsExpanded ? 'Hide all models' : 'Show all models'}
+                  </Button>
+                </div>
+              ) : null}
             </div>
           </foreignObject>
         ) : null}
