@@ -52,7 +52,12 @@ const MarkdownCompare: React.FC<MarkdownCompareProps> = ({
   const renderMarkdownWithSize = (config: MarkdownAndTitle) => (
     <Stack hasGutter>
       <StackItem>
-        <iframe data-testid="markdown-compare" src={config.config} title="markdown view" />
+        <iframe
+          sandbox="allow-scripts"
+          data-testid="markdown-compare"
+          src={config.config}
+          title="markdown view"
+        />
       </StackItem>
     </Stack>
   );

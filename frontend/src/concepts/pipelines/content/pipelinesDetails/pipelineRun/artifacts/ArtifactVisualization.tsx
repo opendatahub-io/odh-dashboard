@@ -161,7 +161,12 @@ export const ArtifactVisualization: React.FC<ArtifactVisualizationProps> = ({ ar
             <Title headingLevel="h3">Artifact details</Title>
           </StackItem>
           <StackItem>
-            <iframe src={renderUrl} data-testid="artifact-visualization" title="Artifact details" />
+            <iframe
+              sandbox="allow-scripts"
+              src={renderUrl}
+              data-testid="artifact-visualization"
+              title="Artifact details"
+            />
           </StackItem>
         </Stack>
       );
