@@ -86,6 +86,11 @@ describe('buildOverviewRows', () => {
       displayName: 'Granite 3 8B Instruct',
       description: 'IBM Granite model',
       phase: 'Ready',
+      statusMessage: undefined,
+      reason: undefined,
+      status: undefined,
+      conditionType: undefined,
+      lastTransitionTime: undefined,
     });
     expect(granite?.subscriptions).toEqual([
       {

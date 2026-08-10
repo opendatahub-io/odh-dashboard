@@ -440,6 +440,17 @@ export const mockModelRefSummaries = (): MaaSModelRefSummary[] => [
     phase: 'Ready',
     endpoint: 'https://granite-3-8b-instruct.team-sandbox.svc.cluster.local',
   },
+  {
+    name: 'failed-model',
+    namespace: 'maas-models',
+    displayName: 'Failed Model',
+    description: 'A failed model',
+    modelRef: { kind: 'InferenceService', name: 'failed-model' },
+    phase: 'Failed',
+    reason: 'ReconcileFailed',
+    statusMessage:
+      'failed to reconcile TokenRateLimitPolicies: token rate limit exceeds maximum allowed value',
+  },
 ];
 
 export const mockSandboxGraniteSubscription = (): MaaSSubscription => ({
