@@ -42,7 +42,7 @@ import {
   updateInferenceService,
 } from './api/inferenceService';
 import { applyModelRuntime } from './deployServer';
-import { KServeDeployment } from './deployments';
+import { KServeDeployment } from './types';
 import { KSERVE_ID } from '../extensions';
 
 export type CreatingInferenceServiceObject = {

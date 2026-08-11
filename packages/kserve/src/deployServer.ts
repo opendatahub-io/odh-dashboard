@@ -4,7 +4,7 @@ import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import { type InferenceServiceKind, ServingRuntimeKind } from '@odh-dashboard/model-serving/shared';
 import type { ModelServerSelectFieldData } from '@odh-dashboard/model-serving/shared/wizard-fields';
 import { k8sCreateResource } from '@openshift/dynamic-plugin-sdk-utils';
-import type { KServeDeployment } from './deployments';
+import type { KServeDeployment } from './types';
 
 type CreatingServingRuntimeObject = {
   project: string;

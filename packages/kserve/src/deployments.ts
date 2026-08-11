@@ -3,7 +3,6 @@ import type { ProjectKind } from '@odh-dashboard/k8s-core';
 import { K8sAPIOptions } from '@odh-dashboard/k8s-core';
 import {
   type InferenceServiceKind,
-  type ServingRuntimeKind,
   getAPIProtocolFromServingRuntime,
 } from '@odh-dashboard/model-serving/shared';
 import {
@@ -28,9 +27,9 @@ import {
 } from './api/watch';
 import { getKServeDeploymentEndpoints } from './deploymentEndpoints';
 import { getKServeDeploymentStatus } from './deploymentStatus';
+import { KServeDeployment } from './types';
 import { KSERVE_ID } from '../extensions';
 
-export type KServeDeployment = Deployment<InferenceServiceKind, ServingRuntimeKind>;
 export const isKServeDeployment = (deployment: Deployment): deployment is KServeDeployment =>
   deployment.modelServingPlatformId === KSERVE_ID;
 

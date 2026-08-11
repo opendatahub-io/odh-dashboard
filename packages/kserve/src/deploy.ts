@@ -3,7 +3,7 @@ import type {
   WizardFormData,
 } from '@odh-dashboard/model-serving/shared/types/form-data';
 import { DeploymentAssemblyFn } from '@odh-dashboard/model-serving/extension-points/deployment-wizard';
-import { KServeDeployment } from './deployments';
+import { KServeDeployment } from './types';
 import { setUpTokenAuth } from './deployUtils';
 import { createServingRuntime } from './deployServer';
 import { deployInferenceService, type CreatingInferenceServiceObject } from './deployModel';

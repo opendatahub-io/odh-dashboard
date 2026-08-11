@@ -138,6 +138,7 @@ export type SupportedModelFormats = {
   name: string;
   version?: string;
   autoSelect?: boolean;
+  priority?: number;
 };
 
 export type ProjectKind = K8sResourceCommon & {

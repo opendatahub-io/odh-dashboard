@@ -17,7 +17,7 @@ import { InferenceServiceModel } from '@odh-dashboard/internal/api/models/kserve
 import { getModelDeploymentStoppedStates } from '@odh-dashboard/model-serving/utils';
 import { getKueueSchedulingSubStep } from '@odh-dashboard/internal/concepts/kueue/index';
 import type { KueueWorkloadStatusWithMessage } from '@odh-dashboard/internal/concepts/kueue/types';
-import { KServeDeployment } from './deployments';
+import { KServeDeployment } from './types';
 
 export const patchDeploymentStoppedStatus = (
   deployment: KServeDeployment,
