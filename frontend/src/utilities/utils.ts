@@ -1,6 +1,10 @@
 import { LabelProps } from '@patternfly/react-core';
-import type { ContainerResources } from '@odh-dashboard/k8s-core';
-import { OdhApplication, OdhDocument, OdhDocumentType, OdhIntegrationApplication } from '#~/types';
+import type {
+  ContainerResources,
+  OdhApplication,
+  OdhIntegrationApplication,
+} from '@odh-dashboard/k8s-core';
+import { OdhDocument, OdhDocumentType } from '#~/types';
 import { AcceleratorProfileKind } from '#~/k8sTypes';
 import { CATEGORY_ANNOTATION, DASHBOARD_MAIN_CONTAINER_ID, ODH_PRODUCT_NAME } from './const';
 

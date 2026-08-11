@@ -26,7 +26,7 @@ Guidelines for creating Jest unit tests for ODH Dashboard utility functions, Rea
 | Jest | Test runner and assertion library |
 | React Testing Library | Component and hook testing utilities |
 | `@odh-dashboard/jest-config` | Custom hook testing utilities and matchers |
-| `@odh-dashboard/internal/__mocks__` | Shared mock data factories (some mocks live in type-owning packages, e.g., `@odh-dashboard/k8s-core/__mocks__/`) |
+| `@odh-dashboard/<package>/__mocks__/` | Shared mock data factories in type-owning packages (e.g., `@odh-dashboard/k8s-core/__mocks__/`, `@odh-dashboard/model-serving/__mocks__/`); some remain in `@odh-dashboard/internal/__mocks__` |
 
 ## Test File Structure
 
@@ -400,7 +400,7 @@ it('should have stable refresh callback', async () => {
 ```typescript
 import { k8sListResource } from '@openshift/dynamic-plugin-sdk-utils';
 import { testHook } from '@odh-dashboard/jest-config/hooks';
-import { mockK8sResourceList } from '@odh-dashboard/internal/__mocks__';
+import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
 import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import { useProjects } from '../useProjects';
 

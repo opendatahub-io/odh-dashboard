@@ -1,8 +1,8 @@
 import {
   mockDashboardConfig,
   type MockDashboardConfigType,
-} from '@odh-dashboard/internal/__mocks__';
-import { mockDscStatus } from '@odh-dashboard/internal/__mocks__/mockDscStatus';
+} from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
+import { mockDscStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDscStatus';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import { pageNotfound } from '../../../pages/pageNotFound';
 import { navSidebar } from '../navSidebar/navSidebar';

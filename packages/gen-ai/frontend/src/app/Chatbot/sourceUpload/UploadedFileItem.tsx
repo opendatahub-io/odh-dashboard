@@ -5,6 +5,7 @@ import { FileStatus } from '~/app/Chatbot/hooks/useSourceManagement';
 import { formatFileSize } from './utils';
 
 type UploadedFileItemProps = {
+  id: string;
   file: File;
   progress: number;
   status: FileStatus;
@@ -12,6 +13,7 @@ type UploadedFileItemProps = {
 };
 
 export const UploadedFileItem: React.FC<UploadedFileItemProps> = ({
+  id,
   file,
   progress,
   status,
@@ -51,7 +53,7 @@ export const UploadedFileItem: React.FC<UploadedFileItemProps> = ({
   }
 
   return (
-    <div>
+    <div data-testid={`uploaded-file-item-${id}`}>
       <div className="pf-v6-u-p-sm pf-v6-u-pt-md pf-v6-u-pb-md">
         <Grid hasGutter={false}>
           {/* First column: File icon */}

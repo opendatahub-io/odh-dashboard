@@ -461,10 +461,10 @@ func probeOCI(pc ProbeContext) models.ConnectionTestResult {
 	}
 	if _, port, err := net.SplitHostPort(ref.host); err == nil {
 		if _, portErr := strconv.Atoi(port); portErr != nil {
-			return failedResult(fmt.Sprintf("Invalid OCI host %q: port must be numeric — use host:port/repo:tag format", ref.host))
+			return failedResult(fmt.Sprintf("Invalid OCI host %q: port must be numeric — use <host>:<port>/<repository>:<tag> format", ref.host))
 		}
 	} else if strings.Contains(ref.host, ":") && !strings.Contains(ref.host, "[") {
-		return failedResult(fmt.Sprintf("Invalid OCI host %q: port must be numeric — use host:port/repo:tag format", ref.host))
+		return failedResult(fmt.Sprintf("Invalid OCI host %q: port must be numeric — use <host>:<port>/<repository>:<tag> format", ref.host))
 	}
 	if err := validateHostNotBlocked(pc.Ctx, ref.host); err != nil {
 		return failedResult(err.Error())

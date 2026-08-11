@@ -1,0 +1,25 @@
+{
+  "name": "RecursiveTabular_FULL",
+  "location": {
+    "model_directory": "RecursiveTabular_FULL",
+    "predictor": "RecursiveTabular_FULL/predictor",
+    "notebook": "RecursiveTabular_FULL/notebooks/automl_predictor_notebook.ipynb",
+    "metrics": "RecursiveTabular_FULL/metrics",
+    "back_testing": "RecursiveTabular_FULL/metrics/back_testing.json"
+  },
+  "metrics": {
+    "test_data": {
+      "mean_absolute_scaled_error": -0.23952571352261823,
+      "mean_absolute_percentage_error": -0.13398914680759735,
+      "symmetric_mean_absolute_percentage_error": -0.14594493975218842,
+      "root_mean_squared_error": -218.763721835117,
+      "root_mean_squared_logarithmic_error": -0.5871768917161717,
+      "root_mean_squared_scaled_error": -0.28170278878410504,
+      "weighted_absolute_percentage_error": -0.004848084951145768,
+      "scaled_quantile_loss": -0.24674861009466048,
+      "weighted_quantile_loss": -0.004534058254913265,
+      "mean_squared_error": -47857.56599115245,
+      "mean_absolute_error": -78.33579296825891
+    }
+  }
+}

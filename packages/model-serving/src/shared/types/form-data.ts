@@ -263,7 +263,10 @@ export type WizardField<
       externalData?: ExternalData,
       dependencies?: Dependencies,
     ) => FieldData;
-    resolveDependencies?: (formData: WizardFormData['state']) => Dependencies;
+    resolveDependencies?: (
+      formData: WizardFormData['state'],
+      initialData?: InitialWizardFormData,
+    ) => Dependencies;
     validationSchema?: z.ZodSchema<FieldData>;
     getFieldOverrides?: (
       effectiveValue: FieldData,

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Content, ContentVariants } from '@patternfly/react-core';
+import { Content, ContentVariants, List, ListItem } from '@patternfly/react-core';
 import type { SortableData } from '@odh-dashboard/ui-core';
 import type { RoleRef } from '#~/concepts/permissions/types';
 import type { ClusterRoleKind, RoleKind } from '#~/k8sTypes';
@@ -30,20 +30,23 @@ export const manageRolesColumns: SortableData<ManageRolesRow>[] = [
     sortable: false,
     info: {
       popover: (
-        <Content component={ContentVariants.ul}>
-          <Content component={ContentVariants.li}>
-            <strong>AI roles</strong> are intended for use in, and can be assigned from,{' '}
-            {ODH_PRODUCT_NAME}.
-          </Content>
-          <Content component={ContentVariants.li}>
-            <strong>OpenShift default roles</strong> are OOTB OpenShift roles that can be assigned
-            from OpenShift or {ODH_PRODUCT_NAME}.
-          </Content>
-          <Content component={ContentVariants.li}>
-            <strong>OpenShift custom roles</strong> are admin-created roles that can only be
-            assigned from OpenShift.
-          </Content>
-        </Content>
+        <List>
+          <ListItem>
+            <strong>AI roles</strong> are assignable and editable within {ODH_PRODUCT_NAME}.
+          </ListItem>
+          <ListItem>
+            <strong>Cluster roles</strong> are managed in OpenShift. Assignable here if they have
+            the AI label, but editing requires OpenShift access.
+          </ListItem>
+          <ListItem>
+            <strong>OpenShift default roles</strong> are built-in OpenShift roles. Some are
+            assignable here, but none are editable.
+          </ListItem>
+          <ListItem>
+            <strong>OpenShift custom roles</strong> are created in OpenShift. Can be unassigned
+            here, but not assigned or edited.
+          </ListItem>
+        </List>
       ),
       ariaLabel: 'Role type help',
       popoverProps: {

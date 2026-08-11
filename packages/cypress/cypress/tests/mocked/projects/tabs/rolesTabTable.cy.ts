@@ -2,12 +2,9 @@
  * Tests for the Roles tab table: search filtering, kebab actions,
  * sorting, and the Preview YAML modal.
  */
-import {
-  mockClusterRoleK8sResource,
-  mockDashboardConfig,
-  mockK8sResourceList,
-  mockRoleK8sResource,
-} from '@odh-dashboard/internal/__mocks__';
+import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
+import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
+import { mockClusterRoleK8sResource, mockRoleK8sResource } from '@odh-dashboard/internal/__mocks__';
 import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import {
   ClusterRoleModel,
@@ -111,7 +108,7 @@ describe('Roles tab table', () => {
       adminRow
         .findKebabAction('Duplicate role', false)
         .should('have.attr', 'aria-disabled', 'true');
-      adminRow.findKebabAction('Preview YAML').should('not.have.attr', 'aria-disabled');
+      adminRow.findKebabAction('View YAML').should('not.have.attr', 'aria-disabled');
     });
 
     it('should enable Edit and Duplicate for namespace-scoped Role entries', () => {
@@ -128,7 +125,7 @@ describe('Roles tab table', () => {
       projectRoles.visit(NAMESPACE);
 
       const adminRow = projectRoles.getRow('Admin');
-      adminRow.findKebabAction('Preview YAML').click();
+      adminRow.findKebabAction('View YAML').click();
 
       projectRoles.findPreviewYAMLModal().should('exist');
       projectRoles.findPreviewYAMLModal().contains('Admin YAML').should('exist');
@@ -139,7 +136,7 @@ describe('Roles tab table', () => {
       projectRoles.visit(NAMESPACE);
 
       const adminRow = projectRoles.getRow('Admin');
-      adminRow.findKebabAction('Preview YAML').click();
+      adminRow.findKebabAction('View YAML').click();
 
       projectRoles.findPreviewYAMLModal().should('exist');
       projectRoles.findPreviewYAMLCloseButton().click();
@@ -148,15 +145,12 @@ describe('Roles tab table', () => {
   });
 
   describe('sorting', () => {
-    it('should sort by Role name', () => {
+    it('should sort by Name', () => {
       initIntercepts();
       projectRoles.visit(NAMESPACE);
 
-      projectRoles.findTableHeaderButton('Role name').click();
-      projectRoles
-        .findTableHeaderButton('Role name')
-        .parents('th')
-        .should('have.attr', 'aria-sort');
+      projectRoles.findTableHeaderButton('Name').click();
+      projectRoles.findTableHeaderButton('Name').parents('th').should('have.attr', 'aria-sort');
     });
   });
 });

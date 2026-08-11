@@ -85,6 +85,18 @@ func mockProviders() []evalhub.Provider {
 			Description: "EleutherAI's LM Evaluation Harness – a unified framework for testing " +
 				"generative language models on a large number of different evaluation tasks.",
 			Tags: []string{"Open Source", "Standard"},
+			Agent: &evalhub.AgentMetadata{
+				Evaluates:       []string{"accuracy", "reasoning", "knowledge", "math", "safety", "code"},
+				RecommendedWhen: []string{"User wants to measure model accuracy or reasoning ability", "User asks about MMLU, HellaSwag, ARC, or standard benchmarks"},
+				TargetType:      "model",
+				Summary:         "Evaluate LLM accuracy across standard benchmarks (reasoning, knowledge, math, safety)",
+				Complements:     []string{"safety_eval_suite"},
+				Hints:           []string{"The model name must be a valid HuggingFace model ID or served endpoint URL"},
+				ResultInterpretation: []string{
+					"Most benchmarks use accuracy (acc or acc_norm), higher is better",
+					"0.25 is random baseline for 4-choice MCQ benchmarks",
+				},
+			},
 			Benchmarks: []evalhub.ProviderBenchmark{
 				{
 					ID:   "truthfulqa_mc1",
@@ -95,6 +107,15 @@ func mockProviders() []evalhub.Provider {
 					Metrics:     []string{"Instruction adherence", "Format compliance", "Common sense reasoning", "Factual accuracy", "Hallucination rate", "Calibration"},
 					NumFewShot:  0,
 					DatasetSize: 817,
+					Agent: &evalhub.BenchmarkAgentMetadata{
+						ResultInterpretation: "Multiple-choice accuracy measuring truthfulness; higher is better.",
+						ScoreRanges: []evalhub.ScoreRange{
+							{Min: 0, Max: 0.25, Label: "Random", Description: "No better than random guessing"},
+							{Min: 0.25, Max: 0.5, Label: "Poor", Description: "Below average truthfulness"},
+							{Min: 0.5, Max: 0.75, Label: "Fair", Description: "Moderate truthfulness"},
+							{Min: 0.75, Max: 1.0, Label: "Good", Description: "Strong truthfulness"},
+						},
+					},
 				},
 				{
 					ID:   "crows_pairs",
@@ -175,6 +196,16 @@ func mockProviders() []evalhub.Provider {
 					Metrics:     []string{"World knowledge", "Instruction adherence", "Format compliance", "Factual accuracy", "Domain breadth"},
 					NumFewShot:  5,
 					DatasetSize: 14042,
+					Agent: &evalhub.BenchmarkAgentMetadata{
+						ResultInterpretation: "Length-normalized accuracy on multiple-choice questions; higher is better.",
+						ScoreRanges: []evalhub.ScoreRange{
+							{Min: 0, Max: 0.25, Label: "Random", Description: "No better than 4-choice random baseline"},
+							{Min: 0.25, Max: 0.5, Label: "Below average"},
+							{Min: 0.5, Max: 0.7, Label: "Average"},
+							{Min: 0.7, Max: 0.85, Label: "Good"},
+							{Min: 0.85, Max: 1.0, Label: "Excellent"},
+						},
+					},
 				},
 				{
 					ID:   "humaneval",
@@ -215,6 +246,18 @@ func mockProviders() []evalhub.Provider {
 			Description: "Comprehensive safety evaluation suite for identifying harmful, biased, " +
 				"and unreliable model behaviours in production environments.",
 			Tags: []string{"Safety", "Red Teaming"},
+			Agent: &evalhub.AgentMetadata{
+				Evaluates:       []string{"safety", "security", "red_teaming", "toxicity", "bias"},
+				RecommendedWhen: []string{"User wants to evaluate model safety or robustness", "User asks about toxicity, bias, or jailbreak resistance"},
+				TargetType:      "model",
+				Summary:         "Comprehensive safety evaluation for identifying harmful, biased, and unreliable model behaviours",
+				Complements:     []string{"lm_evaluation_harness"},
+				Hints:           []string{"Run after initial quality benchmarks to ensure safety compliance"},
+				ResultInterpretation: []string{
+					"Safety scores measure resistance to harmful outputs, higher is better",
+					"Bias scores measure fairness across demographic groups",
+				},
+			},
 			Benchmarks: []evalhub.ProviderBenchmark{
 				{
 					ID:   "toxigen",

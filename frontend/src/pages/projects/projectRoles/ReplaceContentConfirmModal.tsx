@@ -11,14 +11,14 @@ const ReplaceContentConfirmModal: React.FC<ReplaceContentConfirmModalProps> = ({
   onClose,
 }) => (
   <ContentModal
-    title="Replace current content?"
+    title="Discard unsaved changes?"
     titleIconVariant="warning"
     variant="small"
     dataTestId="replace-content-confirm-modal"
     onClose={onClose}
     buttonActions={[
       {
-        label: 'Continue',
+        label: 'Discard',
         onClick: onConfirm,
         variant: 'primary',
         dataTestId: 'replace-confirm-button',
@@ -30,7 +30,7 @@ const ReplaceContentConfirmModal: React.FC<ReplaceContentConfirmModalProps> = ({
         dataTestId: 'replace-cancel-button',
       },
     ]}
-    contents="Selecting a template will replace the current form content. Do you want to continue?"
+    contents="Your changes to this form are not saved yet. Discard your changes and start creating a new role from the template, or cancel to continue editing."
   />
 );
 
