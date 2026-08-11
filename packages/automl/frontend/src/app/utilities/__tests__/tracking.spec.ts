@@ -128,9 +128,7 @@ describe('AutoML tracking event firers', () => {
       success: true,
       predictionType: 'binaryClassification',
       optimizationMetric: 'accuracy',
-      hasTargetColumn: true,
       isRecommended: true,
-      hasS3Connection: true,
     });
 
     expect(fireFormTrackingEventMock).toHaveBeenCalledTimes(1);
@@ -139,9 +137,7 @@ describe('AutoML tracking event firers', () => {
       success: true,
       predictionType: 'binaryClassification',
       optimizationMetric: 'accuracy',
-      hasTargetColumn: true,
       isRecommended: true,
-      hasS3Connection: true,
     });
   });
 
@@ -151,9 +147,7 @@ describe('AutoML tracking event firers', () => {
       success: true,
       predictionType: 'regression',
       optimizationMetric: 'r2',
-      hasTargetColumn: true,
       isRecommended: false,
-      hasS3Connection: true,
       changedFields: ['predictionType', 'targetColumn'],
       source: 'resultsPage',
     });
@@ -171,9 +165,7 @@ describe('AutoML tracking event firers', () => {
     fireAutomlRunReconfigured({
       outcome: TrackingOutcome.submit,
       success: false,
-      hasTargetColumn: false,
       isRecommended: false,
-      hasS3Connection: false,
       changedFields: [],
     });
 

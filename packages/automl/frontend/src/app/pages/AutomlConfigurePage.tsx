@@ -250,9 +250,7 @@ function AutomlConfigurePage({
                 const trackingProperties = {
                   predictionType: mapPredictionType(data.task_type),
                   optimizationMetric: mapOptimizationMetric(data.eval_metric),
-                  hasTargetColumn: Boolean(data.target_column || data.target || data.label_column),
                   isRecommended: isRecommendedRef.current,
-                  hasS3Connection: Boolean(data.train_data_secret_name),
                 };
                 try {
                   const pipelineRun = await pipelineRunsMutation.mutateAsync(data);

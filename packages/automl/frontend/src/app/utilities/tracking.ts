@@ -67,9 +67,7 @@ export const mapOptimizationMetric = (metric?: string): string | undefined =>
 export type RunConfigTrackingProperties = {
   predictionType?: string;
   optimizationMetric?: string;
-  hasTargetColumn: boolean;
   isRecommended: boolean;
-  hasS3Connection: boolean;
 };
 
 /** Distinguishes which page/control a run action (retry, stop, delete, reconfigure) was triggered from. */
