@@ -49,13 +49,18 @@ import {
   formatModelTypeDisplay,
   getModelSizeFromCustomProperties,
   getMinimumVramFromCustomProperties,
+  getModelName,
 } from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
 import {
   CatalogModelCustomPropertyKey,
   CATALOG_VALUE_LABEL_KEYS,
+  MODEL_CATALOG_VALIDATED_CONFIGURATION_NAME_MAPPING,
+  ValidatedConfiguration,
 } from '~/concepts/modelCatalog/const';
 import useModelRegistryDashboardConfig from '~/app/hooks/useModelRegistryDashboardConfig';
+import { useUserInteraction } from '~/concepts/userInteraction';
 import CodeBlockComponent from '~/app/shared/markdown/components/CodeBlockComponent';
+import { MODEL_CATALOG_EVENTS } from '~/app/pages/modelCatalog/tracking';
 
 type ModelDetailsViewProps = {
   model: CatalogModel;
@@ -76,10 +81,20 @@ const ModelDetailsView: React.FC<ModelDetailsViewProps> = ({
     : [];
   const isValidated = isModelValidated(model);
   const { toolCalling: isToolCallingEnabled } = useModelRegistryDashboardConfig();
+  const { trackSimpleEvent } = useUserInteraction();
   const isToolCallingValidated = isToolCallingEnabled && hasValidatedToolCalling(model);
 
   const validatedOnPlatforms = getValidatedOnPlatforms(model.customProperties);
   const validatedDeploymentResources = getValidatedDeploymentResources(model.customProperties);
+
+  const handleToolCallingArgsCopied = React.useCallback(() => {
+    trackSimpleEvent(MODEL_CATALOG_EVENTS.VALIDATED_ARGUMENTS_COPIED, {
+      argumentName:
+        MODEL_CATALOG_VALIDATED_CONFIGURATION_NAME_MAPPING[ValidatedConfiguration.TOOL_CALLING],
+      modelName: getModelName(model.name),
+      validatedDeploymentResource: validatedDeploymentResources.join(', '),
+    });
+  }, [model.name, trackSimpleEvent, validatedDeploymentResources]);
 
   const modelTypeRaw = model.customProperties
     ? getCustomPropString(model.customProperties, CatalogModelCustomPropertyKey.MODEL_TYPE)
@@ -198,7 +213,7 @@ const ModelDetailsView: React.FC<ModelDetailsViewProps> = ({
                         <CardBody>
                           <Stack hasGutter>
                             <StackItem>
-                              <CodeBlockComponent>
+                              <CodeBlockComponent onCopy={handleToolCallingArgsCopied}>
                                 {getToolCallingArgs(model.servingConfig?.toolCalling)}
                               </CodeBlockComponent>
                             </StackItem>
