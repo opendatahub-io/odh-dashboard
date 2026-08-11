@@ -142,6 +142,10 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
     () => evaluations.find((job) => job.resource.id === selectedJobId),
     [evaluations, selectedJobId],
   );
+  // Clear selected job when the namespace changes so the modal doesn't persist across projects
+  React.useEffect(() => {
+    setSelectedJobId(undefined);
+  }, [namespace]);
   const navigate = useNavigate();
   // Pause polling when the browser tab is backgrounded to reduce server load
   const isPollingEnabled = usePageVisibility();
