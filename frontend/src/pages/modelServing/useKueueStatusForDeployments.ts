@@ -13,7 +13,7 @@ import {
 import { aggregateKueueStatusForModel, KUEUE_QUEUE_LABEL } from '#~/concepts/kueue/index';
 
 // Avoids importing @odh-dashboard/llmd-serving/types (not a frontend dep).
-type NamedModelResource = { metadata: { name: string } };
+type NamedModelResource = { metadata: { name: string; labels?: Record<string, string> } };
 
 export type KueueStatusForDeploymentsResult = {
   /** Keys are `buildModelDeploymentKey(kind, name)` e.g. `InferenceService/foo`. */
@@ -72,6 +72,9 @@ export const useKueueStatusForDeployments = (
     );
     const statusMap: Record<string, KueueWorkloadStatusWithMessage | null> = {};
     for (const [deploymentKey, isWorkloads] of Object.entries(workloadMap)) {
+      // Mirrors useKueueStatusForNotebooks: no matching Workload CR → null, full stop. No
+      // queueName-based fallback — the queue label stays on the IS/LLMIS even while stopped, so
+      // guessing a status here (e.g. "Queued") from label presence alone is unreliable.
       const aggregated = aggregateKueueStatusForModel(isWorkloads);
       if (!aggregated) {
         statusMap[deploymentKey] = null;
@@ -83,6 +86,7 @@ export const useKueueStatusForDeployments = (
         queueName: is?.metadata.labels?.[KUEUE_QUEUE_LABEL],
       };
     }
+
     return statusMap;
   }, [useKueue, workloads, isPods, llmisPods, inferenceServices, llmInferenceServices]);
 

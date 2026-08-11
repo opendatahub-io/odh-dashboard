@@ -17,12 +17,14 @@ import {
   getInferenceService,
   getInferenceServicePods,
 } from '@odh-dashboard/internal/api/index';
-import { getKServeDeploymentEndpoints } from './deploymentEndpoints';
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports
+import { useKueueStatusForDeployments } from '@odh-dashboard/internal/pages/modelServing/useKueueStatusForDeployments';
 import {
   useWatchDeploymentPods,
   useWatchServingRuntimes,
   useWatchInferenceServices,
 } from './api/watch';
+import { getKServeDeploymentEndpoints } from './deploymentEndpoints';
 import { getKServeDeploymentStatus } from './deploymentStatus';
 import { KSERVE_ID } from '../extensions';
 
@@ -72,24 +74,32 @@ export const useWatchDeployments = (
     return services;
   }, [inferenceServices, kserveExclusions, filterFn]);
 
+  const { kueueStatusByISName, error: kueueError } = useKueueStatusForDeployments(
+    filteredInferenceServices,
+    project,
+  );
+
   const deployments: KServeDeployment[] = React.useMemo(
     () =>
       filteredInferenceServices.map((inferenceService) => {
         const servingRuntime = servingRuntimes.find(
           (sr) => sr.metadata.name === inferenceService.spec.predictor.model?.runtime,
         );
+        const kueueStatus = inferenceService.metadata.name
+          ? kueueStatusByISName[inferenceService.metadata.name] ?? null
+          : null;
         return {
           modelServingPlatformId: KSERVE_ID,
           model: inferenceService,
           server: servingRuntime,
-          status: getKServeDeploymentStatus(inferenceService, deploymentPods),
+          status: getKServeDeploymentStatus(inferenceService, deploymentPods, kueueStatus),
           endpoints: getKServeDeploymentEndpoints(inferenceService),
           apiProtocol: servingRuntime
             ? getAPIProtocolFromServingRuntime(servingRuntime)
             : undefined,
         };
       }),
-    [filteredInferenceServices, servingRuntimes, deploymentPods],
+    [filteredInferenceServices, servingRuntimes, deploymentPods, kueueStatusByISName],
   );
 
   const effectivelyLoaded = Boolean(
@@ -100,10 +110,16 @@ export const useWatchDeployments = (
   );
 
   const errors = React.useMemo(() => {
-    return [inferenceServiceError, servingRuntimeError, deploymentPodsError].filter(
-      (error): error is Error => Boolean(error),
-    );
-  }, [inferenceServiceError, servingRuntimeError, deploymentPodsError]);
+    // Kueue watch failures (e.g. 403 for users without kueue.x-k8s.io/workloads list RBAC) are
+    // surfaced here rather than silently dropped — otherwise every deployment would appear to
+    // have no Kueue status with no indication the data is actually just inaccessible.
+    return [
+      inferenceServiceError,
+      servingRuntimeError,
+      deploymentPodsError,
+      kueueError ? new Error(kueueError) : undefined,
+    ].filter((error): error is Error => Boolean(error));
+  }, [inferenceServiceError, servingRuntimeError, deploymentPodsError, kueueError]);
 
   return [deployments, effectivelyLoaded, errors];
 };

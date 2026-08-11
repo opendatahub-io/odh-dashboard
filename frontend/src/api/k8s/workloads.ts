@@ -120,6 +120,8 @@ export const buildWorkloadMapForDeployments = (
     const pod = podByUID.get(podRef.uid);
     if (!pod) continue; // Pod gone (scale-down, rolling update) — skip orphaned Workload.
 
+    if (pod.status?.phase === 'Succeeded' || pod.status?.phase === 'Failed') continue;
+
     const labels = pod.metadata.labels ?? {};
 
     // IS: serving.kserve.io/inferenceservice. LLMIS: component=llminferenceservice-workload + name.

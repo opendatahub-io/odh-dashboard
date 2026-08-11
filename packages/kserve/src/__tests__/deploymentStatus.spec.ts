@@ -1,6 +1,7 @@
 import { mockInferenceServiceK8sResource } from '@odh-dashboard/model-serving/__mocks__/mockInferenceServiceK8sResource';
 import { ModelDeploymentState } from '@odh-dashboard/model-serving/shared';
 import type { InferenceServiceKind } from '@odh-dashboard/model-serving/shared';
+import { KueueWorkloadStatus } from '@odh-dashboard/internal/concepts/kueue/types';
 import { getKServeDeploymentConditions } from '../deploymentStatus';
 
 describe('getKServeDeploymentConditions', () => {
@@ -142,7 +143,58 @@ describe('getKServeDeploymentConditions', () => {
     const conditions = getKServeDeploymentConditions(isvc, ModelDeploymentState.UNKNOWN);
 
     expect(conditions).toHaveLength(1);
-    expect(conditions[0].type).toBe('DeploymentRequested');
+    expect(conditions.map((c) => c.type)).toEqual(['DeploymentRequested']);
+  });
+
+  it('should omit CreatePod entirely for non-Kueue deployments (no kueueStatus)', () => {
+    const isvc: InferenceServiceKind = {
+      ...mockInferenceServiceK8sResource({}),
+      status: {
+        url: '',
+        conditions: [
+          {
+            type: 'PredictorReady',
+            status: 'True',
+            lastTransitionTime: '2026-05-26T13:49:27Z',
+          },
+        ],
+      },
+    };
+    const conditions = getKServeDeploymentConditions(isvc, ModelDeploymentState.LOADED, null);
+
+    expect(conditions.find((c) => c.type === 'CreatePod')).toBeUndefined();
+  });
+
+  it('should mark CreatePod as True once Kueue reports Admitted (quota reserved, scheduling gate lifted)', () => {
+    const isvc: InferenceServiceKind = {
+      ...mockInferenceServiceK8sResource({ missingStatus: true }),
+    };
+    const conditions = getKServeDeploymentConditions(isvc, ModelDeploymentState.UNKNOWN, {
+      status: KueueWorkloadStatus.Admitted,
+      queueName: 'test-queue',
+      timestamp: '2026-05-26T13:49:00Z',
+    });
+
+    const createPod = conditions.find((c) => c.type === 'CreatePod');
+    expect(createPod?.status).toBe('True');
+    expect(createPod?.inProgress).toBe(false);
+    expect(createPod?.message).toBeUndefined();
+    expect(createPod?.lastTransitionTime).toBe('2026-05-26T13:49:00Z');
+  });
+
+  it('should mark CreatePod as True once Kueue confirms the workload is Running (PodsReady)', () => {
+    const isvc: InferenceServiceKind = {
+      ...mockInferenceServiceK8sResource({ missingStatus: true }),
+    };
+    const conditions = getKServeDeploymentConditions(isvc, ModelDeploymentState.UNKNOWN, {
+      status: KueueWorkloadStatus.Running,
+      queueName: 'test-queue',
+      timestamp: '2026-05-26T13:50:00Z',
+    });
+
+    const createPod = conditions.find((c) => c.type === 'CreatePod');
+    expect(createPod?.status).toBe('True');
+    expect(createPod?.lastTransitionTime).toBe('2026-05-26T13:50:00Z');
   });
 
   it('should include all conditions in correct order for a ready deployment', () => {
@@ -169,14 +221,22 @@ describe('getKServeDeploymentConditions', () => {
         ],
       },
     };
-    const conditions = getKServeDeploymentConditions(isvc, ModelDeploymentState.LOADED);
+    const conditions = getKServeDeploymentConditions(isvc, ModelDeploymentState.LOADED, {
+      status: KueueWorkloadStatus.Admitted,
+      queueName: 'test-queue',
+      timestamp: '2026-05-26T13:49:01Z',
+    });
 
     expect(conditions.map((c) => c.type)).toEqual([
       'DeploymentRequested',
+      'CreatePod',
       'PredictorReady',
       'IngressReady',
       'LatestDeploymentReady',
     ]);
+    const createPod = conditions.find((c) => c.type === 'CreatePod');
+    expect(createPod?.status).toBe('True');
+    expect(createPod?.lastTransitionTime).toBe('2026-05-26T13:49:01Z');
   });
 
   it('should show LatestDeploymentReady as warning when model is serving but condition is False', () => {
@@ -237,5 +297,65 @@ describe('getKServeDeploymentConditions', () => {
     expect(deploymentReady?.status).toBe('False');
     expect(deploymentReady?.label).toBe('Deployment ready');
     expect(deploymentReady?.message).toBe('Deployment has timed out.');
+  });
+
+  it('should mirror workbench severity: a missing queue shows Warning, not False, on CreatePod', () => {
+    const isvc = mockInferenceServiceK8sResource({ missingStatus: true });
+    const conditions = getKServeDeploymentConditions(isvc, ModelDeploymentState.PENDING, {
+      status: KueueWorkloadStatus.Inadmissible,
+      message: 'LocalQueue no-lq does not exist',
+      queueName: 'no-lq',
+    });
+
+    const createPod = conditions.find((c) => c.type === 'CreatePod');
+    expect(createPod?.status).toBe('Warning');
+    expect(createPod?.messageStatus).toBe('Warning');
+    expect(createPod?.inProgress).toBe(false);
+  });
+
+  it('should show CreatePod as Unknown with an in-progress spinner while merely Queued', () => {
+    const isvc = mockInferenceServiceK8sResource({ missingStatus: true });
+    const conditions = getKServeDeploymentConditions(isvc, ModelDeploymentState.PENDING, {
+      status: KueueWorkloadStatus.Queued,
+      queueName: 'test-queue',
+    });
+
+    const createPod = conditions.find((c) => c.type === 'CreatePod');
+    expect(createPod?.status).toBe('Unknown');
+    expect(createPod?.inProgress).toBe(true);
+  });
+
+  it('should show CreatePod as False when the Kueue workload has Failed', () => {
+    const isvc = mockInferenceServiceK8sResource({ missingStatus: true });
+    const conditions = getKServeDeploymentConditions(isvc, ModelDeploymentState.PENDING, {
+      status: KueueWorkloadStatus.Failed,
+      queueName: 'test-queue',
+    });
+
+    const createPod = conditions.find((c) => c.type === 'CreatePod');
+    expect(createPod?.status).toBe('False');
+    expect(createPod?.inProgress).toBe(false);
+  });
+
+  it('should still show the Kueue sub-step while BlockedOnPreemptionGates (quota reserved but pod creation still held)', () => {
+    const isvc = mockInferenceServiceK8sResource({ missingStatus: true });
+    const conditions = getKServeDeploymentConditions(isvc, ModelDeploymentState.PENDING, {
+      status: KueueWorkloadStatus.BlockedOnPreemptionGates,
+      queueName: 'test-queue',
+    });
+
+    const createPod = conditions.find((c) => c.type === 'CreatePod');
+    expect(createPod?.status).not.toBe('True');
+  });
+
+  it('should NOT mark CreatePod as True while AdmissionCheck is pending (Kueue only admits once all checks are ready)', () => {
+    const isvc = mockInferenceServiceK8sResource({ missingStatus: true });
+    const conditions = getKServeDeploymentConditions(isvc, ModelDeploymentState.PENDING, {
+      status: KueueWorkloadStatus.AdmissionCheck,
+      queueName: 'test-queue',
+    });
+
+    const createPod = conditions.find((c) => c.type === 'CreatePod');
+    expect(createPod?.status).not.toBe('True');
   });
 });
