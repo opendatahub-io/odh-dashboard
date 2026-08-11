@@ -190,4 +190,21 @@ describe('handleRestWithUIErrors', () => {
     mockHandleRestFailures.mockImplementation(() => Promise.reject(new Error('rest failure')));
     await expect(handleRestWithUIErrors(Promise.resolve('data'))).rejects.toThrow('rest failure');
   });
+
+  it('should throw a UIErrorInstance when the promise rejects with a UIError', async () => {
+    await expect(handleRestWithUIErrors(Promise.reject(validUIError))).rejects.toThrow(
+      UIErrorInstance,
+    );
+    expect(mockHandleRestFailures).not.toHaveBeenCalled();
+  });
+
+  it('should re-throw a UIErrorInstance when the promise rejects with one', async () => {
+    const instance = new UIErrorInstance(validUIError);
+    await expect(handleRestWithUIErrors(Promise.reject(instance))).rejects.toThrow(instance);
+  });
+
+  it('should re-throw non-UIError rejections as-is', async () => {
+    const error = new Error('network failure');
+    await expect(handleRestWithUIErrors(Promise.reject(error))).rejects.toThrow('network failure');
+  });
 });

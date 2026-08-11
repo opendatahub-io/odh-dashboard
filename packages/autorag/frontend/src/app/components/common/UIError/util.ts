@@ -41,10 +41,18 @@ export function throwUIError<T>(promise: Promise<T>): Promise<T> {
 }
 
 export function handleRestWithUIErrors<T>(promise: Promise<T>): Promise<T> {
-  return promise.then((result) => {
-    if (isUIError(result)) {
-      throw new UIErrorInstance(result);
-    }
-    return handleRestFailures(Promise.resolve(result));
-  });
+  return promise
+    .then((result) => {
+      if (isUIError(result)) {
+        throw new UIErrorInstance(result);
+      }
+      return handleRestFailures(Promise.resolve(result));
+    })
+    .catch((error: unknown) => {
+      const uiError = normalizeErrorWithInstance(error);
+      if (uiError) {
+        throw uiError;
+      }
+      throw error;
+    });
 }
