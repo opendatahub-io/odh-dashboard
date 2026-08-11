@@ -241,7 +241,8 @@ describe('Choose Benchmark Page - Metrics Filter', () => {
 
   it('should filter benchmarks by metric', () => {
     chooseBenchmarkPage.visit(NAMESPACE);
-    chooseBenchmarkPage.selectMetricsOption('Toxicity');
+    // Metric option test IDs use the raw lowercase value from the benchmark data
+    chooseBenchmarkPage.selectMetricsOption('toxicity');
 
     chooseBenchmarkPage.findBenchmarkCard('test-provider', 'bench-beta').should('exist');
     chooseBenchmarkPage.findBenchmarkCard('test-provider', 'bench-alpha').should('not.exist');
@@ -260,7 +261,8 @@ describe('Choose Benchmark Page - Metrics Filter', () => {
 
   it('should show badge count on metrics filter toggle', () => {
     chooseBenchmarkPage.visit(NAMESPACE);
-    chooseBenchmarkPage.selectMetricsOption('Accuracy');
+    // Metric option test IDs use the raw lowercase value from the benchmark data
+    chooseBenchmarkPage.selectMetricsOption('accuracy');
 
     chooseBenchmarkPage.findMetricsFilterBadge().should('have.text', '1');
   });
@@ -303,7 +305,8 @@ describe('Choose Benchmark Page - Combined Filters', () => {
 
 describe('Choose Benchmark Page - Pagination', () => {
   it('should paginate when benchmarks exceed per-page limit', () => {
-    const manyBenchmarks = Array.from({ length: 15 }, (_, i) =>
+    // Default per-page is 24 (PAGE_SIZES[1]), so we need > 24 benchmarks to trigger pagination
+    const manyBenchmarks = Array.from({ length: 30 }, (_, i) =>
       mockBenchmark({
         id: `bench-${i}`,
         name: `Benchmark ${i}`,
@@ -321,14 +324,16 @@ describe('Choose Benchmark Page - Pagination', () => {
     initIntercepts({ providers: [bulkProvider] });
     chooseBenchmarkPage.visit(NAMESPACE);
 
+    // Page 1 shows first 24 items (bench-0 through bench-23)
     chooseBenchmarkPage.findBenchmarksGallery().should('exist');
     chooseBenchmarkPage.findBenchmarkCard('bulk-provider', 'bench-0').should('exist');
-    chooseBenchmarkPage.findBenchmarkCard('bulk-provider', 'bench-9').should('exist');
-    chooseBenchmarkPage.findBenchmarkCard('bulk-provider', 'bench-10').should('not.exist');
+    chooseBenchmarkPage.findBenchmarkCard('bulk-provider', 'bench-23').should('exist');
+    chooseBenchmarkPage.findBenchmarkCard('bulk-provider', 'bench-24').should('not.exist');
 
+    // Page 2 shows remaining items (bench-24 through bench-29)
     chooseBenchmarkPage.findNextPageButton().click();
-    chooseBenchmarkPage.findBenchmarkCard('bulk-provider', 'bench-10').should('exist');
-    chooseBenchmarkPage.findBenchmarkCard('bulk-provider', 'bench-14').should('exist');
+    chooseBenchmarkPage.findBenchmarkCard('bulk-provider', 'bench-24').should('exist');
+    chooseBenchmarkPage.findBenchmarkCard('bulk-provider', 'bench-29').should('exist');
     chooseBenchmarkPage.findBenchmarkCard('bulk-provider', 'bench-0').should('not.exist');
   });
 });
