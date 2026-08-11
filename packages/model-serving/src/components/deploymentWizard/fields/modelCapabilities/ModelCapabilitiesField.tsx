@@ -139,7 +139,7 @@ const ModelCapabilitiesFieldComponent: React.FC<ModelCapabilitiesFieldComponentP
                 }
               }}
               onOpenChangeKeys={['Escape']}
-              popperProps={{ appendTo: () => document.body }}
+              popperProps={{ appendTo: 'inline' }}
               toggle={{
                 toggleNode: (
                   <Button
