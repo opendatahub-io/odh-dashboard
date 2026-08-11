@@ -43,8 +43,9 @@ const McpRegistryDeployAction: React.FC<McpRegistryDeployActionProps> = ({
     [server, version, namespace],
   );
 
+  const isVersionDeployable = version?.status === 'active';
   const isAvailable = extensionsLoaded && extensions.length > 0;
-  const canDeploy = Boolean(version) && isAvailable && Boolean(namespace);
+  const canDeploy = Boolean(version) && isVersionDeployable && isAvailable && Boolean(namespace);
 
   // Surface *why* Deploy is disabled instead of leaving the button greyed out with no
   // explanation. The Registry tab that hosts this button already requires MCP_CATALOG to be
@@ -52,6 +53,8 @@ const McpRegistryDeployAction: React.FC<McpRegistryDeployActionProps> = ({
   // the model-registry remote failed to load, not a disabled feature — reloading should fix it.
   const disabledReason = !version
     ? 'Select a server version to deploy'
+    : !isVersionDeployable
+    ? 'Change this version to Active before deploying'
     : !namespace
     ? 'Select a project to deploy to'
     : !extensionsLoaded

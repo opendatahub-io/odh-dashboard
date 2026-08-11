@@ -15,10 +15,13 @@ export interface MCPServer {
   latest_version?: string;
 }
 
+export type MCPServerVersionStatus = 'draft' | 'active' | 'deprecated' | 'deleted';
+
 export interface MCPServerVersion {
   name: string;
   version: string;
   server_json: MCPServerJSONPayload;
+  status?: MCPServerVersionStatus;
 }
 
 export interface MCPServerJSONTransport {

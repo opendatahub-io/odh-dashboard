@@ -33,6 +33,7 @@ const mockServer: MCPServer = { name: 'kubernetes-mcp', display_name: 'Kubernete
 const mockVersion: MCPServerVersion = {
   name: 'kubernetes-mcp',
   version: '1.0.0',
+  status: 'active',
   server_json: {
     name: 'kubernetes-mcp',
     version: '1.0.0',
@@ -137,6 +138,41 @@ describe('McpRegistryDeployAction', () => {
 
     await userEvent.hover(button);
     expect(await screen.findByText('Select a server version to deploy')).toBeInTheDocument();
+  });
+
+  it.each(['draft', 'deprecated', 'deleted'] as const)(
+    'should disable the Deploy button and explain why when the selected version is %s',
+    async (status) => {
+      render(
+        <McpRegistryDeployAction
+          server={mockServer}
+          version={{ ...mockVersion, status }}
+          namespace="test-project"
+        />,
+      );
+
+      const button = screen.getByTestId('mcp-registry-deploy-action-button');
+      expect(button).toHaveAttribute('aria-disabled', 'true');
+
+      await userEvent.hover(button);
+      expect(
+        await screen.findByText('Change this version to Active before deploying'),
+      ).toBeInTheDocument();
+    },
+  );
+
+  it('should not open the deploy modal when clicked while the selected version is not active', async () => {
+    render(
+      <McpRegistryDeployAction
+        server={mockServer}
+        version={{ ...mockVersion, status: 'draft' }}
+        namespace="test-project"
+      />,
+    );
+
+    await userEvent.click(screen.getByTestId('mcp-registry-deploy-action-button'));
+
+    expect(screen.queryByTestId('mcp-registry-deploy-modal-stub')).not.toBeInTheDocument();
   });
 
   it('should disable the Deploy button and explain why while the deploy modal extension has not resolved', async () => {
