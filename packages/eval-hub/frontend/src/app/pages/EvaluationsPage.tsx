@@ -149,19 +149,21 @@ const EvaluationsPage: React.FC = () => {
           />
         )}
       </ApplicationsPage>
-      <React.Suspense
-        fallback={
-          <Bullseye>
-            <Spinner />
-          </Bullseye>
-        }
-      >
-        <EvaluationStatusModal
-          job={selectedJob}
-          namespace={namespace ?? ''}
-          onClose={() => setSelectedJob(undefined)}
-        />
-      </React.Suspense>
+      {selectedJob ? (
+        <React.Suspense
+          fallback={
+            <Bullseye>
+              <Spinner />
+            </Bullseye>
+          }
+        >
+          <EvaluationStatusModal
+            job={selectedJob}
+            namespace={namespace ?? ''}
+            onClose={() => setSelectedJob(undefined)}
+          />
+        </React.Suspense>
+      ) : null}
     </>
   );
 };

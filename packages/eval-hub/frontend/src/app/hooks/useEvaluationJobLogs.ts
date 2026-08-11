@@ -69,5 +69,9 @@ export const useEvaluationJobLogs = (
     };
   }, [fetchLogs]);
 
-  return { logs, loaded, error, refresh: fetchLogs };
+  const refresh = React.useCallback(() => {
+    fetchLogs();
+  }, [fetchLogs]);
+
+  return { logs, loaded, error, refresh };
 };
