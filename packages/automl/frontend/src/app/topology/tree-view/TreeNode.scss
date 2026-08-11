@@ -14,6 +14,13 @@
   transform-box: fill-box;
 }
 
+.automl-tree-node__status-pulse-ring {
+  transform: scale(calc(1 + var(--automl-pulse-progress) * 0.9));
+  opacity: calc(0.75 * (1 - var(--automl-pulse-progress)));
+  transform-origin: center;
+  transform-box: fill-box;
+}
+
 .automl-tree-node__caption {
   display: flex;
   flex-direction: column;
@@ -79,10 +86,28 @@
   .pf-topology__node__decorator__bg {
     fill: var(--pf-topology__node__decorator__bg--Fill);
     stroke: var(--pf-topology__node__decorator__bg--Stroke);
+    stroke-width: 1;
   }
 }
 
 .automl-tree-node__winner-star-icon {
+  color: var(--pf-t--global--icon--color--brand--default);
+  fill: currentColor;
+}
+
+/* Active stage decorator: outlined badge + spinning sync icon. */
+.automl-tree-node__status-decorator-active {
+  --pf-topology__node__decorator__bg--Fill: var(--pf-t--global--background--color--primary--default);
+  --pf-topology__node__decorator__bg--Stroke: var(--pf-t--global--border--color--brand--default);
+  --pf-topology__node_decorator--Color: var(--pf-t--global--icon--color--brand--default);
+
+  .pf-topology__node__decorator__bg {
+    fill: var(--pf-topology__node__decorator__bg--Fill);
+    stroke: var(--pf-topology__node__decorator__bg--Stroke);
+  }
+}
+
+.automl-tree-node__status-decorator-active-icon {
   color: var(--pf-t--global--icon--color--brand--default);
   fill: currentColor;
 }
@@ -97,6 +122,7 @@
 
     .pf-topology__node__background {
       stroke: var(--pf-t--global--border--color--status--success--default);
+      stroke-width: 1;
     }
   }
 
@@ -105,6 +131,7 @@
 
     .pf-topology__node__background {
       stroke: var(--pf-t--global--border--color--status--danger--default);
+      stroke-width: 1;
     }
   }
 
@@ -113,6 +140,7 @@
 
     .pf-topology__node__background {
       stroke: var(--pf-t--global--border--color--nonstatus--blue--default);
+      stroke-width: 1;
     }
   }
 
@@ -142,10 +170,31 @@
 }
 
 /* Pending hourglass in branch-step badge — beat topology black fill on `.pf-v6-svg`. */
-.automl-tree-node--status-only .automl-tree-node__status-badge svg,
-.automl-tree-node--status-only .automl-tree-node__status-badge svg path {
+.automl-tree-node--status-only .automl-tree-node__status-badge--pending svg,
+.automl-tree-node--status-only .automl-tree-node__status-badge--pending svg path {
   color: var(--pf-t--global--icon--color--disabled);
   fill: var(--pf-t--global--icon--color--disabled);
+}
+
+/* Running sync in branch-step badge. */
+.automl-tree-node--status-only .automl-tree-node__status-badge--active svg,
+.automl-tree-node--status-only .automl-tree-node__status-badge--active svg path {
+  color: var(--pf-t--global--icon--color--brand--default);
+  fill: var(--pf-t--global--icon--color--brand--default);
+}
+
+/* Failed exclamation in branch-step badge. */
+.automl-tree-node--status-only .automl-tree-node__status-badge--failed svg,
+.automl-tree-node--status-only .automl-tree-node__status-badge--failed svg path {
+  color: var(--pf-t--global--icon--color--status--on-danger--default);
+  fill: var(--pf-t--global--icon--color--status--on-danger--default);
+}
+
+/* Completed check in branch-step badge. */
+.automl-tree-node--status-only .automl-tree-node__status-badge--completed svg,
+.automl-tree-node--status-only .automl-tree-node__status-badge--completed svg path {
+  color: var(--pf-t--global--icon--color--status--on-success--default);
+  fill: var(--pf-t--global--icon--color--status--on-success--default);
 }
 
 /* Pending hourglass on stage-node status decorator (e.g. Select models). */
@@ -158,5 +207,10 @@
 @media (prefers-reduced-motion: reduce) {
   .automl-tree-node__status-spinner {
     animation: none;
+  }
+
+  .automl-tree-node__status-pulse-ring {
+    transform: scale(1);
+    opacity: 0.75;
   }
 }

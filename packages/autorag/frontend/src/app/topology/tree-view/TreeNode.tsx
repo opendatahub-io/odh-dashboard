@@ -7,15 +7,18 @@ import {
   t_global_icon_color_brand_default as iconColorBrand,
   t_global_icon_color_subtle as iconColorSubtle,
   t_global_color_status_success_default as colorStatusSuccess,
+  t_global_color_status_danger_default as colorStatusDanger,
   t_global_border_color_status_success_default as borderColorStatusSuccess,
+  t_global_border_color_status_danger_default as borderColorStatusDanger,
   t_global_border_color_100 as borderColorLight,
   t_global_background_color_primary_default as backgroundColorPrimary,
   t_global_icon_color_status_on_success_default as iconColorOnSuccess,
+  t_global_icon_color_status_on_danger_default as iconColorOnDanger,
   t_global_icon_color_disabled as iconColorDisabled,
 } from '@patternfly/react-tokens';
 import {
   CheckIcon,
-  CheckCircleIcon,
+  ExclamationIcon,
   ExclamationCircleIcon,
   HourglassHalfIcon,
   StarIcon,
@@ -68,6 +71,9 @@ const TASK_ICON_COLORS: Record<TreeNodeData['stepState'], string> = {
 const isStatusOnlyNode = (nodeId: string): boolean =>
   parseStageMapNodeId(nodeId)?.type === 'branch_step';
 
+/** Matches Decorator icon box: (radius - padding) * 2. */
+const DECORATOR_STATUS_BADGE_SIZE = (DEFAULT_DECORATOR_RADIUS - 4) * 2;
+
 /**
  * Completed branch-step badge (design): green outer ring, opaque white gap
  * (covers the edge line), filled green disk, white check.
@@ -85,7 +91,7 @@ const StatusOnlyCompletedBadge: React.FC<{ size: number }> = React.memo(({ size 
   const green = colorStatusSuccess.var;
   const ring = borderColorStatusSuccess.var;
   return (
-    <g className="autorag-tree-node__status-badge">
+    <g className="autorag-tree-node__status-badge autorag-tree-node__status-badge--completed">
       {/* Opaque white disk so the pipeline edge does not show through the gap. */}
       <circle cx={center} cy={center} r={center - 0.25} style={{ fill: white }} />
       <circle
@@ -118,7 +124,7 @@ const StatusOnlyPendingBadge: React.FC<{ size: number }> = React.memo(({ size })
   const white = backgroundColorPrimary.var;
   const ring = borderColorLight.var;
   return (
-    <g className="autorag-tree-node__status-badge">
+    <g className="autorag-tree-node__status-badge autorag-tree-node__status-badge--pending">
       <circle cx={center} cy={center} r={center - 0.25} style={{ fill: white }} />
       <circle
         cx={center}
@@ -140,31 +146,100 @@ const StatusOnlyPendingBadge: React.FC<{ size: number }> = React.memo(({ size })
 });
 StatusOnlyPendingBadge.displayName = 'StatusOnlyPendingBadge';
 
+/** Failed branch-step badge: red ring + filled disk + white exclamation (matches completed). */
+const StatusOnlyFailedBadge: React.FC<{ size: number }> = React.memo(({ size }) => {
+  const center = size / 2;
+  const strokeWidth = Math.max(1.5, size * 0.065);
+  const outerR = center - strokeWidth / 2;
+  const whiteGap = Math.max(2.75, size * 0.155);
+  const innerR = Math.max(outerR - strokeWidth / 2 - whiteGap, size * 0.3);
+  const iconSize = innerR * 1.2;
+  const white = backgroundColorPrimary.var;
+  const red = colorStatusDanger.var;
+  const ring = borderColorStatusDanger.var;
+  return (
+    <g className="autorag-tree-node__status-badge autorag-tree-node__status-badge--failed">
+      <circle cx={center} cy={center} r={center - 0.25} style={{ fill: white }} />
+      <circle
+        cx={center}
+        cy={center}
+        r={outerR}
+        fill="none"
+        style={{ stroke: ring, strokeWidth }}
+      />
+      <circle cx={center} cy={center} r={innerR} style={{ fill: red }} />
+      <g transform={`translate(${(size - iconSize) / 2}, ${(size - iconSize) / 2})`}>
+        <ExclamationIcon
+          width={iconSize}
+          height={iconSize}
+          color={iconColorOnDanger.var}
+          style={{ color: iconColorOnDanger.var, fill: iconColorOnDanger.var }}
+        />
+      </g>
+    </g>
+  );
+});
+StatusOnlyFailedBadge.displayName = 'StatusOnlyFailedBadge';
+
+/** Active / running icon: rotating sync glyph (design match). */
+const StatusOnlyActiveBadge: React.FC<{
+  size: number;
+  activeIconVariant?: TreeNodeData['activeIconVariant'];
+}> = React.memo(({ size, activeIconVariant = 'sync' }) => {
+  const syncSize = size * 0.84;
+  const pulseInnerRadius = Math.max(2.5, size * 0.2);
+  const pulseOuterRadius = Math.max(pulseInnerRadius + 1.25, size * 0.28);
+  const center = size / 2;
+  const isPulse = activeIconVariant === 'pulse';
+  return (
+    <g className="autorag-tree-node__status-badge autorag-tree-node__status-badge--active">
+      {isPulse ? (
+        <g className="autorag-tree-node__status-pulse">
+          <circle
+            cx={center}
+            cy={center}
+            r={pulseInnerRadius}
+            style={{ fill: iconColorBrand.var }}
+          />
+          <circle
+            className="autorag-tree-node__status-pulse-ring"
+            cx={center}
+            cy={center}
+            r={pulseOuterRadius}
+            fill="none"
+            style={{ stroke: iconColorBrand.var, strokeWidth: 1.4 }}
+          />
+        </g>
+      ) : (
+        <g transform={`translate(${(size - syncSize) / 2}, ${(size - syncSize) / 2})`}>
+          <g className="autorag-tree-node__status-spinner">
+            <SyncAltIcon
+              width={syncSize}
+              height={syncSize}
+              color={iconColorBrand.var}
+              style={{ color: iconColorBrand.var, fill: iconColorBrand.var }}
+            />
+          </g>
+        </g>
+      )}
+    </g>
+  );
+});
+StatusOnlyActiveBadge.displayName = 'StatusOnlyActiveBadge';
+
 /** Branch-step status glyph (no task glyph) — completed uses the ring badge above. */
 const StatusOnlyCenterIcon: React.FC<{
   stepState: TreeNodeData['stepState'];
+  activeIconVariant?: TreeNodeData['activeIconVariant'];
   size: number;
-}> = React.memo(({ stepState, size }) => {
-  const common = { width: size, height: size } as const;
+}> = React.memo(({ stepState, activeIconVariant, size }) => {
   switch (stepState) {
     case 'completed':
       return <StatusOnlyCompletedBadge size={size} />;
     case 'failed':
-      return (
-        <ExclamationCircleIcon
-          className="pf-m-danger"
-          color={iconColorStatusDanger.var}
-          {...common}
-        />
-      );
+      return <StatusOnlyFailedBadge size={size} />;
     case 'active':
-      return (
-        <SyncAltIcon
-          className="pf-m-info autorag-tree-node__status-spinner"
-          color={iconColorBrand.var}
-          {...common}
-        />
-      );
+      return <StatusOnlyActiveBadge size={size} activeIconVariant={activeIconVariant} />;
     case 'pending':
     case 'unreached':
     default:
@@ -177,18 +252,48 @@ const StatusBadgeDecorator: React.FC<{
   element: Node;
   stepState: TreeNodeData['stepState'];
 }> = React.memo(({ element, stepState }) => {
-  const { x, y } = getDefaultShapeDecoratorCenter(TopologyQuadrant.upperLeft, element);
+  const { x: decoratorX, y: decoratorY } = getDefaultShapeDecoratorCenter(
+    TopologyQuadrant.upperLeft,
+    element,
+  );
+  const x = stepState === 'active' ? decoratorX - 3 : decoratorX;
+  const y = stepState === 'active' ? decoratorY - 3 : decoratorY;
+
+  if (stepState === 'active') {
+    return (
+      <Decorator
+        x={x}
+        y={y}
+        radius={DEFAULT_DECORATOR_RADIUS - 2}
+        showBackground
+        className="autorag-tree-node__status-decorator-active"
+        icon={
+          <g className="pf-topology__node__decorator__status autorag-tree-node__status-spinner autorag-tree-node__status-decorator-active-icon">
+            <SyncAltIcon />
+          </g>
+        }
+        ariaLabel={stepState}
+      />
+    );
+  }
+
+  if (stepState === 'completed') {
+    return (
+      <Decorator
+        x={x}
+        y={y}
+        radius={DEFAULT_DECORATOR_RADIUS}
+        showBackground={false}
+        icon={<StatusOnlyCompletedBadge size={DECORATOR_STATUS_BADGE_SIZE} />}
+        ariaLabel={stepState}
+      />
+    );
+  }
 
   let icon: React.ReactNode;
   switch (stepState) {
-    case 'completed':
-      icon = <CheckCircleIcon className="pf-m-success" />;
-      break;
     case 'failed':
       icon = <ExclamationCircleIcon className="pf-m-danger" />;
-      break;
-    case 'active':
-      icon = <SyncAltIcon className="pf-m-info autorag-tree-node__status-spinner" />;
       break;
     case 'pending':
     case 'unreached':
@@ -220,7 +325,7 @@ const WinnerStarDecorator: React.FC<{ element: Node }> = React.memo(({ element }
     <Decorator
       x={x}
       y={y}
-      radius={DEFAULT_DECORATOR_RADIUS}
+      radius={DEFAULT_DECORATOR_RADIUS - 4}
       showBackground
       className="autorag-tree-node__winner-star"
       icon={
@@ -243,6 +348,7 @@ const TreeNodeInner: React.FC<{
   const rawData = node.getData();
   const data = isTreeNodeData(rawData) ? rawData : undefined;
   const stepState = data?.stepState ?? 'pending';
+  const activeIconVariant = data?.activeIconVariant;
   const label = data?.label ?? node.getLabel();
   const labelSubtitle = data?.labelSubtitle;
   const showWinnerStar = data?.showWinnerStar === true;
@@ -296,7 +402,11 @@ const TreeNodeInner: React.FC<{
           transform={`translate(${(width - iconSize) / 2}, ${(height - iconSize) / 2})`}
         >
           {statusOnly ? (
-            <StatusOnlyCenterIcon stepState={stepState} size={iconSize} />
+            <StatusOnlyCenterIcon
+              stepState={stepState}
+              activeIconVariant={activeIconVariant}
+              size={iconSize}
+            />
           ) : (
             <TaskIcon width={iconSize} height={iconSize} />
           )}
