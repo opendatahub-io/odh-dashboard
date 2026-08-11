@@ -62,7 +62,11 @@ import {
   isLogServerError,
 } from '~/app/api/k8s';
 import { getMessageCodeLabel } from '~/app/utilities/messageCodeLabels';
-import { getEarliestStartTime, formatElapsedTime } from '~/app/utilities/evaluationJobPolling';
+import {
+  getEarliestStartTime,
+  getEarliestBenchmarkStartTime,
+  formatElapsedTime,
+} from '~/app/utilities/evaluationJobPolling';
 import EvaluationStatusLabel from './EvaluationStatusLabel';
 import './EvaluationStatusModal.scss';
 
@@ -715,6 +719,11 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
     isInProgress ? new Date().toISOString() : job.resource.updated_at,
   );
   const isFailed = state === 'failed' || state === 'partially_failed';
+  // Use the most-current benchmark data (polled > list) to detect pre-start failures.
+  // A failed job where no benchmark ever received a started_at means the failure occurred
+  // before any evaluation work began (e.g. admission error, resource constraint).
+  const isPreStartFailure =
+    state === 'failed' && !getEarliestBenchmarkStartTime(polledJobData ?? job);
 
   const headerIconStatus: 'success' | 'danger' | 'warning' | undefined =
     state === 'completed'
@@ -771,7 +780,7 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
           <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapMd' }}>
             <FlexItem>Evaluation run status</FlexItem>
             <FlexItem>
-              <EvaluationStatusLabel state={state} />
+              <EvaluationStatusLabel state={state} isPreStartFailure={isPreStartFailure} />
             </FlexItem>
           </Flex>
         }

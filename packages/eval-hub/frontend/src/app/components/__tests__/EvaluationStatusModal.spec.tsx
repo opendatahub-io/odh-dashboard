@@ -981,3 +981,88 @@ describe('EvaluationStatusModal useEvaluationJobLogs arguments', () => {
     expect(mockUseEvaluationJobLogs).toHaveBeenLastCalledWith('test-ns', 'eval-job-001', 0, 1000);
   });
 });
+
+describe('EvaluationStatusModal pre-start failure', () => {
+  /* eslint-disable camelcase */
+  it('should show "Not started" badge and heading when no benchmark has a started_at', () => {
+    const job = mockEvaluationJob({
+      state: 'failed',
+      benchmarkStatuses: [{ id: 'bm-a', benchmark_index: 0, status: 'failed' }],
+    });
+
+    render(<EvaluationStatusModal job={job} namespace="test-ns" onClose={mockOnClose} />);
+
+    expect(screen.getByTestId('status-label-failed')).toHaveTextContent('Not started');
+    expect(screen.getByTestId('status-detail-header')).toHaveTextContent('Not started');
+  });
+
+  it('should show "Not started" badge and heading when status.benchmarks is empty', () => {
+    const job = mockEvaluationJob({ state: 'failed', benchmarkStatuses: [] });
+
+    render(<EvaluationStatusModal job={job} namespace="test-ns" onClose={mockOnClose} />);
+
+    expect(screen.getByTestId('status-label-failed')).toHaveTextContent('Not started');
+    expect(screen.getByTestId('status-detail-header')).toHaveTextContent('Not started');
+  });
+
+  it('should show "Failed" badge and heading when at least one benchmark has a started_at', () => {
+    const job = mockEvaluationJob({
+      state: 'failed',
+      benchmarkStatuses: [
+        { id: 'bm-a', benchmark_index: 0, status: 'failed', started_at: '2026-01-01T10:00:00Z' },
+      ],
+    });
+
+    render(<EvaluationStatusModal job={job} namespace="test-ns" onClose={mockOnClose} />);
+
+    expect(screen.getByTestId('status-label-failed')).toHaveTextContent('Failed');
+    expect(screen.getByTestId('status-label-failed')).not.toHaveTextContent('Not started');
+    expect(screen.getByTestId('status-detail-header')).not.toHaveTextContent('Not started');
+  });
+
+  it('should prefer polledJobData benchmarks for pre-start detection when provided', () => {
+    // List data shows no benchmarks (would be pre-start), but polled data has started_at → runtime failure
+    const job = mockEvaluationJob({ state: 'failed', benchmarkStatuses: [] });
+    const polledJob = mockEvaluationJob({
+      state: 'failed',
+      benchmarkStatuses: [
+        { id: 'bm-a', benchmark_index: 0, status: 'failed', started_at: '2026-01-01T10:00:00Z' },
+      ],
+    });
+
+    render(
+      <EvaluationStatusModal
+        job={job}
+        namespace="test-ns"
+        polledJobData={polledJob}
+        onClose={mockOnClose}
+      />,
+    );
+
+    expect(screen.getByTestId('status-label-failed')).toHaveTextContent('Failed');
+    expect(screen.getByTestId('status-label-failed')).not.toHaveTextContent('Not started');
+  });
+
+  it('should show "Not started" when polledJobData has no started_at on any benchmark', () => {
+    const job = mockEvaluationJob({
+      state: 'failed',
+      benchmarkStatuses: [{ id: 'bm-a', benchmark_index: 0, status: 'failed' }],
+    });
+    const polledJob = mockEvaluationJob({
+      state: 'failed',
+      benchmarkStatuses: [{ id: 'bm-a', benchmark_index: 0, status: 'failed' }],
+    });
+
+    render(
+      <EvaluationStatusModal
+        job={job}
+        namespace="test-ns"
+        polledJobData={polledJob}
+        onClose={mockOnClose}
+      />,
+    );
+
+    expect(screen.getByTestId('status-label-failed')).toHaveTextContent('Not started');
+  });
+  /* eslint-enable camelcase */
+});

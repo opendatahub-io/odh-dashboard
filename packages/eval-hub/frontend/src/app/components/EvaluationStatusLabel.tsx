@@ -19,7 +19,7 @@ type StatusConfig = {
   icon: React.ReactNode;
 };
 
-const statusMap: Partial<Record<EvaluationJobState, StatusConfig>> = {
+const statusMap: Partial<Record<EvaluationJobState | 'not_started', StatusConfig>> = {
   pending: {
     label: 'Pending',
     color: 'purple',
@@ -37,6 +37,12 @@ const statusMap: Partial<Record<EvaluationJobState, StatusConfig>> = {
   },
   failed: {
     label: 'Failed',
+    status: 'danger',
+    icon: <ExclamationCircleIcon />,
+  },
+  // eslint-disable-next-line camelcase -- UI-only synthetic state: failed job where no benchmark ever received a started_at
+  not_started: {
+    label: 'Not started',
     status: 'danger',
     icon: <ExclamationCircleIcon />,
   },
@@ -72,11 +78,18 @@ const unknownStatusConfig: StatusConfig = {
 
 type EvaluationStatusLabelProps = {
   state: EvaluationJobState;
+  /** When true and state is 'failed', renders the "Not started" badge — no benchmark ever received a started_at timestamp. */
+  isPreStartFailure?: boolean;
   onClick?: () => void;
 };
 
-const EvaluationStatusLabel: React.FC<EvaluationStatusLabelProps> = ({ state, onClick }) => {
-  const config = statusMap[state] ?? unknownStatusConfig;
+const EvaluationStatusLabel: React.FC<EvaluationStatusLabelProps> = ({
+  state,
+  isPreStartFailure,
+  onClick,
+}) => {
+  const effectiveState = state === 'failed' && isPreStartFailure ? 'not_started' : state;
+  const config = statusMap[effectiveState] ?? unknownStatusConfig;
 
   return (
     <Label

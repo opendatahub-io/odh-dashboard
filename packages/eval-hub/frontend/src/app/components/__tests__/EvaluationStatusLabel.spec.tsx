@@ -96,3 +96,46 @@ describe('EvaluationStatusLabel', () => {
     expect(onClick).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('EvaluationStatusLabel isPreStartFailure', () => {
+  it('should render "Not started" when state is failed and isPreStartFailure is true', () => {
+    render(<EvaluationStatusLabel state="failed" isPreStartFailure />);
+    expect(screen.getByTestId('status-label-failed')).toHaveTextContent('Not started');
+  });
+
+  it('should render "Failed" when state is failed and isPreStartFailure is false', () => {
+    render(<EvaluationStatusLabel state="failed" isPreStartFailure={false} />);
+    const label = screen.getByTestId('status-label-failed');
+    expect(label).toHaveTextContent('Failed');
+    expect(label).not.toHaveTextContent('Not started');
+  });
+
+  it('should render "Failed" when state is failed and isPreStartFailure is omitted', () => {
+    render(<EvaluationStatusLabel state="failed" />);
+    expect(screen.getByTestId('status-label-failed')).toHaveTextContent('Failed');
+  });
+
+  it('should not affect the label for non-failed states when isPreStartFailure is true', () => {
+    render(<EvaluationStatusLabel state="running" isPreStartFailure />);
+    const label = screen.getByTestId('status-label-running');
+    expect(label).toHaveTextContent('Running');
+    expect(label).not.toHaveTextContent('Not started');
+  });
+
+  it('should render danger color for pre-start failure', () => {
+    render(<EvaluationStatusLabel state="failed" isPreStartFailure />);
+    expect(screen.getByTestId('status-label-failed')).toHaveClass('pf-m-danger');
+  });
+
+  it('should render as outline (not filled) for pre-start failure', () => {
+    render(<EvaluationStatusLabel state="failed" isPreStartFailure />);
+    const label = screen.getByTestId('status-label-failed');
+    expect(label).toHaveClass('pf-m-outline');
+    expect(label).not.toHaveClass('pf-m-filled');
+  });
+
+  it('should still use the failed data-testid for pre-start failure', () => {
+    render(<EvaluationStatusLabel state="failed" isPreStartFailure />);
+    expect(screen.getByTestId('status-label-failed')).toBeInTheDocument();
+  });
+});

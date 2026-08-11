@@ -22,6 +22,7 @@ import {
   getResultScore,
   isEvaluationJobComparable,
 } from '~/app/utilities/evaluationUtils';
+import { getEarliestBenchmarkStartTime } from '~/app/utilities/evaluationJobPolling';
 import { CollectionNameMap } from '~/app/hooks/useCollectionNameMap';
 import { cancelEvaluationJob, deleteEvaluationJob } from '~/app/api/k8s';
 import EvaluationStatusLabel from './EvaluationStatusLabel';
@@ -61,6 +62,9 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
   const isInProgress = IN_PROGRESS_STATES.has(job.status.state);
   const isComparable = isEvaluationJobComparable(job);
   const displayState = isStopping ? 'stopping' : job.status.state;
+  // A failed job where no benchmark ever received a started_at timestamp means the failure
+  // occurred before any evaluation work began (e.g. admission error, resource constraint).
+  const isPreStartFailure = displayState === 'failed' && !getEarliestBenchmarkStartTime(job);
 
   React.useEffect(() => {
     if (!isInProgress) {
@@ -211,7 +215,11 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
           )}
         </Td>
         <Td dataLabel="Status" data-testid="evaluation-status">
-          <EvaluationStatusLabel state={displayState} onClick={() => onShowStatus(job)} />
+          <EvaluationStatusLabel
+            state={displayState}
+            isPreStartFailure={isPreStartFailure}
+            onClick={() => onShowStatus(job)}
+          />
         </Td>
         <Td dataLabel="Evaluation" data-testid="evaluation-benchmark">
           <Tooltip
