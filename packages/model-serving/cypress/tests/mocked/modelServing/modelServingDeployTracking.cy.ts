@@ -327,7 +327,17 @@ describe('Model Deployment Tracking Events', () => {
     cy.interceptK8s(
       'POST',
       { model: InferenceServiceModel, ns: 'test-project' },
-      { statusCode: 500, body: { kind: 'Status', apiVersion: 'v1', status: 'Failure', message: 'Internal server error', reason: 'InternalError', code: 500 } },
+      {
+        statusCode: 500,
+        body: {
+          kind: 'Status',
+          apiVersion: 'v1',
+          status: 'Failure',
+          message: 'Internal server error',
+          reason: 'InternalError',
+          code: 500,
+        },
+      },
     ).as('createInferenceServiceFail');
 
     modelServingGlobal.visit('test-project');
