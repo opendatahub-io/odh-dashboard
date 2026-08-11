@@ -80,7 +80,7 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
           });
 
           stream.on('error', (err) => {
-            fastify.log.error('Stream error:', err);
+            fastify.log.error({ err }, 'Stream error:');
             reply.raw.statusCode = 500;
             reply.raw.end(err.message);
             reject(err);

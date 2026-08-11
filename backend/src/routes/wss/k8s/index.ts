@@ -47,7 +47,7 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
       }>,
     ) =>
       getDirectCallOptions(fastify, req, '').then((requestOptions) => {
-        const source = connection.socket;
+        const source = connection;
         const kubeUri = req.params['*'];
 
         const url = `${
@@ -88,10 +88,10 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
         source.on('message', (data: unknown, binary: boolean) =>
           waitConnection(target, () => target.send(data, { binary })),
         );
-        source.on('ping', (data) => waitConnection(target, () => target.ping(data)));
-        source.on('pong', (data) => waitConnection(target, () => target.pong(data)));
+        source.on('ping', (data: Buffer) => waitConnection(target, () => target.ping(data)));
+        source.on('pong', (data: Buffer) => waitConnection(target, () => target.pong(data)));
         source.on('close', close);
-        source.on('error', (error) => close(1011, error.message));
+        source.on('error', (error: Error) => close(1011, error.message));
         target.on('unexpected-response', onUnexpectedResponse);
 
         // attach target socket listeners and forward requests to the source

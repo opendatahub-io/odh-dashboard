@@ -15,7 +15,7 @@ const transport =
     : undefined;
 
 const app = fastify({
-  logger: pino(
+  loggerInstance: pino(
     {
       level: LOG_LEVEL,
       redact: [
