@@ -183,4 +183,153 @@ describe('Evaluations Page - Redirect behavior', () => {
     cy.url().should('include', `/evaluation/${NAMESPACE}`);
   });
 });
+
+describe('Evaluations Page - Status labels', () => {
+  const preStartFailedJob = mockEvaluationJob({
+    id: 'eval-pre-start',
+    name: 'PreStart_Failure_Eval',
+    state: 'failed',
+    modelName: 'test-model',
+    createdAt: '2026-03-14T08:00:00Z',
+    benchmarkIds: ['mmlu'],
+    providerId: 'lm_evaluation_harness',
+    // No started_at on any benchmark — failure occurred before evaluation began
+    benchmarkStatuses: [{ id: 'mmlu', benchmark_index: 0, status: 'failed' }],
+    statusMessage: 'Admission error: insufficient resources',
+    statusMessageCode: 'admission_error',
+    statusMessageOrigin: 'server',
+  });
+
+  const runtimeFailedJob = mockEvaluationJob({
+    id: 'eval-runtime-fail',
+    name: 'Runtime_Failure_Eval',
+    state: 'failed',
+    modelName: 'test-model',
+    createdAt: '2026-03-13T08:00:00Z',
+    benchmarkIds: ['hellaswag'],
+    providerId: 'lm_evaluation_harness',
+    // started_at is set — failure occurred during benchmark execution
+    benchmarkStatuses: [
+      { id: 'hellaswag', benchmark_index: 0, status: 'failed', started_at: '2026-03-13T08:05:00Z' },
+    ],
+    statusMessage: 'Benchmark execution failed',
+  });
+
+  const partiallyFailedJob = mockEvaluationJob({
+    id: 'eval-partial',
+    name: 'Partial_Failure_Eval',
+    state: 'partially_failed',
+    modelName: 'test-model',
+    createdAt: '2026-03-12T08:00:00Z',
+    benchmarkIds: ['mmlu', 'hellaswag'],
+    providerId: 'lm_evaluation_harness',
+    benchmarkStatuses: [
+      { id: 'mmlu', benchmark_index: 0, status: 'completed', started_at: '2026-03-12T08:05:00Z' },
+      { id: 'hellaswag', benchmark_index: 1, status: 'failed', started_at: '2026-03-12T08:10:00Z' },
+    ],
+  });
+
+  beforeEach(() => {
+    initIntercepts({ jobs: [preStartFailedJob, runtimeFailedJob, partiallyFailedJob] });
+  });
+
+  it('should show "Not started" badge for a pre-start failure with no benchmark started_at', () => {
+    evaluationsPage.visit(NAMESPACE);
+    // Table sorts by date desc: row 0 = preStart (Mar 14), row 1 = runtime (Mar 13), row 2 = partial (Mar 12)
+    evaluationsPage.findStatusCell(0).should('have.text', 'Not started');
+  });
+
+  it('should show "Failed" badge for a runtime failure where benchmarks started', () => {
+    evaluationsPage.visit(NAMESPACE);
+    evaluationsPage.findStatusCell(1).should('have.text', 'Failed');
+  });
+
+  it('should show "Partially failed" badge for a partially_failed job', () => {
+    evaluationsPage.visit(NAMESPACE);
+    evaluationsPage.findStatusCell(2).should('have.text', 'Partially failed');
+  });
+});
+
+describe('Evaluations Page - Status modal', () => {
+  const preStartFailedJob = mockEvaluationJob({
+    id: 'eval-pre-start',
+    name: 'PreStart_Failure_Eval',
+    state: 'failed',
+    modelName: 'test-model',
+    createdAt: '2026-03-14T08:00:00Z',
+    benchmarkIds: ['mmlu'],
+    providerId: 'lm_evaluation_harness',
+    benchmarkStatuses: [{ id: 'mmlu', benchmark_index: 0, status: 'failed' }],
+    statusMessage: 'Admission error: insufficient resources',
+    statusMessageOrigin: 'server',
+  });
+
+  const runtimeFailedJob = mockEvaluationJob({
+    id: 'eval-runtime-fail',
+    name: 'Runtime_Failure_Eval',
+    state: 'failed',
+    modelName: 'test-model',
+    createdAt: '2026-03-13T08:00:00Z',
+    benchmarkIds: ['hellaswag'],
+    providerId: 'lm_evaluation_harness',
+    benchmarkStatuses: [
+      { id: 'hellaswag', benchmark_index: 0, status: 'failed', started_at: '2026-03-13T08:05:00Z' },
+    ],
+    statusMessage: 'Benchmark execution failed',
+  });
+
+  beforeEach(() => {
+    initIntercepts({ jobs: [preStartFailedJob, runtimeFailedJob] });
+  });
+
+  it('should open the status modal when clicking the status badge', () => {
+    evaluationsPage.visit(NAMESPACE);
+    evaluationsPage.clickStatusBadge(0);
+    evaluationsPage.findStatusModal().should('exist');
+  });
+
+  it('should show "Not started" badge and heading in modal for a pre-start failure', () => {
+    evaluationsPage.visit(NAMESPACE);
+    // row 0 = pre-start (Mar 14)
+    evaluationsPage.clickStatusBadge(0);
+    evaluationsPage.findStatusModalBadge('failed').should('have.text', 'Not started');
+    evaluationsPage.findStatusDetailHeader().should('contain.text', 'Not started');
+  });
+
+  it('should show "Failed" badge and heading in modal for a runtime failure', () => {
+    evaluationsPage.visit(NAMESPACE);
+    // row 1 = runtime failure (Mar 13)
+    evaluationsPage.clickStatusBadge(1);
+    evaluationsPage.findStatusModalBadge('failed').should('have.text', 'Failed');
+    evaluationsPage.findStatusDetailHeader().should('not.contain.text', 'Not started');
+  });
+
+  it('should show the benchmark warning message in the modal progress tab', () => {
+    const jobWithWarning = mockEvaluationJob({
+      id: 'eval-warning',
+      name: 'Warning_Eval',
+      state: 'partially_failed',
+      modelName: 'test-model',
+      createdAt: '2026-03-12T08:00:00Z',
+      benchmarkIds: ['mmlu'],
+      providerId: 'lm_evaluation_harness',
+      benchmarkStatuses: [
+        {
+          id: 'mmlu',
+          benchmark_index: 0,
+          status: 'completed',
+          started_at: '2026-03-12T08:05:00Z',
+          warning_message: { message: 'Quota nearing limit' },
+        },
+      ],
+    });
+
+    cy.interceptApi('GET /api/:apiVersion/evaluations/jobs', { path: API_VERSION }, [
+      jobWithWarning,
+    ]);
+    evaluationsPage.visit(NAMESPACE);
+    evaluationsPage.clickStatusBadge(0);
+    evaluationsPage.findBenchmarkWarning('mmlu').should('contain.text', 'Quota nearing limit');
+  });
+});
 /* eslint-enable camelcase */
