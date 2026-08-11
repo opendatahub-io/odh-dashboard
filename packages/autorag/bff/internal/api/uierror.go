@@ -34,7 +34,11 @@ func redactDetails(details map[string]any) map[string]any {
 			}
 		}
 		if !redacted {
-			safe[k] = v
+			if nested, ok := v.(map[string]any); ok {
+				safe[k] = redactDetails(nested)
+			} else {
+				safe[k] = v
+			}
 		}
 	}
 	return safe

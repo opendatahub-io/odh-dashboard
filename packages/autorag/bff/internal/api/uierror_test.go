@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"testing"
 
 	"github.com/opendatahub-io/autorag-library/bff/internal/constants"
@@ -86,6 +87,51 @@ func TestRedactDetails(t *testing.T) {
 				"endpoint":       "https://example.com",
 			},
 		},
+		{
+			name: "redacts sensitive keys in nested maps",
+			input: map[string]any{
+				"config": map[string]any{
+					"apiKey":   "secret-key",
+					"endpoint": "https://example.com",
+				},
+			},
+			wantSafe: map[string]any{
+				"config": map[string]any{
+					"apiKey":   "[REDACTED]",
+					"endpoint": "https://example.com",
+				},
+			},
+		},
+		{
+			name: "redacts deeply nested sensitive keys",
+			input: map[string]any{
+				"outer": map[string]any{
+					"middle": map[string]any{
+						"secretValue": "deep-secret",
+						"name":        "safe",
+					},
+				},
+			},
+			wantSafe: map[string]any{
+				"outer": map[string]any{
+					"middle": map[string]any{
+						"secretValue": "[REDACTED]",
+						"name":        "safe",
+					},
+				},
+			},
+		},
+		{
+			name: "redacts nested map even when parent key is sensitive",
+			input: map[string]any{
+				"credentials": map[string]any{
+					"username": "admin",
+				},
+			},
+			wantSafe: map[string]any{
+				"credentials": "[REDACTED]",
+			},
+		},
 	}
 
 	for _, tt := range tests {
@@ -103,15 +149,8 @@ func TestRedactDetails(t *testing.T) {
 				t.Fatalf("length mismatch: got %d, want %d", len(got), len(tt.wantSafe))
 			}
 
-			for k, want := range tt.wantSafe {
-				gotVal, ok := got[k]
-				if !ok {
-					t.Errorf("missing key %q", k)
-					continue
-				}
-				if gotVal != want {
-					t.Errorf("key %q: got %v, want %v", k, gotVal, want)
-				}
+			if !reflect.DeepEqual(got, tt.wantSafe) {
+				t.Errorf("got %v, want %v", got, tt.wantSafe)
 			}
 		})
 	}
