@@ -37,7 +37,10 @@ func removeStaleContainers(ctx context.Context, cli client.Client, resources []u
 			return fmt.Errorf("getting live deployment %s: %w", key, err)
 		}
 
-		patch := buildStaleContainerPatch(live, res)
+		patch, err := buildStaleContainerPatch(live, res)
+		if err != nil {
+			return fmt.Errorf("building stale container patch for %s: %w", key, err)
+		}
 		if patch == nil {
 			continue
 		}
@@ -57,9 +60,22 @@ func removeStaleContainers(ctx context.Context, cli client.Client, resources []u
 	return nil
 }
 
-func buildStaleContainerPatch(live, desired *unstructured.Unstructured) map[string]interface{} {
-	liveContainers, _, _ := unstructured.NestedSlice(live.Object, "spec", "template", "spec", "containers")
-	desiredContainers, _, _ := unstructured.NestedSlice(desired.Object, "spec", "template", "spec", "containers")
+func buildStaleContainerPatch(live, desired *unstructured.Unstructured) (map[string]interface{}, error) {
+	liveContainers, liveFound, err := unstructured.NestedSlice(live.Object, "spec", "template", "spec", "containers")
+	if err != nil {
+		return nil, fmt.Errorf("reading live containers: %w", err)
+	}
+	if !liveFound {
+		return nil, nil
+	}
+
+	desiredContainers, desiredFound, err := unstructured.NestedSlice(desired.Object, "spec", "template", "spec", "containers")
+	if err != nil {
+		return nil, fmt.Errorf("reading desired containers: %w", err)
+	}
+	if !desiredFound || len(desiredContainers) == 0 {
+		return nil, fmt.Errorf("desired Deployment has no containers")
+	}
 
 	desiredNames := make(map[string]struct{}, len(desiredContainers))
 	for _, c := range desiredContainers {
@@ -91,7 +107,7 @@ func buildStaleContainerPatch(live, desired *unstructured.Unstructured) map[stri
 	}
 
 	if len(deleteEntries) == 0 {
-		return nil
+		return nil, nil
 	}
 
 	return map[string]interface{}{
@@ -102,5 +118,5 @@ func buildStaleContainerPatch(live, desired *unstructured.Unstructured) map[stri
 				},
 			},
 		},
-	}
+	}, nil
 }

@@ -240,7 +240,10 @@ func TestBuildStaleContainerPatch_ReturnsNilWhenNoStale(t *testing.T) {
 		containerEntry("b"),
 	})
 
-	patch := buildStaleContainerPatch(live, desired)
+	patch, err := buildStaleContainerPatch(live, desired)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 	if patch != nil {
 		t.Errorf("expected nil patch when no stale containers, got %v", patch)
 	}
@@ -255,7 +258,10 @@ func TestBuildStaleContainerPatch_BuildsDeleteEntries(t *testing.T) {
 		containerEntry("keep"),
 	})
 
-	patch := buildStaleContainerPatch(live, desired)
+	patch, err := buildStaleContainerPatch(live, desired)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 	if patch == nil {
 		t.Fatal("expected non-nil patch")
 	}
@@ -275,5 +281,66 @@ func TestBuildStaleContainerPatch_BuildsDeleteEntries(t *testing.T) {
 	}
 	if entry["name"] != "remove-me" {
 		t.Errorf("expected name=remove-me, got %v", entry["name"])
+	}
+}
+
+func TestBuildStaleContainerPatch_ErrorsOnEmptyDesiredContainers(t *testing.T) {
+	live := deploymentWithContainers("d", "ns", []interface{}{
+		containerEntry("main"),
+	})
+	desired := deploymentWithContainers("d", "ns", []interface{}{})
+
+	_, err := buildStaleContainerPatch(live, desired)
+	if err == nil {
+		t.Fatal("expected error when desired has no containers")
+	}
+}
+
+func TestBuildStaleContainerPatch_ErrorsOnMissingDesiredContainers(t *testing.T) {
+	live := deploymentWithContainers("d", "ns", []interface{}{
+		containerEntry("main"),
+	})
+	desired := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": "apps/v1",
+			"kind":       "Deployment",
+			"metadata":   map[string]interface{}{"name": "d", "namespace": "ns"},
+			"spec": map[string]interface{}{
+				"template": map[string]interface{}{
+					"spec": map[string]interface{}{},
+				},
+			},
+		},
+	}
+
+	_, err := buildStaleContainerPatch(live, desired)
+	if err == nil {
+		t.Fatal("expected error when desired has no containers field")
+	}
+}
+
+func TestBuildStaleContainerPatch_NilWhenLiveHasNoContainers(t *testing.T) {
+	live := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": "apps/v1",
+			"kind":       "Deployment",
+			"metadata":   map[string]interface{}{"name": "d", "namespace": "ns"},
+			"spec": map[string]interface{}{
+				"template": map[string]interface{}{
+					"spec": map[string]interface{}{},
+				},
+			},
+		},
+	}
+	desired := deploymentWithContainers("d", "ns", []interface{}{
+		containerEntry("main"),
+	})
+
+	patch, err := buildStaleContainerPatch(live, desired)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if patch != nil {
+		t.Errorf("expected nil patch when live has no containers, got %v", patch)
 	}
 }
