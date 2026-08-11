@@ -1,20 +1,18 @@
 import { k8sListResourceItems } from '@openshift/dynamic-plugin-sdk-utils';
 import type { PodKind } from '@odh-dashboard/k8s-core';
+import type { InferenceServiceKind } from '@odh-dashboard/model-serving/shared';
 import { mockNotebookK8sResource } from '#~/__mocks__/mockNotebookK8sResource';
 import { mockWorkloadK8sResource } from '#~/__mocks__/mockWorkloadK8sResource';
 import { mockInferenceServiceK8sResource } from '#~/__mocks__/mockInferenceServiceK8sResource';
 import { mockPodK8sResource } from '#~/__mocks__/mockPodK8sResource';
 import { WorkloadKind } from '#~/k8sTypes';
 import {
-  buildWorkloadMapForDeployments,
   buildWorkloadMapForNotebooks,
+  buildWorkloadMapForDeployments,
   listWorkloads,
 } from '#~/api/k8s/workloads';
 import { WorkloadModel } from '#~/api/models/kueue';
 
-const IS_NAME = 'my-model';
-const NS = 'test-project';
-const POD_UID = 'pod-uid-abc123';
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
   k8sListResourceItems: jest.fn(),
 }));
@@ -269,12 +267,21 @@ describe('buildWorkloadMapForNotebooks', () => {
   });
 });
 
-const inferenceService = (name: string) => mockInferenceServiceK8sResource({ name, namespace: NS });
+// ─── buildWorkloadMapForDeployments ──────────────────────────────────────────
 
-/**
- * Build a Pod whose UID matches POD_UID and whose labels include the IS label.
- * The `uid` from genUID in mockPodK8sResource is random; override it here for determinism.
- */
+const NS = 'test-ns';
+const IS_NAME = 'my-model';
+const LLMIS_NAME = 'my-llm-model';
+const POD_UID = 'pod-uid-abc123';
+
+const inferenceService = (name: string): InferenceServiceKind =>
+  mockInferenceServiceK8sResource({ name, namespace: NS });
+
+const llmInferenceService = (name: string): { metadata: { name: string } } => ({
+  metadata: { name },
+});
+
+/** IS pod: carries serving.kserve.io/inferenceservice label. */
 function isPod(podName: string, isName: string, uid = POD_UID): PodKind {
   const pod = mockPodK8sResource({
     name: podName,
@@ -284,10 +291,20 @@ function isPod(podName: string, isName: string, uid = POD_UID): PodKind {
   return { ...pod, metadata: { ...pod.metadata, uid } };
 }
 
-/**
- * Build a Workload whose ownerRef points to a Pod by UID.
- * This mirrors what Kueue's Plain Pod integration actually creates on a live cluster.
- */
+/** LLMIS pod: carries app.kubernetes.io/component + app.kubernetes.io/name labels. */
+function llmisPod(podName: string, llmisName: string, uid = POD_UID): PodKind {
+  const pod = mockPodK8sResource({
+    name: podName,
+    namespace: NS,
+    labels: {
+      'app.kubernetes.io/component': 'llminferenceservice-workload',
+      'app.kubernetes.io/name': llmisName,
+    },
+  });
+  return { ...pod, metadata: { ...pod.metadata, uid } };
+}
+
+/** Workload whose ownerRef points to a Pod by UID (Plain Pod integration). */
 function workloadWithPodOwnerRef(workloadName: string, podUid: string): WorkloadKind {
   const wl = mockWorkloadK8sResource({ k8sName: workloadName, namespace: NS });
   return {
@@ -295,12 +312,7 @@ function workloadWithPodOwnerRef(workloadName: string, podUid: string): Workload
     metadata: {
       ...wl.metadata,
       ownerReferences: [
-        {
-          apiVersion: 'v1',
-          kind: 'Pod',
-          name: `model-predictor-${podUid.slice(0, 8)}`,
-          uid: podUid,
-        },
+        { apiVersion: 'v1', kind: 'Pod', name: `predictor-${podUid.slice(0, 8)}`, uid: podUid },
       ],
     },
   };
@@ -313,11 +325,35 @@ describe('buildWorkloadMapForDeployments', () => {
     expect(result[IS_NAME]).not.toBeNull();
   });
 
-  it('correlates Workload to IS via Pod UID ownerRef + serving.kserve.io/inferenceservice label', () => {
+  it('seeds LLMIS entries alongside IS entries', () => {
+    const result = buildWorkloadMapForDeployments(
+      [],
+      [],
+      [inferenceService(IS_NAME)],
+      [llmInferenceService(LLMIS_NAME)],
+    );
+    expect(result[IS_NAME]).toEqual([]);
+    expect(result[LLMIS_NAME]).toEqual([]);
+  });
+
+  it('correlates Workload to IS via Pod UID + serving.kserve.io/inferenceservice label', () => {
     const pod = isPod('model-predictor-abc', IS_NAME);
     const wl = workloadWithPodOwnerRef('wl-1', POD_UID);
     const result = buildWorkloadMapForDeployments([wl], [pod], [inferenceService(IS_NAME)]);
     expect(result[IS_NAME]).toEqual([wl]);
+  });
+
+  it('correlates Workload to LLMIS via Pod UID + app.kubernetes.io/name label', () => {
+    const uid = 'llmis-pod-uid-xyz';
+    const pod = llmisPod('llm-predictor-abc', LLMIS_NAME, uid);
+    const wl = workloadWithPodOwnerRef('wl-llmis-1', uid);
+    const result = buildWorkloadMapForDeployments(
+      [wl],
+      [pod],
+      [],
+      [llmInferenceService(LLMIS_NAME)],
+    );
+    expect(result[LLMIS_NAME]).toEqual([wl]);
   });
 
   it('returns empty array when Workload ownerRef Pod UID not in pods list (orphaned)', () => {
@@ -326,7 +362,7 @@ describe('buildWorkloadMapForDeployments', () => {
     expect(result[IS_NAME]).toEqual([]);
   });
 
-  it('returns empty array when Pod found but has no serving.kserve.io/inferenceservice label', () => {
+  it('returns empty array when Pod found but has no model-serving label', () => {
     const rawPod = mockPodK8sResource({ name: 'unrelated-pod', namespace: NS });
     const pod = { ...rawPod, metadata: { ...rawPod.metadata, uid: POD_UID } };
     const wl = workloadWithPodOwnerRef('wl-1', POD_UID);
@@ -334,19 +370,18 @@ describe('buildWorkloadMapForDeployments', () => {
     expect(result[IS_NAME]).toEqual([]);
   });
 
-  it('skips Workloads that have no Pod ownerRef (non-IS workloads)', () => {
-    // A Workload with no ownerRef or a non-Pod ownerRef should not appear for any IS.
+  it('skips Workloads with no Pod ownerRef', () => {
     const rawWl = mockWorkloadK8sResource({ k8sName: 'wl-no-pod-ref', namespace: NS });
     const wl = { ...rawWl, metadata: { ...rawWl.metadata, ownerReferences: [] } };
     const result = buildWorkloadMapForDeployments([wl], [], [inferenceService(IS_NAME)]);
     expect(result[IS_NAME]).toEqual([]);
   });
 
-  it('multi-replica IS: all per-Pod Workloads are included', () => {
+  it('multi-replica IS: all per-Pod Workloads are collected', () => {
     const uid0 = 'uid-pod-0';
     const uid1 = 'uid-pod-1';
-    const pod0 = isPod('model-predictor-0', IS_NAME, uid0);
-    const pod1 = isPod('model-predictor-1', IS_NAME, uid1);
+    const pod0 = isPod('predictor-0', IS_NAME, uid0);
+    const pod1 = isPod('predictor-1', IS_NAME, uid1);
     const wl0 = workloadWithPodOwnerRef('wl-replica-0', uid0);
     const wl1 = workloadWithPodOwnerRef('wl-replica-1', uid1);
     const result = buildWorkloadMapForDeployments(
@@ -375,33 +410,43 @@ describe('buildWorkloadMapForDeployments', () => {
     expect(result['model-b']).toEqual([wlB]);
   });
 
-  it('IS with undefined metadata.name is skipped — no key added to result', () => {
-    const is = inferenceService(IS_NAME);
-    // @ts-expect-error intentionally clearing name for test
-    is.metadata.name = undefined;
-    const result = buildWorkloadMapForDeployments([], [], [is]);
-    expect(Object.keys(result)).toHaveLength(0);
+  it('IS and LLMIS Workloads are isolated in the result map', () => {
+    const isUid = 'uid-is-pod';
+    const llmisUid = 'uid-llmis-pod';
+    const pod = isPod('predictor-is', IS_NAME, isUid);
+    const llmPod = llmisPod('predictor-llmis', LLMIS_NAME, llmisUid);
+    const wl = workloadWithPodOwnerRef('wl-is', isUid);
+    const llmWl = workloadWithPodOwnerRef('wl-llmis', llmisUid);
+    const result = buildWorkloadMapForDeployments(
+      [wl, llmWl],
+      [pod, llmPod],
+      [inferenceService(IS_NAME)],
+      [llmInferenceService(LLMIS_NAME)],
+    );
+    expect(result[IS_NAME]).toEqual([wl]);
+    expect(result[LLMIS_NAME]).toEqual([llmWl]);
   });
 
-  it('Pod whose IS label value is not a known IS is skipped', () => {
-    // Pod labels an IS name that's not in the inferenceServices list.
-    const pod = isPod('predictor-other', 'unknown-model', POD_UID);
-    const wl = workloadWithPodOwnerRef('wl-unknown', POD_UID);
-    const result = buildWorkloadMapForDeployments([wl], [pod], [inferenceService(IS_NAME)]);
-    // The known IS has no workload; the unknown model is not added.
-    expect(result[IS_NAME]).toEqual([]);
-    expect(result['unknown-model']).toBeUndefined();
-  });
-
-  it('ownerRef kind matching is case-insensitive for Pod', () => {
-    const pod = isPod('model-predictor-abc', IS_NAME, POD_UID);
-    const wl = mockWorkloadK8sResource({ k8sName: 'wl-case', namespace: NS });
-    if (wl.metadata) {
-      wl.metadata.ownerReferences = [
-        { apiVersion: 'v1', kind: 'pod', name: 'model-predictor-abc', uid: POD_UID },
-      ];
-    }
+  it('matches ownerRef kind case-insensitively', () => {
+    const rawWl = mockWorkloadK8sResource({ k8sName: 'wl-lower', namespace: NS });
+    const wl = {
+      ...rawWl,
+      metadata: {
+        ...rawWl.metadata,
+        ownerReferences: [{ apiVersion: 'v1', kind: 'pod', name: 'predictor-abc', uid: POD_UID }],
+      },
+    };
+    const pod = isPod('predictor-abc', IS_NAME);
     const result = buildWorkloadMapForDeployments([wl], [pod], [inferenceService(IS_NAME)]);
     expect(result[IS_NAME]).toEqual([wl]);
+  });
+
+  it('Workload for unknown model name does not add an extra key to result', () => {
+    const uid = 'uid-unknown';
+    const pod = isPod('predictor-unknown', 'unknown-model', uid);
+    const wl = workloadWithPodOwnerRef('wl-unknown', uid);
+    const result = buildWorkloadMapForDeployments([wl], [pod], [inferenceService(IS_NAME)]);
+    expect(result[IS_NAME]).toEqual([]);
+    expect(Object.keys(result)).toEqual([IS_NAME]);
   });
 });

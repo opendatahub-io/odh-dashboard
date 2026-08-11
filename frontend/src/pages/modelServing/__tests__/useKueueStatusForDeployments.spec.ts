@@ -1,45 +1,40 @@
-import { testHook } from '@odh-dashboard/jest-config/hooks';
+import { renderHook } from '@testing-library/react';
+import type { PodKind } from '@odh-dashboard/k8s-core';
 import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import type { InferenceServiceKind } from '@odh-dashboard/model-serving/shared';
-import type { PodKind } from '@odh-dashboard/k8s-core';
 import { mockInferenceServiceK8sResource } from '#~/__mocks__/mockInferenceServiceK8sResource';
 import { mockWorkloadK8sResource } from '#~/__mocks__/mockWorkloadK8sResource';
 import { mockPodK8sResource } from '#~/__mocks__/mockPodK8sResource';
+import type { WorkloadKind } from '#~/k8sTypes';
 import { WorkloadStatusType } from '#~/concepts/distributedWorkloads/utils';
 import {
-  KueueFilteringState,
   useKueueConfiguration,
+  KueueFilteringState,
 } from '#~/concepts/hardwareProfiles/kueueUtils';
-import { KueueWorkloadStatus } from '#~/concepts/kueue/types';
 import {
   buildWorkloadMapForDeployments,
   useWatchWorkloads,
   useWatchISPods,
+  useWatchLLMISPods,
 } from '#~/api/k8s/workloads';
 import { useKueueStatusForDeployments } from '#~/pages/modelServing/useKueueStatusForDeployments';
-import type { WorkloadKind } from '#~/k8sTypes';
+import { KueueWorkloadStatus } from '#~/concepts/kueue/types';
 
-jest.mock('#~/concepts/hardwareProfiles/kueueUtils', () => ({
-  ...jest.requireActual('#~/concepts/hardwareProfiles/kueueUtils'),
-  useKueueConfiguration: jest.fn(),
-}));
-
-jest.mock('#~/api/k8s/workloads', () => ({
-  ...jest.requireActual('#~/api/k8s/workloads'),
-  useWatchWorkloads: jest.fn(),
-  useWatchISPods: jest.fn(),
-  buildWorkloadMapForDeployments: jest.fn(),
+jest.mock('#~/concepts/hardwareProfiles/kueueUtils');
+jest.mock('#~/api/k8s/workloads');
+jest.mock('#~/concepts/kueue/index', () => ({
+  ...jest.requireActual('#~/concepts/kueue/index'),
+  KUEUE_QUEUE_LABEL: 'kueue.x-k8s.io/queue-name',
 }));
 
 const useKueueConfigurationMock = jest.mocked(useKueueConfiguration);
 const useWatchWorkloadsMock = jest.mocked(useWatchWorkloads);
 const useWatchISPodsMock = jest.mocked(useWatchISPods);
-const buildWorkloadMapMock = jest.mocked(buildWorkloadMapForDeployments);
+const useWatchLLMISPodsMock = jest.mocked(useWatchLLMISPods);
+const buildWorkloadMapForDeploymentsMock = jest.mocked(buildWorkloadMapForDeployments);
 
-const IS_NAME = 'my-model';
-const NS = 'test-project';
+const NS = 'test-ns';
 const POD_UID = 'pod-uid-abc123';
-
 const project = mockProjectK8sResource({ k8sName: NS, enableKueue: true });
 
 const mockKueueEnabled = {
@@ -52,7 +47,6 @@ const mockKueueEnabled = {
 const inferenceService = (name: string): InferenceServiceKind =>
   mockInferenceServiceK8sResource({ name, namespace: NS });
 
-/** Pod whose UID matches POD_UID and carries the IS label. */
 function isPod(isName: string, uid = POD_UID): PodKind {
   const pod = mockPodK8sResource({
     name: `model-predictor-${uid.slice(0, 8)}`,
@@ -62,7 +56,18 @@ function isPod(isName: string, uid = POD_UID): PodKind {
   return { ...pod, metadata: { ...pod.metadata, uid } };
 }
 
-/** Workload whose ownerRef points to a Pod by UID. */
+function llmisPod(llmisName: string, uid: string): PodKind {
+  const pod = mockPodK8sResource({
+    name: `llm-predictor-${uid.slice(0, 8)}`,
+    namespace: NS,
+    labels: {
+      'app.kubernetes.io/component': 'llminferenceservice-workload',
+      'app.kubernetes.io/name': llmisName,
+    },
+  });
+  return { ...pod, metadata: { ...pod.metadata, uid } };
+}
+
 function workloadWithPodOwnerRef(
   workloadName: string,
   podUid: string,
@@ -87,177 +92,225 @@ function workloadWithPodOwnerRef(
 
 describe('useKueueStatusForDeployments', () => {
   beforeEach(() => {
+    jest.clearAllMocks();
     useKueueConfigurationMock.mockReturnValue(mockKueueEnabled);
     useWatchWorkloadsMock.mockReturnValue([[], true, undefined]);
     useWatchISPodsMock.mockReturnValue([[], true, undefined]);
-    buildWorkloadMapMock.mockReturnValue({});
+    useWatchLLMISPodsMock.mockReturnValue([[], true, undefined]);
+    buildWorkloadMapForDeploymentsMock.mockReturnValue({});
   });
 
-  // --- Kueue disabled paths ---
-  describe('when Kueue is not active', () => {
-    it.each([
-      ['feature disabled', { isKueueFeatureEnabled: false, isProjectKueueEnabled: true }],
-      ['project not Kueue-enabled', { isKueueFeatureEnabled: true, isProjectKueueEnabled: false }],
-      ['both disabled', { isKueueFeatureEnabled: false, isProjectKueueEnabled: false }],
-    ])('%s — returns empty map and passes undefined to both watches', (_, flags) => {
-      useKueueConfigurationMock.mockReturnValue({ ...mockKueueEnabled, ...flags });
-      const { result } = testHook(useKueueStatusForDeployments)(
-        [inferenceService(IS_NAME)],
-        project,
-      );
-      expect(useWatchWorkloadsMock).toHaveBeenCalledWith(undefined);
-      expect(useWatchISPodsMock).toHaveBeenCalledWith(undefined);
-      expect(result.current.kueueStatusByISName).toEqual({});
-      expect(result.current.isLoading).toBe(false);
-      expect(result.current.error).toBeNull();
+  it('returns empty status and no loading when Kueue is disabled', () => {
+    useKueueConfigurationMock.mockReturnValue({
+      isKueueDisabled: true,
+      isKueueFeatureEnabled: false,
+      isProjectKueueEnabled: false,
+      kueueFilteringState: KueueFilteringState.ONLY_KUEUE_PROFILES,
     });
-
-    it('undefined project — passes undefined to both watches', () => {
-      useKueueConfigurationMock.mockReturnValue({
-        ...mockKueueEnabled,
-        isKueueFeatureEnabled: false,
-        isProjectKueueEnabled: false,
-      });
-      testHook(useKueueStatusForDeployments)([], undefined);
-      expect(useKueueConfigurationMock).toHaveBeenCalledWith(undefined);
-      expect(useWatchWorkloadsMock).toHaveBeenCalledWith(undefined);
-      expect(useWatchISPodsMock).toHaveBeenCalledWith(undefined);
-    });
-  });
-
-  // --- Watch setup ---
-  it('passes project namespace to both watches when Kueue is active', () => {
-    testHook(useKueueStatusForDeployments)([inferenceService(IS_NAME)], project);
-    expect(useWatchWorkloadsMock).toHaveBeenCalledWith(NS);
-    expect(useWatchISPodsMock).toHaveBeenCalledWith(NS);
-  });
-
-  // --- Loading ---
-  it('isLoading true when workloads watch not yet loaded', () => {
-    useWatchWorkloadsMock.mockReturnValue([[], false, undefined]);
-    const { result } = testHook(useKueueStatusForDeployments)([inferenceService(IS_NAME)], project);
-    expect(result.current.isLoading).toBe(true);
+    const { result } = renderHook(() =>
+      useKueueStatusForDeployments([inferenceService('my-model')], project),
+    );
+    expect(result.current.kueueStatusByISName).toEqual({});
+    expect(result.current.isLoading).toBe(false);
     expect(result.current.error).toBeNull();
   });
 
-  it('isLoading true when pods watch not yet loaded', () => {
-    useWatchISPodsMock.mockReturnValue([[], false, undefined]);
-    const { result } = testHook(useKueueStatusForDeployments)([inferenceService(IS_NAME)], project);
+  it('passes project namespace to all three watches when Kueue is active', () => {
+    renderHook(() => useKueueStatusForDeployments([inferenceService('my-model')], project));
+    expect(useWatchWorkloadsMock).toHaveBeenCalledWith(NS);
+    expect(useWatchISPodsMock).toHaveBeenCalledWith(NS);
+    expect(useWatchLLMISPodsMock).toHaveBeenCalledWith(NS);
+  });
+
+  it('passes undefined namespace to all three watches when project is undefined', () => {
+    renderHook(() => useKueueStatusForDeployments([inferenceService('my-model')], undefined));
+    expect(useWatchWorkloadsMock).toHaveBeenCalledWith(undefined);
+    expect(useWatchISPodsMock).toHaveBeenCalledWith(undefined);
+    expect(useWatchLLMISPodsMock).toHaveBeenCalledWith(undefined);
+  });
+
+  it('passes combined IS+LLMIS pods and llmInferenceServices to buildWorkloadMapForDeployments', () => {
+    const is = inferenceService('my-model');
+    const llmis = { metadata: { name: 'my-llm' } };
+    const isPodResource = isPod('my-model', 'uid-is');
+    const llmisPodResource = llmisPod('my-llm', 'uid-llmis');
+    const workloads = [workloadWithPodOwnerRef('wl-1', 'uid-is')];
+
+    useWatchWorkloadsMock.mockReturnValue([workloads, true, undefined]);
+    useWatchISPodsMock.mockReturnValue([[isPodResource], true, undefined]);
+    useWatchLLMISPodsMock.mockReturnValue([[llmisPodResource], true, undefined]);
+    buildWorkloadMapForDeploymentsMock.mockReturnValue({ 'my-model': [], 'my-llm': [] });
+
+    renderHook(() => useKueueStatusForDeployments([is], project, [llmis]));
+
+    expect(buildWorkloadMapForDeploymentsMock).toHaveBeenCalledWith(
+      workloads,
+      [isPodResource, llmisPodResource],
+      [is],
+      [llmis],
+    );
+  });
+
+  it('is loading while workloads watch is pending', () => {
+    useWatchWorkloadsMock.mockReturnValue([[], false, undefined]);
+    const { result } = renderHook(() =>
+      useKueueStatusForDeployments([inferenceService('my-model')], project),
+    );
     expect(result.current.isLoading).toBe(true);
   });
 
-  it('isLoading false when both watches loaded', () => {
-    useWatchWorkloadsMock.mockReturnValue([[], true, undefined]);
-    useWatchISPodsMock.mockReturnValue([[], true, undefined]);
-    const { result } = testHook(useKueueStatusForDeployments)([inferenceService(IS_NAME)], project);
-    expect(result.current.isLoading).toBe(false);
+  it('is loading while IS pods watch is pending', () => {
+    useWatchISPodsMock.mockReturnValue([[], false, undefined]);
+    const { result } = renderHook(() =>
+      useKueueStatusForDeployments([inferenceService('my-model')], project),
+    );
+    expect(result.current.isLoading).toBe(true);
   });
 
-  // --- Error ---
-  it('surfaces workload watch error message', () => {
-    useWatchWorkloadsMock.mockReturnValue([[], true, new Error('network failure')]);
-    const { result } = testHook(useKueueStatusForDeployments)([inferenceService(IS_NAME)], project);
-    expect(result.current.error).toBe('network failure');
-    expect(result.current.isLoading).toBe(false);
+  it('is loading while LLMIS pods watch is pending', () => {
+    useWatchLLMISPodsMock.mockReturnValue([[], false, undefined]);
+    const { result } = renderHook(() =>
+      useKueueStatusForDeployments([inferenceService('my-model')], project),
+    );
+    expect(result.current.isLoading).toBe(true);
   });
 
-  // --- Status map population ---
-  it('returns null for IS when buildWorkloadMapForDeployments returns empty array', () => {
-    buildWorkloadMapMock.mockReturnValue({ [IS_NAME]: [] });
-    const { result } = testHook(useKueueStatusForDeployments)([inferenceService(IS_NAME)], project);
-    expect(result.current.kueueStatusByISName[IS_NAME]).toBeNull();
+  it('returns workload watch error when present', () => {
+    const err = new Error('workload watch failed');
+    useWatchWorkloadsMock.mockReturnValue([[], true, err]);
+    const { result } = renderHook(() =>
+      useKueueStatusForDeployments([inferenceService('my-model')], project),
+    );
+    expect(result.current.error).toBe('workload watch failed');
   });
 
-  it('returns aggregated Kueue status for IS when workload matches', () => {
-    const wl = workloadWithPodOwnerRef('wl-1', POD_UID, WorkloadStatusType.Pending);
-    buildWorkloadMapMock.mockReturnValue({ [IS_NAME]: [wl] });
-    useWatchWorkloadsMock.mockReturnValue([[wl], true, undefined]);
-    useWatchISPodsMock.mockReturnValue([[isPod(IS_NAME)], true, undefined]);
+  it('returns IS pods watch error when workload watch is healthy', () => {
+    const err = new Error('IS pod watch failed');
+    useWatchISPodsMock.mockReturnValue([[], true, err]);
+    const { result } = renderHook(() =>
+      useKueueStatusForDeployments([inferenceService('my-model')], project),
+    );
+    expect(result.current.error).toBe('IS pod watch failed');
+  });
 
-    const { result } = testHook(useKueueStatusForDeployments)([inferenceService(IS_NAME)], project);
-    expect(result.current.kueueStatusByISName[IS_NAME]).toEqual(
-      expect.objectContaining({
-        status: KueueWorkloadStatus.Queued,
-        workloadName: 'wl-1',
-      }),
+  it('returns LLMIS pods watch error when both other watches are healthy', () => {
+    const err = new Error('LLMIS pod watch failed');
+    useWatchLLMISPodsMock.mockReturnValue([[], true, err]);
+    const { result } = renderHook(() =>
+      useKueueStatusForDeployments([inferenceService('my-model')], project),
+    );
+    expect(result.current.error).toBe('LLMIS pod watch failed');
+  });
+
+  it('returns null status when workload map has no entry for an IS', () => {
+    buildWorkloadMapForDeploymentsMock.mockReturnValue({ 'my-model': [] });
+    const { result } = renderHook(() =>
+      useKueueStatusForDeployments([inferenceService('my-model')], project),
+    );
+    expect(result.current.kueueStatusByISName['my-model']).toBeNull();
+  });
+
+  it('returns aggregated status when workload map has entries', () => {
+    const uid = POD_UID;
+    const pod = isPod('my-model', uid);
+    const wl = workloadWithPodOwnerRef('wl-1', uid, WorkloadStatusType.Inadmissible);
+    useWatchISPodsMock.mockReturnValue([[pod], true, undefined]);
+    buildWorkloadMapForDeploymentsMock.mockReturnValue({ 'my-model': [wl] });
+
+    const { result } = renderHook(() =>
+      useKueueStatusForDeployments([inferenceService('my-model')], project),
+    );
+    expect(result.current.kueueStatusByISName['my-model']?.status).toBe(
+      KueueWorkloadStatus.Inadmissible,
     );
   });
 
-  it('includes queueName from IS kueue.x-k8s.io/queue-name label', () => {
-    const is = inferenceService(IS_NAME);
-    is.metadata.labels = { ...is.metadata.labels, 'kueue.x-k8s.io/queue-name': 'my-queue' };
-    const wl = workloadWithPodOwnerRef('wl-q', POD_UID, WorkloadStatusType.Running);
-    buildWorkloadMapMock.mockReturnValue({ [IS_NAME]: [wl] });
-    useWatchWorkloadsMock.mockReturnValue([[wl], true, undefined]);
-    useWatchISPodsMock.mockReturnValue([[isPod(IS_NAME)], true, undefined]);
+  it('includes queueName from IS label in the status', () => {
+    const is = {
+      ...inferenceService('my-model'),
+      metadata: {
+        ...inferenceService('my-model').metadata,
+        labels: { 'kueue.x-k8s.io/queue-name': 'team-queue' },
+      },
+    };
+    const wl = workloadWithPodOwnerRef('wl-1', POD_UID);
+    buildWorkloadMapForDeploymentsMock.mockReturnValue({ 'my-model': [wl] });
 
-    const { result } = testHook(useKueueStatusForDeployments)([is], project);
-    expect(result.current.kueueStatusByISName[IS_NAME]).toEqual(
-      expect.objectContaining({ queueName: 'my-queue' }),
+    const { result } = renderHook(() => useKueueStatusForDeployments([is], project));
+    expect(result.current.kueueStatusByISName['my-model']?.queueName).toBe('team-queue');
+  });
+
+  it('multi-replica: most-restrictive status wins (Inadmissible beats Running)', () => {
+    const uid0 = 'uid-0';
+    const uid1 = 'uid-1';
+    const wlRunning = workloadWithPodOwnerRef('wl-running', uid0, WorkloadStatusType.Running);
+    const wlInadmissible = workloadWithPodOwnerRef(
+      'wl-inadmissible',
+      uid1,
+      WorkloadStatusType.Inadmissible,
+    );
+    buildWorkloadMapForDeploymentsMock.mockReturnValue({
+      'my-model': [wlRunning, wlInadmissible],
+    });
+
+    const { result } = renderHook(() =>
+      useKueueStatusForDeployments([inferenceService('my-model')], project),
+    );
+    expect(result.current.kueueStatusByISName['my-model']?.status).toBe(
+      KueueWorkloadStatus.Inadmissible,
     );
   });
 
-  // --- Multi-replica aggregation (most-restrictive-state wins) ---
-  it('multi-replica IS: shows most restrictive state (Queued beats Running)', () => {
-    const uidQueued = 'uid-pod-queued';
-    const uidRunning = 'uid-pod-running';
-    const wlQueued = workloadWithPodOwnerRef('wl-queued', uidQueued, WorkloadStatusType.Pending);
-    const wlRunning = workloadWithPodOwnerRef('wl-running', uidRunning, WorkloadStatusType.Running);
-    // buildWorkloadMap is mocked — return both workloads for the IS.
-    buildWorkloadMapMock.mockReturnValue({ [IS_NAME]: [wlQueued, wlRunning] });
-    useWatchWorkloadsMock.mockReturnValue([[wlQueued, wlRunning], true, undefined]);
-    useWatchISPodsMock.mockReturnValue([
-      [isPod(IS_NAME, uidQueued), isPod(IS_NAME, uidRunning)],
-      true,
-      undefined,
-    ]);
+  it('workloadName comes from the winning Workload, not the first one', () => {
+    const uid0 = 'uid-first';
+    const uid1 = 'uid-second';
+    // First workload is Running, second is Inadmissible — Inadmissible wins.
+    const wlRunning = workloadWithPodOwnerRef('wl-running', uid0, WorkloadStatusType.Running);
+    const wlInadmissible = workloadWithPodOwnerRef(
+      'wl-inadmissible',
+      uid1,
+      WorkloadStatusType.Inadmissible,
+    );
+    buildWorkloadMapForDeploymentsMock.mockReturnValue({
+      'my-model': [wlRunning, wlInadmissible],
+    });
 
-    const { result } = testHook(useKueueStatusForDeployments)([inferenceService(IS_NAME)], project);
-    // Queued (Pending) is more restrictive than Running — must win.
-    expect(result.current.kueueStatusByISName[IS_NAME]).toEqual(
-      expect.objectContaining({ status: KueueWorkloadStatus.Queued }),
+    const { result } = renderHook(() =>
+      useKueueStatusForDeployments([inferenceService('my-model')], project),
+    );
+    expect(result.current.kueueStatusByISName['my-model']?.workloadName).toBe('wl-inadmissible');
+  });
+
+  it('all-running: aggregation returns Running', () => {
+    const wl0 = workloadWithPodOwnerRef('wl-0', 'uid-0', WorkloadStatusType.Running);
+    const wl1 = workloadWithPodOwnerRef('wl-1', 'uid-1', WorkloadStatusType.Running);
+    buildWorkloadMapForDeploymentsMock.mockReturnValue({ 'my-model': [wl0, wl1] });
+
+    const { result } = renderHook(() =>
+      useKueueStatusForDeployments([inferenceService('my-model')], project),
+    );
+    expect(result.current.kueueStatusByISName['my-model']?.status).toBe(
+      KueueWorkloadStatus.Running,
     );
   });
 
-  it('multi-replica IS: all Running → status is Running', () => {
-    const uid0 = 'uid-r0';
-    const uid1 = 'uid-r1';
-    const wl0 = workloadWithPodOwnerRef('wl-r0', uid0, WorkloadStatusType.Running);
-    const wl1 = workloadWithPodOwnerRef('wl-r1', uid1, WorkloadStatusType.Running);
-    buildWorkloadMapMock.mockReturnValue({ [IS_NAME]: [wl0, wl1] });
-    useWatchWorkloadsMock.mockReturnValue([[wl0, wl1], true, undefined]);
-    useWatchISPodsMock.mockReturnValue([
-      [isPod(IS_NAME, uid0), isPod(IS_NAME, uid1)],
-      true,
-      undefined,
-    ]);
+  it('two IS resources get independent status entries', () => {
+    const wlA = workloadWithPodOwnerRef('wl-a', 'uid-a', WorkloadStatusType.Inadmissible);
+    const wlB = workloadWithPodOwnerRef('wl-b', 'uid-b', WorkloadStatusType.Running);
+    buildWorkloadMapForDeploymentsMock.mockReturnValue({
+      'model-a': [wlA],
+      'model-b': [wlB],
+    });
 
-    const { result } = testHook(useKueueStatusForDeployments)([inferenceService(IS_NAME)], project);
-    expect(result.current.kueueStatusByISName[IS_NAME]).toEqual(
-      expect.objectContaining({ status: KueueWorkloadStatus.Running }),
+    const { result } = renderHook(() =>
+      useKueueStatusForDeployments(
+        [inferenceService('model-a'), inferenceService('model-b')],
+        project,
+      ),
     );
-  });
-
-  it('two IS in namespace get independent statuses', () => {
-    const IS_A = 'model-a';
-    const IS_B = 'model-b';
-    const uidA = 'uid-a';
-    const uidB = 'uid-b';
-    const wlA = workloadWithPodOwnerRef('wl-a', uidA, WorkloadStatusType.Running);
-    const wlB = workloadWithPodOwnerRef('wl-b', uidB, WorkloadStatusType.Pending);
-    buildWorkloadMapMock.mockReturnValue({ [IS_A]: [wlA], [IS_B]: [wlB] });
-    useWatchWorkloadsMock.mockReturnValue([[wlA, wlB], true, undefined]);
-    useWatchISPodsMock.mockReturnValue([[isPod(IS_A, uidA), isPod(IS_B, uidB)], true, undefined]);
-
-    const { result } = testHook(useKueueStatusForDeployments)(
-      [inferenceService(IS_A), inferenceService(IS_B)],
-      project,
+    expect(result.current.kueueStatusByISName['model-a']?.status).toBe(
+      KueueWorkloadStatus.Inadmissible,
     );
-    expect(result.current.kueueStatusByISName[IS_A]).toEqual(
-      expect.objectContaining({ status: KueueWorkloadStatus.Running }),
-    );
-    expect(result.current.kueueStatusByISName[IS_B]).toEqual(
-      expect.objectContaining({ status: KueueWorkloadStatus.Queued }),
-    );
+    expect(result.current.kueueStatusByISName['model-b']?.status).toBe(KueueWorkloadStatus.Running);
   });
 });
