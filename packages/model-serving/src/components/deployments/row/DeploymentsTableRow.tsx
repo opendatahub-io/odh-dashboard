@@ -14,6 +14,7 @@ import { ModelStatusIcon } from '@odh-dashboard/model-serving/shared/components'
 import { DeploymentHardwareProfileCell } from './DeploymentHardwareProfileCell';
 import { DeploymentRowExpandedSection } from './DeploymentsTableRowExpandedSection';
 import { useNavigateToDeploymentWizard } from '../../deploymentWizard/useNavigateToDeploymentWizard';
+import DeploymentCapabilities from '../DeploymentCapabilities';
 import DeploymentLastDeployed from '../DeploymentLastDeployed';
 import DeploymentStatus from '../DeploymentStatus';
 import DeployedModelsVersion from '../DeployedModelsVersion';
@@ -40,6 +41,7 @@ export const DeploymentRow: React.FC<{
   onDelete: (deployment: Deployment) => void;
   rowIndex: number;
   showExpandedToggle?: boolean;
+  showCapabilities?: boolean;
   servingDetailsEntry?: ExtensionDataEntry<DeployedModelServingDetails>;
 }> = ({
   deployment,
@@ -47,6 +49,7 @@ export const DeploymentRow: React.FC<{
   onDelete,
   rowIndex,
   showExpandedToggle,
+  showCapabilities,
   servingDetailsEntry,
 }) => {
   const metricsExtension = useDeploymentExtension(isModelServingMetricsExtension, deployment);
@@ -151,6 +154,11 @@ export const DeploymentRow: React.FC<{
         ) : (
           <Td dataLabel="Hardware profile">
             <Spinner size="md" />
+          </Td>
+        )}
+        {showCapabilities && (
+          <Td dataLabel="Capabilities">
+            <DeploymentCapabilities deployment={deployment} />
           </Td>
         )}
         <Td dataLabel="Last deployed">
