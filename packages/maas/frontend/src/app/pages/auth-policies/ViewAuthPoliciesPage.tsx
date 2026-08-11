@@ -22,7 +22,7 @@ import {
   getBackUrl,
   getBreadcrumbLabelFromState,
   getSectionUrl,
-} from '~/app/utilities/subscriptionManagementNavigation';
+} from '~/app/utilities/maasGovernanceNavigation';
 import MaasModelsSection from '~/app/shared/MaasModelsSection';
 import {
   EventTrackingResourceType,
@@ -32,7 +32,7 @@ import {
   EventTrackingContext,
 } from '~/app/types/event-tracking';
 import { modelRefsToSummaries } from '~/app/utilities/authpolicies';
-import SubscriptionManagementYamlTab from '~/app/pages/subscription-management/SubscriptionManagementYamlTab';
+import MaaSGovernanceYamlTab from '~/app/pages/maas-governance/MaaSGovernanceYamlTab';
 import DeleteAuthPolicyModal from './DeleteAuthPolicyModal';
 import PolicyDetailsSection from './viewAuthPolicy/PolicyDetailsSection';
 import PolicyGroupsSection from './viewAuthPolicy/PolicyGroupsSection';
@@ -178,7 +178,7 @@ const ViewAuthPoliciesPage: React.FC = () => {
             aria-label="YAML tab"
             data-testid="policy-yaml-tab"
           >
-            <SubscriptionManagementYamlTab
+            <MaaSGovernanceYamlTab
               resourceName={authPolicyName}
               resourceType="authorizationpolicy"
             />
