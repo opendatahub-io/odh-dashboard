@@ -51,7 +51,8 @@ func (app *App) GenAIProxyNSEmbeddingsHandler(w http.ResponseWriter, r *http.Req
 	}
 
 	var reqBody struct {
-		Model string `json:"model"`
+		Model string      `json:"model"`
+		Input interface{} `json:"input"`
 	}
 	if err := json.Unmarshal(body, &reqBody); err != nil {
 		app.badRequestResponse(w, r, fmt.Errorf("invalid JSON in request body: %w", err))
@@ -59,6 +60,10 @@ func (app *App) GenAIProxyNSEmbeddingsHandler(w http.ResponseWriter, r *http.Req
 	}
 	if reqBody.Model == "" {
 		app.badRequestResponse(w, r, errors.New("missing required field: model"))
+		return
+	}
+	if reqBody.Input == nil {
+		app.badRequestResponse(w, r, errors.New("missing required field: input"))
 		return
 	}
 
@@ -119,14 +124,21 @@ func (app *App) GenAIProxyNSEmbeddingsHandler(w http.ResponseWriter, r *http.Req
 	}
 	defer resp.Body.Close()
 
-	// Forward the upstream response unchanged (transparent proxy)
-	respBody, err := io.ReadAll(resp.Body)
+	// Forward the upstream response unchanged (transparent proxy).
+	// Limit read to 10MB to prevent memory exhaustion from malicious/faulty upstreams.
+	const maxResponseBytes = 10 * 1024 * 1024
+	respBody, err := io.ReadAll(io.LimitReader(resp.Body, maxResponseBytes))
 	if err != nil {
 		app.serverErrorResponse(w, r, fmt.Errorf("failed to read upstream response: %w", err))
 		return
 	}
 
-	w.Header().Set("Content-Type", resp.Header.Get("Content-Type"))
+	// Copy all upstream response headers for transparent proxy behavior
+	for key, values := range resp.Header {
+		for _, v := range values {
+			w.Header().Add(key, v)
+		}
+	}
 	w.WriteHeader(resp.StatusCode)
 	w.Write(respBody)
 }
@@ -194,7 +206,11 @@ func (app *App) resolveNamespaceModel(ctx context.Context, k8sClient k8s.Kuberne
 
 	isvcURL, err := k8sClient.GetInferenceServiceURL(ctx, identity, namespace, bareModelName)
 	if err != nil {
-		return "", "", fmt.Errorf("InferenceService not found for model %q: %w", bareModelName, err)
+		// Distinguish between "model doesn't exist" (not found) and K8s API errors (infra)
+		if strings.Contains(err.Error(), "not found") {
+			return "", "", fmt.Errorf("model %q not found: %w", bareModelName, err)
+		}
+		return "", "", &infraError{msg: fmt.Sprintf("failed to resolve model %q: %v", bareModelName, err)}
 	}
 	if isvcURL == "" {
 		return "", "", fmt.Errorf("empty URL for model %q", bareModelName)
