@@ -12,7 +12,9 @@ import {
 } from '@patternfly/react-core';
 import { CheckCircleIcon, TimesCircleIcon } from '@patternfly/react-icons';
 import { EvaluationJob } from '~/app/types';
+import { useProvider } from '~/app/hooks/useProvider';
 import { getBenchmarkDisplayName, getJobBenchmarks } from '~/app/utilities/evaluationUtils';
+import AboutBenchmarkResultPopover from '~/app/components/AboutBenchmarkResultPopover';
 
 type BenchmarkResultDetailsProps = {
   benchmarkId: string;
@@ -32,6 +34,9 @@ const BenchmarkResultDetails: React.FC<BenchmarkResultDetailsProps> = ({
     (b) => b.id === benchmarkId && (b.benchmark_index ?? 0) === benchmarkIndex,
   );
 
+  const providerId = benchmarkConfig?.provider_id ?? result?.provider_id;
+  const { provider } = useProvider(providerId);
+
   if (!result) {
     return null;
   }
@@ -49,6 +54,9 @@ const BenchmarkResultDetails: React.FC<BenchmarkResultDetailsProps> = ({
     benchmarkConfig?.pass_criteria?.threshold ??
     job.pass_criteria?.threshold ??
     result.test?.threshold;
+
+  const rawComplements = provider?.agent?.complements;
+  const complements = Array.isArray(rawComplements) ? rawComplements : undefined;
 
   return (
     <div data-testid={`benchmark-details-${benchmarkId}-${benchmarkIndex}`}>
@@ -78,6 +86,14 @@ const BenchmarkResultDetails: React.FC<BenchmarkResultDetailsProps> = ({
             </Label>
           </FlexItem>
         )}
+        <FlexItem>
+          <AboutBenchmarkResultPopover
+            benchmarkId={benchmarkId}
+            benchmarkIndex={benchmarkIndex}
+            job={job}
+            provider={provider}
+          />
+        </FlexItem>
       </Flex>
       <Content
         component="p"
@@ -105,6 +121,14 @@ const BenchmarkResultDetails: React.FC<BenchmarkResultDetailsProps> = ({
             <DescriptionListDescription>{threshold}</DescriptionListDescription>
           </DescriptionListGroup>
         )}
+        {complements?.length ? (
+          <DescriptionListGroup>
+            <DescriptionListTerm>Related evaluations</DescriptionListTerm>
+            <DescriptionListDescription data-testid="complementary-frameworks">
+              {complements.map((c) => getBenchmarkDisplayName(c)).join(', ')}
+            </DescriptionListDescription>
+          </DescriptionListGroup>
+        ) : null}
       </DescriptionList>
     </div>
   );

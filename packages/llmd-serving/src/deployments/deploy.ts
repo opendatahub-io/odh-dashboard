@@ -40,6 +40,7 @@ import {
   patchLLMInferenceServiceConfig,
   updateLLMInferenceServiceConfig,
 } from '../api/LLMInferenceServiceConfigs';
+import { cleanlyDuplicateConfig } from '../utils';
 
 export const BaseLLMInferenceService = (
   name?: string,
@@ -174,24 +175,20 @@ const assembleLLMInferenceServiceConfig = (
     const accelerators =
       data.template.metadata.annotations?.['opendatahub.io/recommended-accelerators'];
 
-    return {
-      ...data.template,
-      metadata: {
-        // Exclude other metadata to exclude existing resource version stuff
-        name: data.deploymentName,
-        namespace: data.deploymentNamespace,
-        annotations: {
-          ...data.template.metadata.annotations,
-          'opendatahub.io/template-name': templateName,
-          ...(templateVersion !== undefined && {
-            'opendatahub.io/runtime-version': templateVersion,
-          }),
-          ...(accelerators !== undefined && {
-            'opendatahub.io/recommended-accelerators': accelerators,
-          }),
-        },
+    return cleanlyDuplicateConfig(data.template, {
+      name: data.deploymentName,
+      namespace: data.deploymentNamespace,
+      annotations: {
+        ...data.template.metadata.annotations,
+        'opendatahub.io/template-name': templateName,
+        ...(templateVersion !== undefined && {
+          'opendatahub.io/runtime-version': templateVersion,
+        }),
+        ...(accelerators !== undefined && {
+          'opendatahub.io/recommended-accelerators': accelerators,
+        }),
       },
-    };
+    });
   }
   return undefined;
 };

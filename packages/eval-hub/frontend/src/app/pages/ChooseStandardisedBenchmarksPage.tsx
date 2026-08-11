@@ -70,6 +70,7 @@ const ChooseStandardisedBenchmarksPage: React.FC = () => {
           ...b,
           providerId: provider.resource.id,
           providerName: provider.title ?? provider.name,
+          providerAgent: provider.agent,
         })),
       ),
     [providers],
