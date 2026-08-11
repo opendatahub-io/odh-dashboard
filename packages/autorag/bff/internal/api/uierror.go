@@ -47,7 +47,7 @@ type UIError struct {
 	MessageID     string         `json:"messageId"`
 	Reason        string         `json:"reason"`
 	Status        int            `json:"status"`
-	TransactionID string         `json:"transactionId"`
+	TransactionID string         `json:"transactionId,omitempty"`
 	Details       map[string]any `json:"details"`
 	logger        *slog.Logger
 }

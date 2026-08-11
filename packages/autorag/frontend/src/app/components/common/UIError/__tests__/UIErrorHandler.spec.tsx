@@ -49,10 +49,13 @@ const testMappings: UIErrorMappings = {
   },
 };
 
-const ShowErrorButton: React.FC<{ error: UIError }> = ({ error }) => {
+const ShowErrorButton: React.FC<{ error: UIError; onRetry?: () => void }> = ({
+  error,
+  onRetry,
+}) => {
   const { showUIError } = useUIErrorHandler();
   return (
-    <button data-testid="show-error" onClick={() => showUIError(error)}>
+    <button data-testid="show-error" onClick={() => showUIError(error, onRetry)}>
       Trigger Error
     </button>
   );
@@ -374,6 +377,54 @@ describe('UIErrorHandler', () => {
 
       const modal = screen.getByRole('dialog');
       expect(within(modal).getByText(UIErrorDefaults.uiErrorMapping.title)).toBeInTheDocument();
+    });
+
+    it('should show retry button in modal when onRetry is provided', () => {
+      const retryFn = jest.fn();
+      render(
+        <UIErrorHandler id="test">
+          <ShowErrorButton error={mockUIError} onRetry={retryFn} />
+        </UIErrorHandler>,
+      );
+
+      fireEvent.click(screen.getByTestId('show-error'));
+      fireEvent.click(screen.getByText('More details...'));
+
+      const modal = screen.getByRole('dialog');
+      expect(within(modal).getByTestId('UIErrorModal-retry')).toBeInTheDocument();
+      expect(within(modal).getByTestId('UIErrorModal-retry')).toHaveTextContent(
+        UIErrorDefaults.labels.modalPrimaryCTA,
+      );
+    });
+
+    it('should call onRetry and close modal when retry button is clicked', () => {
+      const retryFn = jest.fn();
+      render(
+        <UIErrorHandler id="test">
+          <ShowErrorButton error={mockUIError} onRetry={retryFn} />
+        </UIErrorHandler>,
+      );
+
+      fireEvent.click(screen.getByTestId('show-error'));
+      fireEvent.click(screen.getByText('More details...'));
+      fireEvent.click(screen.getByTestId('UIErrorModal-retry'));
+
+      expect(retryFn).toHaveBeenCalledTimes(1);
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    });
+
+    it('should not show retry button in modal when onRetry is not provided', () => {
+      render(
+        <UIErrorHandler id="test">
+          <ShowErrorButton error={mockUIError} />
+        </UIErrorHandler>,
+      );
+
+      fireEvent.click(screen.getByTestId('show-error'));
+      fireEvent.click(screen.getByText('More details...'));
+
+      const modal = screen.getByRole('dialog');
+      expect(within(modal).queryByTestId('UIErrorModal-retry')).not.toBeInTheDocument();
     });
   });
 

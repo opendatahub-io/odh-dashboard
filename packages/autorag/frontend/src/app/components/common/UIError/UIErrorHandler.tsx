@@ -10,7 +10,7 @@ import { UIErrorInstance } from './UIErrorInstance.ts';
 // Types ---------------------------------------------------------------------->
 
 type UIErrorHandlerContextType = {
-  showUIError: (error: UIError) => void;
+  showUIError: (error: UIError, onRetry?: () => void) => void;
   closeUIError: (error: UIErrorInstance) => void;
   showDetails: (error: UIErrorInstance) => void;
 };
@@ -37,12 +37,17 @@ interface UIErrorHandlerProps {
 const UIErrorHandler: React.FC<UIErrorHandlerProps> = ({ id, uiErrorMappings, children }) => {
   const [errors, setErrors] = React.useState<Record<string, UIErrorInstance>>({});
   const [modalError, setModalError] = React.useState<UIErrorInstance | undefined>();
+  const [modalRetry, setModalRetry] = React.useState<(() => void) | undefined>();
   const [isModalOpen, setIsModalOpen] = React.useState(false);
+  const retryFnsRef = React.useRef<Record<string, () => void>>({});
 
-  const showUIError = React.useCallback((error: UIError) => {
+  const showUIError = React.useCallback((error: UIError, onRetry?: () => void) => {
     const instance = normalizeErrorWithInstance(error);
     if (instance) {
       setErrors((prev) => ({ ...prev, [instance.id]: instance }));
+      if (onRetry) {
+        retryFnsRef.current[instance.id] = onRetry;
+      }
     }
   }, []);
 
@@ -52,16 +57,19 @@ const UIErrorHandler: React.FC<UIErrorHandlerProps> = ({ id, uiErrorMappings, ch
       delete next[error.id];
       return next;
     });
+    delete retryFnsRef.current[error.id];
   }, []);
 
   const showDetails = React.useCallback((error: UIErrorInstance) => {
     setModalError(error);
+    setModalRetry(() => retryFnsRef.current[error.id]);
     setIsModalOpen(true);
   }, []);
 
   const handleCloseModal = React.useCallback(() => {
     setIsModalOpen(false);
     setModalError(undefined);
+    setModalRetry(undefined);
   }, []);
 
   const contextValue = React.useMemo<UIErrorHandlerContextType>(
@@ -80,6 +88,7 @@ const UIErrorHandler: React.FC<UIErrorHandlerProps> = ({ id, uiErrorMappings, ch
           uiError={modalError}
           uiErrorMapping={modalErrorMapping}
           onClose={handleCloseModal}
+          onRetry={modalRetry}
         />
         <UIErrorAlerts id={`${id}-UIErrorAlerts`}>
           {Object.values(errors).map((error) => (

@@ -38,6 +38,9 @@ interface UIErrorModalProps {
 
   /** Callback fired when the modal is closed via dismiss or cancel. */
   onClose?: (_event?: KeyboardEvent | React.MouseEvent) => void;
+
+  /** Optional retry callback. When provided, a Retry button is shown in the modal footer. */
+  onRetry?: () => void;
 }
 const UIErrorModal: React.FC<UIErrorModalProps> = ({
   id,
@@ -45,6 +48,7 @@ const UIErrorModal: React.FC<UIErrorModalProps> = ({
   uiError,
   onClose: _onClose,
   uiErrorMapping,
+  onRetry,
 }) => {
   const generatedId = useId();
   const rootId = id ?? generatedId;
@@ -135,6 +139,20 @@ const UIErrorModal: React.FC<UIErrorModalProps> = ({
         </Flex>
       </ModalBody>
       <ModalFooter>
+        {onRetry && (
+          <Button
+            key="retry"
+            data-testid="UIErrorModal-retry"
+            variant="primary"
+            onClick={() => {
+              onRetry();
+              onClose();
+              resetState();
+            }}
+          >
+            {UIErrorDefaults.labels.modalPrimaryCTA}
+          </Button>
+        )}
         <Button
           id={`${rootId}-UIErrorModal-close-button`}
           key="cancel"

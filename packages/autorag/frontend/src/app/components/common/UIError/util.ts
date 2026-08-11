@@ -15,7 +15,7 @@ export function isUIError(value: unknown): value is UIError {
     typeof value.status === 'number' &&
     (!('transactionId' in value) || typeof value.transactionId === 'string') &&
     'details' in value &&
-    (value.details === null || typeof value.details === 'object')
+    (value.details === null || (typeof value.details === 'object' && !Array.isArray(value.details)))
   );
 }
 
