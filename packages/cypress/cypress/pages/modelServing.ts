@@ -967,16 +967,6 @@ class ModelServingWizard extends Wizard {
     return cy.findByTestId(`validated-configuration-arguments-popover-content-${optionSlug}`);
   }
 
-  visitWithValidatedConfigurations(initialData: Record<string, unknown>) {
-    const url = '/ai-hub/models/deployments/deploy';
-    cy.visit(url, {
-      onBeforeLoad(win) {
-        win.history.pushState({ usr: { initialData } }, '', url);
-      },
-    });
-    cy.findByTestId('app-page-title').contains('Deploy a model');
-  }
-
   findModelSourceStep() {
     return this.findStep('source-model-step');
   }
