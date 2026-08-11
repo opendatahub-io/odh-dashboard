@@ -17,6 +17,7 @@ export const useEvaluationJobLogs = (
   const [logs, setLogs] = React.useState('');
   const [loaded, setLoaded] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
+  const fetchGenRef = React.useRef(0);
 
   const fetchLogs = React.useCallback(() => {
     if (!namespace || !jobId) {
@@ -26,6 +27,7 @@ export const useEvaluationJobLogs = (
       return;
     }
 
+    const gen = ++fetchGenRef.current;
     setLoaded(false);
     setError(undefined);
 
@@ -38,10 +40,16 @@ export const useEvaluationJobLogs = (
 
     fetcher()
       .then((text) => {
+        if (fetchGenRef.current !== gen) {
+          return;
+        }
         setLogs(text);
         setLoaded(true);
       })
       .catch((err) => {
+        if (fetchGenRef.current !== gen) {
+          return;
+        }
         setError(err instanceof Error ? err : new Error(String(err)));
         setLoaded(true);
       });
