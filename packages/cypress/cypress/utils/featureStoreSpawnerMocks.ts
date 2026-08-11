@@ -1,8 +1,6 @@
-import {
-  mockDashboardConfig,
-  mockDscStatus,
-  mockNotebookK8sResource,
-} from '@odh-dashboard/internal/__mocks__';
+import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
+import { mockDscStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDscStatus';
+import { mockNotebookK8sResource } from '@odh-dashboard/internal/__mocks__';
 import type { NotebookKind } from '@odh-dashboard/k8s-core';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 
@@ -69,6 +67,23 @@ export const mockWorkbenchIntegrationResponse = {
 export const mockEmptyWorkbenchIntegrationResponse = {
   namespaces: [],
 };
+
+export const mockWorkbenchIntegrationForProjects = (
+  projectNames: string[],
+  namespace = 'test-feast-namespace',
+): typeof mockWorkbenchIntegrationResponse => ({
+  namespaces: [
+    {
+      namespace,
+      clientConfigs: projectNames.map((projectName) => ({
+        configName: projectName,
+        projectName,
+        hasAccessToFeatureStore: true,
+        permissionLevel: ['Read'],
+      })),
+    },
+  ],
+});
 
 type InitFeatureStoreSpawnerInterceptsOptions = {
   workbenchIntegration?:

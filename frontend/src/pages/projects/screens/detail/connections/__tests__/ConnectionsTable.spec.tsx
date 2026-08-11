@@ -1,12 +1,12 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
+import { mockConnectionTypeConfigMapObj } from '@odh-dashboard/k8s-core/__mocks__/mockConnectionType';
+import { mockInferenceServiceK8sResource } from '@odh-dashboard/model-serving/__mocks__/mockInferenceServiceK8sResource';
 import ConnectionsTable from '#~/pages/projects/screens/detail/connections/ConnectionsTable';
-import { mockConnectionTypeConfigMapObj } from '#~/__mocks__/mockConnectionType';
 import { mockConnection } from '#~/__mocks__/mockConnection';
 import { mockNotebookK8sResource } from '#~/__mocks__/mockNotebookK8sResource';
 import { useRelatedNotebooks } from '#~/pages/projects/notebook/useRelatedNotebooks';
 import { useInferenceServicesForConnection } from '#~/pages/projects/useInferenceServicesForConnection';
-import { mockInferenceServiceK8sResource } from '#~/__mocks__';
 
 jest.mock('#~/pages/projects/notebook/useRelatedNotebooks', () => ({
   ...jest.requireActual('#~/pages/projects/notebook/useRelatedNotebooks'),

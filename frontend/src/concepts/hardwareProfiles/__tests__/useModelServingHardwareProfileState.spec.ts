@@ -1,7 +1,8 @@
 import { testHook } from '@odh-dashboard/jest-config/hooks';
 import * as areasUtils from '@odh-dashboard/plugin-core/areas';
 import { mockHardwareProfile } from '@odh-dashboard/hardware-profiles/__mocks__/mockHardwareProfile';
-import { mockDashboardConfig, mockServingRuntimeK8sResource } from '#~/__mocks__';
+import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
+import { mockServingRuntimeK8sResource } from '@odh-dashboard/model-serving/__mocks__/mockServingRuntimeK8sResource';
 import * as appContext from '#~/app/AppContext';
 import useServingHardwareProfileConfig from '#~/concepts/hardwareProfiles/useServingHardwareProfileConfig';
 import { useModelServingHardwareProfileState } from '#~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';

@@ -30,6 +30,7 @@
     "@odh-dashboard/hardware-profiles": "*",
     "@odh-dashboard/internal": "*",
     "@odh-dashboard/k8s-core": "*",
+    "@odh-dashboard/llmd-serving": "*",
     "@odh-dashboard/maas": "*",
     "@odh-dashboard/model-registry": "*",
     "@odh-dashboard/model-serving": "*",
