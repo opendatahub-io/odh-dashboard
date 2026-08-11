@@ -1,6 +1,6 @@
 import React from 'react';
 import { PageSection, Wizard, WizardStep } from '@patternfly/react-core';
-import { ApplicationsPage } from '@odh-dashboard/ui-core';
+import { ApplicationsPage, TrackingOutcome } from '@odh-dashboard/ui-core';
 import type { ProjectKind } from '@odh-dashboard/k8s-core';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import {
@@ -30,6 +30,7 @@ import {
   ModelDeploymentFooter,
   ModelDeploymentWizardFooter,
 } from '../generic/WizardFooterWithDisablingNext';
+import { fireModelDeployed } from '../../shared/tracking/deploymentTracking';
 
 export type ModelDeploymentWizardViewMode = 'form' | 'yaml-preview' | 'yaml-edit';
 
@@ -54,9 +55,20 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
   returnRoute,
   cancelReturnRoute,
 }) => {
+  const isEdit = !!existingDeployment;
   const onRefresh = useRefreshWizardPage(existingDeployment);
-  const { isExitModalOpen, openExitModal, closeExitModal, handleExitConfirm, exitWizardOnSubmit } =
-    useExitDeploymentWizard({ returnRoute, cancelReturnRoute });
+  const {
+    isExitModalOpen,
+    openExitModal,
+    closeExitModal,
+    handleExitConfirm: baseHandleExitConfirm,
+    exitWizardOnSubmit,
+  } = useExitDeploymentWizard({ returnRoute, cancelReturnRoute });
+
+  const handleExitConfirm = React.useCallback(() => {
+    fireModelDeployed({ outcome: TrackingOutcome.cancel }, isEdit);
+    baseHandleExitConfirm();
+  }, [baseHandleExitConfirm, isEdit]);
 
   const isYAMLViewerEnabled = useIsAreaAvailable(SupportedArea.YAML_VIEWER).status;
   const [viewMode, setViewMode] = React.useState<ModelDeploymentWizardViewMode>(
