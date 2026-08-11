@@ -264,7 +264,10 @@ function AutomlConfigurePage({
                     if (data.eval_metric !== initialValues?.eval_metric) {
                       changedFields.push('optimizationMetric');
                     }
-                    if (data.target_column !== initialValues?.target_column) {
+                    // The submit transformer deletes `target_column`, moving its value to
+                    // `target` (timeseries) or `label_column` (tabular) — compare against
+                    // whichever one is populated post-transform.
+                    if ((data.target ?? data.label_column) !== initialValues?.target_column) {
                       changedFields.push('targetColumn');
                     }
                     if (data.train_data_secret_name !== initialValues?.train_data_secret_name) {

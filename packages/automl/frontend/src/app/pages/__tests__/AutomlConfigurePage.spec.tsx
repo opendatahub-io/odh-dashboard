@@ -5,7 +5,11 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { BrowserRouter } from 'react-router';
+import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import AutomlConfigurePage from '~/app/pages/AutomlConfigurePage';
+import { AUTOML_EVENTS } from '~/app/utilities/tracking';
+
+const fireFormTrackingEventMock = jest.mocked(fireFormTrackingEvent);
 
 const mockNavigate = jest.fn();
 const mockUseParams = jest.fn();
@@ -67,6 +71,10 @@ jest.mock('~/app/hooks/useNotification', () => ({
   useNotification: jest.fn(() => ({
     error: mockNotificationError,
   })),
+}));
+
+jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
+  fireFormTrackingEvent: jest.fn(),
 }));
 
 jest.mock('mod-arch-shared', () => ({
@@ -1075,6 +1083,98 @@ describe('AutomlConfigurePage', () => {
         expect(screen.getByTestId('aws-secret-selector-value')).toHaveTextContent('aws-secret-1');
         expect(screen.getByText('train.csv')).toBeInTheDocument();
         expect(screen.getByTestId('task-type-card-binary')).toHaveClass('pf-m-selected');
+      });
+    });
+
+    describe('AutoML Run Reconfigured tracking - changedFields', () => {
+      const tabularInitialValues = {
+        display_name: 'Reconfigured Run',
+        description: 'A reconfigured experiment',
+        train_data_secret_name: 'Test AWS Secret',
+        train_data_bucket_name: 'test-bucket',
+        train_data_file_key: 'my-data/train.csv',
+        task_type: 'binary' as const,
+        target_column: 'column1',
+        // Real AutomlReconfigureLoader always resolves and pre-fills eval_metric — mirror that
+        // here so the assertions aren't polluted by a spurious optimizationMetric diff.
+        eval_metric: 'accuracy' as const,
+        top_n: 7,
+      };
+      const tabularInitialSecret = {
+        uuid: 'aws-secret-1',
+        name: 'Test AWS Secret',
+        displayName: 'Test AWS Secret',
+        data: { AWS_S3_BUCKET: 'test-bucket', AWS_DEFAULT_REGION: 'us-east-1' },
+        type: 's3',
+        invalid: false,
+      };
+
+      it('should NOT include targetColumn in changedFields when the target column is unchanged', async () => {
+        const user = userEvent.setup();
+        mockMutateAsync.mockResolvedValue({ run_id: 'reconfigured-run-1' });
+
+        renderWithProviders(
+          <AutomlConfigurePage
+            initialValues={tabularInitialValues}
+            initialInputDataSecret={tabularInitialSecret}
+            sourceRunId="run-1"
+          />,
+        );
+
+        const nextButton = await screen.findByRole('button', { name: 'Next' });
+        await waitFor(() => expect(nextButton).toBeEnabled());
+        await user.click(nextButton);
+
+        const submitButton = await screen.findByRole('button', { name: 'Create new run' });
+        await waitFor(() => expect(submitButton).toBeEnabled());
+        await user.click(submitButton);
+
+        await waitFor(() => expect(mockMutateAsync).toHaveBeenCalled());
+        expect(fireFormTrackingEventMock).toHaveBeenCalledWith(
+          AUTOML_EVENTS.RUN_RECONFIGURED,
+          expect.objectContaining({ changedFields: '' }),
+        );
+      });
+
+      it('should include targetColumn in changedFields when the target column is changed', async () => {
+        const user = userEvent.setup();
+        mockMutateAsync.mockResolvedValue({ run_id: 'reconfigured-run-2' });
+
+        renderWithProviders(
+          <AutomlConfigurePage
+            initialValues={tabularInitialValues}
+            initialInputDataSecret={tabularInitialSecret}
+            sourceRunId="run-1"
+          />,
+        );
+
+        const nextButton = await screen.findByRole('button', { name: 'Next' });
+        await waitFor(() => expect(nextButton).toBeEnabled());
+        await user.click(nextButton);
+
+        // Change the target column to a different column
+        const targetColumnSelect = await screen.findByTestId('target_column-select');
+        await user.click(targetColumnSelect);
+        const columnOption = await screen.findByRole('option', { name: /column2/i });
+        await user.click(columnOption);
+
+        // Re-select the prediction type, since changing the target column resets it
+        const regressionCard = await screen.findByTestId('task-type-card-regression');
+        await user.click(regressionCard);
+
+        const submitButton = await screen.findByRole('button', { name: 'Create new run' });
+        await waitFor(() => expect(submitButton).toBeEnabled());
+        await user.click(submitButton);
+
+        await waitFor(() => expect(mockMutateAsync).toHaveBeenCalled());
+        // Switching prediction type also recomputes the default optimization metric for the
+        // new task type, so that legitimately shows up as changed too.
+        expect(fireFormTrackingEventMock).toHaveBeenCalledWith(
+          AUTOML_EVENTS.RUN_RECONFIGURED,
+          expect.objectContaining({
+            changedFields: 'predictionType,optimizationMetric,targetColumn',
+          }),
+        );
       });
     });
   });
