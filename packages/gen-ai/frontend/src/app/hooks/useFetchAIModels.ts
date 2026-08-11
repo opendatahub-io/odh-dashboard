@@ -34,6 +34,12 @@ const REQUIRED_STRING_FIELDS = [
 
 const VALID_SOURCE_TYPES: ReadonlySet<string> = new Set(['namespace', 'custom_endpoint', 'maas']);
 
+const EMPTY_CLUSTER_DOMAINS: string[] = [];
+const EMPTY_QUERY_PARAMS: Record<string, string> = {};
+const MAAS_QUERY_PARAMS: Record<string, string> = {
+  sources: 'namespace,custom_endpoint,maas',
+};
+
 export const isValidAAModel = (item: unknown): item is AAModelResponse =>
   item != null &&
   typeof item === 'object' &&
@@ -48,14 +54,11 @@ const useFetchAIModels = (): FetchStateObject<AIModel[]> => {
   const maaSEnabled = !!useAiAssetModelAsServiceEnabled();
   const genAiConfig = useGenAiDashboardConfig();
   const clusterDomains = React.useMemo(
-    () => genAiConfig?.aiAssetCustomEndpoints?.clusterDomains ?? [],
+    () => genAiConfig?.aiAssetCustomEndpoints?.clusterDomains ?? EMPTY_CLUSTER_DOMAINS,
     [genAiConfig],
   );
 
-  const queryParams = React.useMemo(
-    () => (maaSEnabled ? { sources: 'namespace,custom_endpoint,maas' } : {}),
-    [maaSEnabled],
-  );
+  const queryParams = maaSEnabled ? MAAS_QUERY_PARAMS : EMPTY_QUERY_PARAMS;
 
   const fetchAIModels = React.useCallback<FetchStateCallbackPromise<AIModel[]>>(
     async (opts: APIOptions) => {
