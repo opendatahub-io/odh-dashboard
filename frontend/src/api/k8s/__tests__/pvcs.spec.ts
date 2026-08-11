@@ -8,7 +8,7 @@ import {
 } from '@openshift/dynamic-plugin-sdk-utils';
 import type { PersistentVolumeClaimKind } from '@odh-dashboard/k8s-core';
 import { mockPVCK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockPVCK8sResource';
-import { mock200Status, mock404Error } from '#~/__mocks__/mockK8sStatus';
+import { mock200Status, mock404Error } from '@odh-dashboard/k8s-core/__mocks__/mockK8sStatus';
 import {
   assemblePvc,
   createPvc,

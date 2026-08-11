@@ -80,5 +80,41 @@ var _ = Describe("TestMcpServersCatalogHandler", func() {
 			Expect(actual.Data.Size).To(Equal(expected.Data.Size))
 			Expect(len(actual.Data.Items)).To(Equal(len(expected.Data.Items)))
 		})
+
+		It("should retrieve the MCP server logo image", func() {
+			By("fetching the MCP server logo by server_id")
+			requestIdentity := kubernetes.RequestIdentity{
+				UserID: "user@example.com",
+			}
+
+			rs, body, err := serveApiTest(http.MethodGet, "/api/v1/mcp_catalog/mcp_servers/1/logo?namespace=kubeflow", nil, kubernetesMockedStaticClientFactory, requestIdentity, "kubeflow")
+			Expect(err).NotTo(HaveOccurred())
+
+			By("should return the raw logo image bytes with an image content type")
+			Expect(rs.StatusCode).To(Equal(http.StatusOK))
+			Expect(rs.Header.Get("Content-Type")).To(HavePrefix("image/"))
+			Expect(rs.Header.Get("Content-Disposition")).To(Equal("inline"))
+			Expect(len(body)).To(BeNumerically(">", 0))
+
+			By("should preserve the catalog's protective headers so re-serving under the dashboard origin does not re-open stored XSS on SVG logos")
+			Expect(rs.Header.Get("X-Content-Type-Options")).To(Equal("nosniff"))
+			Expect(rs.Header.Get("Content-Security-Policy")).To(Equal("default-src 'none'; style-src 'unsafe-inline'; sandbox"))
+		})
+
+		It("should translate an upstream logo error into a structured JSON error", func() {
+			By("fetching a logo whose catalog response is a non-2xx status")
+			requestIdentity := kubernetes.RequestIdentity{
+				UserID: "user@example.com",
+			}
+
+			rs, body, err := serveApiTest(http.MethodGet, "/api/v1/mcp_catalog/mcp_servers/missing/logo?namespace=kubeflow", nil, kubernetesMockedStaticClientFactory, requestIdentity, "kubeflow")
+			Expect(err).NotTo(HaveOccurred())
+
+			By("should return the upstream status as a structured JSON error, not the raw plaintext body")
+			Expect(rs.StatusCode).To(Equal(http.StatusNotFound))
+			Expect(rs.Header.Get("Content-Type")).To(Equal("application/json"))
+			Expect(string(body)).To(ContainSubstring(`"error"`))
+			Expect(string(body)).NotTo(Equal("404 page not found"))
+		})
 	})
 })

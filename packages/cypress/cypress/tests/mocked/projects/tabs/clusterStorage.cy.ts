@@ -1,8 +1,8 @@
+import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
+import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
+import { mockInferenceServiceK8sResource } from '@odh-dashboard/model-serving/__mocks__/mockInferenceServiceK8sResource';
 import {
   buildMockStorageClass,
-  mockDashboardConfig,
-  mockInferenceServiceK8sResource,
-  mockK8sResourceList,
   mockNotebookK8sResource,
   mockStorageClasses,
   mockStorageClassList,
@@ -11,8 +11,8 @@ import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockPr
 
 import { mockClusterSettings } from '@odh-dashboard/internal/__mocks__/mockClusterSettings';
 import { mockPVCK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockPVCK8sResource';
-import { mockPodK8sResource } from '@odh-dashboard/internal/__mocks__/mockPodK8sResource';
-import { mock200Status } from '@odh-dashboard/internal/__mocks__/mockK8sStatus';
+import { mockPodK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockPodK8sResource';
+import { mock200Status } from '@odh-dashboard/k8s-core/__mocks__/mockK8sStatus';
 import { mockPrometheusQueryVectorResponse } from '@odh-dashboard/internal/__mocks__/mockPrometheusQueryVectorResponse';
 import {
   clusterStorage,

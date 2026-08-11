@@ -1,4 +1,6 @@
-import { mock403Error, mockDashboardConfig, mockStatus } from '@odh-dashboard/internal/__mocks__';
+import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
+import { mock403Error } from '@odh-dashboard/k8s-core/__mocks__/mockK8sStatus';
+import { mockStatus } from '@odh-dashboard/internal/__mocks__';
 import { mockSelfSubjectAccessReview } from '@odh-dashboard/internal/__mocks__/mockSelfSubjectAccessReview';
 import type { AccessReviewResourceAttributes } from '@odh-dashboard/k8s-core';
 import { ODHDashboardConfigModel, SelfSubjectAccessReviewModel } from './models';

@@ -1,12 +1,12 @@
 import { mockDefaultHardwareProfile } from '@odh-dashboard/hardware-profiles/__mocks__/mockHardwareProfile';
-import type { MockDashboardConfigType } from '@odh-dashboard/internal/__mocks__';
 import {
-  mock200Status,
+  type MockDashboardConfigType,
   mockDashboardConfig,
-  mockDscStatus,
-  mockK8sResourceList,
-  mockSecretK8sResource,
-} from '@odh-dashboard/internal/__mocks__';
+} from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
+import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
+import { mockSecretK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockSecretK8sResource';
+import { mockDscStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDscStatus';
+import { mock200Status } from '@odh-dashboard/k8s-core/__mocks__/mockK8sStatus';
 import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import {
   mockNimImages,
@@ -18,10 +18,10 @@ import {
   mockNimServingRuntimeTemplate,
   mockNvidiaNimAccessSecret,
   mockNvidiaNimImagePullSecret,
-} from '@odh-dashboard/internal/__mocks__/mockLegacyNimResource';
+} from '@odh-dashboard/model-serving/__mocks__/mockLegacyNimResource';
 import type { InferenceServiceKind } from '@odh-dashboard/model-serving/shared';
 import { mockNimAccount } from '@odh-dashboard/internal/__mocks__/mockNimAccount';
-import { mockOdhApplication } from '@odh-dashboard/internal/__mocks__/mockOdhApplication';
+import { mockOdhApplication } from '@odh-dashboard/k8s-core/__mocks__/mockOdhApplication';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import {
   ConfigMapModel,

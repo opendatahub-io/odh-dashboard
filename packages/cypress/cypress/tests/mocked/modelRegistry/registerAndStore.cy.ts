@@ -3,14 +3,12 @@
 // For upstream register-and-store tests (namespace selector, form submission, transfer jobs, etc.), see:
 //   packages/model-registry/upstream/frontend/src/__tests__/cypress/cypress/tests/mocked/modelRegistry/registerAndStoreFields.cy.ts
 
-import {
-  mockDashboardConfig,
-  mockDscStatus,
-  mockK8sResourceList,
-  mockModelVersionList,
-} from '@odh-dashboard/internal/__mocks__';
+import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
+import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
+import { mockDscStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDscStatus';
+import { mockModelVersionList } from '@odh-dashboard/internal/__mocks__';
 import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
-import { mockDsciStatus } from '@odh-dashboard/internal/__mocks__/mockDsciStatus';
+import { mockDsciStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDsciStatus';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import { mockRegisteredModel } from '@odh-dashboard/internal/__mocks__/mockRegisteredModel';
 import { mockModelVersion } from '@odh-dashboard/internal/__mocks__/mockModelVersion';

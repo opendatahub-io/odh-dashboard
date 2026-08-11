@@ -292,3 +292,46 @@ export const getKueueStatusInfo = (status: KueueWorkloadStatus): KueueStatusInfo
       return { label: status, color: 'grey', IconComponent: OutlinedClockIcon };
   }
 };
+
+/**
+ * Priority order for most-restrictive-state aggregation across multiple Workload CRs.
+ * Earlier in the array = more restrictive = wins over later entries.
+ */
+const AGGREGATE_PRIORITY_ORDER: KueueWorkloadStatus[] = [
+  KueueWorkloadStatus.Failed,
+  KueueWorkloadStatus.Evicted,
+  KueueWorkloadStatus.Inadmissible,
+  KueueWorkloadStatus.BlockedOnPreemptionGates,
+  KueueWorkloadStatus.Preempted,
+  KueueWorkloadStatus.Requeued,
+  KueueWorkloadStatus.Queued,
+  KueueWorkloadStatus.AdmissionCheck,
+  KueueWorkloadStatus.Admitted,
+  KueueWorkloadStatus.Running,
+  KueueWorkloadStatus.Complete,
+];
+
+/**
+ * Aggregate Kueue status across multiple Workload CRs for one model deployment.
+ * Most-restrictive state wins — e.g. if 2 of 3 pods are Running and 1 is Queued,
+ * the model-level status is Queued.
+ *
+ * The returned workloadName belongs to the Workload that supplied the winning status,
+ * not necessarily the first Workload in the list.
+ *
+ * Returns null when workloads array is empty (model has no correlated Workload CRs).
+ */
+export const aggregateKueueStatusForModel = (
+  workloads: WorkloadKind[],
+): KueueWorkloadStatusWithMessage | null => {
+  if (workloads.length === 0) return null;
+  const statuses = workloads.map((wl) => ({
+    ...getKueueWorkloadStatusWithMessage(wl),
+    workloadName: wl.metadata?.name,
+  }));
+  for (const target of AGGREGATE_PRIORITY_ORDER) {
+    const match = statuses.find((s) => s.status === target);
+    if (match) return match;
+  }
+  return statuses[0];
+};

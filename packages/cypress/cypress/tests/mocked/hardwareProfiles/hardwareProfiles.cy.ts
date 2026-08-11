@@ -2,11 +2,9 @@ import {
   mockDefaultHardwareProfile,
   mockHardwareProfile,
 } from '@odh-dashboard/hardware-profiles/__mocks__/mockHardwareProfile';
-import {
-  mock200Status,
-  mockDashboardConfig,
-  mockK8sResourceList,
-} from '@odh-dashboard/internal/__mocks__';
+import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
+import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
+import { mock200Status } from '@odh-dashboard/k8s-core/__mocks__/mockK8sStatus';
 import { IdentifierResourceType, SchedulingType } from '@odh-dashboard/k8s-core';
 import { mockSelfSubjectAccessReview } from '@odh-dashboard/internal/__mocks__/mockSelfSubjectAccessReview';
 import { hardwareProfile } from '../../../pages/hardwareProfile';

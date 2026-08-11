@@ -1,6 +1,6 @@
 import { k8sDeleteResource } from '@openshift/dynamic-plugin-sdk-utils';
 import { K8sStatusError } from '@odh-dashboard/k8s-core';
-import { mockLLMInferenceServiceK8sResource } from '@odh-dashboard/internal/__mocks__/mockLLMInferenceServiceK8sResource';
+import { mockLLMInferenceServiceK8sResource } from '@odh-dashboard/llmd-serving/__mocks__/mockLLMInferenceServiceK8sResource';
 import { deleteDeployment } from '../LLMdDeployment';
 import {
   LLMInferenceServiceConfigModel,
