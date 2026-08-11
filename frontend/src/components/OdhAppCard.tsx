@@ -19,7 +19,7 @@ import {
 import { css } from '@patternfly/react-styles';
 import { EllipsisVIcon, ExclamationCircleIcon, ExternalLinkAltIcon } from '@patternfly/react-icons';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
-import { OdhApplication } from '#~/types';
+import type { OdhApplication } from '@odh-dashboard/k8s-core';
 import { getLaunchStatus, launchQuickStart } from '#~/utilities/quickStartUtils';
 import EnableModal from '#~/pages/exploreApplication/EnableModal';
 import { removeComponent } from '#~/services/componentsServices';

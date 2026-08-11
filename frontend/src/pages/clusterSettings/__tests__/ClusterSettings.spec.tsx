@@ -2,12 +2,12 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
+import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
 import ClusterSettings from '#~/pages/clusterSettings/ClusterSettings';
 import { useAppContext } from '#~/app/AppContext';
 import { useAppDispatch } from '#~/redux/hooks';
 import { fetchClusterSettings, updateClusterSettings } from '#~/services/clusterSettingsService';
 import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
-import { mockDashboardConfig } from '#~/__mocks__/mockDashboardConfig';
 import { DEFAULT_CONFIG } from '#~/pages/clusterSettings/const';
 
 jest.mock('#~/app/AppContext', () => ({

@@ -1,5 +1,5 @@
 import { genUID } from '@odh-dashboard/foundation';
-import { RouteKind } from '#~/k8sTypes';
+import type { RouteKind } from '../k8sTypes';
 
 type MockResourceConfigType = {
   name?: string;

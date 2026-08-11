@@ -10,6 +10,7 @@ export {
 export type {
   LabeledConnection,
   ModelStatus,
+  NimServingResponse,
   SupportedModelFormatsInfo,
   ServingRuntimeToken,
   CreatingModelServingObjectCommon,

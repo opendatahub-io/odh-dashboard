@@ -1,29 +1,24 @@
 import type {
+  ConfigMapKind,
   PersistentVolumeClaimKind,
   ProjectKind,
   SecretKind,
   TemplateKind,
 } from '@odh-dashboard/k8s-core';
+import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
+import { mockPVCK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockPVCK8sResource';
+import { mockConfigMap } from '@odh-dashboard/k8s-core/__mocks__/mockConfigMap';
+import { mockSecretK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockSecretK8sResource';
+import { mockServingRuntimeK8sResource } from './mockServingRuntimeK8sResource';
+import { mockInferenceServiceK8sResource } from './mockInferenceServiceK8sResource';
+import { mockServingRuntimeTemplateK8sResource } from './mockServingRuntimeTemplateK8sResource';
 import {
   InferenceServiceKind,
   ServingRuntimeKind,
   ServingRuntimeAPIProtocol,
   ServingRuntimePlatform,
-} from '@odh-dashboard/model-serving/shared';
-import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
-import { mockPVCK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockPVCK8sResource';
-import { ConfigMapKind } from '#~/k8sTypes';
-import { mockConfigMap } from './mockConfigMap';
-import { mockServingRuntimeK8sResource } from './mockServingRuntimeK8sResource';
-import { mockInferenceServiceK8sResource } from './mockInferenceServiceK8sResource';
-import { mockServingRuntimeTemplateK8sResource } from './mockServingRuntimeTemplateK8sResource';
-import { mockSecretK8sResource } from './mockSecretK8sResource';
-
-export type NimServingResponse = {
-  body: {
-    body: ConfigMapKind | SecretKind;
-  };
-};
+} from '../shared';
+import type { NimServingResponse } from '../shared';
 
 export const mockNimImages = (): ConfigMapKind =>
   mockConfigMap({

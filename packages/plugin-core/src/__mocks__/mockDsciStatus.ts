@@ -2,7 +2,7 @@ import type {
   K8sCondition,
   DataScienceClusterInitializationKindStatus,
 } from '@odh-dashboard/k8s-core';
-import type { StackCapability } from '@odh-dashboard/plugin-core/areas';
+import type { StackCapability } from '../areas';
 
 export type MockDsciStatus = {
   conditions?: K8sCondition[];

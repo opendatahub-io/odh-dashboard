@@ -1,4 +1,4 @@
-import { mockLLMInferenceServiceK8sResource } from '@odh-dashboard/internal/__mocks__/mockLLMInferenceServiceK8sResource';
+import { mockLLMInferenceServiceK8sResource } from '@odh-dashboard/llmd-serving/__mocks__/mockLLMInferenceServiceK8sResource';
 import { LLMdDeployment, LLMInferenceServiceKind } from '../../../types';
 import { applyGatewaySelectData, extractGatewaySelectData } from '../gatewaySelectApplyExtract';
 

@@ -1,7 +1,7 @@
-import { type LLMInferenceServiceKind } from '@odh-dashboard/llmd-serving/types';
 import { ServingRuntimeModelType } from '@odh-dashboard/model-serving/shared';
 import { genUID } from '@odh-dashboard/foundation';
-import { ModelAnnotation } from '#~/pages/projects/screens/spawner/storage/types.ts';
+import { ModelAnnotation } from '@odh-dashboard/internal/pages/projects/screens/spawner/storage/types';
+import { type LLMInferenceServiceKind } from '../types';
 
 type MockLLMInferenceServiceConfigType = {
   name?: string;
