@@ -781,7 +781,8 @@ func getRaw(c *EvalHubClient, ctx context.Context, path string, extraHeaders map
 	}
 	defer resp.Body.Close()
 
-	body, err := io.ReadAll(resp.Body)
+	const maxLogResponseSize = 10 * 1024 * 1024 // 10MB
+	body, err := io.ReadAll(io.LimitReader(resp.Body, maxLogResponseSize))
 	if err != nil {
 		return "", err
 	}

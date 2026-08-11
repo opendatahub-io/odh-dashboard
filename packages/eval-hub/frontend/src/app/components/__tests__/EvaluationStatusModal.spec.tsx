@@ -286,3 +286,206 @@ describe('EvaluationStatusModal ANSI stripping', () => {
     expect(logContent.textContent).not.toContain('\x1B');
   });
 });
+
+describe('EvaluationStatusModal auto tab selection', () => {
+  it('should default to failure-info tab for failed jobs', () => {
+    renderModal({ state: 'failed', statusMessage: 'Something went wrong' });
+
+    expect(screen.getByTestId('failure-info-tab')).toHaveAttribute('aria-selected', 'true');
+  });
+
+  it('should default to failure-info tab for partially_failed jobs', () => {
+    renderModal({ state: 'partially_failed', statusMessage: 'Some benchmarks failed' });
+
+    expect(screen.getByTestId('failure-info-tab')).toHaveAttribute('aria-selected', 'true');
+  });
+
+  it('should default to events-log tab for running jobs', () => {
+    renderModal({ state: 'running' });
+
+    expect(screen.getByTestId('events-log-tab')).toHaveAttribute('aria-selected', 'true');
+  });
+
+  it('should default to events-log tab for completed jobs', () => {
+    renderModal({ state: 'completed' });
+
+    expect(screen.getByTestId('events-log-tab')).toHaveAttribute('aria-selected', 'true');
+  });
+
+  it('should not render the failure-info tab for non-failed jobs', () => {
+    renderModal({ state: 'running' });
+
+    expect(screen.queryByTestId('failure-info-tab')).not.toBeInTheDocument();
+  });
+});
+
+describe('EvaluationStatusModal failure detail labels', () => {
+  it('should render message_origin label on the failure-info tab', () => {
+    const job = mockEvaluationJob({ state: 'failed' });
+    job.status.message = {
+      message: 'Error occurred',
+      // eslint-disable-next-line camelcase
+      message_origin: 'lm_evaluation_harness',
+    };
+
+    render(<EvaluationStatusModal job={job} namespace="test-ns" onClose={mockOnClose} />);
+
+    expect(screen.getByTestId('failure-detail-origin')).toHaveTextContent('lm_evaluation_harness');
+  });
+
+  it('should render message_code label on the failure-info tab', () => {
+    const job = mockEvaluationJob({ state: 'failed' });
+    job.status.message = {
+      message: 'Error occurred',
+      // eslint-disable-next-line camelcase
+      message_code: 'quota_exceeded',
+    };
+
+    render(<EvaluationStatusModal job={job} namespace="test-ns" onClose={mockOnClose} />);
+
+    expect(screen.getByTestId('failure-detail-code')).toHaveTextContent('Quota exceeded');
+  });
+
+  it('should render raw code when message_code is unknown', () => {
+    const job = mockEvaluationJob({ state: 'failed' });
+    job.status.message = {
+      message: 'Error occurred',
+      // eslint-disable-next-line camelcase
+      message_code: 'some_new_code',
+    };
+
+    render(<EvaluationStatusModal job={job} namespace="test-ns" onClose={mockOnClose} />);
+
+    expect(screen.getByTestId('failure-detail-code')).toHaveTextContent('some_new_code');
+  });
+
+  it('should not render origin/code labels when they are absent', () => {
+    const job = mockEvaluationJob({ state: 'failed' });
+    job.status.message = { message: 'Something failed' };
+
+    render(<EvaluationStatusModal job={job} namespace="test-ns" onClose={mockOnClose} />);
+
+    expect(screen.queryByTestId('failure-detail-origin')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('failure-detail-code')).not.toBeInTheDocument();
+  });
+});
+
+describe('EvaluationStatusModal TruncatedMessage', () => {
+  it('should show full message when it has 3 or fewer lines', () => {
+    const job = mockEvaluationJob({ state: 'failed', statusMessage: 'Line 1\nLine 2\nLine 3' });
+
+    render(<EvaluationStatusModal job={job} namespace="test-ns" onClose={mockOnClose} />);
+
+    const reason = screen.getByTestId('failure-detail-reason');
+    expect(reason).toHaveTextContent('Line 1');
+    expect(reason).toHaveTextContent('Line 3');
+    expect(screen.queryByTestId('failure-message-toggle')).not.toBeInTheDocument();
+  });
+
+  it('should truncate long messages and show a toggle button', () => {
+    const longMessage = 'Line 1\nLine 2\nLine 3\nLine 4\nLine 5';
+    const job = mockEvaluationJob({ state: 'failed', statusMessage: longMessage });
+
+    render(<EvaluationStatusModal job={job} namespace="test-ns" onClose={mockOnClose} />);
+
+    expect(screen.getByTestId('failure-message-toggle')).toHaveTextContent('Show more');
+  });
+
+  it('should expand and collapse the truncated message', () => {
+    const longMessage = 'Line 1\nLine 2\nLine 3\nLine 4\nLine 5';
+    const job = mockEvaluationJob({ state: 'failed', statusMessage: longMessage });
+
+    render(<EvaluationStatusModal job={job} namespace="test-ns" onClose={mockOnClose} />);
+
+    const toggle = screen.getByTestId('failure-message-toggle');
+    fireEvent.click(toggle);
+    expect(toggle).toHaveTextContent('Show less');
+
+    fireEvent.click(toggle);
+    expect(toggle).toHaveTextContent('Show more');
+  });
+});
+
+describe('EvaluationStatusModal log parsing', () => {
+  it('should parse structured log entries with level and timestamp', () => {
+    mockUseEvaluationJobLogs.mockReturnValue({
+      logs: '2026-01-15 09:30:00,123 - evaluator - ERROR - Model connection failed\n2026-01-15 09:30:01,456 - evaluator - INFO - Retrying connection',
+      loaded: true,
+      error: undefined,
+      refresh: jest.fn(),
+    });
+
+    renderModal();
+
+    const logContent = screen.getByTestId('log-content');
+    expect(logContent.textContent).toContain('Model connection failed');
+    expect(logContent.textContent).toContain('Retrying connection');
+    expect(logContent.textContent).toContain('ERROR');
+    expect(logContent.textContent).toContain('INFO');
+  });
+
+  it('should render section headers from === delimited lines', () => {
+    mockUseEvaluationJobLogs.mockReturnValue({
+      logs: '=== Running benchmark arc_easy ===\n2026-01-15 09:30:00,123 - main - INFO - Starting',
+      loaded: true,
+      error: undefined,
+      refresh: jest.fn(),
+    });
+
+    renderModal();
+
+    const logContent = screen.getByTestId('log-content');
+    expect(logContent.textContent).toContain('=== Running benchmark arc_easy ===');
+  });
+
+  it('should show empty state when logs have no content', () => {
+    mockUseEvaluationJobLogs.mockReturnValue({
+      logs: '',
+      loaded: true,
+      error: undefined,
+      refresh: jest.fn(),
+    });
+
+    renderModal();
+
+    expect(screen.getByTestId('logs-empty-alert')).toHaveTextContent(
+      'Logs may have expired after pod cleanup',
+    );
+  });
+
+  it('should show skeleton rows while logs are loading', () => {
+    mockUseEvaluationJobLogs.mockReturnValue({
+      logs: '',
+      loaded: false,
+      error: undefined,
+      refresh: jest.fn(),
+    });
+
+    renderModal();
+
+    const logContent = screen.getByTestId('log-content');
+    expect(logContent.querySelectorAll('.pf-v6-c-skeleton').length).toBeGreaterThan(0);
+  });
+});
+
+describe('EvaluationStatusModal view benchmark logs', () => {
+  it('should switch to events-log tab when "View logs" is clicked for a failed benchmark', () => {
+    const job = mockEvaluationJob({ state: 'failed' });
+    /* eslint-disable camelcase */
+    job.status.benchmarks = [
+      {
+        id: 'bm-a',
+        benchmark_index: 0,
+        status: 'failed',
+        error_message: { message: 'err' },
+      },
+    ];
+    /* eslint-enable camelcase */
+
+    render(<EvaluationStatusModal job={job} namespace="test-ns" onClose={mockOnClose} />);
+
+    fireEvent.click(screen.getByTestId('view-logs-bm-a'));
+
+    expect(screen.getByTestId('events-log-tab')).toHaveAttribute('aria-selected', 'true');
+  });
+});

@@ -52,6 +52,11 @@ jest.mock('mod-arch-core', () => ({
   isModArchResponse: jest.fn(() => true),
 }));
 
+jest.mock('~/app/components/EvaluationStatusModal', () => ({
+  __esModule: true,
+  default: () => null,
+}));
+
 jest.mock('~/app/context/CollectionsContext', () => ({
   useCollectionsContext: jest.fn().mockReturnValue({
     response: { items: [] },
