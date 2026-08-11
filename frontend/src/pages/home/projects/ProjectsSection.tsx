@@ -16,7 +16,7 @@ import useDimensions from 'react-cool-dimensions';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import type { AccessReviewResourceAttributes } from '@odh-dashboard/k8s-core';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
-import { useAccessReview } from '@odh-dashboard/plugin-core/host-api';
+import { useAccessAllowed } from '#~/concepts/userSSAR';
 import ManageProjectModal from '#~/pages/projects/screens/projects/ManageProjectModal';
 import { ProjectsContext } from '#~/concepts/projects/ProjectsContext';
 import EvenlySpacedGallery from '#~/components/EvenlySpacedGallery';
@@ -41,7 +41,7 @@ const ProjectsSection: React.FC = () => {
 
   const { status: projectsAvailable } = useIsAreaAvailable(SupportedArea.DS_PROJECTS_VIEW);
   const { projects: allProjects, loaded, loadError } = React.useContext(ProjectsContext);
-  const [allowCreate, rbacLoaded] = useAccessReview(accessReviewResource);
+  const [allowCreate, rbacLoaded] = useAccessAllowed(accessReviewResource);
   const [createProjectOpen, setCreateProjectOpen] = React.useState<boolean>(false);
   const [visibleCardCount, setVisibleCardCount] = React.useState<number>(5);
 

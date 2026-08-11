@@ -1,5 +1,8 @@
-import { QuickStartContext, QuickStartContextValues } from '@patternfly/quickstarts';
 import * as React from 'react';
+import {
+  QuickStartsContext,
+  type QuickStartContextValues,
+} from '#~/concepts/quickStarts/QuickStartsContext';
 import { launchQuickStart as launchQuickStartUtil } from './quickStartUtils';
 
 type UseQuickStartResult = {
@@ -8,7 +11,7 @@ type UseQuickStartResult = {
 };
 
 export const useQuickStart = (): UseQuickStartResult => {
-  const qsContext = React.useContext<QuickStartContextValues>(QuickStartContext);
+  const qsContext = React.useContext<QuickStartContextValues>(QuickStartsContext);
 
   const launchQuickStart = React.useCallback(
     (quickStartId: string) => {
