@@ -20,6 +20,7 @@ import type {
 } from '@odh-dashboard/k8s-core';
 import { useK8sNameDescriptionFieldData } from '@odh-dashboard/ui-core/components/K8sNameDescriptionField';
 import { createSecret } from '@odh-dashboard/internal/api/k8s/secrets';
+import { fireAutomlS3ConnectionCreated, TrackingOutcome } from '~/app/utilities/tracking';
 
 const S3_REQUIRED_ENV_VARS = ['AWS_DEFAULT_REGION', 'AWS_S3_BUCKET'];
 
@@ -141,6 +142,7 @@ const AutomlConnectionModal: React.FC<Props> = ({
     <Modal
       isOpen
       onClose={() => {
+        fireAutomlS3ConnectionCreated({ outcome: TrackingOutcome.cancel });
         onClose();
       }}
       variant="medium"
@@ -176,7 +178,10 @@ const AutomlConnectionModal: React.FC<Props> = ({
       <ModalFooter>
         <DashboardModalFooter
           submitLabel="Add connection"
-          onCancel={onClose}
+          onCancel={() => {
+            fireAutomlS3ConnectionCreated({ outcome: TrackingOutcome.cancel });
+            onClose();
+          }}
           onSubmit={() => {
             setIsSaving(true);
             setSubmitError(undefined);
@@ -201,11 +206,17 @@ const AutomlConnectionModal: React.FC<Props> = ({
             createSecret(assembledConnection)
               .then(async () => {
                 await onSubmit(assembledConnection);
+                fireAutomlS3ConnectionCreated({ outcome: TrackingOutcome.submit, success: true });
                 onClose(true);
               })
               .catch((e) => {
                 setSubmitError(e);
                 setIsSaving(false);
+                fireAutomlS3ConnectionCreated({
+                  outcome: TrackingOutcome.submit,
+                  success: false,
+                  error: e instanceof Error ? e.message : undefined,
+                });
               });
           }}
           error={submitError}

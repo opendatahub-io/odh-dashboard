@@ -42,6 +42,7 @@ function AutomlResultsPage(): React.JSX.Element {
   const { handleRetry, handleConfirmStop, isRetrying, isTerminating } = useAutomlRunActions(
     namespace ?? '',
     runId ?? '',
+    'resultsPage',
   );
 
   const noNamespaces = namespacesLoaded && namespaces.length === 0;
@@ -295,6 +296,7 @@ function AutomlResultsPage(): React.JSX.Element {
         onConfirm={handleStop}
         isTerminating={isTerminating}
         runName={pipelineRun?.display_name}
+        source="resultsPage"
       />
     </AutomlResultsContext.Provider>
   );

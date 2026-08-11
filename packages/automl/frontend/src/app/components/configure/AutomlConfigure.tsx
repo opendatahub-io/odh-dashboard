@@ -104,11 +104,14 @@ import './AutomlConfigure.scss';
 type AutomlConfigureProps = {
   initialValues?: Partial<ConfigureSchema>;
   initialInputDataSecret?: SecretSelection;
+  /** Reports whether the currently selected prediction type matches the recommendation derived from the target column. */
+  onRecommendationChange?: (isRecommended: boolean) => void;
 };
 
 function AutomlConfigure({
   initialValues,
   initialInputDataSecret,
+  onRecommendationChange,
 }: AutomlConfigureProps): React.JSX.Element {
   const { namespace } = useParams();
   const queryClient = useQueryClient();
@@ -288,6 +291,11 @@ function AutomlConfigure({
       notification.warning('Column schema error', columnsError.message);
     }
   }, [columnsError, notification]);
+
+  // Report whether the selected prediction type matches the target column's recommended type
+  useEffect(() => {
+    onRecommendationChange?.(!selectedColumn?.task_type || taskType === selectedColumn.task_type);
+  }, [selectedColumn, taskType, onRecommendationChange]);
 
   // Sync bucket from the resolved secret object (skips mount to preserve pre-populated values in reconfigure)
   useReconfigureSafeEffect(() => {

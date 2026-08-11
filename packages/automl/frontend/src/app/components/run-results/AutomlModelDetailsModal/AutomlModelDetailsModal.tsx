@@ -19,6 +19,12 @@ import { useAutomlResultsContext } from '~/app/context/AutomlResultsContext';
 import { computeRankMap, resolveEvalMetric } from '~/app/utilities/utils';
 import { TASK_TYPE_TIMESERIES } from '~/app/utilities/const';
 import { useModelEvaluationArtifactsQuery } from '~/app/hooks/queries';
+import {
+  fireAutomlMetricViewed,
+  fireAutomlModelDetailsDownloaded,
+  mapOptimizationMetric,
+  type ModelActionSource,
+} from '~/app/utilities/tracking';
 import { getVisibleTabs, type TabDefinition } from './tabConfig';
 import AutomlModelDetailsModalHeader from './AutomlModelDetailsModalHeader';
 import './AutomlModelDetailsModal.scss';
@@ -28,8 +34,17 @@ type AutomlModelDetailsModalProps = {
   onClose: () => void;
   modelName: string;
   rank: number;
-  onClickSaveNotebook?: (modelName: string) => void;
-  onRegisterModel?: (modelName: string) => void;
+  onClickSaveNotebook?: (modelName: string, source: ModelActionSource) => void;
+  onRegisterModel?: (modelName: string, source: ModelActionSource) => void;
+};
+
+const MODEL_ACTION_SOURCE: ModelActionSource = 'modelDetailsModal';
+
+/** Maps evaluation tabs to the specific metric they surface, for AutoML Metric Viewed tracking. */
+const EVALUATION_TAB_METRIC: Record<string, string | undefined> = {
+  'model-evaluation': undefined, // uses the run's optimized eval metric
+  'roc-curve': 'rocAuc',
+  'precision-recall': 'precision',
 };
 
 /** Group tabs by their section for sidebar rendering. */
@@ -103,7 +118,10 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
     if (!isPrinting) {
       return;
     }
-    const handleAfterPrint = () => setIsPrinting(false);
+    const handleAfterPrint = () => {
+      setIsPrinting(false);
+      fireAutomlModelDetailsDownloaded();
+    };
     window.addEventListener('afterprint', handleAfterPrint);
     window.print();
     return () => {
@@ -113,6 +131,19 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
 
   const activeTab = visibleTabs.find((t) => t.key === activeTabKey);
   const ActiveComponent = activeTab?.component;
+
+  React.useEffect(() => {
+    if (!isOpen || !activeTab || activeTab.section !== 'Evaluation') {
+      return;
+    }
+    if (!(activeTab.key in EVALUATION_TAB_METRIC)) {
+      return;
+    }
+    const metricName = EVALUATION_TAB_METRIC[activeTab.key] ?? mapOptimizationMetric(evalMetric);
+    fireAutomlMetricViewed(metricName);
+    // Fire once per tab/model selection change, not on every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, activeTabKey, selectedModelName]);
 
   const handleBacktestMetricsChange = React.useCallback((metrics: string[]) => {
     backtestMetricsRef.current = metrics;
@@ -160,7 +191,7 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
             onSaveNotebook={
               onClickSaveNotebook
                 ? () => {
-                    onClickSaveNotebook(selectedModelName);
+                    onClickSaveNotebook(selectedModelName, MODEL_ACTION_SOURCE);
                   }
                 : undefined
             }
@@ -168,7 +199,7 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
               onRegisterModel
                 ? () => {
                     onClose();
-                    onRegisterModel(selectedModelName);
+                    onRegisterModel(selectedModelName, MODEL_ACTION_SOURCE);
                   }
                 : undefined
             }

@@ -91,6 +91,7 @@ const renderModal = (
                 <RegisterModelModal
                   onClose={props.onClose ?? jest.fn()}
                   modelName={props.modelName ?? 'TestModel'}
+                  source="leaderboard"
                 />
               </AutomlResultsContext.Provider>
             }

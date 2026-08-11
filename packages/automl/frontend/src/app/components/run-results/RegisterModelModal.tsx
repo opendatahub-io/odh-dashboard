@@ -28,13 +28,19 @@ import { registerModel } from '~/app/api/modelRegistry';
 import type { ModelRegistry, RegisterModelRequest } from '~/app/types';
 import { useAutomlResultsContext } from '~/app/context/AutomlResultsContext';
 import { useNotification } from '~/app/hooks/useNotification';
+import {
+  fireAutomlModelRegistered,
+  TrackingOutcome,
+  type ModelActionSource,
+} from '~/app/utilities/tracking';
 
 type RegisterModelModalProps = {
   onClose: () => void;
   modelName: string;
+  source: ModelActionSource;
 };
 
-const RegisterModelModal: React.FC<RegisterModelModalProps> = ({ onClose, modelName }) => {
+const RegisterModelModal: React.FC<RegisterModelModalProps> = ({ onClose, modelName, source }) => {
   const { namespace } = useParams<{ namespace: string }>();
   const { models, pipelineRun } = useAutomlResultsContext();
   const notification = useNotification();
@@ -118,13 +124,23 @@ const RegisterModelModal: React.FC<RegisterModelModalProps> = ({ onClose, modelN
           onClick: () => window.open(modelDetailsUrl, '_blank', 'noopener,noreferrer'),
         },
       ]);
+      fireAutomlModelRegistered({
+        outcome: TrackingOutcome.submit,
+        success: true,
+        source,
+        registryTarget: variables.registryName,
+      });
       onClose();
     },
     onError: (error: unknown) => {
-      notification.error(
-        'Failed to register model',
-        error instanceof Error ? error.message : 'An unexpected error occurred',
-      );
+      const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
+      notification.error('Failed to register model', errorMessage);
+      fireAutomlModelRegistered({
+        outcome: TrackingOutcome.submit,
+        success: false,
+        source,
+        error: errorMessage,
+      });
     },
   });
 
@@ -330,7 +346,10 @@ const RegisterModelModal: React.FC<RegisterModelModalProps> = ({ onClose, modelN
         </Button>
         <Button
           variant="link"
-          onClick={onClose}
+          onClick={() => {
+            fireAutomlModelRegistered({ outcome: TrackingOutcome.cancel, source });
+            onClose();
+          }}
           isDisabled={isSubmitting}
           data-testid="register-model-cancel"
         >

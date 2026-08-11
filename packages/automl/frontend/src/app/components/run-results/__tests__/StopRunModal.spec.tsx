@@ -10,6 +10,7 @@ describe('StopRunModal', () => {
     onClose: jest.fn(),
     onConfirm: jest.fn(),
     isTerminating: false,
+    source: 'runsList' as const,
   };
 
   beforeEach(() => {

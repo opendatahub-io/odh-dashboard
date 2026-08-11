@@ -11,6 +11,8 @@ import {
   StackItem,
   TextInput,
 } from '@patternfly/react-core';
+import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { AUTOML_EVENTS, TrackingOutcome } from '~/app/utilities/tracking';
 
 type DeleteRunModalProps = {
   isOpen: boolean;
@@ -33,6 +35,10 @@ const DeleteRunModal: React.FC<DeleteRunModalProps> = ({
 
   const handleClose = React.useCallback(() => {
     setConfirmInputValue('');
+    fireFormTrackingEvent(AUTOML_EVENTS.RUN_DELETED, {
+      outcome: TrackingOutcome.cancel,
+      source: 'runsList',
+    });
     onClose();
   }, [onClose]);
 

@@ -17,6 +17,7 @@ import { ApplicationsPage } from 'mod-arch-shared';
 import React, { useCallback, useState } from 'react';
 import { FieldPath, FormProvider, useForm, useWatch } from 'react-hook-form';
 import { Link, useLocation, useNavigate, useParams } from 'react-router';
+import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import AutomlHeader from '~/app/components/common/AutomlHeader/AutomlHeader';
 import AutomlConfigure from '~/app/components/configure/AutomlConfigure';
 import AutomlCreate from '~/app/components/create/AutomlCreate';
@@ -27,6 +28,14 @@ import { useNotification } from '~/app/hooks/useNotification';
 import type { SecretSelection } from '~/app/components/common/SecretSelector';
 import { ConfigureSchema, createConfigureSchema } from '~/app/schemas/configure.schema';
 import { automlExperimentsPathname, automlResultsPathname } from '~/app/utilities/routes';
+import {
+  fireAutomlRunCreated,
+  fireAutomlRunReconfigured,
+  mapOptimizationMetric,
+  mapPredictionType,
+  TrackingOutcome,
+  type RunActionSource,
+} from '~/app/utilities/tracking';
 
 const configureSchema = createConfigureSchema();
 const createFields = ['display_name', 'description'] as const satisfies Array<
@@ -52,11 +61,17 @@ function AutomlConfigurePage({
   const navigate = useNavigate();
   const location = useLocation();
   const notification = useNotification();
-  const fromResultsPage =
-    location.state != null &&
-    typeof location.state === 'object' &&
-    'from' in location.state &&
-    location.state.from === 'results';
+  const locationFrom =
+    location.state != null && typeof location.state === 'object' && 'from' in location.state
+      ? location.state.from
+      : undefined;
+  const fromResultsPage = locationFrom === 'results';
+  const reconfigureSource: RunActionSource | undefined =
+    locationFrom === 'results'
+      ? 'resultsPage'
+      : locationFrom === 'runsList'
+        ? 'runsList'
+        : undefined;
 
   const { namespace } = useParams();
   const { namespaces, namespacesLoaded, namespacesLoadError } =
@@ -82,8 +97,16 @@ function AutomlConfigurePage({
   });
 
   const [step, setStep] = useState<'create' | 'configure'>('create');
+  const isRecommendedRef = React.useRef(true);
 
-  const onCancel = useCallback(() => navigate(-1), [navigate]);
+  const onCancel = useCallback(() => {
+    const eventName = sourceRunId ? 'AutoML Run Reconfigured' : 'AutoML Run Created';
+    fireFormTrackingEvent(eventName, {
+      outcome: TrackingOutcome.cancel,
+      ...(sourceRunId && { source: reconfigureSource }),
+    });
+    navigate(-1);
+  }, [navigate, sourceRunId, reconfigureSource]);
 
   const handleBackToCreate = useCallback(() => {
     // New runs only: clear configure-step values so Back → Next does not show stale S3/file UI.
@@ -224,14 +247,64 @@ function AutomlConfigurePage({
 
             form.handleSubmit(
               async (data: ConfigureSchema) => {
+                const trackingProperties = {
+                  predictionType: mapPredictionType(data.task_type),
+                  optimizationMetric: mapOptimizationMetric(data.eval_metric),
+                  hasTargetColumn: Boolean(data.target_column || data.target || data.label_column),
+                  isRecommended: isRecommendedRef.current,
+                  hasS3Connection: Boolean(data.train_data_secret_name),
+                };
                 try {
                   const pipelineRun = await pipelineRunsMutation.mutateAsync(data);
+                  if (sourceRunId) {
+                    const changedFields: string[] = [];
+                    if (data.task_type !== initialValues?.task_type) {
+                      changedFields.push('predictionType');
+                    }
+                    if (data.eval_metric !== initialValues?.eval_metric) {
+                      changedFields.push('optimizationMetric');
+                    }
+                    if (data.target_column !== initialValues?.target_column) {
+                      changedFields.push('targetColumn');
+                    }
+                    if (data.train_data_secret_name !== initialValues?.train_data_secret_name) {
+                      changedFields.push('s3Connection');
+                    }
+                    fireAutomlRunReconfigured({
+                      ...trackingProperties,
+                      changedFields,
+                      outcome: TrackingOutcome.submit,
+                      success: true,
+                      source: reconfigureSource,
+                    });
+                  } else {
+                    fireAutomlRunCreated({
+                      ...trackingProperties,
+                      outcome: TrackingOutcome.submit,
+                      success: true,
+                    });
+                  }
                   navigate(`${automlResultsPathname}/${namespace}/${pipelineRun.run_id}`);
                 } catch (error) {
-                  notification.error(
-                    'Failed to create pipeline run',
-                    error instanceof Error ? error.message : '',
-                  );
+                  const errorMessage = error instanceof Error ? error.message : '';
+                  if (sourceRunId) {
+                    fireAutomlRunReconfigured({
+                      ...trackingProperties,
+                      changedFields: [],
+                      outcome: TrackingOutcome.submit,
+                      success: false,
+                      error: errorMessage,
+                      source: reconfigureSource,
+                    });
+                  } else {
+                    fireAutomlRunCreated({
+                      ...trackingProperties,
+                      outcome: TrackingOutcome.submit,
+                      success: false,
+                      error: errorMessage,
+                    });
+                  }
+                  notification.error('Failed to create pipeline run', errorMessage);
                 }
               },
               // this `onInvalid` case should be impossible to hit
@@ -255,6 +328,9 @@ function AutomlConfigurePage({
                 <AutomlConfigure
                   initialValues={initialValues}
                   initialInputDataSecret={initialInputDataSecret}
+                  onRecommendationChange={(isRecommended) => {
+                    isRecommendedRef.current = isRecommended;
+                  }}
                 />
               )}
             </PageSection>
