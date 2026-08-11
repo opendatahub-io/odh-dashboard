@@ -14,7 +14,6 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/bffclient"
 	k8s "github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes"
-	"github.com/opendatahub-io/gen-ai/internal/models"
 )
 
 // GenAIProxyNSEmbeddingsHandler handles POST /api/v1/genai-proxy/ns/:namespace/v1/embeddings.
@@ -43,13 +42,13 @@ func (app *App) GenAIProxyNSEmbeddingsHandler(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	// Read and parse the request body to extract model field
+	// Read the full request body — needed both for model extraction and transparent
+	// proxying to upstream (body forwarded unchanged).
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		app.badRequestResponse(w, r, fmt.Errorf("failed to read request body: %w", err))
 		return
 	}
-	defer r.Body.Close()
 
 	var reqBody struct {
 		Model string `json:"model"`
@@ -135,34 +134,11 @@ func (app *App) resolveModelEndpoint(ctx context.Context, modelID, namespace str
 		return "", "", &infraError{msg: fmt.Sprintf("failed to get Kubernetes client: %v", k8sErr)}
 	}
 
-	// Determine source type from model ID format.
-	// Priority: maas- prefix → custom endpoint (try lookup) → namespace ISVC fallback.
-	// Custom endpoints can have bare IDs (e.g. "custom-embedding-model") or provider-qualified
-	// IDs (e.g. "custom-provider/model-name"), so we always try custom endpoint lookup first
-	// for non-MaaS models before falling back to namespace.
-	var effectiveSourceType models.ModelSourceTypeEnum
-	switch {
-	case strings.HasPrefix(modelID, constants.MaaSProviderPrefix):
-		effectiveSourceType = models.ModelSourceTypeMaaS
-	default:
-		// Try custom endpoint first (handles both bare and provider-qualified IDs),
-		// fall back to namespace ISVC if not found.
-		effectiveSourceType = models.ModelSourceTypeCustomEndpoint
-	}
-
-	switch effectiveSourceType {
-	case models.ModelSourceTypeCustomEndpoint:
-		// Only attempt custom endpoint resolution for provider-qualified IDs (contains "/")
-		if strings.Contains(modelID, "/") {
-			extURL, extKey := app.getCustomEndpointBaseURLAndKey(ctx, modelID)
-			if extURL != "" {
-				return extURL, extKey, nil
-			}
-		}
-		// Fallback to namespace ISVC for bare IDs or if custom endpoint lookup failed
-		return app.resolveNamespaceModel(ctx, k8sClient, identity, namespace, modelID)
-
-	case models.ModelSourceTypeMaaS:
+	// Resolution priority:
+	// 1. MaaS (maas- prefix) → MaaS BFF catalog URL + ephemeral token
+	// 2. Custom endpoint (provider-qualified with "/") → ConfigMap + Secret
+	// 3. Namespace ISVC fallback (bare name) → InferenceService URL + user JWT
+	if strings.HasPrefix(modelID, constants.MaaSProviderPrefix) {
 		if app.bffClientFactory == nil || !app.bffClientFactory.IsTargetConfigured(bffclient.BFFTargetMaaS) {
 			return "", "", &infraError{msg: "MaaS is not available"}
 		}
@@ -179,10 +155,18 @@ func (app *App) resolveModelEndpoint(ctx context.Context, modelID, namespace str
 			return "", "", &infraError{msg: fmt.Sprintf("failed to obtain auth token for MaaS model %q", modelID)}
 		}
 		return inferenceURL, token, nil
-
-	default:
-		return app.resolveNamespaceModel(ctx, k8sClient, identity, namespace, modelID)
 	}
+
+	// Try custom endpoint for provider-qualified IDs (contains "/")
+	if strings.Contains(modelID, "/") {
+		extURL, extKey := app.getCustomEndpointBaseURLAndKey(ctx, modelID)
+		if extURL != "" {
+			return extURL, extKey, nil
+		}
+	}
+
+	// Fallback: namespace ISVC (bare name or failed custom endpoint lookup)
+	return app.resolveNamespaceModel(ctx, k8sClient, identity, namespace, modelID)
 }
 
 // resolveNamespaceModel resolves a namespace model (InferenceService/LLMInferenceService)
