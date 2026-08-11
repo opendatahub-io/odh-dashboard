@@ -38,11 +38,20 @@ jq -s -c --arg dir "$DIR" --arg err "${ERROR_MSG:-}" '
       .events[]? |
       select(has("fixed")) |
       .fixed
-    ] | unique | .[0] // "";
+    ]
+    | unique
+    | sort_by(ltrimstr("v") | split(".") | map(split("-")[0] | tonumber? // 0))
+    | .[0] // "";
 
   def severity_from_osv:
-    # Best-effort: prefer database_specific severity string when present
-    (.database_specific.severity // .severity // "unknown") | ascii_downcase;
+    # Prefer database_specific severity string; OSV top-level .severity is a CVSS
+    # object array and must not be passed to ascii_downcase.
+    (
+      if (.database_specific.severity | type) == "string" then .database_specific.severity
+      elif (.severity | type) == "string" then .severity
+      else "unknown"
+      end
+    ) | ascii_downcase;
 
   (map(select(has("osv")) | .osv) | map({key: .id, value: .}) | from_entries) as $osvs |
 

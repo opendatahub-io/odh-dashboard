@@ -14,9 +14,6 @@ concurrency:
 
 permissions:
   contents: read
-  issues: write
-  pull-requests: read
-  actions: read
 
 env:
   ISSUE_TITLE: 'Weekly security audit: npm + Go findings'
@@ -31,6 +28,8 @@ jobs:
       go_dirs: ${{ steps.dirs.outputs.go_dirs }}
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
 
       - name: Discover Dependabot directories
         id: dirs
@@ -51,6 +50,8 @@ jobs:
         dir: ${{ fromJSON(needs.discover.outputs.npm_dirs) }}
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
 
       - name: Prod npm audit (high/critical)
         id: prod
@@ -131,6 +132,8 @@ jobs:
       GOTOOLCHAIN: local
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
 
       - name: Set up Go
         uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5
@@ -139,7 +142,9 @@ jobs:
           cache-dependency-path: ${{ matrix.dir }}/go.sum
 
       - name: Install govulncheck
-        run: go install golang.org/x/vuln/cmd/govulncheck@${{ env.GOVULNCHECK_VERSION }}
+        env:
+          GOVULNCHECK_VERSION: ${{ env.GOVULNCHECK_VERSION }}
+        run: go install "golang.org/x/vuln/cmd/govulncheck@${GOVULNCHECK_VERSION}"
 
       - name: Run govulncheck
         working-directory: ${{ matrix.dir }}
@@ -180,11 +185,19 @@ jobs:
 
   report:
     needs: [discover, npm-audit, govulncheck]
-    if: always() && needs.discover.result == 'success'
+    # Always report — including when discover fails — so the issue cannot go stale silently.
+    if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: read
+      actions: read
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
 
       - name: Download scan artifacts (this attempt only)
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
@@ -198,15 +211,16 @@ jobs:
       - name: Ensure required labels exist
         env:
           GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
           ensure_label() {
             local name="$1" desc="$2" color="$3"
-            if gh label list --repo "${{ github.repository }}" --json name --jq '.[].name' | grep -Fxq "$name"; then
+            if gh label list --repo "$REPO" --json name --jq '.[].name' | grep -Fxq "$name"; then
               echo "label exists: $name"
             else
               gh label create "$name" \
-                --repo "${{ github.repository }}" \
+                --repo "$REPO" \
                 --description "$desc" \
                 --color "$color"
             fi
@@ -217,11 +231,12 @@ jobs:
       - name: List open Dependabot PRs
         env:
           GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
           # Prefer app/dependabot; paginate beyond 100 if needed.
           gh pr list \
-            --repo "${{ github.repository }}" \
+            --repo "$REPO" \
             --author "app/dependabot" \
             --state open \
             --limit 200 \
@@ -232,26 +247,34 @@ jobs:
       - name: Render report
         env:
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          NPM_DIRS: ${{ needs.discover.outputs.npm_dirs }}
-          GO_DIRS: ${{ needs.discover.outputs.go_dirs }}
+          NPM_DIRS: ${{ needs.discover.outputs.npm_dirs || '[]' }}
+          GO_DIRS: ${{ needs.discover.outputs.go_dirs || '[]' }}
+          DISCOVER_JOB: ${{ needs.discover.result }}
           NPM_JOB: ${{ needs.npm-audit.result }}
           GO_JOB: ${{ needs.govulncheck.result }}
         run: |
           set -euo pipefail
           mkdir -p artifacts
-          # If an entire matrix job failed/cancelled, inject a top-level error so we cannot close clean.
+          # If discover or an entire matrix job failed/cancelled, inject a top-level error
+          # so we cannot close clean / leave a stale silent issue.
           EXTRA_ERRS=()
-          if [ "$NPM_JOB" != "success" ]; then
+          if [ "$DISCOVER_JOB" != "success" ]; then
+            EXTRA_ERRS+=("discover job result=$DISCOVER_JOB")
+          fi
+          # Matrix jobs are "skipped" when discover fails — covered by the discover error above.
+          if [ "$NPM_JOB" != "success" ] && [ "$NPM_JOB" != "skipped" ]; then
             EXTRA_ERRS+=("npm-audit job result=$NPM_JOB")
           fi
-          if [ "$GO_JOB" != "success" ]; then
+          if [ "$GO_JOB" != "success" ] && [ "$GO_JOB" != "skipped" ]; then
             EXTRA_ERRS+=("govulncheck job result=$GO_JOB")
           fi
           if [ "${#EXTRA_ERRS[@]}" -gt 0 ]; then
+            ERR_TEXT=$(printf '%s; ' "${EXTRA_ERRS[@]}")
+            ERR_TEXT=${ERR_TEXT%; }
             jq -n \
               --arg dir "." \
               --arg mode "aggregate" \
-              --arg error "$(IFS='; echo "${EXTRA_ERRS[*]}")" \
+              --arg error "$ERR_TEXT" \
               '{dir:$dir, mode:$mode, status:"error", error:$error, findings:[]}' \
               > "artifacts/summary-aggregate-job-status.json"
           fi

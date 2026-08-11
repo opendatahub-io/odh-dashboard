@@ -64,6 +64,31 @@ echo "$OUT" | jq -e '.findings | length == 1' >/dev/null || fail "go should keep
 echo "$OUT" | jq -e '.findings[0].fixVersion == "1.2.3"' >/dev/null || fail "go fixed version missing"
 pass "govulncheck error keeps findings"
 
+# --- govulncheck: OSV severity array must not abort jq ---
+printf '%s\n' \
+  '{"osv":{"id":"GO-2024-SEV","severity":[{"type":"CVSS_V3","score":"CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H"}],"affected":[{"ranges":[{"type":"SEMVER","events":[{"introduced":"0"},{"fixed":"1.9.1"},{"fixed":"1.10.0"}]}]}]}}' \
+  '{"finding":{"osv":"GO-2024-SEV"}}' \
+  > "$TMP/go-sev.json"
+OUT=$("$SCRIPTS/summarize-govulncheck.sh" packages/maas/bff "$TMP/go-sev.json")
+echo "$OUT" | jq -e '.status == "ok"' >/dev/null || fail "severity array should still summarize"
+echo "$OUT" | jq -e '.findings[0].severity == "unknown"' >/dev/null || fail "expected unknown severity for CVSS array"
+echo "$OUT" | jq -e '.findings[0].fixVersion == "1.9.1"' >/dev/null || fail "expected lowest semver fixed 1.9.1, got $(echo "$OUT" | jq -r '.findings[0].fixVersion')"
+pass "govulncheck severity array + semver sort"
+
+# --- aggregate EXTRA_ERRS join (mirrors workflow snippet) ---
+EXTRA_ERRS=("npm-audit job result=failure" "govulncheck job result=cancelled")
+ERR_TEXT=$(printf '%s; ' "${EXTRA_ERRS[@]}")
+ERR_TEXT=${ERR_TEXT%; }
+AGG=$(jq -n \
+  --arg dir "." \
+  --arg mode "aggregate" \
+  --arg error "$ERR_TEXT" \
+  '{dir:$dir, mode:$mode, status:"error", error:$error, findings:[]}')
+echo "$AGG" | jq -e '.status == "error"' >/dev/null || fail "aggregate must be error"
+echo "$AGG" | jq -e '.error | contains("npm-audit") and contains("govulncheck")' >/dev/null \
+  || fail "aggregate error text missing job results"
+pass "aggregate EXTRA_ERRS → error status"
+
 # --- render: expected dir gap refuses clean ---
 mkdir -p "$TMP/arts"
 echo '{"dir":".","mode":"prod","status":"ok","error":null,"findings":[]}' > "$TMP/arts/summary-prod.json"
@@ -93,9 +118,9 @@ node "$SCRIPTS/render-security-audit-report.js" \
 jq -e '.clean == false' "$TMP/out2/meta.json" >/dev/null || fail "npm scanner error must not be clean"
 pass "npm scanner error → not clean"
 
-# --- matchDependabotPr word boundary ---
+# --- matchDependabotPr word boundary + safe advisory URLs ---
 node -e '
-const { matchDependabotPr } = require("./scripts/security-audit/render-security-audit-report.js");
+const { matchDependabotPr, advisoryLinks } = require("./scripts/security-audit/render-security-audit-report.js");
 const prs = [
   { number: 1, title: "Update dependency react-router-dom to v6", url: "http://x/1" },
   { number: 2, title: "Update dependency react to v18", url: "http://x/2" },
@@ -104,13 +129,37 @@ const hit = matchDependabotPr({ name: "react" }, prs);
 if (!hit || hit.number !== 2) { console.error("expected react → #2 got", hit); process.exit(1); }
 const miss = matchDependabotPr({ name: "lodash" }, prs);
 if (miss) { console.error("expected no match", miss); process.exit(1); }
+const bad = advisoryLinks(["javascript:alert(1)", "https://github.com/advisories/GHSA-xxxx-yyyy-zzzz"]);
+if (!bad.includes("GHSA-xxxx-yyyy-zzzz") || bad.includes("javascript:")) {
+  console.error("expected safe advisory links, got", bad); process.exit(1);
+}
 '
-pass "Dependabot title word-boundary match"
+pass "Dependabot title match + safe advisory URLs"
 
-# --- discover dirs ---
+# --- discover dirs (contract, not hardcoded counts) ---
 DIRS=$("$SCRIPTS/discover-dependabot-dirs.sh" .github/dependabot.yml)
-echo "$DIRS" | jq -e '.npm | length == 9' >/dev/null || fail "expected 9 npm dirs"
-echo "$DIRS" | jq -e '.gomod | length == 9' >/dev/null || fail "expected 9 go dirs"
-pass "discover 9+9"
+echo "$DIRS" | jq -e '.npm | length > 0' >/dev/null || fail "expected at least one npm dir"
+echo "$DIRS" | jq -e '.gomod | length > 0' >/dev/null || fail "expected at least one gomod dir"
+echo "$DIRS" | jq -e '[.npm[], .gomod[]] | all(startswith("/") | not)' >/dev/null \
+  || fail "dirs must be repo-relative (no leading /)"
+echo "$DIRS" | jq -e '[.npm[], .gomod[]] | all(. != "")' >/dev/null \
+  || fail "empty dir entry emitted"
+pass "discover emits normalized repo-relative dirs"
+
+# --- discover: '/' normalizes to '.' ---
+cat > "$TMP/dependabot.yml" <<'EOF'
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: "/"
+    schedule: { interval: weekly }
+  - package-ecosystem: gomod
+    directory: "/svc"
+    schedule: { interval: weekly }
+EOF
+NORM=$("$SCRIPTS/discover-dependabot-dirs.sh" "$TMP/dependabot.yml")
+echo "$NORM" | jq -e '.npm == ["."] and .gomod == ["svc"]' >/dev/null \
+  || fail "expected root '/' → '.' and '/svc' → 'svc', got $NORM"
+pass "discover normalizes directories"
 
 echo "All security-audit fixture tests passed."

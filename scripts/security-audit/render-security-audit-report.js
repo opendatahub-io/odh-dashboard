@@ -64,9 +64,22 @@ function escCell(s) {
     .replace(/\n/g, ' ');
 }
 
+/** Allow only http(s) advisory URLs; encode markdown-breaking chars in the href. */
+function safeUrl(u) {
+  try {
+    const parsed = new URL(String(u));
+    if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') return null;
+    return parsed.href.replace(/[()\s<>]/g, encodeURIComponent);
+  } catch {
+    return null;
+  }
+}
+
 function advisoryLinks(urls) {
   if (!urls || !urls.length) return '—';
-  return urls
+  const safe = urls.map(safeUrl).filter(Boolean);
+  if (!safe.length) return '—';
+  return safe
     .slice(0, 3)
     .map((u) => {
       const label = u.includes('GHSA-')
@@ -104,18 +117,11 @@ function escapeRegex(s) {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-/** Prefer longest whole-token package name match in PR title (avoids react→react-router). */
+/** Whole-token package name match in PR title (avoids react→react-router). */
 function matchDependabotPr(finding, prs) {
   const name = finding.name.toLowerCase();
   const re = new RegExp(`(^|[^A-Za-z0-9_/@-])${escapeRegex(name)}([^A-Za-z0-9_/@-]|$)`, 'i');
-  const scored = [];
-  for (const pr of prs) {
-    const title = pr.title || '';
-    if (!re.test(title)) continue;
-    scored.push({ pr, score: name.length });
-  }
-  const ranked = scored.toSorted((a, b) => b.score - a.score);
-  return ranked[0]?.pr || null;
+  return prs.find((pr) => re.test(pr.title || '')) || null;
 }
 
 function table(headers, rows) {
@@ -438,4 +444,6 @@ module.exports = {
   dedupeFindings,
   findingKey,
   loadSummaries,
+  safeUrl,
+  advisoryLinks,
 };
