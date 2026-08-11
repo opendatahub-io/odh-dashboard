@@ -116,6 +116,7 @@ type BenchmarkState = {
   benchmark_index?: number;
   status: string;
   error_message?: JobMessage;
+  warning_message?: JobMessage;
   started_at?: string;
   completed_at?: string;
 };

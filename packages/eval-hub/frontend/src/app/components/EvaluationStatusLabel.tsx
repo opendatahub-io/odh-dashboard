@@ -4,6 +4,7 @@ import {
   BanIcon,
   CheckCircleIcon,
   ExclamationCircleIcon,
+  ExclamationTriangleIcon,
   InProgressIcon,
   OffIcon,
   PendingIcon,
@@ -59,10 +60,9 @@ const statusMap: Partial<Record<EvaluationJobState, StatusConfig>> = {
 
   // eslint-disable-next-line camelcase -- matches the API's state value verbatim
   partially_failed: {
-    label: 'Failed',
-    status: 'danger',
-    icon: <ExclamationCircleIcon />,
-    isFilled: true,
+    label: 'Partially failed',
+    status: 'warning',
+    icon: <ExclamationTriangleIcon />,
   },
 };
 

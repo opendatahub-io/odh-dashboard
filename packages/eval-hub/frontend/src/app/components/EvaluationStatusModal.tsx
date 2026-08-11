@@ -24,6 +24,7 @@ import {
   Skeleton,
   Stack,
   StackItem,
+  Switch,
   Tab,
   Tabs,
   TabTitleText,
@@ -43,6 +44,7 @@ import { EvaluationJob } from '~/app/types';
 import { formatDuration, getEvaluationName } from '~/app/utilities/evaluationUtils';
 import { useEvaluationJobLogs } from '~/app/hooks/useEvaluationJobLogs';
 import { getEvaluationJobLogs, getEvaluationJobBenchmarkLogs } from '~/app/api/k8s';
+import { getMessageCodeLabel } from '~/app/utilities/messageCodeLabels';
 import EvaluationStatusLabel from './EvaluationStatusLabel';
 import './EvaluationStatusModal.scss';
 
@@ -158,8 +160,12 @@ const LOG_LEVEL_MAP: Record<string, LogLevel> = {
   debug: 'debug',
 };
 
+// eslint-disable-next-line no-control-regex -- intentional: strips ANSI escape sequences from log output
+const ANSI_RE = /\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])/g;
+const stripAnsi = (text: string): string => text.replace(ANSI_RE, '');
+
 const parseLogEntries = (raw: string): LogEntry[] => {
-  const lines = raw.replace(/\r\n?/g, '\n').split('\n');
+  const lines = stripAnsi(raw).replace(/\r\n?/g, '\n').split('\n');
   const entries: LogEntry[] = [];
 
   for (const line of lines) {
@@ -350,6 +356,7 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
   const [activeTab, setActiveTab] = React.useState<string>('failure-info');
   const [selectedBenchmark, setSelectedBenchmark] = React.useState<string>(ALL_BENCHMARKS);
   const [isBenchmarkSelectOpen, setIsBenchmarkSelectOpen] = React.useState(false);
+  const [showFullLogs, setShowFullLogs] = React.useState(false);
 
   const benchmarkIndex = React.useMemo(() => {
     if (selectedBenchmark === ALL_BENCHMARKS) {
@@ -358,6 +365,8 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
     const parsed = parseInt(selectedBenchmark, 10);
     return Number.isFinite(parsed) ? parsed : undefined;
   }, [selectedBenchmark]);
+
+  const tailLines = showFullLogs ? undefined : 500;
 
   const {
     logs,
@@ -368,7 +377,7 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
     activeTab === 'events-log' ? namespace : undefined,
     activeTab === 'events-log' ? job?.resource.id : undefined,
     benchmarkIndex,
-    500,
+    tailLines,
   );
 
   const sortedBenchmarks = React.useMemo(
@@ -384,8 +393,13 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
       const jobFailed = job.status.state === 'failed' || job.status.state === 'partially_failed';
       setActiveTab(jobFailed ? 'failure-info' : 'events-log');
       setSelectedBenchmark(ALL_BENCHMARKS);
+      setShowFullLogs(false);
     }
   }, [job]);
+
+  React.useEffect(() => {
+    setShowFullLogs(false);
+  }, [selectedBenchmark]);
 
   const evaluationName = job ? getEvaluationName(job) : '';
 
@@ -411,6 +425,11 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
     }
   }, [namespace, job?.resource.id, evaluationName, benchmarkIndex]);
 
+  const logEntries = React.useMemo(() => (logs ? parseLogEntries(logs) : []), [logs]);
+
+  const hasLogContent =
+    logEntries.length > 0 && !logEntries.every((e) => e.isSectionHeader || !e.message.trim());
+
   if (!job) {
     return null;
   }
@@ -432,10 +451,6 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
     setSelectedBenchmark(String(bmIndex));
     setActiveTab('events-log');
   };
-
-  const hasLogContent =
-    logs.trim().length > 0 &&
-    !logs.split('\n').every((line) => line.startsWith('===') || line.trim() === '');
 
   const fullMessage = message ? (elapsed ? `${message} Elapsed: ${elapsed}` : message) : undefined;
 
@@ -519,7 +534,7 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
                       <DescriptionListGroup>
                         <DescriptionListTerm>Error code</DescriptionListTerm>
                         <DescriptionListDescription data-testid="failure-detail-code">
-                          <Label isCompact>{messageCode}</Label>
+                          <Label isCompact>{getMessageCodeLabel(messageCode)}</Label>
                         </DescriptionListDescription>
                       </DescriptionListGroup>
                     ) : null}
@@ -529,6 +544,15 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
 
               {sortedBenchmarks.length > 0 ? (
                 <StackItem>
+                  {sortedBenchmarks.length > 1 ? (
+                    <Content component="p" data-testid="benchmark-summary">
+                      <strong>
+                        {sortedBenchmarks.filter((bm) => bm.status === 'failed').length} of{' '}
+                        {sortedBenchmarks.length}
+                      </strong>{' '}
+                      benchmarks failed
+                    </Content>
+                  ) : null}
                   <Content component="h4">Per-benchmark status</Content>
                   <Stack hasGutter data-testid="failure-detail-benchmark-errors">
                     {sortedBenchmarks.map((bm) => {
@@ -558,7 +582,9 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
                                 </FlexItem>
                                 {bmFailed && bm.error_message?.message_code ? (
                                   <FlexItem>
-                                    <Label isCompact>{bm.error_message.message_code}</Label>
+                                    <Label isCompact>
+                                      {getMessageCodeLabel(bm.error_message.message_code)}
+                                    </Label>
                                   </FlexItem>
                                 ) : null}
                               </Flex>
@@ -570,6 +596,23 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
                                   : bm.status}
                               </Content>
                             </StackItem>
+                            {bm.warning_message?.message ? (
+                              <StackItem>
+                                <Alert
+                                  variant="warning"
+                                  isInline
+                                  isPlain
+                                  title={
+                                    bm.warning_message.message_code
+                                      ? getMessageCodeLabel(bm.warning_message.message_code)
+                                      : 'Warning'
+                                  }
+                                  data-testid={`benchmark-warning-${bm.id}`}
+                                >
+                                  {bm.warning_message.message}
+                                </Alert>
+                              </StackItem>
+                            ) : null}
                             {bmFailed && bm.benchmark_index != null ? (
                               <StackItem>
                                 <Button
@@ -655,6 +698,23 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
                       />
                     </Tooltip>
                   </FlexItem>
+                  <FlexItem>
+                    <Switch
+                      label="Show full log"
+                      hasCheckIcon
+                      isChecked={showFullLogs}
+                      onChange={(_e, checked) => setShowFullLogs(checked)}
+                      isDisabled={!logsLoaded || !hasLogContent}
+                      data-testid="show-full-logs-switch"
+                    />
+                  </FlexItem>
+                  {logsLoaded && hasLogContent ? (
+                    <FlexItem align={{ default: 'alignRight' }}>
+                      <Content component="small" data-testid="log-line-count">
+                        {logs.replace(/\r\n?/g, '\n').split('\n').length.toLocaleString()} lines
+                      </Content>
+                    </FlexItem>
+                  ) : null}
                 </Flex>
               </StackItem>
               {downloadError ? (
@@ -701,7 +761,7 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
                       Logs may have expired after pod cleanup.
                     </Alert>
                   ) : (
-                    parseLogEntries(logs).map((entry, i, arr) => {
+                    logEntries.map((entry, i, arr) => {
                       const hideBorder =
                         i + 1 < arr.length && !arr[i + 1].timestamp && !arr[i + 1].isSectionHeader;
                       return <LogEntryRow key={i} entry={entry} hideBorder={hideBorder} />;
