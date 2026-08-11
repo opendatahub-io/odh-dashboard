@@ -9,8 +9,8 @@ name: Dependabot CI Attention
 
 on:
   schedule:
-    # Hourly — gives CI time to finish after open / label
-    - cron: '20 * * * *'
+    # Daily
+    - cron: '20 12 * * *'
   workflow_dispatch:
     inputs:
       dry_run:
@@ -18,17 +18,15 @@ on:
         type: boolean
         default: false
 
-permissions:
-  contents: read
-  pull-requests: write
-  issues: write
-  checks: read
-
 jobs:
   flag-red-ci:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     if: github.repository == 'opendatahub-io/odh-dashboard'
+    permissions:
+      pull-requests: read
+      issues: write
+      checks: read
     steps:
       - name: Ensure dependabot-needs-human label exists
         env:
@@ -251,5 +249,5 @@ jobs:
 
             add_label "$number"
             post_comment "$number" "$body"
-            echo "::notice::Flagged #$number ($title) for human attention"
+            echo "Flagged #$number for human attention"
           done
