@@ -12,12 +12,12 @@ import {
   verifyEndpointResourcesCleanedUp,
   waitForModelInLSD,
   forceDashboardConfigRefresh,
+  createGenAiPromptViaAPI,
+  deleteGenAiPromptViaAPI,
 } from '../../../utils/oc_commands/genAi';
 import {
   enableMlflowBackend,
   disablePromptManagementFeatures,
-  createMlflowPromptViaAPI,
-  deleteMlflowPromptViaAPI,
 } from '../../../utils/oc_commands/mlflow';
 import { retryableBefore } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
@@ -56,7 +56,7 @@ describe('Verify Custom Endpoints in Playground - Full Lifecycle', () => {
 
   after(() => {
     cy.step('Delete test prompt from MLflow');
-    deleteMlflowPromptViaAPI(projectName, testData.prompt.name);
+    deleteGenAiPromptViaAPI(projectName, testData.prompt.name);
 
     cy.step('Revert externalProviders in OdhDashboardConfig');
     disableExternalProviders();
@@ -72,7 +72,7 @@ describe('Verify Custom Endpoints in Playground - Full Lifecycle', () => {
   it(
     'Verify custom endpoint lifecycle with prompt creation and playground usage',
     {
-      tags: ['@GenAI', '@FeatureFlagged', '@PromptManagement', '@MLflow', '@NonConcurrent'],
+      tags: ['@GenAI', '@FeatureFlagged', '@PromptManagement', '@NonConcurrent'],
     },
     () => {
       cy.step('Log into the application with custom endpoints and prompt management enabled');
@@ -151,8 +151,8 @@ describe('Verify Custom Endpoints in Playground - Full Lifecycle', () => {
 
       // --- Create a prompt via API ---
 
-      cy.step('Create prompt via MLflow API');
-      createMlflowPromptViaAPI(
+      cy.step('Create prompt via Gen AI BFF API');
+      createGenAiPromptViaAPI(
         projectName,
         testData.prompt.name,
         testData.prompt.template,
