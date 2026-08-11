@@ -60,12 +60,24 @@ func (app *App) LlamaStackListVectorStoresHandler(w http.ResponseWriter, r *http
 		})
 		if err != nil {
 			// Tolerate race: concurrent request may have created the store already.
-			// Re-fetch to pick it up; only fail if the list itself errors.
-			app.logger.Warn("Auto-provisioning file-upload store failed, re-fetching (possible race)",
+			// Re-fetch and confirm the auto-provisioned store exists; if not, propagate
+			// the original create error (could be permissions, quota, etc.).
+			app.logger.Warn("Auto-provisioning file-upload store failed, checking for race condition",
 				"error", err)
 			refreshed, listErr := app.repositories.VectorStores.ListVectorStores(ctx, llamastack.ListVectorStoresParams{})
 			if listErr != nil {
 				app.handleLlamaStackClientError(w, r, listErr)
+				return
+			}
+			raceConfirmed := false
+			for _, vs := range refreshed {
+				if vs.Metadata != nil && vs.Metadata["created_by"] == "auto-provisioning" {
+					raceConfirmed = true
+					break
+				}
+			}
+			if !raceConfirmed {
+				app.handleLlamaStackClientError(w, r, err)
 				return
 			}
 			vectorStores = refreshed
