@@ -87,7 +87,7 @@ let llmInferenceServiceConfigContainerImage: string;
 describe('A model can be deployed and accessed with a MaaS subscription and API key', () => {
   retryableBefore(() => {
     cy.log('Loading test data');
-    return loadMaaSFixture('e2e/modelsAsService/testMaaSSubscriptions.yaml')
+    return loadMaaSFixture('e2e/maas/testMaaSSubscriptions.yaml')
       .then((fixtureData: ModelAsAServiceTestData) => {
         testData = fixtureData;
         projectName = `${testData.projectResourceName}-${uuid}`;

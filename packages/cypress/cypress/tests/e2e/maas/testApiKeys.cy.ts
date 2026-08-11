@@ -54,7 +54,7 @@ const keyCreatedAt = new Date();
 describe('A user can view subscriptions and manage API keys on the Keys and Subscriptions page', () => {
   retryableBefore(() => {
     cy.log('Loading test data');
-    return loadMaaSFixture('e2e/modelsAsService/testApiKeys.yaml')
+    return loadMaaSFixture('e2e/maas/testApiKeys.yaml')
       .then((fixtureData: ModelAsAServiceTestData) => {
         testData = fixtureData;
         projectName = `${testData.projectResourceName}-${uuid}`;
