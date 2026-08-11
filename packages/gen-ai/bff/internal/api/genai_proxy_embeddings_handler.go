@@ -74,6 +74,20 @@ func (app *App) GenAIProxyNSEmbeddingsHandler(w http.ResponseWriter, r *http.Req
 		return
 	}
 
+	// Strip provider prefix from model ID in the proxied body.
+	// OGX sends "provider/model-name" but the upstream expects just "model-name".
+	upstreamBody := body
+	if strings.Contains(reqBody.Model, "/") {
+		bareModel := reqBody.Model[strings.Index(reqBody.Model, "/")+1:]
+		var bodyMap map[string]interface{}
+		if err := json.Unmarshal(body, &bodyMap); err == nil {
+			bodyMap["model"] = bareModel
+			if rewritten, err := json.Marshal(bodyMap); err == nil {
+				upstreamBody = rewritten
+			}
+		}
+	}
+
 	// Normalize base URL to include /v1 if missing (per spike findings)
 	baseURL = strings.TrimSuffix(baseURL, "/")
 	if !strings.HasSuffix(baseURL, "/v1") {
@@ -82,7 +96,7 @@ func (app *App) GenAIProxyNSEmbeddingsHandler(w http.ResponseWriter, r *http.Req
 
 	// Proxy the request to upstream
 	upstreamURL := baseURL + "/embeddings"
-	proxyReq, err := http.NewRequestWithContext(ctx, http.MethodPost, upstreamURL, strings.NewReader(string(body)))
+	proxyReq, err := http.NewRequestWithContext(ctx, http.MethodPost, upstreamURL, strings.NewReader(string(upstreamBody)))
 	if err != nil {
 		app.serverErrorResponse(w, r, fmt.Errorf("failed to create upstream request: %w", err))
 		return
