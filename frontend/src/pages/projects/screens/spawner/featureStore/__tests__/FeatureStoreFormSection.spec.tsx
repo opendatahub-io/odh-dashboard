@@ -195,10 +195,16 @@ describe('FeatureStoreFormSection', () => {
     expect(result.getByTestId('feature-store-unavailable-alert')).toHaveTextContent(
       FEATURE_STORE_UNAVAILABLE_TOOLTIP,
     );
+    expect(result.queryByTestId('feature-store-unavailable-name')).not.toBeInTheDocument();
+    expect(result.queryByTestId('feature-store-unavailable-icon')).not.toBeInTheDocument();
+
+    await act(async () => {
+      result.getByTestId('feature-store-show-unavailable').click();
+    });
+
     expect(result.getByTestId('feature-store-unavailable-name')).toHaveTextContent(
       'deleted_project',
     );
-    expect(result.queryByTestId('feature-store-unavailable-icon')).not.toBeInTheDocument();
 
     await act(async () => {
       result.getByRole('button', { name: 'Select feature stores' }).click();
