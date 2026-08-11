@@ -1,8 +1,6 @@
 import type { DSPAMlflowIntegrationMode } from '@odh-dashboard/k8s-core';
-import {
-  mockDataSciencePipelineApplicationK8sResource,
-  mockK8sResourceList,
-} from '@odh-dashboard/internal/__mocks__';
+import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
+import { mockDataSciencePipelineApplicationK8sResource } from '@odh-dashboard/internal/__mocks__';
 import { DataSciencePipelineApplicationModel } from '../utils/models';
 
 export const MLFLOW_BFF_STATUS_URL = '/_bff/mlflow/api/v1/status';

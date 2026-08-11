@@ -19,6 +19,7 @@ import {
 } from '@odh-dashboard/model-serving/shared/tracking/limitedSupportTracking';
 import useNotification from '#~/utilities/useNotification';
 import { useDashboardNamespace } from '#~/redux/selectors';
+import { fireMiscTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 import { patchDashboardConfigTemplateDisablementBackend } from '#~/services/dashboardService';
 import { patchTemplateAcceptedAnnotationBackend } from '#~/services/templateService';
 import { CustomServingRuntimeContext } from './CustomServingRuntimeContext';
@@ -107,7 +108,7 @@ const CustomServingRuntimeEnabledToggle: React.FC<CustomServingRuntimeEnabledTog
     // TODO: Use passthrough API once admin panel has been migrated to support it
     patchTemplateAcceptedAnnotationBackend(template.metadata.namespace, template.metadata.name)
       .then(() => {
-        fireRiskAccepted({
+        fireRiskAccepted(fireMiscTrackingEvent, {
           runtimeResourceType: 'serving-runtime-template',
           resourceId: template.metadata.name,
           resourceName: getServingRuntimeDisplayNameFromTemplate(template),
@@ -142,7 +143,7 @@ const CustomServingRuntimeEnabledToggle: React.FC<CustomServingRuntimeEnabledTog
           onAccept={handleAccept}
           onClose={(dismissAction: UnsupportedStatusDismissAction) => {
             setShowAcceptanceModal(false);
-            fireRiskDismissed({
+            fireRiskDismissed(fireMiscTrackingEvent, {
               runtimeResourceType: 'serving-runtime-template',
               resourceId: template.metadata.name,
               resourceName: getServingRuntimeDisplayNameFromTemplate(template),

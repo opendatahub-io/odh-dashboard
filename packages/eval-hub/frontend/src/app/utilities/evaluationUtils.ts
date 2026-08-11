@@ -71,7 +71,7 @@ export const getAllBenchmarkNames = (job: EvaluationJob): string[] =>
 export const getBenchmarkDisplayName = (id: string): string =>
   id.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 
-const formatBenchmarkScore = (
+export const formatBenchmarkScore = (
   benchmark: NonNullable<EvaluationJob['results']['benchmarks']>[number],
 ): string | null => {
   if (benchmark.test?.primary_score != null) {

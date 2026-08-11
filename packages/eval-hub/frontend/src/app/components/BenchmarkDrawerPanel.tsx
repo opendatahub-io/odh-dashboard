@@ -11,6 +11,8 @@ import {
   FlexItem,
   Label,
   LabelGroup,
+  List,
+  ListItem,
   Stack,
   StackItem,
   Title,
@@ -18,6 +20,7 @@ import {
 import { ExternalLinkAltIcon } from '@patternfly/react-icons';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { FlatBenchmark } from '~/app/types';
+import InlineTooltip from '~/app/components/InlineTooltip';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import { capitalizeFirst, getCategoryColor, toSafeExternalUrl } from './benchmarkUtils';
 
@@ -128,10 +131,7 @@ const BenchmarkDrawerPanel: React.FC<BenchmarkDrawerPanelProps> = ({
             <StackItem>
               <Stack hasGutter>
                 <StackItem>
-                  <Content
-                    component="p"
-                    style={{ fontWeight: 'var(--pf-t--global--font--weight--body--bold)' }}
-                  >
+                  <Content component="p" className="pf-v6-u-font-weight-bold">
                     Metrics evaluated
                   </Content>
                 </StackItem>
@@ -150,10 +150,7 @@ const BenchmarkDrawerPanel: React.FC<BenchmarkDrawerPanelProps> = ({
 
           {benchmark.primary_score && (
             <StackItem>
-              <Content
-                component="p"
-                style={{ fontWeight: 'var(--pf-t--global--font--weight--body--bold)' }}
-              >
+              <Content component="p" className="pf-v6-u-font-weight-bold">
                 Primary scorer metric
               </Content>
               <Content component="p">{benchmark.primary_score.metric}</Content>
@@ -162,10 +159,7 @@ const BenchmarkDrawerPanel: React.FC<BenchmarkDrawerPanelProps> = ({
 
           {benchmark.pass_criteria && (
             <StackItem>
-              <Content
-                component="p"
-                style={{ fontWeight: 'var(--pf-t--global--font--weight--body--bold)' }}
-              >
+              <Content component="p" className="pf-v6-u-font-weight-bold">
                 Benchmark threshold
               </Content>
               <Content component="p">{benchmark.pass_criteria.threshold}</Content>
@@ -174,13 +168,41 @@ const BenchmarkDrawerPanel: React.FC<BenchmarkDrawerPanelProps> = ({
 
           {benchmark.providerName && (
             <StackItem>
-              <Content
-                component="p"
-                style={{ fontWeight: 'var(--pf-t--global--font--weight--body--bold)' }}
-              >
+              <Content component="p" className="pf-v6-u-font-weight-bold">
                 Evaluation framework
               </Content>
-              <Content component="p">{benchmark.providerName}</Content>
+              {Array.isArray(benchmark.providerAgent?.recommended_when) &&
+              benchmark.providerAgent.recommended_when.length > 0 ? (
+                <InlineTooltip
+                  text={benchmark.providerName}
+                  data-testid="benchmark-provider-tooltip"
+                  tooltip={
+                    <div className="evalhub-inline-tooltip__content">
+                      <div className="evalhub-inline-tooltip__header">
+                        <strong>Recommended when:</strong>
+                      </div>
+                      <List>
+                        {benchmark.providerAgent.recommended_when.map((item) => (
+                          <ListItem key={item}>{item}</ListItem>
+                        ))}
+                      </List>
+                    </div>
+                  }
+                />
+              ) : (
+                <Content component="p">{benchmark.providerName}</Content>
+              )}
+            </StackItem>
+          )}
+
+          {benchmark.providerAgent?.target_type && (
+            <StackItem>
+              <Content component="p" className="pf-v6-u-font-weight-bold">
+                Target type
+              </Content>
+              <Content component="p">
+                {capitalizeFirst(benchmark.providerAgent.target_type)}
+              </Content>
             </StackItem>
           )}
         </Stack>

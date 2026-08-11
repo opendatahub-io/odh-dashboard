@@ -1,6 +1,6 @@
 import { mockAuth } from '@odh-dashboard/internal/__mocks__/mockAuth';
 import { mockGroup } from '@odh-dashboard/internal/__mocks__/mockGroup';
-import { mockK8sResourceList } from '@odh-dashboard/internal/__mocks__';
+import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
 import { userManagement } from '../../../pages/userManagement';
 import { asProductAdminUser, asProjectAdminUser } from '../../../utils/mockUsers';
 import { pageNotfound } from '../../../pages/pageNotFound';

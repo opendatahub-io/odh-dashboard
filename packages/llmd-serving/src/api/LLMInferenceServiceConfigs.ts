@@ -1,8 +1,9 @@
 import React from 'react';
-import useFetch, { FetchStateObject } from '@odh-dashboard/ui-core/hooks/useFetch';
+import useFetch, { FetchStateObject, NotReadyError } from '@odh-dashboard/ui-core/hooks/useFetch';
 import {
   k8sCreateResource,
   k8sDeleteResource,
+  k8sGetResource,
   k8sListResourceItems,
   k8sPatchResource,
   k8sUpdateResource,
@@ -13,6 +14,7 @@ import { createPatchesFromDiff, groupVersionKind } from '@odh-dashboard/internal
 import { K8sAPIOptions } from '@odh-dashboard/k8s-core';
 import { CustomWatchK8sResult } from '@odh-dashboard/internal/types';
 import { applyK8sAPIOptions } from '@odh-dashboard/internal/api/apiMergeUtils';
+import { getGenericErrorCode } from '@odh-dashboard/internal/api/errorUtils';
 import { CONFIG_TYPE_LABEL } from '../const';
 import {
   LLMInferenceServiceConfigModel,
@@ -83,14 +85,58 @@ export const patchLLMInferenceServiceConfig = (
   );
 };
 
+export const getLLMInferenceServiceConfig = (
+  name: string,
+  namespace: string,
+  opts?: K8sAPIOptions,
+): Promise<LLMInferenceServiceConfigKind> =>
+  k8sGetResource<LLMInferenceServiceConfigKind>(
+    applyK8sAPIOptions(
+      {
+        model: LLMInferenceServiceConfigModel,
+        queryOptions: { name, ns: namespace },
+      },
+      opts,
+    ),
+  );
+
+export const useFetchLLMInferenceServiceConfig = (
+  name?: string,
+  namespace?: string,
+): FetchStateObject<LLMInferenceServiceConfigKind | null> => {
+  const fetchCallbackPromise = React.useCallback(
+    async (opts: K8sAPIOptions) => {
+      if (!name || !namespace) {
+        throw new NotReadyError('No config name or namespace');
+      }
+      return getLLMInferenceServiceConfig(name, namespace, opts).catch((e: unknown) => {
+        // If not found, just return `null`
+        if (getGenericErrorCode(e) === 404) {
+          return null;
+        }
+        throw e;
+      });
+    },
+    [name, namespace],
+  );
+
+  return useFetch(fetchCallbackPromise, null);
+};
+
 export const deleteLLMInferenceServiceConfig = (
   name: string,
   namespace: string,
+  opts?: K8sAPIOptions,
 ): Promise<K8sStatus> =>
-  k8sDeleteResource<typeof LLMInferenceServiceConfigModel, K8sStatus>({
-    model: LLMInferenceServiceConfigModel,
-    queryOptions: { name, ns: namespace },
-  });
+  k8sDeleteResource<LLMInferenceServiceConfigKind, K8sStatus>(
+    applyK8sAPIOptions(
+      {
+        model: LLMInferenceServiceConfigModel,
+        queryOptions: { name, ns: namespace },
+      },
+      opts,
+    ),
+  );
 
 /**
  * @returns Template versions of the LLMInferenceServiceConfigKind[] (filtered on 'opendatahub.io/config-type=accelerator')

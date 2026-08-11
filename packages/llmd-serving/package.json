@@ -16,7 +16,9 @@
     "./extensions": "./extensions/extensions.ts",
     "./types": "./src/types.ts",
     "./formUtils": "./src/formUtils.ts",
-    "./__tests__/utils": "./src/__tests__/utils.ts"
+    "./__tests__/utils": "./src/__tests__/utils.ts",
+    "./__mocks__/mockLLMInferenceServiceK8sResource": "./src/__mocks__/mockLLMInferenceServiceK8sResource.ts",
+    "./__mocks__/mockLLMInferenceServiceConfigK8sResource": "./src/__mocks__/mockLLMInferenceServiceConfigK8sResource.ts"
   },
   "dependencies": {
     "@odh-dashboard/foundation": "*",

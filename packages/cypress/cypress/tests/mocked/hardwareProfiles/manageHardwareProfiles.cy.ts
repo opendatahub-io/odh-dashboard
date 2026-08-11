@@ -4,10 +4,10 @@ import {
   TolerationEffect,
   TolerationOperator,
 } from '@odh-dashboard/k8s-core';
-import { mockK8sResourceList } from '@odh-dashboard/internal/__mocks__/mockK8sResourceList';
+import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
 import { mockHardwareProfile } from '@odh-dashboard/hardware-profiles/__mocks__/mockHardwareProfile';
 
-import { mockDashboardConfig } from '@odh-dashboard/internal/__mocks__';
+import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
 import { mockWorkloadPriorityClassK8sResource as mockWorkloadPriorityClass } from '@odh-dashboard/internal/__mocks__/mockWorkloadPriorityClassK8Resource';
 import { mockDsc } from '@odh-dashboard/internal/__mocks__/mockDsc';
 import {
