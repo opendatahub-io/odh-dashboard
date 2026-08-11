@@ -29,7 +29,10 @@ const InferenceServiceServingRuntime: React.FC<Props> = ({ servingRuntime }) => 
     ? getTemplateNameFromServingRuntime(servingRuntime)
     : undefined;
 
-  const [template, templateLoaded, templateError] = useTemplateByName(templateName);
+  const [template, templateLoaded, templateError] = useTemplateByName(
+    templateName,
+    servingRuntime?.metadata.namespace,
+  );
 
   const versionStatus = React.useMemo(() => {
     if (templateLoaded && !templateError && servingRuntime) {
