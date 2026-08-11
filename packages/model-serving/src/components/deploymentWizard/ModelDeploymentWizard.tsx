@@ -145,6 +145,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
       >
         <ExternalDataLoader
           fields={wizardFormData.fields}
+          initialData={wizardFormData.initialData}
           formState={wizardFormData.state}
           setExternalData={setExternalData}
           dispatch={wizardFormData.dispatch}

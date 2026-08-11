@@ -188,6 +188,12 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
               </FormGroup>
             </StackItem>
 
+            <GenericFieldRenderer
+              fieldId="modelCapabilities"
+              wizardState={wizardState}
+              externalData={externalData}
+            />
+
             <StackItem>
               <FormGroup
                 label="Configuration parameters"

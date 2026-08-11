@@ -4,10 +4,10 @@ import '@testing-library/jest-dom';
 import type { DashboardConfigKind } from '@odh-dashboard/k8s-core';
 import { useBrowserStorage } from '@odh-dashboard/ui-core/utilities';
 import { TrackingOutcome } from '@odh-dashboard/ui-core';
+import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
 import type { UserState } from '#~/redux/selectors/types';
 import { useUser } from '#~/redux/selectors';
 import { useAppContext } from '#~/app/AppContext';
-import { mockDashboardConfig } from '#~/__mocks__';
 import type { BuildStatus } from '#~/types';
 import type { StorageClassKind } from '#~/k8sTypes';
 import {

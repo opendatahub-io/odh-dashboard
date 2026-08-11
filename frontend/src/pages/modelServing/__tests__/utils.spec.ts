@@ -6,6 +6,9 @@ import type {
   CreatingServingRuntimeObject,
 } from '@odh-dashboard/model-serving/shared';
 import { mockPVCK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockPVCK8sResource';
+import { mockServingRuntimeK8sResource } from '@odh-dashboard/model-serving/__mocks__/mockServingRuntimeK8sResource';
+import { mock404Error } from '@odh-dashboard/k8s-core/__mocks__/mockK8sStatus';
+import { mockInferenceServiceK8sResource } from '@odh-dashboard/model-serving/__mocks__/mockInferenceServiceK8sResource';
 import {
   getInferenceServiceSizeOrReturnEmpty,
   getServingRuntimeOrReturnEmpty,
@@ -19,7 +22,6 @@ import {
   getServingRuntimeVersionStatus,
   isModelServerEditInfoChanged,
 } from '#~/pages/modelServing/utils';
-import { mockServingRuntimeK8sResource } from '#~/__mocks__/mockServingRuntimeK8sResource';
 import { mockServiceAccountK8sResource } from '#~/__mocks__/mockServiceAccountK8sResource';
 import { mockRoleBindingK8sResource } from '#~/__mocks__/mockRoleBindingK8sResource';
 import {
@@ -31,8 +33,6 @@ import {
   getRoleBinding,
   getServiceAccount,
 } from '#~/api';
-import { mock404Error } from '#~/__mocks__/mockK8sStatus';
-import { mockInferenceServiceK8sResource } from '#~/__mocks__/mockInferenceServiceK8sResource';
 import { mockRoleK8sResource } from '#~/__mocks__/mockRoleK8sResource';
 import { ServingRuntimeVersionStatusLabel } from '#~/pages/modelServing/screens/const';
 import { ServingRuntimeEditInfo } from '#~/pages/modelServing/screens/types';

@@ -1,16 +1,16 @@
 /* eslint-disable camelcase */
 import { PluginStateKF } from '@odh-dashboard/internal/concepts/pipelines/kfTypes';
 import { DSPAMlflowIntegrationMode } from '@odh-dashboard/k8s-core';
+import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
+import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
+import { mockRouteK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockRouteK8sResource';
+import { mockDscStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDscStatus';
 import {
   buildMockExperimentKF,
-  mockDashboardConfig,
-  mockDscStatus,
   mockDataSciencePipelineApplicationK8sResource,
-  mockK8sResourceList,
   buildMockPipeline,
   buildMockPipelines,
   buildMockPipelineVersion,
-  mockRouteK8sResource,
   buildMockRunKF,
   buildMockPipelineVersions,
 } from '@odh-dashboard/internal/__mocks__';

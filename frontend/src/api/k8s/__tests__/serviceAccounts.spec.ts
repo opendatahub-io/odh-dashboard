@@ -4,6 +4,7 @@ import {
   k8sDeleteResource,
   k8sGetResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
+import { mock200Status, mock404Error } from '@odh-dashboard/k8s-core/__mocks__/mockK8sStatus';
 import {
   assembleServiceAccount,
   createServiceAccount,
@@ -13,7 +14,6 @@ import {
 import { ServiceAccountKind } from '#~/k8sTypes';
 import { mockServiceAccountK8sResource } from '#~/__mocks__/mockServiceAccountK8sResource';
 import { ServiceAccountModel } from '#~/api/models';
-import { mock200Status, mock404Error } from '#~/__mocks__/mockK8sStatus';
 
 const name = 'test';
 const namespace = 'test-project';

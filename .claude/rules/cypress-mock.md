@@ -178,8 +178,8 @@ Each module may have specific setup requirements. Always check:
 ### Test Data Management
 
 **MANDATORY: Use shared mock factories**:
-- Most mock data comes from `@odh-dashboard/internal/__mocks__` (source: `frontend/src/__mocks__/`)
-- Some mocks live in their type-owning packages via subpath exports (e.g., `@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource`, `@odh-dashboard/hardware-profiles/__mocks__/mockHardwareProfile`)
+- Mock data factories live in their type-owning packages via subpath exports (e.g., `@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig`, `@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource`, `@odh-dashboard/hardware-profiles/__mocks__/mockHardwareProfile`)
+- Some mocks that have not yet been migrated remain in `@odh-dashboard/internal/__mocks__` (source: `frontend/src/__mocks__/`)
 - NEVER create inline mock data in test files
 - Import and use existing mock functions (e.g., `mockDashboardConfig`, `mockK8sResourceList`)
 - If a mock doesn't exist, create it in the type-owning package's `__mocks__/` directory (or `frontend/src/__mocks__` for frontend-only types) and make it reusable
@@ -188,8 +188,9 @@ Each module may have specific setup requirements. Always check:
 **Example mock usage**:
 
 ```typescript
-import { mockDashboardConfig, mockK8sResourceList } from '@odh-dashboard/internal/__mocks__';
-import { mockConnectionTypeConfigMap } from '@odh-dashboard/internal/__mocks__/mockConnectionType';
+import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
+import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
+import { mockConnectionTypeConfigMap } from '@odh-dashboard/k8s-core/__mocks__/mockConnectionType';
 
 cy.interceptOdh('GET /api/config', mockDashboardConfig({ disableConnectionTypes: false }));
 cy.interceptOdh('GET /api/connection-types', [mockConnectionTypeConfigMap({})]);
@@ -677,7 +678,7 @@ cy.interceptOdh('POST /api/connection-types', {
 **Kubernetes API interceptor patterns**:
 
 ```typescript
-import { mockK8sResourceList } from '@odh-dashboard/internal/__mocks__';
+import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
 import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import { ProjectModel } from '../../../utils/models';
 
@@ -849,7 +850,7 @@ export const mockFeatureList = (count = 3): Feature[] =>
 **Using mock functions in tests**:
 
 ```typescript
-import { mockFeature } from '@odh-dashboard/internal/__mocks__/mockFeature';
+import { mockFeature } from '@odh-dashboard/internal/__mocks__/mockFeature'; // or from the type-owning package
 
 // Default mock
 cy.interceptOdh('GET /api/features/:id', mockFeature({}));
@@ -1031,7 +1032,7 @@ DEBUG=cypress:* npm run cypress:run:mock
 
 - [ ] No direct `cy.findByTestId`, `cy.findByRole`, or `cy.get` in tests
 - [ ] All selectors are in page objects
-- [ ] All mock data comes from `@odh-dashboard/internal/__mocks__`
+- [ ] All mock data comes from type-owning package `__mocks__/` exports (e.g., `@odh-dashboard/k8s-core/__mocks__/`) or `@odh-dashboard/internal/__mocks__`
 - [ ] All network requests are mocked
 - [ ] No arbitrary `cy.wait(milliseconds)`
 - [ ] Test is independent (doesn't depend on other tests)
@@ -1046,7 +1047,7 @@ DEBUG=cypress:* npm run cypress:run:mock
 | **Backend** | All requests mocked | Real cluster APIs |
 | **Speed** | Very fast (seconds) | Slower (minutes) |
 | **Setup** | No cluster needed | Requires cluster access |
-| **Data** | Mocked from `@odh-dashboard/internal/__mocks__` | Real cluster resources |
+| **Data** | Mocked from type-owning package `__mocks__/` exports or `@odh-dashboard/internal/__mocks__` | Real cluster resources |
 | **Test Variables** | Not used | Uses `test-variables.yml` |
 | **OC Commands** | Never used | Used for setup/cleanup |
 | **Intercepts** | ALWAYS required | Not used |
@@ -1200,7 +1201,7 @@ myPage.clickButton(); // Safe
 **Best practices summary**:
 1. Always use page objects (never direct selectors in tests)
 2. Always mock network requests (use interceptors)
-3. Always use reusable mocks from `@odh-dashboard/internal/__mocks__`
+3. Always use reusable mocks from type-owning package `__mocks__/` exports (e.g., `@odh-dashboard/k8s-core/__mocks__/`) or `@odh-dashboard/internal/__mocks__`
 4. Always test access control and feature flags
 5. Always test error scenarios
 6. Always lint before finishing

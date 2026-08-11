@@ -14,7 +14,7 @@ import {
 import { ExternalLinkAltIcon } from '@patternfly/react-icons';
 import { isEmpty, values } from 'lodash-es';
 import { asEnumMember } from '@odh-dashboard/foundation';
-import { OdhApplication } from '#~/types';
+import type { OdhApplication } from '@odh-dashboard/k8s-core';
 import { EnableApplicationStatus, useEnableApplication } from '#~/utilities/useEnableApplication';
 import EnableVariable from './EnableVariable';
 import './EnableModal.scss';

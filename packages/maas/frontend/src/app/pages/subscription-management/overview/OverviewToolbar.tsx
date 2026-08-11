@@ -33,6 +33,16 @@ const OverviewToolbar: React.FC<OverviewToolbarProps> = ({
           data-testid="overview-model-name-filter-input"
         />
       ),
+      [OverviewFilterOptions.project]: ({ onChange, ...props }) => (
+        <SearchInput
+          {...props}
+          style={{ minWidth: '350px' }}
+          aria-label="Filter by project"
+          placeholder="Filter by project"
+          onChange={(_event, value) => onChange(value)}
+          data-testid="overview-project-name-filter-input"
+        />
+      ),
       [OverviewFilterOptions.groupName]: ({ onChange, ...props }) => (
         <SearchInput
           {...props}

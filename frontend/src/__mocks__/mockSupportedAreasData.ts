@@ -1,6 +1,6 @@
 import type { SupportedAreasState } from '@odh-dashboard/plugin-core/areas';
+import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
 import { SupportedAreasStateMap } from '#~/concepts/areas/const.ts';
-import { mockDashboardConfig } from '#~/__mocks__/mockDashboardConfig.ts';
 import { IsAreaAvailableOptions } from '#~/concepts/areas/utils.ts';
 
 export const mockSupportedAreasStateMap = (
