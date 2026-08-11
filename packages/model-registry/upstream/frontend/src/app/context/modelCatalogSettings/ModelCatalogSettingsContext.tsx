@@ -4,10 +4,11 @@ import useModelCatalogSettingsAPIState, {
   ModelCatalogSettingsAPIState,
 } from '~/app/hooks/modelCatalogSettings/useModelCatalogSettingsAPIState';
 import { useCatalogSourceConfigs } from '~/app/hooks/modelCatalogSettings/useCatalogSourceConfigs';
-import { CatalogSourceConfigList, CatalogSourceList } from '~/app/modelCatalogTypes';
+import type { CatalogSourceList } from '~/app/shared/types/catalogTypes';
+import type { CatalogSourceConfigList } from '~/app/modelCatalogTypes';
 import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
 import useModelCatalogAPIState from '~/app/hooks/modelCatalog/useModelCatalogAPIState';
-import { useCatalogSourcesWithPolling } from '~/app/hooks/modelCatalogSettings/useCatalogSourcesWithPolling';
+import { useCatalogSourcesWithPolling } from '~/app/shared/catalogSettings/hooks/useCatalogSourcesWithPolling';
 
 export type ModelCatalogSettingsContextType = {
   apiState: ModelCatalogSettingsAPIState;
