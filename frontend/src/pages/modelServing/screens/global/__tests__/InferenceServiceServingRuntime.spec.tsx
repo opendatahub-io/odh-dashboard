@@ -1,10 +1,10 @@
 import * as React from 'react';
 import { render } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { mockServingRuntimeK8sResource } from '#~/__mocks__/mockServingRuntimeK8sResource';
+import { mockServingRuntimeK8sResource } from '@odh-dashboard/model-serving/__mocks__/mockServingRuntimeK8sResource';
+import { mockServingRuntimeTemplateK8sResource } from '@odh-dashboard/model-serving/__mocks__/mockServingRuntimeTemplateK8sResource';
 import { useTemplateByName } from '#~/pages/modelServing/customServingRuntimes/useTemplateByName';
 import InferenceServiceServingRuntime from '#~/pages/modelServing/screens/global/InferenceServiceServingRuntime';
-import { mockServingRuntimeTemplateK8sResource } from '#~/__mocks__/mockServingRuntimeTemplateK8sResource';
 
 jest.mock('#~/pages/modelServing/customServingRuntimes/useTemplateByName', () => ({
   useTemplateByName: jest.fn(),

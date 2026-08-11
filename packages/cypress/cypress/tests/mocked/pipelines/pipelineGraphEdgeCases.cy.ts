@@ -1,14 +1,14 @@
 /* eslint-disable camelcase */
 import { mockDataSciencePipelineApplicationK8sResource } from '@odh-dashboard/internal/__mocks__/mockDataSciencePipelinesApplicationK8sResource';
-import { mockDscStatus } from '@odh-dashboard/internal/__mocks__/mockDscStatus';
-import { mockK8sResourceList } from '@odh-dashboard/internal/__mocks__/mockK8sResourceList';
+import { mockDscStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDscStatus';
+import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
 import {
   buildMockPipelineVersion,
   buildMockPipelineVersions,
 } from '@odh-dashboard/internal/__mocks__/mockPipelineVersionsProxy';
 import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
-import { mockRouteK8sResource } from '@odh-dashboard/internal/__mocks__/mockRouteK8sResource';
-import { mockSecretK8sResource } from '@odh-dashboard/internal/__mocks__/mockSecretK8sResource';
+import { mockRouteK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockRouteK8sResource';
+import { mockSecretK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockSecretK8sResource';
 import { buildMockPipeline } from '@odh-dashboard/internal/__mocks__';
 import { ArtifactType } from '@odh-dashboard/internal/concepts/pipelines/kfTypes';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';

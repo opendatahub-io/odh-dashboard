@@ -2,7 +2,19 @@ import * as React from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { SubjectScopeFilter } from '#~/pages/projects/projectPermissions/const';
+import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import ProjectPermissions from '#~/pages/projects/projectPermissions/ProjectPermissions';
+
+const renderWithProject = (projectName: string) =>
+  render(
+    <ProjectDetailsContext.Provider
+      value={{ currentProject: { metadata: { name: projectName } } } as never}
+    >
+      <MemoryRouter>
+        <ProjectPermissions />
+      </MemoryRouter>
+    </ProjectDetailsContext.Provider>,
+  );
 
 jest.mock('react-router-dom', () => {
   const actual = jest.requireActual('react-router-dom');
@@ -14,6 +26,12 @@ jest.mock('react-router-dom', () => {
 
 jest.mock('#~/concepts/permissions/PermissionsContext', () => ({
   usePermissionsContext: () => ({ loaded: true, error: undefined }),
+}));
+
+jest.mock('#~/pages/projects/ProjectDetailsContext', () => ({
+  ProjectDetailsContext: jest.requireActual('react').createContext({
+    currentProject: { metadata: { name: 'test-project' } },
+  }),
 }));
 
 jest.mock('#~/pages/projects/projectPermissions/SubjectRolesTableSection', () => ({
@@ -91,5 +109,44 @@ describe('ProjectPermissions', () => {
     const button = screen.getByTestId('permissions-assign-roles-button');
     expect(button).toHaveAttribute('href');
     expect(button.getAttribute('href')).toContain('/permissions/assign');
+  });
+
+  it('should render title, description, and link to Roles tab', () => {
+    renderWithProject('test-project');
+
+    expect(screen.getByRole('heading', { level: 3, name: /permissions/i })).toBeInTheDocument();
+    expect(
+      screen.getByText(/Manage who has access to this project by assigning roles/),
+    ).toBeInTheDocument();
+    const rolesLink = screen.getByRole('link', { name: /roles tab/i });
+    expect(rolesLink).toHaveAttribute('href', '/projects/test-project?section=roles');
+  });
+
+  it('should link to Roles tab with correct project name', () => {
+    renderWithProject('my-app-project');
+
+    expect(screen.getByRole('heading', { level: 3, name: /permissions/i })).toBeInTheDocument();
+    const rolesLink = screen.getByRole('link', { name: /roles tab/i });
+    expect(rolesLink).toHaveAttribute('href', '/projects/my-app-project?section=roles');
+  });
+
+  it('should link to Roles tab with section param in bold Roles text', () => {
+    renderWithProject('sample-project');
+
+    expect(screen.getByRole('heading', { level: 3, name: /permissions/i })).toBeInTheDocument();
+    const description = screen.getByText(
+      /Manage who has access to this project by assigning roles to users and groups/,
+    );
+    expect(description).toBeInTheDocument();
+    const rolesLink = screen.getByRole('link', { name: /roles tab/i });
+    expect(rolesLink).toHaveAttribute('href', '/projects/sample-project?section=roles');
+    expect(rolesLink.textContent).toContain('Roles');
+  });
+
+  it('should render the Manage permissions button link to assign page', () => {
+    renderWithProject('test-project');
+
+    const manageButton = screen.getByTestId('permissions-assign-roles-button');
+    expect(manageButton).toHaveAttribute('href', '/projects/test-project/permissions/assign');
   });
 });

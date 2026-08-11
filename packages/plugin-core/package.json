@@ -18,7 +18,9 @@
     "./host-api": "./src/host-api/index.ts",
     "./integrations": "./src/integrations/index.ts",
     "./routing": "./src/routing/index.ts",
-    "./testing": "./src/testing/utils.ts"
+    "./testing": "./src/testing/utils.ts",
+    "./__mocks__/mockDsciStatus": "./src/__mocks__/mockDsciStatus.ts",
+    "./__mocks__/mockDscStatus": "./src/__mocks__/mockDscStatus.ts"
   },
   "dependencies": {
     "@odh-dashboard/foundation": "*",
@@ -34,6 +36,6 @@
     "@openshift/dynamic-plugin-sdk": "^5",
     "@patternfly/react-core": "^6",
     "react": "^18",
-    "react-router-dom": "^7.18.1"
+    "react-router-dom": "^7"
   }
 }
