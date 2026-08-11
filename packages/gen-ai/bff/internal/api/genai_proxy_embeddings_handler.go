@@ -64,10 +64,14 @@ func (app *App) GenAIProxyNSEmbeddingsHandler(w http.ResponseWriter, r *http.Req
 	}
 
 	// Resolve model → endpoint URL + credentials
-	baseURL, apiKey, err := app.resolveModelEndpoint(ctx, reqBody.Model, namespace)
-	if err != nil {
-		app.logger.Warn("Model resolution failed", "model", reqBody.Model, "error", err)
-		app.notFoundResponse(w, r)
+	baseURL, apiKey, resolveErr := app.resolveModelEndpoint(ctx, reqBody.Model, namespace)
+	if resolveErr != nil {
+		app.logger.Warn("Model resolution failed", "model", reqBody.Model, "error", resolveErr)
+		if isInfraError(resolveErr) {
+			app.serverErrorResponse(w, r, fmt.Errorf("failed to resolve model %q: %w", reqBody.Model, resolveErr))
+		} else {
+			app.notFoundResponse(w, r)
+		}
 		return
 	}
 
@@ -128,33 +132,39 @@ func (app *App) resolveModelEndpoint(ctx context.Context, modelID, namespace str
 
 	k8sClient, k8sErr := app.kubernetesClientFactory.GetClient(ctx)
 	if k8sErr != nil {
-		return "", "", fmt.Errorf("failed to get Kubernetes client: %w", k8sErr)
+		return "", "", &infraError{msg: fmt.Sprintf("failed to get Kubernetes client: %v", k8sErr)}
 	}
 
-	// Determine source type from model ID format
+	// Determine source type from model ID format.
+	// Priority: maas- prefix → custom endpoint (try lookup) → namespace ISVC fallback.
+	// Custom endpoints can have bare IDs (e.g. "custom-embedding-model") or provider-qualified
+	// IDs (e.g. "custom-provider/model-name"), so we always try custom endpoint lookup first
+	// for non-MaaS models before falling back to namespace.
 	var effectiveSourceType models.ModelSourceTypeEnum
 	switch {
 	case strings.HasPrefix(modelID, constants.MaaSProviderPrefix):
 		effectiveSourceType = models.ModelSourceTypeMaaS
-	case strings.Contains(modelID, "/"):
-		// Provider-qualified model ID → try custom endpoint first
-		effectiveSourceType = models.ModelSourceTypeCustomEndpoint
 	default:
-		effectiveSourceType = models.ModelSourceTypeNamespace
+		// Try custom endpoint first (handles both bare and provider-qualified IDs),
+		// fall back to namespace ISVC if not found.
+		effectiveSourceType = models.ModelSourceTypeCustomEndpoint
 	}
 
 	switch effectiveSourceType {
 	case models.ModelSourceTypeCustomEndpoint:
-		extURL, extKey := app.getCustomEndpointBaseURLAndKey(ctx, modelID)
-		if extURL == "" {
-			// Fallback: might be a namespace model with a slash in the name
-			return app.resolveNamespaceModel(ctx, k8sClient, identity, namespace, modelID)
+		// Only attempt custom endpoint resolution for provider-qualified IDs (contains "/")
+		if strings.Contains(modelID, "/") {
+			extURL, extKey := app.getCustomEndpointBaseURLAndKey(ctx, modelID)
+			if extURL != "" {
+				return extURL, extKey, nil
+			}
 		}
-		return extURL, extKey, nil
+		// Fallback to namespace ISVC for bare IDs or if custom endpoint lookup failed
+		return app.resolveNamespaceModel(ctx, k8sClient, identity, namespace, modelID)
 
 	case models.ModelSourceTypeMaaS:
 		if app.bffClientFactory == nil || !app.bffClientFactory.IsTargetConfigured(bffclient.BFFTargetMaaS) {
-			return "", "", fmt.Errorf("MaaS is not available")
+			return "", "", &infraError{msg: "MaaS is not available"}
 		}
 		maasHeaders := map[string]string{constants.MaaSReturnAllModelsHeader: "true"}
 		maasClient := app.bffClientFactory.CreateClientWithHeaders(bffclient.BFFTargetMaaS, identity.Token, maasHeaders)
@@ -165,6 +175,9 @@ func (app *App) resolveModelEndpoint(ctx context.Context, modelID, namespace str
 			return "", "", fmt.Errorf("failed to resolve MaaS inference URL: %w", urlErr)
 		}
 		token := app.getMaaSTokenForModel(ctx, k8sClient, identity, namespace, modelID, "")
+		if token == "" {
+			return "", "", &infraError{msg: fmt.Sprintf("failed to obtain auth token for MaaS model %q", modelID)}
+		}
 		return inferenceURL, token, nil
 
 	default:
@@ -190,4 +203,24 @@ func (app *App) resolveNamespaceModel(ctx context.Context, k8sClient k8s.Kuberne
 	}
 
 	return isvcURL, identity.Token, nil
+}
+
+// infraError signals an infrastructure failure (K8s client unavailable, MaaS down)
+// as opposed to a "model not found" scenario. Used to distinguish 500/502 from 404.
+type infraError struct {
+	msg string
+}
+
+func (e *infraError) Error() string { return e.msg }
+
+func isInfraError(err error) bool {
+	if err == nil {
+		return false
+	}
+	var ie *infraError
+	if errors.As(err, &ie) {
+		return true
+	}
+	// K8s client errors are infra errors
+	return strings.Contains(err.Error(), "failed to get Kubernetes client")
 }
