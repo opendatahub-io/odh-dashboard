@@ -43,8 +43,8 @@
     "@odh-dashboard/plugin-core": "*"
   },
   "devDependencies": {
+    "@odh-dashboard/app-config": "*",
     "@odh-dashboard/eslint-config": "*",
-    "@odh-dashboard/tsconfig": "*",
-    "eslint-plugin-n": "^17.23.1"
+    "@odh-dashboard/tsconfig": "*"
   }
 }

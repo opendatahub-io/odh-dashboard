@@ -7,7 +7,7 @@
   "license": "Apache-2.0",
   "private": true,
   "engines": {
-    "node": ">=22.0.0"
+    "node": ">=22.18.0"
   },
   "overrides": {
     "js-yaml": "^4.1.1",
@@ -38,7 +38,7 @@
     "start:default": "STYLE_THEME=patternfly-theme npm run start:dev"
   },
   "devDependencies": {
-    "@module-federation/enhanced": "^0.21.4",
+    "@module-federation/enhanced": "^0.24.1",
     "@pmmmwh/react-refresh-webpack-plugin": "^0.5.15",
     "@swc/core": "^1.9.1",
     "@testing-library/dom": "^10.4.0",
@@ -89,12 +89,12 @@
     "webpack-merge": "^6.0.1"
   },
   "dependencies": {
-    "@patternfly/patternfly": "^6.3.1",
-    "@patternfly/react-core": "^6.3.1",
-    "@patternfly/react-icons": "^6.3.1",
-    "@patternfly/react-styles": "^6.3.1",
-    "@patternfly/react-table": "^6.3.1",
-    "@patternfly/react-templates": "^6.3.1",
+    "@patternfly/patternfly": "~6.5.1",
+    "@patternfly/react-core": "~6.5.1",
+    "@patternfly/react-icons": "~6.5.1",
+    "@patternfly/react-styles": "~6.5.1",
+    "@patternfly/react-table": "~6.5.1",
+    "@patternfly/react-templates": "~6.5.1",
     "classnames": "^2.2.6",
     "mod-arch-core": "^1.10.1",
     "react": "^18",
