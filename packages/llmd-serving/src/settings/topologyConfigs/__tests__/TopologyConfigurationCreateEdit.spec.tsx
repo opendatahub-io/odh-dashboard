@@ -71,18 +71,61 @@ const renderAtAdd = (topologyType: string) =>
     </MemoryRouter>,
   );
 
+// Renders the edit route for a configName with the given configs available in
+// context, plus a sentinel list route.
+const renderAtEdit = (configName: string, configs: LLMInferenceServiceConfigKind[]) =>
+  render(
+    <MemoryRouter initialEntries={[`/list/edit/${configName}`]}>
+      <TopologyConfigContext.Provider value={{ configs }}>
+        <Routes>
+          <Route
+            path="/list/edit/:configName"
+            element={<TopologyConfigurationCreateEdit listPath="/list" />}
+          />
+          <Route path="/list" element={<div data-testid="list-landing" />} />
+        </Routes>
+      </TopologyConfigContext.Provider>
+    </MemoryRouter>,
+  );
+
+// Renders the duplicate route for a configName with the given configs available
+// in context, plus a sentinel list route.
+const renderAtDuplicateByName = (configName: string, configs: LLMInferenceServiceConfigKind[]) =>
+  render(
+    <MemoryRouter initialEntries={[`/list/duplicate/${configName}`]}>
+      <TopologyConfigContext.Provider value={{ configs }}>
+        <Routes>
+          <Route
+            path="/list/duplicate/:configName"
+            element={<TopologyConfigurationCreateEdit listPath="/list" isDuplicate />}
+          />
+          <Route path="/list" element={<div data-testid="list-landing" />} />
+        </Routes>
+      </TopologyConfigContext.Provider>
+    </MemoryRouter>,
+  );
+
 describe('TopologyConfigurationCreateEdit', () => {
+  let originalFetch: typeof global.fetch | undefined;
+
   beforeEach(() => {
     jest.clearAllMocks();
     // The add form probes for a sample template on mount; stub global fetch so
     // that post-render effect doesn't throw in jsdom (its result isn't asserted
     // here — these tests cover render-vs-redirect, not template loading).
+    originalFetch = global.fetch;
     global.fetch = jest.fn(() => Promise.resolve({ ok: false } as Response)) as jest.Mock;
   });
 
   afterEach(() => {
-    // @ts-expect-error — remove the stub so it can't leak into other suites
-    delete global.fetch;
+    // Restore the prior implementation rather than deleting, so a real fetch
+    // (if one existed) isn't clobbered for later tests in the same worker.
+    if (originalFetch) {
+      global.fetch = originalFetch;
+    } else {
+      // @ts-expect-error — no prior fetch to restore; remove the stub
+      delete global.fetch;
+    }
   });
 
   describe('duplicate mode', () => {
@@ -115,6 +158,29 @@ describe('TopologyConfigurationCreateEdit', () => {
 
       expect(screen.getByTestId('list-landing')).toBeInTheDocument();
       expect(screen.queryByTestId('app-page')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('missing config', () => {
+    it('should show a not-found message rather than redirect when editing a config that does not exist', () => {
+      renderAtEdit('does-not-exist', []);
+
+      expect(screen.getByText('Unable to edit topology configuration')).toBeInTheDocument();
+      expect(screen.getByText('does-not-exist', { exact: false })).toBeInTheDocument();
+      expect(screen.getByRole('link', { name: 'Return to the list' })).toBeInTheDocument();
+      // It must NOT silently redirect to the list.
+      expect(screen.queryByTestId('list-landing')).not.toBeInTheDocument();
+    });
+
+    it('should label the not-found message as a duplicate failure when duplicating a config that does not exist', () => {
+      renderAtDuplicateByName('does-not-exist', []);
+
+      // Copy reflects the duplicate operation, not "edit".
+      expect(screen.getByText('Unable to duplicate topology configuration')).toBeInTheDocument();
+      expect(screen.queryByText('Unable to edit topology configuration')).not.toBeInTheDocument();
+      expect(screen.getByText('does-not-exist', { exact: false })).toBeInTheDocument();
+      expect(screen.getByRole('link', { name: 'Return to the list' })).toBeInTheDocument();
+      expect(screen.queryByTestId('list-landing')).not.toBeInTheDocument();
     });
   });
 });

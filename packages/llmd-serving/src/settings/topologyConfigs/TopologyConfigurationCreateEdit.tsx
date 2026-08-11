@@ -5,13 +5,18 @@ import {
   AlertActionCloseButton,
   Breadcrumb,
   BreadcrumbItem,
+  Bullseye,
   Button,
+  EmptyState,
+  EmptyStateBody,
+  EmptyStateFooter,
   Form,
   FormGroup,
   FormHelperText,
   HelperText,
   HelperTextItem,
 } from '@patternfly/react-core';
+import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { Link, Navigate, useNavigate, useParams } from 'react-router';
 import YAML from 'yaml';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports -- standard page shell wrapper
@@ -394,13 +399,57 @@ const TopologyConfigurationCreateEdit: React.FC<TopologyConfigurationCreateEditP
   // On the add route the topology type comes from the URL; reject an unsupported
   // value (e.g. /add/not-a-topology) rather than rendering an unusable form.
   // Edit/duplicate routes have no topologyType param, so this is a no-op there.
+  // An arbitrary/typo'd type is not a real resource, so redirect silently.
   const hasValidTopologyType =
     !topologyType || Object.values(TopologyType).some((t) => t === topologyType);
+  if (!hasValidTopologyType) {
+    return <Navigate to={listPath} replace />;
+  }
 
   // For edit and duplicate, the named config must exist (context is already
-  // loaded — the provider gates on that). Missing ⇒ redirect to the list.
-  if ((configName && !sourceConfig) || !hasValidTopologyType) {
-    return <Navigate to={listPath} replace />;
+  // loaded — the provider gates on that). When it doesn't, tell the user rather
+  // than silently redirecting — a deep link or reload to a deleted/renamed
+  // config should explain what happened. Matches the pattern used by serving
+  // runtimes, connection types, and hardware profiles. The copy reflects the
+  // active operation so a missing duplicate target isn't labelled as an edit.
+  if (configName && !sourceConfig) {
+    const operationLabel = isDuplicate ? 'Duplicate' : 'Edit';
+    return (
+      <ApplicationsPage
+        loaded
+        empty={false}
+        title={`${operationLabel} llm-d topology configuration`}
+        breadcrumb={
+          <Breadcrumb>
+            <BreadcrumbItem
+              render={() => <Link to={listPath}>llm-d topology configurations</Link>}
+            />
+            <BreadcrumbItem isActive>{operationLabel}</BreadcrumbItem>
+          </Breadcrumb>
+        }
+        provideChildrenPadding
+      >
+        <Bullseye>
+          <EmptyState
+            headingLevel="h2"
+            icon={ExclamationCircleIcon}
+            titleText={`Unable to ${isDuplicate ? 'duplicate' : 'edit'} topology configuration`}
+          >
+            <EmptyStateBody>
+              We were unable to find a topology configuration named &quot;{configName}&quot;.
+            </EmptyStateBody>
+            <EmptyStateFooter>
+              <Button
+                variant="primary"
+                component={(props: React.ComponentProps<'a'>) => <Link {...props} to={listPath} />}
+              >
+                Return to the list
+              </Button>
+            </EmptyStateFooter>
+          </EmptyState>
+        </Bullseye>
+      </ApplicationsPage>
+    );
   }
 
   return (
