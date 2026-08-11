@@ -26,7 +26,7 @@ Note: do NOT use `make dev-bff-mock` — it sets `AUTH_METHOD=disabled`, which s
 
 ```bash
 cd distributions/maas-customer-portal
-MOCK_USER=user@example.com MAAS_BFF_TARGET=http://localhost:8081 npm run dev
+OC_PROJECT= ODH_APP= ODH_DASHBOARD_HOST= MOCK_USER=user@example.com MAAS_BFF_TARGET=http://localhost:8081 npm run dev
 ```
 
 Use `MOCK_USER=user@example.com` for admin permissions in mock mode (grants `clusterAdmin`, which enables the MaaS governance nav item). Other usernames lack admin RBAC bindings.

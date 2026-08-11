@@ -8,7 +8,7 @@ paths:
 
 # Distribution Conventions
 
-Distributions are independently-deployable dashboard variants in `distributions/`. All four are **npm workspace members** and participate in the **Turbo pipeline** — Turbo-based root commands (`npm run lint`, `npm run type-check`, `npm run test:contract`, etc.) include distributions that define matching scripts.
+Distributions live in `distributions/` — three are independently-deployable dashboard variants while `base/` is a shared app-shell library (not deployed on its own). All four are **npm workspace members** and participate in the **Turbo pipeline** — Turbo-based root commands (`npm run lint`, `npm run type-check`, `npm run test:contract`, etc.) include distributions that define matching scripts.
 
 ## Sub-distributions
 

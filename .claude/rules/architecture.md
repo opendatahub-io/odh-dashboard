@@ -89,7 +89,7 @@ The controller is **not** part of the npm workspace or Turbo pipeline. It has it
 
 ## Distributions (`distributions/`)
 
-Independently-deployable dashboard variants. All four are **npm workspace members** and participate in the **Turbo pipeline** — Turbo-based root commands (`lint`, `type-check`, `test:contract`) run on distributions that define matching scripts. Some root convenience scripts (`build`, `test`, `dev`) are hardcoded to `frontend/` and `backend/` and do not cover distributions.
+Dashboard variants — three independently-deployable distributions plus a shared app-shell library (`base/`). All four are **npm workspace members** and participate in the **Turbo pipeline** — Turbo-based root commands (`lint`, `type-check`, `test:contract`) run on distributions that define matching scripts. Some root convenience scripts (`build`, `test`, `dev`) are hardcoded to `frontend/` and `backend/` and do not cover distributions.
 
 | Directory | Description | Has BFF? | Build System |
 |-----------|-------------|----------|--------------|
