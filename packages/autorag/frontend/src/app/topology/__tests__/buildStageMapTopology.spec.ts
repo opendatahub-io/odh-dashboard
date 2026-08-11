@@ -828,7 +828,7 @@ describe('buildStageMapTopology', () => {
       expect(byId.rag_optimization__build_leaderboard.data?.runStatus).toBe(RunStatus.Pending);
     });
 
-    it('should keep branch and post-branch stages pending when pattern optimization fails', () => {
+    it('should fail the branch section and keep post-branch stages pending when pattern optimization fails', () => {
       const stageMap = makeStageMap([
         makeComponent(
           'rag_optimization',
@@ -851,9 +851,9 @@ describe('buildStageMapTopology', () => {
       expect(byId.rag_optimization__validate_inputs.data?.runStatus).toBe(RunStatus.Succeeded);
       expect(byId.rag_optimization__optimize_templates.data?.runStatus).toBe(RunStatus.Failed);
       expect(byId['rag_optimization__step__chunking__branch-0'].data?.runStatus).toBe(
-        RunStatus.Pending,
+        RunStatus.Failed,
       );
-      expect(byId['rag_optimization__pattern__branch-0'].data?.runStatus).toBe(RunStatus.Pending);
+      expect(byId['rag_optimization__pattern__branch-0'].data?.runStatus).toBe(RunStatus.Failed);
       expect(byId.rag_optimization__run_optimization.data?.runStatus).toBe(RunStatus.Pending);
       expect(byId.rag_optimization__build_leaderboard.data?.runStatus).toBe(RunStatus.Pending);
     });
@@ -914,10 +914,10 @@ describe('buildStageMapTopology', () => {
       expect(byId.rag_optimization__validate_inputs.data?.runStatus).toBe(RunStatus.Failed);
       expect(byId.rag_optimization__optimize_templates.data?.runStatus).toBe(RunStatus.Failed);
       expect(byId['rag_optimization__step__chunking__branch-0'].data?.runStatus).toBe(
-        RunStatus.Failed,
+        RunStatus.Pending,
       );
-      expect(byId['rag_optimization__pattern__branch-0'].data?.runStatus).toBe(RunStatus.Failed);
-      expect(byId.rag_optimization__run_optimization.data?.runStatus).toBe(RunStatus.Failed);
+      expect(byId['rag_optimization__pattern__branch-0'].data?.runStatus).toBe(RunStatus.Pending);
+      expect(byId.rag_optimization__run_optimization.data?.runStatus).toBe(RunStatus.Pending);
       expect(byId.leaderboard_evaluation__build_leaderboard.data?.runStatus).toBe(
         RunStatus.Pending,
       );

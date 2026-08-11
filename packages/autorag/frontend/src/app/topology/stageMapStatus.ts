@@ -146,17 +146,12 @@ export const hasPreBranchInlineFailure = (preBranchStages: ComponentStageMapStag
   preBranchStages.some((stage) => stage.id !== BRANCHING_STAGE_ID && isInlineStageFailure(stage));
 
 /**
- * Branch fan-out steps are not run when pattern optimization explicitly failed inline — keep
- * them pending. When the component failed without granular stage status, branches inherit
- * Failed.
+ * Branch fan-out section mirrors optimize_templates terminal status.
+ * If optimize_templates fails/cancels, the whole branch section fails/cancels.
  */
 export const resolveBranchPhaseStatus = (
   patternSelectionStatus: RunStatus | undefined,
-  patternSelectionStage?: ComponentStageMapStage,
-): RunStatus | undefined =>
-  patternSelectionStatus === RunStatus.Failed && isInlineStageFailure(patternSelectionStage)
-    ? RunStatus.Pending
-    : patternSelectionStatus;
+): RunStatus | undefined => patternSelectionStatus;
 
 export const isStageFinished = (status: RunStatus | undefined): boolean =>
   status === RunStatus.Succeeded || status === RunStatus.Skipped;

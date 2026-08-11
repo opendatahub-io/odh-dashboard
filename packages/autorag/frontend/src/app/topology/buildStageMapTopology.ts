@@ -126,7 +126,7 @@ export const buildStageMapTopology = (
     const branchPhaseStatus =
       pipelineState.blocked || preBranchInlineFailure
         ? RunStatus.Pending
-        : resolveBranchPhaseStatus(patternSelectionRunStatus, patternSelectionStage);
+        : resolveBranchPhaseStatus(patternSelectionRunStatus);
 
     // Emit pre-branch stages linearly (validate_inputs, optimize_templates)
     for (const stage of preBranchStages) {
@@ -240,8 +240,7 @@ export const buildStageMapTopology = (
       !isInlineStageFailure(patternSelectionStage);
     const shouldKeepPostBranchPending =
       preBranchInlineFailure ||
-      (patternSelectionRunStatus === RunStatus.Failed &&
-        isInlineStageFailure(patternSelectionStage)) ||
+      patternSelectionRunStatus === RunStatus.Failed ||
       // Keep post-branch pending until pattern selection finishes, even while the component
       // task is already RUNNING, but only when pattern selection itself has explicit stage status.
       (!isStageFinished(patternSelectionRunStatus) &&

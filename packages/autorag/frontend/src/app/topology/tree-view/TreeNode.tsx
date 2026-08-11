@@ -19,7 +19,6 @@ import {
 import {
   CheckIcon,
   ExclamationIcon,
-  ExclamationCircleIcon,
   HourglassHalfIcon,
   StarIcon,
   SyncAltIcon,
@@ -293,8 +292,16 @@ const StatusBadgeDecorator: React.FC<{
   let icon: React.ReactNode;
   switch (stepState) {
     case 'failed':
-      icon = <ExclamationCircleIcon className="pf-m-danger" />;
-      break;
+      return (
+        <Decorator
+          x={x}
+          y={y}
+          radius={DEFAULT_DECORATOR_RADIUS}
+          showBackground={false}
+          icon={<StatusOnlyFailedBadge size={DECORATOR_STATUS_BADGE_SIZE} />}
+          ariaLabel={stepState}
+        />
+      );
     case 'pending':
     case 'unreached':
     default:
