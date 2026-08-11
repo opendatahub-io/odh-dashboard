@@ -15,6 +15,7 @@ const useFilters = <T extends Record<string, FilterValue>>(
   onClearFilters: () => void;
 } => {
   const [filterData, setFilterData] = React.useState<T>(initialFilterData);
+  const initialRef = React.useRef(initialFilterData);
 
   const onFilterUpdate = React.useCallback(
     (key: keyof T, value: FilterValue) =>
@@ -23,8 +24,8 @@ const useFilters = <T extends Record<string, FilterValue>>(
   );
 
   const onClearFilters = React.useCallback(
-    () => setFilterData(initialFilterData),
-    [setFilterData, initialFilterData],
+    () => setFilterData(initialRef.current),
+    [setFilterData],
   );
 
   return { filterData, setFilterData, onFilterUpdate, onClearFilters };
