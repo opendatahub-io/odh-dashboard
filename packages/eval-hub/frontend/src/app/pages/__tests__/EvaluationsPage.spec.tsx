@@ -55,9 +55,8 @@ jest.mock('mod-arch-core', () => ({
 
 jest.mock('~/app/components/EvaluationStatusModal', () => ({
   __esModule: true,
-  default: ({ namespace }: { namespace: string }) => (
-    <div data-testid="evaluation-status-modal" data-namespace={namespace} />
-  ),
+  default: ({ job, namespace }: { job: unknown; namespace: string }) =>
+    job ? <div data-testid="evaluation-status-modal" data-namespace={namespace} /> : null,
 }));
 
 jest.mock('~/app/context/CollectionsContext', () => ({
