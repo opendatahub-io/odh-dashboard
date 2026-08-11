@@ -38,7 +38,6 @@ These plugins configure shared modules, singleton flags, and version constraints
 |----------|---------|-------|
 | React ecosystem | `react`, `react-dom`, `react-router`, `react-router-dom` | Singleton, eager on host; remotes use `import: false` |
 | OpenShift SDK | `@openshift/dynamic-plugin-sdk`, `@openshift/dynamic-plugin-sdk-utils` | Singleton, eager on host; remotes use `import: false` |
-| Query/params | `@tanstack/react-query`, `use-query-params` | In the default map; shared when present in that package's `dependencies` |
 | PatternFly | `@patternfly/react-core`, `@patternfly/react-styles`, `@patternfly/react-tokens`, `@patternfly/react-icons`, `@patternfly/react-table`, `@patternfly/react-templates`, `@patternfly/react-topology`, `@patternfly/react-code-editor`, `@patternfly/react-charts`, `@patternfly/chatbot`, `@patternfly/react-component-groups`, `@patternfly/react-drag-drop`, `@patternfly/react-log-viewer`, `@patternfly/quickstarts`, `@patternfly/react-catalog-view-extension` | Singleton. `@patternfly/react-core` and `@patternfly/react-styles` are eager on host; remotes use `import: false` for those two; other listed packages allow remote fallback |
 | ODH packages | Discovered via `npm query .workspace` | Shared as singletons. **Host-provided** (host `@odh-dashboard/*` dependency closure + packages that export `./extensions`): remotes use `import: false`. **Federated-only** packages (and their deps that are not host-provided): shared as singletons with import/fallback allowed |
 
