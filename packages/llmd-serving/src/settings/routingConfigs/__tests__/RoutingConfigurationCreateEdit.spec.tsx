@@ -141,7 +141,7 @@ describe('RoutingConfigurationCreateEdit', () => {
   });
 
   describe('missing config', () => {
-    it('should show a not-found message rather than redirect when the config does not exist', () => {
+    it('should show a not-found message rather than redirect when editing a config that does not exist', () => {
       renderAtRoute(
         [],
         '/routing-configs/edit/:configName',
@@ -155,6 +155,25 @@ describe('RoutingConfigurationCreateEdit', () => {
       expect(screen.getByText('does-not-exist', { exact: false })).toBeInTheDocument();
       expect(screen.getByRole('link', { name: 'Return to the list' })).toBeInTheDocument();
       // It must NOT render the form's topology-type select (i.e. not the form).
+      expect(screen.queryByTestId('topology-type-select')).not.toBeInTheDocument();
+    });
+
+    it('should label the not-found message as a duplicate failure when duplicating a config that does not exist', () => {
+      renderAtRoute(
+        [],
+        '/routing-configs/duplicate/:configName',
+        '/routing-configs/duplicate/does-not-exist',
+        {
+          listPath: '/routing-configs',
+          isDuplicate: true,
+        },
+      );
+
+      // Copy reflects the duplicate operation, not "edit".
+      expect(screen.getByText('Unable to duplicate routing configuration')).toBeInTheDocument();
+      expect(screen.queryByText('Unable to edit routing configuration')).not.toBeInTheDocument();
+      expect(screen.getByText('does-not-exist', { exact: false })).toBeInTheDocument();
+      expect(screen.getByRole('link', { name: 'Return to the list' })).toBeInTheDocument();
       expect(screen.queryByTestId('topology-type-select')).not.toBeInTheDocument();
     });
   });

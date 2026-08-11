@@ -472,19 +472,21 @@ const RoutingConfigurationCreateEdit: React.FC<RoutingConfigurationCreateEditPro
   // gates on that). When it doesn't exist, tell the user rather than silently
   // redirecting — a deep link or reload to a deleted/renamed config should
   // explain what happened. Matches the pattern used by serving runtimes,
-  // connection types, and hardware profiles.
+  // connection types, and hardware profiles. The copy reflects the active
+  // operation so a missing duplicate target isn't labelled as an edit.
   if (configName && !sourceConfig) {
+    const operationLabel = isDuplicate ? 'Duplicate' : 'Edit';
     return (
       <ApplicationsPage
         loaded
         empty={false}
-        title="Edit llm-d routing configuration"
+        title={`${operationLabel} llm-d routing configuration`}
         breadcrumb={
           <Breadcrumb>
             <BreadcrumbItem
               render={() => <Link to={listPath}>llm-d routing configurations</Link>}
             />
-            <BreadcrumbItem isActive>Edit</BreadcrumbItem>
+            <BreadcrumbItem isActive>{operationLabel}</BreadcrumbItem>
           </Breadcrumb>
         }
         provideChildrenPadding
@@ -493,7 +495,7 @@ const RoutingConfigurationCreateEdit: React.FC<RoutingConfigurationCreateEditPro
           <EmptyState
             headingLevel="h2"
             icon={ExclamationCircleIcon}
-            titleText="Unable to edit routing configuration"
+            titleText={`Unable to ${isDuplicate ? 'duplicate' : 'edit'} routing configuration`}
           >
             <EmptyStateBody>
               We were unable to find a routing configuration named &quot;{configName}&quot;.
