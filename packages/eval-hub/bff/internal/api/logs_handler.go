@@ -41,7 +41,9 @@ func (app *App) GetEvaluationJobLogsHandler(w http.ResponseWriter, r *http.Reque
 
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(logs))
+	if _, err = w.Write([]byte(logs)); err != nil {
+		app.logger.Error("failed to write job logs response", "error", err)
+	}
 }
 
 func (app *App) GetEvaluationJobBenchmarkLogsHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
@@ -82,5 +84,7 @@ func (app *App) GetEvaluationJobBenchmarkLogsHandler(w http.ResponseWriter, r *h
 
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(logs))
+	if _, err = w.Write([]byte(logs)); err != nil {
+		app.logger.Error("failed to write benchmark logs response", "error", err)
+	}
 }
