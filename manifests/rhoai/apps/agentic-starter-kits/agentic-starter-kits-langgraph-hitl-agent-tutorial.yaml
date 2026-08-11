@@ -1,0 +1,13 @@
+apiVersion: dashboard.opendatahub.io/v1
+kind: OdhDocument
+metadata:
+  name: agentic-starter-kits-langgraph-hitl-agent-tutorial
+  annotations:
+    opendatahub.io/categories: 'Agent Templates,Getting started'
+spec:
+  type: tutorial
+  displayName: 'LangGraph Human-in-the-Loop Agent'
+  description: >-
+    LangGraph agent with human approval workflow that pauses for review before executing sensitive tools.
+  url: 'https://red.ht/3RGZOtB'
+  appName: agentic-starter-kits

@@ -1,0 +1,13 @@
+apiVersion: dashboard.opendatahub.io/v1
+kind: OdhDocument
+metadata:
+  name: agentic-starter-kits-langgraph-guardrailed-agent-tutorial
+  annotations:
+    opendatahub.io/categories: 'Agent Templates,Getting started'
+spec:
+  type: tutorial
+  displayName: 'LangGraph Guardrailed Agent'
+  description: >-
+    Banking customer service agent with NeMo Guardrails safety layer. Demonstrates content safety, topical guardrails, and regex filtering using the proxy pattern.
+  url: 'https://red.ht/3RV5Yq1'
+  appName: agentic-starter-kits

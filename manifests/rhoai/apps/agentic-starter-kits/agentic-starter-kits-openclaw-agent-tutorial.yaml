@@ -1,0 +1,13 @@
+apiVersion: dashboard.opendatahub.io/v1
+kind: OdhDocument
+metadata:
+  name: agentic-starter-kits-openclaw-agent-tutorial
+  annotations:
+    opendatahub.io/categories: 'Agent Templates,Getting started'
+spec:
+  type: tutorial
+  displayName: 'OpenClaw'
+  description: >-
+    Open-source AI coding assistant based on OpenClaw with gateway-based model routing and multi-channel support.
+  url: 'https://red.ht/3UqX4RN'
+  appName: agentic-starter-kits

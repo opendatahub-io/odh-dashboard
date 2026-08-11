@@ -1,0 +1,13 @@
+apiVersion: dashboard.opendatahub.io/v1
+kind: OdhDocument
+metadata:
+  name: agentic-starter-kits-a2a-langgraph-crewai-tutorial
+  annotations:
+    opendatahub.io/categories: 'Agent Templates,Getting started'
+spec:
+  type: tutorial
+  displayName: 'A2A LangGraph ↔ CrewAI'
+  description: >-
+    A2A demo — CrewAI specialist and LangGraph orchestrator (one Dockerfile; two tags / image refs for deploy).
+  url: 'https://red.ht/4xy6hWS'
+  appName: agentic-starter-kits

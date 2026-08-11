@@ -1,0 +1,13 @@
+apiVersion: dashboard.opendatahub.io/v1
+kind: OdhDocument
+metadata:
+  name: agentic-starter-kits-llamaindex-websearch-agent-tutorial
+  annotations:
+    opendatahub.io/categories: 'Agent Templates,Getting started'
+spec:
+  type: tutorial
+  displayName: 'LlamaIndex WebSearch Agent'
+  description: >-
+    Agent built on LlamaIndex that uses a web search tool to query the internet and augment answers.
+  url: 'https://red.ht/4xy6md8'
+  appName: agentic-starter-kits

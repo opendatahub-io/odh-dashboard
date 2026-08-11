@@ -1,0 +1,13 @@
+apiVersion: dashboard.opendatahub.io/v1
+kind: OdhDocument
+metadata:
+  name: agentic-starter-kits-langgraph-agentic-rag-tutorial
+  annotations:
+    opendatahub.io/categories: 'Agent Templates,Getting started'
+spec:
+  type: tutorial
+  displayName: 'LangGraph Agentic RAG Agent'
+  description: >-
+    RAG agent that indexes documents in a vector store (Milvus) and retrieves relevant chunks to augment the LLM's answers.
+  url: 'https://red.ht/4xy6kC2'
+  appName: agentic-starter-kits

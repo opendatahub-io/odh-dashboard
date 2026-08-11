@@ -1,0 +1,13 @@
+apiVersion: dashboard.opendatahub.io/v1
+kind: OdhDocument
+metadata:
+  name: agentic-starter-kits-autogen-mcp-agent-tutorial
+  annotations:
+    opendatahub.io/categories: 'Agent Templates,Getting started'
+spec:
+  type: tutorial
+  displayName: 'AutoGen Agent (MCP)'
+  description: >-
+    AutoGen-based agent with MCP tools over SSE. Connects to an MCP server, loads tools dynamically, and answers user questions via an OpenAI-compatible API.
+  url: 'https://red.ht/4hrKMlM'
+  appName: agentic-starter-kits

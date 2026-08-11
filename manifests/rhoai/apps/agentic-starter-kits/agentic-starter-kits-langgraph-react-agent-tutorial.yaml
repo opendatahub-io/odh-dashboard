@@ -1,0 +1,13 @@
+apiVersion: dashboard.opendatahub.io/v1
+kind: OdhDocument
+metadata:
+  name: agentic-starter-kits-langgraph-react-agent-tutorial
+  annotations:
+    opendatahub.io/categories: 'Agent Templates,Getting started'
+spec:
+  type: tutorial
+  displayName: 'LangGraph ReAct Agent'
+  description: >-
+    General-purpose ReAct agent built with LangGraph using a reason-and-act loop with external tools.
+  url: 'https://red.ht/4hnh7u5'
+  appName: agentic-starter-kits

@@ -1,0 +1,13 @@
+apiVersion: dashboard.opendatahub.io/v1
+kind: OdhDocument
+metadata:
+  name: agentic-starter-kits-langgraph-ci-failure-summarizer-agent-tutorial
+  annotations:
+    opendatahub.io/categories: 'Agent Templates,Getting started'
+spec:
+  type: tutorial
+  displayName: 'LangGraph CI Failure Summarizer'
+  description: >-
+    Lightweight daily QG4 CI failure summarizer with PostgreSQL-backed incident persistence and Slack posting.
+  url: 'https://red.ht/4hrNBn0'
+  appName: agentic-starter-kits

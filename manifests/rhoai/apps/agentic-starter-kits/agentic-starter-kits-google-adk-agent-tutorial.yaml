@@ -1,0 +1,13 @@
+apiVersion: dashboard.opendatahub.io/v1
+kind: OdhDocument
+metadata:
+  name: agentic-starter-kits-google-adk-agent-tutorial
+  annotations:
+    opendatahub.io/categories: 'Agent Templates,Getting started'
+spec:
+  type: tutorial
+  displayName: 'Google ADK Agent'
+  description: >-
+    General-purpose agent using Google ADK 2.0 with LiteLLM to route inference through an OGX-compatible endpoint.
+  url: 'https://red.ht/4zbzto2'
+  appName: agentic-starter-kits
