@@ -50,9 +50,6 @@ describe('Workbench Storage Classes Tests - s390x', () => {
       })
       .then(() => {
         cy.step('Provisioning project');
-
-        // s390x uses the existing cluster storage class.
-        // Do not create a vSphere StorageClass.
         provisionClusterStorageSCFeature(projectName, HTPASSWD_CLUSTER_ADMIN_USER.USERNAME);
       });
   });
@@ -64,11 +61,9 @@ describe('Workbench Storage Classes Tests - s390x', () => {
 
   beforeEach(() => {
     cy.step('Log into the application');
-
     cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 
     cy.step(`Navigate to the Project list tab and search for ${projectName}`);
-
     projectListPage.navigate();
     projectListPage.filterProjectByName(projectName);
     projectListPage.findProjectLink(projectName).click();
@@ -86,19 +81,14 @@ describe('Workbench Storage Classes Tests - s390x', () => {
       clusterStorage.findAddClusterStorageButton().click();
 
       addClusterStorageModal.findNameInput().type(storageNameRWO);
-
       const storageClassSelect = addClusterStorageModal.findStorageClassSelect();
-
       storageClassSelect.find().click();
-
       storageClassSelect.selectStorageClassSelectOption(new RegExp(storageClassRWO, 'i'));
 
       cy.step('Submit the form');
-
       addClusterStorageModal.findSubmitButton().should('not.be.disabled').click();
 
       cy.step('Create workbench and attach RWO storage');
-
       projectDetails.findSectionTab('workbenches').click();
       workbenchPage.findCreateButton().click();
 
@@ -108,25 +98,19 @@ describe('Workbench Storage Classes Tests - s390x', () => {
         cy.step('Attach RWO storage to workbench');
 
         createSpawnerPage.findAttachExistingStorageButton().click();
-
         attachExistingStorageModal.findStandardPathInput().fill(mountPathA);
-
         attachExistingStorageModal.findAttachButton().click();
-
         createSpawnerPage.findSubmitButton().click();
 
         cy.step('Verify workbench is running with attached RWO storage');
-
         const notebookRow = workbenchPage.getNotebookRow(workbenchNameRWO);
 
         cy.step('Open workbench edit view');
-
         notebookRow.findKebab().click();
         workbenchActions.findEditWorkbenchAction().click();
 
         cy.step('Navigate to Cluster storage');
         cy.contains('button, a, li', 'Cluster storage').should('be.visible').scrollIntoView();
-
         cy.contains('button, a, li', 'Cluster storage').click();
 
         createSpawnerPage.findSubmitButton().click();
