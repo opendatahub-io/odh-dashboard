@@ -50,6 +50,7 @@ import { evaluationCompareBenchmarksRoute, evaluationCompareRoute } from '~/app/
 import useEvaluationJobDetailPolling from '~/app/hooks/useEvaluationJobDetailPolling';
 import usePageVisibility from '~/app/hooks/usePageVisibility';
 import EvaluationsTableRow from './EvaluationsTableRow';
+
 const EvaluationStatusModal = React.lazy(() => import('./EvaluationStatusModal'));
 
 type FilterOption = 'name' | 'evaluation' | 'evaluated' | 'status';
@@ -589,7 +590,6 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
                 rowIndex={rowIndex}
                 namespace={namespace ?? ''}
                 collectionNameMap={collectionNameMap}
-                polledJobData={polledJobDataMap.get(job.resource.id)}
                 onActionComplete={onRefresh}
                 onShowStatus={(selectedEvalJob) => setSelectedJobId(selectedEvalJob.resource.id)}
                 isSelected={selectedEvaluationIds.has(job.resource.id)}
@@ -599,7 +599,13 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
           </Tbody>
         </Table>
       )}
-      <React.Suspense fallback={<Bullseye><Spinner /></Bullseye>}>
+      <React.Suspense
+        fallback={
+          <Bullseye>
+            <Spinner />
+          </Bullseye>
+        }
+      >
         <EvaluationStatusModal
           job={selectedJob}
           polledJobData={selectedJob ? polledJobDataMap.get(selectedJob.resource.id) : undefined}

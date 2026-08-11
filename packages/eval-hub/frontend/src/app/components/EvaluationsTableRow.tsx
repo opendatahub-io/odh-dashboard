@@ -31,7 +31,6 @@ type EvaluationsTableRowProps = {
   rowIndex: number;
   namespace: string;
   collectionNameMap: CollectionNameMap;
-  polledJobData?: EvaluationJob;
   onActionComplete: () => void;
   onShowStatus: (job: EvaluationJob) => void;
   isSelected: boolean;
