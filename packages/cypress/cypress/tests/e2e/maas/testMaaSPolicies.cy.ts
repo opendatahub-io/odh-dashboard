@@ -75,7 +75,7 @@ const CLIPBOARD_WRITE_TEXT_STUB_ALIAS = 'clipboardWriteText';
 describe('An admin can manage MaaS authorization policies and control model access via group membership', () => {
   retryableBefore(() => {
     cy.log('Loading test data');
-    return loadMaaSFixture('e2e/modelsAsService/testMaaSPolicies.yaml')
+    return loadMaaSFixture('e2e/maas/testMaaSPolicies.yaml')
       .then((fixtureData: ModelAsAServiceTestData) => {
         testData = fixtureData;
         projectName = `${testData.projectResourceName}-${uuid}`;
