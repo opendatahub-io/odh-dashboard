@@ -141,6 +141,19 @@
   }
 }
 
+/* Pending hourglass in branch-step badge — beat topology black fill on `.pf-v6-svg`. */
+.autorag-tree-node--status-only .autorag-tree-node__status-badge svg,
+.autorag-tree-node--status-only .autorag-tree-node__status-badge svg path {
+  color: var(--pf-t--global--icon--color--disabled);
+  fill: var(--pf-t--global--icon--color--disabled);
+}
+
+/* Pending hourglass on stage-node status decorator (e.g. Optimize templates). */
+.autorag-tree-node .pf-topology__node__decorator .autorag-tree-node__status-decorator-pending svg,
+.autorag-tree-node .pf-topology__node__decorator .autorag-tree-node__status-decorator-pending path {
+  color: var(--pf-t--global--icon--color--disabled);
+  fill: var(--pf-t--global--icon--color--disabled);
+}
 
 @media (prefers-reduced-motion: reduce) {
   .autorag-tree-node__status-spinner {

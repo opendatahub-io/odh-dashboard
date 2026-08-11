@@ -8,8 +8,10 @@ import {
   t_global_icon_color_subtle as iconColorSubtle,
   t_global_color_status_success_default as colorStatusSuccess,
   t_global_border_color_status_success_default as borderColorStatusSuccess,
+  t_global_border_color_100 as borderColorLight,
   t_global_background_color_primary_default as backgroundColorPrimary,
   t_global_icon_color_status_on_success_default as iconColorOnSuccess,
+  t_global_icon_color_disabled as iconColorDisabled,
 } from '@patternfly/react-tokens';
 import {
   CheckIcon,
@@ -107,6 +109,37 @@ const StatusOnlyCompletedBadge: React.FC<{ size: number }> = React.memo(({ size 
 });
 StatusOnlyCompletedBadge.displayName = 'StatusOnlyCompletedBadge';
 
+/** Pending / unreached branch-step badge: light gray ring + top-filled hourglass on white. */
+const StatusOnlyPendingBadge: React.FC<{ size: number }> = React.memo(({ size }) => {
+  const center = size / 2;
+  const strokeWidth = Math.max(1.25, size * 0.055);
+  const outerR = center - strokeWidth / 2;
+  const iconSize = size * 0.48;
+  const white = backgroundColorPrimary.var;
+  const ring = borderColorLight.var;
+  return (
+    <g className="autorag-tree-node__status-badge">
+      <circle cx={center} cy={center} r={center - 0.25} style={{ fill: white }} />
+      <circle
+        cx={center}
+        cy={center}
+        r={outerR}
+        fill="none"
+        style={{ stroke: ring, strokeWidth }}
+      />
+      <g transform={`translate(${(size - iconSize) / 2}, ${(size - iconSize) / 2})`}>
+        <HourglassHalfIcon
+          width={iconSize}
+          height={iconSize}
+          color={iconColorDisabled.var}
+          style={{ color: iconColorDisabled.var, fill: iconColorDisabled.var }}
+        />
+      </g>
+    </g>
+  );
+});
+StatusOnlyPendingBadge.displayName = 'StatusOnlyPendingBadge';
+
 /** Branch-step status glyph (no task glyph) — completed uses the ring badge above. */
 const StatusOnlyCenterIcon: React.FC<{
   stepState: TreeNodeData['stepState'];
@@ -135,7 +168,7 @@ const StatusOnlyCenterIcon: React.FC<{
     case 'pending':
     case 'unreached':
     default:
-      return <HourglassHalfIcon color={iconColorSubtle.var} {...common} />;
+      return <StatusOnlyPendingBadge size={size} />;
   }
 });
 StatusOnlyCenterIcon.displayName = 'StatusOnlyCenterIcon';
@@ -160,7 +193,11 @@ const StatusBadgeDecorator: React.FC<{
     case 'pending':
     case 'unreached':
     default:
-      icon = <HourglassHalfIcon style={{ color: iconColorSubtle.var }} />;
+      icon = (
+        <g className="autorag-tree-node__status-decorator-pending">
+          <HourglassHalfIcon />
+        </g>
+      );
       break;
   }
 
