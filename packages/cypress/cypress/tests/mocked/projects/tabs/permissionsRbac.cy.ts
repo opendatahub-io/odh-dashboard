@@ -2,7 +2,7 @@
  * Tests for project permissions with projectRBAC feature enabled.
  * Covers basic table rendering, filtering, role details modal, and role unassignment.
  */
-import { mock200Status } from '@odh-dashboard/internal/__mocks__/mockK8sStatus';
+import { mock200Status } from '@odh-dashboard/k8s-core/__mocks__/mockK8sStatus';
 import {
   initProjectRbacIntercepts,
   mockClusterRoleK8sResource,
@@ -17,6 +17,36 @@ import { be } from '../../../../utils/should';
 import { getK8sAPIResourceURL } from '../../../../utils/k8s';
 import { ClusterRoleModel, RoleBindingModel } from '../../../../utils/models';
 import { asProjectAdminUser } from '../../../../utils/mockUsers';
+
+describe('Permissions tab (projectRBAC) - General', () => {
+  beforeEach(() => {
+    asProjectAdminUser();
+    initProjectRbacIntercepts();
+  });
+
+  it('should render the tab title, description, and link to the Roles tab', () => {
+    projectRbacPermissions.visit('test-project');
+    cy.url().should('include', '/projects/test-project?section=permissions');
+
+    projectRbacPermissions.findTabTitle().should('have.text', 'Permissions');
+    projectRbacPermissions
+      .findTabDescription()
+      .should('contain.text', 'Manage who has access to this project');
+    projectRbacPermissions
+      .findRolesTabLink()
+      .should('have.attr', 'href', `/projects/test-project?section=roles`);
+  });
+
+  it('should navigate to the Roles tab when clicking the Roles link', () => {
+    initProjectRbacIntercepts();
+    projectRbacPermissions.visit('test-project');
+    cy.url().should('include', '/projects/test-project?section=permissions');
+
+    cy.wait('@listRoleBindings');
+    projectRbacPermissions.findRolesTabLink().click();
+    cy.url().should('include', `/projects/test-project?section=roles`);
+  });
+});
 
 describe('Permissions tab (projectRBAC) - Tables and Filtering', () => {
   const usersTable = projectRbacPermissions.getUsersTable();
@@ -277,8 +307,8 @@ describe('Permissions tab (projectRBAC) - Role Details Modal', () => {
     assigneesTable.find().should('exist');
 
     // Sort by Subject
-    assigneesTable.findHeaderSortButton('Subject').click();
-    assigneesTable.findHeaderSortButton('Subject').should(be.sortAscending);
+    assigneesTable.findHeaderSortButton('Name').click();
+    assigneesTable.findHeaderSortButton('Name').should(be.sortAscending);
     assigneesTable.findFirstBodyRow().should('contain.text', 'test-group-1');
 
     // Sort by Subject kind

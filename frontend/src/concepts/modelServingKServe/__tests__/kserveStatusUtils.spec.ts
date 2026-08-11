@@ -3,8 +3,8 @@ import {
   getInferenceServiceStatusMessage,
   getInferenceServiceLastFailureReason,
 } from '@odh-dashboard/model-serving/shared';
-import { mockPodK8sResource } from '#~/__mocks__/mockPodK8sResource';
-import { mockInferenceServiceK8sResource } from '#~/__mocks__';
+import { mockPodK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockPodK8sResource';
+import { mockInferenceServiceK8sResource } from '@odh-dashboard/model-serving/__mocks__/mockInferenceServiceK8sResource';
 
 describe('checkModelStatus', () => {
   it('Should return true when pod fails to schedule due to insufficient resources.', () => {

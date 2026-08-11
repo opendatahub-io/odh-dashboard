@@ -1,0 +1,16 @@
+{
+  "name": "ExtraTreesEntr_BAG_L2_FULL",
+  "location": {
+    "model_directory": "ExtraTreesEntr_BAG_L2_FULL",
+    "predictor": "ExtraTreesEntr_BAG_L2_FULL/predictor",
+    "notebook": "ExtraTreesEntr_BAG_L2_FULL/notebooks/automl_predictor_notebook.ipynb",
+    "metrics": "ExtraTreesEntr_BAG_L2_FULL/metrics"
+  },
+  "metrics": {
+    "test_data": {
+      "accuracy": 0.9441340782122905,
+      "balanced_accuracy": 0.9306071399094655,
+      "mcc": 0.9063813232169146
+    }
+  }
+}

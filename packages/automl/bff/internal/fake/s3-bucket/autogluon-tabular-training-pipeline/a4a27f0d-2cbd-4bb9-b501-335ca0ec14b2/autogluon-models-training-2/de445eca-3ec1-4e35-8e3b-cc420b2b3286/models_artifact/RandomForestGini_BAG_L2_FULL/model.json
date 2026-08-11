@@ -1,0 +1,16 @@
+{
+  "name": "RandomForestGini_BAG_L2_FULL",
+  "location": {
+    "model_directory": "RandomForestGini_BAG_L2_FULL",
+    "predictor": "RandomForestGini_BAG_L2_FULL/predictor",
+    "notebook": "RandomForestGini_BAG_L2_FULL/notebooks/automl_predictor_notebook.ipynb",
+    "metrics": "RandomForestGini_BAG_L2_FULL/metrics"
+  },
+  "metrics": {
+    "test_data": {
+      "accuracy": 0.9385474860335196,
+      "balanced_accuracy": 0.9215981309004565,
+      "mcc": 0.8963607131816101
+    }
+  }
+}

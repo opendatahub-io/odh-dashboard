@@ -59,6 +59,7 @@ func (r *PromptsRepository) ListPromptsWithClient(ctx context.Context, client ml
 			Name:              p.Name,
 			Description:       p.Description,
 			LatestVersion:     p.LatestVersion,
+			ModelConfig:       toPromptModelConfig(p.ModelConfig),
 			Tags:              p.Tags,
 			CreationTimestamp: p.CreationTimestamp,
 		}
@@ -67,6 +68,19 @@ func (r *PromptsRepository) ListPromptsWithClient(ctx context.Context, client ml
 	return &models.PromptsResponse{
 		Prompts: prompts,
 	}, nil
+}
+
+// toPromptModelConfig converts an SDK PromptModelConfig to a BFF model.
+// Only provider and model_name are mapped; the remaining SDK fields (temperature,
+// max_tokens, top_p, etc.) are not needed for the prompt table display.
+func toPromptModelConfig(mc *promptregistry.PromptModelConfig) *models.PromptModelConfig {
+	if mc == nil {
+		return nil
+	}
+	return &models.PromptModelConfig{
+		Provider:  mc.Provider,
+		ModelName: mc.ModelName,
+	}
 }
 
 // RegisterPrompt creates a new prompt or adds a new version to an existing prompt.

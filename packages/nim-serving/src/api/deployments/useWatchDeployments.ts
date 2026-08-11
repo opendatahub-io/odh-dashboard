@@ -6,7 +6,7 @@ import { getNIMDeploymentStatus } from './status';
 import { type NIMDeployment, type NIMServiceKind } from '../nimservices/types';
 import { isNIMOwned } from '../nimservices/utils';
 import { useWatchNIMServices } from '../nimservices/watch';
-import { NIM_ID } from '../../../extensions';
+import { NIM_SERVICE_ID } from '../../constants';
 
 export type { NIMDeployment };
 
@@ -48,7 +48,7 @@ export const useWatchDeployments = (
         );
 
         return {
-          modelServingPlatformId: NIM_ID,
+          modelServingPlatformId: NIM_SERVICE_ID,
           model: nimService,
           server: associatedIS,
           status: getNIMDeploymentStatus(associatedIS, deploymentPods, nimService.metadata.name),

@@ -81,6 +81,27 @@ export const getClusterAppsDomain = (): Cypress.Chainable<string> => {
 };
 
 /**
+ * Gets the CPU architecture of cluster nodes by querying node labels.
+ * Returns 's390x' when at least one node carries the s390x architecture label,
+ * otherwise returns 'x86_64'.
+ *
+ * @returns A Cypress chainable resolving to the architecture string.
+ */
+export const getClusterArchitecture = (): Cypress.Chainable<string> => {
+  return cy
+    .exec(`oc get nodes -o jsonpath='{.items[*].status.nodeInfo.architecture}'`, {
+      failOnNonZeroExit: false,
+    })
+    .then((result: CommandLineResult) => {
+      const archOutput = result.stdout.trim().replace(/^'|'$/g, '');
+      const isS390x = archOutput.split(/\s+/).some((a) => a === 's390x');
+      const arch = isS390x ? 's390x' : 'x86_64';
+      cy.log(`Detected cluster architecture: ${arch} (raw: ${archOutput})`);
+      return cy.wrap(arch);
+    });
+};
+
+/**
  * Applies the given YAML content using the `oc apply` command.
  *
  * @param yamlContent YAML content to be applied

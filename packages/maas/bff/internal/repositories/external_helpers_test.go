@@ -141,6 +141,7 @@ func TestEnrichExternalModelSummaries(t *testing.T) {
 			Phase:              "Ready",
 			Endpoint:           "https://gpt-4o-external.maas.example.com",
 			StatusMessage:      "Published external GPT-4o model",
+			Reason:             "Reconciled",
 			GovernanceAttached: true,
 		},
 	}
@@ -164,6 +165,9 @@ func TestEnrichExternalModelSummaries(t *testing.T) {
 	}
 	if enriched[0].MaaSModelRef.StatusMessage != "Published external GPT-4o model" {
 		t.Fatalf("statusMessage = %q", enriched[0].MaaSModelRef.StatusMessage)
+	}
+	if enriched[0].MaaSModelRef.Reason != "Reconciled" {
+		t.Fatalf("reason = %q", enriched[0].MaaSModelRef.Reason)
 	}
 	if !enriched[0].MaaSModelRef.GovernanceAttached {
 		t.Fatal("expected governanceAttached=true for gpt-4o")

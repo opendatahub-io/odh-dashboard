@@ -58,3 +58,11 @@ export const parseModelCapabilities = (
   }
   return undefined;
 };
+export const isSameModelCapability = (a: string, b: string): boolean =>
+  a.toLowerCase() === b.toLowerCase();
+
+export const includesModelCapability = (capabilities: string[], capability: string): boolean =>
+  capabilities.some((existing) => isSameModelCapability(existing, capability));
+
+export const normalizeModelCapability = (capability: string): string =>
+  resolveWellKnownModelCapability(capability) ?? capability;

@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Button, ToolbarItem } from '@patternfly/react-core';
-import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { Table } from '@odh-dashboard/ui-core';
 import { columns } from './columns';
 import LlmAcceleratorConfigTableRow from './LlmAcceleratorConfigTableRow';
@@ -9,7 +9,6 @@ import { LlmAcceleratorConfigContext } from './LlmAcceleratorConfigContext';
 import type { LLMInferenceServiceConfigKind } from '../../types';
 
 const LlmAcceleratorConfigListView: React.FC = () => {
-  const navigate = useNavigate();
   const { configs } = React.useContext(LlmAcceleratorConfigContext);
   const [deleteConfig, setDeleteConfig] = React.useState<LLMInferenceServiceConfigKind>();
 
@@ -28,7 +27,10 @@ const LlmAcceleratorConfigListView: React.FC = () => {
         )}
         toolbarContent={
           <ToolbarItem>
-            <Button data-testid="add-accelerator-config-button" onClick={() => navigate('add')}>
+            <Button
+              data-testid="add-accelerator-config-button"
+              component={(props) => <Link {...props} to="add" />}
+            >
               Add LLM accelerator configuration
             </Button>
           </ToolbarItem>

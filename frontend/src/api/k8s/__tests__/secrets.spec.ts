@@ -8,9 +8,9 @@ import {
 } from '@openshift/dynamic-plugin-sdk-utils';
 import { genRandomChars } from '@odh-dashboard/foundation';
 import type { SecretKind } from '@odh-dashboard/k8s-core';
-import { mockK8sResourceList } from '#~/__mocks__/mockK8sResourceList';
-import { mock200Status, mock404Error } from '#~/__mocks__/mockK8sStatus';
-import { mockSecretK8sResource } from '#~/__mocks__/mockSecretK8sResource';
+import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
+import { mock200Status, mock404Error } from '@odh-dashboard/k8s-core/__mocks__/mockK8sStatus';
+import { mockSecretK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockSecretK8sResource';
 import {
   assembleISSecretBody,
   assembleSecret,

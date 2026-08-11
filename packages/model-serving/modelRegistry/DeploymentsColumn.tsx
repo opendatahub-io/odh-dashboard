@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { KnownLabels } from '@odh-dashboard/k8s-core';
-import { registeredModelDeploymentsRoute } from '@odh-dashboard/internal/routes/modelRegistry/registeredModels';
+import { useHostApi } from '@odh-dashboard/plugin-core/host-api';
 import type { RegisteredModelRef } from '@odh-dashboard/model-registry/shared';
 import { ModelDeploymentsContext } from '../src/concepts/ModelDeploymentsContext';
 
@@ -9,6 +9,7 @@ const DeploymentsColumn: React.FC<{
   registeredModel: RegisteredModelRef;
   preferredModelRegistryName?: string;
 }> = ({ registeredModel, preferredModelRegistryName }) => {
+  const { registeredModelDeploymentsRoute } = useHostApi();
   const { deployments, loaded } = React.useContext(ModelDeploymentsContext);
 
   if (!loaded) {

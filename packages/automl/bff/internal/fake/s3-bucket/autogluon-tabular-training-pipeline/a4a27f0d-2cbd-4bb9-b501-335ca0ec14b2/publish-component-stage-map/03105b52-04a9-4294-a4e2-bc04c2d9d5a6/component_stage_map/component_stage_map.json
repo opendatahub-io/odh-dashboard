@@ -1,0 +1,50 @@
+{
+  "pipeline_id": "autogluon-tabular-training-pipeline",
+  "description": "Tabular AutoGluon pipeline: load and split data, train and refit models, build leaderboard.",
+  "components": [
+    {
+      "id": "automl_data_loader",
+      "description": "Load tabular data, sample, cleanse, split, and write train/validation outputs.",
+      "stages": [
+        {
+          "id": "prepare_data",
+          "description": "Validate inputs, read source data, apply sampling, and cleanse the dataset."
+        },
+        {
+          "id": "split_and_export",
+          "description": "Split into selection train/validation sets and write output CSVs."
+        }
+      ]
+    },
+    {
+      "id": "autogluon_models_training",
+      "description": "Train AutoGluon tabular models, refit, evaluate on validation data, and render leaderboard.",
+      "stages": [
+        {
+          "id": "load_data",
+          "description": "Load train/validation CSVs from the workspace."
+        },
+        {
+          "id": "model_selection",
+          "description": "Run AutoGluon model selection (fit) with presets and time limits.",
+          "steps": [
+            "feature_engineering",
+            "model_training",
+            "stacking",
+            "evaluation"
+          ]
+        },
+        {
+          "id": "refit_and_evaluate",
+          "description": "Refit best models on combined data and write evaluation metrics."
+        },
+        {
+          "id": "build_leaderboard",
+          "description": "Aggregate model metrics, rank models, and render leaderboard HTML."
+        }
+      ]
+    }
+  ],
+  "kfp_run_id": "a4a27f0d-2cbd-4bb9-b501-335ca0ec14b2",
+  "published_at": "2026-07-16T19:38:58.635004Z"
+}

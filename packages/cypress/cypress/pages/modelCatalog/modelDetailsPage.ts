@@ -1,8 +1,6 @@
 class ModelDetailsPage {
-  visit() {
-    const sourceName = 'source-2';
-    const modelName = 'sample%20category%201-model-1';
-    cy.visitWithLogin(`/ai-hub/models/catalog/${sourceName}/${modelName}/overview`);
+  visit(sourceId = 'source-2', modelName = 'sample%20category%201-model-1') {
+    cy.visitWithLogin(`/ai-hub/models/catalog/${sourceId}/${modelName}/overview`);
     this.wait();
   }
 
@@ -146,7 +144,7 @@ class ModelDetailsPage {
   }
 
   findToolCallingToggle() {
-    return cy.get('#tool-calling-toggle');
+    return this.findToolCallingCard().findByRole('button', { name: 'Tool Calling' });
   }
 
   findValidatedDeploymentResourceLabels() {
