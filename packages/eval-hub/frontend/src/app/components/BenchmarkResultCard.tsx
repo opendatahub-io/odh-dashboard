@@ -17,6 +17,7 @@ import './BenchmarkResultCard.scss';
 type BenchmarkResultCardProps = {
   benchmarkId: string;
   benchmarkIndex?: number;
+  occurrenceIndex: number;
   job: EvaluationJob;
   isSelected?: boolean;
   onClick?: () => void;
@@ -25,16 +26,16 @@ type BenchmarkResultCardProps = {
 const BenchmarkResultCard: React.FC<BenchmarkResultCardProps> = ({
   benchmarkId,
   benchmarkIndex,
+  occurrenceIndex,
   job,
   isSelected,
   onClick,
 }) => {
+  const resolvedIndex = benchmarkIndex ?? occurrenceIndex;
   const result = job.results.benchmarks?.find(
-    (b) =>
-      b.id === benchmarkId &&
-      (benchmarkIndex === undefined || b.benchmark_index === benchmarkIndex),
+    (b, idx) => b.id === benchmarkId && (b.benchmark_index ?? idx) === resolvedIndex,
   );
-  const score = getBenchmarkResultScore(job, benchmarkId, benchmarkIndex);
+  const score = getBenchmarkResultScore(job, benchmarkId, resolvedIndex);
   const passStatus = result?.test?.pass;
   const cardKey = benchmarkIndex !== undefined ? `${benchmarkId}-${benchmarkIndex}` : benchmarkId;
 

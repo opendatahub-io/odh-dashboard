@@ -66,5 +66,12 @@ describe('getBenchmarkDatasetUrl', () => {
     it('should return undefined for an empty string', () => {
       expect(getBenchmarkDatasetUrl('')).toBeUndefined();
     });
+
+    it.each(['constructor', 'toString', '__proto__'])(
+      'should return undefined for inherited Object.prototype key "%s"',
+      (key) => {
+        expect(getBenchmarkDatasetUrl(key)).toBeUndefined();
+      },
+    );
   });
 });

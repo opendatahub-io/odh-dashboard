@@ -1,0 +1,7 @@
+.eval-hub-evaluation-type-card.pf-v6-c-card {
+  cursor: pointer;
+
+  &:hover {
+    --pf-v6-c-card--BackgroundColor: var(--pf-t--global--background--color--secondary--hover);
+  }
+}

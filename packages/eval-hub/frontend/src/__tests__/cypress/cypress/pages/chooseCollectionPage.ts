@@ -61,9 +61,13 @@ class ChooseCollectionPage {
     return cy.findByTestId('collections-sort-select');
   }
 
-  selectSortOption(label: string) {
+  selectSortOption(value: string) {
     this.findSortToggle().click();
-    this.findSortSelect().findByText(label).click();
+    cy.findByTestId(`collections-sort-option-${value}`).click();
+  }
+
+  findClearAllFiltersButton() {
+    return cy.findByRole('button', { name: 'Clear all filters' });
   }
 
   selectCategoryOption(category: string) {

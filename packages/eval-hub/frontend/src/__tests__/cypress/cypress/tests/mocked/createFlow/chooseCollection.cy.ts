@@ -147,7 +147,7 @@ describe('Choose Collection Page - Sort', () => {
 
   it('should sort collections alphabetically by name', () => {
     chooseCollectionPage.visit(NAMESPACE);
-    chooseCollectionPage.selectSortOption('Alphabetical');
+    chooseCollectionPage.selectSortOption('name');
 
     chooseCollectionPage
       .findCollectionsGallery()
@@ -164,7 +164,7 @@ describe('Choose Collection Page - Sort', () => {
 
   it('should sort collections by category', () => {
     chooseCollectionPage.visit(NAMESPACE);
-    chooseCollectionPage.selectSortOption('Category');
+    chooseCollectionPage.selectSortOption('category');
 
     chooseCollectionPage
       .findCollectionsGallery()
@@ -205,8 +205,8 @@ describe('Choose Collection Page - Category Filter', () => {
     chooseCollectionPage.findCategorySearchInput().type('Reas');
 
     chooseCollectionPage.findCategoryOption('Reasoning').should('exist');
-    cy.findByTestId('collections-category-select').findByText('Safety').should('not.exist');
-    cy.findByTestId('collections-category-select').findByText('Accuracy').should('not.exist');
+    chooseCollectionPage.findCategoryOption('Safety').should('not.exist');
+    chooseCollectionPage.findCategoryOption('Accuracy').should('not.exist');
   });
 
   it('should show badge count on category filter toggle', () => {
@@ -241,7 +241,7 @@ describe('Choose Collection Page - Combined Filters', () => {
 
     chooseCollectionPage.findCollectionsEmptyState().should('exist');
 
-    cy.findByText('Clear all filters').click();
+    chooseCollectionPage.findClearAllFiltersButton().click();
 
     chooseCollectionPage.findCollectionsGallery().should('exist');
     chooseCollectionPage.findCollectionCard('col-safety').should('exist');

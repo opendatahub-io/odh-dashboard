@@ -16,13 +16,18 @@ import {
   StackItem,
   Title,
 } from '@patternfly/react-core';
-import { Collection, ProviderBenchmark } from '~/app/types';
+import { Collection, ProviderAgentMetadata, ProviderBenchmark } from '~/app/types';
 import BenchmarkDrawerTileContent from './BenchmarkDrawerTileContent';
 import { capitalizeFirst, getCategoryColor } from './benchmarkUtils';
 
+export type BenchmarkWithProvider = ProviderBenchmark & {
+  providerName: string;
+  providerAgent?: ProviderAgentMetadata;
+};
+
 type CollectionDrawerPanelProps = {
   collection: Collection | undefined;
-  benchmarkDetailsMap: Map<string, ProviderBenchmark>;
+  benchmarkDetailsMap: Map<string, BenchmarkWithProvider>;
   onClose: () => void;
   onRunCollection: (c: Collection) => void;
 };
@@ -92,7 +97,10 @@ const CollectionDrawerPanel: React.FC<CollectionDrawerPanelProps> = ({
                             id={b.id}
                             description={details?.description}
                             metrics={details?.metrics}
-                            providerName={b.provider_id}
+                            providerName={details?.providerName ?? b.provider_id}
+                            providerAgent={details?.providerAgent}
+                            primaryScore={details?.primary_score}
+                            passCriteria={details?.pass_criteria}
                             url={details?.url ?? b.url}
                             trackingSurface="collection_drawer"
                             isCompact

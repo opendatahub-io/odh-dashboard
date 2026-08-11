@@ -259,6 +259,7 @@ const EvaluationResultsPage: React.FC = () => {
                       key={cardKey}
                       benchmarkId={benchmark.id}
                       benchmarkIndex={benchmark.benchmark_index}
+                      occurrenceIndex={i}
                       job={job}
                       isSelected={selectedBenchmarkKey === cardKey}
                       onClick={() => {

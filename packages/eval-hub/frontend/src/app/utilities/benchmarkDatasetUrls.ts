@@ -182,9 +182,8 @@ const PREFIX_BENCHMARK_DATASETS: [string, string][] = [
  * if no mapping exists.
  */
 export const getBenchmarkDatasetUrl = (benchmarkId: string): string | undefined => {
-  const exact = EXACT_BENCHMARK_DATASETS[benchmarkId];
-  if (exact) {
-    return exact;
+  if (Object.hasOwn(EXACT_BENCHMARK_DATASETS, benchmarkId)) {
+    return EXACT_BENCHMARK_DATASETS[benchmarkId];
   }
 
   for (const [prefix, url] of PREFIX_BENCHMARK_DATASETS) {

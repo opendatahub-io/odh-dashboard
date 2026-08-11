@@ -156,7 +156,7 @@ describe('Choose Benchmark Page - Sort', () => {
 
   it('should sort benchmarks alphabetically by name', () => {
     chooseBenchmarkPage.visit(NAMESPACE);
-    chooseBenchmarkPage.selectSortOption('Alphabetical');
+    chooseBenchmarkPage.selectSortOption('name');
 
     chooseBenchmarkPage
       .findBenchmarksGallery()
@@ -173,7 +173,7 @@ describe('Choose Benchmark Page - Sort', () => {
 
   it('should sort benchmarks by category', () => {
     chooseBenchmarkPage.visit(NAMESPACE);
-    chooseBenchmarkPage.selectSortOption('Category');
+    chooseBenchmarkPage.selectSortOption('category');
 
     chooseBenchmarkPage
       .findBenchmarksGallery()
@@ -207,8 +207,8 @@ describe('Choose Benchmark Page - Category Filter', () => {
     chooseBenchmarkPage.visit(NAMESPACE);
 
     chooseBenchmarkPage.findCategoryFilter().click();
-    cy.findByTestId('benchmarks-category-select').findByText('Reasoning').click();
-    cy.findByTestId('benchmarks-category-select').findByText('Safety').click();
+    chooseBenchmarkPage.findCategoryOption('Reasoning').click();
+    chooseBenchmarkPage.findCategoryOption('Safety').click();
     chooseBenchmarkPage.findCategoryFilter().click();
 
     chooseBenchmarkPage.findBenchmarkCard('test-provider', 'bench-alpha').should('exist');
@@ -222,8 +222,8 @@ describe('Choose Benchmark Page - Category Filter', () => {
 
     chooseBenchmarkPage.findCategorySearchInput().type('Reas');
 
-    cy.findByTestId('benchmarks-category-select').findByText('Reasoning').should('exist');
-    cy.findByTestId('benchmarks-category-select').findByText('Safety').should('not.exist');
+    chooseBenchmarkPage.findCategoryOption('Reasoning').should('exist');
+    chooseBenchmarkPage.findCategoryOption('Safety').should('not.exist');
   });
 
   it('should show badge count on category filter toggle', () => {
@@ -254,8 +254,8 @@ describe('Choose Benchmark Page - Metrics Filter', () => {
 
     chooseBenchmarkPage.findMetricsSearchInput().type('Accur');
 
-    cy.findByTestId('benchmarks-metrics-select').findByText('Accuracy').should('exist');
-    cy.findByTestId('benchmarks-metrics-select').findByText('Toxicity').should('not.exist');
+    chooseBenchmarkPage.findMetricsOption('accuracy').should('exist');
+    chooseBenchmarkPage.findMetricsOption('toxicity').should('not.exist');
   });
 
   it('should show badge count on metrics filter toggle', () => {

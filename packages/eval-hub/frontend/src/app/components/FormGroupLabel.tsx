@@ -36,7 +36,7 @@ const FormGroupLabel: React.FC<FormGroupLabelProps> = ({
     {helpPopover && (
       <>
         {' '}
-        <Popover bodyContent={helpPopover.content}>
+        <Popover aria-label={helpPopover.ariaLabel} bodyContent={helpPopover.content}>
           <span
             role="button"
             tabIndex={0}

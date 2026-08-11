@@ -272,6 +272,18 @@ describe('formatAsPercentage', () => {
   it('should handle negative values', () => {
     expect(formatAsPercentage(-0.1)).toBe('-10%');
   });
+
+  it('should return dash for NaN', () => {
+    expect(formatAsPercentage(NaN)).toBe('-');
+  });
+
+  it('should return dash for Infinity', () => {
+    expect(formatAsPercentage(Infinity)).toBe('-');
+  });
+
+  it('should return dash for negative Infinity', () => {
+    expect(formatAsPercentage(-Infinity)).toBe('-');
+  });
 });
 
 describe('getResultScore', () => {
@@ -311,6 +323,12 @@ describe('getResultScore', () => {
     expect(getResultScore(job)).toBe('85%');
   });
 
+  it('should fall back to acc when acc_norm is NaN', () => {
+    const job = mockEvaluationJob();
+    job.results = { benchmarks: [{ id: 'b1', metrics: { acc: 0.85, acc_norm: NaN } }] };
+    expect(getResultScore(job)).toBe('85%');
+  });
+
   it('should return dash when metrics has neither acc_norm nor acc', () => {
     const job = mockEvaluationJob();
     job.results = { benchmarks: [{ id: 'b1', metrics: { f1_score: 0.9 } }] };
@@ -343,6 +361,18 @@ describe('getResultScore', () => {
   it('should return dash when score is Infinity', () => {
     const job = mockEvaluationJob();
     job.results = { test: { score: Infinity } };
+    expect(getResultScore(job)).toBe('-');
+  });
+
+  it('should return aggregate score for collection job with finite test score', () => {
+    const job = mockEvaluationJob({ collectionId: 'my-collection', score: 0.75 });
+    expect(getResultScore(job)).toBe('75%');
+  });
+
+  it('should return dash for collection job without aggregate test score', () => {
+    const job = mockEvaluationJob({ collectionId: 'my-collection' });
+    // eslint-disable-next-line camelcase
+    job.results = { benchmarks: [{ id: 'b1', test: { primary_score: 0.9 } }] };
     expect(getResultScore(job)).toBe('-');
   });
 });

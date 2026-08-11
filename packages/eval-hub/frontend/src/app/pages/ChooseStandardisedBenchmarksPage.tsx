@@ -115,7 +115,7 @@ const ChooseStandardisedBenchmarksPage: React.FC = () => {
   );
 
   const availableMetrics = React.useMemo<string[]>(
-    () => [...new Set(allBenchmarks.flatMap((b) => b.metrics ?? []))].toSorted(),
+    () => [...new Set(allBenchmarks.flatMap((b) => b.metrics ?? []).filter(Boolean))].toSorted(),
     [allBenchmarks],
   );
 
@@ -159,7 +159,7 @@ const ChooseStandardisedBenchmarksPage: React.FC = () => {
 
   React.useEffect(() => {
     setPage(1);
-  }, [filterData, sortOption]);
+  }, [filterData, sortOption, namespace]);
 
   const paginatedBenchmarks = React.useMemo<FlatBenchmark[]>(() => {
     const start = (page - 1) * perPage;
@@ -244,7 +244,12 @@ const ChooseStandardisedBenchmarksPage: React.FC = () => {
                           >
                             <SelectList>
                               {Object.values(BenchmarkSortOption).map((opt) => (
-                                <SelectOption key={opt} value={opt} isSelected={sortOption === opt}>
+                                <SelectOption
+                                  key={opt}
+                                  value={opt}
+                                  isSelected={sortOption === opt}
+                                  data-testid={`benchmarks-sort-option-${opt}`}
+                                >
                                   {benchmarkSortLabels[opt]}
                                 </SelectOption>
                               ))}

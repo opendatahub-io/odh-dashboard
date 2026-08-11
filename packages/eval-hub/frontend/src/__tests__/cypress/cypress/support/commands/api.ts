@@ -19,7 +19,9 @@ type SuccessErrorResponse = {
 };
 
 type ApiResponse<V = SuccessErrorResponse> =
-  V | GenericStaticResponse<string, V> | RouteHandlerController;
+  | V
+  | GenericStaticResponse<string, V>
+  | RouteHandlerController;
 
 type Replacement<R extends string = string> = Record<R, string | undefined>;
 type Query<Q extends string = string> = Record<Q, string>;

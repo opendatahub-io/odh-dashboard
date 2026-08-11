@@ -37,10 +37,12 @@ import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { useCollections } from '~/app/hooks/useCollections';
 import { useProviders } from '~/app/hooks/useProviders';
-import { Collection, ProviderBenchmark } from '~/app/types';
+import { Collection } from '~/app/types';
+import CollectionDrawerPanel, {
+  BenchmarkWithProvider,
+} from '~/app/components/CollectionDrawerPanel';
 import { evaluationCreateRoute, evaluationStartRoute, evaluationsBaseRoute } from '~/app/routes';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
-import CollectionDrawerPanel from '~/app/components/CollectionDrawerPanel';
 import { formatCategory, getCategoryColor } from '~/app/components/benchmarkUtils';
 import SearchableMultiSelectFilter from '~/app/components/SearchableMultiSelectFilter';
 import { BenchmarkSortOption, benchmarkSortLabels } from '~/app/pages/const';
@@ -79,10 +81,14 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
   const { providers } = useProviders(namespace ?? '');
 
   const benchmarkDetailsMap = React.useMemo(() => {
-    const map = new Map<string, ProviderBenchmark>();
+    const map = new Map<string, BenchmarkWithProvider>();
     providers.forEach((provider) => {
       (provider.benchmarks ?? []).forEach((b) => {
-        map.set(`${provider.resource.id}:${b.id}`, b);
+        map.set(`${provider.resource.id}:${b.id}`, {
+          ...b,
+          providerName: provider.name,
+          providerAgent: provider.agent,
+        });
       });
     });
     return map;
@@ -186,7 +192,12 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
                     >
                       <SelectList>
                         {Object.values(BenchmarkSortOption).map((opt) => (
-                          <SelectOption key={opt} value={opt} isSelected={sortOption === opt}>
+                          <SelectOption
+                            key={opt}
+                            value={opt}
+                            isSelected={sortOption === opt}
+                            data-testid={`collections-sort-option-${opt}`}
+                          >
                             {benchmarkSortLabels[opt]}
                           </SelectOption>
                         ))}

@@ -122,7 +122,7 @@ const BenchmarkResultDetails: React.FC<BenchmarkResultDetailsProps> = ({
             {primaryMetricName !== '-' ? getMetricDisplayName(primaryMetricName) : '-'}
           </DescriptionListDescription>
         </DescriptionListGroup>
-        {threshold != null && (
+        {typeof threshold === 'number' && Number.isFinite(threshold) && (
           <DescriptionListGroup>
             <DescriptionListTerm>Benchmark threshold</DescriptionListTerm>
             <DescriptionListDescription>{formatAsPercentage(threshold)}</DescriptionListDescription>
