@@ -10,10 +10,10 @@ import {
 
 // Types ---------------------------------------------------------------------->
 
-type SupportedFormats = 'pdf' | 'docx' | 'pptx' | 'md' | 'markdown' | 'html' | 'htm' | 'txt';
+type SupportedFormat = 'pdf' | 'docx' | 'pptx' | 'md' | 'markdown' | 'html' | 'htm' | 'txt';
 interface Format {
-  id: SupportedFormats;
-  extension: SupportedFormats;
+  id: SupportedFormat;
+  extension: SupportedFormat;
   mimeType: string;
   name: string;
 }

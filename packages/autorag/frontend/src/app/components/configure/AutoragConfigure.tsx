@@ -102,6 +102,7 @@ import {
   SUPPORTED_FORMAT_EXTENSIONS,
   SUPPORTED_FORMAT_HINT,
   SUPPORTED_FORMAT_NAMES_STRING_SIMPLE,
+  INPUT_DATA_INVALID_FILE_TYPE_DESCRIPTION,
 } from '~/app/utilities/autoragInputDataFile';
 import AutoragEvaluationSelect from './AutoragEvaluationSelect';
 import AutoragExperimentSettings from './AutoragExperimentSettings';
@@ -333,10 +334,7 @@ function AutoragConfigure({
         return;
       }
       if (!isAllowedInputDataUploadFile(file)) {
-        notification.error(
-          'Invalid file type',
-          `File type must be one of the accepted types (${SUPPORTED_FORMAT_NAMES_STRING_SIMPLE}).`,
-        );
+        notification.error('Invalid file type', INPUT_DATA_INVALID_FILE_TYPE_DESCRIPTION);
         return;
       }
       const uploadRequestId = ++inputDataUploadSeqRef.current;
