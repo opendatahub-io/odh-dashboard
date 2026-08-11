@@ -100,7 +100,7 @@ describe('Subscription Management Page / Overview Tab', () => {
     overviewRow.findModelProject().should('contain.text', 'maas-models');
     overviewRow.findModelSubscriptions().should('contain.text', '4');
     overviewRow.findModelPhase().should('contain.text', 'Ready');
-    overviewRow.findModelAuthorizationPolicies().should('contain.text', '2');
+    overviewRow.findModelAuthorizationPolicies().should('contain.text', '3');
   });
 
   it('should navigate between tabs and update the URL', () => {
