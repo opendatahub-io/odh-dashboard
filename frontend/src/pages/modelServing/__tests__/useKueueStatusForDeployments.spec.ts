@@ -2,9 +2,9 @@ import { renderHook } from '@testing-library/react';
 import type { PodKind } from '@odh-dashboard/k8s-core';
 import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import type { InferenceServiceKind } from '@odh-dashboard/model-serving/shared';
-import { mockInferenceServiceK8sResource } from '#~/__mocks__/mockInferenceServiceK8sResource';
+import { mockInferenceServiceK8sResource } from '@odh-dashboard/model-serving/__mocks__/mockInferenceServiceK8sResource';
+import { mockPodK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockPodK8sResource';
 import { mockWorkloadK8sResource } from '#~/__mocks__/mockWorkloadK8sResource';
-import { mockPodK8sResource } from '#~/__mocks__/mockPodK8sResource';
 import type { WorkloadKind } from '#~/k8sTypes';
 import { WorkloadStatusType } from '#~/concepts/distributedWorkloads/utils';
 import {

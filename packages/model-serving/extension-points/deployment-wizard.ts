@@ -172,8 +172,8 @@ export type WizardFieldApplyExtension<T = unknown, D extends Deployment = Deploy
   {
     /** The ID of the WizardField this apply extension is associated with */
     fieldId: string;
-    /** The platform this apply extension applies to (e.g., 'llmd-serving') */
-    platform: D['modelServingPlatformId'];
+    /** The platform this apply extension applies to, or 'all' for platform-agnostic fields */
+    platform: D['modelServingPlatformId'] | 'all';
     /**
      * Apply function that modifies the deployment based on the field's data.
      * @param deployment - The deployment resource being assembled
@@ -205,8 +205,8 @@ export type WizardFieldExtractorExtension<
   {
     /** The ID of the WizardField this extractor is associated with */
     fieldId: string;
-    /** The platform this extractor applies to (e.g., 'llmd-serving') */
-    platform: D['modelServingPlatformId'];
+    /** The platform this extractor applies to, or 'all' for platform-agnostic fields */
+    platform: D['modelServingPlatformId'] | 'all';
     /**
      * Extract function that retrieves the field's initial data from a deployment.
      * @param deployment - The deployment resource to extract data from
@@ -236,8 +236,8 @@ export type WizardFieldDeploymentFunctionsExtension<
   {
     /** The ID of the WizardField this deployment functions extension is associated with */
     fieldId: string;
-    /** The platform this deployment functions extension applies to (e.g., 'llmd-serving') */
-    platform: D['modelServingPlatformId'];
+    /** The platform this deployment functions extension applies to, or 'all' for platform-agnostic fields */
+    platform: D['modelServingPlatformId'] | 'all';
     /**
      * Async function that runs before the deployment is saved. Throw to block the deployment.
      *
