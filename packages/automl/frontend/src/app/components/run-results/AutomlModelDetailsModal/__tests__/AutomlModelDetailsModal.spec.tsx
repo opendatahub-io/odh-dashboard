@@ -285,7 +285,7 @@ describe('AutomlModelDetailsModal', () => {
     await user.click(screen.getByTestId('model-details-actions-toggle'));
     await user.click(screen.getByRole('menuitem', { name: 'Save as notebook' }));
 
-    expect(onClickSaveNotebook).toHaveBeenCalledWith('CatBoost_BAG_L2_FULL');
+    expect(onClickSaveNotebook).toHaveBeenCalledWith('CatBoost_BAG_L2_FULL', 'modelDetailsModal');
     expect(onClickSaveNotebook).toHaveBeenCalledTimes(1);
   });
 
@@ -309,7 +309,10 @@ describe('AutomlModelDetailsModal', () => {
     await user.click(screen.getByRole('menuitem', { name: 'Save as notebook' }));
 
     // Should be called with the newly selected model
-    expect(onClickSaveNotebook).toHaveBeenCalledWith('RandomForest_BAG_L1_FULL');
+    expect(onClickSaveNotebook).toHaveBeenCalledWith(
+      'RandomForest_BAG_L1_FULL',
+      'modelDetailsModal',
+    );
   });
 
   it('should call onRegisterModel and onClose when "Register model" is clicked', async () => {
@@ -331,7 +334,7 @@ describe('AutomlModelDetailsModal', () => {
     await user.click(screen.getByRole('menuitem', { name: 'Register model' }));
 
     expect(onClose).toHaveBeenCalledTimes(1);
-    expect(onRegisterModel).toHaveBeenCalledWith('CatBoost_BAG_L2_FULL');
+    expect(onRegisterModel).toHaveBeenCalledWith('CatBoost_BAG_L2_FULL', 'modelDetailsModal');
     expect(onRegisterModel).toHaveBeenCalledTimes(1);
   });
 
@@ -360,7 +363,7 @@ describe('AutomlModelDetailsModal', () => {
     await user.click(screen.getByRole('menuitem', { name: 'Register model' }));
 
     expect(onClose).toHaveBeenCalledTimes(1);
-    expect(onRegisterModel).toHaveBeenCalledWith('RandomForest_BAG_L1_FULL');
+    expect(onRegisterModel).toHaveBeenCalledWith('RandomForest_BAG_L1_FULL', 'modelDetailsModal');
   });
 
   it('should render print portal with all visible tabs when download is clicked', async () => {
