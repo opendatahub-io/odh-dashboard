@@ -208,12 +208,14 @@ describe('EvaluationsPage', () => {
       };
 
       render(
-        <MemoryRouter initialEntries={['/ns-a']}>
-          <NavigateHelper />
-          <Routes>
-            <Route path="/:namespace" element={<EvaluationsPage />} />
-          </Routes>
-        </MemoryRouter>,
+        <QueryClientProvider client={queryClient}>
+          <MemoryRouter initialEntries={['/ns-a']}>
+            <NavigateHelper />
+            <Routes>
+              <Route path="/:namespace" element={<EvaluationsPage />} />
+            </Routes>
+          </MemoryRouter>
+        </QueryClientProvider>,
       );
 
       const statusLabel = screen.getByTestId('status-label-failed');
