@@ -1,7 +1,7 @@
 apiVersion: dashboard.opendatahub.io/v1
 kind: OdhDocument
 metadata:
-  name: agentic-starter-kits-openclaw-agent-tutorial
+  name: agentic-starter-kits-openclaw-tutorial
   annotations:
     opendatahub.io/categories: 'Agent Templates,Getting started'
 spec:

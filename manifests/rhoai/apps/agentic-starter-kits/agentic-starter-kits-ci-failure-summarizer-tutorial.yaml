@@ -1,7 +1,7 @@
 apiVersion: dashboard.opendatahub.io/v1
 kind: OdhDocument
 metadata:
-  name: agentic-starter-kits-langgraph-ci-failure-summarizer-agent-tutorial
+  name: agentic-starter-kits-ci-failure-summarizer-tutorial
   annotations:
     opendatahub.io/categories: 'Agent Templates,Getting started'
 spec:

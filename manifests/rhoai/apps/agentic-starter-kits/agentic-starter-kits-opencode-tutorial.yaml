@@ -1,13 +1,13 @@
 apiVersion: dashboard.opendatahub.io/v1
 kind: OdhDocument
 metadata:
-  name: agentic-starter-kits-claude-code-agent-tutorial
+  name: agentic-starter-kits-opencode-tutorial
   annotations:
     opendatahub.io/categories: 'Agent Templates,Getting started'
 spec:
   type: tutorial
-  displayName: 'Claude Code'
+  displayName: 'OpenCode'
   description: >-
-    Anthropic's Claude Code CLI for AI-powered code generation, editing, and debugging tasks.
-  url: 'https://red.ht/4hrKMCi'
+    AI-powered terminal-based coding agent built on OpenCode for code generation, editing, and debugging tasks.
+  url: 'https://red.ht/4xy6lWC'
   appName: agentic-starter-kits
