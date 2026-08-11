@@ -161,7 +161,6 @@ jobs:
             mergeable=$(echo "$pr" | jq -r .mergeable)
             merge_state=$(echo "$pr" | jq -r .mergeStateStatus)
             created_at=$(echo "$pr" | jq -r .createdAt)
-            title=$(echo "$pr" | jq -r .title)
 
             if [ "$is_draft" = "true" ]; then
               echo "#$number: draft — skip"
