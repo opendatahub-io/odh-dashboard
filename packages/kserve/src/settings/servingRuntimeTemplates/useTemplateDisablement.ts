@@ -1,7 +1,7 @@
 import { FetchOptions, FetchStateObject } from '@odh-dashboard/ui-core/hooks/useFetch';
 import { useTemplateDisablement as useTemplateDisablementBase } from '@odh-dashboard/model-serving/shared';
-import { getDashboardConfigTemplateDisablement } from '#~/api';
-import { getDashboardConfigTemplateDisablementBackend } from '#~/services/dashboardService';
+import { getDashboardConfigTemplateDisablement } from '@odh-dashboard/internal/api/k8s/dashboardConfig';
+import { getDashboardConfigTemplateDisablementBackend } from '@odh-dashboard/internal/services/dashboardService';
 
 const useTemplateDisablement = (
   namespace?: string,

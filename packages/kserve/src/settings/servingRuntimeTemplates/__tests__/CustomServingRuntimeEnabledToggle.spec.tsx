@@ -4,29 +4,29 @@ import '@testing-library/jest-dom';
 import type { TemplateKind } from '@odh-dashboard/k8s-core';
 import { LimitedSupportEvent } from '@odh-dashboard/model-serving/shared/tracking/limitedSupportTracking';
 import { mockServingRuntimeTemplateK8sResource } from '@odh-dashboard/model-serving/__mocks__/mockServingRuntimeTemplateK8sResource';
-import { fireMiscTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
-import type { CustomWatchK8sResult } from '#~/types';
-import CustomServingRuntimeEnabledToggle from '#~/pages/modelServing/customServingRuntimes/CustomServingRuntimeEnabledToggle';
-import { CustomServingRuntimeContext } from '#~/pages/modelServing/customServingRuntimes/CustomServingRuntimeContext';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import type { CustomWatchK8sResult } from '@odh-dashboard/internal/types';
+import CustomServingRuntimeEnabledToggle from '../CustomServingRuntimeEnabledToggle';
+import { CustomServingRuntimeContext } from '../CustomServingRuntimeContext';
 
-jest.mock('#~/utilities/useNotification', () => ({
+jest.mock('@odh-dashboard/internal/utilities/useNotification', () => ({
   __esModule: true,
   default: () => ({ error: jest.fn(), success: jest.fn(), info: jest.fn() }),
 }));
 
-jest.mock('#~/redux/selectors', () => ({
+jest.mock('@odh-dashboard/internal/redux/selectors/project', () => ({
   useDashboardNamespace: () => ({ dashboardNamespace: 'opendatahub' }),
 }));
 
-jest.mock('#~/services/dashboardService', () => ({
+jest.mock('@odh-dashboard/internal/services/dashboardService', () => ({
   patchDashboardConfigTemplateDisablementBackend: jest.fn().mockResolvedValue(undefined),
 }));
 
-jest.mock('#~/services/templateService', () => ({
+jest.mock('@odh-dashboard/internal/services/templateService', () => ({
   patchTemplateAcceptedAnnotationBackend: jest.fn().mockResolvedValue(undefined),
 }));
 
-jest.mock('#~/concepts/analyticsTracking/segmentIOUtils', () => ({
+jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
   fireMiscTrackingEvent: jest.fn(),
 }));
 

@@ -17,11 +17,11 @@ import {
   fireRiskDismissed,
   getResourceVersions,
 } from '@odh-dashboard/model-serving/shared/tracking/limitedSupportTracking';
-import useNotification from '#~/utilities/useNotification';
-import { useDashboardNamespace } from '#~/redux/selectors';
-import { fireMiscTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
-import { patchDashboardConfigTemplateDisablementBackend } from '#~/services/dashboardService';
-import { patchTemplateAcceptedAnnotationBackend } from '#~/services/templateService';
+import useNotification from '@odh-dashboard/internal/utilities/useNotification';
+import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { patchDashboardConfigTemplateDisablementBackend } from '@odh-dashboard/internal/services/dashboardService';
+import { patchTemplateAcceptedAnnotationBackend } from '@odh-dashboard/internal/services/templateService';
 import { CustomServingRuntimeContext } from './CustomServingRuntimeContext';
 
 type CustomServingRuntimeEnabledToggleProps = {

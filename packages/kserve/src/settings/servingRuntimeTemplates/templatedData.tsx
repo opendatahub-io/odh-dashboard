@@ -24,11 +24,6 @@ export const columns: SortableData<TemplateKind>[] = [
     },
   },
   {
-    field: 'platforms',
-    label: 'Serving platforms supported',
-    sortable: false,
-  },
-  {
     field: 'apiProtocol',
     label: 'API protocol',
     sortable: false,

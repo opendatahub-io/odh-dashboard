@@ -5,10 +5,11 @@ import {
   getTemplateEnabled,
   setListDisabled,
 } from '@odh-dashboard/model-serving/shared';
-import DeleteModal from '#~/pages/projects/components/DeleteModal';
-import { useDashboardNamespace } from '#~/redux/selectors';
-import { deleteTemplateBackend } from '#~/services/templateService';
-import { patchDashboardConfigTemplateDisablementBackend } from '#~/services/dashboardService';
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports -- standard delete confirmation wrapper
+import DeleteModal from '@odh-dashboard/internal/pages/projects/components/DeleteModal';
+import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
+import { deleteTemplateBackend } from '@odh-dashboard/internal/services/templateService';
+import { patchDashboardConfigTemplateDisablementBackend } from '@odh-dashboard/internal/services/dashboardService';
 import { CustomServingRuntimeContext } from './CustomServingRuntimeContext';
 
 type DeleteCustomServingRuntimeModalProps = {

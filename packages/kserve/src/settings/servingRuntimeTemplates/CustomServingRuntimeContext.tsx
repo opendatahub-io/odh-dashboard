@@ -5,10 +5,10 @@ import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import type { TemplateKind } from '@odh-dashboard/k8s-core';
 import { FetchStateObject } from '@odh-dashboard/ui-core/hooks/useFetch';
 import { DEFAULT_LIST_FETCH_STATE } from '@odh-dashboard/ui-core/utilities/fetchState';
-import { DEFAULT_LIST_WATCH_RESULT } from '#~/utilities/const';
-import { CustomWatchK8sResult } from '#~/types';
-import { useDashboardNamespace } from '#~/redux/selectors';
-import { useTemplates } from '#~/api';
+import { DEFAULT_LIST_WATCH_RESULT } from '@odh-dashboard/internal/utilities/const';
+import { CustomWatchK8sResult } from '@odh-dashboard/internal/types';
+import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
+import { useTemplates } from '@odh-dashboard/internal/api';
 import useTemplateOrder from './useTemplateOrder';
 import useTemplateDisablement from './useTemplateDisablement';
 
@@ -26,7 +26,7 @@ export const CustomServingRuntimeContext = React.createContext<CustomServingRunt
   servingRuntimeTemplateDisablement: DEFAULT_LIST_FETCH_STATE,
 });
 
-const CustomServingRuntimeContextProvider: React.FC = () => {
+const CustomServingRuntimeContextProvider: React.FC<React.PropsWithChildren> = ({ children }) => {
   const { dashboardNamespace } = useDashboardNamespace();
 
   const servingRuntimeTemplates = useTemplates(dashboardNamespace);
@@ -42,7 +42,7 @@ const CustomServingRuntimeContextProvider: React.FC = () => {
   });
 
   const servingRuntimeTemplateOrderRefresh = servingRuntimeTemplateOrder.refresh;
-  const servingRuntimeTemplateDisablementRefresh = servingRuntimeTemplateOrder.refresh;
+  const servingRuntimeTemplateDisablementRefresh = servingRuntimeTemplateDisablement.refresh;
 
   const refreshData = React.useCallback(() => {
     servingRuntimeTemplateOrderRefresh();
@@ -98,7 +98,7 @@ const CustomServingRuntimeContextProvider: React.FC = () => {
 
   return (
     <CustomServingRuntimeContext.Provider value={contextValue}>
-      <Outlet />
+      {children ?? <Outlet />}
     </CustomServingRuntimeContext.Provider>
   );
 };

@@ -7,10 +7,10 @@ import {
   getServingRuntimeNameFromTemplate,
   getSortedTemplates,
 } from '@odh-dashboard/model-serving/shared';
-import { useDashboardNamespace } from '#~/redux/selectors';
-import useNotification from '#~/utilities/useNotification';
-import useDraggableTable from '#~/utilities/useDraggableTable';
-import { patchDashboardConfigTemplateOrderBackend } from '#~/services/dashboardService';
+import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
+import useNotification from '@odh-dashboard/internal/utilities/useNotification';
+import useDraggableTable from '@odh-dashboard/internal/utilities/useDraggableTable';
+import { patchDashboardConfigTemplateOrderBackend } from '@odh-dashboard/internal/services/dashboardService';
 import DeleteCustomServingRuntimeModal from './DeleteCustomServingRuntimeModal';
 import { columns } from './templatedData';
 import CustomServingRuntimeTableRow from './CustomServingRuntimeTableRow';
@@ -65,9 +65,7 @@ const CustomServingRuntimeListView: React.FC = () => {
           <ToolbarItem>
             <Button
               data-testid="add-serving-runtime-button"
-              component={(props: React.ComponentProps<'a'>) => (
-                <Link {...props} to="/settings/model-resources-operations/serving-runtimes/add" />
-              )}
+              component={(props: React.ComponentProps<'a'>) => <Link {...props} to="add" />}
             >
               Add serving runtime
             </Button>

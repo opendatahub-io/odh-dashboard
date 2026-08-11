@@ -9,8 +9,7 @@ import {
   getServingRuntimeNameFromTemplate,
 } from '@odh-dashboard/model-serving/shared';
 import { renderDeploymentResourceVersionLabels } from '@odh-dashboard/model-serving/shared/components';
-import CustomServingRuntimePlatformsLabelGroup from '#~/pages/modelServing/customServingRuntimes/CustomServingRuntimePlatformsLabelGroup';
-import { isOOTB, PreInstalledName } from '#~/concepts/k8s/utils';
+import { isOOTB, PreInstalledName } from '@odh-dashboard/internal/concepts/k8s/utils';
 import CustomServingRuntimeEnabledToggle from './CustomServingRuntimeEnabledToggle';
 import CustomServingRuntimeAPIProtocolLabel from './CustomServingRuntimeAPIProtocolLabel';
 
@@ -54,9 +53,6 @@ const CustomServingRuntimeTableRow: React.FC<CustomServingRuntimeTableRowProps> 
       <Td dataLabel="Enabled">
         <CustomServingRuntimeEnabledToggle template={template} />
       </Td>
-      <Td dataLabel="Serving platforms supported">
-        <CustomServingRuntimePlatformsLabelGroup template={template} />
-      </Td>
       <Td dataLabel="API protocol">
         <CustomServingRuntimeAPIProtocolLabel template={template} />
       </Td>
@@ -67,26 +63,17 @@ const CustomServingRuntimeTableRow: React.FC<CustomServingRuntimeTableRowProps> 
               ? [
                   {
                     title: 'Duplicate',
-                    onClick: () =>
-                      navigate('/settings/model-resources-operations/serving-runtimes/add', {
-                        state: { template },
-                      }),
+                    onClick: () => navigate(`duplicate/${servingRuntimeName}`),
                   },
                 ]
               : [
                   {
                     title: 'Edit',
-                    onClick: () =>
-                      navigate(
-                        `/settings/model-resources-operations/serving-runtimes/edit/${servingRuntimeName}`,
-                      ),
+                    onClick: () => navigate(`edit/${servingRuntimeName}`),
                   },
                   {
                     title: 'Duplicate',
-                    onClick: () =>
-                      navigate('/settings/model-resources-operations/serving-runtimes/add', {
-                        state: { template },
-                      }),
+                    onClick: () => navigate(`duplicate/${servingRuntimeName}`),
                   },
                   {
                     isSeparator: true,

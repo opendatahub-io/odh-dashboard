@@ -10,9 +10,7 @@ const EmptyCustomServingRuntime: React.FC = () => {
       <EmptyStateFooter>
         <Button
           data-testid="add-serving-runtime-button"
-          component={(props: React.ComponentProps<'a'>) => (
-            <Link {...props} to="/settings/model-resources-operations/serving-runtimes/add" />
-          )}
+          component={(props: React.ComponentProps<'a'>) => <Link {...props} to="add" />}
         >
           Add serving runtime
         </Button>
