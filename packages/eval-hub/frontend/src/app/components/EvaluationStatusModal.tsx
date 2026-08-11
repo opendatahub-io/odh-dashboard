@@ -64,7 +64,7 @@ import {
 import { getMessageCodeLabel } from '~/app/utilities/messageCodeLabels';
 import {
   getEarliestStartTime,
-  getEarliestBenchmarkStartTime,
+  isPreStartFailure,
   formatElapsedTime,
 } from '~/app/utilities/evaluationJobPolling';
 import EvaluationStatusLabel from './EvaluationStatusLabel';
@@ -720,10 +720,7 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
   );
   const isFailed = state === 'failed' || state === 'partially_failed';
   // Use the most-current benchmark data (polled > list) to detect pre-start failures.
-  // A failed job where no benchmark ever received a started_at means the failure occurred
-  // before any evaluation work began (e.g. admission error, resource constraint).
-  const isPreStartFailure =
-    state === 'failed' && !getEarliestBenchmarkStartTime(polledJobData ?? job);
+  const isPreStart = isPreStartFailure(polledJobData ?? job);
 
   const headerIconStatus: 'success' | 'danger' | 'warning' | undefined =
     state === 'completed'
@@ -780,7 +777,7 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
           <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapMd' }}>
             <FlexItem>Evaluation run status</FlexItem>
             <FlexItem>
-              <EvaluationStatusLabel state={state} isPreStartFailure={isPreStartFailure} />
+              <EvaluationStatusLabel state={state} isPreStartFailure={isPreStart} />
             </FlexItem>
           </Flex>
         }

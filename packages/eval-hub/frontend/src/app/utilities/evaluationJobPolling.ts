@@ -68,6 +68,17 @@ export const getEarliestBenchmarkStartTime = (job: EvaluationJob): string | unde
   return undefined;
 };
 
+// Returns true when a failed job never produced any runner feedback — no started_at and no
+// error_message on any benchmark. This distinguishes a k8s-level pre-start failure (pod never
+// ran evaluation work) from a runtime failure (runner started but failed and reported errors).
+export const isPreStartFailure = (job: EvaluationJob): boolean => {
+  if (job.status.state !== 'failed') {
+    return false;
+  }
+  const benchmarks = job.status.benchmarks ?? [];
+  return !getEarliestBenchmarkStartTime(job) && !benchmarks.some((b) => b.error_message);
+};
+
 // Returns the earliest benchmark started_at timestamp, or falls back to job created_at.
 // Use this as the elapsed-time anchor — created_at approximates when the job began when benchmarks haven't reported yet.
 export const getEarliestStartTime = (job: EvaluationJob): string | undefined =>

@@ -1,9 +1,11 @@
+/* eslint-disable camelcase */
 import { mockEvaluationJob } from '~/__tests__/unit/testUtils/mockEvaluationData';
 import {
   createRequestPool,
   getEarliestBenchmarkStartTime,
   getEarliestStartTime,
   formatElapsedTime,
+  isPreStartFailure,
 } from '~/app/utilities/evaluationJobPolling';
 
 describe('createRequestPool', () => {
@@ -183,5 +185,55 @@ describe('formatElapsedTime', () => {
 
   it('should show 0m with hours when exactly on the hour', () => {
     expect(formatElapsedTime('2026-01-01T10:00:00Z')).toBe('2h 0m');
+  });
+});
+
+describe('isPreStartFailure', () => {
+  it('should return true when state is failed and benchmarks array is empty', () => {
+    const job = mockEvaluationJob({ state: 'failed', benchmarkStatuses: [] });
+    expect(isPreStartFailure(job)).toBe(true);
+  });
+
+  it('should return true when state is failed and no benchmark has started_at or error_message', () => {
+    const job = mockEvaluationJob({
+      state: 'failed',
+      benchmarkStatuses: [{ id: 'bm-a', benchmark_index: 0, status: 'failed' }],
+    });
+    expect(isPreStartFailure(job)).toBe(true);
+  });
+
+  it('should return false when a benchmark has started_at — runtime failure', () => {
+    const job = mockEvaluationJob({
+      state: 'failed',
+      benchmarkStatuses: [
+        { id: 'bm-a', benchmark_index: 0, status: 'failed', started_at: '2026-01-01T10:00:00Z' },
+      ],
+    });
+    expect(isPreStartFailure(job)).toBe(false);
+  });
+
+  it('should return false when a benchmark has error_message but no started_at — runner reached the benchmark', () => {
+    const job = mockEvaluationJob({
+      state: 'failed',
+      benchmarkStatuses: [
+        {
+          id: 'bm-a',
+          benchmark_index: 0,
+          status: 'failed',
+          error_message: { message: 'granite-7b is not a valid model identifier' },
+        },
+      ],
+    });
+    expect(isPreStartFailure(job)).toBe(false);
+  });
+
+  it('should return false when state is not failed', () => {
+    const job = mockEvaluationJob({ state: 'running', benchmarkStatuses: [] });
+    expect(isPreStartFailure(job)).toBe(false);
+  });
+
+  it('should return false for completed jobs regardless of benchmark data', () => {
+    const job = mockEvaluationJob({ state: 'completed', benchmarkStatuses: [] });
+    expect(isPreStartFailure(job)).toBe(false);
   });
 });

@@ -984,7 +984,7 @@ describe('EvaluationStatusModal useEvaluationJobLogs arguments', () => {
 
 describe('EvaluationStatusModal pre-start failure', () => {
   /* eslint-disable camelcase */
-  it('should show "Not started" badge and heading when no benchmark has a started_at', () => {
+  it('should show "Not started" when no benchmark has started_at or error_message', () => {
     const job = mockEvaluationJob({
       state: 'failed',
       benchmarkStatuses: [{ id: 'bm-a', benchmark_index: 0, status: 'failed' }],
@@ -1063,6 +1063,27 @@ describe('EvaluationStatusModal pre-start failure', () => {
     );
 
     expect(screen.getByTestId('status-label-failed')).toHaveTextContent('Not started');
+  });
+
+  it('should show "Failed" when a benchmark has error_message but no started_at — runner reached the benchmark', () => {
+    // Real-cluster scenario: runner starts, fails on model load, reports error_message but no started_at
+    const job = mockEvaluationJob({
+      state: 'failed',
+      benchmarkStatuses: [
+        {
+          id: 'bm-a',
+          benchmark_index: 0,
+          status: 'failed',
+          error_message: { message: 'granite-7b is not a valid model identifier' },
+        },
+      ],
+    });
+
+    render(<EvaluationStatusModal job={job} namespace="test-ns" onClose={mockOnClose} />);
+
+    expect(screen.getByTestId('status-label-failed')).toHaveTextContent('Failed');
+    expect(screen.getByTestId('status-label-failed')).not.toHaveTextContent('Not started');
+    expect(screen.getByTestId('status-detail-header')).not.toHaveTextContent('Not started');
   });
   /* eslint-enable camelcase */
 });
