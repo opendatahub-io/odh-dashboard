@@ -38,6 +38,10 @@ export const buildOverviewRows = (
         displayName: sub.displayName,
         phase: sub.phase,
         statusMessage: sub.statusMessage,
+        reason: sub.reason,
+        status: sub.status,
+        conditionType: sub.conditionType,
+        lastTransitionTime: sub.lastTransitionTime,
         groups,
         tokenRateLimits: rateLimits,
       };
@@ -60,6 +64,10 @@ export const buildOverviewRows = (
         displayName: policy.displayName,
         phase: policy.phase,
         statusMessage: policy.statusMessage,
+        reason: policy.reason,
+        status: policy.status,
+        conditionType: policy.conditionType,
+        lastTransitionTime: policy.lastTransitionTime,
         groups,
       };
       const existing = policiesByModel.get(key);
