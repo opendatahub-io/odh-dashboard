@@ -12,6 +12,7 @@ rules:
     resources:
       - namespaces
       - configmaps
+      - pods
   - apiGroups:
       - ""
     verbs:
@@ -19,11 +20,17 @@ rules:
       - list
       - watch
       - create
-      - update
-      - patch
-      - delete
     resources:
-      - secrets
+      - persistentvolumes
+      - persistentvolumeclaims
+  - apiGroups:
+      - storage.k8s.io
+    verbs:
+      - get
+      - list
+      - watch
+    resources:
+      - storageclasses
   - apiGroups:
       - kubeflow.org
     verbs:
