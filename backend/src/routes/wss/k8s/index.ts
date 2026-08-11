@@ -47,7 +47,7 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
       }>,
     ) =>
       getDirectCallOptions(fastify, req, '').then((requestOptions) => {
-        const source = connection.socket;
+        const source = connection;
         const kubeUri = req.params['*'];
 
         const url = `${
