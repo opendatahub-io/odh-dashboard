@@ -41,8 +41,14 @@ function discoverTargets() {
     const prefixMatch = installScript.match(/--prefix\s+(\S+)/);
     if (!prefixMatch) return;
 
-    const targetDir = path.join(pkgDir, prefixMatch[1]);
-    if (targetDir.includes('/upstream/')) return;
+    const prefixPath = prefixMatch[1];
+    if (path.isAbsolute(prefixPath)) return;
+
+    const targetDir = path.resolve(pkgDir, prefixPath);
+    const relativeToPkg = path.relative(pkgDir, targetDir);
+    if (relativeToPkg.startsWith('..') || path.isAbsolute(relativeToPkg)) return;
+
+    if (relativeToPkg.split(path.sep).includes('upstream')) return;
 
     const targetPkg = path.join(targetDir, 'package.json');
     if (fs.existsSync(targetPkg)) {
@@ -82,13 +88,30 @@ function syncOverrides(targetPath, universalOverrides, dryRun) {
   const raw = fs.readFileSync(targetPath, 'utf8');
   const pkg = JSON.parse(raw);
   const existing = pkg.overrides || {};
-  const directDeps = { ...pkg.dependencies, ...pkg.devDependencies };
+  // npm throws EOVERRIDE when a package is both an override and a direct dep
+  const directDeps = {
+    ...(pkg.dependencies || {}),
+    ...(pkg.devDependencies || {}),
+    ...(pkg.optionalDependencies || {}),
+  };
   const changes = [];
 
   const merged = { ...existing };
 
+  // Drop string overrides that collide with direct deps (npm EOVERRIDE)
+  for (const dep of Object.keys(merged)) {
+    if (dep in directDeps && typeof merged[dep] === 'string') {
+      changes.push({
+        dep,
+        from: merged[dep],
+        to: null,
+      });
+      delete merged[dep];
+    }
+  }
+
   for (const [dep, version] of Object.entries(universalOverrides)) {
-    const current = existing[dep];
+    const current = merged[dep];
     if (typeof current === 'object' && current !== null) {
       continue;
     }
@@ -174,6 +197,12 @@ function main() {
       const verb = dryRun ? 'would update' : 'updated';
       console.log(`${colors.yellow}${verb}${colors.reset} ${relativePath(target)}`);
       for (const c of changes) {
+        if (c.to === null) {
+          console.log(
+            `  ${c.dep}: ${c.from} → ${colors.dim}(removed; direct dependency)${colors.reset}`,
+          );
+          continue;
+        }
         const from = c.from ? `${c.from} → ` : `${colors.dim}(missing)${colors.reset} → `;
         console.log(`  ${c.dep}: ${from}${colors.green}${c.to}${colors.reset}`);
       }
@@ -203,6 +232,7 @@ function main() {
   if (installMode) {
     console.log();
     console.log(`${colors.cyan}Regenerating lockfiles...${colors.reset}`);
+    let installFailed = false;
     for (const target of targets) {
       const dir = path.dirname(target);
       if (changedFiles.includes(relativePath(target))) {
@@ -213,9 +243,18 @@ function main() {
             stdio: 'pipe',
           });
         } catch (err) {
+          installFailed = true;
           console.error(`  ${colors.red}Failed:${colors.reset} ${err.message}`);
         }
       }
+    }
+    if (installFailed) {
+      console.log();
+      console.log(
+        `${colors.red}Lockfile regeneration failed for one or more packages.${colors.reset}`,
+      );
+      // eslint-disable-next-line n/no-process-exit
+      process.exit(1);
     }
   }
 
