@@ -1,6 +1,6 @@
 ---
 name: module-onboarding
-description: Scaffold a new federated module under packages/. Runs mod-arch-installer, allocates ports, registers the feature flag and SupportedArea in the host, verifies the build (type-check, port validation, container image). Pass the module name in kebab-case as the argument.
+description: Scaffold a new federated module under packages/. Runs mod-arch-installer, allocates ports, registers the feature flag and SupportedArea in the host, creates standalone deployment manifests, registers the module in the dashboard-operator, and verifies the build. Pass the module name in kebab-case as the argument.
 ---
 
 # Module Onboarding
@@ -41,6 +41,10 @@ See [reference.md](reference.md) for naming conventions, port ranges, templates,
    ```
 
 4. **Ask the user**: Include a Go BFF (backend-for-frontend)? Default: **yes**.
+
+5. **Ask the user**: Which DSC component(s) gate this module? (e.g., `modelregistry`, `aipipelines`, `trustyai`, `mlflowoperator`). These determine when the operator enables/disables the module based on DataScienceCluster availability. Default: **none** (module is always enabled).
+
+6. **Ask the user**: Does this module depend on any other modules? (e.g., `genAi`). If a dependency is disabled, this module will also be disabled. Default: **none**.
 
 ## Phase 1: Port Allocation
 
@@ -84,7 +88,10 @@ After the installer completes, verify the following files exist and are correct.
 - `module-federation.local.port` matches the allocated frontend port from Phase 1
 - `module-federation.proxy[0].path` is `/<name>/api`
 - `module-federation.service.name` is `odh-dashboard-<slug>-ui` (the standalone service name for this module)
-- `module-federation.service.port` matches the module's BFF port (e.g., 8043 for model-registry, 8143 for gen-ai — allocate a unique port in the 8000-8199 range)
+- `module-federation.service.port` matches the module's production service port. Allocate by scanning `dashboard-operator/internal/controller/modules.go` for existing ports (current range: 8043–8943, increments of ~100). Find the next available port:
+  ```bash
+  grep 'Port:' dashboard-operator/internal/controller/modules.go | grep -oP '\d{4}' | sort -n
+  ```
 - Note: The `service` config is used by the operator when generating the federation-config ConfigMap
 - If BFF included, add `bffConfig` section:
 
@@ -249,21 +256,132 @@ If `podman` is not available, try `docker build` instead. This confirms the full
 
 If this step is slow or the user wants to skip it, it can be deferred — the earlier steps already confirm correctness. Ask before running.
 
-## Phase 6: Report
+## Phase 6: Standalone Deployment Manifests
+
+Create the kustomize package for standalone deployment under `manifests/modules/<name>/`.
+
+> **Note**: Standalone deployment is the primary and recommended deployment topology. Sidecar mode is deprecated and will be removed in a future release.
+
+### Step 1: Check if manifests already exist
+
+```bash
+[ -d "manifests/modules/<name>" ] && echo "EXISTS — skipping Phase 6" || echo "CREATING"
+```
+
+If the directory already exists, skip this phase entirely.
+
+### Step 2: Create manifest files
+
+Read `manifests/modules/gen-ai/` as a reference template — every file follows the same pattern across all modules. Create `manifests/modules/<name>/` with these 8 files, adapting names, ports, and images:
+
+1. **`deployment.yaml`** — Deployment with 2 replicas. Replace:
+   - Container name → `<name>-ui`
+   - Container port → the allocated production service port from Phase 1
+   - Image placeholder → `quay.io/opendatahub/odh-mod-arch-<name>:latest`
+   - ServiceAccount → `odh-dashboard-<name>-ui`
+   - All label selectors → `app.kubernetes.io/component: <name>`
+
+2. **`service.yaml`** — Service named `odh-dashboard-<name>-ui` exposing the allocated port.
+
+3. **`service-account.yaml`** — ServiceAccount named `odh-dashboard-<name>-ui`.
+
+4. **`cluster-role.yaml`** — ClusterRole named `odh-dashboard-<name>-ui` with minimal RBAC. Start with the same base permissions as gen-ai (configmaps, secrets read access) — the developer will expand as needed for their module's specific requirements.
+
+5. **`cluster-role-binding.yaml`** — Binds the ClusterRole to the ServiceAccount.
+
+6. **`networkpolicy.yaml`** — NetworkPolicy allowing ingress from the main dashboard pod and egress to Kubernetes API, other BFF services.
+
+7. **`kustomization.yaml`** — Kustomize config with:
+   - `resources` listing all YAML files above
+   - `configMapGenerator` for params with `env` file reference
+   - `generatorOptions.disableNameSuffixHash: true`
+   - `replacements` for image injection from the params ConfigMap
+
+8. **`params.env`** — Default image reference:
+   ```
+   <name>-ui-image=quay.io/opendatahub/odh-mod-arch-<name>:main
+   ```
+
+### Step 3: Register in modules kustomization
+
+Add the new module directory to `manifests/modules/kustomization.yaml` in the `resources` list. Read the file first to find the alphabetical insertion point.
+
+## Phase 7: Dashboard-Operator Registration
+
+Register the new module in the dashboard-operator so it can manage the module's lifecycle.
+
+### Step 1: Module registry — `dashboard-operator/internal/controller/modules.go`
+
+Read the file and find the `moduleRegistry` map. Add a new entry matching the existing pattern:
+
+```go
+"<camelCase>": {
+    Name:                    "<camelCase>",
+    ContainerName:           "<name>-ui",
+    Port:                    <allocated-production-port>,
+    ImageEnvVar:             "RELATED_IMAGE_ODH_MOD_ARCH_<UPPER_SNAKE>_IMAGE",
+    RequiredDSCComponents:   []string{<dsc-components-from-phase0>},
+    InterModuleDependencies: []string{<dependencies-from-phase0>},
+    ManifestSlug:            "<name>",
+},
+```
+
+If `RequiredDSCComponents` or `InterModuleDependencies` are empty, use `nil` instead of `[]string{}`.
+
+### Step 2: Proxy paths — `dashboard-operator/internal/controller/module_deploy.go`
+
+Read the file and find the `moduleProxyPaths` map. Add an entry:
+
+```go
+"<camelCase>": {{Path: "/<name>/api", PathRewrite: "/api"}},
+```
+
+If the module has inter-BFF dependencies (calls other BFF services), also add to `interBFFDependencies` in the same file.
+
+### Step 3: Image map — `dashboard-operator/internal/controller/support.go`
+
+Read the file and find the `imagesMap` variable. Add an entry:
+
+```go
+"<name>-ui-image": "RELATED_IMAGE_ODH_MOD_ARCH_<UPPER_SNAKE>_IMAGE",
+```
+
+### Step 4: Update tests — `dashboard-operator/internal/controller/modules_test.go`
+
+Read the file and update:
+
+1. `TestModuleRegistry` — increment the `assert.Len` count by 1 (e.g., from `8` to `9`)
+2. `TestModuleNames` — add `"<camelCase>"` to the expected sorted name list in the correct alphabetical position
+3. `TestResolveModuleStatuses` — update `wantLen` values: increment the standard case by 1 and the unknown-module case by 1
+
+### Step 5: Helm chart related images — `dashboard-operator/charts/dashboard/values.yaml`
+
+Read the file and find the `relatedImages:` section. Add an entry for the new module's image env var:
+
+```yaml
+RELATED_IMAGE_ODH_MOD_ARCH_<UPPER_SNAKE>_IMAGE: ""
+```
+
+Place it alphabetically among the existing `RELATED_IMAGE_ODH_MOD_ARCH_*` entries. The value is empty because the ODH Operator overrides it with digest-pinned references at install time; only non-empty values are injected as pod env vars by the Helm chart template.
+
+## Phase 8: Report
 
 Summarize the completed onboarding:
 
 1. **Files created** — list all new files under `packages/<name>/`
-2. **Host files modified** — `k8sTypes.ts`, `types.ts`, `const.ts`
-3. **Port assignments** — frontend port, BFF port (if applicable)
-4. **Build results** — pass/fail for each verification step
-5. **Next steps** for the team:
+2. **Standalone manifests created** — list files under `manifests/modules/<name>/`
+3. **Operator registration** — `modules.go`, `module_deploy.go`, `support.go`, `modules_test.go`, `values.yaml`
+4. **Host files modified** — `k8sTypes.ts`, `types.ts`, `const.ts`
+5. **Port assignments** — frontend port, BFF port (if applicable), production service port
+6. **Build results** — pass/fail for each verification step
+7. **Next steps** for the team:
    - Write feature code in `packages/<name>/frontend/src/app/`
    - Add unit tests in `packages/<name>/__tests__/`
    - Add E2E tests in `packages/cypress/cypress/tests/e2e/<name>/`
    - Add contract tests in `packages/<name>/contract-tests/` (if BFF)
    - Start the dev server: `cd packages/<name> && make dev-start-federated`
    - Enable the feature locally: set `<camelCase>: true` in the dashboard config
-   - Create standalone deployment manifests in `manifests/modules/<name>/` (reference `/konflux-onboarding` Phase 4 or existing modules like `gen-ai/`, `model-registry/`)
-   - Register the module in the operator's module registry (`dashboard-operator/internal/controller/modules.go`) with: slug, container name, port, image env var, DSC component gate, and inter-module dependencies
    - Run `/konflux-onboarding` for CI/CD pipeline setup (Dockerfiles, Konflux component registration, OpenShift CI)
+   - **[External]** Add `RELATED_IMAGE_ODH_MOD_ARCH_<UPPER_SNAKE>_IMAGE` to `opendatahub-io/opendatahub-operator` at `internal/controller/modules/dashboard/support.go` (coordinate with Platform team)
+
+> **Note**: Sidecar manifests in `manifests/sidecar/` are deprecated and will be removed. This skill creates standalone manifests only.
