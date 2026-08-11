@@ -66,14 +66,23 @@ const renderAtRoute = (
   );
 
 describe('RoutingConfigurationCreateEdit', () => {
+  let originalFetch: typeof global.fetch | undefined;
+
   beforeEach(() => {
     jest.clearAllMocks();
+    originalFetch = global.fetch;
     global.fetch = jest.fn(() => Promise.resolve({ ok: false } as Response)) as jest.Mock;
   });
 
   afterEach(() => {
-    // @ts-expect-error — remove the stub so it can't leak into other suites
-    delete global.fetch;
+    // Restore the prior implementation rather than deleting, so a real fetch
+    // (if one existed) isn't clobbered for later tests in the same worker.
+    if (originalFetch) {
+      global.fetch = originalFetch;
+    } else {
+      // @ts-expect-error — no prior fetch to restore; remove the stub
+      delete global.fetch;
+    }
   });
 
   describe('create mode', () => {
@@ -128,6 +137,25 @@ describe('RoutingConfigurationCreateEdit', () => {
 
       const topologySelect = screen.getByTestId('topology-type-select');
       expect(topologySelect).not.toBeDisabled();
+    });
+  });
+
+  describe('missing config', () => {
+    it('should show a not-found message rather than redirect when the config does not exist', () => {
+      renderAtRoute(
+        [],
+        '/routing-configs/edit/:configName',
+        '/routing-configs/edit/does-not-exist',
+        {
+          listPath: '/routing-configs',
+        },
+      );
+
+      expect(screen.getByText('Unable to edit routing configuration')).toBeInTheDocument();
+      expect(screen.getByText('does-not-exist', { exact: false })).toBeInTheDocument();
+      expect(screen.getByRole('link', { name: 'Return to the list' })).toBeInTheDocument();
+      // It must NOT render the form's topology-type select (i.e. not the form).
+      expect(screen.queryByTestId('topology-type-select')).not.toBeInTheDocument();
     });
   });
 });

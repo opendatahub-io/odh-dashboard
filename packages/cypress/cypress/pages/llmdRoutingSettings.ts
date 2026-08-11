@@ -43,6 +43,11 @@ class LlmdRoutingSettingsPage {
 
   navigate() {
     this.findNavItem().click();
+    // The nav item targets the tabbed page's parent route, which resolves to the
+    // default (or last-visited) tab — not necessarily this one. Select the
+    // routing tab explicitly before waiting so wait() can't race a different
+    // tab's content.
+    this.findTab().click();
     this.wait();
   }
 

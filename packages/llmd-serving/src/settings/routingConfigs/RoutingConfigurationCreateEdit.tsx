@@ -5,14 +5,19 @@ import {
   AlertActionCloseButton,
   Breadcrumb,
   BreadcrumbItem,
+  Bullseye,
   Button,
+  EmptyState,
+  EmptyStateBody,
+  EmptyStateFooter,
   Form,
   FormGroup,
   FormHelperText,
   HelperText,
   HelperTextItem,
 } from '@patternfly/react-core';
-import { Link, Navigate, useNavigate, useParams } from 'react-router';
+import { ExclamationCircleIcon } from '@patternfly/react-icons';
+import { Link, useNavigate, useParams } from 'react-router';
 import YAML from 'yaml';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports -- standard page shell wrapper
 import { ApplicationsPage } from '@odh-dashboard/ui-core';
@@ -464,9 +469,47 @@ const RoutingConfigurationCreateEdit: React.FC<RoutingConfigurationCreateEditPro
   );
 
   // Edit/duplicate need the named config; context is already loaded (provider
-  // gates on that). Missing ⇒ redirect to the list.
+  // gates on that). When it doesn't exist, tell the user rather than silently
+  // redirecting — a deep link or reload to a deleted/renamed config should
+  // explain what happened. Matches the pattern used by serving runtimes,
+  // connection types, and hardware profiles.
   if (configName && !sourceConfig) {
-    return <Navigate to={listPath} replace />;
+    return (
+      <ApplicationsPage
+        loaded
+        empty={false}
+        title="Edit llm-d routing configuration"
+        breadcrumb={
+          <Breadcrumb>
+            <BreadcrumbItem
+              render={() => <Link to={listPath}>llm-d routing configurations</Link>}
+            />
+            <BreadcrumbItem isActive>Edit</BreadcrumbItem>
+          </Breadcrumb>
+        }
+        provideChildrenPadding
+      >
+        <Bullseye>
+          <EmptyState
+            headingLevel="h2"
+            icon={ExclamationCircleIcon}
+            titleText="Unable to edit routing configuration"
+          >
+            <EmptyStateBody>
+              We were unable to find a routing configuration named &quot;{configName}&quot;.
+            </EmptyStateBody>
+            <EmptyStateFooter>
+              <Button
+                variant="primary"
+                component={(props: React.ComponentProps<'a'>) => <Link {...props} to={listPath} />}
+              >
+                Return to the list
+              </Button>
+            </EmptyStateFooter>
+          </EmptyState>
+        </Bullseye>
+      </ApplicationsPage>
+    );
   }
 
   return (
