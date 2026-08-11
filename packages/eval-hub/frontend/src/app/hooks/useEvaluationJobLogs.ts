@@ -18,6 +18,7 @@ export const useEvaluationJobLogs = (
   const [loaded, setLoaded] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
   const fetchGenRef = React.useRef(0);
+  const refreshControllerRef = React.useRef<AbortController>();
 
   const fetchLogs = React.useCallback(
     (signal?: AbortSignal) => {
@@ -66,11 +67,15 @@ export const useEvaluationJobLogs = (
     fetchLogs(controller.signal);
     return () => {
       controller.abort();
+      refreshControllerRef.current?.abort();
     };
   }, [fetchLogs]);
 
   const refresh = React.useCallback(() => {
-    fetchLogs();
+    refreshControllerRef.current?.abort();
+    const controller = new AbortController();
+    refreshControllerRef.current = controller;
+    fetchLogs(controller.signal);
   }, [fetchLogs]);
 
   return { logs, loaded, error, refresh };

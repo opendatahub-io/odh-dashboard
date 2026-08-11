@@ -44,6 +44,10 @@ const EvaluationsPage: React.FC = () => {
   const { collectionNameMap, loaded: collectionsLoaded } = useCollectionNameMap();
   const [selectedJob, setSelectedJob] = React.useState<EvaluationJob | undefined>();
 
+  React.useEffect(() => {
+    setSelectedJob(undefined);
+  }, [namespace]);
+
   return (
     <>
       <ApplicationsPage
