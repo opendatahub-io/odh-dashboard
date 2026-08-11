@@ -12,6 +12,7 @@ import { DeploymentAssemblyResources } from '../../../../extension-points/deploy
 import { InitialWizardFormData } from '../../../shared/types/form-data';
 import { WizardFormState } from '../useDeploymentWizardReducer';
 import { ModelDeploymentWizardViewMode } from '../ModelDeploymentWizard';
+import { ExternalDataMap } from '../ExternalDataLoader';
 
 /**
  * Get the onSubmit function to create / update the deployment. 
@@ -22,6 +23,7 @@ export const useModelDeploymentSubmit = (
   formState: WizardFormState, // Need initial data for existing auth secrets
   resources: DeploymentAssemblyResources<Deployment>,
   validation: ModelDeploymentWizardValidation,
+  externalData: ExternalDataMap,
   exitWizardOnSubmit: () => void,
   viewMode: ModelDeploymentWizardViewMode = 'form',
   initialWizardData?: InitialWizardFormData,
@@ -92,6 +94,7 @@ export const useModelDeploymentSubmit = (
 
         await deployModel(
           formState,
+          externalData,
           secretOps,
           connectionSecretName,
           deployMethod.properties,
@@ -114,6 +117,7 @@ export const useModelDeploymentSubmit = (
     },
     [
       viewMode,
+      externalData,
       validation.isAllValid,
       deployMethodLoaded,
       deployMethod,

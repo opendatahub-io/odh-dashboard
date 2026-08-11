@@ -98,6 +98,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
       wizardFormData.state,
       finalResources,
       validation,
+      externalData,
       exitWizardOnSubmit,
       viewMode,
       wizardFormData.initialData,

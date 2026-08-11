@@ -7,15 +7,21 @@ import TypeaheadSelect, {
 import type { ProjectSectionType } from '@odh-dashboard/model-serving/shared/wizard-fields';
 import type { WizardField } from '@odh-dashboard/model-serving/shared/types/form-data';
 import { NIMModelLocationKey } from '@odh-dashboard/model-serving/shared/wizard-fields';
+import { TemplateKind } from '@odh-dashboard/k8s-core';
 import useNIMAccountStatus, { NIMAccountStatus } from '../../../api/accounts/hooks';
 import NIMSettingsLink from '../../projectSettings/NIMSettingsLink';
 import { useNIMImages, type NIMImagesData } from '../../../api/images/hooks';
 import type { NIMImage } from '../../../api/images/types';
 import { getImageRepository, normalizeVersion } from '../../../api/images/utils';
+import { useFetchNIMTemplate } from '../../../api/servingruntime/useFetchNIMTemplate';
+
+export const isNIMImageFieldExternalData = (data: unknown): data is NIMImageFieldExternalData =>
+  !!data && typeof data === 'object' && 'nimImages' in data && 'accountStatus' in data;
 
 export type NIMImageFieldExternalData = {
   nimImages: NIMImagesData;
   accountStatus: NIMAccountStatus;
+  nimTemplate?: TemplateKind;
 };
 
 const useNIMImageFieldExternalData = (dependencies?: {
@@ -42,15 +48,19 @@ const useNIMImageFieldExternalData = (dependencies?: {
     accountLoaded,
   });
 
+  // Load Template early for yaml previewing
+  const { data: nimTemplate, error: nimTemplateError } = useFetchNIMTemplate(nimAccount);
+
+  // Don't block making selection on loading the Template
   const loaded = !projectName || (imagesLoaded && accountLoaded);
 
   return React.useMemo(
     () => ({
-      data: { nimImages, accountStatus },
+      data: { nimImages, accountStatus, nimTemplate },
       loaded,
-      loadError,
+      loadError: loadError ?? nimTemplateError,
     }),
-    [nimImages, accountStatus, loaded, loadError],
+    [nimImages, accountStatus, nimTemplate, loaded, loadError, nimTemplateError],
   );
 };
 
