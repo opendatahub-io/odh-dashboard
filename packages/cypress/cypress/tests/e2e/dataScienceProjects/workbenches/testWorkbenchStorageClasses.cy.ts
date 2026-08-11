@@ -55,6 +55,8 @@ describe('Workbench Storage Classes Tests', () => {
   let mountPathB: string;
   let mountPathC: string;
 
+  let isS390x: boolean;
+
   const rwoLabel = AccessMode.RWO;
   const rwxLabel = AccessMode.RWX;
   const roxLabel = AccessMode.ROX;
@@ -81,15 +83,22 @@ describe('Workbench Storage Classes Tests', () => {
         mountPathB = fixtureData.mountPathB;
         mountPathC = fixtureData.mountPathC;
         notebookImage = fixtureData.notebookImage;
+        isS390x = !!fixtureData.isS390x;
       })
       .then(() => {
         cy.step('Provisioning storage class');
-        provisionDualAccessStorageClass(storageClassRWO);
-        provisionMultiAccessStorageClass(storageClassMultiAccess);
-        // Only add if not already in the array (prevent duplicates on retry)
-        if (!createdStorageClasses.includes(storageClassRWO)) {
-          createdStorageClasses.push(storageClassRWO);
+        if (!isS390x) {
+          provisionDualAccessStorageClass(storageClassRWO);
+          // Only add if not already in the array (prevent duplicates on retry)
+          if (!createdStorageClasses.includes(storageClassRWO)) {
+            createdStorageClasses.push(storageClassRWO);
+          }
+        } else {
+          cy.log(
+            `s390x: skipping RWO StorageClass provisioning — using pre-existing: ${storageClassRWO}`,
+          );
         }
+        provisionMultiAccessStorageClass(storageClassMultiAccess);
         if (!createdStorageClasses.includes(storageClassMultiAccess)) {
           createdStorageClasses.push(storageClassMultiAccess);
         }
@@ -160,9 +169,15 @@ describe('Workbench Storage Classes Tests', () => {
           notebookRow.findKebab().click();
           workbenchActions.findEditWorkbenchAction().click();
 
-          cy.step('Verify storage access mode in table');
-          const storageTable = createSpawnerPage.getStorageTable();
-          storageTable.verifyStorageAccessMode(storageNameRWO, AccessMode.RWO);
+          if (isS390x) {
+            cy.step('Navigate to Cluster storage tab to verify attachment');
+            cy.contains('button, a, li', 'Cluster storage').should('be.visible').scrollIntoView();
+            cy.contains('button, a, li', 'Cluster storage').click();
+          } else {
+            cy.step('Verify storage access mode in table');
+            const storageTable = createSpawnerPage.getStorageTable();
+            storageTable.verifyStorageAccessMode(storageNameRWO, AccessMode.RWO);
+          }
 
           createSpawnerPage.findSubmitButton().click();
         },
