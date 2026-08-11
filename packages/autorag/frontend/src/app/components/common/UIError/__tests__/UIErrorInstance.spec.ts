@@ -3,6 +3,7 @@ import type { UIError } from '~/app/components/common/UIError/types';
 import { UIErrorInstance } from '~/app/components/common/UIError/UIErrorInstance';
 
 const validUIError: UIError = {
+  type: 'UIError',
   messageId: 'test_error',
   reason: 'Something went wrong',
   status: 400,

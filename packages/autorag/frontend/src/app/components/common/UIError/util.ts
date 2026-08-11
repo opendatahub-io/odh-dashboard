@@ -7,6 +7,8 @@ export function isUIError(value: unknown): value is UIError {
     return false;
   }
   return (
+    'type' in value &&
+    value.type === 'UIError' &&
     'messageId' in value &&
     typeof value.messageId === 'string' &&
     'reason' in value &&

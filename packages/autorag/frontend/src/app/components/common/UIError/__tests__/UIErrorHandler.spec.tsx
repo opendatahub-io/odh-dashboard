@@ -12,6 +12,7 @@ import {
 import { UIErrorDefaults } from '~/app/components/common/UIError/constants';
 
 const mockUIError: UIError = {
+  type: 'UIError',
   messageId: 'test_error_one',
   reason: 'Something failed in the backend',
   status: 400,
@@ -20,6 +21,7 @@ const mockUIError: UIError = {
 };
 
 const mockUIErrorNoDetails: UIError = {
+  type: 'UIError',
   messageId: 'test_error_no_details',
   reason: 'A simple failure',
   status: 500,
@@ -28,6 +30,7 @@ const mockUIErrorNoDetails: UIError = {
 };
 
 const mockUIErrorNoTransactionId: UIError = {
+  type: 'UIError',
   messageId: 'test_error_no_txn',
   reason: 'Error without transaction ID',
   status: 502,
@@ -35,6 +38,7 @@ const mockUIErrorNoTransactionId: UIError = {
 };
 
 const mockUIErrorEmptyTransactionId: UIError = {
+  type: 'UIError',
   messageId: 'test_error_empty_txn',
   reason: 'Error with empty transaction ID',
   status: 503,

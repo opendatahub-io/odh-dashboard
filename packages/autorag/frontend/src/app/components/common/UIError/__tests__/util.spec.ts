@@ -16,6 +16,7 @@ jest.mock('mod-arch-core', () => ({
 const mockHandleRestFailures = jest.mocked(handleRestFailures);
 
 const validUIError: UIError = {
+  type: 'UIError',
   messageId: 'test_error',
   reason: 'Something went wrong',
   status: 400,
@@ -50,6 +51,16 @@ describe('isUIError', () => {
 
   it('should return false for a standard Error', () => {
     expect(isUIError(new Error('fail'))).toBe(false);
+  });
+
+  it('should return false when type is missing', () => {
+    const { type, ...rest } = validUIError;
+    expect(type).toBeDefined();
+    expect(isUIError(rest)).toBe(false);
+  });
+
+  it('should return false when type is not "UIError"', () => {
+    expect(isUIError({ ...validUIError, type: 'SomethingElse' })).toBe(false);
   });
 
   it('should return false when messageId is missing', () => {

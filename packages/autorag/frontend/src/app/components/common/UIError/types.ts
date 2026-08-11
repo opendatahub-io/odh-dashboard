@@ -1,6 +1,9 @@
 // Types ---------------------------------------------------------------------->
 
 export interface UIError {
+  /** Discriminator field to prevent false positives when matching API responses. */
+  type: 'UIError';
+
   /** A unique identifier for the given error being thrown. (Recommendation is for the value to be in `plain_english_camel_case`) */
   messageId: string;
 

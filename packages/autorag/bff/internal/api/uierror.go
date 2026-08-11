@@ -44,6 +44,7 @@ func redactDetails(details map[string]any) map[string]any {
 // It implements the error interface for idiomatic Go error handling and can
 // write itself directly as an HTTP JSON response.
 type UIError struct {
+	Type          string         `json:"type"`
 	MessageID     string         `json:"messageId"`
 	Reason        string         `json:"reason"`
 	Status        int            `json:"status"`
@@ -58,6 +59,7 @@ func (e *UIError) Error() string {
 
 func NewUIError(status int, messageID string, reason string) *UIError {
 	return &UIError{
+		Type:      "UIError",
 		MessageID: messageID,
 		Reason:    reason,
 		Status:    status,

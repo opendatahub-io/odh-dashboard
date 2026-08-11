@@ -129,6 +129,7 @@ func TestUIError_WriteTo(t *testing.T) {
 			err:        NewUIError(http.StatusNotFound, "rag.not_found", "RAG not found"),
 			wantStatus: http.StatusNotFound,
 			wantBodyFields: map[string]any{
+				"type":      "UIError",
 				"messageId": "rag.not_found",
 				"reason":    "RAG not found",
 				"status":    float64(http.StatusNotFound),
@@ -137,6 +138,7 @@ func TestUIError_WriteTo(t *testing.T) {
 		{
 			name: "includes details and transactionId",
 			err: &UIError{
+				Type:          "UIError",
 				MessageID:     "rag.error",
 				Reason:        "something broke",
 				Status:        http.StatusInternalServerError,
@@ -145,6 +147,7 @@ func TestUIError_WriteTo(t *testing.T) {
 			},
 			wantStatus: http.StatusInternalServerError,
 			wantBodyFields: map[string]any{
+				"type":          "UIError",
 				"messageId":     "rag.error",
 				"reason":        "something broke",
 				"status":        float64(http.StatusInternalServerError),
@@ -156,6 +159,7 @@ func TestUIError_WriteTo(t *testing.T) {
 			err:        NewUIError(http.StatusBadRequest, "bad.input", "invalid request").WithLogger(slog.Default()),
 			wantStatus: http.StatusBadRequest,
 			wantBodyFields: map[string]any{
+				"type":      "UIError",
 				"messageId": "bad.input",
 				"reason":    "invalid request",
 				"status":    float64(http.StatusBadRequest),

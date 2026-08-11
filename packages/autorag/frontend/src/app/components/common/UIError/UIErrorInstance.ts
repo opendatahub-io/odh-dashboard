@@ -35,6 +35,8 @@ function id(): string {
 // Classes -------------------------------------------------------------------->
 
 export class UIErrorInstance extends Error implements UIError {
+  type: UIError['type'] = 'UIError';
+
   messageId: UIError['messageId'];
 
   reason: UIError['reason'];
