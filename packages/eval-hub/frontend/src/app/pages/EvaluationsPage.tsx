@@ -1,5 +1,6 @@
 import * as React from 'react';
 import {
+  Bullseye,
   Content,
   EmptyState,
   EmptyStateBody,
@@ -8,6 +9,7 @@ import {
   Flex,
   FlexItem,
   PageSection,
+  Spinner,
 } from '@patternfly/react-core';
 import { CogIcon } from '@patternfly/react-icons';
 import { useParams } from 'react-router-dom';
@@ -25,8 +27,9 @@ import EvalHubHeader from '~/app/components/EvalHubHeader';
 import EvalHubProjectSelector from '~/app/components/EvalHubProjectSelector';
 import EvalHubEmptyState from '~/app/components/EvalHubEmptyState';
 import EvaluationsTable from '~/app/components/EvaluationsTable';
-import EvaluationStatusModal from '~/app/components/EvaluationStatusModal';
 import { EvaluationJob } from '~/app/types';
+
+const EvaluationStatusModal = React.lazy(() => import('~/app/components/EvaluationStatusModal'));
 
 const EvaluationsPage: React.FC = () => {
   const { namespace } = useParams<{ namespace: string }>();
@@ -146,11 +149,19 @@ const EvaluationsPage: React.FC = () => {
           />
         )}
       </ApplicationsPage>
-      <EvaluationStatusModal
-        job={selectedJob}
-        namespace={namespace ?? ''}
-        onClose={() => setSelectedJob(undefined)}
-      />
+      <React.Suspense
+        fallback={
+          <Bullseye>
+            <Spinner />
+          </Bullseye>
+        }
+      >
+        <EvaluationStatusModal
+          job={selectedJob}
+          namespace={namespace ?? ''}
+          onClose={() => setSelectedJob(undefined)}
+        />
+      </React.Suspense>
     </>
   );
 };

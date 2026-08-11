@@ -89,7 +89,7 @@ describe('EvaluationStatusLabel', () => {
   it('should not be clickable when onClick is not provided', () => {
     render(<EvaluationStatusLabel state="failed" />);
     const label = screen.getByTestId('status-label-failed');
-    expect(label).not.toHaveAttribute('onClick');
+    expect(within(label).queryByRole('button')).not.toBeInTheDocument();
   });
 
   it('should call onClick for any state when provided', () => {

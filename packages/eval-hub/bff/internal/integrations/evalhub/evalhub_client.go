@@ -808,10 +808,13 @@ func getRaw(c *EvalHubClient, ctx context.Context, path string, extraHeaders map
 	}
 	defer resp.Body.Close()
 
-	const maxLogResponseSize = 10 * 1024 * 1024 // 10MB
-	body, err := io.ReadAll(io.LimitReader(resp.Body, maxLogResponseSize))
+	const maxLogResponseSize = 10 * 1024 * 1024 // 10 MiB
+	body, err := io.ReadAll(io.LimitReader(resp.Body, maxLogResponseSize+1))
 	if err != nil {
 		return "", err
+	}
+	if len(body) > maxLogResponseSize {
+		return "", fmt.Errorf("response body exceeds maximum allowed size of %d bytes", maxLogResponseSize)
 	}
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {

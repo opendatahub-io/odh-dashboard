@@ -376,8 +376,12 @@ describe('getEvaluationJobLogs', () => {
     expect(result).toBe('log line 1\nlog line 2');
     expect(mockFetch).toHaveBeenCalledWith(
       expect.stringContaining('/evaluations/jobs/job-1/logs?'),
+      expect.objectContaining({}),
     );
-    expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('namespace=test-ns'));
+    expect(mockFetch).toHaveBeenCalledWith(
+      expect.stringContaining('namespace=test-ns'),
+      expect.objectContaining({}),
+    );
   });
 
   it('should include tail_lines param when provided', async () => {
@@ -385,7 +389,10 @@ describe('getEvaluationJobLogs', () => {
 
     await getEvaluationJobLogs('', 'ns', 'j1', { tail_lines: 100 })();
 
-    expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('tail_lines=100'));
+    expect(mockFetch).toHaveBeenCalledWith(
+      expect.stringContaining('tail_lines=100'),
+      expect.objectContaining({}),
+    );
   });
 
   it('should include timestamps param when provided', async () => {
@@ -393,7 +400,10 @@ describe('getEvaluationJobLogs', () => {
 
     await getEvaluationJobLogs('', 'ns', 'j1', { timestamps: true })();
 
-    expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('timestamps=true'));
+    expect(mockFetch).toHaveBeenCalledWith(
+      expect.stringContaining('timestamps=true'),
+      expect.objectContaining({}),
+    );
   });
 
   it('should include since_seconds param when provided', async () => {
@@ -401,7 +411,10 @@ describe('getEvaluationJobLogs', () => {
 
     await getEvaluationJobLogs('', 'ns', 'j1', { since_seconds: 300 })();
 
-    expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('since_seconds=300'));
+    expect(mockFetch).toHaveBeenCalledWith(
+      expect.stringContaining('since_seconds=300'),
+      expect.objectContaining({}),
+    );
   });
 
   it('should throw LogFetchError on non-ok response', async () => {
@@ -426,7 +439,10 @@ describe('getEvaluationJobLogs', () => {
 
     await getEvaluationJobLogs('', 'ns', 'job/with special')();
 
-    expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('job%2Fwith%20special'));
+    expect(mockFetch).toHaveBeenCalledWith(
+      expect.stringContaining('job%2Fwith%20special'),
+      expect.objectContaining({}),
+    );
   });
 
   it('should prepend hostPath to the URL', async () => {
@@ -434,7 +450,10 @@ describe('getEvaluationJobLogs', () => {
 
     await getEvaluationJobLogs('http://my-host', 'ns', 'j1')();
 
-    expect(mockFetch).toHaveBeenCalledWith(expect.stringMatching(/^http:\/\/my-host/));
+    expect(mockFetch).toHaveBeenCalledWith(
+      expect.stringMatching(/^http:\/\/my-host/),
+      expect.objectContaining({}),
+    );
   });
 });
 
@@ -457,6 +476,7 @@ describe('getEvaluationJobBenchmarkLogs', () => {
     expect(result).toBe('benchmark log output');
     expect(mockFetch).toHaveBeenCalledWith(
       expect.stringContaining('/evaluations/jobs/j1/benchmarks/2/logs?'),
+      expect.objectContaining({}),
     );
   });
 
@@ -465,7 +485,10 @@ describe('getEvaluationJobBenchmarkLogs', () => {
 
     await getEvaluationJobBenchmarkLogs('', 'ns', 'j1', 0, { tail_lines: 50 })();
 
-    expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('tail_lines=50'));
+    expect(mockFetch).toHaveBeenCalledWith(
+      expect.stringContaining('tail_lines=50'),
+      expect.objectContaining({}),
+    );
   });
 
   it('should throw LogFetchError on non-ok response', async () => {

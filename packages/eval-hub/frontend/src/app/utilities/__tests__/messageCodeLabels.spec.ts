@@ -15,4 +15,10 @@ describe('getMessageCodeLabel', () => {
   it('should return the raw code for empty string', () => {
     expect(getMessageCodeLabel('')).toBe('');
   });
+
+  it('should return the raw code for unknown codes matching Object.prototype keys', () => {
+    expect(getMessageCodeLabel('toString')).toBe('toString');
+    expect(getMessageCodeLabel('constructor')).toBe('constructor');
+    expect(getMessageCodeLabel('hasOwnProperty')).toBe('hasOwnProperty');
+  });
 });

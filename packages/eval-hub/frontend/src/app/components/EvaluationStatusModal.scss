@@ -36,8 +36,13 @@
   border-bottom: 1px solid var(--pf-t--global--border--color--default);
   position: relative;
 
-  &:hover {
+  &:hover,
+  &:focus-within {
     background-color: var(--pf-t--global--background--color--primary--hover);
+
+    .evalhub-log-viewer__copy {
+      opacity: 1;
+    }
   }
 
   &--header {
@@ -99,7 +104,7 @@
   flex: 1;
   min-width: 0;
   white-space: pre-wrap;
-  word-break: break-word;
+  overflow-wrap: anywhere;
   color: var(--pf-t--global--text--color--regular);
 }
 
@@ -111,6 +116,7 @@
   max-height: calc(1lh + 2 * var(--pf-t--global--spacer--xs));
   display: flex;
   align-items: center;
+  opacity: 0;
 }
 
 .evalhub-log-viewer .pf-v6-c-alert {

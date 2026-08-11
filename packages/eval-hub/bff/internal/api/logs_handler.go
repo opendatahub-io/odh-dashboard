@@ -10,6 +10,35 @@ import (
 	"github.com/opendatahub-io/eval-hub/bff/internal/integrations/evalhub"
 )
 
+func parseLogQueryParams(query func(string) string) (evalhub.GetJobLogsParams, error) {
+	var params evalhub.GetJobLogsParams
+
+	if v := query("tail_lines"); v != "" {
+		n, err := strconv.Atoi(v)
+		if err != nil || n < 0 {
+			return params, fmt.Errorf("tail_lines must be a non-negative integer")
+		}
+		params.TailLines = v
+	}
+
+	if v := query("since_seconds"); v != "" {
+		n, err := strconv.Atoi(v)
+		if err != nil || n < 0 {
+			return params, fmt.Errorf("since_seconds must be a non-negative integer")
+		}
+		params.SinceSeconds = v
+	}
+
+	if v := query("timestamps"); v != "" {
+		if v != "true" && v != "false" {
+			return params, fmt.Errorf("timestamps must be a boolean (true or false)")
+		}
+		params.Timestamps = v
+	}
+
+	return params, nil
+}
+
 func (app *App) GetEvaluationJobLogsHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	ctx := r.Context()
 
@@ -27,10 +56,10 @@ func (app *App) GetEvaluationJobLogsHandler(w http.ResponseWriter, r *http.Reque
 
 	namespace, _ := ctx.Value(constants.NamespaceHeaderParameterKey).(string)
 
-	params := evalhub.GetJobLogsParams{
-		TailLines:    r.URL.Query().Get("tail_lines"),
-		Timestamps:   r.URL.Query().Get("timestamps"),
-		SinceSeconds: r.URL.Query().Get("since_seconds"),
+	params, err := parseLogQueryParams(r.URL.Query().Get)
+	if err != nil {
+		app.badRequestResponse(w, r, err)
+		return
 	}
 
 	logs, err := client.GetEvaluationJobLogs(ctx, id, namespace, params)
@@ -70,10 +99,10 @@ func (app *App) GetEvaluationJobBenchmarkLogsHandler(w http.ResponseWriter, r *h
 
 	namespace, _ := ctx.Value(constants.NamespaceHeaderParameterKey).(string)
 
-	params := evalhub.GetJobLogsParams{
-		TailLines:    r.URL.Query().Get("tail_lines"),
-		Timestamps:   r.URL.Query().Get("timestamps"),
-		SinceSeconds: r.URL.Query().Get("since_seconds"),
+	params, err := parseLogQueryParams(r.URL.Query().Get)
+	if err != nil {
+		app.badRequestResponse(w, r, err)
+		return
 	}
 
 	logs, err := client.GetEvaluationJobBenchmarkLogs(ctx, id, benchmarkIndex, namespace, params)

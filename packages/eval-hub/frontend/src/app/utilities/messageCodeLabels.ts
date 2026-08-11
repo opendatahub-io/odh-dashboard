@@ -7,4 +7,5 @@ const MESSAGE_CODE_LABELS: Record<string, string> = {
 };
 /* eslint-enable camelcase */
 
-export const getMessageCodeLabel = (code: string): string => MESSAGE_CODE_LABELS[code] ?? code;
+export const getMessageCodeLabel = (code: string): string =>
+  Object.hasOwn(MESSAGE_CODE_LABELS, code) ? MESSAGE_CODE_LABELS[code] : code;

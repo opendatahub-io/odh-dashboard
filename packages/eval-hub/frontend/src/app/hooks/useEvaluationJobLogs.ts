@@ -19,44 +19,54 @@ export const useEvaluationJobLogs = (
   const [error, setError] = React.useState<Error | undefined>();
   const fetchGenRef = React.useRef(0);
 
-  const fetchLogs = React.useCallback(() => {
-    if (!namespace || !jobId) {
-      setLogs('');
+  const fetchLogs = React.useCallback(
+    (signal?: AbortSignal) => {
+      if (!namespace || !jobId) {
+        setLogs('');
+        setLoaded(false);
+        setError(undefined);
+        return;
+      }
+
+      const gen = ++fetchGenRef.current;
       setLoaded(false);
       setError(undefined);
-      return;
-    }
 
-    const gen = ++fetchGenRef.current;
-    setLoaded(false);
-    setError(undefined);
+      // eslint-disable-next-line camelcase
+      const params = tailLines != null ? { tail_lines: tailLines } : undefined;
+      const fetcher =
+        benchmarkIndex != null
+          ? getEvaluationJobBenchmarkLogs('', namespace, jobId, benchmarkIndex, params)
+          : getEvaluationJobLogs('', namespace, jobId, params);
 
-    // eslint-disable-next-line camelcase
-    const params = tailLines != null ? { tail_lines: tailLines } : undefined;
-    const fetcher =
-      benchmarkIndex != null
-        ? getEvaluationJobBenchmarkLogs('', namespace, jobId, benchmarkIndex, params)
-        : getEvaluationJobLogs('', namespace, jobId, params);
-
-    fetcher()
-      .then((text) => {
-        if (fetchGenRef.current !== gen) {
-          return;
-        }
-        setLogs(text);
-        setLoaded(true);
-      })
-      .catch((err) => {
-        if (fetchGenRef.current !== gen) {
-          return;
-        }
-        setError(err instanceof Error ? err : new Error(String(err)));
-        setLoaded(true);
-      });
-  }, [namespace, jobId, benchmarkIndex, tailLines]);
+      fetcher(signal)
+        .then((text) => {
+          if (fetchGenRef.current !== gen) {
+            return;
+          }
+          setLogs(text);
+          setLoaded(true);
+        })
+        .catch((err) => {
+          if (signal?.aborted) {
+            return;
+          }
+          if (fetchGenRef.current !== gen) {
+            return;
+          }
+          setError(err instanceof Error ? err : new Error(String(err)));
+          setLoaded(true);
+        });
+    },
+    [namespace, jobId, benchmarkIndex, tailLines],
+  );
 
   React.useEffect(() => {
-    fetchLogs();
+    const controller = new AbortController();
+    fetchLogs(controller.signal);
+    return () => {
+      controller.abort();
+    };
   }, [fetchLogs]);
 
   return { logs, loaded, error, refresh: fetchLogs };

@@ -36,7 +36,6 @@ import {
 } from '~/app/utilities/evaluationUtils';
 import BenchmarkResultCard from '~/app/components/BenchmarkResultCard';
 import BenchmarkResultDetails from '~/app/components/BenchmarkResultDetails';
-import EvaluationStatusModal from '~/app/components/EvaluationStatusModal';
 import LabelHelpPopover from '~/app/components/LabelHelpPopover';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 
@@ -53,6 +52,8 @@ const MlflowRunTabs = React.lazy(() =>
     .then((mod) => mod ?? { default: () => null })
     .catch(() => ({ default: () => null })),
 );
+
+const EvaluationStatusModal = React.lazy(() => import('~/app/components/EvaluationStatusModal'));
 
 const DEFAULT_VISIBLE_BENCHMARKS = 4;
 
@@ -331,11 +332,19 @@ const EvaluationResultsPage: React.FC = () => {
         )}
       </ApplicationsPage>
       {showStatusModal && (
-        <EvaluationStatusModal
-          job={job ?? undefined}
-          namespace={namespace ?? ''}
-          onClose={() => setShowStatusModal(false)}
-        />
+        <React.Suspense
+          fallback={
+            <Bullseye>
+              <Spinner />
+            </Bullseye>
+          }
+        >
+          <EvaluationStatusModal
+            job={job ?? undefined}
+            namespace={namespace ?? ''}
+            onClose={() => setShowStatusModal(false)}
+          />
+        </React.Suspense>
       )}
     </>
   );

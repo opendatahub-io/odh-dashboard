@@ -258,14 +258,25 @@ const LogEntryRow: React.FC<{ entry: LogEntry; hideBorder?: boolean }> = ({
   entry,
   hideBorder,
 }) => {
-  const [isHovered, setIsHovered] = React.useState(false);
   const [copied, setCopied] = React.useState(false);
+  const copyTimeoutRef = React.useRef<ReturnType<typeof setTimeout>>();
+
+  React.useEffect(
+    () => () => {
+      clearTimeout(copyTimeoutRef.current);
+    },
+    [],
+  );
 
   const handleCopy = React.useCallback(() => {
-    navigator.clipboard.writeText(entry.raw).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    });
+    navigator.clipboard.writeText(entry.raw).then(
+      () => {
+        setCopied(true);
+        clearTimeout(copyTimeoutRef.current);
+        copyTimeoutRef.current = setTimeout(() => setCopied(false), 1500);
+      },
+      () => undefined,
+    );
   }, [entry.raw]);
 
   const rowClass = [
@@ -276,7 +287,7 @@ const LogEntryRow: React.FC<{ entry: LogEntry; hideBorder?: boolean }> = ({
     .filter(Boolean)
     .join(' ');
 
-  const copyButton = isHovered ? (
+  const copyButton = (
     <div className="evalhub-log-viewer__copy">
       <Tooltip content={copied ? 'Copied' : 'Copy'}>
         <Button variant="plain" aria-label="Copy log entry" onClick={handleCopy}>
@@ -284,15 +295,11 @@ const LogEntryRow: React.FC<{ entry: LogEntry; hideBorder?: boolean }> = ({
         </Button>
       </Tooltip>
     </div>
-  ) : null;
+  );
 
   if (entry.isSectionHeader) {
     return (
-      <div
-        className={rowClass}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
-      >
+      <div className={rowClass}>
         <div className="evalhub-log-viewer__cell--level" />
         <div className="evalhub-log-viewer__cell--timestamp" />
         <div className="evalhub-log-viewer__cell--message">{entry.message}</div>
@@ -306,11 +313,7 @@ const LogEntryRow: React.FC<{ entry: LogEntry; hideBorder?: boolean }> = ({
     : entry.message;
 
   return (
-    <div
-      className={rowClass}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-    >
+    <div className={rowClass}>
       <div className="evalhub-log-viewer__cell--level">
         {entry.level ? LOG_LEVEL_ICON[entry.level] : null}
         <span>{entry.level ? LEVEL_LABELS[entry.level] : ''}</span>
@@ -382,14 +385,17 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
   const [downloading, setDownloading] = React.useState(false);
   const [downloadError, setDownloadError] = React.useState<Error | undefined>();
 
+  const jobId = job?.resource.id;
+  const jobState = job?.status.state;
+
   React.useEffect(() => {
-    if (job) {
-      const jobFailed = job.status.state === 'failed' || job.status.state === 'partially_failed';
+    if (jobId && jobState) {
+      const jobFailed = jobState === 'failed' || jobState === 'partially_failed';
       setActiveTab(jobFailed ? 'failure-info' : 'events-log');
       setSelectedBenchmark(ALL_BENCHMARKS);
       setShowFullLogs(false);
     }
-  }, [job]);
+  }, [jobId, jobState]);
 
   React.useEffect(() => {
     setShowFullLogs(false);
@@ -705,7 +711,10 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
                   {logsLoaded && hasLogContent ? (
                     <FlexItem align={{ default: 'alignRight' }}>
                       <Content component="small" data-testid="log-line-count">
-                        {logs.replace(/\r\n?/g, '\n').split('\n').length.toLocaleString()} lines
+                        {(() => {
+                          const count = logs.replace(/\r\n?/g, '\n').split('\n').length;
+                          return `${count.toLocaleString()} ${count === 1 ? 'line' : 'lines'}`;
+                        })()}
                       </Content>
                     </FlexItem>
                   ) : null}

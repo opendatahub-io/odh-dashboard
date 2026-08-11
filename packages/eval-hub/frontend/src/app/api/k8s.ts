@@ -316,7 +316,7 @@ export const getEvaluationJobLogs =
     jobId: string,
     params?: { tail_lines?: number; timestamps?: boolean; since_seconds?: number },
   ) =>
-  async (): Promise<string> => {
+  async (signal?: AbortSignal): Promise<string> => {
     const queryParams = new URLSearchParams({ namespace });
     if (params?.tail_lines != null) {
       queryParams.set('tail_lines', String(params.tail_lines));
@@ -328,7 +328,7 @@ export const getEvaluationJobLogs =
       queryParams.set('since_seconds', String(params.since_seconds));
     }
     const url = `${hostPath}${URL_PREFIX}/api/${BFF_API_VERSION}/evaluations/jobs/${encodeURIComponent(jobId)}/logs?${queryParams.toString()}`;
-    const response = await fetch(url);
+    const response = await fetch(url, { signal });
     if (!response.ok) {
       throw new LogFetchError(
         response.status,
@@ -346,13 +346,13 @@ export const getEvaluationJobBenchmarkLogs =
     benchmarkIndex: number,
     params?: { tail_lines?: number },
   ) =>
-  async (): Promise<string> => {
+  async (signal?: AbortSignal): Promise<string> => {
     const queryParams = new URLSearchParams({ namespace });
     if (params?.tail_lines != null) {
       queryParams.set('tail_lines', String(params.tail_lines));
     }
     const url = `${hostPath}${URL_PREFIX}/api/${BFF_API_VERSION}/evaluations/jobs/${encodeURIComponent(jobId)}/benchmarks/${benchmarkIndex}/logs?${queryParams.toString()}`;
-    const response = await fetch(url);
+    const response = await fetch(url, { signal });
     if (!response.ok) {
       throw new LogFetchError(
         response.status,

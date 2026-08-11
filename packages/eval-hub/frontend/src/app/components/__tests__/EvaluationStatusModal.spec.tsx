@@ -33,6 +33,12 @@ const renderModal = (jobOverrides = {}) => {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  mockUseEvaluationJobLogs.mockReturnValue({
+    logs: '2026-01-01 10:00:00 - main - INFO - Test log entry',
+    loaded: true,
+    error: undefined,
+    refresh: jest.fn(),
+  });
 });
 
 describe('EvaluationStatusModal download', () => {
@@ -232,7 +238,7 @@ describe('EvaluationStatusModal show full logs', () => {
   it('should display a line count in the toolbar', () => {
     renderModal();
 
-    expect(screen.getByTestId('log-line-count')).toHaveTextContent('1 lines');
+    expect(screen.getByTestId('log-line-count')).toHaveTextContent('1 line');
   });
 });
 
