@@ -26,8 +26,6 @@ export const AUTOML_EVENTS = {
   MODEL_REGISTERED: 'AutoML Model Registered',
   S3_CONNECTION_CREATED: 'AutoML S3 Connection Created',
   LEADERBOARD_SORTED: 'AutoML Leaderboard Sorted',
-  LEADERBOARD_FILTER_APPLIED: 'AutoML Leaderboard Filter Applied',
-  MODEL_COMPARED: 'AutoML Model Compared',
 } as const;
 
 /** Maps AutoML's internal task_type values to the product-wide predictionType taxonomy. */
@@ -170,12 +168,4 @@ export const fireAutomlLeaderboardSorted = (
   sortDirection: 'asc' | 'desc',
 ): void => {
   fireMiscTrackingEvent(AUTOML_EVENTS.LEADERBOARD_SORTED, { sortColumn, sortDirection });
-};
-
-export const fireAutomlLeaderboardFilterApplied = (filterType: string): void => {
-  fireMiscTrackingEvent(AUTOML_EVENTS.LEADERBOARD_FILTER_APPLIED, { filterType });
-};
-
-export const fireAutomlModelCompared = (countOfModelsCompared: number): void => {
-  fireMiscTrackingEvent(AUTOML_EVENTS.MODEL_COMPARED, { countOfModelsCompared });
 };

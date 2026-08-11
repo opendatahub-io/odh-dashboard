@@ -6,9 +6,7 @@ import { TrackingOutcome } from '@odh-dashboard/ui-core';
 import {
   AUTOML_EVENTS,
   fireAutomlBacktestWindowMetricViewed,
-  fireAutomlLeaderboardFilterApplied,
   fireAutomlLeaderboardSorted,
-  fireAutomlModelCompared,
   fireAutomlModelDetailsDownloaded,
   fireAutomlModelDetailsTabViewed,
   fireAutomlModelRegistered,
@@ -278,23 +276,6 @@ describe('AutoML tracking event firers', () => {
     expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTOML_EVENTS.LEADERBOARD_SORTED, {
       sortColumn: 'Model name',
       sortDirection: 'desc',
-    });
-  });
-
-  it('should fire AutoML Leaderboard Filter Applied with filterType', () => {
-    fireAutomlLeaderboardFilterApplied('taskType');
-
-    expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(
-      AUTOML_EVENTS.LEADERBOARD_FILTER_APPLIED,
-      { filterType: 'taskType' },
-    );
-  });
-
-  it('should fire AutoML Model Compared with countOfModelsCompared', () => {
-    fireAutomlModelCompared(3);
-
-    expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTOML_EVENTS.MODEL_COMPARED, {
-      countOfModelsCompared: 3,
     });
   });
 });
