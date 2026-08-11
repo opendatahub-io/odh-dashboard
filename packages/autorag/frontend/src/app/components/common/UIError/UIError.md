@@ -25,7 +25,10 @@ This strategy consists of the following parts:
 The type definition for `UIError` outlines it's fields and it's use:
 ```TS
 export interface UIError {
-  /** A unique identifier for the given error being thrown. (Recommendation is for the value to be in `plain_english_camel_case`) */
+  /** Discriminator field to prevent false positives when matching API responses. */
+  type: 'UIError';
+
+  /** A unique identifier for the given error being thrown. (Recommendation is for the value to be in `plain_english_snake_case`) */
   messageId: string;
 
   /** A plain english reason for why the error occurred. (Logged in the backend and returned to the user as a backup of the error message) */
@@ -34,17 +37,18 @@ export interface UIError {
   /** The HTTP status code the error generated. */
   status: number;
 
-  /** A transaction ID provided for the given API call. (Depends on transactionId|TraceIdKey support in go backend) */
-  transactionId: string;
+  /** A transaction ID provided for the given API call. (Depends on transactionId support in go backend) */
+  transactionId?: string;
 
   /** Additional details that will be rendered for the user. (Useful for attaching additional information that may be required for easier customer support.) */
-  details: Record<string, unknown>;
+  details: Record<string, unknown> | null;
 }
 ```
 
 An example `UIError` could look like:
 ```JSON
 {
+    "type": "UIError",  
     "messageId": "invalid_pipeline_run_name",
     "reason": "pipeline run name \"invalid-name-00000000-0000-0000-0000-000000000000\" is not allowed",
     "status": 400,

@@ -4,7 +4,7 @@ export interface UIError {
   /** Discriminator field to prevent false positives when matching API responses. */
   type: 'UIError';
 
-  /** A unique identifier for the given error being thrown. (Recommendation is for the value to be in `plain_english_camel_case`) */
+  /** A unique identifier for the given error being thrown. (Recommendation is for the value to be in `plain_english_snake_case`) */
   messageId: string;
 
   /** A plain english reason for why the error occurred. (Logged in the backend and returned to the user as a backup of the error message) */
