@@ -33,6 +33,8 @@ export type SelectionOptions = Omit<SelectOptionProps, 'id'> & {
   id: number | string;
   name: string;
   selected?: boolean;
+  hideChip?: boolean;
+  chipOnly?: boolean;
 };
 
 export type GroupSelectionOptions = {
@@ -108,6 +110,7 @@ const MultiSelectionOption: React.FC<MultiSelectionOptionProps> = ({
     id={createOptionElementId(instanceId, option.id)}
     {...(showCheckbox && hasCheckbox ? { hasCheckbox: true } : {})}
     isFocused={isFocused}
+    className={option.className}
     data-testid={getOptionTestId(option.name)}
     value={option.id}
     isSelected={option.selected}
@@ -172,7 +175,7 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
       groupedValues
         .map((g) => ({
           ...g,
-          values: filterFunction(inputValue, g.values),
+          values: filterFunction(inputValue, g.values).filter((v) => !v.chipOnly),
         }))
         .filter((g) => g.values.length),
     [filterFunction, groupedValues, inputValue],
@@ -184,7 +187,7 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
   );
 
   const selectOptions = React.useMemo(
-    () => filterFunction(inputValue, value),
+    () => filterFunction(inputValue, value).filter((v) => !v.chipOnly),
     [filterFunction, inputValue, value],
   );
 
@@ -238,7 +241,10 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
     return options;
   }, [groupOptions, selectOptions, createOption, isCreateOptionOnTop]);
 
-  const selected = React.useMemo(() => allOptions.filter((v) => v.selected), [allOptions]);
+  const selected = React.useMemo(
+    () => allOptions.filter((v) => v.selected && !v.hideChip),
+    [allOptions],
+  );
 
   const isOptionKeyboardNavigable = (option: SelectionOptions) => !option.isDisabled;
 
