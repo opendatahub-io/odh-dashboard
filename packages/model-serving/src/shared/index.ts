@@ -84,8 +84,6 @@ export type {
   ModelCapability,
   ModelCapabilityLabelColor,
 } from './modelCapabilities';
-export { MODEL_CAPABILITIES_ANNOTATION, WELL_KNOWN_MODEL_CAPABILITIES } from './modelCapabilities';
-export type { WellKnownModelCapability, ModelCapability } from './modelCapabilities';
 
 export type { ValidatedConfiguration, ValidatedConfigurationOption } from './types/form-data';
 

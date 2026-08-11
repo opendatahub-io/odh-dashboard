@@ -1,4 +1,12 @@
-import { parseModelCapabilities, MODEL_CAPABILITIES_ANNOTATION } from '../modelCapabilities';
+import {
+  parseModelCapabilities,
+  MODEL_CAPABILITIES_ANNOTATION,
+  getModelCapabilityLabelColor,
+  includesModelCapability,
+  isSameModelCapability,
+  normalizeModelCapability,
+  resolveWellKnownModelCapability,
+} from '../modelCapabilities';
 
 describe('parseModelCapabilities', () => {
   it('should return undefined when annotations are undefined', () => {
@@ -49,13 +57,8 @@ describe('parseModelCapabilities', () => {
     expect(parseModelCapabilities({ [MODEL_CAPABILITIES_ANNOTATION]: JSON.stringify([]) })).toEqual(
       [],
     );
-import {
-  getModelCapabilityLabelColor,
-  includesModelCapability,
-  isSameModelCapability,
-  normalizeModelCapability,
-  resolveWellKnownModelCapability,
-} from '../modelCapabilities';
+  });
+});
 
 describe('modelCapabilities', () => {
   describe('getModelCapabilityLabelColor', () => {
