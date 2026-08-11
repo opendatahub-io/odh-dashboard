@@ -7,7 +7,7 @@ import {
 } from 'mod-arch-core';
 import { getResourceYaml } from '~/app/api/subscriptions';
 
-export const useSubscriptionManagementYaml = (
+export const useMaaSGovernanceYaml = (
   name: string,
   resourceType: string,
 ): FetchState<string | null> => {

@@ -1,11 +1,11 @@
 import { URL_PREFIX } from './const';
 
-const SUBSCRIPTION_MANAGEMENT_PREFIX = `${URL_PREFIX}/maas-governance`;
+const MAAS_GOVERNANCE_PREFIX = `${URL_PREFIX}/maas-governance`;
 
 export type GovernanceSection = 'subscriptions' | 'auth-policies';
 
 export const getSectionUrl = (section: GovernanceSection): string =>
-  `${SUBSCRIPTION_MANAGEMENT_PREFIX}/${section}`;
+  `${MAAS_GOVERNANCE_PREFIX}/${section}`;
 
 export const getSubscriptionViewUrl = (name: string): string =>
   `${getSectionUrl('subscriptions')}/view/${encodeURIComponent(name)}`;

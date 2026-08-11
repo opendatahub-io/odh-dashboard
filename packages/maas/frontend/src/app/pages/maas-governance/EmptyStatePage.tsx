@@ -11,7 +11,7 @@ import { CubesIcon, PlusCircleIcon } from '@patternfly/react-icons';
 import {
   getAuthPolicyCreateUrl,
   getSubscriptionCreateUrl,
-} from '~/app/utilities/subscriptionManagementNavigation';
+} from '~/app/utilities/maasGovernanceNavigation';
 
 type EmptyStatePageProps = {
   title?: string;

@@ -25,10 +25,10 @@ import {
   getBreadcrumbLabelFromState,
   getSectionUrl,
   getSubscriptionEditUrl,
-} from '~/app/utilities/subscriptionManagementNavigation';
+} from '~/app/utilities/maasGovernanceNavigation';
 import MaasModelsSection from '~/app/shared/MaasModelsSection';
-import SubscriptionManagementYamlTab from '~/app/pages/subscription-management/SubscriptionManagementYamlTab';
 import { modelRefsToSummaries } from '~/app/utilities/authpolicies';
+import MaaSGovernanceYamlTab from '~/app/pages/maas-governance/MaaSGovernanceYamlTab';
 import {
   EventTrackingResourceType,
   EventTrackingSource,
@@ -190,10 +190,7 @@ const ViewSubscriptionPage: React.FC = () => {
             aria-label="YAML tab"
             data-testid="subscription-yaml-tab"
           >
-            <SubscriptionManagementYamlTab
-              resourceName={subscriptionName}
-              resourceType="subscription"
-            />
+            <MaaSGovernanceYamlTab resourceName={subscriptionName} resourceType="subscription" />
           </Tab>
         </Tabs>
       )}

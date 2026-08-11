@@ -4,7 +4,7 @@ import { CodeEditorControl, Language } from '@patternfly/react-code-editor';
 import { CopyIcon, DownloadIcon, ExclamationCircleIcon } from '@patternfly/react-icons';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import useDarkMode from '~/app/hooks/useDarkMode';
-import { useSubscriptionManagementYaml } from '~/app/hooks/useSubscriptionManagementYaml';
+import { useMaaSGovernanceYaml } from '~/app/hooks/useMaaSGovernanceYaml';
 import {
   EventTrackingContext,
   EventTrackingResourceType,
@@ -16,7 +16,7 @@ const CodeEditor = React.lazy(() =>
   import('@patternfly/react-code-editor').then((mod) => ({ default: mod.CodeEditor })),
 );
 
-type SubscriptionManagementYamlTabProps = {
+type MaaSGovernanceYamlTabProps = {
   resourceName: string;
   resourceType: 'subscription' | 'authorizationpolicy';
 };
@@ -28,12 +28,12 @@ const downloadYaml = (value: string, fileName: string): void => {
   link.click();
 };
 
-const SubscriptionManagementYamlTab: React.FC<SubscriptionManagementYamlTabProps> = ({
+const MaaSGovernanceYamlTab: React.FC<MaaSGovernanceYamlTabProps> = ({
   resourceName,
   resourceType,
 }) => {
   const isDarkMode = useDarkMode();
-  const [yaml, loaded, loadError] = useSubscriptionManagementYaml(resourceName, resourceType);
+  const [yaml, loaded, loadError] = useMaaSGovernanceYaml(resourceName, resourceType);
   const [copied, setCopied] = React.useState(false);
 
   const trackingResourceType =
@@ -42,7 +42,7 @@ const SubscriptionManagementYamlTab: React.FC<SubscriptionManagementYamlTabProps
       : EventTrackingResourceType.AUTHPOLICY;
 
   const fireYamlExported = (action: EventTrackingYAMLAction) => {
-    fireMiscTrackingEvent(MaaSEvents.SUBSCRIPTION_MANAGEMENT_YAML_EXPORTED, {
+    fireMiscTrackingEvent(MaaSEvents.MAAS_GOVERNANCE_YAML_EXPORTED, {
       resourceType: trackingResourceType,
       context: EventTrackingContext.DETAILS,
       action,
@@ -119,4 +119,4 @@ const SubscriptionManagementYamlTab: React.FC<SubscriptionManagementYamlTabProps
   );
 };
 
-export default SubscriptionManagementYamlTab;
+export default MaaSGovernanceYamlTab;
