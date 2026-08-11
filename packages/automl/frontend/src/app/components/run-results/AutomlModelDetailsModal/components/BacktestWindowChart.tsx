@@ -15,6 +15,7 @@ import {
 } from '@patternfly/react-core';
 import type { BackTestingPerWindowMetric } from '~/app/types';
 import { findMetricValue, formatMetricName, getMetricDescription } from '~/app/utilities/utils';
+import { fireAutomlBacktestWindowMetricViewed } from '~/app/utilities/tracking';
 import InlineTooltip from '~/app/components/InlineTooltip';
 import {
   BACKTEST_CHART_PADDING,
@@ -333,6 +334,9 @@ const BacktestWindowChart: React.FC<BacktestWindowChartProps> = ({
   onSelectedMetricsChange,
 }) => {
   const [isOpen, setIsOpen] = React.useState(false);
+  // Tracks which metrics have already fired AutoML Backtest Window Metric Viewed this mount,
+  // so toggling a metric off and back on doesn't re-fire it for the same modal session.
+  const trackedMetricsRef = React.useRef<Set<string>>(new Set());
 
   const metricKeys = React.useMemo(
     () => (perWindowMetrics.length > 0 ? Object.keys(perWindowMetrics[0].metrics) : []),
@@ -381,10 +385,15 @@ const BacktestWindowChart: React.FC<BacktestWindowChartProps> = ({
       if (strValue === SHOW_ALL) {
         updateMetrics(isAllSelected ? [normalizedEvalMetric] : [...metricKeys]);
       } else {
-        const next = selectedMetrics.includes(strValue)
-          ? selectedMetrics.filter((m) => m !== strValue)
-          : [...selectedMetrics, strValue];
+        const isAdding = !selectedMetrics.includes(strValue);
+        const next = isAdding
+          ? [...selectedMetrics, strValue]
+          : selectedMetrics.filter((m) => m !== strValue);
         updateMetrics(next.length === 0 ? [normalizedEvalMetric] : next);
+        if (isAdding && !trackedMetricsRef.current.has(strValue)) {
+          trackedMetricsRef.current.add(strValue);
+          fireAutomlBacktestWindowMetricViewed(strValue);
+        }
       }
     },
     [isAllSelected, normalizedEvalMetric, metricKeys, selectedMetrics, updateMetrics],

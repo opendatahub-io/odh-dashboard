@@ -19,7 +19,8 @@ export const AUTOML_EVENTS = {
   RUN_STOPPED: 'AutoML Run Stopped',
   RUN_RETRIED: 'AutoML Run Retried',
   RUN_DELETED: 'AutoML Run Deleted',
-  METRIC_VIEWED: 'AutoML Metric Viewed',
+  MODEL_DETAILS_TAB_VIEWED: 'AutoML Model Details Tab Viewed',
+  BACKTEST_WINDOW_METRIC_VIEWED: 'AutoML Backtest Window Metric Viewed',
   NOTEBOOK_DOWNLOADED: 'AutoML Notebook Downloaded',
   MODEL_DETAILS_DOWNLOADED: 'AutoML Model Details Downloaded',
   MODEL_REGISTERED: 'AutoML Model Registered',
@@ -123,8 +124,29 @@ export const fireAutomlRunDeleted = (properties: RunOutcomeTrackingProperties): 
   fireFormTrackingEvent(AUTOML_EVENTS.RUN_DELETED, properties);
 };
 
-export const fireAutomlMetricViewed = (metricName?: string): void => {
-  fireMiscTrackingEvent(AUTOML_EVENTS.METRIC_VIEWED, { metricName });
+/** Maps tabConfig.ts tab keys (kebab-case) to camelCase names for AutoML Model Details Tab Viewed tracking. */
+const MODEL_DETAILS_TAB_NAME_MAP: Record<string, string> = {
+  'model-information': 'modelInformation',
+  'feature-summary': 'featureSummary',
+  'model-evaluation': 'modelEvaluation',
+  'confusion-matrix': 'confusionMatrix',
+  'roc-curve': 'rocCurve',
+  'precision-recall': 'precisionRecall',
+  'backtest-window': 'backtestWindow',
+};
+
+export const mapModelDetailsTabName = (tabKey: string): string =>
+  MODEL_DETAILS_TAB_NAME_MAP[tabKey] ?? tabKey;
+
+export const fireAutomlModelDetailsTabViewed = (tabKey: string, taskType?: string): void => {
+  fireMiscTrackingEvent(AUTOML_EVENTS.MODEL_DETAILS_TAB_VIEWED, {
+    tabName: mapModelDetailsTabName(tabKey),
+    predictionType: mapPredictionType(taskType),
+  });
+};
+
+export const fireAutomlBacktestWindowMetricViewed = (metricName: string): void => {
+  fireMiscTrackingEvent(AUTOML_EVENTS.BACKTEST_WINDOW_METRIC_VIEWED, { metricName });
 };
 
 export const fireAutomlNotebookDownloaded = (source: ModelActionSource): void => {
