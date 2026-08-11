@@ -10,45 +10,61 @@ import {
 
 // Types ---------------------------------------------------------------------->
 
+type SupportedFormats = 'pdf' | 'docx' | 'pptx' | 'md' | 'markdown' | 'html' | 'htm' | 'txt';
+interface Format {
+  id: SupportedFormats;
+  extension: SupportedFormats;
+  mimeType: string;
+  name: string;
+}
+
 // Globals -------------------------------------------------------------------->
 
-export const SUPPORTED_FORMAT = {
+export const SUPPORTED_FORMAT: Record<string, Format> = {
   pdf: {
+    id: 'pdf',
     extension: 'pdf',
     mimeType: 'application/pdf',
     name: 'PDF',
   },
   docx: {
+    id: 'docx',
     extension: 'docx',
     mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     name: 'DOCX',
   },
   pptx: {
+    id: 'pptx',
     extension: 'pptx',
     mimeType: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
     name: 'PPTX',
   },
   md: {
+    id: 'md',
     extension: 'md',
     mimeType: 'text/markdown',
     name: 'Markdown',
   },
   markdown: {
+    id: 'markdown',
     extension: 'markdown',
     mimeType: 'text/markdown',
     name: 'Markdown',
   },
   html: {
+    id: 'html',
     extension: 'html',
     mimeType: 'text/html',
     name: 'HTML',
   },
   htm: {
+    id: 'htm',
     extension: 'htm',
     mimeType: 'text/html',
     name: 'HTML',
   },
   txt: {
+    id: 'txt',
     extension: 'txt',
     mimeType: 'text/plain',
     name: 'Plain text',
