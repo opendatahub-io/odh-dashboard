@@ -2,9 +2,10 @@ import * as React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { mockEvaluationJob } from '~/__tests__/unit/testUtils/mockEvaluationData';
 import EvaluationStatusModal from '~/app/components/EvaluationStatusModal';
-import { getEvaluationJobLogs, getEvaluationJobBenchmarkLogs } from '~/app/api/k8s';
+import { getEvaluationJobLogs, getEvaluationJobBenchmarkLogs, LogFetchError } from '~/app/api/k8s';
 
 jest.mock('~/app/api/k8s', () => ({
+  ...jest.requireActual('~/app/api/k8s'),
   getEvaluationJobLogs: jest.fn(),
   getEvaluationJobBenchmarkLogs: jest.fn(),
 }));
@@ -232,6 +233,39 @@ describe('EvaluationStatusModal show full logs', () => {
     renderModal();
 
     expect(screen.getByTestId('log-line-count')).toHaveTextContent('1 lines');
+  });
+});
+
+describe('EvaluationStatusModal log API unavailable', () => {
+  it('should show a permanent info message when the log API returns 404', () => {
+    mockUseEvaluationJobLogs.mockReturnValue({
+      logs: '',
+      loaded: true,
+      error: new LogFetchError(404, 'Not Found'),
+      refresh: jest.fn(),
+    });
+
+    renderModal();
+
+    const alert = screen.getByTestId('logs-unavailable-alert');
+    expect(alert).toHaveTextContent('Detailed logs are not available on this server version');
+    expect(screen.queryByText('Retry')).not.toBeInTheDocument();
+  });
+
+  it('should show a transient error with retry for non-404 failures', () => {
+    mockUseEvaluationJobLogs.mockReturnValue({
+      logs: '',
+      loaded: true,
+      error: new LogFetchError(500, 'Internal Server Error'),
+      refresh: jest.fn(),
+    });
+
+    renderModal();
+
+    const alert = screen.getByTestId('logs-error-alert');
+    expect(alert).toHaveTextContent('Internal Server Error');
+    expect(screen.getByText('Retry')).toBeInTheDocument();
+    expect(screen.queryByTestId('logs-unavailable-alert')).not.toBeInTheDocument();
   });
 });
 

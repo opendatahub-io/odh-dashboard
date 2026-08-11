@@ -23,6 +23,10 @@
   overflow: auto;
   font-family: var(--pf-t--global--font--family--mono);
   font-size: var(--pf-t--global--font--size--sm);
+
+  &--completed {
+    max-height: 54vh;
+  }
 }
 
 .evalhub-log-viewer__row {
@@ -65,14 +69,6 @@
   gap: 4px;
 }
 
-%evalhub-log-cell-truncated {
-  @extend %evalhub-log-cell;
-
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
 .evalhub-log-viewer__cell--level {
   @extend %evalhub-log-cell-level;
 
@@ -97,18 +93,6 @@
 
   width: 11.5em;
   white-space: nowrap;
-}
-
-.evalhub-log-viewer__cell--thread {
-  @extend %evalhub-log-cell-truncated;
-
-  width: 8em;
-}
-
-.evalhub-log-viewer__cell--thread-header {
-  @extend %evalhub-log-cell-truncated;
-
-  width: 9.5em;
 }
 
 .evalhub-log-viewer__cell--message {

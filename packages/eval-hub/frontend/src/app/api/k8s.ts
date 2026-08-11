@@ -296,6 +296,19 @@ export const getCatalogSecurityArtifacts =
     });
   };
 
+export class LogFetchError extends Error {
+  constructor(
+    public readonly statusCode: number,
+    message: string,
+  ) {
+    super(message);
+    this.name = 'LogFetchError';
+  }
+}
+
+export const isLogApiUnavailable = (error: Error): boolean =>
+  error instanceof LogFetchError && error.statusCode === 404;
+
 export const getEvaluationJobLogs =
   (
     hostPath: string,
@@ -317,7 +330,10 @@ export const getEvaluationJobLogs =
     const url = `${hostPath}${URL_PREFIX}/api/${BFF_API_VERSION}/evaluations/jobs/${encodeURIComponent(jobId)}/logs?${queryParams.toString()}`;
     const response = await fetch(url);
     if (!response.ok) {
-      throw new Error(`Failed to fetch logs: ${response.status} ${response.statusText}`);
+      throw new LogFetchError(
+        response.status,
+        `Failed to fetch logs: ${response.status} ${response.statusText}`,
+      );
     }
     return response.text();
   };
@@ -338,7 +354,10 @@ export const getEvaluationJobBenchmarkLogs =
     const url = `${hostPath}${URL_PREFIX}/api/${BFF_API_VERSION}/evaluations/jobs/${encodeURIComponent(jobId)}/benchmarks/${benchmarkIndex}/logs?${queryParams.toString()}`;
     const response = await fetch(url);
     if (!response.ok) {
-      throw new Error(`Failed to fetch benchmark logs: ${response.status} ${response.statusText}`);
+      throw new LogFetchError(
+        response.status,
+        `Failed to fetch benchmark logs: ${response.status} ${response.statusText}`,
+      );
     }
     return response.text();
   };

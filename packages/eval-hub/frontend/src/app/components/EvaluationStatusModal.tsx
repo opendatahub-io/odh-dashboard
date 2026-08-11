@@ -43,7 +43,11 @@ import {
 import { EvaluationJob } from '~/app/types';
 import { formatDuration, getEvaluationName } from '~/app/utilities/evaluationUtils';
 import { useEvaluationJobLogs } from '~/app/hooks/useEvaluationJobLogs';
-import { getEvaluationJobLogs, getEvaluationJobBenchmarkLogs } from '~/app/api/k8s';
+import {
+  getEvaluationJobLogs,
+  getEvaluationJobBenchmarkLogs,
+  isLogApiUnavailable,
+} from '~/app/api/k8s';
 import { getMessageCodeLabel } from '~/app/utilities/messageCodeLabels';
 import EvaluationStatusLabel from './EvaluationStatusLabel';
 import './EvaluationStatusModal.scss';
@@ -126,7 +130,6 @@ type LogLevel = 'error' | 'warning' | 'info' | 'debug';
 type LogEntry = {
   raw: string;
   timestamp?: string;
-  thread?: string;
   level?: LogLevel;
   message: string;
   continuation?: string;
@@ -180,7 +183,6 @@ const parseLogEntries = (raw: string): LogEntry[] => {
           entries.push({
             raw: line,
             timestamp: match[1].trim(),
-            thread: match[2].trim(),
             level: LOG_LEVEL_MAP[match[3].toLowerCase()],
             message: match[4].trim(),
             isSectionHeader: false,
@@ -248,7 +250,6 @@ const LogHeader: React.FC = () => (
       <span>Level</span>
     </div>
     <div className="evalhub-log-viewer__cell--timestamp-header">Timestamp</div>
-    <div className="evalhub-log-viewer__cell--thread-header">Thread</div>
     <div className="evalhub-log-viewer__cell--message">Message</div>
   </div>
 );
@@ -294,7 +295,6 @@ const LogEntryRow: React.FC<{ entry: LogEntry; hideBorder?: boolean }> = ({
       >
         <div className="evalhub-log-viewer__cell--level" />
         <div className="evalhub-log-viewer__cell--timestamp" />
-        <div className="evalhub-log-viewer__cell--thread" />
         <div className="evalhub-log-viewer__cell--message">{entry.message}</div>
         {copyButton}
       </div>
@@ -318,9 +318,6 @@ const LogEntryRow: React.FC<{ entry: LogEntry; hideBorder?: boolean }> = ({
       <div className="evalhub-log-viewer__cell--timestamp" title={entry.timestamp}>
         {entry.timestamp ? formatLogTimestamp(entry.timestamp) : ''}
       </div>
-      <div className="evalhub-log-viewer__cell--thread" title={entry.thread}>
-        {entry.thread ?? ''}
-      </div>
       <div className="evalhub-log-viewer__cell--message">{fullMessage}</div>
       {copyButton}
     </div>
@@ -336,9 +333,6 @@ const LogSkeletonRows: React.FC = () => (
         </div>
         <div className="evalhub-log-viewer__cell--timestamp">
           <Skeleton width="80%" height="1em" />
-        </div>
-        <div className="evalhub-log-viewer__cell--thread">
-          <Skeleton width="70%" height="1em" />
         </div>
         <div className="evalhub-log-viewer__cell--message">
           <Skeleton width={`${60 + ((i * 17) % 30)}%`} height="1em" />
@@ -734,9 +728,21 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
               ) : null}
               <StackItem>
                 <LogHeader />
-                <div className="evalhub-log-viewer" data-testid="log-content">
+                <div
+                  className={`evalhub-log-viewer${state === 'completed' ? ' evalhub-log-viewer--completed' : ''}`}
+                  data-testid="log-content"
+                >
                   {!logsLoaded ? (
                     <LogSkeletonRows />
+                  ) : logsError && isLogApiUnavailable(logsError) ? (
+                    <Alert
+                      variant="info"
+                      isInline
+                      title="Logs not available"
+                      data-testid="logs-unavailable-alert"
+                    >
+                      Detailed logs are not available on this server version.
+                    </Alert>
                   ) : logsError ? (
                     <Alert
                       variant="danger"
