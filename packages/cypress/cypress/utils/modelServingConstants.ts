@@ -31,3 +31,8 @@ export const YAMLViewerToggleOption = {
   YAML: 'YAML',
   FORM: 'Form',
 } as const;
+
+export const ModelDeploymentType = {
+  TYPE1: 'LLM inference service with llm-d',
+  TYPE2: 'Legacy deployment',
+};

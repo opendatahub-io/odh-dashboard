@@ -88,6 +88,8 @@ export enum SupportedArea {
   /* Plugins */
   PLUGIN_MODEL_SERVING = 'plugin-model-serving',
   PLUGIN_GEN_AI = 'plugin-gen-ai',
+  PLUGIN_NOTEBOOKS = 'plugin-notebooks',
+  PLUGIN_DATA_REGISTRY = 'plugin-data-registry',
 
   /* LM Eval */
   LM_EVAL = 'lm-eval',
@@ -216,4 +218,20 @@ export type SupportedComponentFlagValue = {
  */
 export type SupportedAreasState = {
   [key in SupportedAreaType]: SupportedComponentFlagValue;
+};
+
+/** Maps each DataScienceStackComponent to its human-readable name **/
+export const DataScienceStackComponentMap: Record<string, string> = {
+  [DataScienceStackComponent.DASHBOARD]: 'Dashboard',
+  [DataScienceStackComponent.DS_PIPELINES]: 'Pipelines',
+  [DataScienceStackComponent.KUEUE]: 'Kueue',
+  [DataScienceStackComponent.MODEL_REGISTRY]: 'Model registry',
+  [DataScienceStackComponent.FEAST_OPERATOR]: 'Feast operator',
+  [DataScienceStackComponent.K_SERVE]: 'Model server and metrics',
+  [DataScienceStackComponent.RAY]: 'Ray',
+  [DataScienceStackComponent.TRAINING_OPERATOR]: 'Training operator',
+  [DataScienceStackComponent.TRUSTY_AI]: 'TrustyAI',
+  [DataScienceStackComponent.WORKBENCHES]: 'Workbenches',
+  [DataScienceStackComponent.TRAINER]: 'Trainer',
+  [DataScienceStackComponent.MLFLOW]: 'MLflow',
 };

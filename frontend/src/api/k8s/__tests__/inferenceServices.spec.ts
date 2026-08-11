@@ -10,10 +10,10 @@ import { type ProjectKind, KnownLabels } from '@odh-dashboard/k8s-core';
 import { DeploymentMode, InferenceServiceKind } from '@odh-dashboard/model-serving/shared';
 import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import { mockHardwareProfile } from '@odh-dashboard/hardware-profiles/__mocks__/mockHardwareProfile';
-import { mockInferenceServiceK8sResource } from '#~/__mocks__/mockInferenceServiceK8sResource';
+import { mockInferenceServiceK8sResource } from '@odh-dashboard/model-serving/__mocks__/mockInferenceServiceK8sResource';
+import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
+import { mock200Status, mock404Error } from '@odh-dashboard/k8s-core/__mocks__/mockK8sStatus';
 import { mockInferenceServiceModalData } from '#~/__mocks__/mockInferenceServiceModalData';
-import { mockK8sResourceList } from '#~/__mocks__/mockK8sResourceList';
-import { mock200Status, mock404Error } from '#~/__mocks__/mockK8sStatus';
 import { mockModelServingPodSpecOptions } from '#~/__mocks__/mockModelServingPodSpecOptions';
 import { applyK8sAPIOptions } from '#~/api/apiMergeUtils';
 import {

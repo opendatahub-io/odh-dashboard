@@ -73,7 +73,7 @@ export const getBenchmarkDisplayName = (id: string): string =>
 
 export const formatAsPercentage = (value: number): string => `${Math.round(value * 100)}%`;
 
-const formatBenchmarkScore = (
+export const formatBenchmarkScore = (
   benchmark: NonNullable<EvaluationJob['results']['benchmarks']>[number],
 ): string | null => {
   const primaryScore = benchmark.test?.primary_score;

@@ -1,11 +1,11 @@
 import React, { act } from 'react';
 import '@testing-library/jest-dom';
 import { fireEvent, render, waitFor } from '@testing-library/react';
-import { mockConnection } from '#~/__mocks__/mockConnection';
 import {
   mockConnectionTypeConfigMapObj,
   mockOciConnectionType,
-} from '#~/__mocks__/mockConnectionType';
+} from '@odh-dashboard/k8s-core/__mocks__/mockConnectionType';
+import { mockConnection } from '#~/__mocks__/mockConnection';
 import { mockInferenceServiceModalData } from '#~/__mocks__/mockInferenceServiceModalData';
 import { ConnectionSection } from '#~/pages/modelServing/screens/projects/InferenceServiceModal/ConnectionSection';
 import { InferenceServiceStorageType } from '#~/pages/modelServing/screens/types';

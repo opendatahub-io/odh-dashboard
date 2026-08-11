@@ -17,9 +17,10 @@ import type {
 import { z } from 'zod';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import { ConnectionOciAlert } from '@odh-dashboard/internal/pages/modelServing/screens/projects/InferenceServiceModal/ConnectionOciAlert';
-import { useWatchConnectionTypes } from '@odh-dashboard/internal/utilities/useWatchConnectionTypes';
-// eslint-disable-next-line @odh-dashboard/no-restricted-imports
-import useServingConnections from '@odh-dashboard/internal/pages/projects/screens/detail/connections/useServingConnections';
+import {
+  useWatchConnectionTypes,
+  useServingConnections,
+} from '@odh-dashboard/plugin-core/host-api';
 import { containsOnlySlashes, isS3PathValid } from '@odh-dashboard/ui-core/utilities';
 import { ExistingConnectionField } from './modelLocationFields/ExistingConnectionField';
 import NewConnectionField from './modelLocationFields/NewConnectionField';

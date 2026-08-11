@@ -10,12 +10,20 @@ import {
   FlexItem,
   Label,
   LabelGroup,
+  List,
+  ListItem,
 } from '@patternfly/react-core';
 import { ExternalLinkAltIcon } from '@patternfly/react-icons';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import {
+  ProviderAgentMetadata,
+  ProviderBenchmarkPassCriteria,
+  ProviderBenchmarkScore,
+} from '~/app/types';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import { getBenchmarkDatasetUrl } from '~/app/utilities/benchmarkDatasetUrls';
-import { getMetricDisplayName, toSafeExternalUrl } from './benchmarkUtils';
+import InlineTooltip from '~/app/components/InlineTooltip';
+import { capitalizeFirst, getMetricDisplayName, toSafeExternalUrl } from './benchmarkUtils';
 
 type BenchmarkDrawerTileContentProps = {
   name: string;
@@ -23,6 +31,9 @@ type BenchmarkDrawerTileContentProps = {
   description?: string;
   metrics?: string[];
   providerName?: string;
+  providerAgent?: ProviderAgentMetadata;
+  primaryScore?: ProviderBenchmarkScore;
+  passCriteria?: ProviderBenchmarkPassCriteria;
   url?: string;
   trackingSurface: string;
   showHeader?: boolean;
@@ -35,6 +46,9 @@ const BenchmarkDrawerTileContent: React.FC<BenchmarkDrawerTileContentProps> = ({
   description,
   metrics,
   providerName,
+  providerAgent,
+  primaryScore,
+  passCriteria,
   url,
   trackingSurface,
   showHeader = true,
@@ -53,7 +67,7 @@ const BenchmarkDrawerTileContent: React.FC<BenchmarkDrawerTileContentProps> = ({
   };
 
   const hasMetrics = metrics && metrics.length > 0;
-  const hasDescriptionList = hasMetrics || providerName;
+  const hasDescriptionList = hasMetrics || providerName || primaryScore || passCriteria;
 
   return (
     <Flex direction={{ default: 'column' }} gap={{ default: isCompact ? 'gapSm' : 'gapMd' }}>
@@ -139,13 +153,61 @@ const BenchmarkDrawerTileContent: React.FC<BenchmarkDrawerTileContentProps> = ({
                 </DescriptionListDescription>
               </DescriptionListGroup>
             )}
+            {primaryScore && (
+              <DescriptionListGroup>
+                <DescriptionListTerm style={compactFontStyle}>
+                  Primary scorer metric
+                </DescriptionListTerm>
+                <DescriptionListDescription style={compactFontStyle}>
+                  {primaryScore.metric}
+                </DescriptionListDescription>
+              </DescriptionListGroup>
+            )}
+            {passCriteria && (
+              <DescriptionListGroup>
+                <DescriptionListTerm style={compactFontStyle}>
+                  Benchmark threshold
+                </DescriptionListTerm>
+                <DescriptionListDescription style={compactFontStyle}>
+                  {passCriteria.threshold}
+                </DescriptionListDescription>
+              </DescriptionListGroup>
+            )}
             {providerName && (
               <DescriptionListGroup>
                 <DescriptionListTerm style={compactFontStyle}>
                   Evaluation framework
                 </DescriptionListTerm>
                 <DescriptionListDescription style={compactFontStyle}>
-                  {providerName}
+                  {Array.isArray(providerAgent?.recommended_when) &&
+                  providerAgent.recommended_when.length > 0 ? (
+                    <InlineTooltip
+                      text={providerName}
+                      data-testid="benchmark-provider-tooltip"
+                      tooltip={
+                        <div className="evalhub-inline-tooltip__content">
+                          <div className="evalhub-inline-tooltip__header">
+                            <strong>Recommended when:</strong>
+                          </div>
+                          <List>
+                            {providerAgent.recommended_when.map((item) => (
+                              <ListItem key={item}>{item}</ListItem>
+                            ))}
+                          </List>
+                        </div>
+                      }
+                    />
+                  ) : (
+                    providerName
+                  )}
+                </DescriptionListDescription>
+              </DescriptionListGroup>
+            )}
+            {providerAgent?.target_type && (
+              <DescriptionListGroup>
+                <DescriptionListTerm style={compactFontStyle}>Target type</DescriptionListTerm>
+                <DescriptionListDescription style={compactFontStyle}>
+                  {capitalizeFirst(providerAgent.target_type)}
                 </DescriptionListDescription>
               </DescriptionListGroup>
             )}
