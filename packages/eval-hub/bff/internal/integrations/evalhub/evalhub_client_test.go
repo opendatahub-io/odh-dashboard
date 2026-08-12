@@ -3,6 +3,7 @@ package evalhub
 import (
 	"context"
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -284,4 +285,62 @@ func TestEvalHubClient_UnauthorizedError(t *testing.T) {
 	var ehErr *EvalHubError
 	require.ErrorAs(t, err, &ehErr)
 	assert.Equal(t, ErrCodeUnauthorized, ehErr.Code)
+}
+
+func TestCreateEvaluationJob_URLAlwaysSerialized(t *testing.T) {
+	tests := []struct {
+		name        string
+		url         string
+		expectedURL string
+	}{
+		{
+			name:        "non-empty URL is preserved",
+			url:         "https://api.example.com/v1",
+			expectedURL: "https://api.example.com/v1",
+		},
+		{
+			name:        "empty URL is serialized as empty string",
+			url:         "",
+			expectedURL: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var capturedBody []byte
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				body, err := io.ReadAll(r.Body)
+				require.NoError(t, err)
+				capturedBody = body
+
+				w.Header().Set("Content-Type", "application/json")
+				resp := EvaluationJob{
+					Resource: JobResource{ID: "job-1"},
+					Status:   JobStatus{State: "pending"},
+					Model:    JobModel{Name: "test-model", URL: tt.url},
+				}
+				_ = json.NewEncoder(w).Encode(resp)
+			}))
+			defer server.Close()
+
+			client := NewEvalHubClient(server.URL, "test-token", false, nil, "")
+			req := CreateEvaluationJobRequest{
+				Name:  "test-eval",
+				Model: JobModel{Name: "test-model", URL: tt.url},
+			}
+
+			_, err := client.CreateEvaluationJob(context.Background(), "test-ns", req)
+			require.NoError(t, err)
+
+			var rawBody map[string]any
+			require.NoError(t, json.Unmarshal(capturedBody, &rawBody))
+
+			model, ok := rawBody["model"].(map[string]any)
+			require.True(t, ok, "model field must be present in request body")
+
+			urlVal, hasURL := model["url"]
+			assert.True(t, hasURL, "url field must always be present in serialized JSON")
+			assert.Equal(t, tt.expectedURL, urlVal)
+		})
+	}
 }
