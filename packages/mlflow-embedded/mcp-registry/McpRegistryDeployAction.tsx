@@ -89,7 +89,11 @@ const McpRegistryDeployAction: React.FC<McpRegistryDeployActionProps> = ({
           server_version: deployData.registryVersion,
         });
         /* eslint-enable camelcase */
-        notification.success('Deployed and registered');
+        // "Submitted" rather than "Deployed": creating the CR and registering
+        // the endpoint don't confirm the pod actually came up (image pull,
+        // readiness, etc. happen asynchronously afterward) -- the caller
+        // already navigates to the Deployments tab for real status.
+        notification.success('Deployment submitted');
       } catch (endpointError) {
         // A superseded deploy aborts its own in-flight registration call --
         // that's an intentional cancellation, not a failure, so don't show
@@ -98,7 +102,7 @@ const McpRegistryDeployAction: React.FC<McpRegistryDeployActionProps> = ({
           return;
         }
         notification.warning(
-          'Deployed, but registration failed',
+          'Deployment submitted, but endpoint registration failed',
           (endpointError instanceof Error && endpointError.message) ||
             'Failed to register the MCP access endpoint.',
         );

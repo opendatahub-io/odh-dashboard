@@ -374,7 +374,7 @@ describe('McpRegistryDeployAction', () => {
         server_version: '1.0.0',
       },
     );
-    expect(mockNotification.success).toHaveBeenCalledWith('Deployed and registered');
+    expect(mockNotification.success).toHaveBeenCalledWith('Deployment submitted');
     expect(mockNotification.warning).not.toHaveBeenCalled();
   });
 
@@ -446,7 +446,7 @@ describe('McpRegistryDeployAction', () => {
     await userEvent.click(screen.getByTestId('mcp-registry-deploy-modal-stub-deployed'));
 
     expect(mockNotification.warning).toHaveBeenCalledWith(
-      'Deployed, but registration failed',
+      'Deployment submitted, but endpoint registration failed',
       'endpoint creation failed',
     );
     expect(mockNotification.success).not.toHaveBeenCalled();
@@ -490,7 +490,7 @@ describe('McpRegistryDeployAction', () => {
     });
 
     expect(mockNotification.warning).not.toHaveBeenCalled();
-    expect(mockNotification.success).toHaveBeenCalledWith('Deployed and registered');
+    expect(mockNotification.success).toHaveBeenCalledWith('Deployment submitted');
   });
 
   it('should show the fallback detail message when the error has no message', async () => {
@@ -507,7 +507,7 @@ describe('McpRegistryDeployAction', () => {
     await userEvent.click(screen.getByTestId('mcp-registry-deploy-modal-stub-deployed'));
 
     expect(mockNotification.warning).toHaveBeenCalledWith(
-      'Deployed, but registration failed',
+      'Deployment submitted, but endpoint registration failed',
       'Failed to register the MCP access endpoint.',
     );
   });
