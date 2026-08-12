@@ -73,14 +73,14 @@ spec:
                     datasource:
                       kind: PrometheusDatasource
                       name: cluster-prometheus-tenancy-datasource
-                    # Aggregate deny rate across selected policies
-                    query: (sum(maas:auth_decisions:rate5m{authconfig=~"$authconfig",status!="OK"}) / sum(maas:auth_decisions:rate5m{authconfig=~"$authconfig"})) or vector(0)
+                    # Aggregate deny rate across selected policies; filter NaN (zero traffic) before fallback
+                    query: ((sum(maas:auth_decisions:rate5m{authconfig=~"$authconfig",status!="OK"}) / sum(maas:auth_decisions:rate5m{authconfig=~"$authconfig"})) > -Inf) or vector(0)
                     seriesNameFormat: Deny rate
       p95Latency:
         kind: Panel
         spec:
           display:
-            name: P95 auth latency
+            name: Avg policy P95 auth latency
           plugin:
             kind: StatChart
             spec:
