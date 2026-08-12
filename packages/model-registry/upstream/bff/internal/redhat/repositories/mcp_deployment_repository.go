@@ -287,7 +287,7 @@ func buildMcpServerFromCreateRequest(namespace string, req models.McpDeploymentC
 	if req.YAML != "" {
 		spec, err := parseSpecYAML(req.YAML)
 		if err != nil {
-			return models.MCPServer{}, fmt.Errorf("invalid configuration YAML: %w", err)
+			return models.MCPServer{}, fmt.Errorf("%w: invalid configuration YAML: %v", ErrMcpDeploymentValidation, err)
 		}
 		if spec.Config != nil {
 			server.Spec.Config = *spec.Config
@@ -395,7 +395,7 @@ func buildMcpDeploymentPatch(req models.McpDeploymentUpdateRequest) (map[string]
 		} else {
 			spec, err := parseSpecYAML(*req.YAML)
 			if err != nil {
-				return nil, fmt.Errorf("invalid configuration YAML: %w", err)
+				return nil, fmt.Errorf("%w: invalid configuration YAML: %v", ErrMcpDeploymentValidation, err)
 			}
 
 			if spec.Config != nil {
