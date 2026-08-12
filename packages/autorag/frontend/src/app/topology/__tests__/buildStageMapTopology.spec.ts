@@ -738,13 +738,13 @@ describe('buildStageMapTopology', () => {
       expect(nodes[0].data?.runStatus).toBe(RunStatus.Failed);
     });
 
-    it('should translate skipped status', () => {
+    it('should translate skipped status as pending (never-ran downstream)', () => {
       const stageMap = makeStageMap([
         makeComponent('comp', [makeStage('validate_inputs', { status: 'skipped' })]),
       ]);
 
       const nodes = buildStageMapTopology(stageMap);
-      expect(nodes[0].data?.runStatus).toBe(RunStatus.Skipped);
+      expect(nodes[0].data?.runStatus).toBe(RunStatus.Pending);
     });
 
     it('should fall back to component run status from runDetails', () => {
@@ -1010,13 +1010,13 @@ describe('buildStageMapTopology', () => {
       const byId = Object.fromEntries(nodes.map((node) => [node.id, node]));
 
       expect(byId.test_data_loader__validate_inputs.data?.runStatus).toBe(RunStatus.Succeeded);
-      expect(byId.rag_optimization__validate_inputs.data?.runStatus).toBe(RunStatus.Cancelled);
-      expect(byId.rag_optimization__optimize_templates.data?.runStatus).toBe(RunStatus.Cancelled);
+      expect(byId.rag_optimization__validate_inputs.data?.runStatus).toBe(RunStatus.Pending);
+      expect(byId.rag_optimization__optimize_templates.data?.runStatus).toBe(RunStatus.Pending);
       expect(byId['rag_optimization__step__chunking__branch-0'].data?.runStatus).toBe(
-        RunStatus.Cancelled,
+        RunStatus.Pending,
       );
-      expect(byId['rag_optimization__pattern__branch-0'].data?.runStatus).toBe(RunStatus.Cancelled);
-      expect(byId.rag_optimization__run_optimization.data?.runStatus).toBe(RunStatus.Cancelled);
+      expect(byId['rag_optimization__pattern__branch-0'].data?.runStatus).toBe(RunStatus.Pending);
+      expect(byId.rag_optimization__run_optimization.data?.runStatus).toBe(RunStatus.Pending);
       expect(byId.leaderboard_evaluation__build_leaderboard.data?.runStatus).toBe(
         RunStatus.Pending,
       );

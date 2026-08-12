@@ -30,7 +30,8 @@ export const translateStageStatus = (status?: string): RunStatus | undefined => 
     case 'failed':
       return RunStatus.Failed;
     case 'skipped':
-      return RunStatus.Skipped;
+      // Stage-map "skipped" means never ran due to upstream failure — show as pending in UI.
+      return RunStatus.Pending;
     default:
       return undefined;
   }
@@ -235,12 +236,12 @@ export const resolveSequentialStageRunStatuses = (
         // Keep blockSubsequent so later unresolved stages stay pending / terminal.
       } else if (componentStatus === RunStatus.Failed) {
         statusById.set(stage.id, RunStatus.Failed);
-      } else if (componentStatus === RunStatus.Cancelled) {
-        statusById.set(stage.id, RunStatus.Cancelled);
       } else if (componentStatus === RunStatus.Succeeded) {
         statusById.set(stage.id, RunStatus.Succeeded);
+      } else if (componentStatus === RunStatus.Cancelled) {
+        statusById.set(stage.id, RunStatus.Pending);
       } else if (componentStatus === RunStatus.Skipped) {
-        statusById.set(stage.id, RunStatus.Skipped);
+        statusById.set(stage.id, RunStatus.Pending);
       } else {
         statusById.set(stage.id, RunStatus.Pending);
       }
@@ -274,13 +275,13 @@ export const resolveSequentialStageRunStatuses = (
     }
 
     if (componentStatus === RunStatus.Cancelled) {
-      statusById.set(stage.id, RunStatus.Cancelled);
+      statusById.set(stage.id, RunStatus.Pending);
       blockSubsequent = true;
       continue;
     }
 
     if (componentStatus === RunStatus.Skipped) {
-      statusById.set(stage.id, RunStatus.Skipped);
+      statusById.set(stage.id, RunStatus.Pending);
       blockSubsequent = true;
       continue;
     }

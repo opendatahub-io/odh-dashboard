@@ -2,6 +2,8 @@ import type { ComponentStageMap } from '~/app/hooks/useComponentStageMap';
 import {
   getStageMapDetails,
   getStageDescriptionFromMap,
+  isBranchStepNodeId,
+  isStatusOnlyBranchStepNode,
   parseStageMapNodeId,
 } from '~/app/topology/tree-view/stageMapStepMetadata';
 
@@ -69,6 +71,27 @@ describe('parseStageMapNodeId', () => {
       stepId: 'chunking',
       branchIndex: 1,
     });
+    expect(parseStageMapNodeId('rag_optimization__branch-0__step__chunking')).toEqual({
+      type: 'branch_step',
+      componentId: 'rag_optimization',
+      stepId: 'chunking',
+      branchIndex: 0,
+    });
+  });
+
+  it('detects branch steps via branch-first node IDs', () => {
+    expect(isBranchStepNodeId('rag_optimization__branch-0__step__chunking')).toBe(true);
+  });
+
+  it('marks only pending branch steps as status-only spine dots', () => {
+    const branchId = 'rag_optimization__step__chunking__branch-0';
+    expect(isStatusOnlyBranchStepNode(branchId, 'pending')).toBe(true);
+    expect(isStatusOnlyBranchStepNode(branchId, 'unreached')).toBe(true);
+    expect(isStatusOnlyBranchStepNode(branchId, 'failed')).toBe(true);
+    expect(isStatusOnlyBranchStepNode(branchId, 'completed')).toBe(false);
+    expect(isStatusOnlyBranchStepNode('rag_optimization__optimize_templates', 'pending')).toBe(
+      false,
+    );
   });
 
   it('parses branch pattern nodes', () => {

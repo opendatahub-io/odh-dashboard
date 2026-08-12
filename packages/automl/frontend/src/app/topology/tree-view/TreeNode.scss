@@ -199,6 +199,10 @@
   fill: var(--pf-t--global--icon--color--status--on-success--default);
 }
 
+/* Failed section corridor — soft red glow around outer ring (design). */
+.automl-tree-node__status-badge--failed-section {
+  filter: drop-shadow(0 0 2px var(--pf-t--global--color--status--danger--default));
+}
 
 @media (prefers-reduced-motion: reduce) {
   .automl-tree-node__status-spinner {

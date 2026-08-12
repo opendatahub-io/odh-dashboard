@@ -73,6 +73,12 @@ describe('parseStageMapNodeId', () => {
       stepId: 'feature_engineering',
       branchIndex: 1,
     });
+    expect(parseStageMapNodeId('training__branch-0__step__feature_engineering')).toEqual({
+      type: 'branch_step',
+      componentId: 'training',
+      stepId: 'feature_engineering',
+      branchIndex: 0,
+    });
   });
 
   it('parses branch model nodes', () => {

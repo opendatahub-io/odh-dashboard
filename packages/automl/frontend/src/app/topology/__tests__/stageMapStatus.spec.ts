@@ -60,7 +60,7 @@ describe('translateStageStatus', () => {
     ['completed', RunStatus.Succeeded],
     ['started', RunStatus.InProgress],
     ['failed', RunStatus.Failed],
-    ['skipped', RunStatus.Skipped],
+    ['skipped', RunStatus.Pending],
   ])('should map %s to %s', (status, expected) => {
     expect(translateStageStatus(status)).toBe(expected);
   });
@@ -69,7 +69,7 @@ describe('translateStageStatus', () => {
     [' FAILED ', RunStatus.Failed],
     ['COMPLETED', RunStatus.Succeeded],
     ['  Started  ', RunStatus.InProgress],
-    ['SKIPPED', RunStatus.Skipped],
+    ['SKIPPED', RunStatus.Pending],
   ])('should normalize uppercase/whitespace-padded %j', (status, expected) => {
     expect(translateStageStatus(status)).toBe(expected);
   });
@@ -213,7 +213,7 @@ describe('resolveStageRunStatus', () => {
       RunStatus.Failed,
     );
     expect(resolveStageRunStatus(stage({ status: 'skipped' }), undefined, 'CANCELED')).toBe(
-      RunStatus.Skipped,
+      RunStatus.Pending,
     );
   });
 

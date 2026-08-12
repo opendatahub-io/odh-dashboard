@@ -33,6 +33,7 @@ describe('resolveTaskIconForNodeId', () => {
 
   it('maps branch step IDs to Figma-aligned stand-ins', () => {
     expect(resolveTaskIconForNodeId('rag__step__chunking__branch-0')).toBe(InfrastructureIcon);
+    expect(resolveTaskIconForNodeId('rag__branch-0__step__chunking')).toBe(InfrastructureIcon);
     expect(resolveTaskIconForNodeId('rag__step__embedding__branch-0')).toBe(RegistryIcon);
     expect(resolveTaskIconForNodeId('rag__step__retrieval__branch-0')).toBe(FilterIcon);
     expect(resolveTaskIconForNodeId('rag__step__generation__branch-0')).toBe(CommentsIcon);

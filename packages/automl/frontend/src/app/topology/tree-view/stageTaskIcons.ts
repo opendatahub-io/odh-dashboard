@@ -39,7 +39,7 @@ export const STAGE_TASK_ICONS: Record<string, TaskIconComponent> = {
   build_leaderboard: StarIcon, // rh-ui-icon-star-fill
 };
 
-// Branch step glyphs (unused while TreeNode renders branches as status-only).
+// Branch step glyphs (chunking, engineer features, train model, …).
 export const STEP_TASK_ICONS: Record<string, TaskIconComponent> = {
   feature_engineering: ChartBarIcon,
   model_training: EqualizerIcon,

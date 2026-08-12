@@ -70,12 +70,14 @@ export type ParsedStageMapNode =
   | { type: 'branch_step'; componentId: string; stepId: string; branchIndex: number }
   | { type: 'branch_model'; componentId: string; branchIndex: number };
 
-export function parseStageMapNodeId(nodeId: string): ParsedStageMapNode | undefined {
-  const parts = nodeId.split('__');
-  if (parts.length === 2 && parts[0] && parts[1]) {
-    return { type: 'stage', componentId: parts[0], stageId: parts[1] };
+const BRANCH_TOKEN_PATTERN = /^branch-\d+$/;
+
+const parseBranchStepFromParts = (parts: string[]): ParsedStageMapNode | undefined => {
+  if (parts.length !== 4 || !parts[0]) {
+    return undefined;
   }
-  if (parts.length === 4 && parts[0] && parts[1] === 'step' && parts[2] && parts[3]) {
+  // component__step__stepId__branch-N
+  if (parts[1] === 'step' && parts[2] && BRANCH_TOKEN_PATTERN.test(parts[3])) {
     const branchIndex = parseBranchIndexFromSuffix(parts[3]);
     if (branchIndex !== undefined) {
       return {
@@ -85,6 +87,46 @@ export function parseStageMapNodeId(nodeId: string): ParsedStageMapNode | undefi
         branchIndex,
       };
     }
+  }
+  // component__branch-N__step__stepId
+  if (BRANCH_TOKEN_PATTERN.test(parts[1]) && parts[2] === 'step' && parts[3]) {
+    const branchIndex = parseBranchIndexFromSuffix(parts[1]);
+    if (branchIndex !== undefined) {
+      return {
+        type: 'branch_step',
+        componentId: parts[0],
+        stepId: parts[3],
+        branchIndex,
+      };
+    }
+  }
+  return undefined;
+};
+
+/** True for parallel branch corridor steps (engineer features, train model, …). */
+export const isBranchStepNodeId = (nodeId: string): boolean => {
+  if (parseStageMapNodeId(nodeId)?.type === 'branch_step') {
+    return true;
+  }
+  return /__branch-\d+__step__|__step__.+__branch-\d+$/.test(nodeId);
+};
+
+/** Pending/failed branch corridor dots are spine glyphs (no task icon); active/completed show step icons. */
+export const isStatusOnlyBranchStepNode = (
+  nodeId: string,
+  stepState: 'completed' | 'active' | 'pending' | 'failed' | 'unreached',
+): boolean =>
+  isBranchStepNodeId(nodeId) &&
+  (stepState === 'pending' || stepState === 'unreached' || stepState === 'failed');
+
+export function parseStageMapNodeId(nodeId: string): ParsedStageMapNode | undefined {
+  const parts = nodeId.split('__');
+  if (parts.length === 2 && parts[0] && parts[1]) {
+    return { type: 'stage', componentId: parts[0], stageId: parts[1] };
+  }
+  const branchStep = parseBranchStepFromParts(parts);
+  if (branchStep) {
+    return branchStep;
   }
   if (parts.length === 3 && parts[0] && parts[1] === 'model' && parts[2]) {
     const branchIndex = parseBranchIndexFromSuffix(parts[2]);

@@ -92,7 +92,7 @@ export const runStatusToTreeStepState = (status?: RunStatus): TreeStepState => {
     case RunStatus.Cancelled:
       return 'failed';
     case RunStatus.Skipped:
-      return 'unreached';
+      return 'pending';
     case RunStatus.Pending:
     default:
       return 'pending';

@@ -160,7 +160,7 @@ describe('transformStageMapNodesToTree', () => {
     expect(runStatusToTreeStepState(RunStatus.Succeeded)).toBe('completed');
     expect(runStatusToTreeStepState(RunStatus.InProgress)).toBe('active');
     expect(runStatusToTreeStepState(RunStatus.Failed)).toBe('failed');
-    expect(runStatusToTreeStepState(RunStatus.Skipped)).toBe('unreached');
+    expect(runStatusToTreeStepState(RunStatus.Skipped)).toBe('pending');
     expect(runStatusToTreeStepState(RunStatus.Pending)).toBe('pending');
   });
 

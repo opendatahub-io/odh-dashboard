@@ -709,13 +709,13 @@ describe('buildStageMapTopology', () => {
       expect(nodes[0].data?.runStatus).toBe(RunStatus.Failed);
     });
 
-    it('should translate skipped status', () => {
+    it('should translate skipped status as pending (never-ran downstream)', () => {
       const stageMap = makeStageMap([
         makeComponent('comp', [makeStage('validate_inputs', { status: 'skipped' })]),
       ]);
 
       const nodes = buildStageMapTopology(stageMap);
-      expect(nodes[0].data?.runStatus).toBe(RunStatus.Skipped);
+      expect(nodes[0].data?.runStatus).toBe(RunStatus.Pending);
     });
 
     it('should fall back to component run status from runDetails', () => {

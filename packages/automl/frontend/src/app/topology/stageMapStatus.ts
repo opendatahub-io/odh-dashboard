@@ -31,7 +31,8 @@ export const translateStageStatus = (status?: string): RunStatus | undefined => 
     case 'failed':
       return RunStatus.Failed;
     case 'skipped':
-      return RunStatus.Skipped;
+      // Stage-map "skipped" means never ran due to upstream failure — show as pending in UI.
+      return RunStatus.Pending;
     default:
       return undefined;
   }

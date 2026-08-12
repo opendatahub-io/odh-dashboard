@@ -29,7 +29,7 @@ import {
   TopologyQuadrant,
   WithSelectionProps,
 } from '@patternfly/react-topology';
-import { parseStageMapNodeId } from './stageMapStepMetadata';
+import { isStatusOnlyBranchStepNode, isBranchStepNodeId } from './stageMapStepMetadata';
 import { useModelsExpand } from './ModelsExpandContext';
 import { isTreeNodeData, treeStepStateToNodeStatus } from './treeStepState';
 import PendingHourglassGlyph from './icons/PendingHourglassGlyph';
@@ -61,11 +61,7 @@ const TASK_ICON_COLORS: Record<TreeNodeData['stepState'], string> = {
   unreached: iconColorSubtle.var,
 };
 
-/** Parallel branch steps keep the original status-only circle (no task glyph). */
-const isStatusOnlyNode = (nodeId: string): boolean =>
-  parseStageMapNodeId(nodeId)?.type === 'branch_step';
-
-/** Matches Decorator icon box: (radius - padding) * 2. */
+/** Parallel branch steps: pending = gray spine dot; failed/active/completed = task glyph. */
 const DECORATOR_STATUS_BADGE_SIZE = (DEFAULT_DECORATOR_RADIUS - 4) * 2;
 
 /**
@@ -109,43 +105,104 @@ const StatusOnlyCompletedBadge: React.FC<{ size: number }> = React.memo(({ size 
 });
 StatusOnlyCompletedBadge.displayName = 'StatusOnlyCompletedBadge';
 
-/** Pending / unreached badge: light gray ring + top-filled hourglass on white. */
-const StatusOnlyPendingBadge: React.FC<{
-  size: number;
-  /** Horizontal pipeline stubs on branch-step dots (design). */
-  showEdgeConnectors?: boolean;
-}> = React.memo(({ size, showEdgeConnectors = false }) => {
+/** Pending branch corridor dot (design): solid gray disk on the spine — no task glyph. */
+/** Pending branch corridor dot (design): outer gray ring, white gap, solid gray core on the spine. */
+const StatusOnlyPendingDot: React.FC<{ size: number }> = React.memo(({ size }) => {
   const center = size / 2;
-  const strokeWidth = Math.max(1.25, size * 0.055);
+  const strokeWidth = Math.max(1.5, size * 0.065);
   const outerR = center - strokeWidth / 2;
-  // Fill most of the ring interior (~45–50% of badge diameter per design).
-  const innerDiameter = 2 * (outerR - strokeWidth);
-  const iconSize = innerDiameter * 0.84;
+  const whiteGap = Math.max(2.75, size * 0.155);
+  const innerR = Math.max(outerR - strokeWidth / 2 - whiteGap, size * 0.22);
   const white = backgroundColorPrimary.var;
+  const gray = iconColorDisabled.var;
   const ring = borderColorLight.var;
   const connectorY = center;
   const leftTangent = center - outerR;
   const rightTangent = center + outerR;
   return (
+    <g className="automl-tree-node__status-badge automl-tree-node__status-badge--pending-dot">
+      <line
+        x1={0}
+        y1={connectorY}
+        x2={leftTangent}
+        y2={connectorY}
+        style={{ stroke: ring, strokeWidth }}
+      />
+      <line
+        x1={rightTangent}
+        y1={connectorY}
+        x2={size}
+        y2={connectorY}
+        style={{ stroke: ring, strokeWidth }}
+      />
+      <circle cx={center} cy={center} r={center - 0.25} style={{ fill: white }} />
+      <circle
+        cx={center}
+        cy={center}
+        r={outerR}
+        fill="none"
+        style={{ stroke: ring, strokeWidth }}
+      />
+      <circle cx={center} cy={center} r={innerR} style={{ fill: gray }} />
+    </g>
+  );
+});
+StatusOnlyPendingDot.displayName = 'StatusOnlyPendingDot';
+
+/** Failed branch corridor dot (design): outer red ring, white gap, solid red core on the spine. */
+const StatusOnlyFailedSectionDot: React.FC<{ size: number }> = React.memo(({ size }) => {
+  const center = size / 2;
+  const strokeWidth = Math.max(1.5, size * 0.065);
+  const outerR = center - strokeWidth / 2;
+  const whiteGap = Math.max(2.75, size * 0.155);
+  const innerR = Math.max(outerR - strokeWidth / 2 - whiteGap, size * 0.22);
+  const white = backgroundColorPrimary.var;
+  const red = colorStatusDanger.var;
+  const ring = borderColorStatusDanger.var;
+  const connectorY = center;
+  const leftTangent = center - outerR;
+  const rightTangent = center + outerR;
+  return (
+    <g className="automl-tree-node__status-badge automl-tree-node__status-badge--failed-section">
+      <line
+        x1={0}
+        y1={connectorY}
+        x2={leftTangent}
+        y2={connectorY}
+        style={{ stroke: ring, strokeWidth }}
+      />
+      <line
+        x1={rightTangent}
+        y1={connectorY}
+        x2={size}
+        y2={connectorY}
+        style={{ stroke: ring, strokeWidth }}
+      />
+      <circle cx={center} cy={center} r={center - 0.25} style={{ fill: white }} />
+      <circle
+        cx={center}
+        cy={center}
+        r={outerR}
+        fill="none"
+        style={{ stroke: ring, strokeWidth }}
+      />
+      <circle cx={center} cy={center} r={innerR} style={{ fill: red }} />
+    </g>
+  );
+});
+StatusOnlyFailedSectionDot.displayName = 'StatusOnlyFailedSectionDot';
+
+/** Pending / unreached stage badge: light gray ring + hourglass on white. */
+const StatusOnlyPendingBadge: React.FC<{ size: number }> = React.memo(({ size }) => {
+  const center = size / 2;
+  const strokeWidth = Math.max(1.25, size * 0.055);
+  const outerR = center - strokeWidth / 2;
+  const innerDiameter = 2 * (outerR - strokeWidth);
+  const iconSize = innerDiameter * 0.84;
+  const white = backgroundColorPrimary.var;
+  const ring = borderColorLight.var;
+  return (
     <g className="automl-tree-node__status-badge automl-tree-node__status-badge--pending">
-      {showEdgeConnectors ? (
-        <>
-          <line
-            x1={0}
-            y1={connectorY}
-            x2={leftTangent}
-            y2={connectorY}
-            style={{ stroke: ring, strokeWidth }}
-          />
-          <line
-            x1={rightTangent}
-            y1={connectorY}
-            x2={size}
-            y2={connectorY}
-            style={{ stroke: ring, strokeWidth }}
-          />
-        </>
-      ) : null}
       <circle cx={center} cy={center} r={center - 0.25} style={{ fill: white }} />
       <circle
         cx={center}
@@ -196,73 +253,6 @@ const StatusOnlyFailedBadge: React.FC<{ size: number }> = React.memo(({ size }) 
   );
 });
 StatusOnlyFailedBadge.displayName = 'StatusOnlyFailedBadge';
-
-/** Active / running icon: rotating sync glyph (design match). */
-const StatusOnlyActiveBadge: React.FC<{
-  size: number;
-  activeIconVariant?: TreeNodeData['activeIconVariant'];
-}> = React.memo(({ size, activeIconVariant = 'sync' }) => {
-  const syncSize = size * 0.84;
-  const pulseInnerRadius = Math.max(3.5, size * 0.34);
-  const pulseOuterRadius = Math.max(pulseInnerRadius + 2, size * 0.42);
-  const center = size / 2;
-  const isPulse = activeIconVariant === 'pulse';
-  return (
-    <g className="automl-tree-node__status-badge automl-tree-node__status-badge--active">
-      {isPulse ? (
-        <g className="automl-tree-node__status-pulse">
-          <circle
-            cx={center}
-            cy={center}
-            r={pulseInnerRadius}
-            style={{ fill: iconColorBrand.var }}
-          />
-          <circle
-            className="automl-tree-node__status-pulse-ring"
-            cx={center}
-            cy={center}
-            r={pulseOuterRadius}
-            fill="none"
-            style={{ stroke: iconColorBrand.var, strokeWidth: 1.4 }}
-          />
-        </g>
-      ) : (
-        <g transform={`translate(${(size - syncSize) / 2}, ${(size - syncSize) / 2})`}>
-          <g className="automl-tree-node__status-spinner">
-            <SyncAltIcon
-              width={syncSize}
-              height={syncSize}
-              color={iconColorBrand.var}
-              style={{ color: iconColorBrand.var, fill: iconColorBrand.var }}
-            />
-          </g>
-        </g>
-      )}
-    </g>
-  );
-});
-StatusOnlyActiveBadge.displayName = 'StatusOnlyActiveBadge';
-
-/** Branch-step status glyph (no task glyph) — completed uses the ring badge above. */
-const StatusOnlyCenterIcon: React.FC<{
-  stepState: TreeNodeData['stepState'];
-  activeIconVariant?: TreeNodeData['activeIconVariant'];
-  size: number;
-}> = React.memo(({ stepState, activeIconVariant, size }) => {
-  switch (stepState) {
-    case 'completed':
-      return <StatusOnlyCompletedBadge size={size} />;
-    case 'failed':
-      return <StatusOnlyFailedBadge size={size} />;
-    case 'active':
-      return <StatusOnlyActiveBadge size={size} activeIconVariant={activeIconVariant} />;
-    case 'pending':
-    case 'unreached':
-    default:
-      return <StatusOnlyPendingBadge size={size} showEdgeConnectors />;
-  }
-});
-StatusOnlyCenterIcon.displayName = 'StatusOnlyCenterIcon';
 
 const StatusBadgeDecorator: React.FC<{
   element: Node;
@@ -361,24 +351,24 @@ const TreeNodeInner: React.FC<{
   const rawData = node.getData();
   const data = isTreeNodeData(rawData) ? rawData : undefined;
   const stepState = data?.stepState ?? 'pending';
-  const activeIconVariant = data?.activeIconVariant;
   const label = data?.label ?? node.getLabel();
   const labelSubtitle = data?.labelSubtitle;
   const showWinnerStar = data?.showWinnerStar === true;
   const nodeStatus = treeStepStateToNodeStatus(stepState);
-  const statusOnly = isStatusOnlyNode(node.getId());
+  const branchStep = isBranchStepNodeId(node.getId());
+  const statusOnlyDot = isStatusOnlyBranchStepNode(node.getId(), stepState);
+  const showsTaskIcon = !statusOnlyDot;
   const TaskIcon = resolveTaskIconForNodeId(node.getId());
   const { width, height } = node.getDimensions();
-  const iconSize = Math.min(width, height) * (statusOnly ? 0.92 : 0.4);
+  const iconSize = Math.min(width, height) * (statusOnlyDot ? 0.92 : branchStep ? 0.52 : 0.4);
   const iconColor = TASK_ICON_COLORS[stepState];
   const showModelsToggle = data?.showModelsToggle === true && modelsExpand?.showToggle === true;
   const labelWidth = showModelsToggle ? 140 : 96;
-  // Status-only nodes are smaller; pad label so it lines up with stage-node labels.
-  const labelY = height + 4 + (statusOnly ? (48 - height) / 2 : 0);
+  const labelY = height + 4 + (branchStep ? (48 - height) / 2 : 0);
   const captionHeight = showModelsToggle ? 80 : labelSubtitle ? 40 : 36;
 
   const attachments = React.useMemo(() => {
-    if (statusOnly) {
+    if (!showsTaskIcon) {
       return undefined;
     }
     return (
@@ -387,14 +377,17 @@ const TreeNodeInner: React.FC<{
         {showWinnerStar ? <WinnerStarDecorator element={node} /> : null}
       </>
     );
-  }, [node, statusOnly, stepState, showWinnerStar]);
+  }, [node, showsTaskIcon, stepState, showWinnerStar]);
 
   return (
     <DefaultNode
-      className={cx('automl-tree-node', statusOnly && 'automl-tree-node--status-only')}
+      className={cx(
+        'automl-tree-node',
+        statusOnlyDot && 'automl-tree-node--status-only',
+        branchStep && showsTaskIcon && 'automl-tree-node--branch-step',
+      )}
       element={node}
-      // Status-only badges own their chrome; skip pf-m-success stroke on DefaultNode.
-      nodeStatus={statusOnly ? undefined : nodeStatus}
+      nodeStatus={showsTaskIcon ? nodeStatus : undefined}
       showLabel={false}
       showStatusDecorator={false}
       onSelect={onSelect}
@@ -405,20 +398,21 @@ const TreeNodeInner: React.FC<{
       <g
         data-testid={`tree-node-${node.getId()}`}
         data-step-state={stepState}
-        data-status-only={statusOnly ? 'true' : 'false'}
+        data-branch-step={branchStep ? 'true' : 'false'}
+        data-status-only={statusOnlyDot ? 'true' : 'false'}
         data-winner-star={showWinnerStar ? 'true' : 'false'}
       >
         <g
-          className={statusOnly ? undefined : 'automl-tree-node__task-icon'}
-          style={statusOnly ? undefined : { color: iconColor }}
+          className={showsTaskIcon ? 'automl-tree-node__task-icon' : undefined}
+          style={showsTaskIcon ? { color: iconColor } : undefined}
           transform={`translate(${(width - iconSize) / 2}, ${(height - iconSize) / 2})`}
         >
-          {statusOnly ? (
-            <StatusOnlyCenterIcon
-              stepState={stepState}
-              activeIconVariant={activeIconVariant}
-              size={iconSize}
-            />
+          {statusOnlyDot ? (
+            stepState === 'failed' ? (
+              <StatusOnlyFailedSectionDot size={iconSize} />
+            ) : (
+              <StatusOnlyPendingDot size={iconSize} />
+            )
           ) : (
             <TaskIcon width={iconSize} height={iconSize} />
           )}

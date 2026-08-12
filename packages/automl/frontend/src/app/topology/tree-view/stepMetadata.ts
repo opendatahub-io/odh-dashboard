@@ -65,8 +65,8 @@ const extractStageId = (nodeId: string): string | undefined => {
 };
 
 const extractStepId = (nodeId: string): string | undefined => {
-  const match = /^.+__step__(.+)__branch-\d+$/.exec(nodeId);
-  return match?.[1];
+  const parsed = parseStageMapNodeId(nodeId);
+  return parsed?.type === 'branch_step' ? parsed.stepId : undefined;
 };
 
 const getCuratedDescription = (nodeId: string): string | undefined => {

@@ -60,8 +60,8 @@ describe('isTreeNodeData', () => {
 });
 
 describe('runStatusToTreeStepState', () => {
-  it('maps skipped runs to unreached and pending runs to pending', () => {
-    expect(runStatusToTreeStepState(RunStatus.Skipped)).toBe('unreached');
+  it('maps skipped runs to pending (design: downstream never-ran)', () => {
+    expect(runStatusToTreeStepState(RunStatus.Skipped)).toBe('pending');
     expect(runStatusToTreeStepState(RunStatus.Pending)).toBe('pending');
     expect(runStatusToTreeStepState(undefined)).toBe('pending');
   });

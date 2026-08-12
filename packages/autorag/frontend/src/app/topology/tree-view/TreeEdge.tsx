@@ -1,6 +1,7 @@
 import * as React from 'react';
 import {
   t_global_color_brand_default as colorBrand,
+  t_global_color_status_success_default as colorStatusSuccess,
   t_global_color_status_danger_default as colorStatusDanger,
   t_global_border_color_default as borderColorDefault,
 } from '@patternfly/react-tokens';
@@ -15,6 +16,7 @@ const X_OFFSET = 10;
 const Y_OFFSET = -4;
 
 const COLORS = {
+  completed: colorStatusSuccess.var,
   active: colorBrand.var,
   failed: colorStatusDanger.var,
   default: borderColorDefault.var,
@@ -26,6 +28,10 @@ const getEdgeColor = (sourceNode: Node, targetNode: Node): string => {
   const sourceState = isTreeNodeData(sourceData) ? sourceData.stepState : 'pending';
   const targetState = isTreeNodeData(targetData) ? targetData.stepState : 'pending';
 
+  if (sourceState === 'completed' && targetState === 'completed') {
+    return COLORS.completed;
+  }
+
   if (sourceState === 'failed' && targetState === 'failed') {
     return COLORS.failed;
   }
@@ -35,6 +41,28 @@ const getEdgeColor = (sourceNode: Node, targetNode: Node): string => {
   }
 
   return COLORS.default;
+};
+
+const isBranchCorridorNode = (nodeId: string): boolean =>
+  nodeId.includes('__step__') ||
+  nodeId.includes('__pattern__') ||
+  nodeId.endsWith('__optimize_templates');
+
+const getEdgeStrokeWidth = (sourceNode: Node, targetNode: Node): number => {
+  const sourceData = sourceNode.getData();
+  const targetData = targetNode.getData();
+  const sourceState = isTreeNodeData(sourceData) ? sourceData.stepState : 'pending';
+  const targetState = isTreeNodeData(targetData) ? targetData.stepState : 'pending';
+
+  if (sourceState === 'active' && targetState === 'active') {
+    const sourceId = sourceNode.getId();
+    const targetId = targetNode.getId();
+    if (isBranchCorridorNode(sourceId) || isBranchCorridorNode(targetId)) {
+      return 2.5;
+    }
+  }
+
+  return 1.5;
 };
 
 const buildPath = (edge: Edge): string => {
@@ -74,7 +102,7 @@ const TreeEdgeInner: React.FC<{ edge: Edge }> = observer(({ edge }) => {
       d={buildPath(edge)}
       fill="none"
       stroke={getEdgeColor(sourceNode, targetNode)}
-      strokeWidth={1.5}
+      strokeWidth={getEdgeStrokeWidth(sourceNode, targetNode)}
       strokeLinecap="round"
       data-testid={`tree-edge-${edge.getId()}`}
     />

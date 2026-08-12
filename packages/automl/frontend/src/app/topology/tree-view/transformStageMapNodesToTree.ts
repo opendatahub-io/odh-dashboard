@@ -10,6 +10,7 @@ import {
 import type { TreeNodeModel, TreeTopologyData } from './types';
 import { TREE_EDGE_TYPE, TREE_NODE_TYPE } from './treeFactories';
 import type { TreeNodeData } from './TreeNode';
+import { isBranchStepNodeId } from './stageMapStepMetadata';
 import { runStatusToTreeStepState, treeStepStateToNodeStatus } from './treeStepState';
 
 /** Circle diameter for PatternFly DefaultNode custom nodes (dense pipeline layout). */
@@ -145,7 +146,7 @@ const createTreeNode = (
 ): TreeNodeModel => {
   const stepState = runStatusToTreeStepState(topologyNode.data?.runStatus);
   const label = dataExtras?.label ?? topologyNode.label;
-  const isBranchStep = topologyNode.id.includes('__step__') && topologyNode.id.includes('branch-');
+  const isBranchStep = isBranchStepNodeId(topologyNode.id);
   const nodeSize = isBranchStep ? BRANCH_STEP_NODE_SIZE : STANDARD_NODE_SIZE;
   // Keep node centers aligned with standard-sized neighbors on the spine.
   const originOffset = (STANDARD_NODE_SIZE - nodeSize) / 2;
