@@ -292,7 +292,7 @@ const StartEvaluationRunPage: React.FC = () => {
             fieldId="source-mode"
           >
             <Select
-              id="source-mode"
+              id="source-mode-menu"
               data-testid="source-mode-select"
               isOpen={isSourceOpen}
               selected={form.sourceMode}
@@ -300,10 +300,12 @@ const StartEvaluationRunPage: React.FC = () => {
               onOpenChange={setIsSourceOpen}
               toggle={(toggleRef) => (
                 <MenuToggle
+                  id="source-mode"
                   ref={toggleRef}
                   onClick={() => setIsSourceOpen((prev) => !prev)}
                   isExpanded={isSourceOpen}
                   isFullWidth
+                  aria-required="true"
                   data-testid="source-mode-toggle"
                 >
                   {SOURCE_OPTIONS.find((o) => o.value === form.sourceMode)?.label}
@@ -344,7 +346,7 @@ const StartEvaluationRunPage: React.FC = () => {
               fieldId="model-picker"
             >
               <Select
-                id="model-picker"
+                id="model-picker-menu"
                 data-testid="model-picker-select"
                 isOpen={isModelOpen}
                 selected={
@@ -356,10 +358,12 @@ const StartEvaluationRunPage: React.FC = () => {
                 onOpenChange={setIsModelOpen}
                 toggle={(toggleRef) => (
                   <MenuToggle
+                    id="model-picker"
                     ref={toggleRef}
                     onClick={() => setIsModelOpen((prev) => !prev)}
                     isExpanded={isModelOpen}
                     isFullWidth
+                    aria-required="true"
                     data-testid="model-picker-toggle"
                   >
                     {modelDropdownDisplayValue}

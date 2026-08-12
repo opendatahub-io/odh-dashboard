@@ -99,13 +99,17 @@ const EvaluationResultsPage: React.FC = () => {
     ? formatDuration(job.resource.created_at, job.resource.updated_at)
     : undefined;
 
-  // Resolve the selected benchmark object from the composite key.
-  const selectedBenchmark = React.useMemo(() => {
+  // Resolve the selected benchmark object and its occurrence index from the composite key.
+  const { selectedBenchmark, selectedOccurrenceIndex } = React.useMemo(() => {
     if (!selectedBenchmarkKey) {
-      return undefined;
+      return { selectedBenchmark: undefined, selectedOccurrenceIndex: undefined };
     }
     const idx = benchmarkKeys.indexOf(selectedBenchmarkKey);
-    return idx >= 0 ? benchmarks[idx] : undefined;
+    if (idx < 0) {
+      return { selectedBenchmark: undefined, selectedOccurrenceIndex: undefined };
+    }
+    const bm = benchmarks[idx];
+    return { selectedBenchmark: bm, selectedOccurrenceIndex: bm.benchmark_index ?? idx };
   }, [selectedBenchmarkKey, benchmarkKeys, benchmarks]);
 
   const scoreDisplay = React.useMemo(() => {
@@ -121,12 +125,10 @@ const EvaluationResultsPage: React.FC = () => {
       return undefined;
     }
     return job.results.benchmarks.find(
-      (b) =>
-        b.id === selectedBenchmark.id &&
-        (selectedBenchmark.benchmark_index === undefined ||
-          b.benchmark_index === selectedBenchmark.benchmark_index),
+      (b, idx) =>
+        b.id === selectedBenchmark.id && (b.benchmark_index ?? idx) === selectedOccurrenceIndex,
     )?.mlflow_run_id;
-  }, [selectedBenchmark, job?.results.benchmarks]);
+  }, [selectedBenchmark, selectedOccurrenceIndex, job?.results.benchmarks]);
 
   const mlflowRunTabsKey = React.useMemo(() => {
     if (!mlflowExperimentId || !mlflowRunId || !selectedBenchmarkKey) {
@@ -291,7 +293,7 @@ const EvaluationResultsPage: React.FC = () => {
           {selectedBenchmark && (
             <BenchmarkResultDetails
               benchmarkId={selectedBenchmark.id}
-              benchmarkIndex={selectedBenchmark.benchmark_index ?? 0}
+              benchmarkIndex={selectedOccurrenceIndex}
               job={job}
             />
           )}

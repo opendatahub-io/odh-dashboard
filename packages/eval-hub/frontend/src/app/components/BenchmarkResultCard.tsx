@@ -37,7 +37,7 @@ const BenchmarkResultCard: React.FC<BenchmarkResultCardProps> = ({
   );
   const score = getBenchmarkResultScore(job, benchmarkId, resolvedIndex);
   const passStatus = result?.test?.pass;
-  const cardKey = benchmarkIndex !== undefined ? `${benchmarkId}-${benchmarkIndex}` : benchmarkId;
+  const cardKey = `${benchmarkId}-${resolvedIndex}`;
 
   return (
     <Card
@@ -101,7 +101,7 @@ const BenchmarkResultCard: React.FC<BenchmarkResultCardProps> = ({
                     <TimesCircleIcon color="var(--pf-t--global--color--status--danger--default)" />
                   )
                 }
-                data-testid={`benchmark-pass-label-${benchmarkId}`}
+                data-testid={`benchmark-pass-label-${cardKey}`}
               >
                 {passStatus ? 'Pass' : 'Fail'}
               </Label>

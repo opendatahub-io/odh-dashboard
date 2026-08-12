@@ -114,6 +114,8 @@ describe('Evaluations Page - Compare button state', () => {
     // Wait for the table to render before checking the compare button
     evaluationsPage.findEvaluationsTable().should('exist');
     evaluationsPage.findCompareButton().should('have.attr', 'aria-disabled', 'true');
+    evaluationsPage.findCompareButton().click();
+    cy.url().should('not.include', 'compare-runs');
   });
 
   it('should remain disabled with only one run selected', () => {
@@ -123,6 +125,8 @@ describe('Evaluations Page - Compare button state', () => {
     // Date-desc sort: job1 (Apr 15) is row 0, job2 (Apr 14) is row 1
     evaluationsPage.findEvaluationCheckbox(0).click();
     evaluationsPage.findCompareButton().should('have.attr', 'aria-disabled', 'true');
+    evaluationsPage.findCompareButton().click();
+    cy.url().should('not.include', 'compare-runs');
   });
 });
 

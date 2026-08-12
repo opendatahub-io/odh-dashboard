@@ -31,7 +31,7 @@ const BenchmarkDrawerPanel: React.FC<BenchmarkDrawerPanelProps> = ({
 }) => {
   if (!benchmark) {
     // DrawerPanelContent must remain in the DOM for PF's slide-in/out CSS transition to work
-    return <DrawerPanelContent isResizable minSize="400px" />;
+    return <DrawerPanelContent isResizable minSize="400px" data-testid="benchmark-drawer-panel" />;
   }
 
   const color = getCategoryColor(benchmark.category);

@@ -86,7 +86,7 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
       (provider.benchmarks ?? []).forEach((b) => {
         map.set(`${provider.resource.id}:${b.id}`, {
           ...b,
-          providerName: provider.name,
+          providerName: provider.title ?? provider.name,
           providerAgent: provider.agent,
         });
       });

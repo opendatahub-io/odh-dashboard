@@ -63,7 +63,8 @@ describe('BenchmarkDrawerPanel', () => {
         </DrawerContent>
       </Drawer>,
     );
-    expect(screen.queryByTestId('benchmark-drawer-panel')).not.toBeInTheDocument();
+    expect(screen.getByTestId('benchmark-drawer-panel')).toBeInTheDocument();
+    expect(screen.queryByText('TruthfulQA MC1')).not.toBeInTheDocument();
   });
 
   it('should show provider name as plain text when no recommended_when', () => {

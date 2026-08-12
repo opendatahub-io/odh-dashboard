@@ -33,10 +33,10 @@ const BenchmarkResultDetails: React.FC<BenchmarkResultDetailsProps> = ({
   job,
 }) => {
   const result = job.results.benchmarks?.find(
-    (b) => b.id === benchmarkId && (b.benchmark_index ?? 0) === benchmarkIndex,
+    (b, idx) => b.id === benchmarkId && (b.benchmark_index ?? idx) === benchmarkIndex,
   );
   const benchmarkConfig = getJobBenchmarks(job).find(
-    (b) => b.id === benchmarkId && (b.benchmark_index ?? 0) === benchmarkIndex,
+    (b, idx) => b.id === benchmarkId && (b.benchmark_index ?? idx) === benchmarkIndex,
   );
 
   const providerId = benchmarkConfig?.provider_id ?? result?.provider_id;
@@ -47,7 +47,7 @@ const BenchmarkResultDetails: React.FC<BenchmarkResultDetailsProps> = ({
   }
 
   const benchmarkStatus = job.status.benchmarks?.find(
-    (b) => b.id === benchmarkId && (b.benchmark_index ?? 0) === benchmarkIndex,
+    (b, idx) => b.id === benchmarkId && (b.benchmark_index ?? idx) === benchmarkIndex,
   );
   const passStatus =
     result.test?.pass ??
