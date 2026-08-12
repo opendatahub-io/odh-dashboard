@@ -192,7 +192,7 @@ spec:
                     modelCapabilities:
                       type: boolean
                       description: 'When true, enables model capabilities selection in the deployment wizard and the Capabilities column on the deployments table.'
-                    notebooksV2:
+                    workbenchesV2:
                       type: boolean
                       description: 'When true, enables the new notebooks v2 features.'
                     projectRBAC:

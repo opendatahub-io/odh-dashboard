@@ -322,7 +322,8 @@ export type DashboardCommonConfig = {
   gpuaas?: boolean;
   connectionTest?: boolean;
   modelCapabilities?: boolean;
-  notebooksV2?: boolean;
+  modelDeploymentSettings?: boolean;
+  workbenchesV2?: boolean;
   dataRegistry?: boolean;
 };
 
