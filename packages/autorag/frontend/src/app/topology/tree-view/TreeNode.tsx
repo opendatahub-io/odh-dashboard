@@ -61,7 +61,7 @@ const TASK_ICON_COLORS: Record<TreeNodeData['stepState'], string> = {
   unreached: iconColorSubtle.var,
 };
 
-/** Parallel branch steps: pending = gray spine dot; failed/active/completed = task glyph. */
+/** Branch corridor steps always use spine status glyphs (design). */
 const DECORATOR_STATUS_BADGE_SIZE = (DEFAULT_DECORATOR_RADIUS - 4) * 2;
 
 /**
@@ -174,6 +174,130 @@ const StatusOnlyPendingDot: React.FC<{ size: number }> = React.memo(({ size }) =
   );
 });
 StatusOnlyPendingDot.displayName = 'StatusOnlyPendingDot';
+
+/** Completed branch corridor dot (design): green check badge on the spine. */
+const StatusOnlyCompletedDot: React.FC<{ size: number }> = React.memo(({ size }) => {
+  const center = size / 2;
+  const strokeWidth = Math.max(1.5, size * 0.065);
+  const outerR = center - strokeWidth / 2;
+  const whiteGap = Math.max(2.75, size * 0.155);
+  const innerR = Math.max(outerR - strokeWidth / 2 - whiteGap, size * 0.22);
+  const checkSize = innerR * 1.2;
+  const white = backgroundColorPrimary.var;
+  const green = colorStatusSuccess.var;
+  const ring = borderColorStatusSuccess.var;
+  const connectorY = center;
+  const leftTangent = center - outerR;
+  const rightTangent = center + outerR;
+  return (
+    <g className="autorag-tree-node__status-badge autorag-tree-node__status-badge--completed-dot">
+      <line
+        x1={0}
+        y1={connectorY}
+        x2={leftTangent}
+        y2={connectorY}
+        style={{ stroke: ring, strokeWidth }}
+      />
+      <line
+        x1={rightTangent}
+        y1={connectorY}
+        x2={size}
+        y2={connectorY}
+        style={{ stroke: ring, strokeWidth }}
+      />
+      <circle cx={center} cy={center} r={center - 0.25} style={{ fill: white }} />
+      <circle
+        cx={center}
+        cy={center}
+        r={outerR}
+        fill="none"
+        style={{ stroke: ring, strokeWidth }}
+      />
+      <circle cx={center} cy={center} r={innerR} style={{ fill: green }} />
+      <g transform={`translate(${(size - checkSize) / 2}, ${(size - checkSize) / 2})`}>
+        <CheckIcon
+          width={checkSize}
+          height={checkSize}
+          color={iconColorOnSuccess.var}
+          style={{ color: iconColorOnSuccess.var, fill: iconColorOnSuccess.var }}
+        />
+      </g>
+    </g>
+  );
+});
+StatusOnlyCompletedDot.displayName = 'StatusOnlyCompletedDot';
+
+/** Active branch corridor dot (design): blue pulse on the spine while the section runs. */
+const StatusOnlyActiveDot: React.FC<{
+  size: number;
+  activeIconVariant?: TreeNodeData['activeIconVariant'];
+}> = React.memo(({ size, activeIconVariant = 'pulse' }) => {
+  const center = size / 2;
+  const strokeWidth = Math.max(1.25, size * 0.055);
+  const outerR = center - strokeWidth / 2;
+  const ring = borderColorLight.var;
+  const connectorY = center;
+  const leftTangent = center - outerR;
+  const rightTangent = center + outerR;
+  const pulseInnerRadius = Math.max(2.5, size * 0.2);
+  const pulseOuterRadius = Math.max(pulseInnerRadius + 1.25, size * 0.28);
+  const syncSize = size * 0.84;
+  const isPulse = activeIconVariant === 'pulse';
+  return (
+    <g className="autorag-tree-node__status-badge autorag-tree-node__status-badge--active-dot">
+      <line
+        x1={0}
+        y1={connectorY}
+        x2={leftTangent}
+        y2={connectorY}
+        style={{ stroke: ring, strokeWidth }}
+      />
+      <line
+        x1={rightTangent}
+        y1={connectorY}
+        x2={size}
+        y2={connectorY}
+        style={{ stroke: ring, strokeWidth }}
+      />
+      <circle
+        cx={center}
+        cy={center}
+        r={center - 0.25}
+        style={{ fill: backgroundColorPrimary.var }}
+      />
+      {isPulse ? (
+        <g className="autorag-tree-node__status-pulse">
+          <circle
+            cx={center}
+            cy={center}
+            r={pulseInnerRadius}
+            style={{ fill: iconColorBrand.var }}
+          />
+          <circle
+            className="autorag-tree-node__status-pulse-ring"
+            cx={center}
+            cy={center}
+            r={pulseOuterRadius}
+            fill="none"
+            style={{ stroke: iconColorBrand.var, strokeWidth: 1.4 }}
+          />
+        </g>
+      ) : (
+        <g transform={`translate(${(size - syncSize) / 2}, ${(size - syncSize) / 2})`}>
+          <g className="autorag-tree-node__status-spinner">
+            <SyncAltIcon
+              width={syncSize}
+              height={syncSize}
+              color={iconColorBrand.var}
+              style={{ color: iconColorBrand.var, fill: iconColorBrand.var }}
+            />
+          </g>
+        </g>
+      )}
+    </g>
+  );
+});
+StatusOnlyActiveDot.displayName = 'StatusOnlyActiveDot';
 
 /** Failed branch corridor dot (design): outer red ring, white gap, solid red core on the spine. */
 const StatusOnlyFailedSectionDot: React.FC<{ size: number }> = React.memo(({ size }) => {
@@ -351,12 +475,13 @@ const TreeNodeInner: React.FC<{
   const rawData = node.getData();
   const data = isTreeNodeData(rawData) ? rawData : undefined;
   const stepState = data?.stepState ?? 'pending';
+  const activeIconVariant = data?.activeIconVariant;
   const label = data?.label ?? node.getLabel();
   const labelSubtitle = data?.labelSubtitle;
   const showWinnerStar = data?.showWinnerStar === true;
   const nodeStatus = treeStepStateToNodeStatus(stepState);
   const branchStep = isBranchStepNodeId(node.getId());
-  const statusOnlyDot = isStatusOnlyBranchStepNode(node.getId(), stepState);
+  const statusOnlyDot = isStatusOnlyBranchStepNode(node.getId());
   const showsTaskIcon = !statusOnlyDot;
   const TaskIcon = resolveTaskIconForNodeId(node.getId());
   const { width, height } = node.getDimensions();
@@ -383,11 +508,7 @@ const TreeNodeInner: React.FC<{
 
   return (
     <DefaultNode
-      className={cx(
-        'autorag-tree-node',
-        statusOnlyDot && 'autorag-tree-node--status-only',
-        branchStep && showsTaskIcon && 'autorag-tree-node--branch-step',
-      )}
+      className={cx('autorag-tree-node', statusOnlyDot && 'autorag-tree-node--status-only')}
       element={node}
       // Status-only dots own their chrome; branch task icons use decorator + ring stroke.
       nodeStatus={showsTaskIcon ? nodeStatus : undefined}
@@ -413,6 +534,10 @@ const TreeNodeInner: React.FC<{
           {statusOnlyDot ? (
             stepState === 'failed' ? (
               <StatusOnlyFailedSectionDot size={iconSize} />
+            ) : stepState === 'completed' ? (
+              <StatusOnlyCompletedDot size={iconSize} />
+            ) : stepState === 'active' ? (
+              <StatusOnlyActiveDot size={iconSize} activeIconVariant={activeIconVariant} />
             ) : (
               <StatusOnlyPendingDot size={iconSize} />
             )

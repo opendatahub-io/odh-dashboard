@@ -83,15 +83,10 @@ describe('parseStageMapNodeId', () => {
     expect(isBranchStepNodeId('rag_optimization__branch-0__step__chunking')).toBe(true);
   });
 
-  it('marks only pending branch steps as status-only spine dots', () => {
+  it('treats branch corridor steps as status-only spine glyphs', () => {
     const branchId = 'rag_optimization__step__chunking__branch-0';
-    expect(isStatusOnlyBranchStepNode(branchId, 'pending')).toBe(true);
-    expect(isStatusOnlyBranchStepNode(branchId, 'unreached')).toBe(true);
-    expect(isStatusOnlyBranchStepNode(branchId, 'failed')).toBe(true);
-    expect(isStatusOnlyBranchStepNode(branchId, 'completed')).toBe(false);
-    expect(isStatusOnlyBranchStepNode('rag_optimization__optimize_templates', 'pending')).toBe(
-      false,
-    );
+    expect(isStatusOnlyBranchStepNode(branchId)).toBe(true);
+    expect(isStatusOnlyBranchStepNode('rag_optimization__optimize_templates')).toBe(false);
   });
 
   it('parses branch pattern nodes', () => {

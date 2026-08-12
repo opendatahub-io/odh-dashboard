@@ -192,6 +192,20 @@
   fill: var(--pf-t--global--icon--color--status--on-danger--default);
 }
 
+/* Completed check in branch corridor spine dots. */
+.automl-tree-node--status-only .automl-tree-node__status-badge--completed-dot svg,
+.automl-tree-node--status-only .automl-tree-node__status-badge--completed-dot svg path {
+  color: var(--pf-t--global--icon--color--status--on-success--default);
+  fill: var(--pf-t--global--icon--color--status--on-success--default);
+}
+
+/* Running pulse/sync in branch corridor spine dots. */
+.automl-tree-node--status-only .automl-tree-node__status-badge--active-dot svg,
+.automl-tree-node--status-only .automl-tree-node__status-badge--active-dot svg path {
+  color: var(--pf-t--global--icon--color--brand--default);
+  fill: var(--pf-t--global--icon--color--brand--default);
+}
+
 /* Completed check in branch-step badge. */
 .automl-tree-node--status-only .automl-tree-node__status-badge--completed svg,
 .automl-tree-node--status-only .automl-tree-node__status-badge--completed svg path {

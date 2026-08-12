@@ -111,13 +111,8 @@ export const isBranchStepNodeId = (nodeId: string): boolean => {
   return /__branch-\d+__step__|__step__.+__branch-\d+$/.test(nodeId);
 };
 
-/** Pending/failed branch corridor dots are spine glyphs (no task icon); active/completed show step icons. */
-export const isStatusOnlyBranchStepNode = (
-  nodeId: string,
-  stepState: 'completed' | 'active' | 'pending' | 'failed' | 'unreached',
-): boolean =>
-  isBranchStepNodeId(nodeId) &&
-  (stepState === 'pending' || stepState === 'unreached' || stepState === 'failed');
+/** Branch corridor steps always render as spine status glyphs (design), never task icons. */
+export const isStatusOnlyBranchStepNode = (nodeId: string): boolean => isBranchStepNodeId(nodeId);
 
 export function parseStageMapNodeId(nodeId: string): ParsedStageMapNode | undefined {
   const parts = nodeId.split('__');
