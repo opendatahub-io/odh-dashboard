@@ -73,7 +73,7 @@ describe('ResourcesTreeSelect', () => {
       />,
     );
 
-    expect(screen.getByTestId('resources-select-toggle')).toBeInTheDocument();
+    expect(screen.getByTestId('rule-resource-types-toggle')).toBeInTheDocument();
   });
 
   it('should show grouped options when opened', async () => {
@@ -126,7 +126,7 @@ describe('ResourcesTreeSelect', () => {
     expect(screen.getByText('All resources')).toBeInTheDocument();
   });
 
-  it('should show category select-all options in each group', async () => {
+  it('should show category headers with select-all behavior', async () => {
     render(
       <ResourcesTreeSelect
         selectedResources={[]}
@@ -198,9 +198,7 @@ describe('ResourcesTreeSelect', () => {
       fireEvent.click(within(menuItem).getByText('Networking'));
     });
 
-    expect(mockOnChange).toHaveBeenCalledWith(
-      expect.arrayContaining(['networkpolicies', 'ingresses']),
-    );
+    expect(mockOnChange).toHaveBeenCalledWith(['networkpolicies', 'ingresses']);
   });
 
   it('should deselect all resources in a category when category option is deselected', async () => {
@@ -323,7 +321,7 @@ describe('ResourcesTreeSelect', () => {
       fireEvent.change(combobox, { target: { value: 'mycustomresource' } });
     });
 
-    expect(screen.getByText('Add custom resource "mycustomresource"')).toBeInTheDocument();
+    expect(screen.getByText('Use custom resource type "mycustomresource"')).toBeInTheDocument();
   });
 
   it('should filter resources not discovered on the cluster', async () => {
@@ -354,7 +352,7 @@ describe('ResourcesTreeSelect', () => {
     expect(screen.queryByText('ConfigMaps')).not.toBeInTheDocument();
   });
 
-  it('should preserve custom entries when toggling "All resources"', async () => {
+  it('should emit ["*"] when "All resources" is toggled on with existing selections', async () => {
     render(
       <ResourcesTreeSelect
         selectedResources={['mycustom', 'pods']}

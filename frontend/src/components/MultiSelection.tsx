@@ -241,10 +241,12 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
     return options;
   }, [groupOptions, selectOptions, createOption, isCreateOptionOnTop]);
 
-  const selected = React.useMemo(
+  const visibleChips = React.useMemo(
     () => allOptions.filter((v) => v.selected && !v.hideChip),
     [allOptions],
   );
+
+  const hasSelections = React.useMemo(() => allOptions.some((v) => v.selected), [allOptions]);
 
   const isOptionKeyboardNavigable = (option: SelectionOptions) => !option.isDisabled;
 
@@ -416,7 +418,7 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
     textInputRef.current?.focus();
   };
 
-  const showSelectionError = selectionRequired && selected.length === 0;
+  const showSelectionError = selectionRequired && !hasSelections;
 
   const renderSelectOption = (
     option: SelectionOptions,
@@ -443,7 +445,7 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
       id={toggleId}
       data-testid={toggleTestId}
       variant="typeahead"
-      status={selectionRequired && selected.length === 0 ? 'danger' : undefined}
+      status={selectionRequired && !hasSelections ? 'danger' : undefined}
       onClick={onToggleClick}
       innerRef={toggleRef}
       isDisabled={isDisabled}
@@ -479,7 +481,7 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
           aria-controls={listboxId}
         >
           <LabelGroup aria-label="Current selections">
-            {selected.map((selection) => (
+            {visibleChips.map((selection) => (
               <Label
                 variant={isDisabled ? 'filled' : 'outline'}
                 key={normalizeOptionId(selection.id)}
@@ -500,7 +502,7 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
           </LabelGroup>
         </TextInputGroupMain>
         <TextInputGroupUtilities>
-          {selected.length > 0 ? (
+          {visibleChips.length > 0 ? (
             <Button
               icon={<TimesIcon aria-hidden />}
               variant="plain"
@@ -534,7 +536,7 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
         isScrollable={isScrollable}
         id={id}
         isOpen={isOpen}
-        selected={selected}
+        selected={visibleChips}
         onSelect={(ev, selection) => {
           const selectedOption = allOptions.find(
             (option) => normalizeOptionId(option.id) === normalizeOptionId(selection),

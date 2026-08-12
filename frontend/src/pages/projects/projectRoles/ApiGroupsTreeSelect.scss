@@ -1,17 +1,12 @@
-.odh-api-group-tree__all {
-  .pf-v6-c-menu__item-text {
-    font-weight: var(--pf-t--global--font--weight--body--bold);
-  }
+.odh-api-group-tree__all,
+.odh-api-group-tree__category {
+  font-weight: var(--pf-t--global--font--weight--body--bold);
 }
 
 .odh-api-group-tree__category {
-  .pf-v6-c-menu__item-text {
-    font-weight: var(--pf-t--global--font--weight--body--bold);
-  }
-
   padding-inline-start: var(--pf-t--global--spacer--lg);
 }
 
 .odh-api-group-tree__group {
-  padding-inline-start: calc(var(--pf-t--global--spacer--lg) + var(--pf-t--global--spacer--lg));
+  padding-inline-start: calc(var(--pf-t--global--spacer--lg) * 2);
 }

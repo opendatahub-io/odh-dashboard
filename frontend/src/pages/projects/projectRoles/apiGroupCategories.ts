@@ -82,8 +82,4 @@ export const API_GROUP_CATEGORIES: ApiGroupCategory[] = [
   },
 ];
 
-export const ALL_MAPPED_API_GROUPS = API_GROUP_CATEGORIES.flatMap((c) =>
-  c.groups.map((g) => g.name),
-);
-
 export const ALL_API_GROUPS_WILDCARD = '*';

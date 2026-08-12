@@ -4,11 +4,7 @@ import {
   GroupSelectionOptions,
   SelectionOptions,
 } from '#~/components/MultiSelection';
-import {
-  RESOURCE_CATEGORIES,
-  ALL_RESOURCES_WILDCARD,
-  ALL_INDIVIDUAL_RESOURCES,
-} from './resourceCategories';
+import { RESOURCE_CATEGORIES, ALL_RESOURCES_WILDCARD } from './resourceCategories';
 import type { ApiResourcesData } from './useApiResources';
 
 import './ResourcesTreeSelect.scss';
@@ -44,12 +40,17 @@ const ResourcesTreeSelect: React.FC<ResourcesTreeSelectProps> = ({
     [discoveredResourceNames],
   );
 
+  const renderedResourceNames = React.useMemo(
+    () => new Set(availableCategories.flatMap((c) => c.resources.map((r) => r.name))),
+    [availableCategories],
+  );
+
   const customEntries = React.useMemo(
     () =>
       selectedResources.filter(
-        (r) => r !== ALL_RESOURCES_WILDCARD && !ALL_INDIVIDUAL_RESOURCES.includes(r),
+        (r) => r !== ALL_RESOURCES_WILDCARD && !renderedResourceNames.has(r),
       ),
-    [selectedResources],
+    [selectedResources, renderedResourceNames],
   );
 
   const groupedValues = React.useMemo((): GroupSelectionOptions[] => {
@@ -75,6 +76,7 @@ const ResourcesTreeSelect: React.FC<ResourcesTreeSelectProps> = ({
               selected: allInCategorySelected,
               hideChip: true,
               className: 'odh-resource-tree__category',
+              'aria-label': `Select all ${category.label} resources`,
             },
             ...category.resources.map((resource) => ({
               id: resource.name,
@@ -82,6 +84,7 @@ const ResourcesTreeSelect: React.FC<ResourcesTreeSelectProps> = ({
               selected: isAllSelected || selectedResources.includes(resource.name),
               hideChip: isAllSelected,
               className: 'odh-resource-tree__resource',
+              'aria-label': `${resource.label} (${category.label})`,
             })),
           ];
         }),
@@ -117,11 +120,12 @@ const ResourcesTreeSelect: React.FC<ResourcesTreeSelectProps> = ({
 
       const realOptions = updatedOptions.filter(
         (o) =>
-          String(o.id) !== ALL_RESOURCES_WILDCARD && !String(o.id).startsWith(ALL_CATEGORY_PREFIX),
+          String(o.id) !== ALL_RESOURCES_WILDCARD &&
+          !availableCategories.some((c) => `${ALL_CATEGORY_PREFIX}${c.id}` === String(o.id)),
       );
 
       const categoryAllOptions = updatedOptions.filter((o) =>
-        String(o.id).startsWith(ALL_CATEGORY_PREFIX),
+        availableCategories.some((c) => `${ALL_CATEGORY_PREFIX}${c.id}` === String(o.id)),
       );
 
       const selected = new Set(realOptions.filter((o) => o.selected).map((o) => String(o.id)));
@@ -185,7 +189,7 @@ const ResourcesTreeSelect: React.FC<ResourcesTreeSelectProps> = ({
           currentCategory = option;
           currentCategoryResources = [];
           categoryMatches = option.name.toLowerCase().includes(lower);
-        } else {
+        } else if (!option.chipOnly) {
           currentCategoryResources.push(option);
         }
       }
@@ -203,11 +207,11 @@ const ResourcesTreeSelect: React.FC<ResourcesTreeSelectProps> = ({
       filterFunction={filterFunction}
       placeholder="Enter or select resource types"
       ariaLabel="Resource types"
-      toggleTestId="resources-select-toggle"
+      toggleTestId="rule-resource-types-toggle"
       hasCheckbox
       isScrollable
       isCreatable
-      createOptionMessage={(newValue) => `Add custom resource "${newValue}"`}
+      createOptionMessage={(newValue) => `Use custom resource type "${newValue}"`}
     />
   );
 };

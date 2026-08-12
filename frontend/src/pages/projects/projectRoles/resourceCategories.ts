@@ -50,11 +50,6 @@ export const RESOURCE_CATEGORIES: ResourceCategory[] = [
         label: 'Cluster storage (persistentvolumeclaims)',
         apiGroup: '',
       },
-      {
-        name: 'persistentvolumeclaims/status',
-        label: 'Cluster storage status (persistentvolumeclaims/status)',
-        apiGroup: '',
-      },
       { name: 'storageclasses', label: 'Storage classes', apiGroup: 'storage.k8s.io' },
     ],
   },
@@ -83,7 +78,3 @@ export const RESOURCE_CATEGORIES: ResourceCategory[] = [
 ];
 
 export const ALL_RESOURCES_WILDCARD = '*';
-
-export const ALL_INDIVIDUAL_RESOURCES = RESOURCE_CATEGORIES.flatMap((c) =>
-  c.resources.map((r) => r.name),
-);

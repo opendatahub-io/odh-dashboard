@@ -4,11 +4,7 @@ import {
   GroupSelectionOptions,
   SelectionOptions,
 } from '#~/components/MultiSelection';
-import {
-  API_GROUP_CATEGORIES,
-  ALL_MAPPED_API_GROUPS,
-  ALL_API_GROUPS_WILDCARD,
-} from './apiGroupCategories';
+import { API_GROUP_CATEGORIES, ALL_API_GROUPS_WILDCARD } from './apiGroupCategories';
 import { CORE_GROUP_ID } from './ruleModalUtils';
 import type { ApiResourcesData } from './useApiResources';
 
@@ -45,12 +41,17 @@ const ApiGroupsTreeSelect: React.FC<ApiGroupsTreeSelectProps> = ({
     [discoveredApiGroups],
   );
 
+  const renderedApiGroupNames = React.useMemo(
+    () => new Set(availableCategories.flatMap((c) => c.groups.map((g) => g.name))),
+    [availableCategories],
+  );
+
   const customEntries = React.useMemo(
     () =>
       selectedApiGroups.filter(
-        (g) => g !== ALL_API_GROUPS_WILDCARD && !ALL_MAPPED_API_GROUPS.includes(g),
+        (g) => g !== ALL_API_GROUPS_WILDCARD && !renderedApiGroupNames.has(g),
       ),
-    [selectedApiGroups],
+    [selectedApiGroups, renderedApiGroupNames],
   );
 
   const groupedValues = React.useMemo((): GroupSelectionOptions[] => {
@@ -76,6 +77,7 @@ const ApiGroupsTreeSelect: React.FC<ApiGroupsTreeSelectProps> = ({
               selected: allInCategorySelected,
               hideChip: true,
               className: 'odh-api-group-tree__category',
+              'aria-label': `Select all ${category.label} API groups`,
             },
             ...category.groups.map((group) => ({
               id: group.name === '' ? CORE_GROUP_ID : group.name,
@@ -84,6 +86,7 @@ const ApiGroupsTreeSelect: React.FC<ApiGroupsTreeSelectProps> = ({
               selected: isAllSelected || selectedApiGroups.includes(group.name),
               hideChip: isAllSelected,
               className: 'odh-api-group-tree__group',
+              'aria-label': `${group.label} (${category.label})`,
             })),
           ];
         }),
@@ -117,11 +120,12 @@ const ApiGroupsTreeSelect: React.FC<ApiGroupsTreeSelectProps> = ({
 
       const realOptions = updatedOptions.filter(
         (o) =>
-          String(o.id) !== ALL_API_GROUPS_WILDCARD && !String(o.id).startsWith(ALL_CATEGORY_PREFIX),
+          String(o.id) !== ALL_API_GROUPS_WILDCARD &&
+          !availableCategories.some((c) => `${ALL_CATEGORY_PREFIX}${c.id}` === String(o.id)),
       );
 
       const categoryAllOptions = updatedOptions.filter((o) =>
-        String(o.id).startsWith(ALL_CATEGORY_PREFIX),
+        availableCategories.some((c) => `${ALL_CATEGORY_PREFIX}${c.id}` === String(o.id)),
       );
 
       const selected = new Set(
@@ -191,7 +195,7 @@ const ApiGroupsTreeSelect: React.FC<ApiGroupsTreeSelectProps> = ({
           currentCategory = option;
           currentCategoryGroups = [];
           categoryMatches = option.name.toLowerCase().includes(lower);
-        } else {
+        } else if (!option.chipOnly) {
           currentCategoryGroups.push(option);
         }
       }
@@ -209,11 +213,11 @@ const ApiGroupsTreeSelect: React.FC<ApiGroupsTreeSelectProps> = ({
       filterFunction={filterFunction}
       placeholder="Enter or select API groups"
       ariaLabel="API groups"
-      toggleTestId="api-groups-select-toggle"
+      toggleTestId="rule-api-groups-toggle"
       hasCheckbox
       isScrollable
       isCreatable
-      createOptionMessage={(newValue) => `Add custom API group "${newValue}"`}
+      createOptionMessage={(newValue) => `Use custom API group "${newValue}"`}
     />
   );
 };

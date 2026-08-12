@@ -44,7 +44,7 @@ describe('ApiGroupsTreeSelect', () => {
       />,
     );
 
-    expect(screen.getByTestId('api-groups-select-toggle')).toBeInTheDocument();
+    expect(screen.getByTestId('rule-api-groups-toggle')).toBeInTheDocument();
     expect(screen.getByRole('combobox', { name: 'API groups' })).toBeInTheDocument();
   });
 
@@ -138,9 +138,7 @@ describe('ApiGroupsTreeSelect', () => {
       fireEvent.click(within(menuItem).getByText('Networking'));
     });
 
-    expect(mockOnChange).toHaveBeenCalledWith(
-      expect.arrayContaining(['networking.k8s.io', 'k8s.cni.cncf.io']),
-    );
+    expect(mockOnChange).toHaveBeenCalledWith(['networking.k8s.io', 'k8s.cni.cncf.io']);
   });
 
   it('should deselect a category when "All API groups" is active', async () => {
@@ -214,7 +212,38 @@ describe('ApiGroupsTreeSelect', () => {
       fireEvent.change(combobox, { target: { value: 'custom.example.io' } });
     });
 
-    expect(screen.getByText('Add custom API group "custom.example.io"')).toBeInTheDocument();
+    expect(screen.getByText('Use custom API group "custom.example.io"')).toBeInTheDocument();
+  });
+
+  it('should map core group selection to empty string in callback', async () => {
+    render(
+      <ApiGroupsTreeSelect
+        selectedApiGroups={[]}
+        onSelectedApiGroupsChange={mockOnChange}
+        apiResourcesData={mockApiResourcesData}
+      />,
+    );
+
+    await openDropdown();
+
+    const menuItem = screen.getByTestId('select-multi-typeahead-core');
+    await act(async () => {
+      fireEvent.click(within(menuItem).getByText('core'));
+    });
+
+    expect(mockOnChange).toHaveBeenCalledWith(['']);
+  });
+
+  it('should render core group chip when selectedApiGroups contains empty string', () => {
+    render(
+      <ApiGroupsTreeSelect
+        selectedApiGroups={['']}
+        onSelectedApiGroupsChange={mockOnChange}
+        apiResourcesData={mockApiResourcesData}
+      />,
+    );
+
+    expect(screen.getByText('core')).toBeInTheDocument();
   });
 
   it('should filter by category name showing all child groups', async () => {
