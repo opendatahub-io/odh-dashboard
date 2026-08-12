@@ -45,7 +45,8 @@ const GeneralSettingsTab: React.FC = () => {
         }
 
         const deploymentStrategy =
-          config.spec.modelServing?.deploymentStrategy ?? DeploymentStrategy.ROLLING;
+          (config.spec.modelServing?.deploymentStrategy as DeploymentStrategy) ??
+          DeploymentStrategy.ROLLING;
         const distributedDefault =
           settings.isDistributedInferencingDefault ?? DEFAULT_DISTRIBUTED_INFERENCING;
 

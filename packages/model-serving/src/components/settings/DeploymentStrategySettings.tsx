@@ -7,8 +7,8 @@ export enum DeploymentStrategy {
 }
 
 type DeploymentStrategySettingsProps = {
-  defaultDeploymentStrategy: string;
-  setDefaultDeploymentStrategy: (value: string) => void;
+  defaultDeploymentStrategy: DeploymentStrategy;
+  setDefaultDeploymentStrategy: (value: DeploymentStrategy) => void;
 };
 
 const DeploymentStrategySettings: React.FC<DeploymentStrategySettingsProps> = ({

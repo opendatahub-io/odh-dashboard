@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import DeploymentStrategySettings from '../DeploymentStrategySettings';
+import DeploymentStrategySettings, { DeploymentStrategy } from '../DeploymentStrategySettings';
 
 describe('DeploymentStrategySettings', () => {
   const mockSetDefaultDeploymentStrategy = jest.fn();
@@ -13,7 +13,7 @@ describe('DeploymentStrategySettings', () => {
   it('should render section heading and both radio options', () => {
     render(
       <DeploymentStrategySettings
-        defaultDeploymentStrategy="rolling"
+        defaultDeploymentStrategy={DeploymentStrategy.ROLLING}
         setDefaultDeploymentStrategy={mockSetDefaultDeploymentStrategy}
       />,
     );
@@ -26,7 +26,7 @@ describe('DeploymentStrategySettings', () => {
   it('should check rolling radio when strategy is rolling', () => {
     render(
       <DeploymentStrategySettings
-        defaultDeploymentStrategy="rolling"
+        defaultDeploymentStrategy={DeploymentStrategy.ROLLING}
         setDefaultDeploymentStrategy={mockSetDefaultDeploymentStrategy}
       />,
     );
@@ -38,7 +38,7 @@ describe('DeploymentStrategySettings', () => {
   it('should check recreate radio when strategy is recreate', () => {
     render(
       <DeploymentStrategySettings
-        defaultDeploymentStrategy="recreate"
+        defaultDeploymentStrategy={DeploymentStrategy.RECREATE}
         setDefaultDeploymentStrategy={mockSetDefaultDeploymentStrategy}
       />,
     );
@@ -47,27 +47,27 @@ describe('DeploymentStrategySettings', () => {
     expect(screen.getByRole('radio', { name: /Recreate/i })).toBeChecked();
   });
 
-  it('should call setter with "recreate" when recreate radio is selected', () => {
+  it('should call setter with DeploymentStrategy.RECREATE when recreate radio is selected', () => {
     render(
       <DeploymentStrategySettings
-        defaultDeploymentStrategy="rolling"
+        defaultDeploymentStrategy={DeploymentStrategy.ROLLING}
         setDefaultDeploymentStrategy={mockSetDefaultDeploymentStrategy}
       />,
     );
 
     fireEvent.click(screen.getByRole('radio', { name: /Recreate/i }));
-    expect(mockSetDefaultDeploymentStrategy).toHaveBeenCalledWith('recreate');
+    expect(mockSetDefaultDeploymentStrategy).toHaveBeenCalledWith(DeploymentStrategy.RECREATE);
   });
 
-  it('should call setter with "rolling" when rolling radio is selected', () => {
+  it('should call setter with DeploymentStrategy.ROLLING when rolling radio is selected', () => {
     render(
       <DeploymentStrategySettings
-        defaultDeploymentStrategy="recreate"
+        defaultDeploymentStrategy={DeploymentStrategy.RECREATE}
         setDefaultDeploymentStrategy={mockSetDefaultDeploymentStrategy}
       />,
     );
 
     fireEvent.click(screen.getByRole('radio', { name: /Rolling update/i }));
-    expect(mockSetDefaultDeploymentStrategy).toHaveBeenCalledWith('rolling');
+    expect(mockSetDefaultDeploymentStrategy).toHaveBeenCalledWith(DeploymentStrategy.ROLLING);
   });
 });
