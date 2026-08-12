@@ -5,14 +5,19 @@ import {
   AlertActionCloseButton,
   Breadcrumb,
   BreadcrumbItem,
+  Bullseye,
   Button,
+  EmptyState,
+  EmptyStateBody,
+  EmptyStateFooter,
   Form,
   FormGroup,
   FormHelperText,
   HelperText,
   HelperTextItem,
 } from '@patternfly/react-core';
-import { Link, Navigate, useLocation, useNavigate, useParams } from 'react-router';
+import { ExclamationCircleIcon } from '@patternfly/react-icons';
+import { Link, Navigate, useNavigate, useParams } from 'react-router';
 import YAML from 'yaml';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports -- standard page shell wrapper
 import { ApplicationsPage } from '@odh-dashboard/ui-core';
@@ -27,62 +32,64 @@ import K8sNameDescriptionField, {
 } from '@odh-dashboard/ui-core/components/K8sNameDescriptionField';
 import useNotification from '@odh-dashboard/internal/utilities/useNotification';
 import SimpleSelect, { SimpleSelectOption } from '@odh-dashboard/ui-core/components/SimpleSelect';
-import ConfigYAMLEditor from './ConfigYAMLEditor';
-import { overrideLlmConfigFields } from './configYamlUtils';
+import { TopologyConfigContext } from './TopologyConfigContext';
+import ConfigYAMLEditor from '../ConfigYAMLEditor';
+import { overrideLlmConfigFields } from '../configYamlUtils';
 import {
   type LLMInferenceServiceConfigKind,
   TopologyType,
   TopologyTypeLabels,
   CONFIG_TYPE_LABEL,
-} from '../types';
+} from '../../types';
 import {
   isConfigObject,
   cleanResourceForYAMLViewer,
   stripDuplicatingAnnotations,
   stripDuplicatingLabels,
-} from '../utils';
+} from '../../utils';
 import {
   createLLMInferenceServiceConfig,
   patchLLMInferenceServiceConfig,
-  useWatchTopologyConfigs,
-} from '../api/LLMInferenceServiceConfigs';
+} from '../../api/LLMInferenceServiceConfigs';
 
 const TopologyConfigurationCreateEditInner: React.FC<{
-  existingConfig?: LLMInferenceServiceConfigKind;
-}> = ({ existingConfig }) => {
+  sourceConfig?: LLMInferenceServiceConfigKind;
+  listPath: string;
+  isDuplicate: boolean;
+}> = ({ sourceConfig, listPath, isDuplicate }) => {
   const { topologyType, configName } = useParams<{
     topologyType?: string;
     configName?: string;
   }>();
   const navigate = useNavigate();
-  const { state }: { state?: { sourceConfig: LLMInferenceServiceConfigKind } } = useLocation();
   const { dashboardNamespace } = useDashboardNamespace();
   const notification = useNotification();
 
-  const isDuplicateMode = !!state?.sourceConfig;
-  const isEditMode = !!configName && !isDuplicateMode;
+  const isEditMode = !!configName && !isDuplicate;
+  const existingConfig = !isDuplicate ? sourceConfig : undefined;
+  const duplicateSource = isDuplicate ? sourceConfig : undefined;
 
   const resolvedTopologyType = React.useMemo((): TopologyType | undefined => {
     if (existingConfig) {
       const label = existingConfig.metadata.labels?.[CONFIG_TYPE_LABEL];
       return Object.values(TopologyType).find((t) => t === label);
     }
-    if (state?.sourceConfig) {
-      const label = state.sourceConfig.metadata.labels?.[CONFIG_TYPE_LABEL];
+    if (duplicateSource) {
+      const label = duplicateSource.metadata.labels?.[CONFIG_TYPE_LABEL];
       return Object.values(TopologyType).find((t) => t === label);
     }
     return Object.values(TopologyType).find((t) => t === topologyType);
-  }, [existingConfig, state?.sourceConfig, topologyType]);
+  }, [existingConfig, duplicateSource, topologyType]);
 
   const initialResource = React.useMemo(() => {
     if (existingConfig) {
       return existingConfig;
     }
-    if (state?.sourceConfig) {
-      const cleanMeta = cleanResourceForYAMLViewer(state.sourceConfig.metadata);
-      const duplicateDisplayName = `Copy of ${getDisplayNameFromK8sResource(state.sourceConfig)}`;
+    if (duplicateSource) {
+      const cleanMeta = cleanResourceForYAMLViewer(duplicateSource.metadata);
+      const duplicateDisplayName = `Copy of ${getDisplayNameFromK8sResource(duplicateSource)}`;
       return {
-        ...state.sourceConfig,
+        ...duplicateSource,
         metadata: {
           ...cleanMeta,
           name: translateDisplayNameForK8s(duplicateDisplayName),
@@ -94,25 +101,25 @@ const TopologyConfigurationCreateEditInner: React.FC<{
       };
     }
     return undefined;
-  }, [existingConfig, state?.sourceConfig]);
+  }, [existingConfig, duplicateSource]);
 
   const k8sNameDesc = useK8sNameDescriptionFieldData({
     initialData: initialResource,
-    editableK8sName: isDuplicateMode,
+    editableK8sName: isDuplicate,
   });
 
   const [yamlCode, setYamlCode] = React.useState(() => {
     if (existingConfig) {
       return YAML.stringify(existingConfig);
     }
-    if (isDuplicateMode) {
-      const cleanMeta = cleanResourceForYAMLViewer(state.sourceConfig.metadata);
+    if (duplicateSource) {
+      const cleanMeta = cleanResourceForYAMLViewer(duplicateSource.metadata);
       const cleanAnnotations = stripDuplicatingAnnotations(cleanMeta.annotations);
       const cleanLabels = stripDuplicatingLabels(cleanMeta.labels);
-      const duplicateDisplayName = `Copy of ${getDisplayNameFromK8sResource(state.sourceConfig)}`;
+      const duplicateDisplayName = `Copy of ${getDisplayNameFromK8sResource(duplicateSource)}`;
       return YAML.stringify({
-        apiVersion: state.sourceConfig.apiVersion,
-        kind: state.sourceConfig.kind,
+        apiVersion: duplicateSource.apiVersion,
+        kind: duplicateSource.kind,
         metadata: {
           ...cleanMeta,
           name: translateDisplayNameForK8s(duplicateDisplayName),
@@ -122,7 +129,7 @@ const TopologyConfigurationCreateEditInner: React.FC<{
           },
           labels: cleanLabels,
         },
-        spec: state.sourceConfig.spec,
+        spec: duplicateSource.spec,
       });
     }
     return '';
@@ -137,7 +144,7 @@ const TopologyConfigurationCreateEditInner: React.FC<{
   const [templateError, setTemplateError] = React.useState(false);
 
   React.useEffect(() => {
-    if (!resolvedTopologyType || isEditMode || isDuplicateMode) {
+    if (!resolvedTopologyType || isEditMode || isDuplicate) {
       return;
     }
     setTemplateError(false);
@@ -150,7 +157,7 @@ const TopologyConfigurationCreateEditInner: React.FC<{
       .catch(() => {
         setTemplateError(true);
       });
-  }, [resolvedTopologyType, isEditMode, isDuplicateMode]);
+  }, [resolvedTopologyType, isEditMode, isDuplicate]);
 
   const handleConfigSourceChange = (key: string) => {
     if (key === 'template') {
@@ -189,17 +196,15 @@ const TopologyConfigurationCreateEditInner: React.FC<{
     ? TopologyTypeLabels[resolvedTopologyType]
     : 'Unknown';
 
-  const sourceDisplayName = state?.sourceConfig
-    ? getDisplayNameFromK8sResource(state.sourceConfig)
-    : '';
+  const sourceDisplayName = duplicateSource ? getDisplayNameFromK8sResource(duplicateSource) : '';
 
-  const pageTitle = isDuplicateMode
+  const pageTitle = isDuplicate
     ? 'Duplicate llm-d topology configuration'
     : isEditMode
     ? `Edit ${k8sNameDesc.data.name || configName}`
     : `Add ${topologyTypeLabel} configuration`;
 
-  const pageDescription = isDuplicateMode
+  const pageDescription = isDuplicate
     ? `Create a copy based on ${sourceDisplayName}. Update the configuration before saving.`
     : !isEditMode
     ? 'Add a new topology configuration that will be available for users on this cluster.'
@@ -207,7 +212,7 @@ const TopologyConfigurationCreateEditInner: React.FC<{
 
   const showEditor =
     isEditMode ||
-    isDuplicateMode ||
+    isDuplicate ||
     configSource === 'editor' ||
     (configSource === 'template' && yamlCode !== '');
 
@@ -257,7 +262,7 @@ const TopologyConfigurationCreateEditInner: React.FC<{
       } else {
         await createLLMInferenceServiceConfig(newConfig);
       }
-      navigate('..');
+      navigate(listPath);
     } catch (e) {
       const err = e instanceof Error ? e : new Error('Unknown error');
       setError(err);
@@ -276,7 +281,7 @@ const TopologyConfigurationCreateEditInner: React.FC<{
       description={pageDescription}
       breadcrumb={
         <Breadcrumb>
-          <BreadcrumbItem render={() => <Link to="..">llm-d topology configurations</Link>} />
+          <BreadcrumbItem render={() => <Link to={listPath}>llm-d topology configurations</Link>} />
           <BreadcrumbItem isActive>{pageTitle}</BreadcrumbItem>
         </Breadcrumb>
       }
@@ -291,7 +296,7 @@ const TopologyConfigurationCreateEditInner: React.FC<{
           dataTestId="topology-config"
           onDataChange={k8sNameDesc.onDataChange}
         />
-        {!isEditMode && !isDuplicateMode && (
+        {!isEditMode && !isDuplicate && (
           <FormGroup label="Configuration source" isRequired fieldId="config-source">
             <FormHelperText>
               <HelperText>
@@ -350,7 +355,7 @@ const TopologyConfigurationCreateEditInner: React.FC<{
             variant="link"
             data-testid="cancel-topology-config-button"
             isDisabled={loading}
-            onClick={() => navigate('..')}
+            onClick={() => navigate(listPath)}
           >
             Cancel
           </Button>
@@ -360,37 +365,100 @@ const TopologyConfigurationCreateEditInner: React.FC<{
   );
 };
 
-const TopologyConfigurationCreateEdit: React.FC = () => {
-  const { configName } = useParams<{ configName?: string }>();
-  const { state }: { state?: { sourceConfig: LLMInferenceServiceConfigKind } } = useLocation();
-  const { dashboardNamespace } = useDashboardNamespace();
-  const [configs, loaded] = useWatchTopologyConfigs(dashboardNamespace);
+type TopologyConfigurationCreateEditProps = {
+  /**
+   * Absolute path of the configurations list this form returns to. Passed
+   * explicitly because the form is mounted both under the standalone list route
+   * and as a top-level breakout route, and route-relative `..` resolves
+   * differently in the two.
+   *
+   * After RHOAIENG-80077 removes the standalone page the breakout route is the
+   * only mount, so this could collapse to TOPOLOGY_CONFIGS_TAB_PATH.
+   * https://issues.redhat.com/browse/RHOAIENG-80077
+   */
+  listPath: string;
+  /** True when mounted at the duplicate route. */
+  isDuplicate?: boolean;
+};
 
-  const isDuplicateMode = !!state?.sourceConfig;
-  const isEditMode = !!configName && !isDuplicateMode;
+const TopologyConfigurationCreateEdit: React.FC<TopologyConfigurationCreateEditProps> = ({
+  listPath,
+  isDuplicate = false,
+}) => {
+  const { configName, topologyType } = useParams<{
+    configName?: string;
+    topologyType?: string;
+  }>();
+  const { configs } = React.useContext(TopologyConfigContext);
 
-  const existingConfig = React.useMemo(
+  const sourceConfig = React.useMemo(
     () => (configName ? configs.find((c) => c.metadata.name === configName) : undefined),
     [configs, configName],
   );
 
-  if (isEditMode && !loaded) {
+  // On the add route the topology type comes from the URL; reject an unsupported
+  // value (e.g. /add/not-a-topology) rather than rendering an unusable form.
+  // Edit/duplicate routes have no topologyType param, so this is a no-op there.
+  // An arbitrary/typo'd type is not a real resource, so redirect silently.
+  const hasValidTopologyType =
+    !topologyType || Object.values(TopologyType).some((t) => t === topologyType);
+  if (!hasValidTopologyType) {
+    return <Navigate to={listPath} replace />;
+  }
+
+  // For edit and duplicate, the named config must exist (context is already
+  // loaded — the provider gates on that). When it doesn't, tell the user rather
+  // than silently redirecting — a deep link or reload to a deleted/renamed
+  // config should explain what happened. Matches the pattern used by serving
+  // runtimes, connection types, and hardware profiles. The copy reflects the
+  // active operation so a missing duplicate target isn't labelled as an edit.
+  if (configName && !sourceConfig) {
+    const operationLabel = isDuplicate ? 'Duplicate' : 'Edit';
     return (
-      <ApplicationsPage title="Edit topology configuration" loaded={false} empty={false}>
-        {null}
+      <ApplicationsPage
+        loaded
+        empty={false}
+        title={`${operationLabel} llm-d topology configuration`}
+        breadcrumb={
+          <Breadcrumb>
+            <BreadcrumbItem
+              render={() => <Link to={listPath}>llm-d topology configurations</Link>}
+            />
+            <BreadcrumbItem isActive>{operationLabel}</BreadcrumbItem>
+          </Breadcrumb>
+        }
+        provideChildrenPadding
+      >
+        <Bullseye>
+          <EmptyState
+            headingLevel="h2"
+            icon={ExclamationCircleIcon}
+            titleText={`Unable to ${isDuplicate ? 'duplicate' : 'edit'} topology configuration`}
+          >
+            <EmptyStateBody>
+              We were unable to find a topology configuration named &quot;{configName}&quot;.
+            </EmptyStateBody>
+            <EmptyStateFooter>
+              <Button
+                variant="primary"
+                component={(props: React.ComponentProps<'a'>) => <Link {...props} to={listPath} />}
+              >
+                Return to the list
+              </Button>
+            </EmptyStateFooter>
+          </EmptyState>
+        </Bullseye>
       </ApplicationsPage>
     );
   }
 
-  if (isEditMode && loaded && !existingConfig) {
-    return (
-      <ApplicationsPage title="Topology configuration not found" loaded empty={false}>
-        <Navigate to=".." />
-      </ApplicationsPage>
-    );
-  }
-
-  return <TopologyConfigurationCreateEditInner existingConfig={existingConfig} />;
+  return (
+    <TopologyConfigurationCreateEditInner
+      listPath={listPath}
+      isDuplicate={isDuplicate}
+      sourceConfig={sourceConfig}
+    />
+  );
 };
 
 export default TopologyConfigurationCreateEdit;
