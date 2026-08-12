@@ -1,7 +1,7 @@
 import { KubeFastifyInstance } from '../../../types';
 import { FastifyReply, FastifyRequest } from 'fastify';
-import { V1RoleBinding } from '@kubernetes/client-node';
 import { secureRoute } from '../../../utils/route-security';
+import { getNamespaces } from '../../../utils/notebookUtils';
 
 export default async (fastify: KubeFastifyInstance): Promise<void> => {
   fastify.get(
@@ -34,30 +34,49 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
 
   fastify.post(
     '/',
-    secureRoute(fastify)(
-      async (request: FastifyRequest<{ Body: V1RoleBinding }>, reply: FastifyReply) => {
-        const rbRequest = request.body;
-        try {
-          const response = await fastify.kube.customObjectsApi.createNamespacedCustomObject(
-            'rbac.authorization.k8s.io',
-            'v1',
-            rbRequest.metadata.namespace,
-            'rolebindings',
-            rbRequest,
-          );
-          return response.body;
-        } catch (e) {
-          if (e.response?.statusCode === 409) {
-            fastify.log.warn(`Rolebinding already present, skipping creation.`);
-            return {};
-          }
-
-          fastify.log.error(
-            `rolebinding could not be created: ${e.response?.body?.message || e.message}`,
-          );
-          reply.send(new Error(e.response?.body?.message));
+    secureRoute(fastify)(async (_request: FastifyRequest, reply: FastifyReply) => {
+      const { workbenchNamespace, dashboardNamespace } = getNamespaces(fastify);
+      const roleBindingName = `${workbenchNamespace}-image-pullers`;
+      const roleBindingObject = {
+        apiVersion: 'rbac.authorization.k8s.io/v1',
+        kind: 'RoleBinding',
+        metadata: {
+          name: roleBindingName,
+          namespace: dashboardNamespace,
+        },
+        roleRef: {
+          apiGroup: 'rbac.authorization.k8s.io',
+          kind: 'ClusterRole',
+          name: 'system:image-puller',
+        },
+        subjects: [
+          {
+            apiGroup: 'rbac.authorization.k8s.io',
+            kind: 'Group',
+            name: `system:serviceaccounts:${workbenchNamespace}`,
+          },
+        ],
+      };
+      try {
+        const response = await fastify.kube.customObjectsApi.createNamespacedCustomObject(
+          'rbac.authorization.k8s.io',
+          'v1',
+          dashboardNamespace,
+          'rolebindings',
+          roleBindingObject,
+        );
+        return response.body;
+      } catch (e) {
+        if (e.response?.statusCode === 409) {
+          fastify.log.warn(`Rolebinding already present, skipping creation.`);
+          return {};
         }
-      },
-    ),
+
+        fastify.log.error(
+          `rolebinding could not be created: ${e.response?.body?.message || e.message}`,
+        );
+        reply.send(new Error(e.response?.body?.message));
+      }
+    }),
   );
 };

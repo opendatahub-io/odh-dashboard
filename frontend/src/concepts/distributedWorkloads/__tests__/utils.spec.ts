@@ -159,6 +159,19 @@ describe('getWorkloadOwner', () => {
     });
   });
 
+  it('returns the name of a leaderworkerset found in ownerReferences of a workload if present', () => {
+    const mockWorkload = mockWorkloadK8sResource({
+      k8sName: 'test-workload',
+      namespace: 'test-project',
+      ownerKind: WorkloadOwnerType.LeaderWorkerSet,
+      ownerName: 'test-lws-inference',
+    });
+    expect(getWorkloadOwner(mockWorkload)).toStrictEqual({
+      kind: 'LeaderWorkerSet',
+      name: 'test-lws-inference',
+    });
+  });
+
   it('returns undefined if there is no job in ownerReferences', () => {
     const mockWorkload = mockWorkloadK8sResource({
       k8sName: 'test-workload',

@@ -15,6 +15,7 @@ import {
   ToolbarGroup,
   ToolbarItem,
   ToolbarToggleGroup,
+  Tooltip,
 } from '@patternfly/react-core';
 import { DashboardEmptyTableView } from '@odh-dashboard/ui-core';
 import { FilterIcon } from '@patternfly/react-icons';
@@ -424,14 +425,19 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
               </Button>
             </ToolbarItem>
             <ToolbarItem>
-              <Button
-                variant="secondary"
-                data-testid="compare-evaluations-button"
-                isDisabled={!canCompare}
-                onClick={handleCompare}
+              <Tooltip
+                content="Select at least 2 runs to compare"
+                isVisible={!canCompare ? undefined : false}
               >
-                Compare
-              </Button>
+                <Button
+                  variant="secondary"
+                  data-testid="compare-evaluations-button"
+                  isAriaDisabled={!canCompare}
+                  onClick={canCompare ? handleCompare : undefined}
+                >
+                  Compare
+                </Button>
+              </Tooltip>
             </ToolbarItem>
           </ToolbarGroup>
           <ToolbarItem variant="pagination" align={{ default: 'alignEnd' }}>
@@ -499,7 +505,7 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
               <Th
                 modifier="nowrap"
                 info={{
-                  popover: 'The model, agent, or pre-recorded response being evaluated.',
+                  popover: 'The model, agent, or dataset being evaluated.',
                 }}
               >
                 Evaluated
@@ -510,7 +516,8 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
               <Th
                 modifier="nowrap"
                 info={{
-                  popover: "The normalized value of the benchmark's primary metric.",
+                  popover:
+                    'The primary metric score for this evaluation run. For benchmark suites, this is the weighted average of all benchmark scores.',
                 }}
               >
                 Result

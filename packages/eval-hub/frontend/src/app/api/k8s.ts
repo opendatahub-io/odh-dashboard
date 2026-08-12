@@ -28,6 +28,22 @@ import {
 } from '~/app/types';
 import { CatalogSecurityArtifactList } from '~/app/pages/modelCatalog/securityInsightsTypes';
 
+const validateEvaluationJob = (data: unknown): void => {
+  if (!data || typeof data !== 'object') {
+    throw new Error('Invalid evaluation job: missing results');
+  }
+  if (!('results' in data) || !data.results || typeof data.results !== 'object') {
+    throw new Error('Invalid evaluation job: missing results');
+  }
+  if (
+    'benchmarks' in data.results &&
+    data.results.benchmarks != null &&
+    !Array.isArray(data.results.benchmarks)
+  ) {
+    throw new Error('Invalid evaluation job: results.benchmarks is not an array');
+  }
+};
+
 export const getUser =
   (hostPath: string) =>
   (opts: APIOptions): Promise<UserSettings> =>
@@ -127,7 +143,9 @@ export const getEvaluationJob =
       ),
     ).then((response) => {
       if (isModArchResponse<EvaluationJob>(response)) {
-        return response.data;
+        const { data } = response;
+        validateEvaluationJob(data);
+        return data;
       }
       throw new Error('Invalid response format');
     });

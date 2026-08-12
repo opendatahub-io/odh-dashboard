@@ -21,7 +21,13 @@ import { useKueueStatusForDeployments } from '#~/pages/modelServing/useKueueStat
 import { KueueWorkloadStatus } from '#~/concepts/kueue/types';
 
 jest.mock('#~/concepts/hardwareProfiles/kueueUtils');
-jest.mock('#~/api/k8s/workloads');
+jest.mock('#~/api/k8s/workloads', () => ({
+  ...jest.requireActual('#~/api/k8s/workloads'),
+  useWatchWorkloads: jest.fn(),
+  useWatchISPods: jest.fn(),
+  useWatchLLMISPods: jest.fn(),
+  buildWorkloadMapForDeployments: jest.fn(),
+}));
 jest.mock('#~/concepts/kueue/index', () => ({
   ...jest.requireActual('#~/concepts/kueue/index'),
   KUEUE_QUEUE_LABEL: 'kueue.x-k8s.io/queue-name',
@@ -110,7 +116,7 @@ describe('useKueueStatusForDeployments', () => {
     const { result } = renderHook(() =>
       useKueueStatusForDeployments([inferenceService('my-model')], project),
     );
-    expect(result.current.kueueStatusByISName).toEqual({});
+    expect(result.current.kueueStatusByDeploymentKey).toEqual({});
     expect(result.current.isLoading).toBe(false);
     expect(result.current.error).toBeNull();
   });
@@ -139,7 +145,10 @@ describe('useKueueStatusForDeployments', () => {
     useWatchWorkloadsMock.mockReturnValue([workloads, true, undefined]);
     useWatchISPodsMock.mockReturnValue([[isPodResource], true, undefined]);
     useWatchLLMISPodsMock.mockReturnValue([[llmisPodResource], true, undefined]);
-    buildWorkloadMapForDeploymentsMock.mockReturnValue({ 'my-model': [], 'my-llm': [] });
+    buildWorkloadMapForDeploymentsMock.mockReturnValue({
+      'InferenceService/my-model': [],
+      'LLMInferenceService/my-llm': [],
+    });
 
     renderHook(() => useKueueStatusForDeployments([is], project, [llmis]));
 
@@ -203,11 +212,11 @@ describe('useKueueStatusForDeployments', () => {
   });
 
   it('returns null status when workload map has no entry for an IS', () => {
-    buildWorkloadMapForDeploymentsMock.mockReturnValue({ 'my-model': [] });
+    buildWorkloadMapForDeploymentsMock.mockReturnValue({ 'InferenceService/my-model': [] });
     const { result } = renderHook(() =>
       useKueueStatusForDeployments([inferenceService('my-model')], project),
     );
-    expect(result.current.kueueStatusByISName['my-model']).toBeNull();
+    expect(result.current.kueueStatusByDeploymentKey['InferenceService/my-model']).toBeNull();
   });
 
   it('returns aggregated status when workload map has entries', () => {
@@ -215,12 +224,12 @@ describe('useKueueStatusForDeployments', () => {
     const pod = isPod('my-model', uid);
     const wl = workloadWithPodOwnerRef('wl-1', uid, WorkloadStatusType.Inadmissible);
     useWatchISPodsMock.mockReturnValue([[pod], true, undefined]);
-    buildWorkloadMapForDeploymentsMock.mockReturnValue({ 'my-model': [wl] });
+    buildWorkloadMapForDeploymentsMock.mockReturnValue({ 'InferenceService/my-model': [wl] });
 
     const { result } = renderHook(() =>
       useKueueStatusForDeployments([inferenceService('my-model')], project),
     );
-    expect(result.current.kueueStatusByISName['my-model']?.status).toBe(
+    expect(result.current.kueueStatusByDeploymentKey['InferenceService/my-model']?.status).toBe(
       KueueWorkloadStatus.Inadmissible,
     );
   });
@@ -234,10 +243,12 @@ describe('useKueueStatusForDeployments', () => {
       },
     };
     const wl = workloadWithPodOwnerRef('wl-1', POD_UID);
-    buildWorkloadMapForDeploymentsMock.mockReturnValue({ 'my-model': [wl] });
+    buildWorkloadMapForDeploymentsMock.mockReturnValue({ 'InferenceService/my-model': [wl] });
 
     const { result } = renderHook(() => useKueueStatusForDeployments([is], project));
-    expect(result.current.kueueStatusByISName['my-model']?.queueName).toBe('team-queue');
+    expect(result.current.kueueStatusByDeploymentKey['InferenceService/my-model']?.queueName).toBe(
+      'team-queue',
+    );
   });
 
   it('multi-replica: most-restrictive status wins (Inadmissible beats Running)', () => {
@@ -250,13 +261,13 @@ describe('useKueueStatusForDeployments', () => {
       WorkloadStatusType.Inadmissible,
     );
     buildWorkloadMapForDeploymentsMock.mockReturnValue({
-      'my-model': [wlRunning, wlInadmissible],
+      'InferenceService/my-model': [wlRunning, wlInadmissible],
     });
 
     const { result } = renderHook(() =>
       useKueueStatusForDeployments([inferenceService('my-model')], project),
     );
-    expect(result.current.kueueStatusByISName['my-model']?.status).toBe(
+    expect(result.current.kueueStatusByDeploymentKey['InferenceService/my-model']?.status).toBe(
       KueueWorkloadStatus.Inadmissible,
     );
   });
@@ -272,24 +283,28 @@ describe('useKueueStatusForDeployments', () => {
       WorkloadStatusType.Inadmissible,
     );
     buildWorkloadMapForDeploymentsMock.mockReturnValue({
-      'my-model': [wlRunning, wlInadmissible],
+      'InferenceService/my-model': [wlRunning, wlInadmissible],
     });
 
     const { result } = renderHook(() =>
       useKueueStatusForDeployments([inferenceService('my-model')], project),
     );
-    expect(result.current.kueueStatusByISName['my-model']?.workloadName).toBe('wl-inadmissible');
+    expect(
+      result.current.kueueStatusByDeploymentKey['InferenceService/my-model']?.workloadName,
+    ).toBe('wl-inadmissible');
   });
 
   it('all-running: aggregation returns Running', () => {
     const wl0 = workloadWithPodOwnerRef('wl-0', 'uid-0', WorkloadStatusType.Running);
     const wl1 = workloadWithPodOwnerRef('wl-1', 'uid-1', WorkloadStatusType.Running);
-    buildWorkloadMapForDeploymentsMock.mockReturnValue({ 'my-model': [wl0, wl1] });
+    buildWorkloadMapForDeploymentsMock.mockReturnValue({
+      'InferenceService/my-model': [wl0, wl1],
+    });
 
     const { result } = renderHook(() =>
       useKueueStatusForDeployments([inferenceService('my-model')], project),
     );
-    expect(result.current.kueueStatusByISName['my-model']?.status).toBe(
+    expect(result.current.kueueStatusByDeploymentKey['InferenceService/my-model']?.status).toBe(
       KueueWorkloadStatus.Running,
     );
   });
@@ -298,8 +313,8 @@ describe('useKueueStatusForDeployments', () => {
     const wlA = workloadWithPodOwnerRef('wl-a', 'uid-a', WorkloadStatusType.Inadmissible);
     const wlB = workloadWithPodOwnerRef('wl-b', 'uid-b', WorkloadStatusType.Running);
     buildWorkloadMapForDeploymentsMock.mockReturnValue({
-      'model-a': [wlA],
-      'model-b': [wlB],
+      'InferenceService/model-a': [wlA],
+      'InferenceService/model-b': [wlB],
     });
 
     const { result } = renderHook(() =>
@@ -308,9 +323,33 @@ describe('useKueueStatusForDeployments', () => {
         project,
       ),
     );
-    expect(result.current.kueueStatusByISName['model-a']?.status).toBe(
+    expect(result.current.kueueStatusByDeploymentKey['InferenceService/model-a']?.status).toBe(
       KueueWorkloadStatus.Inadmissible,
     );
-    expect(result.current.kueueStatusByISName['model-b']?.status).toBe(KueueWorkloadStatus.Running);
+    expect(result.current.kueueStatusByDeploymentKey['InferenceService/model-b']?.status).toBe(
+      KueueWorkloadStatus.Running,
+    );
+  });
+
+  it('same-name IS and LLMIS retain independent Kueue statuses', () => {
+    const shared = 'shared-name';
+    const wlIs = workloadWithPodOwnerRef('wl-is', 'uid-is', WorkloadStatusType.Inadmissible);
+    const wlLlmis = workloadWithPodOwnerRef('wl-llmis', 'uid-llmis', WorkloadStatusType.Running);
+    buildWorkloadMapForDeploymentsMock.mockReturnValue({
+      [`InferenceService/${shared}`]: [wlIs],
+      [`LLMInferenceService/${shared}`]: [wlLlmis],
+    });
+
+    const { result } = renderHook(() =>
+      useKueueStatusForDeployments([inferenceService(shared)], project, [
+        { metadata: { name: shared } },
+      ]),
+    );
+    expect(result.current.kueueStatusByDeploymentKey[`InferenceService/${shared}`]?.status).toBe(
+      KueueWorkloadStatus.Inadmissible,
+    );
+    expect(result.current.kueueStatusByDeploymentKey[`LLMInferenceService/${shared}`]?.status).toBe(
+      KueueWorkloadStatus.Running,
+    );
   });
 });

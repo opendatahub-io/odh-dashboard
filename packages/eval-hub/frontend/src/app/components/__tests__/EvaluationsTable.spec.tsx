@@ -151,13 +151,16 @@ describe('EvaluationsTable', () => {
     renderTable({ evaluations, loaded: true });
 
     const compareButton = screen.getByTestId('compare-evaluations-button');
-    expect(compareButton).toBeDisabled();
+    expect(compareButton).toHaveAttribute('aria-disabled', 'true');
 
     fireEvent.click(screen.getByLabelText('Select Alpha Evaluation'));
-    expect(compareButton).toBeDisabled();
+    expect(compareButton).toHaveAttribute('aria-disabled', 'true');
+
+    fireEvent.click(compareButton);
+    expect(mockNavigate).not.toHaveBeenCalled();
 
     fireEvent.click(screen.getByLabelText('Select Gamma Evaluation'));
-    expect(compareButton).toBeEnabled();
+    expect(compareButton).not.toHaveAttribute('aria-disabled');
   });
 
   it('should route directly to compare when selected rows are single benchmarks', () => {

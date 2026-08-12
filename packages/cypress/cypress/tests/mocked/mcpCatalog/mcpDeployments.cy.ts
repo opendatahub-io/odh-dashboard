@@ -261,7 +261,10 @@ describe('MCP Deployments', () => {
     mcpDeployModal.findTitle().should('contain.text', 'Edit MCP server deployment');
     mcpDeployModal.findNameInput().should('have.value', 'Kubernetes MCP');
     mcpDeployModal.findOciImageInput().should('have.value', 'quay.io/mcp-servers/kubernetes:1.0.0');
-    mcpDeployModal.findProjectSelector().should('have.value', 'test-project');
+    mcpDeployModal
+      .findProjectSelectorToggle()
+      .should('contain.text', 'Test Project')
+      .and('be.disabled');
     mcpDeployModal.findSubmitButton().should('contain.text', 'Save');
   });
 

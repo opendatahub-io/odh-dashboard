@@ -28,9 +28,12 @@ import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { z } from 'zod';
 import { getSectionUrl } from '~/app/utilities/subscriptionManagementNavigation';
 import { createSubscription, updateSubscription } from '~/app/api/subscriptions';
+import { useMaaSGovernanceContext } from '~/app/context/MaaSGovernanceContext';
 import { useSubscriptionModels } from '~/app/hooks/useSubscriptionModels';
 import {
-  SubscriptionPolicyFormDataResponse,
+  MaaSAuthPolicy,
+  MaaSModelRefSummary,
+  MaaSSubscription,
   SubscriptionInfoResponse,
   SubscriptionModelEntry,
   CreateSubscriptionRequest,
@@ -41,7 +44,10 @@ import MaasModelsSection from '~/app/shared/MaasModelsSection';
 import EditRateLimitsModal from './EditRateLimitsModal';
 
 type CreateSubscriptionFormProps = {
-  formData: SubscriptionPolicyFormDataResponse;
+  groups: string[];
+  modelRefs: MaaSModelRefSummary[];
+  subscriptions: MaaSSubscription[];
+  policies: MaaSAuthPolicy[];
   subscriptionInfo?: SubscriptionInfoResponse;
   returnTo?: string;
   preSelectedModel?: { name: string; namespace?: string };
@@ -77,12 +83,16 @@ const buildInitialModels = (info: SubscriptionInfoResponse): SubscriptionModelEn
   });
 
 const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
-  formData,
+  groups,
+  modelRefs,
+  subscriptions,
+  policies,
   subscriptionInfo,
   returnTo,
   preSelectedModel,
 }) => {
   const navigate = useNavigate();
+  const { refresh } = useMaaSGovernanceContext();
   const isEditing = !!subscriptionInfo;
   const subscription = subscriptionInfo?.subscription;
 
@@ -101,14 +111,18 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
   const [selectedGroups, setSelectedGroups] = React.useState<SelectionOptions[]>(() => {
     if (subscription) {
       const existingGroupNames = new Set(subscription.owner.groups.map((g) => g.name));
-      const allGroupNames = new Set([...formData.groups, ...existingGroupNames]);
+      const allGroupNames = new Set([...groups, ...existingGroupNames]);
       return Array.from(allGroupNames).map((group) => ({
         id: group,
         name: group,
         selected: existingGroupNames.has(group),
       }));
     }
-    return [];
+    return groups.map((group) => ({
+      id: group,
+      name: group,
+      selected: false,
+    }));
   });
   const [groupsTouched, setGroupsTouched] = React.useState(false);
   const [modelsTouched, setModelsTouched] = React.useState(false);
@@ -122,7 +136,7 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
       return buildInitialModels(subscriptionInfo);
     }
     if (preSelectedModel) {
-      const match = formData.modelRefs.find(
+      const match = modelRefs.find(
         (m) =>
           m.name === preSelectedModel.name &&
           (!preSelectedModel.namespace || m.namespace === preSelectedModel.namespace),
@@ -148,18 +162,6 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
     handleSaveRateLimits,
     handleCloseRateLimitsModal,
   } = useSubscriptionModels(initialModels);
-
-  React.useEffect(() => {
-    if (!isEditing && formData.groups.length > 0 && selectedGroups.length === 0) {
-      setSelectedGroups(
-        formData.groups.map((group) => ({
-          id: group,
-          name: group,
-          selected: false,
-        })),
-      );
-    }
-  }, [formData.groups, selectedGroups.length, isEditing]);
 
   const isNameValid = isK8sNameDescriptionDataValid(nameDescData);
 
@@ -199,9 +201,9 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
   const subscriptionsForConflictCheck = React.useMemo(
     () =>
       isEditing && subscription
-        ? formData.subscriptions.filter((s) => s.name !== subscription.name)
-        : formData.subscriptions,
-    [formData.subscriptions, subscription, isEditing],
+        ? subscriptions.filter((s) => s.name !== subscription.name)
+        : subscriptions,
+    [subscriptions, subscription, isEditing],
   );
 
   const zodFormData: SubscriptionFormData = React.useMemo(
@@ -264,6 +266,7 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
         };
         await createSubscription()(apiOpts, request);
       }
+      refresh();
       navigate(returnTo ?? getSectionUrl('subscriptions'));
     } catch (e) {
       setSubmitError(
@@ -275,8 +278,8 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
     }
   };
 
-  const showNoModelsWarning = !isEditing && formData.modelRefs.length === 0 && models.length === 0;
-  const canAddModels = formData.modelRefs.length > 0;
+  const showNoModelsWarning = !isEditing && modelRefs.length === 0 && models.length === 0;
+  const canAddModels = modelRefs.length > 0;
 
   return (
     <PageSection hasBodyWrapper={false}>
@@ -400,9 +403,9 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
         {isAddModelsModalOpen && canAddModels && (
           <AddModelsModal
             modalSource="subscription"
-            availableModelRefs={formData.modelRefs}
+            availableModelRefs={modelRefs}
             allSubscriptions={subscriptionsForConflictCheck}
-            allPolicies={formData.policies}
+            allPolicies={policies}
             currentModels={models}
             onAdd={(refs) => {
               setModelsTouched(true);

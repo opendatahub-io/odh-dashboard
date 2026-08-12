@@ -285,6 +285,14 @@ func (r *DashboardReconciler) reconcileSidecar(
 		return ctrl.Result{}, fmt.Errorf("failed to sanitize deployment probes: %w", err)
 	}
 
+	if err := removeStaleContainers(ctx, r.Client, allResources); err != nil {
+		cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded),
+			conditions.WithReason("StaleContainerRemovalFailed"),
+			conditions.WithError(err))
+
+		return ctrl.Result{}, fmt.Errorf("failed to remove stale containers: %w", err)
+	}
+
 	deployer := deploy.NewDeployer(
 		deploy.WithFieldOwner("dashboard-operator"),
 		deploy.WithLabel(labels.PlatformPartOf, strings.ToLower(v1alpha1.DashboardKind)),
@@ -447,6 +455,13 @@ func (r *DashboardReconciler) reconcileStandalone(
 			conditions.WithReason("ProbeSanitizeFailed"),
 			conditions.WithError(err))
 		return ctrl.Result{}, fmt.Errorf("failed to sanitize deployment probes: %w", err)
+	}
+
+	if err := removeStaleContainers(ctx, r.Client, allResources); err != nil {
+		cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded),
+			conditions.WithReason("StaleContainerRemovalFailed"),
+			conditions.WithError(err))
+		return ctrl.Result{}, fmt.Errorf("failed to remove stale containers: %w", err)
 	}
 
 	deployer := deploy.NewDeployer(
