@@ -119,6 +119,6 @@ describe('Evaluation Results Page - Collection', () => {
   it('should show benchmark details when clicking a card', () => {
     evaluationResultsPage.visit(NAMESPACE, collectionJob.resource.id);
     evaluationResultsPage.findBenchmarkCard('truthfulqa_mc1', 1).click();
-    evaluationResultsPage.findBenchmarkDetails('truthfulqa_mc1', 0).should('exist');
+    evaluationResultsPage.findBenchmarkDetails('truthfulqa_mc1', 1).should('exist');
   });
 });

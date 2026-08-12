@@ -63,7 +63,7 @@ describe('BenchmarkDrawerPanel', () => {
         </DrawerContent>
       </Drawer>,
     );
-    expect(screen.getByTestId('benchmark-drawer-panel')).toBeInTheDocument();
+    expect(screen.queryByTestId('benchmark-drawer-panel')).not.toBeInTheDocument();
     expect(screen.queryByText('TruthfulQA MC1')).not.toBeInTheDocument();
   });
 
