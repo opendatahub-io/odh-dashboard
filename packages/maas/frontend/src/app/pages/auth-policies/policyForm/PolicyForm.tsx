@@ -27,13 +27,10 @@ import AddModelsModal from '~/app/shared/AddModelsModal';
 import MaasModelsSection from '~/app/shared/MaasModelsSection';
 import { createAuthPolicy, updateAuthPolicy } from '~/app/api/auth-policies';
 import type { CreatePolicyRequest, UpdatePolicyRequest } from '~/app/types/auth-policies';
-import {
-  MaaSAuthPolicy,
-  MaaSModelRefSummary,
-  SubscriptionPolicyFormDataResponse,
-} from '~/app/types/subscriptions';
+import { MaaSAuthPolicy, MaaSModelRefSummary, MaaSSubscription } from '~/app/types/subscriptions';
 import { modelRefsToSummaries } from '~/app/utilities/authpolicies';
 import { getSectionUrl } from '~/app/utilities/subscriptionManagementNavigation';
+import { useMaaSGovernanceContext } from '~/app/context/MaaSGovernanceContext';
 
 const policyFormSchema = z.object({
   groups: z.array(z.string()).min(1, 'One or more groups must be selected'),
@@ -41,19 +38,26 @@ const policyFormSchema = z.object({
 });
 
 export type PolicyFormProps = {
-  formData: SubscriptionPolicyFormDataResponse;
+  groups: string[];
+  modelRefs: MaaSModelRefSummary[];
+  subscriptions: MaaSSubscription[];
+  policies: MaaSAuthPolicy[];
   initialPolicy?: MaaSAuthPolicy;
   returnTo?: string;
   preSelectedModel?: { name: string; namespace?: string };
 };
 
 const PolicyForm: React.FC<PolicyFormProps> = ({
-  formData,
+  groups,
+  modelRefs,
+  subscriptions,
+  policies,
   initialPolicy,
   returnTo,
   preSelectedModel,
 }) => {
   const navigate = useNavigate();
+  const { refresh } = useMaaSGovernanceContext();
   const { data: nameDescData, onDataChange: onNameDescChange } = useK8sNameDescriptionFieldData(
     initialPolicy
       ? {
@@ -69,20 +73,20 @@ const PolicyForm: React.FC<PolicyFormProps> = ({
   const [selectedGroups, setSelectedGroups] = React.useState<SelectionOptions[]>(() => {
     if (initialPolicy) {
       const groupNames = initialPolicy.subjects.groups?.map((g) => g.name) ?? [];
-      const allNames = [...new Set([...formData.groups, ...groupNames])];
+      const allNames = [...new Set([...groups, ...groupNames])];
       return allNames.map((g) => ({ id: g, name: g, selected: groupNames.includes(g) }));
     }
-    return formData.groups.map((group) => ({ id: group, name: group, selected: false }));
+    return groups.map((group) => ({ id: group, name: group, selected: false }));
   });
 
   const [groupsTouched, setGroupsTouched] = React.useState(false);
   const [modelsTouched, setModelsTouched] = React.useState(false);
   const [selectedModels, setSelectedModels] = React.useState<MaaSModelRefSummary[]>(() => {
     if (initialPolicy) {
-      return modelRefsToSummaries(initialPolicy.modelRefs, formData.modelRefs);
+      return modelRefsToSummaries(initialPolicy.modelRefs, modelRefs);
     }
     if (preSelectedModel) {
-      const match = formData.modelRefs.find(
+      const match = modelRefs.find(
         (m) =>
           m.name === preSelectedModel.name &&
           (!preSelectedModel.namespace || m.namespace === preSelectedModel.namespace),
@@ -151,6 +155,7 @@ const PolicyForm: React.FC<PolicyFormProps> = ({
         const request: UpdatePolicyRequest = sharedFields;
         await updateAuthPolicy(initialPolicy.name)(apiOpts, request);
       }
+      refresh();
       navigate(returnTo ?? getSectionUrl('auth-policies'));
     } catch (e) {
       setSubmitError(e instanceof Error ? e.message : 'Failed to save policy');
@@ -200,7 +205,7 @@ const PolicyForm: React.FC<PolicyFormProps> = ({
           )}
         </FormGroup>
 
-        {formData.modelRefs.length === 0 ? (
+        {modelRefs.length === 0 ? (
           <Alert
             variant="warning"
             isInline
@@ -242,9 +247,9 @@ const PolicyForm: React.FC<PolicyFormProps> = ({
             {isAddModelsModalOpen && (
               <AddModelsModal
                 modalSource="policy"
-                availableModelRefs={formData.modelRefs}
-                allSubscriptions={formData.subscriptions}
-                allPolicies={formData.policies}
+                availableModelRefs={modelRefs}
+                allSubscriptions={subscriptions}
+                allPolicies={policies}
                 currentModels={selectedModels.map((m) => ({ modelRefSummary: m }))}
                 onAdd={(refs) => {
                   setModelsTouched(true);

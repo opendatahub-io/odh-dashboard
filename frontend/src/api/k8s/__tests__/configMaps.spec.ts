@@ -5,8 +5,8 @@ import {
   k8sGetResource,
   k8sUpdateResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
-import { mockConfigMap } from '#~/__mocks__/mockConfigMap';
-import { mock200Status, mock404Error } from '#~/__mocks__/mockK8sStatus';
+import { mockConfigMap } from '@odh-dashboard/k8s-core/__mocks__/mockConfigMap';
+import { mock200Status, mock404Error } from '@odh-dashboard/k8s-core/__mocks__/mockK8sStatus';
 import {
   assembleConfigMap,
   createConfigMap,

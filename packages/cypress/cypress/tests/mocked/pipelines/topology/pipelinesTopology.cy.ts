@@ -1,20 +1,20 @@
 /* eslint-disable camelcase */
 import { mockDataSciencePipelineApplicationK8sResource } from '@odh-dashboard/internal/__mocks__/mockDataSciencePipelinesApplicationK8sResource';
-import { mockDscStatus } from '@odh-dashboard/internal/__mocks__/mockDscStatus';
-import { mockK8sResourceList } from '@odh-dashboard/internal/__mocks__/mockK8sResourceList';
+import { mockDscStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDscStatus';
+import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
 import {
   buildMockPipelineVersion,
   buildMockPipelineVersions,
 } from '@odh-dashboard/internal/__mocks__/mockPipelineVersionsProxy';
 import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
-import { mockRouteK8sResource } from '@odh-dashboard/internal/__mocks__/mockRouteK8sResource';
-import { mockSecretK8sResource } from '@odh-dashboard/internal/__mocks__/mockSecretK8sResource';
+import { mockRouteK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockRouteK8sResource';
+import { mockSecretK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockSecretK8sResource';
 import { buildMockRecurringRunKF } from '@odh-dashboard/internal/__mocks__/mockRecurringRunKF';
 import { mockPodLogs } from '@odh-dashboard/internal/__mocks__/mockPodLogs';
 import { buildMockRunKF } from '@odh-dashboard/internal/__mocks__/mockRunKF';
 import { mockPipelinePodK8sResource } from '@odh-dashboard/internal/__mocks__/mockPipelinePodK8sResource';
 import { buildMockExperimentKF, buildMockPipeline } from '@odh-dashboard/internal/__mocks__';
-import { mock404Error, mock500Error } from '@odh-dashboard/internal/__mocks__/mockK8sStatus';
+import { mock404Error, mock500Error } from '@odh-dashboard/k8s-core/__mocks__/mockK8sStatus';
 import {
   RecurringRunStatus,
   RuntimeStateKF,

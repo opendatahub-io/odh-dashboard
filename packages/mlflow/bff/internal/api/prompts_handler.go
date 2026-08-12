@@ -219,6 +219,9 @@ func (app *App) extractAndValidateWorkspace(
 // enforceWritePermission checks if the user has write permissions in the namespace.
 // Returns true if allowed, false if denied or error occurred (response already written).
 // The verb parameter should be "create" for save operations or "delete" for delete operations.
+// Delegates the auth-disabled bypass, error handling, and forbidden-response
+// shape to enforceResourceWritePermission (permissions.go), shared with
+// enforceMCPWritePermission (mcp_registry_handler.go).
 func (app *App) enforceWritePermission(
 	ctx context.Context,
 	w http.ResponseWriter,
@@ -226,48 +229,11 @@ func (app *App) enforceWritePermission(
 	workspace string,
 	verb string,
 ) bool {
-	if app.config.AuthMethod == config.AuthMethodDisabled {
-		app.logger.Warn("Skipping permission check (auth disabled)",
-			slog.String("workspace", workspace))
-		return true
-	}
-
-	k8sClient, err := app.kubernetesClientFactory.GetClient(ctx)
-	if err != nil {
-		app.logger.Error("Failed to get Kubernetes client",
-			slog.String("workspace", workspace),
-			slog.Any("error", err))
-		app.serverErrorResponse(w, r, err)
-		return false
-	}
-
-	canWrite, err := k8sClient.CanWritePromptsInNamespace(ctx, workspace, verb)
-	if err != nil {
-		var invalidVerbErr *k8s.InvalidVerbError
-		if errors.As(err, &invalidVerbErr) {
-			app.logger.Error("BUG: Invalid verb passed to permission check",
-				slog.String("workspace", workspace),
-				slog.String("verb", verb),
-				slog.Any("error", err))
-		} else {
-			app.logger.Error("Failed to check write permissions",
-				slog.String("workspace", workspace),
-				slog.Any("error", err))
-		}
-		app.serverErrorResponse(w, r, err)
-		return false
-	}
-
-	if !canWrite {
-		app.logger.Warn("Permission denied",
-			slog.String("workspace", workspace),
-			slog.String("verb", verb),
-			slog.String("required_role", "mlflow-edit"))
-		app.forbiddenResponse(w, r, errors.New("insufficient permissions to write prompts"))
-		return false
-	}
-
-	return true
+	return app.enforceResourceWritePermission(ctx, w, r, workspace, verb, "registeredmodels",
+		"insufficient permissions to write prompts",
+		func(k8sClient k8s.KubernetesClientInterface) resourceWriteChecker {
+			return k8sClient.CanWritePromptsInNamespace
+		})
 }
 
 // MLflowRegisterPromptHandler handles POST /api/v1/prompts

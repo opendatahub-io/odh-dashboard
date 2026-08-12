@@ -1,5 +1,12 @@
 import * as React from 'react';
-import { Icon, LabelProps } from '@patternfly/react-core';
+import {
+  AlertProps,
+  ContentProps,
+  Icon,
+  LabelProps,
+  Stack,
+  StackItem,
+} from '@patternfly/react-core';
 import {
   CheckCircleIcon,
   ExclamationCircleIcon,
@@ -7,6 +14,7 @@ import {
   ExclamationTriangleIcon,
   PendingIcon,
 } from '@patternfly/react-icons';
+import PhaseApiDetails from '~/app/shared/PhaseApiDetails';
 
 type PopoverContent = {
   headerIcon: React.ReactNode;
@@ -16,6 +24,7 @@ type PopoverContent = {
 };
 
 export enum PhaseResourceType {
+  MODEL = 'Model',
   SUBSCRIPTION = 'Subscription',
   EXTERNAL_MODEL = 'External Model',
   AUTHPOLICY = 'Policy',
@@ -66,6 +75,24 @@ export const normalizePhase = (phase: string | undefined): string => {
 };
 
 const POPOVER_CONTENT: Record<PhaseResourceType, Partial<Record<string, PopoverContent>>> = {
+  [PhaseResourceType.MODEL]: {
+    [PhaseStatus.READY]: {
+      headerIcon: <CheckCircleIcon />,
+      headerContent: 'Ready',
+    },
+    [PhaseStatus.PENDING]: {
+      headerIcon: <PendingIcon />,
+      headerContent: 'Model pending',
+    },
+    [PhaseStatus.FAILED]: {
+      headerIcon: (
+        <Icon status="danger">
+          <ExclamationCircleIcon />
+        </Icon>
+      ),
+      headerContent: 'Model failed',
+    },
+  },
   [PhaseResourceType.EXTERNAL_MODEL]: {
     [PhaseStatus.READY]: {
       headerIcon: <CheckCircleIcon />,
@@ -171,3 +198,282 @@ export enum PhaseLabelLocation {
   POLICIES_TAB = 'policies-tab',
   DETAIL_PAGE = 'detail-page',
 }
+
+export const getStatusSubtext = (
+  phase: string,
+  resourceType: PhaseResourceType,
+): React.ReactNode | undefined => {
+  switch (resourceType) {
+    case PhaseResourceType.MODEL:
+      return getStatusSubtextForModel(phase);
+    case PhaseResourceType.SUBSCRIPTION:
+      return getStatusSubtextForSubscription(phase);
+    case PhaseResourceType.AUTHPOLICY:
+      return getStatusSubtextForAuthPolicy(phase);
+    default:
+      return undefined;
+  }
+};
+
+const getStatusSubtextForModel = (phase: string): React.ReactNode | undefined => {
+  switch (phase) {
+    case PhaseStatus.DEGRADED:
+    case PhaseStatus.UNAVAILABLE:
+      return 'Inference not serving';
+    case PhaseStatus.FAILED:
+      return 'Gateway not found';
+    case PhaseStatus.PENDING:
+      return 'Awaiting subscription';
+    default:
+      return undefined;
+  }
+};
+
+const getStatusSubtextForSubscription = (phase: string): React.ReactNode | undefined => {
+  switch (phase) {
+    case PhaseStatus.FAILED:
+      return 'All rate limits or models unavailable';
+    case PhaseStatus.DEGRADED:
+      return 'Rate limits or models unavailable';
+    default:
+      return undefined;
+  }
+};
+
+const getStatusSubtextForAuthPolicy = (phase: string): React.ReactNode | undefined => {
+  switch (phase) {
+    case PhaseStatus.DEGRADED:
+      return 'Rate limits or models unavailable';
+    case PhaseStatus.FAILED:
+      return 'All rate limits or models unavailable';
+    default:
+      return undefined;
+  }
+};
+
+export const getModalSubtitle = (resourceType: PhaseResourceType): string | undefined => {
+  switch (resourceType) {
+    case PhaseResourceType.SUBSCRIPTION:
+      return 'Subscription status';
+    case PhaseResourceType.AUTHPOLICY:
+      return 'Authorization policy status';
+    case PhaseResourceType.MODEL:
+      return 'Model status';
+    default:
+      return undefined;
+  }
+};
+
+export const getModalAlertProps = (
+  phase: string,
+  resourceType: PhaseResourceType,
+  statusMessage?: string,
+  reason?: string,
+  status?: string,
+  conditionType?: string,
+  lastTransitionTime?: string,
+): AlertProps => {
+  const phaseProps = getPhaseProps(phase);
+  const alertContent = getModalTitleAndChildren(phase, resourceType);
+  const hasAlertBody = !!alertContent?.children;
+  const showApiDetails =
+    (phase === PhaseStatus.FAILED ||
+      phase === PhaseStatus.INVALID ||
+      phase === PhaseStatus.UNAVAILABLE ||
+      phase === PhaseStatus.DEGRADED) &&
+    (!!reason || !!statusMessage);
+
+  return {
+    variant: getAlertVariant(phase),
+    title: alertContent?.title,
+    children:
+      hasAlertBody || showApiDetails ? (
+        <Stack hasGutter>
+          {hasAlertBody ? (
+            <StackItem data-testid="phase-modal-alert-body">{alertContent.children}</StackItem>
+          ) : null}
+          {showApiDetails ? (
+            <StackItem>
+              <PhaseApiDetails
+                reason={reason}
+                statusMessage={statusMessage}
+                status={status}
+                conditionType={conditionType}
+                lastTransitionTime={lastTransitionTime}
+              />
+            </StackItem>
+          ) : null}
+        </Stack>
+      ) : undefined,
+    ...phaseProps,
+  };
+};
+
+export const convertStatusDetailsToJson = (
+  reason?: string,
+  statusMessage?: string,
+  status?: string,
+  conditionType?: string,
+  lastTransitionTime?: string,
+): string =>
+  JSON.stringify(
+    { conditionType, status, reason, message: statusMessage, lastTransitionTime },
+    null,
+    2,
+  );
+
+const getModalTitleAndChildren = (
+  phase: string,
+  resourceType: PhaseResourceType,
+): { title: string; children: string } | undefined => {
+  switch (resourceType) {
+    case PhaseResourceType.MODEL:
+      return getAlertContentForModelRef(phase);
+    case PhaseResourceType.SUBSCRIPTION:
+      return getAlertContentForSubscription(phase);
+    case PhaseResourceType.AUTHPOLICY:
+      return getAlertContentForAuthPolicy(phase);
+    default:
+      return undefined;
+  }
+};
+
+const getAlertContentForModelRef = (
+  phase: string,
+): { title: string; children: string } | undefined => {
+  switch (phase) {
+    case PhaseStatus.DEGRADED:
+    case PhaseStatus.UNAVAILABLE:
+      return {
+        title: 'Model unavailable',
+        children:
+          'The inference service is not serving requests. The model server might be starting, crashing, or lacking resources.',
+      };
+    case PhaseStatus.FAILED:
+      return {
+        title: 'Model setup failed',
+        children: 'The model could not be configured.',
+      };
+    case PhaseStatus.PENDING:
+      return {
+        title: 'Pending MaaS governance',
+        children:
+          "Consumers can't access this model yet. To enable access, set up a subscription and authorization policy.",
+      };
+    case PhaseStatus.INVALID:
+      return {
+        title: 'Invalid model configuration',
+        children:
+          'The model configuration is invalid or missing required fields. Edit the model and ensure its configuration is correct.',
+      };
+    default:
+      return undefined;
+  }
+};
+
+const getAlertContentForSubscription = (
+  phase: string,
+): { title: string; children: string } | undefined => {
+  switch (phase) {
+    case PhaseStatus.FAILED:
+      return {
+        title: 'Subscription failed',
+        children:
+          'Either the rate limit configuration failed, or this subscription includes no available models. ',
+      };
+    case PhaseStatus.DEGRADED:
+      return {
+        title: 'Subscription degraded',
+        children:
+          'At least one of the models or rate limits included in this subscription is unavailable.',
+      };
+    case PhaseStatus.PENDING:
+      return {
+        title: 'Pending',
+        children: 'Subscription setup is in progress.',
+      };
+    case PhaseStatus.INVALID:
+      return {
+        title: 'Invalid subscription configuration',
+        children:
+          'The subscription configuration is invalid or missing required fields. Edit the subscription and ensure its configuration is correct.',
+      };
+    default:
+      return undefined;
+  }
+};
+
+const getAlertContentForAuthPolicy = (
+  phase: string,
+): { title: string; children: string } | undefined => {
+  switch (phase) {
+    case PhaseStatus.DEGRADED:
+      return {
+        title: 'Policy degraded',
+        children:
+          'At least one of the models referenced in this policy is unavailable, or authorization is not fully enforced',
+      };
+    case PhaseStatus.FAILED:
+      return {
+        title: 'Policy failed',
+        children:
+          'Either the rate limit configuration failed, or this policy includes no available models.',
+      };
+    case PhaseStatus.PENDING:
+      return {
+        title: 'Pending',
+        children: 'Policy setup is in progress.',
+      };
+    case PhaseStatus.INVALID:
+      return {
+        title: 'Invalid policy configuration',
+        children:
+          'The policy configuration is invalid or missing required fields. Edit the policy and ensure its configuration is correct.',
+      };
+    default:
+      return undefined;
+  }
+};
+
+const getAlertVariant = (phase: string): AlertProps['variant'] => {
+  switch (phase) {
+    case PhaseStatus.ACTIVE:
+    case PhaseStatus.READY:
+      return 'success';
+    case PhaseStatus.FAILED:
+    case PhaseStatus.INVALID:
+      return 'danger';
+    case PhaseStatus.PENDING:
+      return 'info';
+    case PhaseStatus.DEGRADED:
+      return 'warning';
+    case PhaseStatus.UNAVAILABLE:
+      return 'warning';
+    default:
+      return 'info';
+  }
+};
+
+export const getSubtextProps = (phase: string): ContentProps | undefined => {
+  const sharedStyle: React.CSSProperties = { textDecoration: 'underline dotted' };
+  switch (phase) {
+    case PhaseStatus.DEGRADED:
+    case PhaseStatus.UNAVAILABLE:
+      return {
+        className: 'pf-v6-u-text-color-status-warning',
+        style: sharedStyle,
+      };
+    case PhaseStatus.FAILED:
+      return {
+        className: 'pf-v6-u-text-color-status-danger',
+        style: sharedStyle,
+      };
+    case PhaseStatus.PENDING:
+      return {
+        className: 'pf-v6-u-text-color-status-info',
+        style: sharedStyle,
+      };
+    default:
+      return undefined;
+  }
+};

@@ -5,26 +5,13 @@ const createWebpackCommon = require('../../base/config/webpack.common.js');
 const GenerateDistributionExtensionsPlugin = require('../../base/config/generateDistributionExtensionsPlugin');
 
 const SRC_DIR = path.resolve(__dirname, '../src');
-const REPO_ROOT = path.resolve(__dirname, '../../..');
 const TITLE = 'RHAII';
-
-const additionalIncludes = [];
-if (process.env.ENABLE_MODEL_SERVING === 'true') {
-  additionalIncludes.push(path.resolve(REPO_ROOT, 'packages/connection-types'));
-  additionalIncludes.push(path.resolve(REPO_ROOT, 'packages/model-serving'));
-  additionalIncludes.push(path.resolve(REPO_ROOT, 'packages/k8s-core'));
-  additionalIncludes.push(path.resolve(REPO_ROOT, 'packages/model-registry'));
-  additionalIncludes.push(path.resolve(REPO_ROOT, 'packages/ui-core'));
-  additionalIncludes.push(path.resolve(REPO_ROOT, 'packages/hardware-profiles'));
-  additionalIncludes.push(path.resolve(REPO_ROOT, 'packages/foundation'));
-}
 
 module.exports = (overrides = {}) =>
   merge(
     createWebpackCommon({
       distributionSrcDir: SRC_DIR,
       title: TITLE,
-      additionalIncludes,
       ...overrides,
     }),
     {

@@ -1,6 +1,6 @@
 import { Outlet, useParams } from 'react-router-dom';
 import React from 'react';
-import NotFound from '#~/pages/NotFound';
+import NotFound from '@odh-dashboard/ui-core/components/NotFound';
 import { TrustyAIContextProvider } from '#~/concepts/trustyai/context/TrustyAIContext';
 
 const ProjectInferenceExplainabilityWrapper: React.FC = () => {

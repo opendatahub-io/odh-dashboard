@@ -6,20 +6,18 @@ describe('ReplaceContentConfirmModal', () => {
   it('should render with correct title and body text', () => {
     render(<ReplaceContentConfirmModal onConfirm={jest.fn()} onClose={jest.fn()} />);
 
-    expect(screen.getByText('Replace current content?')).toBeInTheDocument();
-    expect(
-      screen.getByText(/Selecting a template will replace the current form content/),
-    ).toBeInTheDocument();
+    expect(screen.getByText('Discard unsaved changes?')).toBeInTheDocument();
+    expect(screen.getByText(/Your changes to this form are not saved yet/)).toBeInTheDocument();
   });
 
-  it('should render Continue and Cancel buttons', () => {
+  it('should render Discard and Cancel buttons', () => {
     render(<ReplaceContentConfirmModal onConfirm={jest.fn()} onClose={jest.fn()} />);
 
-    expect(screen.getByTestId('replace-confirm-button')).toHaveTextContent('Continue');
+    expect(screen.getByTestId('replace-confirm-button')).toHaveTextContent('Discard');
     expect(screen.getByTestId('replace-cancel-button')).toHaveTextContent('Cancel');
   });
 
-  it('should call onConfirm when Continue button is clicked', () => {
+  it('should call onConfirm when Discard button is clicked', () => {
     const onConfirm = jest.fn();
     render(<ReplaceContentConfirmModal onConfirm={onConfirm} onClose={jest.fn()} />);
 

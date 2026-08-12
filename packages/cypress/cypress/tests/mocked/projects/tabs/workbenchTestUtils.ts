@@ -2,21 +2,20 @@ import {
   mockGlobalScopedHardwareProfiles,
   mockProjectScopedHardwareProfiles,
 } from '@odh-dashboard/hardware-profiles/__mocks__/mockHardwareProfile';
+import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
+import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
+import { mockRouteK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockRouteK8sResource';
 import {
-  mockCustomSecretK8sResource,
-  mockDashboardConfig,
-  mockDscStatus,
-  mockK8sResourceList,
-  mockNotebookK8sResource,
-  mockRouteK8sResource,
   mockSecretK8sResource,
-  mockStorageClassList,
-} from '@odh-dashboard/internal/__mocks__';
+  mockCustomSecretK8sResource,
+} from '@odh-dashboard/k8s-core/__mocks__/mockSecretK8sResource';
+import { mockDscStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDscStatus';
+import { mockNotebookK8sResource, mockStorageClassList } from '@odh-dashboard/internal/__mocks__';
 import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
-import { mockConfigMap } from '@odh-dashboard/internal/__mocks__/mockConfigMap';
+import { mockConfigMap } from '@odh-dashboard/k8s-core/__mocks__/mockConfigMap';
 import { mockImageStreamK8sResource } from '@odh-dashboard/internal/__mocks__/mockImageStreamK8sResource';
 import { mockPVCK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockPVCK8sResource';
-import { mockPodK8sResource } from '@odh-dashboard/internal/__mocks__/mockPodK8sResource';
+import { mockPodK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockPodK8sResource';
 import type { HardwareProfileKind, PodKind } from '@odh-dashboard/k8s-core';
 import type { NotebookKind } from '@odh-dashboard/internal/k8sTypes';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';

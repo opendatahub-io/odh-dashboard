@@ -31,6 +31,7 @@ import {
   mlflowPromptManagementBaseRoute,
   WORKSPACE_QUERY_PARAM,
 } from '@odh-dashboard/internal/routes/pipelines/mlflow';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import MLflowUnavailable from '../shared/MLflowUnavailable';
 import MLflowNotConfigured from '../shared/MLflowNotConfigured';
 import MlflowBreadcrumbs, { type BreadcrumbEntry } from '../shared/MlflowBreadcrumbs';
@@ -62,6 +63,16 @@ const MlflowPromptManagementPage: React.FC = () => {
     [],
   );
 
+  const handleProjectSelectChange = React.useCallback(
+    (projectName: string) => {
+      fireMiscTrackingEvent('Prompts global project changed', {
+        isGlobalProject: projectName === globalNamespace,
+        selectedProject: projectName,
+      });
+    },
+    [globalNamespace],
+  );
+
   const isTopLevel = breadcrumbs.length === 0;
 
   return (
@@ -91,6 +102,7 @@ const MlflowPromptManagementPage: React.FC = () => {
                 </FlexItem>
                 <FlexItem>
                   <ProjectSelectorNavigator
+                    onProjectChange={handleProjectSelectChange}
                     getRedirectPath={mlflowPromptManagementBaseRoute}
                     queryParamNamespace={WORKSPACE_QUERY_PARAM}
                     appendTo={getDashboardMainContainer}

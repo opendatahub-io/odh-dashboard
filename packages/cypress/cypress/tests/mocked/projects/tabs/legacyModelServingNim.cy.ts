@@ -1,4 +1,4 @@
-import { mockK8sResourceList } from '@odh-dashboard/internal/__mocks__/mockK8sResourceList';
+import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
 import {
   mockNimInferenceService,
   mockNimServingRuntime,
@@ -7,7 +7,7 @@ import {
   mockMultipleNimServingRuntimes,
   mockNimImages,
   mockNimServingResource,
-} from '@odh-dashboard/internal/__mocks__/mockLegacyNimResource';
+} from '@odh-dashboard/model-serving/__mocks__/mockLegacyNimResource';
 import { InferenceServiceModel, ServingRuntimeModel } from '../../../../utils/models';
 import { projectDetails, projectDetailsOverviewTab } from '../../../../pages/projects';
 import { nimDeployModal } from '../../../../pages/components/NIMDeployModal';

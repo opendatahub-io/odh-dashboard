@@ -1,6 +1,8 @@
 const GEN_AI_DEV_FLAG = 'devFeatureFlags=genAiStudio=true,modelAsService=false';
 const GEN_AI_CUSTOM_ENDPOINTS_FLAG =
   'devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,modelAsService=false';
+const GEN_AI_CUSTOM_ENDPOINTS_PROMPT_FLAG =
+  'devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,promptManagement=true,modelAsService=false';
 
 class GenAiPlayground {
   navigate(projectName: string) {
@@ -27,6 +29,22 @@ class GenAiPlayground {
     const playgroundUrl = `/gen-ai-studio/playground/${projectName}?${GEN_AI_CUSTOM_ENDPOINTS_FLAG}`;
     cy.visit(playgroundUrl);
     cy.findByTestId('settings-model-selector-toggle', { timeout: 120000 }).should('be.visible');
+  }
+
+  navigateToAssetsWithPromptManagement(projectName: string) {
+    cy.visit(`/gen-ai-studio/assets/${projectName}?${GEN_AI_CUSTOM_ENDPOINTS_PROMPT_FLAG}`);
+    cy.url().should('include', `/gen-ai-studio/assets/${projectName}`);
+  }
+
+  navigateToPlaygroundWithPromptManagement(projectName: string) {
+    cy.visit(`/gen-ai-studio/playground/${projectName}?${GEN_AI_CUSTOM_ENDPOINTS_PROMPT_FLAG}`);
+    cy.url().should('include', `/gen-ai-studio/playground/${projectName}`);
+  }
+
+  navigateToPlaygroundWithPromptManagementRetry(projectName: string) {
+    const playgroundUrl = `/gen-ai-studio/playground/${projectName}?${GEN_AI_CUSTOM_ENDPOINTS_PROMPT_FLAG}`;
+    cy.visit(playgroundUrl);
+    cy.findByTestId('chatbot-message-bar', { timeout: 120000 }).should('be.visible');
   }
 
   findEmptyState() {
@@ -61,14 +79,27 @@ class GenAiPlayground {
     return cy.findByTestId('chatbot-message-user');
   }
 
+  findAllUserMessages() {
+    return cy.findAllByTestId('chatbot-message-user');
+  }
+
   findAssistantMessage(options?: { timeout?: number }) {
     return cy.findByTestId('chatbot-message-bot', options);
+  }
+
+  findAllAssistantMessages(options?: { timeout?: number }) {
+    return cy.findAllByTestId('chatbot-message-bot', options);
   }
 
   sendMessage(message: string) {
     this.findMessageInput().should('be.visible').and('be.enabled').clear().type(message);
     this.findMessageInput().type('{enter}');
     this.findMessageInput().should('have.value', '');
+  }
+
+  waitForStreamingComplete(options?: { timeout?: number }) {
+    const timeout = options?.timeout ?? 60000;
+    cy.findByTestId('chatbot-stop-button', { timeout }).should('not.exist');
   }
 
   ensureModelCheckboxIsChecked(modelName: string) {
@@ -161,6 +192,122 @@ class GenAiPlayground {
 
   findTryInPlaygroundButton() {
     return cy.findByTestId('try-playground-button');
+  }
+
+  // Settings panel methods
+  findSettingsButton() {
+    return cy.findByTestId('settings-button');
+  }
+
+  findSettingsPanelHeader(options?: { timeout?: number }) {
+    return cy.findByTestId('chatbot-settings-panel-header', options);
+  }
+
+  ensureSettingsPanelOpen() {
+    cy.get('body').then(($body) => {
+      if ($body.find('[data-testid="chatbot-settings-panel-header"]').length === 0) {
+        this.findSettingsButton().should('be.visible').click();
+      }
+    });
+    this.findSettingsPanelHeader({ timeout: 10000 }).should('be.visible');
+  }
+
+  findSettingsPromptTab() {
+    return cy.findByTestId('chatbot-settings-page-tab-prompt');
+  }
+
+  // Prompt management methods (within the playground settings panel)
+  findSystemInstructionsInput() {
+    return cy.findByTestId('system-instructions-input');
+  }
+
+  findPromptSaveToRegistryButton() {
+    return cy.findByTestId('prompt-save-to-registry-button');
+  }
+
+  findPromptNameInput() {
+    return cy.findByTestId('prompt-name-input');
+  }
+
+  findPromptTemplateInput() {
+    return cy.findByTestId('prompt-template-input');
+  }
+
+  findPromptCommitMessageInput() {
+    return cy.findByTestId('prompt-commit-message-input');
+  }
+
+  findPromptSaveButton() {
+    return cy.findByTestId('prompt-save-button');
+  }
+
+  findPromptCreateModal() {
+    return cy.findByTestId('prompt-create-modal');
+  }
+
+  findPromptManagementModal() {
+    return cy.findByTestId('prompt-management-modal');
+  }
+
+  findLoadPromptButton() {
+    return cy.findByTestId('load-prompt-button');
+  }
+
+  findPromptTableRow(promptName: string) {
+    return cy.findByTestId(`prompt-table-row-${promptName}`);
+  }
+
+  findPromptLoadConfirmButton() {
+    return cy.findByTestId('prompt-load-button');
+  }
+
+  findPromptNameTitle() {
+    return cy.findByTestId('prompt-name-title');
+  }
+
+  // RAG / Knowledge upload methods
+  findKnowledgeTab() {
+    return cy.findByTestId('chatbot-settings-page-tab-knowledge');
+  }
+
+  findDocumentFileInput() {
+    return cy.findByTestId('document-file-input');
+  }
+
+  uploadDocumentViaAttachMenu(fixturePath: string) {
+    this.findDocumentFileInput().selectFile(fixturePath, { force: true });
+  }
+
+  findSourceSettingsModal() {
+    return cy.findByTestId('source-settings-modal');
+  }
+
+  findSourceSettingsUploadButton() {
+    return cy.findByTestId('source-settings-upload-button');
+  }
+
+  findSourceUploadSuccessAlert(options?: { timeout?: number }) {
+    return cy.findByTestId('source-upload-success-alert', options);
+  }
+
+  findRagToggle() {
+    return cy.findByTestId('rag-toggle-switch');
+  }
+
+  findUploadedFilesCard(options?: { timeout?: number }) {
+    return cy.findByTestId('uploaded-files-card', options);
+  }
+
+  findUploadedFileName(fileName: string, options?: { timeout?: number }) {
+    return cy.findByTestId(`uploaded-file-name-${fileName}`, options);
+  }
+
+  findFileSearchResults(options?: { timeout?: number }) {
+    return cy.findByTestId('file-search-results', options);
+  }
+
+  findFileSearchResultsToggle() {
+    return cy.findByTestId('file-search-results-toggle');
   }
 }
 

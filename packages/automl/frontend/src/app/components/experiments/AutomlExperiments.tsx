@@ -2,7 +2,7 @@ import { Alert, Spinner } from '@patternfly/react-core';
 import React from 'react';
 import { useParams } from 'react-router';
 import { getGenericErrorCode } from '@odh-dashboard/internal/api/errorUtils';
-import UnauthorizedError from '@odh-dashboard/internal/pages/UnauthorizedError';
+import UnauthorizedError from '@odh-dashboard/ui-core/components/UnauthorizedError';
 import { AutomlRunsTable } from '~/app/components/AutomlRunsTable';
 import EmptyExperimentsState from '~/app/components/empty-states/EmptyExperimentsState';
 import PipelineServerSetup from '~/app/components/empty-states/PipelineServerSetup';

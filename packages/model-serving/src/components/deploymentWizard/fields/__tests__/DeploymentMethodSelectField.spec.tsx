@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { useHostApi } from '@odh-dashboard/plugin-core/host-api';
 import { ModelServingTrackingEvent } from '../../../../shared/tracking/modelServingTrackingConstants';
 import {
   DeploymentMethodSelectFieldWizardField,
@@ -11,11 +11,12 @@ import {
 } from '../DeploymentMethodSelectField';
 import type { DeploymentMethodFieldOverride } from '../../../../shared/types/form-data';
 
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireMiscTrackingEvent: jest.fn(),
+jest.mock('@odh-dashboard/plugin-core/host-api', () => ({
+  useHostApi: jest.fn(),
 }));
 
-const mockFireMiscTrackingEvent = jest.mocked(fireMiscTrackingEvent);
+const mockTrackEvent = jest.fn();
+(useHostApi as jest.Mock).mockReturnValue({ trackEvent: mockTrackEvent });
 
 const DeploymentMethodSelectFieldComponent = DeploymentMethodSelectFieldWizardField.component;
 
@@ -143,13 +144,10 @@ describe('DeploymentMethodSelectField tracking', () => {
 
     fireEvent.click(screen.getByTestId('deployment-method-kserve'));
 
-    expect(mockFireMiscTrackingEvent).toHaveBeenCalledWith(
-      ModelServingTrackingEvent.DEPLOY_METHOD_SELECTED,
-      {
-        deploymentMethod: 'kserve',
-        previousDeploymentMethod: undefined,
-      },
-    );
+    expect(mockTrackEvent).toHaveBeenCalledWith(ModelServingTrackingEvent.DEPLOY_METHOD_SELECTED, {
+      deploymentMethod: 'kserve',
+      previousDeploymentMethod: undefined,
+    });
   });
 
   it('should fire deploy method selected tracking with previous method when switching', () => {
@@ -168,13 +166,10 @@ describe('DeploymentMethodSelectField tracking', () => {
 
     fireEvent.click(screen.getByTestId('deployment-method-llmd'));
 
-    expect(mockFireMiscTrackingEvent).toHaveBeenCalledWith(
-      ModelServingTrackingEvent.DEPLOY_METHOD_SELECTED,
-      {
-        deploymentMethod: 'llmd',
-        previousDeploymentMethod: 'kserve',
-      },
-    );
+    expect(mockTrackEvent).toHaveBeenCalledWith(ModelServingTrackingEvent.DEPLOY_METHOD_SELECTED, {
+      deploymentMethod: 'llmd',
+      previousDeploymentMethod: 'kserve',
+    });
   });
 
   it('should call onChange with the selected method', () => {
