@@ -25,6 +25,7 @@ import {
   resolveFieldValue,
 } from '../../../shared/types/form-data';
 import { deploymentStrategyRecreate } from '../fields/DeploymentStrategyField';
+import { filterRuntimeArgsForContainer } from '../fields/RuntimeArgsField';
 import { ExternalDataMap } from '../ExternalDataLoader';
 import { isWizardStepTitle } from '../utils';
 
@@ -322,9 +323,12 @@ const getStatusSections = (
             if (!runtimeArgs || !runtimeArgs.enabled || runtimeArgs.args.length === 0) {
               return undefined;
             }
-            const allArgs = runtimeArgs.args.flatMap((arg) =>
+            const allArgs = filterRuntimeArgsForContainer(runtimeArgs.args).flatMap((arg) =>
               arg.trim().split(/\s+/).filter(Boolean),
             );
+            if (allArgs.length === 0) {
+              return undefined;
+            }
             return (
               <>
                 <div>{allArgs.length}</div>
