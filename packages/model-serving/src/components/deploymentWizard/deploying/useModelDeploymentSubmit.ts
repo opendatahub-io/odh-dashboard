@@ -73,7 +73,6 @@ export const useModelDeploymentSubmit = (
       servingRuntimeFormat: formState.modelFormatState.modelFormat?.name,
       numReplicas: formState.numReplicas.data ?? undefined,
       modelLocationType: formState.modelLocationData.data?.type,
-      connectionType: formState.modelLocationData.data?.connectionTypeObject?.metadata.name,
     };
   }, [formState]);
 

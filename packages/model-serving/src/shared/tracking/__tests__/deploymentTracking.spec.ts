@@ -136,7 +136,6 @@ describe('fireModelDeployed', () => {
       servingRuntimeFormat: 'onnx',
       numReplicas: 1,
       modelLocationType: 'existing',
-      connectionType: 's3',
     };
 
     fireModelDeployed(properties, false);
@@ -145,7 +144,6 @@ describe('fireModelDeployed', () => {
       DeploymentTrackingEvent.MODEL_DEPLOYED,
       expect.objectContaining({
         modelLocationType: 'existing',
-        connectionType: 's3',
       }),
     );
   });

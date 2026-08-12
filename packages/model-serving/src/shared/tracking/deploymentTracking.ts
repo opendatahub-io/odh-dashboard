@@ -13,7 +13,6 @@ export type DeploymentTrackingBaseProperties = FormTrackingEventProperties & {
   servingRuntimeFormat?: string;
   numReplicas?: number;
   modelLocationType?: string;
-  connectionType?: string;
 };
 
 export type DeploymentTrackingProperties = DeploymentTrackingBaseProperties &

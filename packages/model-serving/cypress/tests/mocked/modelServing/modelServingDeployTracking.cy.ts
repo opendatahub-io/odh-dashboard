@@ -57,7 +57,6 @@ const initIntercepts = () => {
       disableNIMModelServing: true,
       disableKServe: false,
       deploymentWizardYAMLViewer: true,
-      vLLMDeploymentOnMaaS: true,
       genAiStudio: true,
     }),
   );
@@ -242,25 +241,34 @@ describe('Model Deployment Tracking Events', () => {
     modelServingGlobal.findDeployModelButton().click();
 
     // Step 1: Model source — select generative model with existing connection
-    modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).click();
-    modelServingWizard.findModelLocationSelectOption(ModelLocationSelectOption.EXISTING).click();
-    modelServingWizard.findExistingConnectionSelect().click();
-    modelServingWizard.findExistingConnectionSelectOption('Test URI Secret').click();
-    modelServingWizard.findNextButton().click();
+    modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).should('exist').click();
+    modelServingWizard
+      .findModelLocationSelectOption(ModelLocationSelectOption.EXISTING)
+      .should('exist')
+      .click();
+    modelServingWizard.findExistingConnectionSelect().should('exist').click();
+    modelServingWizard
+      .findExistingConnectionSelectOption('Test URI Secret')
+      .should('exist')
+      .click();
+    modelServingWizard.findNextButton().should('be.enabled').click();
 
-    // Step 2: Model deployment
+    // Step 2: Model deployment — mirrors the passing pattern from modelServingDeploy.cy.ts
+    modelServingWizard.findModelDeploymentStep().should('be.enabled');
+    modelServingWizard.findNextButton().should('be.disabled');
     modelServingWizard.findModelDeploymentNameInput().type('test-model');
     modelServingWizard.selectDeploymentMethodByKey('legacy');
+    modelServingWizard.findModelServerAutoSelectRadio().should('not.be.checked');
     modelServingWizard
       .findServingRuntimeTemplateSearchSelector()
       .should('contain.text', 'Select a serving runtime template');
     modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
     modelServingWizard.selectGlobalScopedTemplateOption('vLLM NVIDIA');
-    modelServingWizard.findNextButton().click();
+    modelServingWizard.findNextButton().should('be.enabled').click();
 
-    // Step 3: Advanced options — skip through with defaults
+    // Step 3: Advanced options — enable external route for token auth
     modelServingWizard.findExternalRouteCheckbox().click();
-    modelServingWizard.findNextButton().click();
+    modelServingWizard.findNextButton().should('be.enabled').click();
 
     // Step 4: Review — stub window.analytics.track to capture tracking events in non-dev builds
     cy.window().then((win) => {
@@ -348,26 +356,35 @@ describe('Model Deployment Tracking Events', () => {
     modelServingGlobal.visit('test-project');
     modelServingGlobal.findDeployModelButton().click();
 
-    // Step 1: Model source
-    modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).click();
-    modelServingWizard.findModelLocationSelectOption(ModelLocationSelectOption.EXISTING).click();
-    modelServingWizard.findExistingConnectionSelect().click();
-    modelServingWizard.findExistingConnectionSelectOption('Test URI Secret').click();
-    modelServingWizard.findNextButton().click();
+    // Step 1: Model source — select generative model with existing connection
+    modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).should('exist').click();
+    modelServingWizard
+      .findModelLocationSelectOption(ModelLocationSelectOption.EXISTING)
+      .should('exist')
+      .click();
+    modelServingWizard.findExistingConnectionSelect().should('exist').click();
+    modelServingWizard
+      .findExistingConnectionSelectOption('Test URI Secret')
+      .should('exist')
+      .click();
+    modelServingWizard.findNextButton().should('be.enabled').click();
 
-    // Step 2: Model deployment
+    // Step 2: Model deployment — mirrors the passing pattern from modelServingDeploy.cy.ts
+    modelServingWizard.findModelDeploymentStep().should('be.enabled');
+    modelServingWizard.findNextButton().should('be.disabled');
     modelServingWizard.findModelDeploymentNameInput().type('test-model');
     modelServingWizard.selectDeploymentMethodByKey('legacy');
+    modelServingWizard.findModelServerAutoSelectRadio().should('not.be.checked');
     modelServingWizard
       .findServingRuntimeTemplateSearchSelector()
       .should('contain.text', 'Select a serving runtime template');
     modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
     modelServingWizard.selectGlobalScopedTemplateOption('vLLM NVIDIA');
-    modelServingWizard.findNextButton().click();
+    modelServingWizard.findNextButton().should('be.enabled').click();
 
     // Step 3: Advanced options
     modelServingWizard.findExternalRouteCheckbox().click();
-    modelServingWizard.findNextButton().click();
+    modelServingWizard.findNextButton().should('be.enabled').click();
 
     // Step 4: Review — stub window.analytics.track to capture tracking events in non-dev builds
     cy.window().then((win) => {
