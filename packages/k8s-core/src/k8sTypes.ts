@@ -323,6 +323,7 @@ export type DashboardCommonConfig = {
   modelCapabilities?: boolean;
   modelDeploymentSettings?: boolean;
   notebooksV2?: boolean;
+  dataRegistry?: boolean;
 };
 
 export type DashboardConfigKind = K8sResourceCommon & {
