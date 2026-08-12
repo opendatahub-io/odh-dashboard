@@ -13,6 +13,7 @@ import type {
   AssembleModelResourceExtension,
   DeploymentWizardFieldOverrideExtension,
   ModelServingDeploymentTransformExtension,
+  WizardFieldDeploymentFunctionsExtension,
 } from '@odh-dashboard/model-serving/extension-points/deployment-wizard';
 import { SupportedArea } from '@odh-dashboard/plugin-core/areas';
 import type {
@@ -95,52 +96,6 @@ const llmConfigOptionsFieldExtensionWithTemplates: WizardFieldExtension<
   },
 };
 
-const topologyTypeFieldExtension: WizardFieldExtension<TopologyTypeFieldType, LLMdDeployment> = {
-  type: 'model-serving.deployment/wizard-field',
-  properties: {
-    platform: LLMD_SERVING_ID,
-    field: () =>
-      import('../src/wizardFields/TopologyTypeField').then((m) => m.TopologyTypeFieldWizardField),
-  },
-  flags: {
-    required: [LLMD_SERVING_ID, SupportedArea.LLMD_TOPOLOGY_CONFIGS],
-  },
-};
-
-const customTopologyConfigFieldExtension: WizardFieldExtension<
-  CustomTopologyConfigFieldType,
-  LLMdDeployment
-> = {
-  type: 'model-serving.deployment/wizard-field',
-  properties: {
-    platform: LLMD_SERVING_ID,
-    field: () =>
-      import('../src/wizardFields/CustomTopologyConfigField').then(
-        (m) => m.CustomTopologyConfigFieldWizardField,
-      ),
-  },
-  flags: {
-    required: [LLMD_SERVING_ID, SupportedArea.LLMD_TOPOLOGY_CONFIGS],
-  },
-};
-
-const advancedRoutingFieldExtension: WizardFieldExtension<
-  AdvancedRoutingFieldType,
-  LLMdDeployment
-> = {
-  type: 'model-serving.deployment/wizard-field',
-  properties: {
-    platform: LLMD_SERVING_ID,
-    field: () =>
-      import('../src/wizardFields/AdvancedRoutingField').then(
-        (m) => m.AdvancedRoutingFieldWizardField,
-      ),
-  },
-  flags: {
-    required: [LLMD_SERVING_ID, SupportedArea.LLMD_TOPOLOGY_CONFIGS],
-  },
-};
-
 const gatewaySelectFieldExtension: WizardFieldExtension<GatewaySelectFieldType, LLMdDeployment> = {
   type: 'model-serving.deployment/wizard-field',
   properties: {
@@ -189,9 +144,36 @@ const gatewaySelectExtractorExtension: WizardFieldExtractorExtension<
   },
 };
 
-// ─── Topology / Routing Apply + Extract Extensions ─────────────────────────────
+// ───────────────────Topology Config Extensions ───────────────────
 
-const topologyTypeApplyExtension: WizardFieldApplyExtension<TopologyTypeFieldData, LLMdDeployment> =
+export type TopologyConfigsExtensionsType =
+  // Topology type
+  | WizardFieldExtension<TopologyTypeFieldType, LLMdDeployment>
+  | WizardFieldApplyExtension<TopologyTypeFieldData, LLMdDeployment>
+  | WizardFieldExtractorExtension<TopologyTypeFieldData, LLMdDeployment>
+  // Topology config
+  | WizardFieldExtension<CustomTopologyConfigFieldType, LLMdDeployment>
+  | WizardFieldApplyExtension<CustomTopologyConfigFieldData, LLMdDeployment>
+  | WizardFieldExtractorExtension<CustomTopologyConfigFieldData, LLMdDeployment>
+  | WizardFieldDeploymentFunctionsExtension<CustomTopologyConfigFieldData, LLMdDeployment>
+  // Router config
+  | WizardFieldExtension<AdvancedRoutingFieldType, LLMdDeployment>
+  | WizardFieldApplyExtension<AdvancedRoutingFieldData, LLMdDeployment>
+  | WizardFieldExtractorExtension<AdvancedRoutingFieldData, LLMdDeployment>;
+
+export const topologyConfigsExtensions: TopologyConfigsExtensionsType[] = [
+  // ─── Topology type ──────────────────────────────────────────────────
+  {
+    type: 'model-serving.deployment/wizard-field',
+    properties: {
+      platform: LLMD_SERVING_ID,
+      field: () =>
+        import('../src/wizardFields/TopologyTypeField').then((m) => m.TopologyTypeFieldWizardField),
+    },
+    flags: {
+      required: [SupportedArea.LLMD_SERVING, SupportedArea.LLMD_TOPOLOGY_CONFIGS],
+    },
+  } satisfies WizardFieldExtension<TopologyTypeFieldType, LLMdDeployment>,
   {
     type: 'model-serving.deployment/wizard-field-apply',
     properties: {
@@ -200,84 +182,105 @@ const topologyTypeApplyExtension: WizardFieldApplyExtension<TopologyTypeFieldDat
       apply: () => import('../src/deployments/topology').then((m) => m.applyTopologyType),
     },
     flags: {
-      required: [LLMD_SERVING_ID, SupportedArea.LLMD_TOPOLOGY_CONFIGS],
+      required: [SupportedArea.LLMD_SERVING, SupportedArea.LLMD_TOPOLOGY_CONFIGS],
     },
-  };
-
-const topologyTypeExtractorExtension: WizardFieldExtractorExtension<
-  TopologyTypeFieldData,
-  LLMdDeployment
-> = {
-  type: 'model-serving.deployment/wizard-field-extractor',
-  properties: {
-    fieldId: 'llmd-serving/topology-type',
-    platform: LLMD_SERVING_ID,
-    extract: () => import('../src/deployments/topology').then((m) => m.extractTopologyType),
+  } satisfies WizardFieldApplyExtension<TopologyTypeFieldData, LLMdDeployment>,
+  {
+    type: 'model-serving.deployment/wizard-field-extractor',
+    properties: {
+      fieldId: 'llmd-serving/topology-type',
+      platform: LLMD_SERVING_ID,
+      extract: () => import('../src/deployments/topology').then((m) => m.extractTopologyType),
+    },
+    flags: {
+      required: [SupportedArea.LLMD_SERVING, SupportedArea.LLMD_TOPOLOGY_CONFIGS],
+    },
+  } satisfies WizardFieldExtractorExtension<TopologyTypeFieldData, LLMdDeployment>,
+  // ─── Topology config ──────────────────────────────────────────────────
+  {
+    type: 'model-serving.deployment/wizard-field',
+    properties: {
+      platform: LLMD_SERVING_ID,
+      field: () =>
+        import('../src/wizardFields/CustomTopologyConfigField').then(
+          (m) => m.CustomTopologyConfigFieldWizardField,
+        ),
+    },
+    flags: {
+      required: [SupportedArea.LLMD_SERVING, SupportedArea.LLMD_TOPOLOGY_CONFIGS],
+    },
+  } satisfies WizardFieldExtension<CustomTopologyConfigFieldType, LLMdDeployment>,
+  {
+    type: 'model-serving.deployment/wizard-field-apply',
+    properties: {
+      fieldId: 'llmd-serving/custom-topology-config',
+      platform: LLMD_SERVING_ID,
+      apply: () => import('../src/deployments/topology').then((m) => m.applyTopologyConfig),
+    },
+    flags: {
+      required: [SupportedArea.LLMD_SERVING, SupportedArea.LLMD_TOPOLOGY_CONFIGS],
+    },
+  } satisfies WizardFieldApplyExtension<CustomTopologyConfigFieldData, LLMdDeployment>,
+  {
+    type: 'model-serving.deployment/wizard-field-extractor',
+    properties: {
+      fieldId: 'llmd-serving/custom-topology-config',
+      platform: LLMD_SERVING_ID,
+      extract: () => import('../src/deployments/topology').then((m) => m.extractTopologyConfig),
+    },
+    flags: {
+      required: [SupportedArea.LLMD_SERVING, SupportedArea.LLMD_TOPOLOGY_CONFIGS],
+    },
+  } satisfies WizardFieldExtractorExtension<CustomTopologyConfigFieldData, LLMdDeployment>,
+  {
+    type: 'model-serving.deployment/wizard-field-deployment-functions',
+    properties: {
+      fieldId: 'llmd-serving/custom-topology-config',
+      platform: LLMD_SERVING_ID,
+      preDeploy: () => import('../src/deployments/topology').then((m) => m.preDeployTopologyConfig),
+      postDeploy: null,
+    },
+    flags: {
+      required: [SupportedArea.LLMD_SERVING, SupportedArea.LLMD_TOPOLOGY_CONFIGS],
+    },
   },
-  flags: {
-    required: [LLMD_SERVING_ID, SupportedArea.LLMD_TOPOLOGY_CONFIGS],
-  },
-};
-
-const topologyConfigApplyExtension: WizardFieldApplyExtension<
-  CustomTopologyConfigFieldData,
-  LLMdDeployment
-> = {
-  type: 'model-serving.deployment/wizard-field-apply',
-  properties: {
-    fieldId: 'llmd-serving/custom-topology-config',
-    platform: LLMD_SERVING_ID,
-    apply: () => import('../src/deployments/topology').then((m) => m.applyTopologyConfig),
-  },
-  flags: {
-    required: [LLMD_SERVING_ID, SupportedArea.LLMD_TOPOLOGY_CONFIGS],
-  },
-};
-
-const topologyConfigExtractorExtension: WizardFieldExtractorExtension<
-  CustomTopologyConfigFieldData,
-  LLMdDeployment
-> = {
-  type: 'model-serving.deployment/wizard-field-extractor',
-  properties: {
-    fieldId: 'llmd-serving/custom-topology-config',
-    platform: LLMD_SERVING_ID,
-    extract: () => import('../src/deployments/topology').then((m) => m.extractTopologyConfig),
-  },
-  flags: {
-    required: [LLMD_SERVING_ID, SupportedArea.LLMD_TOPOLOGY_CONFIGS],
-  },
-};
-
-const routingConfigApplyExtension: WizardFieldApplyExtension<
-  AdvancedRoutingFieldData,
-  LLMdDeployment
-> = {
-  type: 'model-serving.deployment/wizard-field-apply',
-  properties: {
-    fieldId: 'llmd-serving/advanced-routing',
-    platform: LLMD_SERVING_ID,
-    apply: () => import('../src/deployments/topology').then((m) => m.applyRoutingConfig),
-  },
-  flags: {
-    required: [LLMD_SERVING_ID, SupportedArea.LLMD_TOPOLOGY_CONFIGS],
-  },
-};
-
-const routingConfigExtractorExtension: WizardFieldExtractorExtension<
-  AdvancedRoutingFieldData,
-  LLMdDeployment
-> = {
-  type: 'model-serving.deployment/wizard-field-extractor',
-  properties: {
-    fieldId: 'llmd-serving/advanced-routing',
-    platform: LLMD_SERVING_ID,
-    extract: () => import('../src/deployments/topology').then((m) => m.extractRoutingConfig),
-  },
-  flags: {
-    required: [LLMD_SERVING_ID, SupportedArea.LLMD_TOPOLOGY_CONFIGS],
-  },
-};
+  // ─── Router config ──────────────────────────────────────────────────
+  {
+    type: 'model-serving.deployment/wizard-field',
+    properties: {
+      platform: LLMD_SERVING_ID,
+      field: () =>
+        import('../src/wizardFields/AdvancedRoutingField').then(
+          (m) => m.AdvancedRoutingFieldWizardField,
+        ),
+    },
+    flags: {
+      required: [SupportedArea.LLMD_SERVING, SupportedArea.LLMD_TOPOLOGY_CONFIGS],
+    },
+  } satisfies WizardFieldExtension<AdvancedRoutingFieldType, LLMdDeployment>,
+  {
+    type: 'model-serving.deployment/wizard-field-apply',
+    properties: {
+      fieldId: 'llmd-serving/advanced-routing',
+      platform: LLMD_SERVING_ID,
+      apply: () => import('../src/deployments/topology').then((m) => m.applyRoutingConfig),
+    },
+    flags: {
+      required: [SupportedArea.LLMD_SERVING, SupportedArea.LLMD_TOPOLOGY_CONFIGS],
+    },
+  } satisfies WizardFieldApplyExtension<AdvancedRoutingFieldData, LLMdDeployment>,
+  {
+    type: 'model-serving.deployment/wizard-field-extractor',
+    properties: {
+      fieldId: 'llmd-serving/advanced-routing',
+      platform: LLMD_SERVING_ID,
+      extract: () => import('../src/deployments/topology').then((m) => m.extractRoutingConfig),
+    },
+    flags: {
+      required: [SupportedArea.LLMD_SERVING, SupportedArea.LLMD_TOPOLOGY_CONFIGS],
+    },
+  } satisfies WizardFieldExtractorExtension<AdvancedRoutingFieldData, LLMdDeployment>,
+];
 
 const deploymentMethodExtractorExtensionLllmdOnly: WizardFieldExtractorExtension<
   { method: string },
@@ -336,6 +339,7 @@ const extensions: (
   | WizardFieldApplyExtension<GatewaySelectFieldData, LLMdDeployment>
   | WizardFieldExtractorExtension<GatewaySelectFieldData, LLMdDeployment>
   | WizardFieldExtractorExtension<{ method: string }, LLMdDeployment>
+  | TopologyConfigsExtensionsType
   | HrefNavItemExtension
   | RouteExtension
   | TabRouteTabExtension
@@ -525,15 +529,7 @@ const extensions: (
   },
   llmConfigOptionsFieldExtensionNoTemplates,
   llmConfigOptionsFieldExtensionWithTemplates,
-  topologyTypeFieldExtension,
-  customTopologyConfigFieldExtension,
-  advancedRoutingFieldExtension,
-  topologyTypeApplyExtension,
-  topologyTypeExtractorExtension,
-  topologyConfigApplyExtension,
-  topologyConfigExtractorExtension,
-  routingConfigApplyExtension,
-  routingConfigExtractorExtension,
+  ...topologyConfigsExtensions,
   gatewaySelectFieldExtension,
   gatewaySelectApplyExtension,
   gatewaySelectExtractorExtension,

@@ -22,6 +22,7 @@ import { useModelAvailabilityFields } from './fields/ModelAvailabilityFields';
 import { useCreateConnectionData } from './fields/CreateConnectionInputFields';
 import { useProjectSection } from './fields/ProjectSection';
 import { useDeploymentStrategyField } from './fields/DeploymentStrategyField';
+import { useValidatedConfigurationsField } from './fields/validatedConfigurations/useValidatedConfigurationsField';
 import {
   useDeploymentWizardReducer,
   wizardFormReducer,
@@ -102,6 +103,7 @@ export const useModelDeploymentWizard = (
     initialData: extractK8sNameDescriptionFieldData(initialData?.k8sNameDesc),
     editableK8sName: !initialData?.k8sNameDesc?.k8sName.state.immutable,
     limitNameResourceType: LimitNameResourceType.MODEL_DEPLOYMENT,
+    namespace: project.projectName ?? undefined,
     regexp: INFERENCE_SERVICE_NAME_REGEX,
     invalidCharsMessage: INFERENCE_SERVICE_NAME_INVALID_CHARS_MESSAGE,
   });
@@ -150,6 +152,9 @@ export const useModelDeploymentWizard = (
     formState.modelServer,
     formState.deploymentMethod,
   );
+  const validatedConfigurationSelection = useValidatedConfigurationsField(
+    initialData?.selectedValidatedConfigurations,
+  );
 
   // Step 4: Summary
 
@@ -173,6 +178,7 @@ export const useModelDeploymentWizard = (
       modelAvailability,
       deploymentStrategy,
       canCreateRoleBindings,
+      validatedConfigurationSelection,
       ...formState,
     }),
     [
@@ -191,6 +197,7 @@ export const useModelDeploymentWizard = (
       modelAvailability,
       deploymentStrategy,
       canCreateRoleBindings,
+      validatedConfigurationSelection,
       formState,
     ],
   );

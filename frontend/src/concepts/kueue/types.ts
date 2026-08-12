@@ -53,3 +53,20 @@ export const KUEUE_STATUSES_OVERRIDE_WORKBENCH: KueueWorkloadStatus[] = [
   KueueWorkloadStatus.Requeued,
   KueueWorkloadStatus.Complete,
 ];
+
+/**
+ * Kueue statuses that override the normal KServe deployment status in the Status column.
+ * For Admitted/Running we show the standard KServe lifecycle state instead.
+ * Differs from KUEUE_STATUSES_OVERRIDE_WORKBENCH: includes AdmissionCheck and
+ * BlockedOnPreemptionGates (relevant for model deployments), excludes Complete.
+ */
+export const KUEUE_STATUSES_OVERRIDE_MODEL_DEPLOYMENT: KueueWorkloadStatus[] = [
+  KueueWorkloadStatus.Queued,
+  KueueWorkloadStatus.Inadmissible,
+  KueueWorkloadStatus.Failed,
+  KueueWorkloadStatus.Preempted,
+  KueueWorkloadStatus.Evicted,
+  KueueWorkloadStatus.Requeued,
+  KueueWorkloadStatus.AdmissionCheck,
+  KueueWorkloadStatus.BlockedOnPreemptionGates,
+];

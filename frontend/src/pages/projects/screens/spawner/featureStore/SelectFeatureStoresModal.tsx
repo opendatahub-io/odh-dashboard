@@ -1,15 +1,19 @@
 import * as React from 'react';
 /* eslint-disable @odh-dashboard/no-restricted-imports */
 import {
+  Alert,
   Button,
   Modal,
   ModalBody,
   ModalFooter,
   ModalHeader,
   SearchInput,
+  ToggleGroup,
+  ToggleGroupItem,
+  ToolbarGroup,
   ToolbarItem,
 } from '@patternfly/react-core';
-import { DashboardEmptyTableView, TableBase, useTableColumnSort } from '@odh-dashboard/ui-core';
+import { DashboardEmptyTableView, Table } from '@odh-dashboard/ui-core';
 /* eslint-enable @odh-dashboard/no-restricted-imports */
 import { useCheckboxTableBase } from '#~/components/table';
 import type {
@@ -25,6 +29,7 @@ import {
   SELECT_FEATURE_STORES_MODAL_TITLE,
   selectFeatureStoresColumns,
 } from './selectFeatureStoresModalConst';
+import { FEATURE_STORE_UNAVAILABLE_TOOLTIP } from './utils';
 
 export type SelectFeatureStoresModalProps = {
   featureStores: WorkbenchFeatureStoreConfig[];
@@ -33,6 +38,8 @@ export type SelectFeatureStoresModalProps = {
   onSave: (featureStores: SelectedFeatureStoreConfig[]) => void;
   onClose: () => void;
 };
+
+type AvailabilityFilter = 'all' | 'available' | 'unavailable';
 
 const getInitialSelections = (
   featureStores: SelectedFeatureStoreConfig[],
@@ -60,6 +67,7 @@ export const SelectFeatureStoresModal: React.FC<SelectFeatureStoresModalProps> =
   onClose,
 }) => {
   const [filterText, setFilterText] = React.useState('');
+  const [availabilityFilter, setAvailabilityFilter] = React.useState<AvailabilityFilter>('all');
 
   const allFeatureStores = React.useMemo((): SelectedFeatureStoreConfig[] => {
     const availableIds = new Set(featureStores.map(getFeatureStoreProjectId));
@@ -69,6 +77,23 @@ export const SelectFeatureStoresModal: React.FC<SelectFeatureStoresModalProps> =
     return [...featureStores, ...unavailable];
   }, [featureStores, unavailableFeatureStores]);
 
+  const availabilityCounts = React.useMemo(() => {
+    let available = 0;
+    let unavailable = 0;
+    allFeatureStores.forEach((featureStore) => {
+      if (featureStore.isUnavailable) {
+        unavailable += 1;
+      } else {
+        available += 1;
+      }
+    });
+    return {
+      all: allFeatureStores.length,
+      available,
+      unavailable,
+    };
+  }, [allFeatureStores]);
+
   const initialSelectionIdsRef = React.useRef(
     getInitialSelections(allFeatureStores, initialSelections).map(getFeatureStoreProjectId),
   );
@@ -77,25 +102,26 @@ export const SelectFeatureStoresModal: React.FC<SelectFeatureStoresModalProps> =
   >(() => getInitialSelections(allFeatureStores, initialSelections));
 
   const filteredFeatureStores = React.useMemo(() => {
-    const normalized = filterText.trim().toLowerCase();
-    if (!normalized) {
-      return allFeatureStores;
+    let stores = allFeatureStores;
+    if (availabilityFilter === 'available') {
+      stores = stores.filter((featureStore) => !featureStore.isUnavailable);
+    } else if (availabilityFilter === 'unavailable') {
+      stores = stores.filter((featureStore) => featureStore.isUnavailable);
     }
 
-    return allFeatureStores.filter((featureStore) =>
+    const normalized = filterText.trim().toLowerCase();
+    if (!normalized) {
+      return stores;
+    }
+
+    return stores.filter((featureStore) =>
       featureStore.projectName.toLowerCase().includes(normalized),
     );
-  }, [allFeatureStores, filterText]);
-
-  const sort = useTableColumnSort<SelectedFeatureStoreConfig>(selectFeatureStoresColumns, [], 1);
-  const sortedFeatureStores = React.useMemo(
-    () => sort.transformData(filteredFeatureStores),
-    [filteredFeatureStores, sort],
-  );
+  }, [allFeatureStores, availabilityFilter, filterText]);
 
   const { selections, toggleSelection, isSelected, tableProps } =
     useCheckboxTableBase<SelectedFeatureStoreConfig>(
-      sortedFeatureStores,
+      filteredFeatureStores,
       selectedFeatureStores,
       setSelectedFeatureStores,
       getFeatureStoreProjectId,
@@ -109,7 +135,10 @@ export const SelectFeatureStoresModal: React.FC<SelectFeatureStoresModalProps> =
 
   const onClearFilters = React.useCallback(() => {
     setFilterText('');
+    setAvailabilityFilter('all');
   }, []);
+
+  const hasUnavailableFeatureStores = availabilityCounts.unavailable > 0;
 
   return (
     <Modal
@@ -125,25 +154,76 @@ export const SelectFeatureStoresModal: React.FC<SelectFeatureStoresModalProps> =
         description={SELECT_FEATURE_STORES_MODAL_DESCRIPTION}
       />
       <ModalBody>
-        <TableBase
+        {hasUnavailableFeatureStores && (
+          <Alert
+            className="pf-v6-u-mb-md"
+            data-testid="feature-store-unavailable-alert"
+            variant="info"
+            isInline
+            title={FEATURE_STORE_UNAVAILABLE_TOOLTIP}
+          />
+        )}
+        <Table
           {...tableProps}
           data-testid="select-feature-stores-table"
           aria-label="Select feature stores table"
           variant="compact"
-          data={sortedFeatureStores}
+          enablePagination="compact"
+          defaultSortColumn={1}
+          data={filteredFeatureStores}
           columns={selectFeatureStoresColumns}
-          getColumnSort={sort.getColumnSort}
           toolbarContent={
-            <ToolbarItem className="pf-v6-u-w-100">
-              <SearchInput
-                aria-label="Find by name"
-                placeholder="Find by name"
-                value={filterText}
-                onChange={(_event, value) => setFilterText(value)}
-                onClear={onClearFilters}
-                data-testid="select-feature-stores-name-filter"
-              />
-            </ToolbarItem>
+            <ToolbarGroup>
+              {hasUnavailableFeatureStores && (
+                <ToolbarItem>
+                  <ToggleGroup
+                    aria-label="Filter by availability"
+                    data-testid="select-feature-stores-availability-filter"
+                  >
+                    <ToggleGroupItem
+                      text={`All (${availabilityCounts.all})`}
+                      buttonId="select-feature-stores-filter-all"
+                      isSelected={availabilityFilter === 'all'}
+                      onChange={(_event, selected) => {
+                        if (selected) {
+                          setAvailabilityFilter('all');
+                        }
+                      }}
+                    />
+                    <ToggleGroupItem
+                      text={`Available (${availabilityCounts.available})`}
+                      buttonId="select-feature-stores-filter-available"
+                      isSelected={availabilityFilter === 'available'}
+                      onChange={(_event, selected) => {
+                        if (selected) {
+                          setAvailabilityFilter('available');
+                        }
+                      }}
+                    />
+                    <ToggleGroupItem
+                      text={`Unavailable (${availabilityCounts.unavailable})`}
+                      buttonId="select-feature-stores-filter-unavailable"
+                      isSelected={availabilityFilter === 'unavailable'}
+                      onChange={(_event, selected) => {
+                        if (selected) {
+                          setAvailabilityFilter('unavailable');
+                        }
+                      }}
+                    />
+                  </ToggleGroup>
+                </ToolbarItem>
+              )}
+              <ToolbarItem>
+                <SearchInput
+                  aria-label="Find by name"
+                  placeholder="Find by name"
+                  value={filterText}
+                  onChange={(_event, value) => setFilterText(value)}
+                  onClear={() => setFilterText('')}
+                  data-testid="select-feature-stores-name-filter"
+                />
+              </ToolbarItem>
+            </ToolbarGroup>
           }
           emptyTableView={<DashboardEmptyTableView onClearFilters={onClearFilters} />}
           onClearFilters={onClearFilters}

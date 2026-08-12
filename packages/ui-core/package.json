@@ -114,7 +114,7 @@
     "@patternfly/react-styles": "^6",
     "@patternfly/react-table": "^6",
     "react": "^18",
-    "react-router-dom": "^7.18.1",
+    "react-router-dom": "^7",
     "zod": "^3"
   }
 }

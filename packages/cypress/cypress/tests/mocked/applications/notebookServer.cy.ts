@@ -1,11 +1,8 @@
 import { mockRoleBindingK8sResource } from '@odh-dashboard/internal/__mocks__/mockRoleBindingK8sResource';
-import {
-  mockCustomSecretK8sResource,
-  mockDashboardConfig,
-  mockK8sResourceList,
-  mockNotebookK8sResource,
-  mockStorageClassList,
-} from '@odh-dashboard/internal/__mocks__';
+import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
+import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
+import { mockCustomSecretK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockSecretK8sResource';
+import { mockNotebookK8sResource, mockStorageClassList } from '@odh-dashboard/internal/__mocks__';
 import type { EnvironmentVariable, RoleBindingSubject } from '@odh-dashboard/k8s-core';
 import { mockAllowedUsers } from '@odh-dashboard/internal/__mocks__/mockAllowedUsers';
 import { mockStartNotebookData } from '@odh-dashboard/internal/__mocks__/mockStartNotebookData';
@@ -14,7 +11,7 @@ import {
   mockProjectScopedHardwareProfiles,
 } from '@odh-dashboard/hardware-profiles/__mocks__/mockHardwareProfile';
 import type { NotebookData } from '@odh-dashboard/internal/types';
-import { mockConfigMap } from '@odh-dashboard/internal/__mocks__/mockConfigMap';
+import { mockConfigMap } from '@odh-dashboard/k8s-core/__mocks__/mockConfigMap';
 import { mockImageStreamK8sResourceList } from '@odh-dashboard/internal/__mocks__/mockImageStreamK8sResource';
 import { notebookServer } from '../../../pages/notebookServer';
 import { asClusterAdminUser, asProjectEditUser } from '../../../utils/mockUsers';

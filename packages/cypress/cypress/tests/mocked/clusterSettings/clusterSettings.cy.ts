@@ -1,7 +1,7 @@
 import { mockClusterSettings } from '@odh-dashboard/internal/__mocks__/mockClusterSettings';
-import { mockDscStatus } from '@odh-dashboard/internal/__mocks__/mockDscStatus';
+import { mockDscStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDscStatus';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
-import { mockK8sResourceList } from '@odh-dashboard/internal/__mocks__';
+import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
 import { mockDsc } from '@odh-dashboard/internal/__mocks__/mockDsc';
 import {
   clusterSettings,

@@ -1,12 +1,12 @@
 /* eslint-disable camelcase */
+import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
+import { mockRouteK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockRouteK8sResource';
+import { mockSecretK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockSecretK8sResource';
+import { mock404Error } from '@odh-dashboard/k8s-core/__mocks__/mockK8sStatus';
 import {
   buildMockPipelineVersion,
   buildMockPipelineVersions,
-  mockRouteK8sResource,
-  mockSecretK8sResource,
   mockDataSciencePipelineApplicationK8sResource,
-  mockK8sResourceList,
-  mock404Error,
   buildMockPipeline,
   buildMockPipelines,
 } from '@odh-dashboard/internal/__mocks__';

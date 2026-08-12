@@ -26,6 +26,7 @@
     "distributions/base",
     "distributions/core-bff",
     "distributions/rhaii",
+    "distributions/maas-customer-portal",
     "packages/model-serving/cypress"
   ],
   "scripts": {
@@ -116,8 +117,8 @@
   "overrides": {
     "@openshift/dynamic-plugin-sdk-utils": {
       "react-redux": "^8.1.3",
-      "react-router": "^7.17.0",
-      "react-router-dom": "^7.17.0",
+      "react-router": "^7.18.2",
+      "react-router-dom": "^7.18.2",
       "react": "^18.3.1",
       "react-dom": "^18.3.1",
       "@patternfly/react-core": "6.4.0",
@@ -131,7 +132,8 @@
     },
     "@types/react": "^18.3.31",
     "csstype": "^3.2.3",
-    "react-router": "^7.17.0",
+    "react-router": "^7.18.2",
+    "react-router-dom": "^7.18.2",
     "ws": "^8.21.0",
     "@types/ws": "^8.18.1",
     "dompurify": "^3.4.8",

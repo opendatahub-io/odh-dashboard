@@ -1,9 +1,9 @@
 import { k8sGetResource, k8sListResource } from '@openshift/dynamic-plugin-sdk-utils';
-import { mockRouteK8sResource } from '#~/__mocks__/mockRouteK8sResource';
+import { mockRouteK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockRouteK8sResource';
+import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
+import type { RouteKind } from '@odh-dashboard/k8s-core';
 import { getRoute, listRoutes } from '#~/api/k8s/routes';
 import { RouteModel } from '#~/api/models';
-import { RouteKind } from '#~/k8sTypes';
-import { mockK8sResourceList } from '#~/__mocks__/mockK8sResourceList';
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
   k8sGetResource: jest.fn(),

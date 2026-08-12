@@ -1,8 +1,8 @@
 import { act } from 'react';
 import { standardUseFetchState, testHook } from '@odh-dashboard/jest-config/hooks';
+import { mockConnectionTypeConfigMapObj } from '@odh-dashboard/k8s-core/__mocks__/mockConnectionType';
 import { fetchConnectionType } from '#~/services/connectionTypesService';
 import { useConnectionType } from '#~/concepts/connectionTypes/useConnectionType';
-import { mockConnectionTypeConfigMapObj } from '#~/__mocks__/mockConnectionType';
 
 jest.mock('#~/services/connectionTypesService', () => ({
   fetchConnectionType: jest.fn(),

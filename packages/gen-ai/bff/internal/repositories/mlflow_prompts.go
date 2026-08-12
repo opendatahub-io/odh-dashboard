@@ -62,6 +62,7 @@ func (r *MLflowPromptsRepository) ListPrompts(ctx context.Context, pageToken str
 			Name:              p.Name,
 			Description:       p.Description,
 			LatestVersion:     p.LatestVersion,
+			ModelConfig:       toMLflowPromptModelConfig(p.ModelConfig),
 			Tags:              p.Tags,
 			CreationTimestamp: p.CreationTimestamp,
 			Scope:             *projectScope(namespace),
@@ -226,6 +227,19 @@ func (r *MLflowPromptsRepository) DeletePromptVersion(ctx context.Context, name 
 		return err
 	}
 	return client.DeletePromptVersion(ctx, name, version)
+}
+
+// toMLflowPromptModelConfig converts an SDK PromptModelConfig to a BFF model.
+// Only provider and model_name are mapped; the remaining SDK fields (temperature,
+// max_tokens, top_p, etc.) are not needed for the prompt table display.
+func toMLflowPromptModelConfig(mc *promptregistry.PromptModelConfig) *models.MLflowPromptModelConfig {
+	if mc == nil {
+		return nil
+	}
+	return &models.MLflowPromptModelConfig{
+		Provider:  mc.Provider,
+		ModelName: mc.ModelName,
+	}
 }
 
 // toMLflowPromptVersion converts an SDK PromptVersion to a BFF model.

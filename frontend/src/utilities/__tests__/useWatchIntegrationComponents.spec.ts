@@ -1,7 +1,7 @@
 import { testHook } from '@odh-dashboard/jest-config/hooks';
 import { VariablesValidationStatus } from '@odh-dashboard/plugin-core/integrations';
+import type { OdhApplication } from '@odh-dashboard/k8s-core';
 import { getIntegrationAppEnablementStatus } from '#~/services/integrationAppService';
-import { OdhApplication } from '#~/types';
 import * as reduxHooks from '#~/redux/hooks';
 import { useWatchIntegrationComponents } from '#~/utilities/useWatchIntegrationComponents';
 

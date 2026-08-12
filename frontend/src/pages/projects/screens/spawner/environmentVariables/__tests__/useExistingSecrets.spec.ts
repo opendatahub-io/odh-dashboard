@@ -2,7 +2,7 @@ import { k8sListResource } from '@openshift/dynamic-plugin-sdk-utils';
 import type { SecretKind } from '@odh-dashboard/k8s-core';
 import { renderHook } from '@odh-dashboard/jest-config/hooks';
 import { useAccessReview } from '@odh-dashboard/plugin-core/host-api';
-import { mockK8sResourceList } from '#~/__mocks__/mockK8sResourceList';
+import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
 import { SecretModel } from '#~/api/models';
 import {
   fetchExistingSecrets,
