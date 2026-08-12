@@ -1,5 +1,5 @@
 import { mockLLMInferenceServiceConfigK8sResource } from '@odh-dashboard/llmd-serving/__mocks__/mockLLMInferenceServiceConfigK8sResource';
-import { TopologyType } from '../../types';
+import { TopologyType } from '../../../types';
 import { columns } from '../TopologyConfigurationsTable';
 
 type ConfigResource = ReturnType<typeof mockLLMInferenceServiceConfigK8sResource>;

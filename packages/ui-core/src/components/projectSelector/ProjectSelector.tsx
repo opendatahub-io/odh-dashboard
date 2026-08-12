@@ -32,6 +32,7 @@ type ProjectSelectorProps = {
   namespacesOverride?: Namespace[];
   appendTo?: 'inline' | (() => HTMLElement) | HTMLElement;
   pinnedNamespace?: { name: string; label: string };
+  isDisabled?: boolean;
 };
 
 const ProjectSelector: React.FC<ProjectSelectorProps> = ({
@@ -50,6 +51,7 @@ const ProjectSelector: React.FC<ProjectSelectorProps> = ({
   namespacesOverride,
   appendTo,
   pinnedNamespace,
+  isDisabled,
 }) => {
   const { projects } = React.useContext(ProjectsContext);
   const namespaces =
@@ -114,7 +116,7 @@ const ProjectSelector: React.FC<ProjectSelectorProps> = ({
       searchPlaceholder="Project name"
       searchValue={searchText}
       isLoading={isLoading}
-      isDisabled={isLoading}
+      isDisabled={isLoading || isDisabled}
       appendTo={appendTo}
       toggleContent={toggleLabel}
       toggleVariant={primary ? 'primary' : undefined}

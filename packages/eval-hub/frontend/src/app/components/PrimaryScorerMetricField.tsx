@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { FormGroup, MenuToggle, Select, SelectList, SelectOption } from '@patternfly/react-core';
-import LabelHelpPopover from '~/app/components/LabelHelpPopover';
+import FormGroupLabel from '~/app/components/FormGroupLabel';
+import { getMetricDisplayName } from './benchmarkUtils';
 
 type PrimaryScorerMetricFieldProps = {
   metrics: string[];
@@ -36,7 +37,7 @@ const PrimaryScorerMetricField: React.FC<PrimaryScorerMetricFieldProps> = ({
         isFullWidth
         data-testid={`${fieldId}-toggle`}
       >
-        {selected ?? 'Select a metric'}
+        {selected ? getMetricDisplayName(selected) : 'Select a metric'}
       </MenuToggle>
     ),
     [isOpen, selected, fieldId],
@@ -48,14 +49,14 @@ const PrimaryScorerMetricField: React.FC<PrimaryScorerMetricFieldProps> = ({
 
   return (
     <FormGroup
-      label="Primary scorer metric"
-      fieldId={fieldId}
-      labelHelp={
-        <LabelHelpPopover
-          ariaLabel="More info for primary scorer metric"
-          content="Choose the primary metric used to calculate the evaluation score for this benchmark."
+      className="evalhub-form-group--with-description"
+      label={
+        <FormGroupLabel
+          label="Primary scorer metric"
+          description="Choose the primary metric used to calculate the result for this benchmark."
         />
       }
+      fieldId={fieldId}
     >
       <Select
         id={fieldId}
@@ -68,8 +69,13 @@ const PrimaryScorerMetricField: React.FC<PrimaryScorerMetricFieldProps> = ({
       >
         <SelectList>
           {metrics.map((metric) => (
-            <SelectOption key={metric} value={metric} isSelected={metric === selected}>
-              {metric}
+            <SelectOption
+              key={metric}
+              value={metric}
+              isSelected={metric === selected}
+              data-testid={`${fieldId}-option-${metric}`}
+            >
+              {getMetricDisplayName(metric)}
             </SelectOption>
           ))}
         </SelectList>

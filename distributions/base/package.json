@@ -9,7 +9,7 @@
     ".": "./src/lib.ts"
   },
   "engines": {
-    "node": ">=22.0.0"
+    "node": ">=22.18.0"
   },
   "scripts": {
     "dev": "npm run start:dev",
@@ -23,10 +23,10 @@
     "@odh-dashboard/plugin-core": "*",
     "@odh-dashboard/ui-core": "*",
     "@openshift/dynamic-plugin-sdk": "^5.0.1",
-    "@patternfly/patternfly": "6.4.0",
-    "@patternfly/react-core": "6.4.1",
-    "@patternfly/react-icons": "6.4.0",
-    "@patternfly/react-styles": "6.4.0",
+    "@patternfly/patternfly": "~6.5.2",
+    "@patternfly/react-core": "~6.5.1",
+    "@patternfly/react-icons": "~6.5.1",
+    "@patternfly/react-styles": "~6.5.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^7.18.2"
@@ -38,7 +38,7 @@
     "css-loader": "^5.2.7",
     "file-loader": "^6.2.0",
     "fork-ts-checker-webpack-plugin": "^9.1.0",
-    "html-webpack-plugin": "^5.6.7",
+    "html-webpack-plugin": "^5.6.8",
     "js-yaml": "^4.1.0",
     "raw-loader": "^4.0.2",
     "sass": "^1.100.0",

@@ -10,16 +10,21 @@ import {
   Title,
 } from '@patternfly/react-core';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import { MaaSAuthPolicy } from '~/app/types/subscriptions';
-import PhaseLabel from '~/app/shared/PhaseLabel';
-import { PhaseLabelLocation, PhaseResourceType } from '~/app/utilities/phaseLabelUtils';
+import { MaaSAuthPolicy, MaaSModelRefSummary } from '~/app/types/subscriptions';
+import PhaseLabel from '~/app/shared/Phase/PhaseLabel';
+import {
+  getAffectedModels,
+  PhaseLabelLocation,
+  PhaseResourceType,
+} from '~/app/utilities/phaseLabelUtils';
 import { MaaSEvents } from '~/app/types/event-tracking';
 
 type PolicyDetailsSectionProps = {
   policy: MaaSAuthPolicy;
+  modelRefs: MaaSModelRefSummary[];
 };
 
-const PolicyDetailsSection: React.FC<PolicyDetailsSectionProps> = ({ policy }) => (
+const PolicyDetailsSection: React.FC<PolicyDetailsSectionProps> = ({ policy, modelRefs }) => (
   <Stack hasGutter data-testid="policy-details-section">
     <StackItem>
       <Title headingLevel="h2" size="xl">
@@ -46,6 +51,7 @@ const PolicyDetailsSection: React.FC<PolicyDetailsSectionProps> = ({ policy }) =
               lastTransitionTime={policy.lastTransitionTime}
               resourceType={PhaseResourceType.AUTHPOLICY}
               resourceName={policy.displayName ?? policy.name}
+              affectedModels={getAffectedModels(modelRefs)}
               onClick={() => {
                 fireMiscTrackingEvent(MaaSEvents.SUBSCRIPTION_MANAGEMENT_STATUS_POPOVER_VIEWED, {
                   popoverType: 'status',

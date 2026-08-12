@@ -25,9 +25,9 @@ import {
   TopologyType,
   TopologyTypeLabels,
   getConfigTopologyType,
-} from '../types';
-import { isConfigEnabled, isConfigEffectivelyEnabled } from '../utils';
-import { patchLLMInferenceServiceConfig } from '../api/LLMInferenceServiceConfigs';
+} from '../../types';
+import { isConfigEnabled, isConfigEffectivelyEnabled } from '../../utils';
+import { patchLLMInferenceServiceConfig } from '../../api/LLMInferenceServiceConfigs';
 
 const getTopologyTypeLabel = (config: LLMInferenceServiceConfigKind): string => {
   const type = getConfigTopologyType(config);

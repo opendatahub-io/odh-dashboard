@@ -128,6 +128,32 @@ func TestBuildMcpServerFromCreateRequest_WithDisplayNameAndServerName(t *testing
 	}
 }
 
+func TestBuildMcpServerFromCreateRequest_WithRegistryServerAndVersion(t *testing.T) {
+	req := models.McpDeploymentCreateRequest{
+		Name:            "registry-mcp",
+		RegistryServer:  "io.github.example/weather-server",
+		RegistryVersion: "1.2.0",
+		Image:           "quay.io/mcp/weather:1.2.0",
+	}
+
+	server, err := buildMcpServerFromCreateRequest("default", req)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if server.Metadata.Annotations == nil {
+		t.Fatal("expected annotations to be set")
+	}
+	if server.Metadata.Annotations[mcpRegistryServerAnnotation] != "io.github.example/weather-server" {
+		t.Fatalf("expected registry server annotation %q, got %q",
+			"io.github.example/weather-server", server.Metadata.Annotations[mcpRegistryServerAnnotation])
+	}
+	if server.Metadata.Annotations[mcpRegistryVersionAnnotation] != "1.2.0" {
+		t.Fatalf("expected registry version annotation %q, got %q",
+			"1.2.0", server.Metadata.Annotations[mcpRegistryVersionAnnotation])
+	}
+}
+
 func TestBuildMcpServerFromCreateRequest_DefaultPort(t *testing.T) {
 	req := models.McpDeploymentCreateRequest{
 		Image: "quay.io/mcp/test:1.0",
@@ -209,6 +235,9 @@ func TestBuildMcpServerFromCreateRequest_InvalidYAML(t *testing.T) {
 	_, err := buildMcpServerFromCreateRequest("default", req)
 	if err == nil {
 		t.Fatal("expected error for invalid YAML")
+	}
+	if !errors.Is(err, ErrMcpDeploymentValidation) {
+		t.Fatalf("expected ErrMcpDeploymentValidation so the handler returns 400, got %v", err)
 	}
 }
 
@@ -371,6 +400,161 @@ func TestConvertUnstructuredToMcpDeployment_WithServerAnnotation(t *testing.T) {
 	}
 	if deployment.ServerName != "kubernetes-mcp-server" {
 		t.Fatalf("expected serverName 'kubernetes-mcp-server', got %q", deployment.ServerName)
+	}
+}
+
+func TestConvertUnstructuredToMcpDeployment_PortAndPathFromAppliedConfig(t *testing.T) {
+	obj := unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": mcpServerAPIVersion,
+			"kind":       mcpServerKind,
+			"metadata": map[string]interface{}{
+				"name":              "k8s-mcp",
+				"namespace":         "test-ns",
+				"uid":               "test-uid-port",
+				"creationTimestamp": "2026-03-30T10:00:00Z",
+			},
+			"spec": map[string]interface{}{
+				"source": map[string]interface{}{
+					"type": "ContainerImage",
+					"containerImage": map[string]interface{}{
+						"ref": "quay.io/mcp/k8s:1.0",
+					},
+				},
+				"config": map[string]interface{}{
+					"port": int64(9090),
+					"path": "/api/mcp",
+				},
+			},
+		},
+	}
+
+	deployment, err := convertUnstructuredToMcpDeployment(obj)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if deployment.Port != 9090 {
+		t.Fatalf("expected port 9090, got %d", deployment.Port)
+	}
+	if deployment.Path != "/api/mcp" {
+		t.Fatalf("expected path '/api/mcp', got %q", deployment.Path)
+	}
+}
+
+func TestConvertUnstructuredToMcpDeployment_EmptyPathWhenUnset(t *testing.T) {
+	obj := unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": mcpServerAPIVersion,
+			"kind":       mcpServerKind,
+			"metadata": map[string]interface{}{
+				"name":              "k8s-mcp",
+				"namespace":         "test-ns",
+				"uid":               "test-uid-nopath",
+				"creationTimestamp": "2026-03-30T10:00:00Z",
+			},
+			"spec": map[string]interface{}{
+				"source": map[string]interface{}{
+					"type": "ContainerImage",
+					"containerImage": map[string]interface{}{
+						"ref": "quay.io/mcp/k8s:1.0",
+					},
+				},
+				"config": map[string]interface{}{
+					"port": int64(8080),
+				},
+			},
+		},
+	}
+
+	deployment, err := convertUnstructuredToMcpDeployment(obj)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if deployment.Path != "" {
+		t.Fatalf("expected empty path when unset, got %q", deployment.Path)
+	}
+}
+
+func TestConvertUnstructuredToMcpDeployment_DefaultsPortWhenZero(t *testing.T) {
+	// A pre-existing CR created without spec.config.port (e.g. via kubectl, or an earlier
+	// version of this tool) must not report Port: 0, since callers build access-endpoint URLs
+	// directly from it (an unroutable ":0" address). Mirrors the same default applied on the
+	// create/patch paths.
+	obj := unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": mcpServerAPIVersion,
+			"kind":       mcpServerKind,
+			"metadata": map[string]interface{}{
+				"name":              "k8s-mcp",
+				"namespace":         "test-ns",
+				"uid":               "test-uid-zeroport",
+				"creationTimestamp": "2026-03-30T10:00:00Z",
+			},
+			"spec": map[string]interface{}{
+				"source": map[string]interface{}{
+					"type": "ContainerImage",
+					"containerImage": map[string]interface{}{
+						"ref": "quay.io/mcp/k8s:1.0",
+					},
+				},
+				"config": map[string]interface{}{
+					"port": int64(0),
+				},
+			},
+		},
+	}
+
+	deployment, err := convertUnstructuredToMcpDeployment(obj)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if deployment.Port != defaultMcpPort {
+		t.Fatalf("expected port to default to %d instead of being zeroed out, got %d", defaultMcpPort, deployment.Port)
+	}
+}
+
+func TestConvertUnstructuredToMcpDeployment_WithRegistryAnnotations(t *testing.T) {
+	obj := unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": mcpServerAPIVersion,
+			"kind":       mcpServerKind,
+			"metadata": map[string]interface{}{
+				"name":              "registry-mcp",
+				"namespace":         "test-ns",
+				"uid":               "test-uid-999",
+				"creationTimestamp": "2026-03-30T10:00:00Z",
+				"annotations": map[string]interface{}{
+					mcpRegistryServerAnnotation:  "io.github.example/weather-server",
+					mcpRegistryVersionAnnotation: "1.2.0",
+				},
+			},
+			"spec": map[string]interface{}{
+				"source": map[string]interface{}{
+					"type": "ContainerImage",
+					"containerImage": map[string]interface{}{
+						"ref": "quay.io/mcp/weather:1.2.0",
+					},
+				},
+				"config": map[string]interface{}{
+					"port": int64(8080),
+				},
+			},
+		},
+	}
+
+	deployment, err := convertUnstructuredToMcpDeployment(obj)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if deployment.RegistryServer != "io.github.example/weather-server" {
+		t.Fatalf("expected registryServer 'io.github.example/weather-server', got %q", deployment.RegistryServer)
+	}
+	if deployment.RegistryVersion != "1.2.0" {
+		t.Fatalf("expected registryVersion '1.2.0', got %q", deployment.RegistryVersion)
 	}
 }
 
@@ -723,6 +907,38 @@ func TestBuildMcpDeploymentPatch_DisplayNameOnly(t *testing.T) {
 	}
 }
 
+func TestBuildMcpDeploymentPatch_RegistryServerAndVersion(t *testing.T) {
+	registryServer := "io.github.example/weather-server"
+	registryVersion := "1.2.0"
+	req := models.McpDeploymentUpdateRequest{
+		RegistryServer:  &registryServer,
+		RegistryVersion: &registryVersion,
+	}
+
+	patch, err := buildMcpDeploymentPatch(req)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	metadata, ok := patch["metadata"].(map[string]interface{})
+	if !ok {
+		t.Fatal("expected metadata in patch")
+	}
+	annotations, ok := metadata["annotations"].(map[string]interface{})
+	if !ok {
+		t.Fatal("expected annotations in metadata")
+	}
+	if annotations[mcpRegistryServerAnnotation] != registryServer {
+		t.Fatalf("expected registry server annotation %q, got %v", registryServer, annotations[mcpRegistryServerAnnotation])
+	}
+	if annotations[mcpRegistryVersionAnnotation] != registryVersion {
+		t.Fatalf("expected registry version annotation %q, got %v", registryVersion, annotations[mcpRegistryVersionAnnotation])
+	}
+	if _, exists := patch["spec"]; exists {
+		t.Fatal("expected no spec in patch when only registry fields are set")
+	}
+}
+
 func TestBuildMcpDeploymentPatch_YAMLOnly(t *testing.T) {
 	yamlStr := `config:
   port: 3000
@@ -952,6 +1168,41 @@ func TestBuildMcpDeploymentPatch_InvalidYAMLReturnsError(t *testing.T) {
 	_, err := buildMcpDeploymentPatch(req)
 	if err == nil {
 		t.Fatal("expected error for invalid YAML in patch")
+	}
+	if !errors.Is(err, ErrMcpDeploymentValidation) {
+		t.Fatalf("expected ErrMcpDeploymentValidation so the handler returns 400, got %v", err)
+	}
+}
+
+func TestBuildMcpDeploymentPatch_PartialYAMLWithoutPortDefaultsInsteadOfZeroing(t *testing.T) {
+	// A caller updating only path/env via YAML, without repeating port, must not
+	// silently zero out the CR's listening port via the JSON merge patch.
+	yamlStr := `config:
+  path: /new-path`
+	req := models.McpDeploymentUpdateRequest{
+		YAML: &yamlStr,
+	}
+
+	patch, err := buildMcpDeploymentPatch(req)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	specPatch, ok := patch["spec"].(map[string]interface{})
+	if !ok {
+		t.Fatal("expected spec in patch")
+	}
+	configPatch, ok := specPatch["config"].(map[string]interface{})
+	if !ok {
+		t.Fatal("expected config in spec patch")
+	}
+	// This branch goes through runtime.DefaultUnstructuredConverter.ToUnstructured, which
+	// (like the assertions in TestBuildMcpDeploymentPatch_YAMLOnly) yields int64, not int32.
+	if configPatch["port"] != int64(defaultMcpPort) {
+		t.Fatalf("expected port to default to %d instead of being zeroed out, got %v", defaultMcpPort, configPatch["port"])
+	}
+	if configPatch["path"] != "/new-path" {
+		t.Fatalf("expected path '/new-path', got %v", configPatch["path"])
 	}
 }
 

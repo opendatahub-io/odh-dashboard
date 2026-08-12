@@ -313,7 +313,7 @@ describe('LlmAcceleratorConfigFormByName', () => {
     expect(screen.getByTestId('app-page-title')).toBeInTheDocument();
   });
 
-  it('should redirect when config is not found', () => {
+  it('should show a not-found message rather than redirect when editing a config that is not found', () => {
     mockUseParams.mockReturnValue({ configName: 'nonexistent-config' });
 
     render(
@@ -326,6 +326,36 @@ describe('LlmAcceleratorConfigFormByName', () => {
       </LlmAcceleratorConfigContext.Provider>,
     );
 
-    expect(screen.getByTestId('navigate')).toHaveAttribute('data-to', LIST_PATH);
+    expect(screen.getByText('Unable to edit accelerator configuration')).toBeInTheDocument();
+    expect(screen.getByText('nonexistent-config', { exact: false })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Return to the list' })).toHaveAttribute(
+      'href',
+      LIST_PATH,
+    );
+    // It must NOT silently redirect to the list.
+    expect(screen.queryByTestId('navigate')).not.toBeInTheDocument();
+  });
+
+  it('should label the not-found message as a duplicate failure when duplicating a config that is not found', () => {
+    mockUseParams.mockReturnValue({ configName: 'nonexistent-config' });
+
+    render(
+      <LlmAcceleratorConfigContext.Provider
+        value={{
+          configs: [],
+        }}
+      >
+        <LlmAcceleratorConfigFormByName mode="duplicate" listPath={LIST_PATH} />
+      </LlmAcceleratorConfigContext.Provider>,
+    );
+
+    // Copy reflects the duplicate operation, not "edit".
+    expect(screen.getByText('Unable to duplicate accelerator configuration')).toBeInTheDocument();
+    expect(screen.queryByText('Unable to edit accelerator configuration')).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Return to the list' })).toHaveAttribute(
+      'href',
+      LIST_PATH,
+    );
+    expect(screen.queryByTestId('navigate')).not.toBeInTheDocument();
   });
 });

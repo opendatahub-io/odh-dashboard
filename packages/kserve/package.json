@@ -3,7 +3,9 @@
   "name": "@odh-dashboard/kserve",
   "description": "KServe model serving platform extension",
   "version": "0.0.0",
-  "e2eCiTags": ["@KServeCI"],
+  "e2eCiTags": [
+    "@KServeCI"
+  ],
   "scripts": {
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
@@ -23,7 +25,6 @@
     "@odh-dashboard/internal": "*",
     "@odh-dashboard/k8s-core": "*",
     "@odh-dashboard/model-serving": "*",
-
     "@odh-dashboard/plugin-core": "*",
     "@odh-dashboard/ui-core": "*",
     "zod": "^3.25.76"

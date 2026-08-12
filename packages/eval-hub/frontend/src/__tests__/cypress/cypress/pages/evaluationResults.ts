@@ -28,12 +28,12 @@ class EvaluationResultsPage {
     return cy.findByTestId('benchmarks-grid');
   }
 
-  findBenchmarkCard(benchmarkId: string) {
-    return cy.findByTestId(`benchmark-result-card-${benchmarkId}`);
+  findBenchmarkCard(benchmarkId: string, index: number) {
+    return cy.findByTestId(`benchmark-result-card-${benchmarkId}-${index}`);
   }
 
-  findBenchmarkPassLabel(benchmarkId: string) {
-    return cy.findByTestId(`benchmark-pass-label-${benchmarkId}`);
+  findBenchmarkPassLabel(benchmarkId: string, index: number) {
+    return cy.findByTestId(`benchmark-pass-label-${benchmarkId}-${index}`);
   }
 
   findViewMoreButton() {
