@@ -186,8 +186,8 @@ const StatusOnlyActiveBadge: React.FC<{
   activeIconVariant?: TreeNodeData['activeIconVariant'];
 }> = React.memo(({ size, activeIconVariant = 'sync' }) => {
   const syncSize = size * 0.84;
-  const pulseInnerRadius = Math.max(2.5, size * 0.2);
-  const pulseOuterRadius = Math.max(pulseInnerRadius + 1.25, size * 0.28);
+  const pulseInnerRadius = Math.max(3.5, size * 0.34);
+  const pulseOuterRadius = Math.max(pulseInnerRadius + 2, size * 0.42);
   const center = size / 2;
   const isPulse = activeIconVariant === 'pulse';
   return (

@@ -15,8 +15,6 @@
 }
 
 .automl-tree-node__status-pulse-ring {
-  transform: scale(calc(1 + var(--automl-pulse-progress) * 0.9));
-  opacity: calc(0.75 * (1 - var(--automl-pulse-progress)));
   transform-origin: center;
   transform-box: fill-box;
 }

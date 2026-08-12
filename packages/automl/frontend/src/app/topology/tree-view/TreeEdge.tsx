@@ -37,6 +37,28 @@ const getEdgeColor = (sourceNode: Node, targetNode: Node): string => {
   return COLORS.default;
 };
 
+const isBranchCorridorNode = (nodeId: string): boolean =>
+  nodeId.includes('__step__') ||
+  nodeId.includes('__model__') ||
+  nodeId.endsWith('__model_selection');
+
+const getEdgeStrokeWidth = (sourceNode: Node, targetNode: Node): number => {
+  const sourceData = sourceNode.getData();
+  const targetData = targetNode.getData();
+  const sourceState = isTreeNodeData(sourceData) ? sourceData.stepState : 'pending';
+  const targetState = isTreeNodeData(targetData) ? targetData.stepState : 'pending';
+
+  if (sourceState === 'active' && targetState === 'active') {
+    const sourceId = sourceNode.getId();
+    const targetId = targetNode.getId();
+    if (isBranchCorridorNode(sourceId) || isBranchCorridorNode(targetId)) {
+      return 2.5;
+    }
+  }
+
+  return 1.5;
+};
+
 const buildPath = (edge: Edge): string => {
   const startPoint = edge.getStartPoint();
   const endPoint = edge.getEndPoint();
@@ -74,7 +96,7 @@ const TreeEdgeInner: React.FC<{ edge: Edge }> = observer(({ edge }) => {
       d={buildPath(edge)}
       fill="none"
       stroke={getEdgeColor(sourceNode, targetNode)}
-      strokeWidth={1.5}
+      strokeWidth={getEdgeStrokeWidth(sourceNode, targetNode)}
       strokeLinecap="round"
       data-testid={`tree-edge-${edge.getId()}`}
     />
