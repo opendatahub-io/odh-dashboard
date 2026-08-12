@@ -189,6 +189,9 @@ spec:
                     toolCalling:
                       type: boolean
                       description: 'When true, enables tool-calling configuration for supported models in the model catalog.'
+                    modelCapabilities:
+                      type: boolean
+                      description: 'When true, enables model capabilities selection in the deployment wizard and the Capabilities column on the deployments table. Tech Preview.'
                     projectRBAC:
                       type: boolean
                       description: 'When true, enables project-level RBAC (Role-Based Access Control) settings.'
