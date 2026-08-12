@@ -751,6 +751,8 @@ func (c *LlamaStackConfig) EnableRBACAuthWithCustomPolicy(apiServerURL, tlsCAFil
 	// Each vector_io provider needs config.metadata_store referencing the SQL store
 	// for AuthorizedSqlStore to activate per-provider. Without it, the provider's
 	// _list_authorized_openai_vector_stores falls back to unfiltered in-memory cache.
+	// Set unconditionally — user-supplied metadata_store values are overwritten to
+	// prevent RBAC bypass via incompatible store references (CWE-284).
 	metadataStoreRef := map[string]interface{}{
 		"backend":    "sql_default",
 		"table_name": "vector_stores",
@@ -759,9 +761,7 @@ func (c *LlamaStackConfig) EnableRBACAuthWithCustomPolicy(apiServerURL, tlsCAFil
 		if c.Providers.VectorIO[i].Config == nil {
 			c.Providers.VectorIO[i].Config = make(map[string]interface{})
 		}
-		if _, has := c.Providers.VectorIO[i].Config["metadata_store"]; !has {
-			c.Providers.VectorIO[i].Config["metadata_store"] = metadataStoreRef
-		}
+		c.Providers.VectorIO[i].Config["metadata_store"] = metadataStoreRef
 	}
 }
 
