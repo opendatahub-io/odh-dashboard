@@ -2,14 +2,7 @@ import * as React from 'react';
 import { Flex, FlexItem, Label, Stack, StackItem, Title } from '@patternfly/react-core';
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import { getPhaseProps, normalizePhase } from '~/app/utilities/phaseLabelUtils';
-
-export type AffectedModel = {
-  name: string;
-  namespace?: string;
-  displayName?: string;
-  phase?: string;
-  statusMessage?: string;
-};
+import type { AffectedModel } from '~/app/types/maas-model';
 
 type AffectedModelsTableProps = {
   models: AffectedModel[];
@@ -80,7 +73,7 @@ const AffectedModelsTable: React.FC<AffectedModelsTableProps> = ({ models }) => 
               </Td>
               <Td dataLabel="Project">
                 <span data-testid={`affected-model-namespace-${model.name}`}>
-                  {model.namespace ?? '—'}
+                  {model.namespace ?? "Couldn't determine namespace"}
                 </span>
               </Td>
               <Td dataLabel="Status">
@@ -90,7 +83,7 @@ const AffectedModelsTable: React.FC<AffectedModelsTableProps> = ({ models }) => 
               </Td>
               <Td dataLabel="Description">
                 <span data-testid={`affected-model-status-message-${model.name}`}>
-                  {model.statusMessage ?? '—'}
+                  {model.statusMessage ?? 'No status message.'}
                 </span>
               </Td>
             </Tr>

@@ -9,7 +9,7 @@ import {
   getModalSubtitle,
   getSubtextProps,
 } from '~/app/utilities/phaseLabelUtils';
-import type { AffectedModel } from './AffectedModelsTable';
+import type { AffectedModel } from '~/app/types/maas-model';
 import PhaseModal from './PhaseModal';
 
 type PhaseLabelProps = {

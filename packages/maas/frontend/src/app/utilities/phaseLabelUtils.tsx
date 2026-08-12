@@ -15,7 +15,7 @@ import {
   PendingIcon,
 } from '@patternfly/react-icons';
 import PhaseApiDetails from '~/app/shared/Phase/PhaseApiDetails';
-import type { AffectedModel } from '~/app/shared/Phase/AffectedModelsTable';
+import type { AffectedModel } from '~/app/types/maas-model';
 import { modelRefsToSummaries } from '~/app/utilities/authpolicies';
 import type { MaaSModelRefSummary } from '~/app/types/subscriptions';
 

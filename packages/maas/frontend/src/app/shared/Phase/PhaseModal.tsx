@@ -28,7 +28,7 @@ import {
   MaaSEvents,
   convertPhaseResourceTypeToEventTrackingResourceType,
 } from '~/app/types/event-tracking';
-import type { AffectedModel } from './AffectedModelsTable';
+import type { AffectedModel } from '~/app/types/maas-model';
 import AffectedModelsTable from './AffectedModelsTable';
 
 type PhaseModalProps = {
