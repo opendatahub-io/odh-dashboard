@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
@@ -104,9 +105,15 @@ func (app *App) GenAIProxyNSChatCompletionsHandler(w http.ResponseWriter, r *htt
 		baseURL += "/v1"
 	}
 
-	// Proxy the request to upstream
+	// Proxy the request to upstream.
+	// Use a dedicated timeout context (3 min) — LLM chat completions can take longer
+	// than the BFF's default httpClient timeout (92s, tuned for ASR transcription).
+	const chatCompletionTimeout = 3 * time.Minute
+	proxyCtx, proxyCancel := context.WithTimeout(ctx, chatCompletionTimeout)
+	defer proxyCancel()
+
 	upstreamURL := baseURL + "/chat/completions"
-	proxyReq, err := http.NewRequestWithContext(ctx, http.MethodPost, upstreamURL, strings.NewReader(string(upstreamBody)))
+	proxyReq, err := http.NewRequestWithContext(proxyCtx, http.MethodPost, upstreamURL, strings.NewReader(string(upstreamBody)))
 	if err != nil {
 		app.serverErrorResponse(w, r, fmt.Errorf("failed to create upstream request: %w", err))
 		return
@@ -138,8 +145,13 @@ func (app *App) GenAIProxyNSChatCompletionsHandler(w http.ResponseWriter, r *htt
 		return
 	}
 
-	// Copy all upstream response headers for transparent proxy behavior
+	// Copy upstream response headers, excluding hop-by-hop and framing headers
+	// that may be invalidated by buffering/truncation (Content-Length, Transfer-Encoding).
 	for key, values := range resp.Header {
+		lowerKey := strings.ToLower(key)
+		if lowerKey == "content-length" || lowerKey == "transfer-encoding" {
+			continue
+		}
 		for _, v := range values {
 			w.Header().Add(key, v)
 		}
