@@ -49,7 +49,6 @@ var imagesMap = map[string]string{
 	"autorag-pipeline-runtime-image": "RELATED_IMAGE_ODH_AUTORAG_IMAGE",
 	"agent-ops-ui-image":             "RELATED_IMAGE_ODH_MOD_ARCH_AGENT_OPS_IMAGE",
 	"core-bff-image":                 "RELATED_IMAGE_ODH_CORE_BFF_IMAGE",
-	"data-registry-ui-image":         "RELATED_IMAGE_ODH_MOD_ARCH_DATA_REGISTRY_IMAGE",
 }
 
 func defaultManifestInfo(basePath string, platform cluster.Platform) render.ManifestInfo {
