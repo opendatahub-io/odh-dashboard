@@ -6,29 +6,15 @@ const notProvided = (name: string) => () => {
 };
 
 /**
- * Shared React context for host-level K8s/OpenShift API services.
+ * Domain-specific services bridged from the host to federated modules.
+ * These shrink over time as domain logic relocates into owning packages.
  *
- * Main app provides the implementations:
- *   <HostApiContext.Provider value={hostServices}>
- *
- * Federated modules consume via the hooks exported from this module:
- *   const { dashboardNamespace } = useDashboardNamespace();
- *   const [allowed, loaded] = useAccessReview(attrs);
- *   const { getSecretsByLabel } = useHostApi();
+ * For core infrastructure (namespace, access, tracking, config) use HostApiCoreContext.
+ * For K8s operations (secrets, projects, PVCs) use HostApiInfraContext.
  */
 export const HostApiContext = React.createContext<HostApiServices>({
-  dashboardNamespace: '',
-  checkAccess: notProvided('checkAccess'),
-  getSecretsByLabel: notProvided('getSecretsByLabel'),
-  getDashboardPvcs: notProvided('getDashboardPvcs'),
-  fetchDashboardConfig: notProvided('fetchDashboardConfig'),
   useTemplates: notProvided('useTemplates'),
   setProjectServingPlatform: notProvided('setProjectServingPlatform'),
-  createSecret: notProvided('createSecret'),
-  getSecret: notProvided('getSecret'),
-  deleteSecret: notProvided('deleteSecret'),
-  patchSecretWithOwnerReference: notProvided('patchSecretWithOwnerReference'),
-  patchSecretWithProtocolAnnotation: notProvided('patchSecretWithProtocolAnnotation'),
   useWatchConnectionTypes: notProvided('useWatchConnectionTypes'),
   useServingConnections: notProvided('useServingConnections'),
   getDashboardConfigTemplateOrder: notProvided('getDashboardConfigTemplateOrder'),
@@ -36,7 +22,5 @@ export const HostApiContext = React.createContext<HostApiServices>({
   useModelServingMetrics: notProvided('useModelServingMetrics'),
   useServingPlatformStatuses: notProvided('useServingPlatformStatuses'),
   isProjectNIMSupported: notProvided('isProjectNIMSupported'),
-  trackEvent: notProvided('trackEvent'),
-  createProject: notProvided('createProject'),
   registeredModelDeploymentsRoute: notProvided('registeredModelDeploymentsRoute'),
 });
