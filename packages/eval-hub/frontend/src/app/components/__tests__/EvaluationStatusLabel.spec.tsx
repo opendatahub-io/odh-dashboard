@@ -90,7 +90,7 @@ describe('EvaluationStatusLabel', () => {
     const onClick = jest.fn();
     render(<EvaluationStatusLabel state="completed" onClick={onClick} />);
 
-    const label = screen.getByTestId('status-label-completed');
+    const label = screen.getByTestId('evaluation-status-button');
     fireEvent.click(within(label).getByRole('button'));
 
     expect(onClick).toHaveBeenCalledTimes(1);
