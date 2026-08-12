@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Icon, Label, LabelProps } from '@patternfly/react-core';
+import { Label, LabelProps } from '@patternfly/react-core';
 import {
   BanIcon,
   CheckCircleIcon,
@@ -66,7 +66,7 @@ const statusMap: Partial<Record<EvaluationJobState | 'not_started', StatusConfig
   // eslint-disable-next-line camelcase -- matches the API's state value verbatim
   partially_failed: {
     label: 'Partially failed',
-    status: 'warning',
+    status: 'danger',
     icon: <ExclamationTriangleIcon />,
   },
 };
@@ -104,7 +104,7 @@ const EvaluationStatusLabel: React.FC<EvaluationStatusLabelProps> = ({
       variant="filled"
       color={config.color}
       status={config.status}
-      icon={<Icon isInline>{config.icon}</Icon>}
+      icon={config.icon}
       data-testid={onClick ? 'evaluation-status-button' : `status-label-${state}`}
       {...(onClick ? { onClick } : {})}
     >

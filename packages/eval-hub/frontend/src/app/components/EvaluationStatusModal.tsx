@@ -329,8 +329,6 @@ type ProgressBenchmark = {
   completedAt?: string;
   errorMessage?: string;
   errorCode?: string;
-  warningMessage?: string;
-  warningCode?: string;
 };
 
 const ProgressTabContent: React.FC<{
@@ -480,19 +478,6 @@ const ProgressTabContent: React.FC<{
                                 ) : null}
                               </Flex>
                             </StackItem>
-                            {bm.warningMessage ? (
-                              <StackItem className="pf-v6-u-mb-xs">
-                                <Alert
-                                  variant="warning"
-                                  isInline
-                                  isPlain
-                                  title={bm.warningCode ?? 'Warning'}
-                                  data-testid={`benchmark-warning-${bm.id}`}
-                                >
-                                  {bm.warningMessage}
-                                </Alert>
-                              </StackItem>
-                            ) : null}
                           </Stack>
                         </StackItem>
                       ) : bm.status === 'failed' ? (
@@ -532,19 +517,6 @@ const ProgressTabContent: React.FC<{
                                 </FlexItem>
                               </Flex>
                             </StackItem>
-                            {bm.warningMessage ? (
-                              <StackItem className="pf-v6-u-mb-xs">
-                                <Alert
-                                  variant="warning"
-                                  isInline
-                                  isPlain
-                                  title={bm.warningCode ?? 'Warning'}
-                                  data-testid={`benchmark-warning-${bm.id}`}
-                                >
-                                  {bm.warningMessage}
-                                </Alert>
-                              </StackItem>
-                            ) : null}
                           </Stack>
                         </StackItem>
                       ) : (
@@ -562,19 +534,6 @@ const ProgressTabContent: React.FC<{
                                 </DescriptionListGroup>
                               </DescriptionList>
                             </StackItem>
-                            {bm.warningMessage ? (
-                              <StackItem className="pf-v6-u-mb-xs">
-                                <Alert
-                                  variant="warning"
-                                  isInline
-                                  isPlain
-                                  title={bm.warningCode ?? 'Warning'}
-                                  data-testid={`benchmark-warning-${bm.id}`}
-                                >
-                                  {bm.warningMessage}
-                                </Alert>
-                              </StackItem>
-                            ) : null}
                           </Stack>
                         </StackItem>
                       )
@@ -661,8 +620,6 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
           completedAt: bm.completed_at,
           errorMessage: bm.error_message?.message,
           errorCode: bm.error_message?.message_code,
-          warningMessage: bm.warning_message?.message,
-          warningCode: bm.warning_message?.message_code,
         })),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [polledJobData?.status.benchmarks, job?.status.benchmarks],
