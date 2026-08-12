@@ -239,7 +239,7 @@ describe('resolveSequentialStageRunStatuses', () => {
     const statuses = resolveSequentialStageRunStatuses(stages, componentStatus, 'FAILED', false);
 
     expect(statuses.get('validate_inputs')).toBe(RunStatus.Failed);
-    expect(statuses.get('load_data')).toBe(RunStatus.Failed);
+    expect(statuses.get('load_data')).toBe(RunStatus.Pending);
   });
 
   it('should not leave running-task-backed stages active on a canceled run', () => {
@@ -252,7 +252,7 @@ describe('resolveSequentialStageRunStatuses', () => {
     const statuses = resolveSequentialStageRunStatuses(stages, componentStatus, 'CANCELED', false);
 
     expect(statuses.get('validate_inputs')).toBe(RunStatus.Cancelled);
-    expect(statuses.get('load_data')).toBe(RunStatus.Cancelled);
+    expect(statuses.get('load_data')).toBe(RunStatus.Pending);
   });
 
   it('should not leave inline started stages active on a failed run', () => {
@@ -286,6 +286,21 @@ describe('resolveSequentialStageRunStatuses', () => {
 
     expect(statuses.get('validate_inputs')).toBe(RunStatus.Succeeded);
     expect(statuses.get('load_data')).toBe(RunStatus.Failed);
+  });
+
+  it('should keep later inline failures pending after the first failed stage', () => {
+    const statuses = resolveSequentialStageRunStatuses(
+      [
+        { id: 'validate_inputs', description: 'Validate', status: 'failed' },
+        { id: 'load_data', description: 'Load data', status: 'failed' },
+      ],
+      RunStatus.InProgress,
+      'FAILED',
+      false,
+    );
+
+    expect(statuses.get('validate_inputs')).toBe(RunStatus.Failed);
+    expect(statuses.get('load_data')).toBe(RunStatus.Pending);
   });
 
   it('should advance the branching coarse frontier to model selection without inline status', () => {

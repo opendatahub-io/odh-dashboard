@@ -763,7 +763,7 @@ describe('buildStageMapTopology', () => {
 
       const nodes = buildStageMapTopology(stageMap, undefined, 'FAILED');
       expect(nodes[0].data?.runStatus).toBe(RunStatus.Failed);
-      expect(nodes[1].data?.runStatus).toBe(RunStatus.Failed);
+      expect(nodes[1].data?.runStatus).toBe(RunStatus.Pending);
       expect(nodes[2].data?.runStatus).toBe(RunStatus.Pending);
     });
 
@@ -798,7 +798,7 @@ describe('buildStageMapTopology', () => {
       expect(byId.training__build_leaderboard.data?.runStatus).toBe(RunStatus.Pending);
     });
 
-    it('should keep branch and post-branch stages pending when model selection fails', () => {
+    it('should fail the select models section and keep post-branch stages pending when model selection fails', () => {
       const stageMap = makeStageMap([
         makeComponent(
           'training',
@@ -821,9 +821,9 @@ describe('buildStageMapTopology', () => {
       expect(byId.training__load_data.data?.runStatus).toBe(RunStatus.Succeeded);
       expect(byId.training__model_selection.data?.runStatus).toBe(RunStatus.Failed);
       expect(byId['training__step__feature_engineering__branch-0'].data?.runStatus).toBe(
-        RunStatus.Pending,
+        RunStatus.Failed,
       );
-      expect(byId['training__model__branch-0'].data?.runStatus).toBe(RunStatus.Pending);
+      expect(byId['training__model__branch-0'].data?.runStatus).toBe(RunStatus.Failed);
       expect(byId.training__refit_full.data?.runStatus).toBe(RunStatus.Pending);
       expect(byId.training__build_leaderboard.data?.runStatus).toBe(RunStatus.Pending);
     });

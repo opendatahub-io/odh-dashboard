@@ -117,7 +117,7 @@ export const buildStageMapTopology = (
     const branchPhaseStatus =
       pipelineState.blocked || preBranchInlineFailure
         ? RunStatus.Pending
-        : resolveBranchPhaseStatus(modelSelectionRunStatus, modelSelectionStage);
+        : resolveBranchPhaseStatus(modelSelectionRunStatus);
 
     // Emit pre-branch stages linearly (load_data, model_selection)
     for (const stage of preBranchStages) {
