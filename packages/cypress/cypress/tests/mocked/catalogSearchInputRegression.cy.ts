@@ -1,5 +1,6 @@
-import { mockDashboardConfig, mockDscStatus } from '@odh-dashboard/internal/__mocks__';
-import { mockDsciStatus } from '@odh-dashboard/internal/__mocks__/mockDsciStatus';
+import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
+import { mockDscStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDscStatus';
+import { mockDsciStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDsciStatus';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import { asProductAdminUser } from '../../utils/mockUsers';
 import { modelCatalog } from '../../pages/modelCatalog/modelCatalog';
@@ -110,10 +111,8 @@ const setupModelCatalogIntercepts = () => {
 };
 
 const setupAgentsCatalogIntercepts = () => {
-  cy.interceptOdh(
-    'GET /model-registry/api/:apiVersion/agent_catalog/sources',
-    { path: { apiVersion: API_VERSION } },
-    {
+  cy.intercept('GET', `**/model-registry/api/${API_VERSION}/agent_catalog/sources*`, {
+    body: {
       data: {
         items: [
           {
@@ -128,7 +127,7 @@ const setupAgentsCatalogIntercepts = () => {
         nextPageToken: '',
       },
     },
-  );
+  });
 
   cy.intercept('GET', `**/model-registry/api/${API_VERSION}/agent_catalog/labels*`, {
     body: {
