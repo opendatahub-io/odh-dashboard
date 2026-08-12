@@ -122,6 +122,16 @@ describe('PhaseModal', () => {
       ).toBeInTheDocument();
     });
 
+    it('should show loading spinner for affected models when overview is not loaded', () => {
+      renderPhaseModal({
+        phase: PhaseStatus.DEGRADED,
+        overviewLoaded: false,
+      });
+
+      expect(screen.getByLabelText('Loading affected models')).toBeInTheDocument();
+      expect(screen.queryByTestId('affected-models-table')).not.toBeInTheDocument();
+    });
+
     it('should show loading spinner for affected models when isLoadingAffected is true', () => {
       renderPhaseModal({
         phase: PhaseStatus.DEGRADED,

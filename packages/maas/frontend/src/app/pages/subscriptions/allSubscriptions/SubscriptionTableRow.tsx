@@ -44,7 +44,7 @@ const SubscriptionTableRow: React.FC<SubscriptionTableRowProps> = ({
   const navigate = useNavigate();
   const navState = returnTo ? { state: { returnTo } } : undefined;
   const [expandedPanel, setExpandedPanel] = React.useState<ExpandedPanel>(null);
-  const affectedModels = useSubscriptionAffectedModels(subscription);
+  const { affectedModels, overviewLoaded } = useSubscriptionAffectedModels(subscription);
 
   const togglePanel = (panel: 'groups' | 'models') => {
     setExpandedPanel((prev) => (prev === panel ? null : panel));
@@ -124,6 +124,7 @@ const SubscriptionTableRow: React.FC<SubscriptionTableRowProps> = ({
         resourceType={PhaseResourceType.SUBSCRIPTION}
         resourceName={subscription.displayName ?? subscription.name}
         affectedModels={affectedModels}
+        overviewLoaded={overviewLoaded}
         resourceUrl={getSubscriptionViewUrl(subscription.name)}
         returnTo={returnTo}
         onClick={() => {

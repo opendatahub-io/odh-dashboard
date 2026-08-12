@@ -44,7 +44,7 @@ const AuthPoliciesTableRow: React.FC<AuthPoliciesTableRowProps> = ({
   const navigate = useNavigate();
   const navState = returnTo ? { state: { returnTo } } : undefined;
   const [expandedPanel, setExpandedPanel] = React.useState<ExpandedPanel>(null);
-  const affectedModels = usePolicyAffectedModels(authPolicy);
+  const { affectedModels, overviewLoaded } = usePolicyAffectedModels(authPolicy);
 
   const togglePanel = (panel: 'groups' | 'models') => {
     setExpandedPanel((prev) => (prev === panel ? null : panel));
@@ -120,6 +120,7 @@ const AuthPoliciesTableRow: React.FC<AuthPoliciesTableRowProps> = ({
         resourceType={PhaseResourceType.AUTHPOLICY}
         resourceName={authPolicy.displayName ?? authPolicy.name}
         affectedModels={affectedModels}
+        overviewLoaded={overviewLoaded}
         resourceUrl={getAuthPolicyViewUrl(authPolicy.name)}
         returnTo={returnTo}
         onClick={() => {

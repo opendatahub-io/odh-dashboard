@@ -27,6 +27,7 @@ type PhaseLabelProps = {
   conditionType?: string;
   lastTransitionTime?: string;
   affectedModels?: AffectedModel[];
+  overviewLoaded?: boolean;
 };
 
 const PhaseLabel: React.FC<PhaseLabelProps> = ({
@@ -44,6 +45,7 @@ const PhaseLabel: React.FC<PhaseLabelProps> = ({
   conditionType,
   lastTransitionTime,
   affectedModels,
+  overviewLoaded = false,
 }) => {
   const [isModalOpen, setIsModalOpen] = React.useState(false);
   const [hasOpenedModal, setHasOpenedModal] = React.useState(false);
@@ -99,6 +101,7 @@ const PhaseLabel: React.FC<PhaseLabelProps> = ({
           conditionType={conditionType}
           lastTransitionTime={lastTransitionTime}
           affectedModels={affectedModels}
+          overviewLoaded={overviewLoaded}
         />
       ) : null}
     </>

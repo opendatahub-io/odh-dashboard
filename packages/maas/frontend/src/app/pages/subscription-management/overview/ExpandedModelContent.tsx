@@ -84,66 +84,75 @@ const ExpandableItem: React.FC<ExpandableItemProps> = ({
   status,
   conditionType,
   lastTransitionTime,
-}) => (
-  <div
-    className={`${styles['maas-expandable-item']}${
-      isHighlighted ? ` ${styles['m-highlighted']}` : ''
-    }`}
-  >
-    <Table aria-label={ariaLabel} borders={false} variant="compact">
-      <Tbody isExpanded={isExpanded}>
-        <Tr>
-          <Td expand={{ rowIndex, isExpanded, onToggle }} />
-          <Td>
-            <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }}>
-              <FlexItem>
-                <Link
-                  to={linkTo}
-                  state={linkState}
-                  className="pf-v6-u-font-weight-bold pf-v6-u-font-size-md"
-                  onClick={onLinkClick}
-                >
-                  {displayName ?? name}
-                </Link>
-              </FlexItem>
-              <FlexItem>
-                <PhaseLabel
-                  phase={phase}
-                  resourceType={resourceType}
-                  statusMessage={statusMessage}
-                  status={status}
-                  conditionType={conditionType}
-                  lastTransitionTime={lastTransitionTime}
-                  reason={reason}
-                  resourceName={displayName ?? name}
-                  affectedModels={useGovernanceResourceAffectedModels(name, phase, resourceType)}
-                  resourceUrl={resourceUrl}
-                  returnTo={returnTo}
-                  hideSubtext
-                  onClick={() => {
-                    fireMiscTrackingEvent(
-                      MaaSEvents.SUBSCRIPTION_MANAGEMENT_STATUS_POPOVER_VIEWED,
-                      {
-                        popoverType: 'status',
-                        status: phase,
-                        location: PhaseLabelLocation.OVERVIEW,
-                      },
-                    );
-                  }}
-                />
-              </FlexItem>
-            </Flex>
-          </Td>
-        </Tr>
-        <Tr isExpanded={isExpanded}>
-          <Td colSpan={2}>
-            <ExpandableRowContent>{children}</ExpandableRowContent>
-          </Td>
-        </Tr>
-      </Tbody>
-    </Table>
-  </div>
-);
+}) => {
+  const { affectedModels, overviewLoaded } = useGovernanceResourceAffectedModels(
+    name,
+    phase,
+    resourceType,
+  );
+
+  return (
+    <div
+      className={`${styles['maas-expandable-item']}${
+        isHighlighted ? ` ${styles['m-highlighted']}` : ''
+      }`}
+    >
+      <Table aria-label={ariaLabel} borders={false} variant="compact">
+        <Tbody isExpanded={isExpanded}>
+          <Tr>
+            <Td expand={{ rowIndex, isExpanded, onToggle }} />
+            <Td>
+              <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }}>
+                <FlexItem>
+                  <Link
+                    to={linkTo}
+                    state={linkState}
+                    className="pf-v6-u-font-weight-bold pf-v6-u-font-size-md"
+                    onClick={onLinkClick}
+                  >
+                    {displayName ?? name}
+                  </Link>
+                </FlexItem>
+                <FlexItem>
+                  <PhaseLabel
+                    phase={phase}
+                    resourceType={resourceType}
+                    statusMessage={statusMessage}
+                    status={status}
+                    conditionType={conditionType}
+                    lastTransitionTime={lastTransitionTime}
+                    reason={reason}
+                    resourceName={displayName ?? name}
+                    affectedModels={affectedModels}
+                    overviewLoaded={overviewLoaded}
+                    resourceUrl={resourceUrl}
+                    returnTo={returnTo}
+                    hideSubtext
+                    onClick={() => {
+                      fireMiscTrackingEvent(
+                        MaaSEvents.SUBSCRIPTION_MANAGEMENT_STATUS_POPOVER_VIEWED,
+                        {
+                          popoverType: 'status',
+                          status: phase,
+                          location: PhaseLabelLocation.OVERVIEW,
+                        },
+                      );
+                    }}
+                  />
+                </FlexItem>
+              </Flex>
+            </Td>
+          </Tr>
+          <Tr isExpanded={isExpanded}>
+            <Td colSpan={2}>
+              <ExpandableRowContent>{children}</ExpandableRowContent>
+            </Td>
+          </Tr>
+        </Tbody>
+      </Table>
+    </div>
+  );
+};
 
 type SectionHeaderProps = {
   title: string;

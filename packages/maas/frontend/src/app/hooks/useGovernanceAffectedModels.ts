@@ -9,33 +9,42 @@ import {
   PhaseStatus,
 } from '~/app/utilities/phaseLabelUtils';
 
+export type GovernanceAffectedModelsState = {
+  affectedModels: AffectedModel[] | undefined;
+  overviewLoaded: boolean;
+};
+
 const isDegradedPhase = (phase: string | undefined): boolean =>
   normalizePhase(phase) === PhaseStatus.DEGRADED;
 
 export const useSubscriptionAffectedModels = (
   subscription: Pick<MaaSSubscription, 'modelRefs' | 'phase'>,
-): AffectedModel[] | undefined => {
-  const { modelRefs, loaded } = useMaaSGovernanceContext();
+): GovernanceAffectedModelsState => {
+  const { modelRefs, overviewLoaded } = useMaaSGovernanceContext();
 
-  return React.useMemo(() => {
-    if (!loaded || !isDegradedPhase(subscription.phase)) {
+  const affectedModels = React.useMemo(() => {
+    if (!overviewLoaded || !isDegradedPhase(subscription.phase)) {
       return undefined;
     }
     return getAffectedModelsFromRefs(subscription.modelRefs, modelRefs);
-  }, [loaded, subscription.modelRefs, subscription.phase, modelRefs]);
+  }, [overviewLoaded, subscription.modelRefs, subscription.phase, modelRefs]);
+
+  return { affectedModels, overviewLoaded };
 };
 
 export const usePolicyAffectedModels = (
   policy: Pick<MaaSAuthPolicy, 'modelRefs' | 'phase'>,
-): AffectedModel[] | undefined => {
-  const { modelRefs, loaded } = useMaaSGovernanceContext();
+): GovernanceAffectedModelsState => {
+  const { modelRefs, overviewLoaded } = useMaaSGovernanceContext();
 
-  return React.useMemo(() => {
-    if (!loaded || !isDegradedPhase(policy.phase)) {
+  const affectedModels = React.useMemo(() => {
+    if (!overviewLoaded || !isDegradedPhase(policy.phase)) {
       return undefined;
     }
     return getAffectedModelsFromRefs(policy.modelRefs, modelRefs);
-  }, [loaded, policy.modelRefs, policy.phase, modelRefs]);
+  }, [overviewLoaded, policy.modelRefs, policy.phase, modelRefs]);
+
+  return { affectedModels, overviewLoaded };
 };
 
 /** Resolve affected models by resource name when only overview summary fields are available. */
@@ -43,11 +52,11 @@ export const useGovernanceResourceAffectedModels = (
   name: string,
   phase: string | undefined,
   resourceType: PhaseResourceType,
-): AffectedModel[] | undefined => {
-  const { subscriptions, policies, modelRefs, loaded } = useMaaSGovernanceContext();
+): GovernanceAffectedModelsState => {
+  const { subscriptions, policies, modelRefs, overviewLoaded } = useMaaSGovernanceContext();
 
-  return React.useMemo(() => {
-    if (!loaded || !isDegradedPhase(phase)) {
+  const affectedModels = React.useMemo(() => {
+    if (!overviewLoaded || !isDegradedPhase(phase)) {
       return undefined;
     }
     if (resourceType === PhaseResourceType.SUBSCRIPTION) {
@@ -61,5 +70,7 @@ export const useGovernanceResourceAffectedModels = (
       return policy ? getAffectedModelsFromRefs(policy.modelRefs, modelRefs) : undefined;
     }
     return undefined;
-  }, [loaded, name, phase, resourceType, subscriptions, policies, modelRefs]);
+  }, [overviewLoaded, name, phase, resourceType, subscriptions, policies, modelRefs]);
+
+  return { affectedModels, overviewLoaded };
 };

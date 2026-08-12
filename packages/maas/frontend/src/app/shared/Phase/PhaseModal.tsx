@@ -48,6 +48,7 @@ type PhaseModalProps = {
   affectedModels?: AffectedModel[];
   isLoadingAffected?: boolean;
   affectedLoadError?: string;
+  overviewLoaded?: boolean;
 };
 
 const getModalTitle = (resourceName: string, phase: string, subtitle: string) => {
@@ -95,11 +96,15 @@ const PhaseModal: React.FC<PhaseModalProps> = ({
   affectedModels,
   isLoadingAffected = false,
   affectedLoadError,
+  overviewLoaded,
 }) => {
   const showAffectedSection = shouldShowAffectedModelsSection(phase, resourceType);
   const hasAffectedModels = (affectedModels?.length ?? 0) > 0;
+  const isAffectedModelsLoading =
+    showAffectedSection &&
+    (isLoadingAffected || (affectedModels === undefined && overviewLoaded === false));
   const showAffectedModels =
-    showAffectedSection && (hasAffectedModels || isLoadingAffected || !!affectedLoadError);
+    showAffectedSection && (hasAffectedModels || isAffectedModelsLoading || !!affectedLoadError);
 
   return (
     <Modal
@@ -128,7 +133,7 @@ const PhaseModal: React.FC<PhaseModalProps> = ({
           </StackItem>
           {showAffectedModels ? (
             <StackItem>
-              {isLoadingAffected ? (
+              {isAffectedModelsLoading ? (
                 <Bullseye>
                   <Spinner size="lg" aria-label="Loading affected models" />
                 </Bullseye>
