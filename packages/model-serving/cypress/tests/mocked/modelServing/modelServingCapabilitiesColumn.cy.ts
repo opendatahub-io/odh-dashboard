@@ -139,7 +139,7 @@ describe('Model Serving Capabilities Column', () => {
     row.findCapabilitiesCell().should('contain.text', '+2');
   });
 
-  it('should render empty cell when annotation is missing', () => {
+  it('should render a dash when annotation is missing', () => {
     initIntercepts({
       modelCapabilities: true,
       inferenceServices: [mockInferenceServiceK8sResource({})],
@@ -148,5 +148,6 @@ describe('Model Serving Capabilities Column', () => {
     modelServingGlobal.visit('test-project');
     const row = modelServingGlobal.getDeploymentRow('Test Inference Service');
     row.findCapabilitiesCell().findByTestId('deployment-capabilities').should('not.exist');
+    row.findCapabilitiesCell().should('contain.text', '-');
   });
 });

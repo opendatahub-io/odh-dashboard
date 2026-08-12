@@ -20,34 +20,36 @@ const mockDeployment = (annotations?: Record<string, string>): Deployment =>
   } as unknown as Deployment);
 
 describe('DeploymentCapabilities', () => {
-  it('should render nothing when annotations are undefined', () => {
-    const { container } = render(<DeploymentCapabilities deployment={mockDeployment(undefined)} />);
-    expect(container).toBeEmptyDOMElement();
+  it('should render a dash when annotations are undefined', () => {
+    render(<DeploymentCapabilities deployment={mockDeployment(undefined)} />);
+    expect(screen.getByText('-')).toBeInTheDocument();
+    expect(screen.queryByTestId('deployment-capabilities')).not.toBeInTheDocument();
   });
 
-  it('should render nothing when capabilities annotation is absent', () => {
-    const { container } = render(
-      <DeploymentCapabilities deployment={mockDeployment({ other: 'value' })} />,
-    );
-    expect(container).toBeEmptyDOMElement();
+  it('should render a dash when capabilities annotation is absent', () => {
+    render(<DeploymentCapabilities deployment={mockDeployment({ other: 'value' })} />);
+    expect(screen.getByText('-')).toBeInTheDocument();
+    expect(screen.queryByTestId('deployment-capabilities')).not.toBeInTheDocument();
   });
 
-  it('should render nothing when capabilities annotation is malformed', () => {
-    const { container } = render(
+  it('should render a dash when capabilities annotation is malformed', () => {
+    render(
       <DeploymentCapabilities
         deployment={mockDeployment({ [MODEL_CAPABILITIES_ANNOTATION]: 'bad-json' })}
       />,
     );
-    expect(container).toBeEmptyDOMElement();
+    expect(screen.getByText('-')).toBeInTheDocument();
+    expect(screen.queryByTestId('deployment-capabilities')).not.toBeInTheDocument();
   });
 
-  it('should render nothing when capabilities is an empty array', () => {
-    const { container } = render(
+  it('should render a dash when capabilities is an empty array', () => {
+    render(
       <DeploymentCapabilities
         deployment={mockDeployment({ [MODEL_CAPABILITIES_ANNOTATION]: '[]' })}
       />,
     );
-    expect(container).toBeEmptyDOMElement();
+    expect(screen.getByText('-')).toBeInTheDocument();
+    expect(screen.queryByTestId('deployment-capabilities')).not.toBeInTheDocument();
   });
 
   it('should render a single capability label', () => {

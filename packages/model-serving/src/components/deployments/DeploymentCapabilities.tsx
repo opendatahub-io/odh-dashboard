@@ -18,7 +18,7 @@ const DeploymentCapabilities: React.FC<DeploymentCapabilitiesProps> = ({
   const capabilities = parseModelCapabilities(model.metadata.annotations);
 
   if (!capabilities || capabilities.length === 0) {
-    return null;
+    return <>-</>;
   }
 
   const visibleCapabilities = capabilities.slice(0, MAX_INLINE_LABELS);
