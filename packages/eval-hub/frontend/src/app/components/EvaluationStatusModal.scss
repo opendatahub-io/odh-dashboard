@@ -9,12 +9,19 @@
   z-index: 1;
 }
 
+.evalhub-status-modal__description {
+  color: var(--pf-t--global--text--color--subtle);
+}
+
 .evalhub-status-modal__tabs {
   padding-top: var(--pf-t--global--spacer--md);
 }
 
-.evalhub-status-modal__truncated-message {
-  white-space: pre-wrap;
+.evalhub-status-modal__failure-summary--clamped {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 // Log viewer
@@ -23,6 +30,10 @@
   overflow: auto;
   font-family: var(--pf-t--global--font--family--mono);
   font-size: var(--pf-t--global--font--size--sm);
+
+  &--running {
+    max-height: 52vh;
+  }
 
   &--completed {
     max-height: 54vh;
@@ -56,6 +67,17 @@
     font-weight: var(--pf-t--global--font--weight--heading--default);
   }
 
+  &--benchmark {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    padding-left: 1rem;
+    text-align: center;
+    font-family: var(--pf-t--global--font--family--body);
+    font-weight: var(--pf-t--global--font--weight--body--default);
+    background-color: var(--pf-t--global--background--color--secondary--default);
+  }
+
   &--no-border {
     border-bottom-color: transparent;
   }
@@ -66,24 +88,11 @@
   color: var(--pf-t--global--text--color--subtle);
 }
 
-%evalhub-log-cell-level {
+.evalhub-log-viewer__cell--level {
   @extend %evalhub-log-cell;
 
-  display: flex;
-  align-items: baseline;
-  gap: 4px;
-}
-
-.evalhub-log-viewer__cell--level {
-  @extend %evalhub-log-cell-level;
-
-  width: 6em;
-}
-
-.evalhub-log-viewer__cell--level-header {
-  @extend %evalhub-log-cell-level;
-
-  width: 7em;
+  width: 3em;
+  text-align: center;
 }
 
 .evalhub-log-viewer__cell--timestamp {
@@ -93,11 +102,14 @@
   white-space: nowrap;
 }
 
-.evalhub-log-viewer__cell--timestamp-header {
-  @extend %evalhub-log-cell;
+.evalhub-log-viewer__benchmark-label {
+  font-weight: var(--pf-t--global--font--weight--heading--bold);
+}
 
-  width: 11.5em;
-  white-space: nowrap;
+.evalhub-log-viewer__cell--full {
+  flex: 1;
+  min-width: 0;
+  color: var(--pf-t--global--text--color--regular);
 }
 
 .evalhub-log-viewer__cell--message {
@@ -121,9 +133,6 @@
 
 .evalhub-log-viewer .pf-v6-c-alert {
   margin-top: var(--pf-t--global--spacer--md);
+  font-family: var(--pf-t--global--font--family--body);
 }
 
-.evalhub-log-viewer__icon-spacer {
-  width: 1em;
-  flex-shrink: 0;
-}

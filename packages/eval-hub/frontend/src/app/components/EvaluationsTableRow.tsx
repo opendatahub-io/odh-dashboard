@@ -161,6 +161,10 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
   };
 
   const actions: IAction[] = [
+    {
+      title: 'View logs',
+      onClick: () => onShowStatus(job),
+    },
     ...(isInProgress && !isStopping
       ? [
           {
@@ -173,6 +177,7 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
       ? [
           {
             title: 'Delete',
+            isDanger: true,
             onClick: () => setConfirmAction('delete'),
           },
         ]

@@ -24,7 +24,6 @@ import {
   Skeleton,
   Stack,
   StackItem,
-  Switch,
   Tab,
   Tabs,
   TabTitleText,
@@ -41,7 +40,7 @@ import {
   TimesCircleIcon,
 } from '@patternfly/react-icons';
 import { EvaluationJob } from '~/app/types';
-import { formatDuration, getEvaluationName } from '~/app/utilities/evaluationUtils';
+import { formatDurationCompact, getEvaluationName } from '~/app/utilities/evaluationUtils';
 import { useEvaluationJobLogs } from '~/app/hooks/useEvaluationJobLogs';
 import {
   getEvaluationJobLogs,
@@ -59,7 +58,6 @@ type EvaluationStatusModalProps = {
 };
 
 const ALL_BENCHMARKS = 'all';
-const MESSAGE_LINE_LIMIT = 3;
 
 const downloadString = (filename: string, data: string): void => {
   const blob = new Blob([data], { type: 'text/plain' });
@@ -73,58 +71,6 @@ const downloadString = (filename: string, data: string): void => {
   URL.revokeObjectURL(url);
 };
 
-const TruncatedMessage: React.FC<{ text: string }> = ({ text }) => {
-  const [isExpanded, setIsExpanded] = React.useState(false);
-  const lines = text.split('\n').filter(Boolean);
-  const needsTruncation = lines.length > MESSAGE_LINE_LIMIT;
-
-  const displayText =
-    needsTruncation && !isExpanded ? lines.slice(0, MESSAGE_LINE_LIMIT).join('\n') : text;
-
-  return (
-    <Content component="p" data-testid="failure-detail-reason">
-      <span className="evalhub-status-modal__truncated-message">{displayText}</span>
-      {needsTruncation ? (
-        <div>
-          <Button
-            variant="link"
-            isInline
-            onClick={() => setIsExpanded((prev) => !prev)}
-            data-testid="failure-message-toggle"
-          >
-            {isExpanded ? 'Show less' : 'Show more'}
-          </Button>
-        </div>
-      ) : null}
-    </Content>
-  );
-};
-
-const StatusIcon: React.FC<{ state: string }> = ({ state }) => {
-  if (state === 'failed' || state === 'partially_failed') {
-    return (
-      <Icon status="danger" isInline>
-        <ExclamationCircleIcon />
-      </Icon>
-    );
-  }
-  if (state === 'completed') {
-    return (
-      <Icon status="success" isInline>
-        <CheckCircleIcon />
-      </Icon>
-    );
-  }
-  if (state === 'running' || state === 'pending' || state === 'stopping') {
-    return (
-      <Icon isInline>
-        <InProgressIcon />
-      </Icon>
-    );
-  }
-  return null;
-};
-
 type LogLevel = 'error' | 'warning' | 'info' | 'debug';
 
 type LogEntry = {
@@ -134,11 +80,13 @@ type LogEntry = {
   message: string;
   continuation?: string;
   isSectionHeader: boolean;
+  benchmarkName?: string;
 };
 
 const TIMESTAMP_RE = /^\d{4}-\d{2}-\d{2}[\sT]\d{2}:\d{2}/;
 const LOG_LINE_RE =
   /^(\d{4}-\d{2}-\d{2}[\sT]\d{2}:\d{2}:\d{2}[,.\d]*)\s+-\s+(\S+)\s+-\s+(INFO|WARNING|ERROR|DEBUG)\s+-\s+([\s\S]*)/i;
+const BENCHMARK_HEADER_RE = /benchmark_id=(\S+)/;
 
 const formatLogTimestamp = (raw: string): string => {
   const normalized = raw.replace(',', '.').replace(' ', 'T');
@@ -176,7 +124,13 @@ const parseLogEntries = (raw: string): LogEntry[] => {
     const isContinuation = /^\s/.test(line);
     if (isNewEntry || entries.length === 0 || !isContinuation) {
       if (line.startsWith('===')) {
-        entries.push({ raw: line, message: line, isSectionHeader: true });
+        const bmMatch = BENCHMARK_HEADER_RE.exec(line);
+        entries.push({
+          raw: line,
+          message: line,
+          isSectionHeader: true,
+          benchmarkName: bmMatch?.[1],
+        });
       } else {
         const match = LOG_LINE_RE.exec(line);
         if (match) {
@@ -203,53 +157,31 @@ const parseLogEntries = (raw: string): LogEntry[] => {
 
 const LOG_LEVEL_ICON: Record<LogLevel, React.ReactNode> = {
   error: (
-    <Icon status="danger" isInline>
+    <Icon status="danger" isInline title="Error">
       <ExclamationCircleIcon />
     </Icon>
   ),
   warning: (
-    <Icon status="warning" isInline>
+    <Icon status="warning" isInline title="Warning">
       <ExclamationTriangleIcon />
     </Icon>
   ),
   info: (
-    <Icon status="info" isInline>
+    <Icon status="info" isInline title="Info">
       <InfoCircleIcon />
     </Icon>
   ),
   debug: (
-    <Icon isInline>
+    <Icon isInline title="Debug">
       <InfoCircleIcon />
     </Icon>
   ),
 };
 
-const LEVEL_LABELS: Record<LogLevel, string> = {
-  error: 'ERROR',
-  warning: 'WARNING',
-  info: 'INFO',
-  debug: 'DEBUG',
-};
-
-const STATUS_HEADINGS: Record<string, string> = {
-  pending: 'Pending',
-  running: 'Running tests',
-  completed: 'Completed',
-  failed: 'Failed',
-  // eslint-disable-next-line camelcase
-  partially_failed: 'Partially failed',
-  cancelled: 'Canceled',
-  stopping: 'Canceling',
-  stopped: 'Stopped',
-};
-
 const LogHeader: React.FC = () => (
   <div className="evalhub-log-viewer__row evalhub-log-viewer__row--header">
-    <div className="evalhub-log-viewer__cell--level-header">
-      <span className="evalhub-log-viewer__icon-spacer" />
-      <span>Level</span>
-    </div>
-    <div className="evalhub-log-viewer__cell--timestamp-header">Timestamp</div>
+    <div className="evalhub-log-viewer__cell--level">Level</div>
+    <div className="evalhub-log-viewer__cell--timestamp">Timestamp</div>
     <div className="evalhub-log-viewer__cell--message">Message</div>
   </div>
 );
@@ -298,6 +230,17 @@ const LogEntryRow: React.FC<{ entry: LogEntry; hideBorder?: boolean }> = ({
   );
 
   if (entry.isSectionHeader) {
+    if (entry.benchmarkName) {
+      return (
+        <div className={`${rowClass} evalhub-log-viewer__row--benchmark`}>
+          <div className="evalhub-log-viewer__cell--full">
+            <span className="evalhub-log-viewer__benchmark-label">Benchmark:&nbsp;</span>
+            {entry.benchmarkName}
+          </div>
+          {copyButton}
+        </div>
+      );
+    }
     return (
       <div className={rowClass}>
         <div className="evalhub-log-viewer__cell--level" />
@@ -316,7 +259,6 @@ const LogEntryRow: React.FC<{ entry: LogEntry; hideBorder?: boolean }> = ({
     <div className={rowClass}>
       <div className="evalhub-log-viewer__cell--level">
         {entry.level ? LOG_LEVEL_ICON[entry.level] : null}
-        <span>{entry.level ? LEVEL_LABELS[entry.level] : ''}</span>
       </div>
       <div className="evalhub-log-viewer__cell--timestamp" title={entry.timestamp}>
         {entry.timestamp ? formatLogTimestamp(entry.timestamp) : ''}
@@ -329,7 +271,7 @@ const LogEntryRow: React.FC<{ entry: LogEntry; hideBorder?: boolean }> = ({
 
 const LogSkeletonRows: React.FC = () => (
   <>
-    {Array.from({ length: 5 }, (_, i) => (
+    {Array.from({ length: 32 }, (_, i) => (
       <div key={i} className="evalhub-log-viewer__row">
         <div className="evalhub-log-viewer__cell--level">
           <Skeleton width="100%" height="1em" />
@@ -353,8 +295,9 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
   const [activeTab, setActiveTab] = React.useState<string>('failure-info');
   const [selectedBenchmark, setSelectedBenchmark] = React.useState<string>(ALL_BENCHMARKS);
   const [isBenchmarkSelectOpen, setIsBenchmarkSelectOpen] = React.useState(false);
-  const [showFullLogs, setShowFullLogs] = React.useState(false);
-
+  const [isFailureSummaryExpanded, setIsFailureSummaryExpanded] = React.useState(false);
+  const failureSummaryRef = React.useRef<HTMLParagraphElement>(null);
+  const [isFailureSummaryTruncated, setIsFailureSummaryTruncated] = React.useState(false);
   const benchmarkIndex = React.useMemo(() => {
     if (selectedBenchmark === ALL_BENCHMARKS) {
       return undefined;
@@ -362,8 +305,6 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
     const parsed = parseInt(selectedBenchmark, 10);
     return Number.isFinite(parsed) ? parsed : undefined;
   }, [selectedBenchmark]);
-
-  const tailLines = showFullLogs ? undefined : 500;
 
   const {
     logs,
@@ -374,7 +315,6 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
     activeTab === 'events-log' ? namespace : undefined,
     activeTab === 'events-log' ? job?.resource.id : undefined,
     benchmarkIndex,
-    tailLines,
   );
 
   const sortedBenchmarks = React.useMemo(
@@ -393,13 +333,17 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
       const jobFailed = jobState === 'failed' || jobState === 'partially_failed';
       setActiveTab(jobFailed ? 'failure-info' : 'events-log');
       setSelectedBenchmark(ALL_BENCHMARKS);
-      setShowFullLogs(false);
+      setIsFailureSummaryExpanded(false);
     }
   }, [jobId, jobState]);
 
   React.useEffect(() => {
-    setShowFullLogs(false);
-  }, [selectedBenchmark]);
+    const el = failureSummaryRef.current;
+    if (el) {
+      const truncated = el.scrollHeight > el.clientHeight;
+      setIsFailureSummaryTruncated((prev) => (prev !== truncated ? truncated : prev));
+    }
+  }, []);
 
   const evaluationName = job ? getEvaluationName(job) : '';
 
@@ -441,7 +385,7 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
     message_origin: messageOrigin,
   } = job.status.message ?? {};
   const isInProgress = state === 'running' || state === 'pending' || state === 'stopping';
-  const elapsed = formatDuration(
+  const elapsed = formatDurationCompact(
     job.resource.created_at,
     isInProgress ? new Date().toISOString() : job.resource.updated_at,
   );
@@ -452,7 +396,31 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
     setActiveTab('events-log');
   };
 
-  const fullMessage = message ? (elapsed ? `${message} Elapsed: ${elapsed}` : message) : undefined;
+  const failedBenchmarks = sortedBenchmarks.filter((bm) => bm.status === 'failed');
+  const failureSummary =
+    isFailed && sortedBenchmarks.length > 1
+      ? failedBenchmarks
+          .map((bm) => `${bm.id}: ${bm.error_message?.message ?? 'Unknown error'}`)
+          .join('. ')
+      : message;
+
+  const completedBenchmarkCount = sortedBenchmarks.filter((bm) => bm.status === 'completed').length;
+
+  let logViewerClassName = 'evalhub-log-viewer';
+  if (state === 'completed') {
+    logViewerClassName += ' evalhub-log-viewer--completed';
+  } else if (isInProgress) {
+    logViewerClassName += ' evalhub-log-viewer--running';
+  }
+
+  const descriptionText =
+    state === 'completed'
+      ? `Evaluation completed successfully.${elapsed ? ` Total time: ${elapsed}` : ''}`
+      : isInProgress
+        ? `Evaluation job is ${state === 'stopping' ? 'being canceled' : state === 'pending' ? 'pending' : 'running'}.${elapsed ? ` Elapsed time: ${elapsed}` : ''}`
+        : elapsed
+          ? `Elapsed time: ${elapsed}`
+          : undefined;
 
   return (
     <Modal
@@ -476,21 +444,86 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
       <ModalBody>
         <div className="evalhub-status-modal__header" data-testid="status-detail-header">
           <Stack hasGutter>
-            <StackItem>
-              <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-                <FlexItem>
-                  <StatusIcon state={state} />
-                </FlexItem>
-                <FlexItem>
-                  <Content component="p">
-                    <strong>{STATUS_HEADINGS[state] ?? state}</strong>
-                  </Content>
-                </FlexItem>
-              </Flex>
-            </StackItem>
-            {fullMessage ? (
+            {isInProgress ? (
               <StackItem>
-                <TruncatedMessage text={fullMessage} />
+                <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                  <FlexItem>
+                    <Icon isInline>
+                      <InProgressIcon />
+                    </Icon>
+                  </FlexItem>
+                  <FlexItem>
+                    <Content component="p" data-testid="running-header">
+                      <strong>
+                        {state === 'stopping'
+                          ? 'Canceling'
+                          : state === 'pending'
+                            ? 'Pending'
+                            : 'Running'}{' '}
+                        {evaluationName}
+                      </strong>
+                    </Content>
+                  </FlexItem>
+                </Flex>
+              </StackItem>
+            ) : null}
+            {descriptionText ? (
+              <StackItem>
+                <Content
+                  component="p"
+                  className="evalhub-status-modal__description"
+                  data-testid="status-description"
+                >
+                  {descriptionText}
+                </Content>
+              </StackItem>
+            ) : null}
+            {isInProgress && sortedBenchmarks.length > 0 ? (
+              <StackItem>
+                <Content component="p" data-testid="benchmark-progress">
+                  <strong>
+                    {completedBenchmarkCount}/{sortedBenchmarks.length} benchmarks complete
+                  </strong>
+                </Content>
+              </StackItem>
+            ) : null}
+            {isFailed ? (
+              <StackItem>
+                <Alert
+                  variant="danger"
+                  isInline
+                  title={
+                    sortedBenchmarks.length > 1
+                      ? `${failedBenchmarks.length} of ${sortedBenchmarks.length} benchmarks failed`
+                      : 'Evaluation failed'
+                  }
+                  data-testid="failure-summary-alert"
+                >
+                  {failureSummary ? (
+                    <>
+                      <p
+                        ref={failureSummaryRef}
+                        className={
+                          isFailureSummaryExpanded
+                            ? undefined
+                            : 'evalhub-status-modal__failure-summary--clamped'
+                        }
+                      >
+                        {failureSummary}
+                      </p>
+                      {isFailureSummaryTruncated || isFailureSummaryExpanded ? (
+                        <Button
+                          variant="link"
+                          isInline
+                          onClick={() => setIsFailureSummaryExpanded((prev) => !prev)}
+                          data-testid="failure-summary-toggle"
+                        >
+                          {isFailureSummaryExpanded ? 'Show less' : 'Show more'}
+                        </Button>
+                      ) : null}
+                    </>
+                  ) : null}
+                </Alert>
               </StackItem>
             ) : null}
           </Stack>
@@ -686,7 +719,7 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
                     </Tooltip>
                   </FlexItem>
                   <FlexItem>
-                    <Tooltip content="Download full logs">
+                    <Tooltip content="Download full log">
                       <Button
                         variant="plain"
                         aria-label="Download logs"
@@ -697,16 +730,6 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
                         icon={<DownloadIcon />}
                       />
                     </Tooltip>
-                  </FlexItem>
-                  <FlexItem>
-                    <Switch
-                      label="Show full log"
-                      hasCheckIcon
-                      isChecked={showFullLogs}
-                      onChange={(_e, checked) => setShowFullLogs(checked)}
-                      isDisabled={!logsLoaded || !hasLogContent}
-                      data-testid="show-full-logs-switch"
-                    />
                   </FlexItem>
                   {logsLoaded && hasLogContent ? (
                     <FlexItem align={{ default: 'alignRight' }}>
@@ -737,10 +760,7 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
               ) : null}
               <StackItem>
                 <LogHeader />
-                <div
-                  className={`evalhub-log-viewer${state === 'completed' ? ' evalhub-log-viewer--completed' : ''}`}
-                  data-testid="log-content"
-                >
+                <div className={logViewerClassName} data-testid="log-content">
                   {!logsLoaded ? (
                     <LogSkeletonRows />
                   ) : logsError && isLogApiUnavailable(logsError) ? (

@@ -215,26 +215,7 @@ describe('EvaluationStatusModal benchmark warnings', () => {
   });
 });
 
-describe('EvaluationStatusModal show full logs', () => {
-  it('should render the full logs switch', () => {
-    renderModal();
-
-    expect(screen.getByTestId('show-full-logs-switch')).toBeInTheDocument();
-  });
-
-  it('should toggle the switch on and off', () => {
-    renderModal();
-
-    const toggle = screen.getByLabelText('Show full log');
-    expect(toggle).not.toBeChecked();
-
-    fireEvent.click(toggle);
-    expect(toggle).toBeChecked();
-
-    fireEvent.click(toggle);
-    expect(toggle).not.toBeChecked();
-  });
-
+describe('EvaluationStatusModal log line count', () => {
   it('should display a line count in the toolbar', () => {
     renderModal();
 
@@ -376,39 +357,123 @@ describe('EvaluationStatusModal failure detail labels', () => {
   });
 });
 
-describe('EvaluationStatusModal TruncatedMessage', () => {
-  it('should show full message when it has 3 or fewer lines', () => {
-    const job = mockEvaluationJob({ state: 'failed', statusMessage: 'Line 1\nLine 2\nLine 3' });
+describe('EvaluationStatusModal running state header', () => {
+  it('should show running header with evaluation name', () => {
+    renderModal({ state: 'running', name: 'Safety and fairness' });
 
-    render(<EvaluationStatusModal job={job} namespace="test-ns" onClose={mockOnClose} />);
-
-    const reason = screen.getByTestId('failure-detail-reason');
-    expect(reason).toHaveTextContent('Line 1');
-    expect(reason).toHaveTextContent('Line 3');
-    expect(screen.queryByTestId('failure-message-toggle')).not.toBeInTheDocument();
+    const header = screen.getByTestId('running-header');
+    expect(header).toHaveTextContent('Running Safety and fairness');
   });
 
-  it('should truncate long messages and show a toggle button', () => {
-    const longMessage = 'Line 1\nLine 2\nLine 3\nLine 4\nLine 5';
-    const job = mockEvaluationJob({ state: 'failed', statusMessage: longMessage });
+  it('should show "Evaluation job is running." in description', () => {
+    renderModal({ state: 'running' });
 
-    render(<EvaluationStatusModal job={job} namespace="test-ns" onClose={mockOnClose} />);
-
-    expect(screen.getByTestId('failure-message-toggle')).toHaveTextContent('Show more');
+    const description = screen.getByTestId('status-description');
+    expect(description.textContent).toContain('Evaluation job is running.');
   });
 
-  it('should expand and collapse the truncated message', () => {
-    const longMessage = 'Line 1\nLine 2\nLine 3\nLine 4\nLine 5';
-    const job = mockEvaluationJob({ state: 'failed', statusMessage: longMessage });
+  it('should show benchmark progress count', () => {
+    const job = mockEvaluationJob({ state: 'running' });
+    /* eslint-disable camelcase */
+    job.status.benchmarks = [
+      { id: 'bm-a', benchmark_index: 0, status: 'completed' },
+      { id: 'bm-b', benchmark_index: 1, status: 'running' },
+      { id: 'bm-c', benchmark_index: 2, status: 'pending' },
+    ];
+    /* eslint-enable camelcase */
 
     render(<EvaluationStatusModal job={job} namespace="test-ns" onClose={mockOnClose} />);
 
-    const toggle = screen.getByTestId('failure-message-toggle');
-    fireEvent.click(toggle);
-    expect(toggle).toHaveTextContent('Show less');
+    const progress = screen.getByTestId('benchmark-progress');
+    expect(progress).toHaveTextContent('1/3 benchmarks complete');
+  });
 
-    fireEvent.click(toggle);
-    expect(toggle).toHaveTextContent('Show more');
+  it('should not show benchmark progress when there are no status benchmarks', () => {
+    renderModal({ state: 'running' });
+
+    expect(screen.queryByTestId('benchmark-progress')).not.toBeInTheDocument();
+  });
+
+  it('should not show running header for completed jobs', () => {
+    renderModal({ state: 'completed' });
+
+    expect(screen.queryByTestId('running-header')).not.toBeInTheDocument();
+  });
+});
+
+describe('EvaluationStatusModal description text', () => {
+  it('should show success message with total time for completed jobs', () => {
+    const job = mockEvaluationJob({ state: 'completed' });
+    /* eslint-disable camelcase */
+    job.resource.created_at = '2026-02-20T10:00:00Z';
+    job.resource.updated_at = '2026-02-20T10:05:12Z';
+    /* eslint-enable camelcase */
+
+    render(<EvaluationStatusModal job={job} namespace="test-ns" onClose={mockOnClose} />);
+
+    const description = screen.getByTestId('status-description');
+    expect(description).toHaveTextContent('Evaluation completed successfully. Total time: 5m 12s');
+  });
+
+  it('should show success message without total time when timestamps match', () => {
+    renderModal({ state: 'completed' });
+
+    const description = screen.getByTestId('status-description');
+    expect(description).toHaveTextContent('Evaluation completed successfully.');
+    expect(description).not.toHaveTextContent('Total time:');
+  });
+
+  it('should show elapsed time for failed jobs', () => {
+    const job = mockEvaluationJob({ state: 'failed', statusMessage: 'Something went wrong' });
+    /* eslint-disable camelcase */
+    job.resource.created_at = '2026-02-20T10:00:00Z';
+    job.resource.updated_at = '2026-02-20T10:17:23Z';
+    /* eslint-enable camelcase */
+
+    render(<EvaluationStatusModal job={job} namespace="test-ns" onClose={mockOnClose} />);
+
+    const description = screen.getByTestId('status-description');
+    expect(description).toHaveTextContent('Elapsed time: 17m 23s');
+  });
+});
+
+describe('EvaluationStatusModal failure summary alert', () => {
+  it('should show failure summary alert for multi-benchmark failed jobs', () => {
+    const job = mockEvaluationJob({ state: 'partially_failed' });
+    /* eslint-disable camelcase */
+    job.status.benchmarks = [
+      { id: 'bm-a', benchmark_index: 0, status: 'failed', error_message: { message: 'err-a' } },
+      { id: 'bm-b', benchmark_index: 1, status: 'completed' },
+      { id: 'bm-c', benchmark_index: 2, status: 'failed', error_message: { message: 'err-c' } },
+    ];
+    /* eslint-enable camelcase */
+
+    render(<EvaluationStatusModal job={job} namespace="test-ns" onClose={mockOnClose} />);
+
+    const alert = screen.getByTestId('failure-summary-alert');
+    expect(alert).toHaveTextContent('2 of 3 benchmarks failed');
+    expect(alert).toHaveTextContent('bm-a: err-a');
+    expect(alert).toHaveTextContent('bm-c: err-c');
+  });
+
+  it('should show job error message for single-benchmark failed jobs', () => {
+    const job = mockEvaluationJob({ state: 'failed', statusMessage: 'Job crashed' });
+    /* eslint-disable camelcase */
+    job.status.benchmarks = [
+      { id: 'bm-a', benchmark_index: 0, status: 'failed', error_message: { message: 'err' } },
+    ];
+    /* eslint-enable camelcase */
+
+    render(<EvaluationStatusModal job={job} namespace="test-ns" onClose={mockOnClose} />);
+
+    const alert = screen.getByTestId('failure-summary-alert');
+    expect(alert).toHaveTextContent('Job crashed');
+  });
+
+  it('should not show failure summary alert for non-failed jobs', () => {
+    renderModal({ state: 'completed' });
+
+    expect(screen.queryByTestId('failure-summary-alert')).not.toBeInTheDocument();
   });
 });
 
@@ -426,8 +491,6 @@ describe('EvaluationStatusModal log parsing', () => {
     const logContent = screen.getByTestId('log-content');
     expect(logContent.textContent).toContain('Model connection failed');
     expect(logContent.textContent).toContain('Retrying connection');
-    expect(logContent.textContent).toContain('ERROR');
-    expect(logContent.textContent).toContain('INFO');
   });
 
   it('should render section headers from === delimited lines', () => {
@@ -442,6 +505,21 @@ describe('EvaluationStatusModal log parsing', () => {
 
     const logContent = screen.getByTestId('log-content');
     expect(logContent.textContent).toContain('=== Running benchmark arc_easy ===');
+  });
+
+  it('should render benchmark_id headers as a benchmark name header row', () => {
+    mockUseEvaluationJobLogs.mockReturnValue({
+      logs: '=== pod=abc container=adapter benchmark_id=toxigen ===\n2026-01-15 09:30:00,123 - main - INFO - Starting',
+      loaded: true,
+      error: undefined,
+      refresh: jest.fn(),
+    });
+
+    renderModal();
+
+    const logContent = screen.getByTestId('log-content');
+    expect(logContent.textContent).toContain('toxigen');
+    expect(logContent.textContent).not.toContain('benchmark_id=');
   });
 
   it('should show empty state when logs have no content', () => {
