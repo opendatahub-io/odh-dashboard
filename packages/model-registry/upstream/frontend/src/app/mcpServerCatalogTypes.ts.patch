@@ -1,0 +1,12 @@
+diff --git a/frontend/src/app/mcpServerCatalogTypes.ts b/frontend/src/app/mcpServerCatalogTypes.ts
+index 1d57e5a3..fc5410f1 100644
+--- a/frontend/src/app/mcpServerCatalogTypes.ts
++++ b/frontend/src/app/mcpServerCatalogTypes.ts
+@@ -151,6 +151,7 @@ export type McpServer = {
+   deploymentMode?: McpDeploymentMode;
+   endpoints?: McpEndpoints;
+   runtimeMetadata?: McpRuntimeMetadata;
++  serverJson?: Record<string, unknown>;
+ };
+ 
+ export type McpServerList = PaginationParams & { items?: McpServer[] };
