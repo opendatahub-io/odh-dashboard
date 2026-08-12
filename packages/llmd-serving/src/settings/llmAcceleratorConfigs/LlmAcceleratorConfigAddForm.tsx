@@ -5,12 +5,17 @@ import {
   AlertActionCloseButton,
   Breadcrumb,
   BreadcrumbItem,
+  Bullseye,
   Button,
+  EmptyState,
+  EmptyStateBody,
+  EmptyStateFooter,
   Form,
   FormGroup,
   TextInput,
 } from '@patternfly/react-core';
-import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
+import { ExclamationCircleIcon } from '@patternfly/react-icons';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import YAML from 'yaml';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports -- standard page shell wrapper
 import { ApplicationsPage } from '@odh-dashboard/ui-core';
@@ -267,8 +272,52 @@ export const LlmAcceleratorConfigFormByName: React.FC<{
   const { configs } = React.useContext(LlmAcceleratorConfigContext);
   const config = configs.find((c) => c.metadata.name === configName);
 
+  // The named config must exist (context is already loaded — the provider gates
+  // on that). When it doesn't, tell the user rather than silently redirecting —
+  // a deep link or reload to a deleted/renamed config should explain what
+  // happened. Matches the pattern used by serving runtimes, connection types,
+  // and hardware profiles. The copy reflects the active operation so a missing
+  // duplicate target isn't labelled as an edit.
   if (!config) {
-    return <Navigate to={listPath} replace />;
+    const operationLabel = mode === 'duplicate' ? 'Duplicate' : 'Edit';
+    return (
+      <ApplicationsPage
+        loaded
+        empty={false}
+        title={`${operationLabel} LLM accelerator configuration`}
+        breadcrumb={
+          <Breadcrumb>
+            <BreadcrumbItem
+              render={() => <Link to={listPath}>LLM accelerator configurations</Link>}
+            />
+            <BreadcrumbItem isActive>{operationLabel}</BreadcrumbItem>
+          </Breadcrumb>
+        }
+        provideChildrenPadding
+      >
+        <Bullseye>
+          <EmptyState
+            headingLevel="h2"
+            icon={ExclamationCircleIcon}
+            titleText={`Unable to ${
+              mode === 'duplicate' ? 'duplicate' : 'edit'
+            } accelerator configuration`}
+          >
+            <EmptyStateBody>
+              We were unable to find an accelerator configuration named &quot;{configName}&quot;.
+            </EmptyStateBody>
+            <EmptyStateFooter>
+              <Button
+                variant="primary"
+                component={(props: React.ComponentProps<'a'>) => <Link {...props} to={listPath} />}
+              >
+                Return to the list
+              </Button>
+            </EmptyStateFooter>
+          </EmptyState>
+        </Bullseye>
+      </ApplicationsPage>
+    );
   }
 
   return <LlmAcceleratorConfigAddForm mode={mode} sourceConfig={config} listPath={listPath} />;
