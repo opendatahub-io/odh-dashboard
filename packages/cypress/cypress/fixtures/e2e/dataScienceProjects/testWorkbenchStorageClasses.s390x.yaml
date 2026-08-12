@@ -10,5 +10,4 @@ mountPathA: "mnt/path-a"
 mountPathB: "mnt/path-b"
 mountPathC: "mnt/path-c"
 notebookImage: "code-server-notebook"
-# enables s390x-specific test behaviour (skip RWO provisioning, navigate to storage tab explicitly)
 isS390x: true
