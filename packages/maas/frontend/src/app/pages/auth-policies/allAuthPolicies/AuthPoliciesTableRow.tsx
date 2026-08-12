@@ -11,6 +11,7 @@ import {
   getAuthPolicyViewUrl,
 } from '~/app/utilities/subscriptionManagementNavigation';
 import { convertAuthPolicyToK8sResource } from '~/app/utilities/authpolicies';
+import { usePolicyAffectedModels } from '~/app/hooks/useGovernanceAffectedModels';
 import PhaseLabel from '~/app/shared/Phase/PhaseLabel';
 import { PhaseLabelLocation, PhaseResourceType } from '~/app/utilities/phaseLabelUtils';
 import ExpandedGroupsPanel from '~/app/shared/ExpandedGroupsPanel';
@@ -43,6 +44,7 @@ const AuthPoliciesTableRow: React.FC<AuthPoliciesTableRowProps> = ({
   const navigate = useNavigate();
   const navState = returnTo ? { state: { returnTo } } : undefined;
   const [expandedPanel, setExpandedPanel] = React.useState<ExpandedPanel>(null);
+  const affectedModels = usePolicyAffectedModels(authPolicy);
 
   const togglePanel = (panel: 'groups' | 'models') => {
     setExpandedPanel((prev) => (prev === panel ? null : panel));
@@ -117,7 +119,7 @@ const AuthPoliciesTableRow: React.FC<AuthPoliciesTableRowProps> = ({
         lastTransitionTime={authPolicy.lastTransitionTime}
         resourceType={PhaseResourceType.AUTHPOLICY}
         resourceName={authPolicy.displayName ?? authPolicy.name}
-        resourceId={authPolicy.name}
+        affectedModels={affectedModels}
         resourceUrl={getAuthPolicyViewUrl(authPolicy.name)}
         returnTo={returnTo}
         onClick={() => {

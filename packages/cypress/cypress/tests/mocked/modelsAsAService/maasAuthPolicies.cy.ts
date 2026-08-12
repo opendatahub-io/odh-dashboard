@@ -71,11 +71,6 @@ describe('MaaS Auth Policies', () => {
   beforeEach(() => {
     setupAuthPoliciesCommon();
     cy.interceptOdh('GET /maas/api/v1/all-policies', { data: mockAuthPolicies() });
-    cy.interceptOdh(
-      'GET /maas/api/v1/view-policy/:name',
-      { path: { name: 'degraded-policy' } },
-      { data: mockPolicyInfo('degraded-policy') },
-    );
     authPoliciesPage.visit();
   });
 

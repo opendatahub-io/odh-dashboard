@@ -12,6 +12,7 @@ import {
   getSubscriptionViewUrl,
 } from '~/app/utilities/subscriptionManagementNavigation';
 import { convertSubscriptionToK8sResource } from '~/app/utilities/subscriptions';
+import { useSubscriptionAffectedModels } from '~/app/hooks/useGovernanceAffectedModels';
 import PhaseLabel from '~/app/shared/Phase/PhaseLabel';
 import { PhaseLabelLocation, PhaseResourceType } from '~/app/utilities/phaseLabelUtils';
 import ExpandedGroupsPanel from '~/app/shared/ExpandedGroupsPanel';
@@ -43,6 +44,7 @@ const SubscriptionTableRow: React.FC<SubscriptionTableRowProps> = ({
   const navigate = useNavigate();
   const navState = returnTo ? { state: { returnTo } } : undefined;
   const [expandedPanel, setExpandedPanel] = React.useState<ExpandedPanel>(null);
+  const affectedModels = useSubscriptionAffectedModels(subscription);
 
   const togglePanel = (panel: 'groups' | 'models') => {
     setExpandedPanel((prev) => (prev === panel ? null : panel));
@@ -121,7 +123,7 @@ const SubscriptionTableRow: React.FC<SubscriptionTableRowProps> = ({
         lastTransitionTime={subscription.lastTransitionTime}
         resourceType={PhaseResourceType.SUBSCRIPTION}
         resourceName={subscription.displayName ?? subscription.name}
-        resourceId={subscription.name}
+        affectedModels={affectedModels}
         resourceUrl={getSubscriptionViewUrl(subscription.name)}
         returnTo={returnTo}
         onClick={() => {

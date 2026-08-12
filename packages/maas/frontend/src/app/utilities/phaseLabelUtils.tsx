@@ -118,11 +118,11 @@ export const getAffectedModels = (modelRefs: ModelRefWithPhase[]): AffectedModel
     ];
   });
 
-/** Resolve resource model refs against a catalog, then return non-Ready affected models. */
+/** Resolve resource model refs against the summaries, then return non-Ready affected models. */
 export const getAffectedModelsFromRefs = (
   refs: { name: string; namespace: string; displayName?: string }[],
-  catalog: MaaSModelRefSummary[],
-): AffectedModel[] => getAffectedModels(modelRefsToSummaries(refs, catalog));
+  summaries: MaaSModelRefSummary[],
+): AffectedModel[] => getAffectedModels(modelRefsToSummaries(refs, summaries));
 
 const POPOVER_CONTENT: Record<PhaseResourceType, Partial<Record<string, PopoverContent>>> = {
   [PhaseResourceType.MODEL]: {

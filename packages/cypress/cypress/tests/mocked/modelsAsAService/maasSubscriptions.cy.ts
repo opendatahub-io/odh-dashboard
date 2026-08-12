@@ -47,11 +47,6 @@ describe('Subscriptions Page', () => {
   beforeEach(() => {
     setupCommonIntercepts();
     cy.interceptOdh('GET /maas/api/v1/all-subscriptions', { data: mockSubscriptions() });
-    cy.interceptOdh(
-      'GET /maas/api/v1/subscription-info/:name',
-      { path: { name: 'degraded-sub' } },
-      { data: mockSubscriptionInfo('degraded-sub') },
-    );
     subscriptionsPage.visit();
   });
 

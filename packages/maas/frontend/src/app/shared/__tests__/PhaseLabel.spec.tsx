@@ -5,22 +5,8 @@ import '@testing-library/jest-dom';
 import { MemoryRouter } from 'react-router-dom';
 import PhaseLabel from '~/app/shared/Phase/PhaseLabel';
 import { PhaseResourceType } from '~/app/utilities/phaseLabelUtils';
-import { getSubscriptionInfo } from '~/app/api/subscriptions';
-
-jest.mock('~/app/api/subscriptions', () => ({
-  getSubscriptionInfo: jest.fn(),
-}));
-
-jest.mock('~/app/api/auth-policies', () => ({
-  getPolicyInfo: jest.fn(),
-}));
-
-const mockGetSubscriptionInfo = jest.mocked(getSubscriptionInfo);
 
 describe('PhaseLabel', () => {
-  beforeEach(() => {
-    mockGetSubscriptionInfo.mockReset();
-  });
   it('should render Active phase with correct text', () => {
     render(
       <PhaseLabel
@@ -286,41 +272,7 @@ describe('PhaseLabel', () => {
     expect(screen.getByTestId('phase-modal')).not.toBeNull();
   });
 
-  it('should fetch affected models on click when degraded and resourceId is provided', async () => {
-    const user = userEvent.setup();
-    mockGetSubscriptionInfo.mockReturnValue(() =>
-      Promise.resolve({
-        subscription: {
-          name: 'degraded-sub',
-          namespace: 'maas-system',
-          priority: 1,
-          owner: { groups: [] },
-          modelRefs: [{ name: 'ghost-model', namespace: 'missing-ns', tokenRateLimits: [] }],
-        },
-        modelRefs: [],
-        authPolicies: [],
-      }),
-    );
-
-    render(
-      <MemoryRouter>
-        <PhaseLabel
-          phase="Degraded"
-          resourceType={PhaseResourceType.SUBSCRIPTION}
-          resourceName="Degraded Sub"
-          resourceId="degraded-sub"
-        />
-      </MemoryRouter>,
-    );
-
-    await user.click(screen.getByRole('button', { name: 'Degraded' }));
-
-    expect(await screen.findByTestId('affected-models-table')).toBeInTheDocument();
-    expect(screen.getByTestId('affected-model-name-ghost-model')).toBeInTheDocument();
-    expect(mockGetSubscriptionInfo).toHaveBeenCalledWith('degraded-sub');
-  });
-
-  it('should not fetch affected models when they are already provided', async () => {
+  it('should show precomputed affected models in the degraded modal', async () => {
     const user = userEvent.setup();
 
     render(
@@ -329,7 +281,6 @@ describe('PhaseLabel', () => {
           phase="Degraded"
           resourceType={PhaseResourceType.SUBSCRIPTION}
           resourceName="Degraded Sub"
-          resourceId="degraded-sub"
           affectedModels={[
             {
               name: 'precomputed',
@@ -345,6 +296,5 @@ describe('PhaseLabel', () => {
 
     expect(await screen.findByTestId('affected-models-table')).toBeInTheDocument();
     expect(screen.getByText('precomputed')).toBeInTheDocument();
-    expect(mockGetSubscriptionInfo).not.toHaveBeenCalled();
   });
 });

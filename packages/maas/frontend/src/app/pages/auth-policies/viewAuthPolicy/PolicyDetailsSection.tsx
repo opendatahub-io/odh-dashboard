@@ -51,7 +51,6 @@ const PolicyDetailsSection: React.FC<PolicyDetailsSectionProps> = ({ policy, mod
               lastTransitionTime={policy.lastTransitionTime}
               resourceType={PhaseResourceType.AUTHPOLICY}
               resourceName={policy.displayName ?? policy.name}
-              resourceId={policy.name}
               affectedModels={getAffectedModels(modelRefs)}
               onClick={() => {
                 fireMiscTrackingEvent(MaaSEvents.SUBSCRIPTION_MANAGEMENT_STATUS_POPOVER_VIEWED, {

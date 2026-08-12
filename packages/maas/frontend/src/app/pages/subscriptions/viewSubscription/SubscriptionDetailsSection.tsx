@@ -54,7 +54,6 @@ const SubscriptionDetailsSection: React.FC<SubscriptionDetailsSectionProps> = ({
               lastTransitionTime={subscription.lastTransitionTime}
               resourceType={PhaseResourceType.SUBSCRIPTION}
               resourceName={subscription.displayName ?? subscription.name}
-              resourceId={subscription.name}
               affectedModels={getAffectedModels(modelRefs)}
               onClick={() => {
                 fireMiscTrackingEvent(MaaSEvents.SUBSCRIPTION_MANAGEMENT_STATUS_POPOVER_VIEWED, {
