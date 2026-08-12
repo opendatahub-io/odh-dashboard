@@ -7,6 +7,7 @@ import { mockNotebookK8sResource } from '#~/__mocks__/mockNotebookK8sResource';
 import { mockWorkloadK8sResource } from '#~/__mocks__/mockWorkloadK8sResource';
 import { WorkloadKind } from '#~/k8sTypes';
 import {
+  buildModelDeploymentKey,
   buildWorkloadMapForNotebooks,
   buildWorkloadMapForDeployments,
   listWorkloads,
@@ -328,11 +329,21 @@ function workloadWithPodOwnerRef(workloadName: string, podUid: string): Workload
   };
 }
 
+describe('buildModelDeploymentKey', () => {
+  it('should build kind/name keys so IS and LLMIS names do not collide', () => {
+    expect(buildModelDeploymentKey('InferenceService', 'foo')).toBe('InferenceService/foo');
+    expect(buildModelDeploymentKey('LLMInferenceService', 'foo')).toBe('LLMInferenceService/foo');
+  });
+});
+
 describe('buildWorkloadMapForDeployments', () => {
+  const isKey = (name: string) => buildModelDeploymentKey('InferenceService', name);
+  const llmisKey = (name: string) => buildModelDeploymentKey('LLMInferenceService', name);
+
   it('seeds every IS with an empty array even when no workloads exist', () => {
     const result = buildWorkloadMapForDeployments([], [], [inferenceService(IS_NAME)]);
-    expect(result[IS_NAME]).toEqual([]);
-    expect(result[IS_NAME]).not.toBeNull();
+    expect(result[isKey(IS_NAME)]).toEqual([]);
+    expect(result[isKey(IS_NAME)]).not.toBeNull();
   });
 
   it('seeds LLMIS entries alongside IS entries', () => {
@@ -342,15 +353,15 @@ describe('buildWorkloadMapForDeployments', () => {
       [inferenceService(IS_NAME)],
       [llmInferenceService(LLMIS_NAME)],
     );
-    expect(result[IS_NAME]).toEqual([]);
-    expect(result[LLMIS_NAME]).toEqual([]);
+    expect(result[isKey(IS_NAME)]).toEqual([]);
+    expect(result[llmisKey(LLMIS_NAME)]).toEqual([]);
   });
 
   it('correlates Workload to IS via Pod UID + serving.kserve.io/inferenceservice label', () => {
     const pod = isPod('model-predictor-abc', IS_NAME);
     const wl = workloadWithPodOwnerRef('wl-1', POD_UID);
     const result = buildWorkloadMapForDeployments([wl], [pod], [inferenceService(IS_NAME)]);
-    expect(result[IS_NAME]).toEqual([wl]);
+    expect(result[isKey(IS_NAME)]).toEqual([wl]);
   });
 
   it('correlates Workload to LLMIS via Pod UID + app.kubernetes.io/name label', () => {
@@ -363,13 +374,34 @@ describe('buildWorkloadMapForDeployments', () => {
       [],
       [llmInferenceService(LLMIS_NAME)],
     );
-    expect(result[LLMIS_NAME]).toEqual([wl]);
+    expect(result[llmisKey(LLMIS_NAME)]).toEqual([wl]);
+  });
+
+  it('keeps same-name IS and LLMIS as independent map entries', () => {
+    const sharedName = 'shared-name';
+    const isUid = 'uid-is-same-name';
+    const llmisUid = 'uid-llmis-same-name';
+    const pod = isPod('predictor-is', sharedName, isUid);
+    const llmPod = llmisPod('predictor-llmis', sharedName, llmisUid);
+    const wl = workloadWithPodOwnerRef('wl-is', isUid);
+    const llmWl = workloadWithPodOwnerRef('wl-llmis', llmisUid);
+    const result = buildWorkloadMapForDeployments(
+      [wl, llmWl],
+      [pod, llmPod],
+      [inferenceService(sharedName)],
+      [llmInferenceService(sharedName)],
+    );
+    expect(result[isKey(sharedName)]).toEqual([wl]);
+    expect(result[llmisKey(sharedName)]).toEqual([llmWl]);
+    expect(Object.keys(result).toSorted()).toEqual(
+      [isKey(sharedName), llmisKey(sharedName)].toSorted(),
+    );
   });
 
   it('returns empty array when Workload ownerRef Pod UID not in pods list (orphaned)', () => {
     const wl = workloadWithPodOwnerRef('wl-orphan', 'nonexistent-uid');
     const result = buildWorkloadMapForDeployments([wl], [], [inferenceService(IS_NAME)]);
-    expect(result[IS_NAME]).toEqual([]);
+    expect(result[isKey(IS_NAME)]).toEqual([]);
   });
 
   it('returns empty array when Pod found but has no model-serving label', () => {
@@ -377,14 +409,14 @@ describe('buildWorkloadMapForDeployments', () => {
     const pod = { ...rawPod, metadata: { ...rawPod.metadata, uid: POD_UID } };
     const wl = workloadWithPodOwnerRef('wl-1', POD_UID);
     const result = buildWorkloadMapForDeployments([wl], [pod], [inferenceService(IS_NAME)]);
-    expect(result[IS_NAME]).toEqual([]);
+    expect(result[isKey(IS_NAME)]).toEqual([]);
   });
 
   it('skips Workloads with no Pod ownerRef', () => {
     const rawWl = mockWorkloadK8sResource({ k8sName: 'wl-no-pod-ref', namespace: NS });
     const wl = { ...rawWl, metadata: { ...rawWl.metadata, ownerReferences: [] } };
     const result = buildWorkloadMapForDeployments([wl], [], [inferenceService(IS_NAME)]);
-    expect(result[IS_NAME]).toEqual([]);
+    expect(result[isKey(IS_NAME)]).toEqual([]);
   });
 
   it('multi-replica IS: all per-Pod Workloads are collected', () => {
@@ -399,9 +431,9 @@ describe('buildWorkloadMapForDeployments', () => {
       [pod0, pod1],
       [inferenceService(IS_NAME)],
     );
-    expect(result[IS_NAME]).toHaveLength(2);
-    expect(result[IS_NAME]).toContain(wl0);
-    expect(result[IS_NAME]).toContain(wl1);
+    expect(result[isKey(IS_NAME)]).toHaveLength(2);
+    expect(result[isKey(IS_NAME)]).toContain(wl0);
+    expect(result[isKey(IS_NAME)]).toContain(wl1);
   });
 
   it('Workload for one IS does not bleed into another IS entry', () => {
@@ -416,8 +448,8 @@ describe('buildWorkloadMapForDeployments', () => {
       [podA, podB],
       [inferenceService('model-a'), inferenceService('model-b')],
     );
-    expect(result['model-a']).toEqual([wlA]);
-    expect(result['model-b']).toEqual([wlB]);
+    expect(result[isKey('model-a')]).toEqual([wlA]);
+    expect(result[isKey('model-b')]).toEqual([wlB]);
   });
 
   it('IS and LLMIS Workloads are isolated in the result map', () => {
@@ -433,8 +465,8 @@ describe('buildWorkloadMapForDeployments', () => {
       [inferenceService(IS_NAME)],
       [llmInferenceService(LLMIS_NAME)],
     );
-    expect(result[IS_NAME]).toEqual([wl]);
-    expect(result[LLMIS_NAME]).toEqual([llmWl]);
+    expect(result[isKey(IS_NAME)]).toEqual([wl]);
+    expect(result[llmisKey(LLMIS_NAME)]).toEqual([llmWl]);
   });
 
   it('matches ownerRef kind case-insensitively', () => {
@@ -448,7 +480,7 @@ describe('buildWorkloadMapForDeployments', () => {
     };
     const pod = isPod('predictor-abc', IS_NAME);
     const result = buildWorkloadMapForDeployments([wl], [pod], [inferenceService(IS_NAME)]);
-    expect(result[IS_NAME]).toEqual([wl]);
+    expect(result[isKey(IS_NAME)]).toEqual([wl]);
   });
 
   it('Workload for unknown model name does not add an extra key to result', () => {
@@ -456,7 +488,7 @@ describe('buildWorkloadMapForDeployments', () => {
     const pod = isPod('predictor-unknown', 'unknown-model', uid);
     const wl = workloadWithPodOwnerRef('wl-unknown', uid);
     const result = buildWorkloadMapForDeployments([wl], [pod], [inferenceService(IS_NAME)]);
-    expect(result[IS_NAME]).toEqual([]);
-    expect(Object.keys(result)).toEqual([IS_NAME]);
+    expect(result[isKey(IS_NAME)]).toEqual([]);
+    expect(Object.keys(result)).toEqual([isKey(IS_NAME)]);
   });
 });

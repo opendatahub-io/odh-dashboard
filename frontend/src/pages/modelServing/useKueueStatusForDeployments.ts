@@ -4,6 +4,7 @@ import type { ProjectKind } from '@odh-dashboard/k8s-core';
 import { useKueueConfiguration } from '#~/concepts/hardwareProfiles/kueueUtils';
 import type { KueueWorkloadStatusWithMessage } from '#~/concepts/kueue/types';
 import {
+  buildModelDeploymentKey,
   buildWorkloadMapForDeployments,
   useWatchWorkloads,
   useWatchISPods,
@@ -15,7 +16,8 @@ import { aggregateKueueStatusForModel, KUEUE_QUEUE_LABEL } from '#~/concepts/kue
 type NamedModelResource = { metadata: { name: string } };
 
 export type KueueStatusForDeploymentsResult = {
-  kueueStatusByISName: Record<string, KueueWorkloadStatusWithMessage | null>;
+  /** Keys are `buildModelDeploymentKey(kind, name)` e.g. `InferenceService/foo`. */
+  kueueStatusByDeploymentKey: Record<string, KueueWorkloadStatusWithMessage | null>;
   isLoading: boolean;
   error: string | null;
 };
@@ -28,6 +30,9 @@ export type KueueStatusForDeploymentsResult = {
  *   IS:    Workload ownerRef → Pod (by UID) → Pod label `serving.kserve.io/inferenceservice`
  *   LLMIS: Workload ownerRef → Pod (by UID) → Pod label `app.kubernetes.io/name`
  *          (filtered by `app.kubernetes.io/component = llminferenceservice-workload`)
+ *
+ * Status map keys are typed (`InferenceService/name`, `LLMInferenceService/name`) so same-name
+ * IS and LLMIS in one namespace stay independent.
  *
  * For multi-replica models the most-restrictive Kueue state across all per-Pod Workload CRs
  * is shown. Only runs when Kueue is enabled for the project.
@@ -49,7 +54,7 @@ export const useKueueStatusForDeployments = (
     useKueue ? namespace : undefined,
   );
 
-  const kueueStatusByISName = React.useMemo(() => {
+  const kueueStatusByDeploymentKey = React.useMemo(() => {
     if (!useKueue) {
       return {};
     }
@@ -60,20 +65,20 @@ export const useKueueStatusForDeployments = (
       inferenceServices,
       llmInferenceServices,
     );
-    const isByName = new Map(
+    const isByKey = new Map(
       inferenceServices
         .filter((is): is is typeof is & { metadata: { name: string } } => Boolean(is.metadata.name))
-        .map((is) => [is.metadata.name, is]),
+        .map((is) => [buildModelDeploymentKey('InferenceService', is.metadata.name), is]),
     );
     const statusMap: Record<string, KueueWorkloadStatusWithMessage | null> = {};
-    for (const [name, isWorkloads] of Object.entries(workloadMap)) {
+    for (const [deploymentKey, isWorkloads] of Object.entries(workloadMap)) {
       const aggregated = aggregateKueueStatusForModel(isWorkloads);
       if (!aggregated) {
-        statusMap[name] = null;
+        statusMap[deploymentKey] = null;
         continue;
       }
-      const is = isByName.get(name);
-      statusMap[name] = {
+      const is = isByKey.get(deploymentKey);
+      statusMap[deploymentKey] = {
         ...aggregated, // includes workloadName from the winning Workload
         queueName: is?.metadata.labels?.[KUEUE_QUEUE_LABEL],
       };
@@ -82,7 +87,7 @@ export const useKueueStatusForDeployments = (
   }, [useKueue, workloads, isPods, llmisPods, inferenceServices, llmInferenceServices]);
 
   return {
-    kueueStatusByISName,
+    kueueStatusByDeploymentKey,
     isLoading: useKueue && (!workloadsLoaded || !isPodsLoaded || !llmisPodsLoaded),
     error: useKueue
       ? (watchError ?? isPodsWatchError ?? llmisPodsWatchError)?.message ?? null
