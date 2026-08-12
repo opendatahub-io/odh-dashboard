@@ -49,7 +49,7 @@ const NewEvaluationRunPage: React.FC = () => {
         >
           <Card
             data-testid="standardised-benchmarks-card"
-            className="eval-hub-evaluation-type-card"
+            className="evalhub-evaluation-type-card"
             onClick={() => navigate(evaluationBenchmarksRoute(namespace))}
           >
             <CardHeader>
@@ -70,7 +70,7 @@ const NewEvaluationRunPage: React.FC = () => {
 
           <Card
             data-testid="evaluation-collections-card"
-            className="eval-hub-evaluation-type-card"
+            className="evalhub-evaluation-type-card"
             onClick={() => navigate(evaluationCollectionsRoute(namespace))}
           >
             <CardHeader>

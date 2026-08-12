@@ -47,7 +47,7 @@ const FormGroupLabel: React.FC<FormGroupLabelProps> = ({
                 e.currentTarget.click();
               }
             }}
-            className="eval-hub-form-group-label__help-trigger"
+            className="evalhub-form-group-label__help-trigger"
           >
             <OutlinedQuestionCircleIcon />
           </span>

@@ -281,7 +281,7 @@ const StartEvaluationRunPage: React.FC = () => {
 
           {/* ── Source dropdown ─────────────────────────────────── */}
           <FormGroup
-            className="eval-hub-form-group--with-description"
+            className="evalhub-form-group--with-description"
             label={
               <FormGroupLabel
                 label="Evaluating"
@@ -328,7 +328,7 @@ const StartEvaluationRunPage: React.FC = () => {
           {/* ── Model mode: model picker ───────────────────────── */}
           {form.sourceMode === 'model' && (
             <FormGroup
-              className="eval-hub-form-group--with-description"
+              className="evalhub-form-group--with-description"
               label={
                 <FormGroupLabel
                   label="Model"

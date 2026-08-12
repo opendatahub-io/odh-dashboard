@@ -61,7 +61,7 @@ const BenchmarkCard: React.FC<BenchmarkCardProps> = ({
         <Content
           component="p"
           title={`${benchmark.id} · ${benchmark.providerName}`}
-          className="eval-hub-benchmark-card__subtitle"
+          className="evalhub-benchmark-card__subtitle"
         >
           {benchmark.id} · {benchmark.providerName}
         </Content>

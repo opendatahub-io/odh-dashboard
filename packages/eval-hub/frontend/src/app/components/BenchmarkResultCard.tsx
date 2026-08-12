@@ -69,7 +69,7 @@ const BenchmarkResultCard: React.FC<BenchmarkResultCardProps> = ({
               </Content>
             </FlexItem>
             <FlexItem>
-              <Content component="p" className="pf-v6-u-color-300">
+              <Content component="p" className="evalhub-benchmark-result-card__subtitle">
                 {benchmarkId}
               </Content>
             </FlexItem>

@@ -143,24 +143,17 @@ const CompareBenchmarksTableRow: React.FC<CompareBenchmarksTableRowProps> = ({
                     data-testid={`compare-benchmark-checkbox-${selectionKey}`}
                   />
                 </Td>
-                <Td modifier="nowrap" dataLabel="Evaluation name">
-                  {/* We do not want to display the evaluation run label for child rows */}
-                  {/* <span className="pf-v6-u-pl-lg">{benchmarkLabel}</span> */}
-                </Td>
+                {/* Empty — child rows don't repeat the evaluation run label */}
+                <Td modifier="nowrap" dataLabel="Evaluation name" />
                 <Td modifier="nowrap" dataLabel="Evaluation">
                   {getBenchmarkDisplayName(run.benchmarkId)}
                 </Td>
                 <Td modifier="nowrap" dataLabel="Type">
                   {COMPARE_CHILD_RUN_TYPE}
                 </Td>
-                <Td modifier="nowrap" dataLabel="Evaluated">
-                  {/* We do not want to display the evaluation for child rows */}
-                  {/* {job.model.name} */}
-                </Td>
-                <Td modifier="nowrap" dataLabel="Date">
-                  {/* We do not want to display the date for child rows */}
-                  {/* {formatCompareTableDate(job.resource.created_at)} */}
-                </Td>
+                {/* Empty — child rows don't repeat model or date */}
+                <Td modifier="nowrap" dataLabel="Evaluated" />
+                <Td modifier="nowrap" dataLabel="Date" />
                 <Td modifier="nowrap" dataLabel="Result">
                   {getCompareBenchmarkResultScore(job, run.benchmarkId, run.benchmarkIndex)}
                 </Td>

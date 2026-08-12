@@ -58,7 +58,7 @@ const BenchmarkThresholdField: React.FC<BenchmarkThresholdFieldProps> = ({
 
   return (
     <FormGroup
-      className="eval-hub-form-group--with-description"
+      className="evalhub-form-group--with-description"
       label={
         <FormGroupLabel
           label={label}

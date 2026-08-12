@@ -49,7 +49,7 @@ const PrimaryScorerMetricField: React.FC<PrimaryScorerMetricFieldProps> = ({
 
   return (
     <FormGroup
-      className="eval-hub-form-group--with-description"
+      className="evalhub-form-group--with-description"
       label={
         <FormGroupLabel
           label="Primary scorer metric"

@@ -1,11 +1,11 @@
-.eval-hub-form-group--with-description {
+.evalhub-form-group--with-description {
   .pf-v6-c-form__group-label {
     margin-bottom: -1.5rem;
   }
 
   .pf-v6-c-form__label-text > .pf-v6-c-content--small {
     color: var(--pf-t--global--text--color--subtle);
-    font-weight: 400;
+    font-weight: var(--pf-t--global--font--weight--body--default);
     margin-block-start: var(--pf-t--global--spacer--xs);
     margin-block-end: var(--pf-t--global--spacer--sm);
     display: block;
