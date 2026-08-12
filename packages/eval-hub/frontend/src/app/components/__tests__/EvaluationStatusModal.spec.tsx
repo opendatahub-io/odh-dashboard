@@ -323,7 +323,7 @@ describe('EvaluationStatusModal benchmark warnings', () => {
 
     render(<EvaluationStatusModal job={job} namespace="test-ns" onClose={mockOnClose} />);
 
-    expect(screen.getByText('Job crashed')).toBeInTheDocument();
+    expect(screen.getByTestId('benchmark-error-message-bm-both')).toHaveTextContent('Job crashed');
     expect(screen.getByTestId('benchmark-warning-bm-both')).toHaveTextContent('High memory usage');
   });
 

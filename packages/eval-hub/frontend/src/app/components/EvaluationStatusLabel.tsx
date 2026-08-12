@@ -11,6 +11,7 @@ import {
   QuestionCircleIcon,
 } from '@patternfly/react-icons';
 import { EvaluationJobState } from '~/app/types';
+import { getFailedBenchmarkCount } from '~/app/utilities/evaluationUtils';
 
 type StatusConfig = {
   label: string;
@@ -81,15 +82,22 @@ type EvaluationStatusLabelProps = {
   /** When true and state is 'failed', renders the "Not started" badge — no benchmark ever received a started_at timestamp. */
   isPreStartFailure?: boolean;
   onClick?: () => void;
+  /** For partially_failed state: when provided, shows "X of Y failed" instead of "Partially failed". */
+  benchmarks?: Array<{ status: string }>;
 };
 
 const EvaluationStatusLabel: React.FC<EvaluationStatusLabelProps> = ({
   state,
   isPreStartFailure,
   onClick,
+  benchmarks,
 }) => {
   const effectiveState = state === 'failed' && isPreStartFailure ? 'not_started' : state;
   const config = statusMap[effectiveState] ?? unknownStatusConfig;
+  const label =
+    effectiveState === 'partially_failed' && benchmarks != null
+      ? `${getFailedBenchmarkCount(benchmarks)} of ${benchmarks.length} failed`
+      : config.label;
 
   return (
     <Label
@@ -100,7 +108,7 @@ const EvaluationStatusLabel: React.FC<EvaluationStatusLabelProps> = ({
       data-testid={onClick ? 'evaluation-status-button' : `status-label-${state}`}
       {...(onClick ? { onClick } : {})}
     >
-      {config.label}
+      {label}
     </Label>
   );
 };

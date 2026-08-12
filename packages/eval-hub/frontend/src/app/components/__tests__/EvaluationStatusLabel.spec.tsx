@@ -64,7 +64,7 @@ describe('EvaluationStatusLabel', () => {
     const onClick = jest.fn();
     render(<EvaluationStatusLabel state="failed" onClick={onClick} />);
 
-    const label = screen.getByTestId('status-label-failed');
+    const label = screen.getByTestId('evaluation-status-button');
     fireEvent.click(within(label).getByRole('button'));
 
     expect(onClick).toHaveBeenCalledTimes(1);
@@ -74,7 +74,7 @@ describe('EvaluationStatusLabel', () => {
     const onClick = jest.fn();
     render(<EvaluationStatusLabel state="partially_failed" onClick={onClick} />);
 
-    const label = screen.getByTestId('status-label-partially_failed');
+    const label = screen.getByTestId('evaluation-status-button');
     fireEvent.click(within(label).getByRole('button'));
 
     expect(onClick).toHaveBeenCalledTimes(1);
@@ -94,6 +94,26 @@ describe('EvaluationStatusLabel', () => {
     fireEvent.click(within(label).getByRole('button'));
 
     expect(onClick).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('EvaluationStatusLabel partially_failed with benchmarks', () => {
+  it('should show "X of Y failed" when benchmarks are provided for partially_failed state', () => {
+    const benchmarks = [
+      { status: 'failed' },
+      { status: 'completed' },
+      { status: 'failed' },
+      { status: 'completed' },
+    ];
+    render(<EvaluationStatusLabel state="partially_failed" benchmarks={benchmarks} />);
+    expect(screen.getByTestId('status-label-partially_failed')).toHaveTextContent('2 of 4 failed');
+  });
+
+  it('should show "Partially failed" when no benchmarks prop is provided', () => {
+    render(<EvaluationStatusLabel state="partially_failed" />);
+    expect(screen.getByTestId('status-label-partially_failed')).toHaveTextContent(
+      'Partially failed',
+    );
   });
 });
 

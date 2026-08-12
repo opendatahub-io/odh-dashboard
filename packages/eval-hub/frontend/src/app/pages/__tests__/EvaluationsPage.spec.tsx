@@ -217,7 +217,7 @@ describe('EvaluationsPage', () => {
         </QueryClientProvider>,
       );
 
-      const statusLabel = screen.getByTestId('status-label-failed');
+      const statusLabel = screen.getByTestId('evaluation-status-button');
       fireEvent.click(within(statusLabel).getByRole('button'));
       await waitFor(() => {
         expect(screen.getByTestId('evaluation-status-modal')).toBeInTheDocument();

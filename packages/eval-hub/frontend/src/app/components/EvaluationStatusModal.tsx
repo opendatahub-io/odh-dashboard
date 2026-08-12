@@ -335,10 +335,9 @@ type ProgressBenchmark = {
 
 const ProgressTabContent: React.FC<{
   benchmarks: ProgressBenchmark[];
-  completedCount: number;
   hasPolledData: boolean;
   onViewLogs: (benchmarkIndex: number) => void;
-}> = ({ benchmarks, completedCount, hasPolledData, onViewLogs }) => {
+}> = ({ benchmarks, hasPolledData, onViewLogs }) => {
   const [expandedIds, setExpandedIds] = React.useState<Set<string>>(
     () =>
       new Set(benchmarks.length > 0 && benchmarks.length <= 5 ? benchmarks.map((b) => b.id) : []),
@@ -383,17 +382,7 @@ const ProgressTabContent: React.FC<{
     <Stack hasGutter data-testid="progress-tab-content">
       {benchmarks.length > 0 ? (
         <StackItem>
-          <Content component="p" data-testid="benchmark-complete-count">
-            <strong>
-              {completedCount}/{benchmarks.length}
-            </strong>{' '}
-            {benchmarks.length === 1 ? 'benchmark' : 'benchmarks'} complete
-          </Content>
-        </StackItem>
-      ) : null}
-      {benchmarks.length > 0 ? (
-        <StackItem>
-          <Stack data-testid="benchmark-steps">
+          <Stack hasGutter data-testid="benchmark-steps">
             {benchmarks.map((bm) => {
               const isExpanded = expandedIds.has(bm.id);
               return (
@@ -422,73 +411,173 @@ const ProgressTabContent: React.FC<{
                       </Flex>
                     </StackItem>
                     {isExpanded ? (
-                      <StackItem className="pf-v6-u-ml-xl pf-v6-u-pt-sm pf-v6-u-mb-sm">
-                        <Stack>
-                          <StackItem className="pf-v6-u-mb-xs">
-                            <DescriptionList isHorizontal isCompact>
-                              <DescriptionListGroup>
-                                <DescriptionListTerm>Status</DescriptionListTerm>
-                                <DescriptionListDescription
-                                  data-testid={`benchmark-detail-status-${bm.id}`}
-                                >
-                                  {bm.status.charAt(0).toUpperCase() + bm.status.slice(1)}
-                                </DescriptionListDescription>
-                              </DescriptionListGroup>
-                              {bm.startedAt ? (
-                                <DescriptionListGroup>
-                                  <DescriptionListTerm>Started</DescriptionListTerm>
-                                  <DescriptionListDescription>
-                                    {formatDate(bm.startedAt)}
-                                  </DescriptionListDescription>
-                                </DescriptionListGroup>
-                              ) : null}
-                              {bm.completedAt ? (
-                                <DescriptionListGroup>
-                                  <DescriptionListTerm>Completed</DescriptionListTerm>
-                                  <DescriptionListDescription>
-                                    {formatDate(bm.completedAt)}
-                                  </DescriptionListDescription>
-                                </DescriptionListGroup>
-                              ) : null}
-                            </DescriptionList>
-                          </StackItem>
-                          {bm.errorMessage ? (
-                            <StackItem className="pf-v6-u-mb-xs">
-                              <Content
-                                component="p"
-                                data-testid={`benchmark-error-message-${bm.id}`}
-                              >
-                                {bm.errorMessage}
-                              </Content>
-                            </StackItem>
-                          ) : null}
-                          {bm.warningMessage ? (
-                            <StackItem className="pf-v6-u-mb-xs">
-                              <Alert
-                                variant="warning"
-                                isInline
-                                isPlain
-                                title={bm.warningCode ?? 'Warning'}
-                                data-testid={`benchmark-warning-${bm.id}`}
-                              >
-                                {bm.warningMessage}
-                              </Alert>
-                            </StackItem>
-                          ) : null}
-                          {bm.benchmark_index != null && bm.status !== 'pending' ? (
+                      bm.status === 'running' ? (
+                        <StackItem className="pf-v6-u-ml- pf-v6-u-pt-sm pf-v6-u-mb-sm">
+                          <Stack>
                             <StackItem>
-                              <Button
-                                variant="link"
-                                isInline
-                                onClick={() => onViewLogs(bm.benchmark_index!)}
-                                data-testid={`progress-view-logs-${bm.id}`}
+                              <Flex
+                                alignItems={{ default: 'alignItemsFlexStart' }}
+                                gap={{ default: 'gapSm' }}
                               >
-                                View logs
-                              </Button>
+                                <FlexItem>
+                                  <div className="evalhub-benchmark-connector" aria-hidden="true" />
+                                </FlexItem>
+                                <FlexItem>
+                                  <Icon status="info" isInline>
+                                    <InProgressIcon className="ai-u-spin" />
+                                  </Icon>
+                                </FlexItem>
+                                <FlexItem>In progress</FlexItem>
+                                {bm.benchmark_index != null ? (
+                                  <FlexItem>
+                                    <Button
+                                      variant="link"
+                                      isInline
+                                      onClick={() => onViewLogs(bm.benchmark_index!)}
+                                      data-testid={`progress-view-logs-${bm.id}`}
+                                    >
+                                      View logs
+                                    </Button>
+                                  </FlexItem>
+                                ) : null}
+                              </Flex>
                             </StackItem>
-                          ) : null}
-                        </Stack>
-                      </StackItem>
+                          </Stack>
+                        </StackItem>
+                      ) : bm.status === 'completed' ? (
+                        <StackItem className="pf-v6-u-pt-sm pf-v6-u-mb-sm">
+                          <Stack>
+                            <StackItem>
+                              <Flex
+                                alignItems={{ default: 'alignItemsFlexStart' }}
+                                gap={{ default: 'gapSm' }}
+                                flexWrap={{ default: 'wrap' }}
+                              >
+                                <FlexItem>
+                                  <div className="evalhub-benchmark-connector" aria-hidden="true" />
+                                </FlexItem>
+                                <FlexItem>
+                                  <Icon status="success" isInline>
+                                    <CheckCircleIcon />
+                                  </Icon>
+                                </FlexItem>
+                                <FlexItem>
+                                  <span data-testid={`benchmark-detail-status-${bm.id}`}>
+                                    {`Completed${bm.completedAt ? `: ${formatDate(bm.completedAt)}` : ''}`}
+                                  </span>
+                                </FlexItem>
+                                {bm.benchmark_index != null ? (
+                                  <FlexItem>
+                                    <Button
+                                      variant="link"
+                                      isInline
+                                      onClick={() => onViewLogs(bm.benchmark_index!)}
+                                      data-testid={`progress-view-logs-${bm.id}`}
+                                    >
+                                      View logs
+                                    </Button>
+                                  </FlexItem>
+                                ) : null}
+                              </Flex>
+                            </StackItem>
+                            {bm.warningMessage ? (
+                              <StackItem className="pf-v6-u-mb-xs">
+                                <Alert
+                                  variant="warning"
+                                  isInline
+                                  isPlain
+                                  title={bm.warningCode ?? 'Warning'}
+                                  data-testid={`benchmark-warning-${bm.id}`}
+                                >
+                                  {bm.warningMessage}
+                                </Alert>
+                              </StackItem>
+                            ) : null}
+                          </Stack>
+                        </StackItem>
+                      ) : bm.status === 'failed' ? (
+                        <StackItem className="pf-v6-u-pt-sm pf-v6-u-mb-sm">
+                          <Stack>
+                            <StackItem>
+                              <Flex
+                                alignItems={{ default: 'alignItemsCenter' }}
+                                gap={{ default: 'gapSm' }}
+                              >
+                                <FlexItem alignSelf={{ default: 'alignSelfStretch' }}>
+                                  <div
+                                    className="evalhub-benchmark-connector evalhub-benchmark-connector--centered"
+                                    aria-hidden="true"
+                                  />
+                                </FlexItem>
+                                <FlexItem alignSelf={{ default: 'alignSelfFlexStart' }}>
+                                  <Icon status="danger" isInline>
+                                    <ExclamationCircleIcon />
+                                  </Icon>
+                                </FlexItem>
+                                <FlexItem flex={{ default: 'flex_1' }}>
+                                  <span data-testid={`benchmark-error-message-${bm.id}`}>
+                                    {`Failed${bm.completedAt ? `: ${formatDate(bm.completedAt)}` : ''}${bm.errorMessage ? ` – ${bm.errorMessage}` : ''}`}
+                                    {bm.benchmark_index != null ? (
+                                      <Button
+                                        variant="link"
+                                        isInline
+                                        className="pf-v6-u-ml-sm"
+                                        onClick={() => onViewLogs(bm.benchmark_index!)}
+                                        data-testid={`progress-view-logs-${bm.id}`}
+                                      >
+                                        View logs
+                                      </Button>
+                                    ) : null}
+                                  </span>
+                                </FlexItem>
+                              </Flex>
+                            </StackItem>
+                            {bm.warningMessage ? (
+                              <StackItem className="pf-v6-u-mb-xs">
+                                <Alert
+                                  variant="warning"
+                                  isInline
+                                  isPlain
+                                  title={bm.warningCode ?? 'Warning'}
+                                  data-testid={`benchmark-warning-${bm.id}`}
+                                >
+                                  {bm.warningMessage}
+                                </Alert>
+                              </StackItem>
+                            ) : null}
+                          </Stack>
+                        </StackItem>
+                      ) : (
+                        <StackItem className="pf-v6-u-ml-xl pf-v6-u-pt-sm pf-v6-u-mb-sm">
+                          <Stack>
+                            <StackItem className="pf-v6-u-mb-xs">
+                              <DescriptionList isHorizontal isCompact>
+                                <DescriptionListGroup>
+                                  <DescriptionListTerm>Status</DescriptionListTerm>
+                                  <DescriptionListDescription
+                                    data-testid={`benchmark-detail-status-${bm.id}`}
+                                  >
+                                    {bm.status.charAt(0).toUpperCase() + bm.status.slice(1)}
+                                  </DescriptionListDescription>
+                                </DescriptionListGroup>
+                              </DescriptionList>
+                            </StackItem>
+                            {bm.warningMessage ? (
+                              <StackItem className="pf-v6-u-mb-xs">
+                                <Alert
+                                  variant="warning"
+                                  isInline
+                                  isPlain
+                                  title={bm.warningCode ?? 'Warning'}
+                                  data-testid={`benchmark-warning-${bm.id}`}
+                                >
+                                  {bm.warningMessage}
+                                </Alert>
+                              </StackItem>
+                            ) : null}
+                          </Stack>
+                        </StackItem>
+                      )
                     ) : null}
                   </Stack>
                 </StackItem>
@@ -776,7 +865,11 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
           <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapMd' }}>
             <FlexItem>Evaluation run status</FlexItem>
             <FlexItem>
-              <EvaluationStatusLabel state={state} isPreStartFailure={isPreStart} />
+              <EvaluationStatusLabel
+                state={state}
+                isPreStartFailure={isPreStart}
+                benchmarks={state === 'partially_failed' ? progressBenchmarks : undefined}
+              />
             </FlexItem>
           </Flex>
         }
@@ -864,6 +957,16 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
                 </Alert>
               </StackItem>
             ) : null}
+            {progressBenchmarks.length > 0 ? (
+              <StackItem>
+                <Content component="p" data-testid="benchmark-complete-count">
+                  <strong>
+                    {progressCompletedCount}/{progressBenchmarks.length}{' '}
+                    {progressBenchmarks.length === 1 ? 'benchmark' : 'benchmarks'} complete
+                  </strong>
+                </Content>
+              </StackItem>
+            ) : null}
           </Stack>
           <Tabs
             activeKey={activeTab}
@@ -913,7 +1016,6 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
               <StackItem>
                 <ProgressTabContent
                   benchmarks={progressBenchmarks}
-                  completedCount={progressCompletedCount}
                   hasPolledData={!!polledJobData || !isInProgress}
                   onViewLogs={handleViewBenchmarkLogs}
                 />

@@ -5,6 +5,7 @@ import {
   getAllBenchmarkNames,
   getBenchmarkDisplayName,
   getBenchmarkResultScore,
+  getFailedBenchmarkCount,
   getJobBenchmarks,
   getResultScore,
   formatAsPercentage,
@@ -498,5 +499,30 @@ describe('formatDate', () => {
   it('should return the original string for an invalid date', () => {
     const result = formatDate('not-a-date');
     expect(typeof result).toBe('string');
+  });
+});
+
+describe('getFailedBenchmarkCount', () => {
+  it('should return 0 for an empty array', () => {
+    expect(getFailedBenchmarkCount([])).toBe(0);
+  });
+
+  it('should return 0 when no benchmarks have failed', () => {
+    expect(getFailedBenchmarkCount([{ status: 'completed' }, { status: 'running' }])).toBe(0);
+  });
+
+  it('should count only failed benchmarks', () => {
+    expect(
+      getFailedBenchmarkCount([
+        { status: 'completed' },
+        { status: 'failed' },
+        { status: 'running' },
+        { status: 'failed' },
+      ]),
+    ).toBe(2);
+  });
+
+  it('should count all when every benchmark has failed', () => {
+    expect(getFailedBenchmarkCount([{ status: 'failed' }, { status: 'failed' }])).toBe(2);
   });
 });

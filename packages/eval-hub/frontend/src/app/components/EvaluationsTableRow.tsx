@@ -65,6 +65,7 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
   const isComparable = isEvaluationJobComparable(job);
   const displayState = isStopping ? 'stopping' : (polledJobData?.status.state ?? job.status.state);
   const isPreStart = isPreStartFailure(job);
+  const effectiveBenchmarks = polledJobData?.status.benchmarks ?? job.status.benchmarks ?? [];
 
   React.useEffect(() => {
     if (!isInProgress) {
@@ -219,6 +220,7 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
             state={displayState}
             isPreStartFailure={isPreStart}
             onClick={() => onShowStatus(job)}
+            benchmarks={displayState === 'partially_failed' ? effectiveBenchmarks : undefined}
           />
         </Td>
         <Td dataLabel="Evaluation" data-testid="evaluation-benchmark">

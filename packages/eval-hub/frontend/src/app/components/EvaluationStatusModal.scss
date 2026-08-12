@@ -36,6 +36,33 @@
   min-height: 400px;
 }
 
+.evalhub-benchmark-connector {
+  width: var(--pf-t--global--spacer--2xl);
+  height: 0.75em;
+  flex-shrink: 0;
+  position: relative;
+
+  &::after {
+    content: '';
+    position: absolute;
+    left: 1.125rem;
+    top: 0;
+    right: 1rem;
+    bottom: 0;
+    border-left: 1px solid var(--pf-t--global--border--color--default);
+    border-bottom: 1px solid var(--pf-t--global--border--color--default);
+  }
+
+  &--centered {
+    height: 100%;
+
+    &::after {
+      top: -0.75em;
+      bottom: 50%;
+    }
+  }
+}
+
 // Log viewer
 .evalhub-log-viewer {
   max-height: 46vh;

@@ -246,7 +246,7 @@ describe('Evaluations Page - Status labels', () => {
 
   it('should show "Partially failed" badge for a partially_failed job', () => {
     evaluationsPage.visit(NAMESPACE);
-    evaluationsPage.findStatusCell(2).should('have.text', 'Partially failed');
+    evaluationsPage.findStatusCell(2).should('have.text', '1 of 2 failed');
   });
 });
 

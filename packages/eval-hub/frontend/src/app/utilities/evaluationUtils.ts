@@ -215,3 +215,6 @@ export const isTerminalState = (state: EvaluationJobState): boolean => TERMINAL_
 /** Only completed runs can be selected for compare. */
 export const isEvaluationJobComparable = (job: EvaluationJob): boolean =>
   job.status.state === 'completed';
+
+export const getFailedBenchmarkCount = (benchmarks: Array<{ status: string }>): number =>
+  benchmarks.filter((bm) => bm.status === 'failed').length;
