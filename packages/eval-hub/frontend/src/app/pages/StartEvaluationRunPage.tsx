@@ -305,7 +305,6 @@ const StartEvaluationRunPage: React.FC = () => {
                   onClick={() => setIsSourceOpen((prev) => !prev)}
                   isExpanded={isSourceOpen}
                   isFullWidth
-                  aria-required="true"
                   data-testid="source-mode-toggle"
                 >
                   {SOURCE_OPTIONS.find((o) => o.value === form.sourceMode)?.label}
@@ -363,7 +362,6 @@ const StartEvaluationRunPage: React.FC = () => {
                     onClick={() => setIsModelOpen((prev) => !prev)}
                     isExpanded={isModelOpen}
                     isFullWidth
-                    aria-required="true"
                     data-testid="model-picker-toggle"
                   >
                     {modelDropdownDisplayValue}
