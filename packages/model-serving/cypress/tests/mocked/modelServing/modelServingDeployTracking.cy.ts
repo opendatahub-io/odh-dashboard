@@ -262,10 +262,13 @@ describe('Model Deployment Tracking Events', () => {
     modelServingWizard.findExternalRouteCheckbox().click();
     modelServingWizard.findNextButton().click();
 
-    // Step 4: Review — stub analytics and submit
+    // Step 4: Review — stub window.analytics.track to capture tracking events in non-dev builds
     cy.window().then((win) => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (win as any).analytics = { track: cy.stub().as('analyticsTrack') };
+      Object.defineProperty(win, 'analytics', {
+        value: { track: cy.stub().as('analyticsTrack') },
+        writable: true,
+        configurable: true,
+      });
     });
 
     modelServingWizard.findSubmitButton().click();
@@ -294,10 +297,13 @@ describe('Model Deployment Tracking Events', () => {
     // Start filling out the form so it's dirty
     modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).click();
 
-    // Stub analytics before triggering the cancel event
+    // Stub window.analytics.track before triggering the cancel event
     cy.window().then((win) => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (win as any).analytics = { track: cy.stub().as('analyticsTrack') };
+      Object.defineProperty(win, 'analytics', {
+        value: { track: cy.stub().as('analyticsTrack') },
+        writable: true,
+        configurable: true,
+      });
     });
 
     // Cancel from wizard — click Cancel button then confirm discard
@@ -363,10 +369,13 @@ describe('Model Deployment Tracking Events', () => {
     modelServingWizard.findExternalRouteCheckbox().click();
     modelServingWizard.findNextButton().click();
 
-    // Step 4: Review — stub analytics and submit
+    // Step 4: Review — stub window.analytics.track to capture tracking events in non-dev builds
     cy.window().then((win) => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (win as any).analytics = { track: cy.stub().as('analyticsTrack') };
+      Object.defineProperty(win, 'analytics', {
+        value: { track: cy.stub().as('analyticsTrack') },
+        writable: true,
+        configurable: true,
+      });
     });
 
     modelServingWizard.findSubmitButton().click();
