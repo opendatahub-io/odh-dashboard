@@ -251,15 +251,12 @@ aliases:
 
   # Eval Hub
   eval-hub-approvers:
-    - ikeola13
-    - pnaik1
     - ederign
     - chrjones-rh
     - nickmazzi
+    - jefho-rh
 
   eval-hub-reviewers:
-    - ikeola13
-    - pnaik1
     - ederign
     - chrjones-rh
     - nickmazzi
