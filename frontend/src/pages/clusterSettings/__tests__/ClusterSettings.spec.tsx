@@ -32,8 +32,16 @@ jest.mock('#~/concepts/analyticsTracking/segmentIOUtils', () => ({
   fireFormTrackingEvent: jest.fn(),
 }));
 
-// Simplify GlobalProjectSettings to two buttons that either select a new namespace
-// or clear the current one, avoiding the need to stand up ProjectsContext/ProjectSelector.
+jest.mock('#~/pages/clusterSettings/ModelServingPlatformSettings', () => ({
+  __esModule: true,
+  default: () => <div data-testid="model-serving-platform-settings">Platform Settings</div>,
+}));
+
+jest.mock('#~/pages/clusterSettings/ModelDeploymentSettings', () => ({
+  __esModule: true,
+  default: () => <div data-testid="model-deployment-settings">Deployment Settings</div>,
+}));
+
 jest.mock('#~/pages/clusterSettings/GlobalProjectSettings', () => ({
   __esModule: true,
   default: ({ setSelectedNamespace }: { setSelectedNamespace: (ns: string) => void }) => (
@@ -236,5 +244,47 @@ describe('ClusterSettings', () => {
         },
       );
     });
+  });
+
+  it('should show model deployments section when MODEL_SERVING is on and MODEL_DEPLOYMENT_SETTINGS is off', async () => {
+    mockUseIsAreaAvailable.mockImplementation((area: string) => {
+      const result = {
+        status: area === 'model-serving-shell',
+        featureFlags: {},
+        devFlags: {},
+        reliantAreas: {},
+        requiredComponents: {},
+        requiredCapabilities: {},
+        customCondition: jest.fn(),
+      } as ReturnType<typeof useIsAreaAvailable>;
+      return result;
+    });
+
+    await renderAndWaitForLoad();
+
+    expect(screen.getByText('Model deployments')).toBeInTheDocument();
+    expect(screen.getByTestId('model-serving-platform-settings')).toBeInTheDocument();
+    expect(screen.getByTestId('model-deployment-settings')).toBeInTheDocument();
+  });
+
+  it('should hide model deployments section when MODEL_DEPLOYMENT_SETTINGS flag is on', async () => {
+    mockUseIsAreaAvailable.mockImplementation((area: string) => {
+      const isOn = area === 'model-serving-shell' || area === 'model-deployment-settings';
+      return {
+        status: isOn,
+        featureFlags: {},
+        devFlags: {},
+        reliantAreas: {},
+        requiredComponents: {},
+        requiredCapabilities: {},
+        customCondition: jest.fn(),
+      } as ReturnType<typeof useIsAreaAvailable>;
+    });
+
+    await renderAndWaitForLoad();
+
+    expect(screen.queryByText('Model deployments')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('model-serving-platform-settings')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('model-deployment-settings')).not.toBeInTheDocument();
   });
 });
