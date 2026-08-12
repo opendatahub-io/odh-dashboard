@@ -275,6 +275,17 @@ export const assembleNotebook = async (
                   protocol: 'TCP',
                 },
               ],
+              startupProbe: {
+                periodSeconds: 10,
+                timeoutSeconds: 1,
+                successThreshold: 1,
+                failureThreshold: 18,
+                httpGet: {
+                  scheme: 'HTTP',
+                  path: `/notebook/${namespace}/${name}/api`,
+                  port: 'notebook-port',
+                },
+              },
               livenessProbe: {
                 initialDelaySeconds: 10,
                 periodSeconds: 5,
