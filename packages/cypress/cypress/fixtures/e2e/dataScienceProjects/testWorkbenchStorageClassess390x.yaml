@@ -1,7 +1,0 @@
-# testWorkbenchStorageClasses-s390x.cy.ts Test Data
-projectName: "test-workbench-storage-preset"
-storageClassRWO: "nfs-storage"
-workbenchRWO: "wb-rwo-test"
-storageRWO: "storage-rwo"
-mountPathA: "mnt/path-a"
-notebookImage: "code-server-notebook"

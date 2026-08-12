@@ -1,0 +1,18 @@
+# s390x platform fixture — referenced via FILEMAPPING in test-variables.yml.
+# Only test 1 differs: uses the pre-existing nfs-storage instead of vSphere.
+# Tests 2 and 3 use the same storageClassMultiAccess as the base fixture and
+# provision it normally, so they are unchanged.
+projectName: "test-workbench-storage-preset"
+storageClassRWO: "nfs-storage"
+storageClassMultiAccess: "sc-wb-multi-access"
+workbenchRWO: "wb-rwo-test"
+workbenchMultiAccessA: "wb-multi-a"
+workbenchMultiAccessB: "wb-multi-b"
+storageRWO: "storage-rwo"
+storageMultiAccess: "storage-multi"
+mountPathA: "mnt/path-a"
+mountPathB: "mnt/path-b"
+mountPathC: "mnt/path-c"
+notebookImage: "code-server-notebook"
+# enables s390x-specific test behaviour (skip RWO provisioning, navigate to storage tab explicitly)
+isS390x: true
