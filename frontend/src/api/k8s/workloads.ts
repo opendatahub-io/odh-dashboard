@@ -66,19 +66,25 @@ export const buildWorkloadMapForNotebooks = (
   return result;
 };
 
-// Minimal structural type for a named model deployment.
 // Avoids importing @odh-dashboard/llmd-serving/types which is not a frontend dep.
 type NamedModelResource = { metadata: { name: string } };
 
+/** K8s kinds used as model-deployment map keys (name alone is not unique across kinds). */
+export type ModelDeploymentResourceKind = 'InferenceService' | 'LLMInferenceService';
+
+/** Stable map key: `InferenceService/foo` vs `LLMInferenceService/foo`. */
+export const buildModelDeploymentKey = (kind: ModelDeploymentResourceKind, name: string): string =>
+  `${kind}/${name}`;
+
 /**
  * Two-hop Workload-to-IS/LLMIS correlation (confirmed on live RHOAI + RHBoK cluster):
- * Workload CR ownerRef (kind: Pod) → Pod lookup by UID → Pod label → model name.
+ * Workload CR ownerRef (kind: Pod) → Pod lookup by UID → Pod label → typed deployment key.
  *
  * InferenceService pods carry: `serving.kserve.io/inferenceservice` = IS name
  * LLMInferenceService pods carry: `app.kubernetes.io/component = llminferenceservice-workload`
  *   (discriminator) and `app.kubernetes.io/name` = LLMIS name.
  *
- * Returns model name → WorkloadKind[] (1:many when replicas > 1).
+ * Returns `kind/name` → WorkloadKind[] (1:many when replicas > 1).
  * Workloads whose Pod UID is not in pods (orphaned) are silently skipped.
  */
 export const buildWorkloadMapForDeployments = (
@@ -97,11 +103,11 @@ export const buildWorkloadMapForDeployments = (
   const result: Record<string, WorkloadKind[]> = {};
   for (const is of inferenceServices) {
     if (is.metadata.name) {
-      result[is.metadata.name] = [];
+      result[buildModelDeploymentKey('InferenceService', is.metadata.name)] = [];
     }
   }
   for (const llmis of llmInferenceServices) {
-    result[llmis.metadata.name] = [];
+    result[buildModelDeploymentKey('LLMInferenceService', llmis.metadata.name)] = [];
   }
 
   for (const wl of workloads) {
@@ -117,16 +123,21 @@ export const buildWorkloadMapForDeployments = (
     const labels = pod.metadata.labels ?? {};
 
     // IS: serving.kserve.io/inferenceservice. LLMIS: component=llminferenceservice-workload + name.
-    const modelName =
-      labels['serving.kserve.io/inferenceservice'] ??
-      (labels['app.kubernetes.io/component'] === 'llminferenceservice-workload'
-        ? labels['app.kubernetes.io/name']
-        : undefined);
+    const isName = labels['serving.kserve.io/inferenceservice'];
+    let deploymentKey: string | undefined;
+    if (isName) {
+      deploymentKey = buildModelDeploymentKey('InferenceService', isName);
+    } else if (labels['app.kubernetes.io/component'] === 'llminferenceservice-workload') {
+      const llmisName = labels['app.kubernetes.io/name'];
+      if (llmisName) {
+        deploymentKey = buildModelDeploymentKey('LLMInferenceService', llmisName);
+      }
+    }
 
-    if (!modelName) continue; // Not a model serving Pod.
+    if (!deploymentKey) continue; // Not a model serving Pod.
 
-    if (Object.prototype.hasOwnProperty.call(result, modelName)) {
-      result[modelName].push(wl);
+    if (Object.prototype.hasOwnProperty.call(result, deploymentKey)) {
+      result[deploymentKey].push(wl);
     }
   }
 
