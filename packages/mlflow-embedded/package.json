@@ -6,9 +6,9 @@
   "scripts": {
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "type-check": "tsc --noEmit",
     "test-unit": "jest --silent --passWithNoTests",
-    "test-unit-coverage": "jest --silent --coverage --passWithNoTests"
+    "test-unit-coverage": "jest --silent --coverage --passWithNoTests",
+    "type-check": "tsc --noEmit"
   },
   "module-federation": {
     "name": "mlflowEmbedded",

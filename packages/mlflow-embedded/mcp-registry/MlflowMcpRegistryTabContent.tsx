@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import {
   Bullseye,
   Content,
@@ -18,26 +18,16 @@ import { ProjectIconWithSize } from '@odh-dashboard/internal/concepts/projects/P
 import { IconSize } from '@odh-dashboard/internal/types';
 import ProjectSelectorNavigator from '@odh-dashboard/ui-core/components/projectSelector/ProjectSelectorNavigator';
 import { WORKSPACE_QUERY_PARAM } from '@odh-dashboard/internal/routes/pipelines/mlflow';
-import McpRegistryDeployAction from './McpRegistryDeployAction';
-import { MCPServer, MCPServerVersion } from './types';
+import { MCP_REGISTRY_BASENAME, mcpRegistryBaseRoute } from './const';
+import useHostRouteSync from './useHostRouteSync';
 import MLflowUnavailable from '../shared/MLflowUnavailable';
-
-const MCP_REGISTRY_BASENAME = '/ai-hub/mcp-servers/registry';
-// Stable reference so LazyCodeRefComponent's spread props don't change identity every render.
-const NOOP = () => undefined;
-
-const mcpRegistryBaseRoute = (namespace?: string): string => {
-  if (!namespace) {
-    return MCP_REGISTRY_BASENAME;
-  }
-  return `${MCP_REGISTRY_BASENAME}?${WORKSPACE_QUERY_PARAM}=${encodeURIComponent(namespace)}`;
-};
 
 const MlflowMcpRegistryTabContent: React.FC = () => {
   const [searchParams] = useSearchParams();
   const workspace = searchParams.get(WORKSPACE_QUERY_PARAM) ?? '';
   const { projects, preferredProject } = React.useContext(ProjectsContext);
   const storedProject = getStoredPreferredProject(projects);
+  const syncHostRoute = useHostRouteSync();
 
   const loadWrapper = useMemo(
     () => () =>
@@ -45,13 +35,6 @@ const MlflowMcpRegistryTabContent: React.FC = () => {
         .then((mod) => mod ?? { default: MLflowUnavailable })
         .catch(() => ({ default: MLflowUnavailable })),
     [],
-  );
-
-  const renderDetailActions = useCallback(
-    (server: MCPServer, version?: MCPServerVersion) => (
-      <McpRegistryDeployAction server={server} version={version} namespace={workspace} />
-    ),
-    [workspace],
   );
 
   if (!workspace && projects.length > 0) {
@@ -95,11 +78,7 @@ const MlflowMcpRegistryTabContent: React.FC = () => {
       <LazyCodeRefComponent
         key={workspace}
         component={loadWrapper}
-        props={{
-          basename: MCP_REGISTRY_BASENAME,
-          onBreadcrumbChange: NOOP,
-          renderDetailActions,
-        }}
+        props={{ basename: MCP_REGISTRY_BASENAME, onBreadcrumbChange: syncHostRoute }}
         fallback={
           <PageSection hasBodyWrapper={false}>
             <Bullseye>
