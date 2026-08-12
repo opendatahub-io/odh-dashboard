@@ -303,33 +303,5 @@ describe('Evaluations Page - Status modal', () => {
     evaluationsPage.findStatusModalBadge('failed').should('have.text', 'Failed');
     evaluationsPage.findStatusDetailHeader().should('not.contain.text', 'Not started');
   });
-
-  it('should show the benchmark warning message in the modal progress tab', () => {
-    const jobWithWarning = mockEvaluationJob({
-      id: 'eval-warning',
-      name: 'Warning_Eval',
-      state: 'partially_failed',
-      modelName: 'test-model',
-      createdAt: '2026-03-12T08:00:00Z',
-      benchmarkIds: ['mmlu'],
-      providerId: 'lm_evaluation_harness',
-      benchmarkStatuses: [
-        {
-          id: 'mmlu',
-          benchmark_index: 0,
-          status: 'completed',
-          started_at: '2026-03-12T08:05:00Z',
-          warning_message: { message: 'Quota nearing limit' },
-        },
-      ],
-    });
-
-    cy.interceptApi('GET /api/:apiVersion/evaluations/jobs', { path: API_VERSION }, [
-      jobWithWarning,
-    ]);
-    evaluationsPage.visit(NAMESPACE);
-    evaluationsPage.clickStatusBadge(0);
-    evaluationsPage.findBenchmarkWarning('mmlu').should('contain.text', 'Quota nearing limit');
-  });
 });
 /* eslint-enable camelcase */

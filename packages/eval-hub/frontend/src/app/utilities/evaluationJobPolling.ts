@@ -75,7 +75,7 @@ export const isPreStartFailure = (job: EvaluationJob): boolean => {
     return false;
   }
   const benchmarks = job.status.benchmarks ?? [];
-  return !getEarliestBenchmarkStartTime(job) && !benchmarks.some((b) => b.error_message);
+  return !getEarliestBenchmarkStartTime(job) && !benchmarks.some((b) => b.error_message?.message);
 };
 
 // Returns the earliest benchmark started_at timestamp, or falls back to job created_at.
