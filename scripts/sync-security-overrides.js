@@ -45,12 +45,19 @@ function discoverTargets() {
     if (path.isAbsolute(prefixPath)) return;
 
     const targetDir = path.resolve(pkgDir, prefixPath);
-    const relativeToPkg = path.relative(pkgDir, targetDir);
+    const canonicalPkgDir = fs.realpathSync(pkgDir);
+    let canonicalTargetDir;
+    try {
+      canonicalTargetDir = fs.realpathSync(targetDir);
+    } catch {
+      return;
+    }
+    const relativeToPkg = path.relative(canonicalPkgDir, canonicalTargetDir);
     if (relativeToPkg.startsWith('..') || path.isAbsolute(relativeToPkg)) return;
 
     if (relativeToPkg.split(path.sep).includes('upstream')) return;
 
-    const targetPkg = path.join(targetDir, 'package.json');
+    const targetPkg = path.join(canonicalTargetDir, 'package.json');
     if (fs.existsSync(targetPkg)) {
       targets.push(targetPkg);
     }
@@ -98,16 +105,34 @@ function syncOverrides(targetPath, universalOverrides, dryRun) {
 
   const merged = { ...existing };
 
-  // Drop string overrides that collide with direct deps (npm EOVERRIDE)
+  // Drop overrides that collide with direct deps (npm EOVERRIDE)
   for (const dep of Object.keys(merged)) {
-    if (dep in directDeps && typeof merged[dep] === 'string') {
+    if (dep in directDeps) {
       changes.push({
         dep,
         from: merged[dep],
         to: null,
+        reason: 'direct dependency',
       });
       delete merged[dep];
     }
+  }
+
+  // Drop stale string overrides no longer in root (preserve package-specific nested objects)
+  for (const dep of Object.keys(merged)) {
+    if (typeof merged[dep] === 'object' && merged[dep] !== null) {
+      continue;
+    }
+    if (dep in universalOverrides) {
+      continue;
+    }
+    changes.push({
+      dep,
+      from: merged[dep],
+      to: null,
+      reason: 'no longer in root overrides',
+    });
+    delete merged[dep];
   }
 
   for (const [dep, version] of Object.entries(universalOverrides)) {
@@ -131,7 +156,11 @@ function syncOverrides(targetPath, universalOverrides, dryRun) {
   if (changes.length === 0) return { changes: [] };
 
   if (!dryRun) {
-    pkg.overrides = sortObject(merged);
+    if (Object.keys(merged).length === 0) {
+      delete pkg.overrides;
+    } else {
+      pkg.overrides = sortObject(merged);
+    }
     const indent = detectIndent(raw);
     const newContent = `${JSON.stringify(pkg, null, indent)}\n`;
     fs.writeFileSync(targetPath, newContent, 'utf8');
@@ -198,9 +227,9 @@ function main() {
       console.log(`${colors.yellow}${verb}${colors.reset} ${relativePath(target)}`);
       for (const c of changes) {
         if (c.to === null) {
-          console.log(
-            `  ${c.dep}: ${c.from} → ${colors.dim}(removed; direct dependency)${colors.reset}`,
-          );
+          const fromStr = typeof c.from === 'object' ? JSON.stringify(c.from) : c.from;
+          const reason = c.reason || 'direct dependency';
+          console.log(`  ${c.dep}: ${fromStr} → ${colors.dim}(removed; ${reason})${colors.reset}`);
           continue;
         }
         const from = c.from ? `${c.from} → ` : `${colors.dim}(missing)${colors.reset} → `;
@@ -212,21 +241,20 @@ function main() {
 
   if (totalChanges === 0) {
     console.log(`${colors.green}All overrides are in sync.${colors.reset}`);
-    return;
-  }
-
-  console.log(
-    `${colors.cyan}Summary:${colors.reset} ` +
-      `${totalChanges} change(s) across ${changedFiles.length} file(s)`,
-  );
-
-  if (checkMode) {
-    console.log();
+  } else {
     console.log(
-      `${colors.red}Override drift detected.${colors.reset} Run ${colors.cyan}npm run sync:overrides${colors.reset} to fix.`,
+      `${colors.cyan}Summary:${colors.reset} ` +
+        `${totalChanges} change(s) across ${changedFiles.length} file(s)`,
     );
-    // eslint-disable-next-line n/no-process-exit
-    process.exit(1);
+
+    if (checkMode) {
+      console.log();
+      console.log(
+        `${colors.red}Override drift detected.${colors.reset} Run ${colors.cyan}npm run sync:overrides${colors.reset} to fix.`,
+      );
+      // eslint-disable-next-line n/no-process-exit
+      process.exit(1);
+    }
   }
 
   if (installMode) {
@@ -235,16 +263,17 @@ function main() {
     let installFailed = false;
     for (const target of targets) {
       const dir = path.dirname(target);
-      if (changedFiles.includes(relativePath(target))) {
-        console.log(`  npm install in ${relativePath(dir)}`);
-        try {
-          execSync('npm install --package-lock-only', {
-            cwd: dir,
-            stdio: 'pipe',
-          });
-        } catch (err) {
-          installFailed = true;
-          console.error(`  ${colors.red}Failed:${colors.reset} ${err.message}`);
+      console.log(`  npm install in ${relativePath(dir)}`);
+      try {
+        execSync('npm install --package-lock-only --ignore-scripts', {
+          cwd: dir,
+          stdio: 'pipe',
+        });
+      } catch (err) {
+        installFailed = true;
+        console.error(`  ${colors.red}Failed:${colors.reset} ${err.message}`);
+        if (err.stderr) {
+          console.error(err.stderr.toString());
         }
       }
     }
