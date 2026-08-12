@@ -1,10 +1,13 @@
 import { getConditionForType } from '@odh-dashboard/k8s-core';
-import { FetchState } from '@odh-dashboard/ui-core/hooks/useFetchState';
-import { type BiasMetricConfig, TrustyInstallState } from '@odh-dashboard/trustyai/types';
-import { BaseMetricListResponse } from '#~/api';
-import { TrustyStatusStates } from '#~/concepts/trustyai/types';
-import { TrustyAIKind } from '#~/k8sTypes';
-import { UseTrustyBrowserStorage } from '#~/concepts/trustyai/content/useTrustyBrowserStorage';
+import type { TrustyAIKind } from '@odh-dashboard/k8s-core';
+import type { FetchState } from '@odh-dashboard/ui-core/hooks/useFetchState';
+import { TrustyInstallState } from '../types';
+import type { BiasMetricConfig, BaseMetricListResponse, TrustyStatusStates } from '../types';
+
+export type UseTrustyBrowserStorage = {
+  showSuccess: boolean;
+  onDismissSuccess: () => void;
+};
 
 export const formatListResponse = (x: BaseMetricListResponse): BiasMetricConfig[] =>
   x.requests.map((m) => ({
@@ -36,14 +39,9 @@ export const getTrustyStatusState = (
   }
 
   if (!cr) {
-    // No CR, uninstalled
     return { type: TrustyInstallState.UNINSTALLED };
   }
 
-  /* Have CR, determine the state from it */
-
-  // If in the first 3 seconds, assume the CR is not settled
-  // TODO: Remove logic when the backend can provide a proper conditional check state at all times
   const isInStartupGraceWindow = cr.metadata.creationTimestamp
     ? Date.now() - new Date(cr.metadata.creationTimestamp).getTime() <= 3000
     : false;
@@ -57,7 +55,6 @@ export const getTrustyStatusState = (
 
   const availableCondition = getConditionForType(cr, 'Available');
   if (availableCondition?.status === 'True' && cr.status?.phase === 'Ready') {
-    // Installed and good to go
     return {
       type: TrustyInstallState.INSTALLED,
       showSuccess: !!successDetails?.showSuccess,
@@ -68,11 +65,9 @@ export const getTrustyStatusState = (
   const dbAvailableCondition = getConditionForType(cr, 'DBAvailable');
   if (dbAvailableCondition?.status === 'False') {
     if (dbAvailableCondition.reason === 'DBConnecting') {
-      // DB is still being determined
       return { type: TrustyInstallState.INSTALLING };
     }
 
-    // Some sort of DB error -- try to show specifically what it is
     return {
       type: TrustyInstallState.CR_ERROR,
       message: `${dbAvailableCondition.reason ?? 'Unknown reason'}: ${
@@ -82,13 +77,11 @@ export const getTrustyStatusState = (
   }
 
   if (availableCondition?.status === 'False') {
-    // Try to present the generic error as one last fallback
     return {
       type: TrustyInstallState.CR_ERROR,
       message: availableCondition.message ?? availableCondition.reason ?? 'Unknown available error',
     };
   }
 
-  // Not ready -- installing? -- wait for next update
   return { type: TrustyInstallState.INSTALLING };
 };
