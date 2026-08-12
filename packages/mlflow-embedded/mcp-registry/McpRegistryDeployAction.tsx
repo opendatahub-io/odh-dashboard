@@ -91,6 +91,12 @@ const McpRegistryDeployAction: React.FC<McpRegistryDeployActionProps> = ({
         /* eslint-enable camelcase */
         notification.success('Deployed and registered');
       } catch (endpointError) {
+        // A superseded deploy aborts its own in-flight registration call --
+        // that's an intentional cancellation, not a failure, so don't show
+        // a misleading "registration failed" toast for it.
+        if (controller.signal.aborted) {
+          return;
+        }
         notification.warning(
           'Deployed, but registration failed',
           (endpointError instanceof Error && endpointError.message) ||

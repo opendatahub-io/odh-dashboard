@@ -13,4 +13,12 @@ export const mcpRegistryBaseRoute = (namespace?: string): string => {
   return `${MCP_REGISTRY_BASENAME}?${WORKSPACE_QUERY_PARAM}=${encodeURIComponent(namespace)}`;
 };
 
+export const mcpServerDetailRoute = (serverName: string, namespace?: string): string => {
+  const basePath = `${MCP_REGISTRY_BASENAME}/${encodeURIComponent(serverName)}`;
+  if (!namespace) {
+    return basePath;
+  }
+  return `${basePath}?${WORKSPACE_QUERY_PARAM}=${encodeURIComponent(namespace)}`;
+};
+
 export { MLFLOW_BFF_PATH, DEFAULT_MCP_PATH };

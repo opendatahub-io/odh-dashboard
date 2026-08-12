@@ -3,8 +3,8 @@ import { act } from 'react';
 import { render, screen } from '@testing-library/react';
 // MlflowBreadcrumbs renders react-router-dom's <Link>, which needs a Router
 // context -- this import resolves through the mock below, which spreads the
-// real module, so MemoryRouter here is the genuine implementation.
-import { MemoryRouter } from 'react-router-dom';
+// real module, so MemoryRouter/Routes/Route here are the genuine implementation.
+import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { ProjectsContext } from '@odh-dashboard/ui-core/context/ProjectsContext';
 import type { ProjectKind } from '@odh-dashboard/k8s-core';
 import MlflowMcpRegistryDetailPage from '../MlflowMcpRegistryDetailPage';
@@ -71,27 +71,36 @@ const mockProject = { metadata: { name: 'my-project' } } as ProjectKind;
 const renderPage = ({
   workspace,
   projects = [mockProject],
+  serverName = 'my-server',
 }: {
   workspace?: string;
   projects?: ProjectKind[];
+  serverName?: string;
 } = {}) => {
   mockSearchParams = new URLSearchParams(workspace ? { workspace } : {});
   return render(
-    <MemoryRouter>
-      <ProjectsContext.Provider
-        value={{
-          projects,
-          modelServingProjects: projects,
-          nonActiveProjects: [],
-          preferredProject: projects[0] ?? null,
-          updatePreferredProject: () => undefined,
-          waitForProject: () => Promise.resolve(),
-          loaded: true,
-          loadError: undefined,
-        }}
-      >
-        <MlflowMcpRegistryDetailPage />
-      </ProjectsContext.Provider>
+    <MemoryRouter initialEntries={[`${MCP_REGISTRY_BASENAME}/${serverName}`]}>
+      <Routes>
+        <Route
+          path={`${MCP_REGISTRY_BASENAME}/:serverName`}
+          element={
+            <ProjectsContext.Provider
+              value={{
+                projects,
+                modelServingProjects: projects,
+                nonActiveProjects: [],
+                preferredProject: projects[0] ?? null,
+                updatePreferredProject: () => undefined,
+                waitForProject: () => Promise.resolve(),
+                loaded: true,
+                loadError: undefined,
+              }}
+            >
+              <MlflowMcpRegistryDetailPage />
+            </ProjectsContext.Provider>
+          }
+        />
+      </Routes>
     </MemoryRouter>,
   );
 };
@@ -102,16 +111,34 @@ describe('MlflowMcpRegistryDetailPage', () => {
     capturedWrapperProps = undefined;
   });
 
-  it('should redirect to the default project when no workspace is selected and projects exist', () => {
-    renderPage({ workspace: undefined, projects: [mockProject] });
+  it('should redirect to the default project while preserving the requested server when no workspace is selected', () => {
+    renderPage({ workspace: undefined, projects: [mockProject], serverName: 'my-server' });
 
+    // A bookmarked/shared detail URL without a workspace param should still
+    // land on the same server once a default project is picked, not bounce
+    // back to the bare list.
     expect(mockNavigateEl).toHaveBeenCalledWith(
       expect.objectContaining({
-        to: `${MCP_REGISTRY_BASENAME}?workspace=my-project`,
+        to: `${MCP_REGISTRY_BASENAME}/my-server?workspace=my-project`,
         replace: true,
       }),
     );
     expect(screen.queryByTestId('lazy-wrapper')).not.toBeInTheDocument();
+  });
+
+  it('should URL-encode the server name when preserving it in the redirect', () => {
+    renderPage({
+      workspace: undefined,
+      projects: [mockProject],
+      serverName: encodeURIComponent('io.github.acme/widget-server'),
+    });
+
+    expect(mockNavigateEl).toHaveBeenCalledWith(
+      expect.objectContaining({
+        to: `${MCP_REGISTRY_BASENAME}/io.github.acme%2Fwidget-server?workspace=my-project`,
+        replace: true,
+      }),
+    );
   });
 
   it('should mount the wrapper with the correct basename when a workspace is selected', () => {

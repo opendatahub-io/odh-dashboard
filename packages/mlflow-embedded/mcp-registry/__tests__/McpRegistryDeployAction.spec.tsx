@@ -1,6 +1,7 @@
 // Mock fixtures use the external MCP Registry's snake_case field names.
 /* eslint-disable camelcase */
 import * as React from 'react';
+import { act } from 'react';
 import '@testing-library/jest-dom';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -449,6 +450,47 @@ describe('McpRegistryDeployAction', () => {
       'endpoint creation failed',
     );
     expect(mockNotification.success).not.toHaveBeenCalled();
+  });
+
+  it('should not show a misleading warning toast when a newer deploy aborts an in-flight registration', async () => {
+    let rejectFirstCall: (reason?: unknown) => void = () => undefined;
+    const firstCall = jest.fn().mockReturnValue(
+      new Promise((_resolve, reject) => {
+        rejectFirstCall = reject;
+      }),
+    );
+    const secondCall = jest.fn().mockResolvedValue({
+      id: 'endpoint-1',
+      server_name: 'kubernetes-mcp',
+      endpoint_url: 'http://kubernetes-mcp.test-project.svc.cluster.local:8080/mcp',
+      transport_type: 'streamable-http',
+    });
+    mockCreateMcpAccessEndpoint.mockReturnValueOnce(firstCall).mockReturnValueOnce(secondCall);
+
+    render(
+      <McpRegistryDeployAction
+        server={mockServer}
+        version={mockVersion}
+        namespace="test-project"
+      />,
+    );
+    await userEvent.click(screen.getByTestId('mcp-registry-deploy-action-button'));
+    await userEvent.click(screen.getByTestId('mcp-registry-deploy-modal-stub-deployed'));
+    const [firstOpts] = firstCall.mock.calls[0] as [{ signal: AbortSignal }];
+
+    // A second deploy (e.g. a quick redeploy) aborts the first's still-pending
+    // registration call before it settles.
+    await userEvent.click(screen.getByTestId('mcp-registry-deploy-modal-stub-deployed'));
+    expect(firstOpts.signal.aborted).toBe(true);
+
+    // Simulate the aborted request actually rejecting, as a real fetch would.
+    await act(async () => {
+      rejectFirstCall(new DOMException('The operation was aborted.', 'AbortError'));
+      await Promise.resolve();
+    });
+
+    expect(mockNotification.warning).not.toHaveBeenCalled();
+    expect(mockNotification.success).toHaveBeenCalledWith('Deployed and registered');
   });
 
   it('should show the fallback detail message when the error has no message', async () => {
