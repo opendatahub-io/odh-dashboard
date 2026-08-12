@@ -2,7 +2,7 @@
  * Tests for project permissions with projectRBAC feature enabled.
  * Covers basic table rendering, filtering, role details modal, and role unassignment.
  */
-import { mock200Status } from '@odh-dashboard/internal/__mocks__/mockK8sStatus';
+import { mock200Status } from '@odh-dashboard/k8s-core/__mocks__/mockK8sStatus';
 import {
   initProjectRbacIntercepts,
   mockClusterRoleK8sResource,

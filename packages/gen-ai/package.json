@@ -40,7 +40,8 @@
   },
   "exports": {
     "./extension-points": "./frontend/src/odh/extension-points/index.ts",
-    "./types": "./frontend/src/types/index.ts"
+    "./types": "./frontend/src/types/index.ts",
+    "./extensions/portal": "./frontend/src/odh/extensions.ts"
   },
   "dependencies": {
     "@odh-dashboard/internal": "*",

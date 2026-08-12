@@ -2,7 +2,8 @@
  * Tests for the Form/YAML toggle on the Create Role page: toggle visibility,
  * switching between views, YAML content verification, and data preservation.
  */
-import { mockDashboardConfig, mockK8sResourceList } from '@odh-dashboard/internal/__mocks__';
+import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
+import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
 import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import {
   ClusterRoleModel,

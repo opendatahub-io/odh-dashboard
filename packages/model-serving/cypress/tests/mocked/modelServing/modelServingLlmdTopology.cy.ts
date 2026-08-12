@@ -1,5 +1,5 @@
-import { mockLLMInferenceServiceConfigK8sResource } from '@odh-dashboard/internal/__mocks__/mockLLMInferenceServiceConfigK8sResource';
-import { mockLLMInferenceServiceK8sResource } from '@odh-dashboard/internal/__mocks__/mockLLMInferenceServiceK8sResource';
+import { mockLLMInferenceServiceConfigK8sResource } from '@odh-dashboard/llmd-serving/__mocks__/mockLLMInferenceServiceConfigK8sResource';
+import { mockLLMInferenceServiceK8sResource } from '@odh-dashboard/llmd-serving/__mocks__/mockLLMInferenceServiceK8sResource';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import {
   ConfigType,
@@ -8,21 +8,21 @@ import {
   TOPOLOGY_CONFIG_REF_ANNOTATION,
   ROUTING_CONFIG_REF_ANNOTATION,
 } from '@odh-dashboard/llmd-serving/types';
-import { mockDashboardConfig } from '@odh-dashboard/internal/__mocks__/mockDashboardConfig';
-import { mockDscStatus } from '@odh-dashboard/internal/__mocks__/mockDscStatus';
-import { mockK8sResourceList } from '@odh-dashboard/internal/__mocks__/mockK8sResourceList';
-import { mock200Status } from '@odh-dashboard/internal/__mocks__/mockK8sStatus';
+import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
+import { mockDscStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDscStatus';
+import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
+import { mock200Status } from '@odh-dashboard/k8s-core/__mocks__/mockK8sStatus';
 import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import { mockGlobalScopedHardwareProfiles } from '@odh-dashboard/hardware-profiles/__mocks__/mockHardwareProfile';
-import { mockStandardModelServingTemplateK8sResources } from '@odh-dashboard/internal/__mocks__/mockServingRuntimeTemplateK8sResource';
+import { mockStandardModelServingTemplateK8sResources } from '@odh-dashboard/model-serving/__mocks__/mockServingRuntimeTemplateK8sResource';
 import {
   mockConnectionTypeConfigMap,
   mockModelServingFields,
-} from '@odh-dashboard/internal/__mocks__/mockConnectionType';
+} from '@odh-dashboard/k8s-core/__mocks__/mockConnectionType';
 import {
   mockSecretK8sResource,
   mockURISecretK8sResource,
-} from '@odh-dashboard/internal/__mocks__/mockSecretK8sResource';
+} from '@odh-dashboard/k8s-core/__mocks__/mockSecretK8sResource';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import { ModelTypeLabel } from '@odh-dashboard/cypress/cypress/utils/modelServingConstants';
 import {

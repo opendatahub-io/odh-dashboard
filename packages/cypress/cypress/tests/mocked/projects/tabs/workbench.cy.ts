@@ -4,20 +4,18 @@ import {
   mockProjectScopedHardwareProfiles,
 } from '@odh-dashboard/hardware-profiles/__mocks__/mockHardwareProfile';
 import { mockLocalQueueK8sResource } from '@odh-dashboard/internal/__mocks__/mockLocalQueueK8sResource';
-import {
-  mockDashboardConfig,
-  mockDscStatus,
-  mockK8sResourceList,
-  mockNotebookK8sResource,
-  mockRouteK8sResource,
-  mockSecretK8sResource,
-} from '@odh-dashboard/internal/__mocks__';
+import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
+import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
+import { mockRouteK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockRouteK8sResource';
+import { mockSecretK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockSecretK8sResource';
+import { mockDscStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDscStatus';
+import { mockNotebookK8sResource } from '@odh-dashboard/internal/__mocks__';
 import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import { mockImageStreamK8sResource } from '@odh-dashboard/internal/__mocks__/mockImageStreamK8sResource';
 import { mockPVCK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockPVCK8sResource';
-import { mockPodK8sResource } from '@odh-dashboard/internal/__mocks__/mockPodK8sResource';
-import { mock200Status, mock404Error } from '@odh-dashboard/internal/__mocks__/mockK8sStatus';
-import { mockConnectionTypeConfigMap } from '@odh-dashboard/internal/__mocks__/mockConnectionType';
+import { mockPodK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockPodK8sResource';
+import { mock200Status, mock404Error } from '@odh-dashboard/k8s-core/__mocks__/mockK8sStatus';
+import { mockConnectionTypeConfigMap } from '@odh-dashboard/k8s-core/__mocks__/mockConnectionType';
 import { IdentifierResourceType, SchedulingType } from '@odh-dashboard/k8s-core';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import { SpawnerPageSectionID } from '@odh-dashboard/internal/pages/projects/screens/spawner/types';

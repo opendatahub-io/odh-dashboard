@@ -68,7 +68,15 @@
     "./components/metrics/performance/KserveMetrics": "./src/components/metrics/performance/KserveMetrics.tsx",
     "./components/metrics/performance/MetricsPlaceHolder": "./src/components/metrics/performance/MetricsPlaceHolder.tsx",
     "./components/metrics/performance/ModelGraphs": "./src/components/metrics/performance/ModelGraphs.tsx",
-    "./components/metrics/performance/PerformanceTab": "./src/components/metrics/performance/PerformanceTab.tsx"
+    "./components/metrics/performance/PerformanceTab": "./src/components/metrics/performance/PerformanceTab.tsx",
+    "./concepts/useStopModalPreference": "./src/concepts/useStopModalPreference.ts",
+    "./__mocks__/mockInferenceServiceK8sResource": "./src/__mocks__/mockInferenceServiceK8sResource.ts",
+    "./__mocks__/mockServingRuntimeK8sResource": "./src/__mocks__/mockServingRuntimeK8sResource.ts",
+    "./__mocks__/mockServingRuntimeTemplateK8sResource": "./src/__mocks__/mockServingRuntimeTemplateK8sResource.ts",
+    "./__mocks__/mockLegacyNimResource": "./src/__mocks__/mockLegacyNimResource.ts",
+    "./__mocks__/mockPrometheusBias": "./src/__mocks__/mockPrometheusBias.ts",
+    "./__mocks__/mockPrometheusServing": "./src/__mocks__/mockPrometheusServing.ts",
+    "./__mocks__/mockMetricsRequests": "./src/__mocks__/mockMetricsRequests.ts"
   },
   "dependencies": {
     "@odh-dashboard/foundation": "*",
