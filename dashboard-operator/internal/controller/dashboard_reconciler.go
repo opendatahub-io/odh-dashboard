@@ -234,6 +234,8 @@ func (r *DashboardReconciler) reconcile(
 	cm *conditions.Manager,
 	cfg OperatorConfig,
 ) (ctrl.Result, error) {
+	r.autoDetectObservability(ctx, dashboard)
+
 	mode := dashboard.Spec.DeploymentMode
 	if mode == "" || mode == v1alpha1.DeploymentModeSidecar {
 		return r.reconcileSidecar(ctx, dashboard, cm, cfg)
@@ -679,6 +681,10 @@ func (r *DashboardReconciler) cleanupCrossNamespaceResources(ctx context.Context
 	if dashboard.Spec.Observability != nil &&
 		dashboard.Spec.Observability.PersesService != nil {
 		obsNS = dashboard.Spec.Observability.PersesService.Namespace
+	}
+
+	if obsNS == "" {
+		obsNS = r.monitoringNamespace()
 	}
 
 	if obsNS == "" || obsNS == r.ApplicationsNamespace {
