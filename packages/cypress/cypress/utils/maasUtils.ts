@@ -11,10 +11,17 @@ import type {
   SubscriptionInfoResponse,
   UserSubscription,
   MaaSModelRefSummary,
-  SubscriptionPolicyFormDataResponse,
   CreateSubscriptionResponse,
   MaaSAuthPolicy,
 } from '@odh-dashboard/maas/types/subscriptions';
+
+/** Shared shape for governance fixture data (formerly SubscriptionPolicyFormDataResponse). */
+export type MaasGovernanceFormData = {
+  groups: string[];
+  modelRefs: MaaSModelRefSummary[];
+  subscriptions: MaaSSubscription[];
+  policies: MaaSAuthPolicy[];
+};
 
 export const mockAPIKeys = (): APIKey[] => [
   {
@@ -392,7 +399,7 @@ export const mockModelRefSummaries = (): MaaSModelRefSummary[] => [
     name: 'granite-3-8b-instruct',
     namespace: 'maas-models',
     displayName: 'Granite 3 8B Instruct',
-    description: 'Granite 3 8B Instruct is a large language model that is used for advanced tasks.',
+    description: 'Granite 3 8B Instruct is a large language model for instruction following.',
     modelRef: { kind: 'InferenceService', name: 'granite-3-8b-instruct' },
     phase: 'Ready',
     endpoint: 'https://granite-3-8b-instruct.maas-models.svc.cluster.local',
@@ -433,11 +440,55 @@ export const mockModelRefSummaries = (): MaaSModelRefSummary[] => [
     phase: 'Ready',
     endpoint: 'https://granite-3-8b-instruct.team-sandbox.svc.cluster.local',
   },
+  {
+    name: 'failed-model',
+    namespace: 'maas-models',
+    displayName: 'Failed Model',
+    description: 'A failed model',
+    modelRef: { kind: 'InferenceService', name: 'failed-model' },
+    phase: 'Failed',
+    reason: 'ReconcileFailed',
+    statusMessage:
+      'failed to reconcile TokenRateLimitPolicies: token rate limit exceeds maximum allowed value',
+  },
 ];
 
+export const mockSandboxGraniteSubscription = (): MaaSSubscription => ({
+  name: 'sandbox-granite-sub',
+  displayName: 'Sandbox Granite Subscription',
+  description: 'Sandbox access for cross-namespace granite model',
+  namespace: 'maas-system',
+  phase: 'Active',
+  statusMessage: 'successfully reconciled',
+  priority: 1,
+  owner: {
+    groups: [{ name: 'sandbox-users' }],
+  },
+  modelRefs: [
+    {
+      name: 'granite-3-8b-instruct',
+      namespace: 'team-sandbox',
+      displayName: 'Granite 3 8B Instruct (sandbox)',
+      description: 'Same model ID in a different namespace for cross-namespace regression coverage',
+      tokenRateLimits: [{ limit: 1000, window: '1h' }],
+    },
+  ],
+  creationTimestamp: '2025-04-02T10:00:00Z',
+});
+
+export const mockSandboxGranitePolicy = (): MaaSAuthPolicy => ({
+  name: 'sandbox-granite-policy',
+  displayName: 'Sandbox Granite Policy',
+  namespace: 'maas-system',
+  phase: 'Active',
+  statusMessage: 'successfully reconciled',
+  modelRefs: [{ name: 'granite-3-8b-instruct', namespace: 'team-sandbox' }],
+  subjects: { groups: [{ name: 'sandbox-users' }] },
+});
+
 export const mockSubscriptionFormData = (
-  overrides?: Partial<SubscriptionPolicyFormDataResponse>,
-): SubscriptionPolicyFormDataResponse => ({
+  overrides?: Partial<MaasGovernanceFormData>,
+): MaasGovernanceFormData => ({
   groups: [
     'system:authenticated',
     'premium-users',
@@ -455,12 +506,24 @@ export const mockSubscriptionFormData = (
     'frontend-devs',
     'backend-devs',
     'interns',
+    'sandbox-users',
   ],
   modelRefs: mockModelRefSummaries(),
-  subscriptions: mockSubscriptions(),
-  policies: mockAuthPolicies(),
+  // Include sandbox fixtures so client-side overview join matches former mockModelsOverview.
+  subscriptions: [...mockSubscriptions(), mockSandboxGraniteSubscription()],
+  policies: [...mockAuthPolicies(), mockSandboxGranitePolicy()],
   ...overrides,
 });
+
+/** Intercept the four governance list endpoints used by MaaSGovernanceContext. */
+export const interceptMaasGovernanceData = (
+  data: MaasGovernanceFormData = mockSubscriptionFormData(),
+): void => {
+  cy.interceptOdh('GET /maas/api/v1/all-subscriptions', { data: data.subscriptions });
+  cy.interceptOdh('GET /maas/api/v1/all-policies', { data: data.policies });
+  cy.interceptOdh('GET /maas/api/v1/all-maas-models', { data: data.modelRefs });
+  cy.interceptOdh('GET /maas/api/v1/all-groups', { data: data.groups });
+};
 
 export const mockModelsOverview = (): ModelOverviewItem[] => [
   {
