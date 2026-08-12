@@ -1,4 +1,11 @@
-import { toTitleCase, capitalizeFirst, getCategoryColor } from '~/app/components/benchmarkUtils';
+import {
+  toTitleCase,
+  capitalizeFirst,
+  getCategoryColor,
+  formatCategory,
+  getMetricDisplayName,
+  toSafeExternalUrl,
+} from '~/app/components/benchmarkUtils';
 
 describe('toTitleCase', () => {
   it('should return empty string unchanged', () => {
@@ -69,5 +76,67 @@ describe('getCategoryColor', () => {
 
   it('should be case-insensitive', () => {
     expect(getCategoryColor('Safety')).toBe(getCategoryColor('safety'));
+  });
+});
+
+describe('formatCategory', () => {
+  it('should replace underscores with spaces and capitalize first letter', () => {
+    expect(formatCategory('exact_match')).toBe('Exact match');
+  });
+
+  it('should capitalize a single word', () => {
+    expect(formatCategory('accuracy')).toBe('Accuracy');
+  });
+
+  it('should handle multiple underscores', () => {
+    expect(formatCategory('inst_level_loose_acc')).toBe('Inst level loose acc');
+  });
+});
+
+describe('getMetricDisplayName', () => {
+  it('should return the mapped display name for known metrics', () => {
+    expect(getMetricDisplayName('acc')).toBe('Accuracy');
+    expect(getMetricDisplayName('exact_match')).toBe('Exact match');
+    expect(getMetricDisplayName('ppl')).toBe('Perplexity');
+    expect(getMetricDisplayName('bleu')).toBe('BLEU');
+  });
+
+  it('should fall back to formatCategory for unknown metrics', () => {
+    expect(getMetricDisplayName('custom_metric')).toBe('Custom metric');
+    expect(getMetricDisplayName('f1')).toBe('F1');
+  });
+
+  it('should not resolve Object.prototype members', () => {
+    expect(getMetricDisplayName('constructor')).toBe('Constructor');
+    expect(getMetricDisplayName('toString')).toBe('ToString');
+    expect(getMetricDisplayName('valueOf')).toBe('ValueOf');
+    expect(typeof getMetricDisplayName('__proto__')).toBe('string');
+  });
+});
+
+describe('toSafeExternalUrl', () => {
+  it('should return undefined for undefined input', () => {
+    expect(toSafeExternalUrl(undefined)).toBeUndefined();
+  });
+
+  it('should return undefined for empty string', () => {
+    expect(toSafeExternalUrl('')).toBeUndefined();
+  });
+
+  it('should return the URL for https protocol', () => {
+    expect(toSafeExternalUrl('https://example.com')).toBe('https://example.com');
+  });
+
+  it('should return the URL for http protocol', () => {
+    expect(toSafeExternalUrl('http://example.com')).toBe('http://example.com');
+  });
+
+  it('should return undefined for non-http protocols', () => {
+    expect(toSafeExternalUrl('javascript:alert(1)')).toBeUndefined();
+    expect(toSafeExternalUrl('ftp://example.com')).toBeUndefined();
+  });
+
+  it('should return undefined for invalid URLs', () => {
+    expect(toSafeExternalUrl('not-a-url')).toBeUndefined();
   });
 });

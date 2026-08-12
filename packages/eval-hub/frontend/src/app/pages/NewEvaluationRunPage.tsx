@@ -19,6 +19,7 @@ import {
 } from '~/app/routes';
 import paperLinedIcon from '~/app/bgimages/paper-lined.svg';
 import paperStackIcon from '~/app/bgimages/paper-stack-ined.svg';
+import './NewEvaluationRunPage.scss';
 
 const NewEvaluationRunPage: React.FC = () => {
   const { namespace } = useParams<{ namespace: string }>();
@@ -48,7 +49,7 @@ const NewEvaluationRunPage: React.FC = () => {
         >
           <Card
             data-testid="standardised-benchmarks-card"
-            style={{ cursor: 'pointer' }}
+            className="evalhub-evaluation-type-card"
             onClick={() => navigate(evaluationBenchmarksRoute(namespace))}
           >
             <CardHeader>
@@ -69,7 +70,7 @@ const NewEvaluationRunPage: React.FC = () => {
 
           <Card
             data-testid="evaluation-collections-card"
-            style={{ cursor: 'pointer' }}
+            className="evalhub-evaluation-type-card"
             onClick={() => navigate(evaluationCollectionsRoute(namespace))}
           >
             <CardHeader>
