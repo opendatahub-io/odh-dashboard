@@ -53,9 +53,9 @@ func (app *App) GenAIProxyNSChatCompletionsHandler(w http.ResponseWriter, r *htt
 	}
 
 	var reqBody struct {
-		Model    string      `json:"model"`
-		Messages interface{} `json:"messages"`
-		Stream   *bool       `json:"stream"`
+		Model    string          `json:"model"`
+		Messages json.RawMessage `json:"messages"`
+		Stream   *bool           `json:"stream"`
 	}
 	if err := json.Unmarshal(body, &reqBody); err != nil {
 		app.badRequestResponse(w, r, fmt.Errorf("invalid JSON in request body: %w", err))
@@ -65,8 +65,13 @@ func (app *App) GenAIProxyNSChatCompletionsHandler(w http.ResponseWriter, r *htt
 		app.badRequestResponse(w, r, errors.New("missing required field: model"))
 		return
 	}
-	if reqBody.Messages == nil {
+	if len(reqBody.Messages) == 0 || string(reqBody.Messages) == "null" {
 		app.badRequestResponse(w, r, errors.New("missing required field: messages"))
+		return
+	}
+	// Validate messages is a JSON array
+	if reqBody.Messages[0] != '[' {
+		app.badRequestResponse(w, r, errors.New("messages must be a JSON array"))
 		return
 	}
 	if reqBody.Stream != nil && *reqBody.Stream {
@@ -86,13 +91,15 @@ func (app *App) GenAIProxyNSChatCompletionsHandler(w http.ResponseWriter, r *htt
 		return
 	}
 
-	// Strip provider prefix from model ID in the proxied body
+	// Strip provider prefix from model ID in the proxied body.
+	// Use json.RawMessage-based rewrite to preserve numeric precision.
 	upstreamBody := body
 	if strings.Contains(reqBody.Model, "/") {
 		bareModel := reqBody.Model[strings.Index(reqBody.Model, "/")+1:]
-		var bodyMap map[string]interface{}
+		var bodyMap map[string]json.RawMessage
 		if err := json.Unmarshal(body, &bodyMap); err == nil {
-			bodyMap["model"] = bareModel
+			quotedModel, _ := json.Marshal(bareModel)
+			bodyMap["model"] = quotedModel
 			if rewritten, err := json.Marshal(bodyMap); err == nil {
 				upstreamBody = rewritten
 			}
@@ -106,14 +113,17 @@ func (app *App) GenAIProxyNSChatCompletionsHandler(w http.ResponseWriter, r *htt
 	}
 
 	// Proxy the request to upstream.
-	// Use a dedicated timeout context (3 min) — LLM chat completions can take longer
+	// Use a dedicated client with 3-min timeout — LLM chat completions can take longer
 	// than the BFF's default httpClient timeout (92s, tuned for ASR transcription).
+	// Reuse the same TLS transport for connection pooling and cert trust.
 	const chatCompletionTimeout = 3 * time.Minute
-	proxyCtx, proxyCancel := context.WithTimeout(ctx, chatCompletionTimeout)
-	defer proxyCancel()
+	proxyClient := &http.Client{
+		Timeout:   chatCompletionTimeout,
+		Transport: app.httpClient.Transport,
+	}
 
 	upstreamURL := baseURL + "/chat/completions"
-	proxyReq, err := http.NewRequestWithContext(proxyCtx, http.MethodPost, upstreamURL, strings.NewReader(string(upstreamBody)))
+	proxyReq, err := http.NewRequestWithContext(ctx, http.MethodPost, upstreamURL, strings.NewReader(string(upstreamBody)))
 	if err != nil {
 		app.serverErrorResponse(w, r, fmt.Errorf("failed to create upstream request: %w", err))
 		return
@@ -123,7 +133,7 @@ func (app *App) GenAIProxyNSChatCompletionsHandler(w http.ResponseWriter, r *htt
 		proxyReq.Header.Set("Authorization", "Bearer "+apiKey)
 	}
 
-	resp, err := app.httpClient.Do(proxyReq)
+	resp, err := proxyClient.Do(proxyReq)
 	if err != nil {
 		app.errorResponse(w, r, &integrations.HTTPError{
 			StatusCode: http.StatusBadGateway,
@@ -138,18 +148,40 @@ func (app *App) GenAIProxyNSChatCompletionsHandler(w http.ResponseWriter, r *htt
 
 	// Forward the upstream response unchanged (transparent proxy).
 	// Limit read to 10MB to prevent memory exhaustion from malicious/faulty upstreams.
-	const maxResponseBytes = 10 * 1024 * 1024
-	respBody, err := io.ReadAll(io.LimitReader(resp.Body, maxResponseBytes))
+	// If the response exceeds the limit, return 502 instead of silently truncating.
+	const maxResponseBytes int64 = 10 * 1024 * 1024
+	limitedReader := io.LimitReader(resp.Body, maxResponseBytes+1)
+	respBody, err := io.ReadAll(limitedReader)
 	if err != nil {
 		app.serverErrorResponse(w, r, fmt.Errorf("failed to read upstream response: %w", err))
 		return
 	}
+	if int64(len(respBody)) > maxResponseBytes {
+		app.errorResponse(w, r, &integrations.HTTPError{
+			StatusCode: http.StatusBadGateway,
+			ErrorResponse: integrations.ErrorResponse{
+				Code:    "502",
+				Message: "upstream response too large (exceeds 10MB limit)",
+			},
+		})
+		return
+	}
 
-	// Copy upstream response headers, excluding hop-by-hop and framing headers
-	// that may be invalidated by buffering/truncation (Content-Length, Transfer-Encoding).
+	// Copy upstream response headers, excluding hop-by-hop headers (RFC 7230 §6.1)
+	// and framing headers invalidated by buffering.
+	hopByHop := map[string]bool{
+		"connection":          true,
+		"keep-alive":          true,
+		"proxy-authenticate":  true,
+		"proxy-authorization": true,
+		"te":                  true,
+		"trailer":             true,
+		"transfer-encoding":   true,
+		"upgrade":             true,
+		"content-length":      true,
+	}
 	for key, values := range resp.Header {
-		lowerKey := strings.ToLower(key)
-		if lowerKey == "content-length" || lowerKey == "transfer-encoding" {
+		if hopByHop[strings.ToLower(key)] {
 			continue
 		}
 		for _, v := range values {
