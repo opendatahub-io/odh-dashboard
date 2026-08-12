@@ -173,12 +173,7 @@ describe('Verify Custom Endpoints in Playground - Full Lifecycle', () => {
       genAiPlayground.verifyModelIsSelected(testData.displayName);
 
       cy.step('Ensure settings panel is open, navigate to Prompt tab, and click Load Prompt');
-      cy.get('body').then(($body) => {
-        if ($body.find('[data-testid="chatbot-settings-panel-header"]').length === 0) {
-          genAiPlayground.findSettingsButton().should('be.visible').click();
-        }
-      });
-      cy.findByTestId('chatbot-settings-panel-header', { timeout: 10000 }).should('be.visible');
+      genAiPlayground.ensureSettingsPanelOpen();
       genAiPlayground.findSettingsPromptTab().should('be.visible').click();
       genAiPlayground.findLoadPromptButton().should('be.visible').click();
 

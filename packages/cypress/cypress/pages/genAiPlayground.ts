@@ -199,6 +199,19 @@ class GenAiPlayground {
     return cy.findByTestId('settings-button');
   }
 
+  findSettingsPanelHeader(options?: { timeout?: number }) {
+    return cy.findByTestId('chatbot-settings-panel-header', options);
+  }
+
+  ensureSettingsPanelOpen() {
+    cy.get('body').then(($body) => {
+      if ($body.find('[data-testid="chatbot-settings-panel-header"]').length === 0) {
+        this.findSettingsButton().should('be.visible').click();
+      }
+    });
+    this.findSettingsPanelHeader({ timeout: 10000 }).should('be.visible');
+  }
+
   findSettingsPromptTab() {
     return cy.findByTestId('chatbot-settings-page-tab-prompt');
   }
@@ -258,7 +271,7 @@ class GenAiPlayground {
   }
 
   findDocumentFileInput() {
-    return cy.get('[data-testid="document-file-input"]');
+    return cy.findByTestId('document-file-input');
   }
 
   uploadDocumentViaAttachMenu(fixturePath: string) {
@@ -270,7 +283,7 @@ class GenAiPlayground {
   }
 
   findSourceSettingsUploadButton() {
-    return this.findSourceSettingsModal().findByRole('button', { name: /upload/i });
+    return cy.findByTestId('source-settings-upload-button');
   }
 
   findSourceUploadSuccessAlert(options?: { timeout?: number }) {
