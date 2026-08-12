@@ -11,7 +11,7 @@ import {
 } from '@patternfly/react-core';
 import { PlusCircleIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router';
-import { TopologyType, TopologyTypeLabels } from '../types';
+import { TopologyType, TopologyTypeLabels } from '../../types';
 
 const primaryTopologyType = TopologyType.SINGLE_NODE;
 const dropdownTopologyTypes = Object.values(TopologyType).filter((t) => t !== primaryTopologyType);

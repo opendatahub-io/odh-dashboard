@@ -1,22 +1,33 @@
 import * as React from 'react';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports -- standard page shell wrapper
 import { ApplicationsPage } from '@odh-dashboard/ui-core';
-import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
 import TopologyConfigurationsTable from './TopologyConfigurationsTable';
 import EmptyTopologyConfigurations from './EmptyTopologyConfigurations';
-import { useWatchTopologyConfigs } from '../api/LLMInferenceServiceConfigs';
+import { TopologyConfigContext } from './TopologyConfigContext';
 
-const TopologyConfigurationsView: React.FC = () => {
-  const { dashboardNamespace } = useDashboardNamespace();
-  const [configs, loaded, error] = useWatchTopologyConfigs(dashboardNamespace);
+type TopologyConfigurationsViewProps = {
+  /**
+   * Suppresses the page title when rendered as tab content — the tabbed page
+   * already supplies a title and the tab label identifies the section.
+   *
+   * Only the standalone page passes this as false. After RHOAIENG-80077 removes
+   * that page the tab is the only caller, so this prop can go and the title can
+   * be suppressed unconditionally.
+   * https://issues.redhat.com/browse/RHOAIENG-80077
+   */
+  noTitle?: boolean;
+};
+
+const TopologyConfigurationsView: React.FC<TopologyConfigurationsViewProps> = ({ noTitle }) => {
+  const { configs } = React.useContext(TopologyConfigContext);
 
   return (
     <ApplicationsPage
       title="llm-d topology configurations"
+      noTitle={noTitle}
       description="Manage topology configurations for LLM inference service deployments with llm-d. Enabled configurations are available in the deployment wizard."
-      loaded={loaded}
-      loadError={error}
-      empty={loaded && configs.length === 0}
+      loaded
+      empty={configs.length === 0}
       emptyStatePage={<EmptyTopologyConfigurations />}
       provideChildrenPadding
     >

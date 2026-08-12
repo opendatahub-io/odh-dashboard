@@ -9,12 +9,11 @@ import {
 import TableRowTitleDescription from '@odh-dashboard/internal/components/table/TableRowTitleDescription';
 import {
   type LLMInferenceServiceConfigKind,
-  TopologyType,
   TopologyTypeLabels,
   DASHBOARD_RESOURCE_LABEL,
   getConfigTopologyType,
-} from '../types';
-import { isConfigPreInstalled, isConfigEnabled } from '../utils';
+} from '../../types';
+import { isConfigPreInstalled, isConfigEnabled } from '../../utils';
 
 type TopologyConfigurationRowProps = {
   config: LLMInferenceServiceConfigKind;
@@ -38,7 +37,6 @@ const TopologyConfigurationRow: React.FC<TopologyConfigurationRowProps> = ({
   const topologyType = getConfigTopologyType(config);
   const isDashboardCreated =
     config.metadata.labels?.[DASHBOARD_RESOURCE_LABEL] === 'true' && !preInstalled;
-  const duplicatePath = `add/${topologyType ?? TopologyType.SINGLE_NODE}`;
 
   return (
     <Tr data-testid={`topology-config-row-${configName}`}>
@@ -80,7 +78,7 @@ const TopologyConfigurationRow: React.FC<TopologyConfigurationRowProps> = ({
                   },
                   {
                     title: 'Duplicate',
-                    onClick: () => navigate(duplicatePath, { state: { sourceConfig: config } }),
+                    onClick: () => navigate(`duplicate/${configName}`),
                   },
                   { isSeparator: true },
                   {
@@ -92,7 +90,7 @@ const TopologyConfigurationRow: React.FC<TopologyConfigurationRowProps> = ({
               : [
                   {
                     title: 'Duplicate',
-                    onClick: () => navigate(duplicatePath, { state: { sourceConfig: config } }),
+                    onClick: () => navigate(`duplicate/${configName}`),
                   },
                 ]
           }

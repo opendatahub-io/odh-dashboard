@@ -54,6 +54,15 @@ const LLM_ACCELERATOR_CONFIGS_STANDALONE_PATH =
 const LLM_ACCELERATOR_CONFIGS_TAB_PATH =
   '/settings/model-resources-operations/model-deployment-settings/llm-accelerator-configurations';
 
+// Keep in sync with ../src/settings/topologyConfigs/paths.ts (value imports are
+// disallowed in extensions.ts). Pinned by __tests__/extensions.spec.ts.
+// The standalone constant and the extensions using it are removed by RHOAIENG-80077.
+// https://issues.redhat.com/browse/RHOAIENG-80077
+const TOPOLOGY_CONFIGS_STANDALONE_PATH =
+  '/settings/model-resources-operations/llmd-topology-configurations';
+const TOPOLOGY_CONFIGS_TAB_PATH =
+  '/settings/model-resources-operations/model-deployment-settings/topology-configurations';
+
 const createRedirectComponent = (args: { from: string; to: string }) => () =>
   import('@odh-dashboard/plugin-core/routing').then((module) => ({
     default: () => module.buildV2RedirectElement(args),
@@ -569,6 +578,9 @@ const extensions: (
       component: () => import('../src/settings/llmAcceleratorConfigs/LlmAcceleratorConfigRoutes'),
     },
   },
+  // Standalone llm-d topology configurations page — nav item + route. Hidden when
+  // modelDeploymentSettings is on (disallowed flag); removed entirely by
+  // RHOAIENG-80077. https://issues.redhat.com/browse/RHOAIENG-80077
   {
     type: 'app.navigation/href',
     flags: {
@@ -578,9 +590,9 @@ const extensions: (
     properties: {
       id: 'settings-llmd-topology-configurations',
       title: 'llm-d topology configurations',
-      href: '/settings/model-resources-operations/llmd-topology-configurations',
+      href: TOPOLOGY_CONFIGS_STANDALONE_PATH,
       section: 'settings-model-resources-and-operations',
-      path: '/settings/model-resources-operations/llmd-topology-configurations/*',
+      path: `${TOPOLOGY_CONFIGS_STANDALONE_PATH}/*`,
       group: '2_model-resources',
     },
   },
@@ -591,8 +603,8 @@ const extensions: (
       disallowed: [SupportedArea.MODEL_DEPLOYMENT_SETTINGS],
     },
     properties: {
-      path: '/settings/model-resources-operations/llmd-topology-configurations/*',
-      component: () => import('../src/settings/TopologyConfigurationsRoutes'),
+      path: `${TOPOLOGY_CONFIGS_STANDALONE_PATH}/*`,
+      component: () => import('../src/settings/topologyConfigs/TopologyConfigurationsRoutes'),
     },
   },
   {
@@ -650,10 +662,10 @@ const extensions: (
       ],
     },
     properties: {
-      path: '/settings/model-resources-operations/llmd-topology-configurations/*',
+      path: `${TOPOLOGY_CONFIGS_STANDALONE_PATH}/*`,
       component: createRedirectComponent({
-        from: '/settings/model-resources-operations/llmd-topology-configurations/*',
-        to: '/settings/model-resources-operations/model-deployment-settings/topology-configurations/*',
+        from: `${TOPOLOGY_CONFIGS_STANDALONE_PATH}/*`,
+        to: `${TOPOLOGY_CONFIGS_TAB_PATH}/*`,
       }),
     },
   },
@@ -733,10 +745,35 @@ const extensions: (
       pageId: 'model-deployment-settings',
       id: 'topology-configurations',
       title: 'llm-d topology configurations',
-      component: () => import('../src/settings/TopologyConfigsTab'),
+      component: () => import('../src/settings/topologyConfigs/TopologyConfigTabRoutes'),
       group: '4_topology',
     },
   },
+  // Full-page breakout routes for the topology configuration forms. Registered
+  // separately from the tab so the forms render without the tabbed page chrome.
+  // Each form path is listed explicitly so the tab list route is not captured.
+  ...(
+    [
+      `${TOPOLOGY_CONFIGS_TAB_PATH}/add/:topologyType`,
+      `${TOPOLOGY_CONFIGS_TAB_PATH}/edit/:configName`,
+      `${TOPOLOGY_CONFIGS_TAB_PATH}/duplicate/:configName`,
+    ] as const
+  ).map(
+    (path): RouteExtension => ({
+      type: 'app.route',
+      flags: {
+        required: [
+          SupportedArea.MODEL_DEPLOYMENT_SETTINGS,
+          SupportedArea.LLMD_TOPOLOGY_CONFIGS,
+          ADMIN_USER,
+        ],
+      },
+      properties: {
+        path,
+        component: () => import('../src/settings/topologyConfigs/TopologyConfigFormRoutes'),
+      },
+    }),
+  ),
   {
     type: 'app.tab-route/tab',
     flags: {

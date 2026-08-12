@@ -1,5 +1,5 @@
 import { useMutation, UseMutationResult } from '@tanstack/react-query';
-import { handleRestFailures, isModArchResponse, restCREATE } from 'mod-arch-core';
+import { isModArchResponse, restCREATE } from 'mod-arch-core';
 import * as z from 'zod';
 import {
   uploadFileToS3,
@@ -10,6 +10,7 @@ import { ConfigureSchema } from '~/app/schemas/configure.schema';
 import type { PipelineRun } from '~/app/types';
 import { RuntimeStateKF } from '~/app/types/pipeline';
 import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
+import { handleRestWithUIErrors } from '~/app/components/common/UIError/util.ts';
 
 export type S3FileUploadMutationVariables = UploadFileToS3Params & {
   file: File;
@@ -112,7 +113,7 @@ export function useCreatePipelineRunMutation(
   return useMutation({
     mutationKey: ['autorag', 'pipelineRun'],
     mutationFn: async (payload: ConfigureSchema) => {
-      const response = await handleRestFailures(
+      const response = await handleRestWithUIErrors(
         restCREATE<PipelineRun>(
           '',
           `${URL_PREFIX}/api/${BFF_API_VERSION}/pipeline-runs?namespace=${namespace}`,
