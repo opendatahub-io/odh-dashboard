@@ -1,9 +1,9 @@
-import { mockDashboardConfig } from '@odh-dashboard/internal/__mocks__/mockDashboardConfig';
-import { mockDscStatus } from '@odh-dashboard/internal/__mocks__/mockDscStatus';
-import { mockDsciStatus } from '@odh-dashboard/internal/__mocks__/mockDsciStatus';
-import { mockConnectionTypeConfigMap } from '@odh-dashboard/internal/__mocks__/mockConnectionType';
+import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
+import { mockDscStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDscStatus';
+import { mockDsciStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDsciStatus';
+import { mockConnectionTypeConfigMap } from '@odh-dashboard/k8s-core/__mocks__/mockConnectionType';
 import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
-import { mockK8sResourceList } from '@odh-dashboard/internal/__mocks__/mockK8sResourceList';
+import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import { asProductAdminUser } from '@odh-dashboard/cypress/cypress/utils/mockUsers';
 import { ProjectModel } from '@odh-dashboard/cypress/cypress/utils/models';
