@@ -1,7 +1,7 @@
 import React from 'react';
-import { TrustyAPIState } from '#~/concepts/trustyai/useTrustyAIAPIState';
-import { TrustyAIContextData } from '#~/concepts/trustyai/context/types';
-import useFetchBiasMetricConfigs from '#~/concepts/trustyai/context/useFetchBiasMetricConfigs';
+import type { TrustyAPIState } from './useTrustyAIAPIState';
+import useFetchBiasMetricConfigs from './useFetchBiasMetricConfigs';
+import type { TrustyAIContextData } from '../types';
 
 const useFetchContextData = (apiState: TrustyAPIState): TrustyAIContextData => {
   const [biasMetricConfigs, biasMetricConfigsLoaded, error, refreshBiasMetricConfigs] =

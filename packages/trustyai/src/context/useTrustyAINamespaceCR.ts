@@ -5,11 +5,11 @@ import useFetchState, {
   FetchStateCallbackPromise,
   NotReadyError,
 } from '@odh-dashboard/ui-core/hooks/useFetchState';
-import { TrustyInstallState } from '@odh-dashboard/trustyai/types';
-import { TrustyAIKind } from '#~/k8sTypes';
-import { getTrustyAICR } from '#~/api';
-import { FAST_POLL_INTERVAL } from '#~/utilities/const';
-import { getTrustyStatusState } from '#~/concepts/trustyai/utils';
+import type { TrustyAIKind } from '@odh-dashboard/k8s-core';
+import { TrustyInstallState } from '../types';
+import { FAST_POLL_INTERVAL } from '../const';
+import { getTrustyAICR } from '../api/k8s';
+import { getTrustyStatusState } from '../utilities/utils';
 
 type State = TrustyAIKind | null;
 
@@ -24,7 +24,6 @@ const useTrustyAINamespaceCR = (namespace: string): FetchState<State> => {
 
       return getTrustyAICR(namespace, opts).catch((e) => {
         if (e.statusObject?.code === 404) {
-          // Not finding is okay, not an error
           return null;
         }
         throw e;
