@@ -167,11 +167,15 @@
   }
 }
 
-/* Pending hourglass in branch-step badge — beat topology black fill on `.pf-v6-svg`. */
-.automl-tree-node--status-only .automl-tree-node__status-badge--pending svg,
-.automl-tree-node--status-only .automl-tree-node__status-badge--pending svg path {
-  color: var(--pf-t--global--icon--color--disabled);
+/* Pending hourglass — sand/caps filled; bottom chamber stroked. */
+.automl-tree-node__status-badge--pending .automl-tree-node__pending-hourglass path:not(.automl-tree-node__pending-hourglass-outline),
+.automl-tree-node__status-badge--pending .automl-tree-node__pending-hourglass rect {
   fill: var(--pf-t--global--icon--color--disabled);
+}
+
+.automl-tree-node__status-badge--pending .automl-tree-node__pending-hourglass-outline {
+  fill: none !important;
+  stroke: var(--pf-t--global--icon--color--disabled);
 }
 
 /* Running sync in branch-step badge. */
@@ -195,12 +199,6 @@
   fill: var(--pf-t--global--icon--color--status--on-success--default);
 }
 
-/* Pending hourglass on stage-node status decorator (e.g. Select models). */
-.automl-tree-node .pf-topology__node__decorator .automl-tree-node__status-decorator-pending svg,
-.automl-tree-node .pf-topology__node__decorator .automl-tree-node__status-decorator-pending path {
-  color: var(--pf-t--global--icon--color--disabled);
-  fill: var(--pf-t--global--icon--color--disabled);
-}
 
 @media (prefers-reduced-motion: reduce) {
   .automl-tree-node__status-spinner {

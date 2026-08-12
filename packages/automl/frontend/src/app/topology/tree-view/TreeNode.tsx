@@ -16,13 +16,7 @@ import {
   t_global_icon_color_status_on_danger_default as iconColorOnDanger,
   t_global_icon_color_disabled as iconColorDisabled,
 } from '@patternfly/react-tokens';
-import {
-  CheckIcon,
-  ExclamationIcon,
-  HourglassHalfIcon,
-  StarIcon,
-  SyncAltIcon,
-} from '@patternfly/react-icons';
+import { CheckIcon, ExclamationIcon, StarIcon, SyncAltIcon } from '@patternfly/react-icons';
 import {
   DEFAULT_DECORATOR_RADIUS,
   DefaultNode,
@@ -38,6 +32,7 @@ import {
 import { parseStageMapNodeId } from './stageMapStepMetadata';
 import { useModelsExpand } from './ModelsExpandContext';
 import { isTreeNodeData, treeStepStateToNodeStatus } from './treeStepState';
+import PendingHourglassGlyph from './icons/PendingHourglassGlyph';
 import { resolveTaskIconForNodeId } from './stageTaskIcons';
 import './TreeNode.scss';
 
@@ -114,16 +109,43 @@ const StatusOnlyCompletedBadge: React.FC<{ size: number }> = React.memo(({ size 
 });
 StatusOnlyCompletedBadge.displayName = 'StatusOnlyCompletedBadge';
 
-/** Pending / unreached branch-step badge: light gray ring + top-filled hourglass on white. */
-const StatusOnlyPendingBadge: React.FC<{ size: number }> = React.memo(({ size }) => {
+/** Pending / unreached badge: light gray ring + top-filled hourglass on white. */
+const StatusOnlyPendingBadge: React.FC<{
+  size: number;
+  /** Horizontal pipeline stubs on branch-step dots (design). */
+  showEdgeConnectors?: boolean;
+}> = React.memo(({ size, showEdgeConnectors = false }) => {
   const center = size / 2;
   const strokeWidth = Math.max(1.25, size * 0.055);
   const outerR = center - strokeWidth / 2;
-  const iconSize = size * 0.48;
+  // Fill most of the ring interior (~45–50% of badge diameter per design).
+  const innerDiameter = 2 * (outerR - strokeWidth);
+  const iconSize = innerDiameter * 0.84;
   const white = backgroundColorPrimary.var;
   const ring = borderColorLight.var;
+  const connectorY = center;
+  const leftTangent = center - outerR;
+  const rightTangent = center + outerR;
   return (
     <g className="automl-tree-node__status-badge automl-tree-node__status-badge--pending">
+      {showEdgeConnectors ? (
+        <>
+          <line
+            x1={0}
+            y1={connectorY}
+            x2={leftTangent}
+            y2={connectorY}
+            style={{ stroke: ring, strokeWidth }}
+          />
+          <line
+            x1={rightTangent}
+            y1={connectorY}
+            x2={size}
+            y2={connectorY}
+            style={{ stroke: ring, strokeWidth }}
+          />
+        </>
+      ) : null}
       <circle cx={center} cy={center} r={center - 0.25} style={{ fill: white }} />
       <circle
         cx={center}
@@ -133,12 +155,7 @@ const StatusOnlyPendingBadge: React.FC<{ size: number }> = React.memo(({ size })
         style={{ stroke: ring, strokeWidth }}
       />
       <g transform={`translate(${(size - iconSize) / 2}, ${(size - iconSize) / 2})`}>
-        <HourglassHalfIcon
-          width={iconSize}
-          height={iconSize}
-          color={iconColorDisabled.var}
-          style={{ color: iconColorDisabled.var, fill: iconColorDisabled.var }}
-        />
+        <PendingHourglassGlyph size={iconSize} color={iconColorDisabled.var} />
       </g>
     </g>
   );
@@ -242,7 +259,7 @@ const StatusOnlyCenterIcon: React.FC<{
     case 'pending':
     case 'unreached':
     default:
-      return <StatusOnlyPendingBadge size={size} />;
+      return <StatusOnlyPendingBadge size={size} showEdgeConnectors />;
   }
 });
 StatusOnlyCenterIcon.displayName = 'StatusOnlyCenterIcon';
@@ -289,28 +306,17 @@ const StatusBadgeDecorator: React.FC<{
     );
   }
 
-  let icon: React.ReactNode;
-  switch (stepState) {
-    case 'failed':
-      return (
-        <Decorator
-          x={x}
-          y={y}
-          radius={DEFAULT_DECORATOR_RADIUS}
-          showBackground={false}
-          icon={<StatusOnlyFailedBadge size={DECORATOR_STATUS_BADGE_SIZE} />}
-          ariaLabel={stepState}
-        />
-      );
-    case 'pending':
-    case 'unreached':
-    default:
-      icon = (
-        <g className="automl-tree-node__status-decorator-pending">
-          <HourglassHalfIcon />
-        </g>
-      );
-      break;
+  if (stepState === 'failed') {
+    return (
+      <Decorator
+        x={x}
+        y={y}
+        radius={DEFAULT_DECORATOR_RADIUS}
+        showBackground={false}
+        icon={<StatusOnlyFailedBadge size={DECORATOR_STATUS_BADGE_SIZE} />}
+        ariaLabel={stepState}
+      />
+    );
   }
 
   return (
@@ -318,8 +324,8 @@ const StatusBadgeDecorator: React.FC<{
       x={x}
       y={y}
       radius={DEFAULT_DECORATOR_RADIUS}
-      showBackground
-      icon={<g className="pf-topology__node__decorator__status">{icon}</g>}
+      showBackground={false}
+      icon={<StatusOnlyPendingBadge size={DECORATOR_STATUS_BADGE_SIZE} />}
       ariaLabel={stepState}
     />
   );
