@@ -14,7 +14,10 @@ import {
   ExclamationTriangleIcon,
   PendingIcon,
 } from '@patternfly/react-icons';
-import PhaseApiDetails from '~/app/shared/PhaseApiDetails';
+import PhaseApiDetails from '~/app/shared/Phase/PhaseApiDetails';
+import type { AffectedModel } from '~/app/types/maas-model';
+import { modelRefsToSummaries } from '~/app/utilities/authpolicies';
+import type { MaaSModelRefSummary } from '~/app/types/subscriptions';
 
 type PopoverContent = {
   headerIcon: React.ReactNode;
@@ -73,6 +76,53 @@ export const normalizePhase = (phase: string | undefined): string => {
   }
   return normalized || PhaseStatus.UNKNOWN;
 };
+
+export const MODEL_NOT_FOUND_STATUS_MESSAGE = 'Model not found. The MaaSModelRef does not exist.';
+
+type ModelRefWithPhase = {
+  name: string;
+  namespace?: string;
+  displayName?: string;
+  phase?: string;
+  statusMessage?: string;
+};
+
+/**
+ * Gets a list of affected models from a list of model refs.
+ */
+export const getAffectedModels = (modelRefs: ModelRefWithPhase[]): AffectedModel[] =>
+  modelRefs.flatMap((ref) => {
+    const phase = normalizePhase(ref.phase);
+    if (phase === PhaseStatus.READY) {
+      return [];
+    }
+    if (phase === PhaseStatus.UNKNOWN) {
+      return [
+        {
+          name: ref.name,
+          namespace: ref.namespace,
+          displayName: ref.displayName,
+          phase: PhaseStatus.UNAVAILABLE,
+          statusMessage: ref.statusMessage ?? MODEL_NOT_FOUND_STATUS_MESSAGE,
+        },
+      ];
+    }
+    return [
+      {
+        name: ref.name,
+        namespace: ref.namespace,
+        displayName: ref.displayName,
+        phase,
+        statusMessage: ref.statusMessage,
+      },
+    ];
+  });
+
+/** Resolve resource model refs against the summaries, then return non-Ready affected models. */
+export const getAffectedModelsFromRefs = (
+  refs: { name: string; namespace: string; displayName?: string }[],
+  summaries: MaaSModelRefSummary[],
+): AffectedModel[] => getAffectedModels(modelRefsToSummaries(refs, summaries));
 
 const POPOVER_CONTENT: Record<PhaseResourceType, Partial<Record<string, PopoverContent>>> = {
   [PhaseResourceType.MODEL]: {

@@ -9,6 +9,7 @@ import {
   getModalSubtitle,
   getSubtextProps,
 } from '~/app/utilities/phaseLabelUtils';
+import type { AffectedModel } from '~/app/types/maas-model';
 import PhaseModal from './PhaseModal';
 
 type PhaseLabelProps = {
@@ -25,6 +26,8 @@ type PhaseLabelProps = {
   status?: string;
   conditionType?: string;
   lastTransitionTime?: string;
+  affectedModels?: AffectedModel[];
+  overviewLoaded?: boolean;
 };
 
 const PhaseLabel: React.FC<PhaseLabelProps> = ({
@@ -41,9 +44,12 @@ const PhaseLabel: React.FC<PhaseLabelProps> = ({
   status,
   conditionType,
   lastTransitionTime,
+  affectedModels,
+  overviewLoaded = false,
 }) => {
   const [isModalOpen, setIsModalOpen] = React.useState(false);
   const [hasOpenedModal, setHasOpenedModal] = React.useState(false);
+
   const normalized = normalizePhase(phase);
   const phaseProps = getPhaseProps(normalized);
   const isClickable = forceModal || normalized !== PhaseStatus.READY;
@@ -54,6 +60,7 @@ const PhaseLabel: React.FC<PhaseLabelProps> = ({
     if (!isClickable) {
       return;
     }
+
     setHasOpenedModal(true);
     setIsModalOpen(true);
     onClick?.();
@@ -93,6 +100,8 @@ const PhaseLabel: React.FC<PhaseLabelProps> = ({
           status={status}
           conditionType={conditionType}
           lastTransitionTime={lastTransitionTime}
+          affectedModels={affectedModels}
+          overviewLoaded={overviewLoaded}
         />
       ) : null}
     </>
