@@ -13,10 +13,8 @@ import {
   phaseModal,
 } from '../../../pages/modelsAsAService';
 import {
-  mockSubscriptions,
-  mockAuthPolicies,
   mockSubscriptionFormData,
-  mockModelsOverview,
+  interceptMaasGovernanceData,
   mockSubscriptionInfo,
   mockPolicyInfo,
 } from '../../../utils/maasUtils';
@@ -37,15 +35,7 @@ const setupCommonIntercepts = () => {
       conditions: [{ type: MODELS_AS_A_SERVICE_READY, status: 'True', reason: 'Ready' }],
     }),
   );
-  cy.interceptOdh('GET /maas/api/v1/subscription-policy-form-data', {
-    data: mockSubscriptionFormData(),
-  });
-  cy.interceptOdh('GET /maas/api/v1/all-subscriptions', { data: mockSubscriptions() });
-  cy.interceptOdh('GET /maas/api/v1/all-policies', { data: mockAuthPolicies() });
-  cy.interceptOdh('GET /maas/api/v1/overview/models', { data: mockModelsOverview() });
-  cy.interceptOdh('GET /maas/api/v1/subscription-policy-form-data', {
-    data: mockSubscriptionFormData(),
-  });
+  interceptMaasGovernanceData();
   cy.interceptOdh(
     'GET /maas/api/v1/subscription-info/:name',
     { path: { name: 'premium-team-sub' } },
@@ -63,14 +53,14 @@ describe('Subscription Management Page / Overview Tab', () => {
     setupCommonIntercepts();
   });
   it('should show the overview empty state when there are no subscriptions, policies, or model refs', () => {
-    cy.interceptOdh('GET /maas/api/v1/subscription-policy-form-data', {
-      data: mockSubscriptionFormData({
+    interceptMaasGovernanceData(
+      mockSubscriptionFormData({
         groups: [],
         modelRefs: [],
         subscriptions: [],
         policies: [],
       }),
-    });
+    );
     subscriptionManagementPage.visit();
     subscriptionManagementPage.findOverviewEmptyState().should('exist');
     subscriptionManagementPage.findSubscriptionsTab().should('not.exist');
@@ -80,7 +70,11 @@ describe('Subscription Management Page / Overview Tab', () => {
   });
 
   it('should show the overview empty state in the overview tab when there are no models', () => {
-    cy.interceptOdh('GET /maas/api/v1/overview/models', { data: [] });
+    interceptMaasGovernanceData(
+      mockSubscriptionFormData({
+        modelRefs: [],
+      }),
+    );
     subscriptionManagementPage.visit('overview');
     subscriptionManagementPage.findOverviewEmptyState().should('exist');
     subscriptionManagementPage.findSubscriptionsTab().should('be.visible');
@@ -106,7 +100,7 @@ describe('Subscription Management Page / Overview Tab', () => {
     overviewRow.findModelProject().should('contain.text', 'maas-models');
     overviewRow.findModelSubscriptions().should('contain.text', '4');
     overviewRow.findModelPhase().should('contain.text', 'Ready');
-    overviewRow.findModelAuthorizationPolicies().should('contain.text', '2');
+    overviewRow.findModelAuthorizationPolicies().should('contain.text', '3');
   });
 
   it('should navigate between tabs and update the URL', () => {
