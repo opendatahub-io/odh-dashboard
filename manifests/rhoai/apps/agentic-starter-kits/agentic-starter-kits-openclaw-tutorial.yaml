@@ -6,8 +6,10 @@ metadata:
     opendatahub.io/categories: 'Agent Templates,Getting started'
 spec:
   type: tutorial
-  displayName: 'OpenClaw'
+  displayName: 'Build a Coding Assistant with OpenClaw'
   description: >-
-    Open-source AI coding assistant based on OpenClaw with gateway-based model routing and multi-channel support.
+    Deploy an open-source AI coding assistant built on OpenClaw with
+    gateway-based model routing to any OpenAI-compatible endpoint and a
+    web-based coding interface.
   url: 'https://red.ht/3UqX4RN'
   appName: agentic-starter-kits

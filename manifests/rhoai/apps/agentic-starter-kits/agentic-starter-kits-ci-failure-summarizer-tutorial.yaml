@@ -6,8 +6,9 @@ metadata:
     opendatahub.io/categories: 'Agent Templates,Getting started'
 spec:
   type: tutorial
-  displayName: 'LangGraph CI Failure Summarizer'
+  displayName: 'Build a CI Failure Summarizer with LangGraph'
   description: >-
-    Lightweight daily QG4 CI failure summarizer with PostgreSQL-backed incident persistence and Slack posting.
+    Build a daily CI failure summarizer that groups GitHub workflow failures,
+    persists incidents in PostgreSQL, and posts triage summaries to Slack.
   url: 'https://red.ht/4hrNBn0'
   appName: agentic-starter-kits

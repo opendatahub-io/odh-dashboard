@@ -6,8 +6,10 @@ metadata:
     opendatahub.io/categories: 'Agent Templates,Getting started'
 spec:
   type: tutorial
-  displayName: 'OpenCode'
+  displayName: 'Build a Coding Agent with OpenCode'
   description: >-
-    AI-powered terminal-based coding agent built on OpenCode for code generation, editing, and debugging tasks.
+    Deploy an AI-powered coding agent built on OpenCode for code generation,
+    multi-file editing, and debugging. Supports web UI and headless CLI modes
+    against any OpenAI-compatible model endpoint.
   url: 'https://red.ht/4xy6lWC'
   appName: agentic-starter-kits

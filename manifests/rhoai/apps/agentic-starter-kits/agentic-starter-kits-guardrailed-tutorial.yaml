@@ -6,8 +6,10 @@ metadata:
     opendatahub.io/categories: 'Agent Templates,Getting started'
 spec:
   type: tutorial
-  displayName: 'LangGraph Guardrailed Agent'
+  displayName: 'Build a Guardrailed Agent with LangGraph'
   description: >-
-    Banking customer service agent with NeMo Guardrails safety layer. Demonstrates content safety, topical guardrails, and regex filtering using the proxy pattern.
+    Add a NeMo Guardrails safety layer to a LangGraph ReAct agent using the
+    proxy pattern. Covers content safety, topical guardrails, and regex-based
+    input filtering for a banking customer service example.
   url: 'https://red.ht/3RV5Yq1'
   appName: agentic-starter-kits
