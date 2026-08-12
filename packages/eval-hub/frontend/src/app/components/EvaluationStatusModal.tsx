@@ -412,7 +412,7 @@ const ProgressTabContent: React.FC<{
                     </StackItem>
                     {isExpanded ? (
                       bm.status === 'running' ? (
-                        <StackItem className="pf-v6-u-ml- pf-v6-u-pt-sm pf-v6-u-mb-sm">
+                        <StackItem className="pf-v6-u-pt-sm pf-v6-u-mb-sm">
                           <Stack>
                             <StackItem>
                               <Flex
