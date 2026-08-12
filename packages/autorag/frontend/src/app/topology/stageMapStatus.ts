@@ -79,6 +79,21 @@ export const createActiveIconVariantResolver = (): ActiveIconVariantResolver => 
   };
 };
 
+/** Branch fan-out dots always pulse together while the branch phase is running. */
+export const resolveBranchStepActiveIconVariant = (
+  runStatus: RunStatus | undefined,
+): ActiveIconVariant | undefined => (runStatus === RunStatus.InProgress ? 'pulse' : undefined);
+
+/** Optimize templates keeps the sync badge while its branch section runs. */
+export const resolveOptimizeTemplatesActiveIconVariant = (
+  runStatus: RunStatus | undefined,
+): ActiveIconVariant | undefined => (runStatus === RunStatus.InProgress ? 'sync' : undefined);
+
+/** Pattern terminus nodes use sync while the branch phase is running. */
+export const resolvePatternTerminusActiveIconVariant = (
+  runStatus: RunStatus | undefined,
+): ActiveIconVariant | undefined => (runStatus === RunStatus.InProgress ? 'sync' : undefined);
+
 const getTerminalRunFailureStatus = (
   runState?: string,
   hasExplicitFailureInPipeline = false,
@@ -144,14 +159,6 @@ export const isInlineStageFailure = (stage?: ComponentStageMapStage): boolean =>
 /** True when a pre-branch stage (before optimize_templates) failed inline. */
 export const hasPreBranchInlineFailure = (preBranchStages: ComponentStageMapStage[]): boolean =>
   preBranchStages.some((stage) => stage.id !== BRANCHING_STAGE_ID && isInlineStageFailure(stage));
-
-/**
- * Branch fan-out section mirrors optimize_templates terminal status.
- * If optimize_templates fails/cancels, the whole branch section fails/cancels.
- */
-export const resolveBranchPhaseStatus = (
-  patternSelectionStatus: RunStatus | undefined,
-): RunStatus | undefined => patternSelectionStatus;
 
 export const isStageFinished = (status: RunStatus | undefined): boolean =>
   status === RunStatus.Succeeded || status === RunStatus.Skipped;
@@ -372,7 +379,8 @@ export const promoteWaitingFrontierToInProgress = (
     visiting: Set<string> = new Set(),
   ): boolean => {
     if (promoted.has(depId)) {
-      return true;
+      const promotedNode = nodeById.get(depId);
+      return promotedNode != null && isStageFinished(promotedNode.data?.runStatus);
     }
     if (visiting.has(depId)) {
       return false;
@@ -448,10 +456,26 @@ export const promoteWaitingFrontierToInProgress = (
       data: {
         ...node.data,
         runStatus,
-        activeIconVariant: resolveActiveIconVariant(runStatus),
+        activeIconVariant: resolvePromotedNodeActiveIconVariant(node.id, resolveActiveIconVariant),
       },
     };
   });
+};
+
+export const resolvePromotedNodeActiveIconVariant = (
+  nodeId: string,
+  resolvePipelineActiveIconVariant: ActiveIconVariantResolver,
+): ActiveIconVariant | undefined => {
+  if (nodeId.includes('__step__')) {
+    return resolveBranchStepActiveIconVariant(RunStatus.InProgress);
+  }
+  if (nodeId.endsWith(`__${BRANCHING_STAGE_ID}`)) {
+    return resolveOptimizeTemplatesActiveIconVariant(RunStatus.InProgress);
+  }
+  if (nodeId.includes('__pattern__')) {
+    return resolvePatternTerminusActiveIconVariant(RunStatus.InProgress);
+  }
+  return resolvePipelineActiveIconVariant(RunStatus.InProgress);
 };
 
 /** True when every stage has a recognized inline status (no unresolved gaps). */

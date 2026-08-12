@@ -383,7 +383,7 @@ describe('promoteWaitingFrontierToInProgress', () => {
     },
   });
 
-  it('promotes the entire waiting chain after a completed predecessor while the run is active', () => {
+  it('promotes only the next waiting frontier after a completed predecessor while the run is active', () => {
     const nodes = [
       makeNode('comp__a', RunStatus.Succeeded),
       makeNode('comp__b', RunStatus.Pending, ['comp__a']),
@@ -395,8 +395,8 @@ describe('promoteWaitingFrontierToInProgress', () => {
     expect(promoted[0].data?.runStatus).toBe(RunStatus.Succeeded);
     expect(promoted[1].data?.runStatus).toBe(RunStatus.InProgress);
     expect(promoted[1].data?.activeIconVariant).toBe('sync');
-    expect(promoted[2].data?.runStatus).toBe(RunStatus.InProgress);
-    expect(promoted[2].data?.activeIconVariant).toBe('pulse');
+    expect(promoted[2].data?.runStatus).toBe(RunStatus.Pending);
+    expect(promoted[2].data?.activeIconVariant).toBeUndefined();
   });
 
   it('does not expand promotion into a later component', () => {
