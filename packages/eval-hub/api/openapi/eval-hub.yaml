@@ -683,6 +683,8 @@ components:
           format: date-time
         error_message:
           $ref: '#/components/schemas/JobMessage'
+        warning_message:
+          $ref: '#/components/schemas/JobMessage'
 
     BenchmarkResult:
       type: object

@@ -97,7 +97,7 @@ const EvaluationStatusLabel: React.FC<EvaluationStatusLabelProps> = ({
       color={config.color}
       status={config.status}
       icon={<Icon isInline>{config.icon}</Icon>}
-      data-testid={`status-label-${state}`}
+      data-testid={onClick ? 'evaluation-status-button' : `status-label-${state}`}
       {...(onClick ? { onClick } : {})}
     >
       {config.label}

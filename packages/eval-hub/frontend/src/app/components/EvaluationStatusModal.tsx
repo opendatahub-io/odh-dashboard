@@ -598,15 +598,14 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
   const downloadAbortRef = React.useRef<AbortController>();
 
   const jobId = job?.resource.id;
-  const jobState = job?.status.state;
 
   React.useEffect(() => {
-    if (jobId && jobState) {
+    if (jobId) {
       setActiveTab('progress');
       setSelectedBenchmark(ALL_BENCHMARKS);
       setIsFailureSummaryExpanded(false);
     }
-  }, [jobId, jobState]);
+  }, [jobId]);
 
   const failedBenchmarks = progressBenchmarks.filter((bm) => bm.status === 'failed');
   const failureSummary =

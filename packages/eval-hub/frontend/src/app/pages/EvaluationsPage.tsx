@@ -38,7 +38,8 @@ const EvaluationsPage: React.FC = () => {
 
   const [evaluations, loaded, error, refreshEvaluations] = useEvaluationJobs(
     { namespace },
-    !isHealthy || !isPollingEnabled,
+    !isHealthy,
+    isPollingEnabled,
   );
   const { collectionNameMap, loaded: collectionsLoaded } = useCollectionNameMap();
 

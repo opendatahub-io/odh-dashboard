@@ -29,6 +29,7 @@ import EvaluationStatusLabel from './EvaluationStatusLabel';
 
 type EvaluationsTableRowProps = {
   job: EvaluationJob;
+  polledJobData?: EvaluationJob;
   rowIndex: number;
   namespace: string;
   collectionNameMap: CollectionNameMap;
@@ -44,6 +45,7 @@ type ConfirmAction = 'stop' | 'delete' | null;
 
 const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
   job,
+  polledJobData,
   rowIndex,
   namespace,
   collectionNameMap,
@@ -61,7 +63,7 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
   const allBenchmarkNames = getAllBenchmarkNames(job);
   const isInProgress = IN_PROGRESS_STATES.has(job.status.state);
   const isComparable = isEvaluationJobComparable(job);
-  const displayState = isStopping ? 'stopping' : job.status.state;
+  const displayState = isStopping ? 'stopping' : (polledJobData?.status.state ?? job.status.state);
   const isPreStart = isPreStartFailure(job);
 
   React.useEffect(() => {

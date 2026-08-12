@@ -19,7 +19,6 @@ export const createRequestPool = (maxConcurrent = MAX_CONCURRENT_DETAIL_REQUESTS
     while (activeCount < maxConcurrent && queue.length > 0) {
       const entry = queue.shift()!;
       if (entry.signal?.aborted) {
-        dispatch();
         continue;
       }
       activeCount++;

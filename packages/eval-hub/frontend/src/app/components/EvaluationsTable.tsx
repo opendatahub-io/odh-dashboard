@@ -591,6 +591,7 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
               <EvaluationsTableRow
                 key={job.resource.id}
                 job={job}
+                polledJobData={polledJobDataMap.get(job.resource.id)}
                 rowIndex={rowIndex}
                 namespace={namespace ?? ''}
                 collectionNameMap={collectionNameMap}
@@ -603,20 +604,22 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
           </Tbody>
         </Table>
       )}
-      <React.Suspense
-        fallback={
-          <Bullseye>
-            <Spinner />
-          </Bullseye>
-        }
-      >
-        <EvaluationStatusModal
-          job={selectedJob}
-          polledJobData={selectedJob ? polledJobDataMap.get(selectedJob.resource.id) : undefined}
-          namespace={namespace ?? ''}
-          onClose={() => setSelectedJobId(undefined)}
-        />
-      </React.Suspense>
+      {selectedJob ? (
+        <React.Suspense
+          fallback={
+            <Bullseye>
+              <Spinner />
+            </Bullseye>
+          }
+        >
+          <EvaluationStatusModal
+            job={selectedJob}
+            polledJobData={polledJobDataMap.get(selectedJob.resource.id)}
+            namespace={namespace ?? ''}
+            onClose={() => setSelectedJobId(undefined)}
+          />
+        </React.Suspense>
+      ) : null}
     </>
   );
 };

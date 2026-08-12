@@ -101,7 +101,7 @@ class EvaluationsPage {
   }
 
   clickStatusBadge(rowIndex: number) {
-    this.findStatusCell(rowIndex).find('button').click();
+    this.findStatusCell(rowIndex).findByTestId('evaluation-status-button').click();
   }
 
   findStatusModal() {
