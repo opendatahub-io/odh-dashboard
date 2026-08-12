@@ -1,20 +1,11 @@
-import { FetchState, FetchStateCallbackPromise, useFetchState } from 'mod-arch-core';
-import React from 'react';
+import { FetchState } from 'mod-arch-core';
 import { McpCatalogSourceConfigList } from '~/app/mcpServerCatalogTypes';
+import { useSourceConfigs } from '~/app/shared/catalogSettings/hooks/useSourceConfigs';
 import { McpCatalogSettingsAPIState } from './useMcpCatalogSettingsAPIState';
 
 export const useMcpCatalogSourceConfigs = (
   apiState: McpCatalogSettingsAPIState,
-): FetchState<McpCatalogSourceConfigList> => {
-  const call = React.useCallback<FetchStateCallbackPromise<McpCatalogSourceConfigList>>(
-    (opts) => {
-      if (!apiState.apiAvailable) {
-        return Promise.reject(new Error('API not yet available'));
-      }
-
-      return apiState.api.getMcpCatalogSourceConfigs(opts);
-    },
-    [apiState],
-  );
-  return useFetchState(call, { catalogs: [] }, { initialPromisePurity: true });
-};
+): FetchState<McpCatalogSourceConfigList> =>
+  useSourceConfigs(apiState.apiAvailable, apiState.api.getMcpCatalogSourceConfigs, {
+    catalogs: [],
+  });

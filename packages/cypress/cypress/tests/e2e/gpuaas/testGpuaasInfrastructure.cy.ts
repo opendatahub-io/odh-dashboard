@@ -28,12 +28,17 @@ describe('GPUaaS Infrastructure Page', () => {
 
       cy.step('Verify Cluster section is present');
       infrastructurePage.findClusterSection().should('exist');
+      infrastructurePage.findClusterMetricsError().should('not.exist');
+      infrastructurePage.findTotalAcceleratorsCard().should('be.visible');
 
       cy.step('Verify Hardware usage section is present');
       infrastructurePage.findHardwareUsageSection().should('exist');
+      infrastructurePage.findHardwareUsageError().should('not.exist');
 
       cy.step('Verify Borrowing section is present');
       infrastructurePage.findBorrowingSection().should('exist');
+      infrastructurePage.findBorrowingError().should('not.exist');
+      infrastructurePage.shouldHaveBorrowingChartOrEmptyState();
 
       cy.step('Click Compute profile utilization tab and verify section is present');
       infrastructurePage.switchToClusterQueueUtilizationTab();

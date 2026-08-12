@@ -98,6 +98,7 @@ const (
 	McpServerFilterOptionListPath = McpServerCatalogPathPrefix + "/mcp_servers_filter_options"
 	McpServerPath                 = McpServerListPath + "/:" + McpServerId
 	McpServersToolListPath        = McpServerPath + "/tools"
+	McpServerLogoPath             = McpServerPath + "/logo"
 	MCPServerConverterPath        = McpServerPath + "/mcpserver"
 
 	// Swagger UI (interactive API docs)
@@ -456,6 +457,7 @@ func (app *App) Routes() http.Handler {
 		apiRouter.GET(McpServerFilterOptionListPath, app.AttachNamespace(app.RequireListServiceAccessInNamespace(app.AttachModelCatalogRESTClient(app.GetMcpServersFiltersHandler))))
 		apiRouter.GET(McpServerPath, app.AttachNamespace(app.RequireListServiceAccessInNamespace(app.AttachModelCatalogRESTClient(app.GetMcpServerHandler))))
 		apiRouter.GET(McpServersToolListPath, app.AttachNamespace(app.RequireListServiceAccessInNamespace(app.AttachModelCatalogRESTClient(app.GetMcpServersToolsHandler))))
+		apiRouter.GET(McpServerLogoPath, app.AttachNamespace(app.RequireListServiceAccessInNamespace(app.AttachModelCatalogRESTClient(app.GetMcpServerLogoHandler))))
 
 		// MCP catalog settings page
 		apiRouter.GET(McpCatalogSettingsSourceConfigListPath, app.AttachNamespace(app.RequireListServiceAccessInNamespace(app.GetAllMcpCatalogSourceConfigsHandler)))

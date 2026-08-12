@@ -34,7 +34,7 @@ Given a kebab-case module name (e.g., `my-module`):
 |---------|-------|-----------------|
 | Frontend dev server | 9100–9399 | `package.json` → `module-federation.local.port` |
 | BFF proxy port | 4000–4099 | `Makefile` → `PROXY_PORT` |
-| Production service | Module-specific (e.g., 8043, 8143) | `package.json` → `module-federation.service.port` |
+| Production service | 8043–8943 (increments of ~100) | `package.json` → `module-federation.service.port` + `modules.go` |
 
 **How to find the next available port:**
 
@@ -44,6 +44,9 @@ jq -r '."module-federation".local.port // empty' packages/*/package.json 2>/dev/
 
 # BFF ports — scan Makefiles
 grep -r 'PROXY_PORT=' packages/*/Makefile | grep -oP '\d{4,5}' | sort -n
+
+# Production service ports — scan operator module registry
+grep 'Port:' dashboard-operator/internal/controller/modules.go | grep -oP '\d{4}' | sort -n
 ```
 
 Validate after creation: `npm run validate:ports`
@@ -258,8 +261,9 @@ This checklist maps to skill phases. Items marked with a phase are handled autom
 | 15 | `npm run validate:ports` passes | Phase 5 |
 | 16 | `npm run type-check` passes | Phase 5 |
 | 17 | Container image builds successfully | Phase 5 |
-| 18 | Standalone manifests in `manifests/modules/<name>/` | Post-skill |
-| 19 | Module registered in operator module registry | Post-skill |
+| 18 | Standalone manifests in `manifests/modules/<name>/` | Phase 6 |
+| 19 | Module registered in operator module registry | Phase 7 |
+| 20 | RELATED_IMAGE entry in Helm chart `values.yaml` | Phase 7 |
 | — | Unit tests in `__tests__/` | Manual (post-skill) |
 | — | E2E tests in `packages/cypress/cypress/tests/e2e/<name>/` | Manual (post-skill) |
 | — | Contract tests in `contract-tests/` (if BFF) | Manual (post-skill) |
@@ -300,7 +304,9 @@ This checklist maps to skill phases. Items marked with a phase are handled autom
 
 ## Standalone Deployment Manifests
 
-After the module-onboarding skill completes, standalone deployment manifests must be created in `manifests/modules/<name>/`. Each module deploys as its own Kubernetes Deployment (not as a sidecar container in the main dashboard pod).
+> **Primary mode**: Standalone deployment is the primary and recommended deployment topology. Sidecar mode is deprecated.
+
+The module-onboarding skill creates standalone deployment manifests in `manifests/modules/<name>/` during Phase 6. Each module deploys as its own Kubernetes Deployment.
 
 ### Required files
 
@@ -309,11 +315,11 @@ After the module-onboarding skill completes, standalone deployment manifests mus
 | `deployment.yaml` | Independent Deployment with 2 replicas, TLS config, and a dedicated ServiceAccount |
 | `service.yaml` | Service exposing the module's BFF port (name pattern: `odh-dashboard-<slug>-ui`) |
 | `networkpolicy.yaml` | NetworkPolicy for inter-BFF egress (to the odh-dashboard pod for core-bff communication) |
-| `serviceaccount.yaml` | Dedicated ServiceAccount for SA isolation |
-| `clusterrole.yaml` | Module-specific ClusterRole |
-| `clusterrolebinding.yaml` | ClusterRoleBinding for the module's ServiceAccount |
+| `service-account.yaml` | Dedicated ServiceAccount for SA isolation |
+| `cluster-role.yaml` | Module-specific ClusterRole |
+| `cluster-role-binding.yaml` | ClusterRoleBinding for the module's ServiceAccount |
 | `kustomization.yaml` | Kustomize entry referencing all resources |
-| `params.yaml` | Kustomize parameter defaults (image, namespace) |
+| `params.env` | Kustomize parameter defaults (image reference) |
 
 ### Reference existing modules
 
@@ -324,14 +330,47 @@ Use the following existing module manifests as patterns:
 
 Copy the structure from the closest matching existing module and adapt the names, ports, and RBAC rules for the new module.
 
-### Operator module registry
+## Operator Registration Reference
 
-After creating the manifests, register the module in `dashboard-operator/internal/controller/modules.go` with:
-- Slug (kebab-case module name)
-- Container name
-- Port (matching `service.port` in `package.json`)
-- Image environment variable name
-- DSC component gate (which DataScienceCluster component enables this module)
-- Inter-module dependencies (other modules this one depends on)
+The module-onboarding skill registers the module in the dashboard-operator during Phase 7. This section documents the files and patterns involved.
 
-See `/konflux-onboarding` Phase 4 for the automated scaffolding workflow.
+### Files modified
+
+| File | Change |
+|------|--------|
+| `dashboard-operator/internal/controller/modules.go` | Add entry to `moduleRegistry` map |
+| `dashboard-operator/internal/controller/module_deploy.go` | Add entry to `moduleProxyPaths` map (and optionally `interBFFDependencies`) |
+| `dashboard-operator/internal/controller/support.go` | Add entry to `imagesMap` |
+| `dashboard-operator/internal/controller/modules_test.go` | Update module count and name list assertions |
+| `dashboard-operator/charts/dashboard/values.yaml` | Add `RELATED_IMAGE_ODH_MOD_ARCH_<UPPER_SNAKE>_IMAGE: ""` to `relatedImages:` section |
+
+### Naming conventions
+
+| Item | Pattern | Example |
+|------|---------|---------|
+| Registry key | `<camelCase>` | `myModule` |
+| Container name | `<kebab>-ui` | `my-module-ui` |
+| Image env var | `RELATED_IMAGE_ODH_MOD_ARCH_<UPPER_SNAKE>_IMAGE` | `RELATED_IMAGE_ODH_MOD_ARCH_MY_MODULE_IMAGE` |
+| Manifest slug | `<kebab>` | `my-module` |
+| Proxy path | `/<kebab>/api` → `/api` | `/my-module/api` → `/api` |
+| Image map key | `<kebab>-ui-image` | `my-module-ui-image` |
+
+### DSC component gates
+
+Each module can declare required DataScienceCluster components. If the component is not `Managed` in the Dashboard CR's `spec.components`, the module is disabled. Common gates:
+
+| DSC Component | Used by |
+|---------------|---------|
+| `modelregistry` | modelRegistry |
+| `aipipelines` | automl, autorag |
+| `trustyai` | evalHub |
+| `mlflowoperator` | mlflow |
+
+### External: opendatahub-operator
+
+After completing the dashboard-operator registration, a corresponding `RELATED_IMAGE` entry must be added to the opendatahub-operator (separate repo: `opendatahub-io/opendatahub-operator`):
+
+- File: `internal/controller/modules/dashboard/support.go`
+- Add `RELATED_IMAGE_ODH_MOD_ARCH_<UPPER_SNAKE>_IMAGE` to the `relatedImages()` function
+
+This requires coordination with the Platform team and cannot be automated from this repo.

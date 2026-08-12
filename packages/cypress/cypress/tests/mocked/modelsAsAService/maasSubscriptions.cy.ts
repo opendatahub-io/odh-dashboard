@@ -18,7 +18,7 @@ import {
   mockSubscriptions,
   mockSubscriptionInfo,
   mockSubscriptionInfoMissingModelSummaries,
-  mockSubscriptionFormData,
+  interceptMaasGovernanceData,
   mockCreateSubscriptionResponse,
   mockUpdateSubscriptionResponse,
 } from '../../../utils/maasUtils';
@@ -40,9 +40,7 @@ const setupCommonIntercepts = () => {
       conditions: [{ type: MODELS_AS_A_SERVICE_READY, status: 'True', reason: 'Ready' }],
     }),
   );
-  cy.interceptOdh('GET /maas/api/v1/subscription-policy-form-data', {
-    data: mockSubscriptionFormData(),
-  });
+  interceptMaasGovernanceData();
 };
 
 describe('Subscriptions Page', () => {
@@ -357,9 +355,6 @@ describe('View Subscription Page', () => {
 describe('Subscription Create Page', () => {
   beforeEach(() => {
     setupCommonIntercepts();
-    cy.interceptOdh('GET /maas/api/v1/subscription-policy-form-data', {
-      data: mockSubscriptionFormData(),
-    });
     cy.interceptOdh('POST /maas/api/v1/new-subscription', {
       data: mockCreateSubscriptionResponse(),
     }).as('createSubscription');
@@ -481,9 +476,6 @@ describe('Edit Subscription Page', () => {
 
   beforeEach(() => {
     setupCommonIntercepts();
-    cy.interceptOdh('GET /maas/api/v1/subscription-policy-form-data', {
-      data: mockSubscriptionFormData(),
-    });
     cy.interceptOdh(
       'GET /maas/api/v1/subscription-info/:name',
       { path: { name: subscriptionName } },

@@ -89,16 +89,18 @@ The controller is **not** part of the npm workspace or Turbo pipeline. It has it
 
 ## Distributions (`distributions/`)
 
-Independently-deployable dashboard variants. All three are **npm workspace members** and participate in the **Turbo pipeline** — Turbo-based root commands (`lint`, `type-check`, `test:contract`) run on distributions that define matching scripts. Some root convenience scripts (`build`, `test`, `dev`) are hardcoded to `frontend/` and `backend/` and do not cover distributions.
+Dashboard variants — three independently-deployable distributions plus a shared app-shell library (`base/`). All four are **npm workspace members** and participate in the **Turbo pipeline** — Turbo-based root commands (`lint`, `type-check`, `test:contract`) run on distributions that define matching scripts. Some root convenience scripts (`build`, `test`, `dev`) are hardcoded to `frontend/` and `backend/` and do not cover distributions.
 
 | Directory | Description | Has BFF? | Build System |
 |-----------|-------------|----------|--------------|
 | `base/` | Shared app shell library (PatternFly chrome, error boundary, extensibility hooks) — **not deployed on its own** | Stub only | Webpack |
 | `core-bff/` | Full Go BFF + React frontend for sidecar/xKC deployments | Yes (Go 1.25+) | Make + Webpack |
 | `rhaii/` | RHAII-specific distribution | No | Webpack |
+| `maas-customer-portal/` | Standalone MaaS Consumer Portal (bundles maas + gen-ai packages) | No | Webpack |
 
-- `base/` is a shared library/framework (not independently deployed) — it provides the app shell (masthead, sidebar, error boundary, theme context) that `core-bff/` and `rhaii/` extend
+- `base/` is a shared library/framework (not independently deployed) — it provides the app shell (masthead, sidebar, error boundary, theme context) that `core-bff/`, `rhaii/`, and `maas-customer-portal/` extend
 - `rhaii/` is frontend-only — React + Webpack + Module Federation host configuration
+- `maas-customer-portal/` is frontend-only — bundles maas and gen-ai packages directly, connects through their BFFs (no BFF of its own)
 - `core-bff/` has both a Go BFF (`bff/`) and React frontend (`frontend/`) with its own contract tests (`contract-tests/`)
 - Each distribution has its own `package.json`, `tsconfig.json`, and webpack config; dependencies on internal packages resolve through the workspace
 - `core-bff/` follows contract-first development (OpenAPI → BFF stub → Frontend → Production BFF)
