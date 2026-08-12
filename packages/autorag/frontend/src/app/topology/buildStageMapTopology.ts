@@ -14,7 +14,6 @@ import {
   isStageFinished,
   isStageTerminalFailure,
   isInlineStageFailure,
-  translateStageStatus,
   hasExplicitComponentFailureEvidence,
   resolveComponentStatus,
   resolveSequentialStageRunStatuses,
@@ -129,23 +128,13 @@ export const buildStageMapTopology = (
       (componentStatus === RunStatus.Failed || componentStatus === RunStatus.Cancelled) &&
       !isInlineStageFailure(patternSelectionStage);
     const branchPendingAfterExplicitComponentFailure =
+      preBranchStages.some((stage) => stage.id !== BRANCHING_STAGE_ID) &&
       componentStatus === RunStatus.Failed &&
       hasExplicitFailureInPipeline &&
       !isInlineStageFailure(patternSelectionStage);
-    const patternSelectionInlineStatus = translateStageStatus(patternSelectionStage?.status);
-    const patternSelectionEnteredBranchPhase =
-      isInlineStageFailure(patternSelectionStage) ||
-      patternSelectionInlineStatus === RunStatus.InProgress ||
-      patternSelectionInlineStatus === RunStatus.Succeeded;
     const branchPhaseStatus = ((): RunStatus | undefined => {
       if (pipelineState.blocked || preBranchInlineFailure) {
         return RunStatus.Pending;
-      }
-      if (isInlineStageFailure(patternSelectionStage)) {
-        return patternSelectionRunStatus;
-      }
-      if (isStageTerminalFailure(patternSelectionRunStatus) && patternSelectionEnteredBranchPhase) {
-        return patternSelectionRunStatus;
       }
       if (branchPendingAfterExplicitComponentFailure) {
         return RunStatus.Pending;

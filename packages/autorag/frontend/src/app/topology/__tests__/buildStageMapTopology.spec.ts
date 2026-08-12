@@ -860,6 +860,38 @@ describe('buildStageMapTopology', () => {
       expect(byId.rag_optimization__build_leaderboard.data?.runStatus).toBe(RunStatus.Pending);
     });
 
+    it('should fail the branch section in the production component shape when optimize_templates fails inline', () => {
+      const stageMap = makeStageMap([
+        makeComponent(
+          'rag_templates_optimization',
+          [
+            makeStage('optimize_templates', {
+              status: 'failed',
+              steps: ['chunking', 'embedding', 'retrieval', 'generation', 'evaluation'],
+            }),
+            makeStage('build_leaderboard'),
+          ],
+          { started_at: '2025-01-01T00:00:00Z' },
+        ),
+      ]);
+
+      const nodes = buildStageMapTopology(stageMap, undefined, 'FAILED');
+      const byId = Object.fromEntries(nodes.map((n) => [n.id, n]));
+
+      expect(byId.rag_templates_optimization__optimize_templates.data?.runStatus).toBe(
+        RunStatus.Failed,
+      );
+      expect(byId['rag_templates_optimization__step__chunking__branch-0'].data?.runStatus).toBe(
+        RunStatus.Failed,
+      );
+      expect(byId['rag_templates_optimization__pattern__branch-0'].data?.runStatus).toBe(
+        RunStatus.Failed,
+      );
+      expect(byId.rag_templates_optimization__build_leaderboard.data?.runStatus).toBe(
+        RunStatus.Pending,
+      );
+    });
+
     it('should fail the branch section when pattern optimization was running and the run fails', () => {
       const stageMap = makeStageMap([
         makeComponent(
