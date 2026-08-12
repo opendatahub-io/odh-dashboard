@@ -1,27 +1,25 @@
 import React from 'react';
-import { useResolvedExtensions } from '@odh-dashboard/plugin-core';
+import { useExtensions } from '@odh-dashboard/plugin-core';
 import { isWizardTrackingPropertiesExtension } from '../../../extension-points/deployment-wizard';
 import type { WizardFormData } from '../types/form-data';
 
 /**
- * Hook that collects per-platform tracking properties from spoke extensions.
- * Spokes register `model-serving.deployment/tracking-properties` extensions,
- * and this hook resolves and invokes the one matching the active platform.
+ * Hook that provides a lazy async getter for per-platform tracking properties.
+ * Uses useExtensions (without Resolved) so the CodeRef is only resolved at submit
+ * time — avoiding unnecessary network load during page render.
  */
 export const useWizardTrackingProperties = (
   wizardState: WizardFormData['state'],
   platformId?: string,
 ): {
-  platformProperties: Record<string, string | number | boolean | undefined>;
-  loaded: boolean;
+  getTrackingProperties: () => Promise<Record<string, string | number | boolean | undefined>>;
 } => {
-  const [extensions, loaded] = useResolvedExtensions(isWizardTrackingPropertiesExtension);
+  const extensions = useExtensions(isWizardTrackingPropertiesExtension);
 
-  const platformProperties = React.useMemo((): Record<
-    string,
-    string | number | boolean | undefined
+  const getTrackingProperties = React.useCallback(async (): Promise<
+    Record<string, string | number | boolean | undefined>
   > => {
-    if (!platformId || !loaded) {
+    if (!platformId) {
       return {};
     }
 
@@ -31,8 +29,9 @@ export const useWizardTrackingProperties = (
       return {};
     }
 
-    return matchingExtension.properties.getProperties(wizardState);
-  }, [extensions, loaded, platformId, wizardState]);
+    const resolvedFn = await matchingExtension.properties.getProperties();
+    return resolvedFn(wizardState);
+  }, [extensions, platformId, wizardState]);
 
-  return { platformProperties, loaded };
+  return { getTrackingProperties };
 };

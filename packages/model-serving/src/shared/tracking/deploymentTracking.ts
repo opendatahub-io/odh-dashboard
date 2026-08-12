@@ -12,9 +12,12 @@ export type DeploymentTrackingBaseProperties = FormTrackingEventProperties & {
   servingRuntimeName?: string;
   servingRuntimeFormat?: string;
   numReplicas?: number;
+  modelLocationType?: string;
+  connectionType?: string;
 };
 
-export type DeploymentTrackingProperties = DeploymentTrackingBaseProperties;
+export type DeploymentTrackingProperties = DeploymentTrackingBaseProperties &
+  Record<string, string | number | boolean | undefined>;
 
 export const fireModelDeployed = (
   properties: DeploymentTrackingProperties,

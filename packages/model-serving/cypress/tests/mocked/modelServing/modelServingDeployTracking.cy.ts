@@ -253,7 +253,7 @@ describe('Model Deployment Tracking Events', () => {
     modelServingWizard.selectDeploymentMethodByKey('legacy');
     modelServingWizard
       .findServingRuntimeTemplateSearchSelector()
-      .should('not.have.class', 'pf-m-disabled');
+      .should('contain.text', 'Select a serving runtime template');
     modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
     modelServingWizard.selectGlobalScopedTemplateOption('vLLM NVIDIA');
     modelServingWizard.findNextButton().click();
@@ -360,7 +360,7 @@ describe('Model Deployment Tracking Events', () => {
     modelServingWizard.selectDeploymentMethodByKey('legacy');
     modelServingWizard
       .findServingRuntimeTemplateSearchSelector()
-      .should('not.have.class', 'pf-m-disabled');
+      .should('contain.text', 'Select a serving runtime template');
     modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
     modelServingWizard.selectGlobalScopedTemplateOption('vLLM NVIDIA');
     modelServingWizard.findNextButton().click();

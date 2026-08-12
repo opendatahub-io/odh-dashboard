@@ -1,11 +1,11 @@
 import { testHook } from '@odh-dashboard/jest-config/hooks';
-import { useResolvedExtensions } from '@odh-dashboard/plugin-core';
+import { useExtensions } from '@odh-dashboard/plugin-core';
 import { useWizardTrackingProperties } from '../useWizardTrackingProperties';
 import type { WizardFormData } from '../../types/form-data';
 
 jest.mock('@odh-dashboard/plugin-core');
 
-const mockUseResolvedExtensions = jest.mocked(useResolvedExtensions);
+const mockUseExtensions = jest.mocked(useExtensions);
 
 const mockWizardState = {
   project: { projectName: 'test-project' },
@@ -20,94 +20,77 @@ describe('useWizardTrackingProperties', () => {
     jest.clearAllMocks();
   });
 
-  it('should return empty properties when no platformId is provided', () => {
-    mockUseResolvedExtensions.mockReturnValue([[], true, []]);
+  it('should return empty properties when no platformId is provided', async () => {
+    mockUseExtensions.mockReturnValue([]);
 
     const renderResult = testHook(useWizardTrackingProperties)(mockWizardState, undefined);
-    expect(renderResult.result.current.platformProperties).toEqual({});
-    expect(renderResult.result.current.loaded).toBe(true);
+    const result = await renderResult.result.current.getTrackingProperties();
+    expect(result).toEqual({});
   });
 
-  it('should return empty properties when extensions are not loaded', () => {
-    mockUseResolvedExtensions.mockReturnValue([[], false, []]);
-
-    const renderResult = testHook(useWizardTrackingProperties)(mockWizardState, 'kserve');
-    expect(renderResult.result.current.platformProperties).toEqual({});
-    expect(renderResult.result.current.loaded).toBe(false);
-  });
-
-  it('should return empty properties when no extension matches the platform', () => {
-    mockUseResolvedExtensions.mockReturnValue([
-      [
-        {
-          type: 'model-serving.deployment/tracking-properties',
-          properties: {
-            platform: 'nvidia-nim',
-            getProperties: () => ({ nimModelId: 'test-model' }),
-          },
+  it('should return empty properties when no extension matches the platform', async () => {
+    mockUseExtensions.mockReturnValue([
+      {
+        type: 'model-serving.deployment/tracking-properties',
+        properties: {
+          platform: 'nvidia-nim',
+          getProperties: () => Promise.resolve(() => ({ nimModelId: 'test-model' })),
         },
-      ] as never,
-      true,
-      [],
-    ]);
+      },
+    ] as never);
 
     const renderResult = testHook(useWizardTrackingProperties)(mockWizardState, 'kserve');
-    expect(renderResult.result.current.platformProperties).toEqual({});
+    const result = await renderResult.result.current.getTrackingProperties();
+    expect(result).toEqual({});
   });
 
-  it('should return platform properties when extension matches', () => {
+  it('should resolve CodeRef and return platform properties when extension matches', async () => {
     const mockGetProperties = jest.fn().mockReturnValue({
       nimModelId: 'meta/llama3-8b',
       nimImageVersion: '1.0.0',
     });
 
-    mockUseResolvedExtensions.mockReturnValue([
-      [
-        {
-          type: 'model-serving.deployment/tracking-properties',
-          properties: {
-            platform: 'nvidia-nim',
-            getProperties: mockGetProperties,
-          },
+    mockUseExtensions.mockReturnValue([
+      {
+        type: 'model-serving.deployment/tracking-properties',
+        properties: {
+          platform: 'nvidia-nim',
+          getProperties: () => Promise.resolve(mockGetProperties),
         },
-      ] as never,
-      true,
-      [],
-    ]);
+      },
+    ] as never);
 
     const renderResult = testHook(useWizardTrackingProperties)(mockWizardState, 'nvidia-nim');
+    const result = await renderResult.result.current.getTrackingProperties();
 
-    expect(renderResult.result.current.platformProperties).toEqual({
+    expect(result).toEqual({
       nimModelId: 'meta/llama3-8b',
       nimImageVersion: '1.0.0',
     });
     expect(mockGetProperties).toHaveBeenCalledWith(mockWizardState);
   });
 
-  it('should only use the first matching extension for the platform', () => {
-    mockUseResolvedExtensions.mockReturnValue([
-      [
-        {
-          type: 'model-serving.deployment/tracking-properties',
-          properties: {
-            platform: 'kserve',
-            getProperties: () => ({ kserveProperty: 'first' }),
-          },
+  it('should only use the first matching extension for the platform', async () => {
+    mockUseExtensions.mockReturnValue([
+      {
+        type: 'model-serving.deployment/tracking-properties',
+        properties: {
+          platform: 'kserve',
+          getProperties: () => Promise.resolve(() => ({ kserveProperty: 'first' })),
         },
-        {
-          type: 'model-serving.deployment/tracking-properties',
-          properties: {
-            platform: 'kserve',
-            getProperties: () => ({ kserveProperty: 'second' }),
-          },
+      },
+      {
+        type: 'model-serving.deployment/tracking-properties',
+        properties: {
+          platform: 'kserve',
+          getProperties: () => Promise.resolve(() => ({ kserveProperty: 'second' })),
         },
-      ] as never,
-      true,
-      [],
-    ]);
+      },
+    ] as never);
 
     const renderResult = testHook(useWizardTrackingProperties)(mockWizardState, 'kserve');
-    expect(renderResult.result.current.platformProperties).toEqual({
+    const result = await renderResult.result.current.getTrackingProperties();
+    expect(result).toEqual({
       kserveProperty: 'first',
     });
   });

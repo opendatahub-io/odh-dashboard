@@ -19,7 +19,6 @@ import {
   type DeploymentTrackingProperties,
 } from '../../../shared/tracking/deploymentTracking';
 import { useWizardTrackingProperties } from '../../../shared/tracking/useWizardTrackingProperties';
-import { ServingRuntimePlatform } from '../../../shared/types';
 
 /**
  * Get the onSubmit function to create / update the deployment. 
@@ -52,7 +51,7 @@ export const useModelDeploymentSubmit = (
   );
   const { runPreDeploy, preDeployExtensionsLoaded } = useWizardFieldPreDeploy(formState);
   const { runPostDeploy, postDeployExtensionsLoaded } = useWizardFieldPostDeploy(formState);
-  const { platformProperties } = useWizardTrackingProperties(
+  const { getTrackingProperties } = useWizardTrackingProperties(
     formState,
     deployMethod?.properties.platform,
   );
@@ -68,14 +67,15 @@ export const useModelDeploymentSubmit = (
   > => {
     const serverTemplateName = formState.modelServer?.data?.selection?.name;
     return {
-      type: formState.modelType.data?.type ?? ServingRuntimePlatform.SINGLE,
+      type: formState.modelType.data?.type,
       runtime: serverTemplateName,
       servingRuntimeName: formState.modelServer?.data?.selection?.label,
       servingRuntimeFormat: formState.modelFormatState.modelFormat?.name,
       numReplicas: formState.numReplicas.data ?? undefined,
-      ...platformProperties,
+      modelLocationType: formState.modelLocationData.data?.type,
+      connectionType: formState.modelLocationData.data?.connectionTypeObject?.metadata.name,
     };
-  }, [formState, platformProperties]);
+  }, [formState]);
 
   const onSave = React.useCallback(
     async (overwrite?: boolean) => {
@@ -146,6 +146,7 @@ export const useModelDeploymentSubmit = (
             outcome: TrackingOutcome.submit,
             success: true,
             ...getBaseTrackingProperties(),
+            ...(await getTrackingProperties()),
           },
           isEdit,
         );
@@ -161,6 +162,7 @@ export const useModelDeploymentSubmit = (
             success: false,
             error: errorMessage,
             ...getBaseTrackingProperties(),
+            ...(await getTrackingProperties()),
           },
           isEdit,
         );
@@ -190,6 +192,7 @@ export const useModelDeploymentSubmit = (
       yamlError,
       isEdit,
       getBaseTrackingProperties,
+      getTrackingProperties,
     ],
   );
 

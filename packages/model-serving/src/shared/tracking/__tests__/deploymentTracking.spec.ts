@@ -125,4 +125,28 @@ describe('fireModelDeployed', () => {
       properties,
     );
   });
+
+  it('should include model location properties', () => {
+    const properties: DeploymentTrackingProperties = {
+      outcome: TrackingOutcome.submit,
+      success: true,
+      type: 'single',
+      runtime: 'ovms-template',
+      servingRuntimeName: 'OpenVINO Model Server',
+      servingRuntimeFormat: 'onnx',
+      numReplicas: 1,
+      modelLocationType: 'existing',
+      connectionType: 's3',
+    };
+
+    fireModelDeployed(properties, false);
+
+    expect(mockFireFormTrackingEvent).toHaveBeenCalledWith(
+      DeploymentTrackingEvent.MODEL_DEPLOYED,
+      expect.objectContaining({
+        modelLocationType: 'existing',
+        connectionType: 's3',
+      }),
+    );
+  });
 });
