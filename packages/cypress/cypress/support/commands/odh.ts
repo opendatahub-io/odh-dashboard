@@ -394,6 +394,10 @@ declare global {
           response: OdhResponse<{ code: number; response: PrometheusQueryResponse }>,
         ) => Cypress.Chainable<null>) &
         ((
+          type: 'POST /api/prometheus/cluster/query',
+          response: OdhResponse<{ code: number; response: PrometheusQueryResponse }>,
+        ) => Cypress.Chainable<null>) &
+        ((
           type: 'POST /api/prometheus/serving',
           response: OdhResponse<{ code: number; response: PrometheusQueryRangeResponse }>,
         ) => Cypress.Chainable<null>) &
@@ -403,6 +407,10 @@ declare global {
         ) => Cypress.Chainable<null>) &
         ((
           type: 'POST /api/prometheus/queryRange',
+          response: OdhResponse<{ code: number; response: PrometheusQueryRangeResponse }>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'POST /api/prometheus/cluster/queryRange',
           response: OdhResponse<{ code: number; response: PrometheusQueryRangeResponse }>,
         ) => Cypress.Chainable<null>) &
         ((
