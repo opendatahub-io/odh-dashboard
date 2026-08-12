@@ -5,3 +5,4 @@ resources:
   - perses-dashboard-cluster.yaml
   - perses-dashboard-model.yaml
   - perses-dashboard-model-admin.yaml
+  - perses-dashboard-auth.yaml

@@ -1,0 +1,329 @@
+apiVersion: perses.dev/v1alpha2
+kind: PersesDashboard
+metadata:
+  name: dashboard-2-auth
+spec:
+  config:
+    display:
+      name: Auth decisions
+    duration: 1h
+    variables:
+      - kind: ListVariable
+        spec:
+          name: authconfig
+          display:
+            name: Auth policy
+            description: Filter by AuthConfig policy
+          allowMultiple: true
+          allowAllValue: true
+          customAllValue: ".*"
+          defaultValue: "$__all"
+          plugin:
+            kind: PrometheusLabelValuesVariable
+            spec:
+              datasource:
+                kind: PrometheusDatasource
+                name: cluster-prometheus-tenancy-datasource
+              labelName: authconfig
+              matchers:
+                - maas:auth_decisions:rate5m
+    panels:
+      # Overview Stats
+      totalDecisionRate:
+        kind: Panel
+        spec:
+          display:
+            name: Auth decisions/sec
+          plugin:
+            kind: StatChart
+            spec:
+              calculation: last-number
+              format:
+                unit: decimal
+                decimalPlaces: 2
+          queries:
+            - kind: TimeSeriesQuery
+              spec:
+                plugin:
+                  kind: PrometheusTimeSeriesQuery
+                  spec:
+                    datasource:
+                      kind: PrometheusDatasource
+                      name: cluster-prometheus-tenancy-datasource
+                    query: sum(maas:auth_decisions:rate5m{authconfig=~"$authconfig"}) or vector(0)
+                    seriesNameFormat: Decisions/sec
+      overallDenyRate:
+        kind: Panel
+        spec:
+          display:
+            name: Deny rate
+          plugin:
+            kind: StatChart
+            spec:
+              calculation: last-number
+              format:
+                unit: percent-decimal
+                decimalPlaces: 1
+          queries:
+            - kind: TimeSeriesQuery
+              spec:
+                plugin:
+                  kind: PrometheusTimeSeriesQuery
+                  spec:
+                    datasource:
+                      kind: PrometheusDatasource
+                      name: cluster-prometheus-tenancy-datasource
+                    # Aggregate deny rate across selected policies
+                    query: (sum(maas:auth_decisions:rate5m{authconfig=~"$authconfig",status!="OK"}) / sum(maas:auth_decisions:rate5m{authconfig=~"$authconfig"})) or vector(0)
+                    seriesNameFormat: Deny rate
+      p95Latency:
+        kind: Panel
+        spec:
+          display:
+            name: P95 auth latency
+          plugin:
+            kind: StatChart
+            spec:
+              calculation: last-number
+              format:
+                unit: seconds
+          queries:
+            - kind: TimeSeriesQuery
+              spec:
+                plugin:
+                  kind: PrometheusTimeSeriesQuery
+                  spec:
+                    datasource:
+                      kind: PrometheusDatasource
+                      name: cluster-prometheus-tenancy-datasource
+                    # Average P95 latency across selected policies, filter NaN with > -Inf
+                    query: avg(maas:auth_latency_p95:5m{authconfig=~"$authconfig"} > -Inf) or vector(0)
+                    seriesNameFormat: P95 latency
+      activePolicies:
+        kind: Panel
+        spec:
+          display:
+            name: Active policies
+          plugin:
+            kind: StatChart
+            spec:
+              calculation: last-number
+              format:
+                unit: decimal
+                decimalPlaces: 0
+          queries:
+            - kind: TimeSeriesQuery
+              spec:
+                plugin:
+                  kind: PrometheusTimeSeriesQuery
+                  spec:
+                    datasource:
+                      kind: PrometheusDatasource
+                      name: cluster-prometheus-tenancy-datasource
+                    query: count(group by (authconfig) (maas:auth_decisions:rate5m{authconfig=~"$authconfig"})) or vector(0)
+                    seriesNameFormat: Policies
+      # Time Series Charts
+      decisionsByStatus:
+        kind: Panel
+        spec:
+          display:
+            name: Auth decisions by status
+          plugin:
+            kind: TimeSeriesChart
+            spec:
+              legend:
+                mode: list
+                position: bottom
+                values: []
+              visual:
+                areaOpacity: 0.6
+                connectNulls: false
+                display: line
+                lineWidth: 1.5
+                stack: all
+              yAxis:
+                format:
+                  unit: decimal
+                min: 0
+          queries:
+            - kind: TimeSeriesQuery
+              spec:
+                plugin:
+                  kind: PrometheusTimeSeriesQuery
+                  spec:
+                    datasource:
+                      kind: PrometheusDatasource
+                      name: cluster-prometheus-tenancy-datasource
+                    query: sum by (status) (maas:auth_decisions:rate5m{authconfig=~"$authconfig"})
+                    seriesNameFormat: "{{status}}"
+      decisionsByPolicy:
+        kind: Panel
+        spec:
+          display:
+            name: Auth decisions by policy
+          plugin:
+            kind: TimeSeriesChart
+            spec:
+              legend:
+                mode: list
+                position: bottom
+                values: []
+              visual:
+                areaOpacity: 0
+                connectNulls: false
+                display: line
+                lineWidth: 1.5
+              yAxis:
+                format:
+                  unit: decimal
+                min: 0
+          queries:
+            - kind: TimeSeriesQuery
+              spec:
+                plugin:
+                  kind: PrometheusTimeSeriesQuery
+                  spec:
+                    datasource:
+                      kind: PrometheusDatasource
+                      name: cluster-prometheus-tenancy-datasource
+                    query: sum by (authconfig) (maas:auth_decisions:rate5m{authconfig=~"$authconfig"})
+                    seriesNameFormat: "{{authconfig}}"
+      denyRatioByPolicy:
+        kind: Panel
+        spec:
+          display:
+            name: Deny ratio by policy
+          plugin:
+            kind: TimeSeriesChart
+            spec:
+              legend:
+                mode: list
+                position: bottom
+                values: []
+              visual:
+                areaOpacity: 0
+                connectNulls: false
+                display: line
+                lineWidth: 1.5
+              yAxis:
+                format:
+                  unit: percent-decimal
+                min: 0
+                max: 1
+          queries:
+            - kind: TimeSeriesQuery
+              spec:
+                plugin:
+                  kind: PrometheusTimeSeriesQuery
+                  spec:
+                    datasource:
+                      kind: PrometheusDatasource
+                      name: cluster-prometheus-tenancy-datasource
+                    query: maas:auth_deny_ratio:rate5m{authconfig=~"$authconfig"}
+                    seriesNameFormat: "{{authconfig}}"
+      latencyByPolicy:
+        kind: Panel
+        spec:
+          display:
+            name: P95 auth latency by policy
+          plugin:
+            kind: TimeSeriesChart
+            spec:
+              legend:
+                mode: list
+                position: bottom
+                values: []
+              visual:
+                areaOpacity: 0
+                connectNulls: false
+                display: line
+                lineWidth: 1.5
+              yAxis:
+                format:
+                  unit: seconds
+                min: 0
+          queries:
+            - kind: TimeSeriesQuery
+              spec:
+                plugin:
+                  kind: PrometheusTimeSeriesQuery
+                  spec:
+                    datasource:
+                      kind: PrometheusDatasource
+                      name: cluster-prometheus-tenancy-datasource
+                    # Filter NaN from histogram_quantile with > -Inf
+                    query: maas:auth_latency_p95:5m{authconfig=~"$authconfig"} > -Inf
+                    seriesNameFormat: "{{authconfig}}"
+    layouts:
+      # Overview Stats Row
+      - kind: Grid
+        spec:
+          display:
+            title: Overview
+            collapse:
+              open: true
+          items:
+            - x: 0
+              'y': 0
+              width: 6
+              height: 4
+              content:
+                '$ref': '#/spec/panels/totalDecisionRate'
+            - x: 6
+              'y': 0
+              width: 6
+              height: 4
+              content:
+                '$ref': '#/spec/panels/overallDenyRate'
+            - x: 12
+              'y': 0
+              width: 6
+              height: 4
+              content:
+                '$ref': '#/spec/panels/p95Latency'
+            - x: 18
+              'y': 0
+              width: 6
+              height: 4
+              content:
+                '$ref': '#/spec/panels/activePolicies'
+      # Auth Decision Trends
+      - kind: Grid
+        spec:
+          display:
+            title: Auth decision trends
+            collapse:
+              open: true
+          items:
+            - x: 0
+              'y': 0
+              width: 12
+              height: 8
+              content:
+                '$ref': '#/spec/panels/decisionsByStatus'
+            - x: 12
+              'y': 0
+              width: 12
+              height: 8
+              content:
+                '$ref': '#/spec/panels/decisionsByPolicy'
+      # Per-Policy Details
+      - kind: Grid
+        spec:
+          display:
+            title: Per-policy details
+            collapse:
+              open: true
+          items:
+            - x: 0
+              'y': 0
+              width: 12
+              height: 8
+              content:
+                '$ref': '#/spec/panels/denyRatioByPolicy'
+            - x: 12
+              'y': 0
+              width: 12
+              height: 8
+              content:
+                '$ref': '#/spec/panels/latencyByPolicy'
