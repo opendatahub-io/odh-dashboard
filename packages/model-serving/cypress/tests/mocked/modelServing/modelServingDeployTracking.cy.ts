@@ -251,6 +251,9 @@ describe('Model Deployment Tracking Events', () => {
     // Step 2: Model deployment
     modelServingWizard.findModelDeploymentNameInput().type('test-model');
     modelServingWizard.selectDeploymentMethodByKey('legacy');
+    modelServingWizard
+      .findServingRuntimeTemplateSearchSelector()
+      .should('not.have.class', 'pf-m-disabled');
     modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
     modelServingWizard.selectGlobalScopedTemplateOption('vLLM NVIDIA');
     modelServingWizard.findNextButton().click();
@@ -259,9 +262,10 @@ describe('Model Deployment Tracking Events', () => {
     modelServingWizard.findExternalRouteCheckbox().click();
     modelServingWizard.findNextButton().click();
 
-    // Step 4: Review — set up console spy and submit
+    // Step 4: Review — stub analytics and submit
     cy.window().then((win) => {
-      cy.spy(win.console, 'log').as('consoleLog');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (win as any).analytics = { track: cy.stub().as('analyticsTrack') };
     });
 
     modelServingWizard.findSubmitButton().click();
@@ -270,11 +274,7 @@ describe('Model Deployment Tracking Events', () => {
     cy.wait('@createInferenceService');
     cy.wait('@createInferenceService');
 
-    // Verify the Model Deployed event was logged (DEV_MODE console.log pattern)
-    cy.get('@consoleLog').should(
-      'be.calledWithMatch',
-      Cypress.sinon.match((msg: string) => msg.includes('Model Deployed')),
-    );
+    cy.get('@analyticsTrack').should('be.calledWithMatch', 'Model Deployed');
   });
 
   it('should fire Model Deployed cancel event when user exits via ExitDeploymentModal', () => {
@@ -294,21 +294,20 @@ describe('Model Deployment Tracking Events', () => {
     // Start filling out the form so it's dirty
     modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).click();
 
-    // Set up console spy
+    // Stub analytics before triggering the cancel event
     cy.window().then((win) => {
-      cy.spy(win.console, 'log').as('consoleLog');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (win as any).analytics = { track: cy.stub().as('analyticsTrack') };
     });
 
     // Cancel from wizard — click Cancel button then confirm discard
     cy.findByRole('button', { name: 'Cancel' }).click();
     modelServingWizard.findDiscardButton().click();
 
-    // Verify the cancel event was fired
-    cy.get('@consoleLog').should(
+    cy.get('@analyticsTrack').should(
       'be.calledWithMatch',
-      Cypress.sinon.match(
-        (msg: string) => msg.includes('Model Deployed') && msg.includes('cancel'),
-      ),
+      'Model Deployed',
+      Cypress.sinon.match.has('outcome', 'cancel'),
     );
   });
 
@@ -353,6 +352,9 @@ describe('Model Deployment Tracking Events', () => {
     // Step 2: Model deployment
     modelServingWizard.findModelDeploymentNameInput().type('test-model');
     modelServingWizard.selectDeploymentMethodByKey('legacy');
+    modelServingWizard
+      .findServingRuntimeTemplateSearchSelector()
+      .should('not.have.class', 'pf-m-disabled');
     modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
     modelServingWizard.selectGlobalScopedTemplateOption('vLLM NVIDIA');
     modelServingWizard.findNextButton().click();
@@ -361,21 +363,20 @@ describe('Model Deployment Tracking Events', () => {
     modelServingWizard.findExternalRouteCheckbox().click();
     modelServingWizard.findNextButton().click();
 
-    // Step 4: Review — spy and submit
+    // Step 4: Review — stub analytics and submit
     cy.window().then((win) => {
-      cy.spy(win.console, 'log').as('consoleLog');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (win as any).analytics = { track: cy.stub().as('analyticsTrack') };
     });
 
     modelServingWizard.findSubmitButton().click();
 
     cy.wait('@createInferenceServiceFail');
 
-    // Verify the failure event was logged
-    cy.get('@consoleLog').should(
+    cy.get('@analyticsTrack').should(
       'be.calledWithMatch',
-      Cypress.sinon.match(
-        (msg: string) => msg.includes('Model Deployed') && msg.includes('"success":false'),
-      ),
+      'Model Deployed',
+      Cypress.sinon.match.has('success', false),
     );
   });
 });
