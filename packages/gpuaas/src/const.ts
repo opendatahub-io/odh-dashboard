@@ -1,6 +1,8 @@
 export const INFRASTRUCTURE_REFRESH_INTERVAL = 30_000;
 
 export const TREND_REFRESH_INTERVAL = 5 * 60 * 1000;
+export const PROMETHEUS_CLUSTER_QUERY_PATH = '/api/prometheus/cluster/query';
+export const PROMETHEUS_CLUSTER_QUERY_RANGE_PATH = '/api/prometheus/cluster/queryRange';
 
 export const INFRASTRUCTURE_SECTIONS = [
   {

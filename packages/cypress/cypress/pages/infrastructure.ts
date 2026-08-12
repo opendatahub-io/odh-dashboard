@@ -28,8 +28,16 @@ class InfrastructurePage {
     return cy.findByTestId('infrastructure-cluster-section');
   }
 
+  findClusterMetricsError() {
+    return cy.findByTestId('cluster-metrics-error');
+  }
+
   findHardwareUsageSection() {
     return cy.findByTestId('infrastructure-hardware-usage-section');
+  }
+
+  findHardwareUsageError() {
+    return cy.findByTestId('hardware-usage-error');
   }
 
   findClusterQueueUtilizationSection() {
@@ -66,6 +74,21 @@ class InfrastructurePage {
 
   findBorrowingEmptyState() {
     return cy.findByTestId('borrowing-empty-state');
+  }
+
+  findBorrowingError() {
+    return cy.findByTestId('borrowing-error');
+  }
+
+  findBorrowingChartOrEmptyState() {
+    return cy.get(
+      '[data-testid="borrowing-chart-has-data"], [data-testid="borrowing-empty-state"]',
+    );
+  }
+
+  shouldHaveBorrowingChartOrEmptyState() {
+    this.findBorrowingChartOrEmptyState().should('exist');
+    return this;
   }
 
   findCohortSelect() {
