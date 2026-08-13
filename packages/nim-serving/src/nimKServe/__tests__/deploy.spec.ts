@@ -90,6 +90,18 @@ describe('deployNIMKServeDeployment', () => {
     ).toContainEqual({ name: 'shm', mountPath: '/dev/shm' });
   });
 
+  it('should drop the container resources declared by the template', async () => {
+    await deployNIMKServeDeployment(
+      WIZARD_DATA,
+      makeExternalData(mockNimServingRuntimeTemplate({ namespace: 'test-project' })),
+      'test-project',
+    );
+
+    getDeployedRuntime()?.spec.containers.forEach((container) => {
+      expect(container.resources).toBeUndefined();
+    });
+  });
+
   it('should throw when the template holds no serving runtime', async () => {
     await expect(
       deployNIMKServeDeployment(WIZARD_DATA, makeExternalData(undefined), 'test-project'),

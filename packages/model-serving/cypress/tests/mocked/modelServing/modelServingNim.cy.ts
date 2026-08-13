@@ -176,6 +176,10 @@ describe('NIM Models Deployments', () => {
         image: 'nvcr.io/nim/snowflake/arctic-embed-l:1.0.1',
         volumeMounts: [{ name: 'shm', mountPath: '/dev/shm' }],
       });
+      // resources are sized by the InferenceService hardware profile, not the runtime container
+      interception.request.body.spec.containers.forEach((container: { resources?: unknown }) => {
+        expect(container).to.not.have.property('resources');
+      });
     });
 
     cy.wait('@createServingRuntime').then((interception) => {

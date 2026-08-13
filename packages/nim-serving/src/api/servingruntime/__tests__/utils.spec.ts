@@ -1,5 +1,5 @@
 import type { ServingRuntimeKind } from '@odh-dashboard/model-serving/shared';
-import { applyNIMServingRuntimeShmMounts } from '../utils';
+import { applyNIMServingRuntimeShmMounts, removeNIMServingRuntimeResources } from '../utils';
 
 const makeServingRuntime = (
   containers: ServingRuntimeKind['spec']['containers'],
@@ -79,5 +79,55 @@ describe('applyNIMServingRuntimeShmMounts', () => {
 
     expect(servingRuntime.spec.containers[0].volumeMounts).toBeUndefined();
     expect(servingRuntime.spec.volumes).toBeUndefined();
+  });
+});
+
+const CONTAINER_RESOURCES = {
+  limits: { cpu: '0', memory: '0Gi' },
+  requests: { cpu: '0', memory: '0Gi' },
+};
+
+describe('removeNIMServingRuntimeResources', () => {
+  it('should drop the resources from every container', () => {
+    const result = removeNIMServingRuntimeResources(
+      makeServingRuntime([
+        { name: 'transformer-container', resources: CONTAINER_RESOURCES },
+        { name: 'kserve-container', resources: CONTAINER_RESOURCES },
+      ]),
+    );
+
+    expect(result.spec.containers).toEqual([
+      { name: 'transformer-container' },
+      { name: 'kserve-container' },
+    ]);
+  });
+
+  it('should keep the rest of the container untouched', () => {
+    const result = removeNIMServingRuntimeResources(
+      makeServingRuntime([
+        {
+          name: 'kserve-container',
+          image: 'nvcr.io/nim/test:1.0.0',
+          volumeMounts: [{ name: 'shm', mountPath: '/dev/shm' }],
+          resources: CONTAINER_RESOURCES,
+        },
+      ]),
+    );
+
+    expect(result.spec.containers[0]).toEqual({
+      name: 'kserve-container',
+      image: 'nvcr.io/nim/test:1.0.0',
+      volumeMounts: [{ name: 'shm', mountPath: '/dev/shm' }],
+    });
+  });
+
+  it('should not mutate the passed serving runtime', () => {
+    const servingRuntime = makeServingRuntime([
+      { name: 'kserve-container', resources: CONTAINER_RESOURCES },
+    ]);
+
+    removeNIMServingRuntimeResources(servingRuntime);
+
+    expect(servingRuntime.spec.containers[0].resources).toEqual(CONTAINER_RESOURCES);
   });
 });

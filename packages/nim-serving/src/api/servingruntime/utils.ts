@@ -33,3 +33,21 @@ export const applyNIMServingRuntimeShmMounts = (
 
   return newServingRuntime;
 };
+
+/**
+ * KServe sizes the deployment from the InferenceService's hardware profile, so the resources the
+ * NIM Template declares on its containers are dead weight that fights it. Legacy NIM drops them
+ * the same way when it assembles the ServingRuntime.
+ */
+export const removeNIMServingRuntimeResources = (
+  servingRuntime: ServingRuntimeKind,
+): ServingRuntimeKind => {
+  const newServingRuntime = structuredClone(servingRuntime);
+  newServingRuntime.spec.containers = newServingRuntime.spec.containers.map((container) => {
+    const newContainer = { ...container };
+    delete newContainer.resources;
+    return newContainer;
+  });
+
+  return newServingRuntime;
+};

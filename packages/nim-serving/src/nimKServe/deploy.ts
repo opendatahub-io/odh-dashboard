@@ -11,7 +11,10 @@ import {
   isNIMImageFieldExternalData,
   NIMImageFieldWizardField,
 } from '../pages/deploymentWizard/fields/NIMImageField';
-import { applyNIMServingRuntimeShmMounts } from '../api/servingruntime/utils';
+import {
+  applyNIMServingRuntimeShmMounts,
+  removeNIMServingRuntimeResources,
+} from '../api/servingruntime/utils';
 
 export const isNIMKServeDeployActive = (wizardData: WizardFormData['state']): boolean =>
   wizardData.modelLocationData.data?.type === NIMModelLocationKey;
@@ -46,6 +49,8 @@ export const deployNIMKServeDeployment = async (
       if (runtime) {
         // The NIM Template has a `volumeMounts` defined but not the `volumes` for shm. Add it to prevent errors
         runtime = applyNIMServingRuntimeShmMounts(runtime);
+        // The container resources come from the InferenceService's hardware profile, not the Template
+        runtime = removeNIMServingRuntimeResources(runtime);
       } else {
         throw new Error(`Unable to find NIM ServingRuntime Template in namespace ${projectName}`);
       }
