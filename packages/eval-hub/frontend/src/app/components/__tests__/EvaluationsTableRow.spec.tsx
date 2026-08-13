@@ -158,6 +158,19 @@ describe('EvaluationsTableRow', () => {
   });
 
   describe('kebab actions', () => {
+    it('should show View evaluation status action', () => {
+      renderRow({ state: 'completed' });
+      fireEvent.click(screen.getByTestId('evaluation-kebab').querySelector('button')!);
+      expect(screen.getByText('View evaluation status')).toBeInTheDocument();
+    });
+
+    it('should call onShowStatus when View evaluation status is clicked', () => {
+      renderRow({ state: 'completed' });
+      fireEvent.click(screen.getByTestId('evaluation-kebab').querySelector('button')!);
+      fireEvent.click(screen.getByText('View evaluation status'));
+      expect(mockOnShowStatus).toHaveBeenCalledTimes(1);
+    });
+
     it('should show Stop action for running jobs', () => {
       renderRow({ state: 'running' });
       fireEvent.click(screen.getByTestId('evaluation-kebab').querySelector('button')!);

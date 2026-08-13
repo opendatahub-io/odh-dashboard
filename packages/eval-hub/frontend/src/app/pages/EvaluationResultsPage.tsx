@@ -309,7 +309,7 @@ const EvaluationResultsPage: React.FC = () => {
               onClick={() => setShowStatusModal(true)}
               data-testid="view-log-button"
             >
-              View log
+              View evaluation status
             </Button>
 
             {/* MLflow run tabs for the selected benchmark */}

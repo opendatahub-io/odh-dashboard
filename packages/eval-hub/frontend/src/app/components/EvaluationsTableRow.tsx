@@ -161,7 +161,7 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
 
   const actions: IAction[] = [
     {
-      title: 'View logs',
+      title: 'View evaluation status',
       onClick: () => onShowStatus(job),
     },
     ...(isInProgress && !isStopping
