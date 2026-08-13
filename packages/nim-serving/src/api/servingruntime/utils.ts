@@ -1,15 +1,15 @@
 import { Volume, VolumeMount } from '@odh-dashboard/k8s-core';
 import { ServingRuntimeKind } from '@odh-dashboard/model-serving/shared';
 
-const SHM_VOLUME_MOUNT: VolumeMount = {
+const shmVolumeMount = (): VolumeMount => ({
   name: 'shm',
   mountPath: '/dev/shm',
-};
+});
 
-const SHM_VOLUME: Volume = {
+const shmVolume = (): Volume => ({
   name: 'shm',
   emptyDir: { medium: 'Memory', sizeLimit: '2Gi' },
-};
+});
 
 export const applyNIMServingRuntimeShmMounts = (
   servingRuntime: ServingRuntimeKind,
@@ -23,12 +23,12 @@ export const applyNIMServingRuntimeShmMounts = (
     ) {
       return c;
     }
-    return { ...c, volumeMounts: [...volumeMounts, SHM_VOLUME_MOUNT] };
+    return { ...c, volumeMounts: [...volumeMounts, shmVolumeMount()] };
   });
 
   newServingRuntime.spec.volumes = newServingRuntime.spec.volumes ?? [];
   if (!newServingRuntime.spec.volumes.find((volume) => volume.name === 'shm')) {
-    newServingRuntime.spec.volumes.push(SHM_VOLUME);
+    newServingRuntime.spec.volumes.push(shmVolume());
   }
 
   return newServingRuntime;

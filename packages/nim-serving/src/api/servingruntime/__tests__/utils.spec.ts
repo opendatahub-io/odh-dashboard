@@ -72,6 +72,26 @@ describe('applyNIMServingRuntimeShmMounts', () => {
     expect(result.spec.volumes).toEqual([SHM_VOLUME]);
   });
 
+  it('should not share the shm mount and volume between calls', () => {
+    const first = applyNIMServingRuntimeShmMounts(
+      makeServingRuntime([{ name: 'kserve-container' }]),
+    );
+
+    const [mount] = first.spec.containers[0].volumeMounts ?? [];
+    const [volume] = first.spec.volumes ?? [];
+    mount.mountPath = '/mutated';
+    if (volume.emptyDir) {
+      volume.emptyDir.sizeLimit = '99Gi';
+    }
+
+    const second = applyNIMServingRuntimeShmMounts(
+      makeServingRuntime([{ name: 'kserve-container' }]),
+    );
+
+    expect(second.spec.containers[0].volumeMounts).toEqual([SHM_MOUNT]);
+    expect(second.spec.volumes).toEqual([SHM_VOLUME]);
+  });
+
   it('should not mutate the passed serving runtime', () => {
     const servingRuntime = makeServingRuntime([{ name: 'kserve-container' }]);
 

@@ -70,9 +70,12 @@ export const deployKServeDeployment = async (
     assembledDeployment = applyFieldData(assembledDeployment);
   }
 
-  const servingRuntimeResult = assembledDeployment.server
-    ? await createServingRuntime(assembledDeployment.server, { dryRun })
-    : undefined;
+  // Only newly assembled servers are created; editing leaves the existing runtime alone and
+  // updates the inference service only.
+  let servingRuntimeResult = existingDeployment?.server;
+  if (!servingRuntimeResult && assembledDeployment.server) {
+    servingRuntimeResult = await createServingRuntime(assembledDeployment.server, { dryRun });
+  }
 
   const inferenceServiceResult = await deployInferenceService(
     assembledDeployment.model,

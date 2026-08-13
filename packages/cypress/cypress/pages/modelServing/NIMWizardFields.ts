@@ -7,8 +7,10 @@ export class NIMWizardFields extends SubComponentBase {
   }
 
   selectImage(name: string): void {
+    // Escape regex special characters to match literal text
+    const escapedName = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     this.findImageSelect().click();
-    cy.findByRole('option', { name: new RegExp(name) }).click();
+    cy.findByRole('option', { name: new RegExp(escapedName) }).click();
   }
 
   findStorageModeSelect(): Cypress.Chainable<JQuery<HTMLElement>> {

@@ -12,7 +12,7 @@ import { DeploymentAssemblyResources } from '../../../../extension-points/deploy
 import { InitialWizardFormData } from '../../../shared/types/form-data';
 import { WizardFormState } from '../useDeploymentWizardReducer';
 import { ModelDeploymentWizardViewMode } from '../ModelDeploymentWizard';
-import { ExternalDataMap } from '../ExternalDataLoader';
+import { ExternalDataMap, isExternalDataReady } from '../ExternalDataLoader';
 
 /**
  * Get the onSubmit function to create / update the deployment. 
@@ -57,6 +57,10 @@ export const useModelDeploymentSubmit = (
       try {
         if (viewMode === 'form' && !validation.isAllValid) {
           throw new Error('Invalid form data');
+        }
+        // Fields derive their data from these hooks -- deploying before they settle drops that data
+        if (!isExternalDataReady(externalData)) {
+          throw new Error('Required data is still loading');
         }
         if (viewMode === 'yaml-edit' && yamlError) {
           throw yamlError;
