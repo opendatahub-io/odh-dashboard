@@ -41,9 +41,29 @@ const ApiGroupsTreeSelect: React.FC<ApiGroupsTreeSelectProps> = ({
     [discoveredApiGroups],
   );
 
+  const otherApiGroups = React.useMemo(() => {
+    if (discoveredApiGroups.size === 0) {
+      return [];
+    }
+    const mappedNames = new Set(API_GROUP_CATEGORIES.flatMap((c) => c.groups.map((g) => g.name)));
+    return apiResourcesData.apiGroups.filter((g) => !mappedNames.has(g));
+  }, [apiResourcesData.apiGroups, discoveredApiGroups.size]);
+
+  const allCategories = React.useMemo(() => {
+    const categories = [...availableCategories];
+    if (otherApiGroups.length > 0) {
+      categories.push({
+        id: 'other',
+        label: 'Other',
+        groups: otherApiGroups.map((g) => ({ name: g, label: g, description: '' })),
+      });
+    }
+    return categories;
+  }, [availableCategories, otherApiGroups]);
+
   const renderedApiGroupNames = React.useMemo(
-    () => new Set(availableCategories.flatMap((c) => c.groups.map((g) => g.name))),
-    [availableCategories],
+    () => new Set(allCategories.flatMap((c) => c.groups.map((g) => g.name))),
+    [allCategories],
   );
 
   const customEntries = React.useMemo(
@@ -65,7 +85,7 @@ const ApiGroupsTreeSelect: React.FC<ApiGroupsTreeSelectProps> = ({
           selected: isAllSelected,
           className: 'odh-api-group-tree__all',
         },
-        ...availableCategories.flatMap((category) => {
+        ...allCategories.flatMap((category) => {
           const categoryGroupNames = category.groups.map((g) => g.name);
           const allInCategorySelected =
             isAllSelected || categoryGroupNames.every((g) => selectedApiGroups.includes(g));
@@ -100,7 +120,7 @@ const ApiGroupsTreeSelect: React.FC<ApiGroupsTreeSelectProps> = ({
     };
 
     return [allOptions];
-  }, [availableCategories, selectedApiGroups, isAllSelected, customEntries]);
+  }, [allCategories, selectedApiGroups, isAllSelected, customEntries]);
 
   const handleSetValue = React.useCallback(
     (updatedOptions: SelectionOptions[]) => {
@@ -121,11 +141,11 @@ const ApiGroupsTreeSelect: React.FC<ApiGroupsTreeSelectProps> = ({
       const realOptions = updatedOptions.filter(
         (o) =>
           String(o.id) !== ALL_API_GROUPS_WILDCARD &&
-          !availableCategories.some((c) => `${ALL_CATEGORY_PREFIX}${c.id}` === String(o.id)),
+          !allCategories.some((c) => `${ALL_CATEGORY_PREFIX}${c.id}` === String(o.id)),
       );
 
       const categoryAllOptions = updatedOptions.filter((o) =>
-        availableCategories.some((c) => `${ALL_CATEGORY_PREFIX}${c.id}` === String(o.id)),
+        allCategories.some((c) => `${ALL_CATEGORY_PREFIX}${c.id}` === String(o.id)),
       );
 
       const selected = new Set(
@@ -136,7 +156,7 @@ const ApiGroupsTreeSelect: React.FC<ApiGroupsTreeSelectProps> = ({
 
       for (const catOption of categoryAllOptions) {
         const categoryId = String(catOption.id).replace(ALL_CATEGORY_PREFIX, '');
-        const category = availableCategories.find((c) => c.id === categoryId);
+        const category = allCategories.find((c) => c.id === categoryId);
         if (!category) {
           continue;
         }
@@ -154,7 +174,7 @@ const ApiGroupsTreeSelect: React.FC<ApiGroupsTreeSelectProps> = ({
 
       onSelectedApiGroupsChange([...selected]);
     },
-    [selectedApiGroups, onSelectedApiGroupsChange, isAllSelected, availableCategories],
+    [selectedApiGroups, onSelectedApiGroupsChange, isAllSelected, allCategories],
   );
 
   const filterFunction = React.useCallback(

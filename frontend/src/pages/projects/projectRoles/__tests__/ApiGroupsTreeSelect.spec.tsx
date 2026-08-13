@@ -264,4 +264,110 @@ describe('ApiGroupsTreeSelect', () => {
     expect(screen.getByText('k8s.cni.cncf.io')).toBeInTheDocument();
     expect(screen.queryByText('apps')).not.toBeInTheDocument();
   });
+
+  describe('Other category for unmapped API groups', () => {
+    const dataWithUnmapped: ApiResourcesData = {
+      ...mockApiResourcesData,
+      apiGroups: [...mockApiResourcesData.apiGroups, 'serving.kserve.io', 'custom.example.com'],
+    };
+
+    it('should show "Other" category when unmapped API groups are discovered', async () => {
+      render(
+        <ApiGroupsTreeSelect
+          selectedApiGroups={[]}
+          onSelectedApiGroupsChange={mockOnChange}
+          apiResourcesData={dataWithUnmapped}
+        />,
+      );
+
+      await openDropdown();
+
+      expect(screen.getByText('Other')).toBeInTheDocument();
+      expect(screen.getByText('serving.kserve.io')).toBeInTheDocument();
+      expect(screen.getByText('custom.example.com')).toBeInTheDocument();
+    });
+
+    it('should NOT show "Other" category when all groups are mapped', async () => {
+      render(
+        <ApiGroupsTreeSelect
+          selectedApiGroups={[]}
+          onSelectedApiGroupsChange={mockOnChange}
+          apiResourcesData={mockApiResourcesData}
+        />,
+      );
+
+      await openDropdown();
+
+      expect(screen.queryByText('Other')).not.toBeInTheDocument();
+    });
+
+    it('should NOT show "Other" category when discovery is empty (fallback mode)', async () => {
+      const emptyData: ApiResourcesData = { apiGroups: [], resources: [] };
+
+      render(
+        <ApiGroupsTreeSelect
+          selectedApiGroups={[]}
+          onSelectedApiGroupsChange={mockOnChange}
+          apiResourcesData={emptyData}
+        />,
+      );
+
+      await openDropdown();
+
+      expect(screen.queryByText('Other')).not.toBeInTheDocument();
+    });
+
+    it('should allow selecting an unmapped API group from "Other"', async () => {
+      render(
+        <ApiGroupsTreeSelect
+          selectedApiGroups={[]}
+          onSelectedApiGroupsChange={mockOnChange}
+          apiResourcesData={dataWithUnmapped}
+        />,
+      );
+
+      await openDropdown();
+
+      const menuItem = screen.getByTestId('select-multi-typeahead-serving-kserve-io');
+      await act(async () => {
+        fireEvent.click(within(menuItem).getByText('serving.kserve.io'));
+      });
+
+      expect(mockOnChange).toHaveBeenCalledWith(['serving.kserve.io']);
+    });
+
+    it('should select all "Other" groups when category header is clicked', async () => {
+      render(
+        <ApiGroupsTreeSelect
+          selectedApiGroups={[]}
+          onSelectedApiGroupsChange={mockOnChange}
+          apiResourcesData={dataWithUnmapped}
+        />,
+      );
+
+      await openDropdown();
+
+      const menuItem = screen.getByTestId('select-multi-typeahead-Other');
+      await act(async () => {
+        fireEvent.click(within(menuItem).getByText('Other'));
+      });
+
+      expect(mockOnChange).toHaveBeenCalledWith(['serving.kserve.io', 'custom.example.com']);
+    });
+
+    it('should not treat unmapped API groups as custom entries', async () => {
+      render(
+        <ApiGroupsTreeSelect
+          selectedApiGroups={['serving.kserve.io']}
+          onSelectedApiGroupsChange={mockOnChange}
+          apiResourcesData={dataWithUnmapped}
+        />,
+      );
+
+      await openDropdown();
+
+      const menuItem = screen.getByTestId('select-multi-typeahead-serving-kserve-io');
+      expect(menuItem).toBeInTheDocument();
+    });
+  });
 });

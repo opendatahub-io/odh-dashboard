@@ -40,9 +40,33 @@ const ResourcesTreeSelect: React.FC<ResourcesTreeSelectProps> = ({
     [discoveredResourceNames],
   );
 
+  const otherResources = React.useMemo(() => {
+    if (discoveredResourceNames.size === 0) {
+      return [];
+    }
+    const mappedNames = new Set(RESOURCE_CATEGORIES.flatMap((c) => c.resources.map((r) => r.name)));
+    return apiResourcesData.resources.filter((r) => !mappedNames.has(r.name));
+  }, [apiResourcesData.resources, discoveredResourceNames.size]);
+
+  const allCategories = React.useMemo(() => {
+    const categories = [...availableCategories];
+    if (otherResources.length > 0) {
+      categories.push({
+        id: 'other',
+        label: 'Other',
+        resources: otherResources.map((r) => ({
+          name: r.name,
+          label: r.name,
+          apiGroup: r.apiGroup,
+        })),
+      });
+    }
+    return categories;
+  }, [availableCategories, otherResources]);
+
   const renderedResourceNames = React.useMemo(
-    () => new Set(availableCategories.flatMap((c) => c.resources.map((r) => r.name))),
-    [availableCategories],
+    () => new Set(allCategories.flatMap((c) => c.resources.map((r) => r.name))),
+    [allCategories],
   );
 
   const customEntries = React.useMemo(
@@ -64,7 +88,7 @@ const ResourcesTreeSelect: React.FC<ResourcesTreeSelectProps> = ({
           selected: isAllSelected,
           className: 'odh-resource-tree__all',
         },
-        ...availableCategories.flatMap((category) => {
+        ...allCategories.flatMap((category) => {
           const categoryResourceNames = category.resources.map((r) => r.name);
           const allInCategorySelected =
             isAllSelected || categoryResourceNames.every((r) => selectedResources.includes(r));
@@ -98,7 +122,7 @@ const ResourcesTreeSelect: React.FC<ResourcesTreeSelectProps> = ({
     };
 
     return [allOptions];
-  }, [availableCategories, selectedResources, isAllSelected, customEntries]);
+  }, [allCategories, selectedResources, isAllSelected, customEntries]);
 
   const handleSetValue = React.useCallback(
     (updatedOptions: SelectionOptions[]) => {
@@ -121,18 +145,18 @@ const ResourcesTreeSelect: React.FC<ResourcesTreeSelectProps> = ({
       const realOptions = updatedOptions.filter(
         (o) =>
           String(o.id) !== ALL_RESOURCES_WILDCARD &&
-          !availableCategories.some((c) => `${ALL_CATEGORY_PREFIX}${c.id}` === String(o.id)),
+          !allCategories.some((c) => `${ALL_CATEGORY_PREFIX}${c.id}` === String(o.id)),
       );
 
       const categoryAllOptions = updatedOptions.filter((o) =>
-        availableCategories.some((c) => `${ALL_CATEGORY_PREFIX}${c.id}` === String(o.id)),
+        allCategories.some((c) => `${ALL_CATEGORY_PREFIX}${c.id}` === String(o.id)),
       );
 
       const selected = new Set(realOptions.filter((o) => o.selected).map((o) => String(o.id)));
 
       for (const catOption of categoryAllOptions) {
         const categoryId = String(catOption.id).replace(ALL_CATEGORY_PREFIX, '');
-        const category = availableCategories.find((c) => c.id === categoryId);
+        const category = allCategories.find((c) => c.id === categoryId);
         if (!category) {
           continue;
         }
@@ -150,7 +174,7 @@ const ResourcesTreeSelect: React.FC<ResourcesTreeSelectProps> = ({
 
       onSelectedResourcesChange([...selected]);
     },
-    [selectedResources, onSelectedResourcesChange, isAllSelected, availableCategories],
+    [selectedResources, onSelectedResourcesChange, isAllSelected, allCategories],
   );
 
   const filterFunction = React.useCallback(

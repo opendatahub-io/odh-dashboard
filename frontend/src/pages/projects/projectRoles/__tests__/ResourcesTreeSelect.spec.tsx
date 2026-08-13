@@ -370,4 +370,114 @@ describe('ResourcesTreeSelect', () => {
 
     expect(mockOnChange).toHaveBeenCalledWith(['*']);
   });
+
+  describe('Other category for unmapped resources', () => {
+    const dataWithUnmapped: ApiResourcesData = {
+      ...mockApiResourcesData,
+      resources: [
+        ...mockApiResourcesData.resources,
+        { name: 'inferenceservices', kind: 'InferenceService', apiGroup: 'serving.kserve.io' },
+        { name: 'trainedmodels', kind: 'TrainedModel', apiGroup: 'serving.kserve.io' },
+      ],
+    };
+
+    it('should show "Other" category when unmapped resources are discovered', async () => {
+      render(
+        <ResourcesTreeSelect
+          selectedResources={[]}
+          onSelectedResourcesChange={mockOnChange}
+          apiResourcesData={dataWithUnmapped}
+        />,
+      );
+
+      await openDropdown();
+
+      expect(screen.getByText('Other')).toBeInTheDocument();
+      expect(screen.getByText('inferenceservices')).toBeInTheDocument();
+      expect(screen.getByText('trainedmodels')).toBeInTheDocument();
+    });
+
+    it('should NOT show "Other" category when all resources are mapped', async () => {
+      render(
+        <ResourcesTreeSelect
+          selectedResources={[]}
+          onSelectedResourcesChange={mockOnChange}
+          apiResourcesData={mockApiResourcesData}
+        />,
+      );
+
+      await openDropdown();
+
+      expect(screen.queryByText('Other')).not.toBeInTheDocument();
+    });
+
+    it('should NOT show "Other" category when discovery is empty (fallback mode)', async () => {
+      const emptyData: ApiResourcesData = { apiGroups: [], resources: [] };
+
+      render(
+        <ResourcesTreeSelect
+          selectedResources={[]}
+          onSelectedResourcesChange={mockOnChange}
+          apiResourcesData={emptyData}
+        />,
+      );
+
+      await openDropdown();
+
+      expect(screen.queryByText('Other')).not.toBeInTheDocument();
+    });
+
+    it('should allow selecting an unmapped resource from "Other"', async () => {
+      render(
+        <ResourcesTreeSelect
+          selectedResources={[]}
+          onSelectedResourcesChange={mockOnChange}
+          apiResourcesData={dataWithUnmapped}
+        />,
+      );
+
+      await openDropdown();
+
+      const menuItem = screen.getByTestId('select-multi-typeahead-inferenceservices');
+      await act(async () => {
+        fireEvent.click(within(menuItem).getByText('inferenceservices'));
+      });
+
+      expect(mockOnChange).toHaveBeenCalledWith(['inferenceservices']);
+    });
+
+    it('should select all "Other" resources when category header is clicked', async () => {
+      render(
+        <ResourcesTreeSelect
+          selectedResources={[]}
+          onSelectedResourcesChange={mockOnChange}
+          apiResourcesData={dataWithUnmapped}
+        />,
+      );
+
+      await openDropdown();
+
+      const menuItem = screen.getByTestId('select-multi-typeahead-Other');
+      await act(async () => {
+        fireEvent.click(within(menuItem).getByText('Other'));
+      });
+
+      expect(mockOnChange).toHaveBeenCalledWith(['inferenceservices', 'trainedmodels']);
+    });
+
+    it('should not treat unmapped resources as custom entries', async () => {
+      render(
+        <ResourcesTreeSelect
+          selectedResources={['inferenceservices']}
+          onSelectedResourcesChange={mockOnChange}
+          apiResourcesData={dataWithUnmapped}
+        />,
+      );
+
+      await openDropdown();
+
+      const menuItem = screen.getByTestId('select-multi-typeahead-inferenceservices');
+      expect(menuItem).toBeInTheDocument();
+    });
+  });
 });
