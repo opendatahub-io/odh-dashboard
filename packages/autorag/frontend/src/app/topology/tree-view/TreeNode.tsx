@@ -499,7 +499,7 @@ const TreeNodeInner: React.FC<{
   const labelWidth = showPatternsToggle ? 140 : 96;
   // Branch corridor nodes are smaller; pad label so it lines up with stage-node labels.
   const labelY = height + 4 + (branchStep ? (48 - height) / 2 : 0);
-  const captionHeight = showPatternsToggle ? 80 : labelSubtitle ? 40 : 36;
+  const captionHeight = showPatternsToggle ? 80 : labelSubtitle ? 52 : 36;
 
   const attachments = React.useMemo(() => {
     if (!showsTaskIcon) {

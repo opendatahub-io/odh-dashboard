@@ -465,7 +465,7 @@ const TreeNodeInner: React.FC<{
   const showModelsToggle = data?.showModelsToggle === true && modelsExpand?.showToggle === true;
   const labelWidth = showModelsToggle ? 140 : 96;
   const labelY = height + 4 + (branchStep ? (48 - height) / 2 : 0);
-  const captionHeight = showModelsToggle ? 80 : labelSubtitle ? 40 : 36;
+  const captionHeight = showModelsToggle ? 80 : labelSubtitle ? 52 : 36;
 
   const attachments = React.useMemo(() => {
     if (!showsTaskIcon) {
