@@ -3,6 +3,7 @@ import {
   getStageMapDetails,
   getStageDescriptionFromMap,
   isBranchStepNodeId,
+  isBranchCorridorNodeId,
   isStatusOnlyBranchStepNode,
   parseStageMapNodeId,
 } from '~/app/topology/tree-view/stageMapStepMetadata';
@@ -96,6 +97,15 @@ describe('parseStageMapNodeId', () => {
     const branchId = 'autogluon_models_training__step__feature_engineering__branch-0';
     expect(isStatusOnlyBranchStepNode(branchId)).toBe(true);
     expect(isStatusOnlyBranchStepNode('autogluon_models_training__model_selection')).toBe(false);
+  });
+
+  it('classifies branch corridor nodes via parseStageMapNodeId', () => {
+    expect(isBranchCorridorNodeId('training__step__feature_engineering__branch-0')).toBe(true);
+    expect(isBranchCorridorNodeId('training__branch-0__step__feature_engineering')).toBe(true);
+    expect(isBranchCorridorNodeId('training__model__branch-0')).toBe(true);
+    expect(isBranchCorridorNodeId('training__model_selection')).toBe(true);
+    expect(isBranchCorridorNodeId('training__load_data')).toBe(false);
+    expect(isBranchCorridorNodeId('training__step__feature_engineering__branch-10')).toBe(false);
   });
 
   it('parses branch model nodes', () => {

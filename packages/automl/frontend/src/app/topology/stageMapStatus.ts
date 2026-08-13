@@ -140,7 +140,7 @@ export const resolveStageRunStatus = (
   }
 
   if (componentStatus === RunStatus.Skipped) {
-    return RunStatus.Skipped;
+    return RunStatus.Pending;
   }
 
   return RunStatus.Pending;
@@ -152,6 +152,10 @@ export const isStageTerminalFailure = (status: RunStatus | undefined): boolean =
 /** True when the backend reported this stage failed (not inferred from component-level status). */
 export const isInlineStageFailure = (stage?: ComponentStageMapStage): boolean =>
   translateStageStatus(stage?.status) === RunStatus.Failed;
+
+/** True when the stage map marks a stage skipped (never ran due to upstream barrier). */
+export const isInlineStageSkipped = (stage?: ComponentStageMapStage): boolean =>
+  stage?.status?.trim().toLowerCase() === 'skipped';
 
 /** True when a pre-branch stage (before model_selection) failed inline. */
 export const hasPreBranchInlineFailure = (preBranchStages: ComponentStageMapStage[]): boolean =>
@@ -201,7 +205,11 @@ const shouldBackfillEarlierStageAsSucceeded = (
   latestActivityIndex: number,
   inlineStatus: RunStatus | undefined,
   resolved: RunStatus | undefined,
+  stage?: ComponentStageMapStage,
 ): boolean => {
+  if (isInlineStageSkipped(stage)) {
+    return false;
+  }
   if (latestActivityIndex < 0 || stageIndex >= latestActivityIndex) {
     return false;
   }
@@ -219,8 +227,15 @@ const applyEarlierStageBackfill = (
   latestActivityIndex: number,
   inlineStatus: RunStatus | undefined,
   resolved: RunStatus | undefined,
+  stage?: ComponentStageMapStage,
 ): RunStatus | undefined =>
-  shouldBackfillEarlierStageAsSucceeded(stageIndex, latestActivityIndex, inlineStatus, resolved)
+  shouldBackfillEarlierStageAsSucceeded(
+    stageIndex,
+    latestActivityIndex,
+    inlineStatus,
+    resolved,
+    stage,
+  )
     ? RunStatus.Succeeded
     : resolved;
 
@@ -279,7 +294,11 @@ export const resolveSequentialStageRunStatuses = (
         latestActivityIndex,
         inlineStatus,
         resolveUnresolved(stage),
+        stage,
       );
+      if (isInlineStageSkipped(stage)) {
+        resolved = RunStatus.Pending;
+      }
       if (
         blockSubsequent &&
         (blockedByInlineFailure || propagatedTerminal != null || coarseTerminalAssigned)
@@ -293,7 +312,11 @@ export const resolveSequentialStageRunStatuses = (
         resolved = RunStatus.Pending;
       }
       statusById.set(stage.id, resolved);
-      if (isStageTerminalFailure(inlineStatus) || isStageTerminalFailure(resolved)) {
+      if (isInlineStageSkipped(stage)) {
+        blockSubsequent = true;
+        blockedByInlineFailure = true;
+        propagatedTerminal = undefined;
+      } else if (isStageTerminalFailure(inlineStatus) || isStageTerminalFailure(resolved)) {
         blockSubsequent = true;
         blockedByInlineFailure = isInlineStageFailure(stage);
         if (isStageTerminalFailure(resolved) && !blockedByInlineFailure) {
@@ -330,6 +353,7 @@ export const resolveSequentialStageRunStatuses = (
             latestActivityIndex,
             inlineStatus,
             resolveUnresolved(stage),
+            stage,
           );
           statusById.set(stage.id, resolved);
           if (isStageTerminalFailure(resolved)) {
@@ -375,6 +399,7 @@ export const resolveSequentialStageRunStatuses = (
           latestActivityIndex,
           inlineStatus,
           resolveUnresolved(stage),
+          stage,
         );
         if (resolved === RunStatus.InProgress && assignedActiveSlot) {
           statusById.set(stage.id, RunStatus.Pending);
@@ -396,6 +421,7 @@ export const resolveSequentialStageRunStatuses = (
           latestActivityIndex,
           inlineStatus,
           resolveUnresolved(stage),
+          stage,
         );
         statusById.set(stage.id, resolved);
         blockSubsequent = true;
@@ -425,8 +451,9 @@ export const resolveSequentialStageRunStatuses = (
     }
 
     if (componentStatus === RunStatus.Skipped) {
-      statusById.set(stage.id, RunStatus.Skipped);
+      statusById.set(stage.id, RunStatus.Pending);
       blockSubsequent = true;
+      coarseTerminalAssigned = true;
       continue;
     }
 

@@ -70,6 +70,9 @@ export type ParsedStageMapNode =
   | { type: 'branch_step'; componentId: string; stepId: string; branchIndex: number }
   | { type: 'branch_model'; componentId: string; branchIndex: number };
 
+/** Matches stageMapStatus.BRANCHING_STAGE_ID — local to avoid importing topology-heavy status module. */
+const BRANCHING_STAGE_ID = 'model_selection';
+
 const BRANCH_TOKEN_PATTERN = /^branch-\d+$/;
 
 const parseBranchStepFromParts = (parts: string[]): ParsedStageMapNode | undefined => {
@@ -104,15 +107,23 @@ const parseBranchStepFromParts = (parts: string[]): ParsedStageMapNode | undefin
 };
 
 /** True for parallel branch corridor steps (engineer features, train model, …). */
-export const isBranchStepNodeId = (nodeId: string): boolean => {
-  if (parseStageMapNodeId(nodeId)?.type === 'branch_step') {
-    return true;
-  }
-  return /__branch-\d+__step__|__step__.+__branch-\d+$/.test(nodeId);
-};
+export const isBranchStepNodeId = (nodeId: string): boolean =>
+  parseStageMapNodeId(nodeId)?.type === 'branch_step';
 
 /** Branch corridor steps always render as spine status glyphs (design), never task icons. */
 export const isStatusOnlyBranchStepNode = (nodeId: string): boolean => isBranchStepNodeId(nodeId);
+
+/** True for nodes on the branch fan-out spine (select models, branch steps, model winner). */
+export const isBranchCorridorNodeId = (nodeId: string): boolean => {
+  const parsed = parseStageMapNodeId(nodeId);
+  if (!parsed) {
+    return false;
+  }
+  if (parsed.type === 'branch_step' || parsed.type === 'branch_model') {
+    return true;
+  }
+  return parsed.stageId === BRANCHING_STAGE_ID;
+};
 
 export function parseStageMapNodeId(nodeId: string): ParsedStageMapNode | undefined {
   const parts = nodeId.split('__');

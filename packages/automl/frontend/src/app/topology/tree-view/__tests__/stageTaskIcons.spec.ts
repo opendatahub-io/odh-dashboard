@@ -43,6 +43,17 @@ describe('resolveTaskIconForNodeId', () => {
     expect(resolveTaskIconForNodeId('training__step__model_evaluation__branch-1')).toBe(
       CommentsIcon,
     );
+    expect(resolveTaskIconForNodeId('training__branch-0__step__feature_engineering')).toBe(
+      ChartBarIcon,
+    );
+    expect(resolveTaskIconForNodeId('training__branch-0__step__model_training')).toBe(
+      EqualizerIcon,
+    );
+    expect(resolveTaskIconForNodeId('training__branch-0__step__stacking')).toBe(InfrastructureIcon);
+    expect(resolveTaskIconForNodeId('training__branch-0__step__evaluation')).toBe(CommentsIcon);
+    expect(resolveTaskIconForNodeId('training__branch-1__step__model_evaluation')).toBe(
+      CommentsIcon,
+    );
   });
 
   it('uses RH UI ai-model icon for model branch terminus nodes', () => {

@@ -323,6 +323,22 @@ describe('transformStageMapNodesToTree', () => {
     expect(modelNodes[0].data.showWinnerStar).toBe(false);
   });
 
+  it('labels collapsed spine as Model winner when winnerResolved but no branch matches', () => {
+    const topologyNodes = buildStageMapTopology(makeStageMap([training]));
+    const { nodes } = transformStageMapNodesToTree(topologyNodes, {
+      modelsExpanded: false,
+      winnerResolved: true,
+      winnerModelLabel: 'unknown_model',
+      winnerModelKey: 'does_not_match_any_branch',
+    });
+
+    const modelNodes = nodes.filter((node) => node.id.includes('__model__'));
+    expect(modelNodes).toHaveLength(1);
+    expect(modelNodes[0].data.label).toBe('Model winner');
+    expect(modelNodes[0].data.labelSubtitle).toBeUndefined();
+    expect(modelNodes[0].data.showWinnerStar).toBe(false);
+  });
+
   it('uses winnerModelLabel on the collapsed spine when the run has succeeded', () => {
     const topologyNodes = buildStageMapTopology(makeStageMap([training]));
     const { nodes } = transformStageMapNodesToTree(topologyNodes, {

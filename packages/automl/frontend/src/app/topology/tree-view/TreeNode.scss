@@ -167,15 +167,10 @@
   }
 }
 
-/* Pending hourglass — sand/caps filled; bottom chamber stroked. */
+/* Pending hourglass — sand/caps filled; outline paths keep inline fill/stroke from PendingHourglassGlyph. */
 .automl-tree-node__status-badge--pending .automl-tree-node__pending-hourglass path:not(.automl-tree-node__pending-hourglass-outline),
 .automl-tree-node__status-badge--pending .automl-tree-node__pending-hourglass rect {
   fill: var(--pf-t--global--icon--color--disabled);
-}
-
-.automl-tree-node__status-badge--pending .automl-tree-node__pending-hourglass-outline {
-  fill: none !important;
-  stroke: var(--pf-t--global--icon--color--disabled);
 }
 
 /* Running sync in branch-step badge. */

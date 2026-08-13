@@ -217,6 +217,10 @@ describe('resolveStageRunStatus', () => {
     );
   });
 
+  it('should map coarse skipped component status to pending', () => {
+    expect(resolveStageRunStatus(stage(), RunStatus.Skipped, 'CANCELED')).toBe(RunStatus.Pending);
+  });
+
   it('should map stale component InProgress to terminal run failure when no inline status exists', () => {
     expect(resolveStageRunStatus(stage(), RunStatus.InProgress, 'FAILED', false)).toBe(
       RunStatus.Failed,
@@ -399,6 +403,38 @@ describe('resolveSequentialStageRunStatuses', () => {
 
     expect(statuses.get('validate_inputs')).toBe(RunStatus.Succeeded);
     expect(statuses.get('load_data')).toBe(RunStatus.InProgress);
+  });
+
+  it('should keep inline skipped and later unresolved stages pending while component is in progress', () => {
+    const statuses = resolveSequentialStageRunStatuses(
+      [
+        { id: 'validate_inputs', description: 'Validate', status: 'completed' },
+        { id: 'load_data', description: 'Load data', status: 'skipped' },
+        { id: 'split_data', description: 'Split data' },
+      ],
+      RunStatus.InProgress,
+      'RUNNING',
+      false,
+    );
+
+    expect(statuses.get('validate_inputs')).toBe(RunStatus.Succeeded);
+    expect(statuses.get('load_data')).toBe(RunStatus.Pending);
+    expect(statuses.get('split_data')).toBe(RunStatus.Pending);
+  });
+
+  it('should keep later stages pending when coarse component status is skipped', () => {
+    const statuses = resolveSequentialStageRunStatuses(
+      [
+        { id: 'validate_inputs', description: 'Validate' },
+        { id: 'load_data', description: 'Load data' },
+      ],
+      RunStatus.Skipped,
+      'CANCELED',
+      false,
+    );
+
+    expect(statuses.get('validate_inputs')).toBe(RunStatus.Pending);
+    expect(statuses.get('load_data')).toBe(RunStatus.Pending);
   });
 });
 
