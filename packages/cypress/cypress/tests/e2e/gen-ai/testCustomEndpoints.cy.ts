@@ -70,14 +70,16 @@ describe('Verify Custom Endpoints in Playground - Full Lifecycle', () => {
   });
 
   it(
-    'Verify custom endpoint lifecycle with prompt creation and playground usage',
+    'Verify custom endpoint lifecycle with guardrails and prompt creation',
     {
       tags: ['@GenAI', '@FeatureFlagged', '@PromptManagement', '@NonConcurrent'],
     },
     () => {
-      cy.step('Log into the application with custom endpoints and prompt management enabled');
+      cy.step(
+        'Log into the application with custom endpoints, prompt management, and guardrails enabled',
+      );
       cy.visitWithLogin(
-        `/?devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,promptManagement=true,modelAsService=false`,
+        `/projects?devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,promptManagement=true,guardrails=true,modelAsService=false`,
         HTPASSWD_CLUSTER_ADMIN_USER,
       );
 
@@ -87,7 +89,10 @@ describe('Verify Custom Endpoints in Playground - Full Lifecycle', () => {
       // --- Create custom endpoint ---
 
       cy.step('Navigate to AI asset endpoints page');
-      genAiPlayground.navigateToAssetsWithPromptManagement(projectName);
+      genAiPlayground.navigateToAssetsWithGuardrailsAndPromptManagement(projectName);
+
+      cy.step('Force backend to refresh config from cluster');
+      forceDashboardConfigRefresh();
 
       cy.step('Click Create endpoint button from empty state');
       genAiPlayground.findEmptyStateCreateEndpointButton().should('be.visible').click();
@@ -149,6 +154,62 @@ describe('Verify Custom Endpoints in Playground - Full Lifecycle', () => {
       cy.step('Wait for custom model to be registered in LSD');
       waitForModelInLSD(testData.lsdServiceName, testData.modelId, projectName);
 
+      // --- Guardrails: steps 1–6 ---
+
+      cy.step('Navigate to playground with guardrails enabled');
+      genAiPlayground.navigateToPlaygroundWithGuardrails(projectName);
+
+      cy.step('Open settings panel and navigate to Guardrails tab');
+      genAiPlayground.ensureSettingsPanelOpen();
+      genAiPlayground.findGuardrailsTab().should('be.visible').click();
+
+      cy.step('Verify guardrails panel shows model dropdown and both toggles defaulting to OFF');
+      genAiPlayground.findGuardrailsSection().should('be.visible');
+      genAiPlayground.findGuardrailModelToggle().should('be.visible');
+      genAiPlayground.findUserInputGuardrailsSwitch().should('not.be.checked');
+      genAiPlayground.findModelOutputGuardrailsSwitch().should('not.be.checked');
+
+      cy.step(`Select guardrail model ending with "${testData.displayName}"`);
+      genAiPlayground.selectGuardrailModel(testData.displayName);
+      genAiPlayground.findGuardrailModelToggle().should('contain', testData.displayName);
+
+      cy.step('Toggle user input guardrails ON');
+      genAiPlayground.toggleUserInputGuardrails(true);
+      genAiPlayground.findUserInputGuardrailsSwitch().should('be.checked');
+
+      cy.step(`Send safe message: "${testData.guardrails.safeMessage}"`);
+      genAiPlayground.sendMessage(testData.guardrails.safeMessage);
+
+      cy.step('Verify safe message appears in chat');
+      genAiPlayground
+        .findUserMessage()
+        .should('exist')
+        .and('contain', testData.guardrails.safeMessage);
+
+      cy.step('Verify assistant responds normally (safe message passes input guardrail)');
+      genAiPlayground.waitForStreamingComplete({ timeout: 120000 });
+      genAiPlayground.findAssistantMessage({ timeout: 120000 }).should('exist').and('not.be.empty');
+
+      cy.step(`Send malicious message: "${testData.guardrails.maliciousMessage}"`);
+      genAiPlayground.sendMessage(testData.guardrails.maliciousMessage);
+
+      cy.step('Verify malicious message appears in chat');
+      genAiPlayground
+        .findAllUserMessages()
+        .last()
+        .should('exist')
+        .and('contain', testData.guardrails.maliciousMessage);
+
+      cy.step('Verify input guardrail violation alert is displayed');
+      genAiPlayground.findGuardrailViolationAlert({ timeout: 120000 }).should('exist');
+
+      cy.step('Toggle user input guardrails OFF');
+      genAiPlayground.toggleUserInputGuardrails(false);
+      genAiPlayground.findUserInputGuardrailsSwitch().should('not.be.checked');
+
+      cy.step('Clear chat');
+      genAiPlayground.clearChat();
+
       // --- Create a prompt via API ---
 
       cy.step('Create prompt via Gen AI BFF API');
@@ -161,10 +222,7 @@ describe('Verify Custom Endpoints in Playground - Full Lifecycle', () => {
         .its('status')
         .should('be.oneOf', [200, 201]);
 
-      // --- Navigate to playground and load the prompt ---
-
-      cy.step('Navigate to playground with prompt management enabled');
-      genAiPlayground.navigateToPlaygroundWithPromptManagementRetry(projectName);
+      // --- Load the prompt ---
 
       cy.step(`Select ${testData.displayName} model from dropdown`);
       genAiPlayground.selectModelFromDropdown(testData.displayName);
