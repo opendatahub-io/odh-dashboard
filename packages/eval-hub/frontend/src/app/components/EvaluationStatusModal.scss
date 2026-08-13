@@ -2,6 +2,35 @@
   height: 80vh;
 }
 
+.evalhub-status-modal__title {
+  display: flex;
+  align-items: center;
+  gap: var(--pf-t--global--spacer--md);
+
+  > :first-child {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
+  > :last-child {
+    flex: 0 0 auto;
+  }
+}
+
+.evalhub-status-modal__title-name {
+  display: block;
+  font-family: var(--pf-v6-c-modal-box__title--FontFamily);
+  font-size: var(--pf-v6-c-modal-box__title--FontSize);
+  font-weight: var(--pf-v6-c-modal-box__title--FontWeight);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.evalhub-status-modal__header-stack {
+  gap: var(--pf-t--global--spacer--xs);
+}
+
 .evalhub-status-modal__header {
   position: sticky;
   top: 0;

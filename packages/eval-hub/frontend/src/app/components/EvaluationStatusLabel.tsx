@@ -30,11 +30,13 @@ const statusMap: Partial<Record<EvaluationJobState | 'not_started', StatusConfig
     label: 'Running',
     color: 'blue',
     icon: <InProgressIcon className="ai-u-spin" />,
+    isFilled: true,
   },
   completed: {
     label: 'Complete',
     status: 'success',
     icon: <CheckCircleIcon />,
+    isFilled: true,
   },
   failed: {
     label: 'Failed',

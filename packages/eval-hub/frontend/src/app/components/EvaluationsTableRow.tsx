@@ -19,6 +19,7 @@ import {
   getAllBenchmarkNames,
   getBenchmarkName,
   getEvaluationName,
+  getFailedBenchmarkCount,
   getResultScore,
   isEvaluationJobComparable,
 } from '~/app/utilities/evaluationUtils';
@@ -26,6 +27,7 @@ import { isPreStartFailure } from '~/app/utilities/evaluationJobPolling';
 import { CollectionNameMap } from '~/app/hooks/useCollectionNameMap';
 import { cancelEvaluationJob, deleteEvaluationJob } from '~/app/api/k8s';
 import EvaluationStatusLabel from './EvaluationStatusLabel';
+import './EvaluationsTableRow.scss';
 
 type EvaluationsTableRowProps = {
   job: EvaluationJob;
@@ -222,6 +224,13 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
             onClick={() => onShowStatus(job)}
             benchmarks={displayState === 'partially_failed' ? effectiveBenchmarks : undefined}
           />
+          {(displayState === 'failed' || displayState === 'partially_failed') &&
+          effectiveBenchmarks.length > 1 ? (
+            <div className="evalhub-table-row__failure-detail" data-testid="failure-detail">
+              {getFailedBenchmarkCount(effectiveBenchmarks)} of {effectiveBenchmarks.length}{' '}
+              benchmarks failed
+            </div>
+          ) : null}
         </Td>
         <Td dataLabel="Evaluation" data-testid="evaluation-benchmark">
           <Tooltip
