@@ -92,7 +92,10 @@ describe('Unsupported accelerator configs: CRUD + wizard gating', () => {
     { tags: ['@Dashboard', '@Featureflagged', '@ModelServing', '@ModelServingCI'] },
     () => {
       cy.step('Log into the application as admin');
-      cy.visitWithLogin('/?devFeatureFlags=modelDeploymentSettings=true,vLLMDeploymentOnMaaS=true', LDAP_ADMIN_USER);
+      cy.visitWithLogin(
+        '/?devFeatureFlags=modelDeploymentSettings=true,vLLMDeploymentOnMaaS=true',
+        LDAP_ADMIN_USER,
+      );
 
       cy.step('Create unsupported accelerator config from UI');
       llmAcceleratorConfigs.navigate();

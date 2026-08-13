@@ -23,7 +23,9 @@ export const cleanupLLMInferenceServiceConfig = (
   return cy.exec(deleteCommand, { failOnNonZeroExit: false }).then((result) => {
     if (result.exitCode !== 0) {
       throw new Error(
-        `Failed to delete LLMInferenceServiceConfig ${configName} in ${applicationNamespace}: ${result.stderr || result.stdout}`,
+        `Failed to delete LLMInferenceServiceConfig ${configName} in ${applicationNamespace}: ${
+          result.stderr || result.stdout
+        }`,
       );
     }
     return cy.wrap(result);

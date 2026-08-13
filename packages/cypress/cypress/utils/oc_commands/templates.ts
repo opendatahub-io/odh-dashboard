@@ -67,4 +67,6 @@ export const renderYamlFileWithReplacements = (
   yamlPath: string,
   replacements: Record<string, string>,
 ): Cypress.Chainable<string> =>
-  cy.readFile(yamlPath, 'utf8').then((yamlContent) => replacePlaceholdersInYaml(yamlContent, replacements));
+  cy
+    .readFile(yamlPath, 'utf8')
+    .then((yamlContent) => replacePlaceholdersInYaml(yamlContent, replacements));
