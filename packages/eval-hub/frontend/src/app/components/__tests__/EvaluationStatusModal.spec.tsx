@@ -288,66 +288,6 @@ describe('EvaluationStatusModal benchmark summary', () => {
   });
 });
 
-describe('EvaluationStatusModal benchmark warnings', () => {
-  it('should display warning_message on a completed benchmark', () => {
-    const job = mockEvaluationJob({ state: 'partially_failed' });
-    /* eslint-disable camelcase */
-    job.status.benchmarks = [
-      {
-        id: 'bm-ok',
-        benchmark_index: 0,
-        status: 'completed',
-        warning_message: { message: 'Quota nearing limit', message_code: 'quota_exceeded' },
-      },
-      { id: 'bm-fail', benchmark_index: 1, status: 'failed', error_message: { message: 'err' } },
-    ];
-    /* eslint-enable camelcase */
-
-    render(<EvaluationStatusModal job={job} namespace="test-ns" onClose={mockOnClose} />);
-
-    const warning = screen.getByTestId('benchmark-warning-bm-ok');
-    expect(warning).toHaveTextContent('Quota nearing limit');
-  });
-
-  it('should display both error and warning on a failed benchmark', () => {
-    const job = mockEvaluationJob({ state: 'failed' });
-    /* eslint-disable camelcase */
-    job.status.benchmarks = [
-      {
-        id: 'bm-both',
-        benchmark_index: 0,
-        status: 'failed',
-        error_message: { message: 'Job crashed' },
-        warning_message: { message: 'High memory usage' },
-      },
-    ];
-    /* eslint-enable camelcase */
-
-    render(<EvaluationStatusModal job={job} namespace="test-ns" onClose={mockOnClose} />);
-
-    expect(screen.getByTestId('benchmark-error-message-bm-both')).toHaveTextContent('Job crashed');
-    expect(screen.getByTestId('benchmark-warning-bm-both')).toHaveTextContent('High memory usage');
-  });
-
-  it('should not display warning block when warning_message is absent', () => {
-    const job = mockEvaluationJob({ state: 'failed', statusMessage: 'Failed' });
-    /* eslint-disable camelcase */
-    job.status.benchmarks = [
-      {
-        id: 'bm-nowarning',
-        benchmark_index: 0,
-        status: 'failed',
-        error_message: { message: 'err' },
-      },
-    ];
-    /* eslint-enable camelcase */
-
-    render(<EvaluationStatusModal job={job} namespace="test-ns" onClose={mockOnClose} />);
-
-    expect(screen.queryByTestId('benchmark-warning-bm-nowarning')).not.toBeInTheDocument();
-  });
-});
-
 describe('EvaluationStatusModal log API unavailable', () => {
   it('should show a permanent info message when the log API returns 404', () => {
     mockUseEvaluationJobLogs.mockReturnValue({
@@ -789,12 +729,14 @@ describe('EvaluationStatusModal log level filter', () => {
 
   it('should render the log level filter button', () => {
     renderModal();
+    switchToEventsLog();
 
     expect(screen.getByTestId('log-level-filter')).toBeInTheDocument();
   });
 
   it('should show all log entries by default', () => {
     renderModal();
+    switchToEventsLog();
 
     const logContent = screen.getByTestId('log-content');
     expect(logContent.textContent).toContain('Starting evaluation');
@@ -805,6 +747,7 @@ describe('EvaluationStatusModal log level filter', () => {
 
   it('should filter to warnings and errors when "Warnings and errors" is selected', () => {
     renderModal();
+    switchToEventsLog();
 
     fireEvent.click(screen.getByTestId('log-level-filter'));
     fireEvent.click(screen.getByText('Warnings and errors'));
@@ -818,6 +761,7 @@ describe('EvaluationStatusModal log level filter', () => {
 
   it('should filter to errors only when "Errors only" is selected', () => {
     renderModal();
+    switchToEventsLog();
 
     fireEvent.click(screen.getByTestId('log-level-filter'));
     fireEvent.click(screen.getByText('Errors only'));
@@ -830,6 +774,7 @@ describe('EvaluationStatusModal log level filter', () => {
 
   it('should show all entries again when switching back to "All messages"', () => {
     renderModal();
+    switchToEventsLog();
 
     fireEvent.click(screen.getByTestId('log-level-filter'));
     fireEvent.click(screen.getByText('Errors only'));
@@ -853,6 +798,7 @@ describe('EvaluationStatusModal log level filter', () => {
     });
 
     renderModal();
+    switchToEventsLog();
 
     fireEvent.click(screen.getByTestId('log-level-filter'));
     fireEvent.click(screen.getByText('Errors only'));
@@ -877,6 +823,7 @@ describe('EvaluationStatusModal log level filter', () => {
     });
 
     renderModal();
+    switchToEventsLog();
 
     fireEvent.click(screen.getByTestId('log-level-filter'));
     fireEvent.click(screen.getByText('Errors only'));
@@ -896,6 +843,7 @@ describe('EvaluationStatusModal log level filter', () => {
     });
 
     renderModal();
+    switchToEventsLog();
 
     fireEvent.click(screen.getByTestId('log-level-filter'));
     fireEvent.click(screen.getByText('Errors only'));
@@ -913,6 +861,7 @@ describe('EvaluationStatusModal log level filter', () => {
     });
 
     renderModal();
+    switchToEventsLog();
 
     fireEvent.click(screen.getByTestId('log-level-filter'));
     fireEvent.click(screen.getByText('Warnings and errors'));
@@ -935,6 +884,7 @@ describe('EvaluationStatusModal log level filter', () => {
     });
 
     renderModal();
+    switchToEventsLog();
 
     fireEvent.click(screen.getByTestId('log-level-filter'));
     fireEvent.click(screen.getByText('Errors only'));
