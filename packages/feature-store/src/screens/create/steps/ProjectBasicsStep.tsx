@@ -11,7 +11,6 @@ import {
 } from '@patternfly/react-core';
 import FormSection from '@odh-dashboard/internal/components/pf-overrides/FormSection';
 import SimpleSelect from '@odh-dashboard/ui-core/components/SimpleSelect';
-import useAccessibleNamespaces from '../../../hooks/useAccessibleNamespaces';
 import {
   FeatureStoreFormData,
   FEAST_PROJECT_NAME_REGEX,
@@ -21,11 +20,17 @@ import {
 
 type UpdateObjectAtPropAndValue<T> = <K extends keyof T>(propKey: K, propValue: T[K]) => void;
 
+type NamespaceInfo = {
+  name: string;
+  displayName: string;
+};
+
 type ProjectBasicsStepProps = {
   data: FeatureStoreFormData;
   setData: UpdateObjectAtPropAndValue<FeatureStoreFormData>;
   existingProjectNames: string[];
   namespaceSecrets: string[];
+  accessibleNamespaces: { namespaces: NamespaceInfo[]; loaded: boolean; error?: Error };
 };
 
 const ProjectBasicsStep: React.FC<ProjectBasicsStepProps> = ({
@@ -33,8 +38,9 @@ const ProjectBasicsStep: React.FC<ProjectBasicsStepProps> = ({
   setData,
   existingProjectNames,
   namespaceSecrets,
+  accessibleNamespaces,
 }) => {
-  const { namespaces, loaded: namespacesLoaded } = useAccessibleNamespaces();
+  const { namespaces, loaded: namespacesLoaded, error: namespacesError } = accessibleNamespaces;
 
   const nameValid =
     data.feastProject.length === 0 || FEAST_PROJECT_NAME_REGEX.test(data.feastProject);
@@ -77,7 +83,7 @@ const ProjectBasicsStep: React.FC<ProjectBasicsStepProps> = ({
   };
 
   return (
-    <Form>
+    <Form maxWidth="750px">
       <FormSection title="Feature store details">
         <FormGroup label="Name" isRequired fieldId="feast-project-name">
           <TextInput
@@ -86,7 +92,7 @@ const ProjectBasicsStep: React.FC<ProjectBasicsStepProps> = ({
             value={data.feastProject}
             onChange={(_e, val) => setData('feastProject', val)}
             validated={!nameValid || nameIsDuplicate ? 'error' : 'default'}
-            placeholder="myfeaturestore"
+            placeholder="my-feature-store"
           />
           <FormHelperText>
             <HelperText>
@@ -146,9 +152,15 @@ const ProjectBasicsStep: React.FC<ProjectBasicsStepProps> = ({
           />
           <FormHelperText>
             <HelperText>
-              <HelperTextItem>
-                Only projects where you have permission to create feature stores are shown.
-              </HelperTextItem>
+              {namespacesError ? (
+                <HelperTextItem variant="error">
+                  Failed to load projects: {namespacesError.message}
+                </HelperTextItem>
+              ) : (
+                <HelperTextItem>
+                  Only projects where you have permission to create feature stores are shown.
+                </HelperTextItem>
+              )}
             </HelperText>
           </FormHelperText>
         </FormGroup>
@@ -258,7 +270,7 @@ const ProjectBasicsStep: React.FC<ProjectBasicsStepProps> = ({
                 </HelperText>
               </FormHelperText>
             </FormGroup>
-            <FormGroup label="Credentials secret (envFrom)" fieldId="feast-git-envfrom">
+            <FormGroup label="Git credentials secret" fieldId="feast-git-envfrom">
               <SimpleSelect
                 dataTestId="feast-git-envfrom"
                 options={namespaceSecrets.map((s) => ({ key: s, label: s }))}
@@ -282,10 +294,9 @@ const ProjectBasicsStep: React.FC<ProjectBasicsStepProps> = ({
       </FormSection>
 
       {existingProjectNames.length > 0 && (
-        <Alert variant="info" isInline title="Multiple feature stores detected">
-          Existing feature stores detected. Multiple feature store support requires a shared
-          (remote) registry. If the existing feature store uses a local registry, the new one should
-          use a remote registry pointing to it.
+        <Alert variant="info" isInline title="Existing feature store detected">
+          Creating another feature store requires a shared remote registry. If the existing feature
+          store uses a local registry, configure this one with a remote registry that points to it.
         </Alert>
       )}
     </Form>
