@@ -97,23 +97,10 @@ describe('EvaluationStatusLabel', () => {
   });
 });
 
-describe('EvaluationStatusLabel partially_failed with benchmarks', () => {
-  it('should show "X of Y failed" when benchmarks are provided for partially_failed state', () => {
-    const benchmarks = [
-      { status: 'failed' },
-      { status: 'completed' },
-      { status: 'failed' },
-      { status: 'completed' },
-    ];
-    render(<EvaluationStatusLabel state="partially_failed" benchmarks={benchmarks} />);
-    expect(screen.getByTestId('status-label-partially_failed')).toHaveTextContent('2 of 4 failed');
-  });
-
-  it('should show "Partially failed" when no benchmarks prop is provided', () => {
+describe('EvaluationStatusLabel partially_failed', () => {
+  it('should show "Failed" for partially_failed state', () => {
     render(<EvaluationStatusLabel state="partially_failed" />);
-    expect(screen.getByTestId('status-label-partially_failed')).toHaveTextContent(
-      'Partially failed',
-    );
+    expect(screen.getByTestId('status-label-partially_failed')).toHaveTextContent('Failed');
   });
 });
 

@@ -4,14 +4,12 @@ import {
   BanIcon,
   CheckCircleIcon,
   ExclamationCircleIcon,
-  ExclamationTriangleIcon,
   InProgressIcon,
   OffIcon,
   PendingIcon,
   QuestionCircleIcon,
 } from '@patternfly/react-icons';
 import { EvaluationJobState } from '~/app/types';
-import { getFailedBenchmarkCount } from '~/app/utilities/evaluationUtils';
 
 type StatusConfig = {
   label: string;
@@ -48,6 +46,7 @@ const statusMap: Partial<Record<EvaluationJobState | 'not_started', StatusConfig
     label: 'Not started',
     status: 'danger',
     icon: <ExclamationCircleIcon />,
+    isFilled: true,
   },
   cancelled: {
     label: 'Canceled',
@@ -64,13 +63,6 @@ const statusMap: Partial<Record<EvaluationJobState | 'not_started', StatusConfig
     color: 'grey',
     icon: <OffIcon />,
   },
-
-  // eslint-disable-next-line camelcase -- matches the API's state value verbatim
-  partially_failed: {
-    label: 'Partially failed',
-    status: 'danger',
-    icon: <ExclamationTriangleIcon />,
-  },
 };
 
 const unknownStatusConfig: StatusConfig = {
@@ -84,22 +76,20 @@ type EvaluationStatusLabelProps = {
   /** When true and state is 'failed', renders the "Not started" badge — no benchmark ever received a started_at timestamp. */
   isPreStartFailure?: boolean;
   onClick?: () => void;
-  /** For partially_failed state: when provided, shows "X of Y failed" instead of "Partially failed". */
-  benchmarks?: Array<{ status: string }>;
 };
 
 const EvaluationStatusLabel: React.FC<EvaluationStatusLabelProps> = ({
   state,
   isPreStartFailure,
   onClick,
-  benchmarks,
 }) => {
-  const effectiveState = state === 'failed' && isPreStartFailure ? 'not_started' : state;
+  const effectiveState =
+    state === 'failed' && isPreStartFailure
+      ? 'not_started'
+      : state === 'partially_failed'
+        ? 'failed'
+        : state;
   const config = statusMap[effectiveState] ?? unknownStatusConfig;
-  const label =
-    effectiveState === 'partially_failed' && benchmarks != null
-      ? `${getFailedBenchmarkCount(benchmarks)} of ${benchmarks.length} failed`
-      : config.label;
 
   return (
     <Label
@@ -110,7 +100,7 @@ const EvaluationStatusLabel: React.FC<EvaluationStatusLabelProps> = ({
       data-testid={onClick ? 'evaluation-status-button' : `status-label-${state}`}
       {...(onClick ? { onClick } : {})}
     >
-      {label}
+      {config.label}
     </Label>
   );
 };

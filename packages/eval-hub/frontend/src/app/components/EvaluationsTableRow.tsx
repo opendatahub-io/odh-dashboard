@@ -222,7 +222,6 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
             state={displayState}
             isPreStartFailure={isPreStart}
             onClick={() => onShowStatus(job)}
-            benchmarks={displayState === 'partially_failed' ? effectiveBenchmarks : undefined}
           />
           {(displayState === 'failed' || displayState === 'partially_failed') &&
           effectiveBenchmarks.length > 1 ? (

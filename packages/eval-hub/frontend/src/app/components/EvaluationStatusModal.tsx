@@ -336,8 +336,9 @@ type ProgressBenchmark = {
 const ProgressTabContent: React.FC<{
   benchmarks: ProgressBenchmark[];
   hasPolledData: boolean;
+  isTerminal: boolean;
   onViewLogs: (benchmarkIndex: number) => void;
-}> = ({ benchmarks, hasPolledData, onViewLogs }) => {
+}> = ({ benchmarks, hasPolledData, isTerminal, onViewLogs }) => {
   const [expandedIds, setExpandedIds] = React.useState<Set<string>>(
     () =>
       new Set(benchmarks.length > 0 && benchmarks.length <= 5 ? benchmarks.map((b) => b.id) : []),
@@ -550,13 +551,17 @@ const ProgressTabContent: React.FC<{
         <StackItem className="evalhub-status-modal__empty-progress">
           <EmptyState
             variant={EmptyStateVariant.sm}
-            icon={InProgressIcon}
+            icon={isTerminal ? BanIcon : InProgressIcon}
             headingLevel="h4"
-            titleText="Waiting for benchmarks to start"
+            titleText={
+              isTerminal ? 'No benchmarks were started' : 'Waiting for benchmarks to start'
+            }
             data-testid="progress-empty-state"
           >
             <EmptyStateBody>
-              Benchmarks will appear here once the evaluation job begins processing.
+              {isTerminal
+                ? 'The evaluation was stopped before any benchmarks began processing.'
+                : 'Benchmarks will appear here once the evaluation job begins processing.'}
             </EmptyStateBody>
           </EmptyState>
         </StackItem>
@@ -762,19 +767,30 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
   const hasLogContent =
     logEntries.length > 0 && !logEntries.every((e) => e.isSectionHeader || !e.message.trim());
 
+  // Prefer polled state so the badge updates on the 10s cycle rather than waiting for the 30s list refresh
+  const state = polledJobData?.status.state ?? job?.status.state ?? 'pending';
+  const isInProgress = state === 'running' || state === 'pending' || state === 'stopping';
+
+  const [now, setNow] = React.useState(() => new Date().toISOString());
+  React.useEffect(() => {
+    if (!isInProgress) {
+      return undefined;
+    }
+    const id = window.setInterval(() => setNow(new Date().toISOString()), 1000);
+    return () => window.clearInterval(id);
+  }, [isInProgress]);
+
   if (!job) {
     return null;
   }
 
-  // Prefer polled state so the badge updates on the 10s cycle rather than waiting for the 30s list refresh
-  const state = polledJobData?.status.state ?? job.status.state;
   // Prefer polled message so text reflects the latest server state, not the stale list snapshot
   const { message_code: messageCode, message_origin: messageOrigin } =
     polledJobData?.status.message ?? job.status.message ?? {};
-  const isInProgress = state === 'running' || state === 'pending' || state === 'stopping';
+
   const elapsed = formatDurationCompact(
     job.resource.created_at,
-    isInProgress ? new Date().toISOString() : job.resource.updated_at,
+    isInProgress ? now : job.resource.updated_at,
   );
   const isFailed = state === 'failed' || state === 'partially_failed';
   // Use the most-current benchmark data (polled > list) to detect pre-start failures.
@@ -824,11 +840,7 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
               {evaluationName}
             </span>
           </Tooltip>
-          <EvaluationStatusLabel
-            state={state}
-            isPreStartFailure={isPreStart}
-            benchmarks={state === 'partially_failed' ? progressBenchmarks : undefined}
-          />
+          <EvaluationStatusLabel state={state} isPreStartFailure={isPreStart} />
         </div>
       </ModalHeader>
       <ModalBody>
@@ -974,6 +986,7 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
                 <ProgressTabContent
                   benchmarks={progressBenchmarks}
                   hasPolledData={!!polledJobData || !isInProgress}
+                  isTerminal={!isInProgress}
                   onViewLogs={handleViewBenchmarkLogs}
                 />
               </StackItem>
