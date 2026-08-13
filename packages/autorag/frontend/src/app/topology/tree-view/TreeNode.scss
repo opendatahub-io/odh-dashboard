@@ -53,26 +53,28 @@
   display: flex;
   justify-content: center;
   pointer-events: auto;
-  white-space: nowrap;
 
-  /* Neutral pill — PF v6 Button tokens (@patternfly/react-core ~6.5). */
-  --pf-v6-c-button--FontSize: var(--pf-t--global--font--size--body--sm);
-  --pf-v6-c-button--PaddingBlockStart: var(--pf-t--global--spacer--xs);
-  --pf-v6-c-button--PaddingBlockEnd: var(--pf-t--global--spacer--xs);
-  --pf-v6-c-button--PaddingInlineStart: var(--pf-t--global--spacer--sm);
-  --pf-v6-c-button--PaddingInlineEnd: var(--pf-t--global--spacer--sm);
-  --pf-v6-c-button--Color: var(--pf-t--global--text--color--regular);
-  --pf-v6-c-button--BorderColor: var(--pf-t--global--border--color--default);
-  --pf-v6-c-button--hover--Color: var(--pf-t--global--text--color--regular);
-  --pf-v6-c-button--hover--BorderColor: var(--pf-t--global--border--color--hover);
-  --pf-v6-c-button--m-clicked--Color: var(--pf-t--global--text--color--regular);
-  --pf-v6-c-button--m-clicked--BorderColor: var(--pf-t--global--border--color--clicked);
-  --pf-v6-c-button--m-secondary--Color: var(--pf-t--global--text--color--regular);
-  --pf-v6-c-button--m-secondary--BorderColor: var(--pf-t--global--border--color--default);
-  --pf-v6-c-button--m-secondary--hover--Color: var(--pf-t--global--text--color--regular);
-  --pf-v6-c-button--m-secondary--hover--BorderColor: var(--pf-t--global--border--color--hover);
-  --pf-v6-c-button--m-secondary--m-clicked--Color: var(--pf-t--global--text--color--regular);
-  --pf-v6-c-button--m-secondary--m-clicked--BorderColor: var(--pf-t--global--border--color--clicked);
+  /* Neutral pill — PF v6 Button tokens; nested selector beats .pf-m-secondary aliases (~6.5). */
+  .pf-v6-c-button.pf-m-secondary {
+    white-space: nowrap;
+    --pf-v6-c-button--FontSize: var(--pf-t--global--font--size--body--sm);
+    --pf-v6-c-button--PaddingBlockStart: var(--pf-t--global--spacer--xs);
+    --pf-v6-c-button--PaddingBlockEnd: var(--pf-t--global--spacer--xs);
+    --pf-v6-c-button--PaddingInlineStart: var(--pf-t--global--spacer--sm);
+    --pf-v6-c-button--PaddingInlineEnd: var(--pf-t--global--spacer--sm);
+    --pf-v6-c-button--Color: var(--pf-t--global--text--color--regular);
+    --pf-v6-c-button--BorderColor: var(--pf-t--global--border--color--default);
+    --pf-v6-c-button--hover--Color: var(--pf-t--global--text--color--regular);
+    --pf-v6-c-button--hover--BorderColor: var(--pf-t--global--border--color--hover);
+    --pf-v6-c-button--m-clicked--Color: var(--pf-t--global--text--color--regular);
+    --pf-v6-c-button--m-clicked--BorderColor: var(--pf-t--global--border--color--clicked);
+    --pf-v6-c-button--m-secondary--Color: var(--pf-t--global--text--color--regular);
+    --pf-v6-c-button--m-secondary--BorderColor: var(--pf-t--global--border--color--default);
+    --pf-v6-c-button--m-secondary--hover--Color: var(--pf-t--global--text--color--regular);
+    --pf-v6-c-button--m-secondary--hover--BorderColor: var(--pf-t--global--border--color--hover);
+    --pf-v6-c-button--m-secondary--m-clicked--Color: var(--pf-t--global--text--color--regular);
+    --pf-v6-c-button--m-secondary--m-clicked--BorderColor: var(--pf-t--global--border--color--clicked);
+  }
 }
 
 /* Design: saturated brand-blue star + ring on white (not pale nonstatus blue). */
