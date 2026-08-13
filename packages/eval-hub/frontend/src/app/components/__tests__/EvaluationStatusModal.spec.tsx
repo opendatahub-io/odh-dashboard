@@ -391,6 +391,7 @@ describe('EvaluationStatusModal log API unavailable', () => {
     });
 
     renderModal(mockEvaluationJob({ state: 'completed' }));
+    switchToEventsLog();
 
     const alert = screen.getByTestId('logs-error-alert');
     expect(alert).toHaveTextContent('Internal Server Error');
@@ -406,6 +407,7 @@ describe('EvaluationStatusModal log API unavailable', () => {
     });
 
     renderModal();
+    switchToEventsLog();
 
     const alert = screen.getByTestId('logs-error-alert');
     expect(alert).toHaveTextContent('Bad Request');
