@@ -106,11 +106,11 @@ const CompareBenchmarksTableRow: React.FC<CompareBenchmarksTableRowProps> = ({
             data-testid={`compare-run-checkbox-${job.resource.id}`}
           />
         </Td>
-        <Td dataLabel="Evaluation run">{evaluationRunLabel}</Td>
+        <Td dataLabel="Evaluation name">{evaluationRunLabel}</Td>
+        <Td dataLabel="Evaluation">{evaluationLabel}</Td>
         <Td modifier="nowrap" dataLabel="Type">
           {getCompareRunType(job)}
         </Td>
-        <Td dataLabel="Evaluation">{evaluationLabel}</Td>
         <Td dataLabel="Evaluated">{job.model.name}</Td>
         <Td modifier="nowrap" dataLabel="Date">
           {formatCompareTableDate(job.resource.created_at)}
@@ -143,21 +143,17 @@ const CompareBenchmarksTableRow: React.FC<CompareBenchmarksTableRowProps> = ({
                     data-testid={`compare-benchmark-checkbox-${selectionKey}`}
                   />
                 </Td>
-                <Td modifier="nowrap" dataLabel="Evaluation run">
-                  <span className="pf-v6-u-pl-lg">{benchmarkLabel}</span>
+                {/* Empty — child rows don't repeat the evaluation run label */}
+                <Td modifier="nowrap" dataLabel="Evaluation name" />
+                <Td modifier="nowrap" dataLabel="Evaluation">
+                  {getBenchmarkDisplayName(run.benchmarkId)}
                 </Td>
                 <Td modifier="nowrap" dataLabel="Type">
                   {COMPARE_CHILD_RUN_TYPE}
                 </Td>
-                <Td modifier="nowrap" dataLabel="Evaluation">
-                  {getBenchmarkDisplayName(run.benchmarkId)}
-                </Td>
-                <Td modifier="nowrap" dataLabel="Evaluated">
-                  {job.model.name}
-                </Td>
-                <Td modifier="nowrap" dataLabel="Date">
-                  {formatCompareTableDate(job.resource.created_at)}
-                </Td>
+                {/* Empty — child rows don't repeat model or date */}
+                <Td modifier="nowrap" dataLabel="Evaluated" />
+                <Td modifier="nowrap" dataLabel="Date" />
                 <Td modifier="nowrap" dataLabel="Result">
                   {getCompareBenchmarkResultScore(job, run.benchmarkId, run.benchmarkIndex)}
                 </Td>

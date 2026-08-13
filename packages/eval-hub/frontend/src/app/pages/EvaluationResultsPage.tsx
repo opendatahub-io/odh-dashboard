@@ -102,13 +102,17 @@ const EvaluationResultsPage: React.FC = () => {
     ? formatDuration(job.resource.created_at, job.resource.updated_at)
     : undefined;
 
-  // Resolve the selected benchmark object from the composite key.
-  const selectedBenchmark = React.useMemo(() => {
+  // Resolve the selected benchmark object and its occurrence index from the composite key.
+  const { selectedBenchmark, selectedOccurrenceIndex } = React.useMemo(() => {
     if (!selectedBenchmarkKey) {
-      return undefined;
+      return { selectedBenchmark: undefined, selectedOccurrenceIndex: undefined };
     }
     const idx = benchmarkKeys.indexOf(selectedBenchmarkKey);
-    return idx >= 0 ? benchmarks[idx] : undefined;
+    if (idx < 0) {
+      return { selectedBenchmark: undefined, selectedOccurrenceIndex: undefined };
+    }
+    const bm = benchmarks[idx];
+    return { selectedBenchmark: bm, selectedOccurrenceIndex: bm.benchmark_index ?? idx };
   }, [selectedBenchmarkKey, benchmarkKeys, benchmarks]);
 
   const scoreDisplay = React.useMemo(() => {
@@ -124,12 +128,10 @@ const EvaluationResultsPage: React.FC = () => {
       return undefined;
     }
     return job.results.benchmarks.find(
-      (b) =>
-        b.id === selectedBenchmark.id &&
-        (selectedBenchmark.benchmark_index === undefined ||
-          b.benchmark_index === selectedBenchmark.benchmark_index),
+      (b, idx) =>
+        b.id === selectedBenchmark.id && (b.benchmark_index ?? idx) === selectedOccurrenceIndex,
     )?.mlflow_run_id;
-  }, [selectedBenchmark, job?.results.benchmarks]);
+  }, [selectedBenchmark, selectedOccurrenceIndex, job?.results.benchmarks]);
 
   const mlflowRunTabsKey = React.useMemo(() => {
     if (!mlflowExperimentId || !mlflowRunId || !selectedBenchmarkKey) {
@@ -140,13 +142,13 @@ const EvaluationResultsPage: React.FC = () => {
 
   const metadataRow = job ? (
     <Flex
-      gap={{ default: 'gapLg' }}
+      gap={{ default: 'gapMd' }}
       alignItems={{ default: 'alignItemsCenter' }}
       data-testid="evaluation-metadata"
     >
       {job.resource.created_at && (
         <FlexItem>
-          <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
+          <Content component="p" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
             <CalendarAltIcon
               className="pf-v6-u-mr-xs"
               style={{ color: 'var(--pf-t--global--icon--color--subtle)' }}
@@ -156,7 +158,7 @@ const EvaluationResultsPage: React.FC = () => {
         </FlexItem>
       )}
       <FlexItem>
-        <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
+        <Content component="p" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
           <img
             src={isDarkMode ? aiModelIconDark : aiModelIconLight}
             alt=""
@@ -168,7 +170,7 @@ const EvaluationResultsPage: React.FC = () => {
         </Content>
       </FlexItem>
       <FlexItem>
-        <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
+        <Content component="p" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
           <img
             src={isDarkMode ? paperStackIconDark : paperStackIconLight}
             alt=""
@@ -181,7 +183,7 @@ const EvaluationResultsPage: React.FC = () => {
       </FlexItem>
       {duration && (
         <FlexItem>
-          <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
+          <Content component="p" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
             <OutlinedClockIcon
               className="pf-v6-u-mr-xs"
               style={{ color: 'var(--pf-t--global--icon--color--subtle)' }}
@@ -230,12 +232,12 @@ const EvaluationResultsPage: React.FC = () => {
             <div className="pf-v6-u-mb-lg" data-testid="evaluation-score-section">
               <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
                 <FlexItem>
-                  <Content component="h3">Evaluation score</Content>
+                  <Content component="h3">Result</Content>
                 </FlexItem>
                 <FlexItem>
                   <LabelHelpPopover
-                    ariaLabel="About evaluation score"
-                    title="Evaluation score"
+                    ariaLabel="About result"
+                    title="Result"
                     content={
                       job.collection
                         ? 'Weighted average based on the primary metric score of the benchmark runs and the benchmark weights.'
@@ -263,6 +265,7 @@ const EvaluationResultsPage: React.FC = () => {
                         key={cardKey}
                         benchmarkId={benchmark.id}
                         benchmarkIndex={benchmark.benchmark_index}
+                        occurrenceIndex={i}
                         job={job}
                         isSelected={selectedBenchmarkKey === cardKey}
                         onClick={() => {
@@ -294,7 +297,7 @@ const EvaluationResultsPage: React.FC = () => {
             {selectedBenchmark && (
               <BenchmarkResultDetails
                 benchmarkId={selectedBenchmark.id}
-                benchmarkIndex={selectedBenchmark.benchmark_index ?? 0}
+                benchmarkIndex={selectedOccurrenceIndex}
                 job={job}
               />
             )}

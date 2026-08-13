@@ -19,7 +19,6 @@ import {
   getAllBenchmarkNames,
   getBenchmarkName,
   getEvaluationName,
-  getResultPass,
   getResultScore,
   isEvaluationJobComparable,
 } from '~/app/utilities/evaluationUtils';
@@ -238,7 +237,7 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
           {formatDate(job.resource.created_at)}
         </Td>
         <Td dataLabel="Result" data-testid="evaluation-result">
-          {allBenchmarkNames.length > 1 || getResultPass(job) === false ? '-' : getResultScore(job)}
+          {getResultScore(job)}
         </Td>
         <Td isActionCell data-testid="evaluation-kebab">
           {actions.length > 0 && <ActionsColumn items={actions} />}

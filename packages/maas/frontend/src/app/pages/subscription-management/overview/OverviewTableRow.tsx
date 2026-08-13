@@ -8,7 +8,7 @@ import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analytic
 import { ModelOverviewItem } from '~/app/types/subscriptions';
 import { URL_PREFIX } from '~/app/utilities/const';
 import { PhaseLabelLocation, PhaseResourceType } from '~/app/utilities/phaseLabelUtils';
-import PhaseLabel from '~/app/shared/PhaseLabel';
+import PhaseLabel from '~/app/shared/Phase/PhaseLabel';
 import { MaaSEvents } from '~/app/types/event-tracking';
 import { overviewColumns } from './utils';
 import ExpandedModelContent from './ExpandedModelContent';

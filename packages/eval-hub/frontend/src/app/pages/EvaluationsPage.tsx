@@ -52,7 +52,7 @@ const EvaluationsPage: React.FC = () => {
     <>
       <ApplicationsPage
         title={<EvalHubHeader title="Evaluations" />}
-        description="Start and manage evaluation runs for models and agents."
+        description="Start and manage evaluation runs for models, agents and datasets."
         headerContent={
           <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
             <ProjectIconWithSize size={IconSize.LG} />

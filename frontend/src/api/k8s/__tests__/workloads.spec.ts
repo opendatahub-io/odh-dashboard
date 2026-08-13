@@ -491,4 +491,20 @@ describe('buildWorkloadMapForDeployments', () => {
     expect(result[isKey(IS_NAME)]).toEqual([]);
     expect(Object.keys(result)).toEqual([isKey(IS_NAME)]);
   });
+
+  it("a dead (terminated) pod does not shadow a healthy replacement pod's Workload for the same IS", () => {
+    const deadUid = 'uid-dead-pod';
+    const liveUid = 'uid-live-pod';
+    const deadPod = isPod('predictor-old', IS_NAME, deadUid);
+    const terminatedDeadPod = { ...deadPod, status: { ...deadPod.status, phase: 'Failed' } };
+    const livePod = isPod('predictor-new', IS_NAME, liveUid);
+    const wlDead = workloadWithPodOwnerRef('wl-dead', deadUid);
+    const wlLive = workloadWithPodOwnerRef('wl-live', liveUid);
+    const result = buildWorkloadMapForDeployments(
+      [wlDead, wlLive],
+      [terminatedDeadPod, livePod],
+      [inferenceService(IS_NAME)],
+    );
+    expect(result[isKey(IS_NAME)]).toEqual([wlLive]);
+  });
 });

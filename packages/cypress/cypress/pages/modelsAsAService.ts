@@ -686,6 +686,26 @@ class PhaseModal extends Modal {
   findViewDetailsLink(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().findByTestId('phase-modal-view-details-link');
   }
+
+  findAffectedModelsTable(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('affected-models-table');
+  }
+
+  findAffectedModelName(name: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findAffectedModelsTable().findByTestId(`affected-model-name-${name}`);
+  }
+
+  findAffectedModelNamespace(name: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findAffectedModelsTable().findByTestId(`affected-model-namespace-${name}`);
+  }
+
+  findAffectedModelStatus(name: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findAffectedModelsTable().findByTestId(`affected-model-status-${name}`);
+  }
+
+  findAffectedModelStatusMessage(name: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findAffectedModelsTable().findByTestId(`affected-model-status-message-${name}`);
+  }
 }
 class CreateSubscriptionPage {
   visit(): void {

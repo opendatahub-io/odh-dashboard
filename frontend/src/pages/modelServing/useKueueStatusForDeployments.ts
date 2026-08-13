@@ -13,7 +13,20 @@ import {
 import { aggregateKueueStatusForModel, KUEUE_QUEUE_LABEL } from '#~/concepts/kueue/index';
 
 // Avoids importing @odh-dashboard/llmd-serving/types (not a frontend dep).
-type NamedModelResource = { metadata: { name: string } };
+type NamedModelResource = { metadata: { name: string; labels?: Record<string, string> } };
+
+const EMPTY_STATUS_MAP: Record<string, KueueWorkloadStatusWithMessage | null> = {};
+
+const useStableStatusMap = (
+  statusMap: Record<string, KueueWorkloadStatusWithMessage | null>,
+): Record<string, KueueWorkloadStatusWithMessage | null> => {
+  const ref = React.useRef({ serialized: '', value: EMPTY_STATUS_MAP });
+  const serialized = JSON.stringify(statusMap);
+  if (serialized !== ref.current.serialized) {
+    ref.current = { serialized, value: statusMap };
+  }
+  return ref.current.value;
+};
 
 export type KueueStatusForDeploymentsResult = {
   /** Keys are `buildModelDeploymentKey(kind, name)` e.g. `InferenceService/foo`. */
@@ -54,9 +67,9 @@ export const useKueueStatusForDeployments = (
     useKueue ? namespace : undefined,
   );
 
-  const kueueStatusByDeploymentKey = React.useMemo(() => {
+  const rawKueueStatusByDeploymentKey = React.useMemo(() => {
     if (!useKueue) {
-      return {};
+      return EMPTY_STATUS_MAP;
     }
     const allPods = [...isPods, ...llmisPods];
     const workloadMap = buildWorkloadMapForDeployments(
@@ -65,13 +78,27 @@ export const useKueueStatusForDeployments = (
       inferenceServices,
       llmInferenceServices,
     );
-    const isByKey = new Map(
-      inferenceServices
+    const isByKey = new Map<string, NamedModelResource>([
+      ...inferenceServices
         .filter((is): is is typeof is & { metadata: { name: string } } => Boolean(is.metadata.name))
-        .map((is) => [buildModelDeploymentKey('InferenceService', is.metadata.name), is]),
-    );
+        .map((is): [string, NamedModelResource] => [
+          buildModelDeploymentKey('InferenceService', is.metadata.name),
+          is,
+        ]),
+      ...llmInferenceServices
+        .filter((llmis): llmis is typeof llmis & { metadata: { name: string } } =>
+          Boolean(llmis.metadata.name),
+        )
+        .map((llmis): [string, NamedModelResource] => [
+          buildModelDeploymentKey('LLMInferenceService', llmis.metadata.name),
+          llmis,
+        ]),
+    ]);
     const statusMap: Record<string, KueueWorkloadStatusWithMessage | null> = {};
     for (const [deploymentKey, isWorkloads] of Object.entries(workloadMap)) {
+      // Mirrors useKueueStatusForNotebooks: no matching Workload CR → null, full stop. No
+      // queueName-based fallback — the queue label stays on the IS/LLMIS even while stopped, so
+      // guessing a status here (e.g. "Queued") from label presence alone is unreliable.
       const aggregated = aggregateKueueStatusForModel(isWorkloads);
       if (!aggregated) {
         statusMap[deploymentKey] = null;
@@ -83,8 +110,11 @@ export const useKueueStatusForDeployments = (
         queueName: is?.metadata.labels?.[KUEUE_QUEUE_LABEL],
       };
     }
+
     return statusMap;
   }, [useKueue, workloads, isPods, llmisPods, inferenceServices, llmInferenceServices]);
+
+  const kueueStatusByDeploymentKey = useStableStatusMap(rawKueueStatusByDeploymentKey);
 
   return {
     kueueStatusByDeploymentKey,
