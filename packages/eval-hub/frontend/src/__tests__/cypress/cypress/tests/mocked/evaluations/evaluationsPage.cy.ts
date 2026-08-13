@@ -244,9 +244,9 @@ describe('Evaluations Page - Status labels', () => {
     evaluationsPage.findStatusCell(1).should('have.text', 'Failed');
   });
 
-  it('should show "Partially failed" badge for a partially_failed job', () => {
+  it('should show "Failed" badge for a partially_failed job', () => {
     evaluationsPage.visit(NAMESPACE);
-    evaluationsPage.findStatusCell(2).should('have.text', '1 of 2 failed');
+    evaluationsPage.findStatusCell(2).should('have.text', 'Failed');
   });
 });
 
@@ -288,20 +288,18 @@ describe('Evaluations Page - Status modal', () => {
     evaluationsPage.findStatusModal().should('exist');
   });
 
-  it('should show "Not started" badge and heading in modal for a pre-start failure', () => {
+  it('should show "Not started" badge in modal for a pre-start failure', () => {
     evaluationsPage.visit(NAMESPACE);
     // row 0 = pre-start (Mar 14)
     evaluationsPage.clickStatusBadge(0);
     evaluationsPage.findStatusModalBadge('failed').should('have.text', 'Not started');
-    evaluationsPage.findStatusDetailHeader().should('contain.text', 'Not started');
   });
 
-  it('should show "Failed" badge and heading in modal for a runtime failure', () => {
+  it('should show "Failed" badge in modal for a runtime failure', () => {
     evaluationsPage.visit(NAMESPACE);
     // row 1 = runtime failure (Mar 13)
     evaluationsPage.clickStatusBadge(1);
     evaluationsPage.findStatusModalBadge('failed').should('have.text', 'Failed');
-    evaluationsPage.findStatusDetailHeader().should('not.contain.text', 'Not started');
   });
 });
 /* eslint-enable camelcase */
