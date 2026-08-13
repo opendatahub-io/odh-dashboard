@@ -16,6 +16,7 @@ type StatusConfig = {
   color?: LabelProps['color'];
   status?: LabelProps['status'];
   icon: React.ReactNode;
+  isFilled?: boolean;
 };
 
 const statusMap: Partial<Record<EvaluationJobState | 'not_started', StatusConfig>> = {
