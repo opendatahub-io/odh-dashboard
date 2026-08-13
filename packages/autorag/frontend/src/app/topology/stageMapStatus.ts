@@ -388,8 +388,8 @@ export const promoteWaitingFrontierToInProgress = (
     if (dep.type === DEFAULT_SPACER_NODE_TYPE) {
       const parents = dep.runAfterTasks ?? [];
       return (
-        parents.length > 0 && parents.every((parentId) => isDependencySatisfied(parentId, visiting))
-      );
+        parents.length > 0 &&
+          parents.every((parentId) => isDependencySatisfied(parentId, new Set(visiting)))
     }
 
     return isStageFinished(dep.data?.runStatus);
