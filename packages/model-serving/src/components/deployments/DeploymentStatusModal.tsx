@@ -228,29 +228,31 @@ const DeploymentStatusModal: React.FC<DeploymentStatusModalProps> = ({
       />
       <ModalBody>
         <Stack hasGutter>
-          {showResourcesTab && (
-            <StackItem>
-              <Tabs
-                activeKey={activeTab}
-                onSelect={(_event, tabKey) => setActiveTab(String(tabKey))}
-                aria-label="Deployment status tabs"
-                data-testid="deployment-status-tabs"
-              >
-                <Tab
-                  eventKey={PROGRESS_TAB}
-                  aria-label={PROGRESS_TAB}
-                  title={<TabTitleText>Progress</TabTitleText>}
-                  data-testid="deployment-status-progress-tab"
-                />
+          <StackItem>
+            {/* Tab strip is always shown, even when Resources is the only conditional tab, so
+                the modal shape stays consistent as more tabs (e.g. Events) are added later. */}
+            <Tabs
+              activeKey={activeTab}
+              onSelect={(_event, tabKey) => setActiveTab(String(tabKey))}
+              aria-label="Deployment status tabs"
+              data-testid="deployment-status-tabs"
+            >
+              <Tab
+                eventKey={PROGRESS_TAB}
+                aria-label={PROGRESS_TAB}
+                title={<TabTitleText>Progress</TabTitleText>}
+                data-testid="deployment-status-progress-tab"
+              />
+              {showResourcesTab && (
                 <Tab
                   eventKey={RESOURCES_TAB}
                   aria-label={RESOURCES_TAB}
                   title={<TabTitleText>Resources</TabTitleText>}
                   data-testid="deployment-status-resources-tab"
                 />
-              </Tabs>
-            </StackItem>
-          )}
+              )}
+            </Tabs>
+          </StackItem>
           <StackItem>
             {showResourcesTab && activeTab === RESOURCES_TAB && namespace ? (
               <DeploymentResourcesTab

@@ -15,6 +15,19 @@ import { aggregateKueueStatusForModel, KUEUE_QUEUE_LABEL } from '#~/concepts/kue
 // Avoids importing @odh-dashboard/llmd-serving/types (not a frontend dep).
 type NamedModelResource = { metadata: { name: string; labels?: Record<string, string> } };
 
+const EMPTY_STATUS_MAP: Record<string, KueueWorkloadStatusWithMessage | null> = {};
+
+const useStableStatusMap = (
+  statusMap: Record<string, KueueWorkloadStatusWithMessage | null>,
+): Record<string, KueueWorkloadStatusWithMessage | null> => {
+  const ref = React.useRef({ serialized: '', value: EMPTY_STATUS_MAP });
+  const serialized = JSON.stringify(statusMap);
+  if (serialized !== ref.current.serialized) {
+    ref.current = { serialized, value: statusMap };
+  }
+  return ref.current.value;
+};
+
 export type KueueStatusForDeploymentsResult = {
   /** Keys are `buildModelDeploymentKey(kind, name)` e.g. `InferenceService/foo`. */
   kueueStatusByDeploymentKey: Record<string, KueueWorkloadStatusWithMessage | null>;
@@ -54,9 +67,9 @@ export const useKueueStatusForDeployments = (
     useKueue ? namespace : undefined,
   );
 
-  const kueueStatusByDeploymentKey = React.useMemo(() => {
+  const rawKueueStatusByDeploymentKey = React.useMemo(() => {
     if (!useKueue) {
-      return {};
+      return EMPTY_STATUS_MAP;
     }
     const allPods = [...isPods, ...llmisPods];
     const workloadMap = buildWorkloadMapForDeployments(
@@ -100,6 +113,8 @@ export const useKueueStatusForDeployments = (
 
     return statusMap;
   }, [useKueue, workloads, isPods, llmisPods, inferenceServices, llmInferenceServices]);
+
+  const kueueStatusByDeploymentKey = useStableStatusMap(rawKueueStatusByDeploymentKey);
 
   return {
     kueueStatusByDeploymentKey,

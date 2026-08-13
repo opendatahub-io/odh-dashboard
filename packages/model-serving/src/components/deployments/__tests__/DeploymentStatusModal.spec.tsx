@@ -188,6 +188,16 @@ describe('DeploymentStatusModal', () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
+  it('should always show the tab strip with a Progress tab, even when Kueue/Resources is not available', () => {
+    const deployment = createMockDeployment([]);
+
+    render(<DeploymentStatusModal deployment={deployment} onClose={jest.fn()} />);
+
+    expect(screen.getByTestId('deployment-status-tabs')).toBeInTheDocument();
+    expect(screen.getByTestId('deployment-status-progress-tab')).toBeInTheDocument();
+    expect(screen.queryByTestId('deployment-status-resources-tab')).not.toBeInTheDocument();
+  });
+
   it('should handle deployment with no conditions', () => {
     const deployment: Deployment = {
       modelServingPlatformId: 'kserve',
