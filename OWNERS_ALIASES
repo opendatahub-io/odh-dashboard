@@ -280,14 +280,14 @@ aliases:
 
   # Data Registry
   data-registry-approvers:
-    - MStokluska
-    - Fiona-Waters
     - briangallagher
+    - Fiona-Waters
+    - MStokluska
   data-registry-reviewers:
-    - MStokluska
-    - Fiona-Waters
-    - Slowlybomb
     - briangallagher
+    - Fiona-Waters
+    - MStokluska
+    - Slowlybomb
 
   # MLflow
   mlflow-approvers:
