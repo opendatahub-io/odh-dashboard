@@ -3,8 +3,8 @@ import ApplicationsPage from '~/app/components/ApplicationsPage';
 
 const MainPage: React.FC = () => (
   <ApplicationsPage
-    title="Main Page"
-    description={<p>Welcome to the Main Page</p>}
+    title="Data Registry"
+    description={<p>Data Registry standalone view</p>}
     empty
     loaded
     provideChildrenPadding

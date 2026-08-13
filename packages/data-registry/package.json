@@ -23,7 +23,9 @@
       "port": 9043
     }
   },
-  "exports": {},
+  "exports": {
+    "./extensions": "./extensions.ts"
+  },
   "bffConfig": {
     "enabled": true,
     "port": 8080,
@@ -40,7 +42,8 @@
   },
   "dependencies": {
     "@odh-dashboard/internal": "*",
-    "@odh-dashboard/plugin-core": "*"
+    "@odh-dashboard/plugin-core": "*",
+    "@odh-dashboard/ui-core": "*"
   },
   "devDependencies": {
     "@odh-dashboard/app-config": "*",
