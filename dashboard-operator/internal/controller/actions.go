@@ -59,9 +59,9 @@ func (r *DashboardReconciler) monitoringNamespace() string {
 // autoDetectObservability populates spec.observability in-memory when the Perses
 // service exists but the CR has no explicit observability config. This bridges
 // 3.5GA until the ODH Operator projects the config via BuildModuleCR (3.6ea1).
-func (r *DashboardReconciler) autoDetectObservability(ctx context.Context, dashboard *v1alpha1.Dashboard) {
+func (r *DashboardReconciler) autoDetectObservability(ctx context.Context, dashboard *v1alpha1.Dashboard) error {
 	if dashboard.Spec.Observability != nil {
-		return
+		return nil
 	}
 
 	logger := log.FromContext(ctx)
@@ -70,12 +70,11 @@ func (r *DashboardReconciler) autoDetectObservability(ctx context.Context, dashb
 	svc := &corev1.Service{}
 	key := types.NamespacedName{Name: persesServiceName, Namespace: monitoringNS}
 	if err := r.Get(ctx, key, svc); err != nil {
-		if !k8serrors.IsNotFound(err) {
-			logger.Error(err, "Failed to look up Perses service for observability auto-detection",
-				"service", persesServiceName, "namespace", monitoringNS)
+		if k8serrors.IsNotFound(err) {
+			return nil
 		}
 
-		return
+		return fmt.Errorf("looking up Perses service %s/%s: %w", monitoringNS, persesServiceName, err)
 	}
 
 	logger.Info("Auto-detected Perses service, enabling observability",
@@ -89,6 +88,8 @@ func (r *DashboardReconciler) autoDetectObservability(ctx context.Context, dashb
 			Port:      persesServicePort,
 		},
 	}
+
+	return nil
 }
 
 // remapRayDashboardGatewayRBAC moves the named Gateway Role/RoleBinding into

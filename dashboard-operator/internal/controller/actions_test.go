@@ -13,7 +13,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
 
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/cluster"
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/metadata/labels"
@@ -395,6 +397,7 @@ func TestAutoDetectObservability(t *testing.T) {
 		existingObs           *v1alpha1.ObservabilitySpec
 		objects               []runtime.Object
 		wantObs               *v1alpha1.ObservabilitySpec
+		wantErr               bool
 	}{
 		{
 			name:                  "explicit config present — no change",
@@ -474,9 +477,43 @@ func TestAutoDetectObservability(t *testing.T) {
 				},
 			}
 
-			r.autoDetectObservability(context.Background(), dashboard)
+			err := r.autoDetectObservability(context.Background(), dashboard)
+
+			if tt.wantErr {
+				assert.Error(t, err)
+			} else {
+				require.NoError(t, err)
+			}
 
 			assert.Equal(t, tt.wantObs, dashboard.Spec.Observability)
 		})
 	}
+}
+
+func TestAutoDetectObservability_NonNotFoundError(t *testing.T) {
+	scheme := runtime.NewScheme()
+	require.NoError(t, corev1.AddToScheme(scheme))
+
+	injectedErr := assert.AnError
+	cli := fake.NewClientBuilder().
+		WithScheme(scheme).
+		WithInterceptorFuncs(interceptor.Funcs{
+			Get: func(ctx context.Context, c client.WithWatch, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
+				return injectedErr
+			},
+		}).
+		Build()
+
+	r := &DashboardReconciler{
+		Client:                cli,
+		Platform:              cluster.SelfManagedRhoai,
+		ApplicationsNamespace: "redhat-ods-applications",
+	}
+
+	dashboard := &v1alpha1.Dashboard{}
+	err := r.autoDetectObservability(context.Background(), dashboard)
+
+	assert.Error(t, err)
+	assert.ErrorIs(t, err, injectedErr)
+	assert.Nil(t, dashboard.Spec.Observability)
 }

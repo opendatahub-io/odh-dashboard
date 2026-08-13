@@ -234,7 +234,9 @@ func (r *DashboardReconciler) reconcile(
 	cm *conditions.Manager,
 	cfg OperatorConfig,
 ) (ctrl.Result, error) {
-	r.autoDetectObservability(ctx, dashboard)
+	if err := r.autoDetectObservability(ctx, dashboard); err != nil {
+		return ctrl.Result{}, err
+	}
 
 	mode := dashboard.Spec.DeploymentMode
 	if mode == "" || mode == v1alpha1.DeploymentModeSidecar {
