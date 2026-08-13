@@ -2,6 +2,7 @@ import { KueueWorkloadStatus, type KueueWorkloadStatusWithMessage } from '#~/con
 import {
   getHumanReadableKueueMessage,
   getKueueSubStepInfo,
+  getDeploymentKueueSubStepMessage,
   getPreemptionToastBody,
   getEvictionToastBody,
   getRequeuedMessage,
@@ -453,6 +454,80 @@ describe('getKueueSubStepInfo', () => {
       );
       expect(result.label).not.toContain('in queue');
     });
+  });
+});
+
+describe('getDeploymentKueueSubStepMessage', () => {
+  it('formats Queued as "Queued: <reason>"', () => {
+    const result = getDeploymentKueueSubStepMessage({
+      status: KueueWorkloadStatus.Queued,
+      queueName: 'my-queue',
+    });
+    expect(result).toBe('Queued: Waiting for quota in my-queue');
+  });
+
+  it('formats Preempted as "Preempted: Deployment re-queued, waiting for resource"', () => {
+    const result = getDeploymentKueueSubStepMessage({
+      status: KueueWorkloadStatus.Preempted,
+      queueName: 'my-queue',
+    });
+    expect(result).toBe('Preempted: Deployment re-queued, waiting for resource');
+  });
+
+  it('formats a quota-exceeded Failed status using the raw Kueue message verbatim', () => {
+    const result = getDeploymentKueueSubStepMessage({
+      status: KueueWorkloadStatus.Failed,
+      queueName: 'my-queue',
+      message: 'Requested 8 GPUs exceed 4 GPUs queue quota.',
+    });
+    expect(result).toBe('Failed: Requested 8 GPUs exceed 4 GPUs queue quota.');
+  });
+
+  it('formats a quota-exceeded Inadmissible status using the raw Kueue message verbatim', () => {
+    const result = getDeploymentKueueSubStepMessage({
+      status: KueueWorkloadStatus.Inadmissible,
+      queueName: 'my-queue',
+      message: 'insufficient unused quota for nvidia.com/gpu',
+    });
+    expect(result).toBe('Inadmissible: insufficient unused quota for nvidia.com/gpu');
+  });
+
+  it('falls back to the generic templated message when Failed has no quota-shaped raw message', () => {
+    const result = getDeploymentKueueSubStepMessage({
+      status: KueueWorkloadStatus.Failed,
+      queueName: 'my-queue',
+      message: 'some other failure',
+    });
+    expect(result).toBe('Failed: some other failure');
+  });
+
+  it('appends the partial-admission suffix when podAdmissionCounts.total > 1', () => {
+    const result = getDeploymentKueueSubStepMessage({
+      status: KueueWorkloadStatus.Queued,
+      queueName: 'my-queue',
+      podAdmissionCounts: { admitted: 3, total: 5 },
+    });
+    expect(result).toBe('Queued: Waiting for quota in my-queue (3 of 5 pods admitted)');
+  });
+
+  it('appends the partial-admission suffix to the Preempted message too', () => {
+    const result = getDeploymentKueueSubStepMessage({
+      status: KueueWorkloadStatus.Preempted,
+      queueName: 'my-queue',
+      podAdmissionCounts: { admitted: 2, total: 4 },
+    });
+    expect(result).toBe(
+      'Preempted: Deployment re-queued, waiting for resource (2 of 4 pods admitted)',
+    );
+  });
+
+  it('omits the suffix when podAdmissionCounts.total is 1 (single replica)', () => {
+    const result = getDeploymentKueueSubStepMessage({
+      status: KueueWorkloadStatus.Queued,
+      queueName: 'my-queue',
+      podAdmissionCounts: { admitted: 0, total: 1 },
+    });
+    expect(result).toBe('Queued: Waiting for quota in my-queue');
   });
 });
 

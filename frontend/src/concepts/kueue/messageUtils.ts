@@ -160,6 +160,14 @@ export const formatQueuePosition = (position: number, queue: string): string =>
   `${toOrdinal(position)} in ${queue}`;
 
 /**
+ * Formats the multi-Pod partial-admission breakdown for model deployments, e.g. (3, 5) →
+ * "3 of 5 pods admitted". Only meaningful when `total > 1` (see podAdmissionCounts on
+ * KueueWorkloadStatusWithMessage) — callers should gate on that before using this.
+ */
+export const formatPodAdmissionCounts = (admitted: number, total: number): string =>
+  `${admitted} of ${total} pods admitted`;
+
+/**
  * Formats a preemption toast body message with the workbench name and timestamp.
  */
 export const getPreemptionToastBody = (workbenchName: string, timestamp?: string): string => {
@@ -247,6 +255,53 @@ export const getKueueAnalyticsSubState = (
     default:
       return 'none';
   }
+};
+
+const DEPLOYMENT_SUBSTEP_PREFIX: Partial<Record<KueueWorkloadStatus, string>> = {
+  [KueueWorkloadStatus.Queued]: 'Queued',
+  [KueueWorkloadStatus.Requeued]: 'Queued',
+  [KueueWorkloadStatus.Inadmissible]: 'Inadmissible',
+  [KueueWorkloadStatus.Failed]: 'Failed',
+  [KueueWorkloadStatus.Preempted]: 'Preempted',
+  [KueueWorkloadStatus.Evicted]: 'Evicted',
+  [KueueWorkloadStatus.BlockedOnPreemptionGates]: 'Blocked',
+  [KueueWorkloadStatus.AdmissionCheck]: 'Admission check',
+};
+
+export const getDeploymentKueueSubStepMessage = (
+  kueueStatus: KueueWorkloadStatusWithMessage,
+): string => {
+  const { status, queueName, message, podAdmissionCounts } = kueueStatus;
+  const prefix = DEPLOYMENT_SUBSTEP_PREFIX[status];
+
+  // Multi-replica partial-admission detail, e.g. "(3 of 5 pods admitted)" — same suffix shown
+  // in the table row subtitle (getDeploymentStatusSubtitle), so the modal sub-step and the
+  // table stay consistent. Only meaningful for >1 correlated Workload CR.
+  const admissionSuffix =
+    podAdmissionCounts && podAdmissionCounts.total > 1
+      ? ` (${formatPodAdmissionCounts(podAdmissionCounts.admitted, podAdmissionCounts.total)})`
+      : '';
+
+  if (status === KueueWorkloadStatus.Preempted) {
+    return `Preempted: Deployment re-queued, waiting for resource${admissionSuffix}`;
+  }
+
+  const rawMessage = message?.trim() || undefined;
+  const isQuotaShaped =
+    (status === KueueWorkloadStatus.Failed || status === KueueWorkloadStatus.Inadmissible) &&
+    rawMessage != null &&
+    (QUOTA_REGEX.test(rawMessage) || FLAVOR_REGEX.test(rawMessage));
+
+  const body = isQuotaShaped
+    ? rawMessage
+    : status === KueueWorkloadStatus.Requeued
+    ? getRequeuedMessage(kueueStatus)
+    : getHumanReadableKueueMessage(status, message, queueName);
+
+  // Queue-position suffix (e.g. "Position 3 of 8 in queue") intentionally omitted here:
+  // queuePosition/queueTotal aren't populated for model deployments yet (only workbenches,
+  // via useQueuePositions). Tracked as a follow-up PR.
+  return `${prefix ? `${prefix}: ${body}` : body}${admissionSuffix}`;
 };
 
 /**
