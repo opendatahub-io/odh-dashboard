@@ -89,15 +89,8 @@ const parseBranchStepFromParts = (parts: string[]): ParsedStageMapNode | undefin
 };
 
 /** True for parallel branch corridor steps (chunking, engineer features, …). */
-export const isBranchStepNodeId = (nodeId: string): boolean => {
-  if (parseStageMapNodeId(nodeId)?.type === 'branch_step') {
-    return true;
-  }
-  return /__branch-\d+__step__|__step__.+__branch-\d+$/.test(nodeId);
-};
-
-/** Branch corridor steps always render as spine status glyphs (design), never task icons. */
-export const isStatusOnlyBranchStepNode = (nodeId: string): boolean => isBranchStepNodeId(nodeId);
+export const isBranchStepNodeId = (nodeId: string): boolean =>
+  parseStageMapNodeId(nodeId)?.type === 'branch_step';
 
 export function parseStageMapNodeId(nodeId: string): ParsedStageMapNode | undefined {
   const parts = nodeId.split('__');

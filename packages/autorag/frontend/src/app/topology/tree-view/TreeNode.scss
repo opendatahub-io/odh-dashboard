@@ -53,41 +53,35 @@
   display: flex;
   justify-content: center;
   pointer-events: auto;
+  white-space: nowrap;
 
-  /* Neutral pill — override PF secondary brand tokens to match design gray. */
-  .pf-v6-c-button.pf-m-secondary {
-    --pf-v6-c-button--FontSize: var(--pf-t--global--font--size--body--sm);
-    --pf-v6-c-button--PaddingBlockStart: var(--pf-t--global--spacer--xs);
-    --pf-v6-c-button--PaddingBlockEnd: var(--pf-t--global--spacer--xs);
-    --pf-v6-c-button--PaddingInlineStart: var(--pf-t--global--spacer--sm);
-    --pf-v6-c-button--PaddingInlineEnd: var(--pf-t--global--spacer--sm);
-    --pf-v6-c-button--Color: var(--pf-t--global--text--color--regular);
-    --pf-v6-c-button--BorderColor: var(--pf-t--global--border--color--default);
-    --pf-v6-c-button--hover--Color: var(--pf-t--global--text--color--regular);
-    --pf-v6-c-button--hover--BorderColor: var(--pf-t--global--border--color--hover);
-    --pf-v6-c-button--m-clicked--Color: var(--pf-t--global--text--color--regular);
-    --pf-v6-c-button--m-clicked--BorderColor: var(--pf-t--global--border--color--clicked);
-    --pf-v6-c-button--m-secondary--Color: var(--pf-t--global--text--color--regular);
-    --pf-v6-c-button--m-secondary--BorderColor: var(--pf-t--global--border--color--default);
-    --pf-v6-c-button--m-secondary--hover--Color: var(--pf-t--global--text--color--regular);
-    --pf-v6-c-button--m-secondary--hover--BorderColor: var(--pf-t--global--border--color--hover);
-    --pf-v6-c-button--m-secondary--m-clicked--Color: var(--pf-t--global--text--color--regular);
-    --pf-v6-c-button--m-secondary--m-clicked--BorderColor: var(--pf-t--global--border--color--clicked);
-    white-space: nowrap;
-  }
+  /* Neutral pill — PF v6 Button tokens (@patternfly/react-core ~6.5). */
+  --pf-v6-c-button--FontSize: var(--pf-t--global--font--size--body--sm);
+  --pf-v6-c-button--PaddingBlockStart: var(--pf-t--global--spacer--xs);
+  --pf-v6-c-button--PaddingBlockEnd: var(--pf-t--global--spacer--xs);
+  --pf-v6-c-button--PaddingInlineStart: var(--pf-t--global--spacer--sm);
+  --pf-v6-c-button--PaddingInlineEnd: var(--pf-t--global--spacer--sm);
+  --pf-v6-c-button--Color: var(--pf-t--global--text--color--regular);
+  --pf-v6-c-button--BorderColor: var(--pf-t--global--border--color--default);
+  --pf-v6-c-button--hover--Color: var(--pf-t--global--text--color--regular);
+  --pf-v6-c-button--hover--BorderColor: var(--pf-t--global--border--color--hover);
+  --pf-v6-c-button--m-clicked--Color: var(--pf-t--global--text--color--regular);
+  --pf-v6-c-button--m-clicked--BorderColor: var(--pf-t--global--border--color--clicked);
+  --pf-v6-c-button--m-secondary--Color: var(--pf-t--global--text--color--regular);
+  --pf-v6-c-button--m-secondary--BorderColor: var(--pf-t--global--border--color--default);
+  --pf-v6-c-button--m-secondary--hover--Color: var(--pf-t--global--text--color--regular);
+  --pf-v6-c-button--m-secondary--hover--BorderColor: var(--pf-t--global--border--color--hover);
+  --pf-v6-c-button--m-secondary--m-clicked--Color: var(--pf-t--global--text--color--regular);
+  --pf-v6-c-button--m-secondary--m-clicked--BorderColor: var(--pf-t--global--border--color--clicked);
 }
 
 /* Design: saturated brand-blue star + ring on white (not pale nonstatus blue). */
 .autorag-tree-node__winner-star {
+  /* @patternfly/react-topology ~6.5 topology-components tokens */
   --pf-topology__node__decorator__bg--Fill: var(--pf-t--global--background--color--primary--default);
   --pf-topology__node__decorator__bg--Stroke: var(--pf-t--global--border--color--brand--default);
+  --pf-topology__node__decorator__bg--StrokeWidth: var(--pf-t--global--border--width--regular);
   --pf-topology__node_decorator--Color: var(--pf-t--global--icon--color--brand--default);
-
-  .pf-topology__node__decorator__bg {
-    fill: var(--pf-topology__node__decorator__bg--Fill);
-    stroke: var(--pf-topology__node__decorator__bg--Stroke);
-    stroke-width: 1;
-  }
 }
 
 .autorag-tree-node__winner-star-icon {
@@ -97,14 +91,10 @@
 
 /* Active stage decorator: outlined badge + spinning sync icon. */
 .autorag-tree-node__status-decorator-active {
+  /* @patternfly/react-topology ~6.5 topology-components tokens */
   --pf-topology__node__decorator__bg--Fill: var(--pf-t--global--background--color--primary--default);
   --pf-topology__node__decorator__bg--Stroke: var(--pf-t--global--border--color--brand--default);
   --pf-topology__node_decorator--Color: var(--pf-t--global--icon--color--brand--default);
-
-  .pf-topology__node__decorator__bg {
-    fill: var(--pf-topology__node__decorator__bg--Fill);
-    stroke: var(--pf-topology__node__decorator__bg--Stroke);
-  }
 }
 
 .autorag-tree-node__status-decorator-active-icon {
@@ -117,44 +107,40 @@
  * fill: currentColor, so completed/failed/active must override that token.
  */
 .autorag-tree-node {
+  /* @patternfly/react-topology ~6.5 topology-components status modifier tokens */
   &.pf-m-success {
     --pf-topology__node--Color: var(--pf-t--global--icon--color--status--success--default);
-
-    .pf-topology__node__background {
-      stroke: var(--pf-t--global--border--color--status--success--default);
-      stroke-width: 1;
-    }
+    --pf-topology__node--m-success--Background--Stroke: var(--pf-t--global--border--color--status--success--default);
   }
 
   &.pf-m-danger {
     --pf-topology__node--Color: var(--pf-t--global--icon--color--status--danger--default);
-
-    .pf-topology__node__background {
-      stroke: var(--pf-t--global--color--status--danger--default);
-      stroke-width: 1;
-    }
+    --pf-topology__node--m-danger--Background--Stroke: var(--pf-t--global--color--status--danger--default);
   }
 
   &.pf-m-info {
     --pf-topology__node--Color: var(--pf-t--global--icon--color--brand--default);
-
-    .pf-topology__node__background {
-      stroke: var(--pf-t--global--border--color--nonstatus--blue--default);
-      stroke-width: 1;
-    }
+    --pf-topology__node--m-info--Background--Stroke: var(--pf-t--global--border--color--nonstatus--blue--default);
   }
 
-  /*
-   * Status-only badge draws its own ring. Must beat &.pf-m-success|danger|info
-   * (.autorag-tree-node.pf-m-* is more specific than &--status-only alone).
-   */
-  &--status-only.pf-m-success,
-  &--status-only.pf-m-danger,
-  &--status-only.pf-m-info,
+  /* Status-only badge draws its own ring — hide DefaultNode background chrome. */
   &--status-only {
-    .pf-topology__node__background {
-      fill: transparent;
-      stroke: transparent;
+    --pf-topology__node__background--Fill: transparent;
+    --pf-topology__node__background--Stroke: transparent;
+
+    &.pf-m-success {
+      --pf-topology__node--m-success--Background--Fill: transparent;
+      --pf-topology__node--m-success--Background--Stroke: transparent;
+    }
+
+    &.pf-m-danger {
+      --pf-topology__node--m-danger--Background--Fill: transparent;
+      --pf-topology__node--m-danger--Background--Stroke: transparent;
+    }
+
+    &.pf-m-info {
+      --pf-topology__node--m-info--Background--Fill: transparent;
+      --pf-topology__node--m-info--Background--Stroke: transparent;
     }
   }
 }

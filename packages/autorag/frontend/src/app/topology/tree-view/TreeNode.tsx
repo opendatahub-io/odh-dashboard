@@ -29,7 +29,7 @@ import {
   TopologyQuadrant,
   WithSelectionProps,
 } from '@patternfly/react-topology';
-import { isStatusOnlyBranchStepNode, isBranchStepNodeId } from './stageMapStepMetadata';
+import { isBranchStepNodeId } from './stageMapStepMetadata';
 import { usePatternsExpand } from './PatternsExpandContext';
 import { isTreeNodeData, treeStepStateToNodeStatus } from './treeStepState';
 import PendingHourglassGlyph from './icons/PendingHourglassGlyph';
@@ -489,11 +489,10 @@ const TreeNodeInner: React.FC<{
   const showWinnerStar = data?.showWinnerStar === true;
   const nodeStatus = treeStepStateToNodeStatus(stepState);
   const branchStep = isBranchStepNodeId(node.getId());
-  const statusOnlyDot = isStatusOnlyBranchStepNode(node.getId());
-  const showsTaskIcon = !statusOnlyDot;
+  const showsTaskIcon = !branchStep;
   const TaskIcon = resolveTaskIconForNodeId(node.getId());
   const { width, height } = node.getDimensions();
-  const iconSize = Math.min(width, height) * (statusOnlyDot ? 0.92 : branchStep ? 0.52 : 0.4);
+  const iconSize = Math.min(width, height) * (branchStep ? 0.92 : 0.4);
   const iconColor = TASK_ICON_COLORS[stepState];
   const showPatternsToggle =
     data?.showPatternsToggle === true && patternsExpand?.showToggle === true;
@@ -516,7 +515,7 @@ const TreeNodeInner: React.FC<{
 
   return (
     <DefaultNode
-      className={cx('autorag-tree-node', statusOnlyDot && 'autorag-tree-node--status-only')}
+      className={cx('autorag-tree-node', branchStep && 'autorag-tree-node--status-only')}
       element={node}
       // Status-only dots own their chrome; branch task icons use decorator + ring stroke.
       nodeStatus={showsTaskIcon ? nodeStatus : undefined}
@@ -531,7 +530,7 @@ const TreeNodeInner: React.FC<{
         data-testid={`tree-node-${node.getId()}`}
         data-step-state={stepState}
         data-branch-step={branchStep ? 'true' : 'false'}
-        data-status-only={statusOnlyDot ? 'true' : 'false'}
+        data-status-only={branchStep ? 'true' : 'false'}
         data-winner-star={showWinnerStar ? 'true' : 'false'}
       >
         <g
@@ -539,7 +538,7 @@ const TreeNodeInner: React.FC<{
           style={showsTaskIcon ? { color: iconColor } : undefined}
           transform={`translate(${(width - iconSize) / 2}, ${(height - iconSize) / 2})`}
         >
-          {statusOnlyDot ? (
+          {branchStep ? (
             stepState === 'failed' ? (
               <StatusOnlyFailedSectionDot size={iconSize} />
             ) : stepState === 'completed' ? (
