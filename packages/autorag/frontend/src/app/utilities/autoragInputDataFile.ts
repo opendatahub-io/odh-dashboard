@@ -109,7 +109,7 @@ export const SUPPORTED_FORMAT: Record<string, Format> = {
   tex: {
     id: 'tex',
     extension: 'tex',
-    mimeType: 'text/x-tex (or application/x-tex)',
+    mimeTypes: ['text/x-tex', 'application/x-tex'],
     name: 'LaTeX',
   },
   epub: {
