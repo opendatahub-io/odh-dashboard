@@ -59,7 +59,7 @@ describe('TreeNode', () => {
     );
   });
 
-  it('should not set aria-label when label is empty', () => {
+  it('should use fallback aria-label when label is empty', () => {
     const node = createMockNode('step-1', { stepState: 'pending' });
     render(
       <svg>
@@ -67,7 +67,10 @@ describe('TreeNode', () => {
       </svg>,
     );
 
-    expect(screen.getByTestId('tree-node-step-1')).not.toHaveAttribute('aria-label');
+    expect(screen.getByTestId('tree-node-step-1')).toHaveAttribute(
+      'aria-label',
+      'Tree node, pending',
+    );
   });
 
   it('should call onSelect when Enter key is pressed', () => {

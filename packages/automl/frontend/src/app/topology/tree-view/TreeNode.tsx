@@ -149,7 +149,7 @@ const TreeNodeInner: React.FC<{
     <g
       role="button"
       tabIndex={0}
-      aria-label={label ? `${label}, ${stepState}` : undefined}
+      aria-label={label ? `${label}, ${stepState}` : `Tree node, ${stepState}`}
       onClick={handleClick}
       onKeyDown={handleKeyDown}
       style={{ cursor: 'pointer' }}
