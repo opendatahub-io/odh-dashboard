@@ -320,6 +320,7 @@ const BenchmarkStepIcon: React.FC<{ status: string }> = ({ status }) => {
 };
 
 type ProgressBenchmark = {
+  key: string;
   id: string;
   status: string;
   benchmark_index?: number;
@@ -337,7 +338,7 @@ const ProgressTabContent: React.FC<{
 }> = ({ benchmarks, hasPolledData, isTerminal, onViewLogs }) => {
   const [expandedIds, setExpandedIds] = React.useState<Set<string>>(
     () =>
-      new Set(benchmarks.length > 0 && benchmarks.length <= 5 ? benchmarks.map((b) => b.id) : []),
+      new Set(benchmarks.length > 0 && benchmarks.length <= 5 ? benchmarks.map((b) => b.key) : []),
   );
 
   // Auto-expand when benchmarks first arrive (pending → running transition)
@@ -346,18 +347,18 @@ const ProgressTabContent: React.FC<{
     if (!initializedRef.current && benchmarks.length > 0) {
       initializedRef.current = true;
       if (benchmarks.length <= 5) {
-        setExpandedIds(new Set(benchmarks.map((b) => b.id)));
+        setExpandedIds(new Set(benchmarks.map((b) => b.key)));
       }
     }
   }, [benchmarks]);
 
-  const toggleExpanded = React.useCallback((id: string) => {
+  const toggleExpanded = React.useCallback((key: string) => {
     setExpandedIds((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
+      if (next.has(key)) {
+        next.delete(key);
       } else {
-        next.add(id);
+        next.add(key);
       }
       return next;
     });
@@ -381,9 +382,9 @@ const ProgressTabContent: React.FC<{
         <StackItem>
           <Stack hasGutter data-testid="benchmark-steps">
             {benchmarks.map((bm) => {
-              const isExpanded = expandedIds.has(bm.id);
+              const isExpanded = expandedIds.has(bm.key);
               return (
-                <StackItem key={bm.id} data-testid={`benchmark-step-${bm.id}`}>
+                <StackItem key={bm.key} data-testid={`benchmark-step-${bm.id}`}>
                   <Stack>
                     <StackItem>
                       <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
@@ -391,7 +392,7 @@ const ProgressTabContent: React.FC<{
                           <Button
                             variant="plain"
                             aria-label={`${isExpanded ? 'Collapse' : 'Expand'} ${bm.id}`}
-                            onClick={() => toggleExpanded(bm.id)}
+                            onClick={() => toggleExpanded(bm.key)}
                             data-testid={`benchmark-toggle-${bm.id}`}
                           >
                             <Icon isInline>
@@ -614,7 +615,8 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
           }
           return a.id.localeCompare(b.id);
         })
-        .map((bm) => ({
+        .map((bm, i) => ({
+          key: bm.benchmark_index != null ? String(bm.benchmark_index) : `${bm.id}-${i}`,
           id: bm.id,
           status: bm.status,
           // eslint-disable-next-line camelcase
@@ -648,11 +650,15 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
   }, [jobId]);
 
   const failedBenchmarks = progressBenchmarks.filter((bm) => bm.status === 'failed');
+  // Use polled state so the summary appears as soon as polling detects the failure,
+  // not 30s later when the list refreshes.
+  const effectiveState = polledJobData?.status.state ?? job?.status.state;
+  const effectiveMessage = polledJobData?.status.message ?? job?.status.message;
   const failureSummary =
-    (job?.status.state === 'failed' || job?.status.state === 'partially_failed') &&
+    (effectiveState === 'failed' || effectiveState === 'partially_failed') &&
     progressBenchmarks.length > 1
       ? failedBenchmarks.map((bm) => `${bm.id}: ${bm.errorMessage ?? 'Unknown error'}`).join('. ')
-      : job?.status.message?.message;
+      : effectiveMessage?.message;
 
   React.useEffect(() => {
     if (failureSummaryEl) {
@@ -777,7 +783,7 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
 
   const elapsed = formatDurationCompact(
     job.resource.created_at,
-    isInProgress ? now : job.resource.updated_at,
+    isInProgress ? now : (polledJobData?.resource.updated_at ?? job.resource.updated_at),
   );
   const isFailed = state === 'failed' || state === 'partially_failed';
   // Use the most-current benchmark data (polled > list) to detect pre-start failures.
@@ -1010,7 +1016,7 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
                         <SelectOption value={ALL_BENCHMARKS}>All benchmarks</SelectOption>
                         {progressBenchmarks.map((bm) =>
                           bm.benchmark_index != null ? (
-                            <SelectOption key={bm.id} value={String(bm.benchmark_index)}>
+                            <SelectOption key={bm.key} value={String(bm.benchmark_index)}>
                               {bm.id}
                             </SelectOption>
                           ) : null,

@@ -41,6 +41,7 @@ const statusMap: Partial<Record<EvaluationJobState | 'not_started', StatusConfig
     label: 'Failed',
     status: 'danger',
     icon: <ExclamationCircleIcon />,
+    isFilled: true,
   },
   // eslint-disable-next-line camelcase -- UI-only synthetic state: failed job where no benchmark ever received a started_at
   not_started: {
@@ -94,7 +95,7 @@ const EvaluationStatusLabel: React.FC<EvaluationStatusLabelProps> = ({
 
   return (
     <Label
-      variant="filled"
+      variant={config.isFilled ? 'filled' : 'outline'}
       color={config.color}
       status={config.status}
       icon={config.icon}

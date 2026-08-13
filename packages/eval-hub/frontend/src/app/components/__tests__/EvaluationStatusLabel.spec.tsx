@@ -55,10 +55,14 @@ describe('EvaluationStatusLabel', () => {
     }
   });
 
-  it.each(states)('should render with filled variant for "%s" state', (state) => {
+  it.each(states)('should render the correct variant for "%s" state', (state) => {
     render(<EvaluationStatusLabel state={state} />);
     const label = screen.getByTestId(`status-label-${state}`);
-    expect(label).toHaveClass('pf-m-filled');
+    if (EXPECTED_LABELS[state].isFilled) {
+      expect(label).toHaveClass('pf-m-filled');
+    } else {
+      expect(label).toHaveClass('pf-m-outline');
+    }
   });
 
   it('should call onClick when a failed label is clicked', () => {

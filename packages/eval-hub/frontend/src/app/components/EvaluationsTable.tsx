@@ -218,8 +218,9 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
   React.useEffect(() => {
     const hasTransition = Array.from(polledJobDataMap.entries()).some(([id, polledJob]) => {
       const prev = prevPolledStatesRef.current.get(id);
+      // Treat undefined (first response) as non-terminal — the job was in inProgressJobIds
       return (
-        prev !== undefined && !isTerminalState(prev) && isTerminalState(polledJob.status.state)
+        (prev === undefined || !isTerminalState(prev)) && isTerminalState(polledJob.status.state)
       );
     });
     polledJobDataMap.forEach((polledJob, id) => {

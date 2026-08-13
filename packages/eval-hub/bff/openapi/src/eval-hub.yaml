@@ -743,8 +743,14 @@ components:
           type: string
         provider_id:
           type: string
+        benchmark_index:
+          type: integer
+          minimum: 0
         status:
           type: string
+        started_at:
+          type: string
+          format: date-time
         completed_at:
           type: string
           format: date-time
