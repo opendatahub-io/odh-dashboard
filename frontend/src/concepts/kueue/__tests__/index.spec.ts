@@ -68,6 +68,22 @@ describe('getKueueWorkloadStatusWithMessage', () => {
     expect(result.message).toBeDefined();
   });
 
+  it('should return Inadmissible when QuotaReserved=False, reason Pending, and request exceeds max capacity', () => {
+    const workload = workloadWithConditions([
+      {
+        type: 'QuotaReserved',
+        status: 'False',
+        reason: 'Pending',
+        message:
+          "couldn't assign flavors to pod set main: insufficient quota for cpu in flavor pdhote-repro-flavor, previously considered podsets requests (0) + current podset request (6100m) > maximum capacity (5)",
+        lastTransitionTime: '2026-02-16T08:00:00Z',
+      },
+    ]);
+    const result = getKueueWorkloadStatusWithMessage(workload);
+    expect(result.status).toBe(KueueWorkloadStatus.Inadmissible);
+    expect(result.message).toContain('maximum capacity');
+  });
+
   describe('Evicted condition reason mapping', () => {
     it('should return Preempted when Evicted reason is Preempted', () => {
       const workload = workloadWithConditions([

@@ -1,3 +1,4 @@
+import type { WorkloadCondition } from '#~/k8sTypes';
 import { KueueWorkloadStatus, type KueueWorkloadStatusWithMessage } from './types';
 
 const QUOTA_REGEX = /insufficient unused quota|quota.*exceed|exceed.*quota/i;
@@ -8,6 +9,20 @@ const FLAVOR_REGEX = /couldn't assign flavors|flavor/i;
 const QUEUE_STOPPED_REGEX = /clusterqueue.*stop|stop.*clusterqueue/i;
 const DEACTIVATED_REGEX = /deactivat/i;
 const ADMISSION_CHECK_REGEX = /admission\s*check/i;
+const PERMANENT_INADMISSIBLE_MESSAGE_REGEX = /> maximum capacity|unavailable in clusterqueue/i;
+
+/** Determines if a workload condition is an inadmissible quota condition.
+ * Permanent quota blocks — distinct from temporary `insufficient unused quota` blocks.
+ */
+export const isInadmissibleQuotaCondition = ({
+  type,
+  status,
+  reason,
+  message,
+}: Pick<WorkloadCondition, 'type' | 'status' | 'reason' | 'message'>): boolean =>
+  type === 'QuotaReserved' &&
+  status === 'False' &&
+  (reason === 'Inadmissible' || (!!message && PERMANENT_INADMISSIBLE_MESSAGE_REGEX.test(message)));
 
 /**
  * Converts raw Kueue condition messages into human-readable text for the UI.
