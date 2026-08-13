@@ -234,10 +234,7 @@ const LogEntryRow: React.FC<{ entry: LogEntry; hideBorder?: boolean }> = ({
     if (entry.benchmarkName) {
       return (
         <div className={`${rowClass} evalhub-log-viewer__row--benchmark`}>
-          <div className="evalhub-log-viewer__cell--full">
-            <span className="evalhub-log-viewer__benchmark-label">Benchmark:&nbsp;</span>
-            {entry.benchmarkName}
-          </div>
+          <div className="evalhub-log-viewer__cell--full">{entry.benchmarkName}</div>
           {copyButton}
         </div>
       );
@@ -415,6 +412,26 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
   );
   const isFailed = state === 'failed' || state === 'partially_failed';
 
+  const headerIconStatus: 'success' | 'danger' | 'warning' | undefined =
+    state === 'completed'
+      ? 'success'
+      : state === 'failed'
+        ? 'danger'
+        : state === 'partially_failed'
+          ? 'warning'
+          : undefined;
+
+  const headerIcon =
+    state === 'completed' ? (
+      <CheckCircleIcon />
+    ) : state === 'failed' ? (
+      <ExclamationCircleIcon />
+    ) : state === 'partially_failed' ? (
+      <ExclamationTriangleIcon />
+    ) : (
+      <InProgressIcon />
+    );
+
   const handleViewBenchmarkLogs = (bmIndex: number) => {
     setSelectedBenchmark(String(bmIndex));
     setActiveTab('events-log');
@@ -460,29 +477,27 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
       <ModalBody>
         <div className="evalhub-status-modal__header" data-testid="status-detail-header">
           <Stack hasGutter>
-            {isInProgress ? (
-              <StackItem>
-                <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-                  <FlexItem>
-                    <Icon isInline>
-                      <InProgressIcon />
-                    </Icon>
-                  </FlexItem>
-                  <FlexItem>
-                    <Content component="p" data-testid="running-header">
-                      <strong>
-                        {state === 'stopping'
-                          ? 'Canceling'
-                          : state === 'pending'
-                            ? 'Pending'
-                            : 'Running'}{' '}
-                        {evaluationName}
-                      </strong>
-                    </Content>
-                  </FlexItem>
-                </Flex>
-              </StackItem>
-            ) : null}
+            <StackItem>
+              <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                <FlexItem>
+                  <Icon isInline status={headerIconStatus}>
+                    {headerIcon}
+                  </Icon>
+                </FlexItem>
+                <FlexItem>
+                  <Content
+                    component="p"
+                    className="evalhub-status-modal__evaluation-name"
+                    data-testid="evaluation-header"
+                  >
+                    {isInProgress
+                      ? `${state === 'stopping' ? 'Canceling' : state === 'pending' ? 'Pending' : 'Running'} `
+                      : ''}
+                    {evaluationName}
+                  </Content>
+                </FlexItem>
+              </Flex>
+            </StackItem>
             {descriptionText ? (
               <StackItem>
                 <Content

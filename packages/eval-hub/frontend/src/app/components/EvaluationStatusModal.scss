@@ -9,6 +9,11 @@
   z-index: 1;
 }
 
+.evalhub-status-modal__evaluation-name {
+  font-weight: var(--pf-t--global--font--weight--heading--bold);
+  font-size: var(--pf-t--global--font--size--md);
+}
+
 .evalhub-status-modal__description {
   color: var(--pf-t--global--text--color--subtle);
 }
@@ -56,14 +61,7 @@
     }
   }
 
-  &--header {
-    font-weight: var(--pf-t--global--font--weight--heading--default);
-    color: var(--pf-t--global--text--color--subtle);
-    font-size: var(--pf-t--global--font--size--xs);
-
-  }
-
-  &--section {
+&--section {
     font-weight: var(--pf-t--global--font--weight--heading--default);
   }
 
@@ -71,11 +69,12 @@
     position: sticky;
     top: 0;
     z-index: 1;
-    padding-left: 1rem;
-    text-align: center;
+    padding: var(--pf-t--global--spacer--md) var(--pf-t--global--spacer--md) var(--pf-t--global--spacer--xs) var(--pf-t--global--spacer--md);
     font-family: var(--pf-t--global--font--family--body);
-    font-weight: var(--pf-t--global--font--weight--body--default);
-    background-color: var(--pf-t--global--background--color--secondary--default);
+    font-weight: var(--pf-t--global--font--weight--heading--bold);
+    font-size: 13px;
+    color: var(--pf-t--global--text--color--regular);
+    background-color: var(--pf-t--global--background--color--primary--default);
   }
 
   &--no-border {
@@ -100,10 +99,6 @@
 
   width: 10em;
   white-space: nowrap;
-}
-
-.evalhub-log-viewer__benchmark-label {
-  font-weight: var(--pf-t--global--font--weight--heading--bold);
 }
 
 .evalhub-log-viewer__cell--full {

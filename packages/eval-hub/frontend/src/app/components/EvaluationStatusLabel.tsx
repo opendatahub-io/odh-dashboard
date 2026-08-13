@@ -17,7 +17,6 @@ type StatusConfig = {
   color?: LabelProps['color'];
   status?: LabelProps['status'];
   icon: React.ReactNode;
-  isFilled?: boolean;
 };
 
 const statusMap: Partial<Record<EvaluationJobState, StatusConfig>> = {
@@ -40,7 +39,6 @@ const statusMap: Partial<Record<EvaluationJobState, StatusConfig>> = {
     label: 'Failed',
     status: 'danger',
     icon: <ExclamationCircleIcon />,
-    isFilled: true,
   },
   cancelled: {
     label: 'Canceled',
@@ -82,7 +80,7 @@ const EvaluationStatusLabel: React.FC<EvaluationStatusLabelProps> = ({ state, on
 
   return (
     <Label
-      variant={config.isFilled ? 'filled' : 'outline'}
+      variant="filled"
       color={config.color}
       status={config.status}
       icon={<Icon isInline>{config.icon}</Icon>}

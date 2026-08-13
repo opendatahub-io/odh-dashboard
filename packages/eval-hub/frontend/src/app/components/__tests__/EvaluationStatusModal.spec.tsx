@@ -361,7 +361,7 @@ describe('EvaluationStatusModal running state header', () => {
   it('should show running header with evaluation name', () => {
     renderModal({ state: 'running', name: 'Safety and fairness' });
 
-    const header = screen.getByTestId('running-header');
+    const header = screen.getByTestId('evaluation-header');
     expect(header).toHaveTextContent('Running Safety and fairness');
   });
 
@@ -394,10 +394,12 @@ describe('EvaluationStatusModal running state header', () => {
     expect(screen.queryByTestId('benchmark-progress')).not.toBeInTheDocument();
   });
 
-  it('should not show running header for completed jobs', () => {
-    renderModal({ state: 'completed' });
+  it('should show evaluation name without state prefix for completed jobs', () => {
+    renderModal({ state: 'completed', name: 'Safety and fairness' });
 
-    expect(screen.queryByTestId('running-header')).not.toBeInTheDocument();
+    const header = screen.getByTestId('evaluation-header');
+    expect(header).toHaveTextContent('Safety and fairness');
+    expect(header).not.toHaveTextContent('Running');
   });
 });
 
