@@ -331,7 +331,6 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
     groupCount: selectedGroupNames.length,
     modelCount: models.length,
     hasDescription: nameDescData.description.trim() !== '',
-    hasMatchingPolicy: formData.policies.some((p) => p.name === subscription?.name),
     priority: priority ?? 0,
     editSource,
   };
@@ -345,8 +344,8 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
     groupCount: selectedGroupNames.length,
     modelCount: models.length,
     hasDescription: nameDescData.description.trim() !== '',
-    modelCountAvailable: formData.modelRefs.length,
-    hasMatchingPolicy: formData.policies.some((p) => p.name === subscription?.name),
+    modelCountAvailable: modelRefs.length,
+    hasMatchingPolicy: createAuthPolicy,
     priority: priority ?? 0,
     prefillSource,
   };
