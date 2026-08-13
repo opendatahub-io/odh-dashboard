@@ -4,7 +4,7 @@ import type { InferenceServiceKind, ServingRuntimeKind } from '@odh-dashboard/mo
 import { mockInferenceServiceK8sResource } from '@odh-dashboard/model-serving/__mocks__/mockInferenceServiceK8sResource';
 import { mockServingRuntimeK8sResource } from '@odh-dashboard/model-serving/__mocks__/mockServingRuntimeK8sResource';
 import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
-import type { KServeDeployment } from '../deployments';
+import type { KServeDeployment } from '../types';
 import { useWatchDeployments } from '../deployments';
 import * as watchModule from '../api/watch';
 

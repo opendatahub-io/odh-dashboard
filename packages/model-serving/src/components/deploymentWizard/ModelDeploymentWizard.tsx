@@ -3,7 +3,11 @@ import { PageSection, Wizard, WizardStep } from '@patternfly/react-core';
 import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import type { ProjectKind } from '@odh-dashboard/k8s-core';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
-import { ExternalDataLoader, type ExternalDataMap } from './ExternalDataLoader';
+import {
+  ExternalDataLoader,
+  isExternalDataReady,
+  type ExternalDataMap,
+} from './ExternalDataLoader';
 import { useModelDeploymentWizard } from './useDeploymentWizard';
 import { useModelDeploymentWizardValidation } from './useDeploymentWizardValidation';
 import { PreconfigureDeploymentStepContent } from './steps/PreconfigureDeploymentStep';
@@ -98,6 +102,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
       wizardFormData.state,
       finalResources,
       validation,
+      externalData,
       exitWizardOnSubmit,
       viewMode,
       wizardFormData.initialData,
@@ -106,18 +111,29 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
       yamlError,
     );
 
+  const externalDataReady = isExternalDataReady(externalData);
+
   const wizardFooter = React.useMemo(
     () => (
       <ModelDeploymentWizardFooter
         error={submitError}
         clearError={clearSubmitError}
         isLoading={isLoading}
+        isSubmitDisabled={!externalDataReady}
         submitButtonText={primaryButtonText}
         onOverwrite={onOverwrite}
         onRefresh={onRefresh}
       />
     ),
-    [submitError, clearSubmitError, isLoading, primaryButtonText, onRefresh, onOverwrite],
+    [
+      submitError,
+      clearSubmitError,
+      isLoading,
+      externalDataReady,
+      primaryButtonText,
+      onRefresh,
+      onOverwrite,
+    ],
   );
 
   // preserve the last step index when switching between yaml view
@@ -167,7 +183,9 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
             </PageSection>
             <PageSection hasBodyWrapper={false} isFilled={false} style={{ paddingTop: 0 }}>
               <ModelDeploymentFooter
-                isSubmitDisabled={viewMode === 'yaml-edit' ? !yaml : !validation.isAllValid}
+                isSubmitDisabled={
+                  !externalDataReady || (viewMode === 'yaml-edit' ? !yaml : !validation.isAllValid)
+                }
                 onSave={onSave}
                 onCancel={openExitModal}
                 onOverwrite={onOverwrite}

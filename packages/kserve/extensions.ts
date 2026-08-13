@@ -30,7 +30,7 @@ import { DataScienceStackComponent, SupportedArea } from '@odh-dashboard/plugin-
 import type { DeploymentMethodFieldData } from '@odh-dashboard/model-serving/shared/wizard-fields';
 import type { TimeoutFieldValue } from './src/wizardFields/timeout/TimeoutField';
 import type { KServeServingRuntimeFieldType } from './src/wizardFields/servingRuntime/KServeServingRuntimeField';
-import type { KServeDeployment } from './src/deployments';
+import type { KServeDeployment } from './src/types';
 
 export const KSERVE_ID = 'kserve';
 const ADMIN_USER = 'ADMIN_USER';
