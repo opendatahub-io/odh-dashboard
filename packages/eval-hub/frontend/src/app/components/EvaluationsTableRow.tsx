@@ -21,11 +21,9 @@ import {
   getEvaluationName,
   getResultScore,
   isEvaluationJobComparable,
-  isTerminalState,
 } from '~/app/utilities/evaluationUtils';
 import { CollectionNameMap } from '~/app/hooks/useCollectionNameMap';
 import { cancelEvaluationJob, deleteEvaluationJob } from '~/app/api/k8s';
-import { getEarliestStartTime, formatElapsedTime } from '~/app/utilities/evaluationJobPolling';
 import EvaluationStatusLabel from './EvaluationStatusLabel';
 
 type EvaluationsTableRowProps = {
@@ -49,7 +47,6 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
   rowIndex,
   namespace,
   collectionNameMap,
-  polledJobData,
   onActionComplete,
   onShowStatus,
   isSelected,
@@ -65,15 +62,6 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
   const isInProgress = IN_PROGRESS_STATES.has(job.status.state);
   const isComparable = isEvaluationJobComparable(job);
   const displayState = isStopping ? 'stopping' : job.status.state;
-
-  // Recompute only when polledJobData changes (new reference per poll due to structuralSharing: false)
-  const elapsedTimeDisplay = React.useMemo(() => {
-    if (!polledJobData || isTerminalState(job.status.state)) {
-      return null;
-    }
-    const startTime = getEarliestStartTime(polledJobData);
-    return startTime ? formatElapsedTime(startTime) : null;
-  }, [polledJobData, job.status.state]);
 
   React.useEffect(() => {
     if (!isInProgress) {
@@ -225,20 +213,6 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
         </Td>
         <Td dataLabel="Status" data-testid="evaluation-status">
           <EvaluationStatusLabel state={displayState} onClick={() => onShowStatus(job)} />
-          {polledJobData && !isTerminalState(job.status.state) && (
-            <>
-              {polledJobData.status.benchmarks && polledJobData.status.benchmarks.length > 0 && (
-                <div data-testid="benchmark-progress">
-                  Benchmarks:{' '}
-                  {polledJobData.status.benchmarks.filter((b) => b.status === 'completed').length}/
-                  {polledJobData.status.benchmarks.length} complete
-                </div>
-              )}
-              {elapsedTimeDisplay && (
-                <div data-testid="elapsed-time">Elapsed time: {elapsedTimeDisplay}</div>
-              )}
-            </>
-          )}
         </Td>
         <Td dataLabel="Evaluation" data-testid="evaluation-benchmark">
           <Tooltip

@@ -29,6 +29,13 @@
   overflow: hidden;
 }
 
+.evalhub-status-modal__empty-progress {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+}
+
 // Log viewer
 .evalhub-log-viewer {
   max-height: 46vh;

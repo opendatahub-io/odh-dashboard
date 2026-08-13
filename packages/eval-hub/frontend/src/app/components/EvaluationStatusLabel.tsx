@@ -28,7 +28,7 @@ const statusMap: Partial<Record<EvaluationJobState, StatusConfig>> = {
   running: {
     label: 'Running',
     color: 'blue',
-    icon: <InProgressIcon />,
+    icon: <InProgressIcon className="ai-u-spin" />,
   },
   completed: {
     label: 'Complete',

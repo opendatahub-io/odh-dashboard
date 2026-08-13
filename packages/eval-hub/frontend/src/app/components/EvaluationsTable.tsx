@@ -1,9 +1,11 @@
 import * as React from 'react';
 import {
   Alert,
+  Bullseye,
   Button,
   Checkbox,
   EmptyStateVariant,
+  Spinner,
   MenuToggle,
   MenuToggleElement,
   Pagination,
@@ -48,6 +50,7 @@ import { evaluationCompareBenchmarksRoute, evaluationCompareRoute } from '~/app/
 import useEvaluationJobDetailPolling from '~/app/hooks/useEvaluationJobDetailPolling';
 import usePageVisibility from '~/app/hooks/usePageVisibility';
 import EvaluationsTableRow from './EvaluationsTableRow';
+const EvaluationStatusModal = React.lazy(() => import('./EvaluationStatusModal'));
 
 type FilterOption = 'name' | 'evaluation' | 'evaluated' | 'status';
 
@@ -122,7 +125,6 @@ type EvaluationsTableProps = {
   collectionNameMap: CollectionNameMap;
   collectionsLoaded: boolean;
   onRefresh: () => void;
-  onShowStatus: (job: EvaluationJob) => void;
 };
 
 const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
@@ -132,8 +134,13 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
   collectionNameMap,
   collectionsLoaded,
   onRefresh,
-  onShowStatus,
 }) => {
+  const [selectedJobId, setSelectedJobId] = React.useState<string | undefined>();
+  // Derive from live evaluations so the modal stays current as the list polls
+  const selectedJob = React.useMemo(
+    () => evaluations.find((job) => job.resource.id === selectedJobId),
+    [evaluations, selectedJobId],
+  );
   const navigate = useNavigate();
   // Pause polling when the browser tab is backgrounded to reduce server load
   const isPollingEnabled = usePageVisibility();
@@ -199,6 +206,24 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
     namespace,
     loaded && isPollingEnabled,
   );
+
+  // Trigger a list refresh as soon as polled data shows a job reaching a terminal state,
+  // so the table updates immediately rather than waiting for the 30s list cycle.
+  const prevPolledStatesRef = React.useRef<Map<string, EvaluationJobState>>(new Map());
+  React.useEffect(() => {
+    const hasTransition = Array.from(polledJobDataMap.entries()).some(([id, polledJob]) => {
+      const prev = prevPolledStatesRef.current.get(id);
+      return (
+        prev !== undefined && !isTerminalState(prev) && isTerminalState(polledJob.status.state)
+      );
+    });
+    polledJobDataMap.forEach((polledJob, id) => {
+      prevPolledStatesRef.current.set(id, polledJob.status.state);
+    });
+    if (hasTransition) {
+      onRefresh();
+    }
+  }, [polledJobDataMap, onRefresh]);
 
   const comparableEvaluationsInView = React.useMemo(
     () => paginatedEvaluations.filter(isEvaluationJobComparable),
@@ -566,7 +591,7 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
                 collectionNameMap={collectionNameMap}
                 polledJobData={polledJobDataMap.get(job.resource.id)}
                 onActionComplete={onRefresh}
-                onShowStatus={onShowStatus}
+                onShowStatus={(selectedEvalJob) => setSelectedJobId(selectedEvalJob.resource.id)}
                 isSelected={selectedEvaluationIds.has(job.resource.id)}
                 onSelectionChange={(checked) => handleSelectionChange(job.resource.id, checked)}
               />
@@ -574,6 +599,14 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
           </Tbody>
         </Table>
       )}
+      <React.Suspense fallback={<Bullseye><Spinner /></Bullseye>}>
+        <EvaluationStatusModal
+          job={selectedJob}
+          polledJobData={selectedJob ? polledJobDataMap.get(selectedJob.resource.id) : undefined}
+          namespace={namespace ?? ''}
+          onClose={() => setSelectedJobId(undefined)}
+        />
+      </React.Suspense>
     </>
   );
 };

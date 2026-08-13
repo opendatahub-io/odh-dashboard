@@ -48,7 +48,6 @@ const renderTable = (props: {
           collectionNameMap={props.collectionNameMap ?? {}}
           collectionsLoaded={props.collectionsLoaded ?? true}
           onRefresh={mockOnRefresh}
-          onShowStatus={mockOnShowStatus}
         />
       </MemoryRouter>
     </QueryClientProvider>,
