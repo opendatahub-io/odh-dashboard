@@ -326,6 +326,7 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
 
   const [downloading, setDownloading] = React.useState(false);
   const [downloadError, setDownloadError] = React.useState<Error | undefined>();
+  const downloadAbortRef = React.useRef<AbortController>();
 
   const jobId = job?.resource.id;
   const jobState = job?.status.state;
@@ -361,6 +362,9 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
     if (!namespace || !job?.resource.id) {
       return;
     }
+    downloadAbortRef.current?.abort();
+    const controller = new AbortController();
+    downloadAbortRef.current = controller;
     setDownloading(true);
     setDownloadError(undefined);
     try {
@@ -368,16 +372,21 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
         benchmarkIndex != null
           ? getEvaluationJobBenchmarkLogs('', namespace, job.resource.id, benchmarkIndex)
           : getEvaluationJobLogs('', namespace, job.resource.id);
-      const fullLogs = await fetcher();
+      const fullLogs = await fetcher(controller.signal);
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
       const bmSuffix = benchmarkIndex != null ? `-benchmark-${benchmarkIndex}` : '';
       downloadString(`${evaluationName}${bmSuffix}-logs-${timestamp}.log`, fullLogs);
     } catch (err) {
+      if (err instanceof DOMException && err.name === 'AbortError') {
+        return;
+      }
       setDownloadError(err instanceof Error ? err : new Error(String(err)));
     } finally {
       setDownloading(false);
     }
   }, [namespace, job?.resource.id, evaluationName, benchmarkIndex]);
+
+  React.useEffect(() => () => downloadAbortRef.current?.abort(), []);
 
   const logEntries = React.useMemo(() => (logs ? parseLogEntries(logs) : []), [logs]);
 
