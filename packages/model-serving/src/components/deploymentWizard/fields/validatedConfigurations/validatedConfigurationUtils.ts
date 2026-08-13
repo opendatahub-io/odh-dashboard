@@ -22,8 +22,10 @@ export const slugifyValidatedOptionTitle = (title: string): string =>
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '');
 
+export const VALIDATED_ARG_HEADER_PREFIX = '# Validated arguments for ';
+
 export const getValidatedArgCommentHeader = (optionTitle: string): string =>
-  `# Validated arguments for ${optionTitle}`;
+  `${VALIDATED_ARG_HEADER_PREFIX}${optionTitle}`;
 
 /** Converts an option value into runtime-arg textarea lines (no shell `\` continuations). */
 export const optionValueToArgLines = (value: string): string[] =>
@@ -57,15 +59,41 @@ export const mergeValidatedOptionIntoArgs = (
 };
 
 /**
- * Removes only the comment header and known arg lines for this option.
- * Leaves all other lines (including user edits) in place.
+ * Removes only this option's validated block (header + expected arg lines).
+ * Preserves identical lines before the header, after the block, or in other
+ * validated blocks — including duplicate user args and overlapping option args.
  */
 export const removeValidatedOptionFromArgs = (
   currentArgs: string[],
   option: ValidatedConfigurationOption,
 ): string[] => {
-  const linesToRemove = new Set(getValidatedOptionArgBlock(option));
-  return currentArgs.filter((line) => !linesToRemove.has(line));
+  const header = getValidatedArgCommentHeader(option.title);
+  const remainingLines = new Map<string, number>();
+
+  for (const line of optionValueToArgLines(option.value)) {
+    remainingLines.set(line, (remainingLines.get(line) ?? 0) + 1);
+  }
+
+  let inTargetBlock = false;
+  return currentArgs.filter((line) => {
+    if (line === header) {
+      inTargetBlock = true;
+      return false;
+    }
+    if (inTargetBlock && line.startsWith(VALIDATED_ARG_HEADER_PREFIX)) {
+      inTargetBlock = false;
+    }
+    if (!inTargetBlock) {
+      return true;
+    }
+
+    const count = remainingLines.get(line) ?? 0;
+    if (count === 0) {
+      return true;
+    }
+    remainingLines.set(line, count - 1);
+    return false;
+  });
 };
 
 /**

@@ -63,16 +63,15 @@ export const ValidatedArgumentsSection: React.FC<ValidatedArgumentsSectionProps>
                         )}
                         onSelectionChange={(checked) => {
                           selection.toggleOption(configuration.forField, option.value, checked);
-                          if (configuration.forField !== 'args') {
-                            return;
+                          if (configuration.forField === 'args') {
+                            runtimeArgs.setData((prev) => {
+                              const currentArgs = prev?.args ?? [];
+                              const nextArgs = checked
+                                ? mergeValidatedOptionIntoArgs(currentArgs, option)
+                                : removeValidatedOptionFromArgs(currentArgs, option);
+                              return toRuntimeArgsFieldData(nextArgs);
+                            });
                           }
-                          runtimeArgs.setData((prev) => {
-                            const currentArgs = prev?.args ?? [];
-                            const nextArgs = checked
-                              ? mergeValidatedOptionIntoArgs(currentArgs, option)
-                              : removeValidatedOptionFromArgs(currentArgs, option);
-                            return toRuntimeArgsFieldData(nextArgs);
-                          });
                         }}
                       />
                     </GalleryItem>

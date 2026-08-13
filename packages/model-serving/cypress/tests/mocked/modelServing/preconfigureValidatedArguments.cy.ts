@@ -251,7 +251,7 @@ const navigateToAdvancedOptions = () => {
 };
 
 describe('Preconfigure deployment validated arguments', () => {
-  it('should carry validated arguments from catalog deploy into the wizard', () => {
+  it('should carry validated arguments from catalog deploy through advanced and review', () => {
     openWizardFromCatalog();
 
     modelServingWizard.findValidatedConfigurationSection('args').should('be.visible');
@@ -259,14 +259,19 @@ describe('Preconfigure deployment validated arguments', () => {
     modelServingWizard
       .findValidatedConfigurationOptionCheckbox('tool-calling')
       .should('be.checked');
-  });
 
-  it('should pre-populate runtime args from selected validated configurations', () => {
-    openWizardFromCatalog();
     navigateToAdvancedOptions();
 
     modelServingWizard.findRuntimeArgsCheckbox().should('be.checked');
     modelServingWizard.findRuntimeArgsTextBox().should('have.value', EXPECTED_RUNTIME_ARGS);
+
+    modelServingWizard.findNextButton().should('be.enabled').click();
+
+    modelServingWizard.findReviewStepModelDetailsSection().should('exist');
+    cy.contains('Additional runtime arguments').should('exist');
+    cy.contains('--enable-auto-tool-choice').should('exist');
+    cy.contains('--tool-call-parser').should('exist');
+    cy.contains('# Validated arguments').should('not.exist');
   });
 
   it('should remove validated args on uncheck and preserve user edits', () => {
@@ -295,17 +300,5 @@ describe('Preconfigure deployment validated arguments', () => {
 
     modelServingWizard.findAdvancedOptionsStep().click();
     modelServingWizard.findRuntimeArgsTextBox().should('have.value', '--user-custom-arg');
-  });
-
-  it('should show validated args on the review step', () => {
-    openWizardFromCatalog();
-    navigateToAdvancedOptions();
-    modelServingWizard.findNextButton().should('be.enabled').click();
-
-    modelServingWizard.findReviewStepModelDetailsSection().should('exist');
-    cy.contains('Additional runtime arguments').should('exist');
-    cy.contains('--enable-auto-tool-choice').should('exist');
-    cy.contains('--tool-call-parser').should('exist');
-    cy.contains('# Validated arguments').should('not.exist');
   });
 });

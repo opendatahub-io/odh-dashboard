@@ -91,6 +91,44 @@ describe('mergeValidatedOptionIntoArgs / removeValidatedOptionFromArgs', () => {
       args: [],
     });
   });
+
+  it('should preserve duplicate user args outside the validated block', () => {
+    const withDuplicateUserArg = [
+      '--enable-auto-tool-choice',
+      header,
+      '--enable-auto-tool-choice',
+      '--tool-call-parser hermes',
+      '--chat-template /etc/vllm/templates/tool_chat_template_hermes.jinja',
+    ];
+
+    expect(removeValidatedOptionFromArgs(withDuplicateUserArg, option)).toEqual([
+      '--enable-auto-tool-choice',
+    ]);
+  });
+
+  it('should preserve overlapping args that belong to another validated block', () => {
+    const otherOption = {
+      title: 'Other calling',
+      description: 'Another validated configuration',
+      value: '--enable-auto-tool-choice \\\n--other-flag',
+    };
+    const otherHeader = getValidatedArgCommentHeader(otherOption.title);
+    const args = [
+      header,
+      '--enable-auto-tool-choice',
+      '--tool-call-parser hermes',
+      '--chat-template /etc/vllm/templates/tool_chat_template_hermes.jinja',
+      otherHeader,
+      '--enable-auto-tool-choice',
+      '--other-flag',
+    ];
+
+    expect(removeValidatedOptionFromArgs(args, option)).toEqual([
+      otherHeader,
+      '--enable-auto-tool-choice',
+      '--other-flag',
+    ]);
+  });
 });
 
 describe('buildRuntimeArgsFromValidatedSelections', () => {
