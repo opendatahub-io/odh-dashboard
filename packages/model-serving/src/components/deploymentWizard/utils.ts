@@ -80,7 +80,7 @@ export const deployModel = async (
   serverResourceTemplateName?: string,
   overwrite?: boolean,
   initialWizardData?: InitialWizardFormData,
-  applyFieldData?: DeploymentAssemblyFn,
+  applyAllFieldDataFn?: DeploymentAssemblyFn,
   runPreDeploy?: RunPreDeployFns,
   runPostDeploy?: RunPostDeployFns,
 ): Promise<Deployment> => {
@@ -146,7 +146,7 @@ export const deployModel = async (
         undefined,
         undefined,
         initialWizardData,
-        applyFieldData,
+        applyAllFieldDataFn,
       ),
     );
   }
@@ -209,7 +209,7 @@ export const deployModel = async (
     createdSecretName,
     overwrite,
     initialWizardData,
-    applyFieldData,
+    applyAllFieldDataFn,
   );
 
   // Potentially skip this if YAML is used and model location is set directly in the YAML

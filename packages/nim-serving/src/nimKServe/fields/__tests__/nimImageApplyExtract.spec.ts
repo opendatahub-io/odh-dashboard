@@ -1,4 +1,4 @@
-import { mockInferenceServiceK8sResource } from '@odh-dashboard/internal/__mocks__/mockInferenceServiceK8sResource';
+import { mockInferenceServiceK8sResource } from '@odh-dashboard/model-serving/__mocks__/mockInferenceServiceK8sResource';
 import type { KServeDeployment } from '@odh-dashboard/kserve/types';
 import type { ServingRuntimeKind } from '@odh-dashboard/model-serving/shared';
 import { applyNIMImageFieldData } from '../nimImageApplyExtract';

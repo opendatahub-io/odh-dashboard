@@ -39,7 +39,7 @@ export const useModelDeploymentSubmit = (
 } => {
   const secretOps = useSecretOps();
   const { deployMethod, deployMethodLoaded } = useDeployMethod(formState, resources);
-  const { applyFieldData, applyExtensionsLoaded } = useWizardFieldApply(
+  const { applyAllFieldDataFn, applyExtensionsLoaded } = useWizardFieldApply(
     formState,
     initialWizardData?.navSourceMetadata,
   );
@@ -108,7 +108,7 @@ export const useModelDeploymentSubmit = (
           serverResourceTemplateName,
           overwrite,
           initialWizardData,
-          applyFieldData,
+          applyAllFieldDataFn,
           runPreDeploy,
           runPostDeploy,
         );
@@ -134,7 +134,7 @@ export const useModelDeploymentSubmit = (
       connectionSecretName,
       existingDeployment,
       initialWizardData,
-      applyFieldData,
+      applyAllFieldDataFn,
       runPreDeploy,
       runPostDeploy,
       exitWizardOnSubmit,

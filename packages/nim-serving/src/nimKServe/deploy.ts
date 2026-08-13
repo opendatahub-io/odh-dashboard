@@ -54,6 +54,8 @@ export const deployNIMKServeDeployment = async (
       } else {
         throw new Error(`Unable to find NIM ServingRuntime Template in namespace ${projectName}`);
       }
+    } else {
+      throw new Error(`Unable to find NIM ServingRuntime Template in namespace ${projectName}`);
     }
   }
 

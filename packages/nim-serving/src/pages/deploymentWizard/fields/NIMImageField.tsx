@@ -49,10 +49,13 @@ const useNIMImageFieldExternalData = (dependencies?: {
   });
 
   // Load Template early for yaml previewing
-  const { data: nimTemplate, error: nimTemplateError } = useFetchNIMTemplate(nimAccount);
+  const {
+    data: nimTemplate,
+    error: nimTemplateError,
+    loaded: nimTemplateLoaded,
+  } = useFetchNIMTemplate(nimAccount);
 
-  // Don't block making selection on loading the Template
-  const loaded = !projectName || (imagesLoaded && accountLoaded);
+  const loaded = !projectName || (imagesLoaded && accountLoaded && nimTemplateLoaded);
 
   return React.useMemo(
     () => ({

@@ -28,20 +28,6 @@ const extensions: (
       required: [SupportedArea.NIM_WIZARD],
     },
   },
-  // {
-  //   type: 'model-serving.deployment/wizard-field-extractor',
-  //   properties: {
-  //     fieldId: 'nim-serving/nimImage',
-  //     platform: NIM_LEGACY_ID,
-  //     extract: () =>
-  //       import('../src/nimKServe/fields/nimImageApplyExtract').then(
-  //         (m) => m.extractNIMImageFieldData,
-  //       ),
-  //   },
-  //   flags: {
-  //     required: [SupportedArea.NIM_WIZARD],
-  //   },
-  // },
   {
     type: 'model-serving.deployment/wizard-field-apply',
     properties: {

@@ -1,7 +1,7 @@
 import type { WizardFormData } from '@odh-dashboard/model-serving/shared/types/form-data';
 import type { KServeDeployment } from '@odh-dashboard/kserve/types';
 import { deployKServeDeployment } from '@odh-dashboard/kserve/deploy';
-import { mockNimServingRuntimeTemplate } from '@odh-dashboard/internal/__mocks__/mockLegacyNimResource';
+import { mockNimServingRuntimeTemplate } from '@odh-dashboard/model-serving/__mocks__/mockLegacyNimResource';
 import type { ServingRuntimeKind } from '@odh-dashboard/model-serving/shared';
 import type { TemplateKind } from '@odh-dashboard/k8s-core';
 import { deployNIMKServeDeployment, isNIMKServeDeployActive } from '../deploy';

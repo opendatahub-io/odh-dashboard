@@ -83,18 +83,3 @@ export const applyNIMImageFieldData = (
 
   return assembledDeployment;
 };
-
-// export const extractNIMImageFieldData = (
-//   deployment: KServeDeployment,
-// ): NIMImageFieldValue | undefined => {
-//   const image = deployment.server?.spec.containers.find((container) => container.image)?.image;
-//   if (!image) {
-//     return undefined;
-//   }
-//   // Split on the last colon: a registry host may carry a port (`host:5000/repo:tag`).
-//   const separatorIndex = image.lastIndexOf(':');
-//   if (separatorIndex <= image.lastIndexOf('/')) {
-//     return { repository: image, tag: '' };
-//   }
-//   return { repository: image.slice(0, separatorIndex), tag: image.slice(separatorIndex + 1) };
-// };
