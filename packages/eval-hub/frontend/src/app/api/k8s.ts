@@ -327,6 +327,9 @@ export class LogFetchError extends Error {
 export const isLogApiUnavailable = (error: Error): boolean =>
   error instanceof LogFetchError && error.statusCode === 404;
 
+export const isLogServerError = (error: Error): boolean =>
+  error instanceof LogFetchError && error.statusCode >= 500;
+
 export const getEvaluationJobLogs =
   (
     hostPath: string,
@@ -369,12 +372,18 @@ export const getEvaluationJobBenchmarkLogs =
     namespace: string,
     jobId: string,
     benchmarkIndex: number,
-    params?: { tail_lines?: number },
+    params?: { tail_lines?: number; timestamps?: boolean; since_seconds?: number },
   ) =>
   async (signal?: AbortSignal): Promise<string> => {
     const queryParams = new URLSearchParams({ namespace });
     if (params?.tail_lines != null) {
       queryParams.set('tail_lines', String(params.tail_lines));
+    }
+    if (params?.timestamps != null) {
+      queryParams.set('timestamps', String(params.timestamps));
+    }
+    if (params?.since_seconds != null) {
+      queryParams.set('since_seconds', String(params.since_seconds));
     }
     const url = `${hostPath}${URL_PREFIX}/api/${BFF_API_VERSION}/evaluations/jobs/${encodeURIComponent(jobId)}/benchmarks/${benchmarkIndex}/logs?${queryParams.toString()}`;
     const response = await fetch(url, { signal });

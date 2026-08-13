@@ -8,6 +8,7 @@ import {
   createEvaluationJob,
   LogFetchError,
   isLogApiUnavailable,
+  isLogServerError,
   getEvaluationJobLogs,
   getEvaluationJobBenchmarkLogs,
 } from '~/app/api/k8s';
@@ -429,6 +430,24 @@ describe('isLogApiUnavailable', () => {
   });
 });
 
+describe('isLogServerError', () => {
+  it('should return true for a LogFetchError with status 500', () => {
+    expect(isLogServerError(new LogFetchError(500, 'Internal Server Error'))).toBe(true);
+  });
+
+  it('should return true for a LogFetchError with status 502', () => {
+    expect(isLogServerError(new LogFetchError(502, 'Bad Gateway'))).toBe(true);
+  });
+
+  it('should return false for a LogFetchError with a non-5xx status', () => {
+    expect(isLogServerError(new LogFetchError(404, 'Not Found'))).toBe(false);
+  });
+
+  it('should return false for a plain Error', () => {
+    expect(isLogServerError(new Error('generic'))).toBe(false);
+  });
+});
+
 describe('getEvaluationJobLogs', () => {
   const mockFetch = jest.fn();
   const textPlainHeaders = { get: () => 'text/plain' };
@@ -681,6 +700,36 @@ describe('getEvaluationJobBenchmarkLogs', () => {
 
     expect(mockFetch).toHaveBeenCalledWith(
       expect.stringContaining('tail_lines=50'),
+      expect.objectContaining({}),
+    );
+  });
+
+  it('should include timestamps param when provided', async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      headers: textPlainHeaders,
+      text: () => Promise.resolve(''),
+    });
+
+    await getEvaluationJobBenchmarkLogs('', 'ns', 'j1', 0, { timestamps: true })();
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      expect.stringContaining('timestamps=true'),
+      expect.objectContaining({}),
+    );
+  });
+
+  it('should include since_seconds param when provided', async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      headers: textPlainHeaders,
+      text: () => Promise.resolve(''),
+    });
+
+    await getEvaluationJobBenchmarkLogs('', 'ns', 'j1', 0, { since_seconds: 300 })();
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      expect.stringContaining('since_seconds=300'),
       expect.objectContaining({}),
     );
   });

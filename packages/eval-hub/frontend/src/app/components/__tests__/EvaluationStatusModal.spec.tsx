@@ -231,7 +231,7 @@ describe('EvaluationStatusModal log API unavailable', () => {
     expect(screen.queryByText('Retry')).not.toBeInTheDocument();
   });
 
-  it('should show a transient error with retry for non-404 failures', () => {
+  it('should show a pending message for server errors when job is in progress', () => {
     mockUseEvaluationJobLogs.mockReturnValue({
       logs: '',
       loaded: true,
@@ -241,10 +241,40 @@ describe('EvaluationStatusModal log API unavailable', () => {
 
     renderModal();
 
+    const alert = screen.getByTestId('logs-pending-alert');
+    expect(alert).toHaveTextContent('The evaluation pod may still be starting');
+    expect(screen.getByText('Retry')).toBeInTheDocument();
+    expect(screen.queryByTestId('logs-error-alert')).not.toBeInTheDocument();
+  });
+
+  it('should show a transient error with retry for server errors when job is not in progress', () => {
+    mockUseEvaluationJobLogs.mockReturnValue({
+      logs: '',
+      loaded: true,
+      error: new LogFetchError(500, 'Internal Server Error'),
+      refresh: jest.fn(),
+    });
+
+    renderModal({ state: 'completed' });
+
     const alert = screen.getByTestId('logs-error-alert');
     expect(alert).toHaveTextContent('Internal Server Error');
     expect(screen.getByText('Retry')).toBeInTheDocument();
-    expect(screen.queryByTestId('logs-unavailable-alert')).not.toBeInTheDocument();
+  });
+
+  it('should show a transient error with retry for non-server failures', () => {
+    mockUseEvaluationJobLogs.mockReturnValue({
+      logs: '',
+      loaded: true,
+      error: new LogFetchError(400, 'Bad Request'),
+      refresh: jest.fn(),
+    });
+
+    renderModal();
+
+    const alert = screen.getByTestId('logs-error-alert');
+    expect(alert).toHaveTextContent('Bad Request');
+    expect(screen.getByText('Retry')).toBeInTheDocument();
   });
 });
 

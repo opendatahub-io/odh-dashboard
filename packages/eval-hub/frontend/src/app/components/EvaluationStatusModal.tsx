@@ -49,6 +49,7 @@ import {
   getEvaluationJobLogs,
   getEvaluationJobBenchmarkLogs,
   isLogApiUnavailable,
+  isLogServerError,
 } from '~/app/api/k8s';
 import { getMessageCodeLabel } from '~/app/utilities/messageCodeLabels';
 import EvaluationStatusLabel from './EvaluationStatusLabel';
@@ -870,6 +871,21 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
                       data-testid="logs-unavailable-alert"
                     >
                       Detailed logs are not available on this server version.
+                    </Alert>
+                  ) : logsError && isInProgress && isLogServerError(logsError) ? (
+                    <Alert
+                      className="evalhub-log-viewer__alert"
+                      variant="info"
+                      isInline
+                      title="Logs not yet available"
+                      data-testid="logs-pending-alert"
+                      actionLinks={
+                        <Button variant="link" onClick={refresh}>
+                          Retry
+                        </Button>
+                      }
+                    >
+                      The evaluation pod may still be starting. Try again in a moment.
                     </Alert>
                   ) : logsError ? (
                     <Alert

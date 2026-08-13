@@ -18,6 +18,7 @@ import { loadRemote } from '@module-federation/runtime';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import { DeploymentMode, useModularArchContext } from 'mod-arch-core';
+import './EvaluationResultsPage.scss';
 import { evaluationsBaseRoute } from '~/app/routes';
 import { useEvaluationJob } from '~/app/hooks/useEvaluationJob';
 import { useCollectionNameMap } from '~/app/hooks/useCollectionNameMap';
@@ -148,17 +149,14 @@ const EvaluationResultsPage: React.FC = () => {
     >
       {job.resource.created_at && (
         <FlexItem>
-          <Content component="p" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
-            <CalendarAltIcon
-              className="pf-v6-u-mr-xs"
-              style={{ color: 'var(--pf-t--global--icon--color--subtle)' }}
-            />
+          <Content component="p" className="eval-hub-results__metadata-text">
+            <CalendarAltIcon className="pf-v6-u-mr-xs eval-hub-results__metadata-icon" />
             {formatDate(job.resource.created_at)}
           </Content>
         </FlexItem>
       )}
       <FlexItem>
-        <Content component="p" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
+        <Content component="p" className="eval-hub-results__metadata-text">
           <img
             src={isDarkMode ? aiModelIconDark : aiModelIconLight}
             alt=""
@@ -170,7 +168,7 @@ const EvaluationResultsPage: React.FC = () => {
         </Content>
       </FlexItem>
       <FlexItem>
-        <Content component="p" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
+        <Content component="p" className="eval-hub-results__metadata-text">
           <img
             src={isDarkMode ? paperStackIconDark : paperStackIconLight}
             alt=""
@@ -183,11 +181,8 @@ const EvaluationResultsPage: React.FC = () => {
       </FlexItem>
       {duration && (
         <FlexItem>
-          <Content component="p" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
-            <OutlinedClockIcon
-              className="pf-v6-u-mr-xs"
-              style={{ color: 'var(--pf-t--global--icon--color--subtle)' }}
-            />
+          <Content component="p" className="eval-hub-results__metadata-text">
+            <OutlinedClockIcon className="pf-v6-u-mr-xs eval-hub-results__metadata-icon" />
             {duration}
           </Content>
         </FlexItem>
@@ -199,10 +194,7 @@ const EvaluationResultsPage: React.FC = () => {
     <>
       <ApplicationsPage
         title={
-          <span
-            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}
-            data-testid="evaluation-results-title"
-          >
+          <span className="eval-hub-results__title" data-testid="evaluation-results-title">
             {evaluationName}
             {job?.tags?.map((tag) => (
               <Label key={tag} color="yellow">
