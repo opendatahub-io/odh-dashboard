@@ -99,7 +99,7 @@ export const blankDashboardCR: DashboardConfig = {
       mcpRegistry: false,
       agentOps: false,
       agentsCatalog: false,
-      toolCalling: false,
+      toolCalling: true,
       trainingJobs: true,
       disableLLMd: false,
       projectRBAC: true,
