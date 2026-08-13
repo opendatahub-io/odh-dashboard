@@ -389,7 +389,8 @@ export const promoteWaitingFrontierToInProgress = (
       const parents = dep.runAfterTasks ?? [];
       return (
         parents.length > 0 &&
-          parents.every((parentId) => isDependencySatisfied(parentId, new Set(visiting)))
+        parents.every((parentId) => isDependencySatisfied(parentId, new Set(visiting)))
+      );
     }
 
     return isStageFinished(dep.data?.runStatus);
