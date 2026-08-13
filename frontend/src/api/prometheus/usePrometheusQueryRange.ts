@@ -1,5 +1,8 @@
 import type { FetchOptions, FetchState } from '@odh-dashboard/ui-core/hooks/useFetchState';
-import type { PrometheusQueryRangeResultValue } from '@odh-dashboard/ui-core/types/metrics';
+import type {
+  PrometheusQueryRangeResponse,
+  PrometheusQueryRangeResultValue,
+} from '@odh-dashboard/ui-core/types/metrics';
 import baseUsePrometheusQueryRange, {
   type PrometheusPostFn,
   type ResponsePredicate,
@@ -13,7 +16,9 @@ export {
 } from '@odh-dashboard/ui-core/utilities/metrics/usePrometheusQueryRange';
 
 const axiosPost: PrometheusPostFn = (url, body) =>
-  axios.post(url, body).then((response) => response.data);
+  axios
+    .post<{ response: PrometheusQueryRangeResponse }>(url, body)
+    .then((response) => response.data);
 
 /**
  * Frontend-specific wrapper that binds the dashboard's axios instance.
