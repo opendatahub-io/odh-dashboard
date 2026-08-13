@@ -37,3 +37,5 @@ func (r *DashboardReconciler) AutoDetectObservability(ctx context.Context, dashb
 func (r *DashboardReconciler) MonitoringNamespace() string {
 	return r.monitoringNamespace()
 }
+
+const ObservabilityRetryInterval = observabilityRetryInterval

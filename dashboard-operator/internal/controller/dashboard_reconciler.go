@@ -228,6 +228,8 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	return result, err
 }
 
+const observabilityRetryInterval = 5 * time.Minute
+
 func (r *DashboardReconciler) reconcile(
 	ctx context.Context,
 	dashboard *v1alpha1.Dashboard,
@@ -239,10 +241,19 @@ func (r *DashboardReconciler) reconcile(
 	}
 
 	mode := dashboard.Spec.DeploymentMode
+	var result ctrl.Result
+	var err error
 	if mode == "" || mode == v1alpha1.DeploymentModeSidecar {
-		return r.reconcileSidecar(ctx, dashboard, cm, cfg)
+		result, err = r.reconcileSidecar(ctx, dashboard, cm, cfg)
+	} else {
+		result, err = r.reconcileStandalone(ctx, dashboard, cm, cfg)
 	}
-	return r.reconcileStandalone(ctx, dashboard, cm, cfg)
+
+	if dashboard.Spec.Observability == nil && err == nil && result.RequeueAfter == 0 {
+		result.RequeueAfter = observabilityRetryInterval
+	}
+
+	return result, err
 }
 
 func (r *DashboardReconciler) reconcileSidecar(
