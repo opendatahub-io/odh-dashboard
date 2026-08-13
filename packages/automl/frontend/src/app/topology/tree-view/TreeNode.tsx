@@ -129,6 +129,13 @@ const TreeNodeInner: React.FC<{
     [onSelect],
   );
 
+  const handleKeyDown = React.useCallback((e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      e.currentTarget.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    }
+  }, []);
+
   const rawData = node.getData();
   const data = isTreeNodeData(rawData) ? rawData : undefined;
   const label = data?.label ?? '';
@@ -140,7 +147,11 @@ const TreeNodeInner: React.FC<{
 
   return (
     <g
+      role="button"
+      tabIndex={0}
+      aria-label={label ? `${label}, ${stepState}` : undefined}
       onClick={handleClick}
+      onKeyDown={handleKeyDown}
       style={{ cursor: 'pointer' }}
       data-testid={`tree-node-${node.getId()}`}
     >
