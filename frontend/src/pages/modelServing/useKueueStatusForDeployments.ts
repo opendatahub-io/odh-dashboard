@@ -65,11 +65,22 @@ export const useKueueStatusForDeployments = (
       inferenceServices,
       llmInferenceServices,
     );
-    const isByKey = new Map(
-      inferenceServices
+    const isByKey = new Map<string, NamedModelResource>([
+      ...inferenceServices
         .filter((is): is is typeof is & { metadata: { name: string } } => Boolean(is.metadata.name))
-        .map((is) => [buildModelDeploymentKey('InferenceService', is.metadata.name), is]),
-    );
+        .map((is): [string, NamedModelResource] => [
+          buildModelDeploymentKey('InferenceService', is.metadata.name),
+          is,
+        ]),
+      ...llmInferenceServices
+        .filter((llmis): llmis is typeof llmis & { metadata: { name: string } } =>
+          Boolean(llmis.metadata.name),
+        )
+        .map((llmis): [string, NamedModelResource] => [
+          buildModelDeploymentKey('LLMInferenceService', llmis.metadata.name),
+          llmis,
+        ]),
+    ]);
     const statusMap: Record<string, KueueWorkloadStatusWithMessage | null> = {};
     for (const [deploymentKey, isWorkloads] of Object.entries(workloadMap)) {
       // Mirrors useKueueStatusForNotebooks: no matching Workload CR → null, full stop. No

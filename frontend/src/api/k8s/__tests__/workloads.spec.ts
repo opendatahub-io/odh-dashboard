@@ -505,6 +505,6 @@ describe('buildWorkloadMapForDeployments', () => {
       [terminatedDeadPod, livePod],
       [inferenceService(IS_NAME)],
     );
-    expect(result[IS_NAME]).toEqual([wlLive]);
+    expect(result[isKey(IS_NAME)]).toEqual([wlLive]);
   });
 });

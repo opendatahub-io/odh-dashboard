@@ -13,6 +13,7 @@ import { useResolvedExtensions } from '@odh-dashboard/plugin-core';
 import { useKueueConfiguration } from '@odh-dashboard/hardware-profiles/shared/kueueUtils';
 import { ProjectsContext } from '@odh-dashboard/ui-core/context/ProjectsContext';
 import UnderlinedTruncateButton from '@odh-dashboard/internal/components/UnderlinedTruncateButton';
+import useDebouncedTrueValue from '@odh-dashboard/internal/utilities/useDebouncedTrueValue';
 import { ModelDeploymentState } from '@odh-dashboard/model-serving/shared';
 import {
   ModelStatusIcon,
@@ -84,11 +85,16 @@ export const DeploymentRow: React.FC<{
   const isStoppedOrStopping = Boolean(
     deployment.status?.stoppedStates?.isStopped || deployment.status?.stoppedStates?.isStopping,
   );
-  const showKueueAnomalyIndicator =
+  const isKueueAnomalyCandidate =
     isKueueFeatureEnabled &&
     isProjectKueueEnabled &&
     !isStoppedOrStopping &&
     deployment.status?.kueueStatus === null;
+  // The Workload/Pod correlation above is built from 3 independent watch streams that don't
+  // update atomically, so `isKueueAnomalyCandidate` can blip `true` transiently (deploy,
+  // rolling update, scale event) even when Kueue is scheduling this deployment correctly.
+  // Debounce so only a sustained mismatch surfaces as a warning.
+  const showKueueAnomalyIndicator = useDebouncedTrueValue(isKueueAnomalyCandidate);
 
   const navigateToDeploymentWizard = useNavigateToDeploymentWizard(deployment);
   const statusSubtitle = getDeploymentStatusSubtitle(deployment.status);

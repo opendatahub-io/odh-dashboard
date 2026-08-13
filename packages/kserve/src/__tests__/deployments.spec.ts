@@ -19,7 +19,7 @@ jest.mock('@odh-dashboard/plugin-core', () => ({
 // Mock Kueue status - not under test here, exercised by useKueueStatusForDeployments.spec.ts
 jest.mock('@odh-dashboard/internal/pages/modelServing/useKueueStatusForDeployments', () => ({
   useKueueStatusForDeployments: jest.fn(() => ({
-    kueueStatusByISName: {},
+    kueueStatusByDeploymentKey: {},
     isLoading: false,
     error: null,
   })),
@@ -197,7 +197,7 @@ describe('useWatchDeployments', () => {
 
   it('should surface Kueue watch errors (e.g. 403 for missing RBAC) instead of silently dropping them', () => {
     mockUseKueueStatusForDeployments.mockReturnValue({
-      kueueStatusByISName: {},
+      kueueStatusByDeploymentKey: {},
       isLoading: false,
       error: 'Forbidden',
     });
@@ -263,9 +263,9 @@ describe('useWatchDeployments', () => {
     expect(deployments).toHaveLength(4);
   });
 
-  it('should default status.kueueStatus to null (not undefined) when the IS has no entry in kueueStatusByISName', () => {
+  it('should default status.kueueStatus to null (not undefined) when the IS has no entry in kueueStatusByDeploymentKey', () => {
     mockUseKueueStatusForDeployments.mockReturnValue({
-      kueueStatusByISName: {},
+      kueueStatusByDeploymentKey: {},
       isLoading: false,
       error: null,
     });

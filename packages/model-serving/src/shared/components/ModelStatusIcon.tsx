@@ -25,6 +25,8 @@ type ModelStatusIconProps = {
   hideLabel?: boolean;
   /** Kueue scheduling status. When present and "interesting" (queued/failed/etc.), overrides the normal state. */
   kueueStatus?: KueueWorkloadStatusWithMessage | null;
+  /** PatternFly Label variant. "filled" renders a taller, higher-contrast label than the default "outline". */
+  variant?: LabelProps['variant'];
 };
 
 export const ModelStatusIcon: React.FC<ModelStatusIconProps> = ({
@@ -36,6 +38,7 @@ export const ModelStatusIcon: React.FC<ModelStatusIconProps> = ({
   stoppedStates,
   hideLabel,
   kueueStatus,
+  variant,
 }) => {
   const statusSettings = React.useMemo((): {
     label: string;
@@ -136,6 +139,7 @@ export const ModelStatusIcon: React.FC<ModelStatusIconProps> = ({
   ) : (
     <Label
       isCompact={isCompact}
+      variant={variant}
       color={statusSettings.color}
       status={statusSettings.status}
       icon={statusSettings.icon}

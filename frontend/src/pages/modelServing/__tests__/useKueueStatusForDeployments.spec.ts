@@ -246,10 +246,10 @@ describe('useKueueStatusForDeployments', () => {
         annotations: { 'serving.kserve.io/stop': 'true' },
       },
     };
-    buildWorkloadMapForDeploymentsMock.mockReturnValue({ 'test-model': [] });
+    buildWorkloadMapForDeploymentsMock.mockReturnValue({ 'InferenceService/test-model': [] });
 
     const { result } = renderHook(() => useKueueStatusForDeployments([is], project));
-    expect(result.current.kueueStatusByISName['test-model']).toBeNull();
+    expect(result.current.kueueStatusByDeploymentKey['InferenceService/test-model']).toBeNull();
   });
 
   it('includes queueName from IS label in the status', () => {
@@ -277,10 +277,14 @@ describe('useKueueStatusForDeployments', () => {
       },
     };
     const wl = workloadWithPodOwnerRef('wl-1', POD_UID);
-    buildWorkloadMapForDeploymentsMock.mockReturnValue({ 'my-llm-model': [wl] });
+    buildWorkloadMapForDeploymentsMock.mockReturnValue({
+      'LLMInferenceService/my-llm-model': [wl],
+    });
 
     const { result } = renderHook(() => useKueueStatusForDeployments([], project, [llmis]));
-    expect(result.current.kueueStatusByISName['my-llm-model']?.queueName).toBe('llm-team-queue');
+    expect(
+      result.current.kueueStatusByDeploymentKey['LLMInferenceService/my-llm-model']?.queueName,
+    ).toBe('llm-team-queue');
   });
 
   it('multi-replica: most-restrictive status wins (Inadmissible beats Running)', () => {

@@ -189,9 +189,10 @@ const DeploymentStatusModal: React.FC<DeploymentStatusModalProps> = ({
   const project = projects.find((p) => p.metadata.name === namespace);
   const { isKueueFeatureEnabled, isProjectKueueEnabled } = useKueueConfiguration(project);
   const localQueueName = deployment.model.metadata.labels?.[KUEUE_QUEUE_LABEL];
-  const showResourcesTab = Boolean(
-    isKueueFeatureEnabled && isProjectKueueEnabled && localQueueName,
-  );
+  // Tab visibility depends only on Kueue being enabled for this project — not on whether this
+  // particular deployment has a queue label. A missing label is handled as an empty state inside
+  // DeploymentResourcesTab, so the tab strip stays consistent across all deployment states.
+  const showResourcesTab = Boolean(isKueueFeatureEnabled && isProjectKueueEnabled);
 
   const [activeTab, setActiveTab] = React.useState<string>(PROGRESS_TAB);
 
@@ -210,15 +211,16 @@ const DeploymentStatusModal: React.FC<DeploymentStatusModalProps> = ({
       data-testid="deployment-status-modal"
     >
       <ModalHeader
+        data-testid="deployment-status-modal-header"
         title={
           <Flex gap={{ default: 'gapMd' }} alignItems={{ default: 'alignItemsCenter' }}>
-            <FlexItem>Deployment status</FlexItem>
+            <FlexItem>{displayName} status</FlexItem>
             <FlexItem>
               <ModelStatusIcon
                 state={deployment.status?.state ?? ModelDeploymentState.UNKNOWN}
                 stoppedStates={deployment.status?.stoppedStates}
                 kueueStatus={deployment.status?.kueueStatus}
-                isCompact
+                variant="filled"
               />
             </FlexItem>
           </Flex>
@@ -226,9 +228,6 @@ const DeploymentStatusModal: React.FC<DeploymentStatusModalProps> = ({
       />
       <ModalBody>
         <Stack hasGutter>
-          <StackItem>
-            <Content component={ContentVariants.p}>{displayName}</Content>
-          </StackItem>
           {showResourcesTab && (
             <StackItem>
               <Tabs

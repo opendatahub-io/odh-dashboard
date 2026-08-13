@@ -19,6 +19,8 @@ import {
 } from '@odh-dashboard/internal/api/index';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import { useKueueStatusForDeployments } from '@odh-dashboard/internal/pages/modelServing/useKueueStatusForDeployments';
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports
+import { buildModelDeploymentKey } from '@odh-dashboard/internal/api/k8s/workloads';
 import {
   useWatchDeploymentPods,
   useWatchServingRuntimes,
@@ -74,10 +76,11 @@ export const useWatchDeployments = (
     return services;
   }, [inferenceServices, kserveExclusions, filterFn]);
 
-  const { kueueStatusByISName, error: kueueError } = useKueueStatusForDeployments(
-    filteredInferenceServices,
-    project,
-  );
+  const {
+    kueueStatusByDeploymentKey,
+    isLoading: kueueLoading,
+    error: kueueError,
+  } = useKueueStatusForDeployments(filteredInferenceServices, project);
 
   const deployments: KServeDeployment[] = React.useMemo(
     () =>
@@ -86,7 +89,9 @@ export const useWatchDeployments = (
           (sr) => sr.metadata.name === inferenceService.spec.predictor.model?.runtime,
         );
         const kueueStatus = inferenceService.metadata.name
-          ? kueueStatusByISName[inferenceService.metadata.name] ?? null
+          ? kueueStatusByDeploymentKey[
+              buildModelDeploymentKey('InferenceService', inferenceService.metadata.name)
+            ] ?? null
           : null;
         return {
           modelServingPlatformId: KSERVE_ID,
@@ -99,13 +104,14 @@ export const useWatchDeployments = (
             : undefined,
         };
       }),
-    [filteredInferenceServices, servingRuntimes, deploymentPods, kueueStatusByISName],
+    [filteredInferenceServices, servingRuntimes, deploymentPods, kueueStatusByDeploymentKey],
   );
 
   const effectivelyLoaded = Boolean(
     (inferenceServiceLoaded || inferenceServiceError) &&
       (servingRuntimeLoaded || servingRuntimeError) &&
       (deploymentPodsLoaded || deploymentPodsError) &&
+      (!kueueLoading || kueueError) &&
       exclusionsResolved,
   );
 

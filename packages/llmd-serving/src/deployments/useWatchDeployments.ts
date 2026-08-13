@@ -2,6 +2,8 @@ import React from 'react';
 import type { K8sAPIOptions, ProjectKind } from '@odh-dashboard/k8s-core';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import { useKueueStatusForDeployments } from '@odh-dashboard/internal/pages/modelServing/useKueueStatusForDeployments';
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports
+import { buildModelDeploymentKey } from '@odh-dashboard/internal/api/k8s/workloads';
 import { getLLMdDeploymentEndpoints } from './endpoints';
 import { getLLMdDeploymentStatus, useLLMInferenceServicePods } from './status';
 import { useWatchLLMInferenceService } from '../api/LLMInferenceService';
@@ -34,11 +36,11 @@ export const useWatchDeployments = (
     opts,
   );
 
-  const { kueueStatusByISName, error: kueueError } = useKueueStatusForDeployments(
-    [],
-    project,
-    filteredLLMInferenceServices,
-  );
+  const {
+    kueueStatusByDeploymentKey,
+    isLoading: kueueLoading,
+    error: kueueError,
+  } = useKueueStatusForDeployments([], project, filteredLLMInferenceServices);
 
   const deployments = React.useMemo(() => {
     return filteredLLMInferenceServices.map((llmInferenceService) => {
@@ -52,7 +54,10 @@ export const useWatchDeployments = (
         (baseRef) => baseRef.name === llmInferenceService.metadata.name,
       );
 
-      const kueueStatus = kueueStatusByISName[llmInferenceService.metadata.name] ?? null;
+      const kueueStatus =
+        kueueStatusByDeploymentKey[
+          buildModelDeploymentKey('LLMInferenceService', llmInferenceService.metadata.name)
+        ] ?? null;
 
       return {
         modelServingPlatformId: LLMD_SERVING_ID,
@@ -71,13 +76,14 @@ export const useWatchDeployments = (
     filteredLLMInferenceServices,
     deploymentPods,
     llmInferenceServiceConfigs,
-    kueueStatusByISName,
+    kueueStatusByDeploymentKey,
   ]);
 
   const effectivelyLoaded = Boolean(
     (llmInferenceServiceLoaded || llmInferenceServiceError) &&
       (llmInferenceServiceConfigsLoaded || llmInferenceServiceConfigsError) &&
-      (deploymentPodsLoaded || deploymentPodsError),
+      (deploymentPodsLoaded || deploymentPodsError) &&
+      (!kueueLoading || kueueError),
   );
 
   const errors = React.useMemo(() => {
