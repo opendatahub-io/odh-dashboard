@@ -353,6 +353,13 @@ export const getEvaluationJobLogs =
         `Failed to fetch logs: ${response.status} ${response.statusText}`,
       );
     }
+    const contentType = response.headers.get('Content-Type')?.split(';')[0].trim();
+    if (contentType !== 'text/plain') {
+      throw new LogFetchError(
+        response.status,
+        `Unexpected Content-Type: ${contentType ?? 'missing'}`,
+      );
+    }
     return response.text();
   };
 
@@ -375,6 +382,13 @@ export const getEvaluationJobBenchmarkLogs =
       throw new LogFetchError(
         response.status,
         `Failed to fetch benchmark logs: ${response.status} ${response.statusText}`,
+      );
+    }
+    const contentType = response.headers.get('Content-Type')?.split(';')[0].trim();
+    if (contentType !== 'text/plain') {
+      throw new LogFetchError(
+        response.status,
+        `Unexpected Content-Type: ${contentType ?? 'missing'}`,
       );
     }
     return response.text();

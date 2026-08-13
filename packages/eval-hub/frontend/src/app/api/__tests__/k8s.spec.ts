@@ -431,6 +431,8 @@ describe('isLogApiUnavailable', () => {
 
 describe('getEvaluationJobLogs', () => {
   const mockFetch = jest.fn();
+  const textPlainHeaders = { get: () => 'text/plain' };
+  const textPlainCharsetHeaders = { get: () => 'text/plain; charset=utf-8' };
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -440,6 +442,7 @@ describe('getEvaluationJobLogs', () => {
   it('should fetch logs and return text on success', async () => {
     mockFetch.mockResolvedValue({
       ok: true,
+      headers: textPlainHeaders,
       text: () => Promise.resolve('log line 1\nlog line 2'),
     });
 
@@ -456,8 +459,51 @@ describe('getEvaluationJobLogs', () => {
     );
   });
 
+  it('should accept text/plain with charset parameter', async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      headers: textPlainCharsetHeaders,
+      text: () => Promise.resolve('log output'),
+    });
+
+    const result = await getEvaluationJobLogs('', 'ns', 'j1')();
+
+    expect(result).toBe('log output');
+  });
+
+  it('should throw LogFetchError when Content-Type is not text/plain', async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      status: 200,
+      headers: { get: () => 'application/json' },
+      text: () => Promise.resolve('{}'),
+    });
+
+    await expect(getEvaluationJobLogs('', 'ns', 'j1')()).rejects.toThrow(LogFetchError);
+    await expect(getEvaluationJobLogs('', 'ns', 'j1')()).rejects.toThrow(
+      'Unexpected Content-Type: application/json',
+    );
+  });
+
+  it('should throw LogFetchError when Content-Type header is missing', async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      status: 200,
+      headers: { get: () => null },
+      text: () => Promise.resolve(''),
+    });
+
+    await expect(getEvaluationJobLogs('', 'ns', 'j1')()).rejects.toThrow(
+      'Unexpected Content-Type: missing',
+    );
+  });
+
   it('should include tail_lines param when provided', async () => {
-    mockFetch.mockResolvedValue({ ok: true, text: () => Promise.resolve('') });
+    mockFetch.mockResolvedValue({
+      ok: true,
+      headers: textPlainHeaders,
+      text: () => Promise.resolve(''),
+    });
 
     await getEvaluationJobLogs('', 'ns', 'j1', { tail_lines: 100 })();
 
@@ -468,7 +514,11 @@ describe('getEvaluationJobLogs', () => {
   });
 
   it('should include timestamps param when provided', async () => {
-    mockFetch.mockResolvedValue({ ok: true, text: () => Promise.resolve('') });
+    mockFetch.mockResolvedValue({
+      ok: true,
+      headers: textPlainHeaders,
+      text: () => Promise.resolve(''),
+    });
 
     await getEvaluationJobLogs('', 'ns', 'j1', { timestamps: true })();
 
@@ -479,7 +529,11 @@ describe('getEvaluationJobLogs', () => {
   });
 
   it('should include since_seconds param when provided', async () => {
-    mockFetch.mockResolvedValue({ ok: true, text: () => Promise.resolve('') });
+    mockFetch.mockResolvedValue({
+      ok: true,
+      headers: textPlainHeaders,
+      text: () => Promise.resolve(''),
+    });
 
     await getEvaluationJobLogs('', 'ns', 'j1', { since_seconds: 300 })();
 
@@ -507,7 +561,11 @@ describe('getEvaluationJobLogs', () => {
   });
 
   it('should encode the jobId in the URL', async () => {
-    mockFetch.mockResolvedValue({ ok: true, text: () => Promise.resolve('') });
+    mockFetch.mockResolvedValue({
+      ok: true,
+      headers: textPlainHeaders,
+      text: () => Promise.resolve(''),
+    });
 
     await getEvaluationJobLogs('', 'ns', 'job/with special')();
 
@@ -518,7 +576,11 @@ describe('getEvaluationJobLogs', () => {
   });
 
   it('should prepend hostPath to the URL', async () => {
-    mockFetch.mockResolvedValue({ ok: true, text: () => Promise.resolve('') });
+    mockFetch.mockResolvedValue({
+      ok: true,
+      headers: textPlainHeaders,
+      text: () => Promise.resolve(''),
+    });
 
     await getEvaluationJobLogs('http://my-host', 'ns', 'j1')();
 
@@ -531,6 +593,7 @@ describe('getEvaluationJobLogs', () => {
 
 describe('getEvaluationJobBenchmarkLogs', () => {
   const mockFetch = jest.fn();
+  const textPlainHeaders = { get: () => 'text/plain' };
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -540,6 +603,7 @@ describe('getEvaluationJobBenchmarkLogs', () => {
   it('should fetch benchmark-specific logs and return text', async () => {
     mockFetch.mockResolvedValue({
       ok: true,
+      headers: textPlainHeaders,
       text: () => Promise.resolve('benchmark log output'),
     });
 
@@ -552,8 +616,50 @@ describe('getEvaluationJobBenchmarkLogs', () => {
     );
   });
 
+  it('should accept text/plain with charset parameter', async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      headers: { get: () => 'text/plain; charset=utf-8' },
+      text: () => Promise.resolve('output'),
+    });
+
+    const result = await getEvaluationJobBenchmarkLogs('', 'ns', 'j1', 0)();
+
+    expect(result).toBe('output');
+  });
+
+  it('should throw LogFetchError when Content-Type is not text/plain', async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      status: 200,
+      headers: { get: () => 'application/json' },
+      text: () => Promise.resolve('{}'),
+    });
+
+    await expect(getEvaluationJobBenchmarkLogs('', 'ns', 'j1', 0)()).rejects.toThrow(
+      'Unexpected Content-Type: application/json',
+    );
+  });
+
+  it('should throw LogFetchError when Content-Type header is missing', async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      status: 200,
+      headers: { get: () => null },
+      text: () => Promise.resolve(''),
+    });
+
+    await expect(getEvaluationJobBenchmarkLogs('', 'ns', 'j1', 0)()).rejects.toThrow(
+      'Unexpected Content-Type: missing',
+    );
+  });
+
   it('should include tail_lines param when provided', async () => {
-    mockFetch.mockResolvedValue({ ok: true, text: () => Promise.resolve('') });
+    mockFetch.mockResolvedValue({
+      ok: true,
+      headers: textPlainHeaders,
+      text: () => Promise.resolve(''),
+    });
 
     await getEvaluationJobBenchmarkLogs('', 'ns', 'j1', 0, { tail_lines: 50 })();
 

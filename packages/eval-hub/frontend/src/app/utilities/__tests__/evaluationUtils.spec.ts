@@ -430,6 +430,10 @@ describe('formatDurationCompact', () => {
     expect(formatDurationCompact('2026-01-01T00:05:00Z', '2026-01-01T00:00:00Z')).toBeNull();
   });
 
+  it('should return null for unparseable timestamp', () => {
+    expect(formatDurationCompact('not-a-date', '2026-01-01T00:05:00Z')).toBeNull();
+  });
+
   it('should format seconds only', () => {
     expect(formatDurationCompact('2026-01-01T00:00:00Z', '2026-01-01T00:00:45Z')).toBe('45s');
   });

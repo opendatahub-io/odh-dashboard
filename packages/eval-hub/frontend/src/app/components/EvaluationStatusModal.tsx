@@ -58,6 +58,7 @@ type EvaluationStatusModalProps = {
 };
 
 const ALL_BENCHMARKS = 'all';
+const LOG_VIEWER_TAIL_LINES = 1000;
 
 const downloadString = (filename: string, data: string): void => {
   const blob = new Blob([data], { type: 'text/plain' });
@@ -315,6 +316,7 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
     activeTab === 'events-log' ? namespace : undefined,
     activeTab === 'events-log' ? job?.resource.id : undefined,
     benchmarkIndex,
+    LOG_VIEWER_TAIL_LINES,
   );
 
   const sortedBenchmarks = React.useMemo(
@@ -337,13 +339,21 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
     }
   }, [jobId, jobState]);
 
+  const failedBenchmarks = sortedBenchmarks.filter((bm) => bm.status === 'failed');
+  const failureSummary =
+    (jobState === 'failed' || jobState === 'partially_failed') && sortedBenchmarks.length > 1
+      ? failedBenchmarks
+          .map((bm) => `${bm.id}: ${bm.error_message?.message ?? 'Unknown error'}`)
+          .join('. ')
+      : job?.status.message?.message;
+
   React.useEffect(() => {
     const el = failureSummaryRef.current;
     if (el) {
       const truncated = el.scrollHeight > el.clientHeight;
       setIsFailureSummaryTruncated((prev) => (prev !== truncated ? truncated : prev));
     }
-  }, []);
+  }, [failureSummary, isFailureSummaryExpanded, activeTab]);
 
   const evaluationName = job ? getEvaluationName(job) : '';
 
@@ -379,11 +389,7 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
   }
 
   const { state } = job.status;
-  const {
-    message,
-    message_code: messageCode,
-    message_origin: messageOrigin,
-  } = job.status.message ?? {};
+  const { message_code: messageCode, message_origin: messageOrigin } = job.status.message ?? {};
   const isInProgress = state === 'running' || state === 'pending' || state === 'stopping';
   const elapsed = formatDurationCompact(
     job.resource.created_at,
@@ -395,14 +401,6 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
     setSelectedBenchmark(String(bmIndex));
     setActiveTab('events-log');
   };
-
-  const failedBenchmarks = sortedBenchmarks.filter((bm) => bm.status === 'failed');
-  const failureSummary =
-    isFailed && sortedBenchmarks.length > 1
-      ? failedBenchmarks
-          .map((bm) => `${bm.id}: ${bm.error_message?.message ?? 'Unknown error'}`)
-          .join('. ')
-      : message;
 
   const completedBenchmarkCount = sortedBenchmarks.filter((bm) => bm.status === 'completed').length;
 
@@ -760,11 +758,19 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
               ) : null}
               <StackItem>
                 <LogHeader />
-                <div className={logViewerClassName} data-testid="log-content">
+                <div
+                  className={logViewerClassName}
+                  data-testid="log-content"
+                  role="log"
+                  // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
+                  tabIndex={0}
+                  aria-label="Evaluation log output"
+                >
                   {!logsLoaded ? (
                     <LogSkeletonRows />
                   ) : logsError && isLogApiUnavailable(logsError) ? (
                     <Alert
+                      className="evalhub-log-viewer__alert"
                       variant="info"
                       isInline
                       title="Logs not available"
@@ -774,6 +780,7 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
                     </Alert>
                   ) : logsError ? (
                     <Alert
+                      className="evalhub-log-viewer__alert"
                       variant="danger"
                       isInline
                       title="Failed to load logs"
@@ -788,6 +795,7 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
                     </Alert>
                   ) : !hasLogContent ? (
                     <Alert
+                      className="evalhub-log-viewer__alert"
                       variant="info"
                       isInline
                       title="No log content available"

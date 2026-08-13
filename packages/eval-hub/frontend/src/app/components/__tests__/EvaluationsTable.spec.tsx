@@ -6,6 +6,7 @@ import { mockEvaluationJob } from '~/__tests__/unit/testUtils/mockEvaluationData
 import EvaluationsTable from '~/app/components/EvaluationsTable';
 
 const mockOnRefresh = jest.fn();
+const mockOnShowStatus = jest.fn();
 const mockNavigate = jest.fn();
 
 jest.mock('react-router-dom', () => ({
@@ -37,7 +38,7 @@ const renderTable = (props: {
         collectionNameMap={props.collectionNameMap ?? {}}
         collectionsLoaded={props.collectionsLoaded ?? true}
         onRefresh={mockOnRefresh}
-        onShowStatus={jest.fn()}
+        onShowStatus={mockOnShowStatus}
       />
     </MemoryRouter>,
   );
@@ -121,6 +122,14 @@ describe('EvaluationsTable', () => {
     expect(screen.getByTestId('evaluation-row-0')).toBeInTheDocument();
     expect(screen.getByTestId('evaluation-row-1')).toBeInTheDocument();
     expect(screen.getByTestId('evaluation-row-2')).toBeInTheDocument();
+  });
+
+  it('should call onShowStatus with the job when EvaluationStatusLabel is clicked', () => {
+    renderTable({ evaluations: mockJobs, loaded: true });
+    const statusLabel = screen.getByTestId('status-label-completed');
+    fireEvent.click(statusLabel.querySelector('button')!);
+    expect(mockOnShowStatus).toHaveBeenCalledTimes(1);
+    expect(mockOnShowStatus).toHaveBeenCalledWith(mockJobs[0]);
   });
 
   it('should render the New evaluation button', () => {

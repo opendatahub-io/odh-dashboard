@@ -42,11 +42,16 @@ const EvaluationsPage: React.FC = () => {
     !isHealthy,
   );
   const { collectionNameMap, loaded: collectionsLoaded } = useCollectionNameMap();
-  const [selectedJob, setSelectedJob] = React.useState<EvaluationJob | undefined>();
+  const [selectedJob, setSelectedJob] = React.useState<
+    { job: EvaluationJob; namespace: string } | undefined
+  >();
 
-  React.useEffect(() => {
-    setSelectedJob(undefined);
-  }, [namespace]);
+  const onShowStatus = React.useCallback(
+    (job: EvaluationJob) => {
+      setSelectedJob(namespace ? { job, namespace } : undefined);
+    },
+    [namespace],
+  );
 
   return (
     <>
@@ -149,11 +154,11 @@ const EvaluationsPage: React.FC = () => {
             collectionNameMap={collectionNameMap}
             collectionsLoaded={collectionsLoaded}
             onRefresh={refreshEvaluations}
-            onShowStatus={setSelectedJob}
+            onShowStatus={onShowStatus}
           />
         )}
       </ApplicationsPage>
-      {selectedJob ? (
+      {selectedJob && selectedJob.namespace === namespace ? (
         <React.Suspense
           fallback={
             <Bullseye>
@@ -162,8 +167,8 @@ const EvaluationsPage: React.FC = () => {
           }
         >
           <EvaluationStatusModal
-            job={selectedJob}
-            namespace={namespace ?? ''}
+            job={selectedJob.job}
+            namespace={selectedJob.namespace}
             onClose={() => setSelectedJob(undefined)}
           />
         </React.Suspense>

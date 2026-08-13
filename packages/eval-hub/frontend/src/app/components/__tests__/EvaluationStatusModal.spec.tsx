@@ -475,6 +475,43 @@ describe('EvaluationStatusModal failure summary alert', () => {
 
     expect(screen.queryByTestId('failure-summary-alert')).not.toBeInTheDocument();
   });
+
+  it('should expand and collapse failure details via the toggle button', () => {
+    const scrollHeightSpy = jest
+      .spyOn(HTMLParagraphElement.prototype, 'scrollHeight', 'get')
+      .mockReturnValue(200);
+    const clientHeightSpy = jest
+      .spyOn(HTMLParagraphElement.prototype, 'clientHeight', 'get')
+      .mockReturnValue(60);
+
+    const job = mockEvaluationJob({ state: 'partially_failed' });
+    /* eslint-disable camelcase */
+    job.status.benchmarks = [
+      { id: 'bm-a', benchmark_index: 0, status: 'failed', error_message: { message: 'err-a' } },
+      { id: 'bm-b', benchmark_index: 1, status: 'completed' },
+      { id: 'bm-c', benchmark_index: 2, status: 'failed', error_message: { message: 'err-c' } },
+    ];
+    /* eslint-enable camelcase */
+
+    render(<EvaluationStatusModal job={job} namespace="test-ns" onClose={mockOnClose} />);
+
+    const toggle = screen.getByTestId('failure-summary-toggle');
+    expect(toggle).toHaveTextContent('Show more');
+
+    const alert = screen.getByTestId('failure-summary-alert');
+    expect(alert).toHaveTextContent('bm-a: err-a');
+
+    fireEvent.click(toggle);
+    expect(toggle).toHaveTextContent('Show less');
+    expect(alert).toHaveTextContent('bm-a: err-a');
+
+    fireEvent.click(toggle);
+    expect(toggle).toHaveTextContent('Show more');
+    expect(alert).toHaveTextContent('bm-a: err-a');
+
+    scrollHeightSpy.mockRestore();
+    clientHeightSpy.mockRestore();
+  });
 });
 
 describe('EvaluationStatusModal log parsing', () => {
@@ -571,5 +608,43 @@ describe('EvaluationStatusModal view benchmark logs', () => {
     fireEvent.click(screen.getByTestId('view-logs-bm-a'));
 
     expect(screen.getByTestId('events-log-tab')).toHaveAttribute('aria-selected', 'true');
+  });
+});
+
+describe('EvaluationStatusModal useEvaluationJobLogs arguments', () => {
+  it('should pass namespace and job ID on the events-log tab', () => {
+    renderModal({ state: 'running' });
+
+    expect(mockUseEvaluationJobLogs).toHaveBeenLastCalledWith(
+      'test-ns',
+      'eval-job-001',
+      undefined,
+      1000,
+    );
+  });
+
+  it('should pass undefined namespace and job ID on the failure-info tab', () => {
+    renderModal({ state: 'failed', statusMessage: 'Something failed' });
+
+    expect(screen.getByTestId('failure-info-tab')).toHaveAttribute('aria-selected', 'true');
+    expect(mockUseEvaluationJobLogs).toHaveBeenLastCalledWith(
+      undefined,
+      undefined,
+      undefined,
+      1000,
+    );
+  });
+
+  it('should pass benchmark index after selecting a benchmark', () => {
+    const job = mockEvaluationJob({ state: 'running' });
+    // eslint-disable-next-line camelcase
+    job.status.benchmarks = [{ id: 'bm-a', benchmark_index: 0, status: 'completed' }];
+
+    render(<EvaluationStatusModal job={job} namespace="test-ns" onClose={mockOnClose} />);
+
+    fireEvent.click(screen.getByTestId('benchmark-log-selector'));
+    fireEvent.click(screen.getByText('bm-a'));
+
+    expect(mockUseEvaluationJobLogs).toHaveBeenLastCalledWith('test-ns', 'eval-job-001', 0, 1000);
   });
 });
