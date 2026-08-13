@@ -22,7 +22,7 @@ const McpDeploymentsTable: React.FC<McpDeploymentsTableProps> = ({
     data-testid="mcp-deployments-table"
     data={deployments}
     columns={mcpDeploymentColumns}
-    defaultSortColumn={2}
+    defaultSortColumn={3}
     toolbarContent={toolbarContent}
     onClearFilters={onClearFilters}
     enablePagination

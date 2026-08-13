@@ -1,6 +1,11 @@
 import { SortableData } from 'mod-arch-shared';
 import { McpDeployment } from '~/odh/types/mcpDeploymentTypes';
-import { getDeploymentDisplayName, getStatusSortWeight } from './utils';
+import {
+  getDeploymentDisplayName,
+  getMcpServerSortKey,
+  getRegisteredVersionSortKey,
+  getStatusSortWeight,
+} from './utils';
 
 export const mcpDeploymentColumns: SortableData<McpDeployment>[] = [
   {
@@ -12,15 +17,22 @@ export const mcpDeploymentColumns: SortableData<McpDeployment>[] = [
   {
     field: 'server',
     label: 'MCP server',
-    sortable: (a, b) => (a.serverName ?? '').localeCompare(b.serverName ?? ''),
+    sortable: (a, b) => getMcpServerSortKey(a).localeCompare(getMcpServerSortKey(b)),
     width: 20,
+  },
+  {
+    field: 'registeredVersion',
+    label: 'Registered version',
+    sortable: (a, b) =>
+      getRegisteredVersionSortKey(a).localeCompare(getRegisteredVersionSortKey(b)),
+    width: 10,
   },
   {
     field: 'created',
     label: 'Created',
     sortable: (a, b) =>
       new Date(b.creationTimestamp).getTime() - new Date(a.creationTimestamp).getTime(),
-    width: 20,
+    width: 15,
   },
   {
     field: 'status',

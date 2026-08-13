@@ -9,7 +9,9 @@ import (
 	"os"
 	"path"
 	"strings"
+	"sync"
 
+	"github.com/kubeflow/hub/ui/bff/internal/integrations/bffclient"
 	k8s "github.com/kubeflow/hub/ui/bff/internal/integrations/kubernetes"
 	k8mocks "github.com/kubeflow/hub/ui/bff/internal/integrations/kubernetes/k8mocks"
 	"k8s.io/client-go/kubernetes"
@@ -149,6 +151,11 @@ type App struct {
 	testEnv *envtest.Environment
 	// rootCAs used for outbound TLS connections to Model Registry/Catalog
 	rootCAs *x509.CertPool
+	// bffClientFactory creates inter-BFF clients (see docs/inter-bff-communication.md),
+	// used to resolve MCP Registry server details from the MLflow BFF. Built lazily by
+	// BFFClientFactory() in bff_client_factory.go, so NewApp doesn't carry its setup.
+	bffClientFactory     bffclient.BFFClientFactory
+	bffClientFactoryOnce sync.Once
 }
 
 func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {

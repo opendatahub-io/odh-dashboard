@@ -80,6 +80,8 @@ func overrideMcpDeploymentList(app *api.App, buildDefault func() httprouter.Hand
 			return
 		}
 
+		enrichMcpDeploymentsWithRegistryDisplayNames(r.Context(), app, result.Items)
+
 		resp := McpDeploymentListEnvelope{Data: result}
 		if err := app.WriteJSON(w, http.StatusOK, resp, nil); err != nil {
 			app.ServerError(w, r, err)
@@ -120,6 +122,8 @@ func overrideMcpDeploymentGet(app *api.App, buildDefault func() httprouter.Handl
 			handleMcpDeploymentError(app, w, r, err)
 			return
 		}
+
+		enrichMcpDeploymentWithRegistryDisplayName(r.Context(), app, &result)
 
 		resp := McpDeploymentEnvelope{Data: result}
 		if err := app.WriteJSON(w, http.StatusOK, resp, nil); err != nil {
