@@ -14,6 +14,7 @@ import {
 } from '~/__tests__/cypress/cypress/support/helpers/mcpServers/mcpServersTestHelpers';
 import {
   mockMCPServers,
+  mockMLflowPrompt,
   mockMLflowPromptsList,
   mockMLflowPromptVersion,
   mockMLflowPromptVersionsResponse,
@@ -795,6 +796,200 @@ describe('Chatbot - Prompt Management (Mocked)', () => {
         cy.wait('@createPromptSaveAs').then((interception) => {
           expect(interception.request.body).to.have.property('create_only', true);
         });
+      },
+    );
+  });
+
+  describe('Global Prompt - Browse, Load, and Save As', () => {
+    beforeEach(() => {
+      const namespace = config.defaultNamespace;
+
+      setupBaseMCPServerMocks(config, {
+        lsdStatus: 'Ready',
+        includeLsdModel: true,
+        includeAAModel: true,
+      });
+      cy.interceptGenAi('GET /api/v1/aaa/mcps', { query: { namespace } }, mockMCPServers([]));
+      cy.interceptGenAi('GET /api/v1/config', { data: { isCustomLSD: false } }).as('bffConfig');
+      cy.intercept('GET', '**/api/v1/mcp/status**', {
+        statusCode: 200,
+        body: { status: 'ready' },
+      });
+
+      cy.interceptGenAi(
+        'GET /api/v1/mlflow/prompts',
+        { query: { namespace } },
+        mockMLflowPromptsList(),
+      ).as('listPrompts');
+
+      cy.intercept('GET', '**/api/v1/mlflow/prompts/*/versions**', {
+        statusCode: 200,
+        body: mockMLflowPromptVersionsResponse(),
+      }).as('listVersions');
+
+      cy.intercept('GET', '**/api/v1/mlflow/prompts/*', (req) => {
+        if (req.url.includes('/versions')) {
+          return;
+        }
+        const url = new URL(req.url, 'http://localhost');
+        const version = url.searchParams.get('version');
+        const isGlobalPrompt =
+          url.searchParams.has('workspace') || req.url.includes('starter-template-prompt');
+
+        if (isGlobalPrompt) {
+          req.reply({
+            statusCode: 200,
+            body: {
+              data:
+                version === '1'
+                  ? mockMLflowPromptVersion({
+                      name: 'starter-template-prompt',
+                      version: 1,
+                      template: 'Original global starter template.',
+                      commit_message: 'Initial version',
+                      scope: { type: 'global', namespace: 'rhoai-templates', read_only: true },
+                    })
+                  : mockMLflowPromptVersion({
+                      name: 'starter-template-prompt',
+                      version: 2,
+                      template: 'Updated global starter template.',
+                      commit_message: 'Updated instructions',
+                      scope: { type: 'global', namespace: 'rhoai-templates', read_only: true },
+                    }),
+            },
+          });
+        } else {
+          req.reply({
+            statusCode: 200,
+            body: {
+              data: mockMLflowPromptVersion({
+                name: 'summarization-prompt',
+                template: 'You are a helpful summarization assistant.',
+                scope: { type: 'project', namespace },
+              }),
+            },
+          });
+        }
+      }).as('getPrompt');
+
+      cy.intercept('POST', '**/api/v1/mlflow/prompts**', {
+        statusCode: 200,
+        body: {
+          data: mockMLflowPromptVersion({
+            name: 'my-global-prompt-copy',
+            version: 1,
+            template: 'Modified global template.',
+          }),
+        },
+      }).as('createPrompt');
+
+      appChrome.visit(['genAiStudio', 'promptManagement']);
+      chatbotPage.visit(namespace);
+      chatbotPage.verifyOnChatbotPage(namespace);
+      cy.wait('@bffConfig');
+      cy.wait('@aaModels');
+    });
+
+    it(
+      'should browse global prompts, load, switch versions, modify, and save as to project namespace',
+      { tags: ['@GenAI', '@PromptManagement', '@GlobalPrompts'] },
+      () => {
+        const namespace = config.defaultNamespace;
+
+        cy.step('Open prompt management modal and verify project tab is active');
+        openSettingsPromptTab();
+        promptAssistant.findLoadPromptButton().click();
+        cy.wait('@listPrompts');
+        promptManagementModal.findProjectPromptsTab().should('have.attr', 'aria-selected', 'true');
+        promptManagementModal.findTableRow('summarization-prompt').should('exist');
+
+        cy.step('Switch to global prompts tab and verify Read-only labels');
+        promptManagementModal.findGlobalPromptsTab().click();
+        promptManagementModal.findTableRow('starter-template-prompt').should('exist');
+        promptManagementModal.findTableRow('safety-guidelines-prompt').should('exist');
+        promptManagementModal.findTableRow('starter-template-prompt').within(() => {
+          cy.findByTestId('read-only-label').should('exist');
+        });
+
+        cy.step('Select global prompt and verify workspace param in version API');
+        promptManagementModal.findTableRow('starter-template-prompt').click();
+        promptDrawer.findPanel().should('be.visible');
+        cy.wait('@listVersions').then((interception) => {
+          const url = new URL(interception.request.url, 'http://localhost');
+          expect(url.searchParams.get('workspace')).to.equal('rhoai-templates');
+        });
+
+        cy.step('Switch version in drawer to Version 1');
+        promptDrawer.findVersionSelect().click();
+        cy.findByRole('option', { name: 'Version 1' }).click();
+        promptDrawer.findTemplate().should('have.value', 'Original global starter template.');
+
+        cy.step('Load global prompt into playground');
+        promptManagementModal.findLoadButton().should('be.enabled').click();
+        promptManagementModal.find().should('not.exist');
+        promptAssistant.findNameTitle().should('contain.text', 'starter-template-prompt');
+        promptAssistant.findScopeLabel().should('contain.text', 'Global');
+
+        cy.step('Edit the prompt and verify unsaved state');
+        promptAssistant.findEditButton().should('be.visible').click();
+        promptAssistant.findTextarea().clear().type('Modified global template.');
+        promptAssistant.findUnsavedIndicator().should('exist');
+        promptAssistant.findSaveButton().should('be.disabled');
+        promptAssistant.findSaveAsButton().should('be.enabled');
+
+        cy.step('Click Save As with conflicting name and verify 409 inline error');
+        cy.intercept('POST', '**/api/v1/mlflow/prompts**', {
+          statusCode: 409,
+          body: { error: { message: 'Prompt already exists' } },
+        }).as('createPromptConflict');
+        promptAssistant.findSaveAsButton().click();
+        createPromptModal.find().should('be.visible');
+        createPromptModal.findNameInput().should('have.value', 'copy-of-starter-template-prompt');
+        createPromptModal.findCommitMessageInput().type('Copy attempt');
+        createPromptModal.findSaveButton().click();
+        cy.wait('@createPromptConflict');
+        createPromptModal.findNameError().should('be.visible');
+        createPromptModal.findErrorAlert().should('not.exist');
+
+        cy.step('Enter unique name and save successfully');
+        const updatedPrompts = [
+          ...mockMLflowPromptsList().data.prompts,
+          mockMLflowPrompt({
+            name: 'my-global-prompt-copy',
+            description: 'Copy of global starter template',
+            scope: { type: 'project', namespace },
+          }),
+        ];
+        cy.interceptGenAi(
+          'GET /api/v1/mlflow/prompts',
+          { query: { namespace } },
+          mockMLflowPromptsList(updatedPrompts),
+        ).as('listPromptsAfterSave');
+        cy.intercept('POST', '**/api/v1/mlflow/prompts**', {
+          statusCode: 200,
+          body: {
+            data: mockMLflowPromptVersion({
+              name: 'my-global-prompt-copy',
+              version: 1,
+              template: 'Modified global template.',
+              scope: { type: 'project', namespace },
+            }),
+          },
+        }).as('createPromptSuccess');
+        createPromptModal.findNameInput().clear().type('my-global-prompt-copy');
+        createPromptModal.findSaveButton().click();
+        cy.wait('@createPromptSuccess').then((interception) => {
+          expect(interception.request.body).to.have.property('name', 'my-global-prompt-copy');
+          expect(interception.request.body).to.have.property('create_only', true);
+        });
+
+        cy.step('Re-open modal and verify copy in project tab, not global tab');
+        createPromptModal.find().should('not.exist');
+        promptAssistant.findLoadPromptButton().click();
+        cy.wait('@listPromptsAfterSave');
+        promptManagementModal.findTableRow('my-global-prompt-copy').should('exist');
+        promptManagementModal.findGlobalPromptsTab().click();
+        promptManagementModal.findTableRow('my-global-prompt-copy').should('not.exist');
       },
     );
   });
