@@ -31,6 +31,22 @@ func (app *App) badRequestResponse(w http.ResponseWriter, r *http.Request, err e
 	app.errorResponse(w, r, httpError)
 }
 
+func (app *App) unauthorizedResponse(w http.ResponseWriter, r *http.Request, err error) {
+	// Log the path only, never the full RequestURI: query strings on these routes can carry
+	// tokens or other sensitive values that must not end up in logs.
+	app.logger.Warn("Unauthorized request", "error", err, "method", r.Method, "path", r.URL.Path)
+
+	httpError := &HTTPError{StatusCode: http.StatusUnauthorized, Error: ErrorPayload{Code: strconv.Itoa(http.StatusUnauthorized), Message: "authentication required"}}
+	app.errorResponse(w, r, httpError)
+}
+
+func (app *App) serviceUnavailableResponse(w http.ResponseWriter, r *http.Request, err error) {
+	app.LogError(r, err)
+
+	httpError := &HTTPError{StatusCode: http.StatusServiceUnavailable, Error: ErrorPayload{Code: strconv.Itoa(http.StatusServiceUnavailable), Message: "the upstream service is unavailable"}}
+	app.errorResponse(w, r, httpError)
+}
+
 func (app *App) forbiddenResponse(w http.ResponseWriter, r *http.Request, message string) {
 	// Log the detailed error message as a warning
 	app.logger.Warn("Access forbidden", "message", message, "method", r.Method, "uri", r.URL.RequestURI())
