@@ -192,11 +192,11 @@ const patternTerminusExtras = (
     };
   }
 
-  // In progress / unknown (collapsed): generic label, no subtitle or star.
+  // In progress / unknown (collapsed): generic label + winner badge, no star.
   if (isCollapsedSpine) {
     return {
-      label: 'Pattern winner',
-      labelSubtitle: undefined,
+      label: 'Pattern',
+      labelSubtitle: 'winner',
       showWinnerStar: false,
     };
   }

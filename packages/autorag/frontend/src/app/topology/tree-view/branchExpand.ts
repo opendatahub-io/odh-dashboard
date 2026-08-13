@@ -8,7 +8,7 @@ export type BranchExpandOptions = {
   patternsExpanded: boolean;
   /**
    * Succeeded run with a known best pattern — show pattern name + "winner" subtitle + star.
-   * Otherwise pattern terminus uses "Pattern winner" (no subtitle / star).
+   * Otherwise pattern terminus uses "Pattern" + winner badge (no star).
    */
   winnerResolved: boolean;
   winnerPatternLabel?: string;

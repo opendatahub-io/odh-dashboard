@@ -318,12 +318,12 @@ describe('transformStageMapNodesToTree', () => {
 
     const modelNodes = nodes.filter((node) => node.id.includes('__model__'));
     expect(modelNodes).toHaveLength(1);
-    expect(modelNodes[0].data.label).toBe('Model winner');
-    expect(modelNodes[0].data.labelSubtitle).toBeUndefined();
+    expect(modelNodes[0].data.label).toBe('Model');
+    expect(modelNodes[0].data.labelSubtitle).toBe('Winner');
     expect(modelNodes[0].data.showWinnerStar).toBe(false);
   });
 
-  it('labels collapsed spine as Model winner when winnerResolved but no branch matches', () => {
+  it('labels collapsed spine with winner badge when winnerResolved but no branch matches', () => {
     const topologyNodes = buildStageMapTopology(makeStageMap([training]));
     const { nodes } = transformStageMapNodesToTree(topologyNodes, {
       modelsExpanded: false,
@@ -334,8 +334,8 @@ describe('transformStageMapNodesToTree', () => {
 
     const modelNodes = nodes.filter((node) => node.id.includes('__model__'));
     expect(modelNodes).toHaveLength(1);
-    expect(modelNodes[0].data.label).toBe('Model winner');
-    expect(modelNodes[0].data.labelSubtitle).toBeUndefined();
+    expect(modelNodes[0].data.label).toBe('Model');
+    expect(modelNodes[0].data.labelSubtitle).toBe('Winner');
     expect(modelNodes[0].data.showWinnerStar).toBe(false);
   });
 

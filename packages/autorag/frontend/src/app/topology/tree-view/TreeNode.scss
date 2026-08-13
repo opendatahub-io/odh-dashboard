@@ -31,6 +31,10 @@
 }
 
 .autorag-tree-node__label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--pf-t--global--spacer--xs);
   width: 100%;
   text-align: center;
   color: var(--pf-t--global--text--color--subtle);
@@ -44,9 +48,9 @@
   }
 }
 
-.autorag-tree-node__label-subtitle {
-  color: var(--pf-t--global--text--color--subtle);
-  font-size: var(--pf-t--global--font--size--body--sm);
+/* PF non-status grey label — winner designation under model/pattern name. */
+.autorag-tree-node__winner-label {
+  text-transform: capitalize;
 }
 
 .autorag-tree-node__patterns-toggle {

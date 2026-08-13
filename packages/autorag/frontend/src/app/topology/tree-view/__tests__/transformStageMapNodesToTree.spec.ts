@@ -326,8 +326,8 @@ describe('transformStageMapNodesToTree', () => {
 
     const patternNodes = nodes.filter((node) => node.id.includes('__pattern__'));
     expect(patternNodes).toHaveLength(1);
-    expect(patternNodes[0].data.label).toBe('Pattern winner');
-    expect(patternNodes[0].data.labelSubtitle).toBeUndefined();
+    expect(patternNodes[0].data.label).toBe('Pattern');
+    expect(patternNodes[0].data.labelSubtitle).toBe('winner');
     expect(patternNodes[0].data.showWinnerStar).toBe(false);
   });
 

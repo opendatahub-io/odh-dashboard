@@ -1,6 +1,6 @@
 import * as React from 'react';
 import cx from 'classnames';
-import { Button } from '@patternfly/react-core';
+import { Button, Label } from '@patternfly/react-core';
 import {
   t_global_icon_color_status_success_default as iconColorStatusSuccess,
   t_global_icon_color_status_danger_default as iconColorStatusDanger,
@@ -535,7 +535,9 @@ const TreeNodeInner: React.FC<{
                 >
                   <div>{label}</div>
                   {labelSubtitle ? (
-                    <div className="automl-tree-node__label-subtitle">{labelSubtitle}</div>
+                    <Label color="grey" isCompact className="automl-tree-node__winner-label">
+                      {labelSubtitle}
+                    </Label>
                   ) : null}
                 </div>
               ) : null}

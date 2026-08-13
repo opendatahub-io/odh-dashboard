@@ -8,7 +8,7 @@ export type BranchExpandOptions = {
   modelsExpanded: boolean;
   /**
    * Succeeded run with a known best model — show model name + "Winner" subtitle + star.
-   * Otherwise model terminus uses "Model winner" (no subtitle / star).
+   * Otherwise model terminus uses "Model" + Winner badge (no star).
    */
   winnerResolved: boolean;
   winnerModelLabel?: string;

@@ -13,7 +13,8 @@ type TreeEdgeProps = {
 };
 
 const X_OFFSET = 10;
-const Y_OFFSET = -4;
+/** PF edge anchors align with node bbox center; no vertical nudge needed for spine dots. */
+const Y_OFFSET = 0;
 
 const COLORS = {
   completed: colorStatusSuccess.var,

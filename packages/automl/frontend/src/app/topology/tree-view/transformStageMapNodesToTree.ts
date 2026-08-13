@@ -191,11 +191,11 @@ const modelTerminusExtras = (
     };
   }
 
-  // Collapsed spine without a winner match: generic label, no subtitle or star.
+  // Collapsed spine without a winner match: generic label + winner badge, no star.
   if (isCollapsedSpine) {
     return {
-      label: 'Model winner',
-      labelSubtitle: undefined,
+      label: 'Model',
+      labelSubtitle: 'Winner',
       showWinnerStar: false,
     };
   }
