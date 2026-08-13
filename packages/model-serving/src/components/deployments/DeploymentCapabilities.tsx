@@ -3,6 +3,7 @@ import { Label, LabelGroup, Tooltip } from '@patternfly/react-core';
 import {
   parseModelCapabilities,
   getModelCapabilityLabelColor,
+  normalizeModelCapability,
 } from '../../shared/modelCapabilities';
 import { Deployment } from '../../../extension-points';
 
@@ -26,18 +27,18 @@ const DeploymentCapabilities: React.FC<DeploymentCapabilitiesProps> = ({
 
   return (
     <LabelGroup data-testid="deployment-capabilities">
-      {visibleCapabilities.map((capability) => (
+      {visibleCapabilities.map((capability, index) => (
         <Label
-          key={capability}
+          key={`${capability}-${index}`}
           isCompact
           color={getModelCapabilityLabelColor(capability)}
           data-testid="deployment-capability-label"
         >
-          {capability}
+          {normalizeModelCapability(capability)}
         </Label>
       ))}
       {overflowCount > 0 && (
-        <Tooltip content={capabilities.join(', ')}>
+        <Tooltip content={capabilities.map(normalizeModelCapability).join(', ')}>
           <Label isCompact variant="overflow">{`+${overflowCount}`}</Label>
         </Tooltip>
       )}
