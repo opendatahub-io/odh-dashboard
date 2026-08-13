@@ -222,17 +222,32 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	return result, err
 }
 
+const observabilityRetryInterval = 5 * time.Minute
+
 func (r *DashboardReconciler) reconcile(
 	ctx context.Context,
 	dashboard *v1alpha1.Dashboard,
 	cm *conditions.Manager,
 	cfg OperatorConfig,
 ) (ctrl.Result, error) {
-	mode := dashboard.Spec.DeploymentMode
-	if mode == "" || mode == v1alpha1.DeploymentModeSidecar {
-		return r.reconcileSidecar(ctx, dashboard, cm, cfg)
+	if err := r.autoDetectObservability(ctx, dashboard); err != nil {
+		log.FromContext(ctx).Error(err, "Failed to auto-detect observability, continuing without it")
 	}
-	return r.reconcileStandalone(ctx, dashboard, cm, cfg)
+
+	mode := dashboard.Spec.DeploymentMode
+	var result ctrl.Result
+	var err error
+	if mode == "" || mode == v1alpha1.DeploymentModeSidecar {
+		result, err = r.reconcileSidecar(ctx, dashboard, cm, cfg)
+	} else {
+		result, err = r.reconcileStandalone(ctx, dashboard, cm, cfg)
+	}
+
+	if dashboard.Spec.Observability == nil && err == nil && result.RequeueAfter == 0 {
+		result.RequeueAfter = observabilityRetryInterval
+	}
+
+	return result, err
 }
 
 func (r *DashboardReconciler) reconcileSidecar(
@@ -635,6 +650,10 @@ func (r *DashboardReconciler) cleanupCrossNamespaceResources(ctx context.Context
 	if dashboard.Spec.Observability != nil &&
 		dashboard.Spec.Observability.PersesService != nil {
 		obsNS = dashboard.Spec.Observability.PersesService.Namespace
+	}
+
+	if obsNS == "" {
+		obsNS = r.monitoringNamespace()
 	}
 
 	if obsNS == "" || obsNS == r.ApplicationsNamespace {
