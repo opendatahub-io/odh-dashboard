@@ -215,14 +215,6 @@ describe('EvaluationStatusModal benchmark warnings', () => {
   });
 });
 
-describe('EvaluationStatusModal log line count', () => {
-  it('should display a line count in the toolbar', () => {
-    renderModal();
-
-    expect(screen.getByTestId('log-line-count')).toHaveTextContent('1 line');
-  });
-});
-
 describe('EvaluationStatusModal log API unavailable', () => {
   it('should show a permanent info message when the log API returns 404', () => {
     mockUseEvaluationJobLogs.mockReturnValue({
@@ -634,6 +626,184 @@ describe('EvaluationStatusModal view benchmark logs', () => {
     fireEvent.click(screen.getByTestId('view-logs-bm-a'));
 
     expect(screen.getByTestId('events-log-tab')).toHaveAttribute('aria-selected', 'true');
+  });
+});
+
+describe('EvaluationStatusModal log level filter', () => {
+  const mixedLogs = [
+    '2026-01-15 09:30:00,123 - main - INFO - Starting evaluation',
+    '2026-01-15 09:30:01,456 - main - WARNING - Low memory available',
+    '2026-01-15 09:30:02,789 - main - ERROR - Model connection failed',
+    '2026-01-15 09:30:03,012 - main - DEBUG - Retrying connection',
+    '2026-01-15 09:30:04,345 - main - INFO - Connection restored',
+  ].join('\n');
+
+  beforeEach(() => {
+    mockUseEvaluationJobLogs.mockReturnValue({
+      logs: mixedLogs,
+      loaded: true,
+      error: undefined,
+      refresh: jest.fn(),
+    });
+  });
+
+  it('should render the log level filter button', () => {
+    renderModal();
+
+    expect(screen.getByTestId('log-level-filter')).toBeInTheDocument();
+  });
+
+  it('should show all log entries by default', () => {
+    renderModal();
+
+    const logContent = screen.getByTestId('log-content');
+    expect(logContent.textContent).toContain('Starting evaluation');
+    expect(logContent.textContent).toContain('Low memory available');
+    expect(logContent.textContent).toContain('Model connection failed');
+    expect(logContent.textContent).toContain('Retrying connection');
+  });
+
+  it('should filter to warnings and errors when "Warnings and errors" is selected', () => {
+    renderModal();
+
+    fireEvent.click(screen.getByTestId('log-level-filter'));
+    fireEvent.click(screen.getByText('Warnings and errors'));
+
+    const logContent = screen.getByTestId('log-content');
+    expect(logContent.textContent).toContain('Low memory available');
+    expect(logContent.textContent).toContain('Model connection failed');
+    expect(logContent.textContent).not.toContain('Starting evaluation');
+    expect(logContent.textContent).not.toContain('Retrying connection');
+  });
+
+  it('should filter to errors only when "Errors only" is selected', () => {
+    renderModal();
+
+    fireEvent.click(screen.getByTestId('log-level-filter'));
+    fireEvent.click(screen.getByText('Errors only'));
+
+    const logContent = screen.getByTestId('log-content');
+    expect(logContent.textContent).toContain('Model connection failed');
+    expect(logContent.textContent).not.toContain('Low memory available');
+    expect(logContent.textContent).not.toContain('Starting evaluation');
+  });
+
+  it('should show all entries again when switching back to "All messages"', () => {
+    renderModal();
+
+    fireEvent.click(screen.getByTestId('log-level-filter'));
+    fireEvent.click(screen.getByText('Errors only'));
+
+    expect(screen.getByTestId('log-content').textContent).not.toContain('Starting evaluation');
+
+    fireEvent.click(screen.getByTestId('log-level-filter'));
+    fireEvent.click(screen.getByText('All messages'));
+
+    expect(screen.getByTestId('log-content').textContent).toContain('Starting evaluation');
+    expect(screen.getByTestId('log-content').textContent).toContain('Low memory available');
+    expect(screen.getByTestId('log-content').textContent).toContain('Model connection failed');
+  });
+
+  it('should preserve section headers when filtering', () => {
+    mockUseEvaluationJobLogs.mockReturnValue({
+      logs: '=== pod=abc container=adapter benchmark_id=toxigen ===\n2026-01-15 09:30:00,123 - main - INFO - Starting\n2026-01-15 09:30:01,456 - main - ERROR - Failed',
+      loaded: true,
+      error: undefined,
+      refresh: jest.fn(),
+    });
+
+    renderModal();
+
+    fireEvent.click(screen.getByTestId('log-level-filter'));
+    fireEvent.click(screen.getByText('Errors only'));
+
+    const logContent = screen.getByTestId('log-content');
+    expect(logContent.textContent).toContain('toxigen');
+    expect(logContent.textContent).toContain('Failed');
+    expect(logContent.textContent).not.toContain('Starting');
+  });
+
+  it('should show empty notice per benchmark section when filter removes all entries', () => {
+    mockUseEvaluationJobLogs.mockReturnValue({
+      logs: [
+        '=== pod=abc container=adapter benchmark_id=toxigen ===',
+        '2026-01-15 09:30:00,123 - main - INFO - Starting toxigen',
+        '=== pod=abc container=adapter benchmark_id=arc_easy ===',
+        '2026-01-15 09:30:01,456 - main - INFO - Starting arc_easy',
+      ].join('\n'),
+      loaded: true,
+      error: undefined,
+      refresh: jest.fn(),
+    });
+
+    renderModal();
+
+    fireEvent.click(screen.getByTestId('log-level-filter'));
+    fireEvent.click(screen.getByText('Errors only'));
+
+    const notices = screen.getAllByTestId('log-filter-empty-notice');
+    expect(notices).toHaveLength(2);
+    expect(notices[0]).toHaveTextContent('No error logs in this section.');
+    expect(notices[1]).toHaveTextContent('No error logs in this section.');
+  });
+
+  it('should show empty notice when no section headers and filter removes all entries', () => {
+    mockUseEvaluationJobLogs.mockReturnValue({
+      logs: '2026-01-15 09:30:00,123 - main - INFO - All good here',
+      loaded: true,
+      error: undefined,
+      refresh: jest.fn(),
+    });
+
+    renderModal();
+
+    fireEvent.click(screen.getByTestId('log-level-filter'));
+    fireEvent.click(screen.getByText('Errors only'));
+
+    const notice = screen.getByTestId('log-filter-empty-notice');
+    expect(notice).toHaveTextContent('No error logs in this section.');
+  });
+
+  it('should use correct empty notice message for warnings filter', () => {
+    mockUseEvaluationJobLogs.mockReturnValue({
+      logs: '2026-01-15 09:30:00,123 - main - INFO - All good here',
+      loaded: true,
+      error: undefined,
+      refresh: jest.fn(),
+    });
+
+    renderModal();
+
+    fireEvent.click(screen.getByTestId('log-level-filter'));
+    fireEvent.click(screen.getByText('Warnings and errors'));
+
+    const notice = screen.getByTestId('log-filter-empty-notice');
+    expect(notice).toHaveTextContent('No warning or error logs in this section.');
+  });
+
+  it('should not show empty notice for sections that have matching entries', () => {
+    mockUseEvaluationJobLogs.mockReturnValue({
+      logs: [
+        '=== pod=abc container=adapter benchmark_id=toxigen ===',
+        '2026-01-15 09:30:00,123 - main - ERROR - Toxigen failed',
+        '=== pod=abc container=adapter benchmark_id=arc_easy ===',
+        '2026-01-15 09:30:01,456 - main - INFO - Arc easy passed',
+      ].join('\n'),
+      loaded: true,
+      error: undefined,
+      refresh: jest.fn(),
+    });
+
+    renderModal();
+
+    fireEvent.click(screen.getByTestId('log-level-filter'));
+    fireEvent.click(screen.getByText('Errors only'));
+
+    const logContent = screen.getByTestId('log-content');
+    expect(logContent.textContent).toContain('Toxigen failed');
+
+    const notices = screen.getAllByTestId('log-filter-empty-notice');
+    expect(notices).toHaveLength(1);
   });
 });
 

@@ -9,6 +9,9 @@ import {
   DescriptionListDescription,
   DescriptionListGroup,
   DescriptionListTerm,
+  Dropdown,
+  DropdownItem,
+  DropdownList,
   Flex,
   FlexItem,
   Icon,
@@ -33,8 +36,8 @@ import {
   CopyIcon,
   DownloadIcon,
   ExclamationCircleIcon,
+  FilterIcon,
   ExclamationTriangleIcon,
-  InfoCircleIcon,
   InProgressIcon,
   SyncAltIcon,
   TimesCircleIcon,
@@ -60,6 +63,14 @@ type EvaluationStatusModalProps = {
 const ALL_BENCHMARKS = 'all';
 const LOG_VIEWER_TAIL_LINES = 1000;
 
+type LogLevelFilter = 'all' | 'warnings' | 'errors';
+
+const LOG_LEVEL_FILTER_LABELS: Record<LogLevelFilter, string> = {
+  all: 'All messages',
+  warnings: 'Warnings and errors',
+  errors: 'Errors only',
+};
+
 const downloadString = (filename: string, data: string): void => {
   const blob = new Blob([data], { type: 'text/plain' });
   const url = URL.createObjectURL(blob);
@@ -82,6 +93,7 @@ type LogEntry = {
   continuation?: string;
   isSectionHeader: boolean;
   benchmarkName?: string;
+  isEmptyFilterNotice?: boolean;
 };
 
 const TIMESTAMP_RE = /^\d{4}-\d{2}-\d{2}[\sT]\d{2}:\d{2}/;
@@ -156,35 +168,16 @@ const parseLogEntries = (raw: string): LogEntry[] => {
   return entries.filter((e) => e.message.trim() || e.continuation?.trim());
 };
 
-const LOG_LEVEL_ICON: Record<LogLevel, React.ReactNode> = {
-  error: (
-    <Icon status="danger" isInline title="Error">
-      <ExclamationCircleIcon />
-    </Icon>
-  ),
-  warning: (
-    <Icon status="warning" isInline title="Warning">
-      <ExclamationTriangleIcon />
-    </Icon>
-  ),
-  info: (
-    <Icon status="info" isInline title="Info">
-      <InfoCircleIcon />
-    </Icon>
-  ),
-  debug: (
-    <Icon isInline title="Debug">
-      <InfoCircleIcon />
-    </Icon>
-  ),
-};
+const LOG_ERROR_ICON = (
+  <Icon status="danger" isInline title="Error">
+    <ExclamationCircleIcon />
+  </Icon>
+);
 
-const LogHeader: React.FC = () => (
-  <div className="evalhub-log-viewer__row evalhub-log-viewer__row--header">
-    <div className="evalhub-log-viewer__cell--level">Level</div>
-    <div className="evalhub-log-viewer__cell--timestamp">Timestamp</div>
-    <div className="evalhub-log-viewer__cell--message">Message</div>
-  </div>
+const LOG_WARNING_ICON = (
+  <Icon status="warning" isInline title="Warning">
+    <ExclamationTriangleIcon />
+  </Icon>
 );
 
 const LogEntryRow: React.FC<{ entry: LogEntry; hideBorder?: boolean }> = ({
@@ -241,7 +234,6 @@ const LogEntryRow: React.FC<{ entry: LogEntry; hideBorder?: boolean }> = ({
     }
     return (
       <div className={rowClass}>
-        <div className="evalhub-log-viewer__cell--level" />
         <div className="evalhub-log-viewer__cell--timestamp" />
         <div className="evalhub-log-viewer__cell--message">{entry.message}</div>
         {copyButton}
@@ -255,13 +247,14 @@ const LogEntryRow: React.FC<{ entry: LogEntry; hideBorder?: boolean }> = ({
 
   return (
     <div className={rowClass}>
-      <div className="evalhub-log-viewer__cell--level">
-        {entry.level ? LOG_LEVEL_ICON[entry.level] : null}
-      </div>
       <div className="evalhub-log-viewer__cell--timestamp" title={entry.timestamp}>
         {entry.timestamp ? formatLogTimestamp(entry.timestamp) : ''}
       </div>
-      <div className="evalhub-log-viewer__cell--message">{fullMessage}</div>
+      <div className="evalhub-log-viewer__cell--message">
+        {entry.level === 'error' ? <>{LOG_ERROR_ICON} </> : null}
+        {entry.level === 'warning' ? <>{LOG_WARNING_ICON} </> : null}
+        {fullMessage}
+      </div>
       {copyButton}
     </div>
   );
@@ -271,9 +264,6 @@ const LogSkeletonRows: React.FC = () => (
   <>
     {Array.from({ length: 32 }, (_, i) => (
       <div key={i} className="evalhub-log-viewer__row">
-        <div className="evalhub-log-viewer__cell--level">
-          <Skeleton width="100%" height="1em" />
-        </div>
         <div className="evalhub-log-viewer__cell--timestamp">
           <Skeleton width="80%" height="1em" />
         </div>
@@ -293,6 +283,8 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
   const [activeTab, setActiveTab] = React.useState<string>('failure-info');
   const [selectedBenchmark, setSelectedBenchmark] = React.useState<string>(ALL_BENCHMARKS);
   const [isBenchmarkSelectOpen, setIsBenchmarkSelectOpen] = React.useState(false);
+  const [logLevelFilter, setLogLevelFilter] = React.useState<LogLevelFilter>('all');
+  const [isLogLevelFilterOpen, setIsLogLevelFilterOpen] = React.useState(false);
   const [isFailureSummaryExpanded, setIsFailureSummaryExpanded] = React.useState(false);
   const [failureSummaryEl, setFailureSummaryEl] = React.useState<HTMLParagraphElement | null>(null);
   const failureSummaryRef = React.useCallback((node: HTMLParagraphElement | null) => {
@@ -395,6 +387,46 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
   }, [selectedBenchmark]);
 
   const logEntries = React.useMemo(() => (logs ? parseLogEntries(logs) : []), [logs]);
+
+  const filteredLogEntries = React.useMemo(() => {
+    if (logLevelFilter === 'all') {
+      return logEntries;
+    }
+
+    const filtered = logEntries.filter((entry) => {
+      if (entry.isSectionHeader) {
+        return true;
+      }
+      if (logLevelFilter === 'warnings') {
+        return entry.level === 'warning' || entry.level === 'error';
+      }
+      return entry.level === 'error';
+    });
+
+    const emptyNotice: LogEntry = {
+      raw: '',
+      message: `No ${logLevelFilter === 'errors' ? 'error' : 'warning or error'} logs in this section.`,
+      isSectionHeader: false,
+      isEmptyFilterNotice: true,
+    };
+
+    const result: LogEntry[] = [];
+    for (let i = 0; i < filtered.length; i++) {
+      result.push(filtered[i]);
+      if (
+        filtered[i].isSectionHeader &&
+        (i + 1 >= filtered.length || filtered[i + 1].isSectionHeader)
+      ) {
+        result.push(emptyNotice);
+      }
+    }
+
+    if (result.length === 0 && logEntries.length > 0) {
+      result.push(emptyNotice);
+    }
+
+    return result;
+  }, [logEntries, logLevelFilter]);
 
   const hasLogContent =
     logEntries.length > 0 && !logEntries.every((e) => e.isSectionHeader || !e.message.trim());
@@ -738,6 +770,44 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
                     </Select>
                   </FlexItem>
                   <FlexItem>
+                    <Tooltip content={`Filter: ${LOG_LEVEL_FILTER_LABELS[logLevelFilter]}`}>
+                      <Dropdown
+                        isOpen={isLogLevelFilterOpen}
+                        onOpenChange={setIsLogLevelFilterOpen}
+                        onSelect={(_e, value) => {
+                          if (value === 'all' || value === 'warnings' || value === 'errors') {
+                            setLogLevelFilter(value);
+                          }
+                          setIsLogLevelFilterOpen(false);
+                        }}
+                        toggle={(toggleRef) => (
+                          <MenuToggle
+                            ref={toggleRef}
+                            variant="plain"
+                            onClick={() => setIsLogLevelFilterOpen((prev) => !prev)}
+                            isExpanded={isLogLevelFilterOpen}
+                            aria-label="Filter log level"
+                            data-testid="log-level-filter"
+                          >
+                            <FilterIcon />
+                          </MenuToggle>
+                        )}
+                      >
+                        <DropdownList>
+                          {(['all', 'warnings', 'errors'] as const).map((value) => (
+                            <DropdownItem
+                              key={value}
+                              value={value}
+                              isSelected={logLevelFilter === value}
+                            >
+                              {LOG_LEVEL_FILTER_LABELS[value]}
+                            </DropdownItem>
+                          ))}
+                        </DropdownList>
+                      </Dropdown>
+                    </Tooltip>
+                  </FlexItem>
+                  <FlexItem>
                     <Tooltip content="Refresh logs">
                       <Button
                         variant="plain"
@@ -749,29 +819,19 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
                       </Button>
                     </Tooltip>
                   </FlexItem>
-                  <FlexItem>
-                    <Tooltip content="Download full log">
-                      <Button
-                        variant="plain"
-                        aria-label="Download logs"
-                        onClick={handleDownload}
-                        isDisabled={!logsLoaded || !hasLogContent || downloading}
-                        isLoading={downloading}
-                        data-testid="download-logs-button"
-                        icon={<DownloadIcon />}
-                      />
-                    </Tooltip>
+                  <FlexItem align={{ default: 'alignRight' }}>
+                    <Button
+                      variant="link"
+                      aria-label="Download log"
+                      onClick={handleDownload}
+                      isDisabled={!logsLoaded || !hasLogContent || downloading}
+                      isLoading={downloading}
+                      data-testid="download-logs-button"
+                      icon={<DownloadIcon />}
+                    >
+                      Download log
+                    </Button>
                   </FlexItem>
-                  {logsLoaded && hasLogContent ? (
-                    <FlexItem align={{ default: 'alignRight' }}>
-                      <Content component="small" data-testid="log-line-count">
-                        {(() => {
-                          const count = logs.replace(/\r\n?/g, '\n').split('\n').length;
-                          return `${count.toLocaleString()} ${count === 1 ? 'line' : 'lines'}`;
-                        })()}
-                      </Content>
-                    </FlexItem>
-                  ) : null}
                 </Flex>
               </StackItem>
               {downloadError ? (
@@ -790,7 +850,6 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
                 </StackItem>
               ) : null}
               <StackItem>
-                <LogHeader />
                 <div
                   ref={logContainerRef}
                   className={logViewerClassName}
@@ -838,7 +897,18 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
                       Logs may have expired after pod cleanup.
                     </Alert>
                   ) : (
-                    logEntries.map((entry, i, arr) => {
+                    filteredLogEntries.map((entry, i, arr) => {
+                      if (entry.isEmptyFilterNotice) {
+                        return (
+                          <div
+                            key={i}
+                            className="evalhub-log-viewer__row evalhub-log-viewer__row--empty-filter"
+                            data-testid="log-filter-empty-notice"
+                          >
+                            <div className="evalhub-log-viewer__cell--full">{entry.message}</div>
+                          </div>
+                        );
+                      }
                       const hideBorder =
                         i + 1 < arr.length && !arr[i + 1].timestamp && !arr[i + 1].isSectionHeader;
                       return <LogEntryRow key={i} entry={entry} hideBorder={hideBorder} />;

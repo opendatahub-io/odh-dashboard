@@ -33,8 +33,6 @@
 .evalhub-log-viewer {
   max-height: 46vh;
   overflow: auto;
-  font-family: var(--pf-t--global--font--family--mono);
-  font-size: var(--pf-t--global--font--size--sm);
 
   &--running {
     max-height: 52vh;
@@ -47,7 +45,7 @@
 
 .evalhub-log-viewer__row {
   display: flex;
-  gap: var(--pf-t--global--spacer--sm);
+  gap: var(--pf-t--global--spacer--md);
   padding: var(--pf-t--global--spacer--xs) var(--pf-t--global--spacer--xl) var(--pf-t--global--spacer--xs) 0;
   border-bottom: 1px solid var(--pf-t--global--border--color--default);
   position: relative;
@@ -69,16 +67,20 @@
     position: sticky;
     top: 0;
     z-index: 1;
-    padding: var(--pf-t--global--spacer--md) var(--pf-t--global--spacer--md) var(--pf-t--global--spacer--xs) var(--pf-t--global--spacer--md);
-    font-family: var(--pf-t--global--font--family--body);
+    padding: var(--pf-t--global--spacer--lg) var(--pf-t--global--spacer--md) var(--pf-t--global--spacer--xs) 0;
     font-weight: var(--pf-t--global--font--weight--heading--bold);
-    font-size: 13px;
     color: var(--pf-t--global--text--color--regular);
     background-color: var(--pf-t--global--background--color--primary--default);
+    pointer-events: none;
   }
 
   &--no-border {
     border-bottom-color: transparent;
+  }
+
+  &--empty-filter {
+    color: var(--pf-t--global--text--color--subtle);
+    font-style: italic;
   }
 }
 
@@ -87,17 +89,10 @@
   color: var(--pf-t--global--text--color--subtle);
 }
 
-.evalhub-log-viewer__cell--level {
-  @extend %evalhub-log-cell;
-
-  width: 3em;
-  text-align: center;
-}
-
 .evalhub-log-viewer__cell--timestamp {
   @extend %evalhub-log-cell;
 
-  width: 10em;
+  width: 7em;
   white-space: nowrap;
 }
 
@@ -128,6 +123,5 @@
 
 .evalhub-log-viewer__alert {
   margin-top: var(--pf-t--global--spacer--md);
-  font-family: var(--pf-t--global--font--family--body);
 }
 
