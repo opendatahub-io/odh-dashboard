@@ -392,7 +392,9 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
   React.useEffect(() => () => downloadAbortRef.current?.abort(), []);
 
   React.useEffect(() => {
-    logContainerRef.current?.scrollTo(0, 0);
+    if (typeof logContainerRef.current?.scrollTo === 'function') {
+      logContainerRef.current.scrollTo(0, 0);
+    }
   }, [selectedBenchmark]);
 
   const logEntries = React.useMemo(() => (logs ? parseLogEntries(logs) : []), [logs]);
