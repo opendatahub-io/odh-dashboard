@@ -235,7 +235,7 @@ func (r *DashboardReconciler) reconcile(
 	cfg OperatorConfig,
 ) (ctrl.Result, error) {
 	if err := r.autoDetectObservability(ctx, dashboard); err != nil {
-		return ctrl.Result{}, err
+		log.FromContext(ctx).Error(err, "Failed to auto-detect observability, continuing without it")
 	}
 
 	mode := dashboard.Spec.DeploymentMode
