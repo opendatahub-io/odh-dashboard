@@ -10,13 +10,11 @@ type ExpectedLabelConfig = {
   status?: LabelProps['status'];
 };
 
-type ExpectedLabelConfigWithVariant = ExpectedLabelConfig & { isFilled?: boolean };
-
-const EXPECTED_LABELS: Record<EvaluationJobState, ExpectedLabelConfigWithVariant> = {
+const EXPECTED_LABELS: Record<EvaluationJobState, ExpectedLabelConfig> = {
   pending: { text: 'Pending', color: 'purple' },
   running: { text: 'Running', color: 'blue' },
   completed: { text: 'Complete', status: 'success' },
-  failed: { text: 'Failed', status: 'danger', isFilled: true },
+  failed: { text: 'Failed', status: 'danger' },
   cancelled: { text: 'Canceled', color: 'grey' },
   stopping: { text: 'Canceling', color: 'grey' },
   stopped: { text: 'Stopped', color: 'grey' },
@@ -56,14 +54,10 @@ describe('EvaluationStatusLabel', () => {
     }
   });
 
-  it.each(states)('should render with correct variant for "%s" state', (state) => {
+  it.each(states)('should render with filled variant for "%s" state', (state) => {
     render(<EvaluationStatusLabel state={state} />);
     const label = screen.getByTestId(`status-label-${state}`);
-    if (EXPECTED_LABELS[state].isFilled) {
-      expect(label).toHaveClass('pf-m-filled');
-    } else {
-      expect(label).toHaveClass('pf-m-outline');
-    }
+    expect(label).toHaveClass('pf-m-filled');
   });
 
   it('should call onClick when a failed label is clicked', () => {
