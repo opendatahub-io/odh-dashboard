@@ -86,15 +86,31 @@ const ModelDetailsView: React.FC<ModelDetailsViewProps> = ({
 
   const validatedOnPlatforms = getValidatedOnPlatforms(model.customProperties);
   const validatedDeploymentResources = getValidatedDeploymentResources(model.customProperties);
+  const [isToolCallingExpanded, setIsToolCallingExpanded] = React.useState(false);
+
+  const toolCallingArgumentName =
+    MODEL_CATALOG_VALIDATED_CONFIGURATION_NAME_MAPPING[ValidatedConfiguration.TOOL_CALLING];
 
   const handleToolCallingArgsCopied = React.useCallback(() => {
     trackSimpleEvent(MODEL_CATALOG_EVENTS.VALIDATED_ARGUMENTS_COPIED, {
-      argumentName:
-        MODEL_CATALOG_VALIDATED_CONFIGURATION_NAME_MAPPING[ValidatedConfiguration.TOOL_CALLING],
+      argumentName: toolCallingArgumentName,
       modelName: getModelName(model.name),
       validatedDeploymentResource: validatedDeploymentResources.join(', '),
     });
-  }, [model.name, trackSimpleEvent, validatedDeploymentResources]);
+  }, [model.name, toolCallingArgumentName, trackSimpleEvent, validatedDeploymentResources]);
+
+  const handleToolCallingExpand = React.useCallback(() => {
+    setIsToolCallingExpanded((prev) => {
+      const next = !prev;
+      if (next) {
+        trackSimpleEvent(MODEL_CATALOG_EVENTS.VALIDATED_ARGUMENTS_EXPANDED, {
+          argumentName: toolCallingArgumentName,
+          modelName: getModelName(model.name),
+        });
+      }
+      return next;
+    });
+  }, [model.name, toolCallingArgumentName, trackSimpleEvent]);
 
   const modelTypeRaw = model.customProperties
     ? getCustomPropString(model.customProperties, CatalogModelCustomPropertyKey.MODEL_TYPE)
@@ -118,8 +134,6 @@ const ModelDetailsView: React.FC<ModelDetailsViewProps> = ({
     () => (artifactLoaded ? getArchitecturesFromArtifacts(artifacts.items) : []),
     [artifactLoaded, artifacts.items],
   );
-
-  const [isToolCallingExpanded, setIsToolCallingExpanded] = React.useState(false);
 
   return (
     <PageSection hasBodyWrapper={false} isFilled padding={{ default: 'noPadding' }}>
@@ -188,7 +202,7 @@ const ModelDetailsView: React.FC<ModelDetailsViewProps> = ({
                       data-testid="tool-calling-card"
                     >
                       <CardHeader
-                        onExpand={() => setIsToolCallingExpanded((prev) => !prev)}
+                        onExpand={handleToolCallingExpand}
                         toggleButtonProps={{
                           id: 'tool-calling-toggle',
                           'aria-label': 'Tool Calling',
