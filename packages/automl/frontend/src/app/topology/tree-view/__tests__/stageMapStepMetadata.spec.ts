@@ -2,6 +2,8 @@ import type { ComponentStageMap } from '~/app/hooks/useComponentStageMap';
 import {
   getStageMapDetails,
   getStageDescriptionFromMap,
+  isBranchStepNodeId,
+  isStatusOnlyBranchStepNode,
   parseStageMapNodeId,
 } from '~/app/topology/tree-view/stageMapStepMetadata';
 
@@ -79,6 +81,21 @@ describe('parseStageMapNodeId', () => {
       stepId: 'feature_engineering',
       branchIndex: 0,
     });
+  });
+
+  it('detects branch steps via branch-first and step-suffix node IDs', () => {
+    expect(isBranchStepNodeId('training__branch-0__step__feature_engineering')).toBe(true);
+    expect(
+      isBranchStepNodeId('autogluon_models_training__step__feature_engineering__branch-1'),
+    ).toBe(true);
+    expect(isBranchStepNodeId('autogluon_models_training__model__branch-0')).toBe(false);
+    expect(isBranchStepNodeId('autogluon_models_training__load_data')).toBe(false);
+  });
+
+  it('treats branch corridor steps as status-only spine glyphs', () => {
+    const branchId = 'autogluon_models_training__step__feature_engineering__branch-0';
+    expect(isStatusOnlyBranchStepNode(branchId)).toBe(true);
+    expect(isStatusOnlyBranchStepNode('autogluon_models_training__model_selection')).toBe(false);
   });
 
   it('parses branch model nodes', () => {
