@@ -486,7 +486,7 @@ describe('AutoragConfigure', () => {
       expect(getMockS3MutateAsync()).not.toHaveBeenCalled();
       expect(mockNotificationError).toHaveBeenCalledWith(
         'Invalid file type',
-        'File type must be one of the accepted types (PDF, DOCX, PPTX, Markdown, HTML, Plain text).',
+        INPUT_DATA_INVALID_FILE_TYPE_DESCRIPTION,
       );
     });
 
@@ -504,7 +504,7 @@ describe('AutoragConfigure', () => {
         await waitFor(() => {
           expect(mockNotificationError).toHaveBeenCalledWith(
             'Invalid file type',
-            'File type must be one of the accepted types (PDF, DOCX, PPTX, Markdown, HTML, Plain text).',
+            INPUT_DATA_INVALID_FILE_TYPE_DESCRIPTION,
           );
         });
       });

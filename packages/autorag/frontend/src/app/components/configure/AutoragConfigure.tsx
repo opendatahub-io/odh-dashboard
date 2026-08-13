@@ -68,6 +68,7 @@ import { isUIError } from '~/app/components/common/UIError/util';
 import AutoragConnectionModal from '~/app/components/common/AutoragConnectionModal';
 import ConfigureFormGroup from '~/app/components/common/ConfigureFormGroup';
 import SecretSelector, { SecretSelection } from '~/app/components/common/SecretSelector';
+import InlineTooltip from '~/app/components/InlineTooltip';
 import useReconfigureSafeEffect from '~/app/hooks/useReconfigureSafeEffect';
 import { useS3FileUploadMutation } from '~/app/hooks/mutations';
 import { useOgxModelsQuery } from '~/app/hooks/queries';
@@ -635,7 +636,15 @@ function AutoragConfigure({
                                   titleIcon={<UploadIcon />}
                                   titleText="Drag and drop files here"
                                   titleTextSeparator="or"
-                                  infoText={`Accepted file types: ${SUPPORTED_FORMAT_NAMES_STRING_SIMPLE}. Maximum file size: ${AUTORAG_UPLOAD_MAX_SIZE_MIB} MiB`}
+                                  infoText={
+                                    <>
+                                      <InlineTooltip
+                                        text="Accepted file types"
+                                        tooltip={SUPPORTED_FORMAT_NAMES_STRING_SIMPLE}
+                                      />
+                                      . Maximum file size: {AUTORAG_UPLOAD_MAX_SIZE_MIB} MiB
+                                    </>
+                                  }
                                   browseButtonText="Upload"
                                 />
                               </MultipleFileUpload>
