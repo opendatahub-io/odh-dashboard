@@ -37,6 +37,27 @@ export const getModelCapabilityLabelColor = (capability: string): ModelCapabilit
   return 'grey';
 };
 
+/**
+ * Parse the JSON-string-array annotation value from a K8s resource's annotations.
+ * Returns undefined when the annotation is absent or malformed.
+ */
+export const parseModelCapabilities = (
+  annotations?: Record<string, string>,
+): string[] | undefined => {
+  const raw = annotations?.[MODEL_CAPABILITIES_ANNOTATION];
+  if (!raw) {
+    return undefined;
+  }
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (Array.isArray(parsed) && parsed.every((v) => typeof v === 'string')) {
+      return parsed;
+    }
+  } catch {
+    // malformed annotation — treat as absent
+  }
+  return undefined;
+};
 export const isSameModelCapability = (a: string, b: string): boolean =>
   a.toLowerCase() === b.toLowerCase();
 

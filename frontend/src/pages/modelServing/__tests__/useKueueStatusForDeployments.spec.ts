@@ -234,6 +234,24 @@ describe('useKueueStatusForDeployments', () => {
     );
   });
 
+  it('returns null when no Workload CR exists yet, even if the IS has a queueName label (e.g. stopped deployments keep the label)', () => {
+    // Mirrors workbench: no Workload CR → null, regardless of queueName label presence. The
+    // label alone can't distinguish "not yet admitted" from "stopped" (the label persists on
+    // the IS even while stopped), so we don't guess a "Queued" status from it.
+    const is = {
+      ...inferenceService('test-model'),
+      metadata: {
+        ...inferenceService('test-model').metadata,
+        labels: { 'kueue.x-k8s.io/queue-name': 'default' },
+        annotations: { 'serving.kserve.io/stop': 'true' },
+      },
+    };
+    buildWorkloadMapForDeploymentsMock.mockReturnValue({ 'InferenceService/test-model': [] });
+
+    const { result } = renderHook(() => useKueueStatusForDeployments([is], project));
+    expect(result.current.kueueStatusByDeploymentKey['InferenceService/test-model']).toBeNull();
+  });
+
   it('includes queueName from IS label in the status', () => {
     const is = {
       ...inferenceService('my-model'),
@@ -249,6 +267,24 @@ describe('useKueueStatusForDeployments', () => {
     expect(result.current.kueueStatusByDeploymentKey['InferenceService/my-model']?.queueName).toBe(
       'team-queue',
     );
+  });
+
+  it('includes queueName from LLMIS label in the status (not just plain InferenceServices)', () => {
+    const llmis = {
+      metadata: {
+        name: 'my-llm-model',
+        labels: { 'kueue.x-k8s.io/queue-name': 'llm-team-queue' },
+      },
+    };
+    const wl = workloadWithPodOwnerRef('wl-1', POD_UID);
+    buildWorkloadMapForDeploymentsMock.mockReturnValue({
+      'LLMInferenceService/my-llm-model': [wl],
+    });
+
+    const { result } = renderHook(() => useKueueStatusForDeployments([], project, [llmis]));
+    expect(
+      result.current.kueueStatusByDeploymentKey['LLMInferenceService/my-llm-model']?.queueName,
+    ).toBe('llm-team-queue');
   });
 
   it('multi-replica: most-restrictive status wins (Inadmissible beats Running)', () => {

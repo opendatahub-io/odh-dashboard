@@ -397,6 +397,16 @@ describe('buildFormSpec', () => {
       expect(spec.cronJob).toEqual({ schedule: '*/5 * * * *' });
     });
 
+    it('should strip cronJob draft when schedule is empty', () => {
+      const data = makeFormData({
+        feastProject: 'test',
+        namespace: 'ns',
+        cronJob: { timeZone: 'US/Eastern', concurrencyPolicy: 'Forbid' },
+      });
+      const spec = buildFormSpec(data, false);
+      expect(spec.cronJob).toBeUndefined();
+    });
+
     it('should include batch engine when enabled with configMap', () => {
       const data = makeFormData({
         feastProject: 'test',

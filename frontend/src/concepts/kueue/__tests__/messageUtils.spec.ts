@@ -2,13 +2,64 @@ import { KueueWorkloadStatus, type KueueWorkloadStatusWithMessage } from '#~/con
 import {
   getHumanReadableKueueMessage,
   getKueueSubStepInfo,
+  getDeploymentKueueSubStepMessage,
   getPreemptionToastBody,
   getEvictionToastBody,
   getRequeuedMessage,
   getKueueAnalyticsSubState,
   toOrdinal,
   formatQueuePosition,
+  isInadmissibleQuotaCondition,
 } from '#~/concepts/kueue/messageUtils';
+
+describe('isInadmissibleQuotaCondition', () => {
+  it('returns true for reason Inadmissible', () => {
+    expect(
+      isInadmissibleQuotaCondition({
+        type: 'QuotaReserved',
+        status: 'False',
+        reason: 'Inadmissible',
+        message: 'ClusterQueue is inactive',
+      }),
+    ).toBe(true);
+  });
+
+  it('returns true when message indicates request exceeds maximum capacity', () => {
+    expect(
+      isInadmissibleQuotaCondition({
+        type: 'QuotaReserved',
+        status: 'False',
+        reason: 'Pending',
+        message:
+          "couldn't assign flavors to pod set main: insufficient quota for cpu in flavor pdhote-repro-flavor, previously considered podsets requests (0) + current podset request (6100m) > maximum capacity (5)",
+      }),
+    ).toBe(true);
+  });
+
+  it('returns true when resource is unavailable in ClusterQueue', () => {
+    expect(
+      isInadmissibleQuotaCondition({
+        type: 'QuotaReserved',
+        status: 'False',
+        reason: 'Pending',
+        message:
+          "couldn't assign flavors to pod set main: resource ephemeral-storage unavailable in ClusterQueue",
+      }),
+    ).toBe(true);
+  });
+
+  it('returns false for temporary insufficient unused quota', () => {
+    expect(
+      isInadmissibleQuotaCondition({
+        type: 'QuotaReserved',
+        status: 'False',
+        reason: 'Pending',
+        message:
+          "couldn't assign flavors to pod set: insufficient unused quota for cpu in flavor default-flavor",
+      }),
+    ).toBe(false);
+  });
+});
 
 describe('getHumanReadableKueueMessage', () => {
   describe('Queued status', () => {
@@ -403,6 +454,80 @@ describe('getKueueSubStepInfo', () => {
       );
       expect(result.label).not.toContain('in queue');
     });
+  });
+});
+
+describe('getDeploymentKueueSubStepMessage', () => {
+  it('formats Queued as "Queued: <reason>"', () => {
+    const result = getDeploymentKueueSubStepMessage({
+      status: KueueWorkloadStatus.Queued,
+      queueName: 'my-queue',
+    });
+    expect(result).toBe('Queued: Waiting for quota in my-queue');
+  });
+
+  it('formats Preempted as "Preempted: Deployment re-queued, waiting for resource"', () => {
+    const result = getDeploymentKueueSubStepMessage({
+      status: KueueWorkloadStatus.Preempted,
+      queueName: 'my-queue',
+    });
+    expect(result).toBe('Preempted: Deployment re-queued, waiting for resource');
+  });
+
+  it('formats a quota-exceeded Failed status using the raw Kueue message verbatim', () => {
+    const result = getDeploymentKueueSubStepMessage({
+      status: KueueWorkloadStatus.Failed,
+      queueName: 'my-queue',
+      message: 'Requested 8 GPUs exceed 4 GPUs queue quota.',
+    });
+    expect(result).toBe('Failed: Requested 8 GPUs exceed 4 GPUs queue quota.');
+  });
+
+  it('formats a quota-exceeded Inadmissible status using the raw Kueue message verbatim', () => {
+    const result = getDeploymentKueueSubStepMessage({
+      status: KueueWorkloadStatus.Inadmissible,
+      queueName: 'my-queue',
+      message: 'insufficient unused quota for nvidia.com/gpu',
+    });
+    expect(result).toBe('Inadmissible: insufficient unused quota for nvidia.com/gpu');
+  });
+
+  it('falls back to the generic templated message when Failed has no quota-shaped raw message', () => {
+    const result = getDeploymentKueueSubStepMessage({
+      status: KueueWorkloadStatus.Failed,
+      queueName: 'my-queue',
+      message: 'some other failure',
+    });
+    expect(result).toBe('Failed: some other failure');
+  });
+
+  it('appends the partial-admission suffix when podAdmissionCounts.total > 1', () => {
+    const result = getDeploymentKueueSubStepMessage({
+      status: KueueWorkloadStatus.Queued,
+      queueName: 'my-queue',
+      podAdmissionCounts: { admitted: 3, total: 5 },
+    });
+    expect(result).toBe('Queued: Waiting for quota in my-queue (3 of 5 pods admitted)');
+  });
+
+  it('appends the partial-admission suffix to the Preempted message too', () => {
+    const result = getDeploymentKueueSubStepMessage({
+      status: KueueWorkloadStatus.Preempted,
+      queueName: 'my-queue',
+      podAdmissionCounts: { admitted: 2, total: 4 },
+    });
+    expect(result).toBe(
+      'Preempted: Deployment re-queued, waiting for resource (2 of 4 pods admitted)',
+    );
+  });
+
+  it('omits the suffix when podAdmissionCounts.total is 1 (single replica)', () => {
+    const result = getDeploymentKueueSubStepMessage({
+      status: KueueWorkloadStatus.Queued,
+      queueName: 'my-queue',
+      podAdmissionCounts: { admitted: 0, total: 1 },
+    });
+    expect(result).toBe('Queued: Waiting for quota in my-queue');
   });
 });
 

@@ -787,6 +787,18 @@ class InferenceServiceRow extends ModelServingRow {
     return this.find().findByTestId('model-status-text').should('include.text', label);
   }
 
+  findCapabilitiesCell() {
+    return this.find().find('[data-label="Capabilities"]');
+  }
+
+  findCapabilitiesGroup() {
+    return this.findCapabilitiesCell().findByTestId('deployment-capabilities');
+  }
+
+  findCapabilityLabels() {
+    return this.findCapabilitiesCell().findAllByTestId('deployment-capability-label');
+  }
+
   findHardwareProfileColumn() {
     return this.find().findByTestId('hardware-profile-table-column');
   }
