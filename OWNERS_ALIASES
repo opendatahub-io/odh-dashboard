@@ -278,6 +278,17 @@ aliases:
   distributions-reviewers:
     - jenny-s51
 
+  # Data Registry
+  data-registry-approvers:
+    - MStokluska
+    - Fiona-Waters
+    - briangallagher
+  data-registry-reviewers:
+    - MStokluska
+    - Fiona-Waters
+    - Slowlybomb
+    - briangallagher
+
   # MLflow
   mlflow-approvers:
     - caponetto
