@@ -131,7 +131,13 @@ func (app *App) GenAIProxyNSEmbeddingsHandler(w http.ResponseWriter, r *http.Req
 	limitedReader := io.LimitReader(resp.Body, maxResponseBytes+1)
 	respBody, err := io.ReadAll(limitedReader)
 	if err != nil {
-		app.serverErrorResponse(w, r, fmt.Errorf("failed to read upstream response: %w", err))
+		app.errorResponse(w, r, &integrations.HTTPError{
+			StatusCode: http.StatusBadGateway,
+			ErrorResponse: integrations.ErrorResponse{
+				Code:    "502",
+				Message: fmt.Sprintf("upstream body read failed: %v", err),
+			},
+		})
 		return
 	}
 	if int64(len(respBody)) > maxResponseBytes {
@@ -159,9 +165,9 @@ func (app *App) GenAIProxyNSEmbeddingsHandler(w http.ResponseWriter, r *http.Req
 		"upgrade":             true,
 		"content-length":      true,
 	}
-	// Also exclude headers nominated by the upstream Connection header
-	if connHeaders := resp.Header.Get("Connection"); connHeaders != "" {
-		for _, h := range strings.Split(connHeaders, ",") {
+	// Also exclude headers nominated by ALL upstream Connection header values
+	for _, connValue := range resp.Header.Values("Connection") {
+		for _, h := range strings.Split(connValue, ",") {
 			hopByHop[strings.ToLower(strings.TrimSpace(h))] = true
 		}
 	}
