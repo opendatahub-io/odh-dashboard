@@ -33,3 +33,10 @@ export type ModelDeployPrefillInfo = {
 export type RegisteredModelRef = {
   id: string;
 };
+
+/** Props passed from model catalog details into the model-serving deploy `core.action`. */
+export type CatalogDeployActionComponentProps = {
+  deployPrefill: DeployPrefillData;
+  deployPrefillLoaded: boolean;
+  deployPrefillError?: Error;
+};
