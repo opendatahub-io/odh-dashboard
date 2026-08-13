@@ -16,14 +16,14 @@ export const applyNIMServingRuntimeShmMounts = (
 ): ServingRuntimeKind => {
   const newServingRuntime = structuredClone(servingRuntime);
   newServingRuntime.spec.containers = newServingRuntime.spec.containers.map((c) => {
-    if (c.name === 'kserve-container') {
-      const volumeMounts = c.volumeMounts || [];
-
-      if (!volumeMounts.find((volumeMount) => volumeMount.mountPath === '/dev/shm')) {
-        volumeMounts.push(SHM_VOLUME_MOUNT);
-      }
+    const volumeMounts = c.volumeMounts ?? [];
+    if (
+      c.name !== 'kserve-container' ||
+      volumeMounts.some((volumeMount) => volumeMount.mountPath === '/dev/shm')
+    ) {
+      return c;
     }
-    return c;
+    return { ...c, volumeMounts: [...volumeMounts, SHM_VOLUME_MOUNT] };
   });
 
   newServingRuntime.spec.volumes = newServingRuntime.spec.volumes ?? [];

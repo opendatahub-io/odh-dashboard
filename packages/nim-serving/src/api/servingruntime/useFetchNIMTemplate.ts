@@ -8,12 +8,12 @@ export const useFetchNIMTemplate = (
 ): FetchStateObject<TemplateKind | undefined> => {
   const callback = React.useCallback(async () => {
     if (!account) {
-      return Promise.reject('NIM Account unavailable');
+      return Promise.reject(new Error('NIM Account unavailable'));
     }
 
     const templateName = account.status?.runtimeTemplate?.name;
     if (!templateName) {
-      return Promise.reject('status.runtimeTemplate unavailable on NIM Account');
+      return Promise.reject(new Error('status.runtimeTemplate unavailable on NIM Account'));
     }
     const { namespace } = account.metadata;
 

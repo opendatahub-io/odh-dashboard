@@ -47,12 +47,12 @@ export const deployNIMKServeDeployment = async (
         // The NIM Template has a `volumeMounts` defined but not the `volumes` for shm. Add it to prevent errors
         runtime = applyNIMServingRuntimeShmMounts(runtime);
       } else {
-        throw new Error("Unable to find NIM ServingRuntiem Template in namespace " + projectName);
+        throw new Error(`Unable to find NIM ServingRuntime Template in namespace ${projectName}`);
       }
     }
   }
 
-  return await deployKServeDeployment(
+  return deployKServeDeployment(
     wizardData,
     externalData,
     projectName,

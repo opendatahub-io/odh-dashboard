@@ -192,6 +192,7 @@ const NIMImageFieldComponent: React.FC<NIMImageFieldComponentProps> = ({
   return (
     <FormGroup label="NIM image" fieldId="nim-image-selection" isRequired>
       <TypeaheadSelect
+        dataTestId="nim-image-select"
         toggleWidth="450px"
         selectOptions={options}
         selected={selectedKey}

@@ -45,7 +45,7 @@ const setNIMDeploymentImage = (
   if (!deployment.server) {
     return deployment;
   }
-  const newServingRuntime = deployment.server;
+  const newServingRuntime = structuredClone(deployment.server);
   newServingRuntime.spec.containers = newServingRuntime.spec.containers.map((c) => {
     if (c.name === 'kserve-container') {
       return {
@@ -79,7 +79,7 @@ export const applyNIMImageFieldData = (
   let assembledDeployment = setNIMDeploymentModelFormat(deployment, fieldData);
 
   // Legacy NIM works by setting the runtime image name to the selected NIM image
-  assembledDeployment = setNIMDeploymentImage(deployment, fieldData);
+  assembledDeployment = setNIMDeploymentImage(assembledDeployment, fieldData);
 
   return assembledDeployment;
 };
