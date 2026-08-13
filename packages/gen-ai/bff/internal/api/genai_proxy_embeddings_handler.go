@@ -22,8 +22,8 @@ import (
 // endpoint and credentials, and proxies the request directly to the upstream model.
 // Returns the upstream response unchanged (transparent proxy).
 //
-// Auth is required: OGX forwards the user's JWT via X-OGX-Provider-Data →
-// forward_headers → x-forwarded-access-token header.
+// Auth is required: the user's JWT arrives via the x-forwarded-access-token
+// header (forwarded by OGX).
 func (app *App) GenAIProxyNSEmbeddingsHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	ctx := r.Context()
 
@@ -133,8 +133,23 @@ func (app *App) GenAIProxyNSEmbeddingsHandler(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	// Copy all upstream response headers for transparent proxy behavior
+	// Copy upstream response headers, excluding hop-by-hop headers (RFC 7230 §6.1)
+	// and framing headers invalidated by buffering.
+	hopByHop := map[string]bool{
+		"connection":          true,
+		"keep-alive":          true,
+		"proxy-authenticate":  true,
+		"proxy-authorization": true,
+		"te":                  true,
+		"trailer":             true,
+		"transfer-encoding":   true,
+		"upgrade":             true,
+		"content-length":      true,
+	}
 	for key, values := range resp.Header {
+		if hopByHop[strings.ToLower(key)] {
+			continue
+		}
 		for _, v := range values {
 			w.Header().Add(key, v)
 		}
