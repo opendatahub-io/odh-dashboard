@@ -459,6 +459,22 @@ describe('getEvaluationJobLogs', () => {
     );
   });
 
+  it('should forward AbortSignal to fetch', async () => {
+    const controller = new AbortController();
+    mockFetch.mockResolvedValue({
+      ok: true,
+      headers: textPlainHeaders,
+      text: () => Promise.resolve('log output'),
+    });
+
+    await getEvaluationJobLogs('', 'ns', 'j1')(controller.signal);
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({ signal: controller.signal }),
+    );
+  });
+
   it('should accept text/plain with charset parameter', async () => {
     mockFetch.mockResolvedValue({
       ok: true,

@@ -476,7 +476,7 @@ describe('EvaluationStatusModal failure summary alert', () => {
     expect(screen.queryByTestId('failure-summary-alert')).not.toBeInTheDocument();
   });
 
-  it('should expand and collapse failure details via the toggle button', () => {
+  it('should expand and collapse failure details via the toggle button', async () => {
     const scrollHeightSpy = jest
       .spyOn(HTMLParagraphElement.prototype, 'scrollHeight', 'get')
       .mockReturnValue(200);
@@ -495,7 +495,7 @@ describe('EvaluationStatusModal failure summary alert', () => {
 
     render(<EvaluationStatusModal job={job} namespace="test-ns" onClose={mockOnClose} />);
 
-    const toggle = screen.getByTestId('failure-summary-toggle');
+    const toggle = await screen.findByTestId('failure-summary-toggle');
     expect(toggle).toHaveTextContent('Show more');
 
     const alert = screen.getByTestId('failure-summary-alert');
