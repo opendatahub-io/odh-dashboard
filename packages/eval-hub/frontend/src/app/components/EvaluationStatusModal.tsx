@@ -64,11 +64,7 @@ import {
   isLogServerError,
 } from '~/app/api/k8s';
 import { getMessageCodeLabel } from '~/app/utilities/messageCodeLabels';
-import {
-  getEarliestStartTime,
-  isPreStartFailure,
-  formatElapsedTime,
-} from '~/app/utilities/evaluationJobPolling';
+import { isPreStartFailure } from '~/app/utilities/evaluationJobPolling';
 import EvaluationStatusLabel from './EvaluationStatusLabel';
 import './EvaluationStatusModal.scss';
 
@@ -636,15 +632,6 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
     () => progressBenchmarks.filter((b) => b.status === 'completed').length,
     [progressBenchmarks],
   );
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const progressElapsed = React.useMemo(() => {
-    if (!polledJobData) {
-      return undefined;
-    }
-    const startTime = getEarliestStartTime(polledJobData);
-    return startTime ? formatElapsedTime(startTime) : undefined;
-  }, [polledJobData]);
 
   const [downloading, setDownloading] = React.useState(false);
   const [downloadError, setDownloadError] = React.useState<Error | undefined>();

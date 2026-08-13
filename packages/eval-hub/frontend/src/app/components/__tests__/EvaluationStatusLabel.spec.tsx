@@ -8,18 +8,19 @@ type ExpectedLabelConfig = {
   text: string;
   color?: LabelProps['color'];
   status?: LabelProps['status'];
+  isFilled?: boolean;
 };
 
 const EXPECTED_LABELS: Record<EvaluationJobState, ExpectedLabelConfig> = {
   pending: { text: 'Pending', color: 'purple' },
-  running: { text: 'Running', color: 'blue' },
-  completed: { text: 'Complete', status: 'success' },
-  failed: { text: 'Failed', status: 'danger' },
+  running: { text: 'Running', color: 'blue', isFilled: true },
+  completed: { text: 'Complete', status: 'success', isFilled: true },
+  failed: { text: 'Failed', status: 'danger', isFilled: true },
   cancelled: { text: 'Canceled', color: 'grey' },
   stopping: { text: 'Canceling', color: 'grey' },
   stopped: { text: 'Stopped', color: 'grey' },
   // eslint-disable-next-line camelcase
-  partially_failed: { text: 'Partially failed', status: 'danger' },
+  partially_failed: { text: 'Failed', status: 'danger', isFilled: true },
 };
 
 describe('EvaluationStatusLabel', () => {
@@ -134,11 +135,10 @@ describe('EvaluationStatusLabel isPreStartFailure', () => {
     expect(screen.getByTestId('status-label-failed')).toHaveClass('pf-m-danger');
   });
 
-  it('should render as outline (not filled) for pre-start failure', () => {
+  it('should render as filled for pre-start failure', () => {
     render(<EvaluationStatusLabel state="failed" isPreStartFailure />);
     const label = screen.getByTestId('status-label-failed');
-    expect(label).toHaveClass('pf-m-outline');
-    expect(label).not.toHaveClass('pf-m-filled');
+    expect(label).toHaveClass('pf-m-filled');
   });
 
   it('should still use the failed data-testid for pre-start failure', () => {

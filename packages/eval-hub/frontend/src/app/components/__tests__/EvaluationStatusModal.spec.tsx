@@ -126,7 +126,7 @@ describe('EvaluationStatusModal progress tab', () => {
     expect(screen.getByTestId('benchmark-complete-count')).toHaveTextContent('2/3');
   });
 
-  it('should show elapsed time in the header when polledJobData has a started_at timestamp', () => {
+  it('should show elapsed time in the description when polledJobData has a started_at timestamp', () => {
     const job = mockEvaluationJob({
       state: 'running',
       statusMessage: 'Evaluation job is running.',
@@ -141,7 +141,7 @@ describe('EvaluationStatusModal progress tab', () => {
 
     renderModal(job, polledJob);
 
-    expect(screen.getByTestId('failure-detail-reason')).toHaveTextContent('Elapsed time:');
+    expect(screen.getByTestId('status-description')).toHaveTextContent('Elapsed time:');
   });
 
   it('should show an empty state when benchmarks array is empty', () => {
@@ -257,7 +257,7 @@ describe('EvaluationStatusModal download', () => {
 });
 
 describe('EvaluationStatusModal benchmark summary', () => {
-  it('should show benchmark complete count for multi-benchmark failed jobs', () => {
+  it('should show failure summary for multi-benchmark failed jobs', () => {
     const job = mockEvaluationJob({ state: 'partially_failed' });
     job.status.benchmarks = [
       { id: 'bm-a', benchmark_index: 0, status: 'failed', error_message: { message: 'err' } },
@@ -269,7 +269,9 @@ describe('EvaluationStatusModal benchmark summary', () => {
 
     render(<EvaluationStatusModal job={job} namespace="test-ns" onClose={mockOnClose} />);
 
-    expect(screen.getByTestId('benchmark-complete-count')).toHaveTextContent('3/5');
+    expect(screen.getByTestId('failure-summary-alert')).toHaveTextContent(
+      '2 of 5 benchmarks failed',
+    );
   });
 
   it('should not show benchmark summary for single-benchmark jobs', () => {
@@ -388,7 +390,7 @@ describe('EvaluationStatusModal log API unavailable', () => {
       refresh: jest.fn(),
     });
 
-    renderModal({ state: 'completed' });
+    renderModal(mockEvaluationJob({ state: 'completed' }));
 
     const alert = screen.getByTestId('logs-error-alert');
     expect(alert).toHaveTextContent('Internal Server Error');
@@ -482,11 +484,11 @@ describe('EvaluationStatusModal failure detail labels', () => {
 });
 
 describe('EvaluationStatusModal running state header', () => {
-  it('should show running header with evaluation name', () => {
+  it('should show evaluation name and running status in header', () => {
     renderModal(mockEvaluationJob({ state: 'running', name: 'Safety and fairness' }));
 
-    const header = screen.getByTestId('evaluation-header');
-    expect(header).toHaveTextContent('Running Safety and fairness');
+    expect(screen.getByTestId('modal-title-name')).toHaveTextContent('Safety and fairness');
+    expect(screen.getByTestId('status-label-running')).toBeInTheDocument();
   });
 
   it('should show "Evaluation job is running." in description', () => {
@@ -508,22 +510,20 @@ describe('EvaluationStatusModal running state header', () => {
 
     render(<EvaluationStatusModal job={job} namespace="test-ns" onClose={mockOnClose} />);
 
-    const progress = screen.getByTestId('benchmark-progress');
+    const progress = screen.getByTestId('benchmark-complete-count');
     expect(progress).toHaveTextContent('1/3 benchmarks complete');
   });
 
   it('should not show benchmark progress when there are no status benchmarks', () => {
     renderModal(mockEvaluationJob({ state: 'running' }));
 
-    expect(screen.queryByTestId('benchmark-progress')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('benchmark-complete-count')).not.toBeInTheDocument();
   });
 
-  it('should show evaluation name without state prefix for completed jobs', () => {
-    renderModal({ state: 'completed', name: 'Safety and fairness' });
+  it('should not show running status label for completed jobs', () => {
+    renderModal(mockEvaluationJob({ state: 'completed' }));
 
-    const header = screen.getByTestId('evaluation-header');
-    expect(header).toHaveTextContent('Safety and fairness');
-    expect(header).not.toHaveTextContent('Running');
+    expect(screen.queryByTestId('status-label-running')).not.toBeInTheDocument();
   });
 });
 
@@ -705,6 +705,7 @@ describe('EvaluationStatusModal log parsing', () => {
     });
 
     renderModal();
+    switchToEventsLog();
 
     const logContent = screen.getByTestId('log-content');
     expect(logContent.textContent).toContain('toxigen');
@@ -947,6 +948,7 @@ describe('EvaluationStatusModal log level filter', () => {
 describe('EvaluationStatusModal useEvaluationJobLogs arguments', () => {
   it('should pass namespace and job ID on the events-log tab', () => {
     renderModal(mockEvaluationJob({ state: 'running' }));
+    switchToEventsLog();
 
     expect(mockUseEvaluationJobLogs).toHaveBeenLastCalledWith(
       'test-ns',
@@ -956,10 +958,10 @@ describe('EvaluationStatusModal useEvaluationJobLogs arguments', () => {
     );
   });
 
-  it('should pass undefined namespace and job ID on the failure-info tab', () => {
+  it('should pass undefined namespace and job ID on the progress tab', () => {
     renderModal(mockEvaluationJob({ state: 'failed', statusMessage: 'Something failed' }));
 
-    expect(screen.getByTestId('failure-info-tab')).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByTestId('progress-tab')).toHaveAttribute('aria-selected', 'true');
     expect(mockUseEvaluationJobLogs).toHaveBeenLastCalledWith(
       undefined,
       undefined,
@@ -974,6 +976,7 @@ describe('EvaluationStatusModal useEvaluationJobLogs arguments', () => {
     job.status.benchmarks = [{ id: 'bm-a', benchmark_index: 0, status: 'completed' }];
 
     render(<EvaluationStatusModal job={job} namespace="test-ns" onClose={mockOnClose} />);
+    switchToEventsLog();
 
     fireEvent.click(screen.getByTestId('benchmark-log-selector'));
     fireEvent.click(screen.getByText('bm-a'));
@@ -993,16 +996,14 @@ describe('EvaluationStatusModal pre-start failure', () => {
     render(<EvaluationStatusModal job={job} namespace="test-ns" onClose={mockOnClose} />);
 
     expect(screen.getByTestId('status-label-failed')).toHaveTextContent('Not started');
-    expect(screen.getByTestId('status-detail-header')).toHaveTextContent('Not started');
   });
 
-  it('should show "Not started" badge and heading when status.benchmarks is empty', () => {
+  it('should show "Not started" badge when status.benchmarks is empty', () => {
     const job = mockEvaluationJob({ state: 'failed', benchmarkStatuses: [] });
 
     render(<EvaluationStatusModal job={job} namespace="test-ns" onClose={mockOnClose} />);
 
     expect(screen.getByTestId('status-label-failed')).toHaveTextContent('Not started');
-    expect(screen.getByTestId('status-detail-header')).toHaveTextContent('Not started');
   });
 
   it('should show "Failed" badge and heading when at least one benchmark has a started_at', () => {
