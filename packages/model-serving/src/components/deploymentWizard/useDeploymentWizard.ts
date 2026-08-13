@@ -23,6 +23,7 @@ import { useCreateConnectionData } from './fields/CreateConnectionInputFields';
 import { useProjectSection } from './fields/ProjectSection';
 import { useDeploymentStrategyField } from './fields/DeploymentStrategyField';
 import { useValidatedConfigurationsField } from './fields/validatedConfigurations/useValidatedConfigurationsField';
+import { buildRuntimeArgsFromValidatedSelections } from './fields/validatedConfigurations/validatedConfigurationUtils';
 import {
   useDeploymentWizardReducer,
   wizardFormReducer,
@@ -142,7 +143,13 @@ export const useModelDeploymentWizard = (
     canCreateRoleBindings,
   );
 
-  const runtimeArgs = useRuntimeArgsField(initialData?.runtimeArgs ?? undefined);
+  const runtimeArgs = useRuntimeArgsField(
+    initialData?.runtimeArgs ??
+      buildRuntimeArgsFromValidatedSelections(
+        initialData?.validatedConfigurations,
+        initialData?.selectedValidatedConfigurations,
+      ),
+  );
   const environmentVariables = useEnvironmentVariablesField(
     initialData?.environmentVariables ?? undefined,
   );

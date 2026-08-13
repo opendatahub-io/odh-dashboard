@@ -48,7 +48,10 @@ describe('LLMD Routing Configurations - Admin Settings', () => {
     },
     () => {
       cy.step('Log in as admin');
-      cy.visitWithLogin('/?devFeatureFlags=llmdTemplates=true', LDAP_ADMIN_USER);
+      cy.visitWithLogin(
+        '/?devFeatureFlags=llmdTemplates=true,modelDeploymentSettings=true',
+        LDAP_ADMIN_USER,
+      );
 
       cy.step('Navigate to routing configurations settings');
       llmdRoutingSettingsPage.navigate();

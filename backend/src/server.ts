@@ -15,13 +15,11 @@ const transport =
     : undefined;
 
 const app = fastify({
+  // set to kubernetes max name length
+  maxParamLength: 253,
   // Increase body limit to 32MB to support file uploads (matches gen-ai BFF limit)
   bodyLimit: 32 * 1024 * 1024,
-  // set to kubernetes max name length
-  routerOptions: {
-    maxParamLength: 253,
-  },
-  loggerInstance: pino(
+  logger: pino(
     {
       level: LOG_LEVEL,
       redact: [

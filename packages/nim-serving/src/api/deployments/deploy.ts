@@ -63,6 +63,7 @@ const deployNIMServiceResource = async (
 
 export const deployNIMDeployment = async (
   _wizardData: WizardFormData['state'],
+  externalData: Record<string, { loaded: boolean; loadError?: Error; data: unknown }>,
   projectName: string,
   existingDeployment?: NIMDeployment,
   modelResource?: NIMDeployment['model'],

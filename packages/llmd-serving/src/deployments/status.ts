@@ -15,6 +15,9 @@ import { groupVersionKind } from '@odh-dashboard/internal/api/k8sUtils';
 import useK8sWatchResourceList from '@odh-dashboard/internal/utilities/useK8sWatchResourceList';
 import type { CustomWatchK8sResult } from '@odh-dashboard/internal/types';
 import { getModelDeploymentStoppedStates } from '@odh-dashboard/model-serving/utils';
+import { getKueueSchedulingSubStep } from '@odh-dashboard/internal/concepts/kueue/index';
+import { KUEUE_STATUSES_PAST_ADMISSION } from '@odh-dashboard/internal/concepts/kueue/types';
+import type { KueueWorkloadStatusWithMessage } from '@odh-dashboard/internal/concepts/kueue/types';
 import {
   LLMdDeployment,
   LLMInferenceServiceKind,
@@ -97,8 +100,24 @@ const buildConditionFromRaw = (
 
 export const getLLMdDeploymentConditions = (
   inferenceService: LLMInferenceServiceKind,
+  kueueStatus?: KueueWorkloadStatusWithMessage | null,
 ): DeploymentCondition[] => {
   const rawConditions = inferenceService.status?.conditions;
+  // "Create pod" needs a real "the pod is up" signal. Rather than cross-referencing a separate
+  // pod watch (fragile for multi-replica: has to require *every* pod scheduled, not just one,
+  // and duplicates correlation logic that already exists for the Kueue watch), use Kueue's own
+  // Workload conditions directly. `kueueStatus` is already the worst-of-all-Workloads aggregate
+  // (see aggregateKueueStatusForModel), so once it reaches Admitted or later (quota reserved,
+  // Kueue's scheduling gate lifted for every replica) the pod creation step Kueue was gating is
+  // done — normal k8s scheduling takes over from there. Statuses before that
+  // (Queued/Inadmissible/Preempted/Evicted/Requeued/BlockedOnPreemptionGates/Failed) mean at
+  // least one replica is still blocked, so keep showing the Kueue sub-step.
+  const isPastAdmission = Boolean(
+    kueueStatus?.status && KUEUE_STATUSES_PAST_ADMISSION.includes(kueueStatus.status),
+  );
+  const kueueSubStep =
+    kueueStatus?.status && !isPastAdmission ? getKueueSchedulingSubStep(kueueStatus) : null;
+
   const conditions: DeploymentCondition[] = [
     {
       type: 'DeploymentRequested',
@@ -107,6 +126,19 @@ export const getLLMdDeploymentConditions = (
       lastTransitionTime: inferenceService.metadata.creationTimestamp,
     },
   ];
+
+  if (kueueStatus) {
+    conditions.push({
+      type: 'CreatePod',
+      label: 'Create pod',
+      status: isPastAdmission ? 'True' : kueueSubStep ? kueueSubStep.messageStatus : 'Unknown',
+      messageStatus: isPastAdmission ? undefined : kueueSubStep?.messageStatus,
+      inProgress:
+        !isPastAdmission && (kueueSubStep ? kueueSubStep.messageStatus === 'Unknown' : true),
+      message: isPastAdmission ? undefined : kueueSubStep?.label,
+      lastTransitionTime: kueueSubStep?.lastTransitionTime ?? kueueStatus.timestamp,
+    });
+  }
 
   for (const spec of LLMD_CONDITION_SPECS) {
     const parentCondition = buildConditionFromRaw(rawConditions, spec);
@@ -159,6 +191,7 @@ export const getLLMdDeploymentConditions = (
 export const getLLMdDeploymentStatus = (
   inferenceService: LLMInferenceServiceKind,
   deploymentPods: PodKind[],
+  kueueStatus?: KueueWorkloadStatusWithMessage | null,
 ): DeploymentStatus => {
   const deploymentPod = deploymentPods.length > 0 ? deploymentPods[0] : undefined;
 
@@ -173,9 +206,9 @@ export const getLLMdDeploymentStatus = (
     deploymentPod,
   );
 
-  const conditions = getLLMdDeploymentConditions(inferenceService);
+  const conditions = getLLMdDeploymentConditions(inferenceService, kueueStatus);
 
-  return { state, message, stoppedStates, conditions };
+  return { state, message, stoppedStates, conditions, kueueStatus };
 };
 
 export const patchDeploymentStoppedStatus = (
