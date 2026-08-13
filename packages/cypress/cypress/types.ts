@@ -342,7 +342,6 @@ export type RoutingTestData = DataScienceProjectData & {
 
 export type AcceleratorTestData = DataScienceProjectData & {
   unsupportedAcceleratorConfigFixturePath: string;
-  acceptedAcceleratorConfigFixturePath: string;
   acceleratorConfigName: string;
   version: string;
   replaceSourceString: string;

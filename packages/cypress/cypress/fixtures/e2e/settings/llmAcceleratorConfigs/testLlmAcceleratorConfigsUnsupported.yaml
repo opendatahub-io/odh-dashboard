@@ -6,7 +6,7 @@ resourceApiVersion: 'apiVersion: serving.kserve.io/v1alpha2'
 # Model serving
 projectResourceName: 'test-accelerator-project'
 deploymentMethod: 'llm-inference-service-simple-vllm'
-modelName: 'test-accelerator-model'
+singleModelAdminName: 'test-accelerator-model'
 modelLocationURI: 'hf://facebook/opt-125m'
 
 # Accelerator configs

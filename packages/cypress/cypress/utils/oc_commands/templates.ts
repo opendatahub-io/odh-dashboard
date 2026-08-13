@@ -1,5 +1,6 @@
 import { pollUntilSuccess } from './baseCommands';
 import type { CommandLineResult } from '../../types';
+import { replacePlaceholdersInYaml } from '../yaml_files';
 
 const applicationNamespace = Cypress.env('APPLICATIONS_NAMESPACE');
 
@@ -54,3 +55,16 @@ export const cleanupTemplates = (
     return cy.wrap(result);
   });
 };
+
+/**
+ * Reads a YAML file and replaces {{PLACEHOLDER}} keys with provided values.
+ * Intended for generating unique ServingRuntime YAML content per-test before uploading via UI.
+ *
+ * @param yamlPath Absolute path to the YAML file to read.
+ * @param replacements Placeholder map, e.g. { SERVING_RUNTIME_NAME: 'foo', SERVING_RUNTIME_DISPLAY_NAME: 'Foo' }.
+ */
+export const renderYamlFileWithReplacements = (
+  yamlPath: string,
+  replacements: Record<string, string>,
+): Cypress.Chainable<string> =>
+  cy.readFile(yamlPath, 'utf8').then((yamlContent) => replacePlaceholdersInYaml(yamlContent, replacements));

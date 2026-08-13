@@ -20,7 +20,14 @@ export const cleanupLLMInferenceServiceConfig = (
 ): Cypress.Chainable<CommandLineResult> => {
   cy.log(`Deleting LLMInferenceServiceConfig: ${configName}`);
   const deleteCommand = `oc delete llminferenceserviceconfig ${configName} -n ${applicationNamespace} --ignore-not-found`;
-  return cy.exec(deleteCommand, { failOnNonZeroExit: false });
+  return cy.exec(deleteCommand, { failOnNonZeroExit: false }).then((result) => {
+    if (result.exitCode !== 0) {
+      throw new Error(
+        `Failed to delete LLMInferenceServiceConfig ${configName} in ${applicationNamespace}: ${result.stderr || result.stdout}`,
+      );
+    }
+    return cy.wrap(result);
+  });
 };
 
 /**

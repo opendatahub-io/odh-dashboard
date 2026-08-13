@@ -2,7 +2,6 @@ import { retryableBefore } from '../../../../utils/retryableHooks';
 import { LDAP_ADMIN_USER } from '../../../../utils/e2eUsers';
 import { servingRuntimes } from '../../../../pages/servingRuntimes';
 import { loadDSPFixture } from '../../../../utils/dataLoader';
-import { generateTestUUID } from '../../../../utils/uuidGenerator';
 import { createCleanProject } from '../../../../utils/projectChecker';
 import {
   addUserToProject,
@@ -11,6 +10,7 @@ import {
 } from '../../../../utils/oc_commands/project';
 import {
   cleanupTemplates,
+  renderYamlFileWithReplacements,
   waitForTemplateByDisplayName,
 } from '../../../../utils/oc_commands/templates';
 import { getFixturePath } from '../../../../utils/fileImportUtils';
@@ -20,6 +20,7 @@ import { ModelLocationSelectOption, ModelTypeLabel } from '../../../../utils/mod
 import type { DataScienceProjectData, ServingRuntimeSettingsTestData } from '../../../../types';
 import { unsupportedStatusAcceptanceModal } from '../../../../pages/llmAcceleratorConfigs';
 import { deleteModal } from '../../../../pages/components/DeleteModal';
+import { generateTestUUID } from '../../../../utils/uuidGenerator';
 
 const uuid = generateTestUUID();
 let testData: ServingRuntimeSettingsTestData;
@@ -56,9 +57,9 @@ describe('Serving runtimes: CRUD + wizard visibility', () => {
         testData = fixtureData as ServingRuntimeSettingsTestData;
         projectName = `${testData.projectResourceName}-${uuid}`;
         modelName = `${testData.singleModelName}-${uuid}`;
-        servingRuntimeId = testData.servingRuntimeId;
-        servingRuntimeDisplayName = testData.servingRuntimeDisplayName;
-        duplicateservingRuntimeId = `${testData.servingRuntimeId}-copy`;
+        servingRuntimeId = `${testData.servingRuntimeId}-${uuid}`;
+        servingRuntimeDisplayName = `${testData.servingRuntimeDisplayName}-${uuid}`;
+        duplicateservingRuntimeId = `${servingRuntimeId}-copy`;
         duplicateServingRuntimeDisplayName = `Copy of ${servingRuntimeDisplayName}`;
 
         cleanupTemplates(servingRuntimeId);
@@ -96,7 +97,11 @@ describe('Serving runtimes: CRUD + wizard visibility', () => {
       servingRuntimes.findGenerativeAIModelOption().click();
 
       cy.step('Upload YAML and create serving runtime');
-      servingRuntimes.uploadYaml(getFixturePath(testData.unsupportedServingRuntimeYamlFixturePath));
+      const yamlPath = getFixturePath(testData.unsupportedServingRuntimeYamlFixturePath);
+      renderYamlFileWithReplacements(yamlPath, {
+        SERVING_RUNTIME_NAME: servingRuntimeId,
+        SERVING_RUNTIME_DISPLAY_NAME: servingRuntimeDisplayName,
+      }).then((renderedYaml) => servingRuntimes.getDashboardCodeEditor().setValue(renderedYaml));
       servingRuntimes.findSubmitButton().should('be.enabled').click();
       const runtimeRow = servingRuntimes.getRowById(servingRuntimeId);
       runtimeRow.find().should('exist');
@@ -133,7 +138,7 @@ describe('Serving runtimes: CRUD + wizard visibility', () => {
       deleteModal.find().should('exist');
       deleteModal.findInput().clear().type(duplicateServingRuntimeDisplayName);
       deleteModal.findSubmitButton().should('be.enabled').click();
-      servingRuntimes.getRowById(duplicateservingRuntimeId);
+      duplicateRuntimeRow.find().should('not.exist');
 
       cy.step('Verify the original unsupportedserving runtime is hidden in the deploy wizard');
       waitForTemplateByDisplayName(servingRuntimeId);

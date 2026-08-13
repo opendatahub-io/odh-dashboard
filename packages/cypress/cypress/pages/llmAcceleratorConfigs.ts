@@ -83,7 +83,7 @@ class UnsupportedStatusAcceptanceModal {
 class LlmAcceleratorConfigs {
   visit(wait = true) {
     cy.visitWithLogin(
-      '/settings/model-resources-operations/model-deployment-settings/llm-accelerator-configurations/?devFeatureFlags=vLLMDeploymentOnMaaS=true',
+      '/settings/model-resources-operations/model-deployment-settings/llm-accelerator-configurations',
     );
     if (wait) {
       this.wait();
@@ -93,6 +93,12 @@ class LlmAcceleratorConfigs {
   private wait() {
     this.findAddButton();
     cy.testA11y();
+  }
+
+  navigate() {
+    this.findNavItem().click();
+    this.findTab().should('exist').click();
+    this.wait();
   }
 
   findNavItem() {
@@ -113,7 +119,7 @@ class LlmAcceleratorConfigs {
   }
 
   findTab() {
-    return cy.findByRole('tab', { name: 'LLM accelerator configurations' });
+    return cy.findByTestId('tab-llm-accelerator-configurations');
   }
 
   findEmptyState() {

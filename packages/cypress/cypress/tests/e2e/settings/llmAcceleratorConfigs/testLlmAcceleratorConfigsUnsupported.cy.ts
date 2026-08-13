@@ -39,7 +39,7 @@ describe('Unsupported accelerator configs: CRUD + wizard gating', () => {
   retryableBefore(() => {
     cy.log('Loading test data');
     return loadDSPFixture(
-      'e2e/settings/llmAcceleratorConfiguration/testLlmAcceleratorConfigsUnsupported.yaml',
+      'e2e/settings/llmAcceleratorConfigs/testLlmAcceleratorConfigsUnsupported.yaml',
     )
       .then((fixtureData: DataScienceProjectData) => {
         testData = fixtureData as AcceleratorTestData;
@@ -92,10 +92,10 @@ describe('Unsupported accelerator configs: CRUD + wizard gating', () => {
     { tags: ['@Dashboard', '@Featureflagged', '@ModelServing', '@ModelServingCI'] },
     () => {
       cy.step('Log into the application as admin');
-      cy.visitWithLogin('/', LDAP_ADMIN_USER);
+      cy.visitWithLogin('/?devFeatureFlags=modelDeploymentSettings=true,vLLMDeploymentOnMaaS=true', LDAP_ADMIN_USER);
 
       cy.step('Create unsupported accelerator config from UI');
-      llmAcceleratorConfigs.visit();
+      llmAcceleratorConfigs.navigate();
       llmAcceleratorConfigs.findAddButton().should('exist').click();
       llmAcceleratorConfigs.findNameInput().clear().type(acceleratorConfigName);
       llmAcceleratorConfigs.findEditResourceNameLink().click();
