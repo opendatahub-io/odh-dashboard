@@ -147,6 +147,7 @@ describe('PreconfigureDeploymentStep', () => {
 
   it('should toggle validated configuration selection via wizard state', () => {
     const toggleOption = jest.fn();
+    const setRuntimeArgs = jest.fn();
     const wizardState = mockDeploymentWizardState({
       initialData: {
         validatedConfigurations: [mockToolCallingValidatedConfiguration()],
@@ -156,6 +157,10 @@ describe('PreconfigureDeploymentStep', () => {
           initialProjectName: undefined,
           projectName: undefined,
           setProjectName: jest.fn(),
+        },
+        runtimeArgs: {
+          data: { enabled: false, args: [] },
+          setData: setRuntimeArgs,
         },
         validatedConfigurationSelection: {
           selectedValidatedConfigurations: {},
@@ -180,6 +185,69 @@ describe('PreconfigureDeploymentStep', () => {
       mockToolCallingValidatedConfiguration().options[0].value,
       true,
     );
+    expect(setRuntimeArgs).toHaveBeenCalledTimes(1);
+    expect(typeof setRuntimeArgs.mock.calls[0][0]).toBe('function');
+    expect(setRuntimeArgs.mock.calls[0][0]({ enabled: false, args: [] })).toEqual({
+      enabled: true,
+      args: [
+        '# Validated arguments for Tool calling',
+        '--enable-auto-tool-choice',
+        '--tool-call-parser hermes',
+        '--chat-template /etc/vllm/templates/tool_chat_template_hermes.jinja',
+      ],
+    });
+  });
+
+  it('should remove validated runtime args when unchecking a configuration', () => {
+    const toggleOption = jest.fn();
+    const setRuntimeArgs = jest.fn();
+    const option = mockToolCallingValidatedConfiguration().options[0];
+    const wizardState = mockDeploymentWizardState({
+      initialData: {
+        validatedConfigurations: [mockToolCallingValidatedConfiguration()],
+      },
+      state: {
+        project: {
+          initialProjectName: undefined,
+          projectName: undefined,
+          setProjectName: jest.fn(),
+        },
+        runtimeArgs: {
+          data: {
+            enabled: true,
+            args: [
+              '# Validated arguments for Tool calling',
+              '--enable-auto-tool-choice',
+              '--tool-call-parser hermes',
+              '--chat-template /etc/vllm/templates/tool_chat_template_hermes.jinja',
+              '--user-arg',
+            ],
+          },
+          setData: setRuntimeArgs,
+        },
+        validatedConfigurationSelection: {
+          selectedValidatedConfigurations: { args: [option.value] },
+          toggleOption,
+          isOptionSelected: jest.fn().mockReturnValue(true),
+        },
+      },
+    });
+
+    render(
+      <MemoryRouter>
+        <ProjectsContext.Provider value={createProjectsContextValue()}>
+          <PreconfigureDeploymentStepContent wizardState={wizardState} />
+        </ProjectsContext.Provider>
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(screen.getByTestId('validated-configuration-option-checkbox-tool-calling'));
+
+    expect(toggleOption).toHaveBeenCalledWith('args', option.value, false);
+    expect(setRuntimeArgs.mock.calls[0][0](wizardState.state.runtimeArgs.data)).toEqual({
+      enabled: true,
+      args: ['--user-arg'],
+    });
   });
 
   it('should not render any card when validatedConfigurations has no options for a field', () => {

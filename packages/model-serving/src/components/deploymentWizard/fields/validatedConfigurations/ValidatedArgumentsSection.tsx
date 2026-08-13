@@ -9,17 +9,25 @@ import {
   StackItem,
 } from '@patternfly/react-core';
 import { ValidatedConfigurationOptionCard } from './ValidatedConfigurationOptionCard';
+import {
+  mergeValidatedOptionIntoArgs,
+  removeValidatedOptionFromArgs,
+  toRuntimeArgsFieldData,
+} from './validatedConfigurationUtils';
 import type { ValidatedConfigurationsFieldHook } from './useValidatedConfigurationsField';
+import type { RuntimeArgsFieldHook } from '../RuntimeArgsField';
 import type { ValidatedConfiguration } from '../../../../shared/types/form-data';
 
 type ValidatedArgumentsSectionProps = {
   configurations: ValidatedConfiguration[];
   selection: ValidatedConfigurationsFieldHook;
+  runtimeArgs: RuntimeArgsFieldHook;
 };
 
 export const ValidatedArgumentsSection: React.FC<ValidatedArgumentsSectionProps> = ({
   configurations,
   selection,
+  runtimeArgs,
 }) => {
   return (
     <>
@@ -53,9 +61,18 @@ export const ValidatedArgumentsSection: React.FC<ValidatedArgumentsSectionProps>
                           configuration.forField,
                           option.value,
                         )}
-                        onSelectionChange={(checked) =>
-                          selection.toggleOption(configuration.forField, option.value, checked)
-                        }
+                        onSelectionChange={(checked) => {
+                          selection.toggleOption(configuration.forField, option.value, checked);
+                          if (configuration.forField === 'args') {
+                            runtimeArgs.setData((prev) => {
+                              const currentArgs = prev?.args ?? [];
+                              const nextArgs = checked
+                                ? mergeValidatedOptionIntoArgs(currentArgs, option)
+                                : removeValidatedOptionFromArgs(currentArgs, option);
+                              return toRuntimeArgsFieldData(nextArgs);
+                            });
+                          }
+                        }}
                       />
                     </GalleryItem>
                   ))}
