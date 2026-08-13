@@ -236,17 +236,17 @@ describe('Evaluations Page - Status labels', () => {
   it('should show "Not started" badge for a pre-start failure with no benchmark started_at', () => {
     evaluationsPage.visit(NAMESPACE);
     // Table sorts by date desc: row 0 = preStart (Mar 14), row 1 = runtime (Mar 13), row 2 = partial (Mar 12)
-    evaluationsPage.findStatusCell(0).should('have.text', 'Not started');
+    evaluationsPage.findStatusLabel(0).should('have.text', 'Not started');
   });
 
   it('should show "Failed" badge for a runtime failure where benchmarks started', () => {
     evaluationsPage.visit(NAMESPACE);
-    evaluationsPage.findStatusCell(1).should('have.text', 'Failed');
+    evaluationsPage.findStatusLabel(1).should('have.text', 'Failed');
   });
 
   it('should show "Failed" badge for a partially_failed job', () => {
     evaluationsPage.visit(NAMESPACE);
-    evaluationsPage.findStatusCell(2).should('have.text', 'Failed');
+    evaluationsPage.findStatusLabel(2).should('have.text', 'Failed');
   });
 });
 

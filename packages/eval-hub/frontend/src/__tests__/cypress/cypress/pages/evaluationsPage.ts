@@ -100,6 +100,10 @@ class EvaluationsPage {
     return this.findEvaluationRow(rowIndex).findByTestId('evaluation-status');
   }
 
+  findStatusLabel(rowIndex: number) {
+    return this.findStatusCell(rowIndex).findByTestId('evaluation-status-button');
+  }
+
   clickStatusBadge(rowIndex: number) {
     this.findStatusCell(rowIndex).findByTestId('evaluation-status-button').click();
   }
