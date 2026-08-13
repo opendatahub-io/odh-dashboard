@@ -158,7 +158,7 @@ describe('NIM Models Deployments', () => {
         name: 'test-model',
         namespace: 'test-project',
         annotations: {
-          'opendatahub.io/template-name': 'nvidia-nim-runtime',
+          'opendatahub.io/template-name': 'odh-nim-account-template',
           'opendatahub.io/template-display-name': 'NVIDIA NIM',
         },
       });

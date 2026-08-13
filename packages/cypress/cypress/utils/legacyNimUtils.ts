@@ -146,7 +146,9 @@ export const initInterceptsToDeployNimInWizard = ({
   // runtime template out of that account's own namespace.
   cy.interceptK8sList(
     { model: NIMAccountModel, ns: namespace },
-    mockK8sResourceList([mockNimAccount({ namespace })]),
+    mockK8sResourceList([
+      mockNimAccount({ namespace, runtimeTemplateName: 'odh-nim-account-template' }),
+    ]),
   );
   cy.interceptK8s(ConfigMapModel, mockNimImages({ namespace }));
   cy.interceptK8s(TemplateModel, mockNimServingRuntimeTemplate({ namespace }));

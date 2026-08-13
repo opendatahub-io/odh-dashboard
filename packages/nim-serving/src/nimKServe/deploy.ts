@@ -7,6 +7,7 @@ import { NIMModelLocationKey } from '@odh-dashboard/model-serving/shared/wizard-
 import { deployKServeDeployment } from '@odh-dashboard/kserve/deploy';
 import { KServeDeployment } from '@odh-dashboard/kserve/types';
 import { getServingRuntimeFromTemplate } from '@odh-dashboard/model-serving/shared';
+import { getResourceNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import {
   isNIMImageFieldExternalData,
   NIMImageFieldWizardField,
@@ -39,21 +40,26 @@ export const deployNIMKServeDeployment = async (
   applyFieldData?: DeploymentAssemblyFn<KServeDeployment>,
 ): Promise<KServeDeployment> => {
   let runtime = serverResource;
-  const templateName = serverResourceTemplateName;
+  let templateName;
 
   // TODO: move this into assembleDeployment for yaml
   if (!existingDeployment?.server) {
     const nimImageFieldData = externalData[NIMImageFieldWizardField.id].data;
     if (isNIMImageFieldExternalData(nimImageFieldData)) {
-      runtime = getServingRuntimeFromTemplate(nimImageFieldData.nimTemplate);
-      if (runtime) {
-        // The NIM Template has a `volumeMounts` defined but not the `volumes` for shm. Add it to prevent errors
-        runtime = applyNIMServingRuntimeShmMounts(runtime);
-        // The container resources come from the InferenceService's hardware profile, not the Template
-        runtime = removeNIMServingRuntimeResources(runtime);
-      } else {
+      if (!nimImageFieldData.nimTemplate) {
         throw new Error(`Unable to find NIM ServingRuntime Template in namespace ${projectName}`);
       }
+
+      templateName = getResourceNameFromK8sResource(nimImageFieldData.nimTemplate);
+      runtime = getServingRuntimeFromTemplate(nimImageFieldData.nimTemplate);
+
+      if (!runtime) {
+        throw new Error(`Unable to find NIM ServingRuntime Template in namespace ${projectName}`);
+      }
+      // The NIM Template has a `volumeMounts` defined but not the `volumes` for shm. Add it to prevent errors
+      runtime = applyNIMServingRuntimeShmMounts(runtime);
+      // The container resources come from the InferenceService's hardware profile, not the Template
+      runtime = removeNIMServingRuntimeResources(runtime);
     } else {
       throw new Error(`Unable to find NIM ServingRuntime Template in namespace ${projectName}`);
     }
