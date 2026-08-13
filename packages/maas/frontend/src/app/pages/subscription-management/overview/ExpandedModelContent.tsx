@@ -17,6 +17,9 @@ import {
   EventTrackingResourceType,
   EventTrackingSource,
   MaaSEvents,
+  SubscriptionManagementStatusPopoverViewedProperties,
+  EventTrackingPopoverType,
+  convertStringToPopoverViewedStatus,
 } from '~/app/types/event-tracking';
 import { hasHighlightedGroup } from './utils';
 import GroupChips from './GroupChips';
@@ -136,10 +139,10 @@ const ExpandableItem: React.FC<ExpandableItemProps> = ({
                       fireMiscTrackingEvent(
                         MaaSEvents.SUBSCRIPTION_MANAGEMENT_STATUS_POPOVER_VIEWED,
                         {
-                          popoverType: 'status',
-                          status: phase,
+                          popoverType: EventTrackingPopoverType.STATUS,
+                          status: convertStringToPopoverViewedStatus(phase),
                           location: PhaseLabelLocation.OVERVIEW,
-                        },
+                        } satisfies SubscriptionManagementStatusPopoverViewedProperties,
                       );
                     }}
                   />

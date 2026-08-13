@@ -22,6 +22,9 @@ import {
   EventTrackingResourceType,
   EventTrackingSource,
   MaaSEvents,
+  EventTrackingPopoverType,
+  convertStringToPopoverViewedStatus,
+  SubscriptionManagementStatusPopoverViewedProperties,
 } from '~/app/types/event-tracking';
 
 type ExpandedPanel = 'groups' | 'models' | null;
@@ -125,10 +128,10 @@ const AuthPoliciesTableRow: React.FC<AuthPoliciesTableRowProps> = ({
         returnTo={returnTo}
         onClick={() => {
           fireMiscTrackingEvent(MaaSEvents.SUBSCRIPTION_MANAGEMENT_STATUS_POPOVER_VIEWED, {
-            popoverType: 'status',
-            status: authPolicy.phase,
+            popoverType: EventTrackingPopoverType.STATUS,
+            status: convertStringToPopoverViewedStatus(authPolicy.phase),
             location: PhaseLabelLocation.POLICIES_TAB,
-          });
+          } satisfies SubscriptionManagementStatusPopoverViewedProperties);
         }}
       />
     </Td>

@@ -9,7 +9,12 @@ import { ModelOverviewItem } from '~/app/types/subscriptions';
 import { URL_PREFIX } from '~/app/utilities/const';
 import { PhaseLabelLocation, PhaseResourceType } from '~/app/utilities/phaseLabelUtils';
 import PhaseLabel from '~/app/shared/Phase/PhaseLabel';
-import { EventTrackingPopoverType, MaaSEvents } from '~/app/types/event-tracking';
+import {
+  convertStringToPopoverViewedStatus,
+  EventTrackingPopoverType,
+  MaaSEvents,
+  SubscriptionManagementStatusPopoverViewedProperties,
+} from '~/app/types/event-tracking';
 import { overviewColumns } from './utils';
 import ExpandedModelContent from './ExpandedModelContent';
 
@@ -29,7 +34,7 @@ const NoSubscriptionsWarning: React.FC = () => (
         popoverType: EventTrackingPopoverType.WARNING,
         status: 'configuration-warning',
         location: PhaseLabelLocation.OVERVIEW,
-      });
+      } satisfies SubscriptionManagementStatusPopoverViewedProperties);
     }}
     headerContent="Configuration warning"
     bodyContent={
@@ -54,13 +59,6 @@ const NoSubscriptionsWarning: React.FC = () => (
       variant="plain"
       data-testid="no-subscriptions-warning"
       aria-label="No subscriptions warning"
-      onClick={() => {
-        fireMiscTrackingEvent(MaaSEvents.SUBSCRIPTION_MANAGEMENT_STATUS_POPOVER_VIEWED, {
-          popoverType: 'warning',
-          status: 'no-subscriptions',
-          location: PhaseLabelLocation.OVERVIEW,
-        });
-      }}
     >
       <ExclamationTriangleIcon color="orange" />
     </Button>
@@ -74,7 +72,7 @@ const NoPoliciesWarning: React.FC = () => (
         popoverType: EventTrackingPopoverType.WARNING,
         status: 'configuration-warning',
         location: PhaseLabelLocation.OVERVIEW,
-      });
+      } satisfies SubscriptionManagementStatusPopoverViewedProperties);
     }}
     headerContent="Configuration warning"
     bodyContent={
@@ -102,13 +100,6 @@ const NoPoliciesWarning: React.FC = () => (
       variant="plain"
       data-testid="no-policies-warning"
       aria-label="No authorization policies warning"
-      onClick={() => {
-        fireMiscTrackingEvent(MaaSEvents.SUBSCRIPTION_MANAGEMENT_STATUS_POPOVER_VIEWED, {
-          popoverType: 'warning',
-          status: 'no-policies',
-          location: PhaseLabelLocation.OVERVIEW,
-        });
-      }}
     >
       <ExclamationTriangleIcon color="orange" />
     </Button>
@@ -159,10 +150,10 @@ const OverviewTableRow: React.FC<OverviewTableRowProps> = ({
             resourceName={row.modelDetails.displayName ?? row.id}
             onClick={() => {
               fireMiscTrackingEvent(MaaSEvents.SUBSCRIPTION_MANAGEMENT_STATUS_POPOVER_VIEWED, {
-                popoverType: 'status',
-                status: row.modelDetails.phase,
+                popoverType: EventTrackingPopoverType.STATUS,
+                status: convertStringToPopoverViewedStatus(row.modelDetails.phase),
                 location: PhaseLabelLocation.OVERVIEW,
-              });
+              } satisfies SubscriptionManagementStatusPopoverViewedProperties);
             }}
           />
         </Td>

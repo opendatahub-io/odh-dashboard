@@ -50,6 +50,13 @@ const OverviewToolbar: React.FC<OverviewToolbarProps> = ({
           placeholder="Filter by project"
           onChange={(_event, value) => onChange(value)}
           data-testid="overview-project-name-filter-input"
+          inputProps={{
+            onBlur: () => {
+              fireMiscTrackingEvent(MaaSEvents.SUBSCRIPTION_MANAGEMENT_OVERVIEW_FILTERED, {
+                filterAttribute: EventTrackingFilterAttribute.PROJECT,
+              });
+            },
+          }}
         />
       ),
       [OverviewFilterOptions.groupName]: ({ onChange, ...props }) => (
