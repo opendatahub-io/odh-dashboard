@@ -46,6 +46,10 @@ const initIntercepts = () => {
       size: 2,
     }),
   });
+
+  cy.intercept('GET', '**/model-registry/api/v1/mcp_catalog/mcp_servers*', {
+    body: { data: { items: [], size: 0, pageSize: 5, nextPageToken: '' } },
+  });
 };
 
 describe('MCP server deployment delete', () => {

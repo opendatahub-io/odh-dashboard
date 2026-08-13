@@ -86,3 +86,9 @@ func (app *App) KubernetesClientFactory() k8s.KubernetesClientFactory {
 func (app *App) Repositories() *repositories.Repositories {
 	return app.repositories
 }
+
+// PodNamespace exposes the namespace this pod is running in, for extensions
+// that need it to build inter-BFF service URLs.
+func (app *App) PodNamespace() string {
+	return app.podNamespace
+}

@@ -2,9 +2,11 @@ import '@testing-library/jest-dom';
 import * as React from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router-dom';
 import { Table as PfTable, Tbody } from '@patternfly/react-table';
 import { McpDeployment } from '~/odh/types/mcpDeploymentTypes';
 import McpDeploymentsTableRow from '~/odh/pages/mcpDeployments/McpDeploymentsTableRow';
+import useMcpDeploymentCatalogServer from '~/odh/pages/mcpDeployments/useMcpDeploymentCatalogServer';
 import {
   createMockDeployment,
   createReadyConditions,
@@ -12,20 +14,33 @@ import {
   createFailedConditions,
 } from './mcpDeploymentTestUtils';
 
+// The "MCP server" column's catalog fallback fetches catalog data; the fetch itself
+// is covered by useMcpDeploymentCatalogServer's and McpDeploymentServerCell's own
+// tests, so it's mocked here to keep this file focused on row-level rendering.
+jest.mock('~/odh/pages/mcpDeployments/useMcpDeploymentCatalogServer');
+
+const mockUseMcpDeploymentCatalogServer = jest.mocked(useMcpDeploymentCatalogServer);
+
 const renderRow = (deployment: McpDeployment, onDeleteClick = jest.fn(), onEditClick = jest.fn()) =>
   render(
-    <PfTable>
-      <Tbody>
-        <McpDeploymentsTableRow
-          deployment={deployment}
-          onDeleteClick={onDeleteClick}
-          onEditClick={onEditClick}
-        />
-      </Tbody>
-    </PfTable>,
+    <MemoryRouter>
+      <PfTable>
+        <Tbody>
+          <McpDeploymentsTableRow
+            deployment={deployment}
+            onDeleteClick={onDeleteClick}
+            onEditClick={onEditClick}
+          />
+        </Tbody>
+      </PfTable>
+    </MemoryRouter>,
   );
 
 describe('McpDeploymentsTableRow', () => {
+  beforeEach(() => {
+    mockUseMcpDeploymentCatalogServer.mockReturnValue([null, false, undefined, jest.fn()]);
+  });
+
   it('should render server column with catalog server name when set', () => {
     renderRow(createMockDeployment({ serverName: 'kubernetes-mcp-server' }));
     expect(screen.getByTestId('mcp-deployment-server')).toHaveTextContent('kubernetes-mcp-server');
@@ -34,6 +49,34 @@ describe('McpDeploymentsTableRow', () => {
   it('should render dash in server column when serverName is not set', () => {
     renderRow(createMockDeployment());
     expect(screen.getByTestId('mcp-deployment-server')).toHaveTextContent('-');
+  });
+
+  it('should render the registry version as a link in the registered version column', () => {
+    renderRow(
+      createMockDeployment({
+        registryServer: 'io.github.example/kubernetes-mcp',
+        registryVersion: '1.0.0',
+      }),
+    );
+    expect(screen.getByTestId('mcp-deployment-registered-version')).toHaveTextContent('1.0.0');
+  });
+
+  it('should render dash in registered version column for a catalog-sourced deployment', () => {
+    renderRow(createMockDeployment({ serverName: 'kubernetes-mcp-server' }));
+    expect(screen.getByTestId('mcp-deployment-registered-version')).toHaveTextContent('-');
+  });
+
+  it("should show '-' in both server columns for a bare CR with no catalog or registry annotations (e.g. oc apply)", () => {
+    renderRow(
+      createMockDeployment({
+        serverName: undefined,
+        registryServer: undefined,
+        registryVersion: undefined,
+        registryServerDisplayName: undefined,
+      }),
+    );
+    expect(screen.getByTestId('mcp-deployment-server')).toHaveTextContent('-');
+    expect(screen.getByTestId('mcp-deployment-registered-version')).toHaveTextContent('-');
   });
 
   it('should render displayName in name column when set', () => {

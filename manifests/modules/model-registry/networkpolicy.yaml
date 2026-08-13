@@ -33,6 +33,15 @@ spec:
           protocol: UDP
         - port: 5353
           protocol: TCP
+    # Inter-BFF communication with the MLflow BFF (see docs/inter-bff-communication.md),
+    # used to resolve MCP Registry server details for the deployments table.
+    - to:
+        - podSelector:
+            matchLabels:
+              deployment: mlflow-ui
+      ports:
+        - port: 8343
+          protocol: TCP
     - to:
         - ipBlock:
             cidr: 0.0.0.0/0
