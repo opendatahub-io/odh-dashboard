@@ -8,6 +8,7 @@ import * as React from 'react';
 import { FormProvider, useForm } from 'react-hook-form';
 import { useNavigate, useParams } from 'react-router';
 import type { ExplorerFiles } from '@odh-dashboard/internal/concepts/fileExplorer/types';
+import { UIErrorHandler } from '~/app/components/common/UIError/UIErrorHandler';
 import AutoragConfigure from '~/app/components/configure/AutoragConfigure';
 import { useOgxModelsQuery } from '~/app/hooks/queries';
 import { createConfigureSchema } from '~/app/schemas/configure.schema';
@@ -261,7 +262,10 @@ const renderWithQueryClient = (
   const queryClient = createTestQueryClient();
   return render(
     <QueryClientProvider client={queryClient}>
-      <FormWrapper defaultValues={defaultValues}>{component}</FormWrapper>
+      {/* UIError behavior is tested in UIErrorHandler's own spec */}
+      <UIErrorHandler id="test-uierror" uiErrorMappings={{}}>
+        <FormWrapper defaultValues={defaultValues}>{component}</FormWrapper>
+      </UIErrorHandler>
     </QueryClientProvider>,
   );
 };

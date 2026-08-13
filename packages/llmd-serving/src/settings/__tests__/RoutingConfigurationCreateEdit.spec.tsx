@@ -2,7 +2,7 @@ import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { useNavigate, useParams, useLocation } from 'react-router';
-import { mockLLMInferenceServiceConfigK8sResource } from '@odh-dashboard/internal/__mocks__/mockLLMInferenceServiceConfigK8sResource';
+import { mockLLMInferenceServiceConfigK8sResource } from '@odh-dashboard/llmd-serving/__mocks__/mockLLMInferenceServiceConfigK8sResource';
 import { TopologyType } from '../../types';
 import { useWatchRouterConfigs } from '../../api/LLMInferenceServiceConfigs';
 import RoutingConfigurationCreateEdit from '../RoutingConfigurationCreateEdit';

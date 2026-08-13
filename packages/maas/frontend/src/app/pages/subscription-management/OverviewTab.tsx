@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Alert, Bullseye, PageSection, Spinner } from '@patternfly/react-core';
-import { useModelsOverview } from '~/app/hooks/useModelsOverview';
+import { useMaaSGovernanceContext } from '~/app/context/MaaSGovernanceContext';
 import { URL_PREFIX } from '~/app/utilities/const';
 import OverviewTable from './overview/OverviewTable';
 import OverviewToolbar from './overview/OverviewToolbar';
@@ -11,7 +11,14 @@ import EmptyStatePage from './EmptyStatePage';
 const OVERVIEW_RETURN_TO = `${URL_PREFIX}/maas-governance/overview`;
 
 const OverviewTab: React.FC = () => {
-  const [rows, loaded, error] = useModelsOverview();
+  const {
+    overviewRows: rows,
+    overviewLoaded: loaded,
+    overviewError: error,
+    modelRefs,
+    subscriptions,
+    policies,
+  } = useMaaSGovernanceContext();
   const [filterData, setFilterData] =
     React.useState<OverviewFilterDataType>(initialOverviewFilterData);
 
@@ -49,12 +56,22 @@ const OverviewTab: React.FC = () => {
   }
 
   if (rows.length === 0) {
+    const hasGovernanceResources = subscriptions.length > 0 || policies.length > 0;
+    const noModels = modelRefs.length === 0;
     return (
       <PageSection isFilled>
         <EmptyStatePage
           returnTo={OVERVIEW_RETURN_TO}
-          title="No subscriptions or policies configured"
-          bodyText="Create subscriptions to define rate limits and authorization policies to control which groups can access MaaS models."
+          title={
+            noModels && hasGovernanceResources
+              ? 'No registered MaaS models'
+              : 'No subscriptions or policies configured'
+          }
+          bodyText={
+            noModels && hasGovernanceResources
+              ? 'Subscriptions or authorization policies exist, but there are no registered MaaS models to show in the overview.'
+              : 'Create subscriptions to define rate limits and authorization policies to control which groups can access MaaS models.'
+          }
           showSubsButton
           showPoliciesButton
           testId="empty-overview-page"

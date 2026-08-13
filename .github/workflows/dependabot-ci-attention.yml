@@ -1,0 +1,252 @@
+name: Dependabot CI Attention
+
+# For Dependabot PRs that already have auto-merge labels (lgtm + approved) but
+# are still open with failed CI (and are not waiting on a rebase), add
+# dependabot-needs-human and a comment listing failing checks. Dependabot cannot
+# fix source breakages from a bump — humans must.
+#
+# Also clears dependabot-needs-human when CI is green again.
+
+on:
+  schedule:
+    # Daily
+    - cron: '20 12 * * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Log actions only — do not label or comment'
+        type: boolean
+        default: false
+
+jobs:
+  flag-red-ci:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    if: github.repository == 'opendatahub-io/odh-dashboard'
+    permissions:
+      pull-requests: read
+      issues: write
+      checks: read
+    steps:
+      - name: Ensure dependabot-needs-human label exists
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          if ! gh api "repos/$REPO/labels/dependabot-needs-human" >/dev/null 2>&1; then
+            gh api --method POST "repos/$REPO/labels" \
+              -f name='dependabot-needs-human' \
+              -f color='D93F0B' \
+              -f description='Dependabot PR eligible for auto-merge but CI failed — needs human attention'
+            echo "Created label dependabot-needs-human"
+          else
+            echo "Label dependabot-needs-human already exists"
+          fi
+
+      - name: Scan open Dependabot PRs
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          DRY_RUN: ${{ inputs.dry_run == true }}
+          # Advisory / non-merge-blocking contexts (matched against check name)
+          IGNORE_CHECK_REGEX: '^(tide|ODH Dashboard Agent)$'
+          # PR must have been open at least this long (use createdAt — bot comments
+          # bump updatedAt and would otherwise reset the clock forever)
+          MIN_AGE_MINUTES: '60'
+        run: |
+          set -euo pipefail
+
+          now_epoch=$(date -u +%s)
+          dry_run=false
+          if [ "$DRY_RUN" = "true" ]; then
+            dry_run=true
+            echo "::notice::DRY_RUN enabled — will not label or comment"
+          fi
+
+          add_label() {
+            local n=$1
+            if $dry_run; then
+              echo "DRY_RUN: would add dependabot-needs-human to #$n"
+              return 0
+            fi
+            gh api --method POST "repos/$REPO/issues/$n/labels" \
+              -f 'labels[]=dependabot-needs-human' >/dev/null
+          }
+
+          remove_label() {
+            local n=$1
+            if $dry_run; then
+              echo "DRY_RUN: would remove dependabot-needs-human from #$n"
+              return 0
+            fi
+            gh api --method DELETE "repos/$REPO/issues/$n/labels/dependabot-needs-human" >/dev/null 2>&1 || true
+          }
+
+          post_comment() {
+            local n=$1
+            local body=$2
+            if $dry_run; then
+              echo "DRY_RUN: would comment on #$n:"
+              echo "$body"
+              return 0
+            fi
+            gh pr comment "$n" --repo "$REPO" --body "$body"
+          }
+
+          has_attention_comment() {
+            local n=$1
+            gh api "repos/$REPO/issues/$n/comments" --paginate \
+              -q '.[].body' | grep -q 'dependabot-ci-attention'
+          }
+
+          has_label() {
+            local pr_json=$1
+            local name=$2
+            echo "$pr_json" | jq -e --arg n "$name" '[.labels[].name] | index($n) != null' >/dev/null
+          }
+
+          # Latest completed result per check name. CANCELLED is ignored (superseded
+          # runs cancel constantly and must not trigger human attention).
+          compute_has_pending() {
+            echo "$1" | jq -r --arg re "$IGNORE_CHECK_REGEX" '
+              def ignore: (.name // .context // "") | test($re);
+              def is_pending:
+                .status == "IN_PROGRESS" or .status == "QUEUED" or .status == "PENDING" or
+                .state == "PENDING" or .state == "EXPECTED";
+              [.statusCheckRollup[]? | select((ignore | not) and is_pending)] | length > 0
+            '
+          }
+
+          compute_failing() {
+            echo "$1" | jq -r --arg re "$IGNORE_CHECK_REGEX" '
+              def ignore: (.name // .context // "") | test($re);
+              def is_pending:
+                .status == "IN_PROGRESS" or .status == "QUEUED" or .status == "PENDING" or
+                .state == "PENDING" or .state == "EXPECTED";
+              def is_failure:
+                .conclusion == "FAILURE" or .conclusion == "TIMED_OUT" or
+                .state == "FAILURE" or .state == "ERROR";
+              [.statusCheckRollup[]?
+               | select((ignore | not) and (is_pending | not))
+               | {
+                   name: (.name // .context // ""),
+                   completedAt: (.completedAt // ""),
+                   fail: is_failure
+                 }
+              ]
+              | map(select(.name != ""))
+              | group_by(.name)
+              | map(sort_by(.completedAt) | .[-1])
+              | map(select(.fail) | .name)
+              | unique
+              | .[]
+            '
+          }
+
+          prs_json=$(gh pr list --repo "$REPO" --state open --search 'author:app/dependabot' \
+            --limit 50 \
+            --json number,title,url,labels,mergeable,mergeStateStatus,isDraft,createdAt,statusCheckRollup)
+
+          pr_count=$(echo "$prs_json" | jq 'length')
+          echo "Scanning $pr_count open Dependabot PR(s)"
+
+          if [ "$pr_count" -eq 0 ]; then
+            exit 0
+          fi
+
+          for i in $(seq 0 $((pr_count - 1))); do
+            pr=$(echo "$prs_json" | jq -c --argjson i "$i" '.[$i]')
+            number=$(echo "$pr" | jq -r .number)
+            is_draft=$(echo "$pr" | jq -r .isDraft)
+            mergeable=$(echo "$pr" | jq -r .mergeable)
+            merge_state=$(echo "$pr" | jq -r .mergeStateStatus)
+            created_at=$(echo "$pr" | jq -r .createdAt)
+
+            if [ "$is_draft" = "true" ]; then
+              echo "#$number: draft — skip"
+              continue
+            fi
+
+            has_lgtm=false
+            has_approved=false
+            has_needs_rebase=false
+            has_needs_human=false
+            if has_label "$pr" 'lgtm'; then has_lgtm=true; fi
+            if has_label "$pr" 'approved'; then has_approved=true; fi
+            if has_label "$pr" 'needs-rebase'; then has_needs_rebase=true; fi
+            if has_label "$pr" 'dependabot-needs-human'; then has_needs_human=true; fi
+
+            if [ "$mergeable" = "CONFLICTING" ] || [ "$merge_state" = "DIRTY" ] || [ "$has_needs_rebase" = "true" ]; then
+              echo "#$number: conflicting / needs-rebase — skip"
+              continue
+            fi
+
+            has_pending=$(compute_has_pending "$pr")
+            failing=$(compute_failing "$pr" || true)
+
+            # Clear label when CI recovered
+            if [ "$has_needs_human" = "true" ] && [ "$has_pending" != "true" ] && [ -z "$failing" ]; then
+              echo "#$number: CI green — clearing dependabot-needs-human"
+              remove_label "$number"
+              continue
+            fi
+
+            if [ "$has_lgtm" != "true" ] || [ "$has_approved" != "true" ]; then
+              echo "#$number: missing lgtm/approved — skip"
+              continue
+            fi
+
+            if [ "$has_needs_human" = "true" ]; then
+              echo "#$number: already flagged — skip"
+              continue
+            fi
+
+            created_epoch=$(date -u -d "$created_at" +%s)
+            age_min=$(( (now_epoch - created_epoch) / 60 ))
+            if [ "$age_min" -lt "$MIN_AGE_MINUTES" ]; then
+              echo "#$number: created ${age_min}m ago (< ${MIN_AGE_MINUTES}m) — skip"
+              continue
+            fi
+
+            if [ "$has_pending" = "true" ]; then
+              echo "#$number: checks still pending — skip"
+              continue
+            fi
+
+            if [ -z "$failing" ]; then
+              echo "#$number: no failing checks — skip"
+              continue
+            fi
+
+            if has_attention_comment "$number"; then
+              echo "#$number: attention comment already present — ensure label"
+              add_label "$number" || true
+              continue
+            fi
+
+            fail_list=$(printf '%s\n' "$failing" | sed 's/^/- /')
+
+            # Keep every line indented so the YAML `|` block does not end early.
+            body=$(cat <<EOF
+            ### Dependabot needs human intervention
+
+            This PR already has \`lgtm\` + \`approved\` (auto-merge eligibility), but CI is still red, so Tide will not merge it.
+
+            **Failing checks (latest result per name):**
+            ${fail_list}
+
+            Dependabot cannot fix source/test breakages introduced by a dependency bump. Please either:
+
+            1. Fix the failures on this branch, or
+            2. Close the PR if the upgrade is not wanted right now.
+
+            <!-- dependabot-ci-attention -->
+            EOF
+            )
+            # Strip the shared indent that YAML required
+            body=$(printf '%s\n' "$body" | sed 's/^            //')
+
+            add_label "$number"
+            post_comment "$number" "$body"
+            echo "Flagged #$number for human attention"
+          done

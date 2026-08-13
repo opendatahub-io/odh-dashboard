@@ -1,5 +1,5 @@
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import type { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
+import type { TrackEventFn } from './modelServingTrackingConstants';
 import type { UnsupportedStatusDismissAction } from '../../components/UnsupportedStatusAcceptanceModal';
 import { getServingRuntimeVersion, getFastVersion } from '../../concepts/versions';
 
@@ -35,10 +35,16 @@ export const getResourceVersions = (
   fastVersion: getFastVersion(resource),
 });
 
-export const fireRiskAccepted = (properties: RiskAcceptedProperties): void => {
-  fireMiscTrackingEvent(LimitedSupportEvent.RISK_ACCEPTED, properties);
+export const fireRiskAccepted = (
+  trackEvent: TrackEventFn,
+  properties: RiskAcceptedProperties,
+): void => {
+  trackEvent(LimitedSupportEvent.RISK_ACCEPTED, properties);
 };
 
-export const fireRiskDismissed = (properties: RiskDismissedProperties): void => {
-  fireMiscTrackingEvent(LimitedSupportEvent.RISK_DISMISSED, properties);
+export const fireRiskDismissed = (
+  trackEvent: TrackEventFn,
+  properties: RiskDismissedProperties,
+): void => {
+  trackEvent(LimitedSupportEvent.RISK_DISMISSED, properties);
 };

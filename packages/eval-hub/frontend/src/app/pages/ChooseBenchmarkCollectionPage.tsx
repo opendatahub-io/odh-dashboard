@@ -17,27 +17,39 @@ import {
   Gallery,
   Label,
   MenuToggle,
-  MenuToggleElement,
   PageSection,
   Pagination,
+  SearchInput,
   Select,
   SelectList,
   SelectOption,
   Spinner,
   Toolbar,
   ToolbarContent,
+  ToolbarFilter,
+  ToolbarGroup,
   ToolbarItem,
-  SearchInput,
+  ToolbarToggleGroup,
 } from '@patternfly/react-core';
+import { FilterIcon, SortAmountDownIcon } from '@patternfly/react-icons';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { useCollections } from '~/app/hooks/useCollections';
+import { useProviders } from '~/app/hooks/useProviders';
 import { Collection } from '~/app/types';
+import CollectionDrawerPanel, {
+  BenchmarkWithProvider,
+} from '~/app/components/CollectionDrawerPanel';
 import { evaluationCreateRoute, evaluationStartRoute, evaluationsBaseRoute } from '~/app/routes';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
-import CollectionDrawerPanel from '~/app/components/CollectionDrawerPanel';
-import { capitalizeFirst, getCategoryColor } from '~/app/components/benchmarkUtils';
+import { formatCategory, getCategoryColor } from '~/app/components/benchmarkUtils';
+import SearchableMultiSelectFilter from '~/app/components/SearchableMultiSelectFilter';
+import { BenchmarkSortOption, benchmarkSortLabels } from '~/app/pages/const';
+
+const COLLECTION_SORT_VALUES: readonly string[] = Object.values(BenchmarkSortOption);
+const isCollectionSortOption = (value: unknown): value is BenchmarkSortOption =>
+  typeof value === 'string' && COLLECTION_SORT_VALUES.includes(value);
 
 const ChooseBenchmarkCollectionPage: React.FC = () => {
   const { namespace } = useParams<{ namespace: string }>();
@@ -45,7 +57,7 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
   const [selectedCollection, setSelectedCollection] = React.useState<Collection | undefined>(
     undefined,
   );
-  const [isCategoryOpen, setIsCategoryOpen] = React.useState(false);
+  const [isSortOpen, setIsSortOpen] = React.useState(false);
 
   const {
     collections,
@@ -61,8 +73,26 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
     setNameFilter,
     categoryFilter,
     setCategoryFilter,
+    sortOption,
+    setSortOption,
     availableCategories,
   } = useCollections(namespace ?? '');
+
+  const { providers } = useProviders(namespace ?? '');
+
+  const benchmarkDetailsMap = React.useMemo(() => {
+    const map = new Map<string, BenchmarkWithProvider>();
+    providers.forEach((provider) => {
+      (provider.benchmarks ?? []).forEach((b) => {
+        map.set(`${provider.resource.id}:${b.id}`, {
+          ...b,
+          providerName: provider.title ?? provider.name,
+          providerAgent: provider.agent,
+        });
+      });
+    });
+    return map;
+  }, [providers]);
 
   const handleRunCollection = React.useCallback(
     (c: Collection) => {
@@ -83,31 +113,13 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
     [navigate, namespace],
   );
 
-  const handleCategorySelect = React.useCallback(
-    (_: React.MouseEvent | undefined, value: string | number | undefined) => {
-      setCategoryFilter(value === categoryFilter ? '' : String(value ?? ''));
-      setIsCategoryOpen(false);
-    },
-    [categoryFilter, setCategoryFilter],
-  );
-
-  const categoryToggle = (toggleRef: React.Ref<MenuToggleElement>) => (
-    <MenuToggle
-      ref={toggleRef}
-      data-testid="collections-category-toggle"
-      onClick={() => setIsCategoryOpen((prev) => !prev)}
-      isExpanded={isCategoryOpen}
-    >
-      {categoryFilter || 'Category'}
-    </MenuToggle>
-  );
-
   return (
     <Drawer isExpanded={!!selectedCollection}>
       <DrawerContent
         panelContent={
           <CollectionDrawerPanel
             collection={selectedCollection}
+            benchmarkDetailsMap={benchmarkDetailsMap}
             onClose={() => setSelectedCollection(undefined)}
             onRunCollection={handleRunCollection}
           />
@@ -116,7 +128,7 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
         <DrawerContentBody>
           <ApplicationsPage
             title="Select benchmark suite"
-            description="Select a benchmark suite to evaluate your model, agent, or pre-recorded responses."
+            description="Select a benchmark suite to evaluate your model, agent, or dataset."
             breadcrumb={
               <Breadcrumb>
                 <BreadcrumbItem
@@ -147,37 +159,85 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
                   administrator or use the API directly to access the full list.
                 </Alert>
               )}
-              <Toolbar>
+              <Toolbar
+                clearAllFilters={() => {
+                  setNameFilter('');
+                  setCategoryFilter([]);
+                }}
+              >
                 <ToolbarContent>
                   <ToolbarItem>
-                    <SearchInput
-                      placeholder="Filter by name"
-                      value={nameFilter}
-                      onChange={(_, value) => setNameFilter(value)}
-                      onClear={() => setNameFilter('')}
-                      style={{ width: '220px' }}
-                      data-testid="collections-name-filter"
-                    />
-                  </ToolbarItem>
-                  <ToolbarItem>
                     <Select
-                      isOpen={isCategoryOpen}
-                      selected={categoryFilter || undefined}
-                      onSelect={handleCategorySelect}
-                      onOpenChange={setIsCategoryOpen}
-                      toggle={categoryToggle}
-                      data-testid="collections-category-select"
+                      isOpen={isSortOpen}
+                      selected={sortOption}
+                      onSelect={(_event, value) => {
+                        if (isCollectionSortOption(value)) {
+                          setSortOption(value);
+                        }
+                        setIsSortOpen(false);
+                      }}
+                      onOpenChange={setIsSortOpen}
+                      toggle={(toggleRef) => (
+                        <MenuToggle
+                          ref={toggleRef}
+                          onClick={() => setIsSortOpen((prev) => !prev)}
+                          isExpanded={isSortOpen}
+                          icon={<SortAmountDownIcon />}
+                          data-testid="collections-sort-toggle"
+                        >
+                          {benchmarkSortLabels[sortOption]}
+                        </MenuToggle>
+                      )}
+                      data-testid="collections-sort-select"
                     >
                       <SelectList>
-                        {categoryFilter && <SelectOption value="">All categories</SelectOption>}
-                        {availableCategories.map((cat) => (
-                          <SelectOption key={cat} value={cat}>
-                            {cat}
+                        {Object.values(BenchmarkSortOption).map((opt) => (
+                          <SelectOption
+                            key={opt}
+                            value={opt}
+                            isSelected={sortOption === opt}
+                            data-testid={`collections-sort-option-${opt}`}
+                          >
+                            {benchmarkSortLabels[opt]}
                           </SelectOption>
                         ))}
                       </SelectList>
                     </Select>
                   </ToolbarItem>
+                  <ToolbarToggleGroup breakpoint="md" toggleIcon={<FilterIcon />}>
+                    <ToolbarGroup variant="filter-group">
+                      <ToolbarFilter
+                        labels={nameFilter ? [nameFilter] : []}
+                        deleteLabel={() => setNameFilter('')}
+                        categoryName="Name"
+                      >
+                        <SearchInput
+                          aria-label="Filter by name"
+                          placeholder="Filter by name"
+                          value={nameFilter}
+                          onChange={(_, value) => setNameFilter(value)}
+                          onClear={() => setNameFilter('')}
+                          style={{ width: '220px' }}
+                          data-testid="collections-name-filter"
+                        />
+                      </ToolbarFilter>
+                      <SearchableMultiSelectFilter
+                        categoryName="Category"
+                        options={availableCategories}
+                        selected={categoryFilter}
+                        formatLabel={formatCategory}
+                        onToggleOption={(value) =>
+                          setCategoryFilter(
+                            categoryFilter.includes(value)
+                              ? categoryFilter.filter((c) => c !== value)
+                              : [...categoryFilter, value],
+                          )
+                        }
+                        onClearAll={() => setCategoryFilter([])}
+                        testIdPrefix="collections-category"
+                      />
+                    </ToolbarGroup>
+                  </ToolbarToggleGroup>
                   <ToolbarItem align={{ default: 'alignEnd' }}>
                     <Pagination
                       itemCount={totalCount}
@@ -203,7 +263,7 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
               ) : collections.length === 0 ? (
                 <Bullseye data-testid="collections-empty-state">
                   <Content component="p">
-                    {nameFilter || categoryFilter
+                    {nameFilter || categoryFilter.length > 0
                       ? 'No collections match the current filters.'
                       : 'No collections available.'}
                   </Content>
@@ -226,7 +286,7 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
                         {collection.category && (
                           <CardHeader>
                             <Label color={getCategoryColor(collection.category)} isCompact>
-                              {capitalizeFirst(collection.category)}
+                              {formatCategory(collection.category)}
                             </Label>
                           </CardHeader>
                         )}
@@ -245,17 +305,29 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
                           >
                             {collection.name}
                           </Button>
-                        </CardTitle>
-                        <CardBody>
                           {benchmarkCount > 0 && (
-                            <Content component="small">
-                              <strong>
-                                {benchmarkCount} benchmark{benchmarkCount !== 1 ? 's' : ''}
-                              </strong>
+                            <Content
+                              component="small"
+                              style={{
+                                marginTop: 'var(--pf-t--global--spacer--xs)',
+                                fontWeight: 'var(--pf-t--global--font--weight--body--bold)',
+                              }}
+                            >
+                              {benchmarkCount} benchmark{benchmarkCount !== 1 ? 's' : ''}
                             </Content>
                           )}
+                        </CardTitle>
+                        <CardBody>
                           {collection.description && (
-                            <Content component="p">{collection.description}</Content>
+                            <Content
+                              component="p"
+                              style={{
+                                fontSize: 'var(--pf-t--global--font--size--sm)',
+                                color: 'var(--pf-t--global--text--color--subtle)',
+                              }}
+                            >
+                              {collection.description}
+                            </Content>
                           )}
                         </CardBody>
                         <CardFooter>

@@ -1,8 +1,8 @@
 import { testHook } from '@odh-dashboard/jest-config/hooks';
 import type { ProjectKind, PodKind } from '@odh-dashboard/k8s-core';
 import type { InferenceServiceKind, ServingRuntimeKind } from '@odh-dashboard/model-serving/shared';
-import { mockInferenceServiceK8sResource } from '@odh-dashboard/internal/__mocks__/mockInferenceServiceK8sResource';
-import { mockServingRuntimeK8sResource } from '@odh-dashboard/internal/__mocks__/mockServingRuntimeK8sResource';
+import { mockInferenceServiceK8sResource } from '@odh-dashboard/model-serving/__mocks__/mockInferenceServiceK8sResource';
+import { mockServingRuntimeK8sResource } from '@odh-dashboard/model-serving/__mocks__/mockServingRuntimeK8sResource';
 import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import type { KServeDeployment } from '../deployments';
 import { useWatchDeployments } from '../deployments';
@@ -16,9 +16,21 @@ jest.mock('@odh-dashboard/plugin-core', () => ({
   useResolvedExtensions: jest.fn(() => [[], true, []]),
 }));
 
+// Mock Kueue status - not under test here, exercised by useKueueStatusForDeployments.spec.ts
+jest.mock('@odh-dashboard/internal/pages/modelServing/useKueueStatusForDeployments', () => ({
+  useKueueStatusForDeployments: jest.fn(() => ({
+    kueueStatusByDeploymentKey: {},
+    isLoading: false,
+    error: null,
+  })),
+}));
+
 const mockUseWatchInferenceServices = watchModule.useWatchInferenceServices as jest.Mock;
 const mockUseWatchServingRuntimes = watchModule.useWatchServingRuntimes as jest.Mock;
 const mockUseWatchDeploymentPods = watchModule.useWatchDeploymentPods as jest.Mock;
+const mockUseKueueStatusForDeployments = jest.requireMock(
+  '@odh-dashboard/internal/pages/modelServing/useKueueStatusForDeployments',
+).useKueueStatusForDeployments as jest.Mock;
 
 // Type helper for hook return value
 type DeploymentHookResult = [KServeDeployment[] | undefined, boolean, Error[] | undefined];
@@ -183,6 +195,21 @@ describe('useWatchDeployments', () => {
     expect(errors).toContain(mockError);
   });
 
+  it('should surface Kueue watch errors (e.g. 403 for missing RBAC) instead of silently dropping them', () => {
+    mockUseKueueStatusForDeployments.mockReturnValue({
+      kueueStatusByDeploymentKey: {},
+      isLoading: false,
+      error: 'Forbidden',
+    });
+
+    const renderResult = testHook(useWatchDeployments)(mockProject, undefined, undefined);
+
+    const [, , errors] = renderResult.result.current as DeploymentHookResult;
+
+    expect(errors).toHaveLength(1);
+    expect(errors?.[0].message).toBe('Forbidden');
+  });
+
   it('should update deployments when filterFn changes', () => {
     const filterFn1 = (inferenceService: InferenceServiceKind) =>
       inferenceService.metadata.labels?.app === 'test';
@@ -234,6 +261,20 @@ describe('useWatchDeployments', () => {
     [deployments] = renderResult.result.current as DeploymentHookResult;
 
     expect(deployments).toHaveLength(4);
+  });
+
+  it('should default status.kueueStatus to null (not undefined) when the IS has no entry in kueueStatusByDeploymentKey', () => {
+    mockUseKueueStatusForDeployments.mockReturnValue({
+      kueueStatusByDeploymentKey: {},
+      isLoading: false,
+      error: null,
+    });
+
+    const renderResult = testHook(useWatchDeployments)(mockProject, undefined, undefined);
+
+    const [deployments] = renderResult.result.current as DeploymentHookResult;
+
+    expect(deployments?.[0]?.status?.kueueStatus).toBeNull();
   });
 
   it('should include all deployment properties', () => {

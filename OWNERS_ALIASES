@@ -123,6 +123,8 @@ aliases:
     - nikhils-2
     - jefho-rh
     - tamdavid-git
+    - ikeola13
+    - NickGagan
   quality-e2e-testing-reviewers:
     - ConorOM1
     - antowaddle
@@ -132,6 +134,8 @@ aliases:
     - jefho-rh
     - tamdavid-git
     - zahra-j6
+    - ikeola13
+    - NickGagan
 
   # Workbenches (formerly Notebooks)
   workbenches-approvers:
@@ -247,15 +251,12 @@ aliases:
 
   # Eval Hub
   eval-hub-approvers:
-    - ikeola13
-    - pnaik1
     - ederign
     - chrjones-rh
     - nickmazzi
+    - jefho-rh
 
   eval-hub-reviewers:
-    - ikeola13
-    - pnaik1
     - ederign
     - chrjones-rh
     - nickmazzi

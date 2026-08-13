@@ -1,8 +1,8 @@
 import { DataScienceStackComponent, SupportedArea } from '@odh-dashboard/plugin-core/areas';
-import { mockDscStatus } from '#~/__mocks__/mockDscStatus';
-import { mockDashboardConfig } from '#~/__mocks__/mockDashboardConfig';
+import { mockDscStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDscStatus';
+import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
+import { mockDsciStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDsciStatus';
 import { SupportedAreasStateMap } from '#~/concepts/areas/const';
-import { mockDsciStatus } from '#~/__mocks__/mockDsciStatus';
 import { isAreaAvailable } from '#~/concepts/areas/utils';
 
 describe('isAreaAvailable', () => {

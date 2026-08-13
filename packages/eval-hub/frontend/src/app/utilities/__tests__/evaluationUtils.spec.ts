@@ -3,9 +3,11 @@ import {
   getEvaluationName,
   getBenchmarkName,
   getAllBenchmarkNames,
+  getBenchmarkDisplayName,
   getBenchmarkResultScore,
   getJobBenchmarks,
   getResultScore,
+  formatAsPercentage,
   formatDate,
 } from '~/app/utilities/evaluationUtils';
 
@@ -228,6 +230,62 @@ describe('getJobBenchmarks', () => {
   });
 });
 
+describe('getBenchmarkDisplayName', () => {
+  it('should replace underscores with spaces and capitalize each word', () => {
+    expect(getBenchmarkDisplayName('arc_easy')).toBe('Arc Easy');
+  });
+
+  it('should capitalize a single word', () => {
+    expect(getBenchmarkDisplayName('mmlu')).toBe('Mmlu');
+  });
+
+  it('should handle an already formatted string', () => {
+    expect(getBenchmarkDisplayName('TinyTruthfulQA')).toBe('TinyTruthfulQA');
+  });
+
+  it('should handle an empty string', () => {
+    expect(getBenchmarkDisplayName('')).toBe('');
+  });
+});
+
+describe('formatAsPercentage', () => {
+  it('should format a decimal as a percentage', () => {
+    expect(formatAsPercentage(0.85)).toBe('85%');
+  });
+
+  it('should round to the nearest integer', () => {
+    expect(formatAsPercentage(0.466)).toBe('47%');
+  });
+
+  it('should handle 0', () => {
+    expect(formatAsPercentage(0)).toBe('0%');
+  });
+
+  it('should handle 1', () => {
+    expect(formatAsPercentage(1)).toBe('100%');
+  });
+
+  it('should handle values greater than 1', () => {
+    expect(formatAsPercentage(1.5)).toBe('150%');
+  });
+
+  it('should handle negative values', () => {
+    expect(formatAsPercentage(-0.1)).toBe('-10%');
+  });
+
+  it('should return dash for NaN', () => {
+    expect(formatAsPercentage(NaN)).toBe('-');
+  });
+
+  it('should return dash for Infinity', () => {
+    expect(formatAsPercentage(Infinity)).toBe('-');
+  });
+
+  it('should return dash for negative Infinity', () => {
+    expect(formatAsPercentage(-Infinity)).toBe('-');
+  });
+});
+
 describe('getResultScore', () => {
   it('should return percentage from top-level test score', () => {
     const job = mockEvaluationJob({ score: 0.85 });
@@ -265,6 +323,12 @@ describe('getResultScore', () => {
     expect(getResultScore(job)).toBe('85%');
   });
 
+  it('should fall back to acc when acc_norm is NaN', () => {
+    const job = mockEvaluationJob();
+    job.results = { benchmarks: [{ id: 'b1', metrics: { acc: 0.85, acc_norm: NaN } }] };
+    expect(getResultScore(job)).toBe('85%');
+  });
+
   it('should return dash when metrics has neither acc_norm nor acc', () => {
     const job = mockEvaluationJob();
     job.results = { benchmarks: [{ id: 'b1', metrics: { f1_score: 0.9 } }] };
@@ -286,6 +350,30 @@ describe('getResultScore', () => {
   it('should handle 100% result', () => {
     const job = mockEvaluationJob({ score: 1.0 });
     expect(getResultScore(job)).toBe('100%');
+  });
+
+  it('should return dash when score is NaN', () => {
+    const job = mockEvaluationJob();
+    job.results = { test: { score: NaN } };
+    expect(getResultScore(job)).toBe('-');
+  });
+
+  it('should return dash when score is Infinity', () => {
+    const job = mockEvaluationJob();
+    job.results = { test: { score: Infinity } };
+    expect(getResultScore(job)).toBe('-');
+  });
+
+  it('should return aggregate score for collection job with finite test score', () => {
+    const job = mockEvaluationJob({ collectionId: 'my-collection', score: 0.75 });
+    expect(getResultScore(job)).toBe('75%');
+  });
+
+  it('should return dash for collection job without aggregate test score', () => {
+    const job = mockEvaluationJob({ collectionId: 'my-collection' });
+    // eslint-disable-next-line camelcase
+    job.results = { benchmarks: [{ id: 'b1', test: { primary_score: 0.9 } }] };
+    expect(getResultScore(job)).toBe('-');
   });
 });
 

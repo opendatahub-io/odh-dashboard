@@ -46,7 +46,7 @@
     "dompurify": "^3.4.13",
     "marked": "^15.0.12",
     "react-router": "^7.18.2",
-    "react-router-dom": "^7.18.1"
+    "react-router-dom": "^7.18.2"
   },
   "devDependencies": {
     "@odh-dashboard/eslint-config": "*"

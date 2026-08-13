@@ -20,19 +20,45 @@ export const getFeatureStoreProjectId = (
   item: Pick<WorkbenchFeatureStoreConfig, 'namespace' | 'projectName'>,
 ): string => `${item.namespace}/${item.projectName}`;
 
+/** Available / with-project first, then alphabetical by name. */
+export const compareFeatureStoresConnectedFirst = (
+  a: SelectedFeatureStoreConfig,
+  b: SelectedFeatureStoreConfig,
+): number => {
+  const aUnavailable = !!a.isUnavailable;
+  const bUnavailable = !!b.isUnavailable;
+  if (aUnavailable !== bUnavailable) {
+    return aUnavailable ? 1 : -1;
+  }
+  return a.projectName.localeCompare(b.projectName);
+};
+
+/** Rows with a project first, then alphabetical by project. */
+export const compareFeatureStoresWithProjectFirst = (
+  a: SelectedFeatureStoreConfig,
+  b: SelectedFeatureStoreConfig,
+): number => {
+  const aHasProject = !a.isUnavailable && !!a.namespace;
+  const bHasProject = !b.isUnavailable && !!b.namespace;
+  if (aHasProject !== bHasProject) {
+    return aHasProject ? -1 : 1;
+  }
+  return a.namespace.localeCompare(b.namespace);
+};
+
 export const selectFeatureStoresColumns: SortableData<SelectedFeatureStoreConfig>[] = [
   { label: '', field: 'checkbox', width: 10, sortable: false },
   {
     label: 'Name',
     field: 'projectName',
     width: 30,
-    sortable: (a, b) => a.projectName.localeCompare(b.projectName),
+    sortable: compareFeatureStoresConnectedFirst,
   },
   {
     label: 'Project',
     field: 'namespace',
     width: 30,
-    sortable: (a, b) => a.namespace.localeCompare(b.namespace),
+    sortable: compareFeatureStoresWithProjectFirst,
   },
   {
     label: 'Permissions',

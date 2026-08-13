@@ -3,6 +3,7 @@ import { handleRestFailures, restGET, restCREATE, isModArchResponse } from 'mod-
 import {
   getCollections,
   getEvalHubCRStatus,
+  getEvaluationJob,
   getProviders,
   createEvaluationJob,
 } from '~/app/api/k8s';
@@ -96,6 +97,77 @@ describe('getEvalHubCRStatus', () => {
       expect.any(String),
       expect.any(Object),
       expect.any(Object),
+    );
+  });
+});
+
+describe('getEvaluationJob', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (handleRestFailures as jest.Mock).mockImplementation((promise: Promise<unknown>) => promise);
+  });
+
+  it('should return the job when response has valid results', async () => {
+    const job: EvaluationJob = {
+      resource: { id: 'job-1' },
+      status: { state: 'completed' },
+      results: { benchmarks: [{ id: 'arc_easy', metrics: {} }] },
+      model: { name: 'llama-7b' },
+    };
+    mockRestGET.mockResolvedValue({ data: job });
+    mockIsModArchResponse.mockReturnValue(true);
+
+    const result = await getEvaluationJob('', 'test-ns', 'job-1')({});
+
+    expect(result).toEqual(job);
+  });
+
+  it('should accept results with no benchmarks field', async () => {
+    const job: EvaluationJob = {
+      resource: { id: 'job-2' },
+      status: { state: 'pending' },
+      results: {},
+      model: { name: 'llama-7b' },
+    };
+    mockRestGET.mockResolvedValue({ data: job });
+    mockIsModArchResponse.mockReturnValue(true);
+
+    const result = await getEvaluationJob('', 'test-ns', 'job-2')({});
+
+    expect(result).toEqual(job);
+  });
+
+  it('should throw when results is missing from the payload', async () => {
+    mockRestGET.mockResolvedValue({ data: { resource: { id: 'job-3' }, status: {}, model: {} } });
+    mockIsModArchResponse.mockReturnValue(true);
+
+    await expect(getEvaluationJob('', 'test-ns', 'job-3')({})).rejects.toThrow(
+      'Invalid evaluation job: missing results',
+    );
+  });
+
+  it('should throw when results.benchmarks is not an array', async () => {
+    mockRestGET.mockResolvedValue({
+      data: {
+        resource: { id: 'job-4' },
+        status: {},
+        results: { benchmarks: 'not-an-array' },
+        model: {},
+      },
+    });
+    mockIsModArchResponse.mockReturnValue(true);
+
+    await expect(getEvaluationJob('', 'test-ns', 'job-4')({})).rejects.toThrow(
+      'Invalid evaluation job: results.benchmarks is not an array',
+    );
+  });
+
+  it('should throw when response is not a valid mod-arch response', async () => {
+    mockRestGET.mockResolvedValue({ invalid: 'format' });
+    mockIsModArchResponse.mockReturnValue(false);
+
+    await expect(getEvaluationJob('', 'test-ns', 'job-5')({})).rejects.toThrow(
+      'Invalid response format',
     );
   });
 });
