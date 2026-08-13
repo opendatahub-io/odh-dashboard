@@ -79,7 +79,7 @@ describe('Verify Custom Endpoints in Playground - Full Lifecycle', () => {
         'Log into the application with custom endpoints, prompt management, and guardrails enabled',
       );
       cy.visitWithLogin(
-        `/projects?devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,promptManagement=true,guardrails=true,modelAsService=false`,
+        `/?devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,promptManagement=true,guardrails=true,modelAsService=false`,
         HTPASSWD_CLUSTER_ADMIN_USER,
       );
 
