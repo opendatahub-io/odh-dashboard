@@ -479,5 +479,33 @@ describe('ResourcesTreeSelect', () => {
       const menuItem = screen.getByTestId('select-multi-typeahead-inferenceservices');
       expect(menuItem).toBeInTheDocument();
     });
+
+    it('should not trigger category-toggle when resource named "all-category-other" is selected', async () => {
+      const dataWithCollision: ApiResourcesData = {
+        ...mockApiResourcesData,
+        resources: [
+          ...mockApiResourcesData.resources,
+          { name: 'all-category-other', kind: 'Collider', apiGroup: 'test.io' },
+          { name: 'normalresource', kind: 'Normal', apiGroup: 'test.io' },
+        ],
+      };
+
+      render(
+        <ResourcesTreeSelect
+          selectedResources={[]}
+          onSelectedResourcesChange={mockOnChange}
+          apiResourcesData={dataWithCollision}
+        />,
+      );
+
+      await openDropdown();
+
+      const menuItem = screen.getByTestId('select-multi-typeahead-all-category-other');
+      await act(async () => {
+        fireEvent.click(within(menuItem).getByText('all-category-other'));
+      });
+
+      expect(mockOnChange).toHaveBeenCalledWith(['all-category-other']);
+    });
   });
 });

@@ -5,11 +5,14 @@ import {
   SelectionOptions,
 } from '#~/components/MultiSelection';
 import { RESOURCE_CATEGORIES, ALL_RESOURCES_WILDCARD } from './resourceCategories';
+import {
+  ALL_CATEGORY_PREFIX,
+  createCategoryFilter,
+  applyCategoryToggles,
+} from './categoryTreeUtils';
 import type { ApiResourcesData } from './useApiResources';
 
 import './ResourcesTreeSelect.scss';
-
-const ALL_CATEGORY_PREFIX = 'all-category-';
 
 type ResourcesTreeSelectProps = {
   selectedResources: string[];
@@ -154,75 +157,20 @@ const ResourcesTreeSelect: React.FC<ResourcesTreeSelectProps> = ({
 
       const selected = new Set(realOptions.filter((o) => o.selected).map((o) => String(o.id)));
 
-      for (const catOption of categoryAllOptions) {
-        const categoryId = String(catOption.id).replace(ALL_CATEGORY_PREFIX, '');
-        const category = allCategories.find((c) => c.id === categoryId);
-        if (!category) {
-          continue;
-        }
-
-        const categoryResourceNames = category.resources.map((r) => r.name);
-        const wasCategoryAllSelected =
-          isAllSelected || categoryResourceNames.every((r) => selectedResources.includes(r));
-
-        if (catOption.selected && !wasCategoryAllSelected) {
-          categoryResourceNames.forEach((r) => selected.add(r));
-        } else if (!catOption.selected && wasCategoryAllSelected) {
-          categoryResourceNames.forEach((r) => selected.delete(r));
-        }
-      }
+      applyCategoryToggles(
+        categoryAllOptions,
+        allCategories.map((c) => ({ id: c.id, itemNames: c.resources.map((r) => r.name) })),
+        isAllSelected,
+        selectedResources,
+        selected,
+      );
 
       onSelectedResourcesChange([...selected]);
     },
     [selectedResources, onSelectedResourcesChange, isAllSelected, allCategories],
   );
 
-  const filterFunction = React.useCallback(
-    (filterText: string, options: SelectionOptions[]): SelectionOptions[] => {
-      if (!filterText) {
-        return options;
-      }
-
-      const lower = filterText.toLowerCase();
-      const result: SelectionOptions[] = [];
-      let currentCategory: SelectionOptions | null = null;
-      let currentCategoryResources: SelectionOptions[] = [];
-      let categoryMatches = false;
-
-      const flushCategory = () => {
-        if (!currentCategory) {
-          return;
-        }
-        const resourceMatches = currentCategoryResources.filter((r) =>
-          r.name.toLowerCase().includes(lower),
-        );
-        if (categoryMatches) {
-          result.push(currentCategory, ...currentCategoryResources);
-        } else if (resourceMatches.length > 0) {
-          result.push(currentCategory, ...resourceMatches);
-        }
-      };
-
-      for (const option of options) {
-        if (String(option.id) === ALL_RESOURCES_WILDCARD) {
-          if (option.name.toLowerCase().includes(lower)) {
-            result.push(option);
-          }
-        } else if (String(option.id).startsWith(ALL_CATEGORY_PREFIX)) {
-          flushCategory();
-          currentCategory = option;
-          currentCategoryResources = [];
-          categoryMatches = option.name.toLowerCase().includes(lower);
-        } else if (!option.chipOnly) {
-          currentCategoryResources.push(option);
-        }
-      }
-      flushCategory();
-
-      return result;
-    },
-    [],
-  );
+  const filterFunction = React.useMemo(() => createCategoryFilter(ALL_RESOURCES_WILDCARD), []);
 
   return (
     <MultiSelection

@@ -6,11 +6,14 @@ import {
 } from '#~/components/MultiSelection';
 import { API_GROUP_CATEGORIES, ALL_API_GROUPS_WILDCARD } from './apiGroupCategories';
 import { CORE_GROUP_ID } from './ruleModalUtils';
+import {
+  ALL_CATEGORY_PREFIX,
+  createCategoryFilter,
+  applyCategoryToggles,
+} from './categoryTreeUtils';
 import type { ApiResourcesData } from './useApiResources';
 
 import './ApiGroupsTreeSelect.scss';
-
-const ALL_CATEGORY_PREFIX = 'all-category-';
 
 type ApiGroupsTreeSelectProps = {
   selectedApiGroups: string[];
@@ -154,75 +157,21 @@ const ApiGroupsTreeSelect: React.FC<ApiGroupsTreeSelectProps> = ({
           .map((o) => (String(o.id) === CORE_GROUP_ID ? '' : String(o.id))),
       );
 
-      for (const catOption of categoryAllOptions) {
-        const categoryId = String(catOption.id).replace(ALL_CATEGORY_PREFIX, '');
-        const category = allCategories.find((c) => c.id === categoryId);
-        if (!category) {
-          continue;
-        }
-
-        const categoryGroupNames = category.groups.map((g) => g.name);
-        const wasCategoryAllSelected =
-          isAllSelected || categoryGroupNames.every((g) => selectedApiGroups.includes(g));
-
-        if (catOption.selected && !wasCategoryAllSelected) {
-          categoryGroupNames.forEach((g) => selected.add(g));
-        } else if (!catOption.selected && wasCategoryAllSelected) {
-          categoryGroupNames.forEach((g) => selected.delete(g));
-        }
-      }
+      applyCategoryToggles(
+        categoryAllOptions,
+        allCategories.map((c) => ({ id: c.id, itemNames: c.groups.map((g) => g.name) })),
+        isAllSelected,
+        selectedApiGroups,
+        selected,
+      );
 
       onSelectedApiGroupsChange([...selected]);
     },
     [selectedApiGroups, onSelectedApiGroupsChange, isAllSelected, allCategories],
   );
 
-  const filterFunction = React.useCallback(
-    (filterText: string, options: SelectionOptions[]): SelectionOptions[] => {
-      if (!filterText) {
-        return options;
-      }
-
-      const lower = filterText.toLowerCase();
-      const result: SelectionOptions[] = [];
-      let currentCategory: SelectionOptions | null = null;
-      let currentCategoryGroups: SelectionOptions[] = [];
-      let categoryMatches = false;
-
-      const flushCategory = () => {
-        if (!currentCategory) {
-          return;
-        }
-        const groupMatches = currentCategoryGroups.filter(
-          (g) =>
-            g.name.toLowerCase().includes(lower) ||
-            (typeof g.description === 'string' && g.description.toLowerCase().includes(lower)),
-        );
-        if (categoryMatches) {
-          result.push(currentCategory, ...currentCategoryGroups);
-        } else if (groupMatches.length > 0) {
-          result.push(currentCategory, ...groupMatches);
-        }
-      };
-
-      for (const option of options) {
-        if (String(option.id) === ALL_API_GROUPS_WILDCARD) {
-          if (option.name.toLowerCase().includes(lower)) {
-            result.push(option);
-          }
-        } else if (String(option.id).startsWith(ALL_CATEGORY_PREFIX)) {
-          flushCategory();
-          currentCategory = option;
-          currentCategoryGroups = [];
-          categoryMatches = option.name.toLowerCase().includes(lower);
-        } else if (!option.chipOnly) {
-          currentCategoryGroups.push(option);
-        }
-      }
-      flushCategory();
-
-      return result;
-    },
+  const filterFunction = React.useMemo(
+    () => createCategoryFilter(ALL_API_GROUPS_WILDCARD, { matchDescription: true }),
     [],
   );
 
