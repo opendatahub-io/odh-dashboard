@@ -118,6 +118,7 @@ type EvaluationsTableProps = {
   collectionNameMap: CollectionNameMap;
   collectionsLoaded: boolean;
   onRefresh: () => void;
+  onShowStatus: (job: EvaluationJob) => void;
 };
 
 const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
@@ -127,6 +128,7 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
   collectionNameMap,
   collectionsLoaded,
   onRefresh,
+  onShowStatus,
 }) => {
   const navigate = useNavigate();
   const [activeFilter, setActiveFilter] = React.useState<FilterOption>('name');
@@ -534,6 +536,7 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
                 namespace={namespace ?? ''}
                 collectionNameMap={collectionNameMap}
                 onActionComplete={onRefresh}
+                onShowStatus={onShowStatus}
                 isSelected={selectedEvaluationIds.has(job.resource.id)}
                 onSelectionChange={(checked) => handleSelectionChange(job.resource.id, checked)}
               />

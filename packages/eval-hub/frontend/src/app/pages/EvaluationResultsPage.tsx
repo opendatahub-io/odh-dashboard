@@ -18,6 +18,7 @@ import { loadRemote } from '@module-federation/runtime';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import { DeploymentMode, useModularArchContext } from 'mod-arch-core';
+import './EvaluationResultsPage.scss';
 import { evaluationsBaseRoute } from '~/app/routes';
 import { useEvaluationJob } from '~/app/hooks/useEvaluationJob';
 import { useCollectionNameMap } from '~/app/hooks/useCollectionNameMap';
@@ -53,6 +54,8 @@ const MlflowRunTabs = React.lazy(() =>
     .catch(() => ({ default: () => null })),
 );
 
+const EvaluationStatusModal = React.lazy(() => import('~/app/components/EvaluationStatusModal'));
+
 const DEFAULT_VISIBLE_BENCHMARKS = 4;
 
 const EvaluationResultsPage: React.FC = () => {
@@ -76,6 +79,7 @@ const EvaluationResultsPage: React.FC = () => {
   const { collectionNameMap } = useCollectionNameMap();
   const [selectedBenchmarkKey, setSelectedBenchmarkKey] = React.useState<string | null>(null);
   const [showAllBenchmarks, setShowAllBenchmarks] = React.useState(false);
+  const [showStatusModal, setShowStatusModal] = React.useState(false);
 
   React.useEffect(() => {
     if (benchmarkKeys.length > 0) {
@@ -145,17 +149,14 @@ const EvaluationResultsPage: React.FC = () => {
     >
       {job.resource.created_at && (
         <FlexItem>
-          <Content component="p" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
-            <CalendarAltIcon
-              className="pf-v6-u-mr-xs"
-              style={{ color: 'var(--pf-t--global--icon--color--subtle)' }}
-            />
+          <Content component="p" className="eval-hub-results__metadata-text">
+            <CalendarAltIcon className="pf-v6-u-mr-xs eval-hub-results__metadata-icon" />
             {formatDate(job.resource.created_at)}
           </Content>
         </FlexItem>
       )}
       <FlexItem>
-        <Content component="p" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
+        <Content component="p" className="eval-hub-results__metadata-text">
           <img
             src={isDarkMode ? aiModelIconDark : aiModelIconLight}
             alt=""
@@ -167,7 +168,7 @@ const EvaluationResultsPage: React.FC = () => {
         </Content>
       </FlexItem>
       <FlexItem>
-        <Content component="p" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
+        <Content component="p" className="eval-hub-results__metadata-text">
           <img
             src={isDarkMode ? paperStackIconDark : paperStackIconLight}
             alt=""
@@ -180,11 +181,8 @@ const EvaluationResultsPage: React.FC = () => {
       </FlexItem>
       {duration && (
         <FlexItem>
-          <Content component="p" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
-            <OutlinedClockIcon
-              className="pf-v6-u-mr-xs"
-              style={{ color: 'var(--pf-t--global--icon--color--subtle)' }}
-            />
+          <Content component="p" className="eval-hub-results__metadata-text">
+            <OutlinedClockIcon className="pf-v6-u-mr-xs eval-hub-results__metadata-icon" />
             {duration}
           </Content>
         </FlexItem>
@@ -193,133 +191,157 @@ const EvaluationResultsPage: React.FC = () => {
   ) : undefined;
 
   return (
-    <ApplicationsPage
-      title={
-        <span
-          style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}
-          data-testid="evaluation-results-title"
-        >
-          {evaluationName}
-          {job?.tags?.map((tag) => (
-            <Label key={tag} color="yellow">
-              {tag}
-            </Label>
-          ))}
-        </span>
-      }
-      subtext={metadataRow}
-      breadcrumb={
-        <Breadcrumb>
-          <BreadcrumbItem
-            render={() => <Link to={evaluationsBaseRoute(namespace)}>Evaluations</Link>}
-          />
-          <BreadcrumbItem isActive>{evaluationName}</BreadcrumbItem>
-        </Breadcrumb>
-      }
-      loaded={loaded}
-      loadError={error}
-      empty={!job}
-      provideChildrenPadding
-      removeChildrenTopPadding
-    >
-      {job && (
-        <div data-testid="evaluation-results-content">
-          {/* Evaluation score */}
-          <div className="pf-v6-u-mb-lg" data-testid="evaluation-score-section">
-            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-              <FlexItem>
-                <Content component="h3">Result</Content>
-              </FlexItem>
-              <FlexItem>
-                <LabelHelpPopover
-                  ariaLabel="About result"
-                  title="Result"
-                  content={
-                    job.collection
-                      ? 'Weighted average based on the primary metric score of the benchmark runs and the benchmark weights.'
-                      : 'Normalised score based on the primary metric score of the benchmark run.'
-                  }
-                />
-              </FlexItem>
-            </Flex>
-            <Title headingLevel="h2" size="4xl" data-testid="evaluation-score-value">
-              {scoreDisplay}
-            </Title>
-          </div>
-
-          {/* Benchmark cards grid (shown whenever there are multiple benchmarks) */}
-          {benchmarks.length > 1 && (
-            <div className="pf-v6-u-mb-lg" data-testid="benchmarks-grid">
-              <Title headingLevel="h3" className="pf-v6-u-mb-md">
-                Benchmarks
-              </Title>
-              <Gallery hasGutter minWidths={{ default: '250px' }}>
-                {visibleBenchmarks.map((benchmark, i) => {
-                  const cardKey = benchmarkKeys[i];
-                  return (
-                    <BenchmarkResultCard
-                      key={cardKey}
-                      benchmarkId={benchmark.id}
-                      benchmarkIndex={benchmark.benchmark_index}
-                      occurrenceIndex={i}
-                      job={job}
-                      isSelected={selectedBenchmarkKey === cardKey}
-                      onClick={() => {
-                        setSelectedBenchmarkKey(cardKey);
-                        fireMiscTrackingEvent(EVAL_HUB_EVENTS.RESULT_BENCHMARK_CARD_SELECTED, {
-                          benchmarkId: benchmark.id,
-                          evaluationName,
-                          collectionName: job.collection?.id,
-                        });
-                      }}
-                    />
-                  );
-                })}
-              </Gallery>
-              {!showAllBenchmarks && hiddenCount > 0 && (
-                <Button
-                  variant="link"
-                  className="pf-v6-u-mt-sm"
-                  onClick={() => setShowAllBenchmarks(true)}
-                  data-testid="view-more-benchmarks"
-                >
-                  View more ({hiddenCount})
-                </Button>
-              )}
-            </div>
-          )}
-
-          {/* Selected benchmark summary (primary metric + threshold) */}
-          {selectedBenchmark && (
-            <BenchmarkResultDetails
-              benchmarkId={selectedBenchmark.id}
-              benchmarkIndex={selectedOccurrenceIndex}
-              job={job}
+    <>
+      <ApplicationsPage
+        title={
+          <span className="eval-hub-results__title" data-testid="evaluation-results-title">
+            {evaluationName}
+            {job?.tags?.map((tag) => (
+              <Label key={tag} color="yellow">
+                {tag}
+              </Label>
+            ))}
+          </span>
+        }
+        subtext={metadataRow}
+        breadcrumb={
+          <Breadcrumb>
+            <BreadcrumbItem
+              render={() => <Link to={evaluationsBaseRoute(namespace)}>Evaluations</Link>}
             />
-          )}
-
-          {/* MLflow run tabs for the selected benchmark */}
-          {deploymentMode === DeploymentMode.Federated && mlflowExperimentId && mlflowRunId && (
-            <div className="pf-v6-u-mt-lg" data-testid="mlflow-run-tabs-section">
-              <React.Suspense
-                fallback={
-                  <Bullseye>
-                    <Spinner />
-                  </Bullseye>
-                }
-              >
-                <MlflowRunTabs
-                  key={mlflowRunTabsKey}
-                  experimentId={mlflowExperimentId}
-                  runUuid={mlflowRunId}
-                  workspace={namespace}
-                />
-              </React.Suspense>
+            <BreadcrumbItem isActive>{evaluationName}</BreadcrumbItem>
+          </Breadcrumb>
+        }
+        loaded={loaded}
+        loadError={error}
+        empty={!job}
+        provideChildrenPadding
+        removeChildrenTopPadding
+      >
+        {job && (
+          <div data-testid="evaluation-results-content">
+            {/* Evaluation score */}
+            <div className="pf-v6-u-mb-lg" data-testid="evaluation-score-section">
+              <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                <FlexItem>
+                  <Content component="h3">Result</Content>
+                </FlexItem>
+                <FlexItem>
+                  <LabelHelpPopover
+                    ariaLabel="About result"
+                    title="Result"
+                    content={
+                      job.collection
+                        ? 'Weighted average based on the primary metric score of the benchmark runs and the benchmark weights.'
+                        : 'Normalised score based on the primary metric score of the benchmark run.'
+                    }
+                  />
+                </FlexItem>
+              </Flex>
+              <Title headingLevel="h2" size="4xl" data-testid="evaluation-score-value">
+                {scoreDisplay}
+              </Title>
             </div>
-          )}
-        </div>
+
+            {/* Benchmark cards grid (shown whenever there are multiple benchmarks) */}
+            {benchmarks.length > 1 && (
+              <div className="pf-v6-u-mb-lg" data-testid="benchmarks-grid">
+                <Title headingLevel="h3" className="pf-v6-u-mb-md">
+                  Benchmarks
+                </Title>
+                <Gallery hasGutter minWidths={{ default: '250px' }}>
+                  {visibleBenchmarks.map((benchmark, i) => {
+                    const cardKey = benchmarkKeys[i];
+                    return (
+                      <BenchmarkResultCard
+                        key={cardKey}
+                        benchmarkId={benchmark.id}
+                        benchmarkIndex={benchmark.benchmark_index}
+                        occurrenceIndex={i}
+                        job={job}
+                        isSelected={selectedBenchmarkKey === cardKey}
+                        onClick={() => {
+                          setSelectedBenchmarkKey(cardKey);
+                          fireMiscTrackingEvent(EVAL_HUB_EVENTS.RESULT_BENCHMARK_CARD_SELECTED, {
+                            benchmarkId: benchmark.id,
+                            evaluationName,
+                            collectionName: job.collection?.id,
+                          });
+                        }}
+                      />
+                    );
+                  })}
+                </Gallery>
+                {!showAllBenchmarks && hiddenCount > 0 && (
+                  <Button
+                    variant="link"
+                    className="pf-v6-u-mt-sm"
+                    onClick={() => setShowAllBenchmarks(true)}
+                    data-testid="view-more-benchmarks"
+                  >
+                    View more ({hiddenCount})
+                  </Button>
+                )}
+              </div>
+            )}
+
+            {/* Selected benchmark summary (primary metric + threshold) */}
+            {selectedBenchmark && (
+              <BenchmarkResultDetails
+                benchmarkId={selectedBenchmark.id}
+                benchmarkIndex={selectedOccurrenceIndex}
+                job={job}
+              />
+            )}
+
+            <Button
+              variant="link"
+              isInline
+              className="pf-v6-u-mt-md"
+              onClick={() => setShowStatusModal(true)}
+              data-testid="view-log-button"
+            >
+              View evaluation status
+            </Button>
+
+            {/* MLflow run tabs for the selected benchmark */}
+            {deploymentMode === DeploymentMode.Federated && mlflowExperimentId && mlflowRunId && (
+              <div className="pf-v6-u-mt-lg" data-testid="mlflow-run-tabs-section">
+                <React.Suspense
+                  fallback={
+                    <Bullseye>
+                      <Spinner />
+                    </Bullseye>
+                  }
+                >
+                  <MlflowRunTabs
+                    key={mlflowRunTabsKey}
+                    experimentId={mlflowExperimentId}
+                    runUuid={mlflowRunId}
+                    workspace={namespace}
+                  />
+                </React.Suspense>
+              </div>
+            )}
+          </div>
+        )}
+      </ApplicationsPage>
+      {showStatusModal && (
+        <React.Suspense
+          fallback={
+            <Bullseye>
+              <Spinner />
+            </Bullseye>
+          }
+        >
+          <EvaluationStatusModal
+            job={job ?? undefined}
+            namespace={namespace ?? ''}
+            onClose={() => setShowStatusModal(false)}
+          />
+        </React.Suspense>
       )}
-    </ApplicationsPage>
+    </>
   );
 };
 
