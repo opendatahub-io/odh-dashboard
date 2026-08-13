@@ -2,14 +2,14 @@
 const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
-const { merge } = require('webpack-merge');
+const { merge } = require('rspack-merge');
 const { rimrafSync } = require('rimraf');
 const { TsCheckerRspackPlugin } = require('ts-checker-rspack-plugin');
 const { ReactRefreshRspackPlugin } = require('@rspack/plugin-react-refresh');
 const { setupWebpackDotenvFilesForEnv, setupDotenvFilesForEnv } = require('./dotenv');
 
 setupDotenvFilesForEnv({ env: 'development' });
-const webpackCommon = require('./webpack.common.js');
+const rspackCommon = require('./rspack.common.js');
 const { moduleFederationConfig } = require('./moduleFederation');
 
 const RELATIVE_DIRNAME = process.env._ODH_RELATIVE_DIRNAME;
@@ -30,7 +30,7 @@ if (!DIST_DIR) {
 const DIST_ASSET_DIRS = ['images', 'locales', 'favicons', 'fonts'];
 
 /**
- * Remove stale webpack/rspack outputs from DIST_DIR so they cannot be mixed with
+ * Remove stale rspack outputs from DIST_DIR so they cannot be mixed with
  * in-memory HMR assets. Must not run at config import — only when compiling/serving.
  *
  * @param {string} distDir
@@ -67,7 +67,7 @@ module.exports = merge(
       }),
     ],
   },
-  webpackCommon('development'),
+  rspackCommon('development'),
   {
     mode: 'development',
     devtool: 'eval-source-map',
@@ -76,10 +76,10 @@ module.exports = merge(
     cache: {
       type: 'persistent',
       // CLI env / dotenv values are not auto-tracked. Digest vars that are
-      // inlined (dotenv-webpack / DefinePlugin / EnvironmentPlugin) or that
-      // change the compile graph so CLI overrides bust the cache too.
+      // inlined (DefinePlugin / EnvironmentPlugin) or that change the compile
+      // graph so CLI overrides bust the cache too.
       version: JSON.stringify({
-        // frontend/src/utilities/const.ts (+ HtmlWebpackPlugin branding)
+        // frontend/src/utilities/const.ts (+ HtmlRspackPlugin branding)
         APP_ENV: process.env.APP_ENV,
         WS_HOSTNAME: process.env.WS_HOSTNAME,
         POLL_INTERVAL: process.env.POLL_INTERVAL,
@@ -96,9 +96,9 @@ module.exports = merge(
         EXT_CLUSTER: process.env.EXT_CLUSTER,
         INTERNAL_DASHBOARD_VERSION: process.env.INTERNAL_DASHBOARD_VERSION,
         CONSOLE_LINK_DOMAIN: process.env.CONSOLE_LINK_DOMAIN,
-        // EnvironmentPlugin default / override (webpack.common.js)
+        // EnvironmentPlugin default / override (rspack.common.js)
         MF_REMOTES: process.env.MF_REMOTES,
-        // Dotenv seeds that change entry/includes/output/publicPath (webpack.common.js)
+        // Dotenv seeds that change entry/includes/output/publicPath (rspack.common.js)
         ODH_SRC_DIR: process.env.ODH_SRC_DIR,
         ODH_COMMON_DIR: process.env.ODH_COMMON_DIR,
         ODH_DIST_DIR: process.env.ODH_DIST_DIR,

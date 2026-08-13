@@ -1,22 +1,22 @@
 const path = require('path');
-const webpack = require('webpack');
-const { merge } = require('webpack-merge');
-const createWebpackCommon = require('../../base/config/webpack.common.js');
-const GenerateDistributionExtensionsPlugin = require('../../base/config/generateDistributionExtensionsPlugin');
+const { rspack } = require('@rspack/core');
+const { merge } = require('rspack-merge');
+const createRspackCommon = require('../../base/config/rspack.common.js');
+const GenerateDistributionExtensionsPlugin = require('../../base/config/generateDistributionExtensionsPlugin.js');
 
 const SRC_DIR = path.resolve(__dirname, '../src');
 const TITLE = 'RHAII';
 
 module.exports = (overrides = {}) =>
   merge(
-    createWebpackCommon({
+    createRspackCommon({
       distributionSrcDir: SRC_DIR,
       title: TITLE,
       ...overrides,
     }),
     {
       plugins: [
-        new webpack.DefinePlugin({
+        new rspack.DefinePlugin({
           'process.env.ODH_PRODUCT_NAME': JSON.stringify('RHAII'),
           'process.env.BACKEND_PORT': JSON.stringify('4000'),
         }),
