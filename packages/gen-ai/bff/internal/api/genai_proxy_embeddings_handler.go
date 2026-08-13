@@ -126,15 +126,28 @@ func (app *App) GenAIProxyNSEmbeddingsHandler(w http.ResponseWriter, r *http.Req
 
 	// Forward the upstream response unchanged (transparent proxy).
 	// Limit read to 10MB to prevent memory exhaustion from malicious/faulty upstreams.
-	const maxResponseBytes = 10 * 1024 * 1024
-	respBody, err := io.ReadAll(io.LimitReader(resp.Body, maxResponseBytes))
+	// If the response exceeds the limit, return 502 instead of silently truncating.
+	const maxResponseBytes int64 = 10 * 1024 * 1024
+	limitedReader := io.LimitReader(resp.Body, maxResponseBytes+1)
+	respBody, err := io.ReadAll(limitedReader)
 	if err != nil {
 		app.serverErrorResponse(w, r, fmt.Errorf("failed to read upstream response: %w", err))
 		return
 	}
+	if int64(len(respBody)) > maxResponseBytes {
+		app.errorResponse(w, r, &integrations.HTTPError{
+			StatusCode: http.StatusBadGateway,
+			ErrorResponse: integrations.ErrorResponse{
+				Code:    "502",
+				Message: "upstream response too large (exceeds 10MB limit)",
+			},
+		})
+		return
+	}
 
-	// Copy upstream response headers, excluding hop-by-hop headers (RFC 7230 §6.1)
-	// and framing headers invalidated by buffering.
+	// Copy upstream response headers, excluding hop-by-hop headers (RFC 7230 §6.1),
+	// framing headers invalidated by buffering, and any headers nominated by the
+	// upstream Connection header.
 	hopByHop := map[string]bool{
 		"connection":          true,
 		"keep-alive":          true,
@@ -145,6 +158,12 @@ func (app *App) GenAIProxyNSEmbeddingsHandler(w http.ResponseWriter, r *http.Req
 		"transfer-encoding":   true,
 		"upgrade":             true,
 		"content-length":      true,
+	}
+	// Also exclude headers nominated by the upstream Connection header
+	if connHeaders := resp.Header.Get("Connection"); connHeaders != "" {
+		for _, h := range strings.Split(connHeaders, ",") {
+			hopByHop[strings.ToLower(strings.TrimSpace(h))] = true
+		}
 	}
 	for key, values := range resp.Header {
 		if hopByHop[strings.ToLower(key)] {
@@ -221,14 +240,13 @@ func (app *App) resolveNamespaceModel(ctx context.Context, k8sClient k8s.Kuberne
 
 	isvcURL, err := k8sClient.GetInferenceServiceURL(ctx, identity, namespace, bareModelName)
 	if err != nil {
-		// Distinguish between "model doesn't exist" (not found) and K8s API errors (infra)
-		if strings.Contains(err.Error(), "not found") {
-			return "", "", fmt.Errorf("model %q not found: %w", bareModelName, err)
-		}
+		// GetInferenceServiceURL returns ("", nil) for model-not-found.
+		// Any non-nil error is an infrastructure failure (K8s API unreachable, RBAC, etc).
 		return "", "", &infraError{msg: fmt.Sprintf("failed to resolve model %q: %v", bareModelName, err)}
 	}
 	if isvcURL == "" {
-		return "", "", fmt.Errorf("empty URL for model %q", bareModelName)
+		// ("", nil) means model not found per the KubernetesClientInterface contract.
+		return "", "", fmt.Errorf("model %q not found in namespace", bareModelName)
 	}
 
 	return isvcURL, identity.Token, nil
