@@ -374,15 +374,7 @@ export const promoteWaitingFrontierToInProgress = (
 
   const nodeById = new Map(nodes.map((node) => [node.id, node]));
 
-  const isDependencySatisfied = (
-    depId: string,
-    promoted: Set<string>,
-    visiting: Set<string> = new Set(),
-  ): boolean => {
-    if (promoted.has(depId)) {
-      const promotedNode = nodeById.get(depId);
-      return promotedNode != null && isStageFinished(promotedNode.data?.runStatus);
-    }
+  const isDependencySatisfied = (depId: string, visiting: Set<string> = new Set()): boolean => {
     if (visiting.has(depId)) {
       return false;
     }
@@ -396,8 +388,7 @@ export const promoteWaitingFrontierToInProgress = (
     if (dep.type === DEFAULT_SPACER_NODE_TYPE) {
       const parents = dep.runAfterTasks ?? [];
       return (
-        parents.length > 0 &&
-        parents.every((parentId) => isDependencySatisfied(parentId, promoted, visiting))
+        parents.length > 0 && parents.every((parentId) => isDependencySatisfied(parentId, visiting))
       );
     }
 
@@ -408,39 +399,15 @@ export const promoteWaitingFrontierToInProgress = (
     (node) => node.type !== DEFAULT_SPACER_NODE_TYPE && isWaitingStatus(node.data?.runStatus),
   );
 
-  const componentIdOf = (nodeId: string): string => nodeId.split('__')[0] ?? nodeId;
-
   // Seed with nodes whose predecessors are already finished (cross-component / next-pod gap).
   const promoteIds = new Set(
     waitingNodes
       .filter((node) => {
         const deps = node.runAfterTasks ?? [];
-        return deps.length > 0 && deps.every((depId) => isDependencySatisfied(depId, new Set()));
+        return deps.length > 0 && deps.every((depId) => isDependencySatisfied(depId));
       })
       .map((node) => node.id),
   );
-
-  // Only expand within the seeded component(s). That way the between-pod waiting state for
-  // the next component matches its coarse all-running state, without lighting later ones.
-  const frontierComponentIds = new Set([...promoteIds].map(componentIdOf));
-
-  let expanded = true;
-  while (expanded) {
-    expanded = false;
-    for (const node of waitingNodes) {
-      if (promoteIds.has(node.id) || !frontierComponentIds.has(componentIdOf(node.id))) {
-        continue;
-      }
-      const deps = node.runAfterTasks ?? [];
-      if (deps.length === 0) {
-        continue;
-      }
-      if (deps.every((depId) => isDependencySatisfied(depId, promoteIds))) {
-        promoteIds.add(node.id);
-        expanded = true;
-      }
-    }
-  }
 
   if (promoteIds.size === 0) {
     return nodes;
