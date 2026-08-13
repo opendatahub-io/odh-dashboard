@@ -48,14 +48,17 @@ const useNIMImageFieldExternalData = (dependencies?: {
     accountLoaded,
   });
 
-  // Load Template early for yaml previewing
+  // Load Template early for future yaml previewing
   const {
     data: nimTemplate,
     error: nimTemplateError,
     loaded: nimTemplateLoaded,
   } = useFetchNIMTemplate(nimAccount);
 
-  const loaded = !projectName || (imagesLoaded && accountLoaded && nimTemplateLoaded);
+  // Show as loaded if there is an error, otherwise loaded is false (for example existing deployments don't care)
+  const loaded =
+    !projectName ||
+    ((imagesLoaded || !!loadError) && accountLoaded && (nimTemplateLoaded || !!nimTemplateError));
 
   return React.useMemo(
     () => ({

@@ -151,7 +151,10 @@ export const initInterceptsToDeployNimInWizard = ({
     ]),
   );
   cy.interceptK8s(ConfigMapModel, mockNimImages({ namespace }));
-  cy.interceptK8s(TemplateModel, mockNimServingRuntimeTemplate({ namespace }));
+  cy.interceptK8s(
+    TemplateModel,
+    mockNimServingRuntimeTemplate({ namespace, name: 'odh-nim-account-template' }),
+  );
 
   // NIM PVC caching field
   cy.interceptK8sList(StorageClassModel, mockStorageClassList());

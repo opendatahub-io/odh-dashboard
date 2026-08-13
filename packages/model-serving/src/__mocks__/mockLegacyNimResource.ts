@@ -108,9 +108,10 @@ export const mockNimServingRuntime = (): ServingRuntimeKind => {
 
 export const mockNimServingRuntimeTemplate = ({
   namespace = 'opendatahub',
-}: { namespace?: string } = {}): TemplateKind => {
+  name = 'nvidia-nim-runtime',
+}: { namespace?: string; name?: string } = {}): TemplateKind => {
   const templateMock = mockServingRuntimeTemplateK8sResource({
-    name: 'nvidia-nim-runtime',
+    name,
     displayName: 'NVIDIA NIM',
     platforms: [ServingRuntimePlatform.SINGLE],
     apiProtocol: ServingRuntimeAPIProtocol.REST,
