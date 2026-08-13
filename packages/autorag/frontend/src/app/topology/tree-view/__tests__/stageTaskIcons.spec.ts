@@ -51,6 +51,11 @@ describe('resolveTaskIconForNodeId', () => {
     expect(DEFAULT_TASK_ICON).toBe(CubeIcon);
   });
 
+  it('falls back for inherited object keys on stage and step lookups', () => {
+    expect(resolveTaskIconForNodeId('rag__toString')).toBe(DEFAULT_TASK_ICON);
+    expect(resolveTaskIconForNodeId('rag__step__toString__branch-0')).toBe(DEFAULT_TASK_ICON);
+  });
+
   it('exposes maps aligned to Figma rh-ui names', () => {
     expect(STAGE_TASK_ICONS.load_benchmark).toBe(RhUiInstallIcon);
     expect(STAGE_TASK_ICONS.prepare_search_space).toBe(RhUiGearGroupIcon);

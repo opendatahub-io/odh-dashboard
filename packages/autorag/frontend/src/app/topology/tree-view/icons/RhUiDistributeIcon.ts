@@ -1,7 +1,7 @@
 import { createIcon } from '@patternfly/react-icons/dist/esm/createIcon';
 
 /**
- * Red Hat UI "distribute" icon (rh-ui-icon-distribute) from @rhds/icons.
+ * @rhds/icons rh-ui-icon-distribute (CC-BY-4.0).
  * Vertical rule + dots + right arrow — Optimize templates.
  */
 const RhUiDistributeIcon = createIcon({

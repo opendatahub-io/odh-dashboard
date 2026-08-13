@@ -1,7 +1,7 @@
 import { createIcon } from '@patternfly/react-icons/dist/esm/createIcon';
 
 /**
- * Red Hat UI "install" icon (rh-ui-icon-install) from @rhds/icons.
+ * @rhds/icons rh-ui-icon-install (CC-BY-4.0).
  * Arrow pointing down into a tray — used for Load benchmark / Prepare data.
  */
 const RhUiInstallIcon = createIcon({

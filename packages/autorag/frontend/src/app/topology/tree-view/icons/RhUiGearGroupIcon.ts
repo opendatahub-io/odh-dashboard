@@ -1,7 +1,7 @@
 import { createIcon } from '@patternfly/react-icons/dist/esm/createIcon';
 
 /**
- * Red Hat UI "gear-group" icon (rh-ui-icon-gear-group) from @rhds/icons.
+ * @rhds/icons rh-ui-icon-gear-group (CC-BY-4.0).
  * Used for Prepare search space / gear-group stages.
  */
 const RhUiGearGroupIcon = createIcon({

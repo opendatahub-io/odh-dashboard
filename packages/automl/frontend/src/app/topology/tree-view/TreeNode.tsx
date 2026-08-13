@@ -61,6 +61,14 @@ const TASK_ICON_COLORS: Record<TreeNodeData['stepState'], string> = {
   unreached: iconColorSubtle.var,
 };
 
+const STATUS_BADGE_ARIA_LABELS: Record<TreeNodeData['stepState'], string> = {
+  pending: 'Pending',
+  active: 'In progress',
+  completed: 'Completed',
+  failed: 'Failed',
+  unreached: 'Not reached',
+};
+
 /** Branch corridor steps always use spine status glyphs (design). */
 const DECORATOR_STATUS_BADGE_SIZE = (DEFAULT_DECORATOR_RADIUS - 4) * 2;
 
@@ -369,7 +377,7 @@ const StatusBadgeDecorator: React.FC<{
             <SyncAltIcon />
           </g>
         }
-        ariaLabel={stepState}
+        ariaLabel={STATUS_BADGE_ARIA_LABELS[stepState]}
       />
     );
   }
@@ -382,7 +390,7 @@ const StatusBadgeDecorator: React.FC<{
         radius={DEFAULT_DECORATOR_RADIUS}
         showBackground={false}
         icon={<StatusOnlyCompletedBadge size={DECORATOR_STATUS_BADGE_SIZE} />}
-        ariaLabel={stepState}
+        ariaLabel={STATUS_BADGE_ARIA_LABELS[stepState]}
       />
     );
   }
@@ -395,7 +403,7 @@ const StatusBadgeDecorator: React.FC<{
         radius={DEFAULT_DECORATOR_RADIUS}
         showBackground={false}
         icon={<StatusOnlyFailedBadge size={DECORATOR_STATUS_BADGE_SIZE} />}
-        ariaLabel={stepState}
+        ariaLabel={STATUS_BADGE_ARIA_LABELS[stepState]}
       />
     );
   }
@@ -407,7 +415,7 @@ const StatusBadgeDecorator: React.FC<{
       radius={DEFAULT_DECORATOR_RADIUS}
       showBackground={false}
       icon={<StatusOnlyPendingBadge size={DECORATOR_STATUS_BADGE_SIZE} />}
-      ariaLabel={stepState}
+      ariaLabel={STATUS_BADGE_ARIA_LABELS[stepState]}
     />
   );
 });
@@ -535,6 +543,7 @@ const TreeNodeInner: React.FC<{
                 <div className="automl-tree-node__models-toggle">
                   <Button
                     variant="secondary"
+                    aria-expanded={modelsExpand.modelsExpanded}
                     onClick={(event) => {
                       event.stopPropagation();
                       modelsExpand.onToggle();
