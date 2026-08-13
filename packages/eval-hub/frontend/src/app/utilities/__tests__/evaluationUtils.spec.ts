@@ -9,6 +9,7 @@ import {
   getResultScore,
   formatAsPercentage,
   formatDate,
+  formatDurationCompact,
 } from '~/app/utilities/evaluationUtils';
 
 describe('getEvaluationName', () => {
@@ -414,6 +415,49 @@ describe('getBenchmarkResultScore', () => {
     const job = mockEvaluationJob();
     job.results = { benchmarks: [] };
     expect(getBenchmarkResultScore(job, 'missing')).toBe('-');
+  });
+});
+
+describe('formatDurationCompact', () => {
+  it('should return null for missing inputs', () => {
+    expect(formatDurationCompact(undefined, undefined)).toBeNull();
+    expect(formatDurationCompact('2026-01-01T00:00:00Z', undefined)).toBeNull();
+    expect(formatDurationCompact(undefined, '2026-01-01T00:05:00Z')).toBeNull();
+  });
+
+  it('should return null for zero or negative duration', () => {
+    expect(formatDurationCompact('2026-01-01T00:05:00Z', '2026-01-01T00:05:00Z')).toBeNull();
+    expect(formatDurationCompact('2026-01-01T00:05:00Z', '2026-01-01T00:00:00Z')).toBeNull();
+  });
+
+  it('should return null for unparseable timestamp', () => {
+    expect(formatDurationCompact('not-a-date', '2026-01-01T00:05:00Z')).toBeNull();
+  });
+
+  it('should format seconds only', () => {
+    expect(formatDurationCompact('2026-01-01T00:00:00Z', '2026-01-01T00:00:45Z')).toBe('45s');
+  });
+
+  it('should format minutes and seconds', () => {
+    expect(formatDurationCompact('2026-01-01T00:00:00Z', '2026-01-01T00:05:12Z')).toBe('5m 12s');
+  });
+
+  it('should format minutes with no seconds', () => {
+    expect(formatDurationCompact('2026-01-01T00:00:00Z', '2026-01-01T00:03:00Z')).toBe('3m');
+  });
+
+  it('should format hours and minutes', () => {
+    expect(formatDurationCompact('2026-01-01T00:00:00Z', '2026-01-01T01:23:00Z')).toBe('1h 23m');
+  });
+
+  it('should format hours with no minutes', () => {
+    expect(formatDurationCompact('2026-01-01T00:00:00Z', '2026-01-01T02:00:00Z')).toBe('2h');
+  });
+
+  it('should return "< 1s" for sub-second durations', () => {
+    expect(formatDurationCompact('2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.500Z')).toBe(
+      '< 1s',
+    );
   });
 });
 

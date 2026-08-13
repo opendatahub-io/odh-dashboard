@@ -159,6 +159,31 @@ export const formatDuration = (startStr?: string, endStr?: string): string | nul
   }
 };
 
+export const formatDurationCompact = (startStr?: string, endStr?: string): string | null => {
+  if (!startStr || !endStr) {
+    return null;
+  }
+  try {
+    const ms = new Date(endStr).getTime() - new Date(startStr).getTime();
+    if (ms <= 0 || !Number.isFinite(ms)) {
+      return null;
+    }
+    const totalSeconds = Math.floor(ms / 1000);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    if (hours > 0) {
+      return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`;
+    }
+    if (minutes > 0) {
+      return seconds > 0 ? `${minutes}m ${seconds}s` : `${minutes}m`;
+    }
+    return seconds > 0 ? `${seconds}s` : '< 1s';
+  } catch {
+    return null;
+  }
+};
+
 export const formatDate = (dateStr?: string): string => {
   if (!dateStr) {
     return '-';

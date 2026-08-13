@@ -20,6 +20,7 @@ filters:
       - autorag-approvers
       - automl-approvers
       - eval-hub-approvers
+      - data-registry-approvers
       - mlflow-approvers
       - distributions-approvers
 
@@ -211,6 +212,15 @@ filters:
       - distributions-reviewers
     labels:
       - 'area/distributions'
+
+  # Data Registry
+  'packages/data-registry/.*':
+    approvers:
+      - data-registry-approvers
+    reviewers:
+      - data-registry-reviewers
+    labels:
+      - 'area/data-registry'
 
   # MLflow
   'packages/mlflow.*/.*':
