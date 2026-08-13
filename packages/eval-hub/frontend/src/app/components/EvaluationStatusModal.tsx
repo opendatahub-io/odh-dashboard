@@ -297,8 +297,12 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
   const [selectedBenchmark, setSelectedBenchmark] = React.useState<string>(ALL_BENCHMARKS);
   const [isBenchmarkSelectOpen, setIsBenchmarkSelectOpen] = React.useState(false);
   const [isFailureSummaryExpanded, setIsFailureSummaryExpanded] = React.useState(false);
-  const failureSummaryRef = React.useRef<HTMLParagraphElement>(null);
+  const [failureSummaryEl, setFailureSummaryEl] = React.useState<HTMLParagraphElement | null>(null);
+  const failureSummaryRef = React.useCallback((node: HTMLParagraphElement | null) => {
+    setFailureSummaryEl(node);
+  }, []);
   const [isFailureSummaryTruncated, setIsFailureSummaryTruncated] = React.useState(false);
+  const logContainerRef = React.useRef<HTMLDivElement>(null);
   const benchmarkIndex = React.useMemo(() => {
     if (selectedBenchmark === ALL_BENCHMARKS) {
       return undefined;
@@ -349,12 +353,11 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
       : job?.status.message?.message;
 
   React.useEffect(() => {
-    const el = failureSummaryRef.current;
-    if (el) {
-      const truncated = el.scrollHeight > el.clientHeight;
+    if (failureSummaryEl) {
+      const truncated = failureSummaryEl.scrollHeight > failureSummaryEl.clientHeight;
       setIsFailureSummaryTruncated((prev) => (prev !== truncated ? truncated : prev));
     }
-  }, [failureSummary, isFailureSummaryExpanded, activeTab]);
+  }, [failureSummaryEl, isFailureSummaryExpanded]);
 
   const evaluationName = job ? getEvaluationName(job) : '';
 
@@ -387,6 +390,10 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
   }, [namespace, job?.resource.id, evaluationName, benchmarkIndex]);
 
   React.useEffect(() => () => downloadAbortRef.current?.abort(), []);
+
+  React.useEffect(() => {
+    logContainerRef.current?.scrollTo(0, 0);
+  }, [selectedBenchmark]);
 
   const logEntries = React.useMemo(() => (logs ? parseLogEntries(logs) : []), [logs]);
 
@@ -768,6 +775,7 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
               <StackItem>
                 <LogHeader />
                 <div
+                  ref={logContainerRef}
                   className={logViewerClassName}
                   data-testid="log-content"
                   role="log"
