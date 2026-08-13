@@ -71,6 +71,7 @@
     --pf-v6-c-button--m-secondary--hover--BorderColor: var(--pf-t--global--border--color--hover);
     --pf-v6-c-button--m-secondary--m-clicked--Color: var(--pf-t--global--text--color--regular);
     --pf-v6-c-button--m-secondary--m-clicked--BorderColor: var(--pf-t--global--border--color--clicked);
+
     white-space: nowrap;
   }
 }
@@ -90,7 +91,7 @@
 
 .automl-tree-node__winner-star-icon {
   color: var(--pf-t--global--icon--color--brand--default);
-  fill: currentColor;
+  fill: currentcolor;
 }
 
 /* Active stage decorator: outlined badge + spinning sync icon. */
@@ -107,7 +108,7 @@
 
 .automl-tree-node__status-decorator-active-icon {
   color: var(--pf-t--global--icon--color--brand--default);
-  fill: currentColor;
+  fill: currentcolor;
 }
 
 /*
@@ -159,11 +160,11 @@
 
 .automl-tree-node__task-icon {
   color: inherit;
-  fill: currentColor;
+  fill: currentcolor;
 
   svg {
     color: inherit;
-    fill: currentColor;
+    fill: currentcolor;
   }
 }
 
@@ -188,8 +189,8 @@
 }
 
 /* Completed check in branch corridor spine dots. */
-.automl-tree-node--status-only .automl-tree-node__status-badge--completed-dot svg,
-.automl-tree-node--status-only .automl-tree-node__status-badge--completed-dot svg path {
+.automl-tree-node__status-badge--completed-dot svg,
+.automl-tree-node__status-badge--completed-dot svg path {
   color: var(--pf-t--global--icon--color--status--on-success--default);
   fill: var(--pf-t--global--icon--color--status--on-success--default);
 }
@@ -201,11 +202,21 @@
   fill: var(--pf-t--global--icon--color--brand--default);
 }
 
-/* Completed check in branch-step badge. */
-.automl-tree-node--status-only .automl-tree-node__status-badge--completed svg,
-.automl-tree-node--status-only .automl-tree-node__status-badge--completed svg path {
+/*
+ * Completed check in stage/branch decorator badge — beat topology
+ * `.pf-topology__node__decorator svg { fill: regular }` (black check on green disk).
+ */
+.pf-topology__node__decorator .automl-tree-node__status-badge--completed svg,
+.pf-topology__node__decorator .automl-tree-node__status-badge--completed svg path {
   color: var(--pf-t--global--icon--color--status--on-success--default);
   fill: var(--pf-t--global--icon--color--status--on-success--default);
+}
+
+/* Failed exclamation in stage/branch decorator badge. */
+.pf-topology__node__decorator .automl-tree-node__status-badge--failed svg,
+.pf-topology__node__decorator .automl-tree-node__status-badge--failed svg path {
+  color: var(--pf-t--global--icon--color--status--on-danger--default);
+  fill: var(--pf-t--global--icon--color--status--on-danger--default);
 }
 
 /* Failed section corridor — soft red glow around outer ring (design). */

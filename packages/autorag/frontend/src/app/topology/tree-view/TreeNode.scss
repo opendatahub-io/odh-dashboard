@@ -56,7 +56,6 @@
 
   /* Neutral pill — PF v6 Button tokens; nested selector beats .pf-m-secondary aliases (~6.5). */
   .pf-v6-c-button.pf-m-secondary {
-    white-space: nowrap;
     --pf-v6-c-button--FontSize: var(--pf-t--global--font--size--body--sm);
     --pf-v6-c-button--PaddingBlockStart: var(--pf-t--global--spacer--xs);
     --pf-v6-c-button--PaddingBlockEnd: var(--pf-t--global--spacer--xs);
@@ -74,6 +73,8 @@
     --pf-v6-c-button--m-secondary--hover--BorderColor: var(--pf-t--global--border--color--hover);
     --pf-v6-c-button--m-secondary--m-clicked--Color: var(--pf-t--global--text--color--regular);
     --pf-v6-c-button--m-secondary--m-clicked--BorderColor: var(--pf-t--global--border--color--clicked);
+
+    white-space: nowrap;
   }
 }
 
@@ -88,7 +89,7 @@
 
 .autorag-tree-node__winner-star-icon {
   color: var(--pf-t--global--icon--color--brand--default);
-  fill: currentColor;
+  fill: currentcolor;
 }
 
 /* Active stage decorator: outlined badge + spinning sync icon. */
@@ -101,7 +102,7 @@
 
 .autorag-tree-node__status-decorator-active-icon {
   color: var(--pf-t--global--icon--color--brand--default);
-  fill: currentColor;
+  fill: currentcolor;
 }
 
 /*
@@ -149,11 +150,11 @@
 
 .autorag-tree-node__task-icon {
   color: inherit;
-  fill: currentColor;
+  fill: currentcolor;
 
   svg {
     color: inherit;
-    fill: currentColor;
+    fill: currentcolor;
   }
 }
 
@@ -183,8 +184,8 @@
 }
 
 /* Completed check in branch corridor spine dots. */
-.autorag-tree-node--status-only .autorag-tree-node__status-badge--completed-dot svg,
-.autorag-tree-node--status-only .autorag-tree-node__status-badge--completed-dot svg path {
+.autorag-tree-node__status-badge--completed-dot svg,
+.autorag-tree-node__status-badge--completed-dot svg path {
   color: var(--pf-t--global--icon--color--status--on-success--default);
   fill: var(--pf-t--global--icon--color--status--on-success--default);
 }
@@ -196,11 +197,21 @@
   fill: var(--pf-t--global--icon--color--brand--default);
 }
 
-/* Completed check in branch-step badge. */
-.autorag-tree-node--status-only .autorag-tree-node__status-badge--completed svg,
-.autorag-tree-node--status-only .autorag-tree-node__status-badge--completed svg path {
+/*
+ * Completed check in stage/branch decorator badge — beat topology
+ * `.pf-topology__node__decorator svg { fill: regular }` (black check on green disk).
+ */
+.pf-topology__node__decorator .autorag-tree-node__status-badge--completed svg,
+.pf-topology__node__decorator .autorag-tree-node__status-badge--completed svg path {
   color: var(--pf-t--global--icon--color--status--on-success--default);
   fill: var(--pf-t--global--icon--color--status--on-success--default);
+}
+
+/* Failed exclamation in stage/branch decorator badge. */
+.pf-topology__node__decorator .autorag-tree-node__status-badge--failed svg,
+.pf-topology__node__decorator .autorag-tree-node__status-badge--failed svg path {
+  color: var(--pf-t--global--icon--color--status--on-danger--default);
+  fill: var(--pf-t--global--icon--color--status--on-danger--default);
 }
 
 /* Failed section corridor — soft red glow around outer ring (design). */

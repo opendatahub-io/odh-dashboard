@@ -68,6 +68,26 @@ describe('branchExpand', () => {
     ).toBe(true);
   });
 
+  it('should not match branch-1 identifier to branch-11', () => {
+    const node = makeNode('rag__pattern__branch-11', 'Pattern Eleven');
+    expect(
+      matchesWinnerPattern(node, {
+        winnerPatternLabel: 'rag__pattern__branch-1',
+        winnerPatternKey: 'rag__pattern__branch-1',
+      }),
+    ).toBe(false);
+  });
+
+  it('should not match a short shared prefix across different patterns', () => {
+    const node = makeNode('rag__pattern__branch-1', 'PatternGraphRAG');
+    expect(
+      matchesWinnerPattern(node, {
+        winnerPatternLabel: 'PatternGraph',
+        winnerPatternKey: 'PatternGraph',
+      }),
+    ).toBe(false);
+  });
+
   it('should resolve the winner branch and collapse to that spine', () => {
     const branches = new Map<number, PipelineNodeModelExpanded[]>([
       [0, [makeNode('rag__pattern__branch-0', 'Pattern A')]],
