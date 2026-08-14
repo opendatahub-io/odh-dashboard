@@ -75,8 +75,20 @@ dev-mlflow-bff-mock: ## Run MLflow BFF in mock mode pointing at local MLflow ser
 
 .PHONY: dev-start-mock
 dev-start-mock: ## Run frontend, gen-ai BFF (mocks), and MLflow BFF with real inter-BFF for MLflow prompts
+	@make dev-mlflow-bff-mock & \
+	echo "Waiting for MLflow BFF mock to become ready on port $(MLFLOW_BFF_MOCK_PORT)..."; \
+	i=0; \
+	while ! curl -sf http://localhost:$(MLFLOW_BFF_MOCK_PORT)/healthcheck >/dev/null 2>&1; do \
+		i=$$((i + 1)); \
+		if [ $$i -ge 30 ]; then \
+			echo "ERROR: MLflow BFF mock did not become ready within 30 seconds."; \
+			exit 1; \
+		fi; \
+		sleep 1; \
+	done; \
+	echo "MLflow BFF mock is ready."; \
 	BFF_MLFLOW_DEV_URL="http://localhost:$(MLFLOW_BFF_MOCK_PORT)/api/v1" \
-		make -j 3 dev-mlflow-bff-mock dev-bff-mock dev-frontend
+		make -j 2 dev-bff-mock dev-frontend
 
 ############ E2E Test Targets ############
 # These targets are used by the GitHub Actions e2e workflow to start BFFs
