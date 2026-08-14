@@ -25,6 +25,7 @@ const initIntercepts = () => {
 const navigateToConfigure = () => {
   cy.visit(`/gen-ai-studio/autorag/configure/${NAMESPACE}`);
   cy.findByTestId('autorag-name-input').should('be.visible');
+  cy.testA11y();
 };
 
 const selectOgxAndStorageSecrets = () => {
