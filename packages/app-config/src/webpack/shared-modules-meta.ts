@@ -5,7 +5,7 @@ export type SharedModuleMetadata = {
 };
 
 /** Deep import used by RHDS vendored icons; not covered by `@patternfly/react-icons` root sharing. */
-export const PF_REACT_ICONS_CREATE_ICON_MODULE = '@patternfly/react-icons/dist/esm/createIcon';
+const PF_REACT_ICONS_CREATE_ICON_MODULE = '@patternfly/react-icons/dist/esm/createIcon';
 
 const defaultMeta: SharedModuleMetadata = {
   singleton: true,
