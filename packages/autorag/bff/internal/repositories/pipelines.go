@@ -151,9 +151,10 @@ func (r *PipelinesRepository) GetCombinedRuns(ctx context.Context, namespace str
 
 // --- Pipeline Runs: Single + Ownership ---
 
-// GetManagedRun retrieves a pipeline run and validates that it belongs to an AutoRAG pipeline
-// in the namespace. This ownership check is a security boundary — it prevents users from
-// accessing runs from other pipelines that may exist in the same namespace.
+// GetManagedRun retrieves a pipeline run and validates that it belongs to a discovered
+// managed pipeline (AutoRAG or indexing) in the namespace. This ownership check is a
+// security boundary — it prevents users from accessing runs from other pipelines that
+// may exist in the same namespace.
 func (r *PipelinesRepository) GetManagedRun(ctx context.Context, namespace, runID string) (*models.PipelineRun, error) {
 	coreRun, err := r.core.GetPipelineRunWithSpec(ctx, namespace, runID)
 	if err != nil {
