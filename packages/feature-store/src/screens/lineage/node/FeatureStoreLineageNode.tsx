@@ -21,7 +21,11 @@ import {
   LineageTargetAnchor,
 } from '@odh-dashboard/internal/components/lineage/anchors/customAnchors';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import { getEntityTypeIcon } from '../../../utils/featureStoreObjects.tsx';
+import {
+  getEntityTypeIcon,
+  getEntityTypeBackgroundColor,
+  getEntityTypeAccentColor,
+} from '../../../utils/featureStoreObjects.tsx';
 import {
   FEATURE_STORE_EVENTS,
   LineageNodeSelectedProperties,
@@ -55,6 +59,7 @@ const LineageNodeInner: React.FC<{ element: Node } & WithSelectionProps> = obser
       AnchorEnd.target,
     );
 
+    const hasTypeColors = !selected && !!data?.entityType;
     const entityIcon = data?.entityType ? (
       getEntityTypeIcon(data.entityType, selected)
     ) : (
@@ -62,6 +67,10 @@ const LineageNodeInner: React.FC<{ element: Node } & WithSelectionProps> = obser
     );
     const truncateLength = data?.truncateLength ?? 30;
     const nodeClassName = isConnectedToSelection ? 'pf-m-highlighted' : '';
+    const pillBackgroundColor = hasTypeColors
+      ? getEntityTypeBackgroundColor(data.entityType)
+      : undefined;
+    const pillAccentColor = hasTypeColors ? getEntityTypeAccentColor(data.entityType) : undefined;
 
     // Create badge for feature views showing feature count
     const badge = (() => {
@@ -165,6 +174,8 @@ const LineageNodeInner: React.FC<{ element: Node } & WithSelectionProps> = obser
           badge={badge}
           hover={hover}
           width={nodeWidth}
+          pillBackgroundColor={pillBackgroundColor}
+          pillAccentColor={pillAccentColor}
           x={0} // Position relative to the group
           y={0}
           disableTooltip // Disable small tooltip to avoid conflict with popover

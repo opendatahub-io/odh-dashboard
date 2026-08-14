@@ -9,6 +9,7 @@ import FeatureStoreLineageNodePopover from './node/FeatureStoreLineageNodePopove
 import { applyLineageFilters } from './utils';
 import { LineagePageProvider } from './LineagePageContext';
 import FeatureStoreLineageToolbar from '../../components/FeatureStoreLineageToolbar';
+import FeatureStoreLineageLegend from '../../components/FeatureStoreLineageLegend';
 import useFeatureStoreLineage from '../../apiHooks/useFeatureStoreLineage';
 import useFeatureViewLineage from '../../apiHooks/useFeatureViewLineage';
 import {
@@ -187,27 +188,42 @@ const FeatureStoreLineageComponent: React.FC<FeatureStoreLineageComponentProps> 
       hasBodyWrapper={false}
       isFilled
       padding={{ default: 'noPadding' }}
-      style={{ height, display: 'flex', flexDirection: 'column' }}
+      style={{ height, display: 'flex', flexDirection: 'column', minHeight: 0 }}
     >
       <LineagePageProvider pageType={featureViewName ? 'detail' : 'overview'}>
-        <Lineage
-          key={lineageKey}
-          data={visualizationData}
-          loading={!lineageDataLoaded}
-          error={
-            error ? `Failed to load lineage data: ${String(error)}` : conversionError || undefined
-          }
-          emptyStateMessage={
-            featureViewName
-              ? 'No lineage data available for this feature view'
-              : 'No lineage data available for this feature store'
-          }
-          height="100%"
-          componentFactory={componentFactory}
-          popoverComponent={PopoverComponent}
-          toolbarComponent={ToolbarComponent}
-          autoResetOnDataChange
-        />
+        <div
+          style={{
+            position: 'relative',
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            minHeight: 0,
+          }}
+        >
+          <Lineage
+            key={lineageKey}
+            data={visualizationData}
+            loading={!lineageDataLoaded}
+            error={
+              error ? `Failed to load lineage data: ${String(error)}` : conversionError || undefined
+            }
+            emptyStateMessage={
+              featureViewName
+                ? 'No lineage data available for this feature view'
+                : 'No lineage data available for this feature store'
+            }
+            height="100%"
+            componentFactory={componentFactory}
+            popoverComponent={PopoverComponent}
+            toolbarComponent={ToolbarComponent}
+            legendComponent={
+              lineageDataLoaded && !error && visualizationData.nodes.length > 0
+                ? FeatureStoreLineageLegend
+                : undefined
+            }
+            autoResetOnDataChange
+          />
+        </div>
       </LineagePageProvider>
     </PageSection>
   );
