@@ -9,8 +9,7 @@ type CategoryFilterOptions = {
 /**
  * Creates a tree-aware filter function for category-grouped MultiSelection options.
  * Searching a category name shows all its children; searching a child shows it with its parent header.
- * Category headers are identified by `hideChip: true` (without `chipOnly`), avoiding
- * collisions with discovered resources whose names happen to start with the category prefix.
+ * Category headers are identified by their `__all_category__` ID prefix.
  */
 export const createCategoryFilter =
   (
@@ -51,7 +50,7 @@ export const createCategoryFilter =
         if (option.name.toLowerCase().includes(lower)) {
           result.push(option);
         }
-      } else if (option.hideChip && !option.chipOnly) {
+      } else if (String(option.id).startsWith(ALL_CATEGORY_PREFIX)) {
         flushCategory();
         currentCategory = option;
         currentCategoryItems = [];

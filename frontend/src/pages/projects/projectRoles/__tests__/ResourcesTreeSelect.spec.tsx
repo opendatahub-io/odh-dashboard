@@ -508,4 +508,24 @@ describe('ResourcesTreeSelect', () => {
       expect(mockOnChange).toHaveBeenCalledWith(['all-category-other']);
     });
   });
+
+  it('should show category children when searching a category name with wildcard selected', async () => {
+    render(
+      <ResourcesTreeSelect
+        selectedResources={['*']}
+        onSelectedResourcesChange={mockOnChange}
+        apiResourcesData={mockApiResourcesData}
+      />,
+    );
+
+    const combobox = screen.getByRole('combobox', { name: 'Resource types' });
+    await act(async () => {
+      fireEvent.change(combobox, { target: { value: 'Core' } });
+    });
+
+    expect(screen.getByText('Core')).toBeInTheDocument();
+    expect(screen.getByText('Pods')).toBeInTheDocument();
+    expect(screen.getByText('Services')).toBeInTheDocument();
+    expect(screen.getByText('ConfigMaps')).toBeInTheDocument();
+  });
 });
