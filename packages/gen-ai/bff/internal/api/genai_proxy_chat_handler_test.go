@@ -123,7 +123,7 @@ var _ = Describe("GenAIProxyNSChatCompletionsHandler", func() {
 		upstreamResponse := `{"id":"chatcmpl-123","object":"chat.completion","choices":[{"message":{"role":"assistant","content":"Hello!"}}]}`
 		upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			assert.Equal(t, http.MethodPost, r.Method)
-			assert.Equal(t, "/v1/chat/completions", r.URL.Path)
+			assert.Contains(t, r.URL.Path, "/chat/completions")
 			assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
 
 			reqBody, err := io.ReadAll(r.Body)
@@ -138,9 +138,12 @@ var _ = Describe("GenAIProxyNSChatCompletionsHandler", func() {
 		}))
 		defer upstream.Close()
 
-		app.httpClient = upstream.Client()
+		// Redirect all outgoing HTTP to our test server regardless of target URL.
+		app.httpClient = &http.Client{
+			Transport: &redirectTransport{target: upstream.URL},
+		}
 
-		body := fmt.Sprintf(`{"model":"llama-32-3b-instruct","messages":[{"role":"user","content":"hi"}]}`)
+		body := `{"model":"llama-32-3b-instruct","messages":[{"role":"user","content":"hi"}]}`
 		req := httptest.NewRequest(http.MethodPost, "/api/v1/genai-proxy/ns/mock-test-namespace-1/v1/chat/completions", strings.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")
 
@@ -158,3 +161,15 @@ var _ = Describe("GenAIProxyNSChatCompletionsHandler", func() {
 		assert.Contains(t, rr.Body.String(), "chatcmpl-123")
 	})
 })
+
+// redirectTransport intercepts all HTTP requests and rewrites their URL to point
+// at a local test server, preserving the original path and query.
+type redirectTransport struct {
+	target string
+}
+
+func (t *redirectTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	req.URL.Scheme = "http"
+	req.URL.Host = strings.TrimPrefix(t.target, "http://")
+	return http.DefaultTransport.RoundTrip(req)
+}

@@ -49,6 +49,17 @@ func (app *App) GenAIProxyNSChatCompletionsHandler(w http.ResponseWriter, r *htt
 
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
+		var maxBytesErr *http.MaxBytesError
+		if errors.As(err, &maxBytesErr) {
+			app.errorResponse(w, r, &integrations.HTTPError{
+				StatusCode: http.StatusRequestEntityTooLarge,
+				ErrorResponse: integrations.ErrorResponse{
+					Code:    "413",
+					Message: "request body exceeds the 5MB limit",
+				},
+			})
+			return
+		}
 		app.badRequestResponse(w, r, fmt.Errorf("failed to read request body: %w", err))
 		return
 	}
