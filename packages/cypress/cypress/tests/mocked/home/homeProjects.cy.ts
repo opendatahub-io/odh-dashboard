@@ -152,7 +152,7 @@ describe('Home page Projects section', () => {
     projectDetails.findComponent('overview').should('be.visible');
   });
 
-  it('should keep the section header visible when projects and learning resources fail to load', () => {
+  it('should keep the section header visible when projects fail to load', () => {
     homePage.initHomeIntercepts();
     cy.interceptK8sList(ProjectModel, { statusCode: 500, body: mock500Error({}) });
     homePage.visit();
