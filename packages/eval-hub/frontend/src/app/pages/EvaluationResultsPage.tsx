@@ -12,7 +12,7 @@ import {
   Spinner,
   Title,
 } from '@patternfly/react-core';
-import { CalendarAltIcon, OutlinedClockIcon } from '@patternfly/react-icons';
+import { CalendarAltIcon, ListIcon, OutlinedClockIcon } from '@patternfly/react-icons';
 import { Link, useParams } from 'react-router-dom';
 import { loadRemote } from '@module-federation/runtime';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
@@ -187,6 +187,17 @@ const EvaluationResultsPage: React.FC = () => {
           </Content>
         </FlexItem>
       )}
+      <FlexItem>
+        <Button
+          variant="link"
+          isInline
+          icon={<ListIcon />}
+          onClick={() => setShowStatusModal(true)}
+          data-testid="view-log-button"
+        >
+          View log
+        </Button>
+      </FlexItem>
     </Flex>
   ) : undefined;
 
@@ -293,16 +304,6 @@ const EvaluationResultsPage: React.FC = () => {
                 job={job}
               />
             )}
-
-            <Button
-              variant="link"
-              isInline
-              className="pf-v6-u-mt-md"
-              onClick={() => setShowStatusModal(true)}
-              data-testid="view-log-button"
-            >
-              View evaluation status
-            </Button>
 
             {/* MLflow run tabs for the selected benchmark */}
             {deploymentMode === DeploymentMode.Federated && mlflowExperimentId && mlflowRunId && (
