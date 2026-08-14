@@ -330,11 +330,7 @@ const extensions: (
   {
     type: 'app.tab-route/tab',
     flags: {
-      required: [
-        SupportedArea.MODEL_DEPLOYMENT_SETTINGS,
-        SupportedArea.CUSTOM_RUNTIMES,
-        ADMIN_USER,
-      ],
+      required: [SupportedArea.CUSTOM_RUNTIMES, ADMIN_USER],
     },
     properties: {
       pageId: 'model-deployment-settings',
@@ -358,11 +354,7 @@ const extensions: (
     (path): RouteExtension => ({
       type: 'app.route',
       flags: {
-        required: [
-          SupportedArea.MODEL_DEPLOYMENT_SETTINGS,
-          SupportedArea.CUSTOM_RUNTIMES,
-          ADMIN_USER,
-        ],
+        required: [SupportedArea.CUSTOM_RUNTIMES, ADMIN_USER],
       },
       properties: {
         path,

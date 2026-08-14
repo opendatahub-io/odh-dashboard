@@ -216,11 +216,7 @@ const extensions: (
       }),
     },
     flags: {
-      required: [
-        SupportedArea.MODEL_DEPLOYMENT_SETTINGS,
-        SupportedArea.CUSTOM_RUNTIMES,
-        ADMIN_USER,
-      ],
+      required: [SupportedArea.CUSTOM_RUNTIMES, ADMIN_USER],
     },
   },
   {
@@ -233,11 +229,7 @@ const extensions: (
       }),
     },
     flags: {
-      required: [
-        SupportedArea.MODEL_DEPLOYMENT_SETTINGS,
-        SupportedArea.CUSTOM_RUNTIMES,
-        ADMIN_USER,
-      ],
+      required: [SupportedArea.CUSTOM_RUNTIMES, ADMIN_USER],
     },
   },
 ];
