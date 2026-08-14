@@ -59,6 +59,8 @@
     "@tanstack/react-query": "^5.90.20"
   },
   "overrides": {
+    "@rspack/cli": "2.1.7",
+    "@rspack/core": "2.1.7",
     "@types/react": "^18.3.31",
     "@types/tar": "^6.1.13",
     "@types/ws": "^8.18.1",

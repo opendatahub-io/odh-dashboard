@@ -58,7 +58,7 @@ function discoverTargets() {
     if (relativeToPkg.split(path.sep).includes('upstream')) return;
 
     const targetPkg = path.join(canonicalTargetDir, 'package.json');
-    if (fs.existsSync(targetPkg)) {
+    if (fs.existsSync(targetPkg) && fs.lstatSync(targetPkg).isFile()) {
       targets.push(targetPkg);
     }
   }
