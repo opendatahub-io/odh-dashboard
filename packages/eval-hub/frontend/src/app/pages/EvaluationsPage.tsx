@@ -28,6 +28,8 @@ import EvalHubProjectSelector from '~/app/components/EvalHubProjectSelector';
 import EvalHubEmptyState from '~/app/components/EvalHubEmptyState';
 import EvaluationsTable from '~/app/components/EvaluationsTable';
 import { EvaluationJob } from '~/app/types';
+import RetryEvaluationModal from '~/app/components/RetryEvaluationModal';
+import StopEvaluationModal from '~/app/components/StopEvaluationModal';
 
 const EvaluationStatusModal = React.lazy(() => import('~/app/components/EvaluationStatusModal'));
 
@@ -45,6 +47,8 @@ const EvaluationsPage: React.FC = () => {
   const [selectedJob, setSelectedJob] = React.useState<
     { job: EvaluationJob; namespace: string } | undefined
   >();
+  const [pendingStopJob, setPendingStopJob] = React.useState<EvaluationJob | undefined>();
+  const [pendingRetryJob, setPendingRetryJob] = React.useState<EvaluationJob | undefined>();
 
   const onShowStatus = React.useCallback(
     (job: EvaluationJob) => {
@@ -170,9 +174,33 @@ const EvaluationsPage: React.FC = () => {
             job={selectedJob.job}
             namespace={selectedJob.namespace}
             onClose={() => setSelectedJob(undefined)}
+            onRequestStop={(job) => {
+              setSelectedJob(undefined);
+              setPendingStopJob(job);
+            }}
+            onRequestRetry={(job) => {
+              setSelectedJob(undefined);
+              setPendingRetryJob(job);
+            }}
           />
         </React.Suspense>
       ) : null}
+      {pendingStopJob && namespace && (
+        <StopEvaluationModal
+          job={pendingStopJob}
+          namespace={namespace}
+          onClose={() => setPendingStopJob(undefined)}
+          onComplete={refreshEvaluations}
+        />
+      )}
+      {pendingRetryJob && namespace && (
+        <RetryEvaluationModal
+          job={pendingRetryJob}
+          namespace={namespace}
+          onClose={() => setPendingRetryJob(undefined)}
+          onComplete={refreshEvaluations}
+        />
+      )}
     </>
   );
 };

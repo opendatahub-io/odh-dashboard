@@ -4,14 +4,16 @@ import { MemoryRouter } from 'react-router-dom';
 import { Table, Tbody } from '@patternfly/react-table';
 import { mockEvaluationJob } from '~/__tests__/unit/testUtils/mockEvaluationData';
 import EvaluationsTableRow from '~/app/components/EvaluationsTableRow';
-import { cancelEvaluationJob, deleteEvaluationJob } from '~/app/api/k8s';
+import { cancelEvaluationJob, createEvaluationJob, deleteEvaluationJob } from '~/app/api/k8s';
 
 jest.mock('~/app/api/k8s', () => ({
   cancelEvaluationJob: jest.fn(),
+  createEvaluationJob: jest.fn(),
   deleteEvaluationJob: jest.fn(),
 }));
 
 const mockCancelEvaluationJob = jest.mocked(cancelEvaluationJob);
+const mockCreateEvaluationJob = jest.mocked(createEvaluationJob) as jest.Mock;
 const mockDeleteEvaluationJob = jest.mocked(deleteEvaluationJob);
 
 const mockOnActionComplete = jest.fn();
@@ -43,6 +45,7 @@ const renderRow = (jobOverrides = {}, rowIndex = 0) => {
 beforeEach(() => {
   jest.clearAllMocks();
   mockCancelEvaluationJob.mockReturnValue(() => Promise.resolve(undefined));
+  mockCreateEvaluationJob.mockReturnValue(() => Promise.resolve(undefined as never));
   mockDeleteEvaluationJob.mockReturnValue(() => Promise.resolve(undefined));
   mockOnSelectionChange.mockReset();
 });
@@ -263,29 +266,19 @@ describe('EvaluationsTableRow', () => {
       });
     });
 
-    it('should show stopping status while cancel request is in flight', async () => {
-      let resolveCancel: () => void;
-      const cancelPromise = new Promise<void>((resolve) => {
-        resolveCancel = resolve;
-      });
-      mockCancelEvaluationJob.mockReturnValue(() => cancelPromise);
-
+    it('should show stopping status after cancel request succeeds', async () => {
       renderRow({ state: 'running', id: 'eval-job-004' });
       fireEvent.click(screen.getByTestId('evaluation-kebab').querySelector('button')!);
       fireEvent.click(screen.getByText('Stop'));
       fireEvent.click(screen.getByTestId('evaluation-stop-confirm'));
 
       await waitFor(() => {
-        expect(screen.getByTestId('status-label-stopping')).toBeInTheDocument();
-      });
-
-      resolveCancel!();
-      await waitFor(() => {
         expect(mockOnActionComplete).toHaveBeenCalled();
+        expect(screen.getByTestId('status-label-stopping')).toBeInTheDocument();
       });
     });
 
-    it('should revert to original state and reopen modal when cancel API fails', async () => {
+    it('should show error in stop modal when cancel API fails', async () => {
       mockCancelEvaluationJob.mockReturnValue(() => Promise.reject(new Error('Cancel failed')));
 
       renderRow({ state: 'running', id: 'eval-job-005' });
@@ -296,7 +289,6 @@ describe('EvaluationsTableRow', () => {
       await waitFor(() => {
         expect(screen.getByText('Cancel failed')).toBeInTheDocument();
       });
-      expect(screen.getByTestId('status-label-running')).toBeInTheDocument();
       expect(mockOnActionComplete).not.toHaveBeenCalled();
     });
 
@@ -313,6 +305,77 @@ describe('EvaluationsTableRow', () => {
         expect(screen.getByText('Network error')).toBeInTheDocument();
       });
       expect(mockOnActionComplete).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('retry action', () => {
+    it('should show Retry action for failed jobs', () => {
+      renderRow({ state: 'failed' });
+      fireEvent.click(screen.getByTestId('evaluation-kebab').querySelector('button')!);
+      expect(screen.getByText('Retry')).toBeInTheDocument();
+    });
+
+    it('should show Retry action for partially_failed jobs', () => {
+      renderRow({ state: 'partially_failed' });
+      fireEvent.click(screen.getByTestId('evaluation-kebab').querySelector('button')!);
+      expect(screen.getByText('Retry')).toBeInTheDocument();
+    });
+
+    it('should show Retry action for cancelled jobs', () => {
+      renderRow({ state: 'cancelled' });
+      fireEvent.click(screen.getByTestId('evaluation-kebab').querySelector('button')!);
+      expect(screen.getByText('Retry')).toBeInTheDocument();
+    });
+
+    it('should show Retry action for stopped jobs', () => {
+      renderRow({ state: 'stopped' });
+      fireEvent.click(screen.getByTestId('evaluation-kebab').querySelector('button')!);
+      expect(screen.getByText('Retry')).toBeInTheDocument();
+    });
+
+    it('should not show Retry action for completed jobs', () => {
+      renderRow({ state: 'completed' });
+      fireEvent.click(screen.getByTestId('evaluation-kebab').querySelector('button')!);
+      expect(screen.queryByText('Retry')).not.toBeInTheDocument();
+    });
+
+    it('should not show Retry action for running jobs', () => {
+      renderRow({ state: 'running' });
+      fireEvent.click(screen.getByTestId('evaluation-kebab').querySelector('button')!);
+      expect(screen.queryByText('Retry')).not.toBeInTheDocument();
+    });
+
+    it('should open retry confirmation modal when Retry is clicked', () => {
+      renderRow({ state: 'failed' });
+      fireEvent.click(screen.getByTestId('evaluation-kebab').querySelector('button')!);
+      fireEvent.click(screen.getByText('Retry'));
+      expect(screen.getByText('Retry evaluation?')).toBeInTheDocument();
+    });
+
+    it('should call createEvaluationJob when retry is confirmed', async () => {
+      renderRow({ state: 'failed', id: 'eval-job-retry' });
+      fireEvent.click(screen.getByTestId('evaluation-kebab').querySelector('button')!);
+      fireEvent.click(screen.getByText('Retry'));
+      fireEvent.click(screen.getByTestId('evaluation-retry-confirm'));
+
+      await waitFor(() => {
+        expect(mockCreateEvaluationJob).toHaveBeenCalledWith(
+          '',
+          'test-ns',
+          expect.objectContaining({ name: expect.any(String) }),
+        );
+        expect(mockOnActionComplete).toHaveBeenCalled();
+      });
+    });
+
+    it('should close retry modal when Cancel is clicked', () => {
+      renderRow({ state: 'failed' });
+      fireEvent.click(screen.getByTestId('evaluation-kebab').querySelector('button')!);
+      fireEvent.click(screen.getByText('Retry'));
+      expect(screen.getByText('Retry evaluation?')).toBeInTheDocument();
+
+      fireEvent.click(screen.getByTestId('evaluation-retry-cancel'));
+      expect(screen.queryByText('Retry evaluation?')).not.toBeInTheDocument();
     });
   });
 });

@@ -23,8 +23,10 @@ import {
   isEvaluationJobComparable,
 } from '~/app/utilities/evaluationUtils';
 import { CollectionNameMap } from '~/app/hooks/useCollectionNameMap';
-import { cancelEvaluationJob, deleteEvaluationJob } from '~/app/api/k8s';
+import { deleteEvaluationJob } from '~/app/api/k8s';
 import EvaluationStatusLabel from './EvaluationStatusLabel';
+import RetryEvaluationModal from './RetryEvaluationModal';
+import StopEvaluationModal from './StopEvaluationModal';
 
 type EvaluationsTableRowProps = {
   job: EvaluationJob;
@@ -39,8 +41,6 @@ type EvaluationsTableRowProps = {
 
 const IN_PROGRESS_STATES = new Set(['running', 'pending', 'stopping']);
 
-type ConfirmAction = 'stop' | 'delete' | null;
-
 const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
   job,
   rowIndex,
@@ -51,7 +51,9 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
   isSelected,
   onSelectionChange,
 }) => {
-  const [confirmAction, setConfirmAction] = React.useState<ConfirmAction>(null);
+  const [showStopModal, setShowStopModal] = React.useState(false);
+  const [showRetryModal, setShowRetryModal] = React.useState(false);
+  const [showDeleteModal, setShowDeleteModal] = React.useState(false);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [isStopping, setIsStopping] = React.useState(false);
   const [actionError, setActionError] = React.useState<string | null>(null);
@@ -59,6 +61,11 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
   const benchmarkName = getBenchmarkName(job, collectionNameMap);
   const allBenchmarkNames = getAllBenchmarkNames(job);
   const isInProgress = IN_PROGRESS_STATES.has(job.status.state);
+  const isRetryable =
+    job.status.state === 'failed' ||
+    job.status.state === 'partially_failed' ||
+    job.status.state === 'cancelled' ||
+    job.status.state === 'stopped';
   const isComparable = isEvaluationJobComparable(job);
   const displayState = isStopping ? 'stopping' : job.status.state;
 
@@ -123,36 +130,27 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
     }
   }, [job.status.state]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const handleConfirm = async () => {
+  const handleStopComplete = React.useCallback(() => {
+    setIsStopping(true);
+    onActionComplete();
+  }, [onActionComplete]);
+
+  const handleDeleteConfirm = async () => {
     if (!namespace) {
       setActionError('Namespace is required to perform this action');
       return;
     }
-    const isStop = confirmAction === 'stop';
     setIsSubmitting(true);
     setActionError(null);
     try {
-      const apiCall = isStop
-        ? cancelEvaluationJob('', namespace, job.resource.id)
-        : deleteEvaluationJob('', namespace, job.resource.id);
-      if (isStop) {
-        setConfirmAction(null);
-        setIsStopping(true);
-      }
-      await apiCall({});
-      if (!isStop) {
-        fireMiscTrackingEvent(EVAL_HUB_EVENTS.EVALUATION_DELETED, {
-          evaluationName,
-          previousState: job.status.state,
-        });
-      }
-      setConfirmAction(null);
+      await deleteEvaluationJob('', namespace, job.resource.id)({});
+      fireMiscTrackingEvent(EVAL_HUB_EVENTS.EVALUATION_DELETED, {
+        evaluationName,
+        previousState: job.status.state,
+      });
+      setShowDeleteModal(false);
       onActionComplete();
     } catch (e) {
-      setIsStopping(false);
-      if (isStop) {
-        setConfirmAction('stop');
-      }
       setActionError(e instanceof Error ? e.message : 'An unexpected error occurred');
     } finally {
       setIsSubmitting(false);
@@ -168,7 +166,15 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
       ? [
           {
             title: 'Stop',
-            onClick: () => setConfirmAction('stop'),
+            onClick: () => setShowStopModal(true),
+          },
+        ]
+      : []),
+    ...(isRetryable
+      ? [
+          {
+            title: 'Retry',
+            onClick: () => setShowRetryModal(true),
           },
         ]
       : []),
@@ -177,7 +183,7 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
           {
             title: 'Delete',
             isDanger: true,
-            onClick: () => setConfirmAction('delete'),
+            onClick: () => setShowDeleteModal(true),
           },
         ]
       : []),
@@ -244,60 +250,75 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
         </Td>
       </Tr>
 
-      <Modal
-        isOpen={confirmAction !== null}
-        onClose={() => {
-          if (isSubmitting) {
-            return;
-          }
-          setConfirmAction(null);
-          setActionError(null);
-        }}
-        variant="small"
-        aria-label={confirmAction === 'stop' ? 'Stop evaluation?' : 'Delete evaluation run?'}
-        data-testid={`evaluation-${confirmAction}-modal`}
-      >
-        <ModalHeader
-          title={confirmAction === 'stop' ? 'Stop evaluation?' : 'Delete evaluation run?'}
-          titleIconVariant="warning"
+      {showRetryModal && (
+        <RetryEvaluationModal
+          job={job}
+          namespace={namespace}
+          onClose={() => setShowRetryModal(false)}
+          onComplete={onActionComplete}
         />
-        <ModalBody>
-          {actionError && (
-            <Alert
+      )}
+
+      {showStopModal && (
+        <StopEvaluationModal
+          job={job}
+          namespace={namespace}
+          onClose={() => setShowStopModal(false)}
+          onComplete={handleStopComplete}
+        />
+      )}
+
+      {showDeleteModal && (
+        <Modal
+          isOpen
+          onClose={() => {
+            if (isSubmitting) {
+              return;
+            }
+            setShowDeleteModal(false);
+            setActionError(null);
+          }}
+          variant="small"
+          aria-label="Delete evaluation run?"
+          data-testid="evaluation-delete-modal"
+        >
+          <ModalHeader title="Delete evaluation run?" titleIconVariant="warning" />
+          <ModalBody>
+            {actionError && (
+              <Alert
+                variant="danger"
+                isInline
+                isPlain
+                title={actionError}
+                className="pf-v6-u-mb-md"
+              />
+            )}
+            {`The ${evaluationName} evaluation run and its results will be deleted.`}
+          </ModalBody>
+          <ModalFooter>
+            <Button
               variant="danger"
-              isInline
-              isPlain
-              title={actionError}
-              className="pf-v6-u-mb-md"
-            />
-          )}
-          {confirmAction === 'stop'
-            ? `The ${evaluationName} evaluation will be stopped, and its progress will be lost.`
-            : `The ${evaluationName} evaluation run and its results will be deleted.`}
-        </ModalBody>
-        <ModalFooter>
-          <Button
-            variant="danger"
-            onClick={handleConfirm}
-            isLoading={isSubmitting}
-            isDisabled={isSubmitting}
-            data-testid={`evaluation-${confirmAction}-confirm`}
-          >
-            {confirmAction === 'stop' ? 'Stop evaluation' : 'Delete'}
-          </Button>
-          <Button
-            variant="link"
-            onClick={() => {
-              setConfirmAction(null);
-              setActionError(null);
-            }}
-            isDisabled={isSubmitting}
-            data-testid={`evaluation-${confirmAction}-cancel`}
-          >
-            Cancel
-          </Button>
-        </ModalFooter>
-      </Modal>
+              onClick={handleDeleteConfirm}
+              isLoading={isSubmitting}
+              isDisabled={isSubmitting}
+              data-testid="evaluation-delete-confirm"
+            >
+              Delete
+            </Button>
+            <Button
+              variant="link"
+              onClick={() => {
+                setShowDeleteModal(false);
+                setActionError(null);
+              }}
+              isDisabled={isSubmitting}
+              data-testid="evaluation-delete-cancel"
+            >
+              Cancel
+            </Button>
+          </ModalFooter>
+        </Modal>
+      )}
     </>
   );
 };

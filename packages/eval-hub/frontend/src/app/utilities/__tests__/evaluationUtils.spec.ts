@@ -1,5 +1,6 @@
 import { mockEvaluationJob } from '~/__tests__/unit/testUtils/mockEvaluationData';
 import {
+  buildRetryRequest,
   getEvaluationName,
   getBenchmarkName,
   getAllBenchmarkNames,
@@ -481,5 +482,71 @@ describe('formatDate', () => {
   it('should return the original string for an invalid date', () => {
     const result = formatDate('not-a-date');
     expect(typeof result).toBe('string');
+  });
+});
+
+describe('buildRetryRequest', () => {
+  it('should map all shared fields from an evaluation job', () => {
+    const job = mockEvaluationJob({ name: 'My Eval', modelName: 'gpt-test' });
+    job.model.url = 'https://example.com/model';
+    job.description = 'A test description';
+    job.tags = ['tag1', 'tag2'];
+    // eslint-disable-next-line camelcase
+    job.pass_criteria = { threshold: 0.8 };
+
+    const request = buildRetryRequest(job);
+
+    expect(request.name).toBe('My Eval');
+    expect(request.description).toBe('A test description');
+    expect(request.tags).toEqual(['tag1', 'tag2']);
+    expect(request.model.url).toBe('https://example.com/model');
+    expect(request.model.name).toBe('gpt-test');
+    expect(request.pass_criteria).toEqual({ threshold: 0.8 });
+  });
+
+  it('should default model.url to empty string when missing', () => {
+    const job = mockEvaluationJob();
+    job.model.url = undefined;
+
+    const request = buildRetryRequest(job);
+
+    expect(request.model.url).toBe('');
+  });
+
+  it('should fall back to getEvaluationName when name is not set', () => {
+    const job = mockEvaluationJob({ tenant: 'My Tenant' });
+
+    const request = buildRetryRequest(job);
+
+    expect(request.name).toBe('My Tenant');
+  });
+
+  it('should convert null benchmarks to undefined', () => {
+    const job = mockEvaluationJob();
+    job.benchmarks = null;
+
+    const request = buildRetryRequest(job);
+
+    expect(request.benchmarks).toBeUndefined();
+  });
+
+  it('should include model auth when present', () => {
+    const job = mockEvaluationJob();
+    // eslint-disable-next-line camelcase
+    job.model.auth = { secret_ref: 'my-secret' };
+
+    const request = buildRetryRequest(job);
+
+    // eslint-disable-next-line camelcase
+    expect(request.model.auth).toEqual({ secret_ref: 'my-secret' });
+  });
+
+  it('should omit model auth when not present', () => {
+    const job = mockEvaluationJob();
+    job.model.auth = undefined;
+
+    const request = buildRetryRequest(job);
+
+    expect(request.model.auth).toBeUndefined();
   });
 });

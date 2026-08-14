@@ -1,4 +1,4 @@
-import { EvaluationJob } from '~/app/types';
+import { CreateEvaluationJobRequest, EvaluationJob } from '~/app/types';
 import { CollectionNameMap } from '~/app/hooks/useCollectionNameMap';
 
 export const getEvaluationName = (job: EvaluationJob): string =>
@@ -205,3 +205,23 @@ export const formatDate = (dateStr?: string): string => {
 /** Only completed runs can be selected for compare. */
 export const isEvaluationJobComparable = (job: EvaluationJob): boolean =>
   job.status.state === 'completed';
+
+export const buildRetryRequest = (job: EvaluationJob): CreateEvaluationJobRequest => ({
+  name: job.name ?? getEvaluationName(job),
+  description: job.description,
+  tags: job.tags,
+  model: {
+    url: job.model.url ?? '',
+    name: job.model.name,
+    parameters: job.model.parameters,
+    // eslint-disable-next-line camelcase
+    auth: job.model.auth ? { secret_ref: job.model.auth.secret_ref } : undefined,
+  },
+  // eslint-disable-next-line camelcase
+  pass_criteria: job.pass_criteria,
+  benchmarks: job.benchmarks ?? undefined,
+  collection: job.collection,
+  experiment: job.experiment,
+  custom: job.custom,
+  exports: job.exports,
+});

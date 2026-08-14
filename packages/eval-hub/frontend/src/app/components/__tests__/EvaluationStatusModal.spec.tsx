@@ -874,3 +874,145 @@ describe('EvaluationStatusModal useEvaluationJobLogs arguments', () => {
     expect(mockUseEvaluationJobLogs).toHaveBeenLastCalledWith('test-ns', 'eval-job-001', 0, 1000);
   });
 });
+
+describe('EvaluationStatusModal stop button', () => {
+  const mockOnRequestStop = jest.fn();
+
+  const renderModalWithStop = (jobOverrides = {}) => {
+    const job = mockEvaluationJob({ state: 'running', ...jobOverrides });
+    return render(
+      <EvaluationStatusModal
+        job={job}
+        namespace="test-ns"
+        onClose={mockOnClose}
+        onRequestStop={mockOnRequestStop}
+      />,
+    );
+  };
+
+  beforeEach(() => {
+    mockOnRequestStop.mockReset();
+  });
+
+  it('should show stop button for running jobs when onRequestStop is provided', () => {
+    renderModalWithStop({ state: 'running' });
+    expect(screen.getByTestId('status-modal-stop-button')).toBeInTheDocument();
+  });
+
+  it('should show stop button for pending jobs when onRequestStop is provided', () => {
+    renderModalWithStop({ state: 'pending' });
+    expect(screen.getByTestId('status-modal-stop-button')).toBeInTheDocument();
+  });
+
+  it('should not show stop button for completed jobs', () => {
+    renderModalWithStop({ state: 'completed' });
+    expect(screen.queryByTestId('status-modal-stop-button')).not.toBeInTheDocument();
+  });
+
+  it('should not show stop button for failed jobs', () => {
+    renderModalWithStop({ state: 'failed' });
+    expect(screen.queryByTestId('status-modal-stop-button')).not.toBeInTheDocument();
+  });
+
+  it('should not show stop button for stopping jobs', () => {
+    renderModalWithStop({ state: 'stopping' });
+    expect(screen.queryByTestId('status-modal-stop-button')).not.toBeInTheDocument();
+  });
+
+  it('should not show stop button for stopped jobs', () => {
+    renderModalWithStop({ state: 'stopped' });
+    expect(screen.queryByTestId('status-modal-stop-button')).not.toBeInTheDocument();
+  });
+
+  it('should not show stop button when onRequestStop is not provided', () => {
+    const job = mockEvaluationJob({ state: 'running' });
+    render(<EvaluationStatusModal job={job} namespace="test-ns" onClose={mockOnClose} />);
+    expect(screen.queryByTestId('status-modal-stop-button')).not.toBeInTheDocument();
+  });
+
+  it('should call onRequestStop with the job when stop button is clicked', () => {
+    const job = mockEvaluationJob({ state: 'running' });
+    render(
+      <EvaluationStatusModal
+        job={job}
+        namespace="test-ns"
+        onClose={mockOnClose}
+        onRequestStop={mockOnRequestStop}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId('status-modal-stop-button'));
+    expect(mockOnRequestStop).toHaveBeenCalledWith(job);
+  });
+});
+
+describe('EvaluationStatusModal retry button', () => {
+  const mockOnRetry = jest.fn();
+
+  const renderModalWithRetry = (jobOverrides = {}) => {
+    const job = mockEvaluationJob({ ...jobOverrides });
+    return render(
+      <EvaluationStatusModal
+        job={job}
+        namespace="test-ns"
+        onClose={mockOnClose}
+        onRequestRetry={mockOnRetry}
+      />,
+    );
+  };
+
+  beforeEach(() => {
+    mockOnRetry.mockReset();
+  });
+
+  it('should show retry button for failed jobs when onRequestRetry is provided', () => {
+    renderModalWithRetry({ state: 'failed', statusMessage: 'Something failed' });
+    expect(screen.getByTestId('status-modal-retry-button')).toBeInTheDocument();
+  });
+
+  it('should show retry button for partially_failed jobs when onRequestRetry is provided', () => {
+    renderModalWithRetry({ state: 'partially_failed' });
+    expect(screen.getByTestId('status-modal-retry-button')).toBeInTheDocument();
+  });
+
+  it('should show retry button for cancelled jobs when onRequestRetry is provided', () => {
+    renderModalWithRetry({ state: 'cancelled' });
+    expect(screen.getByTestId('status-modal-retry-button')).toBeInTheDocument();
+  });
+
+  it('should show retry button for stopped jobs when onRequestRetry is provided', () => {
+    renderModalWithRetry({ state: 'stopped' });
+    expect(screen.getByTestId('status-modal-retry-button')).toBeInTheDocument();
+  });
+
+  it('should not show retry button for completed jobs', () => {
+    renderModalWithRetry({ state: 'completed' });
+    expect(screen.queryByTestId('status-modal-retry-button')).not.toBeInTheDocument();
+  });
+
+  it('should not show retry button for running jobs', () => {
+    renderModalWithRetry({ state: 'running' });
+    expect(screen.queryByTestId('status-modal-retry-button')).not.toBeInTheDocument();
+  });
+
+  it('should not show retry button when onRequestRetry is not provided', () => {
+    const job = mockEvaluationJob({ state: 'failed', statusMessage: 'Something failed' });
+    render(<EvaluationStatusModal job={job} namespace="test-ns" onClose={mockOnClose} />);
+    expect(screen.queryByTestId('status-modal-retry-button')).not.toBeInTheDocument();
+  });
+
+  it('should call onRequestRetry with the job when retry button is clicked', () => {
+    const job = mockEvaluationJob({ state: 'failed', statusMessage: 'Something failed' });
+    render(
+      <EvaluationStatusModal
+        job={job}
+        namespace="test-ns"
+        onClose={mockOnClose}
+        onRequestRetry={mockOnRetry}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId('status-modal-retry-button'));
+    expect(mockOnRetry).toHaveBeenCalledWith(job);
+  });
+});

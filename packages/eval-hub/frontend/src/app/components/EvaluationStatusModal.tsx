@@ -59,6 +59,8 @@ type EvaluationStatusModalProps = {
   job: EvaluationJob | undefined;
   namespace: string;
   onClose: () => void;
+  onRequestStop?: (job: EvaluationJob) => void;
+  onRequestRetry?: (job: EvaluationJob) => void;
 };
 
 const ALL_BENCHMARKS = 'all';
@@ -280,6 +282,8 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
   job,
   namespace,
   onClose,
+  onRequestStop,
+  onRequestRetry,
 }) => {
   const [activeTab, setActiveTab] = React.useState<string>('failure-info');
   const [selectedBenchmark, setSelectedBenchmark] = React.useState<string>(ALL_BENCHMARKS);
@@ -444,6 +448,7 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
     isInProgress ? new Date().toISOString() : job.resource.updated_at,
   );
   const isFailed = state === 'failed' || state === 'partially_failed';
+  const isRetryable = isFailed || state === 'cancelled' || state === 'stopped';
 
   const headerIconStatus: 'success' | 'danger' | 'warning' | undefined =
     state === 'completed'
@@ -937,6 +942,24 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
         </div>
       </ModalBody>
       <ModalFooter>
+        {onRequestStop && (state === 'running' || state === 'pending') && (
+          <Button
+            variant="primary"
+            onClick={() => onRequestStop(job)}
+            data-testid="status-modal-stop-button"
+          >
+            Stop evaluation
+          </Button>
+        )}
+        {onRequestRetry && isRetryable && (
+          <Button
+            variant="primary"
+            onClick={() => onRequestRetry(job)}
+            data-testid="status-modal-retry-button"
+          >
+            Retry evaluation
+          </Button>
+        )}
         <Button variant="link" onClick={onClose} data-testid="status-modal-close-button">
           Close
         </Button>
