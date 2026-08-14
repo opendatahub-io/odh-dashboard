@@ -65,20 +65,9 @@ abstract class BaseOdhHostFederationPlugin<TCompiler> {
       };
     }
 
-    // plugin-core and k8s-core carry React context (DashboardConfigContext, PluginStore)
-    // across Module Federation boundaries. They must be eager so rspack registers them
-    // in its shared scope before any webpack remote (which uses import:false) loads and
-    // requests them synchronously. ui-core and internal are intentionally excluded —
-    // they have patternfly transitive deps that are not eager and would cascade this error.
-    const EAGER_ODH_SINGLETONS = new Set(['@odh-dashboard/plugin-core', '@odh-dashboard/k8s-core']);
-
     const { all: odhPackages } = getRuntimeOdhPackages();
     for (const pkgName of odhPackages) {
-      shared[pkgName] = {
-        singleton: true,
-        requiredVersion: '*',
-        ...(EAGER_ODH_SINGLETONS.has(pkgName) && { eager: true }),
-      };
+      shared[pkgName] = { singleton: true, requiredVersion: '*' };
     }
 
     // Plugin-defined shared modules take precedence over additionalShared entries
