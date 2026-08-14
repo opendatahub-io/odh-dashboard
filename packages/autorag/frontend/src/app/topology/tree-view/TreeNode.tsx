@@ -34,6 +34,7 @@ import { usePatternsExpand } from './PatternsExpandContext';
 import { isTreeNodeData, treeStepStateToNodeStatus } from './treeStepState';
 import PendingHourglassGlyph from './icons/PendingHourglassGlyph';
 import { resolveTaskIconForNodeId } from './stageTaskIcons';
+import { useBoundedCaptionHeight } from './treeCaptionHeight';
 import './TreeNode.scss';
 
 export type TreeNodeData = {
@@ -446,7 +447,13 @@ const TreeNodeInner: React.FC<{
   const labelWidth = showPatternsToggle ? 140 : 96;
   // Branch corridor nodes are smaller; pad label so it lines up with stage-node labels.
   const labelY = height + 4 + (branchStep ? (48 - height) / 2 : 0);
-  const captionHeight = showPatternsToggle ? 80 : labelSubtitle ? 52 : 36;
+  const [captionHeight, captionRef] = useBoundedCaptionHeight({
+    showExpandToggle: showPatternsToggle,
+    labelSubtitle,
+    label,
+    labelWidth,
+    expandToggleExpanded: patternsExpand?.patternsExpanded,
+  });
 
   const attachments = React.useMemo(() => {
     if (!showsTaskIcon) {
@@ -507,7 +514,7 @@ const TreeNodeInner: React.FC<{
             height={captionHeight}
             style={{ overflow: 'visible' }}
           >
-            <div className="autorag-tree-node__caption">
+            <div ref={captionRef} className="autorag-tree-node__caption">
               {label ? (
                 <div
                   className={cx(

@@ -34,6 +34,7 @@ import { useModelsExpand } from './ModelsExpandContext';
 import { isTreeNodeData, treeStepStateToNodeStatus } from './treeStepState';
 import PendingHourglassGlyph from './icons/PendingHourglassGlyph';
 import { resolveTaskIconForNodeId } from './stageTaskIcons';
+import { useBoundedCaptionHeight } from './treeCaptionHeight';
 import './TreeNode.scss';
 
 export type TreeNodeData = {
@@ -445,7 +446,13 @@ const TreeNodeInner: React.FC<{
   const showModelsToggle = data?.showModelsToggle === true && modelsExpand?.showToggle === true;
   const labelWidth = showModelsToggle ? 140 : 96;
   const labelY = height + 4 + (branchStep ? (48 - height) / 2 : 0);
-  const captionHeight = showModelsToggle ? 80 : labelSubtitle ? 52 : 36;
+  const [captionHeight, captionRef] = useBoundedCaptionHeight({
+    showExpandToggle: showModelsToggle,
+    labelSubtitle,
+    label,
+    labelWidth,
+    expandToggleExpanded: modelsExpand?.modelsExpanded,
+  });
 
   const attachments = React.useMemo(() => {
     if (!showsTaskIcon) {
@@ -505,7 +512,7 @@ const TreeNodeInner: React.FC<{
             height={captionHeight}
             style={{ overflow: 'visible' }}
           >
-            <div className="automl-tree-node__caption">
+            <div ref={captionRef} className="automl-tree-node__caption">
               {label ? (
                 <div
                   className={cx(
