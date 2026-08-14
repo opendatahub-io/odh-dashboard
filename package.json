@@ -108,7 +108,7 @@
     },
     "react-router": "^7.18.2",
     "ws": "^8.21.0",
-    "dompurify": "^3.4.0",
+    "dompurify": "^3.4.13",
     "@types/tar": "^6.1.13",
     "jsonpath-plus": "^10.3.0",
     "tough-cookie": "^4.1.3",
