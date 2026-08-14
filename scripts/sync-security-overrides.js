@@ -265,6 +265,12 @@ function main() {
       const dir = path.dirname(target);
       console.log(`  npm install in ${relativePath(dir)}`);
       try {
+        // npm can strip resolved/integrity from lockfiles when node_modules already
+        // exists (registry metadata comes from the tree, not the registry).
+        const nodeModulesDir = path.join(dir, 'node_modules');
+        if (fs.existsSync(nodeModulesDir)) {
+          fs.rmSync(nodeModulesDir, { recursive: true, force: true });
+        }
         execSync('npm install --package-lock-only --ignore-scripts', {
           cwd: dir,
           stdio: 'pipe',
