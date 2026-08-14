@@ -4,6 +4,11 @@ import {
   EmptyState,
   EmptyStateBody,
   EmptyStateFooter,
+  EmptyStateVariant,
+  EmptyStateActions,
+  PageSection,
+  SearchInput,
+  Title,
   ToolbarGroup,
   ToolbarItem,
 } from '@patternfly/react-core';
@@ -21,6 +26,7 @@ import { verbModelAccess } from '@odh-dashboard/internal/concepts/userSSAR/utils
 import DeleteFeatureStoreModal from './DeleteFeatureStoreModal';
 import FeatureStoreTableRow from './FeatureStoreTableRow';
 import useExistingFeatureStores from '../../hooks/useExistingFeatureStores';
+import FeatureStoreObjectIcon from '../../components/FeatureStoreObjectIcon';
 import { FEATURE_STORE_UI_LABEL_KEY, FEATURE_STORE_UI_LABEL_VALUE } from '../../const';
 import { FeatureStoreKind } from '../../k8sTypes';
 
@@ -38,7 +44,7 @@ const columns: SortableData<FeatureStoreKind>[] = [
   },
   {
     field: 'namespace',
-    label: 'Namespace',
+    label: 'Project',
     width: 20,
     sortable: (a, b) => a.metadata.namespace.localeCompare(b.metadata.namespace),
   },
@@ -89,6 +95,19 @@ const FeatureStoreListPage: React.FC = () => {
   const [canDelete] = useAccessAllowed(verbModelAccess('delete', FeatureStoreModel));
   const [deleteTarget, setDeleteTarget] = React.useState<FeatureStoreKind | undefined>();
   const [expandedRows, setExpandedRows] = React.useState<Set<string>>(new Set());
+  const [nameFilter, setNameFilter] = React.useState('');
+
+  const filteredStores = React.useMemo(() => {
+    if (!nameFilter) {
+      return featureStores;
+    }
+    const lower = nameFilter.toLowerCase();
+    return featureStores.filter(
+      (fs) =>
+        fs.metadata.name.toLowerCase().includes(lower) ||
+        fs.metadata.namespace.toLowerCase().includes(lower),
+    );
+  }, [featureStores, nameFilter]);
 
   const toggleRowExpansion = React.useCallback((name: string) => {
     setExpandedRows((prev) => {
@@ -110,23 +129,39 @@ const FeatureStoreListPage: React.FC = () => {
   };
 
   const emptyStatePage = (
-    <EmptyState
-      headingLevel="h2"
-      titleText="No feature stores yet"
-      icon={CubesIcon}
-      data-testid="empty-feature-stores"
-    >
-      <EmptyStateBody>To get started, create a feature store.</EmptyStateBody>
-      {canCreate && (
-        <EmptyStateFooter>
-          <CreateFeatureStoreButton data-testid="create-feature-store-empty-btn" />
-        </EmptyStateFooter>
-      )}
-    </EmptyState>
+    <PageSection isFilled>
+      <EmptyState
+        variant={EmptyStateVariant.full}
+        data-testid="empty-feature-stores"
+        icon={CubesIcon}
+      >
+        <Title data-testid="no-available-feature-stores" headingLevel="h5" size="lg">
+          No feature stores yet
+        </Title>
+        <EmptyStateBody>To get started, create a feature store.</EmptyStateBody>
+        {canCreate && (
+          <EmptyStateFooter>
+            <EmptyStateActions>
+              <CreateFeatureStoreButton data-testid="create-feature-store-empty-btn" />
+            </EmptyStateActions>
+          </EmptyStateFooter>
+        )}
+      </EmptyState>
+    </PageSection>
   );
 
   const toolbarContent = (
     <ToolbarGroup>
+      <ToolbarItem>
+        <SearchInput
+          aria-label="Filter by name or project"
+          placeholder="Filter by name or project"
+          value={nameFilter}
+          onChange={(_event: React.FormEvent, value: string) => setNameFilter(value)}
+          onClear={() => setNameFilter('')}
+          data-testid="feature-store-filter-input"
+        />
+      </ToolbarItem>
       {canCreate && (
         <ToolbarItem>
           <CreateFeatureStoreButton data-testid="create-feature-store-toolbar-btn" />
@@ -138,8 +173,8 @@ const FeatureStoreListPage: React.FC = () => {
   return (
     <>
       <ApplicationsPage
-        title="Feature stores"
-        description="View and manage your feature store instances."
+        title={<FeatureStoreObjectIcon objectType="feature_store" title="Feature stores" />}
+        description="Manage feature store instances for your organization."
         loaded={loaded}
         loadError={error}
         empty={featureStores.length === 0}
@@ -150,11 +185,12 @@ const FeatureStoreListPage: React.FC = () => {
           data-testid="feature-store-list-table"
           id="feature-store-list-table"
           enablePagination
-          data={featureStores}
+          data={filteredStores}
+          onClearFilters={() => setNameFilter('')}
           columns={columns}
           defaultSortColumn={1}
           toolbarContent={toolbarContent}
-          emptyTableView={<DashboardEmptyTableView onClearFilters={() => undefined} />}
+          emptyTableView={<DashboardEmptyTableView onClearFilters={() => setNameFilter('')} />}
           rowRenderer={(fs, rowIndex) => (
             <FeatureStoreTableRow
               key={fs.metadata.uid}
