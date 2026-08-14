@@ -32,9 +32,10 @@ type DeploymentFooterProps = {
  * `onSave` and `onCancel` are not provided because they are handled by the useWizardContext inside.
  */
 export const ModelDeploymentWizardFooter: React.FC<
-  Omit<DeploymentFooterProps, 'onSave' | 'onCancel' | 'isSubmitDisabled'>
+  Omit<DeploymentFooterProps, 'onSave' | 'onCancel'>
 > = ({
   submitButtonText = 'Deploy model',
+  isSubmitDisabled,
   onOverwrite,
   onRefresh,
   isLoading,
@@ -74,7 +75,10 @@ export const ModelDeploymentWizardFooter: React.FC<
                   variant="primary"
                   onClick={goToNextStep}
                   isLoading={isLoading}
-                  isDisabled={isLoading || steps[activeStep.index]?.isDisabled}
+                  isDisabled={
+                    isLoading ||
+                    (isFinalStep ? isSubmitDisabled : steps[activeStep.index]?.isDisabled)
+                  }
                 >
                   {isFinalStep ? submitButtonText : 'Next'}
                 </Button>

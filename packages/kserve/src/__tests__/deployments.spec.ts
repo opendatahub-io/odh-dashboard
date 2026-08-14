@@ -4,7 +4,7 @@ import type { InferenceServiceKind, ServingRuntimeKind } from '@odh-dashboard/mo
 import { mockInferenceServiceK8sResource } from '@odh-dashboard/model-serving/__mocks__/mockInferenceServiceK8sResource';
 import { mockServingRuntimeK8sResource } from '@odh-dashboard/model-serving/__mocks__/mockServingRuntimeK8sResource';
 import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
-import type { KServeDeployment } from '../deployments';
+import type { KServeDeployment } from '../types';
 import { useWatchDeployments } from '../deployments';
 import * as watchModule from '../api/watch';
 
@@ -17,8 +17,8 @@ jest.mock('@odh-dashboard/plugin-core', () => ({
 }));
 
 // Mock Kueue status - not under test here, exercised by useKueueStatusForDeployments.spec.ts
-jest.mock('@odh-dashboard/internal/pages/modelServing/useKueueStatusForDeployments', () => ({
-  useKueueStatusForDeployments: jest.fn(() => ({
+jest.mock('@odh-dashboard/internal/pages/modelServing/useKueueStatusWithQueuePositions', () => ({
+  useKueueStatusWithQueuePositions: jest.fn(() => ({
     kueueStatusByDeploymentKey: {},
     isLoading: false,
     error: null,
@@ -28,9 +28,9 @@ jest.mock('@odh-dashboard/internal/pages/modelServing/useKueueStatusForDeploymen
 const mockUseWatchInferenceServices = watchModule.useWatchInferenceServices as jest.Mock;
 const mockUseWatchServingRuntimes = watchModule.useWatchServingRuntimes as jest.Mock;
 const mockUseWatchDeploymentPods = watchModule.useWatchDeploymentPods as jest.Mock;
-const mockUseKueueStatusForDeployments = jest.requireMock(
-  '@odh-dashboard/internal/pages/modelServing/useKueueStatusForDeployments',
-).useKueueStatusForDeployments as jest.Mock;
+const mockUseKueueStatusWithQueuePositions = jest.requireMock(
+  '@odh-dashboard/internal/pages/modelServing/useKueueStatusWithQueuePositions',
+).useKueueStatusWithQueuePositions as jest.Mock;
 
 // Type helper for hook return value
 type DeploymentHookResult = [KServeDeployment[] | undefined, boolean, Error[] | undefined];
@@ -196,7 +196,7 @@ describe('useWatchDeployments', () => {
   });
 
   it('should surface Kueue watch errors (e.g. 403 for missing RBAC) instead of silently dropping them', () => {
-    mockUseKueueStatusForDeployments.mockReturnValue({
+    mockUseKueueStatusWithQueuePositions.mockReturnValue({
       kueueStatusByDeploymentKey: {},
       isLoading: false,
       error: 'Forbidden',
@@ -264,7 +264,7 @@ describe('useWatchDeployments', () => {
   });
 
   it('should default status.kueueStatus to null (not undefined) when the IS has no entry in kueueStatusByDeploymentKey', () => {
-    mockUseKueueStatusForDeployments.mockReturnValue({
+    mockUseKueueStatusWithQueuePositions.mockReturnValue({
       kueueStatusByDeploymentKey: {},
       isLoading: false,
       error: null,

@@ -7,15 +7,21 @@ import TypeaheadSelect, {
 import type { ProjectSectionType } from '@odh-dashboard/model-serving/shared/wizard-fields';
 import type { WizardField } from '@odh-dashboard/model-serving/shared/types/form-data';
 import { NIMModelLocationKey } from '@odh-dashboard/model-serving/shared/wizard-fields';
+import { TemplateKind } from '@odh-dashboard/k8s-core';
 import useNIMAccountStatus, { NIMAccountStatus } from '../../../api/accounts/hooks';
 import NIMSettingsLink from '../../projectSettings/NIMSettingsLink';
 import { useNIMImages, type NIMImagesData } from '../../../api/images/hooks';
 import type { NIMImage } from '../../../api/images/types';
 import { getImageRepository, normalizeVersion } from '../../../api/images/utils';
+import { useFetchNIMTemplate } from '../../../api/servingruntime/useFetchNIMTemplate';
+
+export const isNIMImageFieldExternalData = (data: unknown): data is NIMImageFieldExternalData =>
+  !!data && typeof data === 'object' && 'nimImages' in data && 'accountStatus' in data;
 
 export type NIMImageFieldExternalData = {
   nimImages: NIMImagesData;
   accountStatus: NIMAccountStatus;
+  nimTemplate?: TemplateKind;
 };
 
 const useNIMImageFieldExternalData = (dependencies?: {
@@ -42,15 +48,25 @@ const useNIMImageFieldExternalData = (dependencies?: {
     accountLoaded,
   });
 
-  const loaded = !projectName || (imagesLoaded && accountLoaded);
+  // Load Template early for future yaml previewing
+  const {
+    data: nimTemplate,
+    error: nimTemplateError,
+    loaded: nimTemplateLoaded,
+  } = useFetchNIMTemplate(nimAccount);
+
+  // Show as loaded if there is an error, otherwise loaded is false (for example existing deployments don't care)
+  const loaded =
+    !projectName ||
+    ((imagesLoaded || !!loadError) && accountLoaded && (nimTemplateLoaded || !!nimTemplateError));
 
   return React.useMemo(
     () => ({
-      data: { nimImages, accountStatus },
+      data: { nimImages, accountStatus, nimTemplate },
       loaded,
-      loadError,
+      loadError: loadError ?? nimTemplateError,
     }),
-    [nimImages, accountStatus, loaded, loadError],
+    [nimImages, accountStatus, nimTemplate, loaded, loadError, nimTemplateError],
   );
 };
 
@@ -182,6 +198,7 @@ const NIMImageFieldComponent: React.FC<NIMImageFieldComponentProps> = ({
   return (
     <FormGroup label="NIM image" fieldId="nim-image-selection" isRequired>
       <TypeaheadSelect
+        dataTestId="nim-image-select"
         toggleWidth="450px"
         selectOptions={options}
         selected={selectedKey}

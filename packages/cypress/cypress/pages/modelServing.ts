@@ -2,6 +2,7 @@ import { appChrome } from './appChrome';
 import { Modal } from './components/Modal';
 import { TableRow } from './components/table';
 import { K8sNameDescriptionField } from './components/subComponents/K8sNameDescriptionField';
+import { NIMWizardFields } from './modelServing/NIMWizardFields';
 import { Contextual } from './components/Contextual';
 import { Wizard } from './components/Wizard';
 import { DeleteModal } from './components/DeleteModal';
@@ -935,6 +936,8 @@ class ModelServingSection {
 }
 
 class ModelServingWizard extends Wizard {
+  nim = new NIMWizardFields();
+
   constructor(private edit = false) {
     super('Deploy a model', edit ? 'Update deployment' : 'Deploy model');
   }

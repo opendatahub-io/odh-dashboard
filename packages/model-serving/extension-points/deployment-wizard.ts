@@ -13,6 +13,7 @@ import type {
   ModelLocationData,
 } from '../src/shared/types/form-data';
 import type { ModelTypeFieldData, ModelServerSelectFieldData } from '../src/shared/wizard-fields';
+import type { ExternalDataMap } from '../src/components/deploymentWizard/ExternalDataLoader';
 
 export type ModelServingDeploymentFormDataExtension<D extends Deployment = Deployment> = Extension<
   'model-serving.deployment/form-data',
@@ -74,6 +75,7 @@ export type ModelServingDeploy<D extends Deployment = Deployment> = Extension<
     deploy: CodeRef<
       (
         wizardData: WizardFormData['state'],
+        externalData: ExternalDataMap,
         projectName: string,
         existingDeployment?: D,
         modelResource?: D['model'],

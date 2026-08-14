@@ -23,6 +23,7 @@ import type { InferenceServiceKind } from '@odh-dashboard/model-serving/shared';
 import { mockNimAccount } from '@odh-dashboard/internal/__mocks__/mockNimAccount';
 import { mockOdhApplication } from '@odh-dashboard/k8s-core/__mocks__/mockOdhApplication';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
+import { mockStorageClassList } from '@odh-dashboard/internal/__mocks__/mockStorageClasses';
 import {
   ConfigMapModel,
   HardwareProfileModel,
@@ -32,15 +33,19 @@ import {
   PVCModel,
   SecretModel,
   ServingRuntimeModel,
+  StorageClassModel,
   TemplateModel,
 } from './models';
+import { initMockModelAuthIntercepts } from './modelServingUtils';
 
 /* ###################################################
    ###### Interception Initialization Utilities ######
    ################################################### */
 
 // intercept all APIs required for enabling NIM
-export const initInterceptsToEnableNim = (): void => {
+export const initInterceptsToEnableNim = ({
+  nimWizard = false,
+}: { nimWizard?: boolean } = {}): void => {
   cy.interceptOdh(
     'GET /api/dsc/status',
     mockDscStatus({
@@ -55,6 +60,7 @@ export const initInterceptsToEnableNim = (): void => {
     mockDashboardConfig({
       disableKServe: false,
       disableNIMModelServing: false,
+      nimWizard,
     }),
   );
 
@@ -112,6 +118,67 @@ export const initInterceptsToDeployModel = (nimInferenceService: InferenceServic
 
   cy.interceptK8s('POST', PVCModel, mockNimModelPVC());
   cy.interceptK8s('GET', NIMAccountModel, mockNimAccount({}));
+};
+
+/**
+ * Intercepts for deploying a legacy NIM model through the model deployment wizard.
+ *
+ * Layers on top of `initInterceptsToEnableNim({ nimWizard: true })` and sets up:
+ * `@createInferenceService`, `@createServingRuntime`, plus the token auth resources
+ * from `initMockModelAuthIntercepts`.
+ */
+export const initInterceptsToDeployNimInWizard = ({
+  namespace = 'test-project',
+  modelName = 'test-model',
+}: {
+  namespace?: string;
+  modelName?: string;
+} = {}): void => {
+  // used by addSupportServingPlatformProject
+  cy.interceptOdh(
+    'GET /api/namespaces/:namespace/:context',
+    { path: { namespace, context: '*' } },
+    { applied: true },
+  );
+  cy.interceptOdh('GET /api/connection-types', []);
+
+  // The wizard reads a project-scoped NIM account, and resolves the images config map and the
+  // runtime template out of that account's own namespace.
+  cy.interceptK8sList(
+    { model: NIMAccountModel, ns: namespace },
+    mockK8sResourceList([
+      mockNimAccount({ namespace, runtimeTemplateName: 'odh-nim-account-template' }),
+    ]),
+  );
+  cy.interceptK8s(ConfigMapModel, mockNimImages({ namespace }));
+  cy.interceptK8s(
+    TemplateModel,
+    mockNimServingRuntimeTemplate({ namespace, name: 'odh-nim-account-template' }),
+  );
+
+  // NIM PVC caching field
+  cy.interceptK8sList(StorageClassModel, mockStorageClassList());
+  cy.interceptK8sList({ model: PVCModel, ns: namespace }, mockK8sResourceList([]));
+
+  cy.interceptK8s(
+    'POST',
+    { model: InferenceServiceModel, ns: namespace },
+    { statusCode: 200, body: mockNimInferenceService({ namespace }) },
+  ).as('createInferenceService');
+
+  cy.interceptK8s(
+    'POST',
+    { model: ServingRuntimeModel, ns: namespace },
+    { statusCode: 200, body: mockNimServingRuntime() },
+  ).as('createServingRuntime');
+
+  initMockModelAuthIntercepts({
+    modelName,
+    namespace,
+    getResponse: 404,
+    // the wizard seeds the token auth field with a `default-token` named token
+    serviceAccountSecretName: `default-token-${modelName}-sa`,
+  });
 };
 
 // intercept all APIs required for deleting an existing NIM models

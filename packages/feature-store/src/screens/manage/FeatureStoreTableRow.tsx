@@ -190,7 +190,7 @@ const FeatureStoreTableRow: React.FC<FeatureStoreTableRowProps> = ({
             </>
           )}
         </Td>
-        <Td dataLabel="Namespace">{fs.metadata.namespace}</Td>
+        <Td dataLabel="Project">{fs.metadata.namespace}</Td>
         <Td dataLabel="Status">
           {phaseLabel(resolveEffectivePhase(fs.status?.phase, fs.status?.conditions))}
         </Td>

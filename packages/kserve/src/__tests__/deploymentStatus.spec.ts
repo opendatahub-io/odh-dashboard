@@ -2,7 +2,7 @@ import { mockInferenceServiceK8sResource } from '@odh-dashboard/model-serving/__
 import { ModelDeploymentState } from '@odh-dashboard/model-serving/shared';
 import type { InferenceServiceKind } from '@odh-dashboard/model-serving/shared';
 import { KueueWorkloadStatus } from '@odh-dashboard/internal/concepts/kueue/types';
-import { getKServeDeploymentConditions } from '../deploymentStatus';
+import { getKServeDeploymentConditions, getKServeDeploymentStatus } from '../deploymentStatus';
 
 describe('getKServeDeploymentConditions', () => {
   it('should include deployment requested from creationTimestamp', () => {
@@ -357,5 +357,16 @@ describe('getKServeDeploymentConditions', () => {
 
     const createPod = conditions.find((c) => c.type === 'CreatePod');
     expect(createPod?.status).not.toBe('True');
+  });
+
+  it('should set isStarting true and isRunning false when LOADED with Queued Kueue status', () => {
+    const isvc = mockInferenceServiceK8sResource({});
+    const status = getKServeDeploymentStatus(isvc, [], {
+      status: KueueWorkloadStatus.Queued,
+      queueName: 'test-queue',
+    });
+
+    expect(status.stoppedStates?.isStarting).toBe(true);
+    expect(status.stoppedStates?.isRunning).toBe(false);
   });
 });
