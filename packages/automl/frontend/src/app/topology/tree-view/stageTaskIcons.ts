@@ -7,15 +7,15 @@ import {
   DatabaseIcon,
   EqualizerIcon,
   InfrastructureIcon,
+  RhUiAiModelIcon,
+  RhUiDistributeIcon,
+  RhUiGearGroupIcon,
+  RhUiInstallIcon,
+  RhUiMonitoringIcon,
   SearchIcon,
   StarIcon,
 } from '@patternfly/react-icons';
 import type { SVGIconProps } from '@patternfly/react-icons/dist/esm/createIcon';
-import RhUiAiModelIcon from './icons/RhUiAiModelIcon';
-import RhUiDistributeIcon from './icons/RhUiDistributeIcon';
-import RhUiGearGroupIcon from './icons/RhUiGearGroupIcon';
-import RhUiInstallIcon from './icons/RhUiInstallIcon';
-import RhUiMonitoringIcon from './icons/RhUiMonitoringIcon';
 import { parseStageMapNodeId } from './stageMapStepMetadata';
 
 export type TaskIconComponent = ComponentType<SVGIconProps>;

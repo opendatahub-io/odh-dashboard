@@ -5,13 +5,13 @@ import {
   DatabaseIcon,
   EqualizerIcon,
   InfrastructureIcon,
+  RhUiAiModelIcon,
+  RhUiDistributeIcon,
+  RhUiInstallIcon,
+  RhUiMonitoringIcon,
   SearchIcon,
   StarIcon,
 } from '@patternfly/react-icons';
-import RhUiAiModelIcon from '~/app/topology/tree-view/icons/RhUiAiModelIcon';
-import RhUiDistributeIcon from '~/app/topology/tree-view/icons/RhUiDistributeIcon';
-import RhUiInstallIcon from '~/app/topology/tree-view/icons/RhUiInstallIcon';
-import RhUiMonitoringIcon from '~/app/topology/tree-view/icons/RhUiMonitoringIcon';
 import {
   DEFAULT_TASK_ICON,
   MODEL_BRANCH_TASK_ICON,

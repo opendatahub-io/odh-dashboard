@@ -7,12 +7,12 @@ import {
   OutlinedFileAltIcon,
   PficonTemplateIcon,
   RegistryIcon,
+  RhUiDistributeIcon,
+  RhUiGearGroupIcon,
+  RhUiInstallIcon,
   SearchIcon,
   StarIcon,
 } from '@patternfly/react-icons';
-import RhUiDistributeIcon from '~/app/topology/tree-view/icons/RhUiDistributeIcon';
-import RhUiGearGroupIcon from '~/app/topology/tree-view/icons/RhUiGearGroupIcon';
-import RhUiInstallIcon from '~/app/topology/tree-view/icons/RhUiInstallIcon';
 import {
   DEFAULT_TASK_ICON,
   PATTERN_BRANCH_TASK_ICON,

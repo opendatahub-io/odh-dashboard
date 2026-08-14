@@ -9,13 +9,13 @@ import {
   OutlinedFileAltIcon,
   PficonTemplateIcon,
   RegistryIcon,
+  RhUiDistributeIcon,
+  RhUiGearGroupIcon,
+  RhUiInstallIcon,
   SearchIcon,
   StarIcon,
 } from '@patternfly/react-icons';
 import type { SVGIconProps } from '@patternfly/react-icons/dist/esm/createIcon';
-import RhUiDistributeIcon from './icons/RhUiDistributeIcon';
-import RhUiGearGroupIcon from './icons/RhUiGearGroupIcon';
-import RhUiInstallIcon from './icons/RhUiInstallIcon';
 import { parseStageMapNodeId } from './stageMapStepMetadata';
 
 export type TaskIconComponent = ComponentType<SVGIconProps>;
