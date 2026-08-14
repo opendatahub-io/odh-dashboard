@@ -378,9 +378,9 @@ describe('EvaluationsTableRow', () => {
       expect(screen.queryByText('Retry evaluation?')).not.toBeInTheDocument();
     });
 
-    it('should hide Retry action after successful retry until refresh clears retryable state', async () => {
+    it('should keep Retry available for the source job after a successful retry', async () => {
       const job = mockEvaluationJob({ state: 'failed', id: 'eval-retry-dup' });
-      const { rerender } = render(
+      render(
         <MemoryRouter>
           <Table aria-label="test">
             <Tbody>
@@ -408,34 +408,9 @@ describe('EvaluationsTableRow', () => {
         expect(mockOnActionComplete).toHaveBeenCalledTimes(1);
       });
 
-      // Retry action should be hidden while isRetrying is set
+      // Retry should still be available for the source job
       fireEvent.click(screen.getByTestId('evaluation-kebab').querySelector('button')!);
-      expect(screen.queryByText('Retry')).not.toBeInTheDocument();
-
-      // Simulate a delayed refresh where the job transitions to a non-retryable state
-      const updatedJob = mockEvaluationJob({ state: 'running', id: 'eval-retry-dup' });
-      rerender(
-        <MemoryRouter>
-          <Table aria-label="test">
-            <Tbody>
-              <EvaluationsTableRow
-                job={updatedJob}
-                rowIndex={0}
-                namespace="test-ns"
-                collectionNameMap={{}}
-                onActionComplete={mockOnActionComplete}
-                onShowStatus={mockOnShowStatus}
-                isSelected={false}
-                onSelectionChange={mockOnSelectionChange}
-              />
-            </Tbody>
-          </Table>
-        </MemoryRouter>,
-      );
-
-      // isRetrying should be cleared because the job is no longer retryable
-      fireEvent.click(screen.getByTestId('evaluation-kebab').querySelector('button')!);
-      expect(screen.queryByText('Retry')).not.toBeInTheDocument();
+      expect(screen.getByText('Retry')).toBeInTheDocument();
     });
   });
 });

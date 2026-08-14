@@ -55,6 +55,14 @@ const EvaluationsPage: React.FC = () => {
   const [pendingStopJob, setPendingStopJob] = React.useState<EvaluationJob | undefined>();
   const [pendingRetryJob, setPendingRetryJob] = React.useState<EvaluationJob | undefined>();
 
+  const polledJobData = React.useMemo(
+    () =>
+      selectedJob
+        ? evaluations.find((e) => e.resource.id === selectedJob.job.resource.id)
+        : undefined,
+    [evaluations, selectedJob],
+  );
+
   const onShowStatus = React.useCallback(
     (job: EvaluationJob) => {
       setSelectedJob(namespace ? { job, namespace } : undefined);
@@ -178,6 +186,7 @@ const EvaluationsPage: React.FC = () => {
           <EvaluationStatusModal
             job={selectedJob.job}
             namespace={selectedJob.namespace}
+            polledJobData={polledJobData}
             onClose={() => setSelectedJob(undefined)}
             onRequestStop={(job) => {
               setSelectedJob(undefined);

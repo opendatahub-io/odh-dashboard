@@ -4,7 +4,7 @@ import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analytic
 import { EvaluationJob } from '~/app/types';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import { buildRetryRequest, getEvaluationName } from '~/app/utilities/evaluationUtils';
-import { createEvaluationJob } from '~/app/api/k8s';
+import { createEvaluationJob, deleteEvaluationJob } from '~/app/api/k8s';
 
 type RetryEvaluationModalProps = {
   job: EvaluationJob;
@@ -36,6 +36,7 @@ const RetryEvaluationModal: React.FC<RetryEvaluationModalProps> = ({
         evaluationName,
         previousState: job.status.state,
       });
+      deleteEvaluationJob('', namespace, job.resource.id)({}).catch(() => undefined);
       onClose();
       onComplete();
     } catch (e) {
@@ -63,7 +64,7 @@ const RetryEvaluationModal: React.FC<RetryEvaluationModalProps> = ({
         {actionError && (
           <Alert variant="danger" isInline isPlain title={actionError} className="pf-v6-u-mb-md" />
         )}
-        {`The ${evaluationName} evaluation will be resubmitted with the same configuration.`}
+        {`The ${evaluationName} evaluation will be resubmitted with the same configuration. The existing evaluation data will be deleted.`}
       </ModalBody>
       <ModalFooter>
         <Button

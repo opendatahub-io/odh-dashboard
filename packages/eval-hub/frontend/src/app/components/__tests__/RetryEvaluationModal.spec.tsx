@@ -1,14 +1,16 @@
 import * as React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { mockEvaluationJob } from '~/__tests__/unit/testUtils/mockEvaluationData';
-import { createEvaluationJob } from '~/app/api/k8s';
+import { createEvaluationJob, deleteEvaluationJob } from '~/app/api/k8s';
 import RetryEvaluationModal from '~/app/components/RetryEvaluationModal';
 
 jest.mock('~/app/api/k8s', () => ({
   createEvaluationJob: jest.fn(),
+  deleteEvaluationJob: jest.fn(),
 }));
 
 const mockCreateEvaluationJob = jest.mocked(createEvaluationJob) as jest.Mock;
+const mockDeleteEvaluationJob = jest.mocked(deleteEvaluationJob) as jest.Mock;
 
 const mockOnClose = jest.fn();
 const mockOnComplete = jest.fn();
@@ -28,6 +30,7 @@ const renderModal = (jobOverrides = {}, namespace = 'test-ns') => {
 beforeEach(() => {
   jest.clearAllMocks();
   mockCreateEvaluationJob.mockReturnValue(() => Promise.resolve(undefined));
+  mockDeleteEvaluationJob.mockReturnValue(() => Promise.resolve(undefined));
 });
 
 describe('RetryEvaluationModal', () => {
@@ -36,7 +39,7 @@ describe('RetryEvaluationModal', () => {
     expect(screen.getByText('Retry evaluation?')).toBeInTheDocument();
     expect(
       screen.getByText(
-        'The My Evaluation evaluation will be resubmitted with the same configuration.',
+        'The My Evaluation evaluation will be resubmitted with the same configuration. The existing evaluation data will be deleted.',
       ),
     ).toBeInTheDocument();
   });
@@ -105,6 +108,27 @@ describe('RetryEvaluationModal', () => {
     });
     expect(mockOnClose).not.toHaveBeenCalled();
     expect(mockOnComplete).not.toHaveBeenCalled();
+  });
+
+  it('should delete the old job after successful retry', async () => {
+    renderModal();
+    fireEvent.click(screen.getByTestId('evaluation-retry-confirm'));
+
+    await waitFor(() => {
+      expect(mockDeleteEvaluationJob).toHaveBeenCalledWith('', 'test-ns', expect.any(String));
+    });
+  });
+
+  it('should still complete when old job deletion fails', async () => {
+    mockDeleteEvaluationJob.mockReturnValue(() => Promise.reject(new Error('Delete failed')));
+
+    renderModal();
+    fireEvent.click(screen.getByTestId('evaluation-retry-confirm'));
+
+    await waitFor(() => {
+      expect(mockOnClose).toHaveBeenCalled();
+      expect(mockOnComplete).toHaveBeenCalled();
+    });
   });
 
   it('should call onClose when Cancel button is clicked', () => {

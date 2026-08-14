@@ -61,20 +61,23 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
   const [showDeleteModal, setShowDeleteModal] = React.useState(false);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [isStopping, setIsStopping] = React.useState(false);
-  const [isRetrying, setIsRetrying] = React.useState(false);
   const [actionError, setActionError] = React.useState<string | null>(null);
   const evaluationName = getEvaluationName(job);
   const benchmarkName = getBenchmarkName(job, collectionNameMap);
   const allBenchmarkNames = getAllBenchmarkNames(job);
-  const isInProgress = IN_PROGRESS_STATES.has(job.status.state);
-  const canStop = (job.status.state === 'running' || job.status.state === 'pending') && !isStopping;
+  const currentState = polledJobData?.status.state ?? job.status.state;
+  const isInProgress = IN_PROGRESS_STATES.has(currentState);
+  const hasNamespace = !!namespace;
+  const canStop =
+    (currentState === 'running' || currentState === 'pending') && !isStopping && hasNamespace;
   const isRetryable =
-    job.status.state === 'failed' ||
-    job.status.state === 'partially_failed' ||
-    job.status.state === 'cancelled' ||
-    job.status.state === 'stopped';
+    (currentState === 'failed' ||
+      currentState === 'partially_failed' ||
+      currentState === 'cancelled' ||
+      currentState === 'stopped') &&
+    hasNamespace;
   const isComparable = isEvaluationJobComparable(job);
-  const displayState = isStopping ? 'stopping' : (polledJobData?.status.state ?? job.status.state);
+  const displayState = isStopping ? 'stopping' : currentState;
   const isPreStart = isPreStartFailure(polledJobData ?? job);
   const effectiveBenchmarks = polledJobData?.status.benchmarks ?? job.status.benchmarks ?? [];
 
@@ -83,12 +86,6 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
       setIsStopping(false);
     }
   }, [isInProgress]);
-
-  React.useEffect(() => {
-    if (!isRetryable) {
-      setIsRetrying(false);
-    }
-  }, [isRetryable]);
 
   // Snapshot latest job data in a ref so the completion-tracking effect can
   // read current values without being re-triggered by them.
@@ -111,10 +108,10 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
 
   React.useEffect(() => {
     const prevState = prevStateRef.current;
-    const currentState = job.status.state;
-    prevStateRef.current = currentState;
+    const latestState = job.status.state;
+    prevStateRef.current = latestState;
 
-    if (IN_PROGRESS_STATES.has(prevState) && !IN_PROGRESS_STATES.has(currentState)) {
+    if (IN_PROGRESS_STATES.has(prevState) && !IN_PROGRESS_STATES.has(latestState)) {
       const {
         evaluationName: evalName,
         benchmarkTypes,
@@ -129,9 +126,9 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
           : undefined;
 
       const runOutcome: 'completed' | 'failed' | 'cancelled' =
-        currentState === 'completed'
+        latestState === 'completed'
           ? 'completed'
-          : currentState === 'cancelled' || currentState === 'stopped'
+          : latestState === 'cancelled' || latestState === 'stopped'
             ? 'cancelled'
             : 'failed';
 
@@ -151,7 +148,6 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
   }, [onActionComplete]);
 
   const handleRetryComplete = React.useCallback(() => {
-    setIsRetrying(true);
     onActionComplete();
   }, [onActionComplete]);
 
@@ -190,7 +186,7 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
           },
         ]
       : []),
-    ...(isRetryable && !isRetrying
+    ...(isRetryable
       ? [
           {
             title: 'Retry',
