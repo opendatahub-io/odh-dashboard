@@ -1,6 +1,7 @@
 import {
   evaluationFileCreator,
   evaluationFileSelector,
+  fileExplorer,
 } from '~/__tests__/cypress/cypress/pages/evaluationFileCreator';
 
 // my-project is the only fake namespace with a DSPA and secrets
@@ -19,12 +20,6 @@ const initIntercepts = () => {
   // Connection types come from the host dashboard API, not the autorag BFF —
   // no real backend for this in standalone mode, so it stays mocked.
   cy.intercept({ method: 'GET', pathname: '**/api/connection-types' }, { body: { items: [] } });
-};
-
-// Navigates into a folder by clicking its name link (distinct from selecting the
-// row itself, which is a plain click elsewhere in the row).
-const navigateIntoFolder = (folderName: string) => {
-  cy.findByTestId('file-explorer-table').findByRole('button', { name: folderName }).click();
 };
 
 const navigateToConfigure = () => {
@@ -49,21 +44,21 @@ const selectOgxAndStorageSecrets = () => {
 };
 
 const browseToSeedFolder = () => {
-  cy.findByTestId('browse-bucket-button').click();
-  cy.findByTestId('file-explorer-table').should('be.visible');
-  navigateIntoFolder('autorag input data');
-  navigateIntoFolder('pdf');
-  navigateIntoFolder('bank_policies_pdf');
+  fileExplorer.findBrowseBucketButton().click();
+  fileExplorer.find().should('be.visible');
+  fileExplorer.navigateIntoFolder('autorag input data');
+  fileExplorer.navigateIntoFolder('pdf');
+  fileExplorer.navigateIntoFolder('bank_policies_pdf');
 };
 
 const advanceToStep2 = () => {
   selectOgxAndStorageSecrets();
   browseToSeedFolder();
-  navigateIntoFolder(DOCUMENTS_FOLDER_NAME);
+  fileExplorer.navigateIntoFolder(DOCUMENTS_FOLDER_NAME);
 
   // Select input data file so the configure details panel renders
-  cy.findByTestId('file-explorer-table').contains('td', DOCUMENT_NAMES[0]).click();
-  cy.findByTestId('file-explorer-select-btn').click();
+  fileExplorer.findRow(DOCUMENT_NAMES[0]).click();
+  fileExplorer.findSelectButton().click();
 
   // Wait for the evaluation section to render
   cy.findByTestId('evaluation-create-button').should('exist');
@@ -74,8 +69,8 @@ const advanceToStep2WithFolder = () => {
   browseToSeedFolder();
 
   // Select a folder as input data (not a file)
-  cy.findByTestId('file-explorer-table').contains('td', DOCUMENTS_FOLDER_NAME).click();
-  cy.findByTestId('file-explorer-select-btn').click();
+  fileExplorer.findRow(DOCUMENTS_FOLDER_NAME).click();
+  fileExplorer.findSelectButton().click();
 
   cy.findByTestId('evaluation-create-button').should('exist');
 };
@@ -183,8 +178,8 @@ describe('EvaluationFileCreator', () => {
 
       // Browse S3 and search for the real uploaded file (uploaded to the bucket root)
       evaluationFileSelector.findS3BrowseButton().click();
-      cy.findByTestId('file-explorer-search').type(uploadedKey.replace(/\.json$/, ''));
-      cy.findByTestId('file-explorer-table').contains(uploadedKey).should('be.visible');
+      fileExplorer.findSearch().type(uploadedKey.replace(/\.json$/, ''));
+      fileExplorer.findRow(uploadedKey).should('be.visible');
     });
   });
 
@@ -206,21 +201,14 @@ describe('EvaluationFileCreator', () => {
     evaluationFileCreator.findSelectDocumentsButton().click();
 
     // Wait for the document selector's file explorer to load
-    cy.findAllByTestId('file-explorer-table').last().should('be.visible');
-    cy.findAllByTestId('file-explorer-table')
-      .last()
-      .contains('td', DOCUMENT_NAMES[0])
-      .should('be.visible');
+    fileExplorer.findLast().should('be.visible');
+    fileExplorer.findLast().contains('td', DOCUMENT_NAMES[0]).should('be.visible');
 
     // Select both documents via their row checkboxes
     DOCUMENT_NAMES.forEach((name) => {
-      cy.findAllByTestId('file-explorer-table')
-        .last()
-        .contains('tr', name)
-        .find('input[type="checkbox"]')
-        .click();
+      fileExplorer.findLastRowCheckbox(name).click();
     });
-    cy.findAllByTestId('file-explorer-select-btn').last().click();
+    fileExplorer.findLastSelectButton().click();
 
     // Add button should now be enabled
     evaluationFileCreator.findAddButton().should('be.enabled');
