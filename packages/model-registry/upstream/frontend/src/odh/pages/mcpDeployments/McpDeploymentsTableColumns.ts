@@ -7,7 +7,19 @@ import {
   getStatusSortWeight,
 } from './utils';
 
-export const mcpDeploymentColumns: SortableData<McpDeployment>[] = [
+/** The "Registered version" column only has data for registry-sourced deployments, so it's
+ * omitted entirely (not just blank) when the MCP Registry feature is disabled -- see
+ * getMcpDeploymentColumns's showRegisteredVersion param. */
+const registeredVersionColumn: SortableData<McpDeployment> = {
+  field: 'registeredVersion',
+  label: 'Registered version',
+  sortable: (a, b) => getRegisteredVersionSortKey(a).localeCompare(getRegisteredVersionSortKey(b)),
+  width: 10,
+};
+
+export const getMcpDeploymentColumns = (
+  showRegisteredVersion: boolean,
+): SortableData<McpDeployment>[] => [
   {
     field: 'name',
     label: 'Name',
@@ -20,13 +32,7 @@ export const mcpDeploymentColumns: SortableData<McpDeployment>[] = [
     sortable: (a, b) => getMcpServerSortKey(a).localeCompare(getMcpServerSortKey(b)),
     width: 20,
   },
-  {
-    field: 'registeredVersion',
-    label: 'Registered version',
-    sortable: (a, b) =>
-      getRegisteredVersionSortKey(a).localeCompare(getRegisteredVersionSortKey(b)),
-    width: 10,
-  },
+  ...(showRegisteredVersion ? [registeredVersionColumn] : []),
   {
     field: 'created',
     label: 'Created',

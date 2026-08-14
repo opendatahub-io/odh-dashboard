@@ -38,7 +38,8 @@ const initBaseIntercepts = (dscStatus: ReturnType<typeof mockDscStatus> = mockDs
 
   cy.interceptOdh(
     'GET /api/config',
-    mockDashboardConfig({ mcpCatalog: true, disableModelRegistry: false }),
+    // mcpRegistry: gates the "Registered version" column (SupportedArea.MCP_REGISTRY).
+    mockDashboardConfig({ mcpCatalog: true, mcpRegistry: true, disableModelRegistry: false }),
   );
 
   cy.interceptOdh('GET /api/dsc/status', dscStatus);

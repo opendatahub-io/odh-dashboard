@@ -34,17 +34,21 @@ func enrichMcpDeploymentsWithRegistryDisplayNames(ctx context.Context, app *api.
 	}
 
 	// Multiple deployments commonly point at the same registry server; avoid
-	// making the same inter-BFF call more than once per request.
+	// making the same inter-BFF call more than once per request. Keyed on
+	// namespace+RegistryServer (not RegistryServer alone): the lookup is scoped to
+	// deployment.Namespace via ?workspace=, so two deployments sharing a
+	// RegistryServer name across different namespaces must not share a cache entry.
 	cache := make(map[string]string)
 	for i := range deployments {
 		deployment := &deployments[i]
 		if deployment.RegistryServer == "" {
 			continue
 		}
-		displayName, ok := cache[deployment.RegistryServer]
+		cacheKey := deployment.Namespace + "|" + deployment.RegistryServer
+		displayName, ok := cache[cacheKey]
 		if !ok {
 			displayName = resolveMcpRegistryServerDisplayName(ctx, app.Logger(), client, deployment.Namespace, deployment.RegistryServer)
-			cache[deployment.RegistryServer] = displayName
+			cache[cacheKey] = displayName
 		}
 		deployment.RegistryServerDisplayName = displayName
 	}
@@ -65,7 +69,15 @@ func enrichMcpDeploymentWithRegistryDisplayName(ctx context.Context, app *api.Ap
 
 // resolveMcpRegistryServerDisplayName calls GET /mcp-registry/servers/:name on the MLflow BFF.
 func resolveMcpRegistryServerDisplayName(ctx context.Context, logger *slog.Logger, client bffclient.BFFClientInterface, namespace string, registryServer string) string {
-	path := fmt.Sprintf("/mcp-registry/servers/%s?workspace=%s", mcpRegistryServerNamePathSegment(registryServer), url.QueryEscape(namespace))
+	segment, err := mcpRegistryServerNamePathSegment(registryServer)
+	if err != nil {
+		if logger != nil {
+			logger.Debug("skipping MCP registry server display name lookup: invalid registryServer",
+				slog.String("registryServer", registryServer), slog.Any("error", err))
+		}
+		return ""
+	}
+	path := fmt.Sprintf("/mcp-registry/servers/%s?workspace=%s", segment, url.QueryEscape(namespace))
 
 	var envelope mlflowMCPServerEnvelope
 	if err := client.Call(ctx, "GET", path, nil, &envelope); err != nil {
@@ -81,9 +93,15 @@ func resolveMcpRegistryServerDisplayName(ctx context.Context, logger *slog.Logge
 // mcpRegistryServerNamePathSegment escapes each "/"-separated part of an
 // unvalidated MCP registry server name independently, preserving the "/" the
 // MLflow BFF's catch-all route expects while still escaping unsafe characters.
-func mcpRegistryServerNamePathSegment(name string) string {
+// Rejects (rather than silently producing a malformed double-slash path for) a
+// leading/trailing/doubled "/" in name, since RegistryServer is user-suppliable via the
+// deployment create/update API and isn't otherwise validated before reaching this path.
+func mcpRegistryServerNamePathSegment(name string) (string, error) {
 	parts := strings.Split(name, "/")
 	for i, p := range parts {
+		if p == "" {
+			return "", fmt.Errorf("invalid MCP registry server name %q: empty path segment", name)
+		}
 		escaped := url.PathEscape(p)
 		// url.PathEscape leaves "." and ".." untouched, which would otherwise act as
 		// path-traversal dot-segments once rejoined with "/"; force-encode them.
@@ -92,5 +110,5 @@ func mcpRegistryServerNamePathSegment(name string) string {
 		}
 		parts[i] = escaped
 	}
-	return strings.Join(parts, "/")
+	return strings.Join(parts, "/"), nil
 }

@@ -75,6 +75,10 @@ class McpDeploymentDeleteModal {
     return this.find().findByTestId('delete-modal-error-message-alert');
   }
 
+  findCascadeCleanupAlert() {
+    return this.find().findByTestId('cascade-cleanup-alert');
+  }
+
   shouldBeVisible() {
     return this.find().should('be.visible');
   }

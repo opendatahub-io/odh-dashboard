@@ -255,8 +255,22 @@ func TestMcpRegistryServerNamePathSegmentRejectsDotSegments(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := mcpRegistryServerNamePathSegment(tt.input); got != tt.expected {
+			got, err := mcpRegistryServerNamePathSegment(tt.input)
+			if err != nil {
+				t.Fatalf("mcpRegistryServerNamePathSegment(%q) returned unexpected error: %v", tt.input, err)
+			}
+			if got != tt.expected {
 				t.Fatalf("mcpRegistryServerNamePathSegment(%q) = %q, want %q", tt.input, got, tt.expected)
+			}
+		})
+	}
+}
+
+func TestMcpRegistryServerNamePathSegmentRejectsEmptySegments(t *testing.T) {
+	for _, input := range []string{"", "/", "/foo", "foo/", "foo//bar"} {
+		t.Run(input, func(t *testing.T) {
+			if _, err := mcpRegistryServerNamePathSegment(input); err == nil {
+				t.Fatalf("mcpRegistryServerNamePathSegment(%q) expected an error for an empty path segment, got none", input)
 			}
 		})
 	}
