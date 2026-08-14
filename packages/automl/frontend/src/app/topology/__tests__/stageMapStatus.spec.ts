@@ -336,10 +336,10 @@ describe('resolveSequentialStageRunStatuses', () => {
 
     expect(statuses.get('validate_inputs')).toBe(RunStatus.Succeeded);
     expect(statuses.get('load_data')).toBe(RunStatus.InProgress);
-    expect(statuses.get('split_data')).toBe(RunStatus.Pending);
+    expect(statuses.get('split_data')).toBe(RunStatus.InProgress);
   });
 
-  it('should show only the first unresolved stage in progress when inline statuses are absent', () => {
+  it('should show unresolved stages in progress together when inline statuses are absent', () => {
     const statuses = resolveSequentialStageRunStatuses(
       [
         { id: 'validate_inputs', description: 'Validate' },
@@ -352,11 +352,11 @@ describe('resolveSequentialStageRunStatuses', () => {
     );
 
     expect(statuses.get('validate_inputs')).toBe(RunStatus.InProgress);
-    expect(statuses.get('load_data')).toBe(RunStatus.Pending);
-    expect(statuses.get('split_data')).toBe(RunStatus.Pending);
+    expect(statuses.get('load_data')).toBe(RunStatus.InProgress);
+    expect(statuses.get('split_data')).toBe(RunStatus.InProgress);
   });
 
-  it('should keep later stages pending when an earlier stage is already started', () => {
+  it('should keep later stages in progress when an earlier stage is already started', () => {
     const statuses = resolveSequentialStageRunStatuses(
       [
         { id: 'load_data', description: 'Load data', status: 'started' },
@@ -369,8 +369,8 @@ describe('resolveSequentialStageRunStatuses', () => {
     );
 
     expect(statuses.get('load_data')).toBe(RunStatus.InProgress);
-    expect(statuses.get('model_selection')).toBe(RunStatus.Pending);
-    expect(statuses.get('build_leaderboard')).toBe(RunStatus.Pending);
+    expect(statuses.get('model_selection')).toBe(RunStatus.InProgress);
+    expect(statuses.get('build_leaderboard')).toBe(RunStatus.InProgress);
   });
 
   it('should backfill earlier coarse stages when a later stage has started', () => {
@@ -387,7 +387,7 @@ describe('resolveSequentialStageRunStatuses', () => {
 
     expect(statuses.get('load_data')).toBe(RunStatus.Succeeded);
     expect(statuses.get('model_selection')).toBe(RunStatus.InProgress);
-    expect(statuses.get('build_leaderboard')).toBe(RunStatus.Pending);
+    expect(statuses.get('build_leaderboard')).toBe(RunStatus.InProgress);
   });
 
   it('should advance the active stage when multiple inline started statuses arrive together', () => {

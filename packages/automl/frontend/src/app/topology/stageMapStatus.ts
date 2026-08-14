@@ -243,9 +243,8 @@ const applyEarlierStageBackfill = (
  * Resolves per-stage statuses in pipeline order.
  *
  * Stages with inline status use that status. When the component is in progress,
- * only the next unresolved stage gets InProgress — later stages stay pending so
- * the tree advances one frontier at a time between status polls. Failures still
- * block later stages (pending after inline failure; terminal run failure propagates).
+ * unresolved stages without inline status all show InProgress together (less jarring
+ * than a single-stage frontier between polls). Failures still block later stages.
  */
 export const resolveSequentialStageRunStatuses = (
   stages: ComponentStageMapStage[],
@@ -258,7 +257,6 @@ export const resolveSequentialStageRunStatuses = (
   const latestActivityIndex = findLatestInlineActivityIndex(stages);
   let blockSubsequent = false;
   let blockedByInlineFailure = false;
-  let assignedActiveSlot = false;
   let propagatedTerminal: RunStatus | undefined;
   let coarseTerminalAssigned = false;
 
@@ -304,12 +302,6 @@ export const resolveSequentialStageRunStatuses = (
         (blockedByInlineFailure || propagatedTerminal != null || coarseTerminalAssigned)
       ) {
         resolved = RunStatus.Pending;
-      } else if (
-        blockSubsequent &&
-        assignedActiveSlot &&
-        (inlineStatus === RunStatus.InProgress || resolved === RunStatus.InProgress)
-      ) {
-        resolved = RunStatus.Pending;
       }
       statusById.set(stage.id, resolved);
       if (isInlineStageSkipped(stage)) {
@@ -327,7 +319,6 @@ export const resolveSequentialStageRunStatuses = (
         blockedByInlineFailure = false;
         propagatedTerminal = undefined;
       } else if (resolved === RunStatus.InProgress) {
-        assignedActiveSlot = true;
         blockSubsequent = true;
         blockedByInlineFailure = false;
         propagatedTerminal = undefined;
@@ -344,27 +335,25 @@ export const resolveSequentialStageRunStatuses = (
         statusById.set(stage.id, RunStatus.Pending);
         continue;
       }
-      if (componentStatus === RunStatus.InProgress && !assignedActiveSlot) {
-        if (coarseTerminalAssigned) {
-          statusById.set(stage.id, RunStatus.Pending);
-        } else {
-          const resolved = applyEarlierStageBackfill(
-            stageIndex,
-            latestActivityIndex,
-            inlineStatus,
-            resolveUnresolved(stage),
-            stage,
-          );
+      if (componentStatus === RunStatus.InProgress) {
+        const resolved = applyEarlierStageBackfill(
+          stageIndex,
+          latestActivityIndex,
+          inlineStatus,
+          resolveUnresolved(stage),
+          stage,
+        );
+        if (isStageFinished(resolved)) {
           statusById.set(stage.id, resolved);
-          if (isStageTerminalFailure(resolved)) {
-            propagatedTerminal = resolved;
-            coarseTerminalAssigned = true;
-          } else if (resolved === RunStatus.InProgress) {
-            assignedActiveSlot = true;
-          }
+        } else if (isStageTerminalFailure(resolved)) {
+          statusById.set(stage.id, resolved);
+          propagatedTerminal = resolved;
+        } else {
+          statusById.set(stage.id, RunStatus.InProgress);
         }
-        // Keep blockSubsequent so later unresolved stages stay pending / terminal.
-      } else if (componentStatus === RunStatus.Failed) {
+        continue;
+      }
+      if (componentStatus === RunStatus.Failed) {
         if (!coarseTerminalAssigned) {
           statusById.set(stage.id, RunStatus.Failed);
           coarseTerminalAssigned = true;
@@ -401,38 +390,33 @@ export const resolveSequentialStageRunStatuses = (
           resolveUnresolved(stage),
           stage,
         );
-        if (resolved === RunStatus.InProgress && assignedActiveSlot) {
-          statusById.set(stage.id, RunStatus.Pending);
-        } else {
+        if (isStageFinished(resolved)) {
           statusById.set(stage.id, resolved);
-          if (resolved === RunStatus.InProgress) {
-            assignedActiveSlot = true;
-            blockSubsequent = true;
-          } else if (isStageTerminalFailure(resolved)) {
-            blockSubsequent = true;
-            coarseTerminalAssigned = true;
-          }
+        } else if (isStageTerminalFailure(resolved)) {
+          statusById.set(stage.id, resolved);
+          coarseTerminalAssigned = true;
+        } else {
+          statusById.set(stage.id, RunStatus.InProgress);
         }
         continue;
       }
-      if (!assignedActiveSlot) {
-        const resolved = applyEarlierStageBackfill(
-          stageIndex,
-          latestActivityIndex,
-          inlineStatus,
-          resolveUnresolved(stage),
-          stage,
-        );
+      const resolved = applyEarlierStageBackfill(
+        stageIndex,
+        latestActivityIndex,
+        inlineStatus,
+        resolveUnresolved(stage),
+        stage,
+      );
+      if (isStageFinished(resolved)) {
+        statusById.set(stage.id, resolved);
+      } else if (isStageTerminalFailure(resolved)) {
         statusById.set(stage.id, resolved);
         blockSubsequent = true;
-        if (isStageTerminalFailure(resolved)) {
-          propagatedTerminal = resolved;
-        } else if (resolved === RunStatus.InProgress) {
-          assignedActiveSlot = true;
-        }
+        propagatedTerminal = resolved;
       } else {
-        statusById.set(stage.id, RunStatus.Pending);
+        statusById.set(stage.id, RunStatus.InProgress);
       }
+      blockSubsequent = true;
       continue;
     }
 

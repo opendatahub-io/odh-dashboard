@@ -202,6 +202,7 @@ const AutoragPipelineVisualization: React.FC<AutoragPipelineVisualizationProps> 
                   loadingMode={treeLoadingMode}
                   selectedIds={selectedIds}
                   onSelectionChange={handleSelectionChange}
+                  layoutResetKey={patternsExpanded}
                 />
               </PatternsExpandProvider>
             </DrawerContentBody>

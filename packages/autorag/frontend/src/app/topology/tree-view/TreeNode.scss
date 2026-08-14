@@ -122,6 +122,8 @@
  * fill: currentColor, so completed/failed/active must override that token.
  */
 .autorag-tree-node {
+  cursor: pointer;
+
   /* @patternfly/react-topology ~6.5 topology-components status modifier tokens */
   &.pf-m-success {
     --pf-topology__node--Color: var(--pf-t--global--icon--color--status--success--default);

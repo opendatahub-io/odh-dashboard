@@ -330,8 +330,8 @@ describe('buildStageMapTopology', () => {
       const nodes = buildStageMapTopology(stageMap);
 
       const syncNodes = nodes.filter((n) => n.data?.activeIconVariant === 'sync');
-      expect(syncNodes).toHaveLength(1);
-      expect(syncNodes[0]?.id).toBe('rag_optimization__validate_inputs');
+      expect(syncNodes.map((n) => n.id)).toContain('rag_optimization__validate_inputs');
+      expect(syncNodes.map((n) => n.id)).toContain('rag_optimization__optimize_templates');
 
       // Post-branch stays pending until optimize_templates finishes.
       const runNode = nodes.find((n) => n.id === 'rag_optimization__run_optimization');
@@ -413,8 +413,7 @@ describe('buildStageMapTopology', () => {
       const runNode = nodes.find((n) => n.id === 'rag_optimization__run_optimization');
       const buildNode = nodes.find((n) => n.id === 'rag_optimization__build_leaderboard');
       expect(runNode?.data?.runStatus).toBe(RunStatus.InProgress);
-      // Only the current post-branch frontier runs; later stages stay pending.
-      expect(buildNode?.data?.runStatus).toBe(RunStatus.Pending);
+      expect(buildNode?.data?.runStatus).toBe(RunStatus.InProgress);
     });
 
     it('should use fallback label for unknown step IDs', () => {
@@ -1084,7 +1083,7 @@ describe('buildStageMapTopology', () => {
       expect(nodes[2].data?.runStatus).toBe(RunStatus.InProgress);
     });
 
-    it('should keep later stages pending when an earlier stage is explicitly started', () => {
+    it('should keep later stages in progress when an earlier stage is explicitly started', () => {
       const stageMap = makeStageMap([
         makeComponent(
           'comp',
@@ -1100,7 +1099,7 @@ describe('buildStageMapTopology', () => {
       const nodes = buildStageMapTopology(stageMap);
       expect(nodes[0].data?.activeIconVariant).toBeUndefined();
       expect(nodes[1].data?.activeIconVariant).toBe('sync');
-      expect(nodes[2].data?.runStatus).toBe(RunStatus.Pending);
+      expect(nodes[2].data?.runStatus).toBe(RunStatus.InProgress);
     });
 
     it('should promote remaining stages within the current component after a completed predecessor', () => {

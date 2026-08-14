@@ -164,16 +164,12 @@ export const hasPreBranchInlineFailure = (preBranchStages: ComponentStageMapStag
 export const isStageFinished = (status: RunStatus | undefined): boolean =>
   status === RunStatus.Succeeded || status === RunStatus.Skipped;
 
-const hasAnyInlineStageStatus = (stages: ComponentStageMapStage[]): boolean =>
-  stages.some((stage) => translateStageStatus(stage.status) != null);
-
 /**
  * Resolves per-stage statuses in pipeline order.
  *
  * Stages with inline status use that status. When the component is in progress,
- * only the next unresolved stage gets InProgress — later stages stay pending so
- * the tree advances one frontier at a time between status polls. Failures still
- * block later stages (pending after inline failure; terminal run failure propagates).
+ * unresolved stages without inline status all show InProgress together. Failures still
+ * block later stages.
  */
 export const resolveSequentialStageRunStatuses = (
   stages: ComponentStageMapStage[],
@@ -182,10 +178,8 @@ export const resolveSequentialStageRunStatuses = (
   hasExplicitFailureInPipeline = false,
 ): Map<string, RunStatus | undefined> => {
   const statusById = new Map<string, RunStatus | undefined>();
-  const hasInlineStatuses = hasAnyInlineStageStatus(stages);
   let blockSubsequent = false;
   let blockedByInlineFailure = false;
-  let assignedActiveSlot = false;
   let propagatedTerminal: RunStatus | undefined;
 
   const resolveUnresolved = (stage: ComponentStageMapStage): RunStatus | undefined =>
@@ -208,7 +202,6 @@ export const resolveSequentialStageRunStatuses = (
         blockedByInlineFailure = false;
         propagatedTerminal = undefined;
       } else if (inlineStatus === RunStatus.InProgress || resolved === RunStatus.InProgress) {
-        assignedActiveSlot = true;
         blockSubsequent = true;
         blockedByInlineFailure = false;
         propagatedTerminal = undefined;
@@ -218,23 +211,26 @@ export const resolveSequentialStageRunStatuses = (
 
     if (blockSubsequent) {
       if (propagatedTerminal != null) {
-        statusById.set(stage.id, propagatedTerminal);
+        statusById.set(stage.id, RunStatus.Pending);
         continue;
       }
       if (blockedByInlineFailure) {
         statusById.set(stage.id, RunStatus.Pending);
         continue;
       }
-      if (componentStatus === RunStatus.InProgress && !assignedActiveSlot) {
+      if (componentStatus === RunStatus.InProgress) {
         const resolved = resolveUnresolved(stage);
-        statusById.set(stage.id, resolved);
-        if (isStageTerminalFailure(resolved)) {
+        if (isStageFinished(resolved)) {
+          statusById.set(stage.id, resolved);
+        } else if (isStageTerminalFailure(resolved)) {
+          statusById.set(stage.id, resolved);
           propagatedTerminal = resolved;
         } else {
-          assignedActiveSlot = true;
+          statusById.set(stage.id, RunStatus.InProgress);
         }
-        // Keep blockSubsequent so later unresolved stages stay pending / terminal.
-      } else if (componentStatus === RunStatus.Failed) {
+        continue;
+      }
+      if (componentStatus === RunStatus.Failed) {
         statusById.set(stage.id, RunStatus.Failed);
       } else if (componentStatus === RunStatus.Succeeded) {
         statusById.set(stage.id, RunStatus.Succeeded);
@@ -249,22 +245,17 @@ export const resolveSequentialStageRunStatuses = (
     }
 
     if (componentStatus === RunStatus.InProgress) {
-      if (!hasInlineStatuses) {
-        statusById.set(stage.id, resolveUnresolved(stage));
-        continue;
-      }
-      if (!assignedActiveSlot) {
-        const resolved = resolveUnresolved(stage);
+      const resolved = resolveUnresolved(stage);
+      if (isStageFinished(resolved)) {
+        statusById.set(stage.id, resolved);
+      } else if (isStageTerminalFailure(resolved)) {
         statusById.set(stage.id, resolved);
         blockSubsequent = true;
-        if (isStageTerminalFailure(resolved)) {
-          propagatedTerminal = resolved;
-        } else {
-          assignedActiveSlot = true;
-        }
+        propagatedTerminal = resolved;
       } else {
-        statusById.set(stage.id, RunStatus.Pending);
+        statusById.set(stage.id, RunStatus.InProgress);
       }
+      blockSubsequent = true;
       continue;
     }
 

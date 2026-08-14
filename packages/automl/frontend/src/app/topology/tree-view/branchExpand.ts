@@ -34,7 +34,19 @@ const valuesLooselyMatch = (left: string, right: string): boolean => {
   if (shorter.length < MIN_PREFIX_MATCH_LEN) {
     return false;
   }
-  return longer.startsWith(shorter);
+  if (!longer.startsWith(shorter)) {
+    return false;
+  }
+  if (shorter.length === longer.length) {
+    return true;
+  }
+  const next = longer[shorter.length];
+  const prev = shorter[shorter.length - 1];
+  // Reject alphanumeric continuation (e.g. lightgbm vs lightgbmxt_FULL); allow delimiter suffixes (_v2).
+  if (/[a-z0-9]/i.test(next) && /[a-z0-9]/i.test(prev)) {
+    return false;
+  }
+  return true;
 };
 
 const isModelTerminusId = (nodeId: string): boolean => /__model__branch-\d+$/.test(nodeId);

@@ -267,7 +267,7 @@ describe('resolveSequentialStageRunStatuses', () => {
     const statuses = resolveSequentialStageRunStatuses(stages, componentStatus, 'FAILED', false);
 
     expect(statuses.get('validate_inputs')).toBe(RunStatus.Failed);
-    expect(statuses.get('download_and_sample')).toBe(RunStatus.Failed);
+    expect(statuses.get('download_and_sample')).toBe(RunStatus.Pending);
   });
 
   it('should not leave running-task-backed stages active on a canceled run', () => {
@@ -280,7 +280,7 @@ describe('resolveSequentialStageRunStatuses', () => {
     const statuses = resolveSequentialStageRunStatuses(stages, componentStatus, 'CANCELED', false);
 
     expect(statuses.get('validate_inputs')).toBe(RunStatus.Cancelled);
-    expect(statuses.get('download_and_sample')).toBe(RunStatus.Cancelled);
+    expect(statuses.get('download_and_sample')).toBe(RunStatus.Pending);
   });
 
   it('should not leave inline started stages active on a failed run', () => {
@@ -292,7 +292,7 @@ describe('resolveSequentialStageRunStatuses', () => {
     );
 
     expect(statuses.get('validate_inputs')).toBe(RunStatus.Failed);
-    expect(statuses.get('download_and_sample')).toBe(RunStatus.Failed);
+    expect(statuses.get('download_and_sample')).toBe(RunStatus.Pending);
   });
 
   it('should mark unresolved stages failed when a partial inline map uses terminal run fallback', () => {
@@ -330,7 +330,7 @@ describe('resolveSequentialStageRunStatuses', () => {
 
     expect(statuses.get('validate_inputs')).toBe(RunStatus.Succeeded);
     expect(statuses.get('load_data')).toBe(RunStatus.InProgress);
-    expect(statuses.get('split_data')).toBe(RunStatus.Pending);
+    expect(statuses.get('split_data')).toBe(RunStatus.InProgress);
   });
 
   it('should show all stages in progress when the component has no inline stage statuses', () => {
@@ -363,8 +363,8 @@ describe('resolveSequentialStageRunStatuses', () => {
     );
 
     expect(statuses.get('load_data')).toBe(RunStatus.InProgress);
-    expect(statuses.get('optimize_templates')).toBe(RunStatus.Pending);
-    expect(statuses.get('build_leaderboard')).toBe(RunStatus.Pending);
+    expect(statuses.get('optimize_templates')).toBe(RunStatus.InProgress);
+    expect(statuses.get('build_leaderboard')).toBe(RunStatus.InProgress);
   });
 });
 

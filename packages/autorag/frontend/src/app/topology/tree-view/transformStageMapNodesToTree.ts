@@ -182,9 +182,8 @@ const patternTerminusExtras = (
 
   const isWinner = matchesWinnerPattern(topologyNode, options);
 
-  // Succeeded + known best pattern: pattern name + "winner" subtitle + star.
-  // Collapsed spine is the winner path even if label matching is imperfect.
-  if (options.winnerResolved && (isWinner || isCollapsedSpine)) {
+  // Succeeded + matched winner branch: pattern name + "winner" subtitle + star.
+  if (options.winnerResolved && isWinner) {
     return {
       label: options.winnerPatternLabel ?? topologyNode.label,
       labelSubtitle: 'winner',

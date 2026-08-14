@@ -72,43 +72,109 @@ const STATUS_BADGE_ARIA_LABELS: Record<TreeNodeData['stepState'], string> = {
 /** Branch corridor steps always use spine status glyphs (design). */
 const DECORATOR_STATUS_BADGE_SIZE = (DEFAULT_DECORATOR_RADIUS - 4) * 2;
 
+const SPINE_STROKE_WIDTH_MIN = 1.5;
+const SPINE_STROKE_WIDTH_RATIO = 0.065;
+const SPINE_WHITE_GAP_MIN = 2.75;
+const SPINE_WHITE_GAP_RATIO = 0.155;
+const SPINE_INNER_RADIUS_FLOOR_RATIO = 0.22;
+
+const getSpineGeometry = (size: number) => {
+  const center = size / 2;
+  const strokeWidth = Math.max(SPINE_STROKE_WIDTH_MIN, size * SPINE_STROKE_WIDTH_RATIO);
+  const outerR = center - strokeWidth / 2;
+  const whiteGap = Math.max(SPINE_WHITE_GAP_MIN, size * SPINE_WHITE_GAP_RATIO);
+  const innerR = Math.max(
+    outerR - strokeWidth / 2 - whiteGap,
+    size * SPINE_INNER_RADIUS_FLOOR_RATIO,
+  );
+  return {
+    center,
+    strokeWidth,
+    outerR,
+    innerR,
+    leftTangent: center - outerR,
+    rightTangent: center + outerR,
+  };
+};
+
+type SpineDotProps = {
+  size: number;
+  className: string;
+  ringColor: string;
+  coreColor?: string;
+  showConnectors?: boolean;
+  innerIcon?: React.ReactNode;
+};
+
+/** Shared spine donut: white backing, ring stroke, optional filled core, optional spine connectors. */
+const SpineDot: React.FC<SpineDotProps> = React.memo(
+  ({ size, className, ringColor, coreColor, showConnectors = false, innerIcon }) => {
+    const { center, strokeWidth, outerR, innerR, leftTangent, rightTangent } =
+      getSpineGeometry(size);
+    const white = backgroundColorPrimary.var;
+    return (
+      <g className={className}>
+        {showConnectors ? (
+          <>
+            <line
+              x1={0}
+              y1={center}
+              x2={leftTangent}
+              y2={center}
+              style={{ stroke: ringColor, strokeWidth }}
+            />
+            <line
+              x1={rightTangent}
+              y1={center}
+              x2={size}
+              y2={center}
+              style={{ stroke: ringColor, strokeWidth }}
+            />
+          </>
+        ) : null}
+        <circle cx={center} cy={center} r={center - 0.25} style={{ fill: white }} />
+        <circle
+          cx={center}
+          cy={center}
+          r={outerR}
+          fill="none"
+          style={{ stroke: ringColor, strokeWidth }}
+        />
+        {coreColor ? (
+          <circle cx={center} cy={center} r={innerR} style={{ fill: coreColor }} />
+        ) : null}
+        {innerIcon}
+      </g>
+    );
+  },
+);
+SpineDot.displayName = 'SpineDot';
+
 /**
  * Completed branch-step badge (design): green outer ring, opaque white gap
  * (covers the edge line), filled green disk, white check.
  * Inline styles beat topology `fill: currentColor` inheritance.
  */
 const StatusOnlyCompletedBadge: React.FC<{ size: number }> = React.memo(({ size }) => {
-  const center = size / 2;
-  // Design ratios (~22px icon): thin ring (~1.5), wide white gap (~3), inner disk (~60%).
-  const strokeWidth = Math.max(1.5, size * 0.065);
-  const outerR = center - strokeWidth / 2;
-  const whiteGap = Math.max(2.75, size * 0.155);
-  const innerR = Math.max(outerR - strokeWidth / 2 - whiteGap, size * 0.3);
+  const { innerR } = getSpineGeometry(size);
   const checkSize = innerR * 1.2;
-  const white = backgroundColorPrimary.var;
-  const green = colorStatusSuccess.var;
-  const ring = borderColorStatusSuccess.var;
   return (
-    <g className="autorag-tree-node__status-badge autorag-tree-node__status-badge--completed">
-      {/* Opaque white disk so the pipeline edge does not show through the gap. */}
-      <circle cx={center} cy={center} r={center - 0.25} style={{ fill: white }} />
-      <circle
-        cx={center}
-        cy={center}
-        r={outerR}
-        fill="none"
-        style={{ stroke: ring, strokeWidth }}
-      />
-      <circle cx={center} cy={center} r={innerR} style={{ fill: green }} />
-      <g transform={`translate(${(size - checkSize) / 2}, ${(size - checkSize) / 2})`}>
-        <CheckIcon
-          width={checkSize}
-          height={checkSize}
-          color={iconColorOnSuccess.var}
-          style={{ color: iconColorOnSuccess.var, fill: iconColorOnSuccess.var }}
-        />
-      </g>
-    </g>
+    <SpineDot
+      size={size}
+      className="autorag-tree-node__status-badge autorag-tree-node__status-badge--completed"
+      ringColor={borderColorStatusSuccess.var}
+      coreColor={colorStatusSuccess.var}
+      innerIcon={
+        <g transform={`translate(${(size - checkSize) / 2}, ${(size - checkSize) / 2})`}>
+          <CheckIcon
+            width={checkSize}
+            height={checkSize}
+            color={iconColorOnSuccess.var}
+            style={{ color: iconColorOnSuccess.var, fill: iconColorOnSuccess.var }}
+          />
+        </g>
+      }
+    />
   );
 });
 StatusOnlyCompletedBadge.displayName = 'StatusOnlyCompletedBadge';
@@ -141,96 +207,39 @@ const StatusOnlyPendingBadge: React.FC<{ size: number }> = React.memo(({ size })
 StatusOnlyPendingBadge.displayName = 'StatusOnlyPendingBadge';
 
 /** Pending branch corridor dot (design): outer gray ring, white gap, solid gray core on the spine. */
-const StatusOnlyPendingDot: React.FC<{ size: number }> = React.memo(({ size }) => {
-  const center = size / 2;
-  const strokeWidth = Math.max(1.5, size * 0.065);
-  const outerR = center - strokeWidth / 2;
-  const whiteGap = Math.max(2.75, size * 0.155);
-  const innerR = Math.max(outerR - strokeWidth / 2 - whiteGap, size * 0.22);
-  const white = backgroundColorPrimary.var;
-  const gray = iconColorDisabled.var;
-  const ring = borderColorLight.var;
-  const connectorY = center;
-  const leftTangent = center - outerR;
-  const rightTangent = center + outerR;
-  return (
-    <g className="autorag-tree-node__status-badge autorag-tree-node__status-badge--pending-dot">
-      <line
-        x1={0}
-        y1={connectorY}
-        x2={leftTangent}
-        y2={connectorY}
-        style={{ stroke: ring, strokeWidth }}
-      />
-      <line
-        x1={rightTangent}
-        y1={connectorY}
-        x2={size}
-        y2={connectorY}
-        style={{ stroke: ring, strokeWidth }}
-      />
-      <circle cx={center} cy={center} r={center - 0.25} style={{ fill: white }} />
-      <circle
-        cx={center}
-        cy={center}
-        r={outerR}
-        fill="none"
-        style={{ stroke: ring, strokeWidth }}
-      />
-      <circle cx={center} cy={center} r={innerR} style={{ fill: gray }} />
-    </g>
-  );
-});
+const StatusOnlyPendingDot: React.FC<{ size: number }> = React.memo(({ size }) => (
+  <SpineDot
+    size={size}
+    className="autorag-tree-node__status-badge autorag-tree-node__status-badge--pending-dot"
+    ringColor={borderColorLight.var}
+    coreColor={iconColorDisabled.var}
+    showConnectors
+  />
+));
 StatusOnlyPendingDot.displayName = 'StatusOnlyPendingDot';
 
 /** Completed branch corridor dot (design): green check badge on the spine. */
 const StatusOnlyCompletedDot: React.FC<{ size: number }> = React.memo(({ size }) => {
-  const center = size / 2;
-  const strokeWidth = Math.max(1.5, size * 0.065);
-  const outerR = center - strokeWidth / 2;
-  const whiteGap = Math.max(2.75, size * 0.155);
-  const innerR = Math.max(outerR - strokeWidth / 2 - whiteGap, size * 0.22);
+  const { innerR } = getSpineGeometry(size);
   const checkSize = innerR * 1.2;
-  const white = backgroundColorPrimary.var;
-  const green = colorStatusSuccess.var;
-  const ring = borderColorStatusSuccess.var;
-  const connectorY = center;
-  const leftTangent = center - outerR;
-  const rightTangent = center + outerR;
   return (
-    <g className="autorag-tree-node__status-badge autorag-tree-node__status-badge--completed-dot">
-      <line
-        x1={0}
-        y1={connectorY}
-        x2={leftTangent}
-        y2={connectorY}
-        style={{ stroke: ring, strokeWidth }}
-      />
-      <line
-        x1={rightTangent}
-        y1={connectorY}
-        x2={size}
-        y2={connectorY}
-        style={{ stroke: ring, strokeWidth }}
-      />
-      <circle cx={center} cy={center} r={center - 0.25} style={{ fill: white }} />
-      <circle
-        cx={center}
-        cy={center}
-        r={outerR}
-        fill="none"
-        style={{ stroke: ring, strokeWidth }}
-      />
-      <circle cx={center} cy={center} r={innerR} style={{ fill: green }} />
-      <g transform={`translate(${(size - checkSize) / 2}, ${(size - checkSize) / 2})`}>
-        <CheckIcon
-          width={checkSize}
-          height={checkSize}
-          color={iconColorOnSuccess.var}
-          style={{ color: iconColorOnSuccess.var, fill: iconColorOnSuccess.var }}
-        />
-      </g>
-    </g>
+    <SpineDot
+      size={size}
+      className="autorag-tree-node__status-badge autorag-tree-node__status-badge--completed-dot"
+      ringColor={borderColorStatusSuccess.var}
+      coreColor={colorStatusSuccess.var}
+      showConnectors
+      innerIcon={
+        <g transform={`translate(${(size - checkSize) / 2}, ${(size - checkSize) / 2})`}>
+          <CheckIcon
+            width={checkSize}
+            height={checkSize}
+            color={iconColorOnSuccess.var}
+            style={{ color: iconColorOnSuccess.var, fill: iconColorOnSuccess.var }}
+          />
+        </g>
+      }
+    />
   );
 });
 StatusOnlyCompletedDot.displayName = 'StatusOnlyCompletedDot';
@@ -240,148 +249,86 @@ const StatusOnlyActiveDot: React.FC<{
   size: number;
   activeIconVariant?: TreeNodeData['activeIconVariant'];
 }> = React.memo(({ size, activeIconVariant = 'pulse' }) => {
-  const center = size / 2;
-  const strokeWidth = Math.max(1.25, size * 0.055);
-  const outerR = center - strokeWidth / 2;
-  const ring = borderColorLight.var;
-  const connectorY = center;
-  const leftTangent = center - outerR;
-  const rightTangent = center + outerR;
+  const { center } = getSpineGeometry(size);
   const pulseInnerRadius = Math.max(2.5, size * 0.2);
   const pulseOuterRadius = Math.max(pulseInnerRadius + 1.25, size * 0.28);
   const syncSize = size * 0.84;
   const isPulse = activeIconVariant === 'pulse';
   return (
-    <g className="autorag-tree-node__status-badge autorag-tree-node__status-badge--active-dot">
-      <line
-        x1={0}
-        y1={connectorY}
-        x2={leftTangent}
-        y2={connectorY}
-        style={{ stroke: ring, strokeWidth }}
-      />
-      <line
-        x1={rightTangent}
-        y1={connectorY}
-        x2={size}
-        y2={connectorY}
-        style={{ stroke: ring, strokeWidth }}
-      />
-      <circle
-        cx={center}
-        cy={center}
-        r={center - 0.25}
-        style={{ fill: backgroundColorPrimary.var }}
-      />
-      {isPulse ? (
-        <g className="autorag-tree-node__status-pulse">
-          <circle
-            cx={center}
-            cy={center}
-            r={pulseInnerRadius}
-            style={{ fill: iconColorBrand.var }}
-          />
-          <circle
-            className="autorag-tree-node__status-pulse-ring"
-            cx={center}
-            cy={center}
-            r={pulseOuterRadius}
-            fill="none"
-            style={{ stroke: iconColorBrand.var, strokeWidth: 1.4 }}
-          />
-        </g>
-      ) : (
-        <g transform={`translate(${(size - syncSize) / 2}, ${(size - syncSize) / 2})`}>
-          <g className="autorag-tree-node__status-spinner">
-            <SyncAltIcon
-              width={syncSize}
-              height={syncSize}
-              color={iconColorBrand.var}
-              style={{ color: iconColorBrand.var, fill: iconColorBrand.var }}
+    <SpineDot
+      size={size}
+      className="autorag-tree-node__status-badge autorag-tree-node__status-badge--active-dot"
+      ringColor={borderColorLight.var}
+      showConnectors
+      innerIcon={
+        isPulse ? (
+          <g className="autorag-tree-node__status-pulse">
+            <circle
+              cx={center}
+              cy={center}
+              r={pulseInnerRadius}
+              style={{ fill: iconColorBrand.var }}
+            />
+            <circle
+              className="autorag-tree-node__status-pulse-ring"
+              cx={center}
+              cy={center}
+              r={pulseOuterRadius}
+              fill="none"
+              style={{ stroke: iconColorBrand.var, strokeWidth: 1.4 }}
             />
           </g>
-        </g>
-      )}
-    </g>
+        ) : (
+          <g transform={`translate(${(size - syncSize) / 2}, ${(size - syncSize) / 2})`}>
+            <g className="autorag-tree-node__status-spinner">
+              <SyncAltIcon
+                width={syncSize}
+                height={syncSize}
+                color={iconColorBrand.var}
+                style={{ color: iconColorBrand.var, fill: iconColorBrand.var }}
+              />
+            </g>
+          </g>
+        )
+      }
+    />
   );
 });
 StatusOnlyActiveDot.displayName = 'StatusOnlyActiveDot';
 
 /** Failed branch corridor dot (design): outer red ring, white gap, solid red core on the spine. */
-const StatusOnlyFailedSectionDot: React.FC<{ size: number }> = React.memo(({ size }) => {
-  const center = size / 2;
-  // Match completed-badge ratios so the outer ring and white gap read at branch-step scale.
-  const strokeWidth = Math.max(1.5, size * 0.065);
-  const outerR = center - strokeWidth / 2;
-  const whiteGap = Math.max(2.75, size * 0.155);
-  const innerR = Math.max(outerR - strokeWidth / 2 - whiteGap, size * 0.22);
-  const white = backgroundColorPrimary.var;
-  const red = colorStatusDanger.var;
-  const ring = borderColorStatusDanger.var;
-  const connectorY = center;
-  const leftTangent = center - outerR;
-  const rightTangent = center + outerR;
-  return (
-    <g className="autorag-tree-node__status-badge autorag-tree-node__status-badge--failed-section">
-      <line
-        x1={0}
-        y1={connectorY}
-        x2={leftTangent}
-        y2={connectorY}
-        style={{ stroke: ring, strokeWidth }}
-      />
-      <line
-        x1={rightTangent}
-        y1={connectorY}
-        x2={size}
-        y2={connectorY}
-        style={{ stroke: ring, strokeWidth }}
-      />
-      <circle cx={center} cy={center} r={center - 0.25} style={{ fill: white }} />
-      <circle
-        cx={center}
-        cy={center}
-        r={outerR}
-        fill="none"
-        style={{ stroke: ring, strokeWidth }}
-      />
-      <circle cx={center} cy={center} r={innerR} style={{ fill: red }} />
-    </g>
-  );
-});
+const StatusOnlyFailedSectionDot: React.FC<{ size: number }> = React.memo(({ size }) => (
+  <SpineDot
+    size={size}
+    className="autorag-tree-node__status-badge autorag-tree-node__status-badge--failed-section"
+    ringColor={borderColorStatusDanger.var}
+    coreColor={colorStatusDanger.var}
+    showConnectors
+  />
+));
 StatusOnlyFailedSectionDot.displayName = 'StatusOnlyFailedSectionDot';
 
 /** Failed branch-step badge: red ring + filled disk + white exclamation (matches completed). */
 const StatusOnlyFailedBadge: React.FC<{ size: number }> = React.memo(({ size }) => {
-  const center = size / 2;
-  const strokeWidth = Math.max(1.5, size * 0.065);
-  const outerR = center - strokeWidth / 2;
-  const whiteGap = Math.max(2.75, size * 0.155);
-  const innerR = Math.max(outerR - strokeWidth / 2 - whiteGap, size * 0.3);
+  const { innerR } = getSpineGeometry(size);
   const iconSize = innerR * 1.2;
-  const white = backgroundColorPrimary.var;
-  const red = colorStatusDanger.var;
-  const ring = borderColorStatusDanger.var;
   return (
-    <g className="autorag-tree-node__status-badge autorag-tree-node__status-badge--failed">
-      <circle cx={center} cy={center} r={center - 0.25} style={{ fill: white }} />
-      <circle
-        cx={center}
-        cy={center}
-        r={outerR}
-        fill="none"
-        style={{ stroke: ring, strokeWidth }}
-      />
-      <circle cx={center} cy={center} r={innerR} style={{ fill: red }} />
-      <g transform={`translate(${(size - iconSize) / 2}, ${(size - iconSize) / 2})`}>
-        <ExclamationIcon
-          width={iconSize}
-          height={iconSize}
-          color={iconColorOnDanger.var}
-          style={{ color: iconColorOnDanger.var, fill: iconColorOnDanger.var }}
-        />
-      </g>
-    </g>
+    <SpineDot
+      size={size}
+      className="autorag-tree-node__status-badge autorag-tree-node__status-badge--failed"
+      ringColor={borderColorStatusDanger.var}
+      coreColor={colorStatusDanger.var}
+      innerIcon={
+        <g transform={`translate(${(size - iconSize) / 2}, ${(size - iconSize) / 2})`}>
+          <ExclamationIcon
+            width={iconSize}
+            height={iconSize}
+            color={iconColorOnDanger.var}
+            style={{ color: iconColorOnDanger.var, fill: iconColorOnDanger.var }}
+          />
+        </g>
+      }
+    />
   );
 });
 StatusOnlyFailedBadge.displayName = 'StatusOnlyFailedBadge';

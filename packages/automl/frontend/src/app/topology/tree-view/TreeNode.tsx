@@ -222,69 +222,49 @@ const StatusOnlyActiveDot: React.FC<{
   size: number;
   activeIconVariant?: TreeNodeData['activeIconVariant'];
 }> = React.memo(({ size, activeIconVariant = 'pulse' }) => {
-  const center = size / 2;
-  const strokeWidth = Math.max(1.25, size * 0.055);
-  const outerR = center - strokeWidth / 2;
-  const ring = borderColorLight.var;
-  const connectorY = center;
-  const leftTangent = center - outerR;
-  const rightTangent = center + outerR;
+  const { center } = getSpineGeometry(size);
   const pulseInnerRadius = Math.max(2.5, size * 0.2);
   const pulseOuterRadius = Math.max(pulseInnerRadius + 1.25, size * 0.28);
   const syncSize = size * 0.84;
   const isPulse = activeIconVariant === 'pulse';
   return (
-    <g className="automl-tree-node__status-badge automl-tree-node__status-badge--active-dot">
-      <line
-        x1={0}
-        y1={connectorY}
-        x2={leftTangent}
-        y2={connectorY}
-        style={{ stroke: ring, strokeWidth }}
-      />
-      <line
-        x1={rightTangent}
-        y1={connectorY}
-        x2={size}
-        y2={connectorY}
-        style={{ stroke: ring, strokeWidth }}
-      />
-      <circle
-        cx={center}
-        cy={center}
-        r={center - 0.25}
-        style={{ fill: backgroundColorPrimary.var }}
-      />
-      {isPulse ? (
-        <g className="automl-tree-node__status-pulse">
-          <circle
-            cx={center}
-            cy={center}
-            r={pulseInnerRadius}
-            style={{ fill: iconColorBrand.var }}
-          />
-          <circle
-            className="automl-tree-node__status-pulse-ring"
-            cx={center}
-            cy={center}
-            r={pulseOuterRadius}
-            fill="none"
-            style={{ stroke: iconColorBrand.var, strokeWidth: 1.4 }}
-          />
-        </g>
-      ) : (
-        <g transform={`translate(${(size - syncSize) / 2}, ${(size - syncSize) / 2})`}>
-          <g className="automl-tree-node__status-spinner">
-            <SyncAltIcon
-              width={syncSize}
-              height={syncSize}
-              color={iconColorBrand.var}
-              style={{ color: iconColorBrand.var, fill: iconColorBrand.var }}
+    <SpineDot
+      size={size}
+      className="automl-tree-node__status-badge automl-tree-node__status-badge--active-dot"
+      ringColor={borderColorLight.var}
+      showConnectors
+      innerIcon={
+        isPulse ? (
+          <g className="automl-tree-node__status-pulse">
+            <circle
+              cx={center}
+              cy={center}
+              r={pulseInnerRadius}
+              style={{ fill: iconColorBrand.var }}
+            />
+            <circle
+              className="automl-tree-node__status-pulse-ring"
+              cx={center}
+              cy={center}
+              r={pulseOuterRadius}
+              fill="none"
+              style={{ stroke: iconColorBrand.var, strokeWidth: 1.4 }}
             />
           </g>
-        </g>
-      )}
-    </g>
+        ) : (
+          <g transform={`translate(${(size - syncSize) / 2}, ${(size - syncSize) / 2})`}>
+            <g className="automl-tree-node__status-spinner">
+              <SyncAltIcon
+                width={syncSize}
+                height={syncSize}
+                color={iconColorBrand.var}
+                style={{ color: iconColorBrand.var, fill: iconColorBrand.var }}
+              />
+            </g>
+          </g>
+        )
+      }
+    />
   );
 });
 StatusOnlyActiveDot.displayName = 'StatusOnlyActiveDot';

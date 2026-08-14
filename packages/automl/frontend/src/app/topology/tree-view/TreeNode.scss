@@ -128,6 +128,8 @@
  * fill: currentColor, so completed/failed/active must override that token.
  */
 .automl-tree-node {
+  cursor: pointer;
+
   &.pf-m-success {
     --pf-topology__node--Color: var(--pf-t--global--icon--color--status--success--default);
 

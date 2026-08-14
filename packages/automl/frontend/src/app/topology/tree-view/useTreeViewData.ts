@@ -21,7 +21,11 @@ export const useTreeViewData = (
           ? stageMapBestModel
           : undefined;
 
-    const winnerModelLabel = selectedModel ? safeModels[selectedModel].name : undefined;
+    const selectedRecord = selectedModel ? safeModels[selectedModel] : undefined;
+    const winnerModelLabel =
+      selectedRecord != null && typeof selectedRecord.name === 'string'
+        ? selectedRecord.name
+        : undefined;
 
     return {
       selectedModel,

@@ -1,7 +1,6 @@
 import * as React from 'react';
 import {
   t_global_color_brand_default as colorBrand,
-  t_global_color_status_success_default as colorStatusSuccess,
   t_global_color_status_danger_default as colorStatusDanger,
   t_global_border_color_default as borderColorDefault,
 } from '@patternfly/react-tokens';
@@ -18,7 +17,7 @@ const X_OFFSET = 10;
 const Y_OFFSET = 0;
 
 const COLORS = {
-  completed: colorStatusSuccess.var,
+  completed: borderColorDefault.var,
   active: colorBrand.var,
   failed: colorStatusDanger.var,
   default: borderColorDefault.var,

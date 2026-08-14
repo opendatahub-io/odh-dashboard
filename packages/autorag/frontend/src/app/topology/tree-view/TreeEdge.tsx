@@ -1,11 +1,11 @@
 import * as React from 'react';
 import {
   t_global_color_brand_default as colorBrand,
-  t_global_color_status_success_default as colorStatusSuccess,
   t_global_color_status_danger_default as colorStatusDanger,
   t_global_border_color_default as borderColorDefault,
 } from '@patternfly/react-tokens';
 import { Edge, GraphElement, observer, isEdge, Node } from '@patternfly/react-topology';
+import { isBranchCorridorNodeId } from './stageMapStepMetadata';
 import { isTreeNodeData } from './treeStepState';
 
 type TreeEdgeProps = {
@@ -17,7 +17,7 @@ const X_OFFSET = 10;
 const Y_OFFSET = 0;
 
 const COLORS = {
-  completed: colorStatusSuccess.var,
+  completed: borderColorDefault.var,
   active: colorBrand.var,
   failed: colorStatusDanger.var,
   default: borderColorDefault.var,
@@ -44,10 +44,7 @@ const getEdgeColor = (sourceNode: Node, targetNode: Node): string => {
   return COLORS.default;
 };
 
-const isBranchCorridorNode = (nodeId: string): boolean =>
-  nodeId.includes('__step__') ||
-  nodeId.includes('__pattern__') ||
-  nodeId.endsWith('__optimize_templates');
+const isBranchCorridorNode = (nodeId: string): boolean => isBranchCorridorNodeId(nodeId);
 
 const getEdgeStrokeWidth = (sourceNode: Node, targetNode: Node): number => {
   const sourceData = sourceNode.getData();

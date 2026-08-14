@@ -92,6 +92,21 @@ const parseBranchStepFromParts = (parts: string[]): ParsedStageMapNode | undefin
 export const isBranchStepNodeId = (nodeId: string): boolean =>
   parseStageMapNodeId(nodeId)?.type === 'branch_step';
 
+/** Mirrors stageMapStatus.BRANCHING_STAGE_ID — local to avoid importing topology-heavy status module. */
+const BRANCHING_STAGE_ID = 'optimize_templates';
+
+/** True for nodes on the branch fan-out spine (optimize templates, branch steps, pattern winner). */
+export const isBranchCorridorNodeId = (nodeId: string): boolean => {
+  const parsed = parseStageMapNodeId(nodeId);
+  if (!parsed) {
+    return false;
+  }
+  if (parsed.type === 'branch_step' || parsed.type === 'branch_pattern') {
+    return true;
+  }
+  return parsed.stageId === BRANCHING_STAGE_ID;
+};
+
 export function parseStageMapNodeId(nodeId: string): ParsedStageMapNode | undefined {
   const parts = nodeId.split('__');
   if (parts.length === 2 && parts[0] && parts[1]) {

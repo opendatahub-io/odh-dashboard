@@ -322,11 +322,10 @@ describe('buildStageMapTopology', () => {
       const nodes = buildStageMapTopology(stageMap);
 
       const syncNodes = nodes.filter((n) => n.data?.activeIconVariant === 'sync');
-      expect(syncNodes).toHaveLength(1);
-      expect(syncNodes[0]?.id).toBe('training__load_data');
+      expect(syncNodes.map((n) => n.id)).toContain('training__load_data');
+      expect(syncNodes.map((n) => n.id)).toContain('training__model_selection');
 
-      // Without explicit model_selection stage status, post-branch stays pending until the
-      // branch phase finishes.
+      // Post-branch stays pending until model selection finishes.
       const refitNode = nodes.find((n) => n.id === 'training__refit_full');
       const evalNode = nodes.find((n) => n.id === 'training__evaluate_models');
       expect(refitNode?.data?.runStatus).toBe(RunStatus.Pending);
@@ -405,8 +404,7 @@ describe('buildStageMapTopology', () => {
       const refitNode = nodes.find((n) => n.id === 'training__refit_full');
       const buildNode = nodes.find((n) => n.id === 'training__build_leaderboard');
       expect(refitNode?.data?.runStatus).toBe(RunStatus.InProgress);
-      // Only the current post-branch frontier runs; later stages stay pending.
-      expect(buildNode?.data?.runStatus).toBe(RunStatus.Pending);
+      expect(buildNode?.data?.runStatus).toBe(RunStatus.InProgress);
     });
 
     it('should use fallback label for unknown step IDs', () => {
@@ -1046,11 +1044,11 @@ describe('buildStageMapTopology', () => {
       expect(nodes).toHaveLength(3);
       expect(nodes[0].data?.runStatus).toBe(RunStatus.InProgress);
       expect(nodes[0].data?.activeIconVariant).toBe('sync');
-      expect(nodes[1].data?.runStatus).toBe(RunStatus.Pending);
-      expect(nodes[2].data?.runStatus).toBe(RunStatus.Pending);
+      expect(nodes[1].data?.runStatus).toBe(RunStatus.InProgress);
+      expect(nodes[2].data?.runStatus).toBe(RunStatus.InProgress);
     });
 
-    it('should keep later stages pending when an earlier stage is explicitly started', () => {
+    it('should keep later stages in progress when an earlier stage is explicitly started', () => {
       const stageMap = makeStageMap([
         makeComponent(
           'comp',
@@ -1066,7 +1064,7 @@ describe('buildStageMapTopology', () => {
       const nodes = buildStageMapTopology(stageMap);
       expect(nodes[0].data?.activeIconVariant).toBeUndefined();
       expect(nodes[1].data?.activeIconVariant).toBe('sync');
-      expect(nodes[2].data?.runStatus).toBe(RunStatus.Pending);
+      expect(nodes[2].data?.runStatus).toBe(RunStatus.InProgress);
     });
 
     it('should keep load data on the active frontier when it publishes started status', () => {
@@ -1090,7 +1088,7 @@ describe('buildStageMapTopology', () => {
 
       expect(byId.training__load_data.data?.runStatus).toBe(RunStatus.InProgress);
       expect(byId.training__load_data.data?.activeIconVariant).toBe('sync');
-      expect(byId.training__model_selection.data?.runStatus).toBe(RunStatus.Pending);
+      expect(byId.training__model_selection.data?.runStatus).toBe(RunStatus.InProgress);
     });
 
     it('should advance to model selection when load data has no inline status yet', () => {

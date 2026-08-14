@@ -202,6 +202,7 @@ const AutomlPipelineVisualization: React.FC<AutomlPipelineVisualizationProps> = 
                   loadingMode={treeLoadingMode}
                   selectedIds={selectedIds}
                   onSelectionChange={handleSelectionChange}
+                  layoutResetKey={modelsExpanded}
                 />
               </ModelsExpandProvider>
             </DrawerContentBody>
