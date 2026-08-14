@@ -201,10 +201,10 @@ describe('CreateFeatureStoreProjectWizard', () => {
     expect(screen.getByTestId('feast-wizard-submit')).toHaveTextContent('Create feature store');
   });
 
-  it('navigates to overview on cancel', async () => {
+  it('navigates back on cancel', async () => {
     renderWizard();
     await user.click(screen.getByRole('button', { name: 'Cancel' }));
-    expect(mockNavigate).toHaveBeenCalledWith(expect.stringContaining('/feature-store/overview'));
+    expect(mockNavigate).toHaveBeenCalledWith(-1);
   });
 
   describe('submit flow', () => {

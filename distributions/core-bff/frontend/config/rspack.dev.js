@@ -1,16 +1,13 @@
 /* eslint-disable no-console */
 const { execSync } = require('child_process');
 const path = require('path');
-const { merge } = require('webpack-merge');
-const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
-const ReactRefreshWebpackPlugin = require('@pmmmwh/react-refresh-webpack-plugin');
-const SpeedMeasurePlugin = require('speed-measure-webpack-plugin');
+const { merge } = require('rspack-merge');
+const { TsCheckerRspackPlugin } = require('ts-checker-rspack-plugin');
+const { ReactRefreshRspackPlugin } = require('@rspack/plugin-react-refresh');
 const { setupWebpackDotenvFilesForEnv, setupDotenvFilesForEnv } = require('./dotenv');
 
-const smp = new SpeedMeasurePlugin({ disable: !process.env.MEASURE });
-
 setupDotenvFilesForEnv({ env: 'development' });
-const webpackCommon = require('./webpack.common.js');
+const rspackCommon = require('./rspack.common.js');
 
 const RELATIVE_DIRNAME = process.env._RELATIVE_DIRNAME;
 const IS_PROJECT_ROOT_DIR = process.env._IS_PROJECT_ROOT_DIR === 'true';
@@ -85,84 +82,81 @@ const getProxyHeaders = () => {
   return token ? toBearerHeaders(token) : {};
 };
 
-module.exports = smp.wrap(
-  merge(
-    {
-      plugins: [
-        ...setupWebpackDotenvFilesForEnv({
-          directory: RELATIVE_DIRNAME,
-          env: 'development',
-          isRoot: IS_PROJECT_ROOT_DIR,
-        }),
+module.exports = merge(
+  {
+    plugins: [
+      ...setupWebpackDotenvFilesForEnv({
+        directory: RELATIVE_DIRNAME,
+        env: 'development',
+        isRoot: IS_PROJECT_ROOT_DIR,
+      }),
+    ],
+  },
+  rspackCommon('development'),
+  {
+    mode: 'development',
+    devtool: 'eval-source-map',
+    optimization: {
+      removeEmptyChunks: true,
+    },
+    devServer: {
+      host: HOST,
+      port: PORT,
+      compress: true,
+      historyApiFallback: true,
+      hot: true,
+      open: false,
+      proxy: [
+        {
+          context: ['/api', '/core-bff/api'],
+          target: `${PROXY_PROTOCOL}://${PROXY_HOST}:${PROXY_PORT}`,
+          changeOrigin: true,
+          headers: getProxyHeaders(),
+          pathRewrite: { '^/core-bff': '' },
+        },
+        {
+          context: ['/wss/k8s', '/core-bff/wss/k8s'],
+          target: `${PROXY_PROTOCOL === 'https' ? 'wss' : 'ws'}://${PROXY_HOST}:${PROXY_PORT}`,
+          ws: true,
+          headers: getProxyHeaders(),
+          pathRewrite: { '^/core-bff': '' },
+        },
+      ],
+      devMiddleware: {
+        stats: 'errors-only',
+      },
+      client: {
+        overlay: false,
+      },
+      static: {
+        directory: DIST_DIR,
+        publicPath: BASE_PATH,
+      },
+      onListening: (devServer) => {
+        if (devServer) {
+          console.log(
+            `\x1b[32m✓ Dashboard available at: \x1b[4mhttp://localhost:${devServer.server.address().port}\x1b[0m`,
+          );
+        }
+      },
+    },
+    module: {
+      rules: [
+        {
+          test: /\.css$/,
+          include: [
+            SRC_DIR,
+            COMMON_DIR,
+            path.resolve(RELATIVE_DIRNAME, 'node_modules/@patternfly'),
+            path.resolve(ROOT_NODE_MODULES, '@patternfly'),
+          ],
+          use: ['style-loader', 'css-loader'],
+        },
       ],
     },
-    webpackCommon('development'),
-    {
-      mode: 'development',
-      devtool: 'eval-source-map',
-      optimization: {
-        runtimeChunk: 'single',
-        removeEmptyChunks: true,
-      },
-      devServer: {
-        host: HOST,
-        port: PORT,
-        compress: true,
-        historyApiFallback: true,
-        hot: true,
-        open: false,
-        proxy: [
-          {
-            context: ['/api', '/core-bff/api'],
-            target: `${PROXY_PROTOCOL}://${PROXY_HOST}:${PROXY_PORT}`,
-            changeOrigin: true,
-            headers: getProxyHeaders(),
-            pathRewrite: { '^/core-bff': '' },
-          },
-          {
-            context: ['/wss/k8s', '/core-bff/wss/k8s'],
-            target: `${PROXY_PROTOCOL === 'https' ? 'wss' : 'ws'}://${PROXY_HOST}:${PROXY_PORT}`,
-            ws: true,
-            headers: getProxyHeaders(),
-            pathRewrite: { '^/core-bff': '' },
-          },
-        ],
-        devMiddleware: {
-          stats: 'errors-only',
-        },
-        client: {
-          overlay: false,
-        },
-        static: {
-          directory: DIST_DIR,
-          publicPath: BASE_PATH,
-        },
-        onListening: (devServer) => {
-          if (devServer) {
-            console.log(
-              `\x1b[32m✓ Dashboard available at: \x1b[4mhttp://localhost:${devServer.server.address().port}\x1b[0m`,
-            );
-          }
-        },
-      },
-      module: {
-        rules: [
-          {
-            test: /\.css$/,
-            include: [
-              SRC_DIR,
-              COMMON_DIR,
-              path.resolve(RELATIVE_DIRNAME, 'node_modules/@patternfly'),
-              path.resolve(ROOT_NODE_MODULES, '@patternfly'),
-            ],
-            use: ['style-loader', 'css-loader'],
-          },
-        ],
-      },
-      plugins: [
-        new ForkTsCheckerWebpackPlugin(),
-        new ReactRefreshWebpackPlugin({ overlay: false }),
-      ],
-    },
-  ),
+    plugins: [
+      new TsCheckerRspackPlugin(),
+      new ReactRefreshRspackPlugin({ overlay: false }),
+    ],
+  },
 );

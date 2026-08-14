@@ -20,9 +20,12 @@ import CompoundExpandCountCell from '~/app/shared/CompoundExpandCountCell';
 import ExpandedModelsPanel from '~/app/shared/ExpandedModelsPanel';
 import {
   EventTrackingExpandedSection,
+  EventTrackingPopoverType,
   EventTrackingResourceType,
   EventTrackingSource,
+  convertStringToPopoverViewedStatus,
   MaaSEvents,
+  SubscriptionManagementStatusPopoverViewedProperties,
 } from '~/app/types/event-tracking';
 import { subscriptionsColumns } from './columns';
 
@@ -129,10 +132,10 @@ const SubscriptionTableRow: React.FC<SubscriptionTableRowProps> = ({
         returnTo={returnTo}
         onClick={() => {
           fireMiscTrackingEvent(MaaSEvents.SUBSCRIPTION_MANAGEMENT_STATUS_POPOVER_VIEWED, {
-            popoverType: 'status',
-            status: subscription.phase,
+            popoverType: EventTrackingPopoverType.STATUS,
+            status: convertStringToPopoverViewedStatus(subscription.phase),
             location: PhaseLabelLocation.SUBSCRIPTIONS_TAB,
-          });
+          } satisfies SubscriptionManagementStatusPopoverViewedProperties);
         }}
       />
     </Td>

@@ -17,7 +17,12 @@ import {
   PhaseLabelLocation,
   PhaseResourceType,
 } from '~/app/utilities/phaseLabelUtils';
-import { MaaSEvents } from '~/app/types/event-tracking';
+import {
+  EventTrackingPopoverType,
+  MaaSEvents,
+  SubscriptionManagementStatusPopoverViewedProperties,
+  convertStringToPopoverViewedStatus,
+} from '~/app/types/event-tracking';
 
 type SubscriptionDetailsSectionProps = {
   subscription: MaaSSubscription;
@@ -57,10 +62,10 @@ const SubscriptionDetailsSection: React.FC<SubscriptionDetailsSectionProps> = ({
               affectedModels={getAffectedModels(modelRefs)}
               onClick={() => {
                 fireMiscTrackingEvent(MaaSEvents.SUBSCRIPTION_MANAGEMENT_STATUS_POPOVER_VIEWED, {
-                  popoverType: 'status',
-                  status: subscription.phase,
+                  popoverType: EventTrackingPopoverType.STATUS,
+                  status: convertStringToPopoverViewedStatus(subscription.phase),
                   location: PhaseLabelLocation.DETAIL_PAGE,
-                });
+                } satisfies SubscriptionManagementStatusPopoverViewedProperties);
               }}
             />
           </DescriptionListDescription>

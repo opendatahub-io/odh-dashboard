@@ -36,7 +36,7 @@ import useWatchFeatureStoreDeployment, {
   DeploymentPhase,
 } from '../../hooks/useWatchFeatureStoreDeployment';
 import { FeatureStoreObject } from '../../const';
-import { featureStoreRoute } from '../../routes';
+import { featureStoreRoute, featureStoreManageRoute } from '../../routes';
 import {
   hasConditionFailure,
   humanizeConditionType,
@@ -339,6 +339,13 @@ const DeploymentProgressPage: React.FC = () => {
           </StackItem>
         )}
 
+        {!error && !isComplete && !isFailed && (
+          <StackItem>
+            <Title headingLevel="h6" size="md">
+              Deployment in progress
+            </Title>
+          </StackItem>
+        )}
         <StackItem>
           <Split hasGutter>
             <SplitItem>
@@ -350,13 +357,15 @@ const DeploymentProgressPage: React.FC = () => {
                 {isComplete ? 'Go to feature store' : 'Back to overview'}
               </Button>
             </SplitItem>
-            {!isComplete && !isFailed && (
-              <SplitItem>
-                <Title headingLevel="h6" size="md">
-                  Deployment in progress
-                </Title>
-              </SplitItem>
-            )}
+            <SplitItem>
+              <Button
+                variant="secondary"
+                onClick={() => navigate(featureStoreManageRoute())}
+                data-testid="manage-feature-stores"
+              >
+                Manage feature stores
+              </Button>
+            </SplitItem>
           </Split>
         </StackItem>
       </Stack>

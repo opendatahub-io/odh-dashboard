@@ -1,5 +1,5 @@
 import type { HardwareProfileConfig } from '@odh-dashboard/hardware-profiles/shared';
-import type { SupportedModelFormats } from '@odh-dashboard/k8s-core';
+import type { K8sAPIOptions, SupportedModelFormats } from '@odh-dashboard/k8s-core';
 import {
   type InferenceServiceKind,
   ServingRuntimeModelType,
@@ -22,7 +22,6 @@ import {
   applyHardwareProfileConfig,
   INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS,
 } from '@odh-dashboard/hardware-profiles/shared';
-import { DeploymentAssemblyFn } from '@odh-dashboard/model-serving/extension-points/deployment-wizard';
 import {
   applyAiAvailableAssetAnnotations,
   applyAuth,
@@ -42,8 +41,6 @@ import {
   updateInferenceService,
 } from './api/inferenceService';
 import { applyModelRuntime } from './deployServer';
-import { KServeDeployment } from './deployments';
-import { KSERVE_ID } from '../extensions';
 
 export type CreatingInferenceServiceObject = {
   project: string;
@@ -64,7 +61,7 @@ export type CreatingInferenceServiceObject = {
   deploymentStrategy?: DeploymentStrategyFieldData;
 };
 
-const assembleInferenceService = (
+export const assembleInferenceService = (
   data: CreatingInferenceServiceObject,
   existingInferenceService?: InferenceServiceKind,
   dryRun?: boolean,
@@ -167,36 +164,15 @@ const assembleInferenceService = (
  * Hides the complexity of the different methods from the caller.
  */
 export const deployInferenceService = (
-  data: CreatingInferenceServiceObject,
+  inferenceService: InferenceServiceKind,
   existingInferenceService?: InferenceServiceKind,
-  connectionSecretName?: string,
-  applyFieldData?: DeploymentAssemblyFn<KServeDeployment>,
-  opts?: {
-    dryRun?: boolean;
-    overwrite?: boolean;
-  },
+  opts?: K8sAPIOptions & { overwrite?: boolean },
 ): Promise<InferenceServiceKind> => {
-  let newInferenceService = assembleInferenceService(
-    data,
-    existingInferenceService,
-    opts?.dryRun,
-    connectionSecretName,
-  );
-
-  // Apply field data from wizard field extensions during assembly
-  if (applyFieldData) {
-    const assembledDeployment = applyFieldData({
-      modelServingPlatformId: KSERVE_ID,
-      model: newInferenceService,
-    });
-    newInferenceService = assembledDeployment.model;
-  }
-
   if (!existingInferenceService) {
-    return createInferenceService(newInferenceService, opts);
+    return createInferenceService(inferenceService, opts);
   }
   if (opts?.overwrite) {
-    return patchInferenceService(existingInferenceService, newInferenceService, opts);
+    return patchInferenceService(existingInferenceService, inferenceService, opts);
   }
-  return updateInferenceService(newInferenceService, opts);
+  return updateInferenceService(inferenceService, opts);
 };

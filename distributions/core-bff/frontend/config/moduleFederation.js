@@ -1,4 +1,4 @@
-const { OdhRemoteFederationPlugin } = require('@odh-dashboard/app-config/webpack');
+const { OdhRemoteFederationPlugin } = require('@odh-dashboard/app-config/rspack');
 
 module.exports = {
   moduleFederationPlugins: [

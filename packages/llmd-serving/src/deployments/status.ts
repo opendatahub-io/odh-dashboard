@@ -204,6 +204,7 @@ export const getLLMdDeploymentStatus = (
     state,
     inferenceService.metadata.annotations,
     deploymentPod,
+    kueueStatus,
   );
 
   const conditions = getLLMdDeploymentConditions(inferenceService, kueueStatus);
