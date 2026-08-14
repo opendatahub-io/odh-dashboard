@@ -71,6 +71,16 @@ declare global {
           type: 'POST /api/:apiVersion/evaluations/jobs',
           options: { path: { apiVersion: string }; query?: Record<string, string> },
           response: ApiResponse<CreateEvaluationJobResponse>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /api/:apiVersion/evaluations/jobs/:jobId/logs',
+          options: { path: { apiVersion: string; jobId: string } },
+          response: ApiResponse<string>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /api/:apiVersion/evaluations/jobs/:jobId/benchmarks/:benchmarkIndex/logs',
+          options: { path: { apiVersion: string; jobId: string; benchmarkIndex: string } },
+          response: ApiResponse<string>,
         ) => Cypress.Chainable<null>);
     }
   }

@@ -1,6 +1,5 @@
 import * as React from 'react';
 import {
-  Bullseye,
   Content,
   EmptyState,
   EmptyStateBody,
@@ -9,7 +8,6 @@ import {
   Flex,
   FlexItem,
   PageSection,
-  Spinner,
 } from '@patternfly/react-core';
 import { CogIcon } from '@patternfly/react-icons';
 import { useParams } from 'react-router-dom';
@@ -26,32 +24,24 @@ import useUser from '~/app/hooks/useUser';
 import EvalHubHeader from '~/app/components/EvalHubHeader';
 import EvalHubProjectSelector from '~/app/components/EvalHubProjectSelector';
 import EvalHubEmptyState from '~/app/components/EvalHubEmptyState';
+import usePageVisibility from '~/app/hooks/usePageVisibility';
 import EvaluationsTable from '~/app/components/EvaluationsTable';
-import { EvaluationJob } from '~/app/types';
-
-const EvaluationStatusModal = React.lazy(() => import('~/app/components/EvaluationStatusModal'));
 
 const EvaluationsPage: React.FC = () => {
   const { namespace } = useParams<{ namespace: string }>();
   const { clusterAdmin } = useUser();
+
+  // Pause list polling when the browser tab is backgrounded
+  const isPollingEnabled = usePageVisibility();
 
   const { isHealthy, loaded: healthLoaded, error: healthError } = useEvalHubHealth(namespace);
 
   const [evaluations, loaded, error, refreshEvaluations] = useEvaluationJobs(
     { namespace },
     !isHealthy,
+    isPollingEnabled,
   );
   const { collectionNameMap, loaded: collectionsLoaded } = useCollectionNameMap();
-  const [selectedJob, setSelectedJob] = React.useState<
-    { job: EvaluationJob; namespace: string } | undefined
-  >();
-
-  const onShowStatus = React.useCallback(
-    (job: EvaluationJob) => {
-      setSelectedJob(namespace ? { job, namespace } : undefined);
-    },
-    [namespace],
-  );
 
   return (
     <>
@@ -154,25 +144,9 @@ const EvaluationsPage: React.FC = () => {
             collectionNameMap={collectionNameMap}
             collectionsLoaded={collectionsLoaded}
             onRefresh={refreshEvaluations}
-            onShowStatus={onShowStatus}
           />
         )}
       </ApplicationsPage>
-      {selectedJob && selectedJob.namespace === namespace ? (
-        <React.Suspense
-          fallback={
-            <Bullseye>
-              <Spinner />
-            </Bullseye>
-          }
-        >
-          <EvaluationStatusModal
-            job={selectedJob.job}
-            namespace={selectedJob.namespace}
-            onClose={() => setSelectedJob(undefined)}
-          />
-        </React.Suspense>
-      ) : null}
     </>
   );
 };
