@@ -25,18 +25,11 @@ export type PrometheusPostFn = (
   body: { query: string },
 ) => Promise<{ response: PrometheusQueryRangeResponse }>;
 
-const defaultPost: PrometheusPostFn = async (url, body) => {
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) {
-    throw new Error(`Prometheus query failed: ${res.status} ${res.statusText}`);
-  }
-  return res.json();
-};
-
+// `post` is intentionally required (no plain-`fetch` default). Runtime callers
+// must inject a transport bound to the dashboard's authenticated instance so
+// requests carry cookies, CSRF, `x-odh-feature-flags`, and interceptors. The
+// frontend wrapper (`frontend/src/api/prometheus/usePrometheusQueryRange.ts`)
+// supplies an axios-backed transport.
 const usePrometheusQueryRange = <T = PrometheusQueryRangeResultValue>(
   active: boolean,
   apiPath: string,
@@ -46,8 +39,8 @@ const usePrometheusQueryRange = <T = PrometheusQueryRangeResultValue>(
   step: number,
   responsePredicate: ResponsePredicate<T>,
   namespace: string,
-  fetchOptions?: Partial<FetchOptions>,
-  post: PrometheusPostFn = defaultPost,
+  fetchOptions: Partial<FetchOptions> | undefined,
+  post: PrometheusPostFn,
 ): [...FetchState<T[]>, boolean] => {
   const pendingRef = React.useRef(active);
   const fetchData = React.useCallback<FetchStateCallbackPromise<T[]>>(() => {

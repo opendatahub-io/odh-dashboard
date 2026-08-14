@@ -11,9 +11,10 @@ import usePrometheusQueryRange, {
 } from '../usePrometheusQueryRange';
 
 // These tests cover the behavior this file introduces on top of the relocated
-// hook: the injectable `post` transport seam and its `defaultPost` fetch-based
-// default. The relocated core logic is additionally exercised end-to-end by the
-// frontend axios wrapper's own test.
+// hook: the required `post` transport seam. There is intentionally no plain-fetch
+// default — runtime callers must inject an authenticated transport. The relocated
+// core logic is additionally exercised end-to-end by the frontend axios wrapper's
+// own test.
 
 const queryLang = 'testQuery';
 const span = 60;
@@ -33,11 +34,8 @@ const responseEnvelope: { response: PrometheusQueryRangeResponse } = {
 };
 
 describe('usePrometheusQueryRange', () => {
-  const originalFetch = global.fetch;
-
   afterEach(() => {
     jest.restoreAllMocks();
-    global.fetch = originalFetch;
   });
 
   it('should use the injected post transport and pass its result to the predicate', async () => {
@@ -92,72 +90,6 @@ describe('usePrometheusQueryRange', () => {
 
     expect(renderResult).hookToStrictEqual([[], false, undefined, expect.any(Function), false]);
     expect(post).not.toHaveBeenCalled();
-  });
-
-  it('should default to a fetch-based POST when no transport is provided', async () => {
-    const fetchMock = jest.fn().mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve(responseEnvelope),
-    });
-    global.fetch = fetchMock as unknown as typeof fetch;
-
-    const renderResult = testHook(usePrometheusQueryRange)(
-      true,
-      apiPath,
-      queryLang,
-      span,
-      endInMs,
-      step,
-      defaultResponsePredicate,
-      namespace,
-    );
-
-    await renderResult.waitForNextUpdate();
-
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(fetchMock).toHaveBeenCalledWith(
-      apiPath,
-      expect.objectContaining({
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: expectedQuery }),
-      }),
-    );
-    expect(renderResult).hookToStrictEqual([
-      [[1704899825.644, '16']],
-      true,
-      undefined,
-      expect.any(Function),
-      false,
-    ]);
-  });
-
-  it('should surface an error when the default fetch response is not ok', async () => {
-    const fetchMock = jest.fn().mockResolvedValue({
-      ok: false,
-      status: 500,
-      statusText: 'Internal Server Error',
-      json: () => Promise.resolve({}),
-    });
-    global.fetch = fetchMock as unknown as typeof fetch;
-
-    const renderResult = testHook(usePrometheusQueryRange)(
-      true,
-      apiPath,
-      queryLang,
-      span,
-      endInMs,
-      step,
-      defaultResponsePredicate,
-      namespace,
-    );
-
-    await renderResult.waitForNextUpdate();
-
-    const [data, loaded, error] = renderResult.result.current;
-    expect(data).toEqual([]);
-    expect(loaded).toBe(false);
-    expect(error).toEqual(new Error('Prometheus query failed: 500 Internal Server Error'));
   });
 
   it('should stabilize the refresh callback across an unchanged rerender', async () => {
