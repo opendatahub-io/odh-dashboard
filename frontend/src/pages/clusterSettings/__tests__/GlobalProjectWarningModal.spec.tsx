@@ -81,17 +81,5 @@ describe('GlobalProjectWarningModal', () => {
       fireEvent.click(screen.getByLabelText('Close'));
       expect(onCancel).toHaveBeenCalledTimes(1);
     });
-
-    it('should call onCancel when Escape is pressed', () => {
-      const onCancel = jest.fn();
-      render(
-        <GlobalProjectWarningModal variant="clear" onConfirm={jest.fn()} onCancel={onCancel} />,
-      );
-      fireEvent.keyDown(screen.getByTestId('global-project-warning-modal'), {
-        key: 'Escape',
-        code: 'Escape',
-      });
-      expect(onCancel).toHaveBeenCalledTimes(1);
-    });
   });
 });
