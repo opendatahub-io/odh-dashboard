@@ -52,10 +52,6 @@ const LLM_ACCELERATOR_CONFIGS_TAB_PATH =
 
 // Keep in sync with ../src/settings/topologyConfigs/paths.ts (value imports are
 // disallowed in extensions.ts). Pinned by __tests__/extensions.spec.ts.
-// The standalone constant and the extensions using it are removed by RHOAIENG-80077.
-// https://issues.redhat.com/browse/RHOAIENG-80077
-const TOPOLOGY_CONFIGS_STANDALONE_PATH =
-  '/settings/model-resources-operations/llmd-topology-configurations';
 const TOPOLOGY_CONFIGS_TAB_PATH =
   '/settings/model-resources-operations/model-deployment-settings/topology-configurations';
 
@@ -557,35 +553,6 @@ const extensions: (
         import('../src/deployments/status').then((m) => m.patchDeploymentStoppedStatus),
     },
   },
-  // Standalone llm-d topology configurations page — nav item + route. Hidden when
-  // modelDeploymentSettings is on (disallowed flag); removed entirely by
-  // RHOAIENG-80077. https://issues.redhat.com/browse/RHOAIENG-80077
-  {
-    type: 'app.navigation/href',
-    flags: {
-      required: [SupportedArea.LLMD_TOPOLOGY_CONFIGS, ADMIN_USER],
-      disallowed: [SupportedArea.MODEL_DEPLOYMENT_SETTINGS],
-    },
-    properties: {
-      id: 'settings-llmd-topology-configurations',
-      title: 'llm-d topology configurations',
-      href: TOPOLOGY_CONFIGS_STANDALONE_PATH,
-      section: 'settings-model-resources-and-operations',
-      path: `${TOPOLOGY_CONFIGS_STANDALONE_PATH}/*`,
-      group: '2_model-resources',
-    },
-  },
-  {
-    type: 'app.route',
-    flags: {
-      required: [SupportedArea.LLMD_TOPOLOGY_CONFIGS, ADMIN_USER],
-      disallowed: [SupportedArea.MODEL_DEPLOYMENT_SETTINGS],
-    },
-    properties: {
-      path: `${TOPOLOGY_CONFIGS_STANDALONE_PATH}/*`,
-      component: () => import('../src/settings/topologyConfigs/TopologyConfigurationsRoutes'),
-    },
-  },
   // Standalone llm-d routing configurations page — nav item + route. Hidden when
   // modelDeploymentSettings is on (disallowed flag); removed entirely by
   // RHOAIENG-80077. https://issues.redhat.com/browse/RHOAIENG-80077
@@ -616,9 +583,9 @@ const extensions: (
     },
   },
   // Redirects from old standalone URLs to tabs on the model deployment settings page.
-  // The accelerator redirect below is un-gated on modelDeploymentSettings — its
-  // standalone page is gone, so the tab is reachable whenever the accelerator's
-  // own feature areas are enabled.
+  // The accelerator and topology redirects below are un-gated on
+  // modelDeploymentSettings — their standalone pages are gone, so the tabs are
+  // reachable whenever their own feature areas are enabled.
   {
     type: 'app.route',
     flags: {
@@ -635,16 +602,12 @@ const extensions: (
   {
     type: 'app.route',
     flags: {
-      required: [
-        SupportedArea.MODEL_DEPLOYMENT_SETTINGS,
-        SupportedArea.LLMD_TOPOLOGY_CONFIGS,
-        ADMIN_USER,
-      ],
+      required: [SupportedArea.LLMD_TOPOLOGY_CONFIGS, ADMIN_USER],
     },
     properties: {
-      path: `${TOPOLOGY_CONFIGS_STANDALONE_PATH}/*`,
+      path: '/settings/model-resources-operations/llmd-topology-configurations/*',
       component: createRedirectComponent({
-        from: `${TOPOLOGY_CONFIGS_STANDALONE_PATH}/*`,
+        from: '/settings/model-resources-operations/llmd-topology-configurations/*',
         to: `${TOPOLOGY_CONFIGS_TAB_PATH}/*`,
       }),
     },
@@ -705,11 +668,7 @@ const extensions: (
   {
     type: 'app.tab-route/tab',
     flags: {
-      required: [
-        SupportedArea.MODEL_DEPLOYMENT_SETTINGS,
-        SupportedArea.LLMD_TOPOLOGY_CONFIGS,
-        ADMIN_USER,
-      ],
+      required: [SupportedArea.LLMD_TOPOLOGY_CONFIGS, ADMIN_USER],
     },
     properties: {
       pageId: 'model-deployment-settings',
@@ -732,11 +691,7 @@ const extensions: (
     (path): RouteExtension => ({
       type: 'app.route',
       flags: {
-        required: [
-          SupportedArea.MODEL_DEPLOYMENT_SETTINGS,
-          SupportedArea.LLMD_TOPOLOGY_CONFIGS,
-          ADMIN_USER,
-        ],
+        required: [SupportedArea.LLMD_TOPOLOGY_CONFIGS, ADMIN_USER],
       },
       properties: {
         path,
