@@ -1,0 +1,1317 @@
+openapi: 3.1.0
+info:
+  title: Data Registry BFF API
+  version: 1.0.0
+  description: |
+    REST API for the Data Registry Backend-for-Frontend (BFF).
+
+    This is the BFF's own contract, covering:
+
+    - **BFF-native endpoints** (`/healthcheck`, `/api/v1/user`, `/api/v1/namespaces`) — served
+      directly by the BFF from Kubernetes.
+    - **Data Registry proxy routes** (everything else under `/api/v1/*`) — the BFF is a pure
+      pass-through ("dumb") reverse proxy to the upstream Data Registry API. It performs no
+      authorization, data persistence, or business logic of its own; the upstream server's
+      `kube-rbac-proxy` sidecar performs authorization. See
+      [RHAI-415](https://redhat.atlassian.net/browse/RHAI-415) and the parent epic
+      [RHAI-366](https://redhat.atlassian.net/browse/RHAI-366).
+
+    The proxy paths below mirror the vendored upstream contract,
+    [`data-registry-api.yaml`](./data-registry-api.yaml) (fetched from the
+    [data-registry-production](https://gitlab.cee.redhat.com/data-strategy/data-registry-production/-/blob/main/api-contract/data-registry-api.yaml)
+    repo), 1:1 under the `/api/v1` prefix instead of the upstream's `/v1` root — only the
+    literal `/api` segment is stripped before forwarding. Because responses are relayed
+    verbatim, request/response schemas for these routes are referenced directly from
+    `data-registry-api.yaml` rather than redefined here. See
+    [bff/README.md#data-registry-api-proxy](../../README.md#data-registry-api-proxy) for the
+    full routing/auth/error-relay behavior.
+  license:
+    name: Apache 2.0
+    url: "https://www.apache.org/licenses/LICENSE-2.0"
+servers:
+  - url: "http://localhost:4000"
+  - url: "https://localhost:4000"
+security:
+  - ForwardedAccessToken: []
+  - Bearer: []
+tags:
+  - name: K8SOperation
+    description: BFF-native operations backed directly by Kubernetes
+  - name: discovery
+    description: Project listing and server configuration (proxied)
+  - name: namespaces
+    description: Collection (namespace) management within a project (proxied)
+  - name: tables
+    description: Iceberg table registration and management (proxied)
+  - name: volumes
+    description: Volume (unstructured storage) registration and management (proxied)
+  - name: generic-tables
+    description: Multi-format table registration, RHOAI extension (proxied)
+  - name: search
+    description: Full-text search with relevance scoring, RHOAI extension (proxied)
+  - name: labels
+    description: Asset label management, RHOAI extension (proxied)
+paths:
+  # ===========================================================================
+  # BFF-native endpoints
+  # ===========================================================================
+  /healthcheck:
+    summary: Path targeted for healthcheck purposes.
+    description: >-
+      The REST endpoint/path used to allow a healthcheck update.
+    get:
+      tags:
+        - K8SOperation
+      security: []
+      responses:
+        "200":
+          $ref: "#/components/responses/HealthCheckResponse"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      operationId: healthcheck
+      summary: HealthCheck
+      description: HealthCheck endpoint.
+  /api/v1/user:
+    summary: Path used to retrieve the authenticated user based on the request identity.
+    description: >-
+      The REST endpoint/path used to pass all the config information needed for the UI.
+    get:
+      tags:
+        - K8SOperation
+      responses:
+        "200":
+          $ref: "#/components/responses/ConfigResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      operationId: getConfig
+      summary: Get configuration info
+      description: Gets the configuration information needed for the UI.
+  /api/v1/namespaces:
+    summary: Path used to get available namespaces.
+    description: >-
+      The REST endpoint/path used to list available Kubernetes namespaces (dev/mock mode only).
+    get:
+      tags:
+        - K8SOperation
+      responses:
+        "200":
+          $ref: "#/components/responses/NamespacesResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      operationId: getNamespaces
+      summary: Get Available Namespaces
+      description: Returns available Kubernetes namespaces (dev/mock mode only).
+
+  # ===========================================================================
+  # Data Registry proxy routes — discovery
+  # ===========================================================================
+  /api/v1/config:
+    get:
+      tags: [discovery]
+      operationId: proxyGetBootstrapConfig
+      summary: Bootstrap configuration (proxied)
+      description: |
+        Pass-through proxy for `GET /v1/config` on the upstream Data Registry API. See
+        `data-registry-api.yaml#/paths/~1v1~1config` for the full upstream contract.
+      parameters:
+        - name: warehouse
+          in: query
+          schema:
+            type: string
+          description: RHOAI project name to use as prefix
+      responses:
+        "200":
+          description: Server configuration
+          content:
+            application/json:
+              schema:
+                $ref: "data-registry-api.yaml#/components/schemas/DataRegistryConfig"
+              example:
+                defaults:
+                  warehouse: my-project
+                overrides: {}
+                endpoints:
+                  - "GET /v1/{prefix}/namespaces"
+                  - "GET /v1/{prefix}/namespaces/{namespace}"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /api/v1/projects:
+    get:
+      tags: [discovery]
+      operationId: proxyListProjects
+      summary: List accessible projects (proxied)
+      description: |
+        Pass-through proxy for `GET /v1/projects` on the upstream Data Registry API. See
+        `data-registry-api.yaml#/paths/~1v1~1projects` for the full upstream contract.
+      responses:
+        "200":
+          description: List of project names
+          content:
+            application/json:
+              schema:
+                $ref: "data-registry-api.yaml#/components/schemas/ProjectListResponse"
+              example:
+                projects: [my-project, another-project]
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /api/v1/{project}/config:
+    get:
+      tags: [discovery]
+      operationId: proxyGetProjectConfig
+      summary: Project configuration (proxied)
+      description: |
+        Pass-through proxy for `GET /v1/{project}/config` on the upstream Data Registry API.
+      parameters:
+        - $ref: "data-registry-api.yaml#/components/parameters/project"
+      responses:
+        "200":
+          description: Server configuration
+          content:
+            application/json:
+              schema:
+                $ref: "data-registry-api.yaml#/components/schemas/DataRegistryConfig"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+
+  # ===========================================================================
+  # Data Registry proxy routes — namespaces (collections)
+  # ===========================================================================
+  /api/v1/{project}/namespaces:
+    get:
+      tags: [namespaces]
+      operationId: proxyListNamespaces
+      summary: List collections (proxied)
+      description: |
+        Pass-through proxy for `GET /v1/{project}/namespaces` on the upstream Data Registry API.
+      parameters:
+        - $ref: "data-registry-api.yaml#/components/parameters/project"
+      responses:
+        "200":
+          description: List of namespace arrays
+          content:
+            application/json:
+              schema:
+                $ref: "data-registry-api.yaml#/components/schemas/ListNamespacesResponse"
+              example:
+                namespaces: [[sales], [marketing]]
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+    post:
+      tags: [namespaces]
+      operationId: proxyCreateNamespace
+      summary: Create collection (proxied)
+      description: |
+        Pass-through proxy for `POST /v1/{project}/namespaces` on the upstream Data Registry API.
+      parameters:
+        - $ref: "data-registry-api.yaml#/components/parameters/project"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "data-registry-api.yaml#/components/schemas/CreateNamespaceRequest"
+      responses:
+        "200":
+          description: Collection created
+          content:
+            application/json:
+              schema:
+                $ref: "data-registry-api.yaml#/components/schemas/NamespaceResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "data-registry-api.yaml#/components/responses/Conflict"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /api/v1/{project}/namespaces/{collection}:
+    get:
+      tags: [namespaces]
+      operationId: proxyGetNamespace
+      summary: Get collection details (proxied)
+      description: |
+        Pass-through proxy for `GET /v1/{project}/namespaces/{collection}` on the upstream
+        Data Registry API.
+      parameters:
+        - $ref: "data-registry-api.yaml#/components/parameters/project"
+        - $ref: "data-registry-api.yaml#/components/parameters/collection"
+      responses:
+        "200":
+          description: Collection details
+          content:
+            application/json:
+              schema:
+                $ref: "data-registry-api.yaml#/components/schemas/NamespaceResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "data-registry-api.yaml#/components/responses/NotFound"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+    head:
+      tags: [namespaces]
+      operationId: proxyNamespaceExists
+      summary: Check collection exists (proxied)
+      description: |
+        Pass-through proxy for `HEAD /v1/{project}/namespaces/{collection}` on the upstream
+        Data Registry API.
+      parameters:
+        - $ref: "data-registry-api.yaml#/components/parameters/project"
+        - $ref: "data-registry-api.yaml#/components/parameters/collection"
+      responses:
+        "204":
+          description: Collection exists
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          description: Collection does not exist
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+    delete:
+      tags: [namespaces]
+      operationId: proxyDropNamespace
+      summary: Delete empty collection (proxied)
+      description: |
+        Pass-through proxy for `DELETE /v1/{project}/namespaces/{collection}` on the upstream
+        Data Registry API. Fails if the collection contains any assets.
+      parameters:
+        - $ref: "data-registry-api.yaml#/components/parameters/project"
+        - $ref: "data-registry-api.yaml#/components/parameters/collection"
+      responses:
+        "204":
+          description: Collection deleted
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "data-registry-api.yaml#/components/responses/NotFound"
+        "409":
+          description: Collection is not empty
+          content:
+            application/json:
+              schema:
+                $ref: "data-registry-api.yaml#/components/schemas/ErrorResponse"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /api/v1/{project}/namespaces/{collection}/properties:
+    post:
+      tags: [namespaces]
+      operationId: proxyUpdateNamespaceProperties
+      summary: Update collection properties (proxied)
+      description: |
+        Pass-through proxy for `POST /v1/{project}/namespaces/{collection}/properties` on the
+        upstream Data Registry API.
+      parameters:
+        - $ref: "data-registry-api.yaml#/components/parameters/project"
+        - $ref: "data-registry-api.yaml#/components/parameters/collection"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "data-registry-api.yaml#/components/schemas/UpdateNamespacePropertiesRequest"
+      responses:
+        "200":
+          description: Properties updated
+          content:
+            application/json:
+              schema:
+                $ref: "data-registry-api.yaml#/components/schemas/UpdateNamespacePropertiesResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "data-registry-api.yaml#/components/responses/NotFound"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+
+  # ===========================================================================
+  # Data Registry proxy routes — tables (Iceberg REST)
+  # ===========================================================================
+  /api/v1/{project}/namespaces/{collection}/tables:
+    get:
+      tags: [tables]
+      operationId: proxyListTables
+      summary: List Iceberg tables (proxied)
+      description: |
+        Pass-through proxy for `GET /v1/{project}/namespaces/{collection}/tables` on the
+        upstream Data Registry API. Only returns tables with format "iceberg" — for all
+        formats, use the generic-tables proxy routes below.
+      parameters:
+        - $ref: "data-registry-api.yaml#/components/parameters/project"
+        - $ref: "data-registry-api.yaml#/components/parameters/collection"
+      responses:
+        "200":
+          description: List of table identifiers
+          content:
+            application/json:
+              schema:
+                $ref: "data-registry-api.yaml#/components/schemas/ListTablesResponse"
+              example:
+                identifiers:
+                  - namespace: [sales]
+                    name: sales_2024
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+    post:
+      tags: [tables]
+      operationId: proxyCreateTable
+      summary: Register Iceberg table (proxied)
+      description: |
+        Pass-through proxy for `POST /v1/{project}/namespaces/{collection}/tables` on the
+        upstream Data Registry API.
+      parameters:
+        - $ref: "data-registry-api.yaml#/components/parameters/project"
+        - $ref: "data-registry-api.yaml#/components/parameters/collection"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "data-registry-api.yaml#/components/schemas/CreateTableRequest"
+      responses:
+        "200":
+          description: Table registered
+          content:
+            application/json:
+              schema:
+                $ref: "data-registry-api.yaml#/components/schemas/LoadTableResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "data-registry-api.yaml#/components/responses/Conflict"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /api/v1/{project}/namespaces/{collection}/tables/{table}:
+    get:
+      tags: [tables]
+      operationId: proxyLoadTable
+      summary: Load table (Iceberg metadata, proxied)
+      description: |
+        Pass-through proxy for `GET /v1/{project}/namespaces/{collection}/tables/{table}` on
+        the upstream Data Registry API. Only returns tables with format "iceberg";
+        non-iceberg tables return 404 (use the generic-tables proxy routes instead).
+      parameters:
+        - $ref: "data-registry-api.yaml#/components/parameters/project"
+        - $ref: "data-registry-api.yaml#/components/parameters/collection"
+        - $ref: "data-registry-api.yaml#/components/parameters/table"
+      responses:
+        "200":
+          description: Table metadata
+          content:
+            application/json:
+              schema:
+                $ref: "data-registry-api.yaml#/components/schemas/LoadTableResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "data-registry-api.yaml#/components/responses/NotFound"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+    head:
+      tags: [tables]
+      operationId: proxyTableExists
+      summary: Check table exists (proxied)
+      description: |
+        Pass-through proxy for `HEAD /v1/{project}/namespaces/{collection}/tables/{table}` on
+        the upstream Data Registry API.
+      parameters:
+        - $ref: "data-registry-api.yaml#/components/parameters/project"
+        - $ref: "data-registry-api.yaml#/components/parameters/collection"
+        - $ref: "data-registry-api.yaml#/components/parameters/table"
+      responses:
+        "204":
+          description: Table exists
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          description: Table does not exist
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+    post:
+      tags: [tables]
+      operationId: proxyUpdateTable
+      summary: Update table properties (proxied)
+      description: |
+        Pass-through proxy for `POST /v1/{project}/namespaces/{collection}/tables/{table}` on
+        the upstream Data Registry API. Supports `set-properties` and `remove-properties`
+        actions only; other Iceberg update actions return `501 Not Implemented`.
+      parameters:
+        - $ref: "data-registry-api.yaml#/components/parameters/project"
+        - $ref: "data-registry-api.yaml#/components/parameters/collection"
+        - $ref: "data-registry-api.yaml#/components/parameters/table"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "data-registry-api.yaml#/components/schemas/UpdateTableRequest"
+      responses:
+        "200":
+          description: Table updated
+          content:
+            application/json:
+              schema:
+                $ref: "data-registry-api.yaml#/components/schemas/LoadTableResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "data-registry-api.yaml#/components/responses/NotFound"
+        "501":
+          description: Unsupported update action
+          content:
+            application/json:
+              schema:
+                $ref: "data-registry-api.yaml#/components/schemas/ErrorResponse"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+    delete:
+      tags: [tables]
+      operationId: proxyDropTable
+      summary: Drop table (proxied)
+      description: |
+        Pass-through proxy for `DELETE /v1/{project}/namespaces/{collection}/tables/{table}`
+        on the upstream Data Registry API.
+      parameters:
+        - $ref: "data-registry-api.yaml#/components/parameters/project"
+        - $ref: "data-registry-api.yaml#/components/parameters/collection"
+        - $ref: "data-registry-api.yaml#/components/parameters/table"
+      responses:
+        "204":
+          description: Table deleted
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "data-registry-api.yaml#/components/responses/NotFound"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /api/v1/{project}/tables/rename:
+    post:
+      tags: [tables]
+      operationId: proxyRenameTable
+      summary: Rename / move table across collections (proxied)
+      description: |
+        Pass-through proxy for `POST /v1/{project}/tables/rename` on the upstream Data
+        Registry API.
+      parameters:
+        - $ref: "data-registry-api.yaml#/components/parameters/project"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "data-registry-api.yaml#/components/schemas/RenameTableRequest"
+      responses:
+        "204":
+          description: Table renamed
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "data-registry-api.yaml#/components/responses/NotFound"
+        "409":
+          $ref: "data-registry-api.yaml#/components/responses/Conflict"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+
+  # ===========================================================================
+  # Data Registry proxy routes — volumes (RHOAI extension)
+  # ===========================================================================
+  /api/v1/{project}/namespaces/{collection}/volumes:
+    get:
+      tags: [volumes]
+      operationId: proxyListVolumes
+      summary: List volumes (proxied)
+      description: |
+        Pass-through proxy for `GET /v1/{project}/namespaces/{collection}/volumes` on the
+        upstream Data Registry API.
+      parameters:
+        - $ref: "data-registry-api.yaml#/components/parameters/project"
+        - $ref: "data-registry-api.yaml#/components/parameters/collection"
+      responses:
+        "200":
+          description: List of volumes
+          content:
+            application/json:
+              schema:
+                $ref: "data-registry-api.yaml#/components/schemas/ListVolumesResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+    post:
+      tags: [volumes]
+      operationId: proxyCreateVolume
+      summary: Register volume (proxied)
+      description: |
+        Pass-through proxy for `POST /v1/{project}/namespaces/{collection}/volumes` on the
+        upstream Data Registry API.
+      parameters:
+        - $ref: "data-registry-api.yaml#/components/parameters/project"
+        - $ref: "data-registry-api.yaml#/components/parameters/collection"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "data-registry-api.yaml#/components/schemas/CreateVolumeRequest"
+      responses:
+        "200":
+          description: Volume registered
+          content:
+            application/json:
+              schema:
+                $ref: "data-registry-api.yaml#/components/schemas/VolumeInfo"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "data-registry-api.yaml#/components/responses/Conflict"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /api/v1/{project}/namespaces/{collection}/volumes/{volume}:
+    get:
+      tags: [volumes]
+      operationId: proxyGetVolume
+      summary: Get volume (proxied)
+      description: |
+        Pass-through proxy for `GET /v1/{project}/namespaces/{collection}/volumes/{volume}`
+        on the upstream Data Registry API.
+      parameters:
+        - $ref: "data-registry-api.yaml#/components/parameters/project"
+        - $ref: "data-registry-api.yaml#/components/parameters/collection"
+        - $ref: "data-registry-api.yaml#/components/parameters/volume"
+      responses:
+        "200":
+          description: Volume details
+          content:
+            application/json:
+              schema:
+                $ref: "data-registry-api.yaml#/components/schemas/VolumeInfo"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "data-registry-api.yaml#/components/responses/NotFound"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+    head:
+      tags: [volumes]
+      operationId: proxyVolumeExists
+      summary: Check volume exists (proxied)
+      description: |
+        Pass-through proxy for `HEAD /v1/{project}/namespaces/{collection}/volumes/{volume}`
+        on the upstream Data Registry API.
+      parameters:
+        - $ref: "data-registry-api.yaml#/components/parameters/project"
+        - $ref: "data-registry-api.yaml#/components/parameters/collection"
+        - $ref: "data-registry-api.yaml#/components/parameters/volume"
+      responses:
+        "204":
+          description: Volume exists
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          description: Volume does not exist
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+    put:
+      tags: [volumes]
+      operationId: proxyUpdateVolume
+      summary: Update volume (proxied)
+      description: |
+        Pass-through proxy for `PUT /v1/{project}/namespaces/{collection}/volumes/{volume}`
+        on the upstream Data Registry API. All fields are optional — only provided fields
+        are updated.
+      parameters:
+        - $ref: "data-registry-api.yaml#/components/parameters/project"
+        - $ref: "data-registry-api.yaml#/components/parameters/collection"
+        - $ref: "data-registry-api.yaml#/components/parameters/volume"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "data-registry-api.yaml#/components/schemas/UpdateVolumeRequest"
+      responses:
+        "200":
+          description: Volume updated
+          content:
+            application/json:
+              schema:
+                $ref: "data-registry-api.yaml#/components/schemas/VolumeInfo"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "data-registry-api.yaml#/components/responses/NotFound"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+    delete:
+      tags: [volumes]
+      operationId: proxyDeleteVolume
+      summary: Delete volume (proxied)
+      description: |
+        Pass-through proxy for `DELETE /v1/{project}/namespaces/{collection}/volumes/{volume}`
+        on the upstream Data Registry API.
+      parameters:
+        - $ref: "data-registry-api.yaml#/components/parameters/project"
+        - $ref: "data-registry-api.yaml#/components/parameters/collection"
+        - $ref: "data-registry-api.yaml#/components/parameters/volume"
+      responses:
+        "204":
+          description: Volume deleted
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "data-registry-api.yaml#/components/responses/NotFound"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+
+  # ===========================================================================
+  # Data Registry proxy routes — generic tables (RHOAI extension, multi-format)
+  # ===========================================================================
+  /api/v1/{project}/namespaces/{collection}/generic-tables:
+    get:
+      tags: [generic-tables]
+      operationId: proxyListGenericTables
+      summary: List tables in any format (proxied)
+      description: |
+        Pass-through proxy for `GET /v1/{project}/namespaces/{collection}/generic-tables` on
+        the upstream Data Registry API. Unlike the Iceberg tables proxy routes above, this
+        includes non-iceberg format tables (but not volumes or databases).
+      parameters:
+        - $ref: "data-registry-api.yaml#/components/parameters/project"
+        - $ref: "data-registry-api.yaml#/components/parameters/collection"
+        - name: label
+          in: query
+          schema:
+            type: string
+          description: Filter results to assets that have this label
+      responses:
+        "200":
+          description: List of table assets across all formats
+          content:
+            application/json:
+              schema:
+                $ref: "data-registry-api.yaml#/components/schemas/AssetListResponse"
+              example:
+                assets:
+                  - name: sales_2024
+                    asset_type: table
+                    uuid: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+                    format: iceberg
+                    location: "s3://my-bucket/sales/sales_2024"
+                    content_type: null
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+    post:
+      tags: [generic-tables]
+      operationId: proxyCreateGenericTable
+      summary: Register table with extended metadata (proxied)
+      description: |
+        Pass-through proxy for `POST /v1/{project}/namespaces/{collection}/generic-tables` on
+        the upstream Data Registry API. The `registered_by` property is set upstream from the
+        caller's identity header.
+      parameters:
+        - $ref: "data-registry-api.yaml#/components/parameters/project"
+        - $ref: "data-registry-api.yaml#/components/parameters/collection"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "data-registry-api.yaml#/components/schemas/CreateGenericTableRequest"
+      responses:
+        "201":
+          description: Asset registered
+          content:
+            application/json:
+              schema:
+                $ref: "data-registry-api.yaml#/components/schemas/AssetResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "data-registry-api.yaml#/components/responses/Conflict"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /api/v1/{project}/namespaces/{collection}/generic-tables/{table}:
+    get:
+      tags: [generic-tables]
+      operationId: proxyGetGenericTable
+      summary: Get table asset details (proxied)
+      description: |
+        Pass-through proxy for
+        `GET /v1/{project}/namespaces/{collection}/generic-tables/{table}` on the upstream
+        Data Registry API.
+      parameters:
+        - $ref: "data-registry-api.yaml#/components/parameters/project"
+        - $ref: "data-registry-api.yaml#/components/parameters/collection"
+        - $ref: "data-registry-api.yaml#/components/parameters/table"
+      responses:
+        "200":
+          description: Asset details
+          content:
+            application/json:
+              schema:
+                $ref: "data-registry-api.yaml#/components/schemas/AssetResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "data-registry-api.yaml#/components/responses/NotFound"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+    delete:
+      tags: [generic-tables]
+      operationId: proxyDeleteGenericTable
+      summary: Delete table asset (proxied)
+      description: |
+        Pass-through proxy for
+        `DELETE /v1/{project}/namespaces/{collection}/generic-tables/{table}` on the upstream
+        Data Registry API.
+      parameters:
+        - $ref: "data-registry-api.yaml#/components/parameters/project"
+        - $ref: "data-registry-api.yaml#/components/parameters/collection"
+        - $ref: "data-registry-api.yaml#/components/parameters/table"
+      responses:
+        "204":
+          description: Asset deleted
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "data-registry-api.yaml#/components/responses/NotFound"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+    patch:
+      tags: [generic-tables]
+      operationId: proxyUpdateGenericTable
+      summary: Partially update a table asset (proxied)
+      description: |
+        Pass-through proxy for
+        `PATCH /v1/{project}/namespaces/{collection}/generic-tables/{table}` on the upstream
+        Data Registry API. Only provided fields are modified; omitted fields remain
+        unchanged.
+      parameters:
+        - $ref: "data-registry-api.yaml#/components/parameters/project"
+        - $ref: "data-registry-api.yaml#/components/parameters/collection"
+        - $ref: "data-registry-api.yaml#/components/parameters/table"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "data-registry-api.yaml#/components/schemas/UpdateGenericTableRequest"
+      responses:
+        "200":
+          description: Updated asset
+          content:
+            application/json:
+              schema:
+                $ref: "data-registry-api.yaml#/components/schemas/AssetResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "data-registry-api.yaml#/components/responses/NotFound"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+
+  # ===========================================================================
+  # Data Registry proxy routes — search (RHOAI extension)
+  # ===========================================================================
+  /api/v1/{project}/search:
+    get:
+      tags: [search]
+      operationId: proxySearchDataRegistry
+      summary: Full-text search with relevance scoring (proxied)
+      description: |
+        Pass-through proxy for `GET /v1/{project}/search` on the upstream Data Registry API.
+        Searches data registry assets within a single RHOAI project.
+      parameters:
+        - $ref: "data-registry-api.yaml#/components/parameters/project"
+        - name: query
+          in: query
+          schema:
+            type: string
+            default: ""
+          description: Text search across name, description, and properties. Empty returns all.
+        - name: namespace
+          in: query
+          schema:
+            type: string
+          description: Filter to a single collection
+        - name: namespaces
+          in: query
+          schema:
+            type: array
+            items:
+              type: string
+          style: form
+          explode: true
+          description: Filter to multiple collections
+        - name: type
+          in: query
+          schema:
+            type: string
+          description: |
+            Filter by asset type. Values: `table`, `volume`, `collection`,
+            `iceberg_table`, `document_collection`, `vector_index`, `dataset`
+        - name: asset_type
+          in: query
+          schema:
+            type: string
+          description: Alternative to `type` parameter (same values accepted)
+        - name: properties
+          in: query
+          schema:
+            type: array
+            items:
+              type: string
+          style: form
+          explode: true
+          description: Property filters as `key:value` pairs (all must match)
+        - name: label
+          in: query
+          schema:
+            type: string
+          description: Filter results to assets that have this label
+        - name: sort_by
+          in: query
+          schema:
+            type: string
+            enum: [score, name]
+            default: score
+          description: Sort by relevance or alphabetical
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          description: Page number (1-indexed)
+        - name: page_size
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 500
+          description: Results per page (alternative to `limit`)
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 500
+            default: 50
+          description: Results per page (used when `page_size` is not specified)
+      responses:
+        "200":
+          description: Search results with scoring
+          content:
+            application/json:
+              schema:
+                $ref: "data-registry-api.yaml#/components/schemas/SearchResponse"
+              example:
+                query: sales
+                results:
+                  - type: table
+                    namespace: [default]
+                    name: sales_2024
+                    description: Quarterly sales facts
+                    properties:
+                      format: iceberg
+                    score: 100
+                    project: my-project
+                total: 1
+                page: 1
+                limit: 50
+                searched_projects: [my-project]
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+
+  # ===========================================================================
+  # Data Registry proxy routes — labels (RHOAI extension)
+  # ===========================================================================
+  /api/v1/{project}/labels:
+    get:
+      tags: [labels]
+      operationId: proxyListLabels
+      summary: List all labels in a project (proxied)
+      description: |
+        Pass-through proxy for `GET /v1/{project}/labels` on the upstream Data Registry API.
+        Returns a sorted list of all labels available in the project, including both
+        explicitly created labels and labels discovered from assets.
+      parameters:
+        - $ref: "data-registry-api.yaml#/components/parameters/project"
+      responses:
+        "200":
+          description: List of label names
+          content:
+            application/json:
+              schema:
+                $ref: "data-registry-api.yaml#/components/schemas/LabelListResponse"
+              example:
+                labels: [pii, quarterly, verified]
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+    post:
+      tags: [labels]
+      operationId: proxyCreateLabel
+      summary: Create a label (proxied)
+      description: |
+        Pass-through proxy for `POST /v1/{project}/labels` on the upstream Data Registry API.
+        Creates a new label in the project, available for assignment to assets. Creating a
+        label that already exists returns 409.
+      parameters:
+        - $ref: "data-registry-api.yaml#/components/parameters/project"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "data-registry-api.yaml#/components/schemas/CreateLabelRequest"
+      responses:
+        "201":
+          description: Label created
+          content:
+            application/json:
+              schema:
+                $ref: "data-registry-api.yaml#/components/schemas/LabelResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "data-registry-api.yaml#/components/responses/Conflict"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+  /api/v1/{project}/labels/{label}:
+    delete:
+      tags: [labels]
+      operationId: proxyDeleteLabel
+      summary: Delete a label (proxied)
+      description: |
+        Pass-through proxy for `DELETE /v1/{project}/labels/{label}` on the upstream Data
+        Registry API. Removes the label from the project; assets that currently have this
+        label will have it removed automatically.
+      parameters:
+        - $ref: "data-registry-api.yaml#/components/parameters/project"
+        - name: label
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Label name to delete
+      responses:
+        "204":
+          description: Label deleted
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "data-registry-api.yaml#/components/responses/NotFound"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+
+components:
+  schemas:
+    Config:
+      description: Authenticated user information returned by `/api/v1/user`.
+      required:
+        - userId
+        - clusterAdmin
+      type: object
+      properties:
+        userId:
+          type: string
+          example: user@example.com
+        clusterAdmin:
+          type: boolean
+          example: true
+    NamespaceModel:
+      description: A Kubernetes namespace available for selection (dev/mock mode only).
+      required:
+        - name
+      type: object
+      properties:
+        name:
+          type: string
+          example: default-namespace
+        displayName:
+          type: string
+          example: default-namespace
+    HealthCheck:
+      type: object
+      required:
+        - status
+        - system_info
+      properties:
+        status:
+          type: string
+          example: available
+          description: BFF service availability status
+        system_info:
+          type: object
+          required:
+            - version
+          properties:
+            version:
+              type: string
+              example: "1.0.0"
+              description: BFF version string
+    BffError:
+      description: >-
+        BFF-native error shape, returned for errors the BFF itself generates (missing
+        auth, unconfigured upstream, routing errors). Distinct from the upstream Iceberg
+        REST `ErrorResponse` shape in data-registry-api.yaml, which is relayed verbatim by
+        the proxy for errors originating upstream.
+      required:
+        - code
+        - message
+      type: object
+      properties:
+        code:
+          description: HTTP status code, as a string
+          type: string
+          example: "401"
+        message:
+          description: Error message
+          type: string
+          example: authentication required
+    BffErrorEnvelope:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          $ref: "#/components/schemas/BffError"
+  responses:
+    HealthCheckResponse:
+      description: BFF service health status
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/HealthCheck"
+    ConfigResponse:
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              metadata:
+                type: object
+                description: Metadata about the response
+              data:
+                $ref: "#/components/schemas/Config"
+      description: A response containing the authenticated user's configuration.
+    NamespacesResponse:
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              metadata:
+                type: object
+                description: Metadata about the response
+              data:
+                type: array
+                items:
+                  $ref: "#/components/schemas/NamespaceModel"
+      description: A response containing the list of available namespaces.
+    BadRequest:
+      description: Bad request (e.g. missing request identity)
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/BffErrorEnvelope"
+    Unauthorized:
+      description: Missing or invalid bearer token
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/BffErrorEnvelope"
+    Forbidden:
+      description: >-
+        The upstream Data Registry server's kube-rbac-proxy sidecar denied the request
+        (SubjectAccessReview failure against the RHOAI project in the path). Relayed
+        verbatim by the proxy. The body is upstream-controlled: either the Iceberg REST
+        `ErrorResponse` shape or a plain-text kube-rbac-proxy denial.
+      content:
+        application/json:
+          schema:
+            oneOf:
+              - $ref: "data-registry-api.yaml#/components/schemas/ErrorResponse"
+              - $ref: "#/components/schemas/BffErrorEnvelope"
+        text/plain:
+          schema:
+            type: string
+    ServiceUnavailable:
+      description: >-
+        The upstream Data Registry API URL is not configured or invalid (e.g. the backend
+        has not been deployed yet).
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/BffErrorEnvelope"
+    InternalServerError:
+      description: Unexpected internal server error
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/BffErrorEnvelope"
+  securitySchemes:
+    ForwardedAccessToken:
+      type: apiKey
+      in: header
+      name: x-forwarded-access-token
+      description: |
+        Token supplied with no prefix in the `x-forwarded-access-token` header. This is the
+        actual default for both local development and production: the Makefile's `make run`
+        target (`AUTH_TOKEN_HEADER ?= x-forwarded-access-token`, `AUTH_TOKEN_PREFIX ?=`) and
+        the ODH/RHOAI federated deployment manifest
+        (`manifests/modules/data-registry/deployment.yaml`, which passes
+        `--auth-token-header=x-forwarded-access-token --auth-token-prefix=`) both use it. See
+        [`bff/README.md`](../../README.md#authentication-modes) for details on both modes.
+    Bearer:
+      scheme: bearer
+      bearerFormat: JWT
+      type: http
+      description: |
+        Standard `Authorization: Bearer <token>` header. This is only the BFF binary's
+        built-in fallback (`DefaultAuthTokenHeader`/`DefaultAuthTokenPrefix` in
+        `internal/config/environment.go`), used if `-auth-token-header`/`-auth-token-prefix`
+        are not passed at all — neither `make run` nor the deployment manifest rely on this
+        fallback in practice.
