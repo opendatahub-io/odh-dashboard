@@ -1,19 +1,16 @@
-import {
-  mockDashboardConfig,
-  mockK8sResourceList,
-  mockNotebookK8sResource,
-  mockPodK8sResource,
-  mockRouteK8sResource,
-  mockSecretK8sResource,
-  mockStorageClassList,
-} from '@odh-dashboard/internal/__mocks__';
+import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
+import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
+import { mockPodK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockPodK8sResource';
+import { mockRouteK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockRouteK8sResource';
+import { mockSecretK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockSecretK8sResource';
+import { mockNotebookK8sResource, mockStorageClassList } from '@odh-dashboard/internal/__mocks__';
 import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
-import { mockConnectionTypeConfigMap } from '@odh-dashboard/internal/__mocks__/mockConnectionType';
-import { mock404Error } from '@odh-dashboard/internal/__mocks__/mockK8sStatus';
+import { mockConnectionTypeConfigMap } from '@odh-dashboard/k8s-core/__mocks__/mockConnectionType';
+import { mock404Error } from '@odh-dashboard/k8s-core/__mocks__/mockK8sStatus';
 import { mockImageStreamK8sResource } from '@odh-dashboard/internal/__mocks__/mockImageStreamK8sResource';
 import { mockPVCK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockPVCK8sResource';
 import { mockGlobalScopedHardwareProfiles } from '@odh-dashboard/hardware-profiles/__mocks__/mockHardwareProfile';
-import { mockDscStatus } from '@odh-dashboard/internal/__mocks__/mockDscStatus';
+import { mockDscStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDscStatus';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import {
   ConfigMapModel,

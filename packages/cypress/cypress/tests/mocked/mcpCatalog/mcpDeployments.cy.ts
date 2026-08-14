@@ -1,10 +1,8 @@
-import {
-  mockDashboardConfig,
-  mockDscStatus,
-  mockK8sResourceList,
-} from '@odh-dashboard/internal/__mocks__';
+import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
+import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
+import { mockDscStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDscStatus';
 import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
-import { mockDsciStatus } from '@odh-dashboard/internal/__mocks__/mockDsciStatus';
+import { mockDsciStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDsciStatus';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import type { McpDeployment } from '@odh-dashboard/model-registry/types/mcpDeploymentTypes';
 import {
@@ -263,7 +261,10 @@ describe('MCP Deployments', () => {
     mcpDeployModal.findTitle().should('contain.text', 'Edit MCP server deployment');
     mcpDeployModal.findNameInput().should('have.value', 'Kubernetes MCP');
     mcpDeployModal.findOciImageInput().should('have.value', 'quay.io/mcp-servers/kubernetes:1.0.0');
-    mcpDeployModal.findProjectSelector().should('have.value', 'test-project');
+    mcpDeployModal
+      .findProjectSelectorToggle()
+      .should('contain.text', 'Test Project')
+      .and('be.disabled');
     mcpDeployModal.findSubmitButton().should('contain.text', 'Save');
   });
 

@@ -28,6 +28,7 @@ export const techPreviewFlags = {
   globalProjectPrompts: false,
   agentOps: false,
   connectionTest: false,
+  dataRegistry: false,
 } satisfies Partial<DashboardCommonConfig>;
 
 export const devTemporaryFeatureFlags = {
@@ -38,6 +39,7 @@ export const devTemporaryFeatureFlags = {
   nimServiceOperator: false,
   agentOpsDeploy: false,
   agentsCatalog: false,
+  notebooksV2: false,
 } satisfies Partial<DashboardCommonConfig>;
 
 // Group 1: Core Dashboard Features
@@ -305,20 +307,10 @@ export const SupportedAreasStateMap: SupportedAreasState = {
     featureFlags: ['modelCapabilities'],
     reliantAreas: [SupportedArea.MODEL_SERVING],
   },
-};
-
-/** Maps each DataScienceStackComponent to its human-readable name **/
-export const DataScienceStackComponentMap: Record<string, string> = {
-  [DataScienceStackComponent.DASHBOARD]: 'Dashboard',
-  [DataScienceStackComponent.DS_PIPELINES]: 'Pipelines',
-  [DataScienceStackComponent.KUEUE]: 'Kueue',
-  [DataScienceStackComponent.MODEL_REGISTRY]: 'Model registry',
-  [DataScienceStackComponent.FEAST_OPERATOR]: 'Feast operator',
-  [DataScienceStackComponent.K_SERVE]: 'Model server and metrics',
-  [DataScienceStackComponent.RAY]: 'Ray',
-  [DataScienceStackComponent.TRAINING_OPERATOR]: 'Training operator',
-  [DataScienceStackComponent.TRUSTY_AI]: 'TrustyAI',
-  [DataScienceStackComponent.WORKBENCHES]: 'Workbenches',
-  [DataScienceStackComponent.TRAINER]: 'Trainer',
-  [DataScienceStackComponent.MLFLOW]: 'MLflow',
+  [SupportedArea.PLUGIN_NOTEBOOKS]: {
+    featureFlags: ['notebooksV2'],
+  },
+  [SupportedArea.PLUGIN_DATA_REGISTRY]: {
+    featureFlags: ['dataRegistry'],
+  },
 };

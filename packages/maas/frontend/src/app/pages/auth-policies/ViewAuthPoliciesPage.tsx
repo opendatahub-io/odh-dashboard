@@ -10,7 +10,10 @@ import {
   TabTitleText,
 } from '@patternfly/react-core';
 import SimpleMenuActions from '@odh-dashboard/internal/components/SimpleMenuActions';
-import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import {
+  fireFormTrackingEvent,
+  fireMiscTrackingEvent,
+} from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { useGetPolicyInfo } from '~/app/hooks/useGetPolicyInfo';
 import { MaaSAuthPolicy, MaaSModelRefSummary } from '~/app/types/subscriptions';
 import { PolicyInfoResponse } from '~/app/types/auth-policies';
@@ -25,7 +28,9 @@ import {
   EventTrackingResourceType,
   EventTrackingSource,
   MaaSEvents,
+  EventTrackingContext,
 } from '~/app/types/event-tracking';
+import { modelRefsToSummaries } from '~/app/utilities/authpolicies';
 import SubscriptionManagementYamlTab from '~/app/pages/subscription-management/SubscriptionManagementYamlTab';
 import DeleteAuthPolicyModal from './DeleteAuthPolicyModal';
 import PolicyDetailsSection from './viewAuthPolicy/PolicyDetailsSection';
@@ -36,23 +41,11 @@ type PolicyActionsProps = {
   returnTo?: string;
 };
 
-const viewModelRefSummaries = (info: PolicyInfoResponse): MaaSModelRefSummary[] => {
-  const policyRefs = Array.isArray(info.policy.modelRefs) ? info.policy.modelRefs : [];
-  const modelRefSummaries = Array.isArray(info.modelRefs) ? info.modelRefs : [];
-
-  return policyRefs.map((ref) => {
-    const summary = modelRefSummaries.find(
-      (s) => s.name === ref.name && s.namespace === ref.namespace,
-    );
-    return (
-      summary ?? {
-        name: ref.name,
-        namespace: ref.namespace,
-        modelRef: { kind: '', name: ref.name },
-      }
-    );
-  });
-};
+const viewModelRefSummaries = (info: PolicyInfoResponse): MaaSModelRefSummary[] =>
+  modelRefsToSummaries(
+    Array.isArray(info.policy.modelRefs) ? info.policy.modelRefs : [],
+    Array.isArray(info.modelRefs) ? info.modelRefs : [],
+  );
 
 const PolicyActions: React.FC<PolicyActionsProps> = ({ policy, returnTo }) => {
   const navigate = useNavigate();
@@ -141,9 +134,17 @@ const ViewAuthPoliciesPage: React.FC = () => {
       {loaded && policyInfo && (
         <Tabs
           activeKey={activeTab}
-          onSelect={(_event, key) => setActiveTab(key)}
           aria-label="Policy detail tabs"
           inset={{ default: 'insetNone' }}
+          onSelect={(_event, key) => {
+            setActiveTab(key);
+            if (key === 'yaml') {
+              fireMiscTrackingEvent(MaaSEvents.SUBSCRIPTION_MANAGEMENT_YAML_VIEWED, {
+                resourceType: EventTrackingResourceType.AUTHPOLICY,
+                context: EventTrackingContext.DETAILS,
+              });
+            }
+          }}
         >
           <Tab
             eventKey="details"
@@ -152,7 +153,10 @@ const ViewAuthPoliciesPage: React.FC = () => {
             data-testid="policy-details-tab"
           >
             <PageSection hasBodyWrapper={false} className="pf-v6-u-pb-xl">
-              <PolicyDetailsSection policy={policyInfo.policy} />
+              <PolicyDetailsSection
+                policy={policyInfo.policy}
+                modelRefs={viewModelRefSummaries(policyInfo)}
+              />
             </PageSection>
             <PageSection hasBodyWrapper={false} className="pf-v6-u-pb-xl">
               <PolicyGroupsSection groups={policyInfo.policy.subjects.groups ?? []} />

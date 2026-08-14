@@ -1,23 +1,21 @@
-import {
-  mockDashboardConfig,
-  mockDscStatus,
-  mockInferenceServiceK8sResource,
-  mockK8sResourceList,
-  mockSecretK8sResource,
-  mockServingRuntimeK8sResource,
-} from '@odh-dashboard/internal/__mocks__';
+import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
+import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
+import { mockSecretK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockSecretK8sResource';
+import { mockInferenceServiceK8sResource } from '@odh-dashboard/model-serving/__mocks__/mockInferenceServiceK8sResource';
+import { mockServingRuntimeK8sResource } from '@odh-dashboard/model-serving/__mocks__/mockServingRuntimeK8sResource';
+import { mockDscStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDscStatus';
 import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import {
   mockConnectionTypeConfigMap,
   mockModelServingFields,
-} from '@odh-dashboard/internal/__mocks__/mockConnectionType';
+} from '@odh-dashboard/k8s-core/__mocks__/mockConnectionType';
 import { mockNimAccount } from '@odh-dashboard/internal/__mocks__/mockNimAccount';
 import {
   mockNimInferenceService,
   mockNimProject,
   mockNimServingRuntime,
-} from '@odh-dashboard/internal/__mocks__/mockLegacyNimResource';
-import { mockOdhApplication } from '@odh-dashboard/internal/__mocks__/mockOdhApplication';
+} from '@odh-dashboard/model-serving/__mocks__/mockLegacyNimResource';
+import { mockOdhApplication } from '@odh-dashboard/k8s-core/__mocks__/mockOdhApplication';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import {
   InferenceServiceModel,

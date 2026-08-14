@@ -37,11 +37,13 @@ var mcpServerGVR = schema.GroupVersionResource{
 }
 
 const (
-	mcpServerAPIVersion        = "mcp.x-k8s.io/v1alpha1"
-	mcpServerKind              = "MCPServer"
-	mcpDisplayNameAnnotation   = "mcp.opendatahub.io/display-name"
-	mcpCatalogServerAnnotation = "mcp.opendatahub.io/catalog-server"
-	defaultMcpPort             = int32(8080)
+	mcpServerAPIVersion          = "mcp.x-k8s.io/v1alpha1"
+	mcpServerKind                = "MCPServer"
+	mcpDisplayNameAnnotation     = "mcp.opendatahub.io/display-name"
+	mcpCatalogServerAnnotation   = "mcp.opendatahub.io/catalog-server"
+	mcpRegistryServerAnnotation  = "mcp.opendatahub.io/registry-server"
+	mcpRegistryVersionAnnotation = "mcp.opendatahub.io/registry-version"
+	defaultMcpPort               = int32(8080)
 )
 
 type McpDeploymentRepository struct {
@@ -261,7 +263,9 @@ func buildMcpServerFromCreateRequest(namespace string, req models.McpDeploymentC
 		APIVersion: mcpServerAPIVersion,
 		Kind:       mcpServerKind,
 		Metadata: models.MCPMetadata{
-			Name:      name,
+			Name: name,
+			// Always the URL path parameter, never read from req/YAML, so the caller can't
+			// target a different namespace than the one it was authorized against.
 			Namespace: namespace,
 		},
 		Spec: models.MCPServerSpec{
@@ -274,7 +278,7 @@ func buildMcpServerFromCreateRequest(namespace string, req models.McpDeploymentC
 		},
 	}
 
-	if req.DisplayName != "" || req.ServerName != "" {
+	if req.DisplayName != "" || req.ServerName != "" || req.RegistryServer != "" || req.RegistryVersion != "" {
 		server.Metadata.Annotations = map[string]string{}
 		if req.DisplayName != "" {
 			server.Metadata.Annotations[mcpDisplayNameAnnotation] = req.DisplayName
@@ -282,12 +286,18 @@ func buildMcpServerFromCreateRequest(namespace string, req models.McpDeploymentC
 		if req.ServerName != "" {
 			server.Metadata.Annotations[mcpCatalogServerAnnotation] = req.ServerName
 		}
+		if req.RegistryServer != "" {
+			server.Metadata.Annotations[mcpRegistryServerAnnotation] = req.RegistryServer
+		}
+		if req.RegistryVersion != "" {
+			server.Metadata.Annotations[mcpRegistryVersionAnnotation] = req.RegistryVersion
+		}
 	}
 
 	if req.YAML != "" {
 		spec, err := parseSpecYAML(req.YAML)
 		if err != nil {
-			return models.MCPServer{}, fmt.Errorf("invalid configuration YAML: %w", err)
+			return models.MCPServer{}, fmt.Errorf("%w: invalid configuration YAML: %v", ErrMcpDeploymentValidation, err)
 		}
 		if spec.Config != nil {
 			server.Spec.Config = *spec.Config
@@ -331,11 +341,23 @@ func convertUnstructuredToMcpDeployment(obj unstructured.Unstructured) (models.M
 		Namespace:         server.Metadata.Namespace,
 		UID:               string(obj.GetUID()),
 		CreationTimestamp: obj.GetCreationTimestamp().UTC().Format("2006-01-02T15:04:05Z"),
+		Port:              server.Spec.Config.Port,
+		Path:              server.Spec.Config.Path,
+	}
+
+	// A pre-existing CR created without spec.config.port (e.g. via kubectl, or an earlier
+	// version of this tool) would otherwise report Port: 0 here, which buildMcpAccessEndpointUrl
+	// expands to an unroutable ":0" address. Mirrors the same default applied on the create/patch
+	// paths (buildMcpServerFromCreateRequest, buildMcpDeploymentPatch).
+	if deployment.Port == 0 {
+		deployment.Port = defaultMcpPort
 	}
 
 	if server.Metadata.Annotations != nil {
 		deployment.DisplayName = server.Metadata.Annotations[mcpDisplayNameAnnotation]
 		deployment.ServerName = server.Metadata.Annotations[mcpCatalogServerAnnotation]
+		deployment.RegistryServer = server.Metadata.Annotations[mcpRegistryServerAnnotation]
+		deployment.RegistryVersion = server.Metadata.Annotations[mcpRegistryVersionAnnotation]
 	}
 
 	if server.Spec.Source.ContainerImage != nil {
@@ -357,13 +379,19 @@ func convertUnstructuredToMcpDeployment(obj unstructured.Unstructured) (models.M
 func buildMcpDeploymentPatch(req models.McpDeploymentUpdateRequest) (map[string]interface{}, error) {
 	patch := map[string]interface{}{}
 
-	if req.DisplayName != nil || req.ServerName != nil {
+	if req.DisplayName != nil || req.ServerName != nil || req.RegistryServer != nil || req.RegistryVersion != nil {
 		annotations := map[string]interface{}{}
 		if req.DisplayName != nil {
 			annotations[mcpDisplayNameAnnotation] = *req.DisplayName
 		}
 		if req.ServerName != nil {
 			annotations[mcpCatalogServerAnnotation] = *req.ServerName
+		}
+		if req.RegistryServer != nil {
+			annotations[mcpRegistryServerAnnotation] = *req.RegistryServer
+		}
+		if req.RegistryVersion != nil {
+			annotations[mcpRegistryVersionAnnotation] = *req.RegistryVersion
 		}
 		patch["metadata"] = map[string]interface{}{
 			"annotations": annotations,
@@ -395,10 +423,17 @@ func buildMcpDeploymentPatch(req models.McpDeploymentUpdateRequest) (map[string]
 		} else {
 			spec, err := parseSpecYAML(*req.YAML)
 			if err != nil {
-				return nil, fmt.Errorf("invalid configuration YAML: %w", err)
+				return nil, fmt.Errorf("%w: invalid configuration YAML: %v", ErrMcpDeploymentValidation, err)
 			}
 
 			if spec.Config != nil {
+				// A partial config YAML that omits port would otherwise serialize as
+				// "port": 0 (Port has no `omitempty`) and, via JSON merge patch semantics,
+				// overwrite the CR's real listening port with 0. Default it the same way
+				// buildMcpServerFromCreateRequest does, instead of silently zeroing it out.
+				if spec.Config.Port == 0 {
+					spec.Config.Port = defaultMcpPort
+				}
 				configMap, err := runtime.DefaultUnstructuredConverter.ToUnstructured(spec.Config)
 				if err != nil {
 					return nil, fmt.Errorf("failed to convert config to patch: %w", err)

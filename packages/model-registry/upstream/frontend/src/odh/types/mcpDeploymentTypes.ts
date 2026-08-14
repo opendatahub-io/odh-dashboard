@@ -98,10 +98,16 @@ export type McpDeployment = {
   name: string;
   displayName?: string;
   serverName?: string;
+  /** Distinct from `serverName`, which traces catalog (not registry) deployments. */
+  registryServer?: string;
+  registryVersion?: string;
   namespace: string;
   uid: string;
   creationTimestamp: string;
   image: string;
+  /** Actually-applied spec.config values, not requested ones. */
+  port: number;
+  path?: string;
   yaml?: string;
   conditions: McpDeploymentCondition[];
   address?: McpDeploymentAddress;
@@ -116,6 +122,8 @@ export type McpDeploymentCreateRequest = {
   name?: string;
   displayName?: string;
   serverName?: string;
+  registryServer?: string;
+  registryVersion?: string;
   image: string;
   yaml?: string;
 };
@@ -123,6 +131,8 @@ export type McpDeploymentCreateRequest = {
 export type McpDeploymentUpdateRequest = {
   displayName?: string;
   serverName?: string;
+  registryServer?: string;
+  registryVersion?: string;
   image?: string;
   yaml?: string;
 };
@@ -132,6 +142,17 @@ export type McpDeployModalData = {
   displayName?: string;
   namespace?: string;
   serverName?: string;
+  /**
+   * Distinct from `serverName`, which traces catalog (not registry) deployments.
+   *
+   * McpDeployModal also uses this field's presence as its sole signal for whether it's
+   * prefilling from an external MCP Registry ("registry" flow, image editable, project
+   * fixed) vs. from the internal catalog ("catalog" flow, image read-only, project
+   * selectable). If you add a new caller/flow, set (or deliberately omit) `registryServer`
+   * to match the UI behavior you want -- see `isRegistryPrefill` in McpDeployModal.
+   */
+  registryServer?: string;
+  registryVersion?: string;
   image: string;
   yaml?: string;
 };

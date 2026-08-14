@@ -127,7 +127,11 @@ func (h *PipelinesHandler) CreatePipelineRunHandler(w http.ResponseWriter, r *ht
 	}
 	var extra any
 	if err := decoder.Decode(&extra); err != io.EOF {
-		badRequestResponse(h.logger, w, r, "request body must contain only a single JSON object")
+		errorReason := "request body must contain only a single JSON object"
+		NewUIError(http.StatusBadRequest, "unsupported_multiple_json_request", errorReason).
+			WithDetail("reason", errorReason).
+			WithTracing(r).
+			WriteTo(w)
 		return
 	}
 

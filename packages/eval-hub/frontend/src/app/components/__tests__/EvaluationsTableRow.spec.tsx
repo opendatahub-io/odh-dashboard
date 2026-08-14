@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { Table, Tbody } from '@patternfly/react-table';
 import { mockEvaluationJob } from '~/__tests__/unit/testUtils/mockEvaluationData';
@@ -15,6 +15,7 @@ const mockCancelEvaluationJob = jest.mocked(cancelEvaluationJob);
 const mockDeleteEvaluationJob = jest.mocked(deleteEvaluationJob);
 
 const mockOnActionComplete = jest.fn();
+const mockOnShowStatus = jest.fn();
 const mockOnSelectionChange = jest.fn();
 
 const renderRow = (jobOverrides = {}, rowIndex = 0) => {
@@ -29,6 +30,7 @@ const renderRow = (jobOverrides = {}, rowIndex = 0) => {
             namespace="test-ns"
             collectionNameMap={{}}
             onActionComplete={mockOnActionComplete}
+            onShowStatus={mockOnShowStatus}
             isSelected={false}
             onSelectionChange={mockOnSelectionChange}
           />
@@ -76,18 +78,21 @@ describe('EvaluationsTableRow', () => {
     expect(screen.getByTestId('evaluation-select-checkbox-0')).toBeEnabled();
   });
 
-  it('should show error popover when clicking a failed status with a message', () => {
+  it('should call onShowStatus when clicking a failed status with a message', () => {
     renderRow({
       state: 'failed',
       statusMessage: 'Benchmark arc_easy failed with message: model not found',
     });
 
-    fireEvent.click(screen.getByTestId('status-label-failed'));
+    const label = screen.getByTestId('status-label-failed');
+    fireEvent.click(within(label).getByRole('button'));
 
-    expect(screen.getByText('Evaluation failed')).toBeInTheDocument();
-    expect(
-      screen.getByText('Benchmark arc_easy failed with message: model not found'),
-    ).toBeInTheDocument();
+    expect(mockOnShowStatus).toHaveBeenCalledTimes(1);
+    expect(mockOnShowStatus).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: expect.objectContaining({ state: 'failed' }),
+      }),
+    );
   });
 
   it('should render benchmark name', () => {
@@ -113,6 +118,7 @@ describe('EvaluationsTableRow', () => {
               namespace="test-ns"
               collectionNameMap={{}}
               onActionComplete={mockOnActionComplete}
+              onShowStatus={mockOnShowStatus}
               isSelected={false}
               onSelectionChange={mockOnSelectionChange}
             />
@@ -152,6 +158,19 @@ describe('EvaluationsTableRow', () => {
   });
 
   describe('kebab actions', () => {
+    it('should show View evaluation status action', () => {
+      renderRow({ state: 'completed' });
+      fireEvent.click(screen.getByTestId('evaluation-kebab').querySelector('button')!);
+      expect(screen.getByText('View evaluation status')).toBeInTheDocument();
+    });
+
+    it('should call onShowStatus when View evaluation status is clicked', () => {
+      renderRow({ state: 'completed' });
+      fireEvent.click(screen.getByTestId('evaluation-kebab').querySelector('button')!);
+      fireEvent.click(screen.getByText('View evaluation status'));
+      expect(mockOnShowStatus).toHaveBeenCalledTimes(1);
+    });
+
     it('should show Stop action for running jobs', () => {
       renderRow({ state: 'running' });
       fireEvent.click(screen.getByTestId('evaluation-kebab').querySelector('button')!);

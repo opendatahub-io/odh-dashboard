@@ -1,4 +1,5 @@
-import { mockDashboardConfig, mockDscStatus } from '@odh-dashboard/internal/__mocks__';
+import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
+import { mockDscStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDscStatus';
 import { MODELS_AS_A_SERVICE_READY } from '@odh-dashboard/k8s-core';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import { asProductAdminUser } from '../../../utils/mockUsers';
@@ -12,10 +13,8 @@ import {
   phaseModal,
 } from '../../../pages/modelsAsAService';
 import {
-  mockSubscriptions,
-  mockAuthPolicies,
   mockSubscriptionFormData,
-  mockModelsOverview,
+  interceptMaasGovernanceData,
   mockSubscriptionInfo,
   mockPolicyInfo,
 } from '../../../utils/maasUtils';
@@ -36,15 +35,7 @@ const setupCommonIntercepts = () => {
       conditions: [{ type: MODELS_AS_A_SERVICE_READY, status: 'True', reason: 'Ready' }],
     }),
   );
-  cy.interceptOdh('GET /maas/api/v1/subscription-policy-form-data', {
-    data: mockSubscriptionFormData(),
-  });
-  cy.interceptOdh('GET /maas/api/v1/all-subscriptions', { data: mockSubscriptions() });
-  cy.interceptOdh('GET /maas/api/v1/all-policies', { data: mockAuthPolicies() });
-  cy.interceptOdh('GET /maas/api/v1/overview/models', { data: mockModelsOverview() });
-  cy.interceptOdh('GET /maas/api/v1/subscription-policy-form-data', {
-    data: mockSubscriptionFormData(),
-  });
+  interceptMaasGovernanceData();
   cy.interceptOdh(
     'GET /maas/api/v1/subscription-info/:name',
     { path: { name: 'premium-team-sub' } },
@@ -62,14 +53,14 @@ describe('Subscription Management Page / Overview Tab', () => {
     setupCommonIntercepts();
   });
   it('should show the overview empty state when there are no subscriptions, policies, or model refs', () => {
-    cy.interceptOdh('GET /maas/api/v1/subscription-policy-form-data', {
-      data: mockSubscriptionFormData({
+    interceptMaasGovernanceData(
+      mockSubscriptionFormData({
         groups: [],
         modelRefs: [],
         subscriptions: [],
         policies: [],
       }),
-    });
+    );
     subscriptionManagementPage.visit();
     subscriptionManagementPage.findOverviewEmptyState().should('exist');
     subscriptionManagementPage.findSubscriptionsTab().should('not.exist');
@@ -79,7 +70,11 @@ describe('Subscription Management Page / Overview Tab', () => {
   });
 
   it('should show the overview empty state in the overview tab when there are no models', () => {
-    cy.interceptOdh('GET /maas/api/v1/overview/models', { data: [] });
+    interceptMaasGovernanceData(
+      mockSubscriptionFormData({
+        modelRefs: [],
+      }),
+    );
     subscriptionManagementPage.visit('overview');
     subscriptionManagementPage.findOverviewEmptyState().should('exist');
     subscriptionManagementPage.findSubscriptionsTab().should('be.visible');
@@ -93,6 +88,19 @@ describe('Subscription Management Page / Overview Tab', () => {
     overviewTabPage.findEmptyTableState().should('exist');
     overviewTabPage.findClearFiltersButton().click();
     overviewTabPage.findModelRows().should('have.length', 6);
+  });
+
+  it('should display the overview table with correct page content', () => {
+    subscriptionManagementPage.visit('overview');
+    overviewTabPage.findTable().should('exist');
+    const overviewRow = overviewTabPage.getRow('flan-t5-small', 'maas-models');
+    overviewRow.findModelName().should('contain.text', 'Flan T5 Small');
+    overviewRow.findModelId().should('contain.text', 'flan-t5-small');
+    overviewRow.findModelDescription().should('contain.text', 'A compact text-to-text model');
+    overviewRow.findModelProject().should('contain.text', 'maas-models');
+    overviewRow.findModelSubscriptions().should('contain.text', '4');
+    overviewRow.findModelPhase().should('contain.text', 'Ready');
+    overviewRow.findModelAuthorizationPolicies().should('contain.text', '3');
   });
 
   it('should navigate between tabs and update the URL', () => {
@@ -121,6 +129,11 @@ describe('Subscription Management Page / Overview Tab', () => {
     overviewTabPage.findColumnSortButton('Model name').click();
     overviewTabPage.findModelRows().eq(1).should('contain.text', 'Flan T5 Small');
     overviewTabPage.findModelRows().eq(5).should('contain.text', 'Llama 3 70B Instruct');
+
+    // Sort by project
+    overviewTabPage.findColumnSortButton('Project').click();
+    overviewTabPage.getRowByIndex(0).findModelProject().should('have.text', 'maas-models');
+    overviewTabPage.getRowByIndex(5).findModelProject().should('have.text', 'team-sandbox');
 
     // Sort by subscriptions
     overviewTabPage.findColumnSortButton('Subscriptions').click();
@@ -223,7 +236,7 @@ describe('Subscription Management Page / Overview Tab', () => {
     cy.url().should('include', '/maas-governance/overview');
   });
 
-  it('should filter by model name, model ID, description, group name, subscription name, and authorization policy name', () => {
+  it('should filter by model name, model ID, description, project, group name, subscription name, and authorization policy name', () => {
     subscriptionManagementPage.visit('overview');
     // Display name
     overviewTabPage.findFilterInput('model').type('Llama');
@@ -238,6 +251,15 @@ describe('Subscription Management Page / Overview Tab', () => {
     // Description
     overviewTabPage.findFilterInput('model').type('instruction');
     overviewTabPage.findModelRows().should('have.length', 2);
+    overviewTabPage.clearAllFilters();
+
+    // Filter by project
+    overviewTabPage.findFilterDropdownButton().click();
+    overviewTabPage.findFilterDropdownItem('project').click();
+    overviewTabPage.findFilterInput('project').type('team-sandbox');
+    overviewTabPage.findModelRows().should('have.length', 1);
+    overviewTabPage.findModelRows().eq(0).should('contain.text', 'Granite 3 8B Instruct (sandbox)');
+    overviewTabPage.findModelRows().eq(0).should('contain.text', 'team-sandbox');
 
     // Group name
     overviewTabPage.clearAllFilters();

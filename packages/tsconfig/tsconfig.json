@@ -31,6 +31,7 @@
     "${configDir}/**/*.tsx",
     "${configDir}/**/*.jsx",
     "${configDir}/**/**.js",
+    "${configDir}/**/**.cts",
     "${configDir}/**/**.cjs"
   ],
   "exclude": ["node_modules", "dist"],

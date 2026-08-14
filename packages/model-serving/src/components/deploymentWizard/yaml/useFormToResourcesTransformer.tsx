@@ -49,10 +49,11 @@ export const useFormToResourcesTransformer = (
   // applyFieldData is then used to apply the field data to the deployment.
   const [assembleDeploymentFn, assembleDeploymentFnLoaded, assembleDeploymentFnErrors] =
     useAssembleDeploymentFn(formData);
-  const { applyFieldData, applyExtensionsLoaded, applyExtensionErrors } = useWizardFieldApply(
-    formData.state,
-    formData.initialData?.navSourceMetadata,
-  );
+  const {
+    applyAllFieldDataFn: applyFieldData,
+    applyExtensionsLoaded,
+    applyExtensionErrors,
+  } = useWizardFieldApply(formData.state, formData.initialData?.navSourceMetadata);
 
   const loaded = assembleDeploymentFnLoaded && applyExtensionsLoaded;
   const errors = React.useMemo(() => {

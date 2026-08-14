@@ -1,4 +1,5 @@
-import { mockDashboardConfig, mockDscStatus } from '@odh-dashboard/internal/__mocks__';
+import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
+import { mockDscStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDscStatus';
 import { MODELS_AS_A_SERVICE_READY } from '@odh-dashboard/k8s-core';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import { asProductAdminUser } from '../../../utils/mockUsers';
@@ -14,7 +15,7 @@ import {
   mockAuthPolicies,
   mockCreatePolicyResponse,
   mockPolicyInfo,
-  mockSubscriptionFormData,
+  interceptMaasGovernanceData,
   mockPolicyInfoMissingModelSummaries,
 } from '../../../utils/maasUtils';
 import { getClipboardContent, stubClipboard } from '../../../utils/clipboardUtils';
@@ -37,16 +38,11 @@ const setupAuthPoliciesCommon = () => {
       conditions: [{ type: MODELS_AS_A_SERVICE_READY, status: 'True', reason: 'Ready' }],
     }),
   );
-  cy.interceptOdh('GET /maas/api/v1/subscription-policy-form-data', {
-    data: mockSubscriptionFormData(),
-  });
+  interceptMaasGovernanceData();
 };
 
 const setupAuthPolicyEditorSharedIntercepts = () => {
   setupAuthPoliciesCommon();
-  cy.interceptOdh('GET /maas/api/v1/subscription-policy-form-data', {
-    data: mockSubscriptionFormData(),
-  });
   cy.interceptOdh('GET /maas/api/v1/all-policies', { data: mockAuthPolicies() });
 };
 
@@ -110,7 +106,7 @@ describe('MaaS Auth Policies', () => {
   it('should display the auth policies table with correct page content', () => {
     authPoliciesPage.findTitle().should('contain.text', 'MaaS governance');
     authPoliciesPage.findTable().should('exist');
-    authPoliciesPage.findRows().should('have.length', 7);
+    authPoliciesPage.findRows().should('have.length', 8);
     authPoliciesPage.findCreateAuthPolicyButton().should('exist');
 
     const premiumRow = authPoliciesPage.getRow('Premium Team Policy');
@@ -138,10 +134,25 @@ describe('MaaS Auth Policies', () => {
 
     const pendingRow = authPoliciesPage.getRow('pending-policy');
     pendingRow.findPhase().should('contain.text', 'Pending');
+
+    const degradedRow = authPoliciesPage.getRow('degraded-policy');
+    degradedRow.findPhase().should('contain.text', 'Degraded');
+    degradedRow.findPhaseLabel().click();
+    phaseModal.find().should('exist');
+    phaseModal.findAlert().should('exist');
+    phaseModal.findAlertBody().should('exist');
+    phaseModal.findApiDetailsButton().should('exist').click();
+    phaseModal.findAlertDetailsCodeBlock().should('exist');
+    phaseModal.findViewDetailsLink().should('exist');
+    phaseModal.findAffectedModelsTable().should('exist');
+    phaseModal.findAffectedModelName('granite-3-8b-instruct').should('exist');
+    phaseModal.findAffectedModelNamespace('granite-3-8b-instruct').should('exist');
+    phaseModal.findAffectedModelStatus('granite-3-8b-instruct').should('exist');
+    phaseModal.findAffectedModelStatusMessage('granite-3-8b-instruct').should('exist');
   });
 
   it('should filter policies by keyword', () => {
-    authPoliciesPage.findRows().should('have.length', 7);
+    authPoliciesPage.findRows().should('have.length', 8);
 
     authPoliciesPage.findKeywordFilterInput().type('premium');
     authPoliciesPage.findRows().should('have.length', 1);
@@ -151,7 +162,7 @@ describe('MaaS Auth Policies', () => {
       .should('contain.text', 'Premium Team Policy');
 
     authPoliciesPage.clearAllFilters();
-    authPoliciesPage.findRows().should('have.length', 7);
+    authPoliciesPage.findRows().should('have.length', 8);
   });
 
   it('should disable the action buttons for a deleting policy in the table and view page', () => {
@@ -366,13 +377,13 @@ describe('View Auth Policy Page', () => {
 
     subscriptionManagementPage.visit('auth-policies');
     authPoliciesPage.findTable().should('exist');
-    authPoliciesPage.findRows().should('have.length', 7);
+    authPoliciesPage.findRows().should('have.length', 8);
     authPoliciesPage.findCreateAuthPolicyButton().should('exist');
 
     authPoliciesPage.findKeywordFilterInput().type('premium');
     authPoliciesPage.findRows().should('have.length', 1);
     authPoliciesPage.clearAllFilters();
-    authPoliciesPage.findRows().should('have.length', 7);
+    authPoliciesPage.findRows().should('have.length', 8);
 
     authPoliciesPage.getRow('Premium Team Policy').findTitleButton().click();
     viewAuthPolicyPage.findTitle().should('contain.text', 'Premium Team Policy');

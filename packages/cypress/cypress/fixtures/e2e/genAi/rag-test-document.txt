@@ -1,0 +1,32 @@
+Red Hat OpenShift AI Platform Overview
+
+Red Hat OpenShift AI is an enterprise machine learning platform built on OpenShift that
+enables data scientists and developers to build, train, and deploy AI/ML models at scale.
+The platform was first released in 2023 under the codename RHODS (Red Hat OpenShift Data
+Science) before being rebranded to OpenShift AI in version 2.5.
+
+Key Facts:
+- Initial Release: 2023
+- Current Major Version: 3.x
+- Built On: Red Hat OpenShift Container Platform
+- Primary Language Support: Python, R, Julia
+- Notebook IDE: JupyterHub with custom spawner profiles
+- Model Serving: KServe and ModelMesh
+
+OpenShift AI integrates with over 45 certified ISV partners through its OperatorHub
+ecosystem. The platform's model serving infrastructure supports both single-model and
+multi-model serving patterns, with automatic GPU scheduling via NVIDIA GPU Operator
+integration.
+
+The platform includes a feature called Data Science Pipelines, powered by Kubeflow Pipelines
+v2, which allows teams to define repeatable ML workflows as directed acyclic graphs. Each
+pipeline run is tracked with full lineage metadata stored in a MariaDB backend.
+
+In 2024, Red Hat introduced the Gen AI Studio component, enabling users to create AI
+playgrounds where they can interact with large language models, upload knowledge documents
+for retrieval-augmented generation, and manage prompt templates through an integrated
+MLflow-based registry.
+
+The minimum cluster requirement for OpenShift AI is 3 worker nodes with 16 vCPUs and 64 GB
+RAM each, though GPU workloads require dedicated node pools with NVIDIA A100 or H100
+accelerators.

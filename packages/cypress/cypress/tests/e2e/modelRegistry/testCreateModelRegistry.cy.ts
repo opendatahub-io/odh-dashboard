@@ -77,6 +77,10 @@ describe('Verify a model registry can be created and deleted', () => {
       modelRegistrySettings
         .findFormField(FormFieldSelector.PASSWORD)
         .type(testData.databasePassword);
+      modelRegistrySettings
+        .findFormField(FormFieldSelector.DATABASE)
+        .clear()
+        .type(testData.defaultDatabaseName);
       modelRegistrySettings.findSubmitButton().click();
 
       cy.step('Verify it is available in the UI');
@@ -96,7 +100,7 @@ describe('Verify a model registry can be created and deleted', () => {
       modelRegistrySettings.findSubmitButton().click();
 
       cy.step('Verify model registry is removed from UI');
-      cy.contains(registryName).should('not.exist');
+      cy.contains(registryName, { timeout: 60000 }).should('not.exist');
 
       cy.step('Verify model registry is removed from the backend');
       checkModelRegistry(registryName).should('be.false');
@@ -135,7 +139,7 @@ describe('Verify a model registry can be created and deleted', () => {
       modelRegistrySettings
         .findFormField(FormFieldSelector.DATABASE)
         .clear()
-        .type(testData.defaultDatabaseName);
+        .type(testData.defaultPostgresDatabaseName);
       modelRegistrySettings.findSubmitButton().click();
 
       cy.step('Verify it is available in the UI');
@@ -155,7 +159,7 @@ describe('Verify a model registry can be created and deleted', () => {
       modelRegistrySettings.findSubmitButton().click();
 
       cy.step('Verify model registry is removed from UI');
-      cy.contains(postgresRegistryName).should('not.exist');
+      cy.contains(postgresRegistryName, { timeout: 60000 }).should('not.exist');
 
       cy.step('Verify model registry is removed from the backend');
       checkModelRegistry(postgresRegistryName).should('be.false');
@@ -202,7 +206,7 @@ describe('Verify a model registry can be created and deleted', () => {
       modelRegistrySettings.findSubmitButton().click();
 
       cy.step('Verify model registry is removed from UI');
-      cy.contains(defaultDbName).should('not.exist');
+      cy.contains(defaultDbName, { timeout: 60000 }).should('not.exist');
 
       cy.step('Verify model registry is removed from the backend');
       checkModelRegistry(defaultDbName).should('be.false');

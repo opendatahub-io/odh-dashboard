@@ -128,7 +128,8 @@ const RoleLabelsSection: React.FC<RoleLabelsSectionProps> = ({
               Value
             </Content>
           </FlexItem>
-          <FlexItem className="pf-v6-u-visibility-hidden">
+          {/* Reserves space to align headers with the per-row remove button column */}
+          <FlexItem style={{ visibility: 'hidden' }}>
             <Button variant="plain" aria-hidden tabIndex={-1}>
               <MinusCircleIcon />
             </Button>

@@ -3,8 +3,8 @@ import {
   type IntegrationAppStatus,
   VariablesValidationStatus,
 } from '@odh-dashboard/plugin-core/integrations';
+import type { OdhApplication, OdhIntegrationApplication } from '@odh-dashboard/k8s-core';
 import { useAppSelector } from '#~/redux/hooks';
-import { OdhApplication, OdhIntegrationApplication } from '#~/types';
 import { getIntegrationAppEnablementStatus } from '#~/services/integrationAppService';
 import { allSettledPromises } from '#~/utilities/allSettledPromises';
 import { POLL_INTERVAL } from './const';

@@ -105,6 +105,7 @@ describe('ModelServing - tolerations tests', () => {
         '@Smoke',
         '@SmokeSet3',
         '@ModelServing',
+        '@HardwareProfilesCI',
       ],
     },
     () => {

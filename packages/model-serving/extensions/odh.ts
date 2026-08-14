@@ -7,8 +7,13 @@ import type {
   TabRouteTabExtension,
 } from '@odh-dashboard/plugin-core/extension-points';
 import { SupportedArea } from '@odh-dashboard/plugin-core/areas';
-import type { WizardFieldExtension } from '@odh-dashboard/model-serving/extension-points/deployment-wizard';
+import type {
+  WizardFieldExtension,
+  WizardFieldApplyExtension,
+  WizardFieldExtractorExtension,
+} from '@odh-dashboard/model-serving/extension-points/deployment-wizard';
 import type { DeploymentMethodSelectFieldType } from '../src/components/deploymentWizard/fields/DeploymentMethodSelectField';
+import type { ModelCapabilitiesFieldType } from '../src/components/deploymentWizard/fields/modelCapabilities/ModelCapabilitiesField';
 
 const ADMIN_USER = 'ADMIN_USER';
 
@@ -16,6 +21,49 @@ const createRedirectComponent = (args: { from: string; to: string }) => () =>
   import('@odh-dashboard/plugin-core/routing').then((module) => ({
     default: () => module.buildV2RedirectElement(args),
   }));
+
+const modelCapabilitiesFieldExtension: WizardFieldExtension<ModelCapabilitiesFieldType> = {
+  type: 'model-serving.deployment/wizard-field',
+  properties: {
+    field: () =>
+      import(
+        '../src/components/deploymentWizard/fields/modelCapabilities/ModelCapabilitiesField'
+      ).then((m) => m.ModelCapabilitiesFieldWizardField),
+  },
+  flags: {
+    required: [SupportedArea.MODEL_CAPABILITIES],
+  },
+};
+
+const modelCapabilitiesApply: WizardFieldApplyExtension<string[]> = {
+  type: 'model-serving.deployment/wizard-field-apply',
+  properties: {
+    fieldId: 'modelCapabilities',
+    platform: 'all',
+    apply: () =>
+      import(
+        '../src/components/deploymentWizard/fields/modelCapabilities/modelCapabilitiesApplyExtract'
+      ).then((m) => m.applyModelCapabilities),
+  },
+  flags: {
+    required: [SupportedArea.MODEL_CAPABILITIES],
+  },
+};
+
+const modelCapabilitiesExtract: WizardFieldExtractorExtension<string[]> = {
+  type: 'model-serving.deployment/wizard-field-extractor',
+  properties: {
+    fieldId: 'modelCapabilities',
+    platform: 'all',
+    extract: () =>
+      import(
+        '../src/components/deploymentWizard/fields/modelCapabilities/modelCapabilitiesApplyExtract'
+      ).then((m) => m.extractModelCapabilities),
+  },
+  flags: {
+    required: [SupportedArea.MODEL_CAPABILITIES],
+  },
+};
 
 const deploymentMethodFieldExtension: WizardFieldExtension<DeploymentMethodSelectFieldType> = {
   type: 'model-serving.deployment/wizard-field',
@@ -38,6 +86,9 @@ const extensions: (
   | TabRoutePageExtension
   | TabRouteTabExtension
   | WizardFieldExtension<DeploymentMethodSelectFieldType>
+  | WizardFieldExtension<ModelCapabilitiesFieldType>
+  | WizardFieldApplyExtension<string[]>
+  | WizardFieldExtractorExtension<string[]>
 )[] = [
   {
     type: 'app.area',
@@ -122,6 +173,9 @@ const extensions: (
     },
   },
   deploymentMethodFieldExtension,
+  modelCapabilitiesFieldExtension,
+  modelCapabilitiesApply,
+  modelCapabilitiesExtract,
   // Model deployment settings tabbed page
   {
     type: 'app.tab-route/page',

@@ -2,7 +2,7 @@ import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Breadcrumb, BreadcrumbItem } from '@patternfly/react-core';
 import { ApplicationsPage } from '@odh-dashboard/ui-core';
-import { useSubscriptionPolicyFormData } from '~/app/hooks/useSubscriptionPolicyFormData';
+import { useMaaSGovernanceContext } from '~/app/context/MaaSGovernanceContext';
 import {
   getBackUrl,
   getBreadcrumbLabelFromState,
@@ -11,7 +11,14 @@ import {
 import PolicyForm from './policyForm/PolicyForm';
 
 const CreateAuthPolicyPage: React.FC = () => {
-  const [formData, loaded, loadError] = useSubscriptionPolicyFormData();
+  const {
+    groups,
+    modelRefs,
+    subscriptions,
+    policies,
+    loaded,
+    error: loadError,
+  } = useMaaSGovernanceContext();
   const { state } = useLocation();
   const backUrl = getBackUrl(state, 'auth-policies');
   const returnTo = backUrl;
@@ -32,7 +39,14 @@ const CreateAuthPolicyPage: React.FC = () => {
       empty={false}
       loadError={loadError}
     >
-      <PolicyForm formData={formData} returnTo={returnTo} preSelectedModel={preSelectedModel} />
+      <PolicyForm
+        groups={groups}
+        modelRefs={modelRefs}
+        subscriptions={subscriptions}
+        policies={policies}
+        returnTo={returnTo}
+        preSelectedModel={preSelectedModel}
+      />
     </ApplicationsPage>
   );
 };

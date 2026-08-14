@@ -3,9 +3,8 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import type { TemplateKind } from '@odh-dashboard/k8s-core';
 import { LimitedSupportEvent } from '@odh-dashboard/model-serving/shared/tracking/limitedSupportTracking';
+import { mockServingRuntimeTemplateK8sResource } from '@odh-dashboard/model-serving/__mocks__/mockServingRuntimeTemplateK8sResource';
 import { fireMiscTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
-// eslint-disable-next-line @odh-dashboard/no-restricted-imports
-import { mockServingRuntimeTemplateK8sResource } from '@odh-dashboard/internal/__mocks__/mockServingRuntimeTemplateK8sResource';
 import type { CustomWatchK8sResult } from '#~/types';
 import CustomServingRuntimeEnabledToggle from '#~/pages/modelServing/customServingRuntimes/CustomServingRuntimeEnabledToggle';
 import { CustomServingRuntimeContext } from '#~/pages/modelServing/customServingRuntimes/CustomServingRuntimeContext';

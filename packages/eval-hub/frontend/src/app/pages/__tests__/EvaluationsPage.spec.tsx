@@ -1,6 +1,6 @@
 import * as React from 'react';
-import { render, screen } from '@testing-library/react';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
+import { MemoryRouter, Route, Routes, useNavigate } from 'react-router-dom';
 import { EvaluationJob } from '~/app/types';
 import { mockEvaluationJob } from '~/__tests__/unit/testUtils/mockEvaluationData';
 import EvaluationsPage from '~/app/pages/EvaluationsPage';
@@ -50,6 +50,13 @@ jest.mock('mod-arch-core', () => ({
   restDELETE: jest.fn(),
   restGET: jest.fn(),
   isModArchResponse: jest.fn(() => true),
+}));
+
+jest.mock('~/app/components/EvaluationStatusModal', () => ({
+  __esModule: true,
+  default: ({ namespace }: { namespace: string }) => (
+    <div data-testid="evaluation-status-modal" data-namespace={namespace} />
+  ),
 }));
 
 jest.mock('~/app/context/CollectionsContext', () => ({
@@ -177,6 +184,44 @@ describe('EvaluationsPage', () => {
 
       expect(screen.queryByTestId('eval-hub-empty-state')).not.toBeInTheDocument();
       expect(screen.getByTestId('evaluations-table')).toBeInTheDocument();
+    });
+
+    it('should clear the selected job when navigating to a different namespace', async () => {
+      const jobs = [mockEvaluationJob({ id: 'job-1', name: 'Test Eval', state: 'failed' })];
+      mockUseEvaluationJobs.mockReturnValue([jobs, true, undefined, mockRefresh]);
+
+      const NavigateHelper: React.FC = () => {
+        const navigate = useNavigate();
+        return (
+          <button data-testid="navigate-ns-b" onClick={() => navigate('/ns-b')}>
+            Go to ns-b
+          </button>
+        );
+      };
+
+      render(
+        <MemoryRouter initialEntries={['/ns-a']}>
+          <NavigateHelper />
+          <Routes>
+            <Route path="/:namespace" element={<EvaluationsPage />} />
+          </Routes>
+        </MemoryRouter>,
+      );
+
+      const statusLabel = screen.getByTestId('status-label-failed');
+      fireEvent.click(within(statusLabel).getByRole('button'));
+      await waitFor(() => {
+        expect(screen.getByTestId('evaluation-status-modal')).toBeInTheDocument();
+      });
+      expect(screen.getByTestId('evaluation-status-modal')).toHaveAttribute(
+        'data-namespace',
+        'ns-a',
+      );
+
+      fireEvent.click(screen.getByTestId('navigate-ns-b'));
+      await waitFor(() => {
+        expect(screen.queryByTestId('evaluation-status-modal')).not.toBeInTheDocument();
+      });
     });
   });
 });

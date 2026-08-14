@@ -81,3 +81,26 @@ export const isConfigEnabled = (config: LLMInferenceServiceConfigKind): boolean 
 
 export const isConfigEffectivelyEnabled = (config: LLMInferenceServiceConfigKind): boolean =>
   isUnsupportedUnaccepted(config) ? false : isConfigEnabled(config);
+
+export const cleanlyDuplicateConfig = (
+  existingConfig: LLMInferenceServiceConfigKind,
+  metadata: {
+    name?: string;
+    namespace?: string;
+    annotations?: Record<string, string>;
+    labels?: Record<string, string>;
+  },
+): LLMInferenceServiceConfigKind => {
+  const duplicatedConfig = structuredClone(existingConfig);
+
+  return {
+    ...duplicatedConfig,
+    metadata: {
+      // Exclude other metadata to exclude existing resource version stuff
+      name: metadata.name || duplicatedConfig.metadata.name,
+      namespace: metadata.namespace || duplicatedConfig.metadata.namespace,
+      ...(metadata.annotations && { annotations: metadata.annotations }),
+      ...(metadata.labels && { labels: metadata.labels }),
+    },
+  };
+};
