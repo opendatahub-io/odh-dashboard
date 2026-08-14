@@ -11,7 +11,7 @@ import {
 } from '~/app/utilities/evaluationJobPolling';
 
 const parseErrorStatus = (error: Error): number | undefined => {
-  const match = error.message.match(/\b(\d{3})\b/);
+  const match = error.message.match(/\b([45]\d{2})\b/);
   return match ? Number(match[1]) : undefined;
 };
 
@@ -27,7 +27,7 @@ const useEvaluationJobDetailPolling = (
 ): DetailPollingResult => {
   const poolRef = React.useRef(createRequestPool());
 
-  const queries = useQueries({
+  return useQueries({
     queries: jobIds.map((jobId) => ({
       queryKey: ['evalJobDetail', namespace, jobId],
       // Route each fetch through the request pool so at most 5 run concurrently
@@ -67,21 +67,19 @@ const useEvaluationJobDetailPolling = (
         return DETAIL_POLL_INTERVAL_MS;
       },
     })),
+    combine: (results) => {
+      const polledJobDataMap = new Map<string, EvaluationJob>();
+      results.forEach((result, index) => {
+        if (result.data) {
+          polledJobDataMap.set(jobIds[index], result.data);
+        }
+      });
+      return {
+        polledJobDataMap,
+        isWarning: results.some((r) => r.status === 'error'),
+      };
+    },
   });
-
-  const polledJobDataMap = React.useMemo(() => {
-    const map = new Map<string, EvaluationJob>();
-    queries.forEach((query, index) => {
-      if (query.data) {
-        map.set(jobIds[index], query.data);
-      }
-    });
-    return map;
-  }, [queries, jobIds]);
-
-  const isWarning = queries.some((query) => query.status === 'error');
-
-  return { polledJobDataMap, isWarning };
 };
 
 export default useEvaluationJobDetailPolling;

@@ -12,6 +12,8 @@ describe('usePageVisibility', () => {
   afterEach(() => {
     if (originalHidden) {
       Object.defineProperty(document, 'hidden', originalHidden);
+    } else {
+      Reflect.deleteProperty(document, 'hidden');
     }
   });
 

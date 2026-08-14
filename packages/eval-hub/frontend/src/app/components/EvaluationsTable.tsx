@@ -226,6 +226,11 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
     polledJobDataMap.forEach((polledJob, id) => {
       prevPolledStatesRef.current.set(id, polledJob.status.state);
     });
+    for (const id of prevPolledStatesRef.current.keys()) {
+      if (!polledJobDataMap.has(id)) {
+        prevPolledStatesRef.current.delete(id);
+      }
+    }
     if (hasTransition) {
       onRefresh();
     }

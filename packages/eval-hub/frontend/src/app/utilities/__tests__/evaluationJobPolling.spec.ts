@@ -227,6 +227,21 @@ describe('isPreStartFailure', () => {
     expect(isPreStartFailure(job)).toBe(false);
   });
 
+  it('should return false when a benchmark has warning_message but no started_at — runner produced output', () => {
+    const job = mockEvaluationJob({
+      state: 'failed',
+      benchmarkStatuses: [
+        {
+          id: 'bm-a',
+          benchmark_index: 0,
+          status: 'failed',
+          warning_message: { message: 'High memory usage' },
+        },
+      ],
+    });
+    expect(isPreStartFailure(job)).toBe(false);
+  });
+
   it('should return false when state is not failed', () => {
     const job = mockEvaluationJob({ state: 'running', benchmarkStatuses: [] });
     expect(isPreStartFailure(job)).toBe(false);
