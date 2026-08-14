@@ -1,15 +1,15 @@
 const path = require('path');
 const { execSync } = require('child_process');
-const { merge } = require('webpack-merge');
-const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
-const webpackCommon = require('./webpack.common.js');
+const { merge } = require('rspack-merge');
+const { TsCheckerRspackPlugin } = require('ts-checker-rspack-plugin');
+const rspackCommon = require('./rspack.common.js');
 
 const RELATIVE_DIRNAME = path.resolve(__dirname, '..');
 const DIST_DIR = path.resolve(RELATIVE_DIRNAME, 'public');
 const PORT = process.env.SHELL_PORT || 4020;
 
 // Derived from frontend/config/webpack.dev.js — token acquisition, route
-// discovery, and proxy setup are duplicated across 7+ webpack configs in the
+// discovery, and proxy setup are duplicated across 7+ bundler configs in the
 // repo. Extract into a shared dev-proxy utility in packages/app-config.
 
 const getOcToken = () => {
@@ -91,25 +91,29 @@ const buildProxyConfig = () => {
   }
 
   const mockUser = process.env.MOCK_USER;
-  const onProxyReq = (proxyReq, req) => {
-    if (mockUser) {
-      proxyReq.setHeader('kubeflow-userid', mockUser);
-      if (token) {
+  // @rspack/dev-server uses http-proxy-middleware v3: hooks live under `on`,
+  // not the webpack-dev-server v4 `onProxyReq` name (which is silently ignored).
+  const on = {
+    proxyReq: (proxyReq, req) => {
+      if (mockUser) {
+        proxyReq.setHeader('kubeflow-userid', mockUser);
+        if (token) {
+          proxyReq.setHeader('Authorization', `Bearer ${token}`);
+          proxyReq.setHeader('x-forwarded-access-token', token);
+        } else {
+          proxyReq.setHeader('x-forwarded-access-token', 'mock-token');
+        }
+        return;
+      }
+      const incomingAuth = req.headers.authorization;
+      if (incomingAuth) {
+        proxyReq.setHeader('Authorization', incomingAuth);
+        proxyReq.setHeader('x-forwarded-access-token', incomingAuth.replace(/^Bearer\s+/i, ''));
+      } else if (token) {
         proxyReq.setHeader('Authorization', `Bearer ${token}`);
         proxyReq.setHeader('x-forwarded-access-token', token);
-      } else {
-        proxyReq.setHeader('x-forwarded-access-token', 'mock-token');
       }
-      return;
-    }
-    const incomingAuth = req.headers.authorization;
-    if (incomingAuth) {
-      proxyReq.setHeader('Authorization', incomingAuth);
-      proxyReq.setHeader('x-forwarded-access-token', incomingAuth.replace(/^Bearer\s+/i, ''));
-    } else if (token) {
-      proxyReq.setHeader('Authorization', `Bearer ${token}`);
-      proxyReq.setHeader('x-forwarded-access-token', token);
-    }
+    },
   };
 
   // Cluster mode: discover dashboard route, proxy through its backend
@@ -127,7 +131,7 @@ const buildProxyConfig = () => {
           target: `https://${dashboardHost}`,
           secure: false,
           changeOrigin: true,
-          onProxyReq,
+          on,
         },
       ];
     }
@@ -146,7 +150,7 @@ const buildProxyConfig = () => {
       pathRewrite: { '^/maas/api': '/api' },
       secure: false,
       changeOrigin: true,
-      onProxyReq,
+      on,
     },
     {
       context: ['/gen-ai/api'],
@@ -154,16 +158,15 @@ const buildProxyConfig = () => {
       pathRewrite: { '^/gen-ai/api': '/api' },
       secure: false,
       changeOrigin: true,
-      onProxyReq,
+      on,
     },
   ];
 };
 
-module.exports = merge(webpackCommon(), {
+module.exports = merge(rspackCommon(), {
   mode: 'development',
   devtool: 'eval-source-map',
   optimization: {
-    runtimeChunk: 'single',
     removeEmptyChunks: true,
   },
   devServer: {
@@ -192,5 +195,5 @@ module.exports = merge(webpackCommon(), {
       }
     },
   },
-  plugins: [new ForkTsCheckerWebpackPlugin()],
+  plugins: [new TsCheckerRspackPlugin()],
 });

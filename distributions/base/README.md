@@ -16,11 +16,11 @@ This starts:
 | Service | URL | Description |
 |---------|-----|-------------|
 | BFF stub | `http://localhost:4000` | Minimal `/api/status` endpoint |
-| App shell | `http://localhost:4010` | Webpack dev server with HMR |
+| App shell | `http://localhost:4010` | Rspack dev server with HMR |
 
 ### Environment variables
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
 | `BFF_PORT` | `4000` | Port for the stub BFF server |
-| `SHELL_PORT` | `4010` | Port for the webpack dev server |
+| `SHELL_PORT` | `4010` | Port for the rspack dev server |
