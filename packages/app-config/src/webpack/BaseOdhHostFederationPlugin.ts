@@ -65,9 +65,23 @@ abstract class BaseOdhHostFederationPlugin<TCompiler> {
       };
     }
 
+    // Packages that carry React context or stateful singletons across Module Federation
+    // boundaries must be eager so rspack registers them in its shared scope before any
+    // webpack remote (which uses import:false) loads and requests them.
+    const EAGER_ODH_SINGLETONS = new Set([
+      '@odh-dashboard/plugin-core',
+      '@odh-dashboard/ui-core',
+      '@odh-dashboard/internal',
+      '@odh-dashboard/k8s-core',
+    ]);
+
     const { all: odhPackages } = getRuntimeOdhPackages();
     for (const pkgName of odhPackages) {
-      shared[pkgName] = { singleton: true, requiredVersion: '*' };
+      shared[pkgName] = {
+        singleton: true,
+        requiredVersion: '*',
+        ...(EAGER_ODH_SINGLETONS.has(pkgName) && { eager: true }),
+      };
     }
 
     // Plugin-defined shared modules take precedence over additionalShared entries
