@@ -179,8 +179,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
 
   const featureStoreStatus = useIsAreaAvailable(SupportedArea.FEATURE_STORE);
   const isFeastOperatorAvailable = featureStoreStatus.status;
-  const featureStoreApiAvailable =
-    !isFeastOperatorAvailable || (featureStoresLoaded && !featureStoresError);
+  const featureStoreApiAvailable = featureStoresLoaded && !featureStoresError;
   const featureStoresLoading =
     isFeastOperatorAvailable && !featureStoresLoaded && !featureStoresError;
 
