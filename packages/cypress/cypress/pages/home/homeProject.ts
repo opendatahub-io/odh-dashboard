@@ -46,6 +46,6 @@ export class HomeProject extends Contextual<HTMLElement> {
   }
 
   findErrorState(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().find('[data-id="error-empty-state"]');
+    return this.find().findByTestId('error-empty-state');
   }
 }
