@@ -1,5 +1,9 @@
 import type { WorkloadCondition, WorkloadKind } from '#~/k8sTypes';
-import { getKueueWorkloadStatusWithMessage, getKueueStatusInfo } from '#~/concepts/kueue';
+import {
+  getKueueWorkloadStatusWithMessage,
+  getKueueStatusInfo,
+  aggregateKueueStatusForModel,
+} from '#~/concepts/kueue';
 import { KueueWorkloadStatus } from '#~/concepts/kueue/types';
 
 const baseWorkload: WorkloadKind = {
@@ -555,5 +559,116 @@ describe('getKueueStatusInfo', () => {
     const info = getKueueStatusInfo('Unknown' as KueueWorkloadStatus);
     expect(info.label).toBe('Unknown');
     expect(info.color).toBe('grey');
+  });
+});
+
+describe('aggregateKueueStatusForModel', () => {
+  it('returns null when there are no correlated Workload CRs (e.g. IS deleted, orphaned CRs filtered out upstream)', () => {
+    expect(aggregateKueueStatusForModel([])).toBeNull();
+  });
+
+  it('does not add podAdmissionCounts for a single Workload (not meaningful at replica count 1)', () => {
+    const wl = workloadWithConditions([
+      {
+        type: 'PodsReady',
+        status: 'True',
+        reason: 'PodsReady',
+        message: '',
+        lastTransitionTime: '2026-01-01T00:00:00Z',
+      },
+    ]);
+    const result = aggregateKueueStatusForModel([wl]);
+    expect(result?.podAdmissionCounts).toBeUndefined();
+  });
+
+  it('anomaly false-positive guard: Workload CRs with no conditions (Kueue operator down, CRD still present) aggregate to Queued, not Failed', () => {
+    const staleWorkload: WorkloadKind = { ...baseWorkload, status: { conditions: [] } };
+    const result = aggregateKueueStatusForModel([staleWorkload]);
+    expect(result?.status).toBe(KueueWorkloadStatus.Queued);
+  });
+
+  it('concurrent scale-up during pre-admission: podAdmissionCounts.total reflects only Workload CRs correlated so far, not the desired replica count', () => {
+    const admitted = workloadWithConditions([
+      {
+        type: 'PodsReady',
+        status: 'True',
+        reason: 'PodsReady',
+        message: '',
+        lastTransitionTime: '2026-01-01T00:00:00Z',
+      },
+    ]);
+    const pending = workloadWithConditions([
+      {
+        type: 'QuotaReserved',
+        status: 'False',
+        reason: 'Pending',
+        message: '',
+        lastTransitionTime: '2026-01-01T00:00:00Z',
+      },
+    ]);
+    const result = aggregateKueueStatusForModel([admitted, pending]);
+    expect(result?.podAdmissionCounts).toEqual({ admitted: 1, total: 2 });
+  });
+
+  it('rapid state flapping: re-aggregating after conditions change (Queued -> Evicted -> Requeued) reflects the latest snapshot each time', () => {
+    const queued = workloadWithConditions([
+      {
+        type: 'QuotaReserved',
+        status: 'False',
+        reason: 'Pending',
+        message: '',
+        lastTransitionTime: '2026-01-01T00:00:00Z',
+      },
+    ]);
+    expect(aggregateKueueStatusForModel([queued])?.status).toBe(KueueWorkloadStatus.Queued);
+
+    const evicted = workloadWithConditions([
+      {
+        type: 'Evicted',
+        status: 'True',
+        reason: 'ClusterQueueStopped',
+        message: '',
+        lastTransitionTime: '2026-01-01T00:00:00Z',
+      },
+    ]);
+    expect(aggregateKueueStatusForModel([evicted])?.status).toBe(KueueWorkloadStatus.Evicted);
+
+    const requeued = workloadWithConditions(
+      [
+        {
+          type: 'Evicted',
+          status: 'True',
+          reason: 'PodsReadyTimeout',
+          message: '',
+          lastTransitionTime: '2026-01-01T00:00:00Z',
+        },
+      ],
+      { count: 1 },
+    );
+    expect(aggregateKueueStatusForModel([requeued])?.status).toBe(KueueWorkloadStatus.Requeued);
+  });
+
+  it('most-restrictive status wins across flapping replicas (Evicted beats Running)', () => {
+    const running = workloadWithConditions([
+      {
+        type: 'PodsReady',
+        status: 'True',
+        reason: 'PodsReady',
+        message: '',
+        lastTransitionTime: '2026-01-01T00:00:00Z',
+      },
+    ]);
+    const evicted = workloadWithConditions([
+      {
+        type: 'Evicted',
+        status: 'True',
+        reason: 'ClusterQueueStopped',
+        message: '',
+        lastTransitionTime: '2026-01-01T00:00:00Z',
+      },
+    ]);
+    const result = aggregateKueueStatusForModel([running, evicted]);
+    expect(result?.status).toBe(KueueWorkloadStatus.Evicted);
+    expect(result?.podAdmissionCounts).toEqual({ admitted: 1, total: 2 });
   });
 });
