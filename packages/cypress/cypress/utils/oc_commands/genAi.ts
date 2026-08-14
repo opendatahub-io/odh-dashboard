@@ -241,4 +241,37 @@ export const deleteGenAiPromptViaAPI = (namespace: string, name: string): void =
   });
 };
 
+/**
+ * Create an external model endpoint via the gen-ai BFF API.
+ * Bypasses the UI form — creates the ConfigMap and Secret directly.
+ *
+ * @param namespace  - Project namespace to create the endpoint in.
+ * @param modelId    - Model ID (e.g. 'gemini-2.5-flash').
+ * @param displayName - Human-readable display name.
+ * @param endpointUrl - Base URL of the external model provider.
+ * @param apiKey      - API key / token for the provider.
+ * @param modelType   - Model type: 'llm' | 'embedding' | 'transcription'. Defaults to 'llm'.
+ */
+export const createExternalModelViaAPI = (
+  namespace: string,
+  modelId: string,
+  displayName: string,
+  endpointUrl: string,
+  apiKey: string,
+  modelType = 'llm',
+): Cypress.Chainable<Cypress.Response<unknown>> =>
+  cy.request({
+    method: 'POST',
+    url: `/gen-ai/api/v1/models/external?namespace=${encodeURIComponent(namespace)}`,
+    body: {
+      /* eslint-disable camelcase */
+      model_id: modelId,
+      model_display_name: displayName,
+      base_url: endpointUrl,
+      secret_value: apiKey,
+      model_type: modelType,
+      /* eslint-enable camelcase */
+    },
+  });
+
 export { cleanupServingRuntimeTemplate } from './servingRuntimeTemplate';
