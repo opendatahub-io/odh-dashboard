@@ -6,8 +6,9 @@ import {
   type UploadFileToS3Params,
   type UploadFileToS3Response,
 } from '~/app/api/s3';
+import { createIndexingPipelineRun } from '~/app/api/pipelines';
 import { ConfigureSchema } from '~/app/schemas/configure.schema';
-import type { PipelineRun } from '~/app/types';
+import type { CreateIndexingPipelineRunRequest, PipelineRun } from '~/app/types';
 import { RuntimeStateKF } from '~/app/types/pipeline';
 import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
 import { handleRestWithUIErrors } from '~/app/components/common/UIError/util.ts';
@@ -141,6 +142,16 @@ export function useCreatePipelineRunMutation(
       }
       throw new Error('Invalid response format');
     },
+  });
+}
+
+export function useCreateIndexingPipelineRunMutation(
+  namespace: string,
+): UseMutationResult<PipelineRun, Error, CreateIndexingPipelineRunRequest, unknown> {
+  return useMutation({
+    mutationKey: ['autorag', 'indexingPipelineRun', namespace],
+    mutationFn: (payload: CreateIndexingPipelineRunRequest) =>
+      createIndexingPipelineRun('', namespace, payload),
   });
 }
 

@@ -71,6 +71,25 @@ jest.mock('~/app/utilities/utils', () => ({
 jest.mock('~/app/hooks/queries', () => ({
   ...jest.requireActual('~/app/hooks/queries'),
   fetchS3File: jest.fn(),
+  useManagedPipelinesQuery: jest.fn().mockReturnValue({
+    data: [
+      {
+        pipeline_type: 'indexing',
+        pipeline_id: 'idx',
+        pipeline_version_id: 'v',
+        display_name: 'documents-indexing-pipeline',
+      },
+    ],
+    isLoading: false,
+  }),
+}));
+
+jest.mock('~/app/hooks/mutations', () => ({
+  useCreateIndexingPipelineRunMutation: jest.fn().mockReturnValue({
+    mutateAsync: jest.fn(),
+    isPending: false,
+    reset: jest.fn(),
+  }),
 }));
 
 const mockPipelineRun: PipelineRun = {
@@ -133,6 +152,22 @@ const createMockPattern = (name: string): AutoragPattern => ({
         optimization_metric: true,
       },
     ],
+  },
+  indexing: {
+    pipeline_spec: {
+      pipeline_name: 'documents-indexing-pipeline',
+      parameters: {
+        embedding_model_id: 'test-model',
+        input_data_secret_name: 'input-secret',
+        input_data_bucket_name: 'input-bucket',
+        ogx_secret_name: 'ogx-secret',
+        vector_io_provider_id: 'milvus',
+        chunk_size: 512,
+        chunk_overlap: 50,
+        chunking_method: 'fixed',
+      },
+      overrides_allowed: [],
+    },
   },
 });
 

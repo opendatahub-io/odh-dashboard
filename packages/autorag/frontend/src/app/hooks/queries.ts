@@ -1,12 +1,13 @@
 import { useQuery, UseQueryResult } from '@tanstack/react-query';
 import * as z from 'zod';
 import { getOgxModels, getOgxVectorStores, getSecretByName, getSecrets } from '~/app/api/k8s';
-import { getPipelineRunFromBFF } from '~/app/api/pipelines';
+import { getManagedPipelines, getPipelineRunFromBFF } from '~/app/api/pipelines';
 import { getFiles as getS3Files } from '~/app/api/s3';
 import {
   OgxModelsResponse,
   OgxModelType,
   OgxFilteredVectorStoreProvidersResponse,
+  ManagedPipeline,
   PipelineRun,
   S3ListObjectsResponse,
   SecretListItem,
@@ -335,5 +336,19 @@ export function useSecretsQuery(
     enabled: !!namespace,
     queryKey: ['autorag', 'secrets', namespace, type],
     queryFn: ({ signal }) => getSecrets('')(namespace, type)({ signal }),
+  });
+}
+
+export function useManagedPipelinesQuery(
+  namespace?: string,
+): UseQueryResult<ManagedPipeline[], Error> {
+  return useQuery({
+    enabled: !!namespace,
+    queryKey: ['autorag', 'managedPipelines', namespace],
+    queryFn: ({ signal }) => getManagedPipelines('', namespace!, { signal }),
+    staleTime: 60_000,
+    // One retry: this query gates the "Run indexing pipeline" action; a single transient
+    // failure should not permanently hide it for the session.
+    retry: 1,
   });
 }

@@ -20,6 +20,9 @@ This service exposes the following endpoints:
 - GET `/api/v1/pipeline-runs` – query pipeline runs from Kubeflow Pipelines
 - GET `/api/v1/pipeline-runs/:runId` – get a single pipeline run with full task details
 - POST `/api/v1/pipeline-runs` – create a new AutoRAG pipeline run
+- POST `/api/v1/indexing-pipeline-runs` – create a documents indexing pipeline run
+- GET `/api/v1/managed-pipelines` – list discovered managed pipelines (autorag, indexing)
+- POST `/api/v1/managed-pipelines/enable` – enable managed pipelines on a DSPA
 
 ## Development
 

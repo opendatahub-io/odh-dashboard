@@ -50,6 +50,7 @@ export type PatternDetailsModalProps = {
   onSaveNotebook?: (patternName: string, notebookType: 'indexing' | 'inference') => void;
   onTryPattern?: (patternName: string) => void;
   onViewCode?: (patternName: string) => void;
+  onRunIndexingPipeline?: (patternName: string) => void;
 };
 
 /** Group tabs by their section for sidebar rendering. */
@@ -76,6 +77,7 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
   onSaveNotebook,
   onTryPattern,
   onViewCode,
+  onRunIndexingPipeline,
 }) => {
   const [activeTabKey, setActiveTabKey] = React.useState<string>(OVERVIEW_KEY);
   const [isPrinting, setIsPrinting] = React.useState(false);
@@ -220,6 +222,14 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
                 ? (patternName) => {
                     onClose();
                     onViewCode(patternName);
+                  }
+                : undefined
+            }
+            onRunIndexingPipeline={
+              onRunIndexingPipeline
+                ? (patternName) => {
+                    onClose();
+                    onRunIndexingPipeline(patternName);
                   }
                 : undefined
             }
