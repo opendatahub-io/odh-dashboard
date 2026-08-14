@@ -1,17 +1,16 @@
 import * as React from 'react';
+import { useParams } from 'react-router-dom';
 import {
-  Content,
   FormGroup,
   FormHelperText,
   HelperText,
   HelperTextItem,
-  Popover,
   Stack,
   StackItem,
   TextInput,
   ValidatedOptions,
 } from '@patternfly/react-core';
-import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
+import LabelHelpPopover from '~/app/components/LabelHelpPopover';
 
 type SourcePrerecordedFieldsProps = {
   sourceName: string;
@@ -38,6 +37,7 @@ const SourcePrerecordedFields: React.FC<SourcePrerecordedFieldsProps> = ({
   touched,
   markTouched,
 }) => {
+  const { namespace } = useParams<{ namespace: string }>();
   const datasetUrlValidated =
     touched.datasetUrl && datasetUrlError ? ValidatedOptions.error : ValidatedOptions.default;
   const accessTokenValidated =
@@ -84,24 +84,40 @@ const SourcePrerecordedFields: React.FC<SourcePrerecordedFieldsProps> = ({
           isRequired
           fieldId="access-token"
           labelHelp={
-            <Popover
-              aria-label="S3 secret name help"
-              bodyContent={
-                <Content component="p">
-                  The name of the Kubernetes Secret containing credentials to access the S3 bucket
-                  where pre-recorded responses are stored.
-                </Content>
+            <LabelHelpPopover
+              ariaLabel="More info for S3 secret name"
+              title="S3 secret name"
+              content={
+                <>
+                  Enter the <strong>name</strong> of a Kubernetes Secret containing S3 credentials.
+                  The secret must include the following keys: AWS_ACCESS_KEY_ID,
+                  AWS_SECRET_ACCESS_KEY, AWS_DEFAULT_REGION, and AWS_S3_ENDPOINT. These match the
+                  format of S3 connection Secrets created by OpenShift AI.
+                  <br />
+                  <br />
+                  If it hasn&apos;t been created yet, run:
+                  <pre
+                    style={{
+                      background: 'var(--pf-t--global--background--color--secondary--default)',
+                      padding: 'var(--pf-t--global--spacer--sm)',
+                      borderRadius: 'var(--pf-t--global--border--radius--small)',
+                      marginTop: 'var(--pf-t--global--spacer--sm)',
+                      whiteSpace: 'pre',
+                      overflowX: 'auto',
+                    }}
+                  >
+                    {[
+                      'oc create secret generic my-s3-secret \\',
+                      '  --from-literal=AWS_ACCESS_KEY_ID=<your-key> \\',
+                      '  --from-literal=AWS_SECRET_ACCESS_KEY=<your-secret> \\',
+                      '  --from-literal=AWS_DEFAULT_REGION=<region> \\',
+                      '  --from-literal=AWS_S3_ENDPOINT=<endpoint> \\',
+                      `  -n ${namespace ?? '<namespace>'}`,
+                    ].join('\n')}
+                  </pre>
+                </>
               }
-            >
-              <button
-                type="button"
-                aria-label="More info about S3 secret name"
-                onClick={(e) => e.preventDefault()}
-                className="pf-v6-c-form__group-label-help"
-              >
-                <OutlinedQuestionCircleIcon />
-              </button>
-            </Popover>
+            />
           }
         >
           <TextInput
