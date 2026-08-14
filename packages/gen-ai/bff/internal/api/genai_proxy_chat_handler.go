@@ -45,7 +45,8 @@ func (app *App) GenAIProxyNSChatCompletionsHandler(w http.ResponseWriter, r *htt
 		return
 	}
 
-	// Read the full request body — needed for model extraction and transparent proxying
+	r.Body = http.MaxBytesReader(w, r.Body, constants.ChatCompletionMaxBodySize)
+
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		app.badRequestResponse(w, r, fmt.Errorf("failed to read request body: %w", err))
