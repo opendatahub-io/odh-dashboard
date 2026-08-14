@@ -324,6 +324,42 @@ describe('AutomlConfigurePage', () => {
       expect(await screen.findByText('Configure details')).toBeInTheDocument();
       expect(screen.queryByLabelText(/Name/i)).not.toBeInTheDocument();
     });
+
+    it('should fire AutoML Run Details Defined with outcome:submit and hasDescription:false when no description is entered', async () => {
+      const user = userEvent.setup();
+      renderWithProviders(<AutomlConfigurePage />);
+
+      const nameInput = await screen.findByLabelText(/Name/i);
+      await user.type(nameInput, 'Test Experiment');
+
+      const nextButton = await screen.findByRole('button', { name: 'Next' });
+      await waitFor(() => expect(nextButton).toBeEnabled());
+      await user.click(nextButton);
+
+      expect(fireFormTrackingEventMock).toHaveBeenCalledWith(AUTOML_EVENTS.RUN_DETAILS_DEFINED, {
+        outcome: 'submit',
+        hasDescription: false,
+      });
+    });
+
+    it('should fire AutoML Run Details Defined with hasDescription:true when a description is entered', async () => {
+      const user = userEvent.setup();
+      renderWithProviders(<AutomlConfigurePage />);
+
+      const nameInput = await screen.findByLabelText(/Name/i);
+      await user.type(nameInput, 'Test Experiment');
+      const descriptionInput = await screen.findByLabelText(/Description/i);
+      await user.type(descriptionInput, 'Some description');
+
+      const nextButton = await screen.findByRole('button', { name: 'Next' });
+      await waitFor(() => expect(nextButton).toBeEnabled());
+      await user.click(nextButton);
+
+      expect(fireFormTrackingEventMock).toHaveBeenCalledWith(AUTOML_EVENTS.RUN_DETAILS_DEFINED, {
+        outcome: 'submit',
+        hasDescription: true,
+      });
+    });
   });
 
   describe('Create step - Cancel button', () => {
@@ -333,6 +369,18 @@ describe('AutomlConfigurePage', () => {
       const cancelButton = await screen.findByRole('button', { name: 'Cancel' });
       await user.click(cancelButton);
       expect(mockNavigate).toHaveBeenCalledWith(-1);
+    });
+
+    it('should fire AutoML Run Details Defined with outcome:cancel when Cancel is clicked', async () => {
+      const user = userEvent.setup();
+      renderWithProviders(<AutomlConfigurePage />);
+      const cancelButton = await screen.findByRole('button', { name: 'Cancel' });
+      await user.click(cancelButton);
+
+      expect(fireFormTrackingEventMock).toHaveBeenCalledWith(AUTOML_EVENTS.RUN_DETAILS_DEFINED, {
+        outcome: 'cancel',
+        hasDescription: false,
+      });
     });
 
     it('should fire AutoML Flow Exited with defineDetails and experimentsList', async () => {

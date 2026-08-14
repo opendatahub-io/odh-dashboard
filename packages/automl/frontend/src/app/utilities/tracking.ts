@@ -14,6 +14,9 @@ import type { TaskType } from '~/app/types';
 export { TrackingOutcome };
 
 export const AUTOML_EVENTS = {
+  RUN_DETAILS_DEFINED: 'AutoML Run Details Defined',
+  TRAINING_DATA_CONFIGURED: 'AutoML Training Data Configured',
+  TARGET_COLUMN_CONFIGURED: 'AutoML Target Column Configured',
   RUN_CREATED: 'AutoML Run Created',
   RUN_RECONFIGURED: 'AutoML Run Reconfigured',
   RUN_STOPPED: 'AutoML Run Stopped',
@@ -97,6 +100,39 @@ export type ModelActionOutcomeProperties = {
   success?: boolean;
   error?: string;
   source?: ModelActionSource;
+};
+
+/**
+ * Fires when the user leaves the "define details" (name/description) step of the configure
+ * flow — either moving forward (outcome: submit) or cancelling out (outcome: cancel). This is
+ * a pure local step transition with no backend call, so unlike other outcome-bearing events
+ * there's no success/error to report.
+ */
+export const fireAutomlRunDetailsDefined = (
+  outcome: TrackingOutcome,
+  hasDescription: boolean,
+): void => {
+  fireFormTrackingEvent(AUTOML_EVENTS.RUN_DETAILS_DEFINED, { outcome, hasDescription });
+};
+
+/**
+ * Fires once when the user completes the training data section of the configure flow
+ * (an S3 connection plus a file are selected, whether picked from the bucket or uploaded).
+ * Used to measure funnel retention through the multi-section AutoML configure page.
+ */
+export const fireAutomlTrainingDataConfigured = (
+  trainingDataSourceType: 'select' | 'upload',
+): void => {
+  fireMiscTrackingEvent(AUTOML_EVENTS.TRAINING_DATA_CONFIGURED, { trainingDataSourceType });
+};
+
+/**
+ * Fires once when the user selects a target column in the configure flow. Used to measure
+ * funnel retention through the multi-section AutoML configure page. Prediction type and
+ * whether it matched the recommendation are captured later, at run creation time.
+ */
+export const fireAutomlTargetColumnConfigured = (): void => {
+  fireMiscTrackingEvent(AUTOML_EVENTS.TARGET_COLUMN_CONFIGURED, {});
 };
 
 export const fireAutomlRunCreated = (

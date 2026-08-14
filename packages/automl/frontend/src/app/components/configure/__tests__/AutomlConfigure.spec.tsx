@@ -7,13 +7,21 @@ import React from 'react';
 import { FormProvider, useForm } from 'react-hook-form';
 import { useNavigate, useParams } from 'react-router';
 import type { ExplorerFiles } from '@odh-dashboard/internal/concepts/fileExplorer/types';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import AutomlConfigure from '~/app/components/configure/AutomlConfigure';
 import { useS3GetFileSchemaQuery } from '~/app/hooks/queries';
 import { createConfigureSchema } from '~/app/schemas/configure.schema';
+import { AUTOML_EVENTS } from '~/app/utilities/tracking';
 import {
   AUTOML_TRAINING_UPLOAD_MAX_BYTES,
   AUTOML_TRAINING_UPLOAD_TOO_MANY_FILES_DETAIL,
 } from '~/app/utilities/automlTrainingDataFile';
+
+jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
+  fireMiscTrackingEvent: jest.fn(),
+}));
+
+const fireMiscTrackingEventMock = jest.mocked(fireMiscTrackingEvent);
 
 const mockNotificationError = jest.fn();
 
@@ -911,6 +919,63 @@ describe('AutomlConfigure', () => {
         expect(screen.getByTestId('prediction-type-helper-no-target')).toBeInTheDocument();
         expect(screen.queryByTestId('task-type-card-binary')).not.toBeInTheDocument();
         expect(screen.getByTestId('target_column-select')).toHaveTextContent('Select a column');
+      });
+    });
+
+    describe('Funnel milestone tracking', () => {
+      it('should fire AutoML Training Data Configured once when a file is selected from the bucket', () => {
+        renderComponent();
+        selectSecretAndFile();
+
+        expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(
+          AUTOML_EVENTS.TRAINING_DATA_CONFIGURED,
+          { trainingDataSourceType: 'select' },
+        );
+        expect(fireMiscTrackingEventMock).toHaveBeenCalledTimes(1);
+      });
+
+      it('should fire AutoML Training Data Configured with trainingDataSourceType "upload" when a file is uploaded', async () => {
+        renderComponent();
+        fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+        fireEvent.click(screen.getByRole('button', { name: 'Upload file' }));
+
+        const goodFile = new File(['hello'], 'training.csv', { type: 'text/csv' });
+        dropFilesOnTrainingDataUploadZone([goodFile]);
+
+        await waitFor(() => {
+          expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(
+            AUTOML_EVENTS.TRAINING_DATA_CONFIGURED,
+            { trainingDataSourceType: 'upload' },
+          );
+        });
+      });
+
+      it('should fire AutoML Target Column Configured once when a target column is selected', () => {
+        renderComponent();
+        selectSecretAndFile();
+        fireMiscTrackingEventMock.mockClear();
+
+        selectTargetColumn();
+
+        expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(
+          AUTOML_EVENTS.TARGET_COLUMN_CONFIGURED,
+          {},
+        );
+        expect(fireMiscTrackingEventMock).toHaveBeenCalledTimes(1);
+      });
+
+      it('should NOT re-fire AutoML Target Column Configured when a different prediction type is picked afterward', () => {
+        renderComponent();
+        selectSecretAndFile();
+        selectTargetColumn(); // fires once
+        fireMiscTrackingEventMock.mockClear();
+
+        selectPredictionType('multiclass');
+
+        expect(fireMiscTrackingEventMock).not.toHaveBeenCalledWith(
+          AUTOML_EVENTS.TARGET_COLUMN_CONFIGURED,
+          expect.anything(),
+        );
       });
     });
 

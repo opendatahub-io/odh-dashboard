@@ -17,7 +17,6 @@ import { ApplicationsPage } from 'mod-arch-shared';
 import React, { useCallback, useEffect, useState } from 'react';
 import { FieldPath, FormProvider, useForm, useWatch } from 'react-hook-form';
 import { Link, useLocation, useNavigate, useParams } from 'react-router';
-import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import AutomlHeader from '~/app/components/common/AutomlHeader/AutomlHeader';
 import AutomlConfigure from '~/app/components/configure/AutomlConfigure';
 import AutomlCreate from '~/app/components/create/AutomlCreate';
@@ -31,6 +30,7 @@ import { automlExperimentsPathname, automlResultsPathname } from '~/app/utilitie
 import {
   fireAutomlFlowExited,
   fireAutomlRunCreated,
+  fireAutomlRunDetailsDefined,
   fireAutomlRunReconfigured,
   mapOptimizationMetric,
   mapPredictionType,
@@ -123,14 +123,10 @@ function AutomlConfigurePage({
   }, []);
 
   const onCancel = useCallback(() => {
-    const eventName = sourceRunId ? 'AutoML Run Reconfigured' : 'AutoML Run Created';
-    fireFormTrackingEvent(eventName, {
-      outcome: TrackingOutcome.cancel,
-      ...(sourceRunId && { source: reconfigureSource }),
-    });
+    fireAutomlRunDetailsDefined(TrackingOutcome.cancel, Boolean(description?.trim()));
     fireAutomlFlowExited('navigate', funnelStepRef.current, cancelExitDestination);
     navigate(-1);
-  }, [navigate, sourceRunId, reconfigureSource, cancelExitDestination]);
+  }, [navigate, description, cancelExitDestination]);
 
   const handleBackToCreate = useCallback(() => {
     // New runs only: clear configure-step values so Back → Next does not show stale S3/file UI.
@@ -277,6 +273,7 @@ function AutomlConfigurePage({
             event.preventDefault();
 
             if (step === 'create') {
+              fireAutomlRunDetailsDefined(TrackingOutcome.submit, Boolean(description?.trim()));
               setStep('configure');
               return;
             }

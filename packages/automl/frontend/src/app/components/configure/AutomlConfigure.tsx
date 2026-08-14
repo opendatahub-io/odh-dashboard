@@ -94,6 +94,10 @@ import {
   TRAINING_DATA_UPLOAD_NATIVE_ACCEPT,
 } from '~/app/utilities/automlTrainingDataFile';
 import { findEquivalentMetric, formatMetricName } from '~/app/utilities/utils';
+import {
+  fireAutomlTargetColumnConfigured,
+  fireAutomlTrainingDataConfigured,
+} from '~/app/utilities/tracking';
 import LoadingFormField from './LoadingFormField';
 import AutomlPredictionTypeHelperText from './AutomlPredictionTypeHelperText';
 import AutomlPredictionTypeSelector from './AutomlPredictionTypeSelector';
@@ -296,6 +300,24 @@ function AutomlConfigure({
   useEffect(() => {
     onRecommendationChange?.(!selectedColumn?.task_type || taskType === selectedColumn.task_type);
   }, [selectedColumn, taskType, onRecommendationChange]);
+
+  // Funnel milestone tracking — fires once per configure-step visit when each section is
+  // first completed, to measure retention through the multi-section configure flow.
+  const hasFiredTrainingDataMilestoneRef = useRef(false);
+  useEffect(() => {
+    if (isFileSelected && !hasFiredTrainingDataMilestoneRef.current) {
+      hasFiredTrainingDataMilestoneRef.current = true;
+      fireAutomlTrainingDataConfigured(trainingDataSourceMode);
+    }
+  }, [isFileSelected, trainingDataSourceMode]);
+
+  const hasFiredTargetColumnMilestoneRef = useRef(false);
+  useEffect(() => {
+    if (isTargetColumnSelected && !hasFiredTargetColumnMilestoneRef.current) {
+      hasFiredTargetColumnMilestoneRef.current = true;
+      fireAutomlTargetColumnConfigured();
+    }
+  }, [isTargetColumnSelected]);
 
   // Sync bucket from the resolved secret object (skips mount to preserve pre-populated values in reconfigure)
   useReconfigureSafeEffect(() => {

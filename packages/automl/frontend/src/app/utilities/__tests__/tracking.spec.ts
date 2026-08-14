@@ -14,10 +14,13 @@ import {
   fireAutomlNotebookDownloaded,
   fireAutomlRunCreated,
   fireAutomlRunDeleted,
+  fireAutomlRunDetailsDefined,
   fireAutomlRunReconfigured,
   fireAutomlRunRetried,
   fireAutomlRunStopped,
   fireAutomlS3ConnectionCreated,
+  fireAutomlTargetColumnConfigured,
+  fireAutomlTrainingDataConfigured,
   mapModelDetailsTabName,
   mapOptimizationMetric,
   mapPredictionType,
@@ -119,6 +122,41 @@ describe('mapModelDetailsTabName', () => {
 describe('AutoML tracking event firers', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+  });
+
+  it('should fire AutoML Run Details Defined with outcome and hasDescription', () => {
+    fireAutomlRunDetailsDefined(TrackingOutcome.submit, true);
+
+    expect(fireFormTrackingEventMock).toHaveBeenCalledWith(AUTOML_EVENTS.RUN_DETAILS_DEFINED, {
+      outcome: TrackingOutcome.submit,
+      hasDescription: true,
+    });
+  });
+
+  it('should fire AutoML Run Details Defined with outcome:cancel', () => {
+    fireAutomlRunDetailsDefined(TrackingOutcome.cancel, false);
+
+    expect(fireFormTrackingEventMock).toHaveBeenCalledWith(AUTOML_EVENTS.RUN_DETAILS_DEFINED, {
+      outcome: TrackingOutcome.cancel,
+      hasDescription: false,
+    });
+  });
+
+  it('should fire AutoML Training Data Configured with the training data source type', () => {
+    fireAutomlTrainingDataConfigured('upload');
+
+    expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTOML_EVENTS.TRAINING_DATA_CONFIGURED, {
+      trainingDataSourceType: 'upload',
+    });
+  });
+
+  it('should fire AutoML Target Column Configured with no properties', () => {
+    fireAutomlTargetColumnConfigured();
+
+    expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(
+      AUTOML_EVENTS.TARGET_COLUMN_CONFIGURED,
+      {},
+    );
   });
 
   it('should fire AutoML Run Created via fireFormTrackingEvent with the given properties', () => {
