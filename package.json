@@ -122,6 +122,7 @@
     "fast-uri": "3.1.4",
     "form-data": ">=4.0.6",
     "shell-quote": ">=1.8.4",
-    "js-cookie": ">=3.0.6"
+    "js-cookie": ">=3.0.6",
+    "postcss": ">=8.5.23"
   }
 }
