@@ -18,8 +18,11 @@ import { ProjectsContext } from '@odh-dashboard/internal/concepts/projects/Proje
 
 const DataRegistryPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const selectedProject = searchParams.get('project') || '';
+  const requestedProject = searchParams.get('project') || '';
   const { projects } = React.useContext(ProjectsContext);
+  const selectedProject = projects.some((p) => p.metadata.name === requestedProject)
+    ? requestedProject
+    : '';
 
   const projectOptions: SimpleSelectOption[] = React.useMemo(
     () =>

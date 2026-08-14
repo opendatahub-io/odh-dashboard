@@ -45,6 +45,9 @@
     "@odh-dashboard/plugin-core": "*",
     "@odh-dashboard/ui-core": "*"
   },
+  "peerDependencies": {
+    "@openshift/dynamic-plugin-sdk": "^5"
+  },
   "devDependencies": {
     "@odh-dashboard/app-config": "*",
     "@odh-dashboard/eslint-config": "*",

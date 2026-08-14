@@ -11,6 +11,22 @@ const extensions: Extension[] = [
     },
   },
   {
+    type: 'app.tab-route/page',
+    flags: {
+      required: [PLUGIN_DATA_REGISTRY],
+    },
+    properties: {
+      id: 'data-tab-page',
+      title: 'Data',
+      href: '/ai-hub/data',
+      path: '/ai-hub/data/*',
+      group: '4_data',
+      section: 'ai-hub',
+      objectType: 'data-registry',
+      label: 'Tech Preview',
+    },
+  },
+  {
     type: 'app.tab-route/tab',
     flags: {
       required: [PLUGIN_DATA_REGISTRY],

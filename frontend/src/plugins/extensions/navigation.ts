@@ -85,19 +85,6 @@ const extensions: (NavExtension | TabRoutePageExtension)[] = [
     },
   },
   {
-    type: 'app.tab-route/page',
-    properties: {
-      id: 'data-tab-page',
-      title: 'Data',
-      href: '/ai-hub/data',
-      path: '/ai-hub/data/*',
-      group: '4_data',
-      section: 'ai-hub',
-      objectType: 'data-registry',
-      label: 'Tech Preview',
-    },
-  },
-  {
     type: 'app.navigation/section',
     properties: {
       id: 'develop-and-train',
