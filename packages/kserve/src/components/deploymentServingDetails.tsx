@@ -4,6 +4,7 @@ import {
   getTemplateNameFromServingRuntime,
   getDisplayNameFromServingRuntimeTemplate,
   getServingRuntimeVersion,
+  findTemplateByName,
 } from '@odh-dashboard/model-serving/shared';
 import { LabelGroup, Stack, StackItem } from '@patternfly/react-core';
 import { renderDeploymentResourceVersionLabels } from '@odh-dashboard/model-serving/shared/components';
@@ -16,37 +17,75 @@ import {
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import ServingRuntimeTemplateStatus from '@odh-dashboard/internal/pages/modelServing/screens/ServingRuntimeTemplateStatus';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
-import { useTemplateByName } from '@odh-dashboard/internal/pages/modelServing/customServingRuntimes/useTemplateByName';
-// eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import ServingRuntimeVersionStatus from '@odh-dashboard/internal/pages/modelServing/screens/ServingRuntimeVersionStatus';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import { getServingRuntimeVersionStatus } from '@odh-dashboard/internal/pages/modelServing/utils';
+import { FetchStateObject } from '@odh-dashboard/ui-core/hooks/useFetch';
+import { K8sResourceCommon, TemplateKind } from '@odh-dashboard/k8s-core';
+import { useDashboardNamespace } from '@odh-dashboard/plugin-core/host-api';
 import type { KServeDeployment } from '../types';
+import { useFetchTemplate, useFetchTemplates } from '../api/template';
+
+const isProjectScoped = (resource?: K8sResourceCommon) =>
+  resource &&
+  resource.metadata?.annotations?.['opendatahub.io/serving-runtime-scope'] ===
+    SERVING_RUNTIME_SCOPE.Project;
+
+export const useServingDetailsData = (): FetchStateObject<TemplateKind[]> => {
+  const { dashboardNamespace } = useDashboardNamespace();
+  return useFetchTemplates(dashboardNamespace);
+};
 
 type Props = {
   deployment: KServeDeployment;
+  data?: ReturnType<typeof useServingDetailsData>;
 };
 
-const DeploymentServingDetails: React.FC<Props> = ({ deployment }) => {
-  const servingRuntime = deployment.server;
+const DeploymentServingDetails: React.FC<Props> = ({ deployment, data }) => {
   const isProjectScopedAvailable = useIsAreaAvailable(SupportedArea.DS_PROJECT_SCOPED).status;
+
+  const {
+    data: globalTemplates,
+    loaded: globalTemplatesLoaded,
+    error: globalTemplatesError,
+  } = data ?? {};
+
+  const servingRuntime = deployment.server;
 
   const templateName = servingRuntime
     ? getTemplateNameFromServingRuntime(servingRuntime)
     : undefined;
 
-  const [template, templateLoaded, templateError] = useTemplateByName(templateName);
+  const globalTemplate = React.useMemo(
+    () =>
+      !!globalTemplates && !!templateName
+        ? findTemplateByName(globalTemplates, templateName)
+        : undefined,
+    [templateName, globalTemplates],
+  );
+
+  const shouldCheckProject =
+    (!globalTemplate && (globalTemplatesLoaded || !!globalTemplatesError)) ||
+    isProjectScoped(servingRuntime);
+
+  const {
+    data: projectTemplate,
+    loaded: projectTemplateLoaded,
+    error: projectTemplateError,
+  } = useFetchTemplate(templateName, servingRuntime?.metadata.namespace, shouldCheckProject);
+
+  const template = globalTemplate ?? projectTemplate;
+  const allLoaded = shouldCheckProject ? projectTemplateLoaded : globalTemplatesLoaded;
+  const error = shouldCheckProject ? projectTemplateError : globalTemplatesError;
 
   const versionStatus = React.useMemo(() => {
-    if (templateLoaded && !templateError && servingRuntime) {
-      const servingRuntimeVersion = getServingRuntimeVersion(servingRuntime);
-      const templateVersion = getServingRuntimeVersion(template);
-      return getServingRuntimeVersionStatus(servingRuntimeVersion, templateVersion);
-    }
-    return undefined;
-  }, [template, templateLoaded, templateError, servingRuntime]);
+    return getServingRuntimeVersionStatus(
+      getServingRuntimeVersion(servingRuntime),
+      getServingRuntimeVersion(template),
+    );
+  }, [template, servingRuntime]);
 
-  const isTemplateRemoved = templateLoaded && !templateError && !template && !!templateName;
+  const isTemplateRemoved = !!templateName && (allLoaded || error) && !template;
 
   return (
     <>
@@ -64,13 +103,11 @@ const DeploymentServingDetails: React.FC<Props> = ({ deployment }) => {
                 />
               )}
               {isTemplateRemoved && <ServingRuntimeTemplateStatus />}
-              {isProjectScopedAvailable &&
-                servingRuntime.metadata.annotations?.['opendatahub.io/serving-runtime-scope'] ===
-                  SERVING_RUNTIME_SCOPE.Project && (
-                  <ScopedLabel isProject color="blue" isCompact>
-                    Project-scoped
-                  </ScopedLabel>
-                )}
+              {isProjectScopedAvailable && isProjectScoped(servingRuntime) && (
+                <ScopedLabel isProject color="blue" isCompact>
+                  Project-scoped
+                </ScopedLabel>
+              )}
             </LabelGroup>
           </StackItem>
         </Stack>
