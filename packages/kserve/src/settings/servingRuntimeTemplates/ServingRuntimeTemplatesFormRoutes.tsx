@@ -1,16 +1,18 @@
 import * as React from 'react';
 import { useMatch } from 'react-router-dom';
-import ServingRuntimeTemplatesFormPlaceholder from './ServingRuntimeTemplatesFormPlaceholder';
+import CustomServingRuntimeContextProvider from './CustomServingRuntimeContext';
+import CustomServingRuntimeAddTemplate, {
+  ServingRuntimeTemplateFormByName,
+} from './CustomServingRuntimeAddTemplate';
 import { SERVING_RUNTIME_TEMPLATES_TAB_PATH } from './paths';
 
 /**
- * Full-page breakout routes for the serving runtime forms when the tabbed Model
- * deployment settings page is enabled.
+ * Full-page breakout routes for the serving runtime add/edit/duplicate forms when
+ * the tabbed Model deployment settings page is enabled.
  *
- * These are placeholders — the real add/edit/duplicate forms are migrated in
- * RHOAIENG-68986. Until then they render an "under construction" page so the
- * tab's Add/Edit/Duplicate actions resolve to a real destination instead of
- * redirecting back to the list.
+ * Registered as their own `app.route` extensions rather than as tab content, so
+ * the forms render with their own breadcrumb and title instead of nested beneath
+ * the page title and tab bar.
  *
  * There is deliberately no nested `<Routes>` here. Each extension registers an
  * exact path, so by the time this renders the parent route has already consumed
@@ -23,8 +25,18 @@ const ServingRuntimeTemplatesFormRoutes: React.FC = () => {
   const isDuplicate =
     useMatch(`${SERVING_RUNTIME_TEMPLATES_TAB_PATH}/duplicate/:servingRuntimeName`) !== null;
 
-  const mode = isEdit ? 'edit' : isDuplicate ? 'duplicate' : 'add';
-  return <ServingRuntimeTemplatesFormPlaceholder mode={mode} />;
+  return (
+    <CustomServingRuntimeContextProvider>
+      {isEdit || isDuplicate ? (
+        <ServingRuntimeTemplateFormByName
+          mode={isEdit ? 'edit' : 'duplicate'}
+          listPath={SERVING_RUNTIME_TEMPLATES_TAB_PATH}
+        />
+      ) : (
+        <CustomServingRuntimeAddTemplate mode="add" listPath={SERVING_RUNTIME_TEMPLATES_TAB_PATH} />
+      )}
+    </CustomServingRuntimeContextProvider>
+  );
 };
 
 export default ServingRuntimeTemplatesFormRoutes;
