@@ -104,8 +104,6 @@ spec:
           env:
             - name: PORT
               value: "9043"
-            - name: DISABLE_AUTH
-              value: "true"
           securityContext:
             allowPrivilegeEscalation: false
             runAsNonRoot: true

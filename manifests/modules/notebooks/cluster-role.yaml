@@ -13,6 +13,19 @@ rules:
       - namespaces
       - configmaps
       - pods
+      - persistentvolumes
+  - apiGroups:
+      - ""
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - patch
+      - delete
+    resources:
+      - secrets
   - apiGroups:
       - ""
     verbs:
@@ -21,7 +34,6 @@ rules:
       - watch
       - create
     resources:
-      - persistentvolumes
       - persistentvolumeclaims
   - apiGroups:
       - storage.k8s.io
