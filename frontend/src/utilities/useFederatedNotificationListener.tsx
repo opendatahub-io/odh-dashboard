@@ -78,6 +78,7 @@ export const useFederatedNotificationListener = (): void => {
               {message}
               <a
                 href={safeLinkUrl}
+                referrerPolicy={safeLinkUrl.startsWith('/') ? undefined : 'no-referrer'}
                 onClick={(e: React.MouseEvent) => {
                   e.preventDefault();
                   if (safeLinkUrl.startsWith('/')) {

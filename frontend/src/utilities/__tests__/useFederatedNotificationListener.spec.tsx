@@ -185,6 +185,7 @@ describe('useFederatedNotificationListener', () => {
     const link = container.querySelector('a');
     expect(link).toBeInTheDocument();
     expect(link).toHaveAttribute('href', '/projects/details');
+    expect(link).not.toHaveAttribute('referrerpolicy');
 
     fireEvent.click(link as HTMLElement);
     expect(mockNavigate).toHaveBeenCalledWith('/projects/details');
@@ -206,6 +207,7 @@ describe('useFederatedNotificationListener', () => {
     const link = container.querySelector('a');
     expect(link).toBeInTheDocument();
     expect(link).toHaveAttribute('href', 'https://example.com/docs');
+    expect(link).toHaveAttribute('referrerpolicy', 'no-referrer');
 
     fireEvent.click(link as HTMLElement);
     expect(mockOpen).toHaveBeenCalledWith(
