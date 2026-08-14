@@ -6,6 +6,7 @@ import { TrackingOutcome } from '@odh-dashboard/ui-core';
 import {
   AUTOML_EVENTS,
   fireAutomlBacktestWindowMetricViewed,
+  fireAutomlFlowExited,
   fireAutomlLeaderboardSorted,
   fireAutomlModelDetailsDownloaded,
   fireAutomlModelDetailsTabViewed,
@@ -276,6 +277,26 @@ describe('AutoML tracking event firers', () => {
     expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTOML_EVENTS.LEADERBOARD_SORTED, {
       sortColumn: 'Model name',
       sortDirection: 'desc',
+    });
+  });
+
+  it('should fire AutoML Flow Exited with exitType, lastFunnelStep, and exitDestination', () => {
+    fireAutomlFlowExited('navigate', 'defineDetails', 'experimentsList');
+
+    expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTOML_EVENTS.FLOW_EXITED, {
+      exitType: 'navigate',
+      lastFunnelStep: 'defineDetails',
+      exitDestination: 'experimentsList',
+    });
+  });
+
+  it('should fire AutoML Flow Exited with exitType: abandon and exitDestination: none', () => {
+    fireAutomlFlowExited('abandon', 'trainingData', 'none');
+
+    expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTOML_EVENTS.FLOW_EXITED, {
+      exitType: 'abandon',
+      lastFunnelStep: 'trainingData',
+      exitDestination: 'none',
     });
   });
 });

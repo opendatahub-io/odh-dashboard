@@ -5,11 +5,15 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { BrowserRouter } from 'react-router';
-import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import {
+  fireFormTrackingEvent,
+  fireMiscTrackingEvent,
+} from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import AutomlConfigurePage from '~/app/pages/AutomlConfigurePage';
 import { AUTOML_EVENTS } from '~/app/utilities/tracking';
 
 const fireFormTrackingEventMock = jest.mocked(fireFormTrackingEvent);
+const fireMiscTrackingEventMock = jest.mocked(fireMiscTrackingEvent);
 
 const mockNavigate = jest.fn();
 const mockUseParams = jest.fn();
@@ -22,8 +26,18 @@ jest.mock('react-router', () => ({
   useNavigate: () => mockNavigate,
   useParams: () => mockUseParams(),
   useLocation: () => ({ state: mockLocationState, pathname: '', search: '', hash: '', key: '' }),
-  Link: ({ to, children }: { to: string; children: React.ReactNode }) => (
-    <a href={to}>{children}</a>
+  Link: ({
+    to,
+    children,
+    onClick,
+  }: {
+    to: string;
+    children: React.ReactNode;
+    onClick?: () => void;
+  }) => (
+    <a href={to} onClick={onClick}>
+      {children}
+    </a>
   ),
 }));
 
@@ -75,6 +89,7 @@ jest.mock('~/app/hooks/useNotification', () => ({
 
 jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
   fireFormTrackingEvent: jest.fn(),
+  fireMiscTrackingEvent: jest.fn(),
 }));
 
 jest.mock('mod-arch-shared', () => ({
@@ -319,6 +334,18 @@ describe('AutomlConfigurePage', () => {
       await user.click(cancelButton);
       expect(mockNavigate).toHaveBeenCalledWith(-1);
     });
+
+    it('should fire AutoML Flow Exited with defineDetails and experimentsList', async () => {
+      const user = userEvent.setup();
+      renderWithProviders(<AutomlConfigurePage />);
+      const cancelButton = await screen.findByRole('button', { name: 'Cancel' });
+      await user.click(cancelButton);
+      expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTOML_EVENTS.FLOW_EXITED, {
+        exitType: 'navigate',
+        lastFunnelStep: 'defineDetails',
+        exitDestination: 'experimentsList',
+      });
+    });
   });
 
   describe('Configure step', () => {
@@ -359,6 +386,17 @@ describe('AutomlConfigurePage', () => {
       expect(await screen.findByText('AutoML: test-namespace')).toBeInTheDocument();
       const breadcrumbName = await screen.findByTestId('configure-breadcrumb-name');
       expect(breadcrumbName).toHaveTextContent('My Experiment');
+    });
+
+    it('should fire AutoML Flow Exited with trainingData and experimentsList when the breadcrumb is clicked', async () => {
+      const user = userEvent.setup();
+      const breadcrumbLink = await screen.findByText('AutoML: test-namespace');
+      await user.click(breadcrumbLink);
+      expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTOML_EVENTS.FLOW_EXITED, {
+        exitType: 'navigate',
+        lastFunnelStep: 'trainingData',
+        exitDestination: 'experimentsList',
+      });
     });
 
     it('should render "Create run" button', async () => {

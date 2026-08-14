@@ -14,7 +14,7 @@ import {
 } from '@patternfly/react-core';
 import classNames from 'classnames';
 import { ApplicationsPage } from 'mod-arch-shared';
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { FieldPath, FormProvider, useForm, useWatch } from 'react-hook-form';
 import { Link, useLocation, useNavigate, useParams } from 'react-router';
 import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
@@ -29,11 +29,14 @@ import type { SecretSelection } from '~/app/components/common/SecretSelector';
 import { ConfigureSchema, createConfigureSchema } from '~/app/schemas/configure.schema';
 import { automlExperimentsPathname, automlResultsPathname } from '~/app/utilities/routes';
 import {
+  fireAutomlFlowExited,
   fireAutomlRunCreated,
   fireAutomlRunReconfigured,
   mapOptimizationMetric,
   mapPredictionType,
   TrackingOutcome,
+  type AutomlExitDestination,
+  type AutomlFunnelStep,
   type RunActionSource,
 } from '~/app/utilities/tracking';
 
@@ -98,6 +101,26 @@ function AutomlConfigurePage({
 
   const [step, setStep] = useState<'create' | 'configure'>('create');
   const isRecommendedRef = React.useRef(true);
+  const funnelStepRef = React.useRef<AutomlFunnelStep>('defineDetails');
+  // Cancel is only rendered on step 'create'; reconfigure flows are entered from the runs
+  // list/results page rather than the experiments list, so `navigate(-1)` lands elsewhere.
+  const cancelExitDestination: AutomlExitDestination = sourceRunId
+    ? 'otherAutoml'
+    : 'experimentsList';
+
+  useEffect(() => {
+    if (step === 'configure') {
+      funnelStepRef.current = 'trainingData';
+    }
+  }, [step]);
+
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      fireAutomlFlowExited('abandon', funnelStepRef.current, 'none');
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, []);
 
   const onCancel = useCallback(() => {
     const eventName = sourceRunId ? 'AutoML Run Reconfigured' : 'AutoML Run Created';
@@ -105,8 +128,9 @@ function AutomlConfigurePage({
       outcome: TrackingOutcome.cancel,
       ...(sourceRunId && { source: reconfigureSource }),
     });
+    fireAutomlFlowExited('navigate', funnelStepRef.current, cancelExitDestination);
     navigate(-1);
-  }, [navigate, sourceRunId, reconfigureSource]);
+  }, [navigate, sourceRunId, reconfigureSource, cancelExitDestination]);
 
   const handleBackToCreate = useCallback(() => {
     // New runs only: clear configure-step values so Back → Next does not show stale S3/file UI.
@@ -211,11 +235,23 @@ function AutomlConfigurePage({
         (step === 'configure' || sourceRunId) && (
           <Breadcrumb>
             <BreadcrumbItem>
-              <Link to={getRedirectPath(namespace!)}>AutoML: {namespace}</Link>
+              <Link
+                to={getRedirectPath(namespace!)}
+                onClick={() =>
+                  fireAutomlFlowExited('navigate', funnelStepRef.current, 'experimentsList')
+                }
+              >
+                AutoML: {namespace}
+              </Link>
             </BreadcrumbItem>
             {fromResultsPage && sourceRunId && sourceRunName && (
               <BreadcrumbItem data-testid="configure-breadcrumb-source-run">
-                <Link to={`${automlResultsPathname}/${namespace}/${sourceRunId}`}>
+                <Link
+                  to={`${automlResultsPathname}/${namespace}/${sourceRunId}`}
+                  onClick={() =>
+                    fireAutomlFlowExited('navigate', funnelStepRef.current, 'otherAutoml')
+                  }
+                >
                   <Truncate content={sourceRunName} />
                 </Link>
               </BreadcrumbItem>

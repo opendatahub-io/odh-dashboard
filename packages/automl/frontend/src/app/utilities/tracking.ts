@@ -26,6 +26,7 @@ export const AUTOML_EVENTS = {
   MODEL_REGISTERED: 'AutoML Model Registered',
   S3_CONNECTION_CREATED: 'AutoML S3 Connection Created',
   LEADERBOARD_SORTED: 'AutoML Leaderboard Sorted',
+  FLOW_EXITED: 'AutoML Flow Exited',
 } as const;
 
 /** Maps AutoML's internal task_type values to the product-wide predictionType taxonomy. */
@@ -70,6 +71,12 @@ export type RunConfigTrackingProperties = {
 
 /** Distinguishes which page/control a run action (retry, stop, delete, reconfigure) was triggered from. */
 export type RunActionSource = 'runsList' | 'resultsPage';
+
+/** Identifies where the user was in the configure flow when they exited without completing it. */
+export type AutomlFunnelStep = 'defineDetails' | 'trainingData' | 'predictionType' | 'run';
+
+/** Where the user ended up after exiting the configure flow. `'none'` covers cases (e.g. tab close) where the destination can't be determined. */
+export type AutomlExitDestination = 'experimentsList' | 'home' | 'otherAutoml' | 'none';
 
 /**
  * Distinguishes which control triggered a per-model action. Several model actions (save notebook,
@@ -168,4 +175,17 @@ export const fireAutomlLeaderboardSorted = (
   sortDirection: 'asc' | 'desc',
 ): void => {
   fireMiscTrackingEvent(AUTOML_EVENTS.LEADERBOARD_SORTED, { sortColumn, sortDirection });
+};
+
+/**
+ * Fires when the user leaves the configure flow before creating a run — either via an explicit
+ * in-app action (Cancel, breadcrumb) or by abandoning the tab/browser entirely. Not fired on a
+ * successful run creation, nor when navigating between steps within the flow (e.g. Back).
+ */
+export const fireAutomlFlowExited = (
+  exitType: 'abandon' | 'navigate',
+  lastFunnelStep: AutomlFunnelStep,
+  exitDestination: AutomlExitDestination,
+): void => {
+  fireMiscTrackingEvent(AUTOML_EVENTS.FLOW_EXITED, { exitType, lastFunnelStep, exitDestination });
 };
