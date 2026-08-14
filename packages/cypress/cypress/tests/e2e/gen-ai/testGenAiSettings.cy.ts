@@ -144,7 +144,7 @@ describe('Verify Custom Endpoints in Playground - Full Lifecycle', { testIsolati
   it(
     'Verify guardrails lifecycle — user input toggle blocks malicious message',
     {
-      tags: ['@GenAI', '@FeatureFlagged', '@Guardrails', '@NonConcurrent'],
+      tags: ['@GenAI', '@FeatureFlagged', '@NonConcurrent'],
     },
     () => {
       cy.step('Navigate to playground with guardrails enabled');
@@ -245,7 +245,7 @@ describe('Verify Custom Endpoints in Playground - Full Lifecycle', { testIsolati
   it(
     'Verify RAG — upload document and retrieve relevant content',
     {
-      tags: ['@GenAI', '@FeatureFlagged', '@PromptManagement', '@NonConcurrent'],
+      tags: ['@GenAI', '@FeatureFlagged', '@NonConcurrent'],
     },
     () => {
       cy.step('Navigate to playground with prompt management enabled');
