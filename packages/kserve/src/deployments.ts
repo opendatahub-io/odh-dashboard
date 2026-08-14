@@ -15,9 +15,10 @@ import {
   deleteServingRuntime,
   getInferenceService,
   getInferenceServicePods,
+  resolveKueueStatusForInferenceService,
 } from '@odh-dashboard/internal/api/index';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
-import { useKueueStatusForDeployments } from '@odh-dashboard/internal/pages/modelServing/useKueueStatusForDeployments';
+import { useKueueStatusWithQueuePositions } from '@odh-dashboard/internal/pages/modelServing/useKueueStatusWithQueuePositions';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import { buildModelDeploymentKey } from '@odh-dashboard/internal/api/k8s/workloads';
 import {
@@ -79,7 +80,7 @@ export const useWatchDeployments = (
     kueueStatusByDeploymentKey,
     isLoading: kueueLoading,
     error: kueueError,
-  } = useKueueStatusForDeployments(filteredInferenceServices, project);
+  } = useKueueStatusWithQueuePositions(filteredInferenceServices, project);
 
   const deployments: KServeDeployment[] = React.useMemo(
     () =>
@@ -138,11 +139,15 @@ export const fetchDeploymentStatus = async (
     const inferenceService = await getInferenceService(name, namespace, opts);
 
     const deploymentPods = await getInferenceServicePods(name, namespace);
+    const kueueStatus = await resolveKueueStatusForInferenceService(
+      inferenceService,
+      deploymentPods,
+    );
 
     const deployment: KServeDeployment = {
       modelServingPlatformId: KSERVE_ID,
       model: inferenceService,
-      status: getKServeDeploymentStatus(inferenceService, deploymentPods),
+      status: getKServeDeploymentStatus(inferenceService, deploymentPods, kueueStatus),
     };
 
     return deployment;

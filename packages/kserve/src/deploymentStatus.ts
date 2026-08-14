@@ -152,6 +152,7 @@ export const getKServeDeploymentStatus = (
     state,
     inferenceService.metadata.annotations,
     deploymentPod,
+    kueueStatus,
   );
 
   const conditions = getKServeDeploymentConditions(inferenceService, state, kueueStatus);
