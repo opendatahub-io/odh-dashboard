@@ -535,6 +535,7 @@ func (app *App) Routes() http.Handler {
 	// No AttachBFFMaaSClient: MaaS fetch is best-effort inside the handler and must not
 	// block the endpoint with a 503 when the MaaS BFF is not configured.
 	apiRouter.GET(constants.GenAIProxyNSModelsPath, app.GenAIProxyNSModelsHandler)
+	apiRouter.POST(constants.GenAIProxyNSChatCompletionsPath, app.GenAIProxyNSChatCompletionsHandler)
 
 	// App Router
 	appMux := http.NewServeMux()
