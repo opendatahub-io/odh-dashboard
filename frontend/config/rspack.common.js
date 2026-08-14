@@ -1,7 +1,6 @@
 /* eslint-disable prefer-destructuring, @typescript-eslint/restrict-template-expressions */
 const path = require('path');
 const { execSync } = require('child_process');
-const HtmlWebpackPlugin = require('html-webpack-plugin');
 const MonacoWebpackPlugin = require('monaco-editor-webpack-plugin');
 const { rspack } = require('@rspack/core');
 const { setupWebpackDotenvFilesForEnv } = require('./dotenv');
@@ -220,15 +219,15 @@ module.exports = (env) => ({
     },
   },
   plugins: [
-    // Virtually override the stub with discovered package extension imports.
-    new GenerateExtensionsPlugin({
-      modulePath: path.join(SRC_DIR, 'plugins', 'plugin-extensions.ts'),
-    }),
     ...setupWebpackDotenvFilesForEnv({
       directory: RELATIVE_DIRNAME,
       isRoot: IS_PROJECT_ROOT_DIR,
     }),
-    new HtmlWebpackPlugin({
+    // Virtually override the stub with discovered package extension imports.
+    new GenerateExtensionsPlugin({
+      modulePath: path.join(SRC_DIR, 'plugins', 'plugin-extensions.ts'),
+    }),
+    new rspack.HtmlRspackPlugin({
       template: path.join(SRC_DIR, 'index.html'),
       title: ODH_PRODUCT_NAME,
       favicon: path.join(SRC_DIR, 'images', ODH_FAVICON),

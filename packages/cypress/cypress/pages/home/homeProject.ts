@@ -40,4 +40,12 @@ export class HomeProject extends Contextual<HTMLElement> {
   findAILabelInCard(projectName: string): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.findProjectCard(projectName).findByTestId('ai-project-label');
   }
+
+  findSectionHeading(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByRole('heading', { name: 'Projects' });
+  }
+
+  findErrorState(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('error-empty-state');
+  }
 }

@@ -2,16 +2,40 @@
   height: 80vh;
 }
 
+.evalhub-status-modal__title {
+  display: flex;
+  align-items: center;
+  gap: var(--pf-t--global--spacer--md);
+
+  > :first-child {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
+  > :last-child {
+    flex: 0 0 auto;
+  }
+}
+
+.evalhub-status-modal__title-name {
+  display: block;
+  font-family: var(--pf-v6-c-modal-box__title--FontFamily);
+  font-size: var(--pf-v6-c-modal-box__title--FontSize);
+  font-weight: var(--pf-v6-c-modal-box__title--FontWeight);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.evalhub-status-modal__header-stack {
+  gap: var(--pf-t--global--spacer--xs);
+}
+
 .evalhub-status-modal__header {
   position: sticky;
   top: 0;
   background-color: var(--pf-t--global--background--color--primary--default);
   z-index: 1;
-}
-
-.evalhub-status-modal__evaluation-name {
-  font-weight: var(--pf-t--global--font--weight--heading--bold);
-  font-size: var(--pf-t--global--font--size--md);
 }
 
 .evalhub-status-modal__description {
@@ -27,6 +51,40 @@
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+.evalhub-status-modal__empty-progress {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+}
+
+.evalhub-benchmark-connector {
+  width: var(--pf-t--global--spacer--2xl);
+  height: 0.75em;
+  flex-shrink: 0;
+  position: relative;
+
+  &::after {
+    content: '';
+    position: absolute;
+    left: 1.125rem;
+    top: 0;
+    right: 1rem;
+    bottom: 0;
+    border-left: 1px solid var(--pf-t--global--border--color--default);
+    border-bottom: 1px solid var(--pf-t--global--border--color--default);
+  }
+
+  &--centered {
+    height: 100%;
+
+    &::after {
+      top: -0.75em;
+      bottom: 50%;
+    }
+  }
 }
 
 // Log viewer

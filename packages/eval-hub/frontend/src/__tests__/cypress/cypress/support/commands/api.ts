@@ -83,6 +83,16 @@ declare global {
           type: 'POST /api/:apiVersion/evaluations/verify-connection',
           options: { path: { apiVersion: string } },
           response: ApiResponse<VerifyConnectionResponse>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /api/:apiVersion/evaluations/jobs/:jobId/logs',
+          options: { path: { apiVersion: string; jobId: string } },
+          response: ApiResponse<string>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /api/:apiVersion/evaluations/jobs/:jobId/benchmarks/:benchmarkIndex/logs',
+          options: { path: { apiVersion: string; jobId: string; benchmarkIndex: string } },
+          response: ApiResponse<string>,
         ) => Cypress.Chainable<null>);
     }
   }
