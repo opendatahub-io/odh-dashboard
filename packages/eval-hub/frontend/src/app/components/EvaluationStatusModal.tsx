@@ -351,7 +351,7 @@ const ViewLogsButton: React.FC<{
       isInline
       className={className}
       onClick={() => onViewLogs(bm.benchmark_index!)}
-      data-testid={`progress-view-logs-${bm.id}`}
+      data-testid={`progress-view-logs-${bm.key}`}
     >
       View logs
     </Button>
@@ -369,7 +369,7 @@ const BenchmarkDetailRow: React.FC<{
         <DescriptionList isHorizontal isCompact>
           <DescriptionListGroup>
             <DescriptionListTerm>Status</DescriptionListTerm>
-            <DescriptionListDescription data-testid={`benchmark-detail-status-${bm.id}`}>
+            <DescriptionListDescription data-testid={`benchmark-detail-status-${bm.key}`}>
               {getBenchmarkDetailLabel(bm)}
             </DescriptionListDescription>
           </DescriptionListGroup>
@@ -380,7 +380,9 @@ const BenchmarkDetailRow: React.FC<{
 
   const isFailed = bm.status === 'failed';
   const label = getBenchmarkDetailLabel(bm);
-  const testId = isFailed ? `benchmark-error-message-${bm.id}` : `benchmark-detail-status-${bm.id}`;
+  const testId = isFailed
+    ? `benchmark-error-message-${bm.key}`
+    : `benchmark-detail-status-${bm.key}`;
 
   return (
     <StackItem className="pf-v6-u-pt-sm pf-v6-u-mb-sm">
@@ -476,7 +478,7 @@ const ProgressTabContent: React.FC<{
             {benchmarks.map((bm) => {
               const isExpanded = expandedIds.has(bm.key);
               return (
-                <StackItem key={bm.key} data-testid={`benchmark-step-${bm.id}`}>
+                <StackItem key={bm.key} data-testid={`benchmark-step-${bm.key}`}>
                   <Stack>
                     <StackItem>
                       <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
@@ -485,7 +487,7 @@ const ProgressTabContent: React.FC<{
                             variant="plain"
                             aria-label={`${isExpanded ? 'Collapse' : 'Expand'} ${bm.id}`}
                             onClick={() => toggleExpanded(bm.key)}
-                            data-testid={`benchmark-toggle-${bm.id}`}
+                            data-testid={`benchmark-toggle-${bm.key}`}
                           >
                             <Icon isInline>
                               {isExpanded ? <AngleDownIcon /> : <AngleRightIcon />}

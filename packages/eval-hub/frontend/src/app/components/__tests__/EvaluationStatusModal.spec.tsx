@@ -107,9 +107,9 @@ describe('EvaluationStatusModal progress tab', () => {
     renderModal(job, polledJob);
 
     expect(screen.getByTestId('progress-tab-content')).toBeInTheDocument();
-    expect(screen.getByTestId('benchmark-step-mmlu')).toBeInTheDocument();
-    expect(screen.getByTestId('benchmark-step-hellaswag')).toBeInTheDocument();
-    expect(screen.getByTestId('benchmark-step-truthfulqa')).toBeInTheDocument();
+    expect(screen.getByTestId('benchmark-step-0')).toBeInTheDocument();
+    expect(screen.getByTestId('benchmark-step-1')).toBeInTheDocument();
+    expect(screen.getByTestId('benchmark-step-2')).toBeInTheDocument();
   });
 
   it('should show the correct completed/total count', () => {
@@ -167,9 +167,9 @@ describe('EvaluationStatusModal progress tab', () => {
     renderModal(job, polledJob);
 
     const steps = screen.getAllByTestId(/^benchmark-step-/);
-    expect(steps[0]).toHaveAttribute('data-testid', 'benchmark-step-bm-a');
-    expect(steps[1]).toHaveAttribute('data-testid', 'benchmark-step-bm-b');
-    expect(steps[2]).toHaveAttribute('data-testid', 'benchmark-step-bm-c');
+    expect(steps[0]).toHaveAttribute('data-testid', 'benchmark-step-0');
+    expect(steps[1]).toHaveAttribute('data-testid', 'benchmark-step-1');
+    expect(steps[2]).toHaveAttribute('data-testid', 'benchmark-step-2');
   });
 });
 
@@ -703,7 +703,7 @@ describe('EvaluationStatusModal view benchmark logs', () => {
     render(<EvaluationStatusModal job={job} namespace="test-ns" onClose={mockOnClose} />);
 
     // The dropdown auto-expands for ≤5 benchmarks; progress-view-logs is the testid in Progress tab
-    fireEvent.click(screen.getByTestId('progress-view-logs-bm-a'));
+    fireEvent.click(screen.getByTestId('progress-view-logs-0'));
 
     expect(screen.getByTestId('events-log-tab')).toHaveAttribute('aria-selected', 'true');
   });
