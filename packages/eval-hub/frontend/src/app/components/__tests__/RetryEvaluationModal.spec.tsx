@@ -13,12 +13,12 @@ const mockCreateEvaluationJob = jest.mocked(createEvaluationJob) as jest.Mock;
 const mockOnClose = jest.fn();
 const mockOnComplete = jest.fn();
 
-const renderModal = (jobOverrides = {}) => {
+const renderModal = (jobOverrides = {}, namespace = 'test-ns') => {
   const job = mockEvaluationJob({ state: 'failed', ...jobOverrides });
   return render(
     <RetryEvaluationModal
       job={job}
-      namespace="test-ns"
+      namespace={namespace}
       onClose={mockOnClose}
       onComplete={mockOnComplete}
     />,
@@ -39,6 +39,18 @@ describe('RetryEvaluationModal', () => {
         'The My Evaluation evaluation will be resubmitted with the same configuration.',
       ),
     ).toBeInTheDocument();
+  });
+
+  it('should show error and not call API when namespace is empty', async () => {
+    renderModal({}, '');
+    fireEvent.click(screen.getByTestId('evaluation-retry-confirm'));
+
+    await waitFor(() => {
+      expect(screen.getByText('Namespace is required to perform this action')).toBeInTheDocument();
+    });
+    expect(mockCreateEvaluationJob).not.toHaveBeenCalled();
+    expect(mockOnClose).not.toHaveBeenCalled();
+    expect(mockOnComplete).not.toHaveBeenCalled();
   });
 
   it('should call createEvaluationJob with correct args when confirmed', async () => {

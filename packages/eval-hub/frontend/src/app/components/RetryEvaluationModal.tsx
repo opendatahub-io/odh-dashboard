@@ -24,6 +24,10 @@ const RetryEvaluationModal: React.FC<RetryEvaluationModalProps> = ({
   const evaluationName = getEvaluationName(job);
 
   const handleConfirm = async () => {
+    if (!namespace) {
+      setActionError('Namespace is required to perform this action');
+      return;
+    }
     setIsSubmitting(true);
     setActionError(null);
     try {

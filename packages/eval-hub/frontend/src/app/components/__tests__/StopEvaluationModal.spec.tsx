@@ -13,12 +13,12 @@ const mockCancelEvaluationJob = jest.mocked(cancelEvaluationJob);
 const mockOnClose = jest.fn();
 const mockOnComplete = jest.fn();
 
-const renderModal = (jobOverrides = {}) => {
+const renderModal = (jobOverrides = {}, namespace = 'test-ns') => {
   const job = mockEvaluationJob({ state: 'running', ...jobOverrides });
   return render(
     <StopEvaluationModal
       job={job}
-      namespace="test-ns"
+      namespace={namespace}
       onClose={mockOnClose}
       onComplete={mockOnComplete}
     />,
@@ -39,6 +39,18 @@ describe('StopEvaluationModal', () => {
         'The My Evaluation evaluation will be stopped, and its progress will be lost.',
       ),
     ).toBeInTheDocument();
+  });
+
+  it('should show error and not call API when namespace is empty', async () => {
+    renderModal({}, '');
+    fireEvent.click(screen.getByTestId('evaluation-stop-confirm'));
+
+    await waitFor(() => {
+      expect(screen.getByText('Namespace is required to perform this action')).toBeInTheDocument();
+    });
+    expect(mockCancelEvaluationJob).not.toHaveBeenCalled();
+    expect(mockOnClose).not.toHaveBeenCalled();
+    expect(mockOnComplete).not.toHaveBeenCalled();
   });
 
   it('should call cancelEvaluationJob with correct args when confirmed', async () => {
