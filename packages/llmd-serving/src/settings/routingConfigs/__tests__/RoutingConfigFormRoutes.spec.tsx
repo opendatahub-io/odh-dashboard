@@ -19,8 +19,8 @@ jest.mock('../RoutingConfigContext', () => ({
 
 jest.mock('../RoutingConfigurationCreateEdit', () => ({
   __esModule: true,
-  default: ({ listPath, isDuplicate }: { listPath: string; isDuplicate: boolean }) => (
-    <div data-testid="create-edit-form" data-list-path={listPath} data-is-duplicate={isDuplicate} />
+  default: ({ isDuplicate }: { isDuplicate: boolean }) => (
+    <div data-testid="create-edit-form" data-is-duplicate={isDuplicate} />
   ),
 }));
 
@@ -46,7 +46,6 @@ describe('RoutingConfigFormRoutes', () => {
     renderAtRoute(`${ROUTING_CONFIGS_TAB_PATH}/add`, `${ROUTING_CONFIGS_TAB_PATH}/add`);
 
     const form = screen.getByTestId('create-edit-form');
-    expect(form).toHaveAttribute('data-list-path', ROUTING_CONFIGS_TAB_PATH);
     expect(form).toHaveAttribute('data-is-duplicate', 'false');
   });
 
@@ -57,7 +56,6 @@ describe('RoutingConfigFormRoutes', () => {
     );
 
     const form = screen.getByTestId('create-edit-form');
-    expect(form).toHaveAttribute('data-list-path', ROUTING_CONFIGS_TAB_PATH);
     expect(form).toHaveAttribute('data-is-duplicate', 'false');
   });
 
@@ -68,7 +66,6 @@ describe('RoutingConfigFormRoutes', () => {
     );
 
     const form = screen.getByTestId('create-edit-form');
-    expect(form).toHaveAttribute('data-list-path', ROUTING_CONFIGS_TAB_PATH);
     expect(form).toHaveAttribute('data-is-duplicate', 'true');
   });
 

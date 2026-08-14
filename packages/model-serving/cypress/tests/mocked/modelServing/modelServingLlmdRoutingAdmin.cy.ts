@@ -69,11 +69,12 @@ const initIntercepts = ({
     }),
   );
 
+  // The routing tab is always-on now (RHOAIENG-80077); no modelDeploymentSettings
+  // flag is required to reach it.
   const config = mockDashboardConfig({
     disableKServe: false,
     disableLLMd: false,
     llmdTemplates: true,
-    modelDeploymentSettings: true,
   });
   cy.interceptOdh('GET /api/config', config);
   cy.interceptOdh('GET /api/components', null, []);
