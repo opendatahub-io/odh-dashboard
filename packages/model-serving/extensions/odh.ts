@@ -232,6 +232,45 @@ const extensions: (
       required: [SupportedArea.CUSTOM_RUNTIMES, ADMIN_USER],
     },
   },
+  // Legacy v2 sub-path aliases: pre-RHOAIENG-80077, the old standalone page's own
+  // nested router (CustomServingRuntimeRoutes.tsx + v2Redirects.ts, both removed)
+  // translated these two bookmarked URLs before landing on the add/edit form. The
+  // general `/servingRuntimes/*` redirect above only splices the wildcard tail onto
+  // the new base path, so these two specific aliases need their own routes (registered
+  // here, more specific than the wildcard above, so they win).
+  //
+  // The `add` alias has no param, so an absolute `to` (leading `/`) is fine —
+  // buildV2RedirectElement resolves it to AbsoluteRedirect, a fixed-destination
+  // `<Navigate>`. The `edit` alias needs the captured runtime name preserved, so it
+  // uses the `/*` wildcard form on both `from` and `to` instead: an absolute `to`
+  // without a wildcard would resolve to AbsoluteRedirect too, which does no parameter
+  // substitution and would navigate to the literal string `:servingRuntimeName`.
+  {
+    type: 'app.route',
+    properties: {
+      path: '/servingRuntimes/addServingRuntime',
+      component: createRedirectComponent({
+        from: '/servingRuntimes/addServingRuntime',
+        to: '/settings/model-resources-operations/model-deployment-settings/serving-runtime-templates/add',
+      }),
+    },
+    flags: {
+      required: [SupportedArea.CUSTOM_RUNTIMES, ADMIN_USER],
+    },
+  },
+  {
+    type: 'app.route',
+    properties: {
+      path: '/servingRuntimes/editServingRuntime/*',
+      component: createRedirectComponent({
+        from: '/servingRuntimes/editServingRuntime/*',
+        to: '/settings/model-resources-operations/model-deployment-settings/serving-runtime-templates/edit/*',
+      }),
+    },
+    flags: {
+      required: [SupportedArea.CUSTOM_RUNTIMES, ADMIN_USER],
+    },
+  },
 ];
 
 export default extensions;

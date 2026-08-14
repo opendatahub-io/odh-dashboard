@@ -298,18 +298,28 @@ describe('Custom serving runtimes', () => {
       );
     });
 
-    // NOTE: the pre-migration standalone routes (`CustomServingRuntimeRoutes.tsx` +
-    // `v2Redirects.ts`, both removed in RHOAIENG-80077) used to translate legacy
-    // sub-path aliases like `/servingRuntimes/addServingRuntime` and
-    // `/servingRuntimes/editServingRuntime/:name` into the current `add`/`edit/:name`
-    // paths via a *second*, nested redirect. That nested mapping was deleted along
-    // with the standalone page and was NOT reimplemented in the new single-hop
-    // `app.route` redirects in `packages/model-serving/extensions/odh.ts`, which only
-    // splice the wildcard tail onto the new base path. As a result, visiting those
-    // legacy sub-paths today lands on an unmatched route under the tab and renders a
-    // blank page instead of the add/edit form. This is a real regression surfaced
-    // while migrating this test, not a test-only concern — flagging for a follow-up
-    // fix (either restore the alias mapping in the new redirect, or file a bug) rather
-    // than asserting the current broken behavior here.
+    // The pre-migration standalone routes (`CustomServingRuntimeRoutes.tsx` +
+    // `v2Redirects.ts`, both removed in RHOAIENG-80077) used to translate these two
+    // legacy sub-path aliases via a nested router before landing on the add/edit form.
+    // That mapping is now restored as two dedicated `app.route` redirects in
+    // `packages/model-serving/extensions/odh.ts`, registered more specifically than
+    // the general `/servingRuntimes/*` redirect above so they win.
+    it('add', () => {
+      cy.visitWithLogin('/servingRuntimes/addServingRuntime');
+      cy.findByTestId('app-page-title').contains('Add serving runtime');
+      cy.url().should(
+        'include',
+        '/settings/model-resources-operations/model-deployment-settings/serving-runtime-templates/add',
+      );
+    });
+
+    it('edit', () => {
+      cy.visitWithLogin('/servingRuntimes/editServingRuntime/template-1');
+      cy.findByTestId('app-page-title').contains('Edit Caikit');
+      cy.url().should(
+        'include',
+        '/settings/model-resources-operations/model-deployment-settings/serving-runtime-templates/edit/template-1',
+      );
+    });
   });
 });
