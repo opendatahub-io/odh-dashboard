@@ -6,6 +6,7 @@ type GroupChipsProps = {
   maxVisible?: number;
   highlightedGroup: string | null;
   setHighlightedGroup: (group: string | null) => void;
+  onGroupSelect?: (group: string) => void;
 };
 
 const DEFAULT_MAX_VISIBLE = 8;
@@ -15,6 +16,7 @@ const GroupChips: React.FC<GroupChipsProps> = ({
   maxVisible = DEFAULT_MAX_VISIBLE,
   highlightedGroup,
   setHighlightedGroup,
+  onGroupSelect,
 }) => {
   const [showAll, setShowAll] = React.useState(false);
 
@@ -42,7 +44,13 @@ const GroupChips: React.FC<GroupChipsProps> = ({
             <FlexItem key={group}>
               <Label
                 isCompact
-                onClick={() => setHighlightedGroup(highlightedGroup === group ? null : group)}
+                onClick={() => {
+                  const isDeselecting = highlightedGroup === group;
+                  setHighlightedGroup(isDeselecting ? null : group);
+                  if (!isDeselecting) {
+                    onGroupSelect?.(group);
+                  }
+                }}
                 color={highlightedGroup === group ? 'blue' : 'grey'}
                 data-testid={`group-chip-${group}`}
               >

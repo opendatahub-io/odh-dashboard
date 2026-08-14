@@ -3,6 +3,7 @@ import {
   PhaseLabelLocation,
   PhaseResourceType,
   PhaseStatus,
+  normalizePhase,
 } from '~/app/utilities/phaseLabelUtils';
 import { ExternalModelsFilterOptions } from '~/app/pages/external-models/const';
 
@@ -80,8 +81,41 @@ export type SubscriptionManagementGroupLabelSelectedProperties = {
 
 export type SubscriptionManagementStatusPopoverViewedProperties = {
   popoverType: EventTrackingPopoverType;
-  status: PhaseStatus;
+  status: PhaseStatus | 'configuration-warning';
   location: PhaseLabelLocation;
+};
+
+export const convertStringToPopoverViewedStatus = (
+  status: string | undefined,
+): PhaseStatus | 'configuration-warning' => {
+  if (status === 'configuration-warning') {
+    return 'configuration-warning';
+  }
+
+  const normalized = normalizePhase(status);
+
+  switch (normalized) {
+    case PhaseStatus.ACTIVE:
+      return PhaseStatus.ACTIVE;
+    case PhaseStatus.READY:
+      return PhaseStatus.READY;
+    case PhaseStatus.PENDING:
+      return PhaseStatus.PENDING;
+    case PhaseStatus.FAILED:
+      return PhaseStatus.FAILED;
+    case PhaseStatus.INVALID:
+      return PhaseStatus.INVALID;
+    case PhaseStatus.DEGRADED:
+      return PhaseStatus.DEGRADED;
+    case PhaseStatus.UNAVAILABLE:
+      return PhaseStatus.UNAVAILABLE;
+    case PhaseStatus.UNHEALTHY:
+      return PhaseStatus.UNHEALTHY;
+    case PhaseStatus.UNKNOWN:
+      return PhaseStatus.UNKNOWN;
+    default:
+      return PhaseStatus.UNKNOWN;
+  }
 };
 
 export enum EventTrackingPopoverType {
@@ -128,6 +162,7 @@ export enum EventTrackingFilterAttribute {
   POLICY = 'policy',
   STATUS = 'status',
   KEYWORD = 'keyword',
+  PROJECT = 'project',
 }
 
 export type ExternalModelsListFiltersProperties = {

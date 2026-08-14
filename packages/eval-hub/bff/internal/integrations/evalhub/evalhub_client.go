@@ -114,6 +114,7 @@ type BenchmarkState struct {
 	StartedAt      string     `json:"started_at,omitempty"`
 	CompletedAt    string     `json:"completed_at,omitempty"`
 	ErrorMessage   JobMessage `json:"error_message,omitempty"`
+	WarningMessage JobMessage `json:"warning_message,omitempty"`
 }
 
 type JobResults struct {

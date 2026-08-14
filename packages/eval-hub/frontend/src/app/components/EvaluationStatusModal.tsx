@@ -12,6 +12,9 @@ import {
   Dropdown,
   DropdownItem,
   DropdownList,
+  EmptyState,
+  EmptyStateBody,
+  EmptyStateVariant,
   Flex,
   FlexItem,
   Icon,
@@ -32,6 +35,9 @@ import {
   TabTitleText,
 } from '@patternfly/react-core';
 import {
+  AngleDownIcon,
+  AngleRightIcon,
+  BanIcon,
   CheckCircleIcon,
   CopyIcon,
   DownloadIcon,
@@ -39,11 +45,17 @@ import {
   FilterIcon,
   ExclamationTriangleIcon,
   InProgressIcon,
+  PendingIcon,
   SyncAltIcon,
   TimesCircleIcon,
 } from '@patternfly/react-icons';
 import { EvaluationJob } from '~/app/types';
-import { formatDurationCompact, getEvaluationName } from '~/app/utilities/evaluationUtils';
+import {
+  formatDate,
+  formatDurationCompact,
+  getBenchmarkName,
+  getEvaluationName,
+} from '~/app/utilities/evaluationUtils';
 import { useEvaluationJobLogs } from '~/app/hooks/useEvaluationJobLogs';
 import {
   getEvaluationJobLogs,
@@ -52,12 +64,14 @@ import {
   isLogServerError,
 } from '~/app/api/k8s';
 import { getMessageCodeLabel } from '~/app/utilities/messageCodeLabels';
+import { isPreStartFailure } from '~/app/utilities/evaluationJobPolling';
 import EvaluationStatusLabel from './EvaluationStatusLabel';
 import './EvaluationStatusModal.scss';
 
 type EvaluationStatusModalProps = {
   job: EvaluationJob | undefined;
   namespace: string;
+  polledJobData?: EvaluationJob;
   onClose: () => void;
 };
 
@@ -276,12 +290,255 @@ const LogSkeletonRows: React.FC = () => (
   </>
 );
 
+type BenchmarkStatusConfig = {
+  icon: React.ReactNode;
+  iconStatus?: 'success' | 'danger' | 'info';
+};
+
+const BENCHMARK_STATUS_CONFIG: Partial<Record<string, BenchmarkStatusConfig>> = {
+  completed: { icon: <CheckCircleIcon />, iconStatus: 'success' },
+  running: { icon: <InProgressIcon className="ai-u-spin" />, iconStatus: 'info' },
+  failed: { icon: <TimesCircleIcon />, iconStatus: 'danger' },
+};
+
+const DEFAULT_BENCHMARK_STATUS: BenchmarkStatusConfig = { icon: <PendingIcon /> };
+
+const BenchmarkStepIcon: React.FC<{ status: string }> = ({ status }) => {
+  const config = BENCHMARK_STATUS_CONFIG[status] ?? DEFAULT_BENCHMARK_STATUS;
+  return (
+    <Icon status={config.iconStatus} isInline>
+      {config.icon}
+    </Icon>
+  );
+};
+
+const getBenchmarkDetailLabel = (bm: {
+  status: string;
+  completedAt?: string;
+  errorMessage?: string;
+}): string => {
+  switch (bm.status) {
+    case 'running':
+      return 'In progress';
+    case 'completed':
+      return `Completed${bm.completedAt ? `: ${formatDate(bm.completedAt)}` : ''}`;
+    case 'failed':
+      return `Failed${bm.completedAt ? `: ${formatDate(bm.completedAt)}` : ''}${bm.errorMessage ? ` – ${bm.errorMessage}` : ''}`;
+    default:
+      return bm.status.charAt(0).toUpperCase() + bm.status.slice(1);
+  }
+};
+
+type ProgressBenchmark = {
+  key: string;
+  id: string;
+  status: string;
+  benchmark_index?: number;
+  startedAt?: string;
+  completedAt?: string;
+  errorMessage?: string;
+  errorCode?: string;
+};
+
+const ViewLogsButton: React.FC<{
+  bm: ProgressBenchmark;
+  onViewLogs: (index: number) => void;
+  className?: string;
+}> = ({ bm, onViewLogs, className }) =>
+  bm.benchmark_index != null ? (
+    <Button
+      variant="link"
+      isInline
+      className={className}
+      onClick={() => onViewLogs(bm.benchmark_index!)}
+      data-testid={`progress-view-logs-${bm.key}`}
+    >
+      View logs
+    </Button>
+  ) : null;
+
+const BenchmarkDetailRow: React.FC<{
+  bm: ProgressBenchmark;
+  onViewLogs: (benchmarkIndex: number) => void;
+}> = ({ bm, onViewLogs }) => {
+  const config = BENCHMARK_STATUS_CONFIG[bm.status];
+
+  if (!config) {
+    return (
+      <StackItem className="pf-v6-u-ml-xl pf-v6-u-pt-sm pf-v6-u-mb-sm">
+        <DescriptionList isHorizontal isCompact>
+          <DescriptionListGroup>
+            <DescriptionListTerm>Status</DescriptionListTerm>
+            <DescriptionListDescription data-testid={`benchmark-detail-status-${bm.key}`}>
+              {getBenchmarkDetailLabel(bm)}
+            </DescriptionListDescription>
+          </DescriptionListGroup>
+        </DescriptionList>
+      </StackItem>
+    );
+  }
+
+  const isFailed = bm.status === 'failed';
+  const label = getBenchmarkDetailLabel(bm);
+  const testId = isFailed
+    ? `benchmark-error-message-${bm.key}`
+    : `benchmark-detail-status-${bm.key}`;
+
+  return (
+    <StackItem className="pf-v6-u-pt-sm pf-v6-u-mb-sm">
+      <Flex
+        alignItems={{ default: isFailed ? 'alignItemsCenter' : 'alignItemsFlexStart' }}
+        gap={{ default: 'gapSm' }}
+        flexWrap={bm.status === 'completed' ? { default: 'wrap' } : undefined}
+      >
+        <FlexItem alignSelf={isFailed ? { default: 'alignSelfStretch' } : undefined}>
+          <div
+            className={`evalhub-benchmark-connector${isFailed ? ' evalhub-benchmark-connector--centered' : ''}`}
+            aria-hidden="true"
+          />
+        </FlexItem>
+        <FlexItem alignSelf={isFailed ? { default: 'alignSelfFlexStart' } : undefined}>
+          <Icon status={config.iconStatus} isInline>
+            {config.icon}
+          </Icon>
+        </FlexItem>
+        {isFailed ? (
+          <FlexItem flex={{ default: 'flex_1' }}>
+            <span data-testid={testId}>
+              {label}
+              <ViewLogsButton bm={bm} onViewLogs={onViewLogs} className="pf-v6-u-ml-sm" />
+            </span>
+          </FlexItem>
+        ) : (
+          <>
+            <FlexItem>
+              <span data-testid={testId}>{label}</span>
+            </FlexItem>
+            <FlexItem>
+              <ViewLogsButton bm={bm} onViewLogs={onViewLogs} />
+            </FlexItem>
+          </>
+        )}
+      </Flex>
+    </StackItem>
+  );
+};
+
+const ProgressTabContent: React.FC<{
+  benchmarks: ProgressBenchmark[];
+  hasPolledData: boolean;
+  isTerminal: boolean;
+  onViewLogs: (benchmarkIndex: number) => void;
+}> = ({ benchmarks, hasPolledData, isTerminal, onViewLogs }) => {
+  const [expandedIds, setExpandedIds] = React.useState<Set<string>>(
+    () =>
+      new Set(benchmarks.length > 0 && benchmarks.length <= 5 ? benchmarks.map((b) => b.key) : []),
+  );
+
+  // Auto-expand when benchmarks first arrive (pending → running transition)
+  const initializedRef = React.useRef(benchmarks.length > 0);
+  React.useEffect(() => {
+    if (!initializedRef.current && benchmarks.length > 0) {
+      initializedRef.current = true;
+      if (benchmarks.length <= 5) {
+        setExpandedIds(new Set(benchmarks.map((b) => b.key)));
+      }
+    }
+  }, [benchmarks]);
+
+  const toggleExpanded = React.useCallback((key: string) => {
+    setExpandedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+      return next;
+    });
+  }, []);
+
+  if (!hasPolledData) {
+    return (
+      <Stack hasGutter>
+        {Array.from({ length: 3 }, (_, i) => (
+          <StackItem key={i}>
+            <Skeleton width={`${45 + i * 15}%`} height="1em" />
+          </StackItem>
+        ))}
+      </Stack>
+    );
+  }
+
+  return (
+    <Stack hasGutter data-testid="progress-tab-content">
+      {benchmarks.length > 0 ? (
+        <StackItem>
+          <Stack hasGutter data-testid="benchmark-steps">
+            {benchmarks.map((bm) => {
+              const isExpanded = expandedIds.has(bm.key);
+              return (
+                <StackItem key={bm.key} data-testid={`benchmark-step-${bm.key}`}>
+                  <Stack>
+                    <StackItem>
+                      <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                        <FlexItem>
+                          <Button
+                            variant="plain"
+                            aria-label={`${isExpanded ? 'Collapse' : 'Expand'} ${bm.id}`}
+                            onClick={() => toggleExpanded(bm.key)}
+                            data-testid={`benchmark-toggle-${bm.key}`}
+                          >
+                            <Icon isInline>
+                              {isExpanded ? <AngleDownIcon /> : <AngleRightIcon />}
+                            </Icon>
+                          </Button>
+                        </FlexItem>
+                        <FlexItem>
+                          <BenchmarkStepIcon status={bm.status} />
+                        </FlexItem>
+                        <FlexItem>
+                          <strong>{bm.id}</strong>
+                        </FlexItem>
+                      </Flex>
+                    </StackItem>
+                    {isExpanded ? <BenchmarkDetailRow bm={bm} onViewLogs={onViewLogs} /> : null}
+                  </Stack>
+                </StackItem>
+              );
+            })}
+          </Stack>
+        </StackItem>
+      ) : (
+        <StackItem className="evalhub-status-modal__empty-progress">
+          <EmptyState
+            variant={EmptyStateVariant.sm}
+            icon={isTerminal ? BanIcon : InProgressIcon}
+            headingLevel="h4"
+            titleText={
+              isTerminal ? 'No benchmarks were started' : 'Waiting for benchmarks to start'
+            }
+            data-testid="progress-empty-state"
+          >
+            <EmptyStateBody>
+              {isTerminal
+                ? 'The evaluation was stopped before any benchmarks began processing.'
+                : 'Benchmarks will appear here once the evaluation job begins processing.'}
+            </EmptyStateBody>
+          </EmptyState>
+        </StackItem>
+      )}
+    </Stack>
+  );
+};
+
 const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
   job,
   namespace,
+  polledJobData,
   onClose,
 }) => {
-  const [activeTab, setActiveTab] = React.useState<string>('failure-info');
+  const [activeTab, setActiveTab] = React.useState<string>('progress');
   const [selectedBenchmark, setSelectedBenchmark] = React.useState<string>(ALL_BENCHMARKS);
   const [isBenchmarkSelectOpen, setIsBenchmarkSelectOpen] = React.useState(false);
   const [logLevelFilter, setLogLevelFilter] = React.useState<LogLevelFilter>('all');
@@ -313,9 +570,34 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
     LOG_VIEWER_TAIL_LINES,
   );
 
-  const sortedBenchmarks = React.useMemo(
-    () => (job?.status.benchmarks ?? []).toSorted((a, b) => a.id.localeCompare(b.id)),
-    [job?.status.benchmarks],
+  const progressBenchmarks = React.useMemo(
+    () =>
+      // For in-progress jobs use polled data (has timing); for terminal jobs fall back to list data
+      (polledJobData?.status.benchmarks ?? job?.status.benchmarks ?? [])
+        .toSorted((a, b) => {
+          if (a.benchmark_index != null && b.benchmark_index != null) {
+            return a.benchmark_index - b.benchmark_index;
+          }
+          return a.id.localeCompare(b.id);
+        })
+        .map((bm, i) => ({
+          key: bm.benchmark_index != null ? String(bm.benchmark_index) : `${bm.id}-${i}`,
+          id: bm.id,
+          status: bm.status,
+          // eslint-disable-next-line camelcase
+          benchmark_index: bm.benchmark_index,
+          startedAt: bm.started_at,
+          completedAt: bm.completed_at,
+          errorMessage: bm.error_message?.message,
+          errorCode: bm.error_message?.message_code,
+        })),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [polledJobData?.status.benchmarks, job?.status.benchmarks],
+  );
+
+  const progressCompletedCount = React.useMemo(
+    () => progressBenchmarks.filter((b) => b.status === 'completed').length,
+    [progressBenchmarks],
   );
 
   const [downloading, setDownloading] = React.useState(false);
@@ -323,24 +605,25 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
   const downloadAbortRef = React.useRef<AbortController>();
 
   const jobId = job?.resource.id;
-  const jobState = job?.status.state;
 
   React.useEffect(() => {
-    if (jobId && jobState) {
-      const jobFailed = jobState === 'failed' || jobState === 'partially_failed';
-      setActiveTab(jobFailed ? 'failure-info' : 'events-log');
+    if (jobId) {
+      setActiveTab('progress');
       setSelectedBenchmark(ALL_BENCHMARKS);
       setIsFailureSummaryExpanded(false);
     }
-  }, [jobId, jobState]);
+  }, [jobId]);
 
-  const failedBenchmarks = sortedBenchmarks.filter((bm) => bm.status === 'failed');
+  const failedBenchmarks = progressBenchmarks.filter((bm) => bm.status === 'failed');
+  // Use polled state so the summary appears as soon as polling detects the failure,
+  // not 30s later when the list refreshes.
+  const effectiveState = polledJobData?.status.state ?? job?.status.state;
+  const effectiveMessage = polledJobData?.status.message ?? job?.status.message;
   const failureSummary =
-    (jobState === 'failed' || jobState === 'partially_failed') && sortedBenchmarks.length > 1
-      ? failedBenchmarks
-          .map((bm) => `${bm.id}: ${bm.error_message?.message ?? 'Unknown error'}`)
-          .join('. ')
-      : job?.status.message?.message;
+    (effectiveState === 'failed' || effectiveState === 'partially_failed') &&
+    progressBenchmarks.length > 1
+      ? failedBenchmarks.map((bm) => `${bm.id}: ${bm.errorMessage ?? 'Unknown error'}`).join('. ')
+      : effectiveMessage?.message;
 
   React.useEffect(() => {
     if (failureSummaryEl) {
@@ -350,6 +633,16 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
   }, [failureSummaryEl, isFailureSummaryExpanded]);
 
   const evaluationName = job ? getEvaluationName(job) : '';
+  const benchmarkName = job ? getBenchmarkName(job) : '';
+
+  const titleRef = React.useRef<HTMLSpanElement>(null);
+  const [isTitleTruncated, setIsTitleTruncated] = React.useState(false);
+  React.useLayoutEffect(() => {
+    const el = titleRef.current;
+    if (el) {
+      setIsTitleTruncated(el.scrollWidth > el.clientWidth);
+    }
+  }, [evaluationName]);
 
   const handleDownload = React.useCallback(async () => {
     if (!namespace || !job?.resource.id) {
@@ -432,45 +725,39 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
   const hasLogContent =
     logEntries.length > 0 && !logEntries.every((e) => e.isSectionHeader || !e.message.trim());
 
+  // Prefer polled state so the badge updates on the 10s cycle rather than waiting for the 30s list refresh
+  const state = polledJobData?.status.state ?? job?.status.state ?? 'pending';
+  const isInProgress = state === 'running' || state === 'pending' || state === 'stopping';
+
+  const [now, setNow] = React.useState(() => new Date().toISOString());
+  React.useEffect(() => {
+    if (!isInProgress) {
+      return undefined;
+    }
+    const id = window.setInterval(() => setNow(new Date().toISOString()), 1000);
+    return () => window.clearInterval(id);
+  }, [isInProgress]);
+
   if (!job) {
     return null;
   }
 
-  const { state } = job.status;
-  const { message_code: messageCode, message_origin: messageOrigin } = job.status.message ?? {};
-  const isInProgress = state === 'running' || state === 'pending' || state === 'stopping';
+  // Prefer polled message so text reflects the latest server state, not the stale list snapshot
+  const { message_code: messageCode, message_origin: messageOrigin } =
+    polledJobData?.status.message ?? job.status.message ?? {};
+
   const elapsed = formatDurationCompact(
     job.resource.created_at,
-    isInProgress ? new Date().toISOString() : job.resource.updated_at,
+    isInProgress ? now : (polledJobData?.resource.updated_at ?? job.resource.updated_at),
   );
   const isFailed = state === 'failed' || state === 'partially_failed';
-
-  const headerIconStatus: 'success' | 'danger' | 'warning' | undefined =
-    state === 'completed'
-      ? 'success'
-      : state === 'failed'
-        ? 'danger'
-        : state === 'partially_failed'
-          ? 'warning'
-          : undefined;
-
-  const headerIcon =
-    state === 'completed' ? (
-      <CheckCircleIcon />
-    ) : state === 'failed' ? (
-      <ExclamationCircleIcon />
-    ) : state === 'partially_failed' ? (
-      <ExclamationTriangleIcon />
-    ) : (
-      <InProgressIcon />
-    );
+  // Use the most-current benchmark data (polled > list) to detect pre-start failures.
+  const isPreStart = isPreStartFailure(polledJobData ?? job);
 
   const handleViewBenchmarkLogs = (bmIndex: number) => {
     setSelectedBenchmark(String(bmIndex));
     setActiveTab('events-log');
   };
-
-  const completedBenchmarkCount = sortedBenchmarks.filter((bm) => bm.status === 'completed').length;
 
   let logViewerClassName = 'evalhub-log-viewer';
   if (state === 'completed') {
@@ -497,42 +784,58 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
       data-testid="evaluation-status-modal"
       className="evalhub-status-modal"
     >
-      <ModalHeader
-        title={
-          <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapMd' }}>
-            <FlexItem>Evaluation run status</FlexItem>
-            <FlexItem>
-              <EvaluationStatusLabel state={state} />
-            </FlexItem>
-          </Flex>
-        }
-      />
+      <ModalHeader>
+        <div className="evalhub-status-modal__title">
+          <Tooltip
+            content={evaluationName}
+            trigger={isTitleTruncated ? 'mouseenter focus' : 'manual'}
+          >
+            <span
+              ref={titleRef}
+              className="evalhub-status-modal__title-name"
+              data-testid="modal-title-name"
+            >
+              {evaluationName}
+            </span>
+          </Tooltip>
+          <EvaluationStatusLabel state={state} isPreStartFailure={isPreStart} />
+        </div>
+      </ModalHeader>
       <ModalBody>
         <div className="evalhub-status-modal__header" data-testid="status-detail-header">
-          <Stack hasGutter>
+          <Stack className="evalhub-status-modal__header-stack">
             <StackItem>
               <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
                 <FlexItem>
-                  <Icon isInline status={headerIconStatus}>
-                    {headerIcon}
-                  </Icon>
+                  {isFailed ? (
+                    <Icon status="danger" isInline>
+                      <ExclamationCircleIcon />
+                    </Icon>
+                  ) : state === 'completed' ? (
+                    <Icon status="success" isInline>
+                      <CheckCircleIcon />
+                    </Icon>
+                  ) : state === 'cancelled' || state === 'stopped' ? (
+                    <Icon isInline>
+                      <BanIcon />
+                    </Icon>
+                  ) : (
+                    <Icon status="info" isInline>
+                      <SyncAltIcon className="ai-u-spin" />
+                    </Icon>
+                  )}
                 </FlexItem>
                 <FlexItem>
-                  <Content
-                    component="p"
-                    className="evalhub-status-modal__evaluation-name"
-                    data-testid="evaluation-header"
-                  >
-                    {isInProgress
-                      ? `${state === 'stopping' ? 'Canceling' : state === 'pending' ? 'Pending' : 'Running'} `
-                      : ''}
-                    {evaluationName}
+                  <Content component="p" data-testid="benchmark-name-header">
+                    <strong>{benchmarkName}</strong>
                   </Content>
                 </FlexItem>
               </Flex>
             </StackItem>
             {descriptionText ? (
-              <StackItem>
+              <StackItem
+                className={progressBenchmarks.length > 1 || isFailed ? 'pf-v6-u-mb-md' : undefined}
+              >
                 <Content
                   component="p"
                   className="evalhub-status-modal__description"
@@ -542,23 +845,14 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
                 </Content>
               </StackItem>
             ) : null}
-            {isInProgress && sortedBenchmarks.length > 0 ? (
-              <StackItem>
-                <Content component="p" data-testid="benchmark-progress">
-                  <strong>
-                    {completedBenchmarkCount}/{sortedBenchmarks.length} benchmarks complete
-                  </strong>
-                </Content>
-              </StackItem>
-            ) : null}
             {isFailed ? (
               <StackItem>
                 <Alert
                   variant="danger"
                   isInline
                   title={
-                    sortedBenchmarks.length > 1
-                      ? `${failedBenchmarks.length} of ${sortedBenchmarks.length} benchmarks failed`
+                    progressBenchmarks.length > 1
+                      ? `${failedBenchmarks.length} of ${progressBenchmarks.length} benchmarks failed`
                       : 'Evaluation failed'
                   }
                   data-testid="failure-summary-alert"
@@ -590,6 +884,15 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
                 </Alert>
               </StackItem>
             ) : null}
+            {progressBenchmarks.length > 1 && !isFailed ? (
+              <StackItem>
+                <Content component="p" data-testid="benchmark-complete-count">
+                  <strong>
+                    {progressCompletedCount}/{progressBenchmarks.length} benchmarks complete
+                  </strong>
+                </Content>
+              </StackItem>
+            ) : null}
           </Stack>
           <Tabs
             activeKey={activeTab}
@@ -597,13 +900,11 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
             data-testid="status-modal-tabs"
             className="evalhub-status-modal__tabs"
           >
-            {isFailed ? (
-              <Tab
-                eventKey="failure-info"
-                title={<TabTitleText>Failure info</TabTitleText>}
-                data-testid="failure-info-tab"
-              />
-            ) : null}
+            <Tab
+              eventKey="progress"
+              title={<TabTitleText>Progress</TabTitleText>}
+              data-testid="progress-tab"
+            />
             <Tab
               eventKey="events-log"
               title={<TabTitleText>Events log</TabTitleText>}
@@ -614,9 +915,9 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
 
         {/* Tab content */}
         <div className="pf-v6-u-pt-md">
-          {isFailed && activeTab === 'failure-info' ? (
+          {activeTab === 'progress' ? (
             <Stack hasGutter>
-              {messageOrigin || messageCode ? (
+              {isFailed && (messageOrigin || messageCode) ? (
                 <StackItem>
                   <DescriptionList isHorizontal isCompact>
                     {messageOrigin ? (
@@ -638,97 +939,14 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
                   </DescriptionList>
                 </StackItem>
               ) : null}
-
-              {sortedBenchmarks.length > 0 ? (
-                <StackItem>
-                  {sortedBenchmarks.length > 1 ? (
-                    <Content component="p" data-testid="benchmark-summary">
-                      <strong>
-                        {sortedBenchmarks.filter((bm) => bm.status === 'failed').length} of{' '}
-                        {sortedBenchmarks.length}
-                      </strong>{' '}
-                      benchmarks failed
-                    </Content>
-                  ) : null}
-                  <Content component="h4">Per-benchmark status</Content>
-                  <Stack hasGutter data-testid="failure-detail-benchmark-errors">
-                    {sortedBenchmarks.map((bm) => {
-                      const bmFailed = bm.status === 'failed';
-                      return (
-                        <StackItem key={bm.id}>
-                          <Stack>
-                            <StackItem>
-                              <Flex
-                                justifyContent={{ default: 'justifyContentSpaceBetween' }}
-                                alignItems={{ default: 'alignItemsCenter' }}
-                              >
-                                <FlexItem>
-                                  <Flex
-                                    alignItems={{ default: 'alignItemsCenter' }}
-                                    gap={{ default: 'gapSm' }}
-                                  >
-                                    <FlexItem>
-                                      <Icon status={bmFailed ? 'danger' : 'success'} isInline>
-                                        {bmFailed ? <TimesCircleIcon /> : <CheckCircleIcon />}
-                                      </Icon>
-                                    </FlexItem>
-                                    <FlexItem>
-                                      <strong>{bm.id}</strong>
-                                    </FlexItem>
-                                  </Flex>
-                                </FlexItem>
-                                {bmFailed && bm.error_message?.message_code ? (
-                                  <FlexItem>
-                                    <Label isCompact>
-                                      {getMessageCodeLabel(bm.error_message.message_code)}
-                                    </Label>
-                                  </FlexItem>
-                                ) : null}
-                              </Flex>
-                            </StackItem>
-                            <StackItem>
-                              <Content component="p">
-                                {bmFailed && bm.error_message?.message
-                                  ? bm.error_message.message
-                                  : bm.status}
-                              </Content>
-                            </StackItem>
-                            {bm.warning_message?.message ? (
-                              <StackItem>
-                                <Alert
-                                  variant="warning"
-                                  isInline
-                                  isPlain
-                                  title={
-                                    bm.warning_message.message_code
-                                      ? getMessageCodeLabel(bm.warning_message.message_code)
-                                      : 'Warning'
-                                  }
-                                  data-testid={`benchmark-warning-${bm.id}`}
-                                >
-                                  {bm.warning_message.message}
-                                </Alert>
-                              </StackItem>
-                            ) : null}
-                            {bmFailed && bm.benchmark_index != null ? (
-                              <StackItem>
-                                <Button
-                                  variant="link"
-                                  isInline
-                                  onClick={() => handleViewBenchmarkLogs(bm.benchmark_index!)}
-                                  data-testid={`view-logs-${bm.id}`}
-                                >
-                                  View logs
-                                </Button>
-                              </StackItem>
-                            ) : null}
-                          </Stack>
-                        </StackItem>
-                      );
-                    })}
-                  </Stack>
-                </StackItem>
-              ) : null}
+              <StackItem>
+                <ProgressTabContent
+                  benchmarks={progressBenchmarks}
+                  hasPolledData={!!polledJobData || !isInProgress}
+                  isTerminal={!isInProgress}
+                  onViewLogs={handleViewBenchmarkLogs}
+                />
+              </StackItem>
             </Stack>
           ) : activeTab === 'events-log' ? (
             <Stack hasGutter>
@@ -752,7 +970,7 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
                         >
                           {selectedBenchmark === ALL_BENCHMARKS
                             ? 'All benchmarks'
-                            : (sortedBenchmarks.find(
+                            : (progressBenchmarks.find(
                                 (b) => b.benchmark_index === parseInt(selectedBenchmark, 10),
                               )?.id ?? `Benchmark ${selectedBenchmark}`)}
                         </MenuToggle>
@@ -760,9 +978,9 @@ const EvaluationStatusModal: React.FC<EvaluationStatusModalProps> = ({
                     >
                       <SelectList>
                         <SelectOption value={ALL_BENCHMARKS}>All benchmarks</SelectOption>
-                        {sortedBenchmarks.map((bm) =>
+                        {progressBenchmarks.map((bm) =>
                           bm.benchmark_index != null ? (
-                            <SelectOption key={bm.id} value={String(bm.benchmark_index)}>
+                            <SelectOption key={bm.key} value={String(bm.benchmark_index)}>
                               {bm.id}
                             </SelectOption>
                           ) : null,

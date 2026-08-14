@@ -617,6 +617,7 @@ components:
         message_origin:
           type: string
           description: Origin of the error (server, runtime, adapter, sdk)
+          enum: [server, runtime, adapter, sdk]
 
     JobResource:
       type: object
@@ -656,6 +657,7 @@ components:
             - cancelled
             - stopping
             - stopped
+            - partially_failed
           example: 'completed'
           description: Current state of the evaluation job
         message:
@@ -675,12 +677,20 @@ components:
           type: string
         provider_id:
           type: string
+        benchmark_index:
+          type: integer
+          minimum: 0
         status:
           type: string
+        started_at:
+          type: string
+          format: date-time
         completed_at:
           type: string
           format: date-time
         error_message:
+          $ref: '#/components/schemas/JobMessage'
+        warning_message:
           $ref: '#/components/schemas/JobMessage'
 
     BenchmarkResult:
@@ -1034,6 +1044,14 @@ components:
           type: integer
           description: Round-trip time in milliseconds (present on success)
           example: 142
+        openai_compatible:
+          type: boolean
+          description: >-
+            Whether the endpoint responded with a valid OpenAI-compatible
+            chat completions response shape. Only present for model/agent
+            source types when the probe succeeds. False when the endpoint
+            returns a non-OpenAI response body.
+          example: true
 
     # -------------------------------------------------------------------------
     # Evaluation job schemas
@@ -1300,6 +1318,37 @@ components:
           $ref: '#/components/schemas/ProviderBenchmarkPrimaryScore'
         pass_criteria:
           $ref: '#/components/schemas/ProviderBenchmarkPassCriteria'
+        agent:
+          $ref: '#/components/schemas/BenchmarkAgentMetadata'
+
+    BenchmarkAgentMetadata:
+      type: object
+      properties:
+        result_interpretation:
+          type: string
+          nullable: true
+        score_ranges:
+          type: array
+          items:
+            $ref: '#/components/schemas/ScoreRange'
+          nullable: true
+
+    ScoreRange:
+      type: object
+      required:
+        - min
+        - max
+        - label
+      properties:
+        min:
+          type: number
+        max:
+          type: number
+        label:
+          type: string
+        description:
+          type: string
+          nullable: true
 
     ProviderEnvVar:
       type: object
@@ -1390,6 +1439,43 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/ProviderBenchmark'
+          nullable: true
+        agent:
+          $ref: '#/components/schemas/ProviderAgentMetadata'
+
+    ProviderAgentMetadata:
+      type: object
+      properties:
+        evaluates:
+          type: array
+          items:
+            type: string
+          nullable: true
+        recommended_when:
+          type: array
+          items:
+            type: string
+          nullable: true
+        target_type:
+          type: string
+          nullable: true
+        summary:
+          type: string
+          nullable: true
+        complements:
+          type: array
+          items:
+            type: string
+          nullable: true
+        hints:
+          type: array
+          items:
+            type: string
+          nullable: true
+        result_interpretation:
+          type: array
+          items:
+            type: string
           nullable: true
 
     ProvidersData:
