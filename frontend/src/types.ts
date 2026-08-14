@@ -167,7 +167,7 @@ declare global {
     WS_HOSTNAME?: string;
   }
 
-  // Webpack injected global variables
+  // Injected global variables
   // eslint-disable-next-line @typescript-eslint/naming-convention
   const __COMMIT_HASH__: string | undefined;
 }

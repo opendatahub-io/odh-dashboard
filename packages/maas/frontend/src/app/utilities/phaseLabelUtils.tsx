@@ -242,11 +242,11 @@ export const getPopoverContent = (
 };
 
 export enum PhaseLabelLocation {
-  EXTERNAL_MODELS = 'external-models',
   OVERVIEW = 'overview',
   SUBSCRIPTIONS_TAB = 'subscriptions-tab',
   POLICIES_TAB = 'policies-tab',
   DETAIL_PAGE = 'detail-page',
+  EXTERNAL_MODELS = 'external-models',
 }
 
 export const getStatusSubtext = (

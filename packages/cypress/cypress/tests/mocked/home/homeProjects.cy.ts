@@ -1,5 +1,6 @@
 import { mockSelfSubjectAccessReview } from '@odh-dashboard/internal/__mocks__/mockSelfSubjectAccessReview';
 import { mockProjectsK8sList } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
+import { mock500Error } from '@odh-dashboard/k8s-core/__mocks__/mockK8sStatus';
 import { createProjectModal, projectDetails, projectListPage } from '../../../pages/projects';
 import { ProjectModel, SelfSubjectAccessReviewModel } from '../../../utils/models';
 import { homePage } from '../../../pages/home/home';
@@ -150,6 +151,17 @@ describe('Home page Projects section', () => {
     cy.url().should('include', projects[0].metadata.name);
     projectDetails.findComponent('overview').should('be.visible');
   });
+
+  it('should keep the section header visible when projects fail to load', () => {
+    homePage.initHomeIntercepts();
+    cy.interceptK8sList(ProjectModel, { statusCode: 500, body: mock500Error({}) });
+    homePage.visit();
+
+    const homeProjectSection = homePage.getHomeProjectSection();
+    homeProjectSection.findErrorState().should('be.visible');
+    homeProjectSection.findSectionHeading().should('be.visible');
+  });
+
   it('should navigate to the project list', () => {
     homePage.initHomeIntercepts();
     interceptAccessReview(false);
