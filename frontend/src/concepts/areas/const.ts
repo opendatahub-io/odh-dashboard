@@ -28,6 +28,7 @@ export const techPreviewFlags = {
   globalProjectPrompts: false,
   agentOps: false,
   connectionTest: false,
+  dataRegistry: false,
 } satisfies Partial<DashboardCommonConfig>;
 
 export const devTemporaryFeatureFlags = {
@@ -308,5 +309,8 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   },
   [SupportedArea.PLUGIN_NOTEBOOKS]: {
     featureFlags: ['notebooksV2'],
+  },
+  [SupportedArea.PLUGIN_DATA_REGISTRY]: {
+    featureFlags: ['dataRegistry'],
   },
 };

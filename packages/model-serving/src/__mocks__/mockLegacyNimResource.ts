@@ -20,10 +20,12 @@ import {
 } from '../shared';
 import type { NimServingResponse } from '../shared';
 
-export const mockNimImages = (): ConfigMapKind =>
+export const mockNimImages = ({
+  namespace = 'opendatahub',
+}: { namespace?: string } = {}): ConfigMapKind =>
   mockConfigMap({
     name: 'mock-nvidia-nim-images-data',
-    namespace: 'opendatahub',
+    namespace,
     data: {
       alphafold2: JSON.stringify({
         name: 'alphafold2',
@@ -104,13 +106,18 @@ export const mockNimServingRuntime = (): ServingRuntimeKind => {
   return servingRuntime;
 };
 
-export const mockNimServingRuntimeTemplate = (): TemplateKind => {
+export const mockNimServingRuntimeTemplate = ({
+  namespace = 'opendatahub',
+  name = 'nvidia-nim-runtime',
+}: { namespace?: string; name?: string } = {}): TemplateKind => {
   const templateMock = mockServingRuntimeTemplateK8sResource({
-    name: 'nvidia-nim-runtime',
+    name,
     displayName: 'NVIDIA NIM',
     platforms: [ServingRuntimePlatform.SINGLE],
     apiProtocol: ServingRuntimeAPIProtocol.REST,
-    namespace: 'opendatahub',
+    namespace,
+    // NIM writes the selected image and the shm mounts onto the `kserve-container`
+    containerName: 'kserve-container',
   });
   if (templateMock.metadata.annotations != null) {
     templateMock.metadata.annotations['opendatahub.io/dashboard'] = 'true';

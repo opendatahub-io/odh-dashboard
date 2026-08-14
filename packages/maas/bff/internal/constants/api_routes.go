@@ -16,9 +16,6 @@ const (
 	SubscriptionsPassthroughPath    = ApiPathPrefix + "/subscriptions"
 	SubscriptionByIDPassthroughPath = ApiPathPrefix + "/subscriptions/:id"
 
-	// General MaaS routes
-	SubscriptionPolicyFormDataPath = ApiPathPrefix + "/subscription-policy-form-data"
-
 	// Subscription routes
 	SubscriptionListPath   = ApiPathPrefix + "/all-subscriptions"
 	SubscriptionInfoPath   = ApiPathPrefix + "/subscription-info/:name"
@@ -34,12 +31,13 @@ const (
 	PolicyDeletePath = ApiPathPrefix + "/delete-policy/:name"
 
 	// MaaSModelRef routes
+	MaaSModelRefListPath   = ApiPathPrefix + "/all-maas-models"
 	MaaSModelRefCreatePath = ApiPathPrefix + "/maasmodel"
 	MaaSModelRefUpdatePath = ApiPathPrefix + "/maasmodel/:namespace/:name"
 	MaaSModelRefDeletePath = ApiPathPrefix + "/maasmodel/:namespace/:name"
 
-	// Overview routes
-	ModelsOverviewPath = ApiPathPrefix + "/overview/models"
+	// Groups
+	GroupsListPath = ApiPathPrefix + "/all-groups"
 
 	// YAML export
 	YamlPath = ApiPathPrefix + "/yaml"

@@ -4,6 +4,7 @@ import { PrometheusQueryResponse } from '@odh-dashboard/internal/types';
 import { CQDcgmResult } from '../types';
 import {
   INFRASTRUCTURE_REFRESH_INTERVAL,
+  PROMETHEUS_CLUSTER_QUERY_PATH,
   PROMQL_COMPUTE_BY_MODEL,
   PROMQL_MEMORY_BY_MODEL,
 } from '../const';
@@ -11,7 +12,7 @@ import { normalizeModelName } from '../utils/clusterQueueUtils';
 
 export type { CQDcgmResult };
 
-const PROMETHEUS_API = '/api/prometheus/query';
+const PROMETHEUS_API = PROMETHEUS_CLUSTER_QUERY_PATH;
 
 type ByModelResponse = PrometheusQueryResponse<{ metric?: { modelName?: string } }>;
 

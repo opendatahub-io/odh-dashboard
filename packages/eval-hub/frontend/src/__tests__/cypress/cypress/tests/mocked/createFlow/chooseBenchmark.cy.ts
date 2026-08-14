@@ -96,7 +96,6 @@ describe('Choose Benchmark Page', () => {
     chooseBenchmarkPage.visit(NAMESPACE);
     chooseBenchmarkPage.findBenchmarksFilterToolbar().should('exist');
 
-    chooseBenchmarkPage.selectFilterOption('Name');
     chooseBenchmarkPage.findNameFilterInput().type('Alpha');
 
     chooseBenchmarkPage.findBenchmarkCard('test-provider', 'bench-alpha').should('exist');
@@ -107,7 +106,6 @@ describe('Choose Benchmark Page', () => {
   it('should show empty state when filters match nothing', () => {
     chooseBenchmarkPage.visit(NAMESPACE);
 
-    chooseBenchmarkPage.selectFilterOption('Name');
     chooseBenchmarkPage.findNameFilterInput().type('nonexistent');
 
     chooseBenchmarkPage.findBenchmarksEmptyState().should('exist');
@@ -151,9 +149,164 @@ describe('Choose Benchmark Page', () => {
   });
 });
 
+describe('Choose Benchmark Page - Sort', () => {
+  beforeEach(() => {
+    initIntercepts({ providers: [testProvider, secondProvider] });
+  });
+
+  it('should sort benchmarks alphabetically by name', () => {
+    chooseBenchmarkPage.visit(NAMESPACE);
+    chooseBenchmarkPage.selectSortOption('name');
+
+    chooseBenchmarkPage
+      .findBenchmarksGallery()
+      .findAllByTestId(/^benchmark-card-/)
+      .first()
+      .should('contain.text', 'Alpha Bench');
+
+    chooseBenchmarkPage
+      .findBenchmarksGallery()
+      .findAllByTestId(/^benchmark-card-/)
+      .last()
+      .should('contain.text', 'Gamma Bench');
+  });
+
+  it('should sort benchmarks by category', () => {
+    chooseBenchmarkPage.visit(NAMESPACE);
+    chooseBenchmarkPage.selectSortOption('category');
+
+    chooseBenchmarkPage
+      .findBenchmarksGallery()
+      .findAllByTestId(/^benchmark-card-/)
+      .first()
+      .should('contain.text', 'Alpha Bench');
+
+    chooseBenchmarkPage
+      .findBenchmarksGallery()
+      .findAllByTestId(/^benchmark-card-/)
+      .last()
+      .should('contain.text', 'Beta Bench');
+  });
+});
+
+describe('Choose Benchmark Page - Category Filter', () => {
+  beforeEach(() => {
+    initIntercepts({ providers: [testProvider, secondProvider] });
+  });
+
+  it('should filter benchmarks by category', () => {
+    chooseBenchmarkPage.visit(NAMESPACE);
+    chooseBenchmarkPage.selectCategoryOption('Safety');
+
+    chooseBenchmarkPage.findBenchmarkCard('test-provider', 'bench-beta').should('exist');
+    chooseBenchmarkPage.findBenchmarkCard('test-provider', 'bench-alpha').should('not.exist');
+    chooseBenchmarkPage.findBenchmarkCard('second-provider', 'bench-gamma').should('not.exist');
+  });
+
+  it('should allow selecting multiple categories', () => {
+    chooseBenchmarkPage.visit(NAMESPACE);
+
+    chooseBenchmarkPage.findCategoryFilter().click();
+    chooseBenchmarkPage.findCategoryOption('Reasoning').click();
+    chooseBenchmarkPage.findCategoryOption('Safety').click();
+    chooseBenchmarkPage.findCategoryFilter().click();
+
+    chooseBenchmarkPage.findBenchmarkCard('test-provider', 'bench-alpha').should('exist');
+    chooseBenchmarkPage.findBenchmarkCard('test-provider', 'bench-beta').should('exist');
+    chooseBenchmarkPage.findBenchmarkCard('second-provider', 'bench-gamma').should('exist');
+  });
+
+  it('should search within category dropdown', () => {
+    chooseBenchmarkPage.visit(NAMESPACE);
+    chooseBenchmarkPage.findCategoryFilter().click();
+
+    chooseBenchmarkPage.findCategorySearchInput().type('Reas');
+
+    chooseBenchmarkPage.findCategoryOption('Reasoning').should('exist');
+    chooseBenchmarkPage.findCategoryOption('Safety').should('not.exist');
+  });
+
+  it('should show badge count on category filter toggle', () => {
+    chooseBenchmarkPage.visit(NAMESPACE);
+    chooseBenchmarkPage.selectCategoryOption('Reasoning');
+
+    chooseBenchmarkPage.findCategoryFilterBadge().should('have.text', '1');
+  });
+});
+
+describe('Choose Benchmark Page - Metrics Filter', () => {
+  beforeEach(() => {
+    initIntercepts({ providers: [testProvider, secondProvider] });
+  });
+
+  it('should filter benchmarks by metric', () => {
+    chooseBenchmarkPage.visit(NAMESPACE);
+    // Metric option test IDs use the raw lowercase value from the benchmark data
+    chooseBenchmarkPage.selectMetricsOption('toxicity');
+
+    chooseBenchmarkPage.findBenchmarkCard('test-provider', 'bench-beta').should('exist');
+    chooseBenchmarkPage.findBenchmarkCard('test-provider', 'bench-alpha').should('not.exist');
+    chooseBenchmarkPage.findBenchmarkCard('second-provider', 'bench-gamma').should('not.exist');
+  });
+
+  it('should search within metrics dropdown', () => {
+    chooseBenchmarkPage.visit(NAMESPACE);
+    chooseBenchmarkPage.findMetricsFilter().click();
+
+    chooseBenchmarkPage.findMetricsSearchInput().type('Accur');
+
+    chooseBenchmarkPage.findMetricsOption('accuracy').should('exist');
+    chooseBenchmarkPage.findMetricsOption('toxicity').should('not.exist');
+  });
+
+  it('should show badge count on metrics filter toggle', () => {
+    chooseBenchmarkPage.visit(NAMESPACE);
+    // Metric option test IDs use the raw lowercase value from the benchmark data
+    chooseBenchmarkPage.selectMetricsOption('accuracy');
+
+    chooseBenchmarkPage.findMetricsFilterBadge().should('have.text', '1');
+  });
+});
+
+describe('Choose Benchmark Page - Combined Filters', () => {
+  beforeEach(() => {
+    initIntercepts({ providers: [testProvider, secondProvider] });
+  });
+
+  it('should combine name and category filters', () => {
+    chooseBenchmarkPage.visit(NAMESPACE);
+
+    chooseBenchmarkPage.selectCategoryOption('Reasoning');
+
+    chooseBenchmarkPage.findBenchmarkCard('test-provider', 'bench-alpha').should('exist');
+    chooseBenchmarkPage.findBenchmarkCard('second-provider', 'bench-gamma').should('exist');
+
+    chooseBenchmarkPage.findNameFilterInput().type('Alpha');
+
+    chooseBenchmarkPage.findBenchmarkCard('test-provider', 'bench-alpha').should('exist');
+    chooseBenchmarkPage.findBenchmarkCard('second-provider', 'bench-gamma').should('not.exist');
+  });
+
+  it('should clear all filters at once', () => {
+    chooseBenchmarkPage.visit(NAMESPACE);
+
+    chooseBenchmarkPage.selectCategoryOption('Safety');
+    chooseBenchmarkPage.findNameFilterInput().type('nonexistent');
+
+    chooseBenchmarkPage.findBenchmarksEmptyState().should('exist');
+    chooseBenchmarkPage.findClearFiltersButton().click();
+
+    chooseBenchmarkPage.findBenchmarksGallery().should('exist');
+    chooseBenchmarkPage.findBenchmarkCard('test-provider', 'bench-alpha').should('exist');
+    chooseBenchmarkPage.findBenchmarkCard('test-provider', 'bench-beta').should('exist');
+    chooseBenchmarkPage.findBenchmarkCard('second-provider', 'bench-gamma').should('exist');
+  });
+});
+
 describe('Choose Benchmark Page - Pagination', () => {
   it('should paginate when benchmarks exceed per-page limit', () => {
-    const manyBenchmarks = Array.from({ length: 15 }, (_, i) =>
+    // Default per-page is 24 (PAGE_SIZES[1]), so we need > 24 benchmarks to trigger pagination
+    const manyBenchmarks = Array.from({ length: 30 }, (_, i) =>
       mockBenchmark({
         id: `bench-${i}`,
         name: `Benchmark ${i}`,
@@ -171,14 +324,16 @@ describe('Choose Benchmark Page - Pagination', () => {
     initIntercepts({ providers: [bulkProvider] });
     chooseBenchmarkPage.visit(NAMESPACE);
 
+    // Page 1 shows first 24 items (bench-0 through bench-23)
     chooseBenchmarkPage.findBenchmarksGallery().should('exist');
     chooseBenchmarkPage.findBenchmarkCard('bulk-provider', 'bench-0').should('exist');
-    chooseBenchmarkPage.findBenchmarkCard('bulk-provider', 'bench-9').should('exist');
-    chooseBenchmarkPage.findBenchmarkCard('bulk-provider', 'bench-10').should('not.exist');
+    chooseBenchmarkPage.findBenchmarkCard('bulk-provider', 'bench-23').should('exist');
+    chooseBenchmarkPage.findBenchmarkCard('bulk-provider', 'bench-24').should('not.exist');
 
+    // Page 2 shows remaining items (bench-24 through bench-29)
     chooseBenchmarkPage.findNextPageButton().click();
-    chooseBenchmarkPage.findBenchmarkCard('bulk-provider', 'bench-10').should('exist');
-    chooseBenchmarkPage.findBenchmarkCard('bulk-provider', 'bench-14').should('exist');
+    chooseBenchmarkPage.findBenchmarkCard('bulk-provider', 'bench-24').should('exist');
+    chooseBenchmarkPage.findBenchmarkCard('bulk-provider', 'bench-29').should('exist');
     chooseBenchmarkPage.findBenchmarkCard('bulk-provider', 'bench-0').should('not.exist');
   });
 });

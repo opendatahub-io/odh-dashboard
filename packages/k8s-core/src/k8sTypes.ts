@@ -138,6 +138,7 @@ export type SupportedModelFormats = {
   name: string;
   version?: string;
   autoSelect?: boolean;
+  priority?: number;
 };
 
 export type ProjectKind = K8sResourceCommon & {
@@ -323,6 +324,7 @@ export type DashboardCommonConfig = {
   modelCapabilities?: boolean;
   modelDeploymentSettings?: boolean;
   notebooksV2?: boolean;
+  dataRegistry?: boolean;
 };
 
 export type DashboardConfigKind = K8sResourceCommon & {
@@ -835,6 +837,7 @@ export enum WorkloadOwnerType {
   Job = 'Job',
   StatefulSet = 'StatefulSet',
   ReplicaSet = 'ReplicaSet',
+  LeaderWorkerSet = 'LeaderWorkerSet',
 }
 
 export type WorkloadKind = K8sResourceCommon & {

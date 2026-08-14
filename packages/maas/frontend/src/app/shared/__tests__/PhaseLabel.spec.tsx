@@ -1,8 +1,9 @@
 import * as React from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import '@testing-library/jest-dom';
 import { MemoryRouter } from 'react-router-dom';
-import PhaseLabel from '~/app/shared/PhaseLabel';
+import PhaseLabel from '~/app/shared/Phase/PhaseLabel';
 import { PhaseResourceType } from '~/app/utilities/phaseLabelUtils';
 
 describe('PhaseLabel', () => {
@@ -269,5 +270,31 @@ describe('PhaseLabel', () => {
 
     await user.click(screen.getByRole('button', { name: 'Failed' }));
     expect(screen.getByTestId('phase-modal')).not.toBeNull();
+  });
+
+  it('should show precomputed affected models in the degraded modal', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <MemoryRouter>
+        <PhaseLabel
+          phase="Degraded"
+          resourceType={PhaseResourceType.SUBSCRIPTION}
+          resourceName="Degraded Sub"
+          affectedModels={[
+            {
+              name: 'precomputed',
+              phase: 'Unavailable',
+              statusMessage: 'Already known',
+            },
+          ]}
+        />
+      </MemoryRouter>,
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Degraded' }));
+
+    expect(await screen.findByTestId('affected-models-table')).toBeInTheDocument();
+    expect(screen.getByText('precomputed')).toBeInTheDocument();
   });
 });

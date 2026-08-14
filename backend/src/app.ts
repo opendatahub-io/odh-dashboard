@@ -33,8 +33,8 @@ export const initializeApp = async (
     wildcard: false,
     // Do not auto-serve index.html for '/'; let the view route render it
     index: false,
-    setHeaders: (reply, filePath) => {
-      reply.header('Cache-Control', getCacheControlForStaticFile(filePath));
+    setHeaders: (res, filePath) => {
+      res.setHeader('Cache-Control', getCacheControlForStaticFile(filePath));
     },
   });
 

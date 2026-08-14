@@ -12,7 +12,8 @@ import {
   getSubscriptionViewUrl,
 } from '~/app/utilities/subscriptionManagementNavigation';
 import { convertSubscriptionToK8sResource } from '~/app/utilities/subscriptions';
-import PhaseLabel from '~/app/shared/PhaseLabel';
+import { useSubscriptionAffectedModels } from '~/app/hooks/useGovernanceAffectedModels';
+import PhaseLabel from '~/app/shared/Phase/PhaseLabel';
 import { PhaseLabelLocation, PhaseResourceType } from '~/app/utilities/phaseLabelUtils';
 import ExpandedGroupsPanel from '~/app/shared/ExpandedGroupsPanel';
 import CompoundExpandCountCell from '~/app/shared/CompoundExpandCountCell';
@@ -43,6 +44,7 @@ const SubscriptionTableRow: React.FC<SubscriptionTableRowProps> = ({
   const navigate = useNavigate();
   const navState = returnTo ? { state: { returnTo } } : undefined;
   const [expandedPanel, setExpandedPanel] = React.useState<ExpandedPanel>(null);
+  const { affectedModels, overviewLoaded } = useSubscriptionAffectedModels(subscription);
 
   const togglePanel = (panel: 'groups' | 'models') => {
     setExpandedPanel((prev) => (prev === panel ? null : panel));
@@ -121,6 +123,8 @@ const SubscriptionTableRow: React.FC<SubscriptionTableRowProps> = ({
         lastTransitionTime={subscription.lastTransitionTime}
         resourceType={PhaseResourceType.SUBSCRIPTION}
         resourceName={subscription.displayName ?? subscription.name}
+        affectedModels={affectedModels}
+        overviewLoaded={overviewLoaded}
         resourceUrl={getSubscriptionViewUrl(subscription.name)}
         returnTo={returnTo}
         onClick={() => {

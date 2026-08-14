@@ -287,33 +287,21 @@ var _ = Describe("SubscriptionHandlers", Ordered, func() {
 		})
 	})
 
-	var _ = Describe("GetSubscriptionPolicyFormDataHandler", Ordered, func() {
-		It("returns 200 with groups and model refs", func() {
-			envelope, rs, err := setupApiTest[Envelope[models.SubscriptionFormDataResponse, None]](
+	var _ = Describe("ListGroupsHandler", Ordered, func() {
+		It("returns 200 with groups", func() {
+			actual, rs, err := setupApiTest[Envelope[[]string, None]](
 				http.MethodGet,
-				"/api/v1/subscription-policy-form-data",
+				"/api/v1/all-groups",
 				nil,
 				k8Factory,
 				identity,
 			)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(rs.StatusCode).To(Equal(http.StatusOK))
-			actual := envelope.Data
-
-			// Should have at least the model refs seeded in test env
-			Expect(len(actual.ModelRefs)).To(BeNumerically(">=", 2))
-			var names []string
-			for _, ref := range actual.ModelRefs {
-				names = append(names, ref.Name)
-			}
-			Expect(names).To(ContainElements("granite-3-8b-instruct", "flan-t5-small"))
+			Expect(actual.Data).NotTo(BeNil())
 
 			// Groups fallback to system:authenticated since envtest doesn't have user.openshift.io
-			Expect(actual.Groups).To(ContainElement("system:authenticated"))
-
-			// Should include all existing subscriptions on the cluster
-			Expect(actual.Subscriptions).NotTo(BeNil())
-			Expect(len(actual.Subscriptions)).To(BeNumerically(">", 0))
+			Expect(actual.Data).To(ContainElement("system:authenticated"))
 		})
 	})
 

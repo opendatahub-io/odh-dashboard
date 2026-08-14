@@ -263,7 +263,7 @@ export const buildFormSpec = (
     feastProjectDir,
     services: buildServices(data),
     authz: buildAuthz(data),
-    cronJob: data.cronJob,
+    cronJob: data.cronJob?.schedule?.trim() ? data.cronJob : undefined,
     batchEngine:
       data.batchEngineEnabled && data.batchEngineConfigMapName
         ? {

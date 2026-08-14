@@ -36,7 +36,10 @@ export const useWizardFieldExtractors = (
 
     for (const extractor of extractorExtensions) {
       // Only extract if the platform matches
-      if (extractor.properties.platform === deployment.modelServingPlatformId) {
+      if (
+        extractor.properties.platform === 'all' ||
+        extractor.properties.platform === deployment.modelServingPlatformId
+      ) {
         const { fieldId } = extractor.properties;
         const extractedValue = extractor.properties.extract(deployment);
 

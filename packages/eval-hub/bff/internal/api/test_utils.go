@@ -202,6 +202,54 @@ func (e *erroringEHClient) ListCollections(_ context.Context, _ evalhub.ListColl
 func (e *erroringEHClient) ListProviders(_ context.Context, _ string, _, _ int) (evalhub.ProvidersResponse, error) {
 	return evalhub.ProvidersResponse{}, nil
 }
+func (e *erroringEHClient) GetEvaluationJobLogs(_ context.Context, _ string, _ string, _ evalhub.GetJobLogsParams) (string, error) {
+	return "", fmt.Errorf("connection refused")
+}
+func (e *erroringEHClient) GetEvaluationJobBenchmarkLogs(_ context.Context, _ string, _ int, _ string, _ evalhub.GetJobLogsParams) (string, error) {
+	return "", fmt.Errorf("connection refused")
+}
+
+// setupApiTestWithEvalHubRaw exercises handlers that return plain text (not JSON).
+func setupApiTestWithEvalHubRaw(method, url string, k8Factory kubernetes.KubernetesClientFactory, identity *kubernetes.RequestIdentity, ehClient evalhub.EvalHubClientInterface) (string, *http.Response, error) {
+	req, err := http.NewRequest(method, url, http.NoBody)
+	if err != nil {
+		return "", nil, err
+	}
+
+	if identity != nil && identity.UserID != "" {
+		req.Header.Set(constants.KubeflowUserIDHeader, identity.UserID)
+	}
+
+	if k8Factory == nil {
+		k8Factory = &testK8sFactory{}
+	}
+
+	mockFactory := ehmocks.NewMockClientFactory()
+	if ehClient != nil {
+		mockFactory.SetMockClient(ehClient)
+	}
+
+	app := &App{
+		config:                  config.EnvConfig{AllowedOrigins: []string{"*"}, AuthMethod: config.AuthMethodInternal, MockEvalHubClient: true},
+		logger:                  testLogger,
+		kubernetesClientFactory: k8Factory,
+		evalHubClientFactory:    mockFactory,
+		repositories:            repositories.NewRepositories(),
+	}
+
+	ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, identity)
+	req = req.WithContext(ctx)
+
+	rr := httptest.NewRecorder()
+	app.Routes().ServeHTTP(rr, req)
+	res := rr.Result()
+	defer res.Body.Close()
+	data, err := io.ReadAll(res.Body)
+	if err != nil {
+		return "", nil, err
+	}
+	return string(data), res, nil
+}
 
 // setupApiTestForHealth exercises the EvalHub service health handler with injectable
 // CR discovery (via the user's bearer token) and EvalHub client behaviour.

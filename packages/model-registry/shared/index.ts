@@ -12,6 +12,7 @@ export type DeployPrefillData = {
     description: string;
     options: { title: string; description: string; value: string }[];
   }[];
+  selectedValidatedConfigurations?: Record<string, string[]>;
 };
 
 export type ModelDeployPrefillInfo = {

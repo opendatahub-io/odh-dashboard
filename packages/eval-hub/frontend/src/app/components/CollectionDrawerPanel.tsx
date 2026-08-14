@@ -16,25 +16,31 @@ import {
   StackItem,
   Title,
 } from '@patternfly/react-core';
-import { ExternalLinkAltIcon } from '@patternfly/react-icons';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import { Collection } from '~/app/types';
-import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
-import { capitalizeFirst, getCategoryColor, toSafeExternalUrl } from './benchmarkUtils';
+import { Collection, ProviderAgentMetadata, ProviderBenchmark } from '~/app/types';
+import BenchmarkDrawerTileContent from './BenchmarkDrawerTileContent';
+import { capitalizeFirst, getCategoryColor } from './benchmarkUtils';
+
+export type BenchmarkWithProvider = ProviderBenchmark & {
+  providerName: string;
+  providerAgent?: ProviderAgentMetadata;
+};
 
 type CollectionDrawerPanelProps = {
   collection: Collection | undefined;
+  benchmarkDetailsMap: Map<string, BenchmarkWithProvider>;
   onClose: () => void;
   onRunCollection: (c: Collection) => void;
 };
 
 const CollectionDrawerPanel: React.FC<CollectionDrawerPanelProps> = ({
   collection,
+  benchmarkDetailsMap,
   onClose,
   onRunCollection,
 }) => {
   if (!collection) {
-    return null;
+    // DrawerPanelContent must remain in the DOM for PF's slide-in/out CSS transition to work
+    return <DrawerPanelContent isResizable minSize="380px" />;
   }
 
   const color = getCategoryColor(collection.category);
@@ -80,60 +86,25 @@ const CollectionDrawerPanel: React.FC<CollectionDrawerPanelProps> = ({
                   </Title>
                 </StackItem>
                 {collection.benchmarks.map((b) => {
-                  const safeUrl = toSafeExternalUrl(b.url);
+                  const key = `${b.provider_id ?? ''}:${b.id}`;
+                  const details = benchmarkDetailsMap.get(key);
                   return (
                     <StackItem key={`${b.provider_id ?? 'unknown'}-${b.id}`}>
                       <Card isCompact>
                         <CardBody>
-                          <Stack hasGutter>
-                            <StackItem>
-                              <Content
-                                component="p"
-                                style={{
-                                  fontWeight: 'var(--pf-t--global--font--weight--body--bold)',
-                                }}
-                              >
-                                {safeUrl ? (
-                                  <Button
-                                    variant="link"
-                                    isInline
-                                    component="a"
-                                    href={safeUrl}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    icon={<ExternalLinkAltIcon />}
-                                    iconPosition="end"
-                                    onClick={() =>
-                                      fireMiscTrackingEvent(EVAL_HUB_EVENTS.EXTERNAL_LINK_CLICKED, {
-                                        url: safeUrl,
-                                        benchmarkId: b.id,
-                                        surface: 'collection_drawer',
-                                      })
-                                    }
-                                  >
-                                    {b.id}
-                                  </Button>
-                                ) : (
-                                  b.id
-                                )}
-                              </Content>
-                            </StackItem>
-                            {b.provider_id && (
-                              <Stack>
-                                <StackItem>
-                                  <Content
-                                    component="p"
-                                    style={{
-                                      fontWeight: 'var(--pf-t--global--font--weight--body--bold)',
-                                    }}
-                                  >
-                                    Evaluation framework
-                                  </Content>
-                                </StackItem>
-                                <StackItem>{b.provider_id}</StackItem>
-                              </Stack>
-                            )}
-                          </Stack>
+                          <BenchmarkDrawerTileContent
+                            name={details?.name ?? b.id}
+                            id={b.id}
+                            description={details?.description}
+                            metrics={details?.metrics}
+                            providerName={details?.providerName ?? b.provider_id}
+                            providerAgent={details?.providerAgent}
+                            primaryScore={details?.primary_score}
+                            passCriteria={details?.pass_criteria}
+                            url={details?.url ?? b.url}
+                            trackingSurface="collection_drawer"
+                            isCompact
+                          />
                         </CardBody>
                       </Card>
                     </StackItem>

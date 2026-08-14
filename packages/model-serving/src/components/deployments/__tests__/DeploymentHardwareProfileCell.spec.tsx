@@ -14,7 +14,6 @@ jest.mock('@odh-dashboard/hardware-profiles/shared', () => {
   );
   MockHardwareProfileTableColumn.displayName = 'MockHardwareProfileTableColumn';
   return {
-    useHardwareProfileBindingState: () => [null, true, undefined],
     HardwareProfileTableColumn: MockHardwareProfileTableColumn,
     MODEL_SERVING_VISIBILITY: ['modelServing'],
   };
@@ -46,7 +45,12 @@ describe('DeploymentHardwareProfileCell', () => {
       <table>
         <tbody>
           <tr>
-            <DeploymentHardwareProfileCell deployment={mockDeployment()} />
+            <DeploymentHardwareProfileCell
+              deployment={mockDeployment()}
+              bindingStateInfo={null}
+              bindingStateLoaded
+              bindingStateLoadError={undefined}
+            />
           </tr>
         </tbody>
       </table>,

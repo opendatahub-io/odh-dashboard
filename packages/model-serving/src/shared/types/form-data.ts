@@ -33,6 +33,7 @@ import {
   type CreateConnectionData,
 } from '../../components/deploymentWizard/fields/CreateConnectionInputFields';
 import { useProjectSection } from '../../components/deploymentWizard/fields/ProjectSection';
+import type { ValidatedConfigurationsFieldHook } from '../../components/deploymentWizard/fields/validatedConfigurations/useValidatedConfigurationsField';
 import { NIMModelLocationKey } from '../../components/deploymentWizard/fields/modelLocationFields/NIMModelLocation';
 import { getStateKey } from '../../components/deploymentWizard/dynamicFormUtils';
 import type { DeploymentMethodFieldData } from '../../components/deploymentWizard/fields/DeploymentMethodSelectField';
@@ -156,6 +157,7 @@ export type InitialWizardFormData = {
   // deploying — serializable metadata merged onto the deployment during assembly
   navSourceMetadata?: K8sResourceCommon['metadata'];
   validatedConfigurations?: ValidatedConfiguration[];
+  selectedValidatedConfigurations?: Record<string, string[]>;
 } & Record<string, unknown>;
 
 export type WizardFormData = {
@@ -178,7 +180,7 @@ export type WizardFormData = {
     createConnectionData: ReturnType<typeof useCreateConnectionData>;
     deploymentStrategy: ReturnType<typeof useDeploymentStrategyField>;
     canCreateRoleBindings: boolean;
-    selectedValidatedConfigurations?: Record<string, string[]>;
+    validatedConfigurationSelection: ValidatedConfigurationsFieldHook;
     devFeatureFlags?: {
       vLLMDeploymentOnMaaS: boolean;
     };

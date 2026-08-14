@@ -89,17 +89,17 @@ describe('Evaluation Results Page - Collection', () => {
   it('should display benchmark cards grid', () => {
     evaluationResultsPage.visit(NAMESPACE, collectionJob.resource.id);
     evaluationResultsPage.findBenchmarksGrid().should('exist');
-    evaluationResultsPage.findBenchmarkCard('harmful_request_refusal').should('exist');
-    evaluationResultsPage.findBenchmarkCard('truthfulqa_mc1').should('exist');
-    evaluationResultsPage.findBenchmarkCard('toxigen').should('exist');
+    evaluationResultsPage.findBenchmarkCard('harmful_request_refusal', 0).should('exist');
+    evaluationResultsPage.findBenchmarkCard('truthfulqa_mc1', 1).should('exist');
+    evaluationResultsPage.findBenchmarkCard('toxigen', 2).should('exist');
   });
 
   it('should show pass/fail labels on benchmark cards', () => {
     evaluationResultsPage.visit(NAMESPACE, collectionJob.resource.id);
     evaluationResultsPage
-      .findBenchmarkPassLabel('harmful_request_refusal')
+      .findBenchmarkPassLabel('harmful_request_refusal', 0)
       .should('contain.text', 'Pass');
-    evaluationResultsPage.findBenchmarkPassLabel('toxicity_risk').should('contain.text', 'Fail');
+    evaluationResultsPage.findBenchmarkPassLabel('toxicity_risk', 3).should('contain.text', 'Fail');
   });
 
   it('should show view more button when benchmarks exceed default visible count', () => {
@@ -111,14 +111,14 @@ describe('Evaluation Results Page - Collection', () => {
   it('should expand to show all benchmarks when clicking view more', () => {
     evaluationResultsPage.visit(NAMESPACE, collectionJob.resource.id);
     evaluationResultsPage.findViewMoreButton().click();
-    evaluationResultsPage.findBenchmarkCard('adversarial_robustness').should('exist');
-    evaluationResultsPage.findBenchmarkCard('truthfulqa_gen').should('exist');
+    evaluationResultsPage.findBenchmarkCard('adversarial_robustness', 6).should('exist');
+    evaluationResultsPage.findBenchmarkCard('truthfulqa_gen', 7).should('exist');
     evaluationResultsPage.findViewMoreButton().should('not.exist');
   });
 
   it('should show benchmark details when clicking a card', () => {
     evaluationResultsPage.visit(NAMESPACE, collectionJob.resource.id);
-    evaluationResultsPage.findBenchmarkCard('truthfulqa_mc1').click();
-    evaluationResultsPage.findBenchmarkDetails('truthfulqa_mc1', 0).should('exist');
+    evaluationResultsPage.findBenchmarkCard('truthfulqa_mc1', 1).click();
+    evaluationResultsPage.findBenchmarkDetails('truthfulqa_mc1', 1).should('exist');
   });
 });
