@@ -1,9 +1,16 @@
 import type { SharedModuleMetadata } from '../shared-modules-meta.ts';
 import type { RuntimeOdhPackages, WorkspacePackageInfo } from '../getRuntimeOdhPackages.ts';
 
-const { sharedPluginModules, getSharedModuleMetadata } = require('../shared-modules-meta.ts') as {
+const {
+  sharedPluginModules,
+  getSharedModuleMetadata,
+  PF_REACT_ICONS_CREATE_ICON_MODULE,
+  getPfReactIconsCreateIconSharedConfig,
+} = require('../shared-modules-meta.ts') as {
   sharedPluginModules: Record<string, Partial<SharedModuleMetadata>>;
   getSharedModuleMetadata: (moduleName: string) => SharedModuleMetadata;
+  PF_REACT_ICONS_CREATE_ICON_MODULE: string;
+  getPfReactIconsCreateIconSharedConfig: (requiredVersion: string) => Record<string, unknown>;
 };
 const { getRuntimeOdhPackages } = require('../getRuntimeOdhPackages.ts') as {
   getRuntimeOdhPackages: (packages?: WorkspacePackageInfo[]) => RuntimeOdhPackages;
@@ -83,6 +90,16 @@ describe('getSharedModuleMetadata', () => {
     expect(meta.eager).toBe(true);
     expect(meta.allowFallback).toBe(false);
     expect(meta.singleton).toBe(true);
+  });
+});
+
+describe('getPfReactIconsCreateIconSharedConfig', () => {
+  it('returns singleton sharing metadata for the createIcon deep import', () => {
+    const config = getPfReactIconsCreateIconSharedConfig('^6.4.0');
+    expect(PF_REACT_ICONS_CREATE_ICON_MODULE).toBe('@patternfly/react-icons/dist/esm/createIcon');
+    expect(config.singleton).toBe(true);
+    expect(config.requiredVersion).toBe('^6.4.0');
+    expect(typeof config.version === 'string' || config.version === undefined).toBe(true);
   });
 });
 

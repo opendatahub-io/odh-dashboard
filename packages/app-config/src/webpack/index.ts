@@ -11,5 +11,7 @@ module.exports = {
   OdhRemoteFederationPlugin,
   sharedPluginModules,
   getSharedModuleMetadata,
+  PF_REACT_ICONS_CREATE_ICON_MODULE,
+  getPfReactIconsCreateIconSharedConfig,
   getRuntimeOdhPackages,
 };
