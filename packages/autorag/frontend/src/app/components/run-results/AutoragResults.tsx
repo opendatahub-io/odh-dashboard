@@ -52,11 +52,27 @@ function AutoragResults({ onTryPattern, onViewCode }: AutoragResultsProps): Reac
   const [runIndexingPatternName, setRunIndexingPatternName] = React.useState<string | null>(null);
   const [runIndexingError, setRunIndexingError] = React.useState<string | null>(null);
 
-  const { data: managedPipelines } = useManagedPipelinesQuery(namespace);
+  const {
+    data: managedPipelines,
+    isError: managedPipelinesQueryFailed,
+    error: managedPipelinesQueryError,
+  } = useManagedPipelinesQuery(namespace);
   const indexingPipelineAvailable = React.useMemo(
     () => managedPipelines?.some((pipeline) => pipeline.pipeline_type === 'indexing') ?? false,
     [managedPipelines],
   );
+
+  React.useEffect(() => {
+    if (!managedPipelinesQueryFailed) {
+      return;
+    }
+    notification.warning(
+      'Unable to check managed pipelines',
+      managedPipelinesQueryError instanceof Error
+        ? `Some features may not be available. ${managedPipelinesQueryError.message}`
+        : 'Some features may not be available.',
+    );
+  }, [managedPipelinesQueryFailed, managedPipelinesQueryError, notification]);
   const createIndexingRunMutation = useCreateIndexingPipelineRunMutation(namespace ?? '');
 
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions

@@ -81,6 +81,8 @@ jest.mock('~/app/hooks/queries', () => ({
       },
     ],
     isLoading: false,
+    isError: false,
+    error: null,
   }),
 }));
 
@@ -90,6 +92,16 @@ jest.mock('~/app/hooks/mutations', () => ({
     isPending: false,
     reset: jest.fn(),
   }),
+}));
+
+const mockNotificationWarning = jest.fn();
+jest.mock('~/app/hooks/useNotification', () => ({
+  useNotification: jest.fn(() => ({
+    success: jest.fn(),
+    error: jest.fn(),
+    info: jest.fn(),
+    warning: mockNotificationWarning,
+  })),
 }));
 
 const mockPipelineRun: PipelineRun = {
@@ -242,6 +254,23 @@ describe('AutoragResults', () => {
     renderWithContext();
     expect(getPipelineVisualization()).toBeInTheDocument();
     expect(getPipelineVisualization()).not.toHaveAttribute('data-run-state');
+  });
+
+  it('should toast a warning when managed pipelines query fails', () => {
+    jest.mocked(queries.useManagedPipelinesQuery).mockReturnValueOnce({
+      data: undefined,
+      isLoading: false,
+      isError: true,
+      error: new Error('Network Error'),
+    } as ReturnType<typeof queries.useManagedPipelinesQuery>);
+
+    renderWithContext(mockPipelineRun);
+
+    expect(mockNotificationWarning).toHaveBeenCalledWith(
+      'Unable to check managed pipelines',
+      'Some features may not be available. Network Error',
+    );
+    expect(screen.queryByTestId('managed-pipelines-query-warning')).not.toBeInTheDocument();
   });
 
   it('should render when pipelineRun.state is a non-string runtime value', () => {
