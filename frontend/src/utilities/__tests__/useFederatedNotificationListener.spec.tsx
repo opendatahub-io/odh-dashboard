@@ -97,22 +97,16 @@ const dispatchBridgeEvent = (detail: Record<string, unknown>) => {
 };
 
 describe('useFederatedNotificationListener', () => {
-  const mockAssign = jest.fn();
-  const originalLocation = window.location;
+  const mockOpen = jest.fn();
 
   beforeEach(() => {
     jest.clearAllMocks();
-    Object.defineProperty(window, 'location', {
-      value: { ...originalLocation, assign: mockAssign },
-      writable: true,
-    });
+    mockOpen.mockReset();
+    jest.spyOn(window, 'open').mockImplementation(mockOpen);
   });
 
   afterEach(() => {
-    Object.defineProperty(window, 'location', {
-      value: originalLocation,
-      writable: true,
-    });
+    jest.restoreAllMocks();
   });
 
   it('should dispatch notification for events with safe linkUrl', () => {
@@ -194,10 +188,10 @@ describe('useFederatedNotificationListener', () => {
 
     fireEvent.click(link as HTMLElement);
     expect(mockNavigate).toHaveBeenCalledWith('/projects/details');
-    expect(mockAssign).not.toHaveBeenCalled();
+    expect(mockOpen).not.toHaveBeenCalled();
   });
 
-  it('should use window.location.assign for external URL links on click', () => {
+  it('should use window.open for external URL links on click', () => {
     render(<TestComponent />);
 
     dispatchBridgeEvent({
@@ -214,7 +208,11 @@ describe('useFederatedNotificationListener', () => {
     expect(link).toHaveAttribute('href', 'https://example.com/docs');
 
     fireEvent.click(link as HTMLElement);
-    expect(mockAssign).toHaveBeenCalledWith('https://example.com/docs');
+    expect(mockOpen).toHaveBeenCalledWith(
+      'https://example.com/docs',
+      '_blank',
+      'noopener,noreferrer',
+    );
     expect(mockNavigate).not.toHaveBeenCalled();
   });
 
@@ -229,6 +227,27 @@ describe('useFederatedNotificationListener', () => {
     expect(mockDispatch).toHaveBeenCalledTimes(1);
     const action = mockDispatch.mock.calls[0][0];
     expect(action.payload.message).toBe('Plain message');
+  });
+
+  it('should ignore events with missing title', () => {
+    render(<TestComponent />);
+
+    dispatchBridgeEvent({
+      message: 'No title provided',
+    });
+
+    expect(mockDispatch).not.toHaveBeenCalled();
+  });
+
+  it('should ignore events with non-string title', () => {
+    render(<TestComponent />);
+
+    dispatchBridgeEvent({
+      title: 123,
+      message: 'Numeric title',
+    });
+
+    expect(mockDispatch).not.toHaveBeenCalled();
   });
 
   it('should handle events without detail', () => {

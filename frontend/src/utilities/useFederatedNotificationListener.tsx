@@ -65,6 +65,10 @@ export const useFederatedNotificationListener = (): void => {
           linkLabel?: string;
         } = detail;
 
+        if (!title || typeof title !== 'string') {
+          return;
+        }
+
         const timestampDate = timestamp ? new Date(timestamp) : new Date();
         const safeLinkUrl = linkUrl && isSafeUrl(linkUrl) ? linkUrl : undefined;
 
@@ -79,7 +83,7 @@ export const useFederatedNotificationListener = (): void => {
                   if (safeLinkUrl.startsWith('/')) {
                     navigate(safeLinkUrl);
                   } else {
-                    window.location.assign(safeLinkUrl);
+                    window.open(safeLinkUrl, '_blank', 'noopener,noreferrer');
                   }
                 }}
               >
