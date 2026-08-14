@@ -91,8 +91,8 @@ interface S3FileExplorerProps {
   /** The file selection mode: "radio" for single selection, "checkbox" for multi-select. Defaults to "radio". */
   selection?: 'radio' | 'checkbox';
 
-  /** Absolute folder paths that should be disabled (unselectable and unnavigable). Example: `["/pipeline-output"]` disables the `pipeline-output` folder at the bucket root. */
-  disabledPaths?: string[];
+  /** Absolute folder paths that should be disabled (unselectable and unnavigable). Keys represent the paths and values represent the reason that should be rendered. Example: `{ "/pipeline-output": "System folder" }` disables the `pipeline-output` folder at the bucket root with a useful message to users. */
+  disabledPaths?: Record<string, string>;
 }
 const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
   id,
@@ -326,7 +326,7 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
   // Derived state -------------------------------------------------------------->
 
   const filesWithSelection = useMemo(() => {
-    const disabledSet = disabledPaths ? new Set(disabledPaths) : undefined;
+    const disabledSet = disabledPaths ? new Set(Object.keys(disabledPaths)) : undefined;
     const folderPrefix = selectedFolder
       ? selectedFolder.path.endsWith('/')
         ? selectedFolder.path
@@ -339,7 +339,7 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
         result = { ...result, forceShowAsSelected: true, selectable: false };
       }
       if (disabledSet?.has(file.path) && isFolder(file)) {
-        result = { ...result, selectable: false, disabled: true };
+        result = { ...result, selectable: false, disabled: disabledPaths?.[file.path] || true };
       }
       return result;
     });
@@ -463,7 +463,7 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
 
   const handleNavigate = useCallback(
     (folder: Folder) => {
-      if (disabledPaths?.includes(folder.path)) {
+      if (disabledPaths && Object.prototype.hasOwnProperty.call(disabledPaths, folder.path)) {
         return;
       }
       navigateTo(folder.path, perPageToRender);

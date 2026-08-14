@@ -450,6 +450,13 @@ const FilesTable: React.FC<FilesTableProps> = ({
                   });
                 }
 
+                let fileUnselectableReason = '';
+                if (typeof file.disabled === 'string') {
+                  fileUnselectableReason = file.disabled;
+                } else if (typeof unselectableReason === 'string') {
+                  fileUnselectableReason = unselectableReason;
+                }
+
                 return (
                   <Tr
                     key={file.path}
@@ -482,13 +489,7 @@ const FilesTable: React.FC<FilesTableProps> = ({
                   >
                     <Td
                       width={TABLE_COLUMNS.select.width}
-                      title={
-                        isUnselectable &&
-                        typeof unselectableReason === 'string' &&
-                        unselectableReason
-                          ? unselectableReason
-                          : ''
-                      }
+                      title={isUnselectable ? fileUnselectableReason : undefined}
                       select={{
                         rowIndex,
                         onSelect,

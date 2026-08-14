@@ -926,7 +926,7 @@ describe('S3FileExplorer', () => {
 
   describe('disabledPaths prop', () => {
     it('should mark a disabled folder as unselectable', async () => {
-      render(<S3FileExplorer {...defaultProps} disabledPaths={['/datasets']} />);
+      render(<S3FileExplorer {...defaultProps} disabledPaths={{ '/datasets': 'Disabled' }} />);
 
       await waitFor(() => {
         expect(screen.getByText('datasets')).toBeInTheDocument();
@@ -938,7 +938,7 @@ describe('S3FileExplorer', () => {
     });
 
     it('should render a disabled folder name as plain text instead of a link', async () => {
-      render(<S3FileExplorer {...defaultProps} disabledPaths={['/datasets']} />);
+      render(<S3FileExplorer {...defaultProps} disabledPaths={{ '/datasets': 'Disabled' }} />);
 
       await waitFor(() => {
         expect(screen.getByText('datasets')).toBeInTheDocument();
@@ -951,7 +951,7 @@ describe('S3FileExplorer', () => {
     });
 
     it('should not disable folders that do not match disabledPaths', async () => {
-      render(<S3FileExplorer {...defaultProps} disabledPaths={['/datasets']} />);
+      render(<S3FileExplorer {...defaultProps} disabledPaths={{ '/datasets': 'Disabled' }} />);
 
       await waitFor(() => {
         expect(screen.getByText('results')).toBeInTheDocument();
@@ -965,7 +965,7 @@ describe('S3FileExplorer', () => {
     });
 
     it('should prevent navigation into a disabled folder', async () => {
-      render(<S3FileExplorer {...defaultProps} disabledPaths={['/datasets']} />);
+      render(<S3FileExplorer {...defaultProps} disabledPaths={{ '/datasets': 'Disabled' }} />);
 
       await waitFor(() => {
         expect(mockGetFiles).toHaveBeenCalledTimes(1);
@@ -982,9 +982,11 @@ describe('S3FileExplorer', () => {
     });
 
     it('should disable a nested folder only when browsed into the matching parent', async () => {
-      // disabledPaths=["/datasets/train"] should NOT disable a top-level "train" folder
+      // disabledPaths={"/datasets/train": "..."} should NOT disable a top-level "train" folder
       // but SHOULD disable "train" when inside /datasets
-      render(<S3FileExplorer {...defaultProps} disabledPaths={['/datasets/train']} />);
+      render(
+        <S3FileExplorer {...defaultProps} disabledPaths={{ '/datasets/train': 'Disabled' }} />,
+      );
 
       await waitFor(() => {
         expect(screen.getByText('datasets')).toBeInTheDocument();
@@ -1024,7 +1026,7 @@ describe('S3FileExplorer', () => {
     });
 
     it('should not show "Select folder" in the overflow menu for a disabled folder', async () => {
-      render(<S3FileExplorer {...defaultProps} disabledPaths={['/datasets']} />);
+      render(<S3FileExplorer {...defaultProps} disabledPaths={{ '/datasets': 'Disabled' }} />);
 
       await waitFor(() => {
         expect(screen.getByText('datasets')).toBeInTheDocument();
