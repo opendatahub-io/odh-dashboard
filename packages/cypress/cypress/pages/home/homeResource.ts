@@ -8,4 +8,12 @@ export class HomeResource extends Contextual<HTMLElement> {
   findGoToResourceLink(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().findByTestId('goto-learning-resources-link');
   }
+
+  findSectionHeading(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByRole('heading', { name: 'Get oriented with learning resources' });
+  }
+
+  findErrorState(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('error-empty-state');
+  }
 }

@@ -1,6 +1,5 @@
 const path = require('path');
-const webpack = require('webpack');
-const HtmlWebpackPlugin = require('html-webpack-plugin');
+const { rspack } = require('@rspack/core');
 
 const BASE_DIR = path.resolve(__dirname, '..');
 const BASE_SRC_DIR = path.resolve(BASE_DIR, 'src');
@@ -18,7 +17,7 @@ const isImagesDirSvg = (input) =>
   (input.startsWith(PACKAGES_DIR) || input.startsWith(FRONTEND_IMAGES_DIR));
 
 /**
- * Shared webpack configuration factory for all distributions.
+ * Shared rspack configuration factory for all distributions.
  *
  * Distributions use static imports (no Module Federation) — all extensions
  * are bundled at build time via normal import statements.
@@ -49,16 +48,29 @@ module.exports = ({
       rules: [
         {
           test: /\.(tsx|ts|jsx|js)?$/,
-          exclude: /node_modules/,
+          exclude: [/node_modules\/(?!@odh-dashboard)/, /__tests__/, /__mocks__/],
           include: [
             normalizedDistDir,
             BASE_SRC_DIR,
             INTERNAL_DIR,
-            // Monorepo packages ship TS source with no precompile step — swc must transpile them when imported.
             path.resolve(REPO_ROOT, 'packages'),
             ...normalizedIncludes,
           ],
-          use: [{ loader: 'swc-loader' }],
+          use: [
+            {
+              loader: 'builtin:swc-loader',
+              options: {
+                detectSyntax: 'auto',
+                jsc: {
+                  transform: {
+                    react: {
+                      runtime: 'classic',
+                    },
+                  },
+                },
+              },
+            },
+          ],
         },
         {
           test: /\.(svg|ttf|eot|woff|woff2)$/,
@@ -130,11 +142,11 @@ module.exports = ({
       publicPath: '/',
     },
     plugins: [
-      new HtmlWebpackPlugin({
+      new rspack.HtmlRspackPlugin({
         template: path.join(normalizedDistDir, 'index.html'),
         title,
       }),
-      new webpack.DefinePlugin({
+      new rspack.DefinePlugin({
         'process.env': '({})',
       }),
     ],

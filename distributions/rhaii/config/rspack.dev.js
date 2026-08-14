@@ -1,18 +1,17 @@
 const path = require('path');
-const { merge } = require('webpack-merge');
-const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
-const webpackCommon = require('./webpack.common.js');
+const { merge } = require('rspack-merge');
+const { TsCheckerRspackPlugin } = require('ts-checker-rspack-plugin');
+const rspackCommon = require('./rspack.common.js');
 
 const RELATIVE_DIRNAME = path.resolve(__dirname, '..');
 const DIST_DIR = path.resolve(RELATIVE_DIRNAME, 'public');
-const PORT = process.env.SHELL_PORT || 4010;
+const PORT = process.env.SHELL_PORT || 4020;
 const BFF_PORT = process.env.BFF_PORT || 4000;
 
-module.exports = merge(webpackCommon(), {
+module.exports = merge(rspackCommon(), {
   mode: 'development',
   devtool: 'eval-source-map',
   optimization: {
-    runtimeChunk: 'single',
     removeEmptyChunks: true,
   },
   devServer: {
@@ -33,7 +32,7 @@ module.exports = merge(webpackCommon(), {
       },
     ],
     client: {
-      overlay: false,
+      overlay: true,
     },
     static: {
       directory: DIST_DIR,
@@ -41,11 +40,15 @@ module.exports = merge(webpackCommon(), {
     onListening: (devServer) => {
       const addr = devServer?.server?.address();
       if (addr) {
-        console.log(
-          `\x1b[32m✓ App Shell available at: \x1b[4mhttp://localhost:${addr.port}\x1b[0m`,
-        );
+        const green = '\x1b[32m';
+        const underline = '\x1b[4m';
+        const reset = '\x1b[0m';
+        const url = `http://localhost:${addr.port}`;
+        console.log(`${green}✓ RHAII distribution available at: ${underline}${url}${reset}`);
+      } else {
+        console.warn('RHAII dev server started but could not determine address');
       }
     },
   },
-  plugins: [new ForkTsCheckerWebpackPlugin()],
+  plugins: [new TsCheckerRspackPlugin()],
 });
