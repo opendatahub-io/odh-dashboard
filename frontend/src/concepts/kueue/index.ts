@@ -326,6 +326,7 @@ const ADMITTED_STATUSES: KueueWorkloadStatus[] = [
 
 export const aggregateKueueStatusForModel = (
   workloads: WorkloadKind[],
+  options?: { activePodCount?: number },
 ): KueueWorkloadStatusWithMessage | null => {
   if (workloads.length === 0) return null;
   const statuses = workloads.map((wl) => ({
@@ -333,13 +334,14 @@ export const aggregateKueueStatusForModel = (
     workloadName: wl.metadata?.name,
   }));
 
-  // Only meaningful with multiple replicas — a single Workload is fully captured by its own
-  // status already, so "1 of 1 admitted" would be redundant noise.
+  const totalPods = Math.max(statuses.length, options?.activePodCount ?? 0);
+  // Multi-replica partial admission — total includes live Pods even when not all have a
+  // correlated Workload CR yet (scale-up / watch lag), so e.g. "3 of 5 pods admitted" can show.
   const podAdmissionCounts =
-    statuses.length > 1
+    totalPods > 1
       ? {
           admitted: statuses.filter((s) => ADMITTED_STATUSES.includes(s.status)).length,
-          total: statuses.length,
+          total: totalPods,
         }
       : undefined;
 

@@ -6,6 +6,7 @@ import type { KueueWorkloadStatusWithMessage } from '#~/concepts/kueue/types';
 import {
   buildModelDeploymentKey,
   buildWorkloadMapForDeployments,
+  countActiveModelDeploymentPods,
   useWatchWorkloads,
   useWatchISPods,
   useWatchLLMISPods,
@@ -99,7 +100,9 @@ export const useKueueStatusForDeployments = (
       // Mirrors useKueueStatusForNotebooks: no matching Workload CR → null, full stop. No
       // queueName-based fallback — the queue label stays on the IS/LLMIS even while stopped, so
       // guessing a status here (e.g. "Queued") from label presence alone is unreliable.
-      const aggregated = aggregateKueueStatusForModel(isWorkloads);
+      const aggregated = aggregateKueueStatusForModel(isWorkloads, {
+        activePodCount: countActiveModelDeploymentPods(deploymentKey, allPods),
+      });
       if (!aggregated) {
         statusMap[deploymentKey] = null;
         continue;
