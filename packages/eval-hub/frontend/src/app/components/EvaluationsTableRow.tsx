@@ -61,6 +61,7 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
   const benchmarkName = getBenchmarkName(job, collectionNameMap);
   const allBenchmarkNames = getAllBenchmarkNames(job);
   const isInProgress = IN_PROGRESS_STATES.has(job.status.state);
+  const canStop = (job.status.state === 'running' || job.status.state === 'pending') && !isStopping;
   const isRetryable =
     job.status.state === 'failed' ||
     job.status.state === 'partially_failed' ||
@@ -162,7 +163,7 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
       title: 'View evaluation status',
       onClick: () => onShowStatus(job),
     },
-    ...(isInProgress && !isStopping
+    ...(canStop
       ? [
           {
             title: 'Stop',
