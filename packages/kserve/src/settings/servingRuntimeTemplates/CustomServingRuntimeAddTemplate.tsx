@@ -5,13 +5,18 @@ import {
   AlertActionCloseButton,
   Breadcrumb,
   BreadcrumbItem,
+  Bullseye,
   Button,
+  EmptyState,
+  EmptyStateBody,
+  EmptyStateFooter,
   Form,
   Stack,
   StackItem,
 } from '@patternfly/react-core';
+import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { Language } from '@patternfly/react-code-editor';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import YAML from 'yaml';
 import type { TemplateKind } from '@odh-dashboard/k8s-core';
 import {
@@ -26,92 +31,85 @@ import {
   isServingRuntimeKind,
 } from '@odh-dashboard/model-serving/shared';
 import { ApplicationsPage } from '@odh-dashboard/ui-core';
-import { useDashboardNamespace } from '#~/redux/selectors';
-import DashboardCodeEditor from '#~/concepts/dashboard/codeEditor/DashboardCodeEditor';
+import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
+import DashboardCodeEditor from '@odh-dashboard/internal/concepts/dashboard/codeEditor/DashboardCodeEditor';
 import {
   createServingRuntimeTemplateBackend,
   updateServingRuntimeTemplateBackend,
-} from '#~/services/templateService';
+} from '@odh-dashboard/internal/services/templateService';
 import { CustomServingRuntimeContext } from './CustomServingRuntimeContext';
 import CustomServingRuntimeAPIProtocolSelector from './CustomServingRuntimeAPIProtocolSelector';
 import CustomServingRuntimeModelTypeSelector from './CustomServingRuntimeModelTypeSelector';
 
 type CustomServingRuntimeAddTemplateProps = {
-  existingTemplate?: TemplateKind;
+  mode: 'add' | 'edit' | 'duplicate';
+  sourceTemplate?: TemplateKind;
+  /**
+   * Absolute path of the templates list this form returns to. Passed explicitly
+   * because the form mounts both as a child of the standalone list route and as
+   * a top-level breakout route beside the tabbed page, and a route-relative `..`
+   * resolves differently in the two.
+   *
+   * After RHOAIENG-80077 removes the standalone page the breakout route is the
+   * only mount, so this could collapse to SERVING_RUNTIME_TEMPLATES_TAB_PATH.
+   * https://issues.redhat.com/browse/RHOAIENG-80077
+   */
+  listPath: string;
 };
 
 const CustomServingRuntimeAddTemplate: React.FC<CustomServingRuntimeAddTemplateProps> = ({
-  existingTemplate,
+  mode,
+  sourceTemplate,
+  listPath,
 }) => {
   const { dashboardNamespace } = useDashboardNamespace();
   const { refreshData } = React.useContext(CustomServingRuntimeContext);
-  const { state }: { state?: { template: TemplateKind } } = useLocation();
+  const isEdit = mode === 'edit';
+  const isDuplicate = mode === 'duplicate';
 
-  const copiedServingRuntimeString = React.useMemo(
+  const duplicatedServingRuntimeString = React.useMemo(
     () =>
-      state
+      isDuplicate && sourceTemplate
         ? YAML.stringify({
-            ...state.template.objects[0],
+            ...sourceTemplate.objects[0],
             metadata: {
-              ...state.template.objects[0].metadata,
-              name: `${getServingRuntimeNameFromTemplate(state.template)}-copy`,
+              ...sourceTemplate.objects[0].metadata,
+              name: `${getServingRuntimeNameFromTemplate(sourceTemplate)}-copy`,
               annotations: {
-                ...state.template.objects[0].metadata.annotations,
+                ...sourceTemplate.objects[0].metadata.annotations,
                 'openshift.io/display-name': `Copy of ${getServingRuntimeDisplayNameFromTemplate(
-                  state.template,
+                  sourceTemplate,
                 )}`,
                 'openshift.io/description':
-                  state.template.objects[0].metadata.annotations?.['openshift.io/description'],
+                  sourceTemplate.objects[0].metadata.annotations?.['openshift.io/description'],
               },
             },
           })
         : '',
-    [state],
-  );
-
-  const copiedServingRuntimePlatforms = React.useMemo(
-    () => (state ? getEnabledPlatformsFromTemplate(state.template) : []),
-    [state],
+    [isDuplicate, sourceTemplate],
   );
 
   const stringifiedTemplate = React.useMemo(
     () =>
-      existingTemplate ? YAML.stringify(existingTemplate.objects[0]) : copiedServingRuntimeString,
-    [copiedServingRuntimeString, existingTemplate],
+      isEdit && sourceTemplate
+        ? YAML.stringify(sourceTemplate.objects[0])
+        : duplicatedServingRuntimeString,
+    [isEdit, sourceTemplate, duplicatedServingRuntimeString],
   );
 
   const enabledPlatforms: ServingRuntimePlatform[] = React.useMemo(
-    () =>
-      existingTemplate
-        ? getEnabledPlatformsFromTemplate(existingTemplate)
-        : copiedServingRuntimePlatforms,
-    [existingTemplate, copiedServingRuntimePlatforms],
-  );
-
-  const copiedServingRuntimeAPIProtocol = React.useMemo(
-    () => (state ? getAPIProtocolFromTemplate(state.template) : undefined),
-    [state],
+    () => (sourceTemplate ? getEnabledPlatformsFromTemplate(sourceTemplate) : []),
+    [sourceTemplate],
   );
 
   const apiProtocol: ServingRuntimeAPIProtocol | undefined = React.useMemo(
-    () =>
-      existingTemplate
-        ? getAPIProtocolFromTemplate(existingTemplate)
-        : copiedServingRuntimeAPIProtocol,
-    [existingTemplate, copiedServingRuntimeAPIProtocol],
-  );
-
-  const copiedServingRuntimeModelTypes = React.useMemo(
-    () => (state ? getModelTypesFromTemplate(state.template) : []),
-    [state],
+    () => (sourceTemplate ? getAPIProtocolFromTemplate(sourceTemplate) : undefined),
+    [sourceTemplate],
   );
 
   const modelTypes: ServingRuntimeModelType[] = React.useMemo(
-    () =>
-      existingTemplate
-        ? getModelTypesFromTemplate(existingTemplate)
-        : copiedServingRuntimeModelTypes,
-    [existingTemplate, copiedServingRuntimeModelTypes],
+    () => (sourceTemplate ? getModelTypesFromTemplate(sourceTemplate) : []),
+    [sourceTemplate],
   );
 
   const [code, setCode] = React.useState(stringifiedTemplate);
@@ -135,7 +133,7 @@ const CustomServingRuntimeAddTemplate: React.FC<CustomServingRuntimeAddTemplateP
   };
 
   const isDisabled =
-    (!state &&
+    (!isDuplicate &&
       code === stringifiedTemplate &&
       enabledPlatforms.includes(ServingRuntimePlatform.SINGLE) === isSinglePlatformEnabled &&
       apiProtocol === selectedAPIProtocol &&
@@ -148,33 +146,27 @@ const CustomServingRuntimeAddTemplate: React.FC<CustomServingRuntimeAddTemplateP
   return (
     <ApplicationsPage
       title={
-        existingTemplate
-          ? `Edit ${getServingRuntimeDisplayNameFromTemplate(existingTemplate)}`
-          : `${state ? 'Duplicate' : 'Add'} serving runtime`
+        isEdit && sourceTemplate
+          ? `Edit ${getServingRuntimeDisplayNameFromTemplate(sourceTemplate)}`
+          : `${isDuplicate ? 'Duplicate' : 'Add'} serving runtime`
       }
       description={
-        existingTemplate
+        isEdit
           ? 'Modify properties for your serving runtime.'
-          : state
+          : isDuplicate
           ? 'Add a new, editable runtime by duplicating an existing runtime.'
           : 'Add a new runtime that will be available for users on this cluster.'
       }
       breadcrumb={
         <Breadcrumb>
-          <BreadcrumbItem
-            render={() => (
-              <Link to="/settings/model-resources-operations/serving-runtimes">
-                Serving runtimes
-              </Link>
-            )}
-          />
-          {existingTemplate && (
+          <BreadcrumbItem render={() => <Link to={listPath}>Serving runtime templates</Link>} />
+          {isEdit && sourceTemplate && (
             <BreadcrumbItem>
-              {getServingRuntimeDisplayNameFromTemplate(existingTemplate)}
+              {getServingRuntimeDisplayNameFromTemplate(sourceTemplate)}
             </BreadcrumbItem>
           )}
           <BreadcrumbItem isActive>
-            {existingTemplate ? 'Edit' : state ? 'Duplicate' : 'Add'} serving runtime
+            {isEdit ? 'Edit' : isDuplicate ? 'Duplicate' : 'Add'} serving runtime
           </BreadcrumbItem>
         </Breadcrumb>
       }
@@ -182,7 +174,7 @@ const CustomServingRuntimeAddTemplate: React.FC<CustomServingRuntimeAddTemplateP
       empty={false}
       provideChildrenPadding
     >
-      <Form style={{ height: '100%' }}>
+      <Form className="pf-v6-u-h-100">
         <Stack hasGutter>
           <StackItem>
             <CustomServingRuntimeAPIProtocolSelector
@@ -244,24 +236,25 @@ const CustomServingRuntimeAddTemplate: React.FC<CustomServingRuntimeAddTemplateP
                   }
                   setIsLoading(true);
                   // TODO: Revert back to pass through api once we migrate admin panel
-                  const onClickFunc = existingTemplate
-                    ? updateServingRuntimeTemplateBackend(
-                        existingTemplate,
-                        code,
-                        dashboardNamespace,
-                        selectedAPIProtocol,
-                        selectedModelTypes,
-                      )
-                    : createServingRuntimeTemplateBackend(
-                        code,
-                        dashboardNamespace,
-                        selectedAPIProtocol,
-                        selectedModelTypes,
-                      );
+                  const onClickFunc =
+                    isEdit && sourceTemplate
+                      ? updateServingRuntimeTemplateBackend(
+                          sourceTemplate,
+                          code,
+                          dashboardNamespace,
+                          selectedAPIProtocol,
+                          selectedModelTypes,
+                        )
+                      : createServingRuntimeTemplateBackend(
+                          code,
+                          dashboardNamespace,
+                          selectedAPIProtocol,
+                          selectedModelTypes,
+                        );
                   onClickFunc
                     .then(() => {
                       refreshData();
-                      navigate(`/settings/model-resources-operations/serving-runtimes`);
+                      navigate(listPath);
                     })
                     .catch((err) => {
                       setError(err);
@@ -271,13 +264,13 @@ const CustomServingRuntimeAddTemplate: React.FC<CustomServingRuntimeAddTemplateP
                     });
                 }}
               >
-                {existingTemplate ? 'Update' : 'Create'}
+                {isEdit ? 'Update' : 'Create'}
               </Button>
               <Button
                 isDisabled={loading}
                 variant="link"
                 id="cancel-button"
-                onClick={() => navigate(`/settings/model-resources-operations/serving-runtimes`)}
+                onClick={() => navigate(listPath)}
               >
                 Cancel
               </Button>
@@ -289,3 +282,71 @@ const CustomServingRuntimeAddTemplate: React.FC<CustomServingRuntimeAddTemplateP
   );
 };
 export default CustomServingRuntimeAddTemplate;
+
+export const ServingRuntimeTemplateFormByName: React.FC<{
+  mode: 'edit' | 'duplicate';
+  listPath: string;
+}> = ({ mode, listPath }) => {
+  const { servingRuntimeName } = useParams<{ servingRuntimeName: string }>();
+  const {
+    servingRuntimeTemplates: [templates],
+  } = React.useContext(CustomServingRuntimeContext);
+  const sourceTemplate = templates.find(
+    (template) => getServingRuntimeNameFromTemplate(template) === servingRuntimeName,
+  );
+
+  // The named template must exist (the provider gates on loaded context). When it
+  // doesn't — a deep link or reload to a deleted/renamed runtime — explain rather
+  // than silently redirect. Matches the source EditTemplate not-found state,
+  // generalized to cover duplicate.
+  if (!sourceTemplate) {
+    const operationLabel = mode === 'duplicate' ? 'Duplicate' : 'Edit';
+    return (
+      <ApplicationsPage
+        loaded
+        empty={false}
+        title={`${operationLabel} serving runtime`}
+        breadcrumb={
+          <Breadcrumb>
+            <BreadcrumbItem render={() => <Link to={listPath}>Serving runtime templates</Link>} />
+            <BreadcrumbItem isActive>{operationLabel} serving runtime</BreadcrumbItem>
+          </Breadcrumb>
+        }
+        provideChildrenPadding
+      >
+        <Bullseye>
+          <EmptyState
+            headingLevel="h2"
+            icon={ExclamationCircleIcon}
+            titleText={`Unable to ${mode === 'duplicate' ? 'duplicate' : 'edit'} serving runtime`}
+          >
+            <EmptyStateBody>
+              We were unable to find a serving runtime named &quot;{servingRuntimeName}&quot;.
+            </EmptyStateBody>
+            <EmptyStateFooter>
+              <Button
+                variant="primary"
+                component={(props: React.ComponentProps<'a'>) => <Link {...props} to={listPath} />}
+              >
+                Return to the list
+              </Button>
+            </EmptyStateFooter>
+          </EmptyState>
+        </Bullseye>
+      </ApplicationsPage>
+    );
+  }
+
+  // Key by the resolved template so the form remounts (and re-seeds its state
+  // from the new source) when the target runtime changes while this component
+  // stays mounted — e.g. navigating directly from /edit/a to /edit/b. The form
+  // seeds code/selectors from props via useState, which only run on mount.
+  return (
+    <CustomServingRuntimeAddTemplate
+      key={sourceTemplate.metadata.name}
+      mode={mode}
+      sourceTemplate={sourceTemplate}
+      listPath={listPath}
+    />
+  );
+};
