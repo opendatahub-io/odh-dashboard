@@ -50,7 +50,7 @@ export const createCategoryFilter =
         if (option.name.toLowerCase().includes(lower)) {
           result.push(option);
         }
-      } else if (String(option.id).startsWith(ALL_CATEGORY_PREFIX)) {
+      } else if (!option.chipOnly && String(option.id).startsWith(ALL_CATEGORY_PREFIX)) {
         flushCategory();
         currentCategory = option;
         currentCategoryItems = [];
