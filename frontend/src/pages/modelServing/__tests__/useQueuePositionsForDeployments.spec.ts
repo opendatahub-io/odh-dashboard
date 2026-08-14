@@ -92,6 +92,26 @@ describe('useQueuePositionsForDeployments', () => {
     });
   });
 
+  it('should skip malformed Visibility API responses without failing other queues', async () => {
+    getPendingWorkloadsMock.mockImplementation(async (_ns, queueName) => {
+      if (queueName === 'bad-queue') {
+        return { items: undefined } as unknown as { items: PendingWorkload[] };
+      }
+      return { items: [mockPendingWorkload('wl-2', 'test-ns', 1)] };
+    });
+
+    const statusMap = {
+      'InferenceService/bad': makeStatus(KueueWorkloadStatus.Queued, 'bad-queue', 'wl-1'),
+      'InferenceService/good': makeStatus(KueueWorkloadStatus.Queued, 'good-queue', 'wl-2'),
+    };
+    const renderResult = testHook(useQueuePositionsForDeployments)('test-ns', statusMap);
+    await renderResult.waitForNextUpdate();
+
+    expect(renderResult).hookToStrictEqual({
+      'InferenceService/good': { queuePosition: 2, queueTotal: 1 },
+    });
+  });
+
   it('should silently handle 403 and return empty map', async () => {
     getPendingWorkloadsMock.mockRejectedValue(
       Object.assign(new Error('Forbidden'), { statusObject: { code: 403 } }),

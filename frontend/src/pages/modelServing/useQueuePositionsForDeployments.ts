@@ -81,10 +81,17 @@ export const useQueuePositionsForDeployments = (
         Array.from(byQueue.entries()).map(async ([queueName, entries]) => {
           try {
             const summary = await getPendingWorkloads(namespace, queueName);
+            if (!Array.isArray(summary.items)) {
+              return;
+            }
             const queueTotal = summary.items.length;
             for (const entry of entries) {
               const found = summary.items.find((pw) => pw.metadata.name === entry.workloadName);
-              if (found != null) {
+              if (
+                found != null &&
+                Number.isInteger(found.positionInLocalQueue) &&
+                found.positionInLocalQueue >= 0
+              ) {
                 newMetrics[entry.deploymentKey] = {
                   queuePosition: found.positionInLocalQueue + 1,
                   queueTotal,

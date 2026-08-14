@@ -41,6 +41,7 @@ import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import { useKueueConfiguration } from '@odh-dashboard/hardware-profiles/shared/kueueUtils';
 import { ProjectsContext } from '@odh-dashboard/ui-core/context/ProjectsContext';
 import { KUEUE_QUEUE_LABEL } from '@odh-dashboard/internal/concepts/kueue/index';
+import { KUEUE_STATUSES_OVERRIDE_MODEL_DEPLOYMENT } from '@odh-dashboard/internal/concepts/kueue/types';
 import {
   ModelStatusIcon,
   getDeploymentStatusSubtitleColor,
@@ -105,7 +106,11 @@ const getConditionMessageColor = (
   condition: DeploymentCondition,
   deploymentStatus?: DeploymentStatus | null,
 ): string | undefined => {
-  if (condition.type === 'CreatePod' && deploymentStatus?.kueueStatus) {
+  if (
+    condition.type === 'CreatePod' &&
+    deploymentStatus?.kueueStatus?.status &&
+    KUEUE_STATUSES_OVERRIDE_MODEL_DEPLOYMENT.includes(deploymentStatus.kueueStatus.status)
+  ) {
     return getDeploymentStatusSubtitleColor(deploymentStatus);
   }
   const messageStatus = condition.messageStatus ?? condition.status;
