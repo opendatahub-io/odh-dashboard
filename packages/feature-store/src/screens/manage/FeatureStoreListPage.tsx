@@ -90,7 +90,7 @@ const CreateFeatureStoreButton: React.FC<{ 'data-testid'?: string }> = (props) =
 );
 
 const FeatureStoreListPage: React.FC = () => {
-  const { featureStores, loaded, error, refresh } = useExistingFeatureStores();
+  const { featureStores, loaded, error, refresh } = useExistingFeatureStores({ poll: true });
   const [canCreate] = useAccessAllowed(verbModelAccess('create', FeatureStoreModel));
   const [canDelete] = useAccessAllowed(verbModelAccess('delete', FeatureStoreModel));
   const [deleteTarget, setDeleteTarget] = React.useState<FeatureStoreKind | undefined>();
