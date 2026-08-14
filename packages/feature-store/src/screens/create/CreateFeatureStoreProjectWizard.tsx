@@ -21,8 +21,7 @@ import AdvancedStep from './steps/AdvancedStep';
 import ReviewStep from './steps/ReviewStep';
 import { createFeatureStore } from '../../api/featureStores';
 import { FeatureStoreKind } from '../../k8sTypes';
-import { FeatureStoreObject } from '../../const';
-import { featureStoreRoute, featureStoreDeployRoute } from '../../routes';
+import { featureStoreDeployRoute } from '../../routes';
 import useNamespaceSecrets from '../../hooks/useNamespaceSecrets';
 import useNamespaceConfigMaps from '../../hooks/useNamespaceConfigMaps';
 import useAccessibleNamespaces from '../../hooks/useAccessibleNamespaces';
@@ -165,10 +164,7 @@ const CreateFeatureStoreProjectWizard: React.FC<CreateFeatureStoreProjectWizardP
 
   return (
     <div data-testid="feast-create-wizard">
-      <Wizard
-        onClose={() => navigate(featureStoreRoute(FeatureStoreObject.OVERVIEW))}
-        footer={wizardFooter}
-      >
+      <Wizard onClose={() => navigate(-1)} footer={wizardFooter}>
         <WizardStep name="Details" id="project-basics-step">
           <ProjectBasicsStep
             data={data}

@@ -36,6 +36,22 @@ module.exports = (overrides = {}) =>
       ...overrides,
     }),
     {
+      module: {
+        rules: [
+          // gen-ai playground → @patternfly/chatbot → monaco-editor (codicon.ttf, etc.)
+          {
+            test: /\.(svg|ttf|eot|woff|woff2)$/,
+            include: [path.resolve(REPO_ROOT, 'node_modules/monaco-editor')],
+            use: {
+              loader: 'file-loader',
+              options: {
+                outputPath: 'fonts',
+                name: '[name].[ext]',
+              },
+            },
+          },
+        ],
+      },
       resolve: {
         modules: [path.resolve(DIST_DIR, 'node_modules'), 'node_modules'],
         plugins: [new ContextualTildeResolverPlugin(tildeMappings)],

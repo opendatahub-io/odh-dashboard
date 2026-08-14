@@ -10,9 +10,9 @@ import { k8sDeleteResource, K8sStatus } from '@openshift/dynamic-plugin-sdk-util
 import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
 import useNotification from '@odh-dashboard/internal/utilities/useNotification';
 import RoutingConfigurationRow, { getSupportedTopologiesLabel } from './RoutingConfigurationRow';
-import { type LLMInferenceServiceConfigKind, LLMInferenceServiceConfigModel } from '../types';
-import { isConfigEnabled, isConfigEffectivelyEnabled } from '../utils';
-import { patchLLMInferenceServiceConfig } from '../api/LLMInferenceServiceConfigs';
+import { type LLMInferenceServiceConfigKind, LLMInferenceServiceConfigModel } from '../../types';
+import { isConfigEnabled, isConfigEffectivelyEnabled } from '../../utils';
+import { patchLLMInferenceServiceConfig } from '../../api/LLMInferenceServiceConfigs';
 
 export const columns: SortableData<LLMInferenceServiceConfigKind>[] = [
   {

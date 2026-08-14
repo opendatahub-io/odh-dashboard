@@ -153,7 +153,7 @@ describe('useFormToResourcesTransformer', () => {
   it('should return empty resources when no assemble extension is available', () => {
     mockExtensions([]);
     mockUseWizardFieldApply.mockReturnValue({
-      applyFieldData: (d: Deployment) => d,
+      applyAllFieldDataFn: (d: Deployment) => d,
       applyExtensionsLoaded: true,
       applyExtensionErrors: [],
     });
@@ -171,7 +171,7 @@ describe('useFormToResourcesTransformer', () => {
     const { mockUseResolvedExtensions } = mockExtensions([]);
     mockUseResolvedExtensions.mockReturnValue([[], false, []]);
     mockUseWizardFieldApply.mockReturnValue({
-      applyFieldData: (d: Deployment) => d,
+      applyAllFieldDataFn: (d: Deployment) => d,
       applyExtensionsLoaded: true,
       applyExtensionErrors: [],
     });
@@ -184,7 +184,7 @@ describe('useFormToResourcesTransformer', () => {
   it('should return loaded false when apply extensions are not loaded', () => {
     mockExtensions([]);
     mockUseWizardFieldApply.mockReturnValue({
-      applyFieldData: (d: Deployment) => d,
+      applyAllFieldDataFn: (d: Deployment) => d,
       applyExtensionsLoaded: false,
       applyExtensionErrors: [],
     });
@@ -201,7 +201,7 @@ describe('useFormToResourcesTransformer', () => {
     const { mockUseResolvedExtensions } = mockExtensions([]);
     mockUseResolvedExtensions.mockReturnValue([[], true, [assembleError]]);
     mockUseWizardFieldApply.mockReturnValue({
-      applyFieldData: (d: Deployment) => d,
+      applyAllFieldDataFn: (d: Deployment) => d,
       applyExtensionsLoaded: true,
       applyExtensionErrors: [applyError],
     });
@@ -228,7 +228,7 @@ describe('useFormToResourcesTransformer', () => {
       },
     ]);
     mockUseWizardFieldApply.mockReturnValue({
-      applyFieldData: mockApplyFieldData,
+      applyAllFieldDataFn: mockApplyFieldData,
       applyExtensionsLoaded: true,
       applyExtensionErrors: [],
     });
@@ -296,7 +296,7 @@ describe('useFormToResourcesTransformer', () => {
       },
     ]);
     mockUseWizardFieldApply.mockReturnValue({
-      applyFieldData: mockApplyFieldData,
+      applyAllFieldDataFn: mockApplyFieldData,
       applyExtensionsLoaded: true,
       applyExtensionErrors: [],
     });
@@ -322,7 +322,7 @@ describe('useFormToResourcesTransformer', () => {
 
     mockExtensions([]);
     mockUseWizardFieldApply.mockReturnValue({
-      applyFieldData: (d: Deployment) => d,
+      applyAllFieldDataFn: (d: Deployment) => d,
       applyExtensionsLoaded: true,
       applyExtensionErrors: [],
     });
@@ -358,7 +358,7 @@ describe('useFormToResourcesTransformer', () => {
       },
     ]);
     mockUseWizardFieldApply.mockReturnValue({
-      applyFieldData: (d: Deployment) => d,
+      applyAllFieldDataFn: (d: Deployment) => d,
       applyExtensionsLoaded: true,
       applyExtensionErrors: [],
     });

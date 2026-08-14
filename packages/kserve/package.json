@@ -16,8 +16,10 @@
   },
   "exports": {
     "./extensions": "./extensions.ts",
+    "./deploy": "./src/deploy.ts",
     "./deployUtils": "./src/deployUtils.ts",
-    "./deploymentEndpoints": "./src/deploymentEndpoints.ts"
+    "./deploymentEndpoints": "./src/deploymentEndpoints.ts",
+    "./types": "./src/types.ts"
   },
   "dependencies": {
     "@odh-dashboard/foundation": "*",

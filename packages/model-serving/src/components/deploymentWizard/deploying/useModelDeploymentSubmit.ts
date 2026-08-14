@@ -12,6 +12,7 @@ import { DeploymentAssemblyResources } from '../../../../extension-points/deploy
 import { InitialWizardFormData } from '../../../shared/types/form-data';
 import { WizardFormState } from '../useDeploymentWizardReducer';
 import { ModelDeploymentWizardViewMode } from '../ModelDeploymentWizard';
+import { ExternalDataMap, isExternalDataReady } from '../ExternalDataLoader';
 
 /**
  * Get the onSubmit function to create / update the deployment. 
@@ -22,6 +23,7 @@ export const useModelDeploymentSubmit = (
   formState: WizardFormState, // Need initial data for existing auth secrets
   resources: DeploymentAssemblyResources<Deployment>,
   validation: ModelDeploymentWizardValidation,
+  externalData: ExternalDataMap,
   exitWizardOnSubmit: () => void,
   viewMode: ModelDeploymentWizardViewMode = 'form',
   initialWizardData?: InitialWizardFormData,
@@ -37,7 +39,7 @@ export const useModelDeploymentSubmit = (
 } => {
   const secretOps = useSecretOps();
   const { deployMethod, deployMethodLoaded } = useDeployMethod(formState, resources);
-  const { applyFieldData, applyExtensionsLoaded } = useWizardFieldApply(
+  const { applyAllFieldDataFn, applyExtensionsLoaded } = useWizardFieldApply(
     formState,
     initialWizardData?.navSourceMetadata,
   );
@@ -55,6 +57,10 @@ export const useModelDeploymentSubmit = (
       try {
         if (viewMode === 'form' && !validation.isAllValid) {
           throw new Error('Invalid form data');
+        }
+        // Fields derive their data from these hooks -- deploying before they settle drops that data
+        if (!isExternalDataReady(externalData)) {
+          throw new Error('Required data is still loading');
         }
         if (viewMode === 'yaml-edit' && yamlError) {
           throw yamlError;
@@ -92,6 +98,7 @@ export const useModelDeploymentSubmit = (
 
         await deployModel(
           formState,
+          externalData,
           secretOps,
           connectionSecretName,
           deployMethod.properties,
@@ -101,7 +108,7 @@ export const useModelDeploymentSubmit = (
           serverResourceTemplateName,
           overwrite,
           initialWizardData,
-          applyFieldData,
+          applyAllFieldDataFn,
           runPreDeploy,
           runPostDeploy,
         );
@@ -114,6 +121,7 @@ export const useModelDeploymentSubmit = (
     },
     [
       viewMode,
+      externalData,
       validation.isAllValid,
       deployMethodLoaded,
       deployMethod,
@@ -126,7 +134,7 @@ export const useModelDeploymentSubmit = (
       connectionSecretName,
       existingDeployment,
       initialWizardData,
-      applyFieldData,
+      applyAllFieldDataFn,
       runPreDeploy,
       runPostDeploy,
       exitWizardOnSubmit,

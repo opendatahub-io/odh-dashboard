@@ -158,6 +158,17 @@ describe('DeploymentProgressPage', () => {
     expect(screen.getByText('Resource not found')).toBeInTheDocument();
   });
 
+  it('suppresses "Deployment in progress" when error is present with stale data', () => {
+    const useWatchMock = jest.requireMock('../../../hooks/useWatchFeatureStoreDeployment').default;
+    useWatchMock.mockReturnValue({
+      ...mockDeploymentStatus,
+      loaded: true,
+      error: new Error('Watch connection lost'),
+    });
+    renderPage();
+    expect(screen.queryByText('Deployment in progress')).not.toBeInTheDocument();
+  });
+
   it('renders conditions with Complete/Pending/Failed labels based on status, reason, and message', () => {
     const useWatchMock = jest.requireMock('../../../hooks/useWatchFeatureStoreDeployment').default;
     useWatchMock.mockReturnValue({

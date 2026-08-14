@@ -7,6 +7,8 @@ import { PodModel } from '#~/api/models';
 import { groupVersionKind } from '#~/api/k8sUtils';
 import { CustomWatchK8sResult } from '#~/types';
 import useK8sWatchResourceList from '#~/utilities/useK8sWatchResourceList';
+import { aggregateKueueStatusForModel, KUEUE_QUEUE_LABEL } from '#~/concepts/kueue/index';
+import type { KueueWorkloadStatusWithMessage } from '#~/concepts/kueue/types';
 
 export const listWorkloads = async (
   namespace?: string,
@@ -144,6 +146,69 @@ export const buildWorkloadMapForDeployments = (
   }
 
   return result;
+};
+
+/** Live (non-terminal) model-serving Pods for a typed deployment key. */
+export const countActiveModelDeploymentPods = (deploymentKey: string, pods: PodKind[]): number => {
+  const isTerminal = (phase?: string): boolean => phase === 'Succeeded' || phase === 'Failed';
+
+  if (deploymentKey.startsWith('InferenceService/')) {
+    const name = deploymentKey.slice('InferenceService/'.length);
+    return pods.filter((pod) => {
+      const labels = pod.metadata.labels ?? {};
+      return (
+        labels['serving.kserve.io/inferenceservice'] === name && !isTerminal(pod.status?.phase)
+      );
+    }).length;
+  }
+
+  if (deploymentKey.startsWith('LLMInferenceService/')) {
+    const name = deploymentKey.slice('LLMInferenceService/'.length);
+    return pods.filter((pod) => {
+      const labels = pod.metadata.labels ?? {};
+      return (
+        labels['app.kubernetes.io/name'] === name &&
+        labels['app.kubernetes.io/component'] === 'llminferenceservice-workload' &&
+        !isTerminal(pod.status?.phase)
+      );
+    }).length;
+  }
+
+  return 0;
+};
+
+/**
+ * One-shot Kueue status for a single InferenceService (used by KServe fetchDeploymentStatus poll).
+ * Mirrors the aggregation in useKueueStatusForDeployments without a watch subscription.
+ */
+export const resolveKueueStatusForInferenceService = async (
+  inferenceService: InferenceServiceKind,
+  pods: PodKind[],
+): Promise<KueueWorkloadStatusWithMessage | null> => {
+  const { namespace, name } = inferenceService.metadata;
+  if (!namespace || !name) {
+    return null;
+  }
+
+  try {
+    const workloads = await listWorkloads(namespace);
+    const deploymentKey = buildModelDeploymentKey('InferenceService', name);
+    const workloadMap = buildWorkloadMapForDeployments(workloads, pods, [inferenceService]);
+    const isWorkloads = workloadMap[deploymentKey] ?? [];
+    const aggregated = aggregateKueueStatusForModel(isWorkloads, {
+      activePodCount: countActiveModelDeploymentPods(deploymentKey, pods),
+    });
+    if (!aggregated) {
+      return null;
+    }
+    return {
+      ...aggregated,
+      queueName: inferenceService.metadata.labels?.[KUEUE_QUEUE_LABEL],
+    };
+  } catch {
+    // RBAC denial or missing CRD — fall back to KServe-only status on the poll path.
+    return null;
+  }
 };
 
 /**

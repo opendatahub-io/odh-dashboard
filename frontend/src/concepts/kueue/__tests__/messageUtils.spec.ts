@@ -9,6 +9,9 @@ import {
   getKueueAnalyticsSubState,
   toOrdinal,
   formatQueuePosition,
+  appendQueuePositionToKueueMessage,
+  appendModelDeploymentPodAdmissionSuffix,
+  getModelDeploymentKueueDetailMessage,
   isInadmissibleQuotaCondition,
 } from '#~/concepts/kueue/messageUtils';
 
@@ -343,8 +346,81 @@ describe('formatQueuePosition', () => {
   it.each<[number, string, string]>([
     [3, 'my-queue', '3rd in my-queue'],
     [2, 'test-queue', '2nd in test-queue'],
+    [1, 'default', '1st in default queue'],
+    [1, 'default-user-queue', '1st in default-user-queue'],
   ])('formats position %s in %s as %s', (position, queue, expected) => {
     expect(formatQueuePosition(position, queue)).toBe(expected);
+  });
+});
+
+describe('getModelDeploymentKueueDetailMessage', () => {
+  it('returns position only for Queued when queuePosition is set', () => {
+    const result = getModelDeploymentKueueDetailMessage({
+      status: KueueWorkloadStatus.Queued,
+      queueName: 'my-queue',
+      queuePosition: 2,
+    });
+    expect(result).toBe('2nd in my-queue');
+  });
+
+  it('falls back to human-readable message when queuePosition is missing', () => {
+    const result = getModelDeploymentKueueDetailMessage({
+      status: KueueWorkloadStatus.Queued,
+      queueName: 'default',
+    });
+    expect(result).toBe('Waiting for quota in default queue');
+  });
+
+  it('returns position only for Inadmissible when queuePosition is set', () => {
+    const result = getModelDeploymentKueueDetailMessage({
+      status: KueueWorkloadStatus.Inadmissible,
+      queueName: 'my-queue',
+      queuePosition: 4,
+      message: 'insufficient unused quota for nvidia.com/gpu',
+    });
+    expect(result).toBe('4th in my-queue');
+  });
+});
+
+describe('appendModelDeploymentPodAdmissionSuffix', () => {
+  it('appends pod admission counts when total > 1', () => {
+    const result = appendModelDeploymentPodAdmissionSuffix('2nd in my-queue', {
+      status: KueueWorkloadStatus.Queued,
+      queueName: 'my-queue',
+      queuePosition: 2,
+      podAdmissionCounts: { admitted: 3, total: 5 },
+    });
+    expect(result).toBe('2nd in my-queue (3 of 5 pods admitted)');
+  });
+
+  it('returns detail unchanged when total is 1', () => {
+    const result = appendModelDeploymentPodAdmissionSuffix('2nd in my-queue', {
+      status: KueueWorkloadStatus.Queued,
+      queueName: 'my-queue',
+      queuePosition: 2,
+      podAdmissionCounts: { admitted: 0, total: 1 },
+    });
+    expect(result).toBe('2nd in my-queue');
+  });
+});
+
+describe('appendQueuePositionToKueueMessage', () => {
+  it('appends position for Queued status', () => {
+    const result = appendQueuePositionToKueueMessage('Waiting for quota', {
+      status: KueueWorkloadStatus.Queued,
+      queueName: 'my-queue',
+      queuePosition: 2,
+    });
+    expect(result).toBe('Waiting for quota (2nd in my-queue)');
+  });
+
+  it('returns message unchanged for Admitted status even when queuePosition is set', () => {
+    const result = appendQueuePositionToKueueMessage('Waiting for quota', {
+      status: KueueWorkloadStatus.Admitted,
+      queueName: 'my-queue',
+      queuePosition: 2,
+    });
+    expect(result).toBe('Waiting for quota');
   });
 });
 
@@ -474,6 +550,18 @@ describe('getDeploymentKueueSubStepMessage', () => {
     expect(result).toBe('Preempted: Deployment re-queued, waiting for resource');
   });
 
+  it('formats Requeued with its own prefix, not Queued', () => {
+    const result = getDeploymentKueueSubStepMessage({
+      status: KueueWorkloadStatus.Requeued,
+      queueName: 'test-queue',
+      requeueInfo: { count: 2, requeueAt: '2026-07-15T10:05:00Z' },
+    });
+    expect(result).toMatch(/^Requeued: /);
+    expect(result).not.toMatch(/^Queued: /);
+    expect(result).toContain('attempt 2');
+    expect(result).toContain('test-queue');
+  });
+
   it('formats a quota-exceeded Failed status using the raw Kueue message verbatim', () => {
     const result = getDeploymentKueueSubStepMessage({
       status: KueueWorkloadStatus.Failed,
@@ -528,6 +616,25 @@ describe('getDeploymentKueueSubStepMessage', () => {
       podAdmissionCounts: { admitted: 0, total: 1 },
     });
     expect(result).toBe('Queued: Waiting for quota in my-queue');
+  });
+
+  it('shows position only when queuePosition is set for Queued status', () => {
+    const result = getDeploymentKueueSubStepMessage({
+      status: KueueWorkloadStatus.Queued,
+      queueName: 'my-queue',
+      queuePosition: 3,
+    });
+    expect(result).toBe('Queued: 3rd in my-queue');
+  });
+
+  it('shows position and pod admission suffix when both are set', () => {
+    const result = getDeploymentKueueSubStepMessage({
+      status: KueueWorkloadStatus.Queued,
+      queueName: 'my-queue',
+      queuePosition: 3,
+      podAdmissionCounts: { admitted: 3, total: 5 },
+    });
+    expect(result).toBe('Queued: 3rd in my-queue (3 of 5 pods admitted)');
   });
 });
 

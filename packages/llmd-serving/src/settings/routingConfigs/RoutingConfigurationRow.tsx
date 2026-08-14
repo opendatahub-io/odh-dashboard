@@ -12,8 +12,8 @@ import {
   TopologyTypeLabels,
   DASHBOARD_RESOURCE_LABEL,
   getConfigSupportedTopologies,
-} from '../types';
-import { isConfigPreInstalled, isConfigEnabled } from '../utils';
+} from '../../types';
+import { isConfigPreInstalled, isConfigEnabled } from '../../utils';
 
 export const getSupportedTopologiesLabel = (config: LLMInferenceServiceConfigKind): string => {
   const topologies = getConfigSupportedTopologies(config);
@@ -82,7 +82,7 @@ const RoutingConfigurationRow: React.FC<RoutingConfigurationRowProps> = ({
                   },
                   {
                     title: 'Duplicate',
-                    onClick: () => navigate('add', { state: { sourceConfig: config } }),
+                    onClick: () => navigate(`duplicate/${configName}`),
                   },
                   { isSeparator: true },
                   {
@@ -94,7 +94,7 @@ const RoutingConfigurationRow: React.FC<RoutingConfigurationRowProps> = ({
               : [
                   {
                     title: 'Duplicate',
-                    onClick: () => navigate('add', { state: { sourceConfig: config } }),
+                    onClick: () => navigate(`duplicate/${configName}`),
                   },
                 ]
           }

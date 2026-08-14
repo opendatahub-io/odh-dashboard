@@ -53,6 +53,7 @@ const extensions: (
     },
     flags: {
       required: [SupportedArea.NIM_MODEL],
+      disallowed: [SupportedArea.NIM_WIZARD],
     },
   },
   {
@@ -64,6 +65,7 @@ const extensions: (
     },
     flags: {
       required: [SupportedArea.NIM_MODEL],
+      disallowed: [SupportedArea.NIM_WIZARD],
     },
   },
   {
@@ -77,6 +79,7 @@ const extensions: (
     },
     flags: {
       required: [SupportedArea.NIM_MODEL],
+      disallowed: [SupportedArea.NIM_WIZARD],
     },
   },
   {
@@ -87,6 +90,7 @@ const extensions: (
     },
     flags: {
       required: [SupportedArea.NIM_MODEL],
+      disallowed: [SupportedArea.NIM_WIZARD],
     },
   },
 ];
