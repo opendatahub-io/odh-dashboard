@@ -610,6 +610,39 @@ describe('aggregateKueueStatusForModel', () => {
     expect(result?.podAdmissionCounts).toEqual({ admitted: 1, total: 2 });
   });
 
+  it('uses activePodCount for total when more live pods than correlated Workloads', () => {
+    const queued = workloadWithConditions([
+      {
+        type: 'QuotaReserved',
+        status: 'False',
+        reason: 'Pending',
+        message: 'waiting for quota',
+        lastTransitionTime: '2026-02-16T08:00:00Z',
+      },
+    ]);
+    const admitted = workloadWithConditions([
+      {
+        type: 'QuotaReserved',
+        status: 'True',
+        reason: 'QuotaReserved',
+        message: 'Quota reserved',
+        lastTransitionTime: '2026-02-16T08:00:00Z',
+      },
+      {
+        type: 'Admitted',
+        status: 'True',
+        reason: 'Admitted',
+        message: 'Admitted',
+        lastTransitionTime: '2026-02-16T08:00:00Z',
+      },
+    ]);
+
+    const result = aggregateKueueStatusForModel([queued, admitted], { activePodCount: 5 });
+
+    expect(result?.status).toBe(KueueWorkloadStatus.Queued);
+    expect(result?.podAdmissionCounts).toEqual({ admitted: 1, total: 5 });
+  });
+
   it('rapid state flapping: re-aggregating after conditions change (Queued -> Evicted -> Requeued) reflects the latest snapshot each time', () => {
     const queued = workloadWithConditions([
       {

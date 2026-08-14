@@ -1,7 +1,7 @@
 import React from 'react';
 import type { K8sAPIOptions, ProjectKind } from '@odh-dashboard/k8s-core';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
-import { useKueueStatusForDeployments } from '@odh-dashboard/internal/pages/modelServing/useKueueStatusForDeployments';
+import { useKueueStatusWithQueuePositions } from '@odh-dashboard/internal/pages/modelServing/useKueueStatusWithQueuePositions';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import { buildModelDeploymentKey } from '@odh-dashboard/internal/api/k8s/workloads';
 import { getLLMdDeploymentEndpoints } from './endpoints';
@@ -40,7 +40,7 @@ export const useWatchDeployments = (
     kueueStatusByDeploymentKey,
     isLoading: kueueLoading,
     error: kueueError,
-  } = useKueueStatusForDeployments([], project, filteredLLMInferenceServices);
+  } = useKueueStatusWithQueuePositions([], project, filteredLLMInferenceServices);
 
   const deployments = React.useMemo(() => {
     return filteredLLMInferenceServices.map((llmInferenceService) => {
