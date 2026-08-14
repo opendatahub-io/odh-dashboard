@@ -11,12 +11,16 @@ import McpDeploymentRegisteredVersionCell from './McpDeploymentRegisteredVersion
 
 type McpDeploymentsTableRowProps = {
   deployment: McpDeployment;
+  /** Must match the same flag McpDeploymentsTable used to build its columns, or cells and
+   * headers will fall out of alignment. */
+  showRegisteredVersion: boolean;
   onDeleteClick: (deployment: McpDeployment) => void;
   onEditClick: (deployment: McpDeployment) => void;
 };
 
 const McpDeploymentsTableRow: React.FC<McpDeploymentsTableRowProps> = ({
   deployment,
+  showRegisteredVersion,
   onDeleteClick,
   onEditClick,
 }) => {
@@ -44,9 +48,11 @@ const McpDeploymentsTableRow: React.FC<McpDeploymentsTableRowProps> = ({
       <Td dataLabel="MCP server" data-testid="mcp-deployment-server">
         <McpDeploymentServerCell deployment={deployment} />
       </Td>
-      <Td dataLabel="Registered version" data-testid="mcp-deployment-registered-version">
-        <McpDeploymentRegisteredVersionCell deployment={deployment} />
-      </Td>
+      {showRegisteredVersion && (
+        <Td dataLabel="Registered version" data-testid="mcp-deployment-registered-version">
+          <McpDeploymentRegisteredVersionCell deployment={deployment} />
+        </Td>
+      )}
       <Td dataLabel="Created" data-testid="mcp-deployment-created">
         <Timestamp
           date={new Date(deployment.creationTimestamp)}

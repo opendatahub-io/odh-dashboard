@@ -21,13 +21,19 @@ jest.mock('~/odh/pages/mcpDeployments/useMcpDeploymentCatalogServer');
 
 const mockUseMcpDeploymentCatalogServer = jest.mocked(useMcpDeploymentCatalogServer);
 
-const renderRow = (deployment: McpDeployment, onDeleteClick = jest.fn(), onEditClick = jest.fn()) =>
+const renderRow = (
+  deployment: McpDeployment,
+  onDeleteClick = jest.fn(),
+  onEditClick = jest.fn(),
+  showRegisteredVersion = true,
+) =>
   render(
     <MemoryRouter>
       <PfTable>
         <Tbody>
           <McpDeploymentsTableRow
             deployment={deployment}
+            showRegisteredVersion={showRegisteredVersion}
             onDeleteClick={onDeleteClick}
             onEditClick={onEditClick}
           />
@@ -64,6 +70,19 @@ describe('McpDeploymentsTableRow', () => {
   it('should render dash in registered version column for a catalog-sourced deployment', () => {
     renderRow(createMockDeployment({ serverName: 'kubernetes-mcp-server' }));
     expect(screen.getByTestId('mcp-deployment-registered-version')).toHaveTextContent('-');
+  });
+
+  it('should omit the registered version cell entirely when showRegisteredVersion is false', () => {
+    renderRow(
+      createMockDeployment({
+        registryServer: 'io.github.example/kubernetes-mcp',
+        registryVersion: '1.0.0',
+      }),
+      jest.fn(),
+      jest.fn(),
+      false,
+    );
+    expect(screen.queryByTestId('mcp-deployment-registered-version')).not.toBeInTheDocument();
   });
 
   it("should show '-' in both server columns for a bare CR with no catalog or registry annotations (e.g. oc apply)", () => {

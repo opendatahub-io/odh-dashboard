@@ -26,9 +26,12 @@ func NewTestApp(cfg config.EnvConfig, logger *slog.Logger, factory k8s.Kubernete
 }
 
 // SetBFFClientFactoryForTest lets tests inject a (typically mock) inter-BFF
-// client factory into an App built via NewTestApp. It marks the lazy-init guard
-// as already fired so a later BFFClientFactory() call doesn't overwrite it.
+// client factory into an App built via NewTestApp. The assignment happens inside
+// the Once so it's synchronized with BFFClientFactory()'s read the same way the
+// production lazy-init path is -- assigning outside Do would race with a
+// concurrent BFFClientFactory() call under go test -race.
 func (app *App) SetBFFClientFactoryForTest(factory bffclient.BFFClientFactory) {
-	app.bffClientFactoryOnce.Do(func() {})
-	app.bffClientFactory = factory
+	app.bffClientFactoryOnce.Do(func() {
+		app.bffClientFactory = factory
+	})
 }

@@ -11,6 +11,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 )
 
@@ -99,7 +100,9 @@ func NewHTTPBFFClientWithTransport(baseURL string, target BFFTarget, authToken s
 
 // Call makes a request to the target BFF
 func (c *HTTPBFFClient) Call(ctx context.Context, method, path string, body interface{}, response interface{}) error {
-	url := c.baseURL + path
+	// Guard against a double slash if baseURL ever gains a trailing "/" (e.g. a future
+	// DevOverrideURL/config change) -- callers' path is always "/"-prefixed.
+	url := strings.TrimRight(c.baseURL, "/") + path
 
 	var bodyReader io.Reader
 	if body != nil {

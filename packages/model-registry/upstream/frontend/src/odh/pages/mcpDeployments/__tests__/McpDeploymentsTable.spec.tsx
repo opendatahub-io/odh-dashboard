@@ -5,12 +5,20 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { McpDeployment } from '~/odh/types/mcpDeploymentTypes';
 import McpDeploymentsTable from '~/odh/pages/mcpDeployments/McpDeploymentsTable';
+import useMcpRegistryAvailable from '~/odh/hooks/useMcpRegistryAvailable';
 import {
   createMockDeployment,
   createReadyConditions,
   createInitializingConditions,
   createFailedConditions,
 } from './mcpDeploymentTestUtils';
+
+jest.mock('~/odh/hooks/useMcpRegistryAvailable', () => ({
+  __esModule: true,
+  default: jest.fn(),
+}));
+
+const mockUseMcpRegistryAvailable = jest.mocked(useMcpRegistryAvailable);
 
 const mockDeployments: McpDeployment[] = [
   createMockDeployment({
@@ -45,6 +53,7 @@ describe('McpDeploymentsTable', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockUseMcpRegistryAvailable.mockReturnValue(true);
   });
 
   it('should call onDeleteClick when Delete is selected from the kebab menu', async () => {
@@ -81,6 +90,38 @@ describe('McpDeploymentsTable', () => {
     expect(screen.getByTestId('mcp-deployment-row-kubernetes-mcp')).toBeInTheDocument();
     expect(screen.getByTestId('mcp-deployment-row-slack-mcp')).toBeInTheDocument();
     expect(screen.getByTestId('mcp-deployment-row-jira-mcp')).toBeInTheDocument();
+  });
+
+  it('should show the Registered version column when MCP Registry is enabled', () => {
+    render(
+      <McpDeploymentsTable
+        deployments={mockDeployments}
+        onClearFilters={onClearFilters}
+        onDeleteClick={onDeleteClick}
+        onEditClick={onEditClick}
+      />,
+      { wrapper },
+    );
+
+    expect(screen.getByRole('columnheader', { name: 'Registered version' })).toBeInTheDocument();
+  });
+
+  it('should omit the Registered version column when MCP Registry is disabled', () => {
+    mockUseMcpRegistryAvailable.mockReturnValue(false);
+    render(
+      <McpDeploymentsTable
+        deployments={mockDeployments}
+        onClearFilters={onClearFilters}
+        onDeleteClick={onDeleteClick}
+        onEditClick={onEditClick}
+      />,
+      { wrapper },
+    );
+
+    expect(
+      screen.queryByRole('columnheader', { name: 'Registered version' }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByTestId('mcp-deployment-registered-version')).not.toBeInTheDocument();
   });
 
   it('should show empty table view when deployments list is empty', () => {
