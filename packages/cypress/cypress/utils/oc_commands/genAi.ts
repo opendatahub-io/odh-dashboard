@@ -263,6 +263,7 @@ export const createExternalModelViaAPI = (
   cy.request({
     method: 'POST',
     url: `/gen-ai/api/v1/models/external?namespace=${encodeURIComponent(namespace)}`,
+    log: false,
     body: {
       /* eslint-disable camelcase */
       model_id: modelId,

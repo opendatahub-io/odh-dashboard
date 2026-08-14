@@ -136,9 +136,7 @@ describe('Verify Custom Endpoints in Playground - Full Lifecycle', { testIsolati
     cy.step('Clean up MLflow features');
     disablePromptManagementFeatures();
 
-    if (projectName) {
-      deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
-    }
+    deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
   });
 
   it(
