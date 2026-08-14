@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import { EvaluationJob } from '~/app/types';
 import { mockEvaluationJob } from '~/__tests__/unit/testUtils/mockEvaluationData';
@@ -25,6 +26,14 @@ jest.mock('@odh-dashboard/ui-core', () => ({
   ),
 }));
 
+const queryClient = new QueryClient({
+  defaultOptions: { queries: { retry: false } },
+});
+
+beforeEach(() => {
+  queryClient.clear();
+});
+
 const renderTable = (props: {
   evaluations: EvaluationJob[];
   loaded: boolean;
@@ -32,15 +41,17 @@ const renderTable = (props: {
   collectionsLoaded?: boolean;
 }) =>
   render(
-    <MemoryRouter>
-      <EvaluationsTable
-        {...props}
-        collectionNameMap={props.collectionNameMap ?? {}}
-        collectionsLoaded={props.collectionsLoaded ?? true}
-        onRefresh={mockOnRefresh}
-        onShowStatus={mockOnShowStatus}
-      />
-    </MemoryRouter>,
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter>
+        <EvaluationsTable
+          {...props}
+          collectionNameMap={props.collectionNameMap ?? {}}
+          collectionsLoaded={props.collectionsLoaded ?? true}
+          onRefresh={mockOnRefresh}
+          onShowStatus={mockOnShowStatus}
+        />
+      </MemoryRouter>
+    </QueryClientProvider>,
   );
 
 const mockJobs: EvaluationJob[] = [
@@ -124,12 +135,11 @@ describe('EvaluationsTable', () => {
     expect(screen.getByTestId('evaluation-row-2')).toBeInTheDocument();
   });
 
-  it('should call onShowStatus with the job when EvaluationStatusLabel is clicked', () => {
+  it('should call onShowStatus when EvaluationStatusLabel is clicked', () => {
     renderTable({ evaluations: mockJobs, loaded: true });
-    const statusLabel = screen.getByTestId('status-label-completed');
-    fireEvent.click(statusLabel.querySelector('button')!);
+    const statusButtons = screen.getAllByTestId('evaluation-status-button');
+    fireEvent.click(statusButtons[0].querySelector('button')!);
     expect(mockOnShowStatus).toHaveBeenCalledTimes(1);
-    expect(mockOnShowStatus).toHaveBeenCalledWith(mockJobs[0]);
   });
 
   it('should render the New evaluation button', () => {

@@ -26,6 +26,7 @@ import useUser from '~/app/hooks/useUser';
 import EvalHubHeader from '~/app/components/EvalHubHeader';
 import EvalHubProjectSelector from '~/app/components/EvalHubProjectSelector';
 import EvalHubEmptyState from '~/app/components/EvalHubEmptyState';
+import usePageVisibility from '~/app/hooks/usePageVisibility';
 import EvaluationsTable from '~/app/components/EvaluationsTable';
 import { EvaluationJob } from '~/app/types';
 import RetryEvaluationModal from '~/app/components/RetryEvaluationModal';
@@ -37,11 +38,15 @@ const EvaluationsPage: React.FC = () => {
   const { namespace } = useParams<{ namespace: string }>();
   const { clusterAdmin } = useUser();
 
+  // Pause list polling when the browser tab is backgrounded
+  const isPollingEnabled = usePageVisibility();
+
   const { isHealthy, loaded: healthLoaded, error: healthError } = useEvalHubHealth(namespace);
 
   const [evaluations, loaded, error, refreshEvaluations] = useEvaluationJobs(
     { namespace },
     !isHealthy,
+    isPollingEnabled,
   );
   const { collectionNameMap, loaded: collectionsLoaded } = useCollectionNameMap();
   const [selectedJob, setSelectedJob] = React.useState<

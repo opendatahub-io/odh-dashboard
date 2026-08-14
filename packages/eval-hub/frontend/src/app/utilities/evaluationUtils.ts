@@ -1,4 +1,4 @@
-import { CreateEvaluationJobRequest, EvaluationJob } from '~/app/types';
+import { CreateEvaluationJobRequest, EvaluationJob, EvaluationJobState } from '~/app/types';
 import { CollectionNameMap } from '~/app/hooks/useCollectionNameMap';
 
 export const getEvaluationName = (job: EvaluationJob): string =>
@@ -202,9 +202,22 @@ export const formatDate = (dateStr?: string): string => {
   }
 };
 
+const TERMINAL_STATES: ReadonlySet<EvaluationJobState> = new Set([
+  'completed',
+  'failed',
+  'cancelled',
+  'stopped',
+  'partially_failed',
+]);
+
+export const isTerminalState = (state: EvaluationJobState): boolean => TERMINAL_STATES.has(state);
+
 /** Only completed runs can be selected for compare. */
 export const isEvaluationJobComparable = (job: EvaluationJob): boolean =>
   job.status.state === 'completed';
+
+export const getFailedBenchmarkCount = (benchmarks: Array<{ status: string }>): number =>
+  benchmarks.filter((bm) => bm.status === 'failed').length;
 
 export const buildRetryRequest = (job: EvaluationJob): CreateEvaluationJobRequest => ({
   name: job.name ?? getEvaluationName(job),

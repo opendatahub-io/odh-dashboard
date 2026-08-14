@@ -19,17 +19,21 @@ import {
   getAllBenchmarkNames,
   getBenchmarkName,
   getEvaluationName,
+  getFailedBenchmarkCount,
   getResultScore,
   isEvaluationJobComparable,
 } from '~/app/utilities/evaluationUtils';
+import { isPreStartFailure } from '~/app/utilities/evaluationJobPolling';
 import { CollectionNameMap } from '~/app/hooks/useCollectionNameMap';
 import { deleteEvaluationJob } from '~/app/api/k8s';
 import EvaluationStatusLabel from './EvaluationStatusLabel';
 import RetryEvaluationModal from './RetryEvaluationModal';
 import StopEvaluationModal from './StopEvaluationModal';
+import './EvaluationsTableRow.scss';
 
 type EvaluationsTableRowProps = {
   job: EvaluationJob;
+  polledJobData?: EvaluationJob;
   rowIndex: number;
   namespace: string;
   collectionNameMap: CollectionNameMap;
@@ -43,6 +47,7 @@ const IN_PROGRESS_STATES = new Set(['running', 'pending', 'stopping']);
 
 const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
   job,
+  polledJobData,
   rowIndex,
   namespace,
   collectionNameMap,
@@ -69,7 +74,9 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
     job.status.state === 'cancelled' ||
     job.status.state === 'stopped';
   const isComparable = isEvaluationJobComparable(job);
-  const displayState = isStopping ? 'stopping' : job.status.state;
+  const displayState = isStopping ? 'stopping' : (polledJobData?.status.state ?? job.status.state);
+  const isPreStart = isPreStartFailure(polledJobData ?? job);
+  const effectiveBenchmarks = polledJobData?.status.benchmarks ?? job.status.benchmarks ?? [];
 
   React.useEffect(() => {
     if (!isInProgress) {
@@ -230,7 +237,18 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
           )}
         </Td>
         <Td dataLabel="Status" data-testid="evaluation-status">
-          <EvaluationStatusLabel state={displayState} onClick={() => onShowStatus(job)} />
+          <EvaluationStatusLabel
+            state={displayState}
+            isPreStartFailure={isPreStart}
+            onClick={() => onShowStatus(job)}
+          />
+          {(displayState === 'failed' || displayState === 'partially_failed') &&
+          effectiveBenchmarks.length > 1 ? (
+            <div className="evalhub-table-row__failure-detail" data-testid="failure-detail">
+              {getFailedBenchmarkCount(effectiveBenchmarks)} of {effectiveBenchmarks.length}{' '}
+              benchmarks failed
+            </div>
+          ) : null}
         </Td>
         <Td dataLabel="Evaluation" data-testid="evaluation-benchmark">
           <Tooltip

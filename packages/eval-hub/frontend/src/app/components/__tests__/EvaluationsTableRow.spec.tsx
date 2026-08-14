@@ -68,7 +68,7 @@ describe('EvaluationsTableRow', () => {
 
   it('should render status label', () => {
     renderRow({ state: 'running' });
-    expect(screen.getByTestId('status-label-running')).toBeInTheDocument();
+    expect(screen.getByTestId('evaluation-status-button')).toHaveTextContent('Running');
   });
 
   it('should disable the compare checkbox when evaluation is not completed', () => {
@@ -87,7 +87,7 @@ describe('EvaluationsTableRow', () => {
       statusMessage: 'Benchmark arc_easy failed with message: model not found',
     });
 
-    const label = screen.getByTestId('status-label-failed');
+    const label = screen.getByTestId('evaluation-status-button');
     fireEvent.click(within(label).getByRole('button'));
 
     expect(mockOnShowStatus).toHaveBeenCalledTimes(1);
@@ -274,7 +274,7 @@ describe('EvaluationsTableRow', () => {
 
       await waitFor(() => {
         expect(mockOnActionComplete).toHaveBeenCalled();
-        expect(screen.getByTestId('status-label-stopping')).toBeInTheDocument();
+        expect(screen.getByTestId('evaluation-status-button')).toHaveTextContent('Canceling');
       });
     });
 
