@@ -166,8 +166,7 @@ export function useStartEvaluationRunForm({
       agentName,
     });
 
-  const requiresConnectionValidation =
-    sourceMode === 'agent' || sourceMode === 'prerecorded' || modelSelection === 'external';
+  const requiresConnectionValidation = sourceMode === 'agent' || modelSelection === 'external';
 
   const handleModelDropdownSelect = React.useCallback(
     (value: string | undefined, inferenceServices: InferenceServiceItem[]) => {
@@ -296,6 +295,16 @@ export function useStartEvaluationRunForm({
     return undefined;
   }, [sourceMode, datasetUrl]);
 
+  const accessTokenError = React.useMemo((): string | undefined => {
+    if (sourceMode !== 'prerecorded') {
+      return undefined;
+    }
+    if (accessToken.trim() === '') {
+      return 'S3 secret name is required.';
+    }
+    return undefined;
+  }, [sourceMode, accessToken]);
+
   // ── Overall form validity ───────────────────────────────────────────
 
   const isValid = React.useMemo(() => {
@@ -314,7 +323,7 @@ export function useStartEvaluationRunForm({
       return agentName.trim() !== '' && !endpointUrlError;
     }
 
-    return sourceName.trim() !== '' && !datasetUrlError;
+    return sourceName.trim() !== '' && !datasetUrlError && !accessTokenError;
   }, [
     evaluationName,
     hasBenchmarks,
@@ -326,6 +335,7 @@ export function useStartEvaluationRunForm({
     agentName,
     endpointUrlError,
     datasetUrlError,
+    accessTokenError,
     sourceName,
   ]);
 
@@ -336,19 +346,8 @@ export function useStartEvaluationRunForm({
     if (connectionValidation.status === 'validating') {
       return false;
     }
-    if (sourceMode === 'prerecorded') {
-      return !datasetUrlError && datasetUrl.trim() !== '';
-    }
     return !endpointUrlError && endpointUrl.trim() !== '';
-  }, [
-    requiresConnectionValidation,
-    connectionValidation.status,
-    sourceMode,
-    endpointUrlError,
-    endpointUrl,
-    datasetUrlError,
-    datasetUrl,
-  ]);
+  }, [requiresConnectionValidation, connectionValidation.status, endpointUrlError, endpointUrl]);
 
   // ── Additional args handlers ────────────────────────────────────────
 
@@ -636,6 +635,7 @@ export function useStartEvaluationRunForm({
     markTouched,
     endpointUrlError,
     datasetUrlError,
+    accessTokenError,
     connectionValidation,
     handleVerifyConnection,
     canVerifyConnection,

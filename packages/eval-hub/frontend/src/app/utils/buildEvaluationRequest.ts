@@ -6,6 +6,7 @@ import {
   JobPrimaryScore,
   SourceMode,
 } from '~/app/types';
+import { parseS3Url } from '~/app/utils/common';
 
 type BuildEvaluationRequestParams = {
   evaluationName: string;
@@ -59,19 +60,22 @@ const buildEvaluationRequest = ({
 
   const trimmedDatasetUrl = datasetUrl.trim();
   const trimmedAccessToken = accessToken.trim();
-  const prerecordedDataRef =
-    sourceMode === 'prerecorded' && trimmedDatasetUrl
-      ? {
-          // eslint-disable-next-line camelcase
-          test_data_ref: {
-            s3: {
-              key: trimmedDatasetUrl,
-              // eslint-disable-next-line camelcase
-              ...(trimmedAccessToken ? { secret_ref: trimmedAccessToken } : {}),
-            },
+  const s3Parts =
+    sourceMode === 'prerecorded' && trimmedDatasetUrl ? parseS3Url(trimmedDatasetUrl) : null;
+  const prerecordedDataRef = s3Parts
+    ? {
+        // eslint-disable-next-line camelcase
+        test_data_ref: {
+          type: 'pre_recorded_data' as const,
+          s3: {
+            bucket: s3Parts.bucket,
+            key: s3Parts.key,
+            // eslint-disable-next-line camelcase
+            ...(trimmedAccessToken ? { secret_ref: trimmedAccessToken } : {}),
           },
-        }
-      : {};
+        },
+      }
+    : {};
 
   const benchmarkEntries: NonNullable<CreateEvaluationJobRequest['benchmarks']> = [];
 

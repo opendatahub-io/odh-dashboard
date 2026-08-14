@@ -404,7 +404,7 @@ func (m *MockEvalHubClient) ListEvaluationJobs(_ context.Context, _ evalhub.List
 			},
 			Name:   "GPT-4 Safety Assessment",
 			Status: evalhub.JobStatus{State: "running"},
-			Model:  evalhub.JobModel{Name: "gpt-4-turbo"},
+			Model:  &evalhub.JobModel{Name: "gpt-4-turbo"},
 			Benchmarks: []evalhub.JobBenchmark{
 				{ID: "toxigen", ProviderID: "safety_eval_suite"},
 			},
@@ -418,7 +418,7 @@ func (m *MockEvalHubClient) ListEvaluationJobs(_ context.Context, _ evalhub.List
 			},
 			Name:   "Healthcare Compliance Suite",
 			Status: evalhub.JobStatus{State: "stopping"},
-			Model:  evalhub.JobModel{Name: "llama-3-70b"},
+			Model:  &evalhub.JobModel{Name: "llama-3-70b"},
 			Benchmarks: []evalhub.JobBenchmark{
 				{ID: "med_safety", ProviderID: "safety_eval_suite"},
 			},
@@ -432,7 +432,7 @@ func (m *MockEvalHubClient) ListEvaluationJobs(_ context.Context, _ evalhub.List
 			},
 			Name:   "MMLU Comprehensive",
 			Status: evalhub.JobStatus{State: "failed"},
-			Model:  evalhub.JobModel{Name: "claude-3-opus"},
+			Model:  &evalhub.JobModel{Name: "claude-3-opus"},
 			Benchmarks: []evalhub.JobBenchmark{
 				{ID: "mmlu", ProviderID: "lm_evaluation_harness"},
 			},
@@ -464,7 +464,7 @@ func (m *MockEvalHubClient) ListEvaluationJobs(_ context.Context, _ evalhub.List
 					Pass:      &fail,
 				},
 			},
-			Model: evalhub.JobModel{
+			Model: &evalhub.JobModel{
 				Name: "claude-3-opus",
 				URL:  "https://api.example.com/v1/models/serving-endpoint01",
 			},
@@ -482,7 +482,7 @@ func (m *MockEvalHubClient) ListEvaluationJobs(_ context.Context, _ evalhub.List
 			},
 			Name:   "Telco Compliance Assessment",
 			Status: evalhub.JobStatus{State: "stopped"},
-			Model:  evalhub.JobModel{Name: "claude-3-opus"},
+			Model:  &evalhub.JobModel{Name: "claude-3-opus"},
 			Benchmarks: []evalhub.JobBenchmark{
 				{ID: "teleqna", ProviderID: "lm_evaluation_harness"},
 			},
@@ -512,7 +512,7 @@ func (m *MockEvalHubClient) ListEvaluationJobs(_ context.Context, _ evalhub.List
 				},
 				Test: &evalhub.ResultTest{Score: ptr(0.72), Threshold: ptr(0.3), Pass: &pass},
 			},
-			Model: evalhub.JobModel{
+			Model: &evalhub.JobModel{
 				Name: "claude-3-opus",
 				URL:  "https://api.example.com/v1/models/serving-endpoint01",
 			},

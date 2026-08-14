@@ -831,6 +831,12 @@ components:
     TestDataRef:
       type: object
       properties:
+        type:
+          type: string
+          description: Type of test data reference
+          enum:
+            - data_set
+            - pre_recorded_data
         s3:
           $ref: '#/components/schemas/S3DataRef'
 
@@ -890,7 +896,6 @@ components:
         - status
         - results
         - model
-        - benchmarks
       properties:
         resource:
           $ref: '#/components/schemas/JobResource'
@@ -1213,7 +1218,6 @@ components:
       required:
         - name
         - model
-        - benchmarks
       properties:
         name:
           type: string
