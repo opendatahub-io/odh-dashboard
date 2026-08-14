@@ -10,6 +10,7 @@ type FormGroupLabelProps = {
   isRequired?: boolean;
   helpPopover?: {
     ariaLabel: string;
+    title?: string;
     content: React.ReactNode;
   };
 };
@@ -34,7 +35,11 @@ const FormGroupLabel: React.FC<FormGroupLabelProps> = ({
     )}
     {helpPopover && (
       <>
-        <Popover aria-label={helpPopover.ariaLabel} bodyContent={helpPopover.content}>
+        <Popover
+          aria-label={helpPopover.ariaLabel}
+          headerContent={helpPopover.title}
+          bodyContent={helpPopover.content}
+        >
           <Button
             variant="plain"
             isInline
